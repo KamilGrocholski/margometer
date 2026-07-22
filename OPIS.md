@@ -1,3 +1,19 @@
+<!--
+  Standardowy opis dodatku do Margonem. Każdy kolejny dodatek trzyma DOKŁADNIE ten
+  sam szkielet sekcji, żeby wszystkie wyglądały tak samo — wypełniasz treścią
+  danego dodatku, nie ruszasz kolejności ani nagłówków.
+
+  Szkielet (w tej kolejności):
+    # <Nazwa> + jednozdaniowe hasło
+    ## Zrzuty ekranu
+    ## Opis            (co robi, co pokazuje, przekroje)
+    ## Znane ograniczenia   (jeśli są; inaczej pomiń)
+    ## Wersja          (+ wspierane domeny)
+    ## Instalacja i użycie
+    ## Wsparcie
+    ## Linki
+-->
+
 # MargoMeter
 
 Licznik obrażeń do [Margonema](https://www.margonem.pl) — statystyki z okna walki,
@@ -21,24 +37,29 @@ przed oczami, i pokazuje w formie tabeli.
 
 **Co pokazuje:**
 
-- **Zadane** — obrażenia zadane, z podziałem na źródła (broń, umiejętności,
-  trucizna, głęboka rana) i na typy (żywioły, efekty)
-- **Otrzymane** — obrażenia przyjęte, z podziałem na to, kto je zadał
-- **Leczenie** — leczenie otrzymane wraz ze źródłem
+- **Zadane** — obrażenia zadane, z podziałem na cele (komu) i dalej na źródła
+  (broń, umiejętności, trucizna, głęboka rana) oraz na typy (żywioły, efekty)
+- **Otrzymane** — obrażenia przyjęte, z podziałem na to, kto je zadał, i czym
+- **Leczenie** — leczenie otrzymane wraz ze źródłem (regeneracja, aura, samoratunek)
 - **Tury** — liczba tur, w których postać działała, plus tury utracone
 
 **Przekroje:**
 
-- **Ta walka** / **Sesja** — bieżące starcie albo suma od włączenia gry
 - **Wszyscy** / **Mój zespół** / **Przeciwnicy** — filtr składu
+- **Na turę** — przełącznik: sumy albo średnia na turę
 
-**W dymku pod każdym wierszem:** trafienia i uniki, krytyki, największy
-pojedynczy cios, obrażenia pochłonięte, pełne rozbicie źródeł oraz efekty
-nałożone i przyjęte (klątwy, zranienia, podpalenia).
+**Nawigacja (mysz):** lewy przycisk wchodzi w postać i drąży rozbicie o szczebel
+głębiej (ranking → komu/od kogo → czym), prawy przycisk wraca o szczebel. Pod
+każdym wierszem najechanie pokazuje skrót statystyk postaci.
 
-Nakładkę można przeciągać i zwijać — pozycja zapamiętuje się między sesjami.
+**W dymku pod wierszem:** trafienia i uniki, krytyki, największy pojedynczy cios,
+obrażenia pochłonięte oraz efekty nałożone i przyjęte (klątwy, zranienia,
+podpalenia).
 
-### Znane ograniczenia
+Nakładkę można przeciągać, zwijać i **skalować za róg** (jak textarea) — pozycja
+i rozmiar zapamiętują się między sesjami.
+
+## Znane ograniczenia
 
 Kilka rzeczy log walki po prostu przemilcza, więc MargoMeter oznacza je zamiast
 zgadywać:
@@ -46,6 +67,8 @@ zgadywać:
 - **Trucizna bez sprawcy** — linia `traci N pkt. życia od trucizny` nie mówi, kto
   otruł. Przy dokładnie jednym przeciwniku obrażenia trafiają do niego, w innym
   wypadku lądują w stopce jako „Trucizna bez sprawcy”.
+- **Leczenie bez leczącego** — log nie nazywa leczącego, więc leczenie rozbijamy
+  po źródle (od czego), a nie po postaci.
 - **Dwie postacie o tej samej nazwie** — gdy log ich nie rozróżnia, dostają jeden
   wspólny wiersz, a nazwa oznaczona jest gwiazdką (`*`). To znak, że liczba
   obejmuje więcej niż jedną postać.
@@ -55,7 +78,7 @@ zgadywać:
 
 ## Wersja
 
-**0.1.0** — pierwsze wydanie.
+**0.1.0** — pierwsze wydanie. Pełna historia zmian: [CHANGELOG.md](CHANGELOG.md).
 
 Wspierane domeny: `*.margonem.pl`, `*.margonem.com`.
 
@@ -71,12 +94,14 @@ Nakładka działa sama z siebie, nie ma nic do skonfigurowania. Sterowanie:
 | Element | Działanie |
 |---|---|
 | Pasek tytułu | Przeciągnij, aby przesunąć nakładkę |
+| Róg w prawym dolnym rogu | Pociągnij, aby zmienić rozmiar okna |
 | `—` / `▢` | Zwiń / rozwiń |
-| Zakładki u góry | Zmiana zakresu, metryki i filtru drużyny |
-| Najechanie na wiersz | Pełne rozbicie statystyk postaci |
+| Zakładki u góry | Zmiana metryki i filtru drużyny |
+| Lewy przycisk na wierszu | Wejście w postać / głębiej w rozbicie |
+| Prawy przycisk | Powrót o szczebel |
+| Najechanie na wiersz | Skrót statystyk postaci |
 
-Statystyki sesji zerują się przy przeładowaniu strony. Statystyki walki — przy
-wejściu w kolejne starcie.
+Statystyki walki zerują się przy wejściu w kolejne starcie.
 
 ## Wsparcie
 
