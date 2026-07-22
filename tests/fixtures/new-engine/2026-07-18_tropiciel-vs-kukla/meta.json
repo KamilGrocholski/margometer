@@ -1,0 +1,29 @@
+{
+  "client": "new-engine",
+  "capturedAt": "2026-07-18",
+  "clientBuild": null,
+  "world": null,
+  "source": "okno walki, zaznaczenie + kopiuj",
+  "participants": [
+    { "name": "Magister Dwa", "level": 64, "professionCode": "t", "profession": "tropiciel" },
+    { "name": "Kukla Treningowa", "level": 1, "professionCode": "w", "profession": "wojownik" }
+  ],
+  "covers": [
+    "profesja tropiciel (kod t) - pierwszy log",
+    "proc Przebicie",
+    "Przebicie znosi redukcje: applied == raw, bez niego applied = raw - 1",
+    "kukla atakuje (sila +1) i trafia w Unik gracza",
+    "'otrzymal' bez koncowki (a) po stronie gracza",
+    "drugie trafienie rosnie z tury na ture az do sufitu 2892",
+    "zakonczenie bez rozstrzygniecia"
+  ],
+  "missing": [
+    "leczenie",
+    "obrazenia od DoT",
+    "utrata tury",
+    "Cios krytyczny broni pomocniczej (drugie trafienie nigdy nie jest krytem)",
+    "Zablokowanie N obrazen",
+    "walka grupowa, smierc uczestnika"
+  ],
+  "notes": "Fragment reprezentatywny pelnego logu (~115 atakow, walka konczy sie remisem przy 96.65% HP kukly). HP gracza stoi na 94.08% przez cala walke - kukla nie zadaje mu ani punktu. Drugie trafienie startuje od 1927 i rosnie o ~47 na atak do sufitu 2892; jesli statystyki maja kiedys sledzic narastajace buffy, to jest zrodlo."
+}

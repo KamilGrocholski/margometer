@@ -1,0 +1,182 @@
+[b]Rozpoczęła się walka pomiędzy Tancogniew Kazrek (64b) a wf agar psk (63t)[/b]
+[b]Rozpoczęła się walka pomiędzy Tancogniew Kazrek (64b) a wf agar psk (63t)[/b]
+[b]Tancogniew Kazrek spowija się trującą mgłą: -3% obrażeń zadawanych przez zatrutych przeciwników.
+[/b]
+[b]Walka bez Punktów Honoru - gracze są z tego samego klanu.[/b]
+[b] Tancogniew Kazrek(92.84%) zrobił krok do przodu. [/b]
+[i]wf agar psk(100%) uderzył z siłą  +517  +374
++Niszczenie pancerza o 10
++Niszczenie odporności magicznych o 1%
+Tancogniew Kazrek(90.30%) otrzymał  -155  -174  obrażeń
+[/i]
+[b]  Przywrócono 57 punktów życia Tancogniew Kazrek(90.74%)
+[/b]
+[b] Tancogniew Kazrek(90.74%) zrobił krok do przodu. [/b]
+[i]wf agar psk(100%) uderzył z siłą  +496  +383
++Niszczenie pancerza o 10
++Niszczenie odporności magicznych o 1%
+Tancogniew Kazrek(88.17%) otrzymał  -145  -188  obrażeń
+[/i]
+[b]  Przywrócono 54 punktów życia Tancogniew Kazrek(88.59%)
+[/b]
+Tancogniew Kazrek(88.59%) uderzył z siłą  +1142  +543
++Niszczenie pancerza o 11
++Niszczenie odporności magicznych o 1%
+   -Fasada opieki, 13% redukcji ciosów do końca walki
+-Absorpcja 261 obrażeń fizycznych
+wf agar psk(90.81%) otrzymał  -480  -204  obrażeń
+
+[b]  Przywrócono 51 punktów życia Tancogniew Kazrek(88.98%)
+[/b]
+Tancogniew Kazrek(88.98%) uderzył z siłą  +1114  +602
++Niszczenie pancerza o 11
++Niszczenie odporności magicznych o 1%
+wf agar psk(78.03%) otrzymał  -693  -258  obrażeń
+
+[b]  Przywrócono 485 punktów życia wf agar psk(84.55%)
+[/b]
+[b]  wf agar psk(83.81%): 55 (osłabione o 24%) obrażeń od trucizny.
+[/b]
+[i]wf agar psk(83.81%) uderzył z siłą  +491  +381
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
++Niszczenie pancerza o 10
++Niszczenie odporności magicznych o 1%
+-Zniszczono 4 energii
+Tancogniew Kazrek(86.37%) otrzymał  -147  -192  obrażeń
+[/i]
+[b]  Przywrócono 48 punktów życia Tancogniew Kazrek(86.74%)
+[/b]
+Tancogniew Kazrek(86.74%) uderzył z siłą  +1060  +564
++Niszczenie pancerza o 11
++Niszczenie odporności magicznych o 1%
+wf agar psk(71.82%) otrzymał  -656  -236  obrażeń
+
+[b]  Przywrócono 46 punktów życia Tancogniew Kazrek(87.09%)
+[/b]
+Tancogniew Kazrek(87.09%) uderzył z siłą  +1738  +540
+  +Cios krytyczny
++Niszczenie pancerza o 11
++Niszczenie odporności magicznych o 1%
+-Zniszczono 4 energii
+  -Krytyczna osłona, osłabienie obrażeń o 25%
+wf agar psk(56.25%) otrzymał  -935  -224  obrażeń
+
+[b]  Przywrócono 461 punktów życia wf agar psk(62.44%)
+[/b]
+[b]  wf agar psk(61.70%): 55 (osłabione o 24%) obrażeń od trucizny.
+[/b]
+[i]wf agar psk(61.70%) uderzył z siłą  +543  +619
+  +Cios krytyczny
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
+  -Unik
+Tancogniew Kazrek(87.09%) otrzymał  -0  obrażeń
+[/i]
+[b]  Przywrócono 43 punktów życia Tancogniew Kazrek(87.42%)
+[/b]
+Tancogniew Kazrek(87.42%) uderzył z siłą  +1036  +601
++Niszczenie pancerza o 11
++Niszczenie odporności magicznych o 1%
+-Zniszczono 4 energii
+wf agar psk(49.14%) otrzymał  -654  -281  obrażeń
+
+[b]  Przywrócono 436 punktów życia wf agar psk(55.00%)
+[/b]
+[b]  wf agar psk(54.26%): 55 (osłabione o 24%) obrażeń od trucizny.
+[/b]
+[i]wf agar psk(54.26%) uderzył z siłą  +441  +398
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
++Niszczenie pancerza o 10
++Niszczenie odporności magicznych o 1%
+-Zniszczono 10 many
+Tancogniew Kazrek(84.91%) otrzymał  -114  -212  obrażeń
+[/i]
+[b]  Przywrócono 40 punktów życia Tancogniew Kazrek(85.22%)
+[/b]
+Tancogniew Kazrek(85.22%) uderzył z siłą  +1041  +595
+  -Unik
+wf agar psk(50.44%) otrzymał  -0  -284  obrażeń
+
+[b]  Przywrócono 37 punktów życia Tancogniew Kazrek(85.50%)
+[/b]
+Tancogniew Kazrek(85.50%) uderzył z siłą  +1138  +533
+  -Unik
+wf agar psk(47.30%) otrzymał  -0  -234  obrażeń
+
+[b]  Przywrócono 412 punktów życia wf agar psk(52.84%)
+[/b]
+[b]  wf agar psk(52.10%): 55 (osłabione o 24%) obrażeń od trucizny.
+[/b]
+[i]wf agar psk(52.10%) uderzył z siłą  +430  +408
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
+  -Unik
+Tancogniew Kazrek(85.50%) otrzymał  -0  obrażeń
+[/i]
+[b]  Przywrócono 34 punktów życia Tancogniew Kazrek(85.76%)
+[/b]
+Tancogniew Kazrek(85.76%) uderzył z siłą  +1045  +550
++Niszczenie pancerza o 11
++Niszczenie odporności magicznych o 1%
+wf agar psk(39.75%) otrzymał  -671  -248  obrażeń
+
+[b]  Przywrócono 31 punktów życia Tancogniew Kazrek(86.00%)
+[/b]
+Tancogniew Kazrek(86.00%) uderzył z siłą  +1115  +586
++Niszczenie pancerza o 11
++Niszczenie odporności magicznych o 1%
+   +Dotyk anioła
+wf agar psk(25.97%) otrzymał  -740  -285  obrażeń
+
+[b]  Przywrócono 388 punktów życia wf agar psk(31.19%)
+[/b]
+[b]  wf agar psk(30.45%): 55 (osłabione o 24%) obrażeń od trucizny.
+[/b]
+[i]wf agar psk(30.45%) uderzył z siłą  +465  +417
+ +Przebicie
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
++Niszczenie pancerza o 10
++Niszczenie odporności magicznych o 1%
+Tancogniew Kazrek(79.20%) otrzymał  -465  -417  obrażeń
+[/i]
+[b]  Przywrócono 28 punktów życia Tancogniew Kazrek(79.42%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 777 punktów życia Tancogniew Kazrek(85.41%)
+[/b]
+Tancogniew Kazrek(85.41%) uderzył z siłą  +1076  +561
++Niszczenie pancerza o 11
++Niszczenie odporności magicznych o 1%
+   +Dotyk anioła
+wf agar psk(17.16%) otrzymał  -716  -273  obrażeń
+
+[b]  Przywrócono 364 punktów życia wf agar psk(22.05%)
+[/b]
+[b]  wf agar psk(21.31%): 55 (osłabione o 24%) obrażeń od trucizny.
+[/b]
+[i]wf agar psk(21.31%) uderzył z siłą  +436  +425
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
++Niszczenie pancerza o 10
++Niszczenie odporności magicznych o 1%
+-Zniszczono 4 energii
+Tancogniew Kazrek(82.57%) otrzymał  -122  -246  obrażeń
+[/i]
+[b]  Przywrócono 26 punktów życia Tancogniew Kazrek(82.77%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 777 punktów życia Tancogniew Kazrek(88.77%)
+[/b]
+Tancogniew Kazrek(88.77%) uderzył z siłą  +1000  +604
++Niszczenie pancerza o 11
++Niszczenie odporności magicznych o 1%
+wf agar psk(8.18%) otrzymał  -660  -317  obrażeń
+
+[b]  Przywrócono 23 punktów życia Tancogniew Kazrek(88.94%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 505 punktów życia Tancogniew Kazrek(92.84%)
+[/b]
+Tancogniew Kazrek(92.84%) uderzył z siłą  +1060  +531
++Niszczenie pancerza o 11
++Niszczenie odporności magicznych o 1%
+-Zniszczono 4 energii
+   +Dotyk anioła
+wf agar psk(0%) otrzymał  -722  -265  obrażeń
+
+[b]Zwyciężył Tancogniew Kazrek[/b]
+[b]Poległ wf agar psk[/b]

@@ -1,0 +1,227 @@
+[b]Rozpoczęła się walka pomiędzy Łowcosław Kazrek (70h), wf foverek psk (70t) a Regulus Mętnooki (63w)[/b]
+[b]Rozpoczęła się walka pomiędzy Łowcosław Kazrek (70h), wf foverek psk (70t) a Regulus Mętnooki (63w)[/b]
+[b]Wzmocnienie Regulus Mętnooki o 35% ze względu na małą grupę przeciwników
+[/b]
+[b]Łowcosław Kazrek spowija się trującą mgłą: -3% obrażeń zadawanych przez zatrutych przeciwników.
+[/b]
+[b] Regulus Mętnooki(100%) zrobił(a) krok do przodu. [/b]
+Łowcosław Kazrek wykonuje Podwójny strzał.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +802
+ +Przebicie
++Niszczenie pancerza o 11
+Regulus Mętnooki(99.56%) otrzymał(a)  -802  obrażeń
+
+Łowcosław Kazrek(100%) uderzył z siłą  +818
++Niszczenie pancerza o 11
+Regulus Mętnooki(99.54%) otrzymał(a)  -34  obrażeń
+
+[b]  Regulus Mętnooki(99.32%): 405 obrażeń od trucizny.
+[/b]
+[b] Regulus Mętnooki(99.32%) zrobił(a) krok do przodu. [/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +805  +690
++Niszczenie pancerza o 18
+Regulus Mętnooki(99.21%) otrzymał(a)  -33  -168  obrażeń
+
+[b]  Regulus Mętnooki(98.98%): 405 obrażeń od trucizny.
+[/b]
+[i]Regulus Mętnooki wykonuje Plugawa inkantacja.
+[/i]
+[b]  Przywrócono 1847 punktów życia Regulus Mętnooki
+[/b]
+[i]Regulus Mętnooki(100%) uderzył(a) z siłą  +2867
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
++Niszczenie pancerza o 50
+Łowcosław Kazrek(83.69%) otrzymał  -2359  obrażeń
+[/i]
+[i]Regulus Mętnooki(100%) przygotowuje się do wykonania Aera impetus(0%).
+[/i]
+[b]  Przywrócono 70 punktów życia Łowcosław Kazrek(84.18%)
+[/b]
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(84.18%) uderzył z siłą  +1162
+  +Klątwa
+Przerwanie ciosu specjalnego.
++Niszczenie pancerza o 11
+Regulus Mętnooki(99.86%) otrzymał(a)  -258  obrażeń
+
+[b]  Regulus Mętnooki(99.34%): 947 obrażeń od trucizny.
+[/b]
+[b]Regulus Mętnooki - utrata tury[/b]
+wf foverek psk wykonuje Strzała z niespodzianką.
++Kombinacja x1!
+
+wf foverek psk(100%) uderzył z siłą  +950  +766
++Niszczenie pancerza o 18
+Regulus Mętnooki(99.15%) otrzymał(a)  -122  -227  obrażeń
+
+[b]  Regulus Mętnooki(98.62%): 947 obrażeń od trucizny.
+[/b]
+[i]Regulus Mętnooki(98.62%) uderzył(a) z siłą  +2583
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
++Niszczenie pancerza o 50
+Łowcosław Kazrek(69.46%) otrzymał  -2129  obrażeń
+[/i]
+[b]  Przywrócono 67 punktów życia Łowcosław Kazrek(69.92%)
+[/b]
+Łowcosław Kazrek wykonuje Błyskawiczny strzał.
+Łowcosław Kazrek otrzymuje 23 energii.
++Kombinacja x3!
+
+Łowcosław Kazrek(69.92%) uderzył z siłą  +1207
+ +Przebicie
++Niszczenie pancerza o 11
+Regulus Mętnooki(97.96%) otrzymał(a)  -1207  obrażeń
+
+[b]  Regulus Mętnooki(97.44%): 947 obrażeń od trucizny.
+[/b]
+[i]Regulus Mętnooki wykonuje Uderzenie Króla Węży.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 3%
+  -4884  obrażeń otrzymał(a) Łowcosław Kazrek(36.17%).
+[/i]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +872  +690
++Niszczenie pancerza o 18
+Regulus Mętnooki(97.29%) otrzymał(a)  -88  -184  obrażeń
+
+[b]  Regulus Mętnooki(96.77%): 947 obrażeń od trucizny.
+[/b]
+[i]Regulus Mętnooki wykonuje Rozbryzg treści żołądkowej.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 3%
+  -1930  obrażeń otrzymał(a) Łowcosław Kazrek(22.82%).
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
+  -1712  obrażeń otrzymał(a) wf foverek psk(87.14%).
+[/i]
+[b]  Przywrócono 63 punktów życia Łowcosław Kazrek(23.26%)
+[/b]
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(23.26%) uderzył z siłą  +1211
++Niszczenie pancerza o 11
+Regulus Mętnooki(96.59%) otrzymał(a)  -330  obrażeń
+
+[b]  Regulus Mętnooki(96.07%): 947 obrażeń od trucizny.
+[/b]
+[i]Regulus Mętnooki wykonuje Rozbryzg treści żołądkowej.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 3%
+  Łowcosław Kazrek(44.00%): Ostatni ratunek, zregenerowano 4753 punktów życia.
+  -1753  obrażeń otrzymał(a) Łowcosław Kazrek(44.00%).
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
+  -1831  obrażeń otrzymał(a) wf foverek psk(73.39%).
+[/i]
+[b]  Przywrócono 247 punktów życia wf foverek psk(75.24%)
+[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(75.24%) uderzył z siłą  +822  +690
++Niszczenie pancerza o 18
+  +Zamrożenie
+Regulus Mętnooki(95.92%) otrzymał(a)  -71  -191  obrażeń
+
+[b]  Regulus Mętnooki(95.40%): 947 obrażeń od trucizny.
+[/b]
+[b]Regulus Mętnooki - utrata tury (redukcja ogłuszenia 90%)[/b]
+[b]  Regulus Mętnooki(94.88%): 947 obrażeń od trucizny.
+[/b]
+[i]Regulus Mętnooki(94.88%) uderzył(a) z siłą  +2803
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
++Niszczenie pancerza o 50
+Łowcosław Kazrek(27.41%) otrzymał  -2399  obrażeń
+[/i]
+[b]  Przywrócono 59 punktów życia Łowcosław Kazrek(27.82%)
+[/b]
+Łowcosław Kazrek wykonuje Podwójny strzał.
+
+Łowcosław Kazrek(27.82%) uderzył z siłą  +861
+ +Przebicie
++Niszczenie pancerza o 11
+Regulus Mętnooki(94.41%) otrzymał(a)  -861  obrażeń
+
+Łowcosław Kazrek(27.82%) uderzył z siłą  +887
+ +Przebicie
++Niszczenie pancerza o 11
+Regulus Mętnooki(93.92%) otrzymał(a)  -887  obrażeń
+
+[b]  Regulus Mętnooki(93.40%): 947 obrażeń od trucizny.
+[/b]
+[i]Regulus Mętnooki wykonuje Uderzenie Króla Węży.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 3%
+  -4712  obrażeń otrzymał(a) Łowcosław Kazrek(0.00%).
+[/i]
+[b]  Przywrócono 235 punktów życia wf foverek psk(77.01%)
+[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(77.01%) uderzył z siłą  +1081  +890
+  +Cios krytyczny
++Niszczenie pancerza o 18
+Regulus Mętnooki(93.06%) otrzymał(a)  -264  -344  obrażeń
+
+[b]  Regulus Mętnooki(92.54%): 947 obrażeń od trucizny.
+[/b]
+[i]Regulus Mętnooki wykonuje Rozbryzg treści żołądkowej.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 3%
+  -2368  obrażeń otrzymał(a) wf foverek psk(59.22%).
+[/i]
+[i]Regulus Mętnooki(92.54%) przygotowuje się do wykonania Ponowne rozgrzanie(0%).
+[/i]
+[i]Regulus Mętnooki(92.54%) przygotowuje się do wykonania Ponowne rozgrzanie(100%).
+[/i]
+[b]  Przywrócono 222 punktów życia wf foverek psk(60.89%)
+[/b]
+wf foverek psk wykonuje Strzała z niespodzianką.
++Kombinacja x3!
+
+wf foverek psk(60.89%) uderzył z siłą  +1265  +988
+  +Cios krytyczny
++Niszczenie pancerza o 18
+Regulus Mętnooki(92.08%) otrzymał(a)  -422  -422  obrażeń
+
+[i]Regulus Mętnooki wykonuje Ponowne rozgrzanie.
+[/i]
+[i]Regulus Mętnooki(92.08%) uderzył(a) z siłą  +2161
+  -Unik
+wf foverek psk(60.89%) otrzymał  -0  obrażeń
+[/i]
+[i]Regulus Mętnooki(92.08%) uderzył(a) z siłą  +3110
++Niszczenie pancerza o 50
+   -Fasada opieki, 13% redukcji ciosów do końca walki
+-Absorpcja 827 obrażeń fizycznych
+wf foverek psk(48.45%) otrzymał  -1656  obrażeń
+[/i]
+[i]Regulus Mętnooki wykonuje Uderzenie Króla Węży.
+[/i]
+[i]  wf foverek psk(44.00%): Ostatni ratunek, zregenerowano 4480 punktów życia.
+  -5072  obrażeń otrzymał(a) wf foverek psk(44.00%).
+[/i]
+[b]  Przywrócono 210 punktów życia wf foverek psk(45.58%)
+[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(45.58%) uderzył z siłą  +881  +690
++Niszczenie pancerza o 18
+Regulus Mętnooki(91.88%) otrzymał(a)  -140  -213  obrażeń
+
+[i]Regulus Mętnooki(91.88%) uderzył(a) z siłą  +2944
++Niszczenie pancerza o 50
+wf foverek psk(28.47%) otrzymał  -2278  obrażeń
+[/i]
+[i]Regulus Mętnooki(91.88%) uderzył(a) z siłą  +5182
+  +Cios krytyczny
++Niszczenie pancerza o 50
++Potężne ogłuszenie
+wf foverek psk(0%) otrzymał  -4269  obrażeń
+[/i]
+[i]Regulus Mętnooki(91.88%) przygotowuje się do wykonania Barłóg rozpaczy(0%).
+[/i]
+[b]Zwyciężył(a) Regulus Mętnooki[/b]
+[b]Poległa drużyna wf foverek psk, Łowcosław Kazrek[/b]

@@ -1,0 +1,586 @@
+import { ELEMENT_MARKER, type BattleEvent, type Hit, type Participant } from "./types.ts";
+
+/** Litera z klasy `dmgX` w DOM gry. Fizycznych obrażeń gra tak nie znakuje. */
+const ELEMENTS: Record<string, string> = {
+  f: "ogień",
+  l: "błyskawica",
+  c: "zimno",
+  // Klasa `dmg` bez litery — obrażenia broni bez żywiołu.
+  p: "fizyczne",
+  // `dmga` niosą linie własnych obrażeń umiejętności (Fuzja żywiołów,
+  // Wycieńczająca strzała). Opisy obu mówią "obrażenia nieuchronne", stąd
+  // nazwa — to wniosek z opisów, nie dosłowny zapis z logu.
+  a: "nieuchronne",
+  // `dmgd` widziane u łowcy strzelającego z łuku, obok `dmg` u wojownika
+  // w zwarciu. Nazwa jest wnioskiem z tego zestawienia, nie z logu.
+  d: "dystansowe",
+};
+
+const RE_ELEMENT = new RegExp(`${ELEMENT_MARKER}([a-z]+)`, "g");
+const RE_DAMAGE_VALUE = new RegExp(`(-?\\d+)(?:${ELEMENT_MARKER}([a-z]+))?`, "g");
+
+/** Tekst bez znaczników — wszystko poza dwiema liniami obrażeń widzi tę wersję. */
+function clean(text: string): string {
+  return text.replace(RE_ELEMENT, "");
+}
+
+/** Nazwa aktora + jego HP w procentach, np. `Magister Kazrek(0.01%)`. */
+const ACTOR = String.raw`(.+?)\((\d+(?:[.,]\d+)?)%\)`;
+
+const RE_FIGHT_START = /^Rozpoczęła się walka pomiędzy (.+)$/;
+const RE_PARTICIPANT = /(.+?)\s\((\d+)([a-zA-Z])\)/g;
+// Akcje przeciwnika mają formę "uderzył(a)", własne "uderzył".
+const RE_ATTACK = new RegExp(`^${ACTOR}\\s+uderzył(?:\\(a\\))? z siłą\\s+(.+)$`);
+const RE_TAKEN = new RegExp(
+  `^${ACTOR}\\s+otrzymał(?:\\(a\\))?\\s+(.+?)\\s+obrażeń$`,
+);
+// Modyfikator zaczyna się od + lub -. Po znaku bywa liczba ("+14 energii"),
+// więc linie niosące obrażenia muszą być sprawdzane WCZEŚNIEJ niż ta. Wymóg
+// litery zostawia czujkę na linie czysto liczbowe, gdyby format się zmienił.
+const RE_MODIFIER = /^[+-]\s*(.*\p{L}.*)$/u;
+/** "wf agar psk wykonuje Podwójne trafienie." — zapowiedź umiejętności. */
+const RE_ABILITY_USE = /^(.+?) wykonuje (.+?)\.?$/;
+/** Obrażenia samej umiejętności: "-507 obrażeń otrzymał(a) X(75.08%)." */
+const RE_ABILITY_DAMAGE = new RegExp(
+  `^[+-]?(\\d+)\\s+obrażeń otrzymał(?:\\(a\\))?\\s+${ACTOR}\\.?$`,
+);
+/** "X(80.00%) otrzymał 162 obrażeń od błyskawic." — inny szyk niż RE_DOT. */
+const RE_DOT_TAKEN = new RegExp(
+  `^${ACTOR}\\s+otrzymał(?:\\(a\\))?\\s+(\\d+)\\s*(?:\\(osłabione o (\\d+)%\\))?\\s*obrażeń (od|po) (.+?)\\.?$`,
+);
+const RE_HEAL_ABILITY = new RegExp(
+  `^(.+?):\\s*zregenerowano\\s+(\\d+)\\s+punktów życia\\s+${ACTOR}$`,
+);
+/** Leczenie w szyku "X(38.00%): Ostatni ratunek, zregenerowano 3056 ...". */
+const RE_HEAL_SELF = new RegExp(
+  `^${ACTOR}:\\s*(.+?),\\s*zregenerowano\\s+(\\d+)\\s+punktów życia\\.?$`,
+);
+// HP% celu bywa nieobecne — leczenie potwora (np. bossa) log podaje bez procenta:
+// "Przywrócono 1847 punktów życia Regulus Mętnooki". Dlatego nie ${ACTOR}, tylko
+// nazwa z opcjonalnym procentem.
+const RE_HEAL_PLAIN = new RegExp(
+  `^Przywrócono\\s+(\\d+)\\s+punktów życia\\s+(.+?)(?:\\((\\d+(?:[.,]\\d+)?)%\\))?$`,
+);
+const RE_DOT = new RegExp(
+  `^${ACTOR}:\\s*(\\d+)\\s*(?:\\(osłabione o (\\d+)%\\))?\\s*obrażeń (od|po) (.+?)\\.?$`,
+);
+// Ruch to zawsze "krok ...". Bez tego zawężenia każde "zrobił X" udawałoby
+// ruch i nowa linia z logu przestałaby być zgłaszana jako nieznana.
+const RE_MOVE = new RegExp(`^${ACTOR}\\s+zrobił(?:\\(a\\))?\\s+(krok\\b.*?)\\.?$`);
+// Po "utrata tury" bywa dopisany powód w nawiasie: "(redukcja ogłuszenia 90%)".
+const RE_TURN_LOST = /^(.+?) - utrata tury(?: \(.+\))?$/;
+// Rodzaj bywa dopisany wprost ("Poległa") albo w nawiasie ("Poległ(a)") — tak
+// gra pisze o potworach, u których nie zna formy.
+const RE_VICTORY = /^Zwyciężył(?:a|o|\(a\))?(?: drużyna)? (.+)$/;
+const RE_DEFEAT = /^Poległ(?:a|o|y|\(a\))?(?: drużyna)? (.+)$/;
+const RE_EXPERIENCE = /^Zwycięzca zdobył łącznie (\d+) punktów doświadczenia$/;
+/** "Dodatkowe punkty doświadczenia z przedmiotów +1021." — bonus obok głównego. */
+const RE_EXPERIENCE_BONUS = /^Dodatkowe punkty doświadczenia z przedmiotów \+(\d+)\.?$/;
+const RE_DRAW = /^(Walka nie wyłoniła zwycięzcy)$/;
+const RE_BLOCKED = /^Zablokowanie (\d+) obrażeń$/;
+/**
+ * "Absorpcja 261 obrażeń fizycznych" — tarcza CELU, nie efekt atakującego.
+ * Trzymana osobno od proc-ów z dwóch powodów: liczona jako efekt napastnika
+ * byłaby przypisana nie tej postaci, co trzeba, a jej wartość i tak siedzi już
+ * w `damageAbsorbed` (różnica między ciosem surowym a przyjętym).
+ */
+const RE_ABSORBED = /^Absorpcja \d+ obrażeń/;
+/**
+ * "Przerwanie ciosu specjalnego." — cios przerwał szykowany przez cel cios
+ * specjalny. Stoi w środku bloku ataku (między "uderzył" a "otrzymał") i nie
+ * niesie liczby; trzymamy jako modyfikator zadanego ciosu, żeby nie rozbił
+ * trwającej akcji ani nie zgłosił się jako nieznana linia.
+ */
+const RE_STRIKE_NOTE = /^Przerwanie ciosu specjalnego\.?$/;
+/**
+ * Komunikaty tła: nie niosą żadnej liczby do statystyk, ale są częścią logu.
+ * Lista jest wąska celowo — wszystko spoza niej ma nadal lądować w "unknown",
+ * bo to jedyny sygnał, że format się zmienił.
+ */
+const RE_INFO = [
+  /^Walka bez Punktów Honoru\b/,
+  // Przyrost zasobu, np. "Łowcosław Kazrek otrzymuje 15 energii." Statystyk
+  // many ani energii nie liczymy, ale linia jest znana.
+  /^.+ otrzymuje \d+ \p{L}+\.?$/u,
+  // Aura nakładana na starcie, np. "X spowija się trującą mgłą: -3% ...".
+  /\sspowija się\s/,
+  // Wzmocnienie za małą grupę: "Wzmocnienie X o 35% ze względu na małą grupę...".
+  /^Wzmocnienie .+ o \d+%/,
+  // Ładowanie ciosu specjalnego: "X(100%) przygotowuje się do wykonania Y(0%).".
+  // Sama zapowiedź naboju — obrażenia (jeśli padną) przyjdą osobną linią później.
+  /\sprzygotowuje się do wykonania\s/,
+  // "Przerwanie ciosu specjalnego." poza blokiem ataku (w bloku łapane wcześniej).
+  RE_STRIKE_NOTE,
+  // "X - atak w martwego przeciwnika." — cel padł, zanim cios doszedł. Linia
+  // nie niesie żadnej liczby, a tury nie zabiera: obok stoi normalny cios tej
+  // samej postaci w kolejny cel.
+  / - atak w martwego przeciwnika\.?$/,
+  // Łup z potwora: "Gnoll łucznik: zdobyto Niebieskawy pancerz gnolla".
+  // Nazwa przed dwukropkiem to dawca łupu, nie aktor akcji — nic tu nie ma
+  // do policzenia. Zwykle na końcu logu, ale nie jest to regułą, więc łapiemy
+  // po treści, nie po pozycji.
+  /^.+?:\s*zdobyto\s+.+$/,
+];
+
+/**
+ * Znaczniki bbcode potrafią się rozjechać na dwie linie (otwarcie przy treści,
+ * zamknięcie samotnie niżej), więc usuwamy je przed podziałem na linie.
+ * `[b]` otacza komunikaty systemowe, `[i]` akcje przeciwnika.
+ */
+function normalize(text: string): string {
+  return text.replace(/\[\/?[a-zA-Z]+\]/g, "").replace(/ /g, " ");
+}
+
+function normalizeLine(line: string): string {
+  return line.replace(/\s+/g, " ").trim();
+}
+
+function toPct(raw: string): number {
+  return parseFloat(raw.replace(",", "."));
+}
+
+type DamageValue = { value: number; element: string | null };
+
+/** `+4053  +2729` → dwie wartości; znaki pomijamy, liczy się wartość i żywioł. */
+function toDamages(segment: string): DamageValue[] {
+  RE_DAMAGE_VALUE.lastIndex = 0;
+  return [...segment.matchAll(RE_DAMAGE_VALUE)].map((m) => ({
+    value: Math.abs(parseInt(m[1]!, 10)),
+    element: (m[2] ? ELEMENTS[m[2]] : null) ?? null,
+  }));
+}
+
+function splitNames(segment: string): string[] {
+  return segment
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => name !== "");
+}
+
+/**
+ * Dzieli skład na dwie strony po słowie "a": "A (1w), B (2w) a C (3w)".
+ * Szukamy "a" stojącego zaraz za nawiasem z poziomem, żeby nie rozciąć nazwy,
+ * w której to słowo wystąpiłoby samo z siebie.
+ */
+function splitSides(segment: string): string[] {
+  const separator = /\)\s+a\s+/.exec(segment);
+  if (!separator) return [segment];
+  return [
+    segment.slice(0, separator.index + 1),
+    segment.slice(separator.index + separator[0].length),
+  ];
+}
+
+function parseParticipants(segment: string): Participant[] {
+  return splitSides(segment).flatMap((side, index) => {
+    RE_PARTICIPANT.lastIndex = 0;
+    return [...side.matchAll(RE_PARTICIPANT)].map((m) => ({
+      // Kolejne nazwy niosą separator z poprzedniego dopasowania (`a `, `, `).
+      name: m[1]!.trim().replace(/^(?:a|i|,)\s+/, ""),
+      level: parseInt(m[2]!, 10),
+      professionCode: m[3]!,
+      side: index,
+    }));
+  });
+}
+
+type PendingAttack = {
+  source: string;
+  sourceHpPct: number;
+  rawDamages: DamageValue[];
+  modifiers: string[];
+  line: string;
+  lineNo: number;
+};
+
+type Modifiers = {
+  mainCrit: boolean;
+  offhandCrit: boolean;
+  superCrit: boolean;
+  dodged: boolean;
+  blocked: number | null;
+  procs: string[];
+};
+
+function classifyModifiers(modifiers: string[]): Modifiers {
+  const result: Modifiers = {
+    mainCrit: false,
+    offhandCrit: false,
+    superCrit: false,
+    dodged: false,
+    blocked: null,
+    procs: [],
+  };
+
+  for (const modifier of modifiers) {
+    if (modifier === "Unik") {
+      result.dodged = true;
+    } else if (modifier.includes("Cios bardzo krytyczny")) {
+      result.superCrit = true;
+    } else if (modifier.includes("Cios krytyczny")) {
+      if (modifier.includes("broni pomocniczej")) result.offhandCrit = true;
+      else result.mainCrit = true;
+    } else {
+      const blocked = RE_BLOCKED.exec(modifier);
+      if (blocked) result.blocked = parseInt(blocked[1]!, 10);
+      // Absorpcja należy do celu — pod napastnikiem byłaby kłamstwem.
+      else if (!RE_ABSORBED.test(modifier)) result.procs.push(modifier);
+    }
+  }
+
+  return result;
+}
+
+function buildHits(raw: DamageValue[], applied: DamageValue[], mods: Modifiers): Hit[] {
+  const count = Math.max(raw.length, applied.length);
+  return Array.from({ length: count }, (_, i) => {
+    const secondary = i > 0;
+    const appliedValue = applied[i]?.value ?? 0;
+    return {
+      raw: raw[i]?.value ?? 0,
+      applied: appliedValue,
+      // Żywioł niosą obie linie tak samo; bierzemy pierwszy, który go ma.
+      element: raw[i]?.element ?? applied[i]?.element ?? null,
+      crit: secondary ? mods.offhandCrit : mods.mainCrit,
+      superCrit: secondary ? false : mods.superCrit,
+      secondary,
+      // Unik bywa częściowy: broń pomocnicza potrafi trafić mimo "-Unik",
+      // więc o uniknięciu decyduje zerowa wartość przy tym trafieniu.
+      dodged: mods.dodged && appliedValue === 0,
+    };
+  });
+}
+
+/**
+ * Zamienia surowy tekst okna walki na listę zdarzeń.
+ *
+ * Parser jest maszyną stanów, bo atak rozkłada się na kilka linii: linia
+ * "uderzył z siłą", opcjonalne modyfikatory, i dopiero linia "otrzymał"
+ * domykająca akcję po stronie celu.
+ */
+export function parse(text: string): BattleEvent[] {
+  const events: BattleEvent[] = [];
+  const lines = normalize(text).split("\n");
+  let pending: PendingAttack | null = null;
+
+  /**
+   * Umiejętność zapowiedziana linią "X wykonuje Y." Obowiązuje do końca bloku:
+   * "Podwójne trafienie" niesie dwa ataki pod jedną nazwą. Kończy ją pierwsza
+   * linia niebędąca atakiem ani modyfikatorem (leczenie, DoT, ruch).
+   *
+   * Cios stojący za zapowiedzią należy do umiejętności, bo w tej grze użycie
+   * umiejętności zużywa turę, w której postać i tak uderza. Potwierdzają to
+   * opisy: "Wycieńczająca strzała" dokłada własne obrażenia nieuchronne, a
+   * "Strzała z niespodzianką" sama nie zadaje nic — tylko podbija ten cios.
+   *
+   * Trzymamy przy niej autora: w walce grupowej zaraz po zapowiedzi uderzają
+   * przeciwnicy i bez tego ich ciosy dostałyby cudzą nazwę.
+   */
+  let ability: { actor: string; name: string } | null = null;
+  /** Modyfikatory stojące luzem, przed linią obrażeń albo po niej. */
+  let loose: string[] = [];
+
+  /** Atak bez domykającej linii "otrzymał" — zgłaszamy zamiast zgadywać. */
+  const flushPending = () => {
+    if (!pending) return;
+    events.push({ kind: "unknown", line: pending.line, lineNo: pending.lineNo });
+    pending = null;
+  };
+
+  /**
+   * Modyfikatory z zamkniętego już bloku doklejamy do jego akcji. Gdy blok nie
+   * miał ataku (np. sam DoT), przepadają — same nie niosą obrażeń, a jako
+   * modyfikatory zostały rozpoznane, więc nie są sygnałem zmiany formatu.
+   */
+  const flushLoose = () => {
+    if (loose.length === 0) return;
+    const last = events.at(-1);
+    if (last?.kind === "attack") last.procs.push(...classifyModifiers(loose).procs);
+    loose = [];
+  };
+
+  /** Koniec bloku umiejętności — dalsze ataki są już zwykłe. */
+  const endBlock = () => {
+    flushLoose();
+    ability = null;
+  };
+
+  /**
+   * Zdarzenia, które log potrafi wcisnąć w środek bloku ataku — leczenie celu
+   * albo tykający efekt. Nie przerywają trwającego ciosu.
+   */
+  const sideEvent = (line: string): BattleEvent | null => {
+    const healAbility = RE_HEAL_ABILITY.exec(line);
+    if (healAbility) {
+      return {
+        kind: "heal",
+        ability: healAbility[1]!.trim(),
+        amount: parseInt(healAbility[2]!, 10),
+        target: healAbility[3]!.trim(),
+      };
+    }
+
+    const healSelf = RE_HEAL_SELF.exec(line);
+    if (healSelf) {
+      return {
+        kind: "heal",
+        ability: healSelf[3]!.trim(),
+        amount: parseInt(healSelf[4]!, 10),
+        target: healSelf[1]!.trim(),
+      };
+    }
+
+    const healPlain = RE_HEAL_PLAIN.exec(line);
+    if (healPlain) {
+      return {
+        kind: "heal",
+        ability: null,
+        amount: parseInt(healPlain[1]!, 10),
+        target: healPlain[2]!.trim(),
+      };
+    }
+
+    const dot = RE_DOT.exec(line);
+    if (dot) {
+      return {
+        kind: "dot",
+        target: dot[1]!.trim(),
+        targetHpPct: toPct(dot[2]!),
+        amount: parseInt(dot[3]!, 10),
+        weakenedPct: dot[4] ? parseInt(dot[4], 10) : null,
+        via: dot[5] as "od" | "po",
+        dotType: dot[6]!.trim(),
+      };
+    }
+
+    const dotTaken = RE_DOT_TAKEN.exec(line);
+    if (dotTaken) {
+      return {
+        kind: "dot",
+        target: dotTaken[1]!.trim(),
+        targetHpPct: toPct(dotTaken[2]!),
+        amount: parseInt(dotTaken[3]!, 10),
+        weakenedPct: dotTaken[4] ? parseInt(dotTaken[4], 10) : null,
+        via: dotTaken[5] as "od" | "po",
+        dotType: dotTaken[6]!.trim(),
+      };
+    }
+
+    return null;
+  };
+
+  lines.forEach((rawLine, index) => {
+    // Znaczniki żywiołów zostają tylko w `marked`. Wszystkie wzorce pracują na
+    // `line`, więc żaden znacznik nie ma szans wyciec do nazw ani komunikatów.
+    const marked = normalizeLine(rawLine);
+    const line = clean(marked);
+    const lineNo = index + 1;
+    if (line === "") return;
+
+    if (pending) {
+      // Linia obrażeń przed modyfikatorem: "-507 obrażeń..." też zaczyna się
+      // od znaku, a modyfikatory dopuszczają teraz cyfry ("+14 energii").
+      const taken = RE_TAKEN.exec(line);
+      if (taken) {
+        const mods = classifyModifiers([...pending.modifiers, ...loose]);
+        loose = [];
+        // Cios kogoś innego niż autor zapowiedzi zamyka jej blok — to już
+        // czyjaś tura.
+        if (ability && ability.actor !== pending.source) ability = null;
+        events.push({
+          kind: "attack",
+          source: pending.source,
+          target: taken[1]!.trim(),
+          sourceHpPct: pending.sourceHpPct,
+          targetHpPct: toPct(taken[2]!),
+          hits: buildHits(pending.rawDamages, toDamages(RE_TAKEN.exec(marked)?.[3] ?? ""), mods),
+          dodged: mods.dodged,
+          blocked: mods.blocked,
+          procs: mods.procs,
+          // Twardy warunek: nazwę dostaje wyłącznie cios TEGO, kto ją zapowiedział.
+          // Nie polegamy na tym, że stan zdążył się wyczyścić wcześniej.
+          ability: ability?.actor === pending.source ? ability.name : null,
+          strike: true,
+        });
+        pending = null;
+        return;
+      }
+
+      const modifier = RE_MODIFIER.exec(line);
+      if (modifier) {
+        pending.modifiers.push(modifier[1]!.trim().replace(/\.$/, ""));
+        return;
+      }
+
+      // Nota bez znaku ("Przerwanie ciosu specjalnego.") wpina się między cios a
+      // linię obrażeń; jako modyfikator jedzie z ciosem, zamiast go rozbijać.
+      if (RE_STRIKE_NOTE.test(line)) {
+        pending.modifiers.push(line.replace(/\.$/, ""));
+        return;
+      }
+
+      // Leczenie celu potrafi stanąć MIĘDZY linią ciosu a linią obrażeń.
+      const side = sideEvent(line);
+      if (side) {
+        events.push(side);
+        return;
+      }
+
+      flushPending();
+    }
+
+    const abilityUse = RE_ABILITY_USE.exec(line);
+    if (abilityUse) {
+      flushLoose();
+      ability = { actor: abilityUse[1]!.trim(), name: abilityUse[2]!.trim() };
+      events.push({ kind: "ability", actor: ability.actor, name: ability.name });
+      return;
+    }
+
+    // Obrażenia zadane przez samą umiejętność, bez linii "uderzył z siłą".
+    const abilityDamage = RE_ABILITY_DAMAGE.exec(line);
+    if (abilityDamage && ability) {
+      const amount = parseInt(abilityDamage[1]!, 10);
+      // Żywioł niesie ta sama liczba w wersji ze znacznikami (`<b class="dmga">`).
+      const element = toDamages(marked)[0]?.element ?? null;
+      const mods = classifyModifiers(loose);
+      loose = [];
+      events.push({
+        kind: "attack",
+        source: ability.actor,
+        target: abilityDamage[2]!.trim(),
+        sourceHpPct: 0,
+        targetHpPct: toPct(abilityDamage[3]!),
+        // Log podaje tylko wartość po redukcji — surowej nie znamy.
+        hits: [
+          {
+            raw: amount,
+            applied: amount,
+            crit: false,
+            superCrit: false,
+            secondary: false,
+            dodged: false,
+            element,
+          },
+        ],
+        dodged: false,
+        blocked: mods.blocked,
+        procs: mods.procs,
+        ability: ability.name,
+        strike: false,
+      });
+      return;
+    }
+
+    // Modyfikator poza atakiem: albo należy do bloku umiejętności, albo opisuje
+    // stojącą niżej linię DoT-a.
+    const looseModifier = RE_MODIFIER.exec(line);
+    if (looseModifier) {
+      loose.push(looseModifier[1]!.trim().replace(/\.$/, ""));
+      return;
+    }
+
+    const attack = RE_ATTACK.exec(line);
+    if (attack) {
+      pending = {
+        source: attack[1]!.trim(),
+        sourceHpPct: toPct(attack[2]!),
+        rawDamages: toDamages(RE_ATTACK.exec(marked)?.[3] ?? attack[3]!),
+        modifiers: [],
+        line,
+        lineNo,
+      };
+      return;
+    }
+
+    if (RE_INFO.some((pattern) => pattern.test(line))) {
+      events.push({ kind: "info", line });
+      return;
+    }
+
+    // Leczenie i DoT bada się PRZED endBlock: log potrafi wcisnąć je w środek
+    // bloku umiejętności (leczenie "Ostatni ratunek" staje między jej kolejnymi
+    // liniami obrażeń), a domknięcie bloku osierociłoby następny cios tej samej
+    // umiejętności — jego linia "N obrażeń otrzymał(a) X" straciłaby autora.
+    const side = sideEvent(line);
+    if (side) {
+      events.push(side);
+      return;
+    }
+
+    endBlock();
+
+    const start = RE_FIGHT_START.exec(line);
+    if (start) {
+      events.push({ kind: "fight-start", participants: parseParticipants(start[1]!) });
+      return;
+    }
+
+    const move = RE_MOVE.exec(line);
+    if (move) {
+      events.push({
+        kind: "move",
+        actor: move[1]!.trim(),
+        hpPct: toPct(move[2]!),
+        description: move[3]!.trim(),
+      });
+      return;
+    }
+
+    const turnLost = RE_TURN_LOST.exec(line);
+    if (turnLost) {
+      events.push({ kind: "turn-lost", actor: turnLost[1]!.trim() });
+      return;
+    }
+
+    const experience = RE_EXPERIENCE.exec(line);
+    if (experience) {
+      events.push({ kind: "experience", amount: parseInt(experience[1]!, 10), bonus: false });
+      return;
+    }
+
+    const experienceBonus = RE_EXPERIENCE_BONUS.exec(line);
+    if (experienceBonus) {
+      events.push({
+        kind: "experience",
+        amount: parseInt(experienceBonus[1]!, 10),
+        bonus: true,
+      });
+      return;
+    }
+
+    const victory = RE_VICTORY.exec(line);
+    if (victory) {
+      events.push({
+        kind: "fight-end",
+        outcome: "victory",
+        actors: splitNames(victory[1]!),
+        result: line,
+      });
+      return;
+    }
+
+    const defeat = RE_DEFEAT.exec(line);
+    if (defeat) {
+      events.push({
+        kind: "fight-end",
+        outcome: "defeat",
+        actors: splitNames(defeat[1]!),
+        result: line,
+      });
+      return;
+    }
+
+    const draw = RE_DRAW.exec(line);
+    if (draw) {
+      events.push({ kind: "fight-end", outcome: "draw", actors: [], result: line });
+      return;
+    }
+
+    events.push({ kind: "unknown", line, lineNo });
+  });
+
+  flushPending();
+  flushLoose();
+  return events;
+}

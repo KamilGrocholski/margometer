@@ -1,0 +1,31 @@
+[b]Rozpoczęła się walka pomiędzy Magister Dwa (64t) a Kukła Treningowa (1w)[/b]
+Magister Dwa(94.08%) uderzył z siłą  +2559  +1927
+  +Cios krytyczny
+ +Przebicie
+Kukła Treningowa(99.98%) otrzymał(a)  -2559  -1927  obrażeń
+
+Magister Dwa(94.08%) uderzył z siłą  +2555  +1974
+  +Cios krytyczny
+Kukła Treningowa(99.96%) otrzymał(a)  -2554  -1973  obrażeń
+
+[i]Kukła Treningowa(99.87%) uderzył(a) z siłą  +1
+  -Unik
+Magister Dwa(94.08%) otrzymał  -0  obrażeń
+[/i]
+Magister Dwa(94.08%) uderzył z siłą  +2288  +2217
+  +Cios krytyczny
+Kukła Treningowa(99.85%) otrzymał(a)  -2287  -2216  obrażeń
+
+[i]Kukła Treningowa(99.70%) uderzył(a) z siłą  +1
+Magister Dwa(94.08%) otrzymał  -0  obrażeń
+[/i]
+Magister Dwa(94.08%) uderzył z siłą  +2446  +2892
+  +Cios krytyczny
+ +Przebicie
+Kukła Treningowa(99.48%) otrzymał(a)  -2446  -2892  obrażeń
+
+Magister Dwa(94.08%) uderzył z siłą  +2392  +2892
+  +Cios krytyczny
+Kukła Treningowa(99.45%) otrzymał(a)  -2391  -2891  obrażeń
+
+[b]Walka nie wyłoniła zwycięzcy[/b]

@@ -1,0 +1,28 @@
+{
+  "client": "new-engine",
+  "capturedAt": "2026-07-18",
+  "clientBuild": null,
+  "world": null,
+  "source": "DevTools: outerHTML kontenera .scroll-pane z okna walki",
+  "format": "html",
+  "participants": [
+    { "name": "wf mushita psk", "level": 37, "professionCode": "m", "profession": "mag" },
+    { "name": "Zulu Mulu", "level": 27, "professionCode": "m", "profession": "mag" },
+    { "name": "Furu Mulu", "level": 31, "professionCode": "m", "profession": "mag" }
+  ],
+  "covers": [
+    "JEDYNY fixture w HTML - reszta to sam tekst, w ktorym zywiolow NIE MA",
+    "zywiol w klasie CSS: <b class=\"dmgc\">, dmgl, dmgf",
+    "mapowanie c=zimno, l=blyskawica, f=ogien",
+    "kombinacja dwoch zywiolow w jednym ciosie (zimno + blyskawica)",
+    "atrybut prof-m na liczbach w linii otrzymanych obrazen",
+    "klasy blokow: battle-msg attack / attack2 / neu / txt / win / lose / exp",
+    "<font color> wokol linii leczenia"
+  ],
+  "missing": [
+    "obrazenia fizyczne - nie wiem, jaka klase nosza (wojownik, lowca)",
+    "trzeci zywiol w jednym ciosie",
+    "DoT-y i unik w wersji HTML"
+  ],
+  "notes": "Pozyskany z DevTools, bo przez 'Kopiuj logi' gra oddaje sam tekst i kolor przepada. dmgf to OGIEN, nie 'fizyczne': cios Zulu Mulu z ta klasa zostal zredukowany przez 'Absorpcja 95 obrazen magicznych'. Klasy nieznane (np. przyszle zywioly albo fizyczne) daja element=null i etykieta zostaje bez nawiasu - swiadomie, zeby nie zgadywac."
+}

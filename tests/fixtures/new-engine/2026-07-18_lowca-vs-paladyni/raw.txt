@@ -1,0 +1,39 @@
+[b]Rozpoczęła się walka pomiędzy Łowca głów z psk (104h) a Wieczornica (93p), Wieczornica (93p), Południca (92p)[/b]
+[b]Rozpoczęła się walka pomiędzy Łowca głów z psk (104h) a Wieczornica (93p), Wieczornica (93p), Południca (92p)[/b]
+Łowca głów z psk(100%) uderzył z siłą  +75
++Niszczenie pancerza o 16
+Wieczornica(100%) otrzymał(a)  -0  obrażeń
+
+[i]Wieczornica(100%) uderzył(a) z siłą  +878  +570
+  -Unik
+Łowca głów z psk(100%) otrzymał  -0  obrażeń
+[/i]
+[i]Wieczornica(100%) uderzył(a) z siłą  +849  +535
+Łowca głów z psk(98.16%) otrzymał  -217  -187  obrażeń
+[/i]
+Łowca głów z psk(98.16%) uderzył z siłą  +75
++Niszczenie pancerza o 16
+  -Zablokowanie 23 obrażeń
+Wieczornica(100%) otrzymał(a)  -0  obrażeń
+
+Łowca głów z psk(89.41%) uderzył z siłą  +272
+  +Cios krytyczny
+   +Cios bardzo krytyczny
+  +Szybka strzała
++Niszczenie pancerza o 16
+Wieczornica(100%) otrzymał(a)  -0  obrażeń
+
+[i]Południca(100%) uderzył(a) z siłą  +816  +536
+Łowca głów z psk(93.67%) otrzymał  -192  -184  obrażeń
+[/i]
+Łowca głów z psk(59.89%) uderzył z siłą  +75
+  +Szybka strzała
++Niszczenie pancerza o 15
++Zniszczono pancerz przeciwnika.
+Wieczornica(100%) otrzymał(a)  -0  obrażeń
+
+[i]Południca(100%) uderzył(a) z siłą  +843  +784
+Łowca głów z psk(0%) otrzymał  -213  -389  obrażeń
+[/i]
+[b]Zwyciężyła drużyna Wieczornica, Wieczornica, Południca[/b]
+[b]Poległ Łowca głów z psk[/b]

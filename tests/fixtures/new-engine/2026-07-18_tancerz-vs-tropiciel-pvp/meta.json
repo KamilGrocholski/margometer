@@ -1,0 +1,34 @@
+{
+  "client": "new-engine",
+  "capturedAt": "2026-07-18",
+  "clientBuild": null,
+  "world": null,
+  "source": "okno walki, zaznaczenie + kopiuj",
+  "participants": [
+    { "name": "Tancogniew Kazrek", "level": 64, "professionCode": "b", "profession": "tancerz ostrzy" },
+    { "name": "wf agar psk", "level": 63, "professionCode": "t", "profession": "tropiciel" }
+  ],
+  "covers": [
+    "PVP gracz vs gracz - obie strony zadaja i przyjmuja obrazenia",
+    "UNIK CZESCIOWY: '-Unik' + '-0 -284' - bron pomocnicza trafia mimo uniku",
+    "komunikaty tla: aura 'spowija sie trujaca mgla', 'Walka bez Punktow Honoru'",
+    "ruch 'zrobil krok do przodu' bez koncowki (a)",
+    "leczenie 'Przywrocono N punktow zycia' o niezerowej wartosci, co ture",
+    "Dotyk aniola z realnym leczeniem (777, 505), a nie zerowym",
+    "modyfikatory z minusem: Fasada opieki, Krytyczna oslona, Absorpcja N obrazen fizycznych, Zniszczono N energii/many",
+    "Niszczenie pancerza / odpornosci magicznych po obu stronach",
+    "proc Przebicie po stronie przeciwnika (applied == raw)",
+    "trucizna tykajaca 55 co ture przez cala walke",
+    "zdublowana linia rozpoczecia walki",
+    "HP celu 0% w ostatnim ciosie",
+    "zakonczenie: 'Zwyciezyl X' + 'Polegl Y' (1v1, bez slowa 'druzyna')"
+  ],
+  "missing": [
+    "Cios bardzo krytyczny",
+    "Zablokowanie N obrazen",
+    "utrata tury",
+    "punkty doswiadczenia",
+    "walka grupowa"
+  ],
+  "notes": "Pelny log walki. Wykryl trzy bledy parsera: ruch bez '(a)' nie byl rozpoznawany, dwie linie systemowe ladowaly w 'unknown', a unik zerowal caly atak - przez co 518 obrazen broni pomocniczej znikalo ze statystyk. Uwaga na estimateMaxHp: obaj gracze sie lecza, wiec dla obu zwraca null."
+}

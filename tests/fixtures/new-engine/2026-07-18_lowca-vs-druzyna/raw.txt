@@ -1,0 +1,58 @@
+[b]Rozpoczęła się walka pomiędzy Łowcożyr Kazrek (40h) a Locha (40w), Locha (40w), Odyniec (41w)[/b]
+Łowcożyr Kazrek(100%) uderzył z siłą  +482
++Niszczenie pancerza o 5
+Locha(68.19%) otrzymał(a)  -237  obrażeń
+
+Łowcożyr Kazrek(100%) uderzył z siłą  +449
++Niszczenie pancerza o 5
+Locha(39.87%) otrzymał(a)  -211  obrażeń
+
+[b] Odyniec(100%) zrobił(a) krok do przodu. [/b]
+[b] Locha(100%) zrobił(a) krok do przodu. [/b]
+Łowcożyr Kazrek(100%) uderzył z siłą  +442
++Niszczenie pancerza o 5
+Locha(11.81%) otrzymał(a)  -209  obrażeń
+
+[b]  Locha(0%): 140 (osłabione o 14%) obrażeń od trucizny.
+[/b]
+Łowcożyr Kazrek(100%) uderzył z siłą  +661
+  +Cios krytyczny
++Niszczenie pancerza o 5
+Locha(45.64%) otrzymał(a)  -405  obrażeń
+
+[b] Odyniec(100%) zrobił(a) krok do przodu. [/b]
+Łowcożyr Kazrek(100%) uderzył z siłą  +431
++Niszczenie pancerza o 5
+Locha(19.46%) otrzymał(a)  -195  obrażeń
+
+[b]  Locha(0.67%): 140 (osłabione o 14%) obrażeń od trucizny.
+[/b]
+[b] Locha(0.67%) zrobił(a) krok do przodu. [/b]
+Łowcożyr Kazrek(100%) uderzył z siłą  +451
++Niszczenie pancerza o 5
+Locha(0%) otrzymał(a)  -217  obrażeń
+
+[i]Odyniec(100%) uderzył(a) z siłą  +316
+   -Fasada opieki, 13% redukcji ciosów do końca walki
+Łowcożyr Kazrek(98.47%) otrzymał  -89  obrażeń
+[/i]
+[b]  Przywrócono 89 punktów życia Łowcożyr Kazrek(100%)
+[/b]
+Łowcożyr Kazrek(100%) uderzył z siłą  +480
+ +Przebicie
++Niszczenie pancerza o 5
+Odyniec(37.09%) otrzymał(a)  -480  obrażeń
+
+Łowcożyr Kazrek(100%) uderzył z siłą  +484
++Niszczenie pancerza o 5
+Odyniec(6.42%) otrzymał(a)  -234  obrażeń
+
+Łowcożyr Kazrek(100%) uderzył z siłą  +429
+ +Przebicie
++Niszczenie pancerza o 5
+Odyniec(0%) otrzymał(a)  -429  obrażeń
+
+[b]Zwyciężył Łowcożyr Kazrek[/b]
+[b]Poległa drużyna Odyniec, Locha, Locha[/b]
+[b]Zwycięzca zdobył łącznie 3918 punktów doświadczenia
+[/b]

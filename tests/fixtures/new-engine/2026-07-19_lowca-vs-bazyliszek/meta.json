@@ -1,0 +1,36 @@
+{
+  "client": "new-engine",
+  "capturedAt": "2026-07-19",
+  "clientBuild": null,
+  "world": null,
+  "source": "okno walki, zaznaczenie + kopiuj",
+  "participants": [
+    { "name": "Łowcosław Kazrek", "level": 70, "professionCode": "h", "profession": "łowca" },
+    {
+      "name": "Szalony purpurowy bazyliszek",
+      "level": 62,
+      "professionCode": "m",
+      "profession": "mag"
+    }
+  ],
+  "covers": [
+    "ZAKONCZENIE Z RODZAJEM W NAWIASIE - 'Poleg(a) X', pierwszy taki log w zestawie",
+    "potwor jako przeciwnik (kod m), nie gracz",
+    "zdublowana linia rozpoczecia walki",
+    "aura nakladana na starcie ('spowija sie trujaca mgla')",
+    "Podwojny strzal - dwa ciosy pod jedna zapowiedzia",
+    "procy Szybka strzala i Niszczenie pancerza o 11",
+    "walka wygrana bez ani jednego ciosu przeciwnika (HP gracza stoi na 94.36%)"
+  ],
+  "missing": [
+    "leczenie",
+    "obrazenia od DoT",
+    "unik",
+    "Cios krytyczny",
+    "Zablokowanie N obrazen",
+    "utrata tury",
+    "walka grupowa",
+    "bonusowe doswiadczenie z przedmiotow"
+  ],
+  "notes": "Log zglosil sie jako 'nieznana linia' na 'Poleg(a) Szalony purpurowy bazyliszek'. RE_DEFEAT znal tylko formy dopisane wprost (Polegla/Poleglo/Polegly), a gra przy potworach wstawia rodzaj w nawiasie - tak jak robi to juz w 'uderzyl(a)' i 'otrzymal(a)'. Naprawione razem z blizniaczym RE_VICTORY, ktory mial ta sama dziure, choc 'Zwyciezyl(a)' w zadnym logu jeszcze nie wystapil. Zapowiedz 'Zatruta strzala' nie niesie wlasnej linii obrazen - podbija tylko stojacy za nia cios (tu 1199 surowe, 860 przyjete). Sprawdzone na wszystkich 4 uzyciach w zestawie (1 tutaj, 3 w lowca-vs-gnolle-rozdzielanie): za kazdym razem sama zapowiedz i jeden zwykly cios, zadnej linii 'N obrazen otrzymal(a) X'. Czy naklada DoT - NIEWIADOMA: w kazdym z 4 przypadkow cel ginie albo nie dostaje tury przed smiercia, wiec zaden tik trucizny po tej umiejetnosci nie zostal jeszcze zaobserwowany."
+}

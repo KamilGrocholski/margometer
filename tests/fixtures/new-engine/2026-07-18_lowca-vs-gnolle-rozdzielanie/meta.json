@@ -1,0 +1,23 @@
+{
+  "client": "new-engine",
+  "capturedAt": "2026-07-18",
+  "clientBuild": null,
+  "world": null,
+  "source": "okno walki, zaznaczenie + kopiuj",
+  "participants": [
+    { "name": "Łowcosław Kazrek", "level": 70, "professionCode": "h", "profession": "łowca" },
+    { "name": "Gnoll łucznik", "level": 63, "professionCode": "h", "profession": "łowca" },
+    { "name": "Gnoll łucznik", "level": 63, "professionCode": "h", "profession": "łowca" },
+    { "name": "Gnoll szaman", "level": 64, "professionCode": "m", "profession": "mag" }
+  ],
+  "covers": [
+    "ROZDZIELANIE ZDUBLOWANEJ NAZWY - oba Gnolle lucznik startuja ze 100%, wiec podzial wymusza dopiero linia ze 100% padajaca PO smierci pierwszego",
+    "'X - atak w martwego przeciwnika.' - komunikat tla bez zadnej liczby",
+    "leczenie bez podanego zrodla ('Przywrocono N punktow zycia X') x4",
+    "'X otrzymuje N energii.' miedzy zapowiedzia umiejetnosci a ciosem",
+    "Kombinacja x3! jako modyfikator bez wlasnych obrazen",
+    "zdublowana linia rozpoczecia walki"
+  ],
+  "missing": ["drop przedmiotu", "trucizna tykajaca w tej walce"],
+  "notes": "Fixture regresyjny dla heurystyki rozdzielajacej instancje po HP. Trudniejszy niz 'lowca-vs-druzyna' (dwie Lochy) i 'lowca-dom-trucizna' (dwa Odynce): tam kolejna instancja ujawnia sie, gdy pierwsza jest juz nadgryziona, a tu OBA lucznikami zaczynaja na 100% i pierwsze dwa ciosy (463 unikniety, 439) sa nieprzypisywalne - heurystyka wrzuca je na #1. Podzial wymusza dopiero 'Gnoll lucznik(100%) uderzyl' stojace PO 'Gnoll lucznik(0%)', bo zycie nie rosnie. Oczekiwane: #1 taken=2337 dealt=439, #2 taken=1522 dealt=460. Suma po stronie zadanych jest pewna, podzial pierwszych dwoch ciosow miedzy #1 a #2 juz nie - stad gwiazdka."
+}

@@ -1,0 +1,36 @@
+[b]Rozpoczęła się walka pomiędzy Magister Kazrek (85b) a Kukła Treningowa (1w)[/b]
+Magister Kazrek(0.01%) uderzył z siłą  +4053  +2729
+  +Cios krytyczny
+   +Cios krytyczny broni pomocniczej
+Kukła Treningowa(99.97%) otrzymał(a)  -4052  -2728  obrażeń
+
+Magister Kazrek(0.01%) uderzył z siłą  +4441  +2960
+  +Cios krytyczny
+   +Cios krytyczny broni pomocniczej
+   +Dotyk anioła
+Kukła Treningowa(99.72%) otrzymał(a)  -4440  -2959  obrażeń
+
+[b]   Dotyk anioła: zregenerowano 0 punktów życia Magister Kazrek(0.01%)
+[/b]
+Magister Kazrek(0.01%) uderzył z siłą  +4345  +2834
+  +Cios krytyczny
+   +Cios krytyczny broni pomocniczej
+  +Klątwa
+Kukła Treningowa(99.65%) otrzymał(a)  -4344  -2833  obrażeń
+
+[b]   Dotyk anioła: zregenerowano 0 punktów życia Magister Kazrek(0.01%)
+[/b]
+Magister Kazrek(0.01%) uderzył z siłą  +4331  +3109
+  +Cios krytyczny
+   +Cios krytyczny broni pomocniczej
+Kukła Treningowa(99.18%) otrzymał(a)  -4330  -3108  obrażeń
+
+[b]  Kukła Treningowa(99.18%): 302 (osłabione o 25%) obrażeń od trucizny.
+[/b]
+[b]Kukła Treningowa - utrata tury[/b]
+Magister Kazrek(0.01%) uderzył z siłą  +4574  +3091
+  +Cios krytyczny
+   +Cios krytyczny broni pomocniczej
+Kukła Treningowa(99.14%) otrzymał(a)  -4573  -3090  obrażeń
+
+[b]Walka nie wyłoniła zwycięzcy[/b]

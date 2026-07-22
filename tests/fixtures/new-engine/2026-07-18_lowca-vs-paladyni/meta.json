@@ -1,0 +1,31 @@
+{
+  "client": "new-engine",
+  "capturedAt": "2026-07-18",
+  "clientBuild": null,
+  "world": null,
+  "source": "okno walki, zaznaczenie + kopiuj",
+  "participants": [
+    { "name": "Łowca głów z psk", "level": 104, "professionCode": "h", "profession": "łowca" },
+    { "name": "Wieczornica", "level": 93, "professionCode": "p", "profession": "paladyn" },
+    { "name": "Wieczornica", "level": 93, "professionCode": "p", "profession": "paladyn" },
+    { "name": "Południca", "level": 92, "professionCode": "p", "profession": "paladyn" }
+  ],
+  "covers": [
+    "OBRAZENIA PRZYJETE - pierwszy log, w ktorym gracz obrywa",
+    "akcje przeciwnika w znacznikach [i] zamiast [b]",
+    "'uderzyl(a)' oraz 'otrzymal' bez koncowki (a)",
+    "Unik (modyfikator z minusem, obrazenia -0)",
+    "Zablokowanie N obrazen",
+    "Cios bardzo krytyczny",
+    "Szybka strzala, Niszczenie pancerza o N, Zniszczono pancerz przeciwnika",
+    "dwa trafienia po stronie przeciwnika (paladyn)",
+    "zdublowana linia rozpoczecia walki",
+    "zakonczenie: 'Zwyciezyla druzyna A, B, C' + 'Polegl X'",
+    "zduplikowana nazwa w druzynie (dwie Wieczornice)"
+  ],
+  "missing": [
+    "profesje: mag (m), tropiciel (t)",
+    "leczenie o niezerowej wartosci"
+  ],
+  "notes": "Fragment reprezentatywny pelnego logu (~200 blokow). Gracz przegrywa. Uwaga: obrazenia zadane przez lowce to wylacznie -0 przez cala walke."
+}

@@ -1,0 +1,31 @@
+{
+  "client": "new-engine",
+  "capturedAt": "2026-07-18",
+  "clientBuild": null,
+  "world": null,
+  "source": "okno walki, zaznaczenie + kopiuj",
+  "participants": [
+    { "name": "Tancogniew Kazrek", "level": 64, "professionCode": "b", "profession": "tancerz ostrzy" },
+    { "name": "wf agar psk", "level": 63, "professionCode": "t", "profession": "tropiciel" }
+  ],
+  "covers": [
+    "NAZWY UMIEJETNOSCI - linia 'X wykonuje Y.' przed ciosem",
+    "jedna umiejetnosc na kilka ciosow (Podwojne trafienie = dwa bloki ataku)",
+    "obrazenia samej umiejetnosci, odwrocony szyk: '-507 obrazen otrzymal(a) X(75.08%).'",
+    "cios bez zapowiedzi -> Zwykly atak",
+    "modyfikator z liczba tuz po znaku: '+14 energii' (lamal parser)",
+    "DoT w innym szyku: 'X(80.00%) otrzymal 162 obrazen od blyskawic.'",
+    "modyfikator stojacy luzem przed linia DoT-a, poza blokiem umiejetnosci",
+    "'+Kombinacja x2!'",
+    "'+Zwiekszenie szybkosci ataku o 11% na 3 tury'",
+    "unik czesciowy (main hand za 0, pomocnicza trafia)",
+    "Cios krytyczny broni pomocniczej wewnatrz umiejetnosci"
+  ],
+  "missing": [
+    "Cios bardzo krytyczny",
+    "Zablokowanie N obrazen",
+    "utrata tury",
+    "walka grupowa"
+  ],
+  "notes": "Fragment reprezentatywny. Kluczowy log: pierwszy z nazwami umiejetnosci, wczesniejsze zrzuty ich nie mialy. Regula przypisania POTWIERDZONA opisami umiejetnosci z gry: 'Wycienczajaca strzala' zadaje wlasne obrazenia nieuchronne (2.1% max HP celu za punkt kombinacji) ORAZ zuzywa ture, w ktorej postac i tak uderza - wiec 507 wlasnych + 664 z ciosu = 1171 pod jedna nazwa jest poprawne. 'Strzala z niespodzianka' nie zadaje nic sama (Ty: +11% wyprowadzanych obrazen, Przeciwnik: -10% za punkt kombinacji), wiec caly jej wynik to podbity cios tej tury - tez slusznie pod jej nazwa."
+}

@@ -1,0 +1,22 @@
+{
+  "client": "new-engine",
+  "capturedAt": "2026-07-18",
+  "clientBuild": null,
+  "world": null,
+  "source": "okno walki, zaznaczenie + kopiuj",
+  "participants": [
+    { "name": "Łowcosław Kazrek", "level": 70, "professionCode": "h", "profession": "łowca" },
+    { "name": "wf foverek psk", "level": 70, "professionCode": "t", "profession": "tropiciel" }
+  ],
+  "covers": [
+    "przyrost zasobu w srodku bloku: 'X otrzymuje 15 energii.' (kasowalo nazwe umiejetnosci)",
+    "leczenie w szyku 'X(38.00%): Ostatni ratunek, zregenerowano 3056 punktow zycia.'",
+    "dwie linie leczenia w jednym bloku [b]",
+    "umiejetnosc na dwa ciosy: Podwojny strzal",
+    "atak jednoliczbowy (lowca) obok dwuliczbowego (tropiciel)",
+    "cios po 'utrata tury' bez zapowiedzi -> Zwykly atak",
+    "+Kombinacja x1/x2 stojaca luzem"
+  ],
+  "missing": ["Cios bardzo krytyczny", "Zablokowanie N obrazen", "walka grupowa"],
+  "notes": "Fragment reprezentatywny. Wykryl blad: linia 'otrzymuje N energii' konczyla blok umiejetnosci, przez co 'Blyskawiczny strzal' (967 obrazen) ladowal pod 'Zwykly atak'."
+}

@@ -1,0 +1,91 @@
+[b]Rozpoczęła się walka pomiędzy Łowcosław Kazrek (70h) a wf foverek psk (70t)[/b]
+[b]Rozpoczęła się walka pomiędzy Łowcosław Kazrek (70h) a wf foverek psk (70t)[/b]
+[b]Łowcosław Kazrek spowija się trującą mgłą: -3% obrażeń zadawanych przez zatrutych przeciwników.
+[/b]
+[b]Walka bez Punktów Honoru - gracze są z tego samego klanu.[/b]
+Łowcosław Kazrek wykonuje Podwójny strzał.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +844
++Niszczenie pancerza o 11
+   -Fasada opieki, 13% redukcji ciosów do końca walki
+wf foverek psk(96.41%) otrzymał  -403  obrażeń
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1191
+  +Cios krytyczny
++Niszczenie pancerza o 11
+wf foverek psk(91.16%) otrzymał  -699  obrażeń
+
+[b]  Przywrócono 247 punktów życia wf foverek psk(93.01%)
+[/b]
+[b]  wf foverek psk(91.12%): 252 (osłabione o 38%) obrażeń od trucizny.
+[/b]
+[i]wf foverek psk wykonuje Lodowa strzała.
+[/i]
+[i]wf foverek psk(91.12%) uderzył z siłą  +871  +669
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
++Niszczenie pancerza o 18
+Łowcosław Kazrek(94.62%) otrzymał  -393  -385  obrażeń
+[/i]
+[b]  Przywrócono 190 punktów życia Łowcosław Kazrek(95.94%)
+[/b]
+[i]wf foverek psk wykonuje Strzała z niespodzianką.
++Kombinacja x1!
+[/i]
+[i]wf foverek psk(83.44%) uderzył z siłą  +831  +696
+-Osłabienie przez truciznę zadawanych obrażeń o 3%
+  -Unik
+Łowcosław Kazrek(95.94%) otrzymał  -0  obrażeń
+[/i]
+[b]  Przywrócono 181 punktów życia Łowcosław Kazrek(97.19%)
+[/b]
+Łowcosław Kazrek wykonuje Błyskawiczny strzał.
+Łowcosław Kazrek otrzymuje 15 energii.
++Kombinacja x2!
+
+Łowcosław Kazrek(97.19%) uderzył z siłą  +1111
+ +Przebicie
++Niszczenie pancerza o 11
+wf foverek psk(76.18%) otrzymał  -967  obrażeń
+
+[b]  Przywrócono 222 punktów życia wf foverek psk(77.85%)
+[/b]
+[b]  wf foverek psk(73.43%): 588 (osłabione o 38%) obrażeń od trucizny.
+[/b]
+Łowcosław Kazrek wykonuje Podwójny strzał.
+
+Łowcosław Kazrek(87.55%) uderzył z siłą  +839
++Niszczenie pancerza o 11
+wf foverek psk(61.74%) otrzymał  -439  obrażeń
+
+Łowcosław Kazrek(87.55%) uderzył z siłą  +884
+ +Przebicie
++Niszczenie pancerza o 11
+wf foverek psk(55.96%) otrzymał  -769  obrażeń
+
+[b]  Przywrócono 161 punktów życia wf foverek psk(19.46%)
+[/b]
+[b]  wf foverek psk(38.00%): Ostatni ratunek, zregenerowano 3056 punktów życia.
+  wf foverek psk(38.00%): 588 (osłabione o 38%) obrażeń od trucizny.
+[/b]
+Łowcosław Kazrek wykonuje Podwójny strzał.
+
+Łowcosław Kazrek(52.44%) uderzył z siłą  +828
++Niszczenie pancerza o 11
+wf foverek psk(24.85%) otrzymał  -492  obrażeń
+
+Łowcosław Kazrek(52.44%) uderzył z siłą  +883
+  +Klątwa
++Niszczenie pancerza o 11
+wf foverek psk(20.74%) otrzymał  -547  obrażeń
+
+[b]  wf foverek psk(17.34%): 588 (osłabione o 38%) obrażeń od trucizny.
+[/b]
+[b]wf foverek psk - utrata tury[/b]
+[b]  Przywrócono 95 punktów życia Łowcosław Kazrek(53.09%)
+[/b]
+Łowcosław Kazrek(53.09%) uderzył z siłą  +1177
++Niszczenie pancerza o 11
+wf foverek psk(11.27%) otrzymał  -808  obrażeń
+
+[b]Zwyciężył Łowcosław Kazrek[/b]
+[b]Poległ wf foverek psk[/b]

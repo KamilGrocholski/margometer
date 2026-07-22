@@ -1,0 +1,69 @@
+[b]Rozpoczęła się walka pomiędzy Łowcomir Kazrek (93h) a wf regulus psk (90t)[/b]
+[b]Rozpoczęła się walka pomiędzy Łowcomir Kazrek (93h) a wf regulus psk (90t)[/b]
+[b]Walka bez Punktów Honoru - gracze są z tego samego klanu.[/b]
+Łowcomir Kazrek(74.32%) uderzył z siłą  +1767
++Niszczenie pancerza o 27
+wf regulus psk(91.63%) otrzymał  -1246  obrażeń
+
+[b]  Przywrócono 333 punktów życia wf regulus psk(93.86%)
+[/b]
+[i]wf regulus psk wykonuje Płonąca strzała.
+[/i]
+[i]wf regulus psk(93.86%) uderzył z siłą  +757  +1323
++Niszczenie pancerza o 9
++Niszczenie odporności magicznych o 1%
+Łowcomir Kazrek(68.92%) otrzymał  -173  -779  obrażeń
+[/i]
+[b]  Łowcomir Kazrek(67.58%) otrzymał 236 (osłabione o 19%) obrażeń od ognia.
+[/b]
+Łowcomir Kazrek(67.58%) uderzył z siłą  +2452
+  +Cios krytyczny
+ +Przebicie
+  +Szybka strzała
++Niszczenie pancerza o 27
++Głęboka rana
+wf regulus psk(77.39%) otrzymał  -2452  obrażeń
+
+[b]  Przywrócono 316 punktów życia wf regulus psk(62.35%)
+[/b]
+[b]  wf regulus psk(57.28%): 754 obrażeń od głębokiej rany.
+[/b]
+[i]wf regulus psk(57.28%) uderzył z siłą  +753  +1146
+ +Przebicie
+  -Unik
+Łowcomir Kazrek(66.24%) otrzymał  -0  obrażeń
+[/i]
+Łowcomir Kazrek(66.24%) uderzył z siłą  +1786
++Niszczenie pancerza o 27
+wf regulus psk(48.25%) otrzymał  -1343  obrażeń
+
+Łowcomir Kazrek(56.51%) uderzył z siłą  +1606
++Niszczenie pancerza o 27
+   +Zranienie (182)
+wf regulus psk(25.17%) otrzymał  -1219  obrażeń
+
+[b]  wf regulus psk(19.48%): 1131 obrażeń od głębokiej rany.
+[/b]
+[b]  wf regulus psk(18.25%): 182 obrażeń po zranieniu.
+[/b]
+Łowcomir Kazrek(56.51%) uderzył z siłą  +1724
++Niszczenie pancerza o 27
+  wf regulus psk(42.00%): Ostatni ratunek, zregenerowano 4897 punktów życia.
+wf regulus psk(42.00%) otrzymał  -1363  obrażeń
+
+Łowcomir Kazrek(52.21%) uderzył z siłą  +1778
+ +Przebicie
++Niszczenie pancerza o 27
+   +Zranienie (266)
+wf regulus psk(10.61%) otrzymał  -1778  obrażeń
+
+Łowcomir Kazrek(42.85%) uderzył z siłą  +4154
+  +Cios krytyczny
+   +Cios bardzo krytyczny
+  +Klątwa
++Niszczenie pancerza o 20
++Zniszczono pancerz przeciwnika.
+wf regulus psk(0%) otrzymał  -3861  obrażeń
+
+[b]Zwyciężył Łowcomir Kazrek[/b]
+[b]Poległ wf regulus psk[/b]
