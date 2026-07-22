@@ -22,11 +22,26 @@ Warcraft, przełożony na turową mechanikę Margonema.
 
 ## Zrzuty ekranu
 
-<!-- TODO: podmienić na prawdziwe zrzuty -->
-| | |
+Każdą metrykę czyta się z rankingu, a lewym przyciskiem wchodzi się głębiej
+(ranking → postać → rozbicie); prawym przyciskiem wraca się o szczebel.
+
+### Zadane — obrażenia zadane
+
+| Ranking | Komu (wg celu) | Czym (wg umiejętności) |
+|---|---|---|
+| ![Ranking obrażeń zadanych](screenshots/zadane_ranking.png) | ![Obrażenia zadane w rozbiciu na cele](screenshots/zadane_ranking_komu.png) | ![Obrażenia zadane w konkretny cel, wg umiejętności](screenshots/zadane_ranking_czym.png) |
+
+### Otrzymane — obrażenia przyjęte
+
+| Ranking | Od kogo (napastnik) | Czym |
+|---|---|---|
+| ![Ranking obrażeń przyjętych](screenshots/otrzymane_ranking.png) | ![Obrażenia przyjęte w rozbiciu na napastników](screenshots/otrzymane_ranking_od-kogo.png) | ![Obrażenia przyjęte od jednego napastnika, wg umiejętności](screenshots/otrzymane_ranking_czym.png) |
+
+### Leczenie
+
+| Ranking | Od czego (źródło) |
 |---|---|
-| ![Nakładka w trakcie walki](screenshots/overlay.png) | ![Rozbicie obrażeń w dymku](screenshots/tooltip.png) |
-| Nakładka w trakcie walki | Rozbicie obrażeń po najechaniu na wiersz |
+| ![Ranking leczenia](screenshots/leczenie_ranking.png) | ![Leczenie w rozbiciu na źródła](screenshots/leczenie_ranking_od-czego.png) |
 
 ## Opis
 
