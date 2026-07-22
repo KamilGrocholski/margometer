@@ -648,6 +648,20 @@ describe("walka grupowa z umiejętnościami", () => {
     ]);
   });
 
+  test("rozbija zadane na cele, a pod każdym celem na czym padło", async () => {
+    // Lustro `takenFromBy`: ten sam cios drugi raz, kierunek odwrócony. Suma
+    // celów równa się `dealtBy` (207 + 141 + 31 = 379), a "Zwykły atak" (172)
+    // rozkłada się między dwa cele — czego płaski `dealtBy` nie pokazuje.
+    const player = aggregate(await load()).actors.find(
+      (a) => a.name === "Woj Zandan Długonogi",
+    )!;
+    expect(player.dealtToBy).toEqual([
+      { label: "Zulu Gula", amount: 207, hits: 2, by: [{ label: "Błyskawiczny atak", amount: 207, hits: 2 }] },
+      { label: "Nuna Gula", amount: 141, hits: 1, by: [{ label: "Zwykły atak", amount: 141, hits: 1 }] },
+      { label: "Bulu Mulu", amount: 31, hits: 1, by: [{ label: "Zwykły atak", amount: 31, hits: 1 }] },
+    ]);
+  });
+
   test("czyta skład drużyny przeciwnej i jej porażkę", async () => {
     const events = await load();
     expect(events.find((e) => e.kind === "fight-start")?.participants).toHaveLength(4);

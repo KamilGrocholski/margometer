@@ -612,7 +612,7 @@ describe("leczenie", () => {
     );
   });
 
-  test("rozbicie leczenia pokazuje czym wyleczono, bez typu obrażeń", async () => {
+  test("rozbicie leczenia pokazuje od czego wyleczono, bez typu obrażeń", async () => {
     const stats = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
     const overlay = new Overlay();
     overlay.render(stats, stats);
@@ -624,8 +624,9 @@ describe("leczenie", () => {
     const heads = [...overlay.shadow.querySelectorAll(".rows .side-head")].map(
       (el) => el.firstElementChild?.textContent,
     );
+    // Pierwszy szczebel to źródło ("OD CZEGO"), w parze z "OD KOGO/KOMU" reszty.
     // Leczenie nie ma podziału na żywioły — sekcja typu w ogóle się nie pojawia.
-    expect(heads).toEqual(["CZYM WYLECZONO"]);
+    expect(heads).toEqual(["OD CZEGO"]);
     expect([...overlay.shadow.querySelectorAll(".rows .row .label")].map((el) => el.textContent))
       .toEqual(["Ostatni ratunek", "Regeneracja"]);
   });
@@ -1179,8 +1180,13 @@ describe("overlay", () => {
     const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-tropiciel-umiejetnosci");
     const overlay = new Overlay();
     overlay.render(stats, stats);
+    // Skład → postać → jej cel: umiejętności stoją dopiero o szczebel niżej,
+    // bo widok postaci pokazuje najpierw KOMU zadała.
     [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")]
       .find((row) => row.dataset.actor === "Łowcosław Kazrek")!
+      .click();
+    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
+      .find((row) => row.dataset.source === "wf foverek psk")!
       .click();
 
     [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-source]")]
@@ -1206,8 +1212,12 @@ describe("overlay", () => {
     const stats = aggregate(parse(extractText(document.body)));
     const overlay = new Overlay();
     overlay.render(stats, stats);
+    // Postać → jej cel: żywioł i umiejętności widać dopiero w rozbiciu na cel.
     [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")]
       .find((row) => row.dataset.actor === "wf mushita psk")!
+      .click();
+    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
+      .find((row) => row.dataset.source === "Furu Mulu")!
       .click();
 
     const counters = (list: string) =>
@@ -1216,7 +1226,7 @@ describe("overlay", () => {
 
     expect(counters("types")).toEqual([null, null]);
     // Umiejętności licznik zachowują — tam znaczy "ile razy odpalone".
-    expect(counters("sources")).toEqual(["×1", "×1", "×1"]);
+    expect(counters("sources")).toEqual(["×1", "×1"]);
   });
 
   test("licznik podaje użycia, a ciosy dokłada tylko przy rozjeździe", async () => {
@@ -1225,8 +1235,12 @@ describe("overlay", () => {
     const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-tropiciel-umiejetnosci");
     const overlay = new Overlay();
     overlay.render(stats, stats);
+    // Umiejętności stoją w rozbiciu na cel — wchodzimy w postać, potem w jej cel.
     [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")]
       .find((row) => row.dataset.actor === "Łowcosław Kazrek")!
+      .click();
+    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
+      .find((row) => row.dataset.source === "wf foverek psk")!
       .click();
 
     const counter = (label: string) =>
@@ -1265,6 +1279,11 @@ describe("overlay", () => {
     const overlay = new Overlay();
     overlay.render(stats, stats);
     overlay.shadow.querySelector<HTMLElement>(".rows .row[data-actor]")!.click();
+    // "od trucizny" jako źródło stoi dopiero w rozbiciu na cel; wchodzimy w cel,
+    // który dostał truciznę. W przekroju po typie (żywioł) figuruje niezależnie.
+    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
+      .find((row) => row.dataset.source === "Locha #2")!
+      .click();
 
     const poison = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-source]")].filter(
       (row) => row.dataset.source === "od trucizny",
@@ -1279,15 +1298,35 @@ describe("overlay", () => {
     }
   });
 
-  test("lewy przycisk wchodzi w postać i pokazuje rozbicie jej obrażeń", async () => {
+  test("lewy przycisk drąży: skład → cele postaci → czym w cel", async () => {
     const stats = await statsFrom("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp");
     const overlay = new Overlay();
     overlay.render(stats, stats);
 
     overlay.shadow.querySelector<HTMLElement>(".row")!.click(); // Kazrek — najwięcej zadał
 
+    // Pierwszy szczebel postaci to KOMU zadała, nie czym — czym jest o poziom niżej.
     expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Tancogniew Kazrek");
-    // Ranking postaci ustąpił rankingowi źródeł: te same obrażenia, szczebel niżej.
+    const targets = [...overlay.shadow.querySelectorAll(".rows .row")].map((el) => [
+      el.querySelector(".label")?.textContent,
+      el.querySelector(".value")?.textContent?.trim(),
+    ]);
+    expect(targets).toEqual([
+      ["wf agar psk", `${number.format(10366)} (100%)`],
+      // Przekrój po żywiole dotyczy całości obrażeń postaci — stoi na każdym szczeblu.
+      ["bez żywiołu", `${number.format(10036)} (97%)`],
+      ["od trucizny", `${number.format(330)} (3%)`],
+    ]);
+    expect([...overlay.shadow.querySelectorAll(".rows .side-head")].map((el) =>
+      el.firstElementChild?.textContent,
+    )).toEqual(["KOMU", "TYP OBRAŻEŃ"]);
+
+    // Wejście w cel odsłania, czym w niego uderzano — ranking celów ustępuje
+    // rankingowi umiejętności użytych na tym jednym celu.
+    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
+      .find((row) => row.dataset.source === "wf agar psk")!
+      .click();
+    expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("wf agar psk");
     const breakdown = [...overlay.shadow.querySelectorAll(".rows .row")].map((el) => [
       el.querySelector(".label")?.textContent,
       el.querySelector(".value")?.textContent?.trim(),
@@ -1295,18 +1334,19 @@ describe("overlay", () => {
     expect(breakdown).toEqual([
       ["Zwykły atak", `${number.format(10036)} (97%)`],
       ["od trucizny", `${number.format(330)} (3%)`],
-      // Drugi przekrój TYCH SAMYCH obrażeń, nie dodatkowe — stąd ta sama suma.
       ["bez żywiołu", `${number.format(10036)} (97%)`],
       ["od trucizny", `${number.format(330)} (3%)`],
     ]);
     expect([...overlay.shadow.querySelectorAll(".rows .side-head")].map((el) =>
       el.firstElementChild?.textContent,
-    )).toEqual(["CZYM ZADANE", "TYP OBRAŻEŃ"]);
+    )).toEqual(["CZYM — WF AGAR PSK", "TYP OBRAŻEŃ"]);
 
     // Wiersze rozbicia to nie postacie — nie prowadzą głębiej i nie mają dymka.
     expect(overlay.shadow.querySelector(".rows .row[data-actor]")).toBeNull();
 
-    // Prawy przycisk wraca do składu.
+    // Prawy przycisk zdejmuje po jednym szczeblu: cel → cele → skład.
+    overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
+    expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Tancogniew Kazrek");
     overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
     expect(overlay.shadow.querySelector(".crumb")).toBeNull();
     expect(overlay.shadow.querySelector(".rows .row[data-actor]")).not.toBeNull();
@@ -1505,6 +1545,41 @@ describe("overlay", () => {
     restored.render(empty, empty);
     expect(restored.shadow.querySelector(".panel")!.className).toContain("collapsed");
   });
+
+  test("uchwyt zmienia i zapamiętuje rozmiar okna", () => {
+    const store = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+    };
+
+    const overlay = new Overlay({ storage });
+    const empty = aggregate([]);
+    overlay.render(empty, empty);
+
+    const grip = overlay.shadow.querySelector<HTMLElement>(".resize-grip")!;
+    const at = (type: string, x: number, y: number) =>
+      Object.assign(new Event(type, { bubbles: true }), { clientX: x, clientY: y, pointerId: 1 });
+    grip.dispatchEvent(at("pointerdown", 100, 100));
+    grip.dispatchEvent(at("pointermove", 160, 300));
+    grip.dispatchEvent(at("pointerup", 160, 300));
+
+    // Szerokość: 260 (domyślna) + 60. Wysokość: start 0 (jsdom bez layoutu) + 200.
+    const panel = overlay.shadow.querySelector<HTMLElement>(".panel")!;
+    expect(panel.style.width).toBe("320px");
+    expect(panel.style.height).toBe("200px");
+
+    const saved = JSON.parse(store.get("margometer.panel")!);
+    expect(saved.width).toBe(320);
+    expect(saved.height).toBe(200);
+
+    // Rozmiar przeżywa nowy overlay z tego samego storage.
+    const restored = new Overlay({ storage });
+    restored.render(empty, empty);
+    const rpanel = restored.shadow.querySelector<HTMLElement>(".panel")!;
+    expect(rpanel.style.width).toBe("320px");
+    expect(rpanel.style.height).toBe("200px");
+  });
 });
 
 describe("spięcie źródła z overlayem", () => {
@@ -1700,9 +1775,9 @@ describe("nagłówek stron i tempo", () => {
     const overlay = new Overlay();
     overlay.render(stats, stats);
 
-    // Zamyka panel — pod listą i pod stopką. Lista jest wtedy jednym rankingiem
+    // Zamyka korpus — pod listą i pod stopką. Lista jest wtedy jednym rankingiem
     // bez sekcji, więc to jedyne miejsce, które mówi, jak wypadły drużyny.
-    const blocks = [...overlay.shadow.querySelector(".panel")!.children].map((el) => el.className);
+    const blocks = [...overlay.shadow.querySelector(".panel-body")!.children].map((el) => el.className);
     expect(blocks.at(-1)).toBe("sides");
 
     // Przy "Wszyscy" to porównanie stron: dwie sumy i pasek podziału.

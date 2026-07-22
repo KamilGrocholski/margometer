@@ -97,7 +97,37 @@ const STYLE = `
   line-height: 1.35;
   overflow: hidden;
   box-shadow: 0 6px 20px rgb(0 0 0 / 45%);
+  /* Kolumna: nagłówek u góry, przewijany korpus pod nim, uchwyt w rogu. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
+/* Wszystko poza nagłówkiem. Przy zadanej wysokości okna to ono się przewija,
+   a nagłówek (uchwyt przeciągania) i róg zmiany rozmiaru zostają na miejscu. */
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+/* Uchwyt zmiany rozmiaru — róg jak w textarea. Trójkąt w prawym dolnym rogu
+   z ukośnymi kreskami; pełny rozmiar okna bierze się z pociągnięcia za niego. */
+.resize-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  touch-action: none;
+  user-select: none;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  background: repeating-linear-gradient(-45deg, var(--ink-muted) 0 1px, transparent 1px 4px);
+  opacity: 0.4;
+}
+.resize-grip:hover, .resize-grip.resizing { opacity: 0.85; }
 header {
   display: flex;
   align-items: center;
@@ -213,6 +243,7 @@ footer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; f
 .panel.collapsed .focus,
 .panel.collapsed .crumb,
 .panel.collapsed .axis,
+.panel.collapsed .resize-grip,
 .panel.collapsed footer { display: none; }
 /* Wiersz składu prowadzi głębiej, wiersz rozbicia już nie — stąd kursor tylko
    tam, gdzie kliknięcie coś robi. */
@@ -292,6 +323,12 @@ footer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; f
 const PANEL_WIDTH = 260;
 const TIP_WIDTH = 260;
 const TIP_GAP = 8;
+// Granice ręcznego rozmiaru okna. Poniżej MIN_WIDTH dwukolumnowe wiersze się
+// zlepiają; MIN_HEIGHT zostawia miejsce na nagłówek i kilka wierszy. RESIZE_MARGIN
+// to luz do krawędzi ekranu, żeby uchwyt nie uciekł poza widok.
+const MIN_WIDTH = 200;
+const MIN_HEIGHT = 140;
+const RESIZE_MARGIN = 8;
 
 /**
  * Przez ile tur dzielić daną metrykę w widoku „na turę”.
@@ -397,10 +434,19 @@ export type OverlayOptions = {
   storage?: Pick<Storage, "getItem" | "setItem">;
 };
 
-type PanelState = { x: number; y: number; collapsed: boolean };
+// `height: null` = wysokość z treści (jak dotąd). Liczba pojawia się dopiero,
+// gdy użytkownik pociągnie za uchwyt — wtedy okno ma stały rozmiar, a korpus
+// przewija się w środku.
+type PanelState = { x: number; y: number; collapsed: boolean; width: number; height: number | null };
 
 const STORAGE_KEY = "margometer.panel";
-const DEFAULT_STATE: PanelState = { x: 16, y: 16, collapsed: false };
+const DEFAULT_STATE: PanelState = {
+  x: 16,
+  y: 16,
+  collapsed: false,
+  width: PANEL_WIDTH,
+  height: null,
+};
 
 /**
  * Okno ze statystykami renderowane nad grą.
@@ -523,20 +569,27 @@ export class Overlay {
       this.focus = null;
       this.focusSource = null;
     }
-    // Napastnik, którego log przestał wymieniać (nowa walka, inny skład), nie
-    // ma czego pokazać — wracamy o szczebel zamiast rysować pusty widok.
-    if (
-      focused &&
-      this.focusSource !== null &&
-      !focused.takenFromBy.some((one) => one.label === this.focusSource)
-    ) {
-      this.focusSource = null;
+    // Postać po drugiej stronie, której log przestał wymieniać (nowa walka,
+    // inny skład), nie ma czego pokazać — wracamy o szczebel zamiast rysować
+    // pusty widok. Lista zależy od metryki: cele przy zadanych, napastnicy przy
+    // przyjętych.
+    if (focused && this.focusSource !== null) {
+      const twoTier = this.metric === "damageDealt" ? focused.dealtToBy : focused.takenFromBy;
+      if (!twoTier.some((one) => one.label === this.focusSource)) this.focusSource = null;
     }
 
     const panel = document.createElement("div");
     panel.className = this.state.collapsed ? "panel collapsed" : "panel";
-    panel.append(
-      this.renderHeader(),
+    // Szerokość stosujemy zawsze, wysokość tylko rozwinięty i tylko gdy
+    // użytkownik ją ustawił — inaczej okno rośnie z treścią jak dotąd, a zwinięte
+    // pokazuje sam nagłówek bez sztywnej wysokości pod spodem.
+    panel.style.width = `${this.state.width}px`;
+    if (!this.state.collapsed && this.state.height !== null) {
+      panel.style.height = `${this.state.height}px`;
+    }
+
+    const body = div("panel-body");
+    body.append(
       ...(focused
         ? // Wewnątrz postaci nie ma po co porównywać stron ani filtrować składu
           // — jest jedna postać i jej rozbicie. Zostaje wybór metryki, bo on
@@ -555,12 +608,18 @@ export class Overlay {
     );
 
     const footer = this.renderFooter(stats);
-    if (footer) panel.append(footer);
+    if (footer) body.append(footer);
 
-    // Podsumowanie drużyny zamyka panel — pod listą i pod stopką. Przy
+    // Podsumowanie drużyny zamyka korpus — pod listą i pod stopką. Przy
     // "Wszyscy" porównuje strony, przy "My"/"Oni" podaje sumy tej jednej.
     // W widoku pojedynczej postaci nie ma czego podsumowywać.
-    if (!focused) panel.append(...(this.renderTeamSummary(stats) ?? []));
+    if (!focused) body.append(...(this.renderTeamSummary(stats) ?? []));
+
+    const grip = div("resize-grip");
+    grip.setAttribute("aria-hidden", "true");
+    this.makeResizable(grip, panel);
+
+    panel.append(this.renderHeader(), body, grip);
 
     this.root.querySelector(".panel")?.remove();
     this.root.append(panel);
@@ -902,8 +961,8 @@ export class Overlay {
   }
 
   /**
-   * Wejście w napastnika — trzeci szczebel, tylko przy obrażeniach przyjętych.
-   * Pozostałe metryki mają jeden poziom rozbicia i nie ma w nie po co wchodzić.
+   * Wejście w postać po drugiej stronie ciosu — trzeci szczebel. Zadane drążą
+   * w cel, przyjęte w napastnika; leczenie ma jeden poziom i tu nie wchodzi.
    */
   private enterSource(label: string): void {
     if (!this.canDrillSources()) return;
@@ -914,7 +973,8 @@ export class Overlay {
 
   /** Czy bieżący widok pozwala wejść głębiej niż w postać. */
   private canDrillSources(): boolean {
-    return this.metric === "damageTaken" && this.focus !== null && this.focusSource === null;
+    const twoTier = this.metric === "damageDealt" || this.metric === "damageTaken";
+    return twoTier && this.focus !== null && this.focusSource === null;
   }
 
   /**
@@ -961,14 +1021,18 @@ export class Overlay {
     const types = this.breakdownList(actor, "types");
 
     const total = actorValue(actor, this.metric);
+    // Pierwszy szczebel nazywa DRUGĄ stronę zdarzenia: cel przy zadanych
+    // ("KOMU"), napastnika przy przyjętych ("OD KOGO"), źródło przy leczeniu
+    // ("OD CZEGO"). Leczenie nie drąży dalej — log nie nazywa leczącego, więc
+    // źródłem jest sam efekt (Regeneracja / aura / samoratunek), a nie postać.
     const heading =
       this.metric === "healingReceived"
-        ? "CZYM WYLECZONO"
-        : dealt
-          ? "CZYM ZADANE"
-          : this.focusSource === null
-            ? "OD KOGO"
-            : `CZYM — ${this.focusSource.toUpperCase()}`;
+        ? "OD CZEGO"
+        : this.focusSource !== null
+          ? `CZYM — ${this.focusSource.toUpperCase()}`
+          : dealt
+            ? "KOMU"
+            : "OD KOGO";
 
     if (sources.length === 0) {
       container.append(
@@ -989,6 +1053,10 @@ export class Overlay {
     // rozjeździe — patrz `sourceTipContent`. Poza zadanymi użyć nie ma, więc
     // zostaje sam licznik ciosów (albo tyknięć trucizny).
     const timesDealt = (source: ActorStats["dealtBy"][number]): string => {
+      // Użycia liczy się dla całej walki (linia "X wykonuje Y" nie dzieli się na
+      // cele), więc na szczeblu celów — gdzie etykieta to nazwa postaci — nie
+      // pada żadne dopasowanie i zostaje sam licznik ciosów. Po zejściu w cel
+      // etykiety to znów umiejętności i użycie (wartość ogólna) wraca.
       const used = dealt ? uses.get(source.label) : undefined;
       if (used === undefined) return `×${source.hits}`;
       return source.hits === used ? `×${used}` : `×${used} · ${source.hits} c.`;
@@ -1027,14 +1095,19 @@ export class Overlay {
    */
   private breakdownList(actor: ActorStats, list: BreakdownList): ActorStats["dealtBy"] {
     if (this.metric === "healingReceived") return list === "sources" ? actor.healedBy : [];
-    if (this.metric === "damageDealt") return list === "sources" ? actor.dealtBy : actor.dealtByType;
-    if (list !== "sources") return actor.takenByType;
-    // Pierwszy szczebel przyjętych to SAMI napastnicy, drugi — czym uderzali.
-    // Przekrój po typie zostaje ten sam, bo dotyczy całości obrażeń postaci.
-    if (this.focusSource === null) {
-      return actor.takenFromBy.map(({ label, amount, hits }) => ({ label, amount, hits }));
+    // Przekrój po typie (żywioł) jest ten sam na każdym szczeblu — dotyczy
+    // całości obrażeń postaci, nie wybranej pary.
+    if (list !== "sources") {
+      return this.metric === "damageDealt" ? actor.dealtByType : actor.takenByType;
     }
-    return actor.takenFromBy.find((one) => one.label === this.focusSource)?.by ?? [];
+    // Zadane i przyjęte drążą się lustrzanie: pierwszy szczebel to postać po
+    // drugiej stronie (cel / napastnik), drugi — czym padło. `focusSource`
+    // trzyma wybraną postać wspólnie dla obu metryk.
+    const twoTier = this.metric === "damageDealt" ? actor.dealtToBy : actor.takenFromBy;
+    if (this.focusSource === null) {
+      return twoTier.map(({ label, amount, hits }) => ({ label, amount, hits }));
+    }
+    return twoTier.find((one) => one.label === this.focusSource)?.by ?? [];
   }
 
   /** Jedna lista rozbicia: nagłówek i paski w tej samej skali co reszta widoku. */
@@ -1429,6 +1502,9 @@ export class Overlay {
       stat("Na turę", `${rate.format(perTurn)}/t`),
     );
 
+    // Użycia dotyczą tylko zadanych i całej walki (nie da się ich rozbić na
+    // cele). Na szczeblu celów etykieta to nazwa postaci i nie trafia w żadne
+    // użycie, więc dymek pokazuje wtedy same ciosy.
     const uses = this.metric === "damageDealt"
       ? actor.abilityUses.find((use) => use.label === source.label)
       : undefined;
@@ -1499,7 +1575,7 @@ export class Overlay {
     const host = this.host.getBoundingClientRect();
     const { left, top } = tipPosition({
       hostLeft: host.left,
-      panelWidth: PANEL_WIDTH,
+      panelWidth: this.state.width,
       rowTop: row.getBoundingClientRect().top,
       tipWidth: TIP_WIDTH,
       tipHeight: this.tip.getBoundingClientRect().height,
@@ -1606,6 +1682,48 @@ export class Overlay {
 
       handle.addEventListener("pointermove", move);
       handle.addEventListener("pointerup", up);
+    });
+  }
+
+  /**
+   * Uchwyt w rogu ciągnie szerokość i wysokość okna — jak róg w textarea. Rozmiar
+   * piszemy prosto w styl żywego panelu (bez rerenderu, jak przeciąganie), a po
+   * puszczeniu zapisujemy do stanu. Przy następnym renderze `render()` odtwarza
+   * go z `state.width/height`, więc przeżywa przebudowę.
+   */
+  private makeResizable(grip: HTMLElement, panel: HTMLElement): void {
+    grip.addEventListener("pointerdown", (event) => {
+      // Bez tego pointer poszedłby dalej jako klik/kontekst i cofnął widok.
+      event.preventDefault();
+      event.stopPropagation();
+
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startW = this.state.width;
+      // Pierwszy pionowy chwyt startuje od bieżącej wysokości z treści.
+      const startH = this.state.height ?? panel.getBoundingClientRect().height;
+      grip.classList.add("resizing");
+      // jsdom nie ma tej metody — stąd wywołanie warunkowe.
+      grip.setPointerCapture?.(event.pointerId);
+
+      const move = (moveEvent: PointerEvent) => {
+        const maxW = Math.max(MIN_WIDTH, window.innerWidth - this.state.x - RESIZE_MARGIN);
+        const maxH = Math.max(MIN_HEIGHT, window.innerHeight - this.state.y - RESIZE_MARGIN);
+        this.state.width = clamp(startW + (moveEvent.clientX - startX), MIN_WIDTH, maxW);
+        this.state.height = clamp(startH + (moveEvent.clientY - startY), MIN_HEIGHT, maxH);
+        panel.style.width = `${this.state.width}px`;
+        panel.style.height = `${this.state.height}px`;
+      };
+
+      const up = () => {
+        grip.classList.remove("resizing");
+        grip.removeEventListener("pointermove", move);
+        grip.removeEventListener("pointerup", up);
+        this.saveState();
+      };
+
+      grip.addEventListener("pointermove", move);
+      grip.addEventListener("pointerup", up);
     });
   }
 

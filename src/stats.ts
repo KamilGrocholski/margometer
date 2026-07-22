@@ -231,6 +231,8 @@ type Breakdown = {
   abilityUses: Map<string, ProcCount>;
   /** Przyjęte w dwóch szczeblach: napastnik → czym uderzał. */
   takenBy: Map<string, Map<string, DamageSource>>;
+  /** Lustro `takenBy` po stronie zadających: cel → czym w niego uderzano. */
+  dealtTo: Map<string, Map<string, DamageSource>>;
 };
 
 /** Wewnętrzna mapa jednego napastnika, zakładana przy pierwszym ciosie. */
@@ -364,6 +366,7 @@ function blank(name: string): ActorStats {
     procsReceived: [],
     abilityUses: [],
     takenFromBy: [],
+    dealtToBy: [],
     unattributedDotTaken: 0,
   };
 }
@@ -399,6 +402,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         procsReceived: new Map(),
         abilityUses: new Map(),
         takenBy: new Map(),
+        dealtTo: new Map(),
       };
       breakdowns.set(name, breakdown);
     }
@@ -550,6 +554,9 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           // a pod nim czym uderzył. Osobna struktura, nie rozbiór etykiety —
           // nazwa postaci może zawierać cokolwiek, łącznie z separatorem.
           addDamage(branchOf(breakdownOf(targetKey).takenBy, sourceKey), label, hit.applied);
+          // Lustrzany szczebel po stronie zadających: pod celem, a w nim czym
+          // padło. Ten sam cios, drugi kierunek — „na kim” zamiast „od kogo”.
+          addDamage(branchOf(breakdownOf(sourceKey).dealtTo, targetKey), label, hit.applied);
 
           // Żywioł znany tylko z DOM-u gry; przy wklejonym tekście go nie ma.
           const type = hit.element ?? UNKNOWN_ELEMENT;
@@ -568,6 +575,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           countStrike(breakdownOf(sourceKey).dealt, label);
           countStrike(breakdownOf(targetKey).taken, `${sourceKey} · ${label}`);
           countStrike(branchOf(breakdownOf(targetKey).takenBy, sourceKey), label);
+          countStrike(branchOf(breakdownOf(sourceKey).dealtTo, targetKey), label);
         }
         // Przekrój po żywiole liczy się inaczej: tu pytanie brzmi "ile ciosów
         // niosło ten żywioł", a własne obrażenia umiejętności mają swój własny
@@ -614,6 +622,9 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           get(source).damageDealt += event.amount;
           addDamage(breakdownOf(source).dealt, effect, event.amount);
           countStrike(breakdownOf(source).dealt, effect);
+          const branchTo = branchOf(breakdownOf(source).dealtTo, targetKey);
+          addDamage(branchTo, effect, event.amount);
+          countStrike(branchTo, effect);
           addDamage(breakdownOf(source).dealtType, effect, event.amount);
           countStrike(breakdownOf(source).dealtType, effect);
         } else {
@@ -681,17 +692,21 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     actor.procs = [...breakdown.procs.values()].sort((a, b) => b.count - a.count);
     actor.procsReceived = [...breakdown.procsReceived.values()].sort((a, b) => b.count - a.count);
     actor.abilityUses = [...breakdown.abilityUses.values()].sort((a, b) => b.count - a.count);
-    actor.takenFromBy = [...breakdown.takenBy]
-      .map(([label, by]) => {
-        const entries = byAmount(by);
-        return {
-          label,
-          amount: entries.reduce((sum, entry) => sum + entry.amount, 0),
-          hits: entries.reduce((sum, entry) => sum + entry.hits, 0),
-          by: entries,
-        };
-      })
-      .sort((a, b) => b.amount - a.amount);
+    // Napastnicy i cele składają się identycznie — jeden przepis na oba szczeble.
+    const twoTier = (branches: Map<string, Map<string, DamageSource>>) =>
+      [...branches]
+        .map(([label, by]) => {
+          const entries = byAmount(by);
+          return {
+            label,
+            amount: entries.reduce((sum, entry) => sum + entry.amount, 0),
+            hits: entries.reduce((sum, entry) => sum + entry.hits, 0),
+            by: entries,
+          };
+        })
+        .sort((a, b) => b.amount - a.amount);
+    actor.takenFromBy = twoTier(breakdown.takenBy);
+    actor.dealtToBy = twoTier(breakdown.dealtTo);
   }
 
   // Strony na osi tur i przy zgonach dopisujemy dopiero teraz: w trakcie pętli

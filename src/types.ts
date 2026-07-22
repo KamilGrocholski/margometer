@@ -156,11 +156,16 @@ export type ProcCount = { label: string; count: number };
  * `label` to nazwa napastnika, a przy DoT bez sprawcy — nazwa samego efektu
  * („od trucizny”), bo log nie mówi, kto go nałożył.
  */
+/**
+ * Dwuszczeblowe rozbicie: postać po drugiej stronie ciosu, a pod nią czym padło.
+ * Służy obu kierunkom — napastnikom (`takenFromBy`) i celom (`dealtToBy`) — bo
+ * pytanie jest symetryczne, zmienia się tylko strona: „od kogo” kontra „na kim”.
+ */
 export type AttackerBreakdown = {
   label: string;
   amount: number;
   hits: number;
-  /** Czym ten napastnik uderzał, malejąco po obrażeniach. */
+  /** Czym uderzano — malejąco po obrażeniach. */
   by: DamageSource[];
 };
 
@@ -193,6 +198,12 @@ export type ActorStats = {
   turnsLost: number;
   /** Z czego złożyły się obrażenia zadane, malejąco. */
   dealtBy: DamageSource[];
+  /**
+   * To samo w dwóch szczeblach, lustro `takenFromBy`: komu postać zadała, a po
+   * zejściu w konkretny cel — czym w niego uderzała. Płaski przekrój „czym
+   * zadane w ogóle” zostaje w `dealtBy`; tu chodzi o rozbicie po celu.
+   */
+  dealtToBy: AttackerBreakdown[];
   /**
    * Od kogo/od czego przyszły obrażenia przyjęte, malejąco. Etykieta skleja
    * napastnika z ciosem („Wilk · Zwykły atak”) — płaski przekrój na potrzeby
