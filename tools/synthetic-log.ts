@@ -140,7 +140,7 @@ export function syntheticFight(count: number): string {
     actor.life = Math.max(0, actor.life - amount);
   };
 
-  for (let turn = 0; turn < 8; turn++) {
+  for (let turn = 0; turn < 10; turn++) {
     for (const actor of actors) {
       if (!alive(actor)) continue;
 
@@ -167,12 +167,15 @@ export function syntheticFight(count: number): string {
         if (wounded) {
           const amount = Math.round(actor.heal * (0.8 + random() * 0.4));
           wounded.life = Math.min(wounded.hp, wounded.life + amount);
-          // Dwa szyki z prawdziwego logu: goły "Przywrócono" bez źródła leci
-          // pod "Regeneracja", nazwany rozbija leczenie w dymku na umiejętności.
+          // Trzy źródła, żeby widok „OD CZEGO” miał co pokazać: goły „Przywrócono”
+          // bez źródła leci pod „Regeneracja”, nazwane rozbijają leczenie na
+          // konkretne umiejętności.
+          const roll = random();
+          const named = roll < 0.7 ? "Modlitwa" : "Dotyk anioła";
           lines.push(
-            random() < 0.5
+            roll < 0.4
               ? `[b]  Przywrócono ${amount} punktów życia ${wounded.name}(${pct(wounded)})[/b]`
-              : `[b]  ${wounded.name}(${pct(wounded)}): Modlitwa, zregenerowano ${amount} punktów życia.[/b]`,
+              : `[b]  ${wounded.name}(${pct(wounded)}): ${named}, zregenerowano ${amount} punktów życia.[/b]`,
             "",
           );
         }

@@ -48,13 +48,37 @@ function page(title: string, log: string): string {
 <meta charset="utf-8">
 <title>MargoMeter — ${title}</title>
 <style>
-  body { margin: 0; background: #0d0d10; color: #8c8c85; font: 12px/1.5 ui-monospace, monospace; }
-  #log { padding: 16px; max-width: 620px; white-space: pre-wrap; }
+  html, body { margin: 0; min-height: 100vh; }
+  body {
+    /* Neutralne, ciemne tło jak kadr z gry — nakładka ma się na nim wybijać. */
+    background: radial-gradient(130% 100% at 50% -10%, #20202a 0%, #101015 55%, #0b0b0e 100%);
+    color: #8c8c85;
+    font: 12px/1.5 ui-monospace, monospace;
+  }
+  /* Surowy log jest ukryty pod screeny — overlay czyta go z DOM mimo
+     display:none (findBattleLog patrzy na textContent, nie na widoczność).
+     Przycisk w rogu odsłania go do podejrzenia. */
+  #log {
+    display: none;
+    position: fixed; right: 12px; bottom: 46px; z-index: 3;
+    width: min(440px, 46vw); max-height: 66vh; overflow: auto;
+    padding: 12px; white-space: pre-wrap;
+    background: rgba(8, 8, 10, 0.92); border: 1px solid #2c2c33; border-radius: 8px;
+  }
+  body.show-log #log { display: block; }
+  #log-toggle {
+    position: fixed; right: 12px; bottom: 12px; z-index: 4;
+    padding: 5px 10px; cursor: pointer; opacity: 0.5;
+    font: 11px/1 ui-sans-serif, system-ui, sans-serif;
+    color: #cfcfca; background: #1b1b22; border: 1px solid #35353b; border-radius: 6px;
+  }
+  #log-toggle:hover { opacity: 1; }
 </style>
 <div id="log">${escaped
     .split("\n")
     .map((line) => `<div>${line}</div>`)
     .join("\n")}</div>
+<button id="log-toggle" onclick="document.body.classList.toggle('show-log')">log</button>
 <script>${bundle}</script>
 `;
 }
