@@ -6,18 +6,23 @@
  */
 import { syntheticFight } from "./tools/synthetic-log.ts";
 
+/**
+ * Wzorzec `@match` porównuje ścieżkę RAZEM z query stringiem, więc
+ * "https://*.margonem.pl/" nie łapie adresu z jakimkolwiek "?...". Świat gry
+ * bywa otwierany właśnie tak — stąd "/*" i odsianie reszty przez `@exclude`.
+ */
 const BANNER = `// ==UserScript==
 // @name         MargoMeter
 // @namespace    https://github.com/margometer
 // @version      0.1.0
 // @description  Licznik obrażeń do Margonem — statystyki z okna walki
 // @author       kamil
-// @match        https://*.margonem.pl/
-// @match        https://*.margonem.com/
-// @exclude      https://www.margonem.pl/
-// @exclude      https://www.margonem.com/
-// @exclude      https://forum.margonem.pl/
-// @exclude      https://commons.margonem.pl/
+// @match        https://*.margonem.pl/*
+// @match        https://*.margonem.com/*
+// @exclude      https://www.margonem.pl/*
+// @exclude      https://www.margonem.com/*
+// @exclude      https://forum.margonem.pl/*
+// @exclude      https://commons.margonem.pl/*
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
@@ -118,7 +123,7 @@ const seed = `
     localStorage.setItem("margometer.rec." + (i + 1), text);
     return {
       id: i + 1,
-      title: text.split("\n")[0],
+      title: text.split("\\n")[0],
       chars: text.length,
       // Walki co kwadrans wstecz — lista ma pokazać różne godziny.
       at: now - (logs.length - i) * 15 * 60 * 1000,

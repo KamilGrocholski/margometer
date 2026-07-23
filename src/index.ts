@@ -35,9 +35,6 @@ export function boot(): void {
   const storage = safeStorage();
   const recorder = new Recorder({ storage });
   const overlay = new Overlay({ storage, recorder });
-  // Archiwum rysuje się w shadow roocie overlaya, więc powstaje po nim, a nie
-  // w jego opcjach.
-  overlay.attachArchive(new Archive({ recorder, overlay, storage }));
   // Sesja żyje dłużej niż subskrypcja: gra potrafi podmienić kontener logu
   // między walkami, a wtedy suma z całej sesji nie może się wyzerować.
   const session = new Session();
@@ -45,7 +42,18 @@ export function boot(): void {
   let unsubscribe: (() => void) | null = null;
   let container: Element | null = null;
 
+  // Panel rysujemy PRZED czymkolwiek dodatkowym. Licznik jest produktem,
+  // archiwum dodatkiem — i to dodatek ma paść pierwszy, jeśli coś pójdzie źle.
   overlay.render(EMPTY_STATS, EMPTY_STATS);
+
+  try {
+    // Archiwum rysuje się w shadow roocie overlaya, więc powstaje po nim, a nie
+    // w jego opcjach.
+    overlay.attachArchive(new Archive({ recorder, overlay, storage }));
+  } catch (error) {
+    // Rozsypane archiwum nie może zabrać ze sobą licznika obrażeń.
+    console.error("[MargoMeter] archiwum nie wystartowało", error);
+  }
 
   setInterval(() => {
     const found = findBattleLog();
