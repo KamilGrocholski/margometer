@@ -3,7 +3,7 @@ import { JSDOM } from "jsdom";
 // bunfig.toml preloaduje ten plik dla wszystkich testów. Rdzeń (parser,
 // agregacja) DOM-u nie potrzebuje — jest tu dla warstwy overlaya.
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
-  url: "https://www.margonem.pl/",
+  url: "https://tempest.margonem.pl/",
 });
 
 Object.assign(globalThis, {

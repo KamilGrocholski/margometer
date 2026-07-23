@@ -12,8 +12,12 @@ const BANNER = `// ==UserScript==
 // @version      0.1.0
 // @description  Licznik obrażeń do Margonem — statystyki z okna walki
 // @author       kamil
-// @match        https://*.margonem.pl/*
-// @match        https://*.margonem.com/*
+// @match        https://*.margonem.pl/
+// @match        https://*.margonem.com/
+// @exclude      https://www.margonem.pl/
+// @exclude      https://www.margonem.com/
+// @exclude      https://forum.margonem.pl/
+// @exclude      https://commons.margonem.pl/
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
