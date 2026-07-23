@@ -40,6 +40,73 @@ Nie mam pomyslu na to, jak zrobic szybkie i latwe przeskakiwanei z tych widokow 
 
 ```
 
+## Nagrywanie walk — dlaczego tak (`src/recorder.ts`)
+
+**Zapisujemy surowy tekst logu, nie policzone statystyki.** Pomiar na 13
+zrzutach z `tests/fixtures/new-engine/` (od 1v1 po walkę grupową na 201 linii):
+
+| co zapisujemy | śr. znaków / walkę | max |
+| --- | --- | --- |
+| surowy log | 2 610 | 7 490 |
+| `BattleEvent[]` w JSON | 5 737 | 16 378 |
+| `BattleStats` w JSON | 4 457 | 8 924 |
+
+Surowy log jest nie tylko najmniejszy — przeżywa zmianę kształtu `ActorStats`
+i pozwala przeliczyć stare nagrania nowym parserem. Statystyki zamrożone w
+JSON-ie są bezużyteczne w dniu, w którym łatamy lukę w parserze.
+
+**Budżet: 500 tys. znaków (~1 MB).** Przeglądarki liczą localStorage po 2 bajty
+na znak (UTF-16), więc z ~5 MB na origin realnie mieści się ~2,5 mln znaków —
+czyli ~950 średnich walk. Bierzemy piątą część tego, bo `@grant none` znaczy,
+że siedzimy w kontekście strony: to jest TEN SAM kubełek, którego używa klient
+gry. Zapchany oznacza `QuotaExceededError` **dla gry**, nie dla nas. Stąd też
+`write()` w razie odmowy najpierw kasuje własne najstarsze nagranie i dopiero
+potem gaśnie.
+
+**Klucz na walkę** (`margometer.rec.<id>` + `margometer.rec.index`), nie jeden
+blob. `capture()` leci przy każdej zmianie logu, a localStorage jest
+synchroniczny — przepisywanie całego archiwum przy każdej nowej linii zacinałoby
+grę. Zapis idzie tylko wtedy, gdy nagranie faktycznie urosło.
+
+**Sklejanie bufora** powtarza logikę `Session.update`: walki dopasowujemy od
+końca, bo log traci treść od góry, a dorasta na dole. Różnica: sesja porównuje
+sygnatury składu, a nagrywarka wspólny początek tekstu, a przy przyciętym
+nagłówku — najdłuższy wspólny fragment (`merge`). Bez tego przycięcie bufora
+zdublowałoby połowę walki w nagraniu.
+
+## Archiwum i odtwarzanie — dlaczego tak (`src/archive.ts`)
+
+**Wczytana walka trafia do GŁÓWNEGO panelu, a nie do drugiego widoku.**
+`Overlay.preview` podmienia źródło statystyk w `render()` i to wszystko — dzięki
+temu metryki, filtr składu, „na turę", drążenie w postać i w cel działają dla
+nagrań bez jednej dodatkowej linii kodu. Osobny widok archiwum znaczyłby drugą
+implementację tego samego rankingu.
+
+**Podgląd niczego nie zatrzymuje.** `render()` dalej zapisuje `latest`, więc po
+wyjściu z podglądu panel pokazuje to, co narosło w międzyczasie. Pasek podglądu
+jest krzykliwy celowo: pomylenie nagrania sprzed godziny z trwającą walką jest
+gorsze niż żółte tło.
+
+**Odtwarzanie idzie tą samą ścieżką co licznik na żywo.** `Session.update()`
+dostaje w grze CAŁY bufor przy każdej zmianie i parsuje go od nowa, więc
+odtwarzanie to podawanie coraz dłuższych prefiksów nagrania (`frameStats`).
+Zero nowej logiki w rdzeniu i zero drugiej prawdy o tym, jak liczy się walka.
+Zegar (`Ticker` w `window.ts`) jest wstrzykiwany, bo inaczej nie dałoby się
+sprawdzić kolejnych klatek w testach.
+
+**Podsumowania wierszy liczone leniwie**, przy rysowaniu listy, i cache'owane po
+`id:długość tekstu` — nie przy zapisie, bo tam `Session` liczy dokładnie to samo
+na żywo. Klucz z długością sprawia, że wiersz trwającej walki rośnie razem z nią.
+`sync()` przebudowuje listę tylko wtedy, gdy zmieni się zestaw identyfikatorów:
+przebudowa dwustu wierszy przy każdej nowej linii logu kosztowałaby więcej, niż
+warta jest świeża liczba tur w jednym wierszu.
+
+**Wklejony log nie trafia do archiwum** — magazyn dzielimy z grą, a wklejenie
+jest z natury jednorazowe (diagnostyka, cudza walka).
+
+Podgląd bez wchodzenia do gry: `bun run build` generuje `dist/preview-archive.html`
+z kilkoma nagraniami wstawionymi prosto do localStorage.
+
 ## Znane ograniczenia
 
 ### Trucizna bez sprawcy

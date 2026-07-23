@@ -46,7 +46,7 @@ console.log(`zbudowano ${path}`);
 
 // Strony podglądu: log w DOM + ten sam bundle co w grze. Pozwalają obejrzeć
 // overlay bez wchodzenia do Margonema.
-function page(title: string, log: string): string {
+function page(title: string, log: string, seed = ""): string {
   const escaped = log.replace(/&/g, "&amp;").replace(/</g, "&lt;");
   return `<!doctype html>
 <meta charset="utf-8">
@@ -83,6 +83,7 @@ function page(title: string, log: string): string {
     .map((line) => `<div>${line}</div>`)
     .join("\n")}</div>
 <button id="log-toggle" onclick="document.body.classList.toggle('show-log')">log</button>
+${seed ? `<script>${seed}</script>` : ""}
 <script>${bundle}</script>
 `;
 }
@@ -95,3 +96,41 @@ console.log("zbudowano ./dist/preview.html");
 
 await Bun.write("./dist/preview-20.html", page("podgląd — 20 postaci", syntheticFight(20)));
 console.log("zbudowano ./dist/preview-20.html");
+
+/**
+ * Podgląd archiwum: kilka nagrań wstawionych prosto do localStorage, zanim
+ * wystartuje bundle. Bez tego okno archiwum dałoby się obejrzeć dopiero po
+ * rozegraniu kilku walk w grze.
+ */
+const ARCHIVED = [
+  "./tests/fixtures/new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa/raw.txt",
+  "./tests/fixtures/new-engine/2026-07-18_lowca-vs-gnolle-rozdzielanie/raw.txt",
+  "./tests/fixtures/new-engine/2026-07-18_tancerz-vs-tropiciel-pvp/raw.txt",
+  "./tests/fixtures/new-engine/2026-07-19_lowca-vs-bazyliszek/raw.txt",
+];
+
+const texts = await Promise.all(ARCHIVED.map((path) => Bun.file(path).text()));
+const seed = `
+(() => {
+  const logs = ${JSON.stringify(texts)};
+  const now = Date.now();
+  const fights = logs.map((text, i) => {
+    localStorage.setItem("margometer.rec." + (i + 1), text);
+    return {
+      id: i + 1,
+      title: text.split("\n")[0],
+      chars: text.length,
+      // Walki co kwadrans wstecz — lista ma pokazać różne godziny.
+      at: now - (logs.length - i) * 15 * 60 * 1000,
+    };
+  });
+  localStorage.setItem("margometer.rec.index", JSON.stringify({ v: 1, next: logs.length + 1, fights }));
+  localStorage.setItem("margometer.archive", JSON.stringify({ x: 300, y: 16, open: true }));
+})();
+`;
+
+await Bun.write(
+  "./dist/preview-archive.html",
+  page("podgląd — archiwum", await Bun.file(FIXTURE).text(), seed),
+);
+console.log("zbudowano ./dist/preview-archive.html");

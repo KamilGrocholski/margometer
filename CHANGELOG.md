@@ -22,6 +22,25 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   zadała, a po wejściu w cel — czym (broń, umiejętności, trucizna).
 - **Skalowanie okna nakładki** za róg w prawym dolnym rogu (jak w textarea);
   rozmiar zapamiętuje się między sesjami, tak jak pozycja.
+- **Kopiowanie statystyk** (przycisk ⧉ w nagłówku) — bieżąca walka i cała sesja
+  jako JSON w schowku, niezależnie od tego, co akurat widać na ekranie.
+- **Nagrywanie walk** (przycisk ⏺, domyślnie wyłączone): surowe logi lądują
+  w pamięci przeglądarki, a pasek pod nagłówkiem pokazuje, ile walk i ile
+  miejsca zajmują. Stamtąd można je skopiować albo wyczyścić. Nagrywanie
+  przeżywa odświeżenie gry, a zapis pilnuje limitu 1 MB — najstarsze walki
+  wypadają same, żeby nie zabrakło miejsca samej grze.
+- **Okno archiwum** (przycisk ▤): lista nagranych walk ze składem, godziną,
+  liczbą tur, sumą obrażeń i wynikiem. Kliknięcie wczytuje walkę do panelu —
+  z pełnym drążeniem, filtrami i przełącznikiem „na turę", tak jak na żywo.
+  Okno przeciąga się i pamięta pozycję oraz to, czy było otwarte.
+- **Odtwarzanie walki** przyciskiem ▶ przy wierszu: log leci linia po linii,
+  z pauzą, przewijaniem i prędkością 1×/2×/4× — widać, jak ranking przestawiał
+  się w trakcie walki.
+- **Ręczne wklejenie logu** w archiwum — liczy się tak samo jak nagranie,
+  ale nie zajmuje miejsca w pamięci przeglądarki.
+- Żółty pasek **PODGLĄD** mówi wprost, skąd dane („z archiwum · 19:04" albo
+  „wklejony log") i czyja to walka. Licznik na żywo leci w tle bez przerwy,
+  a „na żywo" wraca do bieżącej walki.
 
 ### Zmienione
 - Rozbicie **leczenia** nazwane „OD CZEGO" (źródło: regeneracja, aura,

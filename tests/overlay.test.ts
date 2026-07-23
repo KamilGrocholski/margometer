@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { parse } from "../src/parser.ts";
 import { aggregate, totalUnattributedDot } from "../src/stats.ts";
-import { Overlay, tipPosition } from "../src/overlay.ts";
+import { Overlay, tipPosition, type RecorderControl } from "../src/overlay.ts";
 import { EMPTY_STATS, Session, splitFights } from "../src/session.ts";
 import { DomLogSource, extractText, findBattleLog, StaticLogSource } from "../src/source.ts";
 import { ColorAssignment, SERIES_COLORS } from "../src/palette.ts";
 import { EngineRosterSource, type RosterEntry } from "../src/roster.ts";
+import { Recorder } from "../src/recorder.ts";
 import { ELEMENT_MARKER } from "../src/types.ts";
 import { start } from "../src/index.ts";
 import { syntheticFight } from "../tools/synthetic-log.ts";
@@ -1537,7 +1538,9 @@ describe("overlay", () => {
     const overlay = new Overlay({ storage });
     const empty = aggregate([]);
     overlay.render(empty, empty);
-    overlay.shadow.querySelector<HTMLButtonElement>("header button")!.click();
+    overlay.shadow
+      .querySelector<HTMLButtonElement>('header button[data-action="collapse"]')!
+      .click();
 
     expect(JSON.parse(store.get("margometer.panel")!).collapsed).toBe(true);
 
@@ -2153,5 +2156,183 @@ describe("oś tur, zgony i skupienie ognia", () => {
     // Pasek mierzy wobec lidera: pełną szerokość ma dokładnie jeden wiersz.
     const widths = rows.map((r) => parseFloat((r.querySelector(".bar") as HTMLElement).style.width));
     expect(widths.filter((w) => w === 100)).toHaveLength(1);
+  });
+});
+
+describe("kopiowanie i nagrywanie", () => {
+  /** Nagrywarka w pamięci — overlay ma znać tylko ten interfejs. */
+  const fakeRecorder = (overrides: Partial<RecorderControl> = {}) => {
+    const state = { on: false, fights: 2, cleared: false, toggles: 0 };
+    const control: RecorderControl = {
+      isRecording: () => state.on,
+      toggle: () => {
+        state.on = !state.on;
+        state.toggles += 1;
+      },
+      count: () => state.fights,
+      chars: () => 5000,
+      dump: () => "=== walka 1 ===\nRozpoczęła się walka pomiędzy A(1w) a B(1x)",
+      clear: () => {
+        state.cleared = true;
+        state.fights = 0;
+      },
+      isFailed: () => false,
+      ...overrides,
+    };
+    return { control, state };
+  };
+
+  const button = (overlay: Overlay, action: string) =>
+    overlay.shadow.querySelector<HTMLElement>(`button[data-action="${action}"]`);
+
+  test("kopiuje statystyki walki i sesji jako JSON", async () => {
+    const stats = aggregate(parse(syntheticFight(4)));
+    let copied = "";
+    const overlay = new Overlay({ clipboard: (text) => void (copied = text) });
+    overlay.render(stats, stats);
+
+    button(overlay, "copy-stats")!.click();
+    await Promise.resolve();
+
+    const parsed = JSON.parse(copied);
+    expect(parsed.tool).toBe("MargoMeter");
+    // Kopiujemy pełne statystyki, nie widok — filtry i drążenie nie mają tu wpływu.
+    expect(parsed.fight.actors).toHaveLength(stats.actors.length);
+    expect(parsed.session.actors[0].damageDealt).toBe(stats.actors[0]!.damageDealt);
+  });
+
+  test("kopiowanie potwierdza się w przycisku i wraca do ikony", async () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const overlay = new Overlay({ clipboard: () => {} });
+    overlay.render(stats, stats);
+
+    button(overlay, "copy-stats")!.click();
+    await Promise.resolve();
+    expect(button(overlay, "copy-stats")!.textContent).toBe("✓");
+
+    await new Promise((resolve) => setTimeout(resolve, 1600));
+    expect(button(overlay, "copy-stats")!.textContent).toBe("⧉");
+  });
+
+  test("odmowa schowka nie udaje sukcesu", async () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const overlay = new Overlay({
+      clipboard: () => {
+        throw new Error("brak uprawnienia");
+      },
+    });
+    overlay.render(stats, stats);
+
+    button(overlay, "copy-stats")!.click();
+    await Promise.resolve();
+
+    expect(button(overlay, "copy-stats")!.textContent).toBe("✕");
+  });
+
+  test("bez nagrywarki nie ma ani przycisku, ani paska", () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    expect(button(overlay, "record")).toBeNull();
+    expect(overlay.shadow.querySelector(".rec-bar")).toBeNull();
+  });
+
+  test("przycisk nagrywania przełącza stan i pokazuje go", () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const { control, state } = fakeRecorder();
+    const overlay = new Overlay({ recorder: control });
+    overlay.render(stats, stats);
+
+    expect(button(overlay, "record")!.getAttribute("aria-pressed")).toBe("false");
+    button(overlay, "record")!.click();
+
+    expect(state.toggles).toBe(1);
+    expect(button(overlay, "record")!.getAttribute("aria-pressed")).toBe("true");
+    expect(button(overlay, "record")!.className).toContain("is-on");
+  });
+
+  test("pasek podaje liczbę nagranych walk i zajętość", () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const { control } = fakeRecorder();
+    const overlay = new Overlay({ recorder: control });
+    overlay.render(stats, stats);
+
+    // 5000 znaków to ~10 kB, bo przeglądarka liczy po dwa bajty na znak.
+    expect(overlay.shadow.querySelector(".rec-bar .grow")!.textContent).toBe("2 walki · 10 kB");
+  });
+
+  test("pasek znika, gdy nie ma nagrań ani nagrywania", () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const { control } = fakeRecorder({ count: () => 0 });
+    const overlay = new Overlay({ recorder: control });
+    overlay.render(stats, stats);
+
+    expect(overlay.shadow.querySelector(".rec-bar")).toBeNull();
+  });
+
+  test("kopiuje nagrane logi, nie statystyki", async () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const { control } = fakeRecorder();
+    let copied = "";
+    const overlay = new Overlay({ recorder: control, clipboard: (text) => void (copied = text) });
+    overlay.render(stats, stats);
+
+    button(overlay, "copy-logs")!.click();
+    await Promise.resolve();
+
+    expect(copied).toContain("Rozpoczęła się walka pomiędzy");
+    expect(copied).not.toContain("MargoMeter");
+  });
+
+  test("czyszczenie nagrań wymaga potwierdzenia", () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const { control, state } = fakeRecorder();
+    const overlay = new Overlay({ recorder: control });
+    overlay.render(stats, stats);
+
+    button(overlay, "clear-recordings")!.click();
+    expect(state.cleared).toBe(false);
+    expect(button(overlay, "clear-recordings")!.textContent).toBe("na pewno?");
+
+    button(overlay, "clear-recordings")!.click();
+    expect(state.cleared).toBe(true);
+    // Nagrań nie ma, więc pasek gaśnie razem z nimi.
+    expect(overlay.shadow.querySelector(".rec-bar")).toBeNull();
+  });
+
+  test("brak miejsca w magazynie widać w pasku", () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const { control } = fakeRecorder({ isFailed: () => true, count: () => 0 });
+    const overlay = new Overlay({ recorder: control });
+    overlay.render(stats, stats);
+
+    expect(overlay.shadow.querySelector(".rec-bar")!.textContent).toContain("Brak miejsca");
+    expect(overlay.shadow.querySelector(".rec-bar")!.className).toContain("warn");
+  });
+});
+
+describe("spięcie nagrywarki ze źródłem logu", () => {
+  test("start() podaje nagrywarce ten sam tekst, który dostał parser", async () => {
+    const text = await readFixture("new-engine/2026-07-18_tancerz-vs-kukla");
+    const store = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    };
+    const recorder = new Recorder({ storage });
+    recorder.toggle();
+    const overlay = new Overlay({ recorder });
+
+    start(new StaticLogSource(text), overlay, new Session(), undefined, recorder);
+
+    expect(recorder.count()).toBe(1);
+    // Overlay pokazuje ten sam stan, co nagrywarka zapisała.
+    expect(overlay.shadow.querySelector(".rec-bar .grow")!.textContent).toContain("1 walka");
+    const recorded = recorder.dump() ?? "";
+    for (const line of text.split("\n").filter((l) => l.trim() !== "")) {
+      expect(recorded).toContain(line);
+    }
   });
 });

@@ -1,6 +1,8 @@
 import { ColorAssignment } from "./palette.ts";
+import { EMPTY_STATS } from "./session.ts";
 import { totalUnattributedDot, type BattleStats } from "./stats.ts";
 import type { ActorStats } from "./types.ts";
+import { makeDraggable } from "./window.ts";
 
 export type Metric = "damageDealt" | "damageTaken" | "healingReceived" | "turns";
 /** Filtr składu: obie strony, drużyna gracza (strona 0) albo przeciwnicy. */
@@ -48,6 +50,15 @@ function matchesTeam(side: number | null, team: Team): boolean {
   // Postać spoza składu nie ma strony, więc pokazujemy ją tylko w "Wszyscy".
   if (side === null) return false;
   return team === "mine" ? side === 0 : side !== 0;
+}
+
+/** "1 walka", "3 walki", "7 walek" — licznik nagrań stoi na wierzchu, więc odmienia się. */
+function fightWord(count: number): string {
+  if (count === 1) return "walka";
+  const last = count % 10;
+  const teens = count % 100;
+  const few = last >= 2 && last <= 4 && !(teens >= 12 && teens <= 14);
+  return few ? "walki" : "walek";
 }
 
 const number = new Intl.NumberFormat("pl-PL");
@@ -149,6 +160,53 @@ button {
 }
 button:hover { background: #26262c; color: var(--ink); }
 button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
+/* Nagrywanie: kropka czerwienieje dopiero, gdy faktycznie leci zapis — bez
+   tego przycisk wyłączony i włączony różnią się samym tłem, a to za mało
+   w oknie, na które patrzy się kątem oka w trakcie walki. */
+.rec.is-on { color: var(--enemy); }
+/* Pasek nagrywania — stan i dwie akcje, pod nagłówkiem. Osobny wiersz, a nie
+   kolejne przyciski w nagłówku: przy 260 px tytuł nie ma się gdzie zmieścić
+   obok pięciu ikon, a licznik walk jest tu i tak czytelniejszy niż w ikonie. */
+.rec-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--border);
+  /* Okno schodzi do 200 px — wtedy ustępuje opis, a nie przyciski. */
+  white-space: nowrap;
+}
+.rec-bar .dot { color: var(--enemy); }
+.rec-bar .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.rec-bar.warn { color: var(--enemy); }
+/* Podgląd wczytanej walki. Żółte tło jest tu celowo krzykliwe: panel pokazuje
+   wtedy dane sprzed godziny, a pomylenie ich z trwającą walką jest gorsze niż
+   krzykliwy pasek. */
+.preview-bar {
+  padding: 4px 8px 6px;
+  font-size: 11px;
+  background: rgb(250 178 25 / 12%);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.preview-head { display: flex; align-items: center; gap: 6px; }
+.preview-tag { color: var(--warning); font-weight: 600; letter-spacing: 0.06em; }
+.preview-head .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.preview-title { overflow: hidden; text-overflow: ellipsis; }
+.replay { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.replay-track {
+  flex: 1;
+  min-width: 0;
+  height: 5px;
+  border-radius: 3px;
+  background: #24242a;
+  cursor: pointer;
+  overflow: hidden;
+}
+.replay-fill { height: 100%; background: var(--warning); }
+.replay-label { font-variant-numeric: tabular-nums; }
 /* Porównanie stron: dwie liczby i pasek podziału, pod listą. Lista przy
    "Wszyscy" jest jednym rankingiem bez sekcji, więc to tutaj widać wynik
    drużyn — stąd miejsce na końcu panelu, jako podsumowanie. */
@@ -427,12 +485,102 @@ function withText(element: HTMLElement, text: string): HTMLElement {
   return element;
 }
 
+/**
+ * Nagrywanie widziane przez overlay. Celowo bez wiedzy o magazynie: panel ma
+ * przełączać i pokazywać stan, a nie wiedzieć, gdzie leżą logi.
+ */
+export type RecorderControl = {
+  isRecording(): boolean;
+  toggle(): void;
+  count(): number;
+  chars(): number;
+  /** Nagrane logi w jednym tekście. null, gdy nie ma czego kopiować. */
+  dump(): string | null;
+  clear(): void;
+  /** Magazyn odmówił zapisu — pasek ma to powiedzieć wprost. */
+  isFailed(): boolean;
+};
+
+/**
+ * Okno archiwum widziane przez overlay — tylko tyle, ile trzeba, żeby narysować
+ * przycisk. Reszta (lista, wczytywanie, odtwarzanie) siedzi w `archive.ts`.
+ */
+export type ArchiveControl = {
+  isOpen(): boolean;
+  toggle(): void;
+  /** Lista nagrań mogła urosnąć — okno ma szansę się odświeżyć. */
+  sync(): void;
+};
+
+/** Sterowanie odtwarzaniem, rysowane w pasku podglądu. */
+export type ReplayView = {
+  playing: boolean;
+  /** Postęp 0..1 — tyle log ma już odtworzone. */
+  progress: number;
+  /** Mnożnik prędkości do pokazania na przycisku. */
+  speed: number;
+  /** Podpis postępu, np. "tura 14/31". */
+  label: string;
+  toggle(): void;
+  cycleSpeed(): void;
+  seek(fraction: number): void;
+};
+
+/**
+ * Walka wczytana z archiwum albo wklejona ręcznie. Panel pokazuje ją zamiast
+ * bieżącej, więc musi powiedzieć wprost, CO widać — inaczej minutę później nie
+ * wiadomo, czy to trwająca walka, czy wczorajsza.
+ */
+export type PreviewView = {
+  /** Skąd dane: "z archiwum · dziś 19:04" albo "wklejony log". */
+  source: string;
+  /** Kogo dotyczy walka, np. "Kamil vs Regulus". */
+  title: string;
+  replay: ReplayView | null;
+  close(): void;
+};
+
 export type OverlayOptions = {
   /** Gdzie doczepić hosta. Domyślnie `document.body`. */
   mount?: Element;
   /** Odczyt i zapis stanu okna (pozycja, zwinięcie). */
   storage?: Pick<Storage, "getItem" | "setItem">;
+  recorder?: RecorderControl;
+  /**
+   * Wstrzykiwany zapis do schowka — jsdom nie ma `navigator.clipboard`, a bez
+   * tego kopiowania nie dałoby się przetestować.
+   */
+  clipboard?: (text: string) => void | Promise<void>;
 };
+
+/**
+ * Zapis do schowka z zapasowym wyjściem.
+ *
+ * `navigator.clipboard` wymaga bezpiecznego kontekstu; Margonem chodzi po
+ * https, więc normalnie wystarcza. `execCommand` zostaje na wypadek starszej
+ * przeglądarki i odmowy uprawnienia — kliknięcie i tak już jest gestem
+ * użytkownika, więc obie drogi są dozwolone.
+ */
+async function writeClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return;
+  } catch {
+    // Spadamy do starej drogi poniżej.
+  }
+
+  const area = document.createElement("textarea");
+  area.value = text;
+  // Poza ekranem, żeby nie mrugnęło polem tekstowym nad grą.
+  area.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+  document.body.append(area);
+  area.select();
+  try {
+    document.execCommand("copy");
+  } finally {
+    area.remove();
+  }
+}
 
 // `height: null` = wysokość z treści (jak dotąd). Liczba pojawia się dopiero,
 // gdy użytkownik pociągnie za uchwyt — wtedy okno ma stały rozmiar, a korpus
@@ -461,7 +609,24 @@ export class Overlay {
   private readonly tip: HTMLElement;
   private readonly colors = new ColorAssignment();
   private readonly storage: OverlayOptions["storage"];
+  private readonly recorder: RecorderControl | undefined;
+  private readonly clipboard: (text: string) => void | Promise<void>;
   private state: PanelState;
+
+  /**
+   * Co pokazać zamiast ikony kopiowania przez chwilę po kliknięciu. Kopiowanie
+   * nie zmienia nic na ekranie, więc bez potwierdzenia nie wiadomo, czy w ogóle
+   * poszło. Trzymane w polu, bo panel przebudowuje się przy każdej zmianie logu.
+   */
+  private flash: { key: string; label: string } | null = null;
+  /** Drugi klik kasowania potwierdza. Pierwszy tylko pyta. */
+  private confirmingClear = false;
+  private archive: ArchiveControl | null = null;
+  /**
+   * Wczytana walka pokazywana zamiast bieżącej. Licznik na żywo leci w tle bez
+   * zmian — podgląd niczego nie zatrzymuje, tylko przykrywa widok.
+   */
+  private preview: { stats: BattleStats; view: PreviewView } | null = null;
 
   private metric: Metric = "damageDealt";
   private team: Team = "all";
@@ -491,6 +656,8 @@ export class Overlay {
 
   constructor(options: OverlayOptions = {}) {
     this.storage = options.storage;
+    this.recorder = options.recorder;
+    this.clipboard = options.clipboard ?? writeClipboard;
     this.state = this.loadState();
 
     this.host = document.createElement("div");
@@ -552,7 +719,11 @@ export class Overlay {
     this.latest = { fight, session };
     // Sesja jest liczona i pamiętana, ale nie ma dziś zakładki, która by ją
     // pokazała — panel mówi zawsze o bieżącej walce.
-    const stats = fight;
+    //
+    // Wczytana walka przykrywa bieżącą, ale jej nie zatrzymuje: `latest` idzie
+    // dalej i po zamknięciu podglądu panel wraca do tego, co zdążyło się
+    // wydarzyć w międzyczasie.
+    const stats = this.preview?.stats ?? fight;
     this.fightTurns = stats.timeline.length;
     const hovered = this.hovered;
 
@@ -619,7 +790,14 @@ export class Overlay {
     grip.setAttribute("aria-hidden", "true");
     this.makeResizable(grip, panel);
 
-    panel.append(this.renderHeader(), body, grip);
+    // Paski stanu tylko w rozwiniętym oknie — zwinięte pokazuje sam nagłówek,
+    // a nagrywanie widać wtedy po kolorze kropki.
+    const bars = this.state.collapsed
+      ? []
+      : [this.renderPreviewBar(), this.renderRecordBar()].filter(
+          (bar): bar is HTMLElement => bar !== null,
+        );
+    panel.append(this.renderHeader(), ...bars, body, grip);
 
     this.root.querySelector(".panel")?.remove();
     this.root.append(panel);
@@ -627,6 +805,10 @@ export class Overlay {
     // Kursor stoi w miejscu, a wiersz pod nim to już inny węzeł — odtwarzamy
     // dymek sami, bo żadne zdarzenie wskaźnika się nie powtórzy.
     if (hovered) this.showTip(hovered);
+
+    // Skończyła się walka i przybyło nagranie — otwarte archiwum ma je pokazać
+    // bez zamykania i otwierania okna.
+    this.archive?.sync();
   }
 
   destroy(): void {
@@ -638,6 +820,44 @@ export class Overlay {
     return this.root;
   }
 
+  /**
+   * Archiwum doczepiamy po utworzeniu overlaya, a nie w opcjach: okno archiwum
+   * rysuje się w TYM shadow roocie, więc nie może powstać przed nim.
+   */
+  attachArchive(archive: ArchiveControl): void {
+    this.archive = archive;
+    this.refresh();
+  }
+
+  /** Przerysowanie na żądanie — archiwum woła je, gdy zmienia swój stan. */
+  refresh(): void {
+    this.rerender();
+  }
+
+  /** Pokazuje wczytaną walkę zamiast bieżącej. */
+  showPreview(stats: BattleStats, view: PreviewView): void {
+    // Inna walka to inny skład — drążenie w postać z poprzedniego widoku nie
+    // miałoby się do czego odnieść.
+    if (this.preview?.view !== view) {
+      this.focus = null;
+      this.focusSource = null;
+    }
+    this.preview = { stats, view };
+    this.rerender();
+  }
+
+  closePreview(): void {
+    if (!this.preview) return;
+    this.preview = null;
+    this.focus = null;
+    this.focusSource = null;
+    this.rerender();
+  }
+
+  isPreviewing(): boolean {
+    return this.preview !== null;
+  }
+
   private renderHeader(): HTMLElement {
     const header = document.createElement("header");
 
@@ -647,6 +867,7 @@ export class Overlay {
 
     const collapse = document.createElement("button");
     collapse.type = "button";
+    collapse.dataset.action = "collapse";
     collapse.textContent = this.state.collapsed ? "▢" : "—";
     // aria-label zamiast title: nie chcemy natywnych dymków przeglądarki.
     collapse.setAttribute("aria-label", this.state.collapsed ? "Rozwiń" : "Zwiń");
@@ -656,9 +877,224 @@ export class Overlay {
       this.rerender();
     });
 
-    header.append(title, collapse);
+    header.append(
+      title,
+      this.renderCopyButton(),
+      ...this.recordButton(),
+      ...this.archiveButton(),
+      collapse,
+    );
     this.makeDraggable(header);
     return header;
+  }
+
+  private archiveButton(): HTMLElement[] {
+    const archive = this.archive;
+    if (!archive) return [];
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.action = "archive";
+    button.textContent = "▤";
+    button.setAttribute("aria-pressed", String(archive.isOpen()));
+    button.setAttribute("aria-label", archive.isOpen() ? "Zamknij archiwum" : "Archiwum walk");
+    button.addEventListener("click", () => archive.toggle());
+    return [button];
+  }
+
+  /**
+   * Pasek podglądu — jedyne miejsce, po którym widać, że panel NIE mówi
+   * o trwającej walce. Stąd inny kolor i wyjście na wierzchu, a nie w menu.
+   */
+  private renderPreviewBar(): HTMLElement | null {
+    const preview = this.preview;
+    if (!preview) return null;
+
+    const bar = div("preview-bar");
+    const head = div("preview-head");
+    head.append(div("preview-tag", "PODGLĄD"), div("grow", preview.view.source));
+
+    const back = document.createElement("button");
+    back.type = "button";
+    back.dataset.action = "exit-preview";
+    back.textContent = "na żywo";
+    back.setAttribute("aria-label", "Wróć do bieżącej walki");
+    back.addEventListener("click", () => preview.view.close());
+    head.append(back);
+
+    bar.append(head, div("preview-title", preview.view.title));
+
+    const replay = preview.view.replay;
+    if (replay) bar.append(this.renderReplayRow(replay));
+    return bar;
+  }
+
+  private renderReplayRow(replay: ReplayView): HTMLElement {
+    const row = div("replay");
+
+    const play = document.createElement("button");
+    play.type = "button";
+    play.dataset.action = "replay-toggle";
+    play.textContent = replay.playing ? "⏸" : "▶";
+    play.setAttribute("aria-label", replay.playing ? "Zatrzymaj" : "Odtwarzaj");
+    play.addEventListener("click", () => replay.toggle());
+
+    // Pasek jest zarazem postępem i suwakiem — kliknięcie przewija w to miejsce.
+    const track = div("replay-track");
+    track.dataset.action = "replay-seek";
+    const fill = div("replay-fill");
+    fill.style.width = `${Math.round(replay.progress * 100)}%`;
+    track.append(fill);
+    track.addEventListener("click", (event) => {
+      const box = track.getBoundingClientRect();
+      // jsdom nie liczy layoutu — bez szerokości nie ma czego dzielić.
+      if (box.width === 0) return;
+      replay.seek(clamp((event.clientX - box.left) / box.width, 0, 1));
+    });
+
+    const speed = document.createElement("button");
+    speed.type = "button";
+    speed.dataset.action = "replay-speed";
+    speed.textContent = `${replay.speed}×`;
+    speed.setAttribute("aria-label", "Prędkość odtwarzania");
+    speed.addEventListener("click", () => replay.cycleSpeed());
+
+    row.append(play, track, div("replay-label", replay.label), speed);
+    return row;
+  }
+
+  /** Kopiuje statystyki — bieżącą walkę i całą sesję naraz — jako JSON. */
+  private renderCopyButton(): HTMLElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.action = "copy-stats";
+    button.textContent = this.flash?.key === "copy-stats" ? this.flash.label : "⧉";
+    button.setAttribute("aria-label", "Kopiuj statystyki (JSON)");
+    button.addEventListener("click", () => {
+      void this.copy("copy-stats", this.statsJson());
+    });
+    return button;
+  }
+
+  private recordButton(): HTMLElement[] {
+    if (!this.recorder) return [];
+
+    const recording = this.recorder.isRecording();
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.action = "record";
+    button.className = recording ? "rec is-on" : "rec";
+    button.textContent = "⏺";
+    button.setAttribute("aria-pressed", String(recording));
+    button.setAttribute("aria-label", recording ? "Zatrzymaj nagrywanie" : "Nagrywaj walki");
+    button.addEventListener("click", () => {
+      this.recorder?.toggle();
+      // Wyłączenie nagrywania nie może zostawić otwartego pytania o kasowanie.
+      this.confirmingClear = false;
+      this.rerender();
+    });
+    return [button];
+  }
+
+  /**
+   * Pasek stanu nagrywania — pod nagłówkiem, tylko gdy jest o czym mówić.
+   *
+   * Nagrania zajmują miejsce w magazynie dzielonym z grą, więc licznik walk
+   * i zajętość stoją na wierzchu, a nie w jakimś ukrytym widoku: to jedyne
+   * miejsce, gdzie widać, że coś rośnie.
+   */
+  private renderRecordBar(): HTMLElement | null {
+    const recorder = this.recorder;
+    if (!recorder) return null;
+
+    const count = recorder.count();
+    if (!recorder.isRecording() && count === 0 && !recorder.isFailed()) return null;
+
+    const bar = div("rec-bar");
+    if (recorder.isFailed()) {
+      bar.classList.add("warn");
+      bar.append(div("grow", "Brak miejsca w przeglądarce — nagrywanie wyłączone"));
+    } else {
+      if (recorder.isRecording()) bar.append(div("dot", "⏺"));
+      const kb = Math.round((recorder.chars() * 2) / 1024);
+      bar.append(
+        div(
+          "grow",
+          count === 0
+            ? "nagrywam — czekam na walkę"
+            : `${count} ${fightWord(count)} · ${kb} kB`,
+        ),
+      );
+    }
+
+    if (count > 0) {
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.dataset.action = "copy-logs";
+      copy.textContent = this.flash?.key === "copy-logs" ? this.flash.label : "kopiuj logi";
+      copy.setAttribute("aria-label", "Kopiuj nagrane logi");
+      copy.addEventListener("click", () => {
+        void this.copy("copy-logs", recorder.dump() ?? "");
+      });
+
+      const clear = document.createElement("button");
+      clear.type = "button";
+      clear.dataset.action = "clear-recordings";
+      clear.textContent = this.confirmingClear ? "na pewno?" : "wyczyść";
+      clear.setAttribute("aria-label", "Usuń nagrania");
+      clear.addEventListener("click", () => {
+        // Nagrań nie da się odzyskać, więc pierwszy klik tylko pyta.
+        if (!this.confirmingClear) {
+          this.confirmingClear = true;
+          this.rerender();
+          return;
+        }
+        recorder.clear();
+        this.confirmingClear = false;
+        this.rerender();
+      });
+
+      bar.append(copy, clear);
+    }
+
+    return bar;
+  }
+
+  /**
+   * Stan obu liczników w jednym JSON-ie: walka i sesja.
+   *
+   * Kopiujemy pełne statystyki, nie to, co akurat widać na ekranie — widok jest
+   * przekrojem tych samych danych, a wklejenie „tylko zadanych, tylko mojej
+   * drużyny" byłoby niespodzianką przy próbie policzenia czegokolwiek dalej.
+   */
+  private statsJson(): string {
+    return JSON.stringify(
+      {
+        tool: "MargoMeter",
+        at: new Date().toISOString(),
+        fight: this.latest?.fight ?? null,
+        session: this.latest?.session ?? null,
+      },
+      null,
+      2,
+    );
+  }
+
+  private async copy(key: string, text: string): Promise<void> {
+    let label = "✓";
+    try {
+      await this.clipboard(text);
+    } catch {
+      // Schowek potrafi odmówić — lepiej powiedzieć wprost niż udawać sukces.
+      label = "✕";
+    }
+    this.flash = { key, label };
+    this.rerender();
+    setTimeout(() => {
+      if (this.flash?.key !== key) return;
+      this.flash = null;
+      this.rerender();
+    }, 1500);
   }
 
   /**
@@ -1655,33 +2091,21 @@ export class Overlay {
   }
 
   private rerender(): void {
-    if (this.latest) this.render(this.latest.fight, this.latest.session);
+    // Pusty komplet, gdy nic jeszcze nie przyszło z gry: podgląd z archiwum
+    // i przycisk ▤ muszą dać się narysować przed pierwszą walką.
+    const latest = this.latest ?? { fight: EMPTY_STATS, session: EMPTY_STATS };
+    this.render(latest.fight, latest.session);
   }
 
   private makeDraggable(handle: HTMLElement): void {
-    handle.addEventListener("pointerdown", (event) => {
-      if ((event.target as Element).tagName === "BUTTON") return;
-
-      const startX = event.clientX - this.state.x;
-      const startY = event.clientY - this.state.y;
-      handle.classList.add("dragging");
-      handle.setPointerCapture(event.pointerId);
-
-      const move = (moveEvent: PointerEvent) => {
-        this.state.x = moveEvent.clientX - startX;
-        this.state.y = moveEvent.clientY - startY;
+    makeDraggable(handle, {
+      position: () => ({ x: this.state.x, y: this.state.y }),
+      move: (x, y) => {
+        this.state.x = x;
+        this.state.y = y;
         this.applyPosition();
-      };
-
-      const up = () => {
-        handle.classList.remove("dragging");
-        handle.removeEventListener("pointermove", move);
-        handle.removeEventListener("pointerup", up);
-        this.saveState();
-      };
-
-      handle.addEventListener("pointermove", move);
-      handle.addEventListener("pointerup", up);
+      },
+      end: () => this.saveState(),
     });
   }
 
