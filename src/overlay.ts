@@ -123,6 +123,12 @@ const STYLE = `
   overflow-y: auto;
   overflow-x: hidden;
 }
+/* Gutter paska przewijania rezerwujemy TYLKO przy stałej wysokości, gdy korpus
+   naprawdę się przewija. Odtwarzanie zmienia dane co klatkę — bez tego pasek
+   pojawiający się i znikający na granicy przewijania miga. Przy wysokości
+   z treści (brak przewijania) pusty gutter tylko zjadałby kilkanaście pikseli
+   z prawej, więc włącza go dopiero klasa \`scrolls\`. */
+.panel-body.scrolls { scrollbar-gutter: stable; }
 /* Uchwyt zmiany rozmiaru — róg jak w textarea. Trójkąt w prawym dolnym rogu
    z ukośnymi kreskami; pełny rozmiar okna bierze się z pociągnięcia za niego. */
 .resize-grip {
@@ -607,6 +613,35 @@ export class Overlay {
   private readonly root: ShadowRoot;
   /** Dymek z rozbiciem obrażeń. Żyje obok panelu, więc przetrwa rerender. */
   private readonly tip: HTMLElement;
+  /**
+   * Szkielet okna żyje przez całe życie overlaya. Render co klatkę (odtwarzanie)
+   * przebudowuje tylko TREŚĆ w środku, nie te pojemniki — inaczej kliknięcie
+   * w sterowanie gubiło się w przebudowie, a pasek przewijania korpusu migał.
+   */
+  private readonly panel: HTMLElement;
+  private readonly body: HTMLElement;
+  private readonly grip: HTMLElement;
+  /** Nagłówek i paski stanu z ostatniego renderu — do zdjęcia przy następnym. */
+  private chromeNodes: HTMLElement[] = [];
+  /**
+   * Trwałe węzły sterowania odtwarzaniem. Muszą przeżyć przebudowę pasków co
+   * klatkę: gdyby powstawały od nowa, `pointerdown` i `pointerup` jednego
+   * kliknięcia trafiałyby w dwa różne węzły i `click` nigdy by nie padł.
+   */
+  private replayControls: {
+    row: HTMLElement;
+    play: HTMLButtonElement;
+    track: HTMLElement;
+    fill: HTMLElement;
+    label: HTMLElement;
+    speed: HTMLButtonElement;
+  } | null = null;
+  /** Bieżący opis odtwarzania — trwałe przyciski czytają go w chwili kliknięcia. */
+  private currentReplay: ReplayView | null = null;
+  /** Wiersz, na którym wciśnięto lewy przycisk — do dopasowania na `pointerup`. */
+  private pressed: { key: string; actor?: string; source?: string } | null = null;
+  /** `pointerup` już wdrążył — powstrzymaj `click`, który zaraz po nim przyjdzie. */
+  private drillHandled = false;
   private readonly colors = new ColorAssignment();
   private readonly storage: OverlayOptions["storage"];
   private readonly recorder: RecorderControl | undefined;
@@ -669,7 +704,18 @@ export class Overlay {
 
     this.tip = div("tip");
     this.tip.hidden = true;
-    this.root.append(style, this.tip);
+
+    // Trwały szkielet: panel, przewijany korpus i uchwyt rozmiaru. Uchwyt
+    // podpinamy raz — pisze prosto w styl tego samego panelu przez całe życie
+    // okna. Treść wjeżdża do `body` i przed nie przy każdym renderze.
+    this.panel = document.createElement("div");
+    this.body = div("panel-body");
+    this.grip = div("resize-grip");
+    this.grip.setAttribute("aria-hidden", "true");
+    this.makeResizable(this.grip, this.panel);
+    this.panel.append(this.body, this.grip);
+
+    this.root.append(style, this.tip, this.panel);
 
     // Delegacja zamiast listenerów na wierszach: panel jest przebudowywany przy
     // każdej zmianie logu, a `pointerenter` nie odpaliłby się ponownie dla
@@ -692,16 +738,39 @@ export class Overlay {
       if (!rowUnder((event as PointerEvent).relatedTarget)) this.hideTip();
     });
 
-    // Lewy przycisk wchodzi w postać, prawy wraca. Oba przez delegację, z tego
-    // samego powodu co dymek: wiersz pod kursorem to po rerenderze inny węzeł.
-    this.root.addEventListener("click", (event) => {
-      const row = rowUnder(event.target);
-      if (row?.dataset.actor) {
-        this.enter(row.dataset.actor);
-      } else if (row?.dataset.source && row.dataset.list === "sources") {
-        // Wewnątrz przyjętych wiersz napastnika prowadzi głębiej: czym uderzał.
-        this.enterSource(row.dataset.source);
+    // Lewy przycisk wchodzi w postać. Podczas odtwarzania panel przebudowuje się
+    // co klatkę, więc wiersz spod kursora znika MIĘDZY `pointerdown` a `pointerup`
+    // — a wtedy przeglądarka albo w ogóle nie wystawia `click`, albo wystawia go
+    // na trwałym `panel-body` (wspólnym przodku), gdzie nie ma już `.row` do
+    // odczytania. Dlatego drążymy na `pointerup`: on pada zawsze na węzeł
+    // faktycznie pod kursorem w chwili puszczenia. Tożsamością jest nazwa
+    // z wiersza, nie sam węzeł, więc świeży wiersz tej samej postaci pasuje.
+    this.root.addEventListener("pointerdown", (event) => {
+      // Nowy gest zeruje ślad po poprzednim — gdyby po `pointerup` nie przyszedł
+      // `click` (rzadkie), flaga nie może połknąć następnego kliknięcia.
+      this.drillHandled = false;
+      this.pressed = this.rowIdentity(rowUnder(event.target));
+    });
+    this.root.addEventListener("pointerup", (event) => {
+      const pressed = this.pressed;
+      this.pressed = null;
+      const row = this.rowIdentity(rowUnder(event.target));
+      // Puszczono nad tym samym wierszem, na którym wciśnięto — dopiero to jest
+      // kliknięcie. Puszczenie nad innym (ranking się przestawił) nie drąży.
+      if (row && pressed && row.key === pressed.key && this.drill(row)) {
+        // Za `pointerup` i tak przyjdzie `click` — bez tej flagi zadziałałby drugi
+        // raz i od razu cofnął wejście.
+        this.drillHandled = true;
       }
+    });
+    // Zapasowa droga dla samego `click`: testy wywołują `.click()` bez pary
+    // pointer-ów, a przy nieruchomym panelu (poza odtwarzaniem) to najprostsze.
+    this.root.addEventListener("click", (event) => {
+      if (this.drillHandled) {
+        this.drillHandled = false;
+        return;
+      }
+      this.drill(this.rowIdentity(rowUnder(event.target)));
     });
     this.root.addEventListener("contextmenu", (event) => {
       // Menu przeglądarki nad panelem tylko przeszkadza, a prawy przycisk ma
@@ -749,18 +818,28 @@ export class Overlay {
       if (!twoTier.some((one) => one.label === this.focusSource)) this.focusSource = null;
     }
 
-    const panel = document.createElement("div");
-    panel.className = this.state.collapsed ? "panel collapsed" : "panel";
     // Szerokość stosujemy zawsze, wysokość tylko rozwinięty i tylko gdy
     // użytkownik ją ustawił — inaczej okno rośnie z treścią jak dotąd, a zwinięte
     // pokazuje sam nagłówek bez sztywnej wysokości pod spodem.
-    panel.style.width = `${this.state.width}px`;
+    this.panel.className = this.state.collapsed ? "panel collapsed" : "panel";
+    this.panel.style.width = `${this.state.width}px`;
     if (!this.state.collapsed && this.state.height !== null) {
-      panel.style.height = `${this.state.height}px`;
+      this.panel.style.height = `${this.state.height}px`;
+    } else {
+      // Panel jest trwały — bez zdjęcia wysokość sprzed zwinięcia albo sprzed
+      // skasowania ręcznego rozmiaru zostałaby na nim na stałe.
+      this.panel.style.removeProperty("height");
     }
+    // Gutter paska przewijania rezerwujemy tylko wtedy, gdy korpus faktycznie
+    // się przewija — patrz reguła `.panel-body.scrolls`.
+    this.body.classList.toggle(
+      "scrolls",
+      !this.state.collapsed && this.state.height !== null,
+    );
 
-    const body = div("panel-body");
-    body.append(
+    // Tylko TREŚĆ korpusu — sam `body` jest trwały, więc pasek przewijania
+    // i jego pozycja przeżywają zmianę danych zamiast mrugać przy każdej klatce.
+    this.body.replaceChildren(
       ...(focused
         ? // Wewnątrz postaci nie ma po co porównywać stron ani filtrować składu
           // — jest jedna postać i jej rozbicie. Zostaje wybór metryki, bo on
@@ -779,17 +858,18 @@ export class Overlay {
     );
 
     const footer = this.renderFooter(stats);
-    if (footer) body.append(footer);
+    if (footer) this.body.append(footer);
 
     // Podsumowanie drużyny zamyka korpus — pod listą i pod stopką. Przy
     // "Wszyscy" porównuje strony, przy "My"/"Oni" podaje sumy tej jednej.
     // W widoku pojedynczej postaci nie ma czego podsumowywać.
-    if (!focused) body.append(...(this.renderTeamSummary(stats) ?? []));
+    if (!focused) this.body.append(...(this.renderTeamSummary(stats) ?? []));
 
-    const grip = div("resize-grip");
-    grip.setAttribute("aria-hidden", "true");
-    this.makeResizable(grip, panel);
-
+    // Nagłówek i paski stanu budujemy od nowa, ale WKŁADAMY przed trwały korpus,
+    // zamiast składać cały panel na nowo. Sterowanie odtwarzaniem wewnątrz pasków
+    // zostaje na trwałych węzłach (patrz renderReplayRow), więc kliknięcie w nie
+    // przeżywa przebudowę pasków co klatkę.
+    //
     // Paski stanu tylko w rozwiniętym oknie — zwinięte pokazuje sam nagłówek,
     // a nagrywanie widać wtedy po kolorze kropki.
     const bars = this.state.collapsed
@@ -797,10 +877,13 @@ export class Overlay {
       : [this.renderPreviewBar(), this.renderRecordBar()].filter(
           (bar): bar is HTMLElement => bar !== null,
         );
-    panel.append(this.renderHeader(), ...bars, body, grip);
-
-    this.root.querySelector(".panel")?.remove();
-    this.root.append(panel);
+    const chrome = [this.renderHeader(), ...bars];
+    // Zdejmujemy poprzedni nagłówek/paski PO zbudowaniu nowych — trwałe węzły
+    // odtwarzania zdążyły się już przenieść do świeżego paska, więc ich to nie
+    // dotyka. `body` i uchwyt zostają na miejscu.
+    for (const node of this.chromeNodes) node.remove();
+    this.chromeNodes = chrome;
+    this.body.before(...chrome);
 
     // Kursor stoi w miejscu, a wiersz pod nim to już inny węzeł — odtwarzamy
     // dymek sami, bo żadne zdarzenie wskaźnika się nie powtórzy.
@@ -929,38 +1012,57 @@ export class Overlay {
     return bar;
   }
 
+  /**
+   * Wiersz sterowania odtwarzaniem. Zwraca TRWAŁE węzły (te same przy każdym
+   * renderze) i tylko odświeża ich stan — inaczej przy odtwarzaniu, gdzie render
+   * leci co klatkę, przebudowa paska rozdzielała `pointerdown` od `pointerup`
+   * jednego kliknięcia na dwa różne przyciski i pauza/suwak nie reagowały.
+   */
   private renderReplayRow(replay: ReplayView): HTMLElement {
+    // Najświeższy opis czytają listenery w chwili kliknięcia — same przyciski
+    // się nie zmieniają, zmienia się to, na co wskazują.
+    this.currentReplay = replay;
+    const controls = (this.replayControls ??= this.buildReplayControls());
+
+    controls.play.textContent = replay.playing ? "⏸" : "▶";
+    controls.play.setAttribute("aria-label", replay.playing ? "Zatrzymaj" : "Odtwarzaj");
+    controls.fill.style.width = `${Math.round(replay.progress * 100)}%`;
+    controls.label.textContent = replay.label;
+    controls.speed.textContent = `${replay.speed}×`;
+    return controls.row;
+  }
+
+  /** Buduje trwałe węzły sterowania odtwarzaniem — raz na życie overlaya. */
+  private buildReplayControls(): NonNullable<Overlay["replayControls"]> {
     const row = div("replay");
 
     const play = document.createElement("button");
     play.type = "button";
     play.dataset.action = "replay-toggle";
-    play.textContent = replay.playing ? "⏸" : "▶";
-    play.setAttribute("aria-label", replay.playing ? "Zatrzymaj" : "Odtwarzaj");
-    play.addEventListener("click", () => replay.toggle());
+    play.addEventListener("click", () => this.currentReplay?.toggle());
 
     // Pasek jest zarazem postępem i suwakiem — kliknięcie przewija w to miejsce.
     const track = div("replay-track");
     track.dataset.action = "replay-seek";
     const fill = div("replay-fill");
-    fill.style.width = `${Math.round(replay.progress * 100)}%`;
     track.append(fill);
     track.addEventListener("click", (event) => {
       const box = track.getBoundingClientRect();
       // jsdom nie liczy layoutu — bez szerokości nie ma czego dzielić.
       if (box.width === 0) return;
-      replay.seek(clamp((event.clientX - box.left) / box.width, 0, 1));
+      this.currentReplay?.seek(clamp((event.clientX - box.left) / box.width, 0, 1));
     });
+
+    const label = div("replay-label");
 
     const speed = document.createElement("button");
     speed.type = "button";
     speed.dataset.action = "replay-speed";
-    speed.textContent = `${replay.speed}×`;
     speed.setAttribute("aria-label", "Prędkość odtwarzania");
-    speed.addEventListener("click", () => replay.cycleSpeed());
+    speed.addEventListener("click", () => this.currentReplay?.cycleSpeed());
 
-    row.append(play, track, div("replay-label", replay.label), speed);
-    return row;
+    row.append(play, track, label, speed);
+    return { row, play, track, fill, label, speed };
   }
 
   /** Kopiuje statystyki — bieżącą walkę i całą sesję naraz — jako JSON. */
@@ -1385,6 +1487,36 @@ export class Overlay {
     }
 
     return tabs;
+  }
+
+  /**
+   * Drążalna tożsamość wiersza — nazwa, nie węzeł, bo panel przebudowuje wiersze
+   * przy każdej klatce. `key` porównuje `pointerdown` z `pointerup`; `null` to
+   * wiersz, który nigdzie nie prowadzi (rozbicie po typie, pusty obszar).
+   */
+  private rowIdentity(
+    row: HTMLElement | null,
+  ): { key: string; actor?: string; source?: string } | null {
+    if (row?.dataset.actor) return { key: `a:${row.dataset.actor}`, actor: row.dataset.actor };
+    // Tylko lista napastników/celów prowadzi głębiej; przekrój po typie nie.
+    if (row?.dataset.source && row.dataset.list === "sources") {
+      return { key: `s:${row.dataset.source}`, source: row.dataset.source };
+    }
+    return null;
+  }
+
+  /** Wchodzi w to, co niesie tożsamość wiersza. Zwraca, czy było w co wejść. */
+  private drill(target: ReturnType<Overlay["rowIdentity"]>): boolean {
+    if (target?.actor !== undefined) {
+      this.enter(target.actor);
+      return true;
+    }
+    if (target?.source !== undefined) {
+      // Wewnątrz przyjętych wiersz napastnika prowadzi głębiej: czym uderzał.
+      this.enterSource(target.source);
+      return true;
+    }
+    return false;
   }
 
   /** Wejście w postać lewym przyciskiem. */

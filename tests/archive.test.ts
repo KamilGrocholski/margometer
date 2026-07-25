@@ -312,6 +312,21 @@ describe("odtwarzanie", () => {
     expect((overlay.shadow.querySelector(".replay-fill") as HTMLElement).style.width).toBe("100%");
   });
 
+  test("krok w pół akcji nie wywołuje ostrzeżenia o nierozpoznanych liniach", async () => {
+    // Krok po linii potrafi stanąć MIĘDZY "uderzył" a "otrzymał". Parser słusznie
+    // zgłasza wtedy niedomknięty cios, ale w połowie odtwarzania to nie zmiana
+    // formatu — stopka nie ma przez to mrugać ostrzeżeniem co drugą klatkę.
+    // Fixture rozpoznaje się w całości (0 nieznanych linii), więc na żadnej
+    // klatce nie powinno paść żadne ostrzeżenie.
+    const { overlay, text } = await loadReplay();
+    const total = text.split("\n").filter((line) => line.trim() !== "").length;
+
+    for (let i = 0; i < total; i += 1) {
+      ticker.tick(1);
+      expect(overlay.shadow.querySelector(".warn")).toBeNull();
+    }
+  });
+
   test("wejście w inną walkę gasi poprzednie odtwarzanie", async () => {
     const gnolle = await readFixture("2026-07-18_lowca-vs-gnolle-rozdzielanie");
     const kukla = await readFixture("2026-07-18_tancerz-vs-kukla");

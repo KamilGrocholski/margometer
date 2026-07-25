@@ -331,7 +331,18 @@ export class Archive {
     // Parsujemy CAŁY prefiks od nowa, dokładnie jak `Session` przy każdej
     // zmianie logu w grze — dzięki temu odtwarzanie idzie tą samą ścieżką
     // co licznik na żywo i nie ma osobnej, drugiej prawdy.
-    return aggregate(parse(replay.lines.slice(0, at).join("\n")));
+    const events = parse(replay.lines.slice(0, at).join("\n"));
+
+    // Krok po linii potrafi zatrzymać się MIĘDZY linią ciosu ("uderzył") a linią
+    // obrażeń ("otrzymał"). Parser słusznie zgłasza wtedy niedomknięty cios jako
+    // linię nierozpoznaną — ale w połowie odtwarzania to nie zmiana formatu,
+    // tylko klatka złapana w pół akcji. Bez tego ostrzeżenie w stopce mrugałoby
+    // co drugą klatkę. Zdejmujemy tylko OSTATNIE zdarzenie i tylko przed końcem
+    // nagrania: na `at === lines.length` żadnego niedomknięcia już nie ma, więc
+    // realne nierozpoznane linie zostają i ostrzeżenie działa jak w grze.
+    if (at < replay.lines.length && events.at(-1)?.kind === "unknown") events.pop();
+
+    return aggregate(events);
   }
 
   private setPlaying(playing: boolean): void {

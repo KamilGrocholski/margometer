@@ -1021,6 +1021,44 @@ describe("overlay", () => {
     expect(parseFloat(widths[1]!)).toBeCloseTo((89 / 2897) * 100, 5);
   });
 
+  test("wejście w postać przeżywa przebudowę wiersza między wciśnięciem a puszczeniem", async () => {
+    // Podczas odtwarzania panel przebudowuje wiersze co klatkę. `click` gubi się
+    // wtedy między pointerdown a pointerup (albo pada na trwały panel-body, gdzie
+    // nie ma już `.row`). Drążenie jedzie więc na pointerup, dopasowane po nazwie
+    // postaci — świeży węzeł tej samej postaci ma zadziałać tak samo.
+    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-druzyna");
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const first = overlay.shadow.querySelector<HTMLElement>(".rows .row[data-actor]")!;
+    const name = first.dataset.actor!;
+    first.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+
+    // Klatka odtwarzania: te same dane, ale wiersze to już inne węzły.
+    overlay.render(stats, stats);
+    const fresh = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")].find(
+      (row) => row.dataset.actor === name,
+    )!;
+    expect(fresh).not.toBe(first);
+    fresh.dispatchEvent(new Event("pointerup", { bubbles: true }));
+
+    expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe(name);
+  });
+
+  test("puszczenie nad innym wierszem niż wciśnięcie nie drąży", async () => {
+    // Ranking potrafi się przestawić w trakcie odtwarzania — puszczenie nad kimś
+    // innym, niż się wcisnęło, nie może wejść w cudzą postać.
+    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-druzyna");
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const list = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")];
+    list[0]!.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    list[1]!.dispatchEvent(new Event("pointerup", { bubbles: true }));
+
+    expect(overlay.shadow.querySelector(".crumb-name")).toBeNull();
+  });
+
   test("dymek pokazuje rozbicie zadanych obrażeń na źródła", async () => {
     const stats = await statsFrom("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp");
     const overlay = new Overlay();
