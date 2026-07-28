@@ -12,6 +12,14 @@ export type RosterEntry = {
   name: string;
   /** Nasza numeracja: 0 to drużyna gracza. NIE jest to `team` z gry. */
   side: number;
+  /**
+   * Kod profesji (`prof` z wojownika gry) — ten sam alfabet co w logu.
+   * Opcjonalny, bo skład bywa też podstawiany w testach, a przy patchu gry pole
+   * może zniknąć: wtedy profesja zostaje ta z linii otwierającej.
+   */
+  prof?: string;
+  /** Poziom (`lvl` z wojownika gry). Opcjonalny z tego samego powodu co `prof`. */
+  lvl?: number;
 };
 
 export type RosterSource = {
@@ -25,6 +33,9 @@ type Warrior = {
   originalId?: unknown;
   name?: unknown;
   team?: unknown;
+  /** Kod profesji, np. `"h"`. Ten sam alfabet, którym pisze log. */
+  prof?: unknown;
+  lvl?: unknown;
 };
 
 function warriorsOf(battle: Record<string, unknown>): Warrior[] {
@@ -76,7 +87,15 @@ export class EngineRosterSource implements RosterSource {
       const id = typeof warrior.id === "number" ? warrior.id : warrior.originalId;
       if (typeof id !== "number" || typeof warrior.name !== "string") continue;
       if (typeof warrior.team !== "number") continue;
-      entries.push({ id, name: warrior.name, side: warrior.team === myteam ? 0 : 1 });
+      entries.push({
+        id,
+        name: warrior.name,
+        side: warrior.team === myteam ? 0 : 1,
+        // Profesji ani poziomu nie wymuszamy: brak pola nie unieważnia wpisu,
+        // bo jedno i drugie niesie też linia otwierająca.
+        ...(typeof warrior.prof === "string" && warrior.prof !== "" ? { prof: warrior.prof } : {}),
+        ...(typeof warrior.lvl === "number" ? { lvl: warrior.lvl } : {}),
+      });
     }
 
     return entries.length > 0 ? entries : null;

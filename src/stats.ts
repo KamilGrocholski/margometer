@@ -1,5 +1,9 @@
 import type { RosterEntry } from "./roster.ts";
+import { typeFamily } from "./types.ts";
 import type { ActorStats, BattleEvent, DamageSource, ProcCount } from "./types.ts";
+
+/** Wpis składu w postaci, w której liczy go agregacja — bez względu na źródło. */
+type Seat = { name: string; side: number; prof?: string | undefined; level?: number | undefined };
 
 /**
  * Etykieta instancji postaci o zdublowanej nazwie. Numer jest NASZ — log nie
@@ -13,12 +17,19 @@ function instanceLabel(name: string, index: number): string {
 type Instance = { index: number; hpPct: number; touched: number };
 
 /**
+ * Nazwa, procent życia z tej samej linii i kierunek zmiany życia. `rising`
+ * znaczy "ta wartość jest PO wyleczeniu" — jedyny przypadek, w którym życie
+ * idzie w górę, więc dopasowanie instancji musi patrzeć w drugą stronę.
+ */
+type NameRef = [name: string, hpPct: number | null, rising?: boolean];
+
+/**
  * Wymienia nazwy padające w zdarzeniu wraz z procentem życia, jaki niesie ta
  * sama linia. Jedno miejsce na tę wiedzę, bo przebiegamy zdarzenia dwa razy
  * (raz na policzenie instancji, raz na właściwe liczenie) i oba przebiegi
  * MUSZĄ widzieć dokładnie tę samą kolejność.
  */
-function namesIn(event: BattleEvent): Array<[string, number | null]> {
+function namesIn(event: BattleEvent): NameRef[] {
   switch (event.kind) {
     case "attack":
       return [
@@ -29,9 +40,10 @@ function namesIn(event: BattleEvent): Array<[string, number | null]> {
       return [[event.target, event.targetHpPct]];
     case "move":
       return [[event.actor, event.hpPct]];
-    // Te linie nie niosą procentu życia.
+    // Leczenie jako jedyne PODNOSI życie, więc dopasowanie idzie od dołu —
+    // patrz `rising` w `instanceResolver`.
     case "heal":
-      return [[event.target, null]];
+      return [[event.target, event.targetHpPct, true]];
     case "turn-lost":
     case "ability":
       return [[event.actor, null]];
@@ -54,7 +66,7 @@ function namesIn(event: BattleEvent): Array<[string, number | null]> {
  * zostaje jedna scalona instancja pod gołą nazwą, tak jak przed rozdzielaniem.
  */
 function instanceResolver(
-  roster: Array<{ name: string; side: number }>,
+  roster: Seat[],
   events: BattleEvent[],
   /**
    * Skład pochodzi z gry, nie z logu — wtedy liczba postaci o danej nazwie
@@ -73,7 +85,7 @@ function instanceResolver(
     const live = new Map<string, Instance[]>();
     let clock = 0;
 
-    return (name: string, hpPct: number | null): number => {
+    return (name: string, hpPct: number | null, rising = false): number => {
       const total = counts.get(name) ?? 0;
       // Nazwa jedyna w składzie (albo spoza składu) — nie ma czego rozdzielać.
       if (total < 2) return 0;
@@ -96,6 +108,25 @@ function instanceResolver(
         const recent = list.reduce((best, one) => (one.touched > best.touched ? one : best));
         recent.touched = clock;
         return recent.index;
+      }
+
+      if (rising) {
+        // Leczenie jest jedyną linią, po której życie ROŚNIE, więc reguła
+        // "stał wyżej, spadł tutaj" jest tu odwrócona: instancją jest ta, która
+        // stała najbliżej POD podaną wartością i właśnie do niej doszła.
+        //
+        // Leczenie nigdy nie zakłada nowej instancji. Ubytek życia dowodzi, że
+        // ktoś stał wyżej; przyrost nie dowodzi niczego — bez tego zastrzeżenia
+        // wyleczenie do pełna rodziłoby postać-widmo przy każdej zdublowanej
+        // nazwie, bo nikt nie stałby dość wysoko.
+        const below = list.filter((one) => one.hpPct <= hpPct);
+        const pick =
+          below.length > 0
+            ? below.reduce((best, one) => (one.hpPct > best.hpPct ? one : best))
+            : list.reduce((best, one) => (one.touched > best.touched ? one : best));
+        pick.hpPct = hpPct;
+        pick.touched = clock;
+        return pick.index;
       }
 
       // Ostro powyżej: żeby zejść do `hpPct`, trzeba było stać WYŻEJ. Bierzemy
@@ -136,8 +167,8 @@ function instanceResolver(
   const dry = track();
   const spawned = new Map<string, number>();
   for (const event of events) {
-    for (const [name, hpPct] of namesIn(event)) {
-      const index = dry(name, hpPct);
+    for (const [name, hpPct, rising] of namesIn(event)) {
+      const index = dry(name, hpPct, rising);
       spawned.set(name, Math.max(spawned.get(name) ?? 0, index + 1));
     }
   }
@@ -150,8 +181,8 @@ function instanceResolver(
     rows(name) > 1 ? instanceLabel(name, index) : name;
 
   const live = track();
-  const resolve = (name: string, hpPct: number | null): string =>
-    label(name, live(name, hpPct));
+  const resolve = (name: string, hpPct: number | null, rising = false): string =>
+    label(name, live(name, hpPct, rising));
 
   /**
    * Skład z rozwiniętymi duplikatami — po jednym wpisie na wiersz.
@@ -162,7 +193,12 @@ function instanceResolver(
    * drugiego duplikatu twierdziłby, że akurat ta postać nic nie zrobiła.
    */
   const seats = (() => {
-    const out: Array<{ key: string; side: number }> = [];
+    const out: Array<{
+      key: string;
+      side: number;
+      prof?: string | undefined;
+      level?: number | undefined;
+    }> = [];
     const used = new Set<string>();
     for (const participant of roster) {
       const total = Math.max(rows(participant.name), 1);
@@ -170,7 +206,9 @@ function instanceResolver(
         const key = label(participant.name, index);
         if (used.has(key)) continue;
         used.add(key);
-        out.push({ key, side: participant.side });
+        // Profesja jedzie tą samą drogą co strona — obie są własnością SKŁADU,
+        // nie linii logu, więc dostaje je każdy wiersz, także ten na zerach.
+        out.push({ key, side: participant.side, prof: participant.prof, level: participant.level });
       }
     }
     return out;
@@ -210,6 +248,13 @@ const UNKNOWN_ELEMENT = "bez żywiołu";
 
 /** Leczenie bez nazwy umiejętności — log nie mówi, co je wywołało. */
 const PLAIN_HEAL = "Regeneracja";
+
+/**
+ * Aktor tury, której nagłówka nie widzieliśmy — bufor logu zaczyna się w jej
+ * środku. Puste, bo to nie jest niczyja tura z nazwy: gdybyśmy wstawili tu
+ * jakąkolwiek nazwę, kolumna na osi dostałaby stronę, o której log milczy.
+ */
+const BACKGROUND_ACTOR = "";
 
 /**
  * Sprowadza wariantowe nazwy efektów do jednej etykiety: "Niszczenie pancerza
@@ -346,6 +391,9 @@ function blank(name: string): ActorStats {
   return {
     name,
     side: null,
+    professionCode: null,
+    level: null,
+    typeByLabel: [],
     damageDealt: 0,
     damageTaken: 0,
     damageAbsorbed: 0,
@@ -409,16 +457,54 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     return breakdown;
   };
 
-  const roster = events.find((e) => e.kind === "fight-start")?.participants ?? [];
+  const fromLog = events.find((e) => e.kind === "fight-start")?.participants ?? [];
   // Skład z gry ma pierwszeństwo: zna wszystkie postacie, także te, o których
   // log milczy. Gdy go nie ma (testy, wklejony tekst, patch gry), lecimy z linii
   // otwierającej — dokładnie jak przedtem.
   const useGame = fromGame != null && fromGame.length > 0;
-  const { resolve, seats, ambiguousKeys } = instanceResolver(
-    useGame ? fromGame : roster,
-    events,
-    useGame,
-  );
+  /**
+   * Jedyny skład, którym liczymy strony. Wszystko, co pyta „po której stronie
+   * stoi ta nazwa", MUSI czytać z tej samej listy co `seats` — inaczej przy
+   * wyjechanym z bufora nagłówku część kodu widzi skład z gry, a część pustkę.
+   */
+  // Profesję i poziom niosą OBA źródła tak samo, więc bierzemy to, co jest.
+  // Skład z gry rządzi stronami, ale gdy jego wpis nie ma `prof` (starszy klient,
+  // patch), dokłada je linia otwierająca — i odwrotnie.
+  const fromLogByName = new Map(fromLog.map((p) => [p.name, p]));
+  /**
+   * Ile obrażeń dana etykieta zadała w każdej rodzinie typów.
+   *
+   * Pasek ma JEDEN kolor, a etykieta potrafi nieść kilka żywiołów naraz („Fuzja
+   * żywiołów" to zimno, błyskawica i obrażenia nieuchronne) — więc wygrywa ten,
+   * który dominuje OBRAŻENIAMI, a nie ten, który akurat padł pierwszy.
+   */
+  const typeTally = new Map<string, Map<string, Map<string, number>>>();
+  const noteType = (actor: string, label: string, type: string, amount: number) => {
+    const family = typeFamily(type);
+    // Bez rozpoznanej rodziny nie ma czego zapisywać: brak wpisu znaczy „log nie
+    // mówi", a widok pokaże wtedy barwę neutralną zamiast zgadywać.
+    if (family === null) return;
+    const byLabel = typeTally.get(actor) ?? new Map<string, Map<string, number>>();
+    typeTally.set(actor, byLabel);
+    const families = byLabel.get(label) ?? new Map<string, number>();
+    byLabel.set(label, families);
+    families.set(family, (families.get(family) ?? 0) + amount);
+  };
+
+  const roster: Seat[] = useGame
+    ? fromGame.map((entry) => ({
+        name: entry.name,
+        side: entry.side,
+        prof: entry.prof ?? fromLogByName.get(entry.name)?.professionCode,
+        level: entry.lvl ?? fromLogByName.get(entry.name)?.level,
+      }))
+    : fromLog.map((p) => ({
+        name: p.name,
+        side: p.side,
+        prof: p.professionCode,
+        level: p.level,
+      }));
+  const { resolve, seats, ambiguousKeys } = instanceResolver(roster, events, useGame);
 
   /**
    * Sprawcę tykającego efektu da się wskazać, gdy po drugiej stronie stoi
@@ -428,6 +514,11 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
    *
    * Liczymy WPISY składu, nie unikalne nazwy: dwie "Lochy" po drugiej stronie
    * to dwóch możliwych sprawców, choć nazwa jest jedna.
+   *
+   * Stronę celu bierzemy z tego samego `roster`, z którego powstały `seats` —
+   * przy składzie z gry działa więc także wtedy, gdy linia otwierająca wyjechała
+   * już z bufora. Wcześniej czytało to wyłącznie uczestników z `fight-start`,
+   * więc w tej samej walce sprawca trucizny „gubił się” po przycięciu logu.
    */
   const opponentOf = (name: string): string | null => {
     const target = roster.find((p) => p.name === name);
@@ -443,13 +534,25 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
   // Oś tur walki. Rośnie razem z turami postaci, ale numeruje je globalnie —
   // dopiero na tym da się zestawić obie strony obok siebie.
   const timeline: TurnSlice[] = [];
-  const openTurn = (actor: string) => {
-    timeline.push({ turn: timeline.length + 1, actor, side: null, damage: 0 });
+  const openTurn = (actor: string): TurnSlice => {
+    const slice = { turn: timeline.length + 1, actor, side: null, damage: 0 };
+    timeline.push(slice);
+    return slice;
   };
-  /** Obrażenia dopisujemy do tury, która właśnie trwa. */
+  /**
+   * Obrażenia dopisujemy do tury, która właśnie trwa. Gdy żadna jeszcze nie
+   * padła, otwieramy turę tła: trucizna tyka w CZYJEJŚ turze, tylko że jej
+   * nagłówek wyjechał już z bufora (przewidziany przypadek — log traci treść od
+   * góry). Bez tego kwota przepadała po cichu i oś przestawała się zgadzać
+   * z sumą zdarzeń.
+   *
+   * Aktora zostawiamy puściutkiego, bo naprawdę go nie znamy — `sideOf` zwróci
+   * dla niego `null`, więc kolumna na osi jest neutralna, a nie przypisana
+   * przypadkowej stronie.
+   */
   const addToTurn = (amount: number) => {
-    const slice = timeline.at(-1);
-    if (slice) slice.damage += amount;
+    const slice = timeline.at(-1) ?? openTurn(BACKGROUND_ACTOR);
+    slice.damage += amount;
   };
 
   /**
@@ -533,8 +636,15 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         const landed = event.hits.filter((hit) => !hit.dodged);
         if (event.strike && landed.length > 0) source.hits += 1;
 
-        const total = landed.reduce((sum, hit) => sum + hit.applied, 0);
-        if (total > source.maxHit) source.maxHit = total;
+        // Tylko CIOS bije rekord — `maxHit` jest zdefiniowany jako najsilniejsze
+        // pojedyncze uderzenie. Własne obrażenia umiejętności (`strike: false`)
+        // lecą obok ciosu w tej samej turze i nie są osobnym uderzeniem, więc
+        // przy silnej Fuzji podstawiłyby pod rekord liczbę, której nikt nie dostał
+        // jednym trafieniem.
+        if (event.strike) {
+          const total = landed.reduce((sum, hit) => sum + hit.applied, 0);
+          if (total > source.maxHit) source.maxHit = total;
+        }
 
         event.hits.forEach((hit) => {
           // Unik bywa częściowy: broń pomocnicza potrafi trafić mimo "-Unik",
@@ -562,6 +672,13 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           const type = hit.element ?? UNKNOWN_ELEMENT;
           addDamage(breakdownOf(sourceKey).dealtType, type, hit.applied);
           addDamage(breakdownOf(targetKey).takenType, type, hit.applied);
+          // Ten sam żywioł zapisany pod ETYKIETAMI, które go niosły — po nich
+          // widok dobiera barwę paska w rozbiciu. Trzy zapisy, bo ta sama akcja
+          // stoi pod trzema nazwami: u zadającego, w gałęzi celu i w płaskim
+          // rozbiciu przyjętych.
+          noteType(sourceKey, label, type, hit.applied);
+          noteType(targetKey, label, type, hit.applied);
+          noteType(targetKey, `${sourceKey} · ${label}`, type, hit.applied);
         });
 
         // Ciosy dopisujemy po sumach, raz na zdarzenie, a nie raz na liczbę
@@ -609,6 +726,10 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         // Każde tyknięcie DoT-u to osobne wystąpienie — tu, w odróżnieniu od
         // ciosu, jedna linia niesie dokładnie jedną liczbę.
         const takenKey = source ? `${source} (${effect})` : effect;
+        // Etykietą tykającego efektu jest on sam, więc rodzinę zna od razu.
+        noteType(targetKey, effect, effect, event.amount);
+        noteType(targetKey, takenKey, effect, event.amount);
+        if (source) noteType(source, effect, effect, event.amount);
         addDamage(breakdownOf(targetKey).taken, takenKey, event.amount);
         countStrike(breakdownOf(targetKey).taken, takenKey);
         // DoT bez sprawcy nie ma napastnika, więc pierwszym szczeblem zostaje
@@ -636,9 +757,10 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         break;
       }
       case "heal": {
-        // Linia leczenia nie niesie procentu życia — instancję bierzemy po
-        // ostatniej aktywności.
-        const targetKey = resolve(event.target, null);
+        // Procent życia PO wyleczeniu — stąd `rising`. Gdy go nie ma (leczenie
+        // potwora bez procentu), instancja bierze się po ostatniej aktywności,
+        // tak jak dotąd.
+        const targetKey = resolve(event.target, event.targetHpPct, true);
         get(targetKey).healingReceived += event.amount;
         // "Razy" w rozbiciu leczenia: jedna linia to jedno wyleczenie.
         const healLabel = event.ability ?? PLAIN_HEAL;
@@ -680,7 +802,25 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
   // Stronę bierzemy ze składu; postać spoza składu zostaje z null. To tu każdy
   // uczestnik dostaje swój wpis, także ten, który przez całą walkę nic nie
   // zrobił — overlay ma go pokazać na zerach, nie pominąć.
-  for (const seat of seats) get(seat.key).side ??= seat.side;
+  for (const seat of seats) {
+    const actor = get(seat.key);
+    actor.side ??= seat.side;
+    actor.professionCode ??= seat.prof ?? null;
+    actor.level ??= seat.level ?? null;
+  }
+
+  // Dominujący typ na etykietę — dopiero teraz, gdy wszystkie trafienia są już
+  // policzone. Sortowanie po etykiecie, żeby wynik był powtarzalny.
+  for (const [name, byLabel] of typeTally) {
+    get(name).typeByLabel = [...byLabel]
+      .map(([label, families]) => {
+        const [top] = [...families].sort(
+          (a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pl"),
+        );
+        return { label, type: top![0] };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label, "pl"));
+  }
 
   for (const [name, breakdown] of breakdowns) {
     const actor = get(name);

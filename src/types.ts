@@ -67,7 +67,13 @@ export type BattleEvent =
       kind: "attack";
       source: string;
       target: string;
-      sourceHpPct: number;
+      /**
+       * `null`, gdy log nie podaje życia bijącego — tak jest przy własnych
+       * obrażeniach umiejętności ("-507 obrażeń otrzymał(a) X"). Zaślepka `0`
+       * była tu wcześniej czytana jako zgon, więc rzucający kończył walkę na
+       * liście poległych.
+       */
+      sourceHpPct: number | null;
       targetHpPct: number;
       hits: Hit[];
       /** Log zgłosił "Unik". Które trafienia faktycznie przepadły — patrz `hits`. */
@@ -89,7 +95,19 @@ export type BattleEvent =
       strike: boolean;
     }
   /** `ability` jest null, gdy log nie podaje źródła (linia "Przywrócono N..."). */
-  | { kind: "heal"; ability: string | null; target: string; amount: number }
+  | {
+      kind: "heal";
+      ability: string | null;
+      target: string;
+      amount: number;
+      /**
+       * Życie celu PO wyleczeniu — log podaje je przy większości linii leczenia.
+       * `null` tylko tam, gdzie go faktycznie nie ma (leczenie potwora bez
+       * procentu). Bez tego pola leczenie przy zdublowanych nazwach lgnęło do
+       * "ostatnio aktywnej" instancji, choć dana stała w logu.
+       */
+      targetHpPct: number | null;
+    }
   | {
       kind: "dot";
       target: string;
@@ -169,10 +187,48 @@ export type AttackerBreakdown = {
   by: DamageSource[];
 };
 
+/** Rodzina typu obrażeń przypięta do etykiety rozbicia — patrz `ActorStats.typeByLabel`. */
+export type LabelType = { label: string; type: string };
+
+/**
+ * Sprowadza etykietę typu obrażeń do RODZINY.
+ *
+ * Log nazywa tę samą rzecz dwojako, zależnie od tego, którędy przyszła: żywioł
+ * odczytany z klasy CSS mówi „ogień", a tykający efekt „od ognia". W korpusie
+ * takich etykiet jest dwanaście, a rodzin siedem — i to rodzina jest jednostką,
+ * w której warto o tym myśleć.
+ *
+ * Nierozpoznane zostaje bez rodziny: „bez żywiołu" (log wklejony jako sam
+ * tekst) ma znaczyć „nie wiadomo", a nie udawać kolejnego typu. Tak samo każdy
+ * typ, którego gra dopiero dorobi — zgadywanie byłoby gorsze niż brak koloru.
+ *
+ * Mieszka tu, a nie w palecie, bo to podział DZIEDZINY, nie decyzja o wyglądzie:
+ * korzysta z niego i agregacja (dominujący typ umiejętności), i widok (barwa).
+ */
+export function typeFamily(label: string): string | null {
+  const text = label.toLowerCase();
+  if (text.includes("ogni") || text.includes("ogień")) return "ogień";
+  if (text.includes("błyskaw")) return "błyskawica";
+  if (text.includes("zimn")) return "zimno";
+  if (text.includes("truci")) return "trucizna";
+  if (text.includes("ran")) return "rana";
+  if (text.includes("nieuchron")) return "nieuchronne";
+  if (text.includes("fizyczn") || text.includes("dystans")) return "broń";
+  return null;
+}
+
 export type ActorStats = {
   name: string;
   /** Strona z linii otwierającej; null, gdy postaci nie było w składzie. */
   side: number | null;
+  /**
+   * Kod profesji z logu (`85b` → `b`), null dla postaci spoza składu. Litera,
+   * nie nazwa: `PROFESSIONS` tłumaczy ją na tekst, a nierozpoznanej litery nie
+   * zgadujemy — log potrafi dodać profesję, której jeszcze nie znamy.
+   */
+  professionCode: string | null;
+  /** Poziom z linii otwierającej albo ze składu z gry; null dla postaci spoza składu. */
+  level: number | null;
   damageDealt: number;
   damageTaken: number;
   /** Obrażenia pochłonięte przez cel (raw - applied). */
@@ -254,4 +310,16 @@ export type ActorStats = {
    * potrafi trafić kilka celów — liczba użyć nie rozkłada się wtedy na cele.
    */
   abilityUses: ProcCount[];
+  /**
+   * Rodzina typu obrażeń dla etykiet rozbicia — po niej overlay dobiera barwę
+   * paska („Lodowy pocisk" → zimno, „od trucizny" → trucizna).
+   *
+   * Osobne pole, a nie kolumna w `DamageSource`, z dwóch powodów: ta sama
+   * etykieta pada w kilku rozbiciach naraz (płaskim, dwuszczeblowym, po typie),
+   * a typ jest jej wspólną własnością — powtarzanie go w każdej pozycji
+   * rozjeżdżałoby się przy sumowaniu sesji. Etykiety niosące kilka żywiołów
+   * (Fuzja żywiołów: zimno + błyskawica + nieuchronne) dostają ten, który
+   * DOMINUJE obrażeniami — pasek ma jeden kolor, więc musi wybrać.
+   */
+  typeByLabel: LabelType[];
 };

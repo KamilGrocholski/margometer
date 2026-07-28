@@ -29,27 +29,64 @@ const ACTOR = String.raw`(.+?)\((\d+(?:[.,]\d+)?)%\)`;
 
 const RE_FIGHT_START = /^Rozpoczęła się walka pomiędzy (.+)$/;
 const RE_PARTICIPANT = /(.+?)\s\((\d+)([a-zA-Z])\)/g;
-// Akcje przeciwnika mają formę "uderzył(a)", własne "uderzył".
-const RE_ATTACK = new RegExp(`^${ACTOR}\\s+uderzył(?:\\(a\\))? z siłą\\s+(.+)$`);
+/**
+ * Końcówka rodzaju w czasowniku akcji. Cudzą postać log opisuje formą
+ * bezpieczną ("uderzył(a)"), ale o WŁASNEJ pisze wprost — u właścicielki
+ * będzie "uderzyła". Fixture'y mają samych właścicieli mężczyzn, więc nie da
+ * się na nich tego rozstrzygnąć; awaria byłaby jednak całkowita, bo bez tej
+ * alternatywy KAŻDA linia akcji postaci kobiecej leci w `unknown`.
+ *
+ * Ten sam alfabet, co w `RE_VICTORY`/`RE_DEFEAT`, które odmieniają od dawna —
+ * niespójność była wewnętrzna, nie wynikała z formatu logu.
+ */
+const GENDER = String.raw`(?:a|o|\(a\))?`;
+const RE_ATTACK = new RegExp(`^${ACTOR}\\s+uderzył${GENDER} z siłą\\s+(.+)$`);
 const RE_TAKEN = new RegExp(
-  `^${ACTOR}\\s+otrzymał(?:\\(a\\))?\\s+(.+?)\\s+obrażeń$`,
+  `^${ACTOR}\\s+otrzymał${GENDER}\\s+(.+?)\\s+obrażeń$`,
 );
 // Modyfikator zaczyna się od + lub -. Po znaku bywa liczba ("+14 energii"),
 // więc linie niosące obrażenia muszą być sprawdzane WCZEŚNIEJ niż ta. Wymóg
 // litery zostawia czujkę na linie czysto liczbowe, gdyby format się zmienił.
 const RE_MODIFIER = /^[+-]\s*(.*\p{L}.*)$/u;
+/**
+ * Procent życia w treści linii. Niesie go KAŻDE pełne zdarzenie logu (cios,
+ * trucizna, ruch) i żaden modyfikator — te są gołymi etykietami ("Unik",
+ * "Klątwa", "Zablokowanie 47 obrażeń").
+ *
+ * Stąd zakaz: bez niego `RE_MODIFIER` był catch-allem i połykał jako proc
+ * dowolną niezrozumianą linię zaczynającą się od znaku — w tym linię własnych
+ * obrażeń umiejętności bez zapowiedzi ("-507 obrażeń otrzymał(a) X(75%)").
+ * Kwota przepadała, a czujka `unknown` — jedyny sygnał zmiany formatu — na tej
+ * całej klasie linii nie odpalała.
+ */
+const RE_CARRIES_HP = /\(\d+(?:[.,]\d+)?%\)/;
+
+/**
+ * Treść modyfikatora albo null, gdy linia nim nie jest. Jedno miejsce na tę
+ * decyzję, bo pytają o nią dwa konteksty: środek bloku ataku i modyfikator
+ * stojący luzem.
+ */
+function modifierOf(line: string): string | null {
+  if (RE_CARRIES_HP.test(line)) return null;
+  const match = RE_MODIFIER.exec(line);
+  return match ? match[1]!.trim().replace(/\.$/, "") : null;
+}
 /** "wf agar psk wykonuje Podwójne trafienie." — zapowiedź umiejętności. */
 const RE_ABILITY_USE = /^(.+?) wykonuje (.+?)\.?$/;
 /** Obrażenia samej umiejętności: "-507 obrażeń otrzymał(a) X(75.08%)." */
 const RE_ABILITY_DAMAGE = new RegExp(
-  `^[+-]?(\\d+)\\s+obrażeń otrzymał(?:\\(a\\))?\\s+${ACTOR}\\.?$`,
+  `^[+-]?(\\d+)\\s+obrażeń otrzymał${GENDER}\\s+${ACTOR}\\.?$`,
 );
 /** "X(80.00%) otrzymał 162 obrażeń od błyskawic." — inny szyk niż RE_DOT. */
 const RE_DOT_TAKEN = new RegExp(
-  `^${ACTOR}\\s+otrzymał(?:\\(a\\))?\\s+(\\d+)\\s*(?:\\(osłabione o (\\d+)%\\))?\\s*obrażeń (od|po) (.+?)\\.?$`,
+  `^${ACTOR}\\s+otrzymał${GENDER}\\s+(\\d+)\\s*(?:\\(osłabione o (\\d+)%\\))?\\s*obrażeń (od|po) (.+?)\\.?$`,
 );
+// Kropka na końcu jest opcjonalna w KAŻDYM szyku leczenia — tak jak w `RE_DOT`
+// i `RE_MOVE`. Bez niej "…życia X(93.01%)." nie tylko nie pasowało: goły szyk
+// `RE_HEAL_PLAIN` łykał wtedy kropkę i procent do NAZWY, więc w panelu stawała
+// osobna postać-widmo "X(93.01%).".
 const RE_HEAL_ABILITY = new RegExp(
-  `^(.+?):\\s*zregenerowano\\s+(\\d+)\\s+punktów życia\\s+${ACTOR}$`,
+  `^(.+?):\\s*zregenerowano\\s+(\\d+)\\s+punktów życia\\s+${ACTOR}\\.?$`,
 );
 /** Leczenie w szyku "X(38.00%): Ostatni ratunek, zregenerowano 3056 ...". */
 const RE_HEAL_SELF = new RegExp(
@@ -59,14 +96,14 @@ const RE_HEAL_SELF = new RegExp(
 // "Przywrócono 1847 punktów życia Regulus Mętnooki". Dlatego nie ${ACTOR}, tylko
 // nazwa z opcjonalnym procentem.
 const RE_HEAL_PLAIN = new RegExp(
-  `^Przywrócono\\s+(\\d+)\\s+punktów życia\\s+(.+?)(?:\\((\\d+(?:[.,]\\d+)?)%\\))?$`,
+  `^Przywrócono\\s+(\\d+)\\s+punktów życia\\s+(.+?)(?:\\((\\d+(?:[.,]\\d+)?)%\\))?\\.?$`,
 );
 const RE_DOT = new RegExp(
   `^${ACTOR}:\\s*(\\d+)\\s*(?:\\(osłabione o (\\d+)%\\))?\\s*obrażeń (od|po) (.+?)\\.?$`,
 );
 // Ruch to zawsze "krok ...". Bez tego zawężenia każde "zrobił X" udawałoby
 // ruch i nowa linia z logu przestałaby być zgłaszana jako nieznana.
-const RE_MOVE = new RegExp(`^${ACTOR}\\s+zrobił(?:\\(a\\))?\\s+(krok\\b.*?)\\.?$`);
+const RE_MOVE = new RegExp(`^${ACTOR}\\s+zrobił${GENDER}\\s+(krok\\b.*?)\\.?$`);
 // Po "utrata tury" bywa dopisany powód w nawiasie: "(redukcja ogłuszenia 90%)".
 const RE_TURN_LOST = /^(.+?) - utrata tury(?: \(.+\))?$/;
 // Rodzaj bywa dopisany wprost ("Poległa") albo w nawiasie ("Poległ(a)") — tak
@@ -100,8 +137,9 @@ const RE_STRIKE_NOTE = /^Przerwanie ciosu specjalnego\.?$/;
 const RE_INFO = [
   /^Walka bez Punktów Honoru\b/,
   // Przyrost zasobu, np. "Łowcosław Kazrek otrzymuje 15 energii." Statystyk
-  // many ani energii nie liczymy, ale linia jest znana.
-  /^.+ otrzymuje \d+ \p{L}+\.?$/u,
+  // many ani energii nie liczymy, ale linia jest znana. Nazwa zasobu bywa
+  // dwuczłonowa ("15 punktów many"), stąd powtórzenie słowa, a nie jedno.
+  /^.+ otrzymuje \d+(?: \p{L}+)+\.?$/u,
   // Aura nakładana na starcie, np. "X spowija się trującą mgłą: -3% ...".
   /\sspowija się\s/,
   // Wzmocnienie za małą grupę: "Wzmocnienie X o 35% ze względu na małą grupę...".
@@ -115,6 +153,20 @@ const RE_INFO = [
   // nie niesie żadnej liczby, a tury nie zabiera: obok stoi normalny cios tej
   // samej postaci w kolejny cel.
   / - atak w martwego przeciwnika\.?$/,
+  // "X poddał walkę." — postać wycofała się z walki. Liczby nie niesie, tury
+  // nie zabiera (log nie dopisuje przy niej "utrata tury"), a dalej po prostu
+  // przestaje się w nim pojawiać. Rodzaj odmieniony wprost, jak w RE_VICTORY.
+  new RegExp(`^.+ poddał${GENDER} walkę\\.?$`),
+  // Opis efektu umiejętności obszarowej, stojący zaraz za jej zapowiedzią
+  // ("Opusheteh wykonuje Szadź." → "Spowolnienie przeciwników o 14%").
+  // Wszystkie cztery szyki niosą procent, ale ŻADEN nie mówi, na kim efekt
+  // usiadł. Przy leczeniu ("Uleczono sojuszników o 30% życia.") log nie
+  // rozbija go na postacie ani nie dokłada linii "Przywrócono" — tej kwoty
+  // nie da się nikomu przypisać i statystyki jej nie widzą.
+  /^Aura .+ została aktywowana\b/,
+  /^Spowolnienie przeciwników o \d+%\.?$/,
+  /^Osłabienie leczenia .+ o \d+%\.?$/,
+  /^Uleczono sojuszników o \d+% życia\.?$/,
   // Łup z potwora: "Gnoll łucznik: zdobyto Niebieskawy pancerz gnolla".
   // Nazwa przed dwukropkiem to dawca łupu, nie aktor akcji — nic tu nie ma
   // do policzenia. Zwykle na końcu logu, ale nie jest to regułą, więc łapiemy
@@ -128,7 +180,10 @@ const RE_INFO = [
  * `[b]` otacza komunikaty systemowe, `[i]` akcje przeciwnika.
  */
 function normalize(text: string): string {
-  return text.replace(/\[\/?[a-zA-Z]+\]/g, "").replace(/ /g, " ");
+  // Spacja nierozdzielająca ma zniknąć razem ze znacznikami: `normalizeLine`
+  // zbiera ją dopiero w środku linii, a tu tekst jest jeszcze w całości.
+  // (Wcześniej stało tu `.replace(/ /g, " ")` — spacja na spację, czyli nic.)
+  return text.replace(/\[\/?[a-zA-Z]+\]/g, "").replace(/\u00A0/g, " ");
 }
 
 function normalizeLine(line: string): string {
@@ -186,7 +241,7 @@ function parseParticipants(segment: string): Participant[] {
 
 type PendingAttack = {
   source: string;
-  sourceHpPct: number;
+  sourceHpPct: number | null;
   rawDamages: DamageValue[];
   modifiers: string[];
   line: string;
@@ -237,7 +292,15 @@ function buildHits(raw: DamageValue[], applied: DamageValue[], mods: Modifiers):
     const secondary = i > 0;
     const appliedValue = applied[i]?.value ?? 0;
     return {
-      raw: raw[i]?.value ?? 0,
+      /**
+       * Brak odpowiednika w linii "uderzył z siłą" znaczy, że tę liczbę dołożył
+       * proc CELNIE po redukcji — "Zmiażdżenie 25%" dokłada w linii otrzymanych
+       * czwartą wartość (`dmga`), której w ciosie surowym nie było. Wartości
+       * surowej log dla niej nie podaje, więc bierzemy przyjętą: zero
+       * kłamałoby o pochłonięciu, bo `raw - applied` szłoby na minus i
+       * napastnik dostawał ujemną absorpcję.
+       */
+      raw: raw[i]?.value ?? appliedValue,
       applied: appliedValue,
       // Żywioł niosą obie linie tak samo; bierzemy pierwszy, który go ma.
       element: raw[i]?.element ?? applied[i]?.element ?? null,
@@ -317,6 +380,7 @@ export function parse(text: string): BattleEvent[] {
         ability: healAbility[1]!.trim(),
         amount: parseInt(healAbility[2]!, 10),
         target: healAbility[3]!.trim(),
+        targetHpPct: toPct(healAbility[4]!),
       };
     }
 
@@ -327,6 +391,7 @@ export function parse(text: string): BattleEvent[] {
         ability: healSelf[3]!.trim(),
         amount: parseInt(healSelf[4]!, 10),
         target: healSelf[1]!.trim(),
+        targetHpPct: toPct(healSelf[2]!),
       };
     }
 
@@ -337,6 +402,8 @@ export function parse(text: string): BattleEvent[] {
         ability: null,
         amount: parseInt(healPlain[1]!, 10),
         target: healPlain[2]!.trim(),
+        // Jedyny szyk, w którym procentu naprawdę bywa brak (leczenie potwora).
+        targetHpPct: healPlain[3] ? toPct(healPlain[3]) : null,
       };
     }
 
@@ -406,9 +473,9 @@ export function parse(text: string): BattleEvent[] {
         return;
       }
 
-      const modifier = RE_MODIFIER.exec(line);
-      if (modifier) {
-        pending.modifiers.push(modifier[1]!.trim().replace(/\.$/, ""));
+      const modifier = modifierOf(line);
+      if (modifier !== null) {
+        pending.modifiers.push(modifier);
         return;
       }
 
@@ -438,6 +505,10 @@ export function parse(text: string): BattleEvent[] {
     }
 
     // Obrażenia zadane przez samą umiejętność, bez linii "uderzył z siłą".
+    //
+    // Bez zapowiedzi nie ma komu ich przypisać, więc linia leci dalej i kończy
+    // jako `unknown` — świadomie, bo to sygnał, że format się rozjechał. Kiedyś
+    // połykał ją `RE_MODIFIER` jako proc i kwota znikała bez śladu.
     const abilityDamage = RE_ABILITY_DAMAGE.exec(line);
     if (abilityDamage && ability) {
       const amount = parseInt(abilityDamage[1]!, 10);
@@ -449,7 +520,9 @@ export function parse(text: string): BattleEvent[] {
         kind: "attack",
         source: ability.actor,
         target: abilityDamage[2]!.trim(),
-        sourceHpPct: 0,
+        // Log NIE podaje życia rzucającego w tej linii. `null`, nie `0` —
+        // zero znaczyłoby "padł" i wpisywało maga na listę poległych.
+        sourceHpPct: null,
         targetHpPct: toPct(abilityDamage[3]!),
         // Log podaje tylko wartość po redukcji — surowej nie znamy.
         hits: [
@@ -474,9 +547,9 @@ export function parse(text: string): BattleEvent[] {
 
     // Modyfikator poza atakiem: albo należy do bloku umiejętności, albo opisuje
     // stojącą niżej linię DoT-a.
-    const looseModifier = RE_MODIFIER.exec(line);
-    if (looseModifier) {
-      loose.push(looseModifier[1]!.trim().replace(/\.$/, ""));
+    const looseModifier = modifierOf(line);
+    if (looseModifier !== null) {
+      loose.push(looseModifier);
       return;
     }
 

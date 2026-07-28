@@ -6,6 +6,8 @@ import type {
   AttackerBreakdown,
   BattleEvent,
   DamageSource,
+  LabelType,
+  Participant,
   ProcCount,
 } from "./types.ts";
 
@@ -59,7 +61,30 @@ function copyActor(actor: ActorStats): ActorStats {
     procsReceived: actor.procsReceived.map((p) => ({ ...p })),
     abilityUses: actor.abilityUses.map((p) => ({ ...p })),
     takenFromBy: actor.takenFromBy.map((a) => ({ ...a, by: a.by.map((s) => ({ ...s })) })),
+    typeByLabel: actor.typeByLabel.map((t) => ({ ...t })),
   };
+}
+
+/**
+ * Skleja przypisanie typu do etykiety. Pierwsza walka wygrywa: „Lodowy pocisk"
+ * niesie zimno w każdej walce, a gdyby kiedyś przestał, sesja i tak nie ma jak
+ * rozstrzygnąć, która wersja jest prawdziwa — a barwa paska ma być stabilna.
+ */
+function mergeTypes(into: LabelType[], from: LabelType[]): LabelType[] {
+  const merged = new Map(into.map((t) => [t.label, { ...t }]));
+  for (const entry of from) if (!merged.has(entry.label)) merged.set(entry.label, { ...entry });
+  return [...merged.values()].sort((a, b) => a.label.localeCompare(b.label, "pl"));
+}
+
+/**
+ * Podpis składu z linii otwierającej. Po nim poznajemy DWA różne fakty: że
+ * kolejny odczyt bufora pokazuje tę samą walkę i że powtórzony nagłówek jest
+ * powtórzeniem tej samej linii, a nie początkiem następnej walki.
+ */
+function participantsKey(participants: Participant[]): string {
+  return participants
+    .map((p) => `${p.name}|${p.level}${p.professionCode}|${p.side}`)
+    .join("//");
 }
 
 /** Dzieli strumień zdarzeń na osobne walki po liniach rozpoczęcia. */
@@ -69,9 +94,17 @@ export function splitFights(events: BattleEvent[]): BattleEvent[][] {
   for (const event of events) {
     if (event.kind === "fight-start") {
       const previous = fights.at(-1);
-      // Margonem potrafi zdublować linię rozpoczęcia — nie zaczynamy wtedy
-      // drugiej walki, bo poprzednia nie ma jeszcze żadnej treści.
-      const isDuplicate = previous?.length === 1 && previous[0]!.kind === "fight-start";
+      // Margonem potrafi zdublować linię rozpoczęcia — powtórzenie TEGO SAMEGO
+      // składu nie zaczyna drugiej walki, bo poprzednia nie ma jeszcze treści.
+      //
+      // Ale nagłówek INNEGO składu to już druga walka, choćby pierwsza
+      // skończyła się na samym nagłówku (ucieczka, przerwanie, bufor doczytany
+      // na granicy). Wcześniej wystarczał sam fakt „poprzednia ma jedno
+      // zdarzenie”, więc obie zlewały się w jedną — ze składem pierwszej.
+      const only = previous?.length === 1 ? previous[0]! : null;
+      const isDuplicate =
+        only?.kind === "fight-start" &&
+        participantsKey(only.participants) === participantsKey(event.participants);
       if (!isDuplicate) fights.push([]);
     }
     if (fights.length === 0) fights.push([]);
@@ -115,6 +148,11 @@ function mergeStats(all: BattleStats[]): BattleStats {
       merged.procsReceived = mergeProcs(merged.procsReceived, actor.procsReceived);
       merged.abilityUses = mergeProcs(merged.abilityUses, actor.abilityUses);
       merged.takenFromBy = mergeAttackers(merged.takenFromBy, actor.takenFromBy);
+      merged.typeByLabel = mergeTypes(merged.typeByLabel, actor.typeByLabel);
+      // Profesja jest cechą postaci, nie walki — bierzemy pierwszą, którą
+      // ktokolwiek podał. Wcześniejsza walka mogła nie mieć składu z gry.
+      merged.professionCode ??= actor.professionCode;
+      merged.level ??= actor.level;
       merged.unattributedDotTaken += actor.unattributedDotTaken;
     }
     for (const name of stats.ambiguousNames) ambiguousNames.add(name);
@@ -155,7 +193,7 @@ export const EMPTY_STATS: BattleStats = {
 function signatureOf(events: BattleEvent[]): string {
   const start = events.find((e) => e.kind === "fight-start");
   if (!start) return "bez-rozpoczecia";
-  return start.participants.map((p) => `${p.name}|${p.level}${p.professionCode}`).join("//");
+  return participantsKey(start.participants);
 }
 
 /**

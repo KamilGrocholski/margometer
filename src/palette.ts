@@ -1,3 +1,5 @@
+import { typeFamily } from "./types.ts";
+
 /**
  * Kolory kategorialne dla postaci — kolejność jest stała i nigdy nie zapętlana.
  * Zwalidowane dla ciemnego tła (`validate_palette.js --mode dark`): pasmo
@@ -19,6 +21,76 @@ export const MAX_SERIES = SERIES_COLORS.length;
 
 export const OTHER_COLOR = "#8a8a80";
 export const OTHER_LABEL = "Inni";
+
+/**
+ * Nazwane sloty tej samej, zwalidowanej listy. Obie palety niżej biorą barwy
+ * WYŁĄCZNIE stąd — dobieranie hexów z palca omijałoby walidację, a to ona
+ * odpowiada za to, że wiersze da się od siebie odróżnić.
+ */
+const [BLUE, GREEN, MAGENTA, YELLOW, AQUA, ORANGE, VIOLET, RED] = SERIES_COLORS;
+// Fiolet jako jedyny nie ma dziś przydziału — zostaje wolny na kolejną profesję
+// albo rodzinę obrażeń, gdy gra takie doda.
+void VIOLET;
+
+/**
+ * Kolor profesji — wzorzec z SKADA/Details!: pasek niesie KLASĘ, a tożsamość
+ * postaci niesie nazwa i odznaka obok niej. Dwóch magów dostaje ten sam kolor
+ * i tak ma być: kolor odpowiada na „kto tu jest czym", nie „która to postać".
+ *
+ * Sześciu barw nie da się zrobić wzajemnie rozłącznymi na tym tle — przeszukanie
+ * wszystkich podzbiorów udokumentowanej palety dało sufit czterech, a dla
+ * pełnej szóstki najlepszy możliwy rozstęp to ΔE 10,6 (próg 15). Ponieważ ten
+ * sufit jest taki sam dla KAŻDEGO przypisania, skojarzenia nic nie kosztują —
+ * stąd układ trzymający się konwencji gatunku (mag niebieski, łowca zielony,
+ * paladyn różowy). Rozróżnialność zapewnia odznaka z literą profesji, nie barwa.
+ */
+export const PROFESSION_COLORS: Record<string, string> = {
+  w: ORANGE, // wojownik
+  p: MAGENTA, // paladyn
+  t: YELLOW, // tropiciel
+  h: GREEN, // łowca
+  m: BLUE, // mag
+  b: AQUA, // tancerz ostrzy
+};
+
+export function professionColor(code: string | null): string {
+  return (code && PROFESSION_COLORS[code]) || OTHER_COLOR;
+}
+
+/**
+ * Kolor rodziny obrażeń — odpowiednik szkół magii w Details!.
+ *
+ * Tu semantyka się broni (ogień pomarańczowy, zimno niebieskie, trucizna
+ * zielona) i tu kolor niesie najwięcej: w rozbiciu zwykły cios i tykająca
+ * trucizna wyglądają dziś identycznie. U jednej postaci stoją naraz najwyżej
+ * TRZY rodziny (maksimum z całego korpusu), a wszystkie pary, które w korpusie
+ * faktycznie sąsiadowały, przechodzą próg normalnego widzenia (najgorsza 17,2).
+ *
+ * Siedmiu rodzin nie da się rozdzielić wzajemnie — najsłabsza para to
+ * ogień↔rana (ΔE 7,1), obie ciepłe. Przeniesienie rany na wolny fiolet
+ * podniosłoby najgorszą parę tylko do 9,8 (wtedy zimno↔rana), więc próg i tak
+ * pozostaje niezaliczony, a krwawienie przestałoby być czerwone. Przy równym
+ * wyniku wygrywa czytelność skojarzenia; etykieta na pasku niesie resztę.
+ */
+export const TYPE_COLORS: Record<string, string> = {
+  ogień: ORANGE,
+  błyskawica: YELLOW,
+  zimno: BLUE,
+  trucizna: GREEN,
+  rana: RED,
+  broń: MAGENTA,
+  nieuchronne: AQUA,
+};
+
+export function typeColor(label: string | null): string {
+  if (label === null) return OTHER_COLOR;
+  // Etykieta bywa już nazwą rodziny (przekrój po typie, `typeByLabel`) albo
+  // surowym zapisem z logu („od trucizny", „dystansowe"). Jedno i drugie ma
+  // trafić w tę samą barwę, więc najpierw próbujemy wprost, a dopiero potem
+  // przez klasyfikację — nazwa rodziny nie zawsze pasuje do własnych wzorców
+  // („broń" powstaje z „fizyczne" i „dystansowe", a sama nie zawiera żadnego).
+  return TYPE_COLORS[label] ?? TYPE_COLORS[typeFamily(label) ?? ""] ?? OTHER_COLOR;
+}
 
 /**
  * Przypisuje kolor do nazwy postaci na stałe.

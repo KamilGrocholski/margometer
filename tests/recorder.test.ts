@@ -70,6 +70,13 @@ describe("dzielenie bufora na walki", () => {
     expect(splitRawFights(`${start}\n${FIGHT_A}`)).toHaveLength(1);
   });
 
+  test("walka skończona na samym nagłówku nie skleja się z następną", () => {
+    // Nagłówek INNEJ walki nie jest dublem, choćby poprzednia nie miała nic
+    // poza swoim — inaczej dwie walki wpadały do jednego nagrania.
+    const stub = FIGHT_A.split("\n")[0]!;
+    expect(splitRawFights(`${stub}\n${FIGHT_B}`)).toEqual([stub, FIGHT_B]);
+  });
+
   test("ogon bez linii rozpoczęcia zostaje jedną walką", () => {
     const tail = FIGHT_A.split("\n").slice(1).join("\n");
     expect(splitRawFights(tail)).toEqual([tail]);

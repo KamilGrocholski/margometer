@@ -1,7 +1,7 @@
-import { ColorAssignment } from "./palette.ts";
+import { professionColor, typeColor } from "./palette.ts";
 import { EMPTY_STATS } from "./session.ts";
 import { totalUnattributedDot, type BattleStats } from "./stats.ts";
-import type { ActorStats } from "./types.ts";
+import { PROFESSIONS, type ActorStats } from "./types.ts";
 import { makeDraggable } from "./window.ts";
 
 export type Metric = "damageDealt" | "damageTaken" | "healingReceived" | "turns";
@@ -52,18 +52,36 @@ function matchesTeam(side: number | null, team: Team): boolean {
   return team === "mine" ? side === 0 : side !== 0;
 }
 
-/** "1 walka", "3 walki", "7 walek" — licznik nagrań stoi na wierzchu, więc odmienia się. */
+/** "1 walka", "3 walki", "7 walk" — licznik nagrań stoi na wierzchu, więc odmienia się. */
 function fightWord(count: number): string {
   if (count === 1) return "walka";
   const last = count % 10;
   const teens = count % 100;
   const few = last >= 2 && last <= 4 && !(teens >= 12 && teens <= 14);
-  return few ? "walki" : "walek";
+  return few ? "walki" : "walk";
 }
 
 const number = new Intl.NumberFormat("pl-PL");
 /** Na turę wychodzą ułamki — bez miejsca po przecinku wszyscy zlewają się w jedno. */
 const rate = new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 1 });
+
+/**
+ * Zwięzły zapis liczby na PASKU rankingu — jak w SKADZIE i Details!: `39,4k`
+ * zamiast `39 352`.
+ *
+ * Wchodzi dopiero od pięciu cyfr, bo do czterech pełna liczba i tak się mieści,
+ * a jest dokładniejsza. Skrót „k”/„M” zamiast polskiego „tys.” jest tu świadomy:
+ * panel czyta gracz przyzwyczajony do liczników z innych gier, a „tys.” zajmuje
+ * więcej miejsca niż oszczędza.
+ *
+ * Tylko pasek — dymek, podsumowania drużyn i rozbicie pokazują pełne liczby,
+ * bo tam nie ma o miejsce walki, a różnica bywa istotna.
+ */
+function compact(value: number, fraction: boolean): string {
+  if (value >= 1_000_000) return `${rate.format(value / 1_000_000)}M`;
+  if (value >= 10_000) return `${rate.format(value / 1000)}k`;
+  return fraction ? rate.format(value) : number.format(value);
+}
 
 /**
  * Style overlaya. `all: initial` na hoście plus Shadow DOM odcinają globalny
@@ -289,15 +307,19 @@ button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
 .axis-marks { display: flex; gap: 1px; padding-top: 2px; }
 .axis-mark { flex: 1; min-width: 2px; height: 3px; border-radius: 1px; }
 .axis-mark.death { background: var(--warning); }
+/* Numer pozycji — jedyne, co stoi przed nazwą. Poziom i profesję niesie barwa
+   paska i dymek; na 260 px kolejna kolumna zrobiłaby z wiersza tabelę. */
 .rank { color: var(--ink-muted); font-variant-numeric: tabular-nums; flex: none; }
 .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .value, .avg { font-variant-numeric: tabular-nums; flex: none; }
 .avg { color: var(--ink-muted); font-size: 11px; }
 /* Liczba wiodąca jest zawsze ta pogrubiona — to ona rządzi paskiem i rankingiem,
-   niezależnie od tego, czy pokazuje sumę czy tempo. Obok stoi ta druga miara,
-   więc samo pogrubienie wystarcza za całe rozróżnienie. */
+   niezależnie od tego, czy pokazuje sumę czy tempo. Reszta stoi przy niej
+   w nawiasie, więc samo pogrubienie wystarcza za całe rozróżnienie. */
 .value { font-weight: 600; }
-.share { color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+/* Nawias przy liczbie wiodącej: udział, a przy nim ta druga miara. Nie osobna
+   kolumna — ma się czytać jako dopisek do liczby obok, nie jako własne pole. */
+.share { color: var(--ink-muted); font-variant-numeric: tabular-nums; font-weight: 400; }
 .empty, .note { padding: 10px 8px; color: var(--ink-muted); }
 footer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; flex-direction: column; gap: 3px; }
 .warn { color: var(--warning); }
@@ -411,6 +433,18 @@ const RESIZE_MARGIN = 8;
  */
 function turnsFor(actor: ActorStats, metric: Metric, fightTurns: number): number {
   return metric === "damageDealt" || metric === "turns" ? actor.turns : fightTurns;
+}
+
+/**
+ * Jak nazywa się dzielnik trybu „na turę” dla danej metryki.
+ *
+ * W wierszu obie kolumny są podpisane identycznie „/t”, więc przełączenie
+ * zakładki Zadane↔Otrzymane zmienia skalę liczby o rząd wielkości bez żadnego
+ * sygnału w UI. Dymek jest miejscem, gdzie da się to powiedzieć słowami, nie
+ * zaśmiecając wiersza kryptycznym sufiksem.
+ */
+function turnKind(metric: Metric): string {
+  return metric === "damageDealt" || metric === "turns" ? "turę własną" : "turę walki";
 }
 
 function actorValue(
@@ -621,7 +655,26 @@ export class Overlay {
   private readonly panel: HTMLElement;
   private readonly body: HTMLElement;
   private readonly grip: HTMLElement;
-  /** Nagłówek i paski stanu z ostatniego renderu — do zdjęcia przy następnym. */
+  /**
+   * Nagłówek żyje tyle, co overlay — razem z przyciskami i uchwytem
+   * przeciągania.
+   *
+   * Ta sama zasada co przy sterowaniu odtwarzaniem: gdyby powstawał od nowa
+   * przy każdej zmianie logu, `pointerdown` i `pointerup` jednego gestu
+   * trafiałyby w dwa różne węzły. Przeciąganie zastygało wtedy w środku walki,
+   * a `saveState` (wisi na `pointerup`) nigdy nie padał, więc ustawiona pozycja
+   * nie przeżywała odświeżenia strony.
+   */
+  private readonly header: HTMLElement;
+  private readonly headerButtons: {
+    copy: HTMLButtonElement;
+    /** null, gdy overlay dostał program bez nagrywarki. */
+    record: HTMLButtonElement | null;
+    /** Gotowy, ale wchodzi do nagłówka dopiero przy `attachArchive`. */
+    archive: HTMLButtonElement;
+    collapse: HTMLButtonElement;
+  };
+  /** Paski stanu z ostatniego renderu — do zdjęcia przy następnym. */
   private chromeNodes: HTMLElement[] = [];
   /**
    * Trwałe węzły sterowania odtwarzaniem. Muszą przeżyć przebudowę pasków co
@@ -642,7 +695,12 @@ export class Overlay {
   private pressed: { key: string; actor?: string; source?: string } | null = null;
   /** `pointerup` już wdrążył — powstrzymaj `click`, który zaraz po nim przyjdzie. */
   private drillHandled = false;
-  private readonly colors = new ColorAssignment();
+  /**
+   * Statystyki, które panel właśnie pokazuje — bieżąca walka albo podgląd
+   * z archiwum. Trzymane w polu, bo rozbicie musi sięgnąć po profesję postaci
+   * stojącej po DRUGIEJ stronie ciosu, a tej nie ma we własnym `ActorStats`.
+   */
+  private shown: BattleStats = EMPTY_STATS;
   private readonly storage: OverlayOptions["storage"];
   private readonly recorder: RecorderControl | undefined;
   private readonly clipboard: (text: string) => void | Promise<void>;
@@ -705,15 +763,19 @@ export class Overlay {
     this.tip = div("tip");
     this.tip.hidden = true;
 
-    // Trwały szkielet: panel, przewijany korpus i uchwyt rozmiaru. Uchwyt
-    // podpinamy raz — pisze prosto w styl tego samego panelu przez całe życie
-    // okna. Treść wjeżdża do `body` i przed nie przy każdym renderze.
+    // Trwały szkielet: panel, nagłówek, przewijany korpus i uchwyt rozmiaru.
+    // Oba uchwyty (przeciąganie, rozmiar) podpinamy RAZ — piszą prosto w styl
+    // tego samego panelu przez całe życie okna. Treść wjeżdża do `body` i przed
+    // nie przy każdym renderze.
     this.panel = document.createElement("div");
     this.body = div("panel-body");
     this.grip = div("resize-grip");
     this.grip.setAttribute("aria-hidden", "true");
     this.makeResizable(this.grip, this.panel);
-    this.panel.append(this.body, this.grip);
+    this.header = document.createElement("header");
+    this.headerButtons = this.buildHeader(this.header);
+    this.makeDraggable(this.header);
+    this.panel.append(this.header, this.body, this.grip);
 
     this.root.append(style, this.tip, this.panel);
 
@@ -796,9 +858,7 @@ export class Overlay {
     this.fightTurns = stats.timeline.length;
     const hovered = this.hovered;
 
-    // Kolejność przypisania kolorów bierzemy z obrażeń zadanych, nie z aktualnie
-    // wybranej metryki — inaczej przełączenie zakładki przemalowałoby wiersze.
-    this.colors.seed([...stats.actors].map((actor) => actor.name));
+    this.shown = stats;
 
     // Postać mogła zniknąć — nowa walka, inny skład. Wtedy wracamy do listy
     // zamiast pokazywać pusty widok nieistniejącej postaci.
@@ -830,6 +890,9 @@ export class Overlay {
       // skasowania ręcznego rozmiaru zostałaby na nim na stałe.
       this.panel.style.removeProperty("height");
     }
+    // Okno gry potrafi zmienić rozmiar między walkami — sufit przeliczamy przy
+    // każdym renderze, nie tylko przy przesuwaniu okna.
+    this.applyHeightCap();
     // Gutter paska przewijania rezerwujemy tylko wtedy, gdy korpus faktycznie
     // się przewija — patrz reguła `.panel-body.scrolls`.
     this.body.classList.toggle(
@@ -865,25 +928,26 @@ export class Overlay {
     // W widoku pojedynczej postaci nie ma czego podsumowywać.
     if (!focused) this.body.append(...(this.renderTeamSummary(stats) ?? []));
 
-    // Nagłówek i paski stanu budujemy od nowa, ale WKŁADAMY przed trwały korpus,
-    // zamiast składać cały panel na nowo. Sterowanie odtwarzaniem wewnątrz pasków
+    // Nagłówek jest trwały — tylko odświeżamy jego podpisy. Paski stanu
+    // budujemy od nowa, ale WKŁADAMY między nagłówek i trwały korpus, zamiast
+    // składać cały panel na nowo. Sterowanie odtwarzaniem wewnątrz pasków
     // zostaje na trwałych węzłach (patrz renderReplayRow), więc kliknięcie w nie
     // przeżywa przebudowę pasków co klatkę.
     //
     // Paski stanu tylko w rozwiniętym oknie — zwinięte pokazuje sam nagłówek,
     // a nagrywanie widać wtedy po kolorze kropki.
+    this.updateHeader();
     const bars = this.state.collapsed
       ? []
       : [this.renderPreviewBar(), this.renderRecordBar()].filter(
           (bar): bar is HTMLElement => bar !== null,
         );
-    const chrome = [this.renderHeader(), ...bars];
-    // Zdejmujemy poprzedni nagłówek/paski PO zbudowaniu nowych — trwałe węzły
+    // Zdejmujemy poprzednie paski PO zbudowaniu nowych — trwałe węzły
     // odtwarzania zdążyły się już przenieść do świeżego paska, więc ich to nie
-    // dotyka. `body` i uchwyt zostają na miejscu.
+    // dotyka. Nagłówek, `body` i uchwyt zostają na miejscu.
     for (const node of this.chromeNodes) node.remove();
-    this.chromeNodes = chrome;
-    this.body.before(...chrome);
+    this.chromeNodes = bars;
+    this.body.before(...bars);
 
     // Kursor stoi w miejscu, a wiersz pod nim to już inny węzeł — odtwarzamy
     // dymek sami, bo żadne zdarzenie wskaźnika się nie powtórzy.
@@ -896,6 +960,15 @@ export class Overlay {
 
   destroy(): void {
     this.host.remove();
+  }
+
+  /**
+   * Profesja postaci o danej nazwie — także tej stojącej po DRUGIEJ stronie
+   * ciosu. Pierwszy szczebel rozbicia wymienia właśnie takie postacie, a ich
+   * profesji nie ma we własnym `ActorStats` tego, w kogo weszliśmy.
+   */
+  private professionOf(name: string): string | null {
+    return this.shown.actors.find((actor) => actor.name === name)?.professionCode ?? null;
   }
 
   /** Do testów — pozwala zajrzeć w wyrenderowaną treść. */
@@ -941,48 +1014,87 @@ export class Overlay {
     return this.preview !== null;
   }
 
-  private renderHeader(): HTMLElement {
-    const header = document.createElement("header");
+  /**
+   * Buduje trwały nagłówek — raz na życie overlaya. Listenery czytają stan
+   * w chwili kliknięcia, więc same węzły nie muszą się zmieniać; render tylko
+   * odświeża ich podpisy (patrz `updateHeader`).
+   */
+  private buildHeader(header: HTMLElement): Overlay["headerButtons"] {
+    const title = Object.assign(document.createElement("span"), {
+      className: "title",
+      textContent: "MargoMeter",
+    });
 
-    const title = document.createElement("span");
-    title.className = "title";
-    title.textContent = "MargoMeter";
+    /** Kopiuje statystyki — bieżącą walkę i całą sesję naraz — jako JSON. */
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.dataset.action = "copy-stats";
+    // aria-label zamiast title: nie chcemy natywnych dymków przeglądarki.
+    copy.setAttribute("aria-label", "Kopiuj statystyki (JSON)");
+    copy.addEventListener("click", () => {
+      void this.copy("copy-stats", this.statsJson());
+    });
+
+    const record = this.recorder ? document.createElement("button") : null;
+    if (record) {
+      record.type = "button";
+      record.dataset.action = "record";
+      record.textContent = "⏺";
+      record.addEventListener("click", () => {
+        this.recorder?.toggle();
+        // Wyłączenie nagrywania nie może zostawić otwartego pytania o kasowanie.
+        this.confirmingClear = false;
+        this.rerender();
+      });
+    }
+
+    // Archiwum doczepia się PO konstruktorze (okno rysuje się w tym samym
+    // shadow roocie), więc przycisk czeka gotowy i wchodzi do nagłówka dopiero
+    // wtedy, gdy jest co otwierać.
+    const archive = document.createElement("button");
+    archive.type = "button";
+    archive.dataset.action = "archive";
+    archive.textContent = "▤";
+    archive.addEventListener("click", () => this.archive?.toggle());
 
     const collapse = document.createElement("button");
     collapse.type = "button";
     collapse.dataset.action = "collapse";
-    collapse.textContent = this.state.collapsed ? "▢" : "—";
-    // aria-label zamiast title: nie chcemy natywnych dymków przeglądarki.
-    collapse.setAttribute("aria-label", this.state.collapsed ? "Rozwiń" : "Zwiń");
     collapse.addEventListener("click", () => {
       this.state.collapsed = !this.state.collapsed;
       this.saveState();
       this.rerender();
     });
 
-    header.append(
-      title,
-      this.renderCopyButton(),
-      ...this.recordButton(),
-      ...this.archiveButton(),
-      collapse,
-    );
-    this.makeDraggable(header);
-    return header;
+    header.append(title, copy, ...(record ? [record] : []), collapse);
+    return { copy, record, archive, collapse };
   }
 
-  private archiveButton(): HTMLElement[] {
-    const archive = this.archive;
-    if (!archive) return [];
+  /** Odświeża podpisy trwałego nagłówka. Węzły zostają — patrz `header`. */
+  private updateHeader(): void {
+    const { copy, record, archive, collapse } = this.headerButtons;
 
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.action = "archive";
-    button.textContent = "▤";
-    button.setAttribute("aria-pressed", String(archive.isOpen()));
-    button.setAttribute("aria-label", archive.isOpen() ? "Zamknij archiwum" : "Archiwum walk");
-    button.addEventListener("click", () => archive.toggle());
-    return [button];
+    copy.textContent = this.flash?.key === "copy-stats" ? this.flash.label : "⧉";
+
+    if (record && this.recorder) {
+      const recording = this.recorder.isRecording();
+      // Kropka czerwienieje dopiero, gdy faktycznie leci zapis — bez tego
+      // przycisk wyłączony i włączony różnią się samym tłem, a to za mało
+      // w oknie, na które patrzy się kątem oka w trakcie walki.
+      record.className = recording ? "rec is-on" : "rec";
+      record.setAttribute("aria-pressed", String(recording));
+      record.setAttribute("aria-label", recording ? "Zatrzymaj nagrywanie" : "Nagrywaj walki");
+    }
+
+    if (this.archive) {
+      if (archive.parentNode !== this.header) collapse.before(archive);
+      const open = this.archive.isOpen();
+      archive.setAttribute("aria-pressed", String(open));
+      archive.setAttribute("aria-label", open ? "Zamknij archiwum" : "Archiwum walk");
+    }
+
+    collapse.textContent = this.state.collapsed ? "▢" : "—";
+    collapse.setAttribute("aria-label", this.state.collapsed ? "Rozwiń" : "Zwiń");
   }
 
   /**
@@ -1063,39 +1175,6 @@ export class Overlay {
 
     row.append(play, track, label, speed);
     return { row, play, track, fill, label, speed };
-  }
-
-  /** Kopiuje statystyki — bieżącą walkę i całą sesję naraz — jako JSON. */
-  private renderCopyButton(): HTMLElement {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.action = "copy-stats";
-    button.textContent = this.flash?.key === "copy-stats" ? this.flash.label : "⧉";
-    button.setAttribute("aria-label", "Kopiuj statystyki (JSON)");
-    button.addEventListener("click", () => {
-      void this.copy("copy-stats", this.statsJson());
-    });
-    return button;
-  }
-
-  private recordButton(): HTMLElement[] {
-    if (!this.recorder) return [];
-
-    const recording = this.recorder.isRecording();
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.action = "record";
-    button.className = recording ? "rec is-on" : "rec";
-    button.textContent = "⏺";
-    button.setAttribute("aria-pressed", String(recording));
-    button.setAttribute("aria-label", recording ? "Zatrzymaj nagrywanie" : "Nagrywaj walki");
-    button.addEventListener("click", () => {
-      this.recorder?.toggle();
-      // Wyłączenie nagrywania nie może zostawić otwartego pytania o kasowanie.
-      this.confirmingClear = false;
-      this.rerender();
-    });
-    return [button];
   }
 
   /**
@@ -1308,13 +1387,16 @@ export class Overlay {
       withText(div("side-enemy", this.format(enemy)), " oni"),
     );
 
+    // Przy sumie 0 pasek zostaje PUSTY, a nie po połowie: „jeszcze nic się nie
+    // wydarzyło” wyglądało wtedy jak wyrównana walka. Samo tło paska mówi tyle,
+    // ile wiadomo — czyli nic.
     const track = div("sides-track");
     const fillMine = document.createElement("span");
     fillMine.className = "fill-mine";
-    fillMine.style.width = `${sum > 0 ? (mine / sum) * 100 : 50}%`;
+    fillMine.style.width = `${sum > 0 ? (mine / sum) * 100 : 0}%`;
     const fillEnemy = document.createElement("span");
     fillEnemy.className = "fill-enemy";
-    fillEnemy.style.width = `${sum > 0 ? (enemy / sum) * 100 : 50}%`;
+    fillEnemy.style.width = `${sum > 0 ? (enemy / sum) * 100 : 0}%`;
     track.append(fillMine, fillEnemy);
 
     return [row, track];
@@ -1609,10 +1691,22 @@ export class Overlay {
       return container;
     }
 
-    // Osobna pula kolorów na widok: gdyby etykiety brały kolory z tej samej
-    // instancji co postacie, zjadłyby jej osiem slotów i przemalowały listę.
-    const colors = new ColorAssignment();
-    colors.seed(sources.map((source) => source.label));
+    /**
+     * Barwa wiersza rozbicia zależy od tego, CO wymienia dany szczebel.
+     *
+     * Pierwszy szczebel zadanych/przyjętych to POSTACIE (cel albo napastnik) —
+     * tam barwa idzie za profesją, tak samo jak na liście składu, więc ten sam
+     * przeciwnik ma ten sam kolor w obu widokach. Głębiej etykietą jest już
+     * akcja i wtedy barwę niesie rodzaj obrażeń — zwykły cios i tykająca
+     * trucizna przestają wyglądać identycznie. Leczenia to nie dotyczy: jego
+     * źródłem jest efekt, nie postać, więc zostaje neutralne.
+     */
+    const typeOf = new Map(actor.typeByLabel.map((entry) => [entry.label, entry.type]));
+    const listsCharacters = this.metric !== "healingReceived" && this.focusSource === null;
+    const colorFor = (label: string): string =>
+      listsCharacters
+        ? professionColor(this.professionOf(label))
+        : typeColor(typeOf.get(label) ?? label);
 
     const divisor = turnsFor(actor, this.metric, this.fightTurns);
     const uses = new Map(actor.abilityUses.map((use) => [use.label, use.count]));
@@ -1630,7 +1724,7 @@ export class Overlay {
       return source.hits === used ? `×${used}` : `×${used} · ${source.hits} c.`;
     };
 
-    this.appendBreakdown(container, heading, "sources", sources, total, divisor, colors, timesDealt);
+    this.appendBreakdown(container, heading, "sources", sources, total, divisor, colorFor, timesDealt);
     // Drugi przekrój tych samych obrażeń — żywioł, trucizna, głęboka rana.
     // Suma jest ta sama, więc to nie są dodatkowe obrażenia, tylko inny podział.
     // Przy jednym typie podział nie istnieje: "bez żywiołu 100%" to nie jest
@@ -1638,7 +1732,8 @@ export class Overlay {
     if (types.length > 1) {
       // Bez licznika: jeden cios niesie kilka żywiołów, więc pozycje sumowałyby
       // się do wielokrotności ciosów postaci.
-      this.appendBreakdown(container, "TYP OBRAŻEŃ", "types", types, total, divisor, colors, () => null);
+      // Tu etykieta JEST rodzajem obrażeń, więc barwę bierze wprost z siebie.
+      this.appendBreakdown(container, "TYP OBRAŻEŃ", "types", types, total, divisor, typeColor, () => null);
     }
 
     const counters = [
@@ -1686,7 +1781,8 @@ export class Overlay {
     sources: ActorStats["dealtBy"],
     total: number,
     turns: number,
-    colors: ColorAssignment,
+    /** Barwa paska dla danej etykiety — decyzja stoi u wołającego, patrz `renderDetail`. */
+    colorFor: (label: string) => string,
     counter: (source: ActorStats["dealtBy"][number]) => string | null,
   ): void {
     // Tryb „na turę” obowiązuje też tutaj: dzielimy przez tury TEJ postaci, bo
@@ -1708,7 +1804,7 @@ export class Overlay {
       row.dataset.list = list;
 
       const bar = div("bar");
-      bar.style.background = colors.colorFor(source.label);
+      bar.style.background = colorFor(source.label);
       bar.style.width = `${max > 0 ? (source.amount / max) * 100 : 0}%`;
 
       const value = document.createElement("span");
@@ -1716,7 +1812,9 @@ export class Overlay {
       const share = total > 0 ? Math.round((source.amount / total) * 100) : 0;
       value.append(
         // "/t" jak na liście składu — ta sama liczba ma znaczyć to samo w obu widokach.
-        document.createTextNode(this.format(perTurn(source.amount)) + (this.perTurn ? "/t " : " ")),
+        document.createTextNode(
+          this.format(perTurn(source.amount)) + (this.perTurn ? "/t " : " "),
+        ),
         Object.assign(document.createElement("span"), {
           className: "share",
           textContent: `(${share}%)`,
@@ -1727,7 +1825,7 @@ export class Overlay {
       text.append(div("label", source.label), value);
       // Ile razy. Co dokładnie jest liczone, rozstrzyga `counter` — zależy to
       // od przekroju, więc decyzja stoi u wołającego, nie tutaj. `null` znaczy
-      // "w tej sekcji taka liczba nie ma sensu".
+      // "w tej sekcji taka liczba nie ma sensu" i wtedy nie ma po niej śladu.
       const times = counter(source);
       if (times !== null) {
         text.append(
@@ -1798,11 +1896,20 @@ export class Overlay {
     ranked: ActorStats[],
     max: number,
   ): void {
-    const total = ranked.reduce((sum, actor) => sum + this.value(actor), 0);
+    // Udział liczymy ZAWSZE od surowych sum, także w trybie „na turę”.
+    // Mianownikiem była tam Σ(temp) — wielkość bez sensu fizycznego, której
+    // panel nigdzie nie pokazuje, bo każda postać dzieli się przez własne tury.
+    // Postać z 10% realnych obrażeń dostawała w nawiasie WIĘCEJ niż ta z 21%.
+    // `totalsRows`/`sidesRows` świadomie tego unikają; ranking teraz też.
+    const total = ranked.reduce((sum, actor) => sum + actorValue(actor, this.metric), 0);
 
     for (const [index, actor] of ranked.entries()) {
       const value = this.value(actor);
-      const color = this.colors.colorFor(actor.name);
+      const raw = actorValue(actor, this.metric);
+      // Pasek niesie PROFESJĘ, jak w SKADZIE. Dwie postacie tej samej klasy
+      // dostają tę samą barwę — od odróżniania ich jest nazwa i numer w
+      // rankingu, a od powiedzenia „kto tu jest czym" właśnie kolor.
+      const color = professionColor(actor.professionCode);
       const ambiguous = stats.ambiguousNames.includes(actor.name);
 
       const row = div("row");
@@ -1824,41 +1931,38 @@ export class Overlay {
       // Gwiazdka: pod tą nazwą kryje się w walce więcej niż jedna postać.
       label.textContent = ambiguous ? `${actor.name} *` : actor.name;
 
+      // Wiersz to numer, nazwa i JEDNA liczba wiodąca — reszta wchodzi do
+      // nawiasu tuż przy niej. Kolumny są tu świadomie tylko trzy: przy
+      // czwartej pasek zaczyna się czytać jak wiersz tabeli, a to ma być
+      // ranking.
+      //
+      // W nawiasie stoi udział, a za nim TA DRUGA miara: przy sumach tempo,
+      // przy tempie suma. Obie mówią prawdę, ale inną — kto stracił tury, ma
+      // niską sumę mimo mocnych ciosów. Przełącznik decyduje tylko, która
+      // rządzi rankingiem, a nie która jest jedyną widoczną.
       const value$ = document.createElement("span");
       value$.className = "value";
-      const share = total > 0 ? Math.round((value / total) * 100) : 0;
+      const share = total > 0 ? Math.round((raw / total) * 100) : 0;
+      const second = this.perTurn
+        ? compact(raw, false)
+        : `${compact(actorValue(actor, this.metric, true, this.fightTurns), true)}/t`;
       value$.append(
-        // Przy tempie dopisujemy "/t" do liczby wiodącej: bez tego dwie kolumny
-        // różniły się tylko wielkością liczby i nie było wiadomo, która jest która.
-        document.createTextNode(this.format(value) + (this.perTurn ? "/t " : " ")),
+        // Przy tempie "/t" wraca do liczby: nagłówka, który mógłby to powiedzieć
+        // raz na listę, nie ma i mieć nie będzie.
+        document.createTextNode(compact(value, this.perTurn) + (this.perTurn ? "/t " : " ")),
         Object.assign(document.createElement("span"), {
           className: "share",
-          textContent: `(${share}%)`,
+          textContent: `(${share}% · ${second})`,
         }),
       );
 
-      // Obok liczby wiodącej stoi zawsze TA DRUGA miara: przy sumach tempo,
-      // przy tempie suma. Wcześniej było tu tempo niezależnie od trybu, więc po
-      // włączeniu "na turę" ta sama liczba stała w wierszu dwa razy.
-      //
-      // Obie mówią prawdę, ale inną — kto stracił tury, ma niską sumę mimo
-      // mocnych ciosów. Przełącznik decyduje tylko, która rządzi rankingiem.
-      const avg = document.createElement("span");
-      avg.className = "avg";
-      avg.textContent = this.perTurn
-        ? number.format(actorValue(actor, this.metric))
-        : `${rate.format(actorValue(actor, this.metric, true, this.fightTurns))}/t`;
-
-      // Obie kolumny stoją ZAWSZE, także gdy wychodzą na to samo — postać
-      // z jedną turą ma tempo równe sumie, a postać, która nic nie zrobiła, ma
-      // dwa zera. Chowanie powtórki zabierało odpowiedź na "ile w sumie":
-      // "1230/t (8%)" bez drugiej liczby wygląda, jakby sumy w ogóle nie było.
       const text = div("row-text");
-      text.append(rank, label, value$, avg);
+      text.append(rank, label, value$);
       row.append(bar, text);
       container.append(row);
     }
   }
+
 
   /**
    * Rozbicie obrażeń wybranej postaci: z czego się złożyły i w jakich
@@ -1879,6 +1983,21 @@ export class Overlay {
     const section = div("tip-section");
     section.append(div("tip-heading", "Ogólne"));
 
+    // Wiersz nosi samą literę, bo przy 260 px na nazwę profesji nie ma miejsca.
+    // Tu jest miejsce, więc stoi pełna — a nierozpoznanej litery nie tłumaczymy
+    // na siłę: gra może dodać profesję, której `PROFESSIONS` jeszcze nie zna.
+    if (actor.professionCode !== null) {
+      const row = div("tip-stat");
+      row.append(
+        div("tip-stat-label", "Profesja"),
+        div(
+          "tip-stat-value",
+          PROFESSIONS[actor.professionCode as keyof typeof PROFESSIONS] ?? actor.professionCode,
+        ),
+      );
+      section.append(row);
+    }
+
     for (const metric of METRICS) {
       const row = div(`tip-stat${metric === this.metric ? " is-active" : ""}`);
       // Własne klasy, nie `tip-label`/`tip-value` z rozbicia: to inne dane
@@ -1888,6 +2007,14 @@ export class Overlay {
         div("tip-stat-value", this.tipValue(actor, metric)),
       );
       section.append(row);
+    }
+
+    // Trzy liczby wyżej dzielą się przez RÓŻNE dzielniki, a wszystkie noszą to
+    // samo „/t" — bez tego zdania nie da się zgadnąć, czym się różnią.
+    if (this.perTurn) {
+      section.append(
+        div("tip-note", "„/t”: zadane na turę własną · otrzymane i leczenie na turę walki"),
+      );
     }
 
     // Tury stoją tu jako pełnoprawna pozycja, nie w linijce liczników niżej:
@@ -2067,7 +2194,9 @@ export class Overlay {
     numbers.append(
       stat(METRIC_LABELS[this.metric], number.format(source.amount)),
       stat("Udział", `${share}%`),
-      stat("Na turę", `${rate.format(perTurn)}/t`),
+      // Nie samo „Na turę”: dzielnik zależy od metryki, a wiersz podpisuje oba
+      // tym samym „/t" (patrz `turnKind`).
+      stat(`Na ${turnKind(this.metric)}`, `${rate.format(perTurn)}/t`),
     );
 
     // Użycia dotyczą tylko zadanych i całej walki (nie da się ich rozbić na
@@ -2286,6 +2415,25 @@ export class Overlay {
   private applyPosition(): void {
     this.host.style.left = `${this.state.x}px`;
     this.host.style.top = `${this.state.y}px`;
+    this.applyHeightCap();
+  }
+
+  /**
+   * Sufit wysokości okna: tyle, ile zostało od jego górnej krawędzi do dołu
+   * ekranu.
+   *
+   * Bez ręcznie ustawionej wysokości panel rósł z treścią — trzydzieści postaci
+   * to ~700 px samej listy, więc przy oknie postawionym niżej dolne wiersze
+   * schodziły poza ekran i nie dawały się kliknąć. Sufit działa niezależnie od
+   * tego, czy rozmiar ustawiono ręcznie: `panel-body` ma już `overflow-y: auto`,
+   * więc nadwyżka po prostu się przewija.
+   *
+   * Liczone w JS, nie przez `100vh` w CSS: wysokość zależy od pozycji okna,
+   * a tej arkusz nie widzi.
+   */
+  private applyHeightCap(): void {
+    const cap = Math.max(MIN_HEIGHT, window.innerHeight - this.state.y - RESIZE_MARGIN);
+    this.panel.style.maxHeight = `${cap}px`;
   }
 
   private loadState(): PanelState {

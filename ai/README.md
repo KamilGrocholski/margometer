@@ -234,6 +234,164 @@ głębsza integracja niż odczyt składu i nie jest zrobiona.
 `0` to drużyna gracza (kolejność w linii otwierającej), a gra raportuje `myteam: 1`.
 Te dwa układy trzeba zmapować jawnie, a nie zakładać, że są zgodne.
 
+## Profesje — trzy źródła, sprawdzone 2026-07-26
+
+**Stan: (1) i (2) wdrożone 2026-07-27** — `ActorStats.professionCode`, kolor paska
+i odznaka w wierszu (patrz „Kolory pasków” niżej). (3) nadal niezbadane w praktyce.
+
+**1. Linia otwierająca — już sparsowane, dziś wyrzucane.** `parser.ts` wypełnia
+`Participant.professionCode` (litera z `(85b)`), a `types.ts` ma mapę
+`PROFESSIONS`. Przelot po wszystkich 16 korpusach dał sześć liter, ani jednej
+nieznanej, i **potwory mają prawdziwe kody, nie zaślepkę**:
+
+```
+b tancerz ostrzy · Tancogniew Kazrek (64)   p paladyn   · Wieczornica (93), Południca (92)
+h łowca          · Łowcosław Kazrek (70)    t tropiciel · wf agar psk (63)
+m mag            · Zulu Mulu (27)           w wojownik  · Odyniec (41), Locha (40)
+```
+
+Pokrycie pełne: cały skład, obie strony, od pierwszej linii, także we wklejonym
+tekście. Ale `professionCode` i `level` idą WYŁĄCZNIE do `participantsKey`
+(podpis walki), a `PROFESSIONS` jest eksportowane i nieużywane. Droga do widoku:
+profesja pojechałaby torem, którym już jedzie `side` — `seats` niesie
+`{key, side}`, `aggregate` robi `get(seat.key).side ??= seat.side`. Dopisanie
+`prof` do `seats` plus jedno `??=`, ~6 linii, bez ruszania parsera.
+
+**2. `Engine.battle.warriors[].prof`** (patrz sekcja wyżej — pole zweryfikowane,
+ten sam alfabet co log). `roster.ts` czyta dziś tylko `id`/`name`/`team`.
+To nie alternatywa dla (1), a jej DOPEŁNIENIE: profesje niesie linia otwierająca,
+czyli dokładnie ta, która wyjeżdża z bufora. Bez składu z gry profesja znika
+w tym samym momencie i z tego samego powodu, z którego znikała strona celu
+w `SOLID.md §4.2`.
+
+**3. Atrybut `prof-X` na liczbie obrażeń w DOM — jedyne źródło „per cios".**
+Nie było tego dotąd nigdzie zapisane. Atrybut siedzi na samej liczbie i niesie
+profesję ZADAJĄCEGO, nie celu:
+
+```html
+Odyniec(40.37%) otrzymał(a) <b class="dmgd" prof-h="">-455       <!-- bije łowca (h) -->
+Łowcożyr Kazrek(98.37%) otrzymał <b class="dmg" prof-w="">-95    <!-- bije Odyniec (w) -->
+```
+
+Do składu bezużyteczne, ale to jedyna droga, żeby nazwy w `ELEMENTS` przestały
+być wnioskiem — komentarze przy `d` („dystansowe") i `a` („nieuchronne") mówią
+wprost, że to zgadywanie z zestawienia, nie zapis z logu. Kanał już istnieje:
+`ELEMENT_MARKER` przemyca klasę CSS przez tekst, atrybut pojechałby tak samo.
+Ograniczenie: tylko prawdziwy DOM — 3 z 16 korpusów to HTML, wklejony log tego
+nie niesie.
+
+## Kolory pasków — 2026-07-27
+
+Wzorzec SKADA/Details! wzięty w całości: **pasek postaci niesie klasę, a obok
+stoi odznaka z literą profesji**. Rozbicie koloruje się rodzajem obrażeń, jak
+szkoły magii w Details!. Palety siedzą w `palette.ts` i biorą barwy wyłącznie
+z `SERIES_COLORS`, żeby nie omijać walidacji.
+
+Liczby, na których stoi ta decyzja (walidator palety, tło `#16161a`, tryb dark,
+test „wszystkie pary”, bo barwa idzie z ATRYBUTU, więc obok siebie może stanąć
+dowolna para):
+
+| ile barw | podzbiorów przechodzących próg normalnego widzenia (≥15) |
+|---|---|
+| 8 | 0 / 1 |
+| 7 | 0 / 8 |
+| 6 | 0 / 28 |
+| 5 | 0 / 56 |
+| 4 | 4 / 70 (i to w paśmie „floor” CVD) |
+
+Sufit to cztery barwy, a profesji jest sześć — więc **rozróżnialność bierze na
+siebie odznaka, nie kolor**. Kluczowa konsekwencja: ponieważ najlepszy możliwy
+rozstęp dla szóstki (ΔE 10,6) jest taki sam dla KAŻDEGO przypisania, skojarzenia
+nic nie kosztują. Stąd mag niebieski, łowca zielony, paladyn różowy.
+
+Przy protanopii/deuteranopii barwa nie rozróżnia klas w żadnym układzie
+(ΔE ok. 1,6–4,8) — to jest powód, dla którego odznaka jest warunkiem wejścia
+tego pomysłu, a nie ozdobą.
+
+Świadome ustępstwa, żeby nie badać ich drugi raz:
+- **ogień↔rana (ΔE 7,1)** to najsłabsza para rodzin, obie ciepłe. Fiolet
+  podniósłby najgorszą parę tylko do 9,8 (wtedy zimno↔rana), więc próg i tak
+  zostaje niezaliczony, a krwawienie przestałoby być czerwone.
+- **Umiejętność o kilku żywiołach dostaje ten dominujący obrażeniami.** W korpusie
+  u maga to zawsze błyskawica (Lodowy pocisk to 259 błyskawicy wobec 50 zimna!),
+  więc jego akcje wychodzą jednobarwne — podział niesie sekcja TYP OBRAŻEŃ.
+- **Nazwy akcji są dwa szczeble w głąb** (skład → cel → czym), bo pierwszy poziom
+  wymienia postacie. Tam barwa idzie za profesją, spójnie z listą składu.
+
+Odpadło przy okazji: `ColorAssignment`, `MAX_SERIES` i `OTHER_LABEL` nie mają już
+użytkownika w `src/` — barwa z atrybutu nie ma czego wyczerpać, więc cała klasa
+błędu „pula kolorów kończy się po ośmiu nazwach” (dawne `UX.md A3`) zniknęła
+z definicji, a nie została załatana.
+
+## „Na turę” — zgłoszone jako podejrzane, DO POPRAWY (2026-07-27) [otwarte]
+
+Zgłoszenie użytkownika: „«na turę» źle liczy lub pokazuje”. Sprawdzone na
+fixture `2026-07-22_lowca-tropiciel-vs-regulus-grupowa` (26 tur walki) przez
+porównanie każdej liczby z panelu z surowymi `ActorStats`.
+
+**Wynik sprawdzenia: błędu arytmetycznego NIE ma.** Każda liczba zgadza się co do
+cyfry z regułą, którą deklaruje kod. Źle jest co innego: **ten sam sufiks `/t`
+opisuje w panelu trzy różne wielkości naraz i nic tego nie sygnalizuje.** Stąd
+odczucie „pokazuje źle” jest uzasadnione, nawet jeśli dzielenie jest poprawne.
+
+Surowe dane fixture'u:
+
+```
+Regulus Mętnooki  side=1  tury=14  zadane=39352  otrzymane=16601
+Łowcosław Kazrek  side=0  tury= 5  zadane= 4379  otrzymane=20166
+wf foverek psk    side=0  tury= 7  zadane= 2889  otrzymane=19186
+```
+
+### 1. Wiersze nie sumują się do drużyny — ale tylko przy Zadanych
+
+To jest najpoważniejsze. Panel pokazuje jedno pod drugim ranking i sumę drużyny,
+a przy „Zadane / na turę” te dwie rzeczy liczą się przez INNY dzielnik:
+
+```
+Zadane, na turę:     2810,9 + 875,8 + 412,7 = 4099,4     sumy drużyny: 1793,1/t
+Otrzymane, na turę:   775,6 + 737,9 + 638,5 = 2152,0     sumy drużyny: 2152,0/t  ✓
+```
+
+Zadane dzielą się przez tury WŁASNE postaci (`turnsFor`, `overlay.ts:434`), więc
+każdy wiersz ma inny mianownik i dodać ich się nie da. Otrzymane dzielą się przez
+tury walki — wspólny mianownik, więc tam sumowanie wychodzi. Jeden przełącznik,
+dwie różne arytmetyki, zero sygnału w UI. Reguła sama w sobie jest przemyślana
+(patrz komentarz przy `turnsFor`: kto zginął przed swoją turą, nie ma pokazywać
+„0 na turę”) — problemem jest to, że obie są podpisane identycznie.
+
+### 2. Procent w nawiasie nie opisuje liczby, przy której stoi
+
+W trybie „na turę” wiersz Regulusa pokazuje `2810,9/t (84% · 39,4k)`. Ale 84% to
+udział w SUROWYCH sumach (39352 z 46620), a nie udział pokazanego tempa
+(2810,9 z 4099,4 = 69%). To jest świadoma decyzja z `UX.md A2` — mianownikiem
+Σ(temp) była wielkość bez sensu fizycznego, więc udziały celowo zostały przy
+sumach. Tyle że po zmianie układu wiersza procent stoi teraz w JEDNYM nawiasie
+razem z drugą miarą, tuż przy tempie, i czyta się jak jego udział.
+
+### 3. `/t` to dwa różne dzielniki, nazwane tylko w dymku
+
+`turnsFor` daje tury własne dla zadanych, a tury walki dla otrzymanych i
+leczenia. Przełączenie zakładki zmienia skalę liczby, nie zmieniając podpisu.
+Dymek mówi to słowami (`turnKind`, „Na turę własną” / „Na turę walki”) — wiersz
+nie mówi nic. To dawne `UX.md A4`: uznane za załatane dymkiem, ale sam wiersz
+został bez sygnału.
+
+### Co z tym zrobić — do decyzji, NIE zrobione
+
+Kierunki, nie plan. Wybór jest projektowy, nie techniczny:
+
+- Ujednolicić dzielnik do tur walki wszędzie — wtedy wszystko się sumuje i „/t”
+  znaczy jedno. Kosztem jest to, przed czym broni dzisiejsza reguła: kto stracił
+  tury, znów wygląda słabiej, choć bije mocno.
+- Zostawić dzielniki, ale przestać stawiać sumę drużyny pod listą, której nie da
+  się do niej dodać (albo podpisać ją wprost jako liczoną inaczej).
+- Przy „na turę” liczyć udział z tempa, przyjmując Σ(temp) jako mianownik — czyli
+  cofnąć A2. Odrzucone raz, ale wtedy nawias przynajmniej opisuje swoją liczbę.
+
+Reprodukcja: skrypt liczący to wszystko z fixture'u stoi w historii sesji;
+najkrócej — `overlay.render(stats, stats)`, klik „na turę”, odczyt `.rows .row`,
+`.team-total` i `.sides-row`, porównanie z `stats.actors`.
+
 ## Przegląd kodu — 2026-07-19
 
 Pełny przegląd modułów. Każdy punkt odtworzony uruchomieniem kodu na fixture'ach

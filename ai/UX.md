@@ -108,7 +108,11 @@ liczby pod kursorem nie mogą uciekać.
 - **Liczby w kolumnie.** `tabular-nums` wszędzie, żeby wartości się pionowały i
   dało się je porównać rzutem oka. ✅
 - **Udział obok wartości.** Każdy wiersz mówi i ile, i jaki %. ✅ „Na turę”
-  zamienia surową sumę na tempo — jeden przełącznik, ta sama lista. ✅
+  zamienia surową sumę na tempo — jeden przełącznik, ta sama lista. ⚠️ Nie tak
+  czysto, jak to zdanie sugeruje: dzielnik jest inny dla zadanych (tury własne)
+  niż dla otrzymanych (tury walki), więc wiersze raz sumują się do drużyny, a raz
+  nie, a procent w nawiasie liczy się z surowych sum, nie z tempa. Rozpisane
+  w `README.md`, „Na turę — zgłoszone jako podejrzane”. Do poprawy.
 - **Puste stany mówią wprost.** „Brak rozbicia: leczenie.” zamiast pustki. ✅
 - **Etykieta, która się nie mieści, żyje w dymku.** `Tancogniew · Zwykły atak`
   ucina się w 260 px — dymek pokazuje pełną, bo to ona niesie „kto i czym”. ✅
@@ -125,6 +129,11 @@ liczby pod kursorem nie mogą uciekać.
 - **Nie robić trzeciego rzędu zakładek na widoki wg-postaci/wg-umiejętności.**
   Widok wybiera się drążeniem (LPM/PPM), nie osobnym paskiem — pasek to stan do
   pilnowania, drążenie to gest do wykonania.
+- **Nie robić z rankingu tabeli.** Wiersz to numer, nazwa i JEDNA liczba
+  wiodąca; udział i druga miara wchodzą do nawiasu przy tej liczbie, a nie
+  w osobne kolumny. Poziom i profesji w wierszu nie ma — barwa paska mówi, kto
+  jest czym, a pełne dane stoją w dymku. Kolumn nie da się podpisać (nagłówka
+  nad listą nie ma i nie będzie), więc czwarta kolumna to już zgadywanka.
 - **Nie udawać danych, których log nie ma** (leczący, sprawca trucizny w tłumie).
   Liść bez danych się nie podświetla i nie kusi kliknięciem.
 - **Nie modalów, nie potwierdzeń.** Każdy gest jest odwracalny jednym PPM, więc

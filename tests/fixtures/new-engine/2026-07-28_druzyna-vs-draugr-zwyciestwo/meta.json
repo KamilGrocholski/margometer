@@ -1,0 +1,49 @@
+{
+  "client": "new-engine",
+  "capturedAt": "2026-07-28",
+  "clientBuild": null,
+  "world": null,
+  "source": "raw.txt: okno walki, przycisk 'Kopiuj logi'; log.html: DevTools, outerHTML kontenera .scroll-pane z tej samej walki",
+  "format": "text+html",
+  "participants": [
+    { "name": "Mlodyjanko", "level": 53, "professionCode": "b", "profession": "tancerz ostrzy" },
+    { "name": "Waćpan Rwućek", "level": 53, "professionCode": "p", "profession": "paladyn" },
+    { "name": "Łowcosław Kazrek", "level": 70, "professionCode": "h", "profession": "łowca" },
+    { "name": "Opusheteh", "level": 83, "professionCode": "m", "profession": "mag" },
+    { "name": "Say Feel", "level": 83, "professionCode": "t", "profession": "tropiciel" },
+    { "name": "szkoda wink emoji", "level": 61, "professionCode": "h", "profession": "łowca" },
+    { "name": "Uszaty Niszczyciel", "level": 83, "professionCode": "m", "profession": "mag" },
+    { "name": "Jordi El Nino Polla", "level": 60, "professionCode": "t", "profession": "tropiciel" },
+    { "name": "Maleko na Długach", "level": 64, "professionCode": "b", "profession": "tancerz ostrzy" },
+    { "name": "Seworter t", "level": 60, "professionCode": "t", "profession": "tropiciel" },
+    { "name": "Draugr Zastępowy", "level": 60, "professionCode": "w", "profession": "wojownik" }
+  ],
+  "covers": [
+    "WALKA GRUPOWA 10v1 - dziesieciu graczy (wszystkie szesc profesji) kontra potwor-boss, WYGRANA druzyny gracza",
+    "TA SAMA walka w dwoch formatach: raw.txt (tekst z 'Kopiuj logi') i log.html (DOM) - jedyna para w korpusie, patrz notes",
+    "opis efektu umiejetnosci obszarowej stojacy zaraz za zapowiedzia: 'Spowolnienie przeciwnikow o 14%' (Szadz), 'Oslabienie leczenia ... o 30%' (Jadowity podmuch), 'Uleczono sojusznikow o 30% zycia.' (Zdrowa atmosfera), 'Aura szybkosci zostala aktywowana' (Podwojny dech)",
+    "TRZY DoT-y naraz na jednym celu i w dwoch szykach: trucizna i gleboka rana jako 'X(pct): N obrazen od ...', ogien jako 'X(pct) otrzymal(a) N obrazen od ognia'",
+    "DoT z osłabieniem 15%, 18%, 2% oraz bez oslabienia - w jednej walce",
+    "Cios krytyczny broni pomocniczej i Gleboka rana broni pomocniczej u tancerza ostrzy",
+    "Podstepne uderzenie - umiejetnosc z wlasna linia obrazen (-124) stojaca PRZED ciosem tej samej tury",
+    "Przerwanie ciosu specjalnego trzy razy, zawsze wciete miedzy 'uderzyl z sila' a linie obrazen",
+    "'-Fasada opieki, 13% redukcji ciosow do konca walki' - modyfikator celu z PRZECINKIEM w tresci",
+    "Zablokowanie N obrazen piec razy (817, 717, 825, 749, 726, 776)",
+    "Ostatni ratunek u paladyna, wciety miedzy modyfikatory ciosu bossa",
+    "'Przywrocono 1400 punktow zycia Wacpan Rwucek.' PO zakonczeniu walki - leczenie bez HP%, z kropka na koncu",
+    "lup: 'Draugr Zastepowy: zdobyto Kapelusz odkrywcy I, ...' - dziesiec przedmiotow w jednej linii",
+    "utrata tury zwykla (5x) oraz z powodem w nawiasie '(redukcja ogluszenia 90%)' (4x)",
+    "'Zwyciezyla druzyna X, Y, ...' z dziesiecioma nazwami + 'Poleg(a) Draugr Zastepowy' dla potwora",
+    "log.html: klasa dmgo (druga bron tancerza ostrzy) obok dmg/dmgd/dmgc/dmgl/dmgf/dmga, atrybuty prof-b/prof-t/prof-h/prof-m/prof-p/prof-w",
+    "log.html: <font class=\"fr\"> wokol linii aury - jedyna linia, ktora W HTML brzmi inaczej niz w tekscie (patrz notes)"
+  ],
+  "missing": [
+    "doswiadczenie i bonus z przedmiotow - walka WYGRANA, a linii XP mimo to nie ma (boss eventowy)",
+    "remis (Walka nie wylonila zwyciezcy)",
+    "poddanie walki (jest w 2026-07-28_draugr-zastepowy-grupowa)",
+    "Absorpcja N obrazen",
+    "Zmiazdzenie 25% - proc dokladajacy liczbe tylko w linii otrzymanych (jest w 2026-07-28_draugr-zastepowy-grupowa)",
+    "atrybuowalny DoT - cel ma dziesieciu przeciwnikow, wiec caly DoT (23023) jest NIEatrybuowalny"
+  ],
+  "notes": "Piec nowych szykow linii szlo w unknown, wszystkie dopisane do RE_INFO razem z tym fixture'em: cztery opisy efektow umiejetnosci obszarowych i (z drugiej walki tego dnia) poddanie walki. Zadna z tych linii nie niesie liczby, ktora dalo by sie komus przypisac - przy 'Uleczono sojusznikow o 30% zycia.' log NIE rozbija leczenia na postacie ani nie dokłada linii 'Przywrocono', wiec ta pula leczenia po prostu nie istnieje w statystykach (znane ograniczenie, nie blad agregacji). Para raw.txt + log.html z JEDNEJ walki jest tu celowa: pozwala testowi kontraktowemu porownac oba zrodla i wylapac rozjazd miedzy tekstem a DOM-em. Przy dodawaniu sprawdzone: obie sciezki daja 0 nieznanych linii i IDENTYCZNE statystyki (zadane, przyjete, pochlonięte, leczenie, ciosy, kryty, tury). Jedyna roznica tresci: linia aury brzmi w tekscie 'Aura szybkosci zostala aktywowana (++20% szybkosci ataku).', a w DOM-ie '(+20%...)' - kopiowanie do schowka dubluje plus. Klasa dmgo zostaje BEZ mapowania na zywiol (element=null, 27 trafien): w obu walkach pada wylacznie jako druga liczba u tancerza ostrzy, czyli najpewniej bron pomocnicza, ale to slot broni, nie rodzaj obrazen - a dowodu w rodzaju 'Absorpcja N obrazen fizycznych' przy tej liczbie log nie daje. Sumy: 146818 zadane przez druzyne + 23023 nieprzypisanego DoT-a = 169841 przyjete przez Draugra."
+}

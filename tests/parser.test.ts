@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Glob } from "bun";
 import { parse } from "../src/parser.ts";
+import { extractText } from "../src/source.ts";
 import { aggregate, estimateMaxHp, totalUnattributedDot, type BattleStats } from "../src/stats.ts";
 
 const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
@@ -41,6 +42,60 @@ describe.each(fixtures)("$name", (fixture) => {
       // "Unik" w logu musi się przełożyć na co najmniej jedno takie trafienie.
       if (event.dodged) expect(event.hits.some((h) => h.dodged)).toBe(true);
     }
+  });
+});
+
+const htmlFixtures = [...new Glob("*/*/log.html").scanSync(FIXTURES)].map((path) => ({
+  path,
+  name: path.replace(/\/log\.html$/, ""),
+  html: () => Bun.file(FIXTURES + path).text(),
+  /** Ten sam zrzut w wersji tekstowej — jest tylko przy części fixture'ów. */
+  raw: async () => {
+    const file = Bun.file(`${FIXTURES}${path.replace(/log\.html$/, "raw.txt")}`);
+    return (await file.exists()) ? file.text() : null;
+  },
+}));
+
+/**
+ * Zrzuty z DOM-u trzymają ten sam kontrakt, co tekstowe. Osobny przebieg, bo
+ * droga do parsera jest inna: `extractText` skleja tekst z drzewa i dokleja
+ * żywioły z klas CSS, więc może się zepsuć niezależnie od samego parsera.
+ */
+describe.each(htmlFixtures)("$name (html)", (fixture) => {
+  const events = async () => {
+    document.body.innerHTML = await fixture.html();
+    return parse(extractText(document.body));
+  };
+
+  test("każda linia jest rozpoznana", async () => {
+    const unknown = (await events()).filter((e) => e.kind === "unknown");
+    expect(unknown.map((e) => `${e.lineNo}: ${e.line}`)).toEqual([]);
+  });
+
+  /**
+   * Fixture mający OBA pliki opisuje jedną walkę dwiema drogami, więc muszą
+   * dawać te same liczby. To jedyny test, który łapie rozjazd między tekstem
+   * z "Kopiuj logi" a DOM-em — np. gdyby `extractText` zgubił linię, która
+   * w tekście stoi osobno, a w DOM-ie siedzi w jednym węźle z sąsiednią.
+   */
+  test("html daje te same statystyki co raw.txt", async () => {
+    const raw = await fixture.raw();
+    if (raw === null) return;
+
+    const summary = (stats: BattleStats) =>
+      stats.actors.map((actor) => ({
+        name: actor.name,
+        damageDealt: actor.damageDealt,
+        damageTaken: actor.damageTaken,
+        damageAbsorbed: actor.damageAbsorbed,
+        healingDone: actor.healingDone,
+        healingReceived: actor.healingReceived,
+        hits: actor.hits,
+        crits: actor.crits,
+        turns: actor.turns,
+      }));
+
+    expect(summary(aggregate(await events()))).toEqual(summary(aggregate(parse(raw))));
   });
 });
 
@@ -99,6 +154,7 @@ describe("tancerz ostrzy vs kukła treningowa", () => {
       ability: "Dotyk anioła",
       target: "Magister Kazrek",
       amount: 0,
+      targetHpPct: 0.01,
     });
   });
 
@@ -481,6 +537,7 @@ describe("łowca vs tropiciel — zasoby i leczenie w środku bloku", () => {
       ability: "Ostatni ratunek",
       target: "wf foverek psk",
       amount: 3056,
+      targetHpPct: 38,
     });
   });
 
@@ -778,6 +835,45 @@ describe("odporność na zmianę formatu", () => {
     expect(events).toEqual([
       { kind: "unknown", line: "Magister Kazrek(50%) uderzył z siłą +100", lineNo: 1 },
     ]);
+  });
+
+  test("linia obrażeń bez zapowiedzi umiejętności trafia do unknown, nie do proc-ów", () => {
+    // Ta klasa linii zaczyna się od znaku, więc dawniej łapał ją catch-all
+    // `RE_MODIFIER`: obrażenia znikały, a czujka zmiany formatu milczała.
+    const events = parse(
+      [
+        "Magister Kazrek(50%) zrobił(a) krok do przodu.",
+        "-507 obrażeń otrzymał(a) Kukła Treningowa(75.08%).",
+      ].join("\n"),
+    );
+
+    expect(events.map((e) => e.kind)).toEqual(["move", "unknown"]);
+    expect(events[1]).toMatchObject({ lineNo: 2 });
+    // Żaden proc się nie doklejił — kwota nie została „wyjaśniona" po cichu.
+    expect(events.some((e) => e.kind === "attack")).toBe(false);
+  });
+
+  test("modyfikator z procentem życia w treści nie jest modyfikatorem", () => {
+    // Modyfikatory są gołymi etykietami. Procent życia niesie pełne zdarzenie,
+    // więc taka linia w środku bloku ataku ma zgłosić się, a nie doklejić do
+    // proc-ów ciosu.
+    const events = parse(
+      [
+        "Ktoś(50%) uderzył z siłą  +100",
+        "-1234 obrażeń otrzymał(a) Cel(10%).",
+        "Cel(90%) otrzymał(a)  -80  obrażeń",
+      ].join("\n"),
+    );
+
+    // Cały blok zgłasza się jako nierozpoznany: cios bez domknięcia, wtrącona
+    // linia i osierocona linia obrażeń. Awaria jest głośna, i o to chodzi —
+    // wcześniej wtrącenie wsiąkało w proc-i, a blok wyglądał na policzony.
+    expect(events.filter((e) => e.kind === "unknown")).toHaveLength(3);
+    // Prawdziwe modyfikatory nadal działają — zawężenie ich nie objęło.
+    const withProc = parse(
+      ["Ktoś(50%) uderzył z siłą  +100", "+Klątwa", "Cel(90%) otrzymał(a)  -80  obrażeń"].join("\n"),
+    );
+    expect(withProc[0]).toMatchObject({ kind: "attack", procs: ["Klątwa"] });
   });
 
   test("atak jednoręczny daje jedno trafienie", () => {

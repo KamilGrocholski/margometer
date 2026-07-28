@@ -72,9 +72,12 @@ function splitLines(text: string): string[][] {
     if (line.trim() === "") continue;
     if (FIGHT_START.test(line)) {
       const previous = fights.at(-1);
-      // Margonem potrafi zdublować linię rozpoczęcia — druga nie zaczyna
-      // nowej walki, bo poprzednia nie ma jeszcze żadnej treści.
-      const isDuplicate = previous?.length === 1 && FIGHT_START.test(previous[0]!);
+      // Margonem potrafi zdublować linię rozpoczęcia — powtórzenie TEJ SAMEJ
+      // linii nie zaczyna nowej walki, bo poprzednia nie ma jeszcze treści.
+      // Nagłówek o innej treści to już druga walka, choćby pierwsza skończyła
+      // się na samym nagłówku; inaczej dwie walki wpadały do jednego nagrania.
+      // Ten sam warunek co `splitFights` w sesji, tylko na tekście.
+      const isDuplicate = previous?.length === 1 && previous[0]!.trim() === line.trim();
       if (!isDuplicate) fights.push([]);
     }
     if (fights.length === 0) fights.push([]);

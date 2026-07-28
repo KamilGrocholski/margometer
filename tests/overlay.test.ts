@@ -4,7 +4,7 @@ import { aggregate, totalUnattributedDot } from "../src/stats.ts";
 import { Overlay, tipPosition, type RecorderControl } from "../src/overlay.ts";
 import { EMPTY_STATS, Session, splitFights } from "../src/session.ts";
 import { DomLogSource, extractText, findBattleLog, StaticLogSource } from "../src/source.ts";
-import { ColorAssignment, SERIES_COLORS } from "../src/palette.ts";
+import { ColorAssignment, PROFESSION_COLORS, SERIES_COLORS, TYPE_COLORS } from "../src/palette.ts";
 import { EngineRosterSource, type RosterEntry } from "../src/roster.ts";
 import { Recorder } from "../src/recorder.ts";
 import { ELEMENT_MARKER } from "../src/types.ts";
@@ -16,6 +16,19 @@ const number = new Intl.NumberFormat("pl-PL");
 // Musi się zgadzać z formatem tempa w overlay.ts.
 const rate = new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 1 });
 const readFixture = (name: string) => Bun.file(`${FIXTURES}${name}/raw.txt`).text();
+
+// Pasek niesie numer, nazwę i JEDNĄ liczbę wiodącą, a reszta (udział, druga
+// miara) siedzi w nawiasie WEWNĄTRZ tej liczby — nie w osobnej kolumnie. Stąd
+// te dwa helpery: `.value` bez czytania firstChild dałoby liczbę razem
+// z nawiasem, a `.share` — cały nawias zamiast samego procentu.
+/** Sama liczba wiodąca, bez nawiasu: „39,4k (21% · 1,2k/t)” → „39,4k”. */
+const valueOf = (row: ParentNode | null | undefined) =>
+  row?.querySelector(".value")?.firstChild?.textContent?.trim() ?? null;
+/** Sam procent z nawiasu: „(21% · 1,2k/t)” → „21%”. */
+const shareOf = (row: ParentNode | null | undefined) =>
+  row?.querySelector(".share")?.textContent?.match(/\d+%/)?.[0] ?? null;
+const metricButton = (overlay: Overlay, label: string) =>
+  [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === label)!;
 
 beforeEach(() => {
   document.body.innerHTML = "";
@@ -238,6 +251,28 @@ ${await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")}`;
     // Log z paladynami ma linię "Rozpoczęła się walka" dwa razy pod rząd.
     const events = parse(await readFixture("new-engine/2026-07-18_lowca-vs-paladyni"));
     expect(splitFights(events)).toHaveLength(1);
+  });
+
+  test("walka skończona na samym nagłówku nie skleja się z następną", () => {
+    // Ucieczka albo przerwanie: pierwsza walka nie ma nic poza nagłówkiem.
+    // Dawniej wystarczało to, by drugi nagłówek uznać za dubel — obie walki
+    // wpadały w jedną, ze składem pierwszej.
+    const events = parse(
+      [
+        "Rozpoczęła się walka pomiędzy Gracz (1w) a Wilk (1w)",
+        "Rozpoczęła się walka pomiędzy Gracz (1w) a Niedźwiedź (1w)",
+        "Gracz(100%) uderzył z siłą  +300",
+        "Niedźwiedź(60%) otrzymał(a)  -300  obrażeń",
+      ].join("\n"),
+    );
+
+    const fights = splitFights(events);
+    expect(fights).toHaveLength(2);
+    // Skład drugiej walki jest jej własny, nie odziedziczony po pierwszej.
+    expect(aggregate(fights[1]!).actors.map((a) => a.name).sort()).toEqual([
+      "Gracz",
+      "Niedźwiedź",
+    ]);
   });
 
   test("sumuje sesję po zniknięciu walki z bufora", async () => {
@@ -524,6 +559,43 @@ describe("trucizna w walce grupowej", () => {
     ]);
   });
 
+  test("czyta profesję z gry i dokłada ją tam, gdzie log jej nie podał", () => {
+    const source = new EngineRosterSource({
+      Engine: {
+        battle: {
+          myteam: 1,
+          warriors: {
+            a: { id: 10, name: "Gracz", team: 1, prof: "m" },
+            // Starszy klient albo patch: wpis bez profesji ma nadal działać.
+            b: { id: 11, name: "Wilk", team: 2 },
+          },
+        },
+      },
+    });
+    const fromGame = source.current()!;
+    expect(fromGame[0]).toMatchObject({ name: "Gracz", side: 0, prof: "m" });
+    expect(fromGame[1]).not.toHaveProperty("prof");
+
+    // Nagłówek wyjechał z bufora, więc profesji nie ma skąd wziąć poza grą.
+    const stats = aggregate(parse("Gracz(50%): 100 obrażeń od trucizny."), fromGame);
+    expect(stats.actors.find((a) => a.name === "Gracz")!.professionCode).toBe("m");
+    expect(stats.actors.find((a) => a.name === "Wilk")!.professionCode).toBeNull();
+  });
+
+  test("profesja z linii otwierającej uzupełnia skład z gry", () => {
+    // Skład z gry rządzi stronami, ale gdy nie niesie profesji, literę dokłada
+    // log — oba źródła piszą ją tym samym alfabetem.
+    const stats = aggregate(
+      parse("Rozpoczęła się walka pomiędzy Gracz (85b) a Wilk (12w)"),
+      [
+        { id: 1, name: "Gracz", side: 0 },
+        { id: 2, name: "Wilk", side: 1 },
+      ],
+    );
+    expect(stats.actors.find((a) => a.name === "Gracz")!.professionCode).toBe("b");
+    expect(stats.actors.find((a) => a.name === "Wilk")!.professionCode).toBe("w");
+  });
+
   test("brak walki albo obcy kształt danych nie wywraca odczytu składu", () => {
     expect(new EngineRosterSource({}).current()).toBeNull();
     expect(new EngineRosterSource({ Engine: {} }).current()).toBeNull();
@@ -553,6 +625,62 @@ describe("trucizna w walce grupowej", () => {
     expect(stats.actors.find((a) => a.name === "A")?.damageDealt).toBe(0);
   });
 
+  test("skład z gry wskazuje sprawcę trucizny, gdy nagłówek wyjechał z bufora", () => {
+    // Przewidziany przypadek: log traci treść od góry, więc linii otwierającej
+    // już nie widać. Skład z gry mówi jednak wprost, kto stoi po drugiej stronie.
+    const events = parse("Gracz(50%): 280 obrażeń od trucizny.");
+    const fromGame: RosterEntry[] = [
+      { id: 1, name: "Gracz", side: 0 },
+      { id: 2, name: "Wilk", side: 1 },
+    ];
+
+    // Bez składu nie ma po czym liczyć stron — trucizna zostaje bez sprawcy.
+    expect(totalUnattributedDot(aggregate(events).unattributedDotDamage)).toBe(280);
+
+    const stats = aggregate(events, fromGame);
+    expect(totalUnattributedDot(stats.unattributedDotDamage)).toBe(0);
+    expect(stats.actors.find((a) => a.name === "Wilk")!.damageDealt).toBe(280);
+  });
+
+  test("trucizna przed pierwszą turą nie wypada z osi tur", () => {
+    // Bufor przycięty do tyknięcia trucizny: żadna tura jeszcze się nie otwarła,
+    // a kwota nie ma prawa przepaść — Σ osi musi się zgadzać z Σ zdarzeń.
+    const stats = aggregate(
+      parse(
+        [
+          "Gracz(50%): 140 obrażeń od trucizny.",
+          "Gracz(50%) uderzył z siłą  +2189",
+          "Wilk(10%) otrzymał(a)  -2189  obrażeń",
+        ].join("\n"),
+      ),
+    );
+
+    const onAxis = stats.timeline.reduce((sum, slice) => sum + slice.damage, 0);
+    expect(onAxis).toBe(140 + 2189);
+    // Tura tła nie dostaje strony: log nie mówi, kto wtedy działał.
+    expect(stats.timeline[0]).toMatchObject({ turn: 1, side: null, damage: 140 });
+  });
+
+  test("maks. cios nie liczy własnych obrażeń umiejętności", () => {
+    const stats = aggregate(
+      parse(
+        [
+          "Rozpoczęła się walka pomiędzy Gracz (1m) a Wilk (1w)",
+          "Gracz wykonuje Fuzja żywiołów.",
+          // Własne obrażenia umiejętności — lecą OBOK ciosu, nie są ciosem.
+          "-2000 obrażeń otrzymał(a) Wilk(50%).",
+          "Gracz(100%) uderzył z siłą  +300",
+          "Wilk(30%) otrzymał(a)  -300  obrażeń",
+        ].join("\n"),
+      ),
+    );
+
+    const gracz = stats.actors.find((a) => a.name === "Gracz")!;
+    // Obrażenia liczą się w całości, rekord pojedynczego uderzenia już nie.
+    expect(gracz.damageDealt).toBe(2300);
+    expect(gracz.maxHit).toBe(300);
+  });
+
   test("rozróżnia klasy obrażeń fizycznych: zwarcie kontra dystans", async () => {
     const stats = await load();
     expect(stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!.dealtByType).toEqual([
@@ -569,8 +697,6 @@ describe("trucizna w walce grupowej", () => {
 
 describe("leczenie", () => {
   const load = async (name: string) => aggregate(parse(await readFixture(`new-engine/${name}`)));
-  const metricButton = (overlay: Overlay, label: string) =>
-    [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === label)!;
 
   test("rozbija leczenie na źródła, tak jak obrażenia", async () => {
     const tropiciel = (await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci")).actors.find(
@@ -608,9 +734,8 @@ describe("leczenie", () => {
     const first = overlay.shadow.querySelector(".row")!;
     expect(first.querySelector(".label")?.textContent).toBe("wf foverek psk");
     // Udział liczy się wobec CAŁEJ walki, więc lider nie ma automatycznie 100%.
-    expect(first.querySelector(".value")?.textContent?.trim()).toBe(
-      `${number.format(3686)} (89%)`,
-    );
+    expect(valueOf(first)).toBe(number.format(3686));
+    expect(shareOf(first)).toBe("89%");
   });
 
   test("rozbicie leczenia pokazuje od czego wyleczono, bez typu obrażeń", async () => {
@@ -827,8 +952,8 @@ describe("podział na drużyny", () => {
 
     // 149 + 54 + 22 = 225 obrażeń drużyny przeciwnej; Bulu Mulu to 66% z tego,
     // a nie 28% z sumy całej walki.
-    const shares = [...overlay.shadow.querySelectorAll(".share")].map((el) => el.textContent);
-    expect(shares[0]).toBe("(66%)");
+    const shares = [...overlay.shadow.querySelectorAll(".rows .row")].map(shareOf);
+    expect(shares[0]).toBe("66%");
   });
 
   test("filtr działa razem z przełącznikiem metryki", async () => {
@@ -934,6 +1059,192 @@ describe("przypisanie kolorów", () => {
       Array.from({ length: 12 }, (_, i) => colors.colorFor(`postać ${i}`)),
     );
     expect(used.size).toBe(SERIES_COLORS.length + 1); // + kolor zbiorczy
+  });
+
+  test("pasek postaci niesie profesję", async () => {
+    // Wzorzec SKADA: barwa = klasa. Ta walka ma trzy różne profesje w składzie.
+    const stats = aggregate(
+      parse(await readFixture("new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa")),
+    );
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const rows = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row")].map((row) => ({
+      actor: row.dataset.actor!,
+      color: row.querySelector<HTMLElement>(".bar")!.style.background,
+    }));
+
+    const asStyle = (color: string) => {
+      const probe = document.createElement("div");
+      probe.style.background = color;
+      return probe.style.background;
+    };
+    const of = (name: string) => rows.find((row) => row.actor === name)!;
+
+    expect(of("Łowcosław Kazrek").color).toBe(asStyle(PROFESSION_COLORS["h"]!));
+    expect(of("wf foverek psk").color).toBe(asStyle(PROFESSION_COLORS["t"]!));
+    expect(of("Regulus Mętnooki").color).toBe(asStyle(PROFESSION_COLORS["w"]!));
+  });
+
+  test("wiersz to ranking, nie tabela: numer, nazwa i jedna liczba z nawiasem", async () => {
+    const stats = aggregate(
+      parse(await readFixture("new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa")),
+    );
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    // Trzy komórki i ani jednej więcej. Poziom i profesja NIE stoją w wierszu —
+    // przy czwartej kolumnie pasek zaczyna się czytać jak wiersz tabeli, a bez
+    // nagłówka kolumn i tak nie byłoby wiadomo, co która znaczy. Profesję
+    // niesie barwa paska, pełną nazwę i resztę liczb — dymek.
+    for (const row of overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")) {
+      const cells = [...row.querySelectorAll(".row-text > *")].map((cell) => cell.className);
+      expect(cells).toEqual(["rank", "label", "value"]);
+    }
+
+    const first = overlay.shadow.querySelector(".rows .row[data-actor]")!;
+    expect(first.querySelector(".rank")?.textContent).toBe("1.");
+    // Nawias siedzi WEWNĄTRZ liczby wiodącej, nie obok niej jako kolejna
+    // kolumna — to on mówi, że procent i tempo należą do TEJ liczby.
+    expect(first.querySelector(".value")?.contains(first.querySelector(".share"))).toBe(true);
+    expect(first.querySelector(".share")?.textContent).toMatch(/^\(\d+% · .+\)$/);
+
+    // Numery idą po kolei i nie gubią się przy zmianie metryki.
+    const ranks = () =>
+      [...overlay.shadow.querySelectorAll(".rows .row[data-actor] .rank")].map(
+        (cell) => cell.textContent,
+      );
+    expect(ranks()).toEqual(["1.", "2.", "3."]);
+    metricButton(overlay, "Otrzymane").click();
+    expect(ranks()).toEqual(["1.", "2.", "3."]);
+  });
+
+  test("dwie postacie tej samej profesji mają ten sam kolor — i to jest zamierzone", async () => {
+    // Trzej magowie. W SKADZIE trzech magów też ma jedną barwę: kolor odpowiada
+    // na „kto tu jest czym", a od odróżniania postaci są nazwa i numer.
+    document.body.innerHTML = await Bun.file(
+      `${FIXTURES}new-engine/2026-07-18_mag-dom-fuzja/log.html`,
+    ).text();
+    const stats = aggregate(parse(extractText(document.body)));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const rows = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row")];
+    const colors = new Set(rows.map((row) => row.querySelector<HTMLElement>(".bar")!.style.background));
+    expect(rows.length).toBe(3);
+    expect(colors.size).toBe(1);
+    // Nazwy nadal rozróżniają wiersze — tożsamości kolor nigdy nie niósł.
+    expect(new Set(rows.map((row) => row.dataset.actor)).size).toBe(3);
+  });
+
+  test("paski umiejętności niosą rodzaj obrażeń", async () => {
+    document.body.innerHTML = await Bun.file(
+      `${FIXTURES}new-engine/2026-07-18_mag-dom-fuzja/log.html`,
+    ).text();
+    const stats = aggregate(parse(extractText(document.body)));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const asStyle = (color: string) => {
+      const probe = document.createElement("div");
+      probe.style.background = color;
+      return probe.style.background;
+    };
+    const click = (key: string) =>
+      [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+        .find((row) => row.dataset.actor === key || row.dataset.source === key)!
+        .click();
+
+    // Pierwszy szczebel wymienia CELE, więc barwa idzie tam za profesją.
+    click("wf mushita psk");
+    const target = [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-source]")].find(
+      (row) => row.dataset.source === "Furu Mulu",
+    )!;
+    expect(target.querySelector<HTMLElement>(".bar")!.style.background).toBe(
+      asStyle(PROFESSION_COLORS["m"]!),
+    );
+
+    // Dopiero po wejściu w cel etykietą jest akcja — i wtedy barwę niesie żywioł.
+    click("Furu Mulu");
+    const byLabel = new Map(
+      [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-source]")].map((row) => [
+        row.dataset.source!,
+        row.querySelector<HTMLElement>(".bar")!.style.background,
+      ]),
+    );
+    // Obie umiejętności niosą zimno I błyskawicę w jednym ciosie, a błyskawica
+    // dominuje w każdej (259/50 i 384/153) — więc obie dostają jej barwę.
+    // Pasek ma jeden kolor, więc musi wybrać; podział widać niżej, w sekcji
+    // TYP OBRAŻEŃ. To realna granica tego pomysłu, nie usterka.
+    expect(byLabel.get("Lodowy pocisk")).toBe(asStyle(TYPE_COLORS["błyskawica"]!));
+    expect(byLabel.get("Porażenie")).toBe(asStyle(TYPE_COLORS["błyskawica"]!));
+  });
+
+  test("zwykły cios i trucizna dostają w rozbiciu różne barwy", async () => {
+    // Przypadek, w którym kolor typu zarabia na siebie: dziś oba wiersze
+    // wyglądają identycznie, choć to zupełnie różne źródła obrażeń.
+    document.body.innerHTML = await Bun.file(
+      `${FIXTURES}new-engine/2026-07-18_lowca-dom-trucizna/log.html`,
+    ).text();
+    const stats = aggregate(parse(extractText(document.body)));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const asStyle = (color: string) => {
+      const probe = document.createElement("div");
+      probe.style.background = color;
+      return probe.style.background;
+    };
+    const click = (key: string) =>
+      [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+        .find((row) => row.dataset.actor === key || row.dataset.source === key)!
+        .click();
+
+    click("Łowcożyr Kazrek");
+    click("Locha");
+
+    const byLabel = new Map(
+      [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-source]")].map((row) => [
+        row.dataset.source!,
+        row.querySelector<HTMLElement>(".bar")!.style.background,
+      ]),
+    );
+    expect(byLabel.get("Zwykły atak")).toBe(asStyle(TYPE_COLORS["broń"]!));
+    expect(byLabel.get("od trucizny")).toBe(asStyle(TYPE_COLORS["trucizna"]!));
+  });
+
+  test("trucizna odróżnia się barwą od zwykłego ciosu", async () => {
+    // Tu kolor robi najwięcej roboty: dziś oba wiersze wyglądają identycznie.
+    document.body.innerHTML = await Bun.file(
+      `${FIXTURES}new-engine/2026-07-18_lowca-dom-trucizna/log.html`,
+    ).text();
+    const stats = aggregate(parse(extractText(document.body)));
+    const lowca = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
+
+    const types = new Map(lowca.typeByLabel.map((t) => [t.label, t.type]));
+    expect(types.get("Zwykły atak")).toBe("broń");
+    expect(types.get("od trucizny")).toBe("trucizna");
+  });
+
+  test("kolor nie zależy od liczby walk w sesji", () => {
+    // Dawniej barwa szła ze wspólnej puli ośmiu slotów, więc od trzeciej walki
+    // wiersze robiły się szare. Barwa z atrybutu nie ma czego wyczerpać.
+    const overlay = new Overlay();
+    const line = (enemy: string, code: string) =>
+      aggregate(parse(`Rozpoczęła się walka pomiędzy Gracz (1m) a ${enemy} (1${code})`));
+
+    const seen: string[] = [];
+    for (const [enemy, code] of [["A", "w"], ["B", "p"], ["C", "t"], ["D", "h"], ["E", "b"]]) {
+      const stats = line(enemy!, code!);
+      overlay.render(stats, stats);
+      const row = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row")].find(
+        (candidate) => candidate.dataset.actor === enemy,
+      )!;
+      seen.push(row.querySelector<HTMLElement>(".bar")!.style.background);
+    }
+
+    // Pięć profesji, pięć różnych barw — także w piątej walce z rzędu.
+    expect(new Set(seen).size).toBe(5);
   });
 });
 
@@ -1263,6 +1574,8 @@ describe("overlay", () => {
       [...overlay.shadow.querySelectorAll<HTMLElement>(`.rows .row[data-list="${list}"]`)]
         .map((row) => row.querySelector(".avg")?.textContent ?? null);
 
+    // Bez licznika znaczy BEZ komórki — wiersz nie trzyma pustego miejsca po
+    // liczbie, której w tym przekroju nie ma.
     expect(counters("types")).toEqual([null, null]);
     // Umiejętności licznik zachowują — tam znaczy "ile razy odpalone".
     expect(counters("sources")).toEqual(["×1", "×1"]);
@@ -1348,13 +1661,14 @@ describe("overlay", () => {
     expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Tancogniew Kazrek");
     const targets = [...overlay.shadow.querySelectorAll(".rows .row")].map((el) => [
       el.querySelector(".label")?.textContent,
-      el.querySelector(".value")?.textContent?.trim(),
+      valueOf(el),
+      shareOf(el),
     ]);
     expect(targets).toEqual([
-      ["wf agar psk", `${number.format(10366)} (100%)`],
+      ["wf agar psk", number.format(10366), "100%"],
       // Przekrój po żywiole dotyczy całości obrażeń postaci — stoi na każdym szczeblu.
-      ["bez żywiołu", `${number.format(10036)} (97%)`],
-      ["od trucizny", `${number.format(330)} (3%)`],
+      ["bez żywiołu", number.format(10036), "97%"],
+      ["od trucizny", number.format(330), "3%"],
     ]);
     expect([...overlay.shadow.querySelectorAll(".rows .side-head")].map((el) =>
       el.firstElementChild?.textContent,
@@ -1368,13 +1682,14 @@ describe("overlay", () => {
     expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("wf agar psk");
     const breakdown = [...overlay.shadow.querySelectorAll(".rows .row")].map((el) => [
       el.querySelector(".label")?.textContent,
-      el.querySelector(".value")?.textContent?.trim(),
+      valueOf(el),
+      shareOf(el),
     ]);
     expect(breakdown).toEqual([
-      ["Zwykły atak", `${number.format(10036)} (97%)`],
-      ["od trucizny", `${number.format(330)} (3%)`],
-      ["bez żywiołu", `${number.format(10036)} (97%)`],
-      ["od trucizny", `${number.format(330)} (3%)`],
+      ["Zwykły atak", number.format(10036), "97%"],
+      ["od trucizny", number.format(330), "3%"],
+      ["bez żywiołu", number.format(10036), "97%"],
+      ["od trucizny", number.format(330), "3%"],
     ]);
     expect([...overlay.shadow.querySelectorAll(".rows .side-head")].map((el) =>
       el.firstElementChild?.textContent,
@@ -1585,6 +1900,67 @@ describe("overlay", () => {
     const restored = new Overlay({ storage });
     restored.render(empty, empty);
     expect(restored.shadow.querySelector(".panel")!.className).toContain("collapsed");
+  });
+
+  test("przeciąganie przeżywa przebudowę panelu i zapisuje pozycję", () => {
+    const store = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+    };
+
+    const overlay = new Overlay({ storage });
+    const empty = aggregate([]);
+    overlay.render(empty, empty);
+
+    const header = overlay.shadow.querySelector<HTMLElement>("header")!;
+    const at = (type: string, x: number, y: number) =>
+      Object.assign(new Event(type, { bubbles: true }), { clientX: x, clientY: y, pointerId: 1 });
+
+    header.dispatchEvent(at("pointerdown", 100, 100));
+    // W ŚRODKU przeciągania dochodzi linia logu i panel się przebudowuje. Gdy
+    // nagłówek powstawał od nowa, listenery zostawały na odłączonym węźle: ruch
+    // zastygał, a `pointerup` (a z nim zapis) nigdy nie padał.
+    overlay.render(empty, empty);
+    expect(overlay.shadow.querySelector("header")).toBe(header);
+
+    header.dispatchEvent(at("pointermove", 140, 160));
+    header.dispatchEvent(at("pointerup", 140, 160));
+
+    // Start 16/16, chwyt w 100/100 → przesunięcie o 40/60.
+    const host = overlay.shadow.host as HTMLElement;
+    expect([host.style.left, host.style.top]).toEqual(["56px", "76px"]);
+
+    const saved = JSON.parse(store.get("margometer.panel")!);
+    expect([saved.x, saved.y]).toEqual([56, 76]);
+
+    // Pozycja przeżywa odświeżenie strony.
+    const restored = new Overlay({ storage });
+    restored.render(empty, empty);
+    const rhost = restored.shadow.host as HTMLElement;
+    expect([rhost.style.left, rhost.style.top]).toEqual(["56px", "76px"]);
+  });
+
+  test("panel ma sufit wysokości, więc lista nie schodzi poniżej ekranu", () => {
+    // Bez sufitu okno rosło z treścią: trzydzieści postaci to ~700 px samej
+    // listy, a przy panelu postawionym niżej dolne wiersze były nieklikalne.
+    const overlay = new Overlay();
+    const empty = aggregate([]);
+    overlay.render(empty, empty);
+
+    const panel = overlay.shadow.querySelector<HTMLElement>(".panel")!;
+    // Domyślna pozycja to 16 px od góry, 8 px luzu do dolnej krawędzi.
+    expect(panel.style.maxHeight).toBe(`${window.innerHeight - 16 - 8}px`);
+
+    // Sufit jedzie z oknem: im niżej stoi, tym mniej mu zostaje.
+    const header = overlay.shadow.querySelector<HTMLElement>("header")!;
+    const at = (type: string, x: number, y: number) =>
+      Object.assign(new Event(type, { bubbles: true }), { clientX: x, clientY: y, pointerId: 1 });
+    header.dispatchEvent(at("pointerdown", 20, 20));
+    header.dispatchEvent(at("pointermove", 20, 604));
+    header.dispatchEvent(at("pointerup", 20, 604));
+
+    expect(panel.style.maxHeight).toBe(`${window.innerHeight - 600 - 8}px`);
   });
 
   test("uchwyt zmienia i zapamiętuje rozmiar okna", () => {
@@ -1884,6 +2260,55 @@ describe("nagłówek stron i tempo", () => {
     expect(overlay.shadow.querySelector(".sides")).toBeNull();
   });
 
+  test("dymek mówi, co jest dzielnikiem trybu na turę", async () => {
+    // Zadane dzielą się przez tury WŁASNE, przyjęte przez tury WALKI, a wiersz
+    // podpisuje oba tym samym „/t" — bez tego przełączenie zakładki zmieniało
+    // skalę liczby o rząd wielkości bez żadnego sygnału.
+    const stats = await statsFrom("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp");
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    perTurnButton(overlay).click();
+
+    const generalNote = () =>
+      [...overlay.shadow.querySelectorAll(".tip-note")].map((el) => el.textContent);
+    const sourceLabels = () =>
+      [...overlay.shadow.querySelectorAll(".tip-stat-label")].map((el) => el.textContent);
+
+    // Dymek postaci: jedno zdanie o obu dzielnikach, bo pokazuje trzy metryki naraz.
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+      .find((row) => row.dataset.actor === "Tancogniew Kazrek")!
+      .dispatchEvent(new Event("pointerover", { bubbles: true }));
+    expect(generalNote().join(" ")).toContain("zadane na turę własną");
+
+    // Wewnątrz postaci metryka jest jedna, więc dymek pozycji nazywa dzielnik wprost.
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+      .find((row) => row.dataset.actor === "Tancogniew Kazrek")!
+      .click();
+    overlay.shadow
+      .querySelector<HTMLElement>(".row[data-source]")!
+      .dispatchEvent(new Event("pointerover", { bubbles: true }));
+    expect(sourceLabels()).toContain("Na turę własną");
+
+    // Ta sama pozycja przy obrażeniach przyjętych dzieli się przez tury walki.
+    [...overlay.shadow.querySelectorAll("button")]
+      .find((b) => b.textContent === "Otrzymane")!
+      .click();
+    overlay.shadow
+      .querySelector<HTMLElement>(".row[data-source]")!
+      .dispatchEvent(new Event("pointerover", { bubbles: true }));
+    expect(sourceLabels()).toContain("Na turę walki");
+  });
+
+  test("pasek stron przy zerowej sumie zostaje pusty, nie na pół", () => {
+    // Skład jest, walka jeszcze się nie zaczęła. 50/50 czytało się jak remis.
+    const stats = aggregate(parse("Rozpoczęła się walka pomiędzy Gracz (1w) a Wilk (1w)"));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const fills = [...overlay.shadow.querySelectorAll<HTMLElement>(".sides-track > span")];
+    expect(fills.map((fill) => fill.style.width)).toEqual(["0%", "0%"]);
+  });
+
   test("na turę przestawia ranking, bo tury utracone przestają karać", async () => {
     const stats = await statsFrom("new-engine/2026-07-18_wojownik-vs-druzyna-umiejetnosci");
     const overlay = new Overlay();
@@ -1892,7 +2317,7 @@ describe("nagłówek stron i tempo", () => {
 
     const rows = [...overlay.shadow.querySelectorAll(".row")].map((r) => [
       r.querySelector(".label")?.textContent,
-      r.querySelector(".value")?.textContent?.trim(),
+      valueOf(r),
     ]);
 
     // Bulu Mulu zadał 149 do 379 wojownika, ale w dwóch turach zamiast pięciu —
@@ -1900,9 +2325,17 @@ describe("nagłówek stron i tempo", () => {
     // rankingu. Udziały liczą się wobec całej walki, nie w obrębie strony.
     expect(rows[0]![0]).toBe("Woj Zandan Długonogi");
     expect(rows[1]![0]).toBe("Bulu Mulu");
-    // Liczba wiodąca niesie "/t", bo w tym trybie to ona jest tempem.
-    expect(rows[0]![1]).toBe("75,8/t (35%)");
-    expect(rows[1]![1]).toBe("74,5/t (35%)");
+    // Liczba wiodąca niesie "/t", bo w tym trybie to ona jest tempem. Udział
+    // w nawiasie zostaje przy SUROWYCH sumach: 379 z 600 to 63% obrażeń walki
+    // i tyle samo pokazuje tryb sum. Dawniej dzielił się przez Σ(temp) — liczbę
+    // bez sensu fizycznego, której panel nigdzie nie pokazuje — więc Bulu Mulu
+    // z 25% realnych obrażeń dostawał ten sam procent co wojownik z 63%.
+    // Jednostka stoi przy liczbie, bo nagłówka kolumn nie ma i nie będzie —
+    // bez "/t" nic by nie mówiło, że to tempo, a nie suma.
+    expect(rows[0]![1]).toBe("75,8/t");
+    expect(rows[1]![1]).toBe("74,5/t");
+    const shares = [...overlay.shadow.querySelectorAll(".rows .row")].map(shareOf);
+    expect(shares.slice(0, 2)).toEqual(["63%", "25%"]);
   });
 
   test("dymek liczy w tym samym trybie co wiersz, a tury zostają surowe", async () => {
@@ -1935,21 +2368,12 @@ describe("nagłówek stron i tempo", () => {
     expect(stat("Tury")).toBe(`${actor.turns}`);
   });
 
-  test("wiersz zawsze podaje obie liczby, także gdy wychodzą na zero albo na to samo", async () => {
-    // Dwa przypadki zgłoszone z podglądu: postać, która nic nie zadaje, oraz
-    // postać działająca w JEDNEJ turze, więc jej tempo równa się sumie. W obu
-    // wiersz ma pokazać KOMPLET: brak obrażeń to "0", nie puste miejsce,
-    // a równe liczby to nadal dwie odpowiedzi ("ile na turę" i "ile w sumie"),
-    // nie powtórka do ukrycia.
-    //
-    // Postacie wybieramy po WŁAŚCIWOŚCI, nie po nazwie, i liczby wyliczamy
-    // z danych. Poprzednia wersja stała na konkretnych nazwach i liczbach
-    // z generatora syntetycznego — poprawka generatora zabrała jej przesłankę
-    // (nikt nie miał już jednej tury), a nie tylko przestawiła wynik.
+  test("pasek niesie jedną liczbę wiodącą, a reszta stoi przy niej w nawiasie", async () => {
+    // Wzorzec SKADA/Details!: na pasku nazwa i wynik, reszta po najechaniu.
+    // Wcześniej stały tu obie miary naraz i w walce grupowej zjadały nazwę.
     const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-gnolle-rozdzielanie");
-    const idle = stats.actors.find((a) => a.damageDealt === 0)!;
+    const idle = stats.actors.find((a) => a.damageDealt === 0 && a.turns === 0)!;
     const single = stats.actors.find((a) => a.turns === 1 && a.damageDealt > 0)!;
-    expect(single.damageDealt / single.turns).toBe(single.damageDealt);
 
     const overlay = new Overlay();
     overlay.render(stats, stats);
@@ -1959,25 +2383,35 @@ describe("nagłówek stron i tempo", () => {
         (candidate) => candidate.dataset.actor === name,
       )!;
       return [
-        row.querySelector(".value")?.textContent?.trim(),
-        row.querySelector(".avg")?.textContent?.trim(),
+        valueOf(row),
+        shareOf(row),
+        // Druga miara nie ma własnej kolumny — wchodzi do tego samego nawiasu
+        // co udział. To jest treść tego testu.
+        row.querySelector(".avg"),
       ];
     };
 
     const total = stats.actors.reduce((sum, a) => sum + a.damageDealt, 0);
     const share = Math.round((single.damageDealt / total) * 100);
-    const sum = number.format(single.damageDealt);
-    const pace = rate.format(single.damageDealt);
 
-    expect(cells(idle.name)).toEqual(["0 (0%)", "0/t"]);
-    expect(cells(single.name)).toEqual([`${sum} (${share}%)`, `${pace}/t`]);
+    expect(cells(idle.name)).toEqual(["0", "0%", null]);
+    expect(cells(single.name)).toEqual([number.format(single.damageDealt), `${share}%`, null]);
 
-    perTurnButton(overlay).click();
-    // Po przełączeniu liczby zamieniają się rolami, ale obie nadal stoją.
-    expect(cells(idle.name)![0]).toContain("0/t");
-    expect(cells(idle.name)![1]).toBe("0");
-    expect(cells(single.name)![0]).toContain(`${pace}/t`);
-    expect(cells(single.name)![1]).toBe(sum);
+    // W nawiasie stoi udział, a za nim tempo — jedna liczba wiodąca, reszta
+    // przy niej.
+    const nawias = [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+      .find((row) => row.dataset.actor === single.name)!
+      .querySelector(".share")?.textContent;
+    expect(nawias).toBe(`(${share}% · ${rate.format(single.damageDealt / single.turns)}/t)`);
+
+    // Suma nie znika z panelu — dymek pokazuje komplet metryk tej postaci.
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+      .find((row) => row.dataset.actor === single.name)!
+      .dispatchEvent(new Event("pointerover", { bubbles: true }));
+    const tipValue = [...overlay.shadow.querySelectorAll(".tip-stat")]
+      .find((row) => row.querySelector(".tip-stat-label")?.textContent === "Zadane")
+      ?.querySelector(".tip-stat-value")?.textContent;
+    expect(tipValue).toBe(number.format(single.damageDealt));
   });
 
   test("otrzymane na turę liczy tury walki, nie tury poszkodowanego", async () => {
@@ -2000,7 +2434,7 @@ describe("nagłówek stron i tempo", () => {
       (candidate) => candidate.dataset.actor === "Gnoll szaman",
     )!;
     const expected = szaman.damageTaken / stats.timeline.length;
-    expect(row.querySelector(".value")?.textContent).toContain(`${rate.format(expected)}/t`);
+    expect(valueOf(row)).toBe(`${rate.format(expected)}/t`);
   });
 
   test("zadane na turę nadal dzieli się przez tury własne", async () => {
@@ -2018,32 +2452,36 @@ describe("nagłówek stron i tempo", () => {
       (candidate) => candidate.dataset.actor === "Łowcosław Kazrek",
     )!;
     const expected = lowca.damageDealt / lowca.turns;
-    expect(row.querySelector(".value")?.textContent).toContain(`${rate.format(expected)}/t`);
+    expect(valueOf(row)).toBe(`${rate.format(expected)}/t`);
   });
 
-  test("wiersz nie powtarza tej samej liczby dwa razy w żadnym trybie", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_wojownik-vs-druzyna-umiejetnosci");
+  test("duże liczby na pasku są skracane, żeby zostało miejsce na nazwę", async () => {
+    const stats = aggregate(
+      parse(await readFixture("new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa")),
+    );
     const overlay = new Overlay();
     overlay.render(stats, stats);
 
-    // Druga kolumna niesie ZAWSZE tę drugą miarę: przy sumach tempo, przy
-    // tempie sumę. Inaczej po włączeniu "na turę" obie pokazywały to samo.
-    const pair = () => {
-      const row = overlay.shadow.querySelector(".row")!;
-      return [
-        row.querySelector(".value")?.textContent?.trim(),
-        row.querySelector(".avg")?.textContent?.trim(),
-      ];
-    };
+    const value = (name: string) =>
+      valueOf(
+        [...overlay.shadow.querySelectorAll<HTMLElement>(".row")].find(
+          (row) => row.dataset.actor === name,
+        ),
+      );
 
-    const [sum, rateWhenTotal] = pair();
-    expect(sum).toBe(`${number.format(379)} (63%)`);
-    expect(rateWhenTotal).toBe("75,8/t");
+    // Od pięciu cyfr wchodzi skrót — 39 352 to "39,4k".
+    expect(value("Regulus Mętnooki")).toBe("39,4k");
+    // Do czterech cyfr pełna liczba i tak się mieści, więc zostaje dokładna.
+    expect(value("Łowcosław Kazrek")).toBe(number.format(4379));
 
-    perTurnButton(overlay).click();
-    const [rateValue, sumWhenRate] = pair();
-    expect(rateValue).toBe("75,8/t (35%)");
-    expect(sumWhenRate).toBe(number.format(379));
+    // Dymek zawsze podaje pełną liczbę — skrót jest tylko oszczędnością miejsca.
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+      .find((row) => row.dataset.actor === "Regulus Mętnooki")!
+      .dispatchEvent(new Event("pointerover", { bubbles: true }));
+    const tipValue = [...overlay.shadow.querySelectorAll(".tip-stat")]
+      .find((row) => row.querySelector(".tip-stat-label")?.textContent === "Zadane")
+      ?.querySelector(".tip-stat-value")?.textContent;
+    expect(tipValue).toBe(number.format(39352));
   });
 
   test("tempo strony to jej suma dzielona przez jej tury, nie suma temp", async () => {
@@ -2175,10 +2613,13 @@ describe("oś tur, zgony i skupienie ognia", () => {
     expect(overlay.shadow.querySelector(".rows .side-head")).toBeNull();
 
     // Kolejność jest czysto malejąca — strony nie grupują listy.
-    const values = [...overlay.shadow.querySelectorAll(".rows .row .value")].map((el) =>
-      Number(el.textContent!.split("(")[0]!.replace(/\D/g, "")),
+    const order = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row")].map(
+      (row) => row.dataset.actor,
     );
-    expect(values).toEqual([...values].sort((a, b) => b - a));
+    const expected = [...stats.actors]
+      .sort((a, b) => b.damageDealt - a.damageDealt || a.name.localeCompare(b.name, "pl"))
+      .map((actor) => actor.name);
+    expect(order).toEqual(expected);
   });
 
   test("udziały sumują się do 100% w obrębie całej listy", () => {
@@ -2187,7 +2628,7 @@ describe("oś tur, zgony i skupienie ognia", () => {
     overlay.render(stats, stats);
 
     const rows = [...overlay.shadow.querySelectorAll(".row")];
-    const shares = rows.map((r) => parseInt(r.querySelector(".share")!.textContent!.replace(/\D/g, ""), 10));
+    const shares = rows.map((r) => parseInt(shareOf(r)!, 10));
     // Zaokrąglenie do pełnych procent potrafi zjeść albo dołożyć punkt.
     expect(Math.abs(shares.reduce((a, b) => a + b, 0) - 100)).toBeLessThanOrEqual(2);
 
@@ -2298,6 +2739,28 @@ describe("kopiowanie i nagrywanie", () => {
 
     // 5000 znaków to ~10 kB, bo przeglądarka liczy po dwa bajty na znak.
     expect(overlay.shadow.querySelector(".rec-bar .grow")!.textContent).toBe("2 walki · 10 kB");
+  });
+
+  test("licznik walk odmienia się poprawnie", () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const word = (count: number) => {
+      const { control } = fakeRecorder({ count: () => count });
+      const overlay = new Overlay({ recorder: control });
+      overlay.render(stats, stats);
+      return overlay.shadow.querySelector(".rec-bar .grow")!.textContent!.split(" · ")[0];
+    };
+
+    expect(word(1)).toBe("1 walka");
+    expect(word(2)).toBe("2 walki");
+    expect(word(4)).toBe("4 walki");
+    // Dopełniacz od "walka" to "walk", nie "walek" — "walek" jest od "wałek".
+    expect(word(5)).toBe("5 walk");
+    expect(word(21)).toBe("21 walk");
+    // Nastki idą jak 5-20, mimo końcówki 2-4: "12 walk", nie "12 walki".
+    expect(word(12)).toBe("12 walk");
+    expect(word(13)).toBe("13 walk");
+    expect(word(22)).toBe("22 walki");
+    expect(word(112)).toBe("112 walk");
   });
 
   test("pasek znika, gdy nie ma nagrań ani nagrywania", () => {
