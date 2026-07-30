@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { Glob } from "bun";
 import { parse } from "../src/parser.ts";
 import { extractText } from "../src/source.ts";
+import { ELEMENT_MARKER } from "../src/types.ts";
 import { aggregate, estimateMaxHp, totalUnattributedDot, type BattleStats } from "../src/stats.ts";
 
 const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
@@ -884,5 +885,78 @@ describe("odporność na zmianę formatu", () => {
       kind: "attack",
       hits: [{ raw: 100, applied: 80, crit: false, secondary: false }],
     });
+  });
+});
+
+describe("głośne awarie zamiast cichych", () => {
+  /** Żywioł dokleja się do liczby znacznikiem — patrz `extractText`. */
+  const el = (letter: string) => `${ELEMENT_MARKER}${letter}`;
+
+  test("nieznana klasa dmgX nie wsiąka w „bez żywiołu”", () => {
+    // Cały kontrakt parsera stoi na tym, że nieznany kształt jest głośny.
+    // Nieznana litera trafiała dotąd do tego samego worka co log wklejony jako
+    // tekst — czyli zmiana formatu przechodziła bez śladu.
+    const stats = aggregate(
+      parse(
+        [
+          "Rozpoczęła się walka pomiędzy Kamil (120h) a Wilk (10w)",
+          `Kamil(100%) uderzył z siłą  +120${el("z")}`,
+          `Wilk(50%) otrzymał(a)  -80${el("z")}  obrażeń`,
+        ].join("\n"),
+      ),
+    );
+
+    expect(stats.unknownElements).toEqual(["dmgz"]);
+    // Linia jest zrozumiana, liczby się zgadzają — niepewny jest sam rodzaj.
+    expect(stats.unknownLines).toBe(0);
+    const kamil = stats.actors.find((a) => a.name === "Kamil")!;
+    expect(kamil.damageDealt).toBe(80);
+    expect(kamil.dealtByType.map((t) => t.label)).toEqual(["dmgz"]);
+  });
+
+  test("znana klasa nadal ma swoją nazwę", () => {
+    const stats = aggregate(
+      parse(
+        [
+          "Rozpoczęła się walka pomiędzy Kamil (120h) a Wilk (10w)",
+          `Kamil(100%) uderzył z siłą  +120${el("f")}`,
+          `Wilk(50%) otrzymał(a)  -80${el("f")}  obrażeń`,
+        ].join("\n"),
+      ),
+    );
+
+    expect(stats.unknownElements).toEqual([]);
+    expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe("ogień");
+  });
+
+  test("separator tysięcy zgłasza się zamiast obcinać liczbę", () => {
+    // "+10 000" rozpada się na 10 i 000, czyli cios za dziesięć zamiast
+    // dziesięciu tysięcy plus widmowa broń pomocnicza — i to bez ani jednego
+    // `unknown`. Formatu nie potwierdzono, ale pomyłka o trzy rzędy wielkości
+    // nie może przechodzić po cichu.
+    const events = parse(
+      ["Kamil(100%) uderzył z siłą  +10 000", "Wilk(50%) otrzymał(a)  -8 000  obrażeń"].join("\n"),
+    );
+
+    expect(events.map((e) => e.kind)).toEqual(["unknown", "unknown"]);
+    expect(events.some((e) => e.kind === "attack")).toBe(false);
+  });
+
+  test("znacznik żywiołu bierze dokładnie jedną literę", () => {
+    // `extractText` dokleja do liczby POJEDYNCZĄ literę klasy. Zachłanne
+    // `[a-z]+` brało razem z nią początek tego, co stało dalej — i zamiast
+    // ognia wychodził żywioł o nazwie sklejonej z sąsiednim słowem.
+    const stats = aggregate(
+      parse(
+        [
+          "Rozpoczęła się walka pomiędzy Kamil (120h) a Wilk (10w)",
+          `Kamil(100%) uderzył z siłą  +120${el("f")}x`,
+          `Wilk(50%) otrzymał(a)  -80${el("f")}  obrażeń`,
+        ].join("\n"),
+      ),
+    );
+
+    expect(stats.unknownElements).toEqual([]);
+    expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe("ogień");
   });
 });

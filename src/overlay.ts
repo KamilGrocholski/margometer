@@ -2394,6 +2394,15 @@ export class Overlay {
         warn: true,
       });
     }
+    if (stats.unknownElements.length > 0) {
+      // Osobno od linii: te są zrozumiane i liczby się zgadzają, niepewny jest
+      // sam rodzaj obrażeń. Wypisujemy nazwę klasy, bo to jedyne, co o nim
+      // wiadomo — i to ona ma trafić do zgłoszenia.
+      notes.push({
+        text: `⚠ nieznany rodzaj obrażeń: ${stats.unknownElements.join(", ")}`,
+        warn: true,
+      });
+    }
     if (stats.ambiguousNames.length > 0) {
       notes.push({
         text: `* zsumowane postacie o tej samej nazwie: ${stats.ambiguousNames.join(", ")}`,

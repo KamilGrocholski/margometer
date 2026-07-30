@@ -245,6 +245,11 @@ const PLAIN_ATTACK = "Zwykły atak";
  * "fizyczne", bo dla maga w logu tekstowym byłoby to nieprawdą.
  */
 const UNKNOWN_ELEMENT = "bez żywiołu";
+/**
+ * Etykieta, którą parser zostawia dla nierozpoznanej klasy `dmgX`. Nazwa klasy
+ * wprost, bo to jedyne, co o tym rodzaju obrażeń wiadomo.
+ */
+const RE_RAW_ELEMENT = /^dmg[a-z]+$/;
 
 /** Leczenie bez nazwy umiejętności — log nie mówi, co je wywołało. */
 const PLAIN_HEAL = "Regeneracja";
@@ -355,6 +360,15 @@ export type BattleStats = {
   ambiguousNames: string[];
   /** Linie, których parser nie zrozumiał. Niezerowe = statystyki są niepełne. */
   unknownLines: number;
+  /**
+   * Klasy `dmgX` z DOM gry, których nie umiemy nazwać — np. `dmgo`.
+   *
+   * Osobno od `unknownLines`, bo linia jest zrozumiana i liczby się zgadzają;
+   * niepewny jest sam RODZAJ obrażeń. Bez tego nowa klasa wsiąkała w „bez
+   * żywiołu" razem z logiem wklejonym jako tekst, czyli zmiana formatu
+   * przechodziła bez śladu — wbrew kontraktowi „nieznane ma być głośne".
+   */
+  unknownElements: string[];
   /**
    * Obrażenia w podziale na tury, po jednym wpisie na turę walki.
    *
@@ -521,8 +535,14 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
    * więc w tej samej walce sprawca trucizny „gubił się” po przycięciu logu.
    */
   const opponentOf = (name: string): string | null => {
-    const target = roster.find((p) => p.name === name);
+    const matches = roster.filter((p) => p.name === name);
+    const target = matches[0];
     if (!target) return null;
+    // Ta sama nazwa po OBU stronach (dwa "Wilki", jeden nasz) nie mówi, czyj
+    // jest cel — a wtedy nie wiadomo też, po której stronie szukać sprawcy.
+    // `find` brał po prostu pierwszy wpis, więc trucizna potrafiła trafić na
+    // konto sojusznika.
+    if (matches.some((one) => one.side !== target.side)) return null;
     const enemies = seats.filter((seat) => seat.side !== target.side);
     return enemies.length === 1 ? enemies[0]!.key : null;
   };
@@ -603,6 +623,11 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
   const unattributedDotByTarget = new Map<string, number>();
   let unattributedHealing = 0;
   let unknownLines = 0;
+  /** Klasy `dmgX`, których nie umiemy nazwać — patrz `BattleStats`. */
+  const unknownElements = new Set<string>();
+  const noteElement = (element: string | null) => {
+    if (element !== null && RE_RAW_ELEMENT.test(element)) unknownElements.add(element);
+  };
 
   for (const event of events) {
     switch (event.kind) {
@@ -670,6 +695,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
 
           // Żywioł znany tylko z DOM-u gry; przy wklejonym tekście go nie ma.
           const type = hit.element ?? UNKNOWN_ELEMENT;
+          noteElement(hit.element);
           addDamage(breakdownOf(sourceKey).dealtType, type, hit.applied);
           addDamage(breakdownOf(targetKey).takenType, type, hit.applied);
           // Ten sam żywioł zapisany pod ETYKIETAMI, które go niosły — po nich
@@ -874,6 +900,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     unattributedHealing,
     ambiguousNames: ambiguousKeys,
     unknownLines,
+    unknownElements: [...unknownElements].sort(),
     timeline,
     deaths,
     matrix: [...edges.values()].sort((a, b) => b.damage - a.damage),

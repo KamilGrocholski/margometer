@@ -118,6 +118,7 @@ export function splitFights(events: BattleEvent[]): BattleEvent[][] {
 function mergeStats(all: BattleStats[]): BattleStats {
   const actors = new Map<string, BattleStats["actors"][number]>();
   const ambiguousNames = new Set<string>();
+  const unknownElements = new Set<string>();
   const unattributedDotDamage = { mine: 0, enemy: 0, loose: 0 };
   let unattributedHealing = 0;
   let unknownLines = 0;
@@ -158,6 +159,7 @@ function mergeStats(all: BattleStats[]): BattleStats {
       merged.unattributedDotTaken += actor.unattributedDotTaken;
     }
     for (const name of stats.ambiguousNames) ambiguousNames.add(name);
+    for (const element of stats.unknownElements) unknownElements.add(element);
     unattributedDotDamage.mine += stats.unattributedDotDamage.mine;
     unattributedDotDamage.enemy += stats.unattributedDotDamage.enemy;
     unattributedDotDamage.loose += stats.unattributedDotDamage.loose;
@@ -171,6 +173,7 @@ function mergeStats(all: BattleStats[]): BattleStats {
     unattributedHealing,
     ambiguousNames: [...ambiguousNames],
     unknownLines,
+    unknownElements: [...unknownElements].sort(),
     // Oś tur, zgony i macierz są własnością POJEDYNCZEJ walki. Sklejone przez
     // sesję nie znaczyłyby nic: tura 3 z jednej walki nie jest turą 3 z drugiej,
     // a ten sam przeciwnik ginie w każdej z osobna.
@@ -187,6 +190,7 @@ export const EMPTY_STATS: BattleStats = {
   unattributedHealing: 0,
   ambiguousNames: [],
   unknownLines: 0,
+  unknownElements: [],
   timeline: [],
   deaths: [],
   matrix: [],

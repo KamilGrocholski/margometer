@@ -16,8 +16,13 @@ const ELEMENTS: Record<string, string> = {
   d: "dystansowe",
 };
 
-const RE_ELEMENT = new RegExp(`${ELEMENT_MARKER}([a-z]+)`, "g");
-const RE_DAMAGE_VALUE = new RegExp(`(-?\\d+)(?:${ELEMENT_MARKER}([a-z]+))?`, "g");
+/**
+ * Znacznik żywiołu niesie DOKŁADNIE jedną literę (patrz `extractText`), więc
+ * `[a-z]` bez plusa. Z plusem zachłanne dopasowanie zjadało pierwszą literę
+ * następnego słowa, gdy po liczbie nie było spacji.
+ */
+const RE_ELEMENT = new RegExp(`${ELEMENT_MARKER}([a-z])`, "g");
+const RE_DAMAGE_VALUE = new RegExp(`(-?\\d+)(?:${ELEMENT_MARKER}([a-z]))?`, "g");
 
 /** Tekst bez znaczników — wszystko poza dwiema liniami obrażeń widzi tę wersję. */
 function clean(text: string): string {
@@ -201,7 +206,10 @@ function toDamages(segment: string): DamageValue[] {
   RE_DAMAGE_VALUE.lastIndex = 0;
   return [...segment.matchAll(RE_DAMAGE_VALUE)].map((m) => ({
     value: Math.abs(parseInt(m[1]!, 10)),
-    element: (m[2] ? ELEMENTS[m[2]] : null) ?? null,
+    // Nieznana litera NIE wpada do tego samego worka co "brak DOM": zostaje
+    // surowa nazwa klasy (`dmgo`), żeby zmiana formatu była widoczna zamiast
+    // wsiąkać w "bez żywiołu". Liczy ją `aggregate` — patrz `unknownElements`.
+    element: m[2] ? (ELEMENTS[m[2]] ?? `dmg${m[2]}`) : null,
   }));
 }
 
@@ -284,6 +292,21 @@ function classifyModifiers(modifiers: string[]): Modifiers {
   }
 
   return result;
+}
+
+/**
+ * Trafienie, którego w logu nie było.
+ *
+ * Zero surowych ORAZ zero przyjętych obrażeń przy braku uniku nie opisuje
+ * żadnego zdarzenia — powstaje, gdy jedna liczba rozpadnie się na dwie. Tak
+ * zachowa się separator tysięcy: „+10 000" daje `10` i `000`, czyli cios za
+ * dziesięć zamiast dziesięciu tysięcy plus widmowa broń pomocnicza. Format
+ * z separatorem nie jest potwierdzony (w korpusie liczby mają najwyżej cztery
+ * cyfry), ale gdyby się pojawił, ta reguła zamienia cichą pomyłkę o trzy rzędy
+ * wielkości w głośne `unknown`.
+ */
+function isPhantomHit(hit: Hit): boolean {
+  return hit.raw === 0 && hit.applied === 0 && !hit.dodged;
 }
 
 function buildHits(raw: DamageValue[], applied: DamageValue[], mods: Modifiers): Hit[] {
@@ -454,13 +477,23 @@ export function parse(text: string): BattleEvent[] {
         // Cios kogoś innego niż autor zapowiedzi zamyka jej blok — to już
         // czyjaś tura.
         if (ability && ability.actor !== pending.source) ability = null;
+        const hits = buildHits(pending.rawDamages, toDamages(RE_TAKEN.exec(marked)?.[3] ?? ""), mods);
+        if (hits.some(isPhantomHit)) {
+          // Cios rozsypał się na trafienia, których nie ma — patrz
+          // `isPhantomHit`. Kwota jest wtedy nie do odtworzenia, więc zgłaszamy
+          // linię zamiast zapisywać liczbę, o której wiemy, że jest zła.
+          events.push({ kind: "unknown", line: pending.line, lineNo: pending.lineNo });
+          events.push({ kind: "unknown", line, lineNo });
+          pending = null;
+          return;
+        }
         events.push({
           kind: "attack",
           source: pending.source,
           target: taken[1]!.trim(),
           sourceHpPct: pending.sourceHpPct,
           targetHpPct: toPct(taken[2]!),
-          hits: buildHits(pending.rawDamages, toDamages(RE_TAKEN.exec(marked)?.[3] ?? ""), mods),
+          hits,
           dodged: mods.dodged,
           blocked: mods.blocked,
           procs: mods.procs,
