@@ -87,11 +87,16 @@ nią. 80% pytań („co go tak boli?”) da się odpowiedzieć samym najechaniem
 wejście zostaje na te 20%, gdy chcesz drążyć dalej. Dziś dymek pokazuje sumy
 postaci; dołożyć mini-rozbicie. 🎯
 
-### 4.3 Powrót jest tani i wybaczający ✅🎯
+### 4.3 Powrót jest tani i wybaczający ✅
 PPM działa **z całego panelu**, nie tylko z wiersza — wraca się też z pustego
-miejsca pod listą. ✅ Do tego 🎯: klik w okruszek `‹ …` robi to samo (dla myszy),
-a klik w pustą przestrzeń rankingu nic nie psuje. Wejście w ślepy zaułek (postać
-zniknęła z nowej walki) samo cofa o szczebel, zamiast pokazać pusty ekran. ✅
+miejsca pod listą. ✅ Klik w okruszek `‹ …` robi to samo (dla myszy) i podświetla
+się pod kursorem. ✅ Klik w pustą przestrzeń rankingu nic nie psuje. Wejście
+w ślepy zaułek (postać zniknęła z nowej walki) samo cofa o szczebel, zamiast
+pokazać pusty ekran. ✅
+
+⚠️ Jeden wyjątek: PPM jest przechwytywane na całym shadow roocie, więc zabiera
+też **natywne menu kontekstowe w polu wklejania logu** w archiwum — jedynym
+miejscu, gdzie to menu jest naprawdę potrzebne (`UX-POPRAWKI.md A12`).
 
 ### 4.4 Zero migotania ✅
 Kursor stoi w miejscu, a pod nim po rerenderze jest już inny węzeł — dymek
@@ -102,9 +107,11 @@ liczby pod kursorem nie mogą uciekać.
 
 ## 5. Mikrodetale, które decydują o „wygodnie”
 
-- **Kolor = tożsamość.** Postać ma ten sam kolor w rankingu i w rozbiciu, a
-  kolejność kolorów bierze się z zadanych — zmiana metryki nie przemalowuje
-  listy. ✅ Oko śledzi kolor, nie pozycję.
+- **Kolor = tożsamość.** Postać ma ten sam kolor w rankingu i w rozbiciu, bo
+  barwa idzie z ATRYBUTU (profesja), a nie z puli przydzielanej po kolei —
+  zmiana metryki nie przemalowuje listy. ✅ Oko śledzi kolor, nie pozycję.
+  ⚠️ Ale tekst wiersza stoi NA tym pasku i przy żadnej z sześciu barw nie
+  przechodzi progu 4,5:1 (najgorzej żółty: 3,50:1) — `UX-POPRAWKI.md A14`.
 - **Liczby w kolumnie.** `tabular-nums` wszędzie, żeby wartości się pionowały i
   dało się je porównać rzutem oka. ✅
 - **Udział obok wartości.** Każdy wiersz mówi i ile, i jaki %. ✅ „Na turę”
@@ -152,12 +159,19 @@ liczby pod kursorem nie mogą uciekać.
 |---|---|
 | LPM w głąb, PPM w tył, na każdym szczeblu | Dymek z TOP-3 rozbiciem (podgląd bez wejścia) |
 | Postać zostaje przy zmianie metryki | Wyraźny sygnał, że kontekst postaci się trzyma |
-| Dymek z sumami postaci | Klik w okruszek = powrót (dla myszy) |
+| Dymek z sumami postaci | — |
+| Klik w okruszek = powrót (dla myszy) | — |
 | Okruszek „‹ skład / ‹ Nazwa” | — |
 | Drążenie Zadane/Otrzymane + leczenie | — |
 | Trwały wybór przez rerender, brak migotania | — |
 
 Skróty klawiszowe **świadomie poza zakresem** (patrz §6) — cała nawigacja idzie
-myszą. Kolejność prac wg zwrotu za gest: **podgląd TOP-3** (4.2) → **klik w
-okruszek** (4.3) → **wyraźny sygnał trzymania postaci** (4.1). To rzeczy, które
-najmocniej skracają drogę od „chcę wiedzieć” do „wiem”.
+myszą. Kolejność prac wg zwrotu za gest: **podgląd TOP-3** (4.2) → **wyraźny
+sygnał trzymania postaci** (4.1). To rzeczy, które najmocniej skracają drogę od
+„chcę wiedzieć” do „wiem”.
+
+⚠️ **Ten spec opisuje panel na żywo. W podglądzie z archiwum i w odtwarzaniu
+część z tych ✅ dziś NIE działa** — dymek nie pokazuje się wcale, a zakładki
+i okruszek gubią kliknięcia co klatkę. Zasada 3 („nie gub miejsca”) też ma tam
+wyjątek: przewinięcie nagrania w tył zwija drążenie i nie przywraca go, gdy
+klatka dogoni. Szczegóły: `UX-POPRAWKI.md A7`, `A8`, `A15`.
