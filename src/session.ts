@@ -61,6 +61,7 @@ function copyActor(actor: ActorStats): ActorStats {
     procsReceived: actor.procsReceived.map((p) => ({ ...p })),
     abilityUses: actor.abilityUses.map((p) => ({ ...p })),
     takenFromBy: actor.takenFromBy.map((a) => ({ ...a, by: a.by.map((s) => ({ ...s })) })),
+    dealtToBy: actor.dealtToBy.map((a) => ({ ...a, by: a.by.map((s) => ({ ...s })) })),
     typeByLabel: actor.typeByLabel.map((t) => ({ ...t })),
   };
 }
@@ -148,6 +149,7 @@ function mergeStats(all: BattleStats[]): BattleStats {
       merged.procsReceived = mergeProcs(merged.procsReceived, actor.procsReceived);
       merged.abilityUses = mergeProcs(merged.abilityUses, actor.abilityUses);
       merged.takenFromBy = mergeAttackers(merged.takenFromBy, actor.takenFromBy);
+      merged.dealtToBy = mergeAttackers(merged.dealtToBy, actor.dealtToBy);
       merged.typeByLabel = mergeTypes(merged.typeByLabel, actor.typeByLabel);
       // Profesja jest cechą postaci, nie walki — bierzemy pierwszą, którą
       // ktokolwiek podał. Wcześniejsza walka mogła nie mieć składu z gry.

@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { parse } from "../src/parser.ts";
 import { aggregate, totalUnattributedDot } from "../src/stats.ts";
-import { Overlay, tipPosition, type RecorderControl } from "../src/overlay.ts";
+import {
+  Overlay,
+  tipPosition,
+  type PreviewView,
+  type RecorderControl,
+} from "../src/overlay.ts";
 import { EMPTY_STATS, Session, splitFights } from "../src/session.ts";
 import { DomLogSource, extractText, findBattleLog, StaticLogSource } from "../src/source.ts";
 import { ColorAssignment, PROFESSION_COLORS, SERIES_COLORS, TYPE_COLORS } from "../src/palette.ts";
@@ -16,6 +21,21 @@ const number = new Intl.NumberFormat("pl-PL");
 // Musi się zgadzać z formatem tempa w overlay.ts.
 const rate = new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 1 });
 const readFixture = (name: string) => Bun.file(`${FIXTURES}${name}/raw.txt`).text();
+
+/**
+ * Suma WSZYSTKICH liczb w dowolnie zagnieżdżonej strukturze.
+ *
+ * Służy strażnikowi sumowania sesji: dzięki temu, że nie wie nic o kształcie
+ * `ActorStats`, obejmuje także pola, których jeszcze nie ma.
+ */
+const deepSum = (value: unknown): number => {
+  if (typeof value === "number") return value;
+  if (Array.isArray(value)) return value.reduce((sum: number, item) => sum + deepSum(item), 0);
+  if (value && typeof value === "object") {
+    return Object.values(value).reduce((sum: number, item) => sum + deepSum(item), 0);
+  }
+  return 0;
+};
 
 // Pasek niesie numer, nazwę i JEDNĄ liczbę wiodącą, a reszta (udział, druga
 // miara) siedzi w nawiasie WEWNĄTRZ tej liczby — nie w osobnej kolumnie. Stąd
@@ -371,11 +391,15 @@ ${await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")}`;
     });
   });
 
-  test("suma sesji obejmuje KAŻDY licznik, nie tylko obrażenia", async () => {
-    // Strażnik na klasę błędu, nie na jeden przypadek: `mergeStats` wylicza pola
-    // z palca, więc nowe pole w `ActorStats` po cichu z sumy wypada. Tak
-    // wypadło `abilityUses`. Ta sama walka policzona dwa razy musi podwoić
-    // każdy licznik przyrostowy — inaczej któregoś merge nie objął.
+  test("suma sesji obejmuje KAŻDE pole, także jeszcze nienapisane", async () => {
+    // Strażnik na KLASĘ błędu, nie na wyliczankę pól: `mergeStats` i `copyActor`
+    // wymieniają pola z palca, więc nowe pole w `ActorStats` po cichu z sumy
+    // wypada. Tak wypadło `abilityUses`, a potem `dealtToBy` — i poprzednia
+    // wersja tego testu drugiego nie widziała, bo wymieniała pola ręcznie.
+    //
+    // Dlatego test nie wie, jakie pola istnieją: schodzi w głąb dowolnej
+    // struktury i sumuje WSZYSTKIE liczby. Ta sama walka policzona dwa razy musi
+    // podwoić każdą z nich. Nowe pole jest objęte automatycznie.
     const text = await readFixture("new-engine/2026-07-18_tancerz-vs-tropiciel-umiejetnosci");
     const session = new Session();
     session.update(text);
@@ -384,16 +408,21 @@ ${await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")}`;
     session.update(`${text}\n${text}`);
     const twice = session.total().actors.find((a) => a.name === "Tancogniew Kazrek")!;
 
-    for (const key of ["damageDealt", "damageTaken", "hits", "crits", "turns"] as const) {
-      expect([key, twice[key]]).toEqual([key, once[key] * 2]);
+    // Pola, które z definicji się NIE sumują: tożsamość postaci i rekord.
+    const notAdditive = new Set(["name", "side", "professionCode", "level", "maxHit"]);
+    const keys = Object.keys(once).filter((key) => !notAdditive.has(key));
+    // Sam fakt, że pętla ma po czym chodzić — inaczej test przechodzi pusty.
+    expect(keys.length).toBeGreaterThan(10);
+
+    for (const key of keys) {
+      const before = deepSum(once[key as keyof typeof once]);
+      // Puste pole nic nie dowodzi, ale nie jest też błędem (nie każda walka ma
+      // leczenie). Interesuje nas tylko to, czy niezerowe podwaja się poprawnie.
+      if (before === 0) continue;
+      expect([key, deepSum(twice[key as keyof typeof twice])]).toEqual([key, before * 2]);
     }
-    for (const key of ["procs", "abilityUses"] as const) {
-      expect(once[key].length).toBeGreaterThan(0);
-      for (const entry of once[key]) {
-        const merged = twice[key].find((e) => e.label === entry.label);
-        expect([key, entry.label, merged?.count]).toEqual([key, entry.label, entry.count * 2]);
-      }
-    }
+    // `maxHit` jest maksimum, nie sumą — ta sama walka dwa razy go nie rusza.
+    expect(twice.maxHit).toBe(once.maxHit);
   });
 
   test("suma sesji nie mutuje statystyk pojedynczej walki", async () => {
@@ -2835,5 +2864,145 @@ describe("spięcie nagrywarki ze źródłem logu", () => {
     for (const line of text.split("\n").filter((l) => l.trim() !== "")) {
       expect(recorded).toContain(line);
     }
+  });
+});
+
+describe("podgląd wczytanej walki", () => {
+  const load = async (name: string) => aggregate(parse(await readFixture(`new-engine/${name}`)));
+
+  /** Widok podglądu bez odtwarzania — tyle, ile overlay potrzebuje do paska. */
+  const view = (): PreviewView => ({
+    source: "z archiwum · 19:04",
+    title: "test",
+    replay: null,
+    close: () => {},
+  });
+
+  test("dymek opisuje wczytane nagranie, nie walkę na żywo", async () => {
+    // Składy są rozłączne, więc szukanie postaci w walce na żywo nie znajduje
+    // NICZEGO — dokładnie tak dymek w archiwum milczał.
+    const live = await load("2026-07-18_tancerz-vs-kukla");
+    const archived = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
+    const overlay = new Overlay();
+    overlay.render(live, live);
+    overlay.showPreview(archived, view());
+
+    const row = overlay.shadow.querySelector<HTMLElement>(".row")!;
+    const name = row.dataset.actor!;
+    expect(archived.actors.some((actor) => actor.name === name)).toBe(true);
+    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
+
+    const tip = overlay.shadow.querySelector<HTMLElement>(".tip")!;
+    expect(tip.hidden).toBe(false);
+    expect(tip.querySelector(".tip-title")?.textContent).toBe(name);
+  });
+
+  test("przy zbieżności nazw dymek bierze liczby z nagrania", async () => {
+    // Gorszy wariant tego samego błędu: postać o tej samej nazwie JEST w walce
+    // na żywo, więc dymek się pokazywał — tylko z cudzymi liczbami.
+    const text = await readFixture("new-engine/2026-07-18_lowca-vs-tropiciel-umiejetnosci");
+    const archived = aggregate(parse(text));
+    // Ta sama walka urwana w połowie: te same nazwy, mniejsze liczby.
+    const live = aggregate(parse(text.split("\n").slice(0, 12).join("\n")));
+
+    const overlay = new Overlay();
+    overlay.render(live, live);
+    overlay.showPreview(archived, view());
+
+    const name = "Łowcosław Kazrek";
+    const dealtInArchive = archived.actors.find((a) => a.name === name)!.damageDealt;
+    const dealtLive = live.actors.find((a) => a.name === name)!.damageDealt;
+    expect(dealtInArchive).toBeGreaterThan(dealtLive);
+
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+      .find((row) => row.dataset.actor === name)!
+      .dispatchEvent(new Event("pointerover", { bubbles: true }));
+
+    const values = [...overlay.shadow.querySelectorAll(".tip .tip-stat-value")].map(
+      (el) => el.textContent,
+    );
+    expect(values).toContain(new Intl.NumberFormat("pl-PL").format(dealtInArchive));
+    expect(values).not.toContain(new Intl.NumberFormat("pl-PL").format(dealtLive));
+  });
+});
+
+describe("prawy przycisk w polu tekstowym", () => {
+  test("nie cofa widoku i nie blokuje menu przeglądarki", async () => {
+    // Archiwum rysuje pole wklejania w TYM SAMYM shadow roocie co panel, więc
+    // globalny handler PPM zabierał mu natywne menu — jedyne miejsce, gdzie to
+    // menu jest naprawdę potrzebne — i przy okazji cofał widok o szczebel.
+    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const row = overlay.shadow.querySelector<HTMLElement>(".row[data-actor]")!;
+    const name = row.dataset.actor!;
+    row.click();
+    expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe(name);
+
+    const area = document.createElement("textarea");
+    overlay.shadow.append(area);
+    const event = new Event("contextmenu", { bubbles: true, cancelable: true });
+    area.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    // Widok stoi tam, gdzie stał — PPM z pola tekstowego nic nie cofa.
+    expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe(name);
+
+    // Poza polem tekstowym PPM działa jak dotąd: wraca do składu.
+    const outside = new Event("contextmenu", { bubbles: true, cancelable: true });
+    overlay.shadow.querySelector(".rows")!.dispatchEvent(outside);
+    expect(outside.defaultPrevented).toBe(true);
+    expect(overlay.shadow.querySelector(".crumb-name")).toBeNull();
+  });
+});
+
+describe("przyciski panelu przeżywają przebudowę w środku gestu", () => {
+  const press = (node: Element, kind: string) =>
+    node.dispatchEvent(new Event(kind, { bubbles: true }));
+
+  test("zakładka metryki działa, choć panel przebudował się między wciśnięciem a puszczeniem", async () => {
+    // Tak wygląda odtwarzanie: klatka co 62,5 ms przy 4×, więc zwykły klik
+    // (~100 ms) zawsze trafia w przebudowę. Węzeł spod kursora znika, natywny
+    // `click` nie pada, a zakładki przestają działać — z podglądu nie dawało się
+    // wyjść bez wcześniejszej pauzy.
+    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    press(metricButton(overlay, "Otrzymane"), "pointerdown");
+    // Nowa klatka: cała treść korpusu powstaje od nowa.
+    overlay.render(stats, stats);
+    press(metricButton(overlay, "Otrzymane"), "pointerup");
+
+    expect(metricButton(overlay, "Otrzymane").getAttribute("aria-pressed")).toBe("true");
+    expect(metricButton(overlay, "Zadane").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  test("zwykły klik nie wykonuje akcji dwa razy", async () => {
+    // `pointerup` już ją wykonał, a przeglądarka dokłada za nim `click` —
+    // bez flagi „obsłużone” przełącznik wracałby na miejsce.
+    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const perTurn = () =>
+      [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === "na turę")!;
+    press(perTurn(), "pointerdown");
+    press(perTurn(), "pointerup");
+    press(perTurn(), "click");
+
+    expect(perTurn().getAttribute("aria-pressed")).toBe("true");
+  });
+
+  test("puszczenie nad INNYM przyciskiem niczego nie przełącza", async () => {
+    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    press(metricButton(overlay, "Otrzymane"), "pointerdown");
+    press(metricButton(overlay, "Leczenie"), "pointerup");
+
+    expect(metricButton(overlay, "Zadane").getAttribute("aria-pressed")).toBe("true");
   });
 });

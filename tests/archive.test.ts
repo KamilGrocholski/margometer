@@ -383,3 +383,39 @@ describe("ręczne wklejenie", () => {
     expect(overlay.isPreviewing()).toBe(false);
   });
 });
+
+describe("pole wklejania przeżywa przebudowę listy", () => {
+  const line = "Rozpoczęła się walka pomiędzy Kamil (120h) a Regulus (130m)";
+
+  test("wpisany tekst nie znika, gdy dojdzie nowe nagranie", async () => {
+    const text = await readFixture("2026-07-18_tancerz-vs-kukla");
+    const logs = [{ id: 1, at: NOW, text }];
+    const { overlay, archive } = build(logs);
+    archive.toggle();
+    button(overlay, "archive-paste")!.click();
+
+    const area = overlay.shadow.querySelector<HTMLTextAreaElement>("[data-field='paste']")!;
+    area.value = "mój długi wklejony log...";
+
+    // Skończyła się kolejna walka: `sync` przebudowuje listę pod spodem.
+    logs.push({ id: 2, at: NOW, text: line });
+    archive.sync();
+
+    const after = overlay.shadow.querySelector<HTMLTextAreaElement>("[data-field='paste']")!;
+    expect(after).toBe(area);
+    expect(after.value).toBe("mój długi wklejony log...");
+    // Lista faktycznie się przebudowała — inaczej test nic nie dowodzi.
+    expect(rows(overlay)).toHaveLength(2);
+  });
+
+  test("wiersz z przyciskiem wczytania nie udaje wiersza rankingu", async () => {
+    // `.row` w tym samym shadow roocie należy do rankingu i narzuca wysokość
+    // 20 px z obcięciem — pole wklejania musi mieć własną klasę.
+    const { overlay, archive } = build([{ id: 1, at: NOW, text: line }]);
+    archive.toggle();
+    button(overlay, "archive-paste")!.click();
+
+    expect(overlay.shadow.querySelector(".archive-paste .row")).toBeNull();
+    expect(overlay.shadow.querySelector(".archive-paste-actions")).not.toBeNull();
+  });
+});

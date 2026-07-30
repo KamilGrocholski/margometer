@@ -14,7 +14,7 @@ import type { Recording } from "./recorder.ts";
 import { aggregate, type BattleStats } from "./stats.ts";
 import type { BattleEvent } from "./types.ts";
 import type { PreviewView, ReplayView } from "./overlay.ts";
-import { makeDraggable, realTicker, type Ticker } from "./window.ts";
+import { clampToViewport, makeDraggable, realTicker, type Ticker } from "./window.ts";
 
 /** Tyle, ile archiwum potrzebuje od nagrywarki. */
 export type ArchiveRecorder = {
@@ -33,6 +33,8 @@ export type PreviewHost = {
 type ArchiveState = { x: number; y: number; open: boolean };
 
 const STORAGE_KEY = "margometer.archive";
+/** Musi się zgadzać z `width` w arkuszu — przycinanie pozycji liczy się z niej. */
+const ARCHIVE_WIDTH = 300;
 const DEFAULT_STATE: ArchiveState = { x: 300, y: 16, open: false };
 
 /** Prędkości odtwarzania w kółko — tyle wystarcza, żeby przejrzeć długą walkę. */
@@ -92,7 +94,9 @@ const STYLE = `
   color: var(--ink);
   font: 11px/1.35 ui-monospace, monospace;
 }
-.archive-paste .row { display: flex; gap: 6px; align-items: center; }
+/* Własna klasa, nie .row: tamta jest już zajęta przez wiersz rankingu w panelu
+   (ten sam shadow root), który narzuca wysokość 20 px, ciemne tło i obcięcie. */
+.archive-paste-actions { display: flex; gap: 6px; align-items: center; }
 .archive-paste .hint { flex: 1; font-size: 11px; opacity: 0.75; }
 `;
 
@@ -182,6 +186,8 @@ export class Archive {
   /** Identyfikatory nagrań z ostatniego renderu listy — patrz `sync`. */
   private listSignature = "";
   private pasting = false;
+  /** Trwałe pole wklejania — patrz `renderPaste`. */
+  private pasteBox: HTMLElement | null = null;
   private replay: {
     lines: string[];
     /** Ile linii już podano licznikowi. */
@@ -419,10 +425,17 @@ export class Archive {
   private render(): void {
     if (!this.state.open) return;
     this.window.hidden = false;
+    // Lista powstaje od nowa, więc przewinięcie trzeba przenieść ręcznie —
+    // inaczej po każdej skończonej walce skakałaby na górę, choć patrzy się
+    // właśnie na stare nagranie.
+    const scroll = this.window.querySelector(".archive-list")?.scrollTop ?? 0;
     this.window.textContent = "";
-    this.window.style.left = `${this.state.x}px`;
-    this.window.style.top = `${this.state.y}px`;
-    this.window.append(this.renderHeader(), this.renderList());
+    // Przez `moveTo`, a nie prosto w styl: zapisana pozycja mogła powstać na
+    // szerszym ekranie i musi zostać przycięta, zanim okno się pokaże.
+    this.moveTo(this.state.x, this.state.y);
+    const list = this.renderList();
+    this.window.append(this.renderHeader(), list);
+    list.scrollTop = scroll;
     if (this.pasting) this.window.append(this.renderPaste());
   }
 
@@ -453,15 +466,23 @@ export class Archive {
     header.append(title, paste, close);
     makeDraggable(header, {
       position: () => ({ x: this.state.x, y: this.state.y }),
-      move: (x, y) => {
-        this.state.x = x;
-        this.state.y = y;
-        this.window.style.left = `${x}px`;
-        this.window.style.top = `${y}px`;
-      },
+      move: (x, y) => this.moveTo(x, y),
       end: () => this.saveState(),
     });
     return header;
+  }
+
+  /**
+   * Przesuwa okno, pilnując, żeby zostało w zasięgu myszy. Uchwytem jest sam
+   * nagłówek, a razem z oknem ucieka za krawędź jego ✕ — po zsunięciu okna nie
+   * dałoby się już ani złapać, ani zamknąć, a pozycja przeżywa odświeżenie.
+   */
+  private moveTo(x: number, y: number): void {
+    const clamped = clampToViewport(x, y, ARCHIVE_WIDTH);
+    this.state.x = clamped.x;
+    this.state.y = clamped.y;
+    this.window.style.left = `${clamped.x}px`;
+    this.window.style.top = `${clamped.y}px`;
   }
 
   private renderList(): HTMLElement {
@@ -532,7 +553,16 @@ export class Archive {
     return row;
   }
 
+  /**
+   * Pole wklejania jest TRWAŁE: `render()` czyści okno, a leci ono po każdej
+   * skończonej walce w trakcie nagrywania (`sync`), więc wpisywany log ginął
+   * w połowie pisania. Ten sam węzeł wraca do okna z zachowaną treścią.
+   */
   private renderPaste(): HTMLElement {
+    return (this.pasteBox ??= this.buildPaste());
+  }
+
+  private buildPaste(): HTMLElement {
     const box = document.createElement("div");
     box.className = "archive-paste";
 
@@ -541,7 +571,7 @@ export class Archive {
     area.placeholder = "Wklej tu log walki...";
 
     const row = document.createElement("div");
-    row.className = "row";
+    row.className = "archive-paste-actions";
     const hint = document.createElement("span");
     hint.className = "hint";
     hint.textContent = "Wklejony log tylko podglądamy — nie trafia do archiwum.";

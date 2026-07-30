@@ -2,7 +2,7 @@ import { professionColor, typeColor } from "./palette.ts";
 import { EMPTY_STATS } from "./session.ts";
 import { totalUnattributedDot, type BattleStats } from "./stats.ts";
 import { PROFESSIONS, type ActorStats } from "./types.ts";
-import { makeDraggable } from "./window.ts";
+import { clampToViewport, makeDraggable } from "./window.ts";
 
 export type Metric = "damageDealt" | "damageTaken" | "healingReceived" | "turns";
 /** Filtr składu: obie strony, drużyna gracza (strona 0) albo przeciwnicy. */
@@ -353,6 +353,11 @@ footer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; f
   /* Dymek nie może przechwytywać myszy — inaczej zasłania wiersz, który go
      wywołał, i miga w kółko. */
   pointer-events: none;
+  /* Nad wszystkim, co rysujemy w tym samym shadow roocie. Bez tego decydowała
+     kolejność w drzewie: dymek stoi PRZED panelem, więc panel go zamalowywał
+     (widoczne po rozciągnięciu okna, gdy dymek klamruje się na lewą stronę),
+     a okno archiwum ze swoim własnym z-index zasłaniało go zawsze. */
+  z-index: 3;
 }
 /* Widoczność sterowana jawnie, bez polegania na arkuszu przeglądarki dla
    atrybutu [hidden]. */
@@ -508,6 +513,25 @@ function rowUnder(target: EventTarget | null): HTMLElement | null {
   const element = target as Element | null;
   if (typeof element?.closest !== "function") return null;
   return element.closest<HTMLElement>(".row");
+}
+
+/** Nazwa akcji przycisku, w którym leży cel zdarzenia. */
+function actionUnder(target: EventTarget | null): string | null {
+  const element = target as Element | null;
+  if (typeof element?.closest !== "function") return null;
+  return element.closest<HTMLElement>("[data-action]")?.dataset.action ?? null;
+}
+
+/**
+ * Czy cel zdarzenia leży w polu, w którym się pisze.
+ *
+ * Ta sama ostrożność co w `rowUnder` — `closest` zamiast `instanceof`, bo
+ * siedzimy w cudzym dokumencie.
+ */
+function editableUnder(target: EventTarget | null): boolean {
+  const element = target as Element | null;
+  if (typeof element?.closest !== "function") return false;
+  return element.closest("textarea, input, [contenteditable='true']") !== null;
 }
 
 function div(className: string, text?: string): HTMLElement {
@@ -721,6 +745,17 @@ export class Overlay {
    */
   private preview: { stats: BattleStats; view: PreviewView } | null = null;
 
+  /**
+   * Co robią przyciski przebudowywane przy każdym renderze — klucz to
+   * `data-action`, czyli tożsamość PRZEŻYWAJĄCA przebudowę, w odróżnieniu od
+   * samego węzła. Wypełniana od nowa w `render()`; patrz `bindAction`.
+   */
+  private readonly actions = new Map<string, () => void>();
+  /** Akcja, na której wciśnięto przycisk — para dla `pointerup`. */
+  private pressedAction: string | null = null;
+  /** `pointerup` już wykonał akcję; przyszły za nim `click` ma ją pominąć. */
+  private actionHandled = false;
+
   private metric: Metric = "damageDealt";
   private team: Team = "all";
   /** Liczby dzielone przez tury zamiast surowych sum. */
@@ -834,20 +869,61 @@ export class Overlay {
       }
       this.drill(this.rowIdentity(rowUnder(event.target)));
     });
+
+    // Przyciski panelu chodzą tą samą drogą co wiersze i z tego samego powodu:
+    // zakładki, okruszek i pasek nagrywania powstają od nowa przy KAŻDYM
+    // renderze, więc podczas odtwarzania węzeł znika między `pointerdown`
+    // a `pointerup` i natywny `click` nie pada. Tożsamością jest `data-action`,
+    // a nie węzeł, więc świeży przycisk tej samej akcji pasuje.
+    this.root.addEventListener("pointerdown", (event) => {
+      this.actionHandled = false;
+      this.pressedAction = actionUnder(event.target);
+    });
+    this.root.addEventListener("pointerup", (event) => {
+      const pressed = this.pressedAction;
+      this.pressedAction = null;
+      const name = actionUnder(event.target);
+      if (!name || name !== pressed) return;
+      const run = this.actions.get(name);
+      if (!run) return;
+      run();
+      this.actionHandled = true;
+    });
+    this.root.addEventListener("click", (event) => {
+      if (this.actionHandled) {
+        this.actionHandled = false;
+        return;
+      }
+      const name = actionUnder(event.target);
+      if (name) this.actions.get(name)?.();
+    });
     this.root.addEventListener("contextmenu", (event) => {
       // Menu przeglądarki nad panelem tylko przeszkadza, a prawy przycisk ma
       // tu własne znaczenie. Blokujemy je w całym overlayu, nie tylko na
       // wierszu — wracać chce się także z pustego miejsca pod listą.
+      //
+      // Ale archiwum rysuje się w TYM SAMYM shadow roocie, a w nim stoi pole
+      // wklejania logu — jedyne miejsce w całym dodatku, gdzie natywne menu
+      // jest naprawdę potrzebne. Tam prawy przycisk zostawiamy w spokoju.
+      if (editableUnder(event.target)) return;
       event.preventDefault();
       this.back();
     });
 
     (options.mount ?? document.body).append(this.host);
-    this.applyPosition();
+    // Zapisana pozycja mogła powstać na szerszym ekranie — przycinamy ją
+    // przy starcie, nie dopiero przy pierwszym przeciągnięciu.
+    this.moveTo(this.state.x, this.state.y);
+    // Okno gry zmienia rozmiar także wtedy, gdy nic nie przychodzi z logu.
+    window.addEventListener("resize", () => this.moveTo(this.state.x, this.state.y));
   }
 
   render(fight: BattleStats, session: BattleStats): void {
     this.latest = { fight, session };
+    // Akcje należą do TEJ wersji panelu: co render buduje, to render rejestruje.
+    // Bez czyszczenia zostałaby tu obsługa przycisków, których już nie ma —
+    // choćby „na żywo” po zamknięciu podglądu.
+    this.actions.clear();
     // Sesja jest liczona i pamiętana, ale nie ma dziś zakładki, która by ją
     // pokazała — panel mówi zawsze o bieżącej walce.
     //
@@ -1111,10 +1187,9 @@ export class Overlay {
 
     const back = document.createElement("button");
     back.type = "button";
-    back.dataset.action = "exit-preview";
     back.textContent = "na żywo";
     back.setAttribute("aria-label", "Wróć do bieżącej walki");
-    back.addEventListener("click", () => preview.view.close());
+    this.bindAction(back, "exit-preview", () => preview.view.close());
     head.append(back);
 
     bar.append(head, div("preview-title", preview.view.title));
@@ -1211,19 +1286,17 @@ export class Overlay {
     if (count > 0) {
       const copy = document.createElement("button");
       copy.type = "button";
-      copy.dataset.action = "copy-logs";
       copy.textContent = this.flash?.key === "copy-logs" ? this.flash.label : "kopiuj logi";
       copy.setAttribute("aria-label", "Kopiuj nagrane logi");
-      copy.addEventListener("click", () => {
+      this.bindAction(copy, "copy-logs", () => {
         void this.copy("copy-logs", recorder.dump() ?? "");
       });
 
       const clear = document.createElement("button");
       clear.type = "button";
-      clear.dataset.action = "clear-recordings";
       clear.textContent = this.confirmingClear ? "na pewno?" : "wyczyść";
       clear.setAttribute("aria-label", "Usuń nagrania");
-      clear.addEventListener("click", () => {
+      this.bindAction(clear, "clear-recordings", () => {
         // Nagrań nie da się odzyskać, więc pierwszy klik tylko pyta.
         if (!this.confirmingClear) {
           this.confirmingClear = true;
@@ -1532,7 +1605,7 @@ export class Overlay {
 
     for (const metric of METRICS) {
       tabs.append(
-        this.tabButton(METRIC_LABELS[metric], this.metric === metric, () => {
+        this.tabButton(`metric-${metric}`, METRIC_LABELS[metric], this.metric === metric, () => {
           this.metric = metric;
           // Drugi szczebel istnieje tylko dla przyjętych i tylko dla JEDNEGO
           // napastnika — przy innej metryce nie ma czego pokazać.
@@ -1544,7 +1617,7 @@ export class Overlay {
 
     // Nie jest zakładką w tym samym sensie co metryki — nie wybiera, CO liczymy,
     // tylko czy dzielimy przez tury. Stąd osobne miejsce, dosunięte do prawej.
-    const perTurn = this.tabButton("na turę", this.perTurn, () => {
+    const perTurn = this.tabButton("per-turn", "na turę", this.perTurn, () => {
       this.perTurn = !this.perTurn;
       this.rerender();
     });
@@ -1561,7 +1634,7 @@ export class Overlay {
 
     for (const team of ["all", "mine", "enemy"] as const) {
       tabs.append(
-        this.tabButton(TEAM_LABELS[team], this.team === team, () => {
+        this.tabButton(`team-${team}`, TEAM_LABELS[team], this.team === team, () => {
           this.team = team;
           this.rerender();
         }),
@@ -1651,7 +1724,7 @@ export class Overlay {
     // Etykieta mówi, DOKĄD się wraca, a nie „wstecz” — przy dwóch szczeblach
     // sam strzałek nie wystarczy, żeby wiedzieć, gdzie się wyląduje.
     const back = div("crumb-back", this.focusSource === null ? "‹ skład" : `‹ ${actor.name}`);
-    back.addEventListener("click", () => this.back());
+    this.bindAction(back, "crumb-back", () => this.back());
     const here = this.focusSource ?? actor.name;
     crumb.append(back, div("crumb-name", here));
     return crumb;
@@ -1840,13 +1913,29 @@ export class Overlay {
     }
   }
 
-  private tabButton(label: string, pressed: boolean, onClick: () => void): HTMLElement {
+  private tabButton(
+    action: string,
+    label: string,
+    pressed: boolean,
+    onClick: () => void,
+  ): HTMLElement {
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = label;
     button.setAttribute("aria-pressed", String(pressed));
-    button.addEventListener("click", onClick);
-    return button;
+    return this.bindAction(button, action, onClick);
+  }
+
+  /**
+   * Wiąże akcję z węzłem przebudowywanym przy renderze.
+   *
+   * Zamiast listenera NA WĘŹLE (ten ginie razem z nim w środku gestu) zapisuje
+   * `data-action` i wpis w `actions` — obsługę robi delegacja z konstruktora.
+   */
+  private bindAction(element: HTMLElement, action: string, run: () => void): HTMLElement {
+    element.dataset.action = action;
+    this.actions.set(action, run);
+    return element;
   }
 
   private renderRows(stats: BattleStats): HTMLElement {
@@ -2233,21 +2322,25 @@ export class Overlay {
   }
 
   private showTip(target: HoverTarget): void {
-    const stats = this.latest?.fight;
+    // `shown`, nie `latest.fight`: dymek ma opisywać to, co widać na ekranie.
+    // Przy wczytanym nagraniu wiersze biorą się z podglądu, więc szukanie
+    // postaci w walce NA ŻYWO nie znajdowało nic (dymek w archiwum nie
+    // pokazywał się wcale), a przy zbieżności nazw pokazywało cudze liczby.
+    const stats = this.shown;
     const rows = [...this.root.querySelectorAll<HTMLElement>(".row")];
 
     let content: Node[] | null = null;
     let row: HTMLElement | undefined;
 
     if (target.type === "actor") {
-      const actor = stats?.actors.find((candidate) => candidate.name === target.key);
+      const actor = stats.actors.find((candidate) => candidate.name === target.key);
       row = rows.find((candidate) => candidate.dataset.actor === target.key);
       if (actor) content = this.tipContent(actor);
     } else {
       // Wiersz rozbicia opisuje postać, w której stoimy — bez niej nie ma czego
       // pokazać, a etykieta sama w sobie nie niesie liczb.
       const actor = this.focus
-        ? stats?.actors.find((candidate) => candidate.name === this.focus)
+        ? stats.actors.find((candidate) => candidate.name === this.focus)
         : undefined;
       row = rows.find(
         (candidate) =>
@@ -2361,13 +2454,17 @@ export class Overlay {
   private makeDraggable(handle: HTMLElement): void {
     makeDraggable(handle, {
       position: () => ({ x: this.state.x, y: this.state.y }),
-      move: (x, y) => {
-        this.state.x = x;
-        this.state.y = y;
-        this.applyPosition();
-      },
+      move: (x, y) => this.moveTo(x, y),
       end: () => this.saveState(),
     });
+  }
+
+  /** Przesuwa panel, pilnując, żeby dało się go jeszcze złapać za nagłówek. */
+  private moveTo(x: number, y: number): void {
+    const clamped = clampToViewport(x, y, this.state.width);
+    this.state.x = clamped.x;
+    this.state.y = clamped.y;
+    this.applyPosition();
   }
 
   /**

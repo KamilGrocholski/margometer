@@ -15,6 +15,48 @@ export type DragTarget = {
   end?(): void;
 };
 
+/**
+ * Ile okna musi zostać na ekranie, żeby dało się je złapać z powrotem.
+ *
+ * Uchwytem przeciągania jest wyłącznie nagłówek, więc okno zsunięte nad górną
+ * krawędź albo za bok jest nie do odzyskania — a pozycja zapisuje się
+ * w `localStorage`, więc przeżywa odświeżenie. Przycisku „przywróć” nie ma.
+ */
+export const KEEP_VISIBLE = 56;
+
+/**
+ * Przycina pozycję okna do widocznego obszaru.
+ *
+ * W pionie nie pozwalamy wyjść nad zero (nagłówek jest u góry — nad krawędzią
+ * przestaje istnieć); w poziomie wolno zsunąć okno prawie całe, byle został
+ * pasek `KEEP_VISIBLE`. `width` podaje wołający, bo w chwili przeciągania zna
+ * ją lepiej niż DOM (panel ma szerokość ze stanu, a nie z układu).
+ */
+export function clampToViewport(
+  x: number,
+  y: number,
+  width: number,
+  viewport: { width: number; height: number } = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  },
+): { x: number; y: number } {
+  // Zdegenerowany viewport (jsdom bez układu, okno zminimalizowane) nie może
+  // przesuwać okna — lepiej zostawić pozycję, niż zepchnąć ją w róg.
+  if (viewport.width <= 0 || viewport.height <= 0) return { x, y };
+
+  const maxX = Math.max(0, viewport.width - KEEP_VISIBLE);
+  // Okno zajmuje [x, x + width], więc żeby jego prawy skraj został na ekranie,
+  // musi być x >= KEEP_VISIBLE - width. `min(0, …)` na wypadek okna węższego
+  // niż sam margines — wtedy granicą jest po prostu lewa krawędź.
+  const minX = Math.min(0, KEEP_VISIBLE - width);
+  const maxY = Math.max(0, viewport.height - KEEP_VISIBLE);
+  return {
+    x: Math.min(Math.max(x, minX), maxX),
+    y: Math.min(Math.max(y, 0), maxY),
+  };
+}
+
 export function makeDraggable(handle: HTMLElement, target: DragTarget): void {
   handle.addEventListener("pointerdown", (event) => {
     // Przyciski w pasku tytułu mają działać jak przyciski, a nie chwytać okno.
