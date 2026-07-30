@@ -13,13 +13,15 @@ import { parse } from "./parser.ts";
 import type { Recording } from "./recorder.ts";
 import { aggregate, type BattleStats } from "./stats.ts";
 import type { BattleEvent } from "./types.ts";
-import type { PreviewView, ReplayView } from "./overlay.ts";
+import { turnWord, type PreviewView, type ReplayView } from "./overlay.ts";
 import { clampToViewport, makeDraggable, realTicker, type Ticker } from "./window.ts";
 
 /** Tyle, ile archiwum potrzebuje od nagrywarki. */
 export type ArchiveRecorder = {
   list(): Recording[];
   read(id: number): string | null;
+  /** Kasowanie pojedynczego nagrania. Opcjonalne — atrapy w testach go nie mają. */
+  remove?(id: number): void;
 };
 
 /** Tyle, ile archiwum potrzebuje od panelu. */
@@ -186,6 +188,8 @@ export class Archive {
   /** Identyfikatory nagrań z ostatniego renderu listy — patrz `sync`. */
   private listSignature = "";
   private pasting = false;
+  /** Nagranie, przy którym stoi pytanie „na pewno?" o skasowanie. */
+  private removing: number | null = null;
   /** Trwałe pole wklejania — patrz `renderPaste`. */
   private pasteBox: HTMLElement | null = null;
   private replay: {
@@ -525,12 +529,19 @@ export class Archive {
     // Nazwa z pełnego logu, nie z samej linii tytułowej: przy nagraniu zaczętym
     // w środku walki linia otwierająca bywa w środku tekstu albo wcale.
     name.textContent = summary?.label ?? fightLabel(entry.title);
+    // Jedyny wyjątek od zasady „bez natywnych dymków" (patrz `overlay.ts`):
+    // archiwum nie ma własnej warstwy dymka, a ucięty skład jest nie do
+    // odczytania w żaden inny sposób.
+    name.title = name.textContent;
 
     const meta = document.createElement("div");
     meta.className = "archive-meta";
     const parts = [whenLabel(entry.at, this.now())];
     if (summary) {
-      parts.push(`${summary.turns} tur`, `${number.format(summary.damage)} obr.`);
+      parts.push(
+        `${summary.turns} ${turnWord(summary.turns)}`,
+        `${number.format(summary.damage)} obr.`,
+      );
     }
     meta.textContent = parts.join(" · ");
 
@@ -555,6 +566,33 @@ export class Archive {
       this.play(entry.id);
     });
     row.append(play);
+
+    if (this.recorder.remove) {
+      const drop = document.createElement("button");
+      drop.type = "button";
+      drop.dataset.action = "archive-remove";
+      const asking = this.removing === entry.id;
+      drop.textContent = asking ? "na pewno?" : "✕";
+      drop.setAttribute("aria-label", asking ? "Potwierdź usunięcie" : "Usuń nagranie");
+      drop.addEventListener("click", (event) => {
+        event.stopPropagation();
+        // Nagrania nie da się odzyskać, więc pierwszy klik tylko pyta —
+        // ten sam wzorzec co przy czyszczeniu całego archiwum.
+        if (this.removing !== entry.id) {
+          this.removing = entry.id;
+          this.render();
+          return;
+        }
+        this.removing = null;
+        if (this.opened === entry.id) this.closePreview();
+        this.recorder.remove?.(entry.id);
+        this.summaries.clear();
+        this.listSignature = "";
+        this.render();
+        this.overlay.refresh();
+      });
+      row.append(drop);
+    }
 
     row.addEventListener("click", () => this.open(entry.id));
     return row;

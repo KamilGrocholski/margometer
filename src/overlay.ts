@@ -52,14 +52,25 @@ function matchesTeam(side: number | null, team: Team): boolean {
   return team === "mine" ? side === 0 : side !== 0;
 }
 
-/** "1 walka", "3 walki", "7 walk" — licznik nagrań stoi na wierzchu, więc odmienia się. */
-function fightWord(count: number): string {
-  if (count === 1) return "walka";
+/**
+ * Polska odmiana po liczbie: `[jedna, dwie, pięć]`.
+ *
+ * Jedna reguła na wszystkie liczniki w panelu. Wcześniej odmieniały się same
+ * walki, a obok stało „2 tur" i „1 postaci · 1 tur" — liczba jest tu treścią,
+ * więc zła forma rzuca się w oczy tak samo jak zła wartość.
+ */
+export function plural(count: number, forms: [string, string, string]): string {
+  if (count === 1) return forms[0];
   const last = count % 10;
   const teens = count % 100;
   const few = last >= 2 && last <= 4 && !(teens >= 12 && teens <= 14);
-  return few ? "walki" : "walk";
+  return few ? forms[1] : forms[2];
 }
+
+const fightWord = (count: number) => plural(count, ["walka", "walki", "walk"]);
+/** Wspólne dla panelu i archiwum — te same liczniki stoją w obu. */
+export const turnWord = (count: number) => plural(count, ["tura", "tury", "tur"]);
+export const actorWord = (count: number) => plural(count, ["postać", "postacie", "postaci"]);
 
 const number = new Intl.NumberFormat("pl-PL");
 /** Na turę wychodzą ułamki — bez miejsca po przecinku wszyscy zlewają się w jedno. */
@@ -183,6 +194,17 @@ button {
   font-size: 11px;
 }
 button:hover { background: #26262c; color: var(--ink); }
+/* Reset "all: unset" zdejmuje też obwódkę focusu przeglądarki, a Tab i tak po
+   tych przyciskach chodzi — bez tej reguły chodzi po nich NIEWIDZIALNIE. Nie
+   chodzi o nawigację klawiaturą (świadomie poza zakresem), tylko o to, żeby
+   widać było, gdzie stoi zaznaczenie. */
+button:focus-visible,
+.row[tabindex]:focus-visible,
+.crumb-back:focus-visible,
+.replay-track:focus-visible {
+  outline: 2px solid var(--accent, #6ea8fe);
+  outline-offset: 1px;
+}
 button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
 /* Nagrywanie: kropka czerwienieje dopiero, gdy faktycznie leci zapis — bez
    tego przycisk wyłączony i włączony różnią się samym tłem, a to za mało
@@ -205,6 +227,11 @@ button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
 .rec-bar .dot { color: var(--enemy); }
 .rec-bar .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .rec-bar.warn { color: var(--enemy); }
+/* Stan błędu jest jedyną treścią, która MUSI się zmieścić: przy wąskim oknie
+   "Brak miejsca w przeglądarce" ucinało się do kilku znaków, czyli komunikat
+   znikał dokładnie wtedy, gdy był potrzebny. */
+.rec-bar.warn { white-space: normal; }
+.rec-bar.warn .grow { overflow: visible; text-overflow: clip; }
 /* Podgląd wczytanej walki. Żółte tło jest tu celowo krzykliwe: panel pokazuje
    wtedy dane sprzed godziny, a pomylenie ich z trwającą walką jest gorsze niż
    krzykliwy pasek. */
@@ -223,7 +250,13 @@ button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
 .replay-track {
   flex: 1;
   min-width: 0;
+  /* Pasek rysuje się cienko, ale łapie grubo: 5 px to cel nie do trafienia,
+     a przewinięcie nagrania idzie wyłącznie tędy. Wysokość dokłada padding,
+     sam pasek zostaje wizualnie taki jak był. */
   height: 5px;
+  box-sizing: content-box;
+  padding: 6px 0;
+  background-clip: content-box;
   border-radius: 3px;
   background: #24242a;
   cursor: pointer;
@@ -275,6 +308,7 @@ button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
 /* Nagłówek listy rozbicia w widoku pojedynczej postaci ("CZYM ZADANE" i suma).
    Lista składu nagłówków nie ma — to jeden ciągły ranking. */
 .side-head {
+  min-width: 0;
   display: flex;
   align-items: baseline;
   gap: 6px;
@@ -283,7 +317,10 @@ button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
   letter-spacing: 0.08em;
   color: var(--ink-muted);
 }
-.side-head .sum { margin-left: auto; font-variant-numeric: tabular-nums; }
+.side-head .sum { margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Nazwa w nagłówku ustępuje, suma nie: przy długim nicku ("CZYM — Jordi El
+   Nino Polla") to opis miał się skrócić, a nie liczba wyjechać poza panel. */
+.side-head .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* Ścieżka powrotu z widoku pojedynczej postaci. */
 .crumb { display: flex; align-items: baseline; gap: 6px; padding: 6px 8px 0; font-size: 11px; }
 .crumb-back { cursor: pointer; border-radius: 3px; padding: 1px 4px; margin-left: -4px; }
@@ -615,6 +652,8 @@ export type OverlayOptions = {
    * tego kopiowania nie dałoby się przetestować.
    */
   clipboard?: (text: string) => void | Promise<void>;
+  /** Zegar do wygaszania potwierdzeń. Wstrzykiwany wyłącznie dla testów. */
+  now?: () => number;
 };
 
 /**
@@ -651,6 +690,8 @@ async function writeClipboard(text: string): Promise<void> {
 // przewija się w środku.
 type PanelState = { x: number; y: number; collapsed: boolean; width: number; height: number | null };
 
+/** Jak długo stoi pytanie „na pewno?" przy kasowaniu nagrań. */
+const CONFIRM_MS = 5000;
 const STORAGE_KEY = "margometer.panel";
 const DEFAULT_STATE: PanelState = {
   x: 16,
@@ -728,6 +769,8 @@ export class Overlay {
   private readonly storage: OverlayOptions["storage"];
   private readonly recorder: RecorderControl | undefined;
   private readonly clipboard: (text: string) => void | Promise<void>;
+  /** Wstrzykiwany zegar — bez niego nie da się sprawdzić wygasania potwierdzeń. */
+  private readonly now: () => number;
   private state: PanelState;
 
   /**
@@ -736,8 +779,12 @@ export class Overlay {
    * poszło. Trzymane w polu, bo panel przebudowuje się przy każdej zmianie logu.
    */
   private flash: { key: string; label: string } | null = null;
-  /** Drugi klik kasowania potwierdza. Pierwszy tylko pyta. */
-  private confirmingClear = false;
+  /**
+   * Kiedy padło pytanie „na pewno?". Potwierdzenie WYGASA — inaczej pierwszy
+   * klik, zwinięcie panelu i przypadkowy klik po godzinie kasowały całe
+   * archiwum bez pytania, bo pytanie nadal wisiało w stanie.
+   */
+  private confirmingClearAt: number | null = null;
   private archive: ArchiveControl | null = null;
   /**
    * Wczytana walka pokazywana zamiast bieżącej. Licznik na żywo leci w tle bez
@@ -792,6 +839,7 @@ export class Overlay {
     this.storage = options.storage;
     this.recorder = options.recorder;
     this.clipboard = options.clipboard ?? writeClipboard;
+    this.now = options.now ?? Date.now;
     this.state = this.loadState();
 
     this.host = document.createElement("div");
@@ -1125,7 +1173,7 @@ export class Overlay {
       record.addEventListener("click", () => {
         this.recorder?.toggle();
         // Wyłączenie nagrywania nie może zostawić otwartego pytania o kasowanie.
-        this.confirmingClear = false;
+        this.confirmingClearAt = null;
         this.rerender();
       });
     }
@@ -1300,17 +1348,17 @@ export class Overlay {
 
       const clear = document.createElement("button");
       clear.type = "button";
-      clear.textContent = this.confirmingClear ? "na pewno?" : "wyczyść";
+      clear.textContent = this.confirmingClear() ? "na pewno?" : "wyczyść";
       clear.setAttribute("aria-label", "Usuń nagrania");
       this.bindAction(clear, "clear-recordings", () => {
         // Nagrań nie da się odzyskać, więc pierwszy klik tylko pyta.
-        if (!this.confirmingClear) {
-          this.confirmingClear = true;
+        if (!this.confirmingClear()) {
+          this.confirmingClearAt = this.now();
           this.rerender();
           return;
         }
         recorder.clear();
-        this.confirmingClear = false;
+        this.confirmingClearAt = null;
         this.rerender();
       });
 
@@ -1411,7 +1459,7 @@ export class Overlay {
       Object.assign(document.createElement("span"), {
         className: "side-name",
         style: "margin-left:auto",
-        textContent: `${shown.length} postaci · ${turns} tur`,
+        textContent: `${shown.length} ${actorWord(shown.length)} · ${turns} ${turnWord(turns)}`,
       }),
     );
 
@@ -1700,6 +1748,17 @@ export class Overlay {
     this.rerender();
   }
 
+  /**
+   * Czy pytanie „na pewno?" jeszcze stoi.
+   *
+   * Wygasa po `CONFIRM_MS`: pytanie zadane i porzucone nie może czekać
+   * w nieskończoność na przypadkowy klik, bo kasowania nie da się cofnąć.
+   */
+  private confirmingClear(): boolean {
+    if (this.confirmingClearAt === null) return false;
+    return this.now() - this.confirmingClearAt < CONFIRM_MS;
+  }
+
   /** Czy bieżący widok pozwala wejść głębiej niż w postać. */
   private canDrillSources(): boolean {
     const twoTier = this.metric === "damageDealt" || this.metric === "damageTaken";
@@ -1870,7 +1929,8 @@ export class Overlay {
     const perTurn = (amount: number) => (this.perTurn && turns > 0 ? amount / turns : amount);
 
     const head = div("side-head");
-    head.append(div("", heading), div("sum", this.format(perTurn(total))));
+    // Klasa na nazwie, żeby to ONA ustępowała przy długim nicku, a nie suma.
+    head.append(div("who", heading), div("sum", this.format(perTurn(total))));
     container.append(head);
 
     const max = Math.max(...sources.map((source) => source.amount));

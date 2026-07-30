@@ -960,3 +960,52 @@ describe("głośne awarie zamiast cichych", () => {
     expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe("ogień");
   });
 });
+
+describe("leczenie przy zdublowanej nazwie", () => {
+  /**
+   * Dwa "Wilki" po jednej stronie, rozdzielone spadkiem życia. Leczenie niesie
+   * procent życia CELU — na nim stoi cała ta gałąź rozdzielania, a do tej pory
+   * nie miała ani jednego testu.
+   */
+  const log = (heal: string) =>
+    [
+      "Rozpoczęła się walka pomiędzy Kamil (120h) a Wilk (10w), Wilk (10w)",
+      "Kamil(100%) uderzył z siłą  +100",
+      "Wilk(40%) otrzymał(a)  -100  obrażeń",
+      "Kamil(100%) uderzył z siłą  +50",
+      "Wilk(80%) otrzymał(a)  -50  obrażeń",
+      heal,
+    ].join("\n");
+
+  test("leczenie trafia w instancję, która stała najbliżej POD wynikiem", () => {
+    // Ranny Wilk stoi na 40%, drugi na 80%. Wyleczenie do 55% mógł dostać
+    // tylko ten pierwszy — drugi musiałby stracić życie, a leczenie go dodaje.
+    const stats = aggregate(parse(log("Przywrócono 30 punktów życia Wilk(55%).")));
+    const healed = stats.actors.filter((a) => a.healingReceived > 0);
+
+    expect(healed).toHaveLength(1);
+    expect(healed[0]!.healingReceived).toBe(30);
+    // To ta instancja, która wcześniej oberwała mocniej.
+    expect(healed[0]!.damageTaken).toBe(100);
+  });
+
+  test("leczenie nie zakłada nowej instancji", () => {
+    // Wyleczenie ponad wszystkich (do pełna) nie dowodzi niczyjego istnienia —
+    // inaczej każde pełne uleczenie rodziłoby postać-widmo.
+    const stats = aggregate(parse(log("Przywrócono 30 punktów życia Wilk(100%).")));
+    const wolves = stats.actors.filter((a) => a.name.startsWith("Wilk"));
+
+    expect(wolves).toHaveLength(2);
+    expect(wolves.reduce((sum, one) => sum + one.healingReceived, 0)).toBe(30);
+  });
+
+  test("leczenie bez procentu życia lgnie do ostatnio aktywnej instancji", () => {
+    // Druga niepokryta gałąź: potwory bywają leczone linią bez HP.
+    const stats = aggregate(parse(log("Przywrócono 30 punktów życia Wilk")));
+    const healed = stats.actors.filter((a) => a.healingReceived > 0);
+
+    expect(healed).toHaveLength(1);
+    // Ostatnia akcja dotyczyła instancji, która zeszła do 80%.
+    expect(healed[0]!.damageTaken).toBe(50);
+  });
+});

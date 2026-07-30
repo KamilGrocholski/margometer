@@ -261,6 +261,20 @@ export class Recorder {
     return parts.length > 0 ? parts.join("\n\n") : null;
   }
 
+  /**
+   * Kasuje jedno nagranie. Maszyneria była od początku (`drop`), brakowało
+   * tylko drogi z zewnątrz — jedynym sposobem usunięcia czegokolwiek było
+   * „wyczyść", które kasuje WSZYSTKO.
+   */
+  remove(id: number): void {
+    this.drop(id);
+    try {
+      this.storage?.setItem(INDEX_KEY, JSON.stringify(this.index));
+    } catch {
+      // Jak w `clear()`: nieudany zapis indeksu nie gasi nagrywania.
+    }
+  }
+
   clear(): void {
     for (const fight of [...this.index.fights]) this.drop(fight.id);
     this.active = [];

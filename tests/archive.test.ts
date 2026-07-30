@@ -38,6 +38,10 @@ class ManualTicker implements Ticker {
 /** Nagrywarka w pamięci — archiwum widzi tylko listę i odczyt. */
 function fakeRecorder(logs: { id: number; at: number; text: string }[]): ArchiveRecorder {
   return {
+    remove: (id) => {
+      const at = logs.findIndex((one) => one.id === id);
+      if (at >= 0) logs.splice(at, 1);
+    },
     list: (): Recording[] =>
       logs.map((one) => ({
         id: one.id,
@@ -417,5 +421,42 @@ describe("pole wklejania przeżywa przebudowę listy", () => {
 
     expect(overlay.shadow.querySelector(".archive-paste .row")).toBeNull();
     expect(overlay.shadow.querySelector(".archive-paste-actions")).not.toBeNull();
+  });
+});
+
+describe("kasowanie pojedynczego nagrania", () => {
+  const line = "Rozpoczęła się walka pomiędzy Kamil (120h) a Regulus (130m)";
+
+  test("pierwszy klik pyta, drugi kasuje", () => {
+    // Jedyną drogą usunięcia czegokolwiek było "wyczyść" w panelu, które kasuje
+    // WSZYSTKO — `Recorder.drop` istniał od początku, tylko nic go nie wystawiało.
+    const logs = [
+      { id: 1, at: NOW, text: line },
+      { id: 2, at: NOW, text: `${line}\nKamil(100%) uderzył z siłą  +10` },
+    ];
+    const { overlay, archive } = build(logs);
+    archive.toggle();
+    expect(rows(overlay)).toHaveLength(2);
+
+    const remove = () =>
+      rows(overlay)[0]!.querySelector<HTMLElement>('[data-action="archive-remove"]')!;
+
+    remove().click();
+    // Nadal dwa wiersze — pierwszy klik tylko pyta.
+    expect(rows(overlay)).toHaveLength(2);
+    expect(remove().textContent).toBe("na pewno?");
+
+    remove().click();
+    expect(rows(overlay)).toHaveLength(1);
+    expect(logs.map((one) => one.id)).toEqual([2]);
+  });
+
+  test("kliknięcie w ✕ nie wczytuje walki do panelu", () => {
+    const logs = [{ id: 1, at: NOW, text: line }];
+    const { overlay, archive } = build(logs);
+    archive.toggle();
+
+    rows(overlay)[0]!.querySelector<HTMLElement>('[data-action="archive-remove"]')!.click();
+    expect(overlay.isPreviewing()).toBe(false);
   });
 });
