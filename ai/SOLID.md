@@ -7,17 +7,21 @@ parsowanie → mapowanie → przerabianie → sumowanie. Dwie części:
   §4.1–§4.10 bazują na przeglądzie w `README.md` z 2026‑07‑19; **§4.11–§4.25
   pochodzą z przeglądu 2026‑07‑30** i obejmują nagrywanie, archiwum i
   odtwarzanie, czyli kod, który wcześniej nie był sprawdzony ani razu.
-  **Stan: §4.1–§4.4 i §4.6–§4.8 naprawione** (każda z testem na przywrócony
-  niezmiennik), zostają §4.5, §4.9, perf §4.10 i cała nowa piętnastka (§4.11–§4.25).
+  **Stan po naprawach z 2026‑07‑30:** zamknięte są §4.1–§4.8 oraz §4.11,
+  §4.13–§4.17, §4.19–§4.21 i §4.23–§4.25. **Otwarte zostają cztery:** §4.9
+  (`procs` łykają zasoby), §4.10 (reparse — świadomie), §4.12 (przycięcie
+  bufora — czeka na zrzut), §4.18 (modyfikator z procentem w nawiasie)
+  i §4.22 (pola parsowane, a nieczytane — do decyzji).
 - **§5–§9 Dług architektoniczny (SOLID)** — refaktory, które czynią całe KLASY
   tych usterek niemożliwymi, a nie łatanymi po fakcie.
 - **§10 Testy** — czego zestaw nie widzi, i dlaczego to właśnie tam przeszły
   §4.11 i §4.12.
 
 Zasada nadrzędna: **żaden refaktor nie zmienia granic** (`LogSource`,
-`RosterSource`, `parse`, `aggregate`, `BattleStats`). Siatka bezpieczeństwa to
-**328 testów** (2 pominięte) — zielone przed i po każdym kroku;
-`bunx tsc --noEmit` czysty; pokrycie 89,1 % linii.
+`RosterSource`, `parse`, `aggregate`). `BattleStats` urosło o jedno pole
+(`unknownElements`, §4.17) — to dołożenie, nie zmiana kształtu. Siatka
+bezpieczeństwa to **369 testów** (2 pominięte) — zielone przed i po każdym
+kroku; `bunx tsc --noEmit` czysty; pokrycie **93,3 % linii**.
 
 Legenda zwrotu: 🔴 duży / mała robota · 🟡 warto · ⚪ do przemyślenia.
 
@@ -68,10 +72,11 @@ usunęły: gubione klikanie podczas odtwarzania, migający pasek scrolla, mrugaj
 ostrzeżenie o nierozpoznanych liniach w `frameStats`. **Częściowo** złagodziły
 „pełną przebudowę DOM przy każdej linii” (§4.10): korpus już nie powstaje od zera.
 **Nie objęły** przeciągania nagłówka — to dopiero `3814a42` (`UX-POPRAWKI.md A1`).
-**I nadal nie obejmują reszty panelu:** zakładki, okruszek i przyciski paska
-nagrywania są przebudowywane co klatkę odtwarzania, więc gubią kliknięcia
-dokładnie tak, jak gubiły je wiersze (`UX-POPRAWKI.md A8`). Ta klasa błędu jest
-zamknięta punktowo, nie systemowo — stąd R6.
+**Reszty panelu nie objęły** — zakładki, okruszek i przyciski paska nagrywania
+gubiły kliknięcia dokładnie tak, jak gubiły je wiersze. To dopiero **R6**,
+zrobione 2026‑07‑30: delegacja po `data-action` obejmuje teraz cały panel,
+więc klasa „węzeł przebudowany w środku gestu" jest zamknięta systemowo,
+a nie po jednym przycisku.
 
 ---
 
@@ -114,13 +119,14 @@ Ten sam błąd tkwi w `recorder.ts` (`splitLines`) — patrz §7 (DRY). **Fix:**
 jest tylko dwie linie `fight-start` bez ŻADNEGO zdarzenia między nimi; z treścią
 pomiędzy to dwie walki. **S.**
 
-### 4.5 Leczenie gubi procent życia 🟡 [NAPRAWIONE — ale BEZ TESTU]
+### 4.5 Leczenie gubi procent życia 🟡 [NAPRAWIONE, test dołożony 2026‑07‑30]
 `BattleEvent.heal` niesie już `targetHpPct` (`types.ts:99‑109`), a `stats.ts:763`
 woła `resolve(event.target, event.targetHpPct, true)` z flagą `rising`, która
 zdejmuje założenie „życie nie rośnie” dla leczenia.
-**⚠️ Zostaje dług:** gałąź `rising` w `instanceResolver` (`stats.ts:122‑129`) ma
-**0 % pokrycia** — leczenie postaci o zdublowanej nazwie, czyli dokładnie ta
-funkcja, którą ta poprawka wprowadziła, nie ma ani jednego testu. Patrz §10.
+Gałąź `rising` w `instanceResolver` weszła bez pokrycia — funkcja wdrożona
+i wysłana bez ani jednego testu. Dołożone 2026‑07‑30: leczenie zdublowanej
+nazwy z procentem życia, bez procentu i przy wyleczeniu ponad wszystkich
+(„leczenie nie zakłada nowej instancji").
 
 ### 4.6 `maxHit` wlicza własne obrażenia umiejętności 🟡 [NAPRAWIONE 2026‑07‑26]
 `stats.ts:536‑537` — `total` z `landed` liczone jest dla KAŻDEGO zdarzenia,
@@ -175,7 +181,7 @@ razy** albo dla widoku, którego nie ma — tam warto.
 Pierwszy przegląd `recorder.ts` i `archive.ts` oraz sumowania sesji. Wszystko
 poniżej odtworzone uruchomieniem, nie z lektury.
 
-### 4.11 `dealtToBy` wypadło z `mergeStats` I z `copyActor` 🔴 [otwarte]
+### 4.11 `dealtToBy` wypadło z `mergeStats` I z `copyActor` 🔴 [NAPRAWIONE 2026‑07‑30]
 `session.ts:52‑66` (lista tablic w `copyActor`) i `session.ts:131‑157` (lista pól
 w merge'u). `takenFromBy` jest scalane w `:150`; jego lustro `dealtToBy` — dodane
 później (`stats.ts:849`) — **nie występuje w `session.ts` ani razu**.
@@ -230,7 +236,7 @@ występuje **tylko w `raw.txt`** (wyjście „Kopiuj logi”), nie w DOM. Oba
 mechanizmy odsiewania dubla (`session.ts:104‑108`, `recorder.ts:80`) obsługują
 więc wyłącznie drogę wklejonego tekstu.
 
-### 4.13 F5 w trakcie walki nagrywa ją drugi raz 🟡 [otwarte]
+### 4.13 F5 w trakcie walki nagrywa ją drugi raz 🟡 [NAPRAWIONE 2026‑07‑30]
 `recorder.ts:141`, `:154‑156`, `:227‑244` — `on` przeżywa odświeżenie
 (`FLAG_KEY`), ale `active` żyje tylko w pamięci i **nie jest zasiewane
 z indeksu**, więc pierwsze `capture()` po reloadzie nie ma z czym dopasować
@@ -247,7 +253,7 @@ jednej walki (krótszy kłamie), podwójne zużycie budżetu i podwójną walkę
 w `dump()`. **Fix:** zasiać `active` z najnowszego wpisu indeksu + jego tekstu
 i pozwolić `continues`/`merge` zrobić swoje. **S.**
 
-### 4.14 Nagrywarka rozcina jedną walkę na dwie 🟡 [otwarte]
+### 4.14 Nagrywarka rozcina jedną walkę na dwie 🟡 [NAPRAWIONE 2026‑07‑30]
 `recorder.ts:103‑107` wymaga dokładnego prefiksu **linia po linii**, a gra trzyma
 cały blok ataku w JEDNYM `div.battle-msg.attack` — tekst „uderzył z siłą” i jego
 `<b class="dmg">` liczby stoją w tej samej linii (widać w
@@ -266,7 +272,7 @@ mały:** użyć porównania „najdłuższy wspólny ogon” z `merge()` zamiast
 prefiksu. To ten sam dryf session↔recorder, o którym mówi §7 — **§4.14 jest nim
 w akcji**. **S.**
 
-### 4.15 Indeks nagrań sprawdzany tylko na najwyższym poziomie 🟡 [otwarte]
+### 4.15 Indeks nagrań sprawdzany tylko na najwyższym poziomie 🟡 [NAPRAWIONE 2026‑07‑30]
 `recorder.ts:318‑332` — `Array.isArray(parsed.fights)` jest sprawdzane, kształt
 **elementów** nie. Pole `v` jest przy tym **wymuszane na 1**, nie weryfikowane,
 więc przyszły `v: 2` zostanie przeczytany jako v1. Przy
@@ -287,7 +293,7 @@ Ta sama klasa w `Overlay.loadState` (`overlay.ts:2443`) i `Archive.loadState`
 a `{"width":null}` daje `style.width = "nullpx"`. **Fix:** walidacja kształtu
 w jednym miejscu — patrz R5. **S.**
 
-### 4.16 Ścieżki błędu quoty psują stan w pamięci 🟡 [otwarte]
+### 4.16 Ścieżki błędu quoty psują stan w pamięci 🟡 [NAPRAWIONE 2026‑07‑30]
 `recorder.ts:258‑316`:
 - `save()` dopisuje wpis do indeksu **przed** `write()`; nieudany zapis tekstu
   zostawia wpis w `this.index.fights`, a `read()` zwraca `null` → widmowy wiersz,
@@ -302,7 +308,7 @@ w jednym miejscu — patrz R5. **S.**
   ma już czego skasować, dostajemy `failed = true; on = false` — czyli
   **czyszczenie wyłącza nagrywanie**.
 
-### 4.17 Nieznana klasa `dmgX` cicho staje się „bez żywiołu” 🟡 [otwarte]
+### 4.17 Nieznana klasa `dmgX` cicho staje się „bez żywiołu” 🟡 [NAPRAWIONE 2026‑07‑30]
 `parser.ts:4‑17` + `:204` — `(m[2] ? ELEMENTS[m[2]] : null) ?? null`. Sześć liter
 jest znanych; cokolwiek innego ląduje w tym samym kubełku co „w ogóle nie było
 DOM”, `unknownLines` zostaje 0, `typeByLabel` puste, pasek dostaje kolor
@@ -334,7 +340,7 @@ format proca kosztuje trzy linie zamiast jednej. **Fix:** węższa reguła — H
 należy do wzorca postaci na POCZĄTKU linii, nie do dowolnego nawiasu.
 Żaden test nie pokrywa modyfikatora z procentem w nawiasie. **S.**
 
-### 4.19 Separator tysięcy zawodzi CICHO 🟡 [otwarte — inaczej, niż stało w §4.9]
+### 4.19 Separator tysięcy zawodzi CICHO 🟡 [NAPRAWIONE 2026‑07‑30]
 `parser.ts:20`/`:200`. Zapisany dotąd tryb awarii (`applied > raw`) jest zły.
 Faktyczny:
 
@@ -347,13 +353,13 @@ testy kontraktowe przechodzą (`8 ≤ 10` dla `parser.test.ts:31`; brak uniku dl
 `:38`). **Fix:** reguła „liczba wartości raw == liczba applied, żadne trafienie
 nie jest całkowicie zerowe” robi tę awarię głośną. **S.**
 
-### 4.20 `clean()` zjada literę następnego słowa ⚪ [otwarte]
+### 4.20 `clean()` zjada literę następnego słowa ⚪ [NAPRAWIONE 2026‑07‑30]
 `parser.ts:19` — `RE_ELEMENT` bierze `MARKER([a-z]+)`, choć `source.ts:65` pisze
 dokładnie **jeden** znak. Bez spacji między liczbą a następnym słowem
 (`"-80⟨M⟩dobrażeń"`) zjada literę → `unknown`. Głośne, więc drobne; `[a-z]`
 (jeden znak) albo znacznik domykający kasuje klasę.
 
-### 4.21 `opponentOf` bierze pierwszy wpis rostera o danej nazwie ⚪ [otwarte]
+### 4.21 `opponentOf` bierze pierwszy wpis rostera o danej nazwie ⚪ [NAPRAWIONE 2026‑07‑30]
 `stats.ts:524` — `roster.find(p => p.name === name)`. Gdy ta sama nazwa stoi po
 obu stronach, strona bierze się z tego, który wpis jest pierwszy, więc DoT może
 zostać przypisany **sojusznikowi**. Guard: zwracać `null`, gdy nazwa występuje
@@ -367,7 +373,7 @@ w `stats.ts`, ani w `overlay.ts`), `dot.weakenedPct` (parser/typy), `experience`
 i **przetestowane** — a potem wyrzucane. To osobna kategoria niż martwy kod z §9:
 tu utrzymanie ma już testy w zestawie. Pokazać albo usunąć — ale zdecydować.
 
-### 4.23 Otwarcie archiwum blokuje wątek gry 🟡 [otwarte — koszt]
+### 4.23 Otwarcie archiwum blokuje wątek gry 🟡 [otwarte — koszt, jedyne z trójki]
 `archive.ts:490‑491` — `renderRow` woła `recorder.read(id)` + `summaryOf(id,
 text)`, a `summarize` (`:145‑155`) to `parse` + `aggregate`, **dla każdego
 wiersza**. Zmierzone:
@@ -383,7 +389,7 @@ Powstaje wszystkie 190 wierszy, choć `.archive-list { max-height: 320px }`
 (`archive.ts:65`) pokazuje ~9 — bez okienkowania, bez stronicowania, bez
 leniwych podsumowań poniżej krawędzi.
 
-### 4.24 Każda klatka odtwarzania parsuje prefiks dwa razy 🟡 [otwarte — koszt]
+### 4.24 Każda klatka odtwarzania parsuje prefiks dwa razy 🟡 [NAPRAWIONE 2026‑07‑30]
 `archive.ts:393‑398`:
 
 ```ts
@@ -396,7 +402,7 @@ Zmierzone przez prawdziwe `Archive` ze wstrzykniętym tickerem, fixture 201 lini
 ~5–6 ms). Fixture 836‑liniowy to ~2,3 s parsowania na przebieg — za darmo,
 bo `currentReplayView` potrzebuje wyłącznie `timeline.length`.
 
-### 4.25 `Session.total()` liczone przy każdej linii dla widoku, którego nie ma 🟡 [otwarte — koszt]
+### 4.25 `Session.total()` liczone przy każdej linii dla widoku, którego nie ma 🟡 [NAPRAWIONE 2026‑07‑30]
 `index.ts:25`; `mergeStats` głęboko kopiuje i sortuje każde rozbicie każdej
 postaci. Zmierzone: **0,55 ms na wywołanie** przy 5 walkach w sesji (liniowo
 z długością sesji), na wierzchu **1,38 ms/linię** samego `update()` na fixture
@@ -613,9 +619,18 @@ decyzja „porzucone czy niedokończone” jest warunkiem wejścia, nie skutkiem
 
 ## 10. Testy — czego zestaw nie widzi
 
-Stan: **328 zielonych, 2 pominięte, 1387 asercji**, pokrycie **89,1 % linii**
-(86,95 % funkcji). Komendy `coverage` w `package.json` nie ma, więc regresja
-pokrycia nie ma jak się zgłosić.
+Stan po rundzie 2026‑07‑30: **369 zielonych, 2 pominięte, 1488 asercji**,
+pokrycie **93,3 % linii** (89,5 % funkcji). `package.json` ma już `coverage`
+i zbiorczy `check`; progu nadal nie ma.
+
+Zamknięte w tej rundzie: strażnik sumy sesji jest **strukturalny** (schodzi
+w głąb dowolnego pola i sumuje liczby, więc obejmuje pola, których jeszcze nie
+ma — poprzedni wymieniał je z palca i dlatego nie widział `dealtToBy`); doszły
+testy dymka i klikania w podglądzie/odtwarzaniu (`grep preview` dawał zero),
+`boot` poza grą (`index.ts` z 33,9 % na 90,4 %), metadanych userscriptu
+(`@match` wjechał źle dwa razy) oraz gałęzi `rising`. **Zostaje** brak fixture'a
+z przyciętym nagłówkiem (§4.12) i logu właścicielki (§4.8), oraz gałąź
+„roster wyczerpany" w `instanceResolver` (`stats.ts:158‑160`).
 
 **Układ plików kłamie.** Cztery pliki testowe na trzynaście modułów.
 `tests/overlay.test.ts` (2839 linii, 60 % zestawu) mieści też testy `session.ts`,
@@ -724,8 +739,8 @@ Niezmienniki przeliczone po naprawach na całym korpusie (13 zrzutów):
 | R2 | `ActorAccumulator` (jeden `recordHit`) | §4.1/§4.6 i przyszłe pominięcia | M |
 | R3 | Deklaratywny `mergeStats` | „zapomniane pole” — `abilityUses`, a teraz **§4.11 `dealtToBy`** | M |
 | R4 | Tablica reguł parsera | §4.3, §4.18 i OCP nowych formatów | S–M |
-| **R5** | **`panel-window.ts`**: `PanelState` + `loadState`/`saveState` + przycięcie do ekranu + walidacja pól (dziś ta para istnieje DWA razy: `overlay.ts:2439‑2455`, `archive.ts:560‑576`) | `UX-POPRAWKI A10` + §4.15 w jednym miejscu | M |
-| **R6** | **Delegacja po `data-action`** dla całego panelu, nie tylko wierszy | `UX-POPRAWKI A8` i cała klasa „węzeł przebudowany w środku gestu” | S–M |
+| **R5** | **`panel-window.ts`**: `PanelState` + `loadState`/`saveState` + walidacja pól. **Częściowo zrobione:** wspólne przycinanie pozycji siedzi już w `window.ts` (`clampToViewport`), ale `loadState`/`saveState` nadal istnieją dwa razy i nadal bez walidacji pól | reszta klasy z §4.15 | S |
+| **R6** | ~~**Delegacja po `data-action`** dla całego panelu~~ | **✅ ZROBIONE 2026‑07‑30** — zamknęło `UX-POPRAWKI A8` | — |
 | **R7** | **Wydzielić `STYLE`** (`overlay.ts:90‑406`, 316 linii, 0 % logiki) + scoping | wyciek `.row` na `.archive-paste .row`, niejawna zależność archiwum od chrome'u panelu | S |
 | **R8** | **Wyeksportować `instanceResolver`** do `instances.ts` | nietestowalność rozdzielania duplikatów (trzy gałęzie 0 %) | M |
 
@@ -733,7 +748,26 @@ Kolejność wykonana w poprzedniej rundzie: **4.2 → 4.6 → 4.4 → 4.1 → 4.
 z testem na przywrócony niezmiennik. **R1–R4 zostają** — to one sprawią, że te
 błędy nie wrócą; §4.11 i §4.14 są tego dowodem (jedno pole zapomniane w merge'u,
 jedna reguła kontynuacji rozjechana między dwoma plikami). Wszystko za stabilnymi
-sygnaturami: **328 testów zielonych**, `tsc --noEmit` czysty.
+sygnaturami: **369 testów zielonych**, `tsc --noEmit` czysty.
 
-Proponowana kolejność następnej rundy: **4.11 → (A7, A8 z `UX-POPRAWKI.md`) →
-4.12 rozstrzygnąć zrzutem → R5 → 4.13/4.14 przez R1 → testy z §10 → R3 → reszta.**
+**Runda 2026‑07‑30 — wykonane:** 4.11 → A7 → A8 (przez R6) → `@match`/`boot`
+→ A10 → A9, A11, A12 → 4.13–4.17, 4.19–4.21 → 4.24, 4.25 → A13, A15, B1
+→ testy: niezmienniki sumy sesji (strukturalne, nie z palca), dymek
+w podglądzie, klik przez przebudowę, `boot` poza grą, metadane userscriptu,
+leczenie zdublowanej nazwy. Pokrycie 89,1 % → 93,3 %.
+
+**Zostaje, w tej kolejności:**
+
+1. **§4.12** — zrzut z długiej walki rozstrzyga, czy licznik zaniża, czy
+   `merge` broni przed czymś, czego nie ma. Nic więcej nie da się tu zrobić bez
+   danych.
+2. **R1** (`FightTracker`) — §4.13 i §4.14 naprawiono w nagrywarce; ta sama
+   reguła kontynuacji nadal stoi w sesji osobno.
+3. **R3** (deklaratywny `mergeStats`) — §4.11 był drugą ofiarą tej samej klasy.
+   Test‑strażnik jest już strukturalny, ale to wykrywacz, nie lekarstwo.
+4. **§4.18**, **§4.22**, **§4.9** — parser: zawęzić strażnik HP, zdecydować
+   o polach parsowanych i nieczytanych, wyprowadzić zasoby z `procs`.
+5. **§4.23** — okienkowanie listy archiwum (146 ms blokady przy 190 nagraniach).
+6. **R7/R8/R5** — cięcia `overlay.ts`, eksport `instanceResolver`, wspólny stan
+   okna; plus `UX-POPRAWKI A14` (kontrast) i `B2` (suwak po turach), oba
+   wymagające decyzji, nie tylko roboty.

@@ -5,10 +5,13 @@ siedzi w [`UX.md`](UX.md). Tu zbieram, **co da się poprawić**, po zwrocie za
 pracę. Podzielone na: **A. usterki widoczne dla użytkownika** oraz **B. nowe
 wygody** (czego brakuje).
 
-Statusy zweryfikowane na bieżącym kodzie **2026‑07‑30** (po `3814a42`), każdy
-odczytem wskazanego miejsca. `A1`–`A6` zostały naprawione; `A7`–`A15` to nowe
-usterki z pierwszego przeglądu **archiwum, odtwarzania i podglądu** — czyli
-kodu, który powstał po poprzednim przeglądzie i nie był nigdy sprawdzony.
+Statusy zweryfikowane na bieżącym kodzie **2026‑07‑30**, każdy odczytem
+wskazanego miejsca. `A1`–`A6` naprawiono wcześniej; `A7`–`A15` wyszły
+z pierwszego przeglądu **archiwum, odtwarzania i podglądu** — kodu, który
+powstał po poprzednim przeglądzie i nie był nigdy sprawdzony — **i zostały
+naprawione tego samego dnia**. Opisy zostają jako zapis TEGO, co było źle
+i dlaczego: przy regresji w tym samym miejscu to najkrótsza droga do
+zrozumienia, o co szło.
 
 Legenda: 🔴 duży zwrot / mała robota · 🟡 warto · ⚪ kiedyś.
 Koszt: S / M / L.
@@ -17,19 +20,20 @@ Koszt: S / M / L.
 
 ## 0. Skrót — kolejność prac
 
-**Otwarte usterki A — pierwsze pięć to funkcje, które NIE DZIAŁAJĄ WCALE:**
+**Usterki A7–A15 — NAPRAWIONE 2026‑07‑30.** Pierwsze pięć to były funkcje,
+które nie działały wcale.
 
-| # | Usterka | Koszt | |
-|---|---|---|---|
-| A7 | Dymek jest w podglądzie z archiwum całkowicie martwy | S | 🔴 |
-| A8 | W trakcie odtwarzania nie da się kliknąć nic poza sterowaniem | M | 🔴 |
-| A9 | Dymek rysuje się POD panelem i pod oknem archiwum | S | 🔴 |
-| A10 | Okno da się wyrzucić za ekran na zawsze, bez resetu | S | 🔴 |
-| A11 | Wklejony tekst ginie przy każdej przebudowie listy archiwum | S | 🔴 |
-| A12 | PPM zabija menu kontekstowe także w polu wklejania | S | 🟡 |
-| A13 | Brak widocznego focusu; suwak odtwarzania ma 5 px | S | 🟡 |
-| A14 | Tekst na kolorowym pasku nie przechodzi AA (3,50:1) | S | 🟡 |
-| A15 | Drobne: „na pewno?” nie wygasa, liczebniki, ucięcia bez ratunku | S | ⚪ |
+| # | Usterka | Jak naprawione |
+|---|---|---|
+| A7 | Dymek martwy w podglądzie z archiwum | `showTip` czyta `this.shown` (to, co widać), nie walkę na żywo |
+| A8 | W odtwarzaniu nie dało się kliknąć nic poza sterowaniem | delegacja po `data-action` — tożsamością jest akcja, nie węzeł |
+| A9 | Dymek rysował się pod panelem i pod archiwum | jawny `z-index` na `.tip` |
+| A10 | Okno dało się wyrzucić za ekran na zawsze | `clampToViewport` w `window.ts` + nasłuch `resize`; dotyczy panelu i archiwum |
+| A11 | Wklejony tekst ginął przy przebudowie listy | pole wklejania to trwały węzeł; lista zachowuje przewinięcie |
+| A12 | PPM zabijało menu w polu wklejania | handler odpuszcza, gdy zdarzenie idzie z pola edycyjnego |
+| A13 | Brak widocznego focusu, 5‑pikselowy suwak | reguła `:focus-visible`; suwak łapie grubo, rysuje się cienko |
+| A14 | Tekst na pasku nie przechodzi AA | ⬜ **ZOSTAJE — wymaga decyzji wizualnej**, patrz niżej |
+| A15 | „na pewno?” nie wygasa, liczebniki, ucięcia | wygasa po 5 s; jedno `plural()`; ucięcia z ratunkiem |
 
 **Naprawione (2026‑07‑26, wjechało w `3814a42`):**
 
@@ -46,8 +50,8 @@ Koszt: S / M / L.
 
 | # | Poprawka | Koszt | | Stan |
 |---|---|---|---|---|
-| B1 | Kasowanie POJEDYNCZEGO nagrania w archiwum | S | 🔴 | otwarte (`Recorder.drop` prywatne, `recorder.ts:286`) |
-| B2 | Suwak odtwarzania skacze po TURACH, nie po liniach | S | 🔴 | otwarte (`archive.ts:326`) |
+| B1 | ~~Kasowanie POJEDYNCZEGO nagrania w archiwum~~ | S | — | **✅ ZROBIONE** — „✕" w wierszu, pierwszy klik pyta |
+| B2 | Suwak odtwarzania skacze po TURACH, nie po liniach | M | 🔴 | otwarte — **koszt urósł**: wymaga numeru linii w zdarzeniach parsera, patrz niżej |
 | B3 | Auto‑pauza odtwarzania przy wejściu w postać / najechaniu | S | 🔴 | otwarte |
 | B4 | Widoczny sygnał „trzymam postać” przy zmianie metryki | S | 🟡 | otwarte (`renderCrumb` buduje nowy węzeł co render) |
 | B5 | Podgląd TOP‑3 w dymku bez wchodzenia w postać | M | 🟡 | otwarte (`tipContent`, `overlay.ts:2118`) |
@@ -57,17 +61,20 @@ Koszt: S / M / L.
 | B9 | „Kopiuj nierozpoznane linie” przy ostrzeżeniu parsera | S | ⚪ | otwarte (`BattleStats` niesie tylko `unknownLines`) |
 | B10 | Eksport czytelny (Discord), nie tylko JSON | M | ⚪ | otwarte |
 | B11 | Onboarding: pierwsza walka mówi, co kliknąć | S | ⚪ | częściowo — dymek ma `tip-hint` „LPM — rozbicie · PPM — powrót” (`overlay.ts:2133`), ale trzeba na coś najechać, żeby go zobaczyć |
-| B12 | Reset ustawień nakładki (dziś nie ma żadnej drogi z UI) | S | 🟡 | nowe — ratunek po `A10` i po zepsutym zapisie |
+| B12 | Reset ustawień nakładki | S | ⚪ | otwarte, ale **mniej pilne**: po `A10` okna nie da się już zgubić |
 
 ---
 
-## A. Otwarte usterki (przegląd 2026‑07‑30)
+## A. Usterki z przeglądu 2026‑07‑30 (naprawione, poza A14)
 
 Pierwszy przegląd **archiwum, odtwarzania i podglądu** — trzy funkcje weszły
 w `22b63e6`/`a3d4594` i nie były dotąd sprawdzone. Stąd pięć rzeczy, które nie
-działają wcale, a nie „niedogodności”.
+działały wcale, a nie „niedogodności”.
 
-### A7 — Dymek jest w podglądzie z archiwum całkowicie martwy 🔴 S
+Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED naprawy — tak
+czyta się je najłatwiej przy kolejnej regresji w tym samym miejscu.
+
+### A7 — Dymek jest w podglądzie z archiwum całkowicie martwy 🔴 S — ✅ NAPRAWIONE
 `src/overlay.ts:2236` (`showTip`)
 **Problem.** `showTip` szuka postaci w `this.latest?.fight`, czyli w walce **na
 żywo**, choć wiersze rysują się z `this.preview.stats` (`overlay.ts:857`), a
@@ -83,7 +90,7 @@ dokładnie po to. **Koszt S**, jedna linia.
 `preview`/`replay`; `archive.test.ts` używa prawdziwego `Overlay`, ale nigdy nie
 najeżdża na wiersz w podglądzie.
 
-### A8 — W trakcie odtwarzania nie da się kliknąć nic poza sterowaniem 🔴 M
+### A8 — W trakcie odtwarzania nie da się kliknąć nic poza sterowaniem 🔴 M — ✅ NAPRAWIONE
 `src/overlay.ts:905` (`render`) kontra `:1133‑1178` (sterowanie odtwarzania)
 **Problem.** `pushFrame` → `showPreview` → `rerender` → `body.replaceChildren`,
 więc zakładki metryk (`:1529`), zakładki składu (`:1558`), okruszek (`:1649`),
@@ -98,7 +105,7 @@ Konsekwencja: **z podglądu nie da się wyjść bez wcześniejszego ⏸**.
 działa dla wierszy, `dataset.action` jest już ustawiane na wszystkich tych
 przyciskach. **Koszt M** (jedno miejsce, wiele przycisków).
 
-### A9 — Dymek rysuje się POD panelem i pod oknem archiwum 🔴 S
+### A9 — Dymek rysuje się POD panelem i pod oknem archiwum 🔴 S — ✅ NAPRAWIONE
 `src/overlay.ts:780`, `:340`; `src/archive.ts:49`
 **Problem.** `root.append(style, this.tip, this.panel)` — dymek jest wstawiany
 PRZED panelem, a `.tip` ma `position: absolute` **bez `z-index`**, więc o
@@ -112,7 +119,7 @@ malowaniu decyduje kolejność w drzewie i panel przykrywa dymek. `.archive` ma
   nieczynne.
 **Propozycja.** Jawny `z-index` na `.tip` powyżej panelu i archiwum. **Koszt S.**
 
-### A10 — Okno da się wyrzucić za ekran na zawsze 🔴 S
+### A10 — Okno da się wyrzucić za ekran na zawsze 🔴 S — ✅ NAPRAWIONE
 `src/window.ts:31`, `src/overlay.ts:2364`/`:2443`, `src/archive.ts:564`
 **Problem.** `makeDraggable` woła `target.move(clientX - offsetX, …)` bez
 przycięcia, `move` zapisuje surowe `x/y`, a `loadState` odtwarza to, co było
@@ -128,7 +135,7 @@ przeciągania**: panel zapisany na `x=1600`, otwarty potem na węższym ekranie.
 i skalowania): przyciąć w `move`, przyciąć po `loadState`, dołożyć jeden nasłuch
 `resize`. Wspólne miejsce na to opisuje `SOLID.md R5`. **Koszt S.**
 
-### A11 — Wklejony tekst ginie przy każdej przebudowie listy 🔴 S
+### A11 — Wklejony tekst ginie przy każdej przebudowie listy 🔴 S — ✅ NAPRAWIONE
 `src/archive.ts:422`, `:224`
 **Problem.** `render()` robi `this.window.textContent = ""` i buduje
 `renderPaste()` od zera, a `sync()` woła `render()` przy każdej zmianie zbioru
@@ -140,7 +147,7 @@ przełączenie „wklej”.
 **Propozycja.** Pole wklejania (i lista) jako trwałe węzły aktualizowane
 w miejscu — ten sam chwyt, którym `2cabd6d` uratował korpus panelu. **Koszt S.**
 
-### A12 — PPM zabija menu kontekstowe także w polu wklejania 🟡 S
+### A12 — PPM zabija menu kontekstowe także w polu wklejania 🟡 S — ✅ NAPRAWIONE
 `src/overlay.ts:837`
 **Problem.** Handler „PPM = powrót o szczebel” siedzi na shadow roocie, a
 `Archive` rysuje się w **tym samym** roocie. Skutek: ▤ → „wklej” → PPM w polu
@@ -150,7 +157,7 @@ jedynym, w którym jest wyłączone.
 **Propozycja.** Nie przechwytywać PPM, gdy zdarzenie idzie z pola edycyjnego
 (albo z poddrzewa archiwum). **Koszt S.**
 
-### A13 — Brak widocznego focusu, mikroskopijny suwak 🟡 S
+### A13 — Brak widocznego focusu, mikroskopijny suwak 🟡 S — ✅ NAPRAWIONE
 `src/overlay.ts:177`, `:263`, `:289`, `:223`; `src/archive.ts:66`
 **Problem.** `button { all: unset }` zdejmuje obwódkę focusu przeglądarki, a
 reguły `:focus-visible` nie ma w żadnym z dwóch arkuszy. Wszystkie przyciski są
@@ -166,7 +173,7 @@ uchwytu, nie o mapę klawiszy.
 `tabindex="0"` na klikalnych `div`‑ach, suwak grubszy z obsługą ciągnięcia.
 **Koszt S.**
 
-### A14 — Tekst na kolorowym pasku nie przechodzi AA 🟡 S
+### A14 — Tekst na kolorowym pasku nie przechodzi AA 🟡 S — ⬜ OTWARTE
 `src/overlay.ts` (`.row-text`, `.bar`) + `src/palette.ts`
 **Problem.** `.row-text` to `#f2f2ef` nad `.bar` z `opacity: .85` na `#24242a`.
 Policzony kontrast: żółty `#c98500` **3,50:1**, czerwony `#e66767` 3,60, akwa
@@ -177,9 +184,11 @@ Policzony kontrast: żółty `#c98500` **3,50:1**, czerwony `#e66767` 3,60, akwa
 nowsze. To korekta metody, nie podważenie decyzji o odznace.
 **Propozycja.** Albo cień/obwódka pod tekstem wiersza, albo pasek jako węższa
 wstążka pod tekstem zamiast tła pod nim. **Koszt S**, ale wymaga decyzji
-wizualnej.
+wizualnej — i dlatego jako jedyna z tej listy nie została zrobiona od ręki.
+Obie drogi zmieniają wygląd rankingu, czyli rzecz, na którą patrzy się przez
+całą walkę; to nie jest wybór do zrobienia mimochodem.
 
-### A15 — Drobne, ta sama kategoria ⚪ S
+### A15 — Drobne, ta sama kategoria ⚪ S — ✅ NAPRAWIONE
 - **„na pewno?” nie wygasa** (`overlay.ts:1224`). `confirmingClear` zeruje się
   tylko drugim klikiem albo przełączeniem ⏺. Klik „wyczyść”, zwinięcie panelu
   („—” pomija paski), rozwinięcie po godzinie i **jeden** klik kasuje całe
@@ -187,20 +196,22 @@ wizualnej.
 - **Liczebniki tylko dla walk.** `fightWord` istnieje (`overlay.ts:56`), a obok
   stoi `2 tur` (`archive.ts:505`), `1 postaci · 1 tur` (`overlay.ts:1335`) i
   `tura 0/26` (`archive.ts:323`). Jedno `plural(n, formy)` załatwia wszystkie.
-- **Ikony bez podpowiedzi.** `⧉ ⏺ ▤` mają `aria-label`, ale natywny `title` jest
-  świadomie wyłączony (`overlay.ts:1032`) — więc wzrokowo **nie ma żadnej
-  podpowiedzi**. Własny dymek już istnieje i może nieść ten hint bez natywnych
-  tooltipów.
+- **Ikony bez podpowiedzi.** ⬜ **ZOSTAJE.** `⧉ ⏺ ▤` mają `aria-label`, ale
+  natywny `title` jest świadomie wyłączony, więc wzrokowo nie ma żadnej
+  podpowiedzi. Własny dymek już istnieje i mógłby nieść ten hint bez natywnych
+  tooltipów — ale to nowa treść w dymku, nie poprawka jednej linijki.
 - **Ucięcia bez ratunku.** `.archive-name` ucina skład bez tooltipa (archiwum nie
   ma warstwy dymka wcale); `.rec-bar` z `nowrap` + ellipsis ucina komunikat „Brak
   miejsca w przeglądarce — nagrywanie wyłączone” przy `MIN_WIDTH = 200`, czyli
   **stan błędu znika dokładnie wtedy, gdy okno jest małe**; `.side-head` bez
   `min-width: 0` wypycha sumę sekcji poza przycięty panel przy długiej nazwie
   (`CZYM — <DŁUGA NAZWA>`).
-- **Drążenie zwija się przy przewinięciu nagrania w tył.** `render()`
-  (`overlay.ts:865‑879`) czyści `focus`/`focusSource`, gdy nazwy nie ma
-  w bieżącej klatce. Wejście w postać na 60 % nagrania i skok na 10 % wyrzuca do
-  rankingu — i nie wraca, gdy klatka dogoni.
+- **Drążenie zwija się przy przewinięciu nagrania w tył.** ⬜ **ZOSTAJE.**
+  `render()` czyści `focus`/`focusSource`, gdy nazwy nie ma w bieżącej klatce.
+  Wejście w postać na 60 % nagrania i skok na 10 % wyrzuca do rankingu — i nie
+  wraca, gdy klatka dogoni. Naprawa to rozróżnienie „postać zniknęła, bo inna
+  walka" od „postać jeszcze nie zdążyła nic zrobić"; pierwsze ma zwijać, drugie
+  nie. Wymaga zapamiętania wyboru osobno od stanu klatki.
 - **Wyciek reguły `.row`** (`overlay.ts:263`) na `.archive-paste .row`
   (`archive.ts:544`): wiersz „podpowiedź + wczytaj” dostaje 20 px wysokości
   i ciemne tło pigułki, bo nadpisuje tylko `display/gap/align-items`.
@@ -291,12 +302,23 @@ ma prywatne `drop(id)`, ale nic go nie wystawia. → `Recorder.remove(id)` + „
 wierszu archiwum, ze wzorcem „pierwszy klik pyta”. Maszyneria (`drop`/`evict`/
 indeks) już jest.
 
-### B2 — Suwak skacze po TURACH, nie po liniach 🔴 S `src/archive.ts`
+### B2 — Suwak skacze po TURACH, nie po liniach 🔴 M `src/archive.ts`
 Etykieta mówi `tura 14/31`, a `seek` przelicza ułamek na **linie**
 (`Math.round(fraction * lines.length)`). Klik „w połowę” ląduje w połowie linii,
-nie tur. Odtwarzać po granicach tur/akcji (jest `timeline`): `seek` trafia tam,
-gdzie wskazuje etykieta, a każda klatka jest kompletna (parser nie widzi
-niedomkniętego ciosu — domyka to nawet ostrzeżenie z `frameStats`).
+nie tur.
+
+**Koszt urósł po sprawdzeniu.** `timeline` niesie tury, ale NIE niesie numeru
+linii, w której każda się zaczyna — a bez tego nie ma z czego zbudować mapy
+„tura → linia”. Trzy drogi:
+- policzyć granice tur w `archive.ts` po samych liniach → **odrzucone**: to
+  druga implementacja logiki tur, dokładnie ta „druga prawda”, przed którą
+  broni się cały potok (`SOLID.md §1`);
+- parsować rosnące prefiksy przy starcie odtwarzania → O(n²), przy dłuższym
+  nagraniu sekundy zamrożonej gry (pomiar: 2,78 ms na klatkę);
+- **dołożyć numer linii do zdarzeń parsera** (dziś ma go tylko `unknown`)
+  i przenieść go do `TurnSlice`. Jedno źródło prawdy, jedno przeliczenie przy
+  starcie. To jest droga do zrobienia — ale to zmiana w `types.ts`, `parser.ts`
+  i `stats.ts`, nie poprawka w archiwum.
 
 ### B3 — Auto‑pauza przy wejściu w postać / najechaniu 🔴 S `src/overlay.ts`, `src/archive.ts`
 W środku odtwarzania dane przelatują pod kursorem co klatkę. Wejście w postać
