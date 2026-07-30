@@ -320,7 +320,7 @@ tego pomysłu, a nie ozdobą.
 
 Odpadło przy okazji: `ColorAssignment`, `MAX_SERIES` i `OTHER_LABEL` nie mają już
 użytkownika w `src/` — barwa z atrybutu nie ma czego wyczerpać, więc cała klasa
-błędu „pula kolorów kończy się po ośmiu nazwach” (dawne `UX.md A3`) zniknęła
+błędu „pula kolorów kończy się po ośmiu nazwach” (dawne `UX-POPRAWKI.md A3`) zniknęła
 z definicji, a nie została załatana.
 
 ## „Na turę” — zgłoszone jako podejrzane, DO POPRAWY (2026-07-27) [otwarte]
@@ -363,7 +363,7 @@ dwie różne arytmetyki, zero sygnału w UI. Reguła sama w sobie jest przemyśl
 
 W trybie „na turę” wiersz Regulusa pokazuje `2810,9/t (84% · 39,4k)`. Ale 84% to
 udział w SUROWYCH sumach (39352 z 46620), a nie udział pokazanego tempa
-(2810,9 z 4099,4 = 69%). To jest świadoma decyzja z `UX.md A2` — mianownikiem
+(2810,9 z 4099,4 = 69%). To jest świadoma decyzja z `UX-POPRAWKI.md A2` — mianownikiem
 Σ(temp) była wielkość bez sensu fizycznego, więc udziały celowo zostały przy
 sumach. Tyle że po zmianie układu wiersza procent stoi teraz w JEDNYM nawiasie
 razem z drugą miarą, tuż przy tempie, i czyta się jak jego udział.
@@ -373,7 +373,7 @@ razem z drugą miarą, tuż przy tempie, i czyta się jak jego udział.
 `turnsFor` daje tury własne dla zadanych, a tury walki dla otrzymanych i
 leczenia. Przełączenie zakładki zmienia skalę liczby, nie zmieniając podpisu.
 Dymek mówi to słowami (`turnKind`, „Na turę własną” / „Na turę walki”) — wiersz
-nie mówi nic. To dawne `UX.md A4`: uznane za załatane dymkiem, ale sam wiersz
+nie mówi nic. To dawne `UX-POPRAWKI.md A4`: uznane za załatane dymkiem, ale sam wiersz
 został bez sygnału.
 
 ### Co z tym zrobić — do decyzji, NIE zrobione
@@ -391,6 +391,75 @@ Kierunki, nie plan. Wybór jest projektowy, nie techniczny:
 Reprodukcja: skrypt liczący to wszystko z fixture'u stoi w historii sesji;
 najkrócej — `overlay.render(stats, stats)`, klik „na turę”, odczyt `.rows .row`,
 `.team-total` i `.sides-row`, porównanie z `stats.actors`.
+
+## Przegląd — 2026-07-30
+
+Reweryfikacja całego przeglądu z 2026‑07‑19 na bieżącym kodzie (po `3814a42`)
+plus **pierwszy przegląd nagrywania, archiwum, odtwarzania i palety** — czyli
+kodu, który powstał już po tamtym przeglądzie. Pełne listy siedzą w dokumentach
+obok; tutaj zostaje to, co zmienia obraz całości.
+
+**Gdzie co jest od tego przeglądu:**
+
+| plik | co zawiera |
+|---|---|
+| `UX.md` | spec zachowań — jak to ma się klikać |
+| `UX-POPRAWKI.md` | usterki widoczne dla użytkownika (`A…`) i nowe wygody (`B…`) |
+| `SOLID.md` | usterki działania (`§4…`), dług architektoniczny, testy |
+| `TOOLING.md` | budowanie, `@match`, wersjonowanie, CI |
+| `README.md` (ten plik) | **dlaczego** kod wygląda, jak wygląda; ograniczenia danych |
+
+Oba dokumenty poprawkowe leżały wcześniej w roocie; są teraz w `ai/`, żeby
+wszystko, co dotyczy pracy nad kodem, stało w jednym miejscu.
+
+**Statusy z 2026‑07‑19 — bilans.** Z 25 punktów **zamknięte są 24 opisane
+w „Naprawione” plus czternaście z listy otwartych** (`sourceHpPct → null`,
+leczenie z HP celu, formy żeńskie, NBSP, kropki w regexach leczenia, pasek stron
+przy zerze, sufit wysokości listy, `maxHit` tylko `strike`, „tura tła”
+w `addToTurn`, wspólny roster w `opponentOf`, dubel `fight-start`,
+`RE_MODIFIER`, trwały `<header>`, udziały % z surowych sum). **Otwarte
+zostają**: `/t` jako dwa dzielniki, `findBattleLog` przy jednoliniowym logu,
+pełny reparse bufora, metryka „Tury”, separator tysięcy (inaczej, niż zapisano —
+patrz `SOLID.md §4.19`), `procs` łykające zasoby, `unattributedHealing` bez
+stron, `estimateMaxHp` tylko w testach, niesprzątany `setInterval`, twarde
+`typeof` w `roster.ts` i cały martwy kod.
+
+**Najcięższe, czego wcześniej nie było widać:**
+
+1. **`dealtToBy` nie jest scalane w sumie sesji** (`SOLID.md §4.11`) — 46
+   rozjazdów na 15 fixture'ach, a liczby wychodzą DZIŚ przyciskiem „kopiuj”.
+   To druga po `abilityUses` ofiara ręcznego `mergeStats`, więc R3 przestaje być
+   opcjonalne.
+2. **Dymek jest w podglądzie z archiwum martwy** (`UX-POPRAWKI.md A7`) —
+   `showTip` czyta walkę na żywo zamiast tego, co panel pokazuje.
+3. **W trakcie odtwarzania nie da się kliknąć nic poza sterowaniem**
+   (`UX-POPRAWKI.md A8`) — ta sama klasa, którą `2cabd6d` naprawił dla wierszy,
+   tyle że reszta panelu jej nie dostała.
+4. **Przycięcie bufora obniża sumy** (`SOLID.md §4.12`) — z zastrzeżeniem, że
+   **przesłanki nie potwierdza żaden fixture**: największy zrzut DOM (742 linie)
+   nadal ma linię otwierającą. Albo licznik zaniża, albo `merge` w nagrywarce to
+   martwa złożoność. Rozstrzyga jeden zrzut z długiej walki.
+5. **Kontrakt „nieznany kształt musi być głośny” ma wyjątki** — nieznana klasa
+   `dmg*` staje się cicho „bez żywiołu” (`SOLID.md §4.17`), a separator tysięcy
+   obcina liczbę bez `unknown` (`§4.19`).
+
+**Sprawdzone i NIE jest problemem** (żeby nikt nie badał drugi raz):
+
+- **Arytmetyka klatek odtwarzania jest poprawna** — `progress = at/lines.length`,
+  `seek(round(f·len))` i stan końcowy `at === lines.length` są spójne, bez
+  off‑by‑one. Odtwarzanie zatrzymuje się jedno bezczynne tyknięcie po ostatniej
+  klatce, co jest niewidoczne. (Osobna sprawa: `seek` skacze po liniach, gdy
+  etykieta mówi o turach — `UX-POPRAWKI.md B2`.)
+- **Heurystyka „ostatnia linia to niedomknięty cios” działa** — przejście
+  wszystkich klatek 15 fixture'ów dało **0 klatek** z `unknownLines > 0`, więc
+  ostrzeżenie w stopce nie mruga podczas odtwarzania.
+- **`Ticker` nie wycieka** — `stopReplay` jest osiągalne z `open`, `play`,
+  `loadPasted` i `closePreview`, a `step` sam się zatrzymuje na końcu. Listenery
+  sterowania są wiązane raz, na trwałych węzłach.
+- **Kolizja `.row` między delegacją overlaya a wierszem wklejania w archiwum jest
+  problemem stylu, nie klikania** — `rowIdentity` zwraca dla niego `null`.
+- **Syntetyczny log nie wjeżdża do bundle'a** — `dist/margometer.user.js` nie
+  zawiera ani `syntheticFight`, ani jego nazw.
 
 ## Przegląd kodu — 2026-07-19
 

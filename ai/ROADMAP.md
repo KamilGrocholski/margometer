@@ -1,34 +1,81 @@
 ## Roadmapa MergoMeter
 
-## Faza 1 - w trakcie (juz bardziej wiem)
-- Okno obrażeń
-- Lewy przycisk myszki na pojedynczą postać -> wchodzisz głębiej w staty tej postaci; statysyki wielu postaci -> statystyki jednego goscia/rzeczy
-    np. obrazenia: ranking wedlug obrazen kazdej postaci -> ranking obrazen wedlug umiejetnosci
-- Prawy przycisk myszki na pojedynczą postać -> wracasz z stat tej postaci/rzeczy
-- Szybkie przejscie z Wszyscy, My, Oni
-- Toggle do turowych statystyk
-- Hover na pojedyncz postac pokazuje skrot statystyk: zadane calkowite, otrzymane calkowite, 
-    ilosc efektow zprocowanych + ilosc efektow zprocowanych przez przeciwnika na sobie, 
-    czyli chodzi mi o efekty z legend, ktore beda liczone -> dotyk aniola xN, klatwa xN, cios bardzo krytyczy xN itd
-- Gdzie dac statystyki wedlug teamu, czy to jest wazne? Chodzi mi o mozliwosc porownania dwoch my i oni, gdzie to dac, jak, nie wiem
+Stan odhaczony 2026-07-30. Co jest zrobione, wynika z kodu; co zostało — z tego,
+czego log nie daje albo czego jeszcze nie zbudowano. Usterki w rzeczach już
+zrobionych nie wracają tutaj — siedzą w `UX-POPRAWKI.md` i `SOLID.md`.
 
-## Faza 2 (nie wiem jeszcze)
-- Otrzymane obrazenia
-- Uleczone
-- Procowanie (panel pod wszystkie efekty z legend, nie mam pojecia, jak to ma wygladac, to jest cos grubszego lub przesada)
+## Faza 1 — ZROBIONA
+- ✅ Okno obrażeń
+- ✅ LPM na pojedynczą postać → wejście w jej rozbicie; kolejne LPM na wiersz
+  będący postacią → szczebel niżej (czym padło). Zadane drążą się przez CEL,
+  otrzymane przez NAPASTNIKA.
+- ✅ PPM → powrót o jeden szczebel, z całego panelu. Do tego klik w okruszek
+  `‹ …` robi to samo.
+- ✅ Szybkie przejście Wszyscy / My / Oni
+- ✅ Przełącznik „na turę”
+  ⚠️ z zastrzeżeniem: `/t` znaczy dwie różne rzeczy zależnie od metryki i wiersze
+  nie sumują się do drużyny przy Zadanych — `README.md` „Na turę”, do decyzji
+  projektowej, nie do łatki.
+- ✅ Hover pokazuje skrót statystyk: zadane, otrzymane, leczenie, tury, utracone
+  tury, **efekty w ciosach** (`procs`) i **efekty otrzymane** (`procsReceived`),
+  czyli klątwy, dotyki anioła i bardzo krytyczne — po nazwie i liczbie.
+  ⚠️ ale w podglądzie z archiwum dymek dziś nie działa wcale (`UX-POPRAWKI.md A7`).
+- ✅ Statystyki wg drużyny: nagłówek stron z paskiem podziału i sumy zespołu
+  pod listą.
 
-## Do zbadania osobno - leczenie "od kogo"
-Wyleczone maja miec drill "wg postaci" jak zadane/otrzymane, ale PYTANIE, CZY SIE DA.
-Stan z korpusu (wszystkie linie leczenia): kazde leczenie jest samoistne, log nie
-nazywa leczacego. Trzy formy:
-- "Przywrocono N punktow zycia X" - regeneracja/kradziez zycia, BEZ zrodla
-- "X: Ostatni ratunek, zregenerowano N" - samoratunek, zrodlo = X sam
-- "Dotyk aniola: zregenerowano N punktow zycia X" - token przed dwukropkiem to
-  nazwa EFEKTU, nie postac; cel to znow X
-Wniosek: literalne "ktora postac leczyla" zawsze = leczony (samoleczenie), drill
-mialby jeden wiersz. Realne "od kogo" wymaga logu, gdzie JEDNA postac leczy DRUGA
-(np. paladyn sojusznika) - takiej linii w korpusie NIE MA, format sprawcy nieznany.
-Do zrobienia, gdy pojawi sie probka takiego logu: zlapac format i przypisac leczacego
-(analogicznie do napastnikow/trucizny). Alternatywa bez nowych danych: pierwszy
-szczebel "OD CZEGO" (zrodlo: Regeneracja/aura/samoratunek) - to praktycznie dzisiejsze
-healedBy, tylko jako drill. Patrz tez znane ograniczenie "Leczenie bez leczacego" w README.
+## Faza 2 — ZROBIONA poza „procowaniem”
+- ✅ Otrzymane obrażenia (pełne drążenie, lustro zadanych)
+- ✅ Uleczone (jeden szczebel: „OD CZEGO” — patrz ograniczenie niżej)
+- ⬜ **Procowanie jako osobny panel** — nadal bez pomysłu na kształt. Dane są
+  (`procs`, `procsReceived` liczone dla obu stron), brakuje decyzji, czy to
+  w ogóle ma być osobny widok, czy dymek wystarczy. Zderzyć z zasadą „nie robić
+  trzeciego rzędu zakładek” (`UX.md §6`).
+
+## Poza pierwotną roadmapą — zrobione
+- ✅ Nagrywanie surowych logów do `localStorage` z budżetem 1 MB
+- ✅ Archiwum walk + wczytanie nagrania do GŁÓWNEGO panelu (pełne drążenie)
+- ✅ Odtwarzanie walki linia po linii, z pauzą, przewijaniem i prędkością
+- ✅ Ręczne wklejenie logu
+- ✅ Kopiowanie statystyk (walka + sesja) jako JSON
+  ⚠️ suma sesji ma dziś błędne `dealtToBy` — `SOLID.md §4.11`
+- ✅ Rozbicie obrażeń wg typu + kolory i odznaki profesji
+- ✅ Skalowanie i zapamiętywanie geometrii okna
+  ⚠️ bez przycięcia do ekranu, czyli można je stracić — `UX-POPRAWKI.md A10`
+
+## Wstrzymane (nie porzucone)
+- ⏸ **Metryka „Tury”** — typ, etykieta i `turnRows` istnieją, ale `METRICS` ma
+  trzy pozycje, więc zakładka się nie rysuje; dwa testy stoją na `test.skip`.
+  CHANGELOG 0.1.0 obiecuje ją użytkownikowi — do rozstrzygnięcia: dokończyć albo
+  wycofać z obu miejsc.
+- ⏸ **Oś tur i skupienie ognia** — `renderAxis`/`renderFireFocus` napisane,
+  bez wywołania, 0 % pokrycia. Dwa ZIELONE testy asertują, że ich nie widać.
+- ⏸ **Zakładka zakresu (ta walka / sesja)** — `Session.total()` i `mergeStats`
+  liczą się przy każdej linii dla widoku, którego nie ma (`SOLID.md §4.25`).
+
+## Do zbadania osobno — leczenie „od kogo”
+Wyleczone mają mieć drill „wg postaci” jak zadane/otrzymane, ale PYTANIE, CZY SIĘ DA.
+Stan z korpusu (wszystkie linie leczenia): każde leczenie jest samoistne, log nie
+nazywa leczącego. Trzy formy:
+- „Przywrócono N punktów życia X” — regeneracja/kradzież życia, BEZ źródła
+- „X: Ostatni ratunek, zregenerowano N” — samoratunek, źródło = X sam
+- „Dotyk anioła: zregenerowano N punktów życia X” — token przed dwukropkiem to
+  nazwa EFEKTU, nie postać; cel to znów X
+
+Wniosek: literalne „która postać leczyła” zawsze = leczony (samoleczenie), drill
+miałby jeden wiersz. Realne „od kogo” wymaga logu, gdzie JEDNA postać leczy DRUGĄ
+(np. paladyn sojusznika) — takiej linii w korpusie NIE MA, format sprawcy nieznany.
+Do zrobienia, gdy pojawi się próbka takiego logu: złapać format i przypisać
+leczącego (analogicznie do napastników/trucizny). Alternatywa bez nowych danych:
+pierwszy szczebel „OD CZEGO” (źródło: Regeneracja/aura/samoratunek) — to
+praktycznie dzisiejsze `healedBy`, tylko jako drill. **To już jest zrobione.**
+Patrz też znane ograniczenie „Leczenie bez leczącego” w `README.md`.
+
+## Czego brakuje w korpusie fixture'ów
+Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`
+w `meta.json`, zweryfikowany po `covers`:
+- **log właścicielki** — formy żeńskie czasownika są obsłużone w regexach, ale
+  sprawdzone tylko na ręcznie pisanych stringach (`SOLID.md §4.8`);
+- **walka z przyciętym nagłówkiem** — rozstrzyga, czy `SOLID.md §4.12` (sumy
+  maleją) jest realne, czy `merge` w nagrywarce broni przed czymś, czego nie ma;
+- **`Zablokowanie N obrażeń` na ścieżce DOM** (w tekście jest);
+- **remis** — „Walka nie wyłoniła zwycięzcy” nie występuje w żadnym fixture.
