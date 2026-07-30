@@ -301,3 +301,102 @@ describe("na prawdziwym logu", () => {
     expect(recorded).toBe(expected);
   });
 });
+
+describe("walka przerwana odświeżeniem strony", () => {
+  test("nagranie w toku jest kontynuowane, a nie zakładane od nowa", () => {
+    // `on` przeżywa F5, ale wiedza o tym, KTÓRA walka trwa, siedziała tylko
+    // w pamięci — pierwszy capture po odświeżeniu nie miał czego dopasować
+    // i zakładał drugie nagranie, którego prefiksem było pierwsze.
+    const first = recorder();
+    first.toggle();
+    first.capture(FIGHT_A);
+    expect(first.count()).toBe(1);
+
+    const after = recorder();
+    expect(after.isRecording()).toBe(true);
+    after.capture(`${FIGHT_A}\nWilk(70%) uderzył z siłą +50 Kamil`);
+
+    expect(after.count()).toBe(1);
+    expect(storage.logs()).toHaveLength(1);
+    expect(storage.logs()[0]).toContain("Wilk(70%) uderzył z siłą +50 Kamil");
+  });
+
+  test("nowa walka po odświeżeniu dostaje własne nagranie", () => {
+    const first = recorder();
+    first.toggle();
+    first.capture(FIGHT_A);
+
+    const after = recorder();
+    after.capture(`${FIGHT_A}\n${FIGHT_B}`);
+
+    expect(after.count()).toBe(2);
+    expect(storage.logs()).toEqual([FIGHT_A, FIGHT_B]);
+  });
+});
+
+describe("ostatnia linia rosnąca w miejscu", () => {
+  test("dopisanie liczby do tej samej linii nie rozcina nagrania", () => {
+    // Gra trzyma cały blok ataku w JEDNYM węźle: tekst i liczby obrażeń stoją
+    // w tej samej linii, a zmiany przychodzą po mikrotasku. Dwie mutacje
+    // w różnych taskach dawały bufor z dłuższą wersją ostatniej linii.
+    const rec = recorder();
+    rec.toggle();
+    rec.capture("Rozpoczęła się walka pomiędzy Kamil(100h) a Wilk(80x)\nKamil(100%) uderzył z siłą");
+    rec.capture(
+      "Rozpoczęła się walka pomiędzy Kamil(100h) a Wilk(80x)\nKamil(100%) uderzył z siłą +120 Wilk",
+    );
+
+    expect(rec.count()).toBe(1);
+    expect(storage.logs()[0]).toContain("+120 Wilk");
+    // Urwana wersja linii nie może zostać obok pełnej.
+    expect(storage.logs()[0]!.split("\n")).toHaveLength(2);
+  });
+});
+
+describe("zepsuty indeks w magazynie", () => {
+  test("wpis bez rozmiaru nie zabija eksmisji", () => {
+    // `chars: undefined` dawało `chars() === NaN`, a `NaN > budżet` jest
+    // fałszem — limit magazynu znikał po cichu, razem z jedyną ochroną
+    // kubełka, który dzielimy z grą.
+    storage.setItem(
+      "margometer.rec.index",
+      JSON.stringify({ v: 1, next: 2, fights: [{ id: 1, title: "stara" }] }),
+    );
+
+    const rec = recorder({ budgetChars: FIGHT_A.length + 10 });
+    expect(rec.count()).toBe(0);
+    expect(Number.isFinite(rec.chars())).toBe(true);
+
+    rec.toggle();
+    rec.capture(FIGHT_A);
+    rec.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    expect(rec.chars()).toBeLessThanOrEqual(FIGHT_A.length + 10);
+  });
+
+  test("indeks w nieznanej wersji jest odrzucany, nie zgadywany", () => {
+    storage.setItem(
+      "margometer.rec.index",
+      JSON.stringify({ v: 2, next: 5, fights: [{ id: 1, title: "x", chars: 10, at: 1 }] }),
+    );
+    expect(recorder().count()).toBe(0);
+  });
+
+  test("nowe nagranie nie nadpisuje istniejącego, gdy `next` kłamie", () => {
+    storage.setItem("margometer.rec.7", FIGHT_A);
+    storage.setItem(
+      "margometer.rec.index",
+      JSON.stringify({
+        v: 1,
+        next: 1,
+        fights: [{ id: 7, title: "stara", chars: FIGHT_A.length, at: 1 }],
+      }),
+    );
+
+    const rec = recorder();
+    rec.toggle();
+    rec.capture(FIGHT_B);
+
+    expect(rec.list().map((one) => one.id)).toEqual([7, 8]);
+    expect(storage.logs()).toEqual([FIGHT_A, FIGHT_B]);
+  });
+});

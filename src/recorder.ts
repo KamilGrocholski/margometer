@@ -87,6 +87,27 @@ function splitLines(text: string): string[][] {
   return fights;
 }
 
+/**
+ * Czy wpis indeksu ma wszystko, czego od niego oczekujemy.
+ *
+ * Sprawdzamy KAŻDE pole, nie tylko kształt tablicy: brakujące `chars` psuło
+ * arytmetykę budżetu (`NaN > n` jest fałszem, więc eksmisja milkła), a brakujące
+ * `at` dawało „NaN.NaN NaN:NaN" w wierszu archiwum.
+ */
+function isRecording(value: unknown): value is Recording {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as Partial<Recording>;
+  return (
+    typeof entry.id === "number" &&
+    Number.isFinite(entry.id) &&
+    typeof entry.chars === "number" &&
+    Number.isFinite(entry.chars) &&
+    typeof entry.at === "number" &&
+    Number.isFinite(entry.at) &&
+    typeof entry.title === "string"
+  );
+}
+
 /** Ta sama funkcja widziana z zewnątrz — walki jako teksty. Do testów. */
 export function splitRawFights(text: string): string[] {
   return splitLines(text).map((lines) => lines.join("\n"));
@@ -103,7 +124,21 @@ export function splitRawFights(text: string): string[] {
 function continues(previous: string[], current: string[]): boolean {
   if (!current.some((line) => FIGHT_START.test(line))) return true;
   if (current.length < previous.length) return false;
-  return previous.every((line, i) => line === current[i]);
+  return previous.every((line, i) => sameOrGrown(line, current[i], i === previous.length - 1));
+}
+
+/**
+ * Czy linia się zgadza — z jednym ustępstwem dla OSTATNIEJ.
+ *
+ * Gra trzyma cały blok ataku w jednym węźle: tekst „uderzył z siłą" i liczby
+ * obrażeń stoją w TEJ SAMEJ linii, a `DomLogSource` zgłasza zmiany po
+ * mikrotasku. Dwie mutacje tego samego węzła w różnych taskach dawały więc
+ * bufor, którego ostatnia linia jest DŁUŻSZĄ wersją poprzedniej — twarde
+ * porównanie uznawało to za inną walkę i rozcinało nagranie na dwa.
+ */
+function sameOrGrown(previous: string, current: string | undefined, last: boolean): boolean {
+  if (current === undefined) return false;
+  return previous === current || (last && current.startsWith(previous));
 }
 
 /**
@@ -118,9 +153,11 @@ function continues(previous: string[], current: string[]): boolean {
 function merge(previous: string[], current: string[]): string[] {
   for (let overlap = Math.min(previous.length, current.length); overlap > 0; overlap -= 1) {
     const tail = previous.slice(previous.length - overlap);
-    if (tail.every((line, i) => line === current[i])) {
-      return [...previous, ...current.slice(overlap)];
-    }
+    const fits = tail.every((line, i) => sameOrGrown(line, current[i], i === tail.length - 1));
+    if (!fits) continue;
+    // Ostatnia wspólna linia mogła urosnąć w miejscu (patrz `sameOrGrown`),
+    // więc bierzemy jej świeższą wersję zamiast tej, którą mamy zapisaną.
+    return [...previous.slice(0, previous.length - 1), current[overlap - 1]!, ...current.slice(overlap)];
   }
   return [...previous, ...current];
 }
@@ -153,6 +190,20 @@ export class Recorder {
     this.now = options.now ?? Date.now;
     this.index = this.loadIndex();
     this.on = this.storage?.getItem(FLAG_KEY) === "1";
+    // Nagrywanie przeżywa odświeżenie strony — i musi je przeżyć także wiedza
+    // o tym, KTÓRA walka jest w toku. Bez tego pierwszy `capture` po F5 nie ma
+    // z czym dopasować bufora, zakłada nowe nagranie i ta sama walka ląduje
+    // w archiwum dwa razy: raz urwana, raz cała.
+    if (this.on) this.active = this.resume();
+  }
+
+  /** Ostatnie nagranie jako walka „w toku" — punkt zaczepienia po odświeżeniu. */
+  private resume(): ActiveRecording[] {
+    const last = this.index.fights.at(-1);
+    if (!last) return [];
+    const text = this.read(last.id);
+    if (text === null) return [];
+    return [{ id: last.id, lines: text.split("\n"), saved: text.length }];
   }
 
   isRecording(): boolean {
@@ -214,7 +265,13 @@ export class Recorder {
     for (const fight of [...this.index.fights]) this.drop(fight.id);
     this.active = [];
     this.failed = false;
-    this.write(INDEX_KEY, JSON.stringify(this.index));
+    try {
+      // Bez `write`: ono przy odmowie gasi nagrywanie, a tu nie ma już czego
+      // zwalniać — czyszczenie archiwum nie może wyłączać zapisu.
+      this.storage?.setItem(INDEX_KEY, JSON.stringify(this.index));
+    } catch {
+      // Pusty indeks, którego nie dało się zapisać, odtworzy się przy starcie.
+    }
   }
 
   /**
@@ -245,7 +302,9 @@ export class Recorder {
 
     this.active = next;
 
-    for (const fight of this.active) {
+    // Kopia, bo `evict`/`drop` w środku zapisu podmieniają `this.active` —
+    // pętla po żywej tablicy oznaczała `saved` na nagraniu, którego już nie ma.
+    for (const fight of [...this.active]) {
       const content = fight.lines.join("\n");
       // Zapis idzie kluczem na walkę, nie jednym blobem — inaczej każda nowa
       // linia logu przepisywałaby całe archiwum, synchronicznie, w wątku gry.
@@ -257,6 +316,7 @@ export class Recorder {
 
   private save(id: number, text: string): boolean {
     const entry = this.index.fights.find((fight) => fight.id === id);
+    const previousChars = entry?.chars;
     if (entry) entry.chars = text.length;
     else {
       this.index.fights.push({
@@ -270,8 +330,14 @@ export class Recorder {
     // Miejsce robimy PRZED zapisem i kosztem najstarszych nagrań — bieżąca
     // walka jest tą, której użytkownik pilnuje.
     this.evict(id);
-    if (!this.write(KEY_PREFIX + id, text)) return false;
-    return this.write(INDEX_KEY, JSON.stringify(this.index));
+    if (!this.write(KEY_PREFIX + id, text, id)) {
+      // Zapis tekstu padł, więc wpis w indeksie obiecywałby nagranie, którego
+      // nie ma: `read()` zwróciłby null, a `count()`/`chars()` liczyłyby widmo.
+      if (entry) entry.chars = previousChars ?? 0;
+      else this.index.fights = this.index.fights.filter((fight) => fight.id !== id);
+      return false;
+    }
+    return this.write(INDEX_KEY, JSON.stringify(this.index), id);
   }
 
   /** Kasuje najstarsze nagrania, aż suma zmieści się w budżecie. `keep` zostaje. */
@@ -297,13 +363,18 @@ export class Recorder {
    * Zapis z ustępowaniem miejsca. Gdy magazyn odmówi, kasujemy własne najstarsze
    * nagranie i próbujemy ponownie — pełny kubełek uderzyłby w grę, nie w nas.
    */
-  private write(key: string, value: string): boolean {
+  private write(key: string, value: string, keep?: number): boolean {
     for (;;) {
       try {
         this.storage?.setItem(key, value);
         return true;
       } catch {
-        const oldest = this.index.fights.find((fight) => KEY_PREFIX + fight.id !== key);
+        // `keep` osobno od klucza: przy zapisie INDEKSU porównanie klucza nie
+        // trafia w żadne nagranie, więc bez tego dało się skasować właśnie
+        // nagrywaną walkę, żeby zrobić miejsce na indeks, który ją opisuje.
+        const oldest = this.index.fights.find(
+          (fight) => fight.id !== keep && KEY_PREFIX + fight.id !== key,
+        );
         if (!oldest) break;
         this.drop(oldest.id);
       }
@@ -315,19 +386,32 @@ export class Recorder {
     return false;
   }
 
+  /**
+   * Wczytuje indeks, ufając mu tylko na tyle, na ile go sprawdzimy.
+   *
+   * Magazyn dzielimy z grą i z własnymi przyszłymi wersjami, więc pod kluczem
+   * może stać cokolwiek. Wpis bez `chars` dawał `chars() === NaN`, a wtedy
+   * `while (chars() > budget)` jest fałszem — eksmisja przestawała działać
+   * i limit magazynu znikał po cichu. Pole `v` było przy tym WYMUSZANE na 1,
+   * a nie sprawdzane, więc przyszły format czytałby się jako dzisiejszy.
+   */
   private loadIndex(): Index {
+    const fresh = (): Index => ({ ...EMPTY_INDEX, fights: [] });
     try {
       const raw = this.storage?.getItem(INDEX_KEY);
-      if (!raw) return { ...EMPTY_INDEX, fights: [] };
+      if (!raw) return fresh();
       const parsed = JSON.parse(raw) as Partial<Index>;
-      if (!Array.isArray(parsed.fights)) return { ...EMPTY_INDEX, fights: [] };
-      return {
-        v: 1,
-        next: typeof parsed.next === "number" ? parsed.next : parsed.fights.length + 1,
-        fights: parsed.fights,
-      };
+      if (parsed.v !== 1) return fresh();
+      if (!Array.isArray(parsed.fights)) return fresh();
+
+      const fights = parsed.fights.filter(isRecording);
+      // `next` nigdy poniżej największego znanego id — inaczej nowe nagranie
+      // nadpisałoby stare pod tym samym kluczem.
+      const highest = fights.reduce((max, fight) => Math.max(max, fight.id), 0);
+      const next = typeof parsed.next === "number" && Number.isFinite(parsed.next) ? parsed.next : 0;
+      return { v: 1, next: Math.max(next, highest + 1), fights };
     } catch {
-      return { ...EMPTY_INDEX, fights: [] };
+      return fresh();
     }
   }
 }
