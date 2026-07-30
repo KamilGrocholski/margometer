@@ -317,11 +317,17 @@ export class Archive {
     };
   }
 
-  /** Świeży opis stanu odtwarzania dla panelu. */
-  private currentReplayView(): ReplayView | null {
+  /**
+   * Świeży opis stanu odtwarzania dla panelu.
+   *
+   * Statystyki klatki dostaje z zewnątrz, a nie liczy sam: potrzebuje z nich
+   * wyłącznie liczby tur do etykiety, a `pushFrame` i tak musi je mieć dla
+   * panelu. Liczone tu osobno znaczyły PODWÓJNE parsowanie prefiksu na każdą
+   * klatkę — przy dłuższym nagraniu sekundy pracy na jedno odtworzenie.
+   */
+  private currentReplayView(shown: BattleStats): ReplayView | null {
     const replay = this.replay;
     if (!replay) return null;
-    const shown = this.frameStats(replay.at);
     return {
       playing: replay.playing,
       progress: replay.lines.length === 0 ? 0 : replay.at / replay.lines.length,
@@ -399,8 +405,9 @@ export class Archive {
   private pushFrame(): void {
     const replay = this.replay;
     if (!replay) return;
-    replay.view.replay = this.currentReplayView();
-    this.overlay.showPreview(this.frameStats(replay.at), replay.view);
+    const shown = this.frameStats(replay.at);
+    replay.view.replay = this.currentReplayView(shown);
+    this.overlay.showPreview(shown, replay.view);
   }
 
   private stopReplay(): void {

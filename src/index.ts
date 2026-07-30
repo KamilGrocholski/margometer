@@ -31,7 +31,9 @@ export function start(
     // Nagrywamy ten sam tekst, który dostał parser — nagranie ma odtwarzać
     // wejście licznika, a nie jego wynik.
     recorder?.capture(text);
-    overlay.render(session.current(), session.total());
+    // Sumę sesji podajemy jako funkcję: policzy się dopiero, gdy ktoś jej
+    // zażąda (dziś tylko przycisk kopiowania), a nie przy każdej linii logu.
+    overlay.render(session.current(), () => session.total());
   });
 }
 

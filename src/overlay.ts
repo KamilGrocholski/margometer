@@ -774,7 +774,13 @@ export class Overlay {
    * w którego weszliśmy wewnątrz postaci. `null` to lista napastników.
    */
   private focusSource: string | null = null;
-  private latest: { fight: BattleStats; session: BattleStats } | null = null;
+  /**
+   * Ostatnio podane statystyki. Sesja jako FUNKCJA, nie gotowa wartość:
+   * `mergeStats` głęboko kopiuje i sortuje każde rozbicie każdej postaci,
+   * a panel nie pokazuje dziś sumy sesji — czyta ją tylko przycisk kopiowania.
+   * Liczenie jej przy każdej linii logu było pracą w wątku gry na nic.
+   */
+  private latest: { fight: BattleStats; session: () => BattleStats } | null = null;
   /**
    * Tury całej walki — dzielnik dla metryk, których nie bierze się we własnej
    * turze (patrz `turnsFor`). Trzymane w polu, bo potrzebuje go kilka metod
@@ -918,8 +924,8 @@ export class Overlay {
     window.addEventListener("resize", () => this.moveTo(this.state.x, this.state.y));
   }
 
-  render(fight: BattleStats, session: BattleStats): void {
-    this.latest = { fight, session };
+  render(fight: BattleStats, session: BattleStats | (() => BattleStats)): void {
+    this.latest = { fight, session: typeof session === "function" ? session : () => session };
     // Akcje należą do TEJ wersji panelu: co render buduje, to render rejestruje.
     // Bez czyszczenia zostałaby tu obsługa przycisków, których już nie ma —
     // choćby „na żywo” po zamknięciu podglądu.
@@ -1327,7 +1333,7 @@ export class Overlay {
         tool: "MargoMeter",
         at: new Date().toISOString(),
         fight: this.latest?.fight ?? null,
-        session: this.latest?.session ?? null,
+        session: this.latest?.session() ?? null,
       },
       null,
       2,
@@ -2456,7 +2462,7 @@ export class Overlay {
   private rerender(): void {
     // Pusty komplet, gdy nic jeszcze nie przyszło z gry: podgląd z archiwum
     // i przycisk ▤ muszą dać się narysować przed pierwszą walką.
-    const latest = this.latest ?? { fight: EMPTY_STATS, session: EMPTY_STATS };
+    const latest = this.latest ?? { fight: EMPTY_STATS, session: () => EMPTY_STATS };
     this.render(latest.fight, latest.session);
   }
 

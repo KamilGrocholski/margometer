@@ -238,6 +238,13 @@ export class Session {
   private active: ActiveFight[] = [];
   private readonly archived: BattleStats[] = [];
   private currentStats: BattleStats = EMPTY_STATS;
+  /**
+   * Ostatnio policzona suma sesji. `mergeStats` głęboko kopiuje i sortuje każde
+   * rozbicie każdej postaci, a `total()` leci przy KAŻDEJ linii logu — dla
+   * widoku, którego dziś nie ma (jedynym odbiorcą jest przycisk kopiowania).
+   * Liczymy więc dopiero, gdy ktoś naprawdę pyta, i tylko raz na zmianę.
+   */
+  private totalStats: BattleStats | null = null;
 
   /**
    * `fromGame` to skład odczytany z gry dla TRWAJĄCEJ walki, więc stosujemy go
@@ -280,6 +287,7 @@ export class Session {
 
     this.active = next;
     this.currentStats = next.at(-1)?.stats ?? EMPTY_STATS;
+    this.totalStats = null;
   }
 
   /** Statystyki ostatniej walki widocznej w logu. */
@@ -287,14 +295,18 @@ export class Session {
     return this.currentStats;
   }
 
-  /** Statystyki zsumowane ze wszystkich walk sesji. */
+  /** Statystyki zsumowane ze wszystkich walk sesji. Liczone leniwie. */
   total(): BattleStats {
-    return mergeStats([...this.archived, ...this.active.map((fight) => fight.stats)]);
+    return (this.totalStats ??= mergeStats([
+      ...this.archived,
+      ...this.active.map((fight) => fight.stats),
+    ]));
   }
 
   reset(): void {
     this.active = [];
     this.archived.length = 0;
     this.currentStats = EMPTY_STATS;
+    this.totalStats = null;
   }
 }

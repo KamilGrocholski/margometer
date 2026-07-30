@@ -3006,3 +3006,47 @@ describe("przyciski panelu przeżywają przebudowę w środku gestu", () => {
     expect(metricButton(overlay, "Zadane").getAttribute("aria-pressed")).toBe("true");
   });
 });
+
+describe("koszt sumy sesji", () => {
+  test("suma sesji nie liczy się przy każdej linii logu", async () => {
+    // `mergeStats` głęboko kopiuje i sortuje każde rozbicie każdej postaci,
+    // a panel nie ma dziś zakładki sesji — czyta ją tylko przycisk kopiowania.
+    // Liczenie jej co linię było pracą w wątku gry na nic.
+    class CountingSession extends Session {
+      totals = 0;
+      override total() {
+        this.totals += 1;
+        return super.total();
+      }
+    }
+
+    /** Źródło sterowane ręcznie — log rośnie linia po linii, jak w grze. */
+    class GrowingSource {
+      private listener: ((text: string) => void) | null = null;
+      subscribe(listener: (text: string) => void) {
+        this.listener = listener;
+        return () => {
+          this.listener = null;
+        };
+      }
+      emit(text: string) {
+        this.listener?.(text);
+      }
+    }
+
+    const text = await readFixture("new-engine/2026-07-18_tancerz-vs-kukla");
+    const lines = text.split("\n");
+    const source = new GrowingSource();
+    const session = new CountingSession();
+    const overlay = new Overlay();
+    start(source, overlay, session);
+
+    for (let i = 1; i <= lines.length; i += 1) source.emit(lines.slice(0, i).join("\n"));
+
+    expect(overlay.shadow.querySelectorAll(".row").length).toBeGreaterThan(0);
+    expect(session.totals).toBe(0);
+
+    // Ale gdy ktoś naprawdę pyta — liczba jest na miejscu.
+    expect(session.total().actors.length).toBeGreaterThan(0);
+  });
+});
