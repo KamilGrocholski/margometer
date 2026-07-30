@@ -5,28 +5,10 @@
  * pliku IIFE z nagłówkiem metadanych na samej górze.
  */
 import { syntheticFight } from "./tools/synthetic-log.ts";
+import pkg from "./package.json" with { type: "json" };
+import { banner } from "./tools/userscript-meta.ts";
 
-/**
- * Wzorzec `@match` porównuje ścieżkę RAZEM z query stringiem, więc
- * "https://*.margonem.pl/" nie łapie adresu z jakimkolwiek "?...". Świat gry
- * bywa otwierany właśnie tak — stąd "/*" i odsianie reszty przez `@exclude`.
- */
-const BANNER = `// ==UserScript==
-// @name         MargoMeter
-// @namespace    https://github.com/margometer
-// @version      0.1.0
-// @description  Licznik obrażeń do Margonem — statystyki z okna walki
-// @author       kamil
-// @match        https://*.margonem.pl/*
-// @match        https://*.margonem.com/*
-// @exclude      https://www.margonem.pl/*
-// @exclude      https://www.margonem.com/*
-// @exclude      https://forum.margonem.pl/*
-// @exclude      https://commons.margonem.pl/*
-// @grant        none
-// @run-at       document-idle
-// ==/UserScript==
-`;
+const BANNER = banner(pkg.version, pkg.description);
 
 const result = await Bun.build({
   entrypoints: ["./src/userscript.ts"],
@@ -117,7 +99,9 @@ const ARCHIVED = [
 const texts = await Promise.all(ARCHIVED.map((path) => Bun.file(path).text()));
 const seed = `
 (() => {
-  const logs = ${JSON.stringify(texts)};
+  // "</" rozbite na dwa znaki: parser HTML kończy <script> na pierwszym
+  // "</script>" W TREŚCI, a escapowanie JSON-a samo tego nie neutralizuje.
+  const logs = ${JSON.stringify(texts).replace(/<\//g, "<\\/")};
   const now = Date.now();
   const fights = logs.map((text, i) => {
     localStorage.setItem("margometer.rec." + (i + 1), text);

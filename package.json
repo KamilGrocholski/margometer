@@ -1,11 +1,16 @@
 {
   "name": "margometer",
+  "version": "0.2.0",
+  "description": "Licznik obrażeń do Margonem — statystyki z okna walki",
+  "private": true,
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
     "build": "bun run build.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "coverage": "bun test --coverage",
+    "check": "bun run typecheck && bun test && bun run build"
   },
   "devDependencies": {
     "@types/bun": "latest",

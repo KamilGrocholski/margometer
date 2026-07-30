@@ -17,6 +17,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+## [0.2.0] — 2026-07-30
+
 ### Dodane
 - Drążenie obrażeń **zadanych wg celu**: wejście w postać pokazuje najpierw komu
   zadała, a po wejściu w cel — czym (broń, umiejętności, trucizna).
@@ -42,21 +44,48 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   „wklejony log") i czyja to walka. Licznik na żywo leci w tle bez przerwy,
   a „na żywo" wraca do bieżącej walki.
 
+- **Rozbicie obrażeń według rodzaju** (ogień, zimno, błyskawice, trucizna,
+  krwawienie…) jako drugi przekrój obok „czym zadane".
+- **Kolor paska według profesji** i literowa odznaka przy nazwie — postać
+  poznaje się po barwie, a nie po miejscu na liście. Odznaka jest tu warunkiem,
+  nie ozdobą: przy daltonizmie sam kolor sześciu profesji nie rozróżnia.
+
 ### Zmienione
 - Rozbicie **leczenia** nazwane „OD CZEGO" (źródło: regeneracja, aura,
   samoratunek) — spójnie z „OD KOGO / KOMU" przy obrażeniach.
+- Dodatek **nie uruchamia się poza grą**: podstrony w rodzaju pomocy są
+  wykluczone, a tam, gdzie nie widać ani gry, ani okna walki, panel się nie
+  rysuje i przeszukiwanie strony samo gaśnie.
+- Zakładka **Tury** wycofana z opisu wydania 0.1.0 — nigdy nie dało się jej
+  wybrać w panelu. Średnia „na turę" jest za to w każdym wierszu.
 
 ### Naprawione
 - Poprawna obsługa **walk grupowych** i nowych linii logu: leczenie potworów bez
   procenta życia, utrata tury z powodem w nawiasie, wzmocnienie za małą grupę,
   ładowanie ciosów specjalnych, „Przerwanie ciosu specjalnego" oraz leczenie
   „Ostatni ratunek" wcięte w środek tury — wcześniej gubiły część statystyk.
+- **Dymek nad wierszem wczytanego nagrania** znów się pokazuje. Wcześniej dla
+  walki z archiwum nie pojawiał się wcale, a gdy w tle trwała walka z postacią
+  o tej samej nazwie — pokazywał jej liczby.
+- **Kliknięcia w trakcie odtwarzania** nie giną: zakładki, okruszek i przyciski
+  nagrywania działają także wtedy, gdy panel przebudowuje się co klatkę.
+  Wcześniej przy prędkości 4× nie dało się nawet wyjść z podglądu bez pauzy.
+- **Okna nie da się już zgubić za krawędzią ekranu.** Panel i archiwum zostają
+  w zasięgu myszy także po zmianie rozdzielczości albo po otwarciu gry na
+  węższym ekranie niż ten, na którym ustawiono położenie.
+- **Prawy przycisk w polu wklejania logu** otwiera normalne menu przeglądarki
+  zamiast cofać widok — bez tego nie dało się wkleić logu myszą.
+- **Wpisany log nie znika** po zakończeniu walki w tle, a lista archiwum nie
+  przewija się sama na górę.
+- **Dymek rysuje się nad panelem i nad archiwum**, a nie pod nimi.
+- **Suma sesji** liczy poprawnie rozbicie „komu zadał" — dotąd zatrzymywała się
+  na pierwszej walce (widoczne w kopiowanych statystykach).
 
 ## [0.1.0] — pierwsze wydanie
 
 ### Dodane
 - Nakładka z licznikiem obrażeń nad grą, czytana na żywo z okna walki.
-- Metryki: **Zadane**, **Otrzymane**, **Leczenie**, **Tury**.
+- Metryki: **Zadane**, **Otrzymane**, **Leczenie**.
 - Filtr składu: **Wszyscy / Mój zespół / Przeciwnicy** oraz przełącznik **na turę**.
 - Dymek ze skrótem statystyk postaci; przeciąganie i zwijanie nakładki
   z zapamiętaną pozycją.
