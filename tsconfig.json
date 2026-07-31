@@ -19,9 +19,11 @@
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
 
-    // Some stricter flags (disabled by default)
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    // Martwy kod ma być BŁĘDEM, nie lekturą. Repo nie ma lintera, więc to jedyna
+    // czujka na funkcje, które nikt nie woła — a takich narosło (renderAxis,
+    // renderFireFocus, turnRows) i wykrył je dopiero ręczny przegląd.
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false
   }
 }

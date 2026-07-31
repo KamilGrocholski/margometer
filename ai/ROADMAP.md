@@ -47,12 +47,21 @@ zrobionych nie wracają tutaj — siedzą w `UX-POPRAWKI.md` i `SOLID.md`.
   ⚠️ bez przycięcia do ekranu, czyli można je stracić — `UX-POPRAWKI.md A10`
 
 ## Wstrzymane (nie porzucone)
-- ⏸ **Metryka „Tury”** — typ, etykieta i `turnRows` istnieją, ale `METRICS` ma
-  trzy pozycje, więc zakładka się nie rysuje; dwa testy stoją na `test.skip`.
-  CHANGELOG 0.1.0 obiecuje ją użytkownikowi — do rozstrzygnięcia: dokończyć albo
-  wycofać z obu miejsc.
-- ⏸ **Oś tur i skupienie ognia** — `renderAxis`/`renderFireFocus` napisane,
-  bez wywołania, 0 % pokrycia. Dwa ZIELONE testy asertują, że ich nie widać.
+- ⏸ **Metryka „Tury”** — typ `Metric` i etykieta zostają, ale `METRICS` ma trzy
+  pozycje, więc zakładki nie ma. `turnRows` (jej rozbicie w dymku) **zdjęte
+  z drzewa 2026‑07‑31** razem z dwoma `test.skip`, które trzymały je przy
+  pozorach życia. Kod stoi w historii: ostatnia wersja z nim to `95d02d7`.
+  CHANGELOG 0.1.0 obiecuje tę metrykę użytkownikowi — do rozstrzygnięcia:
+  dokończyć albo wycofać z CHANGELOG-a.
+- ⏸ **Oś tur i skupienie ognia** — `renderAxis`/`renderFireFocus` **zdjęte
+  z drzewa 2026‑07‑31** wraz z ich CSS-em i dwoma zielonymi testami, które
+  asertowały, że ich nie widać. Nie porzucone: kod stoi w historii, ostatnia
+  wersja z nim to `95d02d7`, i wraca w komplecie, gdy zapadnie decyzja, CO ma
+  pokazywać. Powód zdjęcia: `noUnusedLocals` jest odtąd włączone i martwy kod
+  jest błędem kompilacji, a kompilator pilnujący tego jest wart więcej niż trzy
+  metody czekające w drzewie.
+  ⚠️ `stats.deaths` i `stats.matrix` liczą się dalej, ale od tej pory nie czyta
+  ich NIC poza testami — patrz `AUDYT.md AUDYT‑25`.
 - ⏸ **Zakładka zakresu (ta walka / sesja)** — `Session.total()` i `mergeStats`
   liczą się przy każdej linii dla widoku, którego nie ma (`SOLID.md §4.25`).
 

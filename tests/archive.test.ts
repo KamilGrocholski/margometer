@@ -3,14 +3,12 @@ import { Archive, fightLabel, whenLabel, type ArchiveRecorder } from "../src/arc
 import { Overlay } from "../src/overlay.ts";
 import { parse } from "../src/parser.ts";
 import { aggregate } from "../src/stats.ts";
-import type { Ticker } from "../src/window.ts";
 import type { Recording } from "../src/recorder.ts";
 import { ManualTicker } from "./manual-ticker.ts";
 
 const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
 const readFixture = (name: string) => Bun.file(`${FIXTURES}new-engine/${name}/raw.txt`).text();
 
-/** Zegar sterowany ręcznie — bez tego nie da się sprawdzić kolejnych klatek. */
 /** Nagrywarka w pamięci — archiwum widzi tylko listę i odczyt. */
 function fakeRecorder(logs: { id: number; at: number; text: string }[]): ArchiveRecorder {
   return {
@@ -39,7 +37,6 @@ const storage = {
 let ticker: ManualTicker;
 
 beforeEach(() => {
-  document.body.innerHTML = "";
   store.clear();
   ticker = new ManualTicker();
 });

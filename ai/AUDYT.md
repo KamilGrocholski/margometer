@@ -23,10 +23,10 @@ Koszt: XS / S / M / L. Znacznik ✓ = teza **zreprodukowana albo zmierzona**
 podczas tego audytu, nie wywnioskowana z lektury.
 
 **Stan na 2026‑07‑31:** naprawione są `AUDYT‑1`…`AUDYT‑5`, `8`–`13`, `15`, `16`
-i `20`–`23`. `AUDYT‑7` **odrzucone** — teza okazała się błędna przy sprawdzeniu,
+i `20`–`24`. `AUDYT‑7` **odrzucone** — teza okazała się błędna przy sprawdzeniu,
 szczegóły przy wpisie. Otwarte zostają dwie wymagające DECYZJI, nie roboty
-(`AUDYT‑6` brak specu, `14` decyzja wizualna), `AUDYT‑24` (testy i linter) oraz
-drobiazgi `17`–`19`. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
+(`AUDYT‑6` brak specu, `14` decyzja wizualna), nowe `AUDYT‑25` (zablokowane tą
+samą decyzją co oś tur) oraz drobiazgi `17`–`19`. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
 wykonanie odbiegło od propozycji, jest to powiedziane wprost.
@@ -58,7 +58,8 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑15~~ | Cztery reguły `:focus-visible` są martwe | 🟡 | M | **✅** |
 | ~~AUDYT‑16~~ | Ustawienia widoku giną po F5, geometria przeżywa | 🟡 | S | **✅** |
 | ~~AUDYT‑23~~ | Nieograniczone `archived` i `summaries` | 🟡 | S | **✅** |
-| AUDYT‑24 | Brak `stats.test.ts` i `session.test.ts`; brak lintera | 🟡 | M | ✓ |
+| ~~AUDYT‑24~~ | Brak `stats.test.ts` i `session.test.ts`; brak lintera | 🟡 | M | **✅** |
+| AUDYT‑25 | `deaths` i `matrix` liczone dla nikogo | ⚪ | S | ✓ |
 | ~~AUDYT‑7~~ | `unattributedHealing` liczone i nigdy niepokazane | — | — | **❌ odrzucone** |
 | AUDYT‑17 | Wielkie/małe litery i puste stany bez odmiany | ⚪ | S | |
 | AUDYT‑18 | ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba | ⚪ | S | |
@@ -769,10 +770,69 @@ pokrycie 93,3 % linii.
 (zostaje ~1200 linii o overlayu). Włączyć `noUnusedLocals` — sam ten przełącznik
 zamienia AUDYT‑22 i `§9` z lektury w błąd kompilacji. **Koszt M.**
 
+**Zrobione.** Dwie rzeczy, obie wymierne.
+
+**Linter.** `noUnusedLocals` i `noUnusedParameters` włączone w `tsconfig.json`.
+Zgłosiły dokładnie trzy metody — `renderFireFocus`, `renderAxis`, `turnRows` —
+czyli martwy kod z `§9`, który dotąd wykrywał wyłącznie ręczny przegląd. To
+wymusiło decyzję „porzucone czy wstrzymane”: **kod zszedł z drzewa, ale nie
+z projektu**. Stoi w historii (ostatnia wersja: `95d02d7`), `ROADMAP.md` trzyma
+przy obu pozycjach `⏸` wskaźnik na ten commit i wraca w komplecie, gdy zapadnie
+decyzja, CO ma pokazywać. Poszły z nim osierocony CSS (`.focus*`, `.axis*`,
+`.tip-row*`), dwa ZIELONE testy asertujące jego nieobecność i dwa `test.skip` —
+zestaw nie ma już ani jednego pominiętego testu.
+
+**Podział testów.** `overlay.test.ts` **3610 → 2402 linii**, a jego udział
+w zestawie **45 % → 27 %** (125 z 470 testów). Powstały pliki nazwane tym, co
+faktycznie testują:
+
+| plik | testów | co |
+|---|---|---|
+| `stats.test.ts` | 55 | agregacja, odwracanie rozbić, trucizna bez sprawcy |
+| `session.test.ts` | 18 | tożsamość walki, sumowanie sesji |
+| `source.test.ts` | 17 | odczyt DOM gry, znajdowanie okna walki |
+| `palette.test.ts` | 9 | przypisanie kolorów |
+| `index.test.ts` | 8 | `start()` i `boot()` (wchłonęło `boot.test.ts`) |
+
+Wspólne narzędzia wyjęte do `tests/helpers.ts`, `ManualTicker` do
+`tests/manual-ticker.ts`. Suma testów zgadza się co do sztuki: 470 = 36+8+125+9+
+142+47+18+17+55+6+7.
+
+**Znalezione przy okazji.** Czyszczenie DOM stało lokalnie w `overlay.test.ts`
+i — jak się okazało — chroniło przy okazji CAŁY zestaw: `document` jest wspólny
+dla plików, więc po rozbiciu węzeł zostawiony przez jeden test zmylił
+`findBattleLog` w drugim. Przeniesione do `tests/setup.dom.ts`, czyli tam, gdzie
+obowiązuje wszystkich.
+
 **Docelowo.** → `SOLID.md` `§10` (testy) + nowy refaktor `R9`
 
 ---
 
+### AUDYT‑25 — `deaths` i `matrix` liczone dla nikogo ⚪ S — nowe ✓
+`src/stats.ts` (`aggregate`), zero odczytów w `src/` poza testami
+
+**Problem.** Po zdjęciu `renderAxis`/`renderFireFocus` (`AUDYT‑24`) pola
+`BattleStats.deaths` i `BattleStats.matrix` nie są czytane przez NIC w `src/` —
+tylko przez testy. Liczą się przy każdej walce, jadą przez `aggregate`, siedzą
+w typie i w JSON‑ie ze schowka.
+
+To nie jest usterka wprowadzona tamtą zmianą: były martwe już wcześniej, tyle że
+przez martwy kod, a nie wprost. `noUnusedLocals` ich nie złapie, bo pola obiektu
+nie są zmienną — czujka kończy się na funkcjach.
+
+**Skąd zwłoka.** Nie usuwam ich razem z rendererami, bo to ta sama decyzja co
+przy `ROADMAP ⏸`: oś tur i skupienie ognia mają wrócić, a wtedy oba pola będą
+im potrzebne. Usunięcie teraz znaczyłoby wyrzucenie także liczenia, testów
+i kawałka `aggregate` — i odtwarzanie tego przy powrocie.
+
+**Propozycja.** Rozstrzygnąć RAZEM z `ROADMAP ⏸` „Oś tur i skupienie ognia”:
+albo wraca cała funkcja i pola mają odbiorcę, albo znika i pola idą za nią.
+Do tego czasu zostaje to zapisane tutaj, żeby nie wyglądało na przeoczenie.
+**Koszt S**, ale zablokowane decyzją.
+
+**Docelowo.** → `SOLID.md` `§9`, razem z resztą uśpionego kodu
+
+---
 ## G. Otwarte z poprzednich rund
 
 Bez nowych ID — sam wskaźnik, żeby ten dokument był pełną migawką otwartych

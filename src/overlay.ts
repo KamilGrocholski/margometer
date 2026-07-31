@@ -351,24 +351,6 @@ button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
 .crumb-back { cursor: pointer; border-radius: 3px; padding: 1px 4px; margin-left: -4px; color: inherit; }
 .crumb-back:hover { background: #26262c; }
 .crumb-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Dwie linijki, które da się wykorzystać W TRAKCIE walki grupowej. */
-.focus { padding: 4px 8px 0; display: flex; flex-direction: column; gap: 2px; font-size: 11px; }
-.focus-line { display: flex; gap: 6px; align-items: baseline; color: var(--ink-muted); }
-.focus-line .who { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.focus-line .count { margin-left: auto; font-variant-numeric: tabular-nums; flex: none; }
-/* Oś tur: jedna kolumna na turę, wysokość to obrażenia, kolor to strona. */
-.axis { padding: 6px 8px 0; }
-.axis-head { display: flex; font-size: 10px; letter-spacing: 0.08em; color: var(--ink-muted); padding-bottom: 3px; }
-.axis-bars { display: flex; align-items: flex-end; gap: 1px; height: 34px; }
-.axis-col { flex: 1; min-width: 2px; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
-.axis-fill { width: 100%; min-height: 1px; border-radius: 1px; }
-.axis-fill.mine { background: var(--mine); }
-.axis-fill.enemy { background: var(--enemy); }
-.axis-fill.unknown { background: #4a4a52; }
-/* Znacznik zgonu pod kolumną — w walce grupowej to jest fabuła starcia. */
-.axis-marks { display: flex; gap: 1px; padding-top: 2px; }
-.axis-mark { flex: 1; min-width: 2px; height: 3px; border-radius: 1px; }
-.axis-mark.death { background: var(--warning); }
 /* Numer pozycji — jedyne, co stoi przed nazwą. Poziom i profesję niesie barwa
    paska i dymek; na 260 px kolejna kolumna zrobiłaby z wiersza tabelę. */
 .rank { color: var(--ink-muted); font-variant-numeric: tabular-nums; flex: none; }
@@ -388,9 +370,7 @@ footer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; f
 .panel.collapsed .tabs,
 .panel.collapsed .rows,
 .panel.collapsed .sides,
-.panel.collapsed .focus,
 .panel.collapsed .crumb,
-.panel.collapsed .axis,
 .panel.collapsed .resize-grip,
 .panel.collapsed footer { display: none; }
 /* Wiersz składu prowadzi głębiej, wiersz rozbicia już nie — stąd kursor tylko
@@ -428,15 +408,6 @@ footer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; f
 .tip-title { font-weight: 600; margin-bottom: 4px; }
 /* Etykieta rozbicia bywa dłuższa niż panel — w dymku ma się złamać, nie uciąć. */
 .tip-wrap { overflow-wrap: anywhere; }
-.tip-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 0 8px;
-  color: var(--ink-muted);
-}
-.tip-row .tip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tip-row .tip-value { color: var(--ink); font-variant-numeric: tabular-nums; }
-.tip-row .tip-share { font-variant-numeric: tabular-nums; min-width: 26px; text-align: right; }
 .tip-section {
   margin-top: 5px;
   padding-top: 5px;
@@ -1680,98 +1651,6 @@ export class Overlay {
     return [row, track];
   }
 
-  /**
-   * Dwie linijki, które da się wykorzystać W TRAKCIE walki grupowej: w kogo
-   * bijemy i kto u nas obrywa. Reszta panelu jest do czytania po walce.
-   *
-   * Przy 1v1 nie ma tu czego pokazywać — „bijemy w jedynego przeciwnika” to
-   * nie jest informacja — więc sekcja pojawia się dopiero od trzech osób.
-   */
-  private renderFireFocus(stats: BattleStats): [HTMLElement] | null {
-    const mine = stats.actors.filter((actor) => actor.side === 0);
-    const enemy = stats.actors.filter((actor) => actor.side !== null && actor.side !== 0);
-    // Obie linijki mają sens dopiero, gdy po mojej stronie jest KOGO liczyć:
-    // przy jednej osobie "ogień na: 1 z 1" i "obrywa: ja" to nie informacje,
-    // tylko szum. Liczba przeciwników nie ma tu nic do rzeczy.
-    if (mine.length < 2 || stats.matrix.length === 0) return null;
-
-    // Ile obrażeń i od ilu osób zebrał każdy cel — po to jest macierz.
-    const incoming = new Map<string, { damage: number; attackers: Set<string> }>();
-    for (const edge of stats.matrix) {
-      const entry = incoming.get(edge.target) ?? { damage: 0, attackers: new Set<string>() };
-      entry.damage += edge.damage;
-      entry.attackers.add(edge.source);
-      incoming.set(edge.target, entry);
-    }
-
-    const worst = (group: ActorStats[]) =>
-      group
-        .map((actor) => ({ actor, hit: incoming.get(actor.name) }))
-        .filter((row) => row.hit && row.hit.damage > 0)
-        .sort((a, b) => b.hit!.damage - a.hit!.damage)[0];
-
-    const target = worst(enemy);
-    const pressured = worst(mine);
-    if (!target && !pressured) return null;
-
-    const box = div("focus");
-    if (target) {
-      const line = div("focus-line");
-      line.append(
-        div("", "ogień na:"),
-        div("who", target.actor.name),
-        div("count", `${target.hit!.attackers.size} z ${mine.length}`),
-      );
-      box.append(line);
-    }
-    if (pressured) {
-      const line = div("focus-line");
-      line.append(
-        div("", "obrywa:"),
-        div("who", pressured.actor.name),
-        div("count", `-${number.format(pressured.hit!.damage)}`),
-      );
-      box.append(line);
-    }
-    return [box];
-  }
-
-  /**
-   * Oś tur: kolumna na turę, wysokość to obrażenia, kolor to strona działającej
-   * postaci. Znacznik pod spodem oznacza turę, w której ktoś padł.
-   *
-   * To jest widok, którego SKADA nie ma i mieć nie może — w WoW nie ma
-   * dyskretnych tur, więc oś czasu jest ciągła i nic z niej nie widać.
-   */
-  private renderAxis(stats: BattleStats): [HTMLElement] | null {
-    if (stats.timeline.length < 2) return null;
-
-    const max = Math.max(...stats.timeline.map((slice) => slice.damage));
-    if (max <= 0) return null;
-
-    const deathTurns = new Set(stats.deaths.map((death) => death.turn));
-
-    const box = div("axis");
-    const head = div("axis-head");
-    head.append(div("", "OŚ TUR"), div("sum", `${stats.timeline.length}`));
-    head.querySelector(".sum")?.setAttribute("style", "margin-left:auto");
-
-    const bars = div("axis-bars");
-    const marks = div("axis-marks");
-    for (const slice of stats.timeline) {
-      const col = div("axis-col");
-      const side = slice.side === null ? "unknown" : slice.side === 0 ? "mine" : "enemy";
-      const fill = div(`axis-fill ${side}`);
-      fill.style.height = `${(slice.damage / max) * 100}%`;
-      col.append(fill);
-      bars.append(col);
-      marks.append(div(`axis-mark ${deathTurns.has(slice.turn) ? "death" : ""}`));
-    }
-
-    box.append(head, bars, marks);
-    return [box];
-  }
-
   /** Formatuje wartość zgodnie z trybem: sumy całkowite, tempo z ułamkiem. */
   private format(value: number): string {
     return this.perTurn ? rate.format(value) : number.format(value);
@@ -2531,39 +2410,6 @@ export class Overlay {
     // Własna klasa, nie `tip-note`: ta stoi już pod licznikami w "Ogólne",
     // a to jest podpowiedź nawigacji, nie dane.
     nodes.push(div("tip-hint", "LPM — rozbicie · PPM — powrót"));
-    return nodes;
-  }
-
-  /**
-   * Pokazuje rozbicie dla postaci o danej nazwie. Nazwa, a nie węzeł DOM, jest
-   * tu tożsamością — dzięki temu dymek przeżywa przebudowę panelu.
-   */
-  /** Przy metryce tur pokazujemy, na co te tury poszły, a nie skąd obrażenia. */
-  private turnRows(actor: ActorStats, total: number): Node[] {
-    const rows: Array<[string, number]> = [
-      ["Z akcją", total - actor.turnsLost],
-      ["Utracone", actor.turnsLost],
-    ];
-
-    const nodes: Node[] = [div("tip-heading", "Na co poszły")];
-    for (const [label, value] of rows) {
-      if (value === 0 && label === "Utracone") continue;
-      const row = div("tip-row");
-      row.append(
-        div("tip-label", label),
-        div("tip-value", number.format(value)),
-        div("tip-share", total > 0 ? `${Math.round((value / total) * 100)}%` : "—"),
-      );
-      nodes.push(row);
-    }
-
-    nodes.push(
-      div(
-        "tip-section",
-        `ciosy ${actor.hits} · kryt. ${actor.crits} · uniki ${actor.misses}` +
-          ` · maks. cios ${number.format(actor.maxHit)}`,
-      ),
-    );
     return nodes;
   }
 
