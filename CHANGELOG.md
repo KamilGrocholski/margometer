@@ -53,6 +53,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   bez pytania. Oba potwierdzenia działają teraz identycznie i gasną po pięciu
   sekundach; zamknięcie okna archiwum też je zdejmuje.
 
+- **Kopiowanie w podglądzie dawało co innego, niż widać na ekranie.** Przycisk ⧉
+  brał zawsze walkę na żywo, także gdy oglądałeś nagranie z archiwum. Teraz
+  kopiuje to, co widzisz, i dopisuje, skąd to jest.
+- **Zwinięty panel udawał, że pokazuje bieżącą walkę.** W trakcie oglądania
+  nagrania zwinięcie chowało pasek PODGLĄD razem z wyjściem „na żywo", a
+  odtwarzanie leciało dalej. Pasek zostaje teraz również po zwinięciu.
+- **Trzy kliknięcia nie dawały żadnej odpowiedzi**: „wczytaj" przy pustym polu,
+  wiersz nagrania, którego nie ma już w pamięci przeglądarki, oraz wiersz
+  umiejętności w rozbiciu leczenia. Dwa pierwsze mówią teraz, o co chodzi;
+  trzeci przestał udawać, że da się w niego wejść.
+
 ### Zmienione
 - **Nagrywanie mniej obciąża grę.** Przy pełnym archiwum spis nagrań był
   przepisywany od nowa przy każdej linii logu — w tym samym wątku, w którym

@@ -485,6 +485,71 @@ describe("kasowanie pojedynczego nagrania", () => {
     });
   });
 
+  // Trzy miejsca wychodziły dotąd cichym `return`, więc klik wyglądał jak
+  // awaria przycisku, a był poprawną odmową.
+  describe("kliknięcie, które nic nie robi, mówi dlaczego", () => {
+    const notice = (overlay: Overlay) =>
+      overlay.shadow.querySelector(".archive-notice")?.textContent ?? null;
+
+    test("„wczytaj” przy pustym polu nie milczy", () => {
+      const { overlay, archive } = build([{ id: 1, at: NOW, text: line }]);
+      archive.toggle();
+      button(overlay, "archive-paste")!.click();
+
+      button(overlay, "archive-load-pasted")!.click();
+
+      expect(notice(overlay)).toBe("Najpierw wklej log walki.");
+      expect(overlay.isPreviewing()).toBe(false);
+    });
+
+    test("wiersz nagrania, którego tekst zniknął, też nie milczy", () => {
+      // Indeks obiecuje nagranie, a klucza pod nim nie ma — `read` zwraca null,
+      // tak jak `localStorage.getItem` dla skasowanego klucza.
+      const overlay = new Overlay({ storage });
+      const archive = new Archive({
+        recorder: {
+          list: () => [{ id: 1, title: line, chars: line.length, at: NOW }],
+          read: () => null,
+        },
+        overlay,
+        storage,
+        ticker,
+        now: () => NOW,
+      });
+      overlay.attachArchive(archive);
+      archive.toggle();
+
+      rows(overlay)[0]!.click();
+
+      expect(notice(overlay)).toBe("Tego nagrania już nie ma w pamięci przeglądarki.");
+      expect(overlay.isPreviewing()).toBe(false);
+    });
+
+    test("odpowiedź gaśnie sama, żeby okno nie stało się listą odmów", () => {
+      const { overlay, archive } = build([{ id: 1, at: NOW, text: line }]);
+      archive.toggle();
+      button(overlay, "archive-paste")!.click();
+      button(overlay, "archive-load-pasted")!.click();
+      expect(notice(overlay)).not.toBeNull();
+
+      ticker.tick();
+
+      expect(notice(overlay)).toBeNull();
+    });
+
+    test("poprawne wklejenie nie zostawia odpowiedzi", () => {
+      const { overlay, archive } = build([{ id: 1, at: NOW, text: line }]);
+      archive.toggle();
+      button(overlay, "archive-paste")!.click();
+      overlay.shadow.querySelector<HTMLTextAreaElement>('[data-field="paste"]')!.value = line;
+
+      button(overlay, "archive-load-pasted")!.click();
+
+      expect(notice(overlay)).toBeNull();
+      expect(overlay.isPreviewing()).toBe(true);
+    });
+  });
+
   test("kliknięcie w ✕ nie wczytuje walki do panelu", () => {
     const logs = [{ id: 1, at: NOW, text: line }];
     const { overlay, archive } = build(logs);

@@ -1114,14 +1114,20 @@ export class Overlay {
     // zostaje na trwałych węzłach (patrz renderReplayRow), więc kliknięcie w nie
     // przeżywa przebudowę pasków co klatkę.
     //
-    // Paski stanu tylko w rozwiniętym oknie — zwinięte pokazuje sam nagłówek,
-    // a nagrywanie widać wtedy po kolorze kropki.
+    // Pasek nagrywania tylko w rozwiniętym oknie — zwinięte pokazuje sam
+    // nagłówek, a nagrywanie widać wtedy po kolorze kropki.
+    //
+    // Pasek PODGLĄDU zostaje ZAWSZE. On nie niesie liczb, tylko tożsamość
+    // widoku: bez niego zwinięty panel jest nieodróżnialny od zwiniętego panelu
+    // na żywo, choć pokazuje nagranie sprzed godziny — a odtwarzanie leci dalej,
+    // bo zwinięcie nie zatrzymuje zegara. Razem z paskiem znikało też jedyne
+    // wyjście „na żywo" i całe sterowanie, więc po rozwinięciu nagranie stało
+    // w innym miejscu, niż się je zostawiło.
     this.updateHeader();
-    const bars = this.state.collapsed
-      ? []
-      : [this.renderPreviewBar(), this.renderRecordBar()].filter(
-          (bar): bar is HTMLElement => bar !== null,
-        );
+    const bars = [
+      this.renderPreviewBar(),
+      this.state.collapsed ? null : this.renderRecordBar(),
+    ].filter((bar): bar is HTMLElement => bar !== null);
     // Zdejmujemy poprzednie paski PO zbudowaniu nowych — trwałe węzły
     // odtwarzania zdążyły się już przenieść do świeżego paska, więc ich to nie
     // dotyka. Nagłówek, `body` i uchwyt zostają na miejscu.
@@ -1424,13 +1430,27 @@ export class Overlay {
    * przekrojem tych samych danych, a wklejenie „tylko zadanych, tylko mojej
    * drużyny" byłoby niespodzianką przy próbie policzenia czegokolwiek dalej.
    */
+  /**
+   * Statystyki do schowka — TE, KTÓRE WIDAĆ.
+   *
+   * Wcześniej szła zawsze walka na żywo, także gdy na ekranie stało nagranie
+   * z archiwum. Decyzja była świadoma, ale nigdzie niekomunikowana: przycisk
+   * wyglądał tak samo, mówił to samo, a kopiował co innego niż to, na co
+   * patrzysz — i dowiadywałeś się o tym dopiero po wklejeniu.
+   *
+   * W podglądzie nie ma też sumy sesji: nagranie z archiwum ani wklejony log
+   * nie są jej częścią, więc dokładanie jej obok znaczyłoby, że te liczby się
+   * ze sobą wiążą. `source` mówi wprost, na co się patrzy.
+   */
   private statsJson(): string {
+    const preview = this.preview;
     return JSON.stringify(
       {
         tool: "MargoMeter",
         at: new Date().toISOString(),
-        fight: this.latest?.fight ?? null,
-        session: this.latest?.session() ?? null,
+        source: preview ? preview.view.source : "na żywo",
+        fight: preview ? preview.stats : (this.latest?.fight ?? null),
+        session: preview ? null : (this.latest?.session() ?? null),
       },
       null,
       2,

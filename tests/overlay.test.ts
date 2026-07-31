@@ -3229,6 +3229,74 @@ describe("podgląd wczytanej walki", () => {
     close: () => {},
   });
 
+  // Przycisk wyglądał tak samo, mówił to samo i kopiował CO INNEGO niż to, na
+  // co patrzysz — dowiadywałeś się o tym dopiero po wklejeniu.
+  test("kopiowanie w podglądzie daje nagranie, nie walkę na żywo", async () => {
+    const live = await load("2026-07-18_tancerz-vs-kukla");
+    const archived = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
+    let copied = "";
+    const overlay = new Overlay({ clipboard: (text) => void (copied = text) });
+    overlay.render(live, live);
+    overlay.showPreview(archived, view());
+
+    overlay.shadow.querySelector<HTMLElement>('button[data-action="copy-stats"]')!.click();
+    await Promise.resolve();
+
+    const parsed = JSON.parse(copied);
+    expect(parsed.source).toBe("z archiwum · 19:04");
+    expect(parsed.fight.actors.map((a: { name: string }) => a.name)).toEqual(
+      archived.actors.map((a) => a.name),
+    );
+    // Nagranie z archiwum nie jest częścią sesji, więc dokładanie jej obok
+    // sugerowałoby, że te liczby się ze sobą wiążą.
+    expect(parsed.session).toBeNull();
+  });
+
+  test("po wyjściu z podglądu kopiowanie znów daje walkę na żywo", async () => {
+    const live = await load("2026-07-18_tancerz-vs-kukla");
+    const archived = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
+    let copied = "";
+    const overlay = new Overlay({ clipboard: (text) => void (copied = text) });
+    overlay.render(live, live);
+    overlay.showPreview(archived, view());
+    overlay.closePreview();
+
+    overlay.shadow.querySelector<HTMLElement>('button[data-action="copy-stats"]')!.click();
+    await Promise.resolve();
+
+    const parsed = JSON.parse(copied);
+    expect(parsed.source).toBe("na żywo");
+    expect(parsed.session).not.toBeNull();
+  });
+
+  // Zwinięty panel był nieodróżnialny od zwiniętego panelu na żywo, choć
+  // pokazywał nagranie sprzed godziny — a odtwarzanie leciało dalej.
+  test("zwinięcie nie chowa śladu, że to nie jest walka na żywo", async () => {
+    const live = await load("2026-07-18_tancerz-vs-kukla");
+    const archived = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
+    const overlay = new Overlay();
+    overlay.render(live, live);
+    overlay.showPreview(archived, view());
+
+    overlay.shadow.querySelector<HTMLElement>('button[data-action="collapse"]')!.click();
+
+    expect(overlay.shadow.querySelector(".preview-bar")).not.toBeNull();
+    // A z nim jedyne wyjście z podglądu.
+    expect(overlay.shadow.querySelector('button[data-action="exit-preview"]')).not.toBeNull();
+    // Pasek nagrywania dalej znika — on niesie liczby, nie tożsamość widoku.
+    expect(overlay.shadow.querySelector(".rec-bar")).toBeNull();
+  });
+
+  test("zwinięty panel bez podglądu zostaje samym nagłówkiem", async () => {
+    const live = await load("2026-07-18_tancerz-vs-kukla");
+    const overlay = new Overlay();
+    overlay.render(live, live);
+
+    overlay.shadow.querySelector<HTMLElement>('button[data-action="collapse"]')!.click();
+
+    expect(overlay.shadow.querySelector(".preview-bar")).toBeNull();
+  });
+
   test("dymek opisuje wczytane nagranie, nie walkę na żywo", async () => {
     // Składy są rozłączne, więc szukanie postaci w walce na żywo nie znajduje
     // NICZEGO — dokładnie tak dymek w archiwum milczał.

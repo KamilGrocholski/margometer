@@ -22,9 +22,10 @@ Legenda: 🔴 duży zwrot / mała robota · 🟡 warto · ⚪ kiedyś.
 Koszt: XS / S / M / L. Znacznik ✓ = teza **zreprodukowana albo zmierzona**
 podczas tego audytu, nie wywnioskowana z lektury.
 
-**Stan na 2026‑07‑31:** naprawione są `AUDYT‑1`…`AUDYT‑5`, `8`, `9`, `10`, `20`
-i `21` — cała partia 🔴 poza `AUDYT‑14` (wymaga decyzji wizualnej) i `AUDYT‑6`
-(wymaga specu). Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
+**Stan na 2026‑07‑31:** naprawione są `AUDYT‑1`…`AUDYT‑5`, `8`–`13`, `20` i `21`.
+`AUDYT‑7` **odrzucone** — teza okazała się błędna przy sprawdzeniu, szczegóły
+przy wpisie. Otwarte zostają `AUDYT‑14` (decyzja wizualna), `AUDYT‑6` (brak
+specu) oraz `15`–`19` i `22`–`24`. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
 wykonanie odbiegło od propozycji, jest to powiedziane wprost.
@@ -50,14 +51,14 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑8~~ | Kopiowanie melduje sukces, którego nie było | 🟡 | S | **✅** |
 | ~~AUDYT‑9~~ | „wyczyść”: potwierdzenie wygasa niewidocznie | 🟡 | S | **✅** |
 | ~~AUDYT‑10~~ | „na pewno?” w archiwum nie wygasa wcale | 🟡 | S | **✅** |
-| AUDYT‑11 | ⧉ kopiuje co innego, niż widać | 🟡 | S | |
-| AUDYT‑12 | Zwinięcie w podglądzie gubi ślad, że to nie walka na żywo | 🟡 | S | |
-| AUDYT‑13 | Kliknięcia bez odpowiedzi | 🟡 | S | |
+| ~~AUDYT‑11~~ | ⧉ kopiuje co innego, niż widać | 🟡 | S | **✅** |
+| ~~AUDYT‑12~~ | Zwinięcie w podglądzie gubi ślad, że to nie walka na żywo | 🟡 | S | **✅** |
+| ~~AUDYT‑13~~ | Kliknięcia bez odpowiedzi | 🟡 | S | **✅** |
 | AUDYT‑15 | Cztery reguły `:focus-visible` są martwe | 🟡 | M | ✓ |
 | AUDYT‑16 | Ustawienia widoku giną po F5, geometria przeżywa | 🟡 | S | ✓ |
 | AUDYT‑23 | Nieograniczone `archived` i `summaries` | 🟡 | S | ✓ |
 | AUDYT‑24 | Brak `stats.test.ts` i `session.test.ts`; brak lintera | 🟡 | M | ✓ |
-| AUDYT‑7 | `unattributedHealing` liczone i nigdy niepokazane | 🟡 | XS | ✓ |
+| ~~AUDYT‑7~~ | `unattributedHealing` liczone i nigdy niepokazane | — | — | **❌ odrzucone** |
 | AUDYT‑17 | Wielkie/małe litery i puste stany bez odmiany | ⚪ | S | |
 | AUDYT‑18 | ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba | ⚪ | S | |
 | AUDYT‑19 | PPM zabiera menu przeglądarki nad listą archiwum | ⚪ | XS | |
@@ -295,7 +296,7 @@ je w `UX.md` jako nową sekcję §8 „Zakres — ta walka / sesja”:
 **Docelowo.** → nowa sekcja `§8` w `UX.md` (spec) + `ROADMAP.md` zdejmuje `⏸`
 dopiero po niej
 
-### AUDYT‑7 — `unattributedHealing` liczone, sumowane i nigdy niepokazane 🟡 XS ✓
+### AUDYT‑7 — `unattributedHealing` liczone, sumowane i nigdy niepokazane ❌ ODRZUCONE
 `src/stats.ts:798`, `src/session.ts:166`; **zero odwołań w `overlay.ts`**
 
 **Problem.** Leczenie, którego nie dało się przypisać, jest liczone w agregacie,
@@ -309,7 +310,24 @@ zasadzie „nieznane jest głośne”, którą repo trzyma od `d21781d`, to wył
 
 **Propozycja.** Przypis w stopce obok trucizny, tą samą ścieżką. **Koszt XS.**
 
-**Docelowo.** → `UX-POPRAWKI.md` jako `A16`
+**❌ ODRZUCONE 2026‑07‑31 — teza była BŁĘDNA.** `unattributedHealing` nie jest
+liczbą gubioną, tylko **redundantnym agregatem tego, co już widać**. Sprawdzone
+na wszystkich fixture'ach: jest co do znaku równe sumie widocznych wierszy
+„Regeneracja” (`PLAIN_HEAL`) w rozbiciach leczenia — bo dokładnie tam trafia
+każde leczenie bez nazwy umiejętności.
+
+```
+unattributedHealing == suma widocznej „Regeneracji” wszędzie: true
+```
+
+Przypis powtarzałby więc sumę stojącą wyżej — czyli dokładnie to, czego zabrania
+reguła spisana przy `TYP OBRAŻEŃ`: „to nie jest informacja, tylko powtórzenie
+sumy stojącej wyżej”. Pole zostaje jako nieużywany agregat; jego usunięcie to
+osobna sprawa (`§9`, martwy kod), nie usterka widoku.
+
+**Nie badać drugi raz.**
+
+**Docelowo.** → nigdzie. Zamknięte w tym pliku.
 
 ---
 
@@ -387,7 +405,7 @@ wiersza rozbraja poprzedni.
 
 **Docelowo.** → `UX-POPRAWKI.md` jako `A19`
 
-### AUDYT‑11 — ⧉ kopiuje co innego, niż widać 🟡 S
+### AUDYT‑11 — ⧉ kopiuje co innego, niż widać 🟡 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/overlay.ts:1383` (`statsJson`), kontra `:987` (`render`)
 
 **Problem.** `statsJson()` czyta `this.latest?.fight`, czyli walkę NA ŻYWO —
@@ -400,9 +418,15 @@ coś innego niż to, na co patrzysz.
 przycisku na mówiącą, że idzie walka na żywo. Pierwsze jest zgodne z tym, czego
 użytkownik oczekuje; drugie tańsze. **Koszt S.**
 
+**Zrobione.** `statsJson` bierze to, co widać: w podglądzie idzie nagranie,
+a nie walka na żywo. Doszło pole `source` („na żywo” / źródło podglądu), więc
+po wklejeniu wiadomo, na co się patrzyło. Sumy sesji w podglądzie NIE MA —
+nagranie z archiwum ani wklejony log nie są jej częścią, a dokładanie jej obok
+sugerowałoby, że te liczby się ze sobą wiążą.
+
 **Docelowo.** → `UX-POPRAWKI.md` jako `A20`
 
-### AUDYT‑12 — Zwinięcie w podglądzie gubi ślad, że to nie walka na żywo 🟡 S
+### AUDYT‑12 — Zwinięcie w podglądzie gubi ślad, że to nie walka na żywo 🟡 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/overlay.ts:1070`
 
 **Problem.** Zwinięty panel nie buduje pasków stanu — a razem z nimi znika pasek
@@ -415,9 +439,13 @@ nagranie stoi w innym miejscu, niż się je zostawiło.
 który niesie tożsamość widoku, nie liczby), albo pauzować odtwarzanie przy
 zwinięciu. **Koszt S.**
 
+**Zrobione.** Pasek PODGLĄDU zostaje w stanie zwiniętym; pasek nagrywania dalej
+znika. Kryterium: pasek podglądu niesie TOŻSAMOŚĆ widoku, nie liczby — a razem
+z nim wracało jedyne wyjście „na żywo” i sterowanie odtwarzaniem.
+
 **Docelowo.** → `UX-POPRAWKI.md` jako `A21`
 
-### AUDYT‑13 — Kliknięcia bez żadnej odpowiedzi 🟡 S
+### AUDYT‑13 — Kliknięcia bez żadnej odpowiedzi 🟡 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/archive.ts:291` (`loadPasted`), `:256` (`open`), `src/overlay.ts:1723`
 (`drill`) vs `:1745` (`enterSource`)
 
@@ -436,6 +464,11 @@ Trzeci przypadek jest najgorszy, bo stoi w sprzeczności z zasadą z `UX.md §6`
 wiersz oznaczony jako nieczytelny (i najlepiej wyrzucony z indeksu); liść
 leczenia → `drill` ma zwracać `false`, żeby wiersz nie udawał klikalnego.
 **Koszt S.**
+
+**Zrobione.** Liść leczenia domknął się przy `AUDYT‑21` (`drill` przestał
+meldować obsłużenie kliknięcia, które nic nie zrobiło). Pozostałe dwa dostały
+odpowiedź: `Archive.say()` pokazuje jedno zdanie nad listą i gasi je po czterech
+sekundach, żeby okno nie stało się listą starych odmów.
 
 **Docelowo.** → `UX-POPRAWKI.md` jako `A22`
 

@@ -44,6 +44,8 @@ const DEFAULT_STATE: ArchiveState = { x: 300, y: 16, open: false };
 const SPEEDS = [1, 2, 4] as const;
 /** Odstęp między liniami przy 1×. Wolniej niż gra, bo tu się patrzy na licznik. */
 const STEP_MS = 250;
+/** Jak długo stoi odpowiedź na kliknięcie, które nic nie zrobiło. */
+const NOTICE_MS = 4000;
 
 const STYLE = `
 /* \`hidden\` przegrywa z \`display: flex\` niżej — bez tej reguły zamknięte okno
@@ -101,6 +103,14 @@ const STYLE = `
    (ten sam shadow root), który narzuca wysokość 20 px, ciemne tło i obcięcie. */
 .archive-paste-actions { display: flex; gap: 6px; align-items: center; }
 .archive-paste .hint { flex: 1; font-size: 11px; opacity: 0.75; }
+/* Odpowiedź na kliknięcie, które nic nie zrobiło. Ostrzegawcza, ale nie krzyczy
+   — to poprawna odmowa, nie awaria. */
+.archive-notice {
+  padding: 5px 8px;
+  font-size: 11px;
+  color: var(--warning, #c98500);
+  border-bottom: 1px solid rgb(53 53 59 / 45%);
+}
 `;
 
 /** "Kamil vs Regulus", "Kamil, Fover vs Gnoll +2" — po składzie z linii otwierającej. */
@@ -200,6 +210,15 @@ export class Archive {
   private readonly confirmRemove: Confirm<number>;
   /** Trwałe pole wklejania — patrz `renderPaste`. */
   private pasteBox: HTMLElement | null = null;
+  /**
+   * Krótka odpowiedź na kliknięcie, które nic nie zrobiło.
+   *
+   * Trzy miejsca wychodziły dotąd cichym `return`: „wczytaj" przy pustym polu
+   * oraz wiersz nagrania, którego tekst zniknął spod indeksu. Klik wyglądał
+   * wtedy jak awaria przycisku, a był poprawną odmową.
+   */
+  private notice: string | null = null;
+  private noticeHandle: number | null = null;
   private replay: {
     lines: string[];
     /** Ile linii już podano licznikowi. */
@@ -271,7 +290,12 @@ export class Archive {
   /** Wczytuje nagranie do panelu jako gotowe statystyki. */
   open(id: number): void {
     const text = this.recorder.read(id);
-    if (text === null) return;
+    // Indeks obiecuje nagranie, którego pod kluczem nie ma — wiersz wygląda
+    // normalnie, a klik nie robił nic. Lepiej powiedzieć, że przepadło.
+    if (text === null) {
+      this.say("Tego nagrania już nie ma w pamięci przeglądarki.");
+      return;
+    }
     this.stopReplay();
     this.opened = id;
     this.overlay.showPreview(this.summaryOf(id, text).stats, this.viewFor(id, text, null));
@@ -281,7 +305,10 @@ export class Archive {
   /** Wczytuje nagranie i odtwarza je od pierwszej linii. */
   play(id: number): void {
     const text = this.recorder.read(id);
-    if (text === null) return;
+    if (text === null) {
+      this.say("Tego nagrania już nie ma w pamięci przeglądarki.");
+      return;
+    }
     this.stopReplay();
     this.opened = id;
 
@@ -305,7 +332,12 @@ export class Archive {
 
   /** Ręcznie wklejony log — pokazujemy go, ale nie zapisujemy w archiwum. */
   loadPasted(text: string): void {
-    if (text.trim() === "") return;
+    // Kliknięcie w „wczytaj” przy pustym polu wychodziło stąd bez słowa, więc
+    // przycisk wyglądał na zepsuty. Odpowiedź jest tania, milczenie kosztuje.
+    if (text.trim() === "") {
+      this.say("Najpierw wklej log walki.");
+      return;
+    }
     this.stopReplay();
     this.opened = null;
     const events = parse(text);
@@ -462,7 +494,18 @@ export class Archive {
     // szerszym ekranie i musi zostać przycięta, zanim okno się pokaże.
     this.moveTo(this.state.x, this.state.y);
     const list = this.renderList();
-    this.window.append(this.renderHeader(), list);
+    this.window.append(this.renderHeader());
+    // Odpowiedź na odmowę idzie NAD listą: to reakcja na właśnie wykonany gest,
+    // więc ma być tam, gdzie patrzy oko, a nie na końcu okna.
+    if (this.notice !== null) {
+      this.window.append(
+        Object.assign(document.createElement("div"), {
+          className: "archive-notice",
+          textContent: this.notice,
+        }),
+      );
+    }
+    this.window.append(list);
     list.scrollTop = scroll;
     if (this.pasting) this.window.append(this.renderPaste());
   }
@@ -643,6 +686,24 @@ export class Archive {
     row.append(hint, load);
     box.append(area, row);
     return box;
+  }
+
+  /**
+   * Mówi jedno zdanie i gasi je po chwili.
+   *
+   * Bez gaszenia komunikat zostawałby na ekranie do końca sesji i po kilku
+   * kliknięciach okno byłoby listą starych odmów zamiast listą nagrań.
+   */
+  private say(text: string): void {
+    this.notice = text;
+    if (this.noticeHandle !== null) this.ticker.stop(this.noticeHandle);
+    this.noticeHandle = this.ticker.start(() => {
+      if (this.noticeHandle !== null) this.ticker.stop(this.noticeHandle);
+      this.noticeHandle = null;
+      this.notice = null;
+      this.render();
+    }, NOTICE_MS);
+    this.render();
   }
 
   private loadState(): ArchiveState {
