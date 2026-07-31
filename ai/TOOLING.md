@@ -40,7 +40,6 @@ wstrzykiwał się do gry”). Zmiana bez testu wraca.
 |---|---|
 | `build.ts:17` | `// @version 0.1.0` — zaszyte na sztywno |
 | `package.json` | **brak pola `version`** |
-| `CHANGELOG.md` | ostatnie wydanie `[0.1.0]`, do tego duże `[Niewydane]` |
 | `git tag` | pusto |
 | `dist/` | w `.gitignore` |
 
@@ -55,18 +54,23 @@ nie ma wcale, a użytkownik nie ma jak sprawdzić, którą wersję trzyma.
 w `build.ts` interpoluje je zamiast trzymać literał; `@updateURL`/`@downloadURL`
 na opublikowany plik; jeden tag na wydanie.
 
-## 3. CHANGELOG dryfuje w obie strony 🟡
+## 3. Nie ma żadnego zapisu zmian dla użytkownika ⚪
 
-- **Obiecuje za dużo:** `[0.1.0]` wymienia „Metryki: Zadane, Otrzymane,
-  Leczenie, **Tury**”. Zakładki „Tury” nie da się dziś wybrać — `METRICS`
-  (`overlay.ts:25`) ma trzy pozycje, `turnRows` nie ma wywołania, a dwa testy tej
-  funkcji stoją na `test.skip`. Regresja nieodnotowana.
-- **Mówi za mało:** najnowsza zmiana widoczna dla użytkownika — rozbicie obrażeń
-  wg typu oraz kolory i odznaki profesji (`3814a42`, opisane w `README.md`
-  „Kolory pasków”) — **nie ma wpisu** w `[Niewydane]`.
+**`CHANGELOG.md` został usunięty z repo 2026‑07‑31** (świadoma decyzja, plik
+siedzi w historii gita). Wcześniej ta sekcja opisywała, że dryfuje w obie
+strony — obiecuje metrykę „Tury”, której nie da się wybrać, i milczy o zmianach,
+które weszły. Oba te problemy zniknęły razem z plikiem, ale **nie w ten sposób,
+że zostały rozwiązane**:
 
-Konwencja w nagłówku pliku jest dobra (Keep a Changelog + SemVer, perspektywa
-użytkownika); problem jest z pilnowaniem jej, a nie z nią.
+- pytanie o metrykę „Tury” żyje dalej i stoi teraz w `ROADMAP.md`
+  („Wstrzymane”) — usunięcie obietnicy nie dokończyło funkcji;
+- **zapisu zmian dla użytkownika nie ma teraz wcale.** Póki nie ma też kanału
+  dostawy (§2 — brak `@updateURL`/`@downloadURL`, brak tagów), nikomu to nie
+  szkodzi: nie ma odbiorcy, któremu można by coś zapowiedzieć. To wraca jako
+  warunek dopiero razem z pierwszym wydaniem, do którego ktoś ma dostęp.
+
+Innymi słowy: ta sekcja jest zamknięta **wyłącznie tak długo**, jak długo §2
+zostaje otwarte. Kto będzie robił wydanie, potrzebuje obu naraz.
 
 ## 4. Zero lint, format i CI 🟡
 

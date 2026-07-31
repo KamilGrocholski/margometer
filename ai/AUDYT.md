@@ -478,11 +478,12 @@ sekundach, żeby okno nie stało się listą starych odmów.
 
 ## D. Dostępność i obietnice bez pokrycia
 
-Dwie rzeczy, które dokumenty i CHANGELOG obiecują, a kodu za nimi nie ma.
+Dwie rzeczy, które dokumenty obiecują, a kodu za nimi nie ma. Obietnice szły
+wcześniej także z `CHANGELOG.md` — plik usunięty z repo 2026‑07‑31, więc
+cytaty niżej zostają jako ŚLAD, czym się uzasadniano, a nie jako żywy wskaźnik.
 
 ### AUDYT‑14 — Odznaka literowa profesji NIE ISTNIEJE 🔴 M — dostępność ✓
-`src/overlay.ts:2084-2087` (`appendSection`), kontra `src/palette.ts:37`, `:45`
-i `CHANGELOG.md` 0.2.0
+`src/overlay.ts:2084-2087` (`appendSection`), kontra `src/palette.ts:37` i `:45`
 
 **Problem.** Wiersz rankingu składa się z numeru, nazwy (plus `*` przy
 niejednoznaczności) i liczby. **Odznaki z literą profesji nie ma nigdzie.**
@@ -490,8 +491,8 @@ niejednoznaczności) i liczby. **Odznaki z literą profesji nie ma nigdzie.**
 Tymczasem cały argument o rozróżnialności kolorów opiera się właśnie na niej.
 `palette.ts:45` mówi wprost: „Rozróżnialność zapewnia odznaka z literą profesji,
 nie barwa”, a `:37`: „postaci niesie nazwa i odznaka obok niej. Dwóch magów
-dostaje ten sam kolor”. CHANGELOG 0.2.0 obiecuje ją użytkownikowi i sam nazywa
-warunkiem, nie ozdobą.
+dostaje ten sam kolor”. Nieistniejący już `CHANGELOG.md` 0.2.0 obiecywał ją
+użytkownikowi i sam nazywał warunkiem, nie ozdobą.
 
 To nie jest kosmetyka, tylko **niezaimplementowane założenie dostępności**:
 przy daltonizmie dwie postacie różnych profesji o zbliżonych barwach są dziś

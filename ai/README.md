@@ -12,34 +12,6 @@ To run:
 bun run src/index.ts
 ```
 
-```opis
-Margometer jest programem, który ma być uruchamiany dla gry Margonem (gra przeglądarkowa), używając narzędzia tampermonkey, do śledzenia statystyk z walk. 
-Powinna działać podobnie do SKADA lub dpsmeter z gry World of Warcraft, tylko że Margonem jest grą turową, więc wygladałoby to trochę inaczej.
-Źródło statystyk to test z okna walki margonem, który jest parsowalny prze ze mnie i na podstawie tego wyliczane są odpowiednie wartości, 
-leczenie, obrażenia zadane, obrażenia przyjęte, ilość stunów itd. (na sam start interesuje mnie tylko obrażenia zadanie i obrażenia przyjęte).
-```
-
-```jak ma wygladac ui
-Chce miec toggle 'na turę'
-Chce miec 3 taby filtrowania wedlug zespolow: Wszyscy, My, Oni.
-Chce miec taby po: Zadanie obrazenia, Otrzymane obrazenia, Wyleczone
-Zdane obrazenia maja miec widoki: 
-    Ranking wszystkich; 
-    pojedynczej postaci, gdzie pokazuje zadane wedlug postaci - klikam na rankingu zadane i widze;
-    pojedynczej postaci, gdzie pokazuje zadane wedlug umiejetnosci - klikam na rankingu wedlug postaci i widze;
-Otrzymane obrazenia maja miec widoki: 
-    Ranking wszystkich; 
-    pojedynczej postaci, gdzie pokazuje otrzymane wedlug postaci - klikam na rankingu otrzymane i widze;
-    pojedynczej postaci, gdzie pokazuje otrzymane wedlug umiejetnosci - klikam na rankingu wedlug postaci i widze;
-Wyleczone maja miec widoki: 
-    Ranking wszystkich; 
-    pojedynczej postaci, gdzie pokazuje wyleczone wedlug postaci - klikam na rankingu wyleczone i widze;
-    pojedynczej postaci, gdzie pokazuje otrzymane wedlug umiejetnosci - klikam na rankingu wedlu gpostaci i widze;
-
-Nie mam pomyslu na to, jak zrobic szybkie i latwe przeskakiwanei z tych widokow w poszczegolnych tabach, zadanie, otrzymane, wyleczone
-
-```
-
 ## Nagrywanie walk — dlaczego tak (`src/recorder.ts`)
 
 **Zapisujemy surowy tekst logu, nie policzone statystyki.** Pomiar na 13

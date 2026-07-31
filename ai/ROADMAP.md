@@ -51,8 +51,10 @@ zrobionych nie wracają tutaj — siedzą w `UX-POPRAWKI.md` i `SOLID.md`.
   pozycje, więc zakładki nie ma. `turnRows` (jej rozbicie w dymku) **zdjęte
   z drzewa 2026‑07‑31** razem z dwoma `test.skip`, które trzymały je przy
   pozorach życia. Kod stoi w historii: ostatnia wersja z nim to `95d02d7`.
-  CHANGELOG 0.1.0 obiecuje tę metrykę użytkownikowi — do rozstrzygnięcia:
-  dokończyć albo wycofać z CHANGELOG-a.
+  Do rozstrzygnięcia: dokończyć albo odpuścić. Wcześniej dochodziła do tego
+  obietnica w `CHANGELOG.md` 0.1.0 — plik został usunięty z repo 2026‑07‑31,
+  więc sama obietnica zniknęła, ale **pytanie o metrykę zostaje**: nie jest
+  załatwione tym, że nikt jej już nikomu nie obiecuje.
 - ⏸ **Oś tur i skupienie ognia** — `renderAxis`/`renderFireFocus` **zdjęte
   z drzewa 2026‑07‑31** wraz z ich CSS-em i dwoma zielonymi testami, które
   asertowały, że ich nie widać. Nie porzucone: kod stoi w historii, ostatnia
