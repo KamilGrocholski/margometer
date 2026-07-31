@@ -42,6 +42,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   dałoby się tę awarię odtworzyć. Teraz zapis idzie pierwszy i przeżywa
   niezależnie od reszty.
 
+### Zmienione
+- **Nagrywanie mniej obciąża grę.** Przy pełnym archiwum spis nagrań był
+  przepisywany od nowa przy każdej linii logu — w tym samym wątku, w którym
+  chodzi gra. Teraz idzie do pamięci przeglądarki tylko wtedy, gdy naprawdę się
+  zmienia: ok. **48× mniej zapisów** w trakcie walki.
+
 ## [0.2.0] — 2026-07-30
 
 ### Dodane

@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { Glob } from "bun";
 import { parse } from "../src/parser.ts";
-import { aggregate, invertBreakdown, leadsDeeper } from "../src/stats.ts";
+import {
+  aggregate,
+  EMPTY_STATS,
+  invertBreakdown,
+  leadsDeeper,
+  totalUnattributedDot,
+} from "../src/stats.ts";
 import type { AttackerBreakdown } from "../src/types.ts";
 
 const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
@@ -132,5 +138,26 @@ describe.each(fixtures)("$name — odwrócenie zgadza się z dealtBy", (fixture)
       const viaTargets = actor.dealtToBy.reduce((sum, one) => sum + one.amount, 0);
       expect(total).toBe(viaTargets);
     }
+  });
+});
+
+describe("EMPTY_STATS jest współdzielonym singletonem", () => {
+  // Siedzi naraz w `Session`, w `Overlay` i w obu argumentach pierwszego
+  // `render()`. Dopóki nikt go nie mutuje, wszystko działa — a zamrożenie jest
+  // tańsze niż nadzieja, że tak zostanie.
+  test("nie da się go zmutować", () => {
+    expect(Object.isFrozen(EMPTY_STATS)).toBe(true);
+    // Zamrożenie obiektu jest płytkie, więc tablice osobno.
+    expect(Object.isFrozen(EMPTY_STATS.actors)).toBe(true);
+    expect(Object.isFrozen(EMPTY_STATS.timeline)).toBe(true);
+    expect(Object.isFrozen(EMPTY_STATS.deaths)).toBe(true);
+    expect(Object.isFrozen(EMPTY_STATS.matrix)).toBe(true);
+    expect(Object.isFrozen(EMPTY_STATS.unattributedDotDamage)).toBe(true);
+  });
+
+  test("jest pusty pod każdym względem", () => {
+    expect(EMPTY_STATS.actors).toEqual([]);
+    expect(EMPTY_STATS.unknownLines).toBe(0);
+    expect(totalUnattributedDot(EMPTY_STATS.unattributedDotDamage)).toBe(0);
   });
 });

@@ -30,6 +30,13 @@ const FLAG_KEY = `${KEY_PREFIX}on`;
  */
 export const BUDGET_CHARS = 500_000;
 
+/**
+ * Ile zmiany ROZMIARU wolno odłożyć, zanim przepiszemy indeks — patrz
+ * `saveIndex`. Próg dobrany tak, żeby średnia walka (~2,6 tys. znaków)
+ * utrwaliła się parę razy w trakcie, zamiast przy każdej linii.
+ */
+const INDEX_FLUSH_CHARS = 2_000;
+
 const FIGHT_START = new RegExp(FIGHT_START_TEXT);
 
 /** Jedno nagranie w indeksie. Sam tekst leży pod osobnym kluczem. */
@@ -200,6 +207,10 @@ export class Recorder {
    * próby tylko dokładałyby grze wyjątków.
    */
   private failed = false;
+  /** Kształt listy nagrań zmienił się i musi trafić do magazynu. */
+  private indexDirty = false;
+  /** Ile zmiany rozmiaru czeka na utrwalenie — patrz `saveIndex`. */
+  private indexDrift = 0;
 
   constructor(options: RecorderOptions = {}) {
     this.storage = options.storage;
@@ -232,6 +243,10 @@ export class Recorder {
     // jest dla nas nowa i ma trafić do nagrania od tego, co jeszcze widać.
     this.active = [];
     if (!this.on) this.failed = false;
+    // Wyłączenie to naturalny moment na domknięcie rozmiarów odłożonych przez
+    // `saveIndex`: nagrywanie się kończy, więc gorącej ścieżki już nie ma,
+    // a indeks ma odtąd mówić prawdę co do znaku.
+    if (this.on && (this.indexDirty || this.indexDrift > 0)) this.persistIndex();
     this.setOn(!this.on);
   }
 
@@ -280,11 +295,7 @@ export class Recorder {
    */
   remove(id: number): void {
     this.drop(id);
-    try {
-      this.storage?.setItem(INDEX_KEY, JSON.stringify(this.index));
-    } catch {
-      // Jak w `clear()`: nieudany zapis indeksu nie gasi nagrywania.
-    }
+    this.persistIndex();
   }
 
   clear(): void {
@@ -294,12 +305,22 @@ export class Recorder {
     this.sweepOrphans(new Set());
     this.active = [];
     this.failed = false;
+    this.persistIndex();
+  }
+
+  /**
+   * Zapis indeksu poza gorącą ścieżką: bezwarunkowy i bez `write`.
+   *
+   * Bez `write`, bo ono przy odmowie GASI nagrywanie — a kasowanie nagrań nie
+   * może wyłączać zapisu; tu zresztą miejsca właśnie ubyło, nie przybyło.
+   */
+  private persistIndex(): void {
+    this.indexDirty = false;
+    this.indexDrift = 0;
     try {
-      // Bez `write`: ono przy odmowie gasi nagrywanie, a tu nie ma już czego
-      // zwalniać — czyszczenie archiwum nie może wyłączać zapisu.
       this.storage?.setItem(INDEX_KEY, JSON.stringify(this.index));
     } catch {
-      // Pusty indeks, którego nie dało się zapisać, odtworzy się przy starcie.
+      // Indeks, którego nie dało się zapisać, odtworzy się przy starcie.
     }
   }
 
@@ -356,6 +377,11 @@ export class Recorder {
       });
     }
 
+    // Nowy wpis zmienia KSZTAŁT listy, samo `chars` tylko jej rozmiar — patrz
+    // `saveIndex`. Ta różnica decyduje, czy indeks leci do magazynu teraz.
+    if (entry) this.indexDrift += Math.abs(text.length - (previousChars ?? 0));
+    else this.indexDirty = true;
+
     // Miejsce robimy PRZED zapisem i kosztem najstarszych nagrań — bieżąca
     // walka jest tą, której użytkownik pilnuje.
     this.evict(id);
@@ -366,7 +392,36 @@ export class Recorder {
       else this.index.fights = this.index.fights.filter((fight) => fight.id !== id);
       return false;
     }
-    return this.write(INDEX_KEY, JSON.stringify(this.index), id);
+    return this.saveIndex(id);
+  }
+
+  /**
+   * Utrwala indeks — ale nie przy każdej linii logu.
+   *
+   * `save()` woła to przy KAŻDEJ zmianie tekstu walki, czyli kilka razy na
+   * sekundę w środku walki, synchronicznie w wątku gry. Przy pełnym archiwum
+   * (190 nagrań) indeks waży ~21 tys. znaków — tyle szło przez `JSON.stringify`
+   * i `setItem` za każdym razem. To dokładnie ta praca, przed którą broni się
+   * komentarz przy zapisie kluczem na walkę; indeks po prostu wymykał się temu
+   * rozumowaniu.
+   *
+   * Dzielimy więc zmiany na dwa rodzaje:
+   * - KSZTAŁT (doszło nagranie, wypadło nagranie) — zapis natychmiast, bo bez
+   *   tego nagranie po odświeżeniu przepadłoby albo zostało widmem w indeksie;
+   * - ROZMIAR (`chars` rośnie o kilkanaście znaków) — odkładamy, aż uzbiera się
+   *   `INDEX_FLUSH_CHARS`.
+   *
+   * W pamięci `chars` jest ZAWSZE dokładne, więc budżet i eksmisja liczą się
+   * poprawnie niezależnie od tego, kiedy indeks poszedł na dysk. Rozjazd dotyczy
+   * wyłącznie odczytu po nagłym zamknięciu karty i jest ograniczony progiem —
+   * przy budżecie 500 tys. znaków to ułamek procenta.
+   */
+  private saveIndex(keep?: number, force = false): boolean {
+    if (!force && !this.indexDirty && this.indexDrift < INDEX_FLUSH_CHARS) return true;
+    if (!this.write(INDEX_KEY, JSON.stringify(this.index), keep)) return false;
+    this.indexDirty = false;
+    this.indexDrift = 0;
+    return true;
   }
 
   /** Kasuje najstarsze nagrania, aż suma zmieści się w budżecie. `keep` zostaje. */
@@ -380,6 +435,7 @@ export class Recorder {
 
   private drop(id: number): void {
     this.index.fights = this.index.fights.filter((fight) => fight.id !== id);
+    this.indexDirty = true;
     this.active = this.active.filter((fight) => fight.id !== id);
     try {
       this.storage?.removeItem(KEY_PREFIX + id);

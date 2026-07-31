@@ -343,7 +343,13 @@ export function totalUnattributedDot(dot: UnattributedDot): number {
   return dot.mine + dot.enemy + dot.loose;
 }
 
-export type BattleStats = {
+/**
+ * Co da się policzyć dla DOWOLNEGO zbioru walk — jednej albo całej sesji.
+ *
+ * Wszystko tutaj sumuje się przez sklejenie: obrażenia, rozbicia, procki,
+ * ostrzeżenia parsera. Sesja to po prostu suma walk i nic tu nie traci sensu.
+ */
+export type Aggregate = {
   actors: ActorStats[];
   /**
    * Obrażenia od efektów (trucizna itd.), których nie dało się przypisać do
@@ -375,6 +381,15 @@ export type BattleStats = {
    * przechodziła bez śladu — wbrew kontraktowi „nieznane ma być głośne".
    */
   unknownElements: string[];
+};
+
+/**
+ * Statystyki JEDNEJ walki.
+ *
+ * Ponad `Aggregate` dochodzi to, co jest własnością pojedynczego starcia i przez
+ * sesję nie przechodzi: oś tur, zgony i macierz „kto kogo".
+ */
+export type BattleStats = Aggregate & {
   /**
    * Obrażenia w podziale na tury, po jednym wpisie na turę walki.
    *
@@ -387,6 +402,43 @@ export type BattleStats = {
   /** Kto kogo bił — po jednym wpisie na parę, malejąco po obrażeniach. */
   matrix: DamageEdge[];
 };
+
+/**
+ * Suma walk sesji — `Aggregate` i ANI POLA WIĘCEJ.
+ *
+ * Osobny typ, bo to jedyny sposób, żeby kompilator pilnował granicy, którą
+ * `mergeStats` trzyma od zawsze: oś tur, zgony i macierz są własnością
+ * POJEDYNCZEJ walki i sklejone nic by nie znaczyły (tura 3 z jednej walki nie
+ * jest turą 3 z drugiej). Dotąd stało to w WARTOŚCI — sesja zwracała po prostu
+ * puste tablice — a `Overlay.render` przyjmował jedno i drugie jako `BattleStats`.
+ *
+ * Mina była konkretna: w dniu, w którym powstanie zakładka Sesji, podanie sumy
+ * jako pierwszego argumentu dałoby `fightTurns = timeline.length = 0`, a to
+ * zeruje tryb „na turę" dla przyjętych i leczenia (dzielnikiem są tury WALKI),
+ * zostawiając poprawne zadane (dzielnik to tury postaci). Rozjazd selektywny,
+ * bez wyjątku, bez ostrzeżenia. Teraz to się po prostu nie skompiluje.
+ */
+export type SessionStats = Aggregate;
+
+/**
+ * Pusty komplet jednej walki — punkt startowy panelu i sesji bez walk.
+ *
+ * ZAMROŻONY, bo jest współdzielonym singletonem: siedzi naraz w `Session`,
+ * w `Overlay` i w dwóch argumentach pierwszego `render()`. Dopóki nikt go nie
+ * mutuje, wszystko działa — a `Object.freeze` jest tańszy niż nadzieja, że tak
+ * zostanie. Tablice też, bo zamrożenie obiektu jest płytkie.
+ */
+export const EMPTY_STATS: BattleStats = Object.freeze({
+  actors: Object.freeze([] as ActorStats[]),
+  unattributedDotDamage: Object.freeze({ mine: 0, enemy: 0, loose: 0 }),
+  unattributedHealing: 0,
+  ambiguousNames: Object.freeze([] as string[]),
+  unknownLines: 0,
+  unknownElements: Object.freeze([] as string[]),
+  timeline: Object.freeze([] as TurnSlice[]),
+  deaths: Object.freeze([] as Death[]),
+  matrix: Object.freeze([] as DamageEdge[]),
+}) as BattleStats;
 
 /** Jedna tura walki widziana z góry: ile poszło z której strony. */
 export type TurnSlice = {

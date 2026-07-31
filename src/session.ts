@@ -1,6 +1,6 @@
 import { parse } from "./parser.ts";
 import type { RosterEntry } from "./roster.ts";
-import { aggregate, type BattleStats } from "./stats.ts";
+import { aggregate, EMPTY_STATS, type BattleStats, type SessionStats } from "./stats.ts";
 import type {
   ActorStats,
   AttackerBreakdown,
@@ -115,7 +115,7 @@ export function splitFights(events: BattleEvent[]): BattleEvent[][] {
   return fights;
 }
 
-function mergeStats(all: BattleStats[]): BattleStats {
+function mergeStats(all: BattleStats[]): SessionStats {
   const actors = new Map<string, BattleStats["actors"][number]>();
   const ambiguousNames = new Set<string>();
   const unknownElements = new Set<string>();
@@ -174,27 +174,17 @@ function mergeStats(all: BattleStats[]): BattleStats {
     ambiguousNames: [...ambiguousNames],
     unknownLines,
     unknownElements: [...unknownElements].sort(),
-    // Oś tur, zgony i macierz są własnością POJEDYNCZEJ walki. Sklejone przez
-    // sesję nie znaczyłyby nic: tura 3 z jednej walki nie jest turą 3 z drugiej,
-    // a ten sam przeciwnik ginie w każdej z osobna.
-    timeline: [],
-    deaths: [],
-    matrix: [],
+    // Osi tur, zgonów ani macierzy tu NIE MA — i nie jest to pominięcie, tylko
+    // kształt typu. `SessionStats` ich nie ma, bo sklejone nie znaczyłyby nic:
+    // tura 3 z jednej walki nie jest turą 3 z drugiej, a ten sam przeciwnik
+    // ginie w każdej z osobna. Wcześniej stały tu puste tablice, przez co suma
+    // sesji udawała pełne `BattleStats`.
   };
 }
 
-/** Pusty komplet — punkt startowy overlaya i sesji bez walk. */
-export const EMPTY_STATS: BattleStats = {
-  actors: [],
-  unattributedDotDamage: { mine: 0, enemy: 0, loose: 0 },
-  unattributedHealing: 0,
-  ambiguousNames: [],
-  unknownLines: 0,
-  unknownElements: [],
-  timeline: [],
-  deaths: [],
-  matrix: [],
-};
+// `EMPTY_STATS` mieszka teraz w `stats.ts`, przy typie, który opisuje —
+// re-eksport, żeby import z sesji dalej działał tam, gdzie tak było wygodniej.
+export { EMPTY_STATS } from "./stats.ts";
 
 function signatureOf(events: BattleEvent[]): string {
   const start = events.find((e) => e.kind === "fight-start");
@@ -244,7 +234,7 @@ export class Session {
    * widoku, którego dziś nie ma (jedynym odbiorcą jest przycisk kopiowania).
    * Liczymy więc dopiero, gdy ktoś naprawdę pyta, i tylko raz na zmianę.
    */
-  private totalStats: BattleStats | null = null;
+  private totalStats: SessionStats | null = null;
 
   /**
    * `fromGame` to skład odczytany z gry dla TRWAJĄCEJ walki, więc stosujemy go
@@ -296,7 +286,7 @@ export class Session {
   }
 
   /** Statystyki zsumowane ze wszystkich walk sesji. Liczone leniwie. */
-  total(): BattleStats {
+  total(): SessionStats {
     return (this.totalStats ??= mergeStats([
       ...this.archived,
       ...this.active.map((fight) => fight.stats),

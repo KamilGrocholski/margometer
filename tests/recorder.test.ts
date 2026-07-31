@@ -557,3 +557,102 @@ describe("wygaszenie nagrywania przeżywa odświeżenie", () => {
     expect(new Recorder({ storage, now: () => 1 }).isRecording()).toBe(false);
   });
 });
+
+describe("indeks nie leci do magazynu przy każdej linii", () => {
+  /** Liczy zapisy pod klucz indeksu — to on był przepisywany w kółko. */
+  class CountingStorage extends FakeStorage {
+    indexWrites = 0;
+
+    override setItem(key: string, value: string): void {
+      if (key === "margometer.rec.index") this.indexWrites += 1;
+      super.setItem(key, value);
+    }
+  }
+
+  let counting: CountingStorage;
+  const rec = () => new Recorder({ storage: counting, now: () => 1 });
+
+  beforeEach(() => {
+    counting = new CountingStorage();
+  });
+
+  /** Walka doczytująca się linia po linii, jak w grze. */
+  const grow = (recorder: Recorder, lines: number) => {
+    let buffer = FIGHT_A;
+    for (let i = 0; i < lines; i += 1) {
+      buffer += `\nKamil(100%) uderzył z siłą +${100 + i} Wilk`;
+      recorder.capture(buffer);
+    }
+    return buffer;
+  };
+
+  test("rosnący tekst nie przepisuje indeksu w kółko", () => {
+    const recorder = rec();
+    recorder.toggle();
+    counting.indexWrites = 0;
+
+    grow(recorder, 50);
+
+    // Bez progu byłoby po jednym zapisie na linię, plus założenie nagrania.
+    expect(counting.indexWrites).toBeLessThan(5);
+  });
+
+  test("ale rozmiar w pamięci zostaje DOKŁADNY", () => {
+    const recorder = rec();
+    recorder.toggle();
+
+    const buffer = grow(recorder, 50);
+
+    // Budżet i eksmisja liczą się z tego, nie z tego, co zdążyło trafić na dysk.
+    expect(recorder.chars()).toBe(buffer.length);
+  });
+
+  test("nowe nagranie utrwala się NATYCHMIAST — to zmiana kształtu", () => {
+    const recorder = rec();
+    recorder.toggle();
+    recorder.capture(FIGHT_A);
+    recorder.capture(`${FIGHT_A}\n${FIGHT_B}`);
+
+    // Bez odczekania na próg: po odświeżeniu obie walki mają być w indeksie,
+    // inaczej druga byłaby tekstem bez wpisu, czyli sierotą.
+    expect(new Recorder({ storage: counting, now: () => 1 }).count()).toBe(2);
+  });
+
+  test("skasowanie nagrania utrwala się natychmiast", () => {
+    const recorder = rec();
+    recorder.toggle();
+    recorder.capture(FIGHT_A);
+    recorder.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    const [first] = recorder.list();
+
+    recorder.remove(first!.id);
+
+    expect(new Recorder({ storage: counting, now: () => 1 }).count()).toBe(1);
+  });
+
+  test("wyłączenie nagrywania domyka odłożone rozmiary", () => {
+    const recorder = rec();
+    recorder.toggle();
+    const buffer = grow(recorder, 20);
+
+    recorder.toggle();
+
+    // Gorąca ścieżka się skończyła, więc indeks ma odtąd mówić prawdę co do znaku.
+    expect(new Recorder({ storage: counting, now: () => 1 }).chars()).toBe(buffer.length);
+  });
+
+  test("eksmisja utrwala się natychmiast, mimo progu", () => {
+    const recorder = new Recorder({
+      storage: counting,
+      now: () => 1,
+      budgetChars: FIGHT_A.length + 10,
+    });
+    recorder.toggle();
+    recorder.capture(FIGHT_A);
+    recorder.capture(`${FIGHT_A}\n${FIGHT_B}`);
+
+    const after = new Recorder({ storage: counting, now: () => 1 });
+    expect(after.count()).toBe(1);
+    expect(counting.logs()).toEqual([FIGHT_B]);
+  });
+});

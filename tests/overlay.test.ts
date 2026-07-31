@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { parse } from "../src/parser.ts";
-import { aggregate, totalUnattributedDot } from "../src/stats.ts";
+import { aggregate, totalUnattributedDot, type Aggregate } from "../src/stats.ts";
 import {
   Overlay,
   tipPosition,
@@ -997,7 +997,9 @@ describe("podział na drużyny", () => {
 });
 
 describe("Ta walka kontra Sesja", () => {
-  const dealtBy = (stats: ReturnType<Session["current"]>, name: string) =>
+  // `Aggregate`, nie `BattleStats`: helper czyta same `actors`, a wołany jest
+  // i dla walki, i dla sumy sesji — a te mają teraz RÓŻNE typy.
+  const dealtBy = (stats: Aggregate, name: string) =>
     stats.actors.find((a) => a.name === name)?.damageDealt ?? 0;
 
   /** Odtwarza doczytywanie się logu w grze: bufor rośnie linia po linii. */
@@ -2772,8 +2774,16 @@ describe("oś tur, zgony i skupienie ognia", () => {
     session.update(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna"));
     // Tura 3 z jednej walki nie jest turą 3 z drugiej, a ten sam potwór ginie
     // w każdej z osobna — sklejone nie znaczyłyby nic.
-    expect(session.total().timeline).toEqual([]);
-    expect(session.total().deaths).toEqual([]);
+    //
+    // Granicy pilnuje dziś TYP (`SessionStats` nie ma tych pól, więc odwołanie
+    // się do nich nie kompiluje), ale test zostaje na drugą stronę tej umowy:
+    // że `mergeStats` nie dokłada ich z powrotem jako pustych tablic. Wtedy
+    // sesja znów udawałaby pełne `BattleStats` w każdym miejscu czytającym
+    // strukturę dynamicznie — choćby w JSON-ie ze schowka.
+    const total: Record<string, unknown> = session.total();
+    expect(Object.keys(total)).not.toContain("timeline");
+    expect(Object.keys(total)).not.toContain("deaths");
+    expect(Object.keys(total)).not.toContain("matrix");
     expect(session.current().timeline.length).toBeGreaterThan(0);
   });
 

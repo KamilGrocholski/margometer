@@ -22,8 +22,9 @@ Legenda: 🔴 duży zwrot / mała robota · 🟡 warto · ⚪ kiedyś.
 Koszt: XS / S / M / L. Znacznik ✓ = teza **zreprodukowana albo zmierzona**
 podczas tego audytu, nie wywnioskowana z lektury.
 
-**Stan na 2026‑07‑31:** pierwsza partia (`AUDYT‑1`, `2`, `4`, `20`, `21`) jest
-naprawiona. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
+**Stan na 2026‑07‑31:** naprawione są `AUDYT‑1`, `2`, `3`, `4`, `5`, `20`, `21`
+— cała partia 🔴 poza `AUDYT‑14` (wymaga decyzji wizualnej) i `AUDYT‑6`
+(wymaga specu). Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
 wykonanie odbiegło od propozycji, jest to powiedziane wprost.
@@ -42,9 +43,9 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑4~~ | Sesja i nagrywarka inaczej liczą duplikat nagłówka | 🔴 | S | **✅** |
 | ~~AUDYT‑20~~ | Linia otwierająca w czterech kopiach | 🔴 | XS | **✅** |
 | ~~AUDYT‑21~~ | Gorąca ścieżka bez osłony i w złej kolejności | 🔴 | XS | **✅** |
-| AUDYT‑5 | `BattleStats` jeden dla walki i sesji — mina pod zakładkę | 🔴 | S | ✓ |
+| ~~AUDYT‑5~~ | `BattleStats` jeden dla walki i sesji — mina pod zakładkę | 🔴 | S | **✅** |
 | AUDYT‑14 | Odznaka literowa profesji nie istnieje | 🔴 | M | ✓ |
-| AUDYT‑3 | 21 kB indeksu przepisywane przy każdej linii logu | 🟡 | S | ✓ |
+| ~~AUDYT‑3~~ | 21 kB indeksu przepisywane przy każdej linii logu | 🟡 | S | **✅** |
 | AUDYT‑6 | Suma sesji bez wyjścia w UI | 🟡 | M | ✓ |
 | AUDYT‑8 | Kopiowanie melduje sukces, którego nie było | 🟡 | S | |
 | AUDYT‑9 | „wyczyść”: potwierdzenie wygasa niewidocznie | 🟡 | S | |
@@ -135,7 +136,7 @@ choć nagrywanie zostaje wyłączone.
 
 **Docelowo.** → `SOLID.md` jako `§4.27`, wraz z uwagą UX o znikającym komunikacie
 
-### AUDYT‑3 — Cały indeks przepisywany przy KAŻDEJ zmianie logu 🟡 S — nagrywanie ✓
+### AUDYT‑3 — Cały indeks przepisywany przy KAŻDEJ zmianie logu 🟡 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/recorder.ts:354` (`save`), kontra komentarz `:323`
 
 **Problem.** `save()` kończy się bezwarunkowym `write(INDEX_KEY,
@@ -154,6 +155,17 @@ czyli kilka razy na sekundę w środku walki, synchronicznie w wątku gry.
 albo eksmisji — samo `chars` rosnące o kilkanaście znaków nie wymaga zapisu
 natychmiast. Zapisywać indeks przy zmianie KSZTAŁTU listy, a rozmiar domykać
 z opóźnieniem albo przy wygaszeniu nagrywania. **Koszt S.**
+
+**Zrobione.** `saveIndex()` rozdziela zmianę KSZTAŁTU listy (nowe nagranie,
+eksmisja, skasowanie — zapis natychmiast) od zmiany ROZMIARU (`chars` rośnie —
+odkładane do progu `INDEX_FLUSH_CHARS = 2000`). Wyłączenie nagrywania domyka
+odłożone rozmiary. W pamięci `chars` jest ZAWSZE dokładne, więc budżet
+i eksmisja liczą się poprawnie niezależnie od tego, kiedy indeks poszedł na
+dysk; rozjazd dotyczy wyłącznie odczytu po nagłym zamknięciu karty i jest
+ograniczony progiem.
+
+**Pomiar po naprawie.** 200 linii logu przy pełnym archiwum: **4 zapisy indeksu
+zamiast 200**, 476 znaków na linię zamiast ~21 tys. — ok. 48× mniej.
 
 **Docelowo.** → `SOLID.md` jako `§4.28`
 
@@ -205,7 +217,7 @@ klasa została zamknięta dopiero tutaj
 Trzy pozycje jednego wątku: sumowanie sesji jest gotowe i poprawne, a mimo to
 niewidoczne — i w dniu, w którym stanie się widoczne, skłamie po cichu.
 
-### AUDYT‑5 — `BattleStats` jest jednym typem dla walki i dla sesji 🔴 S — typy ✓
+### AUDYT‑5 — `BattleStats` jest jednym typem dla walki i dla sesji 🔴 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/stats.ts:340` (`BattleStats`), `src/session.ts:170` (`mergeStats`),
 `src/overlay.ts:988`, `:476` (`turnsFor`)
 
@@ -235,6 +247,14 @@ type SessionStats = Aggregate;
 eksportowany MUTOWALNY singleton używany w czterech miejscach jako stan startowy
 — `Object.freeze` nie kosztuje nic. Mieszka też w złym module: `overlay.ts`
 importuje z `session.ts` zero dla typu należącego do `stats.ts`.
+
+**Zrobione.** `Aggregate` (wspólne), `BattleStats = Aggregate & { timeline,
+deaths, matrix }`, `SessionStats = Aggregate`. `mergeStats` zwraca `SessionStats`
+i NIE dokłada już pustych tablic — sesja przestała udawać pełne `BattleStats`
+także w JSON-ie ze schowka. `Overlay.render` przyjmuje `BattleStats` jako
+pierwszy argument i `SessionStats` jako drugi, więc podanie sumy jako walki
+**nie kompiluje się** (`TS2345`). `EMPTY_STATS` przeniesione do `stats.ts`
+i zamrożone wraz z tablicami.
 
 **Docelowo.** → `SOLID.md` jako `§5` (mapowanie) + nowy refaktor `R9`; jest
 warunkiem wejścia dla AUDYT‑6
