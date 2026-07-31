@@ -408,6 +408,7 @@ obok; tutaj zostaje to, co zmienia obraz całości.
 | `SOLID.md` | usterki działania (`§4…`), dług architektoniczny, testy |
 | `TOOLING.md` | budowanie, `@match`, wersjonowanie, CI |
 | `README.md` (ten plik) | **dlaczego** kod wygląda, jak wygląda; ograniczenia danych |
+| `AUDYT.md` | migawka **otwartych** spraw z przeglądu 2026‑07‑31, ID `AUDYT‑N` |
 
 Oba dokumenty poprawkowe leżały wcześniej w roocie; są teraz w `ai/`, żeby
 wszystko, co dotyczy pracy nad kodem, stało w jednym miejscu.
