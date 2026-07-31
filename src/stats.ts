@@ -259,6 +259,19 @@ const RE_RAW_ELEMENT = /^dmg[a-z]+$/;
 
 /** Leczenie bez nazwy umiejętności — log nie mówi, co je wywołało. */
 const PLAIN_HEAL = "Regeneracja";
+/**
+ * "+Zranienie (339)" — jedyny proc w korpusie, który nazywa NARAZ sprawcę
+ * (stoi przy jego ciosie) i dokładną kwotę przyszłego tyknięcia.
+ *
+ * Dlatego tylko ten jeden wiąże DoT ze sprawcą wprost, z pominięciem zgadywania
+ * po układzie stron: kwota daje się porównać z tyknięciem, więc wiązanie jest
+ * SPRAWDZALNE, a nie oparte na kolejności linii. "+Głęboka rana" kwoty nie
+ * podaje (jeden proc, tyknięcia 754 → 1131), a trucizna, ogień i błyskawice nie
+ * mają w logu żadnego proca nakładającego — te zostają przy `opponentOf`.
+ */
+const RE_WOUND_PROC = /^Zranienie \((\d+)\)$/;
+/** Typ DoT-a, przy którym wiązanie z proca ma sens — patrz `RE_WOUND_PROC`. */
+const WOUND_DOT = "po zranieniu";
 
 /**
  * Aktor tury, której nagłówka nie widzieliśmy — bufor logu zaczyna się w jej
@@ -335,8 +348,19 @@ function byAmount(...sources: Array<Map<unknown, DamageSource>>): DamageSource[]
     .sort((a, b) => b.amount - a.amount);
 }
 
-/** Trucizna bez sprawcy w rozbiciu na stronę poszkodowanego. */
-export type UnattributedDot = { mine: number; enemy: number; loose: number };
+/**
+ * DoT bez sprawcy w rozbiciu na stronę poszkodowanego.
+ *
+ * `types` mówi, CO w tej puli siedzi — bez tego przypis w panelu nazywał całość
+ * trucizną, choć trafiają tu także rany i ogień. Nazwy są takie, jak w logu
+ * ("trucizny", "ognia", "zranieniu"), bo tylko one są pewne.
+ */
+export type UnattributedDot = {
+  mine: number;
+  enemy: number;
+  loose: number;
+  types: Array<{ label: string; amount: number }>;
+};
 
 /** Suma po wszystkich stronach — tyle trucizny bez sprawcy padło w walce. */
 export function totalUnattributedDot(dot: UnattributedDot): number {
@@ -430,7 +454,12 @@ export type SessionStats = Aggregate;
  */
 export const EMPTY_STATS: BattleStats = Object.freeze({
   actors: Object.freeze([] as ActorStats[]),
-  unattributedDotDamage: Object.freeze({ mine: 0, enemy: 0, loose: 0 }),
+  unattributedDotDamage: Object.freeze({
+    mine: 0,
+    enemy: 0,
+    loose: 0,
+    types: Object.freeze([] as UnattributedDot["types"]),
+  }),
   unattributedHealing: 0,
   ambiguousNames: Object.freeze([] as string[]),
   unknownLines: 0,
@@ -679,6 +708,14 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
   // Sprawcy log nie zna, ale POSZKODOWANEGO tak — zbieramy po nim, a na stronę
   // przeliczymy na końcu, gdy skład jest już kompletny.
   const unattributedDotByTarget = new Map<string, number>();
+  /** To samo w rozbiciu na rodzaj — po to, żeby stopka mówiła, CO w puli jest. */
+  const unattributedDotTypes = new Map<string, number>();
+  /**
+   * Ostatnie „+Zranienie (N)" nałożone na cel — sprawca i zapowiedziana kwota.
+   * Jeden proc obejmuje kilka tyknięć pod rząd i obowiązuje aż do następnego na
+   * ten sam cel, więc wpisu nie kasujemy po użyciu, tylko nadpisujemy.
+   */
+  const woundBy = new Map<string, { source: string; amount: number }>();
   let unattributedHealing = 0;
   let unknownLines = 0;
   /** Klasy `dmgX`, których nie umiemy nazwać — patrz `BattleStats`. */
@@ -793,20 +830,33 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           const label = procLabel(proc);
           bumpCount(breakdownOf(sourceKey).procs, label);
           bumpCount(breakdownOf(targetKey).procsReceived, label);
+          // Jedyny proc, który nazywa i sprawcę, i kwotę przyszłego tyknięcia.
+          const wound = RE_WOUND_PROC.exec(proc);
+          if (wound) woundBy.set(targetKey, { source: sourceKey, amount: parseInt(wound[1]!, 10) });
         }
         break;
       }
       case "dot": {
-        // Sprawcy szukamy po nazwie z logu — instancja celu nie zmienia tego,
-        // kto stoi po drugiej stronie.
-        const source = opponentOf(event.target);
         const targetKey = resolve(event.target, event.targetHpPct);
+        const effect = `${event.via} ${event.dotType}`;
+        // Zranienie ma w logu sprawcę WPROST — proc "+Zranienie (N)" stoi przy
+        // jego ciosie i zapowiada kwotę tyknięcia. Zgodność kwoty jest tu
+        // warunkiem, nie ozdobą: bez niej wiązalibyśmy po samej kolejności
+        // linii, czyli tak samo na wiarę jak przy truciźnie.
+        //
+        // Reszta rodzajów nie ma czego z czym wiązać, więc zostaje przy
+        // zgadywaniu z układu stron: sprawca jest znany tylko wtedy, gdy po
+        // drugiej stronie stoi dokładnie jeden przeciwnik. Pyta się o niego po
+        // NAZWIE z logu, nie po kluczu instancji — instancja celu nie zmienia
+        // tego, kto stoi po drugiej stronie.
+        const wound = effect === WOUND_DOT ? woundBy.get(targetKey) : undefined;
+        const source =
+          wound && wound.amount === event.amount ? wound.source : opponentOf(event.target);
         get(targetKey).damageTaken += event.amount;
         observeDeath(targetKey, event.targetHpPct);
         // DoT tyka między turami, więc trafia do tury, która właśnie trwa.
         addToTurn(event.amount);
         if (source) addEdge(source, targetKey, event.amount);
-        const effect = `${event.via} ${event.dotType}`;
         // Każde tyknięcie DoT-u to osobne wystąpienie — tu, w odróżnieniu od
         // ciosu, jedna linia niesie dokładnie jedną liczbę.
         const takenKey = source ? `${source} (${effect})` : effect;
@@ -833,6 +883,11 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           addDamage(breakdownOf(source).dealtType, effect, event.amount);
           countStrike(breakdownOf(source).dealtType, effect);
         } else {
+          // Rodzaj idzie razem z kwotą: bez niego stopka nazywa TRUCIZNĄ całą
+          // pulę, w której siedzi też ogień i rany. Etykietą jest cały zwrot
+          // z logu ("od trucizny", "po zranieniu"), bo sam rzeczownik nie
+          // odmienia się tak samo w obu szykach.
+          unattributedDotTypes.set(effect, (unattributedDotTypes.get(effect) ?? 0) + event.amount);
           unattributedDotByTarget.set(
             targetKey,
             (unattributedDotByTarget.get(targetKey) ?? 0) + event.amount,
@@ -850,9 +905,11 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         const healLabel = event.ability ?? PLAIN_HEAL;
         addDamage(breakdownOf(targetKey).healed, healLabel, event.amount);
         countStrike(breakdownOf(targetKey).healed, healLabel);
-        // Log nie podaje leczącego. Przy proc-ach (jest nazwa umiejętności)
-        // leczy się sam trafiony; przy gołym "Przywrócono" nie wiadomo kto.
-        if (event.ability !== null) get(targetKey).healingDone += event.amount;
+        // Log nie podaje leczącego — najwyżej tyle, że leczony i leczący to ta
+        // sama postać (proc, samoratunek). Tylko wtedy wolno komuś tę kwotę
+        // dopisać; "Uleczono X o N" niesie nazwę umiejętności, ale rzucił ją
+        // ktoś inny, więc mimo nazwy idzie do puli nierozdzielonej.
+        if (event.self) get(targetKey).healingDone += event.amount;
         else unattributedHealing += event.amount;
         break;
       }
@@ -942,7 +999,14 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
   // Ta sama zasada dla trucizny bez sprawcy: skoro wiadomo, KOMU tyka, to przy
   // filtrze składu przypis ma iść za poszkodowanym, a nie wisieć przy każdej
   // zakładce z tą samą liczbą.
-  const unattributedDotDamage = { mine: 0, enemy: 0, loose: 0 };
+  const unattributedDotDamage: UnattributedDot = {
+    mine: 0,
+    enemy: 0,
+    loose: 0,
+    types: [...unattributedDotTypes]
+      .map(([label, amount]) => ({ label, amount }))
+      .sort((a, b) => b.amount - a.amount),
+  };
   for (const [name, amount] of unattributedDotByTarget) {
     const side = sideOf(name);
     const bucket = side === null ? "loose" : side === 0 ? "mine" : "enemy";

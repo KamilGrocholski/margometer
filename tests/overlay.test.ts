@@ -495,7 +495,7 @@ describe("overlay", () => {
     const note = () =>
       [...overlay.shadow.querySelectorAll("footer .note")]
         .map((el) => el.textContent ?? "")
-        .find((text) => text.startsWith("Trucizna bez sprawcy"));
+        .find((text) => text.startsWith("Tykające obrażenia bez sprawcy"));
 
     const whole = totalUnattributedDot(stats.unattributedDotDamage);
     expect(note()).toContain(number.format(whole));
@@ -504,7 +504,11 @@ describe("overlay", () => {
     [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")]
       .find((row) => row.dataset.actor === victim.name)!
       .click();
-    expect(note()).toBe(`Trucizna bez sprawcy: ${number.format(victim.unattributedDotTaken)}`);
+    // W widoku postaci zostaje jej własna liczba i sam rodzaj — podział na
+    // strony nie ma tu sensu, bo strona jest jedna.
+    expect(note()).toBe(
+      `Tykające obrażenia bez sprawcy: ${number.format(victim.unattributedDotTaken)} (od trucizny)`,
+    );
 
     // Powrót do składu przywraca liczbę całej walki.
     overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
@@ -1389,17 +1393,17 @@ describe("nagłówek stron i tempo", () => {
     const note = () =>
       [...overlay.shadow.querySelectorAll("footer .note")]
         .map((el) => el.textContent)
-        .find((text) => text?.startsWith("Trucizna"));
+        .find((text) => text?.startsWith("Tykające obrażenia"));
 
     // Przy "Wszyscy" suma plus rozbicie — sama liczba nie mówi, kogo to boli.
-    expect(note()).toBe("Trucizna bez sprawcy: 100 (my 100 · oni 0)");
+    expect(note()).toBe("Tykające obrażenia bez sprawcy: 100 (od trucizny · my 100 · oni 0)");
 
     [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === "Oni")!.click();
     // Truciznę oberwał gracz, nie oni — przy "Oni" przypis nie ma o czym mówić.
     expect(note()).toBeUndefined();
 
     [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === "My")!.click();
-    expect(note()).toBe("Trucizna bez sprawcy: 100");
+    expect(note()).toBe("Tykające obrażenia bez sprawcy: 100 (od trucizny)");
   });
 
   test("nie ma nagłówka, gdy log nie dał podziału na strony", () => {

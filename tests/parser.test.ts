@@ -156,6 +156,7 @@ describe("tancerz ostrzy vs kukła treningowa", () => {
       target: "Magister Kazrek",
       amount: 0,
       targetHpPct: 0.01,
+      self: true,
     });
   });
 
@@ -539,6 +540,7 @@ describe("łowca vs tropiciel — zasoby i leczenie w środku bloku", () => {
       target: "wf foverek psk",
       amount: 3056,
       targetHpPct: 38,
+      self: true,
     });
   });
 
@@ -958,6 +960,126 @@ describe("głośne awarie zamiast cichych", () => {
 
     expect(stats.unknownElements).toEqual([]);
     expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe("ogień");
+  });
+});
+
+describe("leczenie kierowane", () => {
+  const log = (...lines: string[]) =>
+    ["Rozpoczęła się walka pomiędzy Medyk (50p), Tank (50w) a Wilk (10w)", ...lines].join("\n");
+
+  test("bierze nazwę umiejętności z zapowiedzi stojącej nad nim", () => {
+    const heal = parse(
+      log("Medyk wykonuje Leczenie ran.", "Uleczono Tank o 1200 punktów życia."),
+    ).find((e) => e.kind === "heal");
+
+    expect(heal).toEqual({
+      kind: "heal",
+      ability: "Leczenie ran",
+      target: "Tank",
+      amount: 1200,
+      // Ten szyk NIE niesie procentu życia celu — nigdy.
+      targetHpPct: null,
+      self: false,
+    });
+  });
+
+  /**
+   * Sedno pola `self`. Ta sama umiejętność, ta sama linia leczenia — raz na
+   * siebie, raz na kogoś innego. `ability !== null` (dawne kryterium) nie
+   * odróżnia tych dwóch przypadków, więc leczony wychodził na leczącego.
+   */
+  test("odróżnia leczenie siebie od leczenia kogoś innego", () => {
+    const stats = aggregate(
+      parse(
+        log(
+          "Tank wykonuje Leczenie ran.",
+          "Uleczono Tank o 500 punktów życia.",
+          "Medyk wykonuje Leczenie ran.",
+          "Uleczono Tank o 1200 punktów życia.",
+        ),
+      ),
+    );
+
+    const tank = stats.actors.find((a) => a.name === "Tank")!;
+    expect(tank.healingReceived).toBe(1700);
+    // Własne jest tylko to, co rzucił na siebie; cudze 1200 nie ma sprawcy.
+    expect(tank.healingDone).toBe(500);
+    expect(stats.unattributedHealing).toBe(1200);
+    // Nazwa umiejętności jest znana w OBU przypadkach — to ona jest wygraną.
+    expect(tank.healedBy.map((h) => h.label)).toEqual(["Leczenie ran"]);
+  });
+
+  test("poza blokiem umiejętności zostaje bez nazwy, ale z kwotą", () => {
+    const heal = parse(log("Uleczono Tank o 300 punktów życia.")).find((e) => e.kind === "heal");
+
+    expect(heal).toMatchObject({ ability: null, amount: 300, target: "Tank", self: false });
+  });
+
+  test("leczenie grupowe z ułamkiem procentu jest znane, ale nie liczone", () => {
+    const events = parse(log("Medyk wykonuje Fala leczenia.", "Uleczono sojuszników o 22.5% życia."));
+
+    expect(events.filter((e) => e.kind === "unknown")).toEqual([]);
+    // Log nie rozbija tej puli na postacie, więc nie ma czego przypisać.
+    expect(events.some((e) => e.kind === "heal")).toBe(false);
+  });
+});
+
+describe("parowanie liczb ciosu z liczbami przyjętymi", () => {
+  /** Znacznik żywiołu doklejany do liczby przez `extractText` (klasa `dmgX`). */
+  const el = (letter: string) => `${ELEMENT_MARKER}${letter}`;
+  const log = (strike: string, taken: string) =>
+    [
+      "Rozpoczęła się walka pomiędzy Kamil (120t) a Wilk (10w)",
+      `Kamil(100%) uderzył z siłą  ${strike}`,
+      `Wilk(50%) otrzymał(a)  ${taken}  obrażeń`,
+    ].join("\n");
+
+  /**
+   * Cel wytłumił środkową liczbę do zera, więc log jej w linii przyjętych nie
+   * napisał. Parowanie po indeksie dawało tu cios PRZYJĘTY większy od zadanego.
+   */
+  test("pomija slot, którego cel wytłumił do zera", () => {
+    const attack = parse(log("+930  +147  +799", "-426  -375")).find((e) => e.kind === "attack")!;
+
+    expect(attack.hits.map((h) => [h.raw, h.applied])).toEqual([
+      [930, 426],
+      [147, 0],
+      [799, 375],
+    ]);
+  });
+
+  /**
+   * Tu sam warunek wielkości NIE wystarcza: 17 mieści się w 159, więc zimno
+   * wsiąkłoby pod ogień, nie łamiąc niczego widocznego. Rozstrzyga żywioł.
+   */
+  test("żywioł rozstrzyga tam, gdzie wielkość nie wystarcza", () => {
+    const stats = aggregate(
+      parse(
+        log(
+          `+1054${el("d")}  +159${el("f")}  +1143${el("c")}`,
+          `-179${el("d")}  -17${el("c")}`,
+        ),
+      ),
+    );
+
+    const kamil = stats.actors.find((a) => a.name === "Kamil")!;
+    // Wytłumiony slot zostaje z zerem (ogień) — liczy się to, gdzie wylądowały
+    // liczby niezerowe: 17 pod zimnem, nie pod ogniem.
+    expect(kamil.dealtByType.filter((t) => t.amount > 0).map((t) => [t.label, t.amount])).toEqual([
+      ["dystansowe", 179],
+      ["zimno", 17],
+    ]);
+  });
+
+  test("liczba dołożona po redukcji zostaje osobnym trafieniem", () => {
+    // "Zmiażdżenie 25%" dokłada w linii przyjętych wartość, której w ciosie
+    // surowym nie było — surowej log dla niej nie podaje.
+    const attack = parse(log("+900", "-400  -120")).find((e) => e.kind === "attack")!;
+
+    expect(attack.hits.map((h) => [h.raw, h.applied])).toEqual([
+      [900, 400],
+      [120, 120],
+    ]);
   });
 });
 

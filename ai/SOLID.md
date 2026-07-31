@@ -231,6 +231,22 @@ zaniża), albo nie jest (i wtedy gałąź „bez nagłówka” w `continues()` p
 `merge` to martwa złożoność). **Do rozstrzygnięcia jednym zrzutem z długiej
 walki — to decyzja, nie łatka.**
 
+**Pomiar 2026‑07‑31 — teza NADAL niepotwierdzona, przy prawie dwukrotnie
+większym zrzucie.** `2026-07-31_druzyna-vs-hildur-zwyciestwo/log.html` to **584
+węzły `.battle-msg` i 1373 wyciągnięte linie** (poprzedni rekord: 371 i 742).
+Linia otwierająca **jest na miejscu** — pierwszą linią z `extractText` jest
+`Rozpoczęła się walka pomiędzy wf regulus psk (90t), …`.
+
+Co to zmienia: „nie mamy dość długiej walki” przestaje być wytłumaczeniem. Przy
+1373 liniach gra nadal nie przycina, więc **ciężar dowodu się odwrócił** — to
+gałąź „bez nagłówka” w `continues()` i całe `merge` w nagrywarce mają teraz
+udowodnić, że nie są martwe, a nie odwrotnie. Do rozstrzygnięcia zostaje jedno
+pytanie i jest ono pytaniem o FAKT, nie o gust: **czy okno walki w ogóle ma sufit
+liczby komunikatów.** Jeśli ma, potrzebny jest zrzut zza niego; jeśli nie ma —
+obie konstrukcje idą do usunięcia. Sposób sprawdzenia jest tani i nie wymaga
+kolejnej walki: przeczytać, czy klient przycina `.scroll-pane` (obserwacja
+`tools/engine-probe.js` na żywym oknie), zamiast czekać na jeszcze dłuższy log.
+
 Fakt na marginesie, warto zapisać: zdublowana linia `Rozpoczęła się walka`
 występuje **tylko w `raw.txt`** (wyjście „Kopiuj logi”), nie w DOM. Oba
 mechanizmy odsiewania dubla (`session.ts:104‑108`, `recorder.ts:80`) obsługują
@@ -372,6 +388,14 @@ w `stats.ts`, ani w `overlay.ts`), `dot.weakenedPct` (parser/typy), `experience`
 „Zablokowanie 717 obrażeń”, osłabienie DoT‑u i linie XP są parsowane, typowane
 i **przetestowane** — a potem wyrzucane. To osobna kategoria niż martwy kod z §9:
 tu utrzymanie ma już testy w zestawie. Pokazać albo usunąć — ale zdecydować.
+
+**Zmierzone 2026‑07‑31** (bo „nigdy nieczytane" brzmi tanio, dopóki nie wiadomo,
+ile to jest): `attack.blocked` to **11 wystąpień i 9 978 obrażeń** w korpusie —
+czyli tyle, ile cel faktycznie zdjął z ciosów i o czym panel nie mówi ani słowa.
+`superCrit` pada 2 razy w samej walce z Hildur. Uwaga na kolejność: to jest
+kandydat na tę samą naprawę, co przypis o leczeniu bez sprawcy — dane są, brakuje
+wyłącznie miejsca, w którym miałyby się pokazać. Decyzja nadal nie zapadła
+i **nie zapadła też przy tej rundzie** — dopisana jest tylko cena.
 
 ### 4.23 Otwarcie archiwum blokuje wątek gry 🟡 [otwarte — koszt, jedyne z trójki]
 `archive.ts:490‑491` — `renderRow` woła `recorder.read(id)` + `summaryOf(id,

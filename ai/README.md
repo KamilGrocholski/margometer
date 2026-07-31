@@ -116,15 +116,49 @@ truciznę nałożył.** W przeciwieństwie do `głębokiej rany` i `zranienia`, 
 w logu odpowiadający im proc (`+Głęboka rana`, `+Zranienie (N)`), trucizna nie ma
 żadnej linii nakładającej.
 
-Sprawdzone w korpusie fixture'ów:
+Sprawdzone w korpusie fixture'ów (przeliczone 2026‑07‑31, po dołożeniu walki
+z Hildur — same tyknięcia DoT-a, nie liczba walk):
 
 ```
-od trucizny      x15  ← brak proca
-od ognia         x1   ← brak proca
-od błyskawic     x2   ← brak proca
-od głębokiej rany x2  ← +Głęboka rana
-po zranieniu     x1   ← +Zranienie (N)
+od trucizny      x105  ← brak proca
+od głębokiej rany x18  ← +Głęboka rana
+od ognia          x17  ← brak proca
+po zranieniu      x16  ← +Zranienie (N)
+od błyskawic       x2  ← brak proca
 ```
+
+Proporcja jest tu ważniejsza od samych liczb: **rodzaje bez proca to nadal
+większość tyknięć**, a jeden zrzut z długiej walki grupowej potrafi przesunąć
+cały rachunek — dlatego ta tabelka ma datę.
+
+#### Trzy piętra, nie jedno (ustalone 2026‑07‑31)
+
+„DoT bez sprawcy" brzmi jak jedna sprawa, a są trzy — i mylenie ich kosztowało
+nas realne liczby:
+
+| piętro | rodzaj | co daje log | co robimy |
+|---|---|---|---|
+| **1. sprawca i kwota** | `po zranieniu` | `+Zranienie (N)` stoi przy ciosie i **zapowiada kwotę tyknięcia** | **wiążemy** — z warunkiem zgodności kwoty |
+| **2. sam sprawca** | `od głębokiej rany` | `+Głęboka rana` bez kwoty (jeden proc, tyknięcia 754 → 1131) | nie wiążemy |
+| **3. nic** | `od trucizny`, `od ognia`, `od błyskawic` | brak proca w całym korpusie | nie wiążemy |
+
+**Piętro 1 wiążemy, bo da się to sprawdzić, a nie dlatego, że pasuje.** Kwota
+z proca musi się zgadzać z kwotą tyknięcia — 16/16 w korpusie — więc test
+(`stats.test.ts`, „zranienie zgadza się z proca") pilnuje tego przy każdym
+kolejnym zrzucie. Gdy przestanie się zgadzać, wiązanie trzeba **wycofać**, a nie
+naprawiać: bez zgodności kwot zostałoby wnioskowanie z kolejności linii, czyli
+dokładnie to, czego przy truciźnie odmawiamy.
+
+**Dlaczego nie piętro 2 i 3.** `+Głęboka rana` wskazuje sprawcę, ale wiązanie
+opierałoby się wyłącznie na sąsiedztwie linii. Przy ogniu jest jeszcze
+kuszący dowód: w walce z Hildur jest **jeden** rzut `Kula ognia`, dwa tyknięcia
+zaraz po nim, i wbudowana próba kontrolna — trzej gracze biją `dmgf` przez całą
+walkę i nie wywołują ani jednego tyknięcia. To i tak korelacja z jednego zrzutu,
+a `UX.md` stawia zasadę „nie udawać danych, których log nie ma". Zostaje.
+
+Skutek praktyczny: w walce 10v1 z Hildur `opponentOf` milczy dla wszystkiego (po
+drugiej stronie stoi dziesięciu), ale zranienie i tak ma właściciela — 3 380
+obrażeń wróciło do Łowcomira. W puli zostały trucizna (40 435) i ogień (556).
 
 Obecne zachowanie: DoT przypisujemy sprawcy tylko wtedy, gdy po przeciwnej stronie
 stoi dokładnie jeden przeciwnik (`opponentOf` w `stats.ts`). W innym wypadku obrażenia
@@ -154,6 +188,27 @@ aura / samoratunek), w parze z „OD KOGO/KOMU" zadanych i przyjętych — tyle 
 drążenia głębiej, bo źródłem jest sam efekt, nie postać. Zadane i przyjęte drążą
 się przez postać (`dealtToBy` / `takenFromBy`), bo tam obie strony ciosu są w
 logu; leczenie tej symetrii nie ma.
+
+**Trzeci szyk, i najbliższy kontrprzykład, jaki ta sekcja dostała.** Leczenie
+kierowane — `Uleczono Zsz Przeworsk o 11937 punktów życia.` — stoi wprost pod
+zapowiedzią `Er Al Safar wykonuje Leczenie ran.`, więc **nazwa umiejętności jest
+znana**, a przy odrobinie dobrej woli i rzucający też. Mimo to szczebla „kto
+leczył" **nadal nie budujemy**, i nie jest to zaniechanie:
+
+- nazwę bierzemy (parser podaje `sideEvent` blok jako parametr), bo bez niej całe
+  leczenie drużyny stałoby pod wspólną „Regeneracją" — to jest ta wygrana;
+- sprawcy nie zapisujemy, bo szczebel wypełniony **tylko dla jednego z trzech
+  szyków** kłamałby bardziej niż jego brak: „Przywrócono" i tak zostaje bez
+  nikogo, a w panelu wyglądałoby to jak healer, który raz leczy, a raz nie.
+
+Zdarzenie `heal` niesie za to pole `self` — „czy leczony i leczący to ta sama
+postać". Tyle i tylko tyle da się z logu wyczytać, a wystarcza, żeby `healingDone`
+nie dostawał cudzej roboty. Wcześniej rolę tę pełniło `ability !== null`, co
+działało dopóty, dopóki nazwane leczenie zawsze siadało na trafionym (`Dotyk
+anioła`, `Ostatni ratunek`). Fixture `2026-07-31_druzyna-vs-hildur-zwyciestwo`
+trzyma oba warianty naraz — Hubert Ivan leczy siebie, Er Al Safar leczy kogoś
+innego, obaj tą samą umiejętnością — i jest jedynym dowodem, że to rozróżnienie
+w ogóle jest potrzebne.
 
 ### Dwie postacie o tej samej nazwie
 
@@ -440,6 +495,10 @@ stron, `estimateMaxHp` tylko w testach, niesprzątany `setInterval`, twarde
    **przesłanki nie potwierdza żaden fixture**: największy zrzut DOM (742 linie)
    nadal ma linię otwierającą. Albo licznik zaniża, albo `merge` w nagrywarce to
    martwa złożoność. Rozstrzyga jeden zrzut z długiej walki.
+   **Domknięte pomiarem 2026‑07‑31:** zrzut z walki z Hildur ma 1373 linie —
+   prawie dwa razy tyle — i nagłówek nadal na miejscu. Teza zostaje
+   niepotwierdzona, a ciężar dowodu przechodzi na `merge`. Szczegóły i następny
+   krok przy §4.12.
 5. **Kontrakt „nieznany kształt musi być głośny” ma wyjątki** — nieznana klasa
    `dmg*` staje się cicho „bez żywiołu” (`SOLID.md §4.17`), a separator tysięcy
    obcina liczbę bez `unknown` (`§4.19`).

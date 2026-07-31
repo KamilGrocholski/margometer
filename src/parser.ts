@@ -37,6 +37,15 @@ function clean(text: string): string {
 
 /** Nazwa aktora + jego HP w procentach, np. `Magister Kazrek(0.01%)`. */
 const ACTOR = String.raw`(.+?)\((\d+(?:[.,]\d+)?)%\)`;
+/**
+ * Procent w treści komunikatu tła. Ułamek jest realny: leczenie grupowe potrafi
+ * podać "22.5% życia", bo procent liczy się z czegoś, co samo bywa ułamkiem.
+ *
+ * Świadomie NIE wchodzi do `(osłabione o (\d+)%)` w `RE_DOT`/`RE_DOT_TAKEN`:
+ * tamta grupa idzie do `parseInt`, więc poszerzenie obcięłoby "12.5" do "12" po
+ * cichu. Tam ułamek ma zostać nieznaną linią — głośno.
+ */
+const PCT = String.raw`\d+(?:[.,]\d+)?`;
 
 const RE_FIGHT_START = new RegExp(`^${FIGHT_START_TEXT} (.+)$`);
 const RE_PARTICIPANT = /(.+?)\s\((\d+)([a-zA-Z])\)/g;
@@ -109,6 +118,22 @@ const RE_HEAL_SELF = new RegExp(
 const RE_HEAL_PLAIN = new RegExp(
   `^Przywrócono\\s+(\\d+)\\s+punktów życia\\s+(.+?)(?:\\((\\d+(?:[.,]\\d+)?)%\\))?\\.?$`,
 );
+/**
+ * "Uleczono Zsz Przeworsk o 11937 punktów życia." — leczenie KIEROWANE: kwota
+ * bezwzględna, nazwany cel i ani słowa o tym, kto i czym leczył. Nazwę
+ * umiejętności da się wziąć wyłącznie z zapowiedzi stojącej nad tą linią, stąd
+ * `ability` wpychane do `sideEvent` z zewnątrz.
+ *
+ * Od sąsiedniego "Uleczono sojuszników o 22.5% życia." (zostaje w `RE_INFO`)
+ * odróżnia je "punktów życia" kontra "% życia" — tamto niesie procent i cel
+ * zbiorowy, więc nie ma czego i komu przypisać.
+ *
+ * Leniwe `(.+?)\s+o\s+` rozcina na pierwszym " o ", po którym stoją już tylko
+ * cyfry i "punktów życia" do końca linii. Nazwa zawierająca " o " jest
+ * bezpieczna; nazwa KOŃCZĄCA się na " o " i przechodząca w liczbę nie — takiej
+ * w korpusie nie ma i nie bronimy się przed nią na zapas.
+ */
+const RE_HEAL_TARGET = new RegExp(`^Uleczono\\s+(.+?)\\s+o\\s+(\\d+)\\s+punktów życia\\.?$`);
 const RE_DOT = new RegExp(
   `^${ACTOR}:\\s*(\\d+)\\s*(?:\\(osłabione o (\\d+)%\\))?\\s*obrażeń (od|po) (.+?)\\.?$`,
 );
@@ -154,7 +179,7 @@ const RE_INFO = [
   // Aura nakładana na starcie, np. "X spowija się trującą mgłą: -3% ...".
   /\sspowija się\s/,
   // Wzmocnienie za małą grupę: "Wzmocnienie X o 35% ze względu na małą grupę...".
-  /^Wzmocnienie .+ o \d+%/,
+  new RegExp(`^Wzmocnienie .+ o ${PCT}%`),
   // Ładowanie ciosu specjalnego: "X(100%) przygotowuje się do wykonania Y(0%).".
   // Sama zapowiedź naboju — obrażenia (jeśli padną) przyjdą osobną linią później.
   /\sprzygotowuje się do wykonania\s/,
@@ -175,9 +200,19 @@ const RE_INFO = [
   // rozbija go na postacie ani nie dokłada linii "Przywrócono" — tej kwoty
   // nie da się nikomu przypisać i statystyki jej nie widzą.
   /^Aura .+ została aktywowana\b/,
-  /^Spowolnienie przeciwników o \d+%\.?$/,
-  /^Osłabienie leczenia .+ o \d+%\.?$/,
-  /^Uleczono sojuszników o \d+% życia\.?$/,
+  new RegExp(`^Spowolnienie przeciwników o ${PCT}%\\.?$`),
+  new RegExp(`^Osłabienie leczenia .+ o ${PCT}%\\.?$`),
+  new RegExp(`^Uleczono sojuszników o ${PCT}% życia\\.?$`),
+  // Zaczepienie: "Zsz Przeworsk wykonuje Wyzywający okrzyk." → "Uwaga Hildur
+  // Muza Śmierci została skupiona na Zsz Przeworsk." Jedyna z tej rodziny BEZ
+  // procentu — mówi o kierunku uwagi bossa, nie o wielkości efektu.
+  /^Uwaga .+ została skupiona na .+\.?$/,
+  // Opisy osłabień i wzmocnień spod zaczepienia i tarczy. Wzorce są dosłowne,
+  // a nie "^Zmniejszenie .+ o N%", bo szerszy szyk połknąłby kiedyś linię
+  // niosącą liczbę do przypisania — a `unknown` jest jedyną czujką na to.
+  new RegExp(`^Zmniejszenie szansy na blok u przeciwników o ${PCT}%\\.?$`),
+  new RegExp(`^Zmniejszenie ataku przeciwników o ${PCT}%\\.?$`),
+  new RegExp(`^Zwiększenie szansy na blok o ${PCT}%\\.?$`),
   // Łup z potwora: "Gnoll łucznik: zdobyto Niebieskawy pancerz gnolla".
   // Nazwa przed dwukropkiem to dawca łupu, nie aktor akcji — nic tu nie ma
   // do policzenia. Zwykle na końcu logu, ale nie jest to regułą, więc łapiemy
@@ -332,11 +367,56 @@ function isPhantomHit(hit: Hit): boolean {
   return hit.raw === 0 && hit.applied === 0 && !hit.dodged;
 }
 
+/**
+ * Sparowanie liczb surowych z przyjętymi — po kolei, ale NIE na ślepo po indeksie.
+ *
+ * Gdy cel wytłumi jedną z liczb do zera, log jej w linii przyjętych po prostu
+ * nie pisze: cios „+930 +147 +799" zamyka się wtedy „-426 -375". Parowanie po
+ * indeksie przypisywało 375 do surowego 147 — czyli cios przyjęty WIĘKSZY niż
+ * zadany, a w zrzucie z DOM-u dodatkowo pod cudzym żywiołem (liczba zimna
+ * lądowała pod ogniem). Sumy się zgadzały, więc nic tego nie zgłaszało.
+ *
+ * Obie linie wypisują sloty w tej samej kolejności, więc dla każdej przyjętej
+ * liczby bierzemy pierwszy slot, który ją UNIESIE. Slot unosi liczbę, gdy nie
+ * jest od niej mniejszy i gdy zgadza się żywioł — o ile obie strony go niosą.
+ * Sloty pominięte zostają z zerem: tyle cel z nich zdjął. Liczba, której nie
+ * przyjmie żaden slot, zostaje osobnym trafieniem, bo proc potrafi dołożyć
+ * w linii przyjętych wartość nieobecną w ciosie surowym („Zmiażdżenie 25%").
+ *
+ * Żywioł jest tu MOCNIEJSZYM dowodem niż wielkość i tylko on rozstrzyga część
+ * przypadków: „+1054(d) +159(f) +1143(c)" zamknięte „-179(d) -17(c)" ma 17
+ * mniejsze od 159, więc sam warunek wielkości wsadziłby zimno pod ogień, nie
+ * łamiąc przy tym niczego widocznego. W tekście z „Kopiuj logi" żywiołów nie
+ * ma wcale i wtedy zostaje sama wielkość — ale tam nie ma też rozbicia na
+ * rodzaje obrażeń, więc slot i tak nie ma czego przekłamać.
+ */
+function pairApplied(raw: DamageValue[], applied: DamageValue[]) {
+  const fits = (slot: DamageValue, value: DamageValue) =>
+    value.value <= slot.value &&
+    (slot.element === null || value.element === null || slot.element === value.element);
+
+  const slots: Array<DamageValue | undefined> = new Array(raw.length);
+  const extra: DamageValue[] = [];
+  let cursor = 0;
+  for (const value of applied) {
+    let slot = cursor;
+    while (slot < raw.length && !fits(raw[slot]!, value)) slot++;
+    if (slot < raw.length) {
+      slots[slot] = value;
+      cursor = slot + 1;
+    } else extra.push(value);
+  }
+  return { slots, extra };
+}
+
 function buildHits(raw: DamageValue[], applied: DamageValue[], mods: Modifiers): Hit[] {
-  const count = Math.max(raw.length, applied.length);
-  return Array.from({ length: count }, (_, i) => {
+  const { slots, extra } = pairApplied(raw, applied);
+  // Sloty ciosu, a za nimi liczby dołożone dopiero po redukcji — te nie mają
+  // surowego odpowiednika, więc stają się własnymi trafieniami.
+  const paired = [...slots, ...extra];
+  return Array.from({ length: paired.length }, (_, i) => {
     const secondary = i > 0;
-    const appliedValue = applied[i]?.value ?? 0;
+    const appliedValue = paired[i]?.value ?? 0;
     return {
       /**
        * Brak odpowiednika w linii "uderzył z siłą" znaczy, że tę liczbę dołożył
@@ -349,7 +429,7 @@ function buildHits(raw: DamageValue[], applied: DamageValue[], mods: Modifiers):
       raw: raw[i]?.value ?? appliedValue,
       applied: appliedValue,
       // Żywioł niosą obie linie tak samo; bierzemy pierwszy, który go ma.
-      element: raw[i]?.element ?? applied[i]?.element ?? null,
+      element: raw[i]?.element ?? paired[i]?.element ?? null,
       crit: secondary ? mods.offhandCrit : mods.mainCrit,
       superCrit: secondary ? false : mods.superCrit,
       secondary,
@@ -417,8 +497,15 @@ export function parse(text: string): BattleEvent[] {
   /**
    * Zdarzenia, które log potrafi wcisnąć w środek bloku ataku — leczenie celu
    * albo tykający efekt. Nie przerywają trwającego ciosu.
+   *
+   * `block` to umiejętność zapowiedziana nad tą linią. Potrzebuje jej wyłącznie
+   * leczenie kierowane: sama linia "Uleczono X o N punktów życia." nie mówi ani
+   * czym, ani kto — obie te rzeczy stoją piętro wyżej.
    */
-  const sideEvent = (line: string): BattleEvent | null => {
+  const sideEvent = (
+    line: string,
+    block: { actor: string; name: string } | null,
+  ): BattleEvent | null => {
     const healAbility = RE_HEAL_ABILITY.exec(line);
     if (healAbility) {
       return {
@@ -427,6 +514,8 @@ export function parse(text: string): BattleEvent[] {
         amount: parseInt(healAbility[2]!, 10),
         target: healAbility[3]!.trim(),
         targetHpPct: toPct(healAbility[4]!),
+        // Proc siada na tym, kto uderzył — leczy sam siebie.
+        self: true,
       };
     }
 
@@ -438,6 +527,27 @@ export function parse(text: string): BattleEvent[] {
         amount: parseInt(healSelf[4]!, 10),
         target: healSelf[1]!.trim(),
         targetHpPct: toPct(healSelf[2]!),
+        self: true,
+      };
+    }
+
+    const healTarget = RE_HEAL_TARGET.exec(line);
+    if (healTarget) {
+      const target = healTarget[1]!.trim();
+      return {
+        kind: "heal",
+        // Nazwa z otaczającego bloku — bez niej całe leczenie drużyny stanęłoby
+        // pod wspólną "Regeneracją" i nie dałoby się odróżnić "Leczenia ran" od
+        // "Kojącego ochłodzenia". Poza blokiem `null`: wtedy naprawdę nie
+        // wiadomo, co to było.
+        ability: block?.name ?? null,
+        amount: parseInt(healTarget[2]!, 10),
+        target,
+        // Ten szyk NIE podaje życia celu — jedyny obok leczenia potwora.
+        targetHpPct: null,
+        // Porównanie zostaje tutaj: na zewnątrz wychodzi tylko "czy tę kwotę
+        // wolno komuś dopisać", a nie sam leczący.
+        self: block?.actor === target,
       };
     }
 
@@ -450,6 +560,7 @@ export function parse(text: string): BattleEvent[] {
         target: healPlain[2]!.trim(),
         // Jedyny szyk, w którym procentu naprawdę bywa brak (leczenie potwora).
         targetHpPct: healPlain[3] ? toPct(healPlain[3]) : null,
+        self: false,
       };
     }
 
@@ -543,7 +654,7 @@ export function parse(text: string): BattleEvent[] {
       }
 
       // Leczenie celu potrafi stanąć MIĘDZY linią ciosu a linią obrażeń.
-      const side = sideEvent(line);
+      const side = sideEvent(line, ability);
       if (side) {
         events.push(side);
         return;
@@ -631,7 +742,7 @@ export function parse(text: string): BattleEvent[] {
     // bloku umiejętności (leczenie "Ostatni ratunek" staje między jej kolejnymi
     // liniami obrażeń), a domknięcie bloku osierociłoby następny cios tej samej
     // umiejętności — jego linia "N obrażeń otrzymał(a) X" straciłaby autora.
-    const side = sideEvent(line);
+    const side = sideEvent(line, ability);
     if (side) {
       events.push(side);
       return;

@@ -164,6 +164,57 @@ describe("EMPTY_STATS jest współdzielonym singletonem", () => {
     expect(totalUnattributedDot(EMPTY_STATS.unattributedDotDamage)).toBe(0);
   });
 });
+/**
+ * Zranienie to JEDYNY DoT, przy którym log nazywa sprawcę wprost: proc
+ * „+Zranienie (N)" stoi przy jego ciosie i zapowiada kwotę tyknięcia. Cała
+ * atrybucja tego rodzaju stoi na tym, że kwota z proca zgadza się z kwotą
+ * tyknięcia — więc jeśli kiedykolwiek przestanie, wiązanie trzeba wycofać, a nie
+ * naprawiać. Ten test jest po to, żeby to było widać od razu.
+ */
+describe.each(fixtures)("$name — zranienie zgadza się z proca", (fixture) => {
+  test("każde tyknięcie ma proc o tej samej kwocie", async () => {
+    const events = parse(await fixture.text());
+    /** Ostatni proc na cel — jeden obejmuje kilka tyknięć pod rząd. */
+    const announced = new Map<string, number>();
+    const mismatched: string[] = [];
+
+    for (const event of events) {
+      if (event.kind === "attack") {
+        for (const proc of event.procs) {
+          const wound = /^Zranienie \((\d+)\)$/.exec(proc);
+          if (wound) announced.set(event.target, parseInt(wound[1]!, 10));
+        }
+      }
+      if (event.kind === "dot" && `${event.via} ${event.dotType}` === "po zranieniu") {
+        if (announced.get(event.target) !== event.amount) {
+          mismatched.push(`${event.target}: tyknięcie ${event.amount}, proc ${announced.get(event.target)}`);
+        }
+      }
+    }
+
+    expect(mismatched).toEqual([]);
+  });
+});
+
+describe("zranienie ma sprawcę mimo tłumu po drugiej stronie", () => {
+  test("proc wskazuje sprawcę tam, gdzie układ stron nie rozstrzyga", async () => {
+    // 10 graczy vs boss: `opponentOf` milczy, bo po drugiej stronie stoi
+    // dziesięciu. Zranienie mimo to ma właściciela, bo log go nazwał.
+    const stats = aggregate(
+      parse(await readFixture("new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo")),
+    );
+
+    const lowca = stats.actors.find((a) => a.name === "Łowcomir Kazrek")!;
+    expect(lowca.dealtBy.find((d) => d.label === "po zranieniu")?.amount).toBe(3380);
+
+    // Reszta puli zostaje bez sprawcy — i przestaje udawać samą truciznę.
+    expect(stats.unattributedDotDamage.types).toEqual([
+      { label: "od trucizny", amount: 40435 },
+      { label: "od ognia", amount: 556 },
+    ]);
+  });
+});
+
 describe("trucizna w walce grupowej", () => {
   const load = async () => {
     document.body.innerHTML = await Bun.file(
@@ -373,7 +424,14 @@ describe("trucizna w walce grupowej", () => {
     );
     const stats = aggregate(events);
     // Sprawcy nie znamy, ale poszkodowanego tak — trucizna ląduje po stronie gracza.
-    expect(stats.unattributedDotDamage).toEqual({ mine: 100, enemy: 0, loose: 0 });
+    expect(stats.unattributedDotDamage).toEqual({
+      mine: 100,
+      enemy: 0,
+      loose: 0,
+      // Pula wie, CO w niej jest — inaczej przypis w panelu nazwałby trucizną
+      // także ogień i rany.
+      types: [{ label: "od trucizny", amount: 100 }],
+    });
     expect(stats.actors.find((a) => a.name === "A")?.damageDealt).toBe(0);
   });
 

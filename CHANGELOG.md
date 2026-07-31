@@ -29,6 +29,35 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   z obu dróg. Działa też dla obrażeń otrzymanych.
 
 ### Naprawione
+- **Obrażenia od zranienia nie miały właściciela, choć log go podaje.** W walce
+  grupowej licznik zgadywał sprawcę tykających obrażeń wyłącznie z układu stron —
+  a przy dziesięciu graczach na jednego bossa nie zgadywał wcale, więc całość szła
+  do worka „bez sprawcy". Tymczasem przy zranieniu log mówi wprost, kto je zadał
+  i ile będzie tykać. Teraz te obrażenia wracają do tego, kto je zadał (w walce
+  z Hildur: 3 380 punktów dla łowcy).
+- **Przypis o truciźnie mówił „trucizna" także o ogniu i ranach.** Do jednego
+  worka trafiały wszystkie tykające obrażenia bez sprawcy, a podpis nazywał je
+  trucizną. Teraz przypis wypisuje, co w nim faktycznie jest.
+- **Leczenia bez sprawcy nie było widać nigdzie.** Kiedy log nie mówi, kto
+  leczył, punkty nie mają właściciela i wypadały z rankingu bez śladu — w walce
+  z Hildur 133 867 punktów, czyli trzy razy więcej niż cały nieprzypisany DoT.
+  Teraz stoi w stopce obok trucizny, na tej samej zasadzie: nie zgadujemy
+  leczącego, ale mówimy, ile leczenia jest poza rankingiem.
+- **Walki z bossami meldowały nierozpoznane linie, a leczenie drużyny znikało.**
+  Przy zaczepieniu („uwaga skupiona na…"), tarczy na blok i leczeniu ułamkowym
+  („o 22,5% życia") panel zapalał ostrzeżenie o niepełnych statystykach. Gorzej
+  z leczeniem kierowanym — „Uleczono X o N punktów życia" nie było rozumiane
+  wcale, więc kilkadziesiąt tysięcy wyleczonych punktów po prostu nie istniało.
+  Teraz są, i stoją pod nazwą umiejętności, która je rzuciła: „Leczenie ran"
+  i „Kojące ochłodzenie" zamiast wspólnej „Regeneracji".
+- **Leczenie cudzą ręką dopisywało się leczonemu.** Kto dostał „Leczenie ran" od
+  kolegi, wychodził w statystykach na tego, który sam siebie wyleczył. Teraz
+  liczy się jako własne tylko to, co postać faktycznie rzuciła na siebie.
+- **Cios o trzech liczbach potrafił trafić w niewłaściwy rodzaj obrażeń.** Gdy
+  przeciwnik wytłumił jedną z nich do zera, log ją po prostu pomijał, a licznik
+  przesuwał pozostałe o jedno miejsce — obrażenia od zimna lądowały wtedy pod
+  ogniem. Suma się zgadzała, więc nic tego nie zdradzało poza rozbiciem na
+  rodzaje.
 - **Nagrania potrafiły zajmować miejsce mimo skasowania.** Gdy spis nagrań uległ
   uszkodzeniu, same logi zostawały w pamięci przeglądarki na zawsze — niewidoczne
   dla licznika i dla „wyczyść", a zajmujące miejsce, które dodatek dzieli z grą.

@@ -2587,12 +2587,39 @@ export class Overlay {
       // Przy "Wszyscy" sama suma nie mówi, kogo to boli — a to jedyne, co o tej
       // truciźnie wiadomo, bo sprawcy log nie podaje. W widoku postaci podział
       // na strony nie ma sensu: strona jest jedna, ta jej.
-      const split =
-        !focused && this.team === "all" && (dot.mine > 0 || dot.enemy > 0)
-          ? ` (my ${number.format(dot.mine)} · oni ${number.format(dot.enemy)})`
-          : "";
+      // Przypis mówi, CO w tej puli jest, i KOGO to boli — obie rzeczy w jednym
+      // nawiasie, bo dwa nawiasy pod rząd czyta się gorzej niż lista.
+      //
+      // Rodzaj jest tu nowy: wcześniej przypis nazywał całość TRUCIZNĄ, choć
+      // trafia tu także ogień i rany. Przy jednym rodzaju była to prawda przez
+      // przypadek, przy kilku po prostu nieprawda.
+      const kinds = dot.types;
+      const detail = [
+        ...(kinds.length === 1
+          ? [kinds[0]!.label]
+          : kinds.map((k) => `${k.label} ${number.format(k.amount)}`)),
+        // Sama suma nie mówi, kogo to boli — a to jedyne, co o tych obrażeniach
+        // wiadomo, bo sprawcy log nie podaje. W widoku postaci podział na strony
+        // nie ma sensu: strona jest jedna, ta jej.
+        ...(!focused && this.team === "all" && (dot.mine > 0 || dot.enemy > 0)
+          ? [`my ${number.format(dot.mine)}`, `oni ${number.format(dot.enemy)}`]
+          : []),
+      ];
       notes.push({
-        text: `Trucizna bez sprawcy: ${number.format(unattributed)}${split}`,
+        text:
+          `Tykające obrażenia bez sprawcy: ${number.format(unattributed)}` +
+          (detail.length > 0 ? ` (${detail.join(" · ")})` : ""),
+        warn: false,
+      });
+    }
+
+    // Leczenie bez sprawcy liczyło się i znikało: log nie mówi, KTO leczył, więc
+    // ta pula nie ma właściciela i przez to nie miała w panelu żadnego śladu.
+    // Ta sama zasada, co przy DoT-cie — nie zgadujemy sprawcy, tylko mówimy,
+    // ile leczenia stoi poza rankingiem.
+    if (!focused && stats.unattributedHealing > 0) {
+      notes.push({
+        text: `Leczenie bez sprawcy: ${number.format(stats.unattributedHealing)}`,
         warn: false,
       });
     }

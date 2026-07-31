@@ -126,6 +126,8 @@ function mergeStats(all: Aggregate[]): SessionStats {
   const ambiguousNames = new Set<string>();
   const unknownElements = new Set<string>();
   const unattributedDotDamage = { mine: 0, enemy: 0, loose: 0 };
+  /** Rodzaje DoT-a bez sprawcy — sklejane po nazwie, jak reszta rozbić. */
+  const unattributedDotTypes = new Map<string, number>();
   let unattributedHealing = 0;
   let unknownLines = 0;
 
@@ -169,13 +171,24 @@ function mergeStats(all: Aggregate[]): SessionStats {
     unattributedDotDamage.mine += stats.unattributedDotDamage.mine;
     unattributedDotDamage.enemy += stats.unattributedDotDamage.enemy;
     unattributedDotDamage.loose += stats.unattributedDotDamage.loose;
+    for (const type of stats.unattributedDotDamage.types) {
+      unattributedDotTypes.set(
+        type.label,
+        (unattributedDotTypes.get(type.label) ?? 0) + type.amount,
+      );
+    }
     unattributedHealing += stats.unattributedHealing;
     unknownLines += stats.unknownLines;
   }
 
   return {
     actors: [...actors.values()].sort((a, b) => b.damageDealt - a.damageDealt),
-    unattributedDotDamage,
+    unattributedDotDamage: {
+      ...unattributedDotDamage,
+      types: [...unattributedDotTypes]
+        .map(([label, amount]) => ({ label, amount }))
+        .sort((a, b) => b.amount - a.amount),
+    },
     unattributedHealing,
     ambiguousNames: [...ambiguousNames],
     unknownLines,

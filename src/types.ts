@@ -115,6 +115,18 @@ export type BattleEvent =
       target: string;
       amount: number;
       /**
+       * Czy leczonym jest ten sam, kto leczył — jedyne, co o sprawcy da się
+       * z logu wyczytać. `true` dla proc-ów i samoratunku ("Dotyk anioła",
+       * "Ostatni ratunek"), gdzie efekt z definicji siada na trafionym.
+       *
+       * Nie wystarczy tu `ability !== null`. "Uleczono X o N punktów życia."
+       * TEŻ niesie nazwę umiejętności, ale rzucił ją ktoś inny — i tylko to
+       * pole trzyma statystyki z dala od dopisania leczonemu cudzej roboty.
+       * Kto konkretnie leczył, nadal nie wychodzi z logu: patrz `ai/README.md`
+       * §"Leczenie bez leczącego".
+       */
+      self: boolean;
+      /**
        * Życie celu PO wyleczeniu — log podaje je przy większości linii leczenia.
        * `null` tylko tam, gdzie go faktycznie nie ma (leczenie potwora bez
        * procentu). Bez tego pola leczenie przy zdublowanych nazwach lgnęło do
