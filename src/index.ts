@@ -112,13 +112,18 @@ export function boot(options: BootOptions = {}): () => void {
     handle = null;
     unsubscribe?.();
     unsubscribe = null;
+    // Panel MÓGŁ już powstać: `missing` zeruje się przy każdym udanym odczycie,
+    // więc strona potrafi przestać wyglądać na grę długo po jego narysowaniu.
+    // Komentarz niżej („panel się tu nie pojawił") zakładał inaczej.
+    overlay?.destroy();
+    overlay = null;
   };
 
   handle = schedule(() => {
     if (!looksLikeGame(globals, findLog)) {
       missing += 1;
       // Nie na stronie gry — gasimy pętlę zamiast przeczesywać cudzy dokument
-      // w kółko. Panel się tu nie pojawił, więc nie ma czego sprzątać.
+      // w kółko. `stop()` zdejmuje przy okazji panel, jeśli zdążył powstać.
       if (missing >= GIVE_UP_AFTER) stop();
       return;
     }

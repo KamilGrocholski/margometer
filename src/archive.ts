@@ -477,9 +477,31 @@ export class Archive {
     const key = `${id}:${text.length}`;
     const cached = this.summaries.get(key);
     if (cached) return cached;
+    // Klucz niesie DŁUGOŚĆ tekstu, więc trwające nagranie zakłada nowy wpis przy
+    // każdym doczytaniu, a stary zostaje z pełnym `BattleStats` w środku (z osią
+    // tur i macierzą). Zdejmujemy poprzednie wersje TEGO nagrania — cache ma
+    // pamiętać ostatni kształt, nie historię kształtów.
+    for (const old of this.summaries.keys()) {
+      if (old !== key && old.startsWith(`${id}:`)) this.summaries.delete(old);
+    }
     const summary = summarize(parse(text));
     this.summaries.set(key, summary);
     return summary;
+  }
+
+  /**
+   * Wyrzuca z cache'u nagrania, których nie ma już na liście.
+   *
+   * Kasowanie ręczne czyściło cache w całości, ale EKSMISJA po przekroczeniu
+   * budżetu dzieje się w nagrywarce i archiwum się o niej nie dowiaduje —
+   * podsumowanie skasowanego nagrania zostawało w pamięci do końca sesji.
+   */
+  private forgetMissing(alive: Iterable<number>): void {
+    const ids = new Set(alive);
+    for (const key of this.summaries.keys()) {
+      const id = Number(key.slice(0, key.indexOf(":")));
+      if (!ids.has(id)) this.summaries.delete(key);
+    }
   }
 
   private render(): void {
@@ -562,6 +584,7 @@ export class Archive {
 
     // Najnowsze na górze — szuka się zwykle walki sprzed chwili.
     const entries = [...this.recorder.list()].sort((a, b) => b.at - a.at);
+    this.forgetMissing(entries.map((one) => one.id));
     if (entries.length === 0) {
       const empty = document.createElement("div");
       empty.className = "archive-empty";
@@ -704,6 +727,19 @@ export class Archive {
       this.render();
     }, NOTICE_MS);
     this.render();
+  }
+
+  /**
+   * Zatrzymuje wszystko, co odlicza: odtwarzanie, gasnący komunikat i pytanie
+   * „na pewno?". Bez tego zegary chodziłyby po zniknięciu panelu i wołały
+   * `render()` na drzewie, którego już nie ma.
+   */
+  destroy(): void {
+    this.stopReplay();
+    this.confirmRemove.cancel();
+    if (this.noticeHandle !== null) this.ticker.stop(this.noticeHandle);
+    this.noticeHandle = null;
+    this.window.remove();
   }
 
   private loadState(): ArchiveState {

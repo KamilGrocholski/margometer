@@ -22,10 +22,11 @@ Legenda: 🔴 duży zwrot / mała robota · 🟡 warto · ⚪ kiedyś.
 Koszt: XS / S / M / L. Znacznik ✓ = teza **zreprodukowana albo zmierzona**
 podczas tego audytu, nie wywnioskowana z lektury.
 
-**Stan na 2026‑07‑31:** naprawione są `AUDYT‑1`…`AUDYT‑5`, `8`–`13`, `20` i `21`.
-`AUDYT‑7` **odrzucone** — teza okazała się błędna przy sprawdzeniu, szczegóły
-przy wpisie. Otwarte zostają `AUDYT‑14` (decyzja wizualna), `AUDYT‑6` (brak
-specu) oraz `15`–`19` i `22`–`24`. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
+**Stan na 2026‑07‑31:** naprawione są `AUDYT‑1`…`AUDYT‑5`, `8`–`13`, `16`,
+`20`–`23`. `AUDYT‑7` **odrzucone** — teza okazała się błędna przy sprawdzeniu,
+szczegóły przy wpisie. Otwarte zostają trzy wymagające DECYZJI, nie roboty
+(`AUDYT‑6` brak specu, `14` decyzja wizualna, `15` rozstrzygnięcie wobec `UX.md §6`),
+`AUDYT‑24` (testy i linter) oraz drobiazgi `17`–`19`. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
 wykonanie odbiegło od propozycji, jest to powiedziane wprost.
@@ -55,14 +56,14 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑12~~ | Zwinięcie w podglądzie gubi ślad, że to nie walka na żywo | 🟡 | S | **✅** |
 | ~~AUDYT‑13~~ | Kliknięcia bez odpowiedzi | 🟡 | S | **✅** |
 | AUDYT‑15 | Cztery reguły `:focus-visible` są martwe | 🟡 | M | ✓ |
-| AUDYT‑16 | Ustawienia widoku giną po F5, geometria przeżywa | 🟡 | S | ✓ |
-| AUDYT‑23 | Nieograniczone `archived` i `summaries` | 🟡 | S | ✓ |
+| ~~AUDYT‑16~~ | Ustawienia widoku giną po F5, geometria przeżywa | 🟡 | S | **✅** |
+| ~~AUDYT‑23~~ | Nieograniczone `archived` i `summaries` | 🟡 | S | **✅** |
 | AUDYT‑24 | Brak `stats.test.ts` i `session.test.ts`; brak lintera | 🟡 | M | ✓ |
 | ~~AUDYT‑7~~ | `unattributedHealing` liczone i nigdy niepokazane | — | — | **❌ odrzucone** |
 | AUDYT‑17 | Wielkie/małe litery i puste stany bez odmiany | ⚪ | S | |
 | AUDYT‑18 | ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba | ⚪ | S | |
 | AUDYT‑19 | PPM zabiera menu przeglądarki nad listą archiwum | ⚪ | XS | |
-| AUDYT‑22 | `destroy()` nie sprząta i nie jest wołane | ⚪ | XS | ✓ |
+| ~~AUDYT‑22~~ | `destroy()` nie sprząta i nie jest wołane | ⚪ | XS | **✅** |
 
 ---
 
@@ -533,7 +534,7 @@ M i otwiera temat, którego §6 nie chciał. **Do decyzji, nie do łatki.**
 
 **Docelowo.** → `UX-POPRAWKI.md` jako `A24` + rozstrzygnięcie w `UX.md §6`
 
-### AUDYT‑16 — Ustawienia widoku giną po F5, geometria przeżywa 🟡 S ✓
+### AUDYT‑16 — Ustawienia widoku giną po F5, geometria przeżywa 🟡 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/overlay.ts:806-823` (pola instancji) kontra `:691` (`PanelState`)
 
 **Problem.** Do magazynu idą `x`, `y`, `collapsed`, `width`, `height`.
@@ -550,6 +551,11 @@ a widok w środku jest zresetowany. F5 w walce grupowej kasuje ustawione „Oni�
 pola i jeden `saveState()` więcej. `focus`/`focusSource` świadomie zostawić
 ulotne: postać z poprzedniej walki po odświeżeniu i tak by nie istniała, a
 `render()` (`:995-1001`) słusznie cofa o szczebel, gdy jej nie ma. **Koszt S.**
+
+**Zrobione.** `metric`, `team` i `perTurn` weszły do `PanelState` (dostęp przez
+akcesory, więc reszta pliku czyta się tak samo). Wartość spoza zestawu jest przy
+wczytaniu odrzucana — pod tym kluczem może stać zapis starszej albo NOWSZEJ
+wersji dodatku, a metryka steruje renderem. `focus` świadomie zostaje ulotny.
 
 **Docelowo.** → `UX-POPRAWKI.md` jako `A25`
 
@@ -660,7 +666,7 @@ kliknięcia, które nic nie zrobiło (część `AUDYT‑13`).
 
 **Docelowo.** → `SOLID.md` jako `§4.31`
 
-### AUDYT‑22 — `destroy()` nie sprząta i nie jest wołane ⚪ XS ✓
+### AUDYT‑22 — `destroy()` nie sprząta i nie jest wołane ⚪ XS — ✅ NAPRAWIONE 2026‑07‑31
 `src/overlay.ts:970`, `:1091`, `:1401`; `src/archive.ts` — brak `destroy` w ogóle
 
 **Problem.** `destroy()` robi `this.host.remove()` i nic więcej — zostawia
@@ -676,9 +682,16 @@ nie ma `destroy()` wcale.
 albo skasować metodę jako martwą. Druga droga jest uczciwsza, dopóki userscript
 nie ma ścieżki wyłączenia. **Koszt XS.**
 
+**Zrobione.** `destroy()` zdejmuje listener `resize`, gasi odliczanie ikony
+kopiowania i niszczy archiwum (`Archive.destroy` zatrzymuje odtwarzanie, gasnący
+komunikat i pytanie „na pewno?”). Woła je `stop()` z `boot()` — bo panel MÓGŁ już
+powstać: `missing` zeruje się przy każdym udanym odczycie, więc strona potrafi
+przestać wyglądać na grę długo po jego narysowaniu. Komentarz „panel się tu nie
+pojawił, więc nie ma czego sprzątać” zakładał inaczej i też został poprawiony.
+
 **Docelowo.** → `SOLID.md` `§9` (martwy / uśpiony kod)
 
-### AUDYT‑23 — Nieograniczone `Session.archived` i `Archive.summaries` 🟡 S ✓
+### AUDYT‑23 — Nieograniczone `Session.archived` i `Archive.summaries` 🟡 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/session.ts:239`, `:306` (`reset`), `src/archive.ts:185`
 
 **Problem.** Dwie kolekcje rosną bez sufitu przez całą sesję gry:
@@ -695,6 +708,18 @@ zbioru `id` — ale to ochrona przypadkowa, nie polityka.
 
 **Propozycja.** Sufit na `archived` (albo sumowanie przyrostowe zamiast trzymania
 walk), kasowanie wpisu `summaries` razem z nagraniem. **Koszt S.**
+
+**Zrobione.** `Session` trzyma teraz JEDNĄ zsumowaną wartość zamiast tablicy
+walk: sumowanie jest łączne, więc doliczenie walki przy zamknięciu daje ten sam
+wynik co sklejenie wszystkiego na końcu. `Archive.summaries` zdejmuje starsze
+wersje tego samego nagrania (klucz niesie długość tekstu, więc trwająca walka
+mnożyła wpisy) oraz nagrania, których nie ma już na liście — eksmisja dzieje się
+w nagrywarce i archiwum się o niej nie dowiaduje.
+
+**Pomiar, 195 kolejnych walk.** Trzymana pamięć **1 380 393 → 65 748 znaków**
+(~21× mniej), `total()` **11,20 → 0,19 ms** (~59× szybciej), wynik identyczny
+co do liczby: 40 postaci, 5 703 464 obrażeń. Porównane wprost z kodem sprzed
+zmiany, nie oszacowane.
 
 **Docelowo.** → `SOLID.md` `§7` (sumowanie sesji)
 

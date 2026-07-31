@@ -65,6 +65,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   trzeci przestał udawać, że da się w niego wejść.
 
 ### Zmienione
+- **Panel pamięta też USTAWIENIA, nie tylko położenie.** Wybrana metryka, filtr
+  składu i tryb „na turę" wracają po odświeżeniu strony — dotąd zapamiętywała
+  się sama pozycja i rozmiar okna, więc panel wyglądał na zapamiętany, a widok
+  w środku wracał do domyślnego.
+- **Długa sesja przestała rosnąć w pamięci.** Zakończone walki są sumowane od
+  razu, zamiast leżeć w całości do końca sesji. Po 195 walkach: **21× mniej
+  zajętej pamięci** i **59× szybsze** liczenie sumy, przy identycznym wyniku.
 - **Nagrywanie mniej obciąża grę.** Przy pełnym archiwum spis nagrań był
   przepisywany od nowa przy każdej linii logu — w tym samym wątku, w którym
   chodzi gra. Teraz idzie do pamięci przeglądarki tylko wtedy, gdy naprawdę się

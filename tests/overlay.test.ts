@@ -1029,6 +1029,63 @@ describe("Ta walka kontra Sesja", () => {
     expect(dealtBy(session.total(), "wf mushita psk")).toBe(jedna * 3);
   });
 
+  // Zamknięte walki są od tej pory sumowane OD RAZU, a nie trzymane w tablicy
+  // rosnącej przez całą sesję. Sumowanie jest łączne, więc wynik ma być ten sam
+  // — i to jest jedyna rzecz, która tu naprawdę wymaga pilnowania.
+  test("sumowanie po jednej walce daje to samo, co sklejenie na końcu", async () => {
+    const texts = await Promise.all([
+      readFixture("new-engine/2026-07-18_lowca-vs-druzyna"),
+      readFixture("new-engine/2026-07-18_mag-vs-druzyna-umiejetnosci"),
+      readFixture("new-engine/2026-07-18_wojownik-vs-druzyna-umiejetnosci"),
+      readFixture("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp"),
+    ]);
+
+    const session = new Session();
+    for (const text of texts) session.update(text);
+    const total = session.total();
+
+    // Wprost: te same walki policzone osobno i zsumowane ręcznie.
+    const expected = new Map<string, number>();
+    for (const text of texts) {
+      for (const actor of aggregate(parse(text)).actors) {
+        expected.set(actor.name, (expected.get(actor.name) ?? 0) + actor.damageDealt);
+      }
+    }
+
+    expect(total.actors.length).toBe(expected.size);
+    for (const actor of total.actors) {
+      expect([actor.name, actor.damageDealt]).toEqual([actor.name, expected.get(actor.name)!]);
+    }
+  });
+
+  test("długa sesja nie gubi ani nie dubluje liczb", async () => {
+    const texts = await Promise.all([
+      readFixture("new-engine/2026-07-18_lowca-vs-druzyna"),
+      readFixture("new-engine/2026-07-18_mag-vs-druzyna-umiejetnosci"),
+    ]);
+    const jedenCykl = texts.reduce(
+      (sum, text) => sum + aggregate(parse(text)).actors.reduce((n, a) => n + a.damageDealt, 0),
+      0,
+    );
+
+    const session = new Session();
+    for (let cycle = 0; cycle < 20; cycle += 1) for (const text of texts) session.update(text);
+
+    const dealt = session.total().actors.reduce((n, a) => n + a.damageDealt, 0);
+    expect(dealt).toBe(jedenCykl * 20);
+  });
+
+  test("reset zeruje także walki już zamknięte", async () => {
+    const session = new Session();
+    session.update(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna"));
+    session.update(await readFixture("new-engine/2026-07-18_mag-vs-druzyna-umiejetnosci"));
+    expect(session.total().actors.length).toBeGreaterThan(0);
+
+    session.reset();
+
+    expect(session.total().actors).toEqual([]);
+  });
+
   test("ten sam bufor wczytany dwa razy nie podwaja sesji", async () => {
     const text = await readFixture("new-engine/2026-07-18_mag-vs-druzyna-umiejetnosci");
     const session = new Session();
@@ -3215,6 +3272,94 @@ describe("spięcie nagrywarki ze źródłem logu", () => {
 
     expect(recorder.count()).toBe(1);
     expect(errors).toHaveLength(1);
+  });
+});
+
+// Zapisywała się dotąd sama geometria, przez co panel wyglądał na zapamiętany
+// — stał tam, gdzie się go postawiło — a widok w środku wracał do domyślnego.
+describe("ustawienia widoku przeżywają odświeżenie", () => {
+  const store = new Map<string, string>();
+  const storage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+  };
+  const load = async () => aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+
+  beforeEach(() => store.clear());
+
+  test("metryka, skład i „na turę” wracają po F5", async () => {
+    const stats = await load();
+    const first = new Overlay({ storage });
+    first.render(stats, stats);
+    first.shadow.querySelector<HTMLElement>('[data-action="metric-damageTaken"]')!.click();
+    first.shadow.querySelector<HTMLElement>('[data-action="team-enemy"]')!.click();
+    first.shadow.querySelector<HTMLElement>('[data-action="per-turn"]')!.click();
+
+    const second = new Overlay({ storage });
+    second.render(stats, stats);
+
+    const pressed = (overlay: Overlay, action: string) =>
+      overlay.shadow.querySelector(`[data-action="${action}"]`)?.getAttribute("aria-pressed");
+    expect(pressed(second, "metric-damageTaken")).toBe("true");
+    expect(pressed(second, "team-enemy")).toBe("true");
+    expect(pressed(second, "per-turn")).toBe("true");
+  });
+
+  test("wejście w postać świadomie NIE wraca — tamtej walki już nie ma", async () => {
+    const stats = await load();
+    const first = new Overlay({ storage });
+    first.render(stats, stats);
+    first.shadow.querySelector<HTMLElement>(".row")!.click();
+    expect(first.shadow.querySelector(".crumb")).not.toBeNull();
+
+    const second = new Overlay({ storage });
+    second.render(stats, stats);
+
+    expect(second.shadow.querySelector(".crumb")).toBeNull();
+  });
+
+  test("zapis z nieznaną metryką nie wywraca panelu", async () => {
+    const stats = await load();
+    store.set("margometer.panel", JSON.stringify({ metric: "czegoTakiegoNieMa", team: "obcy" }));
+
+    const overlay = new Overlay({ storage });
+    overlay.render(stats, stats);
+
+    const pressed = (action: string) =>
+      overlay.shadow.querySelector(`[data-action="${action}"]`)?.getAttribute("aria-pressed");
+    expect(pressed("metric-damageDealt")).toBe("true");
+    expect(pressed("team-all")).toBe("true");
+  });
+});
+
+// Metoda istniała, ale robiła tylko `host.remove()`: zostawiała listener
+// `resize` na `window` i odliczający timeout, który po zniknięciu panelu wołał
+// `rerender()` na drzewie, którego już nie ma. I nikt jej nie wołał.
+describe("zdejmowanie panelu", () => {
+  test("destroy zdejmuje nasłuch zmiany rozmiaru okna", async () => {
+    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    overlay.destroy();
+
+    // Gdyby listener został, `moveTo` sięgnęłoby po zdjęty już panel.
+    expect(() => window.dispatchEvent(new Event("resize"))).not.toThrow();
+    expect(document.getElementById("margometer")).toBeNull();
+  });
+
+  test("destroy gasi odliczanie ikony kopiowania", async () => {
+    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+    const overlay = new Overlay({ clipboard: () => {} });
+    overlay.render(stats, stats);
+    overlay.shadow.querySelector<HTMLElement>('button[data-action="copy-stats"]')!.click();
+    await Promise.resolve();
+
+    overlay.destroy();
+
+    // Timeout dobiegłby tu końca i przerysował panel, którego nie ma.
+    await new Promise((resolve) => setTimeout(resolve, 1600));
+    expect(document.getElementById("margometer")).toBeNull();
   });
 });
 

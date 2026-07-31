@@ -550,6 +550,45 @@ describe("kasowanie pojedynczego nagrania", () => {
     });
   });
 
+  // Kasowanie ręczne czyściło cache w całości, ale EKSMISJA po przekroczeniu
+  // budżetu dzieje się w nagrywarce i archiwum się o niej nie dowiaduje —
+  // podsumowanie skasowanego nagrania zostawało w pamięci do końca sesji.
+  test("nagranie wyeksmitowane przez nagrywarkę znika też z pamięci archiwum", () => {
+    const logs = [
+      { id: 1, at: NOW, text: line },
+      { id: 2, at: NOW, text: `${line}\nKamil(100%) uderzył z siłą  +10` },
+    ];
+    const { overlay, archive } = build(logs);
+    archive.toggle();
+    expect(rows(overlay)).toHaveLength(2);
+
+    // Nagrywarka zwolniła miejsce sama — archiwum dowiaduje się o tym dopiero
+    // z listy, bo nikt go nie powiadamia.
+    logs.shift();
+    archive.sync();
+
+    const cache = (archive as unknown as { summaries: Map<string, unknown> }).summaries;
+    expect(rows(overlay)).toHaveLength(1);
+    expect([...cache.keys()].some((key) => key.startsWith("1:"))).toBe(false);
+  });
+
+  test("doczytywane nagranie nie mnoży wpisów w pamięci", () => {
+    const logs = [{ id: 1, at: NOW, text: line }];
+    const { overlay, archive } = build(logs);
+    archive.toggle();
+
+    // Walka trwa i rośnie — klucz cache'u niesie długość tekstu, więc bez
+    // sprzątania każdy przyrost zakładałby nowy wpis z pełnym `BattleStats`.
+    for (let i = 0; i < 5; i += 1) {
+      logs[0]!.text += `\nKamil(100%) uderzył z siłą  +${10 + i}`;
+      archive.sync();
+      rows(overlay);
+    }
+
+    const cache = (archive as unknown as { summaries: Map<string, unknown> }).summaries;
+    expect([...cache.keys()].filter((key) => key.startsWith("1:"))).toHaveLength(1);
+  });
+
   test("kliknięcie w ✕ nie wczytuje walki do panelu", () => {
     const logs = [{ id: 1, at: NOW, text: line }];
     const { overlay, archive } = build(logs);

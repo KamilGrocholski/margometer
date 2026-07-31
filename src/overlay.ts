@@ -630,6 +630,8 @@ export type ArchiveControl = {
   toggle(): void;
   /** Lista nagrań mogła urosnąć — okno ma szansę się odświeżyć. */
   sync(): void;
+  /** Zatrzymuje odtwarzanie i odliczanie. Opcjonalne — atrapy w testach go nie mają. */
+  destroy?(): void;
 };
 
 /** Sterowanie odtwarzaniem, rysowane w pasku podglądu. */
@@ -714,7 +716,29 @@ async function writeClipboard(text: string): Promise<void> {
 // `height: null` = wysokość z treści (jak dotąd). Liczba pojawia się dopiero,
 // gdy użytkownik pociągnie za uchwyt — wtedy okno ma stały rozmiar, a korpus
 // przewija się w środku.
-type PanelState = { x: number; y: number; collapsed: boolean; width: number; height: number | null };
+/**
+ * Co panel pamięta między sesjami.
+ *
+ * Geometria (`x`, `y`, `collapsed`, `width`, `height`) i USTAWIENIA WIDOKU
+ * (`metric`, `team`, `perTurn`). Wcześniej zapisywała się tylko geometria, przez
+ * co panel wyglądał na zapamiętany — stał tam, gdzie się go postawiło — a widok
+ * w środku wracał do domyślnego. F5 w walce grupowej kasował ustawione „Oni"
+ * plus „na turę".
+ *
+ * Wejścia w postać (`focus`) świadomie tu NIE MA: po odświeżeniu postać
+ * z poprzedniej walki i tak by nie istniała, a `render()` słusznie cofa wtedy
+ * o szczebel.
+ */
+type PanelState = {
+  x: number;
+  y: number;
+  collapsed: boolean;
+  width: number;
+  height: number | null;
+  metric: Metric;
+  team: Team;
+  perTurn: boolean;
+};
 
 const STORAGE_KEY = "margometer.panel";
 const DEFAULT_STATE: PanelState = {
@@ -723,6 +747,9 @@ const DEFAULT_STATE: PanelState = {
   collapsed: false,
   width: PANEL_WIDTH,
   height: null,
+  metric: "damageDealt",
+  team: "all",
+  perTurn: false,
 };
 
 /**
@@ -813,6 +840,10 @@ export class Overlay {
    */
   private readonly confirmClear: Confirm<void>;
   private archive: ArchiveControl | null = null;
+  /** Trzymane, żeby `destroy()` miało co zdjąć z `window`. */
+  private readonly onResize: () => void;
+  /** Odliczanie powrotu ikony kopiowania — patrz `copy` i `destroy`. */
+  private flashHandle: number | null = null;
   /**
    * Wczytana walka pokazywana zamiast bieżącej. Licznik na żywo leci w tle bez
    * zmian — podgląd niczego nie zatrzymuje, tylko przykrywa widok.
@@ -830,10 +861,31 @@ export class Overlay {
   /** `pointerup` już wykonał akcję; przyszły za nim `click` ma ją pominąć. */
   private actionHandled = false;
 
-  private metric: Metric = "damageDealt";
-  private team: Team = "all";
+  // Metryka, filtr składu i tryb „na turę" mieszkają w `state`, bo przeżywają
+  // odświeżenie strony — patrz `PanelState`. Skróty niżej, żeby reszta pliku
+  // czytała się tak samo jak wcześniej.
+  private get metric(): Metric {
+    return this.state.metric;
+  }
+  private set metric(value: Metric) {
+    this.state.metric = value;
+    this.saveState();
+  }
+  private get team(): Team {
+    return this.state.team;
+  }
+  private set team(value: Team) {
+    this.state.team = value;
+    this.saveState();
+  }
   /** Liczby dzielone przez tury zamiast surowych sum. */
-  private perTurn = false;
+  private get perTurn(): boolean {
+    return this.state.perTurn;
+  }
+  private set perTurn(value: boolean) {
+    this.state.perTurn = value;
+    this.saveState();
+  }
   /** Co stoi pod kursorem — trzymane między rerenderami. */
   private hovered: HoverTarget | null = null;
   /**
@@ -1010,7 +1062,9 @@ export class Overlay {
     // przy starcie, nie dopiero przy pierwszym przeciągnięciu.
     this.moveTo(this.state.x, this.state.y);
     // Okno gry zmienia rozmiar także wtedy, gdy nic nie przychodzi z logu.
-    window.addEventListener("resize", () => this.moveTo(this.state.x, this.state.y));
+    // Referencja w polu, żeby `destroy()` miało co zdjąć.
+    this.onResize = () => this.moveTo(this.state.x, this.state.y);
+    window.addEventListener("resize", this.onResize);
   }
 
   /**
@@ -1144,7 +1198,20 @@ export class Overlay {
     this.archive?.sync();
   }
 
+  /**
+   * Zdejmuje panel i WSZYSTKO, co po sobie zostawił.
+   *
+   * Metoda istniała, ale robiła tylko `host.remove()` — zostawiała listener
+   * `resize` wiszący na `window` i odliczający timeout, który po zniknięciu
+   * panelu wołał `rerender()` na drzewie, którego już nie ma. Do tego nie była
+   * wołana z żadnego miejsca, więc kłamała podwójnie: nie sprzątała i nikt jej
+   * nie używał. Woła ją teraz `stop()` z `boot()`.
+   */
   destroy(): void {
+    window.removeEventListener("resize", this.onResize);
+    if (this.flashHandle !== null) clearTimeout(this.flashHandle);
+    this.flashHandle = null;
+    this.archive?.destroy?.();
     this.host.remove();
   }
 
@@ -1474,11 +1541,13 @@ export class Overlay {
     }
     this.flash = { key, label };
     this.rerender();
-    setTimeout(() => {
+    if (this.flashHandle !== null) clearTimeout(this.flashHandle);
+    this.flashHandle = setTimeout(() => {
+      this.flashHandle = null;
       if (this.flash?.key !== key) return;
       this.flash = null;
       this.rerender();
-    }, 1500);
+    }, 1500) as unknown as number;
   }
 
   /**
@@ -2774,7 +2843,16 @@ export class Overlay {
     try {
       const raw = this.storage?.getItem(STORAGE_KEY);
       if (!raw) return { ...DEFAULT_STATE };
-      return { ...DEFAULT_STATE, ...(JSON.parse(raw) as Partial<PanelState>) };
+      const stored = { ...DEFAULT_STATE, ...(JSON.parse(raw) as Partial<PanelState>) };
+      // Metryka i filtr sterują renderem, więc wartość spoza zestawu wywracałaby
+      // panel przy starcie — a pod tym kluczem może stać zapis starszej albo
+      // NOWSZEJ wersji dodatku. Geometrię przycina `clampToViewport`.
+      if (!METRICS.includes(stored.metric as (typeof METRICS)[number])) {
+        stored.metric = DEFAULT_STATE.metric;
+      }
+      if (!(stored.team in TEAM_LABELS)) stored.team = DEFAULT_STATE.team;
+      if (typeof stored.perTurn !== "boolean") stored.perTurn = DEFAULT_STATE.perTurn;
+      return stored;
     } catch {
       return { ...DEFAULT_STATE };
     }

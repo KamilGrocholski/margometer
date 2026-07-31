@@ -1,6 +1,12 @@
 import { parse } from "./parser.ts";
 import type { RosterEntry } from "./roster.ts";
-import { aggregate, EMPTY_STATS, type BattleStats, type SessionStats } from "./stats.ts";
+import {
+  aggregate,
+  EMPTY_STATS,
+  type Aggregate,
+  type BattleStats,
+  type SessionStats,
+} from "./stats.ts";
 import type {
   ActorStats,
   AttackerBreakdown,
@@ -115,8 +121,8 @@ export function splitFights(events: BattleEvent[]): BattleEvent[][] {
   return fights;
 }
 
-function mergeStats(all: BattleStats[]): SessionStats {
-  const actors = new Map<string, BattleStats["actors"][number]>();
+function mergeStats(all: Aggregate[]): SessionStats {
+  const actors = new Map<string, Aggregate["actors"][number]>();
   const ambiguousNames = new Set<string>();
   const unknownElements = new Set<string>();
   const unattributedDotDamage = { mine: 0, enemy: 0, loose: 0 };
@@ -226,7 +232,19 @@ function continues(previous: ActiveFight, current: ActiveFight): boolean {
 export class Session {
   /** Walki widoczne w buforze, w kolejności, w jakiej w nim stoją. */
   private active: ActiveFight[] = [];
-  private readonly archived: BattleStats[] = [];
+  /**
+   * Walki ZAMKNIĘTE, już zsumowane — jedna wartość, nie lista.
+   *
+   * Wcześniej stała tu tablica rosnąca przez całą sesję gry, a `total()`
+   * przelatywał po niej za każdym razem, głęboko kopiując i sortując każde
+   * rozbicie każdej postaci. Rosło i zajęte miejsce, i koszt sumowania —
+   * liniowo z długością sesji, w nieskończoność.
+   *
+   * Sumowanie jest łączne (same dodawania i scalanie map po etykiecie), więc
+   * doliczenie walki od razu przy zamknięciu daje ten sam wynik, co sklejenie
+   * wszystkiego na końcu. Pilnuje tego test na kilku walkach.
+   */
+  private archivedTotal: SessionStats = EMPTY_STATS;
   private currentStats: BattleStats = EMPTY_STATS;
   /**
    * Ostatnio policzona suma sesji. `mergeStats` głęboko kopiuje i sortuje każde
@@ -273,7 +291,9 @@ export class Session {
 
     // Cokolwiek zostało z przodu, wyjechało z bufora albo zostało zastąpione —
     // tamte walki są zakończone i ich statystyki zamykamy w archiwum.
-    for (let k = 0; k <= oldIndex; k += 1) this.archived.push(this.active[k]!.stats);
+    for (let k = 0; k <= oldIndex; k += 1) {
+      this.archivedTotal = mergeStats([this.archivedTotal, this.active[k]!.stats]);
+    }
 
     this.active = next;
     this.currentStats = next.at(-1)?.stats ?? EMPTY_STATS;
@@ -288,14 +308,14 @@ export class Session {
   /** Statystyki zsumowane ze wszystkich walk sesji. Liczone leniwie. */
   total(): SessionStats {
     return (this.totalStats ??= mergeStats([
-      ...this.archived,
+      this.archivedTotal,
       ...this.active.map((fight) => fight.stats),
     ]));
   }
 
   reset(): void {
     this.active = [];
-    this.archived.length = 0;
+    this.archivedTotal = EMPTY_STATS;
     this.currentStats = EMPTY_STATS;
     this.totalStats = null;
   }
