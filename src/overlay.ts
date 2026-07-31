@@ -214,13 +214,17 @@ button {
 }
 button:hover { background: #26262c; color: var(--ink); }
 /* Reset "all: unset" zdejmuje też obwódkę focusu przeglądarki, a Tab i tak po
-   tych przyciskach chodzi — bez tej reguły chodzi po nich NIEWIDZIALNIE. Nie
-   chodzi o nawigację klawiaturą (świadomie poza zakresem), tylko o to, żeby
-   widać było, gdzie stoi zaznaczenie. */
-button:focus-visible,
-.row[tabindex]:focus-visible,
-.crumb-back:focus-visible,
-.replay-track:focus-visible {
+   przyciskach chodzi — bez tej reguły chodzi po nich NIEWIDZIALNIE. Nie chodzi
+   o nawigację klawiaturą (skróty są świadomie poza zakresem, UX.md §6), tylko
+   o to, żeby widać było, gdzie stoi zaznaczenie.
+
+   Selektor jest JEDEN, bo fokusowalne są wyłącznie przyciski. Stały tu kiedyś
+   jeszcze trzy — .row[tabindex], .crumb-back i .replay-track — i wszystkie
+   trzy były MARTWE: tabindex nie ustawia nic w całym src/, a pozostałe dwa były
+   div-ami. Arkusz obiecywał więc fokus tam, gdzie go z założenia nie ma.
+   Okruszek został przy tej okazji prawdziwym przyciskiem, bo nim jest; wiersze
+   i suwak zostają myszą, zgodnie z UX.md §6. */
+button:focus-visible {
   outline: 2px solid var(--accent, #6ea8fe);
   outline-offset: 1px;
 }
@@ -342,7 +346,9 @@ button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
 .side-head .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* Ścieżka powrotu z widoku pojedynczej postaci. */
 .crumb { display: flex; align-items: baseline; gap: 6px; padding: 6px 8px 0; font-size: 11px; }
-.crumb-back { cursor: pointer; border-radius: 3px; padding: 1px 4px; margin-left: -4px; }
+/* color: inherit trzyma wygląd sprzed zmiany na przycisk: reguła "button"
+   maluje na --ink-muted, a okruszek ma być tak samo jasny jak reszta ścieżki. */
+.crumb-back { cursor: pointer; border-radius: 3px; padding: 1px 4px; margin-left: -4px; color: inherit; }
 .crumb-back:hover { background: #26262c; }
 .crumb-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Dwie linijki, które da się wykorzystać W TRAKCIE walki grupowej. */
@@ -1948,7 +1954,15 @@ export class Overlay {
     const crumb = div("crumb");
     // Etykieta mówi, DOKĄD się wraca, a nie „wstecz” — przy dwóch szczeblach
     // sam strzałek nie wystarczy, żeby wiedzieć, gdzie się wyląduje.
-    const back = div("crumb-back", this.focusSource === null ? "‹ skład" : `‹ ${actor.name}`);
+    // Prawdziwy `<button>`, nie `div`: to element AKCJI, a nie tekst. Niezależnie
+    // od polityki klawiatury element, w który się klika, ma się tak nazywać —
+    // dopiero wtedy czytnik ekranu mówi o nim jak o przycisku, a Tab może się na
+    // nim zatrzymać widocznie.
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "crumb-back";
+    back.textContent = this.focusSource === null ? "‹ skład" : `‹ ${actor.name}`;
+    back.setAttribute("aria-label", "Wróć o szczebel");
     this.bindAction(back, "crumb-back", () => this.back());
     const here = this.focusSource ?? actor.name;
     crumb.append(back, div("crumb-name", here));

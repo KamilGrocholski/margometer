@@ -22,11 +22,11 @@ Legenda: 🔴 duży zwrot / mała robota · 🟡 warto · ⚪ kiedyś.
 Koszt: XS / S / M / L. Znacznik ✓ = teza **zreprodukowana albo zmierzona**
 podczas tego audytu, nie wywnioskowana z lektury.
 
-**Stan na 2026‑07‑31:** naprawione są `AUDYT‑1`…`AUDYT‑5`, `8`–`13`, `16`,
-`20`–`23`. `AUDYT‑7` **odrzucone** — teza okazała się błędna przy sprawdzeniu,
-szczegóły przy wpisie. Otwarte zostają trzy wymagające DECYZJI, nie roboty
-(`AUDYT‑6` brak specu, `14` decyzja wizualna, `15` rozstrzygnięcie wobec `UX.md §6`),
-`AUDYT‑24` (testy i linter) oraz drobiazgi `17`–`19`. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
+**Stan na 2026‑07‑31:** naprawione są `AUDYT‑1`…`AUDYT‑5`, `8`–`13`, `15`, `16`
+i `20`–`23`. `AUDYT‑7` **odrzucone** — teza okazała się błędna przy sprawdzeniu,
+szczegóły przy wpisie. Otwarte zostają dwie wymagające DECYZJI, nie roboty
+(`AUDYT‑6` brak specu, `14` decyzja wizualna), `AUDYT‑24` (testy i linter) oraz
+drobiazgi `17`–`19`. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
 wykonanie odbiegło od propozycji, jest to powiedziane wprost.
@@ -55,7 +55,7 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑11~~ | ⧉ kopiuje co innego, niż widać | 🟡 | S | **✅** |
 | ~~AUDYT‑12~~ | Zwinięcie w podglądzie gubi ślad, że to nie walka na żywo | 🟡 | S | **✅** |
 | ~~AUDYT‑13~~ | Kliknięcia bez odpowiedzi | 🟡 | S | **✅** |
-| AUDYT‑15 | Cztery reguły `:focus-visible` są martwe | 🟡 | M | ✓ |
+| ~~AUDYT‑15~~ | Cztery reguły `:focus-visible` są martwe | 🟡 | M | **✅** |
 | ~~AUDYT‑16~~ | Ustawienia widoku giną po F5, geometria przeżywa | 🟡 | S | **✅** |
 | ~~AUDYT‑23~~ | Nieograniczone `archived` i `summaries` | 🟡 | S | **✅** |
 | AUDYT‑24 | Brak `stats.test.ts` i `session.test.ts`; brak lintera | 🟡 | M | ✓ |
@@ -507,7 +507,7 @@ i lepiej je zrobić jednym ruchem niż dwoma.
 
 **Docelowo.** → `UX-POPRAWKI.md` jako `A23`, spięte z `A14`
 
-### AUDYT‑15 — Cztery reguły `:focus-visible` są MARTWE 🟡 M — dostępność ✓
+### AUDYT‑15 — Cztery reguły `:focus-visible` są MARTWE 🟡 M — ✅ NAPRAWIONE 2026‑07‑31
 `src/overlay.ts:201-207`; `:2070` (wiersz), `:1791` (`crumb-back`),
 `:1286` (`replay-track`)
 
@@ -532,7 +532,25 @@ w całości, albo dorobić `tabindex` i `role` na wierszach, `<button>` na okrus
 i `role="slider"` na suwaku. Pierwsze jest uczciwe i kosztuje XS; drugie kosztuje
 M i otwiera temat, którego §6 nie chciał. **Do decyzji, nie do łatki.**
 
-**Docelowo.** → `UX-POPRAWKI.md` jako `A24` + rozstrzygnięcie w `UX.md §6`
+**Zrobione — wariant „uczciwe minimum”.** Rozstrzygnięcie zapisane w `UX.md §6`:
+**poza zakresem są SKRÓTY, nie fokus**. To rozróżnienie było wcześniej zapisane
+jako „klawiatura poza zakresem” i przez to nieprawdziwe — Tab chodzi po
+przyciskach panelu, czy tego chcemy, czy nie, więc jedyne pytanie brzmiało, czy
+widać, gdzie stoi.
+
+Zostaje jeden selektor, `button:focus-visible`, i ma pełne pokrycie w drzewie.
+Okruszek powrotu został prawdziwym `<button>` — jest elementem AKCJI, więc ma się
+tak nazywać niezależnie od polityki klawiatury; przy okazji ożyła jego martwa
+reguła i doszła etykieta dla czytnika. Wiersze rankingu i suwak odtwarzania
+zostają myszą: fokusowalne wiersze dałyby przy walce grupowej dwadzieścia
+przystanków Taba nad grą, która sama łapie klawisze, czyli dokładnie to, przed
+czym broni się `§6`.
+
+Uwaga wykonawcza: reguła `button` maluje na `--ink-muted`, więc okruszek dostał
+`color: inherit` — inaczej zamiana `div` → `<button>` zmieniłaby wygląd panelu
+przy okazji naprawy dostępności.
+
+**Docelowo.** → `UX-POPRAWKI.md` jako `A24`; rozstrzygnięcie JUŻ w `UX.md §6`
 
 ### AUDYT‑16 — Ustawienia widoku giną po F5, geometria przeżywa 🟡 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/overlay.ts:806-823` (pola instancji) kontra `:691` (`PanelState`)

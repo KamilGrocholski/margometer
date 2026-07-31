@@ -3363,6 +3363,55 @@ describe("zdejmowanie panelu", () => {
   });
 });
 
+// Arkusz obiecywał fokus na wierszach, okruszku i suwaku — trzy martwe reguły,
+// bo `tabindex` nie ustawiał nic, a okruszek i suwak były `div`-ami.
+describe("fokus jest tam, gdzie arkusz go obiecuje", () => {
+  const load = async () => aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+
+  test("okruszek powrotu to prawdziwy przycisk", async () => {
+    const stats = await load();
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    overlay.shadow.querySelector<HTMLElement>(".row")!.click();
+
+    const back = overlay.shadow.querySelector(".crumb-back")!;
+    expect(back.tagName).toBe("BUTTON");
+    expect(back.getAttribute("aria-label")).toBe("Wróć o szczebel");
+  });
+
+  test("i nadal wraca o szczebel", async () => {
+    const stats = await load();
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    overlay.shadow.querySelector<HTMLElement>(".row")!.click();
+    expect(overlay.shadow.querySelector(".crumb")).not.toBeNull();
+
+    overlay.shadow.querySelector<HTMLElement>(".crumb-back")!.click();
+
+    expect(overlay.shadow.querySelector(".crumb")).toBeNull();
+  });
+
+  // Świadoma granica z `UX.md §6`: dwadzieścia przystanków Taba nad grą, która
+  // sama łapie klawisze, to dokładnie to, przed czym broni się ta zasada.
+  test("wiersze rankingu zostają myszą — żadnego tabindex", async () => {
+    const stats = await load();
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const rows = [...overlay.shadow.querySelectorAll(".rows .row")];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.some((row) => row.hasAttribute("tabindex"))).toBe(false);
+  });
+
+  test("arkusz nie obiecuje fokusu tam, gdzie go nie ma", () => {
+    const sheet = new Overlay().shadow.querySelector("style")!.textContent!;
+    // Zostaje jedyny selektor, który ma pokrycie w drzewie.
+    expect(sheet).toContain("button:focus-visible");
+    expect(sheet).not.toContain(".row[tabindex]:focus-visible");
+    expect(sheet).not.toContain(".replay-track:focus-visible");
+  });
+});
+
 describe("podgląd wczytanej walki", () => {
   const load = async (name: string) => aggregate(parse(await readFixture(`new-engine/${name}`)));
 

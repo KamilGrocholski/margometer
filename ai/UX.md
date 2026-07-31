@@ -167,8 +167,19 @@ liczby pod kursorem nie mogą uciekać.
 - **Nie skróty klawiszowe.** Świadoma decyzja: szybkość ma iść z gestów myszy i
   trzymania kontekstu, nie z uczenia się mapy klawiszy. Overlay wisi nad grą,
   która sama łapie klawisze — kolizje i „tryb wpisywania” to więcej kłopotu niż
-  zysku. Cała nawigacja musi być osiągalna myszą; klawiatura zostaje poza
-  zakresem (nie na teraz).
+  zysku. Cała nawigacja musi być osiągalna myszą.
+  ⚠️ **Poza zakresem są SKRÓTY, nie fokus** — to rozróżnienie było wcześniej
+  zapisane jako „klawiatura poza zakresem” i przez to nieprawdziwe. Tab chodzi po
+  przyciskach panelu, czy tego chcemy, czy nie; jedyne pytanie brzmi, czy widać,
+  gdzie stoi. Widać: `button:focus-visible` rysuje obwódkę i to zostaje.
+  Arkusz obiecywał przy tym fokus jeszcze na wierszach rankingu, okruszku
+  i suwaku odtwarzania — trzy martwe reguły, bo `tabindex` nie ustawia nic w całym
+  `src/`, a okruszek i suwak były `div`-ami. Rozstrzygnięcie: **okruszek to
+  prawdziwy `<button>`** (jest elementem akcji, więc ma się tak nazywać —
+  niezależnie od polityki klawiatury), a **wiersze i suwak zostają myszą**.
+  Zrobienie wierszy fokusowalnymi dałoby przy walce grupowej dwadzieścia
+  przystanków Taba nad grą, która sama łapie klawisze — czyli dokładnie to,
+  przed czym broni się akapit wyżej.
 
 ---
 
