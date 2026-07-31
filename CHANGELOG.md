@@ -28,6 +28,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   poszło. Ten sam gest, przeciwna strona ciosu; prawy przycisk wraca identycznie
   z obu dróg. Działa też dla obrażeń otrzymanych.
 
+### Dodane
+- **Panel nazywa już wszystkie rodzaje obrażeń, jakie widział.** Zostały dwa,
+  przy których pokazywał surową nazwę z kodu gry i ostrzeżenie „nieznany rodzaj
+  obrażeń": drugie ostrze tancerza ostrzy (teraz **broń pomocnicza**, licząca
+  się do tej samej rodziny co reszta obrażeń z broni) oraz ciosy bijące we
+  wszystkich naraz (teraz **globalne**). Przy tych drugich gra podaje zasięg
+  zamiast żywiołu, więc barwy żywiołu świadomie nie dostają — ale mają nazwę.
+
 ### Naprawione
 - **Obrażenia od zranienia nie miały właściciela, choć log go podaje.** W walce
   grupowej licznik zgadywał sprawcę tykających obrażeń wyłącznie z układu stron —

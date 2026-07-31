@@ -931,6 +931,33 @@ describe("głośne awarie zamiast cichych", () => {
     expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe("ogień");
   });
 
+  /**
+   * `dmgo` i `dmgg` nie są żywiołami — gra podaje przy nich SLOT BRONI albo
+   * ZASIĘG zamiast rodzaju obrażeń. Siedzą w tej samej mapie, bo `dmgd`
+   * („dystansowe") jest dokładnie tym samym: osią broni, nie żywiołem.
+   *
+   * Test pilnuje dwóch rzeczy naraz: że mają nazwy (czyli nie zapalają
+   * ostrzeżenia o nieznanym rodzaju) i że nazwy są TE, a nie zgadnięte na nowo
+   * przy kolejnym czytaniu logu.
+   */
+  test.each([
+    ["o", "broń pomocnicza"],
+    ["g", "globalne"],
+  ])("klasa dmg%s to „%s”, nie nieznany rodzaj", (letter, label) => {
+    const stats = aggregate(
+      parse(
+        [
+          "Rozpoczęła się walka pomiędzy Kamil (120b) a Wilk (10w)",
+          `Kamil(100%) uderzył z siłą  +120${el(letter)}`,
+          `Wilk(50%) otrzymał(a)  -80${el(letter)}  obrażeń`,
+        ].join("\n"),
+      ),
+    );
+
+    expect(stats.unknownElements).toEqual([]);
+    expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe(label);
+  });
+
   test("separator tysięcy zgłasza się zamiast obcinać liczbę", () => {
     // "+10 000" rozpada się na 10 i 000, czyli cios za dziesięć zamiast
     // dziesięciu tysięcy plus widmowa broń pomocnicza — i to bez ani jednego

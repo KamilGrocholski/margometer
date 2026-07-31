@@ -3,7 +3,14 @@ import { parse } from "../src/parser.ts";
 import { aggregate } from "../src/stats.ts";
 import { Overlay } from "../src/overlay.ts";
 import { extractText } from "../src/source.ts";
-import { ColorAssignment, PROFESSION_COLORS, SERIES_COLORS, TYPE_COLORS } from "../src/palette.ts";
+import {
+  ColorAssignment,
+  PROFESSION_COLORS,
+  SERIES_COLORS,
+  TYPE_COLORS,
+  typeColor,
+} from "../src/palette.ts";
+import { typeFamily } from "../src/types.ts";
 import { FIXTURES, metricButton, readFixture } from "./helpers.ts";
 
 describe("przypisanie kolorów", () => {
@@ -212,5 +219,28 @@ describe("przypisanie kolorów", () => {
 
     // Pięć profesji, pięć różnych barw — także w piątej walce z rzędu.
     expect(new Set(seen).size).toBe(5);
+  });
+});
+describe("barwa rodzajów spoza osi żywiołów", () => {
+  /**
+   * `dmgo` i `dmgd` to ta sama oś — broń, nie żywioł — więc dla patrzącego mają
+   * być jedną rodziną. Bez tego drugie ostrze tancerza ostrzy dostawałoby kolor
+   * „inne" obok własnych obrażeń fizycznych z tego samego ciosu.
+   */
+  test("broń pomocnicza barwi się jak reszta obrażeń z broni", () => {
+    expect(typeFamily("broń pomocnicza")).toBe("broń");
+    expect(typeColor("broń pomocnicza")).toBe(typeColor("fizyczne"));
+    expect(typeColor("broń pomocnicza")).toBe(typeColor("dystansowe"));
+  });
+
+  /**
+   * „globalne" to ZASIĘG, podany przez grę ZAMIAST żywiołu — więc żywioł tych
+   * obrażeń jest nieznany, a nie inny. Barwa rodziny byłaby tu wymyśleniem
+   * rodzaju obrażeń, którego log nie podaje.
+   */
+  test("globalne nie dostaje rodziny ani barwy żywiołu", () => {
+    expect(typeFamily("globalne")).toBeNull();
+    expect(typeColor("globalne")).not.toBe(TYPE_COLORS["ogień"]);
+    expect(typeColor("globalne")).not.toBe(TYPE_COLORS["broń"]);
   });
 });

@@ -239,7 +239,14 @@ export function typeFamily(label: string): string | null {
   if (text.includes("truci")) return "trucizna";
   if (text.includes("ran")) return "rana";
   if (text.includes("nieuchron")) return "nieuchronne";
-  if (text.includes("fizyczn") || text.includes("dystans")) return "broń";
+  // Trzy nazwy z osi BRONI, nie żywiołu: zwarcie, dystans i broń pomocnicza
+  // tancerza ostrzy. Dla patrzącego to jedna rodzina — „obrażenia z broni".
+  if (text.includes("fizyczn") || text.includes("dystans") || text.includes("pomocnicz")) {
+    return "broń";
+  }
+  // „globalne" rodziny NIE dostaje świadomie: gra podaje przy tych liczbach
+  // ZASIĘG zamiast żywiołu, więc żywioł jest nieznany, a nie inny. Zgadywanie
+  // barwy byłoby tu wymyślaniem rodzaju obrażeń.
   return null;
 }
 

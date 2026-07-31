@@ -335,6 +335,34 @@ wprost, że to zgadywanie z zestawienia, nie zapis z logu. Kanał już istnieje:
 Ograniczenie: tylko prawdziwy DOM — 3 z 16 korpusów to HTML, wklejony log tego
 nie niesie.
 
+**Wykorzystane 2026‑07‑31 — i od razu rozstrzygnęło coś innego.** Przekrój
+wszystkich zrzutów DOM po `prof-X` (czyli po ZADAJĄCYM, nie po imieniu z początku
+linii, które przy „otrzymał" wskazuje cel):
+
+```
+dmg   278  →  w, p, b     ← wyłącznie profesje zwarcia
+dmgd  408  →  t, h        ← wyłącznie profesje strzelające
+dmgo   56  →  b           ← wyłącznie tancerz ostrzy
+dmgc  372  →  m, t, p  ·  dmgf 161 → t, m  ·  dmgl 116 → m, t
+```
+
+Podział zwarcie/dystans jest czysty na 686 liczbach, **zero przecięć**. To znaczy,
+że `ELEMENTS` nigdy nie było mapą żywiołów — trzyma odpowiedzi na trzy różne
+pytania i gra wybiera JEDNĄ na liczbę:
+
+| oś | litery |
+|---|---|
+| żywioł | `f`, `l`, `c` |
+| broń / slot | brak litery (zwarcie), `d` (dystans), `o` (broń pomocnicza) |
+| zasięg | `g` (globalne) |
+| osobno | `a` (nieuchronne) |
+
+Dlatego `o` i `g` **weszły** do tej mapy (korpus nie ma już ani jednej nieznanej
+klasy), ale rozdzielenie osi na dwa pola w `Hit` — świadomie NIE. Nie ma dziś
+pytania, na które jedno pole nie wystarcza: przy `dmgg` i `dmgo` gra podaje
+zasięg albo slot ZAMIAST żywiołu, więc żywiołu i tak nie znamy, a drugie pole
+stałoby puste. Wraca, gdy pojawi się log niosący oba naraz.
+
 ## Kolory pasków — 2026-07-27
 
 Wzorzec SKADA/Details! wzięty w całości: **pasek postaci niesie klasę, a obok
