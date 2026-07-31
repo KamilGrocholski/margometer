@@ -1695,13 +1695,17 @@ describe("overlay", () => {
     ]);
     expect(targets).toEqual([
       ["wf agar psk", number.format(10366), "100%"],
+      // Drugie wejście w to samo drążenie: te same obrażenia widziane od strony
+      // umiejętności, zsumowane po wszystkich celach.
+      ["Zwykły atak", number.format(10036), "97%"],
+      ["od trucizny", number.format(330), "3%"],
       // Przekrój po żywiole dotyczy całości obrażeń postaci — stoi na każdym szczeblu.
       ["bez żywiołu", number.format(10036), "97%"],
       ["od trucizny", number.format(330), "3%"],
     ]);
     expect([...overlay.shadow.querySelectorAll(".rows .side-head")].map((el) =>
       el.firstElementChild?.textContent,
-    )).toEqual(["KOMU", "TYP OBRAŻEŃ"]);
+    )).toEqual(["KOMU", "CZYM (ŁĄCZNIE)", "TYP OBRAŻEŃ"]);
 
     // Wejście w cel odsłania, czym w niego uderzano — ranking celów ustępuje
     // rankingowi umiejętności użytych na tym jednym celu.
@@ -1733,6 +1737,196 @@ describe("overlay", () => {
     overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
     expect(overlay.shadow.querySelector(".crumb")).toBeNull();
     expect(overlay.shadow.querySelector(".rows .row[data-actor]")).not.toBeNull();
+  });
+
+  // Drugie wejście w to samo drążenie, od strony umiejętności. Odpowiada na
+  // pytanie, którego lista celów nie umie zadać: "która akcja robi robotę",
+  // bez względu na to, w kogo poszła.
+  describe("drążenie przez umiejętność", () => {
+    const GRUPOWA = "new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa";
+
+    const headings = (overlay: Overlay) =>
+      [...overlay.shadow.querySelectorAll(".rows .side-head")].map(
+        (el) => el.firstElementChild?.textContent,
+      );
+    const rowsOf = (overlay: Overlay, list: string) =>
+      [...overlay.shadow.querySelectorAll<HTMLElement>(`.rows .row[data-list="${list}"]`)];
+
+    /** Wchodzi w postać, która biła kilka celów kilkoma umiejętnościami. */
+    const enterRegulus = async () => {
+      const stats = await statsFrom(GRUPOWA);
+      const overlay = new Overlay();
+      overlay.render(stats, stats);
+      [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+        .find((row) => row.dataset.actor === "Regulus Mętnooki")!
+        .click();
+      return overlay;
+    };
+
+    test("sekcja sumuje umiejętność po WSZYSTKICH celach", async () => {
+      const overlay = await enterRegulus();
+
+      expect(headings(overlay)).toEqual(["KOMU", "CZYM (ŁĄCZNIE)"]);
+      // Uderzenie Króla Węży poszło w dwa cele (9596 + 5072) i dopiero ta
+      // sekcja pokazuje sumę — z listy celów trzeba by ją złożyć w głowie.
+      const abilities = rowsOf(overlay, "abilities").map((row) => [
+        row.querySelector(".label")?.textContent,
+        valueOf(row),
+      ]);
+      expect(abilities[0]).toEqual(["Uderzenie Króla Węży", number.format(14668)]);
+      expect(abilities.map(([label]) => label)).toEqual([
+        "Uderzenie Króla Węży",
+        "Zwykły atak",
+        "Rozbryzg treści żołądkowej",
+        "Plugawa inkantacja",
+        "Ponowne rozgrzanie",
+      ]);
+    });
+
+    test("klik w umiejętność schodzi do celów, PPM wraca", async () => {
+      const overlay = await enterRegulus();
+
+      rowsOf(overlay, "abilities")
+        .find((row) => row.dataset.source === "Uderzenie Króla Węży")!
+        .click();
+
+      // Lustro "CZYM — <CEL>": ta sama mechanika, przeciwna strona ciosu.
+      expect(headings(overlay)).toEqual(["KOMU — UDERZENIE KRÓLA WĘŻY"]);
+      expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe(
+        "Uderzenie Króla Węży",
+      );
+      expect(
+        rowsOf(overlay, "abilities").map((row) => [
+          row.querySelector(".label")?.textContent,
+          valueOf(row),
+        ]),
+      ).toEqual([
+        ["Łowcosław Kazrek", number.format(9596)],
+        ["wf foverek psk", number.format(5072)],
+      ]);
+
+      overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
+      expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Regulus Mętnooki");
+      expect(headings(overlay)).toEqual(["KOMU", "CZYM (ŁĄCZNIE)"]);
+    });
+
+    test("obie drogi prowadzą do tej samej liczby", async () => {
+      const overlay = await enterRegulus();
+
+      // Przez cel: Łowcosław → Uderzenie Króla Węży.
+      rowsOf(overlay, "sources")
+        .find((row) => row.dataset.source === "Łowcosław Kazrek")!
+        .click();
+      const throughTarget = valueOf(
+        rowsOf(overlay, "sources").find(
+          (row) => row.dataset.source === "Uderzenie Króla Węży",
+        ),
+      );
+
+      overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
+
+      // Przez umiejętność: Uderzenie Króla Węży → Łowcosław.
+      rowsOf(overlay, "abilities")
+        .find((row) => row.dataset.source === "Uderzenie Króla Węży")!
+        .click();
+      const throughAbility = valueOf(
+        rowsOf(overlay, "abilities").find((row) => row.dataset.source === "Łowcosław Kazrek"),
+      );
+
+      expect(throughAbility).toBe(throughTarget);
+    });
+
+    test("sekcja znika na drugim szczeblu — jesteśmy już w środku drążenia", async () => {
+      const overlay = await enterRegulus();
+      rowsOf(overlay, "sources")
+        .find((row) => row.dataset.source === "Łowcosław Kazrek")!
+        .click();
+
+      expect(headings(overlay)).toEqual(["CZYM — ŁOWCOSŁAW KAZREK"]);
+      expect(rowsOf(overlay, "abilities")).toHaveLength(0);
+    });
+
+    test("przy jednej umiejętności sekcja jest powtórzeniem sumy — nie ma jej", async () => {
+      const stats = await statsFrom("new-engine/2026-07-18_tropiciel-vs-kukla");
+      const overlay = new Overlay();
+      overlay.render(stats, stats);
+      overlay.shadow.querySelector<HTMLElement>(".row")!.click();
+
+      expect(headings(overlay)).not.toContain("CZYM (ŁĄCZNIE)");
+    });
+
+    test("leczenie nie dostaje sekcji — jego źródłem jest efekt, nie postać", async () => {
+      const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-tropiciel-umiejetnosci");
+      const overlay = new Overlay();
+      overlay.render(stats, stats);
+      overlay.shadow.querySelector<HTMLElement>('[data-action="metric-healingReceived"]')!.click();
+      [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+        .find((row) => row.dataset.actor === "wf foverek psk")!
+        .click();
+
+      expect(headings(overlay)).not.toContain("CZYM (ŁĄCZNIE)");
+      expect(rowsOf(overlay, "abilities")).toHaveLength(0);
+    });
+
+    // Barwa idzie za TREŚCIĄ listy, nie za jej głębokością — a ta droga
+    // odwraca kolejność szczebli względem drążenia przez cel.
+    test("kolory odwracają się razem ze szczeblami", async () => {
+      const overlay = await enterRegulus();
+
+      const colorOf = (row: HTMLElement | undefined) =>
+        row?.querySelector<HTMLElement>(".bar")?.style.background;
+      const targetColor = colorOf(rowsOf(overlay, "sources")[0]);
+      const abilityColor = colorOf(rowsOf(overlay, "abilities")[0]);
+      expect(targetColor).not.toBe(abilityColor);
+
+      // Po zejściu w umiejętność pierwszy szczebel wymienia POSTACIE, więc
+      // wraca barwa profesji — ta sama co na liście celów wyżej.
+      rowsOf(overlay, "abilities")
+        .find((row) => row.dataset.source === "Uderzenie Króla Węży")!
+        .click();
+      expect(
+        colorOf(rowsOf(overlay, "abilities").find((row) => row.dataset.source === "Łowcosław Kazrek")),
+      ).toBe(targetColor);
+    });
+
+    test("zmiana metryki zdejmuje szczebel wszedłszy przez umiejętność", async () => {
+      const overlay = await enterRegulus();
+      rowsOf(overlay, "abilities")
+        .find((row) => row.dataset.source === "Uderzenie Króla Węży")!
+        .click();
+
+      overlay.shadow.querySelector<HTMLElement>('[data-action="metric-damageTaken"]')!.click();
+      expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Regulus Mętnooki");
+      expect(headings(overlay)[0]).toBe("OD KOGO");
+    });
+
+    // Lustro po stronie przyjętych: "czym mnie bito", bez względu na to, kto.
+    test("przyjęte dostają tę samą sekcję", async () => {
+      const overlay = await enterRegulus();
+      overlay.shadow.querySelector<HTMLElement>('[data-action="metric-damageTaken"]')!.click();
+
+      expect(headings(overlay)).toEqual(["OD KOGO", "CZYM (ŁĄCZNIE)", "TYP OBRAŻEŃ"]);
+      rowsOf(overlay, "abilities")
+        .find((row) => row.dataset.source === "Podwójny strzał")!
+        .click();
+      expect(headings(overlay)[0]).toBe("OD KOGO — PODWÓJNY STRZAŁ");
+    });
+
+    // Trucizna bez sprawcy stoi na obu szczeblach pod tą samą nazwą, więc
+    // wejście w nią pokazałoby wiersz powtarzający sam siebie.
+    test("pozycja wskazująca na samą siebie nie kusi kliknięciem", async () => {
+      const overlay = await enterRegulus();
+      overlay.shadow.querySelector<HTMLElement>('[data-action="metric-damageTaken"]')!.click();
+
+      const poison = rowsOf(overlay, "abilities").find(
+        (row) => row.dataset.source === "od trucizny",
+      )!;
+      expect(poison.dataset.leaf).toBe("");
+
+      poison.click();
+      // Widok stoi tam, gdzie stał — klik nie zszedł o szczebel.
+      expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Regulus Mętnooki");
+    });
   });
 
   test("wejście w postać trzyma się jej mimo przebudowy panelu", async () => {
@@ -1855,7 +2049,10 @@ describe("overlay", () => {
     );
     expect(labels).toEqual([
       "Tancogniew Kazrek",
-      // Ten sam worek obrażeń w drugim przekroju.
+      // Te same obrażenia od strony umiejętności — bez względu na napastnika.
+      "Zwykły atak",
+      "od trucizny",
+      // I ten sam worek w trzecim przekroju, po żywiole.
       "bez żywiołu",
       "od trucizny",
     ]);

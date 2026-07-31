@@ -1,7 +1,12 @@
 import { professionColor, typeColor } from "./palette.ts";
 import { EMPTY_STATS } from "./session.ts";
-import { totalUnattributedDot, type BattleStats } from "./stats.ts";
-import { PROFESSIONS, type ActorStats } from "./types.ts";
+import {
+  invertBreakdown,
+  leadsDeeper,
+  totalUnattributedDot,
+  type BattleStats,
+} from "./stats.ts";
+import { PROFESSIONS, type ActorStats, type AttackerBreakdown } from "./types.ts";
 import { clampToViewport, makeDraggable } from "./window.ts";
 
 export type Metric = "damageDealt" | "damageTaken" | "healingReceived" | "turns";
@@ -32,8 +37,20 @@ const TEAM_LABELS: Record<Team, string> = {
   enemy: "Oni",
 };
 
-/** Który przekrój rozbicia: pozycje (kto/czym) albo typ obrażeń. */
-type BreakdownList = "sources" | "types";
+/**
+ * Który przekrój rozbicia: pozycje po drugiej stronie ciosu (kto/komu),
+ * umiejętności zsumowane po wszystkich celach, albo typ obrażeń.
+ *
+ * `sources` i `abilities` to DWA WEJŚCIA w to samo drążenie, z przeciwnych
+ * stron: przez cel („komu zadał, a czym w niego”) i przez umiejętność („czym
+ * zadał, a komu tym”). Rozróżnienie musi przeżyć klik, bo ta sama nazwa potrafi
+ * stać w obu listach — trucizna bez sprawcy stoi na pierwszym szczeblu pod
+ * nazwą efektu i po odwróceniu wychodzi też jako umiejętność.
+ */
+type BreakdownList = "sources" | "abilities" | "types";
+
+/** Z której listy wyszedł drugi szczebel drążenia. */
+type DrillKind = "target" | "ability";
 
 /**
  * Co siedzi pod kursorem. Dymek opisuje albo postać z listy składu, albo
@@ -817,10 +834,17 @@ export class Overlay {
    */
   private focus: string | null = null;
   /**
-   * Drugi szczebel drążenia, wyłącznie dla obrażeń przyjętych: napastnik,
-   * w którego weszliśmy wewnątrz postaci. `null` to lista napastników.
+   * Drugi szczebel drążenia: pozycja, w którą weszliśmy wewnątrz postaci.
+   * `null` to pierwszy szczebel. Zależnie od `focusKind` jest to postać po
+   * drugiej stronie ciosu (cel / napastnik) albo umiejętność.
    */
   private focusSource: string | null = null;
+  /**
+   * Z KTÓREJ listy wyszedł `focusSource`. Sama nazwa nie wystarcza: „od
+   * trucizny" potrafi stać naraz na liście napastników i na liście
+   * umiejętności, a drugi szczebel renderuje się dla każdej z nich inaczej.
+   */
+  private focusKind: DrillKind | null = null;
   /**
    * Ostatnio podane statystyki. Sesja jako FUNKCJA, nie gotowa wartość:
    * `mergeStats` głęboko kopiuje i sortuje każde rozbicie każdej postaci,
@@ -997,15 +1021,16 @@ export class Overlay {
       : null;
     if (this.focus && !focused) {
       this.focus = null;
-      this.focusSource = null;
+      this.clearDrill();
     }
-    // Postać po drugiej stronie, której log przestał wymieniać (nowa walka,
-    // inny skład), nie ma czego pokazać — wracamy o szczebel zamiast rysować
-    // pusty widok. Lista zależy od metryki: cele przy zadanych, napastnicy przy
-    // przyjętych.
-    if (focused && this.focusSource !== null) {
-      const twoTier = this.metric === "damageDealt" ? focused.dealtToBy : focused.takenFromBy;
-      if (!twoTier.some((one) => one.label === this.focusSource)) this.focusSource = null;
+    // Pozycja, której log przestał wymieniać (nowa walka, inny skład), nie ma
+    // czego pokazać — wracamy o szczebel zamiast rysować pusty widok. Szukamy
+    // w liście, z której faktycznie wyszedł ten szczebel: przez cel czy przez
+    // umiejętność. Sprawdzanie zawsze w `dealtToBy` gubiłoby drążenie po
+    // umiejętności przy pierwszym rerenderze.
+    if (focused && this.focusSource !== null && this.focusKind !== null) {
+      const tier = this.tierList(focused, this.focusKind);
+      if (!tier.some((one) => one.label === this.focusSource)) this.clearDrill();
     }
 
     // Szerokość stosujemy zawsze, wysokość tylko rozwinięty i tylko gdy
@@ -1705,13 +1730,33 @@ export class Overlay {
    */
   private rowIdentity(
     row: HTMLElement | null,
-  ): { key: string; actor?: string; source?: string } | null {
+  ): { key: string; actor?: string; source?: string; kind?: DrillKind } | null {
     if (row?.dataset.actor) return { key: `a:${row.dataset.actor}`, actor: row.dataset.actor };
-    // Tylko lista napastników/celów prowadzi głębiej; przekrój po typie nie.
-    if (row?.dataset.source && row.dataset.list === "sources") {
-      return { key: `s:${row.dataset.source}`, source: row.dataset.source };
+    // Przekrój po typie nigdzie nie prowadzi, a pojedyncze pozycje bywają
+    // liśćmi mimo drążalnej listy — `data-leaf` stawia je `appendBreakdown`.
+    if (!row?.dataset.source || row.dataset.leaf !== undefined) return null;
+    // Prefiks w kluczu rozdziela listy: ta sama nazwa w obu przekrojach to dwa
+    // różne wiersze, więc `pointerdown` na jednym nie może domknąć się na drugim.
+    if (row.dataset.list === "sources") {
+      return { key: `s:${row.dataset.source}`, source: row.dataset.source, kind: "target" };
+    }
+    if (row.dataset.list === "abilities") {
+      return { key: `b:${row.dataset.source}`, source: row.dataset.source, kind: "ability" };
     }
     return null;
+  }
+
+  /**
+   * Zdejmuje drugi szczebel drążenia.
+   *
+   * Jedno miejsce, bo `focusSource` i `focusKind` MUSZĄ ginąć razem — rozjazd
+   * między nimi znaczy drugi szczebel renderowany z niewłaściwej listy. Zerują
+   * to cztery różne ścieżki (nowa walka, zmiana metryki, podgląd, powrót)
+   * i przy dwóch polach pilnowanych osobno regresja jest kwestią czasu.
+   */
+  private clearDrill(): void {
+    this.focusSource = null;
+    this.focusKind = null;
   }
 
   /** Wchodzi w to, co niesie tożsamość wiersza. Zwraca, czy było w co wejść. */
@@ -1720,10 +1765,10 @@ export class Overlay {
       this.enter(target.actor);
       return true;
     }
-    if (target?.source !== undefined) {
-      // Wewnątrz przyjętych wiersz napastnika prowadzi głębiej: czym uderzał.
-      this.enterSource(target.source);
-      return true;
+    if (target?.source !== undefined && target.kind !== undefined) {
+      // Oba wejścia w drugi szczebel: przez cel („czym w niego”) i przez
+      // umiejętność („komu nią”). Ta sama mechanika, przeciwne strony ciosu.
+      return this.enterSource(target.source, target.kind);
     }
     return false;
   }
@@ -1731,21 +1776,27 @@ export class Overlay {
   /** Wejście w postać lewym przyciskiem. */
   private enter(name: string): void {
     this.focus = name;
-    this.focusSource = null;
+    this.clearDrill();
     // Dymek opisuje wiersz, którego już nie ma na ekranie.
     this.hideTip();
     this.rerender();
   }
 
   /**
-   * Wejście w postać po drugiej stronie ciosu — trzeci szczebel. Zadane drążą
-   * w cel, przyjęte w napastnika; leczenie ma jeden poziom i tu nie wchodzi.
+   * Wejście w drugi szczebel. Zadane i przyjęte drążą się dwiema drogami:
+   * przez postać po drugiej stronie ciosu (cel / napastnik) i przez samą
+   * umiejętność. Leczenie ma jeden poziom i tu nie wchodzi.
+   *
+   * Zwraca, czy faktycznie weszliśmy — inaczej `drill` meldowałby obsłużenie
+   * kliknięcia, które nic nie zrobiło, i połykałby je bez śladu.
    */
-  private enterSource(label: string): void {
-    if (!this.canDrillSources()) return;
+  private enterSource(label: string, kind: DrillKind): boolean {
+    if (!this.canDrillSources()) return false;
     this.focusSource = label;
+    this.focusKind = kind;
     this.hideTip();
     this.rerender();
+    return true;
   }
 
   /**
@@ -1773,7 +1824,7 @@ export class Overlay {
   private back(): void {
     // Zdejmujemy JEDEN szczebel, nie cały stos: z umiejętności napastnika
     // wraca się do listy napastników, a dopiero stamtąd do składu.
-    if (this.focusSource !== null) this.focusSource = null;
+    if (this.focusSource !== null) this.clearDrill();
     else if (this.focus !== null) this.focus = null;
     else return;
     this.hideTip();
@@ -1805,19 +1856,28 @@ export class Overlay {
   private renderDetail(actor: ActorStats): HTMLElement {
     const container = div("rows");
     const dealt = this.metric === "damageDealt";
-    const sources = this.breakdownList(actor, "sources");
+    // Na drugim szczeblu żyje tylko ta lista, z której w niego weszliśmy —
+    // druga zwraca pustkę i schodzi z ekranu razem z pierwszym szczeblem.
+    const byTarget = this.breakdownList(actor, "sources");
+    const byAbility = this.breakdownList(actor, "abilities");
     const types = this.breakdownList(actor, "types");
+    const sources = this.focusKind === "ability" ? byAbility : byTarget;
 
     const total = actorValue(actor, this.metric);
-    // Pierwszy szczebel nazywa DRUGĄ stronę zdarzenia: cel przy zadanych
-    // ("KOMU"), napastnika przy przyjętych ("OD KOGO"), źródło przy leczeniu
-    // ("OD CZEGO"). Leczenie nie drąży dalej — log nie nazywa leczącego, więc
-    // źródłem jest sam efekt (Regeneracja / aura / samoratunek), a nie postać.
+    // Nagłówek nazywa to, co WYMIENIA lista, i zależy od drogi, którą się tu
+    // weszło. Przez cel: „KOMU” → „CZYM — <CEL>”. Przez umiejętność: lustro
+    // tego samego, „CZYM (ŁĄCZNIE)” → „KOMU — <UMIEJĘTNOŚĆ>”. Leczenie nie
+    // drąży dalej — log nie nazywa leczącego, więc źródłem jest sam efekt
+    // (Regeneracja / aura / samoratunek), a nie postać.
+    const secondTier =
+      this.focusKind === "ability"
+        ? `${dealt ? "KOMU" : "OD KOGO"} — ${this.focusSource?.toUpperCase()}`
+        : `CZYM — ${this.focusSource?.toUpperCase()}`;
     const heading =
       this.metric === "healingReceived"
         ? "OD CZEGO"
         : this.focusSource !== null
-          ? `CZYM — ${this.focusSource.toUpperCase()}`
+          ? secondTier
           : dealt
             ? "KOMU"
             : "OD KOGO";
@@ -1840,11 +1900,17 @@ export class Overlay {
      * źródłem jest efekt, nie postać, więc zostaje neutralne.
      */
     const typeOf = new Map(actor.typeByLabel.map((entry) => [entry.label, entry.type]));
-    const listsCharacters = this.metric !== "healingReceived" && this.focusSource === null;
-    const colorFor = (label: string): string =>
-      listsCharacters
+    const paint = (charactersInList: boolean) => (label: string) =>
+      charactersInList
         ? professionColor(this.professionOf(label))
         : typeColor(typeOf.get(label) ?? label);
+    // Barwa idzie za TREŚCIĄ listy, nie za jej głębokością. Droga przez
+    // umiejętność odwraca kolejność szczebli — najpierw akcje, potem postacie —
+    // więc warunek liczony z samego `focusSource` malowałby ją na odwrót.
+    const listsCharacters =
+      this.metric !== "healingReceived" &&
+      (this.focusSource === null || this.focusKind === "ability");
+    const colorFor = paint(listsCharacters);
 
     const divisor = turnsFor(actor, this.metric, this.fightTurns);
     const uses = new Map(actor.abilityUses.map((use) => [use.label, use.count]));
@@ -1862,7 +1928,36 @@ export class Overlay {
       return source.hits === used ? `×${used}` : `×${used} · ${source.hits} c.`;
     };
 
-    this.appendBreakdown(container, heading, "sources", sources, total, divisor, colorFor, timesDealt);
+    const mainList: BreakdownList = this.focusKind === "ability" ? "abilities" : "sources";
+    this.appendBreakdown(container, heading, mainList, sources, total, divisor, colorFor, timesDealt);
+
+    // Drugie wejście w to samo drążenie, od strony umiejętności: „która akcja
+    // robi robotę”, bez względu na to, w kogo poszła. Ta sama suma co wyżej,
+    // inny podział — jak TYP OBRAŻEŃ niżej, tylko z klikalnymi wierszami, bo
+    // stąd schodzi się w cele.
+    //
+    // Przy jednej pozycji sekcja jest powtórzeniem sumy stojącej wyżej, a na
+    // drugim szczeblu nie ma czego oferować — jesteśmy już w środku drążenia.
+    if (this.focusSource === null && this.metric !== "healingReceived" && byAbility.length > 1) {
+      // Trucizna bez sprawcy stoi na obu szczeblach pod tą samą nazwą, więc
+      // wejście w nią pokazałoby wiersz powtarzający sam siebie. Zbiór liczony
+      // RAZ — pytanie per wiersz odwracałoby rozbicie na nowo dla każdego.
+      const deeper = new Set(
+        this.tierList(actor, "ability").filter(leadsDeeper).map((entry) => entry.label),
+      );
+      this.appendBreakdown(
+        container,
+        "CZYM (ŁĄCZNIE)",
+        "abilities",
+        byAbility,
+        total,
+        divisor,
+        paint(false),
+        timesDealt,
+        (source) => deeper.has(source.label),
+      );
+    }
+
     // Drugi przekrój tych samych obrażeń — żywioł, trucizna, głęboka rana.
     // Suma jest ta sama, więc to nie są dodatkowe obrażenia, tylko inny podział.
     // Przy jednym typie podział nie istnieje: "bez żywiołu 100%" to nie jest
@@ -1898,17 +1993,35 @@ export class Overlay {
     if (this.metric === "healingReceived") return list === "sources" ? actor.healedBy : [];
     // Przekrój po typie (żywioł) jest ten sam na każdym szczeblu — dotyczy
     // całości obrażeń postaci, nie wybranej pary.
-    if (list !== "sources") {
+    if (list === "types") {
       return this.metric === "damageDealt" ? actor.dealtByType : actor.takenByType;
     }
-    // Zadane i przyjęte drążą się lustrzanie: pierwszy szczebel to postać po
-    // drugiej stronie (cel / napastnik), drugi — czym padło. `focusSource`
-    // trzyma wybraną postać wspólnie dla obu metryk.
-    const twoTier = this.metric === "damageDealt" ? actor.dealtToBy : actor.takenFromBy;
+    // Drugi szczebel należy do TEJ listy, z której wyszedł. Po wejściu w cel
+    // widać umiejętności użyte na nim, po wejściu w umiejętność — cele, które
+    // nią oberwały. Druga lista schodzi wtedy z ekranu, więc pytana o drugi
+    // szczebel nie ma nic do powiedzenia.
+    const kind: DrillKind = list === "abilities" ? "ability" : "target";
+    const tier = this.tierList(actor, kind);
     if (this.focusSource === null) {
-      return twoTier.map(({ label, amount, hits }) => ({ label, amount, hits }));
+      return tier.map(({ label, amount, hits }) => ({ label, amount, hits }));
     }
-    return twoTier.find((one) => one.label === this.focusSource)?.by ?? [];
+    if (this.focusKind !== kind) return [];
+    return tier.find((one) => one.label === this.focusSource)?.by ?? [];
+  }
+
+  /**
+   * Pierwszy szczebel drążenia w wybranym kierunku — niezależnie od tego, czy
+   * już w coś weszliśmy.
+   *
+   * Osobno od `breakdownList`, bo `render()` musi sprawdzić, czy wybrana
+   * pozycja NADAL istnieje, a `breakdownList` odpowiada wtedy już drugim
+   * szczeblem. Odwracamy `dealtToBy`, a nie czytamy gotowego `dealtBy`, żeby
+   * oba szczeble szły z jednego źródła — inaczej dałoby się kliknąć w wiersz,
+   * pod którym nic nie ma.
+   */
+  private tierList(actor: ActorStats, kind: DrillKind): AttackerBreakdown[] {
+    const twoTier = this.metric === "damageDealt" ? actor.dealtToBy : actor.takenFromBy;
+    return kind === "ability" ? invertBreakdown(twoTier) : twoTier;
   }
 
   /** Jedna lista rozbicia: nagłówek i paski w tej samej skali co reszta widoku. */
@@ -1922,6 +2035,12 @@ export class Overlay {
     /** Barwa paska dla danej etykiety — decyzja stoi u wołającego, patrz `renderDetail`. */
     colorFor: (label: string) => string,
     counter: (source: ActorStats["dealtBy"][number]) => string | null,
+    /**
+     * Czy w TĘ pozycję da się wejść. Domyślnie decyduje sama lista, ale
+     * pojedynczy wiersz bywa liściem mimo drążalnej sekcji — wtedy nie może
+     * kusić kliknięciem (`UX.md §6`).
+     */
+    drillable?: (source: ActorStats["dealtBy"][number]) => boolean,
   ): void {
     // Tryb „na turę” obowiązuje też tutaj: dzielimy przez tury TEJ postaci, bo
     // rozbicie dotyczy jej jednej. Udziały zostają na surowych liczbach —
@@ -1941,6 +2060,9 @@ export class Overlay {
       // ("od trucizny") potrafi stać w obu przekrojach naraz.
       row.dataset.source = source.label;
       row.dataset.list = list;
+      // Znacznik zostaje przy wierszu, a nie przy liście, bo dymek dalej ma
+      // działać — nieklikalne jest wejście, nie podgląd.
+      if (drillable && !drillable(source)) row.dataset.leaf = "";
 
       const bar = div("bar");
       bar.style.background = colorFor(source.label);

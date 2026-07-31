@@ -1,6 +1,12 @@
 import type { RosterEntry } from "./roster.ts";
 import { typeFamily } from "./types.ts";
-import type { ActorStats, BattleEvent, DamageSource, ProcCount } from "./types.ts";
+import type {
+  ActorStats,
+  AttackerBreakdown,
+  BattleEvent,
+  DamageSource,
+  ProcCount,
+} from "./types.ts";
 
 /** Wpis składu w postaci, w której liczy go agregacja — bez względu na źródło. */
 type Seat = { name: string; side: number; prof?: string | undefined; level?: number | undefined };
@@ -905,6 +911,48 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     deaths,
     matrix: [...edges.values()].sort((a, b) => b.damage - a.damage),
   };
+}
+
+/**
+ * Odwraca dwuszczeblowe rozbicie: „cel → czym” staje się „czym → w kogo”.
+ *
+ * Te same liczby, inny klucz pierwszego szczebla. Panel drąży zadane przez CEL,
+ * ale pytanie „która umiejętność robi robotę” wymaga sumy po wszystkich celach —
+ * a tego nie da się odczytać z listy celów bez dodawania w głowie.
+ *
+ * Liczymy z `dealtToBy`/`takenFromBy`, a nie z gotowego `dealtBy`, bo drugi
+ * szczebel (komu ta umiejętność zadała) i tak musi wyjść z rozbicia po parze.
+ * Jedno źródło znaczy, że nie da się kliknąć w wiersz, który nie ma czego
+ * pokazać. `dealtBy` zostaje wyrocznią w testach — patrz `stats.test.ts`.
+ */
+export function invertBreakdown(tiers: AttackerBreakdown[]): AttackerBreakdown[] {
+  const flipped = new Map<string, AttackerBreakdown>();
+
+  for (const tier of tiers) {
+    for (const leaf of tier.by) {
+      const entry = flipped.get(leaf.label) ?? { label: leaf.label, amount: 0, hits: 0, by: [] };
+      entry.amount += leaf.amount;
+      entry.hits += leaf.hits;
+      entry.by.push({ label: tier.label, amount: leaf.amount, hits: leaf.hits });
+      flipped.set(leaf.label, entry);
+    }
+  }
+
+  for (const entry of flipped.values()) entry.by.sort((a, b) => b.amount - a.amount);
+  return [...flipped.values()].sort((a, b) => b.amount - a.amount);
+}
+
+/**
+ * Czy wejście w tę pozycję pokaże cokolwiek nowego.
+ *
+ * Trucizna bez sprawcy stoi na pierwszym szczeblu pod nazwą EFEKTU (patrz
+ * `stats.ts` przy DoT), więc po odwróceniu wychodzi „od trucizny → od trucizny”
+ * — jeden wiersz powtarzający sam siebie. Za `UX.md §6`: liść bez danych się nie
+ * podświetla i nie kusi kliknięciem.
+ */
+export function leadsDeeper(entry: AttackerBreakdown): boolean {
+  if (entry.by.length === 0) return false;
+  return !(entry.by.length === 1 && entry.by[0]!.label === entry.label);
 }
 
 /**

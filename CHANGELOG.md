@@ -17,6 +17,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+### Dodane
+- **Rozbicie wg umiejętności, bez względu na cel.** W widoku postaci, pod listą
+  celów, stoi druga sekcja „CZYM (ŁĄCZNIE)": te same obrażenia widziane od
+  strony akcji, zsumowane po wszystkich celach. Odpowiada na pytanie „która
+  umiejętność faktycznie robi robotę", którego wcześniej nie dało się zadać —
+  trzeba było obejść wszystkie cele i dodać w głowie.
+- **Drążenie z drugiej strony.** Klik w umiejętność pokazuje, komu zadała
+  („KOMU — UDERZENIE KRÓLA WĘŻY"), tak jak klik w cel pokazuje, czym w niego
+  poszło. Ten sam gest, przeciwna strona ciosu; prawy przycisk wraca identycznie
+  z obu dróg. Działa też dla obrażeń otrzymanych.
+
 ## [0.2.0] — 2026-07-30
 
 ### Dodane

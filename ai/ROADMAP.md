@@ -32,6 +32,10 @@ zrobionych nie wracają tutaj — siedzą w `UX-POPRAWKI.md` i `SOLID.md`.
   trzeciego rzędu zakładek” (`UX.md §6`).
 
 ## Poza pierwotną roadmapą — zrobione
+- ✅ **Rozbicie wg umiejętności, bez względu na cel** (`CZYM (ŁĄCZNIE)`) wraz
+  z drążeniem w drugą stronę: umiejętność → komu zadała. Lustrzanie dla
+  przyjętych. Dane (`dealtBy`) czekały policzone od początku; brakowało widoku
+  i decyzji, gdzie go wpiąć — patrz `UX.md §3` i zastrzeżenie w `§6`.
 - ✅ Nagrywanie surowych logów do `localStorage` z budżetem 1 MB
 - ✅ Archiwum walk + wczytanie nagrania do GŁÓWNEGO panelu (pełne drążenie)
 - ✅ Odtwarzanie walki linia po linii, z pauzą, przewijaniem i prędkością

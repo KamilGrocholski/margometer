@@ -35,7 +35,8 @@ umiejętność).
 |---|---|---|
 | **LPM** | wiersz postaci (ranking) | wejście w postać → jej rozbicie ✅ |
 | **LPM** | wiersz rozbicia = postać (KOMU / OD KOGO) | wejście o szczebel niżej → czym padło ✅ |
-| **LPM** | wiersz rozbicia = umiejętność/typ | nic (to liść, nie prowadzi głębiej) ✅ |
+| **LPM** | wiersz w sekcji CZYM (ŁĄCZNIE) | wejście o szczebel niżej → komu ta umiejętność zadała ✅ |
+| **LPM** | wiersz rozbicia = umiejętność wewnątrz celu, albo typ | nic (to liść, nie prowadzi głębiej) ✅ |
 | **PPM** | gdziekolwiek w panelu | powrót o **jeden** szczebel (czym → cele → skład) ✅ |
 | **najechanie** | dowolny wiersz z liczbą | dymek: udział %, na turę, ciosy/użycia ✅ |
 | **zjechanie kursorem** | — | dymek znika ✅ |
@@ -57,13 +58,25 @@ Każda metryka to ranking → postać → (czym). Kierunek środkowego szczebla 
 od metryki, ale **gest jest identyczny**, więc nie trzeba się go uczyć trzy razy.
 
 ```
-Zadane      Ranking ─LPM→ KOMU (cele)        ─LPM→ CZYM — cel (umiejętności)
-Otrzymane   Ranking ─LPM→ OD KOGO (napastnicy)─LPM→ CZYM — napastnik
+Zadane      Ranking ─LPM→ ┬ KOMU (cele)           ─LPM→ CZYM — cel
+                          └ CZYM (ŁĄCZNIE)        ─LPM→ KOMU — umiejętność
+Otrzymane   Ranking ─LPM→ ┬ OD KOGO (napastnicy)  ─LPM→ CZYM — napastnik
+                          └ CZYM (ŁĄCZNIE)        ─LPM→ OD KOGO — umiejętność
 Wyleczone   Ranking ─LPM→ CZYM WYLECZONO (umiej.)   ·  (bez szczebla postaci — patrz README)
                                     ◂─PPM  ◂─PPM
 ```
 
 Zadane i Otrzymane są lustrem: „na kim” kontra „od kogo”, ta sama mechanika. ✅
+
+**Dwa wejścia w to samo drążenie.** Widok postaci pokazuje te same obrażenia
+w dwóch przekrojach jednocześnie: po drugiej stronie ciosu (kto) i po
+umiejętności (czym). To nie są dwa tryby do przełączania — to dwie listy pod
+sobą, każda z klikalnymi wierszami. Wybór drogi jest gestem, nie stanem: nie ma
+czego pilnować, a PPM zdejmuje szczebel identycznie z obu. ✅
+
+Sekcja `CZYM (ŁĄCZNIE)` znika, gdy nie niesie informacji: przy jednej
+umiejętności (byłaby powtórzeniem sumy stojącej wyżej) i na drugim szczeblu
+(jesteśmy już w środku drążenia). Ta sama reguła co dla `TYP OBRAŻEŃ`. ✅
 Leczenie ma jeden szczebel mniej, bo log nie niesie leczącego — i to jest OK,
 byle **nie udawać**, że da się kliknąć głębiej (liść się nie podświetla).
 
@@ -136,6 +149,12 @@ liczby pod kursorem nie mogą uciekać.
 - **Nie robić trzeciego rzędu zakładek na widoki wg-postaci/wg-umiejętności.**
   Widok wybiera się drążeniem (LPM/PPM), nie osobnym paskiem — pasek to stan do
   pilnowania, drążenie to gest do wykonania.
+  ⚠️ Zakaz dotyczy **paska, nie widoku**. Rozbicie wg umiejętności istnieje
+  (§3, sekcja `CZYM (ŁĄCZNIE)`) i jest zgodne z tą zasadą właśnie dlatego, że
+  wchodzi się w nie klikiem w wiersz, a nie przełącznikiem. Rozważony i odrzucony
+  wariant „przełącznik wg celu ⇄ wg umiejętności" padł na tym, że tworzy stan
+  spoza stosu drążenia: PPM albo by go ignorował (łamiąc zasadę 2 z §1), albo
+  musiałby go traktować jak szczebel — czyli i tak byłoby to drążenie.
 - **Nie robić z rankingu tabeli.** Wiersz to numer, nazwa i JEDNA liczba
   wiodąca; udział i druga miara wchodzą do nawiasu przy tej liczbie, a nie
   w osobne kolumny. Poziom i profesji w wierszu nie ma — barwa paska mówi, kto
