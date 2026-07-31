@@ -42,6 +42,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   dałoby się tę awarię odtworzyć. Teraz zapis idzie pierwszy i przeżywa
   niezależnie od reszty.
 
+- **Kopiowanie potrafiło zameldować sukces nad pustym schowkiem.** Gdy
+  przeglądarka odmówiła zapisu albo nie było czego kopiować, przycisk i tak
+  migał „✓" — dowiadywało się o tym dopiero przy wklejaniu. Teraz mówi „✕".
+- **„wyczyść" wyglądał na zepsuty.** Pytanie „na pewno?" wygasało po pięciu
+  sekundach, ale napis na przycisku zostawał, a kolejny klik po cichu pytał od
+  nowa — z ekranu nic się nie zmieniało. Teraz przycisk sam wraca do „wyczyść".
+- **Pytanie o skasowanie nagrania nie wygasało w ogóle.** Wystarczyło kliknąć ✕
+  przy nagraniu, odejść i wrócić po godzinie w to samo miejsce, żeby skasować
+  bez pytania. Oba potwierdzenia działają teraz identycznie i gasną po pięciu
+  sekundach; zamknięcie okna archiwum też je zdejmuje.
+
 ### Zmienione
 - **Nagrywanie mniej obciąża grę.** Przy pełnym archiwum spis nagrań był
   przepisywany od nowa przy każdej linii logu — w tym samym wątku, w którym

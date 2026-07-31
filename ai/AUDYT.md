@@ -22,8 +22,8 @@ Legenda: 🔴 duży zwrot / mała robota · 🟡 warto · ⚪ kiedyś.
 Koszt: XS / S / M / L. Znacznik ✓ = teza **zreprodukowana albo zmierzona**
 podczas tego audytu, nie wywnioskowana z lektury.
 
-**Stan na 2026‑07‑31:** naprawione są `AUDYT‑1`, `2`, `3`, `4`, `5`, `20`, `21`
-— cała partia 🔴 poza `AUDYT‑14` (wymaga decyzji wizualnej) i `AUDYT‑6`
+**Stan na 2026‑07‑31:** naprawione są `AUDYT‑1`…`AUDYT‑5`, `8`, `9`, `10`, `20`
+i `21` — cała partia 🔴 poza `AUDYT‑14` (wymaga decyzji wizualnej) i `AUDYT‑6`
 (wymaga specu). Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
@@ -47,9 +47,9 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | AUDYT‑14 | Odznaka literowa profesji nie istnieje | 🔴 | M | ✓ |
 | ~~AUDYT‑3~~ | 21 kB indeksu przepisywane przy każdej linii logu | 🟡 | S | **✅** |
 | AUDYT‑6 | Suma sesji bez wyjścia w UI | 🟡 | M | ✓ |
-| AUDYT‑8 | Kopiowanie melduje sukces, którego nie było | 🟡 | S | |
-| AUDYT‑9 | „wyczyść”: potwierdzenie wygasa niewidocznie | 🟡 | S | |
-| AUDYT‑10 | „na pewno?” w archiwum nie wygasa wcale | 🟡 | S | |
+| ~~AUDYT‑8~~ | Kopiowanie melduje sukces, którego nie było | 🟡 | S | **✅** |
+| ~~AUDYT‑9~~ | „wyczyść”: potwierdzenie wygasa niewidocznie | 🟡 | S | **✅** |
+| ~~AUDYT‑10~~ | „na pewno?” w archiwum nie wygasa wcale | 🟡 | S | **✅** |
 | AUDYT‑11 | ⧉ kopiuje co innego, niż widać | 🟡 | S | |
 | AUDYT‑12 | Zwinięcie w podglądzie gubi ślad, że to nie walka na żywo | 🟡 | S | |
 | AUDYT‑13 | Kliknięcia bez odpowiedzi | 🟡 | S | |
@@ -318,7 +318,7 @@ zasadzie „nieznane jest głośne”, którą repo trzyma od `d21781d`, to wył
 Wspólny mianownik: panel robi coś (albo nie robi) i nie mówi o tym. Sześć
 przypadków, w tym dwa, które MELDUJĄ SUKCES, którego nie było.
 
-### AUDYT‑8 — Kopiowanie melduje sukces, którego nie było 🟡 S
+### AUDYT‑8 — Kopiowanie melduje sukces, którego nie było 🟡 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/overlay.ts:682` (`writeClipboard`), `:1391` (`copy`), `:1346`
 
 **Problem.** `document.execCommand("copy")` przy porażce **zwraca `false`, nie
@@ -334,9 +334,13 @@ o tym poza grą.
 **Propozycja.** Czytać wynik `execCommand` i przekazywać go wyżej; przy `null`
 z `dump()` pokazać „✕”, tak jak przy złapanym wyjątku. **Koszt S.**
 
+**Zrobione.** `writeClipboard` czyta wynik `execCommand` i rzuca przy `false`.
+`copy()` traktuje `null` i pusty tekst jako porażkę, więc „kopiuj logi” przy
+`dump() === null` pokazuje „✕” zamiast kopiować pustkę.
+
 **Docelowo.** → `UX-POPRAWKI.md` jako `A17`
 
-### AUDYT‑9 — „wyczyść”: potwierdzenie wygasa NIEWIDOCZNIE 🟡 S
+### AUDYT‑9 — „wyczyść”: potwierdzenie wygasa NIEWIDOCZNIE 🟡 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/overlay.ts:694` (`CONFIRM_MS`), `:1757` (`confirmingClear`), `:1355`
 
 **Problem.** Pytanie „na pewno?” wygasa po 5 s — słusznie, bo kasowania nie da
@@ -353,9 +357,13 @@ w którym jest najbardziej niebezpieczny.
 — taniej — przy wygasłym pytaniu przerysować od razu i pokazać „wyczyść”, żeby
 etykieta nigdy nie kłamała. **Koszt S.**
 
+**Zrobione.** Nowa klasa `Confirm` w `src/confirm.ts` — JEDNA implementacja dla
+obu miejsc. Wygaśnięcie odmierza wstrzyknięty `Ticker` i woła `onExpire`, które
+PRZERYSOWUJE widok; `aria-label` idzie odtąd za stanem, nie za samym napisem.
+
 **Docelowo.** → `UX-POPRAWKI.md` jako `A18` (razem z `A19` — jeden wzorzec)
 
-### AUDYT‑10 — „na pewno?” w archiwum nie wygasa WCALE 🟡 S
+### AUDYT‑10 — „na pewno?” w archiwum nie wygasa WCALE 🟡 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/archive.ts:192` (`removing`), `:581`
 
 **Problem.** Ten sam wzorzec dwuklikowego potwierdzenia, zachowanie odwrotne:
@@ -372,6 +380,10 @@ nagrania” (`overlay.ts:1352`), w archiwum zmienne „Potwierdź usunięcie”
 **Propozycja.** Jedna implementacja potwierdzenia dla obu miejsc: wspólny
 `CONFIRM_MS`, wspólne przerysowanie, wspólna reguła dla `aria-label`. **Koszt S**
 łącznie z `A18`, bo to ta sama robota zrobiona raz.
+
+**Zrobione.** Ta sama `Confirm`, więc oba miejsca wygasają identycznie.
+Zamknięcie okna archiwum dodatkowo rozbraja pytanie, a uzbrojenie jednego
+wiersza rozbraja poprzedni.
 
 **Docelowo.** → `UX-POPRAWKI.md` jako `A19`
 

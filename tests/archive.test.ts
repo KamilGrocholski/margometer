@@ -5,36 +5,12 @@ import { parse } from "../src/parser.ts";
 import { aggregate } from "../src/stats.ts";
 import type { Ticker } from "../src/window.ts";
 import type { Recording } from "../src/recorder.ts";
+import { ManualTicker } from "./manual-ticker.ts";
 
 const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
 const readFixture = (name: string) => Bun.file(`${FIXTURES}new-engine/${name}/raw.txt`).text();
 
 /** Zegar sterowany ręcznie — bez tego nie da się sprawdzić kolejnych klatek. */
-class ManualTicker implements Ticker {
-  private steps = new Map<number, () => void>();
-  private next = 1;
-  everyMs = 0;
-
-  start(step: () => void, everyMs: number): number {
-    this.everyMs = everyMs;
-    const handle = this.next++;
-    this.steps.set(handle, step);
-    return handle;
-  }
-
-  stop(handle: number): void {
-    this.steps.delete(handle);
-  }
-
-  get running(): boolean {
-    return this.steps.size > 0;
-  }
-
-  tick(times = 1): void {
-    for (let i = 0; i < times; i += 1) for (const step of [...this.steps.values()]) step();
-  }
-}
-
 /** Nagrywarka w pamięci — archiwum widzi tylko listę i odczyt. */
 function fakeRecorder(logs: { id: number; at: number; text: string }[]): ArchiveRecorder {
   return {
@@ -449,6 +425,64 @@ describe("kasowanie pojedynczego nagrania", () => {
     remove().click();
     expect(rows(overlay)).toHaveLength(1);
     expect(logs.map((one) => one.id)).toEqual([2]);
+  });
+
+  // Pytanie „na pewno?" nie wygasało tu WCALE: wystarczyło kliknąć ✕, odejść
+  // i wrócić po godzinie w to samo miejsce, żeby skasować bez pytania. Panel
+  // miał ten sam wzorzec z wygasaniem — dwa zachowania, jedna decyzja.
+  describe("pytanie o skasowanie nagrania wygasa", () => {
+    const armed = () => {
+      const logs = [
+        { id: 1, at: NOW, text: line },
+        { id: 2, at: NOW, text: `${line}\nKamil(100%) uderzył z siłą  +10` },
+      ];
+      const { overlay, archive } = build(logs);
+      archive.toggle();
+      const remove = (index: number) =>
+        rows(overlay)[index]!.querySelector<HTMLElement>('[data-action="archive-remove"]')!;
+      remove(0).click();
+      return { overlay, archive, logs, remove };
+    };
+
+    test("po wygaśnięciu wiersz SAM wraca do ✕", () => {
+      const { remove } = armed();
+      expect(remove(0).textContent).toBe("na pewno?");
+
+      ticker.tick();
+
+      expect(remove(0).textContent).toBe("✕");
+      expect(remove(0).getAttribute("aria-label")).toBe("Usuń nagranie");
+    });
+
+    test("klik po wygaśnięciu pyta od nowa, a nie kasuje", () => {
+      const { logs, remove } = armed();
+      ticker.tick();
+
+      remove(0).click();
+
+      expect(logs.map((one) => one.id)).toEqual([1, 2]);
+      expect(remove(0).textContent).toBe("na pewno?");
+    });
+
+    test("zamknięcie okna rozbraja pytanie", () => {
+      const { archive, remove, logs } = armed();
+
+      archive.toggle();
+      archive.toggle();
+
+      expect(remove(0).textContent).toBe("✕");
+      remove(0).click();
+      expect(logs.map((one) => one.id)).toEqual([1, 2]);
+    });
+
+    test("pytanie o inne nagranie rozbraja poprzednie", () => {
+      const { remove } = armed();
+
+      remove(1).click();
+
+      expect(remove(0).textContent).toBe("✕");
+      expect(remove(1).textContent).toBe("na pewno?");
+    });
   });
 
   test("kliknięcie w ✕ nie wczytuje walki do panelu", () => {

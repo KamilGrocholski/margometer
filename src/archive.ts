@@ -15,6 +15,7 @@ import { aggregate, type BattleStats } from "./stats.ts";
 import type { BattleEvent } from "./types.ts";
 import { turnWord, type PreviewView, type ReplayView } from "./overlay.ts";
 import { clampToViewport, makeDraggable, realTicker, type Ticker } from "./window.ts";
+import { Confirm } from "./confirm.ts";
 
 /** Tyle, ile archiwum potrzebuje od nagrywarki. */
 export type ArchiveRecorder = {
@@ -188,8 +189,15 @@ export class Archive {
   /** Identyfikatory nagrań z ostatniego renderu listy — patrz `sync`. */
   private listSignature = "";
   private pasting = false;
-  /** Nagranie, przy którym stoi pytanie „na pewno?" o skasowanie. */
-  private removing: number | null = null;
+  /**
+   * Pytanie „na pewno?" przy kasowaniu POJEDYNCZEGO nagrania.
+   *
+   * Ta sama klasa co przy „wyczyść" w panelu — wcześniej były dwie i różniły
+   * się w najgorszy możliwy sposób: tamta wygasała (choć niewidocznie), a ta
+   * nie wygasała WCALE. Uzbrojona destrukcja wisiała więc bez końca; wystarczyło
+   * kliknąć ✕, odejść i wrócić po godzinie w to samo miejsce.
+   */
+  private readonly confirmRemove: Confirm<number>;
   /** Trwałe pole wklejania — patrz `renderPaste`. */
   private pasteBox: HTMLElement | null = null;
   private replay: {
@@ -209,6 +217,12 @@ export class Archive {
     this.storage = options.storage;
     this.ticker = options.ticker ?? realTicker;
     this.now = options.now ?? Date.now;
+    this.confirmRemove = new Confirm<number>({
+      now: this.now,
+      ticker: this.ticker,
+      // Wygaśnięcie musi przerysować listę, żeby zdjąć „na pewno?" z wiersza.
+      onExpire: () => this.render(),
+    });
     this.state = this.loadState();
 
     const style = document.createElement("style");
@@ -243,6 +257,9 @@ export class Archive {
   }
 
   toggle(): void {
+    // Zamknięte okno nie może zostawiać uzbrojonego kasowania: po ponownym
+    // otwarciu wiersz wyglądałby normalnie, a pierwszy klik już by kasował.
+    this.confirmRemove.cancel();
     this.state.open = !this.state.open;
     this.saveState();
     if (this.state.open) this.render();
@@ -571,25 +588,21 @@ export class Archive {
       const drop = document.createElement("button");
       drop.type = "button";
       drop.dataset.action = "archive-remove";
-      const asking = this.removing === entry.id;
+      const asking = this.confirmRemove.pending(entry.id);
       drop.textContent = asking ? "na pewno?" : "✕";
       drop.setAttribute("aria-label", asking ? "Potwierdź usunięcie" : "Usuń nagranie");
       drop.addEventListener("click", (event) => {
         event.stopPropagation();
         // Nagrania nie da się odzyskać, więc pierwszy klik tylko pyta —
-        // ten sam wzorzec co przy czyszczeniu całego archiwum.
-        if (this.removing !== entry.id) {
-          this.removing = entry.id;
-          this.render();
-          return;
+        // ten sam wzorzec i ta sama implementacja co przy „wyczyść" w panelu.
+        if (this.confirmRemove.ask(entry.id)) {
+          if (this.opened === entry.id) this.closePreview();
+          this.recorder.remove?.(entry.id);
+          this.summaries.clear();
+          this.listSignature = "";
+          this.overlay.refresh();
         }
-        this.removing = null;
-        if (this.opened === entry.id) this.closePreview();
-        this.recorder.remove?.(entry.id);
-        this.summaries.clear();
-        this.listSignature = "";
         this.render();
-        this.overlay.refresh();
       });
       row.append(drop);
     }

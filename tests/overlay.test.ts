@@ -15,6 +15,7 @@ import { Recorder } from "../src/recorder.ts";
 import { ELEMENT_MARKER } from "../src/types.ts";
 import { start } from "../src/index.ts";
 import { syntheticFight } from "../tools/synthetic-log.ts";
+import { ManualTicker } from "./manual-ticker.ts";
 
 const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
 const number = new Intl.NumberFormat("pl-PL");
@@ -2942,6 +2943,112 @@ describe("kopiowanie i nagrywanie", () => {
     await Promise.resolve();
 
     expect(button(overlay, "copy-stats")!.textContent).toBe("✕");
+  });
+
+  // `execCommand("copy")` przy odmowie ZWRACA `false`, a nie rzuca — wartość
+  // szła dotąd w próżnię, więc panel migał „✓" nad pustym schowkiem.
+  test("zapasowa droga do schowka też nie udaje sukcesu", async () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    const execCommand = (document as unknown as { execCommand?: unknown }).execCommand;
+    (document as unknown as { execCommand: unknown }).execCommand = () => false;
+    // Bez wstrzykniętego schowka idzie prawdziwa ścieżka: `navigator.clipboard`
+    // w jsdom nie istnieje, więc spada do `execCommand`.
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    try {
+      button(overlay, "copy-stats")!.click();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(button(overlay, "copy-stats")!.textContent).toBe("✕");
+    } finally {
+      (document as unknown as { execCommand?: unknown }).execCommand = execCommand;
+    }
+  });
+
+  // `dump()` zwraca null, gdy indeks obiecuje nagrania, których pod kluczami
+  // już nie ma. Wcześniej szło `?? ""` — pusty schowek i „✓".
+  test("kopiowanie logów bez logów melduje porażkę, nie sukces", async () => {
+    const stats = aggregate(parse(syntheticFight(2)));
+    let copied: string | null = null;
+    const { control } = fakeRecorder({ dump: () => null });
+    const overlay = new Overlay({
+      recorder: control,
+      clipboard: (text) => void (copied = text),
+    });
+    overlay.render(stats, stats);
+
+    button(overlay, "copy-logs")!.click();
+    await Promise.resolve();
+
+    expect(button(overlay, "copy-logs")!.textContent).toBe("✕");
+    expect(copied).toBeNull();
+  });
+
+  // Wygaśnięcie było dotąd czysto obliczeniowe: na przycisku zostawało „na
+  // pewno?", a klik w niego trafiał w pytanie nieaktywne i po cichu uzbrajał je
+  // od nowa. Z ekranu nic się nie zmieniało, więc przycisk wyglądał na zepsuty
+  // dokładnie w chwili, w której jest najbardziej niebezpieczny.
+  describe("potwierdzenie kasowania wygasa WIDOCZNIE", () => {
+    const armed = () => {
+      const stats = aggregate(parse(syntheticFight(2)));
+      const ticker = new ManualTicker();
+      let clock = 1_000;
+      const { control, state } = fakeRecorder();
+      const overlay = new Overlay({ recorder: control, ticker, now: () => clock });
+      overlay.render(stats, stats);
+      button(overlay, "clear-recordings")!.click();
+      return { overlay, ticker, state, advance: (ms: number) => void (clock += ms) };
+    };
+
+    test("pierwszy klik tylko pyta", () => {
+      const { overlay, state } = armed();
+      expect(button(overlay, "clear-recordings")!.textContent).toBe("na pewno?");
+      expect(state.cleared).toBe(false);
+    });
+
+    test("etykieta dla czytnika idzie za stanem, nie za samym napisem", () => {
+      const { overlay } = armed();
+      expect(button(overlay, "clear-recordings")!.getAttribute("aria-label")).toBe(
+        "Potwierdź usunięcie nagrań",
+      );
+    });
+
+    test("drugi klik kasuje", () => {
+      const { overlay, state } = armed();
+      button(overlay, "clear-recordings")!.click();
+      expect(state.cleared).toBe(true);
+      // Pasek nagrywania znika razem z ostatnim nagraniem — nie ma już czego
+      // pokazywać, więc i przycisku nie ma.
+      expect(button(overlay, "clear-recordings")).toBeNull();
+    });
+
+    test("po wygaśnięciu przycisk SAM wraca do „wyczyść”", () => {
+      const { overlay, ticker, advance } = armed();
+
+      advance(6_000);
+      ticker.tick();
+
+      expect(button(overlay, "clear-recordings")!.textContent).toBe("wyczyść");
+      expect(button(overlay, "clear-recordings")!.getAttribute("aria-label")).toBe("Usuń nagrania");
+    });
+
+    test("klik po wygaśnięciu pyta od nowa, a nie kasuje", () => {
+      const { overlay, ticker, state, advance } = armed();
+      advance(6_000);
+      ticker.tick();
+
+      button(overlay, "clear-recordings")!.click();
+
+      expect(state.cleared).toBe(false);
+      expect(button(overlay, "clear-recordings")!.textContent).toBe("na pewno?");
+    });
+
+    test("wyłączenie nagrywania zdejmuje otwarte pytanie", () => {
+      const { overlay } = armed();
+      button(overlay, "record")!.click();
+      expect(button(overlay, "clear-recordings")?.textContent).not.toBe("na pewno?");
+    });
   });
 
   test("bez nagrywarki nie ma ani przycisku, ani paska", () => {

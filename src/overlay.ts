@@ -8,7 +8,8 @@ import {
   type SessionStats,
 } from "./stats.ts";
 import { PROFESSIONS, type ActorStats, type AttackerBreakdown } from "./types.ts";
-import { clampToViewport, makeDraggable } from "./window.ts";
+import { clampToViewport, makeDraggable, realTicker, type Ticker } from "./window.ts";
+import { Confirm } from "./confirm.ts";
 
 export type Metric = "damageDealt" | "damageTaken" | "healingReceived" | "turns";
 /** Filtr składu: obie strony, drużyna gracza (strona 0) albo przeciwnicy. */
@@ -672,6 +673,8 @@ export type OverlayOptions = {
   clipboard?: (text: string) => void | Promise<void>;
   /** Zegar do wygaszania potwierdzeń. Wstrzykiwany wyłącznie dla testów. */
   now?: () => number;
+  /** Odmierzanie wygaśnięcia potwierdzeń. Wstrzykiwane wyłącznie dla testów. */
+  ticker?: Ticker;
 };
 
 /**
@@ -696,11 +699,16 @@ async function writeClipboard(text: string): Promise<void> {
   area.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
   document.body.append(area);
   area.select();
+  let copied = false;
   try {
-    document.execCommand("copy");
+    // `execCommand` przy odmowie ZWRACA `false`, a nie rzuca — a wartość szła
+    // dotąd w próżnię. Panel migał więc „✓" także wtedy, gdy do schowka nie
+    // trafiło nic, i użytkownik dowiadywał się o tym dopiero przy wklejaniu.
+    copied = document.execCommand("copy");
   } finally {
     area.remove();
   }
+  if (!copied) throw new Error("schowek odmówił zapisu");
 }
 
 // `height: null` = wysokość z treści (jak dotąd). Liczba pojawia się dopiero,
@@ -708,8 +716,6 @@ async function writeClipboard(text: string): Promise<void> {
 // przewija się w środku.
 type PanelState = { x: number; y: number; collapsed: boolean; width: number; height: number | null };
 
-/** Jak długo stoi pytanie „na pewno?" przy kasowaniu nagrań. */
-const CONFIRM_MS = 5000;
 const STORAGE_KEY = "margometer.panel";
 const DEFAULT_STATE: PanelState = {
   x: 16,
@@ -798,11 +804,14 @@ export class Overlay {
    */
   private flash: { key: string; label: string } | null = null;
   /**
-   * Kiedy padło pytanie „na pewno?". Potwierdzenie WYGASA — inaczej pierwszy
-   * klik, zwinięcie panelu i przypadkowy klik po godzinie kasowały całe
-   * archiwum bez pytania, bo pytanie nadal wisiało w stanie.
+   * Pytanie „na pewno?" przy kasowaniu WSZYSTKICH nagrań.
+   *
+   * Potwierdzenie wygasa — inaczej pierwszy klik, zwinięcie panelu i przypadkowy
+   * klik po godzinie kasowały całe archiwum bez pytania. Ta sama klasa obsługuje
+   * kasowanie pojedynczego nagrania w archiwum; wcześniej były dwie i zachowywały
+   * się odwrotnie.
    */
-  private confirmingClearAt: number | null = null;
+  private readonly confirmClear: Confirm<void>;
   private archive: ArchiveControl | null = null;
   /**
    * Wczytana walka pokazywana zamiast bieżącej. Licznik na żywo leci w tle bez
@@ -865,6 +874,13 @@ export class Overlay {
     this.recorder = options.recorder;
     this.clipboard = options.clipboard ?? writeClipboard;
     this.now = options.now ?? Date.now;
+    this.confirmClear = new Confirm<void>({
+      now: this.now,
+      ticker: options.ticker ?? realTicker,
+      // Wygaśnięcie musi PRZERYSOWAĆ panel, inaczej na przycisku zostaje „na
+      // pewno?" nad pytaniem, którego już nie ma.
+      onExpire: () => this.rerender(),
+    });
     this.state = this.loadState();
 
     this.host = document.createElement("div");
@@ -1207,7 +1223,7 @@ export class Overlay {
       record.addEventListener("click", () => {
         this.recorder?.toggle();
         // Wyłączenie nagrywania nie może zostawić otwartego pytania o kasowanie.
-        this.confirmingClearAt = null;
+        this.confirmClear.cancel();
         this.rerender();
       });
     }
@@ -1377,22 +1393,21 @@ export class Overlay {
       copy.textContent = this.flash?.key === "copy-logs" ? this.flash.label : "kopiuj logi";
       copy.setAttribute("aria-label", "Kopiuj nagrane logi");
       this.bindAction(copy, "copy-logs", () => {
-        void this.copy("copy-logs", recorder.dump() ?? "");
+        // `dump()` zwraca null, gdy indeks obiecuje nagrania, których pod
+        // kluczami już nie ma — to porażka do pokazania, nie pusty schowek.
+        void this.copy("copy-logs", recorder.dump());
       });
 
       const clear = document.createElement("button");
       clear.type = "button";
-      clear.textContent = this.confirmingClear() ? "na pewno?" : "wyczyść";
-      clear.setAttribute("aria-label", "Usuń nagrania");
+      const asking = this.confirmClear.pending(undefined);
+      clear.textContent = asking ? "na pewno?" : "wyczyść";
+      // Etykieta dla czytnika idzie za stanem, tak samo jak napis — inaczej
+      // przycisk mówi „Usuń nagrania" w chwili, gdy pyta o potwierdzenie.
+      clear.setAttribute("aria-label", asking ? "Potwierdź usunięcie nagrań" : "Usuń nagrania");
       this.bindAction(clear, "clear-recordings", () => {
         // Nagrań nie da się odzyskać, więc pierwszy klik tylko pyta.
-        if (!this.confirmingClear()) {
-          this.confirmingClearAt = this.now();
-          this.rerender();
-          return;
-        }
-        recorder.clear();
-        this.confirmingClearAt = null;
+        if (this.confirmClear.ask(undefined)) recorder.clear();
         this.rerender();
       });
 
@@ -1422,9 +1437,16 @@ export class Overlay {
     );
   }
 
-  private async copy(key: string, text: string): Promise<void> {
+  /**
+   * Kopiuje i mówi, jak poszło. `text === null` znaczy „nie ma czego kopiować".
+   *
+   * Pusty tekst to też porażka, nie sukces: „kopiuj logi" przy indeksie bez
+   * plików wołało `dump() ?? ""` i migało „✓" nad pustym schowkiem.
+   */
+  private async copy(key: string, text: string | null): Promise<void> {
     let label = "✓";
     try {
+      if (text === null || text === "") throw new Error("nie ma czego kopiować");
       await this.clipboard(text);
     } catch {
       // Schowek potrafi odmówić — lepiej powiedzieć wprost niż udawać sukces.
@@ -1806,17 +1828,6 @@ export class Overlay {
     this.hideTip();
     this.rerender();
     return true;
-  }
-
-  /**
-   * Czy pytanie „na pewno?" jeszcze stoi.
-   *
-   * Wygasa po `CONFIRM_MS`: pytanie zadane i porzucone nie może czekać
-   * w nieskończoność na przypadkowy klik, bo kasowania nie da się cofnąć.
-   */
-  private confirmingClear(): boolean {
-    if (this.confirmingClearAt === null) return false;
-    return this.now() - this.confirmingClearAt < CONFIRM_MS;
   }
 
   /** Czy bieżący widok pozwala wejść głębiej niż w postać. */
