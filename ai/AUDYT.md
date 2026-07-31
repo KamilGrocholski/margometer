@@ -22,6 +22,12 @@ Legenda: 🔴 duży zwrot / mała robota · 🟡 warto · ⚪ kiedyś.
 Koszt: XS / S / M / L. Znacznik ✓ = teza **zreprodukowana albo zmierzona**
 podczas tego audytu, nie wywnioskowana z lektury.
 
+**Stan na 2026‑07‑31:** pierwsza partia (`AUDYT‑1`, `2`, `4`, `20`, `21`) jest
+naprawiona. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
+naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
+miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
+wykonanie odbiegło od propozycji, jest to powiedziane wprost.
+
 ---
 
 ## 0. Skrót — kolejność prac
@@ -31,11 +37,11 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 
 | # | Rzecz | | Koszt | ✓ |
 |---|---|---|---|---|
-| AUDYT‑1 | Osierocone nagrania zjadają quotę GRY | 🔴 | S | ✓ |
-| AUDYT‑2 | Nagrywanie wraca włączone po awarii braku miejsca | 🔴 | S | ✓ |
-| AUDYT‑4 | Sesja i nagrywarka inaczej liczą duplikat nagłówka | 🔴 | S | ✓ |
-| AUDYT‑20 | Linia otwierająca w czterech kopiach | 🔴 | XS | ✓ |
-| AUDYT‑21 | Gorąca ścieżka bez osłony i w złej kolejności | 🔴 | XS | ✓ |
+| ~~AUDYT‑1~~ | Osierocone nagrania zjadają quotę GRY | 🔴 | S | **✅** |
+| ~~AUDYT‑2~~ | Nagrywanie wraca włączone po awarii braku miejsca | 🔴 | S | **✅** |
+| ~~AUDYT‑4~~ | Sesja i nagrywarka inaczej liczą duplikat nagłówka | 🔴 | S | **✅** |
+| ~~AUDYT‑20~~ | Linia otwierająca w czterech kopiach | 🔴 | XS | **✅** |
+| ~~AUDYT‑21~~ | Gorąca ścieżka bez osłony i w złej kolejności | 🔴 | XS | **✅** |
 | AUDYT‑5 | `BattleStats` jeden dla walki i sesji — mina pod zakładkę | 🔴 | S | ✓ |
 | AUDYT‑14 | Odznaka literowa profesji nie istnieje | 🔴 | M | ✓ |
 | AUDYT‑3 | 21 kB indeksu przepisywane przy każdej linii logu | 🟡 | S | ✓ |
@@ -63,7 +69,7 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 Cztery usterki, których poprzednia runda nie dotknęła, bo patrzyła na archiwum
 (okno), nie na nagrywarkę (magazyn). Wszystkie cztery zreprodukowane.
 
-### AUDYT‑1 — Osierocone nagrania zjadają quotę GRY 🔴 S — nagrywanie ✓
+### AUDYT‑1 — Osierocone nagrania zjadają quotę GRY 🔴 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/recorder.ts:412` (`loadIndex`), `:278` (`clear`), `:358` (`evict`)
 
 **Problem.** `loadIndex()` przy `v !== 1`, niepoprawnym JSON‑ie albo `fights`
@@ -89,9 +95,15 @@ po clear()   : margometer.rec.on, margometer.rec.1, margometer.rec.index, margom
 i usunąć klucze, których nie ma w indeksie. Wymaga rozszerzenia `RecorderStorage`
 (`:59`) o `key`/`length` — to jedyna ruszona granica. **Koszt S.**
 
+**Zrobione.** `sweepOrphans()` przeczesuje magazyn po prefiksie i kasuje klucze
+spoza indeksu — przy pustym indeksie, przy wpisie odrzuconym przez `isRecording`
+i przy `clear()`, żeby „wyczyść” znaczyło wyczyść. `key`/`length` doszły do
+`RecorderStorage` jako OPCJONALNE: magazyn bez przeglądania kluczy ma nie
+sprzątać, a nie się wywracać.
+
 **Docelowo.** → `SOLID.md` jako `§4.26`
 
-### AUDYT‑2 — Nagrywanie wraca włączone po awarii braku miejsca 🔴 S — nagrywanie ✓
+### AUDYT‑2 — Nagrywanie wraca włączone po awarii braku miejsca 🔴 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/recorder.ts:398` (`write`), `:192` (konstruktor), `:220` (`toggle`)
 
 **Problem.** Gdy magazyn odmówi mimo zwolnienia wszystkiego, `write()` ustawia
@@ -113,6 +125,13 @@ po F5        : isRecording=true  isFailed=false
 **Propozycja.** Wygaszenie nagrywania to zdarzenie trwałe — zapisać `"0"` w tym
 samym miejscu, gdzie ustawiamy `on = false`. Osobno rozważyć utrwalenie `failed`,
 żeby komunikat przeżył odświeżenie. **Koszt S.**
+
+**Zrobione, INACZEJ niż w propozycji.** Zapis `"0"` nie wystarcza: przy naprawdę
+pełnym magazynie pada tak samo jak zapis, który nas tu przywiódł — test na to
+wszedł i od razu zaświecił. Wygaszenie KASUJE znacznik: brak klucza czyta się
+tak samo (`getItem(...) === "1"`), a kasowanie zwalnia miejsce zamiast go
+potrzebować. Utrwalenia `failed` nie zrobiono — komunikat nadal znika po F5,
+choć nagrywanie zostaje wyłączone.
 
 **Docelowo.** → `SOLID.md` jako `§4.27`, wraz z uwagą UX o znikającym komunikacie
 
@@ -138,7 +157,7 @@ z opóźnieniem albo przy wygaszeniu nagrywania. **Koszt S.**
 
 **Docelowo.** → `SOLID.md` jako `§4.28`
 
-### AUDYT‑4 — Sesja i nagrywarka inaczej rozstrzygają duplikat nagłówka 🔴 S — nagrywanie ✓
+### AUDYT‑4 — Sesja i nagrywarka inaczej rozstrzygają duplikat nagłówka 🔴 S — ✅ NAPRAWIONE 2026‑07‑31
 `src/recorder.ts:80` (`splitLines`) vs `src/session.ts:106` (`splitFights`)
 
 **Problem.** Oba miejsca odpowiadają na to samo pytanie — „czy powtórzony
@@ -170,6 +189,11 @@ ROZJAZD | sesja: 1 | nagrywarka: 2 | ten sam skład, inne odstępy
 ma być DOKŁADNIE tym, co widział parser. Scalić należy **dowód**: jeden predykat
 „to powtórzony nagłówek”, wołany po obu stronach na znormalizowanej linii, a nie
 raz po `normalize()`, raz po `trim()`. **Koszt S.**
+
+**Zrobione.** `canonicalLine()` wyeksportowane z parsera i użyte po obu stronach.
+Nagranie zostaje SUROWE — normalizacja dotyczy wyłącznie porównania. Trzy testy
+pilnują teraz obu przypadków z repro plus tego, że nagłówek INNEGO składu nadal
+otwiera drugą walkę.
 
 **Docelowo.** → `SOLID.md` jako `§4.29`; przy okazji dopisać do `§4.14`, że
 klasa została zamknięta dopiero tutaj
@@ -520,7 +544,7 @@ gdzie drążenie w ogóle istnieje. **Koszt XS.**
 
 ## F. Kod, testy, narzędzia
 
-### AUDYT‑20 — Linia otwierająca w CZTERECH kopiach 🔴 XS ✓
+### AUDYT‑20 — Linia otwierająca w CZTERECH kopiach 🔴 XS — ✅ NAPRAWIONE 2026‑07‑31
 `src/parser.ts:35`, `src/recorder.ts:30`, `src/source.ts:14`,
 `tools/engine-probe.js:108`
 
@@ -538,9 +562,13 @@ powiedziałby „nie rozumiem”, tylko „brak danych”.
 brak dopasowania tej linii przez dłuższy czas nie powinien być widoczny
 w panelu. **Koszt XS.**
 
+**Zrobione.** `FIGHT_START_TEXT` w `types.ts`; parser, `source.ts` i nagrywarka
+budują z niego własne wzorce. Widoczności braku dopasowania w panelu NIE
+dorobiono — to zostaje otwarte.
+
 **Docelowo.** → `SOLID.md` jako `§4.30`
 
-### AUDYT‑21 — Gorąca ścieżka bez osłony i w złej kolejności 🔴 XS ✓
+### AUDYT‑21 — Gorąca ścieżka bez osłony i w złej kolejności 🔴 XS — ✅ NAPRAWIONE 2026‑07‑31
 `src/index.ts:27-37` (`start`), kontra `:116-123`
 
 **Problem.** Callback subskrypcji nie ma `try/catch`, a leci z `queueMicrotask`
@@ -560,6 +588,10 @@ archiwum ma `try/catch` z `console.error`, gorąca ścieżka nie ma nic.
 **Propozycja.** Zamienić dwie linie miejscami (`capture` przed `update`)
 i opakować całość w `try/catch` z `console.error`, jak przy archiwum.
 **Koszt XS**, zwrot nieproporcjonalnie duży.
+
+**Zrobione.** `capture` przed `update`, każde we własnym `try/catch`
+z `console.error`. Przy okazji `drill()` przestał meldować obsłużenie
+kliknięcia, które nic nie zrobiło (część `AUDYT‑13`).
 
 **Docelowo.** → `SOLID.md` jako `§4.31`
 

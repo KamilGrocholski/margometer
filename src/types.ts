@@ -5,6 +5,20 @@
  */
 export const ELEMENT_MARKER = "\u0001";
 
+/**
+ * Zdanie otwierające walkę — jedyne, po czym poznajemy jej początek.
+ *
+ * Stoi tu, a nie w trzech modułach osobno, bo decyduje o TRZECH niezależnych
+ * rzeczach: znalezieniu okna walki w DOM (`source.ts`), podziale na walki
+ * w parserze i podziale na nagrania w nagrywarce. Zmiana formatu po stronie
+ * gry wywala wszystkie trzy PO CICHU — czujka `unknown` pilnuje wyłącznie
+ * parsera, więc panel powiedziałby „brak danych", a nie „nie rozumiem".
+ *
+ * Każdy moduł buduje z tego własny wzorzec: parser potrzebuje zakotwiczenia
+ * i grupy ze składem, pozostałe tylko sprawdzają obecność.
+ */
+export const FIGHT_START_TEXT = "Rozpoczęła się walka pomiędzy";
+
 /** Kod profesji tak, jak pojawia się w logu, np. `85b`. */
 export type ProfessionCode = "w" | "p" | "t" | "h" | "m" | "b";
 

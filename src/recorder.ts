@@ -15,6 +15,9 @@
  * odmówi.
  */
 
+import { canonicalLine } from "./parser.ts";
+import { FIGHT_START_TEXT } from "./types.ts";
+
 const KEY_PREFIX = "margometer.rec.";
 const INDEX_KEY = `${KEY_PREFIX}index`;
 /** Nagrywanie przeżywa odświeżenie gry — inaczej każde F5 po cichu je gasi. */
@@ -27,7 +30,7 @@ const FLAG_KEY = `${KEY_PREFIX}on`;
  */
 export const BUDGET_CHARS = 500_000;
 
-const FIGHT_START = /Rozpoczęła się walka pomiędzy/;
+const FIGHT_START = new RegExp(FIGHT_START_TEXT);
 
 /** Jedno nagranie w indeksie. Sam tekst leży pod osobnym kluczem. */
 export type Recording = {
@@ -56,7 +59,15 @@ type ActiveRecording = {
   saved: number;
 };
 
-export type RecorderStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+/**
+ * Tyle magazynu, ile nagrywarce potrzeba.
+ *
+ * `key`/`length` są OPCJONALNE, bo służą wyłącznie sprzątaniu osieroconych
+ * kluczy — bez nich wszystko inne działa, a atrapy w testach nie muszą udawać
+ * całego `Storage`.
+ */
+export type RecorderStorage = Pick<Storage, "getItem" | "setItem" | "removeItem"> &
+  Partial<Pick<Storage, "key" | "length">>;
 
 /**
  * Dzieli bufor logu na walki po liniach otwierających.
@@ -76,8 +87,14 @@ function splitLines(text: string): string[][] {
       // linii nie zaczyna nowej walki, bo poprzednia nie ma jeszcze treści.
       // Nagłówek o innej treści to już druga walka, choćby pierwsza skończyła
       // się na samym nagłówku; inaczej dwie walki wpadały do jednego nagrania.
-      // Ten sam warunek co `splitFights` w sesji, tylko na tekście.
-      const isDuplicate = previous?.length === 1 && previous[0]!.trim() === line.trim();
+      //
+      // Porównujemy przez `canonicalLine`, czyli DOKŁADNIE tak, jak widzi to
+      // parser — inaczej sesja i nagrywarka odpowiadają różnie na to samo
+      // pytanie. Zwykły `trim()` wystarczał tylko dopóty, dopóki gra nie
+      // rozjechała bbcode'u ani odstępów; wtedy archiwum dostawało dwa
+      // nagrania na jedną walkę.
+      const isDuplicate =
+        previous?.length === 1 && canonicalLine(previous[0]!) === canonicalLine(line);
       if (!isDuplicate) fights.push([]);
     }
     if (fights.length === 0) fights.push([]);
@@ -211,16 +228,11 @@ export class Recorder {
   }
 
   toggle(): void {
-    this.on = !this.on;
     // Bufor zaczynamy od zera: po ponownym włączeniu walka widoczna w oknie
     // jest dla nas nowa i ma trafić do nagrania od tego, co jeszcze widać.
     this.active = [];
-    if (this.on) this.failed = false;
-    try {
-      this.storage?.setItem(FLAG_KEY, this.on ? "1" : "0");
-    } catch {
-      // Sam znacznik nie jest wart przewracania overlaya.
-    }
+    if (!this.on) this.failed = false;
+    this.setOn(!this.on);
   }
 
   /** Liczba nagranych walk. */
@@ -277,6 +289,9 @@ export class Recorder {
 
   clear(): void {
     for (const fight of [...this.index.fights]) this.drop(fight.id);
+    // „Wyczyść" ma znaczyć wyczyść: gdyby cokolwiek zostało poza indeksem,
+    // przycisk kłamałby, a miejsce dalej byłoby zajęte.
+    this.sweepOrphans(new Set());
     this.active = [];
     this.failed = false;
     try {
@@ -396,8 +411,33 @@ export class Recorder {
 
     // Zwolnienie wszystkiego nie pomogło — miejsce skończyło się poza nami.
     this.failed = true;
-    this.on = false;
+    this.setOn(false);
     return false;
+  }
+
+  /**
+   * Przestawia nagrywanie i UTRWALA to.
+   *
+   * Wygaszenie po braku miejsca zapisywało dotąd samo pole w pamięci, więc
+   * znacznik w magazynie zostawał na „1": po odświeżeniu konstruktor czytał go
+   * i nagrywanie wracało WŁĄCZONE, a czerwony pasek znikał razem z `failed`.
+   * Użytkownik dostawał komunikat, robił F5 i komunikat przepadał — przy
+   * niezmienionym stanie magazynu.
+   */
+  private setOn(on: boolean): void {
+    this.on = on;
+    try {
+      // Wygaszenie KASUJE znacznik, zamiast zapisywać "0". Brak klucza czyta
+      // się tak samo (`getItem(...) === "1"`), a różnica jest w tym, że
+      // kasowanie ZWALNIA miejsce zamiast go potrzebować. To istotne właśnie
+      // tutaj: najczęstszy powód wygaszania to magazyn, który odmówił zapisu —
+      // gdyby utrwalenie tego faktu samo wymagało zapisu, padłoby razem z nim
+      // i po odświeżeniu nagrywanie wracałoby włączone.
+      if (on) this.storage?.setItem(FLAG_KEY, "1");
+      else this.storage?.removeItem(FLAG_KEY);
+    } catch {
+      // Sam znacznik nie jest wart przewracania overlaya.
+    }
   }
 
   /**
@@ -409,8 +449,43 @@ export class Recorder {
    * i limit magazynu znikał po cichu. Pole `v` było przy tym WYMUSZANE na 1,
    * a nie sprawdzane, więc przyszły format czytałby się jako dzisiejszy.
    */
+  /**
+   * Kasuje nagrania, o których indeks nic nie wie.
+   *
+   * Bez tego uszkodzony indeks (obcy format, przerwany zapis, cudzy skrypt)
+   * zostawiał teksty walk w magazynie NA ZAWSZE: `clear()` chodzi po indeksie,
+   * więc ich nie widzi, `chars()` raportuje zero, a `evict()` uważa, że jest
+   * miejsce. Do ~1 MB znikało z kubełka dzielonego z GRĄ — czyli dokładnie to,
+   * przed czym broni się cały budżet tego modułu.
+   *
+   * Zbieramy klucze przed kasowaniem: `removeItem` przestawia indeksy w
+   * `Storage`, więc kasowanie w trakcie przebiegu przeskakiwałoby co drugi.
+   */
+  private sweepOrphans(known: ReadonlySet<string>): void {
+    const storage = this.storage;
+    if (!storage?.key || storage.length === undefined) return;
+
+    const orphans: string[] = [];
+    try {
+      for (let i = 0; i < storage.length; i += 1) {
+        const key = storage.key(i);
+        if (key === null || !key.startsWith(KEY_PREFIX)) continue;
+        // Indeks i znacznik nagrywania też mają ten prefiks, a nagraniami nie są.
+        if (key === INDEX_KEY || key === FLAG_KEY || known.has(key)) continue;
+        orphans.push(key);
+      }
+      for (const key of orphans) storage.removeItem(key);
+    } catch {
+      // Sprzątanie jest dodatkiem — jego awaria nie może przewrócić startu.
+    }
+  }
+
   private loadIndex(): Index {
-    const fresh = (): Index => ({ ...EMPTY_INDEX, fights: [] });
+    const fresh = (): Index => {
+      // Pusty indeks znaczy, że ŻADEN klucz nagrania nie jest już nasz.
+      this.sweepOrphans(new Set());
+      return { ...EMPTY_INDEX, fights: [] };
+    };
     try {
       const raw = this.storage?.getItem(INDEX_KEY);
       if (!raw) return fresh();
@@ -419,6 +494,9 @@ export class Recorder {
       if (!Array.isArray(parsed.fights)) return fresh();
 
       const fights = parsed.fights.filter(isRecording);
+      // Także tutaj: wpis odrzucony przez `isRecording` zostawia po sobie tekst
+      // pod kluczem, którego indeks już nie wymienia.
+      this.sweepOrphans(new Set(fights.map((fight) => KEY_PREFIX + fight.id)));
       // `next` nigdy poniżej największego znanego id — inaczej nowe nagranie
       // nadpisałoby stare pod tym samym kluczem.
       const highest = fights.reduce((max, fight) => Math.max(max, fight.id), 0);

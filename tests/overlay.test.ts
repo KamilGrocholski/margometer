@@ -3062,6 +3062,43 @@ describe("spięcie nagrywarki ze źródłem logu", () => {
       expect(recorded).toContain(line);
     }
   });
+
+  // Nagranie ma przeżyć licznik, nie odwrotnie: gdy wysypie się parsowanie,
+  // surowy log jest JEDYNĄ rzeczą, którą da się tę awarię odtworzyć. Dlatego
+  // zapis idzie pierwszy i we własnej osłonie.
+  test("awaria licznika nie zabiera ze sobą nagrywania", async () => {
+    const text = await readFixture("new-engine/2026-07-18_tancerz-vs-kukla");
+    const store = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    };
+    const recorder = new Recorder({ storage });
+    recorder.toggle();
+
+    const session = new Session();
+    session.update = () => {
+      throw new Error("parser padł");
+    };
+    const errors: unknown[] = [];
+    const console_error = console.error;
+    console.error = (...args: unknown[]) => void errors.push(args);
+
+    try {
+      // Nie może wylecieć na zewnątrz: callback leci z mikrotaska, więc
+      // wyjątek wypadłby do kontekstu STRONY GRY i powtarzał się przy każdej
+      // mutacji DOM.
+      expect(() =>
+        start(new StaticLogSource(text), new Overlay({ recorder }), session, undefined, recorder),
+      ).not.toThrow();
+    } finally {
+      console.error = console_error;
+    }
+
+    expect(recorder.count()).toBe(1);
+    expect(errors).toHaveLength(1);
+  });
 });
 
 describe("podgląd wczytanej walki", () => {

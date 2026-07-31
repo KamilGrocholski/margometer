@@ -25,15 +25,32 @@ export function start(
   recorder?: Recorder,
 ): () => void {
   return source.subscribe((text) => {
-    // Skład czytamy przy każdej zmianie logu, nie raz na starcie: gra podmienia
-    // `battle` między walkami, a odczyt jest tani i defensywny.
-    session.update(text, roster?.current());
-    // Nagrywamy ten sam tekst, który dostał parser — nagranie ma odtwarzać
-    // wejście licznika, a nie jego wynik.
-    recorder?.capture(text);
-    // Sumę sesji podajemy jako funkcję: policzy się dopiero, gdy ktoś jej
-    // zażąda (dziś tylko przycisk kopiowania), a nie przy każdej linii logu.
-    overlay.render(session.current(), () => session.total());
+    // Nagrywanie idzie PIERWSZE i we własnej osłonie. Kolejność nie jest
+    // kosmetyką: gdyby parser się wysypał, zabrałby ze sobą zapis — czyli
+    // jedyny surowy log, którym dałoby się tę awarię odtworzyć. Nagranie ma
+    // przeżyć licznik, nie odwrotnie.
+    try {
+      // Ten sam tekst, który dostaje parser — nagranie odtwarza WEJŚCIE
+      // licznika, a nie jego wynik.
+      recorder?.capture(text);
+    } catch (error) {
+      console.error("[MargoMeter] nagrywanie padło", error);
+    }
+
+    // Callback leci z mikrotaska, więc nieprzechwycony wyjątek wypada do
+    // kontekstu STRONY GRY i powtarza się przy każdej mutacji DOM. Ta sama
+    // zasada co przy archiwum niżej: dodatek ma paść cicho, nie zasypać konsoli
+    // gry przy każdej linii logu.
+    try {
+      // Skład czytamy przy każdej zmianie logu, nie raz na starcie: gra
+      // podmienia `battle` między walkami, a odczyt jest tani i defensywny.
+      session.update(text, roster?.current());
+      // Sumę sesji podajemy jako funkcję: policzy się dopiero, gdy ktoś jej
+      // zażąda (dziś tylko przycisk kopiowania), a nie przy każdej linii logu.
+      overlay.render(session.current(), () => session.total());
+    } catch (error) {
+      console.error("[MargoMeter] licznik padł na tej porcji logu", error);
+    }
   });
 }
 

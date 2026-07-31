@@ -1,4 +1,4 @@
-import { ELEMENT_MARKER } from "./types.ts";
+import { ELEMENT_MARKER, FIGHT_START_TEXT } from "./types.ts";
 
 /**
  * Źródło tekstu logu walki.
@@ -11,7 +11,7 @@ export type LogSource = {
   subscribe(listener: (text: string) => void): () => void;
 };
 
-const FIGHT_START_MARKER = /Rozpoczęła się walka pomiędzy/;
+const FIGHT_START_MARKER = new RegExp(FIGHT_START_TEXT);
 
 const BLOCK_TAGS = new Set([
   "DIV",

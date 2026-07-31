@@ -1,4 +1,10 @@
-import { ELEMENT_MARKER, type BattleEvent, type Hit, type Participant } from "./types.ts";
+import {
+  ELEMENT_MARKER,
+  FIGHT_START_TEXT,
+  type BattleEvent,
+  type Hit,
+  type Participant,
+} from "./types.ts";
 
 /** Litera z klasy `dmgX` w DOM gry. Fizycznych obrażeń gra tak nie znakuje. */
 const ELEMENTS: Record<string, string> = {
@@ -32,7 +38,7 @@ function clean(text: string): string {
 /** Nazwa aktora + jego HP w procentach, np. `Magister Kazrek(0.01%)`. */
 const ACTOR = String.raw`(.+?)\((\d+(?:[.,]\d+)?)%\)`;
 
-const RE_FIGHT_START = /^Rozpoczęła się walka pomiędzy (.+)$/;
+const RE_FIGHT_START = new RegExp(`^${FIGHT_START_TEXT} (.+)$`);
 const RE_PARTICIPANT = /(.+?)\s\((\d+)([a-zA-Z])\)/g;
 /**
  * Końcówka rodzaju w czasowniku akcji. Cudzą postać log opisuje formą
@@ -193,6 +199,23 @@ function normalize(text: string): string {
 
 function normalizeLine(line: string): string {
   return line.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Linia sprowadzona do postaci, w której parser ją WIDZI — bez bbcode'u i bez
+ * rozjechanych odstępów.
+ *
+ * Potrzebna poza parserem, bo nagrywarka odpowiada na to samo pytanie co sesja:
+ * „czy powtórzony nagłówek to ta sama walka?". Sesja pyta o skład ODCZYTANY
+ * przez parser, więc po tej normalizacji; nagrywarka trzyma surowy tekst
+ * i porównywała go dosłownie. Wystarczyło, że gra rozjechała `[b]` albo zmieniła
+ * odstęp, i obie strony dawały inną odpowiedź: panel widział jedną walkę,
+ * archiwum zapisywało dwie, w tym jedną śmieciową.
+ *
+ * Nagranie nadal zostaje SUROWE — normalizacja dotyczy wyłącznie porównania.
+ */
+export function canonicalLine(line: string): string {
+  return normalizeLine(normalize(line));
 }
 
 function toPct(raw: string): number {

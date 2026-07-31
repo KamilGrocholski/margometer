@@ -25,6 +25,17 @@ class FakeStorage implements RecorderStorage {
     this.data.delete(key);
   }
 
+  // Prawdziwy `Storage` daje przeglądanie kluczy i po tym nagrywarka poznaje
+  // nagrania osierocone przez indeks. Atrapa musi to umieć, inaczej testy
+  // omijałyby całą ścieżkę sprzątania.
+  get length(): number {
+    return this.data.size;
+  }
+
+  key(index: number): string | null {
+    return [...this.data.keys()][index] ?? null;
+  }
+
   /** Zajętość bez klucza, który właśnie nadpisujemy. */
   private used(without: string): number {
     let total = 0;
@@ -75,6 +86,26 @@ describe("dzielenie bufora na walki", () => {
     // poza swoim — inaczej dwie walki wpadały do jednego nagrania.
     const stub = FIGHT_A.split("\n")[0]!;
     expect(splitRawFights(`${stub}\n${FIGHT_B}`)).toEqual([stub, FIGHT_B]);
+  });
+
+  // Sesja rozstrzyga duplikat nagłówka po SKŁADZIE odczytanym przez parser,
+  // czyli po zdjęciu bbcode'u i zwinięciu odstępów. Nagrywarka porównywała
+  // surowy tekst dosłownie, więc wystarczyło, że gra rozjechała `[b]`, i obie
+  // strony dawały inną odpowiedź: panel widział jedną walkę, archiwum
+  // zapisywało dwie, w tym jedną śmieciową.
+  test("rozjechany bbcode nie rozcina walki na dwa nagrania", () => {
+    const head = "Rozpoczęła się walka pomiędzy Kamil Kazrek (70h) a Regulus (63w)";
+    expect(splitRawFights(`[b]${head}[/b]\n[b]${head}\n[/b]`)).toHaveLength(1);
+  });
+
+  test("inne odstępy w nagłówku to nadal ta sama walka", () => {
+    const head = "Rozpoczęła się walka pomiędzy Kamil Kazrek (70h) a Regulus (63w)";
+    expect(splitRawFights(`${head}\nRozpoczęła się walka pomiędzy  Kamil Kazrek (70h)  a Regulus (63w)`)).toHaveLength(1);
+  });
+
+  test("nagranie zostaje SUROWE — normalizacja dotyczy tylko porównania", () => {
+    const head = "[b]Rozpoczęła się walka pomiędzy Kamil Kazrek (70h) a Regulus (63w)[/b]";
+    expect(splitRawFights(head)).toEqual([head]);
   });
 
   test("ogon bez linii rozpoczęcia zostaje jedną walką", () => {
@@ -398,5 +429,131 @@ describe("zepsuty indeks w magazynie", () => {
 
     expect(rec.list().map((one) => one.id)).toEqual([7, 8]);
     expect(storage.logs()).toEqual([FIGHT_A, FIGHT_B]);
+  });
+});
+
+describe("nagrania osierocone przez indeks", () => {
+  // Uszkodzony indeks zwracał pusty stan, ale teksty walk zostawały
+  // w magazynie NA ZAWSZE: `clear()` chodzi po indeksie, więc ich nie widział,
+  // `chars()` raportował zero, a `evict()` uważał, że jest miejsce. Do ~1 MB
+  // znikało z kubełka dzielonego z GRĄ.
+  const orphanKeys = () => [...storage.data.keys()].filter((key) => /\.\d+$/.test(key));
+
+  test("indeks w nieznanej wersji zabiera ze sobą swoje nagrania", () => {
+    storage.setItem("margometer.rec.1", FIGHT_A);
+    storage.setItem("margometer.rec.2", FIGHT_B);
+    storage.setItem("margometer.rec.index", JSON.stringify({ v: 2, next: 9, fights: [] }));
+
+    const rec = recorder();
+
+    expect(rec.count()).toBe(0);
+    expect(orphanKeys()).toEqual([]);
+  });
+
+  test("indeks nie do odczytania też", () => {
+    storage.setItem("margometer.rec.1", FIGHT_A);
+    storage.setItem("margometer.rec.index", "{to nie jest JSON");
+
+    recorder();
+
+    expect(orphanKeys()).toEqual([]);
+  });
+
+  test("brak indeksu przy istniejących nagraniach to też sieroty", () => {
+    storage.setItem("margometer.rec.1", FIGHT_A);
+
+    recorder();
+
+    expect(orphanKeys()).toEqual([]);
+  });
+
+  test("wpis odrzucony przez walidację zabiera swój tekst, reszta zostaje", () => {
+    storage.setItem("margometer.rec.1", FIGHT_A);
+    storage.setItem("margometer.rec.2", FIGHT_B);
+    storage.setItem(
+      "margometer.rec.index",
+      JSON.stringify({
+        v: 1,
+        next: 3,
+        // Drugi wpis bez `chars` — `isRecording` go odrzuci.
+        fights: [
+          { id: 1, title: "dobra", chars: FIGHT_A.length, at: 1 },
+          { id: 2, title: "kaleka" },
+        ],
+      }),
+    );
+
+    const rec = recorder();
+
+    expect(rec.list().map((one) => one.id)).toEqual([1]);
+    expect(orphanKeys()).toEqual(["margometer.rec.1"]);
+  });
+
+  test("znacznik nagrywania nie jest sierotą, mimo tego samego prefiksu", () => {
+    const rec = recorder();
+    rec.toggle();
+    expect(storage.getItem("margometer.rec.on")).toBe("1");
+
+    storage.setItem("margometer.rec.index", JSON.stringify({ v: 2, next: 1, fights: [] }));
+    recorder();
+
+    expect(storage.getItem("margometer.rec.on")).toBe("1");
+  });
+
+  test("wyczyszczenie obejmuje także to spoza indeksu", () => {
+    const rec = recorder();
+    rec.toggle();
+    rec.capture(FIGHT_A);
+    storage.setItem("margometer.rec.999", FIGHT_B);
+
+    rec.clear();
+
+    expect(orphanKeys()).toEqual([]);
+  });
+
+  test("magazyn bez przeglądania kluczy działa jak dotąd", () => {
+    // Atrapy bez `key`/`length` (i stare przeglądarki) mają po prostu nie
+    // sprzątać, zamiast się wywracać.
+    const blind = {
+      getItem: (key: string) => storage.getItem(key),
+      setItem: (key: string, value: string) => storage.setItem(key, value),
+      removeItem: (key: string) => storage.removeItem(key),
+    };
+    storage.setItem("margometer.rec.1", FIGHT_A);
+    storage.setItem("margometer.rec.index", JSON.stringify({ v: 2, next: 9, fights: [] }));
+
+    const rec = new Recorder({ storage: blind, now: () => 1 });
+
+    expect(rec.count()).toBe(0);
+    expect(storage.getItem("margometer.rec.1")).toBe(FIGHT_A);
+  });
+});
+
+describe("wygaszenie nagrywania przeżywa odświeżenie", () => {
+  test("brak miejsca gasi nagrywanie NA TRWAŁE", () => {
+    const rec = recorder();
+    rec.toggle();
+    rec.capture(FIGHT_A);
+
+    // Od teraz magazyn odmawia wszystkiego — zwolnienie miejsca nie pomoże.
+    storage.limit = 0;
+    rec.capture(FIGHT_B);
+
+    expect(rec.isRecording()).toBe(false);
+    expect(rec.isFailed()).toBe(true);
+
+    // Znacznik zostawał na "1", więc po F5 nagrywanie wracało WŁĄCZONE,
+    // a komunikat o braku miejsca znikał razem z `failed`.
+    storage.limit = null;
+    expect(new Recorder({ storage, now: () => 1 }).isRecording()).toBe(false);
+  });
+
+  test("ręczne wyłączenie też przeżywa", () => {
+    const rec = recorder();
+    rec.toggle();
+    expect(new Recorder({ storage, now: () => 1 }).isRecording()).toBe(true);
+
+    rec.toggle();
+    expect(new Recorder({ storage, now: () => 1 }).isRecording()).toBe(false);
   });
 });

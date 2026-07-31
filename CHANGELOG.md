@@ -28,6 +28,20 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   poszło. Ten sam gest, przeciwna strona ciosu; prawy przycisk wraca identycznie
   z obu dróg. Działa też dla obrażeń otrzymanych.
 
+### Naprawione
+- **Nagrania potrafiły zajmować miejsce mimo skasowania.** Gdy spis nagrań uległ
+  uszkodzeniu, same logi zostawały w pamięci przeglądarki na zawsze — niewidoczne
+  dla licznika i dla „wyczyść", a zajmujące miejsce, które dodatek dzieli z grą.
+- **Nagrywanie wracało włączone po komunikacie o braku miejsca.** Wystarczyło
+  odświeżyć stronę: nagrywanie startowało z powrotem, a czerwony pasek znikał,
+  choć w pamięci przeglądarki nic się nie zmieniło.
+- **Jedna walka trafiała do archiwum jako dwa nagrania**, gdy gra rozjechała
+  pogrubienie linii otwierającej albo zmieniła w niej odstępy. Panel pokazywał
+  wtedy jedną walkę, a archiwum dwie — w tym jedną pustą.
+- **Awaria licznika zabierała ze sobą nagrywanie**, czyli jedyny zapis, z którego
+  dałoby się tę awarię odtworzyć. Teraz zapis idzie pierwszy i przeżywa
+  niezależnie od reszty.
+
 ## [0.2.0] — 2026-07-30
 
 ### Dodane
