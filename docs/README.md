@@ -1,12 +1,15 @@
 # Zacznij tutaj
 
-Punkt wejścia do katalogu `ai/` — dla człowieka, który wraca po miesiącu, i dla
+Punkt wejścia do katalogu `docs/` — dla człowieka, który wraca po miesiącu, i dla
 modelu, który widzi to repo pierwszy raz. Odpowiada na trzy pytania: **co to
 jest**, **gdzie czego szukać** i **jak się tu pracuje**.
 
 Czego tu NIE ma: liczb, statusów i list usterek. Wszystko, co się zmienia,
 mieszka w plikach niżej — ten ma zostać aktualny przez rok. Jeśli znajdziesz tu
 konkretną liczbę, to znaczy, że ktoś ją tu wstawił wbrew tej zasadzie.
+
+> Ten katalog nazywał się do 2026‑08‑01 `ai/`. Odsyłacze z tamtą nazwą pochodzą
+> sprzed przeniesienia — treść jest ta sama, ścieżka inna.
 
 ---
 
@@ -49,6 +52,7 @@ ich w całości — każdy odpowiada na inne pytanie.
 
 | Plik | Odpowiada na pytanie | Kiedy tu zajrzeć |
 |---|---|---|
+| [`MECHANIKA.md`](MECHANIKA.md) | **Jak zachowuje się GRA — i skąd to wiadomo?** Procedura sprawdzania oficjalnej pomocy plus rejestr odpowiedzi z dosłownymi cytatami (albo jawnym „nie znaleziono”). | Zanim napiszesz JAKIEKOLWIEK zdanie o zachowaniu gry, także negatywne |
 | [`DECYZJE.md`](DECYZJE.md) | **Dlaczego kod wygląda tak, jak wygląda?** Czego log NIE mówi i co z tego wynika. Sekcje o truciźnie bez sprawcy, leczeniu bez leczącego, duplikatach nazw, kolorach, „na turę". | Zawsze, zanim zmienisz cokolwiek w `parser.ts` albo `stats.ts` |
 | [`AUDYT.md`](AUDYT.md) | **Co jest zepsute i co już naprawiono?** Rejestr z ID (`AUDYT‑N`), wagą, kosztem i — przy naprawionych — opisem, co konkretnie zrobiono. | Zanim zgłosisz „znalazłem błąd" — sprawdź, czy nie jest już zapisany albo świadomie odrzucony |
 | [`SOLID.md`](SOLID.md) | **Gdzie jest dług i czego nie widzą testy?** Usterki `§4.*`, architektura `§8`, martwy kod `§9`, luki zestawu `§10`. | Przy refaktorze i przy pytaniu „czy to jest pokryte?" |
@@ -56,8 +60,9 @@ ich w całości — każdy odpowiada na inne pytanie.
 | [`UX-POPRAWKI.md`](UX-POPRAWKI.md) | **Co poprawić w panelu?** Lista `A*` (usterki) i `B*` (wygody). | Gdy szukasz roboty o dobrym zwrocie |
 | [`ROADMAP.md`](ROADMAP.md) | **Co jest zrobione, a co wstrzymane?** | Gdy pytasz „czy ta funkcja w ogóle miała powstać?" |
 | [`TOOLING.md`](TOOLING.md) | **Jak to się buduje i trafia do użytkownika?** `@match`, wersjonowanie, CI. | Przy `build.ts`, `tools/`, wydaniu |
+| [`screenshots/`](screenshots/) | Obrazki do `README.md` w korzeniu, z konwencją nazw i listą rzeczy, o których trzeba pamiętać przy robieniu zrzutu. | Gdy zrzuty w README przestały pokazywać panel takim, jaki jest |
 
-Poza `ai/`: **[`tests/fixtures/`](../tests/fixtures/new-engine/)** — przy każdym
+Poza `docs/`: **[`tests/fixtures/`](../tests/fixtures/new-engine/)** — przy każdym
 zrzucie walki stoi `meta.json` z opisem, co ten fixture pokrywa (`covers`), czego
 w nim nie ma (`missing`) i co było w nim trudnego (`notes`). To najszybsza droga
 do pytania „czy mam próbkę z X?".
@@ -66,16 +71,23 @@ do pytania „czy mam próbkę z X?".
 
 ## Źródła poza repo — i czego wśród nich NIE ma
 
-Krótka lista, bo ona naprawdę jest krótka. To ważne sama w sobie: **wiedza o grze
-w tym projekcie pochodzi w przeważającej części z POMIARU na korpusie, a nie
-z dokumentacji.** Gra nie ma opisu formatu logu walki i nie należy zakładać, że
-gdzieś taki opis istnieje.
+**Wiedza o FORMACIE LOGU pochodzi w tym projekcie wyłącznie z pomiaru na
+korpusie.** Gra nie ma opisu tego formatu i nie należy zakładać, że gdzieś taki
+opis istnieje.
+
+⚠️ **To zdanie brzmiało do 2026‑08‑01 szerzej — „wiedza o grze pochodzi
+w przeważającej części z POMIARU, a nie z dokumentacji” — i było przez to
+szkodliwe.** O formacie logu jest prawdziwe; o MECHANICE nie. Gra ma
+dokumentację mechaniki walk na **399 tys. znaków**, z wzorami na unik i blok,
+kolejnością redukcji obrażeń i opisem każdego zdarzenia — a repo dwa razy
+zapisało, że „pomoc milczy” w sprawach, które ta dokumentacja rozstrzyga wprost.
+Procedura, żeby to się nie powtórzyło: [`MECHANIKA.md`](MECHANIKA.md).
 
 | Dokąd | Po co |
 |---|---|
 | [margonem.pl](https://www.margonem.pl/) | Sama gra. Dodatek startuje na światach `*.margonem.pl` i `*.margonem.com` — listę wraz z wykluczeniami trzyma [`tools/userscript-meta.ts`](../tools/userscript-meta.ts) |
-| [**Mechanika walk**](https://pomoc.margonem.pl/index/view,372) | Jedyny artykuł pomocy, na którym opiera się wprost decyzja w kodzie. Cztery sekcje: system walki, system tur, statystyki postaci w walce, atrakcje. Są tam formuły przewagi poziomowej dla **uniku, bloku i ciosu krytycznego** oraz wzmianka o „broniach od zimna i trucizny" — to z niej wynika, że trucizna jest właściwością BRONI (patrz `DECYZJE.md`, „Trucizna bez sprawcy") |
-| [pomoc.margonem.pl](https://pomoc.margonem.pl/) | Reszta oficjalnej pomocy. Nie przeglądaliśmy jej systematycznie — jeśli poszukasz i coś znajdziesz, dopisz tutaj |
+| [**Mechanika walk**](https://pomoc.margonem.pl/index/view,372) | **Pełna specyfikacja mechaniki na ~399 tys. znaków** — nie skrót. System walki, system tur, statystyki postaci i NPC, efekty umiejętności, atrakcje; wzory (`evade`, `block`, `crit gain`), kolejność redukcji obrażeń, opis każdego zdarzenia z nazwą silnikową. Czytaj sondą `tools/pomoc.ts`, nie streszczeniem — dlaczego, mówi [`MECHANIKA.md`](MECHANIKA.md) |
+| [pomoc.margonem.pl](https://pomoc.margonem.pl/) | Reszta oficjalnej pomocy. `view,3` odsyła całą walkę do artykułu wyżej, `view,183` (Słowniczek) nie zna ani uniku, ani bloku — sprawdzone 2026‑08‑01. Reszty nie przeglądaliśmy; znajdziesz coś, dopisz **razem z cytatem** |
 | [tampermonkey.net](https://www.tampermonkey.net/) | Rozszerzenie, które uruchamia zbudowany `dist/margometer.user.js` |
 | [bun.sh](https://bun.sh/) | Cały toolchain: runtime, testy, bundler |
 
@@ -83,18 +95,26 @@ gdzieś taki opis istnieje.
 otworzyłeś, jest w tym repo gorszy niż jego brak — dokumentacja ma być
 sprawdzalna, a zmyślony odsyłacz wygląda dokładnie jak prawdziwy.
 
-**Czego „Mechanika walk" NIE rozstrzyga** — sprawdzone 2026‑08‑01, żeby nikt nie
-szukał drugi raz: opisuje unik i blok jako STATYSTYKI (wzory na przewagę
-poziomową), ale ani słowem nie mówi, czy unik rozstrzyga się raz na cały atak,
-czy osobno dla każdej liczby obrażeń, ani jak zachowuje się broń pomocnicza.
-A to jest dokładnie pytanie, na którym stoi rozdzielenie uników pełnych
-i częściowych (`AUDYT‑40`). Odpowiedź pochodzi więc z korpusu, nie z dokumentacji
-— i tak ma zostać opisana.
+**Co pomoc rozstrzyga, a czego w niej nie ma — w [`MECHANIKA.md`](MECHANIKA.md),
+nie tutaj.** Ten plik ma zostać aktualny przez rok, a tamta lista rośnie.
+
+Stał tu wcześniej akapit „Czego «Mechanika walk» NIE rozstrzyga” z datą
+i adnotacją „żeby nikt nie szukał drugi raz”. **Był nieprawdziwy** — twierdził,
+że artykuł nie mówi nic o granularności uniku ani o broni pomocniczej, a mówi
+o obu wprost. Powstał z jednego zapytania narzędziem, które streszcza. Zapis
+o tym, jak to się stało, jest w `MECHANIKA.md`; zostawiam tu samo ostrzeżenie,
+bo to jedyny znany nam sposób, w jaki ten plik potrafi skłamać.
 
 ### Skąd brać wiedzę, której tu nie ma
 
-Trzy drogi, wszystkie użyte w przeszłości:
+Cztery drogi, wszystkie użyte w przeszłości. **Kolejność nie jest przypadkowa:
+najpierw sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.**
 
+0. **Oficjalna pomoc gry.** `bun tools/pomoc.ts "Blok ( blok )"` — sonda po
+   pełnym tekście artykułu „Mechanika walk”. Procedura, rejestr odpowiedzi
+   i powód, dla którego NIE robi się tego `WebFetch`-em: [`MECHANIKA.md`](MECHANIKA.md).
+   Ta droga została dopisana 2026‑08‑01 i jest tu zerowa, bo przez rok była
+   pomijana — a odpowiadała na pytania, które mierzyliśmy z korpusu.
 1. **Nowy zrzut walki.** W oknie walki jest przycisk „Kopiuj logi" (tekst) —
    a dla żywiołów potrzebny jest zrzut DOM‑u, bo żywioł siedzi WYŁĄCZNIE w klasie
    CSS (`dmgf`, `dmgc`, `dmgl`…) i w tekście go nie ma. Stąd fixture'y mają dwa
@@ -151,6 +171,12 @@ kompilacji. Nie wyłączaj ich, żeby coś przeszło.
 Wzorzec z poprzednich rund. Nie jest obowiązkowy, ale to on daje w tym repo
 dobre wyniki.
 
+**0. Zanim zmierzysz, sprawdź, czy nie jest opisane.** Dotyczy wyłącznie zdań
+o zachowaniu GRY (nie naszego kodu) — te idą przez procedurę z
+[`MECHANIKA.md`](MECHANIKA.md). Pomiar na korpusie odpowiada, co log POKAZUJE;
+pomoc gry — co gra ZAMIERZA. Rachunek z 20 obserwacji, dla którego istnieje
+zdanie w specyfikacji, jest słabszym dowodem tego samego.
+
 **1. Zmierz, zanim powiesz.** Twierdzenie „X jest zepsute" bez odtworzonego
 scenariusza jest w tym repo bezwartościowe — kilka „usterek" okazało się
 nieporozumieniem, a kilka „drobiazgów" miało cztery rzędy wielkości. Napisz
@@ -187,7 +213,7 @@ osobno.
 **7. Dokumentacja starzeje się szybciej niż kod.** `SOLID.md §10` i `TOOLING.md`
 opisywały kiedyś stan sprzed dwóch rund i były przy tym cytowane jako lista
 zadań — z pozycjami 🔴, które od dawna były zrobione. Jeśli opierasz decyzję na
-zdaniu z `ai/`, **sprawdź je w kodzie**. Jeśli się rozjechało, popraw dokument
+zdaniu z `docs/`, **sprawdź je w kodzie**. Jeśli się rozjechało, popraw dokument
 w tej samej rundzie.
 
 ---

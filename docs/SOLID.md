@@ -20,10 +20,12 @@ parsowanie → mapowanie → przerabianie → sumowanie. Dwie części:
 Zasada nadrzędna: **żaden refaktor nie zmienia granic** (`LogSource`,
 `RosterSource`, `parse`, `aggregate`). `BattleStats` urosło o jedno pole
 (`unknownElements`, §4.17) — to dołożenie, nie zmiana kształtu. Siatka
-bezpieczeństwa to **583 testy** (0 pominiętych) — zielone przed i po każdym
-kroku; `bunx tsc --noEmit` czysty; pokrycie **98,97 % linii**.
-Liczby odświeżone 2026‑08‑01; poprzednio stało tu „369 testów / 93,3 %", czyli
-stan sprzed dwóch rund.
+bezpieczeństwa to **650 testów** (0 pominiętych) — zielone przed i po każdym
+kroku; `bunx tsc --noEmit` czysty; pokrycie **98,61 % linii**.
+Liczby odświeżone 2026‑08‑01 po rundzie parsera (§4.18/§4.22); wcześniej tego
+samego dnia stało tu „583 / 98,97 %", a przed tym „369 / 93,3 %" — czyli stan
+sprzed dwóch rund. Ta liczba starzeje się co rundę i nie ma sensu jej ufać bez
+przeliczenia; `bun test` mówi prawdę w cztery sekundy.
 
 Legenda zwrotu: 🔴 duży / mała robota · 🟡 warto · ⚪ do przemyślenia.
 
@@ -342,7 +344,7 @@ Kontrakt parsera z `types.ts:137‑142` mówi „nieznany kształt musi być gł
 to jedyna klasa zmiany formatu, która ma od niego wyjątek. **Fix:** licznik
 `unknownElements` w `BattleStats`. **S.**
 
-### 4.18 Modyfikator z `(N%)` rozbija cały blok ataku na trzy `unknown` 🟡 [otwarte]
+### 4.18 Modyfikator z `(N%)` rozbija cały blok ataku na trzy `unknown` 🟡 [NAPRAWIONE 2026‑08‑01]
 `parser.ts:62` (`RE_CARRIES_HP`) + `:70`. Strażnik, który zamknął dawny
 catch‑all (§4.3), odrzuca jako modyfikator **każdą** linię z procentem
 w nawiasie:
@@ -357,6 +359,17 @@ osłona, osłabienie obrażeń o 25%`). Ale sprzężenie jest niewidoczne i jede
 format proca kosztuje trzy linie zamiast jednej. **Fix:** węższa reguła — HP%
 należy do wzorca postaci na POCZĄTKU linii, nie do dowolnego nawiasu.
 Żaden test nie pokrywa modyfikatora z procentem w nawiasie. **S.**
+
+**Zrobione.** Rozróżnieniem została **spacja przed nawiasem**, a nie pozycja
+w linii — bo pozycja by nie wystarczyła: `-507 obrażeń otrzymał(a) X(75%)` niesie
+HP na KOŃCU, nie na początku, a to jest właśnie ta linia, przed którą strażnik
+powstał. Przelot po korpusie: **2794 linie** niosą `(N%)` i **wszystkie 2794**
+mają nawias przyklejony do nazwy; ani jedna nie ma przed nim spacji. Stąd
+`RE_CARRIES_HP = /\S\(\d+(?:[.,]\d+)?%\)/`. Zmiana klasyfikacji: zero linii
+korpusu, `unknown` jak było 0. Test (`parser.test.ts`, „proc z procentem
+w nawiasie nie rozbija bloku ataku") stoi na formacie HIPOTETYCZNYM i mówi to
+wprost — nie twierdzi, że gra tak pisze, tylko że strażnik nie zabierze ze sobą
+całej klasy modyfikatorów w dniu, w którym napisze.
 
 ### 4.19 Separator tysięcy zawodzi CICHO 🟡 [NAPRAWIONE 2026‑07‑30]
 `parser.ts:20`/`:200`. Zapisany dotąd tryb awarii (`applied > raw`) jest zły.
@@ -388,7 +401,7 @@ naprawę o dwa dni — patrz `AUDYT‑39` (zamknięte 2026‑08‑01). Naprawion
 jedno wywołanie, nie zasadę. Wniosek na przyszłość: znajdując „pierwszy pasujący
 wpis składu”, sprawdź WSZYSTKIE miejsca, które pytają skład o nazwę.
 
-### 4.22 Cztery pola parsowane i nigdy nieczytane ⚪ [otwarte]
+### 4.22 Cztery pola parsowane i nigdy nieczytane ⚪ [ROZSTRZYGNIĘTE 2026‑08‑01]
 `superCrit` (tylko `types.ts:46` + parser), `attack.blocked` (nie ma go ani
 w `stats.ts`, ani w `overlay.ts`), `dot.weakenedPct` (parser/typy), `experience`
 (ignorowany `case` w `stats.ts:796`). Czyli „Cios bardzo krytyczny”,
@@ -403,6 +416,42 @@ czyli tyle, ile cel faktycznie zdjął z ciosów i o czym panel nie mówi ani s�
 kandydat na tę samą naprawę, co przypis o leczeniu bez sprawcy — dane są, brakuje
 wyłącznie miejsca, w którym miałyby się pokazać. Decyzja nadal nie zapadła
 i **nie zapadła też przy tej rundzie** — dopisana jest tylko cena.
+
+**Decyzja 2026‑08‑01: trzy pokazać, jedno usunąć.** Najpierw przeliczenie, bo
+liczby wyżej pochodziły sprzed trzech zrzutów — dziś korpus to 21 fixture'ów
+i 1095 ataków:
+
+| pole | korpus | co z nim zrobiono |
+|---|---|---|
+| `attack.blocked` | **20 wystąpień, 25 137 obrażeń** (było: 11 / 9 978) | `ActorStats.damageBlocked` u CELU + `pochłonięte X (blok Y)` w dymku |
+| `superCrit` | **10 trafień**, 10/10 razem ze zwykłym krytem | `ActorStats.superCrits` + `kryt. N (w tym M bardzo)` w dymku i w stopce |
+| `dot.weakenedPct` | **74 tiki**, żaden zerowy | `ActorStats.damageWeakened` + człon `osłabione W` |
+| `experience` | 6 linii, 15 495 pkt | **usunięte** — jedyna liczba z czwórki opisująca WALKĘ, nie postać |
+
+Dwa ustalenia z pomiaru, które przesądziły KSZTAŁT, nie tylko „czy":
+
+1. **Blok jest podzbiorem pochłoniętych, nie liczbą obok.** W każdym z 20
+   przypadków to dokładnie 30 % `raw`, a `raw − applied` jest zawsze większe —
+   resztę zdejmuje pancerz i odporności, których log nie rozbija. Stąd nawias
+   przy pochłoniętych, a nie osobna pozycja, którą czytający dodałby do sumy.
+   ⚠️ Dopisane 2026‑08‑01: to nie jest wniosek z 20 obserwacji, tylko **cytat**
+   z dokumentacji gry („zredukowanie obrażeń … o 30%”, „przed redukcją przez
+   absorpcję, pancerz oraz odporności”) — patrz `MECHANIKA.md`. Pomiar był
+   zgodny, ale sprawdziliśmy to dopiero po fakcie.
+2. **Kwota DoT‑a w logu stoi PO osłabieniu.** Sprawdzone przez porównanie tików
+   tego samego efektu na tym samym celu w wersji osłabionej i nie: `amount/(1−p)`
+   trafia w bazę **16/16 razy z błędem ≤ 2 %** (błąd bierze się z procentu
+   zaokrąglonego przez grę do liczby całkowitej). Dlatego OSOBNE pole, a nie
+   doliczenie do `damageAbsorbed` — tamto jest wyliczone wprost z dwóch liczb
+   logu i wlanie w nie szacunku zamieniłoby liczbę dokładną w przybliżoną bez
+   ostrzeżenia. Szerzej w `DECYZJE.md`, „Blok, osłabienie i to, co pochłonięte".
+
+Usunięcie `experience` nie mogło uciszyć linii: oba wzorce przeniesiono do
+`RE_INFO`, więc „Zwycięzca zdobył łącznie…" zostaje ZNANE, tylko nieliczone.
+Bez tego sześć linii logu wpadłoby w `unknown` i zapaliło w panelu ostrzeżenie
+„statystyki są niepełne" — usunięcie pola nie może wyglądać jak zmiana formatu.
+Test w `parser.test.ts` zamienił się z asercji o kwotach XP na asercję o tym,
+że te linie są rozpoznane.
 
 ### 4.23 Otwarcie archiwum blokuje wątek gry 🟡 [otwarte — koszt, jedyne z trójki]
 `archive.ts:490‑491` — `renderRow` woła `recorder.read(id)` + `summaryOf(id,
@@ -650,8 +699,8 @@ decyzja „porzucone czy niedokończone” jest warunkiem wejścia, nie skutkiem
 
 ## 10. Testy — czego zestaw nie widzi
 
-Stan po audycie 2026‑08‑01: **583 zielone, 0 pominiętych, 2498 asercji**,
-pokrycie **98,97 % linii** (91,54 % funkcji), przebieg 6,2 s. `package.json` ma
+Stan po rundzie parsera 2026‑08‑01: **650 zielonych, 0 pominiętych, 3479
+asercji**, pokrycie **98,61 % linii** (92,80 % funkcji), przebieg 8,4 s. `package.json` ma
 `coverage` i zbiorczy `check`; **progu pokrycia nadal nie ma** i nie ma pomiaru
 GAŁĘZI — „98,97 %" jest więc optymistyczne dla pliku pełnego warunków
 trójargumentowych.
@@ -744,10 +793,11 @@ siedzi wyłącznie w klasie CSS.
 | # | Usterka | Warstwa | Dlaczego tu |
 |---|---|---|---|
 | 4.12 | Przycięcie bufora obniża sumy | session | licznik, któremu liczby maleją — ale **najpierw zrzut**, bo przesłanki nie potwierdza żaden fixture |
-| 4.18 | Modyfikator z `(N%)` rozbija blok na trzy `unknown` | parser | dziś nieaktywne, ale sprzężenie niewidoczne |
-| 4.22 | Cztery pola parsowane i nigdy nieczytane | parser/stats | `superCrit`, `attack.blocked`, `dot.weakenedPct`, `experience` — policzone, przetestowane i wyrzucane |
 | 4.23 | Archiwum 146 ms blokady wątku gry | archive | koszt, nie poprawność |
 | 4.9 | Reszta drobnych luk parsera | parser | wg zwrotu |
+
+`4.18` i `4.22` zeszły stąd **2026‑08‑01**, w tej samej rundzie, w której je
+zamknięto — i to jest cała odpowiedź na ostrzeżenie niżej.
 
 ⚠️ **Ta tabela zestarzała się raz i warto wiedzieć jak.** Do 2026‑08‑01
 wymieniała jako otwarte `4.11`, `4.13/4.14`, `4.15/4.16`, `4.17/4.19`, `4.20/4.21`
@@ -807,9 +857,17 @@ leczenie zdublowanej nazwy. Pokrycie 89,1 % → 93,3 %.
    reguła kontynuacji nadal stoi w sesji osobno.
 3. **R3** (deklaratywny `mergeStats`) — §4.11 był drugą ofiarą tej samej klasy.
    Test‑strażnik jest już strukturalny, ale to wykrywacz, nie lekarstwo.
-4. **§4.18**, **§4.22**, **§4.9** — parser: zawęzić strażnik HP, zdecydować
-   o polach parsowanych i nieczytanych, wyprowadzić zasoby z `procs`.
+4. ~~**§4.18**, **§4.22**~~ — **zrobione 2026‑08‑01.** Zostaje z tego punktu
+   **§4.9** (wyprowadzić zasoby z `procs`).
 5. **§4.23** — okienkowanie listy archiwum (146 ms blokady przy 190 nagraniach).
 6. **R7/R8/R5** — cięcia `overlay.ts`, eksport `instanceResolver`, wspólny stan
-   okna; plus `UX-POPRAWKI A14` (kontrast) i `B2` (suwak po turach), oba
-   wymagające decyzji, nie tylko roboty.
+   okna; plus `UX-POPRAWKI B2` (suwak po turach), wymagające decyzji, nie tylko
+   roboty. (`A14`, wymieniane tu wcześniej, domknęło się 2026‑08‑01 rano.)
+
+**Runda 2026‑08‑01 (parser) — wykonane:** §4.18 → §4.22 (decyzja: blok,
+super‑kryt i osłabienie DoT‑a do panelu, `experience` usunięte) → testy:
+proc z procentem w nawiasie, linie XP jako `info`, blok u celu, super‑kryt jako
+podzbiór krytów, odtworzenie osłabienia, scalanie trzech nowych pól w sesji,
+sześć asercji na człony liczników. Dwa nowe niezmienniki lecą po CAŁYM korpusie
+i po sumie sesji: `damageBlocked ≤ damageAbsorbed`, `superCrits ≤ crits`.
+Zestaw: 638 → **650 zielonych**.

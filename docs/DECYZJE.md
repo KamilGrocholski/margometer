@@ -423,6 +423,72 @@ użytkownika w `src/` — barwa z atrybutu nie ma czego wyczerpać, więc cała 
 błędu „pula kolorów kończy się po ośmiu nazwach” (dawne `UX-POPRAWKI.md A3`) zniknęła
 z definicji, a nie została załatana.
 
+## Blok, osłabienie i to, co pochłonięte — 2026-08-01
+
+Trzy liczby o tym samym: ile obrażeń NIE weszło. Log podaje je trzema drogami
+i to, że stoją w panelu osobno, jest decyzją, nie niedoróbką.
+
+**`damageAbsorbed` (`raw − applied`) — dokładne.** Obie liczby stoją w logu
+wprost, w tej samej linii ciosu. Nic tu nie jest liczone „na oko”.
+
+**`damageBlocked` („Zablokowanie 47 obrażeń”) — dokładne i będące CZĘŚCIĄ
+tamtego.** Zmierzone na 20 wystąpieniach w korpusie: blok to za każdym razem
+dokładnie 30 % `raw`, a `raw − applied` jest zawsze WIĘKSZE — resztę zdejmuje
+pancerz i odporności, których log nie rozbija na składniki.
+
+**To nie jest wniosek z 20 obserwacji — to cytat** (dopisane 2026‑08‑01, po
+przejściu procedury z `MECHANIKA.md`). Oficjalna „Mechanika walk” mówi:
+
+> „Zdarzenie powoduje zredukowanie obrażeń od broni głównej przeciwnika
+> (zarówno obrażeń magicznych, jak i fizycznych) podczas przyjętego ataku
+> **o 30%**.” · „**Redukcja obrażeń podczas bloku następuje przed** redukcją
+> przez absorpcję, pancerz oraz odporności.”
+
+Artykuł podaje też pełną **kolejność redukcji obrażeń w ramach ciosu**:
+1. efekty osłabiające źródła obrażeń → 2. Unik, Parowanie, Blok strzały →
+3. **Blok** → 4. Pancerz → 5. Absorpcja i absorpcja magiczna → 6. Odporności na
+żywioły → 7. odporności bonusów legendarnych → 8. efekty zerujące. Czyli
+`pochłonięte` to suma etapów 3–7, a `blok` to etap 3 — „resztę zdejmuje pancerz
+i odporności” przestaje być domysłem.
+
+**Nowe, czego repo nie wiedziało:** „Obrażenia od broni pomocniczej nie mogą
+zostać zmniejszone poprzez blok — atak nigdy nie jest blokowany”, a blok
+w ogóle nie zachodzi bez tarczy. W korpusie nie ma zrzutu z tancerza ostrzy
+z zablokowanym ciosem, więc dziś nic z tego nie wynika dla kodu — ale gdy taki
+zrzut się pojawi, to jest miejsce, w którym trzeba sprawdzić, czy 30 % liczy się
+od całego `raw`, czy od samej broni głównej. Cytaty i reszta: `MECHANIKA.md`.
+
+Stąd zapis
+`pochłonięte 55 923 (blok 10 568)`: dwie liczby postawione obok siebie w liście
+członów zaprosiłyby do dodania ich do siebie, a suma nie znaczyłaby nic. Ta sama
+zasada, co przy unikach częściowych i przy super‑krytach — **nawias należy do
+liczby, którą rozbija**. Pilnuje tego niezmiennik `damageBlocked ≤
+damageAbsorbed`, lecący po całym korpusie i po sumie sesji.
+
+Uwaga na stronę: log podaje blok w bloku ciosu NAPASTNIKA, ale mówi o tarczy
+BITEGO — więc liczba siada u celu. Odwrotnie byłoby to „ile mój cios
+zablokował”, czyli zdanie bez sensu.
+
+**`damageWeakened` („osłabione o 25%”) — ODTWORZONE, i dlatego osobne.** Log
+podaje kwotę już PO osłabieniu i sam procent, więc pełne tyknięcie wychodzi
+z `amount / (1 − p)`. Że kwota jest „po”, a nie „przed”, wiadomo z porównania:
+tiki tego samego efektu na tym samym celu bez osłabienia trzymają stałą wartość
+(np. 429), a osłabione o 19 % dają 348 — czyli 429 × 0,81. Odtworzona baza trafia
+w tę wartość **16 razy na 16, z błędem do 2 %**; błąd bierze się stąd, że gra
+zaokrągla procent do liczby całkowitej.
+
+Kuszące było dosypanie tego do `damageAbsorbed` — to przecież ta sama rzecz, tyle
+że dla trucizn. Odrzucone: `damageAbsorbed` jest **wyliczone**, a to
+**oszacowane**, i wlanie jednego w drugie zamieniłoby liczbę dokładną
+w przybliżoną bez żadnego sygnału dla czytającego. Zasada „nie udawaj danych,
+których log nie ma” obejmuje też precyzję, nie tylko atrybucję.
+
+Zostaje z tego jedna nieoczywistość, którą trzeba znać: `damageWeakened` **nie
+jest** podzbiorem `damageAbsorbed` i potrafi być od niego większe — walka
+z kukłą ma `pochłonięte 10` przy `osłabione 101`, bo kukła nie redukuje ciosów,
+a trucizny są osłabiane. To nie jest rozjazd; to dwie różne rzeczy pod
+podobnymi nazwami.
+
 ## „Na turę” — zgłoszone jako podejrzane, DO POPRAWY (2026-07-27) [otwarte]
 
 Zgłoszenie użytkownika: „«na turę» źle liczy lub pokazuje”. Sprawdzone na
@@ -510,7 +576,7 @@ obok; tutaj zostaje to, co zmienia obraz całości.
 | `DECYZJE.md` (ten plik) | **dlaczego** kod wygląda, jak wygląda; ograniczenia danych |
 | `AUDYT.md` | migawka **otwartych** spraw z przeglądu 2026‑07‑31, ID `AUDYT‑N` |
 
-Oba dokumenty poprawkowe leżały wcześniej w roocie; są teraz w `ai/`, żeby
+Oba dokumenty poprawkowe leżały wcześniej w roocie; są teraz w `docs/`, żeby
 wszystko, co dotyczy pracy nad kodem, stało w jednym miejscu.
 
 **Statusy z 2026‑07‑19 — bilans.** Z 25 punktów **zamknięte są 24 opisane

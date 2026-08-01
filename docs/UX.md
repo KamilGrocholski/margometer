@@ -157,6 +157,23 @@ liczby pod kursorem nie mogą uciekać.
 - **Licznik uczciwy.** „Użycia” to liczba z całej walki (linia „X wykonuje Y” nie
   dzieli się na cele); przy zejściu w cel widać ciosy na TEN cel. Nie mieszać
   tych dwóch tak, żeby czytelnik myślał, że to jedno. ✅
+- **Linia liczników: człon warunkowy tylko wtedy, gdy coś znaczy.** Dymek kończy
+  się jednym wierszem `ciosy · kryt. · uniki · maks. cios · pochłonięte`, stopka
+  widoku postaci — jego skróconą wersją z turami. ✅ Trzy człony dochodzą do nich
+  warunkowo (`SOLID §4.22`, 2026‑08‑01):
+  - `kryt. 7 (w tym 1 bardzo)` — gdy padły ciosy bardzo krytyczne;
+  - `pochłonięte 55 923 (blok 10 568)` — gdy cokolwiek zablokowano;
+  - `osłabione 2932` — gdy osłabienie zdjęło część tykających obrażeń.
+
+  **Nawias należy do liczby, którą rozbija; osobny człon — do liczby niezależnej.**
+  Blok jest częścią pochłoniętych i super‑kryt częścią krytów, więc oba siedzą
+  w nawiasie: postawione obok jako osobne pozycje kazałyby dodać je do sumy, tak
+  jak uniki częściowe przed `AUDYT‑40`. Osłabienie DoT‑a nie jest częścią
+  niczego, co linia już pokazuje, więc stoi samo. Dlaczego akurat tak — w
+  `DECYZJE.md`, „Blok, osłabienie i to, co pochłonięte”.
+
+  Zero chowa człon, ale nie chowa licznika stałego: `kryt. 0` stoi zawsze, bo
+  zero krytów jest informacją o postaci; `(w tym 0 bardzo)` nie stoi, bo nie jest.
 
 ---
 

@@ -5,9 +5,10 @@ wygląda, jak wygląda; `SOLID.md` i `UX-POPRAWKI.md` — co w nim poprawić. Tu
 zbieram to, co jest **wokół** kodu: jak się buduje, jak trafia do użytkownika
 i co pilnuje, żeby nie wjechała regresja.
 
-Stan bazowy (odświeżony **2026‑08‑01**): `bun test` → **583 zielone / 0
-pominiętych / 0 błędów**, `bunx tsc --noEmit` → czysto, `bun test --coverage` →
-**98,97 % linii**. Poprzednio stało tu „328 zielonych / 89,1 %".
+Stan bazowy (odświeżony **2026‑08‑01**, po rundzie parsera): `bun test` → **650
+zielonych / 0 pominiętych / 0 błędów**, `bunx tsc --noEmit` → czysto,
+`bun test --coverage` → **98,61 % linii**. Wcześniej tego samego dnia stało tu
+„583 / 98,97 %", a przed tym „328 / 89,1 %".
 
 ⚠️ **Przegląd 2026‑08‑01: §1 i §5 są ZROBIONE, §2 w połowie, §6 zamknięte,
 §7 w większości.** Statusy niżej były sprzed dwóch rund, a dokument bywa
@@ -137,11 +138,23 @@ jest czysty: `syntheticFight` nie wjeżdża do `margometer.user.js`.
 - `bunfig.toml` preloaduje jsdom dla **wszystkich** plików testowych, więc czyste
   testy parsera płacą za DOM, którego nie używają.
 
-## 8. Brak `CLAUDE.md` ⚪
+## 8. Instrukcje dla agentów ✅ ZROBIONE 2026‑08‑01
 
 Projekt ma nietypowe i mocno opisane konwencje: dokumentacja po polsku, zasada
 „nie udawaj danych, których log nie ma”, fixture jako **dowód** (z `meta.json`
 opisującym `covers`/`missing`/`notes`), stabilne granice `LogSource` /
 `RosterSource` / `parse` / `aggregate`, komentarz tłumaczący DLACZEGO, nie CO.
-Krótki `CLAUDE.md` odsyłający do `ai/` i wymieniający trzy komendy oszczędza
+Krótki plik odsyłający do `docs/` i wymieniający trzy komendy oszczędza
 odkrywanie tego przy każdej sesji.
+
+**Zrobione, ale nie jako sam `CLAUDE.md`** — bo od czasu tego wpisu ustaliła się
+konwencja szersza. Trzy pliki, każdy z innym zadaniem:
+
+| plik | co robi |
+|---|---|
+| **`AGENTS.md`** | treść właściwa. Otwarty format [agents.md](https://agents.md/) — czytają go Codex, Cursor, Copilot, Gemini CLI, Aider i reszta. Korzeń repo, zwykły Markdown, „README dla agentów” |
+| **`CLAUDE.md`** | `@AGENTS.md` plus sekcja własna. Dokumentacja Claude Code mówi wprost: „Claude Code reads `CLAUDE.md`, not `AGENTS.md`. If your repository already uses `AGENTS.md` …, create a `CLAUDE.md` that imports it”. Symlink też jest wspieraną konwencją, ale **tylko bez treści własnej** — a tu jest — i wymaga uprawnień na Windowsie |
+| **`.claude/rules/mechanika-gry.md`** | reguła ścieżkowa: ładuje się dopiero przy `src/parser.ts`, `src/stats.ts`, `src/types.ts`, `docs/**/*.md` i `meta.json`. Niesie skrót procedury z `MECHANIKA.md` tam, gdzie powstają zdania o mechanice gry, i nie zjada kontekstu w pozostałych sesjach |
+
+Podział jest po to, żeby zmieścić się w zaleceniu „target under 200 lines per
+`CLAUDE.md`”: co ma być zawsze — w `AGENTS.md`, co tylko czasem — w regule.

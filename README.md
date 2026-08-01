@@ -107,9 +107,13 @@ bun test          # same testy
 ```
 
 Dlaczego kod wygląda, jak wygląda, i czego log o walce nie mówi — w katalogu
-[`ai/`](ai/). Zaczynaj od [`ai/README.md`](ai/README.md): mówi, co gdzie siedzi,
-jakie zasady obowiązują w tym repo i jak wyglądały poprzednie rundy pracy —
-reszta katalogu jest do czytania wybiórczo, nie od deski do deski.
+[`docs/`](docs/). Zaczynaj od [`docs/README.md`](docs/README.md): mówi, co gdzie
+siedzi, jakie zasady obowiązują w tym repo i jak wyglądały poprzednie rundy
+pracy — reszta katalogu jest do czytania wybiórczo, nie od deski do deski.
+
+Pracujesz tu z agentem AI (Claude Code, Codex, Cursor…)? Instrukcje projektu
+stoją w [`AGENTS.md`](AGENTS.md) — otwartym formacie, który te narzędzia czytają
+same.
 
 Zrzuty walk, na których stoją testy, siedzą w `tests/fixtures/new-engine/`;
 przy każdym stoi `meta.json` z opisem, co ten fixture pokrywa.

@@ -301,7 +301,7 @@ warunkiem wejścia dla AUDYT‑6
 
 ### AUDYT‑6 — Suma sesji nie ma żadnego wyjścia w UI 🟡 M — brak specu ✓
 `src/overlay.ts:1378` (`statsJson`), `:975-990`, `src/session.ts:299` (`total`),
-`ai/ROADMAP.md:52`
+`docs/ROADMAP.md:52`
 
 **Problem.** `mergeStats` to ~100 linii, które sumują wszystko, co ma sens
 sumować: rozbicia, procki, `abilityUses`, `takenFromBy`, `dealtToBy`,
@@ -1221,15 +1221,33 @@ rzeczy prosiła się o regresję.
 `Σ ciosy + Σ uniki == Σ ataków`. Trzyma na całym korpusie i jest właściwym
 strażnikiem tej zmiany — dopóki obowiązuje, dwie liczby ze stopki wolno dodać.
 
-**Dokumentacja gry tego nie rozstrzyga** — sprawdzone 2026‑08‑01 w oficjalnej
-pomocy („[Mechanika walk](https://pomoc.margonem.pl/index/view,372)"). Artykuł
-opisuje unik i blok jako STATYSTYKI, z formułami na przewagę poziomową, ale nie
-mówi ani czy unik rozstrzyga się raz na atak, czy na każdą liczbę obrażeń, ani
-jak zachowuje się broń pomocnicza. Model „unik bywa częściowy" pochodzi więc
-z korpusu (trafienie z `applied === 0` przy fladze `Unik`), a nie z opisu gry.
+**SPROSTOWANIE 2026‑08‑01 — dokumentacja gry rozstrzyga to wprost.** Stało tu
+zdanie odwrotne („artykuł nie mówi ani czy unik rozstrzyga się raz na atak, ani
+jak zachowuje się broń pomocnicza”) razem z adnotacją „nie badać drugi raz”.
+Było nieprawdziwe. „[Mechanika walk](https://pomoc.margonem.pl/index/view,372)”
+mówi:
 
-**Nie badać drugi raz:** decyzja zapadła na powyższych liczbach, nie na przeczuciu,
-a pomoc gry została sprawdzona i milczy.
+> „Zdarzenie powoduje zniwelowanie obrażeń od **broni głównej** przeciwnika,
+> **w obrębie ataku**, do zera.”
+>
+> „**Obrażenia od broni pomocniczej nie mogą zostać uniknięte** — atak nigdy nie
+> chybi. Oznacza to, że zdarzenia Głęboka rana pomocnicza, Cios krytyczny
+> pomocniczy nie mogą być zniwelowane poprzez zajście zdarzenia uniku.”
+
+**Naprawa się broni** — model z korpusu („atak zeruje broń główną, pomocnicza
+może wejść”) jest dokładnie tym, co opisuje pomoc, więc rozdzielenie `misses`
+i `partialMisses` ma odtąd uzasadnienie w źródle, a nie tylko w trzech
+obserwacjach. Zmienia się status DOWODU, nie zachowanie kodu.
+
+**Jak powstał błąd** — bo to jest tu ważniejsze niż samo sprostowanie: artykuł
+sprawdzono narzędziem, które streszcza (`WebFetch`), a ono na tym adresie oddaje
+praktycznie sam spis treści. Ten sam artykuł pobrany `curl`-em to 669 kB i 399
+tys. znaków tekstu. Fałszywy negatyw wyglądał jak fakt, bo miał datę, i zamknął
+temat adnotacją „nie badać drugi raz”. Procedura, która ma to blokować:
+[`MECHANIKA.md`](MECHANIKA.md); sonda: `bun tools/pomoc.ts "Unik ( evade )"`.
+
+**Wniosek ogólny:** „nie badać drugi raz” wolno napisać dopiero wtedy, gdy przy
+zapisie stoi METODA, którą da się powtórzyć — nie sama data.
 
 ### Drobne, naprawione przy okazji
 - **Podpowiedź w dymku kłamała**: „PPM — powrót do składu”, choć PPM zdejmuje
