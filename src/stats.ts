@@ -198,10 +198,30 @@ function instanceResolver(
    * Ze składu z logu tylko te, które log ujawnił — tam pusty wiersz dla
    * drugiego duplikatu twierdziłby, że akurat ta postać nic nie zrobiła.
    */
+  /**
+   * Strona przypisana NAZWIE, nie wpisowi składu — `null`, gdy ta sama nazwa
+   * stoi po obu stronach.
+   *
+   * Numer instancji nadaje `track()` w kolejności, w jakiej log ujawnia kolejne
+   * postacie, a ta nie ma nic wspólnego z kolejnością składu. Przy „Wilk” po
+   * obu stronach linia `Wilk(80%)` nie mówi więc, czy oberwał nasz, czy ich —
+   * i to dotyczy KAŻDEJ instancji tej nazwy, także pierwszej. Wcześniej obie
+   * dostawały stronę pierwszego pasującego wpisu: nie „nie wiadomo”, tylko
+   * fałszywe twierdzenie. Ta sama zasada, co w `opponentOf` niżej.
+   */
+  const sideByName = new Map<string, number | null>();
+  for (const participant of roster) {
+    if (!sideByName.has(participant.name)) {
+      sideByName.set(participant.name, participant.side);
+    } else if (sideByName.get(participant.name) !== participant.side) {
+      sideByName.set(participant.name, null);
+    }
+  }
+
   const seats = (() => {
     const out: Array<{
       key: string;
-      side: number;
+      side: number | null;
       prof?: string | undefined;
       level?: number | undefined;
     }> = [];
@@ -214,7 +234,14 @@ function instanceResolver(
         used.add(key);
         // Profesja jedzie tą samą drogą co strona — obie są własnością SKŁADU,
         // nie linii logu, więc dostaje je każdy wiersz, także ten na zerach.
-        out.push({ key, side: participant.side, prof: participant.prof, level: participant.level });
+        // Profesja i poziom zostają przy wpisie: przy nazwie po obu stronach to
+        // i tak ten sam potwór, więc "Wilk 10x" jest prawdą, choć strona nie.
+        out.push({
+          key,
+          side: sideByName.get(participant.name) ?? null,
+          prof: participant.prof,
+          level: participant.level,
+        });
       }
     }
     return out;
@@ -529,6 +556,7 @@ function blank(name: string): ActorStats {
   return {
     name,
     side: null,
+    inRoster: false,
     professionCode: null,
     level: null,
     typeByLabel: [],
@@ -1032,6 +1060,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
   // zrobił — overlay ma go pokazać na zerach, nie pominąć.
   for (const seat of seats) {
     const actor = get(seat.key);
+    actor.inRoster = true;
     actor.side ??= seat.side;
     actor.professionCode ??= seat.prof ?? null;
     actor.level ??= seat.level ?? null;

@@ -175,6 +175,9 @@ function mergeStats(all: Aggregate[]): SessionStats {
       merged.professionCode ??= actor.professionCode;
       merged.level ??= actor.level;
       merged.side ??= actor.side;
+      // Wystarczy jedna walka, w której postać stała w składzie — w kolejnej
+      // mógł wyjechać nagłówek, a to nie unieważnia tego, że w sesji była.
+      merged.inRoster ||= actor.inRoster;
       merged.unattributedDotTaken += actor.unattributedDotTaken;
       merged.unattributedDotTypes = mergeSources(
         merged.unattributedDotTypes.map((t) => ({ ...t, hits: 0 })),

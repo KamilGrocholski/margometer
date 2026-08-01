@@ -2370,10 +2370,14 @@ export class Overlay {
       .filter((actor) => matchesTeam(actor.side, this.team))
       // Skład ze składu walki pokazujemy od pierwszej tury, choćby na zerach —
       // brak wiersza czyta się jak "nie ma takiej postaci", a nie "jeszcze nic
-      // nie zrobiła". Postać spoza składu (side === null) to inna sprawa: ona
-      // pojawia się dopiero, gdy log ją wymieni, więc zerowej nie ma po co
-      // trzymać w rankingu wybranej metryki.
-      .filter((actor) => actor.side !== null || this.value(actor) > 0)
+      // nie zrobiła". Postać spoza składu to inna sprawa: ona pojawia się
+      // dopiero, gdy log ją wymieni, więc zerowej nie ma po co trzymać
+      // w rankingu wybranej metryki.
+      //
+      // Pyta o `inRoster`, nie o `side !== null`: przy tej samej nazwie po obu
+      // stronach uczestnik składu NIE MA strony, a pusty wiersz i tak mu się
+      // należy — jego istnienie jest faktem, nieznana jest tylko przynależność.
+      .filter((actor) => actor.inRoster || this.value(actor) > 0)
       .sort((a, b) => this.value(b) - this.value(a) || a.name.localeCompare(b.name, "pl"));
 
     if (ranked.length === 0) {

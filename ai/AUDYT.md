@@ -32,8 +32,8 @@ wprost na zrzutach z `docs/screenshots/`, których nie miał żaden backlog.
 Wszystkie naprawione w tej samej rundzie; `AUDYT‑7` doczekało się sprostowania.
 **Audyt tego samego dnia** (sekcja `F3`) dołożył `AUDYT‑30`…`AUDYT‑40`, z czego
 **pięć to regresje rundy `F2`** — stąd zasada: przegląd PRZED commitem, nie po.
-Otwarte zostaje `AUDYT‑39` (fałszywa strona przy zdublowanej nazwie po obu
-stronach); `AUDYT‑40` zamknięte 2026‑08‑01. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
+`AUDYT‑39` i `AUDYT‑40` zamknięte 2026‑08‑01 — **cała sekcja `F3` jest
+zamknięta**. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
 wykonanie odbiegło od propozycji, jest to powiedziane wprost.
@@ -81,7 +81,7 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑36~~ | Przypis rozbija liczbę z innego zakresu niż własny | 🟡 | S | **✅** ✓ |
 | ~~AUDYT‑37~~ | `mergeStats` nie uzupełnia `side` | 🟡 | XS | **✅** ✓ |
 | ~~AUDYT‑38~~ | `RE_INFO` „otrzymuje” łyka linię z obrażeniami | 🟡 | XS | **✅** ✓ |
-| AUDYT‑39 | Ta sama nazwa po obu stronach → fałszywa strona dla obu | 🔴 | M | ✓ |
+| ~~AUDYT‑39~~ | Ta sama nazwa po obu stronach → fałszywa strona dla obu | 🔴 | M | **✅** ✓ |
 | ~~AUDYT‑40~~ | `hits` + `misses` liczą ten sam atak przy uniku częściowym | ⚪ | XS | **✅** ✓ |
 | AUDYT‑17 | Wielkie/małe litery i puste stany bez odmiany | ⚪ | S | |
 | AUDYT‑18 | ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba | ⚪ | S | |
@@ -995,8 +995,8 @@ przy `RE_MODIFIER`, i wyłom w zasadzie „nieznane jest głośne”.
 **Zrobione.** Zasoby wymienione z nazwy (`many`, `energii`, opcjonalnie
 „punktów”). Nowy zasób trafi w `unknown` i da się dopisać świadomie.
 
-### AUDYT‑39 — ta sama nazwa po obu stronach 🔴 OTWARTE ✓
-`src/stats.ts` (`seats`)
+### AUDYT‑39 — ta sama nazwa po obu stronach ✅ NAPRAWIONE ✓
+`src/stats.ts` (`seats`), `src/types.ts`, `src/session.ts`, `src/overlay.ts`
 
 `seats` pomija uczestnika, którego wszystkie klucze są już zajęte, więc jego
 `side` nigdy nie zostaje zapisany. Zmierzone przy składzie **z gry**, gdzie
@@ -1005,9 +1005,51 @@ side 0`, **`Wilk #2 side 0`**. To nie „nie wiadomo” (wtedy `null` i wiersz
 znika poza „Wszyscy”) — to twierdzenie o stronie, i jest fałszywe. `opponentOf`
 ma na ten przypadek jawny guard; `seats` go nie ma.
 
-**Do rozstrzygnięcia:** `side: null` (uczciwe, tańsze) czy klucz instancji
-uwzględniający stronę (dokładniejsze, rusza `seats`). Realne w walkach
-grupowych z tym samym typem moba po obu stronach i przy przywoływańcach.
+**Wybór rozstrzygnął pomiar, nie gust.** Klucz instancji uwzględniający stronę
+okazał się NIEWYKONALNY: numer instancji nadaje `track()` — heurystyka śledząca
+spadki HP, numerująca w kolejności, w jakiej log ujawnia postacie. Ta kolejność
+nie ma nic wspólnego z kolejnością składu, więc „Wilk #1” znaczy tylko „pierwszy
+wilk, którego log pokazał”. Przypisanie mu strony z pierwszego wpisu składu
+byłoby fałszywą precyzją. Stąd `side: null` — i to dla **każdej** instancji
+takiej nazwy, także pierwszej: linia `Wilk(80%)` nie mówi, czy oberwał nasz,
+czy ich. Dokładnie zasada, którą `opponentOf` stosował od dawna.
+
+**Usterka jest utajona — korpus jej nie widzi.** Przelot po **wszystkich 20**
+fixture'ach (17 przez `raw.txt`, 3 tylko z DOM-u): **zero** z nazwą po obu
+stronach, **trzy** ze zdublowaną nazwą po jednej stronie
+(`Wieczornica`, `Gnoll łucznik`, `Locha`). Te trzy są strażnikiem przed
+nadgorliwością: dublet po jednej stronie stronę ZACHOWUJE, bo tam nie ma
+wątpliwości. Naprawa stoi więc na teście syntetycznym, nie na korpusie.
+
+**Przy okazji wyszła druga usterka, i to na liczbach.** `opponentOf` szuka
+sprawcy tykającego efektu przez wykluczenie („po drugiej stronie stoi dokładnie
+jeden”). Wiersz o nieznanej stronie MOŻE być przeciwnikiem, więc przestaje być
+„dokładnie jeden”. Zmierzone na tym samym składzie, trucizna tykająca na Graczu:
+
+| | `Wróg.damageDealt` | bez sprawcy |
+|---|---|---|
+| przed | **80** (50 ataku + 30 trucizny) | 0 |
+| po | 50 | `mine: 30` |
+
+Wrogi Wilk mógł zatruć tak samo jak Wróg — przed naprawą całość szła na konto
+Wroga. To nie jest kosmetyka odznaki ze stroną, tylko poprawka obrażeń.
+
+**Regresja, którą naprawa sama wprowadziła — i jej naprawa.** Filtr rankingu
+pytał `actor.side !== null`, traktując to jako „czy jest w składzie”. Zastępnik
+przestał działać w chwili, gdy uczestnik składu może nie mieć strony: `Wilk #2`
+(zero liczb w całej walce) znikał z panelu całkiem, choć jego istnienie jest
+faktem. Brak wiersza czyta się jak „nie ma takiej postaci” — czyli fałsz
+w drugą stronę. Stąd nowe `ActorStats.inRoster`, jawnie odpowiadające na to
+pytanie; `side` odpowiada odtąd wyłącznie na swoje. `mergeStats` bierze je przez
+`||=`, bo wystarczy jedna walka sesji ze składem. Archiwum nie wymaga migracji:
+nagrania trzymają surowy TEKST, więc odtworzenie liczy wszystko od nowa.
+
+**Czym przypięte.** Trzy testy w `stats.test.ts` (nazwa po obu stronach → `null`;
+dublet po jednej → strona zostaje; trucizna traci przypisanie) i jeden
+w `overlay.test.ts` (pusty wiersz zostaje, ale tylko w „Wszyscy”). Sprawdzone
+mutacją: po cofnięciu naprawy padają dwa pierwsze i ten z panelu. Trzeci
+przechodzi w obu wersjach z premedytacją — jego zadaniem jest nie dopuścić, żeby
+`null` rozlało się na dublety po jednej stronie.
 
 ### AUDYT‑40 — `hits` i `misses` liczą ten sam atak ✅ NAPRAWIONE ✓
 `src/stats.ts`, `src/types.ts`, `src/overlay.ts`

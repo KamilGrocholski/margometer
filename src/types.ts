@@ -359,8 +359,21 @@ export function dotLabel(via: string, dotType: string): string {
 
 export type ActorStats = {
   name: string;
-  /** Strona z linii otwierającej; null, gdy postaci nie było w składzie. */
+  /**
+   * Strona z linii otwierającej albo ze składu z gry. `null` znaczy „nie
+   * wiadomo” i pada z DWÓCH powodów: postaci nie było w składzie, albo ta sama
+   * nazwa stała po obu stronach i numer instancji nie mówi, która to.
+   *
+   * Do pytania „czy ta postać w ogóle jest w składzie" służy `inRoster` —
+   * `side !== null` odpowiadało na nie tylko przypadkiem.
+   */
   side: number | null;
+  /**
+   * Czy wiersz pochodzi ze SKŁADU, a nie z samej wzmianki w logu. Rozstrzyga,
+   * czy postać bez ani jednej liczby ma dostać pusty wiersz: przy uczestniku
+   * walki brak wiersza czytałby się jak „nie ma takiej postaci”.
+   */
+  inRoster: boolean;
   /**
    * Kod profesji z logu (`85b` → `b`), null dla postaci spoza składu. Litera,
    * nie nazwa: `PROFESSIONS` tłumaczy ją na tekst, a nierozpoznanej litery nie

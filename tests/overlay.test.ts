@@ -304,6 +304,44 @@ describe("overlay", () => {
     expect(labels).toContain("Wieczornica *");
   });
 
+  /**
+   * Uczestnik, którego nazwa stoi po obu stronach, nie ma strony — ale nadal
+   * jest w składzie. Filtr pytał kiedyś o `side !== null`, czyli traktował te
+   * dwie rzeczy jak jedną, i taki wiersz znikał z panelu całkiem.
+   */
+  test("uczestnik bez znanej strony zostaje wierszem, ale tylko w „Wszyscy”", () => {
+    const stats = aggregate(
+      parse(
+        [
+          "Rozpoczęła się walka pomiędzy Gracz (1w), Wilk (1w) a Wilk (1w), Wróg (1m)",
+          "Wilk(100%) uderzył z siłą +300",
+          "Gracz(70%) otrzymał -300 obrażeń",
+        ].join("\n"),
+      ),
+      [
+        { id: 1, name: "Gracz", side: 0 },
+        { id: 2, name: "Wilk", side: 0 },
+        { id: 3, name: "Wilk", side: 1 },
+        { id: 4, name: "Wróg", side: 1 },
+      ],
+    );
+    const overlay = new Overlay();
+    const shown = () => {
+      overlay.render(stats, stats);
+      return [...overlay.shadow.querySelectorAll<HTMLElement>(".row")].map((r) => r.dataset.actor);
+    };
+    const team = (which: string) =>
+      [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === which)!.click();
+
+    // Wilk #2 nie zrobił nic, a mimo to ma wiersz: stoi w składzie.
+    expect(shown()).toEqual(["Wilk #1", "Gracz", "Wilk #2", "Wróg"]);
+
+    team("My");
+    expect(shown()).toEqual(["Gracz"]);
+    team("Oni");
+    expect(shown()).toEqual(["Wróg"]);
+  });
+
   test("ostrzega o nierozpoznanych liniach", () => {
     const overlay = new Overlay();
     const stats = aggregate(parse("zupełnie nowa linia\ninna nowa linia"));

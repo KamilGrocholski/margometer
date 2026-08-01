@@ -399,6 +399,79 @@ describe("trucizna w walce grupowej", () => {
     expect(stats.ambiguousNames).toEqual(["Wilk #1", "Wilk #2"]);
   });
 
+  /**
+   * Numer instancji nadaje heurystyka śledząca HP, w kolejności ujawniania przez
+   * log — a ta nie ma nic wspólnego z kolejnością składu. Przy tej samej nazwie
+   * po obu stronach nie da się więc powiedzieć, który wiersz jest czyj, i to
+   * dotyczy KAŻDEJ instancji, także pierwszej.
+   */
+  test("ta sama nazwa po obu stronach nie dostaje żadnej strony", () => {
+    const log = [
+      "Rozpoczęła się walka pomiędzy Gracz (1w), Wilk (1w) a Wilk (1w), Wróg (1m)",
+      "Wilk(80%) otrzymał -100 obrażeń",
+    ].join("\n");
+    const stats = aggregate(parse(log), [
+      { id: 1, name: "Gracz", side: 0 },
+      { id: 2, name: "Wilk", side: 0 },
+      { id: 3, name: "Wilk", side: 1 },
+      { id: 4, name: "Wróg", side: 1 },
+    ]);
+    const side = (name: string) => stats.actors.find((a) => a.name === name)!.side;
+
+    // Nie "obie po stronie 0" — to było twierdzenie, i fałszywe.
+    expect(side("Wilk #1")).toBeNull();
+    expect(side("Wilk #2")).toBeNull();
+    // Nazwy jednoznaczne muszą zostać nietknięte.
+    expect(side("Gracz")).toBe(0);
+    expect(side("Wróg")).toBe(1);
+  });
+
+  test("dwie postacie tej samej nazwy po JEDNEJ stronie stronę zachowują", () => {
+    const log = [
+      "Rozpoczęła się walka pomiędzy Gracz (1w) a Wilk (1w), Wilk (1w)",
+      "Wilk(80%) otrzymał -100 obrażeń",
+    ].join("\n");
+    const stats = aggregate(parse(log), [
+      { id: 1, name: "Gracz", side: 0 },
+      { id: 2, name: "Wilk", side: 1 },
+      { id: 3, name: "Wilk", side: 1 },
+    ]);
+
+    // Nazwa zdublowana, ale bezspornie ich — więc "nie wiadomo" byłoby stratą.
+    expect(stats.actors.find((a) => a.name === "Wilk #1")!.side).toBe(1);
+    expect(stats.actors.find((a) => a.name === "Wilk #2")!.side).toBe(1);
+  });
+
+  /**
+   * Sprawca tykającego efektu liczy się przez wykluczenie: jeżeli po drugiej
+   * stronie stoi dokładnie jeden, to on. Wiersz o nieznanej stronie MOŻE być
+   * przeciwnikiem, więc przestaje być "dokładnie jeden" i przypisanie znika.
+   */
+  test("nazwa po obu stronach zabiera pewność, kto nałożył truciznę", () => {
+    const events = parse(
+      [
+        "Rozpoczęła się walka pomiędzy Gracz (1w), Wilk (1w) a Wilk (1w), Wróg (1m)",
+        "Gracz(90%): 30 obrażeń od trucizny.",
+      ].join("\n"),
+    );
+    const roster: RosterEntry[] = [
+      { id: 1, name: "Gracz", side: 0 },
+      { id: 2, name: "Wilk", side: 0 },
+      { id: 3, name: "Wilk", side: 1 },
+      { id: 4, name: "Wróg", side: 1 },
+    ];
+
+    const stats = aggregate(events, roster);
+    // Wrogi Wilk mógł zatruć tak samo jak Wróg — nie ma jednego kandydata.
+    expect(stats.actors.find((a) => a.name === "Wróg")!.damageDealt).toBe(0);
+    expect(stats.unattributedDotDamage.mine).toBe(30);
+
+    // Kontrola: bez zdublowanej nazwy sprawca jest jeden i przypis ma zostać.
+    const clear = aggregate(events, [roster[0]!, roster[3]!]);
+    expect(clear.actors.find((a) => a.name === "Wróg")!.damageDealt).toBe(30);
+    expect(clear.unattributedDotDamage.mine).toBe(0);
+  });
+
   test("skład z gry pokazuje postać, o której log w ogóle nie wspomniał", () => {
     const stats = aggregate(
       parse("Rozpoczęła się walka pomiędzy Gracz (1w) a Wilk (1w)"),

@@ -383,6 +383,11 @@ obu stronach, strona bierze się z tego, który wpis jest pierwszy, więc DoT mo
 zostać przypisany **sojusznikowi**. Guard: zwracać `null`, gdy nazwa występuje
 po obu stronach.
 
+⚠️ Ta sama usterka siedziała **drugi raz** obok, w `seats`, i przeżyła tę
+naprawę o dwa dni — patrz `AUDYT‑39` (zamknięte 2026‑08‑01). Naprawiono wtedy
+jedno wywołanie, nie zasadę. Wniosek na przyszłość: znajdując „pierwszy pasujący
+wpis składu”, sprawdź WSZYSTKIE miejsca, które pytają skład o nazwę.
+
 ### 4.22 Cztery pola parsowane i nigdy nieczytane ⚪ [otwarte]
 `superCrit` (tylko `types.ts:46` + parser), `attack.blocked` (nie ma go ani
 w `stats.ts`, ani w `overlay.ts`), `dot.weakenedPct` (parser/typy), `experience`
