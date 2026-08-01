@@ -704,17 +704,18 @@ usunięcie ciała `destroy()` zapala oba.
 - `overlay.ts` — `track.click` suwaka odtwarzania (`clientX` → ułamek → `seek`).
   Testy archiwum wołają `seek()` wprost, z pominięciem DOM.
 
-**Test różnicowy milczy dla połowy zrzutów z DOM.** `parser.test.ts` ma w środku
-`if (raw === null) return;`, a z sześciu fixture'ów z `log.html` **trzy nie mają
-`raw.txt`** — dla nich przechodzi pusty, a raport pokazuje sześć zielonych.
-Do tego porównywane `summary()` nie obejmuje `unknownElements` ani
-`typeByLabel`, czyli dokładnie tego, co istnieje wyłącznie na ścieżce DOM.
+**Test różnicowy milczy dla części zrzutów z DOM.** `parser.test.ts` ma w środku
+`if (raw === null) return;`, a **trzy** fixture'y z `log.html` nie mają `raw.txt`
+— dla nich przechodzi pusty, a raport pokazuje same zielone. Proporcja poprawiła
+się od pierwszego zapisu (było 3 z 6, jest 3 z 8), ale te trzy to wciąż te same
+zrzuty z lipca. Do tego porównywane `summary()` nie obejmuje `unknownElements`
+ani `typeByLabel`, czyli dokładnie tego, co istnieje wyłącznie na ścieżce DOM.
 
 **Asercje na nieobecność czegoś, czego nie ma:** `.tip-row` i `.more` nie padają
 nigdzie w `src/`. Ta sama klasa, którą `AUDYT‑24` skasował dla `.axis`/`.focus`.
 
-**Skrzywienie korpusu.** 20 fixture'ów, ale tylko **7 z zrzutem DOM** — cała oś
-żywiołów (i scalanie rodzin z 2026‑07‑31) jest sprawdzana na jednej trzeciej.
+**Skrzywienie korpusu.** 21 fixture'ów, ale tylko **8 z zrzutem DOM** — cała oś
+żywiołów (i scalanie rodzin z 2026‑07‑31) jest sprawdzana na niecałej połowie.
 Nadal jeden build klienta, jeden właściciel, wyłącznie męskie formy czasownika.
 
 **Brakujące fixture'y:** log **właścicielki** (formy żeńskie — `GENDER` jest

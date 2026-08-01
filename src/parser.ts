@@ -247,6 +247,12 @@ const RE_INFO = [
   new RegExp(`^Zmniejszenie szansy na blok u przeciwników o ${PCT}%\\.?$`),
   new RegExp(`^Zmniejszenie ataku przeciwników o ${PCT}%\\.?$`),
   new RegExp(`^Zwiększenie szansy na blok o ${PCT}%\\.?$`),
+  // "jakis Maciek wykonuje Piętno bestii." → "Wszyscy przeciwnicy otrzymują
+  // zwiększone obrażenia." Jedyna z tej rodziny bez JAKIEJKOLWIEK liczby —
+  // nawet procentu. Pominięcie niczego nie gubi, bo sam efekt jest w logu
+  // policzony osobno i z właścicielem: każdy późniejszy cios niesie modyfikator
+  // "+Piętno bestii: atak +503" oraz własne trafienie tej wysokości.
+  /^Wszyscy przeciwnicy otrzymują zwiększone obrażenia\.?$/,
   // Łup z potwora: "Gnoll łucznik: zdobyto Niebieskawy pancerz gnolla".
   // Nazwa przed dwukropkiem to dawca łupu, nie aktor akcji — nic tu nie ma
   // do policzenia. Zwykle na końcu logu, ale nie jest to regułą, więc łapiemy

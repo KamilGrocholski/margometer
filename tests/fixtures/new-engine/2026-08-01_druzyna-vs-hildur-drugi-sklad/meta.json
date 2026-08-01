@@ -4,6 +4,7 @@
   "clientBuild": null,
   "world": null,
   "source": "okno walki, przycisk „Kopiuj logi”",
+  "format": "text+html",
   "participants": [
     { "name": "Kubas aka Boomerang", "level": 102, "professionCode": "w", "profession": "wojownik" },
     { "name": "Przeworska Duma", "level": 93, "professionCode": "t", "profession": "tropiciel" },
