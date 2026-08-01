@@ -708,7 +708,7 @@ Do tego porównywane `summary()` nie obejmuje `unknownElements` ani
 **Asercje na nieobecność czegoś, czego nie ma:** `.tip-row` i `.more` nie padają
 nigdzie w `src/`. Ta sama klasa, którą `AUDYT‑24` skasował dla `.axis`/`.focus`.
 
-**Skrzywienie korpusu.** 19 fixture'ów, ale tylko **6 z zrzutem DOM** — cała oś
+**Skrzywienie korpusu.** 20 fixture'ów, ale tylko **6 z zrzutem DOM** — cała oś
 żywiołów (i scalanie rodzin z 2026‑07‑31) jest sprawdzana na jednej trzeciej.
 Nadal jeden build klienta, jeden właściciel, wyłącznie męskie formy czasownika.
 
@@ -716,6 +716,12 @@ Nadal jeden build klienta, jeden właściciel, wyłącznie męskie formy czasown
 sprawdzany tylko na ręcznie pisanych stringach), walka z **przyciętym
 nagłówkiem** (rozstrzyga §4.12), **remis** („Walka nie wyłoniła zwycięzcy" nie
 pada w żadnym `covers`), `Zablokowanie N obrażeń` na ścieżce DOM.
+
+⚠️ Ostatnia pozycja jest **w połowie zamknięta** (2026‑08‑01):
+`2026-08-01_druzyna-vs-hildur-drugi-sklad` niesie pięć takich linii, ale na razie
+tylko w `raw.txt` — bez `log.html` szyk nadal nie jest sprawdzony na ścieżce DOM,
+a fixture nie wchodzi do testu różnicowego. Zrzut z DOM tej samej walki zamyka
+oba braki naraz.
 
 ---
 

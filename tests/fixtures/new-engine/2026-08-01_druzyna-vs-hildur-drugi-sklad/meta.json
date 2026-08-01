@@ -1,0 +1,43 @@
+{
+  "client": "new-engine",
+  "capturedAt": "2026-08-01",
+  "clientBuild": null,
+  "world": null,
+  "source": "okno walki, przycisk „Kopiuj logi”",
+  "participants": [
+    { "name": "Kubas aka Boomerang", "level": 102, "professionCode": "w", "profession": "wojownik" },
+    { "name": "Przeworska Duma", "level": 93, "professionCode": "t", "profession": "tropiciel" },
+    { "name": "Er Al Safar", "level": 101, "professionCode": "m", "profession": "mag" },
+    { "name": "Zsz Przeworsk", "level": 93, "professionCode": "w", "profession": "wojownik" },
+    { "name": "Że-Co", "level": 114, "professionCode": "w", "profession": "wojownik" },
+    { "name": "Strumień magnetyczny", "level": 106, "professionCode": "w", "profession": "wojownik" },
+    { "name": "Il Prawo Kirchoffa", "level": 114, "professionCode": "p", "profession": "paladyn" },
+    { "name": "Łowcomir Kazrek", "level": 93, "professionCode": "h", "profession": "łowca" },
+    { "name": "Hubert Ivan", "level": 105, "professionCode": "m", "profession": "mag" },
+    { "name": "Dieta-Miód", "level": 120, "professionCode": "w", "profession": "wojownik" },
+    { "name": "Hildur Muza Śmierci", "level": 100, "professionCode": "m", "profession": "mag" }
+  ],
+  "covers": [
+    "DRUGI SKLAD przeciwko temu samemu bossowi co '2026-07-31_druzyna-vs-hildur-zwyciestwo' - dwie nowe postacie (Kubas aka Boomerang, Strumien magnetyczny), reszta ta sama",
+    "'Zablokowanie N obrazen' x5 (1028, 1083, 2041, 5251, 1165) - wszystkie po stronie BOSSA blokowanego przez Zsz Przeworsk",
+    "leczenie kierowane rzucone na SAMEGO SIEBIE: 'Zsz Przeworsk wykonuje Osłona tarczą.' -> 'Uleczono Zsz Przeworsk o 334 punktów życia.' - self=true, wiec kwota idzie do healingDone, a nie do puli bez sprawcy",
+    "'Przywrócono 750 punktów życia Przeworska Duma.' - bez procentu i PO linii konczacej walke",
+    "'Hildur Muza Śmierci wykonuje Dysonans.' - zapowiedz, po ktorej nie pada zadna liczba",
+    "'Chorus skamieniałej panny(0%)' i 'Symfonia żywiołów(0%)' w szyku 'przygotowuje sie do wykonania'",
+    "'+Osłabienie następnego przywrócenia życia o 45%' i '+Zniszczono 0 absorpcji' - modyfikatory z liczba i procentem BEZ nawiasu",
+    "'Uleczono sojuszników o 7.5% życia.' - ulamek procenta w komunikacie tla",
+    "'Il Prawo Kirchoffa otrzymuje 0 energii.' obok 'Er Al Safar otrzymuje 272 many' - oba nazwane zasoby",
+    "zdublowana linia rozpoczecia walki (dwa razy pod rzad)",
+    "'+Cios bardzo krytyczny' (superCrit) obok zwyklego krytyka w tym samym ciosie",
+    "'+Szybka strzała' i '+Dotyk anioła' jako proc-i bez wlasnych obrazen",
+    "'X - utrata tury (redukcja ogłuszenia 50%)' - powod w nawiasie",
+    "obrazenia wlasne umiejetnosci ('-8570 obrażeń otrzymał(a) X') w Spiewie zaglady na 10 celow naraz"
+  ],
+  "missing": [
+    "zrzut z DOM (log.html) - wiec ta walka nie sprawdza zywiolow z klas dmgX ani nie wchodzi do testu roznicowego html<->raw",
+    "unik - ani jeden w calej walce, wiec fixture nie mowi nic o AUDYT-40",
+    "remis",
+    "log wlascicielki (formy zenskie czasownika)"
+  ],
+  "notes": "Dodany 2026-08-01 przy zamykaniu AUDYT-40. Dwa powody: drugi sklad przeciwko znanemu bossowi (korpus mial dotad jeden) i piec linii 'Zablokowanie N obrazen' - szyk, ktorego brakowalo. UWAGA: bez log.html blok nadal nie jest sprawdzony na sciezce DOM, wiec luka z SOLID.md §10 zostaje otwarta do czasu dolozenia zrzutu. Parser: 808 zdarzen, 0 nieznanych linii, 0 nieznanych klas. Boss zadal 532 980, przyjal 397 980 i poleglal; walka rozstrzygnieta na korzysc druzyny."
+}
