@@ -93,4 +93,7 @@ w `meta.json`, zweryfikowany po `covers`:
 - **walka z przyciętym nagłówkiem** — rozstrzyga, czy `SOLID.md §4.12` (sumy
   maleją) jest realne, czy `merge` w nagrywarce broni przed czymś, czego nie ma;
 - **`Zablokowanie N obrażeń` na ścieżce DOM** (w tekście jest);
-- **remis** — „Walka nie wyłoniła zwycięzcy” nie występuje w żadnym fixture.
+- ~~**remis**~~ — **skreślone 2026‑08‑01, bo było nieprawdą.** „Walka nie
+  wyłoniła zwycięzcy” występuje w `2026-07-18_tancerz-vs-kukla/raw.txt:36`
+  i `2026-07-18_tropiciel-vs-kukla/raw.txt:31`. Skąd błąd i jak go nie powtórzyć
+  — `SOLID.md §10`.

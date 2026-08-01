@@ -1355,12 +1355,12 @@ spraw, a nie tylko listą nowych.
 
 | Gdzie | Co |
 |---|---|
-| ~~`UX-POPRAWKI.md A14`~~ | ✅ **2026‑08‑01** — `.bar` na `opacity: .55` + nasadka w pełnej barwie; próg pilnuje test kontrastu. `AUDYT‑14` (odznaka profesji) **zostaje otwarte** i przestaje być z tym spięte. |
+| ~~`UX-POPRAWKI.md A14`~~ | ✅ **2026‑08‑01** — `.bar` na `opacity: .55` + nasadka w pełnej barwie; próg pilnuje test kontrastu. ⚠️ Stało tu, że `AUDYT‑14` (odznaka profesji) **zostaje otwarte** — nieprawda, sprostowane 2026‑08‑01: własny wpis `AUDYT‑14` mówi „✅ NAPRAWIONE", odznaka jest w drzewie (`overlay.ts`, `.label[data-prof]::before`) od `3a784f6`. Status żył w dwóch miejscach i rozjechał się w obrębie JEDNEGO pliku. |
 | `UX-POPRAWKI.md B2–B12` | Wygody: suwak po turach, auto‑pauza, sygnał „trzymam postać”, TOP‑3 w dymku, ostrzeżenie o eksmisji, filtr w archiwum, eksport dla Discorda, onboarding, reset ustawień. |
 | `SOLID.md §4.12` | Przycięcie logu w trakcie walki OBNIŻA liczby — otwarte, czeka na decyzję i na fixture z przyciętym nagłówkiem. |
 | `SOLID.md §4.18` | Modyfikator z `(N%)` rozbija blok ataku na trzy `unknown`. |
 | `SOLID.md §4.22` | Cztery pola parsowane i nigdy nieczytane. |
-| `SOLID.md §4.23` | Otwarcie archiwum blokuje wątek gry. |
+| ~~`SOLID.md §4.23`~~ | ✅ **2026‑08‑01** — podsumowania liczą się leniwie: 269 → 62 ms blokady przy 190 nagraniach, a liczba parsowań przestała rosnąć z długością listy. |
 | `ROADMAP.md ⏸` | Metryka „Tury” (nieosiągalna z UI, dwa `test.skip`), oś tur i skupienie ognia (napisane, nigdy niewołane), zakładka zakresu (patrz AUDYT‑5, AUDYT‑6). |
 
 ⚠️ **Martwy kod jest zabetonowany testami.** Dwa ZIELONE testy asertują

@@ -610,3 +610,123 @@ describe("kasowanie pojedynczego nagrania", () => {
     expect(overlay.isPreviewing()).toBe(false);
   });
 });
+
+describe("otwarcie archiwum nie zamraża wątku gry", () => {
+  /**
+   * Nagrywarka licząca odczyty. Odczyt jest tu miarą zastępczą dla `parse` +
+   * `aggregate`: podsumowanie liczy się WYŁĄCZNIE po wczytaniu tekstu, więc
+   * czego nie wczytano, tego nie sparsowano.
+   */
+  function countingRecorder(logs: { id: number; at: number; text: string }[]) {
+    let reads = 0;
+    const recorder: ArchiveRecorder = {
+      list: (): Recording[] =>
+        logs.map((one) => ({
+          id: one.id,
+          title: one.text.split("\n")[0] ?? "",
+          chars: one.text.length,
+          at: one.at,
+        })),
+      read: (id) => {
+        reads += 1;
+        return logs.find((one) => one.id === id)?.text ?? null;
+      },
+    };
+    return { recorder, reads: () => reads };
+  }
+
+  const many = (count: number, text: string) =>
+    Array.from({ length: count }, (_, i) => ({
+      id: i + 1,
+      at: NOW - i * 60_000,
+      text,
+    }));
+
+  const openWith = (logs: { id: number; at: number; text: string }[]) => {
+    const { recorder, reads } = countingRecorder(logs);
+    const overlay = new Overlay({ storage });
+    const archive = new Archive({ recorder, overlay, storage, ticker, now: () => NOW });
+    overlay.attachArchive(archive);
+    archive.toggle();
+    return { overlay, archive, reads };
+  };
+
+  test("liczba wczytanych nagrań NIE rośnie z długością listy", async () => {
+    const text = await readFixture("2026-07-18_lowca-vs-gnolle-rozdzielanie");
+
+    const few = openWith(many(30, text));
+    expect(rows(few.overlay)).toHaveLength(30);
+    const afterFew = few.reads();
+
+    ticker = new ManualTicker();
+    const lots = openWith(many(120, text));
+    expect(rows(lots.overlay)).toHaveLength(120);
+
+    // To jest CAŁA treść naprawy: czterokrotnie dłuższa lista kosztuje przy
+    // otwarciu tyle samo. Wcześniej `renderList` czytało i parsowało każde
+    // nagranie, więc te dwie liczby dzieliła czwórka.
+    expect(lots.reads()).toBe(afterFew);
+    // I jest to liczba rzędu widocznej części listy, nie długości archiwum.
+    expect(afterFew).toBeLessThan(30);
+  });
+
+  test("wiersze spod krawędzi dopełniają się po tyknięciach, do tych samych liczb", async () => {
+    const text = await readFixture("2026-07-18_lowca-vs-gnolle-rozdzielanie");
+    const stats = aggregate(parse(text));
+    const turns = stats.timeline.length;
+    const damage = stats.actors.reduce((sum, actor) => sum + actor.damageDealt, 0);
+
+    const { overlay } = openWith(many(30, text));
+    const listed = rows(overlay);
+
+    const meta = (row: HTMLElement) => row.querySelector(".archive-meta")!.textContent!;
+    // Wiersz spod krawędzi ma na razie samą godzinę — podsumowania nikt nie liczył.
+    expect(meta(listed.at(-1)!)).not.toMatch(/obr\./);
+
+    // Tyle tyknięć, żeby porcje pokryły całą listę z zapasem.
+    ticker.tick(30);
+
+    for (const row of rows(overlay)) {
+      expect(meta(row)).toContain(`${turns} tur`);
+      expect(meta(row)).toContain("obr.");
+    }
+    // Kwota jest ta sama, co przy liczeniu wszystkiego od razu — dopełnianie
+    // zmienia MOMENT liczenia, nie wynik.
+    expect(meta(rows(overlay).at(-1)!)).toContain(String(damage).slice(0, 2));
+  });
+
+  test("dopełnianie zatrzymuje się samo, gdy nie ma już czego liczyć", async () => {
+    const text = await readFixture("2026-07-18_lowca-vs-gnolle-rozdzielanie");
+    openWith(many(30, text));
+
+    expect(ticker.running).toBe(true);
+    ticker.tick(30);
+    expect(ticker.running).toBe(false);
+  });
+
+  test("destroy zatrzymuje dopełnianie", async () => {
+    const text = await readFixture("2026-07-18_lowca-vs-gnolle-rozdzielanie");
+    const { archive } = openWith(many(30, text));
+
+    expect(ticker.running).toBe(true);
+    archive.destroy();
+    expect(ticker.running).toBe(false);
+  });
+
+  test("ponowny render nie czyta nagrań, które ma już policzone", async () => {
+    const text = await readFixture("2026-07-18_lowca-vs-gnolle-rozdzielanie");
+    const { overlay, archive, reads } = openWith(many(30, text));
+    ticker.tick(30);
+    const afterFill = reads();
+
+    // Zamknięcie i otwarcie buduje WSZYSTKIE wiersze od nowa — a że każdy ma
+    // już policzone podsumowanie, żaden nie ma powodu sięgać do magazynu.
+    // Gdyby `summaryFor` pytało magazyn przed cache'em, byłby to tu komplet
+    // trzydziestu odczytów, i to przy każdym przerysowaniu listy.
+    archive.toggle();
+    archive.toggle();
+    expect(rows(overlay)).toHaveLength(30);
+
+    expect(reads()).toBe(afterFill);
+  });
+});

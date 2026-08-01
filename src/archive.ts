@@ -48,6 +48,31 @@ const STEP_MS = 250;
 /** Jak długo stoi odpowiedź na kliknięcie, które nic nie zrobiło. */
 const NOTICE_MS = 4000;
 
+/**
+ * Ile wierszy zahacza o widoczną część listy.
+ *
+ * Wyprowadzone z arkusza niżej: `.archive-list` ma `max-height: 320px`, a wiersz
+ * to nazwa (12px × 1.35 ≈ 16px), metryka (11px × 1.35 ≈ 15px), `padding: 5px`
+ * z dwóch stron i kreska pod spodem — razem ~42px. 320 / 42 ≈ 7,6, więc ósmy
+ * wiersz jeszcze wystaje zza krawędzi.
+ *
+ * Liczba jest z natury przybliżona i taka ma zostać. Pomyłka w górę kosztuje
+ * kilka milisekund, pomyłka w dół — jedno domalowanie wiersza przy dolnej
+ * krawędzi. Obie są tańsze niż pytanie o prawdziwy layout: `getBoundingClientRect`
+ * wymusiłby przeliczenie układu w tym samym wątku, który tu ratujemy, a jsdom
+ * i tak zwraca z niego zera, więc testy nie miałyby czego sprawdzać.
+ */
+const VISIBLE_ROWS = 8;
+/**
+ * Porcja dopełniania i odstęp między porcjami.
+ *
+ * `parse` + `aggregate` kosztuje ~1,4 ms na nagranie (zmierzone na korpusie
+ * przy średniej 15 kB), więc ósemka mieści się w klatce. O to tu chodzi: nie
+ * o to, żeby policzyć szybciej, tylko żeby NIGDY nie policzyć wszystkiego naraz.
+ */
+const FILL_CHUNK = 8;
+const FILL_MS = 16;
+
 const STYLE = `
 /* \`hidden\` przegrywa z \`display: flex\` niżej — bez tej reguły zamknięte okno
    byłoby dalej widoczne. */
@@ -195,6 +220,14 @@ export class Archive {
    * nie powtarzamy: przy zapisie liczyłaby to samo, co `Session` liczy na żywo.
    */
   private readonly summaries = new Map<string, Summary>();
+  /**
+   * Wiersze czekające na podsumowanie — patrz `renderList`.
+   *
+   * Trzymamy WĘZEŁ, nie indeks: `render()` buduje listę od nowa, więc indeks
+   * po chwili wskazywałby cudzy wiersz albo nic.
+   */
+  private pending: { row: HTMLElement; entry: Recording }[] = [];
+  private fillHandle: number | null = null;
   /** Które nagranie jest właśnie w podglądzie — do podświetlenia wiersza. */
   private opened: number | null = null;
   /** Identyfikatory nagrań z ostatniego renderu listy — patrz `sync`. */
@@ -583,6 +616,11 @@ export class Archive {
     const list = document.createElement("div");
     list.className = "archive-list";
 
+    // Kolejka jest własnością TEGO renderu: węzły z poprzedniego są już odpięte
+    // od dokumentu, więc dopełnianie ich byłoby liczeniem w próżnię.
+    this.stopFilling();
+    this.pending = [];
+
     // Najnowsze na górze — szuka się zwykle walki sprzed chwili.
     const entries = [...this.recorder.list()].sort((a, b) => b.at - a.at);
     this.forgetMissing(entries.map((one) => one.id));
@@ -594,25 +632,128 @@ export class Archive {
       return list;
     }
 
-    for (const entry of entries) list.append(this.renderRow(entry));
+    // Widoczne wiersze liczą się od razu, reszta czeka na tykanie. Lista jest
+    // posortowana najnowsze-pierwsze, więc „widoczne" to po prostu pierwsze —
+    // i dlatego nie trzeba pytać o geometrię, żeby wiedzieć, na co ktoś patrzy.
+    entries.forEach((entry, at) => list.append(this.renderRow(entry, at < VISIBLE_ROWS)));
+    this.startFilling();
     return list;
   }
 
-  private renderRow(entry: Recording): HTMLElement {
+  /**
+   * Czy podsumowanie tego nagrania jest już policzone.
+   *
+   * Klucz musi być TEN SAM, co w `summaryOf`, a tam jest nim długość tekstu.
+   * `chars` z indeksu nagrywarki jest tą samą liczbą (`recorder.ts` ustawia je
+   * na `text.length` przy każdym zapisie) — i o to tu chodzi: dzięki temu
+   * pytanie „czy trzeba liczyć" nie wymaga wczytania nagrania, czyli tej samej
+   * pracy, której unikamy.
+   */
+  private cached(entry: Recording): boolean {
+    return this.summaries.has(`${entry.id}:${entry.chars}`);
+  }
+
+  /**
+   * Podsumowanie wiersza — z cache'u, a dopiero potem z magazynu.
+   *
+   * Kolejność jest tu całą treścią. `summaryOf` potrzebuje TEKSTU, żeby złożyć
+   * klucz, więc pytanie go o gotowy wynik wymagało wcześniej wczytania
+   * nagrania. `render()` leci po każdej skończonej walce, a wiersze powstają
+   * wtedy od nowa — przy 190 nagraniach był to komplet odczytów z
+   * `localStorage` za każdym razem, tylko po to, żeby trafić w cache.
+   */
+  private summaryFor(entry: Recording): Summary | null {
+    const cached = this.summaries.get(`${entry.id}:${entry.chars}`);
+    if (cached) return cached;
+    const text = this.recorder.read(entry.id);
+    if (text === null) return null;
+    return this.summaryOf(entry.id, text);
+  }
+
+  /**
+   * Dopełnia wiersze porcjami, zamiast policzyć wszystko przy otwarciu.
+   *
+   * Zanim to powstało, `renderList` liczyło `parse` + `aggregate` dla KAŻDEGO
+   * nagrania, choć lista pokazuje ~8 wierszy. Zmierzone przed zmianą: 190 nagrań
+   * po ~15 kB to **269 ms** zamrożonego wątku gry — a wątek jest jeden i wspólny
+   * z grą. Dodatek, który obiecuje, że „nie dotyka gry", nie może jej zacinać
+   * na ćwierć sekundy za każdym otwarciem archiwum.
+   */
+  private startFilling(): void {
+    this.stopFilling();
+    if (this.pending.length === 0) return;
+    this.fillHandle = this.ticker.start(() => {
+      for (let i = 0; i < FILL_CHUNK; i += 1) {
+        const next = this.pending.shift();
+        if (!next) break;
+        this.fillRow(next.row, next.entry);
+      }
+      if (this.pending.length === 0) this.stopFilling();
+    }, FILL_MS);
+  }
+
+  private stopFilling(): void {
+    if (this.fillHandle !== null) this.ticker.stop(this.fillHandle);
+    this.fillHandle = null;
+  }
+
+  /**
+   * Dokłada do wiersza to, co pochodzi z podsumowania — resztę narysował już
+   * `renderRow` z samego indeksu.
+   *
+   * Węzły wyszukiwane po klasie, a nie przekazywane parametrem, bo woła to
+   * dwoje: `renderRow` od razu (wiersz widoczny albo policzony wcześniej)
+   * i krok tickera później (wiersz spod krawędzi).
+   */
+  private fillRow(row: HTMLElement, entry: Recording): void {
+    const summary = this.summaryFor(entry);
+    // Nagranie zniknęło spod indeksu — wiersz zostaje przy nazwie z tytułu.
+    // To ta sama sytuacja, którą stara ścieżka kwitowała `summary === null`.
+    if (summary === null) return;
+
+    const name = row.querySelector<HTMLElement>(".archive-name");
+    if (name) {
+      name.textContent = summary.label;
+      name.title = summary.label;
+    }
+
+    const meta = row.querySelector<HTMLElement>(".archive-meta");
+    if (!meta) return;
+    meta.textContent = [
+      whenLabel(entry.at, this.now()),
+      `${summary.turns} ${turnWord(summary.turns)}`,
+      `${number.format(summary.damage)} obr.`,
+    ].join(" · ");
+
+    if (summary.outcome === "victory" || summary.outcome === "defeat") {
+      const mark = document.createElement("span");
+      mark.className = summary.outcome === "victory" ? "archive-win" : "archive-loss";
+      mark.textContent = summary.outcome === "victory" ? " ✓" : " ✗";
+      meta.append(mark);
+    }
+  }
+
+  /**
+   * Wiersz listy. `eager` mówi, czy podsumowanie ma się policzyć TERAZ.
+   *
+   * Skorupa stoi wyłącznie na indeksie nagrywarki (tytuł, godzina) — jest więc
+   * darmowa. Wszystko, co wymaga przeczytania i sparsowania logu, dokłada
+   * `fillRow`: od razu dla wierszy widocznych, później dla reszty.
+   */
+  private renderRow(entry: Recording, eager: boolean): HTMLElement {
     const row = document.createElement("div");
     row.className = this.opened === entry.id ? "archive-row is-open" : "archive-row";
     row.dataset.recording = String(entry.id);
-
-    const text = this.recorder.read(entry.id);
-    const summary = text === null ? null : this.summaryOf(entry.id, text);
 
     const box = document.createElement("div");
     box.className = "grow";
     const name = document.createElement("div");
     name.className = "archive-name";
     // Nazwa z pełnego logu, nie z samej linii tytułowej: przy nagraniu zaczętym
-    // w środku walki linia otwierająca bywa w środku tekstu albo wcale.
-    name.textContent = summary?.label ?? fightLabel(entry.title);
+    // w środku walki linia otwierająca bywa w środku tekstu albo wcale. Tytuł
+    // z indeksu jest tu wartością TYMCZASOWĄ — `fillRow` podmieni ją na nazwę
+    // z logu, gdy tylko podsumowanie będzie policzone.
+    name.textContent = fightLabel(entry.title);
     // Jedyny wyjątek od zasady „bez natywnych dymków" (patrz `overlay.ts`):
     // archiwum nie ma własnej warstwy dymka, a ucięty skład jest nie do
     // odczytania w żaden inny sposób.
@@ -620,21 +761,7 @@ export class Archive {
 
     const meta = document.createElement("div");
     meta.className = "archive-meta";
-    const parts = [whenLabel(entry.at, this.now())];
-    if (summary) {
-      parts.push(
-        `${summary.turns} ${turnWord(summary.turns)}`,
-        `${number.format(summary.damage)} obr.`,
-      );
-    }
-    meta.textContent = parts.join(" · ");
-
-    if (summary?.outcome === "victory" || summary?.outcome === "defeat") {
-      const mark = document.createElement("span");
-      mark.className = summary.outcome === "victory" ? "archive-win" : "archive-loss";
-      mark.textContent = summary.outcome === "victory" ? " ✓" : " ✗";
-      meta.append(mark);
-    }
+    meta.textContent = whenLabel(entry.at, this.now());
 
     box.append(name, meta);
     row.append(box);
@@ -682,6 +809,11 @@ export class Archive {
     }
 
     row.addEventListener("click", () => this.open(entry.id));
+
+    // Policzone już podsumowanie jest darmowe, więc wiersz nie ma powodu mrugać
+    // — i dlatego ponowne otwarcie archiwum wygląda jak dawniej, natychmiast.
+    if (eager || this.cached(entry)) this.fillRow(row, entry);
+    else this.pending.push({ row, entry });
     return row;
   }
 
@@ -738,12 +870,14 @@ export class Archive {
   }
 
   /**
-   * Zatrzymuje wszystko, co odlicza: odtwarzanie, gasnący komunikat i pytanie
-   * „na pewno?". Bez tego zegary chodziłyby po zniknięciu panelu i wołały
-   * `render()` na drzewie, którego już nie ma.
+   * Zatrzymuje wszystko, co odlicza: odtwarzanie, dopełnianie listy, gasnący
+   * komunikat i pytanie „na pewno?". Bez tego zegary chodziłyby po zniknięciu
+   * panelu i wołały `render()` na drzewie, którego już nie ma.
    */
   destroy(): void {
     this.stopReplay();
+    this.stopFilling();
+    this.pending = [];
     this.confirmRemove.cancel();
     if (this.noticeHandle !== null) this.ticker.stop(this.noticeHandle);
     this.noticeHandle = null;

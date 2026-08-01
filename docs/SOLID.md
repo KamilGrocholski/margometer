@@ -7,11 +7,13 @@ parsowanie → mapowanie → przerabianie → sumowanie. Dwie części:
   §4.1–§4.10 bazują na przeglądzie w `DECYZJE.md` z 2026‑07‑19; **§4.11–§4.25
   pochodzą z przeglądu 2026‑07‑30** i obejmują nagrywanie, archiwum i
   odtwarzanie, czyli kod, który wcześniej nie był sprawdzony ani razu.
-  **Stan po naprawach z 2026‑07‑30:** zamknięte są §4.1–§4.8 oraz §4.11,
-  §4.13–§4.17, §4.19–§4.21 i §4.23–§4.25. **Otwarte zostają cztery:** §4.9
-  (`procs` łykają zasoby), §4.10 (reparse — świadomie), §4.12 (przycięcie
-  bufora — czeka na zrzut), §4.18 (modyfikator z procentem w nawiasie)
-  i §4.22 (pola parsowane, a nieczytane — do decyzji).
+  **Stan na 2026‑08‑01:** zamknięte są §4.1–§4.8, §4.11, §4.13–§4.25.
+  **Otwarte zostają trzy:** §4.9 (`procs` łykają zasoby — zmierzone, został
+  jeden wiersz w dymku), §4.10 (reparse — świadomie) i §4.12 (przycięcie
+  bufora — czeka na rozstrzygnięcie, czy okno walki ma sufit komunikatów).
+  ⚠️ Ten akapit wymieniał wcześniej §4.23–§4.25 jako zamknięte, choć §4.23
+  stało otwarte we własnej sekcji — ta sama choroba, co przy skrócie w §11:
+  status żył w dwóch miejscach naraz.
 - **§5–§9 Dług architektoniczny (SOLID)** — refaktory, które czynią całe KLASY
   tych usterek niemożliwymi, a nie łatanymi po fakcie.
 - **§10 Testy** — czego zestaw nie widzi, i dlaczego to właśnie tam przeszły
@@ -159,10 +161,19 @@ w testach. Brakujący fixture — log właścicielki — patrz §10.
   i ` `.
 - ❌ **Separator tysięcy nadal otwarty, i zawodzi INACZEJ, niż tu stało** —
   patrz §4.19 (nie `applied > raw`, tylko cicho obcięta liczba).
-- ❌ `procs` nadal zbierają przyrosty zasobów: `classifyModifiers`
-  (`parser.ts:270‑283`) wrzuca do `procs` każdy modyfikator, który nie jest
-  blokiem/absorpcją, a `"+14 energii"` jest jawnie traktowane jako poprawny
-  modyfikator (`parser.ts:47`, `:449`).
+- ❌ `procs` nadal zbierają przyrosty zasobów: `classifyModifiers` wrzuca do
+  `procs` każdy modyfikator, który nie jest unikiem/krytem/blokiem/absorpcją,
+  a `"+14 energii"` jest jawnie traktowane jako poprawny modyfikator.
+
+  **Zmierzone 2026‑08‑01, po stronie, którą realnie widzi panel** (czyli po
+  `procLabel` ze `stats.ts`, który zamienia cyfry na `N`): cały korpus daje
+  **33 etykiety i 1364 wystąpienia**, z czego zasobowe to **`N energii` ×47,
+  czyli 3,4 %**. Rozdrobnienia po kwocie NIE MA — `procLabel` je scala, więc
+  „Niszczenie pancerza" stoi w dymku jako jeden wiersz ×244, nie jako
+  dwadzieścia. Zostaje z tego dokładnie **jeden fałszywy wiersz** w sekcji
+  „Efekty w ciosach": własny przyrost energii napastnika udający efekt sprzętu.
+  Uwaga przy naprawie: `Zniszczono N energii` (×8) i `Zniszczono N many` (×3)
+  to co innego — one opisują zabranie zasobu CELOWI i mają zostać.
 
 ### 4.10 Pełne przeparsowanie bufora przy każdej linii 🟡 [częściowo — perf]
 `index.ts` — każda emisja parsuje CAŁY bufor. Log 1425 linii narastająco: ~12 s
@@ -453,21 +464,55 @@ Bez tego sześć linii logu wpadłoby w `unknown` i zapaliło w panelu ostrzeże
 Test w `parser.test.ts` zamienił się z asercji o kwotach XP na asercję o tym,
 że te linie są rozpoznane.
 
-### 4.23 Otwarcie archiwum blokuje wątek gry 🟡 [otwarte — koszt, jedyne z trójki]
-`archive.ts:490‑491` — `renderRow` woła `recorder.read(id)` + `summaryOf(id,
-text)`, a `summarize` (`:145‑155`) to `parse` + `aggregate`, **dla każdego
-wiersza**. Zmierzone:
+### 4.23 Otwarcie archiwum blokuje wątek gry 🟡 [NAPRAWIONE 2026‑08‑01]
+`renderRow` wołało `recorder.read(id)` + `summaryOf(id, text)`, a `summarize` to
+`parse` + `aggregate`, **dla każdego wiersza**. Powstawało wszystkie 190 wierszy,
+choć `.archive-list { max-height: 320px }` pokazuje ~8 — bez okienkowania, bez
+stronicowania, bez leniwych podsumowań poniżej krawędzi.
 
-| co | koszt |
+**Pomiar przed naprawą** (własna sonda, korpus fixture'ów, śr. 15 kB na
+nagranie — czyli realna wielkość walki, a nie 1 800 znaków z pierwszego pomiaru):
+
+| nagrań | blokada |
 |---|---|
-| `parse+aggregate`, 15 fixture'ów, śr. 5 661 znaków | **1,30 ms / walkę** |
-| otwarcie archiwum, 190 nagrań × 1 800 znaków | **146 ms blokady** |
-| ponowne otwarcie, cache ciepły (sam DOM) | 32 ms |
+| 21 | 55,7 ms |
+| 50 | 83,7 ms |
+| 100 | 161,1 ms |
+| **190** | **269,2 ms** |
 
-Przy realnych walkach (5,7 kB) pierwsze otwarcie to ~0,4–0,5 s zamrożonej gry.
-Powstaje wszystkie 190 wierszy, choć `.archive-list { max-height: 320px }`
-(`archive.ts:65`) pokazuje ~9 — bez okienkowania, bez stronicowania, bez
-leniwych podsumowań poniżej krawędzi.
+**Fix.** Wiersz rysuje się dwuetapowo. Skorupa (`renderRow`) stoi wyłącznie na
+indeksie nagrywarki — tytuł i godzina, zero odczytów. Podsumowanie dokłada
+`fillRow`: od razu dla `VISIBLE_ROWS = 8` wierszy z góry listy (posortowanej
+najnowsze‑pierwsze, więc „widoczne" to po prostu „pierwsze" — i dlatego nie
+trzeba pytać o geometrię), a dla reszty porcjami po `FILL_CHUNK = 8` na tyknięcie
+wstrzykniętego `Ticker`-a. Przy okazji `summaryFor` pyta cache PRZED magazynem;
+wcześniej trafienie w cache i tak wymagało wczytania tekstu, bo klucz niesie jego
+długość — a `render()` leci po każdej skończonej walce.
+
+**Pomiar po naprawie:**
+
+| nagrań | blokada | z czego sam DOM | `read()` |
+|---|---|---|---|
+| 21 | 34,4 ms | 9,1 ms | ×8 |
+| 50 | 36,0 ms | 9,3 ms | ×8 |
+| 100 | 49,6 ms | 17,8 ms | ×8 |
+| **190** | **62,1 ms** | 30,1 ms | **×8** |
+
+Liczba wczytanych (czyli sparsowanych) nagrań jest odtąd **płaska** — osiem,
+niezależnie od tego, czy archiwum ma 21 nagrań, czy 190. To jest właściwa treść
+naprawy i to pilnuje testu, nie próg czasowy.
+
+**Co ZOSTAJE.** Reszta kosztu rośnie dalej z długością listy i jest to budowa
+DOM‑u: 190 wierszy to ~30 ms w jsdomie (przeglądarka jest tu istotnie szybsza,
+więc traktować to jako sufit, nie prognozę). Okienkowanie samej listy nie zostało
+zrobione — jeśli kiedyś wróci, to jako osobna sprawa, bo dotyczy renderu, a nie
+liczenia. Zapisane, żeby „naprawione" nie znaczyło więcej, niż znaczy.
+
+Drugi zapis w tę samą stronę: `fightLabel(entry.title)` (tymczasowa nazwa
+wiersza) parsuje JEDNĄ linię i leci teraz dla każdego wiersza, a wcześniej był
+fallbackiem i praktycznie nie odpalał. Zmierzone: **3,27 ms na 190 wierszy**,
+czyli w granicach szumu wobec zaoszczędzonych 207 ms — ale to koszt dodany, więc
+ma stać zapisany, a nie zostać odkryty przy następnym pomiarze.
 
 ### 4.24 Każda klatka odtwarzania parsuje prefiks dwa razy 🟡 [NAPRAWIONE 2026‑07‑30]
 `archive.ts:393‑398`:
@@ -768,9 +813,19 @@ nigdzie w `src/`. Ta sama klasa, którą `AUDYT‑24` skasował dla `.axis`/`.fo
 Nadal jeden build klienta, jeden właściciel, wyłącznie męskie formy czasownika.
 
 **Brakujące fixture'y:** log **właścicielki** (formy żeńskie — `GENDER` jest
-sprawdzany tylko na ręcznie pisanych stringach), walka z **przyciętym
-nagłówkiem** (rozstrzyga §4.12), **remis** („Walka nie wyłoniła zwycięzcy" nie
-pada w żadnym `covers`).
+sprawdzany tylko na ręcznie pisanych stringach) i walka z **przyciętym
+nagłówkiem** (rozstrzyga §4.12).
+
+⚠️ **Remis stał tu jako brakujący i było to nieprawdą** (sprostowane
+2026‑08‑01). „Walka nie wyłoniła zwycięzcy" jest w korpusie dwa razy —
+`2026-07-18_tancerz-vs-kukla/raw.txt:36` i
+`2026-07-18_tropiciel-vs-kukla/raw.txt:31` — i łapie ją `parser.ts` (`RE_DRAW`).
+Skąd błąd: sprawdzano obecność SŁOWA „remis" w polach `covers`, a te dwa
+`meta.json` opisują to samo zdarzenie jako „zakonczenie bez rozstrzygniecia",
+podczas gdy sześć innych wpisuje „remis" do `missing`. Agregat po słowie
+kluczowym dał więc fałszywy negatyw — dokładnie klasa błędu, przed którą broni
+procedura z `MECHANIKA.md`, tyle że o KORPUSIE, nie o grze. Wniosek na przyszłość:
+twierdzenie „korpus tego nie ma" sprawdza się grepem po `raw.txt`, nie po opisach.
 
 ✅ `Zablokowanie N obrażeń` **na ścieżce DOM** — zamknięte 2026‑08‑01.
 `2026-08-01_druzyna-vs-hildur-drugi-sklad` dostał `log.html` do swojego
@@ -793,8 +848,10 @@ siedzi wyłącznie w klasie CSS.
 | # | Usterka | Warstwa | Dlaczego tu |
 |---|---|---|---|
 | 4.12 | Przycięcie bufora obniża sumy | session | licznik, któremu liczby maleją — ale **najpierw zrzut**, bo przesłanki nie potwierdza żaden fixture |
-| 4.23 | Archiwum 146 ms blokady wątku gry | archive | koszt, nie poprawność |
-| 4.9 | Reszta drobnych luk parsera | parser | wg zwrotu |
+| 4.9 | Reszta drobnych luk parsera | parser | wg zwrotu; zmierzone — patrz sekcja, zostaje z tego jeden wiersz w dymku |
+
+`4.23` zeszło stąd **2026‑08‑01**, w tej samej rundzie, w której je zamknięto —
+tak samo jak `4.18` i `4.22` dzień wcześniej.
 
 `4.18` i `4.22` zeszły stąd **2026‑08‑01**, w tej samej rundzie, w której je
 zamknięto — i to jest cała odpowiedź na ostrzeżenie niżej.
@@ -859,7 +916,9 @@ leczenie zdublowanej nazwy. Pokrycie 89,1 % → 93,3 %.
    Test‑strażnik jest już strukturalny, ale to wykrywacz, nie lekarstwo.
 4. ~~**§4.18**, **§4.22**~~ — **zrobione 2026‑08‑01.** Zostaje z tego punktu
    **§4.9** (wyprowadzić zasoby z `procs`).
-5. **§4.23** — okienkowanie listy archiwum (146 ms blokady przy 190 nagraniach).
+5. ~~**§4.23**~~ — **zrobione 2026‑08‑01**: podsumowania liczą się leniwie,
+   blokada 269 → 62 ms przy 190 nagraniach, a liczba parsowań jest płaska.
+   Okienkowanie samego renderu listy zostaje — patrz „Co ZOSTAJE" przy sekcji.
 6. **R7/R8/R5** — cięcia `overlay.ts`, eksport `instanceResolver`, wspólny stan
    okna; plus `UX-POPRAWKI B2` (suwak po turach), wymagające decyzji, nie tylko
    roboty. (`A14`, wymieniane tu wcześniej, domknęło się 2026‑08‑01 rano.)
