@@ -309,7 +309,7 @@ describe("overlay", () => {
     const stats = aggregate(parse("zupełnie nowa linia\ninna nowa linia"));
     overlay.render(stats, stats);
 
-    expect(overlay.shadow.querySelector(".warn")?.textContent).toContain("2 nierozpoznanych linii");
+    expect(overlay.shadow.querySelector(".warn")?.textContent).toContain("2 nierozpoznane linie");
   });
 
   test("pokazuje komunikat, gdy nie ma danych", () => {

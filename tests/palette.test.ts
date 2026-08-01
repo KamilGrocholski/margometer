@@ -293,3 +293,117 @@ describe("jedna nazwa na rodzinę", () => {
   });
 });
 
+/**
+ * A14 — tekst wiersza leży NA kolorowym pasku, więc to pasek decyduje o tym,
+ * czy da się go przeczytać. Przy pełnym nasyceniu żadna barwa palety nie
+ * przechodziła progu AA dla tekstu 12 px (najgorzej żółty — 3,50:1).
+ *
+ * Test liczy kontrast z tego, co NAPRAWDĘ ląduje w arkuszu panelu: krycie
+ * `.bar` czyta z arkusza, a nie ze stałej w teście. Dzięki temu podniesienie
+ * krycia „bo ładniej" nie przejdzie po cichu.
+ */
+describe("kontrast tekstu na pasku (A14)", () => {
+  /** Kanał sRGB → luminancja liniowa, wzór WCAG 2.1. */
+  const channel = (value: number) => {
+    const c = value / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const rgb = (hex: string): [number, number, number] => [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ];
+  const luminance = ([r, g, b]: [number, number, number]) =>
+    0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  const contrast = (a: string, b: string) => {
+    const [light, dark] = [luminance(rgb(a)), luminance(rgb(b))].sort((x, y) => y - x);
+    return (light! + 0.05) / (dark! + 0.05);
+  };
+  /** Barwa paska złożona z tłem wiersza przy danym kryciu. */
+  const over = (color: string, background: string, opacity: number): string => {
+    const [top, bottom] = [rgb(color), rgb(background)];
+    const mixed = top.map((value, i) => Math.round(value * opacity + bottom[i]! * (1 - opacity)));
+    return `#${mixed.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+  };
+
+  /**
+   * Wartości bierzemy z arkusza panelu, nie z drugiej kopii tych samych liczb.
+   * Reguła musi zaczynać się od początku linii, żeby `.bar` nie złapało się na
+   * `.row[data-unattributed] .bar`, a `.row` na `.row-text`.
+   */
+  const styleOf = (selector: string, property: string): string => {
+    const css = new Overlay().shadow.querySelector("style")!.textContent ?? "";
+    const rule = new RegExp(`^\\${selector} \\{[^}]*${property}: ([^;}]+)`, "m").exec(css);
+    expect(rule).not.toBeNull();
+    return rule![1]!.trim();
+  };
+
+  test("arkusz nadal opisuje pasek tak, jak zakłada ten test", () => {
+    expect(styleOf(".row", "background")).toBe("#24242a");
+    // Bez tego zła regułka dałaby NaN, a NaN nie jest mniejszy od progu —
+    // test kontrastu przechodziłby, nie licząc niczego.
+    const opacity = Number(styleOf(".bar", "opacity"));
+    expect(opacity).toBeGreaterThan(0);
+    expect(opacity).toBeLessThanOrEqual(1);
+  });
+
+  test("każda barwa paska przepuszcza tekst przez próg AA", () => {
+    const opacity = Number(styleOf(".bar", "opacity"));
+    const rowBackground = styleOf(".row", "background");
+    const ink = "#f2f2ef";
+
+    const failures = [...SERIES_COLORS, ...Object.values(TYPE_COLORS), OTHER_COLOR]
+      .map((color) => [color, contrast(ink, over(color, rowBackground, opacity))] as const)
+      .filter(([, ratio]) => ratio < 4.5)
+      .map(([color, ratio]) => `${color}: ${ratio.toFixed(2)}:1`);
+
+    expect(failures).toEqual([]);
+  });
+
+  /**
+   * Kontrapunkt: przy nasyceniu sprzed poprawki próg NIE był zdawany. Bez tego
+   * poprzedni test przechodziłby także wtedy, gdyby liczył coś innego, niż
+   * myślimy.
+   */
+  test("przy poprzednim kryciu próg nie był zdawany", () => {
+    const worst = Math.min(
+      ...[...SERIES_COLORS, ...Object.values(TYPE_COLORS)].map((color) =>
+        contrast("#f2f2ef", over(color, "#24242a", 0.85)),
+      ),
+    );
+    expect(worst).toBeLessThan(4.5);
+  });
+});
+
+/**
+ * Rodzina wraca do swojej barwy także pod nazwą, którą widzi użytkownik.
+ *
+ * `typeColor` szuka po kluczach pisanych małą literą, a przekrój „TYP OBRAŻEŃ"
+ * podaje je z wielkiej. Sześć rodzin ratowała druga droga (`typeFamily` znajduje
+ * własny wzorzec w nazwie), ale „broń" powstaje z „fizyczne" i „dystansowe"
+ * i sama żadnego nie zawiera — więc NAJWIĘKSZY wiersz w panelu dostawał barwę
+ * „nie wiadomo", nie do odróżnienia od „Nieznany".
+ */
+describe("nazwa wiersza trafia w tę samą barwę co etykieta z logu", () => {
+  test.each([
+    ["fizyczne", "broń"],
+    ["dystansowe", "broń"],
+    ["broń pomocnicza", "broń"],
+    ["ogień", "ogień"],
+    ["zimno", "zimno"],
+    ["błyskawica", "błyskawica"],
+    ["nieuchronne", "nieuchronne"],
+    ["od trucizny", "trucizna"],
+    ["po zranieniu", "rana"],
+  ])("„%s” → wiersz w barwie rodziny %s", (raw, family) => {
+    expect(typeColor(typeDisplay(raw))).toBe(TYPE_COLORS[family]!);
+    expect(typeColor(typeDisplay(raw))).toBe(typeColor(raw));
+    expect(typeColor(typeDisplay(raw))).not.toBe(OTHER_COLOR);
+  });
+
+  test("nierozpoznane zostaje neutralne pod obiema nazwami", () => {
+    for (const raw of ["globalne", "bez żywiołu", "dmgz"]) {
+      expect(typeColor(typeDisplay(raw))).toBe(OTHER_COLOR);
+    }
+  });
+});

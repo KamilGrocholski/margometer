@@ -4,6 +4,7 @@ import {
   invertBreakdown,
   leadsDeeper,
   totalBySide,
+  UNATTRIBUTED_SOURCE,
   type BattleStats,
   type BySide,
   type SessionStats,
@@ -38,6 +39,26 @@ const TEAM_LABELS: Record<Team, string> = {
   all: "Wszyscy",
   mine: "My",
   enemy: "Oni",
+};
+
+/**
+ * Puste stany napisane po polsku, a nie sklejone z etykiety zakładki.
+ *
+ * `Brak danych: ${TEAM_LABELS[team].toLowerCase()}.` dawało „Brak danych: my."
+ * i „Brak rozbicia: zadane." — etykiety zakładek są MIANOWNIKAMI i po dwukropku
+ * nie brzmią jak zdanie. Zdania są krótsze niż reguła odmiany, a zestaw jest
+ * zamknięty, więc mapa jest tu tańsza od gramatyki.
+ */
+const EMPTY_BREAKDOWN: Record<Metric, string> = {
+  damageDealt: "Brak zadanych obrażeń.",
+  damageTaken: "Brak otrzymanych obrażeń.",
+  healingReceived: "Brak leczenia.",
+  turns: "Brak tur.",
+};
+const EMPTY_TEAM: Record<Team, string> = {
+  all: "Brak danych — czekam na walkę.",
+  mine: "Brak danych po naszej stronie.",
+  enemy: "Brak danych po stronie przeciwnika.",
 };
 
 /**
@@ -111,6 +132,10 @@ export function plural(count: number, forms: [string, string, string]): string {
 }
 
 const fightWord = (count: number) => plural(count, ["walka", "walki", "walk"]);
+/** „1 nierozpoznana linia" zamiast „1 nierozpoznanych linii". */
+const lineWord = (count: number) => plural(count, ["linia", "linie", "linii"]);
+const unknownWord = (count: number) =>
+  plural(count, ["nierozpoznana", "nierozpoznane", "nierozpoznanych"]);
 /** Wspólne dla panelu i archiwum — te same liczniki stoją w obu. */
 export const turnWord = (count: number) => plural(count, ["tura", "tury", "tur"]);
 export const actorWord = (count: number) => plural(count, ["postać", "postacie", "postaci"]);
@@ -341,7 +366,34 @@ button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
    spodem tylko dublowałby tę samą informację i zjadał pion. */
 .rows { padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 3px; }
 .row { position: relative; height: 20px; background: #24242a; border-radius: 3px; overflow: hidden; }
-.bar { position: absolute; inset: 0 auto 0 0; min-width: 2px; opacity: 0.85; }
+/* Krycie jest tu miarą DOSTĘPNOŚCI, nie gustu: tekst wiersza leży NA pasku,
+   a przy pełnej mocy barwy żadna z palety nie przechodziła 4,5:1 (najgorzej
+   żółty — 3,50:1). Przy 0.55 przechodzą wszystkie; wartości pilnuje test
+   kontrastu w palette.test.ts, więc ta liczba nie da się podnieść po cichu. */
+.bar { position: absolute; inset: 0 auto 0 0; min-width: 2px; opacity: 0.55; }
+/* Barwa w pełnej mocy zostaje na krawędzi: to ona niesie tożsamość (profesja
+   albo rodzaj obrażeń), a rozstęp ΔE z palette.ts liczony był właśnie dla
+   pełnego nasycenia. Przygaszony pasek dalej mówi „ile", nasadka — „czyje". */
+.bar-cap { position: absolute; inset: 0 auto 0 0; width: 3px; border-radius: 3px 0 0 3px; }
+/* Pozycja zbiorcza „bez sprawcy" nie jest postacią, więc nie ma jej wyglądać:
+   pasek kreskowany zamiast pełnego, kreska odcinająca ją od rankingu.
+   Kreska siedzi na WŁASNYM boksie wiersza (border-top), a nie na ::before
+   wysuniętym nad niego: .row ma overflow:hidden, więc wszystko poza boksem
+   jest przycinane i kreski nie było widać wcale. */
+.row[data-unattributed] {
+  margin-top: 6px;
+  border-top: 1px dashed var(--border);
+  height: 25px;
+}
+/* Pasek i tekst zaczynają się POD kreską, żeby jej nie zamalowały. */
+.row[data-unattributed] .bar,
+.row[data-unattributed] .bar-cap,
+.row[data-unattributed] .row-text { top: 4px; }
+.row[data-unattributed] .bar {
+  opacity: 0.4;
+  mask-image: repeating-linear-gradient(-45deg, #000 0 4px, transparent 4px 8px);
+}
+.row[data-unattributed] .bar-cap { opacity: 0.7; }
 /* Tekst leży nad wypełnieniem, więc musi być czytelny i na pasku, i na tle. */
 .row-text {
   position: absolute;
@@ -509,6 +561,22 @@ function turnKind(metric: Metric): string {
   return metric === "damageDealt" || metric === "turns" ? "turę własną" : "turę walki";
 }
 
+/**
+ * „Ile razy” dla akcji, która ma i użycia, i ciosy.
+ *
+ * Ciosy dopisujemy tylko przy rozjeździe: równe liczby pod dwiema nazwami
+ * czytały się jak dwa osobne pomiary.
+ *
+ * ZERO ciosów to nie rozjazd, tylko inny kształt akcji. `Śpiew zagłady` zadaje
+ * przez linię „-N obrażeń otrzymał(a) X", która nie jest ciosem — i słusznie nie
+ * jest liczona jako cios. Ale wiersz mówił wtedy „266 040 (79%) ×3 · 0 c.",
+ * czyli licznik zaprzeczał kwocie stojącej obok niego. Skoro ciosów nie było,
+ * nie ma czego dopisywać: samo „×3" nadal odpowiada na „ile razy”.
+ */
+function times(uses: number, hits: number): string {
+  return hits === 0 || hits === uses ? `×${uses}` : `×${uses} · ${hits} c.`;
+}
+
 function actorValue(
   actor: ActorStats,
   metric: Metric,
@@ -589,6 +657,27 @@ function editableUnder(target: EventTarget | null): boolean {
   const element = target as Element | null;
   if (typeof element?.closest !== "function") return false;
   return element.closest("textarea, input, [contenteditable='true']") !== null;
+}
+
+/**
+ * Wypełnienie wiersza: przygaszony pasek plus nasadka w pełnej barwie.
+ *
+ * Dwa węzły, nie jeden, bo służą dwóm różnym rzeczom i mają różne krycie —
+ * pasek niesie WIELKOŚĆ (i musi ustąpić tekstowi, który na nim leży, patrz
+ * reguła `.bar`), nasadka niesie TOŻSAMOŚĆ i zostaje przy nasyceniu, dla
+ * którego liczony był rozstęp barw w `palette.ts`.
+ *
+ * Jedno miejsce na oba, bo rysują je dwie listy — ranking i rozbicie — a
+ * rozjazd między nimi znaczyłby, że ta sama postać wygląda inaczej w zależności
+ * od tego, gdzie się na nią patrzy.
+ */
+function barFill(color: string, widthPct: number): HTMLElement[] {
+  const bar = div("bar");
+  bar.style.background = color;
+  bar.style.width = `${widthPct}%`;
+  const cap = div("bar-cap");
+  cap.style.background = color;
+  return [bar, cap];
 }
 
 function div(className: string, text?: string): HTMLElement {
@@ -1890,6 +1979,19 @@ export class Overlay {
     const sources = this.focusKind === "ability" ? byAbility : byTarget;
 
     const total = actorValue(actor, this.metric);
+    /**
+     * Suma dla listy GŁÓWNEJ. Na pierwszym szczeblu to całość postaci — wiersze
+     * wymieniają wszystkie jej cele, więc jedno i drugie znaczy to samo.
+     *
+     * Na drugim szczeblu już nie: sekcja mówi o JEDNEJ parze, a `total` mówił
+     * dalej o całej postaci. Nagłówek `CZYM — DIETA-MIÓD` niósł przez to
+     * 403 206, choć wiersze pod nim sumowały się do 104 005, a udziały do 26 %
+     * zamiast 100 %. Liczba przy etykiecie ma mówić o tym, co etykieta nazywa.
+     */
+    const listTotal =
+      this.focusSource === null
+        ? total
+        : sources.reduce((sum, source) => sum + source.amount, 0);
     // Nagłówek nazywa to, co WYMIENIA lista, i zależy od drogi, którą się tu
     // weszło. Przez cel: „KOMU” → „CZYM — <CEL>”. Przez umiejętność: lustro
     // tego samego, „CZYM (ŁĄCZNIE)” → „KOMU — <UMIEJĘTNOŚĆ>”. Leczenie nie
@@ -1909,9 +2011,11 @@ export class Overlay {
             : "OD KOGO";
 
     if (sources.length === 0) {
-      container.append(
-        div("empty", `Brak rozbicia: ${METRIC_LABELS[this.metric].toLowerCase()}.`),
-      );
+      // Liczniki zostają: `ciosy · kryt. · uniki · maks. cios · tury · utracone`
+      // są prawdziwe niezależnie od metryki, a wcześniej znikały razem z listą.
+      // Postać, która tylko obrywała, pokazywała pod „Zadane" jedno zdanie
+      // i pustkę — mimo że dane o niej były.
+      container.append(div("empty", EMPTY_BREAKDOWN[this.metric]), this.counters(actor));
       return container;
     }
 
@@ -1944,18 +2048,45 @@ export class Overlay {
     // Po stronie zadanych wiedzie liczba UŻYĆ, a ciosy dochodzą tylko przy
     // rozjeździe — patrz `sourceTipContent`. Poza zadanymi użyć nie ma, więc
     // zostaje sam licznik ciosów (albo tyknięć trucizny).
-    const timesDealt = (source: ActorStats["dealtBy"][number]): string => {
+    const timesDealt = (source: ActorStats["dealtBy"][number]): string | null => {
       // Użycia liczy się dla całej walki (linia "X wykonuje Y" nie dzieli się na
       // cele), więc na szczeblu celów — gdzie etykieta to nazwa postaci — nie
       // pada żadne dopasowanie i zostaje sam licznik ciosów. Po zejściu w cel
       // etykiety to znów umiejętności i użycie (wartość ogólna) wraca.
       const used = dealt ? uses.get(source.label) : undefined;
-      if (used === undefined) return `×${source.hits}`;
-      return source.hits === used ? `×${used}` : `×${used} · ${source.hits} c.`;
+      // Zero ciosów przy niezerowej kwocie nie jest pomiarem, tylko innym
+      // kształtem akcji (patrz `times`) — a „×0" obok 27 945 obrażeń czyta się
+      // jak usterka. Brak licznika znaczy tu dokładnie to, co powinien: w tej
+      // pozycji ta liczba nie ma nic do powiedzenia.
+      if (used === undefined) return source.hits > 0 ? `×${source.hits}` : null;
+      return times(used, source.hits);
     };
 
     const mainList: BreakdownList = this.focusKind === "ability" ? "abilities" : "sources";
-    this.appendBreakdown(container, heading, mainList, sources, total, divisor, colorFor, timesDealt);
+    // Ta sama reguła co w sekcji niżej: wiersz, pod którym stoi on sam, nie ma
+    // dokąd prowadzić. Wcześniej pilnowała jej wyłącznie sekcja `CZYM (ŁĄCZNIE)`,
+    // więc lista główna przepuszczała klik w ślepy zaułek — a `UX.md §6` mówi
+    // o KAŻDYM liściu, nie o jednej sekcji.
+    //
+    // Zbiór liczony tylko na PIERWSZYM szczeblu: niżej każdy wiersz jest liściem
+    // z definicji, więc odwracanie rozbicia byłoby pracą, której nikt nie czyta.
+    const deeperInMain =
+      this.focusSource === null
+        ? new Set(this.tierList(actor, "target").filter(leadsDeeper).map((entry) => entry.label))
+        : null;
+    this.appendBreakdown(
+      container,
+      heading,
+      mainList,
+      sources,
+      listTotal,
+      divisor,
+      colorFor,
+      timesDealt,
+      deeperInMain === null
+        ? () => false
+        : (source) => deeperInMain.has(source.label),
+    );
 
     // Drugie wejście w to samo drążenie, od strony umiejętności: „która akcja
     // robi robotę”, bez względu na to, w kogo poszła. Ta sama suma co wyżej,
@@ -2105,16 +2236,15 @@ export class Overlay {
     for (const source of sources) {
       const row = div("row");
       // Tożsamość wiersza dla dymka. Etykieta i lista razem, bo ta sama nazwa
-      // ("od trucizny") potrafi stać w obu przekrojach naraz.
+      // ("Trucizna") potrafi stać w obu przekrojach naraz.
       row.dataset.source = source.label;
       row.dataset.list = list;
       // Znacznik zostaje przy wierszu, a nie przy liście, bo dymek dalej ma
       // działać — nieklikalne jest wejście, nie podgląd.
       if (drillable && !drillable(source)) row.dataset.leaf = "";
+      if (source.label === UNATTRIBUTED_SOURCE) row.dataset.unattributed = "";
 
-      const bar = div("bar");
-      bar.style.background = colorFor(source.label);
-      bar.style.width = `${max > 0 ? (source.amount / max) * 100 : 0}%`;
+      const bar = barFill(colorFor(source.label), max > 0 ? (source.amount / max) * 100 : 0);
 
       const value = document.createElement("span");
       value.className = "value";
@@ -2135,16 +2265,16 @@ export class Overlay {
       // Ile razy. Co dokładnie jest liczone, rozstrzyga `counter` — zależy to
       // od przekroju, więc decyzja stoi u wołającego, nie tutaj. `null` znaczy
       // "w tej sekcji taka liczba nie ma sensu" i wtedy nie ma po niej śladu.
-      const times = counter(source);
-      if (times !== null) {
+      const howMany = counter(source);
+      if (howMany !== null) {
         text.append(
           Object.assign(document.createElement("span"), {
             className: "avg",
-            textContent: times,
+            textContent: howMany,
           }),
         );
       }
-      row.append(bar, text);
+      row.append(...bar, text);
       container.append(row);
     }
   }
@@ -2191,10 +2321,7 @@ export class Overlay {
     if (ranked.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent =
-        this.team === "all"
-          ? "Brak danych — czekam na walkę."
-          : `Brak danych: ${TEAM_LABELS[this.team].toLowerCase()}.`;
+      empty.textContent = EMPTY_TEAM[this.team];
       container.append(empty);
       return container;
     }
@@ -2242,10 +2369,7 @@ export class Overlay {
       // swoją tożsamość — po rerenderze to inny węzeł, ale ta sama postać.
       row.dataset.actor = actor.name;
 
-      const bar = document.createElement("div");
-      bar.className = "bar";
-      bar.style.background = color;
-      bar.style.width = `${max > 0 ? (value / max) * 100 : 0}%`;
+      const bar = barFill(color, max > 0 ? (value / max) * 100 : 0);
 
       const rank = document.createElement("span");
       rank.className = "rank";
@@ -2283,7 +2407,7 @@ export class Overlay {
 
       const text = div("row-text");
       text.append(rank, label, value$);
-      row.append(bar, text);
+      row.append(...bar, text);
       container.append(row);
     }
   }
@@ -2410,9 +2534,7 @@ export class Overlay {
       const row = div("tip-stat");
       row.append(
         div("tip-stat-label", use.label),
-        // Ciosy dopisujemy tylko przy rozjeździe: równe liczby pod dwiema
-        // nazwami czytały się jak dwa osobne pomiary.
-        div("tip-stat-value", hits === use.count ? `×${use.count}` : `×${use.count} · ${hits} c.`),
+        div("tip-stat-value", times(use.count, hits)),
       );
       section.append(row);
     }
@@ -2593,7 +2715,9 @@ export class Overlay {
 
     if (stats.unknownLines > 0) {
       notes.push({
-        text: `⚠ ${stats.unknownLines} nierozpoznanych linii — statystyki niepełne`,
+        text:
+          `⚠ ${stats.unknownLines} ${unknownWord(stats.unknownLines)} ` +
+          `${lineWord(stats.unknownLines)} — statystyki niepełne`,
         warn: true,
       });
     }
