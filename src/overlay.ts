@@ -547,6 +547,8 @@ const TIP_GAP = 8;
 // to luz do krawędzi ekranu, żeby uchwyt nie uciekł poza widok.
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 140;
+/** Jak długo na przycisku stoi „✓"/„✕" po kopiowaniu. */
+const FLASH_MS = 1500;
 const RESIZE_MARGIN = 8;
 
 /**
@@ -951,7 +953,15 @@ export class Overlay {
   private archive: ArchiveControl | null = null;
   /** Trzymane, żeby `destroy()` miało co zdjąć z `window`. */
   private readonly onResize: () => void;
-  /** Odliczanie powrotu ikony kopiowania — patrz `copy` i `destroy`. */
+  /**
+   * Zegar wygaszania „✓"/„✕" po skopiowaniu.
+   *
+   * Ten sam wstrzykiwany `Ticker`, co w `Confirm`, a nie goły `setTimeout`:
+   * inaczej jedyny test na to, że `destroy()` gasi odliczanie, musiał SPAĆ 1,6 s
+   * i sprawdzać, że host nadal nie jest w dokumencie — czyli zdanie prawdziwe
+   * niezależnie od tego, czy zegar zgasł. Z tickerem da się zapytać wprost.
+   */
+  private readonly ticker: Ticker;
   private flashHandle: number | null = null;
   /**
    * Wczytana walka pokazywana zamiast bieżącej. Licznik na żywo leci w tle bez
@@ -1035,9 +1045,10 @@ export class Overlay {
     this.recorder = options.recorder;
     this.clipboard = options.clipboard ?? writeClipboard;
     this.now = options.now ?? Date.now;
+    this.ticker = options.ticker ?? realTicker;
     this.confirmClear = new Confirm<void>({
       now: this.now,
-      ticker: options.ticker ?? realTicker,
+      ticker: this.ticker,
       // Wygaśnięcie musi PRZERYSOWAĆ panel, inaczej na przycisku zostaje „na
       // pewno?" nad pytaniem, którego już nie ma.
       onExpire: () => this.rerender(),
@@ -1320,8 +1331,7 @@ export class Overlay {
    */
   destroy(): void {
     window.removeEventListener("resize", this.onResize);
-    if (this.flashHandle !== null) clearTimeout(this.flashHandle);
-    this.flashHandle = null;
+    this.stopFlash();
     this.archive?.destroy?.();
     this.host.remove();
   }
@@ -1652,13 +1662,20 @@ export class Overlay {
     }
     this.flash = { key, label };
     this.rerender();
-    if (this.flashHandle !== null) clearTimeout(this.flashHandle);
-    this.flashHandle = setTimeout(() => {
-      this.flashHandle = null;
+    this.stopFlash();
+    // Ticker jest interwałem, więc pierwszy strzał zarazem gasi odliczanie —
+    // ten sam wzorzec „jednorazówki z interwału", co w `Confirm`.
+    this.flashHandle = this.ticker.start(() => {
+      this.stopFlash();
       if (this.flash?.key !== key) return;
       this.flash = null;
       this.rerender();
-    }, 1500) as unknown as number;
+    }, FLASH_MS);
+  }
+
+  private stopFlash(): void {
+    if (this.flashHandle !== null) this.ticker.stop(this.flashHandle);
+    this.flashHandle = null;
   }
 
   /**

@@ -2166,31 +2166,71 @@ describe("ustawienia widoku przeżywają odświeżenie", () => {
 // Metoda istniała, ale robiła tylko `host.remove()`: zostawiała listener
 // `resize` na `window` i odliczający timeout, który po zniknięciu panelu wołał
 // `rerender()` na drzewie, którego już nie ma. I nikt jej nie wołał.
+/**
+ * Oba testy sprawdzały wcześniej zdania, które są prawdziwe NIEZALEŻNIE od
+ * tego, czy `destroy()` cokolwiek zrobiło: „zapis w styl odczepionego węzła nie
+ * rzuca" i „host, którego nie ma w dokumencie, nadal go nie ma". Zielone i puste.
+ *
+ * Teraz pytamy o skutek wprost — o pozycję, którą listener by ruszył, i o zegar,
+ * który `destroy()` ma zgasić. Przy okazji znika 3,2 s prawdziwych snów.
+ */
 describe("zdejmowanie panelu", () => {
+  const load = async () => aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+
+  /** Zwęża okno, żeby `onResize` miał co przyciąć — i oddaje poprzednią szerokość. */
+  const shrinkViewport = (width: number) => {
+    const previous = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { value: width, configurable: true });
+    return () => Object.defineProperty(window, "innerWidth", { value: previous, configurable: true });
+  };
+
+  /** Panel postawiony daleko po prawej — pozycja wchodzi przez zapamiętany stan. */
+  const farRight = () =>
+    new Overlay({
+      storage: {
+        getItem: () => JSON.stringify({ x: 900, y: 40 }),
+        setItem: () => {},
+      } as unknown as Storage,
+    });
+
   test("destroy zdejmuje nasłuch zmiany rozmiaru okna", async () => {
-    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
-    const overlay = new Overlay();
+    const stats = await load();
+    const overlay = farRight();
     overlay.render(stats, stats);
+    const host = overlay.shadow.host as HTMLElement;
+    expect(host.style.left).toBe("900px");
 
-    overlay.destroy();
+    // Najpierw dowód, że listener W OGÓLE działa: okno się zwęża, a `onResize`
+    // przyciąga panel do widoku. Bez tej połowy druga niczego by nie dowodziła.
+    let restore = shrinkViewport(400);
+    window.dispatchEvent(new Event("resize"));
+    expect(host.style.left).not.toBe("900px");
+    restore();
 
-    // Gdyby listener został, `moveTo` sięgnęłoby po zdjęty już panel.
-    expect(() => window.dispatchEvent(new Event("resize"))).not.toThrow();
-    expect(document.getElementById("margometer")).toBeNull();
+    // A teraz to samo po zdjęciu panelu — pozycja ma zostać nietknięta.
+    const removed = farRight();
+    removed.render(stats, stats);
+    const removedHost = removed.shadow.host as HTMLElement;
+    removed.destroy();
+    restore = shrinkViewport(400);
+    window.dispatchEvent(new Event("resize"));
+    expect(removedHost.style.left).toBe("900px");
+    restore();
   });
 
   test("destroy gasi odliczanie ikony kopiowania", async () => {
-    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
-    const overlay = new Overlay({ clipboard: () => {} });
+    const stats = await load();
+    const ticker = new ManualTicker();
+    const overlay = new Overlay({ clipboard: () => {}, ticker });
     overlay.render(stats, stats);
     overlay.shadow.querySelector<HTMLElement>('button[data-action="copy-stats"]')!.click();
     await Promise.resolve();
+    // Odliczanie faktycznie ruszyło — inaczej test niżej nie miałby czego gasić.
+    expect(ticker.running).toBe(true);
 
     overlay.destroy();
 
-    // Timeout dobiegłby tu końca i przerysował panel, którego nie ma.
-    await new Promise((resolve) => setTimeout(resolve, 1600));
-    expect(document.getElementById("margometer")).toBeNull();
+    expect(ticker.running).toBe(false);
   });
 });
 
@@ -2448,5 +2488,287 @@ describe("przyciski panelu przeżywają przebudowę w środku gestu", () => {
     press(metricButton(overlay, "Leczenie"), "pointerup");
 
     expect(metricButton(overlay, "Zadane").getAttribute("aria-pressed")).toBe("true");
+  });
+});
+
+/**
+ * Walka z bossem: dziesięciu graczy, tykająca trucizna bez sprawcy i akcje,
+ * które zadają obrażenia poza linią ciosu. Wszystkie trzy usterki tej rundy
+ * widać na tym jednym zrzucie, więc i testy stoją na nim razem.
+ */
+describe("boss z Hildur — co widać w panelu", () => {
+  const HILDUR = "new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo";
+
+  /** Zrzut z DOM-u: żywioł siedzi wyłącznie w klasie CSS. */
+  const enterBoss = async (metric: "Zadane" | "Otrzymane") => {
+    document.body.innerHTML = await Bun.file(`${FIXTURES}${HILDUR}/log.html`).text();
+    const stats = aggregate(parse(extractText(document.body)));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    metricButton(overlay, metric).click();
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+      .find((row) => row.dataset.actor === "Hildur Muza Śmierci")!
+      .click();
+    return overlay;
+  };
+  const sectionRows = (overlay: Overlay, heading: string) => {
+    const rows: HTMLElement[] = [];
+    let inside = false;
+    for (const node of overlay.shadow.querySelectorAll<HTMLElement>(".rows > *")) {
+      if (node.classList.contains("side-head")) {
+        inside = node.firstElementChild?.textContent === heading;
+        continue;
+      }
+      if (inside && node.classList.contains("row")) rows.push(node);
+    }
+    return rows;
+  };
+  const labelsOf = (rows: HTMLElement[]) =>
+    rows.map((row) => row.querySelector(".label")?.textContent);
+
+  test("ranking OD KOGO wymienia postacie, a resztę zbiera na końcu", async () => {
+    const overlay = await enterBoss("Otrzymane");
+    const rows = sectionRows(overlay, "OD KOGO");
+
+    expect(labelsOf(rows).at(-1)).toBe(UNATTRIBUTED_SOURCE);
+    expect(rows.at(-1)!.dataset.unattributed).toBe("");
+    // Żaden inny wiersz nie udaje pozycji zbiorczej.
+    expect(rows.filter((row) => row.dataset.unattributed !== undefined)).toHaveLength(1);
+  });
+
+  test("pozycja zbiorcza prowadzi głębiej, do tego, co w niej siedzi", async () => {
+    const overlay = await enterBoss("Otrzymane");
+    const row = sectionRows(overlay, "OD KOGO").at(-1)!;
+    // Nie jest liściem, więc kursor i klik obiecują to samo.
+    expect(row.dataset.leaf).toBeUndefined();
+
+    row.click();
+    expect(
+      [...overlay.shadow.querySelectorAll(".rows .side-head")].map(
+        (el) => el.firstElementChild?.textContent,
+      )[0],
+    ).toBe(`CZYM — ${UNATTRIBUTED_SOURCE.toUpperCase()}`);
+    expect(labelsOf(sectionRows(overlay, `CZYM — ${UNATTRIBUTED_SOURCE.toUpperCase()}`))).toEqual([
+      "Trucizna",
+      "Ogień",
+    ]);
+  });
+
+  test("TYP OBRAŻEŃ wymienia rodziny, po jednej na wiersz", async () => {
+    const overlay = await enterBoss("Otrzymane");
+    const labels = labelsOf(sectionRows(overlay, "TYP OBRAŻEŃ"));
+
+    expect(labels).toEqual(["Broń", "Zimno", "Trucizna", "Ogień", "Błyskawica", "Nieuchronne", "Rana"]);
+  });
+
+  test("rodzaj, którego log nie podaje, nazywa się w liście wprost", async () => {
+    const overlay = await enterBoss("Zadane");
+    // `dmgg` to ZASIĘG podany zamiast żywiołu — 79% obrażeń bossa. Wiersz mówi,
+    // że rodzaju nie znamy, zamiast udawać kolejny typ.
+    expect(labelsOf(sectionRows(overlay, "TYP OBRAŻEŃ"))).toContain("Nieznany (obszarowe)");
+  });
+
+  test("akcja bez ciosów nie melduje zera ciosów", async () => {
+    const overlay = await enterBoss("Zadane");
+    const rows = sectionRows(overlay, "CZYM (ŁĄCZNIE)");
+    const counter = (label: string) =>
+      rows.find((row) => row.querySelector(".label")?.textContent === label)
+        ?.querySelector(".avg")?.textContent;
+
+    // „Śpiew zagłady" zadaje linią „-N obrażeń otrzymał(a) X", która ciosem nie
+    // jest — wiersz mówił przez to „×3 · 0 c." przy 79% obrażeń postaci.
+    expect(counter("Śpiew zagłady")).toBe("×3");
+    // Tam, gdzie ciosy PADŁY i zgadzają się z użyciami, też zostaje sama liczba.
+    expect(counter("Zwykły atak")).toBe("×14");
+  });
+
+  /**
+   * Ta sama nieprawda, jeden szczebel wyżej: na liście CELÓW etykietą jest
+   * nazwa postaci, więc żadne użycie się nie dopasowuje i zostaje sam licznik
+   * ciosów. Cel trafiony wyłącznie „Śpiewem zagłady" miał przy 27 945 obrażeń
+   * napisane „×0".
+   */
+  test("cel trafiony wyłącznie akcją bez ciosów nie melduje zera", async () => {
+    const overlay = await enterBoss("Zadane");
+    const rows = sectionRows(overlay, "KOMU");
+    const row = (label: string) =>
+      rows.find((one) => one.querySelector(".label")?.textContent === label)!;
+
+    expect(row("Łowcomir Kazrek").querySelector(".avg")).toBeNull();
+    // Kontrapunkt: gdzie ciosy padły, licznik nadal stoi.
+    expect(row("Zsz Przeworsk").querySelector(".avg")?.textContent).toBe("×18");
+  });
+});
+
+/**
+ * Usterki znalezione w audycie 2026‑08‑01. Każdy test opisuje KONKRETNY zły
+ * wynik, który panel dawał przed poprawką — bo to on jest tu jedyną
+ * specyfikacją.
+ */
+describe("audyt 2026-08-01", () => {
+  const HILDUR = "new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo";
+  const enterBoss = async (metric: "Zadane" | "Otrzymane") => {
+    document.body.innerHTML = await Bun.file(`${FIXTURES}${HILDUR}/log.html`).text();
+    const stats = aggregate(parse(extractText(document.body)));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    metricButton(overlay, metric).click();
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")]
+      .find((row) => row.dataset.actor === "Hildur Muza Śmierci")!
+      .click();
+    return overlay;
+  };
+  const headings = (overlay: Overlay) =>
+    [...overlay.shadow.querySelectorAll(".rows .side-head")].map((head) => ({
+      title: head.firstElementChild?.textContent,
+      sum: head.lastElementChild?.textContent,
+    }));
+
+  test("wiersze TYP OBRAŻEŃ są liśćmi, więc kursor nie obiecuje kliknięcia", async () => {
+    // Reguła `.row[data-source]:not([data-leaf]) { cursor: pointer }` malowała
+    // łapkę nad przekrojem po typie, w który `rowIdentity` i tak nie wchodzi.
+    const overlay = await enterBoss("Otrzymane");
+    const types = [...overlay.shadow.querySelectorAll<HTMLElement>('.row[data-list="types"]')];
+
+    expect(types.length).toBeGreaterThan(1);
+    for (const row of types) expect(row.dataset.leaf).toBe("");
+  });
+
+  test("suma nagłówka na drugim szczeblu dotyczy tego, co sekcja wymienia", async () => {
+    // „CZYM — DIETA-MIÓD" niosło 403 206 (całość bossa), choć wiersze pod nim
+    // sumowały się do 104 005, a udziały do 26 % zamiast 100 %.
+    const overlay = await enterBoss("Otrzymane");
+    [...overlay.shadow.querySelectorAll<HTMLElement>('.row[data-list="sources"]')]
+      .find((row) => row.dataset.source === "Dieta-Miód")!
+      .click();
+
+    const rows = [...overlay.shadow.querySelectorAll<HTMLElement>('.row[data-list="sources"]')];
+    const shares = rows.map((row) => Number(shareOf(row)!.replace("%", "")));
+    expect(headings(overlay)[0]).toEqual({ title: "CZYM — DIETA-MIÓD", sum: number.format(104005) });
+    expect(shares.reduce((sum, share) => sum + share, 0)).toBe(100);
+  });
+
+  test("dymek działa na sekcji CZYM (ŁĄCZNIE)", async () => {
+    // Handler zawężał `data-list` do dwóch wartości, więc wiersze `abilities`
+    // pytały o pozycję w liście CELÓW i dymek nie przychodził wcale.
+    const overlay = await enterBoss("Zadane");
+    const row = [...overlay.shadow.querySelectorAll<HTMLElement>('.row[data-list="abilities"]')].find(
+      (one) => one.dataset.source === "Śpiew zagłady",
+    )!;
+    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
+
+    const tip = overlay.shadow.querySelector<HTMLElement>(".tip")!;
+    expect(tip.hidden).toBe(false);
+    expect(tip.querySelector(".tip-title")?.textContent).toBe("Śpiew zagłady");
+    // Akcja bez ciosów nie melduje ich zera także tutaj — wiersz przestał
+    // pokazywać „×3 · 0 c.", a dymek mówił dalej „Ciosy 0".
+    const stats = [...tip.querySelectorAll(".tip-stat")].map((s) => s.firstElementChild?.textContent);
+    expect(stats).toContain("Użycia");
+    expect(stats).not.toContain("Ciosy");
+  });
+
+  test("podpowiedź w dymku mówi, dokąd naprawdę wraca PPM", async () => {
+    const overlay = await enterBoss("Zadane");
+    const row = overlay.shadow.querySelector<HTMLElement>('.row[data-list="sources"]')!;
+    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
+
+    // PPM zdejmuje JEDEN szczebel, a nie wraca do składu.
+    expect(overlay.shadow.querySelector(".tip-hint")?.textContent).toContain("o szczebel wyżej");
+  });
+
+  test("przypis rozbija dokładnie tę liczbę, którą pokazuje", async () => {
+    // Kwota szła za filtrem i za wybraną postacią, a rodzaje zawsze z całej
+    // walki — nawias potrafił być WIĘKSZY niż liczba przed nim.
+    const stats = aggregate(
+      parse(
+        [
+          "Rozpoczęła się walka pomiędzy A (1w), B (1w) a X (1w), Y (1w)",
+          "A(50%): 300 obrażeń od trucizny.",
+          "B(50%): 900 obrażeń od ognia.",
+        ].join("\n"),
+      ),
+    );
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    const note = () =>
+      [...overlay.shadow.querySelectorAll("footer .note")]
+        .map((el) => el.textContent)
+        .find((text) => text?.startsWith("Tykające"));
+
+    expect(note()).toContain("1200");
+    expect(note()).toContain("Ogień 900");
+
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")]
+      .find((row) => row.dataset.actor === "A")!
+      .click();
+    expect(note()).toBe("Tykające obrażenia bez sprawcy: 300 (Trucizna)");
+  });
+
+  test("puste rozbicie nie zabiera liczników, które są prawdziwe", async () => {
+    // Postać, która tylko obrywała, pokazywała pod „Zadane" jedno zdanie
+    // i pustkę — mimo że ciosy, tury i uniki były policzone.
+    const stats = aggregate(
+      parse(
+        [
+          "Rozpoczęła się walka pomiędzy Bity (1w) a Bijący (1w)",
+          "Bijący(100%) uderzył z siłą  +300",
+          "Bity(50%) otrzymał(a)  -300  obrażeń",
+        ].join("\n"),
+      ),
+    );
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")]
+      .find((row) => row.dataset.actor === "Bity")!
+      .click();
+    metricButton(overlay, "Zadane").click();
+
+    // Zdanie po polsku, a nie mianownik zakładki po dwukropku („Brak rozbicia: zadane.").
+    expect(overlay.shadow.querySelector(".empty")?.textContent).toBe("Brak zadanych obrażeń.");
+    expect(overlay.shadow.querySelector(".rows .note")?.textContent).toContain("tury");
+  });
+
+  test("puste stany składu mówią zdaniem, nie mianownikiem zakładki", () => {
+    // Bufor bez linii otwierającej: stron nie znamy, więc oba filtry składu
+    // nie mają czego pokazać — a to najczęstszy pusty stan na starcie walki.
+    const stats = aggregate(
+      parse(["Bijący(100%) uderzył z siłą  +300", "Bity(50%) otrzymał(a)  -300  obrażeń"].join("\n")),
+    );
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    const empty = () => overlay.shadow.querySelector(".empty")?.textContent;
+
+    metricButton(overlay, "Oni").click();
+    expect(empty()).toBe("Brak danych po stronie przeciwnika.");
+    metricButton(overlay, "My").click();
+    expect(empty()).toBe("Brak danych po naszej stronie.");
+  });
+
+  test("stan okna z magazynu nie może przykryć gry ani zabrać pozycji", async () => {
+    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+    const load = (raw: unknown) =>
+      new Overlay({
+        storage: { getItem: () => JSON.stringify(raw), setItem: () => {} } as unknown as Storage,
+      });
+
+    // Panel na miliard pikseli przykrywał całą grę razem z uchwytem, którym
+    // dałoby się go zmniejszyć.
+    const wide = load({ width: 1e9 });
+    wide.render(stats, stats);
+    expect(
+      Number(wide.shadow.querySelector<HTMLElement>(".panel")!.style.width.replace("px", "")),
+    ).toBeLessThanOrEqual(window.innerWidth);
+
+    // Tekst zamiast liczby dawał NaN, który przechodził przez `clampToViewport`
+    // i zabierał hostowi `left`.
+    const broken = load({ width: "szeroko", x: "abc" });
+    broken.render(stats, stats);
+    expect((broken.shadow.host as HTMLElement).style.left).toBe("16px");
+    expect(broken.shadow.querySelector<HTMLElement>(".panel")!.style.width).toBe("260px");
+
+    // Prawdziwy string jest prawdziwy — panel zwijał się na starcie bez powodu.
+    const collapsed = load({ collapsed: "nope" });
+    collapsed.render(stats, stats);
+    expect(collapsed.shadow.querySelector(".panel")?.className).toBe("panel");
   });
 });
