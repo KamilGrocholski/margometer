@@ -15,5 +15,8 @@ pozwala.
 - **Zdania o mechanice gry** przechodzą przez `docs/MECHANIKA.md`, także te
   negatywne. Szczegóły w `AGENTS.md`; procedura ładuje się sama przy plikach,
   których dotyczy (`.claude/rules/mechanika-gry.md`).
-- **Nie commituj bez proszenia.** Runda kończy się zmianami w drzewie roboczym
-  i podsumowaniem, chyba że padnie inne polecenie.
+
+Zasady pisania commitów (kiedy, co ma być w treści, jak brzmi nagłówek) stoją
+w `AGENTS.md` → **Commity** — dotyczą każdego narzędzia, nie tylko tego.
+Wcześniej „nie commituj bez proszenia" stało tu osobno; jest tam, żeby reguła
+nie żyła w dwóch miejscach naraz.

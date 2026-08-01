@@ -85,13 +85,62 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
   Sygnał, że spec jest potrzebny: łapiesz się na tym, że piszesz plan. Szablon
   i zasady — [`docs/specy/README.md`](docs/specy/README.md).
 
-## Commity i przegląd
+## Commity
 
+**Komunikat commita jest tu głównym zapisem rozumowania.** Kod mówi, CO jest —
+diff pokazuje to lepiej niż jakikolwiek opis. Komunikat ma powiedzieć,
+**DLACZEGO tak, a nie inaczej**, i to on zostaje, gdy za miesiąc ktoś pyta
+„czemu to tak działa". Rejestry w `docs/` niosą stan, specy niosą projekt,
+commit niesie **decyzję w momencie jej podejmowania**.
+
+- **Nie commituj bez proszenia.** Runda kończy się zmianami w drzewie roboczym
+  i podsumowaniem, chyba że padnie inne polecenie.
 - **Przegląd PRZED commitem, nie po.** Jeden z audytów znalazł jedenaście
   rzeczy, z czego pięć było regresjami rundy czekającej właśnie na commit.
+- **Każdy commit przechodzi `bun run check` osobno**, także przy rozbijaniu
+  większej zmiany na kilka.
 - **Dokumentacja starzeje się szybciej niż kod.** Jeśli opierasz decyzję na
   zdaniu z `docs/`, sprawdź je w kodzie; jeśli się rozjechało, popraw dokument
-  w tej samej rundzie.
+  w tej samej rundzie — i napisz w commicie, co zastałeś.
+
+### Nagłówek
+
+`typ(zakres): skutek` — Conventional Commits, po polsku. Typy w użyciu:
+`feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`.
+
+Nagłówek nazywa **skutek**, nie czynność: „blok, super-kryt i osłabienie DoT-a
+docierają do panelu", a nie „dodaj obsługę bloku". Gdy zmiana zamyka pozycję
+z rejestru, jej ID idzie w nawias — `(SOLID §4.22, §4.18)`, `(AUDYT-14/17/18/19)`
+— żeby dało się przejść od wpisu do zmiany i z powrotem.
+
+### Treść
+
+Bez limitu długości. Commit na trzydzieści linii jest tu normą, jeśli tyle
+zajmuje uzasadnienie; commit na jedną linię przy nietrywialnej zmianie jest
+brakiem, nie zwięzłością. Co ma się w niej znaleźć:
+
+- **Liczby, nie przymiotniki.** „269 → 62 ms przy 190 nagraniach", nie „szybciej".
+  Przy zmianach wydajnościowych pomiar przed i po, tą samą sondą. Przy zmianach
+  w parserze i agregacie — przeliczenie na korpusie.
+- **Co rozstrzygnęło wybór.** Jeśli decydował pomiar, a nie gust, napisz to
+  wprost. Jeśli decydował gust, też.
+- **Odrzucone warianty i dlaczego.** Kod nigdy nie mówi, czego NIE wybrano.
+  Wariant odrzucony z powodu, który kiedyś zniknie, zasługuje na osobne zdanie.
+- **Czy test potrafi paść.** Po napisaniu testu zepsuj naprawę i sprawdź, że
+  się zapala — a potem napisz w commicie, że to zrobiłeś i co się zapaliło.
+- **Co ZOSTAJE otwarte.** „Naprawione" nie ma znaczyć więcej, niż znaczy.
+  Koszty dołożone przy okazji też się tu wpisuje.
+- **Sprostowania.** Jeśli zdanie z `docs/` okazało się nieprawdą — co mówiło,
+  co jest naprawdę i skąd wzięła się pomyłka.
+- **Wnioski na przyszłość.** Jeśli runda czegoś nauczyła, zdanie o tym jest
+  warte więcej niż opis kodu. Kilka reguł z tego pliku powstało właśnie tak.
+
+Niczego z tego nie sprawdza żaden hook ani test — dlatego jest zapisane tutaj.
+
+### Stopka
+
+Agent dopisuje `Co-Authored-By`. Zmiana wykonana narzędziem ma być rozpoznawalna
+w historii bez pytania kogokolwiek.
 
 ## Dalej
 
