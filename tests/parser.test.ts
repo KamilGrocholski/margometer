@@ -3,7 +3,7 @@ import { Glob } from "bun";
 import { parse } from "../src/parser.ts";
 import { extractText } from "../src/source.ts";
 import { ELEMENT_MARKER } from "../src/types.ts";
-import { aggregate, estimateMaxHp, totalUnattributedDot, type BattleStats } from "../src/stats.ts";
+import { aggregate, estimateMaxHp, totalBySide, type BattleStats } from "../src/stats.ts";
 
 const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
 
@@ -130,7 +130,9 @@ describe("tancerz ostrzy vs kukła treningowa", () => {
     const kazrek = aggregate(await load()).actors.find((a) => a.name === "Magister Kazrek")!;
     expect(kazrek.dealtBy.map((source) => source.label)).toEqual([
       "Zwykły atak",
-      "od trucizny",
+      // Tykający efekt stoi w kolumnie nazw akcji, więc i on jest rzeczownikiem
+      // — fraza z logu („od trucizny") łamała gramatykę całej listy.
+      "Trucizna",
     ]);
   });
 
@@ -206,7 +208,7 @@ describe("tancerz ostrzy vs kukła treningowa", () => {
     expect(kukla.damageDealt).toBe(0);
     expect(kukla.turnsLost).toBe(1);
 
-    expect(totalUnattributedDot(stats.unattributedDotDamage)).toBe(0);
+    expect(totalBySide(stats.unattributedDotDamage)).toBe(0);
     expect(stats.unknownLines).toBe(0);
   });
 
@@ -384,8 +386,9 @@ describe("tancerz vs tropiciel (pvp)", () => {
 
     expect(kazrek.healingDone).toBe(777 + 777 + 505); // Dotyk anioła — źródło znane
     expect(kazrek.healingReceived).toBe(518 + 2059); // + regeneracja "Przywrócono"
-    // Gołe "Przywrócono" nie mówi, kto leczy — obie strony lądują tu razem.
-    expect(stats.unattributedHealing).toBe(518 + 2546);
+    // Gołe "Przywrócono" nie mówi, kto leczy — ale mówi, KOGO wyleczyło, więc
+    // pula dzieli się po stronie leczonego, tak jak trucizna po poszkodowanym.
+    expect(totalBySide(stats.unattributedHealing)).toBe(518 + 2546);
   });
 
   test("czyta zwycięstwo i porażkę w walce 1v1", async () => {
@@ -515,7 +518,7 @@ describe("nazwy umiejętności", () => {
       { label: "Rozpraszający atak", amount: 2100, hits: 2 },
       { label: "Błyskawiczny cios", amount: 1731, hits: 2 },
       { label: "Trujące pchnięcie", amount: 221, hits: 1 },
-      { label: "od trucizny", amount: 184, hits: 2 },
+      { label: "Trucizna", amount: 184, hits: 2 },
     ]);
   });
 });
@@ -559,8 +562,10 @@ describe("łowca vs tropiciel — zasoby i leczenie w środku bloku", () => {
     const lowca = stats.actors.find((a) => a.name === "Łowcomir Kazrek")!;
     expect(lowca.dealtBy.map((source) => source.label)).toEqual([
       "Zwykły atak",
-      "od głębokiej rany",
-      "po zranieniu",
+      // Dwa różne rodzaje mimo wspólnej rodziny „rana" — rozróżnienie żyje tu,
+      // w kolumnie akcji; scala je dopiero przekrój „TYP OBRAŻEŃ".
+      "Głęboka rana",
+      "Zranienie",
     ]);
   });
 
@@ -913,7 +918,10 @@ describe("głośne awarie zamiast cichych", () => {
     expect(stats.unknownLines).toBe(0);
     const kamil = stats.actors.find((a) => a.name === "Kamil")!;
     expect(kamil.damageDealt).toBe(80);
-    expect(kamil.dealtByType.map((t) => t.label)).toEqual(["dmgz"]);
+    // Nazwa klasy zostaje w nawiasie — to jedyne, co o tym rodzaju wiadomo,
+    // i to ona ma trafić do zgłoszenia. Sam wiersz mówi wprost, że rodzaju nie
+    // znamy, zamiast udawać kolejny żywioł.
+    expect(kamil.dealtByType.map((t) => t.label)).toEqual(["Nieznany (dmgz)"]);
   });
 
   test("znana klasa nadal ma swoją nazwę", () => {
@@ -928,7 +936,7 @@ describe("głośne awarie zamiast cichych", () => {
     );
 
     expect(stats.unknownElements).toEqual([]);
-    expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe("ogień");
+    expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe("Ogień");
   });
 
   /**
@@ -936,26 +944,30 @@ describe("głośne awarie zamiast cichych", () => {
    * ZASIĘG zamiast rodzaju obrażeń. Siedzą w tej samej mapie, bo `dmgd`
    * („dystansowe") jest dokładnie tym samym: osią broni, nie żywiołem.
    *
-   * Test pilnuje dwóch rzeczy naraz: że mają nazwy (czyli nie zapalają
-   * ostrzeżenia o nieznanym rodzaju) i że nazwy są TE, a nie zgadnięte na nowo
-   * przy kolejnym czytaniu logu.
+   * Test pilnuje dwóch rzeczy naraz: że parser ma dla nich NAZWĘ (czyli nie
+   * zapalają ostrzeżenia o nieznanym rodzaju) i że nazwa jest TA, a nie
+   * zgadnięta na nowo przy kolejnym czytaniu logu.
+   *
+   * Nazwa parsera i wiersz w panelu to dwie różne rzeczy i test trzyma obie:
+   * `broń pomocnicza` wpada do rodziny „Broń", a `globalne` rodziny nie ma —
+   * bo to zasięg, nie rodzaj — więc w przekroju stoi jako jawnie nieznane.
    */
   test.each([
-    ["o", "broń pomocnicza"],
-    ["g", "globalne"],
-  ])("klasa dmg%s to „%s”, nie nieznany rodzaj", (letter, label) => {
-    const stats = aggregate(
-      parse(
-        [
-          "Rozpoczęła się walka pomiędzy Kamil (120b) a Wilk (10w)",
-          `Kamil(100%) uderzył z siłą  +120${el(letter)}`,
-          `Wilk(50%) otrzymał(a)  -80${el(letter)}  obrażeń`,
-        ].join("\n"),
-      ),
-    );
+    ["o", "broń pomocnicza", "Broń"],
+    ["g", "globalne", "Nieznany (obszarowe)"],
+  ])("klasa dmg%s to „%s”, nie nieznany rodzaj", (letter, element, row) => {
+    const log = [
+      "Rozpoczęła się walka pomiędzy Kamil (120b) a Wilk (10w)",
+      `Kamil(100%) uderzył z siłą  +120${el(letter)}`,
+      `Wilk(50%) otrzymał(a)  -80${el(letter)}  obrażeń`,
+    ].join("\n");
+    const events = parse(log);
+    const stats = aggregate(events);
 
+    const attack = events.find((e) => e.kind === "attack");
+    expect(attack?.kind === "attack" && attack.hits[0]?.element).toBe(element);
     expect(stats.unknownElements).toEqual([]);
-    expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe(label);
+    expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe(row);
   });
 
   test("separator tysięcy zgłasza się zamiast obcinać liczbę", () => {
@@ -986,7 +998,7 @@ describe("głośne awarie zamiast cichych", () => {
     );
 
     expect(stats.unknownElements).toEqual([]);
-    expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe("ogień");
+    expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe("Ogień");
   });
 });
 
@@ -1031,7 +1043,8 @@ describe("leczenie kierowane", () => {
     expect(tank.healingReceived).toBe(1700);
     // Własne jest tylko to, co rzucił na siebie; cudze 1200 nie ma sprawcy.
     expect(tank.healingDone).toBe(500);
-    expect(stats.unattributedHealing).toBe(1200);
+    expect(totalBySide(stats.unattributedHealing)).toBe(1200);
+    expect(tank.unattributedHealingReceived).toBe(1200);
     // Nazwa umiejętności jest znana w OBU przypadkach — to ona jest wygraną.
     expect(tank.healedBy.map((h) => h.label)).toEqual(["Leczenie ran"]);
   });
@@ -1091,10 +1104,11 @@ describe("parowanie liczb ciosu z liczbami przyjętymi", () => {
 
     const kamil = stats.actors.find((a) => a.name === "Kamil")!;
     // Wytłumiony slot zostaje z zerem (ogień) — liczy się to, gdzie wylądowały
-    // liczby niezerowe: 17 pod zimnem, nie pod ogniem.
+    // liczby niezerowe: 17 pod zimnem, nie pod ogniem. Przekrój nazywa RODZINY,
+    // więc „dystansowe" stoi w nim jako „Broń".
     expect(kamil.dealtByType.filter((t) => t.amount > 0).map((t) => [t.label, t.amount])).toEqual([
-      ["dystansowe", 179],
-      ["zimno", 17],
+      ["Broń", 179],
+      ["Zimno", 17],
     ]);
   });
 

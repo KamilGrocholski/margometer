@@ -2,6 +2,7 @@ import { parse } from "./parser.ts";
 import type { RosterEntry } from "./roster.ts";
 import {
   aggregate,
+  byAmountUnattributedLast,
   EMPTY_STATS,
   type Aggregate,
   type BattleStats,
@@ -51,7 +52,8 @@ function mergeAttackers(into: AttackerBreakdown[], from: AttackerBreakdown[]): A
       entry.by = mergeSources(entry.by, attacker.by);
     } else merged.set(attacker.label, { ...attacker, by: attacker.by.map((s) => ({ ...s })) });
   }
-  return [...merged.values()].sort((a, b) => b.amount - a.amount);
+  // Ta sama reguła co w agregacie jednej walki — pozycja zbiorcza na końcu.
+  return [...merged.values()].sort(byAmountUnattributedLast);
 }
 
 /** Kopia głęboka na tyle, żeby sumowanie sesji nie mutowało walk źródłowych. */
@@ -69,6 +71,7 @@ function copyActor(actor: ActorStats): ActorStats {
     takenFromBy: actor.takenFromBy.map((a) => ({ ...a, by: a.by.map((s) => ({ ...s })) })),
     dealtToBy: actor.dealtToBy.map((a) => ({ ...a, by: a.by.map((s) => ({ ...s })) })),
     typeByLabel: actor.typeByLabel.map((t) => ({ ...t })),
+    unattributedDotTypes: actor.unattributedDotTypes.map((t) => ({ ...t })),
   };
 }
 
@@ -128,7 +131,7 @@ function mergeStats(all: Aggregate[]): SessionStats {
   const unattributedDotDamage = { mine: 0, enemy: 0, loose: 0 };
   /** Rodzaje DoT-a bez sprawcy — sklejane po nazwie, jak reszta rozbić. */
   const unattributedDotTypes = new Map<string, number>();
-  let unattributedHealing = 0;
+  const unattributedHealing = { mine: 0, enemy: 0, loose: 0 };
   let unknownLines = 0;
 
   for (const stats of all) {
@@ -160,11 +163,23 @@ function mergeStats(all: Aggregate[]): SessionStats {
       merged.takenFromBy = mergeAttackers(merged.takenFromBy, actor.takenFromBy);
       merged.dealtToBy = mergeAttackers(merged.dealtToBy, actor.dealtToBy);
       merged.typeByLabel = mergeTypes(merged.typeByLabel, actor.typeByLabel);
-      // Profesja jest cechą postaci, nie walki — bierzemy pierwszą, którą
-      // ktokolwiek podał. Wcześniejsza walka mogła nie mieć składu z gry.
+      // Profesja, poziom i STRONA są cechą postaci, nie walki — bierzemy
+      // pierwszą, którą ktokolwiek podał. Wcześniejsza walka mogła nie mieć
+      // składu z gry ani linii otwierającej.
+      //
+      // `side` dołączyło tu późno: bez niego suma sesji miała `null` u każdego,
+      // kto choć raz wystąpił w walce z przyciętym nagłówkiem — a `matchesTeam`
+      // odrzuca `null` poza „Wszyscy", więc ci gracze wypadali z „My"/„Oni"
+      // mimo że inna walka ich stronę znała.
       merged.professionCode ??= actor.professionCode;
       merged.level ??= actor.level;
+      merged.side ??= actor.side;
       merged.unattributedDotTaken += actor.unattributedDotTaken;
+      merged.unattributedDotTypes = mergeSources(
+        merged.unattributedDotTypes.map((t) => ({ ...t, hits: 0 })),
+        actor.unattributedDotTypes.map((t) => ({ ...t, hits: 0 })),
+      ).map(({ label, amount }) => ({ label, amount }));
+      merged.unattributedHealingReceived += actor.unattributedHealingReceived;
     }
     for (const name of stats.ambiguousNames) ambiguousNames.add(name);
     for (const element of stats.unknownElements) unknownElements.add(element);
@@ -177,7 +192,9 @@ function mergeStats(all: Aggregate[]): SessionStats {
         (unattributedDotTypes.get(type.label) ?? 0) + type.amount,
       );
     }
-    unattributedHealing += stats.unattributedHealing;
+    unattributedHealing.mine += stats.unattributedHealing.mine;
+    unattributedHealing.enemy += stats.unattributedHealing.enemy;
+    unattributedHealing.loose += stats.unattributedHealing.loose;
     unknownLines += stats.unknownLines;
   }
 

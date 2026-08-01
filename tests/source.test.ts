@@ -62,8 +62,8 @@ describe("żywioły z DOM gry", () => {
       { label: "Porażenie", amount: 312, hits: 1 },
     ]);
     expect(mag.dealtByType).toEqual([
-      { label: "błyskawica", amount: 964, hits: 3 },
-      { label: "zimno", amount: 271, hits: 3 },
+      { label: "Błyskawica", amount: 964, hits: 3 },
+      { label: "Zimno", amount: 271, hits: 3 },
     ]);
   });
 
@@ -121,9 +121,9 @@ describe("zadane kontra otrzymane", () => {
   test("czyta żywioł obrażeń własnych umiejętności z klasy dmga", async () => {
     const mag = aggregate(await load()).actors.find((a) => a.name === "wf mushita psk")!;
     expect(mag.dealtByType).toEqual([
-      { label: "błyskawica", amount: 1443, hits: 3 },
-      { label: "zimno", amount: 501, hits: 3 },
-      { label: "nieuchronne", amount: 12, hits: 1 },
+      { label: "Błyskawica", amount: 1443, hits: 3 },
+      { label: "Zimno", amount: 501, hits: 3 },
+      { label: "Nieuchronne", amount: 12, hits: 1 },
     ]);
   });
 

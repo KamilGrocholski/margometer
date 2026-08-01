@@ -6,9 +6,12 @@ import {
   EMPTY_STATS,
   invertBreakdown,
   leadsDeeper,
-  totalUnattributedDot,
+  UNATTRIBUTED_SOURCE,
+  totalBySide,
+  type Aggregate,
 } from "../src/stats.ts";
-import type { AttackerBreakdown } from "../src/types.ts";
+import { Session } from "../src/session.ts";
+import { dotLabel, typeDisplay, type AttackerBreakdown } from "../src/types.ts";
 import { extractText } from "../src/source.ts";
 import { EngineRosterSource, type RosterEntry } from "../src/roster.ts";
 import { readFixture } from "./helpers.ts";
@@ -94,11 +97,11 @@ describe("leadsDeeper", () => {
     expect(leadsDeeper(tier("Cios mocy", [["Regulus", 100, 1]]))).toBe(true);
   });
 
-  // Trucizna bez sprawcy stoi na pierwszym szczeblu pod nazwą efektu, więc po
-  // odwróceniu wychodzi "od trucizny → od trucizny". Wejście w to pokazałoby
-  // wiersz powtarzający sam siebie.
+  // Wejście w pozycję, pod którą stoi ona sama, pokazałoby wiersz powtarzający
+  // sam siebie. Trucizna bez sprawcy stała tak, zanim zebrała się pod pozycją
+  // „Bez sprawcy" — reguła zostaje, bo dotyczy KSZTAŁTU rozbicia, nie trucizny.
   test("pozycja wskazująca wyłącznie na samą siebie jest liściem", () => {
-    expect(leadsDeeper(tier("od trucizny", [["od trucizny", 330, 3]]))).toBe(false);
+    expect(leadsDeeper(tier("Trucizna", [["Trucizna", 330, 3]]))).toBe(false);
   });
 
   test("pozycja bez celów jest liściem", () => {
@@ -161,7 +164,7 @@ describe("EMPTY_STATS jest współdzielonym singletonem", () => {
   test("jest pusty pod każdym względem", () => {
     expect(EMPTY_STATS.actors).toEqual([]);
     expect(EMPTY_STATS.unknownLines).toBe(0);
-    expect(totalUnattributedDot(EMPTY_STATS.unattributedDotDamage)).toBe(0);
+    expect(totalBySide(EMPTY_STATS.unattributedDotDamage)).toBe(0);
   });
 });
 /**
@@ -205,34 +208,104 @@ describe("zranienie ma sprawcę mimo tłumu po drugiej stronie", () => {
     );
 
     const lowca = stats.actors.find((a) => a.name === "Łowcomir Kazrek")!;
-    expect(lowca.dealtBy.find((d) => d.label === "po zranieniu")?.amount).toBe(3380);
+    expect(lowca.dealtBy.find((d) => d.label === "Zranienie")?.amount).toBe(3380);
 
     // Reszta puli zostaje bez sprawcy — i przestaje udawać samą truciznę.
     expect(stats.unattributedDotDamage.types).toEqual([
-      { label: "od trucizny", amount: 40435 },
-      { label: "od ognia", amount: 556 },
+      { label: "Trucizna", amount: 40435 },
+      { label: "Ogień", amount: 556 },
     ]);
   });
 });
 
-describe("trucizna w walce grupowej", () => {
+/**
+ * Walka, w której widać obie sprawy naraz: dziesięciu graczy bije bossa
+ * (więc jest po czym drążyć) i tyka w niego trucizna, której log nikomu nie
+ * przypisuje.
+ */
+describe("boss z Hildur — rozbicie po zmianie nazewnictwa", () => {
+  // Zrzut z DOM-u, nie tekstowy: żywioł siedzi wyłącznie w klasie CSS, więc
+  // tylko tędy widać, że „ogień" z ciosu i „ogień" z tyknięcia to jeden wiersz.
   const load = async () => {
     document.body.innerHTML = await Bun.file(
-      `${FIXTURES}new-engine/2026-07-18_lowca-dom-trucizna/log.html`,
+      `${FIXTURES}new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo/log.html`,
     ).text();
     return aggregate(parse(extractText(document.body)));
   };
+  const boss = async () =>
+    (await load()).actors.find((a) => a.name === "Hildur Muza Śmierci")!;
+
+  test("przekrój po typie ma po jednym wierszu na rodzinę", async () => {
+    const types = (await boss()).takenByType;
+    // Żadna rodzina nie stoi dwa razy — to był cały problem: „ogień" z klasy
+    // CSS obok „od ognia" z tykającego efektu.
+    expect(types.map((t) => t.label)).toEqual([...new Set(types.map((t) => t.label))]);
+    // Cios i tyknięcie tego samego żywiołu sumują się w jednym wierszu.
+    expect(types.find((t) => t.label === "Ogień")?.amount).toBe(38005 + 556);
+  });
+
+  test("przekrój po typie nadal sumuje się do obrażeń przyjętych", async () => {
+    // To INNY podział tych samych obrażeń, nie dodatkowe obrażenia — scalanie
+    // rodzin nie ma prawa tej równości ruszyć.
+    const hildur = await boss();
+    expect(hildur.takenByType.reduce((sum, t) => sum + t.amount, 0)).toBe(hildur.damageTaken);
+  });
+
+  test("wszystko bez sprawcy stoi w jednej pozycji, na końcu listy", async () => {
+    const tiers = (await boss()).takenFromBy;
+    const unattributed = tiers.filter((t) => t.label === UNATTRIBUTED_SOURCE);
+
+    expect(unattributed).toHaveLength(1);
+    // Na końcu bez względu na kwotę: 40 991 zmieściłoby się w środku rankingu,
+    // a tam czytałoby się jak jeszcze jeden przeciwnik.
+    expect(tiers.at(-1)).toBe(unattributed[0]!);
+    expect(unattributed[0]!.by).toEqual([
+      { label: "Trucizna", amount: 40435, hits: 37 },
+      { label: "Ogień", amount: 556, hits: 2 },
+    ]);
+    // Reszta pierwszego szczebla to już wyłącznie postacie.
+    const names = new Set((await load()).actors.map((a) => a.name));
+    for (const tier of tiers.slice(0, -1)) expect(names.has(tier.label)).toBe(true);
+  });
+
+  test("pozycja zbiorcza prowadzi głębiej, bo mówi coś nowego", async () => {
+    const tiers = (await boss()).takenFromBy;
+    expect(leadsDeeper(tiers.at(-1)!)).toBe(true);
+  });
+
+  test("leczenie bez sprawcy dzieli się po stronie leczonego", async () => {
+    const stats = await load();
+    const healing = stats.unattributedHealing;
+    // Boss stoi po stronie 1, drużyna po 0 — pula NIE może być jedną liczbą
+    // pokazywaną tak samo na obu zakładkach filtra.
+    expect(healing.mine).toBeGreaterThan(0);
+    expect(totalBySide(healing)).toBe(133867);
+    // Suma po postaciach zgadza się z sumą po stronach.
+    expect(stats.actors.reduce((sum, a) => sum + a.unattributedHealingReceived, 0)).toBe(
+      totalBySide(healing),
+    );
+  });
+});
+
+describe("trucizna w walce grupowej", () => {
+  const events = async () => {
+    document.body.innerHTML = await Bun.file(
+      `${FIXTURES}new-engine/2026-07-18_lowca-dom-trucizna/log.html`,
+    ).text();
+    return parse(extractText(document.body));
+  };
+  const load = async () => aggregate(await events());
 
   test("wskazuje sprawcę trucizny po stronie konfliktu, nie po liczbie postaci", async () => {
     // 1 vs 3: po drugiej stronie Lochy stoi dokładnie jeden gracz, więc
     // wątpliwości nie ma, choć uczestników walki jest czterech.
     const stats = await load();
-    expect(totalUnattributedDot(stats.unattributedDotDamage)).toBe(0);
+    expect(totalBySide(stats.unattributedDotDamage)).toBe(0);
 
     const lowca = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
     expect(lowca.dealtBy).toEqual([
       { label: "Zwykły atak", amount: 786, hits: 2 },
-      { label: "od trucizny", amount: 140, hits: 1 },
+      { label: "Trucizna", amount: 140, hits: 1 },
     ]);
   });
 
@@ -430,7 +503,7 @@ describe("trucizna w walce grupowej", () => {
       loose: 0,
       // Pula wie, CO w niej jest — inaczej przypis w panelu nazwałby trucizną
       // także ogień i rany.
-      types: [{ label: "od trucizny", amount: 100 }],
+      types: [{ label: "Trucizna", amount: 100 }],
     });
     expect(stats.actors.find((a) => a.name === "A")?.damageDealt).toBe(0);
   });
@@ -445,10 +518,10 @@ describe("trucizna w walce grupowej", () => {
     ];
 
     // Bez składu nie ma po czym liczyć stron — trucizna zostaje bez sprawcy.
-    expect(totalUnattributedDot(aggregate(events).unattributedDotDamage)).toBe(280);
+    expect(totalBySide(aggregate(events).unattributedDotDamage)).toBe(280);
 
     const stats = aggregate(events, fromGame);
-    expect(totalUnattributedDot(stats.unattributedDotDamage)).toBe(0);
+    expect(totalBySide(stats.unattributedDotDamage)).toBe(0);
     expect(stats.actors.find((a) => a.name === "Wilk")!.damageDealt).toBe(280);
   });
 
@@ -491,16 +564,145 @@ describe("trucizna w walce grupowej", () => {
     expect(gracz.maxHit).toBe(300);
   });
 
+  /**
+   * Rozróżnienie zwarcie/dystans żyje w PARSERZE — `dmg` odyńca kontra `dmgd`
+   * łowcy — i tam się go pilnuje. Przekrój w panelu nazywa RODZINY, więc obie
+   * klasy stoją w nim pod „Bronią": to ta sama oś (czym uderzono), a nie dwa
+   * różne rodzaje obrażeń. Test trzyma oba szczeble naraz, bo dopiero razem
+   * mówią, że informacja nie ginie — tylko nie jest wierszem rankingu.
+   */
   test("rozróżnia klasy obrażeń fizycznych: zwarcie kontra dystans", async () => {
-    const stats = await load();
+    const parsed = await events();
+    const elementsOf = (name: string) =>
+      new Set(
+        parsed.flatMap((event) =>
+          event.kind === "attack" && event.source === name
+            ? event.hits.map((hit) => hit.element)
+            : [],
+        ),
+      );
+    expect(elementsOf("Łowcożyr Kazrek")).toEqual(new Set(["dystansowe"]));
+    expect(elementsOf("Odyniec")).toEqual(new Set(["fizyczne"]));
+
+    const stats = aggregate(parsed);
     expect(stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!.dealtByType).toEqual([
-      { label: "dystansowe", amount: 786, hits: 2 },
-      { label: "od trucizny", amount: 140, hits: 1 },
+      { label: "Broń", amount: 786, hits: 2 },
+      { label: "Trucizna", amount: 140, hits: 1 },
     ]);
     // Dwa Odyńce log rozdziela: jeden zbity do 40.37%, drugi atakuje ze 100%.
     expect(stats.actors.find((a) => a.name === "Odyniec #2")!.dealtByType).toEqual([
-      { label: "fizyczne", amount: 95, hits: 1 },
+      { label: "Broń", amount: 95, hits: 1 },
     ]);
     expect(stats.actors.find((a) => a.name === "Odyniec #1")!.damageTaken).toBe(455);
+  });
+});
+/**
+ * Niezmienniki agregacji — po każdej walce z korpusu i po SUMIE SESJI.
+ *
+ * Przelot był dotąd jednorazowym pomiarem robionym ręcznie przy audycie. Skoro
+ * ma znaczyć „liczby się domykają", musi lecieć przy każdym `bun test`: to
+ * jedyny test, który złapie rozjazd w rozbiciu, którego nikt nie wymienił
+ * z nazwy — łącznie z polem, którego jeszcze nie ma.
+ */
+describe("niezmienniki liczb", () => {
+  const sum = (rows: ReadonlyArray<{ amount: number }>) =>
+    rows.reduce((total, row) => total + row.amount, 0);
+
+  /** Wszystkie rozjazdy naraz, żeby raport mówił CO nie gra, a nie tylko że. */
+  const mismatches = (stats: Aggregate): string[] => {
+    const found: string[] = [];
+    for (const a of stats.actors) {
+      const check = (what: string, got: number, want: number) => {
+        if (got !== want) found.push(`${a.name}: ${what} ${got} ≠ ${want}`);
+      };
+      check("dealtBy", sum(a.dealtBy), a.damageDealt);
+      check("dealtByType", sum(a.dealtByType), a.damageDealt);
+      check("takenFrom", sum(a.takenFrom), a.damageTaken);
+      check("takenByType", sum(a.takenByType), a.damageTaken);
+      check("takenFromBy", sum(a.takenFromBy), a.damageTaken);
+      check("healedBy", sum(a.healedBy), a.healingReceived);
+      // Pule bez sprawcy są CZĘŚCIĄ sum postaci, nie dodatkiem obok nich.
+      check("rodzaje DoT-u bez sprawcy", sum(a.unattributedDotTypes), a.unattributedDotTaken);
+      if (a.unattributedDotTaken > a.damageTaken) found.push(`${a.name}: DoT bez sprawcy > przyjęte`);
+      if (a.unattributedHealingReceived > a.healingReceived) {
+        found.push(`${a.name}: leczenie bez sprawcy > otrzymane`);
+      }
+    }
+    const total = (pick: (a: Aggregate["actors"][number]) => number) =>
+      stats.actors.reduce((s, a) => s + pick(a), 0);
+    // Każdy punkt obrażeń ma dokładnie jednego właściciela albo trafia do puli.
+    if (total((a) => a.damageDealt) + totalBySide(stats.unattributedDotDamage) !== total((a) => a.damageTaken)) {
+      found.push("Σ zadane + DoT bez sprawcy ≠ Σ przyjęte");
+    }
+    if (total((a) => a.healingDone) + totalBySide(stats.unattributedHealing) !== total((a) => a.healingReceived)) {
+      found.push("Σ leczenie zadane + bez sprawcy ≠ Σ otrzymane");
+    }
+    // Podział na strony i podział na postacie muszą dawać tę samą liczbę.
+    if (total((a) => a.unattributedDotTaken) !== totalBySide(stats.unattributedDotDamage)) {
+      found.push("DoT bez sprawcy: suma per postać ≠ suma per strona");
+    }
+    if (total((a) => a.unattributedHealingReceived) !== totalBySide(stats.unattributedHealing)) {
+      found.push("leczenie bez sprawcy: suma per postać ≠ suma per strona");
+    }
+    return found;
+  };
+
+  describe.each(fixtures)("$name", (fixture) => {
+    test("rozbicia domykają się ze skalarami", async () => {
+      expect(mismatches(aggregate(parse(await fixture.text())))).toEqual([]);
+    });
+  });
+
+  test("te same niezmienniki trzymają po scaleniu całej sesji", async () => {
+    // Najostrzejszy przypadek scalania: wszystkie walki korpusu w jednej sesji.
+    const session = new Session();
+    const texts: string[] = [];
+    for (const fixture of fixtures) texts.push(await fixture.text());
+    session.update(texts.join("\n"));
+
+    const total = session.total();
+    expect(total.actors.length).toBeGreaterThan(0);
+    expect(mismatches(total)).toEqual([]);
+  });
+});
+
+/**
+ * Etykiety, które WYMYŚLAMY, kontra nazwy, które przychodzą z gry.
+ *
+ * `Bez sprawcy`, `Trucizna`, `Broń` czy `Locha #1` są zwykłymi kluczami mapy,
+ * więc postać albo umiejętność o takiej nazwie skleiłaby się z nimi w jeden
+ * wiersz — dwie różne rzeczy pod jedną liczbą. Nicki Margonem tego nie
+ * dopuszczają i nie bronimy się przed tym na zapas, ale zamiana etykiet DoT-u
+ * na zwykłe rzeczowniki („od ognia" → „Ogień") podniosła ryzyko: gra ma
+ * umiejętności jednowyrazowe.
+ *
+ * Ten test nie naprawia kolizji — pilnuje, żeby dzień, w którym pojawi się
+ * pierwsza, był dniem czerwonego zestawu, a nie cichej pomyłki w panelu.
+ */
+describe("zarezerwowane etykiety nie kolidują z nazwami z gry", () => {
+  const RESERVED = new Set([
+    UNATTRIBUTED_SOURCE,
+    "Zwykły atak",
+    "Regeneracja",
+    ...["ogień", "błyskawica", "zimno", "trucizna", "rana", "nieuchronne", "broń"].map(typeDisplay),
+    ...[
+      ["od", "trucizny"],
+      ["od", "głębokiej rany"],
+      ["od", "ognia"],
+      ["po", "zranieniu"],
+      ["od", "błyskawic"],
+    ].map(([via, type]) => dotLabel(via!, type!)),
+  ]);
+
+  test.each(fixtures)("$name", async (fixture) => {
+    const names = new Set<string>();
+    for (const event of parse(await fixture.text())) {
+      if (event.kind === "ability") {
+        names.add(event.name);
+        names.add(event.actor);
+      }
+      if (event.kind === "fight-start") for (const p of event.participants) names.add(p.name);
+    }
+    expect([...names].filter((name) => RESERVED.has(name))).toEqual([]);
   });
 });

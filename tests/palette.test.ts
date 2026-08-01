@@ -9,8 +9,9 @@ import {
   SERIES_COLORS,
   TYPE_COLORS,
   typeColor,
+  OTHER_COLOR,
 } from "../src/palette.ts";
-import { typeFamily } from "../src/types.ts";
+import { dotLabel, typeDisplay, typeFamily } from "../src/types.ts";
 import { FIXTURES, metricButton, readFixture } from "./helpers.ts";
 
 describe("przypisanie kolorów", () => {
@@ -184,7 +185,7 @@ describe("przypisanie kolorów", () => {
       ]),
     );
     expect(byLabel.get("Zwykły atak")).toBe(asStyle(TYPE_COLORS["broń"]!));
-    expect(byLabel.get("od trucizny")).toBe(asStyle(TYPE_COLORS["trucizna"]!));
+    expect(byLabel.get("Trucizna")).toBe(asStyle(TYPE_COLORS["trucizna"]!));
   });
 
   test("trucizna odróżnia się barwą od zwykłego ciosu", async () => {
@@ -197,7 +198,7 @@ describe("przypisanie kolorów", () => {
 
     const types = new Map(lowca.typeByLabel.map((t) => [t.label, t.type]));
     expect(types.get("Zwykły atak")).toBe("broń");
-    expect(types.get("od trucizny")).toBe("trucizna");
+    expect(types.get("Trucizna")).toBe("trucizna");
   });
 
   test("kolor nie zależy od liczby walk w sesji", () => {
@@ -244,3 +245,51 @@ describe("barwa rodzajów spoza osi żywiołów", () => {
     expect(typeColor("globalne")).not.toBe(TYPE_COLORS["broń"]);
   });
 });
+
+/**
+ * Nazwy z dwóch źródeł, jedna rodzina.
+ *
+ * Log nazywa tę samą rzecz dwojako: żywioł z klasy CSS mówi „ogień", a tykający
+ * efekt „od ognia". Panel wymienia RODZINY, więc obie drogi muszą kończyć się
+ * w tym samym miejscu — inaczej ta sama rzecz stoi w przekroju dwa razy, pod
+ * dwiema gramatykami i (dawniej) w tej samej barwie, bez żadnego wyjaśnienia.
+ */
+describe("jedna nazwa na rodzinę", () => {
+  test.each([
+    ["od trucizny", "trucizna"],
+    ["od ognia", "ogień"],
+    ["od błyskawic", "błyskawica"],
+    ["od głębokiej rany", "rana"],
+    ["po zranieniu", "rana"],
+  ])("„%s” i jego wygładzona nazwa mają tę samą rodzinę", (raw, family) => {
+    const [via, ...rest] = raw.split(" ");
+    const label = dotLabel(via!, rest.join(" "));
+    expect(typeFamily(raw)).toBe(family);
+    expect(typeFamily(label)).toBe(family);
+    expect(typeDisplay(label)).toBe(typeDisplay(raw));
+    expect(typeColor(label)).toBe(typeColor(raw));
+  });
+
+  test("tykający ogień i ogień z klasy CSS to jeden wiersz", () => {
+    expect(typeDisplay(dotLabel("od", "ognia"))).toBe(typeDisplay("ogień"));
+  });
+
+  /**
+   * Rodzaj bez rodziny nie dostaje wymyślonej nazwy: wiersz mówi wprost, że
+   * rodzaju nie znamy, a w nawiasie zostaje to, co log naprawdę podał.
+   */
+  test("nierozpoznane mówi o sobie, że jest nierozpoznane", () => {
+    expect(typeDisplay("globalne")).toBe("Nieznany (obszarowe)");
+    expect(typeDisplay("dmgz")).toBe("Nieznany (dmgz)");
+    expect(typeDisplay("bez żywiołu")).toBe("Nieznany");
+    for (const label of ["globalne", "dmgz", "bez żywiołu"]) {
+      expect(typeColor(typeDisplay(label))).toBe(OTHER_COLOR);
+    }
+  });
+
+  /** Rodzaj spoza mapy zostaje DOSŁOWNIE — nowy format ma być widać. */
+  test("nieznany rodzaj tykający zostaje w zapisie z logu", () => {
+    expect(dotLabel("od", "czegoś nowego")).toBe("od czegoś nowego");
+  });
+});
+

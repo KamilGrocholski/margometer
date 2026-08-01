@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { parse } from "../src/parser.ts";
-import { aggregate, totalUnattributedDot } from "../src/stats.ts";
+import { UNATTRIBUTED_SOURCE, aggregate, totalBySide } from "../src/stats.ts";
 import {
   Overlay,
   tipPosition,
@@ -497,7 +497,7 @@ describe("overlay", () => {
         .map((el) => el.textContent ?? "")
         .find((text) => text.startsWith("Tykające obrażenia bez sprawcy"));
 
-    const whole = totalUnattributedDot(stats.unattributedDotDamage);
+    const whole = totalBySide(stats.unattributedDotDamage);
     expect(note()).toContain(number.format(whole));
 
     const victim = poisoned[0]!;
@@ -507,7 +507,7 @@ describe("overlay", () => {
     // W widoku postaci zostaje jej własna liczba i sam rodzaj — podział na
     // strony nie ma tu sensu, bo strona jest jedna.
     expect(note()).toBe(
-      `Tykające obrażenia bez sprawcy: ${number.format(victim.unattributedDotTaken)} (od trucizny)`,
+      `Tykające obrażenia bez sprawcy: ${number.format(victim.unattributedDotTaken)} (Trucizna)`,
     );
 
     // Powrót do składu przywraca liczbę całej walki.
@@ -630,27 +630,27 @@ describe("overlay", () => {
   });
 
   test("dymek trafia we właściwy przekrój, gdy nazwa stoi w obu", async () => {
-    // "od trucizny" pojawia się i w rozbiciu na pozycje, i w typie obrażeń.
+    // "Trucizna" pojawia się i w rozbiciu na pozycje, i w typie obrażeń.
     // Bez rozróżnienia list dymek pokazywałby liczby z sąsiedniej sekcji.
     const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-druzyna");
     const overlay = new Overlay();
     overlay.render(stats, stats);
     overlay.shadow.querySelector<HTMLElement>(".rows .row[data-actor]")!.click();
-    // "od trucizny" jako źródło stoi dopiero w rozbiciu na cel; wchodzimy w cel,
+    // "Trucizna" jako źródło stoi dopiero w rozbiciu na cel; wchodzimy w cel,
     // który dostał truciznę. W przekroju po typie (żywioł) figuruje niezależnie.
     [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
       .find((row) => row.dataset.source === "Locha #2")!
       .click();
 
     const poison = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-source]")].filter(
-      (row) => row.dataset.source === "od trucizny",
+      (row) => row.dataset.source === "Trucizna",
     );
     expect(poison.map((row) => row.dataset.list)).toEqual(["sources", "types"]);
 
     const tip = overlay.shadow.querySelector<HTMLElement>(".tip")!;
     for (const row of poison) {
       row.dispatchEvent(new Event("pointerover", { bubbles: true }));
-      expect(tip.querySelector(".tip-title")?.textContent).toBe("od trucizny");
+      expect(tip.querySelector(".tip-title")?.textContent).toBe("Trucizna");
       expect(tip.hidden).toBe(false);
     }
   });
@@ -674,10 +674,10 @@ describe("overlay", () => {
       // Drugie wejście w to samo drążenie: te same obrażenia widziane od strony
       // umiejętności, zsumowane po wszystkich celach.
       ["Zwykły atak", number.format(10036), "97%"],
-      ["od trucizny", number.format(330), "3%"],
+      ["Trucizna", number.format(330), "3%"],
       // Przekrój po żywiole dotyczy całości obrażeń postaci — stoi na każdym szczeblu.
-      ["bez żywiołu", number.format(10036), "97%"],
-      ["od trucizny", number.format(330), "3%"],
+      ["Nieznany", number.format(10036), "97%"],
+      ["Trucizna", number.format(330), "3%"],
     ]);
     expect([...overlay.shadow.querySelectorAll(".rows .side-head")].map((el) =>
       el.firstElementChild?.textContent,
@@ -696,9 +696,9 @@ describe("overlay", () => {
     ]);
     expect(breakdown).toEqual([
       ["Zwykły atak", number.format(10036), "97%"],
-      ["od trucizny", number.format(330), "3%"],
-      ["bez żywiołu", number.format(10036), "97%"],
-      ["od trucizny", number.format(330), "3%"],
+      ["Trucizna", number.format(330), "3%"],
+      ["Nieznany", number.format(10036), "97%"],
+      ["Trucizna", number.format(330), "3%"],
     ]);
     expect([...overlay.shadow.querySelectorAll(".rows .side-head")].map((el) =>
       el.firstElementChild?.textContent,
@@ -888,20 +888,30 @@ describe("overlay", () => {
       expect(headings(overlay)[0]).toBe("OD KOGO — PODWÓJNY STRZAŁ");
     });
 
-    // Trucizna bez sprawcy stoi na obu szczeblach pod tą samą nazwą, więc
-    // wejście w nią pokazałoby wiersz powtarzający sam siebie.
-    test("pozycja wskazująca na samą siebie nie kusi kliknięciem", async () => {
+    /**
+     * Trucizna bez sprawcy stała dotąd na OBU szczeblach pod tą samą nazwą,
+     * więc wejście w nią pokazywało wiersz powtarzający sam siebie — i dlatego
+     * była liściem. Odkąd pierwszym szczeblem jest pozycja zbiorcza
+     * „Bez sprawcy", szczeble mówią dwie różne rzeczy i wejście ma sens: pytanie
+     * „czym mnie tyka" dostaje odpowiedź „truciznę nałożył ktoś, kogo log nie
+     * nazywa". Reguła o liściu nie znika — pilnuje jej `leadsDeeper`
+     * w `stats.test.ts`; tu sprawdzamy, że ta konkretna droga już nie kończy
+     * się w ślepym zaułku.
+     */
+    test("tykający efekt schodzi do pozycji zbiorczej, nie do samego siebie", async () => {
       const overlay = await enterRegulus();
       overlay.shadow.querySelector<HTMLElement>('[data-action="metric-damageTaken"]')!.click();
 
       const poison = rowsOf(overlay, "abilities").find(
-        (row) => row.dataset.source === "od trucizny",
+        (row) => row.dataset.source === "Trucizna",
       )!;
-      expect(poison.dataset.leaf).toBe("");
+      expect(poison.dataset.leaf).toBeUndefined();
 
       poison.click();
-      // Widok stoi tam, gdzie stał — klik nie zszedł o szczebel.
-      expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Regulus Mętnooki");
+      expect(headings(overlay)[0]).toBe("OD KOGO — TRUCIZNA");
+      expect(rowsOf(overlay, "abilities").map((row) => row.dataset.source)).toEqual([
+        UNATTRIBUTED_SOURCE,
+      ]);
     });
   });
 
@@ -1027,10 +1037,10 @@ describe("overlay", () => {
       "Tancogniew Kazrek",
       // Te same obrażenia od strony umiejętności — bez względu na napastnika.
       "Zwykły atak",
-      "od trucizny",
+      "Trucizna",
       // I ten sam worek w trzecim przekroju, po żywiole.
-      "bez żywiołu",
-      "od trucizny",
+      "Nieznany",
+      "Trucizna",
     ]);
 
     // Szczebel niżej: czym ten napastnik uderzał, w rankingu po obrażeniach.
@@ -1041,7 +1051,7 @@ describe("overlay", () => {
       [...overlay.shadow.querySelectorAll('.rows .row[data-list="sources"] .label')].map(
         (el) => el.textContent,
       ),
-    ).toEqual(["Zwykły atak", "od trucizny"]);
+    ).toEqual(["Zwykły atak", "Trucizna"]);
   });
 
   test("dymek przeżywa przebudowę panelu pod nieruchomym kursorem", async () => {
@@ -1396,14 +1406,50 @@ describe("nagłówek stron i tempo", () => {
         .find((text) => text?.startsWith("Tykające obrażenia"));
 
     // Przy "Wszyscy" suma plus rozbicie — sama liczba nie mówi, kogo to boli.
-    expect(note()).toBe("Tykające obrażenia bez sprawcy: 100 (od trucizny · my 100 · oni 0)");
+    expect(note()).toBe("Tykające obrażenia bez sprawcy: 100 (Trucizna · my 100 · oni 0)");
 
     [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === "Oni")!.click();
     // Truciznę oberwał gracz, nie oni — przy "Oni" przypis nie ma o czym mówić.
     expect(note()).toBeUndefined();
 
     [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === "My")!.click();
-    expect(note()).toBe("Tykające obrażenia bez sprawcy: 100 (od trucizny)");
+    expect(note()).toBe("Tykające obrażenia bez sprawcy: 100 (Trucizna)");
+  });
+
+  /**
+   * Lustro testu wyżej po drugiej stronie bilansu. Leczenie bez leczącego było
+   * JEDNĄ liczbą, więc filtr składu pokazywał tę samą kwotę przy „My" i przy
+   * „Oni" — a leczono tylko jedną stronę.
+   */
+  test("leczenie bez sprawcy też idzie za filtrem składu", () => {
+    const stats = aggregate(
+      parse(
+        [
+          "Rozpoczęła się walka pomiędzy Gracz (1w) a Wilk (1w)",
+          "Przywrócono 700 punktów życia Gracz(90%).",
+        ].join("\n"),
+      ),
+    );
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    const note = () =>
+      [...overlay.shadow.querySelectorAll("footer .note")]
+        .map((el) => el.textContent)
+        .find((text) => text?.startsWith("Leczenie bez sprawcy"));
+
+    expect(note()).toBe("Leczenie bez sprawcy: 700 (my 700 · oni 0)");
+
+    metricButton(overlay, "Oni").click();
+    expect(note()).toBeUndefined();
+
+    metricButton(overlay, "My").click();
+    expect(note()).toBe("Leczenie bez sprawcy: 700");
+
+    // I schodzi razem z widokiem: w postaci przypis mówi o NIEJ, zamiast
+    // znikać, choć to ona tę kwotę dostała.
+    overlay.shadow.querySelector<HTMLElement>(".rows .row[data-actor]")!.click();
+    expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Gracz");
+    expect(note()).toBe("Leczenie bez sprawcy: 700");
   });
 
   test("nie ma nagłówka, gdy log nie dał podziału na strony", () => {
@@ -1668,7 +1714,7 @@ describe("oś tur, zgony i skupienie ognia", () => {
       const stats = await statsFrom(name);
       const onAxis = stats.timeline.reduce((sum, slice) => sum + slice.damage, 0);
       const dealt =
-        stats.actors.reduce((sum, a) => sum + a.damageDealt, 0) + totalUnattributedDot(stats.unattributedDotDamage);
+        stats.actors.reduce((sum, a) => sum + a.damageDealt, 0) + totalBySide(stats.unattributedDotDamage);
       expect(onAxis).toBe(dealt);
     }
   });

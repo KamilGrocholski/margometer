@@ -1,5 +1,5 @@
 import type { RosterEntry } from "./roster.ts";
-import { typeFamily } from "./types.ts";
+import { UNKNOWN_ELEMENT, dotLabel, typeDisplay, typeFamily } from "./types.ts";
 import type {
   ActorStats,
   AttackerBreakdown,
@@ -246,12 +246,6 @@ function instanceResolver(
 const PLAIN_ATTACK = "Zwykły atak";
 
 /**
- * Typ obrażeń, gdy żywiołu nie znamy: log wklejony jako tekst albo klasa CSS,
- * której jeszcze nie rozpoznajemy (obrażenia fizyczne). Nie nazywamy tego
- * "fizyczne", bo dla maga w logu tekstowym byłoby to nieprawdą.
- */
-const UNKNOWN_ELEMENT = "bez żywiołu";
-/**
  * Etykieta, którą parser zostawia dla nierozpoznanej klasy `dmgX`. Nazwa klasy
  * wprost, bo to jedyne, co o tym rodzaju obrażeń wiadomo.
  */
@@ -259,6 +253,39 @@ const RE_RAW_ELEMENT = /^dmg[a-z]+$/;
 
 /** Leczenie bez nazwy umiejętności — log nie mówi, co je wywołało. */
 const PLAIN_HEAL = "Regeneracja";
+/**
+ * Pierwszy szczebel rozbicia dla wszystkiego, czego log nikomu nie przypisuje.
+ *
+ * Ranking „OD KOGO" wymienia POSTACIE, więc tykający efekt bez sprawcy nie ma
+ * prawa w nim stać pod własną nazwą — czytałoby się to jak jeszcze jeden
+ * przeciwnik. Jedna pozycja zbiorcza mówi dokładnie tyle, ile log: „ktoś, ale
+ * nie wiadomo kto", a CO w niej siedzi, widać po wejściu o szczebel niżej.
+ *
+ * Eksportowana, bo widok musi ją rozpoznać, żeby postawić ją na końcu listy
+ * i odróżnić wizualnie od postaci — a porównywanie po literach w dwóch plikach
+ * rozjeżdża się przy pierwszej zmianie nazwy.
+ */
+export const UNATTRIBUTED_SOURCE = "Bez sprawcy";
+
+/**
+ * Malejąco po kwocie, ale pozycja zbiorcza zawsze na końcu.
+ *
+ * To nie jest uczestnik rankingu, tylko reszta, której log nie rozdzielił —
+ * wciśnięta między postacie po samej wielkości udawałaby jedną z nich. Jej
+ * miejsce ma mówić „tu kończą się ci, o których coś wiadomo".
+ *
+ * Eksportowany, bo tę samą listę składa też sumowanie sesji (`mergeAttackers`),
+ * a dwie kopie reguły rozjechałyby się dokładnie wtedy, gdy walk jest więcej
+ * niż jedna — czyli tam, gdzie nikt by tego nie sprawdzał.
+ */
+export function byAmountUnattributedLast(
+  a: { label: string; amount: number },
+  b: { label: string; amount: number },
+): number {
+  if (a.label === UNATTRIBUTED_SOURCE) return 1;
+  if (b.label === UNATTRIBUTED_SOURCE) return -1;
+  return b.amount - a.amount;
+}
 /**
  * "+Zranienie (339)" — jedyny proc w korpusie, który nazywa NARAZ sprawcę
  * (stoi przy jego ciosie) i dokładną kwotę przyszłego tyknięcia.
@@ -349,22 +376,28 @@ function byAmount(...sources: Array<Map<unknown, DamageSource>>): DamageSource[]
 }
 
 /**
- * DoT bez sprawcy w rozbiciu na stronę poszkodowanego.
+ * Pula bez sprawcy w rozbiciu na stronę tego, KOGO dotyczy.
  *
- * `types` mówi, CO w tej puli siedzi — bez tego przypis w panelu nazywał całość
- * trucizną, choć trafiają tu także rany i ogień. Nazwy są takie, jak w logu
- * ("trucizny", "ognia", "zranieniu"), bo tylko one są pewne.
+ * Sprawcy log nie podaje, ale poszkodowanego/leczonego już tak — a skoro tak, to
+ * przy filtrze składu przypis ma iść za nim. Jedna liczba dla obu zakładek
+ * mówiłaby „tyle samo u nas i u nich", czyli nieprawdę.
+ *
+ * `loose` to postacie spoza składu — te, których strony nie znamy.
  */
-export type UnattributedDot = {
-  mine: number;
-  enemy: number;
-  loose: number;
+export type BySide = { mine: number; enemy: number; loose: number };
+
+/**
+ * DoT bez sprawcy. Ponad podział na strony dochodzi `types`: CO w tej puli
+ * siedzi — bez tego przypis w panelu nazywał całość trucizną, choć trafiają tu
+ * także rany i ogień.
+ */
+export type UnattributedDot = BySide & {
   types: Array<{ label: string; amount: number }>;
 };
 
-/** Suma po wszystkich stronach — tyle trucizny bez sprawcy padło w walce. */
-export function totalUnattributedDot(dot: UnattributedDot): number {
-  return dot.mine + dot.enemy + dot.loose;
+/** Suma po wszystkich stronach — tyle bez sprawcy padło w całej walce. */
+export function totalBySide(pool: BySide): number {
+  return pool.mine + pool.enemy + pool.loose;
 }
 
 /**
@@ -384,8 +417,12 @@ export type Aggregate = {
    * im, a nie o całej walce. `loose` to postacie spoza składu.
    */
   unattributedDotDamage: UnattributedDot;
-  /** Leczenie bez podanego źródła — zliczone tylko po stronie leczonego. */
-  unattributedHealing: number;
+  /**
+   * Leczenie bez podanego źródła, w rozbiciu na stronę LECZONEGO — bo tę log
+   * podaje, choć leczącego nie. Lustro `unattributedDotDamage`, tyle że bez
+   * rodzajów: leczenie ma tu tylko dwa szyki i oba znaczą to samo.
+   */
+  unattributedHealing: BySide;
   /**
    * Wiersze, którym nie ufamy w pełni — overlay oznacza je gwiazdką. Dwa
    * przypadki, obie o tym samym dla patrzącego: liczba nie jest pewna.
@@ -460,7 +497,7 @@ export const EMPTY_STATS: BattleStats = Object.freeze({
     loose: 0,
     types: Object.freeze([] as UnattributedDot["types"]),
   }),
-  unattributedHealing: 0,
+  unattributedHealing: Object.freeze({ mine: 0, enemy: 0, loose: 0 }),
   ambiguousNames: Object.freeze([] as string[]),
   unknownLines: 0,
   unknownElements: Object.freeze([] as string[]),
@@ -517,6 +554,8 @@ function blank(name: string): ActorStats {
     takenFromBy: [],
     dealtToBy: [],
     unattributedDotTaken: 0,
+    unattributedDotTypes: [],
+    unattributedHealingReceived: 0,
   };
 }
 
@@ -710,13 +749,17 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
   const unattributedDotByTarget = new Map<string, number>();
   /** To samo w rozbiciu na rodzaj — po to, żeby stopka mówiła, CO w puli jest. */
   const unattributedDotTypes = new Map<string, number>();
+  /** To samo w rozbiciu na poszkodowanego — przypis zmienia zakres z widokiem. */
+  const unattributedDotTypesByTarget = new Map<string, Map<string, number>>();
   /**
    * Ostatnie „+Zranienie (N)" nałożone na cel — sprawca i zapowiedziana kwota.
    * Jeden proc obejmuje kilka tyknięć pod rząd i obowiązuje aż do następnego na
    * ten sam cel, więc wpisu nie kasujemy po użyciu, tylko nadpisujemy.
    */
   const woundBy = new Map<string, { source: string; amount: number }>();
-  let unattributedHealing = 0;
+  // Leczącego log nie podaje, ale LECZONEGO tak — zbieramy po nim, a na stronę
+  // przeliczymy na końcu, dokładnie tak samo jak przy tykających obrażeniach.
+  const unattributedHealingByTarget = new Map<string, number>();
   let unknownLines = 0;
   /** Klasy `dmgX`, których nie umiemy nazwać — patrz `BattleStats`. */
   const unknownElements = new Set<string>();
@@ -791,8 +834,13 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           // Żywioł znany tylko z DOM-u gry; przy wklejonym tekście go nie ma.
           const type = hit.element ?? UNKNOWN_ELEMENT;
           noteElement(hit.element);
-          addDamage(breakdownOf(sourceKey).dealtType, type, hit.applied);
-          addDamage(breakdownOf(targetKey).takenType, type, hit.applied);
+          // Przekrój po typie idzie po RODZINACH (`typeDisplay`), a nie po
+          // surowych etykietach: inaczej ta sama rzecz stoi w nim dwa razy —
+          // „ogień" z klasy CSS obok „od ognia" z tykającego efektu. Rodzinę
+          // dla BARWY liczy `noteType` niżej, z etykiety surowej; obie drogi
+          // kończą się w tym samym `typeFamily`.
+          addDamage(breakdownOf(sourceKey).dealtType, typeDisplay(type), hit.applied);
+          addDamage(breakdownOf(targetKey).takenType, typeDisplay(type), hit.applied);
           // Ten sam żywioł zapisany pod ETYKIETAMI, które go niosły — po nich
           // widok dobiera barwę paska w rozbiciu. Trzy zapisy, bo ta sama akcja
           // stoi pod trzema nazwami: u zadającego, w gałęzi celu i w płaskim
@@ -819,7 +867,11 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         // niosło ten żywioł", a własne obrażenia umiejętności mają swój własny
         // ("nieuchronne" w Fuzji nie pada nigdzie indziej). Gdyby i je odciąć,
         // pozycja stałaby z obrażeniami i zerem ciosów.
-        for (const type of new Set(landed.map((hit) => hit.element ?? UNKNOWN_ELEMENT))) {
+        //
+        // Zbiór liczy się po RODZINACH, tak jak klucz wyżej: cios tancerza niesie
+        // „fizyczne" i „broń pomocniczą", czyli dwie etykiety JEDNEJ rodziny —
+        // po surowych nazwach ten sam cios wpadłby do „Broni" dwa razy.
+        for (const type of new Set(landed.map((hit) => typeDisplay(hit.element ?? UNKNOWN_ELEMENT)))) {
           countStrike(breakdownOf(sourceKey).dealtType, type);
           countStrike(breakdownOf(targetKey).takenType, type);
         }
@@ -838,7 +890,12 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
       }
       case "dot": {
         const targetKey = resolve(event.target, event.targetHpPct);
-        const effect = `${event.via} ${event.dotType}`;
+        // Dwie postacie tej samej nazwy. SUROWA rozstrzyga o wiązaniu, bo musi
+        // pasować do `WOUND_DOT`, czyli do zapisu z logu; wygładzona idzie do
+        // panelu. Rozdzielone, bo pomylenie ich zrywa wiązanie „+Zranienie (N)"
+        // po cichu — kwota nadal by się zgadzała, tylko nikt by o nią nie pytał.
+        const rawEffect = `${event.via} ${event.dotType}`;
+        const effect = dotLabel(event.via, event.dotType);
         // Zranienie ma w logu sprawcę WPROST — proc "+Zranienie (N)" stoi przy
         // jego ciosie i zapowiada kwotę tyknięcia. Zgodność kwoty jest tu
         // warunkiem, nie ozdobą: bez niej wiązalibyśmy po samej kolejności
@@ -849,7 +906,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         // drugiej stronie stoi dokładnie jeden przeciwnik. Pyta się o niego po
         // NAZWIE z logu, nie po kluczu instancji — instancja celu nie zmienia
         // tego, kto stoi po drugiej stronie.
-        const wound = effect === WOUND_DOT ? woundBy.get(targetKey) : undefined;
+        const wound = rawEffect === WOUND_DOT ? woundBy.get(targetKey) : undefined;
         const source =
           wound && wound.amount === event.amount ? wound.source : opponentOf(event.target);
         get(targetKey).damageTaken += event.amount;
@@ -859,20 +916,25 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         if (source) addEdge(source, targetKey, event.amount);
         // Każde tyknięcie DoT-u to osobne wystąpienie — tu, w odróżnieniu od
         // ciosu, jedna linia niesie dokładnie jedną liczbę.
-        const takenKey = source ? `${source} (${effect})` : effect;
+        const owner = source ?? UNATTRIBUTED_SOURCE;
+        const takenKey = `${owner} (${effect})`;
         // Etykietą tykającego efektu jest on sam, więc rodzinę zna od razu.
         noteType(targetKey, effect, effect, event.amount);
         noteType(targetKey, takenKey, effect, event.amount);
         if (source) noteType(source, effect, effect, event.amount);
         addDamage(breakdownOf(targetKey).taken, takenKey, event.amount);
         countStrike(breakdownOf(targetKey).taken, takenKey);
-        // DoT bez sprawcy nie ma napastnika, więc pierwszym szczeblem zostaje
-        // sam efekt — "od trucizny" stoi wtedy obok postaci, bo tyle wiadomo.
-        const branch = branchOf(breakdownOf(targetKey).takenBy, source ?? effect);
+        // Sprawcy log nie zna, ale wiersz na pierwszym szczeblu musi być czymś.
+        // Wcześniej stawał nim SAM EFEKT, więc „od trucizny" siadało w rankingu
+        // „OD KOGO" między postaciami, jakby nią było — i prowadziło w ślepy
+        // zaułek, bo szczebel niżej powtarzał tę samą nazwę. Teraz wszystko bez
+        // sprawcy zbiera się pod jedną pozycją, a to, CO w niej siedzi, wychodzi
+        // dopiero po wejściu w nią.
+        const branch = branchOf(breakdownOf(targetKey).takenBy, owner);
         addDamage(branch, effect, event.amount);
         countStrike(branch, effect);
-        addDamage(breakdownOf(targetKey).takenType, effect, event.amount);
-        countStrike(breakdownOf(targetKey).takenType, effect);
+        addDamage(breakdownOf(targetKey).takenType, typeDisplay(effect), event.amount);
+        countStrike(breakdownOf(targetKey).takenType, typeDisplay(effect));
         if (source) {
           get(source).damageDealt += event.amount;
           addDamage(breakdownOf(source).dealt, effect, event.amount);
@@ -880,14 +942,19 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           const branchTo = branchOf(breakdownOf(source).dealtTo, targetKey);
           addDamage(branchTo, effect, event.amount);
           countStrike(branchTo, effect);
-          addDamage(breakdownOf(source).dealtType, effect, event.amount);
-          countStrike(breakdownOf(source).dealtType, effect);
+          addDamage(breakdownOf(source).dealtType, typeDisplay(effect), event.amount);
+          countStrike(breakdownOf(source).dealtType, typeDisplay(effect));
         } else {
           // Rodzaj idzie razem z kwotą: bez niego stopka nazywa TRUCIZNĄ całą
-          // pulę, w której siedzi też ogień i rany. Etykietą jest cały zwrot
-          // z logu ("od trucizny", "po zranieniu"), bo sam rzeczownik nie
-          // odmienia się tak samo w obu szykach.
+          // pulę, w której siedzi też ogień i rany.
           unattributedDotTypes.set(effect, (unattributedDotTypes.get(effect) ?? 0) + event.amount);
+          // Rodzaj zapisany TAKŻE przy poszkodowanym. Przypis w panelu zmienia
+          // zakres razem z widokiem (postać, strona, cała walka), a rodzaje szły
+          // dotąd zawsze z całej walki — nawias potrafił być większy od liczby,
+          // którą rzekomo rozbijał.
+          const byTypeForTarget = unattributedDotTypesByTarget.get(targetKey) ?? new Map();
+          unattributedDotTypesByTarget.set(targetKey, byTypeForTarget);
+          byTypeForTarget.set(effect, (byTypeForTarget.get(effect) ?? 0) + event.amount);
           unattributedDotByTarget.set(
             targetKey,
             (unattributedDotByTarget.get(targetKey) ?? 0) + event.amount,
@@ -910,7 +977,12 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         // dopisać; "Uleczono X o N" niesie nazwę umiejętności, ale rzucił ją
         // ktoś inny, więc mimo nazwy idzie do puli nierozdzielonej.
         if (event.self) get(targetKey).healingDone += event.amount;
-        else unattributedHealing += event.amount;
+        else {
+          unattributedHealingByTarget.set(
+            targetKey,
+            (unattributedHealingByTarget.get(targetKey) ?? 0) + event.amount,
+          );
+        }
         break;
       }
       case "turn-lost": {
@@ -985,7 +1057,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
             by: entries,
           };
         })
-        .sort((a, b) => b.amount - a.amount);
+        .sort(byAmountUnattributedLast);
     actor.takenFromBy = twoTier(breakdown.takenBy);
     actor.dealtToBy = twoTier(breakdown.dealtTo);
   }
@@ -1007,13 +1079,29 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
       .map(([label, amount]) => ({ label, amount }))
       .sort((a, b) => b.amount - a.amount),
   };
-  for (const [name, amount] of unattributedDotByTarget) {
+  const bucketOf = (name: string) => {
     const side = sideOf(name);
-    const bucket = side === null ? "loose" : side === 0 ? "mine" : "enemy";
-    unattributedDotDamage[bucket] += amount;
+    return side === null ? "loose" : side === 0 ? "mine" : "enemy";
+  };
+  for (const [name, amount] of unattributedDotByTarget) {
+    unattributedDotDamage[bucketOf(name)] += amount;
     // Ta sama liczba zapisana też przy poszkodowanym: po wejściu w postać
-    // przypis ma mówić o NIEJ, a nie o całej stronie.
+    // przypis ma mówić o NIEJ, a nie o całej stronie. Rodzaje idą tą samą
+    // drogą, żeby nawias nie rozbijał liczby z innego zakresu niż własny.
     get(name).unattributedDotTaken += amount;
+    get(name).unattributedDotTypes = [...(unattributedDotTypesByTarget.get(name) ?? [])]
+      .map(([label, typeAmount]) => ({ label, amount: typeAmount }))
+      .sort((a, b) => b.amount - a.amount);
+  }
+
+  // Leczenie bez leczącego dzieli się dokładnie tak samo — po LECZONYM. Dopóki
+  // była to jedna liczba, filtr „My"/„Oni" pokazywał na obu zakładkach to samo,
+  // a w widoku postaci przypis znikał zupełnie, choć to właśnie ona tę kwotę
+  // dostała.
+  const unattributedHealing: BySide = { mine: 0, enemy: 0, loose: 0 };
+  for (const [name, amount] of unattributedHealingByTarget) {
+    unattributedHealing[bucketOf(name)] += amount;
+    get(name).unattributedHealingReceived += amount;
   }
 
   return {
@@ -1054,17 +1142,25 @@ export function invertBreakdown(tiers: AttackerBreakdown[]): AttackerBreakdown[]
     }
   }
 
-  for (const entry of flipped.values()) entry.by.sort((a, b) => b.amount - a.amount);
-  return [...flipped.values()].sort((a, b) => b.amount - a.amount);
+  // Ten sam komparator co przy składaniu `takenFromBy` — inaczej pozycja
+  // zbiorcza po odwróceniu ląduje w środku listy, z kreską odcinającą nad sobą
+  // i nazwanymi napastnikami pod spodem. Miejsce ma mówić, gdzie kończą się ci,
+  // o których coś wiadomo, więc musi to mówić na KAŻDEJ drodze do listy.
+  for (const entry of flipped.values()) entry.by.sort(byAmountUnattributedLast);
+  return [...flipped.values()].sort(byAmountUnattributedLast);
 }
 
 /**
  * Czy wejście w tę pozycję pokaże cokolwiek nowego.
  *
- * Trucizna bez sprawcy stoi na pierwszym szczeblu pod nazwą EFEKTU (patrz
- * `stats.ts` przy DoT), więc po odwróceniu wychodzi „od trucizny → od trucizny”
- * — jeden wiersz powtarzający sam siebie. Za `UX.md §6`: liść bez danych się nie
- * podświetla i nie kusi kliknięciem.
+ * Pozycja, pod którą stoi wyłącznie ona sama, jest liściem — wejście w nią
+ * pokazałoby wiersz powtarzający własną nazwę. Za `UX.md §6`: liść bez danych
+ * się nie podświetla i nie kusi kliknięciem.
+ *
+ * Historycznie wyzwalała to trucizna bez sprawcy, która stała na pierwszym
+ * szczeblu pod nazwą EFEKTU. Odkąd zbiera się pod `UNATTRIBUTED_SOURCE`, oba
+ * szczeble mówią co innego i ten konkretny przypadek nie zachodzi — reguła
+ * zostaje, bo dotyczy KSZTAŁTU rozbicia, nie trucizny.
  */
 export function leadsDeeper(entry: AttackerBreakdown): boolean {
   if (entry.by.length === 0) return false;

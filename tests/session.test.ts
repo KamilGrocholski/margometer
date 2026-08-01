@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { parse } from "../src/parser.ts";
-import { aggregate, totalUnattributedDot, type Aggregate } from "../src/stats.ts";
+import { aggregate, totalBySide, UNATTRIBUTED_SOURCE, type Aggregate } from "../src/stats.ts";
 import { Overlay } from "../src/overlay.ts";
 import { Session, splitFights } from "../src/session.ts";
 import { DomLogSource } from "../src/source.ts";
@@ -94,7 +94,7 @@ ${await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")}`;
       // do puli nieprzypisanej — suma obrażeń ma się zgadzać, nie sam licznik.
       const total = session.total();
       const after = (total.actors.find((a) => a.name === NAME)?.damageDealt ?? 0)
-        + totalUnattributedDot(total.unattributedDotDamage);
+        + totalBySide(total.unattributedDotDamage);
       expect(after).toBe(once);
     });
 
@@ -361,5 +361,80 @@ describe("koszt sumy sesji", () => {
 
     // Ale gdy ktoś naprawdę pyta — liczba jest na miejscu.
     expect(session.total().actors.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * Sesja to suma walk — i to, czego log nie przypisał nikomu, też musi się w niej
+ * sumować w tym samym kształcie, co w pojedynczej walce. Inaczej przypis pod
+ * listą przestaje się zgadzać dokładnie wtedy, gdy walk jest więcej niż jedna.
+ */
+describe("suma sesji trzyma pule bez sprawcy", () => {
+  const fight = (victim: string, poison: number, heal: number) =>
+    [
+      "Rozpoczęła się walka pomiędzy Gracz (1w) a Wilk (1w), Niedźwiedź (1w)",
+      `${victim}(50%): ${poison} obrażeń od trucizny.`,
+      `Przywrócono ${heal} punktów życia ${victim}(90%).`,
+    ].join("\n");
+
+  test("leczenie i trucizna bez sprawcy sumują się po stronach", async () => {
+    const session = new Session();
+    session.update(fight("Gracz", 100, 700));
+    session.update(`${fight("Gracz", 100, 700)}\n${fight("Gracz", 40, 300)}`);
+
+    const total = session.total();
+    // Dwie walki po stronie gracza — obie pule mają wylądować pod „my”, a nie
+    // rozdzielić się po równo ani powtórzyć na obu zakładkach filtra.
+    expect(total.unattributedHealing).toEqual({ mine: 1000, enemy: 0, loose: 0 });
+    expect(total.unattributedDotDamage.mine).toBe(140);
+    expect(total.unattributedDotDamage.enemy).toBe(0);
+    expect(totalBySide(total.unattributedDotDamage)).toBe(140);
+    // Ta sama liczba widziana od strony postaci.
+    const gracz = total.actors.find((a) => a.name === "Gracz")!;
+    expect(gracz.unattributedHealingReceived).toBe(1000);
+    expect(gracz.unattributedDotTaken).toBe(140);
+  });
+
+  test("pozycja zbiorcza zostaje na końcu rozbicia po sklejeniu walk", async () => {
+    const session = new Session();
+    session.update(
+      [
+        "Rozpoczęła się walka pomiędzy Gracz (1w) a Wilk (1w), Niedźwiedź (1w)",
+        "Wilk(100%) uderzył z siłą  +50",
+        "Gracz(90%) otrzymał(a)  -50  obrażeń",
+        "Gracz(50%): 100 obrażeń od trucizny.",
+      ].join("\n"),
+    );
+
+    const gracz = session.total().actors.find((a) => a.name === "Gracz")!;
+    expect(gracz.takenFromBy.at(-1)?.label).toBe(UNATTRIBUTED_SOURCE);
+    expect(gracz.takenFromBy.at(-1)?.amount).toBe(100);
+  });
+});
+
+/**
+ * Strona jest cechą POSTACI, nie walki — tak jak profesja i poziom, które
+ * `mergeStats` uzupełniał od dawna. Bez tego suma sesji miała `null` u każdego,
+ * kto choć raz wystąpił w buforze bez linii otwierającej, a `matchesTeam`
+ * odrzuca `null` poza „Wszyscy": ci gracze znikali z „My"/„Oni" mimo że inna
+ * walka ich stronę znała.
+ */
+describe("suma sesji nie gubi strony", () => {
+  const pelna = [
+    "Rozpoczęła się walka pomiędzy Gracz (100h) a Wróg (70m)",
+    "Gracz(100%) uderzył z siłą  +100",
+    "Wróg(80%) otrzymał(a)  -100  obrażeń",
+  ].join("\n");
+  const ogon = ["Gracz(100%) uderzył z siłą  +50", "Wróg(90%) otrzymał(a)  -50  obrażeń"].join("\n");
+
+  test("stronę dokłada walka, która ją zna", () => {
+    const session = new Session();
+    session.update(ogon);
+    session.update(`${ogon}\n${pelna}`);
+
+    const sides = (stats: Aggregate) =>
+      Object.fromEntries(stats.actors.map((actor) => [actor.name, actor.side]));
+    expect(sides(session.current())).toEqual({ Gracz: 0, Wróg: 1 });
+    expect(sides(session.total())).toEqual({ Gracz: 0, Wróg: 1 });
   });
 });

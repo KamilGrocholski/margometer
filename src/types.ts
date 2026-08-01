@@ -231,7 +231,30 @@ export type LabelType = { label: string; type: string };
  * Mieszka tu, a nie w palecie, bo to podział DZIEDZINY, nie decyzja o wyglądzie:
  * korzysta z niego i agregacja (dominujący typ umiejętności), i widok (barwa).
  */
+/**
+ * Pamięć wyników `typeFamily` i `typeDisplay`.
+ *
+ * Obie funkcje są czystymi odwzorowaniami na ZAMKNIĘTYM zbiorze etykiet
+ * (dwanaście z logu plus nazwy umiejętności), a `aggregate` woła je ~3 000 razy
+ * na przebieg — i przebiega przy KAŻDEJ linii logu, w wątku gry. Zmierzone na
+ * walce z Hildur: 0,613 ms → 0,046 ms na jedno `aggregate`, czyli ponad
+ * ćwierć jego kosztu, za dwie mapy.
+ *
+ * Bez limitu rozmiaru świadomie: kluczem są nazwy z logu jednej sesji, więc
+ * zbiór rośnie do kilkudziesięciu pozycji i tam zostaje.
+ */
+const familyMemo = new Map<string, string | null>();
+const displayMemo = new Map<string, string>();
+
 export function typeFamily(label: string): string | null {
+  const cached = familyMemo.get(label);
+  if (cached !== undefined || familyMemo.has(label)) return cached ?? null;
+  const family = classify(label);
+  familyMemo.set(label, family);
+  return family;
+}
+
+function classify(label: string): string | null {
   const text = label.toLowerCase();
   if (text.includes("ogni") || text.includes("ogień")) return "ogień";
   if (text.includes("błyskaw")) return "błyskawica";
@@ -248,6 +271,90 @@ export function typeFamily(label: string): string | null {
   // ZASIĘG zamiast żywiołu, więc żywioł jest nieznany, a nie inny. Zgadywanie
   // barwy byłoby tu wymyślaniem rodzaju obrażeń.
   return null;
+}
+
+/**
+ * Typ obrażeń, gdy żywiołu nie znamy: log wklejony jako tekst albo klasa CSS,
+ * której jeszcze nie rozpoznajemy (obrażenia fizyczne). Nie nazywamy tego
+ * "fizyczne", bo dla maga w logu tekstowym byłoby to nieprawdą.
+ *
+ * Stoi tu, a nie w `stats.ts`, bo czyta go też `typeDisplay` — to jedna z nazw
+ * DZIEDZINY, jak `typeFamily`, a nie szczegół agregacji.
+ */
+export const UNKNOWN_ELEMENT = "bez żywiołu";
+
+/** Nazwa wiersza dla wszystkiego, czego rodzaju log nie podał. */
+const UNKNOWN_TYPE = "Nieznany";
+
+/**
+ * Co dopisać w nawiasie przy `Nieznany`, gdy log powiedział COŚ, tyle że nie
+ * o żywiole. `globalne` to ZASIĘG (umiejętność bije we wszystkich naraz) —
+ * po polsku czyta się to jako "obszarowe", a nie jako rodzaj obrażeń.
+ *
+ * Etykiety spoza tej mapy (surowe `dmgX`) wchodzą do nawiasu dosłownie: to
+ * jedyne, co o nich wiadomo, i to ona ma trafić do zgłoszenia.
+ */
+const UNKNOWN_DETAIL: Record<string, string> = {
+  globalne: "obszarowe",
+};
+
+function capitalized(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
+ * Nazwa RODZINY tak, jak ma stać w wierszu przekroju „TYP OBRAŻEŃ".
+ *
+ * Sekcja wymienia rodziny, nie surowe etykiety — inaczej ta sama rzecz stoi
+ * w niej dwa razy pod dwiema gramatykami („ogień" z klasy CSS i „od ognia"
+ * z tykającego efektu), a suma rozsypuje się na wiersze, których nikt nie
+ * potrafi ze sobą zestawić.
+ *
+ * Nierozpoznane NIE dostaje wymyślonej rodziny: mówi wprost „Nieznany", a
+ * w nawiasie to, co log naprawdę podał. Zgadywanie byłoby tu gorsze niż
+ * przyznanie się, że rodzaju nie znamy.
+ */
+export function typeDisplay(type: string): string {
+  const cached = displayMemo.get(type);
+  if (cached !== undefined) return cached;
+  const family = typeFamily(type);
+  const shown =
+    family !== null
+      ? capitalized(family)
+      : type === UNKNOWN_ELEMENT
+        ? UNKNOWN_TYPE
+        : `${UNKNOWN_TYPE} (${UNKNOWN_DETAIL[type] ?? type})`;
+  displayMemo.set(type, shown);
+  return shown;
+}
+
+/**
+ * Nazwy tykających efektów w mianowniku — te same rzeczowniki, które stoją
+ * w logu, tylko wyjęte z przyimka.
+ *
+ * Log pisze o nich zdaniem („N obrażeń **od trucizny**"), a w panelu stoją
+ * w kolumnie obok nazw umiejętności („Niszczycielski cios"). Fraza przyimkowa
+ * w takiej kolumnie czyta się jak usterka, bo nią jest: to jedyne pozycje,
+ * które łamią gramatykę całej listy.
+ *
+ * Mapa, a nie odmiana z reguł: pięć rodzajów w całym korpusie, a złe odmienienie
+ * szóstego byłoby gorsze niż zostawienie go w spokoju.
+ */
+const DOT_LABELS: Record<string, string> = {
+  "od trucizny": "Trucizna",
+  "od głębokiej rany": "Głęboka rana",
+  "od ognia": "Ogień",
+  "po zranieniu": "Zranienie",
+  "od błyskawic": "Błyskawica",
+};
+
+/**
+ * Etykieta tykającego efektu. Rodzaj spoza mapy zostaje DOSŁOWNIE taki, jak
+ * w logu — nowy format ma być widać, a nie zniknąć pod wygładzoną nazwą.
+ */
+export function dotLabel(via: string, dotType: string): string {
+  const raw = `${via} ${dotType}`;
+  return DOT_LABELS[raw] ?? raw;
 }
 
 export type ActorStats = {
@@ -308,6 +415,23 @@ export type ActorStats = {
    * jednej postaci.
    */
   unattributedDotTaken: number;
+  /**
+   * Co siedzi w `unattributedDotTaken` — te same nazwy, co w
+   * `UnattributedDot.types`, tylko dla TEJ jednej postaci.
+   *
+   * Osobne pole, bo przypis w panelu zmienia zakres razem z widokiem (postać,
+   * strona, cała walka), a rodzaje szły dotąd zawsze z całej walki. Przy dwóch
+   * rodzajach na dwóch postaciach nawias potrafił być większy od liczby, którą
+   * rzekomo rozbijał.
+   */
+  unattributedDotTypes: Array<{ label: string; amount: number }>;
+  /**
+   * Leczenie, które ta postać dostała, a którego log nikomu nie przypisuje —
+   * lustro `unattributedDotTaken` po drugiej stronie bilansu. Wliczone
+   * w `healingReceived`, więc NIE dodawaj go osobno; służy do przypisu w widoku
+   * tej jednej postaci.
+   */
+  unattributedHealingReceived: number;
   /**
    * Te same obrażenia w drugim przekroju: wg typu (żywioł, trucizna, głęboka
    * rana...). Suma jest identyczna jak w `dealtBy` — to inny podział, nie

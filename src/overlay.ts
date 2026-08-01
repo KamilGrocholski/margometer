@@ -3,8 +3,9 @@ import { EMPTY_STATS } from "./session.ts";
 import {
   invertBreakdown,
   leadsDeeper,
-  totalUnattributedDot,
+  totalBySide,
   type BattleStats,
+  type BySide,
   type SessionStats,
 } from "./stats.ts";
 import { PROFESSIONS, type ActorStats, type AttackerBreakdown } from "./types.ts";
@@ -62,6 +63,29 @@ type DrillKind = "target" | "ability";
 type HoverTarget =
   | { type: "actor"; key: string }
   | { type: "source"; key: string; list: BreakdownList };
+
+/**
+ * Rodzaje tykających obrażeń bez sprawcy w zakresie, który widać na liście.
+ *
+ * Sumujemy po postaciach przechodzących filtr, bo tylko one składają się na
+ * liczbę stojącą w przypisie. Rodzaje z całej walki obok kwoty jednej strony
+ * to nawias rozbijający coś innego, niż zapowiada.
+ */
+function sumKinds(
+  actors: readonly ActorStats[],
+  team: Team,
+): Array<{ label: string; amount: number }> {
+  const total = new Map<string, number>();
+  for (const actor of actors) {
+    if (!matchesTeam(actor.side, team)) continue;
+    for (const kind of actor.unattributedDotTypes) {
+      total.set(kind.label, (total.get(kind.label) ?? 0) + kind.amount);
+    }
+  }
+  return [...total]
+    .map(([label, amount]) => ({ label, amount }))
+    .sort((a, b) => b.amount - a.amount);
+}
 
 /** Strona 0 to drużyna gracza — log pisze skład od jego perspektywy. */
 function matchesTeam(side: number | null, team: Team): boolean {
@@ -1968,20 +1992,42 @@ export class Overlay {
       // Bez licznika: jeden cios niesie kilka żywiołów, więc pozycje sumowałyby
       // się do wielokrotności ciosów postaci.
       // Tu etykieta JEST rodzajem obrażeń, więc barwę bierze wprost z siebie.
-      this.appendBreakdown(container, "TYP OBRAŻEŃ", "types", types, total, divisor, typeColor, () => null);
+      //
+      // `() => false` jest tu konieczne, nie ozdobne: przekrój po typie nigdzie
+      // nie prowadzi (`rowIdentity` zwraca dla niego `null`), a bez tego wiersze
+      // nie dostają `data-leaf` i reguła kursora maluje im łapkę nad kliknięciem,
+      // które przepada. Obietnica kursora ma się zgadzać z tym, co robi klik.
+      this.appendBreakdown(
+        container,
+        "TYP OBRAŻEŃ",
+        "types",
+        types,
+        total,
+        divisor,
+        typeColor,
+        () => null,
+        () => false,
+      );
     }
 
-    const counters = [
-      `ciosy ${actor.hits}`,
-      `kryt. ${actor.crits}`,
-      `uniki ${actor.misses}`,
-      `maks. cios ${number.format(actor.maxHit)}`,
-      `tury ${actor.turns}`,
-      `utracone ${actor.turnsLost}`,
-    ];
-    container.append(div("note", counters.join(" · ")));
+    container.append(this.counters(actor));
 
     return container;
+  }
+
+  /** Stopka widoku postaci — te same liczby niezależnie od wybranej metryki. */
+  private counters(actor: ActorStats): HTMLElement {
+    return div(
+      "note",
+      [
+        `ciosy ${actor.hits}`,
+        `kryt. ${actor.crits}`,
+        `uniki ${actor.misses}`,
+        `maks. cios ${number.format(actor.maxHit)}`,
+        `tury ${actor.turns}`,
+        `utracone ${actor.turnsLost}`,
+      ].join(" · "),
+    );
   }
 
   /**
@@ -2575,14 +2621,28 @@ export class Overlay {
     const focused = this.focus
       ? stats.actors.find((actor) => actor.name === this.focus)
       : undefined;
+    /**
+     * Ile z puli bez sprawcy dotyczy tego, co WIDAĆ. Jedno miejsce na tę
+     * decyzję, bo puli są dwie — tykające obrażenia i leczenie — a rozjazd
+     * między nimi znaczyłby, że dwa przypisy pod sobą liczą według dwóch
+     * różnych zasad.
+     */
+    const visible = (pool: BySide, own: number | undefined) =>
+      own !== undefined
+        ? own
+        : this.team === "mine"
+          ? pool.mine
+          : this.team === "enemy"
+            ? pool.enemy
+            : totalBySide(pool);
+    /** „my N · oni N” — dokładane tylko tam, gdzie widać obie strony naraz. */
+    const bothSides = (pool: BySide) =>
+      !focused && this.team === "all" && (pool.mine > 0 || pool.enemy > 0)
+        ? [`my ${number.format(pool.mine)}`, `oni ${number.format(pool.enemy)}`]
+        : [];
+
     const dot = stats.unattributedDotDamage;
-    const unattributed = focused
-      ? focused.unattributedDotTaken
-      : this.team === "mine"
-        ? dot.mine
-        : this.team === "enemy"
-          ? dot.enemy
-          : totalUnattributedDot(dot);
+    const unattributed = visible(dot, focused?.unattributedDotTaken);
     if (unattributed > 0) {
       // Przy "Wszyscy" sama suma nie mówi, kogo to boli — a to jedyne, co o tej
       // truciźnie wiadomo, bo sprawcy log nie podaje. W widoku postaci podział
@@ -2590,10 +2650,12 @@ export class Overlay {
       // Przypis mówi, CO w tej puli jest, i KOGO to boli — obie rzeczy w jednym
       // nawiasie, bo dwa nawiasy pod rząd czyta się gorzej niż lista.
       //
-      // Rodzaj jest tu nowy: wcześniej przypis nazywał całość TRUCIZNĄ, choć
-      // trafia tu także ogień i rany. Przy jednym rodzaju była to prawda przez
-      // przypadek, przy kilku po prostu nieprawda.
-      const kinds = dot.types;
+      // Rodzaje MUSZĄ być z tego samego zakresu, co liczba przed nawiasem.
+      // Wcześniej stały tu zawsze rodzaje z całej walki, a kwota szła za
+      // filtrem i za wybraną postacią — przy dwóch rodzajach na dwóch
+      // postaciach nawias potrafił być WIĘKSZY od liczby, którą rozbijał
+      // („bez sprawcy: 300 (Ogień 900 · Trucizna 300)").
+      const kinds = focused ? focused.unattributedDotTypes : sumKinds(stats.actors, this.team);
       const detail = [
         ...(kinds.length === 1
           ? [kinds[0]!.label]
@@ -2601,9 +2663,7 @@ export class Overlay {
         // Sama suma nie mówi, kogo to boli — a to jedyne, co o tych obrażeniach
         // wiadomo, bo sprawcy log nie podaje. W widoku postaci podział na strony
         // nie ma sensu: strona jest jedna, ta jej.
-        ...(!focused && this.team === "all" && (dot.mine > 0 || dot.enemy > 0)
-          ? [`my ${number.format(dot.mine)}`, `oni ${number.format(dot.enemy)}`]
-          : []),
+        ...bothSides(dot),
       ];
       notes.push({
         text:
@@ -2617,9 +2677,18 @@ export class Overlay {
     // ta pula nie ma właściciela i przez to nie miała w panelu żadnego śladu.
     // Ta sama zasada, co przy DoT-cie — nie zgadujemy sprawcy, tylko mówimy,
     // ile leczenia stoi poza rankingiem.
-    if (!focused && stats.unattributedHealing > 0) {
+    //
+    // I ta sama arytmetyka: dopóki była to JEDNA liczba, filtr „My"/„Oni"
+    // pokazywał na obu zakładkach to samo, a w widoku postaci przypis znikał —
+    // choć to właśnie ona tę kwotę dostała.
+    const healing = stats.unattributedHealing;
+    const unattributedHealing = visible(healing, focused?.unattributedHealingReceived);
+    if (unattributedHealing > 0) {
+      const detail = bothSides(healing);
       notes.push({
-        text: `Leczenie bez sprawcy: ${number.format(stats.unattributedHealing)}`,
+        text:
+          `Leczenie bez sprawcy: ${number.format(unattributedHealing)}` +
+          (detail.length > 0 ? ` (${detail.join(" · ")})` : ""),
         warn: false,
       });
     }

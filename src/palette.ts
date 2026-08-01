@@ -84,12 +84,19 @@ export const TYPE_COLORS: Record<string, string> = {
 
 export function typeColor(label: string | null): string {
   if (label === null) return OTHER_COLOR;
-  // Etykieta bywa już nazwą rodziny (przekrój po typie, `typeByLabel`) albo
+  // Etykieta bywa już nazwą rodziny (przekrój po typie — „Broń", „Ogień") albo
   // surowym zapisem z logu („od trucizny", „dystansowe"). Jedno i drugie ma
-  // trafić w tę samą barwę, więc najpierw próbujemy wprost, a dopiero potem
-  // przez klasyfikację — nazwa rodziny nie zawsze pasuje do własnych wzorców
-  // („broń" powstaje z „fizyczne" i „dystansowe", a sama nie zawiera żadnego).
-  return TYPE_COLORS[label] ?? TYPE_COLORS[typeFamily(label) ?? ""] ?? OTHER_COLOR;
+  // trafić w tę samą barwę, stąd dwie drogi.
+  //
+  // Pierwsza szuka po nazwie rodziny i MUSI zdjąć wielkość liter: klucze są
+  // małą literą, a wiersz przychodzi z wielkiej. Sześć rodzin ratowała druga
+  // droga — ich nazwa zawiera własny wzorzec, więc `typeFamily("Ogień")` je
+  // odnajduje — ale „broń" powstaje z „fizyczne" i „dystansowe" i sama nie
+  // zawiera żadnego. Bez `toLowerCase()` NAJWIĘKSZY wiersz w panelu dostawał
+  // barwę „nie wiadomo", nie do odróżnienia od „Nieznany".
+  return (
+    TYPE_COLORS[label.toLowerCase()] ?? TYPE_COLORS[typeFamily(label) ?? ""] ?? OTHER_COLOR
+  );
 }
 
 /**
