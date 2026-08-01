@@ -31,13 +31,14 @@
     "'+Cios bardzo krytyczny' (superCrit) obok zwyklego krytyka w tym samym ciosie",
     "'+Szybka strzała' i '+Dotyk anioła' jako proc-i bez wlasnych obrazen",
     "'X - utrata tury (redukcja ogłuszenia 50%)' - powod w nawiasie",
-    "obrazenia wlasne umiejetnosci ('-8570 obrażeń otrzymał(a) X') w Spiewie zaglady na 10 celow naraz"
+    "obrazenia wlasne umiejetnosci ('-8570 obrażeń otrzymał(a) X') w Spiewie zaglady na 10 celow naraz",
+    "OBIE DROGI: log.html obok raw.txt, wiec 'Zablokowanie N obrazen' jest sprawdzone takze na sciezce DOM (to zamyka brak z SOLID.md §10) i walka wchodzi do testu roznicowego html<->raw",
+    "367 trafien z zywiolem z klasy CSS w 7 rodzajach (fizyczne 94, zimno 80, dystansowe 55, ogien 54, globalne 50, nieuchronne 27, blyskawica 7) - w raw.txt zaden z nich nie ma zywiolu"
   ],
   "missing": [
-    "zrzut z DOM (log.html) - wiec ta walka nie sprawdza zywiolow z klas dmgX ani nie wchodzi do testu roznicowego html<->raw",
     "unik - ani jeden w calej walce, wiec fixture nie mowi nic o AUDYT-40",
     "remis",
     "log wlascicielki (formy zenskie czasownika)"
   ],
-  "notes": "Dodany 2026-08-01 przy zamykaniu AUDYT-40. Dwa powody: drugi sklad przeciwko znanemu bossowi (korpus mial dotad jeden) i piec linii 'Zablokowanie N obrazen' - szyk, ktorego brakowalo. UWAGA: bez log.html blok nadal nie jest sprawdzony na sciezce DOM, wiec luka z SOLID.md §10 zostaje otwarta do czasu dolozenia zrzutu. Parser: 808 zdarzen, 0 nieznanych linii, 0 nieznanych klas. Boss zadal 532 980, przyjal 397 980 i poleglal; walka rozstrzygnieta na korzysc druzyny."
+  "notes": "Dodany 2026-08-01 przy zamykaniu AUDYT-40. Dwa powody: drugi sklad przeciwko znanemu bossowi (korpus mial dotad jeden) i piec linii 'Zablokowanie N obrazen' - szyk, ktorego brakowalo. Parser: raw.txt 808 zdarzen, log.html 807, oba 0 nieznanych linii i 0 nieznanych klas. Jedyna dozwolona roznica miedzy plikami to fight-start 1 (DOM) vs 2 (raw) - zrzut z 'Kopiuj logi' dubluje linie otwarcia; kazdy inny rodzaj zdarzenia zgadza sie co do sztuki, a test roznicowy porownuje 9 liczb na kazda z 11 postaci. Boss zadal 532 980, przyjal 397 980 i poleglal; walka rozstrzygnieta na korzysc druzyny."
 }

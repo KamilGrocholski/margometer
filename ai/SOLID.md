@@ -708,20 +708,26 @@ Do tego porównywane `summary()` nie obejmuje `unknownElements` ani
 **Asercje na nieobecność czegoś, czego nie ma:** `.tip-row` i `.more` nie padają
 nigdzie w `src/`. Ta sama klasa, którą `AUDYT‑24` skasował dla `.axis`/`.focus`.
 
-**Skrzywienie korpusu.** 20 fixture'ów, ale tylko **6 z zrzutem DOM** — cała oś
+**Skrzywienie korpusu.** 20 fixture'ów, ale tylko **7 z zrzutem DOM** — cała oś
 żywiołów (i scalanie rodzin z 2026‑07‑31) jest sprawdzana na jednej trzeciej.
 Nadal jeden build klienta, jeden właściciel, wyłącznie męskie formy czasownika.
 
 **Brakujące fixture'y:** log **właścicielki** (formy żeńskie — `GENDER` jest
 sprawdzany tylko na ręcznie pisanych stringach), walka z **przyciętym
 nagłówkiem** (rozstrzyga §4.12), **remis** („Walka nie wyłoniła zwycięzcy" nie
-pada w żadnym `covers`), `Zablokowanie N obrażeń` na ścieżce DOM.
+pada w żadnym `covers`).
 
-⚠️ Ostatnia pozycja jest **w połowie zamknięta** (2026‑08‑01):
-`2026-08-01_druzyna-vs-hildur-drugi-sklad` niesie pięć takich linii, ale na razie
-tylko w `raw.txt` — bez `log.html` szyk nadal nie jest sprawdzony na ścieżce DOM,
-a fixture nie wchodzi do testu różnicowego. Zrzut z DOM tej samej walki zamyka
-oba braki naraz.
+✅ `Zablokowanie N obrażeń` **na ścieżce DOM** — zamknięte 2026‑08‑01.
+`2026-08-01_druzyna-vs-hildur-drugi-sklad` dostał `log.html` do swojego
+`raw.txt`, więc pięć takich linii przechodzi teraz obiema drogami. Przy okazji
+walka weszła do testu różnicowego: dziewięć liczb na każdą z jedenastu postaci
+zgadza się co do jedności. Jedyna dozwolona różnica to `fight-start` 1 (DOM)
+kontra 2 (`raw.txt`) — zrzut z „Kopiuj logi" dubluje linię otwarcia, co ten
+fixture ma opisane w `covers`; wszystkie pozostałe rodzaje zdarzeń są równe
+co do sztuki. **Czego dołożył sam DOM:** 367 trafień z rozpoznanym żywiołem
+w siedmiu rodzajach (fizyczne 94, zimno 80, dystansowe 55, ogień 54, globalne 50,
+nieuchronne 27, błyskawica 7) — w `raw.txt` żadne z nich nie ma żywiołu, bo ten
+siedzi wyłącznie w klasie CSS.
 
 ---
 
