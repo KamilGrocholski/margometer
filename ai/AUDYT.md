@@ -32,8 +32,8 @@ wprost na zrzutach z `docs/screenshots/`, których nie miał żaden backlog.
 Wszystkie naprawione w tej samej rundzie; `AUDYT‑7` doczekało się sprostowania.
 **Audyt tego samego dnia** (sekcja `F3`) dołożył `AUDYT‑30`…`AUDYT‑40`, z czego
 **pięć to regresje rundy `F2`** — stąd zasada: przegląd PRZED commitem, nie po.
-Otwarte zostają `AUDYT‑39` (fałszywa strona przy zdublowanej nazwie po obu
-stronach) i `AUDYT‑40` (`hits` + `misses` przy uniku częściowym). Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
+Otwarte zostaje `AUDYT‑39` (fałszywa strona przy zdublowanej nazwie po obu
+stronach); `AUDYT‑40` zamknięte 2026‑08‑01. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
 wykonanie odbiegło od propozycji, jest to powiedziane wprost.
@@ -82,7 +82,7 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑37~~ | `mergeStats` nie uzupełnia `side` | 🟡 | XS | **✅** ✓ |
 | ~~AUDYT‑38~~ | `RE_INFO` „otrzymuje” łyka linię z obrażeniami | 🟡 | XS | **✅** ✓ |
 | AUDYT‑39 | Ta sama nazwa po obu stronach → fałszywa strona dla obu | 🔴 | M | ✓ |
-| AUDYT‑40 | `hits` + `misses` liczą ten sam atak przy uniku częściowym | ⚪ | XS | ✓ |
+| ~~AUDYT‑40~~ | `hits` + `misses` liczą ten sam atak przy uniku częściowym | ⚪ | XS | **✅** ✓ |
 | AUDYT‑17 | Wielkie/małe litery i puste stany bez odmiany | ⚪ | S | |
 | AUDYT‑18 | ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba | ⚪ | S | |
 | AUDYT‑19 | PPM zabiera menu przeglądarki nad listą archiwum | ⚪ | XS | |
@@ -1009,16 +1009,63 @@ ma na ten przypadek jawny guard; `seats` go nie ma.
 uwzględniający stronę (dokładniejsze, rusza `seats`). Realne w walkach
 grupowych z tym samym typem moba po obu stronach i przy przywoływańcach.
 
-### AUDYT‑40 — `hits` i `misses` liczą ten sam atak ⚪ OTWARTE ✓
-`src/stats.ts`, dokumentacja w `src/types.ts`
+### AUDYT‑40 — `hits` i `misses` liczą ten sam atak ✅ NAPRAWIONE ✓
+`src/stats.ts`, `src/types.ts`, `src/overlay.ts`
 
-Atak, w którym broń główna przepadła na uniku, a pomocnicza trafiła, podbija OBA
+Atak, w którym broń główna przepadła na uniku, a pomocnicza trafiła, podbijał OBA
 liczniki. Zmierzone: `tancerz-vs-tropiciel-pvp` — **12 ataków → ciosy 12,
-uniki 2**. Stopka pokazuje `ciosy 12 · uniki 2`, czytający policzy 14 i wyliczy
-~14 % uników, których nie było. `types.ts` definiuje `misses` jako „ataki
-**zakończone** unikiem” — a te trafiły.
+uniki 2**. Stopka pokazywała `ciosy 12 · uniki 2`, czytający liczył 14 i wyliczał
+~17 % uników, których nie było. `types.ts` definiował przy tym `misses` jako
+„ataki **zakończone** unikiem" — a te trafiły, więc **kod przeczył własnej
+dokumentacji**.
 
-**Do rozstrzygnięcia:** poprawić licznik czy definicję.
+**Dane, na których stanęła decyzja** (16 zrzutów tekstowych korpusu):
+
+| | ile |
+|---|---|
+| ataki z jakimkolwiek unikiem | 15 |
+| z tego pełne (nic nie weszło) | 12 |
+| z tego częściowe | **3** |
+
+Wszystkie trzy częściowe należą do JEDNEGO tancerza ostrzy — to jedyna profesja
+bijąca w korpusie dwiema broniami w jednym ciosie. Mag też niesie kilka liczb
+(zimno + błyskawica), ale żaden jego cios nie został wyunikany, więc nie wiadomo,
+czy przy nim unik pada na pojedynczy żywioł. `event.dodged` zgadza się
+z `pełne + częściowe` w **1115 na 1115** zdarzeń.
+
+**Zrobione — pełne i częściowe OSOBNO.** `misses` liczy odtąd wyłącznie ataki,
+w których nic nie weszło (czyli to, co dokumentacja mówiła od początku), a nowe
+`partialMisses` liczy te, w których przepadła część trafień. Rozważane i odrzucone
+warianty: sam licznik pełnych (trzy uniki częściowe przestałyby być gdziekolwiek
+widoczne, choć log je zgłosił) i mianownik przy starej definicji („uniki 2/12" —
+liczba nadal wymaga chwili myślenia).
+
+Panel pokazuje człon o częściowych **tylko wtedy, gdy jest niezerowy**, więc
+u profesji jednobronnych wiersz zostaje bez zmian:
+
+```
+tancerz:  ciosy 12 · kryt. 1 · uniki 0 (+2 częściowe) · maks. cios 1159 · …
+tropiciel: ciosy 6 · kryt. 0 · uniki 2 · maks. cios 882 · …
+```
+
+Przy okazji `misses` dostało brakującego strażnika `event.strike`, który `hits`
+miał od zawsze — dziś nic nie zmienia (zdarzenia `strike: false` mają
+`dodged: false` na sztywno), ale asymetria między dwoma licznikami tej samej
+rzeczy prosiła się o regresję.
+
+**Czym przypięte.** Nowy niezmiennik w `stats.test.ts`, per fixture:
+`Σ ciosy + Σ uniki == Σ ataków`. Trzyma na całym korpusie i jest właściwym
+strażnikiem tej zmiany — dopóki obowiązuje, dwie liczby ze stopki wolno dodać.
+
+**Dokumentacja gry tego nie rozstrzyga** — sprawdzone 2026‑08‑01 w oficjalnej
+pomocy („[Mechanika walk](https://pomoc.margonem.pl/index/view,372)"). Artykuł
+opisuje unik i blok jako STATYSTYKI, z formułami na przewagę poziomową, ale nie
+mówi ani czy unik rozstrzyga się raz na atak, czy na każdą liczbę obrażeń, ani
+jak zachowuje się broń pomocnicza. Model „unik bywa częściowy" pochodzi więc
+z korpusu (trafienie z `applied === 0` przy fladze `Unik`), a nie z opisu gry.
+
+**Nie badać drugi raz:** decyzja zapadła na powyższych liczbach, nie na przeczuciu,
+a pomoc gry została sprawdzona i milczy.
 
 ### Drobne, naprawione przy okazji
 - **Podpowiedź w dymku kłamała**: „PPM — powrót do składu”, choć PPM zdejmuje

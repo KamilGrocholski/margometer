@@ -651,6 +651,24 @@ describe("niezmienniki liczb", () => {
     test("rozbicia domykają się ze skalarami", async () => {
       expect(mismatches(aggregate(parse(await fixture.text())))).toEqual([]);
     });
+
+    /**
+     * Każdy atak jest albo ciosem, albo unikiem — nigdy obydwoma i nigdy żadnym.
+     *
+     * To jest niezmiennik, dla którego rozdzielono uniki pełne od częściowych
+     * (`AUDYT‑40`). Dopóki trzyma, „ciosy N · uniki M" w stopce można dodać
+     * i wyjdzie liczba ataków; wcześniej atak z częściowym unikiem podbijał oba
+     * liczniki i suma była o niego za duża.
+     */
+    test("ciosy i uniki sumują się do liczby ataków", async () => {
+      const events = parse(await fixture.text());
+      const stats = aggregate(events);
+      const ataki = events.filter((e) => e.kind === "attack" && e.strike).length;
+      const ciosy = stats.actors.reduce((sum, a) => sum + a.hits, 0);
+      const uniki = stats.actors.reduce((sum, a) => sum + a.misses, 0);
+
+      expect(ciosy + uniki).toBe(ataki);
+    });
   });
 
   test("te same niezmienniki trzymają po scaleniu całej sesji", async () => {

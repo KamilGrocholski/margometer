@@ -539,6 +539,7 @@ function blank(name: string): ActorStats {
     healingReceived: 0,
     hits: 0,
     misses: 0,
+    partialMisses: 0,
     crits: 0,
     turns: 0,
     maxHit: 0,
@@ -788,16 +789,30 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         if (event.ability === null && event.strike) {
           bumpCount(breakdownOf(sourceKey).abilityUses, PLAIN_ATTACK);
         }
-        // Unik liczymy raz na atak, nie raz na liczbę obrażeń — inaczej ten sam
-        // unik dawałby 1 u łowcy (jedna liczba) i 2 u tropiciela (dwie), więc
-        // licznik nie dałby się porównywać między profesjami.
-        if (event.hits.some((hit) => hit.dodged)) source.misses += 1;
-
         // Cios liczymy raz, choćby niósł kilka liczb (mag: zimno + błyskawica).
         // Własne obrażenia umiejętności nie są osobnym ciosem — lecą obok tego
         // z tej samej tury.
         const landed = event.hits.filter((hit) => !hit.dodged);
         if (event.strike && landed.length > 0) source.hits += 1;
+
+        // Unik liczymy raz na atak, nie raz na liczbę obrażeń — inaczej ten sam
+        // unik dawałby 1 u łowcy (jedna liczba) i 2 u tropiciela (dwie), więc
+        // licznik nie dałby się porównywać między profesjami.
+        //
+        // Pełny i częściowy idą do OSOBNYCH pól, bo odpowiadają na różne pytania.
+        // Atak, w którym broń główna przepadła, a pomocnicza trafiła, jest
+        // jednocześnie ciosem — doliczony do `misses` kazałby czytelnikowi
+        // policzyć go dwa razy („ciosy 12 · uniki 2" przy dwunastu atakach).
+        // Dzięki rozdzieleniu `hits + misses` to dokładnie liczba ataków.
+        //
+        // Strażnik `event.strike` jest tu z tego samego powodu, co przy `hits`:
+        // własne obrażenia umiejętności nie są atakiem. Dziś nic nie zmienia
+        // (te zdarzenia mają `dodged: false` na sztywno), ale asymetria między
+        // dwoma licznikami tej samej rzeczy prosi się o regresję.
+        if (event.strike && landed.length < event.hits.length) {
+          if (landed.length === 0) source.misses += 1;
+          else source.partialMisses += 1;
+        }
 
         // Tylko CIOS bije rekord — `maxHit` jest zdefiniowany jako najsilniejsze
         // pojedyncze uderzenie. Własne obrażenia umiejętności (`strike: false`)

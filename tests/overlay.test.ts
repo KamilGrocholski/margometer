@@ -2772,3 +2772,39 @@ describe("audyt 2026-08-01", () => {
     expect(collapsed.shadow.querySelector(".panel")?.className).toBe("panel");
   });
 });
+
+/**
+ * `AUDYT‑40`: atak z częściowym unikiem jest jednocześnie ciosem, więc doliczony
+ * do „uników" kazał czytelnikowi policzyć go dwa razy — „ciosy 12 · uniki 2"
+ * przy dwunastu atakach czytało się jako czternaście.
+ */
+describe("uniki pełne i częściowe w stopce", () => {
+  const counters = (overlay: Overlay) =>
+    overlay.shadow.querySelector(".rows .note")?.textContent ?? "";
+  const enter = async (fixture: string, actor: string) => {
+    const stats = aggregate(parse(await readFixture(fixture)));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")]
+      .find((row) => row.dataset.actor === actor)!
+      .click();
+    return overlay;
+  };
+
+  test("tancerz: dwa uniki częściowe stoją osobno od pełnych", async () => {
+    const overlay = await enter("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp", "Tancogniew Kazrek");
+
+    // Dwanaście ataków, wszystkie weszły — żaden nie przepadł w całości.
+    expect(counters(overlay)).toContain("ciosy 12");
+    expect(counters(overlay)).toContain("uniki 0 (+2 częściowe)");
+  });
+
+  test("profesja bijąca jedną bronią ma wiersz bez zmian", async () => {
+    // Unik jednej broni jest zawsze pełny, więc członu o częściowych nie ma —
+    // nie zaśmieca zwykłego przypadku.
+    const overlay = await enter("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp", "wf agar psk");
+
+    expect(counters(overlay)).toContain("uniki 2");
+    expect(counters(overlay)).not.toContain("częściow");
+  });
+});

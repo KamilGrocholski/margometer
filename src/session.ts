@@ -148,6 +148,7 @@ function mergeStats(all: Aggregate[]): SessionStats {
       merged.healingReceived += actor.healingReceived;
       merged.hits += actor.hits;
       merged.misses += actor.misses;
+      merged.partialMisses += actor.partialMisses;
       merged.crits += actor.crits;
       merged.turns += actor.turns;
       merged.turnsLost += actor.turnsLost;

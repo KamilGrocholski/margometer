@@ -326,10 +326,17 @@ describe("tancerz vs tropiciel (pvp)", () => {
   test("unik liczy się raz na atak, niezależnie od liczby obrażeń w ciosie", async () => {
     // Ten sam unik dawałby 1 u łowcy (jedna liczba) i 2 u tropiciela (dwie),
     // więc licznik nie dałby się porównywać między profesjami.
+    //
+    // Sumujemy OBA liczniki, bo pełny i częściowy to ten sam unik widziany
+    // z dwóch stron — rozdzielone są dlatego, że częściowy jest jednocześnie
+    // ciosem, a nie dlatego, że przestał być unikiem.
     const events = await load();
     const dodgedAttacks = events.filter((e) => e.kind === "attack" && e.dodged);
     const stats = aggregate(events);
-    const total = stats.actors.reduce((sum, actor) => sum + actor.misses, 0);
+    const total = stats.actors.reduce(
+      (sum, actor) => sum + actor.misses + actor.partialMisses,
+      0,
+    );
 
     expect(dodgedAttacks.length).toBeGreaterThan(0);
     expect(total).toBe(dodgedAttacks.length);
@@ -340,7 +347,12 @@ describe("tancerz vs tropiciel (pvp)", () => {
     const kazrek = stats.actors.find((a) => a.name === "Tancogniew Kazrek")!;
 
     // Dwa ataki z częściowym unikiem: 284 + 234 wchodzi, main hand przepada.
-    expect(kazrek.misses).toBe(2);
+    // Ani jeden atak nie przepadł w CAŁOŚCI, więc `misses` jest zerem — i to
+    // jest cała różnica: te dwa ataki weszły, choć log zgłosił przy nich „Unik".
+    expect(kazrek.misses).toBe(0);
+    expect(kazrek.partialMisses).toBe(2);
+    // Dwanaście ataków, dwanaście ciosów — nic do dodania do siebie.
+    expect(kazrek.hits + kazrek.misses).toBe(12);
     expect(kazrek.damageDealt).toBe(10366);
     expect(stats.unknownLines).toBe(0);
   });

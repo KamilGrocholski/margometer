@@ -380,8 +380,27 @@ export type ActorStats = {
    * cios maga niesie dwie liczby (zimno + błyskawica), a to nadal jeden cios.
    */
   hits: number;
-  /** Ataki zakończone unikiem celu. */
+  /**
+   * Ataki zakończone unikiem celu — czyli takie, w których NIC nie weszło.
+   *
+   * Rozłączne z `hits`: każdy atak jest albo ciosem, albo unikiem, więc
+   * `hits + misses` to liczba ataków i tyle właśnie wychodzi z dodawania.
+   * Atak, w którym przepadła tylko część trafień, jest ciosem i stoi
+   * w `partialMisses` — patrz niżej.
+   */
   misses: number;
+  /**
+   * Ataki, w których cel uniknął CZĘŚCI trafień, a reszta weszła.
+   *
+   * Zdarza się przy jednym ciosie niosącym kilka liczb: tancerz ostrzy bije
+   * dwiema broniami i główna potrafi przepaść, gdy pomocnicza trafia. W całym
+   * korpusie takie ataki są trzy i wszystkie są jego.
+   *
+   * Osobne pole, a nie doliczenie do `misses`, bo taki atak jest JEDNOCZEŚNIE
+   * ciosem. Doliczony tam dawał `ciosy 12 · uniki 2` przy dwunastu atakach —
+   * czytający dodawał je do siebie i wychodziło czternaście.
+   */
+  partialMisses: number;
   crits: number;
   /**
    * Tury, w których postać działała. Log nie numeruje tur, więc turą jest

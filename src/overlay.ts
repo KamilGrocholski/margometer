@@ -154,6 +154,22 @@ const unknownWord = (count: number) =>
   plural(count, ["nierozpoznana", "nierozpoznane", "nierozpoznanych"]);
 /** Wspólne dla panelu i archiwum — te same liczniki stoją w obu. */
 export const turnWord = (count: number) => plural(count, ["tura", "tury", "tur"]);
+
+/**
+ * Człon o unikach — jeden dla stopki widoku postaci i dla dymka.
+ *
+ * Uniki CZĘŚCIOWE (broń główna przepadła, pomocnicza trafiła) stoją osobno, bo
+ * taki atak jest jednocześnie ciosem: doliczone do „uników" dawały
+ * „ciosy 12 · uniki 2" przy dwunastu atakach i czytający sumował je do
+ * czternastu. Człon pojawia się TYLKO gdy jest niezerowy — u profesji bijących
+ * jedną bronią uniki są zawsze pełne i wiersz zostaje bez zmian.
+ */
+function dodgeLabel(actor: ActorStats): string {
+  const partial = actor.partialMisses;
+  if (partial === 0) return `uniki ${actor.misses}`;
+  const word = plural(partial, ["częściowy", "częściowe", "częściowych"]);
+  return `uniki ${actor.misses} (+${partial} ${word})`;
+}
 export const actorWord = (count: number) => plural(count, ["postać", "postacie", "postaci"]);
 
 const number = new Intl.NumberFormat("pl-PL");
@@ -2195,7 +2211,7 @@ export class Overlay {
       [
         `ciosy ${actor.hits}`,
         `kryt. ${actor.crits}`,
-        `uniki ${actor.misses}`,
+        dodgeLabel(actor),
         `maks. cios ${number.format(actor.maxHit)}`,
         `tury ${actor.turns}`,
         `utracone ${actor.turnsLost}`,
@@ -2539,7 +2555,7 @@ export class Overlay {
     const counters = [
       `ciosy ${actor.hits}`,
       `kryt. ${actor.crits}`,
-      `uniki ${actor.misses}`,
+      dodgeLabel(actor),
       `maks. cios ${number.format(actor.maxHit)}`,
       `pochłonięte ${number.format(actor.damageAbsorbed)}`,
     ];
