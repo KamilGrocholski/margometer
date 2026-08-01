@@ -73,6 +73,18 @@ const EMPTY_TEAM: Record<Team, string> = {
  */
 type BreakdownList = "sources" | "abilities" | "types";
 
+/**
+ * Czy `data-list` z wiersza jest jedną ze znanych list.
+ *
+ * `dataset` daje `string | undefined`, a od tej wartości zależy, w której liście
+ * dymek szuka pozycji — pudło znaczy dymek, który nie przychodzi. Strażnik stoi
+ * tu, żeby dołożenie czwartej listy było błędem kompilacji w JEDNYM miejscu,
+ * a nie cichym pudłem w drugim.
+ */
+function isBreakdownList(value: string | undefined): value is BreakdownList {
+  return value === "sources" || value === "abilities" || value === "types";
+}
+
 /** Z której listy wyszedł drugi szczebel drążenia. */
 type DrillKind = "target" | "ability";
 
@@ -453,8 +465,11 @@ footer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; f
    tam, gdzie kliknięcie coś robi. */
 .rows .row { cursor: default; }
 .rows .row[data-actor] { cursor: pointer; }
-/* Wiersz rozbicia nie prowadzi głębiej, ale ma dymek — kursor to sygnalizuje. */
+/* Wiersz rozbicia, który jest liściem, nie prowadzi głębiej, ale ma dymek —
+   kursor to sygnalizuje. Ten, w który DA się wejść, dostaje ten sam kursor co
+   wiersz składu: obietnica kursora ma się zgadzać z tym, co robi klik. */
 .rows .row[data-source] { cursor: help; }
+.rows .row[data-source]:not([data-leaf]) { cursor: pointer; }
 .tip {
   /* Zwykły element panelu, nie natywny tooltip przeglądarki: pełna kontrola
      nad wyglądem i momentem pokazania, identycznie w każdej przeglądarce. */
@@ -1058,14 +1073,16 @@ export class Overlay {
       const row = rowUnder(event.target);
       if (row?.dataset.actor) {
         this.showTip({ type: "actor", key: row.dataset.actor });
-      } else if (row?.dataset.source) {
+      } else if (row?.dataset.source && isBreakdownList(row.dataset.list)) {
         // Wewnątrz postaci pełna etykieta bywa ucięta w wierszu — dymek jest
         // jedynym miejscem, gdzie widać całe "od kogo i czym".
-        this.showTip({
-          type: "source",
-          key: row.dataset.source,
-          list: row.dataset.list === "types" ? "types" : "sources",
-        });
+        //
+        // Lista idzie WPROST z wiersza. Wcześniej stało tu zawężenie do dwóch
+        // wartości (`… === "types" ? "types" : "sources"`), przez które cała
+        // sekcja `CZYM (ŁĄCZNIE)` — i drugi szczebel wejścia przez umiejętność —
+        // pytały o pozycję w liście CELÓW, nie znajdowały jej i chowały dymek.
+        // Akurat tam etykiety są najdłuższe, czyli dymek najbardziej potrzebny.
+        this.showTip({ type: "source", key: row.dataset.source, list: row.dataset.list });
       }
     });
     this.root.addEventListener("pointerout", (event) => {
@@ -1339,7 +1356,7 @@ export class Overlay {
     // miałoby się do czego odnieść.
     if (this.preview?.view !== view) {
       this.focus = null;
-      this.focusSource = null;
+      this.clearDrill();
     }
     this.preview = { stats, view };
     this.rerender();
@@ -1349,7 +1366,7 @@ export class Overlay {
     if (!this.preview) return;
     this.preview = null;
     this.focus = null;
-    this.focusSource = null;
+    this.clearDrill();
     this.rerender();
   }
 
@@ -1804,9 +1821,13 @@ export class Overlay {
       tabs.append(
         this.tabButton(`metric-${metric}`, METRIC_LABELS[metric], this.metric === metric, () => {
           this.metric = metric;
-          // Drugi szczebel istnieje tylko dla przyjętych i tylko dla JEDNEGO
-          // napastnika — przy innej metryce nie ma czego pokazać.
-          this.focusSource = null;
+          // Drugi szczebel należy do metryki, w której się w niego weszło —
+          // przy innej nie ma czego pokazać. `clearDrill`, a nie samo
+          // `focusSource`: `focusKind` MUSI zginąć razem z nim. Zostawiony
+          // dawał nagłówek „OD KOGO" nad listą UMIEJĘTNOŚCI, tę samą listę
+          // wyrenderowaną dwa razy i pierwszy szczebel, którego nie dało się
+          // kliknąć — dokładnie rozjazd, przed którym broni docstring `clearDrill`.
+          this.clearDrill();
           this.rerender();
         }),
       );
@@ -2631,10 +2652,16 @@ export class Overlay {
       // rozjeżdżają — przy 13 z 17 etykiet w korpusie to ta sama liczba, a
       // powtórzona pod drugą nazwą czytała się jak osobny pomiar.
       numbers.append(stat("Użycia", `${uses.count}`));
-      if (source.hits !== uses.count) numbers.append(stat("Ciosy", `${source.hits}`));
-    } else {
+      // Ten sam warunek co w `times()`: ZERO ciosów to nie rozjazd, tylko inny
+      // kształt akcji („Śpiew zagłady" zadaje linią, która ciosem nie jest).
+      // Wiersz przestał to meldować w poprzedniej rundzie, dymek nie — i ta sama
+      // nieprawda przeniosła się o kilka pikseli w bok.
+      if (source.hits > 0 && source.hits !== uses.count) {
+        numbers.append(stat("Ciosy", `${source.hits}`));
+      }
+    } else if (source.hits > 0) {
       // Otrzymane i leczenie nie mają użyć — tam liczba ciosów jest jedyną,
-      // jaką da się podać.
+      // jaką da się podać. Zera nie podajemy z tego samego powodu, co wyżej.
       numbers.append(stat(this.metric === "healingReceived" ? "Razy" : "Ciosy", `${source.hits}`));
     }
 
@@ -2642,7 +2669,9 @@ export class Overlay {
       // Etykieta łamie się na kilka linijek — po to jest ten dymek.
       div("tip-title tip-wrap", source.label),
       numbers,
-      div("tip-hint", `${actor.name} · PPM — powrót do składu`),
+      // PPM zdejmuje JEDEN szczebel, więc z drugiego wraca do listy celów, nie
+      // do składu. To jedyna instrukcja nawigacji w panelu — nie może kłamać.
+      div("tip-hint", `${actor.name} · PPM — o szczebel wyżej`),
     ];
   }
 
