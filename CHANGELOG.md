@@ -15,6 +15,12 @@
 
 Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
+> ⚠️ **Wczesna faza (alpha).** Numery `0.x` nie obiecują zgodności — układ
+> panelu, nazwy i zapisane ustawienia mogą się zmienić między wydaniami.
+> Zgodnie z SemVer: przy zerowej wersji głównej wszystko może się zmienić
+> w każdej chwili. Do czasu `1.0.0` czytaj sekcję **Zmienione** przed
+> aktualizacją.
+
 ## [Niewydane]
 
 ## [0.3.0] — 2026-08-01

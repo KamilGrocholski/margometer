@@ -7,6 +7,16 @@ i Details!, tyle że Margonem jest turowy, więc i licznik liczy na tury.
 Dodatek **niczego nie wysyła i nie dotyka gry** — czyta to samo okno walki, co
 Ty, i rysuje obok własny panel.
 
+> ⚠️ **Wczesna faza (alpha).** Dodatek jest używalny — liczby zgadzają się na
+> korpusie kilkudziesięciu prawdziwych walk — ale numery `0.x` **nie obiecują
+> zgodności**: układ panelu, nazwy i zapisane ustawienia mogą się zmienić
+> między wydaniami. Statystyki powstają z czytania okna walki, więc zmiana
+> formatu logu po stronie gry potrafi je popsuć do czasu poprawki. Panel mówi
+> wtedy wprost, że czegoś nie rozumie, zamiast po cichu zaniżać liczby.
+>
+> Najbardziej przydatna rzecz, jaką możesz przysłać, to **log walki**, na której
+> coś nie zagrało — „Kopiuj logi" w pasku nagrywania.
+
 ---
 
 ## Jak zainstalować

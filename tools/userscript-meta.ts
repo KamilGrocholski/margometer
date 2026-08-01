@@ -8,6 +8,7 @@
  * (`eddde5b`, potem `2016e59` „dodatek nie wstrzykiwał się do gry”), za każdym
  * razem cicho — dodatek po prostu nie startował.
  */
+import { PHASE_LABEL } from "./phase.ts";
 
 /**
  * Nagłówek dodatku. `homepage` idzie z `package.json` — tak samo jak `version`
@@ -35,7 +36,7 @@ export function banner(version: string, description: string, homepage: string): 
   // światów. Druga linia obrony siedzi w `boot()` — bez `Engine` i bez okna
   // walki panel się nie rysuje, a pętla szukania gaśnie po kilkunastu sekundach.
   return `// ==UserScript==
-// @name         MargoMeter
+// @name         MargoMeter${PHASE_LABEL}
 // @namespace    ${homepage}
 // @version      ${version}
 // @description  ${description}

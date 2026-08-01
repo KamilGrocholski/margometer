@@ -10,6 +10,7 @@
  * Bez tego wydanie miałoby albo pustą treść, albo automatyczną listę commitów —
  * czyli zapis dla programisty w miejscu, które czyta użytkownik.
  */
+import { PHASE_NOTE } from "./phase.ts";
 
 /**
  * Treść sekcji danej wersji, bez jej nagłówka. `null`, gdy sekcji nie ma —
@@ -44,5 +45,7 @@ if (import.meta.main) {
     console.error(`CHANGELOG.md nie ma sekcji [${version}] albo jest ona pusta`);
     process.exit(1);
   }
-  console.log(section);
+  // Ostrzeżenie o fazie idzie NAD zmianami: do wydania trafia się prosto
+  // z linku, więc README ze swoim ostrzeżeniem bywa pominięte w całości.
+  console.log(PHASE_NOTE === "" ? section : `${PHASE_NOTE}\n\n${section}`);
 }

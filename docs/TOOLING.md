@@ -96,6 +96,37 @@ na tagu**, `dist/` zostaje w `.gitignore`:
 origin v0.3.0`. Do tego czasu adresy w nagłówku wskazują pustkę — nieszkodliwie
 (Tampermonkey po prostu nie znajduje aktualizacji), ale realnie.
 
+### Faza wczesna: dlaczego NIE przez flagę „Pre-release"
+
+Projekt jest w alfie i to widać w czterech miejscach — ale **nie** przez
+gitHubową flagę pre-release. Powód jest mechaniczny i wart zapamiętania:
+
+> **GitHub-owe „latest" pomija wydania oznaczone jako pre-release.**
+
+A `@downloadURL`/`@updateURL` wskazują `releases/latest/download/...`. Zaznaczenie
+tej flagi zabiłoby więc aktualizacje u wszystkich zainstalowanych i link
+instalacyjny z README — **po cichu**, bo samo wydanie powstałoby normalnie
+i wyglądałoby poprawnie. Wyjściem byłby powrót do adresu z wpisanym tagiem,
+czyli do literalu poprawianego przy każdym wydaniu — dokładnie tego, co §2
+wyeliminowało. Dlatego `release.yml` ma jawne `prerelease: false` z komentarzem,
+a nie brak wpisu: brak można „poprawić" w dobrej wierze.
+
+Samo `0.x` już niesie tę informację formalnie (SemVer: „Major version zero
+(0.y.z) is for initial development. Anything MAY change at any time."), więc
+numeracja **nie dostaje sufiksów** `-alpha.N`. Sprawdzone przy okazji, gdyby
+kiedyś miały być potrzebne: Tampermonkey je obsługuje i sortuje zgodnie
+z SemVerem — `0.3.0-alpha.1` jest STARSZE niż `0.3.0`, więc przejście z alfy na
+wydanie zwykłe zadziała jako aktualizacja.
+
+Słowo fazy żyje w **jednym** miejscu (`tools/phase.ts`), a nie w czterech —
+bo cztery kopie statusu to ten sam kształt, który `SOLID §11` i `AUDYT §G`
+opisują jako przyczynę wszystkich rozjazdów w tym repo. Zasila: `@name`
+w nagłówku i akapit nad treścią wydania. Dwa pozostałe miejsca to proza
+(README, CHANGELOG), której nie da się zaimportować — pilnuje ich
+`tests/phase.test.ts`, i pilnuje **w obie strony**: po ustawieniu `PHASE = null`
+test wskazuje teksty, które nadal ogłaszają alfę. Wyjście z fazy wczesnej jest
+więc jedną zmianą i listą miejsc do poprawienia, a nie polowaniem.
+
 ## 3. Zapis zmian dla użytkownika ✅ WRÓCIŁ (2026‑08‑01)
 
 `CHANGELOG.md` jest z powrotem — **w tej samej rundzie, co kanał dostawy**,

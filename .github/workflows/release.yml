@@ -53,6 +53,19 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           body_path: release-notes.md
+          # NIE zmieniaj tego na `true`, mimo że projekt jest w fazie alpha.
+          #
+          # GitHub-owe „latest" POMIJA wydania oznaczone jako pre-release,
+          # a `@downloadURL`/`@updateURL` w nagłówku dodatku wskazują
+          # `releases/latest/download/...`. Zaznaczenie tej flagi zabiłoby więc
+          # aktualizacje u wszystkich zainstalowanych i link z README —
+          # po cichu, bo samo wydanie powstałoby normalnie.
+          #
+          # Wczesną fazę komunikujemy tam, gdzie widzi ją użytkownik: w nazwie
+          # skryptu, w README, w CHANGELOG-u i w treści wydania (`tools/phase.ts`).
+          # SemVer niesie to samo w numerze: `0.x` znaczy „wszystko może się
+          # zmienić". Etykieta na stronie repo nie jest tego warta.
+          prerelease: false
           files: |
             dist/margometer.user.js
             dist/margometer.meta.js
