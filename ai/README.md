@@ -137,7 +137,8 @@ stoi dokładnie jeden przeciwnik (`opponentOf` w `stats.ts`). W innym wypadku ob
 lądują w `unattributedDotDamage`.
 
 **Czy da się to obejść?** Nie wprost. Trucizna to właściwość broni
-([pomoc.margonem.pl/index/view,372](https://pomoc.margonem.pl/index/view,372)), więc
+([„Mechanika walk"](https://pomoc.margonem.pl/index/view,372) — oficjalna pomoc
+mówi o „broniach od zimna i trucizny"), więc
 otruć mógł tylko ten, kto faktycznie trafił cel — to zawęża krąg podejrzanych, ale
 przy dwóch trafiających przeciwnikach nadal nie rozstrzyga. Zawężenie „tylko ci,
 którzy trafili" jest do wdrożenia, ale świadomie odłożone.

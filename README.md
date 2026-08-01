@@ -107,5 +107,9 @@ bun test          # same testy
 ```
 
 Dlaczego kod wygląda, jak wygląda, i czego log o walce nie mówi — w katalogu
-[`ai/`](ai/). Zrzuty walk, na których stoją testy, siedzą w
-`tests/fixtures/new-engine/`.
+[`ai/`](ai/). Zaczynaj od [`ai/START.md`](ai/START.md): mówi, co gdzie siedzi,
+jakie zasady obowiązują w tym repo i jak wyglądały poprzednie rundy pracy —
+reszta katalogu jest do czytania wybiórczo, nie od deski do deski.
+
+Zrzuty walk, na których stoją testy, siedzą w `tests/fixtures/new-engine/`;
+przy każdym stoi `meta.json` z opisem, co ten fixture pokrywa.
