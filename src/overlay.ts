@@ -1,4 +1,4 @@
-import { professionColor, typeColor } from "./palette.ts";
+import { professionColor, professionInk, typeColor } from "./palette.ts";
 import { EMPTY_STATS } from "./session.ts";
 import {
   invertBreakdown,
@@ -463,6 +463,26 @@ button[aria-pressed="true"] { background: #2f2f37; color: var(--ink); }
    paska i dymek; na 260 px kolejna kolumna zrobiłaby z wiersza tabelę. */
 .rank { color: var(--ink-muted); font-variant-numeric: tabular-nums; flex: none; }
 .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+/* Odznaka profesji. Nie kurczy się, bo przy ciasnym wierszu ustąpić ma NAZWA —
+   ona ma wielokropek, odznaka nie ma czego uciąć. Szerokość równa wysokości,
+   żeby wszystkie litery zajmowały tyle samo i lewa krawędź nazw stała w pionie
+   mimo różnych szerokości znaków. */
+.label[data-prof]::before {
+  content: attr(data-prof);
+  display: inline-block;
+  vertical-align: 1px;
+  margin-right: 4px;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  background: var(--prof-bg);
+  color: var(--prof-ink);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+  letter-spacing: 0;
+}
 .value, .avg { font-variant-numeric: tabular-nums; flex: none; }
 .avg { color: var(--ink-muted); font-size: 11px; }
 /* Liczba wiodąca jest zawsze ta pogrubiona — to ona rządzi paskiem i rankingiem,
@@ -685,15 +705,16 @@ function actionUnder(target: EventTarget | null): string | null {
 }
 
 /**
- * Czy cel zdarzenia leży w polu, w którym się pisze.
+ * Czy cel zdarzenia leży w samym panelu — a nie w archiwum, które rysuje się
+ * w TYM SAMYM shadow roocie.
  *
  * Ta sama ostrożność co w `rowUnder` — `closest` zamiast `instanceof`, bo
  * siedzimy w cudzym dokumencie.
  */
-function editableUnder(target: EventTarget | null): boolean {
+function panelUnder(target: EventTarget | null): boolean {
   const element = target as Element | null;
   if (typeof element?.closest !== "function") return false;
-  return element.closest("textarea, input, [contenteditable='true']") !== null;
+  return element.closest(".panel") !== null;
 }
 
 /**
@@ -1183,14 +1204,23 @@ export class Overlay {
       if (name) this.actions.get(name)?.();
     });
     this.root.addEventListener("contextmenu", (event) => {
-      // Menu przeglądarki nad panelem tylko przeszkadza, a prawy przycisk ma
-      // tu własne znaczenie. Blokujemy je w całym overlayu, nie tylko na
-      // wierszu — wracać chce się także z pustego miejsca pod listą.
+      // Prawy przycisk zdejmuje szczebel drążenia, więc menu przeglądarki
+      // blokujemy — ale WYŁĄCZNIE tam, gdzie naprawdę coś robi. Zabranie menu
+      // bez dania niczego w zamian to czysta strata dla użytkownika.
       //
-      // Ale archiwum rysuje się w TYM SAMYM shadow roocie, a w nim stoi pole
-      // wklejania logu — jedyne miejsce w całym dodatku, gdzie natywne menu
-      // jest naprawdę potrzebne. Tam prawy przycisk zostawiamy w spokoju.
-      if (editableUnder(event.target)) return;
+      // Stąd dwa warunki, oba konieczne. Po pierwsze: tylko w panelu, bo
+      // archiwum rysuje się w TYM SAMYM shadow roocie i ma własne pole
+      // wklejania logu — jedyne miejsce w dodatku, gdzie natywne menu jest
+      // naprawdę potrzebne. Sam warunek „nie pole tekstowe" tu nie wystarcza:
+      // nad LISTĄ nagrań menu też się należy, a wcześniej ginęło.
+      //
+      // Po drugie: tylko gdy jest co zdjąć. Na najwyższym szczeblu `back()`
+      // wychodził bez efektu, a `preventDefault()` leciał i tak — menu znikało
+      // w zamian za nic. Kolejność ma znaczenie: gdyby pytać tylko o szczebel,
+      // to po zejściu w postać i otwarciu archiwum prawy przycisk NAD ARCHIWUM
+      // zdejmowałby szczebel w niewidocznym panelu.
+      if (!panelUnder(event.target)) return;
+      if (!this.canGoBack()) return;
       event.preventDefault();
       this.back();
     });
@@ -1591,7 +1621,10 @@ export class Overlay {
         div(
           "grow",
           count === 0
-            ? "nagrywam — czekam na walkę"
+            ? // Wielką literą, bo to KOMUNIKAT, a nie akcja — i bo w tym samym
+              // miejscu stoi „Brak miejsca w przeglądarce…". Jeden element,
+              // dwie konwencje wyglądały jak literówka (`UX.md §1.6`).
+              "Nagrywam — czekam na walkę"
             : `${count} ${fightWord(count)} · ${kb} kB`,
         ),
       );
@@ -1986,6 +2019,14 @@ export class Overlay {
    * gdy dojdzie kolejny (umiejętność → jej cele), to jest miejsce na zdjęcie
    * jednego szczebla zamiast całego stosu.
    */
+  /**
+   * Czy jest z czego wracać. Osobno od `back()`, bo prawy przycisk musi to
+   * wiedzieć ZANIM zdecyduje, czy odbierać menu przeglądarki.
+   */
+  private canGoBack(): boolean {
+    return this.focusSource !== null || this.focus !== null;
+  }
+
   private back(): void {
     // Zdejmujemy JEDEN szczebel, nie cały stos: z umiejętności napastnika
     // wraca się do listy napastników, a dopiero stamtąd do składu.
@@ -2439,6 +2480,24 @@ export class Overlay {
 
       const label = document.createElement("span");
       label.className = "label";
+      // Odznaka profesji — kanał NIEBARWNY, na którym stoi cały argument
+      // o rozróżnialności z `palette.ts`. Sześciu barw nie da się na tym tle
+      // zrobić wzajemnie rozłącznymi (sufit to cztery), więc przy daltonizmie
+      // to litera, a nie kolor, odpowiada na pytanie „kto tu jest czym".
+      // Dokument twierdził, że problem jest rozwiązany, a odznaki nie było.
+      //
+      // Siedzi WEWNĄTRZ `.label`, a nie obok — i to nie jest szczegół
+      // implementacyjny, tylko warunek zgodności z zakazem „nie robić
+      // z rankingu tabeli" (`UX.md §6`). Czwarta komórka rodzeństwa wyrównałaby
+      // się w pionie i wiersz zacząłby się czytać jak tabela; wewnątrz nazwy
+      // odznaka jest jej znacznikiem i płynie razem z nią. Stoi pierwsza, więc
+      // przy długim nicku wielokropek zjada koniec nazwy, a nie ją.
+      //
+      // Rysowana przez `::before` z `attr()`, a nie osobnym węzłem, bo inaczej
+      // litera wchodzi do `textContent` wiersza i każde pytanie „jak nazywa się
+      // ta postać" — w kodzie i w testach — zaczyna zwracać „HŁowca głów z psk".
+      // Nazwa ma zostać nazwą; odznaka jest warstwą NAD nią.
+      if (actor.professionCode) this.markProfession(label, actor.professionCode);
       // Gwiazdka: pod tą nazwą kryje się w walce więcej niż jedna postać.
       label.textContent = ambiguous ? `${actor.name} *` : actor.name;
 
@@ -2472,6 +2531,23 @@ export class Overlay {
       row.append(...bar, text);
       container.append(row);
     }
+  }
+
+  /**
+   * Dokleja do etykiety odznakę z literą profesji.
+   *
+   * Litera wielka, bo w logu kod jest małą i przy nazwie ginęła. Barwy jadą
+   * zmiennymi CSS, bo samą treść rysuje `::before` — a do pseudoelementu nie
+   * da się sięgnąć stylem inline.
+   *
+   * Nierozpoznanej litery nie tłumaczymy na nazwę: log potrafi dodać profesję,
+   * której jeszcze nie znamy, a zgadywanie byłoby zmyślaniem. Sama litera i tak
+   * jest prawdziwa, więc odznakę dostaje — z barwą „Inni".
+   */
+  private markProfession(label: HTMLElement, code: string): void {
+    label.dataset.prof = code.toUpperCase();
+    label.style.setProperty("--prof-bg", professionColor(code));
+    label.style.setProperty("--prof-ink", professionInk(code));
   }
 
 
@@ -2639,7 +2715,13 @@ export class Overlay {
 
     // Własna klasa, nie `tip-note`: ta stoi już pod licznikami w "Ogólne",
     // a to jest podpowiedź nawigacji, nie dane.
-    nodes.push(div("tip-hint", "LPM — rozbicie · PPM — powrót"));
+    //
+    // Człon o PPM tylko wtedy, gdy jest z czego wracać. Na najwyższym szczeblu
+    // obiecywał powrót donikąd — a to JEDYNA instrukcja nawigacji w panelu,
+    // więc jej nieprawda kosztuje więcej niż gdzie indziej.
+    nodes.push(
+      div("tip-hint", this.canGoBack() ? "LPM — rozbicie · PPM — powrót" : "LPM — rozbicie"),
+    );
     return nodes;
   }
 
@@ -2654,6 +2736,12 @@ export class Overlay {
     source: ActorStats["dealtBy"][number],
     actor: ActorStats,
     list: BreakdownList,
+    /**
+     * Czy w ten wiersz da się wejść. Bierzemy to z `dataset.leaf` wiersza, bo
+     * to on jest źródłem prawdy (patrz `appendBreakdown`) — dymek ma opisywać
+     * TEN wiersz, nad którym stoi kursor, a nie całą sekcję.
+     */
+    canDrill: boolean,
   ): Node[] {
     const total = actorValue(actor, this.metric);
     const share = total > 0 ? Math.round((source.amount / total) * 100) : 0;
@@ -2712,7 +2800,17 @@ export class Overlay {
       numbers,
       // PPM zdejmuje JEDEN szczebel, więc z drugiego wraca do listy celów, nie
       // do składu. To jedyna instrukcja nawigacji w panelu — nie może kłamać.
-      div("tip-hint", `${actor.name} · PPM — o szczebel wyżej`),
+      //
+      // O LPM podpowiedź milczała, choć na drążalnym wierszu schodzi szczebel
+      // niżej. Milczenie czyta się jak "nie ma tam nic", więc cała ta droga
+      // była do odkrycia przypadkiem. Na liściu członu nie ma — wiersz nie
+      // może kusić kliknięciem, którego nie obsłuży (`UX.md §6`).
+      div(
+        "tip-hint",
+        canDrill
+          ? `${actor.name} · LPM — głębiej · PPM — o szczebel wyżej`
+          : `${actor.name} · PPM — o szczebel wyżej`,
+      ),
     ];
   }
 
@@ -2743,7 +2841,9 @@ export class Overlay {
       );
       const list = actor ? this.breakdownList(actor, target.list) : [];
       const source = list.find((candidate) => candidate.label === target.key);
-      if (actor && source) content = this.sourceTipContent(source, actor, target.list);
+      if (actor && source) {
+        content = this.sourceTipContent(source, actor, target.list, row?.dataset.leaf === undefined);
+      }
     }
 
     if (!content || !row) {

@@ -9,10 +9,29 @@ import {
   SERIES_COLORS,
   TYPE_COLORS,
   typeColor,
+  professionColor,
+  professionInk,
   OTHER_COLOR,
 } from "../src/palette.ts";
 import { dotLabel, typeDisplay, typeFamily } from "../src/types.ts";
 import { FIXTURES, metricButton, readFixture } from "./helpers.ts";
+
+/** Kanał sRGB → luminancja liniowa, wzór WCAG 2.1. */
+const channel = (value: number) => {
+  const c = value / 255;
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+};
+const rgb = (hex: string): [number, number, number] => [
+  parseInt(hex.slice(1, 3), 16),
+  parseInt(hex.slice(3, 5), 16),
+  parseInt(hex.slice(5, 7), 16),
+];
+const luminance = ([r, g, b]: [number, number, number]) =>
+  0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+const contrast = (a: string, b: string) => {
+  const [light, dark] = [luminance(rgb(a)), luminance(rgb(b))].sort((x, y) => y - x);
+  return (light! + 0.05) / (dark! + 0.05);
+};
 
 describe("przypisanie kolorów", () => {
   test("kolor idzie za postacią, nie za jej pozycją w rankingu", () => {
@@ -59,6 +78,48 @@ describe("przypisanie kolorów", () => {
     expect(of("Łowcosław Kazrek").color).toBe(asStyle(PROFESSION_COLORS["h"]!));
     expect(of("wf foverek psk").color).toBe(asStyle(PROFESSION_COLORS["t"]!));
     expect(of("Regulus Mętnooki").color).toBe(asStyle(PROFESSION_COLORS["w"]!));
+  });
+
+  test("każda postać ze znaną profesją dostaje odznakę z jej literą", async () => {
+    // AUDYT-14: cały argument o rozróżnialności w `palette.ts` opiera się na
+    // odznace („Rozróżnialność zapewnia odznaka z literą profesji, nie barwa"),
+    // a odznaki nie było w kodzie WCALE. Sześciu barw nie da się na tym tle
+    // zrobić rozłącznymi, więc bez litery daltonista nie odróżni dwóch postaci.
+    const stats = aggregate(
+      parse(await readFixture("new-engine/2026-08-01_druzyna-vs-hildur-trzeci-sklad")),
+    );
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    let checked = 0;
+    for (const row of overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")) {
+      const actor = stats.actors.find((one) => one.name === row.dataset.actor)!;
+      const label = row.querySelector<HTMLElement>(".label")!;
+      if (actor.professionCode === null) {
+        expect(label.dataset.prof).toBeUndefined();
+        continue;
+      }
+      expect(label.dataset.prof).toBe(actor.professionCode.toUpperCase());
+      // Nazwa ma zostać DOKŁADNIE nazwą: odznaka jest warstwą nad nią
+      // (`::before`), a nie węzłem w treści — inaczej każde pytanie o nazwę
+      // zaczyna zwracać „HŁowca głów z psk". Porównanie pełne, nie „nie zawiera
+      // litery": nazwy same z siebie niosą te litery („Hildur Muza Śmierci").
+      const star = stats.ambiguousNames.includes(actor.name) ? " *" : "";
+      expect(label.textContent).toBe(`${actor.name}${star}`);
+      checked += 1;
+    }
+    // Ten fixture ma dziewięciu graczy i bossa, wszyscy z profesją z nagłówka.
+    expect(checked).toBe(10);
+  });
+
+  test("litera na odznace przechodzi AA na każdej barwie profesji", () => {
+    // Jednej barwy litery dla wszystkich profesji NIE MA: przy zieleni łowcy
+    // nawet czysta czerń daje 4,25, a biel przy pozostałych schodzi do 3,1.
+    // Stąd `professionInk` wybiera per barwa — i to jest próg, nie gust.
+    for (const code of [...Object.keys(PROFESSION_COLORS), null, "zzz"]) {
+      const ratio = contrast(professionInk(code), professionColor(code));
+      expect([code, ratio >= 4.5]).toEqual([code, true]);
+    }
   });
 
   test("wiersz to ranking, nie tabela: numer, nazwa i jedna liczba z nawiasem", async () => {
@@ -303,22 +364,6 @@ describe("jedna nazwa na rodzinę", () => {
  * krycia „bo ładniej" nie przejdzie po cichu.
  */
 describe("kontrast tekstu na pasku (A14)", () => {
-  /** Kanał sRGB → luminancja liniowa, wzór WCAG 2.1. */
-  const channel = (value: number) => {
-    const c = value / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  };
-  const rgb = (hex: string): [number, number, number] => [
-    parseInt(hex.slice(1, 3), 16),
-    parseInt(hex.slice(3, 5), 16),
-    parseInt(hex.slice(5, 7), 16),
-  ];
-  const luminance = ([r, g, b]: [number, number, number]) =>
-    0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
-  const contrast = (a: string, b: string) => {
-    const [light, dark] = [luminance(rgb(a)), luminance(rgb(b))].sort((x, y) => y - x);
-    return (light! + 0.05) / (dark! + 0.05);
-  };
   /** Barwa paska złożona z tłem wiersza przy danym kryciu. */
   const over = (color: string, background: string, opacity: number): string => {
     const [top, bottom] = [rgb(color), rgb(background)];

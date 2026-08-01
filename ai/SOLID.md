@@ -739,19 +739,24 @@ siedzi wyłącznie w klasie CSS.
 
 ## 11. Skrót — kolejność prac
 
-**Otwarte, wg wpływu na liczby (stan 2026‑07‑30):**
+**Otwarte, wg wpływu na liczby (przeliczone 2026‑08‑01):**
 
 | # | Usterka | Warstwa | Dlaczego tu |
 |---|---|---|---|
-| 4.11 | `dealtToBy` wypadło z `mergeStats`/`copyActor` | session | błędne liczby w artefakcie, który DZIŚ wychodzi do schowka; 46 rozjazdów na 15 fixture'ach; test‑strażnik strukturalnie tego nie widzi |
 | 4.12 | Przycięcie bufora obniża sumy | session | licznik, któremu liczby maleją — ale **najpierw zrzut**, bo przesłanki nie potwierdza żaden fixture |
-| 4.13/4.14 | Jedna walka jako dwa nagrania (F5, wzrost linii w miejscu) | recorder | dwa wiersze archiwum na jedną walkę, podwójny budżet |
-| 4.15/4.16 | Indeks bez walidacji; ścieżki quoty psują stan | recorder | przy `NaN` **eksmisja przestaje działać** — pada jedyna ochrona magazynu dzielonego z grą |
-| 4.17/4.19 | Nieznana klasa `dmg*`; separator tysięcy | parser | dwie ciche awarie w kontrakcie, który obiecuje głośne |
 | 4.18 | Modyfikator z `(N%)` rozbija blok na trzy `unknown` | parser | dziś nieaktywne, ale sprzężenie niewidoczne |
-| 4.23/4.24/4.25 | Archiwum 146 ms blokady; podwójne parsowanie klatki; `total()` co linię | archive/index | koszt, nie poprawność — po powyższych |
-| 4.5 (dług) | gałąź `rising` bez testu | stats | funkcja wdrożona bez pokrycia, patrz §10 |
-| 4.9/4.20/4.21/4.22 | Drobne luki i pola wyrzucane po sparsowaniu | parser/stats | wg zwrotu |
+| 4.22 | Cztery pola parsowane i nigdy nieczytane | parser/stats | `superCrit`, `attack.blocked`, `dot.weakenedPct`, `experience` — policzone, przetestowane i wyrzucane |
+| 4.23 | Archiwum 146 ms blokady wątku gry | archive | koszt, nie poprawność |
+| 4.9 | Reszta drobnych luk parsera | parser | wg zwrotu |
+
+⚠️ **Ta tabela zestarzała się raz i warto wiedzieć jak.** Do 2026‑08‑01
+wymieniała jako otwarte `4.11`, `4.13/4.14`, `4.15/4.16`, `4.17/4.19`, `4.20/4.21`
+oraz `4.24/4.25` — wszystkie sześć grup stało w swoich sekcjach jako
+`[NAPRAWIONE 2026‑07‑30]`, część od tygodnia. Powód jest strukturalny, nie
+ludzki: status żyje w DWÓCH miejscach naraz, a naprawia się to, co się czyta
+(sekcję), nie skrót. Jeżeli kiedyś przyjdzie tu porządkować, tańsze od pilnowania
+obu jest skasowanie kolumny statusu z tego skrótu i zostawienie samych odsyłaczy.
+Ta sama lekcja, co przy `SOLID §10` i `TOOLING` w audycie `F3`.
 
 **Naprawy działania z poprzedniej rundy — ZROBIONE (2026‑07‑26):**
 

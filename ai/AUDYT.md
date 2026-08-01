@@ -33,7 +33,22 @@ Wszystkie naprawione w tej samej rundzie; `AUDYT‑7` doczekało się sprostowan
 **Audyt tego samego dnia** (sekcja `F3`) dołożył `AUDYT‑30`…`AUDYT‑40`, z czego
 **pięć to regresje rundy `F2`** — stąd zasada: przegląd PRZED commitem, nie po.
 `AUDYT‑39` i `AUDYT‑40` zamknięte 2026‑08‑01 — **cała sekcja `F3` jest
-zamknięta**. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
+zamknięta**. Tego samego dnia poszły też trzy najstarsze otwarte pozycje UX:
+`AUDYT‑17`, `18` i `19`. Dwie z nich okazały się przy tym opisane nieściśle:
+`17` był w jednej trzeciej naprawiony od dawna (puste stany), a `19` opisywał
+połowę usterki (menu ginęło nie tylko nad archiwum, ale i w panelu na najwyższym
+szczeblu). Wniosek na przyszłość: **wpis sprzed tygodni sprawdza się w kodzie,
+zanim się go naprawi** — bo opisuje stan, którego może już nie być, albo mniejszy
+niż faktyczny. Poszło też `AUDYT‑14` (odznaka profesji) — czekało na „decyzję
+wizualną razem z `A14`", a `A14` domknęło się tego samego dnia rano, więc blokada
+zniknęła sama. Warto z tego zapamiętać, że **pozycja „zablokowana decyzją" bywa
+odblokowana przez cudzą naprawę i nikt jej wtedy nie odznacza** — przy przeglądzie
+opłaca się sprawdzić, czy blokada nadal istnieje.
+
+Otwarte zostają dwie pozycje, obie czekające na decyzję właściciela repo:
+`AUDYT‑6` (suma sesji bez wyjścia w UI — brak specu, nie kodu) i `AUDYT‑25`
+(`deaths`/`matrix` bez odbiorcy — spięte z `ROADMAP ⏸`).
+Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
 wykonanie odbiegło od propozycji, jest to powiedziane wprost.
@@ -53,7 +68,7 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑20~~ | Linia otwierająca w czterech kopiach | 🔴 | XS | **✅** |
 | ~~AUDYT‑21~~ | Gorąca ścieżka bez osłony i w złej kolejności | 🔴 | XS | **✅** |
 | ~~AUDYT‑5~~ | `BattleStats` jeden dla walki i sesji — mina pod zakładkę | 🔴 | S | **✅** |
-| AUDYT‑14 | Odznaka literowa profesji nie istnieje | 🔴 | M | ✓ |
+| ~~AUDYT‑14~~ | Odznaka literowa profesji nie istnieje | 🔴 | M | **✅** ✓ |
 | ~~AUDYT‑3~~ | 21 kB indeksu przepisywane przy każdej linii logu | 🟡 | S | **✅** |
 | AUDYT‑6 | Suma sesji bez wyjścia w UI | 🟡 | M | ✓ |
 | ~~AUDYT‑8~~ | Kopiowanie melduje sukces, którego nie było | 🟡 | S | **✅** |
@@ -83,9 +98,9 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑38~~ | `RE_INFO` „otrzymuje” łyka linię z obrażeniami | 🟡 | XS | **✅** ✓ |
 | ~~AUDYT‑39~~ | Ta sama nazwa po obu stronach → fałszywa strona dla obu | 🔴 | M | **✅** ✓ |
 | ~~AUDYT‑40~~ | `hits` + `misses` liczą ten sam atak przy uniku częściowym | ⚪ | XS | **✅** ✓ |
-| AUDYT‑17 | Wielkie/małe litery i puste stany bez odmiany | ⚪ | S | |
-| AUDYT‑18 | ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba | ⚪ | S | |
-| AUDYT‑19 | PPM zabiera menu przeglądarki nad listą archiwum | ⚪ | XS | |
+| ~~AUDYT‑17~~ | Wielkie/małe litery i puste stany bez odmiany | ⚪ | S | **✅** ✓ |
+| ~~AUDYT‑18~~ | ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba | ⚪ | S | **✅** ✓ |
+| ~~AUDYT‑19~~ | PPM zabiera menu przeglądarki nad listą archiwum | ⚪ | XS | **✅** ✓ |
 | ~~AUDYT‑22~~ | `destroy()` nie sprząta i nie jest wołane | ⚪ | XS | **✅** |
 
 ---
@@ -519,7 +534,7 @@ Dwie rzeczy, które dokumenty obiecują, a kodu za nimi nie ma. Obietnice szły
 wcześniej także z `CHANGELOG.md` — plik usunięty z repo 2026‑07‑31, więc
 cytaty niżej zostają jako ŚLAD, czym się uzasadniano, a nie jako żywy wskaźnik.
 
-### AUDYT‑14 — Odznaka literowa profesji NIE ISTNIEJE 🔴 M — dostępność ✓
+### AUDYT‑14 — Odznaka literowa profesji NIE ISTNIEJE ✅ NAPRAWIONE ✓
 `src/overlay.ts:2084-2087` (`appendSection`), kontra `src/palette.ts:37` i `:45`
 
 **Problem.** Wiersz rankingu składa się z numeru, nazwy (plus `*` przy
@@ -545,6 +560,40 @@ decyzji wizualnej razem z `A14` — obie zmiany dotykają tego samego wiersza
 i lepiej je zrobić jednym ruchem niż dwoma.
 
 **Docelowo.** → `UX-POPRAWKI.md` jako `A23`, spięte z `A14`
+
+**Zrobione 2026‑08‑01 — blokada zniknęła sama.** Wpis czekał na „decyzję
+wizualną razem z `A14`", a `A14` zostało domknięte tego samego dnia rano
+(pasek na `opacity: .55` plus nasadka `.bar-cap`). Decyzja o wyglądzie wiersza
+była więc już podjęta i odznaka mogła wejść bez drugiej rundy ustaleń.
+
+**Zderzenie z zakazem „nie robić z rankingu tabeli" rozstrzygnięte tak, jak
+zapowiadał ten wpis** — i było realne, nie teoretyczne: pierwsza wersja dokleiła
+odznakę jako czwarte rodzeństwo w `.row-text` i **natychmiast położyła test**
+`wiersz to ranking, nie tabela`, który wymaga dokładnie trzech komórek. Dobrze,
+że ten test istniał. Odznaka siedzi więc W ŚRODKU `.label`.
+
+**Rysuje ją `::before` z `attr(data-prof)`, nie osobny węzeł.** Druga wersja
+wstawiała `<span>` do etykiety — komplet testów przechodził, ale `textContent`
+wiersza zaczął zwracać „HŁowca głów z psk". Pseudoelement trzyma literę poza
+strumieniem tekstu: nazwa zostaje nazwą dla kodu, testów i schowka, a odznaka
+jest warstwą nad nią. Barwy jadą zmiennymi CSS (`--prof-bg`, `--prof-ink`),
+bo do pseudoelementu nie sięga styl inline.
+
+**Barwa litery jest LICZONA, nie wpisana.** `professionInk` wybiera ciemną albo
+białą — tę z lepszym kontrastem do tła odznaki. Jednej barwy dla wszystkich
+sześciu profesji NIE MA i nie jest to kwestia doboru: przy zieleni łowcy
+(`#008300`) nawet czysta czerń daje **4,25**, czyli poniżej AA, a biel przy
+pozostałych pięciu schodzi do 3,1–3,9. Stąd jedna biała litera pośród ciemnych —
+niespójność wizualna jest tu ceną progu 4,5:1. Liczone, a nie stablicowane, żeby
+przy najbliższej zmianie palety próg nie rozjechał się po cichu.
+
+**Czym przypięte.** Dwa testy: każda postać ze znaną profesją ma `data-prof`
+z właściwą literą, a etykieta jest DOKŁADNIE nazwą (porównanie pełne — „nie
+zawiera litery" nie zadziała, bo nazwy same je niosą, np. „Hildur Muza Śmierci");
+oraz kontrast litery ≥ 4,5:1 na każdej barwie profesji, łącznie z barwą „Inni"
+i kodem nieznanym. Oba sprawdzone mutacją. `UX.md §6` dopowiedziane — dawne
+zdanie „barwa paska mówi, kto jest czym" było fałszywe dla daltonistów i zostało
+zastąpione.
 
 ### AUDYT‑15 — Cztery reguły `:focus-visible` są MARTWE 🟡 M — ✅ NAPRAWIONE 2026‑07‑31
 `src/overlay.ts:201-207`; `:2070` (wiersz), `:1791` (`crumb-back`),
@@ -620,7 +669,7 @@ wersji dodatku, a metryka steruje renderem. `focus` świadomie zostaje ulotny.
 
 ## E. Spójność tekstu i drobiazgi
 
-### AUDYT‑17 — Wielkie/małe litery i puste stany bez odmiany ⚪ S
+### AUDYT‑17 — Wielkie/małe litery i puste stany bez odmiany ✅ NAPRAWIONE ✓
 `src/overlay.ts:1334`, `:2027`, `:1827`; kontra `plural()` `:62-73`
 
 **Problem.** Trzy osobne rozjazdy w tekstach:
@@ -640,7 +689,27 @@ odmiany („Brak danych dla wybranego składu.”). **Koszt S.**
 
 **Docelowo.** → `UX-POPRAWKI.md` jako `A26`
 
-### AUDYT‑18 — ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba ⚪ S
+**Zrobione 2026‑08‑01 — ale zastane w połowie.** Trzeci punkt (puste stany) był
+naprawiony JUŻ WCZEŚNIEJ i nikt tego nie odnotował: `EMPTY_TEAM`/`EMPTY_BREAKDOWN`
+to od dawna gotowe zdania, a komentarz nad nimi opisuje wprost starą, złą formę
+z `toLowerCase()`. Wpis wisiał jako otwarty za coś, co już nie istniało.
+
+Pierwszy punkt też okazał się węższy, niż brzmiał. Przelot po WSZYSTKICH napisach
+wyrenderowanego panelu (nie po kodzie): stany to `Zadane`, `Otrzymane`,
+`Leczenie`, `Wszyscy`, `My`, `Oni` — wszystkie wielką; jedyna akcja w tym rzędzie,
+`na turę` — małą. Reguła więc obowiązywała, tylko nie była nigdzie zapisana.
+
+Realną usterką był drugi punkt i to jego naprawiłem: `renderRecordBar` niósł
+w TEJ SAMEJ szczelinie „nagrywam — czekam na walkę" obok „Brak miejsca
+w przeglądarce — nagrywanie wyłączone". Pierwsze poszło wielką literą, bo to
+komunikat, nie akcja. Reguła jest teraz spisana w `UX.md §1.6`, wraz z wnioskiem
+ogólniejszym, który wyszedł z obu punktów naraz: **komunikatu nie składa się
+z etykiety** — polski wymaga wtedy przypadka, a `toLowerCase()` go nie zna.
+
+**Czym przypięte.** Test „oba komunikaty paska zaczynają się tak samo — wielką
+literą" pyta o obie gałęzie naraz, więc rozjazd w tej szczelinie nie wróci.
+
+### AUDYT‑18 — ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba ✅ NAPRAWIONE ✓
 `src/archive.ts:472` vs `:573`; `src/overlay.ts:2288` vs `:2386`
 
 **Problem.** W jednym oknie archiwum ✕ w nagłówku zamyka, a ✕ w wierszu kasuje
@@ -656,7 +725,33 @@ budowana ze stanu drążenia, nie wpisywana na sztywno. **Koszt S.**
 
 **Docelowo.** → `UX-POPRAWKI.md` jako `A27`
 
-### AUDYT‑19 — PPM zabiera menu przeglądarki nad listą archiwum ⚪ XS
+**Zrobione 2026‑08‑01, w trzech kawałkach.**
+
+*Glif.* Kasowanie mówi teraz `usuń`, nie `✕`. Kosza NIE użyłem świadomie: w
+większości fontów jest emoji — kolorowy i inny na każdym systemie, w panelu
+złożonym wyłącznie ze znaków monochromatycznych. Słowo rozwiązuje kolizję
+lepiej niż drugi glif, a przy jedynym nieodwracalnym przycisku w dodatku
+odrobina tarcia jest zaletą. Stan pytania („na pewno?") i tak był już słowem.
+
+*Dymek na wierszu postaci.* Człon „PPM — powrót" pojawia się tylko wtedy, gdy
+`canGoBack()` mówi, że jest z czego wracać. Wcześniej obiecywał powrót donikąd
+na najwyższym szczeblu.
+
+*Dymek na wierszu rozbicia.* Dokłada „LPM — głębiej", gdy wiersz nie jest
+liściem. Stan bierze z `dataset.leaf` TEGO wiersza, bo to on jest źródłem prawdy
+(patrz `appendBreakdown`) — sekcja bywa drążalna, a pojedynczy wiersz i tak
+liściem. Milczenie o drodze w dół czytało się jak „nie ma tam nic".
+
+Brzmienie „o szczebel wyżej" zostało nietknięte, choć krótsze „wyżej" pasowałoby
+lepiej: pilnuje go test z rundy `AUDYT‑40` i nie warto osłabiać strażnika
+zapisanej już usterki dla estetyki.
+
+**Czym przypięte.** Trzy testy dymka (najwyższy szczebel bez PPM; wiersz
+drążalny z LPM; liść bez LPM) plus test „kasowanie i zamykanie nie dzielą tego
+samego znaku", napisany na ZASADĘ, nie na etykietę — wolno je zmienić, nie wolno
+ich zrównać. Wszystkie sprawdzone mutacją.
+
+### AUDYT‑19 — PPM zabiera menu przeglądarki nad listą archiwum ✅ NAPRAWIONE ✓
 `src/overlay.ts:954-965`
 
 **Problem.** `contextmenu` jest przechwytywany na CAŁYM shadow roocie, z jednym
@@ -667,6 +762,33 @@ nie ma czego zdjąć, więc użytkownik traci natywne menu bez żadnego zysku.
 gdzie drążenie w ogóle istnieje. **Koszt XS.**
 
 **Docelowo.** → `UX-POPRAWKI.md` jako `A28`
+
+**Zrobione 2026‑08‑01 — i usterka była SZERSZA, niż mówił ten wpis.** Opis
+wskazywał archiwum, ale `preventDefault()` leciał bezwarunkowo, więc menu ginęło
+także w samym panelu **na najwyższym szczeblu**, gdzie `back()` wychodzi bez
+efektu. Zabranie menu bez dania czegokolwiek w zamian to czysta strata i tam,
+i tam.
+
+Stąd dwa warunki, oba konieczne: PPM przechwytujemy tylko wewnątrz `.panel`
+(archiwum rysuje się w tym samym shadow roocie, ale poza nim) **i** tylko gdy
+`canGoBack()`. Kolejność nie jest kosmetyką: gdyby pytać wyłącznie o szczebel,
+to po zejściu w postać i otwarciu archiwum prawy przycisk NAD ARCHIWUM
+zdejmowałby szczebel w niewidocznym panelu pod spodem.
+
+Wyjątek na pola tekstowe (`editableUnder` z `A12`) zniknął jako niepotrzebny —
+pole wklejania logu leży w `.archive`, więc nowy warunek obejmuje je z zapasem.
+Sam wyjątek i tak nie wystarczał: nad LISTĄ nagrań nie ma czego wpisywać,
+a menu i tak się należy.
+
+**Przy okazji wyszedł dług w testach.** Cztery testy wysyłały `contextmenu` na
+sam shadow root, czyli na cel, jakiego prawdziwe kliknięcie nigdy nie ma —
+przechodziły tylko dlatego, że handler był bezwarunkowy. Chodzą teraz przez
+`rightClick()`, tym samym szykiem co starszy test archiwum, który od początku
+celował w prawdziwy element.
+
+**Czym przypięte.** Trzy testy: menu zostaje na najwyższym szczeblu, menu
+zostaje nad listą nagrań (i nie zdejmuje przy tym szczebla w panelu pod spodem),
+oraz stary test pola tekstowego. Sprawdzone mutacją.
 
 ---
 

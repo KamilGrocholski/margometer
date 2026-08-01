@@ -22,6 +22,23 @@ znacznik ✅; gdzie to postulat — 🎯.
    najechanie — podglądem.
 5. **Jedna metryka rządzi listą.** W danej chwili widać ranking jednej rzeczy
    (zadane / otrzymane / leczone). Reszta jest o kliknięcie, nie na ekranie.
+6. **Wielka litera niesie znaczenie.** Trzy rodzaje napisów, trzy konwencje:
+   - **nazwa stanu** — wielką literą: `Zadane`, `Otrzymane`, `Leczenie`,
+     `Wszyscy`, `My`, `Oni`. To rzeczy, w których się JEST;
+   - **akcja** — małą literą: `na turę`, `kopiuj logi`, `wyczyść`, `wklej`,
+     `usuń`, `na żywo`. To rzeczy, które się ROBI;
+   - **komunikat** — wielką literą i całym zdaniem: `Brak danych po naszej
+     stronie.`, `Nagrywam — czekam na walkę`.
+
+   Reguła istnieje, bo jej brak dwa razy dał usterkę. Raz pasek nagrywania
+   niósł w JEDNYM elemencie „nagrywam — czekam na walkę" obok „Brak miejsca
+   w przeglądarce — nagrywanie wyłączone" — to wygląda jak literówka, nie jak
+   zamysł. Drugi raz puste stany sklejały się z etykiety zakładki przez
+   `toLowerCase()` i wychodziło „Brak danych: my." — etykiety są MIANOWNIKAMI
+   i po dwukropku nie tworzą zdania. Stąd wniosek ogólniejszy: **komunikatu nie
+   składa się z etykiety**. Polski wymaga wtedy przypadka, a `toLowerCase()`
+   go nie zna. Zamknięty zestaw zdań jest tańszy niż reguła odmiany —
+   `plural()` istnieje dla liczebników i tylko dla nich.
 
 ---
 
@@ -158,9 +175,21 @@ liczby pod kursorem nie mogą uciekać.
   musiałby go traktować jak szczebel — czyli i tak byłoby to drążenie.
 - **Nie robić z rankingu tabeli.** Wiersz to numer, nazwa i JEDNA liczba
   wiodąca; udział i druga miara wchodzą do nawiasu przy tej liczbie, a nie
-  w osobne kolumny. Poziom i profesji w wierszu nie ma — barwa paska mówi, kto
-  jest czym, a pełne dane stoją w dymku. Kolumn nie da się podpisać (nagłówka
-  nad listą nie ma i nie będzie), więc czwarta kolumna to już zgadywanka.
+  w osobne kolumny. Poziomu w wierszu nie ma — pełne dane stoją w dymku.
+  Kolumn nie da się podpisać (nagłówka nad listą nie ma i nie będzie), więc
+  czwarta kolumna to już zgadywanka.
+  ⚠️ **Odznaka profesji nie jest czwartą kolumną** (`AUDYT‑14`, 2026‑08‑01).
+  Kolumna to coś, co wyrównuje się w pionie i niesie osobną daną; odznaka ma
+  stałą szerokość i przylega do nazwy — rysuje ją `::before` na `.label`, więc
+  technicznie JEST nazwą i razem z nią się przewija. Komórki wiersza są dalej
+  trzy i pilnuje tego test.
+
+  Musiała powstać, bo poprzednie brzmienie tej zasady („barwa paska mówi, kto
+  jest czym") było fałszywe dla części odbiorców: sześciu barw profesji nie da
+  się na tym tle zrobić wzajemnie rozłącznymi — sufit to cztery — więc przy
+  daltonizmie kolor nie odpowiada na to pytanie. Odpowiada litera. To ten sam
+  argument, który `palette.ts` niósł od początku w komentarzu, tyle że przez
+  kilka miesięcy nie miał pokrycia w kodzie.
 - **Nie udawać danych, których log nie ma** (leczący, sprawca trucizny w tłumie).
   Liść bez danych się nie podświetla i nie kusi kliknięciem. ✅ na KAŻDEJ liście
   — reguła pilnowała dotąd tylko sekcji `CZYM (ŁĄCZNIE)`, a lista główna

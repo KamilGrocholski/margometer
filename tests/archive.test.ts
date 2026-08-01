@@ -424,6 +424,21 @@ describe("kasowanie pojedynczego nagrania", () => {
     expect(logs.map((one) => one.id)).toEqual([2]);
   });
 
+  test("kasowanie i zamykanie nie dzielą tego samego znaku", () => {
+    // AUDYT-18: w jednym oknie ✕ w nagłówku zamykało, a ✕ w wierszu kasowało
+    // NIEODWRACALNIE. Test pyta o samą zasadę, a nie o konkretną etykietę —
+    // wolno je zmienić, nie wolno ich zrównać.
+    const { overlay, archive } = build([{ id: 1, at: NOW, text: line }]);
+    archive.toggle();
+
+    const close = overlay.shadow.querySelector<HTMLElement>('[data-action="archive-close"]')!;
+    const remove = rows(overlay)[0]!.querySelector<HTMLElement>('[data-action="archive-remove"]')!;
+
+    expect(close.textContent).not.toBe(remove.textContent);
+    // I żeby nie dało się tego przejść, robiąc oba puste.
+    expect(remove.textContent?.trim()).not.toBe("");
+  });
+
   // Pytanie „na pewno?" nie wygasało tu WCALE: wystarczyło kliknąć ✕, odejść
   // i wrócić po godzinie w to samo miejsce, żeby skasować bez pytania. Panel
   // miał ten sam wzorzec z wygasaniem — dwa zachowania, jedna decyzja.
@@ -441,13 +456,13 @@ describe("kasowanie pojedynczego nagrania", () => {
       return { overlay, archive, logs, remove };
     };
 
-    test("po wygaśnięciu wiersz SAM wraca do ✕", () => {
+    test("po wygaśnięciu wiersz SAM wraca do stanu spoczynku", () => {
       const { remove } = armed();
       expect(remove(0).textContent).toBe("na pewno?");
 
       ticker.tick();
 
-      expect(remove(0).textContent).toBe("✕");
+      expect(remove(0).textContent).toBe("usuń");
       expect(remove(0).getAttribute("aria-label")).toBe("Usuń nagranie");
     });
 
@@ -467,7 +482,7 @@ describe("kasowanie pojedynczego nagrania", () => {
       archive.toggle();
       archive.toggle();
 
-      expect(remove(0).textContent).toBe("✕");
+      expect(remove(0).textContent).toBe("usuń");
       remove(0).click();
       expect(logs.map((one) => one.id)).toEqual([1, 2]);
     });
@@ -477,7 +492,7 @@ describe("kasowanie pojedynczego nagrania", () => {
 
       remove(1).click();
 
-      expect(remove(0).textContent).toBe("✕");
+      expect(remove(0).textContent).toBe("usuń");
       expect(remove(1).textContent).toBe("na pewno?");
     });
   });

@@ -57,6 +57,45 @@ export function professionColor(code: string | null): string {
   return (code && PROFESSION_COLORS[code]) || OTHER_COLOR;
 }
 
+/** Barwy litery na odznace — jedyne dwie, jakie wchodzą w grę. */
+const INK_DARK = "#14141a";
+const INK_LIGHT = "#ffffff";
+
+/** Kanał sRGB → luminancja liniowa, wzór WCAG 2.1. */
+function channel(value: number): number {
+  const c = value / 255;
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+}
+
+function luminance(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
+  return 0.2126 * channel(r!) + 0.7152 * channel(g!) + 0.0722 * channel(b!);
+}
+
+function contrast(a: string, b: string): number {
+  const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (light! + 0.05) / (dark! + 0.05);
+}
+
+/**
+ * Barwa litery na odznace profesji — ciemna albo biała, ta z lepszym kontrastem.
+ *
+ * Liczona, a nie wpisana w tablicę, bo tablica rozjechałaby się po cichu przy
+ * najbliższej zmianie palety — a to jest próg DOSTĘPNOŚCI, nie gust.
+ *
+ * Jednej barwy dla wszystkich sześciu profesji NIE MA i nie jest to kwestia
+ * doboru: przy zieleni łowcy (#008300) nawet czysta czerń daje 4,25, czyli
+ * poniżej AA, a biel przy pozostałych pięciu schodzi do 3,1–3,9. Stąd jedna
+ * biała litera pośród ciemnych — niespójność wizualna jest tu ceną progu 4,5:1
+ * i tak ma zostać.
+ */
+export function professionInk(code: string | null): string {
+  const background = professionColor(code);
+  return contrast(INK_DARK, background) >= contrast(INK_LIGHT, background)
+    ? INK_DARK
+    : INK_LIGHT;
+}
+
 /**
  * Kolor rodziny obrażeń — odpowiednik szkół magii w Details!.
  *

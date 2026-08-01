@@ -656,7 +656,14 @@ export class Archive {
       drop.type = "button";
       drop.dataset.action = "archive-remove";
       const asking = this.confirmRemove.pending(entry.id);
-      drop.textContent = asking ? "na pewno?" : "✕";
+      // Słowo, nie „✕". Ten sam glif stał w nagłówku okna i znaczył tam
+      // „zamknij" — dwa skutki, jeden ekran, a jeden z nich NIEODWRACALNY.
+      // Rozróżnienie idzie przez słowo, a nie przez drugi glif, bo kosz jest
+      // w większości fontów emoji: kolorowy i inny na każdym systemie, w panelu
+      // złożonym wyłącznie z monochromatycznych znaków. Przy okazji nazwanie
+      // rzeczy po imieniu jest tu zaletą — to jedyny nieodwracalny przycisk
+      // w dodatku, więc odrobina tarcia mu służy. Stan pytania już był słowem.
+      drop.textContent = asking ? "na pewno?" : "usuń";
       drop.setAttribute("aria-label", asking ? "Potwierdź usunięcie" : "Usuń nagranie");
       drop.addEventListener("click", (event) => {
         event.stopPropagation();

@@ -13,6 +13,20 @@ import { syntheticFight } from "../tools/synthetic-log.ts";
 import { ManualTicker } from "./manual-ticker.ts";
 import { FIXTURES, metricButton, number, rate, readFixture, shareOf, valueOf } from "./helpers.ts";
 
+/**
+ * Prawy przycisk nad listą rankingu.
+ *
+ * Celem jest `.rows`, a nie sam shadow root, bo panel odbiera menu przeglądarki
+ * WYŁĄCZNIE wewnątrz `.panel` — a zdarzenie wysłane na korzeń ma `target`,
+ * którego prawdziwe kliknięcie nigdy nie ma. Ten sam szyk co w teście archiwum
+ * niżej („nie cofa widoku i nie blokuje menu przeglądarki").
+ */
+function rightClick(overlay: Overlay): void {
+  overlay.shadow
+    .querySelector(".rows")!
+    .dispatchEvent(new Event("contextmenu", { bubbles: true, cancelable: true }));
+}
+
 describe("leczenie", () => {
   const load = async (name: string) => aggregate(parse(await readFixture(`new-engine/${name}`)));
 
@@ -501,9 +515,9 @@ describe("overlay", () => {
     expect(overlay.shadow.querySelector(".crumb-back")?.textContent).toContain("Odyniec");
 
     // Prawy przycisk zdejmuje JEDEN szczebel, nie cały stos.
-    overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
+    rightClick(overlay);
     expect(heading()).toBe("OD KOGO");
-    overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
+    rightClick(overlay);
     expect(overlay.shadow.querySelector(".rows .row[data-actor]")).not.toBeNull();
   });
 
@@ -549,7 +563,7 @@ describe("overlay", () => {
     );
 
     // Powrót do składu przywraca liczbę całej walki.
-    overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
+    rightClick(overlay);
     expect(note()).toContain(number.format(whole));
   });
 
@@ -746,9 +760,9 @@ describe("overlay", () => {
     expect(overlay.shadow.querySelector(".rows .row[data-actor]")).toBeNull();
 
     // Prawy przycisk zdejmuje po jednym szczeblu: cel → cele → skład.
-    overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
+    rightClick(overlay);
     expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Tancogniew Kazrek");
-    overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
+    rightClick(overlay);
     expect(overlay.shadow.querySelector(".crumb")).toBeNull();
     expect(overlay.shadow.querySelector(".rows .row[data-actor]")).not.toBeNull();
   });
@@ -819,7 +833,7 @@ describe("overlay", () => {
         ["wf foverek psk", number.format(5072)],
       ]);
 
-      overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
+      rightClick(overlay);
       expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Regulus Mętnooki");
       expect(headings(overlay)).toEqual(["KOMU", "CZYM (ŁĄCZNIE)"]);
     });
@@ -837,7 +851,7 @@ describe("overlay", () => {
         ),
       );
 
-      overlay.shadow.dispatchEvent(new Event("contextmenu", { bubbles: true }));
+      rightClick(overlay);
 
       // Przez umiejętność: Uderzenie Króla Węży → Łowcosław.
       rowsOf(overlay, "abilities")
@@ -2142,6 +2156,26 @@ describe("kopiowanie i nagrywanie", () => {
     expect(overlay.shadow.querySelector(".rec-bar")!.textContent).toContain("Brak miejsca");
     expect(overlay.shadow.querySelector(".rec-bar")!.className).toContain("warn");
   });
+
+  test("oba komunikaty paska zaczynają się tak samo — wielką literą", () => {
+    // AUDYT-17: jeden element niósł raz „nagrywam…", raz „Brak miejsca…".
+    // Ta sama szczelina, dwie konwencje — czyta się jak literówka (`UX.md §1.6`).
+    const stats = aggregate(parse(syntheticFight(2)));
+    const message = (failed: boolean) => {
+      const { control } = fakeRecorder({
+        isFailed: () => failed,
+        isRecording: () => !failed,
+        count: () => 0,
+      });
+      const overlay = new Overlay({ recorder: control });
+      overlay.render(stats, stats);
+      return overlay.shadow.querySelector(".rec-bar .grow")!.textContent!;
+    };
+
+    for (const text of [message(false), message(true)]) {
+      expect(text[0]).toBe(text[0]!.toUpperCase());
+    }
+  });
 });
 
 // Zapisywała się dotąd sama geometria, przez co panel wyglądał na zapamiętany
@@ -2448,7 +2482,45 @@ describe("podgląd wczytanej walki", () => {
   });
 });
 
-describe("prawy przycisk w polu tekstowym", () => {
+describe("prawy przycisk odbiera menu tylko wtedy, gdy coś daje w zamian", () => {
+  const load = async () =>
+    aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+
+  test("na najwyższym szczeblu menu zostaje, bo nie ma czego zdjąć", async () => {
+    // `back()` wychodził wtedy bez efektu, ale `preventDefault()` leciał i tak.
+    const overlay = new Overlay();
+    overlay.render(await load(), await load());
+
+    const event = new Event("contextmenu", { bubbles: true, cancelable: true });
+    overlay.shadow.querySelector(".rows")!.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  test("nad listą nagrań menu zostaje, choć w panelu jest co zdjąć", async () => {
+    // Archiwum stoi w tym samym shadow roocie, ale POZA `.panel` — tak samo jak
+    // prawdziwe (`archive.ts`: `window.className = "archive"`, doklejane przez
+    // `overlay.shadow.append`). Sam wyjątek na pola tekstowe tu nie wystarczał:
+    // nad LISTĄ nagrań nie ma czego wpisywać, a menu i tak się należy.
+    const overlay = new Overlay();
+    overlay.render(await load(), await load());
+    overlay.shadow.querySelector<HTMLElement>(".row[data-actor]")!.click();
+    expect(overlay.shadow.querySelector(".crumb-name")).not.toBeNull();
+
+    const archive = document.createElement("div");
+    archive.className = "archive";
+    const list = document.createElement("div");
+    list.className = "archive-list";
+    archive.append(list);
+    overlay.shadow.append(archive);
+
+    const event = new Event("contextmenu", { bubbles: true, cancelable: true });
+    list.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    // I — co ważniejsze — nie zdjął szczebla w niewidocznym panelu pod spodem.
+    expect(overlay.shadow.querySelector(".crumb-name")).not.toBeNull();
+  });
+
   test("nie cofa widoku i nie blokuje menu przeglądarki", async () => {
     // Archiwum rysuje pole wklejania w TYM SAMYM shadow roocie co panel, więc
     // globalny handler PPM zabierał mu natywne menu — jedyne miejsce, gdzie to
@@ -2703,6 +2775,49 @@ describe("audyt 2026-08-01", () => {
     const stats = [...tip.querySelectorAll(".tip-stat")].map((s) => s.firstElementChild?.textContent);
     expect(stats).toContain("Użycia");
     expect(stats).not.toContain("Ciosy");
+  });
+
+  test("na najwyższym szczeblu dymek nie obiecuje powrotu", async () => {
+    // AUDYT-18: podpowiedź mówiła „PPM — powrót" także w składzie, gdzie nie ma
+    // dokąd wracać. To jedyna instrukcja nawigacji w panelu.
+    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+
+    const row = overlay.shadow.querySelector<HTMLElement>(".row[data-actor]")!;
+    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
+    const top = overlay.shadow.querySelector(".tip-hint")?.textContent;
+    expect(top).toContain("LPM");
+    expect(top).not.toContain("PPM");
+
+    // Po zejściu szczebel niżej człon o PPM ma się pojawić. Wiersze mają tam
+    // `data-list`, a nie `data-actor` — to już rozbicie, nie skład.
+    row.click();
+    overlay.shadow
+      .querySelector<HTMLElement>(".row[data-list]")!
+      .dispatchEvent(new Event("pointerover", { bubbles: true }));
+    expect(overlay.shadow.querySelector(".tip-hint")?.textContent).toContain("PPM");
+  });
+
+  test("dymek drążalnego wiersza mówi także o LPM", async () => {
+    // AUDYT-18: podpowiedź wymieniała sam PPM, choć LPM schodzi stamtąd niżej.
+    // Milczenie o drodze w dół czyta się jak „nie ma tam nic".
+    const overlay = await enterBoss("Zadane");
+    const row = overlay.shadow.querySelector<HTMLElement>('.row[data-list="sources"]:not([data-leaf])')!;
+    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
+
+    expect(overlay.shadow.querySelector(".tip-hint")?.textContent).toContain("LPM");
+  });
+
+  test("dymek liścia o LPM milczy, bo wejścia tam nie ma", async () => {
+    const overlay = await enterBoss("Otrzymane");
+    const leaf = overlay.shadow.querySelector<HTMLElement>(".row[data-list][data-leaf]");
+    if (!leaf) return; // brak liścia w tym przekroju — nie ma czego pilnować
+    leaf.dispatchEvent(new Event("pointerover", { bubbles: true }));
+
+    const hint = overlay.shadow.querySelector(".tip-hint")?.textContent;
+    expect(hint).toContain("PPM");
+    expect(hint).not.toContain("LPM");
   });
 
   test("podpowiedź w dymku mówi, dokąd naprawdę wraca PPM", async () => {
