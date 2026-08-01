@@ -122,7 +122,7 @@ export type BattleEvent =
        * Nie wystarczy tu `ability !== null`. "Uleczono X o N punktów życia."
        * TEŻ niesie nazwę umiejętności, ale rzucił ją ktoś inny — i tylko to
        * pole trzyma statystyki z dala od dopisania leczonemu cudzej roboty.
-       * Kto konkretnie leczył, nadal nie wychodzi z logu: patrz `ai/DECYZJE.md`
+       * Kto konkretnie leczył, nadal nie wychodzi z logu: patrz `docs/DECYZJE.md`
        * §"Leczenie bez leczącego".
        */
       self: boolean;
@@ -154,8 +154,6 @@ export type BattleEvent =
       actors: string[];
       result: string;
     }
-  /** `bonus` odróżnia dodatek z przedmiotów od głównej puli — nie sumuj ślepo. */
-  | { kind: "experience"; amount: number; bonus: boolean }
   /** Zapowiedź umiejętności; obrażenia niosą dopiero kolejne linie. */
   | { kind: "ability"; actor: string; name: string }
   /** Komunikat tła bez wpływu na statystyki (aura, brak Punktów Honoru, ...). */
@@ -386,6 +384,29 @@ export type ActorStats = {
   damageTaken: number;
   /** Obrażenia pochłonięte przez cel (raw - applied). */
   damageAbsorbed: number;
+  /**
+   * Ile z `damageAbsorbed` zdjął BLOK — z linii "Zablokowanie 47 obrażeń".
+   *
+   * Liczba należy do CELU, bo to on zablokował, choć log podaje ją w bloku
+   * ciosu napastnika. Jest PODZBIOREM `damageAbsorbed`, nie liczbą obok, i nie
+   * jest to wniosek z pomiaru, tylko cytat z dokumentacji gry: blok redukuje
+   * obrażenia "podczas przyjętego ataku o 30%", a robi to PRZED pancerzem,
+   * absorpcją i odpornościami (`docs/MECHANIKA.md`, wpis o bloku). Zgadza się to
+   * z korpusem co do joty na 20 wystąpieniach. Dlatego panel pokazuje blok
+   * w nawiasie przy pochłoniętych, a nie jako osobną pozycję do dodania.
+   */
+  damageBlocked: number;
+  /**
+   * Obrażenia trucizn i krwawień, które zdjęło OSŁABIENIE ("osłabione o 25%").
+   *
+   * Osobne pole, a nie doliczenie do `damageAbsorbed`, bo to jedyna z tych liczb
+   * ODTWORZONA, a nie odczytana: log podaje kwotę już PO osłabieniu i procent
+   * zaokrąglony do liczby całkowitej, więc pełna kwota wychodzi z dzielenia
+   * `amount / (1 - p)`. Zmierzone na korpusie — odtworzona baza trafia w tik
+   * tego samego DoT-a bez osłabienia 16/16 razy z błędem ≤ 2 %. Wlane do
+   * `damageAbsorbed` zamieniłoby liczbę dokładną w szacunek bez ostrzeżenia.
+   */
+  damageWeakened: number;
   healingDone: number;
   healingReceived: number;
   /**
@@ -415,6 +436,15 @@ export type ActorStats = {
    */
   partialMisses: number;
   crits: number;
+  /**
+   * Trafienia oznaczone w logu jako "Cios bardzo krytyczny".
+   *
+   * PODZBIÓR `crits`, nie kategoria obok: w całym korpusie każde z dziesięciu
+   * takich trafień niesie jednocześnie zwykłego kryta. Stąd forma "kryt. 12
+   * (w tym 2 bardzo)" — dodawanie obu liczb do siebie dałoby czternaście
+   * krytów przy dwunastu, tak samo jak przy unikach częściowych.
+   */
+  superCrits: number;
   /**
    * Tury, w których postać działała. Log nie numeruje tur, więc turą jest
    * nieprzerwany ciąg jej akcji: "Podwójny strzał" to dwa ciosy w JEDNEJ turze.

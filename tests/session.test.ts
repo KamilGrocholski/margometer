@@ -438,3 +438,53 @@ describe("suma sesji nie gubi strony", () => {
     expect(sides(session.total())).toEqual({ Gracz: 0, Wróg: 1 });
   });
 });
+
+/**
+ * Trzy pola dołożone przy `SOLID §4.22` przechodzą przez `mergeStats`.
+ *
+ * Strukturalny strażnik `deepSum` już by tego dopilnował, ale `§4.11`
+ * (`dealtToBy`) i `AUDYT‑37` (`side`) pokazały, że wykrywacz to nie to samo, co
+ * asercja: tamten mówi „coś przepadło", ta mówi CO. Klasa błędu jest tu jedna
+ * i ta sama — nowe pole dopisane do typu i zapomniane w scalaniu — a kasuje ją
+ * dopiero refaktor `R3`.
+ */
+describe("suma sesji niesie blok, super-kryty i osłabienia", () => {
+  test("nowe pola sumują się tak samo jak reszta", async () => {
+    const names = [
+      "new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo",
+      "new-engine/2026-08-01_druzyna-vs-hildur-drugi-sklad",
+      "new-engine/2026-07-28_druzyna-vs-draugr-zwyciestwo",
+    ];
+    const texts = await Promise.all(names.map(readFixture));
+
+    const session = new Session();
+    for (const text of texts) session.update(text);
+
+    // Te same walki policzone osobno i dodane ręcznie, pole po polu.
+    const expected = new Map<string, [number, number, number]>();
+    for (const text of texts) {
+      for (const a of aggregate(parse(text)).actors) {
+        const [blok, superKryt, oslabione] = expected.get(a.name) ?? [0, 0, 0];
+        expected.set(a.name, [
+          blok + a.damageBlocked,
+          superKryt + a.superCrits,
+          oslabione + a.damageWeakened,
+        ]);
+      }
+    }
+    // Gdyby wszystkie trzy wyszły zerami, test przechodziłby niezależnie od
+    // `mergeStats` — a taki właśnie jest tu najłatwiejszy sposób na pomyłkę.
+    const suma = [...expected.values()].reduce(
+      (acc, row) => acc.map((n, i) => n + row[i]!) as [number, number, number],
+      [0, 0, 0] as [number, number, number],
+    );
+    expect(suma.every((n) => n > 0)).toBe(true);
+
+    for (const actor of session.total().actors) {
+      expect([actor.name, actor.damageBlocked, actor.superCrits, actor.damageWeakened]).toEqual([
+        actor.name,
+        ...expected.get(actor.name)!,
+      ]);
+    }
+  });
+});

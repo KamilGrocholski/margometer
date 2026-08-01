@@ -170,6 +170,33 @@ function dodgeLabel(actor: ActorStats): string {
   const word = plural(partial, ["częściowy", "częściowe", "częściowych"]);
   return `uniki ${actor.misses} (+${partial} ${word})`;
 }
+
+/**
+ * Kryty razem z ciosami bardzo krytycznymi.
+ *
+ * "W tym", a nie "+", bo super-kryt JEST krytem — log wypisuje oba modyfikatory
+ * przy tym samym trafieniu (10/10 wystąpień w korpusie). Znak plus czytałby się
+ * jak druga kategoria do dodania i psuł liczbę, tak samo jak przy unikach
+ * częściowych, gdzie z dwunastu ataków wychodziło czternaście.
+ */
+function critLabel(actor: ActorStats): string {
+  if (actor.superCrits === 0) return `kryt. ${actor.crits}`;
+  return `kryt. ${actor.crits} (w tym ${actor.superCrits} bardzo)`;
+}
+
+/**
+ * Pochłonięte razem z tym, ile z nich zdjął blok.
+ *
+ * Blok jest PODZBIOREM pochłoniętych — reszta to pancerz i odporności, których
+ * log nie rozbija. Stąd nawias, a nie osobny człon listy: dwie liczby obok
+ * siebie zapraszałyby do dodania ich do siebie.
+ */
+function absorbedLabel(actor: ActorStats): string {
+  const absorbed = `pochłonięte ${number.format(actor.damageAbsorbed)}`;
+  if (actor.damageBlocked === 0) return absorbed;
+  return `${absorbed} (blok ${number.format(actor.damageBlocked)})`;
+}
+
 export const actorWord = (count: number) => plural(count, ["postać", "postacie", "postaci"]);
 
 const number = new Intl.NumberFormat("pl-PL");
@@ -2251,7 +2278,7 @@ export class Overlay {
       "note",
       [
         `ciosy ${actor.hits}`,
-        `kryt. ${actor.crits}`,
+        critLabel(actor),
         dodgeLabel(actor),
         `maks. cios ${number.format(actor.maxHit)}`,
         `tury ${actor.turns}`,
@@ -2634,11 +2661,17 @@ export class Overlay {
     // Liczniki, które nie mają własnej zakładki, a mówią o jakości gry.
     const counters = [
       `ciosy ${actor.hits}`,
-      `kryt. ${actor.crits}`,
+      critLabel(actor),
       dodgeLabel(actor),
       `maks. cios ${number.format(actor.maxHit)}`,
-      `pochłonięte ${number.format(actor.damageAbsorbed)}`,
+      absorbedLabel(actor),
     ];
+    // Osłabienie trucizn dochodzi TYLKO gdy jest — u postaci, która nie nosi
+    // takiego efektu, zero mówiłoby o niej mniej niż nic. Reszta liczników
+    // stoi zawsze, bo zero ciosów albo zero krytów jest informacją.
+    if (actor.damageWeakened > 0) {
+      counters.push(`osłabione ${number.format(actor.damageWeakened)}`);
+    }
     section.append(div("tip-note", counters.join(" · ")));
 
     return section;

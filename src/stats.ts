@@ -563,12 +563,15 @@ function blank(name: string): ActorStats {
     damageDealt: 0,
     damageTaken: 0,
     damageAbsorbed: 0,
+    damageBlocked: 0,
+    damageWeakened: 0,
     healingDone: 0,
     healingReceived: 0,
     hits: 0,
     misses: 0,
     partialMisses: 0,
     crits: 0,
+    superCrits: 0,
     turns: 0,
     maxHit: 0,
     turnsLost: 0,
@@ -860,6 +863,10 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           target.damageTaken += hit.applied;
           target.damageAbsorbed += hit.raw - hit.applied;
           if (hit.crit) source.crits += 1;
+          // "Cios bardzo krytyczny" stoi w logu OBOK zwykłego kryta, nie
+          // zamiast niego — dlatego bez `else`. Gdyby kiedyś przyszedł sam,
+          // wpadnie tu i tak, a `superCrits > crits` zapali test niezmiennika.
+          if (hit.superCrit) source.superCrits += 1;
           addToTurn(hit.applied);
           addEdge(sourceKey, targetKey, hit.applied);
 
@@ -892,6 +899,12 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           noteType(targetKey, label, type, hit.applied);
           noteType(targetKey, `${sourceKey} · ${label}`, type, hit.applied);
         });
+
+        // Blok należy do CELU, choć log podaje go w bloku ciosu napastnika:
+        // "Zablokowanie 47 obrażeń" mówi, ile zdjęła TARCZA bitego. Raz na
+        // zdarzenie, nie raz na trafienie — jedna linia opisuje cały cios,
+        // choćby niósł dwie liczby.
+        if (event.blocked !== null) target.damageBlocked += event.blocked;
 
         // Ciosy dopisujemy po sumach, raz na zdarzenie, a nie raz na liczbę
         // obrażeń: "Lodowa strzała" to jeden cios niosący dystansowe i zimno,
@@ -953,6 +966,22 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         const source =
           wound && wound.amount === event.amount ? wound.source : opponentOf(event.target);
         get(targetKey).damageTaken += event.amount;
+        // "(osłabione o 25%)" — kwota w logu stoi już PO osłabieniu, więc pełne
+        // tyknięcie wychodzi z dzielenia, a różnica jest tym, co osłabienie
+        // zdjęło. Sprawdzone na korpusie: odtworzona baza trafia w tik tego
+        // samego DoT-a BEZ osłabienia szesnaście razy na szesnaście, z błędem
+        // do 2 % — bierze się on z tego, że gra podaje procent zaokrąglony do
+        // liczby całkowitej. Dlatego to osobne pole, a nie dopisek do
+        // `damageAbsorbed`, które jest wyliczone wprost z dwóch liczb logu.
+        //
+        // Zakres 0 < p < 100 jest strażnikiem, nie ozdobą: "osłabione o 100%"
+        // dałoby dzielenie przez zero, a takiej linii w korpusie nie ma, więc
+        // nie wiadomo nawet, czy gra ją w ogóle pisze.
+        const weakened = event.weakenedPct;
+        if (weakened !== null && weakened > 0 && weakened < 100) {
+          const full = Math.round(event.amount / (1 - weakened / 100));
+          get(targetKey).damageWeakened += full - event.amount;
+        }
         observeDeath(targetKey, event.targetHpPct);
         // DoT tyka między turami, więc trafia do tury, która właśnie trwa.
         addToTurn(event.amount);
@@ -1049,7 +1078,6 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
       }
       case "fight-start":
       case "fight-end":
-      case "experience":
       case "info":
         break;
     }

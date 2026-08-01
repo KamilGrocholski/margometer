@@ -2961,3 +2961,72 @@ describe("uniki pełne i częściowe w stopce", () => {
     expect(counters(overlay)).not.toContain("częściow");
   });
 });
+
+/**
+ * `SOLID §4.22`: blok, cios bardzo krytyczny i osłabienie trucizny były
+ * parsowane, otestowane i wyrzucane. Trzy człony liczników pokazują je tam,
+ * gdzie już stoją liczby tej samej rodziny.
+ *
+ * Każdy z nich pojawia się TYLKO gdy jest niezerowy — tak samo jak człon
+ * o unikach częściowych wyżej i z tego samego powodu: zero mówi o postaci mniej
+ * niż nic, a linia liczników jest wąska.
+ */
+describe("blok, super-kryt i osłabienie w licznikach", () => {
+  const load = async (fixture: string, actor: string) => {
+    const stats = aggregate(parse(await readFixture(fixture)));
+    const overlay = new Overlay();
+    overlay.render(stats, stats);
+    const row = [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")].find(
+      (r) => r.dataset.actor === actor,
+    )!;
+    // Dymek dla liczników z pochłoniętymi, stopka po wejściu w postać dla krytów.
+    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
+    const tip = overlay.shadow.querySelector(".tip-note")?.textContent ?? "";
+    row.click();
+    const footer = overlay.shadow.querySelector(".rows .note")?.textContent ?? "";
+    return { tip, footer };
+  };
+
+  test("blok stoi w nawiasie przy pochłoniętych", async () => {
+    const { tip } = await load("new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo", "Zsz Przeworsk");
+    expect(tip).toContain(`pochłonięte ${number.format(52882)} (blok ${number.format(5302)})`);
+  });
+
+  test("bez bloku nawias nie dochodzi", async () => {
+    const { tip } = await load(
+      "new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo",
+      "Hildur Muza Śmierci",
+    );
+    expect(tip).toContain(`pochłonięte ${number.format(236007)}`);
+    expect(tip).not.toContain("blok");
+  });
+
+  test("super-kryt siedzi w liczbie krytów, a nie obok niej", async () => {
+    const { tip, footer } = await load(
+      "new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo",
+      "Hildur Muza Śmierci",
+    );
+    // "w tym", nie "+": dodanie obu liczb dałoby osiem krytów przy siedmiu.
+    expect(tip).toContain("kryt. 7 (w tym 1 bardzo)");
+    expect(footer).toContain("kryt. 7 (w tym 1 bardzo)");
+  });
+
+  test("bez super-kryta zostaje sama liczba", async () => {
+    const { tip } = await load("new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo", "Zsz Przeworsk");
+    expect(tip).toContain("kryt. 0");
+    expect(tip).not.toContain("bardzo");
+  });
+
+  test("osłabienie trucizny dochodzi jako osobny człon", async () => {
+    const { tip } = await load("new-engine/2026-07-28_druzyna-vs-draugr-zwyciestwo", "Draugr Zastępowy");
+    // Osobny człon, a nie dopisek do pochłoniętych: tamte są policzone wprost
+    // z logu, a to jest odtworzone z zaokrąglonego procentu.
+    expect(tip).toContain(`osłabione ${number.format(2932)}`);
+    expect(tip).toContain(`pochłonięte ${number.format(85380)}`);
+  });
+
+  test("bez osłabień członu nie ma wcale", async () => {
+    const { tip } = await load("new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo", "Zsz Przeworsk");
+    expect(tip).not.toContain("osłabione");
+  });
+});

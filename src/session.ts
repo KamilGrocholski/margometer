@@ -144,12 +144,15 @@ function mergeStats(all: Aggregate[]): SessionStats {
       merged.damageDealt += actor.damageDealt;
       merged.damageTaken += actor.damageTaken;
       merged.damageAbsorbed += actor.damageAbsorbed;
+      merged.damageBlocked += actor.damageBlocked;
+      merged.damageWeakened += actor.damageWeakened;
       merged.healingDone += actor.healingDone;
       merged.healingReceived += actor.healingReceived;
       merged.hits += actor.hits;
       merged.misses += actor.misses;
       merged.partialMisses += actor.partialMisses;
       merged.crits += actor.crits;
+      merged.superCrits += actor.superCrits;
       merged.turns += actor.turns;
       merged.turnsLost += actor.turnsLost;
       merged.maxHit = Math.max(merged.maxHit, actor.maxHit);

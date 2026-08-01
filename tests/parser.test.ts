@@ -748,11 +748,19 @@ describe("walka grupowa z umiejętnościami", () => {
     });
   });
 
-  test("odróżnia bonusowe doświadczenie od głównej puli", async () => {
-    expect((await load()).filter((e) => e.kind === "experience")).toEqual([
-      { kind: "experience", amount: 2043, bonus: false },
-      { kind: "experience", amount: 1021, bonus: true },
+  // Doświadczenie przestało być osobnym zdarzeniem (decyzja z `SOLID §4.22`:
+  // jedyna liczba z tamtej czwórki opisująca WALKĘ, a nie postać, więc licznik
+  // obrażeń nie ma dla niej miejsca). Test zostaje, tylko pilnuje czego innego:
+  // usunięcie pola nie może zamienić dwóch linii logu w linie NIEZNANE, bo
+  // `unknown` zapala w panelu ostrzeżenie „statystyki są niepełne".
+  test("linie doświadczenia są znane, choć nieliczone", async () => {
+    const events = await load();
+    const xp = events.filter((e) => e.kind === "info" && e.line.includes("doświadczenia"));
+    expect(xp.map((e) => e.kind === "info" && e.line)).toEqual([
+      "Zwycięzca zdobył łącznie 2043 punktów doświadczenia",
+      "Dodatkowe punkty doświadczenia z przedmiotów +1021.",
     ]);
+    expect(events.filter((e) => e.kind === "unknown")).toHaveLength(0);
   });
 });
 
@@ -894,6 +902,30 @@ describe("odporność na zmianę formatu", () => {
       ["Ktoś(50%) uderzył z siłą  +100", "+Klątwa", "Cel(90%) otrzymał(a)  -80  obrażeń"].join("\n"),
     );
     expect(withProc[0]).toMatchObject({ kind: "attack", procs: ["Klątwa"] });
+  });
+
+  test("proc z procentem w nawiasie nie rozbija bloku ataku", () => {
+    // Format HIPOTETYCZNY — w korpusie procenty przy procach stoją gołe
+    // ("+Zmiażdżenie 25%"), a nawiasy niosą liczby ("+Zranienie (182)").
+    // Test nie twierdzi, że gra tak pisze; pilnuje, że strażnik HP nie zabiera
+    // ze sobą całej klasy modyfikatorów, gdy kiedyś tak napisze. Przed
+    // zawężeniem `RE_CARRIES_HP` ten blok dawał trzy `unknown` i gubił 80
+    // obrażeń, bo procent w nawiasie wystarczał, żeby linia przestała być
+    // modyfikatorem.
+    const events = parse(
+      [
+        "Ktoś(50%) uderzył z siłą  +100",
+        "+Wampiryzm (10%)",
+        "Cel(90%) otrzymał(a)  -80  obrażeń",
+      ].join("\n"),
+    );
+
+    expect(events.filter((e) => e.kind === "unknown")).toHaveLength(0);
+    expect(events[0]).toMatchObject({
+      kind: "attack",
+      procs: ["Wampiryzm (10%)"],
+      hits: [{ raw: 100, applied: 80 }],
+    });
   });
 
   test("atak jednoręczny daje jedno trafienie", () => {

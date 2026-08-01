@@ -700,6 +700,12 @@ describe("niezmienniki liczb", () => {
       if (a.unattributedHealingReceived > a.healingReceived) {
         found.push(`${a.name}: leczenie bez sprawcy > otrzymane`);
       }
+      // Obie liczby panel pokazuje W NAWIASIE przy większej z pary („pochłonięte
+      // 55 923 (blok 10 568)", „kryt. 7 (w tym 1 bardzo)"), więc przekroczenie
+      // znaczyłoby, że nawias mówi więcej niż to, co rzekomo rozbija — a czytający
+      // nie ma jak tego zauważyć. Podzbiór jest tu kontraktem, nie obserwacją.
+      if (a.damageBlocked > a.damageAbsorbed) found.push(`${a.name}: blok > pochłonięte`);
+      if (a.superCrits > a.crits) found.push(`${a.name}: bardzo krytyczne > krytyczne`);
     }
     const total = (pick: (a: Aggregate["actors"][number]) => number) =>
       stats.actors.reduce((s, a) => s + pick(a), 0);
@@ -754,6 +760,59 @@ describe("niezmienniki liczb", () => {
     const total = session.total();
     expect(total.actors.length).toBeGreaterThan(0);
     expect(mismatches(total)).toEqual([]);
+  });
+});
+
+/**
+ * Trzy pola, które parser liczył od dawna, a które do niedawna nie docierały
+ * nigdzie (`SOLID §4.22`).
+ *
+ * Liczby są konkretne, nie „większe od zera": każda z nich stoi w JEDNEJ walce
+ * i daje się odtworzyć z logu ręcznie, więc test mówi, że rachunek jest ten sam,
+ * a nie tylko że coś się policzyło.
+ */
+describe("blok, super-kryt i osłabienie DoT-a", () => {
+  const load = async (name: string) =>
+    aggregate(parse(await Bun.file(`${FIXTURES}new-engine/${name}/raw.txt`).text()));
+  const actor = (stats: Aggregate, name: string) => stats.actors.find((a) => a.name === name)!;
+
+  test("blok siada u CELU, nie u napastnika", async () => {
+    // "Zablokowanie 23 obrażeń" stoi w bloku ciosu łowcy, ale mówi o tarczy
+    // Wieczornicy — i to ona ma je mieć.
+    const stats = await load("2026-07-18_lowca-vs-paladyni");
+    expect(actor(stats, "Wieczornica").damageBlocked).toBe(23);
+    expect(actor(stats, "Łowca głów z psk").damageBlocked).toBe(0);
+    // Blok jest częścią pochłoniętych, nie liczbą obok nich.
+    expect(actor(stats, "Wieczornica").damageAbsorbed).toBe(497);
+  });
+
+  test("super-kryt jest podzbiorem krytów", async () => {
+    const stats = await load("2026-07-31_druzyna-vs-hildur-zwyciestwo");
+    // Hildur ma siedem krytów, z czego jeden „bardzo krytyczny".
+    expect(actor(stats, "Hildur Muza Śmierci")).toMatchObject({ crits: 7, superCrits: 1 });
+    // Skrajny przypadek z innej walki: wszystkie kryty są super. Wtedy nawias
+    // powtarza liczbę wiodącą i to jest poprawne — nie jest to sygnał błędu.
+    const third = await load("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+    expect(actor(third, "Wyczxs")).toMatchObject({ crits: 3, superCrits: 3 });
+  });
+
+  test("osłabienie DoT-a odtwarza się z kwoty po osłabieniu", async () => {
+    // Jedyna osłabiona linia w tej walce:
+    //   "Łowcomir Kazrek(67.58%) otrzymał 236 (osłabione o 19%) obrażeń od ognia."
+    // Pełne tyknięcie to 236 / 0,81 = 291,36 → 291, więc osłabienie zdjęło 55.
+    const stats = await load("2026-07-18_lowca-vs-tropiciel-glebokarana");
+    expect(actor(stats, "Łowcomir Kazrek").damageWeakened).toBe(55);
+    // Przyjęte zostają kwotą Z LOGU — odtworzona baza nie wchodzi do sum.
+    expect(actor(stats, "Łowcomir Kazrek").damageTaken).toBe(1188);
+  });
+
+  test("bez takiej linii pola stoją na zerze", async () => {
+    // Walka z kukłą: żadnego bloku i żadnego kryta po obu stronach. Zero jest
+    // tu wynikiem, nie brakiem — panel na jego podstawie CHOWA człony liczników.
+    const stats = await load("2026-07-18_tancerz-vs-kukla");
+    for (const a of stats.actors) {
+      expect({ blok: a.damageBlocked, superKryt: a.superCrits }).toEqual({ blok: 0, superKryt: 0 });
+    }
   });
 });
 

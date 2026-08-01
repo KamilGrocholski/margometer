@@ -105,8 +105,16 @@ const RE_MODIFIER = /^[+-]\s*(.*\p{L}.*)$/u;
  * obrażeń umiejętności bez zapowiedzi ("-507 obrażeń otrzymał(a) X(75%)").
  * Kwota przepadała, a czujka `unknown` — jedyny sygnał zmiany formatu — na tej
  * całej klasie linii nie odpalała.
+ *
+ * `\S` przed nawiasem, bo bez niego strażnik odrzucał JAKĄKOLWIEK linię
+ * z procentem w nawiasie — w tym proca zapisanego "+Wampiryzm (10%)", który
+ * rozpadał się wtedy na trzy `unknown` (cios, modyfikator, linia obrażeń)
+ * i gubił całą kwotę ciosu. Zmierzone na korpusie: wszystkie **2794** linie
+ * niosące `(N%)` mają nawias przyklejony do nazwy postaci, ani jedna nie ma
+ * przed nim spacji. Odstęp jest więc wolnym rozróżnieniem: życie przykleja się
+ * do nazwy, wartość efektu stoi po spacji.
  */
-const RE_CARRIES_HP = /\(\d+(?:[.,]\d+)?%\)/;
+const RE_CARRIES_HP = /\S\(\d+(?:[.,]\d+)?%\)/;
 
 /**
  * Treść modyfikatora albo null, gdy linia nim nie jest. Jedno miejsce na tę
@@ -173,9 +181,6 @@ const RE_TURN_LOST = /^(.+?) - utrata tury(?: \(.+\))?$/;
 // gra pisze o potworach, u których nie zna formy.
 const RE_VICTORY = /^Zwyciężył(?:a|o|\(a\))?(?: drużyna)? (.+)$/;
 const RE_DEFEAT = /^Poległ(?:a|o|y|\(a\))?(?: drużyna)? (.+)$/;
-const RE_EXPERIENCE = /^Zwycięzca zdobył łącznie (\d+) punktów doświadczenia$/;
-/** "Dodatkowe punkty doświadczenia z przedmiotów +1021." — bonus obok głównego. */
-const RE_EXPERIENCE_BONUS = /^Dodatkowe punkty doświadczenia z przedmiotów \+(\d+)\.?$/;
 const RE_DRAW = /^(Walka nie wyłoniła zwycięzcy)$/;
 const RE_BLOCKED = /^Zablokowanie (\d+) obrażeń$/;
 /**
@@ -258,6 +263,17 @@ const RE_INFO = [
   // do policzenia. Zwykle na końcu logu, ale nie jest to regułą, więc łapiemy
   // po treści, nie po pozycji.
   /^.+?:\s*zdobyto\s+.+$/,
+  // Doświadczenie za walkę: "Zwycięzca zdobył łącznie 2043 punktów
+  // doświadczenia" plus "Dodatkowe punkty doświadczenia z przedmiotów +1021.".
+  //
+  // Linie ZNANE i świadomie nieliczone. Parser niósł je kiedyś jako osobne
+  // zdarzenie `experience`, którego nie czytało nic poza ignorowanym `case`
+  // w `stats.ts` — decyzja z `SOLID §4.22` brzmi „usunąć", bo to jedyna liczba
+  // z tej czwórki opisująca WALKĘ, a nie postać, i licznik obrażeń nie ma dla
+  // niej miejsca. Wzorce zostają tutaj, żeby usunięcie pola nie zrobiło
+  // z sześciu linii logu linii nieznanych i nie zapaliło ostrzeżenia parsera.
+  /^Zwycięzca zdobył łącznie \d+ punktów doświadczenia$/,
+  /^Dodatkowe punkty doświadczenia z przedmiotów \+\d+\.?$/,
 ];
 
 /**
@@ -810,22 +826,6 @@ export function parse(text: string): BattleEvent[] {
     const turnLost = RE_TURN_LOST.exec(line);
     if (turnLost) {
       events.push({ kind: "turn-lost", actor: turnLost[1]!.trim() });
-      return;
-    }
-
-    const experience = RE_EXPERIENCE.exec(line);
-    if (experience) {
-      events.push({ kind: "experience", amount: parseInt(experience[1]!, 10), bonus: false });
-      return;
-    }
-
-    const experienceBonus = RE_EXPERIENCE_BONUS.exec(line);
-    if (experienceBonus) {
-      events.push({
-        kind: "experience",
-        amount: parseInt(experienceBonus[1]!, 10),
-        bonus: true,
-      });
       return;
     }
 
