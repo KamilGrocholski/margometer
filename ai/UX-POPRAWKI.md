@@ -5,7 +5,7 @@ siedzi w [`UX.md`](UX.md). Tu zbieram, **co da się poprawić**, po zwrocie za
 pracę. Podzielone na: **A. usterki widoczne dla użytkownika** oraz **B. nowe
 wygody** (czego brakuje).
 
-Statusy zweryfikowane na bieżącym kodzie **2026‑07‑30**, każdy odczytem
+Statusy zweryfikowane na bieżącym kodzie **2026‑07‑30**, `A14` domknięte **2026‑08‑01**, każdy odczytem
 wskazanego miejsca. `A1`–`A6` naprawiono wcześniej; `A7`–`A15` wyszły
 z pierwszego przeglądu **archiwum, odtwarzania i podglądu** — kodu, który
 powstał po poprzednim przeglądzie i nie był nigdy sprawdzony — **i zostały
@@ -32,7 +32,7 @@ które nie działały wcale.
 | A11 | Wklejony tekst ginął przy przebudowie listy | pole wklejania to trwały węzeł; lista zachowuje przewinięcie |
 | A12 | PPM zabijało menu w polu wklejania | handler odpuszcza, gdy zdarzenie idzie z pola edycyjnego |
 | A13 | Brak widocznego focusu, 5‑pikselowy suwak | reguła `:focus-visible`; suwak łapie grubo, rysuje się cienko |
-| A14 | Tekst na pasku nie przechodzi AA | ⬜ **ZOSTAJE — wymaga decyzji wizualnej**, patrz niżej |
+| A14 | Tekst na pasku nie przechodzi AA | ✅ **2026‑08‑01**: `.bar` na `opacity: .55` + nasadka `.bar-cap` w pełnej barwie; próg pilnuje test kontrastu |
 | A15 | „na pewno?” nie wygasa, liczebniki, ucięcia | wygasa po 5 s; jedno `plural()`; ucięcia z ratunkiem |
 
 **Naprawione (2026‑07‑26, wjechało w `3814a42`):**
@@ -65,7 +65,7 @@ które nie działały wcale.
 
 ---
 
-## A. Usterki z przeglądu 2026‑07‑30 (naprawione, poza A14)
+## A. Usterki z przeglądu 2026‑07‑30 (wszystkie naprawione)
 
 Pierwszy przegląd **archiwum, odtwarzania i podglądu** — trzy funkcje weszły
 w `22b63e6`/`a3d4594` i nie były dotąd sprawdzone. Stąd pięć rzeczy, które nie
@@ -173,7 +173,7 @@ uchwytu, nie o mapę klawiszy.
 `tabindex="0"` na klikalnych `div`‑ach, suwak grubszy z obsługą ciągnięcia.
 **Koszt S.**
 
-### A14 — Tekst na kolorowym pasku nie przechodzi AA 🟡 S — ⬜ OTWARTE
+### A14 — Tekst na kolorowym pasku nie przechodzi AA 🟡 S — ✅ NAPRAWIONE
 `src/overlay.ts` (`.row-text`, `.bar`) + `src/palette.ts`
 **Problem.** `.row-text` to `#f2f2ef` nad `.bar` z `opacity: .85` na `#24242a`.
 Policzony kontrast: żółty `#c98500` **3,50:1**, czerwony `#e66767` 3,60, akwa
@@ -182,11 +182,20 @@ Policzony kontrast: żółty `#c98500` **3,50:1**, czerwony `#e66767` 3,60, akwa
 **Skąd luka.** Walidator opisany w `README.md` „Kolory pasków” mierzył kontrast
 **paska do tła**, nie **tekstu na pasku**, a kolory profesji są od tej walidacji
 nowsze. To korekta metody, nie podważenie decyzji o odznace.
-**Propozycja.** Albo cień/obwódka pod tekstem wiersza, albo pasek jako węższa
-wstążka pod tekstem zamiast tła pod nim. **Koszt S**, ale wymaga decyzji
-wizualnej — i dlatego jako jedyna z tej listy nie została zrobiona od ręki.
-Obie drogi zmieniają wygląd rankingu, czyli rzecz, na którą patrzy się przez
-całą walkę; to nie jest wybór do zrobienia mimochodem.
+**Rozstrzygnięcie (2026‑08‑01).** Trzecia droga, żadna z dwóch rozważanych:
+`.bar` schodzi z `opacity: .85` na `.55`, a pełne nasycenie zostaje w
+3‑pikselowej nasadce `.bar-cap` na lewej krawędzi. Przy `.55` przechodzą
+wszystkie barwy (najgorszy nadal żółty, ale **5,58:1**); przy `.7` żółty dawał
+4,30 i próg nadal by nie przeszedł. Pasek dalej mówi „ile”, nasadka „czyje” —
+a rozstęp ΔE z `palette.ts` liczony był dla pełnego nasycenia, więc barwa,
+którą walidowano, nadal gdzieś na wierszu stoi.
+**Czym to jest przypięte.** `palette.test.ts`, sekcja „kontrast tekstu na pasku
+(A14)”: krycie czytane jest Z ARKUSZA panelu, nie ze stałej w teście, więc
+podniesienie go „bo ładniej” nie przejdzie po cichu. Drugi test (kontrapunkt)
+sprawdza, że przy `.85` próg NIE był zdawany — inaczej pierwszy przechodziłby
+także wtedy, gdyby liczył co innego.
+**Co zostaje osobno.** `AUDYT‑14` (odznaka literowa profesji, obiecana w
+`palette.ts` i nieistniejąca) — dotyczy tego samego wiersza, ale to inna decyzja.
 
 ### A15 — Drobne, ta sama kategoria ⚪ S — ✅ NAPRAWIONE
 - **„na pewno?” nie wygasa** (`overlay.ts:1224`). `confirmingClear` zeruje się

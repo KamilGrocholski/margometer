@@ -147,6 +147,18 @@ w `Engine.battle` niesie `buffs` jako zwykły licznik, a nie listę efektów ze 
 Serwer wysyła klientowi tyle, ile ten musi narysować (ikonę i licznik tur) — skoro UI
 nigdzie nie pokazuje „kto cię otruł", ta informacja do przeglądarki nie dociera.
 
+#### Gdzie to ląduje w panelu (2026‑08‑01)
+
+Do tej pory tykający efekt bez sprawcy wchodził na pierwszy szczebel rozbicia
+**pod własną nazwą**, więc „od trucizny" stało w rankingu `OD KOGO` między
+postaciami — a to jest lista postaci. Odtąd wszystko bez sprawcy zbiera się pod
+jedną pozycją `Bez sprawcy` (stała `UNATTRIBUTED_SOURCE` w `stats.ts`), stojącą
+**na końcu** listy bez względu na kwotę i odciętą od niej wizualnie. Wejście w nią
+odpowiada na pytanie, na które log odpowiedzieć umie: nie „kto", tylko „czym".
+
+To zmiana prezentacji. **Reguła zostaje ta sama:** sprawcy nie zgadujemy, a
+piętra 2 i 3 z tabelki wyżej nadal nie są wiązane. Szczegóły: `AUDYT.md AUDYT‑28`.
+
 ### Leczenie bez leczącego
 
 Widok **Wyleczone** ma w spec trzy szczeble (ranking → wg postaci → wg
@@ -372,6 +384,45 @@ tego pomysłu, a nie ozdobą.
   więc jego akcje wychodzą jednobarwne — podział niesie sekcja TYP OBRAŻEŃ.
 - **Nazwy akcji są dwa szczeble w głąb** (skład → cel → czym), bo pierwszy poziom
   wymienia postacie. Tam barwa idzie za profesją, spójnie z listą składu.
+
+### Krycie paska to decyzja o czytelności, nie o guście (2026‑08‑01)
+
+Ten sam walidator mierzył kontrast **paska do tła**, a tekst wiersza leży NA
+pasku — więc mierzył nie to, co trzeba (`UX-POPRAWKI.md A14`). Przy `opacity: .85`
+żadna z barw nie przechodziła 4,5:1 dla tekstu 12 px; najgorszy żółty dawał 3,50.
+
+Rozstrzygnięcie: `.bar` schodzi na `opacity: .55` (najgorsza para wychodzi wtedy
+na **5,58:1**; przy `.7` żółty ma 4,30 i próg nadal pada), a **pełne nasycenie
+zostaje w 3‑pikselowej nasadce `.bar-cap`** na lewej krawędzi. Liczby wyżej
+w tej sekcji dotyczą pełnego nasycenia i **nadal obowiązują dla nasadki** — to
+ona niesie tożsamość, pasek niesie wielkość.
+
+Przypięte testem w `palette.test.ts`, który czyta krycie Z ARKUSZA panelu, nie ze
+stałej: podniesienie go „bo ładniej” zapala czerwone, a nie przechodzi po cichu.
+
+⚠️ **Odznaka z literą profesji, o której mówi akapit wyżej, nadal nie istnieje
+w drzewie** (`AUDYT.md AUDYT‑14`) — czyli „rozróżnialność bierze na siebie
+odznaka” jest na razie planem, nie opisem. Zmiana krycia tego nie rusza w żadną
+stronę.
+
+### Jedna nazwa na rodzinę (2026‑08‑01)
+
+Log nazywa tę samą rzecz dwojako, zależnie od tego, którędy przyszła: żywioł
+z klasy CSS mówi `ogień`, a tykający efekt `od ognia`. Sekcja `TYP OBRAŻEŃ`
+wymieniała surowe etykiety, więc rodzina stała w niej **dwa razy, w tej samej
+barwie** — u bossa z Hildur dziewięć wierszy w dwóch gramatykach.
+
+Odtąd przekrój idzie po rodzinach (`typeDisplay` w `types.ts`), a tykające efekty
+dostają mianownik (`dotLabel`): `od trucizny` → `Trucizna`, `po zranieniu` →
+`Zranienie`. Rodzaj, którego rodziny nie znamy, mówi to wprost i zostawia w
+nawiasie to, co log podał: `globalne` → `Nieznany (obszarowe)`, `dmgo` →
+`Nieznany (dmgo)`. Rodzaj tykający spoza mapy zostaje **dosłownie** — nowy format
+ma być widać.
+
+Co się przy tym traci świadomie: `fizyczne` i `dystansowe` to jedna rodzina
+(`Broń`), więc rozbicie na zwarcie/dystans znika z tej sekcji. Nie znika z
+danych — parser dalej je rozróżnia i jest to testowane w `stats.test.ts`
+(„rozróżnia klasy obrażeń fizycznych”). Szczegóły: `AUDYT.md AUDYT‑27`.
 
 Odpadło przy okazji: `ColorAssignment`, `MAX_SERIES` i `OTHER_LABEL` nie mają już
 użytkownika w `src/` — barwa z atrybutu nie ma czego wyczerpać, więc cała klasa
@@ -678,9 +729,11 @@ byłaby głośna (`unknown`), nie cicha.
   Formatu nie potwierdzono — fixture'y mają maks. 4 cyfry.
 - `parser.ts` — proc-i zbierają przyrosty zasobów (`"14 energii"`), choć
   `types.ts` definiuje `procs` jako efekty z ekwipunku.
-- `stats.ts:614` — `unattributedHealing` jest jedną liczbą, podczas gdy
+- ~~`stats.ts:614` — `unattributedHealing` jest jedną liczbą, podczas gdy
   `unattributedDotDamage` jest rozbity na stronę. Filtr „My"/„Oni" pokaże to samo
-  leczenie na obu zakładkach.
+  leczenie na obu zakładkach.~~ **Naprawione 2026‑08‑01** — obie pule mają teraz
+  wspólny kształt `BySide`, a przypis schodzi też do wybranej postaci
+  (`AUDYT.md AUDYT‑26`).
 - `stats.ts:699` — `estimateMaxHp` eksportowane, używane wyłącznie w testach.
 - `overlay.ts` — pasek stron przy sumie 0 dostaje 50/50, więc brak danych wygląda
   jak wyrównana walka.

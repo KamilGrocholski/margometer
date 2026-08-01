@@ -73,6 +73,12 @@ Obie ilustracje pochodzą z tej samej walki: **dziesięciu graczy przeciwko
 bossowi Hildur Muza Śmierci** z najnowszego eventu wakacyjnego. Na obu wszedłem
 w samego bossa, więc widać jego stronę starcia.
 
+> ⚠️ Zrzuty są sprzed poprawek z 1 sierpnia 2026 i **nie pokazują już panelu
+> takim, jaki jest**: rodzaje obrażeń zwinęły się w rodziny (dziewięć wierszy →
+> siedem), pozycje bez sprawcy zeszły do jednego wiersza na końcu rankingu,
+> a paski są jaśniejsze, żeby tekst na nich przechodził próg czytelności.
+> Do wymiany.
+
 **Zadane — co boss zadał i czym**
 
 Ranking `KOMU` mówi, kogo bił, `CZYM (ŁĄCZNIE)` — którą umiejętnością, po
@@ -84,8 +90,9 @@ przypisuje nikomu: przy dziesięciu graczach nie da się wskazać, kto zatruł.
 **Otrzymane — od kogo boss oberwał**
 
 Ta sama walka z drugiej strony: `OD KOGO` to ranking bijących w niego,
-a `TYP OBRAŻEŃ` rozbija te 403 206 na rodzaje — łącznie z tykającymi efektami,
-które stoją tu pod własnymi nazwami.
+a `TYP OBRAŻEŃ` rozbija te 403 206 na rodzaje. Ranking wymienia same postacie —
+to, czego log nie przypisał nikomu, zbiera się pod nim w jednym wierszu
+`Bez sprawcy`, a klik w niego mówi, co w tej puli siedzi.
 
 ![MargoMeter: zakładka Otrzymane, widok bossa — od kogo dostał i jakiego rodzaju](docs/screenshots/margometer_otrzymane_postac.png)
 

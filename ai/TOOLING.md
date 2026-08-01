@@ -5,14 +5,19 @@ wygląda, jak wygląda; `SOLID.md` i `UX-POPRAWKI.md` — co w nim poprawić. Tu
 zbieram to, co jest **wokół** kodu: jak się buduje, jak trafia do użytkownika
 i co pilnuje, żeby nie wjechała regresja.
 
-Stan bazowy: `bun test` → 328 zielonych / 2 pominięte / 0 błędów,
-`bunx tsc --noEmit` → czysto, `bun test --coverage` → 89,1 % linii.
+Stan bazowy (odświeżony **2026‑08‑01**): `bun test` → **583 zielone / 0
+pominiętych / 0 błędów**, `bunx tsc --noEmit` → czysto, `bun test --coverage` →
+**98,97 % linii**. Poprzednio stało tu „328 zielonych / 89,1 %".
+
+⚠️ **Przegląd 2026‑08‑01: §1 i §5 są ZROBIONE, §2 w połowie, §6 zamknięte,
+§7 w większości.** Statusy niżej były sprzed dwóch rund, a dokument bywa
+czytany jako lista zadań — stąd odhaczenia przy każdej sekcji.
 
 Legenda: 🔴 pilne · 🟡 warto · ⚪ kiedyś.
 
 ---
 
-## 1. `@match` łapie niegrowe subdomeny 🔴
+## 1. `@match` łapie niegrowe subdomeny ✅ ZROBIONE (2026‑07‑30)
 
 `build.ts:20‑25` matchuje `https://*.margonem.pl/*` i `.com/*`, wykluczając
 `www`, `forum` i `commons`. **Nie wyklucza `pomoc.margonem.pl`** — strony,
@@ -29,12 +34,17 @@ markerze gry (`Engine` / `getEngine`) — wtedy `@match` może zostać szeroki,
 a dodatek po prostu nie budzi się poza grą. Do tego brakuje **`@noframes`**:
 dziś skrypt startuje w każdej pasującej ramce.
 
-**Kontekst historyczny, który mówi, czemu to jest 🔴.** Ten wzorzec już dwa razy
+**Kontekst historyczny, który mówi, czemu to było 🔴.** Ten wzorzec już dwa razy
 trafił użytkowników: `eddde5b` („zawężenie `@match` do adresów światów”),
 a potem `2016e59` („fix: przywrócenie `@match` ze ścieżką — dodatek nie
 wstrzykiwał się do gry”). Zmiana bez testu wraca.
 
-## 2. Wersjonowanie bez jednego źródła prawdy i bez kanału dostawy 🔴
+**Zrobione.** `pomoc.margonem.pl` i `.com` są w `@exclude`, jest `@noframes`,
+a `boot()` ma bramę: bez `Engine` i bez okna walki pętla gaśnie po dwudziestu
+próbach (`GIVE_UP_AFTER`) i zdejmuje panel, jeśli zdążył powstać. Całość opisana
+i przetestowana w `tools/userscript-meta.ts` + `tests/userscript.test.ts`.
+
+## 2. Wersjonowanie i kanał dostawy 🟡 — W POŁOWIE
 
 | gdzie | co mówi |
 |---|---|
@@ -54,6 +64,10 @@ nie ma wcale, a użytkownik nie ma jak sprawdzić, którą wersję trzyma.
 w `build.ts` interpoluje je zamiast trzymać literał; `@updateURL`/`@downloadURL`
 na opublikowany plik; jeden tag na wydanie.
 
+**Zrobione:** `package.json` ma `version` (`0.2.0`), a `banner()` je interpoluje
+— tabelka wyżej opisuje stan sprzed tej zmiany. **Zostaje otwarte:** brak
+`@updateURL`/`@downloadURL` i brak tagów, czyli kanału aktualizacji nadal nie ma.
+
 ## 3. Nie ma żadnego zapisu zmian dla użytkownika ⚪
 
 **`CHANGELOG.md` został usunięty z repo 2026‑07‑31** (świadoma decyzja, plik
@@ -72,29 +86,32 @@ które weszły. Oba te problemy zniknęły razem z plikiem, ale **nie w ten spos
 Innymi słowy: ta sekcja jest zamknięta **wyłącznie tak długo**, jak długo §2
 zostaje otwarte. Kto będzie robił wydanie, potrzebuje obu naraz.
 
-## 4. Zero lint, format i CI 🟡
+## 4. Zero lint, format i CI 🟡 — CZĘŚCIOWO
 
 Brak `eslint`/`biome`/`prettier`/`.editorconfig`, brak `.github/`, brak hooków.
 Skutki są konkretne, nie estetyczne:
 
-- `tsconfig.json` ma **`noUnusedLocals: false` i `noUnusedParameters: false`** —
-  czyli wyłączone dokładnie te dwie flagi, które same zgłaszałyby martwy kod
-  z `SOLID.md §9`;
+- ~~`tsconfig.json` ma **`noUnusedLocals: false` i `noUnusedParameters: false`**~~
+  — **obie są dziś `true`** (od `2dc38fb`) i to one wykryły `renderAxis`,
+  `renderFireFocus` i `turnRows`. Punkt zamknięty;
 - `roster.ts:63` typuje wstrzykiwane `window` jako `Record<string, any>` — `any`
   w skądinąd ścisłym projekcie, którego nic nie zauważa;
 - w `tsconfig` siedzą resztki `bun init`: `jsx: "react-jsx"` i `allowJs: true`,
   choć w repo nie ma ani JSX, ani plików `.js`.
 
-Komendy do CI już istnieją (`test`, `typecheck`, `build`). Kilkanaście linii
-workflow łapie regresję z §1 i daje miejsce na próg pokrycia. Brakuje też skryptu
-`coverage` i zbiorczego `check` (typecheck + test + build) — dziś trzeba pamiętać
-o trzech wywołaniach.
+Komendy do CI już istnieją, a `coverage` i zbiorczy `check` **zostały dodane**.
+**Zostaje otwarte:** brak lintera/formattera, brak `.github/`, brak progu
+pokrycia w `bunfig.toml` (regresja pokrycia przechodzi cicho) i resztki
+`bun init` w `tsconfig.json` (`jsx: "react-jsx"`, `allowJs: true`).
 
-## 5. Nic nie testuje `build.ts` ani metadanych 🟡
+## 5. Nic nie testuje `build.ts` ani metadanych ✅ ZROBIONE (2026‑07‑30)
 
 `SOLID.md §10` mówi o tym z perspektywy testów; tu wniosek praktyczny: ~10 linii
 testu (banner się parsuje; adres świata pasuje; `www`, `forum`, `pomoc` nie)
 zamyka klasę, która **już dwa razy** dotarła do użytkowników.
+
+**Zrobione:** `tools/userscript-meta.ts` (banner + `appliesTo`) i
+`tests/userscript.test.ts`.
 
 ## 6. `build.ts` jest skryptem, nie jednostką ⚪
 
@@ -103,10 +120,10 @@ przetestować, ani użyć kawałkami; wszystkie ścieżki są względne do CWD, 
 działa wyłącznie z katalogu repozytorium. Decyzja o minifikacji i source mapach
 nigdzie nie jest zapisana (dziś: `minify: false`, bez map).
 
-Jedno realne ryzyko: `seed` podglądu archiwum wstawia `JSON.stringify(texts)`
-prosto do `<script>` (`build.ts:118‑135`), a escapowanie JSON **nie
-neutralizuje** ciągu `</script>`; `page()` escapuje tylko `&` i `<` w bloku
-logu, nie w seedzie. Log zawierający ten ciąg rozwala stronę podglądu.
+~~Jedno realne ryzyko: `seed` podglądu archiwum wstawia `JSON.stringify(texts)`
+prosto do `<script>`, a escapowanie JSON **nie neutralizuje** ciągu
+`</script>`.~~ **Zamknięte:** seed robi `.replace(/<\//g, "<\\/")` z komentarzem
+wyjaśniającym, a `page()` escapuje `&` i `<` w bloku logu — obie drogi są kryte.
 
 Na plus: podglądy (`preview.html`, `preview-20.html`, `preview-archive.html`) to
 realna pętla QA bez wchodzenia do gry, a syntetyczny log jest udokumentowany jako
@@ -115,8 +132,8 @@ jest czysty: `syntheticFight` nie wjeżdża do `margometer.user.js`.
 
 ## 7. `package.json` i `bunfig.toml` — drobiazgi ⚪
 
-- `package.json`: brak `version`, `license`, `description`, `private`; brak
-  skryptów `coverage` i `check`; brak `engines`.
+- `package.json`: **`version`, `description` i `private` są**, skrypty
+  `coverage` i `check` też. Zostaje brak `license` i `engines`.
 - `bunfig.toml` preloaduje jsdom dla **wszystkich** plików testowych, więc czyste
   testy parsera płacą za DOM, którego nie używają.
 

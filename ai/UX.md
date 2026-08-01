@@ -123,8 +123,9 @@ liczby pod kursorem nie mogą uciekać.
 - **Kolor = tożsamość.** Postać ma ten sam kolor w rankingu i w rozbiciu, bo
   barwa idzie z ATRYBUTU (profesja), a nie z puli przydzielanej po kolei —
   zmiana metryki nie przemalowuje listy. ✅ Oko śledzi kolor, nie pozycję.
-  ⚠️ Ale tekst wiersza stoi NA tym pasku i przy żadnej z sześciu barw nie
-  przechodzi progu 4,5:1 (najgorzej żółty: 3,50:1) — `UX-POPRAWKI.md A14`.
+  ✅ Tekst wiersza stoi NA tym pasku, więc pasek ustępuje mu kryciem (`.55`),
+  a pełna barwa zostaje w nasadce na krawędzi — próg 4,5:1 zdany dla wszystkich
+  barw (`UX-POPRAWKI.md A14`, przypięte testem kontrastu).
 - **Liczby w kolumnie.** `tabular-nums` wszędzie, żeby wartości się pionowały i
   dało się je porównać rzutem oka. ✅
 - **Udział obok wartości.** Każdy wiersz mówi i ile, i jaki %. ✅ „Na turę”
@@ -161,7 +162,16 @@ liczby pod kursorem nie mogą uciekać.
   jest czym, a pełne dane stoją w dymku. Kolumn nie da się podpisać (nagłówka
   nad listą nie ma i nie będzie), więc czwarta kolumna to już zgadywanka.
 - **Nie udawać danych, których log nie ma** (leczący, sprawca trucizny w tłumie).
-  Liść bez danych się nie podświetla i nie kusi kliknięciem.
+  Liść bez danych się nie podświetla i nie kusi kliknięciem. ✅ na KAŻDEJ liście
+  — reguła pilnowała dotąd tylko sekcji `CZYM (ŁĄCZNIE)`, a lista główna
+  przepuszczała klik w ślepy zaułek (`AUDYT.md AUDYT‑28`).
+- **Ranking postaci wymienia postacie.** To, czego log nikomu nie przypisał, nie
+  staje obok nich pod własną nazwą, tylko zbiera się w jednym wierszu
+  `Bez sprawcy` na końcu listy — wizualnie odciętym, ale klikalnym, bo „czym”
+  log powiedzieć umie, choć „kto” nie. ✅
+- **Jedna rzecz ma jedną nazwę.** Przekrój `TYP OBRAŻEŃ` wymienia RODZINY
+  w jednej gramatyce; log nazywa ten sam żywioł dwojako („ogień” z klasy CSS,
+  „od ognia” z tykającego efektu) i to jest jego sprawa, nie użytkownika. ✅
 - **Nie modalów, nie potwierdzeń.** Każdy gest jest odwracalny jednym PPM, więc
   nic nie wymaga „czy na pewno”.
 - **Nie skróty klawiszowe.** Świadoma decyzja: szybkość ma iść z gestów myszy i

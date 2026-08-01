@@ -20,8 +20,10 @@ parsowanie → mapowanie → przerabianie → sumowanie. Dwie części:
 Zasada nadrzędna: **żaden refaktor nie zmienia granic** (`LogSource`,
 `RosterSource`, `parse`, `aggregate`). `BattleStats` urosło o jedno pole
 (`unknownElements`, §4.17) — to dołożenie, nie zmiana kształtu. Siatka
-bezpieczeństwa to **369 testów** (2 pominięte) — zielone przed i po każdym
-kroku; `bunx tsc --noEmit` czysty; pokrycie **93,3 % linii**.
+bezpieczeństwa to **583 testy** (0 pominiętych) — zielone przed i po każdym
+kroku; `bunx tsc --noEmit` czysty; pokrycie **98,97 % linii**.
+Liczby odświeżone 2026‑08‑01; poprzednio stało tu „369 testów / 93,3 %", czyli
+stan sprzed dwóch rund.
 
 Legenda zwrotu: 🔴 duży / mała robota · 🟡 warto · ⚪ do przemyślenia.
 
@@ -643,84 +645,77 @@ decyzja „porzucone czy niedokończone” jest warunkiem wejścia, nie skutkiem
 
 ## 10. Testy — czego zestaw nie widzi
 
-Stan po rundzie 2026‑07‑30: **369 zielonych, 2 pominięte, 1488 asercji**,
-pokrycie **93,3 % linii** (89,5 % funkcji). `package.json` ma już `coverage`
-i zbiorczy `check`; progu nadal nie ma.
+Stan po audycie 2026‑08‑01: **583 zielone, 0 pominiętych, 2498 asercji**,
+pokrycie **98,97 % linii** (91,54 % funkcji), przebieg 6,2 s. `package.json` ma
+`coverage` i zbiorczy `check`; **progu pokrycia nadal nie ma** i nie ma pomiaru
+GAŁĘZI — „98,97 %" jest więc optymistyczne dla pliku pełnego warunków
+trójargumentowych.
 
-Zamknięte w tej rundzie: strażnik sumy sesji jest **strukturalny** (schodzi
-w głąb dowolnego pola i sumuje liczby, więc obejmuje pola, których jeszcze nie
-ma — poprzedni wymieniał je z palca i dlatego nie widział `dealtToBy`); doszły
-testy dymka i klikania w podglądzie/odtwarzaniu (`grep preview` dawał zero),
-`boot` poza grą (`index.ts` z 33,9 % na 90,4 %), metadanych userscriptu
-(`@match` wjechał źle dwa razy) oraz gałęzi `rising`. **Zostaje** brak fixture'a
-z przyciętym nagłówkiem (§4.12) i logu właścicielki (§4.8), oraz gałąź
-„roster wyczerpany" w `instanceResolver` (`stats.ts:158‑160`).
+⚠️ **Ta sekcja opisywała do 2026‑08‑01 stan sprzed dwóch rund** i była przy tym
+cytowana jako lista zadań. Nieaktualne okazały się: liczba testów, pokrycie,
+„cztery pliki testowe", „nie ma `session.test.ts` ani `stats.test.ts`" (są, 112
+i 22 testy), „nic nie testuje `build.ts` ani metadanych" (jest
+`tests/userscript.test.ts`), „dwa `test.skip`" (zero) i „martwy kod zabetonowany
+testami" (`renderAxis`/`renderFireFocus` usunięte z drzewa razem z testami).
+Zapis zostaje jako przypomnienie, że rejestr długu sam bywa długiem.
 
-**Układ plików kłamie.** Cztery pliki testowe na trzynaście modułów.
-`tests/overlay.test.ts` (2839 linii, 60 % zestawu) mieści też testy `session.ts`,
-`stats.ts`, `roster.ts`, `source.ts`, `palette.ts` i `index.ts`, a
-`parser.test.ts` trzyma asercje agregacji. Nie ma `session.test.ts` ani
-`stats.test.ts` — i dlatego luki w tych modułach są niewidoczne.
+**Co zestaw pilnuje mocno.** Pętla kontraktowa per fixture (`parser.test.ts`,
+zero nieznanych linii w każdym zrzucie), test różnicowy „HTML daje te same
+statystyki co `raw.txt`", odwrócenie rozbicia porównywane z `dealtBy` etykieta
+po etykiecie, strukturalny strażnik sumy sesji (`deepSum` schodzi w głąb
+dowolnego pola, więc obejmuje pola, których jeszcze nie ma) oraz — od
+2026‑08‑01 — **przelot niezmiennikowy** po każdym fixture I po sumie sesji:
+rozbicia wobec skalarów, `Σ zadane + bez sprawcy == Σ przyjęte`, to samo dla
+leczenia, podział na strony wobec podziału na postacie.
 
-**Niepokryte konkrety — wszystkie w heurystyce duplikatów** (`stats.ts`):
-- `108‑110` — dopasowanie bez procentu życia („lgnie do instancji, która działała
-  ostatnio”): żaden test nie ma linii `turn-lost`/`ability` dla zdublowanej nazwy;
-- `122‑129` — **cała gałąź `rising`, czyli leczenie postaci o zdublowanej
-  nazwie**: funkcja dopiero co wdrożona (§4.5) i wysłana bez testu;
-- `158‑160` — fallback „roster wyczerpany, bierz najzdrowszego”.
+**Nowe czujki z audytu 2026‑08‑01:**
+- **kolizje etykiet** — żadna nazwa umiejętności ani postaci z korpusu nie równa
+  się etykiecie, którą WYMYŚLAMY (`Bez sprawcy`, `Trucizna`, `Broń`, `Zwykły
+  atak`, `Regeneracja`). Test nie naprawia kolizji, tylko pilnuje, żeby pierwsza
+  była dniem czerwonego zestawu, a nie cichej pomyłki w panelu. Ryzyko urosło,
+  gdy etykiety DoT‑ów stały się zwykłymi rzeczownikami („od ognia" → „Ogień");
+- **stan okna z magazynu** — `width: 1e9`, `"szeroko"`, `collapsed: "nope"`;
+- **barwa rodziny po `typeDisplay`** — „Broń" traciła kolor i wyglądała jak
+  „Nieznany", bo `typeColor` szukał po kluczu małą literą.
 
-Wszystkie trzy są trudne do dosięgnięcia **dlatego**, że `instanceResolver` nie
-jest eksportowany — patrz R8.
+**Testy, które nie mogły nie przejść — naprawione 2026‑08‑01.** `describe
+("zdejmowanie panelu")` asertował „zapis w styl odczepionego węzła nie rzuca"
+i „host, którego nie ma w dokumencie, nadal go nie ma" — oba prawdziwe
+niezależnie od tego, czy `destroy()` cokolwiek zrobiło, plus 3,2 s prawdziwych
+snów. Dziś pytają wprost: o pozycję, którą przyciąłby `onResize`, i o
+wstrzyknięty `Ticker`, który `destroy()` ma zgasić. Sprawdzone mutacją —
+usunięcie ciała `destroy()` zapala oba.
 
-**Brak testu niezmienników na SUMIE SESJI.** Przelot po pojedynczej walce trzyma
-na wszystkich 15 fixture'ach (`Σ dealtBy/dealtToBy/takenFrom/takenFromBy/
-healedBy` wobec skalarów, `dealt + nieprzypisany DoT == taken`,
-`Σ timeline == taken`, `Σ macierz == dealt`, `unknownLines == 0` →
-`0 problemów`). **Ten sam przelot po `Session.total()` daje 46 rozjazdów**
-(§4.11). Jeden test fixture'owy „te same niezmienniki muszą trzymać po scaleniu”
-zastępuje wyliczankę z `overlay.test.ts:374` i jest od niej ściśle silniejszy.
+**Niepokryte konkrety:**
+- `stats.ts` — fallback `instanceResolver` „roster wyczerpany, bierz
+  najzdrowszego". Nie da się tego dosięgnąć z zewnątrz, bo `instanceResolver`
+  nie jest eksportowany — patrz R8;
+- `archive.ts` — **całe `Archive.destroy()`**. Ostatnie ogniwo sprzątania
+  `boot()` → `stop()` → `overlay.destroy()` → `archive.destroy()`, a testy
+  `destroy` nie dopinają prawdziwego archiwum. To zegar odtwarzania, który po
+  zniknięciu panelu wołałby `render()` na drzewie, którego nie ma;
+- `index.ts` — trzy `catch` i `safeStorage()`. Osłona przy `capture` istnieje po
+  to, żeby *„nagranie przeżyło licznik"*, i nikt nigdy nie sprawdził, że przeżywa;
+- `overlay.ts` — `track.click` suwaka odtwarzania (`clientX` → ułamek → `seek`).
+  Testy archiwum wołają `seek()` wprost, z pominięciem DOM.
 
-**Brak testu, który przycina treść z TRWAJĄCEJ walki** (§4.12) — trzy istniejące
-testy tożsamości bufora (`overlay.test.ts:300`, `:316`, `:333`) zdejmują tylko
-linię nagłówka albo całą walkę.
+**Test różnicowy milczy dla połowy zrzutów z DOM.** `parser.test.ts` ma w środku
+`if (raw === null) return;`, a z sześciu fixture'ów z `log.html` **trzy nie mają
+`raw.txt`** — dla nich przechodzi pusty, a raport pokazuje sześć zielonych.
+Do tego porównywane `summary()` nie obejmuje `unknownElements` ani
+`typeByLabel`, czyli dokładnie tego, co istnieje wyłącznie na ścieżce DOM.
 
-**Zero testów dymka w podglądzie i w odtwarzaniu.** `grep preview|replay`
-w `overlay.test.ts` = **0 trafień**; `archive.test.ts` używa prawdziwego
-`Overlay`, ale nigdy nie najeżdża na wiersz w podglądzie. Tędy przeszło
-`UX-POPRAWKI A7`.
+**Asercje na nieobecność czegoś, czego nie ma:** `.tip-row` i `.more` nie padają
+nigdzie w `src/`. Ta sama klasa, którą `AUDYT‑24` skasował dla `.axis`/`.focus`.
 
-**Testy asertujące implementację albo nieobecność:** `overlay.test.ts:2557`
-i `:2597` (oś tur i skupienie ognia „nie są dziś pokazywane”) utrwalają martwy
-kod; dwa `test.skip` (`:836`, `:893`) trzymają `turnRows` przy pozorach życia;
-asercje palety (`:1043‑1250`) pilnują konkretnych szesnastek i zachowania puli —
-z natury implementacyjne, ale uzasadnione walidacją kolorów.
+**Skrzywienie korpusu.** 19 fixture'ów, ale tylko **6 z zrzutem DOM** — cała oś
+żywiołów (i scalanie rodzin z 2026‑07‑31) jest sprawdzana na jednej trzeciej.
+Nadal jeden build klienta, jeden właściciel, wyłącznie męskie formy czasownika.
 
-**Czy zestaw złapie zmianę formatu?** Częściowo, i ten podział warto trzymać
-zapisany:
-- **mocne** — pętla kontraktowa per fixture (`parser.test.ts:20‑46`, zero
-  nieznanych linii) i prawdziwy test różnicowy „HTML daje te same statystyki co
-  `raw.txt`” (`:81‑99`);
-- **ślepe** — wszystko, co parser zamienia w kształt **zły, ale rozpoznany**:
-  §4.17 (nieznana klasa `dmg*`), §4.19 (separator tysięcy) oraz zachłanne
-  `RE_ABILITY_USE` (`^(.+?) wykonuje (.+?)\.?$` przyjmie `X(100%) wykonuje Y`
-  i wybije widmową postać `"X(100%)"` z turą, `stats.ts:788‑792`).
-
-**Skrzywienie korpusu.** 15 fixture'ów to **jeden build klienta** („new‑engine”),
-okno **dziesięciu dni** (2026‑07‑18…28), **jeden właściciel**, wyłącznie męskie
-formy czasownika — więc `GENDER` (§4.8) jest sprawdzany tylko na ręcznie pisanych
-stringach.
-
-**Brakujące fixture'y** (agregat pól `missing` w `meta.json`, zweryfikowany po
-`covers`): log **właścicielki** (formy żeńskie), walka z **przyciętym
-nagłówkiem** (rozstrzyga §4.12), `Zablokowanie N obrażeń` na ścieżce DOM,
-**remis** („Walka nie wyłoniła zwycięzcy” — nie występuje w `covers` żadnego
-fixture'u).
-
-**Nic nie testuje `build.ts` ani metadanych userscriptu**, choć błąd `@match`
-trafił użytkowników **dwa razy** (`eddde5b`, potem `2016e59` „dodatek nie
-wstrzykiwał się do gry”). Dziesięć linii — banner się parsuje, adres świata
-pasuje, `forum`/`www`/`pomoc` nie — zamyka klasę, która już ugryzła. Patrz
-`TOOLING.md`.
+**Brakujące fixture'y:** log **właścicielki** (formy żeńskie — `GENDER` jest
+sprawdzany tylko na ręcznie pisanych stringach), walka z **przyciętym
+nagłówkiem** (rozstrzyga §4.12), **remis** („Walka nie wyłoniła zwycięzcy" nie
+pada w żadnym `covers`), `Zablokowanie N obrażeń` na ścieżce DOM.
 
 ---
 

@@ -26,7 +26,14 @@ podczas tego audytu, nie wywnioskowana z lektury.
 i `20`–`24`. `AUDYT‑7` **odrzucone** — teza okazała się błędna przy sprawdzeniu,
 szczegóły przy wpisie. Otwarte zostają dwie wymagające DECYZJI, nie roboty
 (`AUDYT‑6` brak specu, `14` decyzja wizualna), nowe `AUDYT‑25` (zablokowane tą
-samą decyzją co oś tur) oraz drobiazgi `17`–`19`. Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
+samą decyzją co oś tur) oraz drobiazgi `17`–`19`.
+**Dopisane 2026‑08‑01:** `AUDYT‑26`…`AUDYT‑29` — cztery usterki widoczne
+wprost na zrzutach z `docs/screenshots/`, których nie miał żaden backlog.
+Wszystkie naprawione w tej samej rundzie; `AUDYT‑7` doczekało się sprostowania.
+**Audyt tego samego dnia** (sekcja `F3`) dołożył `AUDYT‑30`…`AUDYT‑40`, z czego
+**pięć to regresje rundy `F2`** — stąd zasada: przegląd PRZED commitem, nie po.
+Otwarte zostają `AUDYT‑39` (fałszywa strona przy zdublowanej nazwie po obu
+stronach) i `AUDYT‑40` (`hits` + `misses` przy uniku częściowym). Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
 wykonanie odbiegło od propozycji, jest to powiedziane wprost.
@@ -60,7 +67,22 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑23~~ | Nieograniczone `archived` i `summaries` | 🟡 | S | **✅** |
 | ~~AUDYT‑24~~ | Brak `stats.test.ts` i `session.test.ts`; brak lintera | 🟡 | M | **✅** |
 | AUDYT‑25 | `deaths` i `matrix` liczone dla nikogo | ⚪ | S | ✓ |
-| ~~AUDYT‑7~~ | `unattributedHealing` liczone i nigdy niepokazane | — | — | **❌ odrzucone** |
+| ~~AUDYT‑7~~ | `unattributedHealing` liczone i nigdy niepokazane | — | — | **❌ odrzucone** (teza zestarzała się — patrz sprostowanie) |
+| ~~AUDYT‑26~~ | `unattributedHealing` to JEDNA liczba, bez podziału na strony | 🟡 | S | **✅** ✓ |
+| ~~AUDYT‑27~~ | Ta sama rodzina obrażeń stoi w przekroju pod dwiema nazwami | 🟡 | M | **✅** ✓ |
+| ~~AUDYT‑28~~ | Pozycja bez sprawcy udaje postać w rankingu „OD KOGO” | 🟡 | M | **✅** ✓ |
+| ~~AUDYT‑29~~ | Licznik melduje „×0” i „0 c.” przy niezerowej kwocie | 🟡 | XS | **✅** ✓ |
+| ~~AUDYT‑30~~ | Rodzina „Broń” traci barwę po scaleniu etykiet | 🔴 | XS | **✅** ✓ |
+| ~~AUDYT‑31~~ | Kursor obiecuje klik w „TYP OBRAŻEŃ”, klik przepada | 🔴 | XS | **✅** ✓ |
+| ~~AUDYT‑32~~ | Dymek martwy na całej sekcji „CZYM (ŁĄCZNIE)” | 🔴 | XS | **✅** ✓ |
+| ~~AUDYT‑33~~ | Zmiana metryki na 2. szczeblu dubluje listę pod cudzym nagłówkiem | 🔴 | XS | **✅** ✓ |
+| ~~AUDYT‑34~~ | Stan okna z magazynu bez walidacji — panel na miliard pikseli | 🔴 | S | **✅** ✓ |
+| ~~AUDYT‑35~~ | Suma nagłówka sekcji dotyczy całej postaci, nie sekcji | 🟡 | XS | **✅** ✓ |
+| ~~AUDYT‑36~~ | Przypis rozbija liczbę z innego zakresu niż własny | 🟡 | S | **✅** ✓ |
+| ~~AUDYT‑37~~ | `mergeStats` nie uzupełnia `side` | 🟡 | XS | **✅** ✓ |
+| ~~AUDYT‑38~~ | `RE_INFO` „otrzymuje” łyka linię z obrażeniami | 🟡 | XS | **✅** ✓ |
+| AUDYT‑39 | Ta sama nazwa po obu stronach → fałszywa strona dla obu | 🔴 | M | ✓ |
+| AUDYT‑40 | `hits` + `misses` liczą ten sam atak przy uniku częściowym | ⚪ | XS | ✓ |
 | AUDYT‑17 | Wielkie/małe litery i puste stany bez odmiany | ⚪ | S | |
 | AUDYT‑18 | ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba | ⚪ | S | |
 | AUDYT‑19 | PPM zabiera menu przeglądarki nad listą archiwum | ⚪ | XS | |
@@ -327,9 +349,24 @@ reguła spisana przy `TYP OBRAŻEŃ`: „to nie jest informacja, tylko powtórze
 sumy stojącej wyżej”. Pole zostaje jako nieużywany agregat; jego usunięcie to
 osobna sprawa (`§9`, martwy kod), nie usterka widoku.
 
-**Nie badać drugi raz.**
+**~~Nie badać drugi raz.~~ — SPROSTOWANIE 2026‑08‑01.** Odrzucenie było słuszne
+w dniu, w którym zapadło, i przestało być słuszne **tego samego dnia**: `487ccf9`
+dołożył polu `heal.self` i przy okazji sam przypis w stopce. Od tamtego commita:
 
-**Docelowo.** → nigdzie. Zamknięte w tym pliku.
+- teza o redundancji **już nie zachodzi**. Leczenie kierowane („`Er Al Safar
+  wykonuje Leczenie ran.`" → „`Uleczono Zsz Przeworsk o 11937 punktów życia.`")
+  ma `self: false`, więc wchodzi do puli — ale w `healedBy` stoi pod NAZWĄ
+  UMIEJĘTNOŚCI, nie pod „Regeneracją". Pula i suma widocznych „Regeneracji" to
+  od tego momentu dwie różne liczby;
+- zdanie „zero odwołań w `overlay.ts`" też przestało być prawdziwe — przypis
+  „Leczenie bez sprawcy" wjechał w tym samym commicie.
+
+Wpis zostaje jako zapis TEGO, jak sprawdzona teza może się zestarzeć przez
+sąsiedni commit. Sam brak, który po tym został — pula była **jedną liczbą**,
+podczas gdy `unattributedDotDamage` dzieli się na strony — naprawiony
+**2026‑08‑01** (`AUDYT‑26` niżej).
+
+**Docelowo.** → `AUDYT‑26`.
 
 ---
 
@@ -834,6 +871,254 @@ Do tego czasu zostaje to zapisane tutaj, żeby nie wyglądało na przeoczenie.
 **Docelowo.** → `SOLID.md` `§9`, razem z resztą uśpionego kodu
 
 ---
+
+## F3. Audyt logiki, UX i kodu (2026‑08‑01)
+
+Przegląd całości przed commitem poprzedniej rundy. **Pięć z jedenastu znalezisk
+to regresje TEJ rundy** — dlatego audyt przed commitem, a nie po nim. Wszystko
+poniżej odtworzone pomiarem albo kliknięciem, nie wywnioskowane z lektury.
+
+**Stan zdrowy, dla porządku:** przelot niezmiennikowy po 16 zrzutach tekstowych,
+6 z DOM i po sumie sesji ze wszystkich walk naraz — **zero rozjazdów**. Sklejanie
+etykiet nigdzie nie jest rozbierane. Kontrast `A14` naprawiony poprawnie.
+
+### AUDYT‑30 — rodzina „Broń” traci barwę ✅ NAPRAWIONE ✓ (regresja)
+`src/palette.ts` (`typeColor`)
+
+`typeColor` szuka `TYPE_COLORS[label]` po kluczach pisanych MAŁĄ literą, a
+przekrój „TYP OBRAŻEŃ” podaje nazwy z wielkiej. Sześć rodzin ratowała druga
+droga — `typeFamily("Ogień")` znajduje własny wzorzec w nazwie — ale **„broń”
+powstaje z „fizyczne” i „dystansowe” i sama żadnego nie zawiera**, co
+`palette.ts` zapowiada we własnym komentarzu. Zmierzone: `#d55181` → `#8a8a80`,
+czyli największy wiersz w panelu (u Diety‑Miodu 102 185 ze 104 005) w barwie
+nie do odróżnienia od „Nieznany”.
+
+**Zrobione.** `TYPE_COLORS[label.toLowerCase()]` jako pierwsza droga. Test
+sprawdza teraz KAŻDĄ rodzinę pod obiema nazwami, nie tylko DoT‑y.
+
+### AUDYT‑31 — kursor obiecuje klik, którego nie ma ✅ NAPRAWIONE ✓ (regresja)
+`src/overlay.ts` (`renderDetail`, reguła `.row[data-source]:not([data-leaf])`)
+
+Nowa reguła kursora miała zgadzać obietnicę z działaniem, a złapała też wiersze
+`TYP OBRAŻEŃ` — te nie dostają `drillable`, więc `data-leaf` nigdy się na nich
+nie pojawiał. Zmierzone: **7 wierszy, 0 z `data-leaf`**, łapka nad każdym,
+`rowIdentity` zwraca `null`, klik przepada.
+
+**Zrobione.** Sekcja typów dostaje `() => false` jako `drillable` — jawnie,
+z komentarzem, że to warunek działania reguły kursora, a nie ozdoba.
+
+### AUDYT‑32 — dymek martwy na „CZYM (ŁĄCZNIE)” ✅ NAPRAWIONE ✓
+`src/overlay.ts` (handler `pointerover`)
+
+`row.dataset.list === "types" ? "types" : "sources"` — trzecia wartość
+(`abilities`) była mapowana na `sources`, więc `showTip` szukał pozycji w liście
+CELÓW, nie znajdował i chował dymek. Dotyczyło całej sekcji i całego drugiego
+szczebla wejścia przez umiejętność, czyli miejsc, gdzie etykiety są NAJDŁUŻSZE
+— a `UX.md §5` opiera na dymku właśnie obsługę uciętych etykiet.
+
+**Zrobione.** `data-list` idzie wprost, przez strażnik `isBreakdownList`, żeby
+czwarta lista była błędem kompilacji, a nie cichym pudłem.
+
+### AUDYT‑33 — zmiana metryki rozjeżdża drążenie ✅ NAPRAWIONE ✓
+`src/overlay.ts` (`renderMetrics`, `showPreview`, `closePreview`)
+
+Trzy miejsca zerowały `focusSource` ręcznie, bez `focusKind` — mimo że docstring
+`clearDrill` mówi „MUSZĄ ginąć razem” i wymienia zmianę metryki jako ścieżkę,
+która ma przez niego iść. Zmierzone: nagłówek **„OD KOGO” nad listą
+UMIEJĘTNOŚCI**, ta sama lista wyrenderowana dwa razy (12 wierszy zamiast 6),
+jedna kopia szara, a pierwszy szczebel nieklikalny.
+
+**Zrobione.** Trzy wywołania `clearDrill()`. Reguła, którą deklarował komentarz,
+zaczęła obowiązywać we wszystkich siedmiu miejscach zmieniających ten stan.
+
+### AUDYT‑34 — stan okna z magazynu bez walidacji ✅ NAPRAWIONE ✓
+`src/stored-state.ts` (nowy), `src/overlay.ts`, `src/archive.ts`
+
+`loadState` sprawdzał `metric`, `team` i `perTurn`, a geometrię przepuszczał
+żywcem z komentarzem „przycina ją `clampToViewport`”. Nie przycina — broni przed
+wyjechaniem za ekran, a nie przed `NaN` ani przed liczbą absurdalną. Archiwum
+nie sprawdzało niczego. Zmierzone na prawdziwym `Overlay`:
+
+| w magazynie | skutek |
+|---|---|
+| `{"collapsed":"nope"}` | panel zwinięty (prawdziwy string) |
+| `{"width":1e9}` | `width: 1000000000px` — **nakładka przykrywa całą grę razem z uchwytem do zmniejszenia** |
+| `{"width":"szeroko","x":"abc"}` | `NaN` przechodzi przez `clampToViewport` (`Math.min(0, NaN)`) → host bez `left` |
+
+Pod tym kluczem może stać zapis starszej albo NOWSZEJ wersji dodatku.
+
+**Zrobione.** `stored-state.ts` z trzema funkcjami (`storedNumber` z granicami,
+`storedBoolean`, `storedOneOf`) i `storedRecord`, który odrzuca treść niebędącą
+obiektem. Wspólne dla panelu i archiwum. **To jest `R5`.**
+
+### AUDYT‑35 — suma nagłówka sekcji ✅ NAPRAWIONE ✓
+`src/overlay.ts` (`renderDetail`)
+
+`total` nie zależało od `focusSource`, więc na drugim szczeblu nagłówek
+`CZYM — DIETA-MIÓD` niósł **403 206** (całość bossa), choć wiersze pod nim
+sumowały się do 104 005, a udziały do 26 % zamiast 100 %.
+
+**Zrobione.** Lista główna dostaje sumę tego, co WYMIENIA. Sekcja `TYP OBRAŻEŃ`
+świadomie zostaje przy sumie postaci — ona faktycznie o niej mówi; że stoi na
+drugim szczeblu, jest osobną sprawą (patrz „Do rozstrzygnięcia”).
+
+### AUDYT‑36 — przypis rozbijał liczbę z innego zakresu ✅ NAPRAWIONE ✓
+`src/stats.ts`, `src/types.ts`, `src/overlay.ts`
+
+Kwota przechodziła przez filtr składu i wybraną postać, a `dot.types` było
+zawsze WALKOWE. Zmierzone: dwie postacie, 300 trucizny i 900 ognia → wejście
+w pierwszą dawało **„bez sprawcy: 300 (Ogień 900 · Trucizna 300)”** — nawias
+większy od liczby, którą rozbijał.
+
+**Zrobione.** `ActorStats.unattributedDotTypes` — rodzaje zapisane przy
+poszkodowanym, tak jak kwota. Przypis bierze je z wybranej postaci albo sumuje
+po postaciach przechodzących filtr (`sumKinds`), więc zakres zawsze się zgadza.
+
+### AUDYT‑37 — `mergeStats` nie uzupełniał `side` ✅ NAPRAWIONE ✓
+`src/session.ts`
+
+Uzupełniane były `professionCode` i `level` z uzasadnieniem „cecha postaci, nie
+walki”, które stosuje się do `side` jeden do jednego. Zmierzone: `current()` →
+`[Gracz 0, Wróg 1]`, `total()` → **`[Gracz null, Wróg null]`**, a `matchesTeam`
+odrzuca `null` poza „Wszyscy”.
+
+**Zrobione.** `merged.side ??= actor.side` plus test na sumie sesji.
+
+### AUDYT‑38 — `RE_INFO` łykał linię z obrażeniami ✅ NAPRAWIONE ✓
+`src/parser.ts`
+
+`^.+ otrzymuje \d+(?: \p{L}+)+\.?$` nie odróżniał „energii” od „obrażeń”.
+Zmierzone: `"X otrzymuje 500 obrażeń od trucizny."` → **`info`**, kwota znika,
+`unknownLines` zostaje zerem. Ten sam catch‑all, przed którym broni komentarz
+przy `RE_MODIFIER`, i wyłom w zasadzie „nieznane jest głośne”.
+
+**Zrobione.** Zasoby wymienione z nazwy (`many`, `energii`, opcjonalnie
+„punktów”). Nowy zasób trafi w `unknown` i da się dopisać świadomie.
+
+### AUDYT‑39 — ta sama nazwa po obu stronach 🔴 OTWARTE ✓
+`src/stats.ts` (`seats`)
+
+`seats` pomija uczestnika, którego wszystkie klucze są już zajęte, więc jego
+`side` nigdy nie zostaje zapisany. Zmierzone przy składzie **z gry**, gdzie
+strony są faktem: `roster: Gracz(0), Wilk(0), Wilk(1), Wróg(1)` → `Wilk #1
+side 0`, **`Wilk #2 side 0`**. To nie „nie wiadomo” (wtedy `null` i wiersz
+znika poza „Wszyscy”) — to twierdzenie o stronie, i jest fałszywe. `opponentOf`
+ma na ten przypadek jawny guard; `seats` go nie ma.
+
+**Do rozstrzygnięcia:** `side: null` (uczciwe, tańsze) czy klucz instancji
+uwzględniający stronę (dokładniejsze, rusza `seats`). Realne w walkach
+grupowych z tym samym typem moba po obu stronach i przy przywoływańcach.
+
+### AUDYT‑40 — `hits` i `misses` liczą ten sam atak ⚪ OTWARTE ✓
+`src/stats.ts`, dokumentacja w `src/types.ts`
+
+Atak, w którym broń główna przepadła na uniku, a pomocnicza trafiła, podbija OBA
+liczniki. Zmierzone: `tancerz-vs-tropiciel-pvp` — **12 ataków → ciosy 12,
+uniki 2**. Stopka pokazuje `ciosy 12 · uniki 2`, czytający policzy 14 i wyliczy
+~14 % uników, których nie było. `types.ts` definiuje `misses` jako „ataki
+**zakończone** unikiem” — a te trafiły.
+
+**Do rozstrzygnięcia:** poprawić licznik czy definicję.
+
+### Drobne, naprawione przy okazji
+- **Podpowiedź w dymku kłamała**: „PPM — powrót do składu”, choć PPM zdejmuje
+  JEDEN szczebel. To jedyna instrukcja nawigacji w panelu.
+- **Dymek meldował „Ciosy 0”** — `AUDYT‑29` zdjęło to z wiersza, nie z dymka.
+- **Liczebnik** „1 nierozpoznanych linii” (`A15` deklarował `plural()`).
+- **Puste stany** sklejane z mianownika zakładki („Brak danych: my.”) → zdania.
+- **Pusty stan rozbicia zabierał liczniki** `ciosy · kryt. · uniki · tury`,
+  prawdziwe niezależnie od metryki.
+- **`typeFamily`/`typeDisplay` bez pamięci** — wołane ~3 000 razy na `aggregate`,
+  a `aggregate` leci przy każdej linii logu. Memoizacja: **2,63 → 1,94 ms**.
+- **Brakujący `meta.json`** przy `2026-07-18_lowca-vs-druzyna` — jedyny fixture
+  bez opisu, wbrew konwencji „fixture jest dowodem”.
+
+### Zapisane, nie naprawiane
+- **Kolizje etykiet.** Postać nazwana `Bez sprawcy` skleja się z pulą (zmierzone:
+  600 zamiast 500 + 100); potwór `Locha #1` z syntetyczną instancją (150 zamiast
+  100 + 50). Nicki Margonem tego nie dopuszczają. Zamiana etykiet DoT‑ów na
+  rzeczowniki podniosła ryzyko trzeciej ścieżki (jednowyrazowe umiejętności),
+  więc doszła **czujka**: test przelotowy po korpusie.
+- **Koszt potoku** — `parse` 4,0 + `aggregate` 2,6 + **`render` 6,3** ≈ 13 ms na
+  porcję logu, w wątku gry. `SOLID §4.10` zna to od strony parsera; liczby dla
+  `render` są nowe i mówią, że sam przyrostowy parser nie wystarczy.
+- **`overlay.ts` urósł do 2861 linii** (o 400 od zapisu „trzeba go ciąć”).
+- **Osiem pól parsowanych i nieczytanych**, nie cztery jak mówi `SOLID §4.22`.
+- **Dostępność**: fokus ginie przy renderze (zakładki to nowe węzły), wiersz ma
+  20 px wobec 24 px z WCAG 2.2 SC 2.5.8, `aria-label` zastępuje widoczny napis
+  (SC 2.5.3), brak `aria-live` — komunikat o **porażce schowka** jest niesłyszalny.
+- **`archive.ts` nie korzysta z delegacji `data-action`**, a przerysowuje się
+  z zegara — drugi klik w ✕ potrafi trafić w świeży węzeł.
+
+---
+
+## F2. Nazewnictwo i pozycje bez sprawcy (dopisane 2026‑08‑01)
+
+Cztery usterki jednej rodziny: panel mówił coś, czego nie miał na myśli. Wszystkie
+widać wprost na zrzutach w `docs/screenshots/`, a żadna nie miała ID w tym pliku
+ani w `UX-POPRAWKI.md` — to była luka w rejestrze, nie rozstrzygnięta sprawa.
+
+### AUDYT‑26 — `unattributedHealing` to JEDNA liczba ✅ NAPRAWIONE ✓
+`src/stats.ts`, `src/session.ts`, `src/overlay.ts` (stopka)
+
+**Problem.** `unattributedDotDamage` dzieli się na stronę POSZKODOWANEGO
+(`{mine, enemy, loose}`), bo tę log podaje. Leczenie bez leczącego było przy tym
+gołym `number` — więc filtr `My`/`Oni` pokazywał **tę samą kwotę na obu
+zakładkach**, a w widoku postaci przypis znikał zupełnie (warunek `!focused`),
+choć to właśnie ona te punkty dostała. Zanotowane w `README.md`, bez ID.
+
+**Zrobione.** Wspólny typ `BySide` dla obu pul, `ActorStats.unattributedHealingReceived`
+jako lustro `unattributedDotTaken`, jeden helper `visible()` w stopce liczący
+widoczny wycinek dla OBU przypisów — dwie kopie tej reguły rozjechałyby się
+niezauważone. To poprawka **prezentacji, nie atrybucji**: leczącego nadal nie
+zgadujemy (`README.md` §„Leczenie bez leczącego").
+
+### AUDYT‑27 — jedna rodzina obrażeń pod dwiema nazwami ✅ NAPRAWIONE ✓
+`src/types.ts` (`typeDisplay`, `dotLabel`), `src/stats.ts`
+
+**Problem.** Sekcja `TYP OBRAŻEŃ` wymieniała SUROWE etykiety z dwóch niezależnych
+źródeł: żywioł z klasy CSS mówi „ogień", a tykający efekt „od ognia". Ta sama
+rodzina stała więc jako **dwa wiersze, w tej samej barwie**, obok `fizyczne`,
+`dystansowe` i `po zranieniu` — dziewięć wierszy w dwóch gramatykach.
+`typeFamily()` wiedziało o tym od `3814a42`, ale czytała je tylko paleta.
+
+**Zrobione.** Przekrój idzie po RODZINACH (`typeDisplay`), tykające efekty
+dostają mianownik (`dotLabel`). Rodzaj bez rodziny nie dostaje wymyślonej nazwy:
+`globalne` → `Nieznany (obszarowe)`, surowe `dmgo` → `Nieznany (dmgo)`. U bossa
+z Hildur: dziewięć wierszy → siedem, `Ogień` = cios 38 005 + tyknięcia 556.
+Rozróżnienie zwarcie/dystans żyje dalej w parserze i jest tam testowane —
+znikło z RANKINGU, nie z danych.
+
+### AUDYT‑28 — pozycja bez sprawcy udaje postać ✅ NAPRAWIONE ✓
+`src/stats.ts` (`UNATTRIBUTED_SOURCE`), `src/overlay.ts`
+
+**Problem.** Tykający efekt bez sprawcy wchodził na pierwszy szczebel
+`takenFromBy` pod własną nazwą, więc „od trucizny" (40 435) i „od ognia" (556)
+siedziały **w środku rankingu `OD KOGO`, między postaciami**, z szarym paskiem.
+Do tego dawały się kliknąć w ślepy zaułek: szczebel niżej powtarzał tę samą
+nazwę. `leadsDeeper` pilnował tego wyłącznie w sekcji `CZYM (ŁĄCZNIE)` — lista
+główna nie dostawała predykatu `drillable` w ogóle, wbrew `UX.md §6`.
+
+**Zrobione.** Wszystko bez sprawcy zbiera się pod jedną pozycją `Bez sprawcy`,
+stojącą na końcu listy bez względu na kwotę (`byAmountUnattributedLast`, wspólny
+z sumowaniem sesji), odciętą kreską i kreskowanym paskiem. Wejście w nią mówi,
+CO w niej siedzi. Lista główna dostała ten sam predykat `drillable` co sekcja
+umiejętności, a kursor przestał obiecywać `help` tam, gdzie klik działa.
+
+### AUDYT‑29 — licznik meldujący zero przy niezerowej kwocie ✅ NAPRAWIONE ✓
+`src/overlay.ts` (`times`, `timesDealt`)
+
+**Problem.** Akcje zadające linią „`-N obrażeń otrzymał(a) X`" (`strike: false`)
+nie są ciosami i słusznie nie są jako ciosy liczone — ale wiersz mówił przez to
+„`266 040 (79%) ×3 · 0 c.`", czyli licznik zaprzeczał kwocie obok. Na szczeblu
+CELÓW, gdzie etykietą jest nazwa postaci i żadne użycie się nie dopasowuje,
+wychodziło z tego samo „`×0`" przy 27 945 obrażeń.
+
+**Zrobione.** Człon `· N c.` tylko przy `hits > 0`; sam licznik ciosów znika,
+gdy ciosów nie było — `null` znaczy w `appendBreakdown` dokładnie „w tej pozycji
+ta liczba nie ma nic do powiedzenia", i to jest tu prawda.
+
+---
 ## G. Otwarte z poprzednich rund
 
 Bez nowych ID — sam wskaźnik, żeby ten dokument był pełną migawką otwartych
@@ -841,7 +1126,7 @@ spraw, a nie tylko listą nowych.
 
 | Gdzie | Co |
 |---|---|
-| `UX-POPRAWKI.md A14` | Tekst na kolorowym pasku nie przechodzi AA (żółty 3,50:1). Spiąć z AUDYT‑14 — ten sam wiersz, jedna decyzja wizualna. |
+| ~~`UX-POPRAWKI.md A14`~~ | ✅ **2026‑08‑01** — `.bar` na `opacity: .55` + nasadka w pełnej barwie; próg pilnuje test kontrastu. `AUDYT‑14` (odznaka profesji) **zostaje otwarte** i przestaje być z tym spięte. |
 | `UX-POPRAWKI.md B2–B12` | Wygody: suwak po turach, auto‑pauza, sygnał „trzymam postać”, TOP‑3 w dymku, ostrzeżenie o eksmisji, filtr w archiwum, eksport dla Discorda, onboarding, reset ustawień. |
 | `SOLID.md §4.12` | Przycięcie logu w trakcie walki OBNIŻA liczby — otwarte, czeka na decyzję i na fixture z przyciętym nagłówkiem. |
 | `SOLID.md §4.18` | Modyfikator z `(N%)` rozbija blok ataku na trzy `unknown`. |
