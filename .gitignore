@@ -173,3 +173,8 @@ dist
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Uprawnienia agenta — osobiste, nie zespołowe. Reguły z .claude/rules/ wchodzą
+# do repo (obowiązują wszystkich), lista dozwolonych komend już nie: każdy ma
+# w niej co innego i przy commicie robiłaby konflikty bez żadnej wartości.
+.claude/settings.local.json
