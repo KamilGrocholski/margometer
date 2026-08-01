@@ -11,6 +11,7 @@
  * czyli zapis dla programisty w miejscu, które czyta użytkownik.
  */
 import { PHASE_NOTE } from "./phase.ts";
+import { META_FILE, USERSCRIPT_FILE } from "./artifacts.ts";
 
 /**
  * Treść sekcji danej wersji, bez jej nagłówka. `null`, gdy sekcji nie ma —
@@ -32,6 +33,38 @@ export function changelogSection(changelog: string, version: string): string | n
   return body;
 }
 
+/**
+ * Stopka wydania: który plik kliknąć.
+ *
+ * Powód jest konkretny. Wydanie pokazuje CZTERY pozycje — dwa nasze assety
+ * plus archiwa źródeł, które GitHub dokłada sam i których nie da się zdjąć.
+ * `margometer.meta.js` wygląda wtedy jak drugi skrypt do zainstalowania, a jest
+ * plikiem służbowym dla Tampermonkey. Kto go kliknie, zainstaluje sam nagłówek
+ * bez ani jednej linii kodu — dodatek „się zainstaluje" i nie zrobi nic.
+ *
+ * Nie zależy od fazy projektu: ta stopka zostaje także po wyjściu z alfy.
+ */
+export const ASSETS_NOTE = [
+  "---",
+  "",
+  `**Instalacja:** kliknij **\`${USERSCRIPT_FILE}\`** poniżej — Tampermonkey`,
+  "przechwyci to sam i pokaże okno instalacji.",
+  "",
+  `\`${META_FILE}\` jest dla Tampermonkey (sprawdzanie wersji), nie do klikania.`,
+  "Archiwa źródeł dokłada GitHub — są dla tych, którzy chcą zbudować dodatek sami.",
+].join("\n");
+
+/**
+ * Pełna treść wydania: ostrzeżenie o fazie, zmiany, stopka o plikach.
+ *
+ * Osobna funkcja, a nie sklejanie w CLI, bo to jedyna rzecz w tym pliku, którą
+ * widzi użytkownik — a CLI uruchamia się dopiero przy tagu, czyli tam, gdzie
+ * pomyłka jest najdroższa.
+ */
+export function releaseNotes(section: string): string {
+  return [PHASE_NOTE, section, ASSETS_NOTE].filter((part) => part !== "").join("\n\n");
+}
+
 if (import.meta.main) {
   const version = process.argv[2];
   if (version === undefined) {
@@ -45,7 +78,5 @@ if (import.meta.main) {
     console.error(`CHANGELOG.md nie ma sekcji [${version}] albo jest ona pusta`);
     process.exit(1);
   }
-  // Ostrzeżenie o fazie idzie NAD zmianami: do wydania trafia się prosto
-  // z linku, więc README ze swoim ostrzeżeniem bywa pominięte w całości.
-  console.log(PHASE_NOTE === "" ? section : `${PHASE_NOTE}\n\n${section}`);
+  console.log(releaseNotes(section));
 }

@@ -9,6 +9,7 @@
  * razem cicho — dodatek po prostu nie startował.
  */
 import { PHASE_LABEL } from "./phase.ts";
+import { META_FILE, USERSCRIPT_FILE } from "./artifacts.ts";
 
 /**
  * Nagłówek dodatku. `homepage` idzie z `package.json` — tak samo jak `version`
@@ -42,8 +43,8 @@ export function banner(version: string, description: string, homepage: string): 
 // @description  ${description}
 // @author       kamil
 // @homepageURL  ${homepage}
-// @downloadURL  ${release}/margometer.user.js
-// @updateURL    ${release}/margometer.meta.js
+// @downloadURL  ${release}/${USERSCRIPT_FILE}
+// @updateURL    ${release}/${META_FILE}
 // @match        https://*.margonem.pl/*
 // @match        https://*.margonem.com/*
 // @exclude      https://www.margonem.pl/*

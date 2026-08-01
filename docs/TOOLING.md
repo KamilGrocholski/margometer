@@ -118,6 +118,29 @@ kiedyś miały być potrzebne: Tampermonkey je obsługuje i sortuje zgodnie
 z SemVerem — `0.3.0-alpha.1` jest STARSZE niż `0.3.0`, więc przejście z alfy na
 wydanie zwykłe zadziała jako aktualizacja.
 
+### Nazwy plików wydania — też jedno miejsce
+
+`tools/artifacts.ts`. Te dwie nazwy występują w **pięciu**: w `@downloadURL`
+i `@updateURL`, w `build.ts`, w stopce treści wydania, w liście assetów
+w `release.yml` i w linku instalacyjnym w `README.md`. Rozjazd którejkolwiek
+pary jest **cichy**: nagłówek wskazywałby plik, którego wydanie nie zawiera,
+i aktualizacje przestałyby przychodzić bez jednego komunikatu o błędzie.
+
+Trzy z tych miejsc importują stałą. Dwóch pozostałych — YAML-a i prozy — nie
+da się, więc pilnuje ich `tests/artifacts.test.ts`: czyta `release.yml` przez
+`Bun.YAML.parse` i sprawdza, że lista assetów to dokładnie te dwa pliki, oraz
+że link w README prowadzi do `.user.js`, a nie do `.meta.js`. Sprawdzone przez
+zepsucie — podmiana nazwy zapala właśnie te dwa testy.
+
+Stopka wydania (`ASSETS_NOTE` w `tools/changelog.ts`) mówi, który plik kliknąć.
+Powód: wydanie pokazuje CZTERY pozycje, bo GitHub dokłada archiwa źródeł sam
+i nie da się ich zdjąć. `margometer.meta.js` wygląda w tym zestawie jak drugi
+skrypt do zainstalowania — kto go kliknie, zainstaluje sam nagłówek bez ani
+jednej linii kodu i dodatek nie zrobi nic. W przeciwieństwie do ostrzeżenia
+o fazie ta stopka **zostaje po wyjściu z alfy**.
+
+### Faza wczesna — jedno źródło
+
 Słowo fazy żyje w **jednym** miejscu (`tools/phase.ts`), a nie w czterech —
 bo cztery kopie statusu to ten sam kształt, który `SOLID §11` i `AUDYT §G`
 opisują jako przyczynę wszystkich rozjazdów w tym repo. Zasila: `@name`

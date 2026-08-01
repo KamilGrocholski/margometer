@@ -7,6 +7,7 @@
 import { syntheticFight } from "./tools/synthetic-log.ts";
 import pkg from "./package.json" with { type: "json" };
 import { banner } from "./tools/userscript-meta.ts";
+import { META_FILE, USERSCRIPT_FILE, distPath } from "./tools/artifacts.ts";
 
 const BANNER = banner(pkg.version, pkg.description, pkg.homepage);
 
@@ -27,14 +28,14 @@ if (!output) throw new Error("build nie wyprodukował żadnego pliku");
 
 const bundle = await output.text();
 
-const path = "./dist/margometer.user.js";
+const path = distPath(USERSCRIPT_FILE);
 await Bun.write(path, BANNER + bundle);
 console.log(`zbudowano ${path}`);
 
 // Sam nagłówek, bez bundle'a — to jego pobiera Tampermonkey, sprawdzając, czy
 // jest nowa wersja (`@updateURL`). Bez tego pliku każde sprawdzenie ściągałoby
 // cały skrypt po to, żeby przeczytać z niego jedną linię.
-const metaPath = "./dist/margometer.meta.js";
+const metaPath = distPath(META_FILE);
 await Bun.write(metaPath, BANNER);
 console.log(`zbudowano ${metaPath}`);
 
