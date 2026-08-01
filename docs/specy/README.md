@@ -19,10 +19,10 @@ odtworzyć. Po zatwierdzeniu treść przeżywała tylko w komunikacie commita,
 a wnioski rozlewały się po rejestrach. Następny człowiek (albo agent) widział
 **wynik**, nie **rozumowanie** — a najdroższe jest odtwarzanie tego drugiego.
 
-Układ wzorowany na `.ai/specs/` z [open-mercato](https://github.com/open-mercato/open-mercato),
-przycięty. Ich szablon ma trzynaście sekcji, w tym Data Models, API Contracts
-i Migration Path — tu nie ma ani API, ani migracji, a puste sekcje uczą tylko
-tego, że szablon się olewa.
+Szablon jest **celowo krótki**. Rozbudowane systemy specyfikacji mają zwykle
+kilkanaście sekcji — modele danych, kontrakty API, ścieżkę migracji. Tu nie ma
+ani API, ani migracji, a sekcja wypełniana „nie dotyczy" uczy tylko tego, że
+szablon się olewa. Zostało siedem: tyle, ile ten projekt utrzyma.
 
 ## Kiedy pisać
 
@@ -42,8 +42,8 @@ Status stoi w drugiej linii pliku, jednym z dwóch słów:
 - **`projekt`** — napisany, jeszcze nie wdrożony;
 - **`wdrożone`** — plus data i skrót commita.
 
-Plików **nie przenosimy** do podkatalogu po wdrożeniu (open-mercato tak robi;
-tu byłaby to zmiana ścieżki, do której odsyłają commity). Status w nagłówku
+Plików **nie przenosimy** do podkatalogu po wdrożeniu — to spotykany wariant,
+ale tu byłaby to zmiana ścieżki, do której odsyłają commity. Status w nagłówku
 wystarcza, a `grep -l "Status: projekt" docs/specy/*.md` daje listę otwartych.
 
 ## Szablon

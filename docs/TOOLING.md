@@ -196,9 +196,9 @@ który ma pilnować czystości, uczy tylko tego, żeby go wyłączyć.
 
 **Specy** (`docs/specy/`) biorą to, co dotąd ginęło: rundy były projektowane
 w pliku planu **poza repozytorium**, a po zatwierdzeniu rozumowanie przeżywało
-tylko w komunikacie commita. Układ wzorowany na `.ai/specs/` z open-mercato,
-przycięty z trzynastu sekcji do siedmiu — nie ma tu API, modeli danych ani
-migracji, a puste sekcje uczą, że szablon się olewa. Szczegóły i szablon:
+tylko w komunikacie commita. Szablon ma siedem sekcji i jest celowo krótki —
+nie ma tu API, modeli danych ani migracji, a sekcja wypełniana „nie dotyczy"
+uczy, że szablon się olewa. Szczegóły i szablon:
 [`specy/README.md`](specy/README.md).
 
 Treść wydania na GitHubie jest **wycinana z tego pliku** (`tools/changelog.ts`,
