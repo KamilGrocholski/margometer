@@ -1,6 +1,6 @@
 # Tooling i wydanie — co jest, czego brakuje
 
-Pierwszy spis tej warstwy (2026‑07‑30). `README.md` opisuje **dlaczego** kod
+Pierwszy spis tej warstwy (2026‑07‑30). `DECYZJE.md` opisuje **dlaczego** kod
 wygląda, jak wygląda; `SOLID.md` i `UX-POPRAWKI.md` — co w nim poprawić. Tu
 zbieram to, co jest **wokół** kodu: jak się buduje, jak trafia do użytkownika
 i co pilnuje, żeby nie wjechała regresja.

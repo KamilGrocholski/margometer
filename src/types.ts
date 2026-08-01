@@ -122,7 +122,7 @@ export type BattleEvent =
        * Nie wystarczy tu `ability !== null`. "Uleczono X o N punktów życia."
        * TEŻ niesie nazwę umiejętności, ale rzucił ją ktoś inny — i tylko to
        * pole trzyma statystyki z dala od dopisania leczonemu cudzej roboty.
-       * Kto konkretnie leczył, nadal nie wychodzi z logu: patrz `ai/README.md`
+       * Kto konkretnie leczył, nadal nie wychodzi z logu: patrz `ai/DECYZJE.md`
        * §"Leczenie bez leczącego".
        */
       self: boolean;

@@ -4,7 +4,7 @@ Analiza **rdzenia**: jak tekst logu staje się statystykami — czytanie danych 
 parsowanie → mapowanie → przerabianie → sumowanie. Dwie części:
 
 - **§4 Otwarte usterki działania** — konkretne defekty parsowania/mapowania.
-  §4.1–§4.10 bazują na przeglądzie w `README.md` z 2026‑07‑19; **§4.11–§4.25
+  §4.1–§4.10 bazują na przeglądzie w `DECYZJE.md` z 2026‑07‑19; **§4.11–§4.25
   pochodzą z przeglądu 2026‑07‑30** i obejmują nagrywanie, archiwum i
   odtwarzanie, czyli kod, który wcześniej nie był sprawdzony ani razu.
   **Stan po naprawach z 2026‑07‑30:** zamknięte są §4.1–§4.8 oraz §4.11,
@@ -50,7 +50,7 @@ DOM gry ──extractText──► tekst (+ znacznik żywiołu)
 ```
 
 Punkt zwrotny: **nagrywamy surowy tekst, nie statystyki** — stare walki liczą się
-nowym parserem (pomiar w `README.md`: ~2,6 tys. znaków surowca vs ~4,5 tys.
+nowym parserem (pomiar w `DECYZJE.md`: ~2,6 tys. znaków surowca vs ~4,5 tys.
 `BattleStats` w JSON). Potok jest jednokierunkowy i idempotentny (`parse`/
 `aggregate` czyste) — to fundament testowalności. Zostaje.
 
@@ -65,7 +65,7 @@ nowym parserem (pomiar w `README.md`: ~2,6 tys. znaków surowca vs ~4,5 tys.
 - **Czystość rdzenia:** `parse`/`aggregate` bez DOM i czasu → testy na zrzutach.
 - **Niezmienniki pilnowane:** `Σ dealtBy == damageDealt`, `Σ timeline == Σ zdarzeń`,
   `Σ damageDealt + DoT bez sprawcy == Σ damageTaken` — trzymają na całym korpusie
-  (`README.md` „Sprawdzone i odrzucone”). Refaktor musi je utrzymać.
+  (`DECYZJE.md` „Sprawdzone i odrzucone”). Refaktor musi je utrzymać.
 
 ## 3. Co już naprawił commit `2cabd6d` (kontekst)
 
@@ -559,7 +559,7 @@ miała sens.**
 
 - **Duplikacja w widoku, policzona.** Predykat „czy ta metryka dzieli się przez
   tury WŁASNE” jest napisany **cztery razy** (`overlay.ts:435`, `:447`, `:1323`,
-  `:1373`) — dokładnie rodzina otwartej usterki „na turę” z `README.md`; jedno
+  `:1373`) — dokładnie rodzina otwartej usterki „na turę” z `DECYZJE.md`; jedno
   `dividesByOwnTurns(metric)` kasuje ryzyko rozjazdu tych czterech.
   `new Intl.NumberFormat("pl-PL")` istnieje dwa razy (`overlay.ts:64`,
   `archive.ts:157`), a `whenLabel` (`archive.ts:124`) ręcznie dopełnia zerami

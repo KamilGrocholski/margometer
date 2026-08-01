@@ -14,7 +14,7 @@ zrobionych nie wracają tutaj — siedzą w `UX-POPRAWKI.md` i `SOLID.md`.
 - ✅ Szybkie przejście Wszyscy / My / Oni
 - ✅ Przełącznik „na turę”
   ⚠️ z zastrzeżeniem: `/t` znaczy dwie różne rzeczy zależnie od metryki i wiersze
-  nie sumują się do drużyny przy Zadanych — `README.md` „Na turę”, do decyzji
+  nie sumują się do drużyny przy Zadanych — `DECYZJE.md` „Na turę”, do decyzji
   projektowej, nie do łatki.
 - ✅ Hover pokazuje skrót statystyk: zadane, otrzymane, leczenie, tury, utracone
   tury, **efekty w ciosach** (`procs`) i **efekty otrzymane** (`procsReceived`),
@@ -83,7 +83,7 @@ Do zrobienia, gdy pojawi się próbka takiego logu: złapać format i przypisać
 leczącego (analogicznie do napastników/trucizny). Alternatywa bez nowych danych:
 pierwszy szczebel „OD CZEGO” (źródło: Regeneracja/aura/samoratunek) — to
 praktycznie dzisiejsze `healedBy`, tylko jako drill. **To już jest zrobione.**
-Patrz też znane ograniczenie „Leczenie bez leczącego” w `README.md`.
+Patrz też znane ograniczenie „Leczenie bez leczącego” w `DECYZJE.md`.
 
 ## Czego brakuje w korpusie fixture'ów
 Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`

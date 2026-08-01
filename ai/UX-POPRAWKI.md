@@ -42,7 +42,7 @@ które nie działały wcale.
 | A1 | Przeciąganie panelu ginie w walce, pozycja się NIE zapisuje | `<header>` i jego przyciski to trwałe węzły; `makeDraggable` wiązany RAZ |
 | A2 | Udziały „%” w trybie „na turę” liczone względem sumy temp | mianownikiem zawsze surowe sumy — udział nie zmienia się z trybem |
 | A3 | Kolory szarzeją po 8 postaciach na całą sesję | barwa idzie z ATRYBUTU (profesja / rodzaj obrażeń), więc puli nie ma czego wyczerpać |
-| A4 | Sufiks `/t` znaczy dwie różne rzeczy bez sygnału | dymek nazywa dzielnik: „Na turę własną” / „Na turę walki” — ⚠️ **wiersz nadal nie mówi nic**, patrz `README.md` „Na turę” |
+| A4 | Sufiks `/t` znaczy dwie różne rzeczy bez sygnału | dymek nazywa dzielnik: „Na turę własną” / „Na turę walki” — ⚠️ **wiersz nadal nie mówi nic**, patrz `DECYZJE.md` „Na turę” |
 | A5 | Pasek stron przy braku danych pokazuje 50/50 (jak remis) | przy sumie 0 pasek zostaje pusty |
 | A6 | Długa lista potrafi wyjechać poza ekran | sufit `max-height` liczony od pozycji okna do dołu ekranu |
 
@@ -179,7 +179,7 @@ uchwytu, nie o mapę klawiszy.
 Policzony kontrast: żółty `#c98500` **3,50:1**, czerwony `#e66767` 3,60, akwa
 `#199e70` 3,79, niebieski 4,06, pomarańcz 4,28, magenta 4,40 — **wszystko poniżej
 4,5:1** wymaganego dla tekstu 12 px.
-**Skąd luka.** Walidator opisany w `README.md` „Kolory pasków” mierzył kontrast
+**Skąd luka.** Walidator opisany w `DECYZJE.md` „Kolory pasków” mierzył kontrast
 **paska do tła**, nie **tekstu na pasku**, a kolory profesji są od tej walidacji
 nowsze. To korekta metody, nie podważenie decyzji o odznace.
 **Rozstrzygnięcie (2026‑08‑01).** Trzecia droga, żadna z dwóch rozważanych:
@@ -390,4 +390,4 @@ nagrań NIE kasuje.
 Za `UX.md §6`: **bez skrótów klawiszowych** (overlay wisi nad grą łapiącą
 klawisze), **bez trzeciego rzędu zakładek** (widok wybiera się drążeniem), **bez
 modali/potwierdzeń** poza kasowaniem, **nie udawać danych, których log nie ma**
-(leczący, sprawca trucizny w tłumie — patrz `README.md` „Znane ograniczenia”).
+(leczący, sprawca trucizny w tłumie — patrz `DECYZJE.md` „Znane ograniczenia”).

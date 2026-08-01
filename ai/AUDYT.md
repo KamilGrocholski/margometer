@@ -1276,13 +1276,13 @@ ani w `UX-POPRAWKI.md` — to była luka w rejestrze, nie rozstrzygnięta sprawa
 (`{mine, enemy, loose}`), bo tę log podaje. Leczenie bez leczącego było przy tym
 gołym `number` — więc filtr `My`/`Oni` pokazywał **tę samą kwotę na obu
 zakładkach**, a w widoku postaci przypis znikał zupełnie (warunek `!focused`),
-choć to właśnie ona te punkty dostała. Zanotowane w `README.md`, bez ID.
+choć to właśnie ona te punkty dostała. Zanotowane w `DECYZJE.md`, bez ID.
 
 **Zrobione.** Wspólny typ `BySide` dla obu pul, `ActorStats.unattributedHealingReceived`
 jako lustro `unattributedDotTaken`, jeden helper `visible()` w stopce liczący
 widoczny wycinek dla OBU przypisów — dwie kopie tej reguły rozjechałyby się
 niezauważone. To poprawka **prezentacji, nie atrybucji**: leczącego nadal nie
-zgadujemy (`README.md` §„Leczenie bez leczącego").
+zgadujemy (`DECYZJE.md` §„Leczenie bez leczącego").
 
 ### AUDYT‑27 — jedna rodzina obrażeń pod dwiema nazwami ✅ NAPRAWIONE ✓
 `src/types.ts` (`typeDisplay`, `dotLabel`), `src/stats.ts`

@@ -107,7 +107,7 @@ bun test          # same testy
 ```
 
 Dlaczego kod wygląda, jak wygląda, i czego log o walce nie mówi — w katalogu
-[`ai/`](ai/). Zaczynaj od [`ai/START.md`](ai/START.md): mówi, co gdzie siedzi,
+[`ai/`](ai/). Zaczynaj od [`ai/README.md`](ai/README.md): mówi, co gdzie siedzi,
 jakie zasady obowiązują w tym repo i jak wyglądały poprzednie rundy pracy —
 reszta katalogu jest do czytania wybiórczo, nie od deski do deski.
 

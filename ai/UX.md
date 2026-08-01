@@ -79,7 +79,7 @@ Zadane      Ranking ─LPM→ ┬ KOMU (cele)           ─LPM→ CZYM — cel
                           └ CZYM (ŁĄCZNIE)        ─LPM→ KOMU — umiejętność
 Otrzymane   Ranking ─LPM→ ┬ OD KOGO (napastnicy)  ─LPM→ CZYM — napastnik
                           └ CZYM (ŁĄCZNIE)        ─LPM→ OD KOGO — umiejętność
-Wyleczone   Ranking ─LPM→ CZYM WYLECZONO (umiej.)   ·  (bez szczebla postaci — patrz README)
+Wyleczone   Ranking ─LPM→ CZYM WYLECZONO (umiej.)   ·  (bez szczebla postaci — patrz DECYZJE)
                                     ◂─PPM  ◂─PPM
 ```
 
@@ -150,7 +150,7 @@ liczby pod kursorem nie mogą uciekać.
   czysto, jak to zdanie sugeruje: dzielnik jest inny dla zadanych (tury własne)
   niż dla otrzymanych (tury walki), więc wiersze raz sumują się do drużyny, a raz
   nie, a procent w nawiasie liczy się z surowych sum, nie z tempa. Rozpisane
-  w `README.md`, „Na turę — zgłoszone jako podejrzane”. Do poprawy.
+  w `DECYZJE.md`, „Na turę — zgłoszone jako podejrzane”. Do poprawy.
 - **Puste stany mówią wprost.** „Brak rozbicia: leczenie.” zamiast pustki. ✅
 - **Etykieta, która się nie mieści, żyje w dymku.** `Tancogniew · Zwykły atak`
   ucina się w 260 px — dymek pokazuje pełną, bo to ona niesie „kto i czym”. ✅
