@@ -1,13 +1,18 @@
 <!--
-  Standardowy changelog dodatku do Margonem. Każdy kolejny dodatek trzyma ten sam
-  format, żeby wszystkie wyglądały tak samo. Konwencja: Keep a Changelog
-  (https://keepachangelog.com/pl/) + wersjonowanie SemVer (https://semver.org/lang/pl/).
+  Changelog DLA UŻYTKOWNIKÓW dodatku. Wersjonowanie: SemVer
+  (https://semver.org/lang/pl/).
 
   Zasady:
   - Najnowsze na górze. Sekcja [Niewydane] zbiera zmiany przed kolejnym wydaniem.
-  - Nagłówki zmian tylko z tego zestawu: Dodane, Zmienione, Naprawione, Usunięte,
-    Wycofane (deprecated), Bezpieczeństwo.
-  - Pisz z perspektywy użytkownika (co się zmienia w dodatku), nie z perspektywy kodu.
+  - Jedna płaska lista na wersję. Każdy wpis zaczyna się typem: **Nowość**,
+    **Zmiana** albo **Poprawka**. Kolejność w obrębie wersji: nowości, zmiany,
+    poprawki.
+  - Jeden wpis to jedno–trzy zdania. Kto chce szczegółów, ma historię gita.
+  - PISZ Z PERSPEKTYWY UŻYTKOWNIKA i bez pojęć programistycznych. Nie „parser",
+    „regex", „DoT", „cache" — tylko to, co widać w grze i w panelu. Test:
+    czy zrozumie to ktoś, kto gra w Margonem i nigdy nie widział kodu?
+  - Rzeczy, które użytkownika nie dotyczą (refaktory, testy, narzędzia), tu
+    NIE WCHODZĄ. Praca programistyczna opisana jest w `docs/specy/`.
   - Przy wydaniu: przenieś [Niewydane] pod nowy numer wersji z datą RRRR-MM-DD.
 -->
 
@@ -18,7 +23,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > ⚠️ **Wczesna faza (alpha).** Numery `0.x` nie obiecują zgodności — układ
 > panelu, nazwy i zapisane ustawienia mogą się zmienić między wydaniami.
 > Zgodnie z SemVer: przy zerowej wersji głównej wszystko może się zmienić
-> w każdej chwili. Do czasu `1.0.0` czytaj sekcję **Zmienione** przed
+> w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
 ## [Niewydane]
@@ -26,201 +31,131 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 ## [0.3.0] — 2026-08-01
 
 Pierwsze wydanie, które **da się pobrać i które samo się aktualizuje**.
-Wcześniejsze numery istniały tylko w repozytorium: nie było ani jednego wydania,
-ani adresu, spod którego dodatek mógłby się zaktualizować, więc jedyną drogą
-było zbudowanie pliku u siebie.
+Wcześniejsze numery istniały tylko w repozytorium — jedyną drogą było zbudowanie
+pliku u siebie.
 
-### Dodane
-- **Instalacja bez budowania i automatyczne aktualizacje.** Dodatek ma teraz
-  stały adres pobierania; Tampermonkey sam sprawdza, czy jest nowsza wersja,
-  i proponuje podmianę. Wcześniej trzeba było mieć Buna i zbudować plik
-  samodzielnie, a poprawki nie docierały do nikogo.
-- **Odznaka z literą profesji** przy nazwie postaci — kolor sam w sobie nie
-  wystarczał, żeby rozróżnić profesje przy dłuższej liście i przy wadach wzroku.
-- **Blok, cios bardzo krytyczny i osłabienie obrażeń od trucizny** docierają do
-  panelu: zablokowane obrażenia stoją w dymku obok pochłoniętych, super-kryty
-  liczą się jako podzbiór krytycznych, a osłabiony DoT nie zaniża już sumy.
-- **„Piętno bestii"** — linia, która nie niesie ani jednej liczby — przestała
-  zapalać ostrzeżenie o nierozpoznanym logu.
-- **Rozbicie wg umiejętności, bez względu na cel.** W widoku postaci, pod listą
-  celów, stoi druga sekcja „CZYM (ŁĄCZNIE)": te same obrażenia widziane od
-  strony akcji, zsumowane po wszystkich celach. Odpowiada na pytanie „która
-  umiejętność faktycznie robi robotę", którego wcześniej nie dało się zadać —
-  trzeba było obejść wszystkie cele i dodać w głowie.
-- **Drążenie z drugiej strony.** Klik w umiejętność pokazuje, komu zadała
-  („KOMU — UDERZENIE KRÓLA WĘŻY"), tak jak klik w cel pokazuje, czym w niego
-  poszło. Ten sam gest, przeciwna strona ciosu; prawy przycisk wraca identycznie
-  z obu dróg. Działa też dla obrażeń otrzymanych.
-- **Panel nazywa już wszystkie rodzaje obrażeń, jakie widział.** Zostały dwa,
-  przy których pokazywał surową nazwę z kodu gry i ostrzeżenie „nieznany rodzaj
-  obrażeń": drugie ostrze tancerza ostrzy (teraz **broń pomocnicza**, licząca
-  się do tej samej rodziny co reszta obrażeń z broni) oraz ciosy bijące we
-  wszystkich naraz (teraz **globalne**). Przy tych drugich gra podaje zasięg
-  zamiast żywiołu, więc barwy żywiołu świadomie nie dostają — ale mają nazwę.
-
-### Zmienione
-- **Rodzaje obrażeń zwinęły się w rodziny**: dziewięć wierszy w rozbiciu zrobiło
-  się siedem, bo ta sama rodzina stała wcześniej pod dwiema nazwami.
-- **Paski są jaśniejsze**, żeby tekst na nich przechodził próg czytelności;
-  pełną barwę trzyma teraz nasadka na końcu paska.
-- **Pozycje bez sprawcy zeszły do jednego wiersza na końcu rankingu** zamiast
-  udawać postać wśród postaci. Klik w niego mówi, co w tej puli siedzi.
-- **Panel pamięta też USTAWIENIA, nie tylko położenie.** Wybrana metryka, filtr
-  składu i tryb „na turę" wracają po odświeżeniu strony — dotąd zapamiętywała
-  się sama pozycja i rozmiar okna, więc panel wyglądał na zapamiętany, a widok
-  w środku wracał do domyślnego.
-- **Długa sesja przestała rosnąć w pamięci.** Zakończone walki są sumowane od
-  razu, zamiast leżeć w całości do końca sesji. Po 195 walkach: **21× mniej
-  zajętej pamięci** i **59× szybsze** liczenie sumy, przy identycznym wyniku.
-- **Nagrywanie mniej obciąża grę.** Przy pełnym archiwum spis nagrań był
-  przepisywany od nowa przy każdej linii logu — w tym samym wątku, w którym
-  chodzi gra. Teraz idzie do pamięci przeglądarki tylko wtedy, gdy naprawdę się
-  zmienia: ok. **48× mniej zapisów** w trakcie walki.
-
-### Naprawione
-- **Otwarcie archiwum zacinało grę.** Lista liczyła statystyki wszystkich
-  nagrań naraz, choć pokazuje kilkanaście wierszy — przy 190 nagraniach dawało
-  to ćwierć sekundy zamrożonej gry przy każdym otwarciu okna. Teraz liczy tylko
-  to, co widać, a reszta dolicza się w tle.
-- **Uniki pełne i częściowe** były liczone razem, więc licznik uników pokazywał
-  więcej, niż faktycznie się wydarzyło.
-- **Dwie postacie o tej samej nazwie po obu stronach** nie dostawały żadnej
-  strony i wypadały z podziału na zespoły.
-
-- **Obrażenia od zranienia nie miały właściciela, choć log go podaje.** W walce
-  grupowej licznik zgadywał sprawcę tykających obrażeń wyłącznie z układu stron —
-  a przy dziesięciu graczach na jednego bossa nie zgadywał wcale, więc całość szła
-  do worka „bez sprawcy". Tymczasem przy zranieniu log mówi wprost, kto je zadał
-  i ile będzie tykać. Teraz te obrażenia wracają do tego, kto je zadał (w walce
-  z Hildur: 3 380 punktów dla łowcy).
-- **Przypis o truciźnie mówił „trucizna" także o ogniu i ranach.** Do jednego
-  worka trafiały wszystkie tykające obrażenia bez sprawcy, a podpis nazywał je
-  trucizną. Teraz przypis wypisuje, co w nim faktycznie jest.
-- **Leczenia bez sprawcy nie było widać nigdzie.** Kiedy log nie mówi, kto
-  leczył, punkty nie mają właściciela i wypadały z rankingu bez śladu — w walce
-  z Hildur 133 867 punktów, czyli trzy razy więcej niż cały nieprzypisany DoT.
-  Teraz stoi w stopce obok trucizny, na tej samej zasadzie: nie zgadujemy
-  leczącego, ale mówimy, ile leczenia jest poza rankingiem.
-- **Walki z bossami meldowały nierozpoznane linie, a leczenie drużyny znikało.**
-  Przy zaczepieniu („uwaga skupiona na…"), tarczy na blok i leczeniu ułamkowym
-  („o 22,5% życia") panel zapalał ostrzeżenie o niepełnych statystykach. Gorzej
-  z leczeniem kierowanym — „Uleczono X o N punktów życia" nie było rozumiane
-  wcale, więc kilkadziesiąt tysięcy wyleczonych punktów po prostu nie istniało.
-  Teraz są, i stoją pod nazwą umiejętności, która je rzuciła: „Leczenie ran"
-  i „Kojące ochłodzenie" zamiast wspólnej „Regeneracji".
-- **Leczenie cudzą ręką dopisywało się leczonemu.** Kto dostał „Leczenie ran" od
-  kolegi, wychodził w statystykach na tego, który sam siebie wyleczył. Teraz
-  liczy się jako własne tylko to, co postać faktycznie rzuciła na siebie.
-- **Cios o trzech liczbach potrafił trafić w niewłaściwy rodzaj obrażeń.** Gdy
-  przeciwnik wytłumił jedną z nich do zera, log ją po prostu pomijał, a licznik
-  przesuwał pozostałe o jedno miejsce — obrażenia od zimna lądowały wtedy pod
-  ogniem. Suma się zgadzała, więc nic tego nie zdradzało poza rozbiciem na
-  rodzaje.
-- **Nagrania potrafiły zajmować miejsce mimo skasowania.** Gdy spis nagrań uległ
-  uszkodzeniu, same logi zostawały w pamięci przeglądarki na zawsze — niewidoczne
-  dla licznika i dla „wyczyść", a zajmujące miejsce, które dodatek dzieli z grą.
-- **Nagrywanie wracało włączone po komunikacie o braku miejsca.** Wystarczyło
-  odświeżyć stronę: nagrywanie startowało z powrotem, a czerwony pasek znikał,
-  choć w pamięci przeglądarki nic się nie zmieniło.
-- **Jedna walka trafiała do archiwum jako dwa nagrania**, gdy gra rozjechała
-  pogrubienie linii otwierającej albo zmieniła w niej odstępy. Panel pokazywał
-  wtedy jedną walkę, a archiwum dwie — w tym jedną pustą.
-- **Awaria licznika zabierała ze sobą nagrywanie**, czyli jedyny zapis, z którego
-  dałoby się tę awarię odtworzyć. Teraz zapis idzie pierwszy i przeżywa
-  niezależnie od reszty.
-
-- **Kopiowanie potrafiło zameldować sukces nad pustym schowkiem.** Gdy
-  przeglądarka odmówiła zapisu albo nie było czego kopiować, przycisk i tak
-  migał „✓" — dowiadywało się o tym dopiero przy wklejaniu. Teraz mówi „✕".
-- **„wyczyść" wyglądał na zepsuty.** Pytanie „na pewno?" wygasało po pięciu
-  sekundach, ale napis na przycisku zostawał, a kolejny klik po cichu pytał od
-  nowa — z ekranu nic się nie zmieniało. Teraz przycisk sam wraca do „wyczyść".
-- **Pytanie o skasowanie nagrania nie wygasało w ogóle.** Wystarczyło kliknąć ✕
-  przy nagraniu, odejść i wrócić po godzinie w to samo miejsce, żeby skasować
-  bez pytania. Oba potwierdzenia działają teraz identycznie i gasną po pięciu
-  sekundach; zamknięcie okna archiwum też je zdejmuje.
-
-- **Kopiowanie w podglądzie dawało co innego, niż widać na ekranie.** Przycisk ⧉
-  brał zawsze walkę na żywo, także gdy oglądałeś nagranie z archiwum. Teraz
-  kopiuje to, co widzisz, i dopisuje, skąd to jest.
-- **Zwinięty panel udawał, że pokazuje bieżącą walkę.** W trakcie oglądania
-  nagrania zwinięcie chowało pasek PODGLĄD razem z wyjściem „na żywo", a
-  odtwarzanie leciało dalej. Pasek zostaje teraz również po zwinięciu.
-- **Trzy kliknięcia nie dawały żadnej odpowiedzi**: „wczytaj" przy pustym polu,
-  wiersz nagrania, którego nie ma już w pamięci przeglądarki, oraz wiersz
-  umiejętności w rozbiciu leczenia. Dwa pierwsze mówią teraz, o co chodzi;
-  trzeci przestał udawać, że da się w niego wejść.
+- **Nowość** — Instalacja jednym kliknięciem i automatyczne aktualizacje.
+  Dodatek ma stały adres pobierania, a rozszerzenie samo proponuje nowszą wersję.
+- **Nowość** — Odznaka z literą profesji przy nazwie postaci. Sam kolor nie
+  wystarczał przy dłuższej liście ani przy wadach wzroku.
+- **Nowość** — Rozbicie według umiejętności, bez względu na cel. Sekcja
+  „CZYM (ŁĄCZNIE)" odpowiada, która umiejętność faktycznie robi robotę —
+  wcześniej trzeba było obejść wszystkie cele i dodać w głowie.
+- **Nowość** — Klik w umiejętność pokazuje, komu zadała. Ten sam gest
+  z przeciwnej strony ciosu; działa też dla obrażeń otrzymanych.
+- **Nowość** — Zablokowane obrażenia i ciosy bardzo krytyczne widać w dymku,
+  a osłabione obrażenia od trucizny nie zaniżają już sumy.
+- **Nowość** — Panel nazywa już wszystkie rodzaje obrażeń, jakie widział.
+  Doszły **broń pomocnicza** (drugie ostrze tancerza) i **globalne** (ciosy
+  bijące we wszystkich naraz).
+- **Zmiana** — Rodzaje obrażeń zwinęły się w rodziny: dziewięć wierszy
+  w rozbiciu zrobiło się siedem.
+- **Zmiana** — Paski są jaśniejsze, żeby tekst na nich dało się przeczytać.
+  Pełną barwę trzyma teraz nasadka na końcu paska.
+- **Zmiana** — Pozycje bez sprawcy zeszły do jednego wiersza na końcu rankingu,
+  zamiast udawać postać wśród postaci. Klik mówi, co w tej puli siedzi.
+- **Zmiana** — Panel pamięta też ustawienia, nie tylko położenie. Wybrana
+  zakładka, filtr składu i tryb „na turę" wracają po odświeżeniu strony.
+- **Zmiana** — Długa sesja przestała rosnąć w pamięci: po 195 walkach **21×
+  mniej zajętej pamięci** i **59× szybsze** liczenie sumy, przy tym samym wyniku.
+- **Zmiana** — Nagrywanie mniej obciąża grę: około **48× mniej zapisów**
+  w trakcie walki.
+- **Poprawka** — Otwarcie archiwum zacinało grę. Przy 190 nagraniach było to
+  ćwierć sekundy zamrożonej gry za każdym razem; teraz panel liczy tylko to,
+  co widać, a reszta dolicza się w tle.
+- **Poprawka** — Uniki pełne i częściowe liczyły się razem, więc licznik uników
+  pokazywał więcej, niż się wydarzyło.
+- **Poprawka** — Dwie postacie o tej samej nazwie po obu stronach wypadały
+  z podziału na zespoły.
+- **Poprawka** — Obrażenia od zranienia nie miały właściciela, choć walka podaje
+  sprawcę wprost. W starciu z Hildur wracają dzięki temu 3 380 punktów dla łowcy.
+- **Poprawka** — Przypis o truciźnie nazywał tak również ogień i rany. Teraz
+  wypisuje, co w tej puli faktycznie jest.
+- **Poprawka** — Leczenia bez sprawcy nie było widać nigdzie — w starciu
+  z Hildur 133 867 punktów. Teraz stoi w stopce, obok trucizny.
+- **Poprawka** — Walki z bossami meldowały nierozpoznane linie, a leczenie
+  drużyny znikało. „Uleczono X o N punktów życia" nie było w ogóle rozumiane,
+  więc kilkadziesiąt tysięcy wyleczonych punktów po prostu nie istniało.
+- **Poprawka** — Leczenie cudzą ręką dopisywało się leczonemu. Teraz jako własne
+  liczy się tylko to, co postać rzuciła na siebie.
+- **Poprawka** — Cios o trzech liczbach potrafił trafić w niewłaściwy rodzaj
+  obrażeń: gdy przeciwnik wytłumił jedną z nich do zera, obrażenia od zimna
+  lądowały pod ogniem. Suma się zgadzała, więc nic tego nie zdradzało.
+- **Poprawka** — Nagrania potrafiły zajmować miejsce mimo skasowania.
+- **Poprawka** — Nagrywanie wracało włączone po komunikacie o braku miejsca.
+- **Poprawka** — Jedna walka trafiała do archiwum jako dwa nagrania, w tym jedno
+  puste.
+- **Poprawka** — Awaria licznika zabierała ze sobą nagrywanie, czyli jedyny
+  zapis, z którego dałoby się ją odtworzyć.
+- **Poprawka** — Kopiowanie meldowało sukces nad pustym schowkiem. Teraz przy
+  odmowie mówi „✕".
+- **Poprawka** — „wyczyść" wyglądał na zepsuty: pytanie „na pewno?" wygasało po
+  pięciu sekundach, ale napis na przycisku zostawał.
+- **Poprawka** — Pytanie o skasowanie nagrania nie wygasało wcale. Wystarczyło
+  kliknąć ✕, odejść i wrócić po godzinie, żeby skasować bez pytania.
+- **Poprawka** — Kopiowanie w podglądzie dawało co innego, niż widać na ekranie.
+- **Poprawka** — Zwinięty panel udawał, że pokazuje bieżącą walkę, choć leciało
+  odtwarzanie nagrania.
+- **Poprawka** — Trzy kliknięcia nie dawały żadnej odpowiedzi: „wczytaj" przy
+  pustym polu, wiersz nagrania, którego już nie ma, i wiersz w rozbiciu leczenia.
 
 ## [0.2.0] — 2026-07-30
 
-### Dodane
-- Drążenie obrażeń **zadanych wg celu**: wejście w postać pokazuje najpierw komu
-  zadała, a po wejściu w cel — czym (broń, umiejętności, trucizna).
-- **Skalowanie okna nakładki** za róg w prawym dolnym rogu (jak w textarea);
-  rozmiar zapamiętuje się między sesjami, tak jak pozycja.
-- **Kopiowanie statystyk** (przycisk ⧉ w nagłówku) — bieżąca walka i cała sesja
-  jako JSON w schowku, niezależnie od tego, co akurat widać na ekranie.
-- **Nagrywanie walk** (przycisk ⏺, domyślnie wyłączone): surowe logi lądują
-  w pamięci przeglądarki, a pasek pod nagłówkiem pokazuje, ile walk i ile
-  miejsca zajmują. Stamtąd można je skopiować albo wyczyścić. Nagrywanie
-  przeżywa odświeżenie gry, a zapis pilnuje limitu 1 MB — najstarsze walki
-  wypadają same, żeby nie zabrakło miejsca samej grze.
-- **Okno archiwum** (przycisk ▤): lista nagranych walk ze składem, godziną,
-  liczbą tur, sumą obrażeń i wynikiem. Kliknięcie wczytuje walkę do panelu —
-  z pełnym drążeniem, filtrami i przełącznikiem „na turę", tak jak na żywo.
-  Okno przeciąga się i pamięta pozycję oraz to, czy było otwarte.
-- **Odtwarzanie walki** przyciskiem ▶ przy wierszu: log leci linia po linii,
-  z pauzą, przewijaniem i prędkością 1×/2×/4× — widać, jak ranking przestawiał
-  się w trakcie walki.
-- **Ręczne wklejenie logu** w archiwum — liczy się tak samo jak nagranie,
-  ale nie zajmuje miejsca w pamięci przeglądarki.
-- Żółty pasek **PODGLĄD** mówi wprost, skąd dane („z archiwum · 19:04" albo
-  „wklejony log") i czyja to walka. Licznik na żywo leci w tle bez przerwy,
-  a „na żywo" wraca do bieżącej walki.
-
-- **Rozbicie obrażeń według rodzaju** (ogień, zimno, błyskawice, trucizna,
-  krwawienie…) jako drugi przekrój obok „czym zadane".
-- **Kolor paska według profesji** i literowa odznaka przy nazwie — postać
-  poznaje się po barwie, a nie po miejscu na liście. Odznaka jest tu warunkiem,
-  nie ozdobą: przy daltonizmie sam kolor sześciu profesji nie rozróżnia.
-
-### Zmienione
-- Rozbicie **leczenia** nazwane „OD CZEGO" (źródło: regeneracja, aura,
-  samoratunek) — spójnie z „OD KOGO / KOMU" przy obrażeniach.
-- Dodatek **nie uruchamia się poza grą**: podstrony w rodzaju pomocy są
+- **Nowość** — Drążenie obrażeń zadanych według celu: wejście w postać pokazuje,
+  komu zadała, a wejście w cel — czym.
+- **Nowość** — Skalowanie okna za róg w prawym dolnym rogu, jak w polu
+  tekstowym. Rozmiar zapamiętuje się między sesjami, tak jak pozycja.
+- **Nowość** — Kopiowanie statystyk przyciskiem ⧉: bieżąca walka i cała sesja
+  trafiają do schowka.
+- **Nowość** — Nagrywanie walk przyciskiem ⏺ (domyślnie wyłączone). Pasek pod
+  nagłówkiem pokazuje, ile walk i ile miejsca zajmują; nagrywanie przeżywa
+  odświeżenie gry, a limit 1 MB pilnuje, żeby nie zabrakło miejsca samej grze.
+- **Nowość** — Okno archiwum przyciskiem ▤: lista nagranych walk ze składem,
+  godziną, liczbą tur, sumą obrażeń i wynikiem. Kliknięcie wczytuje walkę do
+  panelu z pełnym drążeniem i filtrami, tak jak na żywo.
+- **Nowość** — Odtwarzanie walki przyciskiem ▶: linia po linii, z pauzą,
+  przewijaniem i prędkością 1×/2×/4×. Widać, jak ranking przestawiał się
+  w trakcie starcia.
+- **Nowość** — Ręczne wklejenie zapisu walki w archiwum. Liczy się tak samo jak
+  nagranie, ale nie zajmuje miejsca w pamięci przeglądarki.
+- **Nowość** — Żółty pasek PODGLĄD mówi wprost, skąd dane i czyja to walka.
+  Licznik na żywo leci w tle bez przerwy, a „na żywo" wraca do bieżącej walki.
+- **Nowość** — Rozbicie obrażeń według rodzaju (ogień, zimno, błyskawice,
+  trucizna, krwawienie…) jako drugi przekrój obok „czym zadane".
+- **Nowość** — Kolor paska według profesji. Postać poznaje się po barwie,
+  a nie po miejscu na liście.
+- **Zmiana** — Rozbicie leczenia nazwane „OD CZEGO", spójnie z „OD KOGO / KOMU"
+  przy obrażeniach.
+- **Zmiana** — Dodatek nie uruchamia się poza grą: podstrony w rodzaju pomocy są
   wykluczone, a tam, gdzie nie widać ani gry, ani okna walki, panel się nie
-  rysuje i przeszukiwanie strony samo gaśnie.
-- Zakładka **Tury** wycofana z opisu wydania 0.1.0 — nigdy nie dało się jej
-  wybrać w panelu. Średnia „na turę" jest za to w każdym wierszu.
-
-### Naprawione
-- Poprawna obsługa **walk grupowych** i nowych linii logu: leczenie potworów bez
-  procenta życia, utrata tury z powodem w nawiasie, wzmocnienie za małą grupę,
-  ładowanie ciosów specjalnych, „Przerwanie ciosu specjalnego" oraz leczenie
-  „Ostatni ratunek" wcięte w środek tury — wcześniej gubiły część statystyk.
-- **Dymek nad wierszem wczytanego nagrania** znów się pokazuje. Wcześniej dla
-  walki z archiwum nie pojawiał się wcale, a gdy w tle trwała walka z postacią
-  o tej samej nazwie — pokazywał jej liczby.
-- **Kliknięcia w trakcie odtwarzania** nie giną: zakładki, okruszek i przyciski
-  nagrywania działają także wtedy, gdy panel przebudowuje się co klatkę.
-  Wcześniej przy prędkości 4× nie dało się nawet wyjść z podglądu bez pauzy.
-- **Okna nie da się już zgubić za krawędzią ekranu.** Panel i archiwum zostają
-  w zasięgu myszy także po zmianie rozdzielczości albo po otwarciu gry na
-  węższym ekranie niż ten, na którym ustawiono położenie.
-- **Prawy przycisk w polu wklejania logu** otwiera normalne menu przeglądarki
-  zamiast cofać widok — bez tego nie dało się wkleić logu myszą.
-- **Wpisany log nie znika** po zakończeniu walki w tle, a lista archiwum nie
-  przewija się sama na górę.
-- **Dymek rysuje się nad panelem i nad archiwum**, a nie pod nimi.
-- **Suma sesji** liczy poprawnie rozbicie „komu zadał" — dotąd zatrzymywała się
-  na pierwszej walce (widoczne w kopiowanych statystykach).
+  rysuje.
+- **Zmiana** — Zakładka „Tury" wycofana z opisu wydania 0.1.0 — nigdy nie dało
+  się jej wybrać. Średnia „na turę" jest za to w każdym wierszu.
+- **Poprawka** — Walki grupowe gubiły część statystyk. Leczenie potworów,
+  utrata tury z powodem, wzmocnienie za małą grupę, ładowanie ciosów specjalnych
+  i „Ostatni ratunek" są już rozumiane.
+- **Poprawka** — Dymek nad wierszem wczytanego nagrania znów się pokazuje.
+  Wcześniej nie pojawiał się wcale, a przy walce z postacią o tej samej nazwie
+  pokazywał cudze liczby.
+- **Poprawka** — Kliknięcia w trakcie odtwarzania nie giną. Przy prędkości 4×
+  nie dało się wcześniej nawet wyjść z podglądu bez pauzy.
+- **Poprawka** — Okna nie da się już zgubić za krawędzią ekranu, także po
+  zmianie rozdzielczości.
+- **Poprawka** — Prawy przycisk w polu wklejania otwiera normalne menu
+  przeglądarki zamiast cofać widok. Bez tego nie dało się wkleić myszą.
+- **Poprawka** — Wpisany tekst nie znika po zakończeniu walki w tle, a lista
+  archiwum nie przewija się sama na górę.
+- **Poprawka** — Dymek rysuje się nad panelem i nad archiwum, a nie pod nimi.
+- **Poprawka** — Suma sesji liczy poprawnie rozbicie „komu zadał". Dotąd
+  zatrzymywała się na pierwszej walce.
 
 ## [0.1.0] — pierwsze wydanie
 
-### Dodane
-- Nakładka z licznikiem obrażeń nad grą, czytana na żywo z okna walki.
-- Metryki: **Zadane**, **Otrzymane**, **Leczenie**.
-- Filtr składu: **Wszyscy / Mój zespół / Przeciwnicy** oraz przełącznik **na turę**.
-- Dymek ze skrótem statystyk postaci; przeciąganie i zwijanie nakładki
-  z zapamiętaną pozycją.
-- Wsparcie domen `*.margonem.pl` i `*.margonem.com`.
+- **Nowość** — Nakładka z licznikiem obrażeń nad grą, czytana na żywo z okna
+  walki.
+- **Nowość** — Zakładki: **Zadane**, **Otrzymane**, **Leczenie**.
+- **Nowość** — Filtr składu **Wszyscy / Mój zespół / Przeciwnicy** oraz
+  przełącznik **na turę**.
+- **Nowość** — Dymek ze skrótem statystyk postaci; przeciąganie i zwijanie
+  nakładki z zapamiętaną pozycją.
+- **Nowość** — Obsługa światów `*.margonem.pl` i `*.margonem.com`.

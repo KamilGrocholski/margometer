@@ -154,17 +154,52 @@ więc jedną zmianą i listą miejsc do poprawienia, a nie polowaniem.
 
 `CHANGELOG.md` jest z powrotem — **w tej samej rundzie, co kanał dostawy**,
 dokładnie tak, jak zapowiadał ostatni akapit tej sekcji („ta sekcja jest
-zamknięta wyłącznie tak długo, jak długo §2 zostaje otwarte"). Format nie został
-wymyślony od nowa, tylko przywrócony z historii (`2774957^`): Keep a Changelog
-+ SemVer, po polsku, wpisy z perspektywy użytkownika.
+zamknięta wyłącznie tak długo, jak długo §2 zostaje otwarte").
 
 Dwie rzeczy, które przy tym wyszły:
 
 - w pliku stała już sekcja `[0.2.0] — 2026‑07‑30`, a `[Niewydane]` zbierało
   pracę po niej. Skoro `0.2.0` **nigdy nie wyszło**, a od tamtej pory weszło
   dziesięć commitów, pierwszym wydaniem jest **`0.3.0`**, nie `0.2.0`;
-- stary plik miał po dwa nagłówki `### Dodane` i `### Zmienione` w jednej
-  sekcji — scalone.
+- przywrócona wersja miała po dwa nagłówki `### Dodane` i `### Zmienione`
+  w jednej sekcji — scalone, a potem cały układ się zmienił (niżej).
+
+### Dwa zapisy zmian, dla dwóch czytelników
+
+Zapis pracy rozdziela się na dwa, bo czytają go dwie różne osoby i **jeden tekst
+nie obsłuży obu**:
+
+| | `CHANGELOG.md` | `docs/specy/` |
+|---|---|---|
+| czytelnik | gracz Margonema | programista, często po miesiącu |
+| jednostka | wersja | runda pracy |
+| treść | co się zmienia w dodatku | problem, rozwiązanie, **odrzucone warianty** |
+| co NIE wchodzi | refaktory, testy, narzędzia | — |
+
+**Format changelogu** to jedna płaska lista na wersję, wpis zaczyna się typem:
+`**Nowość**` / `**Zmiana**` / `**Poprawka**`. Zastąpiło to nagłówki
+`### Dodane / Zmienione / Naprawione` z Keep a Changelog — przy krótkich
+wpisach typ per wiersz skanuje się szybciej niż grupowanie, a lista przestaje
+mieć dwa poziomy zagnieżdżenia dla trzech kategorii.
+
+Dwa niezmienniki w `tests/changelog.test.ts` pilnują tego strukturalnie:
+**każdy** wpis w **każdej** wersji zaczyna się jednym z trzech typów, i **żaden
+nie używa pojęć programistycznych** (lista zakazanych słów: `parser`, `regex`,
+`cache`, `DOM`, `fixture`…). Ten drugi test jest tu, bo regułę „pisz
+z perspektywy użytkownika" łamie się **niechcący** — pisze ją ktoś, kto właśnie
+wyszedł z kodu. Zdanie w konwencji tego nie zatrzymuje, test tak.
+
+Uwaga techniczna z tego testu, warta zapamiętania: granice słów liczą się po
+literach **Unicode**, nie przez `\b`. Dla ASCII-owego `\b` polskie „ą" nie jest
+literą, więc „Dot**ąd**" trafiało jako żargonowe „DoT". Fałszywy alarm w teście,
+który ma pilnować czystości, uczy tylko tego, żeby go wyłączyć.
+
+**Specy** (`docs/specy/`) biorą to, co dotąd ginęło: rundy były projektowane
+w pliku planu **poza repozytorium**, a po zatwierdzeniu rozumowanie przeżywało
+tylko w komunikacie commita. Układ wzorowany na `.ai/specs/` z open-mercato,
+przycięty z trzynastu sekcji do siedmiu — nie ma tu API, modeli danych ani
+migracji, a puste sekcje uczą, że szablon się olewa. Szczegóły i szablon:
+[`specy/README.md`](specy/README.md).
 
 Treść wydania na GitHubie jest **wycinana z tego pliku** (`tools/changelog.ts`,
 czysta funkcja + testy), a nie generowana z listy commitów: wydanie czyta

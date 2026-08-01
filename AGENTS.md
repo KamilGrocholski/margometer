@@ -73,6 +73,18 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
   `tests/fixtures/new-engine/` mają `meta.json` z opisem, co pokrywają, czego
   w nich nie ma i co było trudne. Fixture'a się nie edytuje, żeby test przeszedł.
 
+## Dwa zapisy zmian, dla dwóch czytelników
+
+- **`CHANGELOG.md` jest DLA UŻYTKOWNIKA.** Płaska lista na wersję, każdy wpis
+  zaczyna się od **Nowość** / **Zmiana** / **Poprawka**. Bez pojęć
+  programistycznych — nie „parser", „regex", „cache". Pilnuje tego test
+  (`tests/changelog.test.ts`), bo regułę łamie się niechcący, pisząc zaraz po
+  wyjściu z kodu. Refaktory, testy i narzędzia tu **nie wchodzą**.
+- **`docs/specy/` jest DLA PROGRAMISTY.** Jeden plik na rundę wymagającą
+  zaprojektowania: problem, rozwiązanie, **odrzucone warianty**, weryfikacja.
+  Sygnał, że spec jest potrzebny: łapiesz się na tym, że piszesz plan. Szablon
+  i zasady — [`docs/specy/README.md`](docs/specy/README.md).
+
 ## Commity i przegląd
 
 - **Przegląd PRZED commitem, nie po.** Jeden z audytów znalazł jedenaście
