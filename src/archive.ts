@@ -10,6 +10,7 @@
  * — policzone raz i zamrożone w JSON-ie już by się nie poprawiły.
  */
 import { parse } from "./parser.ts";
+import { storedBoolean, storedNumber, storedRecord } from "./stored-state.ts";
 import type { Recording } from "./recorder.ts";
 import { aggregate, type BattleStats } from "./stats.ts";
 import type { BattleEvent } from "./types.ts";
@@ -742,14 +743,17 @@ export class Archive {
     this.window.remove();
   }
 
+  /** Ta sama ostrożność co przy panelu — patrz `stored-state.ts`. */
   private loadState(): ArchiveState {
-    try {
-      const raw = this.storage?.getItem(STORAGE_KEY);
-      if (!raw) return { ...DEFAULT_STATE };
-      return { ...DEFAULT_STATE, ...(JSON.parse(raw) as Partial<ArchiveState>) };
-    } catch {
-      return { ...DEFAULT_STATE };
-    }
+    const stored = storedRecord(this.storage, STORAGE_KEY);
+    if (!stored) return { ...DEFAULT_STATE };
+    const maxX = Math.max(1, window.innerWidth);
+    const maxY = Math.max(1, window.innerHeight);
+    return {
+      x: storedNumber(stored["x"], DEFAULT_STATE.x, -maxX, maxX),
+      y: storedNumber(stored["y"], DEFAULT_STATE.y, -maxY, maxY),
+      open: storedBoolean(stored["open"], DEFAULT_STATE.open),
+    };
   }
 
   private saveState(): void {

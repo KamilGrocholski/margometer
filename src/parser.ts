@@ -199,10 +199,17 @@ const RE_STRIKE_NOTE = /^Przerwanie ciosu specjalnego\.?$/;
  */
 const RE_INFO = [
   /^Walka bez Punktów Honoru\b/,
-  // Przyrost zasobu, np. "Łowcosław Kazrek otrzymuje 15 energii." Statystyk
-  // many ani energii nie liczymy, ale linia jest znana. Nazwa zasobu bywa
-  // dwuczłonowa ("15 punktów many"), stąd powtórzenie słowa, a nie jedno.
-  /^.+ otrzymuje \d+(?: \p{L}+)+\.?$/u,
+  // Przyrost zasobu, np. "Łowcosław Kazrek otrzymuje 15 energii." albo
+  // "Sir Krzysztof otrzymuje 28 many". Statystyk many ani energii nie liczymy,
+  // ale linia jest znana.
+  //
+  // Zasoby wymienione z NAZWY, a nie jako „liczba i dowolne słowa": poprzedni
+  // wzorzec (`\d+(?: \p{L}+)+`) nie odróżniał „energii" od „obrażeń", więc
+  // „X otrzymuje 500 obrażeń od trucizny." wpadało tu jako `info` — kwota
+  // znikała, a `unknownLines` zostawało zerem. Dokładnie catch-all, przed
+  // którym broni komentarz przy `RE_MODIFIER`, i wyłom w zasadzie „nieznane
+  // jest głośne". Nowy zasób ma trafić w `unknown` i dać się dopisać świadomie.
+  /^.+ otrzymuje \d+ (?:punktów )?(?:many|energii)\.?$/u,
   // Aura nakładana na starcie, np. "X spowija się trującą mgłą: -3% ...".
   /\sspowija się\s/,
   // Wzmocnienie za małą grupę: "Wzmocnienie X o 35% ze względu na małą grupę...".

@@ -12,6 +12,7 @@ import {
 import { PROFESSIONS, type ActorStats, type AttackerBreakdown } from "./types.ts";
 import { clampToViewport, makeDraggable, realTicker, type Ticker } from "./window.ts";
 import { Confirm } from "./confirm.ts";
+import { storedBoolean, storedNumber, storedOneOf, storedRecord } from "./stored-state.ts";
 
 export type Metric = "damageDealt" | "damageTaken" | "healingReceived" | "turns";
 /** Filtr składu: obie strony, drużyna gracza (strona 0) albo przeciwnicy. */
@@ -40,6 +41,9 @@ const TEAM_LABELS: Record<Team, string> = {
   mine: "My",
   enemy: "Oni",
 };
+
+/** Zamknięty zestaw filtrów — po nim `loadState` odsiewa zapis spoza wersji. */
+const TEAMS = ["all", "mine", "enemy"] as const;
 
 /**
  * Puste stany napisane po polsku, a nie sklejone z etykiety zakładki.
@@ -2948,23 +2952,37 @@ export class Overlay {
     this.panel.style.maxHeight = `${cap}px`;
   }
 
+  /**
+   * Stan panelu z magazynu — pole po polu, bez zaufania do ani jednego.
+   *
+   * Wcześniej sprawdzane były trzy pola sterujące renderem, a GEOMETRIA szła
+   * żywcem z komentarzem „przycina ją `clampToViewport`". Nie przycina:
+   * `clampToViewport` broni przed wyjechaniem za ekran, a nie przed `NaN`
+   * (który przez nie przechodzi i zabiera hostowi `left`) ani przed szerokością
+   * miliarda pikseli (która trafia prosto w `style.width` i przykrywa grę razem
+   * z uchwytem do zmniejszenia). Oba odtworzone — patrz `overlay.test.ts`.
+   */
   private loadState(): PanelState {
-    try {
-      const raw = this.storage?.getItem(STORAGE_KEY);
-      if (!raw) return { ...DEFAULT_STATE };
-      const stored = { ...DEFAULT_STATE, ...(JSON.parse(raw) as Partial<PanelState>) };
-      // Metryka i filtr sterują renderem, więc wartość spoza zestawu wywracałaby
-      // panel przy starcie — a pod tym kluczem może stać zapis starszej albo
-      // NOWSZEJ wersji dodatku. Geometrię przycina `clampToViewport`.
-      if (!METRICS.includes(stored.metric as (typeof METRICS)[number])) {
-        stored.metric = DEFAULT_STATE.metric;
-      }
-      if (!(stored.team in TEAM_LABELS)) stored.team = DEFAULT_STATE.team;
-      if (typeof stored.perTurn !== "boolean") stored.perTurn = DEFAULT_STATE.perTurn;
-      return stored;
-    } catch {
-      return { ...DEFAULT_STATE };
-    }
+    const stored = storedRecord(this.storage, STORAGE_KEY);
+    if (!stored) return { ...DEFAULT_STATE };
+    // Sufity liczone z okna: panel szerszy niż ekran nie jest ustawieniem,
+    // tylko awarią, a po zawężeniu nadal da się go złapać i rozciągnąć.
+    const maxWidth = Math.max(MIN_WIDTH, window.innerWidth);
+    const maxHeight = Math.max(MIN_HEIGHT, window.innerHeight);
+    return {
+      x: storedNumber(stored["x"], DEFAULT_STATE.x, -maxWidth, maxWidth),
+      y: storedNumber(stored["y"], DEFAULT_STATE.y, -maxHeight, maxHeight),
+      collapsed: storedBoolean(stored["collapsed"], DEFAULT_STATE.collapsed),
+      width: storedNumber(stored["width"], DEFAULT_STATE.width, MIN_WIDTH, maxWidth),
+      // `null` to prawidłowa wartość — „wysokość z treści", nie brak danych.
+      height:
+        stored["height"] === null
+          ? null
+          : storedNumber(stored["height"], DEFAULT_STATE.height ?? MIN_HEIGHT, MIN_HEIGHT, maxHeight),
+      metric: storedOneOf(stored["metric"], METRICS, DEFAULT_STATE.metric),
+      team: storedOneOf(stored["team"], TEAMS, DEFAULT_STATE.team),
+      perTurn: storedBoolean(stored["perTurn"], DEFAULT_STATE.perTurn),
+    };
   }
 
   private saveState(): void {
