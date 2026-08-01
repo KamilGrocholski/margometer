@@ -1,0 +1,58 @@
+# Wydanie: tag `vX.Y.Z` → zbudowany userscript jako plik do pobrania.
+#
+# Adresy w nagłówku dodatku (`@downloadURL`, `@updateURL`) wskazują
+# `releases/latest/download/...`, więc to ten workflow domyka kanał
+# aktualizacji. Dopóki nie powstanie pierwsze wydanie, tamte adresy wskazują
+# pustkę.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      # Do utworzenia wydania i wgrania plików. Nic poza tym.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - run: bun install --frozen-lockfile
+
+      # Wydanie przechodzi tę samą bramę co każdy commit. Wydanie, które nie
+      # przechodzi testów, jest gorsze niż brak wydania: trafia do ludzi.
+      - run: bun run check
+
+      # Tag i `package.json` muszą mówić to samo. To NIE jest ostrożność na
+      # zapas — numer wersji już raz żył w tym repo osobno od rzeczywistości
+      # i zbudowany plik ogłaszał `0.1.0` przez kilkanaście commitów
+      # funkcjonalnych. Tampermonkey aktualizuje po TYM numerze, więc rozjazd
+      # znaczy, że wydanie nie dociera do nikogo — cicho.
+      - name: Tag zgadza się z package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(bun --print 'require("./package.json").version')"
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag v$tag ≠ package.json $pkg" >&2
+            exit 1
+          fi
+          echo "wersja: $pkg"
+
+      # Treść wydania to wpis z CHANGELOG-a, nie automatyczna lista commitów:
+      # to miejsce czyta użytkownik, a nie programista. Brak sekcji przerywa
+      # wydanie (kod 1) — patrz `tools/changelog.ts`.
+      - name: Treść wydania z CHANGELOG-a
+        run: bun tools/changelog.ts "${GITHUB_REF_NAME#v}" > release-notes.md
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          files: |
+            dist/margometer.user.js
+            dist/margometer.meta.js

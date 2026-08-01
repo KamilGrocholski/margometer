@@ -15,25 +15,37 @@ Ty, i rysuje obok własny panel.
 przeglądarki, które uruchamia dodatki użytkownika. Na stronie są wersje na
 Chrome, Firefoksa, Edge i resztę.
 
-**2. Zbuduj plik dodatku.** Potrzebny [Bun](https://bun.sh/):
+**2. Kliknij w plik dodatku:**
+[**margometer.user.js**](https://github.com/KamilGrocholski/margometer/releases/latest/download/margometer.user.js)
+
+Tampermonkey przechwyci to sam i pokaże okno instalacji — wystarczy
+potwierdzić. **Aktualizacje przychodzą potem same**: rozszerzenie sprawdza,
+czy jest nowsza wersja, i proponuje podmianę.
+
+**3. Wejdź do gry i zacznij walkę.** Panel pojawi się sam. Nic nie trzeba
+włączać — dodatek startuje na światach `*.margonem.pl` i `*.margonem.com`,
+a poza walką po prostu nic nie rysuje.
+
+Co się zmieniało między wersjami, mówi [`CHANGELOG.md`](CHANGELOG.md).
+
+<details>
+<summary>Wolisz zbudować u siebie?</summary>
+
+Potrzebny [Bun](https://bun.sh/):
 
 ```bash
 bun install
 bun run build
 ```
 
-Powstanie `dist/margometer.user.js`.
+Powstanie `dist/margometer.user.js` — ikona Tampermonkey → **Utwórz nowy
+skrypt**, wyczyść okienko, wklej **całą** zawartość pliku i zapisz (Ctrl+S).
+Tak zainstalowany dodatek **nie aktualizuje się sam**.
 
-> Tego pliku nie ma w repozytorium — `dist/` jest w `.gitignore`, więc build
-> trzeba odpalić u siebie.
+`dist/` jest w `.gitignore`, więc w repozytorium tego pliku nie ma — gotowy
+leży przy [wydaniu](https://github.com/KamilGrocholski/margometer/releases/latest).
 
-**3. Wgraj skrypt do Tampermonkey.** Ikona rozszerzenia → **Utwórz nowy skrypt**,
-wyczyść okienko, wklej **całą** zawartość `dist/margometer.user.js` i zapisz
-(Ctrl+S).
-
-**4. Wejdź do gry i zacznij walkę.** Panel pojawi się sam. Nic nie trzeba
-włączać — dodatek startuje na światach `*.margonem.pl` i `*.margonem.com`,
-a poza walką po prostu nic nie rysuje.
+</details>
 
 ---
 

@@ -8,7 +8,7 @@ import { syntheticFight } from "./tools/synthetic-log.ts";
 import pkg from "./package.json" with { type: "json" };
 import { banner } from "./tools/userscript-meta.ts";
 
-const BANNER = banner(pkg.version, pkg.description);
+const BANNER = banner(pkg.version, pkg.description, pkg.homepage);
 
 const result = await Bun.build({
   entrypoints: ["./src/userscript.ts"],
@@ -30,6 +30,13 @@ const bundle = await output.text();
 const path = "./dist/margometer.user.js";
 await Bun.write(path, BANNER + bundle);
 console.log(`zbudowano ${path}`);
+
+// Sam nagłówek, bez bundle'a — to jego pobiera Tampermonkey, sprawdzając, czy
+// jest nowa wersja (`@updateURL`). Bez tego pliku każde sprawdzenie ściągałoby
+// cały skrypt po to, żeby przeczytać z niego jedną linię.
+const metaPath = "./dist/margometer.meta.js";
+await Bun.write(metaPath, BANNER);
+console.log(`zbudowano ${metaPath}`);
 
 // Strony podglądu: log w DOM + ten sam bundle co w grze. Pozwalają obejrzeć
 // overlay bez wchodzenia do Margonema.

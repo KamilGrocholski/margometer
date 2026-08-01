@@ -1,0 +1,25 @@
+# Brama repozytorium. Ta sama komenda, którą odpala się lokalnie — `bun run
+# check` to typecheck + testy + build. Build jest w niej celowo: to on składa
+# userscript i potrafi paść osobno od testów.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Wersja przypięta do tej, na której repo jest rozwijane. „latest" znaczy,
+      # że pewnego dnia brama zapala się na czerwono bez ani jednej zmiany
+      # w kodzie — i wtedy nie wiadomo, czy to regresja, czy nowy Bun.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - run: bun install --frozen-lockfile
+      - run: bun run check
