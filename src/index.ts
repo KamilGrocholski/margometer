@@ -2,7 +2,8 @@ import { Archive } from "./archive.ts";
 import { Overlay } from "./overlay.ts";
 import { Recorder } from "./recorder.ts";
 import { EngineRosterSource, type RosterSource } from "./roster.ts";
-import { EMPTY_STATS, Session } from "./session.ts";
+import { Session } from "./session.ts";
+import { EMPTY_STATS } from "./stats.ts";
 import { DomLogSource, findBattleLog, type LogSource } from "./source.ts";
 
 /** Ile czekać na pojawienie się okna walki w DOM, zanim odpuścimy. */

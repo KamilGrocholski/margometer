@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { parse } from "../src/parser.ts";
-import { UNATTRIBUTED_SOURCE, aggregate, totalBySide } from "../src/stats.ts";
+import { EMPTY_STATS, UNATTRIBUTED_SOURCE, aggregate, totalBySide } from "../src/stats.ts";
 import {
   Overlay,
   tipPosition,
   type PreviewView,
   type RecorderControl,
 } from "../src/overlay.ts";
-import { EMPTY_STATS, Session } from "../src/session.ts";
+import { Session } from "../src/session.ts";
 import { extractText } from "../src/source.ts";
 import { syntheticFight } from "../tools/synthetic-log.ts";
+import pkg from "../package.json" with { type: "json" };
 import { ManualTicker } from "./manual-ticker.ts";
 import { FIXTURES, metricButton, number, rate, readFixture, shareOf, valueOf } from "./helpers.ts";
 
@@ -1917,6 +1918,35 @@ describe("kopiowanie i nagrywanie", () => {
     // Kopiujemy pełne statystyki, nie widok — filtry i drążenie nie mają tu wpływu.
     expect(parsed.fight.actors).toHaveLength(stats.actors.length);
     expect(parsed.session.actors[0].damageDealt).toBe(stats.actors[0]!.damageDealt);
+  });
+
+  test("skopiowany JSON mówi, z której wersji pochodzi", async () => {
+    // Od 0.3.0 dodatek aktualizuje się sam, a README prosi wprost o przysyłanie
+    // logów z zepsutych walk. Zgłoszenie bez wersji nie daje się uszeregować:
+    // nie wiadomo, czy dotyczy czegoś, co już jest naprawione.
+    const stats = aggregate(parse(syntheticFight(2)));
+    let copied = "";
+    const overlay = new Overlay({ clipboard: (text) => void (copied = text) });
+    overlay.render(stats, stats);
+
+    button(overlay, "copy-stats")!.click();
+    await Promise.resolve();
+
+    // Porównanie z `package.json`, nie z literałem: literał trzeba byłoby
+    // poprawiać przy każdym wydaniu, a zapomniana poprawka daje zielony test
+    // pilnujący nieprawdy.
+    expect(JSON.parse(copied).version).toBe(pkg.version);
+  });
+
+  test("nagłówek pokazuje wersję, a nazwa zostaje samą nazwą", () => {
+    // Zgłoszenia przychodzą zrzutem ekranu równie często jak JSON-em, więc numer
+    // musi być WIDOCZNY. Druga asercja pilnuje lekcji z `AUDYT-14`: dołożony
+    // węzeł potrafi po cichu zmienić `textContent` sąsiada i psuje odczyty nazw.
+    const overlay = new Overlay({});
+    overlay.render(EMPTY_STATS, EMPTY_STATS);
+
+    expect(overlay.shadow.querySelector(".version")?.textContent).toBe(`v${pkg.version}`);
+    expect(overlay.shadow.querySelector(".title")?.textContent).toBe("MargoMeter");
   });
 
   test("kopiowanie potwierdza się w przycisku i wraca do ikony", async () => {

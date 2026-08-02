@@ -225,9 +225,12 @@ function mergeStats(all: Aggregate[]): SessionStats {
   };
 }
 
-// `EMPTY_STATS` mieszka teraz w `stats.ts`, przy typie, który opisuje —
-// re-eksport, żeby import z sesji dalej działał tam, gdzie tak było wygodniej.
-export { EMPTY_STATS } from "./stats.ts";
+// Stał tu re-eksport `EMPTY_STATS` ze `stats.ts` — „żeby import z sesji dalej
+// działał tam, gdzie tak było wygodniej". Zdjęty 2026‑08‑02 (`AUDYT‑51`):
+// `AUDYT‑5` przenosiło tę stałą do `stats.ts` z argumentem WARSTWOWYM
+// („overlay importuje z session zero dla typu należącego do stats"), a re-eksport
+// zostawiał dokładnie tę zależność, którą przeniesienie miało skasować.
+// Przeniesiona była definicja, nie zależność.
 
 function signatureOf(events: BattleEvent[]): string {
   const start = events.find((e) => e.kind === "fight-start");

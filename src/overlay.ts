@@ -1,6 +1,6 @@
 import { professionColor, professionInk, typeColor } from "./palette.ts";
-import { EMPTY_STATS } from "./session.ts";
 import {
+  EMPTY_STATS,
   invertBreakdown,
   leadsDeeper,
   totalBySide,
@@ -10,6 +10,7 @@ import {
   type SessionStats,
 } from "./stats.ts";
 import { PROFESSIONS, type ActorStats, type AttackerBreakdown } from "./types.ts";
+import { VERSION } from "./version.ts";
 import { clampToViewport, makeDraggable, realTicker, type Ticker } from "./window.ts";
 import { Confirm } from "./confirm.ts";
 import { storedBoolean, storedNumber, storedOneOf, storedRecord } from "./stored-state.ts";
@@ -312,6 +313,10 @@ header {
 }
 header.dragging { cursor: grabbing; }
 .title { font-weight: 600; letter-spacing: 0.02em; flex: 1; }
+/* Wersja ma być czytelna, ale nie ma konkurować z nazwą — stąd rozmiar i barwa
+   przygaszona. Rozciąga się .title, nie ten węzeł, więc przy wąskim panelu
+   miejsce oddaje nazwa, a numer zostaje w całości. */
+.version { font-size: 10px; color: var(--ink-muted); white-space: nowrap; }
 button {
   all: unset;
   cursor: pointer;
@@ -1471,6 +1476,14 @@ export class Overlay {
       className: "title",
       textContent: "MargoMeter",
     });
+    // Wersja stoi w nagłówku, bo zgłoszenia przychodzą ZRZUTEM EKRANU równie
+    // często jak skopiowanym JSON-em — a od `0.3.0` dodatek aktualizuje się sam,
+    // więc nadawca nie ma skąd wiedzieć, na czym siedzi. Osobny węzeł, nie
+    // dopisek do `.title`: nazwa ma zostać nazwą dla kodu i dla testów.
+    const version = Object.assign(document.createElement("span"), {
+      className: "version",
+      textContent: `v${VERSION}`,
+    });
 
     /** Kopiuje statystyki — bieżącą walkę i całą sesję naraz — jako JSON. */
     const copy = document.createElement("button");
@@ -1513,7 +1526,7 @@ export class Overlay {
       this.rerender();
     });
 
-    header.append(title, copy, ...(record ? [record] : []), collapse);
+    header.append(title, version, copy, ...(record ? [record] : []), collapse);
     return { copy, record, archive, collapse };
   }
 
@@ -1711,6 +1724,9 @@ export class Overlay {
     return JSON.stringify(
       {
         tool: "MargoMeter",
+        // Wersja idzie PRZED datą, bo to ona rozstrzyga, czy zgłoszenie dotyczy
+        // czegoś, co już naprawiliśmy. Data mówi tylko, kiedy skopiowano.
+        version: VERSION,
         at: new Date().toISOString(),
         source: preview ? preview.view.source : "na żywo",
         fight: preview ? preview.stats : (this.latest?.fight ?? null),
