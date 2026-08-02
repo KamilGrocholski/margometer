@@ -713,6 +713,53 @@ describe("otwarcie archiwum nie zamraża wątku gry", () => {
     expect(ticker.running).toBe(false);
   });
 
+  test("zamknięcie okna też zatrzymuje dopełnianie", async () => {
+    // `destroy()` robił to od początku, `toggle()` nie — a zamknięcie okna jest
+    // tym gestem, którym użytkownik mówi „skończyłem". Bez tego zegar dolicza
+    // dalej listę, której nie ma na ekranie: zmierzone na 190 nagraniach —
+    // 182 nagrania i 193 ms w wątku gry PO zniknięciu okna, czyli trzy czwarte
+    // kosztu (269 ms), który ta cała ścieżka miała usunąć.
+    const text = await readFixture("2026-07-18_lowca-vs-gnolle-rozdzielanie");
+    const { archive, reads } = openWith(many(30, text));
+    const afterOpen = reads();
+
+    expect(ticker.running).toBe(true);
+    archive.toggle();
+    expect(ticker.running).toBe(false);
+
+    // Czas płynie dalej — i nic się nie dolicza.
+    ticker.tick(30);
+    expect(reads()).toBe(afterOpen);
+  });
+
+  test("skasowanie jednego nagrania nie unieważnia podsumowań pozostałych", async () => {
+    // Stało tu `summaries.clear()`, więc kasowanie jednego wiersza wyrzucało
+    // cache CAŁEGO archiwum. `forgetMissing` i tak zdejmuje klucze nagrań,
+    // których nie ma już na liście — zawężenie było więc darmowe.
+    const text = await readFixture("2026-07-18_lowca-vs-gnolle-rozdzielanie");
+    const logs = many(20, text);
+    const { recorder, reads } = countingRecorder(logs);
+    recorder.remove = (id) => {
+      const at = logs.findIndex((one) => one.id === id);
+      if (at >= 0) logs.splice(at, 1);
+    };
+    const overlay = new Overlay({ storage });
+    const archive = new Archive({ recorder, overlay, storage, ticker, now: () => NOW });
+    overlay.attachArchive(archive);
+    archive.toggle();
+    ticker.tick(30);
+    const afterFill = reads();
+
+    // Pierwszy klik pyta, drugi kasuje — ten sam wzorzec co przy „wyczyść".
+    const drop = [...rows(overlay)[0]!.querySelectorAll("button")].at(-1)!;
+    drop.click();
+    drop.click();
+    ticker.tick(30);
+
+    expect(rows(overlay)).toHaveLength(19);
+    expect(reads()).toBe(afterFill);
+  });
+
   test("ponowny render nie czyta nagrań, które ma już policzone", async () => {
     const text = await readFixture("2026-07-18_lowca-vs-gnolle-rozdzielanie");
     const { overlay, archive, reads } = openWith(many(30, text));

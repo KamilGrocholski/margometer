@@ -316,7 +316,17 @@ export class Archive {
     this.state.open = !this.state.open;
     this.saveState();
     if (this.state.open) this.render();
-    else this.window.hidden = true;
+    else {
+      this.window.hidden = true;
+      // Zamknięcie okna kończy dopełnianie. Bez tego zegar dolicza dalej wiersze
+      // schowanego okna: zmierzone na 190 nagraniach — 8 policzonych przy
+      // otwarciu, a po zamknięciu kolejne 182, czyli **193 ms w wątku gry**
+      // wydane na listę, której nie ma na ekranie. To trzy czwarte kosztu,
+      // który cała leniwa ścieżka miała usunąć (269 ms), tylko przesunięte
+      // w czasie. `destroy()` robił to od początku poprawnie — `toggle()` nie.
+      this.stopFilling();
+      this.pending = [];
+    }
     // Przycisk ▤ w nagłówku panelu pokazuje stan okna — musi się odświeżyć.
     this.overlay.refresh();
   }
@@ -799,7 +809,13 @@ export class Archive {
         if (this.confirmRemove.ask(entry.id)) {
           if (this.opened === entry.id) this.closePreview();
           this.recorder.remove?.(entry.id);
-          this.summaries.clear();
+          // Stało tu `this.summaries.clear()` i przez to skasowanie JEDNEGO
+          // wiersza wyrzucało cache całego archiwum: zmierzone na 20
+          // policzonych nagraniach — po skasowaniu jednego 19 liczyło się od
+          // nowa (8 od razu, 11 w tle) zamiast zera. Nic tu nie wchodzi
+          // w zamian, bo `renderList` woła `forgetMissing` z listą żywych
+          // nagrań i to ono zdejmuje klucze skasowanego — dokładnie ten wpis
+          // i tylko jego. `render()` leci linijkę niżej.
           this.listSignature = "";
           this.overlay.refresh();
         }
