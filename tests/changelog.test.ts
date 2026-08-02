@@ -90,6 +90,59 @@ describe("sekcja wydania z CHANGELOG-a", () => {
     expect(trafienia).toEqual([]);
   });
 
+  /**
+   * CLI, nie sama funkcja.
+   *
+   * `changelogSection` była pokryta w 100 %, a blok `import.meta.main` wokół
+   * niej — w ogóle. To odwrotnie, niż powinno: czysta funkcja wykonuje się przy
+   * każdym `bun test`, a CLI wyłącznie przy wypchnięciu taga, czyli tam, gdzie
+   * literówka jest najdroższa i gdzie nikt jej nie zobaczy przed wydaniem.
+   * Docstring tego modułu mówi to wprost i był dotąd bez pokrycia w testach.
+   *
+   * Podproces, a nie import: sprawdzamy KODY WYJŚCIA, po których `release.yml`
+   * decyduje, czy przerwać wydanie. Z importu nie da się ich zobaczyć.
+   */
+  describe("CLI wydania", () => {
+    const run = async (args: string[]) => {
+      const proc = Bun.spawn(["bun", "tools/changelog.ts", ...args], {
+        cwd: new URL("..", import.meta.url).pathname,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const [stdout, stderr, code] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+        proc.exited,
+      ]);
+      return { stdout, stderr, code };
+    };
+
+    test("znana wersja daje pełną treść wydania i kod 0", async () => {
+      const { stdout, code } = await run([pkg.version]);
+      expect(code).toBe(0);
+      // Trzy części sklejone przez `releaseNotes`: ostrzeżenie o fazie, zmiany,
+      // stopka o plikach. Brak którejkolwiek to wydanie uboższe, nie zepsute —
+      // czyli awaria, której nikt nie zgłosi.
+      expect(stdout).toContain("Wczesna faza");
+      expect(stdout).toContain("**Nowość**");
+      expect(stdout).toContain("nie do klikania");
+    });
+
+    test("nieznana wersja PRZERYWA wydanie", async () => {
+      // Kod 1 jest tu całą treścią: `release.yml` puszcza to bez `|| true`,
+      // więc wydanie bez opisu zmian nie powstaje.
+      const { code, stderr } = await run(["9.9.9"]);
+      expect(code).toBe(1);
+      expect(stderr).toContain("9.9.9");
+    });
+
+    test("brak argumentu to błąd użycia, nie puste wydanie", async () => {
+      const { code, stderr } = await run([]);
+      expect(code).toBe(2);
+      expect(stderr).toContain("użycie:");
+    });
+  });
+
   test("każda wersja z pliku daje niepustą sekcję", () => {
     // Niezmiennik po CAŁYM pliku zamiast trzech asercji z palca: gdy dojdzie
     // kolejne wydanie, ten test obejmie je sam.
