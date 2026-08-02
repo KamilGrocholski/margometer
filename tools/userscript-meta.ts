@@ -36,6 +36,13 @@ export function banner(version: string, description: string, homepage: string): 
   // Lista `@exclude` z natury nie jest pełna: domena ma więcej podstron niż
   // światów. Druga linia obrony siedzi w `boot()` — bez `Engine` i bez okna
   // walki panel się nie rysuje, a pętla szukania gaśnie po kilkunastu sekundach.
+  //
+  // Obie domeny mają wykluczoną TĘ SAMĄ listę, a każda z nich także adres bez
+  // subdomeny. Do 2026‑08‑02 tak nie było (`AUDYT‑42`): `.com` nie wykluczał ani
+  // forum, ani commons, a strona główna bez „www" wchodziła w obu domenach —
+  // bo "*.margonem.pl" obejmuje również sam "margonem.pl". Rozjazd wziął się
+  // stąd, że lista rosła po jednej linii, a test wymieniał tylko adresy, które
+  // JUŻ odpadały, więc brakująca pozycja nie miała jak się w nim odezwać.
   return `// ==UserScript==
 // @name         MargoMeter${PHASE_LABEL}
 // @namespace    ${homepage}
@@ -47,11 +54,15 @@ export function banner(version: string, description: string, homepage: string): 
 // @updateURL    ${release}/${META_FILE}
 // @match        https://*.margonem.pl/*
 // @match        https://*.margonem.com/*
+// @exclude      https://margonem.pl/*
 // @exclude      https://www.margonem.pl/*
-// @exclude      https://www.margonem.com/*
 // @exclude      https://forum.margonem.pl/*
 // @exclude      https://commons.margonem.pl/*
 // @exclude      https://pomoc.margonem.pl/*
+// @exclude      https://margonem.com/*
+// @exclude      https://www.margonem.com/*
+// @exclude      https://forum.margonem.com/*
+// @exclude      https://commons.margonem.com/*
 // @exclude      https://pomoc.margonem.com/*
 // @noframes
 // @grant        none

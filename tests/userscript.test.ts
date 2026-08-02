@@ -33,13 +33,33 @@ describe("nagłówek userscriptu", () => {
     }
   });
 
-  test("podstrony, które grą nie są, odpadają", () => {
+  /**
+   * Niezmiennik zamiast listy: te same subdomeny sprawdzane w OBU domenach.
+   *
+   * Poprzednia wersja wymieniała z palca adresy, które już odpadały — i przez to
+   * nie miała jak zapalić się na tym, czego w `@exclude` brakowało. Brakowało
+   * dużo (`AUDYT‑42`): dla `.com` nie było ani `forum`, ani `commons`, a strona
+   * główna bez „www" wchodziła w obu domenach, bo `*.margonem.pl` obejmuje też
+   * sam `margonem.pl`. Pętla po iloczynie „subdomena × domena" nie da się już
+   * uzupełnić po jednej stronie.
+   */
+  test("podstrony, które grą nie są, odpadają — w OBU domenach", () => {
+    const niegrowe = ["", "www.", "forum.", "commons.", "pomoc."];
+    for (const domena of ["margonem.pl", "margonem.com"]) {
+      for (const host of niegrowe) {
+        const url = `https://${host}${domena}/`;
+        expect([url, appliesTo(META, url)]).toEqual([url, false]);
+      }
+    }
+  });
+
+  test("podstrona ze ścieżką i query też odpada", () => {
+    // Wykluczenia kończą się na "/*", więc muszą łapać nie tylko korzeń.
     for (const url of [
-      "https://www.margonem.pl/",
       "https://forum.margonem.pl/temat/1",
-      "https://commons.margonem.pl/",
+      "https://forum.margonem.com/temat/1",
       "https://pomoc.margonem.pl/index/view,372",
-      "https://www.margonem.com/",
+      "https://www.margonem.pl/nowa-postac?swiat=tempest",
     ]) {
       expect([url, appliesTo(META, url)]).toEqual([url, false]);
     }
