@@ -28,6 +28,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Panel pokazuje numer wersji dodatku, a skopiowane statystyki
+  niosą go razem z liczbami. Zgłaszając, że coś nie zagrało, nie trzeba już
+  zgadywać, której wersji to dotyczy — zwłaszcza że dodatek aktualizuje się sam.
+- **Poprawka** — Zamknięcie okna archiwum kończy liczenie podsumowań. Wcześniej
+  liczyły się dalej, w tle, choć okna nie było już na ekranie — a robiły to
+  kosztem płynności gry.
+- **Poprawka** — Usunięcie jednego nagrania nie każe liczyć od nowa wszystkich
+  pozostałych.
+- **Poprawka** — Dodatek nie uruchamia się już na stronie głównej Margonema
+  (adres bez „www") ani na forum i commonsach w domenie `.com`.
+
 ## [0.3.0] — 2026-08-01
 
 Pierwsze wydanie, które **da się pobrać i które samo się aktualizuje**.

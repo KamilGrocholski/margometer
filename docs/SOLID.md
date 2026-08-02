@@ -633,13 +633,21 @@ miała sens.**
 - **`source.ts` — dobry SRP.** Znacznik żywiołu (``) przemycany w tekście
   to świadomy kompromis (parser jest tekstowy, by łykać też log wklejony). Testy
   pilnują, że nie wycieka — zostawić.
-- **`overlay.ts` — klasa‑Bóg: 2456 linii, 69 metod.** 🟡 Rendering + stan +
-  drag/resize + trwałość + schowek + dymek + replay + formatery. Zmierzone
-  granice cięcia, od najtańszej:
+- **`overlay.ts` — klasa‑Bóg: 3181 linii** (przeliczone 2026‑08‑02). 🟡
+  Rendering + stan + drag/resize + trwałość + schowek + dymek + replay +
+  formatery. Zmierzone granice cięcia, od najtańszej:
+
+  ⚠️ **Numery linii w tabeli niżej są SPRZED trzech rund i nie prowadzą tam,
+  gdzie mówią.** Stało tu „2456 linii, 69 metod", `AUDYT.md` prostowało to na
+  „2628" — dziś jest **3181**, czyli o 725 więcej niż liczba, przy której ktoś
+  napisał „trzeba go ciąć". Zweryfikowany jest wyłącznie zakres `STYLE`:
+  **`:229‑606`, 378 linii, ~12 % pliku** (w tabeli i w `R7` stało `:90‑406`).
+  Reszta wierszy czeka na odczyt — nie przepisuj z nich lokalizacji bez
+  sprawdzenia w pliku.
 
   | moduł | co dziś | ile |
   |---|---|---|
-  | `overlay.css.ts` | `STYLE` (`:90‑406`) — jeden szablon na panel, zakładki, wiersze, dymek, oś, focus | **316 linii, 13 % pliku, 0 % logiki** |
+  | `overlay.css.ts` | `STYLE` (`:229‑606`) — jeden szablon na panel, zakładki, wiersze, dymek, oś, focus | **378 linii, ~12 % pliku, 0 % logiki** |
   | `format.ts` | `number`/`rate` (`:64`), `compact` (`:80`), `format` (`:1498`), `fightWord` (`:56`) + bliźniak `number` w `archive.ts:157` | ~30 |
   | `metrics.ts` (czysty, testowalny) | `Metric`/`METRIC_LABELS`/`METRICS` (`:7‑25`), `matchesTeam` (`:48`), `turnsFor` (`:434`), `turnKind` (`:446`), `actorValue` (`:450`) | ~60 |
   | `dom.ts` (wspólny z `archive.ts`) | `div` (`:513`), `withText` (`:521`), `rowUnder` (`:507`) | ~20 |
@@ -744,11 +752,19 @@ decyzja „porzucone czy niedokończone” jest warunkiem wejścia, nie skutkiem
 
 ## 10. Testy — czego zestaw nie widzi
 
-Stan po rundzie parsera 2026‑08‑01: **650 zielonych, 0 pominiętych, 3479
-asercji**, pokrycie **98,61 % linii** (92,80 % funkcji), przebieg 8,4 s. `package.json` ma
-`coverage` i zbiorczy `check`; **progu pokrycia nadal nie ma** i nie ma pomiaru
-GAŁĘZI — „98,97 %" jest więc optymistyczne dla pliku pełnego warunków
-trójargumentowych.
+Stan po audycie wydania 2026‑08‑02: **696 zielonych, 0 pominiętych, 3 649
+asercji**, przebieg 8,8 s, pokrycie **95,21 % linii / 92,02 % funkcji** —
+liczone przy KAŻDYM `bun test`, nie tylko na żądanie (`bunfig.toml`).
+Nadal nie ma pomiaru GAŁĘZI, więc te procenty są optymistyczne dla plików
+pełnych warunków trójargumentowych.
+
+⚠️ **Poprzedni zapis brzmiał „650 zielonych, 98,61 % linii" i porównywanie go
+z powyższym jest błędem** — skład raportu się zmienił (weszły `tools/` z blokami
+CLI, wyszły pliki testowe). Procent bez podanego składu nie jest liczbą
+porównywalną; rozwinięcie w `TOOLING.md`, stan bazowy. **Progu pokrycia nie ma
+i nie będzie, dopóki `coverageThreshold` liczy się per plik** — najwyższy próg,
+który dziś przechodzi, to `0.43`, czyli zabezpieczenie pozorne. Szczegóły
+i dwie zmierzone pułapki konfiguracji: `TOOLING §4`.
 
 ⚠️ **Ta sekcja opisywała do 2026‑08‑01 stan sprzed dwóch rund** i była przy tym
 cytowana jako lista zadań. Nieaktualne okazały się: liczba testów, pokrycie,
@@ -784,6 +800,14 @@ niezależnie od tego, czy `destroy()` cokolwiek zrobiło, plus 3,2 s prawdziwych
 snów. Dziś pytają wprost: o pozycję, którą przyciąłby `onResize`, i o
 wstrzyknięty `Ticker`, który `destroy()` ma zgasić. Sprawdzone mutacją —
 usunięcie ciała `destroy()` zapala oba.
+
+**Zamknięte 2026‑08‑02 (audyt wydania):** `tools/changelog.ts` miał czystą
+funkcję pokrytą w 100 % i blok CLI pokryty w zerze — czyli odwrotnie, niż wynika
+z ryzyka: funkcja wykonuje się przy każdym `bun test`, a CLI wyłącznie przy
+wypchnięciu taga. Doszły trzy testy przez `Bun.spawn`, sprawdzające KODY WYJŚCIA
+(0 / 1 / 2), po których `release.yml` decyduje, czy przerwać wydanie. Osobno:
+`tools/pomoc.ts` dostał pierwsze testy w życiu (13) — do tej pory nie dało się
+go nawet zaimportować.
 
 **Niepokryte konkrety:**
 - `stats.ts` — fallback `instanceResolver` „roster wyczerpany, bierz
@@ -890,7 +914,7 @@ Niezmienniki przeliczone po naprawach na całym korpusie (13 zrzutów):
 | R4 | Tablica reguł parsera | §4.3, §4.18 i OCP nowych formatów | S–M |
 | **R5** | **`panel-window.ts`**: `PanelState` + `loadState`/`saveState` + walidacja pól. **Częściowo zrobione:** wspólne przycinanie pozycji siedzi już w `window.ts` (`clampToViewport`), ale `loadState`/`saveState` nadal istnieją dwa razy i nadal bez walidacji pól | reszta klasy z §4.15 | S |
 | **R6** | ~~**Delegacja po `data-action`** dla całego panelu~~ | **✅ ZROBIONE 2026‑07‑30** — zamknęło `UX-POPRAWKI A8` | — |
-| **R7** | **Wydzielić `STYLE`** (`overlay.ts:90‑406`, 316 linii, 0 % logiki) + scoping | wyciek `.row` na `.archive-paste .row`, niejawna zależność archiwum od chrome'u panelu | S |
+| **R7** | **Wydzielić `STYLE`** (`overlay.ts:229‑606`, 378 linii, 0 % logiki — zakres przeliczony 2026‑08‑02, stało tu `:90‑406`) + scoping | wyciek `.row` na `.archive-paste .row`, niejawna zależność archiwum od chrome'u panelu | S |
 | **R8** | **Wyeksportować `instanceResolver`** do `instances.ts` | nietestowalność rozdzielania duplikatów (trzy gałęzie 0 %) | M |
 
 Kolejność wykonana w poprzedniej rundzie: **4.2 → 4.6 → 4.4 → 4.1 → 4.3**, każda

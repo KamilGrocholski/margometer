@@ -5,24 +5,45 @@ wygląda, jak wygląda; `SOLID.md` i `UX-POPRAWKI.md` — co w nim poprawić. Tu
 zbieram to, co jest **wokół** kodu: jak się buduje, jak trafia do użytkownika
 i co pilnuje, żeby nie wjechała regresja.
 
-Stan bazowy (odświeżony **2026‑08‑01**, po rundzie parsera): `bun test` → **650
-zielonych / 0 pominiętych / 0 błędów**, `bunx tsc --noEmit` → czysto,
-`bun test --coverage` → **98,61 % linii**. Wcześniej tego samego dnia stało tu
-„583 / 98,97 %", a przed tym „328 / 89,1 %".
+Stan bazowy (odświeżony **2026‑08‑02**, po audycie wydania): `bun test` → **696
+zielonych / 0 pominiętych / 0 błędów / 3 649 asercji**, `bunx tsc --noEmit` →
+czysto, pokrycie **95,21 % linii i 92,02 % funkcji** — liczone odtąd przy KAŻDYM
+przebiegu, nie tylko pod `bun run coverage` (`bunfig.toml`).
+
+⚠️ **Ta liczba nie jest porównywalna wprost z poprzednimi** i to jest ważniejsze
+od niej samej. Stało tu „650 zielonych / 98,61 % linii" (2026‑08‑01), przedtem
+„583 / 98,97 %", przed tym „328 / 89,1 %" — ale **skład raportu zmieniał się
+razem z nimi**. Do raportu weszły w międzyczasie `tools/` (w tym bloki CLI
+uruchamiane wyłącznie przy wydaniu), a wyszły z niego pliki testowe
+(`coverageSkipTestFiles`). Spadek z 98,61 na 95,21 to więc W PRZEWAŻAJĄCEJ
+CZĘŚCI zmiana mianownika, nie regresja `src/`: dziś `src/` ma 90,2–100 % linii
+w każdym pliku, a raport ciągnie w dół `tools/pomoc.ts` (43,5 %, sam blok CLI).
+Wniosek na przyszłość: **procent pokrycia bez podanego SKŁADU raportu nie jest
+danymi porównywalnymi** — i dlatego stał tu trzy rundy jako dowód czegoś, czego
+nie dowodził.
 
 ⚠️ **Stan 2026‑08‑01, po rundzie wydania: §1, §2, §3, §5 i §6 są ZROBIONE,
 §7 w większości, §4 częściowo.** Statusy bywały tu sprzed dwóch rund, a dokument
 czyta się jako listę zadań — stąd odhaczenia przy każdej sekcji.
 
-**Jedyne, co zostaje otwarte w całym tym dokumencie**, to reszta §4: brak
-lintera/formattera, brak progu pokrycia, resztki `bun init` w `tsconfig.json`
-i jedno `any` w `roster.ts`.
+**Co zostaje otwarte w całym tym dokumencie** (stan 2026‑08‑02), to reszta §4:
+brak lintera/formattera, resztki `bun init` w `tsconfig.json` i **trzy** `any`
+(nie jedno). Próg pokrycia zszedł z tej listy jako **rozstrzygnięty inaczej, niż
+zakładano** — patrz §4.
 
 Legenda: 🔴 pilne · 🟡 warto · ⚪ kiedyś.
 
 ---
 
 ## 1. `@match` łapie niegrowe subdomeny ✅ ZROBIONE (2026‑07‑30)
+
+⚠️ **Opis niżej dotyczy stanu z 2026‑07‑30 i CYTUJE PLIK, W KTÓRYM TEGO JUŻ NIE
+MA** (sprostowane 2026‑08‑02). Nagłówek userscriptu wyprowadzono do
+`tools/userscript-meta.ts`; `build.ts` nie zawiera dziś ani jednego `@match`,
+ani `@version` — woła `banner(pkg.version, …)`. Sekcja §2 ma przy swojej tabeli
+dopisek „stan sprzed zmiany", ta go nie miała i czytała się jak opis stanu
+bieżącego. Aktualna lista wykluczeń i powód, dla którego wygląda tak, a nie
+inaczej — w `tools/userscript-meta.ts`.
 
 `build.ts:20‑25` matchuje `https://*.margonem.pl/*` i `.com/*`, wykluczając
 `www`, `forum` i `commons`. **Nie wyklucza `pomoc.margonem.pl`** — strony,
@@ -48,6 +69,15 @@ wstrzykiwał się do gry”). Zmiana bez testu wraca.
 a `boot()` ma bramę: bez `Engine` i bez okna walki pętla gaśnie po dwudziestu
 próbach (`GIVE_UP_AFTER`) i zdejmuje panel, jeśli zdążył powstać. Całość opisana
 i przetestowana w `tools/userscript-meta.ts` + `tests/userscript.test.ts`.
+
+**Domknięte dopiero 2026‑08‑02 (`AUDYT‑42`).** Lista wykluczeń była
+niesymetryczna: dla `.pl` stały `www`, `forum`, `commons` i `pomoc`, dla `.com`
+tylko `www` i `pomoc` — a strona główna BEZ „www" wchodziła w obu domenach, bo
+wzorzec `*.margonem.pl` obejmuje również sam `margonem.pl`. Zmierzone
+`appliesTo`: `margonem.pl`, `margonem.com`, `forum.margonem.com`
+i `commons.margonem.com` dawały `true`. Test tego nie łapał, bo wymieniał z palca
+adresy, które JUŻ odpadały — dziś jest pętlą po iloczynie „subdomena × domena"
+i nie da się go uzupełnić po jednej stronie.
 
 ## 2. Wersjonowanie i kanał dostawy ✅ ZROBIONE (2026‑08‑01)
 
@@ -247,7 +277,10 @@ Skutki są konkretne, nie estetyczne:
   — **obie są dziś `true`** (od `2dc38fb`) i to one wykryły `renderAxis`,
   `renderFireFocus` i `turnRows`. Punkt zamknięty;
 - `roster.ts:63` typuje wstrzykiwane `window` jako `Record<string, any>` — `any`
-  w skądinąd ścisłym projekcie, którego nic nie zauważa;
+  w skądinąd ścisłym projekcie, którego nic nie zauważa. ⚠️ **Sprostowanie
+  2026‑08‑02:** takich miejsc są **trzy**, nie jedno — doszły `index.ts:64`
+  (`looksLikeGame`) i `index.ts:80` (`BootOptions.window`), obie przy bramie
+  `boot()` z §1 tej samej sekcji. Liczba stała tu jako „jedno" przez dwie rundy;
 - w `tsconfig` siedzą resztki `bun init`: `jsx: "react-jsx"` i `allowJs: true`,
   choć w repo nie ma ani JSX, ani plików `.js`.
 
@@ -259,10 +292,28 @@ Wersja Buna jest **przypięta** (`1.3.14`, ta sama co lokalnie), a nie `latest` 
 inaczej brama pewnego dnia czerwieni się bez żadnej zmiany w kodzie i nie
 wiadomo, czy to regresja, czy nowy Bun.
 
-**Zostaje otwarte:** brak lintera/formattera, brak progu pokrycia w
-`bunfig.toml` (regresja pokrycia przechodzi cicho), resztki `bun init`
-w `tsconfig.json` (`jsx: "react-jsx"`, `allowJs: true`) i `Record<string, any>`
-w `roster.ts:63`.
+**Pokrycie — rozstrzygnięte 2026‑08‑02, inaczej niż zakładał ten wpis
+(`AUDYT‑45`).** Stało tu „brak progu pokrycia w `bunfig.toml`, regresja pokrycia
+przechodzi cicho" i było to trafne co do skutku: liczba w stanie bazowym wyżej
+przeleżała trzy rundy bez sprawdzenia. Ale progu **nie da się dziś postawić
+sensownie**, i to jest wynik pomiaru, nie rezygnacji:
+
+- `coverageThreshold` w Bunie 1.3.14 sprawdza się **per plik, nie na sumie**.
+  Przy sumie 95,2 % brama pada już na progu `0.44`, bo najsłabszym plikiem
+  raportu jest `tools/pomoc.ts` (43,5 % — sam blok CLI). Najwyższy próg, który
+  repo dziś przepuszcza, to `0.43` — czyli zabezpieczenie pozorne;
+- `{ line = …, function = … }` w liczbie POJEDYNCZEJ jest po cichu ignorowane
+  (przy progu 0,99 `bun test` kończy się kodem 0). Działa tylko liczba mnoga;
+- `coveragePathIgnorePatterns = ["tools/"]` nie zadziałało w ogóle.
+
+**Zrobione zamiast progu:** `coverage = true` w `bunfig.toml`, czyli pokrycie
+liczy się przy KAŻDYM `bun test`, a więc pod bramą i w CI. Koszt zmierzony:
+7 367 → 8 948 ms. Liczba, która ginęła, jest odtąd na oczach. Próg wejdzie po
+dociągnięciu trzech najsłabszych plików albo gdy da się go postawić na sumie.
+
+**Zostaje otwarte:** brak lintera/formattera, resztki `bun init`
+w `tsconfig.json` (`jsx: "react-jsx"`, `allowJs: true`) i **trzy** miejsca
+z `Record<string, any>` (`roster.ts:63`, `index.ts:64`, `index.ts:80`).
 
 ## 5. Nic nie testuje `build.ts` ani metadanych ✅ ZROBIONE (2026‑07‑30)
 
@@ -274,6 +325,13 @@ zamyka klasę, która **już dwa razy** dotarła do użytkowników.
 `tests/userscript.test.ts`.
 
 ## 6. `build.ts` jest skryptem, nie jednostką ⚪
+
+**Ta sama przeszkoda dotyczyła `tools/pomoc.ts` i została zdjęta 2026‑08‑02**
+(`AUDYT‑43`): CLI siedzi za `if (import.meta.main)`, `odtaguj`, `fragmenty`
+i `wiek` są eksportowane, a `tests/pomoc.test.ts` ma 13 testów. Sonda, na której
+stoi CAŁA procedura z `MECHANIKA.md`, nie miała przedtem ani jednego — właśnie
+dlatego, że import odpalał parsowanie `process.argv` i pobieranie artykułu.
+Wzorzec jest ten sam co w `tools/changelog.ts` i kosztuje jedną klamrę.
 
 Top‑level `await` z efektami ubocznymi, zero eksportów → nie da się go ani
 przetestować, ani użyć kawałkami; wszystkie ścieżki są względne do CWD, więc

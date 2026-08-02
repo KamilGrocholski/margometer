@@ -44,7 +44,18 @@ Status stoi w drugiej linii pliku, jednym z dwóch słów:
 
 Plików **nie przenosimy** do podkatalogu po wdrożeniu — to spotykany wariant,
 ale tu byłaby to zmiana ścieżki, do której odsyłają commity. Status w nagłówku
-wystarcza, a `grep -l "Status: projekt" docs/specy/*.md` daje listę otwartych.
+wystarcza, a listę otwartych daje:
+
+```bash
+grep -l "^Status: projekt" docs/specy/*.md | grep -v SZABLON
+```
+
+Ani kotwica `^`, ani `grep -v` nie są tu ozdobą (poprawione 2026‑08‑02,
+`AUDYT‑44`). Przepis stał tu bez obu i wypisywał **`SZABLON.md`** jako pierwszy
+„otwarty spec", bo szablon też ma w drugiej linii status projektu. Kotwica
+odsiewa z kolei ten plik: sama nazwa statusu pada w akapicie wyżej. Przepis
+podany w dokumencie ma działać po wklejeniu — inaczej uczy tylko tego, żeby
+dokumentowi nie ufać.
 
 ## Szablon
 

@@ -18,6 +18,14 @@ jedynym miejscem, gdzie sprawa jest zapisana.
 cytowania z tamtego dokumentu trzeba przed użyciem sprawdzić. Wszystkie
 lokalizacje poniżej zweryfikowano odczytem na `19892b4`.
 
+> ⚠️ **To ostrzeżenie samo się zestarzało — i to jest jego najlepszy dowód**
+> (`AUDYT‑46`, 2026‑08‑02). „2628" było prawdą przez jeden dzień; dziś
+> `overlay.ts` ma **3181 linii**, czyli o 725 więcej niż liczba, przy której
+> napisano „trzeba go ciąć". Lokalizacje z sekcji A–F odnoszą się do `19892b4`
+> i po tylu rundach **nie prowadzą tam, gdzie mówią** — czytaj je jako nazwy
+> funkcji, nie jako numery. Zweryfikowane na `740f3c6` są wyłącznie te
+> w sekcji `H`.
+
 Legenda: 🔴 duży zwrot / mała robota · 🟡 warto · ⚪ kiedyś.
 Koszt: XS / S / M / L. Znacznik ✓ = teza **zreprodukowana albo zmierzona**
 podczas tego audytu, nie wywnioskowana z lektury.
@@ -45,9 +53,18 @@ zniknęła sama. Warto z tego zapamiętać, że **pozycja „zablokowana decyzj�
 odblokowana przez cudzą naprawę i nikt jej wtedy nie odznacza** — przy przeglądzie
 opłaca się sprawdzić, czy blokada nadal istnieje.
 
-Otwarte zostają dwie pozycje, obie czekające na decyzję właściciela repo:
-`AUDYT‑6` (suma sesji bez wyjścia w UI — brak specu, nie kodu) i `AUDYT‑25`
-(`deaths`/`matrix` bez odbiorcy — spięte z `ROADMAP ⏸`).
+**Dopisane 2026‑08‑02 (sekcja `H`):** `AUDYT‑41`…`AUDYT‑55` — runda wydania
+(`356b79f`, `c726a24`, `e719485`, `c39d35b`) nie była dotąd oglądana przez żaden
+audyt, a to kod, którego awaria jest cicha z definicji: dodatek przestaje się
+aktualizować albo nie startuje, bez ani jednego komunikatu. Wszystkie poza
+`AUDYT‑52` (zrzuty ekranu — wymagają wejścia do gry) naprawione w tej samej
+rundzie. Dwie z nich — `53` i `54` — to **regresje rundy `c39d35b`**, znów
+znalezione po commicie; zasada „przegląd PRZED commitem" ma teraz trzeci dowód.
+
+Otwarte zostają trzy pozycje: `AUDYT‑6` (suma sesji bez wyjścia w UI — brak
+specu, nie kodu) i `AUDYT‑25` (`deaths`/`matrix` bez odbiorcy — spięte
+z `ROADMAP ⏸`), obie czekające na decyzję właściciela repo, oraz `AUDYT‑52`
+(nieaktualne zrzuty w `README`), czekające na wejście do gry.
 Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
@@ -102,6 +119,21 @@ uderzamy w grę. Potem dwie rzeczy odblokowujące większe roboty. Reszta wg zwr
 | ~~AUDYT‑18~~ | ✕ znaczy dwie rzeczy; dymek obiecuje nie to, co trzeba | ⚪ | S | **✅** ✓ |
 | ~~AUDYT‑19~~ | PPM zabiera menu przeglądarki nad listą archiwum | ⚪ | XS | **✅** ✓ |
 | ~~AUDYT‑22~~ | `destroy()` nie sprząta i nie jest wołane | ⚪ | XS | **✅** |
+| ~~AUDYT‑41~~ | Nic w dodatku nie mówi, z której wersji pochodzi zgłoszenie | 🔴 | XS | **✅** ✓ |
+| ~~AUDYT‑53~~ | Zamknięte archiwum dolicza dalej — 193 ms po zniknięciu okna | 🔴 | XS | **✅** ✓ (regresja) |
+| ~~AUDYT‑42~~ | `@exclude` niesymetryczne; test nie ma jak tego złapać | 🟡 | XS | **✅** ✓ |
+| ~~AUDYT‑43~~ | Sonda pomocy odpowiada z zapisu bez daty ważności | 🟡 | S | **✅** ✓ |
+| ~~AUDYT‑45~~ | Pokrycie liczone tylko na żądanie, więc nikt go nie ogląda | 🟡 | S | **✅** ✓ |
+| ~~AUDYT‑46~~ | Ostrzeżenie o rozjeździe numerów linii samo się rozjechało | 🟡 | XS | **✅** ✓ |
+| ~~AUDYT‑47~~ | `§G` trzyma jako otwarte to, co `SOLID.md` ma za zamknięte | 🟡 | XS | **✅** ✓ |
+| ~~AUDYT‑51~~ | `EMPTY_STATS`: przeniesiona definicja, nie zależność | 🟡 | XS | **✅** ✓ |
+| ~~AUDYT‑54~~ | Skasowanie jednego nagrania wyrzuca cache całego archiwum | 🟡 | XS | **✅** ✓ (regresja) |
+| ~~AUDYT‑44~~ | Przepis na listę otwartych specek wypisuje szablon | ⚪ | XS | **✅** ✓ |
+| ~~AUDYT‑48~~ | „Jedno `any`" to trzy; `§1` cytuje plik, w którym tego nie ma | ⚪ | XS | **✅** ✓ |
+| ~~AUDYT‑49~~ | „Fixture'y mają dwa pliki" — ma je 5 z 21 | ⚪ | XS | **✅** ✓ |
+| ~~AUDYT‑50~~ | Mapa modułów pomija `confirm.ts` | ⚪ | XS | **✅** ✓ |
+| ~~AUDYT‑55~~ | Sonda odsiewa trafienia po prefiksie fragmentu | ⚪ | XS | **✅** ✓ |
+| AUDYT‑52 | Zrzuty w `README` same przyznają się do nieaktualności | ⚪ | S | ✓ |
 
 ---
 
@@ -1348,6 +1380,347 @@ gdy ciosów nie było — `null` znaczy w `appendBreakdown` dokładnie „w tej 
 ta liczba nie ma nic do powiedzenia", i to jest tu prawda.
 
 ---
+
+## H. Wydanie, pokrycie i rejestry (audyt 2026‑08‑02)
+
+Runda wydania (`356b79f` → `c39d35b`) dołożyła projektowi kanał dostawy: nagłówek
+z `@downloadURL`/`@updateURL`, dwa workflow GitHuba, `CHANGELOG.md` dla
+użytkownika, jedno źródło fazy projektu i leniwe podsumowania w archiwum.
+**Żadnego z tych plików nie oglądał audyt.** Ta sekcja patrzy właśnie tam plus na
+rozjazdy rejestrów wobec kodu; `stats.ts` i `overlay.ts` zostają na kolejną rundę
+— były przeorane w `F3`.
+
+Stan wyjściowy: brama zielona (675 pass / 0 fail / 3 602 asercje), drzewo czyste,
+`HEAD = 740f3c6`, tag `v0.3.0` na `dca0a22`. Po rundzie: **696 pass / 0 fail /
+3 649 asercji**.
+
+### AUDYT‑41 — nic nie mówi, z której wersji pochodzi zgłoszenie 🔴 XS — ✅ NAPRAWIONE ✓
+`src/overlay.ts` (`statsJson`, nagłówek), `src/version.ts` (nowy)
+
+**Problem.** `grep -rn "version" src/` dawał **zero trafień**. Skopiowany JSON
+niósł `tool`, `at` i `source` — bez numeru wersji; panel nie pokazywał go nigdzie.
+Tymczasem `README.md:17‑18` i `PHASE_NOTE` (idzie w treść KAŻDEGO wydania) proszą
+wprost o przysyłanie logów z zepsutych walk, a od `0.3.0` dodatek **aktualizuje
+się sam** — więc nadawcy siedzą na różnych wersjach i żaden tego nie powie.
+W projekcie w fazie alfa zgłoszenie bez wersji jest najdroższym rodzajem
+zgłoszenia: nie da się rozstrzygnąć, czy dotyczy czegoś już naprawionego.
+
+**Zrobione.** `src/version.ts` bierze numer z `package.json` — tą samą drogą, co
+`banner()` dla `@version`, więc kopii nie ma. Numer stoi w nagłówku panelu (widać
+go na zrzucie ekranu, a tak przychodzi połowa zgłoszeń) i w JSON‑ie, przed datą.
+
+**Import NAZWANY, nie domyślny — różnica zmierzona.** `import pkg from` wkleja do
+bundle'a CAŁY `package.json` ze skryptami i `devDependencies` (157 686 B);
+`import { version } from` zostawia jedną linię `var version = "0.3.0"`
+(157 026 B). Do pliku, który użytkownik dostaje do wklejenia, nie ma po co jechać
+nasza lista zależności deweloperskich.
+
+**Odrzucone: `define` z `Bun.build`.** Podstawienie przy budowaniu daje
+w testach zaślepkę albo `ReferenceError` — a wtedy test „JSON niesie wersję"
+pilnuje zaślepki, nie wersji.
+
+**Czym przypięte.** Dwa testy, oba porównują z `package.json`, nie z literałem
+(literał trzeba by poprawiać przy każdym wydaniu, a zapomniana poprawka daje
+zielony test pilnujący nieprawdy). Drugi test pyta osobno o to, że `.title` ma
+**dokładnie** „MargoMeter" — lekcja z `AUDYT‑14`, gdzie dołożony węzeł po cichu
+zmienił `textContent` sąsiada. Sprawdzone mutacją: zdjęcie pola z JSON‑a i węzła
+z nagłówka zapala oba.
+
+**Docelowo.** → `TOOLING.md §2` (kanał dostawy).
+
+### AUDYT‑53 — zamknięte archiwum dolicza dalej 🔴 XS — ✅ NAPRAWIONE ✓ (regresja `c39d35b`)
+`src/archive.ts` (`toggle`, gałąź zamykająca) kontra `:879` (`destroy`)
+
+**Problem.** `c39d35b` rozłożyło liczenie podsumowań na porcje po `FILL_CHUNK`
+tyknięć — właśnie po to, żeby otwarcie archiwum nie zamrażało wątku gry na
+269 ms. Ale zamknięcie okna ustawiało `hidden = true` i **nie zatrzymywało
+zegara**: kolejka dopełniała się dalej, dla listy, której nie ma na ekranie.
+`destroy()` robił to poprawnie od początku, `toggle()` nie.
+
+**Repro.**
+```
+190 nagrań: po otwarciu     8 wczytanych
+            po zamknięciu   8
+            po tykaniu    190   ← 182 nagrania i 193,4 ms w wątku gry
+                                  PO zniknięciu okna z ekranu
+```
+
+To jest trzy czwarte kosztu (269 ms), który cała ta zmiana miała usunąć — tylko
+przesunięte w czasie i wydane w momencie, w którym użytkownik gestem powiedział
+„skończyłem".
+
+**Zrobione.** `stopFilling()` plus wyczyszczenie kolejki w gałęzi zamykającej.
+Ponowne otwarcie nic nie traci: `renderRow` wypełnia od razu każdy wiersz,
+który ma już policzone podsumowanie (`eager || this.cached(entry)`).
+
+**Czym przypięte.** Test bliźniaczy do istniejącego „destroy zatrzymuje
+dopełnianie": po zamknięciu zegar stoi, a trzydzieści tyknięć nie dokłada ani
+jednego odczytu. Sprawdzone mutacją — zdjęcie `stopFilling()` zapala go.
+
+**Docelowo.** → `SOLID.md §4.23` jako dopisek „co ta naprawa zostawiła otwarte".
+
+### AUDYT‑54 — skasowanie jednego nagrania wyrzuca cache całego archiwum 🟡 XS — ✅ NAPRAWIONE ✓
+`src/archive.ts` (obsługa ✕ w wierszu)
+
+**Problem.** Po skasowaniu wiersza leciało `this.summaries.clear()`. Klucz cache
+to `${id}:${chars}`, a `renderList` woła `forgetMissing()` z listą żywych nagrań
+— czyli klucze skasowanego wpisu i tak znikają, i tylko one. `clear()` było więc
+nie tyle zbyt szerokie, co **całkiem zbędne**.
+
+**Repro.**
+```
+20 nagrań, wszystkie policzone → skasowanie JEDNEGO
+  przeliczone od nowa: 19 (8 od razu, 11 w tle)   zamiast 0
+```
+
+**Zrobione.** Linia usunięta; nic nie weszło w zamian, bo `forgetMissing`
+w `renderList` robi dokładnie to, co trzeba, a `render()` leci linijkę niżej.
+
+**Czym przypięte.** Test: po skasowaniu jednego z dwudziestu policzonych nagrań
+liczba odczytów nie rośnie. Sprawdzone mutacją — przywrócenie `clear()` zapala.
+
+**Docelowo.** → `SOLID.md §4.23`.
+
+### AUDYT‑42 — `@exclude` niesymetryczne, a test nie ma jak tego złapać 🟡 XS — ✅ NAPRAWIONE ✓
+`tools/userscript-meta.ts` (`banner`), `tests/userscript.test.ts`
+
+**Problem.** Dla `.pl` wykluczaliśmy `www`, `forum`, `commons` i `pomoc`; dla
+`.com` — tylko `www` i `pomoc`. Do tego wzorzec `*.margonem.pl` obejmuje także
+sam `margonem.pl`, którego nie wykluczała żadna z domen.
+
+**Repro.** (`appliesTo` na `banner()` z `740f3c6`)
+```
+true   https://margonem.pl/
+true   https://margonem.com/
+true   https://forum.margonem.com/temat/1
+true   https://commons.margonem.com/
+false  https://www.margonem.pl/nowa-postac
+```
+
+**Skąd luka.** Lista rosła po jednej linii, a test wymieniał z palca adresy,
+które **już** odpadały — nie miał więc konstrukcji, która zapaliłaby się na
+pozycji brakującej. Druga linia obrony (`boot()`, `GIVE_UP_AFTER = 20`) nie
+zapobiega, tylko ogranicza koszt do ~20 przeczesań cudzego dokumentu.
+
+**Zrobione.** Obie domeny mają tę samą listę plus adres bez subdomeny. Test
+przepisany na pętlę po iloczynie „subdomena × domena", więc nie da się go już
+uzupełnić po jednej stronie; drugi test pilnuje ścieżek i query. Sprawdzone
+mutacją — cofnięcie listy zapala oba.
+
+**Docelowo.** → `TOOLING.md §1` (dopisane).
+
+### AUDYT‑43 — sonda pomocy odpowiada z zapisu bez daty ważności 🟡 S — ✅ NAPRAWIONE ✓
+`tools/pomoc.ts`, nowy `tests/pomoc.test.ts`
+
+**Problem.** `tekstArtykulu` zwracał `.cache/pomoc-372.txt`, jeśli plik istniał —
+**bezterminowo i bez śladu wieku**. Cały rejestr `MECHANIKA.md` stoi na cytatach
+z tej sondy, a data przy wpisie mówi, kiedy PYTANO, nie z kiedy jest treść. Gra
+swoją dokumentację poprawia; wpis „sprawdzone, milczy" oparty o stary zrzut to
+dokładnie ten fałszywy negatyw, przed którym ta sonda ma bronić — tylko o piętro
+wyżej. Nie było ani flagi odświeżenia, ani wypisanej daty pobrania.
+
+Drugi brak: **zero testów**, mimo dwóch czystych funkcji w środku. Powód był
+mechaniczny — plik wykonywał CLI przy samym imporcie, więc testu nie dało się
+napisać. Ta sama przeszkoda, którą `TOOLING §6` zapisuje przy `build.ts`.
+
+**Zrobione.** CLI za `import.meta.main`; `odtaguj`, `fragmenty` i nowe `wiek`
+eksportowane. Wiek zrzutu stoi w PIERWSZEJ linii wyjścia, obok liczby znaków —
+czyli tam, skąd i tak przepisuje się nagłówek wpisu do rejestru — a od tygodnia
+w górę sam prosi o `--odswiez`. Data podpisana strefą: bez „UTC" godzina
+rozjeżdża się z tym, co pokazuje `ls`, i wygląda na pomyłkę narzędzia.
+
+**Czym przypięte.** 13 testów. Trzy mutacje sprawdzone: brak ostrzeżenia przy
+starym zrzucie, odtagowywanie skryptów PO tagach, powrót do dawnego odsiewania.
+
+**Docelowo.** → `TOOLING.md §6` (dopisane) + `MECHANIKA.md` jako uwaga
+o wieku zrzutu przy procedurze.
+
+### AUDYT‑55 — sonda odsiewała trafienia po prefiksie fragmentu ⚪ XS — ✅ NAPRAWIONE ✓
+`tools/pomoc.ts` (`fragmenty`)
+
+**Problem.** Powtórzenia odsiewał klucz `fragment.slice(0, 60)` — proxy dla „ten
+sam akapit", które myli się w jedną stronę: gdy przed dwoma trafieniami stoi ta
+sama treść (tabela, powtórzony nagłówek), klucze wychodzą identyczne i trafienie
+z INNEGO miejsca artykułu znika jako powtórzenie.
+
+**Uczciwie o skali.** Złapał to test, nie zgubiony cytat. Na dzisiejszym artykule
+wiąże wcześniej limit `--ile`, więc pomiar przed i po jest ten sam (`kryt`: 259
+wystąpień → 6 fragmentów; `Unik ( evade )`: 3 → 3). To poprawka na zapas — ale
+sonda istnieje właśnie po to, żeby nie gubić trafień po cichu.
+
+**Zrobione.** Powtórzenie rozpoznaje się po NAKŁADANIU SIĘ WYCINKÓW, co jest
+tym, co pierwotny komentarz chciał powiedzieć.
+
+**Wniosek metodyczny — pierwsza wersja testu na to była zielona i pusta.**
+Fragment pierwszego trafienia zaczynał się od początku tekstu, drugiego —
+od środka przedrostka, więc klucze różniły się z powodu, którego w artykule nie
+ma, i test przechodził także na STAREJ implementacji. Wyszło to dopiero przy
+mutacji. Reguła „zepsuj naprawę i sprawdź, że test się zapala" zarobiła w tej
+rundzie na siebie.
+
+### AUDYT‑45 — pokrycie liczone tylko na żądanie 🟡 S — ✅ ROZSTRZYGNIĘTE INACZEJ ✓
+`bunfig.toml`, `docs/TOOLING.md`
+
+**Problem.** `TOOLING.md` podawał jako stan bazowy „650 zielonych, 98,61 % linii"
+(2026‑08‑01) i trzymał jako otwarte „brak progu pokrycia — regresja pokrycia
+przechodzi cicho". Zmierzone przy tym audycie: **675 zielonych, 97,34 %**. Liczba
+przeleżała trzy rundy bez sprawdzenia, bo oglądało się ją tylko na osobne żądanie.
+
+**Czego teza NIE dowodziła.** Spadek 98,61 → 97,34 **nie jest regresją `src/`** —
+do raportu weszły w międzyczasie `tools/` (bloki CLI uruchamiane wyłącznie przy
+wydaniu). Każdy plik `src/` ma dziś 90,2–100 % linii. Wniosek ogólniejszy:
+**procent pokrycia bez podanego SKŁADU raportu nie jest liczbą porównywalną** —
+i właśnie dlatego stał w dokumencie jako dowód czegoś, czego nie dowodził.
+
+**Progu NIE MA i to jest wynik pomiaru, nie rezygnacji.**
+```
+coverageThreshold w Bunie 1.3.14 działa PER PLIK, nie na sumie:
+  przy sumie 95,2 % brama pada już na progu 0.44
+  bo najsłabszym plikiem raportu jest tools/pomoc.ts (43,5 % — sam blok CLI)
+  najwyższy próg, który repo dziś przepuszcza: 0.43
+```
+Dwie pułapki zmierzone przy okazji: `{ line = …, function = … }` w liczbie
+POJEDYNCZEJ jest **po cichu ignorowane** (przy progu 0,99 `bun test` kończy się
+kodem 0), a `coveragePathIgnorePatterns = ["tools/"]` **nie zadziałało wcale**.
+Próg `0.43` byłby zabezpieczeniem pozornym, czyli tym, co repo zna jako „testy
+zielone i puste" — lepiej go nie mieć.
+
+**Zrobione zamiast progu.** `coverage = true` w `bunfig.toml`: pokrycie liczy się
+przy KAŻDYM `bun test`, a więc pod bramą i w CI. Koszt zmierzony: 7 367 →
+8 948 ms. Do tego `tools/changelog.ts` — czysta funkcja pokryta w 100 %, blok CLI
+w zerze — dostał trzy testy przez `Bun.spawn` na KODY WYJŚCIA (0/1/2), po których
+`release.yml` decyduje, czy przerwać wydanie.
+
+**Co ZOSTAJE otwarte.** Sam próg — do czasu dociągnięcia trzech najsłabszych
+plików (`src/index.ts` 60,00 % funkcji, `tools/pomoc.ts`, `tools/changelog.ts`)
+albo do czasu, gdy próg da się postawić na sumie. Nadal nie ma pomiaru GAŁĘZI.
+
+**Docelowo.** → `TOOLING.md §4` (przepisane) + `SOLID.md §10`.
+
+### AUDYT‑51 — przeniesiona definicja, nie zależność 🟡 XS — ✅ NAPRAWIONE ✓
+`src/session.ts`, `src/overlay.ts`, `src/index.ts`
+
+**Problem.** `AUDYT‑5` zapisuje „`EMPTY_STATS` przeniesione do `stats.ts`",
+z argumentem WARSTWOWYM: „`overlay.ts` importuje z `session.ts` zero dla typu
+należącego do `stats.ts`". Stała faktycznie stoi w `stats.ts` — ale `session.ts`
+re‑eksportowało ją z komentarzem „żeby import z sesji dalej działał tam, gdzie tak
+było wygodniej", a `overlay.ts` i `index.ts` dalej brały ją stamtąd. Przeniesiona
+została definicja; zależność, dla której to robiono, została.
+
+**Zrobione.** Re‑eksport zdjęty, oba miejsca importują ze `stats.ts`. Na miejscu
+re‑eksportu został komentarz mówiący, co tam stało i dlaczego zniknęło.
+
+**Wniosek.** Naprawa opisana jako zrobiona bywa zrobiona w połowie — i to ta
+druga połowa jest zwykle całym powodem. Warto przy zamykaniu wpisu sprawdzić nie
+tylko, czy zmiana jest w drzewie, ale czy zachodzi **argument**, który ją
+uzasadniał.
+
+### AUDYT‑46 — ostrzeżenie o rozjeździe samo się rozjechało 🟡 XS — ✅ NAPRAWIONE ✓
+`docs/AUDYT.md` (preambuła), `docs/SOLID.md §8`, `R7`
+
+**Problem.** `AUDYT.md` ostrzegał: „`SOLID.md` mówi 2456 linii — dziś jest 2628,
+rozjazd o ~170 linii znaczy, że cytowania trzeba sprawdzić". Dziś `overlay.ts` ma
+**3181 linii**, czyli o 725 więcej niż liczba, przy której ktoś napisał „trzeba go
+ciąć". `SOLID R7` odsyłał do `STYLE` w `:90‑406`; `STYLE` stoi w **`:229‑606`**
+(378 linii) — kto poszedłby za tym zakresem, wyciąłby środek czegoś innego.
+
+**Zrobione.** Zakres `STYLE` przeliczony w obu miejscach, rozmiar pliku
+odświeżony, a nad tabelą granic cięcia stoi ostrzeżenie, że pozostałe numery
+linii są sprzed trzech rund i wymagają odczytu przed użyciem.
+
+### AUDYT‑47 — status żyjący w dwóch miejscach, po raz trzeci 🟡 XS — ✅ NAPRAWIONE ✓
+`docs/AUDYT.md §G` kontra `docs/SOLID.md:358`, `:415`
+
+**Problem.** Tabela `§G` trzymała `SOLID §4.18` i `§4.22` jako otwarte; obie są
+w `SOLID.md` zamknięte 2026‑08‑01 (`98ab619`, `c39d35b`). Ta sama klasa, którą
+`§G` sama sprostowała przy `A14` — i ta sama, którą `SOLID §11` opisuje przy
+swojej tabeli.
+
+**Zrobione.** Oba wiersze przekreślone z datą i commitem. **Wniosek zapisany po
+raz trzeci, więc tym razem z propozycją wykonawczą:** skasować z `§G` kolumnę
+statusu i zostawić same odsyłacze. Status ma żyć w sekcji, nie w skrócie.
+
+### AUDYT‑48 — dwie nieprawdy w `TOOLING.md` ⚪ XS — ✅ NAPRAWIONE ✓
+`docs/TOOLING.md §1`, `§4`
+
+**Problem.** §4: „jedno `any` w `roster.ts`" — w kodzie są **trzy**
+(`roster.ts:63`, `index.ts:64`, `index.ts:80`), a dwa doszły przy bramie `boot()`
+opisanej w §1 tego samego pliku. §1 cytuje `build.ts:20‑25` (`@match`)
+i `build.ts:17` (`@version`) — w `build.ts` nie ma dziś ani jednego z nich,
+nagłówek mieszka w `tools/userscript-meta.ts`. §2 ma przy swojej tabeli dopisek
+„stan sprzed zmiany", §1 nie miała i czytała się jak opis stanu bieżącego.
+
+**Zrobione.** Liczba poprawiona z wypisaniem wszystkich trzech miejsc; §1 dostała
+ten sam dopisek co §2, wraz ze wskazaniem, gdzie nagłówek jest naprawdę.
+
+### AUDYT‑49 — „fixture'y mają dwa pliki" to norma podana jako fakt ⚪ XS — ✅ NAPRAWIONE ✓
+`docs/README.md`
+
+**Problem.** Zdanie brzmiało jak opis korpusu. Policzone: na 21 fixture'ów
+**5 ma oba** pliki, 13 ma sam `raw.txt`, **3 mają sam `log.html`**. Dla tych
+trzech test różnicowy „HTML daje to samo co tekst" przechodzi PUSTY
+(`parser.test.ts`: `if (raw === null) return;`). `SOLID §10` to zna — `README`
+podawał odwrotność.
+
+**Zrobione.** Zdanie przepisane na normę dla NOWEGO fixture'a, z policzonym
+stanem faktycznym i nazwami trzech zrzutów bez `raw.txt` obok.
+
+### AUDYT‑50 — mapa modułów pomija `confirm.ts` ⚪ XS — ✅ NAPRAWIONE ✓
+`AGENTS.md`, `docs/README.md`
+
+**Problem.** Obie mapy wyliczają moduły poboczne bez `src/confirm.ts` — 105 linii
+i wspólny mechanizm „na pewno?" z wygasaniem, który powstał przy `AUDYT‑9`
+i `AUDYT‑10` właśnie po to, żeby nie było go w dwóch kopiach.
+
+**Zrobione.** Dopisany w obu miejscach, razem z nowym `version.ts`.
+
+### AUDYT‑44 — przepis na listę otwartych specek wypisuje szablon ⚪ XS — ✅ NAPRAWIONE ✓
+`docs/specy/README.md`
+
+**Problem.** Dokument podawał `grep -l "Status: projekt" docs/specy/*.md` jako
+sposób na listę otwartych specek. `SZABLON.md` też ma `Status: projekt`, więc
+pierwszym „otwartym specem" był sam szablon.
+
+**Zrobione.** Kotwica `^` plus `grep -v SZABLON`; sprawdzone po wklejeniu — dziś
+wynik jest pusty, zgodnie ze stanem (specek jeszcze nie ma). Przepis podany
+w dokumencie ma działać po wklejeniu, inaczej uczy tylko tego, żeby dokumentowi
+nie ufać.
+
+### AUDYT‑52 — zrzuty w `README` same przyznają się do nieaktualności ⚪ S — OTWARTE ✓
+`README.md:98‑102`, `docs/screenshots/`
+
+**Problem.** Nad obrazkami stoi ostrzeżenie: „Zrzuty są sprzed poprawek z 1
+sierpnia 2026 i nie pokazują już panelu takim, jaki jest… Do wymiany". To
+pierwsza rzecz, którą widzi ktoś wchodzący z linku wydania — a od tamtej pory
+doszła jeszcze odznaka profesji i numer wersji w nagłówku.
+
+**Dlaczego zostaje otwarte.** Wymaga wejścia do gry i rozegrania walki grupowej;
+konwencja nazw i lista rzeczy do pilnowania stoi w `docs/screenshots/README.md`.
+
+**Docelowo.** → `UX-POPRAWKI.md`.
+
+### Sprawdzone, nie potwierdza się
+
+Trzy tezy postawione przy planowaniu tej rundy i **obalone pomiarem** — zapisane,
+żeby nikt nie badał ich drugi raz z tego samego powodu:
+
+- **`release.yml` przy pustej sekcji CHANGELOG‑a.** Kryte podwójnie: brak sekcji
+  daje `null`, sekcja pusta daje `""`, oba kończą CLI kodem 1 i przerywają
+  wydanie; niezależnie od tego `changelog.test.ts` wymusza sekcję dla wersji
+  z `package.json` już na bramie, którą `release.yml` odpala przed wydaniem.
+  Dopisano testy na kody wyjścia (patrz `AUDYT‑45`), bo sama ścieżka nie była
+  wykonywana w testach — ale zachowanie było poprawne.
+- **`tests/phase.test.ts`.** Pilnuje wszystkich czterech miejsc, w których widać
+  fazę (`@name`, `README`, `CHANGELOG`, treść wydania), ma obie gałęzie
+  (`PHASE === null` też) i dokłada zgodność z SemVerem. Bez zastrzeżeń.
+- **Luka pokrycia w `stored-state.ts` i `roster.ts`.** Nie potwierdza się jako
+  osobna luka: 92,00 % i 97,67 % linii, a niski procent FUNKCJI w `roster.ts`
+  (66,67 %) bierze się z małej ich liczby, nie z nieprzetestowanych ścieżek.
+  Niepokryte konkrety, które faktycznie zostają, `SOLID §10` zna od dawna
+  (`index.ts` — trzy `catch` i `safeStorage`; suwak odtwarzania; fallback
+  `instanceResolver`).
+
+---
 ## G. Otwarte z poprzednich rund
 
 Bez nowych ID — sam wskaźnik, żeby ten dokument był pełną migawką otwartych
@@ -1358,8 +1731,8 @@ spraw, a nie tylko listą nowych.
 | ~~`UX-POPRAWKI.md A14`~~ | ✅ **2026‑08‑01** — `.bar` na `opacity: .55` + nasadka w pełnej barwie; próg pilnuje test kontrastu. ⚠️ Stało tu, że `AUDYT‑14` (odznaka profesji) **zostaje otwarte** — nieprawda, sprostowane 2026‑08‑01: własny wpis `AUDYT‑14` mówi „✅ NAPRAWIONE", odznaka jest w drzewie (`overlay.ts`, `.label[data-prof]::before`) od `3a784f6`. Status żył w dwóch miejscach i rozjechał się w obrębie JEDNEGO pliku. |
 | `UX-POPRAWKI.md B2–B12` | Wygody: suwak po turach, auto‑pauza, sygnał „trzymam postać”, TOP‑3 w dymku, ostrzeżenie o eksmisji, filtr w archiwum, eksport dla Discorda, onboarding, reset ustawień. |
 | `SOLID.md §4.12` | Przycięcie logu w trakcie walki OBNIŻA liczby — otwarte, czeka na decyzję i na fixture z przyciętym nagłówkiem. |
-| `SOLID.md §4.18` | Modyfikator z `(N%)` rozbija blok ataku na trzy `unknown`. |
-| `SOLID.md §4.22` | Cztery pola parsowane i nigdy nieczytane. |
+| ~~`SOLID.md §4.18`~~ | ✅ **2026‑08‑01** (`98ab619`). ⚠️ Stało tu jako otwarte do 2026‑08‑02 — a własna sekcja w `SOLID.md:358` mówi `[NAPRAWIONE 2026‑08‑01]`. Status żył w dwóch miejscach i rozjechał się dokładnie tak, jak przy `A14` o dwa wiersze wyżej. |
+| ~~`SOLID.md §4.22`~~ | ✅ **2026‑08‑01** (`98ab619`, `c39d35b`). Ten sam rozjazd: `SOLID.md:415` mówi `[ROZSTRZYGNIĘTE 2026‑08‑01]`. **Wniosek, trzeci raz ten sam:** tabela ze statusem cudzej pozycji jest długiem — poprawia się sekcję, którą się czyta, nie skrót. Docelowo zostawić tu same odsyłacze, bez kolumny statusu. |
 | ~~`SOLID.md §4.23`~~ | ✅ **2026‑08‑01** — podsumowania liczą się leniwie: 269 → 62 ms blokady przy 190 nagraniach, a liczba parsowań przestała rosnąć z długością listy. |
 | `ROADMAP.md ⏸` | Metryka „Tury” (nieosiągalna z UI, dwa `test.skip`), oś tur i skupienie ognia (napisane, nigdy niewołane), zakładka zakresu (patrz AUDYT‑5, AUDYT‑6). |
 

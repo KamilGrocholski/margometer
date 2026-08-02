@@ -35,7 +35,9 @@ okno walki (DOM)  →  source.ts   → tekst z żywiołami z klas CSS
 
 Poboczne: `recorder.ts` + `archive.ts` (nagrywanie i odtwarzanie walk),
 `roster.ts` (skład z `Engine.battle`, gdy log go nie podaje), `palette.ts`
-(barwy), `window.ts` (geometria okna), `stored-state.ts` (stan z `localStorage`).
+(barwy), `window.ts` (geometria okna), `stored-state.ts` (stan z `localStorage`),
+`confirm.ts` (pytanie „na pewno?" z wygasaniem, wspólne dla panelu i archiwum),
+`version.ts` (numer wersji dla wnętrza bundle'a).
 
 ```bash
 bun install
@@ -118,9 +120,17 @@ najpierw sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.
    pomijana — a odpowiadała na pytania, które mierzyliśmy z korpusu.
 1. **Nowy zrzut walki.** W oknie walki jest przycisk „Kopiuj logi" (tekst) —
    a dla żywiołów potrzebny jest zrzut DOM‑u, bo żywioł siedzi WYŁĄCZNIE w klasie
-   CSS (`dmgf`, `dmgc`, `dmgl`…) i w tekście go nie ma. Stąd fixture'y mają dwa
-   pliki: `raw.txt` i `log.html`. Zrzut trafia do `tests/fixtures/` razem
-   z `meta.json` i od razu wchodzi do wszystkich pętli testowych.
+   CSS (`dmgf`, `dmgc`, `dmgl`…) i w tekście go nie ma. Stąd **nowy fixture ma
+   mieć dwa pliki**: `raw.txt` i `log.html`. Zrzut trafia do `tests/fixtures/`
+   razem z `meta.json` i od razu wchodzi do wszystkich pętli testowych.
+
+   ⚠️ To NORMA, nie opis stanu — stało tu „fixture'y mają dwa pliki" i brzmiało
+   jak fakt (sprostowane 2026‑08‑02). Policzone: na 21 fixture'ów **5 ma oba**
+   pliki, 13 ma sam `raw.txt`, a **3 mają sam `log.html`**
+   (`2026-07-18_lowca-dom-trucizna`, `_mag-dom`, `_mag-dom-fuzja`). Dla tych
+   trzech test różnicowy „HTML daje to samo co tekst" przechodzi PUSTY —
+   `parser.test.ts` ma w środku `if (raw === null) return;`. Zna to `SOLID §10`;
+   tutaj stało zdanie odwrotne.
 2. **Sonda w konsoli gry.** [`tools/engine-probe.js`](../tools/engine-probe.js)
    — wkleja się do konsoli na karcie z grą i pokazuje, co naprawdę siedzi
    w `Engine.battle`. Tak ustalono, że stan klienta **nie** niesie źródła
