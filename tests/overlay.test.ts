@@ -1753,7 +1753,7 @@ describe("nagłówek stron i tempo", () => {
   });
 });
 
-describe("oś tur, zgony i skupienie ognia", () => {
+describe("oś tur", () => {
   const statsFrom = async (name: string) => aggregate(parse(await readFixture(name)));
 
   test("oś tur rozkłada dokładnie tyle obrażeń, ile padło w walce", async () => {
@@ -1771,25 +1771,7 @@ describe("oś tur, zgony i skupienie ognia", () => {
     }
   });
 
-  test("zgon poznajemy po zejściu życia do zera, raz na postać", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-druzyna");
-    expect(stats.deaths.map((d) => d.name)).toEqual(["Locha #1", "Locha #2", "Odyniec"]);
-    // Kolejność jest chronologiczna, a numer tury rośnie.
-    const turns = stats.deaths.map((d) => d.turn);
-    expect([...turns].sort((a, b) => a - b)).toEqual(turns);
-    // Wszyscy trzej stali po stronie przeciwnej.
-    expect(stats.deaths.every((d) => d.side !== 0)).toBe(true);
-  });
 
-  test("macierz zgadza się z sumą zadanych każdej postaci", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_wojownik-vs-druzyna-umiejetnosci");
-    for (const actor of stats.actors) {
-      const fromMatrix = stats.matrix
-        .filter((edge) => edge.source === actor.name)
-        .reduce((sum, edge) => sum + edge.damage, 0);
-      expect(fromMatrix).toBe(actor.damageDealt);
-    }
-  });
 
 
   // Skupienie ognia ("ogień na" / "obrywa") jest ODŁĄCZONE od renderu do czasu

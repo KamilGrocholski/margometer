@@ -506,10 +506,6 @@ export type BattleStats = Aggregate & {
    * osoby, a tu chodzi o oś czasu walki, na której da się zestawić obie strony.
    */
   timeline: TurnSlice[];
-  /** Zgony w kolejności, w jakiej log je ujawnił. */
-  deaths: Death[];
-  /** Kto kogo bił — po jednym wpisie na parę, malejąco po obrażeniach. */
-  matrix: DamageEdge[];
 };
 
 /**
@@ -533,8 +529,6 @@ export const EMPTY_STATS: BattleStats = Object.freeze({
   unknownLines: 0,
   unknownElements: Object.freeze([] as string[]),
   timeline: Object.freeze([] as TurnSlice[]),
-  deaths: Object.freeze([] as Death[]),
-  matrix: Object.freeze([] as DamageEdge[]),
 }) as BattleStats;
 
 /** Jedna tura walki widziana z góry: ile poszło z której strony. */
@@ -546,15 +540,6 @@ export type TurnSlice = {
   side: number | null;
   damage: number;
 };
-
-/**
- * Zgon postaci. Log nie ma osobnej linii „X ginie” — jedynym śladem jest
- * zejście życia do zera, więc śmierć rozpoznajemy po `(0%)` w linii.
- */
-export type Death = { name: string; side: number | null; turn: number };
-
-/** Krawędź „kto kogo”: obrażenia od jednej postaci do drugiej. */
-export type DamageEdge = { source: string; target: string; damage: number };
 
 function blank(name: string): ActorStats {
   return {
@@ -737,31 +722,6 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     slice.damage += amount;
   };
 
-  /**
-   * Kto komu ile zadał. Klucz sklejamy znakiem, który nie pada w nazwach
-   * postaci — nick z myślnikiem czy kropką rozbiłby prostszy separator.
-   */
-  const edges = new Map<string, DamageEdge>();
-  const addEdge = (source: string, target: string, amount: number) => {
-    const key = `${source}\u0000${target}`;
-    const edge = edges.get(key) ?? { source, target, damage: 0 };
-    edge.damage += amount;
-    edges.set(key, edge);
-  };
-
-  const deaths: Death[] = [];
-  const fallen = new Set<string>();
-  /**
-   * Śmierć poznajemy po zejściu życia do zera — log nie ma linii „X ginie”.
-   * Notujemy raz: kolejne linie martwej postaci (DoT dobijający do 0%) nie są
-   * drugim zgonem.
-   */
-  const observeDeath = (key: string, hpPct: number | null) => {
-    if (hpPct === null || hpPct > 0 || fallen.has(key)) return;
-    fallen.add(key);
-    deaths.push({ name: key, side: null, turn: Math.max(1, timeline.length) });
-  };
-
   let lastActor: string | null = null;
   const beginTurn = (actor: string) => {
     if (actor === lastActor) return;
@@ -809,10 +769,6 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         const sourceKey = resolve(event.source, event.sourceHpPct);
         const targetKey = resolve(event.target, event.targetHpPct);
         beginTurn(sourceKey);
-        // Obie strony ciosu niosą procent życia, więc obie mogą ujawnić zgon:
-        // atakujący dobity DoT-em przed swoją turą i cel, który właśnie padł.
-        observeDeath(sourceKey, event.sourceHpPct);
-        observeDeath(targetKey, event.targetHpPct);
         const source = get(sourceKey);
         const target = get(targetKey);
         // Obie liczby ciosu idą pod jedną nazwę — to jedna akcja, nie dwie.
@@ -872,7 +828,6 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           // wpadnie tu i tak, a `superCrits > crits` zapali test niezmiennika.
           if (hit.superCrit) source.superCrits += 1;
           addToTurn(hit.applied);
-          addEdge(sourceKey, targetKey, hit.applied);
 
           addDamage(breakdownOf(sourceKey).dealt, label, hit.applied);
           // Po stronie otrzymanych liczy się i kto uderzył, i czym.
@@ -992,10 +947,8 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
           const full = Math.round(event.amount / (1 - weakened / 100));
           get(targetKey).damageWeakened += full - event.amount;
         }
-        observeDeath(targetKey, event.targetHpPct);
         // DoT tyka między turami, więc trafia do tury, która właśnie trwa.
         addToTurn(event.amount);
-        if (source) addEdge(source, targetKey, event.amount);
         // Każde tyknięcie DoT-u to osobne wystąpienie — tu, w odróżnieniu od
         // ciosu, jedna linia niesie dokładnie jedną liczbę.
         const owner = source ?? UNATTRIBUTED_SOURCE;
@@ -1148,7 +1101,6 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
   // skład bywa jeszcze nieznany, bo postać potrafi wejść do logu później.
   const sideOf = (name: string) => actors.get(name)?.side ?? null;
   for (const slice of timeline) slice.side = sideOf(slice.actor);
-  for (const death of deaths) death.side = sideOf(death.name);
 
   // Ta sama zasada dla trucizny bez sprawcy: skoro wiadomo, KOMU tyka, to przy
   // filtrze składu przypis ma iść za poszkodowanym, a nie wisieć przy każdej
@@ -1194,8 +1146,6 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     unknownLines,
     unknownElements: [...unknownElements].sort(),
     timeline,
-    deaths,
-    matrix: [...edges.values()].sort((a, b) => b.damage - a.damage),
   };
 }
 

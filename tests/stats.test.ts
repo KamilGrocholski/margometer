@@ -155,8 +155,6 @@ describe("EMPTY_STATS jest współdzielonym singletonem", () => {
     // Zamrożenie obiektu jest płytkie, więc tablice osobno.
     expect(Object.isFrozen(EMPTY_STATS.actors)).toBe(true);
     expect(Object.isFrozen(EMPTY_STATS.timeline)).toBe(true);
-    expect(Object.isFrozen(EMPTY_STATS.deaths)).toBe(true);
-    expect(Object.isFrozen(EMPTY_STATS.matrix)).toBe(true);
     expect(Object.isFrozen(EMPTY_STATS.unattributedDotDamage)).toBe(true);
   });
 
