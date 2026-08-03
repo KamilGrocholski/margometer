@@ -28,6 +28,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Zmiana** — Skopiowane statystyki opisują już tylko tę jedną walkę, na którą
+  patrzysz. Wcześniej doklejała się do nich suma wszystkich walk od włączenia
+  gry — liczba, której panel nigdzie nie pokazywał i o której nie było jak się
+  dowiedzieć inaczej niż wklejając skopiowany tekst gdzieś indziej.
+
 ## [0.4.0] — 2026-08-03
 
 - **Nowość** — Panel pokazuje numer wersji dodatku, a skopiowane statystyki

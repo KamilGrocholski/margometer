@@ -61,7 +61,7 @@ describe("przypisanie kolorów", () => {
       parse(await readFixture("new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa")),
     );
     const overlay = new Overlay();
-    overlay.render(stats, stats);
+    overlay.render(stats);
 
     const rows = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row")].map((row) => ({
       actor: row.dataset.actor!,
@@ -89,7 +89,7 @@ describe("przypisanie kolorów", () => {
       parse(await readFixture("new-engine/2026-08-01_druzyna-vs-hildur-trzeci-sklad")),
     );
     const overlay = new Overlay();
-    overlay.render(stats, stats);
+    overlay.render(stats);
 
     let checked = 0;
     for (const row of overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")) {
@@ -126,7 +126,7 @@ describe("przypisanie kolorów", () => {
     const panelOf = async (fixture: string) => {
       const stats = aggregate(parse(await readFixture(`new-engine/${fixture}`)));
       const overlay = new Overlay();
-      overlay.render(stats, stats);
+      overlay.render(stats);
       return { overlay, stats };
     };
     const rows = (overlay: Overlay, selector: string) => [
@@ -290,7 +290,7 @@ describe("przypisanie kolorów", () => {
       parse(await readFixture("new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa")),
     );
     const overlay = new Overlay();
-    overlay.render(stats, stats);
+    overlay.render(stats);
 
     // Trzy komórki i ani jednej więcej. Poziom i profesja NIE stoją w wierszu —
     // przy czwartej kolumnie pasek zaczyna się czytać jak wiersz tabeli, a bez
@@ -326,7 +326,7 @@ describe("przypisanie kolorów", () => {
     ).text();
     const stats = aggregate(parse(extractText(document.body)));
     const overlay = new Overlay();
-    overlay.render(stats, stats);
+    overlay.render(stats);
 
     const rows = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row")];
     const colors = new Set(rows.map((row) => row.querySelector<HTMLElement>(".bar")!.style.background));
@@ -342,7 +342,7 @@ describe("przypisanie kolorów", () => {
     ).text();
     const stats = aggregate(parse(extractText(document.body)));
     const overlay = new Overlay();
-    overlay.render(stats, stats);
+    overlay.render(stats);
 
     const asStyle = (color: string) => {
       const probe = document.createElement("div");
@@ -387,7 +387,7 @@ describe("przypisanie kolorów", () => {
     ).text();
     const stats = aggregate(parse(extractText(document.body)));
     const overlay = new Overlay();
-    overlay.render(stats, stats);
+    overlay.render(stats);
 
     const asStyle = (color: string) => {
       const probe = document.createElement("div");
@@ -435,7 +435,7 @@ describe("przypisanie kolorów", () => {
     const seen: string[] = [];
     for (const [enemy, code] of [["A", "w"], ["B", "p"], ["C", "t"], ["D", "h"], ["E", "b"]]) {
       const stats = line(enemy!, code!);
-      overlay.render(stats, stats);
+      overlay.render(stats);
       const row = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row")].find(
         (candidate) => candidate.dataset.actor === enemy,
       )!;

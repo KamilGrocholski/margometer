@@ -10,7 +10,6 @@ import {
   totalBySide,
   type Aggregate,
 } from "../src/stats.ts";
-import { Session } from "../src/session.ts";
 import { dotLabel, typeDisplay, type AttackerBreakdown } from "../src/types.ts";
 import { extractText } from "../src/source.ts";
 import { EngineRosterSource, type RosterEntry } from "../src/roster.ts";
@@ -750,17 +749,6 @@ describe("niezmienniki liczb", () => {
     });
   });
 
-  test("te same niezmienniki trzymają po scaleniu całej sesji", async () => {
-    // Najostrzejszy przypadek scalania: wszystkie walki korpusu w jednej sesji.
-    const session = new Session();
-    const texts: string[] = [];
-    for (const fixture of fixtures) texts.push(await fixture.text());
-    session.update(texts.join("\n"));
-
-    const total = session.total();
-    expect(total.actors.length).toBeGreaterThan(0);
-    expect(mismatches(total)).toEqual([]);
-  });
 });
 
 /**

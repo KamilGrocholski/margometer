@@ -7,7 +7,6 @@ import {
   UNATTRIBUTED_SOURCE,
   type BattleStats,
   type BySide,
-  type SessionStats,
 } from "./stats.ts";
 import { STYLE } from "./style.ts";
 import { PROFESSIONS, type ActorStats, type AttackerBreakdown } from "./types.ts";
@@ -713,13 +712,8 @@ export class Overlay {
    * umiejętności, a drugi szczebel renderuje się dla każdej z nich inaczej.
    */
   private focusKind: DrillKind | null = null;
-  /**
-   * Ostatnio podane statystyki. Sesja jako FUNKCJA, nie gotowa wartość:
-   * `mergeStats` głęboko kopiuje i sortuje każde rozbicie każdej postaci,
-   * a panel nie pokazuje dziś sumy sesji — czyta ją tylko przycisk kopiowania.
-   * Liczenie jej przy każdej linii logu było pracą w wątku gry na nic.
-   */
-  private latest: { fight: BattleStats; session: () => SessionStats } | null = null;
+  /** Ostatnio podane statystyki bieżącej walki. */
+  private latest: { fight: BattleStats } | null = null;
   /**
    * Tury całej walki — dzielnik dla metryk, których nie bierze się we własnej
    * turze (patrz `turnsFor`). Trzymane w polu, bo potrzebuje go kilka metod
@@ -886,22 +880,20 @@ export class Overlay {
   }
 
   /**
-   * Pierwszy argument to JEDNA walka, drugi — suma sesji, i te typy są RÓŻNE.
+   * Jedyny argument to JEDNA walka — ta, o której panel mówi.
    *
-   * Panel rysuje wyłącznie `fight`: czyta z niego oś tur (`fightTurns`), której
-   * suma sesji nie ma i mieć nie może. Gdyby oba argumenty były tym samym
-   * typem, podanie sumy jako pierwszego skompilowałoby się i po cichu wyzerowało
-   * tryb „na turę” dla przyjętych i leczenia. `SessionStats` to uniemożliwia.
+   * Stał tu drugi, suma sesji, i miał WŁASNY typ `SessionStats`, żeby podanie
+   * sumy jako pierwszego się nie skompilowało: suma nie ma osi tur, więc
+   * wyzerowałaby `fightTurns`, a to po cichu psuje tryb „na turę" dla
+   * przyjętych i leczenia. Mina zniknęła razem z sumą (`AUDYT‑6`) — nie ma
+   * czego pomylić, więc nie ma czego pilnować typem.
    */
-  render(fight: BattleStats, session: SessionStats | (() => SessionStats)): void {
-    this.latest = { fight, session: typeof session === "function" ? session : () => session };
+  render(fight: BattleStats): void {
+    this.latest = { fight };
     // Akcje należą do TEJ wersji panelu: co render buduje, to render rejestruje.
     // Bez czyszczenia zostałaby tu obsługa przycisków, których już nie ma —
     // choćby „na żywo” po zamknięciu podglądu.
     this.actions.clear();
-    // Sesja jest liczona i pamiętana, ale nie ma dziś zakładki, która by ją
-    // pokazała — panel mówi zawsze o bieżącej walce.
-    //
     // Wczytana walka przykrywa bieżącą, ale jej nie zatrzymuje: `latest` idzie
     // dalej i po zamknięciu podglądu panel wraca do tego, co zdążyło się
     // wydarzyć w międzyczasie.
@@ -1333,9 +1325,10 @@ export class Overlay {
    * wyglądał tak samo, mówił to samo, a kopiował co innego niż to, na co
    * patrzysz — i dowiadywałeś się o tym dopiero po wklejeniu.
    *
-   * W podglądzie nie ma też sumy sesji: nagranie z archiwum ani wklejony log
-   * nie są jej częścią, więc dokładanie jej obok znaczyłoby, że te liczby się
-   * ze sobą wiążą. `source` mówi wprost, na co się patrzy.
+   * Stał tu obok klucz `session` z sumą wszystkich walk. Zdjęty 2026‑08‑03
+   * razem z samą sumą (`AUDYT‑6`): był jej JEDYNYM wyjściem do użytkownika,
+   * a `aria-label` przycisku mówił tylko „Kopiuj statystyki (JSON)", więc
+   * nawet nie było wiadomo, że tam jest.
    */
   private statsJson(): string {
     const preview = this.preview;
@@ -1348,7 +1341,6 @@ export class Overlay {
         at: new Date().toISOString(),
         source: preview ? preview.view.source : "na żywo",
         fight: preview ? preview.stats : (this.latest?.fight ?? null),
-        session: preview ? null : (this.latest?.session() ?? null),
       },
       null,
       2,
@@ -2756,8 +2748,7 @@ export class Overlay {
   private rerender(): void {
     // Pusty komplet, gdy nic jeszcze nie przyszło z gry: podgląd z archiwum
     // i przycisk ▤ muszą dać się narysować przed pierwszą walką.
-    const latest = this.latest ?? { fight: EMPTY_STATS, session: () => EMPTY_STATS };
-    this.render(latest.fight, latest.session);
+    this.render(this.latest?.fight ?? EMPTY_STATS);
   }
 
   private makeDraggable(handle: HTMLElement): void {

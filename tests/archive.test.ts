@@ -196,7 +196,7 @@ describe("wczytywanie walki do panelu", () => {
       (el) => el.textContent,
     );
     // Gra leci dalej — panel ma pokazywać nagranie mimo świeżych danych.
-    overlay.render(live, live);
+    overlay.render(live);
     expect([...overlay.shadow.querySelectorAll(".rows .row .label")].map((el) => el.textContent))
       .toEqual(previewed);
 

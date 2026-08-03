@@ -46,9 +46,7 @@ export function start(
       // Skład czytamy przy każdej zmianie logu, nie raz na starcie: gra
       // podmienia `battle` między walkami, a odczyt jest tani i defensywny.
       session.update(text, roster?.current());
-      // Sumę sesji podajemy jako funkcję: policzy się dopiero, gdy ktoś jej
-      // zażąda (dziś tylko przycisk kopiowania), a nie przy każdej linii logu.
-      overlay.render(session.current(), () => session.total());
+      overlay.render(session.current());
     } catch (error) {
       console.error("[MargoMeter] licznik padł na tej porcji logu", error);
     }
@@ -135,7 +133,7 @@ export function boot(options: BootOptions = {}): () => void {
       overlay = new Overlay({ storage, recorder });
       // Panel rysujemy PRZED czymkolwiek dodatkowym. Licznik jest produktem,
       // archiwum dodatkiem — i to dodatek ma paść pierwszy, jeśli coś pójdzie źle.
-      overlay.render(EMPTY_STATS, EMPTY_STATS);
+      overlay.render(EMPTY_STATS);
       try {
         // Archiwum rysuje się w shadow roocie overlaya, więc powstaje po nim, a nie
         // w jego opcjach.

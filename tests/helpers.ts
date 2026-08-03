@@ -14,21 +14,6 @@ export const number = new Intl.NumberFormat("pl-PL");
 /** Musi się zgadzać z formatem tempa w `overlay.ts`. */
 export const rate = new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 1 });
 
-/**
- * Suma WSZYSTKICH liczb w dowolnie zagnieżdżonej strukturze.
- *
- * Służy strażnikowi sumowania sesji: dzięki temu, że nie wie nic o kształcie
- * `ActorStats`, obejmuje także pola, których jeszcze nie ma.
- */
-export const deepSum = (value: unknown): number => {
-  if (typeof value === "number") return value;
-  if (Array.isArray(value)) return value.reduce((sum: number, item) => sum + deepSum(item), 0);
-  if (value && typeof value === "object") {
-    return Object.values(value).reduce((sum: number, item) => sum + deepSum(item), 0);
-  }
-  return 0;
-};
-
 // Pasek niesie numer, nazwę i JEDNĄ liczbę wiodącą, a reszta (udział, druga
 // miara) siedzi w nawiasie WEWNĄTRZ tej liczby — nie w osobnej kolumnie. Stąd
 // te dwa helpery: `.value` bez czytania firstChild dałoby liczbę razem
