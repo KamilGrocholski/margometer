@@ -30,6 +30,8 @@ zrobionych nie wracają tutaj — siedzą w `UX-POPRAWKI.md` i `SOLID.md`.
   (`procs`, `procsReceived` liczone dla obu stron), brakuje decyzji, czy to
   w ogóle ma być osobny widok, czy dymek wystarczy. Zderzyć z zasadą „nie robić
   trzeciego rzędu zakładek” (`UX.md §6`).
+  ⚠️ Od 2026‑08‑03 dymek ma pięć sekcji (doszło TOP‑3 rozbicia), więc argument
+  „dymek wystarczy” jest mocniejszy niż był — ale i sam dymek bliżej sufitu.
 
 ## Poza pierwotną roadmapą — zrobione
 - ✅ **Rozbicie wg umiejętności, bez względu na cel** (`CZYM (ŁĄCZNIE)`) wraz
@@ -40,32 +42,37 @@ zrobionych nie wracają tutaj — siedzą w `UX-POPRAWKI.md` i `SOLID.md`.
 - ✅ Archiwum walk + wczytanie nagrania do GŁÓWNEGO panelu (pełne drążenie)
 - ✅ Odtwarzanie walki linia po linii, z pauzą, przewijaniem i prędkością
 - ✅ Ręczne wklejenie logu
-- ✅ Kopiowanie statystyk (walka + sesja) jako JSON
-  ⚠️ suma sesji ma dziś błędne `dealtToBy` — `SOLID.md §4.11`
+- ✅ Kopiowanie statystyk walki jako JSON
+  ⚠️ do 2026‑08‑03 szło tam też „+ sesja”, z błędnym `dealtToBy` (`SOLID §4.11`,
+  naprawione 2026‑07‑30). Cała suma sesji zeszła z drzewa — `AUDYT‑6`.
 - ✅ Rozbicie obrażeń wg typu + kolory i odznaki profesji
 - ✅ Skalowanie i zapamiętywanie geometrii okna
   ⚠️ bez przycięcia do ekranu, czyli można je stracić — `UX-POPRAWKI.md A10`
 
-## Wstrzymane (nie porzucone)
-- ⏸ **Metryka „Tury”** — typ `Metric` i etykieta zostają, ale `METRICS` ma trzy
-  pozycje, więc zakładki nie ma. `turnRows` (jej rozbicie w dymku) **zdjęte
-  z drzewa 2026‑07‑31** razem z dwoma `test.skip`, które trzymały je przy
-  pozorach życia. Kod stoi w historii: ostatnia wersja z nim to `95d02d7`.
-  Do rozstrzygnięcia: dokończyć albo odpuścić. Wcześniej dochodziła do tego
-  obietnica w `CHANGELOG.md` 0.1.0 — plik został usunięty z repo 2026‑07‑31,
-  więc sama obietnica zniknęła, ale **pytanie o metrykę zostaje**: nie jest
-  załatwione tym, że nikt jej już nikomu nie obiecuje.
-- ⏸ **Oś tur i skupienie ognia** — `renderAxis`/`renderFireFocus` **zdjęte
-  z drzewa 2026‑07‑31** wraz z ich CSS-em i dwoma zielonymi testami, które
-  asertowały, że ich nie widać. Nie porzucone: kod stoi w historii, ostatnia
-  wersja z nim to `95d02d7`, i wraca w komplecie, gdy zapadnie decyzja, CO ma
-  pokazywać. Powód zdjęcia: `noUnusedLocals` jest odtąd włączone i martwy kod
-  jest błędem kompilacji, a kompilator pilnujący tego jest wart więcej niż trzy
-  metody czekające w drzewie.
-  ⚠️ `stats.deaths` i `stats.matrix` liczą się dalej, ale od tej pory nie czyta
-  ich NIC poza testami — patrz `AUDYT.md AUDYT‑25`.
-- ⏸ **Zakładka zakresu (ta walka / sesja)** — `Session.total()` i `mergeStats`
-  liczą się przy każdej linii dla widoku, którego nie ma (`SOLID.md §4.25`).
+## Porzucone (2026‑08‑03)
+
+Sekcja nazywała się do 2026‑08‑03 **„Wstrzymane (nie porzucone)”** i wszystkie
+trzy pozycje stały tu z `⏸`. Decyzja właściciela repo zamienia je na `❌`: żadna
+nie wraca, a kod i dane, które na nie czekały, zeszły z drzewa. Zapis o tym, że
+były wstrzymane, zostaje — pokazuje, ile taka pozycja potrafi kosztować, zanim
+ktoś ją rozstrzygnie.
+- ❌ **Metryka „Tury” — ODPUSZCZONA 2026‑08‑03.** `"turns"` zeszło z typu
+  `Metric` i z obu map etykiet; `turnRows` zszedł już 2026‑07‑31 (`95d02d7`).
+  Tury i tury utracone zostają w dymku i tam odpowiadają na swoje pytanie,
+  a średnia na turę stoi w każdym wierszu — czwarta zakładka nie miała czego
+  dołożyć. Kod wraca z historii, gdyby decyzja się odwróciła.
+- ❌ **Oś tur i skupienie ognia — PORZUCONE 2026‑08‑03.** Renderery zeszły
+  z drzewa już 2026‑07‑31 (`95d02d7`) i czekały na decyzję „CO mają pokazywać”.
+  Decyzja: nie wracają. Razem z nimi poszły **`stats.deaths` i `stats.matrix`**,
+  które od tamtej pory liczyły się dla nikogo (`AUDYT‑25`) — wraz z typami
+  `Death` i `DamageEdge` oraz całym `observeDeath`.
+  ⚠️ Zapis „nie porzucone, wraca w komplecie” stał tu przez trzy dni i był
+  szczery, ale to właśnie taka pozycja najdłużej udaje plan: kod nie kosztował
+  nic, a jego DANE liczyły się przy każdej walce.
+- ❌ **Zakładka zakresu (ta walka / sesja) — PORZUCONA 2026‑08‑03.**
+  `Session.total()` i `mergeStats` zeszły z drzewa razem z nią (`AUDYT‑6`);
+  `src/session.ts` skurczył się z 362 do 88 linii. Panel mówi wyłącznie
+  o bieżącej walce, a skopiowany JSON też.
 
 ## Do zbadania osobno — leczenie „od kogo”
 Wyleczone mają mieć drill „wg postaci” jak zadane/otrzymane, ale PYTANIE, CZY SIĘ DA.
@@ -92,7 +99,10 @@ w `meta.json`, zweryfikowany po `covers`:
   sprawdzone tylko na ręcznie pisanych stringach (`SOLID.md §4.8`);
 - **walka z przyciętym nagłówkiem** — rozstrzyga, czy `SOLID.md §4.12` (sumy
   maleją) jest realne, czy `merge` w nagrywarce broni przed czymś, czego nie ma;
-- **`Zablokowanie N obrażeń` na ścieżce DOM** (w tekście jest);
+- ~~**`Zablokowanie N obrażeń` na ścieżce DOM**~~ — **skreślone 2026‑08‑03:**
+  zamknięte 2026‑08‑01, `2026-08-01_druzyna-vs-hildur-drugi-sklad` dostał
+  `log.html` (`SOLID §10`). Ten plik trzymał to jako brak trzy dni dłużej —
+  status żyjący w dwóch miejscach, po raz kolejny.
 - ~~**remis**~~ — **skreślone 2026‑08‑01, bo było nieprawdą.** „Walka nie
   wyłoniła zwycięzcy” występuje w `2026-07-18_tancerz-vs-kukla/raw.txt:36`
   i `2026-07-18_tropiciel-vs-kukla/raw.txt:31`. Skąd błąd i jak go nie powtórzyć

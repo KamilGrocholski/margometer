@@ -10,8 +10,10 @@ pozwala.
 - **Brama przed commitem:** `bun run check`. Sam `bun test` nie wystarcza —
   build składa userscript i potrafi paść osobno.
 - **Plan mode przy zmianach w `src/parser.ts`, `src/stats.ts` i `src/types.ts`.**
-  Tam mieszka kontrakt danych: jedno pole dopisane do typu i zapomniane
-  w `mergeStats` daje liczby, które cicho maleją. Zdarzyło się dwa razy.
+  Tam mieszka kontrakt danych, a pole dopisane do typu i zapomniane gdzie indziej
+  daje liczby, które cicho maleją. Zdarzyło się to dwa razy w `mergeStats` —
+  funkcja zeszła z drzewa 2026‑08‑03 razem z sumą sesji (`AUDYT‑6`), ale reguła
+  zostaje: to typ jest tu obietnicą, a nie kod, który akurat go czyta.
 - **Zdania o mechanice gry** przechodzą przez `docs/MECHANIKA.md`, także te
   negatywne. Szczegóły w `AGENTS.md`; procedura ładuje się sama przy plikach,
   których dotyczy (`.claude/rules/mechanika-gry.md`).

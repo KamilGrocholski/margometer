@@ -61,10 +61,13 @@ aktualizować albo nie startuje, bez ani jednego komunikatu. Wszystkie poza
 rundzie. Dwie z nich — `53` i `54` — to **regresje rundy `c39d35b`**, znów
 znalezione po commicie; zasada „przegląd PRZED commitem" ma teraz trzeci dowód.
 
-Otwarte zostają trzy pozycje: `AUDYT‑6` (suma sesji bez wyjścia w UI — brak
-specu, nie kodu) i `AUDYT‑25` (`deaths`/`matrix` bez odbiorcy — spięte
-z `ROADMAP ⏸`), obie czekające na decyzję właściciela repo, oraz `AUDYT‑52`
-(nieaktualne zrzuty w `README`), czekające na wejście do gry.
+**Zamknięte 2026‑08‑03:** `AUDYT‑6` i `AUDYT‑25` — obie **przez USUNIĘCIE, nie
+przez wykonanie**. Czekały na decyzję właściciela repo i decyzja brzmiała: suma
+sesji, oś tur i skupienie ognia są porzucone. Wykonanie odbiegło przez to od
+propozycji zapisanej przy obu wpisach; jest to przy nich powiedziane wprost.
+
+Otwarta zostaje **jedna** pozycja: `AUDYT‑52` (nieaktualne zrzuty w `README`),
+czekająca na wejście do gry.
 Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
@@ -331,7 +334,7 @@ i zamrożone wraz z tablicami.
 **Docelowo.** → `SOLID.md` jako `§5` (mapowanie) + nowy refaktor `R9`; jest
 warunkiem wejścia dla AUDYT‑6
 
-### AUDYT‑6 — Suma sesji nie ma żadnego wyjścia w UI 🟡 M — brak specu ✓
+### AUDYT‑6 — Suma sesji nie ma żadnego wyjścia w UI ✅ ZAMKNIĘTE 2026‑08‑03 ✓
 `src/overlay.ts:1378` (`statsJson`), `:975-990`, `src/session.ts:299` (`total`),
 `docs/ROADMAP.md:52`
 
@@ -364,8 +367,29 @@ je w `UX.md` jako nową sekcję §8 „Zakres — ta walka / sesja”:
    zakładka je chowa czy pokazuje puste.
 **Koszt M**, z czego kod to mniejsza część.
 
-**Docelowo.** → nowa sekcja `§8` w `UX.md` (spec) + `ROADMAP.md` zdejmuje `⏸`
-dopiero po niej
+**Zrobione — INACZEJ, niż mówi propozycja wyżej.** Wpis kazał najpierw napisać
+spec `UX.md §8`, a potem rysować. Właściciel repo rozstrzygnął odwrotnie:
+**zakładki nie będzie, a suma sesji wychodzi z kodu.** Zamknięcie przez
+usunięcie, nie przez wykonanie.
+
+Co zeszło z drzewa: `mergeStats` (~100 linii) wraz z pięcioma pomocnikami
+scalania i `copyActor`, pola `archivedTotal`/`totalStats`/`active`, `total()`,
+`reset()`, typ `SessionStats`, drugi argument `Overlay.render` i klucz `session`
+w JSON‑ie ze schowka. `src/session.ts`: **362 → 88 linii**.
+
+Uzasadnienie, które warto zapamiętać: ta funkcja miała JEDNO wyjście do
+użytkownika i było nim to, na co narzeka akapit „Problem" — klucz w JSON‑ie
+przy przycisku, który o nim nie mówi. Płaciła natomiast całkiem sporo kodu
+i to on generował usterki: `§4.11`, `AUDYT‑37`, `AUDYT‑5`. **Funkcja bez
+wyjścia w UI nie jest tania dlatego, że nikt jej nie widzi — jest droga
+dokładnie z tego powodu:** żaden z tych trzech błędów nie objawił się
+użytkownikowi, każdy znalazł audyt i każdy kosztował rundę.
+
+Kaskada: `SOLID R3` (deklaratywny `mergeStats`) stał się bezprzedmiotowy,
+`R1` stracił połowę uzasadnienia, `ROADMAP ⏸ „Zakładka zakresu"` schodzi.
+Kod wraca z historii, gdyby decyzja się odwróciła.
+
+**Docelowo.** → zamknięte tutaj; `ROADMAP.md` zdjął `⏸`
 
 ### AUDYT‑7 — `unattributedHealing` liczone, sumowane i nigdy niepokazane ❌ ODRZUCONE
 `src/stats.ts:798`, `src/session.ts:166`; **zero odwołań w `overlay.ts`**
@@ -1000,7 +1024,7 @@ obowiązuje wszystkich.
 
 ---
 
-### AUDYT‑25 — `deaths` i `matrix` liczone dla nikogo ⚪ S — nowe ✓
+### AUDYT‑25 — `deaths` i `matrix` liczone dla nikogo ✅ ZAMKNIĘTE 2026‑08‑03 ✓
 `src/stats.ts` (`aggregate`), zero odczytów w `src/` poza testami
 
 **Problem.** Po zdjęciu `renderAxis`/`renderFireFocus` (`AUDYT‑24`) pola
@@ -1022,7 +1046,23 @@ albo wraca cała funkcja i pola mają odbiorcę, albo znika i pola idą za nią.
 Do tego czasu zostaje to zapisane tutaj, żeby nie wyglądało na przeoczenie.
 **Koszt S**, ale zablokowane decyzją.
 
-**Docelowo.** → `SOLID.md` `§9`, razem z resztą uśpionego kodu
+**Zrobione.** Warunek zdjęcia był w propozycji postawiony wprost („albo wraca
+cała funkcja i pola mają odbiorcę, albo znika i pola idą za nią") i właściciel
+repo wybrał drugie: **oś tur i skupienie ognia są porzucone, nie wstrzymane.**
+
+Ze `stats.ts` zeszły oba pola, ich zaślepki w `EMPTY_STATS`, typy `Death`
+i `DamageEdge`, mapa `edges` z `addEdge`, `observeDeath` z `fallen` i wszystkie
+wywołania — 50 linii. `sourceHpPct`/`targetHpPct` ZOSTAJĄ (czyta je
+`instanceResolver`, rozdzielając duplikaty nazw po rosnącym życiu) i `timeline`
+też (liczy tury dla panelu i archiwum) — jedno i drugie sprawdzone przed
+usunięciem, nie po.
+
+Niezmienniki przeliczone po zmianie na całym korpusie tekstowym: zero rozjazdów.
+`Σ timeline == Σ zadanych` jest tu strażnikiem nieprzypadkowym — `addToTurn`
+i `addEdge` stały obok siebie w dwóch miejscach, więc cięcie o linijkę za dużo
+by go zapaliło.
+
+**Docelowo.** → zamknięte tutaj; `ROADMAP.md` zdjął `⏸`
 
 ---
 

@@ -659,8 +659,19 @@ stron, `estimateMaxHp` tylko w testach, niesprzątany `setInterval`, twarde
 ## Przegląd kodu — 2026-07-19
 
 Pełny przegląd modułów. Każdy punkt odtworzony uruchomieniem kodu na fixture'ach
-albo na scenariuszu syntetycznym; przy każdym stoi, jak się go wywołuje. Punkty
-oznaczone **[otwarte]** nie są naprawione.
+albo na scenariuszu syntetycznym; przy każdym stoi, jak się go wywołuje.
+
+⚠️ **Nagłówki `[otwarte]` w tej sekcji KŁAMIĄ i tak zostają — świadomie.**
+Znaczyły „nie naprawione” w dniu przeglądu (2026‑07‑19), a nie „nie naprawione
+dziś”; większość tych punktów została od tamtej pory zamknięta, każdy w swoim
+rejestrze. Aktualny stan czyta się z `AUDYT.md`, `SOLID.md` i `ROADMAP.md`, nie
+stąd. **Zmiana ich na `[historyczne]` byłaby czwartym miejscem, w którym żyje
+ten sam status** — a to jest dokładnie ta pomyłka, którą repo złapało u siebie
+pięć razy (`AUDYT‑46`, `AUDYT‑47`, `SOLID §10`, `§11` i właśnie tu).
+
+Punkty zamknięte oznaczam więc **przy nich samych**, przekreśleniem i datą, gdy
+akurat po nie sięgam — a nie przepisywaniem nagłówków. Ten akapit istnieje po
+to, żeby nikt nie wziął tej sekcji za listę zadań; brano ją tak co najmniej raz.
 
 Trzy rzeczy naprawiono od razu, bo psuły licznik u użytkownika — opis niżej,
 w sekcji „Naprawione".
@@ -771,15 +782,16 @@ pojedynczej emisji rośnie z 6,6 ms (linia 250) do 13,2 ms (linia 1250). Do tego
 `showTip` po każdym renderze woła `getBoundingClientRect()` tuż po podmianie
 poddrzewa, czyli wymusza layout na każdą linię.
 
-**Metryka „Tury" jest nieosiągalna z UI.** Typ `Metric` ją zawiera,
-`METRIC_LABELS` ma etykietę, `turnRows()` renderuje jej rozbicie — ale `METRICS`
-(`overlay.ts:23`) wymienia trzy pozycje i zakładka nigdy się nie rysuje. Dwa
-testy tej funkcji stoją na `test.skip`. To funkcja porzucona w połowie, nie
-przeoczenie.
+**~~Metryka „Tury" jest nieosiągalna z UI.~~ ZAMKNIĘTE 2026‑08‑03 — odpuszczona.**
+Opis był trafny („funkcja porzucona w połowie, nie przeoczenie") i tak też
+została rozstrzygnięta: `"turns"` zeszło z typu `Metric`, `turnRows()` z drzewa
+już 2026‑07‑31. Tury i tury utracone zostają w dymku.
 
-**Sesja jest liczona i nigdy nie pokazywana.** `Session.total()` i cała
-`mergeStats` (~100 linii) działają, ale overlay nie ma zakładki zakresu —
-`render()` przyjmuje `session` i tylko oddaje go sam sobie przy rerenderze.
+**~~Sesja jest liczona i nigdy nie pokazywana.~~ ZAMKNIĘTE 2026‑08‑03 —
+usunięta.** `Session.total()`, `mergeStats` i drugi argument `render()` zeszły
+z drzewa (`AUDYT‑6`). Zdanie „liczona i nigdy nie pokazywana" stało tu od
+2026‑07‑19 i przez ten czas ta funkcja zdążyła wygenerować trzy usterki
+(`§4.11`, `AUDYT‑37`, `AUDYT‑5`), z których żadnej nie zobaczył użytkownik.
 
 **`maxHit` wlicza obrażenia własne umiejętności.** `stats.ts:518` — `types.ts`
 definiuje je jako „najsilniejszy pojedynczy **cios**", a liczone są też zdarzenia

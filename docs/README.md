@@ -29,7 +29,7 @@ Potok w jednym zdaniu:
 okno walki (DOM)  →  source.ts   → tekst z żywiołami z klas CSS
                   →  parser.ts   → BattleEvent[]  (maszyna stanów, linia po linii)
                   →  stats.ts    → BattleStats    (agregacja, rozbicia, instancje)
-                  →  session.ts  → suma walk
+                  →  session.ts  → podział bufora na walki; która z nich jest TĄ
                   →  overlay.ts  → panel w Shadow DOM
 ```
 

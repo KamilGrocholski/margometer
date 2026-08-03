@@ -69,6 +69,7 @@ później. Kod mówi, co wybrano; nie mówi, czego nie wybrano i dlaczego.
 |---|---|
 | [`2026-08-02-jednolity-wyglad-wiersza.md`](2026-08-02-jednolity-wyglad-wiersza.md) | wdrożone · 2026‑08‑02 |
 | [`2026-08-03-parser-tokenizer-i-gramatyka.md`](2026-08-03-parser-tokenizer-i-gramatyka.md) | projekt |
+| [`2026-08-03-porzucone-funkcje-schodza-z-drzewa.md`](2026-08-03-porzucone-funkcje-schodza-z-drzewa.md) | wdrożone · 2026‑08‑03 |
 
 Tabelę uzupełnia się ręcznie przy dodaniu pliku.
 

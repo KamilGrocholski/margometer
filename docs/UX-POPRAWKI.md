@@ -5,7 +5,8 @@ siedzi w [`UX.md`](UX.md). Tu zbieram, **co da się poprawić**, po zwrocie za
 pracę. Podzielone na: **A. usterki widoczne dla użytkownika** oraz **B. nowe
 wygody** (czego brakuje).
 
-Statusy zweryfikowane na bieżącym kodzie **2026‑07‑30**, `A14` domknięte **2026‑08‑01**, każdy odczytem
+Statusy zweryfikowane na bieżącym kodzie **2026‑07‑30**, `A14` domknięte
+**2026‑08‑01**, `B4` i `B5` — **2026‑08‑03**; każdy odczytem
 wskazanego miejsca. `A1`–`A6` naprawiono wcześniej; `A7`–`A15` wyszły
 z pierwszego przeglądu **archiwum, odtwarzania i podglądu** — kodu, który
 powstał po poprzednim przeglądzie i nie był nigdy sprawdzony — **i zostały
@@ -53,8 +54,8 @@ które nie działały wcale.
 | B1 | ~~Kasowanie POJEDYNCZEGO nagrania w archiwum~~ | S | — | **✅ ZROBIONE** — „✕" w wierszu, pierwszy klik pyta |
 | B2 | Suwak odtwarzania skacze po TURACH, nie po liniach | M | 🔴 | otwarte — **koszt urósł**: wymaga numeru linii w zdarzeniach parsera, patrz niżej |
 | B3 | Auto‑pauza odtwarzania przy wejściu w postać / najechaniu | S | 🔴 | otwarte |
-| B4 | Widoczny sygnał „trzymam postać” przy zmianie metryki | S | 🟡 | otwarte (`renderCrumb` buduje nowy węzeł co render) |
-| B5 | Podgląd TOP‑3 w dymku bez wchodzenia w postać | M | 🟡 | otwarte (`tipContent`, `overlay.ts:2118`) |
+| B4 | ~~Widoczny sygnał „trzymam postać” przy zmianie metryki~~ | S | — | **✅ ZROBIONE 2026‑08‑03** — okruszek jest trwałym węzłem |
+| B5 | ~~Podgląd TOP‑3 w dymku bez wchodzenia w postać~~ | M | — | **✅ ZROBIONE 2026‑08‑03** — sekcja `KOMU`/`OD KOGO`/`OD CZEGO` w dymku |
 | B6 | Ostrzeżenie, gdy nagrania wypychają najstarsze | S | 🟡 | otwarte (pasek pokazuje `N walk · M kB`, bez ułamka budżetu) |
 | B7 | Filtr / szukajka w archiwum (przeciwnik, wynik, dzień) | M | 🟡 | otwarte (w `archive.ts` zero pól wejściowych) |
 | B8 | ~~Klik w okruszek `‹ …` = powrót (dla myszy)~~ | S | — | **✅ ZROBIONE** (`overlay.ts:1654`) |
@@ -334,15 +335,45 @@ W środku odtwarzania dane przelatują pod kursorem co klatkę. Wejście w posta
 (LPM) albo dłuższe najechanie niech automatycznie pauzuje `setPlaying(false)`;
 PPM/wyjście wznawia. „Patrzę” i „gra” jako gest, który i tak wykonujesz.
 
-### B4 — Widoczny sygnał „trzymam postać” 🟡 S `src/overlay.ts`
+### B4 — Widoczny sygnał „trzymam postać” 🟡 S — ✅ ZROBIONE 2026‑08‑03
 Wybór postaci przeżywa zmianę metryki, ale okruszek `‹ Nazwa` przy przełączeniu
 się przebudowuje i miga. Uczynić go trwałym węzłem (ten sam chwyt co A1) —
 nazwa nie mruga przy cyk‑cyk po metrykach. (Postulat 4.1 z `UX.md`.)
 
-### B5 — Podgląd TOP‑3 w dymku bez wejścia 🟡 M `src/overlay.ts`
+**Zrobione.** Okruszek budowany raz i NIGDY niewychodzący z drzewa: render
+zdejmuje z korpusu wszystko poza nim, a chowa go `hidden` (plus reguła
+`.crumb[hidden]`, bo `.crumb{display:flex}` bije domyślne `[hidden]` z arkusza
+przeglądarki). Listener bezpośredni, nie przez `bindAction` — mapa `actions`
+czyści się co render.
+
+**Przyczyna była konkretniejsza niż „miga”** i warto ją mieć zapisaną:
+`.crumb-back` ma regułę `:hover`, a świeży węzeł nie jest pod kursorem, dopóki
+mysz się nie ruszy. Panel przerysowuje się przy każdej linii logu.
+
+⚠️ **Cena trwałości, złapana dopiero mutacją:** odznaka profesji jest ATRYBUTEM
+(`data-prof` + dwie własności CSS), nie węzłem potomnym — więc podmiana tekstu
+jej nie zdejmuje. Bez jawnego czyszczenia okruszek pokazywał nazwę umiejętności
+z literą profesji poprzedniego szczebla. Pierwsza wersja testu tego NIE łapała,
+bo sprawdzała przejście postać → postać, gdzie atrybut i tak się nadpisuje.
+
+### B5 — Podgląd TOP‑3 w dymku bez wejścia 🟡 M — ✅ ZROBIONE 2026‑08‑03
 Dziś dymek postaci pokazuje same sumy. Dokleić 3 najsilniejsze źródła aktywnej
 metryki (`dealtBy`/`takenFrom`/`healedBy` — już policzone). 80% pytań („co go tak
 boli?”) bez wchodzenia w postać. (Postulat 4.2 z `UX.md`.)
+
+**Zrobione**, z czterema rozstrzygnięciami, których wpis nie przesądzał:
+nagłówek TEN SAM co nad listą po wejściu (`KOMU`/`OD KOGO`/`OD CZEGO`); sekcja
+zaraz po sumach, przed użyciami i efektami; przypis „+ N pozycji niżej”, bo bez
+niego „TOP 3” czyta się jak „to wszystko”; liczba idzie za trybem „na turę”,
+**udział nie** (to samo rozstrzygnięcie co `A2`).
+
+Przy okazji `tipStat()` — ten sam wiersz padał w czterech miejscach po trzy
+linijki, a piąta kopia powstawała właśnie tu (`SOLID §8`).
+
+**Co zostaje otwarte:** dymek ma odtąd pięć sekcji i przy postaci z długą listą
+użyć i efektów robi się wysoki. Gdyby zaczął wychodzić poza ekran, pierwszym
+kandydatem do cięcia są „Efekty otrzymane”, nie ta sekcja — ale dziś nie ma
+pomiaru, który by to rozstrzygał.
 
 ### B6 — Ostrzeżenie przed cichą eksmisją 🟡 S `src/recorder.ts`, `src/overlay.ts`
 Po przekroczeniu `BUDGET_CHARS` `evict()` kasuje najstarsze BEZ słowa. Pasek

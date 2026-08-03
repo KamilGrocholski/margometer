@@ -104,18 +104,28 @@ byle **nie udawać**, że da się kliknąć głębiej (liść się nie podświet
 To jest część, o którą chodzi. „Szybko” = mało gestów; „wygodnie” = gesty są
 przewidywalne i odwracalne.
 
-### 4.1 Postać zostaje przy zmianie metryki ✅ — i trzeba to WIDAĆ 🎯
+### 4.1 Postać zostaje przy zmianie metryki ✅ — i widać to ✅
 Wybór postaci przeżywa przełączenie Zadane↔Otrzymane↔Wyleczone. To najszybszy
 sposób odpowiedzieć na „ten gość zadał dużo — a ile oberwał i ile się wyleczył?”:
-klik w postać, potem tylko cyk-cyk po metrykach, bez wracania do rankingu. Dziś
-działa, ale trzeba to wzmocnić wizualnie — okruszek z nazwą postaci ma zostać na
-miejscu, a nie migać, żeby oko wiedziało, że kontekst się trzyma. 🎯
+klik w postać, potem tylko cyk-cyk po metrykach, bez wracania do rankingu. ✅ **Zrobione 2026‑08‑03**: okruszek z nazwą jest TRWAŁYM węzłem i nie wychodzi
+z drzewa — chowa go `hidden`, a render odświeża same podpisy.
 
-### 4.2 Podgląd bez commitu 🎯
+Przyczyna była konkretniejsza niż „miga”: `.crumb-back` ma regułę `:hover`,
+a świeży węzeł nie jest pod kursorem, dopóki mysz się nie ruszy. Panel
+przerysowuje się przy każdej linii logu, więc w walce podświetlenie gasło
+i wracało kilka razy na sekundę — na elemencie, który ma dawać znać, że kontekst
+się trzyma.
+
+### 4.2 Podgląd bez commitu ✅
 Najechanie na wiersz postaci pokazuje w dymku jej TOP 3 źródła bez wchodzenia w
 nią. 80% pytań („co go tak boli?”) da się odpowiedzieć samym najechaniem —
-wejście zostaje na te 20%, gdy chcesz drążyć dalej. Dziś dymek pokazuje sumy
-postaci; dołożyć mini-rozbicie. 🎯
+wejście zostaje na te 20%, gdy chcesz drążyć dalej. ✅ **Zrobione 2026‑08‑03.** Sekcja stoi zaraz po sumach i nosi TEN SAM nagłówek,
+co lista po wejściu (`KOMU` / `OD KOGO` / `OD CZEGO`) — dymek zapowiada dokładnie
+ten widok, do którego prowadzi kliknięcie. Gdy pozycji jest więcej niż trzy,
+dopisek mówi ile, bo bez niego „TOP 3” czyta się jak „to wszystko”.
+
+Liczba idzie za trybem „na turę”, **udział nie** — to samo rozstrzygnięcie, co
+przy `A2`: procent opisuje strukturę obrażeń, nie tempo.
 
 ### 4.3 Powrót jest tani i wybaczający ✅
 PPM działa **z całego panelu**, nie tylko z wiersza — wraca się też z pustego
@@ -258,20 +268,27 @@ liczby pod kursorem nie mogą uciekać.
 
 ## 7. Skrót dla wdrożenia
 
+**Nic nie zostaje do dołożenia — oba postulaty zeszły 2026‑08‑03.**
+
 | Już jest ✅ | Do dołożenia 🎯 |
 |---|---|
-| LPM w głąb, PPM w tył, na każdym szczeblu | Dymek z TOP-3 rozbiciem (podgląd bez wejścia) |
-| Postać zostaje przy zmianie metryki | Wyraźny sygnał, że kontekst postaci się trzyma |
-| Dymek z sumami postaci | — |
+| LPM w głąb, PPM w tył, na każdym szczeblu | — |
+| Postać zostaje przy zmianie metryki — i widać to (trwały okruszek) | — |
+| Dymek z sumami postaci **i TOP-3 rozbiciem** | — |
 | Klik w okruszek = powrót (dla myszy) | — |
 | Okruszek „‹ skład / ‹ Nazwa” | — |
 | Drążenie Zadane/Otrzymane + leczenie | — |
 | Trwały wybór przez rerender, brak migotania | — |
 
 Skróty klawiszowe **świadomie poza zakresem** (patrz §6) — cała nawigacja idzie
-myszą. Kolejność prac wg zwrotu za gest: **podgląd TOP-3** (4.2) → **wyraźny
-sygnał trzymania postaci** (4.1). To rzeczy, które najmocniej skracają drogę od
-„chcę wiedzieć” do „wiem”.
+myszą. Kolejność prac wg zwrotu za gest brzmiała: **podgląd TOP-3** (4.2) →
+**wyraźny sygnał trzymania postaci** (4.1), i w tej kolejności zostały zrobione
+2026‑08‑03. To rzeczy, które najmocniej skracały drogę od „chcę wiedzieć”
+do „wiem”.
+
+⚠️ **`UX.md` nie zawiera słowa „sesja” i to jest odtąd stan docelowy**, a nie
+luka. `AUDYT‑6` wytykał ten brak jako dziurę w specu; suma sesji została
+zamiast tego usunięta z kodu. Panel mówi o JEDNEJ walce.
 
 ⚠️ **Ten spec opisuje panel na żywo, a w podglądzie z archiwum bywały odstępstwa
 — dwa z trzech już nie obowiązują** (sprostowane 2026‑08‑02). Stało tu, że

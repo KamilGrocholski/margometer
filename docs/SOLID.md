@@ -153,7 +153,7 @@ w linii poddania (`:159`). **Ale:** korpus nadal ma wyłącznie właścicieli
 mężczyzn, więc `GENDER` jest sprawdzany tylko na ręcznie pisanych stringach
 w testach. Brakujący fixture — log właścicielki — patrz §10.
 
-### 4.9 Drobne luki parsera ⚪ [częściowo naprawione — reweryfikacja 2026‑07‑30]
+### 4.9 Drobne luki parsera ⚪ [ZAMKNIĘTE 2026‑08‑03]
 - ✅ Regexy leczenia mają `\.?$` we wszystkich trzech kształtach
   (`parser.ts:89,93,99`), a `"X otrzymuje 15 punktów many."` łapie `RE_INFO`
   (`parser.ts:142`).
@@ -161,9 +161,15 @@ w testach. Brakujący fixture — log właścicielki — patrz §10.
   i ` `.
 - ❌ **Separator tysięcy nadal otwarty, i zawodzi INACZEJ, niż tu stało** —
   patrz §4.19 (nie `applied > raw`, tylko cicho obcięta liczba).
-- ❌ `procs` nadal zbierają przyrosty zasobów: `classifyModifiers` wrzuca do
-  `procs` każdy modyfikator, który nie jest unikiem/krytem/blokiem/absorpcją,
-  a `"+14 energii"` jest jawnie traktowane jako poprawny modyfikator.
+- ✅ **`procs` przestały zbierać przyrosty zasobów — 2026‑08‑03.**
+  `RE_OWN_RESOURCE` (`/^\d+ (?:energii|many)$/`) wyjmuje je w
+  `classifyModifiers`. Kotwica `^\d` jest jedyną rzeczą odróżniającą je od
+  `Zniszczono N energii`, które opisuje zabranie zasobu CELOWI i zostaje.
+  Przeliczone: **36 → 35 etykiet, 2325 → 2236 wystąpień**, różnica dokładnie 89.
+
+  ⚠️ Liczby w akapicie niżej pochodzą z 2026‑08‑01 i **nie są błędne, tylko
+  starsze**: korpus urósł o zrzuty z sierpnia. To przypomnienie, że liczba
+  w rejestrze jest datowana także wtedy, gdy daty przy niej nie ma.
 
   **Zmierzone 2026‑08‑01, po stronie, którą realnie widzi panel** (czyli po
   `procLabel` ze `stats.ts`, który zamienia cyfry na `N`): cały korpus daje
@@ -223,20 +229,38 @@ obejmuje KAŻDY licznik”) wymienia 5 skalarów i 2 pola `ProcCount` z palca, w
 strukturalnie nie może tego złapać. **Fix:** dopisać pole w dwóch miejscach —
 i zrobić R3, żeby to było ostatni raz. **S** (łatka) / **M** (R3).
 
-### 4.12 Przycięcie logu w trakcie walki OBNIŻA liczby 🔴 [otwarte — najpierw decyzja]
-`session.ts:222‑228` — `continues()` uznaje każdy ogon bez nagłówka za
-kontynuację, a `session.ts:268/276` **podmienia** statystyki tej walki na
-policzone z krótszego bufora. Nie ma wysokiej wody:
+### 4.12 Przycięcie logu w trakcie walki OBNIŻA liczby 🔴 [otwarte — połowa zamknięta 2026‑08‑03]
+
+⚠️ **Ten wpis wskazywał do 2026‑08‑03 na kod, którego już nie ma.** Odsyłacze do
+`session.ts:222‑228` (`continues()`) i `:268/276` (podmiana statystyk zamkniętej
+walki) opisywały maszynerię archiwizowania walk do sumy sesji — a suma zeszła
+z drzewa razem z nią (`AUDYT‑6`). Zniknęła więc **gałąź „ogon bez nagłówka to
+kontynuacja"**, czyli dokładnie ta druga możliwość, którą wpis wymieniał: „albo
+przycinanie jest realne, albo `continues()` plus `merge` to martwa złożoność".
+Po stronie sesji była martwa i została usunięta.
+
+**Ale sam objaw ZOSTAJE i to jest sprostowanie do planu tamtej rundy**, nie do
+wpisu. Zakładałem, że `§4.12` zamknie się przy okazji; przeliczone po zmianie na
+`2026-07-18_lowca-vs-druzyna` (suma zadanych):
 
 ```
-pełny bufor   : current= 46620  total= 46620
-po przycięciu : current= 26569  total= 26569
-ogon 20 linii : current=  6900  total=  6900
+pełny bufor   : 2986
+po przycięciu : 1449
+ogon 20 linii : 1143
 ```
 
-Licznik obrażeń, któremu sumy maleją. `recorder.ts:118‑126` (`merge`) rozwiązuje
-dokładnie ten problem dla nagrań — sesja nie, choć nagrywarka trzyma
-zakumulowany tekst jedną linię obok (`index.ts:21‑24`).
+`current()` bierze ostatnią walkę przeliczoną z bufora, więc krótszy bufor to
+niższe liczby — tak samo jak przedtem, tyle że bez wysokiej wody po stronie
+sumy, bo sumy nie ma. Pierwotny pomiar (`current= 46620 → 26569 → 6900`)
+pochodził sprzed tamtej zmiany i dotyczył innego, większego zrzutu.
+
+**Co zostaje do rozstrzygnięcia:** jedno pytanie, i jest ono pytaniem o FAKT.
+Poniższe zapisy pochodzą sprzed 2026‑08‑03 i dotyczą już wyłącznie nagrywarki
+(`recorder.ts` ma własne `merge`) oraz samego pytania o sufit bufora.
+
+Licznik obrażeń, któremu sumy maleją. `recorder.ts` (`merge`) rozwiązuje
+dokładnie ten problem dla nagrań — panel nie, choć nagrywarka trzyma
+zakumulowany tekst jedną linię obok (`index.ts`).
 
 **Ale przesłanki nie potwierdza ŻADEN fixture.** Największy zrzut DOM
 (`…druzyna-vs-draugr-zwyciestwo/log.html`, 742 wyciągnięte linie) nadal zawiera
@@ -257,15 +281,16 @@ Co to zmienia: „nie mamy dość długiej walki” przestaje być wytłumaczeni
 gałąź „bez nagłówka” w `continues()` i całe `merge` w nagrywarce mają teraz
 udowodnić, że nie są martwe, a nie odwrotnie. Do rozstrzygnięcia zostaje jedno
 pytanie i jest ono pytaniem o FAKT, nie o gust: **czy okno walki w ogóle ma sufit
-liczby komunikatów.** Jeśli ma, potrzebny jest zrzut zza niego; jeśli nie ma —
-obie konstrukcje idą do usunięcia. Sposób sprawdzenia jest tani i nie wymaga
+liczby komunikatów.** Jeśli ma, potrzebny jest zrzut zza niego i panel naprawdę
+zaniża; jeśli nie ma — `merge` w nagrywarce idzie do usunięcia jako ostatnia
+konstrukcja broniąca przed czymś, czego nie ma. Sposób sprawdzenia jest tani i nie wymaga
 kolejnej walki: przeczytać, czy klient przycina `.scroll-pane` (obserwacja
 `tools/engine-probe.js` na żywym oknie), zamiast czekać na jeszcze dłuższy log.
 
 Fakt na marginesie, warto zapisać: zdublowana linia `Rozpoczęła się walka`
 występuje **tylko w `raw.txt`** (wyjście „Kopiuj logi”), nie w DOM. Oba
-mechanizmy odsiewania dubla (`session.ts:104‑108`, `recorder.ts:80`) obsługują
-więc wyłącznie drogę wklejonego tekstu.
+mechanizmy odsiewania dubla (`splitFights` w `session.ts`, `recorder.ts`)
+obsługują więc wyłącznie drogę wklejonego tekstu.
 
 ### 4.13 F5 w trakcie walki nagrywa ją drugi raz 🟡 [NAPRAWIONE 2026‑07‑30]
 `recorder.ts:141`, `:154‑156`, `:227‑244` — `on` przeżywa odświeżenie
@@ -731,34 +756,49 @@ miała sens.**
 
 ## 9. Martwy / uśpiony kod (dług czytelności)
 
-Zreweryfikowane 2026‑07‑30, tym razem **z dowodem z pokrycia**, nie z grepa.
-`bun test --coverage` pokazuje w `overlay.ts` trzy niepokryte zakresy —
-`1412‑1457`, `1468‑1493`, `2142‑2166` — czyli dokładnie `renderFireFocus`,
-`renderAxis` i `turnRows`. Razem z nimi martwy jest CSS: `.focus*` (`:293‑296`),
-`.axis*` (`:298‑309`) oraz **`.tip-row`/`.tip-label`/`.tip-value`/`.tip-share`**
-(`:364‑372`) — `turnRows` jest ich jedynym użytkownikiem.
+**Lista wyczyszczona 2026‑08‑03 — została jedna pozycja.** Poniżej najpierw to,
+co zostaje, a potem — bo to najważniejsza część tej sekcji — czym ta lista
+okazała się przy sprawdzaniu.
 
-Dalej: metryka „Tury” nieosiągalna z UI (`METRICS` ma trzy pozycje,
-`overlay.ts:25`) plus dwa `test.skip` (`overlay.test.ts:836`, `:893`);
-`ColorAssignment`/`MAX_SERIES`/`OTHER_LABEL` (`palette.ts` — po przejściu na
-barwę z atrybutu zostały tylko w testach); `StaticRosterSource`
-(`roster.ts:106`, zero referencji, także w testach); `splitRawFights`
-(`recorder.ts:91`, istnieje wyłącznie dla testów); `Session.reset()`
-(`session.ts:289`, brak wywołania w `src/` i w testach); `estimateMaxHp`
-(`stats.ts:893`, tylko testy — i klucz po **surowych** nazwach z logu, gdy reszta
-świata używa nazw rozwiązanych); niesprzątany `setInterval` w `boot()`;
-`roster.ts:63` — `Record<string, any>` w skądinąd ścisłym kodzie, którego nic nie
-zgłasza, bo lintera nie ma.
+**Zostaje:** `splitLines` w `recorder.ts` jest eksportowane, a poza modułem woła
+je wyłącznie test. To nie jest martwy kod (produkcja woła je wewnętrznie), tylko
+seam testowy — zapisane, żeby nie wyglądało na przeoczenie.
 
-Do tego **trzy osierocone komentarze** opisujące funkcje, których już pod nimi
-nie ma (`overlay.ts:1967`, `:2060`, `:2137`) — w pliku, który tak mocno stoi na
-komentarzach, to myli aktywnie.
+**Usunięte 2026‑08‑03:** `StaticRosterSource`, `ColorAssignment` z `MAX_SERIES`
+i `OTHER_LABEL`, `estimateMaxHp`, `splitRawFights` (zamienione na eksport
+`splitLines` — sklejanie linii zjechało do testu), asercje na nieobecność
+`.tip-row` i `.more`. Wszystkie trzy `Record<string, any>` (`roster.ts`,
+`index.ts` ×2) zastąpione typem `GameGlobals`: w `src/` nie ma odtąd ani jednego
+`any`. Wcześniej, 2026‑08‑01/02, zeszły `renderAxis`, `renderFireFocus`,
+`turnRows` i ich CSS; 2026‑08‑03 poszła też metryka „Tury” z typu `Metric`
+oraz — razem z sumą sesji — `Session.reset()`.
 
-**Uwaga przed sprzątaniem:** usunięcie `renderAxis`/`renderFireFocus` wymaga
-skasowania **zielonych** testów — `overlay.test.ts:2557` i `:2597` asertują
-`querySelector(".axis") === null` i `.focus === null`, czyli utrwalają
-niedokończoną robotę. Oś tur i sesja to funkcje **wstrzymane**, nie śmieci;
-decyzja „porzucone czy niedokończone” jest warunkiem wejścia, nie skutkiem.
+⚠️ **Trzy pozycje z tej listy opisywały stan, którego nie było**, i to jest jej
+najtrwalsza lekcja:
+
+1. **„niesprzątany `setInterval` w `boot()`"** — sprzątany. `stop()` woła
+   `cancel(handle)` w pierwszej linii, a `boot()` zwraca `stop`.
+2. **„trzy osierocone komentarze (`overlay.ts:1967`, `:2060`, `:2137`)"** — nie
+   ma ich. Sprawdzone przelotem po pliku, nie okiem: każdy blok `/** … */`
+   skonfrontowany z tym, co pod nim stoi. Numery pochodziły sprzed trzech rund.
+3. **„`Session.reset()` — brak wywołania w `src/` i w testach"** — wywołanie
+   BYŁO (`session.test.ts`). Metoda i tak zeszła, ale z innego powodu.
+
+**Wniosek, trzeci raz w tym repo ten sam:** pozycja z rejestru sprawdza się
+w kodzie ZANIM się ją naprawi. Trzy z ośmiu były nieaktualne, a naprawianie ich
+„na wiarę" kończy się albo szukaniem czegoś, czego nie ma, albo usunięciem
+czegoś, co w międzyczasie zaczęło mieć czytelnika.
+
+~~**Uwaga przed sprzątaniem:**~~ **NIEAKTUALNA od 2026‑08‑03.** Stało tu, że oś
+tur i sesja są „funkcjami WSTRZYMANYMI, nie śmieciami", a decyzja „porzucone czy
+niedokończone" jest warunkiem wejścia. Decyzja zapadła: **oba porzucone**
+(`AUDYT‑6`, `AUDYT‑25`). Zielone testy asertujące nieobecność `.axis`/`.focus`
+zeszły razem z kodem już 2026‑08‑01; ta sama klasa asercji wróciła jeszcze raz
+jako `.tip-row` i `.more` i została skasowana 2026‑08‑03.
+
+**Zapis o samej klasie błędu zostaje, bo wraca:** test asertujący NIEOBECNOŚĆ
+selektora, który nie pada nigdzie w `src/`, jest zielony niezależnie od kodu.
+Trafił się tu już trzy razy.
 
 ---
 
@@ -893,8 +933,9 @@ siedzi wyłącznie w klasie CSS.
 
 | # | Usterka | Warstwa | Dlaczego tu |
 |---|---|---|---|
-| 4.12 | Przycięcie bufora obniża sumy | session | licznik, któremu liczby maleją — ale **najpierw zrzut**, bo przesłanki nie potwierdza żaden fixture |
-| 4.9 | Reszta drobnych luk parsera | parser | wg zwrotu; zmierzone — patrz sekcja, zostaje z tego jeden wiersz w dymku |
+| 4.12 | Przycięcie bufora obniża liczby bieżącej walki | session | **połowa zamknięta 2026‑08‑03** wraz z sumą sesji; zostaje jedno pytanie o FAKT — czy okno walki ma sufit komunikatów. Odpowiada na nie sonda w kliencie, nie kolejny zrzut |
+
+`4.9` zeszło stąd **2026‑08‑03** — zamknięte w tej samej rundzie.
 
 `4.23` zeszło stąd **2026‑08‑01**, w tej samej rundzie, w której je zamknięto —
 tak samo jak `4.18` i `4.22` dzień wcześniej.
@@ -930,9 +971,9 @@ Niezmienniki przeliczone po naprawach na całym korpusie (13 zrzutów):
 
 | # | Refaktor | Kasuje klasę | Koszt |
 |---|---|---|---|
-| R1 | `FightTracker` (jedno dzielenie+dopasowanie walk) + jedna stała `fight-start` | dubel §4.4, §4.12, §4.14, trzy kopie wzorca | M |
+| R1 | `FightTracker` — **przedmiot skurczył się 2026‑08‑03**: „dwie implementacje «ta sama walka?»” to od usunięcia sumy sesji JEDNA, w nagrywarce. Zostaje jedna stała `fight-start` | ~~dubel §4.4, §4.12, §4.14~~ trzy kopie wzorca | ~~M~~ S |
 | R2 | `ActorAccumulator` (jeden `recordHit`) | §4.1/§4.6 i przyszłe pominięcia | M |
-| R3 | Deklaratywny `mergeStats` | „zapomniane pole” — `abilityUses`, a teraz **§4.11 `dealtToBy`** | M |
+| ~~R3~~ | ~~Deklaratywny `mergeStats`~~ | **BEZPRZEDMIOTOWY 2026‑08‑03** — `mergeStats` nie istnieje, zszedł z sumą sesji (`AUDYT‑6`). Klasa „zapomniane pole” (`abilityUses`, `§4.11 dealtToBy`, `AUDYT‑37 side`) zniknęła razem z jedynym miejscem, w którym pola wypisywano z palca | — |
 | R4 | Tablica reguł parsera. **Zaprojektowane 2026‑08‑03 szerzej — jako tokenizer + gramatyka, cały parser od zera**: [`specy/2026-08-03-parser-tokenizer-i-gramatyka.md`](specy/2026-08-03-parser-tokenizer-i-gramatyka.md) (status: projekt). Sama tablica reguł jest w specu odrzuconym wariantem — zamyka OCP, ale zostawia trzy zmierzone dziury, w których `(.+?)` przyjmuje dowolny tekst i cicho przekłamuje liczbę. Koszt rośnie do L | §4.3, §4.18 i OCP nowych formatów | ~~S–M~~ L |
 | **R5** | **`panel-window.ts`**: `PanelState` + `loadState`/`saveState` + walidacja pól. **Częściowo zrobione:** wspólne przycinanie pozycji siedzi już w `window.ts` (`clampToViewport`), ale `loadState`/`saveState` nadal istnieją dwa razy i nadal bez walidacji pól | reszta klasy z §4.15 | S |
 | **R6** | ~~**Delegacja po `data-action`** dla całego panelu~~ | **✅ ZROBIONE 2026‑07‑30** — zamknęło `UX-POPRAWKI A8` | — |
@@ -951,23 +992,26 @@ sygnaturami: **369 testów zielonych**, `tsc --noEmit` czysty.
 w podglądzie, klik przez przebudowę, `boot` poza grą, metadane userscriptu,
 leczenie zdublowanej nazwy. Pokrycie 89,1 % → 93,3 %.
 
+**Runda 2026‑08‑03 (porządkowa) — wykonane:** suma sesji → `deaths`/`matrix`
+→ metryka „Tury” → martwy kod `§9` → `§4.9` → `UX §4.2` i `§4.1`. Trzy z ośmiu
+pozycji `§9` okazały się przy sprawdzaniu nieaktualne — patrz tamta sekcja.
+`src/session.ts` **362 → 88 linii**, `src/` bez ani jednego `any`.
+
 **Zostaje, w tej kolejności:**
 
-1. **§4.12** — zrzut z długiej walki rozstrzyga, czy licznik zaniża, czy
-   `merge` broni przed czymś, czego nie ma. Nic więcej nie da się tu zrobić bez
-   danych.
-2. **R1** (`FightTracker`) — §4.13 i §4.14 naprawiono w nagrywarce; ta sama
-   reguła kontynuacji nadal stoi w sesji osobno.
-3. **R3** (deklaratywny `mergeStats`) — §4.11 był drugą ofiarą tej samej klasy.
-   Test‑strażnik jest już strukturalny, ale to wykrywacz, nie lekarstwo.
-4. ~~**§4.18**, **§4.22**~~ — **zrobione 2026‑08‑01.** Zostaje z tego punktu
-   **§4.9** (wyprowadzić zasoby z `procs`).
-5. ~~**§4.23**~~ — **zrobione 2026‑08‑01**: podsumowania liczą się leniwie,
-   blokada 269 → 62 ms przy 190 nagraniach, a liczba parsowań jest płaska.
-   Okienkowanie samego renderu listy zostaje — patrz „Co ZOSTAJE" przy sekcji.
-6. **R7/R8/R5** — cięcia `overlay.ts`, eksport `instanceResolver`, wspólny stan
-   okna; plus `UX-POPRAWKI B2` (suwak po turach), wymagające decyzji, nie tylko
-   roboty. (`A14`, wymieniane tu wcześniej, domknęło się 2026‑08‑01 rano.)
+1. **§4.12** — jedyna otwarta usterka działania, i to w połowie. Rozstrzyga ją
+   **sonda w kliencie** (czy okno walki przycina `.scroll-pane`), nie kolejny
+   zrzut: przy 1373 liniach gra nadal nie przycinała.
+2. **R8** (eksport `instanceResolver`) — trzy gałęzie z zerowym pokryciem,
+   nieosiągalne z zewnątrz. Najtańsze z tego, co zostało.
+3. **R5** (wspólny stan okna) i **cięcie `overlay.ts`** wg `§8` — plik ma
+   ponad 3100 linii i urósł w tej rundzie, nie zmalał.
+4. **R1** — po usunięciu sumy sesji zostaje z niego jedna stała `fight-start`
+   i trzy kopie wzorca. Koszt spadł M → S, ale i zwrot.
+5. **`UX-POPRAWKI B2`** (suwak po turach) — wymaga numeru linii w zdarzeniach
+   parsera, czyli zmiany w `types.ts`, `parser.ts` i `stats.ts`.
+6. **`R4`** — parser od zera, spec w `specy/2026-08-03-…` ze statusem `projekt`.
+   Osobna decyzja, nie kolejny punkt tej listy.
 
 **Runda 2026‑08‑01 (parser) — wykonane:** §4.18 → §4.22 (decyzja: blok,
 super‑kryt i osłabienie DoT‑a do panelu, `experience` usunięte) → testy:
