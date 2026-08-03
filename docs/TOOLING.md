@@ -126,6 +126,32 @@ na tagu**, `dist/` zostaje w `.gitignore`:
 origin v0.3.0`. Do tego czasu adresy w nagłówku wskazują pustkę — nieszkodliwie
 (Tampermonkey po prostu nie znajduje aktualizacji), ale realnie.
 
+### Dwaj strażnicy wydania (od 2026‑08‑03)
+
+Job `wydanie` w `check.yml`. Powstał po incydencie: zgłoszono defekt, który był
+naprawiony od trzech commitów, ale **nigdy nie wydany** — `package.json` stał na
+numerze ostatniego taga, więc Tampermonkey nie miał po czym poznać, że jest co
+pobrać, a zgłaszający patrzył na kod sprzed trzech commitów.
+
+| strażnik | kiedy zapala | czy wywraca bramę |
+|---|---|---|
+| **twardy** | zakres rusza `src/`, a sekcja `[Niewydane]` się nie zmienia | tak |
+| **sygnał** | w `[Niewydane]` cokolwiek czeka | **nie**, adnotacja w podsumowaniu |
+
+Są DWA, bo łapią co innego, i to jest wniosek z pomiaru, nie ostrożność:
+twardy strażnik **nie złapałby tamtego incydentu**, bo wpis w `[Niewydane]`
+wtedy istniał. Sygnał pokazałby przy każdym przebiegu „10 wpisów czeka,
+ostatnie wydanie v0.3.0, od tego czasu 10 commitów”.
+
+Cała decyzja siedzi w `tools/wydanie.ts` i ma testy — YAML tylko zbiera dane
+z gita. Dwie rzeczy, które wyszły z pomiaru na własnej historii i bez których
+strażnik zapalałby się fałszywie: liczy się **zakres** (PR-a albo pusha), a nie
+pojedynczy commit, bo wpisy bywają dokładane osobno (`8bfa80b` → `00fcdd2`),
+oraz **poprawienie istniejącego wpisu** wystarcza, bo tak zrobił `91fc412`
+i żadna nowa pozycja tam nie powstała. Furtka `[bez-changeloga]` w komunikacie
+commita zwalnia `feat`/`fix`, których użytkownik nie zobaczy; typy `refactor`,
+`test`, `docs`, `build`, `chore`, `ci`, `style` zwalniają same z siebie.
+
 ### Faza wczesna: dlaczego NIE przez flagę „Pre-release"
 
 Projekt jest w alfie i to widać w czterech miejscach — ale **nie** przez

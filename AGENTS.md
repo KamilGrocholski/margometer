@@ -82,6 +82,15 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
   programistycznych — nie „parser", „regex", „cache". Pilnuje tego test
   (`tests/changelog.test.ts`), bo regułę łamie się niechcący, pisząc zaraz po
   wyjściu z kodu. Refaktory, testy i narzędzia tu **nie wchodzą**.
+
+  **Zmiana w `src/` wymaga ruszenia sekcji `[Niewydane]`** — pilnuje tego
+  strażnik w `check.yml` (logika i powody: `tools/wydanie.ts`). Liczy się cały
+  zakres PR-a albo pusha, nie pojedynczy commit, więc wpis wolno dołożyć osobno;
+  poprawienie istniejącego wpisu też wystarcza. Typy, których użytkownik nie
+  widzi (`refactor`, `test`, `docs`, `build`, `chore`, `ci`, `style`), zwalniają
+  same z siebie. Gdy `feat` albo `fix` naprawdę go nie dotyczy — dopisz
+  `[bez-changeloga]` do komunikatu commita. Furtka istnieje po to, żeby reguła
+  wyżej („refaktory tu nie wchodzą") i strażnik nie kazały wybierać między sobą.
 - **`docs/specy/` jest DLA PROGRAMISTY.** Jeden plik na rundę wymagającą
   zaprojektowania: problem, rozwiązanie, **odrzucone warianty**, weryfikacja.
   Sygnał, że spec jest potrzebny: łapiesz się na tym, że piszesz plan. Szablon

@@ -23,3 +23,65 @@ jobs:
 
       - run: bun install --frozen-lockfile
       - run: bun run check
+
+  # Dwaj strażnicy wydania. Osobny job, bo odpowiadają na inne pytanie niż
+  # brama: nie „czy kod działa", tylko „czy ktokolwiek się o tym dowie".
+  #
+  # Cała decyzja siedzi w `tools/wydanie.ts` i ma testy (`tests/wydanie.test.ts`).
+  # Tutaj zostaje wyłącznie zbieranie danych z gita — YAML jest kodem, którego
+  # nie uruchamia nic poza CI, więc im go mniej, tym lepiej.
+  wydanie:
+    runs-on: ubuntu-latest
+    steps:
+      # Pełna historia i tagi: zakres liczy się z `base..head`, a sygnał
+      # potrzebuje ostatniego taga. Domyślny płytki `checkout` nie ma żadnego.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      # Zakres oceny: na PR-ze `base..head`, na push do `main` cały wypchnięty
+      # ciąg. To NIE jest szczegół — wpisy do CHANGELOG-a bywają w tym repo
+      # dokładane osobnym commitem niż zmiana w `src/` (tak było przy `8bfa80b`
+      # i `00fcdd2`), więc ocena per commit zapalałaby się fałszywie.
+      - name: Zakres zmian
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          fi
+          # Pierwszy push na gałąź (albo wymuszony) daje same zera zamiast SHA.
+          # Wtedy nie ma się do czego porównać — bierzemy sam ostatni commit.
+          if ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            base="$(git rev-parse "$head~1" 2>/dev/null || echo "$head")"
+          fi
+
+          git diff --name-only "$base" "$head" > /tmp/pliki.txt
+          git show "$base:CHANGELOG.md" > /tmp/przed.md 2>/dev/null || : > /tmp/przed.md
+          git show "$head:CHANGELOG.md" > /tmp/po.md 2>/dev/null || : > /tmp/po.md
+          # U+001E rozdziela commity — pusta linia i „---" padają w treści
+          # komunikatów tego repo, więc rozcięłyby jeden commit na dwa.
+          git log --format=$'%s%n%b\036' "$base..$head" > /tmp/komunikaty.txt
+
+      - name: Strażnik — zmiana w src/ bez wpisu dla użytkownika
+        run: bun tools/wydanie.ts straznik /tmp/pliki.txt /tmp/przed.md /tmp/po.md /tmp/komunikaty.txt
+
+      # Sygnał NIGDY nie wywraca bramy — wpisy mogą leżeć niewydane tygodniami
+      # i bywa to słuszne. Chodzi o to, żeby leżały ŚWIADOMIE: to jedyny z tych
+      # dwóch strażników, który złapałby incydent z 2026‑08‑03, bo tamten wpis
+      # ISTNIAŁ i twarda reguła wyżej przepuściłaby go bez słowa.
+      #
+      # `always()`, bo sygnał ma się pokazać także wtedy, gdy strażnik wyżej
+      # zapalił się na czerwono — to dwie niezależne odpowiedzi.
+      - name: Sygnał — czy jest co wydać
+        if: always()
+        run: |
+          tag="$(git describe --tags --abbrev=0 2>/dev/null || echo '-')"
+          if [ "$tag" = "-" ]; then odtagu=0; else odtagu="$(git rev-list --count "$tag"..HEAD)"; fi
+          bun tools/wydanie.ts sygnal "$tag" "$odtagu" | tee -a "$GITHUB_STEP_SUMMARY"
