@@ -1774,10 +1774,19 @@ spraw, a nie tylko listą nowych.
 | ~~`SOLID.md §4.18`~~ | ✅ **2026‑08‑01** (`98ab619`). ⚠️ Stało tu jako otwarte do 2026‑08‑02 — a własna sekcja w `SOLID.md:358` mówi `[NAPRAWIONE 2026‑08‑01]`. Status żył w dwóch miejscach i rozjechał się dokładnie tak, jak przy `A14` o dwa wiersze wyżej. |
 | ~~`SOLID.md §4.22`~~ | ✅ **2026‑08‑01** (`98ab619`, `c39d35b`). Ten sam rozjazd: `SOLID.md:415` mówi `[ROZSTRZYGNIĘTE 2026‑08‑01]`. **Wniosek, trzeci raz ten sam:** tabela ze statusem cudzej pozycji jest długiem — poprawia się sekcję, którą się czyta, nie skrót. Docelowo zostawić tu same odsyłacze, bez kolumny statusu. |
 | ~~`SOLID.md §4.23`~~ | ✅ **2026‑08‑01** — podsumowania liczą się leniwie: 269 → 62 ms blokady przy 190 nagraniach, a liczba parsowań przestała rosnąć z długością listy. |
-| `ROADMAP.md ⏸` | Metryka „Tury” (nieosiągalna z UI, dwa `test.skip`), oś tur i skupienie ognia (napisane, nigdy niewołane), zakładka zakresu (patrz AUDYT‑5, AUDYT‑6). |
+| ~~`ROADMAP.md ⏸`~~ | ✅ **ROZSTRZYGNIĘTE 2026‑08‑03** — wszystkie trzy pozycje są dziś `❌ Porzucone`, a kod i dane, które na nie czekały, zeszły z drzewa (`AUDYT‑6`, `AUDYT‑25`). Symbolu `⏸` nie ma już w `ROADMAP.md` ani razu. **Czwarty raz ten sam rozjazd w tej jednej tabeli** — patrz wiersze `A14`, `§4.18` i `§4.22` wyżej. |
 
-⚠️ **Martwy kod jest zabetonowany testami.** Dwa ZIELONE testy asertują
-NIEOBECNOŚĆ osi tur i skupienia ognia (`overlay.test.ts:2588` i sąsiedni), więc
-usunięcie `renderAxis`/`renderFireFocus` wymaga skasowania przechodzących
-testów. To podnosi próg decyzji „porzucone czy wstrzymane” — dopóki nie zapadnie,
-kod i testy będą się nawzajem podtrzymywać przy pozorach życia.
+⚠️ ~~**Martwy kod jest zabetonowany testami.**~~ **NIEAKTUALNE od 2026‑08‑03.**
+Akapit mówił, że dwa zielone testy asertują NIEOBECNOŚĆ osi tur i skupienia
+ognia, więc usunięcie `renderAxis`/`renderFireFocus` wymaga skasowania
+przechodzących testów — i że to podnosi próg decyzji „porzucone czy
+wstrzymane". Decyzja zapadła: **porzucone**, renderery i testy zeszły z drzewa
+razem z `stats.deaths` i `stats.matrix`. Zapis zostaje, bo pokazuje, ile
+kosztuje NIEPODJĘTA decyzja: kod nie kosztował nic, ale jego dane liczyły się
+przy każdej walce przez trzy dni po tym, jak przestały być komukolwiek potrzebne.
+
+⚠️ **Co ta sekcja mówi o sobie samej.** Cztery z siedmiu wierszy tej tabeli
+zestarzały się przed swoją pozycją źródłową, każdy raz. Wniosek zapisany przy
+`§4.22` („zostawić tu same odsyłacze, bez kolumny statusu") stoi tu od
+2026‑08‑02 i **nadal nie został wykonany** — to jest dziś najtańsza otwarta
+robota w całym `docs/`.

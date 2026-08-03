@@ -804,13 +804,37 @@ Trafił się tu już trzy razy.
 
 ## 10. Testy — czego zestaw nie widzi
 
-Stan po audycie wydania 2026‑08‑02: **696 zielonych, 0 pominiętych, 3 649
-asercji**, przebieg 8,8 s, pokrycie **95,21 % linii / 92,02 % funkcji** —
+Stan po rundzie utwardzającej 2026‑08‑03: **816 zielonych, 0 pominiętych,
+5 214 asercji**, przebieg 12,7 s, pokrycie **94,21 % linii / 92,69 % funkcji** —
 liczone przy KAŻDYM `bun test`, nie tylko na żądanie (`bunfig.toml`).
 Nadal nie ma pomiaru GAŁĘZI, więc te procenty są optymistyczne dla plików
 pełnych warunków trójargumentowych.
 
-⚠️ **Poprzedni zapis brzmiał „650 zielonych, 98,61 % linii" i porównywanie go
+**Co doszło w tej rundzie i czego pilnuje:**
+- **`tests/mutanty.test.ts` — fuzz mutacyjny, pierwszy test w repo pytający
+  o to, czego parser NIE rozpoznaje.** Każda linia korpusu tekstowego dostaje
+  wariant z liczbami (poza procentem życia) zamienionymi na słowo; niezmiennik
+  brzmi: **zniszczenie liczby albo nie rusza żadnej kwoty, albo zapala
+  `unknown`**. 6085 mutacji, 307 ms. Zmierzył 1995 cichych przekłamań, z czego
+  1961 zamknęło zawężenie `DAMAGE_SEGMENT`; zamrożona reszta (34) to granica
+  samego niezmiennika, opisana przy stałej `ZAMROZONE_UCIECZKI`;
+- **niezmienniki liczb przelatują wreszcie ścieżkę DOM** (`stats.test.ts`).
+  Do tej rundy `describe.each` chodziło po `new Glob("*/*/raw.txt")`, czyli po
+  drodze, w której `hit.element` jest zawsze `null` — więc `dealtByType`
+  i `takenByType` domykały się trywialnie. Zmierzone na fixture Hildur:
+  6 etykiet przez DOM wobec 2 z tekstu, `typeByLabel` 31 wpisów wobec 4.
+  Sprawdzone mutacją, która jest niewidoczna po tekście (trafienia z żywiołem
+  wypadają z przekroju): pada **wszystkie 11 przelotów `(html)` i ani jeden
+  z 21 tekstowych**;
+- **`typeByLabel` dostał pierwszy niezmiennik w życiu** — bez duplikatów
+  etykiet i wyłącznie rodziny będące kluczami `TYPE_COLORS`.
+
+⚠️ **Zapis sprzed tej rundy brzmiał „696 zielonych, 3 649 asercji, 95,21 %
+linii / 92,02 % funkcji" (2026‑08‑02) i TEN akurat jest porównywalny** — skład
+raportu się nie zmienił, więc doszło 120 testów, linie spadły o 1,0 pp
+(`src/index.ts` i `tools/`), funkcje urosły o 0,67 pp.
+
+⚠️ **Wcześniejszy zapis brzmiał „650 zielonych, 98,61 % linii" i porównywanie go
 z powyższym jest błędem** — skład raportu się zmienił (weszły `tools/` z blokami
 CLI, wyszły pliki testowe). Procent bez podanego składu nie jest liczbą
 porównywalną; rozwinięcie w `TOOLING.md`, stan bazowy. **Progu pokrycia nie ma
@@ -929,11 +953,19 @@ siedzi wyłącznie w klasie CSS.
 
 ## 11. Skrót — kolejność prac
 
-**Otwarte, wg wpływu na liczby (przeliczone 2026‑08‑01):**
+**Otwarte, wg wpływu na liczby (przeliczone 2026‑08‑03):**
 
 | # | Usterka | Warstwa | Dlaczego tu |
 |---|---|---|---|
 | 4.12 | Przycięcie bufora obniża liczby bieżącej walki | session | **połowa zamknięta 2026‑08‑03** wraz z sumą sesji; zostaje jedno pytanie o FAKT — czy okno walki ma sufit komunikatów. Odpowiada na nie sonda w kliencie, nie kolejny zrzut |
+
+**Otwarte luki dowodowe** (nie usterki — miejsca, w których zestaw nie widzi):
+
+| Gdzie | Co |
+|---|---|
+| `tests/parser.test.ts` | test różnicowy `html ↔ raw` ma w środku `if (raw === null) return;`, więc dla **3 z 11** zrzutów z DOM przechodzi PUSTY, a raport pokazuje zielone. Naprawa nie polega na dorobieniu `raw.txt` (te zrzuty są z lipca), tylko na **zamrożeniu listy** fixture'ów bez pary — żeby czwarty nie poszerzył ciszy po cichu. Najtańsza otwarta pozycja w testach |
+| `tests/mutanty.test.ts` | fuzz chodzi wyłącznie po korpusie TEKSTOWYM; wariant ze znacznikiem żywiołu jest syntetyczny. Objęcie `log.html` wymaga przepuszczenia 6 tys. wariantów przez `extractText` |
+| `docs/AUDYT.md §G` | kolumna statusu w tabeli cudzych pozycji — wniosek „zostawić same odsyłacze" stoi od 2026‑08‑02 i zestarzał się już **czterokrotnie** we własnej tabeli |
 
 `4.9` zeszło stąd **2026‑08‑03** — zamknięte w tej samej rundzie.
 
@@ -991,6 +1023,23 @@ sygnaturami: **369 testów zielonych**, `tsc --noEmit` czysty.
 → testy: niezmienniki sumy sesji (strukturalne, nie z palca), dymek
 w podglądzie, klik przez przebudowę, `boot` poza grą, metadane userscriptu,
 leczenie zdublowanej nazwy. Pokrycie 89,1 % → 93,3 %.
+
+**Runda 2026‑08‑03 (utwardzająca, druga tego dnia) — wykonane:** niezmienniki
+liczb na ścieżce DOM → fuzz mutacyjny (`tests/mutanty.test.ts`) → zawężenie
+`DAMAGE_SEGMENT` → trzy ciche ścieżki na głośne (`RE_RAW_ELEMENT` na `[a-z0-9]`,
+blok z `flushLoose`, zaślepka `?? ""`) → sześć flag `tsconfig` → rejestry.
+Testy 696 → **816**, asercje 3 649 → **5 214**. Korpus przeliczony obiema
+drogami po każdej zmianie parsera: **32 pliki, 9387 zdarzeń, 0 `unknown`,
+0 rozjazdów** wobec stanu sprzed rundy; `parse()` 20,56 → 20,40 ms (szum).
+
+Trzy rzeczy, które ta runda ustaliła, a których rejestry nie znały:
+- **1995 linii korpusu dawało się zepsuć tak, że kwota się zmieniała, a parser
+  milczał.** 1961 z nich zamknęła JEDNA zmiana — segment obrażeń przestał być
+  `(.+)`. Pomiar był możliwy dopiero po zbudowaniu fuzzu, nie przed;
+- **niezmienniki liczb nie dotykały ścieżki DOM ani razu** — czyli jedynej,
+  która niesie żywioły. `dealtByType` domykało się na jednym wierszu „Nieznany";
+- **`SOLID §4.9` i `TOOLING §4` (trzy `any`) były zamknięte, a rejestry tego nie
+  wiedziały**; `AUDYT §G` miał czwarty z rzędu rozjazd w tej samej tabeli.
 
 **Runda 2026‑08‑03 (porządkowa) — wykonane:** suma sesji → `deaths`/`matrix`
 → metryka „Tury” → martwy kod `§9` → `§4.9` → `UX §4.2` i `§4.1`. Trzy z ośmiu

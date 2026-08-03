@@ -5,10 +5,18 @@ wygląda, jak wygląda; `SOLID.md` i `UX-POPRAWKI.md` — co w nim poprawić. Tu
 zbieram to, co jest **wokół** kodu: jak się buduje, jak trafia do użytkownika
 i co pilnuje, żeby nie wjechała regresja.
 
-Stan bazowy (odświeżony **2026‑08‑02**, po audycie wydania): `bun test` → **696
-zielonych / 0 pominiętych / 0 błędów / 3 649 asercji**, `bunx tsc --noEmit` →
-czysto, pokrycie **95,21 % linii i 92,02 % funkcji** — liczone odtąd przy KAŻDYM
+Stan bazowy (odświeżony **2026‑08‑03**, po rundzie utwardzającej): `bun test` →
+**816 zielonych / 0 pominiętych / 0 błędów / 5 214 asercji**, `bunx tsc --noEmit`
+→ czysto, pokrycie **94,21 % linii i 92,69 % funkcji** — liczone przy KAŻDYM
 przebiegu, nie tylko pod `bun run coverage` (`bunfig.toml`).
+
+⚠️ Poprzedni zapis („696 zielonych / 3 649 asercji, 95,21 % linii / 92,02 %
+funkcji", 2026‑08‑02) **zestarzał się o dwie rundy** i był w międzyczasie
+cytowany. Skład raportu tym razem się NIE zmienił, więc te dwie pary liczb są
+porównywalne: doszło 120 testów, pokrycie linii spadło o 1,0 pp, funkcji urosło
+o 0,67 pp. Spadek linii bierze się z `src/index.ts` i `tools/`, nie z warstwy
+danych — `parser.ts`, `types.ts`, `recorder.ts`, `roster.ts`, `palette.ts`,
+`style.ts`, `window.ts` i `version.ts` stoją na 100 % linii.
 
 ⚠️ **Ta liczba nie jest porównywalna wprost z poprzednimi** i to jest ważniejsze
 od niej samej. Stało tu „650 zielonych / 98,61 % linii" (2026‑08‑01), przedtem
@@ -26,10 +34,27 @@ nie dowodził.
 §7 w większości, §4 częściowo.** Statusy bywały tu sprzed dwóch rund, a dokument
 czyta się jako listę zadań — stąd odhaczenia przy każdej sekcji.
 
-**Co zostaje otwarte w całym tym dokumencie** (stan 2026‑08‑02), to reszta §4:
-brak lintera/formattera, resztki `bun init` w `tsconfig.json` i **trzy** `any`
-(nie jedno). Próg pokrycia zszedł z tej listy jako **rozstrzygnięty inaczej, niż
+**Co zostaje otwarte w całym tym dokumencie** (stan 2026‑08‑03), to reszta §4:
+brak lintera/formattera oraz resztki `bun init` w `tsconfig.json` (`jsx`,
+`allowJs`). Próg pokrycia zszedł z tej listy jako **rozstrzygnięty inaczej, niż
 zakładano** — patrz §4.
+
+⚠️ **`any` zeszły z tej listy 2026‑08‑03, a stały na niej o rundę za długo.**
+Zapis „**trzy** `any` (nie jedno)" powstał 2026‑08‑02 jako sprostowanie liczby
+i był wtedy prawdziwy, ale wszystkie trzy usunął typ `GameGlobals` 2026‑08‑03
+(`SOLID §9`) — a ten dokument tego nie zauważył. Sprawdzone dziś: w `src/` nie
+ma ani jednego `any`, jedyne trafienia greperem to komentarz w `roster.ts`.
+Ta sama klasa błędu co `AUDYT‑46/47/49`: status żyjący w dwóch plikach naraz
+naprawia się w tym, który się czyta.
+
+**Dołożone 2026‑08‑03, zamiast lintera:** sześć flag kompilatora
+(`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitReturns`,
+`noImplicitOverride`, `allowUnusedLabels: false`, `allowUnreachableCode: false`).
+Każda zmierzona przed włączeniem — pięć dawało 0 błędów, `exactOptional` dawało
+3 (pole `storage` w trzech typach opcji, naprawione jawnym `| undefined`).
+`checkJs` **nie wchodzi i nie ma sensu mierzyć tego drugi raz**: przy
+`allowJs: true` daje 577 błędów, wszystkie z `tools/engine-probe.js` — pliku
+pisanego do wklejenia w konsolę gry.
 
 Legenda: 🔴 pilne · 🟡 warto · ⚪ kiedyś.
 
@@ -292,11 +317,13 @@ Skutki są konkretne, nie estetyczne:
 - ~~`tsconfig.json` ma **`noUnusedLocals: false` i `noUnusedParameters: false`**~~
   — **obie są dziś `true`** (od `2dc38fb`) i to one wykryły `renderAxis`,
   `renderFireFocus` i `turnRows`. Punkt zamknięty;
-- `roster.ts:63` typuje wstrzykiwane `window` jako `Record<string, any>` — `any`
-  w skądinąd ścisłym projekcie, którego nic nie zauważa. ⚠️ **Sprostowanie
-  2026‑08‑02:** takich miejsc są **trzy**, nie jedno — doszły `index.ts:64`
-  (`looksLikeGame`) i `index.ts:80` (`BootOptions.window`), obie przy bramie
-  `boot()` z §1 tej samej sekcji. Liczba stała tu jako „jedno" przez dwie rundy;
+- ~~`roster.ts:63` typuje wstrzykiwane `window` jako `Record<string, any>`~~ —
+  **ZAMKNIĘTE 2026‑08‑03**, typ `GameGlobals` (`SOLID §9`). Wpis stał tu
+  z własnym sprostowaniem („takich miejsc są **trzy**, nie jedno — doszły
+  `index.ts:64` i `index.ts:80`"), które było prawdziwe 2026‑08‑02 i przestało
+  być nazajutrz. Dziś w `src/` nie ma ani jednego `any`. Lekcja jest o
+  dokumencie, nie o kodzie: sprostowanie liczby nie chroni przed zestarzeniem
+  się całej pozycji;
 - w `tsconfig` siedzą resztki `bun init`: `jsx: "react-jsx"` i `allowJs: true`,
   choć w repo nie ma ani JSX, ani plików `.js`.
 
@@ -327,9 +354,10 @@ liczy się przy KAŻDYM `bun test`, a więc pod bramą i w CI. Koszt zmierzony:
 7 367 → 8 948 ms. Liczba, która ginęła, jest odtąd na oczach. Próg wejdzie po
 dociągnięciu trzech najsłabszych plików albo gdy da się go postawić na sumie.
 
-**Zostaje otwarte:** brak lintera/formattera, resztki `bun init`
-w `tsconfig.json` (`jsx: "react-jsx"`, `allowJs: true`) i **trzy** miejsca
-z `Record<string, any>` (`roster.ts:63`, `index.ts:64`, `index.ts:80`).
+**Zostaje otwarte:** brak lintera/formattera oraz resztki `bun init`
+w `tsconfig.json` (`jsx: "react-jsx"`, `allowJs: true`). Miejsca
+z `Record<string, any>` zeszły z tej listy 2026‑08‑03 — patrz sprostowanie
+w nagłówku dokumentu.
 
 ## 5. Nic nie testuje `build.ts` ani metadanych ✅ ZROBIONE (2026‑07‑30)
 
