@@ -275,8 +275,20 @@ const PLAIN_ATTACK = "Zwykły atak";
 /**
  * Etykieta, którą parser zostawia dla nierozpoznanej klasy `dmgX`. Nazwa klasy
  * wprost, bo to jedyne, co o tym rodzaju obrażeń wiadomo.
+ *
+ * ⚠️ `[a-z0-9]`, nie `[a-z]` — i to jest naprawa, nie ozdoba. Czujka była
+ * WĘŻSZA niż to, co przepuszcza kod przed nią: `RE_DAMAGE_VALUE` w `parser.ts`
+ * dopuszcza `[a-z0-9]`, a `source.ts` nadaje klasie `third` kod `"3"`, czyli
+ * cyfrę. Przestrzeń cyfr została więc otwarta 2026‑08‑03 razem z trzecim
+ * ciosem tancerza, ale czujki nikt nie poszerzył: nowy kod cyfrowy dawał
+ * etykietę `dmg4`, która NIE pasowała do tego wzorca, więc nie trafiała do
+ * `unknownElements` i nie zapalała ostrzeżenia w panelu.
+ *
+ * To jest dokładnie ten tryb awarii, którego `unknownElements` ma pilnować:
+ * komentarz przy `ELEMENTS` w `parser.ts` nazywa je „jedyną czujką na zmianę
+ * nazw klas". Czujka ślepa na połowę własnej przestrzeni nie jest czujką.
  */
-const RE_RAW_ELEMENT = /^dmg[a-z]+$/;
+const RE_RAW_ELEMENT = /^dmg[a-z0-9]+$/;
 
 /** Leczenie bez nazwy umiejętności — log nie mówi, co je wywołało. */
 const PLAIN_HEAL = "Regeneracja";

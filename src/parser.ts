@@ -652,8 +652,15 @@ export function parse(text: string): BattleEvent[] {
    * przeciwnicy i bez tego ich ciosy dostałyby cudzą nazwę.
    */
   let ability: { actor: string; name: string } | null = null;
-  /** Modyfikatory stojące luzem, przed linią obrażeń albo po niej. */
-  let loose: string[] = [];
+  /**
+   * Modyfikatory stojące luzem, przed linią obrażeń albo po niej.
+   *
+   * Niosą oprócz treści także LINIĘ i jej numer, bo `flushLoose` musi umieć
+   * zgłosić `unknown` — a `unknown` bez `lineNo` jest bezużyteczny w panelu.
+   * Do 2026‑08‑03 stała tu goła `string[]` i to była jedyna przeszkoda, żeby
+   * kwota bloku przestała przepadać po cichu.
+   */
+  let loose: Array<{ tresc: string; line: string; lineNo: number }> = [];
 
   /** Atak bez domykającej linii "otrzymał" — zgłaszamy zamiast zgadywać. */
   const flushPending = () => {
@@ -664,14 +671,38 @@ export function parse(text: string): BattleEvent[] {
 
   /**
    * Modyfikatory z zamkniętego już bloku doklejamy do jego akcji. Gdy blok nie
-   * miał ataku (np. sam DoT), przepadają — same nie niosą obrażeń, a jako
+   * miał ataku (np. sam DoT), procy przepadają — same nie niosą obrażeń, a jako
    * modyfikatory zostały rozpoznane, więc nie są sygnałem zmiany formatu.
+   *
+   * ⚠️ **„Same nie niosą obrażeń" było NIEPRAWDĄ o jednym z nich** i tak stało
+   * w tym komentarzu do 2026‑08‑03. `Zablokowanie N obrażeń` niesie liczbę,
+   * którą panel pokazuje jako `damageBlocked` — a `classifyModifiers` wyciąga
+   * ją do osobnego pola `blocked`, z którego ta funkcja brała wyłącznie
+   * `.procs`. Kwota znikała więc bez śladu i BEZ `unknown`: dokładnie ta klasa
+   * awarii, przed którą broni reszta pliku.
+   *
+   * W korpusie ta ścieżka jest dziś nieosiągalna — zmierzone: 66 wystąpień
+   * `Zablokowanie N obrażeń`, wszystkie WEWNĄTRZ bloku ataku, zero poza nim
+   * (obie drogi, 32 pliki). Naprawa jest więc obroną na zapas, i to świadomie:
+   * cisza kosztuje tu tyle samo co głos, a różni się tym, że o niej nie wiadomo.
    */
   const flushLoose = () => {
     if (loose.length === 0) return;
-    const last = events.at(-1);
-    if (last?.kind === "attack") last.procs.push(...classifyModifiers(loose).procs);
+    const zebrane = loose;
     loose = [];
+    const mods = classifyModifiers(zebrane.map((m) => m.tresc));
+    const last = events.at(-1);
+    if (last?.kind === "attack") last.procs.push(...mods.procs);
+
+    if (mods.blocked === null) return;
+    // Blok da się doczepić tylko do ataku, który jeszcze swojego nie ma.
+    // Wszystko inne to zgadywanie, do którego kwota jest za konkretna.
+    if (last?.kind === "attack" && last.blocked === null) {
+      last.blocked = mods.blocked;
+      return;
+    }
+    const zrodlo = zebrane.find((m) => RE_BLOCKED.test(m.tresc));
+    if (zrodlo) events.push({ kind: "unknown", line: zrodlo.line, lineNo: zrodlo.lineNo });
   };
 
   /** Koniec bloku umiejętności — dalsze ataki są już zwykłe. */
@@ -817,12 +848,36 @@ export function parse(text: string): BattleEvent[] {
       // od znaku, a modyfikatory dopuszczają teraz cyfry ("+14 energii").
       const taken = RE_TAKEN.exec(line);
       if (taken) {
-        const mods = classifyModifiers([...pending.modifiers, ...loose]);
+        const mods = classifyModifiers([...pending.modifiers, ...loose.map((m) => m.tresc)]);
         loose = [];
         // Cios kogoś innego niż autor zapowiedzi zamyka jej blok — to już
         // czyjaś tura.
         if (ability && ability.actor !== pending.source) ability = null;
-        const hits = buildHits(pending.rawDamages, toDamages(RE_TAKEN.exec(marked)?.[3] ?? ""), mods);
+        /**
+         * Ten sam wzorzec, druga wersja linii — bo żywioł siedzi wyłącznie
+         * w `marked`, a nazwy mają go nigdy nie zobaczyć.
+         *
+         * Rozjazd między drogami jest nieoczekiwany: `clean()` zdejmuje tylko
+         * znaczniki, więc jeśli wzorzec trafił w `line`, ma trafić i w `marked`.
+         * Do 2026‑08‑03 stało tu `?? ""` i to była JEDYNA zaślepka w tym pliku
+         * bez zdania o tym, czemu wartość zastępcza jest bezpieczna — a nie
+         * była: pusty segment daje `applied = 0` na każdym slocie przy
+         * niezerowym `raw`, czyli `damageDealt = 0` i `damageAbsorbed` równe
+         * całym obrażeniom. `isPhantomHit` tego nie łapie, bo wymaga `raw = 0`.
+         * Cała walka wychodziła na zerach, bez ani jednej linii `unknown`.
+         *
+         * Nie umiem dziś wskazać wejścia, które tu trafia — i właśnie dlatego
+         * ma być głośno. Zaślepka, której nikt nie potrafi uzasadnić, jest
+         * gorsza od zgłoszenia linii.
+         */
+        const markedTaken = RE_TAKEN.exec(marked);
+        if (!markedTaken) {
+          events.push({ kind: "unknown", line: pending.line, lineNo: pending.lineNo });
+          events.push({ kind: "unknown", line, lineNo });
+          pending = null;
+          return;
+        }
+        const hits = buildHits(pending.rawDamages, toDamages(markedTaken[3]!), mods);
         if (hits.some(isPhantomHit)) {
           // Cios rozsypał się na trafienia, których nie ma — patrz
           // `isPhantomHit`. Kwota jest wtedy nie do odtworzenia, więc zgłaszamy
@@ -892,7 +947,7 @@ export function parse(text: string): BattleEvent[] {
       const amount = parseInt(abilityDamage[1]!, 10);
       // Żywioł niesie ta sama liczba w wersji ze znacznikami (`<b class="dmga">`).
       const element = toDamages(marked)[0]?.element ?? null;
-      const mods = classifyModifiers(loose);
+      const mods = classifyModifiers(loose.map((m) => m.tresc));
       loose = [];
       events.push({
         kind: "attack",
@@ -927,7 +982,7 @@ export function parse(text: string): BattleEvent[] {
     // stojącą niżej linię DoT-a.
     const looseModifier = modifierOf(line);
     if (looseModifier !== null) {
-      loose.push(looseModifier);
+      loose.push({ tresc: looseModifier, line, lineNo });
       return;
     }
 

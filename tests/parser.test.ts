@@ -1068,6 +1068,63 @@ describe("głośne awarie zamiast cichych", () => {
     expect(kamil.dealtByType.map((t) => t.label)).toEqual(["Nieznany (dmgz)"]);
   });
 
+  test("nieznany kod CYFROWY też zapala czujkę, nie tylko litera", () => {
+    /**
+     * Czujka `unknownElements` była WĘŻSZA niż to, co przepuszcza kod przed
+     * nią, i to przez ponad dobę. `RE_DAMAGE_VALUE` w `parser.ts` dopuszcza
+     * `[a-z0-9]`, a `source.ts` nadaje klasie `third` kod `"3"` — czyli cyfrę.
+     * Przestrzeń cyfr otwarto 2026‑08‑03 razem z trzecim ciosem tancerza,
+     * a `RE_RAW_ELEMENT` w `stats.ts` został na `/^dmg[a-z]+$/`.
+     *
+     * Skutek: kod `4` dawał etykietę `dmg4`, wiersz „Nieznany (dmg4)" w panelu
+     * — i ANI JEDNEGO ostrzeżenia, bo do `unknownElements` nie trafiał.
+     * Komentarz przy `ELEMENTS` nazywa je „jedyną czujką na zmianę nazw klas";
+     * czujka ślepa na połowę własnej przestrzeni nie jest czujką.
+     *
+     * Sprawdzone mutacją: po cofnięciu `[a-z0-9]` do `[a-z]` pada wyłącznie
+     * pierwsza asercja — wiersz w panelu wygląda tak samo. Dokładnie na tym
+     * polega cisza, o którą tu chodzi.
+     */
+    const stats = aggregate(
+      parse(
+        [
+          "Rozpoczęła się walka pomiędzy Kamil (120h) a Wilk (10w)",
+          `Kamil(100%) uderzył z siłą  +120${el("4")}`,
+          `Wilk(50%) otrzymał(a)  -80${el("4")}  obrażeń`,
+        ].join("\n"),
+      ),
+    );
+
+    expect(stats.unknownElements).toEqual(["dmg4"]);
+    expect(stats.unknownLines).toBe(0);
+    expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType.map((t) => t.label)).toEqual([
+      "Nieznany (dmg4)",
+    ]);
+  });
+
+  test("rozjazd między wersją ze znacznikami a czystą jest głośny", () => {
+    /**
+     * `RE_TAKEN` biegnie po linii dwa razy: raz po `line` (bez znaczników),
+     * raz po `marked`. Do 2026‑08‑03 druga próba miała zaślepkę `?? ""` —
+     * jedyną w pliku bez zdania o tym, czemu wartość zastępcza jest bezpieczna.
+     *
+     * Nie była. Pusty segment przyjętych daje `applied = 0` na KAŻDYM slocie
+     * przy niezerowym `raw`, więc `damageDealt` spada do zera, a `damageAbsorbed`
+     * rośnie do całych obrażeń — i `isPhantomHit` tego nie łapie, bo wymaga
+     * `raw === 0`. Cała walka wychodziła na zerach bez ani jednej linii `unknown`.
+     *
+     * Wejście niżej jest syntetyczne i taki rozjazd realizuje wprost: znacznik
+     * stoi ZA słowem „obrażeń", więc `clean()` go zdejmuje i `line` pasuje,
+     * a `marked` nie ma jak — wzorzec kotwiczy na `obrażeń$`.
+     */
+    const events = parse(
+      ["Kamil(100%) uderzył z siłą +100", `Wilk(50%) otrzymał -60 obrażeń${el("f")}`].join("\n"),
+    );
+
+    expect(events.some((e) => e.kind === "attack")).toBe(false);
+    expect(events.map((e) => e.kind)).toEqual(["unknown", "unknown"]);
+  });
+
   test("znana klasa nadal ma swoją nazwę", () => {
     const stats = aggregate(
       parse(
@@ -1176,6 +1233,72 @@ describe("głośne awarie zamiast cichych", () => {
       "Kamil(100%) uderzył z siłą +120x",
       "Wilk(50%) otrzymał(a) -80 obrażeń",
     ]);
+  });
+});
+
+/**
+ * `Zablokowanie N obrażeń` poza blokiem ataku — kwota, która do 2026‑08‑03
+ * przepadała bez śladu i bez ostrzeżenia.
+ *
+ * `classifyModifiers` wyciąga blok do osobnego pola `blocked`, a `flushLoose`
+ * brał stamtąd wyłącznie `.procs`. Komentarz nad tą funkcją tłumaczył, że
+ * modyfikatory z zamkniętego bloku wolno porzucić, bo „same nie niosą
+ * obrażeń" — i to było prawdą o wszystkich oprócz tego jednego.
+ *
+ * ⚠️ **W korpusie ta ścieżka jest nieosiągalna** i trzeba to powiedzieć wprost,
+ * żeby nikt nie czytał tych testów jako opisu naprawionej awarii. Zmierzone na
+ * 32 plikach, obiema drogami: 66 wystąpień `Zablokowanie N obrażeń`, wszystkie
+ * WEWNĄTRZ bloku ataku, zero poza nim. To obrona na zapas — świadoma, bo cisza
+ * kosztuje tu tyle samo co głos i różni się wyłącznie tym, że o niej nie wiadomo.
+ */
+describe("blok poza blokiem ataku", () => {
+  const kinds = (log: string[]) => parse(log.join("\n")).map((e) => e.kind);
+  const attack = (log: string[]) => parse(log.join("\n")).find((e) => e.kind === "attack");
+
+  test("doczepia się do ciosu, który nie ma jeszcze swojego bloku", () => {
+    expect(
+      attack([
+        "Kamil(100%) uderzył z siłą +100",
+        "Wilk(50%) otrzymał -60 obrażeń",
+        "-Zablokowanie 40 obrażeń",
+        "Kamil wykonuje Cios mocy.",
+      ]),
+    ).toMatchObject({ blocked: 40 });
+  });
+
+  test("nie nadpisuje bloku, który cios już ma — zgłasza linię", () => {
+    // Dwie kwoty na jeden cios to albo zmiana formatu, albo nasz błąd
+    // wiązania. Sumowanie ich byłoby zgadywaniem, a `damageBlocked` jest
+    // podzbiorem `damageAbsorbed` (`types.ts`) — pomyłka rozjechałaby
+    // niezmiennik w `stats.test.ts`, ale dopiero i tylko czasem.
+    const log = [
+      "Kamil(100%) uderzył z siłą +100",
+      "-Zablokowanie 40 obrażeń",
+      "Wilk(50%) otrzymał -60 obrażeń",
+      "-Zablokowanie 99 obrażeń",
+      "Kamil wykonuje Cios mocy.",
+    ];
+    expect(attack(log)).toMatchObject({ blocked: 40 });
+    expect(kinds(log)).toEqual(["attack", "unknown", "ability"]);
+  });
+
+  test("bez żadnego ciosu w zasięgu jest zgłaszany, a nie porzucany", () => {
+    expect(kinds(["-Zablokowanie 40 obrażeń", "Kamil wykonuje Cios mocy."])).toEqual([
+      "unknown",
+      "ability",
+    ]);
+  });
+
+  test("blok WEWNĄTRZ bloku ataku działa jak działał", () => {
+    // Kontrola przeciwna: 66 wystąpień z korpusu chodzi tą ścieżką i naprawa
+    // nie ma prawa jej ruszyć.
+    expect(
+      attack([
+        "Kamil(100%) uderzył z siłą +100",
+        "-Zablokowanie 40 obrażeń",
+        "Wilk(50%) otrzymał -60 obrażeń",
+      ]),
+    ).toMatchObject({ blocked: 40, procs: [] });
   });
 });
 

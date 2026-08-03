@@ -138,6 +138,12 @@ const fixtures = [...new Glob("*/*/raw.txt").scanSync(FIXTURES)].map((path) => (
  * czegoś realnego: gdyby `RE_BLOCKED` albo `RE_MODIFIER` się poszerzyły,
  * liczba 34 drgnie. Zamrożona liczba jest tu strażnikiem stabilności wzorców,
  * a nie długiem do spłacenia.
+ *
+ * Osobno i naprawdę: kwota bloku stojącego POZA blokiem ataku przepadała
+ * w `flushLoose` bez ani jednego `unknown`. Tego fuzz nie pokazuje, bo w
+ * korpusie taka linia nie występuje ani razu (66 wystąpień, wszystkie
+ * wewnątrz bloku). Naprawione i opisane w `tests/parser.test.ts`,
+ * `describe("blok poza blokiem ataku")`.
  */
 const ZAMROZONE_UCIECZKI: Record<string, number> = {
   "blok: «Zablokowanie N obrażeń»": 34,

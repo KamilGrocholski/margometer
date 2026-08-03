@@ -35,6 +35,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   z sąsiedniej linii albo cios „za zero". Do tej pory taka linia potrafiła
   przejść bez ostrzeżenia, a w statystykach zostawała wartość, której w logu
   nie było.
+- **Poprawka** — Zablokowane obrażenia nie gubią się, gdy gra napisze o nich
+  poza opisem ciosu. Wcześniej taka kwota po prostu znikała ze statystyk.
+- **Poprawka** — Ostrzeżenie o nieznanym rodzaju obrażeń zapala się także wtedy,
+  gdy gra oznaczy go cyfrą, a nie literą. Do tej pory taki rodzaj pojawiał się
+  w rozbiciu jako „Nieznany", ale panel o nim nie uprzedzał.
 
 ## [0.4.0] — 2026-08-03
 
