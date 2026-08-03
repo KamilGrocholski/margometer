@@ -198,6 +198,81 @@ describe("przypisanie kolorów", () => {
         expect([row.dataset.source, label.dataset.prof]).toEqual([row.dataset.source, undefined]);
       }
     });
+
+    /**
+     * Nazwa postaci pada w panelu nie tylko w wierszach list.
+     *
+     * Do 2026‑08‑03 odznakę miały wyłącznie wiersze, a te same postacie nazwane
+     * w okruszku powrotu i w tytułach dymków stały gołe — czyli gwarancja
+     * z `palette.ts` („rozróżnialność zapewnia odznaka z literą, nie barwa”)
+     * kończyła się tam, gdzie kończyła się lista.
+     */
+    const prof = (overlay: Overlay, selector: string) =>
+      overlay.shadow.querySelector<HTMLElement>(selector)?.dataset.prof;
+
+    test("okruszek powrotu niesie literę profesji postaci, w której stoimy", async () => {
+      const { overlay, stats } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      const first = rows(overlay, ".rows .row[data-actor]")[0]!;
+      const name = first.dataset.actor!;
+      first.click();
+
+      const code = stats.actors.find((one) => one.name === name)!.professionCode!;
+      expect([name, prof(overlay, ".crumb-name")]).toEqual([name, code.toUpperCase()]);
+      // Odznakę rysuje `::before`, więc nazwa zostaje nazwą dla kodu i schowka.
+      expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe(name);
+    });
+
+    test("tytuł dymka nad postacią ma literę, nad umiejętnością nie", async () => {
+      const { overlay, stats } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      const hover = (row: HTMLElement) =>
+        row.dispatchEvent(new Event("pointerover", { bubbles: true }));
+
+      // Dymek nad wierszem rankingu — postać wprost z `ActorStats`.
+      const first = rows(overlay, ".rows .row[data-actor]")[0]!;
+      hover(first);
+      const boss = stats.actors.find((one) => one.name === first.dataset.actor)!;
+      expect(prof(overlay, ".tip-title")).toBe(boss.professionCode!.toUpperCase());
+
+      // Dymek nad wierszem rozbicia: postać dostaje literę, umiejętność nie —
+      // i rozstrzyga to `professionOf`, a nie to, z której sekcji jest wiersz.
+      first.click();
+      const breakdown = rows(overlay, ".rows .row[data-source]");
+      const character = breakdown.find((row) =>
+        stats.actors.some((one) => one.name === row.dataset.source),
+      )!;
+      const ability = breakdown.find((row) => row.dataset.list === "abilities")!;
+
+      hover(character);
+      const actor = stats.actors.find((one) => one.name === character.dataset.source)!;
+      expect([character.dataset.source, prof(overlay, ".tip-title")]).toEqual([
+        character.dataset.source,
+        actor.professionCode!.toUpperCase(),
+      ]);
+
+      hover(ability);
+      expect([ability.dataset.source, prof(overlay, ".tip-title")]).toEqual([
+        ability.dataset.source,
+        undefined,
+      ]);
+    });
+
+    test("nagłówek drugiego szczebla odznaki NIE dubluje", async () => {
+      // `CZYM — CYGAŃSKI BIDOK` powtarza nazwę, którą okruszek nazywa dwie
+      // linijki wyżej — i to on ją znakuje. Druga odznaka na to samo nic nie
+      // dokłada, a przy `KOMU — <UMIEJĘTNOŚĆ>` byłaby wręcz nieprawdą.
+      const { overlay, stats } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      rows(overlay, ".rows .row[data-actor]")[0]!.click();
+      const character = rows(overlay, ".rows .row[data-source]").find((row) =>
+        stats.actors.some((one) => one.name === row.dataset.source),
+      )!;
+      character.click();
+
+      const who = overlay.shadow.querySelector<HTMLElement>(".side-head .who")!;
+      expect(who.textContent).toContain("CZYM — ");
+      expect(who.dataset.prof).toBeUndefined();
+      // …ale postać, w której stoimy, jest oznaczona — w okruszku.
+      expect(prof(overlay, ".crumb-name")).toBeDefined();
+    });
   });
 
   test("litera na odznace przechodzi AA na każdej barwie profesji", () => {

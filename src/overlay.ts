@@ -1717,7 +1717,19 @@ export class Overlay {
     back.setAttribute("aria-label", "Wróć o szczebel");
     this.bindAction(back, "crumb-back", () => this.back());
     const here = this.focusSource ?? actor.name;
-    crumb.append(back, div("crumb-name", here));
+    /**
+     * Okruszek niesie odznakę, bo to on nazywa postać, w której się stoi —
+     * na pierwszym szczeblu `actor.name`, na drugim `focusSource`.
+     *
+     * To tutaj, a NIE w nagłówku sekcji, i jest to wybór, nie przeoczenie:
+     * na drugim szczeblu nagłówek brzmi `CZYM — CYGAŃSKI BIDOK`, czyli powtarza
+     * tę samą nazwę dwie linijki niżej. Druga odznaka na to samo nie dokłada
+     * informacji, tylko powtarza — a przy nazwie umiejętności
+     * (`KOMU — SYMFONIA ŻYWIOŁÓW`) byłaby wręcz myląca.
+     */
+    const name = div("crumb-name", here);
+    this.markIfCharacter(name, here);
+    crumb.append(back, name);
     return crumb;
   }
 
@@ -2258,6 +2270,24 @@ export class Overlay {
     label.style.setProperty("--prof-ink", professionInk(code));
   }
 
+  /**
+   * Odznaka dla węzła niosącego SAMĄ nazwę — okruszek i tytuły dymków.
+   *
+   * Różnica wobec `markProfession` jest jedna, ale zasadnicza: tam wołający już
+   * WIE, że ma postać i zna jej kod. Tutaj wiadomo tylko, co jest napisane,
+   * a o tym, czy to postać, rozstrzyga `professionOf`. Dzięki temu ten sam
+   * węzeł obsługuje nazwę postaci i nazwę umiejętności — tytuł dymka nad
+   * wierszem `OD KOGO` niesie postać, a nad wierszem `CZYM (ŁĄCZNIE)`
+   * umiejętność, i żaden warunek po stronie wołającego nie musi ich rozróżniać.
+   *
+   * Pozycje spoza składu („Bez sprawcy", „Trucizna") zostają gołe same z siebie:
+   * `professionOf` ich nie zna, więc zwraca `null`.
+   */
+  private markIfCharacter(node: HTMLElement, name: string): void {
+    const code = this.professionOf(name);
+    if (code) this.markProfession(node, code);
+  }
+
 
   /**
    * Rozbicie obrażeń wybranej postaci: z czego się złożyły i w jakich
@@ -2415,7 +2445,11 @@ export class Overlay {
    * naraz nie mieściło się na ekranie i tak czy siak wymagało czytania.
    */
   private tipContent(actor: ActorStats): Node[] {
-    const nodes: Node[] = [div("tip-title", actor.name), this.generalSection(actor)];
+    // Kod bierzemy z `actor`, a nie przez `professionOf`: tu wołający TRZYMA
+    // postać w ręku, więc pytanie „czy to postać" jest już rozstrzygnięte.
+    const title = div("tip-title", actor.name);
+    if (actor.professionCode) this.markProfession(title, actor.professionCode);
+    const nodes: Node[] = [title, this.generalSection(actor)];
 
     const uses = this.usesSection(actor);
     if (uses) nodes.push(uses);
@@ -2508,9 +2542,14 @@ export class Overlay {
       numbers.append(stat(this.metric === "healingReceived" ? "Razy" : "Ciosy", `${source.hits}`));
     }
 
+    // Etykieta łamie się na kilka linijek — po to jest ten dymek. Gdy niesie
+    // postać (wiersz `KOMU` / `OD KOGO`), dostaje odznakę; gdy umiejętność albo
+    // rodzaj obrażeń — nie, i rozstrzyga to `professionOf`, nie sekcja.
+    const title = div("tip-title tip-wrap", source.label);
+    this.markIfCharacter(title, source.label);
+
     return [
-      // Etykieta łamie się na kilka linijek — po to jest ten dymek.
-      div("tip-title tip-wrap", source.label),
+      title,
       numbers,
       // PPM zdejmuje JEDEN szczebel, więc z drugiego wraca do listy celów, nie
       // do składu. To jedyna instrukcja nawigacji w panelu — nie może kłamać.

@@ -37,6 +37,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   profesji mają go wspólny.
 - **Zmiana** — Panel i okno archiwum wyglądają jak jedno narzędzie: to samo tło,
   ta sama ramka, to samo podświetlenie pod kursorem.
+- **Zmiana** — Litera profesji stoi teraz przy nazwie postaci także w ścieżce
+  powrotu i w dymkach, nie tylko na listach. Wszędzie tam, gdzie panel nazywa
+  postać, widać od razu, kim ona jest.
 - **Poprawka** — Zamknięcie okna archiwum kończy liczenie podsumowań. Wcześniej
   liczyły się dalej, w tle, choć okna nie było już na ekranie — a robiły to
   kosztem płynności gry.
