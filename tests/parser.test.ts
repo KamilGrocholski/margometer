@@ -1135,7 +1135,7 @@ describe("głośne awarie zamiast cichych", () => {
       parse(
         [
           "Rozpoczęła się walka pomiędzy Kamil (120h) a Wilk (10w)",
-          `Kamil(100%) uderzył z siłą  +120${el("f")}x`,
+          `Kamil(100%) uderzył z siłą  +120${el("f")}`,
           `Wilk(50%) otrzymał(a)  -80${el("f")}  obrażeń`,
         ].join("\n"),
       ),
@@ -1143,6 +1143,39 @@ describe("głośne awarie zamiast cichych", () => {
 
     expect(stats.unknownElements).toEqual([]);
     expect(stats.actors.find((a) => a.name === "Kamil")!.dealtByType[0]?.label).toBe("Ogień");
+  });
+
+  test("litera doklejona ZA znacznikiem wywraca linię, zamiast podmienić żywioł", () => {
+    /**
+     * Ten kształt (`+120␁fx`) stał do 2026‑08‑03 w teście wyżej i był tam
+     * jedynym świadkiem zachłanności `[a-z]+`. Po zawężeniu `DAMAGE_SEGMENT`
+     * nie ma prawa się dopasować w ogóle — segment obrażeń to wyłącznie liczby
+     * ze znacznikiem, a `x` liczbą nie jest.
+     *
+     * Rozdzielone na dwa testy świadomie: tamten pilnuje, że znacznik JEST
+     * czytany i daje „Ogień"; ten pilnuje, że śmieć za znacznikiem jest
+     * GŁOŚNY. Sklejone w jeden dawały test, który po zawężeniu przechodził
+     * z niewłaściwego powodu — bo `unknownElements` puste jest prawdą także
+     * wtedy, gdy cała linia poszła w `unknown` i żadnego żywiołu nie było.
+     *
+     * Co ta zmiana ODBIERA i trzeba to powiedzieć wprost: gdyby gra kiedyś
+     * zaczęła doklejać literę bezpośrednio za klasą żywiołu, cios przestanie
+     * być liczony. Awaria będzie jednak natychmiastowa i widoczna w panelu,
+     * a nie cicha — czyli po stronie, którą to repo wybiera świadomie.
+     */
+    const events = parse(
+      [
+        "Rozpoczęła się walka pomiędzy Kamil (120h) a Wilk (10w)",
+        `Kamil(100%) uderzył z siłą  +120${el("f")}x`,
+        `Wilk(50%) otrzymał(a)  -80${el("f")}  obrażeń`,
+      ].join("\n"),
+    );
+
+    expect(events.some((e) => e.kind === "attack")).toBe(false);
+    expect(events.filter((e) => e.kind === "unknown").map((e) => e.line)).toEqual([
+      "Kamil(100%) uderzył z siłą +120x",
+      "Wilk(50%) otrzymał(a) -80 obrażeń",
+    ]);
   });
 });
 

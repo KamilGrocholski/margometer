@@ -62,6 +62,46 @@ const ELEMENTS: Record<string, string> = {
 const RE_ELEMENT = new RegExp(`${ELEMENT_MARKER}([a-z0-9])`, "g");
 const RE_DAMAGE_VALUE = new RegExp(`(-?\\d+)(?:${ELEMENT_MARKER}([a-z0-9]))?`, "g");
 
+/**
+ * Segment obrażeń: ciąg liczb i NIC POZA NIMI.
+ *
+ * Do 2026‑08‑03 stało tu `(.+)` w `RE_ATTACK` i `(.+?)` w `RE_TAKEN`, czyli
+ * „cokolwiek". Konsekwencja nie była teoretyczna — `toDamages` na tekście bez
+ * cyfr zwraca pustą listę, a `buildHits` zamienia brak pary na zero
+ * (`paired[i]?.value ?? 0`) albo na kopię sąsiada (`raw[i]?.value ??
+ * appliedValue`). Efekt: linia bez ani jednej liczby dawała PEŁNOPRAWNY cios
+ * z liczbą wziętą nie stamtąd, przy `unknownLines` równym zeru:
+ *
+ *   Wyczxs(85.19%) otrzymał -kwiaty obrażeń   →  kwoty [3268, 3974] → [0, 3974]
+ *   Wyczxs(78.59%) uderzył z siłą +kwiaty     →  kwoty [57, 92, 2289, 3010]
+ *                                                     → [57, 92, 2289, 2289]
+ *
+ * Czyli dokładnie ten tryb awarii, przed którym broni cała reszta tego pliku:
+ * przekłamana liczba BEZ sygnału. Fuzz mutacyjny w `tests/mutanty.test.ts`
+ * mierzył 1383 takie linie przyjętych i 578 ciosów na samym korpusie tekstowym.
+ *
+ * **Zawężenie jest darmowe** — zmierzone na całym korpusie, obiema drogami
+ * (`raw.txt` i `log.html`) i w obu wersjach linii (ze znacznikami i bez):
+ * **10 808 segmentów, 0 wyjątków**. Rozkład: 4870 jednoliczbowych, 4758 dwu‑,
+ * 1147 trzy‑, 32 cztero‑, 1 pięcioliczbowy.
+ *
+ * Dwie rzeczy, na których ten wzorzec się przewraca, jeśli je uprościć:
+ *
+ * 1. **Separatorem bywa PUSTKA, nie spacja.** Na ścieżce przez DOM `extractText`
+ *    skleja sąsiednie węzły bez odstępu i segment wygląda tak:
+ *    `-487␁d-503␁a`. Wzorzec żądający spacji między liczbami odrzucał 2870
+ *    z 10 808 segmentów — wyłącznie z `log.html`. Stąd `\s*`, nie `\s+`.
+ * 2. **Znacznik żywiołu wchodzi do środka**, bo `RE_ATTACK`/`RE_TAKEN` biegną
+ *    po linii DWA razy: raz po wersji czystej, raz po `marked`. Bez `[a-z0-9]`
+ *    (a nie samego `[a-z]`) wypadłby `third` — kod `"3"`.
+ *
+ * Separator tysięcy przeżywa nietknięty i to jest wymóg, nie skutek uboczny:
+ * `+10 000` nadal daje DWIE liczby, więc `isPhantomHit` zgłasza go tak samo
+ * jak przed zmianą (`SOLID §4.19`). Pilnuje tego osobny test.
+ */
+const ELEMENT_SUFFIX = String.raw`(?:${ELEMENT_MARKER}[a-z0-9])?`;
+const DAMAGE_SEGMENT = String.raw`[+-]?\d+${ELEMENT_SUFFIX}(?:\s*[+-]?\d+${ELEMENT_SUFFIX})*`;
+
 /** Tekst bez znaczników — wszystko poza dwiema liniami obrażeń widzi tę wersję. */
 function clean(text: string): string {
   return text.replace(RE_ELEMENT, "");
@@ -92,9 +132,9 @@ const RE_PARTICIPANT = /(.+?)\s\((\d+)([a-zA-Z])\)/g;
  * niespójność była wewnętrzna, nie wynikała z formatu logu.
  */
 const GENDER = String.raw`(?:a|o|\(a\))?`;
-const RE_ATTACK = new RegExp(`^${ACTOR}\\s+uderzył${GENDER} z siłą\\s+(.+)$`);
+const RE_ATTACK = new RegExp(`^${ACTOR}\\s+uderzył${GENDER} z siłą\\s+(${DAMAGE_SEGMENT})$`);
 const RE_TAKEN = new RegExp(
-  `^${ACTOR}\\s+otrzymał${GENDER}\\s+(.+?)\\s+obrażeń$`,
+  `^${ACTOR}\\s+otrzymał${GENDER}\\s+(${DAMAGE_SEGMENT})\\s+obrażeń$`,
 );
 // Modyfikator zaczyna się od + lub -. Po znaku bywa liczba ("+14 energii"),
 // więc linie niosące obrażenia muszą być sprawdzane WCZEŚNIEJ niż ta. Wymóg

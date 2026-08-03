@@ -28,6 +28,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Gdy okno walki napisze linię obrażeń w kształcie, którego
+  licznik nie rozumie, panel mówi o tym wprost zamiast pokazywać liczbę wziętą
+  z sąsiedniej linii albo cios „za zero". Do tej pory taka linia potrafiła
+  przejść bez ostrzeżenia, a w statystykach zostawała wartość, której w logu
+  nie było.
+
 ## [0.4.0] — 2026-08-03
 
 - **Nowość** — Panel pokazuje numer wersji dodatku, a skopiowane statystyki
