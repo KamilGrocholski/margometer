@@ -571,6 +571,17 @@ albo przyjmować klucze rozwiązane.
 
 ## 6. Parsowanie — `src/parser.ts`
 
+> **Zaprojektowane 2026‑08‑03**, szerzej niż ten wpis proponuje:
+> [`docs/specy/2026-08-03-parser-tokenizer-i-gramatyka.md`](specy/2026-08-03-parser-tokenizer-i-gramatyka.md)
+> (status: projekt). Spec przynosi pomiar, którego ten wpis nie miał: puszczone
+> po korpusie wszystkie wzorce naraz dają **9355 linii z dokładnie jednym
+> trafieniem, 24 kolizje (wszystkie `strike-note + info`) i zero linii bez
+> trafienia**. Czyli kolejność drabiny, opisana niżej jako 🔴, na dzisiejszym
+> korpusie **nie rozstrzyga prawie niczego** — wzorce tworzą podział, nie listę
+> prób. To nie unieważnia zarzutu (kolejność nadal jest niejawna i nadal jest
+> tym, co pozwoliło powstać §4.3), ale przesuwa go z „bomba z opóźnionym
+> zapłonem" na „dług czytelności" — i daje niezmiennik do wymuszenia.
+
 `parse` (~320 linii) to maszyna stanów po liniach z domknięciami (`pending`,
 `ability`, `loose`). Katalog regexów na poziomie modułu — dobry.
 
@@ -922,7 +933,7 @@ Niezmienniki przeliczone po naprawach na całym korpusie (13 zrzutów):
 | R1 | `FightTracker` (jedno dzielenie+dopasowanie walk) + jedna stała `fight-start` | dubel §4.4, §4.12, §4.14, trzy kopie wzorca | M |
 | R2 | `ActorAccumulator` (jeden `recordHit`) | §4.1/§4.6 i przyszłe pominięcia | M |
 | R3 | Deklaratywny `mergeStats` | „zapomniane pole” — `abilityUses`, a teraz **§4.11 `dealtToBy`** | M |
-| R4 | Tablica reguł parsera | §4.3, §4.18 i OCP nowych formatów | S–M |
+| R4 | Tablica reguł parsera. **Zaprojektowane 2026‑08‑03 szerzej — jako tokenizer + gramatyka, cały parser od zera**: [`specy/2026-08-03-parser-tokenizer-i-gramatyka.md`](specy/2026-08-03-parser-tokenizer-i-gramatyka.md) (status: projekt). Sama tablica reguł jest w specu odrzuconym wariantem — zamyka OCP, ale zostawia trzy zmierzone dziury, w których `(.+?)` przyjmuje dowolny tekst i cicho przekłamuje liczbę. Koszt rośnie do L | §4.3, §4.18 i OCP nowych formatów | ~~S–M~~ L |
 | **R5** | **`panel-window.ts`**: `PanelState` + `loadState`/`saveState` + walidacja pól. **Częściowo zrobione:** wspólne przycinanie pozycji siedzi już w `window.ts` (`clampToViewport`), ale `loadState`/`saveState` nadal istnieją dwa razy i nadal bez walidacji pól | reszta klasy z §4.15 | S |
 | **R6** | ~~**Delegacja po `data-action`** dla całego panelu~~ | **✅ ZROBIONE 2026‑07‑30** — zamknęło `UX-POPRAWKI A8` | — |
 | ~~**R7**~~ | ~~**Wydzielić `STYLE`** + scoping~~ | **✅ ZROBIONE 2026‑08‑02** — `src/style.ts`, jeden arkusz na oba okna (tokeny → prymitywy → panel → archiwum). Archiwum przestało wstrzykiwać własny; chrome opisuje jedna reguła `.panel, .archive`; wiersz rankingu zawężony do `.rows .row`, więc kolizja, dla której powstało obejście `.archive-paste-actions`, zniknęła. Siedem nowych tokenów na wartości, które padały w arkuszu po dwa i trzy razy. Strażnik przeprowadzki: **113 selektorów przed, 113 po**, różnice wyłącznie zamierzone. Spec: [`specy/2026-08-02-jednolity-wyglad-wiersza.md`](specy/2026-08-02-jednolity-wyglad-wiersza.md). **Zostaje:** pełne zakresowanie per okno — `header`, `button` i `.grow` są dalej globalne w shadow roocie, dziś celowo | — |
