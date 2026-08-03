@@ -26,7 +26,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
-## [Niewydane]
+## [0.4.0] — 2026-08-03
 
 - **Nowość** — Panel pokazuje numer wersji dodatku, a skopiowane statystyki
   niosą go razem z liczbami. Zgłaszając, że coś nie zagrało, nie trzeba już
