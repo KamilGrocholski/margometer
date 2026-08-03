@@ -260,9 +260,21 @@ function classify(label: string): string | null {
   if (text.includes("truci")) return "trucizna";
   if (text.includes("ran")) return "rana";
   if (text.includes("nieuchron")) return "nieuchronne";
-  // Trzy nazwy z osi BRONI, nie żywiołu: zwarcie, dystans i broń pomocnicza
-  // tancerza ostrzy. Dla patrzącego to jedna rodzina — „obrażenia z broni".
-  if (text.includes("fizyczn") || text.includes("dystans") || text.includes("pomocnicz")) {
+  // Cztery nazwy z osi BRONI, nie żywiołu: zwarcie, dystans, broń pomocnicza
+  // i trzeci cios tancerza ostrzy. Dla patrzącego to jedna rodzina —
+  // „obrażenia z broni".
+  //
+  // „Trzeci cios" dołączył tu razem z klasą `third` (korpus 2026-08-03) i to
+  // NIE jest zgadywanie żywiołu: log nazywa go wprost modyfikatorem „+Trzeci
+  // cios" przy tym samym ciosie, w którym stoją trafienia główne i pomocnicze.
+  // Rodziny nie dostaje tylko to, czego żywiołu naprawdę nie znamy — patrz
+  // „globalne" niżej.
+  if (
+    text.includes("fizyczn") ||
+    text.includes("dystans") ||
+    text.includes("pomocnicz") ||
+    text.includes("trzeci")
+  ) {
     return "broń";
   }
   // „globalne" rodziny NIE dostaje świadomie: gra podaje przy tych liczbach
@@ -344,6 +356,12 @@ const DOT_LABELS: Record<string, string> = {
   "od ognia": "Ogień",
   "po zranieniu": "Zranienie",
   "od błyskawic": "Błyskawica",
+  // Jedyna pozycja tej mapy, której odpowiednika NIE MA w logu: linia
+  // "Stracono -92 punktów życia X(99.52%)" podaje kwotę i postać, ale nie
+  // nazywa źródła. Nazwa jest więc nasza i celowo opisuje SKUTEK ("ubyło
+  // życia"), a nie zgadniętą przyczynę — patrz komentarz przy `RE_HP_LOST`
+  // w `parser.ts` i wpis w `docs/MECHANIKA.md`.
+  "od ubytku życia": "Ubytek życia",
 };
 
 /**

@@ -83,12 +83,38 @@ describe.each(htmlFixtures)("$name (html)", (fixture) => {
     const raw = await fixture.raw();
     if (raw === null) return;
 
+    /**
+     * `damageAbsorbed` NIE wchodzi do porównania — i to jest wynik pomiaru,
+     * nie wygoda.
+     *
+     * Obie drogi widzą te same liczby zadane i te same przyjęte, więc
+     * `damageDealt` i `damageTaken` muszą się zgadzać co do jednego punktu.
+     * Pochłonięcie liczy się jednak PER SLOT (`raw - applied`), a o tym, która
+     * przyjęta liczba trafia do którego slotu, rozstrzyga żywioł — którego
+     * w tekście z „Kopiuj logi" nie ma wcale (patrz `pairApplied`).
+     *
+     * Zmierzone na `2026-08-03_druzyna-vs-hildur-absorpcja`, cios Przeworskiej
+     * Dumy `+906 +147 +799` zamknięty `-104 -8 -278`:
+     *
+     *   tekst: 104→906, 8→147, 278→799            ⇒ pochłonięte 1462
+     *   DOM:   104(d)→906(d), 8(c)→799(c),
+     *          147(f) nietknięty, 278(a) osobno    ⇒ pochłonięte 1740
+     *
+     * DOM ma rację: składnik ognia został pochłonięty w całości, a 278 to
+     * `Piętno bestii` doliczone PO redukcji, więc nie ma surowego odpowiednika.
+     * Tekst nie ma jak tego zobaczyć. W całej walce daje to 237 127 wobec
+     * 240 025 — 1,2% mniej po stronie bossa.
+     *
+     * Komentarz przy `pairApplied` mówił, że w tekście „slot i tak nie ma czego
+     * przekłamać, bo nie ma rozbicia na rodzaje obrażeń". To prawda o ROZBICIU
+     * i nieprawda o tym skalarze; ten fixture jest pierwszym w korpusie, który
+     * to pokazuje. Sprostowanie stoi też w `parser.ts`.
+     */
     const summary = (stats: BattleStats) =>
       stats.actors.map((actor) => ({
         name: actor.name,
         damageDealt: actor.damageDealt,
         damageTaken: actor.damageTaken,
-        damageAbsorbed: actor.damageAbsorbed,
         healingDone: actor.healingDone,
         healingReceived: actor.healingReceived,
         hits: actor.hits,
@@ -1214,5 +1240,82 @@ describe("leczenie przy zdublowanej nazwie", () => {
     expect(healed).toHaveLength(1);
     // Ostatnia akcja dotyczyła instancji, która zeszła do 80%.
     expect(healed[0]!.damageTaken).toBe(50);
+  });
+});
+
+/**
+ * Szyki, które wywrócił korpus z 2026-08-03 (trzy walki 10 vs 1, patrz
+ * `tests/fixtures/new-engine/2026-08-03_*`). Każdy z nich lądował wcześniej
+ * w `unknown`, a fixture'y łapią je już całą walką — te testy trzymają
+ * pojedyncze linie, żeby przy zmianie wzorca padał konkretny szyk, a nie
+ * „gdzieś w 451 zdarzeniach coś jest nie tak".
+ */
+describe("szyki z korpusu 2026-08-03", () => {
+  const start = "Rozpoczęła się walka pomiędzy Kamil (120h) a Wilk (10w)";
+
+  test("ubytek życia bez sprawcy liczy się jako tyknięcie", () => {
+    // Minus przed liczbą to ozdobnik zapisu, nie negacja: procent życia w tej
+    // samej linii SPADA. Dowód pomiarowy stoi przy `RE_HP_LOST` w parser.ts.
+    const events = parse([start, "Stracono -92 punktów życia Kamil(99.52%)"].join("\n"));
+    const dot = events.find((e) => e.kind === "dot");
+
+    expect(dot).toEqual({
+      kind: "dot",
+      target: "Kamil",
+      targetHpPct: 99.52,
+      amount: 92,
+      weakenedPct: null,
+      via: "od",
+      dotType: "ubytku życia",
+    });
+  });
+
+  test("ubytek życia wchodzi do obrażeń przyjętych i do puli bez sprawcy", () => {
+    const stats = aggregate(
+      parse([start, "Stracono -92 punktów życia Kamil(99.52%)"].join("\n")),
+    );
+    const kamil = stats.actors.find((a) => a.name === "Kamil")!;
+
+    expect(kamil.damageTaken).toBe(92);
+    expect(stats.unknownLines).toBe(0);
+    // Wiersz mówi „Nieznany", i tak ma być: rodziny nie dostaje to, czego
+    // rodzaju log NIE PODAJE — dokładnie jak przy „globalne" (patrz
+    // `classify` w types.ts). Nazwa w nawiasie jest nasza, bo innej nie ma;
+    // gdyby gra kiedyś dopisała rodzaj, ten test ma paść.
+    expect(kamil.takenByType.map((t) => t.label)).toEqual(["Nieznany (Ubytek życia)"]);
+  });
+
+  test("ubytek MANY albo ENERGII to tylko komunikat tła", () => {
+    // Bliźniak wyżej różni się jednym słowem, a znaczy co innego: many
+    // i energii nie liczymy. Oba szyki muszą się rozejść.
+    const events = parse([start, "Stracono 0 energii Kamil(28.41%)."].join("\n"));
+
+    expect(events.at(-1)).toEqual({ kind: "info", line: "Stracono 0 energii Kamil(28.41%)." });
+  });
+
+  test.each([
+    ["Wzmocnienie obrażeń fizycznych od mieczy dla wszystkich w drużynie +5%"],
+    ["Czar został rzucony na siebie."],
+  ])("„%s” jest znaną linią tła", (line) => {
+    const events = parse([start, line].join("\n"));
+
+    expect(events.at(-1)?.kind).toBe("info");
+    expect(aggregate(events).unknownLines).toBe(0);
+  });
+
+  test("trzeci cios tancerza ostrzy ma własny rodzaj, nie „bez żywiołu”", () => {
+    // Klasa `third` jako jedyna nie zaczyna się od `dmg`. Bez alternatywy
+    // w `DAMAGE_CLASS` liczba przechodziła, ale z `element: null` — czyli
+    // nie do odróżnienia od zrzutu tekstowego, w którym klas nie ma wcale.
+    document.body.innerHTML = `<div class="battle-msg attack">${start}</div><div class="battle-msg attack">Kamil(100%) uderzył z siłą <b class="dmg">+1882</b><b class="dmgo">+732</b><b class="third">+1012</b><br>+Trzeci cios<br>Wilk(0%) otrzymał(a) <b class="dmg">-1426</b><b class="dmgo">-324</b><b class="third">-582</b> obrażeń<br></div>`;
+    const events = parse(extractText(document.body));
+    const attack = events.find((e) => e.kind === "attack")!;
+
+    expect(attack.kind === "attack" && attack.hits.map((h) => h.element)).toEqual([
+      "fizyczne",
+      "broń pomocnicza",
+      "trzeci cios",
+    ]);
+    expect(aggregate(events).unknownElements).toEqual([]);
   });
 });

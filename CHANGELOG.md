@@ -31,6 +31,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Nowość** — Panel pokazuje numer wersji dodatku, a skopiowane statystyki
   niosą go razem z liczbami. Zgłaszając, że coś nie zagrało, nie trzeba już
   zgadywać, której wersji to dotyczy — zwłaszcza że dodatek aktualizuje się sam.
+- **Zmiana** — Odznaka z literą profesji stoi teraz przy nazwie postaci wszędzie,
+  nie tylko na liście składu. Wchodząc w postać widzisz ją tak samo w rozbiciu
+  „komu" i „od kogo" — sam kolor nie wystarczał, bo dwie postacie tej samej
+  profesji mają go wspólny.
+- **Zmiana** — Panel i okno archiwum wyglądają jak jedno narzędzie: to samo tło,
+  ta sama ramka, to samo podświetlenie pod kursorem.
 - **Poprawka** — Zamknięcie okna archiwum kończy liczenie podsumowań. Wcześniej
   liczyły się dalej, w tle, choć okna nie było już na ekranie — a robiły to
   kosztem płynności gry.
@@ -38,12 +44,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   pozostałych.
 - **Poprawka** — Dodatek nie uruchamia się już na stronie głównej Margonema
   (adres bez „www") ani na forum i commonsach w domenie `.com`.
-- **Zmiana** — Odznaka z literą profesji stoi teraz przy nazwie postaci wszędzie,
-  nie tylko na liście składu. Wchodząc w postać widzisz ją tak samo w rozbiciu
-  „komu" i „od kogo" — sam kolor nie wystarczał, bo dwie postacie tej samej
-  profesji mają go wspólny.
-- **Zmiana** — Panel i okno archiwum wyglądają jak jedno narzędzie: to samo tło,
-  ta sama ramka, to samo podświetlenie pod kursorem.
+- **Poprawka** — Ubytki życia, które nie pochodzą od niczyjego ciosu, wchodzą
+  teraz do obrażeń przyjętych zamiast zapalać ostrzeżenie. W walkach, w których
+  ktoś z drużyny rzucał trującą mgłę, panel pokazywał tym postaciom mniej
+  obrażeń, niż naprawdę oberwały.
+- **Poprawka** — Kilka komunikatów z walk drużynowych przestaje być
+  niezrozumiałych dla licznika: okrzyk wzmacniający całą drużynę, czar rzucony
+  na siebie i utrata energii. Ostrzeżenie „nieznane linie" zapalało się wtedy
+  bez powodu.
+- **Poprawka** — Trzeci cios tancerza ostrzy ma w rozbiciu własną pozycję.
+  Wcześniej jego obrażenia były liczone, ale nie dało się zobaczyć, skąd
+  pochodzą.
 
 ## [0.3.0] — 2026-08-01
 

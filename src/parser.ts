@@ -47,6 +47,11 @@ const ELEMENTS: Record<string, string> = {
   // Nazwa z terminologii gry; w dokumentacji mechaniki walk jej NIE MA, więc
   // opiera się na tym zestawieniu i na wiedzy o grze, nie na cytacie.
   g: "globalne",
+  // Nie litera z klasy `dmgX`, tylko kod klasy `third` nadany w `source.ts`
+  // (patrz `THIRD_STRIKE_CODE`). Nazwa stoi w logu DOSŁOWNIE — modyfikator
+  // "+Trzeci cios" towarzyszy każdemu takiemu trafieniu — więc jest cytatem,
+  // a nie wnioskiem; drugi taki przypadek w tej mapie po `broń pomocnicza`.
+  "3": "trzeci cios",
 };
 
 /**
@@ -54,8 +59,8 @@ const ELEMENTS: Record<string, string> = {
  * `[a-z]` bez plusa. Z plusem zachłanne dopasowanie zjadało pierwszą literę
  * następnego słowa, gdy po liczbie nie było spacji.
  */
-const RE_ELEMENT = new RegExp(`${ELEMENT_MARKER}([a-z])`, "g");
-const RE_DAMAGE_VALUE = new RegExp(`(-?\\d+)(?:${ELEMENT_MARKER}([a-z]))?`, "g");
+const RE_ELEMENT = new RegExp(`${ELEMENT_MARKER}([a-z0-9])`, "g");
+const RE_DAMAGE_VALUE = new RegExp(`(-?\\d+)(?:${ELEMENT_MARKER}([a-z0-9]))?`, "g");
 
 /** Tekst bez znaczników — wszystko poza dwiema liniami obrażeń widzi tę wersję. */
 function clean(text: string): string {
@@ -154,6 +159,31 @@ const RE_HEAL_PLAIN = new RegExp(
   `^Przywrócono\\s+(\\d+)\\s+punktów życia\\s+(.+?)(?:\\((\\d+(?:[.,]\\d+)?)%\\))?\\.?$`,
 );
 /**
+ * "Stracono -92 punktów życia Łowcomir Kazrek(99.52%)" — ubytek życia BEZ
+ * sprawcy: log podaje komu i ile, a nie podaje ani od czego, ani od kogo.
+ *
+ * **Minus przed liczbą jest ozdobnikiem zapisu, nie negacją** — i to jest
+ * pomiar, nie domysł. Siedem kolejnych tyknięć jednej postaci daje zgodną pulę
+ * życia, gdy liczbę czytać jako UBYTEK, a procent jako stan PO nim:
+ *
+ *     92 przy 100.00% → 99.52%  ⇒  pula ~19167
+ *     87 przy  99.52% → 99.06%  ⇒  pula ~18913
+ *     83 przy  99.06% → 98.62%  ⇒  pula ~18864
+ *     78 przy  98.62% → 98.21%  ⇒  pula ~19024
+ *     74 przy  98.21% → 97.82%  ⇒  pula ~18974
+ *     69 przy  97.82% → 97.46%  ⇒  pula ~19167
+ *     64 przy  97.46% → 97.12%  ⇒  pula ~18824
+ *
+ * Rozrzut 1,8% na siedmiu pomiarach. Przy odwrotnym odczycie (przyrost życia)
+ * procent musiałby rosnąć, a rośnie tylko po liniach "Przywrócono".
+ *
+ * Znak pochłaniamy i ignorujemy zamiast brać `Math.abs` z całości: `abs`
+ * zamiatałby pod dywan także liczbę dodatnią, gdyby gra kiedyś zaczęła ją tak
+ * pisać, a to byłaby zmiana formatu warta zgłoszenia. Szczegóły pomiaru
+ * i sondy w oficjalnej pomocy — `docs/MECHANIKA.md`.
+ */
+const RE_HP_LOST = new RegExp(`^Stracono\\s+-?(\\d+)\\s+punktów życia\\s+${ACTOR}\\.?$`);
+/**
  * "Uleczono Zsz Przeworsk o 11937 punktów życia." — leczenie KIEROWANE: kwota
  * bezwzględna, nazwany cel i ani słowa o tym, kto i czym leczył. Nazwę
  * umiejętności da się wziąć wyłącznie z zapowiedzi stojącej nad tą linią, stąd
@@ -215,10 +245,32 @@ const RE_INFO = [
   // którym broni komentarz przy `RE_MODIFIER`, i wyłom w zasadzie „nieznane
   // jest głośne". Nowy zasób ma trafić w `unknown` i dać się dopisać świadomie.
   /^.+ otrzymuje \d+ (?:punktów )?(?:many|energii)\.?$/u,
+  // Ubytek zasobu w drugą stronę: "Stracono 0 energii I Prawo Kirchoffa(28.41%).".
+  // Bliźniak wzorca wyżej — te same zasoby wymienione z nazwy i z tego samego
+  // powodu: many ani energii nie liczymy, ale linia ma być ZNANA.
+  //
+  // Zasoby wyliczone, a nie "Stracono N czegokolwiek", bo obok stoi
+  // "Stracono -92 punktów życia X(99.52%)" — ta niesie realny ubytek HP i ma
+  // trafić do `RE_HP_LOST`, nie tutaj. Szeroki wzorzec połknąłby ją po cichu.
+  new RegExp(`^Stracono \\d+ (?:punktów )?(?:many|energii)(?:\\s+${ACTOR})?\\.?$`, "u"),
   // Aura nakładana na starcie, np. "X spowija się trującą mgłą: -3% ...".
   /\sspowija się\s/,
   // Wzmocnienie za małą grupę: "Wzmocnienie X o 35% ze względu na małą grupę...".
   new RegExp(`^Wzmocnienie .+ o ${PCT}%`),
+  // Drugi szyk tej samej rodziny, ze znakiem zamiast przyimka: "Wzmocnienie
+  // obrażeń fizycznych od mieczy dla wszystkich w drużynie +5%" (efekt
+  // `Prowokujący okrzyk`). Osobny wzorzec, a nie poluzowanie tamtego do
+  // "o|[+-]", bo tamten opisuje wzmocnienie ZA COŚ, a ten — efekt umiejętności;
+  // zlanie ich w jeden dałoby wzorzec pasujący do połowy linii z procentem.
+  new RegExp(`^Wzmocnienie .+ [+-]${PCT}%\\.?$`),
+  // "Czar został rzucony na siebie." — dopisek pod zapowiedzią umiejętności
+  // leczącej rzuconej na samego siebie (`Srebrzysty blask`). Nie niesie ani
+  // liczby, ani nazwy: kwotę podaje stojąca niżej linia "Uleczono X o N
+  // punktów życia.", a kto rzucał — zapowiedź piętro wyżej.
+  //
+  // Dosłownie, bez uogólniania na "^Czar .+": inne zdania o czarach mogą nieść
+  // liczbę, a wtedy mają się zgłosić jako nieznane.
+  /^Czar został rzucony na siebie\.?$/,
   // Ładowanie ciosu specjalnego: "X(100%) przygotowuje się do wykonania Y(0%).".
   // Sama zapowiedź naboju — obrażenia (jeśli padną) przyjdą osobną linią później.
   /\sprzygotowuje się do wykonania\s/,
@@ -443,8 +495,25 @@ function isPhantomHit(hit: Hit): boolean {
  * przypadków: „+1054(d) +159(f) +1143(c)" zamknięte „-179(d) -17(c)" ma 17
  * mniejsze od 159, więc sam warunek wielkości wsadziłby zimno pod ogień, nie
  * łamiąc przy tym niczego widocznego. W tekście z „Kopiuj logi" żywiołów nie
- * ma wcale i wtedy zostaje sama wielkość — ale tam nie ma też rozbicia na
- * rodzaje obrażeń, więc slot i tak nie ma czego przekłamać.
+ * ma wcale i wtedy zostaje sama wielkość.
+ *
+ * **Sprostowanie (2026-08-03).** Stało tu wcześniej, że w tekście „nie ma też
+ * rozbicia na rodzaje obrażeń, więc slot i tak nie ma czego przekłamać". To
+ * prawda o ROZBICIU i nieprawda o `damageAbsorbed`, bo tamto liczy się PER SLOT
+ * jako `raw - applied`. Fixture `2026-08-03_druzyna-vs-hildur-absorpcja` pokazał
+ * to pierwszy raz: cios `+906 +147 +799` zamknięty `-104 -8 -278` daje
+ *
+ *   w tekście: 104→906, 8→147, 278→799                    ⇒ pochłonięte 1462
+ *   w DOM-ie:  104(d)→906(d), 8(c)→799(c), 147(f) w całości
+ *              do tarczy, 278(a) osobnym trafieniem        ⇒ pochłonięte 1740
+ *
+ * DOM ma rację: 278 to `Piętno bestii` doliczone PO redukcji, więc nie ma
+ * surowego odpowiednika. W całej tamtej walce wychodzi 237 127 wobec 240 025,
+ * czyli 1,2% mniej po stronie bossa.
+ *
+ * Po stronie tekstu nie da się tego naprawić — on tej informacji nie niesie.
+ * Dlatego test różnicowy `html ↔ raw` porównuje wszystkie skalary OPRÓCZ
+ * `damageAbsorbed`; pełne uzasadnienie stoi przy nim w `tests/parser.test.ts`.
  */
 function pairApplied(raw: DamageValue[], applied: DamageValue[]) {
   const fits = (slot: DamageValue, value: DamageValue) =>
@@ -617,6 +686,31 @@ export function parse(text: string): BattleEvent[] {
         // Jedyny szyk, w którym procentu naprawdę bywa brak (leczenie potwora).
         targetHpPct: healPlain[3] ? toPct(healPlain[3]) : null,
         self: false,
+      };
+    }
+
+    const hpLost = RE_HP_LOST.exec(line);
+    if (hpLost) {
+      return {
+        // Jedzie jako `dot`, a nie jako własny rodzaj zdarzenia: to samo, co
+        // trucizna — komu, ile, tyka co turę i nie ma sprawcy. Agregat ma już
+        // dla takich liczb pulę bez sprawcy, więc nowy rodzaj dołożyłby gałąź
+        // w `stats.ts`, `session.ts` i panelu, nie zmieniając ani jednej liczby.
+        kind: "dot",
+        target: hpLost[2]!.trim(),
+        targetHpPct: toPct(hpLost[3]!),
+        amount: parseInt(hpLost[1]!, 10),
+        // Log nie mówi o żadnym osłabieniu tej kwoty.
+        weakenedPct: null,
+        via: "od",
+        // Typu log NIE PODAJE — ta nazwa jest NASZA i tylko tu, w jednym
+        // miejscu, tak jest. Wybrana opisowo („od ubytku życia" → „Ubytek
+        // życia" przez `DOT_LABELS`), bo alternatywą było wpisanie zgadniętego
+        // źródła: ubytek dotyka wyłącznie postaci, które rzuciły trującą mgłę,
+        // ale to KORELACJA z jednej walki, a oficjalna pomoc o koszcie zdrowia
+        // tej aury milczy. Nazwanie tego „trucizną" byłoby zgadywaniem
+        // sprawcy — dokładnie tym, czego zakazuje `docs/DECYZJE.md`.
+        dotType: "ubytku życia",
       };
     }
 

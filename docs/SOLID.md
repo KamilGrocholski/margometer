@@ -825,17 +825,27 @@ go nawet zaimportować.
 
 **Test różnicowy milczy dla części zrzutów z DOM.** `parser.test.ts` ma w środku
 `if (raw === null) return;`, a **trzy** fixture'y z `log.html` nie mają `raw.txt`
-— dla nich przechodzi pusty, a raport pokazuje same zielone. Proporcja poprawiła
-się od pierwszego zapisu (było 3 z 6, jest 3 z 8), ale te trzy to wciąż te same
-zrzuty z lipca. Do tego porównywane `summary()` nie obejmuje `unknownElements`
-ani `typeByLabel`, czyli dokładnie tego, co istnieje wyłącznie na ścieżce DOM.
+— dla nich przechodzi pusty, a raport pokazuje same zielone. Proporcja poprawia
+się z każdą rundą (było 3 z 6, potem 3 z 8, po 2026‑08‑03 jest 3 z 11), ale te
+trzy to wciąż te same zrzuty z lipca. Do tego porównywane `summary()` nie
+obejmuje `unknownElements` ani `typeByLabel`, czyli dokładnie tego, co istnieje
+wyłącznie na ścieżce DOM.
+
+⚠️ **Od 2026‑08‑03 `summary()` nie obejmuje też `damageAbsorbed`** — i to nie
+jest niedopatrzenie, tylko wynik pomiaru: tekst z „Kopiuj logi" nie niesie
+żywiołów, więc paruje przyjęte liczby do slotów inaczej niż DOM i wychodzi mu
+inne pochłonięcie (na `2026-08-03_druzyna-vs-hildur-absorpcja` 237 127 wobec
+240 025, 1,2 %). Rozjazdu nie da się usunąć po stronie tekstu. Uzasadnienie
+stoi przy teście i przy `pairApplied` w `parser.ts`.
 
 **Asercje na nieobecność czegoś, czego nie ma:** `.tip-row` i `.more` nie padają
 nigdzie w `src/`. Ta sama klasa, którą `AUDYT‑24` skasował dla `.axis`/`.focus`.
 
-**Skrzywienie korpusu.** 21 fixture'ów, ale tylko **8 z zrzutem DOM** — cała oś
+**Skrzywienie korpusu.** 24 fixture'y, ale tylko **11 z zrzutem DOM** — cała oś
 żywiołów (i scalanie rodzin z 2026‑07‑31) jest sprawdzana na niecałej połowie.
 Nadal jeden build klienta, jeden właściciel, wyłącznie męskie formy czasownika.
+(Przeliczone 2026‑08‑03, po dołożeniu trzech zrzutów mających oba pliki; było
+21 i 8.)
 
 **Brakujące fixture'y:** log **właścicielki** (formy żeńskie — `GENDER` jest
 sprawdzany tylko na ręcznie pisanych stringach) i walka z **przyciętym

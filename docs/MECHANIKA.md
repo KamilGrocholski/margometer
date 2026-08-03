@@ -221,6 +221,55 @@ pochodzi z terminologii gry i z naszego zestawienia po korpusie, **nie z cytatu*
 — i tak ma zostać opisana. Adnotacja w `meta.json` fixture'a
 `2026-07-31_druzyna-vs-hildur-zwyciestwo` się broni.
 
+### Linia „Stracono −N punktów życia X(pct%)” — nie znaleziono ❌, rozstrzygnięte pomiarem
+
+**nie znaleziono** w `view,372`; szukane: „Stracono”, „trującą mgłą”, „mgła”,
+„zatrutych przeciwników”, „traci punkty życia”, „utrata punktów życia”; metoda:
+`bun tools/pomoc.ts`; data: 2026‑08‑03. Fraza „punktów życia” daje 12 trafień —
+żadne nie dotyczy tej linii.
+
+**Trafienie pośrednie.** Aura, którą rzucają dokładnie te postacie, u których ta
+linia potem tyka („X spowija się trującą mgłą: −10% obrażeń zadawanych przez
+zatrutych przeciwników”), to w pomocy:
+
+> „…efekty osłabiające wszelkie źródła obrażeń, takich jak efekt umiejętności
+> Strach ( dmg_from_player_per ) czy Toksyczny Wstrząs/Toksyczne Opary
+> ( poison_lowdmg_per-enemies ).”
+
+Artykuł opisuje ją **wyłącznie** jako redukcję obrażeń przeciwnika i **ani
+słowem** nie wspomina o koszcie zdrowia po stronie rzucającego.
+
+**Pomiar korpusu rozstrzygnął.** Siedem kolejnych tyknięć Łowcomira Kazrka
+z fixture'a `2026-08-03_druzyna-vs-hildur-absorpcja`, czytanych jako „liczba to
+ubytek, procent to stan PO nim”:
+
+| ubytek | życie przed → po | wyliczona pula |
+|---:|---|---:|
+| 92 | 100,00 % → 99,52 % | ~19 167 |
+| 87 | 99,52 % → 99,06 % | ~18 913 |
+| 83 | 99,06 % → 98,62 % | ~18 864 |
+| 78 | 98,62 % → 98,21 % | ~19 024 |
+| 74 | 98,21 % → 97,82 % | ~18 974 |
+| 69 | 97,82 % → 97,46 % | ~19 167 |
+| 64 | 97,46 % → 97,12 % | ~18 824 |
+
+Zgodna pula ~19 000 przy rozrzucie 1,8 % na siedmiu pomiarach. Przy odwrotnym
+odczycie (przyrost życia) procent musiałby rosnąć — a rośnie wyłącznie po
+liniach „Przywrócono”.
+
+**Wniosek dla kodu.** Liczba to **realny ubytek HP**, a minus przed nią jest
+ozdobnikiem zapisu, nie negacją. Parser liczy ją jako tyknięcie bez sprawcy
+(`RE_HP_LOST` → `kind: "dot"`), a etykieta „Ubytek życia” w `DOT_LABELS` jest
+**nasza**, bo log rodzaju nie podaje — dlatego w panelu stoi jako
+„Nieznany (Ubytek życia)”, tak samo jak `globalne` wyżej.
+
+⚠️ **Czego ten wpis NIE mówi.** Ubytek dotyka wyłącznie dwóch postaci, które
+rzuciły trującą mgłę, i maleje ~5/turę do zera (92→87→…→5, 20 tyknięć). To
+**korelacja zmierzona na jednej walce**, nie udokumentowana przyczynowość —
+pomoc o koszcie zdrowia tej aury milczy, a drugiej walki z tą aurą i tą linią
+w korpusie nie ma. Nie wolno na tej podstawie napisać, że „trująca mgła kosztuje
+życie”.
+
 ---
 
 ## Otwarte — pytania, które warto tędy przepuścić

@@ -38,8 +38,23 @@ const BLOCK_TAGS = new Set([
 /**
  * `<b class="dmgc">` — litera po `dmg` to żywioł: c/l/f. Samo `dmg` bez litery
  * bierzemy za obrażenia fizyczne (auto-atak wojownika, paladyna, tancerza).
+ *
+ * `third` to jedyna klasa liczby obrażeń, która NIE zaczyna się od `dmg` —
+ * niesie ją trzecie trafienie tancerza ostrzy, opisane w logu modyfikatorem
+ * "+Trzeci cios". Bez tej alternatywy liczba i tak przechodziła do parsera
+ * (`<b>` nie jest blokiem, więc `walk` wciągał jej tekst), ale BEZ żywiołu —
+ * czyli nie do odróżnienia od zrzutu tekstowego, w którym klas nie ma wcale.
+ * Milcząco, a `unknownElements` to jedyna czujka na zmianę nazw klas.
  */
-const DAMAGE_CLASS = /(?:^|\s)dmg([a-z]*)(?:\s|$)/;
+const DAMAGE_CLASS = /(?:^|\s)(?:dmg([a-z]*)|(third))(?:\s|$)/;
+/**
+ * Kod klasy `third` w znaczniku. CYFRA, nie litera, i to jest wybór na lata:
+ * znacznik niesie dokładnie jeden znak, a każda wolna dziś litera może jutro
+ * stać się prawdziwą klasą `dmgX` gry i wtedy jej liczby dostałyby po cichu
+ * etykietę "trzeci cios". Klasa `dmg3` jest niemożliwa — wzorzec wyżej czyta
+ * po `dmg` wyłącznie `[a-z]` — więc kolizji nie będzie.
+ */
+const THIRD_STRIKE_CODE = "3";
 
 export function extractText(node: Node): string {
   let out = "";
@@ -62,7 +77,8 @@ export function extractText(node: Node): string {
       // bo po drodze do parsera zostaje z DOM-u sam tekst.
       const damage = DAMAGE_CLASS.exec(element.getAttribute("class") ?? "");
       if (damage) {
-        out += `${element.textContent ?? ""}${ELEMENT_MARKER}${damage[1] || "p"}`;
+        const code = damage[2] ? THIRD_STRIKE_CODE : damage[1] || "p";
+        out += `${element.textContent ?? ""}${ELEMENT_MARKER}${code}`;
         continue;
       }
 

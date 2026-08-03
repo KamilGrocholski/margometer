@@ -126,8 +126,8 @@ najpierw sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.
    razem z `meta.json` i od razu wchodzi do wszystkich pętli testowych.
 
    ⚠️ To NORMA, nie opis stanu — stało tu „fixture'y mają dwa pliki" i brzmiało
-   jak fakt (sprostowane 2026‑08‑02). Policzone: na 21 fixture'ów **5 ma oba**
-   pliki, 13 ma sam `raw.txt`, a **3 mają sam `log.html`**
+   jak fakt (sprostowane 2026‑08‑02, przeliczone 2026‑08‑03). Policzone: na
+   24 fixture'y **8 ma oba** pliki, 13 ma sam `raw.txt`, a **3 mają sam `log.html`**
    (`2026-07-18_lowca-dom-trucizna`, `_mag-dom`, `_mag-dom-fuzja`). Dla tych
    trzech test różnicowy „HTML daje to samo co tekst" przechodzi PUSTY —
    `parser.test.ts` ma w środku `if (raw === null) return;`. Zna to `SOLID §10`;

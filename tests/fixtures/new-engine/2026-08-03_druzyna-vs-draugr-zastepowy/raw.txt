@@ -1,0 +1,1309 @@
+[b]Rozpoczęła się walka pomiędzy Wojownik psk cdxx (64w), Zsz Intermarche (64m), Sir Krzysiu (64p), Łowca z Dzielnicy (64h), rzubruwka (64m), Że-Pro (64w), Łowcosław Kazrek (70h), Zsz Blotniak (76t), wf foverek psk (70t), Niebiański Szelest (64h) a Draugr Zastępowy (60w)[/b]
+[b]Rozpoczęła się walka pomiędzy Wojownik psk cdxx (64w), Zsz Intermarche (64m), Sir Krzysiu (64p), Łowca z Dzielnicy (64h), rzubruwka (64m), Że-Pro (64w), Łowcosław Kazrek (70h), Zsz Blotniak (76t), wf foverek psk (70t), Niebiański Szelest (64h) a Draugr Zastępowy (60w)[/b]
+[b]Niebiański Szelest spowija się trującą mgłą: -10% obrażeń zadawanych przez zatrutych przeciwników.
+[/b]
+[b]Łowca z Dzielnicy spowija się trującą mgłą: -10% obrażeń zadawanych przez zatrutych przeciwników.
+[/b]
+[i]Draugr Zastępowy wykonuje Szarpnięcie kością.
+[/i]
+[i]Draugr Zastępowy(100%) uderzył(a) z siłą  +3923
++Niszczenie pancerza o 96
+Że-Pro(82.06%) otrzymał  -2932  obrażeń
+[/i]
+[i]Draugr Zastępowy(100%) przygotowuje się do wykonania Osobisty rozrachunek(0%).
+[/i]
+Łowcosław Kazrek wykonuje Podwójny strzał.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +847
+ +Przebicie
++Niszczenie pancerza o 11
+Draugr Zastępowy(99.54%) otrzymał(a)  -847  obrażeń
+
+Łowcosław Kazrek(100%) uderzył z siłą  +809
++Niszczenie pancerza o 11
+Draugr Zastępowy(99.47%) otrzymał(a)  -130  obrażeń
+
+Niebiański Szelest wykonuje Piętno bestii.
+Wszyscy przeciwnicy otrzymują zwiększone obrażenia.
+
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +865  +690
+ +Przebicie
++Niszczenie pancerza o 18
+  +Zamrożenie
+Przerwanie ciosu specjalnego.
++Piętno bestii: atak +234
+Draugr Zastępowy(98.61%) otrzymał(a)  -865  -483  -234  obrażeń
+
+[b]  Draugr Zastępowy(98.44%): 324 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury (redukcja ogłuszenia 90%)[/b]
+Łowca z Dzielnicy(100%) uderzył z siłą  +979
++Niszczenie pancerza o 11
++Piętno bestii: atak +147
+Draugr Zastępowy(98.21%) otrzymał(a)  -271  -147  obrażeń
+
+[b]  Draugr Zastępowy(98.04%): 324 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy(98.04%) uderzył(a) z siłą  +2693
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -Unik
+Że-Pro(82.06%) otrzymał  -0  obrażeń
+[/i]
+Zsz Blotniak wykonuje Podwójny dech.
+ Aura szybkości została aktywowana (++20% szybkości ataku).
+
+rzubruwka wykonuje Szadź.
+Spowolnienie przeciwników o 14%
+
+[b] Że-Pro(82.06%) zrobił krok do przodu. [/b]
+Sir Krzysiu(100%) uderzył z siłą  +658  +396
++Niszczenie pancerza o 8
++Niszczenie odporności magicznych o 3%
++Piętno bestii: atak +158
+Draugr Zastępowy(97.90%) otrzymał(a)  -54  -50  -158  obrażeń
+
+Zsz Intermarche wykonuje Szadź.
+Spowolnienie przeciwników o 14%
+
+Wojownik psk cdxx wykonuje Niszczycielski cios.
+
+Wojownik psk cdxx(100%) uderzył z siłą  +1668
++Niszczenie pancerza o 56
++Piętno bestii: atak +250
+Draugr Zastępowy(97.26%) otrzymał(a)  -928  -250  obrażeń
+
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1085
++Niszczenie pancerza o 11
++Piętno bestii: atak +163
+Draugr Zastępowy(96.95%) otrzymał(a)  -408  -167  obrażeń
+
+wf foverek psk wykonuje Strzała z niespodzianką.
++Kombinacja x1!
+
+wf foverek psk(100%) uderzył z siłą  +1030  +766
++Niszczenie pancerza o 18
++Piętno bestii: atak +270
+Draugr Zastępowy(96.43%) otrzymał(a)  -374  -301  -270  obrażeń
+
+[b]  Draugr Zastępowy(96.02%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy wykonuje Szarża zastępcy.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2263  obrażeń otrzymał(a) Że-Pro(68.21%).
+[/i]
+Łowca z Dzielnicy wykonuje Piętno bestii.
+Wszyscy przeciwnicy otrzymują zwiększone obrażenia.
+
+Niebiański Szelest wykonuje Błyskawiczny strzał.
+
+Niebiański Szelest(100%) uderzył z siłą  +995
+ +Przebicie
+  +Klątwa
++Niszczenie pancerza o 20
++Piętno bestii: atak +299
+   +Przeszywająca skuteczność, wszystkie ataki pomijają 12% defensywy
+Draugr Zastępowy(95.32%) otrzymał(a)  -995  -307  obrażeń
+
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +431  +837
++Niszczenie pancerza o 4
++Niszczenie odporności magicznych o 3%
+  +Zamrożenie
++Piętno bestii: atak +380
+Draugr Zastępowy(94.94%) otrzymał(a)  -95  -225  -380  obrażeń
+
+[b]  Draugr Zastępowy(94.53%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury (redukcja ogłuszenia 90%)[/b]
+Że-Pro wykonuje Osłona tarczą.
+Zwiększenie szansy na blok o 20%
+
+Sir Krzysiu wykonuje Szybki atak.
+
+Sir Krzysiu(100%) uderzył z siłą  +770  +396
++Niszczenie pancerza o 8
++Niszczenie odporności magicznych o 3%
++Piętno bestii: atak +350
+Draugr Zastępowy(94.20%) otrzymał(a)  -184  -80  -350  obrażeń
+
+Zsz Blotniak wykonuje Podwójne trafienie.
+
+Zsz Blotniak(100%) uderzył z siłą  +512  +81  +507
++Niszczenie pancerza o 14
++Niszczenie odporności magicznych o 1%
++Piętno bestii: atak +330
+Draugr Zastępowy(93.92%) otrzymał(a)  -26  -157  -330  obrażeń
+
+Zsz Blotniak(100%) uderzył z siłą  +520  +102  +507
+ +Przebicie
++Niszczenie pancerza o 14
++Niszczenie odporności magicznych o 1%
++Piętno bestii: atak +339
+Draugr Zastępowy(93.19%) otrzymał(a)  -520  -83  -411  -339  obrażeń
+
+Zsz Intermarche wykonuje Lodowy pocisk.
+
+Zsz Intermarche(100%) uderzył z siłą  +416  +786
++Niszczenie odporności magicznych o 1%
++Piętno bestii: atak +361
+Draugr Zastępowy(92.81%) otrzymał(a)  -103  -238  -361  obrażeń
+
+Wojownik psk cdxx wykonuje Ogłuszający cios.
+  -70  obrażeń otrzymał(a) Draugr Zastępowy(92.77%).
++Kombinacja x1!
+
+Wojownik psk cdxx(100%) uderzył z siłą  +1853
++Niszczenie pancerza o 5
++Ogłuszenie
++Piętno bestii: atak +556
+Draugr Zastępowy(91.83%) otrzymał(a)  -1186  -556  obrażeń
+
+[b]  Draugr Zastępowy(91.41%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury (redukcja ogłuszenia 90%)[/b]
+Łowcosław Kazrek wykonuje Błyskawiczny strzał.
+Łowcosław Kazrek otrzymuje 23 energii.
++Kombinacja x3!
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1057
+ +Przebicie
+  +Szybka strzała
+  +Klątwa
++Niszczenie pancerza o 11
++Piętno bestii: atak +317
+Draugr Zastępowy(90.67%) otrzymał(a)  -1057  -326  obrażeń
+
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1180
++Niszczenie pancerza o 11
++Piętno bestii: atak +354
+Draugr Zastępowy(90.16%) otrzymał(a)  -572  -364  obrażeń
+
+Niebiański Szelest wykonuje Podwójny strzał.
+
+Niebiański Szelest(100%) uderzył z siłą  +1021
+  +Cios krytyczny
++Niszczenie pancerza o 20
++Piętno bestii: atak +306
+Draugr Zastępowy(89.72%) otrzymał(a)  -501  -315  obrażeń
+
+Niebiański Szelest(100%) uderzył z siłą  +1103
+  +Cios krytyczny
++Niszczenie pancerza o 20
++Piętno bestii: atak +331
+Draugr Zastępowy(89.21%) otrzymał(a)  -591  -340  obrażeń
+
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +905  +690
+  +Szybka strzała
++Niszczenie pancerza o 18
++Piętno bestii: atak +479
+Draugr Zastępowy(88.57%) otrzymał(a)  -370  -330  -479  obrażeń
+
+[b]  Draugr Zastępowy(88.16%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +804  +690
++Niszczenie pancerza o 18
++Piętno bestii: atak +448
+Draugr Zastępowy(87.58%) otrzymał(a)  -296  -337  -448  obrażeń
+
+Sir Krzysiu(100%) uderzył z siłą  +681  +396
++Niszczenie pancerza o 8
++Niszczenie odporności magicznych o 3%
++Piętno bestii: atak +323
+Draugr Zastępowy(87.23%) otrzymał(a)  -199  -124  -323  obrażeń
+
+Łowca z Dzielnicy(100%) uderzył z siłą  +941
++Niszczenie pancerza o 11
++Piętno bestii: atak +282
+Draugr Zastępowy(86.84%) otrzymał(a)  -430  -282  obrażeń
+
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +431  +858
++Niszczenie pancerza o 4
++Niszczenie odporności magicznych o 3%
++Piętno bestii: atak +386
+Draugr Zastępowy(86.37%) otrzymał(a)  -159  -338  -386  obrażeń
+
+[b] Że-Pro(68.21%) zrobił krok do przodu. [/b]
+Zsz Blotniak(100%) uderzył z siłą  +855  +194  +960
+  +Cios krytyczny
+ +Przebicie
++Niszczenie pancerza o 14
++Niszczenie odporności magicznych o 1%
++Piętno bestii: atak +603
+Draugr Zastępowy(85.02%) otrzymał(a)  -855  -173  -854  -603  obrażeń
+
+Łowcosław Kazrek wykonuje Podwójny strzał.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +841
++Niszczenie pancerza o 11
++Piętno bestii: atak +252
+Draugr Zastępowy(84.68%) otrzymał(a)  -363  -259  obrażeń
+
+Łowcosław Kazrek(100%) uderzył z siłą  +866
+  +Szybka strzała
++Niszczenie pancerza o 11
++Piętno bestii: atak +260
+Draugr Zastępowy(84.33%) otrzymał(a)  -394  -267  obrażeń
+
+Zsz Intermarche wykonuje Zdrowa atmosfera.
+Uleczono sojuszników o 30% życia.
+
+Niebiański Szelest wykonuje Zatruta strzała.
+
+Niebiański Szelest(100%) uderzył z siłą  +1332
+  +Cios krytyczny
++Niszczenie pancerza o 20
++Piętno bestii: atak +400
+Draugr Zastępowy(83.61%) otrzymał(a)  -900  -412  obrażeń
+
+Wojownik psk cdxx wykonuje Niszczycielski cios.
+
+Wojownik psk cdxx(100%) uderzył z siłą  +2475
+  +Cios krytyczny
++18 energii
++Niszczenie pancerza o 45
++Zniszczono pancerz przeciwnika.
++Piętno bestii: atak +743
+Draugr Zastępowy(82.12%) otrzymał(a)  -2011  -743  obrażeń
+
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1147
++Piętno bestii: atak +344
+Draugr Zastępowy(81.55%) otrzymał(a)  -710  -354  obrażeń
+
+[b]  Draugr Zastępowy(81.14%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy wykonuje Szarża zastępcy.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2344  obrażeń otrzymał(a) Że-Pro(83.86%).
+[/i]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +890  +690
++Piętno bestii: atak +474
+Draugr Zastępowy(80.40%) otrzymał(a)  -468  -416  -474  obrażeń
+
+Łowca z Dzielnicy(100%) uderzył z siłą  +915
++Piętno bestii: atak +275
+Draugr Zastępowy(79.99%) otrzymał(a)  -491  -275  obrażeń
+
+Niebiański Szelest wykonuje Zatruta strzała.
+
+Niebiański Szelest(100%) uderzył z siłą  +994
++Piętno bestii: atak +298
+Draugr Zastępowy(79.49%) otrzymał(a)  -610  -306  obrażeń
+
+Sir Krzysiu wykonuje Szybki atak.
+
+Sir Krzysiu(100%) uderzył z siłą  +740  +396
++Niszczenie odporności magicznych o 3%
++Piętno bestii: atak +341
+Draugr Zastępowy(79.03%) otrzymał(a)  -331  -174  -341  obrażeń
+
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1209
+ +Przebicie
+  +Szybka strzała
+  +Klątwa
++Piętno bestii: atak +363
+Draugr Zastępowy(78.18%) otrzymał(a)  -1209  -373  obrażeń
+
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +431  +879
++Niszczenie odporności magicznych o 3%
++Piętno bestii: atak +393
+Draugr Zastępowy(77.62%) otrzymał(a)  -210  -424  -393  obrażeń
+
+Zsz Blotniak(100%) uderzył z siłą  +607  +101  +604
++Niszczenie odporności magicznych o 1%
++Piętno bestii: atak +393
+Draugr Zastępowy(77.09%) otrzymał(a)  -215  -369  -393  obrażeń
+
+Że-Pro wykonuje Osłona tarczą.
+Zwiększenie szansy na blok o 20%
+
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1523
+  +Cios krytyczny
+ +Przebicie
+   +Dotyk anioła
+Draugr Zastępowy(76.01%) otrzymał(a)  -1523  -470  obrażeń
+
+Zsz Intermarche wykonuje Chwila skupienia.
+Zsz Intermarche otrzymuje 117 many
+
+[b]  Draugr Zastępowy(75.60%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury[/b]
+Wojownik psk cdxx wykonuje Niszczycielski cios.
+
+Wojownik psk cdxx(100%) uderzył z siłą  +1583
++Piętno bestii: atak +237
+Draugr Zastępowy(74.86%) otrzymał(a)  -1132  -237  obrażeń
+
+wf foverek psk wykonuje Strzała z niespodzianką.
++Kombinacja x3!
+
+wf foverek psk(100%) uderzył z siłą  +912  +766
++Piętno bestii: atak +252
+Draugr Zastępowy(74.18%) otrzymał(a)  -488  -519  -252  obrażeń
+
+Łowca z Dzielnicy(100%) uderzył z siłą  +958
++Piętno bestii: atak +144
+Draugr Zastępowy(73.81%) otrzymał(a)  -531  -144  obrażeń
+
+Niebiański Szelest wykonuje Zatruta strzała.
+
+Niebiański Szelest(100%) uderzył z siłą  +1446
+  +Cios krytyczny
+ +Przebicie
++Piętno bestii: atak +217
+Draugr Zastępowy(72.91%) otrzymał(a)  -1446  -223  obrażeń
+
+Sir Krzysiu(100%) uderzył z siłą  +1056  +570
+  +Cios krytyczny
++Niszczenie odporności magicznych o 3%
++Piętno bestii: atak +244
+Draugr Zastępowy(72.25%) otrzymał(a)  -624  -348  -244  obrażeń
+
+[b]   Dotyk anioła: zregenerowano 0 punktów życia Łowcosław Kazrek(100%)
+[/b]
+Łowcosław Kazrek wykonuje Błyskawiczny strzał.
+Łowcosław Kazrek otrzymuje 23 energii.
++Kombinacja x3!
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1158
++Piętno bestii: atak +174
+Draugr Zastępowy(71.76%) otrzymał(a)  -721  -179  obrażeń
+
+[b]  Draugr Zastępowy(71.35%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy(71.35%) uderzył(a) z siłą  +3150
+  +Cios krytyczny
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
++Niszczenie pancerza o 96
+  -Krytyczna osłona, osłabienie obrażeń o 25%
+Że-Pro(75.94%) otrzymał  -1295  obrażeń
+[/i]
+Zsz Blotniak(100%) uderzył z siłą  +617  +120  +604
+ +Przebicie
++Niszczenie odporności magicznych o 1%
++Piętno bestii: atak +202
+Draugr Zastępowy(70.52%) otrzymał(a)  -617  -120  -604  -202  obrażeń
+
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +784  +1638
+  +Cios krytyczny
++Niszczenie odporności magicznych o 3%
+  +Zamrożenie
++Piętno bestii: atak +364
+Draugr Zastępowy(69.46%) otrzymał(a)  -559  -1024  -364  obrażeń
+
+Że-Pro(75.94%) uderzył z siłą  +704
++Głęboka rana
++Piętno bestii: atak +106
+   +Przeszywająca skuteczność, wszystkie ataki pomijają 12% defensywy
+Draugr Zastępowy(69.22%) otrzymał(a)  -339  -109  obrażeń
+
+[b]  Draugr Zastępowy(69.07%): 283 obrażeń od głębokiej rany.
+[/b]
+[b]  Draugr Zastępowy(68.66%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury (redukcja ogłuszenia 90%)[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +837  +690
++Piętno bestii: atak +230
+Draugr Zastępowy(68.05%) otrzymał(a)  -419  -467  -230  obrażeń
+
+Zsz Intermarche wykonuje Szadź.
+Spowolnienie przeciwników o 14%
+
+Wojownik psk cdxx wykonuje Ogłuszający cios.
+  -140  obrażeń otrzymał(a) Draugr Zastępowy(67.98%).
++Kombinacja x2!
+
+Wojownik psk cdxx(100%) uderzył z siłą  +1625
++Piętno bestii: atak +244
+Draugr Zastępowy(67.21%) otrzymał(a)  -1173  -244  obrażeń
+
+Niebiański Szelest wykonuje Podwójny strzał.
+
+Niebiański Szelest(100%) uderzył z siłą  +1006
+  +Cios krytyczny
++Piętno bestii: atak +151
+Draugr Zastępowy(66.79%) otrzymał(a)  -622  -155  obrażeń
+
+Niebiański Szelest(100%) uderzył z siłą  +679
++Piętno bestii: atak +102
+Draugr Zastępowy(66.56%) otrzymał(a)  -316  -105  obrażeń
+
+Łowca z Dzielnicy(100%) uderzył z siłą  +921
++Piętno bestii: atak +138
+Draugr Zastępowy(66.22%) otrzymał(a)  -496  -138  obrażeń
+
+[b]   Dotyk anioła: zregenerowano 0 punktów życia Łowcosław Kazrek(100%)
+[/b]
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1217
++Piętno bestii: atak +183
+Draugr Zastępowy(65.70%) otrzymał(a)  -777  -188  obrażeń
+
+[b]  Draugr Zastępowy(65.54%): 283 obrażeń od głębokiej rany.
+[/b]
+[b]  Draugr Zastępowy(65.13%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy wykonuje Szarpnięcie kością.
+[/i]
+[i]Draugr Zastępowy(65.13%) uderzył(a) z siłą  +3268
+ +Przebicie
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -Unik
+Że-Pro(75.94%) otrzymał  -0  obrażeń
+[/i]
+[i]Draugr Zastępowy(65.13%) przygotowuje się do wykonania Huk powrotu(0%).
+[/i]
+Sir Krzysiu wykonuje Szybki atak.
+
+Sir Krzysiu(100%) uderzył z siłą  +706  +396
++Niszczenie odporności magicznych o 3%
+Draugr Zastępowy(64.87%) otrzymał(a)  -301  -189  obrażeń
+
+Zsz Blotniak wykonuje Podwójne trafienie.
+
+Zsz Blotniak(100%) uderzył z siłą  +742  +188  +806
+  +Cios krytyczny
++Niszczenie odporności magicznych o 1%
+Draugr Zastępowy(64.36%) otrzymał(a)  -333  -21  -580  obrażeń
+
+Zsz Blotniak(100%) uderzył z siłą  +498  +111  +507
++Niszczenie odporności magicznych o 1%
+Draugr Zastępowy(64.13%) otrzymał(a)  -127  -292  obrażeń
+
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +883  +690
+Draugr Zastępowy(63.63%) otrzymał(a)  -461  -467  obrażeń
+
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +431  +921
++Niszczenie odporności magicznych o 3%
+  +Zamrożenie
+Przerwanie ciosu specjalnego.
+Draugr Zastępowy(63.21%) otrzymał(a)  -221  -561  obrażeń
+
+[b]  Draugr Zastępowy(63.05%): 283 obrażeń od głębokiej rany.
+[/b]
+[b]  Draugr Zastępowy(62.64%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury (redukcja ogłuszenia 90%)[/b]
+Że-Pro wykonuje Osłona tarczą.
+Zwiększenie szansy na blok o 20%
+
+Niebiański Szelest wykonuje Zatruta strzała.
+
+Niebiański Szelest(100%) uderzył z siłą  +914
+ +Przebicie
+Draugr Zastępowy(62.15%) otrzymał(a)  -914  obrażeń
+
+Łowca z Dzielnicy(100%) uderzył z siłą  +961
+Draugr Zastępowy(61.86%) otrzymał(a)  -534  obrażeń
+
+Zsz Intermarche wykonuje Lodowy pocisk.
+
+Zsz Intermarche(100%) uderzył z siłą  +416  +806
++Niszczenie odporności magicznych o 1%
+Draugr Zastępowy(61.49%) otrzymał(a)  -207  -476  obrażeń
+
+[b]  Draugr Zastępowy(61.34%): 283 obrażeń od głębokiej rany.
+[/b]
+[b]  Draugr Zastępowy(60.93%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy(60.93%) uderzył(a) z siłą  +2554
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
++Niszczenie pancerza o 96
+  -Zablokowanie 766 obrażeń
+Że-Pro(72.37%) otrzymał  -582  obrażeń
+[/i]
+Wojownik psk cdxx wykonuje Niszczycielski cios.
+
+Wojownik psk cdxx(100%) uderzył z siłą  +2460
+  +Cios krytyczny
++18 energii
+Draugr Zastępowy(59.85%) otrzymał(a)  -1996  obrażeń
+
+[b]   Dotyk anioła: zregenerowano 0 punktów życia Łowcosław Kazrek(100%)
+[/b]
+Łowcosław Kazrek wykonuje Podwójny strzał.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +827
+Draugr Zastępowy(59.62%) otrzymał(a)  -410  obrażeń
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1242
+  +Cios krytyczny
+Draugr Zastępowy(59.19%) otrzymał(a)  -801  obrażeń
+
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +1128  +890
+  +Cios krytyczny
+  +Zamrożenie
+Draugr Zastępowy(58.46%) otrzymał(a)  -692  -663  obrażeń
+
+[b]  Draugr Zastępowy(58.30%): 283 obrażeń od głębokiej rany.
+[/b]
+[b]  Draugr Zastępowy(57.89%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury (redukcja ogłuszenia 90%)[/b]
+Sir Krzysiu(100%) uderzył z siłą  +708  +396
++Niszczenie odporności magicznych o 3%
+Draugr Zastępowy(57.63%) otrzymał(a)  -302  -189  obrażeń
+
+Niebiański Szelest wykonuje Błyskawiczny strzał.
+Niebiański Szelest otrzymuje 30 energii.
++Kombinacja x3!
+
+Niebiański Szelest(100%) uderzył z siłą  +996
+Draugr Zastępowy(57.30%) otrzymał(a)  -612  obrażeń
+
+Zsz Blotniak(100%) uderzył z siłą  +805  +213  +960
+  +Cios krytyczny
++Niszczenie odporności magicznych o 1%
+Draugr Zastępowy(56.67%) otrzymał(a)  -390  -37  -731  obrażeń
+
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +431  +942
++Niszczenie odporności magicznych o 3%
+Draugr Zastępowy(56.20%) otrzymał(a)  -221  -635  obrażeń
+
+Że-Pro(72.37%) uderzył z siłą  +670
++Głęboka rana
+Draugr Zastępowy(56.04%) otrzymał(a)  -308  obrażeń
+
+[b]  Draugr Zastępowy(55.88%): 283 obrażeń od głębokiej rany.
+[/b]
+[b]  Draugr Zastępowy(55.47%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy wykonuje Szarża zastępcy.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2541  obrażeń otrzymał(a) Że-Pro(56.82%).
+[/i]
+Łowca z Dzielnicy(100%) uderzył z siłą  +945
+ +Przebicie
+Draugr Zastępowy(54.96%) otrzymał(a)  -945  obrażeń
+
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1061
+   +Dotyk anioła
+Draugr Zastępowy(54.62%) otrzymał(a)  -628  obrażeń
+
+Zsz Intermarche wykonuje Zdrowa atmosfera.
+Uleczono sojuszników o 22.5% życia.
+
+Wojownik psk cdxx wykonuje Niszczycielski cios.
+
+Wojownik psk cdxx(100%) uderzył z siłą  +1535
+Draugr Zastępowy(54.04%) otrzymał(a)  -1085  obrażeń
+
+Niebiański Szelest wykonuje Zatruta strzała.
+
+Niebiański Szelest(100%) uderzył z siłą  +1467
+  +Cios krytyczny
+Draugr Zastępowy(53.46%) otrzymał(a)  -1069  obrażeń
+
+[b]  Draugr Zastępowy(53.30%): 283 obrażeń od głębokiej rany.
+[/b]
+[b]  Draugr Zastępowy(52.89%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy wykonuje Szarża zastępcy.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2630  obrażeń otrzymał(a) Że-Pro(63.23%).
+[/i]
+[i]Draugr Zastępowy(52.89%) przygotowuje się do wykonania Osobisty rozrachunek(0%).
+[/i]
+wf foverek psk wykonuje Strzała z niespodzianką.
++Kombinacja x3!
+
+wf foverek psk(100%) uderzył z siłą  +1019  +766
+Draugr Zastępowy(52.28%) otrzymał(a)  -588  -541  obrażeń
+
+Sir Krzysiu wykonuje Szybki atak.
+
+Sir Krzysiu(100%) uderzył z siłą  +740  +396
++Niszczenie odporności magicznych o 3%
+Draugr Zastępowy(52.00%) otrzymał(a)  -331  -189  obrażeń
+
+Zsz Blotniak wykonuje Podwójny dech.
+ Aura szybkości została aktywowana (++20% szybkości ataku).
+
+Łowca z Dzielnicy(100%) uderzył z siłą  +1518
+  +Cios krytyczny
+   +Dotyk anioła
+Draugr Zastępowy(51.42%) otrzymał(a)  -1069  obrażeń
+
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +431  +963
++Niszczenie odporności magicznych o 3%
+Draugr Zastępowy(50.92%) otrzymał(a)  -221  -697  obrażeń
+
+[b]   Dotyk anioła: zregenerowano 0 punktów życia Łowcosław Kazrek(100%)
+[/b]
+Łowcosław Kazrek(100%) uderzył z siłą  +1057
+   +Dotyk anioła
+Draugr Zastępowy(50.59%) otrzymał(a)  -624  obrażeń
+
+Że-Pro wykonuje Osłona tarczą.
+Zwiększenie szansy na blok o 20%
+
+[b]  Draugr Zastępowy(50.43%): 283 obrażeń od głębokiej rany.
+[/b]
+[b]  Draugr Zastępowy(50.02%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy(50.02%) przygotowuje się do wykonania Osobisty rozrachunek(100%).
+[/i]
+Niebiański Szelest wykonuje Piętno bestii.
+Wszyscy przeciwnicy otrzymują zwiększone obrażenia.
+
+Zsz Intermarche wykonuje Chwila skupienia.
+Zsz Intermarche otrzymuje 105 many
+
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +840  +690
+ +Przebicie
+   +Dotyk anioła
++Piętno bestii: atak +230
+Draugr Zastępowy(49.07%) otrzymał(a)  -840  -690  -230  obrażeń
+
+Wojownik psk cdxx wykonuje Ogłuszający cios.
+  -140  obrażeń otrzymał(a) Draugr Zastępowy(48.99%).
++Kombinacja x2!
+
+Wojownik psk cdxx(100%) uderzył z siłą  +1744
++Piętno bestii: atak +262
+Draugr Zastępowy(48.15%) otrzymał(a)  -1290  -262  obrażeń
+
+[b]   Dotyk anioła: zregenerowano 0 punktów życia Łowcosław Kazrek(100%)
+[/b]
+Łowcosław Kazrek(100%) uderzył z siłą  +1193
++Piętno bestii: atak +179
+Draugr Zastępowy(47.65%) otrzymał(a)  -754  -184  obrażeń
+
+Sir Krzysiu(100%) uderzył z siłą  +656  +396
++Niszczenie odporności magicznych o 3%
++Piętno bestii: atak +157
+Draugr Zastępowy(47.32%) otrzymał(a)  -257  -189  -157  obrażeń
+
+[b]   Dotyk anioła: zregenerowano 0 punktów życia Łowca z Dzielnicy(100%)
+[/b]
+Łowca z Dzielnicy(100%) uderzył z siłą  +1536
+  +Cios krytyczny
++Piętno bestii: atak +230
+Draugr Zastępowy(46.61%) otrzymał(a)  -1086  -230  obrażeń
+
+Zsz Blotniak(100%) uderzył z siłą  +794  +205  +960
+  +Cios krytyczny
++Niszczenie odporności magicznych o 1%
++Piętno bestii: atak +294
+Draugr Zastępowy(45.83%) otrzymał(a)  -379  -32  -731  -294  obrażeń
+
+[b]  Draugr Zastępowy(45.68%): 283 obrażeń od głębokiej rany.
+[/b]
+[b]  Draugr Zastępowy(45.26%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy wykonuje Osobisty rozrachunek.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -4848  obrażeń otrzymał(a) wf foverek psk(63.58%).
+[/i]
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +431  +984
++Niszczenie odporności magicznych o 3%
++Piętno bestii: atak +213
+Draugr Zastępowy(44.62%) otrzymał(a)  -221  -755  -213  obrażeń
+
+Że-Pro(63.23%) uderzył z siłą  +648
++Piętno bestii: atak +97
+Draugr Zastępowy(44.41%) otrzymał(a)  -288  -99  obrażeń
+
+Niebiański Szelest(100%) uderzył z siłą  +909
+ +Przebicie
++Piętno bestii: atak +136
+Draugr Zastępowy(43.84%) otrzymał(a)  -909  -140  obrażeń
+
+[b]  Przywrócono 247 punktów życia wf foverek psk(65.44%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 798 punktów życia wf foverek psk(71.43%)
+[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(71.43%) uderzył z siłą  +887  +690
++Piętno bestii: atak +237
+Draugr Zastępowy(43.21%) otrzymał(a)  -465  -467  -237  obrażeń
+
+Zsz Intermarche wykonuje Szadź.
+Spowolnienie przeciwników o 14%
+
+[b]   Dotyk anioła: zregenerowano 0 punktów życia Łowcosław Kazrek(100%)
+[/b]
+Łowcosław Kazrek wykonuje Błyskawiczny strzał.
+Łowcosław Kazrek otrzymuje 23 energii.
++Kombinacja x3!
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1582
+  +Cios krytyczny
++Piętno bestii: atak +237
+Draugr Zastępowy(42.47%) otrzymał(a)  -1131  -244  obrażeń
+
+[b]  Draugr Zastępowy(42.31%): 283 obrażeń od głębokiej rany.
+[/b]
+[b]  Draugr Zastępowy(41.90%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy wykonuje Bicie rogu zmartwychwstańca.
+[/i]
+[i]-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2439  obrażeń otrzymał(a) Że-Pro(48.30%).
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2857  obrażeń otrzymał(a) Niebiański Szelest(76.14%).
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2854  obrażeń otrzymał(a) Wojownik psk cdxx(80.83%).
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -3046  obrażeń otrzymał(a) Zsz Intermarche(67.67%).
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2290  obrażeń otrzymał(a) Sir Krzysiu(81.16%).
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2763  obrażeń otrzymał(a) Zsz Blotniak(80.50%).
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -3008  obrażeń otrzymał(a) Łowca z Dzielnicy(70.91%).
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2808  obrażeń otrzymał(a) Łowcosław Kazrek(80.59%).
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2797  obrażeń otrzymał(a) wf foverek psk(50.42%).
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -2892  obrażeń otrzymał(a) rzubruwka(64.89%).
+[/i]
+[b]  Przywrócono 57 punktów życia Łowca z Dzielnicy(71.47%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 620 punktów życia Łowca z Dzielnicy(77.46%)
+[/b]
+Łowca z Dzielnicy wykonuje Piętno bestii.
+Wszyscy przeciwnicy otrzymują zwiększone obrażenia.
+
+[b]  Przywrócono 109 punktów życia Wojownik psk cdxx(81.56%)
+[/b]
+Wojownik psk cdxx wykonuje Niszczycielski cios.
+
+Wojownik psk cdxx(81.56%) uderzył z siłą  +1414
++Piętno bestii: atak +424
+Draugr Zastępowy(41.15%) otrzymał(a)  -968  -424  obrażeń
+
+[b]  Przywrócono 294 punktów życia Sir Krzysiu(83.58%)
+[/b]
+Sir Krzysiu wykonuje Szybki atak.
+
+Sir Krzysiu(83.58%) uderzył z siłą  +766  +396
++Piętno bestii: atak +349
+Draugr Zastępowy(40.67%) otrzymał(a)  -354  -189  -349  obrażeń
+
+[b]  Przywrócono 321 punktów życia Zsz Blotniak(82.76%)
+[/b]
+Zsz Blotniak wykonuje Podwójne trafienie.
+
+Zsz Blotniak(82.76%) uderzył z siłą  +521  +110  +507
++Piętno bestii: atak +341
+Draugr Zastępowy(40.24%) otrzymał(a)  -144  -292  -341  obrażeń
+
+Zsz Blotniak(82.76%) uderzył z siłą  +528  +103  +507
++Piętno bestii: atak +341
+Draugr Zastępowy(39.82%) otrzymał(a)  -150  -292  -341  obrażeń
+
+Niebiański Szelest(76.14%) uderzył z siłą  +1473
+  +Cios krytyczny
++Piętno bestii: atak +442
+Draugr Zastępowy(38.99%) otrzymał(a)  -1075  -455  obrażeń
+
+[b]  Przywrócono 992 punktów życia rzubruwka(75.52%)
+[/b]
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(75.52%) uderzył z siłą  +784  +1829
+  +Cios krytyczny
++Piętno bestii: atak +784
+Draugr Zastępowy(37.40%) otrzymał(a)  -559  -1593  -784  obrażeń
+
+[b]  Przywrócono 70 punktów życia Łowcosław Kazrek(81.07%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 868 punktów życia Łowcosław Kazrek(87.07%)
+[/b]
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(87.07%) uderzył z siłą  +1466
+  +Cios krytyczny
++Piętno bestii: atak +440
+Draugr Zastępowy(36.61%) otrzymał(a)  -1018  -453  obrażeń
+
+Że-Pro wykonuje Osłona tarczą.
+Zwiększenie szansy na blok o 20%
+
+[b]  Przywrócono 235 punktów życia wf foverek psk(52.19%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 798 punktów życia wf foverek psk(58.18%)
+[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(58.18%) uderzył z siłą  +1139  +890
+  +Cios krytyczny
+   +Dotyk anioła
++Piętno bestii: atak +609
+Draugr Zastępowy(35.54%) otrzymał(a)  -703  -663  -609  obrażeń
+
+[b]  Draugr Zastępowy(35.13%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy(35.13%) uderzył(a) z siłą  +2373
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
++Niszczenie pancerza o 96
+Że-Pro(41.16%) otrzymał  -1166  obrażeń
+[/i]
+[b]  Przywrócono 712 punktów życia Zsz Intermarche(75.23%)
+[/b]
+Zsz Intermarche wykonuje Lodowy pocisk.
+
+Zsz Intermarche(75.23%) uderzył z siłą  +416  +825
+  +Zamrożenie
++Piętno bestii: atak +373
+Draugr Zastępowy(34.49%) otrzymał(a)  -207  -599  -373  obrażeń
+
+[b]  Draugr Zastępowy(34.08%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury (redukcja ogłuszenia 90%)[/b]
+[b]  Przywrócono 279 punktów życia Sir Krzysiu(85.88%)
+[/b]
+Sir Krzysiu(85.88%) uderzył z siłą  +638  +396
+  +Klątwa
++Piętno bestii: atak +310
+Draugr Zastępowy(33.68%) otrzymał(a)  -241  -189  -310  obrażeń
+
+[b]  Przywrócono 54 punktów życia Łowca z Dzielnicy(77.98%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 620 punktów życia Łowca z Dzielnicy(83.98%)
+[/b]
+Łowca z Dzielnicy(83.98%) uderzył z siłą  +1386
+  +Cios krytyczny
++Piętno bestii: atak +416
+Draugr Zastępowy(32.94%) otrzymał(a)  -941  -416  obrażeń
+
+[b]  Przywrócono 67 punktów życia Łowcosław Kazrek(87.54%)
+[/b]
+Łowcosław Kazrek(87.54%) uderzył z siłą  +1590
+  +Cios krytyczny
++Piętno bestii: atak +477
+Draugr Zastępowy(32.06%) otrzymał(a)  -1139  -491  obrażeń
+
+Niebiański Szelest(76.14%) uderzył z siłą  +1001
++Piętno bestii: atak +300
+Draugr Zastępowy(31.56%) otrzymał(a)  -617  -309  obrażeń
+
+[b]  Przywrócono 104 punktów życia Wojownik psk cdxx(82.26%)
+[/b]
+Wojownik psk cdxx wykonuje Niszczycielski cios.
+
+Wojownik psk cdxx(82.26%) uderzył z siłą  +2751
+  +Cios krytyczny
++18 energii
++Piętno bestii: atak +825
+Draugr Zastępowy(29.87%) otrzymał(a)  -2285  -825  obrażeń
+
+[b]  Przywrócono 305 punktów życia Zsz Blotniak(84.92%)
+[/b]
+Zsz Blotniak(84.92%) uderzył z siłą  +616  +94  +604
++Piętno bestii: atak +394
+Draugr Zastępowy(29.33%) otrzymał(a)  -222  -384  -394  obrażeń
+
+[b]  Draugr Zastępowy(28.92%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury[/b]
+[b]  Przywrócono 222 punktów życia wf foverek psk(59.85%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 798 punktów życia wf foverek psk(65.85%)
+[/b]
+wf foverek psk wykonuje Strzała z niespodzianką.
++Kombinacja x3!
+
+wf foverek psk(65.85%) uderzył z siłą  +911  +766
++Piętno bestii: atak +503
+Draugr Zastępowy(28.09%) otrzymał(a)  -487  -541  -503  obrażeń
+
+[b]  Przywrócono 942 punktów życia rzubruwka(85.62%)
+[/b]
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(85.62%) uderzył z siłą  +431  +1026
++Piętno bestii: atak +437
+Draugr Zastępowy(27.31%) otrzymał(a)  -221  -797  -437  obrażeń
+
+Że-Pro(41.16%) uderzył z siłą  +695
++Piętno bestii: atak +209
+Draugr Zastępowy(27.01%) otrzymał(a)  -331  -215  obrażeń
+
+[b]  Przywrócono 63 punktów życia Łowcosław Kazrek(87.97%)
+[/b]
+Łowcosław Kazrek wykonuje Zatruta strzała.
+
+Łowcosław Kazrek(87.97%) uderzył z siłą  +1103
++Piętno bestii: atak +331
+Draugr Zastępowy(26.46%) otrzymał(a)  -668  -340  obrażeń
+
+Niebiański Szelest wykonuje Zatruta strzała.
+
+Niebiański Szelest(76.14%) uderzył z siłą  +897
++Piętno bestii: atak +269
+Draugr Zastępowy(26.03%) otrzymał(a)  -518  -277  obrażeń
+
+[b]  Draugr Zastępowy(25.62%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy wykonuje Szarpnięcie kością.
+[/i]
+[i]Draugr Zastępowy(25.62%) uderzył(a) z siłą  +2280
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -Unik
+Że-Pro(41.16%) otrzymał  -0  obrażeń
+[/i]
+[i]Draugr Zastępowy(25.62%) przygotowuje się do wykonania Kosa zastępcy(0%).
+[/i]
+[b]  Przywrócono 676 punktów życia Zsz Intermarche(82.40%)
+[/b]
+Zsz Intermarche wykonuje Zdrowa atmosfera.
+Uleczono sojuszników o 15% życia.
+
+[b]  Przywrócono 51 punktów życia Łowca z Dzielnicy(99.47%)
+[/b]
+Łowca z Dzielnicy(99.47%) uderzył z siłą  +977
++Piętno bestii: atak +293
+Draugr Zastępowy(25.17%) otrzymał(a)  -549  -293  obrażeń
+
+Sir Krzysiu wykonuje Szybki atak.
+
+Sir Krzysiu(100%) uderzył z siłą  +1035  +570
+  +Cios krytyczny
++Piętno bestii: atak +482
+Draugr Zastępowy(24.39%) otrzymał(a)  -604  -352  -482  obrażeń
+
+[b]  Przywrócono 210 punktów życia wf foverek psk(82.42%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 798 punktów życia wf foverek psk(88.41%)
+[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(88.41%) uderzył z siłą  +1034  +890
+  +Cios krytyczny
++Piętno bestii: atak +577
+Draugr Zastępowy(23.39%) otrzymał(a)  -603  -663  -577  obrażeń
+
+[b]  Przywrócono 98 punktów życia Wojownik psk cdxx(97.92%)
+[/b]
+Wojownik psk cdxx wykonuje Ogłuszający cios.
+  -140  obrażeń otrzymał(a) Draugr Zastępowy(23.31%).
++Kombinacja x2!
+
+Wojownik psk cdxx(97.92%) uderzył z siłą  +1869
++Ogłuszenie
+Przerwanie ciosu specjalnego.
++Piętno bestii: atak +561
+Draugr Zastępowy(22.25%) otrzymał(a)  -1413  -561  obrażeń
+
+[b]  Draugr Zastępowy(21.84%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury (redukcja ogłuszenia 90%)[/b]
+[b]  Przywrócono 12 punktów życia Zsz Blotniak(100%)
+[/b]
+Zsz Blotniak(100%) uderzył z siłą  +629  +115  +604
+ +Przebicie
++Piętno bestii: atak +405
+Draugr Zastępowy(20.89%) otrzymał(a)  -629  -115  -604  -405  obrażeń
+
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +784  +1906
+  +Cios krytyczny
++Piętno bestii: atak +807
+Draugr Zastępowy(19.24%) otrzymał(a)  -559  -1670  -807  obrażeń
+
+Że-Pro wykonuje Osłona tarczą.
+Zwiększenie szansy na blok o 20%
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1222
++Piętno bestii: atak +367
+Draugr Zastępowy(18.61%) otrzymał(a)  -782  -378  obrażeń
+
+Niebiański Szelest wykonuje Błyskawiczny strzał.
+Niebiański Szelest otrzymuje 30 energii.
++Kombinacja x3!
+
+Niebiański Szelest(91.14%) uderzył z siłą  +1492
+  +Cios krytyczny
++Piętno bestii: atak +448
+Draugr Zastępowy(17.77%) otrzymał(a)  -1093  -461  obrażeń
+
+[b]  Draugr Zastępowy(17.36%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy(17.36%) uderzył(a) z siłą  +2755
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
++Niszczenie pancerza o 96
+Że-Pro(46.35%) otrzymał  -1603  obrażeń
+[/i]
+[b]  Przywrócono 48 punktów życia Łowca z Dzielnicy(99.93%)
+[/b]
+Łowca z Dzielnicy(99.93%) uderzył z siłą  +883
+ +Przebicie
++Piętno bestii: atak +132
+Draugr Zastępowy(16.81%) otrzymał(a)  -883  -132  obrażeń
+
+[b]  Przywrócono 245 punktów życia Zsz Intermarche(100%)
+[/b]
+Zsz Intermarche wykonuje Chwila skupienia.
+Zsz Intermarche otrzymuje 95 many
+
+[b]  Przywrócono 198 punktów życia wf foverek psk(89.90%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 798 punktów życia wf foverek psk(95.89%)
+[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(95.89%) uderzył z siłą  +859  +690
++Piętno bestii: atak +233
+Draugr Zastępowy(16.20%) otrzymał(a)  -439  -467  -233  obrażeń
+
+Sir Krzysiu(100%) uderzył z siłą  +683  +396
++Piętno bestii: atak +161
+Draugr Zastępowy(15.85%) otrzymał(a)  -280  -189  -161  obrażeń
+
+Niebiański Szelest wykonuje Podwójny strzał.
+
+Niebiański Szelest(91.14%) uderzył z siłą  +999
+  +Cios krytyczny
++Piętno bestii: atak +150
+Draugr Zastępowy(15.44%) otrzymał(a)  -615  -154  obrażeń
+
+Niebiański Szelest(91.14%) uderzył z siłą  +680
+   +Dotyk anioła
++Piętno bestii: atak +102
+Draugr Zastępowy(15.21%) otrzymał(a)  -317  -105  obrażeń
+
+Zsz Blotniak(100%) uderzył z siłą  +610  +105  +604
+ +Przebicie
++Piętno bestii: atak +199
+Draugr Zastępowy(14.39%) otrzymał(a)  -610  -105  -604  -199  obrażeń
+
+[b]  Draugr Zastępowy(13.98%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy wykonuje Szarpnięcie kością.
+[/i]
+[i]Draugr Zastępowy(13.98%) uderzył(a) z siłą  +3630
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
++Niszczenie pancerza o 37
++Zniszczono pancerz przeciwnika.
+  -Zablokowanie 1089 obrażeń
+Że-Pro(37.58%) otrzymał  -1433  obrażeń
+[/i]
+Łowcosław Kazrek(100%) uderzył z siłą  +1173
++Piętno bestii: atak +176
+Draugr Zastępowy(13.48%) otrzymał(a)  -735  -181  obrażeń
+
+[b]  Przywrócono 93 punktów życia Wojownik psk cdxx(98.54%)
+[/b]
+Wojownik psk cdxx wykonuje Niszczycielski cios.
+
+Wojownik psk cdxx(98.54%) uderzył z siłą  +1579
++Piętno bestii: atak +237
+Draugr Zastępowy(12.74%) otrzymał(a)  -1128  -237  obrażeń
+
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +431  +1068
++Piętno bestii: atak +225
+Draugr Zastępowy(12.05%) otrzymał(a)  -221  -838  -225  obrażeń
+
+Że-Pro(37.58%) uderzył z siłą  +640
++Piętno bestii: atak +96
+Draugr Zastępowy(11.84%) otrzymał(a)  -281  -98  obrażeń
+
+[b]  Przywrócono 7 punktów życia Łowca z Dzielnicy(100%)
+[/b]
+Łowca z Dzielnicy(100%) uderzył z siłą  +985
+ +Przebicie
++Piętno bestii: atak +148
+Draugr Zastępowy(11.23%) otrzymał(a)  -985  -148  obrażeń
+
+[b]  Draugr Zastępowy(10.82%): 758 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy(10.82%) uderzył(a) z siłą  +2570
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+  -Oślepienie w następnej turze
+  -Zablokowanie 771 obrażeń
+Że-Pro(29.87%) otrzymał  -1260  obrażeń
+[/i]
+[b]  Przywrócono 185 punktów życia wf foverek psk(97.28%)
+[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(97.28%) uderzył z siłą  +1019  +890
+  +Cios krytyczny
+ +Przebicie
+Draugr Zastępowy(9.78%) otrzymał(a)  -1019  -890  obrażeń
+
+[b]   Dotyk anioła: zregenerowano 718 punktów życia Niebiański Szelest(97.14%)
+[/b]
+Niebiański Szelest(97.14%) uderzył z siłą  +997
+ +Przebicie
+   +Dotyk anioła
+Draugr Zastępowy(9.24%) otrzymał(a)  -997  obrażeń
+
+Sir Krzysiu wykonuje Szybki atak.
+
+Sir Krzysiu(100%) uderzył z siłą  +698  +396
+Draugr Zastępowy(8.98%) otrzymał(a)  -293  -189  obrażeń
+
+Zsz Intermarche wykonuje Szadź.
+Spowolnienie przeciwników o 14%
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1219
+Draugr Zastępowy(8.56%) otrzymał(a)  -779  obrażeń
+
+Zsz Blotniak wykonuje Podwójne trafienie.
+
+Zsz Blotniak(100%) uderzył z siłą  +541  +87  +507
+Draugr Zastępowy(8.32%) otrzymał(a)  -160  -292  obrażeń
+
+Zsz Blotniak(100%) uderzył z siłą  +497  +87  +507
+ +Przebicie
+Draugr Zastępowy(7.73%) otrzymał(a)  -497  -87  -507  obrażeń
+
+[b]  Przywrócono 87 punktów życia Wojownik psk cdxx(99.13%)
+[/b]
+Wojownik psk cdxx wykonuje Niszczycielski cios.
+
+Wojownik psk cdxx(99.13%) uderzył z siłą  +2665
+  +Cios krytyczny
++18 energii
+Draugr Zastępowy(6.53%) otrzymał(a)  -2200  obrażeń
+
+[b]  Draugr Zastępowy(6.36%): 324 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury[/b]
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +431  +1089
+Draugr Zastępowy(5.77%) otrzymał(a)  -221  -859  obrażeń
+
+Łowca z Dzielnicy(100%) uderzył z siłą  +947
+Draugr Zastępowy(5.49%) otrzymał(a)  -521  obrażeń
+
+Że-Pro wykonuje Osłona tarczą.
+Zwiększenie szansy na blok o 20%
+
+[b]  Przywrócono 173 punktów życia wf foverek psk(98.58%)
+[/b]
+wf foverek psk wykonuje Strzała z niespodzianką.
++Kombinacja x3!
+
+wf foverek psk(98.58%) uderzył z siłą  +1036  +766
+ +Przebicie
+   +Dotyk anioła
+Draugr Zastępowy(4.52%) otrzymał(a)  -1036  -766  obrażeń
+
+[b]   Dotyk anioła: zregenerowano 343 punktów życia Niebiański Szelest(100%)
+[/b]
+Niebiański Szelest(100%) uderzył z siłą  +886
+ +Przebicie
+Draugr Zastępowy(4.04%) otrzymał(a)  -886  obrażeń
+
+Sir Krzysiu(100%) uderzył z siłą  +724  +396
+Draugr Zastępowy(3.76%) otrzymał(a)  -317  -189  obrażeń
+
+Łowcosław Kazrek wykonuje Błyskawiczny strzał.
+Łowcosław Kazrek otrzymuje 15 energii.
++Kombinacja x2!
+
+Łowcosław Kazrek(100%) uderzył z siłą  +1070
+   +Dotyk anioła
+Draugr Zastępowy(3.42%) otrzymał(a)  -637  obrażeń
+
+[b]  Draugr Zastępowy(3.24%): 324 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[i]Draugr Zastępowy(3.24%) uderzył(a) z siłą  +2003
+-Osłabienie przez truciznę zadawanych obrażeń o 20%
+Że-Pro(24.15%) otrzymał  -935  obrażeń
+[/i]
+Zsz Intermarche wykonuje Lodowy pocisk.
+
+Zsz Intermarche(100%) uderzył z siłą  +811  +1648
+  +Cios krytyczny
+Draugr Zastępowy(2.16%) otrzymał(a)  -585  -1413  obrażeń
+
+Zsz Blotniak wykonuje Podwójny dech.
+ Aura szybkości została aktywowana (++20% szybkości ataku).
+
+Łowca z Dzielnicy(100%) uderzył z siłą  +984
+Draugr Zastępowy(1.86%) otrzymał(a)  -555  obrażeń
+
+[b]  Przywrócono 161 punktów życia wf foverek psk(99.79%)
+[/b]
+[b]   Dotyk anioła: zregenerowano 28 punktów życia wf foverek psk(100%)
+[/b]
+wf foverek psk wykonuje Lodowa strzała.
+
+wf foverek psk(100%) uderzył z siłą  +886  +690
+  +Zamrożenie
+Draugr Zastępowy(1.36%) otrzymał(a)  -464  -467  obrażeń
+
+[b]  Draugr Zastępowy(1.18%): 324 (osłabione o 20%) obrażeń od trucizny.
+[/b]
+[b]Draugr Zastępowy - utrata tury (redukcja ogłuszenia 90%)[/b]
+rzubruwka wykonuje Lodowy pocisk.
+
+rzubruwka(95.88%) uderzył z siłą  +431  +1109
+   +Dotyk anioła
+Draugr Zastępowy(0.59%) otrzymał(a)  -221  -878  obrażeń
+
+[b]  Przywrócono 82 punktów życia Wojownik psk cdxx(99.68%)
+[/b]
+Wojownik psk cdxx wykonuje Ogłuszający cios.
+  -140  obrażeń otrzymał(a) Draugr Zastępowy(0.51%).
++Kombinacja x2!
+
+Wojownik psk cdxx(99.68%) uderzył z siłą  +2555
+  +Cios krytyczny
++18 energii
+Draugr Zastępowy(0%) otrzymał(a)  -2091  obrażeń
+
+[b]Zwyciężyła drużyna Że-Pro, Niebiański Szelest, Wojownik psk cdxx, Zsz Intermarche, Sir Krzysiu, Zsz Blotniak, Łowca z Dzielnicy, Łowcosław Kazrek, wf foverek psk, rzubruwka[/b]
+[b]Poległ(a) Draugr Zastępowy[/b]
+[b]Draugr Zastępowy: zdobyto Bojowa przyłbica marynarza I, Mundur zamożnego wikinga I, Lśniące szpony rosomaka I, Orle pazury I, Mankiety zdolnego rzemieślnika I, Palce łaknące grabieży I, Chód płaczących czaszek I, Zaklinacz fal I, Ciepłochron I, Podomka starego wikinga I[/b]
