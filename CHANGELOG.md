@@ -30,6 +30,15 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Najechanie na postać pokazuje w dymku trzy jej najsilniejsze
+  pozycje wraz z udziałem — komu zadała, od kogo obrywa albo z czego się leczy,
+  zależnie od wybranej zakładki. Na pytanie „co go tak boli?" odpowiada teraz
+  samo najechanie, bez wchodzenia w postać i wracania. Gdy pozycji jest więcej,
+  dymek mówi, ile zostało na pełnej liście.
+- **Poprawka** — Nazwa postaci, w którą się weszło, nie mruga już przy
+  przełączaniu zakładek ani w trakcie walki. Wcześniej podświetlenie pod
+  kursorem gasło kilka razy na sekundę, właśnie na tym napisie, który ma dawać
+  znać, że panel trzyma wybraną postać.
 - **Poprawka** — Energia, którą postać sama zyskuje przy ciosie, nie jest już
   wypisywana w dymku jako efekt sprzętu. Stała tam obok klątw i niszczenia
   pancerza, czyli obok rzeczy, które cios robi przeciwnikowi — a to jest zysk

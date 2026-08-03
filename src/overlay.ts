@@ -36,6 +36,23 @@ const METRIC_LABELS: Record<Metric, string> = {
 /** Etykieta wiersza „Tury" w dymku. Nie jest metryką — nie da się jej wybrać. */
 const TURNS_LABEL = "Tury";
 
+/** Ile pozycji pokazuje podgląd rozbicia w dymku (`UX §4.2`). */
+const TOP_SOURCES = 3;
+
+/**
+ * Wiersz dymka: etykieta z lewej, wartość z prawej.
+ *
+ * Ten sam kształt padał w czterech miejscach po trzy linijki
+ * (`SOLID §8` liczyło pięć kopii `tip-stat`). Kopie same z siebie niczego nie
+ * psuły, ale piąta powstawała właśnie teraz — a to one rozjeżdżają się
+ * pierwsze, gdy jedno miejsce dostanie klasę, a reszta nie.
+ */
+function tipStat(label: string, value: string, extraClass = ""): HTMLElement {
+  const row = div(`tip-stat${extraClass ? ` ${extraClass}` : ""}`);
+  row.append(div("tip-stat-label", label), div("tip-stat-value", value));
+  return row;
+}
+
 /**
  * Kolejność zakładek i wierszy podsumowania w dymku — jedna, wspólna.
  *
@@ -575,6 +592,10 @@ export class Overlay {
    */
   private readonly panel: HTMLElement;
   private readonly body: HTMLElement;
+  /** Okruszek powrotu — trwały przez całe życie panelu (`UX §4.1`). */
+  private readonly crumb: HTMLElement;
+  private readonly crumbBack = document.createElement("button");
+  private readonly crumbName = div("crumb-name");
   private readonly grip: HTMLElement;
   /**
    * Nagłówek żyje tyle, co overlay — razem z przyciskami i uchwytem
@@ -760,6 +781,10 @@ export class Overlay {
     // nie przy każdym renderze.
     this.panel = document.createElement("div");
     this.body = div("panel-body");
+    // Okruszek wjeżdża do korpusu RAZ i już z niego nie wychodzi — patrz
+    // `buildCrumb`. Render tylko go pokazuje albo chowa.
+    this.crumb = this.buildCrumb();
+    this.body.append(this.crumb);
     this.grip = div("resize-grip");
     this.grip.setAttribute("aria-hidden", "true");
     this.makeResizable(this.grip, this.panel);
@@ -954,12 +979,21 @@ export class Overlay {
 
     // Tylko TREŚĆ korpusu — sam `body` jest trwały, więc pasek przewijania
     // i jego pozycja przeżywają zmianę danych zamiast mrugać przy każdej klatce.
-    this.body.replaceChildren(
+    //
+    // NIE `replaceChildren`: okruszek jest trwały i ma NIE wychodzić z drzewa
+    // (patrz `buildCrumb`), a `replaceChildren` zdjęłoby go razem z resztą.
+    // Zdejmujemy więc wszystko poza nim.
+    for (const child of [...this.body.childNodes]) {
+      if (child !== this.crumb) child.remove();
+    }
+    this.crumb.hidden = !focused;
+    if (focused) this.updateCrumb(focused);
+    this.body.append(
       ...(focused
         ? // Wewnątrz postaci nie ma po co porównywać stron ani filtrować składu
           // — jest jedna postać i jej rozbicie. Zostaje wybór metryki, bo on
           // decyduje, CO rozbijamy: zadane, otrzymane czy leczenie.
-          [this.renderCrumb(focused), this.renderMetrics(), this.renderDetail(focused)]
+          [this.renderMetrics(), this.renderDetail(focused)]
         : [
             // "ogień na" / "obrywa" są odłączone: w tej formie nie niosą tyle,
             // co zajmują, i wracają dopiero po przemyśleniu układu. Kod
@@ -1103,7 +1137,7 @@ export class Overlay {
       textContent: `v${VERSION}`,
     });
 
-    /** Kopiuje statystyki — bieżącą walkę i całą sesję naraz — jako JSON. */
+    /** Kopiuje statystyki tej walki — albo nagrania, jeśli stoi na ekranie. */
     const copy = document.createElement("button");
     copy.type = "button";
     copy.dataset.action = "copy-stats";
@@ -1699,23 +1733,43 @@ export class Overlay {
   }
 
   /**
-   * Ścieżka powrotu nad rozbiciem. Prawy przycisk robi to samo, ale nie widać
-   * go na ekranie — bez tej linijki nie da się zgadnąć, jak się cofnąć.
+   * Ścieżka powrotu nad rozbiciem — TRWAŁY węzeł, budowany raz na życie panelu.
+   *
+   * Prawy przycisk robi to samo, ale nie widać go na ekranie — bez tej linijki
+   * nie da się zgadnąć, jak się cofnąć.
+   *
+   * Trwały, bo panel przerysowuje się przy KAŻDEJ linii logu, a `.crumb-back`
+   * ma regułę `:hover`. Świeży węzeł nie jest pod kursorem, dopóki mysz się nie
+   * ruszy — więc w środku walki podświetlenie gasło i wracało kilka razy na
+   * sekundę, dokładnie na elemencie, który ma dawać znać, że kontekst się
+   * trzyma (`UX §4.1`, `UX-POPRAWKI B4`). Ten sam chwyt, co przy `A1`
+   * z nagłówkiem: węzeł zostaje, render odświeża same podpisy.
+   *
+   * Listener jest tu BEZPOŚREDNI, nie przez `bindAction`: mapa `actions` czyści
+   * się na każdym renderze, bo opisuje węzły budowane od nowa. `data-action`
+   * zostaje — po nim ten przycisk rozpoznają testy i `actionUnder` — ale nie
+   * ma odpowiednika w mapie, więc delegacja go nie odpali drugi raz.
    */
-  private renderCrumb(actor: ActorStats): HTMLElement {
+  private buildCrumb(): HTMLElement {
     const crumb = div("crumb");
-    // Etykieta mówi, DOKĄD się wraca, a nie „wstecz” — przy dwóch szczeblach
-    // sam strzałek nie wystarczy, żeby wiedzieć, gdzie się wyląduje.
     // Prawdziwy `<button>`, nie `div`: to element AKCJI, a nie tekst. Niezależnie
     // od polityki klawiatury element, w który się klika, ma się tak nazywać —
     // dopiero wtedy czytnik ekranu mówi o nim jak o przycisku, a Tab może się na
     // nim zatrzymać widocznie.
-    const back = document.createElement("button");
-    back.type = "button";
-    back.className = "crumb-back";
-    back.textContent = this.focusSource === null ? "‹ skład" : `‹ ${actor.name}`;
-    back.setAttribute("aria-label", "Wróć o szczebel");
-    this.bindAction(back, "crumb-back", () => this.back());
+    this.crumbBack.type = "button";
+    this.crumbBack.className = "crumb-back";
+    this.crumbBack.dataset.action = "crumb-back";
+    this.crumbBack.setAttribute("aria-label", "Wróć o szczebel");
+    this.crumbBack.addEventListener("click", () => this.back());
+    crumb.append(this.crumbBack, this.crumbName);
+    return crumb;
+  }
+
+  /** Odświeża podpisy trwałego okruszka. Węzły zostają — patrz `buildCrumb`. */
+  private updateCrumb(actor: ActorStats): void {
+    // Etykieta mówi, DOKĄD się wraca, a nie „wstecz” — przy dwóch szczeblach
+    // sam strzałek nie wystarczy, żeby wiedzieć, gdzie się wyląduje.
+    this.crumbBack.textContent = this.focusSource === null ? "‹ skład" : `‹ ${actor.name}`;
     const here = this.focusSource ?? actor.name;
     /**
      * Okruszek niesie odznakę, bo to on nazywa postać, w której się stoi —
@@ -1727,10 +1781,23 @@ export class Overlay {
      * informacji, tylko powtarza — a przy nazwie umiejętności
      * (`KOMU — SYMFONIA ŻYWIOŁÓW`) byłaby wręcz myląca.
      */
-    const name = div("crumb-name", here);
-    this.markIfCharacter(name, here);
-    crumb.append(back, name);
-    return crumb;
+    this.crumbName.textContent = here;
+    /**
+     * Odznaka profesji jest ATRYBUTEM (`data-prof`) plus dwiema własnymi
+     * własnościami CSS, a nie węzłem potomnym — więc podmiana tekstu jej NIE
+     * zdejmuje. Na węźle budowanym od nowa nie było czego czyścić; na trwałym
+     * jest, i to jest cała cena tej trwałości.
+     *
+     * Bez tych trzech linijek odznaka zostawałaby po poprzednim szczeblu:
+     * wchodząc w postać, a potem w jej umiejętność, okruszek pokazywałby
+     * `SYMFONIA ŻYWIOŁÓW` z literą profesji tancerza. Czyścimy ZAWSZE, nie
+     * tylko gdy nowa nazwa nie jest postacią — inaczej ta sama pomyłka wraca
+     * przy przejściu z jednej postaci na drugą.
+     */
+    delete this.crumbName.dataset.prof;
+    this.crumbName.style.removeProperty("--prof-bg");
+    this.crumbName.style.removeProperty("--prof-ink");
+    this.markIfCharacter(this.crumbName, here);
   }
 
   /**
@@ -2312,26 +2379,24 @@ export class Overlay {
     // Tu jest miejsce, więc stoi pełna — a nierozpoznanej litery nie tłumaczymy
     // na siłę: gra może dodać profesję, której `PROFESSIONS` jeszcze nie zna.
     if (actor.professionCode !== null) {
-      const row = div("tip-stat");
-      row.append(
-        div("tip-stat-label", "Profesja"),
-        div(
-          "tip-stat-value",
+      section.append(
+        tipStat(
+          "Profesja",
           PROFESSIONS[actor.professionCode as keyof typeof PROFESSIONS] ?? actor.professionCode,
         ),
       );
-      section.append(row);
     }
 
     for (const metric of METRICS) {
-      const row = div(`tip-stat${metric === this.metric ? " is-active" : ""}`);
       // Własne klasy, nie `tip-label`/`tip-value` z rozbicia: to inne dane
       // i zapytania o rozbicie nie mają ich łapać.
-      row.append(
-        div("tip-stat-label", METRIC_LABELS[metric]),
-        div("tip-stat-value", this.tipValue(actor, metric)),
+      section.append(
+        tipStat(
+          METRIC_LABELS[metric],
+          this.tipValue(actor, metric),
+          metric === this.metric ? "is-active" : "",
+        ),
       );
-      section.append(row);
     }
 
     // Trzy liczby wyżej dzielą się przez RÓŻNE dzielniki, a wszystkie noszą to
@@ -2351,23 +2416,17 @@ export class Overlay {
     // definicji 1, a udział tur utraconych jest już ułamkiem. To one są
     // mianownikiem dla wierszy wyżej — dzielenie ich przez siebie zabrałoby
     // jedyną skalę, wobec której tamto tempo cokolwiek znaczy.
-    const turns = div("tip-stat");
-    turns.append(div("tip-stat-label", TURNS_LABEL), div("tip-stat-value", `${actor.turns}`));
-    section.append(turns);
-
-    const lost = div("tip-stat");
-    lost.append(
-      div("tip-stat-label", "Tury utracone"),
-      // Udział mówi więcej niż sama liczba: 3 utracone z 4 to inna walka niż
-      // 3 z 30. `turns` zawiera tury utracone, więc jest właściwym mianownikiem.
-      div(
-        "tip-stat-value",
+    section.append(tipStat(TURNS_LABEL, `${actor.turns}`));
+    // Udział mówi więcej niż sama liczba: 3 utracone z 4 to inna walka niż
+    // 3 z 30. `turns` zawiera tury utracone, więc jest właściwym mianownikiem.
+    section.append(
+      tipStat(
+        "Tury utracone",
         actor.turns > 0
           ? `${actor.turnsLost} (${Math.round((actor.turnsLost / actor.turns) * 100)}%)`
           : `${actor.turnsLost}`,
       ),
     );
-    section.append(lost);
 
     // Liczniki, które nie mają własnej zakładki, a mówią o jakości gry.
     const counters = [
@@ -2413,12 +2472,7 @@ export class Overlay {
     section.append(div("tip-heading", "Użycia akcji"));
     for (const use of actor.abilityUses) {
       const hits = hitsByLabel.get(use.label) ?? 0;
-      const row = div("tip-stat");
-      row.append(
-        div("tip-stat-label", use.label),
-        div("tip-stat-value", times(use.count, hits)),
-      );
-      section.append(row);
+      section.append(tipStat(use.label, times(use.count, hits)));
     }
     return section;
   }
@@ -2428,10 +2482,60 @@ export class Overlay {
 
     const section = div("tip-section");
     section.append(div("tip-heading", heading));
-    for (const proc of procs) {
-      const row = div("tip-stat");
-      row.append(div("tip-stat-label", proc.label), div("tip-stat-value", `×${proc.count}`));
-      section.append(row);
+    for (const proc of procs) section.append(tipStat(proc.label, `×${proc.count}`));
+    return section;
+  }
+
+  /**
+   * TOP‑3 źródła aktywnej metryki — podgląd BEZ wchodzenia w postać (`UX §4.2`).
+   *
+   * Pytanie „co go tak boli?" zadaje się w biegu i dotąd wymagało kliknięcia
+   * w postać, przeczytania i kliknięcia z powrotem. Dane były policzone od
+   * zawsze; brakowało ich tutaj.
+   *
+   * Trzy, nie pięć i nie wszystkie: dymek ma zostać SKRÓTEM. Pełna lista jest
+   * o jedno kliknięcie stąd i to ona odpowiada na „a reszta?". Przy czterech
+   * sekcjach dymka i 260 px szerokości każdy kolejny wiersz odbiera miejsce
+   * czemuś, co już tam jest.
+   *
+   * Nagłówek jest ten sam, co nad listą po wejściu w postać (`KOMU` / `OD KOGO`
+   * / `OD CZEGO`) — dymek zapowiada dokładnie ten widok, do którego prowadzi.
+   *
+   * Liczby idą przez `this.format`, więc w trybie „na turę" pokazują tempo tak
+   * samo jak wiersz pod kursorem. Udział liczy się natomiast ZAWSZE z sum
+   * surowych — to samo rozstrzygnięcie, co przy `A2`: procent ma nie zmieniać
+   * się z trybem, bo opisuje strukturę obrażeń, nie tempo.
+   */
+  private topSourcesSection(actor: ActorStats): HTMLElement | null {
+    // Zawsze PIERWSZY szczebel, nie `breakdownList`: ten drugi po wejściu
+    // w pozycję oddaje już szczebel niższy. Dymek postaci pokazuje się tylko
+    // na liście składu, ale niech nie zależy od tego, gdzie akurat stoimy.
+    const sources =
+      this.metric === "healingReceived"
+        ? actor.healedBy
+        : this.tierList(actor, "target");
+    if (sources.length === 0) return null;
+
+    const heading =
+      this.metric === "healingReceived" ? "OD CZEGO" : this.metric === "damageDealt" ? "KOMU" : "OD KOGO";
+    const total = actorValue(actor, this.metric);
+    const divisor = turnsFor(actor, this.metric, this.fightTurns);
+
+    const section = div("tip-section");
+    section.append(div("tip-heading", heading));
+    for (const source of sources.slice(0, TOP_SOURCES)) {
+      const shown = this.perTurn && divisor > 0 ? source.amount / divisor : source.amount;
+      const share = total > 0 ? Math.round((source.amount / total) * 100) : 0;
+      section.append(
+        tipStat(source.label, `${this.format(shown)}${this.perTurn ? "/t" : ""} (${share}%)`),
+      );
+    }
+    // Ile zostało poza trójką — bez tego „TOP 3" czyta się jak „to wszystko".
+    if (sources.length > TOP_SOURCES) {
+      const reszta = sources.length - TOP_SOURCES;
+      section.append(
+        div("tip-note", `+ ${reszta} ${plural(reszta, ["pozycja", "pozycje", "pozycji"])} niżej`),
+      );
     }
     return section;
   }
@@ -2450,6 +2554,13 @@ export class Overlay {
     const title = div("tip-title", actor.name);
     if (actor.professionCode) this.markProfession(title, actor.professionCode);
     const nodes: Node[] = [title, this.generalSection(actor)];
+
+    // Rozbicie stoi ZARAZ po sumach, przed użyciami i efektami: „ile" i „od
+    // czego" to jedno pytanie zadane w dwóch krokach, a reszta dymka odpowiada
+    // na inne. Przy czterech sekcjach kolejność decyduje, co widać bez
+    // przesuwania wzroku.
+    const top = this.topSourcesSection(actor);
+    if (top) nodes.push(top);
 
     const uses = this.usesSection(actor);
     if (uses) nodes.push(uses);

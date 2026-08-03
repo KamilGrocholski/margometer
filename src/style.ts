@@ -339,6 +339,11 @@ button[aria-pressed="true"] { background: var(--active); color: var(--ink); }
 .side-head .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* Ścieżka powrotu z widoku pojedynczej postaci. */
 .crumb { display: flex; align-items: baseline; gap: 6px; padding: 6px 8px 0; font-size: 11px; }
+/* Okruszek jest TRWAŁY i chowa się atrybutem, a nie zniknięciem z drzewa —
+   inaczej podświetlenie :hover gasło przy każdej linii logu. Reguła jest
+   potrzebna, bo .crumb{display:flex} wyżej bije domyślne [hidden]{display:none}
+   z arkusza przeglądarki. */
+.crumb[hidden] { display: none; }
 /* color: inherit trzyma wygląd sprzed zmiany na przycisk: reguła "button"
    maluje na --ink-muted, a okruszek ma być tak samo jasny jak reszta ścieżki. */
 .crumb-back { cursor: pointer; border-radius: 3px; padding: 1px 4px; margin-left: -4px; color: inherit; }

@@ -21,6 +21,18 @@ import { FIXTURES, metricButton, number, rate, readFixture, shareOf, valueOf } f
  * którego prawdziwe kliknięcie nigdy nie ma. Ten sam szyk co w teście archiwum
  * niżej („nie cofa widoku i nie blokuje menu przeglądarki").
  */
+/**
+ * Czy widać okruszek powrotu.
+ *
+ * Nie `querySelector(".crumb") !== null`: od 2026‑08‑03 okruszek jest TRWAŁYM
+ * węzłem i z drzewa nie wychodzi (`UX §4.1`) — chowa go atrybut `hidden`.
+ * Asercja na obecność sprawdzałaby więc coś, co jest prawdą zawsze.
+ */
+function crumbVisible(overlay: Overlay): boolean {
+  const crumb = overlay.shadow.querySelector<HTMLElement>(".crumb");
+  return crumb !== null && !crumb.hidden;
+}
+
 function rightClick(overlay: Overlay): void {
   overlay.shadow
     .querySelector(".rows")!
@@ -98,12 +110,235 @@ describe("leczenie", () => {
       .dispatchEvent(new Event("pointerover", { bubbles: true }));
 
     const tip = overlay.shadow.querySelector(".tip")!;
+    // Kolejność sekcji, nie sam ich zestaw: „KOMU" stoi zaraz po sumach, bo
+    // „ile" i „od czego" to jedno pytanie w dwóch krokach.
     expect([...tip.querySelectorAll(".tip-heading")].map((el) => el.textContent)).toEqual([
       "Ogólne",
+      "KOMU",
       "Użycia akcji",
       "Efekty w ciosach",
       "Efekty otrzymane",
     ]);
+  });
+});
+
+/**
+ * `UX §4.2` / `UX-POPRAWKI B5` — podgląd bez commitu.
+ *
+ * Dane (`dealtToBy` / `takenFromBy` / `healedBy`) były policzone od zawsze;
+ * brakowało ich w dymku. Testy pytają o TREŚĆ, nie o obecność węzłów: sekcja,
+ * która rysuje się z pustymi albo cudzymi liczbami, przeszłaby każdą asercję
+ * typu „jest .tip-heading".
+ */
+describe("podgląd TOP-3 w dymku", () => {
+  const load = async (name: string) => aggregate(parse(await readFixture(`new-engine/${name}`)));
+
+  const hover = (overlay: Overlay, actor: string) => {
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+      .find((row) => row.dataset.actor === actor)!
+      .dispatchEvent(new Event("pointerover", { bubbles: true }));
+    return overlay.shadow.querySelector(".tip")!;
+  };
+
+  /** Wiersze sekcji o danym nagłówku — para etykieta/wartość. */
+  const sectionRows = (tip: Element, heading: string) => {
+    const section = [...tip.querySelectorAll(".tip-section")].find(
+      (s) => s.querySelector(".tip-heading")?.textContent === heading,
+    )!;
+    return [...section.querySelectorAll(".tip-stat")].map((row) => [
+      row.querySelector(".tip-stat-label")?.textContent,
+      row.querySelector(".tip-stat-value")?.textContent,
+    ]);
+  };
+
+  test("pokazuje trzy najsilniejsze cele z udziałem, zgodnie z rozbiciem", async () => {
+    const stats = await load("2026-07-18_lowca-vs-druzyna");
+    const overlay = new Overlay();
+    overlay.render(stats);
+
+    const actor = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
+    // Wprost z danych, nie z drugiego przebiegu tego samego kodu: gdyby sekcja
+    // czytała nie tę listę, co trzeba, te liczby by się nie zgodziły.
+    const oczekiwane = actor.dealtToBy
+      .slice(0, 3)
+      .map((s) => [
+        s.label,
+        `${number.format(s.amount)} (${Math.round((s.amount / actor.damageDealt) * 100)}%)`,
+      ]);
+    expect(oczekiwane.length).toBe(3);
+
+    expect(sectionRows(hover(overlay, "Łowcożyr Kazrek"), "KOMU")).toEqual(oczekiwane);
+  });
+
+  test("nie wypisuje wszystkiego — mówi, ile zostało niżej", async () => {
+    // Walka drużynowa: boss bije dziesięć celów, więc trójka to naprawdę skrót.
+    const stats = await load("2026-07-31_druzyna-vs-hildur-zwyciestwo");
+    const overlay = new Overlay();
+    overlay.render(stats);
+
+    const actor = stats.actors.find((a) => a.name === "Hildur Muza Śmierci")!;
+    expect(actor.dealtToBy.length).toBe(10);
+
+    const tip = hover(overlay, "Hildur Muza Śmierci");
+    expect(sectionRows(tip, "KOMU")).toHaveLength(3);
+    // Bez tego przypisu „TOP 3" czyta się jak „to wszystko".
+    const przypis = [...tip.querySelectorAll(".tip-section")]
+      .find((s) => s.querySelector(".tip-heading")?.textContent === "KOMU")!
+      .querySelector(".tip-note")?.textContent;
+    expect(przypis).toBe("+ 7 pozycji niżej");
+  });
+
+  test("idzie za zakładką metryki — po przełączeniu mówi OD KOGO", async () => {
+    const stats = await load("2026-07-18_lowca-vs-druzyna");
+    const overlay = new Overlay();
+    overlay.render(stats);
+
+    metricButton(overlay, "Otrzymane").click();
+
+    const actor = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
+    const oczekiwane = actor.takenFromBy
+      .slice(0, 3)
+      .map((s) => [
+        s.label,
+        `${number.format(s.amount)} (${Math.round((s.amount / actor.damageTaken) * 100)}%)`,
+      ]);
+    expect(oczekiwane.length).toBeGreaterThan(0);
+
+    const wiersze = sectionRows(hover(overlay, "Łowcożyr Kazrek"), "OD KOGO");
+    expect(wiersze).toEqual(oczekiwane);
+    // Nagłówka „KOMU" ma już nie być — inaczej dymek pokazywałby obie strony
+    // naraz i nie wiadomo, do której listy prowadzi kliknięcie.
+    const naglowki = [...hover(overlay, "Łowcożyr Kazrek").querySelectorAll(".tip-heading")].map(
+      (el) => el.textContent,
+    );
+    expect(naglowki).not.toContain("KOMU");
+  });
+
+  test("w trybie „na turę” liczba jest tempem, a udział zostaje z sum surowych", async () => {
+    // To samo rozstrzygnięcie, co przy `A2`: procent opisuje strukturę obrażeń,
+    // więc nie może zmieniać się wraz z trybem. Gdyby liczył się z temp,
+    // trójka wierszy sumowałaby się do innej liczby niż ta sama trójka
+    // w rozbiciu.
+    const stats = await load("2026-07-18_lowca-vs-druzyna");
+    const overlay = new Overlay();
+    overlay.render(stats);
+
+    const actor = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
+    const pierwszy = actor.dealtToBy[0]!;
+    const udzial = Math.round((pierwszy.amount / actor.damageDealt) * 100);
+
+    const przed = sectionRows(hover(overlay, "Łowcożyr Kazrek"), "KOMU")[0]!;
+    expect(przed[1]).toBe(`${number.format(pierwszy.amount)} (${udzial}%)`);
+
+    overlay.shadow.querySelector<HTMLElement>('[data-action="per-turn"]')!.click();
+
+    const po = sectionRows(hover(overlay, "Łowcożyr Kazrek"), "KOMU")[0]!;
+    // Zadane dzielą się przez tury WŁASNE — ten sam dzielnik, co w wierszu.
+    expect(po[1]).toBe(`${rate.format(pierwszy.amount / actor.turns)}/t (${udzial}%)`);
+  });
+
+  test("leczenie pokazuje OD CZEGO, bo log nie nazywa leczącego", async () => {
+    const stats = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
+    const overlay = new Overlay();
+    overlay.render(stats);
+
+    metricButton(overlay, "Leczenie").click();
+
+    const leczony = stats.actors.find((a) => a.healedBy.length > 0)!;
+    const wiersze = sectionRows(hover(overlay, leczony.name), "OD CZEGO");
+    expect(wiersze.map(([label]) => label)).toEqual(
+      leczony.healedBy.slice(0, 3).map((s) => s.label),
+    );
+  });
+});
+
+/**
+ * `UX §4.1` / `UX-POPRAWKI B4` — kontekst postaci ma być WIDAĆ.
+ *
+ * Wybór postaci przeżywał zmianę metryki od dawna, ale okruszek budował się od
+ * nowa przy każdym renderze — a panel przerysowuje się przy każdej linii logu.
+ * `.crumb-back` ma regułę `:hover`, której świeży węzeł nie dostaje, dopóki
+ * mysz się nie ruszy, więc podświetlenie gasło i wracało w kółko.
+ *
+ * Testy pytają o TOŻSAMOŚĆ węzła, nie o jego treść: treść była poprawna także
+ * przed zmianą i asercja na nią przechodziłaby w obie strony.
+ */
+describe("okruszek jest trwałym węzłem", () => {
+  const load = async () => aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+
+  test("przetrwa zmianę metryki jako TEN SAM węzeł", async () => {
+    const overlay = new Overlay();
+    overlay.render(await load());
+    overlay.shadow.querySelector<HTMLElement>(".row[data-actor]")!.click();
+
+    const przed = overlay.shadow.querySelector(".crumb");
+    const przedBack = overlay.shadow.querySelector(".crumb-back");
+    expect(przed).not.toBeNull();
+
+    metricButton(overlay, "Otrzymane").click();
+
+    expect(overlay.shadow.querySelector(".crumb")).toBe(przed!);
+    expect(overlay.shadow.querySelector(".crumb-back")).toBe(przedBack!);
+  });
+
+  test("przetrwa przerysowanie panelu nową porcją logu", async () => {
+    // Najostrzejszy przypadek: to on zdarza się kilka razy na sekundę w walce.
+    const overlay = new Overlay();
+    const stats = await load();
+    overlay.render(stats);
+    overlay.shadow.querySelector<HTMLElement>(".row[data-actor]")!.click();
+    const przed = overlay.shadow.querySelector(".crumb");
+
+    overlay.render(stats);
+
+    expect(overlay.shadow.querySelector(".crumb")).toBe(przed!);
+  });
+
+  test("po powrocie do składu chowa się, ale zostaje w drzewie", async () => {
+    const overlay = new Overlay();
+    overlay.render(await load());
+    const crumb = overlay.shadow.querySelector<HTMLElement>(".crumb")!;
+    // Przed wejściem w postać jest już w drzewie — to jest cała zmiana.
+    expect(crumb.hidden).toBe(true);
+
+    overlay.shadow.querySelector<HTMLElement>(".row[data-actor]")!.click();
+    expect(crumb.hidden).toBe(false);
+
+    overlay.shadow.querySelector<HTMLElement>(".crumb-back")!.click();
+    expect(overlay.shadow.querySelector(".crumb")).toBe(crumb);
+    expect(crumb.hidden).toBe(true);
+  });
+
+  test("odznaka profesji opisuje TEN szczebel, nie poprzedni", async () => {
+    // Cena trwałości węzła: odznaka jest ATRYBUTEM (`data-prof`) plus dwiema
+    // własnościami CSS, więc podmiana tekstu jej NIE zdejmuje. Na węźle
+    // budowanym od nowa nie było czego czyścić — tu jest.
+    //
+    // Przejście postać → postać niczego nie dowodzi: `markIfCharacter` po
+    // prostu NADPISUJE atrybut i test przechodzi także bez czyszczenia
+    // (sprawdzone mutacją). Dziurę widać dopiero tam, gdzie nowa nazwa NIE
+    // jest postacią — czyli po wejściu w umiejętność z listy „CZYM (ŁĄCZNIE)".
+    const overlay = new Overlay();
+    overlay.render(await load());
+
+    [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")]
+      .find((row) => row.dataset.actor === "Łowcożyr Kazrek")!
+      .click();
+    const name = overlay.shadow.querySelector<HTMLElement>(".crumb-name")!;
+    // Postać ma odznakę — bez tego reszta testu nie dowodzi niczego.
+    expect(name.dataset.prof).toBe("H");
+    expect(name.style.getPropertyValue("--prof-bg")).not.toBe("");
+
+    const ability = [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-source]")].find(
+      (row) => row.dataset.list === "abilities",
+    )!;
+    const label = ability.dataset.source!;
+    ability.click();
+
+    expect(overlay.shadow.querySelector(".crumb-name")!.textContent).toBe(label);
+    // Umiejętność nie ma profesji — litera po łowcy byłaby tu kłamstwem.
+    expect(name.dataset.prof).toBeUndefined();
+    expect(name.style.getPropertyValue("--prof-bg")).toBe("");
   });
 });
 
@@ -420,7 +655,7 @@ describe("overlay", () => {
     list[0]!.dispatchEvent(new Event("pointerdown", { bubbles: true }));
     list[1]!.dispatchEvent(new Event("pointerup", { bubbles: true }));
 
-    expect(overlay.shadow.querySelector(".crumb-name")).toBeNull();
+    expect(crumbVisible(overlay)).toBe(false);
   });
 
   test("dymek pokazuje rozbicie zadanych obrażeń na źródła", async () => {
@@ -760,7 +995,7 @@ describe("overlay", () => {
     rightClick(overlay);
     expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Tancogniew Kazrek");
     rightClick(overlay);
-    expect(overlay.shadow.querySelector(".crumb")).toBeNull();
+    expect(crumbVisible(overlay)).toBe(false);
     expect(overlay.shadow.querySelector(".rows .row[data-actor]")).not.toBeNull();
   });
 
@@ -2208,12 +2443,12 @@ describe("ustawienia widoku przeżywają odświeżenie", () => {
     const first = new Overlay({ storage });
     first.render(stats);
     first.shadow.querySelector<HTMLElement>(".row")!.click();
-    expect(first.shadow.querySelector(".crumb")).not.toBeNull();
+    expect(crumbVisible(first)).toBe(true);
 
     const second = new Overlay({ storage });
     second.render(stats);
 
-    expect(second.shadow.querySelector(".crumb")).toBeNull();
+    expect(crumbVisible(second)).toBe(false);
   });
 
   test("zapis z nieznaną metryką nie wywraca panelu", async () => {
@@ -2347,11 +2582,11 @@ describe("fokus jest tam, gdzie arkusz go obiecuje", () => {
     const overlay = new Overlay();
     overlay.render(stats);
     overlay.shadow.querySelector<HTMLElement>(".row")!.click();
-    expect(overlay.shadow.querySelector(".crumb")).not.toBeNull();
+    expect(crumbVisible(overlay)).toBe(true);
 
     overlay.shadow.querySelector<HTMLElement>(".crumb-back")!.click();
 
-    expect(overlay.shadow.querySelector(".crumb")).toBeNull();
+    expect(crumbVisible(overlay)).toBe(false);
   });
 
   // Świadoma granica z `UX.md §6`: dwadzieścia przystanków Taba nad grą, która
@@ -2576,7 +2811,7 @@ describe("prawy przycisk odbiera menu tylko wtedy, gdy coś daje w zamian", () =
     const overlay = new Overlay();
     overlay.render(await load());
     overlay.shadow.querySelector<HTMLElement>(".row[data-actor]")!.click();
-    expect(overlay.shadow.querySelector(".crumb-name")).not.toBeNull();
+    expect(crumbVisible(overlay)).toBe(true);
 
     const archive = document.createElement("div");
     archive.className = "archive";
@@ -2590,7 +2825,7 @@ describe("prawy przycisk odbiera menu tylko wtedy, gdy coś daje w zamian", () =
 
     expect(event.defaultPrevented).toBe(false);
     // I — co ważniejsze — nie zdjął szczebla w niewidocznym panelu pod spodem.
-    expect(overlay.shadow.querySelector(".crumb-name")).not.toBeNull();
+    expect(crumbVisible(overlay)).toBe(true);
   });
 
   test("nie cofa widoku i nie blokuje menu przeglądarki", async () => {
@@ -2619,7 +2854,7 @@ describe("prawy przycisk odbiera menu tylko wtedy, gdy coś daje w zamian", () =
     const outside = new Event("contextmenu", { bubbles: true, cancelable: true });
     overlay.shadow.querySelector(".rows")!.dispatchEvent(outside);
     expect(outside.defaultPrevented).toBe(true);
-    expect(overlay.shadow.querySelector(".crumb-name")).toBeNull();
+    expect(crumbVisible(overlay)).toBe(false);
   });
 });
 
