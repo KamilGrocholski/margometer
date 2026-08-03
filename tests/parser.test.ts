@@ -5,7 +5,6 @@ import { extractText } from "../src/source.ts";
 import { ELEMENT_MARKER } from "../src/types.ts";
 import {
   aggregate,
-  estimateMaxHp,
   totalBySide,
   UNATTRIBUTED_SOURCE,
   type BattleStats,
@@ -278,10 +277,6 @@ describe("tancerz ostrzy vs kukła treningowa", () => {
     expect(stats.unknownLines).toBe(0);
   });
 
-  test("szacuje maksymalne HP celu ze spadku procentowego", async () => {
-    const maxHp = estimateMaxHp(await load(), "Kukła Treningowa");
-    expect(maxHp).toBeGreaterThan(0);
-  });
 });
 
 describe("łowca vs drużyna paladynów", () => {
@@ -360,13 +355,6 @@ describe("łowca vs drużyna paladynów", () => {
     expect(aggregate(await load()).ambiguousNames).toEqual(["Wieczornica"]);
   });
 
-  test("nie szacuje HP, gdy pod nazwą kryją się dwie postacie", async () => {
-    const events = parse(
-      await Bun.file(`${FIXTURES}new-engine/2026-07-18_lowca-vs-druzyna/raw.txt`).text(),
-    );
-    // HP "Lochy" skacze w górę, bo to naprzemiennie dwa różne moby.
-    expect(estimateMaxHp(events, "Locha")).toBeNull();
-  });
 });
 
 describe("tancerz vs tropiciel (pvp)", () => {

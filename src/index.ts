@@ -1,7 +1,7 @@
 import { Archive } from "./archive.ts";
 import { Overlay } from "./overlay.ts";
 import { Recorder } from "./recorder.ts";
-import { EngineRosterSource, type RosterSource } from "./roster.ts";
+import { EngineRosterSource, type GameGlobals, type RosterSource } from "./roster.ts";
 import { Session } from "./session.ts";
 import { EMPTY_STATS } from "./stats.ts";
 import { DomLogSource, findBattleLog, type LogSource } from "./source.ts";
@@ -60,7 +60,7 @@ export function start(
  * okno walki w DOM (przeczesuje dokument). Kolejność ma znaczenie: na stronie
  * pomocy pierwszy warunek odpada od razu i drugi już nie rusza.
  */
-function looksLikeGame(window: Record<string, any>, findLog: () => Element | null): boolean {
+function looksLikeGame(window: GameGlobals, findLog: () => Element | null): boolean {
   try {
     if (window.Engine ?? window.getEngine) return true;
   } catch {
@@ -76,7 +76,7 @@ export type BootOptions = {
   /** Gdzie szukać okna walki. */
   findLog?: () => Element | null;
   /** Globalne obiekty gry; osobno od `document`, bo tylko stąd czytamy `Engine`. */
-  window?: Record<string, any>;
+  window?: GameGlobals;
   storage?: Storage;
 };
 
@@ -92,13 +92,14 @@ export function boot(options: BootOptions = {}): () => void {
   const schedule = options.schedule ?? ((step, everyMs) => setInterval(step, everyMs) as never);
   const cancel = options.cancel ?? ((handle: number) => clearInterval(handle));
   const findLog = options.findLog ?? findBattleLog;
-  const globals = options.window ?? (globalThis as any);
+  const globals = options.window ?? (globalThis as GameGlobals);
   const storage = options.storage ?? safeStorage();
 
   let overlay: Overlay | null = null;
   let recorder: Recorder | null = null;
-  // Sesja żyje dłużej niż subskrypcja: gra potrafi podmienić kontener logu
-  // między walkami, a wtedy suma z całej sesji nie może się wyzerować.
+  // Sesja żyje dłużej niż subskrypcja, bo gra potrafi podmienić kontener logu
+  // w trakcie walki — wtedy przepinamy obserwatora, a liczby bieżącej walki
+  // mają zostać na ekranie.
   const session = new Session();
   const roster = new EngineRosterSource(globals);
   let unsubscribe: (() => void) | null = null;

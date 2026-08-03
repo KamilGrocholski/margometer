@@ -4,7 +4,6 @@ import { aggregate } from "../src/stats.ts";
 import { Overlay } from "../src/overlay.ts";
 import { extractText } from "../src/source.ts";
 import {
-  ColorAssignment,
   PROFESSION_COLORS,
   SERIES_COLORS,
   TYPE_COLORS,
@@ -34,26 +33,7 @@ const contrast = (a: string, b: string) => {
 };
 
 describe("przypisanie kolorów", () => {
-  test("kolor idzie za postacią, nie za jej pozycją w rankingu", () => {
-    const colors = new ColorAssignment();
-    colors.seed(["A", "B", "C"]);
 
-    expect(colors.colorFor("B")).toBe(SERIES_COLORS[1]!);
-    // Po przesortowaniu B nadal ma swój kolor.
-    colors.seed(["C", "B", "A"]);
-    expect(colors.colorFor("B")).toBe(SERIES_COLORS[1]!);
-    expect(colors.colorFor("A")).toBe(SERIES_COLORS[0]!);
-  });
-
-  test("po wyczerpaniu palety nie generuje nowych barw", () => {
-    const colors = new ColorAssignment();
-    colors.seed(Array.from({ length: 12 }, (_, i) => `postać ${i}`));
-
-    const used = new Set(
-      Array.from({ length: 12 }, (_, i) => colors.colorFor(`postać ${i}`)),
-    );
-    expect(used.size).toBe(SERIES_COLORS.length + 1); // + kolor zbiorczy
-  });
 
   test("pasek postaci niesie profesję", async () => {
     // Wzorzec SKADA: barwa = klasa. Ta walka ma trzy różne profesje w składzie.

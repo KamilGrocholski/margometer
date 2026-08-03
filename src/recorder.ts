@@ -83,7 +83,7 @@ export type RecorderStorage = Pick<Storage, "getItem" | "setItem" | "removeItem"
  * nagranie ma być dokładnie tym, co widział parser, więc nie może przechodzić
  * przez zdarzenia i z powrotem.
  */
-function splitLines(text: string): string[][] {
+export function splitLines(text: string): string[][] {
   const fights: string[][] = [];
 
   for (const line of text.split("\n")) {
@@ -130,11 +130,6 @@ function isRecording(value: unknown): value is Recording {
     Number.isFinite(entry.at) &&
     typeof entry.title === "string"
   );
-}
-
-/** Ta sama funkcja widziana z zewnątrz — walki jako teksty. Do testów. */
-export function splitRawFights(text: string): string[] {
-  return splitLines(text).map((lines) => lines.join("\n"));
 }
 
 /**

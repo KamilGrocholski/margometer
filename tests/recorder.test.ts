@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { Recorder, splitRawFights, type RecorderStorage } from "../src/recorder.ts";
+import { Recorder, splitLines, type RecorderStorage } from "../src/recorder.ts";
 
 const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
 const readFixture = (name: string) => Bun.file(`${FIXTURES}${name}/raw.txt`).text();
@@ -72,6 +72,15 @@ beforeEach(() => {
 });
 
 describe("dzielenie bufora na walki", () => {
+  /**
+   * Walki jako teksty. Stała tu funkcja `splitRawFights` w `recorder.ts`,
+   * opisana wprost jako „do testów" — czyli produkcyjny moduł eksportował API,
+   * którego produkcja nie woła (`SOLID §9`). Sklejanie linii jest sprawą testu,
+   * więc zostało w teście; sprawdzana logika jest ta sama, bo `splitLines` to
+   * dokładnie ta funkcja, którą woła `Recorder.capture`.
+   */
+  const splitRawFights = (text: string) => splitLines(text).map((lines) => lines.join("\n"));
+
   test("tnie po linii rozpoczęcia", () => {
     expect(splitRawFights(`${FIGHT_A}\n${FIGHT_B}`)).toEqual([FIGHT_A, FIGHT_B]);
   });

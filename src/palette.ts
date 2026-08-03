@@ -16,11 +16,7 @@ export const SERIES_COLORS = [
   "#e66767", // czerwony
 ] as const;
 
-/** Postacie ponad ten limit trafiają do zbiorczego wiersza zamiast nowego koloru. */
-export const MAX_SERIES = SERIES_COLORS.length;
-
 export const OTHER_COLOR = "#8a8a80";
-export const OTHER_LABEL = "Inni";
 
 /**
  * Nazwane sloty tej samej, zwalidowanej listy. Obie palety niżej biorą barwy
@@ -136,29 +132,4 @@ export function typeColor(label: string | null): string {
   return (
     TYPE_COLORS[label.toLowerCase()] ?? TYPE_COLORS[typeFamily(label) ?? ""] ?? OTHER_COLOR
   );
-}
-
-/**
- * Przypisuje kolor do nazwy postaci na stałe.
- *
- * Kolor idzie za postacią, nie za jej pozycją w rankingu — przełączenie
- * metryki czy przesortowanie tabeli nie może przemalować wierszy.
- */
-export class ColorAssignment {
-  private readonly assigned = new Map<string, string>();
-
-  colorFor(name: string): string {
-    const existing = this.assigned.get(name);
-    if (existing) return existing;
-
-    const slot = this.assigned.size;
-    const color = slot < MAX_SERIES ? SERIES_COLORS[slot]! : OTHER_COLOR;
-    this.assigned.set(name, color);
-    return color;
-  }
-
-  /** Rejestruje kolejność, w jakiej postacie mają dostawać kolory. */
-  seed(names: readonly string[]): void {
-    for (const name of names) this.colorFor(name);
-  }
 }

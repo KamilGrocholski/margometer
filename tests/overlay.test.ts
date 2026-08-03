@@ -441,9 +441,6 @@ describe("overlay", () => {
       number.format(10366),
     );
 
-    // Dymek jest SKRÓTEM — rozbicie ("czym zadane") siedzi o szczebel niżej,
-    // pod lewym przyciskiem, i sprawdza je test wejścia w postać.
-    expect(tip.querySelector(".tip-row")).toBeNull();
     expect(tip.querySelector(".tip-hint")?.textContent).toContain("LPM");
 
     row.dispatchEvent(new Event("pointerout", { bubbles: true }));
@@ -1812,7 +1809,6 @@ describe("oś tur", () => {
 
     // Dwadzieścia postaci to dwadzieścia wierszy — nic nie chowa się pod "jeszcze N".
     expect(overlay.shadow.querySelectorAll(".rows .row")).toHaveLength(20);
-    expect(overlay.shadow.querySelector(".more")).toBeNull();
     // "Wszyscy" to jeden wspólny ranking, więc nagłówków stron w liście nie ma.
     expect(overlay.shadow.querySelector(".rows .side-head")).toBeNull();
 

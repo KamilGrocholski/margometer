@@ -53,6 +53,20 @@ function warriorsOf(battle: Record<string, unknown>): Warrior[] {
 }
 
 /**
+ * Tyle globalnych obiektów strony, ile naprawdę czytamy.
+ *
+ * Stało tu `Record<string, any>` i było jedynym `any` w skądinąd ścisłym pliku
+ * (`SOLID §9`, `TOOLING §4`). `any` na wejściu z CUDZEGO kodu jest gorsze niż
+ * gdziekolwiek indziej: znosi sprawdzanie dokładnie tam, gdzie kształt danych
+ * jest poza naszą kontrolą i może zniknąć przy patchu gry. `unknown` plus
+ * jawne zawężenie robi to samo, tyle że głośno.
+ */
+export type GameGlobals = {
+  Engine?: { battle?: unknown };
+  getEngine?: () => { battle?: unknown } | undefined;
+};
+
+/**
  * Czyta skład z `Engine.battle`.
  *
  * Każdy odczyt jest osobny i defensywny: gra potrafi podmienić albo wyzerować
@@ -60,18 +74,21 @@ function warriorsOf(battle: Record<string, unknown>): Warrior[] {
  * danych zwracamy jako null i wtedy reszta programu leci ze składu z logu.
  */
 export class EngineRosterSource implements RosterSource {
-  constructor(private readonly window: Record<string, any> = globalThis as any) {}
+  constructor(private readonly window: GameGlobals = globalThis as GameGlobals) {}
 
   current(): RosterEntry[] | null {
-    let battle: Record<string, unknown> | undefined;
+    let raw: unknown;
     try {
       const engine = this.window.Engine ?? this.window.getEngine?.();
-      battle = engine?.battle;
+      raw = engine?.battle;
     } catch {
       // Dostęp do wnętrzności gry może rzucić przy zmianie kontekstu strony.
       return null;
     }
-    if (!battle || typeof battle !== "object") return null;
+    if (!raw || typeof raw !== "object") return null;
+    // Dopiero TU wolno mówić „to jest obiekt z polami" — przedtem był `unknown`,
+    // bo przychodzi z cudzego kodu. Rzutowanie po sprawdzeniu, nie zamiast.
+    const battle = raw as Record<string, unknown>;
 
     const warriors = warriorsOf(battle);
     if (warriors.length === 0) return null;
@@ -99,14 +116,5 @@ export class EngineRosterSource implements RosterSource {
     }
 
     return entries.length > 0 ? entries : null;
-  }
-}
-
-/** Źródło ze stałym składem — do testów i podglądu. */
-export class StaticRosterSource implements RosterSource {
-  constructor(private readonly entries: RosterEntry[] | null) {}
-
-  current(): RosterEntry[] | null {
-    return this.entries;
   }
 }
