@@ -37,26 +37,58 @@ rundy — nie trzeba odtwarzać kolejności, bo kolejność niczego nie trzyma �
 niezmiennik, którego dziś nie ma nigdzie: **żadna linia nie pasuje do dwóch
 reguł.**
 
-**2. Trzy dziury, wszystkie tej samej rodziny: `(.+?)` przyjmuje cokolwiek.**
+**2. Dwie dziury (spisane jako trzy), tej samej rodziny: `(.+?)` przyjmuje cokolwiek.**
 Nie hipotezy — przepuszczone przez dzisiejszy `parse()`:
 
 | wejście | co daje dziś | czego nie ma |
 |---|---|---|
 | `Wilk(50%) otrzymał kwiaty obrażeń` | `attack`, `hits [{raw:75, applied:0}]` | `unknown` — wygląda jak cios wytłumiony do zera |
 | `Kamil(100%) uderzył z siłą kwiaty` | `attack`, `hits [{raw:10, applied:10}]` | `unknown` — siła surowa wzięta z linii przyjętych |
-| `Uleczono Kamil o o 500 punktów życia.` | `heal`, cel `"Kamil o"` | poprawny cel |
+| ~~`Uleczono Kamil o o 500 punktów życia.`~~ | ~~`heal`, cel `"Kamil o"`~~ | **SKREŚLONE — patrz niżej** |
 
 Pierwsze dwa to **ciche przekłamanie liczby przy zerowym `unknownLines`** —
 dokładnie tryb awarii, przed którym broni cała reszta tego pliku, i którego
-`isPhantomHit` nie łapie, bo trafienia są niezerowe. Trzeci ma w kodzie
-komentarz przyznający się do problemu: „nazwa KOŃCZĄCA się na » o « i przechodząca
-w liczbę nie [jest bezpieczna] — takiej w korpusie nie ma i nie bronimy się
-przed nią na zapas".
+`isPhantomHit` nie łapie, bo trafienia są niezerowe.
+
+> ⚠️ **Sprostowanie 2026‑08‑03 (ta sama data — wpis stał tak kilka godzin).**
+> Trzeci wiersz był **nieprawdą** i nie wolno go cytować. `"Kamil o"` JEST
+> poprawnym odczytem tej linii: format to `Uleczono {NAZWA} o {N} punktów
+> życia`, więc postać `Kamil` daje jedno " o ", a postać `Kamil o` — dwa.
+> Przy dwóch separatorach istnieje dokładnie JEDEN podział zgodny z formatem,
+> a intencji „chodziło o Kamila" w linii nie ma i nie da się jej odzyskać.
+> Rozstrzyga to leniwy kwantyfikator **plus kotwica `(\d+)` zaraz za
+> separatorem**: krótszy podział odpada, bo po nim nie stoi liczba. Sprawdzone
+> na siedmiu kształtach (`Agent 007`, `Coś o Czymś`, `Kamil o 5`, jeden i dwa
+> separatory) — każdy wychodzi poprawnie, a `Uleczono Kamil o 500 600 punktów
+> życia.` idzie w `unknown`. Zamrożone w `tests/parser.test.ts`, w sekcji
+> „leczenie kierowane", żeby nikt tego nie „naprawił" drugi raz.
+>
+> Skąd wzięła się pomyłka: komentarz przy `RE_HEAL_TARGET` przyznaje się do
+> ryzyka („nazwa KOŃCZĄCA się na » o « i przechodząca w liczbę nie [jest
+> bezpieczna] — takiej w korpusie nie ma i nie bronimy się przed nią na
+> zapas"), a spec wziął tę ostrożność za potwierdzenie defektu, zamiast
+> sprawdzić wejście. **Wniosek na przyszłość: „wzorzec zawiera `(.+?)`" nie
+> jest dowodem dziury. Dowodem jest wejście, dla którego istnieje INNY podział
+> zgodny z formatem.**
 
 Segment obrażeń, opisany dziś jako `(.+)`, w korpusie **ani razu** nie jest
 czymkolwiek innym niż liczbami: **0 wyjątków na 2816 segmentów** (rozkład: 1282
 segmenty jednoliczbowe, 1239 dwu-, 287 trzy-, 8 czteroliczbowych). Zawężenie
 „tu stoją wyłącznie liczby" jest więc darmowe.
+
+> **Przeliczone 2026‑08‑03 przy wdrażaniu zawężenia — szerzej i z inną
+> liczbą: 10 808 segmentów, 0 wyjątków** (rozkład: 4870 jednoliczbowych, 4758
+> dwu‑, 1147 trzy‑, 32 cztero‑, 1 pięcioliczbowy). Rozbieżność z 2816 nie jest
+> błędem żadnego z pomiarów, tylko innym zakresem: tamten liczył jedną drogę
+> i jedną wersję linii, ten liczy **obie drogi (`raw.txt` i `log.html`) razy
+> obie wersje linii (ze znacznikami żywiołu i bez)** — bo `RE_ATTACK`
+> i `RE_TAKEN` biegną po linii dwa razy i zawężenie musi trzymać w obu.
+>
+> **Rzecz, której węższy pomiar NIE MÓGŁ zobaczyć, a która wywraca naiwne
+> zawężenie:** na ścieżce przez DOM liczby w segmencie **nie są rozdzielone
+> spacją** — `extractText` skleja sąsiednie węzły i wychodzi `-487␁d-503␁a`.
+> Wzorzec `liczba( liczba)*` odrzucał **2870 z 10 808** segmentów, wyłącznie
+> z `log.html`. Separatorem jest znak liczby, nie odstęp.
 
 **3. Żywioł jedzie przemytem, a regex musi wykonać się dwa razy.** `source.ts`
 dokleja do liczby `ELEMENT_MARKER` i literę, bo klasa CSS nie przeżywa drogi do
@@ -188,8 +220,11 @@ mechanizmów, z czego cztery mocniejsze niż dzisiejsze:
    przestaje być pytaniem wymagającym przeczytania 35 wzorców, a staje się
    jednym `expect`: reguł bez kotwicy ma być dokładnie jedna — `modyfikator`.
 3. **Segment obrażeń przestaje być `(.+)`.** `Kursor.liczby()` żąda
-   `(znak? liczba)+` i nic poza tym. Zamyka dziury 1 i 2 z tabeli wyżej, kosztem
-   zera linii korpusu.
+   `(znak? liczba)+` i nic poza tym. **Zrobione 2026‑08‑03 NIEZALEŻNIE od tej
+   rundy** — `DAMAGE_SEGMENT` w dzisiejszym `parser.ts`, zmierzone na 10 808
+   segmentach (obie drogi, obie wersje linii) z zerem wyjątków i zerem zmian
+   w korpusie. Ten punkt przestaje więc być argumentem ZA przepisaniem: zysk
+   już jest zebrany, a gramatyka ma go tylko nie stracić.
 4. **Niezmiennik „żadna linia nie pasuje do dwóch reguł"** — dziś nie do
    postawienia, bo lista wzorców nie jest obiektem, po którym da się przejść.
    Poszerzenie dowolnej reguły zapala się natychmiast, bo zaczyna zachodzić na
@@ -206,8 +241,12 @@ mechanizmów, z czego cztery mocniejsze niż dzisiejsze:
 **Zostawić regexy, tylko posprzątać: nazwane grupy i podział pliku.**
 Najsilniejszy konkurent i trzeba to powiedzieć uczciwie — kosztuje ułamek,
 ryzyko bliskie zeru, kupuje większość czytelności. Przekreśla go to, że nazwane
-grupy naprawiają NOTACJĘ, a nie dwuznaczność formatu: `(?<cel>.+?)\s+o\s+`
-rozcina `Uleczono Kamil o o 500…` tak samo źle jak dziś. Nie znikają dwa światy
+grupy naprawiają NOTACJĘ, a nie dwuznaczność formatu. ⚠️ Przykład, który tu
+stał — `(?<cel>.+?)\s+o\s+` „rozcina `Uleczono Kamil o o 500…` tak samo źle
+jak dziś" — padł razem ze sprostowaniem w „Problemie": tamta linia rozcina się
+POPRAWNIE. Argument o notacji zostaje, ale bez tej ilustracji, a wraz z nią
+osłabł: po zamknięciu segmentu obrażeń poza regexem nie ma dziś ani jednego
+zmierzonego wejścia, które by go podpierało. Nie znikają dwa światy
 `marked`/`line` ani podwójne `exec`. I nie da się postawić niezmiennika „co
 najwyżej jedna reguła", bo katalog wzorców nie jest obiektem, po którym da się
 iterować — a to on jest największym pojedynczym zyskiem tej rundy. **Wariant do
@@ -215,10 +254,15 @@ powrotu, jeśli strażnik równoważności pokaże, że pełna zgodność jest
 nieosiągalna** — wtedy to plan B, nie porażka.
 
 **Sama tablica reguł nad regexami — czyli `R4` dosłownie.** Zamyka OCP i pozycję
-z roadmapy mniejszym kosztem. Zostawia jednak wszystkie trzy dziury z tabeli
-w „Problemie", bo one nie biorą się z kolejności prób, tylko z tego, że wzorzec
-opisuje segment liczb jako „cokolwiek". Odrzucony z powodu, który NIE zniknie
-sam.
+z roadmapy mniejszym kosztem. Zostawiał dziury z tabeli w „Problemie", bo one
+nie biorą się z kolejności prób, tylko z tego, że wzorzec opisuje segment liczb
+jako „cokolwiek".
+
+⚠️ **Ten powód odrzucenia ZNIKNĄŁ 2026‑08‑03** — i to jest dokładnie ta klasa,
+o której akapit mówił „nie zniknie sam". Zniknął, bo zawężenie dało się zrobić
+bez przepisywania czegokolwiek. Wariant „sama tablica reguł" wraca więc do gry
+jako tańszy kandydat na `R4` i wymaga ponownego zważenia, zanim ktoś ruszy
+pełne przepisanie.
 
 **Kombinatory parserów.** Deklaratywne i zwięzłe, ale dokładają warstwę typów,
 a przy porażce mówią „nie pasuje" zamiast „nie pasuje w tym miejscu" — przy
@@ -295,11 +339,13 @@ z `tools/wydanie.ts` (`refactor` i `test` zwalniają z wpisu w `[Niewydane]`).
    zmian logiki.
 5. **`refactor(parser): usunięcie zamrożonej kopii i strażnika różnicowego`** —
    zostaje trwały, lekki manifest korpusu.
-6. **`fix(parser): segment obrażeń i procent życia przestają przyjmować dowolny
-   tekst`** — trzy zawężenia z tabeli w „Problemie", każde z własnym testem,
-   każde zmieniające zachowanie WYŁĄCZNIE poza korpusem. Osobno od kroku 4,
-   żeby strażnik miał czego pilnować przez całe przepisywanie. Typ `fix` → wpis
-   w `[Niewydane]`.
+6. ~~**`fix(parser): segment obrażeń i procent życia przestają przyjmować
+   dowolny tekst`**~~ — **ZROBIONE 2026‑08‑03, poza tą rundą.** Zawężenie
+   segmentu obrażeń weszło jako `DAMAGE_SEGMENT` w dzisiejszym `parser.ts`,
+   z fuzzem mutacyjnym (`tests/mutanty.test.ts`) jako strażnikiem: 1961 z 1995
+   zmierzonych ucieczek zamkniętych jedną zmianą, zero zmian w korpusie, koszt
+   wydajnościowy 20,10 → 20,15 ms (szum). Trzecie „zawężenie" nie istnieje —
+   patrz sprostowanie w „Problemie".
 7. **`perf(parser): pamięć rozpoznanych linii`** — `Map<string, Zdanie | null>`,
    bezpieczna wyłącznie dlatego, że `rozpoznaj` jest bezstanowe. `Session.update`
    woła `parse` na CAŁYM logu przy każdej mutacji DOM (`session.ts:303`),

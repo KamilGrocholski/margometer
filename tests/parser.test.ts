@@ -1323,6 +1323,48 @@ describe("leczenie kierowane", () => {
   });
 
   /**
+   * SPROSTOWANIE (2026‑08‑03). `docs/specy/2026-08-03-parser-tokenizer-i-gramatyka.md`
+   * wymieniał ten szyk jako trzecią „dziurę, w której `(.+?)` przyjmuje
+   * cokolwiek", z przykładem `Uleczono Kamil o o 500 punktów życia.` →
+   * `heal`, cel `"Kamil o"`, i podpisem „czego nie ma: poprawny cel".
+   *
+   * **To nie jest defekt** i ten test istnieje po to, żeby nikt go drugi raz
+   * nie „naprawił". `"Kamil o"` JEST poprawnym odczytem tej linii: format to
+   * `Uleczono {NAZWA} o {N} punktów życia`, więc postać o imieniu `Kamil` daje
+   * jedno " o ", a postać o imieniu `Kamil o` daje dwa. Intencji „chodziło
+   * o Kamila" w linii nie ma i nie da się jej odzyskać — a przy dwóch " o "
+   * istnieje dokładnie JEDEN podział zgodny z formatem.
+   *
+   * Rozstrzyga to nie leniwy kwantyfikator sam z siebie, tylko leniwy
+   * kwantyfikator PLUS kotwica `(\d+)` zaraz za separatorem: krótszy podział
+   * jest odrzucany, bo po nim nie stoi liczba. Sprawdzone na siedmiu
+   * kształtach — z liczbą w nazwie (`Agent 007`), z " o " w środku
+   * (`Coś o Czymś`), z jednym i z dwoma separatorami — każdy wychodzi
+   * poprawnie, a `Uleczono Kamil o 500 600 punktów życia.` idzie w `unknown`.
+   *
+   * Wniosek na przyszłość: „wzorzec zawiera `(.+?)`" nie jest samo w sobie
+   * dowodem dziury. Dowodem jest wejście, dla którego istnieje INNY podział
+   * zgodny z formatem — a tutaj takiego nie ma.
+   */
+  test.each([
+    ["Uleczono Zsz Przeworsk o 11937 punktów życia.", "Zsz Przeworsk", 11937],
+    ["Uleczono Coś o Czymś o 500 punktów życia.", "Coś o Czymś", 500],
+    ["Uleczono Kamil o o 500 punktów życia.", "Kamil o", 500],
+    ["Uleczono Agent 007 o 500 punktów życia.", "Agent 007", 500],
+    ["Uleczono Kamil o 5 o 500 punktów życia.", "Kamil o 5", 500],
+  ])("nazwa z separatorem w środku czyta się jednoznacznie: %s", (linia, cel, kwota) => {
+    const heal = parse(linia).find((e) => e.kind === "heal");
+    expect(heal).toMatchObject({ target: cel, amount: kwota });
+  });
+
+  test("dwie liczby po separatorze nie mają podziału i są głośne", () => {
+    // Granica z drugiej strony: kształt, dla którego żaden podział nie pasuje,
+    // ma iść w `unknown`, a nie wybierać sobie jedną z liczb.
+    const events = parse("Uleczono Kamil o 500 600 punktów życia.");
+    expect(events.map((e) => e.kind)).toEqual(["unknown"]);
+  });
+
+  /**
    * Sedno pola `self`. Ta sama umiejętność, ta sama linia leczenia — raz na
    * siebie, raz na kogoś innego. `ability !== null` (dawne kryterium) nie
    * odróżnia tych dwóch przypadków, więc leczony wychodził na leczącego.
