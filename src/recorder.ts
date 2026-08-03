@@ -182,7 +182,15 @@ function merge(previous: string[], current: string[]): string[] {
 }
 
 export type RecorderOptions = {
-  storage?: RecorderStorage;
+  /**
+   * `| undefined` jest tu JAWNE, a nie zapomniane. Przy
+   * `exactOptionalPropertyTypes` „pole opcjonalne" i „pole, któremu wolno być
+   * `undefined`" to dwie różne rzeczy, a `index.ts` przekazuje wynik
+   * `safeStorage()` wprost — czyli `Storage | undefined`. Bez tego zapisu
+   * wywołanie nie przechodzi, a obejściem byłoby budowanie obiektu opcji
+   * warunkowo, czyli ukrycie faktu, że magazynu po prostu bywa brak.
+   */
+  storage?: RecorderStorage | undefined;
   budgetChars?: number;
   /** Wstrzykiwany zegar — testy nie mają czym ustawić `Date.now()`. */
   now?: () => number;

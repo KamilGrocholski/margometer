@@ -136,7 +136,8 @@ const number = new Intl.NumberFormat("pl-PL");
 export type ArchiveOptions = {
   recorder: ArchiveRecorder;
   overlay: PreviewHost;
-  storage?: Pick<Storage, "getItem" | "setItem">;
+  /** `| undefined` jawnie — patrz `RecorderOptions.storage`. */
+  storage?: Pick<Storage, "getItem" | "setItem"> | undefined;
   ticker?: Ticker;
   now?: () => number;
 };

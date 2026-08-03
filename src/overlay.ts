@@ -488,7 +488,8 @@ export type OverlayOptions = {
   /** Gdzie doczepić hosta. Domyślnie `document.body`. */
   mount?: Element;
   /** Odczyt i zapis stanu okna (pozycja, zwinięcie). */
-  storage?: Pick<Storage, "getItem" | "setItem">;
+  /** `| undefined` jawnie — patrz `RecorderOptions.storage`. */
+  storage?: Pick<Storage, "getItem" | "setItem"> | undefined;
   recorder?: RecorderControl;
   /**
    * Wstrzykiwany zapis do schowka — jsdom nie ma `navigator.clipboard`, a bez

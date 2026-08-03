@@ -24,6 +24,32 @@
     // renderFireFocus, turnRows) i wykrył je dopiero ręczny przegląd.
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+
+    // Sześć flag dołożonych 2026-08-03. Każda ZMIERZONA na tym drzewie przed
+    // włączeniem — pięć pierwszych dawało 0 błędów, `exactOptionalPropertyTypes`
+    // dawało 3 (wszystkie `storage` w `index.ts`, naprawione w tej samej rundzie
+    // przez jawne `| undefined` w trzech typach opcji).
+    //
+    // Żadna nie naprawia niczego DZIŚ i to jest cały powód, dla którego wchodzą
+    // teraz: włączenie flagi, która świeci na zero, kosztuje jedną linię, a to
+    // samo włączenie za pół roku kosztuje przegląd całego drzewa. Są czujką na
+    // kod, który dopiero powstanie — w repo, które świadomie nie ma lintera.
+    //
+    // `noUncheckedIndexedAccess` jest tu najważniejsza: parser i agregat żyją
+    // z indeksowania grup regexowych i tablic trafień. Zero błędów znaczy, że
+    // dzisiejszy kod wszędzie stawia `!` albo `?? `, a nie że indeksowanie jest
+    // bezpieczne samo z siebie — i od teraz każde nowe będzie musiało zrobić
+    // to samo.
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false
+
+    // `checkJs` NIE wchodzi i nie ma sensu mierzyć tego drugi raz: przy
+    // `allowJs: true` daje 577 błędów, wszystkie z `tools/engine-probe.js` —
+    // pliku pisanego do wklejenia w konsolę gry, gdzie typów nie ma i nie będzie.
   }
 }
