@@ -221,6 +221,23 @@ const RE_BLOCKED = /^Zablokowanie (\d+) obrażeń$/;
  */
 const RE_ABSORBED = /^Absorpcja \d+ obrażeń/;
 /**
+ * "+14 energii" — WŁASNY zasób napastnika, nie efekt jego sprzętu.
+ *
+ * `RE_MODIFIER` zdejmuje znak, więc do klasyfikacji dociera goła „14 energii".
+ * Trafiało to prosto do `procs`, czyli do sekcji „Efekty w ciosach" w dymku —
+ * obok klątw, dotyków anioła i niszczenia pancerza. Przyrost własnej energii
+ * nie jest niczym, co cios zrobił CELOWI, więc obok nich nie stoi.
+ *
+ * ⚠️ NIE łapie „Zniszczono 4 energii" ani „Zniszczono 10 many" — te opisują
+ * zabranie zasobu CELOWI i są prawdziwym efektem ciosu. Kotwica `^\d` jest
+ * jedyną rzeczą, która je rozróżnia, więc nie wolno jej rozluźnić.
+ *
+ * Wąsko CELOWO — bez „punktów", bez innych zasobów. Format, którego tu nie ma,
+ * zostanie w `procs` i będzie WIDOCZNY jako dziwny wiersz w dymku; wzorzec
+ * szerszy połknąłby go po cichu. Ta sama zasada, co przy `RE_INFO`.
+ */
+const RE_OWN_RESOURCE = /^\d+ (?:energii|many)$/;
+/**
  * "Przerwanie ciosu specjalnego." — cios przerwał szykowany przez cel cios
  * specjalny. Stoi w środku bloku ataku (między "uderzył" a "otrzymał") i nie
  * niesie liczby; trzymamy jako modyfikator zadanego ciosu, żeby nie rozbił
@@ -453,7 +470,11 @@ function classifyModifiers(modifiers: string[]): Modifiers {
       const blocked = RE_BLOCKED.exec(modifier);
       if (blocked) result.blocked = parseInt(blocked[1]!, 10);
       // Absorpcja należy do celu — pod napastnikiem byłaby kłamstwem.
-      else if (!RE_ABSORBED.test(modifier)) result.procs.push(modifier);
+      // Przyrost własnego zasobu nie należy do nikogo poza napastnikiem, ale
+      // efektem ciosu też nie jest — patrz `RE_OWN_RESOURCE`.
+      else if (!RE_ABSORBED.test(modifier) && !RE_OWN_RESOURCE.test(modifier)) {
+        result.procs.push(modifier);
+      }
     }
   }
 

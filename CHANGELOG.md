@@ -30,6 +30,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Energia, którą postać sama zyskuje przy ciosie, nie jest już
+  wypisywana w dymku jako efekt sprzętu. Stała tam obok klątw i niszczenia
+  pancerza, czyli obok rzeczy, które cios robi przeciwnikowi — a to jest zysk
+  własny. Zabranie energii lub many przeciwnikowi zostaje, bo efektem jest.
 - **Zmiana** — Skopiowane statystyki opisują już tylko tę jedną walkę, na którą
   patrzysz. Wcześniej doklejała się do nich suma wszystkich walk od włączenia
   gry — liczba, której panel nigdzie nie pokazywał i o której nie było jak się

@@ -51,6 +51,48 @@ describe.each(fixtures)("$name", (fixture) => {
   });
 });
 
+/**
+ * `SOLID §4.9`: przyrost WŁASNEGO zasobu napastnika nie jest efektem ciosu.
+ *
+ * Przelot po całym korpusie, nie asercja na jednym zrzucie — bo pytanie brzmi
+ * „czy gdziekolwiek zostało", a nie „czy w tej jednej walce zniknęło".
+ *
+ * Obie strony granicy w jednym teście CELOWO: wzorzec, który przestałby łapać
+ * „14 energii", i wzorzec, który zacząłby łapać „Zniszczono 4 energii", są
+ * jedną literą od siebie, a mylą się w przeciwne strony. Rozdzielone na dwa
+ * testy kusiłyby, żeby poprawić ten, który akurat zapalił.
+ */
+describe("zasoby własne nie wchodzą do efektów w ciosach", () => {
+  const procsZKorpusu = async () => {
+    const licznik = new Map<string, number>();
+    for (const fixture of fixtures) {
+      for (const actor of aggregate(parse(await fixture.text())).actors) {
+        for (const proc of actor.procs) {
+          licznik.set(proc.label, (licznik.get(proc.label) ?? 0) + proc.count);
+        }
+      }
+    }
+    return licznik;
+  };
+
+  test("przyrost energii i many nie jest efektem", async () => {
+    const procs = await procsZKorpusu();
+    // Sam fakt, że pętla ma po czym chodzić — inaczej test przechodzi pusty.
+    expect(procs.size).toBeGreaterThan(10);
+    // `procLabel` zamienia cyfry na `N`, więc „14 energii" i „28 energii" stoją
+    // pod jedną etykietą — szukamy jej, a nie poszczególnych kwot.
+    expect([...procs.keys()].filter((label) => /^N (energii|many)$/.test(label))).toEqual([]);
+  });
+
+  test("zabranie zasobu CELOWI efektem jest i zostaje", async () => {
+    const procs = await procsZKorpusu();
+    // Te dwie opisują, co cios zrobił przeciwnikowi — różnią się od tamtych
+    // wyłącznie słowem przed liczbą.
+    expect(procs.get("Zniszczono N energii")).toBe(8);
+    expect(procs.get("Zniszczono N many")).toBe(3);
+  });
+});
+
 const htmlFixtures = [...new Glob("*/*/log.html").scanSync(FIXTURES)].map((path) => ({
   path,
   name: path.replace(/\/log\.html$/, ""),
@@ -573,7 +615,11 @@ describe("nazwy umiejętności", () => {
       (e) => e.kind === "attack" && e.ability === "Rozpraszający atak",
     );
     expect(attack).toMatchObject({ hits: [{ applied: 719 }, { applied: 298 }] });
-    expect(attack?.kind === "attack" && attack.procs).toContain("14 energii");
+    // Linia jest ROZPOZNANA — gdyby nie była, powyższego ciosu w ogóle by tu
+    // nie było — ale od 2026‑08‑03 nie jest EFEKTEM: to własny zasób
+    // napastnika, nie coś, co cios zrobił celowi (`SOLID §4.9`). Stało tu
+    // `toContain`, i to właśnie ta asercja utrwalała fałszywy wiersz w dymku.
+    expect(attack?.kind === "attack" && attack.procs).not.toContain("14 energii");
   });
 
   test("sumuje obrażenia per umiejętność", async () => {
