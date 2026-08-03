@@ -15,7 +15,15 @@ import { clampToViewport, makeDraggable, realTicker, type Ticker } from "./windo
 import { Confirm } from "./confirm.ts";
 import { storedBoolean, storedNumber, storedOneOf, storedRecord } from "./stored-state.ts";
 
-export type Metric = "damageDealt" | "damageTaken" | "healingReceived" | "turns";
+/**
+ * Metryka, czyli o czym mówi ranking.
+ *
+ * Stała tu czwarta wartość — `"turns"` — i była nieosiągalna z UI, bo `METRICS`
+ * jej nie wystawiał. Odpuszczona 2026‑08‑03 razem z osią tur: średnia na turę
+ * stoi dziś w każdym wierszu, a same tury i tury utracone — w dymku. Czwarta
+ * zakładka nie miała czego dołożyć, a typ obiecywał, że kiedyś będzie.
+ */
+export type Metric = "damageDealt" | "damageTaken" | "healingReceived";
 /** Filtr składu: obie strony, drużyna gracza (strona 0) albo przeciwnicy. */
 export type Team = "all" | "mine" | "enemy";
 
@@ -23,15 +31,16 @@ const METRIC_LABELS: Record<Metric, string> = {
   damageDealt: "Zadane",
   damageTaken: "Otrzymane",
   healingReceived: "Leczenie",
-  turns: "Tury",
 };
+
+/** Etykieta wiersza „Tury" w dymku. Nie jest metryką — nie da się jej wybrać. */
+const TURNS_LABEL = "Tury";
 
 /**
  * Kolejność zakładek i wierszy podsumowania w dymku — jedna, wspólna.
  *
  * Leczenie wróciło ze względu na PvP grupowe: w dziesiątce healer decyduje
- * o wyniku, więc bez tej kolumny panel kłamie o tym, kto wygrał walkę. Tury
- * zostają ukryte — średnia na turę stoi teraz w każdym wierszu.
+ * o wyniku, więc bez tej kolumny panel kłamie o tym, kto wygrał walkę.
  */
 const METRICS = ["damageDealt", "damageTaken", "healingReceived"] as const;
 
@@ -58,7 +67,6 @@ const EMPTY_BREAKDOWN: Record<Metric, string> = {
   damageDealt: "Brak zadanych obrażeń.",
   damageTaken: "Brak otrzymanych obrażeń.",
   healingReceived: "Brak leczenia.",
-  turns: "Brak tur.",
 };
 const EMPTY_TEAM: Record<Team, string> = {
   all: "Brak danych — czekam na walkę.",
@@ -252,7 +260,7 @@ const RESIZE_MARGIN = 8;
  * razy zdążyła zagrać, a nie o tym, jak długo obrywała.
  */
 function turnsFor(actor: ActorStats, metric: Metric, fightTurns: number): number {
-  return metric === "damageDealt" || metric === "turns" ? actor.turns : fightTurns;
+  return metric === "damageDealt" ? actor.turns : fightTurns;
 }
 
 /**
@@ -264,7 +272,7 @@ function turnsFor(actor: ActorStats, metric: Metric, fightTurns: number): number
  * zaśmiecając wiersza kryptycznym sufiksem.
  */
 function turnKind(metric: Metric): string {
-  return metric === "damageDealt" || metric === "turns" ? "turę własną" : "turę walki";
+  return metric === "damageDealt" ? "turę własną" : "turę walki";
 }
 
 /**
@@ -1422,7 +1430,7 @@ export class Overlay {
     const value = (metric: Metric) => {
       const total = shown.reduce((sum, actor) => sum + actorValue(actor, metric), 0);
       if (!this.perTurn) return total;
-      const divisor = metric === "damageDealt" || metric === "turns" ? turns : this.fightTurns;
+      const divisor = metric === "damageDealt" ? turns : this.fightTurns;
       return divisor > 0 ? total / divisor : 0;
     };
 
@@ -1472,7 +1480,7 @@ export class Overlay {
     // wyższe "tempo" niż samotny przeciwnik, co nie znaczyłoby nic.
     //
     // Przyjęte idą przez tury walki, wspólne dla obu stron — patrz `turnsFor`.
-    const perSide = this.metric === "damageDealt" || this.metric === "turns";
+    const perSide = this.metric === "damageDealt";
     const value = (side: { value: number; turns: number }) => {
       if (!this.perTurn) return side.value;
       const divisor = perSide ? side.turns : this.fightTurns;
@@ -2344,7 +2352,7 @@ export class Overlay {
     // mianownikiem dla wierszy wyżej — dzielenie ich przez siebie zabrałoby
     // jedyną skalę, wobec której tamto tempo cokolwiek znaczy.
     const turns = div("tip-stat");
-    turns.append(div("tip-stat-label", METRIC_LABELS.turns), div("tip-stat-value", `${actor.turns}`));
+    turns.append(div("tip-stat-label", TURNS_LABEL), div("tip-stat-value", `${actor.turns}`));
     section.append(turns);
 
     const lost = div("tip-stat");

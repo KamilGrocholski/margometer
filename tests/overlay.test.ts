@@ -2232,6 +2232,31 @@ describe("ustawienia widoku przeżywają odświeżenie", () => {
     expect(pressed("metric-damageDealt")).toBe("true");
     expect(pressed("team-all")).toBe("true");
   });
+
+  test("zapis z metryką „Tury” wraca do domyślnej, a nie do pustej listy", async () => {
+    // `"turns"` była wartością typu `Metric` do 2026‑08‑03, choć `METRICS` nigdy
+    // jej nie wystawiał — czyli z UI nie dało się jej wybrać, ale w magazynie
+    // mogła stać po ręcznej edycji albo po nieudanym eksperymencie. Po jej
+    // zdjęciu `storedOneOf` ma ją odrzucić jak każdą inną nieznaną wartość.
+    // Osobny test od tego wyżej, bo to JEDYNA nieznana wartość, która kiedyś
+    // znana była — i jedyna, dla której ktoś mógłby chcieć zrobić wyjątek.
+    const stats = await load();
+    store.set("margometer.panel", JSON.stringify({ metric: "turns" }));
+
+    const overlay = new Overlay({ storage });
+    overlay.render(stats);
+
+    expect(
+      overlay.shadow.querySelector('[data-action="metric-damageDealt"]')?.getAttribute("aria-pressed"),
+    ).toBe("true");
+    // Zakładki są trzy i żadna z nich nie jest „Tury".
+    const zakladki = [...overlay.shadow.querySelectorAll('[data-action^="metric-"]')].map(
+      (b) => b.textContent,
+    );
+    expect(zakladki).toEqual(["Zadane", "Otrzymane", "Leczenie"]);
+    // Ranking ma wiersze — brak dopasowanej metryki nie zostawia pustki.
+    expect(overlay.shadow.querySelectorAll(".rows .row").length).toBeGreaterThan(0);
+  });
 });
 
 // Metoda istniała, ale robiła tylko `host.remove()`: zostawiała listener
