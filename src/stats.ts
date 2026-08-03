@@ -328,6 +328,27 @@ const RE_WOUND_PROC = /^Zranienie \((\d+)\)$/;
 const WOUND_DOT = "po zranieniu";
 
 /**
+ * Tykające efekty, przy których sprawcy NIE WOLNO zgadywać z układu stron.
+ *
+ * `opponentOf` opiera się na założeniu, którego nie wypowiada wprost: że efekt
+ * przyszedł Z DRUGIEJ STRONY, więc przy jednym przeciwniku nie ma wątpliwości,
+ * kto go nałożył. Dla trucizny, ognia i błyskawic to prawda. Dla ubytku życia
+ * jest odwrotnie — pomiar w `docs/MECHANIKA.md` pokazuje, że linia „Stracono
+ * −N punktów życia" tyka wyłącznie postaciom, które SAME rzuciły trującą mgłę,
+ * czyli źródło stoi po tej samej stronie co cel.
+ *
+ * Bez tego wyjątku kwota lądowała na jedynym przeciwniku i nie było w tym ani
+ * jednej prawdziwej liczby: na `2026-08-03_druzyna-vs-hildur-absorpcja` boss
+ * dostawał 2 026 obrażeń, których nie zadał, a Łowcomir Kazrek i Png Holak
+ * mieli w panelu napisane, że oberwali od niego 966 i 1 060 — czyli 100 % tego,
+ * co stracili, choć boss nie tknął żadnego z nich ani razu.
+ *
+ * Zbiór, nie pojedyncza stała, bo to KATEGORIA: każdy kolejny efekt „z własnej
+ * strony" ma tu dopisać jedną linię, a nie kolejny warunek w `case "dot"`.
+ */
+const SELF_INFLICTED_DOTS = new Set(["od ubytku życia"]);
+
+/**
  * Aktor tury, której nagłówka nie widzieliśmy — bufor logu zaczyna się w jej
  * środku. Puste, bo to nie jest niczyja tura z nazwy: gdybyśmy wstawili tu
  * jakąkolwiek nazwę, kolumna na osi dostałaby stronę, o której log milczy.
@@ -963,8 +984,14 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         // NAZWIE z logu, nie po kluczu instancji — instancja celu nie zmienia
         // tego, kto stoi po drugiej stronie.
         const wound = rawEffect === WOUND_DOT ? woundBy.get(targetKey) : undefined;
-        const source =
-          wound && wound.amount === event.amount ? wound.source : opponentOf(event.target);
+        const source = SELF_INFLICTED_DOTS.has(rawEffect)
+          ? // Świadome „nie wiadomo": efekt idzie z tej samej strony co cel,
+            // więc reguła jednego przeciwnika by tu skłamała — patrz komentarz
+            // przy `SELF_INFLICTED_DOTS`.
+            null
+          : wound && wound.amount === event.amount
+            ? wound.source
+            : opponentOf(event.target);
         get(targetKey).damageTaken += event.amount;
         // "(osłabione o 25%)" — kwota w logu stoi już PO osłabieniu, więc pełne
         // tyknięcie wychodzi z dzielenia, a różnica jest tym, co osłabienie

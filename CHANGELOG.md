@@ -47,7 +47,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Poprawka** — Ubytki życia, które nie pochodzą od niczyjego ciosu, wchodzą
   teraz do obrażeń przyjętych zamiast zapalać ostrzeżenie. W walkach, w których
   ktoś z drużyny rzucał trującą mgłę, panel pokazywał tym postaciom mniej
-  obrażeń, niż naprawdę oberwały.
+  obrażeń, niż naprawdę oberwały. Przy takim ubytku panel pisze **„Bez
+  sprawcy"** — nie zgaduje, że zadał go przeciwnik.
 - **Poprawka** — Kilka komunikatów z walk drużynowych przestaje być
   niezrozumiałych dla licznika: okrzyk wzmacniający całą drużynę, czar rzucony
   na siebie i utrata energii. Ostrzeżenie „nieznane linie" zapalało się wtedy

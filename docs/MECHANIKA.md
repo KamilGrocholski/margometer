@@ -258,10 +258,25 @@ odczycie (przyrost życia) procent musiałby rosnąć — a rośnie wyłącznie 
 liniach „Przywrócono”.
 
 **Wniosek dla kodu.** Liczba to **realny ubytek HP**, a minus przed nią jest
-ozdobnikiem zapisu, nie negacją. Parser liczy ją jako tyknięcie bez sprawcy
+ozdobnikiem zapisu, nie negacją. Parser czyta ją jako tyknięcie
 (`RE_HP_LOST` → `kind: "dot"`), a etykieta „Ubytek życia” w `DOT_LABELS` jest
 **nasza**, bo log rodzaju nie podaje — dlatego w panelu stoi jako
 „Nieznany (Ubytek życia)”, tak samo jak `globalne` wyżej.
+
+**Sprawcy nie przypisujemy — świadomie, i to jest wniosek z KIERUNKU efektu.**
+Agregat zna regułę „gdy po drugiej stronie stoi dokładnie jeden przeciwnik, to
+on nałożył tykający efekt” (`opponentOf` w `stats.ts`). Dla trucizny jest
+słuszna. Tutaj byłaby fałszem, bo pomiar wyżej wskazuje źródło po **tej samej
+stronie co cel**. Stąd `SELF_INFLICTED_DOTS` w `stats.ts` — kwota idzie do puli
+„Bez sprawcy”.
+
+⚠️ **To zdanie zastępuje wcześniejsze, które było nieprawdą.** Stało tu
+„parser liczy ją jako tyknięcie bez sprawcy”; parser owszem, ale agregat
+sprawcę **dopisywał**. Skutek na `2026-08-03_druzyna-vs-hildur-absorpcja`: boss
+dostawał 2 026 obrażeń, których nie zadał, a Łowcomir Kazrek i Png Holak mieli
+w panelu „OD KOGO: Hildur Muza Śmierci” na 100 % tego, co stracili — mimo że
+boss nie tknął żadnego z nich ani razu. Znalezione audytem 2026‑08‑03, już po
+commicie; naprawione tego samego dnia.
 
 ⚠️ **Czego ten wpis NIE mówi.** Ubytek dotyka wyłącznie dwóch postaci, które
 rzuciły trującą mgłę, i maleje ~5/turę do zera (92→87→…→5, 20 tyknięć). To

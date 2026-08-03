@@ -106,6 +106,21 @@ nas realne liczby:
 | **1. sprawca i kwota** | `po zranieniu` | `+Zranienie (N)` stoi przy ciosie i **zapowiada kwotę tyknięcia** | **wiążemy** — z warunkiem zgodności kwoty |
 | **2. sam sprawca** | `od głębokiej rany` | `+Głęboka rana` bez kwoty (jeden proc, tyknięcia 754 → 1131) | nie wiążemy |
 | **3. nic** | `od trucizny`, `od ognia`, `od błyskawic` | brak proca w całym korpusie | nie wiążemy |
+| **0. zły kierunek** | `od ubytku życia` | nic — log nie nazywa nawet rodzaju | **odmawiamy także rezerwy** po układzie stron |
+
+**Piętro 0 dopisane 2026‑08‑03 i jest jakościowo inne od pozostałych.** Tamte
+trzy różnią się tym, ile log mówi o sprawcy, ale wszystkie spadają na tę samą
+rezerwę: „gdy po drugiej stronie stoi jeden przeciwnik, to on”. Ubytek życia
+jest pierwszym rodzajem, przy którym **ta rezerwa sama jest fałszem** — pomiar
+(`docs/MECHANIKA.md`) wskazuje źródło po TEJ SAMEJ stronie co cel, więc reguła
+szukająca sprawcy naprzeciwko musi trafić w niewinnego. Stąd
+`SELF_INFLICTED_DOTS` w `stats.ts`.
+
+Kosztowało to realne liczby, zanim zostało wyłapane: w `2026-08-03_druzyna-vs-
+hildur-absorpcja` boss dostawał 2 026 obrażeń, których nie zadał, a dwie
+postacie miały w panelu napisane, że oberwały od niego **100 %** tego, co
+straciły. Ten sam rachunek co przy piętrach 1–3, tylko z drugiej strony:
+niesprawdzalne wiązanie jest gorsze od jawnego „nie wiadomo”.
 
 **Piętro 1 wiążemy, bo da się to sprawdzić, a nie dlatego, że pasuje.** Kwota
 z proca musi się zgadzać z kwotą tyknięcia — 16/16 w korpusie — więc test

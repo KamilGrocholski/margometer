@@ -3,7 +3,13 @@ import { Glob } from "bun";
 import { parse } from "../src/parser.ts";
 import { extractText } from "../src/source.ts";
 import { ELEMENT_MARKER } from "../src/types.ts";
-import { aggregate, estimateMaxHp, totalBySide, type BattleStats } from "../src/stats.ts";
+import {
+  aggregate,
+  estimateMaxHp,
+  totalBySide,
+  UNATTRIBUTED_SOURCE,
+  type BattleStats,
+} from "../src/stats.ts";
 
 const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
 
@@ -84,8 +90,8 @@ describe.each(htmlFixtures)("$name (html)", (fixture) => {
     if (raw === null) return;
 
     /**
-     * `damageAbsorbed` NIE wchodzi do porównania — i to jest wynik pomiaru,
-     * nie wygoda.
+     * `damageAbsorbed` nie wchodzi do porównania NA RÓWNOŚĆ, ale ma niżej
+     * własnego strażnika na NIERÓWNOŚĆ — i to jest wynik pomiaru, nie wygoda.
      *
      * Obie drogi widzą te same liczby zadane i te same przyjęte, więc
      * `damageDealt` i `damageTaken` muszą się zgadzać co do jednego punktu.
@@ -122,7 +128,41 @@ describe.each(htmlFixtures)("$name (html)", (fixture) => {
         turns: actor.turns,
       }));
 
-    expect(summary(aggregate(await events()))).toEqual(summary(aggregate(parse(raw))));
+    const fromHtml = aggregate(await events());
+    const fromRaw = aggregate(parse(raw));
+    expect(summary(fromHtml)).toEqual(summary(fromRaw));
+
+    /**
+     * Pochłonięcie porównujemy KIERUNKOWO, zamiast odpuszczać.
+     *
+     * Rozjazd wyżej jest jednostronny: DOM zna żywioły, więc widzi co najmniej
+     * tyle samo pochłonięcia co tekst — nigdy mniej. Zmierzone na wszystkich
+     * ośmiu fixture'ach mających obie drogi: **jedna** postać z różnicą, **zero**
+     * złamań tej nierówności.
+     *
+     * Samo wyrzucenie pola z `summary()` kasowało strażnika także tam, gdzie
+     * działał: gdyby `extractText` zgubił liczbę, `damageAbsorbed` po stronie
+     * HTML SPADŁO by poniżej tekstowego i nikt by tego nie zauważył. Nierówność
+     * łapie ten przypadek, a dopuszcza ten jeden udokumentowany.
+     *
+     * Sprawdzone mutacją na `2026-08-03_druzyna-vs-draugr-zastepowy` (zaniżona
+     * liczba w linii ciosu, przyjęte nietknięte): asercje równościowe zostają
+     * ZIELONE, pada wyłącznie ta — `Że-Pro` 10 761 wobec 11 752.
+     *
+     * ⚠️ Granica, którą ta sama mutacja pokazała: strażnik jest luźny dokładnie
+     * o udokumentowaną różnicę. Na fixture Hildur DOM ma 2 898 zapasu nad
+     * tekstem, więc strata MNIEJSZA niż tyle przejdzie tam niezauważona.
+     * Na pozostałych siedmiu zrzutach z obiema drogami różnica wynosi zero
+     * i strażnik jest ciasny.
+     */
+    for (const actor of fromHtml.actors) {
+      const same = fromRaw.actors.find((one) => one.name === actor.name);
+      if (!same) continue;
+      expect({
+        name: actor.name,
+        absorbedAtLeast: actor.damageAbsorbed >= same.damageAbsorbed,
+      }).toEqual({ name: actor.name, absorbedAtLeast: true });
+    }
   });
 });
 
@@ -1275,6 +1315,7 @@ describe("szyki z korpusu 2026-08-03", () => {
       parse([start, "Stracono -92 punktów życia Kamil(99.52%)"].join("\n")),
     );
     const kamil = stats.actors.find((a) => a.name === "Kamil")!;
+    const wilk = stats.actors.find((a) => a.name === "Wilk")!;
 
     expect(kamil.damageTaken).toBe(92);
     expect(stats.unknownLines).toBe(0);
@@ -1283,6 +1324,25 @@ describe("szyki z korpusu 2026-08-03", () => {
     // `classify` w types.ts). Nazwa w nawiasie jest nasza, bo innej nie ma;
     // gdyby gra kiedyś dopisała rodzaj, ten test ma paść.
     expect(kamil.takenByType.map((t) => t.label)).toEqual(["Nieznany (Ubytek życia)"]);
+
+    /**
+     * SEDNO tego testu, a nie dopisek: kwota NIE MOŻE dostać sprawcy.
+     *
+     * Reguła „po drugiej stronie stoi jeden przeciwnik, więc to on" (`stats.ts`
+     * → `opponentOf`) jest słuszna dla trucizny, bo tę faktycznie nakłada
+     * przeciwnik. Ubytek życia idzie w drugą stronę: pomiar w `docs/MECHANIKA.md`
+     * pokazuje, że dotyka wyłącznie postaci, które same rzuciły trującą mgłę.
+     * Bez tego wyjątku CAŁA kwota lądowała na jedynym przeciwniku — w walce
+     * 10 vs 1 boss dostawał 2 026 obrażeń, których nie zadał, a dwie postacie
+     * miały w panelu napisane, że oberwały od niego 100 % tego, co straciły.
+     *
+     * Nazwa tego testu obiecywała „pulę bez sprawcy" i tego NIE sprawdzała —
+     * przechodził zielony przy zepsutym przypisaniu i właśnie dlatego defekt
+     * przeżył commit.
+     */
+    expect(wilk.damageDealt).toBe(0);
+    // Pierwszy szczebel rankingu „OD KOGO" — czyli to, co gracz naprawdę widzi.
+    expect(kamil.takenFromBy.map((s) => s.label)).toEqual([UNATTRIBUTED_SOURCE]);
   });
 
   test("ubytek MANY albo ENERGII to tylko komunikat tła", () => {

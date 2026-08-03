@@ -303,6 +303,13 @@ const UNKNOWN_TYPE = "Nieznany";
  *
  * Etykiety spoza tej mapy (surowe `dmgX`) wchodzą do nawiasu dosłownie: to
  * jedyne, co o nich wiadomo, i to ona ma trafić do zgłoszenia.
+ *
+ * ⚠️ **Jeden wyjątek od zasady „w nawiasie to, co podał log": „Ubytek życia".**
+ * Tam log nie podaje rodzaju ANI RAZU — nazwa jest nasza (patrz `DOT_LABELS`
+ * i `RE_HP_LOST` w `parser.ts`). Zostaje mimo to, bo alternatywą jest goły
+ * wiersz „Nieznany", w którym ubytek życia zlałby się w jedno z nierozpoznanymi
+ * klasami `dmgX` — a to skasowałoby informację zamiast dodać uczciwości.
+ * Sam wyraz „Nieznany" niesie tu resztę: rodziny nie zgadujemy.
  */
 const UNKNOWN_DETAIL: Record<string, string> = {
   globalne: "obszarowe",
