@@ -4,6 +4,37 @@ Stan odhaczony 2026-07-30. Co jest zrobione, wynika z kodu; co zostało — z te
 czego log nie daje albo czego jeszcze nie zbudowano. Usterki w rzeczach już
 zrobionych nie wracają tutaj — siedzą w `UX-POPRAWKI.md` i `SOLID.md`.
 
+## Kierunek na teraz (od 2026‑08‑03) — jakość danych, nie nowe funkcje
+
+Decyzja właściciela repo: **nowe funkcje są WSTRZYMANE**. Praca idzie w jakość,
+stabilność i niezawodność liczb, które panel pokazuje.
+
+To nie jest to samo, co sekcja „Porzucone" niżej. Tam `❌` znaczy „nie wraca";
+tu chodzi o kolejność, nie o skreślenie. `⬜ Procowanie jako osobny panel`
+(niżej), pozycje `B*` z `UX-POPRAWKI.md` i drill „leczenie — od kogo" **czekają
+i nadal są planem** — po prostu nie teraz.
+
+**Co liczy się jako praca w tym kierunku.** Test, czy pozycja tu należy: *czy jej
+brak może sprawić, że panel pokaże złą liczbę, nie mówiąc o tym ani słowem?*
+
+- miejsca, w których wzorzec przyjmuje więcej, niż format naprawdę dopuszcza —
+  bo tam liczba potrafi być zła przy zerze `unknown` (`SOLID §6`,
+  [`specy/2026-08-03-parser-tokenizer-i-gramatyka.md`](specy/2026-08-03-parser-tokenizer-i-gramatyka.md));
+- czujki, które są węższe od tego, co przepuszcza kod przed nimi;
+- fallbacki zamieniające brak danych w zero albo w kopię sąsiada;
+- **dowód, że czujka `unknown` jest ciasna** — korpus ma zero nieznanych linii,
+  więc sam z siebie nie mówi nic o tym, czego parser NIE rozpoznaje;
+- niezmienniki po całym korpusie tam, gdzie dziś ich nie ma — zwłaszcza na
+  ścieżce przez DOM, jedynej niosącej żywioły;
+- brakujące fixture'y (sekcja „Czego brakuje w korpusie" niżej);
+- rozjazdy między rejestrem a kodem — bo na nieaktualnym zdaniu z `docs/`
+  podejmuje się potem decyzje.
+
+**Czego ten kierunek NIE obejmuje.** Dług architektoniczny sam z siebie
+(`R5`, `R8`, cięcie `overlay.ts`) — jest wart zrobienia, ale z innego powodu niż
+poprawność liczb, i nie ma pierwszeństwa. Wyjątek: refaktor, który **kasuje całą
+klasę** cichych błędów, należy tu wprost (`R4`).
+
 ## Faza 1 — ZROBIONA
 - ✅ Okno obrażeń
 - ✅ LPM na pojedynczą postać → wejście w jej rozbicie; kolejne LPM na wiersz

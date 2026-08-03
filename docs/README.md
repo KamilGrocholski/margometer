@@ -61,7 +61,7 @@ ich w całości — każdy odpowiada na inne pytanie.
 | [`SOLID.md`](SOLID.md) | **Gdzie jest dług i czego nie widzą testy?** Usterki `§4.*`, architektura `§8`, martwy kod `§9`, luki zestawu `§10`. | Przy refaktorze i przy pytaniu „czy to jest pokryte?" |
 | [`UX.md`](UX.md) | **Jak panel ma się zachowywać?** Spec gestów i zasad, z ✅ (jest) i 🎯 (postulat). | Przy każdej zmianie w `overlay.ts` |
 | [`UX-POPRAWKI.md`](UX-POPRAWKI.md) | **Co poprawić w panelu?** Lista `A*` (usterki) i `B*` (wygody). | Gdy szukasz roboty o dobrym zwrocie |
-| [`ROADMAP.md`](ROADMAP.md) | **Co jest zrobione, a co wstrzymane?** | Gdy pytasz „czy ta funkcja w ogóle miała powstać?" |
+| [`ROADMAP.md`](ROADMAP.md) | **Co jest zrobione, co wstrzymane — i co jest KIERUNKIEM teraz?** Od 2026‑08‑03 pierwsza sekcja mówi, na czym skupia się praca i co się do tego liczy. | Gdy pytasz „czy ta funkcja w ogóle miała powstać?" — i zanim zaproponujesz nową |
 | [`TOOLING.md`](TOOLING.md) | **Jak to się buduje i trafia do użytkownika?** `@match`, wersjonowanie, CI. | Przy `build.ts`, `tools/`, wydaniu |
 | [`WYDANIE.md`](WYDANIE.md) | **Jak wypuścić nową wersję?** Trzy kroki człowieka, reszta na tagu; co robią dwaj strażnicy i co się przy wydaniu psuje CICHO. | Przy wydaniu i gdy strażnik `wydanie` zapali bramę |
 | [`specy/`](specy/) | **Jak rozumowaliśmy przy TEJ zmianie?** Jeden plik na rundę pracy — problem, wybrane rozwiązanie i **odrzucone warianty**. Reszta tej tabeli to rejestry per temat; to jest oś prostopadła. | Zanim zaprojektujesz większą zmianę — i zaraz po tym, jak ją zaprojektujesz |
