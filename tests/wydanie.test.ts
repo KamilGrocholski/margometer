@@ -33,6 +33,12 @@ const CHANGELOG = (unreleased: string) =>
 
 const PUSTA = ["# Zmiany", "", "## [0.3.0] — 2026-08-01", "", "- **Nowość** — Coś.", ""].join("\n");
 
+const plik = (name: string) => Bun.file(new URL(`../${name}`, import.meta.url).pathname).text();
+const CHECK_YML = await plik(".github/workflows/check.yml");
+const RELEASE_YML = await plik(".github/workflows/release.yml");
+const DOCS_README = await plik("docs/README.md");
+const WYDANIE = await plik("docs/WYDANIE.md");
+
 describe("sekcja [Niewydane]", () => {
   test("czyta wpisy, nie linie", () => {
     // Wpis ma jedno–trzy zdania i potrafi zająć kilka linijek. Licznik linii
@@ -142,6 +148,39 @@ describe("strażnik: zmiana w src/ bez wpisu", () => {
     expect(wynik.ok).toBe(true);
   });
 
+  test("zero commitów w zakresie to nie zgoda, tylko „nie wiem”", () => {
+    // Pusta lista komunikatów i lista samych cichych commitów dawały wcześniej
+    // ten sam wynik (`glosne.length === 0` → zielono). To dwie różne rzeczy:
+    // `git log base..head` wychodzi pusty, gdy `head` jest przodkiem `base`
+    // albo gdy zakres policzył się źle, a `git diff` w tym samym przebiegu
+    // potrafi wtedy pokazać pełno zmian w `src/`.
+    const wynik = ocena({
+      pliki: ["src/overlay.ts"],
+      przed: PUSTA,
+      po: PUSTA,
+      komunikaty: [],
+    });
+    expect(wynik.ok).toBe(false);
+    expect(wynik.powod).toContain("ANI JEDNEGO commita");
+  });
+
+  test("zmieniona sekcja NIE ratuje zakresu bez commitów — przypadek 3f942da..91fc412", () => {
+    // To jest dokładnie kształt zakresu policzonego od czubka `main` zamiast od
+    // punktu rozejścia: diff pokazuje plik w `src/`, `git log` zero commitów,
+    // a sekcje CHANGELOG-a różnią się — bo różnicę zrobił CUDZY commit z `main`.
+    // Strażnik ogłaszał wtedy „sekcja została zmieniona" i przepuszczał wszystko.
+    // Skoro wejście jest wewnętrznie sprzeczne, drugi sygnał policzony z tego
+    // samego zakresu też jest niepewny i nie może być podstawą zgody.
+    const wynik = ocena({
+      pliki: ["src/overlay.ts"],
+      przed: CHANGELOG(""),
+      po: CHANGELOG("- **Nowość** — Wpis z cudzego commita."),
+      komunikaty: [],
+    });
+    expect(wynik.ok).toBe(false);
+    expect(wynik.powod).toContain("ANI JEDNEGO commita");
+  });
+
   test("jeden głośny commit w zakresie wystarczy, żeby wymagać wpisu", () => {
     // Inaczej wystarczyłoby dorzucić refaktor, żeby przemycić `feat` bez wpisu.
     const wynik = ocena({
@@ -173,10 +212,131 @@ describe("sygnał: jest co wydać", () => {
     expect(tekst).toContain("v0.3.0");
     expect(tekst).toContain("11 commit");
     expect(tekst).toContain("git tag vX.Y.Z");
+    // Wpisy idą do podsumowania w całości i bez przerabiania — stała tu kiedyś
+    // podmiana `- ` na `- `, czyli operacja pusta udająca przetwarzanie.
+    expect(tekst).toContain("- **Zmiana** — Odznaka profesji wszędzie.");
+    expect(tekst).toContain("- **Poprawka** — Ubytki życia.");
   });
 
   test("radzi sobie z repo bez ani jednego wydania", () => {
     expect(sygnal(["- **Nowość** — Pierwsza."], null, 3)).toContain("(brak wydań)");
+  });
+});
+
+/**
+ * Procedura wydania — [`docs/WYDANIE.md`](../docs/WYDANIE.md).
+ *
+ * Dokument opisujący kroki nie ma jak paść sam z siebie, a stać się nieprawdą
+ * potrafi po cichu — i już się to stało: `TOOLING.md` niósł przez dwa wydania
+ * `git tag v0.3.0` jako całą odpowiedź na „jak wydać”, gdy repo było na 0.4.0.
+ * Te dwie asercje pilnują jedynych dwóch rzeczy, które da się sprawdzić
+ * maszynowo: że dokument jest ZNAJDOWALNY i że wzorzec taga zgadza się z tym,
+ * na co naprawdę reaguje `release.yml`.
+ */
+describe("procedura wydania", () => {
+  test("indeks docs/ prowadzi do WYDANIE.md", () => {
+    // Tabela w `docs/README.md` jest jedyną drogą do tego katalogu. Plik,
+    // do którego nic nie linkuje, jest w praktyce nieobecny — a wtedy
+    // procedura wraca do rozsypania po czterech miejscach.
+    expect(DOCS_README).toContain("(WYDANIE.md)");
+  });
+
+  test("wzorzec taga w dokumencie zgadza się z wyzwalaczem release.yml", () => {
+    const tagi = (
+      Bun.YAML.parse(RELEASE_YML) as { on: { push: { tags: string[] } } }
+    ).on.push.tags;
+    expect(tagi).toEqual(["v*"]);
+    // Prefiks z wyzwalacza, nie wpisany z palca: gdy ktoś zmieni `v*` na
+    // `release/*`, komenda w dokumencie przestanie cokolwiek wydawać —
+    // i to jest awaria cicha, bo `git tag` i `git push` wykonają się bez błędu.
+    const prefiks = tagi[0]!.replace("*", "");
+    expect(WYDANIE).toContain(`git tag ${prefiks}X.Y.Z`);
+  });
+
+  test("sygnał w CI nie odsyła do nieistniejącego pliku", async () => {
+    // `sygnal` wypisuje ścieżkę do procedury w podsumowaniu przebiegu.
+    // Odsyłacz w miejscu, gdzie nikt go nie kliknie i nie sprawdzi, jest
+    // dokładnie tym rodzajem zdania, które starzeje się bezgłośnie.
+    const tekst = sygnal(["- **Nowość** — Coś."], "v0.4.0", 2);
+    const sciezka = tekst.match(/`(docs\/[\w.-]+\.md)`/)?.[1];
+    expect(sciezka).toBe("docs/WYDANIE.md");
+    expect(await Bun.file(new URL(`../${sciezka}`, import.meta.url).pathname).exists()).toBe(true);
+  });
+});
+
+/**
+ * CLI, bo to ono jest tym, co uruchamia CI — a dwie usterki tej rundy siedziały
+ * dokładnie w warstwie między plikiem a `ocena`, nietkniętej przez testy wyżej.
+ */
+describe("CLI strażnika", () => {
+  const uruchom = async (args: string[]) => {
+    const proc = Bun.spawn(["bun", "tools/wydanie.ts", ...args], {
+      cwd: new URL("..", import.meta.url).pathname,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+
+  test("brakujące wejście kończy błędem, a nie zieloną bramą", async () => {
+    // Tu stało `.catch(() => "")`: literówka w ścieżce dawała pustą listę
+    // plików, czyli „zakres nie rusza `src/`" i kod 0. Brama przechodziła,
+    // nie sprawdziwszy niczego — najgorszy możliwy tryb awarii strażnika.
+    const wynik = await uruchom(["straznik", "/nie/ma/pliku.txt", "-", "-", "-"]);
+    expect(wynik.code).not.toBe(0);
+    expect(wynik.stderr).toContain("nie da się przeczytać");
+  });
+
+  test("sygnał bez CHANGELOG-a mówi, że nie czytał — i tak nie wywraca bramy", async () => {
+    // Sygnał ma nie zapalać bramy nigdy. Ale „nic nie czeka" przy nieczytelnym
+    // pliku byłoby odpowiedzią, której nikt nie sprawdził.
+    const wynik = await uruchom(["sygnal", "v0.4.0", "3", "/nie/ma/changeloga.md"]);
+    expect(wynik.code).toBe(0);
+    expect(wynik.stdout).toContain("Pominięty");
+    expect(wynik.stdout).not.toContain("Nic nie czeka");
+  });
+});
+
+/**
+ * Zbieranie zakresu siedzi w YAML-u, którego nie uruchamia nic poza CI —
+ * i to tam znalazły się trzy najcięższe usterki tej rundy, wszystkie ciche.
+ * `ocena` była na nie ślepa: dostawała dane już policzone i oceniała je
+ * poprawnie. Te asercje pilnują samego liczenia, tak jak `artifacts.test.ts`
+ * pilnuje `release.yml` — niezmiennik zamiast dyscypliny.
+ */
+describe("zakres liczony w check.yml", () => {
+  const kroki = (
+    Bun.YAML.parse(CHECK_YML) as {
+      jobs: { wydanie: { steps: { name?: string; run?: string }[] } };
+    }
+  ).jobs.wydanie.steps;
+  const krok = (name: string) => kroki.find((step) => step.name?.startsWith(name))?.run ?? "";
+
+  test("porównuje od punktu rozejścia, nie od czubka gałęzi bazowej", () => {
+    // Bez `merge-base` strażnik wyłącza się sam: `przed` bierze się wtedy
+    // z nowszego `main`, sekcja `[Niewydane]` „różni się" zawsze, gdy ktoś
+    // wydał cokolwiek w międzyczasie, i przechodzi dowolna zmiana w `src/`.
+    expect(krok("Zakres zmian")).toContain("git merge-base");
+  });
+
+  test("nie liczy commita scalającego jako commita wymagającego wpisu", () => {
+    // „Merge pull request #N from …" nie pasuje do żadnego cichego typu
+    // i nie da się do niego dopisać `[bez-changeloga]` — treści tego commita
+    // nie pisze autor. Bez `--no-merges` refaktorowy PR wywraca bramę.
+    expect(krok("Zakres zmian")).toContain("git log --no-merges");
+  });
+
+  test("sygnał liczy commity od czubka gałęzi, nie od HEAD-a checkoutu", () => {
+    // Na PR-ze `HEAD` to commit scalający z `refs/pull/N/merge`, więc licznik
+    // obejmowałby commity `main` spoza PR-a i podawał je jako „nasze".
+    const sygnal = krok("Sygnał");
+    expect(sygnal).toContain('git rev-list --count "$tag".."$head"');
+    expect(sygnal).not.toContain("..HEAD");
   });
 });
 

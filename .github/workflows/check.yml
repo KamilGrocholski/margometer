@@ -48,6 +48,10 @@ jobs:
       # dokładane osobnym commitem niż zmiana w `src/` (tak było przy `8bfa80b`
       # i `00fcdd2`), więc ocena per commit zapalałaby się fałszywie.
       - name: Zakres zmian
+        # `bash` jawnie, a nie domyślna powłoka: daje `-e -o pipefail`, więc
+        # `git`, który padnie, wywraca krok zamiast zostawić puste wejście —
+        # a puste wejście strażnik czyta jako „nie wiem" i też się zapala.
+        shell: bash
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             base="${{ github.event.pull_request.base.sha }}"
@@ -62,12 +66,37 @@ jobs:
             base="$(git rev-parse "$head~1" 2>/dev/null || echo "$head")"
           fi
 
+          # PUNKT ROZEJŚCIA, nie czubek gałęzi bazowej. `pull_request.base.sha`
+          # wskazuje AKTUALNY `main`, więc bez tej linii oba wejścia strażnika
+          # kłamią, i to w przeciwne strony:
+          #
+          #  - `git diff base head` wciąga zmiany zrobione na `main` PO
+          #    odgałęzieniu (jako różnice odwrócone), więc PR ruszający same
+          #    `docs/` dostaje na liście cudze `src/` i zapala bramę za nie swoje;
+          #  - `CHANGELOG.md` sprzed zakresu bierze się z tamtego nowszego
+          #    `main`, więc sekcja `[Niewydane]` „różni się" zawsze, gdy ktokolwiek
+          #    wydał cokolwiek w międzyczasie — a wtedy strażnik przepuszcza
+          #    DOWOLNĄ zmianę w `src/` bez wpisu. Wyłączał się dokładnie tam,
+          #    gdzie jest potrzebny: w repo z ruchem.
+          #
+          # Po tej linii `base..head` i `base head` znaczą to samo, więc oba
+          # wejścia opisują wreszcie ten sam zakres.
+          base="$(git merge-base "$base" "$head")"
+          # Sygnał niżej liczy od czubka GAŁĘZI, nie od `HEAD` checkoutu.
+          echo "head=$head" >> "$GITHUB_ENV"
+
           git diff --name-only "$base" "$head" > /tmp/pliki.txt
           git show "$base:CHANGELOG.md" > /tmp/przed.md 2>/dev/null || : > /tmp/przed.md
           git show "$head:CHANGELOG.md" > /tmp/po.md 2>/dev/null || : > /tmp/po.md
+          # `--no-merges`, bo commita scalającego nie pisze autor: „Merge pull
+          # request #N from …" nie pasuje do żadnego cichego typu i nie da się
+          # do niego dopisać `[bez-changeloga]`. Bez tego czysto refaktorowy PR
+          # ruszający `src/` wywracałby bramę na `main` po scaleniu przez UI,
+          # bez żadnego wyjścia dla autora.
+          #
           # U+001E rozdziela commity — pusta linia i „---" padają w treści
           # komunikatów tego repo, więc rozcięłyby jeden commit na dwa.
-          git log --format=$'%s%n%b\036' "$base..$head" > /tmp/komunikaty.txt
+          git log --no-merges --format=$'%s%n%b\036' "$base..$head" > /tmp/komunikaty.txt
 
       - name: Strażnik — zmiana w src/ bez wpisu dla użytkownika
         run: bun tools/wydanie.ts straznik /tmp/pliki.txt /tmp/przed.md /tmp/po.md /tmp/komunikaty.txt
@@ -81,7 +110,16 @@ jobs:
       # zapalił się na czerwono — to dwie niezależne odpowiedzi.
       - name: Sygnał — czy jest co wydać
         if: always()
+        shell: bash
         run: |
-          tag="$(git describe --tags --abbrev=0 2>/dev/null || echo '-')"
-          if [ "$tag" = "-" ]; then odtagu=0; else odtagu="$(git rev-list --count "$tag"..HEAD)"; fi
-          bun tools/wydanie.ts sygnal "$tag" "$odtagu" | tee -a "$GITHUB_STEP_SUMMARY"
+          # Wszystko liczone od czubka GAŁĘZI, nie od `HEAD` checkoutu. Na PR-ze
+          # `HEAD` to automatyczny commit scalający z `refs/pull/N/merge`, więc
+          # `rev-list --count` doliczałby commity `main` spoza PR-a plus sam
+          # merge — i podawał zawyżoną liczbę jako fakt o gotowości wydania.
+          # Z tego samego powodu wpisy liczą się z `/tmp/po.md` (CHANGELOG
+          # z czubka gałęzi), a nie z drzewa roboczego: obie liczby w jednym
+          # akapicie mają pochodzić z jednej podstawy.
+          head="${head:-$(git rev-parse HEAD)}"
+          tag="$(git describe --tags --abbrev=0 "$head" 2>/dev/null || echo '-')"
+          if [ "$tag" = "-" ]; then odtagu=0; else odtagu="$(git rev-list --count "$tag".."$head")"; fi
+          bun tools/wydanie.ts sygnal "$tag" "$odtagu" /tmp/po.md | tee -a "$GITHUB_STEP_SUMMARY"

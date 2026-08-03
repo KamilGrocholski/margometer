@@ -122,35 +122,25 @@ na tagu**, `dist/` zostaje w `.gitignore`:
   i `updateURL` nie są zamienione miejscami — pomyłka cicha i kosztowna:
   aktualizacja podmieniłaby dodatek na goły nagłówek).
 
-**Zostaje po stronie właściciela:** samo wydanie. `git tag v0.3.0 && git push
-origin v0.3.0`. Do tego czasu adresy w nagłówku wskazują pustkę — nieszkodliwie
-(Tampermonkey po prostu nie znajduje aktualizacji), ale realnie.
+**Zostaje po stronie właściciela:** samo wydanie — trzy kroki i tag, spisane
+w [`WYDANIE.md`](WYDANIE.md). Dopóki pierwszy tag nie powstanie, adresy
+w nagłówku wskazują pustkę: nieszkodliwie (Tampermonkey po prostu nie znajduje
+aktualizacji), ale realnie.
+
+Stał tu przykład `git tag v0.3.0` jako całość tej odpowiedzi. Był krótszy niż
+prawda (milczał o przeniesieniu sekcji i podbiciu `package.json`) i zdążył się
+zestarzeć — repo było już na 0.4.0. Procedura ma odtąd jedno miejsce.
 
 ### Dwaj strażnicy wydania (od 2026‑08‑03)
 
-Job `wydanie` w `check.yml`. Powstał po incydencie: zgłoszono defekt, który był
-naprawiony od trzech commitów, ale **nigdy nie wydany** — `package.json` stał na
-numerze ostatniego taga, więc Tampermonkey nie miał po czym poznać, że jest co
-pobrać, a zgłaszający patrzył na kod sprzed trzech commitów.
+Job `wydanie` w `check.yml`, logika w `tools/wydanie.ts`. **Opis przeniesiony
+do [`WYDANIE.md`](WYDANIE.md)** — razem z tabelą, kiedy który zapala, i powodem,
+dla którego są dwa (twardy strażnik nie złapałby incydentu, po którym oba
+powstały).
 
-| strażnik | kiedy zapala | czy wywraca bramę |
-|---|---|---|
-| **twardy** | zakres rusza `src/`, a sekcja `[Niewydane]` się nie zmienia | tak |
-| **sygnał** | w `[Niewydane]` cokolwiek czeka | **nie**, adnotacja w podsumowaniu |
-
-Są DWA, bo łapią co innego, i to jest wniosek z pomiaru, nie ostrożność:
-twardy strażnik **nie złapałby tamtego incydentu**, bo wpis w `[Niewydane]`
-wtedy istniał. Sygnał pokazałby przy każdym przebiegu „10 wpisów czeka,
-ostatnie wydanie v0.3.0, od tego czasu 10 commitów”.
-
-Cała decyzja siedzi w `tools/wydanie.ts` i ma testy — YAML tylko zbiera dane
-z gita. Dwie rzeczy, które wyszły z pomiaru na własnej historii i bez których
-strażnik zapalałby się fałszywie: liczy się **zakres** (PR-a albo pusha), a nie
-pojedynczy commit, bo wpisy bywają dokładane osobno (`8bfa80b` → `00fcdd2`),
-oraz **poprawienie istniejącego wpisu** wystarcza, bo tak zrobił `91fc412`
-i żadna nowa pozycja tam nie powstała. Furtka `[bez-changeloga]` w komunikacie
-commita zwalnia `feat`/`fix`, których użytkownik nie zobaczy; typy `refactor`,
-`test`, `docs`, `build`, `chore`, `ci`, `style` zwalniają same z siebie.
+Tutaj zostaje sama pozycja w rejestrze: to jest odpowiedź na §4 („zero CI”)
+w części dotyczącej wydania. Brakowało tu strażnika pilnującego, żeby zmiana
+w `src/` docierała do użytkownika — od 2026‑08‑03 jest.
 
 ### Faza wczesna: dlaczego NIE przez flagę „Pre-release"
 

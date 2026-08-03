@@ -21,8 +21,13 @@
  *   bo wpis przecież był.
  */
 
-/** Nagłówek sekcji zbierającej zmiany przed kolejnym wydaniem. */
-export const UNRELEASED_HEADING = "## [Niewydane]";
+import { changelogSection } from "./changelog.ts";
+
+/** Nazwa sekcji zbierającej zmiany przed kolejnym wydaniem — w miejscu numeru wersji. */
+export const UNRELEASED = "Niewydane";
+
+/** Nagłówek tej sekcji, tak jak stoi w pliku. Wchodzi też do komunikatu strażnika. */
+export const UNRELEASED_HEADING = `## [${UNRELEASED}]`;
 
 /**
  * Znacznik w komunikacie commita, który zwalnia z wpisu.
@@ -47,14 +52,22 @@ export const SKIP_MARK = "[bez-changeloga]";
  */
 const SILENT_TYPE = /^(refactor|test|docs|build|chore|ci|style)(\([^)]*\))?!?:/;
 
-/** Treść sekcji `[Niewydane]` albo `null`, gdy sekcji nie ma. */
+/**
+ * Treść sekcji `[Niewydane]` albo `null`, gdy sekcji nie ma.
+ *
+ * Wycinanie robi `changelogSection` z `changelog.ts`, a nie drugi taki sam
+ * `findIndex` tutaj. Stały tu przez chwilę oba — znak w znak te same trzy
+ * linijki — i to jest dokładnie kształt, który rozjeżdża się przy pierwszej
+ * zmianie formatu nagłówka: poprawia się ten parser, który akurat zapalił, a
+ * drugi zaczyna cicho zwracać `null`. Wtedy albo wydanie wychodzi puste, albo
+ * strażnik przestaje widzieć sekcję i przepuszcza wszystko.
+ *
+ * Kierunek zależności jest po stronie strażnika świadomie: `changelog.ts`
+ * dokłada `phase.ts` i `artifacts.ts`, ale oba to same stałe, bez efektów
+ * ubocznych przy imporcie.
+ */
 export function unreleasedSection(changelog: string): string | null {
-  const lines = changelog.split("\n");
-  const start = lines.findIndex((line) => line.startsWith(UNRELEASED_HEADING));
-  if (start === -1) return null;
-  const rest = lines.slice(start + 1);
-  const end = rest.findIndex((line) => line.startsWith("## "));
-  return (end === -1 ? rest : rest.slice(0, end)).join("\n").trim();
+  return changelogSection(changelog, UNRELEASED);
 }
 
 /**
@@ -107,6 +120,40 @@ export type Ocena = { ok: boolean; powod: string };
 export function ocena(zakres: Zakres): Ocena {
   const src = zakres.pliki.filter((path) => path.startsWith("src/"));
   if (src.length === 0) return { ok: true, powod: "zakres nie rusza `src/`" };
+
+  // ZERO COMMITÓW to nie to samo co „zero głośnych commitów", choć jedno
+  // i drugie kończyło się dalej na `glosne.length === 0`. Pusta lista znaczy
+  // „nie wiem, co oceniać": `git log base..head` wychodzi pusty, gdy `head`
+  // jest przodkiem `base` (gałąź zsynchronizowana, PR otwarty „w tył") albo
+  // gdy zakres policzył się źle — a `git diff` w tym samym przebiegu potrafi
+  // wtedy pokazać pełno zmian w `src/`. Milcząca zgoda byłaby „nie wiem"
+  // przebranym za „w porządku", czyli tym, czego `AGENTS.md` zabrania wprost.
+  //
+  // PRZED porównaniem sekcji, i to jest wybór, nie kolejność z przypadku.
+  // Diff bez ani jednego commita to WEWNĘTRZNIE SPRZECZNE wejście, więc drugi
+  // sygnał policzony z tego samego zakresu — „czy `[Niewydane]` się różni" —
+  // jest równie niepewny. Sprawdzone na własnej historii: przy zakresie
+  // `3f942da..91fc412` (czubek `main` jako baza, `head` będący jego przodkiem)
+  // diff pokazuje 1 plik w `src/`, `git log` zero commitów, a sekcje
+  // CHANGELOG-a różnią się — i strażnik ogłaszał „sekcja została zmieniona",
+  // czyli zielono, na podstawie różnicy, której ten PR nie zrobił. Po naprawie
+  // punktu rozejścia w `check.yml` ten stan jest w CI nieosiągalny (niepusty
+  // diff od merge-base'u wymaga co najmniej jednego commita), więc zapali się
+  // wyłącznie wtedy, gdy zbieranie danych naprawdę się zepsuje.
+  if (zakres.komunikaty.length === 0) {
+    return {
+      ok: false,
+      powod: [
+        `Zakres rusza \`src/\` (${src.length} plik(ów)), a nie widać w nim ANI JEDNEGO commita.`,
+        "",
+        "To nie jest zgoda przez milczenie: bez komunikatów nie da się rozstrzygnąć,",
+        "czy zmiana wymaga wpisu dla użytkownika. Najczęstsza przyczyna to źle",
+        "policzony zakres (zły punkt rozejścia, płytki `checkout`) — sprawdź krok",
+        "„Zakres zmian” w `check.yml`.",
+      ].join("\n"),
+    };
+  }
+
   if (unreleasedTouched(zakres.przed, zakres.po)) {
     return { ok: true, powod: "sekcja `[Niewydane]` została zmieniona" };
   }
@@ -151,47 +198,87 @@ export function sygnal(entries: string[], tag: string | null, odTagu: number): s
     `**${entries.length}** ${entries.length === 1 ? "wpis czeka" : "wpisów czeka"} w \`[Niewydane]\`.`,
     `Ostatnie wydanie: **${wersja}**, od tego czasu ${odTagu} commit(ów).`,
     "",
-    ...entries.map((entry) => entry.replace(/^- /, "- ")),
+    // Wpisy idą do podsumowania tak, jak stoją w pliku — są już Markdownem.
+    // Stało tu `entry.replace(/^- /, "- ")`: wzorzec i zamiennik identyczne,
+    // czyli operacja pusta udająca, że coś się z wpisem dzieje.
+    ...entries,
     "",
     "Wydanie zamyka podbicie `package.json`, przeniesienie sekcji pod numer",
     "z datą i `git tag vX.Y.Z && git push origin vX.Y.Z`.",
+    "Pełna procedura: `docs/WYDANIE.md`.",
   ].join("\n");
 }
 
 if (import.meta.main) {
   const tryb = process.argv[2];
-  const czytaj = async (path: string | undefined) =>
-    path === undefined || path === "-" ? "" : await Bun.file(path).text().catch(() => "");
+
+  /**
+   * Wejście strażnika. Brak pliku KOŃCZY BŁĘDEM, a nie pustką.
+   *
+   * Stało tu `.catch(() => "")` i to wyłączało strażnika po cichu: literówka
+   * w ścieżce albo padnięty krok zbierający dane dawały pustą listę plików,
+   * czyli „zakres nie rusza `src/`" i kod wyjścia 0. Brama świeciła na zielono,
+   * choć nie sprawdziła niczego. „Nie wiem" ma tu kończyć się kodem ≠ 0 — ta
+   * sama zasada, co „nieznane ma być głośne" w parserze.
+   */
+  const czytaj = async (path: string | undefined, nazwa: string): Promise<string> => {
+    if (path === undefined) {
+      console.error(`brak ścieżki do wejścia \`${nazwa}\` — patrz użycie niżej`);
+      process.exit(2);
+    }
+    try {
+      return await Bun.file(path).text();
+    } catch (blad) {
+      console.error(`nie da się przeczytać wejścia \`${nazwa}\` (${path}): ${blad}`);
+      process.exit(2);
+    }
+  };
 
   if (tryb === "sygnal") {
-    const entries = unreleasedEntries(await Bun.file("./CHANGELOG.md").text());
+    // Piąty argument to CHANGELOG, z którego liczą się wpisy. Domyślnie ten
+    // z drzewa roboczego, ale CI podaje wersję z czubka GAŁĘZI: na PR-ze
+    // checkout stoi na `refs/pull/N/merge`, więc drzewo robocze niesie już
+    // scalony `main`, a licznik commitów obok liczy się od czubka gałęzi.
+    // Obie liczby w jednym akapicie mają pochodzić z jednej podstawy.
+    const changelogPath = process.argv[5] ?? "./CHANGELOG.md";
+    const changelog = await Bun.file(changelogPath)
+      .text()
+      .catch(() => null);
+    if (changelog === null) {
+      // Sygnał nie wywraca bramy nawet wtedy, gdy nie ma czego przeczytać —
+      // ale mówi to wprost, zamiast ogłosić „nic nie czeka" i wyglądać jak
+      // odpowiedź. To jedyne miejsce, gdzie brak wejścia nie kończy błędem,
+      // i wynika z roli sygnału, nie z wygody.
+      console.log(`### Wydanie\n\nPominięty — nie da się przeczytać \`${changelogPath}\`.`);
+      process.exit(0);
+    }
     const tag = process.argv[3] && process.argv[3] !== "-" ? process.argv[3] : null;
-    console.log(sygnal(entries, tag, Number(process.argv[4] ?? 0)));
+    console.log(sygnal(unreleasedEntries(changelog), tag, Number(process.argv[4] ?? 0)));
     // Sygnał NIGDY nie wywraca bramy — patrz komentarz przy `sygnal`.
     process.exit(0);
   }
 
   if (tryb === "straznik") {
     const [, , , plikiPath, przedPath, poPath, komunikatyPath] = process.argv;
-    const pliki = (await czytaj(plikiPath)).split("\n").filter((line) => line !== "");
-    // Commity rozdziela ZNAK ROZDZIELAJACY REKORDY (U+001E), a nie pusta linia
-    // ani "---": jedno i drugie pada w tresci komunikatow tego repo, wiec
-    // rozcieloby jeden commit na dwa i zgubilo typ z naglowka.
-    const komunikaty = (await czytaj(komunikatyPath))
+    const pliki = (await czytaj(plikiPath, "pliki")).split("\n").filter((line) => line !== "");
+    // Commity rozdziela ZNAK ROZDZIELAJĄCY REKORDY (U+001E), a nie pusta linia
+    // ani „---": jedno i drugie pada w treści komunikatów tego repo, więc
+    // rozcięłoby jeden commit na dwa i zgubiło typ z nagłówka.
+    const komunikaty = (await czytaj(komunikatyPath, "komunikaty"))
       .split("\u001e")
       .map((part) => part.trim())
       .filter((part) => part !== "");
     const wynik = ocena({
       pliki,
-      przed: await czytaj(przedPath),
-      po: await czytaj(poPath),
+      przed: await czytaj(przedPath, "przed"),
+      po: await czytaj(poPath, "po"),
       komunikaty,
     });
     console.log(wynik.powod);
     process.exit(wynik.ok ? 0 : 1);
   }
 
-  console.error("użycie: bun tools/wydanie.ts sygnal <tag> <odTagu>");
+  console.error("użycie: bun tools/wydanie.ts sygnal <tag> <odTagu> [changelog]");
   console.error("        bun tools/wydanie.ts straznik <pliki> <przed> <po> <komunikaty>");
   process.exit(2);
 }

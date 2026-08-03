@@ -91,6 +91,10 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
   same z siebie. Gdy `feat` albo `fix` naprawdę go nie dotyczy — dopisz
   `[bez-changeloga]` do komunikatu commita. Furtka istnieje po to, żeby reguła
   wyżej („refaktory tu nie wchodzą") i strażnik nie kazały wybierać między sobą.
+
+  **Samo wydanie** — przeniesienie sekcji, `package.json`, tag i to, co robi
+  potem CI — stoi w [`docs/WYDANIE.md`](docs/WYDANIE.md). Wpis w `[Niewydane]`
+  nie jest wydaniem: zmiana dociera do gracza dopiero z tagiem.
 - **`docs/specy/` jest DLA PROGRAMISTY.** Jeden plik na rundę wymagającą
   zaprojektowania: problem, rozwiązanie, **odrzucone warianty**, weryfikacja.
   Sygnał, że spec jest potrzebny: łapiesz się na tym, że piszesz plan. Szablon

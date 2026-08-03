@@ -14,6 +14,8 @@
   - Rzeczy, które użytkownika nie dotyczą (refaktory, testy, narzędzia), tu
     NIE WCHODZĄ. Praca programistyczna opisana jest w `docs/specy/`.
   - Przy wydaniu: przenieś [Niewydane] pod nowy numer wersji z datą RRRR-MM-DD.
+    To pierwszy z trzech kroków; pozostałe dwa (package.json, tag) i to, co
+    robi dalej CI, opisuje docs/WYDANIE.md.
 -->
 
 # Zmiany
