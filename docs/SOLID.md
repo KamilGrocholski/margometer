@@ -633,7 +633,8 @@ miała sens.**
 - **`source.ts` — dobry SRP.** Znacznik żywiołu (``) przemycany w tekście
   to świadomy kompromis (parser jest tekstowy, by łykać też log wklejony). Testy
   pilnują, że nie wycieka — zostawić.
-- **`overlay.ts` — klasa‑Bóg: 3181 linii** (przeliczone 2026‑08‑02). 🟡
+- **`overlay.ts` — klasa‑Bóg: 2846 linii** (przeliczone 2026‑08‑02, po wyjęciu
+  arkusza — przedtem 3181). 🟡
   Rendering + stan + drag/resize + trwałość + schowek + dymek + replay +
   formatery. Zmierzone granice cięcia, od najtańszej:
 
@@ -647,7 +648,7 @@ miała sens.**
 
   | moduł | co dziś | ile |
   |---|---|---|
-  | `overlay.css.ts` | `STYLE` (`:229‑606`) — jeden szablon na panel, zakładki, wiersze, dymek, oś, focus | **378 linii, ~12 % pliku, 0 % logiki** |
+  | ~~`overlay.css.ts`~~ | ✅ **ZROBIONE 2026‑08‑02** jako `src/style.ts` — i szerzej, niż zakładał ten wiersz: arkusz obejmuje TAKŻE archiwum, które miało własny. 534 linie, 0 % logiki | — |
   | `format.ts` | `number`/`rate` (`:64`), `compact` (`:80`), `format` (`:1498`), `fightWord` (`:56`) + bliźniak `number` w `archive.ts:157` | ~30 |
   | `metrics.ts` (czysty, testowalny) | `Metric`/`METRIC_LABELS`/`METRICS` (`:7‑25`), `matchesTeam` (`:48`), `turnsFor` (`:434`), `turnKind` (`:446`), `actorValue` (`:450`) | ~60 |
   | `dom.ts` (wspólny z `archive.ts`) | `div` (`:513`), `withText` (`:521`), `rowUnder` (`:507`) | ~20 |
@@ -914,7 +915,7 @@ Niezmienniki przeliczone po naprawach na całym korpusie (13 zrzutów):
 | R4 | Tablica reguł parsera | §4.3, §4.18 i OCP nowych formatów | S–M |
 | **R5** | **`panel-window.ts`**: `PanelState` + `loadState`/`saveState` + walidacja pól. **Częściowo zrobione:** wspólne przycinanie pozycji siedzi już w `window.ts` (`clampToViewport`), ale `loadState`/`saveState` nadal istnieją dwa razy i nadal bez walidacji pól | reszta klasy z §4.15 | S |
 | **R6** | ~~**Delegacja po `data-action`** dla całego panelu~~ | **✅ ZROBIONE 2026‑07‑30** — zamknęło `UX-POPRAWKI A8` | — |
-| **R7** | **Wydzielić `STYLE`** (`overlay.ts:229‑606`, 378 linii, 0 % logiki — zakres przeliczony 2026‑08‑02, stało tu `:90‑406`) + scoping | wyciek `.row` na `.archive-paste .row`, niejawna zależność archiwum od chrome'u panelu | S |
+| ~~**R7**~~ | ~~**Wydzielić `STYLE`** + scoping~~ | **✅ ZROBIONE 2026‑08‑02** — `src/style.ts`, jeden arkusz na oba okna (tokeny → prymitywy → panel → archiwum). Archiwum przestało wstrzykiwać własny; chrome opisuje jedna reguła `.panel, .archive`; wiersz rankingu zawężony do `.rows .row`, więc kolizja, dla której powstało obejście `.archive-paste-actions`, zniknęła. Siedem nowych tokenów na wartości, które padały w arkuszu po dwa i trzy razy. Strażnik przeprowadzki: **113 selektorów przed, 113 po**, różnice wyłącznie zamierzone. Spec: [`specy/2026-08-02-jednolity-wyglad-wiersza.md`](specy/2026-08-02-jednolity-wyglad-wiersza.md). **Zostaje:** pełne zakresowanie per okno — `header`, `button` i `.grow` są dalej globalne w shadow roocie, dziś celowo | — |
 | **R8** | **Wyeksportować `instanceResolver`** do `instances.ts` | nietestowalność rozdzielania duplikatów (trzy gałęzie 0 %) | M |
 
 Kolejność wykonana w poprzedniej rundzie: **4.2 → 4.6 → 4.4 → 4.1 → 4.3**, każda

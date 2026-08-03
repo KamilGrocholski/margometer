@@ -38,6 +38,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   pozostałych.
 - **Poprawka** — Dodatek nie uruchamia się już na stronie głównej Margonema
   (adres bez „www") ani na forum i commonsach w domenie `.com`.
+- **Zmiana** — Odznaka z literą profesji stoi teraz przy nazwie postaci wszędzie,
+  nie tylko na liście składu. Wchodząc w postać widzisz ją tak samo w rozbiciu
+  „komu" i „od kogo" — sam kolor nie wystarczał, bo dwie postacie tej samej
+  profesji mają go wspólny.
+- **Zmiana** — Panel i okno archiwum wyglądają jak jedno narzędzie: to samo tło,
+  ta sama ramka, to samo podświetlenie pod kursorem.
 
 ## [0.3.0] — 2026-08-01
 

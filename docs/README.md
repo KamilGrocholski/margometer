@@ -37,7 +37,8 @@ Poboczne: `recorder.ts` + `archive.ts` (nagrywanie i odtwarzanie walk),
 `roster.ts` (skład z `Engine.battle`, gdy log go nie podaje), `palette.ts`
 (barwy), `window.ts` (geometria okna), `stored-state.ts` (stan z `localStorage`),
 `confirm.ts` (pytanie „na pewno?" z wygasaniem, wspólne dla panelu i archiwum),
-`version.ts` (numer wersji dla wnętrza bundle'a).
+`version.ts` (numer wersji dla wnętrza bundle'a), `style.ts` (arkusz obu okien:
+tokeny → prymitywy wspólne → panel → archiwum).
 
 ```bash
 bun install
@@ -234,9 +235,14 @@ w tej samej rundzie.
 - **`overlay.ts` jest ogromny** i robi wiele rzeczy naraz. `SOLID.md §8` ma
   gotowy podział na pliki wraz z tym, co do którego trafia — zajrzyj tam, zanim
   wymyślisz własny.
-- **Arkusz CSS panelu siedzi w szablonie literałowym** w `overlay.ts`. Backtick
+- **Arkusz CSS OBU okien siedzi w szablonie literałowym** w `src/style.ts`
+  (od 2026‑08‑02; wcześniej w `overlay.ts`, a archiwum miało własny). Backtick
   w komentarzu CSS **zamyka literał** i wywala kompilację w miejscu, które
-  wygląda na niezwiązane. Nie pisz `` `foo` `` w komentarzach wewnątrz `STYLE`.
+  wygląda na niezwiązane. Nie pisz `` `foo` `` w komentarzach wewnątrz arkusza —
+  ta pułapka złapała nas przy okazji ostatnio.
+- **Wartość, która pada w arkuszu drugi raz, ma być tokenem.** Nie jako zasada
+  estetyczna: druga kopia rozjeżdża się z pierwszą i nikt tego nie zauważa —
+  tak panel i archiwum doszły do dwóch różnych kryć tego samego tła.
 - **Panel przerysowuje się przy każdej linii logu.** Węzły nie przeżywają
   renderu, więc zdarzenia idą przez delegację po `data-action` / `data-actor` /
   `data-source`, a nie przez listenery na węzłach. Nowy przycisk musi wejść w ten

@@ -67,7 +67,11 @@ później. Kod mówi, co wybrano; nie mówi, czego nie wybrano i dlaczego.
 
 | spec | status |
 |---|---|
-| — | jeszcze żadnego |
+| [`2026-08-02-jednolity-wyglad-wiersza.md`](2026-08-02-jednolity-wyglad-wiersza.md) | wdrożone · 2026‑08‑02 |
 
-Pierwszy powstanie przy najbliższej rundzie wymagającej projektowania.
 Tabelę uzupełnia się ręcznie przy dodaniu pliku.
+
+Pierwszy spec powstał dokładnie tak, jak zapowiadał akapit „Kiedy pisać":
+runda zaczęła się od pytania „czy nie ujednolicić UI", odpowiedź wymagała
+rozstrzygnięcia trzech wariantów, a plan rundy rozrósł się do strony tekstu.
+To był ten sygnał.

@@ -2385,6 +2385,59 @@ describe("fokus jest tam, gdzie arkusz go obiecuje", () => {
   });
 });
 
+/**
+ * Wygląd obu okien ma JEDNO źródło.
+ *
+ * Panel i archiwum rysują się w tym samym shadow roocie i do 2026‑08‑02 każde
+ * wstrzykiwało własny arkusz. Skutek nie był teoretyczny: chrome okna stało
+ * w dwóch kopiach, różniących się kryciem tła o 0,02 — nie z wyboru, tylko
+ * dlatego, że drugie okno powstało przez skopiowanie pierwszego. Te testy nie
+ * pilnują konkretnych wartości (od tego są tokeny), tylko tego, że wartość jest
+ * JEDNA. Rozjazd wraca dokładnie tą drogą, którą przyszedł: przez drugą kopię.
+ */
+describe("jedno źródło wyglądu dla obu okien", () => {
+  const sheet = () => new Overlay().shadow.querySelector("style")!.textContent!;
+
+  test("arkusz panelu niesie też reguły archiwum", () => {
+    // „Jeden arkusz" ma znaczyć „oba okna w jednym", a nie „archiwum straciło
+    // swój". Że nie dochodzi drugi `<style>` przy `attachArchive`, pilnuje
+    // `archive.test.ts` — tam oba okna faktycznie powstają.
+    expect(sheet()).toContain(".archive-row");
+  });
+
+  test("chrome okna opisuje JEDNA reguła, wspólna dla panelu i archiwum", () => {
+    const css = sheet();
+    // Żadne z okien nie ma własnej deklaracji tła — obie czytają token.
+    for (const selector of [".panel", ".archive"]) {
+      const own = new RegExp(`^\\${selector} \\{[^}]*background:`, "m").exec(css);
+      expect([selector, own]).toEqual([selector, null]);
+    }
+    expect(css).toContain(".panel, .archive {");
+  });
+
+  test("każdy token pada w arkuszu dokładnie raz jako deklaracja", () => {
+    const css = sheet();
+    // Druga deklaracja tego samego tokenu to ta sama pułapka co druga kopia
+    // wartości, tylko lepiej ukryta: wygrywa ostatnia i nikt nie wie która.
+    const deklaracje = [...css.matchAll(/^\s*(--[a-z-]+):/gm)].map((match) => match[1]!);
+    const powtorzone = deklaracje.filter((name, at) => deklaracje.indexOf(name) !== at);
+    expect(powtorzone).toEqual([]);
+  });
+
+  test("wartości, które mają być wspólne, nie stoją w arkuszu z palca", () => {
+    const css = sheet();
+    // Barwa toru padała w trzech regułach (wiersz, suwak odtwarzania, podział
+    // stron); tło okna — w dwóch, i w dwóch różnych wersjach. Liczymy zwykłym
+    // dzieleniem, nie wyrażeniem regularnym: escapowanie nawiasów w `rgba(`
+    // jest dokładnie tym rodzajem szczegółu, na którym test cicho przestaje
+    // cokolwiek liczyć.
+    const ile = (value: string) => css.split(value).length - 1;
+    for (const value of ["#24242a", "rgba(22, 22, 26,"]) {
+      expect([value, ile(value)]).toEqual([value, 1]);
+    }
+  });
+});
+
 describe("podgląd wczytanej walki", () => {
   const load = async (name: string) => aggregate(parse(await readFixture(`new-engine/${name}`)));
 

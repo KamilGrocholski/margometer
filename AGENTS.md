@@ -31,7 +31,8 @@ okno walki (DOM)  →  source.ts   → tekst z żywiołami z klas CSS
 Poboczne: `recorder.ts` + `archive.ts` (nagrywanie i odtwarzanie),
 `roster.ts` (skład z `Engine.battle`), `palette.ts`, `window.ts`,
 `stored-state.ts`, `confirm.ts` (pytanie „na pewno?" z wygasaniem),
-`version.ts` (numer wersji w panelu i w skopiowanym JSON-ie).
+`version.ts` (numer wersji w panelu i w skopiowanym JSON-ie),
+`style.ts` (arkusz OBU okien — panelu i archiwum).
 
 ## Zanim napiszesz zdanie o tym, jak zachowuje się GRA
 

@@ -207,6 +207,23 @@ liczby pod kursorem nie mogą uciekać.
   daltonizmie kolor nie odpowiada na to pytanie. Odpowiada litera. To ten sam
   argument, który `palette.ts` niósł od początku w komentarzu, tyle że przez
   kilka miesięcy nie miał pokrycia w kodzie.
+- **Wiersz, który nazywa POSTAĆ, niesie odznakę — na każdym szczeblu**
+  (2026‑08‑02). Ranking składu, rozbicie `KOMU` / `OD KOGO`, lista celów
+  umiejętności. Wiersz, którego etykieta postacią nie jest — umiejętność, rodzaj
+  obrażeń, pozycja zbiorcza — odznaki NIE dostaje: nie ma czego nią powiedzieć,
+  a litera przy nazwie umiejętności sugerowałaby, że ma.
+
+  Reguła dopisana, bo gwarancja z akapitu wyżej obowiązywała **na jednym
+  szczeblu z trzech**: odznakę miał tylko ranking, a rozbicie wymienia te same
+  postacie, z tymi samymi powtarzającymi się barwami. O odznace i o barwie
+  rozstrzyga w kodzie JEDEN predykat — inaczej dałoby się dojść do wiersza
+  z barwą jednej profesji i literą drugiej. Rozumowanie całej rundy:
+  [`specy/2026-08-02-jednolity-wyglad-wiersza.md`](specy/2026-08-02-jednolity-wyglad-wiersza.md).
+- **Oba okna wyglądają jak jedno narzędzie.** Panel i archiwum biorą chrome,
+  stany (`hover`, „wybrane") i kreski z tych samych tokenów w `src/style.ts`.
+  Nie znaczy to, że mają pokazywać to samo: lista nagrań nie jest rankingiem
+  i pasków nie dostaje — pasek zawsze niesie udział w jakiejś sumie, a wiersz
+  archiwum jest nagraniem, więc nie ma czego być udziałem.
 - **Nie udawać danych, których log nie ma** (leczący, sprawca trucizny w tłumie).
   Liść bez danych się nie podświetla i nie kusi kliknięciem. ✅ na KAŻDEJ liście
   — reguła pilnowała dotąd tylko sekcji `CZYM (ŁĄCZNIE)`, a lista główna
@@ -256,8 +273,13 @@ myszą. Kolejność prac wg zwrotu za gest: **podgląd TOP-3** (4.2) → **wyra�
 sygnał trzymania postaci** (4.1). To rzeczy, które najmocniej skracają drogę od
 „chcę wiedzieć” do „wiem”.
 
-⚠️ **Ten spec opisuje panel na żywo. W podglądzie z archiwum i w odtwarzaniu
-część z tych ✅ dziś NIE działa** — dymek nie pokazuje się wcale, a zakładki
-i okruszek gubią kliknięcia co klatkę. Zasada 3 („nie gub miejsca”) też ma tam
-wyjątek: przewinięcie nagrania w tył zwija drążenie i nie przywraca go, gdy
-klatka dogoni. Szczegóły: `UX-POPRAWKI.md A7`, `A8`, `A15`.
+⚠️ **Ten spec opisuje panel na żywo, a w podglądzie z archiwum bywały odstępstwa
+— dwa z trzech już nie obowiązują** (sprostowane 2026‑08‑02). Stało tu, że
+„dymek nie pokazuje się wcale, a zakładki i okruszek gubią kliknięcia co
+klatkę": pierwsze naprawiło `A7` (`showTip` czyta `this.shown`, czyli to, co
+widać), drugie `A8` (delegacja po `data-action`) — oba **2026‑07‑30**, czyli
+zdanie było nieaktualne przez trzy dni dłużej niż prawdziwe.
+
+Zostaje jeden wyjątek, nadal realny: przewinięcie nagrania w tył zwija drążenie
+i nie przywraca go, gdy klatka dogoni — zasada 3 („nie gub miejsca") ma tam
+lukę. Szczegóły: `UX-POPRAWKI.md A15`.

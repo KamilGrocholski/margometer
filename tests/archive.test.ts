@@ -611,6 +611,18 @@ describe("kasowanie pojedynczego nagrania", () => {
   });
 });
 
+describe("wygląd obu okien idzie z jednego arkusza", () => {
+  test("doczepienie archiwum nie dokłada drugiego arkusza", () => {
+    // Do 2026‑08‑02 archiwum wstrzykiwało własny `<style>` do TEGO SAMEGO
+    // shadow roota. Dwa arkusze w jednym zasięgu nie dają drugiemu oknu
+    // własnego stylu — dają złudzenie, że je ma, a w praktyce chrome powielało
+    // się z innym kryciem tła i `.row` było „zajęte" przez panel.
+    const { overlay } = build([]);
+    expect(overlay.shadow.querySelectorAll("style")).toHaveLength(1);
+    expect(overlay.shadow.querySelector("style")!.textContent).toContain(".archive-row");
+  });
+});
+
 describe("otwarcie archiwum nie zamraża wątku gry", () => {
   /**
    * Nagrywarka licząca odczyty. Odczyt jest tu miarą zastępczą dla `parse` +

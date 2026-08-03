@@ -112,6 +112,94 @@ describe("przypisanie kolorów", () => {
     expect(checked).toBe(10);
   });
 
+  /**
+   * Odznaka na KAŻDYM szczeblu, który wymienia postacie.
+   *
+   * Do 2026‑08‑02 miał ją wyłącznie ranking składu, a rozbicie `KOMU` /
+   * `OD KOGO` — nie, mimo że wymienia te same postacie i maluje pasek tą samą
+   * barwą profesji. Gwarancja z `palette.ts` („rozróżnialność zapewnia odznaka
+   * z literą profesji, nie barwa") obowiązywała więc na jednym szczeblu z trzech,
+   * a to właśnie w rozbiciu barwy powtarzają się najgęściej — dziesięciu graczy
+   * potrafi mieć trzy profesje.
+   */
+  describe("odznaka na każdym szczeblu, który wymienia postacie", () => {
+    const panelOf = async (fixture: string) => {
+      const stats = aggregate(parse(await readFixture(`new-engine/${fixture}`)));
+      const overlay = new Overlay();
+      overlay.render(stats, stats);
+      return { overlay, stats };
+    };
+    const rows = (overlay: Overlay, selector: string) => [
+      ...overlay.shadow.querySelectorAll<HTMLElement>(selector),
+    ];
+
+    test("wiersze rozbicia OD KOGO niosą literę profesji swojej postaci", async () => {
+      const { overlay, stats } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      metricButton(overlay, "Otrzymane").click();
+      // Wejście w bossa: `OD KOGO` wymienia wtedy bijących w niego graczy.
+      rows(overlay, ".rows .row[data-actor]")[0]!.click();
+
+      let checked = 0;
+      for (const row of rows(overlay, ".rows .row[data-source]")) {
+        const label = row.querySelector<HTMLElement>(".label")!;
+        const actor = stats.actors.find((one) => one.name === row.dataset.source);
+        // Pozycje spoza składu (np. zbiorcze „Bez sprawcy") postacią nie są.
+        if (!actor?.professionCode) {
+          expect([row.dataset.source, label.dataset.prof]).toEqual([
+            row.dataset.source,
+            undefined,
+          ]);
+          continue;
+        }
+        expect(label.dataset.prof).toBe(actor.professionCode.toUpperCase());
+        // Ta sama zasada co w rankingu: odznakę rysuje `::before`, więc nazwa
+        // zostaje nazwą dla kodu, testów i schowka.
+        expect(label.textContent).toBe(row.dataset.source!);
+        checked += 1;
+      }
+      expect(checked).toBeGreaterThan(1);
+    });
+
+    test("barwa paska i litera pochodzą z tej samej profesji", async () => {
+      // Osobny predykat na odznakę pozwoliłby dojść do wiersza z barwą jednej
+      // profesji i literą drugiej. Jeden predykat nie ma jak rozjechać się sam
+      // ze sobą — ten test pilnuje, że nadal jest jeden.
+      const { overlay } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      metricButton(overlay, "Otrzymane").click();
+      rows(overlay, ".rows .row[data-actor]")[0]!.click();
+
+      const asStyle = (color: string) => {
+        const probe = document.createElement("div");
+        probe.style.background = color;
+        return probe.style.background;
+      };
+      for (const row of rows(overlay, ".rows .row[data-source]")) {
+        const code = row.querySelector<HTMLElement>(".label")!.dataset.prof;
+        if (code === undefined) continue;
+        const bar = row.querySelector<HTMLElement>(".bar")!.style.background;
+        expect([row.dataset.source, bar]).toEqual([
+          row.dataset.source,
+          asStyle(professionColor(code.toLowerCase())),
+        ]);
+      }
+    });
+
+    test("wiersze umiejętności i TYP OBRAŻEŃ odznaki NIE mają", async () => {
+      // Odznaka odpowiada na „kto tu jest czym". Etykieta, która nie jest
+      // postacią, nie ma na to pytania odpowiedzi — a litera przy nazwie
+      // umiejętności sugerowałaby, że ma.
+      const { overlay } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      rows(overlay, ".rows .row[data-actor]")[0]!.click();
+
+      const nieOsoby = rows(overlay, '.rows .row[data-list="abilities"], .rows .row[data-list="types"]');
+      expect(nieOsoby.length).toBeGreaterThan(1);
+      for (const row of nieOsoby) {
+        const label = row.querySelector<HTMLElement>(".label")!;
+        expect([row.dataset.source, label.dataset.prof]).toEqual([row.dataset.source, undefined]);
+      }
+    });
+  });
+
   test("litera na odznace przechodzi AA na każdej barwie profesji", () => {
     // Jednej barwy litery dla wszystkich profesji NIE MA: przy zieleni łowcy
     // nawet czysta czerń daje 4,25, a biel przy pozostałych schodzi do 3,1.
@@ -375,16 +463,27 @@ describe("kontrast tekstu na pasku (A14)", () => {
    * Wartości bierzemy z arkusza panelu, nie z drugiej kopii tych samych liczb.
    * Reguła musi zaczynać się od początku linii, żeby `.bar` nie złapało się na
    * `.row[data-unattributed] .bar`, a `.row` na `.row-text`.
+   *
+   * `var(--x)` rozwijamy, zamiast wpisywać wartość tutaj. Od 2026‑08‑02 tło toru
+   * stoi w tokenie (`--track`), bo padało w arkuszu trzy razy z palca — a cała
+   * wartość tego testu polega na tym, że liczby NIE MA w teście. Przepisanie jej
+   * tu zamieniłoby strażnika w drugą kopię tego, czego pilnuje.
    */
   const styleOf = (selector: string, property: string): string => {
     const css = new Overlay().shadow.querySelector("style")!.textContent ?? "";
     const rule = new RegExp(`^\\${selector} \\{[^}]*${property}: ([^;}]+)`, "m").exec(css);
     expect(rule).not.toBeNull();
-    return rule![1]!.trim();
+    const value = rule![1]!.trim();
+
+    const token = /^var\((--[a-z-]+)\)$/.exec(value);
+    if (token === null) return value;
+    const declared = new RegExp(`^\\s*\\${token[1]}: ([^;}]+)`, "m").exec(css);
+    expect([token[1], declared]).not.toEqual([token[1], null]);
+    return declared![1]!.trim();
   };
 
   test("arkusz nadal opisuje pasek tak, jak zakłada ten test", () => {
-    expect(styleOf(".row", "background")).toBe("#24242a");
+    expect(styleOf(".rows .row", "background")).toBe("#24242a");
     // Bez tego zła regułka dałaby NaN, a NaN nie jest mniejszy od progu —
     // test kontrastu przechodziłby, nie licząc niczego.
     const opacity = Number(styleOf(".bar", "opacity"));
@@ -394,7 +493,7 @@ describe("kontrast tekstu na pasku (A14)", () => {
 
   test("każda barwa paska przepuszcza tekst przez próg AA", () => {
     const opacity = Number(styleOf(".bar", "opacity"));
-    const rowBackground = styleOf(".row", "background");
+    const rowBackground = styleOf(".rows .row", "background");
     const ink = "#f2f2ef";
 
     const failures = [...SERIES_COLORS, ...Object.values(TYPE_COLORS), OTHER_COLOR]

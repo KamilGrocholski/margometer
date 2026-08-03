@@ -73,72 +73,6 @@ const VISIBLE_ROWS = 8;
 const FILL_CHUNK = 8;
 const FILL_MS = 16;
 
-const STYLE = `
-/* \`hidden\` przegrywa z \`display: flex\` niżej — bez tej reguły zamknięte okno
-   byłoby dalej widoczne. */
-.archive[hidden] { display: none; }
-.archive {
-  position: fixed;
-  z-index: 1;
-  width: 300px;
-  background: rgba(22, 22, 26, 0.96);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--ink);
-  font-size: 12px;
-  line-height: 1.35;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 45%);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.archive header { cursor: grab; }
-.archive header.dragging { cursor: grabbing; }
-/* Lista przewija się w środku okna: nagrań bywa ~190, a okno ma zostać oknem. */
-.archive-list { max-height: 320px; overflow-y: auto; }
-.archive-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 8px;
-  cursor: pointer;
-  border-bottom: 1px solid rgb(53 53 59 / 45%);
-}
-.archive-row:hover { background: #26262c; }
-.archive-row.is-open { background: #2f2f37; }
-.archive-row .grow { flex: 1; min-width: 0; }
-.archive-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.archive-meta { font-size: 11px; color: var(--ink-muted); opacity: 0.75; }
-.archive-win { color: var(--mine); }
-.archive-loss { color: var(--enemy); }
-.archive-empty { padding: 10px 8px; font-size: 11px; opacity: 0.75; }
-.archive-paste { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; }
-.archive-paste textarea {
-  all: unset;
-  height: 90px;
-  padding: 4px 6px;
-  overflow: auto;
-  white-space: pre;
-  background: #101014;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--ink);
-  font: 11px/1.35 ui-monospace, monospace;
-}
-/* Własna klasa, nie .row: tamta jest już zajęta przez wiersz rankingu w panelu
-   (ten sam shadow root), który narzuca wysokość 20 px, ciemne tło i obcięcie. */
-.archive-paste-actions { display: flex; gap: 6px; align-items: center; }
-.archive-paste .hint { flex: 1; font-size: 11px; opacity: 0.75; }
-/* Odpowiedź na kliknięcie, które nic nie zrobiło. Ostrzegawcza, ale nie krzyczy
-   — to poprawna odmowa, nie awaria. */
-.archive-notice {
-  padding: 5px 8px;
-  font-size: 11px;
-  color: var(--warning, #c98500);
-  border-bottom: 1px solid rgb(53 53 59 / 45%);
-}
-`;
-
 /** "Kamil vs Regulus", "Kamil, Fover vs Gnoll +2" — po składzie z linii otwierającej. */
 function labelOf(events: BattleEvent[]): string {
   const start = events.find((event) => event.kind === "fight-start");
@@ -278,12 +212,14 @@ export class Archive {
     });
     this.state = this.loadState();
 
-    const style = document.createElement("style");
-    style.textContent = STYLE;
+    // Arkusza NIE wstrzykujemy: reguły archiwum siedzą w `src/style.ts` razem
+    // z regułami panelu i wchodzą do shadow roota raz, przy powstaniu overlaya.
+    // Dwa arkusze w jednym zasięgu (a ten jest jeden) nie dawały archiwum
+    // własnego stylu — dawały tylko złudzenie, że je ma.
     this.window = document.createElement("div");
     this.window.className = "archive";
     this.window.hidden = true;
-    this.overlay.shadow.append(style, this.window);
+    this.overlay.shadow.append(this.window);
 
     if (this.state.open) this.render();
   }

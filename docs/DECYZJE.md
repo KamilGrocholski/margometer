@@ -394,10 +394,19 @@ ona niesie tożsamość, pasek niesie wielkość.
 Przypięte testem w `palette.test.ts`, który czyta krycie Z ARKUSZA panelu, nie ze
 stałej: podniesienie go „bo ładniej” zapala czerwone, a nie przechodzi po cichu.
 
-⚠️ **Odznaka z literą profesji, o której mówi akapit wyżej, nadal nie istnieje
-w drzewie** (`AUDYT.md AUDYT‑14`) — czyli „rozróżnialność bierze na siebie
-odznaka” jest na razie planem, nie opisem. Zmiana krycia tego nie rusza w żadną
-stronę.
+⚠️ **Stało tu: „odznaka z literą profesji, o której mówi akapit wyżej, nadal nie
+istnieje w drzewie — czyli «rozróżnialność bierze na siebie odznaka» jest na
+razie planem, nie opisem". Sprostowane 2026‑08‑02.** Odznaka jest w drzewie od
+2026‑08‑01 (`AUDYT‑14`, `3a784f6`): rysuje ją `.label[data-prof]::before`,
+ustawia `markProfession`. Od 2026‑08‑02 stoi na KAŻDYM szczeblu wymieniającym
+postacie, nie tylko w rankingu — `UX.md §6` i
+[`specy/2026-08-02-jednolity-wyglad-wiersza.md`](specy/2026-08-02-jednolity-wyglad-wiersza.md).
+
+Skąd rozjazd: status tej samej rzeczy żył w dwóch plikach. `AUDYT.md`
+sprostowano w dniu naprawy, a to zdanie zostało — czyli dokładnie ten sam
+mechanizm, który `AUDYT §G` opisuje przy `A14` i `SOLID §11` przy swojej
+tabeli, trzeci raz. Wniosek jest za każdym razem ten sam: **poprawia się to,
+co się czyta**, a czyta się dokument, w którym pracujemy akurat tego dnia.
 
 ### Jedna nazwa na rodzinę (2026‑08‑01)
 
