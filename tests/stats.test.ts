@@ -11,6 +11,7 @@ import {
   type Aggregate,
 } from "../src/stats.ts";
 import { dotLabel, typeDisplay, type AttackerBreakdown } from "../src/types.ts";
+import { TYPE_COLORS } from "../src/palette.ts";
 import { extractText } from "../src/source.ts";
 import { EngineRosterSource, type RosterEntry } from "../src/roster.ts";
 import { readFixture } from "./helpers.ts";
@@ -21,6 +22,42 @@ const fixtures = [...new Glob("*/*/raw.txt").scanSync(FIXTURES)].map((path) => (
   path,
   name: path.replace(/\/raw\.txt$/, ""),
   text: () => Bun.file(FIXTURES + path).text(),
+}));
+
+/**
+ * Te same niezmienniki, ale przez DOM — i to nie jest kosmetyka.
+ *
+ * Do 2026‑08‑03 CAŁA sekcja „niezmienniki liczb" chodziła wyłącznie po
+ * `raw.txt`, czyli po ścieżce, w której `hit.element` jest ZAWSZE `null` —
+ * żywioł siedzi w klasie CSS i tekst z „Kopiuj logi" go nie niesie. Przekrój
+ * po żywiołach, jedyna rzecz, którą droga przez DOM w ogóle dokłada (i ta,
+ * w której 2026‑07‑31 scalono rodziny), nie był sumowany po korpusie ani razu.
+ *
+ * Zmierzone przy dokładaniu, na `2026-08-03_druzyna-vs-hildur-absorpcja`:
+ *
+ *   dealtByType, etykiety w całej walce   html: 6   raw: 2
+ *      html: Broń, Błyskawica, Nieuchronne, Ogień, Rana, Zimno
+ *      raw:  Nieznany, Rana
+ *   boss                                  html: Zimno 82 584 + Ogień 37 598
+ *                                         raw:  Nieznany 120 182
+ *   typeByLabel                           html: 31 wpisów   raw: 4
+ *
+ * Czyli po tekście niezmiennik `Σ dealtByType == damageDealt` domykał się na
+ * jednym wierszu „Nieznany" plus tym, co niosą DoT-y (nazwa efektu stoi tam
+ * w treści linii, nie w klasie) — a to jest suma sprawdzająca samą siebie.
+ * Rozbicie na SZEŚĆ rodzin nie miało żadnego strażnika po korpusie.
+ *
+ * ⚠️ „Po tekście zostaje jeden wiersz" byłoby nieprawdą i pierwsza wersja tego
+ * komentarza tak właśnie mówiła: `raw.txt` daje 2 etykiety, nie 1, bo „Rana"
+ * przychodzi z DoT-a. Liczby wyżej są z pomiaru, nie z pamięci.
+ */
+const htmlFixtures = [...new Glob("*/*/log.html").scanSync(FIXTURES)].map((path) => ({
+  path,
+  name: path.replace(/\/log\.html$/, ""),
+  text: async () => {
+    document.body.innerHTML = await Bun.file(FIXTURES + path).text();
+    return extractText(document.body);
+  },
 }));
 
 const tier = (label: string, by: Array<[string, number, number]>): AttackerBreakdown => ({
@@ -723,7 +760,8 @@ describe("niezmienniki liczb", () => {
     return found;
   };
 
-  describe.each(fixtures)("$name", (fixture) => {
+  /** Jeden zestaw asercji, dwie drogi do parsera — patrz `htmlFixtures`. */
+  const przelot = (fixture: { text: () => string | Promise<string> }) => {
     test("rozbicia domykają się ze skalarami", async () => {
       expect(mismatches(aggregate(parse(await fixture.text())))).toEqual([]);
     });
@@ -744,6 +782,50 @@ describe("niezmienniki liczb", () => {
       const uniki = stats.actors.reduce((sum, a) => sum + a.misses, 0);
 
       expect(ciosy + uniki).toBe(ataki);
+    });
+  };
+
+  describe.each(fixtures)("$name", przelot);
+  describe.each(htmlFixtures)("$name (html)", (fixture) => {
+    przelot(fixture);
+
+    /**
+     * `typeByLabel` mówi widokowi, jakim kolorem pomalować pasek danej etykiety
+     * (`palette.ts`), i do 2026‑08‑03 nie miał ANI JEDNEGO niezmiennika.
+     * Sprawdzany jest tu, a nie przy `raw.txt`, bo tam prawie go nie ma:
+     * na fixture Hildur boss ma 31 wpisów z DOM-u wobec 4 z tekstu — tekst
+     * zapełnia tę tabelę wyłącznie z DoT-ów, które niosą nazwę efektu w treści
+     * linii. Test na czterech wpisach nie pilnowałby niczego.
+     *
+     * Dwie własności, obie łamliwe przy zmianie sortowania albo scalania rodzin:
+     * etykieta nie może paść dwa razy (widok wziąłby pierwszą i cicho zgubił
+     * drugą), a rodzina musi być KLUCZEM `TYPE_COLORS` — inaczej pasek dostaje
+     * barwę „nie wiadomo", nie do odróżnienia od „Nieznany". Ten drugi błąd
+     * repo już miało („Broń" traciła kolor, `SOLID §10`).
+     *
+     * ⚠️ Rodzina NIE jest sprawdzana przez `typeFamily(type) === type` i to
+     * pomyłka warta zapisania, bo kusi: `typeFamily` nie jest idempotentne.
+     * `classify` rozpoznaje rodzinę po PODCIĄGU nazwy zapisanej w logu, więc
+     * „ogień" mapuje się na siebie, ale `typeFamily("broń")` daje `null` —
+     * ta rodzina powstaje z „fizyczne" i „dystansowe" i sama nie zawiera
+     * żadnego wzorca. Asercja postawiona tak zapalała 52 fałszywe alarmy na
+     * jednym fixture. Zamknięty zbiór rodzin trzyma `TYPE_COLORS` i to on jest
+     * tu kontraktem.
+     */
+    test("typeByLabel: etykiety bez duplikatów, rodziny znane palecie", async () => {
+      const stats = aggregate(parse(await fixture.text()));
+      const problemy: string[] = [];
+      for (const actor of stats.actors) {
+        const widziane = new Set<string>();
+        for (const { label, type } of actor.typeByLabel) {
+          if (widziane.has(label)) problemy.push(`${actor.name}: etykieta „${label}" dwa razy`);
+          widziane.add(label);
+          if (!(type in TYPE_COLORS)) {
+            problemy.push(`${actor.name}: „${label}" ma rodzinę „${type}", której paleta nie zna`);
+          }
+        }
+      }
+      expect(problemy).toEqual([]);
     });
   });
 
