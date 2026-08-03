@@ -28,40 +28,25 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
-## [Niewydane]
-
-- **Nowość** — Najechanie na postać pokazuje w dymku trzy jej najsilniejsze
-  pozycje wraz z udziałem — komu zadała, od kogo obrywa albo z czego się leczy,
-  zależnie od wybranej zakładki. Na pytanie „co go tak boli?" odpowiada teraz
-  samo najechanie, bez wchodzenia w postać i wracania. Gdy pozycji jest więcej,
-  dymek mówi, ile zostało na pełnej liście.
-- **Poprawka** — Nazwa postaci, w którą się weszło, nie mruga już przy
-  przełączaniu zakładek ani w trakcie walki. Wcześniej podświetlenie pod
-  kursorem gasło kilka razy na sekundę, właśnie na tym napisie, który ma dawać
-  znać, że panel trzyma wybraną postać.
-- **Poprawka** — Energia, którą postać sama zyskuje przy ciosie, nie jest już
-  wypisywana w dymku jako efekt sprzętu. Stała tam obok klątw i niszczenia
-  pancerza, czyli obok rzeczy, które cios robi przeciwnikowi — a to jest zysk
-  własny. Zabranie energii lub many przeciwnikowi zostaje, bo efektem jest.
-- **Zmiana** — Skopiowane statystyki opisują już tylko tę jedną walkę, na którą
-  patrzysz. Wcześniej doklejała się do nich suma wszystkich walk od włączenia
-  gry — liczba, której panel nigdzie nie pokazywał i o której nie było jak się
-  dowiedzieć inaczej niż wklejając skopiowany tekst gdzieś indziej.
-
 ## [0.4.0] — 2026-08-03
 
 - **Nowość** — Panel pokazuje numer wersji dodatku, a skopiowane statystyki
   niosą go razem z liczbami. Zgłaszając, że coś nie zagrało, nie trzeba już
   zgadywać, której wersji to dotyczy — zwłaszcza że dodatek aktualizuje się sam.
-- **Zmiana** — Odznaka z literą profesji stoi teraz przy nazwie postaci wszędzie,
-  nie tylko na liście składu. Wchodząc w postać widzisz ją tak samo w rozbiciu
-  „komu" i „od kogo" — sam kolor nie wystarczał, bo dwie postacie tej samej
-  profesji mają go wspólny.
+- **Nowość** — Najechanie na postać pokazuje w dymku trzy jej najsilniejsze
+  pozycje wraz z udziałem — komu zadała, od kogo obrywa albo z czego się leczy,
+  zależnie od wybranej zakładki. Na pytanie „co go tak boli?" odpowiada teraz
+  samo najechanie, bez wchodzenia w postać i wracania. Gdy pozycji jest więcej,
+  dymek mówi, ile zostało na pełnej liście.
+- **Zmiana** — Odznaka z literą profesji stoi teraz przy nazwie postaci wszędzie:
+  na liście składu, w rozbiciu „komu" i „od kogo", w ścieżce powrotu i w dymkach.
+  Sam kolor nie wystarczał, bo dwie postacie tej samej profesji mają go wspólny.
 - **Zmiana** — Panel i okno archiwum wyglądają jak jedno narzędzie: to samo tło,
   ta sama ramka, to samo podświetlenie pod kursorem.
-- **Zmiana** — Litera profesji stoi teraz przy nazwie postaci także w ścieżce
-  powrotu i w dymkach, nie tylko na listach. Wszędzie tam, gdzie panel nazywa
-  postać, widać od razu, kim ona jest.
+- **Zmiana** — Skopiowane statystyki opisują już tylko tę jedną walkę, na którą
+  patrzysz. Wcześniej doklejała się do nich suma wszystkich walk od włączenia
+  gry — liczba, której panel nigdzie nie pokazywał i o której nie było jak się
+  dowiedzieć inaczej niż wklejając skopiowany tekst gdzieś indziej.
 - **Poprawka** — Zamknięcie okna archiwum kończy liczenie podsumowań. Wcześniej
   liczyły się dalej, w tle, choć okna nie było już na ekranie — a robiły to
   kosztem płynności gry.
@@ -81,6 +66,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Poprawka** — Trzeci cios tancerza ostrzy ma w rozbiciu własną pozycję.
   Wcześniej jego obrażenia były liczone, ale nie dało się zobaczyć, skąd
   pochodzą.
+- **Poprawka** — Nazwa postaci, w którą się weszło, nie mruga już przy
+  przełączaniu zakładek ani w trakcie walki. Wcześniej podświetlenie pod
+  kursorem gasło kilka razy na sekundę, właśnie na tym napisie, który ma dawać
+  znać, że panel trzyma wybraną postać.
+- **Poprawka** — Energia, którą postać sama zyskuje przy ciosie, nie jest już
+  wypisywana w dymku jako efekt sprzętu. Stała tam obok klątw i niszczenia
+  pancerza, czyli obok rzeczy, które cios robi przeciwnikowi — a to jest zysk
+  własny. Zabranie energii lub many przeciwnikowi zostaje, bo efektem jest.
 
 ## [0.3.0] — 2026-08-01
 

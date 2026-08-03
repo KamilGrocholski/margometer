@@ -124,7 +124,7 @@ razem z wpisem. Strażnik porówna wtedy „nie ma sekcji” z „nie ma sekcji�
 
 ## Co się psuje cicho
 
-Trzy rzeczy, których nikt nie zgłosi, bo wyglądają na sukces:
+Cztery rzeczy, których nikt nie zgłosi, bo wyglądają na sukces:
 
 - **Wydanie, które nie powstało.** Naprawka w repo, `package.json` na starym
   numerze, kanał aktualizacji milczy. Incydent 2026‑08‑03, powód istnienia
@@ -139,6 +139,30 @@ Trzy rzeczy, których nikt nie zgłosi, bo wyglądają na sukces:
   rzecz, którą użytkownik z tego wydania czyta. Pilnuje tego
   `tests/changelog.test.ts`; regułę łamie się niechcący, pisząc zaraz po wyjściu
   z kodu.
+- **Dwa pierwsze kroki bez trzeciego — czyli wersja, która istnieje tylko
+  w repo.** Sekcja `[Niewydane]` przeniesiona pod numer z datą, `package.json`
+  podbity, commit zrobiony — i na tym koniec, bo tag to osobne polecenie.
+  Repo wygląda wtedy dokładnie jak po wydaniu, a nie wydało nic. Gorzej: kolejna
+  runda otwiera nad tym nowe `[Niewydane]`, więc plik niesie DWA nierozliczone
+  bloki i nie widać, który z nich gracz ma, a którego nie.
+
+  **Zdarzyło się to 0.4.0** (`143f43d`, 2026‑08‑03). Wykryte dopiero pytaniem
+  „czemu jest 0.4.0 i jeszcze niewydane, skoro gram na 0.3.0". Naprawa polegała
+  na SCALENIU obu bloków z powrotem w jedno `0.4.0` — numer nie był niczyj, bo
+  nigdy nie wyjechał, więc nic nie trzeba było przenosić wyżej.
+
+  Sprawdzenie zajmuje sekundę i warto je zrobić PRZED podbiciem numeru:
+
+  ```bash
+  git describe --tags        # v0.3.0-21-g… → 21 commitów po ostatnim wydaniu
+  git tag -l                 # czy numer z package.json ma tu swój tag
+  ```
+
+  Żaden strażnik tego nie złapie i to jest świadome: twardy patrzy na
+  `[Niewydane]`, a ta sekcja po kroku 1 jest pusta **zgodnie z regułą**
+  (patrz „Po wydaniu sekcji `[Niewydane]` nie ma wcale"). Sygnał w podsumowaniu
+  CI mówi natomiast wprost: „Ostatnie wydanie: **v0.3.0**, od tego czasu N
+  commit(ów)" — i to jedyne miejsce, w którym ta rozbieżność widać.
 
 ---
 
