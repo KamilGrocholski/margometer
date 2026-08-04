@@ -80,8 +80,12 @@ export function wiek(pobrane: Date | null, teraz: Date): string {
  * `odswiez` omija zapis i nadpisuje go świeżym pobraniem. Bez tej furtki
  * jedynym sposobem na aktualizację było ręczne skasowanie pliku z katalogu,
  * o którym trzeba było najpierw wiedzieć.
+ *
+ * Wyeksportowana, bo `tools/luki.ts` czyta ten sam artykuł. Drugie pobieranie
+ * obok tego znaczyłoby drugi zapis w `.cache/`, drugą zasadę odświeżania
+ * i dwa różne wieki zrzutu w wyjściu dwóch narzędzi mówiących o tym samym.
  */
-async function tekstArtykulu(id: string, odswiez: boolean): Promise<Zrodlo> {
+export async function tekstArtykulu(id: string, odswiez: boolean): Promise<Zrodlo> {
   const plik = `${KATALOG}pomoc-${id}.txt`;
   const zapisany = Bun.file(plik);
   if (!odswiez && (await zapisany.exists())) {
