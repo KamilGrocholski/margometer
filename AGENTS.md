@@ -9,6 +9,13 @@ liczy panel. Od 2026‑08‑04 także **surowy protokół silnika**, przez owini
 `Engine.battle.update` (`protokol-source.ts`), żeby dało się zapytać, czy obie
 drogi liczą to samo.
 
+**Brzmienia bierze z gry, nie z własnego kodu.** `slownik-gry.ts` woła globalne
+`window._t` — tę samą funkcję, którą renderer walki składa swoje zdania — więc
+panel pokazuje `+Przebicie`, a nie klucz `+pierce`, i robi to w języku klienta,
+także po aktualizacji gry. To ODCZYT, nie zapytanie: nic nie wychodzi na sieć,
+a pytamy wyłącznie o identyfikatory z zamrożonej tabeli
+(`tests/fixtures/klucze-protokolu.json`), żeby chybienie nigdy nie zaszło.
+
 ⚠️ **Zdanie „nie dotyka stanu gry" stało tu do 2026‑08‑04 i przestało być
 prawdziwe.** Owinięcie cudzej funkcji jest dotknięciem, choćby nic nie zmieniało
 — i lepiej to napisać, niż bronić definicji słowa „dotyka". Co dodatek nadal

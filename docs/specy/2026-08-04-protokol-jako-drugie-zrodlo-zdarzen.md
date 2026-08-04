@@ -648,3 +648,27 @@ Każdy commit przechodzi `bun run check` osobno.
      5345 obrażeń zamiast 2784), a zrzut niesie **569 wywołań, z czego 567
      identycznych** (1,8 MB przy 28 kB treści). Oba załatane po stronie
      narzędzia (`b04af97`, `b18ae10`); przyczyna w sondzie zostaje otwarta.
+- **2026-08-04** — **odrzucony wariant 1 WRACA i zostaje wybrany**
+  (`248d607`…`2e88825`). Ten spec skreślił „konwerter protokół → tekst gry"
+  zdaniem: *„musiałby wymyślać brzmienie zdań"* i drugim: *„konwerter czyni
+  czujkę ślepą"*. Pierwszy powód **wygasł** — brzmienia idą z assetu gry
+  (`tools/slownik.ts`), więc nic nie jest wymyślane. Drugi **nie dotyczy tego
+  zastosowania**: konwerter nie zastępuje czujki w panelu, tylko daje ORAKULUM
+  drugą stronę, gdy nie ma złapanego logu. Czujka porównuje protokół z tekstem
+  z okna i zostaje bez zmian.
+
+  Co z tego wyszło:
+
+  1. **Fixture protokołowy nie potrzebuje `raw.txt` ani `log.html`.** Niezmiennik
+     `dekoduj(komunikaty) ≟ parse(odtworz(komunikaty))` stoi na samym
+     `protokol.json`; na pierwszej parze daje 18/18 odtworzonych komunikatów,
+     zero linii nierozpoznanych przez `parse` i zero rozjazdów.
+  2. **Brzmienia zeszły z kodu.** `procs` dostają zdanie z `window._t`, a nie
+     surowy klucz. Zaszyte zostają identyfikatory, bo **listy kluczy z gry
+     wylistować się nie da** (`_dict` domknięty w module). Reguły na
+     identyfikator nie ma — tylko 108 z 223 pasuje do `msg_<klucz>[ %val%]`.
+  3. **Zamrożona tabela urosła o `ramy`** — 13 identyfikatorów, których gra woła
+     poza `switch`em (rama ciosu, rozstrzygnięcie, warianty dwuczłonowe DoT‑ów).
+     Bez nich odtwarzało się 7 z 18 komunikatów.
+  4. Pozycja „`KLUCZE` nie niosą polskich etykiet proców" z wpisu wyżej jest
+     **nieaktualna**: niosą identyfikatory, a etykiety przychodzą w locie.
