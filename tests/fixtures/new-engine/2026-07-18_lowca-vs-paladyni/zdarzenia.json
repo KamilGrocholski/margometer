@@ -1,0 +1,313 @@
+{
+ "zrodlo": "raw.txt",
+ "zamrozone": "2026-08-04",
+ "zdarzenia": [
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowca głów z psk",
+     "level": 104,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "Wieczornica",
+     "level": 93,
+     "professionCode": "p",
+     "side": 1
+    },
+    {
+     "name": "Wieczornica",
+     "level": 93,
+     "professionCode": "p",
+     "side": 1
+    },
+    {
+     "name": "Południca",
+     "level": 92,
+     "professionCode": "p",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowca głów z psk",
+     "level": 104,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "Wieczornica",
+     "level": 93,
+     "professionCode": "p",
+     "side": 1
+    },
+    {
+     "name": "Wieczornica",
+     "level": 93,
+     "professionCode": "p",
+     "side": 1
+    },
+    {
+     "name": "Południca",
+     "level": 92,
+     "professionCode": "p",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Wieczornica",
+   "sourceHpPct": 100,
+   "targetHpPct": 100,
+   "hits": [
+    {
+     "raw": 75,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 16"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Wieczornica",
+   "target": "Łowca głów z psk",
+   "sourceHpPct": 100,
+   "targetHpPct": 100,
+   "hits": [
+    {
+     "raw": 878,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": true
+    },
+    {
+     "raw": 570,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": true
+    }
+   ],
+   "dodged": true,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Wieczornica",
+   "target": "Łowca głów z psk",
+   "sourceHpPct": 100,
+   "targetHpPct": 98.16,
+   "hits": [
+    {
+     "raw": 849,
+     "applied": 217,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 535,
+     "applied": 187,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Wieczornica",
+   "sourceHpPct": 98.16,
+   "targetHpPct": 100,
+   "hits": [
+    {
+     "raw": 75,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": 23,
+   "procs": [
+    "Niszczenie pancerza o 16"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Wieczornica",
+   "sourceHpPct": 89.41,
+   "targetHpPct": 100,
+   "hits": [
+    {
+     "raw": 272,
+     "applied": 0,
+     "element": null,
+     "crit": true,
+     "superCrit": true,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Szybka strzała",
+    "Niszczenie pancerza o 16"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Południca",
+   "target": "Łowca głów z psk",
+   "sourceHpPct": 100,
+   "targetHpPct": 93.67,
+   "hits": [
+    {
+     "raw": 816,
+     "applied": 192,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 536,
+     "applied": 184,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Wieczornica",
+   "sourceHpPct": 59.89,
+   "targetHpPct": 100,
+   "hits": [
+    {
+     "raw": 75,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Szybka strzała",
+    "Niszczenie pancerza o 15",
+    "Zniszczono pancerz przeciwnika"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Południca",
+   "target": "Łowca głów z psk",
+   "sourceHpPct": 100,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 843,
+     "applied": 213,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 784,
+     "applied": 389,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "victory",
+   "actors": [
+    "Wieczornica",
+    "Wieczornica",
+    "Południca"
+   ],
+   "result": "Zwyciężyła drużyna Wieczornica, Wieczornica, Południca"
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "defeat",
+   "actors": [
+    "Łowca głów z psk"
+   ],
+   "result": "Poległ Łowca głów z psk"
+  }
+ ]
+}

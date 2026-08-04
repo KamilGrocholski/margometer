@@ -1,0 +1,469 @@
+{
+ "zrodlo": "raw.txt",
+ "zamrozone": "2026-08-04",
+ "zdarzenia": [
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowcosław Kazrek",
+     "level": 70,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "wf foverek psk",
+     "level": 70,
+     "professionCode": "t",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowcosław Kazrek",
+     "level": 70,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "wf foverek psk",
+     "level": 70,
+     "professionCode": "t",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "info",
+   "line": "Łowcosław Kazrek spowija się trującą mgłą: -3% obrażeń zadawanych przez zatrutych przeciwników."
+  },
+  {
+   "kind": "info",
+   "line": "Walka bez Punktów Honoru - gracze są z tego samego klanu."
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "wf foverek psk",
+   "sourceHpPct": 100,
+   "targetHpPct": 96.41,
+   "hits": [
+    {
+     "raw": 844,
+     "applied": 403,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11",
+    "Fasada opieki, 13% redukcji ciosów do końca walki"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "wf foverek psk",
+   "sourceHpPct": 100,
+   "targetHpPct": 91.16,
+   "hits": [
+    {
+     "raw": 1191,
+     "applied": 699,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 247,
+   "target": "wf foverek psk",
+   "targetHpPct": 93.01,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "wf foverek psk",
+   "targetHpPct": 91.12,
+   "amount": 252,
+   "weakenedPct": 38,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "wf foverek psk",
+   "name": "Lodowa strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "wf foverek psk",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": 91.12,
+   "targetHpPct": 94.62,
+   "hits": [
+    {
+     "raw": 871,
+     "applied": 393,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 669,
+     "applied": 385,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%",
+    "Niszczenie pancerza o 18"
+   ],
+   "ability": "Lodowa strzała",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 190,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 95.94,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "wf foverek psk",
+   "name": "Strzała z niespodzianką"
+  },
+  {
+   "kind": "attack",
+   "source": "wf foverek psk",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": 83.44,
+   "targetHpPct": 95.94,
+   "hits": [
+    {
+     "raw": 831,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": true
+    },
+    {
+     "raw": 696,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": true
+    }
+   ],
+   "dodged": true,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%",
+    "Kombinacja x1!"
+   ],
+   "ability": "Strzała z niespodzianką",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 181,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 97.19,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "Łowcosław Kazrek otrzymuje 15 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "wf foverek psk",
+   "sourceHpPct": 97.19,
+   "targetHpPct": 76.18,
+   "hits": [
+    {
+     "raw": 1111,
+     "applied": 967,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 11",
+    "Kombinacja x2!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 222,
+   "target": "wf foverek psk",
+   "targetHpPct": 77.85,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "wf foverek psk",
+   "targetHpPct": 73.43,
+   "amount": 588,
+   "weakenedPct": 38,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "wf foverek psk",
+   "sourceHpPct": 87.55,
+   "targetHpPct": 61.74,
+   "hits": [
+    {
+     "raw": 839,
+     "applied": 439,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "wf foverek psk",
+   "sourceHpPct": 87.55,
+   "targetHpPct": 55.96,
+   "hits": [
+    {
+     "raw": 884,
+     "applied": 769,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 161,
+   "target": "wf foverek psk",
+   "targetHpPct": 19.46,
+   "self": false
+  },
+  {
+   "kind": "heal",
+   "ability": "Ostatni ratunek",
+   "amount": 3056,
+   "target": "wf foverek psk",
+   "targetHpPct": 38,
+   "self": true
+  },
+  {
+   "kind": "dot",
+   "target": "wf foverek psk",
+   "targetHpPct": 38,
+   "amount": 588,
+   "weakenedPct": 38,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "wf foverek psk",
+   "sourceHpPct": 52.44,
+   "targetHpPct": 24.85,
+   "hits": [
+    {
+     "raw": 828,
+     "applied": 492,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "wf foverek psk",
+   "sourceHpPct": 52.44,
+   "targetHpPct": 20.74,
+   "hits": [
+    {
+     "raw": 883,
+     "applied": 547,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Klątwa",
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "wf foverek psk",
+   "targetHpPct": 17.34,
+   "amount": 588,
+   "weakenedPct": 38,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "turn-lost",
+   "actor": "wf foverek psk"
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 95,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 53.09,
+   "self": false
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "wf foverek psk",
+   "sourceHpPct": 53.09,
+   "targetHpPct": 11.27,
+   "hits": [
+    {
+     "raw": 1177,
+     "applied": 808,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "victory",
+   "actors": [
+    "Łowcosław Kazrek"
+   ],
+   "result": "Zwyciężył Łowcosław Kazrek"
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "defeat",
+   "actors": [
+    "wf foverek psk"
+   ],
+   "result": "Poległ wf foverek psk"
+  }
+ ]
+}

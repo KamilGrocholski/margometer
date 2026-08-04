@@ -1,0 +1,9378 @@
+{
+ "zrodlo": "log.html",
+ "zamrozone": "2026-08-04",
+ "zdarzenia": [
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowca głów z psk",
+     "level": 104,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "Wyczxs",
+     "level": 103,
+     "professionCode": "w",
+     "side": 0
+    },
+    {
+     "name": "bober lpg",
+     "level": 122,
+     "professionCode": "p",
+     "side": 0
+    },
+    {
+     "name": "Utopiony w Barszczu",
+     "level": 121,
+     "professionCode": "m",
+     "side": 0
+    },
+    {
+     "name": "losomaczka",
+     "level": 114,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "Cygański Bidok",
+     "level": 125,
+     "professionCode": "w",
+     "side": 0
+    },
+    {
+     "name": "jakis Maciek",
+     "level": 114,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "nie jadam kwasuw",
+     "level": 111,
+     "professionCode": "t",
+     "side": 0
+    },
+    {
+     "name": "sigma kox",
+     "level": 114,
+     "professionCode": "w",
+     "side": 0
+    },
+    {
+     "name": "Hildur Muza Śmierci",
+     "level": 100,
+     "professionCode": "m",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "info",
+   "line": "jakis Maciek spowija się trującą mgłą: -10% obrażeń zadawanych przez zatrutych przeciwników."
+  },
+  {
+   "kind": "info",
+   "line": "losomaczka spowija się trującą mgłą: -10% obrażeń zadawanych przez zatrutych przeciwników."
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Wyczxs",
+   "sourceHpPct": 100,
+   "targetHpPct": 85.19,
+   "hits": [
+    {
+     "raw": 3974,
+     "applied": 3268,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 50",
+    "Niszczenie odporności magicznych o 3%"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Piętno bestii"
+  },
+  {
+   "kind": "info",
+   "line": "Wszyscy przeciwnicy otrzymują zwiększone obrażenia."
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Piętno bestii"
+  },
+  {
+   "kind": "info",
+   "line": "Wszyscy przeciwnicy otrzymują zwiększone obrażenia."
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowca głów z psk",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 99.65,
+   "hits": [
+    {
+     "raw": 1678,
+     "applied": 487,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 503,
+     "applied": 503,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 16",
+    "Piętno bestii: atak +503"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 99.01,
+   "hits": [
+    {
+     "raw": 1862,
+     "applied": 1210,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 559,
+     "applied": 559,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 16",
+    "Piętno bestii: atak +559"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Szadź"
+  },
+  {
+   "kind": "info",
+   "line": "Spowolnienie przeciwników o 14%"
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Aura ochrony"
+  },
+  {
+   "kind": "info",
+   "line": "Aura ochrony fizycznej została aktywowana (+20% pancerza)."
+  },
+  {
+   "kind": "info",
+   "line": "Aura ochrony magicznej została aktywowana (+15% odporności)."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 2759,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 100,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 99.97,
+   "amount": 93,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "Hildur Muza Śmierci",
+   "name": "Struna płomienna"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 99.97,
+   "targetHpPct": 96.05,
+   "hits": [
+    {
+     "raw": 1620,
+     "applied": 261,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 3020,
+     "applied": 1108,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41",
+    "Niszczenie odporności magicznych o 3%",
+    "Fasada opieki, 13% redukcji ciosów do końca walki",
+    "Aktywna redukcja niszczenia pancerza: -18% przez całą walkę"
+   ],
+   "ability": "Struna płomienna",
+   "strike": true
+  },
+  {
+   "kind": "move",
+   "actor": "sigma kox",
+   "hpPct": 100,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 184,
+   "target": "Wyczxs",
+   "targetHpPct": 86.02,
+   "self": false
+  },
+  {
+   "kind": "move",
+   "actor": "Wyczxs",
+   "hpPct": 86.02,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Podwójny dech"
+  },
+  {
+   "kind": "info",
+   "line": "Aura szybkości została aktywowana (+20% szybkości ataku)."
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 99.42,
+   "hits": [
+    {
+     "raw": 1603,
+     "applied": 1042,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 481,
+     "applied": 481,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 26",
+    "Piętno bestii: atak +481"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 98.78,
+   "hits": [
+    {
+     "raw": 2517,
+     "applied": 1034,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 755,
+     "applied": 755,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 26",
+    "Piętno bestii: atak +755"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowca głów z psk",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "Łowca głów z psk otrzymuje 8 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 97.52,
+   "hits": [
+    {
+     "raw": 3691,
+     "applied": 2399,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1107,
+     "applied": 1107,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 16",
+    "Piętno bestii: atak +1107",
+    "Kombinacja x1!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 456,
+   "target": "Cygański Bidok",
+   "targetHpPct": 97.37,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Porażenie"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 97.17,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 17,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1796,
+     "applied": 91,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 881,
+     "applied": 881,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 22",
+    "Niszczenie odporności magicznych o 3%",
+    "Piętno bestii: atak +856"
+   ],
+   "ability": "Porażenie",
+   "strike": true
+  },
+  {
+   "kind": "move",
+   "actor": "bober lpg",
+   "hpPct": 100,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 96.87,
+   "hits": [
+    {
+     "raw": 1414,
+     "applied": 406,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 424,
+     "applied": 424,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Szybka strzała",
+    "Niszczenie pancerza o 38",
+    "Piętno bestii: atak +424"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 96.57,
+   "hits": [
+    {
+     "raw": 1409,
+     "applied": 422,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 423,
+     "applied": 423,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 38",
+    "Piętno bestii: atak +423"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 7800,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 99.36,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 99.1,
+   "amount": 747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 99.08,
+   "amount": 39,
+   "weakenedPct": 32,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "ability",
+   "actor": "Hildur Muza Śmierci",
+   "name": "Dysonans"
+  },
+  {
+   "kind": "info",
+   "line": "Hildur Muza Śmierci(99.08%) przygotowuje się do wykonania Symfonia żywiołów(0%)."
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "losomaczka otrzymuje 7 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 98.58,
+   "hits": [
+    {
+     "raw": 2004,
+     "applied": 803,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 601,
+     "applied": 601,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 38",
+    "Piętno bestii: atak +601",
+    "Kombinacja x1!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Krytyczne wzmocnienie"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 97.84,
+   "hits": [
+    {
+     "raw": 2172,
+     "applied": 1412,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 652,
+     "applied": 652,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 26",
+    "Zranienie (211)",
+    "Piętno bestii: atak +652"
+   ],
+   "ability": "Krytyczne wzmocnienie",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 97.29,
+   "hits": [
+    {
+     "raw": 2125,
+     "applied": 904,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 638,
+     "applied": 638,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 16",
+    "Piętno bestii: atak +638"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 433,
+   "target": "Cygański Bidok",
+   "targetHpPct": 98.61,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "move",
+   "actor": "sigma kox",
+   "hpPct": 100,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Lodowy pocisk"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 96.64,
+   "hits": [
+    {
+     "raw": 1846,
+     "applied": 45,
+     "element": "zimno",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 3220,
+     "applied": 201,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1565,
+     "applied": 1565,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Krytyczne spowolnienie o 1%",
+    "Niszczenie odporności magicznych o 3%",
+    "Zniszczono 6941 absorpcji",
+    "Zniszczono 4255 absorpcji magicznej",
+    "Piętno bestii: atak +1520"
+   ],
+   "ability": "Lodowy pocisk",
+   "strike": true
+  },
+  {
+   "kind": "move",
+   "actor": "bober lpg",
+   "hpPct": 100,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 95.88,
+   "hits": [
+    {
+     "raw": 2705,
+     "applied": 1295,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 812,
+     "applied": 812,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 38",
+    "Piętno bestii: atak +812"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 7389,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 98.53,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 98.46,
+   "amount": 211,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 98.19,
+   "amount": 747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 98.17,
+   "amount": 41,
+   "weakenedPct": 29,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "info",
+   "line": "Hildur Muza Śmierci(98.17%) przygotowuje się do wykonania Symfonia żywiołów(33%)."
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 97.65,
+   "hits": [
+    {
+     "raw": 2002,
+     "applied": 865,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 601,
+     "applied": 601,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 26",
+    "Piętno bestii: atak +601"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 96.36,
+   "hits": [
+    {
+     "raw": 3792,
+     "applied": 2465,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1138,
+     "applied": 1138,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 16",
+    "Piętno bestii: atak +1138"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 175,
+   "target": "Wyczxs",
+   "targetHpPct": 86.82,
+   "self": false
+  },
+  {
+   "kind": "move",
+   "actor": "Wyczxs",
+   "hpPct": 86.82,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 410,
+   "target": "Cygański Bidok",
+   "targetHpPct": 99.8,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Płonąca strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 95.75,
+   "hits": [
+    {
+     "raw": 1331,
+     "applied": 460,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2267,
+     "applied": 148,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1079,
+     "applied": 1079,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +1079"
+   ],
+   "ability": "Płonąca strzała",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 95.21,
+   "hits": [
+    {
+     "raw": 2015,
+     "applied": 906,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 605,
+     "applied": 605,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Szybka strzała",
+    "Niszczenie pancerza o 38",
+    "Piętno bestii: atak +605"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Porażenie"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 94.83,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 26,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1927,
+     "applied": 121,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 921,
+     "applied": 921,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 22",
+    "Niszczenie odporności magicznych o 3%",
+    "Piętno bestii: atak +895"
+   ],
+   "ability": "Porażenie",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Szybki atak"
+  },
+  {
+   "kind": "attack",
+   "source": "bober lpg",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 94.22,
+   "hits": [
+    {
+     "raw": 2517,
+     "applied": 480,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1398,
+     "applied": 40,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1174,
+     "applied": 1174,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 12",
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +1174"
+   ],
+   "ability": "Szybki atak",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "jakis Maciek otrzymuje 31 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 93.08,
+   "hits": [
+    {
+     "raw": 3361,
+     "applied": 2185,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1008,
+     "applied": 1008,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 26",
+    "Zranienie (327)",
+    "Piętno bestii: atak +1008",
+    "Kombinacja x3!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 92.69,
+   "hits": [
+    {
+     "raw": 1494,
+     "applied": 638,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 448,
+     "applied": 448,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 38",
+    "Piętno bestii: atak +448"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 92.29,
+   "hits": [
+    {
+     "raw": 1513,
+     "applied": 651,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 454,
+     "applied": 454,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 3",
+    "Zniszczono pancerz przeciwnika",
+    "Piętno bestii: atak +454"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 6978,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 94.79,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 94.67,
+   "amount": 327,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 94.05,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 93.92,
+   "amount": 348,
+   "weakenedPct": 19,
+   "via": "od",
+   "dotType": "ognia"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 93.91,
+   "amount": 44,
+   "weakenedPct": 24,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "info",
+   "line": "Hildur Muza Śmierci(93.91%) przygotowuje się do wykonania Symfonia żywiołów(67%)."
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Okrzyk bojowy"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 93.45,
+   "hits": [
+    {
+     "raw": 2576,
+     "applied": 511,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 773,
+     "applied": 773,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +773"
+   ],
+   "ability": "Okrzyk bojowy",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowca głów z psk",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 92.56,
+   "hits": [
+    {
+     "raw": 2982,
+     "applied": 1590,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 895,
+     "applied": 895,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +895"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 92.02,
+   "hits": [
+    {
+     "raw": 1582,
+     "applied": 1028,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 475,
+     "applied": 475,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +475"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 70,
+   "target": "Cygański Bidok",
+   "targetHpPct": 100,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 91.63,
+   "hits": [
+    {
+     "raw": 1497,
+     "applied": 642,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 449,
+     "applied": 449,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +449"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 90.75,
+   "hits": [
+    {
+     "raw": 2577,
+     "applied": 1675,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 773,
+     "applied": 773,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Zranienie (251)",
+    "Piętno bestii: atak +773"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Pchnięcie mrozu"
+  },
+  {
+   "kind": "attack",
+   "source": "bober lpg",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 90.15,
+   "hits": [
+    {
+     "raw": 2465,
+     "applied": 483,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1398,
+     "applied": 42,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1159,
+     "applied": 1159,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Zniszczono 6861 absorpcji",
+    "Zniszczono 4057 absorpcji magicznej",
+    "Dotyk anioła",
+    "Piętno bestii: atak +1159"
+   ],
+   "ability": "Pchnięcie mrozu",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Lodowy pocisk"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 88.91,
+   "hits": [
+    {
+     "raw": 3231,
+     "applied": 118,
+     "element": "zimno",
+     "crit": true,
+     "superCrit": true,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 6036,
+     "applied": 461,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 2863,
+     "applied": 2863,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Krytyczne spowolnienie o 1%",
+    "Niszczenie odporności magicznych o 3%",
+    "Zniszczono 5382 absorpcji",
+    "Zniszczono 3173 absorpcji magicznej",
+    "Piętno bestii: atak +2780"
+   ],
+   "ability": "Lodowy pocisk",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 88.43,
+   "hits": [
+    {
+     "raw": 1777,
+     "applied": 818,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 533,
+     "applied": 533,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +533"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 6568,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 90.78,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 90.69,
+   "amount": 251,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 90.07,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 89.94,
+   "amount": 365,
+   "weakenedPct": 15,
+   "via": "od",
+   "dotType": "ognia"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 89.92,
+   "amount": 46,
+   "weakenedPct": 20,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "info",
+   "line": "Hildur Muza Śmierci(89.92%) przygotowuje się do wykonania Symfonia żywiołów(100%)."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 166,
+   "target": "Wyczxs",
+   "targetHpPct": 87.57,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Szarża"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 87.57,
+   "targetHpPct": 89.37,
+   "hits": [
+    {
+     "raw": 3002,
+     "applied": 616,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 928,
+     "applied": 928,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +901"
+   ],
+   "ability": "Szarża",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 88.72,
+   "hits": [
+    {
+     "raw": 2253,
+     "applied": 1121,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 676,
+     "applied": 676,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Szybka strzała",
+    "Piętno bestii: atak +676"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Krytyczne wzmocnienie"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 88.16,
+   "hits": [
+    {
+     "raw": 2009,
+     "applied": 966,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 603,
+     "applied": 603,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +603"
+   ],
+   "ability": "Krytyczne wzmocnienie",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Niszczycielski cios"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 87.35,
+   "hits": [
+    {
+     "raw": 4344,
+     "applied": 950,
+     "element": "fizyczne",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1303,
+     "applied": 1303,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +1303"
+   ],
+   "ability": "Niszczycielski cios",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 86.67,
+   "hits": [
+    {
+     "raw": 2375,
+     "applied": 1200,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 713,
+     "applied": 713,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +713"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Podwójne trafienie"
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 86.22,
+   "hits": [
+    {
+     "raw": 1095,
+     "applied": 392,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1465,
+     "applied": 103,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 769,
+     "applied": 769,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +769"
+   ],
+   "ability": "Podwójne trafienie",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 85.77,
+   "hits": [
+    {
+     "raw": 1063,
+     "applied": 372,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1453,
+     "applied": 103,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 755,
+     "applied": 755,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +755"
+   ],
+   "ability": "Podwójne trafienie",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 85.25,
+   "hits": [
+    {
+     "raw": 1901,
+     "applied": 897,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 570,
+     "applied": 570,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +570"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 0,
+   "target": "bober lpg",
+   "targetHpPct": 100,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Pchnięcie mrozu"
+  },
+  {
+   "kind": "attack",
+   "source": "bober lpg",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 84.68,
+   "hits": [
+    {
+     "raw": 2295,
+     "applied": 442,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1398,
+     "applied": 49,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1108,
+     "applied": 1108,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Zniszczono 5356 absorpcji",
+    "Zniszczono 2780 absorpcji magicznej",
+    "Piętno bestii: atak +1108"
+   ],
+   "ability": "Pchnięcie mrozu",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Szadź"
+  },
+  {
+   "kind": "info",
+   "line": "Spowolnienie przeciwników o 14%"
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 6157,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 86.88,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 86.79,
+   "amount": 251,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 86.17,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 86.15,
+   "amount": 48,
+   "weakenedPct": 17,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "ability",
+   "actor": "Hildur Muza Śmierci",
+   "name": "Symfonia żywiołów"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": null,
+   "targetHpPct": 87.45,
+   "hits": [
+    {
+     "raw": 4350,
+     "applied": 4350,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "ogień"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Wyczxs",
+   "sourceHpPct": null,
+   "targetHpPct": 63.2,
+   "hits": [
+    {
+     "raw": 5377,
+     "applied": 5377,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "ogień"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "nie jadam kwasuw",
+   "sourceHpPct": null,
+   "targetHpPct": 78.98,
+   "hits": [
+    {
+     "raw": 3617,
+     "applied": 3617,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "ogień"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Utopiony w Barszczu",
+   "sourceHpPct": null,
+   "targetHpPct": 81.58,
+   "hits": [
+    {
+     "raw": 4501,
+     "applied": 4501,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "ogień"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "jakis Maciek",
+   "sourceHpPct": null,
+   "targetHpPct": 74.68,
+   "hits": [
+    {
+     "raw": 3801,
+     "applied": 3801,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "ogień"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "sigma kox",
+   "sourceHpPct": null,
+   "targetHpPct": 87.9,
+   "hits": [
+    {
+     "raw": 3642,
+     "applied": 3642,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "ogień"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "bober lpg",
+   "sourceHpPct": null,
+   "targetHpPct": 85.75,
+   "hits": [
+    {
+     "raw": 4588,
+     "applied": 4588,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "ogień"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Łowca głów z psk",
+   "sourceHpPct": null,
+   "targetHpPct": 81.93,
+   "hits": [
+    {
+     "raw": 3968,
+     "applied": 3968,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "ogień"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "losomaczka",
+   "sourceHpPct": null,
+   "targetHpPct": 80.44,
+   "hits": [
+    {
+     "raw": 4182,
+     "applied": 4182,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "ogień"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": null,
+   "targetHpPct": 78.04,
+   "hits": [
+    {
+     "raw": 3259,
+     "applied": 3259,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "zimno"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Wyczxs",
+   "sourceHpPct": null,
+   "targetHpPct": 48.61,
+   "hits": [
+    {
+     "raw": 3219,
+     "applied": 3219,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "zimno"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "nie jadam kwasuw",
+   "sourceHpPct": null,
+   "targetHpPct": 64.26,
+   "hits": [
+    {
+     "raw": 2534,
+     "applied": 2534,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "zimno"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Utopiony w Barszczu",
+   "sourceHpPct": null,
+   "targetHpPct": 76.09,
+   "hits": [
+    {
+     "raw": 1341,
+     "applied": 1341,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "zimno"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "jakis Maciek",
+   "sourceHpPct": null,
+   "targetHpPct": 59.84,
+   "hits": [
+    {
+     "raw": 3167,
+     "applied": 3167,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "zimno"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "sigma kox",
+   "sourceHpPct": null,
+   "targetHpPct": 78.07,
+   "hits": [
+    {
+     "raw": 2956,
+     "applied": 2956,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "zimno"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "bober lpg",
+   "sourceHpPct": null,
+   "targetHpPct": 76.22,
+   "hits": [
+    {
+     "raw": 3069,
+     "applied": 3069,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "zimno"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Łowca głów z psk",
+   "sourceHpPct": null,
+   "targetHpPct": 71.79,
+   "hits": [
+    {
+     "raw": 2226,
+     "applied": 2226,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "zimno"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "losomaczka",
+   "sourceHpPct": null,
+   "targetHpPct": 67.91,
+   "hits": [
+    {
+     "raw": 2678,
+     "applied": 2678,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "zimno"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Symfonia żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 137,
+   "target": "jakis Maciek",
+   "targetHpPct": 60.49,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 60.49,
+   "targetHpPct": 85.43,
+   "hits": [
+    {
+     "raw": 2098,
+     "applied": 1364,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 629,
+     "applied": 629,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +629"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 365,
+   "target": "Cygański Bidok",
+   "targetHpPct": 79.1,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowca głów z psk",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "Łowca głów z psk otrzymuje 2 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 71.79,
+   "targetHpPct": 84.72,
+   "hits": [
+    {
+     "raw": 2466,
+     "applied": 1258,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 740,
+     "applied": 740,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +740",
+    "Kombinacja x1!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 156,
+   "target": "Wyczxs",
+   "targetHpPct": 49.32,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Okrzyk bojowy"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 49.32,
+   "targetHpPct": 84.11,
+   "hits": [
+    {
+     "raw": 3287,
+     "applied": 687,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1015,
+     "applied": 1015,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +986"
+   ],
+   "ability": "Okrzyk bojowy",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "losomaczka otrzymuje 14 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 67.91,
+   "targetHpPct": 83.63,
+   "hits": [
+    {
+     "raw": 1775,
+     "applied": 817,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 533,
+     "applied": 533,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +533",
+    "Kombinacja x2!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 230,
+   "target": "bober lpg",
+   "targetHpPct": 76.94,
+   "self": false
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 1932,
+   "target": "bober lpg",
+   "targetHpPct": 82.94,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Fala leczenia"
+  },
+  {
+   "kind": "info",
+   "line": "Uleczono sojuszników o 30% życia."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 130,
+   "target": "jakis Maciek",
+   "targetHpPct": 91.09,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 91.09,
+   "targetHpPct": 83.01,
+   "hits": [
+    {
+     "raw": 2154,
+     "applied": 1058,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 646,
+     "applied": 646,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +646"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Porażenie"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 82.6,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 36,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2059,
+     "applied": 154,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 963,
+     "applied": 963,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Piętno bestii: atak +935"
+   ],
+   "ability": "Porażenie",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 5747,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 84.66,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 84.57,
+   "amount": 251,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 83.95,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 83.93,
+   "amount": 50,
+   "weakenedPct": 14,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "ability",
+   "actor": "Hildur Muza Śmierci",
+   "name": "Struna płomienna"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 83.93,
+   "targetHpPct": 97.07,
+   "hits": [
+    {
+     "raw": 1984,
+     "applied": 113,
+     "element": "ogień",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 4406,
+     "applied": 904,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": 1917,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41",
+    "Niszczenie odporności magicznych o 3%",
+    "Krytyczna osłona, osłabienie obrażeń o 25%"
+   ],
+   "ability": "Struna płomienna",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Ogłuszający cios"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": null,
+   "targetHpPct": 83.84,
+   "hits": [
+    {
+     "raw": 234,
+     "applied": 234,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "nieuchronne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Ogłuszający cios",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 83.26,
+   "hits": [
+    {
+     "raw": 3212,
+     "applied": 668,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 964,
+     "applied": 964,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +964",
+    "Kombinacja x2!"
+   ],
+   "ability": "Ogłuszający cios",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 342,
+   "target": "Cygański Bidok",
+   "targetHpPct": 98.05,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowca głów z psk",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 82.37,
+   "hits": [
+    {
+     "raw": 2619,
+     "applied": 1702,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 786,
+     "applied": 786,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +786"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 81.95,
+   "hits": [
+    {
+     "raw": 1573,
+     "applied": 689,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 472,
+     "applied": 472,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +472"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 147,
+   "target": "Wyczxs",
+   "targetHpPct": 79.98,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Niszczycielski cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 79.98,
+   "targetHpPct": 80.41,
+   "hits": [
+    {
+     "raw": 7948,
+     "applied": 1849,
+     "element": "fizyczne",
+     "crit": true,
+     "superCrit": true,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2455,
+     "applied": 2455,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +2384"
+   ],
+   "ability": "Niszczycielski cios",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 97.91,
+   "targetHpPct": 79.85,
+   "hits": [
+    {
+     "raw": 1994,
+     "applied": 956,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 598,
+     "applied": 598,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +598"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 5336,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 81.76,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 81.14,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 81.12,
+   "amount": 50,
+   "weakenedPct": 14,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 81.12,
+   "targetHpPct": 95.41,
+   "hits": [
+    {
+     "raw": 2638,
+     "applied": 914,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 355,
+   "target": "nie jadam kwasuw",
+   "targetHpPct": 96.32,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Strzała z niespodzianką"
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.32,
+   "targetHpPct": 80.84,
+   "hits": [
+    {
+     "raw": 1436,
+     "applied": 603,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2198,
+     "applied": 178,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Kombinacja x2!"
+   ],
+   "ability": "Strzała z niespodzianką",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 123,
+   "target": "jakis Maciek",
+   "targetHpPct": 91.67,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Piętno bestii"
+  },
+  {
+   "kind": "info",
+   "line": "Wszyscy przeciwnicy otrzymują zwiększone obrażenia."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 319,
+   "target": "Cygański Bidok",
+   "targetHpPct": 96.34,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 0,
+   "target": "bober lpg",
+   "targetHpPct": 100,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Odnowa mocy"
+  },
+  {
+   "kind": "info",
+   "line": "bober lpg otrzymuje 163 many"
+  },
+  {
+   "kind": "info",
+   "line": "bober lpg otrzymuje 0 energii."
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Lodowy pocisk"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 80.59,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 40,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2102,
+     "applied": 165,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 487,
+     "applied": 487,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Zniszczono 3340 absorpcji",
+    "Zniszczono 1912 absorpcji magicznej",
+    "Piętno bestii: atak +473"
+   ],
+   "ability": "Lodowy pocisk",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 80.01,
+   "hits": [
+    {
+     "raw": 2450,
+     "applied": 1248,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 368,
+     "applied": 368,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +368"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Błyskawiczny atak"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 79.67,
+   "hits": [
+    {
+     "raw": 2759,
+     "applied": 556,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 414,
+     "applied": 414,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +414"
+   ],
+   "ability": "Błyskawiczny atak",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 4926,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 81.43,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 80.8,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 80.79,
+   "amount": 52,
+   "weakenedPct": 10,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "ability",
+   "actor": "Hildur Muza Śmierci",
+   "name": "Struna płomienna"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 80.79,
+   "targetHpPct": 92.25,
+   "hits": [
+    {
+     "raw": 1440,
+     "applied": 349,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2384,
+     "applied": 1066,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41"
+   ],
+   "ability": "Struna płomienna",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Piętno bestii"
+  },
+  {
+   "kind": "info",
+   "line": "Wszyscy przeciwnicy otrzymują zwiększone obrażenia."
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Szybki atak"
+  },
+  {
+   "kind": "attack",
+   "source": "bober lpg",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 80.13,
+   "hits": [
+    {
+     "raw": 2700,
+     "applied": 542,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1398,
+     "applied": 58,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1229,
+     "applied": 1229,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +1229"
+   ],
+   "ability": "Szybki atak",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 296,
+   "target": "Cygański Bidok",
+   "targetHpPct": 93.11,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 116,
+   "target": "jakis Maciek",
+   "targetHpPct": 92.21,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.21,
+   "targetHpPct": 79.74,
+   "hits": [
+    {
+     "raw": 1501,
+     "applied": 643,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 450,
+     "applied": 450,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +450"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.21,
+   "targetHpPct": 79.36,
+   "hits": [
+    {
+     "raw": 1466,
+     "applied": 622,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 440,
+     "applied": 440,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +440"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 138,
+   "target": "Wyczxs",
+   "targetHpPct": 80.61,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Niszczycielski cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 80.61,
+   "targetHpPct": 78.78,
+   "hits": [
+    {
+     "raw": 3135,
+     "applied": 649,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 969,
+     "applied": 969,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +941"
+   ],
+   "ability": "Niszczycielski cios",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Porażenie"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 78.34,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 43,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2190,
+     "applied": 180,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1003,
+     "applied": 1003,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Piętno bestii: atak +974"
+   ],
+   "ability": "Porażenie",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 4515,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 79.96,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 79.33,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 79.31,
+   "amount": 54,
+   "weakenedPct": 6,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 79.31,
+   "targetHpPct": 91.21,
+   "hits": [
+    {
+     "raw": 2638,
+     "applied": 658,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": 791,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41",
+    "Płomienne oczyszczenie"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "info",
+   "line": "Hildur Muza Śmierci(79.31%) przygotowuje się do wykonania Tryptyk płonący(0%)."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 78.7,
+   "hits": [
+    {
+     "raw": 2154,
+     "applied": 1058,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 646,
+     "applied": 646,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +646"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Niszczycielski cios"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 78.22,
+   "hits": [
+    {
+     "raw": 2699,
+     "applied": 541,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 810,
+     "applied": 810,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +810"
+   ],
+   "ability": "Niszczycielski cios",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 58,
+   "target": "jakis Maciek",
+   "targetHpPct": 92.49,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Krytyczne wzmocnienie"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 77.22,
+   "hits": [
+    {
+     "raw": 3302,
+     "applied": 1797,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 991,
+     "applied": 991,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +991"
+   ],
+   "ability": "Krytyczne wzmocnienie",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 274,
+   "target": "Cygański Bidok",
+   "targetHpPct": 92,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Pchnięcie mrozu"
+  },
+  {
+   "kind": "attack",
+   "source": "bober lpg",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 76.6,
+   "hits": [
+    {
+     "raw": 2485,
+     "applied": 488,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1398,
+     "applied": 62,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1165,
+     "applied": 1165,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Zniszczono 2980 absorpcji",
+    "Zniszczono 1689 absorpcji magicznej",
+    "Piętno bestii: atak +1165"
+   ],
+   "ability": "Pchnięcie mrozu",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 337,
+   "target": "nie jadam kwasuw",
+   "targetHpPct": 98.28,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Płonąca strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.28,
+   "targetHpPct": 76.01,
+   "hits": [
+    {
+     "raw": 1388,
+     "applied": 573,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1731,
+     "applied": 146,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 935,
+     "applied": 935,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +935"
+   ],
+   "ability": "Płonąca strzała",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Lodowy pocisk"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 75.56,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 47,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2234,
+     "applied": 194,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1016,
+     "applied": 1016,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Zniszczono 2269 absorpcji",
+    "Zniszczono 1207 absorpcji magicznej",
+    "Piętno bestii: atak +987"
+   ],
+   "ability": "Lodowy pocisk",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 129,
+   "target": "Wyczxs",
+   "targetHpPct": 81.19,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Ogłuszający cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": null,
+   "targetHpPct": 75.42,
+   "hits": [
+    {
+     "raw": 379,
+     "applied": 379,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "nieuchronne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Ogłuszający cios",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 81.19,
+   "targetHpPct": 74.73,
+   "hits": [
+    {
+     "raw": 3690,
+     "applied": 787,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1140,
+     "applied": 1140,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Ogłuszenie",
+    "Przerwanie ciosu specjalnego",
+    "Piętno bestii: atak +1107",
+    "Kombinacja x3!"
+   ],
+   "ability": "Ogłuszający cios",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 4105,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 76.21,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 75.58,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 75.43,
+   "amount": 429,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "ognia"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 75.4,
+   "amount": 57,
+   "weakenedPct": 1,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "turn-lost",
+   "actor": "Hildur Muza Śmierci"
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 97.91,
+   "targetHpPct": 75.06,
+   "hits": [
+    {
+     "raw": 1354,
+     "applied": 552,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 406,
+     "applied": 406,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +406"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 97.91,
+   "targetHpPct": 74.7,
+   "hits": [
+    {
+     "raw": 1405,
+     "applied": 584,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 422,
+     "applied": 422,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +422"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 74.08,
+   "hits": [
+    {
+     "raw": 2200,
+     "applied": 1087,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 660,
+     "applied": 660,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +660"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 73.03,
+   "hits": [
+    {
+     "raw": 3069,
+     "applied": 1995,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 921,
+     "applied": 921,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +921"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 251,
+   "target": "Cygański Bidok",
+   "targetHpPct": 92.72,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 3694,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 74.35,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 73.73,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 73.57,
+   "amount": 429,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "ognia"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 73.55,
+   "amount": 57,
+   "weakenedPct": 1,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "ability",
+   "actor": "Hildur Muza Śmierci",
+   "name": "Śpiew zagłady"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": null,
+   "targetHpPct": 75.52,
+   "hits": [
+    {
+     "raw": 5962,
+     "applied": 5962,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "globalne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Śpiew zagłady",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Wyczxs",
+   "sourceHpPct": null,
+   "targetHpPct": 54.17,
+   "hits": [
+    {
+     "raw": 5962,
+     "applied": 5962,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "globalne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Śpiew zagłady",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "nie jadam kwasuw",
+   "sourceHpPct": null,
+   "targetHpPct": 65.81,
+   "hits": [
+    {
+     "raw": 5589,
+     "applied": 5589,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "globalne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Śpiew zagłady",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Utopiony w Barszczu",
+   "sourceHpPct": null,
+   "targetHpPct": 77.12,
+   "hits": [
+    {
+     "raw": 5589,
+     "applied": 5589,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "globalne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Śpiew zagłady",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "jakis Maciek",
+   "sourceHpPct": null,
+   "targetHpPct": 66.3,
+   "hits": [
+    {
+     "raw": 5589,
+     "applied": 5589,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "globalne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Śpiew zagłady",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "sigma kox",
+   "sourceHpPct": null,
+   "targetHpPct": 82.67,
+   "hits": [
+    {
+     "raw": 5216,
+     "applied": 5216,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "globalne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Śpiew zagłady",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "bober lpg",
+   "sourceHpPct": null,
+   "targetHpPct": 83.57,
+   "hits": [
+    {
+     "raw": 5291,
+     "applied": 5291,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "globalne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Śpiew zagłady",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Łowca głów z psk",
+   "sourceHpPct": null,
+   "targetHpPct": 76.24,
+   "hits": [
+    {
+     "raw": 5216,
+     "applied": 5216,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "globalne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Śpiew zagłady",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "losomaczka",
+   "sourceHpPct": null,
+   "targetHpPct": 73.51,
+   "hits": [
+    {
+     "raw": 5216,
+     "applied": 5216,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "globalne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%"
+   ],
+   "ability": "Śpiew zagłady",
+   "strike": false
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 219,
+   "target": "bober lpg",
+   "targetHpPct": 84.25,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Pchnięcie mrozu"
+  },
+  {
+   "kind": "attack",
+   "source": "bober lpg",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 84.25,
+   "targetHpPct": 72.97,
+   "hits": [
+    {
+     "raw": 2309,
+     "applied": 445,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1398,
+     "applied": 68,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1112,
+     "applied": 1112,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Zniszczono 2164 absorpcji",
+    "Zniszczono 1150 absorpcji magicznej",
+    "Piętno bestii: atak +1112"
+   ],
+   "ability": "Pchnięcie mrozu",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 131,
+   "target": "sigma kox",
+   "targetHpPct": 83.1,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Ogłuszający cios"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": null,
+   "targetHpPct": 72.89,
+   "hits": [
+    {
+     "raw": 234,
+     "applied": 234,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "nieuchronne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Ogłuszający cios",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 83.1,
+   "targetHpPct": 72.34,
+   "hits": [
+    {
+     "raw": 3020,
+     "applied": 621,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 906,
+     "applied": 906,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Ogłuszenie",
+    "Piętno bestii: atak +906",
+    "Kombinacja x2!"
+   ],
+   "ability": "Ogłuszający cios",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 73.51,
+   "targetHpPct": 71.55,
+   "hits": [
+    {
+     "raw": 2700,
+     "applied": 1409,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 810,
+     "applied": 810,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +810"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 3284,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 72.72,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 72.1,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "turn-lost",
+   "actor": "Hildur Muza Śmierci"
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 2582,
+   "target": "Utopiony w Barszczu",
+   "targetHpPct": 87.69,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Szadź"
+  },
+  {
+   "kind": "info",
+   "line": "Spowolnienie przeciwników o 14%"
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 120,
+   "target": "Wyczxs",
+   "targetHpPct": 54.72,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Niszczycielski cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 54.72,
+   "targetHpPct": 71.55,
+   "hits": [
+    {
+     "raw": 2975,
+     "applied": 610,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 919,
+     "applied": 919,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +893"
+   ],
+   "ability": "Niszczycielski cios",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowca głów z psk",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 76.24,
+   "targetHpPct": 71.09,
+   "hits": [
+    {
+     "raw": 1701,
+     "applied": 770,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 510,
+     "applied": 510,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +510"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 76.24,
+   "targetHpPct": 70.33,
+   "hits": [
+    {
+     "raw": 2604,
+     "applied": 1347,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 781,
+     "applied": 781,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +781"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 103,
+   "target": "jakis Maciek",
+   "targetHpPct": 66.79,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "jakis Maciek otrzymuje 31 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 66.79,
+   "targetHpPct": 69.74,
+   "hits": [
+    {
+     "raw": 2080,
+     "applied": 1011,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 624,
+     "applied": 624,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Dotyk anioła",
+    "Piętno bestii: atak +624",
+    "Kombinacja x3!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 228,
+   "target": "Cygański Bidok",
+   "targetHpPct": 76.18,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 207,
+   "target": "bober lpg",
+   "targetHpPct": 84.89,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Fala leczenia"
+  },
+  {
+   "kind": "info",
+   "line": "Uleczono sojuszników o 22.5% życia."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 2873,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 70.77,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 70.14,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 70.14,
+   "targetHpPct": 94.92,
+   "hits": [
+    {
+     "raw": 2638,
+     "applied": 1302,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 96,
+   "target": "jakis Maciek",
+   "targetHpPct": 89.74,
+   "self": false
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 587,
+   "target": "jakis Maciek",
+   "targetHpPct": 92.49,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 69.4,
+   "hits": [
+    {
+     "raw": 2549,
+     "applied": 1311,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 765,
+     "applied": 765,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +765"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 68.89,
+   "hits": [
+    {
+     "raw": 1502,
+     "applied": 976,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 451,
+     "applied": 451,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Zranienie (146)",
+    "Piętno bestii: atak +451"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.01,
+   "targetHpPct": 68.34,
+   "hits": [
+    {
+     "raw": 1983,
+     "applied": 949,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 595,
+     "applied": 595,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +595"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 319,
+   "target": "nie jadam kwasuw",
+   "targetHpPct": 90.16,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Płonąca strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 90.16,
+   "targetHpPct": 67.73,
+   "hits": [
+    {
+     "raw": 1211,
+     "applied": 463,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2242,
+     "applied": 197,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1036,
+     "applied": 1036,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +1036"
+   ],
+   "ability": "Płonąca strzała",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Błyskawiczny atak"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 67.22,
+   "hits": [
+    {
+     "raw": 2807,
+     "applied": 568,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 842,
+     "applied": 842,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +842"
+   ],
+   "ability": "Błyskawiczny atak",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Porażenie"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 66.76,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 51,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2321,
+     "applied": 205,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1043,
+     "applied": 1043,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Piętno bestii: atak +1013"
+   ],
+   "ability": "Porażenie",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowca głów z psk",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "Łowca głów z psk otrzymuje 16 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.74,
+   "targetHpPct": 66.08,
+   "hits": [
+    {
+     "raw": 2346,
+     "applied": 1181,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 704,
+     "applied": 704,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +704",
+    "Kombinacja x2!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 110,
+   "target": "Wyczxs",
+   "targetHpPct": 77.71,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Niszczycielski cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 77.71,
+   "targetHpPct": 65.47,
+   "hits": [
+    {
+     "raw": 3285,
+     "applied": 687,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1015,
+     "applied": 1015,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +986"
+   ],
+   "ability": "Niszczycielski cios",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 205,
+   "target": "Cygański Bidok",
+   "targetHpPct": 95.51,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 2463,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 66.35,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 66.3,
+   "amount": 146,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 65.68,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 65.52,
+   "amount": 429,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "ognia"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 65.5,
+   "amount": 57,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "ability",
+   "actor": "Hildur Muza Śmierci",
+   "name": "Struna płomienna"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 65.5,
+   "targetHpPct": 90.46,
+   "hits": [
+    {
+     "raw": 1508,
+     "applied": 432,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2638,
+     "applied": 1317,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41"
+   ],
+   "ability": "Struna płomienna",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 0,
+   "target": "jakis Maciek",
+   "targetHpPct": 92.49,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Krytyczne wzmocnienie"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 64.57,
+   "hits": [
+    {
+     "raw": 3101,
+     "applied": 1667,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 930,
+     "applied": 930,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +930"
+   ],
+   "ability": "Krytyczne wzmocnienie",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "losomaczka otrzymuje 14 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.01,
+   "targetHpPct": 64.06,
+   "hits": [
+    {
+     "raw": 1845,
+     "applied": 861,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 554,
+     "applied": 554,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +554",
+    "Kombinacja x2!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Odnowa mocy"
+  },
+  {
+   "kind": "info",
+   "line": "bober lpg otrzymuje 147 many"
+  },
+  {
+   "kind": "info",
+   "line": "bober lpg otrzymuje 0 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.74,
+   "targetHpPct": 61.95,
+   "hits": [
+    {
+     "raw": 6211,
+     "applied": 4037,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": true,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1863,
+     "applied": 1863,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +1863"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Lodowy pocisk"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 61.48,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 53,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2365,
+     "applied": 209,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1057,
+     "applied": 1057,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Zniszczono 681 absorpcji",
+    "Zniszczono 596 absorpcji magicznej",
+    "Dotyk anioła",
+    "Piętno bestii: atak +1027"
+   ],
+   "ability": "Lodowy pocisk",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Niszczycielski cios"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 61.06,
+   "hits": [
+    {
+     "raw": 2377,
+     "applied": 462,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 713,
+     "applied": 713,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +713"
+   ],
+   "ability": "Niszczycielski cios",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 182,
+   "target": "Cygański Bidok",
+   "targetHpPct": 90.98,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 0,
+   "target": "jakis Maciek",
+   "targetHpPct": 92.49,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 60.09,
+   "hits": [
+    {
+     "raw": 3204,
+     "applied": 1733,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 961,
+     "applied": 961,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Zranienie (259)",
+    "Piętno bestii: atak +961"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 2052,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 60.83,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 60.73,
+   "amount": 259,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 60.11,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 59.95,
+   "amount": 429,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "ognia"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 59.93,
+   "amount": 57,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 59.93,
+   "targetHpPct": 85.43,
+   "hits": [
+    {
+     "raw": 4106,
+     "applied": 1924,
+     "element": "zimno",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41",
+    "Krytyczna osłona, osłabienie obrażeń o 25%"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "info",
+   "line": "Hildur Muza Śmierci(59.93%) przygotowuje się do wykonania Chorus skamieniałej panny(0%)."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 101,
+   "target": "Wyczxs",
+   "targetHpPct": 78.17,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Ogłuszający cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": null,
+   "targetHpPct": 59.84,
+   "hits": [
+    {
+     "raw": 252,
+     "applied": 252,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "nieuchronne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Ogłuszający cios",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 78.17,
+   "targetHpPct": 59.36,
+   "hits": [
+    {
+     "raw": 3705,
+     "applied": 791,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 572,
+     "applied": 572,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +556",
+    "Kombinacja x2!"
+   ],
+   "ability": "Ogłuszający cios",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.01,
+   "targetHpPct": 58.66,
+   "hits": [
+    {
+     "raw": 2847,
+     "applied": 1503,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 427,
+     "applied": 427,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +427"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 302,
+   "target": "nie jadam kwasuw",
+   "targetHpPct": 91.91,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Podwójne trafienie"
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 91.91,
+   "targetHpPct": 58.32,
+   "hits": [
+    {
+     "raw": 1178,
+     "applied": 443,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1466,
+     "applied": 120,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 397,
+     "applied": 397,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +397"
+   ],
+   "ability": "Podwójne trafienie",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 91.91,
+   "targetHpPct": 57.81,
+   "hits": [
+    {
+     "raw": 1418,
+     "applied": 591,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2613,
+     "applied": 234,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 605,
+     "applied": 605,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +605"
+   ],
+   "ability": "Podwójne trafienie",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Aura ochrony"
+  },
+  {
+   "kind": "info",
+   "line": "Aura ochrony fizycznej została aktywowana (+20% pancerza)."
+  },
+  {
+   "kind": "info",
+   "line": "Aura ochrony magicznej została aktywowana (+15% odporności)."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.74,
+   "targetHpPct": 57.28,
+   "hits": [
+    {
+     "raw": 2255,
+     "applied": 1123,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 338,
+     "applied": 338,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +338"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 0,
+   "target": "Utopiony w Barszczu",
+   "targetHpPct": 100,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Porażenie"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 56.99,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 57,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2453,
+     "applied": 218,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 541,
+     "applied": 541,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Piętno bestii: atak +526"
+   ],
+   "ability": "Porażenie",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 56.41,
+   "hits": [
+    {
+     "raw": 2035,
+     "applied": 1323,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 305,
+     "applied": 305,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +305"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 1642,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 57,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 56.9,
+   "amount": 259,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 56.28,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 56.26,
+   "amount": 57,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "info",
+   "line": "Hildur Muza Śmierci(56.26%) przygotowuje się do wykonania Chorus skamieniałej panny(50%)."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 160,
+   "target": "Cygański Bidok",
+   "targetHpPct": 85.89,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.01,
+   "targetHpPct": 55.8,
+   "hits": [
+    {
+     "raw": 1953,
+     "applied": 1269,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.01,
+   "targetHpPct": 55.48,
+   "hits": [
+    {
+     "raw": 1366,
+     "applied": 888,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Ogłuszający cios"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": null,
+   "targetHpPct": 55.4,
+   "hits": [
+    {
+     "raw": 234,
+     "applied": 234,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "nieuchronne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Ogłuszający cios",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 55.17,
+   "hits": [
+    {
+     "raw": 3132,
+     "applied": 649,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Ogłuszenie",
+    "Przerwanie ciosu specjalnego",
+    "Kombinacja x2!"
+   ],
+   "ability": "Ogłuszający cios",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 1231,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 55.61,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 55.52,
+   "amount": 259,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 54.89,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 54.87,
+   "amount": 57,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "turn-lost",
+   "actor": "Hildur Muza Śmierci"
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 92,
+   "target": "Wyczxs",
+   "targetHpPct": 78.59,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Niszczycielski cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 78.59,
+   "targetHpPct": 54.05,
+   "hits": [
+    {
+     "raw": 3010,
+     "applied": 2289,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Niszczycielski cios",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowca głów z psk",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.74,
+   "targetHpPct": 53.66,
+   "hits": [
+    {
+     "raw": 1598,
+     "applied": 1084,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.74,
+   "targetHpPct": 52.91,
+   "hits": [
+    {
+     "raw": 2628,
+     "applied": 2096,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Szybki atak"
+  },
+  {
+   "kind": "attack",
+   "source": "bober lpg",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 52.14,
+   "hits": [
+    {
+     "raw": 2497,
+     "applied": 1966,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1398,
+     "applied": 184,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Dotyk anioła"
+   ],
+   "ability": "Szybki atak",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 51.62,
+   "hits": [
+    {
+     "raw": 1966,
+     "applied": 1443,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 0,
+   "target": "Utopiony w Barszczu",
+   "targetHpPct": 100,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Lodowy pocisk"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 49.73,
+   "hits": [
+    {
+     "raw": 1846,
+     "applied": 1198,
+     "element": "zimno",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 4370,
+     "applied": 4094,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Krytyczne spowolnienie o 1%",
+    "Niszczenie odporności magicznych o 3%"
+   ],
+   "ability": "Lodowy pocisk",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 284,
+   "target": "nie jadam kwasuw",
+   "targetHpPct": 93.56,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Strzała z niespodzianką"
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 93.56,
+   "targetHpPct": 48.31,
+   "hits": [
+    {
+     "raw": 1999,
+     "applied": 1476,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2745,
+     "applied": 2471,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Kombinacja x3!"
+   ],
+   "ability": "Strzała z niespodzianką",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.01,
+   "targetHpPct": 47.61,
+   "hits": [
+    {
+     "raw": 1957,
+     "applied": 1957,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 137,
+   "target": "Cygański Bidok",
+   "targetHpPct": 86.29,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 821,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 47.9,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 47.28,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 47.26,
+   "amount": 57,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 47.26,
+   "targetHpPct": 85.85,
+   "hits": [
+    {
+     "raw": 1844,
+     "applied": 154,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": 553,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 46.91,
+   "hits": [
+    {
+     "raw": 1493,
+     "applied": 983,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 46.55,
+   "hits": [
+    {
+     "raw": 1498,
+     "applied": 988,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.74,
+   "targetHpPct": 45.73,
+   "hits": [
+    {
+     "raw": 2300,
+     "applied": 2300,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 0,
+   "target": "bober lpg",
+   "targetHpPct": 100,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Pchnięcie mrozu"
+  },
+  {
+   "kind": "attack",
+   "source": "bober lpg",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 43.98,
+   "hits": [
+    {
+     "raw": 4154,
+     "applied": 3611,
+     "element": "fizyczne",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1902,
+     "applied": 1272,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Zamrożenie"
+   ],
+   "ability": "Pchnięcie mrozu",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 410,
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 44.13,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 43.5,
+   "amount": 1747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "turn-lost",
+   "actor": "Hildur Muza Śmierci"
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Błyskawiczny atak"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 42.68,
+   "hits": [
+    {
+     "raw": 2819,
+     "applied": 2285,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Błyskawiczny atak",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 83,
+   "target": "Wyczxs",
+   "targetHpPct": 78.96,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Niszczycielski cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 78.96,
+   "targetHpPct": 40.04,
+   "hits": [
+    {
+     "raw": 7934,
+     "applied": 7382,
+     "element": "fizyczne",
+     "crit": true,
+     "superCrit": true,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Niszczycielski cios",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 0,
+   "target": "Utopiony w Barszczu",
+   "targetHpPct": 100,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Szadź"
+  },
+  {
+   "kind": "info",
+   "line": "Spowolnienie przeciwników o 14%"
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.01,
+   "targetHpPct": 39.56,
+   "hits": [
+    {
+     "raw": 1839,
+     "applied": 1319,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 114,
+   "target": "Cygański Bidok",
+   "targetHpPct": 86.17,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 39.01,
+   "hits": [
+    {
+     "raw": 2054,
+     "applied": 1530,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 38.75,
+   "amount": 747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "Hildur Muza Śmierci",
+   "name": "Dysonans"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.74,
+   "targetHpPct": 38.14,
+   "hits": [
+    {
+     "raw": 2209,
+     "applied": 1682,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 266,
+   "target": "nie jadam kwasuw",
+   "targetHpPct": 95.11,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Podwójny dech"
+  },
+  {
+   "kind": "info",
+   "line": "Aura szybkości została aktywowana (+20% szybkości ataku)."
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 0,
+   "target": "bober lpg",
+   "targetHpPct": 100,
+   "self": true
+  },
+  {
+   "kind": "move",
+   "actor": "bober lpg",
+   "hpPct": 100,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Piętno bestii"
+  },
+  {
+   "kind": "info",
+   "line": "Wszyscy przeciwnicy otrzymują zwiększone obrażenia."
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Porażenie"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 36.88,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 642,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2584,
+     "applied": 2311,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 562,
+     "applied": 562,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Piętno bestii: atak +546"
+   ],
+   "ability": "Porażenie",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 91,
+   "target": "Cygański Bidok",
+   "targetHpPct": 86.44,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "move",
+   "actor": "sigma kox",
+   "hpPct": 100,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 35.62,
+   "hits": [
+    {
+     "raw": 3059,
+     "applied": 3059,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 459,
+     "applied": 459,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +459"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 74,
+   "target": "Wyczxs",
+   "targetHpPct": 79.3,
+   "self": false
+  },
+  {
+   "kind": "move",
+   "actor": "Wyczxs",
+   "hpPct": 79.3,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 35.36,
+   "amount": 747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 35.34,
+   "amount": 57,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 35.34,
+   "targetHpPct": 82.79,
+   "hits": [
+    {
+     "raw": 3020,
+     "applied": 1263,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowca głów z psk",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "Łowca głów z psk otrzymuje 2 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.74,
+   "targetHpPct": 34.63,
+   "hits": [
+    {
+     "raw": 2177,
+     "applied": 1651,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 327,
+     "applied": 327,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +327",
+    "Kombinacja x1!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 0,
+   "target": "bober lpg",
+   "targetHpPct": 100,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Pchnięcie mrozu"
+  },
+  {
+   "kind": "attack",
+   "source": "bober lpg",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 33.37,
+   "hits": [
+    {
+     "raw": 2518,
+     "applied": 1987,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1398,
+     "applied": 927,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 588,
+     "applied": 588,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +588"
+   ],
+   "ability": "Pchnięcie mrozu",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "jakis Maciek otrzymuje 31 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 32.65,
+   "hits": [
+    {
+     "raw": 2215,
+     "applied": 1688,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 332,
+     "applied": 332,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Szybka strzała",
+    "Piętno bestii: atak +332",
+    "Kombinacja x3!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Lodowy pocisk"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 31.36,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 673,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2628,
+     "applied": 2354,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 568,
+     "applied": 568,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Piętno bestii: atak +552"
+   ],
+   "ability": "Lodowy pocisk",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 68,
+   "target": "Cygański Bidok",
+   "targetHpPct": 82.99,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.01,
+   "targetHpPct": 30.95,
+   "hits": [
+    {
+     "raw": 1434,
+     "applied": 926,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 215,
+     "applied": 215,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +215"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.01,
+   "targetHpPct": 30.58,
+   "hits": [
+    {
+     "raw": 1348,
+     "applied": 843,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 202,
+     "applied": 202,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Szybka strzała",
+    "Piętno bestii: atak +202"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Piętno bestii"
+  },
+  {
+   "kind": "info",
+   "line": "Wszyscy przeciwnicy otrzymują zwiększone obrażenia."
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "losomaczka otrzymuje 22 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 96.01,
+   "targetHpPct": 29.68,
+   "hits": [
+    {
+     "raw": 1929,
+     "applied": 1929,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 579,
+     "applied": 579,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +579",
+    "Kombinacja x3!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowca głów z psk",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.74,
+   "targetHpPct": 29.04,
+   "hits": [
+    {
+     "raw": 1763,
+     "applied": 1245,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 529,
+     "applied": 529,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +529"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 98.74,
+   "targetHpPct": 28.36,
+   "hits": [
+    {
+     "raw": 1870,
+     "applied": 1349,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 561,
+     "applied": 561,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +561"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Okrzyk bojowy"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 27.32,
+   "hits": [
+    {
+     "raw": 2643,
+     "applied": 2110,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 793,
+     "applied": 793,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +793"
+   ],
+   "ability": "Okrzyk bojowy",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 27.05,
+   "amount": 747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 27.03,
+   "amount": 57,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 27.03,
+   "targetHpPct": 79.31,
+   "hits": [
+    {
+     "raw": 3020,
+     "applied": 1275,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Fala leczenia"
+  },
+  {
+   "kind": "info",
+   "line": "Uleczono sojuszników o 15% życia."
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Płonąca strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 25.9,
+   "hits": [
+    {
+     "raw": 1176,
+     "applied": 680,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1845,
+     "applied": 1575,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 907,
+     "applied": 907,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +907"
+   ],
+   "ability": "Płonąca strzała",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 64,
+   "target": "Wyczxs",
+   "targetHpPct": 94.58,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Ogłuszający cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": null,
+   "targetHpPct": 25.81,
+   "hits": [
+    {
+     "raw": 252,
+     "applied": 252,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "nieuchronne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Ogłuszający cios",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 94.58,
+   "targetHpPct": 24.18,
+   "hits": [
+    {
+     "raw": 3886,
+     "applied": 3344,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1200,
+     "applied": 1200,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +1166",
+    "Kombinacja x2!"
+   ],
+   "ability": "Ogłuszający cios",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Porażenie"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 22.67,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 705,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2628,
+     "applied": 2354,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1138,
+     "applied": 1138,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Piętno bestii: atak +1105"
+   ],
+   "ability": "Porażenie",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 46,
+   "target": "Cygański Bidok",
+   "targetHpPct": 94.44,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 21.77,
+   "hits": [
+    {
+     "raw": 1934,
+     "applied": 1934,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 580,
+     "applied": 580,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +580"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 21.09,
+   "hits": [
+    {
+     "raw": 1473,
+     "applied": 1473,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 442,
+     "applied": 442,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +442"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 20.57,
+   "hits": [
+    {
+     "raw": 1510,
+     "applied": 999,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 453,
+     "applied": 453,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Szybka strzała",
+    "Klątwa",
+    "Piętno bestii: atak +453"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 19.7,
+   "hits": [
+    {
+     "raw": 2272,
+     "applied": 1744,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 682,
+     "applied": 682,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +682"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 18.66,
+   "hits": [
+    {
+     "raw": 2217,
+     "applied": 2217,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 665,
+     "applied": 665,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +665"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 18.4,
+   "amount": 747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 18.24,
+   "amount": 429,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "ognia"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 18.22,
+   "amount": 57,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "turn-lost",
+   "actor": "Hildur Muza Śmierci"
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Odnowa mocy"
+  },
+  {
+   "kind": "info",
+   "line": "bober lpg otrzymuje 132 many"
+  },
+  {
+   "kind": "info",
+   "line": "bober lpg otrzymuje 0 energii."
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Niszczycielski cios"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 17.24,
+   "hits": [
+    {
+     "raw": 2522,
+     "applied": 1991,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 757,
+     "applied": 757,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +757"
+   ],
+   "ability": "Niszczycielski cios",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 23,
+   "target": "Cygański Bidok",
+   "targetHpPct": 94.51,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 16.32,
+   "hits": [
+    {
+     "raw": 1965,
+     "applied": 1965,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 590,
+     "applied": 590,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +590"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Lodowy pocisk"
+  },
+  {
+   "kind": "attack",
+   "source": "Utopiony w Barszczu",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 14.81,
+   "hits": [
+    {
+     "raw": 1055,
+     "applied": 729,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2628,
+     "applied": 2354,
+     "element": "błyskawica",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1138,
+     "applied": 1138,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 3%",
+    "Zamrożenie",
+    "Piętno bestii: atak +1105"
+   ],
+   "ability": "Lodowy pocisk",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 14.54,
+   "amount": 747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 14.39,
+   "amount": 429,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "ognia"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 14.37,
+   "amount": 57,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "turn-lost",
+   "actor": "Hildur Muza Śmierci"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 13.61,
+   "hits": [
+    {
+     "raw": 2028,
+     "applied": 1504,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 608,
+     "applied": 608,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +608"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 55,
+   "target": "Wyczxs",
+   "targetHpPct": 94.83,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Szarża"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 94.83,
+   "targetHpPct": 12.39,
+   "hits": [
+    {
+     "raw": 3024,
+     "applied": 2488,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 934,
+     "applied": 934,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +907"
+   ],
+   "ability": "Szarża",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 10.76,
+   "hits": [
+    {
+     "raw": 3498,
+     "applied": 3498,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1049,
+     "applied": 1049,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +1049"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "bober lpg",
+   "name": "Szybki atak"
+  },
+  {
+   "kind": "attack",
+   "source": "bober lpg",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 9.26,
+   "hits": [
+    {
+     "raw": 2484,
+     "applied": 1953,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1398,
+     "applied": 1052,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1164,
+     "applied": 1164,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +1164"
+   ],
+   "ability": "Szybki atak",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "nie jadam kwasuw",
+   "name": "Podwójne trafienie"
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 7.62,
+   "hits": [
+    {
+     "raw": 1662,
+     "applied": 1146,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2459,
+     "applied": 2186,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 1237,
+     "applied": 1237,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +1237"
+   ],
+   "ability": "Podwójne trafienie",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "nie jadam kwasuw",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 6.57,
+   "hits": [
+    {
+     "raw": 1240,
+     "applied": 740,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1623,
+     "applied": 1354,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    },
+    {
+     "raw": 859,
+     "applied": 859,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie odporności magicznych o 1%",
+    "Piętno bestii: atak +859"
+   ],
+   "ability": "Podwójne trafienie",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "losomaczka",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 6.06,
+   "hits": [
+    {
+     "raw": 1477,
+     "applied": 967,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 443,
+     "applied": 443,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +443"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "losomaczka",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 5.57,
+   "hits": [
+    {
+     "raw": 1456,
+     "applied": 947,
+     "element": "dystansowe",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 437,
+     "applied": 437,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +437"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "jakis Maciek",
+   "name": "Krytyczne wzmocnienie"
+  },
+  {
+   "kind": "attack",
+   "source": "jakis Maciek",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 92.49,
+   "targetHpPct": 4.2,
+   "hits": [
+    {
+     "raw": 3347,
+     "applied": 2808,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1004,
+     "applied": 1004,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Zranienie (421)",
+    "Piętno bestii: atak +1004"
+   ],
+   "ability": "Krytyczne wzmocnienie",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Cygański Bidok",
+   "name": "Wyzywający okrzyk"
+  },
+  {
+   "kind": "info",
+   "line": "Uwaga Hildur Muza Śmierci została skupiona na Cygański Bidok."
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie szansy na blok u przeciwników o 10%"
+  },
+  {
+   "kind": "info",
+   "line": "Zmniejszenie ataku przeciwników o 5%."
+  },
+  {
+   "kind": "ability",
+   "actor": "Utopiony w Barszczu",
+   "name": "Szadź"
+  },
+  {
+   "kind": "info",
+   "line": "Spowolnienie przeciwników o 14%"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 4.05,
+   "amount": 421,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 3.78,
+   "amount": 747,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "dot",
+   "target": "Hildur Muza Śmierci",
+   "targetHpPct": 3.76,
+   "amount": 57,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "ability",
+   "actor": "Hildur Muza Śmierci",
+   "name": "Struna płomienna"
+  },
+  {
+   "kind": "attack",
+   "source": "Hildur Muza Śmierci",
+   "target": "Cygański Bidok",
+   "sourceHpPct": 3.76,
+   "targetHpPct": 91.32,
+   "hits": [
+    {
+     "raw": 1412,
+     "applied": 139,
+     "element": "ogień",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 3020,
+     "applied": 966,
+     "element": "zimno",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": 1330,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 20%",
+    "Niszczenie pancerza o 41"
+   ],
+   "ability": "Struna płomienna",
+   "strike": true
+  },
+  {
+   "kind": "info",
+   "line": "Hildur Muza Śmierci(3.76%) przygotowuje się do wykonania Symfonia żywiołów(0%)."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowca głów z psk",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 1.91,
+   "hits": [
+    {
+     "raw": 3968,
+     "applied": 3968,
+     "element": "dystansowe",
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1190,
+     "applied": 1190,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Piętno bestii: atak +1190"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "sigma kox",
+   "name": "Ogłuszający cios"
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": null,
+   "targetHpPct": 1.79,
+   "hits": [
+    {
+     "raw": 351,
+     "applied": 351,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": "nieuchronne"
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Ogłuszający cios",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "sigma kox",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 100,
+   "targetHpPct": 0.55,
+   "hits": [
+    {
+     "raw": 3074,
+     "applied": 2537,
+     "element": "fizyczne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 922,
+     "applied": 922,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +922",
+    "Kombinacja x3!"
+   ],
+   "ability": "Ogłuszający cios",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 46,
+   "target": "Wyczxs",
+   "targetHpPct": 95.04,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Wyczxs",
+   "name": "Okrzyk bojowy"
+  },
+  {
+   "kind": "attack",
+   "source": "Wyczxs",
+   "target": "Hildur Muza Śmierci",
+   "sourceHpPct": 95.04,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 8751,
+     "applied": 8198,
+     "element": "fizyczne",
+     "crit": true,
+     "superCrit": true,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2703,
+     "applied": 2703,
+     "element": "nieuchronne",
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Piętno bestii: atak +2625"
+   ],
+   "ability": "Okrzyk bojowy",
+   "strike": true
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "victory",
+   "actors": [
+    "Cygański Bidok",
+    "Wyczxs",
+    "nie jadam kwasuw",
+    "Utopiony w Barszczu",
+    "jakis Maciek",
+    "sigma kox",
+    "bober lpg",
+    "Łowca głów z psk",
+    "losomaczka"
+   ],
+   "result": "Zwyciężyła drużyna Cygański Bidok, Wyczxs, nie jadam kwasuw, Utopiony w Barszczu, jakis Maciek, sigma kox, bober lpg, Łowca głów z psk, losomaczka"
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "defeat",
+   "actors": [
+    "Hildur Muza Śmierci"
+   ],
+   "result": "Poległ(a) Hildur Muza Śmierci"
+  },
+  {
+   "kind": "info",
+   "line": "Hildur Muza Śmierci: zdobyto Bojowa przyłbica marynarza II, Stalowa koszula kadeta II, Atrybut krwawego żeglarza II, Kamuflaż wikinga II, Lniana podszewka II, Rogata ochrona dłoni II, Blachy bosmana II, Kapelusz odkrywcy II, Podeszwy człowieka północy II"
+  }
+ ]
+}

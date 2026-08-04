@@ -1,0 +1,381 @@
+{
+ "zrodlo": "raw.txt",
+ "zamrozone": "2026-08-04",
+ "zdarzenia": [
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowcosław Kazrek",
+     "level": 70,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "Gnoll łucznik",
+     "level": 63,
+     "professionCode": "h",
+     "side": 1
+    },
+    {
+     "name": "Gnoll łucznik",
+     "level": 63,
+     "professionCode": "h",
+     "side": 1
+    },
+    {
+     "name": "Gnoll szaman",
+     "level": 64,
+     "professionCode": "m",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowcosław Kazrek",
+     "level": 70,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "Gnoll łucznik",
+     "level": 63,
+     "professionCode": "h",
+     "side": 1
+    },
+    {
+     "name": "Gnoll łucznik",
+     "level": 63,
+     "professionCode": "h",
+     "side": 1
+    },
+    {
+     "name": "Gnoll szaman",
+     "level": 64,
+     "professionCode": "m",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "info",
+   "line": "Łowcosław Kazrek spowija się trującą mgłą: -3% obrażeń zadawanych przez zatrutych przeciwników."
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Gnoll szaman",
+   "sourceHpPct": 98.78,
+   "targetHpPct": 27.59,
+   "hits": [
+    {
+     "raw": 1220,
+     "applied": 845,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Gnoll szaman",
+   "sourceHpPct": 98.78,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 920,
+     "applied": 566,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "info",
+   "line": "Łowcosław Kazrek - atak w martwego przeciwnika."
+  },
+  {
+   "kind": "attack",
+   "source": "Gnoll łucznik",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": 100,
+   "targetHpPct": 98.78,
+   "hits": [
+    {
+     "raw": 463,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": true
+    }
+   ],
+   "dodged": true,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Gnoll łucznik",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": 100,
+   "targetHpPct": 95.75,
+   "hits": [
+    {
+     "raw": 439,
+     "applied": 439,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 70,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 96.23,
+   "self": false
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Gnoll łucznik",
+   "sourceHpPct": 96.23,
+   "targetHpPct": 14.9,
+   "hits": [
+    {
+     "raw": 1222,
+     "applied": 1222,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 67,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 96.7,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Gnoll łucznik",
+   "sourceHpPct": 96.7,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 1115,
+     "applied": 1115,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Gnoll łucznik",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": 100,
+   "targetHpPct": 93.52,
+   "hits": [
+    {
+     "raw": 460,
+     "applied": 460,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 63,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 93.95,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "Łowcosław Kazrek otrzymuje 23 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Gnoll łucznik",
+   "sourceHpPct": 93.95,
+   "targetHpPct": 47.42,
+   "hits": [
+    {
+     "raw": 1120,
+     "applied": 755,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11",
+    "Kombinacja x3!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 59,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 94.36,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Gnoll łucznik",
+   "sourceHpPct": 94.36,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 1122,
+     "applied": 767,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "victory",
+   "actors": [
+    "Łowcosław Kazrek"
+   ],
+   "result": "Zwyciężył Łowcosław Kazrek"
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "defeat",
+   "actors": [
+    "Gnoll łucznik",
+    "Gnoll łucznik",
+    "Gnoll szaman"
+   ],
+   "result": "Poległa drużyna Gnoll łucznik, Gnoll łucznik, Gnoll szaman"
+  },
+  {
+   "kind": "info",
+   "line": "Zwycięzca zdobył łącznie 5902 punktów doświadczenia"
+  }
+ ]
+}

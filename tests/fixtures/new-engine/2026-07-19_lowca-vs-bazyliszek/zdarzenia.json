@@ -1,0 +1,150 @@
+{
+ "zrodlo": "raw.txt",
+ "zamrozone": "2026-08-04",
+ "zdarzenia": [
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowcosław Kazrek",
+     "level": 70,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "Szalony purpurowy bazyliszek",
+     "level": 62,
+     "professionCode": "m",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowcosław Kazrek",
+     "level": 70,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "Szalony purpurowy bazyliszek",
+     "level": 62,
+     "professionCode": "m",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "info",
+   "line": "Łowcosław Kazrek spowija się trującą mgłą: -3% obrażeń zadawanych przez zatrutych przeciwników."
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Szalony purpurowy bazyliszek",
+   "sourceHpPct": 94.36,
+   "targetHpPct": 57.65,
+   "hits": [
+    {
+     "raw": 825,
+     "applied": 479,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Szybka strzała",
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Szalony purpurowy bazyliszek",
+   "sourceHpPct": 94.36,
+   "targetHpPct": 12.82,
+   "hits": [
+    {
+     "raw": 844,
+     "applied": 507,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Szalony purpurowy bazyliszek",
+   "sourceHpPct": 94.36,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 1199,
+     "applied": 860,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "victory",
+   "actors": [
+    "Łowcosław Kazrek"
+   ],
+   "result": "Zwyciężył Łowcosław Kazrek"
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "defeat",
+   "actors": [
+    "Szalony purpurowy bazyliszek"
+   ],
+   "result": "Poległ(a) Szalony purpurowy bazyliszek"
+  },
+  {
+   "kind": "info",
+   "line": "Zwycięzca zdobył łącznie 1220 punktów doświadczenia"
+  }
+ ]
+}

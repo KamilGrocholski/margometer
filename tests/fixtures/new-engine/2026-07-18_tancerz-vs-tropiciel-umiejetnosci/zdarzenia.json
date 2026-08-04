@@ -1,0 +1,591 @@
+{
+ "zrodlo": "raw.txt",
+ "zamrozone": "2026-08-04",
+ "zdarzenia": [
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Tancogniew Kazrek",
+     "level": 64,
+     "professionCode": "b",
+     "side": 0
+    },
+    {
+     "name": "wf agar psk",
+     "level": 63,
+     "professionCode": "t",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Tancogniew Kazrek",
+     "level": 64,
+     "professionCode": "b",
+     "side": 0
+    },
+    {
+     "name": "wf agar psk",
+     "level": 63,
+     "professionCode": "t",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "info",
+   "line": "Tancogniew Kazrek spowija się trującą mgłą: -3% obrażeń zadawanych przez zatrutych przeciwników."
+  },
+  {
+   "kind": "info",
+   "line": "Walka bez Punktów Honoru - gracze są z tego samego klanu."
+  },
+  {
+   "kind": "move",
+   "actor": "Tancogniew Kazrek",
+   "hpPct": 88.68,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "ability",
+   "actor": "wf agar psk",
+   "name": "Podwójne trafienie"
+  },
+  {
+   "kind": "attack",
+   "source": "wf agar psk",
+   "target": "Tancogniew Kazrek",
+   "sourceHpPct": 100,
+   "targetHpPct": 86.6,
+   "hits": [
+    {
+     "raw": 440,
+     "applied": 96,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 362,
+     "applied": 164,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 10",
+    "Niszczenie odporności magicznych o 1%",
+    "Zniszczono 10 many"
+   ],
+   "ability": "Podwójne trafienie",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "wf agar psk",
+   "target": "Tancogniew Kazrek",
+   "sourceHpPct": 100,
+   "targetHpPct": 84.02,
+   "hits": [
+    {
+     "raw": 496,
+     "applied": 145,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 370,
+     "applied": 176,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 10",
+    "Niszczenie odporności magicznych o 1%",
+    "Zniszczono 4 energii"
+   ],
+   "ability": "Podwójne trafienie",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 57,
+   "target": "Tancogniew Kazrek",
+   "targetHpPct": 84.48,
+   "self": false
+  },
+  {
+   "kind": "move",
+   "actor": "Tancogniew Kazrek",
+   "hpPct": 84.48,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "ability",
+   "actor": "wf agar psk",
+   "name": "Porażająca strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "wf agar psk",
+   "target": "Tancogniew Kazrek",
+   "sourceHpPct": 100,
+   "targetHpPct": 80.87,
+   "hits": [
+    {
+     "raw": 542,
+     "applied": 191,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 452,
+     "applied": 259,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 13",
+    "Niszczenie odporności magicznych o 1%"
+   ],
+   "ability": "Porażająca strzała",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 54,
+   "target": "Tancogniew Kazrek",
+   "targetHpPct": 81.3,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Tancogniew Kazrek",
+   "targetHpPct": 80,
+   "amount": 162,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "ability",
+   "actor": "Tancogniew Kazrek",
+   "name": "Błyskawiczny cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Tancogniew Kazrek",
+   "target": "wf agar psk",
+   "sourceHpPct": 80,
+   "targetHpPct": 91.37,
+   "hits": [
+    {
+     "raw": 1207,
+     "applied": 536,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 541,
+     "applied": 204,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11",
+    "Niszczenie odporności magicznych o 1%",
+    "Zniszczono 4 energii",
+    "Fasada opieki, 13% redukcji ciosów do końca walki"
+   ],
+   "ability": "Błyskawiczny cios",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 51,
+   "target": "Tancogniew Kazrek",
+   "targetHpPct": 80.41,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "Tancogniew Kazrek",
+   "targetHpPct": 79.15,
+   "amount": 157,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "błyskawic"
+  },
+  {
+   "kind": "ability",
+   "actor": "Tancogniew Kazrek",
+   "name": "Rozpraszający atak"
+  },
+  {
+   "kind": "attack",
+   "source": "Tancogniew Kazrek",
+   "target": "wf agar psk",
+   "sourceHpPct": 79.15,
+   "targetHpPct": 79.51,
+   "hits": [
+    {
+     "raw": 1146,
+     "applied": 719,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 774,
+     "applied": 298,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Zwiększenie szybkości ataku o 11% na 3 tury",
+    "Niszczenie pancerza o 11",
+    "Niszczenie odporności magicznych o 1%",
+    "Krytyczna osłona, osłabienie obrażeń o 25%"
+   ],
+   "ability": "Rozpraszający atak",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 485,
+   "target": "wf agar psk",
+   "targetHpPct": 85.17,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "wf agar psk",
+   "targetHpPct": 84.53,
+   "amount": 55,
+   "weakenedPct": 24,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "wf agar psk",
+   "name": "Wycieńczająca strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "wf agar psk",
+   "target": "Tancogniew Kazrek",
+   "sourceHpPct": null,
+   "targetHpPct": 75.08,
+   "hits": [
+    {
+     "raw": 507,
+     "applied": 507,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": null
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%"
+   ],
+   "ability": "Wycieńczająca strzała",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "wf agar psk",
+   "target": "Tancogniew Kazrek",
+   "sourceHpPct": 84.53,
+   "targetHpPct": 69.76,
+   "hits": [
+    {
+     "raw": 582,
+     "applied": 232,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 627,
+     "applied": 432,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%",
+    "Niszczenie pancerza o 10",
+    "Niszczenie odporności magicznych o 1%",
+    "Zniszczono 10 many",
+    "Kombinacja x2!"
+   ],
+   "ability": "Wycieńczająca strzała",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 48,
+   "target": "Tancogniew Kazrek",
+   "targetHpPct": 70.14,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Tancogniew Kazrek",
+   "name": "Trujące pchnięcie"
+  },
+  {
+   "kind": "attack",
+   "source": "Tancogniew Kazrek",
+   "target": "wf agar psk",
+   "sourceHpPct": 68.88,
+   "targetHpPct": 81.95,
+   "hits": [
+    {
+     "raw": 998,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": true
+    },
+    {
+     "raw": 545,
+     "applied": 221,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": true,
+   "blocked": null,
+   "procs": [],
+   "ability": "Trujące pchnięcie",
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 46,
+   "target": "Tancogniew Kazrek",
+   "targetHpPct": 69.25,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "wf agar psk",
+   "targetHpPct": 74.49,
+   "amount": 129,
+   "weakenedPct": 24,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "attack",
+   "source": "wf agar psk",
+   "target": "Tancogniew Kazrek",
+   "sourceHpPct": 44.89,
+   "targetHpPct": 70.72,
+   "hits": [
+    {
+     "raw": 480,
+     "applied": 177,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 441,
+     "applied": 274,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%",
+    "Niszczenie pancerza o 10",
+    "Niszczenie odporności magicznych o 1%",
+    "Zniszczono 4 energii"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": "Dotyk anioła",
+   "amount": 747,
+   "target": "Tancogniew Kazrek",
+   "targetHpPct": 76.96,
+   "self": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Tancogniew Kazrek",
+   "name": "Błyskawiczny cios"
+  },
+  {
+   "kind": "attack",
+   "source": "Tancogniew Kazrek",
+   "target": "wf agar psk",
+   "sourceHpPct": 88.68,
+   "targetHpPct": 0.78,
+   "hits": [
+    {
+     "raw": 1033,
+     "applied": 699,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 564,
+     "applied": 292,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11",
+    "Niszczenie odporności magicznych o 1%"
+   ],
+   "ability": "Błyskawiczny cios",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Tancogniew Kazrek",
+   "name": "Rozpraszający atak"
+  },
+  {
+   "kind": "attack",
+   "source": "Tancogniew Kazrek",
+   "target": "wf agar psk",
+   "sourceHpPct": 88.68,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 1115,
+     "applied": 779,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 569,
+     "applied": 304,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11",
+    "Niszczenie odporności magicznych o 1%"
+   ],
+   "ability": "Rozpraszający atak",
+   "strike": true
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "victory",
+   "actors": [
+    "Tancogniew Kazrek"
+   ],
+   "result": "Zwyciężył Tancogniew Kazrek"
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "defeat",
+   "actors": [
+    "wf agar psk"
+   ],
+   "result": "Poległ wf agar psk"
+  }
+ ]
+}

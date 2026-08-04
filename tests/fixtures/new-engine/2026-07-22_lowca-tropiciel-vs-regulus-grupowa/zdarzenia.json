@@ -1,0 +1,1203 @@
+{
+ "zrodlo": "raw.txt",
+ "zamrozone": "2026-08-04",
+ "zdarzenia": [
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowcosław Kazrek",
+     "level": 70,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "wf foverek psk",
+     "level": 70,
+     "professionCode": "t",
+     "side": 0
+    },
+    {
+     "name": "Regulus Mętnooki",
+     "level": 63,
+     "professionCode": "w",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowcosław Kazrek",
+     "level": 70,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "wf foverek psk",
+     "level": 70,
+     "professionCode": "t",
+     "side": 0
+    },
+    {
+     "name": "Regulus Mętnooki",
+     "level": 63,
+     "professionCode": "w",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "info",
+   "line": "Wzmocnienie Regulus Mętnooki o 35% ze względu na małą grupę przeciwników"
+  },
+  {
+   "kind": "info",
+   "line": "Łowcosław Kazrek spowija się trującą mgłą: -3% obrażeń zadawanych przez zatrutych przeciwników."
+  },
+  {
+   "kind": "move",
+   "actor": "Regulus Mętnooki",
+   "hpPct": 100,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 100,
+   "targetHpPct": 99.56,
+   "hits": [
+    {
+     "raw": 802,
+     "applied": 802,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 100,
+   "targetHpPct": 99.54,
+   "hits": [
+    {
+     "raw": 818,
+     "applied": 34,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 99.32,
+   "amount": 405,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "move",
+   "actor": "Regulus Mętnooki",
+   "hpPct": 99.32,
+   "description": "krok do przodu"
+  },
+  {
+   "kind": "ability",
+   "actor": "wf foverek psk",
+   "name": "Lodowa strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "wf foverek psk",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 100,
+   "targetHpPct": 99.21,
+   "hits": [
+    {
+     "raw": 805,
+     "applied": 33,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 690,
+     "applied": 168,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 18"
+   ],
+   "ability": "Lodowa strzała",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 98.98,
+   "amount": 405,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "Regulus Mętnooki",
+   "name": "Plugawa inkantacja"
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 1847,
+   "target": "Regulus Mętnooki",
+   "targetHpPct": null,
+   "self": false
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": 100,
+   "targetHpPct": 83.69,
+   "hits": [
+    {
+     "raw": 2867,
+     "applied": 2359,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%",
+    "Niszczenie pancerza o 50"
+   ],
+   "ability": "Plugawa inkantacja",
+   "strike": true
+  },
+  {
+   "kind": "info",
+   "line": "Regulus Mętnooki(100%) przygotowuje się do wykonania Aera impetus(0%)."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 70,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 84.18,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 84.18,
+   "targetHpPct": 99.86,
+   "hits": [
+    {
+     "raw": 1162,
+     "applied": 258,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Klątwa",
+    "Przerwanie ciosu specjalnego",
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 99.34,
+   "amount": 947,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "turn-lost",
+   "actor": "Regulus Mętnooki"
+  },
+  {
+   "kind": "ability",
+   "actor": "wf foverek psk",
+   "name": "Strzała z niespodzianką"
+  },
+  {
+   "kind": "attack",
+   "source": "wf foverek psk",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 100,
+   "targetHpPct": 99.15,
+   "hits": [
+    {
+     "raw": 950,
+     "applied": 122,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 766,
+     "applied": 227,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 18",
+    "Kombinacja x1!"
+   ],
+   "ability": "Strzała z niespodzianką",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 98.62,
+   "amount": 947,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": 98.62,
+   "targetHpPct": 69.46,
+   "hits": [
+    {
+     "raw": 2583,
+     "applied": 2129,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%",
+    "Niszczenie pancerza o 50"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 67,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 69.92,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Błyskawiczny strzał"
+  },
+  {
+   "kind": "info",
+   "line": "Łowcosław Kazrek otrzymuje 23 energii."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 69.92,
+   "targetHpPct": 97.96,
+   "hits": [
+    {
+     "raw": 1207,
+     "applied": 1207,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 11",
+    "Kombinacja x3!"
+   ],
+   "ability": "Błyskawiczny strzał",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 97.44,
+   "amount": 947,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "Regulus Mętnooki",
+   "name": "Uderzenie Króla Węży"
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": null,
+   "targetHpPct": 36.17,
+   "hits": [
+    {
+     "raw": 4884,
+     "applied": 4884,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": null
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%"
+   ],
+   "ability": "Uderzenie Króla Węży",
+   "strike": false
+  },
+  {
+   "kind": "ability",
+   "actor": "wf foverek psk",
+   "name": "Lodowa strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "wf foverek psk",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 100,
+   "targetHpPct": 97.29,
+   "hits": [
+    {
+     "raw": 872,
+     "applied": 88,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 690,
+     "applied": 184,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 18"
+   ],
+   "ability": "Lodowa strzała",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 96.77,
+   "amount": 947,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "Regulus Mętnooki",
+   "name": "Rozbryzg treści żołądkowej"
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": null,
+   "targetHpPct": 22.82,
+   "hits": [
+    {
+     "raw": 1930,
+     "applied": 1930,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": null
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%"
+   ],
+   "ability": "Rozbryzg treści żołądkowej",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "wf foverek psk",
+   "sourceHpPct": null,
+   "targetHpPct": 87.14,
+   "hits": [
+    {
+     "raw": 1712,
+     "applied": 1712,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": null
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%"
+   ],
+   "ability": "Rozbryzg treści żołądkowej",
+   "strike": false
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 63,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 23.26,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Zatruta strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 23.26,
+   "targetHpPct": 96.59,
+   "hits": [
+    {
+     "raw": 1211,
+     "applied": 330,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Zatruta strzała",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 96.07,
+   "amount": 947,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "Regulus Mętnooki",
+   "name": "Rozbryzg treści żołądkowej"
+  },
+  {
+   "kind": "heal",
+   "ability": "Ostatni ratunek",
+   "amount": 4753,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 44,
+   "self": true
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": null,
+   "targetHpPct": 44,
+   "hits": [
+    {
+     "raw": 1753,
+     "applied": 1753,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": null
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%"
+   ],
+   "ability": "Rozbryzg treści żołądkowej",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "wf foverek psk",
+   "sourceHpPct": null,
+   "targetHpPct": 73.39,
+   "hits": [
+    {
+     "raw": 1831,
+     "applied": 1831,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": null
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%"
+   ],
+   "ability": "Rozbryzg treści żołądkowej",
+   "strike": false
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 247,
+   "target": "wf foverek psk",
+   "targetHpPct": 75.24,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "wf foverek psk",
+   "name": "Lodowa strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "wf foverek psk",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 75.24,
+   "targetHpPct": 95.92,
+   "hits": [
+    {
+     "raw": 822,
+     "applied": 71,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 690,
+     "applied": 191,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 18",
+    "Zamrożenie"
+   ],
+   "ability": "Lodowa strzała",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 95.4,
+   "amount": 947,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "turn-lost",
+   "actor": "Regulus Mętnooki"
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 94.88,
+   "amount": 947,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": 94.88,
+   "targetHpPct": 27.41,
+   "hits": [
+    {
+     "raw": 2803,
+     "applied": 2399,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%",
+    "Niszczenie pancerza o 50"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 59,
+   "target": "Łowcosław Kazrek",
+   "targetHpPct": 27.82,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "Łowcosław Kazrek",
+   "name": "Podwójny strzał"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 27.82,
+   "targetHpPct": 94.41,
+   "hits": [
+    {
+     "raw": 861,
+     "applied": 861,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcosław Kazrek",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 27.82,
+   "targetHpPct": 93.92,
+   "hits": [
+    {
+     "raw": 887,
+     "applied": 887,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 11"
+   ],
+   "ability": "Podwójny strzał",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 93.4,
+   "amount": 947,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "Regulus Mętnooki",
+   "name": "Uderzenie Króla Węży"
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "Łowcosław Kazrek",
+   "sourceHpPct": null,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 4712,
+     "applied": 4712,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": null
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%"
+   ],
+   "ability": "Uderzenie Króla Węży",
+   "strike": false
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 235,
+   "target": "wf foverek psk",
+   "targetHpPct": 77.01,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "wf foverek psk",
+   "name": "Lodowa strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "wf foverek psk",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 77.01,
+   "targetHpPct": 93.06,
+   "hits": [
+    {
+     "raw": 1081,
+     "applied": 264,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 890,
+     "applied": 344,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 18"
+   ],
+   "ability": "Lodowa strzała",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Regulus Mętnooki",
+   "targetHpPct": 92.54,
+   "amount": 947,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "trucizny"
+  },
+  {
+   "kind": "ability",
+   "actor": "Regulus Mętnooki",
+   "name": "Rozbryzg treści żołądkowej"
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "wf foverek psk",
+   "sourceHpPct": null,
+   "targetHpPct": 59.22,
+   "hits": [
+    {
+     "raw": 2368,
+     "applied": 2368,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": null
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Osłabienie przez truciznę zadawanych obrażeń o 3%"
+   ],
+   "ability": "Rozbryzg treści żołądkowej",
+   "strike": false
+  },
+  {
+   "kind": "info",
+   "line": "Regulus Mętnooki(92.54%) przygotowuje się do wykonania Ponowne rozgrzanie(0%)."
+  },
+  {
+   "kind": "info",
+   "line": "Regulus Mętnooki(92.54%) przygotowuje się do wykonania Ponowne rozgrzanie(100%)."
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 222,
+   "target": "wf foverek psk",
+   "targetHpPct": 60.89,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "wf foverek psk",
+   "name": "Strzała z niespodzianką"
+  },
+  {
+   "kind": "attack",
+   "source": "wf foverek psk",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 60.89,
+   "targetHpPct": 92.08,
+   "hits": [
+    {
+     "raw": 1265,
+     "applied": 422,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 988,
+     "applied": 422,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 18",
+    "Kombinacja x3!"
+   ],
+   "ability": "Strzała z niespodzianką",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Regulus Mętnooki",
+   "name": "Ponowne rozgrzanie"
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "wf foverek psk",
+   "sourceHpPct": 92.08,
+   "targetHpPct": 60.89,
+   "hits": [
+    {
+     "raw": 2161,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": true
+    }
+   ],
+   "dodged": true,
+   "blocked": null,
+   "procs": [],
+   "ability": "Ponowne rozgrzanie",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "wf foverek psk",
+   "sourceHpPct": 92.08,
+   "targetHpPct": 48.45,
+   "hits": [
+    {
+     "raw": 3110,
+     "applied": 1656,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 50",
+    "Fasada opieki, 13% redukcji ciosów do końca walki"
+   ],
+   "ability": "Ponowne rozgrzanie",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "Regulus Mętnooki",
+   "name": "Uderzenie Króla Węży"
+  },
+  {
+   "kind": "heal",
+   "ability": "Ostatni ratunek",
+   "amount": 4480,
+   "target": "wf foverek psk",
+   "targetHpPct": 44,
+   "self": true
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "wf foverek psk",
+   "sourceHpPct": null,
+   "targetHpPct": 44,
+   "hits": [
+    {
+     "raw": 5072,
+     "applied": 5072,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": null
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Uderzenie Króla Węży",
+   "strike": false
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 210,
+   "target": "wf foverek psk",
+   "targetHpPct": 45.58,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "wf foverek psk",
+   "name": "Lodowa strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "wf foverek psk",
+   "target": "Regulus Mętnooki",
+   "sourceHpPct": 45.58,
+   "targetHpPct": 91.88,
+   "hits": [
+    {
+     "raw": 881,
+     "applied": 140,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 690,
+     "applied": 213,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 18"
+   ],
+   "ability": "Lodowa strzała",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "wf foverek psk",
+   "sourceHpPct": 91.88,
+   "targetHpPct": 28.47,
+   "hits": [
+    {
+     "raw": 2944,
+     "applied": 2278,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 50"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Regulus Mętnooki",
+   "target": "wf foverek psk",
+   "sourceHpPct": 91.88,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 5182,
+     "applied": 4269,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 50",
+    "Potężne ogłuszenie"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "info",
+   "line": "Regulus Mętnooki(91.88%) przygotowuje się do wykonania Barłóg rozpaczy(0%)."
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "victory",
+   "actors": [
+    "Regulus Mętnooki"
+   ],
+   "result": "Zwyciężył(a) Regulus Mętnooki"
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "defeat",
+   "actors": [
+    "wf foverek psk",
+    "Łowcosław Kazrek"
+   ],
+   "result": "Poległa drużyna wf foverek psk, Łowcosław Kazrek"
+  }
+ ]
+}

@@ -1,0 +1,377 @@
+{
+ "zrodlo": "raw.txt",
+ "zamrozone": "2026-08-04",
+ "zdarzenia": [
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowcomir Kazrek",
+     "level": 93,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "wf regulus psk",
+     "level": 90,
+     "professionCode": "t",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Łowcomir Kazrek",
+     "level": 93,
+     "professionCode": "h",
+     "side": 0
+    },
+    {
+     "name": "wf regulus psk",
+     "level": 90,
+     "professionCode": "t",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "info",
+   "line": "Walka bez Punktów Honoru - gracze są z tego samego klanu."
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcomir Kazrek",
+   "target": "wf regulus psk",
+   "sourceHpPct": 74.32,
+   "targetHpPct": 91.63,
+   "hits": [
+    {
+     "raw": 1767,
+     "applied": 1246,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 27"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 333,
+   "target": "wf regulus psk",
+   "targetHpPct": 93.86,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "wf regulus psk",
+   "name": "Płonąca strzała"
+  },
+  {
+   "kind": "attack",
+   "source": "wf regulus psk",
+   "target": "Łowcomir Kazrek",
+   "sourceHpPct": 93.86,
+   "targetHpPct": 68.92,
+   "hits": [
+    {
+     "raw": 757,
+     "applied": 173,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1323,
+     "applied": 779,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 9",
+    "Niszczenie odporności magicznych o 1%"
+   ],
+   "ability": "Płonąca strzała",
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "Łowcomir Kazrek",
+   "targetHpPct": 67.58,
+   "amount": 236,
+   "weakenedPct": 19,
+   "via": "od",
+   "dotType": "ognia"
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcomir Kazrek",
+   "target": "wf regulus psk",
+   "sourceHpPct": 67.58,
+   "targetHpPct": 77.39,
+   "hits": [
+    {
+     "raw": 2452,
+     "applied": 2452,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Szybka strzała",
+    "Niszczenie pancerza o 27",
+    "Głęboka rana"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 316,
+   "target": "wf regulus psk",
+   "targetHpPct": 62.35,
+   "self": false
+  },
+  {
+   "kind": "dot",
+   "target": "wf regulus psk",
+   "targetHpPct": 57.28,
+   "amount": 754,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "głębokiej rany"
+  },
+  {
+   "kind": "attack",
+   "source": "wf regulus psk",
+   "target": "Łowcomir Kazrek",
+   "sourceHpPct": 57.28,
+   "targetHpPct": 66.24,
+   "hits": [
+    {
+     "raw": 753,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": true
+    },
+    {
+     "raw": 1146,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": true
+    }
+   ],
+   "dodged": true,
+   "blocked": null,
+   "procs": [
+    "Przebicie"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcomir Kazrek",
+   "target": "wf regulus psk",
+   "sourceHpPct": 66.24,
+   "targetHpPct": 48.25,
+   "hits": [
+    {
+     "raw": 1786,
+     "applied": 1343,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 27"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcomir Kazrek",
+   "target": "wf regulus psk",
+   "sourceHpPct": 56.51,
+   "targetHpPct": 25.17,
+   "hits": [
+    {
+     "raw": 1606,
+     "applied": 1219,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 27",
+    "Zranienie (182)"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "dot",
+   "target": "wf regulus psk",
+   "targetHpPct": 19.48,
+   "amount": 1131,
+   "weakenedPct": null,
+   "via": "od",
+   "dotType": "głębokiej rany"
+  },
+  {
+   "kind": "dot",
+   "target": "wf regulus psk",
+   "targetHpPct": 18.25,
+   "amount": 182,
+   "weakenedPct": null,
+   "via": "po",
+   "dotType": "zranieniu"
+  },
+  {
+   "kind": "heal",
+   "ability": "Ostatni ratunek",
+   "amount": 4897,
+   "target": "wf regulus psk",
+   "targetHpPct": 42,
+   "self": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcomir Kazrek",
+   "target": "wf regulus psk",
+   "sourceHpPct": 56.51,
+   "targetHpPct": 42,
+   "hits": [
+    {
+     "raw": 1724,
+     "applied": 1363,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 27"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcomir Kazrek",
+   "target": "wf regulus psk",
+   "sourceHpPct": 52.21,
+   "targetHpPct": 10.61,
+   "hits": [
+    {
+     "raw": 1778,
+     "applied": 1778,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie",
+    "Niszczenie pancerza o 27",
+    "Zranienie (266)"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Łowcomir Kazrek",
+   "target": "wf regulus psk",
+   "sourceHpPct": 42.85,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 4154,
+     "applied": 3861,
+     "element": null,
+     "crit": true,
+     "superCrit": true,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Klątwa",
+    "Niszczenie pancerza o 20",
+    "Zniszczono pancerz przeciwnika"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "victory",
+   "actors": [
+    "Łowcomir Kazrek"
+   ],
+   "result": "Zwyciężył Łowcomir Kazrek"
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "defeat",
+   "actors": [
+    "wf regulus psk"
+   ],
+   "result": "Poległ wf regulus psk"
+  }
+ ]
+}

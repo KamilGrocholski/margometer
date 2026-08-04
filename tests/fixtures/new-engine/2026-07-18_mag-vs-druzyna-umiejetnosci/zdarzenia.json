@@ -1,0 +1,230 @@
+{
+ "zrodlo": "raw.txt",
+ "zamrozone": "2026-08-04",
+ "zdarzenia": [
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "wf mushita psk",
+     "level": 37,
+     "professionCode": "m",
+     "side": 0
+    },
+    {
+     "name": "Fula Gula",
+     "level": 25,
+     "professionCode": "w",
+     "side": 1
+    },
+    {
+     "name": "Furu Mulu",
+     "level": 31,
+     "professionCode": "m",
+     "side": 1
+    },
+    {
+     "name": "Dida Gula",
+     "level": 28,
+     "professionCode": "w",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "ability",
+   "actor": "wf mushita psk",
+   "name": "Porażenie"
+  },
+  {
+   "kind": "attack",
+   "source": "wf mushita psk",
+   "target": "Dida Gula",
+   "sourceHpPct": 100,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 421,
+     "applied": 348,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 858,
+     "applied": 783,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 4"
+   ],
+   "ability": "Porażenie",
+   "strike": true
+  },
+  {
+   "kind": "ability",
+   "actor": "wf mushita psk",
+   "name": "Lodowy pocisk"
+  },
+  {
+   "kind": "attack",
+   "source": "wf mushita psk",
+   "target": "Fula Gula",
+   "sourceHpPct": 100,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 215,
+     "applied": 155,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 449,
+     "applied": 387,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 2"
+   ],
+   "ability": "Lodowy pocisk",
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Furu Mulu",
+   "target": "wf mushita psk",
+   "sourceHpPct": 100,
+   "targetHpPct": 99.81,
+   "hits": [
+    {
+     "raw": 180,
+     "applied": 9,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "heal",
+   "ability": null,
+   "amount": 9,
+   "target": "wf mushita psk",
+   "targetHpPct": 100,
+   "self": false
+  },
+  {
+   "kind": "ability",
+   "actor": "wf mushita psk",
+   "name": "Fuzja żywiołów"
+  },
+  {
+   "kind": "attack",
+   "source": "wf mushita psk",
+   "target": "Furu Mulu",
+   "sourceHpPct": null,
+   "targetHpPct": 95.87,
+   "hits": [
+    {
+     "raw": 14,
+     "applied": 14,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false,
+     "element": null
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": "Fuzja żywiołów",
+   "strike": false
+  },
+  {
+   "kind": "attack",
+   "source": "wf mushita psk",
+   "target": "Furu Mulu",
+   "sourceHpPct": 100,
+   "targetHpPct": 0,
+   "hits": [
+    {
+     "raw": 215,
+     "applied": 45,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 459,
+     "applied": 286,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Niszczenie pancerza o 2",
+    "Odnowienie 5 absorpcji magicznej",
+    "Kombinacja x2!"
+   ],
+   "ability": "Fuzja żywiołów",
+   "strike": true
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "victory",
+   "actors": [
+    "wf mushita psk"
+   ],
+   "result": "Zwyciężył wf mushita psk"
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "defeat",
+   "actors": [
+    "Furu Mulu",
+    "Fula Gula",
+    "Dida Gula"
+   ],
+   "result": "Poległa drużyna Furu Mulu, Fula Gula, Dida Gula"
+  },
+  {
+   "kind": "info",
+   "line": "Zwycięzca zdobył łącznie 1391 punktów doświadczenia"
+  }
+ ]
+}

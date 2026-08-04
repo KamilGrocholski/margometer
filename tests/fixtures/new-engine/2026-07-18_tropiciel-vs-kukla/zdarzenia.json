@@ -1,0 +1,239 @@
+{
+ "zrodlo": "raw.txt",
+ "zamrozone": "2026-08-04",
+ "zdarzenia": [
+  {
+   "kind": "fight-start",
+   "participants": [
+    {
+     "name": "Magister Dwa",
+     "level": 64,
+     "professionCode": "t",
+     "side": 0
+    },
+    {
+     "name": "Kukła Treningowa",
+     "level": 1,
+     "professionCode": "w",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "kind": "attack",
+   "source": "Magister Dwa",
+   "target": "Kukła Treningowa",
+   "sourceHpPct": 94.08,
+   "targetHpPct": 99.98,
+   "hits": [
+    {
+     "raw": 2559,
+     "applied": 2559,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1927,
+     "applied": 1927,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Magister Dwa",
+   "target": "Kukła Treningowa",
+   "sourceHpPct": 94.08,
+   "targetHpPct": 99.96,
+   "hits": [
+    {
+     "raw": 2555,
+     "applied": 2554,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 1974,
+     "applied": 1973,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Kukła Treningowa",
+   "target": "Magister Dwa",
+   "sourceHpPct": 99.87,
+   "targetHpPct": 94.08,
+   "hits": [
+    {
+     "raw": 1,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": true
+    }
+   ],
+   "dodged": true,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Magister Dwa",
+   "target": "Kukła Treningowa",
+   "sourceHpPct": 94.08,
+   "targetHpPct": 99.85,
+   "hits": [
+    {
+     "raw": 2288,
+     "applied": 2287,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2217,
+     "applied": 2216,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Kukła Treningowa",
+   "target": "Magister Dwa",
+   "sourceHpPct": 99.7,
+   "targetHpPct": 94.08,
+   "hits": [
+    {
+     "raw": 1,
+     "applied": 0,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Magister Dwa",
+   "target": "Kukła Treningowa",
+   "sourceHpPct": 94.08,
+   "targetHpPct": 99.48,
+   "hits": [
+    {
+     "raw": 2446,
+     "applied": 2446,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2892,
+     "applied": 2892,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [
+    "Przebicie"
+   ],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "attack",
+   "source": "Magister Dwa",
+   "target": "Kukła Treningowa",
+   "sourceHpPct": 94.08,
+   "targetHpPct": 99.45,
+   "hits": [
+    {
+     "raw": 2392,
+     "applied": 2391,
+     "element": null,
+     "crit": true,
+     "superCrit": false,
+     "secondary": false,
+     "dodged": false
+    },
+    {
+     "raw": 2892,
+     "applied": 2891,
+     "element": null,
+     "crit": false,
+     "superCrit": false,
+     "secondary": true,
+     "dodged": false
+    }
+   ],
+   "dodged": false,
+   "blocked": null,
+   "procs": [],
+   "ability": null,
+   "strike": true
+  },
+  {
+   "kind": "fight-end",
+   "outcome": "draw",
+   "actors": [],
+   "result": "Walka nie wyłoniła zwycięzcy"
+  }
+ ]
+}
