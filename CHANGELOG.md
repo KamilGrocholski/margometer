@@ -34,7 +34,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   wersji przepadają**. Lista zaczyna się od zera; jeśli zależy Ci na starych
   walkach, skopiuj je z archiwum, zanim zaktualizujesz dodatek.
 - **Zmiana** — Zniknęło ręczne wklejanie logu do archiwum. Panel czyta dziś
-  walkę wprost z gry, a zdania z „Kopiuj logi" nie są już dla niego czytelne.
+  walkę wprost z gry, a tekst spod przycisku **„Kopiuj logi" w oknie walki
+  Margonema** nie jest już dla niego czytelny. Przycisk „kopiuj logi" na pasku
+  nagrywania **w panelu** to co innego i działa jak dotąd — to on kopiuje
+  nagrane walki i to jego wynik przydaje się w zgłoszeniu.
 - **Zmiana** — W nagraniach lista postaci po obu stronach jest znów pełna:
   podział „moi / przeciwnicy" i postacie, które nic nie zdążyły zrobić,
   pokazują się tak samo jak w trwającej walce.

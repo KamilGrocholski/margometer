@@ -17,7 +17,10 @@ liczy to, co już się wydarzyło.
 > zaniżać liczby.
 >
 > Najbardziej przydatna rzecz, jaką możesz przysłać, to **nagranie walki**, na
-> której coś nie zagrało — „kopiuj logi" w pasku nagrywania.
+> której coś nie zagrało: przycisk „kopiuj logi" **na pasku nagrywania
+> w panelu**. Uwaga na nazwy — Margonem ma własne „Kopiuj logi" w oknie walki
+> i kopiuje coś innego (zdania, które widzisz na ekranie). Dodatek ich nie
+> czyta, więc w zgłoszeniu przydaje się ten pierwszy.
 
 ---
 
