@@ -28,8 +28,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
-## [Niewydane]
+## [0.5.0] — 2026-08-05
 
+- **Zmiana** — Panel liczy z tego, co gra dostaje z serwera w trakcie walki,
+  a nie ze zdań wypisanych w oknie walki. Liczby są te same, ale nazwy efektów
+  biorą się wprost z gry, więc zgadzają się z tym, co widać w oknie — także po
+  aktualizacji Margonema.
 - **Zmiana** — Archiwum zapisuje walki w nowym formacie i **nagrania sprzed tej
   wersji przepadają**. Lista zaczyna się od zera; jeśli zależy Ci na starych
   walkach, skopiuj je z archiwum, zanim zaktualizujesz dodatek.
@@ -38,29 +42,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   Margonema** nie jest już dla niego czytelny. Przycisk „kopiuj logi" na pasku
   nagrywania **w panelu** to co innego i działa jak dotąd — to on kopiuje
   nagrane walki i to jego wynik przydaje się w zgłoszeniu.
-- **Zmiana** — W nagraniach lista postaci po obu stronach jest znów pełna:
+- **Zmiana** — Gdy licznik nie zdąży podpiąć się do walki, mówi o tym wyraźnym
+  ostrzeżeniem pod statystykami. Bez podpięcia w panelu stoją same zera, które
+  bez tej informacji wyglądałyby jak wynik walki. Zdarza się to przy walkach
+  zaczynających się natychmiast po wejściu na mapę.
+- **Poprawka** — W nagraniach lista postaci po obu stronach jest znów pełna:
   podział „moi / przeciwnicy" i postacie, które nic nie zdążyły zrobić,
   pokazują się tak samo jak w trwającej walce.
-- **Zmiana** — Zniknęło ostrzeżenie „dwa odczyty walki dały różne liczby".
-  Panel czyta walkę jedną drogą — tą dokładniejszą, prosto z gry — więc nie ma
-  już dwóch wyników do porównania.
-- **Zmiana** — Gdy licznik nie zdąży podpiąć się do walki, mówi o tym wyraźnym
-  ostrzeżeniem zamiast łagodnej notki: bez podpięcia w panelu stoją same zera
-  i wcześniej wyglądały jak wynik walki.
-
-## [0.5.0] — 2026-08-04
-
-- **Nowość** — Panel czyta przebieg walki dwiema niezależnymi drogami
-  i porównuje wynik. Gdy po zakończeniu walki obie drogi podadzą inne liczby,
-  na dole panelu pojawia się ostrzeżenie z nazwą postaci i obiema wartościami.
-- **Zmiana** — Panel liczy teraz z danych, które gra wysyła do okna walki,
-  a nie z wypisanych w nim zdań. Liczby są te same, ale nazwy efektów biorą się
-  wprost z gry, więc zgadzają się z tym, co widać w oknie — także po
-  aktualizacji Margonema. W archiwum i po wklejeniu logu panel dalej czyta
-  tekst, tak jak dotąd.
-- **Zmiana** — Gdy licznik nie zdąży odczytać walki tą dokładniejszą drogą,
-  mówi o tym wprost pod statystykami i liczy jak dotąd — z okna walki. Zdarza
-  się to przy walkach, które zaczynają się natychmiast po wejściu na mapę.
 
 ## [0.4.0] — 2026-08-04
 

@@ -144,7 +144,12 @@ describe("sekcja wydania z CHANGELOG-a", () => {
       // stopka o plikach. Brak którejkolwiek to wydanie uboższe, nie zepsute —
       // czyli awaria, której nikt nie zgłosi.
       expect(stdout).toContain("Wczesna faza");
-      expect(stdout).toContain("**Nowość**");
+      // ⚠️ Stało tu `toContain("**Nowość**")` i zapaliło się przy 0.5.0 — słusznie
+      // co do mechaniki, niesłusznie co do treści. Wydanie BEZ ani jednej nowości
+      // jest normalne (0.5.0 to same zmiany i jedna poprawka), a test pilnował
+      // przy okazji tego, czego nie miał pilnować: rodzaju wpisów. Pytanie brzmi
+      // „czy część ze zmianami w ogóle doklejona", więc pyta o dowolny wpis.
+      expect(stdout).toMatch(/^- \*\*(Nowość|Zmiana|Poprawka)\*\* — /m);
       expect(stdout).toContain("nie do klikania");
     });
 
