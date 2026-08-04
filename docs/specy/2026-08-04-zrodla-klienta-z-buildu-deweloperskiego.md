@@ -189,8 +189,14 @@ Wszystko zmierzone przed napisaniem tego zdania:
   `docs/` był potem sprawdzony w produkcji. `--roznica` widzi tylko klucze
   `case`, nie treść gałęzi ani nie zdania.
 - **Reszta 647 plików.** Ta runda otworzyła drzwi i zajrzała do `BattleMessages.js`.
-  `Battle.js` (kolejność redukcji obrażeń z `docs/MECHANIKA.md`?),
-  `OneWarrior.js`, `Warriors.js` i `characterEffects/` nie są przeczytane.
+  `Battle.js`, `battleEffects/` i `Communication.js` doczytane 2026‑08‑04 przy
+  pytaniu „kto bije trucizną" — wynik negatywny i zapisany w `MECHANIKA.md`
+  §„Sprawca DoT‑a"; `battleEffects/character` i `/screen` okazały się animacjami.
+  `OneWarrior.js` i `Warriors.js` nadal nieprzeczytane.
+- **Pole `mi` w ładunku `t`.** Niesione przez serwer, **nieczytane przez żaden
+  z 547 plików klienta** (`grep -rn "data\.mi\b"` → 0). W obu znanych próbkach
+  identyczność (`[0..17]` przy 18 komunikatach). Jedyne pole protokołu, którego
+  nie rozumiemy.
 - **Żywioł przy `+crush_*`.** Ustalone, że w tekście ginie, a w DOM-ie zostaje
   jako `<font color>`; nieustalone, czy `src/source.ts` powinien go stamtąd brać.
   To wymaga zrzutu z gry, nie kolejnego czytania źródeł.

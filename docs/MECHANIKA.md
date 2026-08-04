@@ -428,3 +428,90 @@ nadawca, czyli leczący. Klucz `heal_target` niesie więc parę
 zbudować: dowód pochodzi z odczytu renderera, nie ze zrzutu z gry, a panel
 liczy dziś z tekstu. To jest **argument za zrzutem**, nie zamknięcie tematu —
 i pierwsza pozycja, którą warto sprawdzić, gdy para tekst↔protokół powstanie.
+
+### Sprawca DoT-a — nie zna go też KLIENT gry ✅ (odpowiedź negatywna)
+
+Pytanie wracało tu trzeci raz („kto bije trucizną"), więc odpowiedź idzie do
+rejestru razem z metodą — inaczej wróci czwarty.
+
+**Sprawdzone 2026‑08‑04 w ŹRÓDŁACH KLIENTA**, nie w pomocy i nie w korpusie:
+`bun tools/zrodla.ts --pokaz …`, drzewo builda deweloperskiego
+`1781609507010`, **547 plików**.
+
+**1. Gra sama definiuje tyknięcie jako komunikat bez drugiej strony.**
+
+> ```js
+> var isDot = id1 != 0 && id2 == 0 && dotHp; //current message is 'damage over time' effect description
+> ```
+> — `core/battle/BattleMessages.js:169`
+
+**2. Gdy strony nie ma, klient wstawia atrapę z napisem „BŁĄD".**
+
+> ```js
+> if (id1) {
+>     f1 = Engine.battle.warriorsList[id1];
+> } else {
+>     f1 = {name: 'BŁĄD#1!'};
+> }
+> ```
+> — `core/battle/BattleMessages.js:145‑150`, powtórzone
+> w `battleEffects/BattleEffectsController.js:181‑182`
+
+To jest sedno: klient **nie ma czego podstawić**. Nie chodzi o to, że my nie
+umiemy odczytać — chodzi o to, że w komunikacie tego nie ma.
+
+**3. Efekty na postaci to 9‑bitowa bitmaska ze statyczną nazwą.**
+
+> ```js
+> for (var p = 0; p < 9; p++) {
+>     if (buffs >> p & 1) {
+>         var $bf = tpl.get('buff').addClass('_' + p);
+>         $bf.tip(buffNames[p],'t_static');
+> ```
+> — `core/battle/Battle.js:2613‑2618`
+
+Bit i nazwa. Ani sprawcy, ani czasu trwania, ani wartości. Potwierdza to
+`docs/DECYZJE.md` §„Engine.battle" (`buffs: 0 // licznik, nie lista efektów`),
+tyle że z kodu, a nie z sondy.
+
+**4. Najmocniejszy dowód: gra ma w kodzie WŁASNE przykładowe ładunki serwera.**
+
+> ```js
+> "m":["-198229=100;0;surpass_bonus_total=40", Engine.hero.getId()+"=25;0;poison_lowdmg_per-enemies=8", Engine.hero.getId()+"=1;0;hp_per-allies=10"]
+> ```
+> — `core/Communication.js:590`
+
+Wszystkie efektowe komunikaty jednostronne, `id2 = 0`. **To jest format
+protokołu udokumentowany przez samą grę**, a nie wniosek z naszej próbki. Ten
+sam przykład wylicza pełny kształt wojownika (`buffs`, `cooldowns`,
+`doublecastcost`, `combo`, `ac`, odporności) — pola na sprawcę efektu nie ma
+także tam.
+
+**5. Przeszukanie całego drzewa.** Truciznę wspomina **8 z 547 plików**:
+`BattleMessages.js`, `Battle.js`, `Communication.js`, `TemplatesData.js`,
+`characters/Hero.js` (statystyka bohatera), `items/ItemStatsData.js`,
+`items/Item.js`, `skills/SkillsParser.js` (klucze definicji umiejętności).
+Żaden nie wiąże efektu ze sprawcą. `battleEffects/character`
+i `battleEffects/screen` to animacje (`TintWarriorAction`, `ShakeWarriorAction`,
+`IconAnimation`, `BattleEarthQuakeAction`).
+
+**Wniosek dla kodu: żaden, i to jest cała treść tego wpisu.** Zakaz zgadywania
+sprawcy z `docs/DECYZJE.md` zostaje w mocy. Zmieniło się tylko to, że stoi za
+nim teraz dowód z kodu gry, a nie samo „log tego nie mówi".
+
+⚠️ **Co BY działało i dlaczego to nadal nie fakt.** Gdy DoT‑a nakłada NAZWANA
+umiejętność, komunikat zapowiedzi ma obie strony, więc korelacja „zapowiedź od
+A na B → późniejsze tyknięcia na B pochodzą od A" jest po `id` mocniejsza niż
+dzisiejsza rezerwa po nazwie. Rozpada się w dwóch układach: trucizna
+z przedmiotu albo z pasywki **nie ma zapowiedzi w ogóle** (tak jest w jedynym
+fixturze protokołowym — łowca truje trzy odyńce bez ani jednego komunikatu
+nakładającego), a przy dwóch źródłach tego samego DoT‑a na jednym celu nie ma
+czego rozstrzygać.
+
+⚠️ **Jedyne miejsce, którego nie wykluczyłem: pole `mi`.** Ładunek `t` niesie
+`mi` — w naszym zrzucie `[0..17]` przy 18 komunikatach, w przykładzie
+z `Communication.js` `[0,1,2]` przy trzech. **Żaden z 547 plików nie czyta
+`data.mi`** (`grep -rn "data\.mi\b"` → 0 trafień). W obu znanych próbkach to
+identyczność, więc nic z niej nie wynika — ale to jedyne pole `t`, którego nie
+rozumiemy. Do rozstrzygnięcia potrzebny zrzut, w którym `mi` identycznością NIE
+jest, i nie wiadomo, czy taki istnieje.

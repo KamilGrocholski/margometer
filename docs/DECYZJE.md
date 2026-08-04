@@ -96,6 +96,18 @@ Proporcja jest tu ważniejsza od samych liczb: **rodzaje bez proca to nadal
 większość tyknięć**, a jeden zrzut z długiej walki grupowej potrafi przesunąć
 cały rachunek — dlatego ta tabelka ma datę.
 
+#### Sprawcy nie zna też KLIENT gry (sprawdzone 2026‑08‑04)
+
+Całą tę sekcję łatwo przeczytać jako „log jest ubogi, ale gra wie". **Nie wie.**
+Sprawdzone w źródłach klienta (547 plików builda deweloperskiego): tyknięcie
+jest z definicji komunikatem bez drugiej strony, efekty na postaci to
+9‑bitowa maska ze statyczną nazwą, a przykładowe ładunki serwera wpisane
+w `core/Communication.js` pokazują ten sam kształt. Cytaty i to, czego NIE
+wykluczono (pole `mi`), stoją w [`MECHANIKA.md`](MECHANIKA.md) §„Sprawca DoT‑a".
+
+Zmienia to status tej sekcji z „tak wygląda log" na „tak wygląda PROTOKÓŁ",
+a rezerwa niżej zostaje bez zmian.
+
 #### Trzy piętra, nie jedno (ustalone 2026‑07‑31)
 
 „DoT bez sprawcy" brzmi jak jedna sprawa, a są trzy — i mylenie ich kosztowało
@@ -193,6 +205,13 @@ leczył" **nadal nie budujemy**, i nie jest to zaniechanie:
 - sprawcy nie zapisujemy, bo szczebel wypełniony **tylko dla jednego z trzech
   szyków** kłamałby bardziej niż jego brak: „Przywrócono" i tak zostaje bez
   nikogo, a w panelu wyglądałoby to jak healer, który raz leczy, a raz nie.
+
+**Pytanie wróciło 2026‑08‑04 i odpowiedź się nie zmieniła.** Sprawdzone tym
+razem w ŹRÓDŁACH KLIENTA, nie w logu: gra sama definiuje tyknięcie jako
+komunikat bez drugiej strony (`isDot = id1 != 0 && id2 == 0`), a gdy strony nie
+ma, podstawia atrapę `{name: 'BŁĄD#1!'}`. Cytaty, pomiary i to, czego NIE
+wykluczono, stoją w `docs/MECHANIKA.md` §„Sprawca DoT‑a". **Klient też nie wie**
+— więc to nie jest ograniczenie naszego odczytu, tylko formatu.
 
 **Sprawdzone drugą drogą 2026‑08‑04 — reguła obowiązuje TAKŻE dla protokołu.**
 Kusiło założyć, że protokół silnika to rozstrzyga, bo komunikat ma dwie strony.
