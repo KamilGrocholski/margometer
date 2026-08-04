@@ -112,3 +112,27 @@ export function leczenie(
     ...nadpisz,
   };
 }
+
+/** „Wilk(100%) zrobił krok do przodu." */
+export function krok(actor: string, hpPct: number, description = "krok do przodu"): BattleEvent {
+  return { kind: "move", actor, hpPct, description };
+}
+
+/** Zapowiedź „X wykonuje Y." — obrażenia niosą dopiero kolejne zdarzenia. */
+export function umiejetnosc(actor: string, name: string): BattleEvent {
+  return { kind: "ability", actor, name };
+}
+
+/**
+ * Linia, której odczyt nie zrozumiał.
+ *
+ * Potrzebne, bo część syntetycznych wejść w testach agregatu NIOSŁA takie linie
+ * — na przykład gołe „Wilk(80%) otrzymał -100 obrażeń" bez poprzedzającego
+ * ciosu. Parser tekstu zgłaszał je jako nierozpoznane i do statystyk nie
+ * wchodziły; przy przepisywaniu tych testów na zdarzenia zostają wiernie,
+ * zamiast po cichu zniknąć. Inaczej test twierdziłby, że sprawdza coś, czego
+ * jego wejście nigdy nie niosło.
+ */
+export function nieznane(line: string, lineNo: number): BattleEvent {
+  return { kind: "unknown", line, lineNo };
+}
