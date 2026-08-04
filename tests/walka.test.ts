@@ -5,6 +5,7 @@ import {
   kluczeKomunikatu,
   komunikaty,
   meta,
+  odchudz,
   renderParujeSie,
   rozjazdyParowania,
   skladZeZrzutu,
@@ -326,5 +327,48 @@ describe("renderParujeSie — czy render wolno zapisać jako dowód", () => {
   test("brakujący węzeł też blokuje — rozjazd w drugą stronę liczy się tak samo", () => {
     const bezWezla = [{ ...WPISY[1]!, render: [] }];
     expect(renderParujeSie(bezWezla)).toBe(false);
+  });
+});
+
+describe("odchudz — zrzut bez powtórzeń", () => {
+  const wpis = (nr: number, ladunek: Record<string, unknown>, wojownicy: unknown[] = [], kom: string[] = []): Wywolanie => ({
+    nr,
+    ladunek,
+    komunikaty: kom,
+    render: [],
+    wojownicyPrzed: [],
+    wojownicyPo: wojownicy,
+  });
+
+  test("dokładne powtórzenie kształtu i stanu wypada", () => {
+    // Kształt z pierwszego prawdziwego zrzutu: 567 wywołań `{move, endBattle}`
+    // po zakończeniu walki, wszystkie identyczne. 1,8 MB pliku na 15 kB treści.
+    const wpisy = [wpis(0, { move: -1, endBattle: 1 }), wpis(1, { move: -1, endBattle: 1 }), wpis(2, { move: -1, endBattle: 1 })];
+    expect(odchudz(wpisy)).toHaveLength(1);
+  });
+
+  test("wpis z komunikatami zostaje ZAWSZE, choćby był powtórzeniem", () => {
+    const wpisy = [wpis(0, { m: 1 }, [], ["0;0;txt=a"]), wpis(1, { m: 1 }, [], ["0;0;txt=b"])];
+    expect(odchudz(wpisy)).toHaveLength(2);
+  });
+
+  test("nowy KSZTAŁT ładunku zostaje, nawet bez komunikatów", () => {
+    // Inaczej zgubilibyśmy fakt, że gra w ogóle wysyła `endBattle`.
+    const wpisy = [wpis(0, { move: -1 }), wpis(1, { move: -1 }), wpis(2, { move: -1, endBattle: 1 })];
+    expect(odchudz(wpisy).map((w) => w.nr)).toEqual([0, 2]);
+  });
+
+  test("nowa migawka wojowników zostaje — krzywa życia nie może się urwać", () => {
+    const wpisy = [
+      wpis(0, { move: -1 }, [{ id: 1, hp: 100 }]),
+      wpis(1, { move: -1 }, [{ id: 1, hp: 100 }]),
+      wpis(2, { move: -1 }, [{ id: 1, hp: 60 }]),
+    ];
+    expect(odchudz(wpisy).map((w) => w.nr)).toEqual([0, 2]);
+  });
+
+  test("nic do odrzucenia — zrzut przechodzi bez zmian", () => {
+    const wpisy = [wpis(0, { a: 1 }), wpis(1, { b: 2 })];
+    expect(odchudz(wpisy)).toHaveLength(2);
   });
 });

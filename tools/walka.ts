@@ -251,6 +251,42 @@ export function rozjazdyParowania(wpisy: Wywolanie[]): { nr: number; komunikatow
 
 /** Szkielet `meta.json` w schemacie korpusu `new-engine`. */
 /**
+ * Zrzut bez powtórzeń — wpisy, które nie wnoszą nic nowego, wypadają.
+ *
+ * PO CO. Gra woła `update` w pętli także wtedy, gdy nic się nie dzieje.
+ * W pierwszym prawdziwym zrzucie było to **569 wywołań, z czego 567 miało
+ * identyczny ładunek `{move: -1, endBattle: 1}`** — odpytywanie po zakończeniu
+ * walki. Cały plik ważył 1,8 MB, a treści było w nim 15 kB. Fixture idzie do
+ * gita NA ZAWSZE i 1,8 MB szumu jest ceną, której nikt nigdy nie odzyska.
+ *
+ * CO ZOSTAJE, i to jest cała ostrożność tej funkcji:
+ *
+ * 1. **każdy wpis z komunikatami** — bez wyjątku, to jest materiał dowodowy;
+ * 2. **każdy nowy KSZTAŁT ładunku** (zbiór kluczy) — żeby nie zgubić tego, że
+ *    gra w ogóle wysyła `endBattle` albo `poolTime`, choćby raz;
+ * 3. **każda nowa migawka wojowników** — czyli pełna krzywa życia, bez
+ *    powtórzeń tego samego stanu.
+ *
+ * Odrzucane są wyłącznie wpisy, które są DOKŁADNYM powtórzeniem kształtu
+ * i stanu widzianego wcześniej. To nie jest „skracanie zrzutu do tego, co
+ * nam pasuje" — żaden odrzucony wpis nie niesie informacji, której nie ma
+ * w zachowanym.
+ */
+export function odchudz(wpisy: Wywolanie[]): Wywolanie[] {
+  const ksztalty = new Set<string>();
+  const stany = new Set<string>();
+  return wpisy.filter((w) => {
+    const ksztalt = JSON.stringify(Object.keys(w.ladunek).sort());
+    const stan = JSON.stringify(w.wojownicyPo);
+    const nowyKsztalt = !ksztalty.has(ksztalt);
+    const nowyStan = !stany.has(stan);
+    ksztalty.add(ksztalt);
+    stany.add(stan);
+    return w.komunikaty.length > 0 || nowyKsztalt || nowyStan;
+  });
+}
+
+/**
  * Czy render z tego zrzutu wolno zapisać jako materiał dowodowy.
  *
  * Osobna funkcja, a nie warunek w CLI, z jednego powodu: CLI nie ma testów
@@ -340,11 +376,21 @@ if (import.meta.main) {
     // o których nikt już nie pamięta, że pochodzą z rekonstrukcji.
     const zRenderem = renderParujeSie(zrzut.wpisy);
     if (zRenderem) await Bun.write(`${katalog}log.html`, sklejRender(zrzut.wpisy));
-    await Bun.write(`${katalog}protokol.json`, `${JSON.stringify(zrzut, null, 2)}\n`);
+    const chude = odchudz(zrzut.wpisy);
+    await Bun.write(
+      `${katalog}protokol.json`,
+      `${JSON.stringify({ ...zrzut, wpisy: chude }, null, 2)}\n`,
+    );
     await Bun.write(`${katalog}meta.json`, meta(zrzut, dzis, zRenderem));
 
     const wiadomosci = komunikaty(zrzut.wpisy);
     console.log(`zapisane: ${katalog}`);
+    if (chude.length < zrzut.wpisy.length) {
+      console.log(
+        `  odchudzone: ${zrzut.wpisy.length} → ${chude.length} wywołań ` +
+          "(odrzucone są wyłącznie dokładne powtórzenia kształtu ładunku i stanu wojowników)",
+      );
+    }
     console.log(
       `  wywołań: ${zrzut.wpisy.length}, komunikatów: ${wiadomosci.length}, ` +
         `kluczy: ${histogram(wiadomosci).length}`,
