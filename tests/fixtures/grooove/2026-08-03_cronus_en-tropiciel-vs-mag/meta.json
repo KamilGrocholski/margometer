@@ -1,0 +1,41 @@
+{
+  "client": "grooove",
+  "format": "protokol",
+  "capturedAt": "2026-08-03",
+  "clientBuild": null,
+  "world": "cronus",
+  "fightId": 84837798,
+  "sourceUrl": "https://grooove.pl/battle/id,84837798",
+  "source": "grooove.pl — pole Page.data.log, protokół silnika, NIE tekst z okna walki",
+  "opening": "The battle between Freyr(244t) and Tears of a Clown(271m) has begun",
+  "participants": [
+    {
+      "name": "Freyr",
+      "level": null,
+      "professionCode": null,
+      "profession": null,
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Tears of a Clown",
+      "level": null,
+      "professionCode": null,
+      "profession": null,
+      "gender": "m",
+      "team": 2
+    }
+  ],
+  "covers": [
+    "Świat anglojęzyczny. Linia otwierająca brzmi „The battle between Freyr(244t) and Tears of a Clown(271m) has begun” — po angielsku.",
+    "Nazwy umiejętności w polu p_ też są angielskie: Frost Arrow, Ice Lance, Double Hit, Healing Touch, Elemental Fusion, Moment of Focus.",
+    "Trzy klucze tylko tutaj: z__crit, z__pierce, spell-taken_D.",
+    "Gęsto @absorb (28) i @absorbm (41) obok siebie.",
+    "legbon_holytouch_l 9 razy, @abmdest_per, D_per, active_absorbdest_per."
+  ],
+  "missing": [
+    "poziom i kod profesji w participants — pole zostało null, bo linia otwierająca jest po angielsku i parseParticipants jej nie czyta (patrz notes)",
+    "flee; pole zwycięzcy niesie nazwisko, nie znak zapytania"
+  ],
+  "notes": "Ten fixture jest tu głównie po to, żeby świat anglojęzyczny NIE był domysłem. participants mają level i professionCode równe null, bo tool czyta je z linii otwierającej przez src/parser.ts, a ten zna wyłącznie polskie „Rozpoczęła się walka pomiędzy”. To nie usterka fixture'a ani parsera — to zapisany fakt o źródle. Poziomy 244t i 271m stoją w polu opening, gdyby ktoś ich potrzebował."
+}

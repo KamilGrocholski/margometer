@@ -1,0 +1,61 @@
+{
+  "client": "grooove",
+  "format": "protokol",
+  "capturedAt": "2026-08-03",
+  "clientBuild": null,
+  "world": "gefion",
+  "fightId": 84840444,
+  "sourceUrl": "https://grooove.pl/battle/id,84840444",
+  "source": "grooove.pl — pole Page.data.log, protokół silnika, NIE tekst z okna walki",
+  "opening": "Rozpoczęła się walka pomiędzy Tianoth(341h), Glks - love(491w), Miś Miniś(400t) a Optimus Kwak(408p)",
+  "participants": [
+    {
+      "name": "Tianoth",
+      "level": 341,
+      "professionCode": "h",
+      "profession": "łowca",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Glks - love",
+      "level": 491,
+      "professionCode": "w",
+      "profession": "wojownik",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Miś Miniś",
+      "level": 400,
+      "professionCode": "t",
+      "profession": "tropiciel",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Optimus Kwak",
+      "level": 408,
+      "professionCode": "p",
+      "profession": "paladyn",
+      "gender": "m",
+      "team": 2
+    }
+  ],
+  "covers": [
+    "Skład 3 na 1 przy dużym rozrzucie poziomów: 341h, 491w, 400t przeciw 408p.",
+    "Najwyższy poziom w korpusie: 491.",
+    "73 klucze, drugi wynik po walce grupowej. Klucz M nie występuje nigdzie indziej.",
+    "antidote, @vulture, @crush_distance, rpierce i F_destroyed w jednym pliku.",
+    "Trójka kluczy odporności obok siebie: resm_per, resfrost_per, reslight_per.",
+    "hp_per-allies razem z l_per-allies i l_per-enemies.",
+    "22 nazwy umiejętności, w tym łucznicze (Diamentowa strzała, Rozpraszająca strzała, Gwałtowny strzał)."
+  ],
+  "missing": [
+    "flee",
+    "@Do",
+    "z__crit, z__pierce, g_",
+    "poziomy poniżej 341"
+  ],
+  "notes": "Druga w kolejności zachłannego pokrycia: dokłada 26 kluczy ponad walkę grupową. 161 zdarzeń, 8,8 kB."
+}

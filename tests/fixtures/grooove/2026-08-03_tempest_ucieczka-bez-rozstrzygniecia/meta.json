@@ -1,0 +1,114 @@
+{
+  "client": "grooove",
+  "format": "protokol",
+  "capturedAt": "2026-08-03",
+  "clientBuild": null,
+  "world": "tempest",
+  "fightId": 84840705,
+  "sourceUrl": "https://grooove.pl/battle/id,84840705",
+  "source": "grooove.pl — pole Page.data.log, protokół silnika, NIE tekst z okna walki",
+  "opening": "Rozpoczęła się walka pomiędzy Niepoznasz(64w), Tordejszyn(64w), Taomoirou(64h), Mr Shard(64m), Atelanta(64t), Na bank nie Foan(64h), Two For Youu(64m), Public Enemy Number I(64t), To chyba Subeczek(64w), Zły Darkness(64p) a Maleko na Długach(64b)",
+  "participants": [
+    {
+      "name": "Niepoznasz",
+      "level": 64,
+      "professionCode": "w",
+      "profession": "wojownik",
+      "gender": "f",
+      "team": 1
+    },
+    {
+      "name": "Tordejszyn",
+      "level": 64,
+      "professionCode": "w",
+      "profession": "wojownik",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Taomoirou",
+      "level": 64,
+      "professionCode": "h",
+      "profession": "łowca",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Mr Shard",
+      "level": 64,
+      "professionCode": "m",
+      "profession": "mag",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Atelanta",
+      "level": 64,
+      "professionCode": "t",
+      "profession": "tropiciel",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Na bank nie Foan",
+      "level": 64,
+      "professionCode": "h",
+      "profession": "łowca",
+      "gender": "f",
+      "team": 1
+    },
+    {
+      "name": "Two For Youu",
+      "level": 64,
+      "professionCode": "m",
+      "profession": "mag",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Public Enemy Number I",
+      "level": 64,
+      "professionCode": "t",
+      "profession": "tropiciel",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Maleko na Długach",
+      "level": 64,
+      "professionCode": "b",
+      "profession": "tancerz ostrzy",
+      "gender": "m",
+      "team": 2
+    },
+    {
+      "name": "To chyba Subeczek",
+      "level": 64,
+      "professionCode": "w",
+      "profession": "wojownik",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Zły Darkness",
+      "level": 64,
+      "professionCode": "p",
+      "profession": "paladyn",
+      "gender": "m",
+      "team": 1
+    }
+  ],
+  "covers": [
+    "Skrajnie krótki plik: 4 zdarzenia, 6 kluczy, 0,2 kB — przy jedenastu uczestnikach w składzie.",
+    "Jedyne w korpusie wystąpienie klucza flee.",
+    "Jedyny w korpusie zapis zwycięzcy jako sam znak zapytania, zamiast listy nazwisk.",
+    "Skład 10 na 1 (dziesięciu na poziomie 64 przeciw jednemu 64b).",
+    "@spell-taken_D-all i d__per przy dwóch zdarzeniach z umiejętnością."
+  ],
+  "missing": [
+    "jakiekolwiek klucze obrażeń (@D, @Dd, @Dl, @Df, @Dc, @Do) — walka kończy się, zanim padnie cios",
+    "leczenie, bloki, krytyki",
+    "pole zamykające przegranych — jest tylko jedno, ze zwycięzcą"
+  ],
+  "notes": "Do korpusu weszła zachłannym pokryciem kluczy, ale o włos: dokłada dokładnie JEDEN klucz, którego nie ma nigdzie indziej — flee. Cała reszta wartości jest w kształcie: to najkrótsza walka, jaką w ogóle da się tu zapisać, i jedyna, w której zwycięzcą jest znak zapytania. Ta sama walka leży na grooove pod trzema ID (84840705, 84840706, 84840707), bo zapisali ją różni uczestnicy."
+}

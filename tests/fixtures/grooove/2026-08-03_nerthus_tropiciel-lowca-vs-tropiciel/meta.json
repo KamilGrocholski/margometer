@@ -1,0 +1,50 @@
+{
+  "client": "grooove",
+  "format": "protokol",
+  "capturedAt": "2026-08-03",
+  "clientBuild": null,
+  "world": "nerthus",
+  "fightId": 84837379,
+  "sourceUrl": "https://grooove.pl/battle/id,84837379",
+  "source": "grooove.pl — pole Page.data.log, protokół silnika, NIE tekst z okna walki",
+  "opening": "Rozpoczęła się walka pomiędzy Trymas Dymas(439t), Mokohiki(427h) a Karmazynowa Samantha(444t)",
+  "participants": [
+    {
+      "name": "Karmazynowa Samantha",
+      "level": 444,
+      "professionCode": "t",
+      "profession": "tropiciel",
+      "gender": "f",
+      "team": 2
+    },
+    {
+      "name": "Trymas Dymas",
+      "level": 439,
+      "professionCode": "t",
+      "profession": "tropiciel",
+      "gender": "f",
+      "team": 1
+    },
+    {
+      "name": "Mokohiki",
+      "level": 427,
+      "professionCode": "h",
+      "profession": "łowca",
+      "gender": "m",
+      "team": 1
+    }
+  ],
+  "covers": [
+    "Najniższy poziom w składzie to 427 — najwyższy taki próg w korpusie (444t, 439t, 427h).",
+    "Jedyny plik ze świata Nerthus.",
+    "53 klucze, w tym F_destroyed, rpierce, @vulture, g i x.",
+    "13 nazw umiejętności, w większości łuczniczych, obok „Wyniszczające rany” i „Krytyczne wzmocnienie”.",
+    "Skład 2 na 1 przy niemal równych poziomach — kontrast do paladyn-vs-osmioro."
+  ],
+  "missing": [
+    "klucz występujący TYLKO tutaj — nie ma ani jednego, cały zestaw pokrywają inne pliki",
+    "flee",
+    "@Do"
+  ],
+  "notes": "Jedyny plik w korpusie, który nie wnosi żadnego nowego klucza. Został wybrany ręcznie za dwie inne rzeczy: najwyższe poziomy w składzie i obecność świata Nerthus. Jeśli korpus kiedyś trzeba będzie przyciąć, to jest pierwszy kandydat — i dlatego jest to napisane tutaj, a nie zostawione do ponownego odkrycia."
+}

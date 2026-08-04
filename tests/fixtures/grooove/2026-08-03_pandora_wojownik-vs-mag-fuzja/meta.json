@@ -1,0 +1,44 @@
+{
+  "client": "grooove",
+  "format": "protokol",
+  "capturedAt": "2026-08-03",
+  "clientBuild": null,
+  "world": "pandora",
+  "fightId": 84841060,
+  "sourceUrl": "https://grooove.pl/battle/id,84841060",
+  "source": "grooove.pl — pole Page.data.log, protokół silnika, NIE tekst z okna walki",
+  "opening": "Rozpoczęła się walka pomiędzy King Goofy(250w) a Czuxik(244m)",
+  "participants": [
+    {
+      "name": "King Goofy",
+      "level": 250,
+      "professionCode": "w",
+      "profession": "wojownik",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Czuxik",
+      "level": 244,
+      "professionCode": "m",
+      "profession": "mag",
+      "gender": "m",
+      "team": 2
+    }
+  ],
+  "covers": [
+    "Najmniejszy pełny plik korpusu: 55 zdarzeń, 2,8 kB, a mimo to 42 klucze.",
+    "@crush_physical i H — nie ma ich w żadnym innym pliku tutaj.",
+    "absolute, anguish i @legbon_anguish w jednej walce.",
+    "Umiejętność „Fuzja żywiołów” w polu p_ (w korpusie new-engine ten sam efekt widać w 2026-07-18_mag-dom-fuzja, ale tam jako tekst).",
+    "Pierwsze zdarzenie pliku to l_per-enemies.-15 — stoi PRZED komunikatem a. o Punktach Honoru.",
+    "Zdarzenie a. z komunikatem „Walka bez Punktów Honoru - atakujący może mieć maksymalnie 2 poziomy przewagi.”"
+  ],
+  "missing": [
+    "flee",
+    "@Do",
+    "walka grupowa",
+    "vamp_time, antidote"
+  ],
+  "notes": "Dobry plik na pierwszy kontakt z formatem: mieści się na ekranie po rozbiciu przez `bun tools/grooove.ts --pokaz`, a niesie jedną trzecią wszystkich kluczy korpusu."
+}
