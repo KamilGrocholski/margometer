@@ -35,7 +35,7 @@ const contrast = (a: string, b: string) => {
 describe("przypisanie kolorów", () => {
   /**
    * ⚠️ **Nazwy postaci przestały pochodzić z gry — 2026‑08‑04.** Walki brały się
-   * z korpusu (`tests/fixtures/`); dziś produkuje je `tools/synthetic-log.ts`
+   * z 25 prawdziwych walk; dziś produkuje je `tools/synthetic-log.ts`
    * i to z niego pochodzą nicki użyte niżej. Testy dalej sprawdzają REGUŁĘ
    * (barwa = profesja, odznaka = litera), ale nie mówią już nic o tym, jakie
    * składy gra faktycznie wystawia.
@@ -331,7 +331,7 @@ describe("przypisanie kolorów", () => {
     //
     // ⚠️ Stała za tym walka `2026-07-18_mag-dom-fuzja` (zrzut DOM, żywioł
     // z klasy CSS), gdzie „Lodowy pocisk" miał 259 zimna do 50 błyskawicy,
-    // a „Porażenie" 384 do 153. Korpus zszedł z drzewa 2026‑08‑04; wejście
+    // a „Porażenie" 384 do 153. Materiał zszedł z drzewa 2026‑08‑04; wejście
     // jest dziś pisane ręcznie i dobiera te same proporcje.
     const stats = aggregate([
       otwarcie(["Mag 1m"], ["Cel 1w"]),

@@ -258,7 +258,7 @@ if (import.meta.main) {
    * w ścieżce albo padnięty krok zbierający dane dawały pustą listę plików,
    * czyli „zakres nie rusza `src/`" i kod wyjścia 0. Brama świeciła na zielono,
    * choć nie sprawdziła niczego. „Nie wiem" ma tu kończyć się kodem ≠ 0 — ta
-   * sama zasada, co „nieznane ma być głośne" w parserze.
+   * sama zasada, co „nieznane ma być głośne" w dekoderze.
    */
   const czytaj = async (path: string | undefined, nazwa: string): Promise<string> => {
     if (path === undefined) {

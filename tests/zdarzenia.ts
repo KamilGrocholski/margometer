@@ -1,12 +1,12 @@
 import type { BattleEvent, Hit, Participant } from "../src/types.ts";
 
 /**
- * Budowanie strumieni `BattleEvent[]` wprost, bez parsera.
+ * Budowanie strumieni `BattleEvent[]` wprost, bez przechodzenia przez odczyt.
  *
- * PO CO. Testy agregatu opisywały wejście SYNTETYCZNYM TEKSTEM i przepuszczały
- * go przez `parse` — wygodnie, ale wiązało `stats.ts` z parserem tekstu, który
- * został usunięty 2026‑08‑04. Zdarzenia są dziś kontraktem między KAŻDYM
- * źródłem a agregatem, więc test agregatu ma je podawać wprost.
+ * PO CO. Testy agregatu opisywały wejście SYNTETYCZNYMI ZDANIAMI i puszczały je
+ * przez odczyt — wygodnie, ale wiązało `stats.ts` z warstwą, która została
+ * usunięta 2026‑08‑04. Zdarzenia są kontraktem między KAŻDYM źródłem
+ * a agregatem, więc test agregatu ma je podawać wprost.
  *
  * Zysk poza samą niezależnością: wejście przestaje przechodzić przez drugi kod.
  * Gdy test „nie zgaduje sprawcy trucizny" padał, trzeba było najpierw ustalić,
@@ -128,7 +128,7 @@ export function umiejetnosc(actor: string, name: string): BattleEvent {
  *
  * Potrzebne, bo część syntetycznych wejść w testach agregatu NIOSŁA takie linie
  * — na przykład gołe „Wilk(80%) otrzymał -100 obrażeń" bez poprzedzającego
- * ciosu. Parser tekstu zgłaszał je jako nierozpoznane i do statystyk nie
+ * ciosu. Odczyt zgłaszał je jako nierozpoznane i do statystyk nie
  * wchodziły; przy przepisywaniu tych testów na zdarzenia zostają wiernie,
  * zamiast po cichu zniknąć. Inaczej test twierdziłby, że sprawdza coś, czego
  * jego wejście nigdy nie niosło.

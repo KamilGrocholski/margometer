@@ -70,8 +70,8 @@ export class Session {
    * na potrzeby sumy sesji. Sumy nie ma, wcześniejszych walk nie liczymy,
    * warunek nie ma czego chronić.
    *
-   * ⚠️ **STAŁA TU JESZCZE `update(text)`**, która robiła `parse(text)` i wołała
-   * to samo. Zniknęła 2026‑08‑04 razem z parserem tekstu: zdarzenia przychodzą
+   * ⚠️ **STAŁA TU JESZCZE `update(text)`**, która najpierw czytała zdania,
+   * a potem wołała to samo. Zniknęła 2026‑08‑04 razem z tamtym odczytem: zdarzenia przychodzą
    * dziś jedną drogą, wprost z protokołu silnika. Nazwa `updateEvents` została,
    * choć nie ma już od czego się odróżniać — zmiana kosztowałaby dotknięcie
    * wszystkich wywołań po to, żeby nic nie zmienić.

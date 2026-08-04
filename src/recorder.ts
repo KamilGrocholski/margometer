@@ -12,11 +12,11 @@
  * a archiwum odtwarza nagranie długo po zamknięciu gry, więc rostera nie ma
  * gdzie wziąć.
  *
- * ⚠️ **FORMAT `v: 2` NIE CZYTA NAGRAŃ `v: 1`.** Tamte trzymały tekst z okna
- * walki, a parser tekstu zszedł z drzewa — nie ma czym ich odczytać. Indeks
+ * ⚠️ **FORMAT `v: 2` NIE CZYTA NAGRAŃ `v: 1`.** Tamte trzymały ZDANIA z okna
+ * walki, a odczyt zdań zszedł z drzewa — nie ma czym ich przeczytać. Indeks
  * w starej wersji jest odrzucany przy starcie i archiwum zaczyna od zera.
- * To jest strata dla gracza i jest świadoma; alternatywą było trzymanie
- * całego parsera wyłącznie dla archiwum.
+ * To jest strata dla gracza i jest świadoma; alternatywą było utrzymywanie
+ * całego tamtego odczytu (ponad tysiąc linii) wyłącznie dla archiwum.
  *
  * Magazyn dzielimy z grą: `@grant none` znaczy, że siedzimy w kontekście
  * strony, a `localStorage` na `tempest.margonem.pl` to ten sam ~5 MB kubełek,

@@ -310,8 +310,8 @@ describe("odtwarzanie", () => {
   });
 
   test("żadna klatka nie zapala ostrzeżenia o nierozpoznanym materiale", () => {
-    // Przy tekście krok po LINII potrafił stanąć MIĘDZY „uderzył" a „otrzymał",
-    // więc parser zgłaszał niedomknięty cios i stopka mrugała co drugą klatkę.
+    // Przy zdaniach krok po LINII potrafił stanąć MIĘDZY „uderzył" a „otrzymał",
+    // więc odczyt zgłaszał niedomknięty cios i stopka mrugała co drugą klatkę.
     // Protokół takiego stanu nie ma — jeden komunikat niesie CAŁY blok — więc
     // prefiks komunikatów jest zawsze domknięty. Ten test pilnuje, że tak
     // zostanie: gdyby dekoder zaczął zgłaszać `unknown` na pół-akcji, zapali się.

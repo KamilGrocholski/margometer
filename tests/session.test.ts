@@ -10,8 +10,8 @@ import { OSOBLIWOSCI, WALKI } from "./korpus.ts";
 /**
  * Dwie ROZŁĄCZNE walki — żadna nazwa się nie powtarza.
  *
- * ⚠️ Do 2026‑08‑04 brały się z korpusu (`tancerz-vs-kukla`, `lowca-vs-druzyna`
- * i inne). Korpusu nie ma; rozłączność składów jest tu warunkiem, bez którego
+ * ⚠️ Do 2026‑08‑04 brały się z 25 prawdziwych walk. Tamtego materiału nie ma;
+ * rozłączność składów jest tu warunkiem, bez którego
  * „liczy się OSTATNIA walka" nie da się w ogóle sprawdzić.
  */
 const PIERWSZA = OSOBLIWOSCI; // Gracz, Locha, Odyniec
@@ -145,7 +145,7 @@ describe("panel dostaje bieżącą walkę, nie historię", () => {
 
   test("start() karmi sesję i panel z jednego strumienia", async () => {
     // Spięcie źródło → sesja → panel. Wcześniej pilnował tego test wyżej,
-    // przez `DomLogSource`; dziś jedyną drogą jest `EventSource`.
+    // drugim, nieistniejącym już źródłem; dziś jedyną drogą jest `EventSource`.
     const session = new Session();
     const overlay = new Overlay();
     const SKLAD: RosterEntry[] = [
@@ -180,7 +180,7 @@ describe("Session.updateEvents", () => {
   });
 
   /**
-   * ⚠️ Niezmiennik chodził do 2026‑08‑04 po katalogach `tests/fixtures/`
+   * ⚠️ Niezmiennik chodził do 2026‑08‑04 po 25 prawdziwych walkach
    * — 25 prawdziwych walk. Chodzi dziś po walkach budowanych w kodzie
    * (`tests/korpus.ts`), więc sprawdza tę samą WŁASNOŚĆ na uboższym materiale.
    */

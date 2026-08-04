@@ -7,10 +7,12 @@ import type { BattleEvent } from "./types.ts";
  * Źródło ZDARZEŃ z protokołu silnika — jedyne miejsce w `src/`, które dotyka
  * wnętrza gry.
  *
- * ⚠️ **TU PADA OBIETNICA Z `AGENTS.md`.** Dodatek do dziś „czyta okno walki
- * i nic więcej: nie wysyła zapytań, nie dotyka stanu gry". Owinięcie
- * `Engine.battle.update` łamie drugą część i dlatego siedzi w OSOBNYM pliku —
- * ma być widoczne w drzewie, a nie schowane w środku modułu. Powody i odrzucone
+ * ⚠️ **TU PADŁA OBIETNICA „NIE DOTYKAMY STANU GRY".** Stała w `AGENTS.md` do
+ * 2026‑08‑04 i owinięcie `Engine.battle.update` przestało ją spełniać — dlatego
+ * siedzi w OSOBNYM pliku, ma być widoczne w drzewie, a nie schowane w środku
+ * modułu. Co dodatek nadal gwarantuje i co ma tu swój test: oryginał leci
+ * pierwszy, jego wynik wraca nietknięty, nasz wyjątek nie wychodzi do gry,
+ * a przy odpięciu zdejmujemy wyłącznie SWOJĄ warstwę. Powody i odrzucone
  * warianty: `docs/specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`.
  *
  * DLACZEGO OWINIĘCIE, A NIE ODPYTYWANIE. Protokół istnieje **wyłącznie

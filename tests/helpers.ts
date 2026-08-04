@@ -10,13 +10,13 @@ import type { BattleEvent } from "../src/types.ts";
 import { syntheticFight } from "../tools/synthetic-log.ts";
 
 /**
- * Walka „z korpusu" — SYNTETYCZNA, bo korpusu nie ma.
+ * Walka pod nazwą — SYNTETYCZNA, deterministyczna, **nieczytana z dysku**.
  *
- * ⚠️ **`tests/fixtures/` zniknęło 2026‑08‑04 w całości.** Funkcja przyjmuje
- * dalej nazwę katalogu — tak wygodniej było przepiąć ~30 wywołań — ale **nie
- * czyta niczego z dysku**: nazwa służy wyłącznie do tego, żeby ta sama nazwa
- * dawała zawsze tę samą walkę. Walki produkuje `tools/synthetic-log.ts`,
- * deterministycznie.
+ * ⚠️ **NAZWA JEST DZIŚ TYLKO ZIARNEM.** Do 2026‑08‑04 wskazywała katalog
+ * z prawdziwą walką; katalog zszedł z drzewa razem z korpusem, a funkcja
+ * przyjmuje nazwę dalej — tak było taniej niż przepinać ~30 wywołań. Ta sama
+ * nazwa daje zawsze tę samą walkę i to jest cała jej rola. Walki produkuje
+ * `tools/synthetic-log.ts`.
  *
  * Co to znaczy dla testów, które ją wołają: sensowne zostaje pytanie „czy panel
  * rysuje to, co dostał"; znika pytanie „czy gra produkuje takie kształty".

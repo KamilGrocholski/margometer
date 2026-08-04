@@ -16,28 +16,16 @@ import { KORPUS } from "./korpus.ts";
 
 
 /**
- * Korpus jako STRUMIENIE ZDARZEŃ.
+ * Materiał dla niezmienników — `tests/korpus.ts`, czyli STRUMIENIE ZDARZEŃ.
  *
- * Do 2026‑08‑04 stały tu dwie listy — `raw.txt` i `log.html` — a testy
- * przepuszczały je przez `src/parser.ts`. Parser tekstowy schodzi z drzewa,
- * więc korpus przeszedł jednorazową konwersję do `zdarzenia.json`; skąd
- * pochodzi każdy strumień, mówi pole `zrodlo`, a powody — `fixtures/new-engine/README.md`.
+ * ⚠️ **DO 2026‑08‑04 STAŁO TU 25 PRAWDZIWYCH WALK**, czytanych z plików
+ * i przepuszczanych przez odczyt ze zdań. Zestaw zszedł z drzewa i to jest
+ * największa strata tej rundy: kształt, o którym nie pomyśleliśmy, nie ma jak
+ * wpaść do materiału, który sami budujemy — a tamten łapał je sam z siebie.
+ * Niezmienniki niżej zostały te same; uboższy jest materiał, po którym chodzą.
  *
- * ⚠️ **Dlaczego to nie zubożyło korpusu.** Zamrożenie szło z BOGATSZEGO źródła:
- * `log.html` tam, gdzie jest (11 walk), `raw.txt` w pozostałych (14). To ma
- * znaczenie dla żywiołów — `hit.element` jest w tekście ZAWSZE `null`, bo żywioł
- * siedzi w klasie CSS. Pomiar, dla którego droga przez DOM została kiedyś
- * dołożona (`2026-08-03_druzyna-vs-hildur-absorpcja`):
- *
- *   dealtByType, etykiety w całej walce   html: 6   raw: 2
- *   boss                                  html: Zimno 82 584 + Ogień 37 598
- *                                         raw:  Nieznany 120 182
- *   typeByLabel                           html: 31 wpisów   raw: 4
- *
- * Konwersja z `raw.txt` zostawiłaby przekrój po żywiołach bez strażnika po
- * korpusie — a to jedyna rzecz, którą tamta droga dokładała.
+ * Co konkretnie przestało być pokryte, mówi `tests/korpus.ts` i `AGENTS.md`.
  */
-const fixtures = KORPUS;
 
 const tier = (label: string, by: Array<[string, number, number]>): AttackerBreakdown => ({
   label,
@@ -132,7 +120,7 @@ describe("leadsDeeper", () => {
  * z rozbicia po parze. `dealtBy` jest tu WYROCZNIĄ: jeśli obie drogi kiedykolwiek
  * się rozjadą, panel pokaże inną sumę niż agregat i nikt tego nie zauważy.
  */
-describe.each(fixtures)("$name — odwrócenie zgadza się z dealtBy", (fixture) => {
+describe.each(KORPUS)("$name — odwrócenie zgadza się z dealtBy", (fixture) => {
   test("etykieta po etykiecie, nie tylko sumą", async () => {
     const stats = aggregate(fixture.events);
 
@@ -187,7 +175,7 @@ describe("EMPTY_STATS jest współdzielonym singletonem", () => {
  * tyknięcia — więc jeśli kiedykolwiek przestanie, wiązanie trzeba wycofać, a nie
  * naprawiać. Ten test jest po to, żeby to było widać od razu.
  */
-describe.each(fixtures)("$name — zranienie zgadza się z proca", (fixture) => {
+describe.each(KORPUS)("$name — zranienie zgadza się z proca", (fixture) => {
   test("każde tyknięcie ma proc o tej samej kwocie", async () => {
     const events = fixture.events;
     /** Ostatni proc na cel — jeden obejmuje kilka tyknięć pod rząd. */
@@ -354,8 +342,8 @@ describe("trucizna w walce grupowej", () => {
   test("ta sama nazwa po obu stronach nie dostaje żadnej strony", () => {
     const log = [
       otwarcie(["Gracz 1w", "Wilk 1w"], ["Wilk 1w", "Wróg 1m"]),
-      // ⚠️ Gołe „otrzymał" bez poprzedzającego ciosu parser zgłaszał jako
-      // linię NIEROZPOZNANĄ i do statystyk nie wchodziło. Zostaje wiernie:
+      // ⚠️ Gołe „otrzymał" bez poprzedzającego ciosu jest zdarzeniem
+      // NIEROZPOZNANYM i do statystyk nie wchodzi. Zostaje wiernie:
       // ten test stoi wyłącznie na składzie, a nie na obrażeniach.
       nieznane("Wilk(80%) otrzymał -100 obrażeń", 2),
     ];
@@ -690,12 +678,12 @@ describe("niezmienniki liczb", () => {
   };
 
   /**
-   * Jeden zestaw asercji po CAŁYM korpusie.
+   * Jeden zestaw asercji po CAŁYM materiale.
    *
-   * Do 2026‑08‑04 stały tu dwa przeloty — po `raw.txt` i po `log.html` —
-   * bo te same walki dawały różne strumienie zdarzeń, zależnie od drogi.
-   * Po zamrożeniu korpusu droga jest jedna, a bogatszy odczyt (z DOM‑u tam,
-   * gdzie był) siedzi już w `zdarzenia.json`.
+   * ⚠️ Do 2026‑08‑04 przeloty były DWA, bo te same walki dawały różne strumienie
+   * zdarzeń zależnie od tego, którą drogą je odczytano. Droga jest dziś jedna
+   * i ta redukcja niczego nie kosztowała — kosztowało usunięcie materiału,
+   * po którym oba chodziły.
    */
   const przelot = (fixture: { events: BattleEvent[] }) => {
     test("rozbicia domykają się ze skalarami", async () => {
@@ -721,17 +709,17 @@ describe("niezmienniki liczb", () => {
     });
   };
 
-  describe.each(fixtures)("$name", (fixture) => {
+  describe.each(KORPUS)("$name", (fixture) => {
     przelot(fixture);
 
     /**
      * `typeByLabel` mówi widokowi, jakim kolorem pomalować pasek danej etykiety
      * (`palette.ts`), i do 2026‑08‑03 nie miał ANI JEDNEGO niezmiennika.
      *
-     * Chodził wcześniej TYLKO po fixture'ach z DOM-u, bo po tekście prawie go
-     * nie ma: na fixture Hildur boss miał 31 wpisów z DOM-u wobec 4 z tekstu.
-     * Po zamrożeniu korpusu z bogatszego źródła chodzi po wszystkich — te
-     * 31 wpisów siedzi dziś w `zdarzenia.json` tamtej walki.
+     * ⚠️ Chodził wcześniej TYLKO po walkach odczytanych z DOM-u, bo tylko one
+     * niosły żywioł: ta sama walka miała 31 wpisów z DOM-u wobec 4 ze zdań.
+     * Protokół niesie żywioł kluczem, więc rozróżnienie zniknęło i przelot
+     * obejmuje wszystko, co jest.
      *
      * Dwie własności, obie łamliwe przy zmianie sortowania albo scalania rodzin:
      * etykieta nie może paść dwa razy (widok wziąłby pierwszą i cicho zgubił
@@ -820,7 +808,7 @@ describe("zarezerwowane etykiety nie kolidują z nazwami z gry", () => {
     ].map(([via, type]) => dotLabel(via!, type!)),
   ]);
 
-  test.each(fixtures)("$name", async (fixture) => {
+  test.each(KORPUS)("$name", async (fixture) => {
     const names = new Set<string>();
     for (const event of fixture.events) {
       if (event.kind === "ability") {

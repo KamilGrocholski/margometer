@@ -3,11 +3,11 @@ import { Overlay } from "./overlay.ts";
 import { Recorder } from "./recorder.ts";
 import { EngineProtocolSource, type EventSource } from "./protokol-source.ts";
 import { EngineRosterSource, type GameGlobals } from "./roster.ts";
-import { pustyOdczyt, walkaZakonczona } from "./rozjazd.ts";
+import { pustyOdczyt, walkaZakonczona } from "./stan-odczytu.ts";
 import { Session } from "./session.ts";
 import { EMPTY_STATS } from "./stats.ts";
 
-/** Ile czekać na pojawienie się okna walki w DOM, zanim odpuścimy. */
+/** Co ile pytać stronę, czy pojawił się już silnik gry. */
 const LOOKUP_INTERVAL_MS = 1000;
 /**
  * Ile razy z rzędu wolno nie znaleźć gry, zanim uznamy, że to nie jest jej
@@ -23,12 +23,12 @@ const GIVE_UP_AFTER = 20;
  * Spina protokół silnika z panelem, archiwum i nagrywarką.
  *
  * ⚠️ **NAZYWAŁO SIĘ TO `startKontrola` i było CZUJKĄ** — drugim odczytem walki,
- * który tylko porównywał się z pierwszym (tekstowym) i nie miał prawa karmić
- * panelu liczbami. Powód tamtej ostrożności: bez walki zapisanej obiema drogami
- * nie dało się odróżnić „nowe liczby są lepsze" od „nowe liczby są inne".
- * Walka zapisana obiema drogami przyszła 2026‑08‑04 i rozstrzygnęła to na
- * korzyść protokołu, więc czujka przestała być czujką, a odczyt tekstowy zszedł
- * z drzewa. Została jedna droga i to ona rysuje panel.
+ * który tylko porównywał się z pierwszym i nie miał prawa karmić panelu
+ * liczbami. Powód tamtej ostrożności: bez walki zapisanej obiema drogami nie
+ * dało się odróżnić „nowe liczby są lepsze" od „nowe liczby są inne". Taka
+ * walka przyszła 2026‑08‑04 i rozstrzygnęła to na korzyść protokołu, więc
+ * czujka przestała być czujką, a pierwszy odczyt zszedł z drzewa. Została
+ * jedna droga i to ona rysuje panel.
  *
  * Wszystko jest tu w try/catch nie z ostrożności wobec własnego kodu, tylko
  * dlatego, że **ten callback leci ze środka `Engine.battle.update`**: wyjątek,
@@ -75,7 +75,7 @@ export function start(
  * Czy to w ogóle strona gry.
  *
  * Pytamy WYŁĄCZNIE o globalne `Engine`. Do 2026‑08‑04 był tu jeszcze drugi
- * warunek — okno walki w DOM — bo stamtąd brał się log. Dziś czytamy
+ * warunek — okno walki w DOM — bo stamtąd brały się liczby. Dziś czytamy
  * `Engine.battle`, więc strona z oknem walki, ale bez `Engine`, nie dałaby nam
  * NICZEGO do przeczytania: drugi warunek obiecywałby grę tam, gdzie dodatek
  * i tak stanąłby pusty. Przy okazji znika przeczesywanie całego dokumentu co

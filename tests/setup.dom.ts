@@ -1,7 +1,7 @@
 import { beforeEach } from "bun:test";
 import { JSDOM } from "jsdom";
 
-// bunfig.toml preloaduje ten plik dla wszystkich testów. Rdzeń (parser,
+// bunfig.toml preloaduje ten plik dla wszystkich testów. Rdzeń (dekoder,
 // agregacja) DOM-u nie potrzebuje — jest tu dla warstwy overlaya.
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
   url: "https://tempest.margonem.pl/",

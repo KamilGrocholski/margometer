@@ -62,11 +62,11 @@ export class SlownikGry implements Slownik {
 }
 
 /**
- * Słownik z zamrożonej tabeli — testy, archiwum, wklejony log.
+ * Słownik z zamrożonej tabeli — testy i archiwum.
  *
- * Odpowiednik `StaticLogSource` ze `source.ts`: ta sama rola, inne źródło.
  * Istnieje, bo poza stroną gry `window._t` nie ma, a zdarzenia trzeba umieć
- * odczytać także z nagrania sprzed tygodnia.
+ * odczytać także z nagrania sprzed tygodnia i w teście bez przeglądarki.
+ * Tabelę zamraża `bun tools/slownik.ts --zamroz` do `tests/klucze-protokolu.ts`.
  */
 export class SlownikStaly implements Slownik {
   private readonly wpisy: ReadonlyMap<string, string>;

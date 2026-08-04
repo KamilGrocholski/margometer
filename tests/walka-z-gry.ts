@@ -4,11 +4,10 @@ import type { RosterEntry } from "../src/roster.ts";
  * JEDYNA prawdziwa walka, jaka została w repo — przepisana do kodu.
  *
  * Pochodzi ze zrzutu `tools/walka-probe.js` (świat `tempest`, build
- * `1781609507010`), który leżał jako `tests/fixtures/new-engine/
- * 2026-08-04_tempest_lowca-vs-odyncze/protokol.json` do 2026‑08‑04. Katalog
- * `tests/fixtures/` zszedł z drzewa; ten materiał **nie jest syntetyczny**
- * i dlatego zostaje — 18 komunikatów mieści się w pliku źródłowym, a plik
- * danych nie był tu do niczego potrzebny.
+ * `1781609507010`, łowca przeciw odyńcom). Leżał do 2026‑08‑04 jako plik danych
+ * obok testów; ten materiał **nie jest syntetyczny** i dlatego zostaje —
+ * 18 komunikatów mieści się w pliku źródłowym, a plik danych nie był tu do
+ * niczego potrzebny. Kolejny taki moduł składa `bun tools/walka.ts --rozbij`.
  *
  * ⚠️ **TO JEST CAŁY MATERIAŁ, KTÓRY MOŻNA SPRAWDZIĆ PRZECIW GRZE.** Wszystko
  * inne w testach produkujemy sami (`tests/korpus.ts`, `tools/synthetic-log.ts`).

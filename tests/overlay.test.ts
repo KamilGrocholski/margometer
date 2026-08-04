@@ -39,7 +39,7 @@ function rightClick(overlay: Overlay): void {
 }
 
 /**
- * ⚠️ **61 TESTÓW ZNIKŁO STĄD 2026‑08‑04, razem z `tests/fixtures/`.**
+ * ⚠️ **61 TESTÓW ZNIKŁO STĄD 2026‑08‑04, razem z materiałem z prawdziwych walk.**
  *
  * Wszystkie wymieniały NAZWY postaci i LICZBY z konkretnych walk z korpusu:
  * „Łowcożyr Kazrek zadał 10 366", „ranking ma dokładnie te trzy nazwy",
@@ -365,7 +365,7 @@ describe("overlay", () => {
   test("trucizna bez sprawcy schodzi do postaci, w którą weszliśmy", async () => {
     // Cała reszta panelu mówi wtedy o jednej postaci, więc przypis mówiący
     // o całej stronie czytałby się jak jej liczba.
-    // Żaden fixture nie ma DoT bez sprawcy — w korpusie po drugiej stronie
+    // Żadna zmierzona walka nie ma DoT bez sprawcy — po drugiej stronie
     // stoi zawsze jeden przeciwnik, więc trucizna ma komu przypaść. Tu trzeba
     // otoczenia: przy trzech wrogach nie wiadomo, który zatruł.
     const stats = aggregate([
@@ -939,7 +939,7 @@ describe("oś tur", () => {
   test("generator syntetyczny nie produkuje ciosów niemożliwych w grze", () => {
     // Podgląd stał na `strikes` per postać, przez co tancerz wypuszczał trzy
     // bloki na każdą akcję i "Rozpraszający atak" pokazywał 3 użycia przy
-    // 9 ciosach. W korpusie prawdziwych logów rekord to 2 ciosy na użycie
+    // 9 ciosach. W zmierzonych prawdziwych walkach rekord to 2 ciosy na użycie
     // ("Podwójne trafienie"), a zwykły atak nigdy nie przekracza jednego.
     const stats = aggregate(syntheticFight(20));
 

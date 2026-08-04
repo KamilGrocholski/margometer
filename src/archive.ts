@@ -10,9 +10,9 @@
  * się więc poprawnie same z siebie — policzone raz i zamrożone w JSON-ie już by
  * się nie poprawiły.
  *
- * ⚠️ **Ręczne wklejenie logu zniknęło stąd 2026‑08‑04**, razem z parserem
- * tekstu. Wklejało się zdania z „Kopiuj logi", a te nie są już dla nikogo
- * czytelne: protokół i tekst to dwa różne języki i tłumaczy tylko sama gra.
+ * ⚠️ **Ręczne wklejenie logu zniknęło stąd 2026‑08‑04**, razem z odczytem ze
+ * zdań. Wklejało się zdania z gry, a te nie są już dla dodatku czytelne:
+ * protokół i zdanie to dwa różne języki i tłumaczy między nimi tylko sama gra.
  */
 import { dekoduj } from "./protokol.ts";
 import { SlownikGry, type Slownik, type TranslationGlobals } from "./slownik-gry.ts";
@@ -74,8 +74,8 @@ const VISIBLE_ROWS = 8;
 /**
  * Porcja dopełniania i odstęp między porcjami.
  *
- * `parse` + `aggregate` kosztuje ~1,4 ms na nagranie (zmierzone na korpusie
- * przy średniej 15 kB), więc ósemka mieści się w klatce. O to tu chodzi: nie
+ * Odczyt plus `aggregate` kosztował ~1,4 ms na nagranie (pomiar 2026‑08‑02,
+ * średnia 15 kB), więc ósemka mieści się w klatce. O to tu chodzi: nie
  * o to, żeby policzyć szybciej, tylko żeby NIGDY nie policzyć wszystkiego naraz.
  */
 const FILL_CHUNK = 8;
@@ -84,8 +84,8 @@ const FILL_MS = 16;
 /**
  * Etykieta nagrania.
  *
- * Do 2026‑08‑04 składała ją tu funkcja `labelOf`, przepuszczając przez parser
- * PIERWSZĄ LINIĘ nagrania — czyli zdanie gry „Rozpoczęła się walka pomiędzy…".
+ * Do 2026‑08‑04 składała ją tu funkcja `labelOf`, czytając PIERWSZĄ LINIĘ
+ * nagrania — czyli zdanie gry „Rozpoczęła się walka pomiędzy…".
  * Protokół takiego zdania nie musi nieść (klient syntetyzuje je sam, poza
  * `data.m`), więc tytuł składa dziś nagrywarka ze SKŁADU i zapisuje gotowy
  * w indeksie. Tutaj zostaje wyłącznie obrona przed pustym wpisem.
@@ -390,8 +390,8 @@ export class Archive {
     // porcji w grze — dzięki temu odtwarzanie idzie tą samą ścieżką co licznik
     // na żywo i nie ma osobnej, drugiej prawdy.
     //
-    // ⚠️ Zniknęło stąd zdejmowanie ostatniego `unknown`. Przy tekście krok po
-    // LINII potrafił zatrzymać się między „uderzył" a „otrzymał", więc parser
+    // ⚠️ Zniknęło stąd zdejmowanie ostatniego `unknown`. Przy zdaniach krok po
+    // LINII potrafił zatrzymać się między „uderzył" a „otrzymał", więc odczyt
     // słusznie zgłaszał niedomknięty cios — a w połowie odtwarzania to była
     // klatka złapana w pół akcji, nie zmiana formatu. Protokół takiego stanu
     // nie ma: jeden komunikat niesie CAŁY blok, więc prefiks komunikatów jest

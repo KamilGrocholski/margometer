@@ -98,7 +98,7 @@ export function professionInk(code: string | null): string {
  * Tu semantyka się broni (ogień pomarańczowy, zimno niebieskie, trucizna
  * zielona) i tu kolor niesie najwięcej: w rozbiciu zwykły cios i tykająca
  * trucizna wyglądają dziś identycznie. U jednej postaci stoją naraz najwyżej
- * TRZY rodziny (maksimum z całego korpusu), a wszystkie pary, które w korpusie
+ * TRZY rodziny (maksimum z całego pomiaru), a wszystkie pary, które w nim
  * faktycznie sąsiadowały, przechodzą próg normalnego widzenia (najgorsza 17,2).
  *
  * Siedmiu rodzin nie da się rozdzielić wzajemnie — najsłabsza para to

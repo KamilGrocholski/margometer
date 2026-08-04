@@ -43,8 +43,8 @@ console.log(`zbudowano ${metaPath}`);
  * Strony podglądu: udawana gra + ten sam bundle co w Margonemie.
  *
  * ⚠️ **PRZEBUDOWANE 2026‑08‑04 i to jest zmiana kształtu.** Do tej pory podgląd
- * wstawiał LOG W DOM i dodatek czytał go tak, jak czytał okno walki. Czytamy
- * dziś `Engine.battle.update`, więc podgląd musi udawać SILNIK: wystawia
+ * wstawiał zdania W DOM i dodatek czytał je stamtąd. Czytamy dziś
+ * `Engine.battle.update`, więc podgląd musi udawać SILNIK: wystawia
  * `Engine.battle` ze składem i pustym `update`, czeka, aż dodatek je owinie,
  * i dopiero wtedy wpuszcza komunikaty.
  *
@@ -68,9 +68,9 @@ function page(title: string, seed: string): string {
  * z opóźnieniem — dodatek szuka `Engine` co sekundę, więc musi zdążyć owinąć
  * `update`, zanim cokolwiek przez nie przejdzie.
  *
- * ⚠️ Materiał brał się do 2026‑08‑04 z `tests/fixtures/…/protokol.json`.
- * Katalog `tests/fixtures/` zszedł z drzewa; ta sama walka leży dziś w kodzie,
- * w `tests/walka-z-gry.ts`, i to jedyne miejsce, w którym została.
+ * ⚠️ Materiał brał się do 2026‑08‑04 z pliku danych obok testów. Ta sama walka
+ * leży dziś w kodzie, w `tests/walka-z-gry.ts`, i to jedyne miejsce w repo,
+ * w którym została.
  */
 function udawanaGra(): string {
   // `warriors` w kształcie, jakiego oczekuje `roster.ts`: mapa po `id`.

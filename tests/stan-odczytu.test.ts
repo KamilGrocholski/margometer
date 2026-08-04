@@ -1,17 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { pustyOdczyt, walkaZakonczona } from "../src/rozjazd.ts";
+import { pustyOdczyt, walkaZakonczona } from "../src/stan-odczytu.ts";
 import { aggregate } from "../src/stats.ts";
 import { dekoduj } from "../src/protokol.ts";
 import type { RosterEntry } from "../src/roster.ts";
 import { cios, otwarcie, trafienie } from "./zdarzenia.ts";
 
 /**
- * Stan odczytu — dwa pytania, które zostały po czujce rozjazdu.
+ * Stan odczytu — dwa pytania, które zostały po czujce.
  *
- * ⚠️ **CZUJKA ZESZŁA Z DRZEWA 2026‑08‑04.** Porównywała odczyt z tekstu
- * z odczytem z protokołu i miała zapalać ostrzeżenie, gdy podadzą inne liczby.
- * Razem z parserem tekstu zniknęła druga strona porównania, więc zniknęła i ona
- * — a razem z nią 9 testów, które opisywały jej zachowanie.
+ * ⚠️ **CZUJKA ZESZŁA Z DRZEWA 2026‑08‑04**, gdy odczyt walki został jeden —
+ * a razem z nią 9 testów, które opisywały jej zachowanie.
  *
  * Warto zapisać, CZEGO tamte testy i tak nie dowodziły: że czujka nie hałasuje.
  * „Czy potrafi paść" było trywialne (podaj dwie różne liczby), a „czy nie

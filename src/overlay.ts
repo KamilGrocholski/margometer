@@ -201,7 +201,7 @@ function dodgeLabel(actor: ActorStats): string {
  * Kryty razem z ciosami bardzo krytycznymi.
  *
  * "W tym", a nie "+", bo super-kryt JEST krytem — log wypisuje oba modyfikatory
- * przy tym samym trafieniu (10/10 wystąpień w korpusie). Znak plus czytałby się
+ * przy tym samym trafieniu (10/10 zmierzonych wystąpień). Znak plus czytałby się
  * jak druga kategoria do dodania i psuł liczbę, tak samo jak przy unikach
  * częściowych, gdzie z dwunastu ataków wychodziło czternaście.
  */
@@ -578,8 +578,8 @@ const DEFAULT_STATE: PanelState = {
 /**
  * Okno ze statystykami renderowane nad grą.
  *
- * Overlay nie zna parsera ani źródła logu — dostaje gotowe statystyki przez
- * `render()`, dzięki czemu testuje się go zrzutem z pliku.
+ * Overlay nie zna dekodera ani źródła zdarzeń — dostaje gotowe statystyki przez
+ * `render()`, dzięki czemu testuje się go podanym wprost agregatem.
  */
 export class Overlay {
   private readonly host: HTMLElement;
@@ -934,7 +934,7 @@ export class Overlay {
    */
   /**
    * Patrz `spoznionePodpiecie`. Wołane przy każdej porcji, ale wyrokuje dopiero
-   * na końcu walki — patrz `walkaZakonczona` w `src/rozjazd.ts`.
+   * na końcu walki — patrz `walkaZakonczona` w `src/stan-odczytu.ts`.
    */
   setSpoznionePodpiecie(spoznione: boolean): void {
     this.spoznionePodpiecie = spoznione;
@@ -2470,7 +2470,7 @@ export class Overlay {
    * Efekty wyzwolone w ciosach: klątwy, oślepienia, dotyki anioła, niszczenie
    * pancerza — cokolwiek log zgłosi.
    *
-   * Świadomie NIE ma tu listy znanych efektów. Parser bierze każdy modyfikator,
+   * Świadomie NIE ma tu listy znanych efektów. Dekoder bierze każdy efekt,
    * jaki napotka, więc licznik działa też dla rzeczy, których nigdy nie
    * widzieliśmy — a spis na sztywno zestarzałby się przy pierwszym dodatku
    * do gry i po cichu gubił nowe efekty.
@@ -2656,7 +2656,7 @@ export class Overlay {
     } else if (uses) {
       // Po stronie zadanych pierwsza jest liczba UŻYĆ: to ona odpowiada na
       // pytanie, które się zadaje. Ciosy dokładamy wyłącznie wtedy, gdy się
-      // rozjeżdżają — przy 13 z 17 etykiet w korpusie to ta sama liczba, a
+      // rozjeżdżają — przy 13 z 17 zmierzonych etykiet to ta sama liczba, a
       // powtórzona pod drugą nazwą czytała się jak osobny pomiar.
       numbers.append(stat("Użycia", `${uses.count}`));
       // Ten sam warunek co w `times()`: ZERO ciosów to nie rozjazd, tylko inny
@@ -2785,7 +2785,7 @@ export class Overlay {
     }
     if (this.spoznionePodpiecie) {
       // ⚠, a nie ⓘ — i to jest zmiana z 2026‑08‑04. Dopóki liczby dało się
-      // wziąć z okna walki, spóźnione podpięcie kosztowało tylko dokładność
+      // wziąć ze zdań w oknie walki, spóźnione podpięcie kosztowało tylko dokładność
       // i komunikat brzmiał łagodnie. Odczyt jest dziś jeden: gdy się nie
       // podepnie, w panelu stoją SAME ZERA i wyglądają jak wynik walki.
       notes.push({

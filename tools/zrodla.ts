@@ -93,7 +93,7 @@ export function mapyModulow(bundle: string): Map<string, string> {
   // Zero trafień to NIE jest puste drzewo — to znaczy, że gra przestała serwować
   // build deweloperski (albo przestała dokładać mapy) i całe narzędzie mówi od
   // teraz nieprawdę. Ciche puste wyjście zamieniłoby to w „nic nie znalazłem",
-  // czyli w odpowiedź. Ma być głośne, jak `{kind: "unknown"}` w parserze.
+  // czyli w odpowiedź. Ma być głośne, jak `{kind: "unknown"}` w dekoderze.
   if (zrodla.size === 0) {
     throw new Error(
       `nie znalazłem ani jednego source mapa w bundlu — ${HOST} przestał serwować ` +

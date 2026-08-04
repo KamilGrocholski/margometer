@@ -5,20 +5,20 @@ import type { BattleEvent } from "../src/types.ts";
 /**
  * Walki, po których chodzą NIEZMIENNIKI — budowane w kodzie, nie wczytywane.
  *
- * ⚠️ **ZASTĘPUJE KORPUS `tests/fixtures/`, USUNIĘTY 2026‑08‑04, I JEST OD NIEGO
- * SŁABSZY.** Trzeba to powiedzieć wprost, bo różnica jest w rodzaju, nie
+ * ⚠️ **ZASTĘPUJE ZESTAW 25 PRAWDZIWYCH WALK, USUNIĘTY 2026‑08‑04, I JEST OD
+ * NIEGO SŁABSZY.** Trzeba to powiedzieć wprost, bo różnica jest w rodzaju, nie
  * w stopniu:
  *
- * - Korpus niósł **25 prawdziwych walk i 4904 zdarzenia** — walki grupowe,
- *   bossy, trucizna bez sprawcy, absorpcja, rozdzielanie instancji po tej samej
- *   nazwie. Każdy kształt tam wystąpił, bo **gra go wyprodukowała**.
+ * - Tamten zestaw niósł **25 prawdziwych walk i 4904 zdarzenia** — walki
+ *   grupowe, bossy, trucizna bez sprawcy, absorpcja, rozdzielanie instancji po
+ *   tej samej nazwie. Każdy kształt tam wystąpił, bo **gra go wyprodukowała**.
  * - To, co jest tutaj, wyprodukowaliśmy MY. Niezmiennik zielony na tym
  *   materiale mówi „agregat jest wewnętrznie spójny na tym, co umiemy sobie
  *   wyobrazić" — nie „radzi sobie z tym, co robi gra".
  *
  * Praktyczny skutek: **kształt, o którym nie pomyśleliśmy, nie ma jak tu
- * wpaść.** Korpus łapał je sam z siebie; ten plik nie złapie żadnego, dopóki
- * ktoś go nie dopisze. To jest cena decyzji o usunięciu korpusu i ma być
+ * wpaść.** Prawdziwe walki łapały je same z siebie; ten plik nie złapie
+ * żadnego, dopóki ktoś go nie dopisze. To jest cena tamtej decyzji i ma być
  * widoczna w miejscu, w którym się ją płaci.
  *
  * `syntheticFight` jest deterministyczny (własny generator liczb, bez

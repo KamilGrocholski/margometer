@@ -8,7 +8,7 @@
  *
  * `FIGHT_START_TEXT` (`"Rozpoczęła się walka pomiędzy"`) — zdanie otwierające.
  * Docstring twierdził, że stała decyduje o TRZECH rzeczach: znalezieniu okna
- * walki w DOM, podziale na walki w parserze i podziale na nagrania. Dwie
+ * walki w DOM, podziale na walki przy odczycie i podziale na nagrania. Dwie
  * pierwsze zeszły z drzewa, a nagrywarka składa dziś tytuł ze SKŁADU
  * (`recorder.tytul`), bo protokół tego zdania nie musi nieść — klient
  * syntetyzuje je sam, poza `data.m`.
@@ -48,24 +48,25 @@ export const PROFESSIONS: Record<ProfessionCode, string> = {
  * żywiołu, więc żywiołu tych liczb po prostu nie znamy. Etykieta mówi wtedy to,
  * co log naprawdę powiedział, a nie to, o co pytaliśmy.
  *
- * STOI TU, A NIE W `parser.ts`, OD 2026‑08‑04. Powodem jest drugie źródło
- * danych: klasa `dmgX` w DOM to dosłownie klucz protokołu bez znaku wiodącego
- * (gałąź `default` renderera gry robi `substr(1)` na kluczu i wkleja wynik jako
- * nazwę klasy). Obie drogi mapują więc TĘ SAMĄ literę i dwie kopie tabeli
- * rozjechałyby się po cichu — a rozjazd nazwy żywiołu to złe rozbicie
- * w panelu bez ani jednego ostrzeżenia.
+ * STOI TU, W TYPACH, A NIE PRZY CZYTELNIKU — od 2026‑08‑04. Wtedy odczyty
+ * walki były dwa i obie drogi mapowały TĘ SAMĄ literę: klasa `dmgX` w DOM to
+ * dosłownie klucz protokołu bez znaku wiodącego (gałąź `default` renderera gry
+ * robi `substr(1)` na kluczu i wkleja wynik jako nazwę klasy). Dwie kopie
+ * tabeli rozjechałyby się po cichu — a rozjazd nazwy żywiołu to złe rozbicie
+ * w panelu bez ani jednego ostrzeżenia. Odczyt został jeden, ale miejsce
+ * zostaje: to jest wiedza o formacie gry, nie o naszym czytelniku.
  *
- * ⚠️ DWA WPISY NIE POCHODZĄ Z PROTOKOŁU i czytelnik protokołu ich nie użyje:
- * `p` wymyśla `source.ts` dla klasy `dmg` bez litery (w protokole klucz brzmi
- * po prostu `+dmg`), a `"3"` to `THIRD_STRIKE_CODE` z tego samego pliku —
- * protokół ma na to osobny klucz `+thirdatt`, który przy okazji jest procem.
- * Wspólnych jest siedem: `f l c a d o g`.
+ * ⚠️ DWA WPISY NIE MAJĄ ODPOWIEDNIKA W KLUCZU PROTOKOŁU. `p` to klasa `dmg`
+ * bez litery — w protokole klucz brzmi po prostu `+dmg` i kod nadaje mu
+ * `rolaDomyslna`. `"3"` (`THIRD_STRIKE_CODE`) też jest kodem nadanym, bo
+ * protokół ma na to osobny klucz `+thirdatt`, przy okazji będący procem.
+ * Wprost z litery klucza wychodzi siedem: `f l c a d o g`.
  */
 export const ELEMENTS: Record<string, string> = {
   f: "ogień",
   l: "błyskawica",
   c: "zimno",
-  // Klasa `dmg` bez litery — obrażenia broni bez żywiołu. W korpusie wyłącznie
+  // Klasa `dmg` bez litery — obrażenia broni bez żywiołu. W pomiarze wyłącznie
   // od profesji walczących w zwarciu (wojownik, paladyn, tancerz ostrzy).
   p: "fizyczne",
   // `dmga` niosą linie własnych obrażeń umiejętności (Fuzja żywiołów,
@@ -73,7 +74,7 @@ export const ELEMENTS: Record<string, string> = {
   // nazwa — to wniosek z opisów, nie dosłowny zapis z logu.
   a: "nieuchronne",
   // `dmgd` wyłącznie od łowcy i tropiciela, `dmg` wyłącznie od trzech profesji
-  // zwarcia — 686 liczb w korpusie, zero przecięć. To oś BRONI, nie żywiołu.
+  // zwarcia — 686 zmierzonych liczb, zero przecięć. To oś BRONI, nie żywiołu.
   d: "dystansowe",
   // `dmgo` stoi zawsze jako druga liczba u tancerza ostrzy, a proc
   // "+Cios krytyczny broni pomocniczej" podbija wyłącznie ją (z procem 886-1007,
@@ -86,8 +87,8 @@ export const ELEMENTS: Record<string, string> = {
   // Nazwa z terminologii gry; w dokumentacji mechaniki walk jej NIE MA, więc
   // opiera się na tym zestawieniu i na wiedzy o grze, nie na cytacie.
   g: "globalne",
-  // Nie litera z klasy `dmgX`, tylko kod klasy `third` nadany w `source.ts`
-  // (patrz `THIRD_STRIKE_CODE`). Nazwa stoi w logu DOSŁOWNIE — modyfikator
+  // Nie litera z klucza, tylko kod nadany przez nas (`THIRD_STRIKE_CODE`) —
+  // gra oznacza to trafienie klasą `third`. Nazwa stoi w logu DOSŁOWNIE — modyfikator
   // "+Trzeci cios" towarzyszy każdemu takiemu trafieniu — więc jest cytatem,
   // a nie wnioskiem; drugi taki przypadek w tej mapie po `broń pomocnicza`.
   "3": "trzeci cios",
@@ -234,9 +235,9 @@ export type BattleEvent =
   /** Komunikat tła bez wpływu na statystyki (aura, brak Punktów Honoru, ...). */
   | { kind: "info"; line: string }
   /**
-   * Linia, której parser nie rozumie. Nie połykamy jej po cichu — niezerowa
-   * liczba takich zdarzeń oznacza, że format logu się zmienił i statystyki
-   * są niepełne.
+   * Komunikat, którego dekoder nie rozumie. Nie połykamy go po cichu —
+   * niezerowa liczba takich zdarzeń oznacza, że format protokołu się zmienił
+   * i statystyki są niepełne.
    */
   | { kind: "unknown"; line: string; lineNo: number };
 
@@ -293,7 +294,7 @@ export type LabelType = { label: string; type: string };
  * Sprowadza etykietę typu obrażeń do RODZINY.
  *
  * Log nazywa tę samą rzecz dwojako, zależnie od tego, którędy przyszła: żywioł
- * odczytany z klasy CSS mówi „ogień", a tykający efekt „od ognia". W korpusie
+ * odczytany z klasy CSS mówi „ogień", a tykający efekt „od ognia". W pomiarze
  * takich etykiet jest dwanaście, a rodzin siedem — i to rodzina jest jednostką,
  * w której warto o tym myśleć.
  *
@@ -339,7 +340,7 @@ function classify(label: string): string | null {
   // i trzeci cios tancerza ostrzy. Dla patrzącego to jedna rodzina —
   // „obrażenia z broni".
   //
-  // „Trzeci cios" dołączył tu razem z klasą `third` (korpus 2026-08-03) i to
+  // „Trzeci cios" dołączył tu razem z klasą `third` (pomiar 2026-08-03) i to
   // NIE jest zgadywanie żywiołu: log nazywa go wprost modyfikatorem „+Trzeci
   // cios" przy tym samym ciosie, w którym stoją trafienia główne i pomocnicze.
   // Rodziny nie dostaje tylko to, czego żywiołu naprawdę nie znamy — patrz
@@ -380,8 +381,8 @@ const UNKNOWN_TYPE = "Nieznany";
  * jedyne, co o nich wiadomo, i to ona ma trafić do zgłoszenia.
  *
  * ⚠️ **Jeden wyjątek od zasady „w nawiasie to, co podał log": „Ubytek życia".**
- * Tam log nie podaje rodzaju ANI RAZU — nazwa jest nasza (patrz `DOT_LABELS`
- * i `RE_HP_LOST` w `parser.ts`). Zostaje mimo to, bo alternatywą jest goły
+ * Tam log nie podaje rodzaju ANI RAZU — nazwa jest nasza (patrz `DOT_LABELS`).
+ * Zostaje mimo to, bo alternatywą jest goły
  * wiersz „Nieznany", w którym ubytek życia zlałby się w jedno z nierozpoznanymi
  * klasami `dmgX` — a to skasowałoby informację zamiast dodać uczciwości.
  * Sam wyraz „Nieznany" niesie tu resztę: rodziny nie zgadujemy.
@@ -429,7 +430,7 @@ export function typeDisplay(type: string): string {
  * w takiej kolumnie czyta się jak usterka, bo nią jest: to jedyne pozycje,
  * które łamią gramatykę całej listy.
  *
- * Mapa, a nie odmiana z reguł: pięć rodzajów w całym korpusie, a złe odmienienie
+ * Mapa, a nie odmiana z reguł: pięć rodzajów w całym pomiarze, a złe odmienienie
  * szóstego byłoby gorsze niż zostawienie go w spokoju.
  */
 const DOT_LABELS: Record<string, string> = {
@@ -438,11 +439,10 @@ const DOT_LABELS: Record<string, string> = {
   "od ognia": "Ogień",
   "po zranieniu": "Zranienie",
   "od błyskawic": "Błyskawica",
-  // Jedyna pozycja tej mapy, której odpowiednika NIE MA w logu: linia
-  // "Stracono -92 punktów życia X(99.52%)" podaje kwotę i postać, ale nie
-  // nazywa źródła. Nazwa jest więc nasza i celowo opisuje SKUTEK ("ubyło
-  // życia"), a nie zgadniętą przyczynę — patrz komentarz przy `RE_HP_LOST`
-  // w `parser.ts` i wpis w `docs/MECHANIKA.md`.
+  // Jedyna pozycja tej mapy, której odpowiednika NIE MA w logu: „Stracono
+  // -92 punktów życia X" podaje kwotę i postać, ale nie nazywa źródła. Nazwa
+  // jest więc nasza i celowo opisuje SKUTEK ("ubyło życia"), a nie zgadniętą
+  // przyczynę — wpis w `docs/MECHANIKA.md`.
   "od ubytku życia": "Ubytek życia",
 };
 
@@ -492,7 +492,7 @@ export type ActorStats = {
    * jest to wniosek z pomiaru, tylko cytat z dokumentacji gry: blok redukuje
    * obrażenia "podczas przyjętego ataku o 30%", a robi to PRZED pancerzem,
    * absorpcją i odpornościami (`docs/MECHANIKA.md`, wpis o bloku). Zgadza się to
-   * z korpusem co do joty na 20 wystąpieniach. Dlatego panel pokazuje blok
+   * z pomiarem co do joty na 20 wystąpieniach. Dlatego panel pokazuje blok
    * w nawiasie przy pochłoniętych, a nie jako osobną pozycję do dodania.
    */
   damageBlocked: number;
@@ -502,7 +502,7 @@ export type ActorStats = {
    * Osobne pole, a nie doliczenie do `damageAbsorbed`, bo to jedyna z tych liczb
    * ODTWORZONA, a nie odczytana: log podaje kwotę już PO osłabieniu i procent
    * zaokrąglony do liczby całkowitej, więc pełna kwota wychodzi z dzielenia
-   * `amount / (1 - p)`. Zmierzone na korpusie — odtworzona baza trafia w tik
+   * `amount / (1 - p)`. Zmierzone — odtworzona baza trafia w tik
    * tego samego DoT-a bez osłabienia 16/16 razy z błędem ≤ 2 %. Wlane do
    * `damageAbsorbed` zamieniłoby liczbę dokładną w szacunek bez ostrzeżenia.
    */
@@ -528,7 +528,7 @@ export type ActorStats = {
    *
    * Zdarza się przy jednym ciosie niosącym kilka liczb: tancerz ostrzy bije
    * dwiema broniami i główna potrafi przepaść, gdy pomocnicza trafia. W całym
-   * korpusie takie ataki są trzy i wszystkie są jego.
+   * pomiarze takie ataki są trzy i wszystkie są jego.
    *
    * Osobne pole, a nie doliczenie do `misses`, bo taki atak jest JEDNOCZEŚNIE
    * ciosem. Doliczony tam dawał `ciosy 12 · uniki 2` przy dwunastu atakach —
@@ -539,7 +539,7 @@ export type ActorStats = {
   /**
    * Trafienia oznaczone w logu jako "Cios bardzo krytyczny".
    *
-   * PODZBIÓR `crits`, nie kategoria obok: w całym korpusie każde z dziesięciu
+   * PODZBIÓR `crits`, nie kategoria obok: w całym pomiarze każde z dziesięciu
    * takich trafień niesie jednocześnie zwykłego kryta. Stąd forma "kryt. 12
    * (w tym 2 bardzo)" — dodawanie obu liczb do siebie dałoby czternaście
    * krytów przy dwunastu, tak samo jak przy unikach częściowych.

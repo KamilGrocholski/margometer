@@ -6,10 +6,10 @@
  * dziś jedyną drogą, którą liczby trafiają do panelu.
  *
  * ⚠️ **Nagłówek brzmiał tu „DRUGIE ŹRÓDŁO, NIE ZAMIENNIK" i było to prawdą
- * przez jeden dzień.** `src/parser.ts` czytał tekst z okna walki, ten plik
- * istniał po to, żeby dało się zapytać, czy obie drogi liczą to samo — i to
- * pytanie padło: pierwsza walka zapisana obiema drogami rozstrzygnęła je na
- * korzyść protokołu. Parser zszedł z drzewa 2026‑08‑04.
+ * przez jeden dzień.** Repo miało wtedy drugi odczyt walki — ze zdań w oknie
+ * gry — a ten plik istniał po to, żeby dało się zapytać, czy obie drogi liczą
+ * to samo. Pytanie padło: pierwsza walka zapisana obiema drogami rozstrzygnęła
+ * je na korzyść protokołu, a druga droga zeszła z drzewa 2026‑08‑04.
  *
  * Co to znaczy dla tego pliku: **nie ma już czym go sprawdzić.** Dopóki był
  * drugi odczyt, błąd tutaj rozjeżdżał liczby i czujka to zapalała. Dziś błąd
@@ -201,12 +201,12 @@ export type Rola =
   | { typ: "unik" }
   /**
    * Cios krytyczny. Protokół ma na to WŁASNE KLUCZE, więc nie musimy — i nie
-   * chcemy — rozpoznawać krytów po brzmieniu zdania tak, jak robi to
-   * `classifyModifiers` w `parser.ts`. Współdzielenie tamtej klasyfikacji
-   * oślepiłoby czujkę dokładnie na tym polu.
+   * chcemy — rozpoznawać krytów po BRZMIENIU zdania. Rozpoznawanie po zdaniu
+   * jest tym, co robiła droga tekstowa, i było jej najsłabszym miejscem:
+   * brzmienie zmienia się z aktualizacją gry i z językiem klienta, klucz nie.
    *
    * `pomocniczy` siada na trafieniach wtórnych, `glowny` i `bardzo` na
-   * pierwszym — tak samo jak `buildHits` rozkłada `mainCrit`/`offhandCrit`.
+   * pierwszym.
    */
   | { typ: "kryt"; rodzaj: "glowny" | "pomocniczy" | "bardzo" }
   /** `-absorb=N`, `-absorbm=N` → „-Absorpcja N obrażeń fizycznych/magicznych". */
@@ -288,8 +288,8 @@ const ROLE: Readonly<Record<string, Rola>> = {
   "-evade": { typ: "unik" },
   // Brzmienia potwierdzają rozdział: „+Cios krytyczny", „+Cios bardzo
   // krytyczny", „+Cios krytyczny broni pomocniczej". `+critwound` („+Ciężka
-  // rana") krytem NIE jest, mimo przedrostka — i tekstowy parser też go nim
-  // nie robi, bo nie zawiera frazy „Cios krytyczny".
+  // rana") krytem NIE jest, mimo przedrostka — jego zdanie nie zawiera frazy
+  // „Cios krytyczny", więc rozdziela je sama gra, a nie nasze nazewnictwo.
   "+crit": { typ: "kryt", rodzaj: "glowny" },
   "+verycrit": { typ: "kryt", rodzaj: "bardzo" },
   "+legbon_verycrit": { typ: "kryt", rodzaj: "bardzo" },
@@ -564,9 +564,9 @@ const MILCZACE: readonly string[] = [
  * staje się NAZWĄ KLASY CSS. Stąd `dmgd` w DOM i `+dmgd` w protokole to ta sama
  * litera — i stąd wspólna tabela żywiołów w `types.ts`.
  *
- * Klucz `+dmg` bez litery daje kod `p` — tak samo mapował to nieistniejący już
- * `src/source.ts:80`
- * (`damage[1] || "p"`) po stronie tekstu. Dwie drogi mają dać tę samą etykietę.
+ * Klucz `+dmg` bez litery daje kod `p`. Kod jest NASZ — gra w tym miejscu nie
+ * podaje żadnej litery, a „fizyczne" bez kodu nie miałoby jak trafić do tabeli
+ * żywiołów w `types.ts`.
  */
 export function rolaDomyslna(klucz: string): Rola | null {
   if (klucz.substring(1, 4) !== "dmg") return null;
@@ -600,21 +600,23 @@ export function znaneKlucze(): string[] {
 /**
  * Komunikaty JEDNEJ walki → zdarzenia.
  *
- * BIERZE CAŁĄ WALKĘ, NIE PORCJĘ, i to jest ta sama decyzja, co w `session.ts:53‑57`
- * po stronie tekstu: stan przyrostowy między wywołaniami byłby źródłem podwójnego
- * liczenia. Zysk dodatkowy jest tu większy niż tam — funkcja zostaje CZYSTA, więc
- * daje się przetestować bez gry, a gry w repo nie ma.
+ * BIERZE CAŁĄ WALKĘ, NIE PORCJĘ, i to jest ta sama decyzja, co w `session.ts`:
+ * stan przyrostowy między wywołaniami byłby źródłem podwójnego liczenia. Zysk
+ * dodatkowy: funkcja zostaje CZYSTA, więc daje się przetestować bez gry —
+ * a gry w repo nie ma.
  *
  * `sklad` służy WYŁĄCZNIE zamianie `id` na nazwę. Nazwa jest kluczem-etykietą
  * w `stats.ts`, więc identyfikator bez nazwy nie ma jak trafić do panelu —
  * a zmyślenie nazwy łamie „nie udawaj danych, których log nie ma". Taki
  * komunikat idzie w całości do `unknown`.
  *
- * ⚠️ **TO JEST NAJMNIEJ PEWNA WARSTWA TEGO PLIKU.** Rozbiór odwzorowuje sześć
- * linii gry, tabela ról ma przy każdym wpisie cytat — a tutaj składamy z tego
- * zdarzenia w kształcie, który wymyślił parser tekstu, i nie ma ani jednej
- * walki zapisanej obiema drogami, żeby to sprawdzić. Dlatego pierwszym
- * czytelnikiem jest CZUJKA, nie panel: pomyłka ma dać alarm do zbadania.
+ * ⚠️ **TO JEST NAJMNIEJ PEWNA WARSTWA TEGO PLIKU** i od 2026‑08‑04 nic tego nie
+ * łagodzi. Rozbiór odwzorowuje sześć linii gry, tabela ról ma przy każdym wpisie
+ * cytat, a klucze mają świadka w assecie (`tests/klucze-protokolu.ts`) — ale
+ * SKŁADANIE ich w `BattleEvent` nie ma świadka nigdzie. Kształt tych zdarzeń
+ * powstał dla innego odczytu i przeżył jego usunięcie; pomyłka tutaj jest dziś
+ * po prostu liczbą w panelu, bo czujka porównująca dwa odczyty zeszła z drzewa
+ * razem z drugim odczytem.
  */
 export function dekoduj(
   komunikaty: readonly string[],
@@ -624,7 +626,7 @@ export function dekoduj(
   const nazwy = new Map(sklad.map((w) => [w.id, w.name]));
   const zdarzenia: BattleEvent[] = [];
   // Zapowiedź umiejętności przychodzi OSOBNYM komunikatem, a obrażenia dopiero
-  // następnym (w korpusie: `…;p_.Porażenie;skillId.70` i dopiero potem `@Dc.…`).
+  // następnym (w zmierzonych walkach: `…;p_.Porażenie;skillId.70` i dopiero potem `@Dc.…`).
   //
   // TO NIE JEST NASZ DOMYSŁ — GRA ROBI DOKŁADNIE TO SAMO.
   // `battleEffects/BattleEffectsController.js:237‑255`, przy obsłudze każdego
@@ -637,7 +639,7 @@ export function dekoduj(
   //         if (allM[nextIndex]) str = allM[indexM] + ',' + allM[nextIndex];
   //
   // Komunikat ze `skillId` gra skleja z NASTĘPNYM i traktuje oba jako jedną
-  // akcję. Pomiar na korpusie protokołu (12 walk): 444 komunikaty ze `skillId`,
+  // akcję. Pomiar na 12 zmierzonych walkach: 444 komunikaty ze `skillId`,
   // z czego 333 (75%) mają obrażenia w następnym; reszta to umiejętności, które
   // obrażeń nie zadają. Reguła nie ma więc wyjątków, tylko zakres.
   //
@@ -672,10 +674,10 @@ export function dekoduj(
      */
     const etykieta = (p: Parametr, id: string): string => {
       const zdanie = slownik.zdanie(id, p.wartosc === null ? undefined : { "%val%": p.wartosc });
-      // ZNAK WIODĄCY SPADA, tak jak zdejmuje go `RE_MODIFIER` w `parser.ts`.
-      // Bez tego ten sam efekt stałby w panelu jako dwie różne pozycje —
-      // „Przebicie" z tekstu i „+Przebicie" z protokołu — a przy porównaniu
-      // obu dróg wyglądałoby to na rozjazd, którym nie jest.
+      // ZNAK WIODĄCY SPADA. Gra dokleja go do zdania, bo w oknie walki niesie
+      // informację (dodatnie efekty na plusie, ujemne na minusie); w panelu
+      // efekt stoi już w kolumnie, która to mówi, a „+Przebicie" obok
+      // „Przebicie" wyglądałoby na dwie różne rzeczy.
       return zdanie === null ? p.klucz : zdanie.replace(/^[+-]\s*/, "");
     };
 
@@ -791,21 +793,21 @@ export function dekoduj(
               //
               // Do tego commita stało tu `null` z komentarzem „protokół nie
               // niesie osłabienia osobnym kluczem". Niesie — nie osobnym
-              // kluczem, tylko drugim członem tego samego. Parser tekstu czytał
-              // to od dawna (`(osłabione o (\d+)%)` w `RE_DOT`), więc protokół
-              // gubił daną, którą druga droga miała.
+              // kluczem, tylko DRUGIM CZŁONEM tego samego (`poison=140,14`).
               //
-              // Orakulum tego NIE złapało i nie mogło: `damageWeakened` nie
-              // wchodzi do czterech porównywanych skalarów. Złapał odczyt
-              // słownika — dowód, że czujka i czytanie źródeł łapią co innego.
+              // ⚠️ Jak to wyszło, jest tu ważniejsze niż sama poprawka:
+              // porównanie dwóch odczytów walki tego NIE złapało i nie mogło,
+              // bo osłabienie nie wchodziło do porównywanych skalarów. Złapało
+              // to czytanie słownika gry — dowód, że czujka i czytanie źródeł
+              // łapią co innego, i że jedno nie zastępuje drugiego.
               weakenedPct: liczba(czlony(p.wartosc)[1] ?? null),
             });
           break;
         }
         case "nieuchronne": {
           // „%name% otrzymał %val% obrażeń nieuchronnych." Bez sprawcy i bez
-          // przyimka, więc do `dot` nie pasuje. `attack` bez ciosu jest tym,
-          // czym parser opisuje własne obrażenia umiejętności (`strike: false`).
+          // przyimka, więc do `dot` nie pasuje. `attack` bez ciosu (`strike: false`)
+          // to kształt, którym `types.ts` opisuje własne obrażenia umiejętności.
           const kwota = liczba(p.wartosc);
           if (nadawcaNazwa === null || kwota === null || nadawca === null) nieznany(p.surowy);
           else
@@ -888,13 +890,11 @@ export function dekoduj(
     }
 
     // PAROWANIE ZADANYCH Z PRZYJĘTYMI IDZIE PO KOLEJNOŚCI, tak jak gra skleja
-    // `attack` i `take` w pętli `for (var k in msg)`. To jest INNY algorytm niż
-    // `pairApplied`/`buildHits` w `parser.ts` i różnica jest ZAMIERZONA: tam
-    // parowanie liczb w tekście jest heurystyką, tu obie strony stoją w jednym
-    // komunikacie. Gdyby heurystyka parsera się myliła, ta różnica jest jedyną
-    // rzeczą, która to pokaże.
+    // `attack` i `take` w pętli `for (var k in msg)`. Jest to możliwe DLATEGO,
+    // że obie strony stoją w jednym komunikacie — odczyt ze zdań musiał je
+    // parować heurystycznie i to była jego największa słabość.
     //
-    // ⚠️ Długości bywają RÓŻNE i to widać w korpusie: `@Dd.897;…;-Dd.184;-Da.135`
+    // ⚠️ Długości bywają RÓŻNE i widać to w prawdziwych walkach: `+dmgd=897;…;-dmgd=184;-dmga=135`
     // ma jedną liczbę zadaną i dwie przyjęte. Nadmiar NIE GINIE — dostaje własne
     // trafienie z `raw: 0` — bo `aggregate` sumuje `raw` i `applied` osobno,
     // więc skalary zostają prawdziwe. Rozjazd długości jest jednak zapalany
@@ -943,7 +943,7 @@ export function dekoduj(
       strike: true,
     });
     // Umiejętność obejmuje jeden cios; kolejny bez własnej zapowiedzi jest już
-    // zwykły. Tak samo czyta to parser tekstu.
+    // zwykły.
     zapowiedziana = null;
   });
 

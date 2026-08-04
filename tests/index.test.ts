@@ -14,9 +14,9 @@ describe("spięcie źródła z overlayem", () => {
    * Cały łańcuch: `Engine.battle.update` → dekoder → agregat → panel.
    *
    * Do 2026‑08‑04 stały tu DWA testy i oba szły przez DOM: budowały okno walki
-   * z `<div>`-ów, karmiły `DomLogSource` i sprawdzały, że dopisana linia
-   * przelicza panel. Okna walki nie czytamy — materiałem jest prawdziwy zrzut
-   * protokołu, a „dopisana linia" to kolejny komunikat.
+   * z `<div>`-ów i sprawdzały, że dopisane zdanie przelicza panel. Okna walki
+   * nie czytamy — materiałem jest prawdziwy zrzut protokołu, a „dopisane
+   * zdanie" to kolejny komunikat.
    */
   test("cały łańcuch: protokół gry → dekoder → panel", () => {
     const overlay = new Overlay();
@@ -49,7 +49,7 @@ describe("spięcie źródła z overlayem", () => {
 });
 
 describe("spięcie nagrywarki ze źródłem protokołu", () => {
-  // Nagrywarka zapisuje KOMUNIKATY, nie tekst z okna walki, więc spięcie siedzi
+  // Nagrywarka zapisuje KOMUNIKATY, nie policzone liczby, więc spięcie siedzi
   // tam, gdzie protokół — w `start()`, razem z sesją i panelem.
   const pamiec = () => {
     const store = new Map<string, string>();
@@ -228,7 +228,7 @@ describe("start dodatku", () => {
  * liczba wierszy — i ta różnica kosztowała jedno złe wskazanie w grze. Droga
  * została jedna, więc nie ma czego wybierać; sam warunek żyje dalej jako
  * `pustyOdczyt` i to on odpowiada dziś na pytanie „czy zdążyliśmy się podpiąć"
- * (`tests/rozjazd.test.ts`).
+ * (`tests/stan-odczytu.test.ts`).
  */
 
 describe("ostrzeżenie o spóźnionym podpięciu nie przeżywa walki", () => {

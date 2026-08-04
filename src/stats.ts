@@ -273,20 +273,19 @@ function instanceResolver(
 const PLAIN_ATTACK = "Zwykły atak";
 
 /**
- * Etykieta, którą parser zostawia dla nierozpoznanej klasy `dmgX`. Nazwa klasy
- * wprost, bo to jedyne, co o tym rodzaju obrażeń wiadomo.
+ * Etykieta zostawiana dla nierozpoznanego kodu `dmgX`. Kod wprost, bo to
+ * jedyne, co o tym rodzaju obrażeń wiadomo.
  *
  * ⚠️ `[a-z0-9]`, nie `[a-z]` — i to jest naprawa, nie ozdoba. Czujka była
- * WĘŻSZA niż to, co przepuszcza kod przed nią: `RE_DAMAGE_VALUE` w `parser.ts`
- * dopuszcza `[a-z0-9]`, a `source.ts` nadaje klasie `third` kod `"3"`, czyli
- * cyfrę. Przestrzeń cyfr została więc otwarta 2026‑08‑03 razem z trzecim
- * ciosem tancerza, ale czujki nikt nie poszerzył: nowy kod cyfrowy dawał
- * etykietę `dmg4`, która NIE pasowała do tego wzorca, więc nie trafiała do
- * `unknownElements` i nie zapalała ostrzeżenia w panelu.
+ * WĘŻSZA niż przestrzeń kodów, które mogą do niej dojść: trzeci cios tancerza
+ * dostał kod `"3"`, czyli CYFRĘ (`THIRD_STRIKE_CODE` w `types.ts`). Przestrzeń
+ * cyfr otworzyła się więc 2026‑08‑03, ale czujki nikt nie poszerzył: kod
+ * cyfrowy dawał etykietę `dmg4`, która NIE pasowała do tego wzorca, więc nie
+ * trafiała do `unknownElements` i nie zapalała ostrzeżenia w panelu.
  *
- * To jest dokładnie ten tryb awarii, którego `unknownElements` ma pilnować:
- * komentarz przy `ELEMENTS` w `parser.ts` nazywa je „jedyną czujką na zmianę
- * nazw klas". Czujka ślepa na połowę własnej przestrzeni nie jest czujką.
+ * To jest dokładnie ten tryb awarii, którego `unknownElements` ma pilnować —
+ * są one jedyną czujką na zmianę nazewnictwa żywiołów po stronie gry. Czujka
+ * ślepa na połowę własnej przestrzeni nie jest czujką.
  */
 const RE_RAW_ELEMENT = /^dmg[a-z0-9]+$/;
 
@@ -326,7 +325,7 @@ export function byAmountUnattributedLast(
   return b.amount - a.amount;
 }
 /**
- * "+Zranienie (339)" — jedyny proc w korpusie, który nazywa NARAZ sprawcę
+ * "+Zranienie (339)" — jedyny zmierzony proc, który nazywa NARAZ sprawcę
  * (stoi przy jego ciosie) i dokładną kwotę przyszłego tyknięcia.
  *
  * Dlatego tylko ten jeden wiąże DoT ze sprawcą wprost, z pominięciem zgadywania
@@ -464,7 +463,7 @@ export function totalBySide(pool: BySide): number {
  * Co da się policzyć dla DOWOLNEGO zbioru walk — jednej albo całej sesji.
  *
  * Wszystko tutaj sumuje się przez sklejenie: obrażenia, rozbicia, procki,
- * ostrzeżenia parsera. Sesja to po prostu suma walk i nic tu nie traci sensu.
+ * ostrzeżenia o nierozpoznanym. Sesja to po prostu suma walk i nic tu nie traci sensu.
  */
 export type Aggregate = {
   actors: ActorStats[];
@@ -491,7 +490,7 @@ export type Aggregate = {
    * ze spadku HP, a nie odczytując stan gry.
    */
   ambiguousNames: string[];
-  /** Linie, których parser nie zrozumiał. Niezerowe = statystyki są niepełne. */
+  /** Komunikaty, których dekoder nie zrozumiał. Niezerowe = statystyki niepełne. */
   unknownLines: number;
   /**
    * Klasy `dmgX` z DOM gry, których nie umiemy nazwać — np. `dmgo`.
@@ -945,14 +944,14 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         get(targetKey).damageTaken += event.amount;
         // "(osłabione o 25%)" — kwota w logu stoi już PO osłabieniu, więc pełne
         // tyknięcie wychodzi z dzielenia, a różnica jest tym, co osłabienie
-        // zdjęło. Sprawdzone na korpusie: odtworzona baza trafia w tik tego
+        // zdjęło. Sprawdzone pomiarem: odtworzona baza trafia w tik tego
         // samego DoT-a BEZ osłabienia szesnaście razy na szesnaście, z błędem
         // do 2 % — bierze się on z tego, że gra podaje procent zaokrąglony do
         // liczby całkowitej. Dlatego to osobne pole, a nie dopisek do
         // `damageAbsorbed`, które jest wyliczone wprost z dwóch liczb logu.
         //
         // Zakres 0 < p < 100 jest strażnikiem, nie ozdobą: "osłabione o 100%"
-        // dałoby dzielenie przez zero, a takiej linii w korpusie nie ma, więc
+        // dałoby dzielenie przez zero, a takiej linii nie było w żadnej zmierzonej walce, więc
         // nie wiadomo nawet, czy gra ją w ogóle pisze.
         const weakened = event.weakenedPct;
         if (weakened !== null && weakened > 0 && weakened < 100) {

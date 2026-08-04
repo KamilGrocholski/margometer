@@ -321,8 +321,8 @@ describe("odczyt nagrań", () => {
   });
 
   test("nagranie w starym formacie czyta się jako null, a nie jako pustka", () => {
-    // Nagrania `v: 1` trzymały TEKST z okna walki. Parser tekstu zszedł z drzewa,
-    // więc odczytać ich nie ma czym — a `JSON.parse` na takim tekście rzuca.
+    // Nagrania `v: 1` trzymały ZDANIA z okna walki. Odczytu zdań już nie ma,
+    // więc nie ma czym ich przeczytać — a `JSON.parse` na takim tekście rzuca.
     // Ma z tego wyjść „nie ma czego pokazać", nie walka o zerowych liczbach.
     storage.setItem("margometer.rec.4", "Rozpoczęła się walka pomiędzy Kamil(100h) a Wilk(80x)");
 
@@ -443,8 +443,8 @@ describe("zepsuty indeks w magazynie", () => {
   });
 
   test("STARE nagrania `v: 1` przepadają, zamiast czytać się jako protokół", () => {
-    // Świadoma strata z 2026‑08‑04. Tamten indeks opisywał tekst z okna walki,
-    // a odczytu tekstu już nie ma. Gdyby `v: 1` przechodziło, archiwum
+    // Świadoma strata z 2026‑08‑04. Tamten indeks opisywał zdania z okna walki,
+    // a odczytu zdań już nie ma. Gdyby `v: 1` przechodziło, archiwum
     // pokazywałoby wiersze, których nie da się otworzyć.
     storage.setItem(
       "margometer.rec.index",

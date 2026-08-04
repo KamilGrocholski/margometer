@@ -5,7 +5,7 @@ import type { BattleEvent } from "../src/types.ts";
  * składzie — długie nicki, dwucyfrowe miejsca, wysoki panel.
  *
  * ⚠️ **ODDAJE `BattleEvent[]`, a nie tekst — od 2026‑08‑04.** Wcześniej składał
- * ZDANIA gry i przepuszczało się je przez `parse`. Parser tekstu zszedł
+ * ZDANIA gry i przepuszczało się je przez odczyt. Tamta warstwa zeszła
  * z drzewa, a zdarzenia są kontraktem między każdym źródłem a agregatem, więc
  * generator buduje je wprost. Przy okazji przestaje udawać, że dowodzi
  * czegokolwiek o formacie logu — czego i tak nigdy nie robił.
@@ -61,7 +61,7 @@ type Profile = {
  * to kilka osobnych bloków pod jedną zapowiedzią.
  *
  * Lista jest krótka celowo — wpisane są wyłącznie umiejętności, dla których
- * wielotrafienie widać w korpusie fixture'ów (`Podwójny strzał` 1,75 ciosu na
+ * wielotrafienie widać w zmierzonych walkach (`Podwójny strzał` 1,75 ciosu na
  * użycie, bo cel czasem pada po pierwszej strzale; `Podwójne trafienie` 2,00).
  * Reszta nazw brzmi wielotrafieniowo, ale dowodu na to nie ma.
  */

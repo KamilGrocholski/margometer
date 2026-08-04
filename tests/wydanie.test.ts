@@ -127,7 +127,7 @@ describe("strażnik: zmiana w src/ bez wpisu", () => {
 
   test("przepuszcza zakres, który nie rusza src/", () => {
     const wynik = ocena({
-      pliki: ["docs/AUDYT.md", "tests/parser.test.ts"],
+      pliki: ["docs/AUDYT.md", "tests/protokol.test.ts"],
       przed: PUSTA,
       po: PUSTA,
       komunikaty: commit("docs: audyt rejestrów"),
@@ -178,7 +178,9 @@ describe("strażnik: zmiana w src/ bez wpisu", () => {
   });
 
   test("zakres OBEJMUJĄCY WYDANIE przechodzi — przypadek 3c78b73..949947a", () => {
-    // Fałszywy alarm z 2026‑08‑04, odtworzony w kształcie, w jakim wyszedł.
+    // Fałszywy alarm z 2026‑08‑04, odtworzony w kształcie, w jakim wyszedł —
+    // razem z nazwami plików i komunikatami, które wtedy padły. `src/parser.ts`
+    // wtedy istniał i to jest cytat, nie wskazówka, gdzie ten plik jest dziś.
     // Push do `main` niósł 12 commitów: dwa `fix`-y ruszające `src/` razem ze
     // swoimi wpisami ORAZ commit wydania, który scalił `[Niewydane]` pod numer
     // wersji. Strażnik patrzył wyłącznie na `[Niewydane]` — a tej sekcji nie
@@ -225,7 +227,7 @@ describe("strażnik: zmiana w src/ bez wpisu", () => {
     // zmuszałby do wyboru między czerwoną bramą a złamaniem tamtej reguły.
     for (const subject of [
       "refactor(overlay): wydzielony arkusz",
-      "test(parser): korpus po naprawie",
+      "test(protokol): materiał po naprawie",
       "build(release): 0.4.0",
       "chore: bump lockfile",
     ]) {
@@ -240,10 +242,10 @@ describe("strażnik: zmiana w src/ bez wpisu", () => {
 
   test("znacznik w komunikacie zwalnia feat/fix, którego użytkownik nie zobaczy", () => {
     const wynik = ocena({
-      pliki: ["src/parser.ts"],
+      pliki: ["src/protokol.ts"],
       przed: PUSTA,
       po: PUSTA,
-      komunikaty: [`fix(parser): literówka w komentarzu\n\n${SKIP_MARK}`],
+      komunikaty: [`fix(protokol): literówka w komentarzu\n\n${SKIP_MARK}`],
     });
     expect(wynik.ok).toBe(true);
   });
