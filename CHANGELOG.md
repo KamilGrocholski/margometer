@@ -28,20 +28,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
-## [Niewydane]
-
-- **Poprawka** — Gdy okno walki napisze linię obrażeń w kształcie, którego
-  licznik nie rozumie, panel mówi o tym wprost zamiast pokazywać liczbę wziętą
-  z sąsiedniej linii albo cios „za zero". Do tej pory taka linia potrafiła
-  przejść bez ostrzeżenia, a w statystykach zostawała wartość, której w logu
-  nie było.
-- **Poprawka** — Zablokowane obrażenia nie gubią się, gdy gra napisze o nich
-  poza opisem ciosu. Wcześniej taka kwota po prostu znikała ze statystyk.
-- **Poprawka** — Ostrzeżenie o nieznanym rodzaju obrażeń zapala się także wtedy,
-  gdy gra oznaczy go cyfrą, a nie literą. Do tej pory taki rodzaj pojawiał się
-  w rozbiciu jako „Nieznany", ale panel o nim nie uprzedzał.
-
-## [0.4.0] — 2026-08-03
+## [0.4.0] — 2026-08-04
 
 - **Nowość** — Panel pokazuje numer wersji dodatku, a skopiowane statystyki
   niosą go razem z liczbami. Zgłaszając, że coś nie zagrało, nie trzeba już
@@ -60,6 +47,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   patrzysz. Wcześniej doklejała się do nich suma wszystkich walk od włączenia
   gry — liczba, której panel nigdzie nie pokazywał i o której nie było jak się
   dowiedzieć inaczej niż wklejając skopiowany tekst gdzieś indziej.
+- **Poprawka** — Gdy okno walki napisze linię obrażeń w kształcie, którego
+  licznik nie rozumie, panel mówi o tym wprost zamiast pokazywać liczbę wziętą
+  z sąsiedniej linii albo cios „za zero". Do tej pory taka linia potrafiła
+  przejść bez ostrzeżenia, a w statystykach zostawała wartość, której w logu
+  nie było.
+- **Poprawka** — Zablokowane obrażenia liczą się także wtedy, gdy gra napisze
+  o nich poza opisem ciosu, a gdy licznik nie potrafi ich przypisać do żadnego
+  ciosu — mówi o tym zamiast po cichu je pominąć.
+- **Poprawka** — Ostrzeżenie o nieznanym rodzaju obrażeń zapala się także wtedy,
+  gdy gra oznaczy go cyfrą, a nie literą. Do tej pory taki rodzaj pojawiał się
+  w rozbiciu jako „Nieznany", ale panel o nim nie uprzedzał.
 - **Poprawka** — Zamknięcie okna archiwum kończy liczenie podsumowań. Wcześniej
   liczyły się dalej, w tle, choć okna nie było już na ekranie — a robiły to
   kosztem płynności gry.
