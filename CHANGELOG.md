@@ -30,10 +30,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
-- **Nowość** — Panel czyta teraz przebieg walki dwiema niezależnymi drogami
+- **Zmiana** — Panel liczy teraz z danych, które gra wysyła do okna walki,
+  a nie z wypisanych w nim zdań. Liczby są te same, ale nazwy efektów biorą się
+  wprost z gry, więc zgadzają się z tym, co widać w oknie — także po
+  aktualizacji Margonema. W archiwum i po wklejeniu logu panel dalej czyta
+  tekst, tak jak dotąd.
+- **Nowość** — Panel czyta przebieg walki dwiema niezależnymi drogami
   i porównuje wynik. Gdy po zakończeniu walki obie drogi podadzą inne liczby,
   na dole panelu pojawia się ostrzeżenie z nazwą postaci i obiema wartościami.
-  Liczby w panelu pochodzą dalej z okna walki — druga droga tylko sprawdza.
 
 ## [0.4.0] — 2026-08-04
 

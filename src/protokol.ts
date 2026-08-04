@@ -190,6 +190,16 @@ export type Rola =
   | { typ: "blok" }
   /** `-evade` → „-Unik". Flaga, bez wartości. */
   | { typ: "unik" }
+  /**
+   * Cios krytyczny. Protokół ma na to WŁASNE KLUCZE, więc nie musimy — i nie
+   * chcemy — rozpoznawać krytów po brzmieniu zdania tak, jak robi to
+   * `classifyModifiers` w `parser.ts`. Współdzielenie tamtej klasyfikacji
+   * oślepiłoby czujkę dokładnie na tym polu.
+   *
+   * `pomocniczy` siada na trafieniach wtórnych, `glowny` i `bardzo` na
+   * pierwszym — tak samo jak `buildHits` rozkłada `mainCrit`/`offhandCrit`.
+   */
+  | { typ: "kryt"; rodzaj: "glowny" | "pomocniczy" | "bardzo" }
   /** `-absorb=N`, `-absorbm=N` → „-Absorpcja N obrażeń fizycznych/magicznych". */
   | { typ: "absorpcja"; id: string }
   /**
@@ -267,6 +277,14 @@ const ROLE: Readonly<Record<string, Rola>> = {
   // — redukcja po stronie celu ————————————————————————————————————
   "-blok": { typ: "blok" },
   "-evade": { typ: "unik" },
+  // Brzmienia potwierdzają rozdział: „+Cios krytyczny", „+Cios bardzo
+  // krytyczny", „+Cios krytyczny broni pomocniczej". `+critwound` („+Ciężka
+  // rana") krytem NIE jest, mimo przedrostka — i tekstowy parser też go nim
+  // nie robi, bo nie zawiera frazy „Cios krytyczny".
+  "+crit": { typ: "kryt", rodzaj: "glowny" },
+  "+verycrit": { typ: "kryt", rodzaj: "bardzo" },
+  "+legbon_verycrit": { typ: "kryt", rodzaj: "bardzo" },
+  "+of_crit": { typ: "kryt", rodzaj: "pomocniczy" },
   "-absorb": { typ: "absorpcja", id: "msg_-absorb %val%" },
   "-absorbm": { typ: "absorpcja", id: "msg_-absorbm %val%" },
 
@@ -325,7 +343,6 @@ const PROCE: Readonly<Record<string, string>> = {
   "+acdmg": "msg_+acdmg %val%",
   "+acdmg_destroyed": "msg_+acdmg_destroyed",
   "+actdmg": "msg_+actdmg %val%",
-  "+crit": "msg_+crit",
   "+critpierce": "eng_game_only_val_+critpierce %val%",
   "+critpoison_per": "msg_+critpoison_per %val%",
   "+critsa": "msg_+critsa %val%",
@@ -356,11 +373,9 @@ const PROCE: Readonly<Record<string, string>> = {
   "+legbon_holytouch": "msg_+legbon_holytouch %val%",
   "+legbon_puncture": "msg_+legbon_puncture %val%",
   "+legbon_pushback": "msg_+legbon_pushback",
-  "+legbon_verycrit": "msg_+legbon_verycrit",
   "+lowheal2turns": "msg_+lowheal2turns %val%",
   "+manadest": "msg_+manadest %val%",
   "+mcurse": "msg_+mcurse",
-  "+of_crit": "msg_+of_crit",
   "+of_wound": "msg_+of_wound",
   "+of_woundmagic": "msg_of_woundmagic %val%",
   "+of_woundpoison": "msg_of_woundpoison %val%",
@@ -387,7 +402,6 @@ const PROCE: Readonly<Record<string, string>> = {
   "+superspell-prevented": "msg_+superspell-prevented",
   "+swing": "msg_+swing",
   "+taken_dmg": "eng_game_only_val_+taken_dmg %val%",
-  "+verycrit": "msg_+verycrit",
   "+vulture": "msg_+vulture= %val%",
   "+wound": "msg_+wound",
   "+woundfrost": "msg_woundfrost %val%",
@@ -625,14 +639,23 @@ export function dekoduj(
      * albo gra nie zna identyfikatora, zostaje KLUCZ. Klucz jest prawdą —
      * brzmienie zmyślone przez nas nie byłoby.
      */
-    const etykieta = (p: Parametr, id: string): string =>
-      slownik.zdanie(id, p.wartosc === null ? undefined : { "%val%": p.wartosc }) ?? p.klucz;
+    const etykieta = (p: Parametr, id: string): string => {
+      const zdanie = slownik.zdanie(id, p.wartosc === null ? undefined : { "%val%": p.wartosc });
+      // ZNAK WIODĄCY SPADA, tak jak zdejmuje go `RE_MODIFIER` w `parser.ts`.
+      // Bez tego ten sam efekt stałby w panelu jako dwie różne pozycje —
+      // „Przebicie" z tekstu i „+Przebicie" z protokołu — a przy porównaniu
+      // obu dróg wyglądałoby to na rozjazd, którym nie jest.
+      return zdanie === null ? p.klucz : zdanie.replace(/^[+-]\s*/, "");
+    };
 
     const zadane: Hit[] = [];
     const przyjete: number[] = [];
     const procy: string[] = [];
     let blok: number | null = null;
     let unik = false;
+    let krytGlowny = false;
+    let krytPomocniczy = false;
+    let krytBardzo = false;
 
     for (const p of parametry) {
       // Pusty segment (`…;;`) nie jest kluczem i nie ma o czym krzyczeć — gra
@@ -683,6 +706,11 @@ export function dekoduj(
         }
         case "unik":
           unik = true;
+          break;
+        case "kryt":
+          if (r.rodzaj === "glowny") krytGlowny = true;
+          else if (r.rodzaj === "pomocniczy") krytPomocniczy = true;
+          else krytBardzo = true;
           break;
         case "absorpcja":
         case "proc":
@@ -850,13 +878,23 @@ export function dekoduj(
           ? {
               raw: 0,
               applied: przyjete[i] ?? 0,
-              crit: false,
+              crit: krytPomocniczy,
               superCrit: false,
               secondary: i > 0,
               element: null,
-              dodged: false,
+              dodged: unik && (przyjete[i] ?? 0) === 0,
             }
-          : { ...z, applied: przyjete[i] ?? 0 },
+          : {
+              ...z,
+              applied: przyjete[i] ?? 0,
+              // Ten sam rozkład co `buildHits`: kryt broni pomocniczej siada na
+              // trafieniach wtórnych, główny i bardzo krytyczny na pierwszym.
+              crit: i > 0 ? krytPomocniczy : krytGlowny,
+              superCrit: i > 0 ? false : krytBardzo,
+              // Unik bywa CZĘŚCIOWY — o uniknięciu tego trafienia decyduje
+              // zerowa wartość przyjęta, nie sama obecność klucza.
+              dodged: unik && (przyjete[i] ?? 0) === 0,
+            },
       );
     }
 

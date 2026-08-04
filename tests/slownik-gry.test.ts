@@ -103,7 +103,9 @@ describe("etykiety proców w dekoderze", () => {
       SKLAD,
       zeZamrozenia(),
     );
-    expect((z as { procs: string[] }).procs).toEqual(["+Przebicie"]);
+    // Znak wiodący spada — tak samo jak zdejmuje go `RE_MODIFIER` po stronie
+    // tekstu. Inaczej ten sam efekt stałby w panelu jako dwie pozycje.
+    expect((z as { procs: string[] }).procs).toEqual(["Przebicie"]);
   });
 
   test("proc z wartością dostaje ją podstawioną", () => {
@@ -114,7 +116,7 @@ describe("etykiety proców w dekoderze", () => {
       SKLAD,
       zeZamrozenia(),
     );
-    expect((z as { procs: string[] }).procs).toEqual(["+Niszczenie pancerza o 5"]);
+    expect((z as { procs: string[] }).procs).toEqual(["Niszczenie pancerza o 5"]);
   });
 
   test("BEZ słownika zostaje KLUCZ, a nie zmyślona etykieta", () => {
@@ -125,9 +127,19 @@ describe("etykiety proców w dekoderze", () => {
   });
 
   test("klucz, którego gra nie zna, też zostaje kluczem", () => {
+    // `+crit` nie nadaje się na ten test, bo od 2026‑08‑04 nie jest procem
+    // tylko krytem — bierzemy inny proc bez zdania w słowniku.
     const pusty = new SlownikStaly([]);
-    const [z] = dekoduj(["1=100.00;2=90.00;+dmgd=10;+crit;-dmgd=10"], SKLAD, pusty);
-    expect((z as { procs: string[] }).procs).toEqual(["+crit"]);
+    const [z] = dekoduj(["1=100.00;2=90.00;+dmgd=10;+pierce;-dmgd=10"], SKLAD, pusty);
+    expect((z as { procs: string[] }).procs).toEqual(["+pierce"]);
+  });
+
+  test("kryt NIE jest procem — protokół ma na niego własny klucz", () => {
+    // Ścieżka tekstowa konsumuje „+Cios krytyczny" do `Hit.crit` zamiast
+    // wypisywać go jako efekt; protokół robi to samo, tyle że po kluczu.
+    const [z] = dekoduj(["1=100.00;2=90.00;+dmgd=10;+crit;-dmgd=10"], SKLAD, zeZamrozenia());
+    expect((z as { procs: string[] }).procs).toEqual([]);
+    expect((z as { hits: { crit: boolean }[] }).hits[0]!.crit).toBe(true);
   });
 });
 

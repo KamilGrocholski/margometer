@@ -5,7 +5,7 @@ import { EngineProtocolSource, type EventSource } from "./protokol-source.ts";
 import { EngineRosterSource, type GameGlobals, type RosterSource } from "./roster.ts";
 import { rozjazdy, walkaZakonczona } from "./rozjazd.ts";
 import { Session } from "./session.ts";
-import { EMPTY_STATS } from "./stats.ts";
+import { EMPTY_STATS, type BattleStats } from "./stats.ts";
 import { DomLogSource, findBattleLog, type LogSource } from "./source.ts";
 
 /** Ile czekać na pojawienie się okna walki w DOM, zanim odpuścimy. */
@@ -20,12 +20,39 @@ const LOOKUP_INTERVAL_MS = 1000;
  */
 const GIVE_UP_AFTER = 20;
 
+/**
+ * Z której drogi panel bierze liczby.
+ *
+ * **Protokół, gdy cokolwiek z niego wyszło; tekst w przeciwnym razie.**
+ * Warunkiem jest niepusty skład, bo `EngineProtocolSource` zeruje bufor przy
+ * każdej nowej walce (tożsamość obiektu `Engine.battle`), więc pusta sesja
+ * protokołu znaczy „ta walka jeszcze nic nie przysłała" albo „protokołu tu
+ * nie ma" — a wtedy tekst jest jedyną odpowiedzią.
+ *
+ * DLACZEGO PROTOKÓŁ WYGRYWA. Niesie `id` po obu stronach każdego zdarzenia,
+ * żywioł jako klucz zamiast klasy CSS, rozbite składniki redukcji i brzmienia
+ * prosto z gry. Tekst jest rekonstrukcją tego wszystkiego ze zdań.
+ *
+ * DLACZEGO TEKST ZOSTAJE. Nagrania to surowy tekst (`recorder.ts:1‑16`),
+ * wklejony log nie ma innej drogi, archiwum odtwarza przez `parse` — i żadna
+ * z tych ścieżek nie ma `Engine.battle`.
+ *
+ * ⚠️ **TRYB AWARII, KTÓREGO TO NIE ZAMYKA.** Gdyby owinięcie `update` padło
+ * w POŁOWIE walki, sesja protokołu zamarza z niepustym składem i panel
+ * pokazywałby liczby sprzed awarii, podczas gdy tekst leci dalej. Łapie to
+ * czujka na koniec walki — ostrzeżeniem, nie ciszą — ale dopiero wtedy.
+ */
+export function zrodloPanelu(zTekstu: BattleStats, zProtokolu: BattleStats): BattleStats {
+  return zProtokolu.actors.length > 0 ? zProtokolu : zTekstu;
+}
+
 export function start(
   source: LogSource,
   overlay: Overlay,
   session: Session = new Session(),
   roster?: RosterSource,
   recorder?: Recorder,
+  sesjaProtokolu?: Session,
 ): () => void {
   return source.subscribe((text) => {
     // Nagrywanie idzie PIERWSZE i we własnej osłonie. Kolejność nie jest
@@ -48,7 +75,11 @@ export function start(
       // Skład czytamy przy każdej zmianie logu, nie raz na starcie: gra
       // podmienia `battle` między walkami, a odczyt jest tani i defensywny.
       session.update(text, roster?.current());
-      overlay.render(session.current());
+      overlay.render(
+        sesjaProtokolu === undefined
+          ? session.current()
+          : zrodloPanelu(session.current(), sesjaProtokolu.current()),
+      );
     } catch (error) {
       console.error("[MargoMeter] licznik padł na tej porcji logu", error);
     }
@@ -79,10 +110,12 @@ export function startKontrola(
     try {
       sesjaProtokolu.updateEvents(events, roster?.current());
       // Porównanie DOPIERO na koniec walki: w trakcie obie drogi mają inną
-      // kadencję i różnica bywa tylko przesunięciem w czasie.
-      if (!walkaZakonczona(events)) return;
-      overlay.setRozjazdy(rozjazdy(zTekstu.current(), sesjaProtokolu.current()));
-      overlay.render(zTekstu.current());
+      // kadencję i różnica bywa tylko przesunięciem w czasie. Rysujemy jednak
+      // od razu — panel ma nadążać za walką, a nie czekać na jej koniec.
+      if (walkaZakonczona(events)) {
+        overlay.setRozjazdy(rozjazdy(zTekstu.current(), sesjaProtokolu.current()));
+      }
+      overlay.render(zrodloPanelu(zTekstu.current(), sesjaProtokolu.current()));
     } catch (error) {
       console.error("[MargoMeter] czujka protokołu padła", error);
     }
@@ -137,6 +170,9 @@ export function boot(options: BootOptions = {}): () => void {
   // w trakcie walki — wtedy przepinamy obserwatora, a liczby bieżącej walki
   // mają zostać na ekranie.
   const session = new Session();
+  // Jedna sesja protokołu na cały `boot`, wspólna dla obu spięć: karmi ją
+  // czujka, a czyta z niej panel. Dwie osobne rozjechałyby się o porcję.
+  const sesjaProtokolu = new Session();
   const roster = new EngineRosterSource(globals);
   let unsubscribe: (() => void) | null = null;
   // Czujka podpina się RAZ, do globali, a nie do kontenera logu: `Engine.battle`
@@ -193,6 +229,7 @@ export function boot(options: BootOptions = {}): () => void {
           session,
           overlay,
           roster,
+          sesjaProtokolu,
         );
       } catch (error) {
         // Czujka jest dodatkiem do dodatku. Gdy nie wstanie, licznik ma działać
@@ -206,7 +243,14 @@ export function boot(options: BootOptions = {}): () => void {
 
     unsubscribe?.();
     container = found;
-    unsubscribe = start(new DomLogSource(found), overlay, session, roster, recorder ?? undefined);
+    unsubscribe = start(
+      new DomLogSource(found),
+      overlay,
+      session,
+      roster,
+      recorder ?? undefined,
+      sesjaProtokolu,
+    );
   }, LOOKUP_INTERVAL_MS);
 
   return stop;

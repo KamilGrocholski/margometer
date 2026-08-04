@@ -3,7 +3,8 @@ import { Overlay } from "../src/overlay.ts";
 import { Session } from "../src/session.ts";
 import { DomLogSource, findBattleLog, StaticLogSource } from "../src/source.ts";
 import { Recorder } from "../src/recorder.ts";
-import { boot, start } from "../src/index.ts";
+import { boot, start, zrodloPanelu } from "../src/index.ts";
+import { EMPTY_STATS, type BattleStats } from "../src/stats.ts";
 import { number, readFixture } from "./helpers.ts";
 
 describe("spięcie źródła z overlayem", () => {
@@ -228,5 +229,48 @@ describe("start dodatku", () => {
 
     loop.tick(5);
     expect(document.body.children).toHaveLength(1);
+  });
+});
+
+describe("zrodloPanelu — z której drogi panel bierze liczby", () => {
+  const zAktorami = (name: string): BattleStats =>
+    ({ ...EMPTY_STATS, actors: [{ name } as never] }) as BattleStats;
+
+  test("protokół wygrywa, gdy cokolwiek z niego wyszło", () => {
+    const wynik = zrodloPanelu(zAktorami("z tekstu"), zAktorami("z protokołu"));
+    expect(wynik.actors[0]!.name).toBe("z protokołu");
+  });
+
+  test("pusta sesja protokołu oddaje panel tekstowi", () => {
+    // Tak wygląda wklejony log, archiwum i strona bez `Engine.battle`.
+    const wynik = zrodloPanelu(zAktorami("z tekstu"), EMPTY_STATS);
+    expect(wynik.actors[0]!.name).toBe("z tekstu");
+  });
+
+  test("obie puste — panel dostaje pustkę, a nie wyjątek", () => {
+    expect(zrodloPanelu(EMPTY_STATS, EMPTY_STATS).actors).toEqual([]);
+  });
+});
+
+describe("panel rysuje z protokołu, gdy protokół mówi", () => {
+  test("`start` bez sesji protokołu rysuje z tekstu — ścieżka archiwum i wklejki", () => {
+    // Domyślny brak parametru to NIE to samo, co pusta sesja: znaczy „ta droga
+    // w ogóle nie ma protokołu" i ma działać jak przed 2026‑08‑04. Log jest
+    // wpisany wprost, a nie brany z korpusu — pytanie dotyczy SPIĘCIA, nie
+    // zawartości fixture'ów (i nie każdy fixture ma `raw.txt`).
+    const log = [
+      "Rozpoczęła się walka pomiędzy Kamil(100lvl m) a Locha(50lvl w).",
+      "Kamil(100%) uderzył z siłą 455",
+      "Locha(40.37%) otrzymał 455 obrażeń",
+    ].join("\n");
+    const widziane: string[][] = [];
+    const overlay = {
+      render: (stats: BattleStats) => widziane.push(stats.actors.map((a) => a.name)),
+      setRozjazdy: () => {},
+    } as unknown as Overlay;
+
+    start(new StaticLogSource(log), overlay, new Session());
+
+    expect(widziane.at(-1)).toContain("Kamil");
   });
 });
