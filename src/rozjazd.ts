@@ -95,3 +95,29 @@ export function rozjazdy(zTekstu: BattleStats, zProtokolu: BattleStats): Rozjazd
 export function walkaZakonczona(zdarzenia: readonly BattleEvent[]): boolean {
   return zdarzenia.some((z) => z.kind === "fight-end");
 }
+
+/**
+ * Czy ten odczyt jest PUSTY — ma wiersze, ale nie ma w nich ani jednej liczby.
+ *
+ * ⚠️ **WIERSZE NIE ŚWIADCZĄ O TREŚCI.** `aggregate` buduje je ze SKŁADU
+ * podanego z gry, nie ze zdarzeń: sesja, która nie zobaczyła ani jednego ciosu,
+ * ma komplet postaci i same zera. To nie jest teoria — pierwsze uruchomienie
+ * w grze (2026‑08‑04) pokazało dokładnie taki odczyt, bo owinięcie
+ * `Engine.battle.update` podpięło się już po pierwszej porcji komunikatów,
+ * a w tej porcji potrafi przyjść CAŁA walka.
+ *
+ * Rozróżnienie jest potrzebne w dwóch miejscach i to są dwa różne pytania:
+ * „z której drogi rysować panel" (`zrodloPanelu`) i „co powiedzieć
+ * użytkownikowi" — bo „nie zdążyliśmy się podpiąć" to inna wiadomość niż
+ * „dwa odczyty się nie zgadzają".
+ */
+export function pustyOdczyt(stats: BattleStats): boolean {
+  return !stats.actors.some(
+    (a) =>
+      a.damageDealt > 0 ||
+      a.damageTaken > 0 ||
+      a.healingDone > 0 ||
+      a.healingReceived > 0 ||
+      a.hits > 0,
+  );
+}

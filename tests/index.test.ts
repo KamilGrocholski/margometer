@@ -233,17 +233,35 @@ describe("start dodatku", () => {
 });
 
 describe("zrodloPanelu — z której drogi panel bierze liczby", () => {
-  const zAktorami = (name: string): BattleStats =>
-    ({ ...EMPTY_STATS, actors: [{ name } as never] }) as BattleStats;
+  /** Wiersz z treścią: cokolwiek policzone. */
+  const zTrescia = (name: string): BattleStats =>
+    ({ ...EMPTY_STATS, actors: [{ name, damageDealt: 100, hits: 1 } as never] }) as BattleStats;
+  /** Wiersz BEZ treści — tak wygląda skład z gry bez ani jednego zdarzenia. */
+  const bezTresci = (name: string): BattleStats =>
+    ({
+      ...EMPTY_STATS,
+      actors: [
+        { name, damageDealt: 0, damageTaken: 0, healingDone: 0, healingReceived: 0, hits: 0 } as never,
+      ],
+    }) as BattleStats;
 
-  test("protokół wygrywa, gdy cokolwiek z niego wyszło", () => {
-    const wynik = zrodloPanelu(zAktorami("z tekstu"), zAktorami("z protokołu"));
+  test("protokół wygrywa, gdy cokolwiek POLICZYŁ", () => {
+    const wynik = zrodloPanelu(zTrescia("z tekstu"), zTrescia("z protokołu"));
     expect(wynik.actors[0]!.name).toBe("z protokołu");
+  });
+
+  test("protokół z WIERSZAMI, ale bez treści, PRZEGRYWA z tekstem", () => {
+    // Ta usterka pokazała się w grze 2026‑08‑04: owinięcie `update` podpięło
+    // się po pierwszej porcji, a w niej potrafi przyjść cała walka. Sesja
+    // protokołu miała wtedy komplet postaci ze składu i same zera — i wygrywała
+    // z poprawnym odczytem, więc panel pokazywał zera.
+    const wynik = zrodloPanelu(zTrescia("z tekstu"), bezTresci("z protokołu"));
+    expect(wynik.actors[0]!.name).toBe("z tekstu");
   });
 
   test("pusta sesja protokołu oddaje panel tekstowi", () => {
     // Tak wygląda wklejony log, archiwum i strona bez `Engine.battle`.
-    const wynik = zrodloPanelu(zAktorami("z tekstu"), EMPTY_STATS);
+    const wynik = zrodloPanelu(zTrescia("z tekstu"), EMPTY_STATS);
     expect(wynik.actors[0]!.name).toBe("z tekstu");
   });
 

@@ -14,8 +14,9 @@ import {
 import { odtworz } from "../tools/odtworz.ts";
 import { dekoduj } from "../src/protokol.ts";
 import { parse } from "../src/parser.ts";
-import { rozjazdy } from "../src/rozjazd.ts";
+import { pustyOdczyt, rozjazdy } from "../src/rozjazd.ts";
 import { Session } from "../src/session.ts";
+import { zrodloPanelu } from "../src/index.ts";
 
 /**
  * ORAKULUM — liczby dekodera przeciw czemuś SPOZA dekodera.
@@ -155,5 +156,49 @@ describe.each(pary.filter((p) => p.tekst !== null))("orakulum ze zrzutem tekstu:
     // Strażnik na pomyłkę przy składaniu fixture'a: `raw.txt` z innej walki
     // dałby rozjazdy wyglądające na błąd dekodera.
     for (const wojownik of sklad) expect(tekst).toContain(wojownik.name);
+  });
+});
+
+/**
+ * SPÓŹNIONE PODPIĘCIE — usterka z pierwszego uruchomienia w grze (2026‑08‑04).
+ *
+ * `EngineProtocolSource` owija `Engine.battle.update` z zegara, a gra tworzy
+ * nowy obiekt walki przy każdej walce. Gdy pierwsza porcja komunikatów przyjdzie
+ * przed naszym tikiem, protokół traci CAŁĄ walkę — bo w jedynym zrzucie, jaki
+ * mamy, wszystkie 18 komunikatów przyszło w jednym wywołaniu.
+ *
+ * Wtedy sesja protokołu ma komplet postaci ze SKŁADU i same zera, a panel
+ * wybierał ją zamiast poprawnego odczytu z tekstu. Ten test odtwarza to na
+ * prawdziwym materiale i padał przed naprawą.
+ */
+describe.each(pary.filter((p) => p.tekst !== null))("spóźnione podpięcie: $nazwa", (para) => {
+  const sklad = skladZeZrzutu(para.zrzut);
+  const wiadomosci = komunikaty(para.zrzut.wpisy);
+
+  test("protokół, który złapał tylko końcówkę, NIE przejmuje panelu", () => {
+    const zTekstu = new Session();
+    zTekstu.update(para.tekst as string, sklad);
+
+    // Cztery ostatnie komunikaty to rozstrzygnięcie walki i łup — zero obrażeń.
+    const spozniony = new Session();
+    spozniony.updateEvents(dekoduj(wiadomosci.slice(-4), sklad, SLOWNIK), sklad);
+
+    expect(spozniony.current().actors.length).toBeGreaterThan(0);
+    expect(pustyOdczyt(spozniony.current())).toBe(true);
+
+    const wybrane = zrodloPanelu(zTekstu.current(), spozniony.current());
+    const suma = wybrane.actors.reduce((a, x) => a + x.damageDealt, 0);
+    expect(suma).toBe(zTekstu.current().actors.reduce((a, x) => a + x.damageDealt, 0));
+    expect(suma).toBeGreaterThan(0);
+  });
+
+  test("pełny protokół panel PRZEJMUJE — inaczej naprawa zabiłaby całą ścieżkę", () => {
+    const zTekstu = new Session();
+    zTekstu.update(para.tekst as string, sklad);
+    const pelny = new Session();
+    pelny.updateEvents(dekoduj(wiadomosci, sklad, SLOWNIK), sklad);
+
+    expect(pustyOdczyt(pelny.current())).toBe(false);
+    expect(zrodloPanelu(zTekstu.current(), pelny.current())).toBe(pelny.current());
   });
 });

@@ -3,7 +3,7 @@ import { Overlay } from "./overlay.ts";
 import { Recorder } from "./recorder.ts";
 import { EngineProtocolSource, type EventSource } from "./protokol-source.ts";
 import { EngineRosterSource, type GameGlobals, type RosterSource } from "./roster.ts";
-import { rozjazdy, walkaZakonczona } from "./rozjazd.ts";
+import { pustyOdczyt, rozjazdy, walkaZakonczona } from "./rozjazd.ts";
 import { Session } from "./session.ts";
 import { EMPTY_STATS, type BattleStats } from "./stats.ts";
 import { DomLogSource, findBattleLog, type LogSource } from "./source.ts";
@@ -23,11 +23,13 @@ const GIVE_UP_AFTER = 20;
 /**
  * Z której drogi panel bierze liczby.
  *
- * **Protokół, gdy cokolwiek z niego wyszło; tekst w przeciwnym razie.**
- * Warunkiem jest niepusty skład, bo `EngineProtocolSource` zeruje bufor przy
- * każdej nowej walce (tożsamość obiektu `Engine.battle`), więc pusta sesja
- * protokołu znaczy „ta walka jeszcze nic nie przysłała" albo „protokołu tu
- * nie ma" — a wtedy tekst jest jedyną odpowiedzią.
+ * **Protokół, gdy cokolwiek POLICZYŁ; tekst w przeciwnym razie.**
+ *
+ * ⚠️ Warunkiem jest TREŚĆ, nie liczba wierszy — i ta różnica kosztowała jedno
+ * złe wskazanie w grze (2026‑08‑04). Wiersze biorą się ze składu podanego
+ * z gry, więc sesja protokołu, która nie zobaczyła ani jednego ciosu, ma
+ * komplet postaci i same zera. Warunek „są wiersze" wybierał wtedy zera zamiast
+ * poprawnego odczytu z tekstu.
  *
  * DLACZEGO PROTOKÓŁ WYGRYWA. Niesie `id` po obu stronach każdego zdarzenia,
  * żywioł jako klucz zamiast klasy CSS, rozbite składniki redukcji i brzmienia
@@ -43,7 +45,7 @@ const GIVE_UP_AFTER = 20;
  * czujka na koniec walki — ostrzeżeniem, nie ciszą — ale dopiero wtedy.
  */
 export function zrodloPanelu(zTekstu: BattleStats, zProtokolu: BattleStats): BattleStats {
-  return zProtokolu.actors.length > 0 ? zProtokolu : zTekstu;
+  return pustyOdczyt(zProtokolu) ? zTekstu : zProtokolu;
 }
 
 export function start(
