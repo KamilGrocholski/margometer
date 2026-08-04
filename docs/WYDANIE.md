@@ -154,7 +154,7 @@ pobrać, a zgłaszający patrzył na kod sprzed trzech commitów.
 
 | strażnik | kiedy zapala | czy wywraca bramę |
 |---|---|---|
-| **twardy** | zakres rusza `src/`, a sekcja `[Niewydane]` się nie zmienia | tak |
+| **twardy** | zakres rusza `src/`, a lista wpisów w `CHANGELOG.md` się nie zmienia | tak |
 | **sygnał** | w `[Niewydane]` cokolwiek czeka | **nie**, adnotacja w podsumowaniu |
 
 Są DWA, bo łapią co innego, i to jest wniosek z pomiaru, nie ostrożność:
@@ -180,11 +180,36 @@ nie pisze.
 
 ### Po wydaniu sekcji `[Niewydane]` nie ma wcale
 
-To stan poprawny, nie brak — i wart zapamiętania, bo wygląda na usterkę:
-pierwsza kolejna zmiana w `src/` musi **odtworzyć nagłówek** `## [Niewydane]`
-razem z wpisem. Strażnik porówna wtedy „nie ma sekcji” z „nie ma sekcji”, uzna,
-że nic się nie zmieniło, i zapali bramę. Sygnał do tego czasu mówi
+To stan poprawny, nie brak: pierwsza kolejna zmiana w `src/` **odtwarza
+nagłówek** `## [Niewydane]` razem z wpisem. Sygnał do tego czasu mówi
 „nic nie czeka”.
+
+### Strażnik twardy porównuje CAŁĄ listę wpisów, nie samą `[Niewydane]`
+
+Od 2026‑08‑04, i to jest naprawa fałszywego alarmu, nie ostrożność. Strażnik
+pytał wyłącznie o sekcję `[Niewydane]` — więc zakres **obejmujący wydanie**
+wyglądał dla niego identycznie jak „ruszyłeś `src/` i nic nie napisałeś”:
+krok 1 przenosi wpisy pod numer wersji, a sekcji, na którą patrzył, nie ma
+ani przed zakresem, ani po nim. Zapaliło się to na pushu `3c78b73..949947a`:
+5 plików w `src/`, dwa `fix`-y, oba ze swoimi wpisami stojącymi w `## [0.4.0]`.
+
+Wariant, który wygląda na oczywisty — „wykryj wydanie po tym, że `[Niewydane]`
+zniknęło” — tamtego pushu NIE łapie: sekcji nie było już przed zakresem, bo
+poprzednie scalenie (`3c78b73`) zdjęło ją wcześniej.
+
+Porównanie jest **nieczułe na kolejność** i to jest cały ciężar zmiany.
+Scalenie przenosi te same linie spod `[Niewydane]` w środek sekcji z numerem,
+czyli zmienia ich kolejność, nie treść. Przy porównaniu uporządkowanym samo
+przeniesienie wyglądałoby jak nowe wpisy i **każde wydanie zwalniałoby zakres
+z pisania czegokolwiek**. Po sortowaniu zakres, który tylko wydaje i nic nie
+dopisuje, zostaje czerwony — sprawdzone na tym samym pushu z usuniętymi trzema
+wpisami.
+
+Cena, przyjęta świadomie: poprawka literówki w sekcji wydanej dawno temu też
+liczy się jako zmiana i zwolni zakres z wpisu. Wariant węższy („`[Niewydane]`
+albo sekcja najnowszej wersji”) to zamyka, ale dokłada pojęcie „najnowsza
+sekcja”, którego reszta `tools/wydanie.ts` nie zna, a łapie kształt, którego
+w historii repo nie było ani razu.
 
 ---
 

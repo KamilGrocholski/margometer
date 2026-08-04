@@ -5,7 +5,8 @@ import {
   sygnal,
   unreleasedEntries,
   unreleasedSection,
-  unreleasedTouched,
+  wpisyZmienione,
+  wszystkieWpisy,
 } from "../tools/wydanie.ts";
 
 /**
@@ -32,6 +33,61 @@ const CHANGELOG = (unreleased: string) =>
   ].join("\n");
 
 const PUSTA = ["# Zmiany", "", "## [0.3.0] — 2026-08-01", "", "- **Nowość** — Coś.", ""].join("\n");
+
+/**
+ * CHANGELOG bez sekcji `[Niewydane]`, czyli stan PO wydaniu — z listą wpisów
+ * pod numerem wersji. Kształt, na którym strażnik kłamał do 2026‑08‑04.
+ */
+const WYDANY = (...wpisy: string[]) =>
+  [
+    "# Zmiany",
+    "",
+    "## [0.4.0] — 2026-08-04",
+    "",
+    ...wpisy,
+    "",
+    "## [0.3.0] — 2026-08-01",
+    "",
+    "- **Nowość** — Instalacja jednym kliknięciem.",
+    "",
+  ].join("\n");
+
+/**
+ * SAMO scalenie: te same wpisy przed i po, przeniesione spod `[Niewydane]`
+ * pod numer wersji. Ani jeden nie przybył, nie zniknął i nie zmienił treści.
+ *
+ * Przeniesiony wpis ląduje w ŚRODKU listy, za wpisem, który w sekcji z numerem
+ * już stał — i to nie jest ozdobnik fixture'a, tylko jedyne miejsce, w którym
+ * ta własność w ogóle daje się zmierzyć. Pierwsza wersja tego fixture'a kładła
+ * przeniesiony wpis na początku sekcji: kolejność wychodziła wtedy identyczna
+ * przed i po, więc mutant zdejmujący `.sort()` z porównania nie zapalał ani
+ * jednego testu. Zielono i pusto.
+ *
+ * Kształt jest wierny wydaniu 0.4.0: sekcja z numerem istniała i miała wpisy
+ * (nowości, zmiany), a trzy poprawki z `[Niewydane]` weszły za nie.
+ */
+const SCALENIE = {
+  przed: [
+    "# Zmiany",
+    "",
+    "## [Niewydane]",
+    "",
+    "- **Poprawka** — Przeniesiona pod numer wersji.",
+    "",
+    "## [0.4.0] — 2026-08-04",
+    "",
+    "- **Nowość** — Panel pokazuje numer wersji.",
+    "",
+    "## [0.3.0] — 2026-08-01",
+    "",
+    "- **Nowość** — Instalacja jednym kliknięciem.",
+    "",
+  ].join("\n"),
+  po: WYDANY(
+    "- **Nowość** — Panel pokazuje numer wersji.",
+    "- **Poprawka** — Przeniesiona pod numer wersji.",
+  ),
+};
 
 const plik = (name: string) => Bun.file(new URL(`../${name}`, import.meta.url).pathname).text();
 const CHECK_YML = await plik(".github/workflows/check.yml");
@@ -119,6 +175,48 @@ describe("strażnik: zmiana w src/ bez wpisu", () => {
       ],
     });
     expect(wynik.ok).toBe(true);
+  });
+
+  test("zakres OBEJMUJĄCY WYDANIE przechodzi — przypadek 3c78b73..949947a", () => {
+    // Fałszywy alarm z 2026‑08‑04, odtworzony w kształcie, w jakim wyszedł.
+    // Push do `main` niósł 12 commitów: dwa `fix`-y ruszające `src/` razem ze
+    // swoimi wpisami ORAZ commit wydania, który scalił `[Niewydane]` pod numer
+    // wersji. Strażnik patrzył wyłącznie na `[Niewydane]` — a tej sekcji nie
+    // było ani przed zakresem (poprzednie scalenie), ani po nim (to wydanie) —
+    // więc ogłosił „ani jednej zmiany" o zakresie, w którym przybyły trzy wpisy.
+    const wynik = ocena({
+      pliki: ["src/parser.ts", "src/stats.ts", "CHANGELOG.md"],
+      przed: WYDANY("- **Nowość** — Panel pokazuje numer wersji."),
+      po: WYDANY(
+        "- **Nowość** — Panel pokazuje numer wersji.",
+        "- **Poprawka** — Panel mówi wprost o linii, której nie rozumie.",
+        "- **Poprawka** — Zablokowane obrażenia liczą się także poza opisem ciosu.",
+        "- **Poprawka** — Ostrzeżenie zapala się też przy rodzaju oznaczonym cyfrą.",
+      ),
+      komunikaty: [
+        "fix(parser): segment obrażeń przyjmuje wyłącznie liczby",
+        "fix(stats,parser): trzy ciche ścieżki przestają milczeć",
+        "build(release): 0.4.0 — jedna sekcja zamiast dwóch bloków",
+      ],
+    });
+    expect([wynik.ok, wynik.powod]).toEqual([true, "lista wpisów w `CHANGELOG.md` została zmieniona"]);
+  });
+
+  test("SAMO scalenie nie zwalnia z wpisu — te same linie pod innym nagłówkiem", () => {
+    // Druga strona tej samej naprawy i powód, dla którego porównanie wpisów
+    // jest NIECZUŁE NA KOLEJNOŚĆ. Scalenie przenosi wpisy spod `[Niewydane]`
+    // w środek sekcji z numerem, czyli zmienia ich kolejność, nie treść.
+    // Przy porównaniu uporządkowanym samo przeniesienie wyglądałoby jak nowe
+    // wpisy i KAŻDE wydanie zwalniałoby zakres z pisania czegokolwiek —
+    // dokładnie odwrotnie, niż ten strażnik ma robić.
+    const wynik = ocena({
+      pliki: ["src/overlay.ts"],
+      przed: SCALENIE.przed,
+      po: SCALENIE.po,
+      komunikaty: ["feat(overlay): nowa zakładka bez ani jednego wpisu"],
+    });
+    expect(wynik.ok).toBe(false);
+    expect(wynik.powod).toContain("feat(overlay): nowa zakładka bez ani jednego wpisu");
   });
 
   test("refaktor i testy nie wymagają wpisu, bo CHANGELOG ich zabrania", () => {
@@ -355,18 +453,43 @@ describe("zakres liczony w check.yml", () => {
   });
 });
 
-describe("porównanie sekcji", () => {
+describe("porównanie wpisów", () => {
   test("widzi zmianę treści, nie tylko przybycie linii", () => {
-    expect(unreleasedTouched(CHANGELOG("- **A** — raz."), CHANGELOG("- **A** — raz i pół."))).toBe(
+    expect(wpisyZmienione(CHANGELOG("- **A** — raz."), CHANGELOG("- **A** — raz i pół."))).toBe(
       true,
     );
   });
 
-  test("nie widzi zmian poza sekcją", () => {
-    // Poprawka w sekcji WYDANEJ wersji nie jest wpisem o bieżącej zmianie.
+  test("nie liczy wypunktowań z komentarza nad pierwszą sekcją", () => {
+    // Nagłówek `CHANGELOG.md` to komentarz HTML z listą zasad, też pisaną
+    // wypunktowaniem. Liczenie od początku pliku wciągałoby je jako wpisy,
+    // a wtedy poprawka literówki w SAMYCH ZASADACH zwalniałaby z wpisu.
+    const zasady = ["<!--", "- Najnowsze na górze.", "- Jedna płaska lista na wersję.", "-->", ""];
+    expect(wszystkieWpisy([...zasady, PUSTA].join("\n"))).toEqual(["- **Nowość** — Coś."]);
+  });
+
+  test("widzi zmianę w sekcji WYDANEJ wersji — i to jest zmiana z 2026-08-04", () => {
+    // Sprostowanie do własnego opisu: poprzednia wersja tego testu twierdziła,
+    // że „poprawka w sekcji WYDANEJ wersji nie jest wpisem o bieżącej zmianie",
+    // i pilnowała, żeby strażnik jej NIE widział. Przesłanka była fałszywa —
+    // po wydaniu wpisy o bieżących zmianach mieszkają dokładnie tam, bo krok 1
+    // procedury przenosi je pod numer. Na tym poległ push `3c78b73..949947a`.
+    //
+    // Cena jest realna i przyjęta świadomie: literówka poprawiona w wydaniu
+    // sprzed roku również zwolni zakres z wpisu. W historii tego repo taki
+    // kształt nie wystąpił ani razu, a wariant węższy dokładałby pojęcie
+    // „najnowsza sekcja", którego reszta modułu nie zna.
     const przed = CHANGELOG("- **A** — raz.");
-    expect(unreleasedTouched(przed, przed.replace("Instalacja jednym", "Instalacja dwoma"))).toBe(
-      false,
-    );
+    expect(wpisyZmienione(przed, przed.replace("Instalacja jednym", "Instalacja dwoma"))).toBe(true);
+  });
+
+  test("przeniesienie wpisu pod inny nagłówek NIE jest zmianą", () => {
+    // Własność, na której stoi cała naprawa, w izolacji od `ocena`.
+    // Asercja na KOLEJNOŚCI stoi tu celowo i jako pierwsza: bez niej test
+    // przechodziłby także z porównaniem czułym na kolejność, czyli mierzyłby
+    // co innego, niż mówi jego nazwa.
+    expect(wszystkieWpisy(SCALENIE.przed)).not.toEqual(wszystkieWpisy(SCALENIE.po));
+    expect(wszystkieWpisy(SCALENIE.przed).sort()).toEqual(wszystkieWpisy(SCALENIE.po).sort());
+    expect(wpisyZmienione(SCALENIE.przed, SCALENIE.po)).toBe(false);
   });
 });

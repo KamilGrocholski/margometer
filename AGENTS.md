@@ -90,10 +90,13 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
   (`tests/changelog.test.ts`), bo regułę łamie się niechcący, pisząc zaraz po
   wyjściu z kodu. Refaktory, testy i narzędzia tu **nie wchodzą**.
 
-  **Zmiana w `src/` wymaga ruszenia sekcji `[Niewydane]`** — pilnuje tego
-  strażnik w `check.yml` (logika i powody: `tools/wydanie.ts`). Liczy się cały
-  zakres PR-a albo pusha, nie pojedynczy commit, więc wpis wolno dołożyć osobno;
-  poprawienie istniejącego wpisu też wystarcza. Typy, których użytkownik nie
+  **Zmiana w `src/` wymaga ruszenia listy wpisów w `CHANGELOG.md`** — w praktyce
+  sekcji `[Niewydane]`, bo tam trafiają nowe. Pilnuje tego strażnik w `check.yml`
+  (logika i powody: `tools/wydanie.ts`). Liczy się cały zakres PR-a albo pusha,
+  nie pojedynczy commit, więc wpis wolno dołożyć osobno; poprawienie istniejącego
+  wpisu też wystarcza. Porównywana jest CAŁA lista, a nie sama `[Niewydane]`:
+  zakres obejmujący wydanie przenosi wpisy pod numer wersji i przy węższym
+  porównaniu wyglądał jak brak wpisu (fałszywy alarm 2026‑08‑04). Typy, których użytkownik nie
   widzi (`refactor`, `test`, `docs`, `build`, `chore`, `ci`, `style`), zwalniają
   same z siebie. Gdy `feat` albo `fix` naprawdę go nie dotyczy — dopisz
   `[bez-changeloga]` do komunikatu commita. Furtka istnieje po to, żeby reguła

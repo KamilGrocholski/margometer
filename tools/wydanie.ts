@@ -83,16 +83,54 @@ export function unreleasedEntries(changelog: string): string[] {
 }
 
 /**
- * Czy sekcja `[Niewydane]` różni się między dwiema wersjami pliku.
+ * Wpisy z CAŁEGO pliku — ze wszystkich sekcji wersji, nie tylko z `[Niewydane]`.
  *
- * Porównanie CAŁEJ sekcji, a nie „czy przybyła linia zaczynająca się od `-`",
- * i to jest wniosek z pomiaru na własnej historii: commit `91fc412` poprawiał
+ * Liczenie zaczyna się od pierwszego nagłówka `## [`, żeby nie wciągnąć
+ * komentarza z góry pliku: stoi tam lista zasad, której pozycje też są
+ * wypunktowaniem.
+ */
+export function wszystkieWpisy(changelog: string): string[] {
+  const lines = changelog.split("\n");
+  const start = lines.findIndex((line) => line.startsWith("## ["));
+  if (start === -1) return [];
+  return lines.slice(start).filter((line) => line.startsWith("- "));
+}
+
+/**
+ * Czy lista wpisów dla użytkownika różni się między dwiema wersjami pliku.
+ *
+ * CAŁY PLIK, nie sama sekcja `[Niewydane]` — i to jest naprawa fałszywego
+ * alarmu z 2026‑08‑04. Strażnik pytał wyłącznie o `[Niewydane]`, więc zakres
+ * OBEJMUJĄCY WYDANIE wyglądał dla niego identycznie jak „ruszyłeś `src/` i nic
+ * nie napisałeś": wpisy w międzyczasie przeprowadziły się pod numer wersji,
+ * a sekcji, na którą patrzył, nie było ani przed zakresem, ani po nim. Zapaliło
+ * się to na pushu `3c78b73..949947a` — 5 plików w `src/`, dwa `fix`-y, oba ze
+ * swoimi wpisami stojącymi w `## [0.4.0]`.
+ *
+ * Pytanie strażnika brzmi „czy użytkownik się o tym dowie", a dowiaduje się
+ * z LISTY WPISÓW, nie z konkretnego nagłówka.
+ *
+ * PORÓWNANIE NIECZUŁE NA KOLEJNOŚĆ i to jest cały ciężar tej funkcji. Scalenie
+ * przenosi te same linie spod `[Niewydane]` w środek sekcji z numerem, czyli
+ * zmienia ich kolejność, nie treść. Przy porównaniu uporządkowanym samo
+ * przeniesienie wyglądałoby jak nowe wpisy i wydanie zwalniałoby z pisania
+ * czegokolwiek — dokładnie odwrotnie, niż ten strażnik ma robić. Po sortowaniu
+ * zakres, który TYLKO wydaje i nic nie dopisuje, zostaje czerwony.
+ *
+ * Porównujemy treść, a nie „czy przybyła linia": commit `91fc412` poprawiał
  * ISTNIEJĄCY wpis (dopisał zdanie o „Bez sprawcy"), więc żadna nowa pozycja nie
  * powstała. Strażnik szukający nowych wypunktowań ogłosiłby brak wpisu przy
  * commicie, który changelog właśnie poprawiał.
+ *
+ * KOSZT, świadomy: poprawka literówki w sekcji wydanej dawno temu też liczy się
+ * jako zmiana i zwolni zakres z wpisu. Węższy wariant („`[Niewydane]` albo
+ * sekcja najnowszej wersji") to zamyka, ale dokłada pojęcie „najnowsza sekcja",
+ * którego reszta tego modułu nie zna, a łapie przypadek, którego w historii
+ * repo nie było ani razu.
  */
-export function unreleasedTouched(before: string, after: string): boolean {
-  return unreleasedSection(before) !== unreleasedSection(after);
+export function wpisyZmienione(before: string, after: string): boolean {
+  const klucz = (changelog: string) => wszystkieWpisy(changelog).sort().join("\n");
+  return klucz(before) !== klucz(after);
 }
 
 export type Zakres = {
@@ -154,8 +192,8 @@ export function ocena(zakres: Zakres): Ocena {
     };
   }
 
-  if (unreleasedTouched(zakres.przed, zakres.po)) {
-    return { ok: true, powod: "sekcja `[Niewydane]` została zmieniona" };
+  if (wpisyZmienione(zakres.przed, zakres.po)) {
+    return { ok: true, powod: "lista wpisów w `CHANGELOG.md` została zmieniona" };
   }
 
   const glosne = zakres.komunikaty.filter(
@@ -169,14 +207,15 @@ export function ocena(zakres: Zakres): Ocena {
   return {
     ok: false,
     powod: [
-      `Zmiana w \`src/\` (${src.length} plik(ów)) bez ani jednej zmiany w sekcji ${UNRELEASED_HEADING}.`,
+      `Zmiana w \`src/\` (${src.length} plik(ów)), a lista wpisów w \`CHANGELOG.md\``,
+      "nie zmieniła się ani o jedną pozycję.",
       "",
       "Commity, które tego wymagają:",
       lista,
       "",
-      "Dopisz wpis dla użytkownika (bez pojęć programistycznych — zasady w nagłówku",
-      `CHANGELOG.md), albo — jeśli zmiana naprawdę go nie dotyczy — dopisz ${SKIP_MARK}`,
-      "do komunikatu commita.",
+      `Dopisz wpis dla użytkownika w sekcji ${UNRELEASED_HEADING} (bez pojęć`,
+      "programistycznych — zasady w nagłówku CHANGELOG.md), albo — jeśli zmiana",
+      `naprawdę go nie dotyczy — dopisz ${SKIP_MARK} do komunikatu commita.`,
     ].join("\n"),
   };
 }
