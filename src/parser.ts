@@ -1,58 +1,11 @@
 import {
   ELEMENT_MARKER,
   FIGHT_START_TEXT,
+  nazwaZywiolu,
   type BattleEvent,
   type Hit,
   type Participant,
 } from "./types.ts";
-
-/**
- * Litera z klasy `dmgX` w DOM gry. Fizycznych obrażeń gra tak nie znakuje.
- *
- * UWAGA: to NIE jest taksonomia żywiołów, choć nazwa na to wskazuje. Gra wrzuca
- * w tę jedną klasę odpowiedzi na trzy różne pytania i wybiera JEDNĄ z nich na
- * liczbę — czym oberwałeś, czym uderzono i w ilu naraz:
- *
- * - **żywioł**: `f`, `l`, `c`
- * - **broń/slot**: brak litery (zwarcie), `d` (dystans), `o` (broń pomocnicza)
- * - **zasięg**: `g` (globalne, czyli we WSZYSTKICH)
- * - **osobne**: `a` (nieuchronne)
- *
- * Skutek praktyczny: przy `dmgg` i `dmgo` gra podaje zasięg albo slot ZAMIAST
- * żywiołu, więc żywiołu tych liczb po prostu nie znamy. Etykieta mówi wtedy to,
- * co log naprawdę powiedział, a nie to, o co pytaliśmy.
- */
-const ELEMENTS: Record<string, string> = {
-  f: "ogień",
-  l: "błyskawica",
-  c: "zimno",
-  // Klasa `dmg` bez litery — obrażenia broni bez żywiołu. W korpusie wyłącznie
-  // od profesji walczących w zwarciu (wojownik, paladyn, tancerz ostrzy).
-  p: "fizyczne",
-  // `dmga` niosą linie własnych obrażeń umiejętności (Fuzja żywiołów,
-  // Wycieńczająca strzała). Opisy obu mówią "obrażenia nieuchronne", stąd
-  // nazwa — to wniosek z opisów, nie dosłowny zapis z logu.
-  a: "nieuchronne",
-  // `dmgd` wyłącznie od łowcy i tropiciela, `dmg` wyłącznie od trzech profesji
-  // zwarcia — 686 liczb w korpusie, zero przecięć. To oś BRONI, nie żywiołu.
-  d: "dystansowe",
-  // `dmgo` stoi zawsze jako druga liczba u tancerza ostrzy, a proc
-  // "+Cios krytyczny broni pomocniczej" podbija wyłącznie ją (z procem 886-1007,
-  // bez proca 611-699, zero zachodzenia). Jedyna nazwa w tej mapie zapisana
-  // w logu DOSŁOWNIE, a nie wywnioskowana.
-  o: "broń pomocnicza",
-  // `dmgg` pada, gdy umiejętność bije we WSZYSTKICH naraz — samo "w kilku" nie
-  // wystarcza: `Szarża zastępcy` (5 celów z 10), `Bicie rogu` (3) i `Osobisty
-  // rozrachunek` (2) niosą zwykłe `dmg`, a `Śpiew zagłady` (10 z 10) `dmgg`.
-  // Nazwa z terminologii gry; w dokumentacji mechaniki walk jej NIE MA, więc
-  // opiera się na tym zestawieniu i na wiedzy o grze, nie na cytacie.
-  g: "globalne",
-  // Nie litera z klasy `dmgX`, tylko kod klasy `third` nadany w `source.ts`
-  // (patrz `THIRD_STRIKE_CODE`). Nazwa stoi w logu DOSŁOWNIE — modyfikator
-  // "+Trzeci cios" towarzyszy każdemu takiemu trafieniu — więc jest cytatem,
-  // a nie wnioskiem; drugi taki przypadek w tej mapie po `broń pomocnicza`.
-  "3": "trzeci cios",
-};
 
 /**
  * Znacznik żywiołu niesie DOKŁADNIE jedną literę (patrz `extractText`), więc
@@ -432,7 +385,7 @@ function toDamages(segment: string): DamageValue[] {
     // Nieznana litera NIE wpada do tego samego worka co "brak DOM": zostaje
     // surowa nazwa klasy (`dmgo`), żeby zmiana formatu była widoczna zamiast
     // wsiąkać w "bez żywiołu". Liczy ją `aggregate` — patrz `unknownElements`.
-    element: m[2] ? (ELEMENTS[m[2]] ?? `dmg${m[2]}`) : null,
+    element: m[2] ? nazwaZywiolu(m[2]) : null,
   }));
 }
 
