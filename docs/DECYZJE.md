@@ -194,6 +194,19 @@ leczył" **nadal nie budujemy**, i nie jest to zaniechanie:
   szyków** kłamałby bardziej niż jego brak: „Przywrócono" i tak zostaje bez
   nikogo, a w panelu wyglądałoby to jak healer, który raz leczy, a raz nie.
 
+**Sprawdzone drugą drogą 2026‑08‑04 — reguła obowiązuje TAKŻE dla protokołu.**
+Kusiło założyć, że protokół silnika to rozstrzyga, bo komunikat ma dwie strony.
+Ma, ale nie zawsze: `heal` przychodzi jako `482845=100.00;0;heal=99`, czyli
+z drugą stroną PUSTĄ. Dekoder protokołu założył inaczej i zaczął kredytować
+leczenie postaci, o której log milczy — pierwsza para tekst↔protokół pokazała
+to jako jedyną rozbieżność w całej walce (`fix` w `d4be27e`).
+
+Protokół rozstrzyga sprawcę **wyłącznie przy `heal_target`/`npc_heal`**, gdzie
+pierwszą stroną jest leczący, a drugą leczony. Nawet tam nie da się tego dziś
+zapisać: `BattleEvent.heal` nie ma pola na leczącego, bo powstało pod log
+tekstowy, który go nie zna. To jest realny kandydat na rozszerzenie — ale
+dopiero wtedy, gdy panel będzie liczył z protokołu, a nie z tekstu.
+
 Zdarzenie `heal` niesie za to pole `self` — „czy leczony i leczący to ta sama
 postać". Tyle i tylko tyle da się z logu wyczytać, a wystarcza, żeby `healingDone`
 nie dostawał cudzej roboty. Wcześniej rolę tę pełniło `ability !== null`, co

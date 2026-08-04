@@ -1,6 +1,6 @@
 # Drugie źródło `BattleEvent` — dekoder protokołu i czujka rozjazdu
 
-Status: wdrożone (3a) · 2026-08-04 · 9a39bb8 — **3b nadal za bramą**
+Status: wdrożone (3a + etap 2) · 2026-08-04 · 4f51db5 — **3b nadal za bramą**
 
 Trzeci z trójki. Sąsiedzi:
 [`2026-08-04-protokol-silnika-jako-zrodlo-parsera.md`](2026-08-04-protokol-silnika-jako-zrodlo-parsera.md)
@@ -619,3 +619,32 @@ Każdy commit przechodzi `bun run check` osobno.
   zapala niczego** — obie formy kończą na `NaN`, więc są nierozróżnialne
   wynikiem. Zapis gry został dla czytelności, ale komentarz i test mówią teraz
   wprost, że nic go nie pilnuje.
+- **2026-08-04** — **para przyszła, brama etapu 2 otwarta** (`b04af97`…`4f51db5`).
+  Ten spec zakładał, że orakulum „ma prawo zapalić się na czerwono przy pierwszym
+  fixturze i to jest jego zadanie". Zapaliło się — **dokładnie raz i dokładnie
+  jedną pozycją**, a reszta walki zgodziła się co do jednostki.
+
+  1. **Usterka, którą złapało:** `heal` z pustą drugą stroną komunikatu.
+     Dekoder wyprowadzał `self` ze strony i kredytował leczenie postaci,
+     o której log milczy. To unieważnia zdanie z commita `75b62e0`
+     („protokół podaje OBIE strony, więc to fakt, a nie wniosek") — prawdziwe
+     tylko dla `heal_target`/`npc_heal`.
+  2. **Usterka, której NIE mogło złapać:** gubione `weakenedPct` przy
+     `poison=140,14`. `damageWeakened` nie wchodzi do czterech porównywanych
+     skalarów. Znalazł ją odczyt słownika gry. **Czujka i czytanie źródeł łapią
+     co innego** i żadne z dwojga nie zastępuje drugiego.
+  3. **Najmocniejszy pojedynczy dowód nie był liczbą, tylko zgodnością dwóch
+     heurystyk.** Dwa NPC o nazwie `Odyniec` rozdzieliły się na `#1` i `#2`
+     identycznie, mimo że tekst liczy instancje po spadku życia, a protokół
+     po `id`. Pozycja „największa nagroda — `id` zamiast heurystyki
+     ze `stats.ts`" z sekcji „Co zostaje otwarte" właśnie dostała pomiar:
+     heurystyka miała rację na tym materiale.
+  4. **Test NAPISANY POD BŁĄD.** Istniejący test twierdził `self: true` dla
+     `heal` i przechodził — powstał razem z dekoderem, z tego samego założenia.
+     Wniosek szerszy niż runda: **zielony test nie jest dowodem, gdy autor testu
+     i autor kodu wierzą w to samo.**
+  5. Dwie rzeczy o sondzie, których spec nie przewidywał: render zbierany po
+     długości listy **dubluje węzły** (38 na 18 komunikatów; rekonstrukcja dała
+     5345 obrażeń zamiast 2784), a zrzut niesie **569 wywołań, z czego 567
+     identycznych** (1,8 MB przy 28 kB treści). Oba załatane po stronie
+     narzędzia (`b04af97`, `b18ae10`); przyczyna w sondzie zostaje otwarta.

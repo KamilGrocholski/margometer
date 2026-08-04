@@ -131,9 +131,31 @@ Patrz też znane ograniczenie „Leczenie bez leczącego” w `DECYZJE.md`.
 ## Czego brakuje w korpusie fixture'ów
 Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`
 w `meta.json`, zweryfikowany po `covers`:
-- **Para: ta sama walka jako tekst i jako protokół.** Największa dziś dziura
-  i jedyna pozycja tutaj, której **nie da się załatać bez gracza** — ale od
-  2026‑08‑04 przeszkoda jest już tylko taka, a nie narzędziowa. Protokół
+- ~~**Para: ta sama walka jako tekst i jako protokół.**~~ **ZAŁATANA 2026‑08‑04**
+  — `tests/fixtures/new-engine/2026-08-04_tempest_lowca-vs-odyncze/`. Zdanie
+  „nie da się bez gracza" było prawdziwe do końca: parę zebrał gracz, sondą
+  w konsoli i przyciskiem „Kopiuj logi".
+
+  **Co dała, w liczbach.** Obie drogi zgodziły się co do jednostki na wszystkim
+  poza jedną pozycją: obrażenia zadane 2784, przyjęte 99/831/834/1119, zero
+  zdarzeń `unknown`, zero kluczy protokołu spoza tabeli ról. **Numeracja
+  instancji też wypadła identycznie**, mimo że każda droga liczy ją inaczej
+  (tekst po spadku życia, protokół po `id`) — dwa NPC o nazwie `Odyniec`
+  rozdzieliły się na `#1` i `#2` tak samo.
+
+  **Co złapała.** Jedną usterkę dekodera przy pierwszym uruchomieniu: leczenie
+  z pustą drugą stroną komunikatu było kredytowane postaci, o której log milczy
+  (`d4be27e`). Drugą usterkę — gubione osłabienie DoT‑a — złapał odczyt
+  słownika, a nie orakulum, bo `damageWeakened` nie wchodzi do porównywanych
+  skalarów (`a5e9150`). Wniosek: **czujka i czytanie źródeł łapią co innego.**
+
+  **Czego ta para nie ma:** bloku, uniku, absorpcji, zapowiedzi umiejętności
+  ani `log.html` (sonda zebrała render zdublowany — patrz `meta.json`). To jest
+  lista zakupowa na następny zrzut.
+
+  Poniższy akapit opisuje stan sprzed tej pary i zostaje jako zapis drogi:
+
+  Protokół
   z grooove.pl jest wewnętrznie spójny co do promila: z par (spadek życia
   w procentach, suma kluczy `-D*`) wychodzi to samo maksymalne HP z pięciu
   i sześciu niezależnych obserwacji, rozrzut 0,0–0,1 % (zmierzone 2026‑08‑04 na
