@@ -7,7 +7,9 @@
  *   log.html      — węzły renderu w kontenerze `.scroll-pane`, czyli DOKŁADNIE
  *                   ten kształt, który mają dzisiejsze fixture'y HTML i który
  *                   czyta `src/source.ts`. Wchodzi do globu `*&#47;*&#47;log.html`,
- *                   więc od razu przechodzi niezmienniki parsera.
+ *                   więc od razu przechodzi niezmienniki parsera. **Powstaje
+ *                   TYLKO wtedy, gdy węzły parują się z komunikatami** — patrz
+ *                   `rozjazdyParowania` i komentarz przy zapisie.
  *   protokol.json — surowe ładunki `Engine.battle.update`, migawki wojowników
  *                   i indeksowanie węzłów renderu równolegle do komunikatów.
  *   meta.json     — szkielet opisu, z `covers`/`missing`/`notes` do wypełnienia.
@@ -248,21 +250,39 @@ export function rozjazdyParowania(wpisy: Wywolanie[]): { nr: number; komunikatow
 }
 
 /** Szkielet `meta.json` w schemacie korpusu `new-engine`. */
-export function meta(zrzut: Zrzut, dzis: string): string {
+/**
+ * Czy render z tego zrzutu wolno zapisać jako materiał dowodowy.
+ *
+ * Osobna funkcja, a nie warunek w CLI, z jednego powodu: CLI nie ma testów
+ * (siedzi za `import.meta.main`), więc decyzja schowana tam nie daje się
+ * zmutować. Sprawdzone — mutant `zRenderem = true` w CLI nie zapalał niczego.
+ */
+export function renderParujeSie(wpisy: Wywolanie[]): boolean {
+  return rozjazdyParowania(wpisy).length === 0;
+}
+
+export function meta(zrzut: Zrzut, dzis: string, zRenderem: boolean): string {
   return `${JSON.stringify(
     {
       client: "new-engine",
       capturedAt: dzis,
       clientBuild: zrzut.build,
       world: zrzut.swiat,
-      source:
-        "tools/walka-probe.js — ładunki Engine.battle.update (protokol.json) " +
-        "i węzły renderu z tej samej walki (log.html)",
-      format: "protokol+html",
+      source: zRenderem
+        ? "tools/walka-probe.js — ładunki Engine.battle.update (protokol.json) " +
+          "i węzły renderu z tej samej walki (log.html)"
+        : "tools/walka-probe.js — ładunki Engine.battle.update (protokol.json)",
+      format: zRenderem ? "protokol+html" : "protokol",
       opening: zrzut.otwarcie,
       participants: [],
       covers: ["DO UZUPEŁNIENIA — co siedzi w tej walce, po przejrzeniu"],
-      missing: ["DO UZUPEŁNIENIA"],
+      missing: zRenderem
+        ? ["DO UZUPEŁNIENIA"]
+        : [
+            "log.html — sonda zebrała inną liczbę węzłów renderu niż komunikatów, " +
+              "więc rekonstrukcja zdublowałaby albo zgubiła linie; render z tej " +
+              "walki NIE jest materiałem dowodowym i dlatego go tu nie ma",
+          ],
       notes: "DO UZUPEŁNIENIA",
     },
     null,
@@ -305,12 +325,25 @@ if (import.meta.main) {
       throw new Error(`${katalog} już istnieje — fixture'a się nie nadpisuje`);
     }
 
-    await Bun.write(`${katalog}log.html`, sklejRender(zrzut.wpisy));
+    const rozjazdy = rozjazdyParowania(zrzut.wpisy);
+    // RENDER WCHODZI TYLKO WTEDY, GDY PARUJE SIĘ Z KOMUNIKATAMI.
+    //
+    // Do 2026‑08‑04 narzędzie ostrzegało o rozjeździe i zapisywało `log.html`
+    // mimo to — czyli produkowało fixture, o którym samo mówiło, że kłamie.
+    // Na pierwszym prawdziwym zrzucie kosztowało to konkretną liczbę: sonda
+    // zebrała 38 węzłów przy 18 komunikatach (gra przerysowuje węzły, więc
+    // przyrost liczony po długości listy łapie je po kilka razy), a `parse`
+    // na tak sklejonym HTML‑u dał 5345 obrażeń zamiast 2784.
+    //
+    // Fixture bez `log.html` jest niepełny, ale PRAWDZIWY. Fixture z takim
+    // `log.html` wchodzi do globu `*&#47;*&#47;log.html` i zawyża liczby w testach,
+    // o których nikt już nie pamięta, że pochodzą z rekonstrukcji.
+    const zRenderem = renderParujeSie(zrzut.wpisy);
+    if (zRenderem) await Bun.write(`${katalog}log.html`, sklejRender(zrzut.wpisy));
     await Bun.write(`${katalog}protokol.json`, `${JSON.stringify(zrzut, null, 2)}\n`);
-    await Bun.write(`${katalog}meta.json`, meta(zrzut, dzis));
+    await Bun.write(`${katalog}meta.json`, meta(zrzut, dzis, zRenderem));
 
     const wiadomosci = komunikaty(zrzut.wpisy);
-    const rozjazdy = rozjazdyParowania(zrzut.wpisy);
     console.log(`zapisane: ${katalog}`);
     console.log(
       `  wywołań: ${zrzut.wpisy.length}, komunikatów: ${wiadomosci.length}, ` +
@@ -325,7 +358,8 @@ if (import.meta.main) {
     if (rozjazdy.length > 0) {
       console.warn(
         `  ⚠ ${rozjazdy.length} wywołań ma inną liczbę komunikatów niż węzłów renderu — ` +
-          "para dla nich jest niepewna, sprawdź przed użyciem jako orakulum.",
+          "log.html NIE został zapisany, bo rekonstrukcja zdublowałaby albo zgubiła linie.\n" +
+          "    Para tekst↔protokół stoi na raw.txt + protokol.json i jest nietknięta.",
       );
     }
     console.log("  raw.txt dołóż ręcznie z przycisku „Kopiuj logi” — narzędzie go nie składa");

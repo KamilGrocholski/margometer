@@ -5,6 +5,7 @@ import {
   kluczeKomunikatu,
   komunikaty,
   meta,
+  renderParujeSie,
   rozjazdyParowania,
   skladZeZrzutu,
   sklejRender,
@@ -153,12 +154,28 @@ describe("rozjazdyParowania", () => {
 });
 
 describe("meta", () => {
-  const opis = JSON.parse(meta(czytajZrzut(JSON.stringify(ZRZUT)), "2026-08-04"));
+  const opis = JSON.parse(meta(czytajZrzut(JSON.stringify(ZRZUT)), "2026-08-04", true));
+  const bezRenderu = JSON.parse(meta(czytajZrzut(JSON.stringify(ZRZUT)), "2026-08-04", false));
 
   test("trzyma się schematu korpusu new-engine", () => {
     expect(opis.client).toBe("new-engine");
     expect(opis.format).toBe("protokol+html");
     expect(opis.clientBuild).toBe("1785244275300");
+  });
+
+  test("bez renderu `format` NIE kłamie, że render tam jest", () => {
+    // Fixture bez `log.html` opisany jako `protokol+html` kazałby następnemu
+    // czytelnikowi szukać pliku, którego nie ma — albo, gorzej, uznać, że
+    // zniknął przez pomyłkę.
+    expect(bezRenderu.format).toBe("protokol");
+    expect(bezRenderu.source).not.toContain("log.html");
+  });
+
+  test("bez renderu POWÓD stoi w `missing`, a nie tylko w konsoli", () => {
+    // Ostrzeżenie z `--rozbij` widzi wyłącznie ten, kto rozbijał zrzut.
+    // Powód ma przeżyć w pliku, bo to on trafia do repo.
+    expect(bezRenderu.missing[0]).toContain("log.html");
+    expect(bezRenderu.missing[0]).toContain("węzłów renderu");
   });
 
   test("covers/missing/notes czekają na człowieka", () => {
@@ -290,5 +307,24 @@ describe("skladZeZrzutu", () => {
       zrzut([wpis({ myteam: 1 }, [{ id: 1, name: "Kamil", team: 1, prof: null, lvl: null }])]),
     );
     expect(sklad[0]).toEqual({ id: 1, name: "Kamil", side: 0 });
+  });
+});
+
+describe("renderParujeSie — czy render wolno zapisać jako dowód", () => {
+  test("tyle samo węzłów co komunikatów — render wchodzi", () => {
+    expect(renderParujeSie(WPISY)).toBe(true);
+  });
+
+  test("nadmiarowy węzeł blokuje zapis renderu", () => {
+    // Kształt z pierwszego prawdziwego zrzutu: gra przerysowuje węzły, więc
+    // przyrost liczony po długości listy łapie te same linie po kilka razy.
+    // Rekonstrukcja z takiego materiału zawyżyła obrażenia (5345 zamiast 2784).
+    const zdublowane = [{ ...WPISY[1]!, render: [...WPISY[1]!.render, "<div>ten sam</div>"] }];
+    expect(renderParujeSie(zdublowane)).toBe(false);
+  });
+
+  test("brakujący węzeł też blokuje — rozjazd w drugą stronę liczy się tak samo", () => {
+    const bezWezla = [{ ...WPISY[1]!, render: [] }];
+    expect(renderParujeSie(bezWezla)).toBe(false);
   });
 });
