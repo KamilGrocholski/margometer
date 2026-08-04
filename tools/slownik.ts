@@ -8,7 +8,7 @@
  * „efekt zachodzi, ale nie wiemy, jak brzmi jego linia w oknie walki i nie
  * wolno tego zgadnąć". Teraz wolno: brzmienie idzie z assetu gry.
  *
- * SKĄD SIĘ BIERZE. Okno walki nie dostaje zdań — dostaje protokół. Renderer
+ * SKĄD SIĘ BIERZE. Gra nie dostaje z serwera zdań — dostaje protokół. Renderer
  * klienta (`BattleMessage.js`, wkompilowany w `main.min.js`) ma na każdy klucz
  * etykietę `case`, a w niej wywołanie `_t(<identyfikator>, …)`. Identyfikatory
  * rozwiązuje osobny plik ze słownikiem. Złączenie tych dwóch daje tabelę
@@ -25,15 +25,14 @@
  * CZEGO TO NIE MÓWI. Że gra tę linię wypisze W TEJ WALCE — słownik zna
  * brzmienie, nie warunek. I nie mówi, jak linia wygląda po złożeniu: `battleMsg`
  * skleja w jedno zdanie kilka kluczy, podstawia odmianę pod `#`/`$` i dokłada
- * `<br>`. To jest szablon, nie zrzut z okna. Wzorzec parsera stawia się na
- * zrzucie z gry; ten plik mówi, CZEGO w zrzucie szukać.
+ * `<br>`. To jest szablon, nie zrzut z gry.
  *
  * Użycie:
  *   bun tools/slownik.ts                     # cała tabela
  *   bun tools/slownik.ts rage krwawieni      # filtr po kluczu i po zdaniu
  *   bun tools/slownik.ts --klucz "+wound"    # dokładnie ten klucz
  *   bun tools/slownik.ts --braki             # etykiety bez zdania
- *   bun tools/slownik.ts --zamroz            # lista etykiet → fixture
+ *   bun tools/slownik.ts --zamroz            # tabela → tests/klucze-protokolu.ts
  *   bun tools/slownik.ts --odswiez           # pobierz assety na nowo
  */
 
@@ -309,16 +308,16 @@ export function buildKlienta(html: string): string {
  *
  * PO CO. Dekoder protokołu (`src/protokol.ts`) musi wiedzieć o KAŻDYM kluczu,
  * który gra umie wysłać, bo nierozpoznany klucz to cicho niepoliczone obrażenia.
- * Korpus tekstowy na to pytanie nie odpowiada: ma zero linii `unknown`, co —
- * jak mówi `docs/ROADMAP.md` — „samo z siebie nie mówi nic o tym, czego parser
- * NIE rozpoznaje". Zbiór kluczy gry jest za to skończony i policzalny, więc
- * pokrycie da się DOMKNĄĆ, a nie tylko oszacować.
+ * Materiał z gry na to pytanie nie odpowiada: brak linii `unknown` w jednej
+ * walce nie mówi nic o tym, czego dekoder NIE rozpoznaje. Zbiór kluczy gry jest
+ * za to skończony i policzalny, więc pokrycie da się DOMKNĄĆ, a nie tylko
+ * oszacować — i to jest jedyny dziś sposób, żeby je domknąć.
  *
  * DLACZEGO SAMA LISTA, A NIE ŹRÓDŁO. Wcommitowanie renderera odrzucone
  * w `docs/specy/2026-08-04-zrodla-klienta-z-buildu-deweloperskiego.md`: to cudzy,
  * zastrzeżony kod, na zawsze w historii gita. Lista nazw jest inną kategorią —
- * **naszym pomiarem gry, z datą i numerem builda**, dokładnie jak `clientBuild`
- * w `meta.json` przy fixture'ach.
+ * **naszym pomiarem gry, z datą i numerem builda**; dlatego jedno i drugie
+ * jedzie w zamrożeniu obok kluczy, a nie w komunikacie commita.
  *
  * `milczy` oznacza etykiety z werdyktem `"nic"` — gra ma dla nich puste ciało
  * i świadomie nie wypisuje niczego. Dla dekodera to NIE jest luka, tylko
@@ -333,14 +332,16 @@ export function buildKlienta(html: string): string {
  * i weryfikacja.
  */
 /**
- * Gdzie `--zamroz` odkłada tabelę.
+ * Gdzie `--zamroz` odkłada tabelę: **moduł TS, nie plik danych.**
  *
- * ⚠️ Plik **nie istnieje od 2026‑08‑04** — `tests/fixtures/` zeszło z drzewa,
- * a razem z nim dwa testy pilnujące, że zaszyte u nas identyfikatory zgadzają
- * się z grą. Ścieżka zostaje, bo to jedyna droga powrotna: `--zamroz` odtworzy
- * plik, a testy trzeba będzie napisać od nowa (`AGENTS.md`).
+ * Wybór wymuszony regułą z `AGENTS.md` („materiał testowy powstaje W KODZIE").
+ * Zamrożenie nie jest zresztą materiałem testowym w tamtym sensie — nie jest
+ * wyjściem naszego kodu, tylko odczytem cudzego assetu — ale plik danych obok
+ * testów wyglądałby dokładnie tak, jak wyglądał usunięty korpus, i za rok nikt
+ * by tych dwóch rzeczy od siebie nie odróżnił. Moduł niesie przy okazji typ,
+ * więc rozjazd kształtu zapala się w `tsc`, a nie dopiero w asercji.
  */
-const ZAMROZENIE = new URL("../tests/fixtures/klucze-protokolu.json", import.meta.url).pathname;
+const ZAMROZENIE = new URL("../tests/klucze-protokolu.ts", import.meta.url).pathname;
 
 export type WpisZamrozony = {
   klucz: string;
@@ -365,11 +366,12 @@ export type WpisZamrozony = {
  * z renderera, tylko te miejsca, w których czytaliśmy jego kod i widzieliśmy
  * wywołanie `_t`.
  *
- * ⚠️ **Brakujący identyfikator nie ma już kto zgłosić.** Do 2026‑08‑04 objawiał
- * się jako nieodtworzony komunikat w `tools/odtworz.ts` — narzędziu składającym
- * z tych ram zdania gry na potrzeby orakulum. Orakulum i `odtworz.ts` zeszły
- * z drzewa razem z parserem tekstu, więc luka w tej liście jest dziś cicha.
- * To jest koszt tamtej decyzji, nie przeoczenie.
+ * ⚠️ **Brakujący identyfikator nie ma już kto zgłosić.** Do 2026‑08‑04 zgłaszało
+ * go narzędzie składające z tych ram całe zdania gry — brak ramy wychodził jako
+ * komunikat, którego nie dało się złożyć. Tamta droga zniknęła razem z drugim
+ * odczytem walki (`docs/specy/2026-08-04-parser-tekstu-i-korpus-schodza-z-drzewa.md`),
+ * więc luka w tej liście jest dziś cicha. To jest koszt tamtej decyzji, nie
+ * przeoczenie.
  */
 const RAMY = [
   "msg_dmgdone %name1% %hpp% %val%",
@@ -449,6 +451,42 @@ export function zamrozenie(
   };
 }
 
+/**
+ * Zamrożenie jako tekst modułu TS.
+ *
+ * `JSON.stringify` daje literał obiektu, który jest poprawnym TypeScriptem —
+ * nie ma tu więc własnego serializatora i nie ma jak zgubić cudzysłowu
+ * w zdaniu z apostrofem (a takie w słowniku gry są).
+ *
+ * Nagłówek mówi WPROST, że pliku się nie edytuje, i podaje komendę odtwarzającą.
+ * To nie jest grzeczność: plik wygląda jak zwykły moduł z tablicą, więc jedyne,
+ * co powstrzyma kogoś przed „poprawieniem" zdania, żeby test przeszedł, to
+ * zdanie w pierwszej linii.
+ */
+export function modulZamrozenia(z: Zamrozenie): string {
+  return [
+    "// WYGENEROWANE — nie edytuj ręcznie. Odtwarza: `bun tools/slownik.ts --zamroz`.",
+    "/**",
+    ` * Etykiety renderera walki z assetu gry — build \`${z.build}\`, świat`,
+    ` * \`${z.swiat}\`, pomiar ${z.zmierzone}.`,
+    " *",
+    " * PO CO TU LEŻY. Dodatek rozwiązuje brzmienia w locie przez `window._t`,",
+    " * ale identyfikatory, o które pyta, są ZASZYTE w `src/protokol.ts` — listy",
+    " * kluczy z gry wyliczyć się nie da, bo słownik jest w produkcji domknięty",
+    " * w module. Zaszyta kopia, która rozjedzie się z grą, daje w panelu klucz",
+    " * zamiast zdania i robi to PO CICHU. Ten plik jest jedyną stroną, po której",
+    " * da się ten rozjazd złapać w teście.",
+    " *",
+    " * `milczy` znaczy „gra ma dla tej etykiety puste ciało i świadomie nic nie",
+    ' * wypisuje" — dla dekodera to odpowiedź, nie luka.',
+    " */",
+    'import type { Zamrozenie } from "../tools/slownik.ts";',
+    "",
+    `export const ZAMROZENIE: Zamrozenie = ${JSON.stringify(z, null, 2)};`,
+    "",
+  ].join("\n");
+}
+
 /** CLI za bramką, żeby dało się ten plik zaimportować — jak w `tools/pomoc.ts`. */
 if (import.meta.main) {
   const argumenty = process.argv.slice(2);
@@ -488,7 +526,7 @@ if (import.meta.main) {
   if (zamroz) {
     const dzis = new Date().toISOString().slice(0, 10);
     const zapis = zamrozenie(build, dzis, wszystkie, etykiety, indeksTlumaczen(slownik));
-    await Bun.write(ZAMROZENIE, `${JSON.stringify(zapis, null, 2)}\n`);
+    await Bun.write(ZAMROZENIE, modulZamrozenia(zapis));
     console.log(
       `zamrożono ${zapis.klucze.length} etykiet (${zapis.klucze.filter((w) => w.milczy).length} milczących, ${zapis.klucze.filter((w) => w.zdanie !== null).length} ze zdaniem) → ${ZAMROZENIE}`,
     );

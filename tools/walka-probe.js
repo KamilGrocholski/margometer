@@ -1,20 +1,18 @@
 /**
  * Sonda protokołu walki — zbiera surowy materiał dowodowy z gry.
  *
- * PO CO. `protokol.json` jest jedynym korpusem, który da się sprawdzić przeciw
- * grze, i jedynym, z którego rosną nowe fixture'y. Wszystko inne w repo jest
- * albo odczytem (zamrożonym), albo protokołem przekodowanym przez cudzy serwis
- * (`tests/fixtures/grooove/`).
+ * PO CO. Ten zrzut jest **jedynym materiałem, który da się sprawdzić przeciw
+ * grze** — wszystko inne w testach repo produkuje samo. Rozbija go na moduł
+ * `bun tools/walka.ts --rozbij`.
  *
  * ⚠️ **ZBIERAŁA TU JESZCZE WĘZŁY RENDERU — do 2026‑08‑04.** Dokładała do
  * każdego wywołania linie `.battle-msg` doklejone przez klienta, indeksowane
  * równolegle do `t.m`, żeby dało się wyprowadzić odpowiedniość
- * komunikat ↔ zdanie JEDEN DO JEDNEGO. Z tego powstawał `log.html` i na nim
- * stało porównanie protokołu z parserem tekstu. Parsera nie ma, `log.html` nie
- * ma czytelnika — więc zbieranie węzłów było kosztem bez odbiorcy i zeszło
- * razem z nimi.
+ * komunikat ↔ zdanie JEDEN DO JEDNEGO. Na tym stało porównanie protokołu
+ * z drugim, niezależnym odczytem walki. Drugiego odczytu nie ma, więc zbieranie
+ * węzłów było kosztem bez odbiorcy i zeszło razem z nim.
  *
- * SKĄD BIERZE PROTOKÓŁ. Okno walki nie dostaje zdań — dostaje protokół, i cały
+ * SKĄD BIERZE PROTOKÓŁ. Gra nie dostaje z serwera zdań — dostaje protokół, i cały
  * przechodzi przez jedno wywołanie `Engine.battle.update(t)`. `t.m` to tablica
  * surowych komunikatów serwera (`id=hpp;id=hpp;klucz=wartość;…`), z których
  * renderer klienta dopiero składa polskie zdania. Sonda owija to wywołanie,
@@ -26,10 +24,12 @@
  * przebiegu walki: woła oryginał, zwraca jego wynik, a zapis trzyma w pamięci
  * karty do czasu `pobierz()`.
  *
- * CO ZBIERA, poza samym protokołem — bo protokół sam w sobie mamy już
- * z grooove.pl, a tego nie mamy: MIGAWKI WOJOWNIKÓW przed i po każdym wywołaniu
- * (`hp.cur`, `hp.max`). To jest krzywa życia z `docs/DECYZJE.md:277` — „osobna,
- * znacznie głębsza integracja, i nie jest zrobiona".
+ * CO ZBIERA POZA SAMYM PROTOKOŁEM, i to jest cały powód, dla którego zrzut
+ * z gry bije publiczne zapisy walk: MIGAWKI WOJOWNIKÓW przed i po każdym
+ * wywołaniu (`hp.cur`, `hp.max`) oraz `myteam` z ładunku. Bez migawek nie ma
+ * krzywej życia (`docs/DECYZJE.md` — „osobna, znacznie głębsza integracja,
+ * i nie jest zrobiona"), a bez `myteam` nie da się odróżnić drużyny gracza od
+ * przeciwnej — `tools/walka.ts` woli wtedy paść niż zgadnąć.
  *
  * UŻYCIE
  *   1. Otwórz walkę w grze i wklej ten plik do konsoli (sonda potrzebuje
@@ -156,10 +156,9 @@
       wersja: WERSJA,
       przy: new Date().toISOString(),
       swiat: location.hostname.split(".")[0],
-      // Numer builda klienta z nazwy bundla. `meta.json` w korpusie ma pole
-      // `clientBuild` i we WSZYSTKICH dzisiejszych fixture'ach stoi w nim
-      // `null` — bo dotąd nie było skąd go wziąć. Stąd, kiedy gra zmieni
-      // format, da się powiedzieć KTÓRY zrzut jest sprzed zmiany.
+      // Numer builda klienta z nazwy bundla. Bez niego, gdy gra zmieni format,
+      // nie da się powiedzieć KTÓRY zrzut jest sprzed zmiany — a materiał
+      // z gry bez wersji klienta nie jest danymi porównywalnymi.
       build: [...document.querySelectorAll("script[src]")]
         .map((s) => s.src.match(/main\.min(\d+)\.js/)?.[1])
         .find((b) => b !== undefined) ?? null,
@@ -207,6 +206,6 @@
 
   console.log(
     `[walka v${WERSJA}] czekam na walkę. Po walce: margometerWalka.pobierz()\n` +
-      `Potem osobno przycisk „Kopiuj logi" w oknie walki — to jest drugi dowód.`,
+      `Potem: bun tools/walka.ts --rozbij <pobrany plik> --nazwa <slug>`,
   );
 })();

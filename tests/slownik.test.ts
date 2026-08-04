@@ -5,8 +5,11 @@ import {
   etykietyRenderera,
   identyfikatoryKandydujace,
   indeksTlumaczen,
+  modulZamrozenia,
+  slownikZeZamrozenia,
   tabela,
   werdykt,
+  type Zamrozenie,
   zdanieDlaIdentyfikatora,
 } from "../tools/slownik.ts";
 
@@ -214,5 +217,53 @@ describe("buildKlienta", () => {
 
   test("brak numeru to błąd — inaczej adres bundla powstałby z pustego builda", () => {
     expect(() => buildKlienta("<html></html>")).toThrow(/builda/);
+  });
+});
+
+describe("modulZamrozenia", () => {
+  const ZRODLO: Zamrozenie = {
+    build: "1785244275300",
+    swiat: "tempest",
+    zmierzone: "2026-08-04",
+    metoda: "bun tools/slownik.ts --zamroz",
+    klucze: [
+      // Zdanie z cudzysłowem i ukośnikiem — dokładnie to, na czym poległby
+      // własny serializator, a `JSON.stringify` nie.
+      { klucz: "+x", id: 'msg_+x "%val%"', zdanie: 'Efekt \\ "%val%"', milczy: false },
+      { klucz: "+cichy", id: null, zdanie: null, milczy: true },
+    ],
+    ramy: { battle_no_winner: "Walka nie wyłoniła zwycięzcy" },
+  };
+  const kod = modulZamrozenia(ZRODLO);
+
+  test("wynik jest modułem TypeScriptu, a nie tekstem, który go przypomina", () => {
+    // Plik idzie prosto do `tests/` i importują go dwa pliki testowe. Gdyby
+    // składanie się rozjechało, padłby cały przebieg, a nie jedna asercja —
+    // ten test ma to złapać w narzędziu, nie w skutkach.
+    expect(() => new Bun.Transpiler({ loader: "ts" }).transformSync(kod)).not.toThrow();
+  });
+
+  test("nagłówek niesie build i datę pomiaru", () => {
+    // Zamrożenie jest POMIAREM gry. Pomiar bez daty i wersji klienta nie jest
+    // danymi porównywalnymi — to reguła, na której to repo już się przejechało
+    // przy procentach pokrycia (`docs/TOOLING.md`).
+    expect(kod).toContain("1785244275300");
+    expect(kod).toContain("2026-08-04");
+  });
+
+  test("mówi wprost, że pliku się nie edytuje, i podaje komendę odtwarzającą", () => {
+    // Plik wygląda jak zwykły moduł z tablicą — jedyne, co powstrzyma kogoś
+    // przed „poprawieniem" zdania, żeby test przeszedł, to pierwsza linia.
+    expect(kod.split("\n")[0]).toContain("--zamroz");
+  });
+
+  test("wraca przez `slownikZeZamrozenia` do tych samych zdań", () => {
+    // Pętla domknięta: to, co narzędzie wypisuje, ma się dać odczytać z powrotem
+    // tą samą drogą, którą czytają testy. Bez tego moduł mógłby być poprawnym
+    // TypeScriptem i pustym słownikiem naraz.
+    const slownik = slownikZeZamrozenia(ZRODLO);
+    expect(slownik.zdanie('msg_+x "%val%"')).toBe('Efekt \\ "%val%"');
+    expect(slownik.zdanie("battle_no_winner")).toBe("Walka nie wyłoniła zwycięzcy");
+    expect(kod).toContain(JSON.stringify('Efekt \\ "%val%"'));
   });
 });

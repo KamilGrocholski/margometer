@@ -4,7 +4,7 @@ import {
   histogram,
   kluczeKomunikatu,
   komunikaty,
-  meta,
+  modulZrzutu,
   odchudz,
   skladZeZrzutu,
   stronyKomunikatu,
@@ -13,16 +13,15 @@ import {
 } from "../tools/walka.ts";
 
 /**
- * Czego te testy pilnują: żeby zrzut z sondy zamienił się w fixture, który
+ * Czego te testy pilnują: żeby zrzut z sondy zamienił się w materiał, który
  * NIE KŁAMIE. Sonda jest przeglądarkowa i testu jednostkowego mieć nie może;
  * wszystko, co da się sprawdzić bez gry, sprawdza się tutaj.
  *
- * ⚠️ **ZNIKŁY STĄD TRZY BLOKI — 2026‑08‑04.** `rozjazdyParowania`,
- * `renderParujeSie` i opis `sklejRender` pilnowały WĘZŁÓW RENDERU: sonda
- * zbierała je obok komunikatów, narzędzie sklejało z nich `log.html`, a ten
- * wchodził do globu testowego parsera. Cała ta ścieżka istniała po to, żeby
- * dało się porównać protokół z odczytem tekstu. Parsera nie ma, więc nie ma
- * ani czego porównywać, ani czym.
+ * ⚠️ **ZNIKŁY STĄD TRZY BLOKI — 2026‑08‑04.** Pilnowały WĘZŁÓW RENDERU: sonda
+ * zbierała je obok komunikatów, a narzędzie sklejało z nich drugi format tej
+ * samej walki. Cała ta ścieżka istniała po to, żeby dało się porównać protokół
+ * z drugim, niezależnym odczytem. Drugiego odczytu nie ma, więc nie ma ani
+ * czego porównywać, ani czym.
  */
 
 /** Dwa wywołania sondy: otwarcie walki i jeden cios. Kształt jak z gry. */
@@ -68,9 +67,9 @@ describe("czytajZrzut", () => {
     expect(() => czytajZrzut('{"co":"innego"}')).toThrow(/wersja/);
   });
 
-  test("pusty zrzut jest BŁĘDEM, nie pustym fixture'em", () => {
-    // Zapisany dałby katalog wyglądający jak dowód i pusty w środku —
-    // a fixture jest dowodem, nie „danymi testowymi".
+  test("pusty zrzut jest BŁĘDEM, nie pustym materiałem", () => {
+    // Zapisany dałby moduł wyglądający jak dowód i pusty w środku —
+    // a materiał z gry jest dowodem, nie „danymi testowymi".
     expect(() => czytajZrzut(JSON.stringify({ ...ZRZUT, wpisy: [] }))).toThrow(/wywołania/);
   });
 
@@ -129,34 +128,84 @@ describe("histogram", () => {
   });
 });
 
-describe("meta", () => {
-  const opis = JSON.parse(meta(czytajZrzut(JSON.stringify(ZRZUT)), "2026-08-04"));
+describe("modulZrzutu", () => {
+  /**
+   * Zrzut z `myteam` i `team`, bo bez nich składu nie da się odczytać — i to
+   * jest część kontraktu tej funkcji, nie tło testu.
+   */
+  const PELNY: Zrzut = {
+    wersja: 1,
+    przy: "2026-08-04T10:00:00.000Z",
+    swiat: "tempest",
+    build: "1785244275300",
+    otwarcie: "Rozpoczęła się walka pomiędzy Kamil (10w) a Wilk (9w)",
+    wpisy: [
+      {
+        nr: 0,
+        ladunek: { myteam: 1 },
+        komunikaty: ['1=100.00;2=40.37;+dmgd=455;txt=Kamil: "cios\\ostatni"'],
+        wojownicyPrzed: [],
+        wojownicyPo: [
+          { id: 1, name: "Kamil", team: 1, prof: "m", lvl: 100 },
+          { id: -2, name: "Wilk", team: 2 },
+        ],
+      },
+    ],
+  };
+  const kod = modulZrzutu(PELNY, "2026-08-05", "kamil-vs-wilk");
 
-  test("trzyma się schematu korpusu new-engine", () => {
-    expect(opis.client).toBe("new-engine");
-    expect(opis.clientBuild).toBe("1785244275300");
+  test("wynik jest modułem TypeScriptu, a nie tekstem, który go przypomina", () => {
+    // Najtańszy sposób sprawdzenia całości naraz: jeśli cokolwiek w składaniu
+    // się rozjedzie (niezamknięty cudzysłów w komunikacie, przecinek w składzie),
+    // transpilacja padnie. Bez tego test sprawdzałby fragmenty tekstu i przepuścił
+    // plik, którego `bun` nie wczyta.
+    expect(() => new Bun.Transpiler({ loader: "ts" }).transformSync(kod)).not.toThrow();
   });
 
-  test("`format` mówi, co w fixturze NAPRAWDĘ jest", () => {
-    // Pole miało dwie wartości — `protokol+html` i `protokol` — bo render
-    // wchodził warunkowo. Zostaje jedna, bo fixture ma dziś jeden kształt;
-    // wartość zostaje jawna, żeby starsze katalogi dało się od nowych odróżnić.
-    expect(opis.format).toBe("protokol");
-    expect(opis.source).not.toContain("log.html");
+  test("komunikat z cudzysłowem i ukośnikiem przechodzi bez uszkodzenia", () => {
+    // Serwer wkleja w `txt=` treść od gracza — z apostrofami, cudzysłowami
+    // i ukośnikami. To jest dokładnie ten kształt, na którym własny serializator
+    // by poległ, a `JSON.stringify` nie.
+    expect(kod).toContain(JSON.stringify(PELNY.wpisy[0]!.komunikaty[0]!));
   });
 
-  test("covers/missing/notes czekają na człowieka", () => {
-    // Narzędzie nie zmyśla opisu,
-    // a niewypełniony fixture ma być widoczny na pierwszy rzut oka.
-    expect(opis.covers[0]).toContain("DO UZUPEŁNIENIA");
-    expect(opis.missing[0]).toContain("DO UZUPEŁNIENIA");
-    expect(opis.notes).toContain("DO UZUPEŁNIENIA");
+  test("nagłówek niesie POCHODZENIE — świat, build i obie daty", () => {
+    // Materiał bez pochodzenia jest nieodróżnialny od syntetycznego, a to jest
+    // jedyna rzecz, która go w tym repo wyróżnia.
+    expect(kod).toContain("tempest");
+    expect(kod).toContain("1785244275300");
+    expect(kod).toContain("2026-08-04"); // zebrany
+    expect(kod).toContain("2026-08-05"); // rozbity
+    expect(kod).toContain("kamil-vs-wilk");
   });
 
-  test("participants zostaje PUSTE, a nie zgadnięte z linii otwierającej", () => {
-    // Skład da się wyciągnąć z `otwarcie`, ale poziom i profesja z protokołu
-    // nie wychodzą. Wpisanie tu połowicznych danych byłoby udawaniem.
-    expect(opis.participants).toEqual([]);
+  test("opis czeka na człowieka — narzędzie go nie zmyśla", () => {
+    // Trzy pola, wszystkie puste. Zmyślony opis fixture'a czyta się potem
+    // ZAMIAST materiału i jest wtedy gorszy niż jego brak.
+    expect(kod.match(/DO UZUPEŁNIENIA/g)).toHaveLength(3);
+  });
+
+  test("skład idzie z migawek wojowników, a NIE z linii otwierającej", () => {
+    // Linia otwierająca niesie nazwę, poziom i profesję — ale nie `id`, więc
+    // złożony z niej skład nie miałby jak związać protokołu z nazwą. `-2` może
+    // wyjść tylko z migawki.
+    expect(kod).toContain("{ id: -2, name: \"Wilk\", side: 1 },");
+    expect(kod).toContain("{ id: 1, name: \"Kamil\", side: 0, prof: \"m\", lvl: 100 },");
+  });
+
+  test("zrzut bez `myteam` nie produkuje modułu z odwróconymi stronami", () => {
+    // Pada zamiast zgadywać — moduł ze zgadniętymi stronami wyglądałby jak
+    // materiał z gry i kłamał o tym, kto z kim walczył.
+    const bezDruzyny: Zrzut = {
+      ...PELNY,
+      wpisy: [{ ...PELNY.wpisy[0]!, ladunek: {} }],
+    };
+    expect(() => modulZrzutu(bezDruzyny, "2026-08-05", "x")).toThrow(/myteam/);
+  });
+
+  test("brak linii otwierającej jest ZAPISANY, a nie przemilczany", () => {
+    const bezOtwarcia = modulZrzutu({ ...PELNY, otwarcie: null }, "2026-08-05", "x");
+    expect(bezOtwarcia).toContain("BEZ LINII OTWIERAJĄCEJ");
   });
 });
 

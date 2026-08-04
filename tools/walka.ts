@@ -1,38 +1,38 @@
 /**
- * Rozbicie zrzutu z `tools/walka-probe.js` na fixture korpusu — i podgląd tego,
- * co w zrzucie siedzi.
+ * Rozbicie zrzutu z `tools/walka-probe.js` na **moduł z materiałem** — i podgląd
+ * tego, co w zrzucie siedzi.
  *
- * CO POWSTAJE. Katalog w `tests/fixtures/new-engine/` z dwoma plikami — ⚠️ ten
- * katalog **nie istnieje od 2026‑08‑04** (materiał testowy powstaje w kodzie,
- * `AGENTS.md`). Narzędzie go odtworzy przy pierwszym zrzucie i to jest jego
- * dzisiejsza rola: droga powrotna do materiału z gry.
+ * CO POWSTAJE. Plik `tests/walka-<nazwa>.ts` w kształcie, który w repo już stoi
+ * (`tests/walka-z-gry.ts`): nagłówek z pochodzeniem, `KOMUNIKATY` i `SKLAD`.
+ * Zasada z `AGENTS.md` — **materiał testowy powstaje W KODZIE, nie w plikach
+ * danych** — i to jest cała różnica wobec katalogu z `protokol.json`
+ * i `meta.json`, który stąd wychodził do 2026‑08‑04: tamten dało się dołożyć
+ * do repo bez dotknięcia jednego testu, więc leżał martwy i nikt tego nie
+ * widział. Moduł, którego nikt nie zaimportuje, zapala `noUnusedLocals` przy
+ * pierwszej próbie użycia i widać go w `tsc`.
  *
- *   protokol.json — surowe ładunki `Engine.battle.update` i migawki wojowników.
- *   meta.json     — szkielet opisu, z `covers`/`missing`/`notes` do wypełnienia.
+ * CZEGO NARZĘDZIE NIE ROBI: nie opisuje walki. Trzy pola nagłówka wychodzą
+ * z `DO UZUPEŁNIENIA` i mają tak wyglądać, dopóki człowiek ich nie wypełni —
+ * zmyślony opis byłby gorszy niż jego brak, bo opis fixture'a czyta się potem
+ * zamiast materiału.
  *
- * ⚠️ **TRZECIM PLIKIEM BYŁ `log.html` i zniknął 2026‑08‑04.** Sonda zbierała
- * obok komunikatów WĘZŁY RENDERU, a narzędzie sklejało z nich kontener
- * `.scroll-pane` — dokładnie ten kształt, który czytał `src/source.ts`. Sens
- * miało to jeden: dało się tę samą walkę przepuścić drugą drogą (`extractText`
- * + `parse`) i porównać liczby. Parser tekstu zszedł z drzewa, więc `log.html`
- * nie ma czytelnika, a zbieranie węzłów było kosztem bez odbiorcy.
- *
- * DLACZEGO `protokol.json` z sondy, a nie z cudzego serwisu. ⚠️ Do 2026‑08‑04
- * repo miało drugi korpus — `tests/fixtures/grooove/`, protokół z publicznych
- * walk na grooove.pl. Był PRZEKODOWANY przez tamten serwis (`=` na `.`,
- * `+` na `@`, `dmg` skrócone do `D`), więc odpowiadał wyłącznie na pytanie
- * „czy gra w ogóle emituje klucz X". Zszedł z drzewa razem z całym
- * `tests/fixtures/`. Tutaj leży ładunek jeden do jednego z klienta.
+ * DLACZEGO ZRZUT Z SONDY, A NIE Z CUDZEGO SERWISU. Publiczne zrzuty walk bywają
+ * PRZEKODOWANE po drodze (`=` na `.`, `+` na `@`, `dmg` skrócone do `D`) —
+ * odpowiadają wtedy wyłącznie na pytanie „czy gra w ogóle emituje klucz X",
+ * a nie „jak dokładnie brzmi komunikat". Sonda daje ładunek jeden do jednego
+ * z klienta.
  *
  * Użycie:
  *   bun tools/walka.ts --rozbij ~/Pobrane/walka-tempest-….json --nazwa pvp-trucizna
- *   bun tools/walka.ts --pokaz 2026-08-04_tempest_pvp-trucizna
- *   bun tools/walka.ts --klucze [katalog]
+ *   bun tools/walka.ts --pokaz ~/Pobrane/walka-tempest-….json
+ *   bun tools/walka.ts --klucze <plik.json> […]
  */
 
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
+import type { RosterEntry } from "../src/roster.ts";
 
-const KORPUS = new URL("../tests/fixtures/new-engine/", import.meta.url).pathname;
+/** Gdzie ląduje moduł z `--rozbij`. */
+const MATERIAL = new URL("../tests/", import.meta.url).pathname;
 
 /** Jedno wywołanie `Engine.battle.update` tak, jak zapisała je sonda. */
 export type Wywolanie = {
@@ -56,8 +56,9 @@ export type Zrzut = {
  * Sprawdzenie kształtu zrzutu przy WCZYTANIU, nie przy użyciu.
  *
  * Zrzut przychodzi z przeglądarki, przez plik na dysku, czasem po ręcznej
- * edycji. Wzór z `src/recorder.ts:110-131`: sprawdzamy każde pole, bo połowicznie
- * poprawny zrzut zapisałby się jako fixture i wyglądał na dowód, nie niosąc go.
+ * edycji. Wzór z `src/recorder.ts`: sprawdzamy każde pole, bo połowicznie
+ * poprawny zrzut zapisałby się jako materiał z gry i wyglądał na dowód, nie
+ * niosąc go.
  */
 export function czytajZrzut(tekst: string): Zrzut {
   let dane: unknown;
@@ -72,7 +73,7 @@ export function czytajZrzut(tekst: string): Zrzut {
   }
   if (z.wpisy.length === 0) {
     // Pusty zrzut znaczy zwykle „sonda wklejona po walce". Zapisanie go dałoby
-    // katalog wyglądający jak fixture i pusty w środku.
+    // moduł wyglądający jak materiał z gry i pusty w środku.
     throw new Error(
       "zrzut nie ma ani jednego wywołania — sonda była wklejona po walce " +
         "albo przed nią stała inna, która zdjęła tę.",
@@ -106,9 +107,9 @@ export function komunikaty(wpisy: Wywolanie[]): string[] {
  * pierwsze segmenty to strony. Klucz kończy się na PIERWSZYM `=`, bo wartości
  * bywają złożone. Parametry bez wartości (`r`, `N`, `Y`) są całym segmentem.
  *
- * Separatorem jest `=`, czyli to, co naprawdę
- * przysyła serwer. Dwie funkcje zamiast jednej z parametrem, żeby nie dało się
- * przez pomyłkę puścić jednego korpusu drugą gramatyką.
+ * Separatorem jest `=`, czyli to, co naprawdę przysyła serwer — a nie to, co
+ * z niego robią cudze serwisy z zapisami walk (kropka zamiast `=`, `@` zamiast
+ * `+`). Ta funkcja czyta WYŁĄCZNIE ładunek z sondy i innej gramatyki nie zna.
  */
 export function kluczeKomunikatu(komunikat: string): string[] {
   return komunikat
@@ -220,15 +221,20 @@ export function histogram(wiadomosci: string[]): [string, number][] {
   return [...licznik].sort((a, b) => b[1] - a[1]);
 }
 
-/** Szkielet `meta.json` w schemacie korpusu `new-engine`. */
 /**
  * Zrzut bez powtórzeń — wpisy, które nie wnoszą nic nowego, wypadają.
  *
  * PO CO. Gra woła `update` w pętli także wtedy, gdy nic się nie dzieje.
  * W pierwszym prawdziwym zrzucie było to **569 wywołań, z czego 567 miało
  * identyczny ładunek `{move: -1, endBattle: 1}`** — odpytywanie po zakończeniu
- * walki. Cały plik ważył 1,8 MB, a treści było w nim 15 kB. Fixture idzie do
- * gita NA ZAWSZE i 1,8 MB szumu jest ceną, której nikt nigdy nie odzyska.
+ * walki. Cały plik ważył 1,8 MB, a treści było w nim 15 kB.
+ *
+ * ⚠️ **DO 2026‑08‑04 CHUDY ZRZUT SZEDŁ DO GITA I TO BYŁ CAŁY POWÓD** tej
+ * funkcji. Dziś do repo trafia sam moduł z komunikatami, więc odchudzanie nie
+ * oszczędza ani bajta w historii — została mu jedna rola i dla niej zostaje:
+ * powiedzieć człowiekowi zaraz po zrzucie, ile z tego, co zebrał, było TREŚCIĄ.
+ * „569 wywołań, treści w 2" to jedyny sygnał, że sonda stała pół godziny po
+ * walce, i lepiej go zobaczyć teraz niż przy trzecim zrzucie z rzędu.
  *
  * CO ZOSTAJE, i to jest cała ostrożność tej funkcji:
  *
@@ -257,33 +263,62 @@ export function odchudz(wpisy: Wywolanie[]): Wywolanie[] {
   });
 }
 
-export function meta(zrzut: Zrzut, dzis: string): string {
-  return `${JSON.stringify(
-    {
-      client: "new-engine",
-      capturedAt: dzis,
-      clientBuild: zrzut.build,
-      world: zrzut.swiat,
-      source: "tools/walka-probe.js — ładunki Engine.battle.update (protokol.json)",
-      format: "protokol",
-      opening: zrzut.otwarcie,
-      participants: [],
-      covers: ["DO UZUPEŁNIENIA — co siedzi w tej walce, po przejrzeniu"],
-      missing: ["DO UZUPEŁNIENIA"],
-      notes: "DO UZUPEŁNIENIA",
-    },
-    null,
-    2,
-  )}\n`;
-}
+/**
+ * Zrzut jako tekst modułu TS z materiałem.
+ *
+ * Nagłówek niesie POCHODZENIE (świat, build, data zrzutu i rozbicia) oraz linię
+ * otwierającą, bo bez niej nie da się potem powiedzieć, czyja to walka.
+ * `DO UZUPEŁNIENIA` zostaje dosłownie takie — patrz nagłówek pliku.
+ *
+ * Skład idzie z migawek `Engine.battle.warriors` przez `skladZeZrzutu`, a nie
+ * z linii otwierającej: tamta niesie nazwę, poziom i profesję, ale NIE niesie
+ * `id`, a bez `id` protokół nie ma jak stać się nazwą. Zrzut bez `myteam` pada
+ * tutaj, zanim cokolwiek powstanie — moduł ze zgadniętymi stronami wyglądałby
+ * jak materiał z gry i kłamałby o tym, kto z kim walczył.
+ */
+export function modulZrzutu(zrzut: Zrzut, dzis: string, nazwa: string): string {
+  const sklad = skladZeZrzutu(zrzut);
+  const wiadomosci = komunikaty(zrzut.wpisy);
+  const wpis = (w: RosterEntry): string =>
+    `  { id: ${w.id}, name: ${JSON.stringify(w.name)}, side: ${w.side}` +
+    `${w.prof === undefined ? "" : `, prof: ${JSON.stringify(w.prof)}`}` +
+    `${w.lvl === undefined ? "" : `, lvl: ${w.lvl}`} },`;
 
-/** Katalogi korpusu, posortowane. */
-export function katalogiKorpusu(): string[] {
-  if (!existsSync(KORPUS)) return [];
-  return readdirSync(KORPUS, { withFileTypes: true })
-    .filter((w) => w.isDirectory())
-    .map((w) => w.name)
-    .sort();
+  return [
+    "/**",
+    ` * Walka z gry — \`${nazwa}\`.`,
+    " *",
+    ` * Zrzut sondy \`tools/walka-probe.js\`: świat \`${zrzut.swiat}\`, build`,
+    ` * \`${zrzut.build ?? "nieznany"}\`, zebrany ${zrzut.przy.slice(0, 10)}, rozbity ${dzis}`,
+    ` * przez \`bun tools/walka.ts --rozbij … --nazwa ${nazwa}\`.`,
+    " *",
+    zrzut.otwarcie === null
+      ? " * ⚠️ BEZ LINII OTWIERAJĄCEJ — sonda była wklejona po rozpoczęciu walki."
+      : ` * Linia otwierająca: ${JSON.stringify(zrzut.otwarcie)}`,
+    " *",
+    " * CO POKRYWA: DO UZUPEŁNIENIA — co siedzi w tej walce, po przejrzeniu.",
+    " * CZEGO NIE MA: DO UZUPEŁNIENIA.",
+    " * CO BYŁO TRUDNE: DO UZUPEŁNIENIA.",
+    " *",
+    " * **Materiału się nie edytuje, żeby test przeszedł.** Pochodzi z gry i nie",
+    " * ma jak powstać ponownie inaczej niż nowym zrzutem. Wypełnić wolno wyłącznie",
+    " * trzy pola wyżej.",
+    " */",
+    'import type { RosterEntry } from "../src/roster.ts";',
+    "",
+    "export const KOMUNIKATY: string[] = [",
+    ...wiadomosci.map((k) => `  ${JSON.stringify(k)},`),
+    "];",
+    "",
+    "/**",
+    " * Skład tej walki z `Engine.battle.warriors`. Strona 0 to drużyna gracza",
+    " * (`myteam` z ładunku), ujemne `id` to potwory.",
+    " */",
+    "export const SKLAD: RosterEntry[] = [",
+    ...sklad.map(wpis),
+    "];",
+    "",
+  ].join("\n");
 }
 
 function tekstowa(argumenty: string[], flaga: string): string | null {
@@ -304,48 +339,45 @@ if (import.meta.main) {
   const klucze = argumenty.includes("--klucze");
 
   if (rozbij !== null) {
-    if (nazwa === null) throw new Error("wymagane --nazwa (krótki opis do nazwy katalogu)");
+    if (nazwa === null) throw new Error("wymagane --nazwa (krótki opis do nazwy pliku)");
     const zrzut = czytajZrzut(await Bun.file(rozbij).text());
     const dzis = new Date().toISOString().slice(0, 10);
-    const katalog = `${KORPUS}${dzis}_${zrzut.swiat}_${nazwa}/`;
-    if (existsSync(katalog)) {
-      throw new Error(`${katalog} już istnieje — fixture'a się nie nadpisuje`);
+    const plik = `${MATERIAL}walka-${nazwa}.ts`;
+    if (existsSync(plik)) {
+      throw new Error(`${plik} już istnieje — materiału z gry się nie nadpisuje`);
     }
 
+    // Odchudzenie liczymy PRZED zapisem, żeby dało się powiedzieć w wyjściu, ile
+    // z tego zrzutu było odpytywaniem po walce. Do modułu i tak idą wyłącznie
+    // komunikaty, więc odchudzanie niczego tam nie zmienia — zmienia to, co
+    // człowiek wie o zrzucie, który właśnie zebrał.
     const chude = odchudz(zrzut.wpisy);
-    await Bun.write(
-      `${katalog}protokol.json`,
-      `${JSON.stringify({ ...zrzut, wpisy: chude }, null, 2)}\n`,
-    );
-    await Bun.write(`${katalog}meta.json`, meta(zrzut, dzis));
+    await Bun.write(plik, modulZrzutu(zrzut, dzis, nazwa));
 
     const wiadomosci = komunikaty(zrzut.wpisy);
-    console.log(`zapisane: ${katalog}`);
+    console.log(`zapisane: ${plik}`);
     if (chude.length < zrzut.wpisy.length) {
       console.log(
-        `  odchudzone: ${zrzut.wpisy.length} → ${chude.length} wywołań ` +
-          "(odrzucone są wyłącznie dokładne powtórzenia kształtu ładunku i stanu wojowników)",
+        `  zrzut niósł ${zrzut.wpisy.length} wywołań, treści było w ${chude.length} ` +
+          "(reszta to dokładne powtórzenia kształtu ładunku i stanu wojowników)",
       );
     }
     console.log(
-      `  wywołań: ${zrzut.wpisy.length}, komunikatów: ${wiadomosci.length}, ` +
-        `kluczy: ${histogram(wiadomosci).length}`,
+      `  komunikatów: ${wiadomosci.length}, kluczy: ${histogram(wiadomosci).length}, ` +
+        `w składzie: ${skladZeZrzutu(zrzut).length}`,
     );
     if (zrzut.otwarcie === null) {
       console.warn(
         "  ⚠ brak linii otwierającej — sonda była wklejona po rozpoczęciu walki. " +
-          "Fixture jest użyteczny, ale nie pozna z niego składu nikt, kto go czyta.",
+          "Materiał jest użyteczny, ale nie pozna z niego kontekstu nikt, kto go czyta.",
       );
     }
-    console.log("  covers/missing/notes czekają na wypełnienie — narzędzie ich nie zmyśla");
+    console.log("  trzy pola nagłówka czekają na wypełnienie — narzędzie ich nie zmyśla");
     process.exit(0);
   }
 
   if (pokaz !== null) {
-    const sciezka = existsSync(`${KORPUS}${pokaz}/protokol.json`)
-      ? `${KORPUS}${pokaz}/protokol.json`
-      : pokaz;
-    const zrzut = czytajZrzut(await Bun.file(sciezka).text());
+    const zrzut = czytajZrzut(await Bun.file(pokaz).text());
     console.log(`świat: ${zrzut.swiat}, build: ${zrzut.build ?? "—"}`);
     console.log(`otwarcie: ${zrzut.otwarcie ?? "—"}\n`);
     for (const komunikat of komunikaty(zrzut.wpisy)) console.log(komunikat);
@@ -353,25 +385,21 @@ if (import.meta.main) {
   }
 
   if (klucze) {
-    const katalogi = argumenty.filter((a) => !a.startsWith("--"));
-    const wybrane =
-      katalogi.length > 0
-        ? katalogi
-        : katalogiKorpusu().filter((k) => existsSync(`${KORPUS}${k}/protokol.json`));
-    if (wybrane.length === 0) {
+    const pliki = argumenty.filter((a) => !a.startsWith("--"));
+    if (pliki.length === 0) {
       console.error(
-        "w korpusie nie ma ani jednego `protokol.json` — zbierz walkę sondą " +
-          "`tools/walka-probe.js` i rozbij ją przez --rozbij",
+        "podaj co najmniej jeden plik zrzutu — zbierz walkę sondą " +
+          "`tools/walka-probe.js` i wskaż pobrany JSON",
       );
       process.exit(1);
     }
     const wszystkie: string[] = [];
-    for (const katalog of wybrane) {
-      const zrzut = czytajZrzut(await Bun.file(`${KORPUS}${katalog}/protokol.json`).text());
+    for (const plik of pliki) {
+      const zrzut = czytajZrzut(await Bun.file(plik).text());
       wszystkie.push(...komunikaty(zrzut.wpisy));
     }
     const licznik = histogram(wszystkie);
-    console.log(`${wybrane.length} walk, ${wszystkie.length} komunikatów, ${licznik.length} kluczy\n`);
+    console.log(`${pliki.length} walk, ${wszystkie.length} komunikatów, ${licznik.length} kluczy\n`);
     for (const [klucz, ile] of licznik) console.log(`${String(ile).padStart(6)}  ${klucz}`);
     process.exit(0);
   }
@@ -379,9 +407,9 @@ if (import.meta.main) {
   console.error(
     [
       "użycie:",
-      "  bun tools/walka.ts --rozbij <plik.json> --nazwa <slug>",
-      "  bun tools/walka.ts --pokaz <katalog|plik.json>",
-      "  bun tools/walka.ts --klucze [katalog …]",
+      "  bun tools/walka.ts --rozbij <plik.json> --nazwa <slug>   → tests/walka-<slug>.ts",
+      "  bun tools/walka.ts --pokaz <plik.json>",
+      "  bun tools/walka.ts --klucze <plik.json> […]",
       "",
       "zrzut robi `tools/walka-probe.js` wklejony do konsoli gry.",
     ].join("\n"),
