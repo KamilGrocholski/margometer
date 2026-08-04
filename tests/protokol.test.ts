@@ -271,7 +271,7 @@ describe("rola: nieznane ma być głośne", () => {
     expect(rola("heal")).toEqual({ typ: "leczenie", strona: "nadawca", wlasne: false });
     expect(rola("poison")).toEqual({ typ: "dot", przyimek: "od", rodzaj: "trucizny" });
     expect(rola("injure")).toEqual({ typ: "dot", przyimek: "po", rodzaj: "zranieniu" });
-    expect(rola("+thirdatt")).toEqual({ typ: "ciosProc", kod: "3" });
+    expect(rola("+thirdatt")).toEqual({ typ: "ciosProc", kod: "3", id: "+third_strike" });
   });
 });
 

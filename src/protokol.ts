@@ -24,6 +24,7 @@
  * w drzewie plików, a nie schowane w środku modułu.
  */
 
+import { BEZ_SLOWNIKA, type Slownik } from "./slownik-gry.ts";
 import { nazwaZywiolu, type BattleEvent, type Hit } from "./types.ts";
 import type { RosterEntry } from "./roster.ts";
 
@@ -184,13 +185,13 @@ export type Rola =
   /** Liczba doklejana do `take` — obrażenia przyjęte po redukcji. */
   | { typ: "przyjete"; kod: string }
   /** Niesie liczbę I JEST procem naraz — `+thirdatt` robi oba (`:623‑624`). */
-  | { typ: "ciosProc"; kod: string }
+  | { typ: "ciosProc"; kod: string; id: string }
   /** `-blok=N` → „-Zablokowanie N obrażeń". */
   | { typ: "blok" }
   /** `-evade` → „-Unik". Flaga, bez wartości. */
   | { typ: "unik" }
   /** `-absorb=N`, `-absorbm=N` → „-Absorpcja N obrażeń fizycznych/magicznych". */
-  | { typ: "absorpcja" }
+  | { typ: "absorpcja"; id: string }
   /**
    * Leczenie w PUNKTACH życia.
    *
@@ -229,15 +230,20 @@ export type Rola =
   /**
    * Nazwany efekt, którego NIE LICZYMY do żadnego skalara.
    *
+   * `id` to identyfikator `_t`, nie polskie zdanie. **Brzmienie należy do gry**
+   * — zmienia się z jej aktualizacją i zależy od języka klienta — więc kopia
+   * w naszym kodzie zestarzałaby się po cichu. Rozwiązuje je `src/slownik-gry.ts`
+   * w locie; zaszyty zostaje wyłącznie identyfikator, bo listy kluczy z gry
+   * wylistować się nie da.
+   *
    * ⚠️ Czyta się to „nie udowodniono, że niesie liczbę, którą liczymy", a nie
    * „na pewno nie niesie". Część z tych 201 kluczy niesie wartości procentowe
-   * (`+crush_fire` → „+Zmiażdżenie %val%%", `healall_per` → „Uleczono
-   * sojuszników o %val%% życia"), część kwoty, których nie da się przypisać
+   * (`+crush_fire` → „+Zmiażdżenie %val%%"), część kwoty nieprzypisywalne
    * postaci (`healall` → „%name% uzdrowił swoją drużynę (%val%)"). Wariant
    * zachowawczy jest wybrany świadomie: w etapie 3a protokół karmi wyłącznie
    * czujkę, więc pomyłka daje ALARM DO ZBADANIA, a nie cichą złą liczbę.
    */
-  | { typ: "proc" }
+  | { typ: "proc"; id: string }
   /** Gra ma dla tego klucza puste ciało i nie wypisuje NICZEGO. To odpowiedź, nie luka. */
   | { typ: "cisza" };
 
@@ -254,15 +260,15 @@ const ROLE: Readonly<Record<string, Rola>> = {
   // w kluczu, więc kod bierzemy stamtąd.
   "+of_dmg": { typ: "cios", kod: "o" },
   // :623-624 — najpierw proc „+Trzeci cios", potem `attack += <b class=third>`.
-  "+thirdatt": { typ: "ciosProc", kod: "3" },
+  "+thirdatt": { typ: "ciosProc", kod: "3", id: "+third_strike" },
   // :863-864 — `take += <b class=third>` oraz `takenum += m[1]`.
   "-thirdatt": { typ: "przyjete", kod: "3" },
 
   // — redukcja po stronie celu ————————————————————————————————————
   "-blok": { typ: "blok" },
   "-evade": { typ: "unik" },
-  "-absorb": { typ: "absorpcja" },
-  "-absorbm": { typ: "absorpcja" },
+  "-absorb": { typ: "absorpcja", id: "msg_-absorb %val%" },
+  "-absorbm": { typ: "absorpcja", id: "msg_-absorbm %val%" },
 
   // — leczenie w punktach ————————————————————————————————————————
   // „%gain_lost% %val% punktów życia %name%" — %name% to f1. Znak wartości
@@ -310,59 +316,209 @@ const ROLE: Readonly<Record<string, Rola>> = {
  * połknięty po cichu — a to jest dokładnie ten tryb awarii, przed którym broni
  * reguła „nieznane ma być głośne" z `AGENTS.md`.
  */
-const PROCE: readonly string[] = [
-  "+abdest", "+abdest_per", "+abmdest_per", "+absorb",
-  "+absorbm", "+acdmg", "+acdmg_destroyed", "+actdmg",
-  "+crit", "+critpierce", "+critpoison_per", "+critsa",
-  "+critsa_per", "+critslow", "+critslow_per", "+critwound",
-  "+crush", "+crush_distance", "+crush_fire", "+crush_frost",
-  "+crush_light", "+crush_physical", "+distract", "+endest",
-  "+energy", "+engback", "+exp", "+fastarrow",
-  "+firearrow", "+freeze", "+immobilize", "+injure",
-  "+legbon_anguish", "+legbon_curse", "+legbon_frenzy_main", "+legbon_frenzy_off",
-  "+legbon_holytouch", "+legbon_puncture", "+legbon_pushback", "+legbon_verycrit",
-  "+lowheal2turns", "+manadest", "+mcurse", "+of_crit",
-  "+of_wound", "+of_woundmagic", "+of_woundpoison", "+oth_cover",
-  "+oth_dmg", "+ph", "+pierce", "+rage",
-  "+resdmg", "+resdmgc", "+resdmgf", "+resdmgl",
-  "+rotatingblade", "+spell-taken_dmg", "+spell-taken_dmg-all", "+spell-vamp_time",
-  "+stun", "+stun2", "+stun2-c", "+stun2-d",
-  "+stun2-f", "+stun2-l", "+superspell-dispel", "+superspell-prevented",
-  "+swing", "+taken_dmg", "+verycrit", "+vulture",
-  "+wound", "+woundfrost", "+woundmagic", "+woundpoison",
-  "-arrowblock", "-contra", "-endest", "-immunity_to_dmg",
-  "-legbon_cleanse", "-legbon_critred", "-legbon_dmgred", "-legbon_facade",
-  "-legbon_glare", "-legbon_resgain", "-legbon_retaliation", "-lowcritallval",
-  "-manadest", "-parry", "-pierceb", "-poison_lowdmg_per",
-  "-rage", "-redabdest_per", "-redacdmg", "-redacdmg_per",
-  "-reddest_per", "-redendest", "-redendest_per", "-redmanadest",
-  "-redmanadest_per", "-resmanaendest", "-spell-distortion", "-spell-immunity_to_dmg",
-  "-tenacity", "achpp_per", "active_block_per", "active_decblock_per-enemies",
-  "active_resall_per", "alllowdmg", "allslow", "allslow_per",
-  "ansgame", "antidote", "arrowrain", "aura-ac",
-  "aura-ac_per", "aura-adddmg2_per-meele", "aura-resall", "aura-sa",
-  "aura-sa_per", "bandage", "blackout", "blizzard",
-  "chainlightning_perw", "combo-max", "cover", "critmval-allies",
-  "critmval-enemies", "critstagnation", "critval-allies", "critval-enemies",
-  "critwound", "distortion", "distractshoot", "disturb",
-  "disturbshoot", "dloot", "dmg-target_physical", "dmg_hpp",
-  "doubleshoot", "en-regen", "en-regen-cast", "energy",
-  "energyout", "fire", "fireshield", "firewall",
-  "footshoot", "frost", "frostshield", "heal_per",
-  "heal_per-allies", "heal_per-enemies", "healall", "healall_per",
-  "hp_per-allies", "hp_per-enemies", "insult", "light",
-  "lightshield", "lightshield2", "loot", "lowheal_per-enemies",
-  "mana", "managain", "manatransfer", "mlightshiled",
-  "of-woundstart", "physical", "poison_lowdmg_per-enemies", "poisonspread",
-  "poisonspread_failkey", "removedot", "removedot-allies", "removeslow-allies",
-  "removestun", "removestun-allies", "resfire_per", "resfrost_per",
-  "reslight_per", "reusearrows", "rime_per", "shout",
-  "soullink", "spell-taken_dmg", "stealmana", "stinkbomb",
-  "stinkbomb_crit", "stinkbomb_pierce", "storm", "sunreduction",
-  "sunshield", "sunshield_per", "surpass_bonus_total", "tcustom",
-  "thunder", "trickyknife", "vamp", "vamp_time",
-  "woundextend",
-];
+const PROCE: Readonly<Record<string, string>> = {
+  "+abdest": "msg_+abdest %val%",
+  "+abdest_per": "msg_only_val_+abdest_per",
+  "+abmdest_per": "msg_only_val_+abmdest_per",
+  "+absorb": "msg_+absorb %val%",
+  "+absorbm": "msg_+absorbm %val%",
+  "+acdmg": "msg_+acdmg %val%",
+  "+acdmg_destroyed": "msg_+acdmg_destroyed",
+  "+actdmg": "msg_+actdmg %val%",
+  "+crit": "msg_+crit",
+  "+critpierce": "eng_game_only_val_+critpierce %val%",
+  "+critpoison_per": "msg_+critpoison_per %val%",
+  "+critsa": "msg_+critsa %val%",
+  "+critsa_per": "msg_+critsa_per %val%",
+  "+critslow": "msg_+hithurt %val%",
+  "+critslow_per": "msg_+critslow_per= %val%",
+  "+critwound": "msg_+critwound",
+  "+crush": "eng_game_only_val_+crush %val%",
+  "+crush_distance": "eng_game_only_val_+crush %val%",
+  "+crush_fire": "eng_game_only_val_+crush %val%",
+  "+crush_frost": "eng_game_only_val_+crush %val%",
+  "+crush_light": "eng_game_only_val_+crush %val%",
+  "+crush_physical": "eng_game_only_val_+crush %val%",
+  "+distract": "msg_+distract",
+  "+endest": "msg_+endest %val%",
+  "+energy": "msg_+energy %val%",
+  "+engback": "msg_+engback %val%",
+  "+exp": "msg_+exp %val%",
+  "+fastarrow": "msg_+fastarrow",
+  "+firearrow": "msg_+firearrow",
+  "+freeze": "msg_+freeze",
+  "+immobilize": "msg_+immobilize",
+  "+injure": "msg_+injure %val%",
+  "+legbon_anguish": "msg_+legbon_anguish %val%",
+  "+legbon_curse": "msg_+legbon_curse",
+  "+legbon_frenzy_main": "msg_+legbon_frenzy_main %val%",
+  "+legbon_frenzy_off": "msg_+legbon_frenzy_off %val%",
+  "+legbon_holytouch": "msg_+legbon_holytouch %val%",
+  "+legbon_puncture": "msg_+legbon_puncture %val%",
+  "+legbon_pushback": "msg_+legbon_pushback",
+  "+legbon_verycrit": "msg_+legbon_verycrit",
+  "+lowheal2turns": "msg_+lowheal2turns %val%",
+  "+manadest": "msg_+manadest %val%",
+  "+mcurse": "msg_+mcurse",
+  "+of_crit": "msg_+of_crit",
+  "+of_wound": "msg_+of_wound",
+  "+of_woundmagic": "msg_of_woundmagic %val%",
+  "+of_woundpoison": "msg_of_woundpoison %val%",
+  "+oth_cover": "msg_+oth_cover %val% %name%",
+  "+oth_dmg": "msg_+oth_dmg %val% %name%",
+  "+ph": "msg_+ph %val%",
+  "+pierce": "msg_+pierce",
+  "+rage": "msg_+rage %val%",
+  "+resdmg": "msg_+resdmg %val%",
+  "+resdmgc": "msg_+resdmgc %val%",
+  "+resdmgf": "msg_+resdmgf %val%",
+  "+resdmgl": "msg_+resdmgl %val%",
+  "+rotatingblade": "msg_+rotatingblade",
+  "+spell-taken_dmg": "eng_game_only_nick_+spell-taken_dmg %name%",
+  "+spell-taken_dmg-all": "end-game-without-percent+spell-taken_dmg-all",
+  "+spell-vamp_time": "eng_game_only_nick_+spell-vamp_time %name%",
+  "+stun": "msg_+stun",
+  "+stun2": "msg_+stun2",
+  "+stun2-c": "msg_+stun2-c",
+  "+stun2-d": "msg_+stun2-d",
+  "+stun2-f": "msg_+stun2-f",
+  "+stun2-l": "msg_+stun2-l",
+  "+superspell-dispel": "msg_+dispel",
+  "+superspell-prevented": "msg_+superspell-prevented",
+  "+swing": "msg_+swing",
+  "+taken_dmg": "eng_game_only_val_+taken_dmg %val%",
+  "+verycrit": "msg_+verycrit",
+  "+vulture": "msg_+vulture= %val%",
+  "+wound": "msg_+wound",
+  "+woundfrost": "msg_woundfrost %val%",
+  "+woundmagic": "msg_woundmagic %val%",
+  "+woundpoison": "msg_woundpoison %val%",
+  "-arrowblock": "msg_-arrowblock",
+  "-contra": "msg_-contra",
+  "-endest": "msg_-endest %val%",
+  "-immunity_to_dmg": "end-game-without-percent-immunity_to_dmg",
+  "-legbon_cleanse": "msg_-legbon_cleanse",
+  "-legbon_critred": "msg_-legbon_critred %val%",
+  "-legbon_dmgred": "msg_-legbon_dmgred %val%",
+  "-legbon_facade": "msg_-legbon_facade %val%",
+  "-legbon_glare": "msg_-legbon_glare",
+  "-legbon_resgain": "msg_-legbon_resgain",
+  "-legbon_retaliation": "msg_-legbon_retaliation %val%",
+  "-lowcritallval": "msg_-lowcritallval %val%",
+  "-manadest": "msg_-manadest %val%",
+  "-parry": "msg_-parry",
+  "-pierceb": "msg_-pierceb",
+  "-poison_lowdmg_per": "msg_-poison_lowdmg_per %val%",
+  "-rage": "msg_-rage",
+  "-redabdest_per": "msg_redabdest_per %m1%",
+  "-redacdmg": "msg_-redacdmg %val%",
+  "-redacdmg_per": "msg_-redacdmg_per %val%",
+  "-reddest_per": "msg_-reddest_per %val%",
+  "-redendest": "msg_-redendest %val%",
+  "-redendest_per": "msg_-redendest_per %val%",
+  "-redmanadest": "msg_-redmanadest %val%",
+  "-redmanadest_per": "msg_-redmanadest_per %val%",
+  "-resmanaendest": "msg_-resmanaendest %val%",
+  "-spell-distortion": "eng_game_nick_and_opponent_-spell-distortion %name% %target%",
+  "-spell-immunity_to_dmg": "eng_game_nick_and_friendnick_-spell-immunity_to_dmg %name%",
+  "-tenacity": "msg_-tenacity",
+  "achpp_per": "achpp_per",
+  "active_block_per": "msg_only_val_active_block_per",
+  "active_decblock_per-enemies": "msg_only_val_active_decblock_per-enemies",
+  "active_resall_per": "msg_only_val_active_resall_per",
+  "alllowdmg": "msg_alllowdmg %val% %name%",
+  "allslow": "msg_allslow",
+  "allslow_per": "msg_allslow_per %val% %name%",
+  "ansgame": "msg_ansgame",
+  "antidote": "msg_antidote %val%",
+  "arrowrain": "msg_arrowrain",
+  "aura-ac": "msg_aura-ac %val%",
+  "aura-ac_per": "msg_aura-ac_per %val% %name%",
+  "aura-adddmg2_per-meele": "msg_blesswords_perw %val% %name%",
+  "aura-resall": "msg_aura-resall %val% %name%",
+  "aura-sa": "msg_aura-sa %val%",
+  "aura-sa_per": "msg_aura-sa_per_new %val% %name%",
+  "bandage": "msg_aura-bandage %val%",
+  "blackout": "msg_blackout",
+  "blizzard": "msg_blizzard",
+  "chainlightning_perw": "msg_chainlightning_perw %name%",
+  "combo-max": "msg_combo-max",
+  "cover": "msg_cover",
+  "critmval-allies": "eng_game_only_val_critmval-allies %val%",
+  "critmval-enemies": "eng_game_only_val_critmval-enemies %val%",
+  "critstagnation": "msg_critstagnation",
+  "critval-allies": "eng_game_only_val_critval-allies %val%",
+  "critval-enemies": "eng_game_only_val_critval-enemies %val%",
+  "critwound": "msg_critwound %name% %val%",
+  "distortion": "eng_game_only_nick_distortion %name%",
+  "distractshoot": "msg_distractshoot",
+  "disturb": "msg_disturb",
+  "disturbshoot": "msg_disturbshoot",
+  "dloot": "msg_dloot %name% %g1% %m1%",
+  "dmg-target_physical": "eng_game_opponent_nick_and_value_dmg-target_physical %target% %val%",
+  "dmg_hpp": "msg_-dmg_hpp",
+  "doubleshoot": "msg_doubleshoot %name%",
+  "en-regen": "msg_en-regen %gain_lost% %name% %val%",
+  "en-regen-cast": "msg_en-regen-cast %name% %target%",
+  "energy": "msg_energy %name% %gain_loss% %val%",
+  "energyout": "msg_energyout %val%",
+  "fire": "msg_fire %name% %val%",
+  "fireshield": "msg_fireshield %name%",
+  "firewall": "msg_firewall %name%",
+  "footshoot": "msg_footshoot %name%",
+  "frost": "msg_frost %name% %val%",
+  "frostshield": "msg_frostshield %name%",
+  "heal_per": "msg_heal_per %name%",
+  "heal_per-allies": "eng_game_nick_and_value_heal_per-allies %name% %val%",
+  "heal_per-enemies": "eng_game_nick_and_value_heal_per-enemies %name% %val%",
+  "healall": "msg_healall %name% %val%",
+  "healall_per": "msg_healall_per %name% %val%",
+  "hp_per-allies": "eng_game_nick_and_value_hp_per-allies %name% %val%",
+  "hp_per-enemies": "eng_game_nick_and_value_hp_per-enemies %name% %val%",
+  "insult": "msg_insult %name% %name2% %val%",
+  "light": "msg_light %name% %val%",
+  "lightshield": "msg_lightshield %name%",
+  "lightshield2": "msg_lightshield2 %name%",
+  "loot": "msg_loot %name% %g1% %m1%",
+  "lowheal_per-enemies": "msg_lowheal_per-enemies val",
+  "mana": "msg_receivemana %name% %val%",
+  "managain": "msg_managain %name% %val%",
+  "manatransfer": "msg_manatransfer %name% %val% %name2%",
+  "mlightshiled": "msg_mlightshiled %name%",
+  "of-woundstart": "msg_of-woundstart",
+  "physical": "msg_physical %name% %val%",
+  "poison_lowdmg_per-enemies": "msg_poison_lowdmg_per-enemies %val%",
+  "poisonspread": "msg_poisonspread",
+  "poisonspread_failkey": "msg_poisonspread_failkey",
+  "removedot": "skill_removedot",
+  "removedot-allies": "skill_removedot-allies",
+  "removeslow-allies": "msg_removeslow-allies",
+  "removestun": "skill_removestun",
+  "removestun-allies": "msg_removestun-allies",
+  "resfire_per": "msg_resfire_per %val%",
+  "resfrost_per": "msg_resfrost_per %val%",
+  "reslight_per": "msg_reslight_per %val%",
+  "reusearrows": "msg_reusearrows_one",
+  "rime_per": "msg_rime_per %val% %name%",
+  "shout": "msg_shout %name%",
+  "soullink": "msg_soullink %name%",
+  "spell-taken_dmg": "eng_game_nick_and_opponent_spell-taken_dmg %name% %target%",
+  "stealmana": "msg_stealmana %name%",
+  "stinkbomb": "msg_stinkbomb %name% %name2%",
+  "stinkbomb_crit": "eng_game_only_nick_stinkbomb_crit %name%",
+  "stinkbomb_pierce": "eng_game_only_nick_stinkbomb_pierce %name%",
+  "storm": "msg_storm %name%",
+  "sunreduction": "msg_sunreduction %name%",
+  "sunshield": "msg_sunshield %name%",
+  "sunshield_per": "msg_sunshield %name%",
+  "surpass_bonus_total": "surpass_bonus_total %val% %name%",
+  "tcustom": "msg_tcustom_target %target% %val%",
+  "thunder": "msg_thunder %name%",
+  "trickyknife": "msg_trickyknife %name% %target%",
+  "vamp": "msg_vamp %val%",
+  "vamp_time": "eng_game_only_val_vamp_time %val%",
+  "woundextend": "msg_woundextend %name% %target%",
+};
 
 /**
  * Klucze z pustym ciałem — gra świadomie nie wypisuje NICZEGO.
@@ -408,13 +564,13 @@ export function rola(klucz: string): Rola | null {
 }
 
 const WYLICZONE = new Map<string, Rola>([
-  ...PROCE.map((k) => [k, { typ: "proc" } as Rola] as const),
+  ...Object.entries(PROCE).map(([k, id]) => [k, { typ: "proc", id } as Rola] as const),
   ...MILCZACE.map((k) => [k, { typ: "cisza" } as Rola] as const),
 ]);
 
 /** Wszystkie klucze, o których tabela cokolwiek wie — materiał dla testu pokrycia. */
 export function znaneKlucze(): string[] {
-  return [...Object.keys(ROLE), ...PROCE, ...MILCZACE].sort();
+  return [...Object.keys(ROLE), ...Object.keys(PROCE), ...MILCZACE].sort();
 }
 
 /**
@@ -439,6 +595,7 @@ export function znaneKlucze(): string[] {
 export function dekoduj(
   komunikaty: readonly string[],
   sklad: readonly RosterEntry[],
+  slownik: Slownik = BEZ_SLOWNIKA,
 ): BattleEvent[] {
   const nazwy = new Map(sklad.map((w) => [w.id, w.name]));
   const zdarzenia: BattleEvent[] = [];
@@ -458,6 +615,18 @@ export function dekoduj(
       nieznany(surowy);
       return;
     }
+
+    /**
+     * Etykieta proca dla panelu.
+     *
+     * Brzmienie idzie ze słownika GRY, a nie z naszego kodu — z podstawionym
+     * `%val%`, żeby „+Niszczenie pancerza o %val%" stało się „+Niszczenie
+     * pancerza o 5". Gdy słownika nie ma (wklejka, archiwum, test bez atrapy)
+     * albo gra nie zna identyfikatora, zostaje KLUCZ. Klucz jest prawdą —
+     * brzmienie zmyślone przez nas nie byłoby.
+     */
+    const etykieta = (p: Parametr, id: string): string =>
+      slownik.zdanie(id, p.wartosc === null ? undefined : { "%val%": p.wartosc }) ?? p.klucz;
 
     const zadane: Hit[] = [];
     const przyjete: number[] = [];
@@ -486,7 +655,7 @@ export function dekoduj(
             nieznany(p.surowy);
             break;
           }
-          if (r.typ === "ciosProc") procy.push(p.klucz);
+          if (r.typ === "ciosProc") procy.push(etykieta(p, r.id));
           zadane.push({
             raw: wartosc,
             // Uzupełniane niżej, gdy poznamy stronę przyjętą. Zero tutaj jest
@@ -517,7 +686,7 @@ export function dekoduj(
           break;
         case "absorpcja":
         case "proc":
-          procy.push(p.klucz);
+          procy.push(etykieta(p, r.id));
           break;
         case "cisza":
           break;

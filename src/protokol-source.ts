@@ -1,5 +1,6 @@
 import { dekoduj } from "./protokol.ts";
 import type { GameGlobals, RosterSource } from "./roster.ts";
+import { SlownikGry, SlownikStaly, type Slownik, type TranslationGlobals } from "./slownik-gry.ts";
 import type { BattleEvent } from "./types.ts";
 
 /**
@@ -39,10 +40,13 @@ export type EventSource = {
 
 /** Odpowiednik `StaticLogSource` — do testów i do odtwarzania `protokol.json`. */
 export class StaticProtocolSource implements EventSource {
-  constructor(private readonly komunikaty: readonly string[]) {}
+  constructor(
+    private readonly komunikaty: readonly string[],
+    private readonly slownik: Slownik = new SlownikStaly([]),
+  ) {}
 
   subscribe(listener: (events: BattleEvent[]) => void): () => void {
-    listener(dekoduj(this.komunikaty, []));
+    listener(dekoduj(this.komunikaty, [], this.slownik));
     return () => {};
   }
 }
@@ -89,10 +93,16 @@ export class EngineProtocolSource implements EventSource {
   private owiniety: Record<string, unknown> | null = null;
   private oryginal: ((...argumenty: unknown[]) => unknown) | null = null;
 
+  /**
+   * `window` niesie tu DWIE różne rzeczy z gry: `Engine` (protokół) i `_t`
+   * (brzmienia). Trzymane razem, bo to ten sam obiekt strony — ale typy stoją
+   * osobno, żeby widać było, że dotykamy dwóch niezależnych rzeczy.
+   */
   constructor(
-    private readonly window: GameGlobals,
+    private readonly window: GameGlobals & TranslationGlobals,
     private readonly roster: RosterSource,
     private readonly options: ProtocolSourceOptions = {},
+    private readonly slownik: Slownik = new SlownikGry(window),
   ) {}
 
   subscribe(listener: (events: BattleEvent[]) => void): () => void {
@@ -178,7 +188,7 @@ export class EngineProtocolSource implements EventSource {
     // Dekodujemy CAŁĄ walkę od nowa, nie przyrost. Ta sama decyzja co
     // w `session.ts:53‑57`: stan przyrostowy byłby źródłem podwójnego liczenia,
     // a walka ma kilkadziesiąt komunikatów, więc koszt jest bez znaczenia.
-    listener(dekoduj(this.komunikaty, this.roster.current() ?? []));
+    listener(dekoduj(this.komunikaty, this.roster.current() ?? [], this.slownik));
   }
 
   /**
