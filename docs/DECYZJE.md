@@ -276,12 +276,35 @@ Liczby nadal przypisuje heurystyka HP z logu. Przy duplikatach, których log nie
 rozróżnia, całość obrażeń ląduje na jednej instancji, a wszystkie wiersze tej
 nazwy dostają gwiazdkę.
 
-**Zamierzona architektura: uzupełnienie, nie zamiennik.** Log tekstowy zostaje źródłem
-obrażeń — przez kilkanaście zebranych zrzutów nie zmienił swojego formatu ani razu,
-a wewnętrzne struktury klienta takiej gwarancji nie mają i mogą paść przy każdym
-patchu. Z gry warto brać wyłącznie roster: `id`, `name`, `team`. Parser przyjmowałby
-je jako opcjonalny „hint" i używał, gdy są dostępne; w ich braku (testy, fixture'y,
-zmiana w grze) działa jak dotąd. Dzięki temu istniejące testy pozostają nienaruszone.
+~~**Zamierzona architektura: uzupełnienie, nie zamiennik.**~~ ⚠️ **TO ZDANIE
+PRZESTAŁO BYĆ PRAWDZIWE 2026‑08‑04** (`f33a04c`). Zostaje skreślone, a nie
+usunięte, bo jego uzasadnienie było dobre i warto wiedzieć, co je obaliło.
+
+Mówiło tak: *„Log tekstowy zostaje źródłem obrażeń — przez kilkanaście zebranych
+zrzutów nie zmienił swojego formatu ani razu, a wewnętrzne struktury klienta
+takiej gwarancji nie mają i mogą paść przy każdym patchu. Z gry warto brać
+wyłącznie roster: `id`, `name`, `team`."*
+
+**Co się zmieniło.** Panel liczy dziś z protokołu silnika, a tekst jest drogą
+zapasową i kontrolną. Rozstrzygnęły trzy rzeczy, żadna z nich to nie zmiana
+zdania:
+
+1. **Pojawił się materiał, którego wtedy nie było** — jedna walka zapisana
+   obiema drogami. Na niej wszystkie trzynaście porównywanych pól zgadza się co
+   do jednostki, łącznie z numeracją instancji, którą każda droga liczy inną
+   metodą.
+2. **Ryzyko „struktury klienta mogą paść" zostało obudowane, a nie zignorowane.**
+   Gdy protokół nic nie przyśle, panel wraca do tekstu (`zrodloPanelu`), a gdy
+   obie drogi się rozjadą — mówi o tym w stopce. To jest odpowiedź na tamtą
+   obawę, nie jej odrzucenie.
+3. **Tekst nie zniknął i nie zniknie.** Nagrania są surowym tekstem, wklejony
+   log nie ma innej drogi, archiwum odtwarza przez `parse`. Dwa źródła obok
+   siebie to WIĘCEJ kodu, nie mniej — i tak było zapowiedziane w specu.
+
+**Co z tamtego zdania zostaje prawdą:** roster nadal bierzemy z gry jako
+opcjonalny hint i nadal działamy bez niego (testy, fixture'y, wklejka).
+Powody i odrzucone warianty:
+[`../docs/specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`](specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md).
 
 **Czego roster z Engine NIE załatwi:** przypisania linii logu do konkretnego
 NPC. Linia mówi `Wieczornica(100%)` i nic poza tym — nie niesie żadnego `id`,

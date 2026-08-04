@@ -1,6 +1,6 @@
 # Drugie źródło `BattleEvent` — dekoder protokołu i czujka rozjazdu
 
-Status: wdrożone (3a + etap 2) · 2026-08-04 · 4f51db5 — **3b nadal za bramą**
+Status: wdrożone · 2026-08-04 · f33a04c (3a, etap 2 i 3b)
 
 Trzeci z trójki. Sąsiedzi:
 [`2026-08-04-protokol-silnika-jako-zrodlo-parsera.md`](2026-08-04-protokol-silnika-jako-zrodlo-parsera.md)
@@ -672,3 +672,17 @@ Każdy commit przechodzi `bun run check` osobno.
      Bez nich odtwarzało się 7 z 18 komunikatów.
   4. Pozycja „`KLUCZE` nie niosą polskich etykiet proców" z wpisu wyżej jest
      **nieaktualna**: niosą identyfikatory, a etykiety przychodzą w locie.
+- **2026-08-04** — **3b wdrożone** (`f33a04c`): panel liczy z protokołu, tekst
+  zostaje drogą zapasową i kontrolną. Bramę otworzyła pierwsza para; zgodę na
+  przejście dało **porównanie pełnych statystyk pole po polu**, nie zieloność
+  testów. Pierwsze takie porównanie pokazało trzy regresje protokołu (`crits`
+  2 → 0, znak wiodący w etykiecie proca, `+Cios krytyczny` jako proc); po
+  naprawach zero różnic w trzynastu polach.
+
+  Wniosek do zapamiętania: **czujka porównywała cztery skalary i żadnej z tych
+  trzech nie widziała.** Cztery pola wystarczały, dopóki protokół był tylko
+  świadkiem; do przełączenia trzeba było zajrzeć we wszystkie. Zakres
+  porównania musi rosnąć razem z odpowiedzialnością porównywanego kodu.
+
+  `docs/DECYZJE.md` „uzupełnienie, nie zamiennik" skreślone w tym samym dniu,
+  z zapisem, co je obaliło.
