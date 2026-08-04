@@ -504,3 +504,24 @@ describe("dekoduj: leczenie bez leczącego zostaje bez leczącego", () => {
     });
   });
 });
+
+describe("dekoduj: osłabienie DoT-a", () => {
+  test("drugi człon wartości to procent osłabienia", () => {
+    // `poison=140,14` z pierwszej pary. Słownik gry: „%val0% (osłabione
+    // o %val1%%) obrażeń od trucizny." — parser tekstu czyta 14 od dawna.
+    const [z] = dekoduj(["1=19.27;0;poison=140,14"], SKLAD);
+    expect(z).toMatchObject({ kind: "dot", amount: 140, weakenedPct: 14, dotType: "trucizny" });
+  });
+
+  test("jeden człon to brak osłabienia, a nie zero", () => {
+    // Zero znaczyłoby „osłabione o 0%", czyli że gra to policzyła i wyszło
+    // zero. `null` znaczy „gra o tym nie mówi" i te dwa trzeba rozróżniać.
+    const [z] = dekoduj(["1=19.27;0;poison=140"], SKLAD);
+    expect(z).toMatchObject({ kind: "dot", amount: 140, weakenedPct: null });
+  });
+
+  test("kwota zostaje w członie zerowym, mimo dołożenia drugiego", () => {
+    const [z] = dekoduj(["1=6.71;0;anguish=3615,20"], SKLAD);
+    expect(z).toMatchObject({ kind: "dot", amount: 3615, weakenedPct: 20 });
+  });
+});

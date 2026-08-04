@@ -554,9 +554,23 @@ export function dekoduj(
               amount: kwota,
               via: r.przyimek,
               dotType: r.rodzaj,
-              // Protokół nie niesie osłabienia DoT-a osobnym kluczem — pytanie
-              // „osłabione o N%" zostaje otwarte tak samo jak po stronie tekstu.
-              weakenedPct: null,
+              // DRUGI CZŁON WARTOŚCI TO PROCENT OSŁABIENIA — udowodnione
+              // słownikiem gry 2026‑08‑04, a nie wywnioskowane z kształtu:
+              //
+              //   msg_poison  %name% %val0% %val1%
+              //     → „%name%: %val0% (osłabione o %val1%%) obrażeń od trucizny."
+              //   msg_wound_multi, msg_anguish — ten sam wzór.
+              //
+              // Do tego commita stało tu `null` z komentarzem „protokół nie
+              // niesie osłabienia osobnym kluczem". Niesie — nie osobnym
+              // kluczem, tylko drugim członem tego samego. Parser tekstu czytał
+              // to od dawna (`(osłabione o (\d+)%)` w `RE_DOT`), więc protokół
+              // gubił daną, którą druga droga miała.
+              //
+              // Orakulum tego NIE złapało i nie mogło: `damageWeakened` nie
+              // wchodzi do czterech porównywanych skalarów. Złapał odczyt
+              // słownika — dowód, że czujka i czytanie źródeł łapią co innego.
+              weakenedPct: liczba(czlony(p.wartosc)[1] ?? null),
             });
           break;
         }
