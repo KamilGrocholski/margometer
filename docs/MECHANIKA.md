@@ -508,6 +508,41 @@ fixturze protokołowym — łowca truje trzy odyńce bez ani jednego komunikatu
 nakładającego), a przy dwóch źródłach tego samego DoT‑a na jednym celu nie ma
 czego rozstrzygać.
 
+⚠️ **Kontekst międzykomunikatowy w grze ISTNIEJE — ale idzie tylko do przodu.**
+To była ostatnia ścieżka, którą przypisanie mogło się ukrywać, więc zamykam ją
+cytatem, a nie brakiem znaleziska. `battleEffects/BattleEffectsController.js`
+dostaje przy każdym kluczu WSZYSTKIE komunikaty i indeks bieżącego, i robi
+z nimi jedno:
+
+> ```js
+> this.getArrayToCheckBlock = (allM, indexM) => {
+>     let str     = allM[indexM];
+>     let result  = str.match(/skillId=([0-9]*)/g);
+>     if (result) {
+>         …
+>         let nextIndex = parseIndexM + 1;
+>         if (allM[nextIndex]) str = allM[indexM] + ',' + allM[nextIndex];
+> ```
+> — `battleEffects/BattleEffectsController.js:237‑248`
+
+Komunikat ze `skillId` sklejany z NASTĘPNYM, i tyle. **Nic nie patrzy wstecz.**
+Pomiar potwierdza zakres reguły: w korpusie protokołu 12 walk jest **444
+komunikatów ze `skillId`, z czego 333 (75%) mają obrażenia w następnym**;
+pozostałe to umiejętności, które obrażeń nie zadają.
+
+Ta sama reguła stoi po naszej stronie w `src/protokol.ts` (stan `zapowiedziana`)
+— napisana tam wcześniej z obserwacji korpusu, a teraz z cytatem.
+
+⚠️ **Dowód z konkretnej walki: nie ma czego korelować.** Fixture
+`2026-08-04_tempest_lowca-vs-odyncze`, 18 komunikatów przysłanych przez serwer,
+**ani jednego nakładającego truciznę**:
+
+    "482845=100.00;-255967=37.61;+dmgd=483;+acdmg=5;-dmgd=233",
+    "-255967=19.27;0;poison=140,14",
+
+Trucizna zaczyna tykać znikąd — bez proca, bez `skillId`, bez zapowiedzi.
+Nawet mając całą tablicę `t.m` naraz, nie ma z czym powiązać tyknięcia.
+
 ⚠️ **Jedyne miejsce, którego nie wykluczyłem: pole `mi`.** Ładunek `t` niesie
 `mi` — w naszym zrzucie `[0..17]` przy 18 komunikatach, w przykładzie
 z `Communication.js` `[0,1,2]` przy trzech. **Żaden z 547 plików nie czyta

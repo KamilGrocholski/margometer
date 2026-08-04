@@ -712,3 +712,15 @@ Każdy commit przechodzi `bun run check` osobno.
   Usterka 1 jest teraz odtworzona offline, na prawdziwym fixturze: komunikaty
   obcięte do czterech ostatnich dają sesję z wierszami i zerami, a przed naprawą
   panel brał z niej 0 zamiast 2784.
+- **2026-08-04** — przetwarzanie protokołu **po stronie gry przeczytane
+  w całości** przy pytaniu „kto bije trucizną". `t.m` idzie przez dwie rzeczy:
+  `battleMsg` (zdania) i `battleEffectsController` (animacje). Ten drugi dostaje
+  wszystkie komunikaty i indeks bieżącego, ale robi z tym **jedno**: przy
+  `skillId` skleja komunikat z NASTĘPNYM (`indexM + 1`).
+
+  To **potwierdza cytatem z gry** stan `zapowiedziana` w `dekoduj`, opisany tam
+  wcześniej z obserwacji korpusu. Pomiar zakresu: 444 komunikaty ze `skillId`
+  w 12 walkach, 333 (75%) z obrażeniami w następnym.
+
+  Sprawcy DoT‑a to nie zmienia: kontekst idzie wyłącznie DO PRZODU, a w naszym
+  fixturze trucizna nie ma komunikatu nakładającego w ogóle.

@@ -615,6 +615,27 @@ export function dekoduj(
   const zdarzenia: BattleEvent[] = [];
   // Zapowiedź umiejętności przychodzi OSOBNYM komunikatem, a obrażenia dopiero
   // następnym (w korpusie: `…;p_.Porażenie;skillId.70` i dopiero potem `@Dc.…`).
+  //
+  // TO NIE JEST NASZ DOMYSŁ — GRA ROBI DOKŁADNIE TO SAMO.
+  // `battleEffects/BattleEffectsController.js:237‑255`, przy obsłudze każdego
+  // klucza:
+  //
+  //     let str    = allM[indexM];
+  //     let result = str.match(/skillId=([0-9]*)/g);
+  //     if (result) {
+  //         let nextIndex = parseIndexM + 1;
+  //         if (allM[nextIndex]) str = allM[indexM] + ',' + allM[nextIndex];
+  //
+  // Komunikat ze `skillId` gra skleja z NASTĘPNYM i traktuje oba jako jedną
+  // akcję. Pomiar na korpusie protokołu (12 walk): 444 komunikaty ze `skillId`,
+  // z czego 333 (75%) mają obrażenia w następnym; reszta to umiejętności, które
+  // obrażeń nie zadają. Reguła nie ma więc wyjątków, tylko zakres.
+  //
+  // ⚠️ Kontekst międzykomunikatowy w grze idzie WYŁĄCZNIE DO PRZODU i wyłącznie
+  // przy `skillId`. Nic nie patrzy wstecz — i to jest ostatnia ścieżka, którą
+  // mogłoby się ukrywać przypisanie sprawcy DoT‑a. Nie ukrywa się
+  // (`docs/MECHANIKA.md` §„Sprawca DoT‑a").
+  //
   // Stan jest lokalny dla wywołania, więc funkcja zostaje czysta.
   let zapowiedziana: string | null = null;
 
