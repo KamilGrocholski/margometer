@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { zamrozenie, type Wpis, type Zamrozenie } from "../tools/slownik.ts";
+import { nazwyKluczy, zamrozenie, type Wpis, type Zamrozenie } from "../tools/slownik.ts";
 
 /**
  * Zamrożona lista etykiet renderera — czego ten plik pilnuje, a czego nie.
@@ -43,18 +43,30 @@ describe("fixture: zamrożona lista etykiet", () => {
   });
 
   test("jest posortowana i bez powtórzeń", () => {
-    expect(ZAMROZONE.klucze).toEqual([...ZAMROZONE.klucze].sort());
-    expect(new Set(ZAMROZONE.klucze).size).toBe(ZAMROZONE.klucze.length);
-  });
-
-  test("każda milcząca etykieta stoi też na liście pełnej", () => {
-    // Gdyby `milczace` zawierało klucz spoza `klucze`, test pokrycia dekodera
-    // zwalniałby z obsługi klucz, o którym nic nie wie.
-    for (const klucz of ZAMROZONE.milczace) expect(ZAMROZONE.klucze).toContain(klucz);
+    const nazwy = nazwyKluczy(ZAMROZONE);
+    expect(nazwy).toEqual([...nazwy].sort());
+    expect(new Set(nazwy).size).toBe(nazwy.length);
   });
 
   test("milczących jest mniej niż wszystkich — inaczej gra nie wypisywałaby nic", () => {
-    expect(ZAMROZONE.milczace.length).toBeLessThan(ZAMROZONE.klucze.length);
+    expect(ZAMROZONE.klucze.filter((w) => w.milczy).length).toBeLessThan(ZAMROZONE.klucze.length);
+  });
+
+  test("klucz ze zdaniem ma też IDENTYFIKATOR — to on idzie do `window._t`", () => {
+    // Dodatek rozwiązuje brzmienia w locie po identyfikatorze. Wpis ze zdaniem,
+    // ale bez id, byłby w przeglądarce bezużyteczny — a w teście przechodziłby,
+    // bo test miałby zdanie pod ręką.
+    const zeZdaniemBezId = ZAMROZONE.klucze.filter((w) => w.zdanie !== null && w.id === null);
+    expect(zeZdaniemBezId).toEqual([]);
+  });
+
+  test("milczący klucz NIE ma zdania — inaczej „milczy” byłoby nieprawdą", () => {
+    expect(ZAMROZONE.klucze.filter((w) => w.milczy && w.zdanie !== null)).toEqual([]);
+  });
+
+  test("większość kluczy ma zdanie — plik bez brzmień nie niósłby nic nowego", () => {
+    const zeZdaniem = ZAMROZONE.klucze.filter((w) => w.zdanie !== null).length;
+    expect(zeZdaniem).toBeGreaterThan(ZAMROZONE.klucze.length / 2);
   });
 });
 
@@ -74,15 +86,29 @@ describe("zamrozenie()", () => {
 
   test("bierze wszystkie klucze, posortowane", () => {
     const z = zamrozenie("123", "2026-08-04", wpisy, ciala);
-    expect(z.klucze).toEqual(["luka", "ma_zdanie", "milczy", "sama_liczba"]);
+    expect(nazwyKluczy(z)).toEqual(["luka", "ma_zdanie", "milczy", "sama_liczba"]);
+  });
+
+  test("przenosi identyfikator i szablon bez zmian", () => {
+    // To one jadą do `window._t` i do weryfikacji offline; przepisanie ich
+    // „po swojemu" zerwałoby zgodność z tym, co gra faktycznie wypisze.
+    const z = zamrozenie("123", "2026-08-04", wpisy, ciala);
+    const maZdanie = z.klucze.find((w) => w.klucz === "ma_zdanie");
+    expect(maZdanie).toEqual({
+      klucz: "ma_zdanie",
+      id: "msg_ma_zdanie",
+      zdanie: "Coś się stało.",
+      milczy: false,
+    });
   });
 
   test("milczące to WYŁĄCZNIE werdykt „nic”, nie każdy brak zdania", () => {
     // Sedno tego pliku. `sama_liczba` i `luka` też nie mają zdania, ale gra
-    // przy nich COŚ wypisuje — wrzucenie ich do `milczace` kazałoby dekoderowi
-    // uznać, że wolno je pominąć, i zjadłoby obrażenia bez ostrzeżenia.
+    // przy nich COŚ wypisuje — oznaczenie ich jako milczących kazałoby
+    // dekoderowi uznać, że wolno je pominąć, i zjadłoby obrażenia bez
+    // ostrzeżenia.
     const z = zamrozenie("123", "2026-08-04", wpisy, ciala);
-    expect(z.milczace).toEqual(["milczy"]);
+    expect(z.klucze.filter((w) => w.milczy).map((w) => w.klucz)).toEqual(["milczy"]);
   });
 
   test("etykieta bez znanego ciała nie wchodzi do milczących na wiarę", () => {
@@ -90,8 +116,8 @@ describe("zamrozenie()", () => {
     // dałby werdykt „nic”, więc ten przypadek trzeba trzymać na oku: dopóki
     // `zamrozenie` czyta ciała z tej samej tabeli co `tabela()`, nie zachodzi.
     const z = zamrozenie("123", "2026-08-04", [wpis("sierota", null)], new Map());
-    expect(z.klucze).toEqual(["sierota"]);
-    expect(z.milczace).toEqual(["sierota"]);
+    expect(nazwyKluczy(z)).toEqual(["sierota"]);
+    expect(z.klucze[0]!.milczy).toBe(true);
   });
 
   test("przepisuje build i datę bez zmian", () => {

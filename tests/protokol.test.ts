@@ -199,8 +199,9 @@ describe("liczba", () => {
  * klienta). To dwa różne błędy i jednostronny test przepuściłby drugi.
  */
 const ZAMROZONE_KLUCZE: string[] = (
-  await Bun.file(new URL("./fixtures/klucze-protokolu.json", import.meta.url).pathname).json()
-).klucze;
+  (await Bun.file(new URL("./fixtures/klucze-protokolu.json", import.meta.url).pathname).json())
+    .klucze as { klucz: string }[]
+).map((w) => w.klucz);
 
 describe("pokrycie tabeli kluczy", () => {
   test("każdy klucz z zamrożonej listy ma rolę", () => {

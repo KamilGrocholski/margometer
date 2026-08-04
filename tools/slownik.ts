@@ -318,20 +318,42 @@ export function buildKlienta(html: string): string {
  * **naszym pomiarem gry, z datą i numerem builda**, dokładnie jak `clientBuild`
  * w `meta.json` przy fixture'ach.
  *
- * `milczace` to etykiety z werdyktem `"nic"` — gra ma dla nich puste ciało
+ * `milczy` oznacza etykiety z werdyktem `"nic"` — gra ma dla nich puste ciało
  * i świadomie nie wypisuje niczego. Dla dekodera to NIE jest luka, tylko
  * odpowiedź, i test pokrycia musi umieć te dwie rzeczy rozróżnić.
+ *
+ * NIESIE TEŻ IDENTYFIKATOR I SZABLON, od 2026‑08‑04. Powód: dodatek rozwiązuje
+ * brzmienia w locie przez `window._t`, ale **listy kluczy z gry wyliczyć się
+ * nie da** — `_dict` jest w produkcji domknięty w module. Mapa
+ * `klucz → identyfikator` musi więc zostać w repo, a skoro i tak zostaje,
+ * to szablon obok niej jest darmowy i pozwala testom obejść się bez
+ * przeglądarki. Ten plik jest **plikiem źródłowym**, na którym stoi i dodatek,
+ * i weryfikacja.
  */
 const ZAMROZENIE = new URL("../tests/fixtures/klucze-protokolu.json", import.meta.url).pathname;
+
+export type WpisZamrozony = {
+  klucz: string;
+  /** Identyfikator `_t`, np. `msg_+rage %val%`. `null`, gdy zdania nie ma. */
+  id: string | null;
+  /** Szablon ze słownika gry, z podstawieniami `%val%`, `%name%`, `%hpp%`. */
+  zdanie: string | null;
+  /** Gra ma puste ciało i nie wypisuje NICZEGO — odpowiedź, nie luka. */
+  milczy: boolean;
+};
 
 export type Zamrozenie = {
   build: string;
   swiat: string;
   zmierzone: string;
   metoda: string;
-  klucze: string[];
-  milczace: string[];
+  klucze: WpisZamrozony[];
 };
+
+/** Same nazwy — wygodne tam, gdzie pytanie brzmi „czy wiemy o tym kluczu". */
+export function nazwyKluczy(z: Zamrozenie): string[] {
+  return z.klucze.map((w) => w.klucz);
+}
 
 export function zamrozenie(
   build: string,
@@ -339,18 +361,20 @@ export function zamrozenie(
   wpisy: Wpis[],
   ciala: Map<string, string>,
 ): Zamrozenie {
-  const klucze = wpisy.map((w) => w.klucz).sort();
-  const milczace = wpisy
-    .filter((w) => w.zdanie === null && werdykt(ciala.get(w.klucz) ?? "") === "nic")
-    .map((w) => w.klucz)
-    .sort();
+  const klucze = [...wpisy]
+    .sort((a, b) => (a.klucz < b.klucz ? -1 : a.klucz > b.klucz ? 1 : 0))
+    .map((w) => ({
+      klucz: w.klucz,
+      id: w.identyfikator,
+      zdanie: w.zdanie,
+      milczy: w.zdanie === null && werdykt(ciala.get(w.klucz) ?? "") === "nic",
+    }));
   return {
     build,
     swiat: SWIAT,
     zmierzone: dzis,
     metoda: "bun tools/slownik.ts --zamroz",
     klucze,
-    milczace,
   };
 }
 
@@ -395,7 +419,7 @@ if (import.meta.main) {
     const zapis = zamrozenie(build, dzis, wszystkie, etykiety);
     await Bun.write(ZAMROZENIE, `${JSON.stringify(zapis, null, 2)}\n`);
     console.log(
-      `zamrożono ${zapis.klucze.length} etykiet (${zapis.milczace.length} milczących) → ${ZAMROZENIE}`,
+      `zamrożono ${zapis.klucze.length} etykiet (${zapis.klucze.filter((w) => w.milczy).length} milczących, ${zapis.klucze.filter((w) => w.zdanie !== null).length} ze zdaniem) → ${ZAMROZENIE}`,
     );
     process.exit(0);
   }
