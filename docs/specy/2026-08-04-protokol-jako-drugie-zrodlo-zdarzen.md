@@ -686,3 +686,29 @@ Każdy commit przechodzi `bun run check` osobno.
 
   `docs/DECYZJE.md` „uzupełnienie, nie zamiennik" skreślone w tym samym dniu,
   z zapisem, co je obaliło.
+- **2026-08-04** — **pierwsze uruchomienie w grze znalazło trzy usterki**
+  (`418bb0e`, `3a643a7`) i żadnej z nich nie złapały ani orakulum, ani czujka.
+  To jest najważniejszy wniosek tej rundy.
+
+  Objaw: ostrzeżenie „dwa odczyty walki dały różne liczby: 2595 kontra 0
+  (i 6 różnic)" przy poprawnie wyglądających statystykach. Diagnoza z samego
+  zrzutu: siedem różnic zgadza się co do sztuki z liczbą niezerowych pól
+  (3+2+1+1), czyli **protokół miał komplet wierszy i same zera**.
+
+  1. **`zrodloPanelu` pytało o liczbę WIERSZY, nie o treść.** Wiersze biorą się
+     ze składu podanego z gry, więc sesja bez ani jednego ciosu wygrywała
+     z poprawnym odczytem tekstowym i panel mógł pokazać zera.
+  2. **Ostrzeżenie nigdy nie gasło** — napis z jednej walki wisiał nad następną.
+  3. **Wyścig przy podpięciu.** Owinięcie `Engine.battle.update` idzie z zegara,
+     a gra tworzy nowy obiekt walki przy każdej walce. Okno zwężone z 500 do
+     150 ms, ale **nie zamknięte** — i zamknąć się go tym sposobem nie da.
+
+  **Dlaczego nie złapały tego testy, które mamy.** Orakulum i czujka sprawdzają
+  DEKODER: dostają komunikaty i pytają, czy liczby się zgadzają. Te trzy usterki
+  siedzą w SPIĘCIU — w tym, co robimy, gdy komunikatów NIE MA. Cała weryfikacja
+  tej rundy zakładała, że dane są; pierwszy kontakt z grą był pierwszym testem
+  założenia.
+
+  Usterka 1 jest teraz odtworzona offline, na prawdziwym fixturze: komunikaty
+  obcięte do czterech ostatnich dają sesję z wierszami i zerami, a przed naprawą
+  panel brał z niej 0 zamiast 2784.
