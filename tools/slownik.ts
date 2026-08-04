@@ -33,6 +33,7 @@
  *   bun tools/slownik.ts rage krwawieni      # filtr po kluczu i po zdaniu
  *   bun tools/slownik.ts --klucz "+wound"    # dokładnie ten klucz
  *   bun tools/slownik.ts --braki             # etykiety bez zdania
+ *   bun tools/slownik.ts --zamroz            # lista etykiet → fixture
  *   bun tools/slownik.ts --odswiez           # pobierz assety na nowo
  */
 
@@ -300,11 +301,65 @@ export function buildKlienta(html: string): string {
   return trafienie[1]!;
 }
 
+/**
+ * Zamrożona lista etykiet renderera — jedyny fakt o grze, który da się
+ * sprawdzić bez sieci.
+ *
+ * PO CO. Dekoder protokołu (`src/protokol.ts`) musi wiedzieć o KAŻDYM kluczu,
+ * który gra umie wysłać, bo nierozpoznany klucz to cicho niepoliczone obrażenia.
+ * Korpus tekstowy na to pytanie nie odpowiada: ma zero linii `unknown`, co —
+ * jak mówi `docs/ROADMAP.md` — „samo z siebie nie mówi nic o tym, czego parser
+ * NIE rozpoznaje". Zbiór kluczy gry jest za to skończony i policzalny, więc
+ * pokrycie da się DOMKNĄĆ, a nie tylko oszacować.
+ *
+ * DLACZEGO SAMA LISTA, A NIE ŹRÓDŁO. Wcommitowanie renderera odrzucone
+ * w `docs/specy/2026-08-04-zrodla-klienta-z-buildu-deweloperskiego.md`: to cudzy,
+ * zastrzeżony kod, na zawsze w historii gita. Lista nazw jest inną kategorią —
+ * **naszym pomiarem gry, z datą i numerem builda**, dokładnie jak `clientBuild`
+ * w `meta.json` przy fixture'ach.
+ *
+ * `milczace` to etykiety z werdyktem `"nic"` — gra ma dla nich puste ciało
+ * i świadomie nie wypisuje niczego. Dla dekodera to NIE jest luka, tylko
+ * odpowiedź, i test pokrycia musi umieć te dwie rzeczy rozróżnić.
+ */
+const ZAMROZENIE = new URL("../tests/fixtures/klucze-protokolu.json", import.meta.url).pathname;
+
+export type Zamrozenie = {
+  build: string;
+  swiat: string;
+  zmierzone: string;
+  metoda: string;
+  klucze: string[];
+  milczace: string[];
+};
+
+export function zamrozenie(
+  build: string,
+  dzis: string,
+  wpisy: Wpis[],
+  ciala: Map<string, string>,
+): Zamrozenie {
+  const klucze = wpisy.map((w) => w.klucz).sort();
+  const milczace = wpisy
+    .filter((w) => w.zdanie === null && werdykt(ciala.get(w.klucz) ?? "") === "nic")
+    .map((w) => w.klucz)
+    .sort();
+  return {
+    build,
+    swiat: SWIAT,
+    zmierzone: dzis,
+    metoda: "bun tools/slownik.ts --zamroz",
+    klucze,
+    milczace,
+  };
+}
+
 /** CLI za bramką, żeby dało się ten plik zaimportować — jak w `tools/pomoc.ts`. */
 if (import.meta.main) {
   const argumenty = process.argv.slice(2);
   const odswiez = argumenty.includes("--odswiez");
   const braki = argumenty.includes("--braki");
+  const zamroz = argumenty.includes("--zamroz");
   const gdzieKlucz = argumenty.indexOf("--klucz");
   const dokladnyKlucz = gdzieKlucz === -1 ? null : argumenty[gdzieKlucz + 1];
   if (gdzieKlucz !== -1) {
@@ -334,6 +389,16 @@ if (import.meta.main) {
   console.error(
     `build ${build} — ${wszystkie.length} etykiet renderera, ${zeZdaniem} ze zdaniem\n`,
   );
+
+  if (zamroz) {
+    const dzis = new Date().toISOString().slice(0, 10);
+    const zapis = zamrozenie(build, dzis, wszystkie, etykiety);
+    await Bun.write(ZAMROZENIE, `${JSON.stringify(zapis, null, 2)}\n`);
+    console.log(
+      `zamrożono ${zapis.klucze.length} etykiet (${zapis.milczace.length} milczących) → ${ZAMROZENIE}`,
+    );
+    process.exit(0);
+  }
 
   if (braki) {
     const bez = wszystkie.filter((w) => w.zdanie === null);
