@@ -1,7 +1,6 @@
 # Drugie źródło `BattleEvent` — dekoder protokołu i czujka rozjazdu
 
-Status: projekt
-<!-- po wdrożeniu: `Status: wdrożone · RRRR-MM-DD · {skrót commita}` -->
+Status: wdrożone (3a) · 2026-08-04 · 9a39bb8 — **3b nadal za bramą**
 
 Trzeci z trójki. Sąsiedzi:
 [`2026-08-04-protokol-silnika-jako-zrodlo-parsera.md`](2026-08-04-protokol-silnika-jako-zrodlo-parsera.md)
@@ -593,3 +592,30 @@ Każdy commit przechodzi `bun run check` osobno.
 ## Zmiany wpisu
 
 - **2026-08-04** — powstał.
+- **2026-08-04** — **etap 3a wdrożony** (kroki 1‑9, `88e2cf5`…`9a39bb8`).
+  Cztery rzeczy wyszły inaczej, niż ten spec zakładał, i wszystkie na korzyść:
+
+  1. **Tabela kluczy jest DUŻO prostsza.** Spec straszył „233 kluczami jako
+     pracą łatwą do zrobienia w 60%". Pomiar na ciałach gałęzi: liczby niosą
+     **cztery klucze** (`+of_dmg`, `+thirdatt`, `-thirdatt` i gałąź `default`),
+     a 217 z 233 tylko wypisuje zdanie. Ciężar leży w leczeniu i DoT‑ach,
+     nie w obrażeniach.
+  2. **Odwzorowanie DoT‑ów trafia w istniejący kontrakt co do słowa.** Przyimki
+     ze słownika gry („obrażeń **od** trucizny", „**po** zranieniu") są
+     dokładnie polem `via: "od" | "po"` z `types.ts`. A `heal_target` celujący
+     w `f2` jest STRUKTURALNYM dowodem na `heal.self === false`, gdzie
+     `types.ts:117‑128` miało dotąd wniosek z brzmienia zdania.
+  3. **`KLUCZE` nie niosą polskich etykiet proców** — wbrew szkicowi
+     `{typ:"proc"; etykieta:string}` w tym specu. Czujka porównuje SKALARY,
+     więc etykiety nie są jej do niczego potrzebne, a 201 zdań powiększyłoby
+     userscript bez czytelnika. Etykiety wchodzą dopiero z 3b, jeśli protokół
+     kiedyś zasili rozbicia.
+  4. **Koszt w userscripcie: 154 622 → 174 038 B (+12%)**, i cały przyrost
+     przyszedł w OSTATNIM commicie. Wcześniejsze dawały +0 B, bo bundler wciąga
+     tylko to, co osiągalne z `src/index.ts`.
+
+  Sprostowanie do sekcji „Weryfikacja" tego pliku: zapowiadała mutację
+  `indexOf("=") > 0` → `!== -1` jako sprawdzian rozbioru. **Ta mutacja nie
+  zapala niczego** — obie formy kończą na `NaN`, więc są nierozróżnialne
+  wynikiem. Zapis gry został dla czytelności, ale komentarz i test mówią teraz
+  wprost, że nic go nie pilnuje.

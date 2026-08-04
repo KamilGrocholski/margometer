@@ -1,7 +1,6 @@
 # Oryginalne źródła klienta gry zamiast heurystyki na minifikacie
 
-Status: projekt
-<!-- po wdrożeniu: `Status: wdrożone · RRRR-MM-DD · {skrót commita}` -->
+Status: wdrożone · 2026-08-04 · 16ddc62
 
 Sąsiad: [`2026-08-04-protokol-silnika-jako-zrodlo-parsera.md`](2026-08-04-protokol-silnika-jako-zrodlo-parsera.md)
 — tamten spec pyta, **co** gra wysyła do okna walki. Ten pyta, **skąd** to
@@ -201,3 +200,10 @@ Wszystko zmierzone przed napisaniem tego zdania:
 ## Zmiany wpisu
 
 - **2026-08-04** — powstał.
+- **2026-08-04** — wdrożone w `16ddc62`; plan przeszedł bez zmian. Pozycja
+  „reszta 647 plików" z sekcji niżej została **skonsumowana** przez
+  [`2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`](2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md):
+  `BattleMessages.js` i `Battle.js` są przeczytane, a trzy ustalenia z nich
+  (syntetyczna linia otwarcia, obcięcie na drugim `=`, komunikat jako blok)
+  stoją w „Problemie" tamtego speca. `OneWarrior.js`, `Warriors.js`
+  i `characterEffects/` nadal nie.

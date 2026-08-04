@@ -42,6 +42,11 @@ Status stoi w drugiej linii pliku, jednym z dwóch słów:
 - **`projekt`** — napisany, jeszcze nie wdrożony;
 - **`wdrożone`** — plus data i skrót commita.
 
+Spec obejmujący kilka etapów dopisuje, KTÓRY wszedł — `wdrożone (3a) · …` —
+bo „projekt" kłamałby o kodzie, który już działa, a samo „wdrożone" o tym,
+który nie wszedł. Trzecia forma jest wyjątkiem, nie zaproszeniem: przepis
+`grep` niżej ma dalej wypisywać wyłącznie speki bez ani jednej wdrożonej części.
+
 Plików **nie przenosimy** do podkatalogu po wdrożeniu — to spotykany wariant,
 ale tu byłaby to zmiana ścieżki, do której odsyłają commity. Status w nagłówku
 wystarcza, a listę otwartych daje:
@@ -71,8 +76,8 @@ później. Kod mówi, co wybrano; nie mówi, czego nie wybrano i dlaczego.
 | [`2026-08-03-parser-tokenizer-i-gramatyka.md`](2026-08-03-parser-tokenizer-i-gramatyka.md) | projekt |
 | [`2026-08-03-porzucone-funkcje-schodza-z-drzewa.md`](2026-08-03-porzucone-funkcje-schodza-z-drzewa.md) | wdrożone · 2026‑08‑03 |
 | [`2026-08-04-protokol-silnika-jako-zrodlo-parsera.md`](2026-08-04-protokol-silnika-jako-zrodlo-parsera.md) | projekt |
-| [`2026-08-04-zrodla-klienta-z-buildu-deweloperskiego.md`](2026-08-04-zrodla-klienta-z-buildu-deweloperskiego.md) | projekt |
-| [`2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`](2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md) | projekt |
+| [`2026-08-04-zrodla-klienta-z-buildu-deweloperskiego.md`](2026-08-04-zrodla-klienta-z-buildu-deweloperskiego.md) | wdrożone · 2026‑08‑04 |
+| [`2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`](2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md) | wdrożone (3a) · 2026‑08‑04 |
 
 Tabelę uzupełnia się ręcznie przy dodaniu pliku.
 
