@@ -1,6 +1,6 @@
 {
   "name": "margometer",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Licznik obrażeń do Margonem — statystyki z okna walki",
   "homepage": "https://github.com/KamilGrocholski/margometer",
   "private": true,

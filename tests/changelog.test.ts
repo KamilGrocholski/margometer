@@ -17,11 +17,31 @@ describe("sekcja wydania z CHANGELOG-a", () => {
   });
 
   test("sekcja obejmuje CAŁĄ wersję i nie zahacza o sąsiada", () => {
-    const section = changelogSection(CHANGELOG, pkg.version)!;
-    // Wpisy z całej rozpiętości typów, czyli od góry do dołu sekcji.
-    expect(section).toContain("**Nowość**");
-    expect(section).toContain("**Poprawka**");
-    expect(section).not.toContain("## [0.2.0]");
+    // ⚠️ WERSJA WPISANA NA SZTYWNO, I TO JEST POPRAWKA Z 2026‑08‑04.
+    //
+    // Test brał wcześniej `pkg.version` i sprawdzał, że sekcja niesie zarówno
+    // `**Nowość**`, jak i `**Poprawka**` — jako namiastkę „od góry do dołu".
+    // To wiąże test z TREŚCIĄ wydania, które akurat się przygotowuje: wydanie
+    // bez ani jednej poprawki jest w pełni legalne, a test je blokował.
+    // Zapalił się przy `0.5.0` (nowość + dwie zmiany, zero poprawek).
+    //
+    // `0.4.0` jest do tego lepsze, bo ma **tag** — a `docs/WYDANIE.md` mówi
+    // wprost: „po tagu sekcji się nie rusza, ktoś już to wydanie ma". Treść
+    // jest więc zamrożona, a test dalej mierzy to samo: czy granice sekcji
+    // biegną tam, gdzie trzeba.
+    const wydane = changelogSection(CHANGELOG, "0.4.0")!;
+    expect(wydane).toContain("**Nowość**");
+    expect(wydane).toContain("**Poprawka**");
+    expect(wydane).not.toContain("## [0.3.0]");
+    expect(wydane).not.toContain("Instalacja jednym kliknięciem");
+  });
+
+  test("sekcja bieżącej wersji nie zahacza o poprzednią", () => {
+    // To, co z poprzedniego testu dotyczy WYDAWANEJ wersji i nie zakłada
+    // niczego o rodzajach wpisów w niej.
+    const biezaca = changelogSection(CHANGELOG, pkg.version)!;
+    expect(biezaca).toMatch(/\*\*(Nowość|Zmiana|Poprawka)\*\*/);
+    expect(biezaca).not.toMatch(/^## \[/m);
   });
 
   test("nieznana wersja daje null, nie pustą treść", () => {
