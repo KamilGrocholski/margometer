@@ -1402,5 +1402,20 @@
       "zdanie": "%name% rozszarpuje rany %target%",
       "milczy": false
     }
-  ]
+  ],
+  "ramy": {
+    "msg_dmgdone %name1% %hpp% %val%": "%name1%(%hpp%%) uderzył# z siłą %val%",
+    "msg_dmgtaken %name1% %hpp% %val%": "%name1%(%hpp%%) otrzymał$ %val% obrażeń",
+    "winner_is %name% %posfix%": "Zwyciężył%posfix% %name%",
+    "winner_team_is %name% %posfix%": "Zwyciężyła drużyna %name%",
+    "loser_is %name% %posfix%": "Poległ%posfix% %name%",
+    "loser_team_is %name% %posfix%": "Poległa drużyna %name%",
+    "battle_no_winner": "Walka nie wyłoniła zwycięzcy",
+    "msg_poison %name% %val0% %val1%": "%name%: %val0% (osłabione o %val1%%) obrażeń od trucizny.",
+    "msg_wound_multi %name% %val0% %val1%": "%name%: %val0% (osłabione o %val1%%) obrażeń od głębokiej rany.",
+    "msg_injure %name% %val0% %val1%": "%name%: %val%  (osłabione o %val1%%) obrażeń po zranieniu.",
+    "msg_anguish %name% %hpp% %val0% %val1%": "%name%(%hpp%%): %val0% (osłabione o %val1%%) obrażeń od krwawienia.",
+    "part_gained": "Przywrócono",
+    "part_lost": "Stracono"
+  }
 }

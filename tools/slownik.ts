@@ -37,6 +37,8 @@
  *   bun tools/slownik.ts --odswiez           # pobierz assety na nowo
  */
 
+import { SlownikStaly } from "../src/slownik-gry.ts";
+
 const CACHE = new URL("../.cache/", import.meta.url).pathname;
 
 /**
@@ -342,13 +344,64 @@ export type WpisZamrozony = {
   milczy: boolean;
 };
 
+/**
+ * Identyfikatory, których NIE MA wśród etykiet `case`, a bez których nie da się
+ * złożyć zdania.
+ *
+ * `battleMsg` woła je poza `switch`em: rama ciosu („uderzył z siłą" /
+ * „otrzymał N obrażeń"), rozstrzygnięcie walki i warianty DWUCZŁONOWE
+ * DoT‑ów — te ostatnie mają inny identyfikator niż wariant z jedną wartością,
+ * więc tabela `klucz → id` ich nie zna.
+ *
+ * Lista jest RĘCZNA i taka zostaje: to nie jest zbiór, który da się wyliczyć
+ * z renderera, tylko te miejsca, w których czytaliśmy jego kod i widzieliśmy
+ * wywołanie `_t`. Identyfikator, którego tu brakuje, objawi się jako
+ * nieodtworzony komunikat w `tools/odtworz.ts` — głośno, nie po cichu.
+ */
+const RAMY = [
+  "msg_dmgdone %name1% %hpp% %val%",
+  "msg_dmgtaken %name1% %hpp% %val%",
+  "winner_is %name% %posfix%",
+  "winner_team_is %name% %posfix%",
+  "loser_is %name% %posfix%",
+  "loser_team_is %name% %posfix%",
+  "battle_no_winner",
+  "msg_poison %name% %val0% %val1%",
+  "msg_wound_multi %name% %val0% %val1%",
+  "msg_injure %name% %val0% %val1%",
+  "msg_anguish %name% %hpp% %val0% %val1%",
+  "part_gained",
+  "part_lost",
+] as const;
+
 export type Zamrozenie = {
   build: string;
   swiat: string;
   zmierzone: string;
   metoda: string;
   klucze: WpisZamrozony[];
+  /** Szablony spoza tabeli kluczy — patrz `RAMY`. `null` znaczy „gra tego nie zna". */
+  ramy: Record<string, string | null>;
 };
+
+/**
+ * Zamrożona tabela → słownik do użycia poza przeglądarką.
+ *
+ * Jedno miejsce, żeby testy i narzędzia budowały go tak samo; różnice
+ * w składaniu (np. pominięcie `ramy`) dałyby ciche „nie znam identyfikatora",
+ * a to w odtwarzaniu wygląda jak brak szablonu w grze.
+ */
+export function slownikZeZamrozenia(z: Zamrozenie): SlownikStaly {
+  const wpisy: [string, string][] = [];
+  for (const w of z.klucze) if (w.id !== null && w.zdanie !== null) wpisy.push([w.id, w.zdanie]);
+  for (const [id, szablon] of Object.entries(z.ramy)) if (szablon !== null) wpisy.push([id, szablon]);
+  return new SlownikStaly(wpisy);
+}
+
+/** Klucz protokołu → identyfikator `_t`, dla narzędzi odtwarzających zdania. */
+export function identyfikatoryZeZamrozenia(z: Zamrozenie): Map<string, string | null> {
+  return new Map(z.klucze.map((w) => [w.klucz, w.id]));
+}
 
 /** Same nazwy — wygodne tam, gdzie pytanie brzmi „czy wiemy o tym kluczu". */
 export function nazwyKluczy(z: Zamrozenie): string[] {
@@ -360,6 +413,7 @@ export function zamrozenie(
   dzis: string,
   wpisy: Wpis[],
   ciala: Map<string, string>,
+  indeks: Map<string, string> = new Map(),
 ): Zamrozenie {
   const klucze = [...wpisy]
     .sort((a, b) => (a.klucz < b.klucz ? -1 : a.klucz > b.klucz ? 1 : 0))
@@ -369,12 +423,16 @@ export function zamrozenie(
       zdanie: w.zdanie,
       milczy: w.zdanie === null && werdykt(ciala.get(w.klucz) ?? "") === "nic",
     }));
+  const ramy: Record<string, string | null> = {};
+  for (const id of RAMY) ramy[id] = indeks.get(id) ?? null;
+
   return {
     build,
     swiat: SWIAT,
     zmierzone: dzis,
     metoda: "bun tools/slownik.ts --zamroz",
     klucze,
+    ramy,
   };
 }
 
@@ -416,7 +474,7 @@ if (import.meta.main) {
 
   if (zamroz) {
     const dzis = new Date().toISOString().slice(0, 10);
-    const zapis = zamrozenie(build, dzis, wszystkie, etykiety);
+    const zapis = zamrozenie(build, dzis, wszystkie, etykiety, indeksTlumaczen(slownik));
     await Bun.write(ZAMROZENIE, `${JSON.stringify(zapis, null, 2)}\n`);
     console.log(
       `zamrożono ${zapis.klucze.length} etykiet (${zapis.klucze.filter((w) => w.milczy).length} milczących, ${zapis.klucze.filter((w) => w.zdanie !== null).length} ze zdaniem) → ${ZAMROZENIE}`,
