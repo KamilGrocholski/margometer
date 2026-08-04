@@ -1,0 +1,1015 @@
+{
+  "wersja": 1,
+  "przy": "2026-08-04T12:28:13.631Z",
+  "swiat": "tempest",
+  "build": "1785244275300",
+  "otwarcie": null,
+  "wpisy": [
+    {
+      "nr": 0,
+      "ladunek": {
+        "init": "1",
+        "auto": "0",
+        "battleground": "009.jpg",
+        "skills_disabled": [],
+        "skills_combo_max": [],
+        "skills": [
+          "-1",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "-2",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "w": {
+          "482845": {
+            "originalId": 482845,
+            "name": "Łowcożyr Kazrek",
+            "lvl": 40,
+            "oplvl": 40,
+            "prof": "h",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 5815,
+              "cur": 5815,
+              "hpp": 100
+            },
+            "team": 1,
+            "y": 0,
+            "icon": "/kuf/kuf_h17-h3-low-m.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "mana": 0,
+            "energy": 112,
+            "mana0": 0,
+            "energy0": 112,
+            "fast": 0,
+            "ac": {
+              "cur": 239,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 15,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 32,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "cooldowns": [],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 482845
+          },
+          "-161518": {
+            "originalId": 161518,
+            "name": "Locha",
+            "lvl": 40,
+            "oplvl": 40,
+            "prof": "w",
+            "gender": "x",
+            "npc": 1,
+            "wt": 0,
+            "hp": {
+              "max": 745,
+              "cur": 745,
+              "hpp": 100
+            },
+            "team": 2,
+            "y": 3,
+            "icon": "zwi/locha2b.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "ac": {
+              "cur": 258,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 14,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": -161518
+          },
+          "-255967": {
+            "originalId": 255967,
+            "name": "Odyniec",
+            "lvl": 41,
+            "oplvl": 41,
+            "prof": "w",
+            "gender": "x",
+            "npc": 1,
+            "wt": 0,
+            "hp": {
+              "max": 763,
+              "cur": 763,
+              "hpp": 100
+            },
+            "team": 2,
+            "y": 3,
+            "icon": "zwi/dzik3b.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "ac": {
+              "cur": 269,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 14,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": -255967
+          },
+          "-255969": {
+            "originalId": 255969,
+            "name": "Odyniec",
+            "lvl": 41,
+            "oplvl": 41,
+            "prof": "w",
+            "gender": "x",
+            "npc": 1,
+            "wt": 0,
+            "hp": {
+              "max": 763,
+              "cur": 763,
+              "hpp": 100
+            },
+            "team": 2,
+            "y": 3,
+            "icon": "zwi/dzik3a.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "ac": {
+              "cur": 269,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 14,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": -255969
+          }
+        },
+        "myteam": 1,
+        "move": 15,
+        "start_move": 15,
+        "current": 482845,
+        "turns_warriors": {
+          "1": 482845,
+          "2": 482845,
+          "3": -255967,
+          "4": -255969,
+          "5": -161518,
+          "6": 482845,
+          "7": 482845,
+          "8": -255967,
+          "9": -255969,
+          "10": -161518
+        },
+        "poolTime": {
+          "total": 120,
+          "minimum": 2,
+          "penalty": 5,
+          "left": 120
+        }
+      },
+      "komunikaty": [],
+      "render": [
+        "<div class=\"battle-msg txt\" style=\"opacity: 1;\">Rozpoczęła się walka pomiędzy Łowcożyr Kazrek (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>",
+        "<div class=\"battle-msg txt\">Rozpoczęła się walka pomiędzy Łowcożyr Kazrek (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>"
+      ],
+      "wojownicyPrzed": [],
+      "wojownicyPo": [
+        {
+          "id": 482845,
+          "name": "Łowcożyr Kazrek",
+          "team": 1,
+          "prof": "h",
+          "lvl": 40,
+          "hp": {
+            "max": 5815,
+            "cur": 5815,
+            "hpp": 100
+          },
+          "mana": 0,
+          "energy": 112,
+          "ac": {
+            "cur": 239,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -161518,
+          "name": "Locha",
+          "team": 2,
+          "prof": "w",
+          "lvl": 40,
+          "hp": {
+            "max": 745,
+            "cur": 745,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 258,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255967,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 763,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255969,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 763,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "nr": 1,
+      "ladunek": {
+        "w": {
+          "482845": {
+            "poolTime": {
+              "left": 120
+            },
+            "hp": {
+              "max": 5815,
+              "cur": 5815,
+              "hpp": 100
+            },
+            "mana": 0,
+            "energy": 112,
+            "mana0": 0,
+            "energy0": 112,
+            "fast": 1,
+            "ac": {
+              "cur": 239,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 15,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 32,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "cooldowns": [],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 482845
+          }
+        }
+      },
+      "komunikaty": [],
+      "render": [],
+      "wojownicyPrzed": [
+        {
+          "id": 482845,
+          "name": "Łowcożyr Kazrek",
+          "team": 1,
+          "prof": "h",
+          "lvl": 40,
+          "hp": {
+            "max": 5815,
+            "cur": 5815,
+            "hpp": 100
+          },
+          "mana": 0,
+          "energy": 112,
+          "ac": {
+            "cur": 239,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -161518,
+          "name": "Locha",
+          "team": 2,
+          "prof": "w",
+          "lvl": 40,
+          "hp": {
+            "max": 745,
+            "cur": 745,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 258,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255967,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 763,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255969,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 763,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        }
+      ],
+      "wojownicyPo": [
+        {
+          "id": 482845,
+          "name": "Łowcożyr Kazrek",
+          "team": 1,
+          "prof": "h",
+          "lvl": 40,
+          "hp": {
+            "max": 5815,
+            "cur": 5815,
+            "hpp": 100
+          },
+          "mana": 0,
+          "energy": 112,
+          "ac": {
+            "cur": 239,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -161518,
+          "name": "Locha",
+          "team": 2,
+          "prof": "w",
+          "lvl": 40,
+          "hp": {
+            "max": 745,
+            "cur": 745,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 258,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255967,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 763,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255969,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 763,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "nr": 2,
+      "ladunek": {
+        "w": {
+          "482845": {
+            "poolTime": {
+              "left": 117
+            },
+            "hp": {
+              "max": 5815,
+              "cur": 5815,
+              "hpp": 100
+            },
+            "mana": 0,
+            "energy": 112,
+            "mana0": 0,
+            "energy0": 112,
+            "fast": 1,
+            "ac": {
+              "cur": 239,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 15,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 32,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "cooldowns": [],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 482845
+          },
+          "-255967": {
+            "poolTime": {
+              "left": 120
+            },
+            "hp": {
+              "max": 763,
+              "cur": 0,
+              "hpp": 0
+            },
+            "y": 1,
+            "id": -255967
+          },
+          "-255969": {
+            "poolTime": {
+              "left": 120
+            },
+            "hp": {
+              "max": 763,
+              "cur": 0,
+              "hpp": 0
+            },
+            "y": 2,
+            "id": -255969
+          },
+          "-161518": {
+            "poolTime": {
+              "left": 120
+            },
+            "hp": {
+              "max": 745,
+              "cur": 0,
+              "hpp": 0
+            },
+            "y": 3,
+            "id": -161518
+          }
+        },
+        "move": -1,
+        "endBattle": 1,
+        "m": [
+          "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223",
+          "482845=100.00;-161518=21.34;+crit;+dmgd=612;+acdmg=5;-dmgd=363",
+          "-255967=100.00;0;step",
+          "-255969=100.00;0;step",
+          "482845=100.00;-161518=0.00;+dmgd=485;+acdmg=5;-dmgd=248",
+          "482845=100.00;-255969=13.76;+crit;+pierce;+dmgd=658;+acdmg=5;-dmgd=658",
+          "-255967=100.00;0;step",
+          "482845=100.00;-255969=0.00;+pierce;+dmgd=461;+acdmg=5;-dmgd=461",
+          "482845=100.00;-255967=68.15;+dmgd=498;+acdmg=5;-dmgd=243",
+          "482845=100.00;-255967=37.61;+dmgd=483;+acdmg=5;-dmgd=233",
+          "-255967=19.27;0;poison=140,14",
+          "-255967=19.27;482845=98.30;+dmg=331;-legbon_facade=13;-dmg=99",
+          "482845=100.00;0;heal=99",
+          "482845=100.00;-255967=0.00;+dmgd=458;+acdmg=5;-dmgd=215",
+          "0;0;winner=Łowcożyr Kazrek",
+          "0;0;loser=Odyniec, Odyniec, Locha",
+          "0;0;+exp=3973",
+          "0;0;txt=Locha: zdobyto Skóra z dzika"
+        ],
+        "mi": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ]
+      },
+      "komunikaty": [
+        "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223",
+        "482845=100.00;-161518=21.34;+crit;+dmgd=612;+acdmg=5;-dmgd=363",
+        "-255967=100.00;0;step",
+        "-255969=100.00;0;step",
+        "482845=100.00;-161518=0.00;+dmgd=485;+acdmg=5;-dmgd=248",
+        "482845=100.00;-255969=13.76;+crit;+pierce;+dmgd=658;+acdmg=5;-dmgd=658",
+        "-255967=100.00;0;step",
+        "482845=100.00;-255969=0.00;+pierce;+dmgd=461;+acdmg=5;-dmgd=461",
+        "482845=100.00;-255967=68.15;+dmgd=498;+acdmg=5;-dmgd=243",
+        "482845=100.00;-255967=37.61;+dmgd=483;+acdmg=5;-dmgd=233",
+        "-255967=19.27;0;poison=140,14",
+        "-255967=19.27;482845=98.30;+dmg=331;-legbon_facade=13;-dmg=99",
+        "482845=100.00;0;heal=99",
+        "482845=100.00;-255967=0.00;+dmgd=458;+acdmg=5;-dmgd=215",
+        "0;0;winner=Łowcożyr Kazrek",
+        "0;0;loser=Odyniec, Odyniec, Locha",
+        "0;0;+exp=3973",
+        "0;0;txt=Locha: zdobyto Skóra z dzika"
+      ],
+      "render": [
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+612</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br>+Niszczenie pancerza o 5<br>Locha(21.34%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-363</b> obrażeń<br></div>",
+        "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
+        "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+485</b><br>+Niszczenie pancerza o 5<br>Locha(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-248</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+658</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(13.76%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-658</b> obrażeń<br></div>",
+        "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+461</b><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-461</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+498</b><br>+Niszczenie pancerza o 5<br>Odyniec(68.15%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-243</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+483</b><br>+Niszczenie pancerza o 5<br>Odyniec(37.61%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-233</b> obrażeń<br></div>",
+        "<div class=\"battle-msg neu\"><font color=\"30ff00\"><i>Odyniec(19.27%): 140 (osłabione o 14%) obrażeń od trucizny.</i></font><br></div>",
+        "<div class=\"battle-msg attack2\">Odyniec(19.27%) uderzył(a) z siłą <b class=\"dmg\">+331</b><br><font color=\"c7c8eb\"><b><i>-Fasada opieki, 13% redukcji ciosów do końca walki</i></b></font><br>Łowcożyr Kazrek(98.30%) otrzymał <b class=\"dmg\" prof-w=\"\">-99</b> obrażeń<br></div>",
+        "<div class=\"battle-msg neu\"><font color=\"4afffd\"><i>Przywrócono 99 punktów życia Łowcożyr Kazrek(100%)</i></font><br></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+458</b><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-215</b> obrażeń<br></div>",
+        "<div class=\"battle-msg win\">Zwyciężył Łowcożyr Kazrek</div>",
+        "<div class=\"battle-msg lose\">Poległa drużyna Odyniec, Odyniec, Locha</div>",
+        "<div class=\"battle-msg exp\">Zwycięzca zdobył łącznie 3973 punktów doświadczenia<br></div>",
+        "<div class=\"battle-msg txt\">Locha: zdobyto Skóra z dzika</div>",
+        "<div class=\"battle-msg txt\">Rozpoczęła się walka pomiędzy Łowcożyr Kazrek (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+466</b><br>+Niszczenie pancerza o 5<br>Locha(70.07%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-223</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+612</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br>+Niszczenie pancerza o 5<br>Locha(21.34%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-363</b> obrażeń<br></div>",
+        "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
+        "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+485</b><br>+Niszczenie pancerza o 5<br>Locha(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-248</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+658</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(13.76%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-658</b> obrażeń<br></div>",
+        "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+461</b><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-461</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+498</b><br>+Niszczenie pancerza o 5<br>Odyniec(68.15%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-243</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+483</b><br>+Niszczenie pancerza o 5<br>Odyniec(37.61%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-233</b> obrażeń<br></div>",
+        "<div class=\"battle-msg neu\"><font color=\"30ff00\"><i>Odyniec(19.27%): 140 (osłabione o 14%) obrażeń od trucizny.</i></font><br></div>",
+        "<div class=\"battle-msg attack2\">Odyniec(19.27%) uderzył(a) z siłą <b class=\"dmg\">+331</b><br><font color=\"c7c8eb\"><b><i>-Fasada opieki, 13% redukcji ciosów do końca walki</i></b></font><br>Łowcożyr Kazrek(98.30%) otrzymał <b class=\"dmg\" prof-w=\"\">-99</b> obrażeń<br></div>",
+        "<div class=\"battle-msg neu\"><font color=\"4afffd\"><i>Przywrócono 99 punktów życia Łowcożyr Kazrek(100%)</i></font><br></div>",
+        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+458</b><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-215</b> obrażeń<br></div>",
+        "<div class=\"battle-msg win\">Zwyciężył Łowcożyr Kazrek</div>",
+        "<div class=\"battle-msg lose\">Poległa drużyna Odyniec, Odyniec, Locha</div>",
+        "<div class=\"battle-msg exp\">Zwycięzca zdobył łącznie 3973 punktów doświadczenia<br></div>",
+        "<div class=\"battle-msg txt\">Locha: zdobyto Skóra z dzika</div>"
+      ],
+      "wojownicyPrzed": [
+        {
+          "id": 482845,
+          "name": "Łowcożyr Kazrek",
+          "team": 1,
+          "prof": "h",
+          "lvl": 40,
+          "hp": {
+            "max": 5815,
+            "cur": 5815,
+            "hpp": 100
+          },
+          "mana": 0,
+          "energy": 112,
+          "ac": {
+            "cur": 239,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -161518,
+          "name": "Locha",
+          "team": 2,
+          "prof": "w",
+          "lvl": 40,
+          "hp": {
+            "max": 745,
+            "cur": 745,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 258,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255967,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 763,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255969,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 763,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        }
+      ],
+      "wojownicyPo": [
+        {
+          "id": 482845,
+          "name": "Łowcożyr Kazrek",
+          "team": 1,
+          "prof": "h",
+          "lvl": 40,
+          "hp": {
+            "max": 5815,
+            "cur": 5815,
+            "hpp": 100
+          },
+          "mana": 0,
+          "energy": 112,
+          "ac": {
+            "cur": 239,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -161518,
+          "name": "Locha",
+          "team": 2,
+          "prof": "w",
+          "lvl": 40,
+          "hp": {
+            "max": 745,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 258,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255967,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255969,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "nr": 3,
+      "ladunek": {
+        "move": -1,
+        "endBattle": 1
+      },
+      "komunikaty": [],
+      "render": [],
+      "wojownicyPrzed": [
+        {
+          "id": 482845,
+          "name": "Łowcożyr Kazrek",
+          "team": 1,
+          "prof": "h",
+          "lvl": 40,
+          "hp": {
+            "max": 5815,
+            "cur": 5815,
+            "hpp": 100
+          },
+          "mana": 0,
+          "energy": 112,
+          "ac": {
+            "cur": 239,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -161518,
+          "name": "Locha",
+          "team": 2,
+          "prof": "w",
+          "lvl": 40,
+          "hp": {
+            "max": 745,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 258,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255967,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255969,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        }
+      ],
+      "wojownicyPo": [
+        {
+          "id": 482845,
+          "name": "Łowcożyr Kazrek",
+          "team": 1,
+          "prof": "h",
+          "lvl": 40,
+          "hp": {
+            "max": 5815,
+            "cur": 5815,
+            "hpp": 100
+          },
+          "mana": 0,
+          "energy": 112,
+          "ac": {
+            "cur": 239,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -161518,
+          "name": "Locha",
+          "team": 2,
+          "prof": "w",
+          "lvl": 40,
+          "hp": {
+            "max": 745,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 258,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255967,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -255969,
+          "name": "Odyniec",
+          "team": 2,
+          "prof": "w",
+          "lvl": 41,
+          "hp": {
+            "max": 763,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 269,
+            "bonus": 0
+          }
+        }
+      ]
+    }
+  ]
+}
