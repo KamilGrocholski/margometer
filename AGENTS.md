@@ -76,9 +76,11 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
   w nich nie ma i co było trudne. Fixture'a się nie edytuje, żeby test przeszedł.
 - **Są DWA korpusy i odpowiadają na różne pytania.** `new-engine/` to tekst
   i DOM z okna walki — materiał parsera. `grooove/` to surowy protokół silnika
-  z publicznych walk na grooove.pl — „czy gra w ogóle emituje X”. Parser tego
-  drugiego nie czyta; pliki nazywają się tam `log.grooove.txt`, żeby nie wpadły
-  do globów testowych. Powody i granice: `tests/fixtures/grooove/README.md`.
+  z publicznych walk na grooove.pl, tylko ze światów **polskojęzycznych** (od
+  2026‑08‑04; powód w README tamtego katalogu) — „czy gra w ogóle emituje X”.
+  Parser tego drugiego nie czyta; pliki nazywają się tam `log.grooove.txt`, żeby
+  nie wpadły do globów testowych. Powody i granice:
+  `tests/fixtures/grooove/README.md`.
 
 ## Dwa zapisy zmian, dla dwóch czytelników
 

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Glob } from "bun";
 import {
+  SWIATY_ANGLOJEZYCZNE,
   SWIATY_PUBLICZNE,
   czytajFixture,
   katalogiKorpusu,
@@ -53,6 +54,22 @@ const kluczePlikow = new Map<string, Set<string>>(
 
 test("korpus nie jest pusty", () => {
   expect(fixtures.length).toBeGreaterThan(0);
+});
+
+/**
+ * Dwie listy światów muszą pozostać rozłączne — inaczej `sprawdzSwiat`
+ * przepuściłby świat anglojęzyczny, a `meta.world` z takiego zrzutu przeszedłby
+ * test kształtu niżej bez słowa.
+ *
+ * To jest ta jedna mutacja, po której cała reszta odsiewu milknie: wystarczy
+ * wkleić „cronus" z powrotem do `SWIATY_PUBLICZNE` i nic innego się nie zapala,
+ * dopóki ktoś faktycznie takiej walki nie pobierze. Powód decyzji stoi przy
+ * `SWIATY_ANGLOJEZYCZNE` w `tools/grooove.ts`.
+ */
+test("światy anglojęzyczne nie są jednocześnie publiczne", () => {
+  const publiczne = new Set<string>(SWIATY_PUBLICZNE);
+  expect(SWIATY_ANGLOJEZYCZNE.filter((w) => publiczne.has(w))).toEqual([]);
+  expect(SWIATY_ANGLOJEZYCZNE.length).toBeGreaterThan(0);
 });
 
 describe("korpus grooove nie wchodzi do pętli parsera", () => {

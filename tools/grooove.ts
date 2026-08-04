@@ -30,7 +30,8 @@ import { PROFESSIONS, type ProfessionCode } from "../src/types.ts";
 import { parse } from "../src/parser.ts";
 
 /**
- * Światy publiczne — lista z menu `grooove.pl/battle/`, przepisana 2026‑08‑03.
+ * Światy publiczne POLSKOJĘZYCZNE — lista z menu `grooove.pl/battle/`,
+ * przepisana 2026‑08‑03, przycięta o trzy anglojęzyczne 2026‑08‑04.
  *
  * PO CO WHITELISTA. Globalny feed na stronie głównej panelu miesza światy
  * prywatne: przy przeglądaniu wpadły `luvia` i `nexos`, których w tym menu nie
@@ -67,11 +68,25 @@ export const SWIATY_PUBLICZNE = [
   "unia",
   "zemyna",
   "zorza",
-  // Trzy anglojęzyczne, w menu z dopiskiem [EN]; w adresach bez niego.
-  "husaria",
-  "cronus",
-  "steamrealm",
 ] as const;
+
+/**
+ * Światy anglojęzyczne z tego samego menu (z dopiskiem `[EN]`; w adresach bez
+ * niego). **Korpus ich nie bierze** — decyzja właściciela repo z 2026‑08‑04.
+ *
+ * DLACZEGO NIE. Klucze protokołu są na nich te same, ale wszystkie NAZWY są
+ * angielskie: linia otwierająca („The battle between … has begun”), nazwy
+ * umiejętności i komunikaty `a.`. Margometer czyta polskie okno walki, więc ten
+ * materiał nie odpowiada na żadne pytanie tego repo — a wchodził do liczników,
+ * progów i niezmienników tak, jakby odpowiadał (365 z 1867 zdarzeń korpusu
+ * i 22 z 83 nazw umiejętności, zmierzone przed usunięciem).
+ *
+ * PO CO TRZYMAĆ LISTĘ, skoro pobranie z nich ma być błędem. Bo „nie ma takiego
+ * świata” i „ten świat jest wykluczony decyzją” to dwa różne komunikaty i tylko
+ * drugi jest prawdą. Bez tej stałej `--swiat cronus` odsyłałby człowieka
+ * z powrotem do menu grooove'a, gdzie Cronus stoi jak stał.
+ */
+export const SWIATY_ANGLOJEZYCZNE = ["husaria", "cronus", "steamrealm"] as const;
 
 const KORPUS = new URL("../tests/fixtures/grooove/", import.meta.url).pathname;
 const CACHE = new URL("../.cache/", import.meta.url).pathname;
@@ -319,10 +334,19 @@ if (import.meta.main) {
 
   const sprawdzSwiat = (w: string | null): string => {
     if (w === null) throw new Error("wymagane --swiat (lista: " + SWIATY_PUBLICZNE.join(", ") + ")");
+    // Dwa osobne komunikaty, bo to dwie różne sytuacje: świat, którego w menu
+    // nie ma, i świat, który w menu JEST, ale korpus go nie bierze.
+    if ((SWIATY_ANGLOJEZYCZNE as readonly string[]).includes(w)) {
+      throw new Error(
+        `„${w}" jest światem anglojęzycznym i korpus go NIE bierze — decyzja, ` +
+          `nie przeoczenie. Powód w tests/fixtures/grooove/README.md`,
+      );
+    }
     if (!(SWIATY_PUBLICZNE as readonly string[]).includes(w)) {
       throw new Error(
-        `„${w}" nie jest światem publicznym. Korpus bierze wyłącznie światy z menu ` +
-          `grooove.pl/battle/ — powód w tests/fixtures/grooove/README.md`,
+        `„${w}" nie jest polskim światem publicznym. Korpus bierze wyłącznie ` +
+          `polskojęzyczne światy z menu grooove.pl/battle/ — powód ` +
+          `w tests/fixtures/grooove/README.md`,
       );
     }
     return w;

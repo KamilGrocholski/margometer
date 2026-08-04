@@ -1,0 +1,46 @@
+{
+  "client": "grooove",
+  "format": "protokol",
+  "capturedAt": "2026-08-04",
+  "clientBuild": null,
+  "world": "tempest",
+  "fightId": 84840836,
+  "sourceUrl": "https://grooove.pl/battle/id,84840836",
+  "source": "grooove.pl — pole Page.data.log, protokół silnika, NIE tekst z okna walki",
+  "opening": "Rozpoczęła się walka pomiędzy D r a g o n(392h) a Absolwemt(301w)",
+  "participants": [
+    {
+      "name": "D r a g o n",
+      "level": 392,
+      "professionCode": "h",
+      "profession": "łowca",
+      "gender": "m",
+      "team": 1
+    },
+    {
+      "name": "Absolwemt",
+      "level": 301,
+      "professionCode": "w",
+      "profession": "wojownik",
+      "gender": "m",
+      "team": 2
+    }
+  ],
+  "covers": [
+    "Nick „D r a g o n” — pojedyncze litery rozdzielone spacjami, a więc niosący w środku podciąg „ a ”, czyli separator stron z linii otwierającej.",
+    "Skład 1 na 1 przy dużej różnicy poziomów: 392h przeciw 301w.",
+    "44 klucze przy 69 zdarzeniach; ani jeden nie występuje tylko tutaj.",
+    "@rage 4 razy — klucz, który tools/luki.ts trzyma w kubełku LUKA (Wściekłość).",
+    "@crush_physical 2 razy, g 7 razy, rpierce 2 razy.",
+    "Trójka kluczy odporności obok siebie: resm_per, resfrost_per, reslight_per.",
+    "10 nazw umiejętności, wszystkie znane korpusowi wcześniej."
+  ],
+  "missing": [
+    "flee",
+    "@Dc, @Dl, @Df, @Do — z kluczy żywiołowych jest tu wyłącznie jeden rodzaj",
+    "@absorb, @absorbm",
+    "absolute, vamp_time, antidote, g_",
+    "walka grupowa"
+  ],
+  "notes": "TA WALKA WESZŁA DO KORPUSU ZA JEDEN NICK, nie za pokrycie kluczy — nie wnosi ani jednego nowego. Powód jest zmierzony: przeskanowałem 191 nicków ze 142 walk i zasymulowałem splitSides z usuniętym wymogiem nawiasu przed separatorem (`/\\)\\s+a\\s+/` → `/\\s+a\\s+/`). „D r a g o n (392h) a Absolwemt (301w)” rozpada się wtedy na [\"g o n\", \"Absolwemt\"], podczas gdy poprawna wersja daje [\"D r a g o n\", \"Absolwemt\"]. To JEDYNY nick ze 191, który rozróżnia te wersje na PRAWDZIWEJ linii otwierającej. Drugi i ostatni nick z „ a ” w środku, „Tears of a Clown”, stał w swojej walce PO separatorze, więc luźny wzorzec trafiał tam przypadkiem w to samo miejsce i nic nie zauważał — jego walka była z Cronusa i od 2026-08-04 nie leży już w korpusie (korpus jest odtąd tylko polskojęzyczny, patrz README katalogu). Pomiar zostaje, bo szedł po walkach PRZEJRZANYCH, nie po korpusie. Bez tego pliku test składów w tests/parser-grooove.test.ts byłby zielony przy zepsutym splitSides."
+}

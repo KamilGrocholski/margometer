@@ -75,9 +75,10 @@ do pytania „czy mam próbkę z X?".
 Fixture'y stoją w **dwóch korpusach i odpowiadają na różne pytania**.
 `new-engine/` to zrzuty tekstu i DOM-u z okna walki — materiał dla parsera,
 „czy to czytamy". [`grooove/`](../tests/fixtures/grooove/) to surowy protokół
-silnika pobrany z publicznych walk na grooove.pl — „czy gra to w ogóle emituje
-i jak często". Parser tego drugiego NIE czyta i czytać nie ma; pliki nazywają
-się tam `log.grooove.txt` właśnie po to, żeby nie wpadły do globów testowych.
+silnika pobrany z publicznych walk na grooove.pl, **wyłącznie ze światów
+polskojęzycznych** — „czy gra to w ogóle emituje i jak często". Parser tego
+drugiego NIE czyta i czytać nie ma; pliki nazywają się tam `log.grooove.txt`
+właśnie po to, żeby nie wpadły do globów testowych.
 Powody, granice i pomiary: [`grooove/README.md`](../tests/fixtures/grooove/README.md).
 
 ---
@@ -101,7 +102,7 @@ Procedura, żeby to się nie powtórzyło: [`MECHANIKA.md`](MECHANIKA.md).
 | [margonem.pl](https://www.margonem.pl/) | Sama gra. Dodatek startuje na światach `*.margonem.pl` i `*.margonem.com` — listę wraz z wykluczeniami trzyma [`tools/userscript-meta.ts`](../tools/userscript-meta.ts) |
 | [**Mechanika walk**](https://pomoc.margonem.pl/index/view,372) | **Pełna specyfikacja mechaniki na ~399 tys. znaków** — nie skrót. System walki, system tur, statystyki postaci i NPC, efekty umiejętności, atrakcje; wzory (`evade`, `block`, `crit gain`), kolejność redukcji obrażeń, opis każdego zdarzenia z nazwą silnikową. Czytaj sondą `tools/pomoc.ts`, nie streszczeniem — dlaczego, mówi [`MECHANIKA.md`](MECHANIKA.md) |
 | [pomoc.margonem.pl](https://pomoc.margonem.pl/) | Reszta oficjalnej pomocy. `view,3` odsyła całą walkę do artykułu wyżej, `view,183` (Słowniczek) nie zna ani uniku, ani bloku — sprawdzone 2026‑08‑01. Reszty nie przeglądaliśmy; znajdziesz coś, dopisz **razem z cytatem** |
-| [grooove.pl/battle](https://grooove.pl/battle/) | Publiczne zrzuty walk graczy, ale w postaci **surowego protokołu silnika**, nie tekstu z okna walki. Filtr `?w=<świat>`, pojedyncza walka pod `/battle/id,<ID>`. Wybrane 12 leży w [`tests/fixtures/grooove/`](../tests/fixtures/grooove/); pobiera je [`tools/grooove.ts`](../tools/grooove.ts). Uwaga: tekst, który ta strona pokazuje, składa jej WŁASNY renderer i jest do tyłu za grą — liczby w README korpusu |
+| [grooove.pl/battle](https://grooove.pl/battle/) | Publiczne zrzuty walk graczy, ale w postaci **surowego protokołu silnika**, nie tekstu z okna walki. Filtr `?w=<świat>`, pojedyncza walka pod `/battle/id,<ID>`. Wybrane walki leżą w [`tests/fixtures/grooove/`](../tests/fixtures/grooove/); pobiera je [`tools/grooove.ts`](../tools/grooove.ts). Uwaga: tekst, który ta strona pokazuje, składa jej WŁASNY renderer i jest do tyłu za grą — liczby w README korpusu |
 | [tampermonkey.net](https://www.tampermonkey.net/) | Rozszerzenie, które uruchamia zbudowany `dist/margometer.user.js` |
 | [bun.sh](https://bun.sh/) | Cały toolchain: runtime, testy, bundler |
 
@@ -154,7 +155,8 @@ sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.**
    w ogóle występuje X" — i standardowy krok przed każdym twierdzeniem
    o zachowaniu gry.
 4. **Korpus protokołu z grooove.pl.** `bun tools/grooove.ts --parametry` —
-   130 kluczy silnika z 12 publicznych walk, [`tests/fixtures/grooove/`](../tests/fixtures/grooove/).
+   klucze silnika z publicznych walk, [`tests/fixtures/grooove/`](../tests/fixtures/grooove/)
+   — liczby stoją w README tamtego katalogu, nie tutaj.
    Odpowiada na inne pytanie niż punkt 1: tam pytamy „czy parser to czyta",
    tu „czy gra to w ogóle emituje". Klucze są w dużej części nazwami
    silnikowymi, których używa pomoc gry (`legbon_facade` → „Fasada opieki

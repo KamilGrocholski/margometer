@@ -131,6 +131,24 @@ Patrz też znane ograniczenie „Leczenie bez leczącego” w `DECYZJE.md`.
 ## Czego brakuje w korpusie fixture'ów
 Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`
 w `meta.json`, zweryfikowany po `covers`:
+- **Para: ta sama walka jako tekst i jako protokół.** Największa dziś dziura
+  i jedyna pozycja tutaj, której **nie da się załatać bez gracza**. Protokół
+  z grooove.pl jest wewnętrznie spójny co do promila: z par (spadek życia
+  w procentach, suma kluczy `-D*`) wychodzi to samo maksymalne HP z pięciu
+  i sześciu niezależnych obserwacji, rozrzut 0,0–0,1 % (zmierzone 2026‑08‑04 na
+  `2026-08-03_pandora_wojownik-vs-mag-fuzja`). Gdyby istniała JEDNA walka
+  zapisana obiema drogami, protokół byłby **niezależnym orakulem liczbowym**
+  dla `parse` i `aggregate`: obrażenia przyjęte per postać, bloki, leczenie,
+  krzywa życia. Dziś nic w repo nie sprawdza tych liczb przeciw czemukolwiek
+  spoza repo — testy pilnują niezmienników i spójności wewnętrznej, a nie
+  tego, czy suma się zgadza z prawdą.
+
+  Czego próbowano i dlaczego nie wystarcza: wyszukiwarka grooove przyjmuje
+  **ID gracza, nie nick**, więc naszych fixture'ów nie da się tam odnaleźć po
+  nazwie; wklejarka `/battle/wklej-walke` przyjmuje **wyłącznie protokół
+  z dodatku „Panel walk"** i odrzuca log tekstowy. Potrzebna jest jedna walka
+  z włączonym dodatkiem i równoległym „Kopiuj logi" z okna — plus zanotowane
+  ID walki, żeby dało się pobrać protokół przez `bun tools/grooove.ts`.
 - **Krwawa udręka ( anguish )** — pomoc opisuje ją jako „obrażenia od krwawienia
   rozłożone w czasie na pięć tur", czyli rodzinę, którą parser czyta jako
   `kind: "dot"`, a agregat przypisuje albo wrzuca do puli „Bez sprawcy".
@@ -138,7 +156,7 @@ w `meta.json`, zweryfikowany po `covers`:
   w korpusie protokołu jest 11 razy w dwóch walkach. To jedyny z dziesięciu
   bonusów legendarnych wymienionych w pomocy, którego korpus nie zna
   (`MECHANIKA.md`, `bun tools/luki.ts`);
-- **Wściekłość ( rage )** — 32 wystąpienia w korpusie protokołu, zero
+- **Wściekłość ( rage )** — 26 wystąpień w korpusie protokołu, zero
   w tekstowym; najczęstszy klucz bez odpowiednika. Renderer grooove.pl składa
   z niego `+Wściekłość: atak +N`, czyli kształt bliźniaczy do obsługiwanego
   `Piętno bestii: atak +N` — ale to CUDZY renderer i jego brzmienia nie wolno
@@ -147,6 +165,14 @@ w `meta.json`, zweryfikowany po `covers`:
   ⚠️ Obu tych zrzutów **nie da się zrobić z grooove.pl** — tamten korpus niesie
   protokół, nie tekst. Trzeba walki w grze i przycisku „Kopiuj logi", a oba
   efekty są bonusami legendarnymi, więc potrzebny jest ekwipunek, który je ma.
+- **Siedem kluczy protokołu, które wyszły z korpusu 2026‑08‑04** razem z dwiema
+  walkami z Cronusa, gdy korpus stał się tylko polskojęzyczny: `z__crit`,
+  `z__pierce`, `spell-taken_D`, `critval-allies`, `critmval-allies`, `rk_per`,
+  `g_`. Żadna polska walka w korpusie ich nie niesie. Pozycja słabsza od dwóch
+  wyżej — o żadnym z nich nie wiadomo nawet, czy odpowiada zdarzeniu w logu —
+  ale to cena tamtej decyzji i ma być zapisana, a nie przemilczana. Tę akurat
+  lukę **da się** załatać z grooove.pl, na polskim świecie. Powody decyzji:
+  `tests/fixtures/grooove/README.md`, sekcja „Minus dwie z Cronusa";
 - **log właścicielki** — formy żeńskie czasownika są obsłużone w regexach, ale
   sprawdzone tylko na ręcznie pisanych stringach (`SOLID.md §4.8`);
 - **walka z przyciętym nagłówkiem** — rozstrzyga, czy `SOLID.md §4.12` (sumy

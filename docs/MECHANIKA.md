@@ -332,8 +332,8 @@ Sprawdzone 2026‑08‑03 sondą `bun tools/pomoc.ts "Wściekłość ( rage )"`.
 
 **Wniosek dla kodu: żaden — ale to najostrzejszy kandydat na cichą lukę, jaki
 mamy.** Rdzeń „wście” nie występuje w korpusie tekstowym ani razu, a `@rage`
-jest w korpusie protokołu **32 razy** i jest tam najczęstszą pozycją bez
-odpowiednika.
+jest w korpusie protokołu **26 razy w sześciu walkach** i jest tam najczęstszą
+pozycją bez odpowiednika.
 
 ⚠️ **Czego ten wpis NIE mówi.** Że gra wypisuje z tego powodu jakąkolwiek linię.
 Wiemy tylko tyle, że renderer grooove.pl składa z tego klucza tekst

@@ -1,8 +1,8 @@
 # Korpus protokołu walk z grooove.pl
 
 12 publicznych walk pobranych z [`grooove.pl/battle`](https://grooove.pl/battle/),
-z sześciu światów, razem **1734 zdarzenia, 130 różnych kluczy protokołu i 82
-nazwy umiejętności** na 99 kB.
+z pięciu **polskojęzycznych** światów, razem **1502 zdarzenia, 123 różne klucze
+protokołu, 61 nazw umiejętności i 64 nicki** na 87 kB.
 
 **To NIE jest korpus dla parsera.** `src/parser.ts` nie czyta tych plików i nie
 ma czytać. Materiał dowodowy dla parsera stoi obok, w
@@ -100,10 +100,18 @@ Droga jest zawsze ta sama: klucz z korpusu → rdzeń nazwy → `bun tools/pomoc
 którego NIE robi się tego `WebFetch`-em, stoją w tamtym pliku.
 
 **Ta droga jest zautomatyzowana — `bun tools/luki.ts`.** Narzędzie składa trzy
-źródła (pomoc gry, ten korpus, korpus tekstowy) i rozkłada 130 kluczy na cztery
+źródła (pomoc gry, ten korpus, korpus tekstowy) i rozkłada 123 klucze na cztery
 kubełki: `ZNANE`, `LUKA`, `STAT` (statystyka bez linii w logu) i `NIEZNANE`.
 
 ## Co ten korpus już dał
+
+**Testy parsera na prawdziwych nazwach** —
+[`../../parser-grooove.test.ts`](../../parser-grooove.test.ts). Pola `opening`
+i `team` są autentyczne (grooove ich nie renderuje) i pochodzą z DWÓCH różnych
+miejsc, więc zgodność między nimi coś znaczy. Sprawdzane: skład z linii
+otwierającej przeciw składowi z `team`, round‑trip 64 prawdziwych nicków
+i 61 nazw umiejętności, oraz jawna asercja, że **każdy** fixture w korpusie ma
+polską linię otwierającą — patrz „Dlaczego korpus jest tylko polskojęzyczny".
 
 Dwa efekty, które gra dokumentuje, protokół dowodzi w prawdziwych walkach,
 a korpus tekstowy **nie zna ich ani razu**:
@@ -113,7 +121,8 @@ a korpus tekstowy **nie zna ich ani razu**:
   rodzina co trucizna i głęboka rana, którą parser czyta jako `kind: "dot"`,
   a agregat przypisuje sprawcy. Jedyny z dziesięciu bonusów legendarnych
   wymienionych w pomocy, którego korpus tekstowy nie widział.
-- **Wściekłość ( rage )** — 32 wystąpienia, najczęstszy klucz bez odpowiednika.
+- **Wściekłość ( rage )** — 26 wystąpień w sześciu walkach, najczęstszy klucz
+  bez odpowiednika.
 
 Oba siedzą w `docs/MECHANIKA.md` z dosłownymi cytatami i w `docs/ROADMAP.md`
 jako brakujące fixture'y. **Żaden z nich nie jest podstawą do dopisania wzorca
@@ -140,10 +149,14 @@ bun tools/grooove.ts --pobierz <ID> --swiat <świat> --nazwa <slug>
 
 Trzy rzeczy, o których trzeba wiedzieć:
 
-1. **Tylko światy publiczne.** Narzędzie trzyma whitelistę z menu
+1. **Tylko polskie światy publiczne.** Narzędzie trzyma whitelistę z menu
    `grooove.pl/battle/` i odmawia pobrania spoza niej. Globalny feed na stronie
    miesza światy prywatne — przy przeglądaniu wpadły `luvia` i `nexos`.
    Świat podaje się ręcznie, bo strona pojedynczej walki go nie niesie.
+   Trzy światy anglojęzyczne (`husaria`, `cronus`, `steamrealm`) stoją w osobnej
+   liście `SWIATY_ANGLOJEZYCZNE` i dostają **inny komunikat błędu** niż świat
+   nieznany — bo „nie ma takiego świata" byłoby nieprawdą, a odsyłacz do menu
+   grooove'a niczego by nie rozstrzygnął. Powód niżej.
 2. **Nie każda walka ma log.** Właściciel zrzutu może go ukryć albo usunąć,
    a strona oddaje wtedy zwykłe HTTP 200 bez danych — na 30 pobranych walk
    trafiły się dwie takie. Narzędzie mówi to wprost i nie zapisuje pustego pliku.
@@ -157,10 +170,17 @@ osobno — `2026-08-03_tempest_ucieczka-bez-rozstrzygniecia` leży tam pod trzem
 
 ## Skąd akurat te dwanaście
 
+Dobór szedł w trzech turach i **każda odpowiadała na inne pytanie**: pierwsza
+o pokrycie protokołu, druga o kształt nazw, trzecia — 2026‑08‑04 — odjęła dwie
+walki z Cronusa razem z decyzją o polskojęzyczności (sekcja niżej).
+
+### Dziesięć za pokrycie kluczy
+
 Jedenaście wybrało **zachłanne pokrycie kluczy**: bierz walkę, która dokłada
 najwięcej kluczy jeszcze niewidzianych, powtórz. Na 142 przejrzanych walkach
 z sześciu światów jedenaście walk pokryło wszystkie 130 kluczy — pierwsza dała
-76, ostatnie cztery po jednym.
+76, ostatnie cztery po jednym. **Dwie z tych jedenastu były z Cronusa i już ich
+tu nie ma**, więc dziś z tej tury zostaje dziewięć walk i 123 klucze.
 
 Ostatnie cztery zasługują na uwagę, bo pokazują, że próg „jeszcze jeden klucz"
 wybiera sensownie: tak weszła
@@ -174,8 +194,75 @@ klucza. Weszła za najwyższy próg poziomów w składzie (427–444) i za świa
 Nerthus. Gdyby korpus trzeba było przyciąć, to pierwszy kandydat — i dlatego
 jest to napisane tu i w jej `meta.json`, a nie zostawione do ponownego odkrycia.
 
-Trzy światy w korpusie są po jednej walce, Pandora ma trzy. **To nie jest
-parytet i nie ma nim być** — o doborze decydowały klucze, nie świat. Dwie walki
-z Cronusa są celowo z tego samego świata: pokazują, że na światach
-anglojęzycznych angielskie są NAZWY (linia otwierająca, umiejętności), a klucze
-protokołu zostają te same. Na jednym pliku byłby to domysł.
+Dwa światy są w korpusie po jednej walce (Nerthus, Zorza), Gefion i Pandora mają
+po trzy, Tempest cztery. **To nie jest parytet i nie ma nim być** — o doborze
+decydowały klucze, nie świat.
+
+⚠️ Do 2026‑08‑04 stało tu „Trzy światy w korpusie są po jednej walce, Pandora ma
+trzy". Zdanie było prawdziwe, kiedy je pisano, i przestało być takie tego samego
+dnia, przy dokładaniu dwóch walk za nicki — nikt go wtedy nie przeliczył. Tyle
+żyje w tym repo zdanie o liczbie, którego nie pilnuje test.
+
+### Dwie za nicki
+
+Doszły 2026‑08‑04 i **żadna nie wnosi ani jednego nowego klucza** — weszły za
+kształt nazw, którego pozostałe dwanaście nie miało. Czyta je
+[`../../parser-grooove.test.ts`](../../parser-grooove.test.ts):
+
+- `2026-08-04_tempest_dragon-spacje-w-nicku` — nick **`D r a g o n`**, czyli
+  pojedyncze litery ze spacjami, a więc podciąg „ a " w środku nazwy. To jest
+  **jedyny nick ze 191 przejrzanych, który na prawdziwej linii otwierającej
+  wykrywa rozluźnienie `splitSides`** z `/\)\s+a\s+/` do `/\s+a\s+/`: skład
+  rozpada się wtedy na `["g o n", "Absolwemt"]`. Drugi i ostatni nick z „ a "
+  w środku, `Tears of a Clown`, stał w swojej walce PO separatorze, więc luźny
+  wzorzec trafiał tam przypadkiem w to samo miejsce i nic nie zauważał — jego
+  walka była z Cronusa i wyszła z korpusu (sekcja niżej). Pomiar zostaje, bo
+  szedł po walkach PRZEJRZANYCH, nie po korpusie.
+- `2026-08-04_gefion_siedmioro-vs-jeden-spojnik-w-nicku` — **`talerz i hantle`**
+  (spójnik w środku nazwy), `fit-executor` (myślnik), `Feeh Zbożownik`
+  i `Janinka Króliczynka` (polskie znaki). `RE_PARTICIPANT` obcina wiodące
+  `a `, `i ` i przecinek, a w 191 nickach **nie ma ani jednego zaczynającego
+  się** od takiego słowa — spójnik w środku jest najbliższą rzeczą, jaką
+  prawdziwe dane dają.
+
+### Minus dwie z Cronusa — dlaczego korpus jest tylko polskojęzyczny
+
+Do 2026‑08‑04 leżały tu dwie walki ze świata **Cronus**, w menu grooove'a
+z dopiskiem `[EN]`. Weszły celowo i pokazywały jedną konkretną rzecz: że na
+światach anglojęzycznych **angielskie są tylko NAZWY** — linia otwierająca („The
+battle between Freyr(244t) and Tears of a Clown(271m) has begun"), nazwy
+umiejętności (`Frost Arrow`, `Rampage`, `First Aid`) i komunikaty `a.` („No
+Glory reward - level difference too high.") — a **klucze protokołu zostają te
+same**. Dwa pliki zamiast jednego, żeby to nie był domysł.
+
+Decyzja właściciela repo: **korpus ich nie bierze**. Margometer czyta polskie
+okno walki i `src/parser.ts` zna wyłącznie polskie `FIGHT_START_TEXT`, więc te
+pliki nie odpowiadały na żadne pytanie tego repo — ale wchodziły do liczników,
+progów i niezmienników tak, jakby odpowiadały. Skala, zmierzona przy usuwaniu:
+**365 z 1867 zdarzeń (20 %) i 22 z 83 nazw umiejętności (26 %)** pochodziły
+z materiału, którego parser nie ma prawa czytać. Próg „korpus daje dość nazw
+umiejętności" stał przez to na 70 przy 61 polskich.
+
+**Co z nimi wyszło i nie wróciło.** Siedem kluczy protokołu, których nie niesie
+ani jedna polska walka w korpusie:
+
+```
+z__crit   z__pierce   spell-taken_D   critval-allies   critmval-allies   rk_per   g_
+```
+
+To jest cena tej decyzji i nie ma być przemilczana — dziś są to kandydaci do
+znalezienia na polskim świecie, dokładnie tak samo jak `rage` i `anguish` wyżej,
+tylko z drugiej strony (tam mamy klucz bez tekstu, tu nie mamy nawet klucza).
+Kilka `meta.json` wymienia je w `missing`; te zdania zostają prawdziwe, ale od
+2026‑08‑04 znaczą „nie ma tego NIGDZIE w korpusie", a nie „ma to sąsiad".
+
+**Czego decyzja NIE unieważnia.** Ustalenie, po które te dwa pliki tu stały —
+że klucze protokołu są wspólne dla obu wersji językowych — zostaje zapisane
+tutaj i jest nadal prawdziwe. Zniknął dowód w plikach, nie wniosek.
+
+Furtkę trzyma zamkniętą `SWIATY_ANGLOJEZYCZNE` w
+[`../../../tools/grooove.ts`](../../../tools/grooove.ts) (pobranie = błąd
+nazywający decyzję), a od strony korpusu — test „każdy fixture jest ze świata
+polskojęzycznego" w [`../../parser-grooove.test.ts`](../../parser-grooove.test.ts).
+Dwa mechanizmy, bo pierwszy nie widzi pliku wklejonego ręcznie, a drugi nie
+widzi pobrania.
