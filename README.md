@@ -1,21 +1,23 @@
 # MargoMeter
 
-Licznik obrażeń do [Margonem](https://www.margonem.pl/) — statystyki z okna
-walki, na żywo, w okienku nad grą. To, czym dla World of Warcraft są SKADA
+Licznik obrażeń do [Margonem](https://www.margonem.pl/) — statystyki z walki,
+na żywo, w okienku nad grą. To, czym dla World of Warcraft są SKADA
 i Details!, tyle że Margonem jest turowy, więc i licznik liczy na tury.
 
-Dodatek **niczego nie wysyła i nie dotyka gry** — czyta to samo okno walki, co
-Ty, i rysuje obok własny panel.
+Dodatek **niczego nie wysyła i niczego w grze nie zmienia**: czyta to, co gra
+sama dostaje z serwera w trakcie walki, i rysuje obok własny panel. Nie
+automatyzuje niczego, nie klika za Ciebie i nie wpływa na przebieg walki —
+liczy to, co już się wydarzyło.
 
-> ⚠️ **Wczesna faza (alpha).** Dodatek jest używalny — liczby zgadzają się na
-> korpusie kilkudziesięciu prawdziwych walk — ale numery `0.x` **nie obiecują
-> zgodności**: układ panelu, nazwy i zapisane ustawienia mogą się zmienić
-> między wydaniami. Statystyki powstają z czytania okna walki, więc zmiana
-> formatu logu po stronie gry potrafi je popsuć do czasu poprawki. Panel mówi
-> wtedy wprost, że czegoś nie rozumie, zamiast po cichu zaniżać liczby.
+> ⚠️ **Wczesna faza (alpha).** Dodatek jest używalny, ale numery `0.x` **nie
+> obiecują zgodności**: układ panelu, nazwy i zapisane ustawienia mogą się
+> zmienić między wydaniami. Statystyki powstają z tego, co gra przysyła
+> w trakcie walki, więc zmiana po jej stronie potrafi je popsuć do czasu
+> poprawki. Panel mówi wtedy wprost, że czegoś nie rozumie, zamiast po cichu
+> zaniżać liczby.
 >
-> Najbardziej przydatna rzecz, jaką możesz przysłać, to **log walki**, na której
-> coś nie zagrało — „Kopiuj logi" w pasku nagrywania.
+> Najbardziej przydatna rzecz, jaką możesz przysłać, to **nagranie walki**, na
+> której coś nie zagrało — „kopiuj logi" w pasku nagrywania.
 
 ---
 
@@ -137,5 +139,7 @@ Pracujesz tu z agentem AI (Claude Code, Codex, Cursor…)? Instrukcje projektu
 stoją w [`AGENTS.md`](AGENTS.md) — otwartym formacie, który te narzędzia czytają
 same.
 
-Zrzuty walk, na których stoją testy, siedzą w `tests/fixtures/new-engine/`;
-przy każdym stoi `meta.json` z opisem, co ten fixture pokrywa.
+Materiał, na którym stoją testy, siedzi **w kodzie**, nie w plikach danych:
+prawdziwa walka z gry w [`tests/walka-z-gry.ts`](tests/walka-z-gry.ts), walki
+dla niezmienników w [`tests/korpus.ts`](tests/korpus.ts), a lista kluczy
+odczytana z klienta gry w `tests/klucze-protokolu.ts`.

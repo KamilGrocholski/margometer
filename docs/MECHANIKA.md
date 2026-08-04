@@ -79,21 +79,23 @@ zdanie z pomocy, razem z identyfikatorem i numerem builda.
 ⚠️ **Czego szablon NIE dowodzi.** (1) Że gra wypisze tę linię w konkretnej
 walce — słownik zna brzmienie, nie warunek. (2) Że linia wygląda dokładnie tak
 po złożeniu: `battleMsg` skleja w jedno zdanie kilka kluczy, podstawia odmianę
-pod `#`/`$`, zamienia `++` na `+` i dokleja `<br>`. **Wzorzec parsera stawia się
-na zrzucie z gry; szablon mówi, CZEGO w zrzucie szukać.**
+pod `#`/`$`, zamienia `++` na `+` i dokleja `<br>`. **Szablon mówi, CZEGO
+w zrzucie z gry szukać — nie zastępuje samego zrzutu.**
 
-### 5. Dopiero teraz korpus
+### 5. Dopiero teraz materiał
 
-`bun -e '…'` z importem `aggregate` po walkach z `tests/korpus.ts`. ⚠️ Do
-2026‑08‑04 szło to po korpusie `tests/fixtures/`, którego już nie ma.
+`bun -e '…'` z importem `aggregate` po walkach z `tests/korpus.ts`
+i `tests/walka-z-gry.ts`. ⚠️ Do 2026‑08‑04 szło to po 25 prawdziwych walkach,
+których już nie ma — pomiar jest dziś ZNACZNIE słabszy i trzeba to mówić przy
+każdej liczbie, którą z niego wyciągasz.
 
-Dokumentacja mówi, co gra **zamierza**; korpus — co log **pokazuje**. Nie
+Dokumentacja mówi, co gra **zamierza**; pomiar — co log **pokazuje**. Nie
 zastępują się i oba są potrzebne: pomoc nie opisuje formatu logu ani jednym
-zdaniem, a korpus nie powie, dlaczego liczba jest akurat taka.
+zdaniem, a pomiar nie powie, dlaczego liczba jest akurat taka.
 
 ### 6. Rozjazd jest wpisem, nie ciszą
 
-Gdy pomiar przeczy dokumentacji, **w kodzie wygrywa korpus** — opisuje wersję
+Gdy pomiar przeczy dokumentacji, **w kodzie wygrywa pomiar** — opisuje wersję
 gry, którą dodatek faktycznie czyta, a artykuł bywa starszy niż ostatni dodatek.
 Ale rozbieżność ląduje w rejestrze z obiema stronami i datą, a nie znika.
 

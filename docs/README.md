@@ -77,8 +77,8 @@ ich w całości — każdy odpowiada na inne pytanie.
 | [`specy/`](specy/) | **Jak rozumowaliśmy przy TEJ zmianie?** Jeden plik na rundę pracy — problem, wybrane rozwiązanie i **odrzucone warianty**. Reszta tej tabeli to rejestry per temat; to jest oś prostopadła. | Zanim zaprojektujesz większą zmianę — i zaraz po tym, jak ją zaprojektujesz |
 | [`screenshots/`](screenshots/) | Obrazki do `README.md` w korzeniu, z konwencją nazw i listą rzeczy, o których trzeba pamiętać przy robieniu zrzutu. | Gdy zrzuty w README przestały pokazywać panel takim, jaki jest |
 
-Poza `docs/`: **materiał testowy powstaje W KODZIE.** Katalog `tests/fixtures/`
-zszedł z drzewa 2026‑08‑04 w całości. Co jest zamiast:
+Poza `docs/`: **materiał testowy powstaje W KODZIE.** Pliki danych obok testów
+zeszły z drzewa 2026‑08‑04 w całości. Co jest zamiast:
 
 - [`tests/zdarzenia.ts`](../tests/zdarzenia.ts) — pojedyncze `BattleEvent`
   budowane wprost, do testów opisujących jeden kształt;
@@ -87,19 +87,22 @@ zszedł z drzewa 2026‑08‑04 w całości. Co jest zamiast:
   plus jedna ręczna z kształtami, których generator nie produkuje;
 - [`tests/walka-z-gry.ts`](../tests/walka-z-gry.ts) — **jedyny materiał
   nie‑syntetyczny**: 18 komunikatów i skład z prawdziwego zrzutu
-  `Engine.battle.update`. Karmi testy archiwum, `index` i podglądy w `dist/`.
+  `Engine.battle.update`. Karmi testy archiwum, `index` i podglądy w `dist/`;
+- [`tests/klucze-protokolu.ts`](../tests/klucze-protokolu.ts) — 233 klucze
+  renderera z assetu klienta, WYGENEROWANE przez `bun tools/slownik.ts --zamroz`.
+  Plik nosi to w pierwszej linii: nie edytuje się go ręcznie.
 
 ⚠️ **Co to odebrało.** Kształt, o którym nie pomyśleliśmy, nie ma jak wpaść do
-materiału, który sami budujemy — a korpus łapał je sam z siebie. Zestaw zszedł
-z 914 do 557 testów. Największe pozycje: zgodność zaszytych identyfikatorów `_t`
-z assetem gry, dwustronne pokrycie tabeli ról przeciw 233 kluczom, przekrój po
-typie obrażeń w walce grupowej, blok u celu / super‑kryt / osłabienie DoT‑a
-z liczbami odtwarzalnymi ręcznie oraz 61 testów panelu. Każde miejsce ma ⚠️
-z liczbami — `grep "razem z korpusem"`.
+materiału, który sami budujemy — a 25 prawdziwych walk łapało je samo z siebie.
+Zestaw zszedł z 914 do 557 testów. Największe pozycje: przekrój po typie obrażeń
+w walce grupowej, blok u celu / super‑kryt / osłabienie DoT‑a z liczbami
+odtwarzalnymi ręcznie oraz 61 testów panelu. Każde miejsce ma ⚠️ z liczbami.
 
-Droga powrotna jest otwarta i to jest cała pociecha: `tools/walka-probe.js`
-zbiera zrzut z gry, `bun tools/walka.ts --rozbij` robi z niego katalog,
-a `bun tools/slownik.ts --zamroz` odtwarza tabelę kluczy z assetu.
+✅ **Część wróciła tego samego dnia**, gdy tabela kluczy dostała miejsce
+w kodzie: zgodność zaszytych identyfikatorów `_t` z assetem gry i dwustronne
+pokrycie tabeli ról przeciw 233 kluczom (569 testów). Reszta drogi powrotnej
+jest otwarta: `tools/walka-probe.js` zbiera zrzut z gry,
+`bun tools/walka.ts --rozbij … --nazwa <slug>` robi z niego moduł w `tests/`.
 
 ---
 
@@ -154,8 +157,8 @@ sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.**
 1. **Nowy zrzut walki.** [`tools/walka-probe.js`](../tools/walka-probe.js)
    wkleja się do konsoli na karcie z grą, owija `Engine.battle.update` i zbiera
    surowe ładunki. Potem `bun tools/walka.ts --rozbij <plik> --nazwa <slug>`
-   odtworzy `tests/fixtures/new-engine/` z `protokol.json` i szkieletem
-   `meta.json` — katalogu dziś nie ma, narzędzie założy go przy pierwszym zrzucie.
+   zapisze `tests/walka-<slug>.ts` — moduł z komunikatami, składem i nagłówkiem,
+   w którym trzy pola opisu czekają na wypełnienie przez człowieka.
 
    ⚠️ **Stało tu co innego do 2026‑08‑04**: „nowy fixture ma mieć DWA pliki —
    `raw.txt` (tekst z «Kopiuj logi») i `log.html` (zrzut DOM, bo żywioł siedzi
@@ -200,18 +203,17 @@ przeczytaj ją.
 **Nieznane ma być głośne.** Klucz protokołu, którego dekoder nie zna, trafia do
 `{kind: "unknown"}` i zapala ostrzeżenie w panelu. Tabela ról w `protokol.ts`
 jest wąska CELOWO — szeroka połknie kiedyś klucz niosący liczbę i zrobi to po
-cichu. To już się zdarzyło kilka razy po stronie parsera tekstu (wzorce
-`RE_INFO`); każdy przypadek ma swoje ID w `AUDYT.md` i reguła przeszła
-na dekoder razem z odczytem.
+cichu. To już się zdarzyło kilka razy po stronie odczytu ze zdań, gdzie jeden
+szeroki wzorzec połykał całe klasy linii; każdy przypadek ma swoje ID
+w `AUDYT.md` i reguła przeszła na dekoder razem z odczytem.
 
-**Materiał z gry jest dowodem.** ⚠️ Zdanie brzmiało „zrzuty w `tests/fixtures/`
-to nie «dane testowe», tylko materiał dowodowy" — katalogu nie ma od 2026‑08‑04.
-Reguła zostaje i dotyczy tego, co po nim zostało: `tests/walka-z-gry.ts` jest
-zrzutem z gry i twierdzenia o jej zachowaniu wolno opierać na nim. Wszystko
-inne w testach produkujemy sami i dowodem NIE JEST. Materiału z gry nie edytuje się ręcznie,
-żeby test przeszedł. Dotyczy obu korpusów — w `grooove/` opisy z `meta.json`
-mają nawet własny test, który sprawdza, czy wymienione w nich klucze protokołu
-naprawdę są (albo naprawdę ich nie ma) w opisywanym pliku.
+**Materiał z gry jest dowodem.** ⚠️ Zdanie mówiło kiedyś o katalogu ze zrzutami,
+którego nie ma od 2026‑08‑04. Reguła zostaje i dotyczy tego, co po nim zostało:
+`tests/walka-z-gry.ts` jest zrzutem z gry, a `tests/klucze-protokolu.ts`
+odczytem jej assetu — twierdzenia o zachowaniu gry wolno opierać na nich.
+Wszystko inne w testach produkujemy sami i dowodem NIE JEST. Materiału z gry nie
+edytuje się ręcznie, żeby test przeszedł — a tabeli kluczy nie edytuje się
+w ogóle: jest wygenerowana i mówi to w pierwszej linii.
 
 **Komentarz mówi DLACZEGO, nie CO.** Kod jest gęsto komentowany i to jest
 zamierzone — komentarze niosą powody decyzji, odrzucone warianty i pomiary.

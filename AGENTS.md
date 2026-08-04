@@ -6,7 +6,7 @@ nie wysyła zapytań, nie zmienia przebiegu walki, nie automatyzuje niczego.**
 
 Czyta **surowy protokół silnika** — przez owinięcie `Engine.battle.update`
 (`protokol-source.ts`). To jest jedyna droga; okno walki w DOM zeszło z drzewa
-2026‑08‑04 razem z parserem tekstu, bo protokół niesie `id` po obu stronach
+2026‑08‑04 razem z odczytem ze zdań, bo protokół niesie `id` po obu stronach
 każdego zdarzenia, żywioł jako klucz zamiast klasy CSS i rozbite składniki
 redukcji, a tekst był rekonstrukcją tego wszystkiego ze zdań.
 
@@ -15,9 +15,9 @@ redukcji, a tekst był rekonstrukcją tego wszystkiego ze zdań.
 panel pokazuje `+Przebicie`, a nie klucz `+pierce`, i robi to w języku klienta,
 także po aktualizacji gry. To ODCZYT, nie zapytanie: nic nie wychodzi na sieć,
 a pytamy wyłącznie o identyfikatory zaszyte w `protokol.ts`, żeby chybienie
-nigdy nie zaszło. ⚠️ Zgodności tej listy z assetem gry pilnowała zamrożona
-tabela w `tests/fixtures/` — zeszła z drzewa 2026‑08‑04 i **dziś nikt tego nie
-sprawdza**; odtwarza ją `bun tools/slownik.ts --zamroz`.
+nigdy nie zaszło. Zgodności tej listy z assetem gry pilnuje zamrożona tabela
+`tests/klucze-protokolu.ts` (233 klucze, build `1785244275300`) i cztery testy
+wokół niej; odtwarza ją `bun tools/slownik.ts --zamroz`.
 
 ⚠️ **Zdanie „nie dotyka stanu gry" stało tu do 2026‑08‑04 i przestało być
 prawdziwe.** Owinięcie cudzej funkcji jest dotknięciem, choćby nic nie zmieniało
@@ -101,36 +101,40 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
   korpusie i sprawdzają własność, nie liczbę: „każdy klucz rozpoznany”,
   „rozbicia sumują się do skalarów”.
 
-  ⚠️ **Najmocniejszy z nich zniknął 2026‑08‑04.** `tests/orakulum.test.ts`
-  porównywało `dekoduj(protokół)` z `parse(odtworz(protokół))` — dwa rozłączne
-  kody czytające ten sam komunikat — i to ono złapało jedyny prawdziwy błąd
-  dekodera. Razem z parserem tekstu zniknęła druga strona porównania. Dekoder
-  nie ma dziś świadka spoza repo; to jest największa otwarta luka.
-- **Fixture jest dowodem**, nie „danymi testowymi”. Zrzuty w
-  `tests/fixtures/new-engine/` mają `meta.json` z opisem, co pokrywają, czego
-  w nich nie ma i co było trudne. Fixture'a się nie edytuje, żeby test przeszedł.
-- **Materiał testowy powstaje W KODZIE, nie w plikach danych.** Katalog
-  `tests/fixtures/` zszedł z drzewa 2026‑08‑04 — razem z korpusem grooove,
-  zamrożoną tabelą 233 kluczy i 25 walkami zamrożonymi jako `zdarzenia.json`.
-  Co jest zamiast:
+  ⚠️ **Najmocniejszy z nich zniknął 2026‑08‑04.** Porównywał `dekoduj(protokół)`
+  z odczytem tej samej walki DRUGĄ, rozłączną drogą — i to on złapał jedyny
+  prawdziwy błąd dekodera. Razem z tamtym odczytem zniknęła druga strona
+  porównania. **Składanie zdarzeń nie ma dziś świadka spoza repo i to jest
+  największa otwarta luka**; same klucze świadka mają (niżej).
+- **Materiał z gry jest dowodem**, nie „danymi testowymi”. Moduł ze zrzutu
+  niesie w nagłówku pochodzenie (świat, build, daty) i opis tego, co pokrywa,
+  czego w nim nie ma i co było trudne. Nie edytuje się go, żeby test przeszedł.
+- **Materiał testowy powstaje W KODZIE, nie w plikach danych.** Pliki danych
+  obok testów zeszły z drzewa 2026‑08‑04 — 25 walk, korpus z cudzego serwisu
+  i zamrożona tabela kluczy. Co jest zamiast:
   - `tests/zdarzenia.ts` — pojedyncze `BattleEvent` budowane wprost;
   - `tests/korpus.ts` — walki, po których chodzą NIEZMIENNIKI: pięć z generatora
     (`tools/synthetic-log.ts`) plus jedna ręczna z kształtami, których generator
     nie produkuje;
-  - `tests/walka-z-gry.ts` — **jedyny materiał nie‑syntetyczny**, jaki został:
-    18 komunikatów i skład z prawdziwego zrzutu `Engine.battle.update`.
+  - `tests/walka-z-gry.ts` — **jedyna prawdziwa walka**, jaka została:
+    18 komunikatów i skład z prawdziwego zrzutu `Engine.battle.update`;
+  - `tests/klucze-protokolu.ts` — **jedyny fakt o grze sprawdzalny bez sieci**:
+    233 klucze renderera z assetu klienta, WYGENEROWANE
+    (`bun tools/slownik.ts --zamroz`), nie pisane ręcznie.
 
-  ⚠️ **CO TO ODEBRAŁO, i to jest największa dziś luka repo.** Kształt, o którym
-  nie pomyśleliśmy, nie ma jak wpaść do materiału budowanego przez nas —
-  a korpus łapał je sam z siebie. Przestały być sprawdzane m.in.: zgodność
-  zaszytych identyfikatorów `_t` z assetem gry (dwa testy, jeden opisany
-  w swoim pliku jako „NAJWAŻNIEJSZY"), pokrycie tabeli ról przeciw 233 kluczom
-  gry (dwustronne), przekrój po typie obrażeń w walce grupowej, blok u celu,
-  super‑kryt i osłabienie DoT‑a z liczbami odtwarzalnymi ręcznie. Każde miejsce
-  ma ⚠️ z liczbami — szukaj po „razem z korpusem".
+  ⚠️ **CO TO ODEBRAŁO.** Kształt, o którym nie pomyśleliśmy, nie ma jak wpaść
+  do materiału budowanego przez nas — a 25 prawdziwych walk łapało je samo
+  z siebie. Przestały być sprawdzane m.in.: przekrój po typie obrażeń w walce
+  grupowej, blok u celu, super‑kryt i osłabienie DoT‑a z liczbami odtwarzalnymi
+  ręcznie. Każde miejsce ma ⚠️ z liczbami.
 
-  Odbudowa zaczyna się od zrzutu sondą (`tools/walka-probe.js`), a tabelę
-  kluczy wypisuje `bun tools/slownik.ts` z assetu gry.
+  ✅ Wróciło 2026‑08‑04, gdy tabela kluczy dostała miejsce w kodzie: zgodność
+  zaszytych identyfikatorów `_t` z assetem gry oraz **dwustronne** pokrycie
+  tabeli ról przeciw 233 kluczom gry. Obie mutacje sprawdzone.
+
+  Kolejny materiał z gry bierze się ze zrzutu sondą (`tools/walka-probe.js`),
+  a rozbija go `bun tools/walka.ts --rozbij … --nazwa <slug>` — prosto do
+  modułu w `tests/`.
 - **`tests/overlay.test.ts` był ostatni** i dlatego jego asercje wymieniają dziś
   nazwy z generatora. Test panelu mówi „czy panel rysuje to, co dostał"; nie
   mówi już „czy gra produkuje takie składy".
@@ -199,7 +203,7 @@ brakiem, nie zwięzłością. Co ma się w niej znaleźć:
 
 - **Liczby, nie przymiotniki.** „269 → 62 ms przy 190 nagraniach", nie „szybciej".
   Przy zmianach wydajnościowych pomiar przed i po, tą samą sondą. Przy zmianach
-  w parserze i agregacie — przeliczenie na korpusie.
+  w dekoderze i agregacie — przeliczenie na materiale z `tests/`.
 - **Co rozstrzygnęło wybór.** Jeśli decydował pomiar, a nie gust, napisz to
   wprost. Jeśli decydował gust, też.
 - **Odrzucone warianty i dlaczego.** Kod nigdy nie mówi, czego NIE wybrano.

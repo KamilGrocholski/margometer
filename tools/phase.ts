@@ -35,8 +35,9 @@ export const PHASE_NOTE =
     : [
         `> ⚠️ **Wczesna faza (${PHASE}).** Dodatek jest używalny, ale numery \`0.x\``,
         "> nie obiecują zgodności: układ panelu, nazwy i zapisane ustawienia mogą",
-        "> się zmienić między wydaniami. Statystyki liczą się z okna walki, więc",
-        "> zmiana formatu logu po stronie gry potrafi je popsuć do czasu poprawki.",
+        "> się zmienić między wydaniami. Statystyki liczą się z tego, co gra",
+        "> przysyła w trakcie walki, więc zmiana po jej stronie potrafi je popsuć",
+        "> do czasu poprawki.",
         "> Zgłoszenia i logi z takich walk są najbardziej przydatną rzeczą, jaką",
         "> można teraz przysłać.",
       ].join("\n");
