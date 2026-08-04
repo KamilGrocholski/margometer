@@ -1,33 +1,55 @@
 # SOLID — działanie programu i możliwe poprawki
 
-Analiza **rdzenia**: jak tekst logu staje się statystykami — czytanie danych →
-parsowanie → mapowanie → przerabianie → sumowanie. Dwie części:
+Analiza **rdzenia**: jak protokół silnika staje się statystykami — czytanie
+danych → rozbiór → mapowanie → przerabianie → sumowanie. Dwie części:
+
+⚠️ **CZYTAJ TEN PLIK ZE ŚWIADOMOŚCIĄ DATY.** Powstał, gdy rdzeniem był PARSER
+TEKSTU, i większość sekcji `§4.*` opisuje defekty w kodzie, którego nie ma od
+2026‑08‑04. Te sekcje zostają jako **zapis tego, co znaleziono i jak** — bo
+metoda przeżyła kod. Nagłówki niżej zostały przeliczone; treść pojedynczych
+pozycji nie.
 
 - **§4 Otwarte usterki działania** — konkretne defekty parsowania/mapowania.
   §4.1–§4.10 bazują na przeglądzie w `DECYZJE.md` z 2026‑07‑19; **§4.11–§4.25
   pochodzą z przeglądu 2026‑07‑30** i obejmują nagrywanie, archiwum i
   odtwarzanie, czyli kod, który wcześniej nie był sprawdzony ani razu.
-  **Stan na 2026‑08‑01:** zamknięte są §4.1–§4.8, §4.11, §4.13–§4.25.
-  **Otwarte zostają trzy:** §4.9 (`procs` łykają zasoby — zmierzone, został
-  jeden wiersz w dymku), §4.10 (reparse — świadomie) i §4.12 (przycięcie
-  bufora — czeka na rozstrzygnięcie, czy okno walki ma sufit komunikatów).
-  ⚠️ Ten akapit wymieniał wcześniej §4.23–§4.25 jako zamknięte, choć §4.23
-  stało otwarte we własnej sekcji — ta sama choroba, co przy skrócie w §11:
-  status żył w dwóch miejscach naraz.
+  **Stan na 2026‑08‑04: nie zostaje żadna otwarta.** Zamknięte są §4.1–§4.8,
+  §4.11, §4.13–§4.25; §4.9 domknęła runda 2026‑08‑03 (patrz §11 — akapit ten
+  wymieniał ją jako otwartą i był z tamtą sekcją sprzeczny).
+  **Dwie ostatnie ROZPUŚCIŁY SIĘ, a nie zostały naprawione**, i różnica jest
+  istotna:
+  - §4.10 (pełne przeparsowanie bufora przy każdej linii) — nie ma bufora ani
+    linii. Dekoder liczy cały prefiks komunikatów przy każdej porcji i jest to
+    ŚWIADOMY wybór z tego samego powodu co wtedy: stan przyrostowy byłby
+    źródłem podwójnego liczenia.
+  - §4.12 (przycięcie bufora od góry przez grę) — dotyczyło RUCHOMEGO OKNA
+    w DOM. `Engine.battle.update` niesie porcje, nie okno; źródło zeruje bufor
+    przy nowej walce. Pytanie „czy okno walki ma sufit komunikatów" przestało
+    mieć adresata.
+
+  ⚠️ Wcześniejsza wersja tego akapitu wymieniała §4.23–§4.25 jako zamknięte,
+  choć §4.23 stało otwarte we własnej sekcji — ta sama choroba, co przy skrócie
+  w §11: status żył w dwóch miejscach naraz.
 - **§5–§9 Dług architektoniczny (SOLID)** — refaktory, które czynią całe KLASY
   tych usterek niemożliwymi, a nie łatanymi po fakcie.
 - **§10 Testy** — czego zestaw nie widzi, i dlaczego to właśnie tam przeszły
   §4.11 i §4.12.
 
-Zasada nadrzędna: **żaden refaktor nie zmienia granic** (`LogSource`,
-`RosterSource`, `parse`, `aggregate`). `BattleStats` urosło o jedno pole
-(`unknownElements`, §4.17) — to dołożenie, nie zmiana kształtu. Siatka
-bezpieczeństwa to **650 testów** (0 pominiętych) — zielone przed i po każdym
-kroku; `bunx tsc --noEmit` czysty; pokrycie **98,61 % linii**.
-Liczby odświeżone 2026‑08‑01 po rundzie parsera (§4.18/§4.22); wcześniej tego
-samego dnia stało tu „583 / 98,97 %", a przed tym „369 / 93,3 %" — czyli stan
-sprzed dwóch rund. Ta liczba starzeje się co rundę i nie ma sensu jej ufać bez
-przeliczenia; `bun test` mówi prawdę w cztery sekundy.
+Zasada nadrzędna: **żaden refaktor nie zmienia granic** (`EventSource`,
+`RosterSource`, `dekoduj`, `aggregate`).
+
+⚠️ **Do 2026‑08‑04 stały tu `LogSource` i `parse` — i obie te granice zostały
+zmienione, a nie refaktorem.** Wymiana odczytu z tekstu na protokół jest
+dokładnie tym, przed czym ta zasada broniła; przeszła świadomie i z własnym
+specem. Zasada obowiązuje dalej, ale warto zapamiętać, że **raz ją złamano
+i było to uzasadnione** — inaczej następny czytelnik uzna ją za nienaruszalną
+i albo jej zaufa fałszywie, albo zignoruje w całości. `BattleEvent[]` przeżyło
+wymianę i jest dziś granicą najważniejszą.
+
+Siatka bezpieczeństwa: **`bun run check`**. Stały tu liczby (testy, pokrycie)
+i były przeliczane cztery razy w trzy dni, za każdym razem starzejąc się do
+następnej rundy. Nie wracają — `bun test` mówi prawdę w kilka sekund
+i nie ma sensu trzymać jej kopii w dokumencie.
 
 Legenda zwrotu: 🔴 duży / mała robota · 🟡 warto · ⚪ do przemyślenia.
 
@@ -36,11 +58,11 @@ Legenda zwrotu: 🔴 duży / mała robota · 🟡 warto · ⚪ do przemyślenia.
 ## 1. Potok w jednym rzucie
 
 ```
-DOM gry ──extractText──► tekst (+ znacznik żywiołu)
-   src/source.ts             │
-                             ▼
-                        parse(text) ──► BattleEvent[]     (czysta f. tekst→zdarzenia)
-                        src/parser.ts
+Engine.battle.update ──owinięcie──► komunikaty `t.m`
+   src/protokol-source.ts            │
+                                     ▼
+                        dekoduj(komunikaty, skład, słownik) ──► BattleEvent[]
+                        src/protokol.ts                        (czysta f. klucz→zdarzenia)
                              │
         roster (z gry) ──────┤
         src/roster.ts        ▼
@@ -49,9 +71,13 @@ DOM gry ──extractText──► tekst (+ znacznik żywiołu)
                              │
         ┌────────────────────┼─────────────────────┐
         ▼                    ▼                     ▼
-   Session.update       Recorder.capture       Overlay.render
-   (sumowanie sesji)    (zapis SUROWCA)         (widok)
+   Session.updateEvents  Recorder.capture      Overlay.render
+   (która walka jest TĄ) (zapis SUROWCA)        (widok)
 ```
+
+⚠️ Do 2026‑08‑04 pierwsze dwa piętra brzmiały
+`DOM gry ──extractText──► tekst ──parse──► BattleEvent[]`. Zmieniły się
+wyłącznie one: `BattleEvent[]` w dół potok jest ten sam.
 
 Punkt zwrotny: **nagrywamy surowy tekst, nie statystyki** — stare walki liczą się
 nowym parserem (pomiar w `DECYZJE.md`: ~2,6 tys. znaków surowca vs ~4,5 tys.
@@ -594,7 +620,12 @@ wadę do zapisania: kluczuje po **surowych** nazwach z logu, gdy cała reszta
 używa nazw rozwiązanych — i jest używane wyłącznie w testach. Albo do `tests/`,
 albo przyjmować klucze rozwiązane.
 
-## 6. Parsowanie — `src/parser.ts`
+## 6. Parsowanie — `src/parser.ts` ⚰️ *(kod skasowany 2026‑08‑04)*
+
+> Cała ta sekcja opisuje plik, którego nie ma. Zostaje, bo **metoda przeżyła
+> kod**: „wzorzec przyjmuje więcej, niż format dopuszcza" i „czujka węższa niż
+> to, co przepuszcza kod przed nią" to pytania, które zadaje się dziś
+> `src/protokol.ts` — z tą różnicą, że tam granicą jest tabela ról, a nie regex.
 
 > **Zaprojektowane 2026‑08‑03**, szerzej niż ten wpis proponuje:
 > [`docs/specy/2026-08-03-parser-tokenizer-i-gramatyka.md`](specy/2026-08-03-parser-tokenizer-i-gramatyka.md)
@@ -916,11 +947,13 @@ stoi przy teście i przy `pairApplied` w `parser.ts`.
 **Asercje na nieobecność czegoś, czego nie ma:** `.tip-row` i `.more` nie padają
 nigdzie w `src/`. Ta sama klasa, którą `AUDYT‑24` skasował dla `.axis`/`.focus`.
 
-**Skrzywienie korpusu.** 24 fixture'y, ale tylko **11 z zrzutem DOM** — cała oś
-żywiołów (i scalanie rodzin z 2026‑07‑31) jest sprawdzana na niecałej połowie.
-Nadal jeden build klienta, jeden właściciel, wyłącznie męskie formy czasownika.
-(Przeliczone 2026‑08‑03, po dołożeniu trzech zrzutów mających oba pliki; było
-21 i 8.)
+**Skrzywienie korpusu.** ⚠️ Ten akapit mierzył, ile fixture'ów ma zrzut DOM
+(24 fixture'y, 11 z DOM — przeliczone 2026‑08‑03). Pytanie zniknęło razem
+z `log.html` 2026‑08‑04. Skrzywienie ZOSTAŁO i jest dziś ostrzejsze: 22 walki
+jako zamrożone `zdarzenia.json` (odczyt parsera, którego nie da się już
+zregenerować) i **JEDEN** `protokol.json`, czyli jedna walka, którą w ogóle da
+się sprawdzić przeciw grze. Nadal jeden build klienta, jeden właściciel,
+wyłącznie męskie formy czasownika.
 
 **Brakujące fixture'y:** log **właścicielki** (formy żeńskie — `GENDER` jest
 sprawdzany tylko na ręcznie pisanych stringach) i walka z **przyciętym
@@ -957,15 +990,21 @@ siedzi wyłącznie w klasie CSS.
 
 | # | Usterka | Warstwa | Dlaczego tu |
 |---|---|---|---|
-| 4.12 | Przycięcie bufora obniża liczby bieżącej walki | session | **połowa zamknięta 2026‑08‑03** wraz z sumą sesji; zostaje jedno pytanie o FAKT — czy okno walki ma sufit komunikatów. Odpowiada na nie sonda w kliencie, nie kolejny zrzut |
+| 4.12 | Przycięcie bufora obniża liczby bieżącej walki | session | **połowa zamknięta 2026‑08‑03** wraz z sumą sesji; druga połowa **rozpuszczona 2026‑08‑04** — dotyczyła ruchomego okna w DOM, a protokół nie ma bufora do przycięcia |
 
 **Otwarte luki dowodowe** (nie usterki — miejsca, w których zestaw nie widzi):
 
 | Gdzie | Co |
 |---|---|
-| `tests/parser.test.ts` | test różnicowy `html ↔ raw` ma w środku `if (raw === null) return;`, więc dla **3 z 11** zrzutów z DOM przechodzi PUSTY, a raport pokazuje zielone. Naprawa nie polega na dorobieniu `raw.txt` (te zrzuty są z lipca), tylko na **zamrożeniu listy** fixture'ów bez pary — żeby czwarty nie poszerzył ciszy po cichu. Najtańsza otwarta pozycja w testach |
-| `tests/mutanty.test.ts` | fuzz chodzi wyłącznie po korpusie TEKSTOWYM; wariant ze znacznikiem żywiołu jest syntetyczny. Objęcie `log.html` wymaga przepuszczenia 6 tys. wariantów przez `extractText` |
+| **dekoder bez świadka spoza repo** | **największa dziś luka, otwarta 2026‑08‑04.** `tests/orakulum.test.ts` porównywało `dekoduj(komunikaty)` z `parse(odtworz(komunikaty))` — dwa rozłączne kody na tym samym wejściu — i złapało jedyny prawdziwy błąd dekodera. Zniknęło razem z parserem. Wszystko, co zostało, pyta repo o zgodność z samym sobą; dokładnie taki zestaw był zielony, gdy `mergeStats` gubiło sumy (`AUDYT‑6`) |
+| **jeden `protokol.json`** | korpus, który da się sprawdzić przeciw grze, ma JEDNĄ walkę. 22 pliki `zdarzenia.json` są zamrożonym wyjściem skasowanego parsera — pokrywają agregat, nie odczyt |
 | `docs/AUDYT.md §G` | kolumna statusu w tabeli cudzych pozycji — wniosek „zostawić same odsyłacze" stoi od 2026‑08‑02 i zestarzał się już **czterokrotnie** we własnej tabeli |
+
+⚠️ **Dwa wiersze zeszły stąd 2026‑08‑04 razem z plikami, których dotyczyły:**
+`tests/parser.test.ts` (test różnicowy `html ↔ raw` przechodzący PUSTY dla 3 z 11
+zrzutów z DOM — „najtańsza otwarta pozycja w testach") i `tests/mutanty.test.ts`
+(fuzz chodzący wyłącznie po korpusie tekstowym). Obie były realne i obie
+przestały mieć przedmiot; **nie zostały naprawione**.
 
 `4.9` zeszło stąd **2026‑08‑03** — zamknięte w tej samej rundzie.
 
@@ -1048,19 +1087,23 @@ pozycji `§9` okazały się przy sprawdzaniu nieaktualne — patrz tamta sekcja.
 
 **Zostaje, w tej kolejności:**
 
-1. **§4.12** — jedyna otwarta usterka działania, i to w połowie. Rozstrzyga ją
-   **sonda w kliencie** (czy okno walki przycina `.scroll-pane`), nie kolejny
-   zrzut: przy 1373 liniach gra nadal nie przycinała.
+1. ~~**§4.12**~~ — **rozpuszczone 2026‑08‑04 razem ze ścieżką DOM.** Dotyczyło
+   przycinania `.scroll-pane` przez grę; protokół nie ma okna do przycięcia.
+   Sonda, o którą prosiło, nie ma już czego sprawdzić.
 2. **R8** (eksport `instanceResolver`) — trzy gałęzie z zerowym pokryciem,
    nieosiągalne z zewnątrz. Najtańsze z tego, co zostało.
 3. **R5** (wspólny stan okna) i **cięcie `overlay.ts`** wg `§8` — plik ma
    ponad 3100 linii i urósł w tej rundzie, nie zmalał.
 4. **R1** — po usunięciu sumy sesji zostaje z niego jedna stała `fight-start`
    i trzy kopie wzorca. Koszt spadł M → S, ale i zwrot.
-5. **`UX-POPRAWKI B2`** (suwak po turach) — wymaga numeru linii w zdarzeniach
-   parsera, czyli zmiany w `types.ts`, `parser.ts` i `stats.ts`.
-6. **`R4`** — parser od zera, spec w `specy/2026-08-03-…` ze statusem `projekt`.
-   Osobna decyzja, nie kolejny punkt tej listy.
+5. **`UX-POPRAWKI B2`** (suwak po turach) — wymagało numeru linii w zdarzeniach
+   parsera. Dziś to pytanie o `protokol.ts`, a **koszt mógł spaść**: odtwarzanie
+   idzie po KOMUNIKATACH, a jeden komunikat to cały blok akcji. Do przeliczenia
+   przy okazji, nie na wiarę.
+6. ~~**`R4`**~~ — „parser od zera", spec `specy/2026-08-03-parser-tokenizer-i-gramatyka.md`
+   ze statusem `projekt`. **Bezprzedmiotowe od 2026‑08‑04**: parsera nie ma,
+   a jego rolę przejął dekoder protokołu, który nie ma gramatyki do napisania.
+   Spec zostaje jako zapis rozważanego wariantu.
 
 **Runda 2026‑08‑01 (parser) — wykonane:** §4.18 → §4.22 (decyzja: blok,
 super‑kryt i osłabienie DoT‑a do panelu, `experience` usunięte) → testy:

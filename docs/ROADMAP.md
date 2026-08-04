@@ -22,13 +22,16 @@ brak może sprawić, że panel pokaże złą liczbę, nie mówiąc o tym ani sł
   [`specy/2026-08-03-parser-tokenizer-i-gramatyka.md`](specy/2026-08-03-parser-tokenizer-i-gramatyka.md));
 - czujki, które są węższe od tego, co przepuszcza kod przed nimi;
 - fallbacki zamieniające brak danych w zero albo w kopię sąsiada;
-- **dowód, że czujka `unknown` jest ciasna** — korpus ma zero nieznanych linii,
-  więc sam z siebie nie mówi nic o tym, czego parser NIE rozpoznaje.
-  Pierwsze spojrzenie z zewnątrz jest od 2026‑08‑03: `bun tools/luki.ts` składa
-  pomoc gry, korpus protokołu z grooove.pl i korpus tekstowy, i wypisuje efekty,
-  które gra dokumentuje i które w prawdziwych walkach zachodzą, a nasz korpus
-  ich nie zna. Dziś takich kandydatów jest **dwóch** — patrz „Czego brakuje
-  w korpusie" niżej;
+- **dowód, że czujka `unknown` jest ciasna** — korpus ma zero nieznanych
+  kluczy, więc sam z siebie nie mówi nic o tym, czego dekoder NIE rozpoznaje.
+  Odpowiada na to `tests/klucze-protokolu.test.ts` przeciw zamrożonej tabeli
+  z assetu gry.
+
+  ⚠️ **Stało tu narzędzie `bun tools/luki.ts` i zeszło z drzewa 2026‑08‑04.**
+  Składało pomoc gry, korpus protokołu z grooove.pl i **korpus tekstowy**,
+  wypisując efekty, które gra dokumentuje i które w walkach zachodzą, a nasz
+  korpus ich nie zna. Trzecia noga tego złączenia była korpusem parsera —
+  razem z nim odpadło pytanie, na które narzędzie odpowiadało;
 - niezmienniki po całym korpusie tam, gdzie dziś ich nie ma — zwłaszcza na
   ścieżce przez DOM, jedynej niosącej żywioły;
 - brakujące fixture'y (sekcja „Czego brakuje w korpusie" niżej);
@@ -132,7 +135,7 @@ Patrz też znane ograniczenie „Leczenie bez leczącego” w `DECYZJE.md`.
 Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`
 w `meta.json`, zweryfikowany po `covers`:
 - ~~**Para: ta sama walka jako tekst i jako protokół.**~~ **ZAŁATANA 2026‑08‑04**
-  — `tests/fixtures/new-engine/2026-08-04_tempest_lowca-vs-odyncze/`. Zdanie
+  — dziś w kodzie, jako `tests/walka-z-gry.ts`. Zdanie
   „nie da się bez gracza" było prawdziwe do końca: parę zebrał gracz, sondą
   w konsoli i przyciskiem „Kopiuj logi".
 
@@ -149,9 +152,9 @@ w `meta.json`, zweryfikowany po `covers`:
   słownika, a nie orakulum, bo `damageWeakened` nie wchodzi do porównywanych
   skalarów (`a5e9150`). Wniosek: **czujka i czytanie źródeł łapią co innego.**
 
-  **Czego ta para nie ma:** bloku, uniku, absorpcji, zapowiedzi umiejętności
-  ani `log.html` (sonda zebrała render zdublowany — patrz `meta.json`). To jest
-  lista zakupowa na następny zrzut.
+  **Czego ta para nie ma:** bloku, uniku, absorpcji, zapowiedzi umiejętności.
+  To jest lista zakupowa na następny zrzut. (Stało tu jeszcze „ani `log.html`" —
+  bezprzedmiotowe od 2026‑08‑04, sonda nie zbiera już węzłów renderu.)
 
   Poniższy akapit opisuje stan sprzed tej pary i zostaje jako zapis drogi:
 
@@ -177,10 +180,18 @@ w `meta.json`, zweryfikowany po `covers`:
   (`Battle.js:36`), więc sonda go nie dosięgnie — i dlatego „bez gracza" zostaje
   prawdą.
 
-  **Orakulum czeka już napisane.** `tests/orakulum.test.ts` porównuje
-  `dekoduj(protokol.json)` z `parse(raw.txt)` i uruchamia się SAM, gdy pierwsza
-  para wyląduje w korpusie; dziś wypisuje na stderr, że nic nie dowodzi.
-  Jak dołożyć parę: nagłówek `tools/walka-probe.js`.
+  ⚠️ **ORAKULUM ZESZŁO Z DRZEWA 2026‑08‑04 I TO JEST DZIŚ NAJWIĘKSZA OTWARTA
+  LUKA.** `tests/orakulum.test.ts` porównywało `dekoduj(komunikaty)` z
+  `parse(odtworz(komunikaty))` — dwa rozłączne kody czytające ten sam komunikat
+  — i to ono złapało jedyny prawdziwy błąd dekodera (leczenie przypisywane
+  sobie). Razem z parserem tekstu zniknęła druga strona porównania; skasowanie
+  było świadomą decyzją, nie przeoczeniem.
+
+  **Dekoder nie ma dziś świadka spoza repo.** Wszystkie pozostałe testy pytają
+  repo o zgodność z samym sobą — a to jest dokładnie ten kształt, który był
+  zielony wtedy, gdy `mergeStats` gubiło sumy (`AUDYT‑6`). Odbudowa wymaga
+  drugiego, niezależnego czytelnika komunikatów; nikt takiego nie ma napisanego
+  i nie jest to praca na jedną rundę.
 - **Krwawa udręka ( anguish )** — 11 wystąpień w korpusie protokołu, zero
   w tekstowym (rdzeń „udrę");
 - **Wściekłość ( rage )** — 26 wystąpień w korpusie protokołu, zero
@@ -205,16 +216,22 @@ w `meta.json`, zweryfikowany po `covers`:
   wyżej — o żadnym z nich nie wiadomo nawet, czy odpowiada zdarzeniu w logu —
   ale to cena tamtej decyzji i ma być zapisana, a nie przemilczana. Tę akurat
   lukę **da się** załatać z grooove.pl, na polskim świecie. Powody decyzji:
-  `tests/fixtures/grooove/README.md`, sekcja „Minus dwie z Cronusa";
-- **log właścicielki** — formy żeńskie czasownika są obsłużone w regexach, ale
-  sprawdzone tylko na ręcznie pisanych stringach (`SOLID.md §4.8`);
-- **walka z przyciętym nagłówkiem** — rozstrzyga, czy `SOLID.md §4.12` (sumy
-  maleją) jest realne, czy `merge` w nagrywarce broni przed czymś, czego nie ma;
+  README korpusu grooove — plik zszedł z drzewa 2026‑08‑04 razem z korpusem;
+- ~~**log właścicielki**~~ — **bezprzedmiotowe od 2026‑08‑04.** Chodziło o formy
+  ŻEŃSKIE czasownika („uderzyła"), obsłużone w regexach parsera i sprawdzone
+  tylko na ręcznie pisanych stringach (`SOLID.md §4.8`). Protokół nie niesie
+  czasowników — niesie `id` i klucze — więc płeć postaci przestała być
+  ryzykiem odczytu;
+- ~~**walka z przyciętym nagłówkiem**~~ — **bezprzedmiotowe od 2026‑08‑04.**
+  Rozstrzygało `SOLID.md §4.12`, czyli przycinanie bufora DOM od góry.
+  Protokół nie ma bufora do przycięcia;
 - ~~**`Zablokowanie N obrażeń` na ścieżce DOM**~~ — **skreślone 2026‑08‑03:**
   zamknięte 2026‑08‑01, `2026-08-01_druzyna-vs-hildur-drugi-sklad` dostał
-  `log.html` (`SOLID §10`). Ten plik trzymał to jako brak trzy dni dłużej —
-  status żyjący w dwóch miejscach, po raz kolejny.
+  wtedy `log.html` (`SOLID §10`). Ten plik trzymał to jako brak trzy dni dłużej
+  — status żyjący w dwóch miejscach, po raz kolejny. (Ścieżki DOM ani tamtego
+  pliku nie ma od 2026‑08‑04; wpis zostaje jako zapis, jak wygląda ta choroba.)
 - ~~**remis**~~ — **skreślone 2026‑08‑01, bo było nieprawdą.** „Walka nie
-  wyłoniła zwycięzcy” występuje w `2026-07-18_tancerz-vs-kukla/raw.txt:36`
-  i `2026-07-18_tropiciel-vs-kukla/raw.txt:31`. Skąd błąd i jak go nie powtórzyć
-  — `SOLID.md §10`.
+  wyłoniła zwycięzcy” występowało wtedy w `2026-07-18_tancerz-vs-kukla/raw.txt:36`
+  i `2026-07-18_tropiciel-vs-kukla/raw.txt:31` (pliki zeszły z drzewa
+  2026‑08‑04; zdarzenie siedzi dalej w ich `zdarzenia.json`). Skąd błąd i jak go
+  nie powtórzyć — `SOLID.md §10`.

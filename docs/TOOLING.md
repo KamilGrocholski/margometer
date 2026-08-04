@@ -385,12 +385,25 @@ nigdzie nie jest zapisana (dziś: `minify: false`, bez map).
 ~~Jedno realne ryzyko: `seed` podglądu archiwum wstawia `JSON.stringify(texts)`
 prosto do `<script>`, a escapowanie JSON **nie neutralizuje** ciągu
 `</script>`.~~ **Zamknięte:** seed robi `.replace(/<\//g, "<\\/")` z komentarzem
-wyjaśniającym, a `page()` escapuje `&` i `<` w bloku logu — obie drogi są kryte.
+wyjaśniającym.
 
-Na plus: podglądy (`preview.html`, `preview-20.html`, `preview-archive.html`) to
-realna pętla QA bez wchodzenia do gry, a syntetyczny log jest udokumentowany jako
-**nie‑dowód** (`tools/synthetic-log.ts`) — czyli w testach nie wyląduje. Bundle
-jest czysty: `syntheticFight` nie wjeżdża do `margometer.user.js`.
+Na plus: podglądy (`preview.html`, `preview-archive.html`) to realna pętla QA bez
+wchodzenia do gry. **Od 2026‑08‑04 idą DOKŁADNIE tą drogą co gra**: seed udaje
+`Engine.battle` ze składem i pustym `update`, czeka aż dodatek je owinie, i
+dopiero wtedy wpuszcza komunikaty. Wcześniej wstawiały log w DOM i omijały całe
+owinięcie razem z wyścigiem o podpięcie.
+
+⚠️ **`preview-20.html` zszedł z drzewa w tej samej rundzie.** Pokazywał układ
+listy przy dwudziestu postaciach z rozstrzelonymi liczbami, biorąc je
+z `tools/synthetic-log.ts` — a ten składał ZDANIA gry. Generator oddaje dziś
+`BattleEvent[]` (testy panelu stoją na nim dalej), więc do podglądu
+potrzebowałby syntetycznych KOMUNIKATÓW protokołu. Zakodowanie kluczy krytyka,
+bloku, proców i leczenia „na oko" dałoby podgląd wyglądający poprawnie
+i kłamiący, więc czeka na osobną robotę. Powód stoi też w `build.ts`.
+
+Syntetyczna walka jest dalej udokumentowana jako **nie‑dowód**
+(`tools/synthetic-log.ts`), a bundle jest czysty: `syntheticFight` nie wjeżdża
+do `margometer.user.js`.
 
 ## 7. `package.json` i `bunfig.toml` — drobiazgi ⚪
 
@@ -415,7 +428,7 @@ konwencja szersza. Trzy pliki, każdy z innym zadaniem:
 |---|---|
 | **`AGENTS.md`** | treść właściwa. Otwarty format [agents.md](https://agents.md/) — czytają go Codex, Cursor, Copilot, Gemini CLI, Aider i reszta. Korzeń repo, zwykły Markdown, „README dla agentów” |
 | **`CLAUDE.md`** | `@AGENTS.md` plus sekcja własna. Dokumentacja Claude Code mówi wprost: „Claude Code reads `CLAUDE.md`, not `AGENTS.md`. If your repository already uses `AGENTS.md` …, create a `CLAUDE.md` that imports it”. Symlink też jest wspieraną konwencją, ale **tylko bez treści własnej** — a tu jest — i wymaga uprawnień na Windowsie |
-| **`.claude/rules/mechanika-gry.md`** | reguła ścieżkowa: ładuje się dopiero przy `src/parser.ts`, `src/stats.ts`, `src/types.ts`, `docs/**/*.md` i `meta.json`. Niesie skrót procedury z `MECHANIKA.md` tam, gdzie powstają zdania o mechanice gry, i nie zjada kontekstu w pozostałych sesjach |
+| **`.claude/rules/mechanika-gry.md`** | reguła ścieżkowa: ładuje się dopiero przy `src/protokol.ts`, `src/stats.ts`, `src/types.ts`, `docs/**/*.md` i `meta.json` (do 2026‑08‑04 pierwszą ścieżką był `src/parser.ts` — po jego skasowaniu wzorzec przestał się dopasowywać, czyli reguła cicho przestała działać). Niesie skrót procedury z `MECHANIKA.md` tam, gdzie powstają zdania o mechanice gry, i nie zjada kontekstu w pozostałych sesjach |
 
 Podział jest po to, żeby zmieścić się w zaleceniu „target under 200 lines per
 `CLAUDE.md`”: co ma być zawsze — w `AGENTS.md`, co tylko czasem — w regule.

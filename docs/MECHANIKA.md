@@ -84,7 +84,8 @@ na zrzucie z gry; szablon mówi, CZEGO w zrzucie szukać.**
 
 ### 5. Dopiero teraz korpus
 
-`bun -e '…'` z importem `parse`/`aggregate` po `tests/fixtures/*/*/raw.txt`.
+`bun -e '…'` z importem `aggregate` po walkach z `tests/korpus.ts`. ⚠️ Do
+2026‑08‑04 szło to po korpusie `tests/fixtures/`, którego już nie ma.
 
 Dokumentacja mówi, co gra **zamierza**; korpus — co log **pokazuje**. Nie
 zastępują się i oba są potrzebne: pomoc nie opisuje formatu logu ani jednym
@@ -239,9 +240,11 @@ niedokładnie i nadal wygląda jak cytat.**
 „we wszystkich”; metoda: `bun tools/pomoc.ts`; data: 2026‑08‑01. Sześć trafień
 na rdzeń „globaln” dotyczy „Dodatku globalnego do Gry”, nie obrażeń.
 
-**Wniosek dla kodu.** Nazwa `globalne` dla klasy `dmgg` (`src/parser.ts`)
-pochodzi z terminologii gry i z naszego zestawienia po korpusie, **nie z cytatu**
-— i tak ma zostać opisana. Adnotacja w `meta.json` fixture'a
+**Wniosek dla kodu.** Nazwa `globalne` dla rodzaju obrażeń pochodzi
+z terminologii gry i z naszego zestawienia po korpusie, **nie z cytatu** — i tak
+ma zostać opisana. (Wskazywało to na klasę CSS `dmgg` czytaną przez
+`src/parser.ts`; parser zszedł z drzewa 2026‑08‑04, rodzaj przychodzi dziś
+kluczem protokołu, ale pochodzenie NAZWY się nie zmieniło.) Adnotacja w `meta.json` fixture'a
 `2026-07-31_druzyna-vs-hildur-zwyciestwo` się broni.
 
 ### Linia „Stracono −N punktów życia X(pct%)” — nie znaleziono ❌, rozstrzygnięte pomiarem
@@ -346,10 +349,14 @@ przepuszczenie zdania ze słownika przez `parse`. Wariant dwuczłonowy też:
 `(osłabione o N%)` siedzi we wzorcu i trafia do `weakenedPct`.
 
 Czyli **`anguish` nigdy nie był cichą luką PARSERA — był luką KORPUSU.**
-W korpusie tekstowym nadal nie ma ani jednego wystąpienia rdzenia „udrę”,
-a że efekt zachodzi w prawdziwych walkach, dowodzi korpus protokołu (11 razy
-w dwóch walkach, `bun tools/luki.ts`). Zrzut jest więc dalej wart zebrania —
-ale jako POTWIERDZENIE, nie jako warunek napisania wzorca.
+W korpusie tekstowym nie było ani jednego wystąpienia rdzenia „udrę”, a że efekt
+zachodzi w prawdziwych walkach, dowodził korpus protokołu (11 razy w dwóch
+walkach). Zrzut jest dalej wart zebrania — ale jako POTWIERDZENIE, nie jako
+warunek napisania wzorca.
+
+⚠️ Pomiar po stronie tekstowej robiło `bun tools/luki.ts`; narzędzie i korpus
+tekstowy zeszły z drzewa 2026‑08‑04, więc tej liczby nie da się dziś odtworzyć.
+Liczba z korpusu protokołu (11) zostaje sprawdzalna.
 
 Bonus stoi też w cytacie z listy bonusów legendarnych przy wpisie o ciosie
 bardzo krytycznym wyżej — na dziesięć wymienionych tam bonusów korpus tekstowy

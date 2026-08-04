@@ -1,14 +1,20 @@
 # Decyzje i ograniczenia
 
 **Dlaczego kod wygląda tak, jak wygląda** — czego log walki NIE mówi, co z tego
-wynika dla parsera i statystyk, i które warianty zostały świadomie odrzucone.
+wynika dla odczytu i statystyk, i które warianty zostały świadomie odrzucone.
 Punkt wejścia do katalogu jest w [`README.md`](README.md); ten plik czyta się
 wybiórczo, sekcjami.
 
+⚠️ **CZYTAJ Z DATĄ SEKCJI.** Większość ustaleń tu powstała, gdy odczytem był
+PARSER TEKSTU (`src/parser.ts`, skasowany 2026‑08‑04). Wnioski o tym, czego GRA
+nie mówi, przeżyły wymianę odczytu — bo dotyczą gry, nie naszego kodu; odwołania
+do `parser.ts:NN` już nie. Gdzie coś przestało być prawdą, stoi to na miejscu
+osobnym akapitem.
+
 ## Nagrywanie walk — dlaczego tak (`src/recorder.ts`)
 
-**Zapisujemy surowy tekst logu, nie policzone statystyki.** Pomiar na 13
-zrzutach z `tests/fixtures/new-engine/` (od 1v1 po walkę grupową na 201 linii):
+**Zapisujemy SUROWY MATERIAŁ, nie policzone statystyki.** Pomiar na 13 zrzutach
+z ówczesnego korpusu (od 1v1 po walkę grupową na 201 linii):
 
 | co zapisujemy | śr. znaków / walkę | max |
 | --- | --- | --- |
@@ -16,9 +22,18 @@ zrzutach z `tests/fixtures/new-engine/` (od 1v1 po walkę grupową na 201 linii)
 | `BattleEvent[]` w JSON | 5 737 | 16 378 |
 | `BattleStats` w JSON | 4 457 | 8 924 |
 
-Surowy log jest nie tylko najmniejszy — przeżywa zmianę kształtu `ActorStats`
-i pozwala przeliczyć stare nagrania nowym parserem. Statystyki zamrożone w
-JSON-ie są bezużyteczne w dniu, w którym łatamy lukę w parserze.
+Surowy materiał jest nie tylko najmniejszy — przeżywa zmianę kształtu
+`ActorStats` i pozwala przeliczyć stare nagrania NOWSZYM ODCZYTEM. Statystyki
+zamrożone w JSON-ie są bezużyteczne w dniu, w którym łatamy lukę w odczycie —
+a łataliśmy ją dwa razy w ciągu jednego dnia (`d4be27e`, `a5e9150`).
+
+⚠️ **Tabela mierzy TEKST i nie została przeliczona.** Od 2026‑08‑04 nagranie to
+`{komunikaty, sklad}` w formacie `v: 2`: protokół jest gęstszy na komunikat, ale
+komunikatów jest mniej niż linii (18 na walkę w jedynym zrzucie, jaki mamy).
+Wniosek — „surowe, nie policzone" — nie zależy od tych liczb i dlatego zostają
+jako zapis pomiaru, a nie jako opis dzisiejszego pliku. Budżet niżej też nie
+został przeliczony; chroni GRĘ przed zapchanym kubełkiem, a nie nas przed małym
+archiwum.
 
 **Budżet: 500 tys. znaków (~1 MB).** Przeglądarki liczą localStorage po 2 bajty
 na znak (UTF-16), więc z ~5 MB na origin realnie mieści się ~2,5 mln znaków —

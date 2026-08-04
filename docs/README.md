@@ -19,22 +19,32 @@ Licznik obrażeń do przeglądarkowej gry [Margonem](https://www.margonem.pl/) �
 userscript rysujący panel ze statystykami nad grą. To, czym dla WoW‑a są SKADA
 i Details!, tyle że Margonem jest turowy.
 
-Dodatek **czyta okno walki i nic więcej**: nie wysyła zapytań, nie dotyka stanu
-gry, nie automatyzuje niczego. Całe źródło danych to tekst, który gracz i tak ma
-na ekranie.
+Dodatek **czyta i nic poza tym**: nie wysyła zapytań, nie zmienia przebiegu
+walki, nie automatyzuje niczego. Źródłem danych jest **protokół silnika** —
+ładunek, który serwer i tak przysyła do okna walki.
+
+⚠️ Zdanie „nie dotyka stanu gry" stało tu do 2026‑08‑04 i przestało być
+prawdziwe: owinięcie `Engine.battle.update` jest dotknięciem. Co dodatek nadal
+gwarantuje i czym to jest zabezpieczone — `AGENTS.md`.
 
 Potok w jednym zdaniu:
 
 ```
-okno walki (DOM)  →  source.ts   → tekst z żywiołami z klas CSS
-                  →  parser.ts   → BattleEvent[]  (maszyna stanów, linia po linii)
-                  →  stats.ts    → BattleStats    (agregacja, rozbicia, instancje)
-                  →  session.ts  → podział bufora na walki; która z nich jest TĄ
-                  →  overlay.ts  → panel w Shadow DOM
+Engine.battle.update  →  protokol-source.ts → komunikaty `t.m` + skład
+                      →  protokol.ts        → BattleEvent[]  (rozbiór klucz po kluczu)
+                      →  slownik-gry.ts     → brzmienia efektów z `window._t`
+                      →  stats.ts           → BattleStats  (agregacja, rozbicia, instancje)
+                      →  session.ts         → która walka jest TĄ
+                      →  overlay.ts         → panel w Shadow DOM
 ```
 
+⚠️ **Stała tu droga przez DOM** (`source.ts` → `parser.ts`) i zeszła z drzewa
+2026‑08‑04. Protokół niesie `id` po obu stronach każdego zdarzenia, żywioł jako
+klucz zamiast klasy CSS i rozbite składniki redukcji; tekst był rekonstrukcją
+tego wszystkiego ze zdań. Powody i koszt: `AGENTS.md` oraz `docs/specy/`.
+
 Poboczne: `recorder.ts` + `archive.ts` (nagrywanie i odtwarzanie walk),
-`roster.ts` (skład z `Engine.battle`, gdy log go nie podaje), `palette.ts`
+`roster.ts` (skład z `Engine.battle`), `palette.ts`
 (barwy), `window.ts` (geometria okna), `stored-state.ts` (stan z `localStorage`),
 `confirm.ts` (pytanie „na pewno?" z wygasaniem, wspólne dla panelu i archiwum),
 `version.ts` (numer wersji dla wnętrza bundle'a), `style.ts` (arkusz obu okien:
@@ -56,7 +66,7 @@ ich w całości — każdy odpowiada na inne pytanie.
 | Plik | Odpowiada na pytanie | Kiedy tu zajrzeć |
 |---|---|---|
 | [`MECHANIKA.md`](MECHANIKA.md) | **Jak zachowuje się GRA — i skąd to wiadomo?** Procedura sprawdzania oficjalnej pomocy plus rejestr odpowiedzi z dosłownymi cytatami (albo jawnym „nie znaleziono”). | Zanim napiszesz JAKIEKOLWIEK zdanie o zachowaniu gry, także negatywne |
-| [`DECYZJE.md`](DECYZJE.md) | **Dlaczego kod wygląda tak, jak wygląda?** Czego log NIE mówi i co z tego wynika. Sekcje o truciźnie bez sprawcy, leczeniu bez leczącego, duplikatach nazw, kolorach, „na turę". | Zawsze, zanim zmienisz cokolwiek w `parser.ts` albo `stats.ts` |
+| [`DECYZJE.md`](DECYZJE.md) | **Dlaczego kod wygląda tak, jak wygląda?** Czego log NIE mówi i co z tego wynika. Sekcje o truciźnie bez sprawcy, leczeniu bez leczącego, duplikatach nazw, kolorach, „na turę". | Zawsze, zanim zmienisz cokolwiek w `protokol.ts` albo `stats.ts` |
 | [`AUDYT.md`](AUDYT.md) | **Co jest zepsute i co już naprawiono?** Rejestr z ID (`AUDYT‑N`), wagą, kosztem i — przy naprawionych — opisem, co konkretnie zrobiono. | Zanim zgłosisz „znalazłem błąd" — sprawdź, czy nie jest już zapisany albo świadomie odrzucony |
 | [`SOLID.md`](SOLID.md) | **Gdzie jest dług i czego nie widzą testy?** Usterki `§4.*`, architektura `§8`, martwy kod `§9`, luki zestawu `§10`. | Przy refaktorze i przy pytaniu „czy to jest pokryte?" |
 | [`UX.md`](UX.md) | **Jak panel ma się zachowywać?** Spec gestów i zasad, z ✅ (jest) i 🎯 (postulat). | Przy każdej zmianie w `overlay.ts` |
@@ -67,19 +77,29 @@ ich w całości — każdy odpowiada na inne pytanie.
 | [`specy/`](specy/) | **Jak rozumowaliśmy przy TEJ zmianie?** Jeden plik na rundę pracy — problem, wybrane rozwiązanie i **odrzucone warianty**. Reszta tej tabeli to rejestry per temat; to jest oś prostopadła. | Zanim zaprojektujesz większą zmianę — i zaraz po tym, jak ją zaprojektujesz |
 | [`screenshots/`](screenshots/) | Obrazki do `README.md` w korzeniu, z konwencją nazw i listą rzeczy, o których trzeba pamiętać przy robieniu zrzutu. | Gdy zrzuty w README przestały pokazywać panel takim, jaki jest |
 
-Poza `docs/`: **[`tests/fixtures/`](../tests/fixtures/new-engine/)** — przy każdym
-zrzucie walki stoi `meta.json` z opisem, co ten fixture pokrywa (`covers`), czego
-w nim nie ma (`missing`) i co było w nim trudnego (`notes`). To najszybsza droga
-do pytania „czy mam próbkę z X?".
+Poza `docs/`: **materiał testowy powstaje W KODZIE.** Katalog `tests/fixtures/`
+zszedł z drzewa 2026‑08‑04 w całości. Co jest zamiast:
 
-Fixture'y stoją w **dwóch korpusach i odpowiadają na różne pytania**.
-`new-engine/` to zrzuty tekstu i DOM-u z okna walki — materiał dla parsera,
-„czy to czytamy". [`grooove/`](../tests/fixtures/grooove/) to surowy protokół
-silnika pobrany z publicznych walk na grooove.pl, **wyłącznie ze światów
-polskojęzycznych** — „czy gra to w ogóle emituje i jak często". Parser tego
-drugiego NIE czyta i czytać nie ma; pliki nazywają się tam `log.grooove.txt`
-właśnie po to, żeby nie wpadły do globów testowych.
-Powody, granice i pomiary: [`grooove/README.md`](../tests/fixtures/grooove/README.md).
+- [`tests/zdarzenia.ts`](../tests/zdarzenia.ts) — pojedyncze `BattleEvent`
+  budowane wprost, do testów opisujących jeden kształt;
+- [`tests/korpus.ts`](../tests/korpus.ts) — walki, po których chodzą
+  NIEZMIENNIKI: pięć z generatora ([`tools/synthetic-log.ts`](../tools/synthetic-log.ts))
+  plus jedna ręczna z kształtami, których generator nie produkuje;
+- [`tests/walka-z-gry.ts`](../tests/walka-z-gry.ts) — **jedyny materiał
+  nie‑syntetyczny**: 18 komunikatów i skład z prawdziwego zrzutu
+  `Engine.battle.update`. Karmi testy archiwum, `index` i podglądy w `dist/`.
+
+⚠️ **Co to odebrało.** Kształt, o którym nie pomyśleliśmy, nie ma jak wpaść do
+materiału, który sami budujemy — a korpus łapał je sam z siebie. Zestaw zszedł
+z 914 do 557 testów. Największe pozycje: zgodność zaszytych identyfikatorów `_t`
+z assetem gry, dwustronne pokrycie tabeli ról przeciw 233 kluczom, przekrój po
+typie obrażeń w walce grupowej, blok u celu / super‑kryt / osłabienie DoT‑a
+z liczbami odtwarzalnymi ręcznie oraz 61 testów panelu. Każde miejsce ma ⚠️
+z liczbami — `grep "razem z korpusem"`.
+
+Droga powrotna jest otwarta i to jest cała pociecha: `tools/walka-probe.js`
+zbiera zrzut z gry, `bun tools/walka.ts --rozbij` robi z niego katalog,
+a `bun tools/slownik.ts --zamroz` odtwarza tabelę kluczy z assetu.
 
 ---
 
@@ -102,7 +122,7 @@ Procedura, żeby to się nie powtórzyło: [`MECHANIKA.md`](MECHANIKA.md).
 | [margonem.pl](https://www.margonem.pl/) | Sama gra. Dodatek startuje na światach `*.margonem.pl` i `*.margonem.com` — listę wraz z wykluczeniami trzyma [`tools/userscript-meta.ts`](../tools/userscript-meta.ts) |
 | [**Mechanika walk**](https://pomoc.margonem.pl/index/view,372) | **Pełna specyfikacja mechaniki na ~399 tys. znaków** — nie skrót. System walki, system tur, statystyki postaci i NPC, efekty umiejętności, atrakcje; wzory (`evade`, `block`, `crit gain`), kolejność redukcji obrażeń, opis każdego zdarzenia z nazwą silnikową. Czytaj sondą `tools/pomoc.ts`, nie streszczeniem — dlaczego, mówi [`MECHANIKA.md`](MECHANIKA.md) |
 | [pomoc.margonem.pl](https://pomoc.margonem.pl/) | Reszta oficjalnej pomocy. `view,3` odsyła całą walkę do artykułu wyżej, `view,183` (Słowniczek) nie zna ani uniku, ani bloku — sprawdzone 2026‑08‑01. Reszty nie przeglądaliśmy; znajdziesz coś, dopisz **razem z cytatem** |
-| [grooove.pl/battle](https://grooove.pl/battle/) | Publiczne zrzuty walk graczy, ale w postaci **surowego protokołu silnika**, nie tekstu z okna walki. Filtr `?w=<świat>`, pojedyncza walka pod `/battle/id,<ID>`. Wybrane walki leżą w [`tests/fixtures/grooove/`](../tests/fixtures/grooove/); pobiera je [`tools/grooove.ts`](../tools/grooove.ts). Uwaga: tekst, który ta strona pokazuje, składa jej WŁASNY renderer i jest do tyłu za grą — liczby w README korpusu |
+| [grooove.pl/battle](https://grooove.pl/battle/) | Publiczne zrzuty walk graczy w postaci **surowego protokołu silnika**. Filtr `?w=<świat>`, pojedyncza walka pod `/battle/id,<ID>`. ⚠️ Repo miało z tego korpus 12 walk i narzędzie `tools/grooove.ts` — oba zeszły z drzewa 2026‑08‑04. Uwaga przy ewentualnym powrocie: protokół jest tam PRZEKODOWANY (kropka zamiast `=`), a tekst składa WŁASNY renderer serwisu i jest do tyłu za grą |
 | [tampermonkey.net](https://www.tampermonkey.net/) | Rozszerzenie, które uruchamia zbudowany `dist/margometer.user.js` |
 | [bun.sh](https://bun.sh/) | Cały toolchain: runtime, testy, bundler |
 
@@ -131,46 +151,39 @@ sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.**
    i powód, dla którego NIE robi się tego `WebFetch`-em: [`MECHANIKA.md`](MECHANIKA.md).
    Ta droga została dopisana 2026‑08‑01 i jest tu zerowa, bo przez rok była
    pomijana — a odpowiadała na pytania, które mierzyliśmy z korpusu.
-1. **Nowy zrzut walki.** W oknie walki jest przycisk „Kopiuj logi" (tekst) —
-   a dla żywiołów potrzebny jest zrzut DOM‑u, bo żywioł siedzi WYŁĄCZNIE w klasie
-   CSS (`dmgf`, `dmgc`, `dmgl`…) i w tekście go nie ma. Stąd **nowy fixture ma
-   mieć dwa pliki**: `raw.txt` i `log.html`. Zrzut trafia do `tests/fixtures/`
-   razem z `meta.json` i od razu wchodzi do wszystkich pętli testowych.
+1. **Nowy zrzut walki.** [`tools/walka-probe.js`](../tools/walka-probe.js)
+   wkleja się do konsoli na karcie z grą, owija `Engine.battle.update` i zbiera
+   surowe ładunki. Potem `bun tools/walka.ts --rozbij <plik> --nazwa <slug>`
+   odtworzy `tests/fixtures/new-engine/` z `protokol.json` i szkieletem
+   `meta.json` — katalogu dziś nie ma, narzędzie założy go przy pierwszym zrzucie.
 
-   ⚠️ To NORMA, nie opis stanu — stało tu „fixture'y mają dwa pliki" i brzmiało
-   jak fakt (sprostowane 2026‑08‑02, przeliczone 2026‑08‑03). Policzone: na
-   24 fixture'y **8 ma oba** pliki, 13 ma sam `raw.txt`, a **3 mają sam `log.html`**
-   (`2026-07-18_lowca-dom-trucizna`, `_mag-dom`, `_mag-dom-fuzja`). Dla tych
-   trzech test różnicowy „HTML daje to samo co tekst" przechodzi PUSTY —
-   `parser.test.ts` ma w środku `if (raw === null) return;`. Zna to `SOLID §10`;
-   tutaj stało zdanie odwrotne.
+   ⚠️ **Stało tu co innego do 2026‑08‑04**: „nowy fixture ma mieć DWA pliki —
+   `raw.txt` (tekst z «Kopiuj logi») i `log.html` (zrzut DOM, bo żywioł siedzi
+   wyłącznie w klasie CSS)". Obu formatów nie ma już w repo i nie ma czym ich
+   przeczytać; żywioł przychodzi dziś kluczem protokołu. Ten akapit nosił
+   wcześniej dwa sprostowania (2026‑08‑02, 2026‑08‑03) o tym, ILE fixture'ów ma
+   oba pliki — pytanie zniknęło razem z plikami.
 2. **Sonda w konsoli gry.** [`tools/engine-probe.js`](../tools/engine-probe.js)
    — wkleja się do konsoli na karcie z grą i pokazuje, co naprawdę siedzi
    w `Engine.battle`. Tak ustalono, że stan klienta **nie** niesie źródła
    efektów (`buffs` to licznik, nie lista ze sprawcą), więc trucizny nie da się
    przypisać nawet z pominięciem logu. Sonda niczego nie zakłada o kształcie
    obiektu — najpierw go wypisuje.
-3. **Przelot po korpusie.** `bun -e '…'` z importem `parse`/`aggregate` i pętlą
-   po `tests/fixtures/*/*/raw.txt`. To najtańszy sposób odpowiedzi na „ile razy
-   w ogóle występuje X" — i standardowy krok przed każdym twierdzeniem
-   o zachowaniu gry.
-4. **Korpus protokołu z grooove.pl.** `bun tools/grooove.ts --parametry` —
-   klucze silnika z publicznych walk, [`tests/fixtures/grooove/`](../tests/fixtures/grooove/)
-   — liczby stoją w README tamtego katalogu, nie tutaj.
-   Odpowiada na inne pytanie niż punkt 1: tam pytamy „czy parser to czyta",
-   tu „czy gra to w ogóle emituje". Klucze są w dużej części nazwami
-   silnikowymi, których używa pomoc gry (`legbon_facade` → „Fasada opieki
-   ( facade )"), więc z tego korpusu prowadzi krótka droga z powrotem do
-   punktu 0. Czego NIE rozstrzyga: jak dana wartość wygląda w oknie walki —
-   klucz obecny tu i nieobecny w `new-engine/` znaczy tylko, że nie mamy
-   próbki tekstowej.
+3. **Przelot po materiale.** `bun -e '…'` z importem `aggregate` i pętlą po
+   `tests/korpus.ts`. To najtańszy sposób odpowiedzi
+   na „ile razy w ogóle występuje X" — i standardowy krok przed każdym
+   twierdzeniem o zachowaniu gry. ⚠️ Pętla chodziła do 2026‑08‑04 po `raw.txt`
+   i przepuszczała go przez `parse`; dziś korpus jest już ODCZYTANY, więc
+   przelot mierzy zdarzenia, a nie rozpoznawanie linii.
+4. ~~**Korpus protokołu z grooove.pl.**~~ — **zszedł z drzewa 2026‑08‑04**
+   razem z całym `tests/fixtures/` i narzędziem `tools/grooove.ts`. Odpowiadał
+   na pytanie „czy gra to w ogóle emituje i jak często" na 12 publicznych
+   walkach, a jego klucze były w dużej części nazwami silnikowymi używanymi
+   przez pomoc gry (`legbon_facade` → „Fasada opieki ( facade )") — czyli
+   prowadziła z niego krótka droga z powrotem do punktu 0.
 
-   Tę drogę przechodzi za ciebie **[`bun tools/luki.ts`](../tools/luki.ts)**:
-   składa punkty 0, 3 i 4 naraz i rozkłada klucze na `ZNANE`, `LUKA`, `STAT`
-   i `NIEZNANE`. `LUKA` to efekt, który pomoc opisuje, protokół dowodzi
-   w prawdziwych walkach, a korpus tekstowy zna go zero razy — czyli kandydat
-   na cichą lukę parsera i pozycja na liście zakupowej zrzutów. **Nie jest to
-   podstawa do rozszerzania wzorców**: najpierw zrzut z gry, potem wzorzec.
+   Dziś tej odpowiedzi nie ma skąd wziąć bez ponownego pobrania. Zostaje
+   punkt 0 (pomoc) i zrzut z gry (punkt 1).
 
 ---
 
@@ -184,14 +197,18 @@ Cała sekcja o tym jest w `DECYZJE.md` — łącznie z tym, które piętra wnios
 zostały świadomie odrzucone i dlaczego. Zanim „naprawisz" brakującą atrybucję,
 przeczytaj ją.
 
-**Nieznane ma być głośne.** Linia, której parser nie rozumie, trafia do
-`{kind: "unknown"}` i zapala ostrzeżenie w panelu. Wzorce w `RE_INFO` są wąskie
-CELOWO — szeroki wzorzec połyka kiedyś linię niosącą liczbę i robi to po cichu.
-To już się zdarzyło kilka razy; każdy przypadek ma swoje ID w `AUDYT.md`.
+**Nieznane ma być głośne.** Klucz protokołu, którego dekoder nie zna, trafia do
+`{kind: "unknown"}` i zapala ostrzeżenie w panelu. Tabela ról w `protokol.ts`
+jest wąska CELOWO — szeroka połknie kiedyś klucz niosący liczbę i zrobi to po
+cichu. To już się zdarzyło kilka razy po stronie parsera tekstu (wzorce
+`RE_INFO`); każdy przypadek ma swoje ID w `AUDYT.md` i reguła przeszła
+na dekoder razem z odczytem.
 
-**Fixture jest dowodem.** Zrzuty w `tests/fixtures/` to nie „dane testowe", tylko
-materiał dowodowy: twierdzenia o zachowaniu gry opierają się na nich i są w nich
-policzone. Nowy fixture dostaje `meta.json`. Fixture'a się nie edytuje ręcznie,
+**Materiał z gry jest dowodem.** ⚠️ Zdanie brzmiało „zrzuty w `tests/fixtures/`
+to nie «dane testowe», tylko materiał dowodowy" — katalogu nie ma od 2026‑08‑04.
+Reguła zostaje i dotyczy tego, co po nim zostało: `tests/walka-z-gry.ts` jest
+zrzutem z gry i twierdzenia o jej zachowaniu wolno opierać na nim. Wszystko
+inne w testach produkujemy sami i dowodem NIE JEST. Materiału z gry nie edytuje się ręcznie,
 żeby test przeszedł. Dotyczy obu korpusów — w `grooove/` opisy z `meta.json`
 mają nawet własny test, który sprawdza, czy wymienione w nich klucze protokołu
 naprawdę są (albo naprawdę ich nie ma) w opisywanym pliku.

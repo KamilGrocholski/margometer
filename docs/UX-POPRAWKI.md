@@ -52,14 +52,14 @@ które nie działały wcale.
 | # | Poprawka | Koszt | | Stan |
 |---|---|---|---|---|
 | B1 | ~~Kasowanie POJEDYNCZEGO nagrania w archiwum~~ | S | — | **✅ ZROBIONE** — „✕" w wierszu, pierwszy klik pyta |
-| B2 | Suwak odtwarzania skacze po TURACH, nie po liniach | M | 🔴 | otwarte — **koszt urósł**: wymaga numeru linii w zdarzeniach parsera, patrz niżej |
+| B2 | Suwak odtwarzania skacze po TURACH, nie po komunikatach | M? | 🔴 | otwarte — **koszt do PRZELICZENIA po 2026‑08‑04**, patrz niżej |
 | B3 | Auto‑pauza odtwarzania przy wejściu w postać / najechaniu | S | 🔴 | otwarte |
 | B4 | ~~Widoczny sygnał „trzymam postać” przy zmianie metryki~~ | S | — | **✅ ZROBIONE 2026‑08‑03** — okruszek jest trwałym węzłem |
 | B5 | ~~Podgląd TOP‑3 w dymku bez wchodzenia w postać~~ | M | — | **✅ ZROBIONE 2026‑08‑03** — sekcja `KOMU`/`OD KOGO`/`OD CZEGO` w dymku |
 | B6 | Ostrzeżenie, gdy nagrania wypychają najstarsze | S | 🟡 | otwarte (pasek pokazuje `N walk · M kB`, bez ułamka budżetu) |
 | B7 | Filtr / szukajka w archiwum (przeciwnik, wynik, dzień) | M | 🟡 | otwarte (w `archive.ts` zero pól wejściowych) |
 | B8 | ~~Klik w okruszek `‹ …` = powrót (dla myszy)~~ | S | — | **✅ ZROBIONE** (`overlay.ts:1654`) |
-| B9 | „Kopiuj nierozpoznane linie” przy ostrzeżeniu parsera | S | ⚪ | otwarte (`BattleStats` niesie tylko `unknownLines`) |
+| B9 | „Kopiuj nierozpoznane komunikaty” przy ostrzeżeniu odczytu | S | ⚪ | otwarte (`BattleStats` niesie tylko `unknownLines`) |
 | B10 | Eksport czytelny (Discord), nie tylko JSON | M | ⚪ | otwarte |
 | B11 | Onboarding: pierwsza walka mówi, co kliknąć | S | ⚪ | częściowo — dymek ma `tip-hint` „LPM — rozbicie · PPM — powrót” (`overlay.ts:2133`), ale trzeba na coś najechać, żeby go zobaczyć |
 | B12 | Reset ustawień nakładki | S | ⚪ | otwarte, ale **mniej pilne**: po `A10` okna nie da się już zgubić |
@@ -330,6 +330,17 @@ linii, w której każda się zaczyna — a bez tego nie ma z czego zbudować map
   starcie. To jest droga do zrobienia — ale to zmiana w `types.ts`, `parser.ts`
   i `stats.ts`, nie poprawka w archiwum.
 
+⚠️ **Wszystkie trzy warianty i pomiar 2,78 ms opisują stan sprzed 2026‑08‑04
+i wymagają przeliczenia.** Odtwarzanie idzie dziś po KOMUNIKATACH protokołu,
+nie po liniach tekstu, a jeden komunikat niesie CAŁY blok akcji — więc
+komunikatów jest kilkadziesiąt na walkę zamiast kilkuset linii. Dwie rzeczy
+mogły się zmienić: koszt wariantu „rosnące prefiksy" (dziś `frameStats` i tak
+dekoduje cały prefiks przy każdej klatce, więc O(n²) już się dzieje na innej
+skali), a „numer linii" jest dziś INDEKSEM KOMUNIKATU i wynika z pozycji
+w liście, zamiast wymagać nowego pola. **Nie wpisuję nowego kosztu bez pomiaru** —
+poprzedni wpis mówił „koszt urósł" i był oparty na sprawdzeniu; ten zasługuje
+na to samo.
+
 ### B3 — Auto‑pauza przy wejściu w postać / najechaniu 🔴 S `src/overlay.ts`, `src/archive.ts`
 W środku odtwarzania dane przelatują pod kursorem co klatkę. Wejście w postać
 (LPM) albo dłuższe najechanie niech automatycznie pauzuje `setPlaying(false)`;
@@ -392,10 +403,15 @@ mruga przy zmianie metryki (patrz `B4`) — okruszek działa, ale nie jest trwa�
 węzłem.
 
 ### B9 — „Kopiuj nierozpoznane linie” ⚪ S–M `src/overlay.ts`, `src/stats.ts`
-Stopka mówi `⚠ N nierozpoznanych linii`, ale nie da się ich wyciągnąć, by zgłosić
-lukę parsera. Parser trzyma `line`/`lineNo` w zdarzeniu `unknown` — dziś
-`aggregate` liczy tylko `unknownLines`, więc trzeba przepuścić same treści do
-`BattleStats`. Zamienia cichą regresję formatu w zgłoszenie na jeden klik.
+Stopka mówi `⚠ N nierozpoznanych linii`, ale nie da się ich wyciągnąć, by
+zgłosić lukę odczytu. `dekoduj` trzyma `line`/`lineNo` w zdarzeniu `unknown`
+(`line` to dziś SUROWY KOMUNIKAT protokołu, `lineNo` jego indeks) — a `aggregate`
+liczy tylko `unknownLines`, więc trzeba przepuścić same treści do `BattleStats`.
+Zamienia cichą regresję formatu w zgłoszenie na jeden klik.
+
+**Zwrot z tego urósł po 2026‑08‑04**: nierozpoznany komunikat jest dziś jedyną
+rzeczą, po której poznamy, że gra dołożyła klucz — dekoder nie ma świadka spoza
+repo (`AGENTS.md`, `ROADMAP.md`), więc zgłoszenie od gracza jest tym świadkiem.
 
 ### B10 — Eksport czytelny, nie tylko JSON ⚪ M `src/overlay.ts`
 „Kopiuj statystyki” daje JSON. Druga opcja: zwięzły tekst („Kamil: 12.3k zadane

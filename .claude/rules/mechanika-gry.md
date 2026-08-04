@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/parser.ts"
+  - "src/protokol.ts"
   - "src/stats.ts"
   - "src/types.ts"
   - "docs/**/*.md"
@@ -9,8 +9,13 @@ paths:
 
 # Zdanie o mechanice gry wymaga dowodu ze źródła
 
-Reguła ładuje się przy plikach, w których takie zdania powstają: parser, agregat,
-typy, dokumentacja w `docs/` i opisy fixture'ów.
+Reguła ładuje się przy plikach, w których takie zdania powstają: dekoder
+protokołu, agregat, typy, dokumentacja w `docs/` i opisy fixture'ów.
+
+⚠️ Do 2026‑08‑04 pierwszą ścieżką był `src/parser.ts`. Parser tekstu zszedł
+z drzewa, a reguła została z martwym wzorcem — czyli **nie ładowała się tam,
+gdzie zdania o mechanice gry naprawdę powstają**. Ścieżka, która nigdy się nie
+dopasuje, wygląda w pliku dokładnie tak samo jak działająca.
 
 **Kiedy dotyczy.** Gdy piszesz (w kodzie, komentarzu, dokumencie albo w
 odpowiedzi) zdanie o tym, jak zachowuje się GRA, a nie nasz kod. Test: **czy

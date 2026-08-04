@@ -4,17 +4,20 @@ Licznik obrażeń do przeglądarkowej gry [Margonem](https://www.margonem.pl/) �
 userscript rysujący panel ze statystykami nad grą. **Czyta i nic poza tym:
 nie wysyła zapytań, nie zmienia przebiegu walki, nie automatyzuje niczego.**
 
-Czyta dwiema drogami. Okno walki w DOM (`source.ts`) — i to jest droga, z której
-liczy panel. Od 2026‑08‑04 także **surowy protokół silnika**, przez owinięcie
-`Engine.battle.update` (`protokol-source.ts`), żeby dało się zapytać, czy obie
-drogi liczą to samo.
+Czyta **surowy protokół silnika** — przez owinięcie `Engine.battle.update`
+(`protokol-source.ts`). To jest jedyna droga; okno walki w DOM zeszło z drzewa
+2026‑08‑04 razem z parserem tekstu, bo protokół niesie `id` po obu stronach
+każdego zdarzenia, żywioł jako klucz zamiast klasy CSS i rozbite składniki
+redukcji, a tekst był rekonstrukcją tego wszystkiego ze zdań.
 
 **Brzmienia bierze z gry, nie z własnego kodu.** `slownik-gry.ts` woła globalne
 `window._t` — tę samą funkcję, którą renderer walki składa swoje zdania — więc
 panel pokazuje `+Przebicie`, a nie klucz `+pierce`, i robi to w języku klienta,
 także po aktualizacji gry. To ODCZYT, nie zapytanie: nic nie wychodzi na sieć,
-a pytamy wyłącznie o identyfikatory z zamrożonej tabeli
-(`tests/fixtures/klucze-protokolu.json`), żeby chybienie nigdy nie zaszło.
+a pytamy wyłącznie o identyfikatory zaszyte w `protokol.ts`, żeby chybienie
+nigdy nie zaszło. ⚠️ Zgodności tej listy z assetem gry pilnowała zamrożona
+tabela w `tests/fixtures/` — zeszła z drzewa 2026‑08‑04 i **dziś nikt tego nie
+sprawdza**; odtwarza ją `bun tools/slownik.ts --zamroz`.
 
 ⚠️ **Zdanie „nie dotyka stanu gry" stało tu do 2026‑08‑04 i przestało być
 prawdziwe.** Owinięcie cudzej funkcji jest dotknięciem, choćby nic nie zmieniało
@@ -42,12 +45,17 @@ większej zmiany na kilka.
 ## Układ
 
 ```
-okno walki (DOM)  →  source.ts   → tekst z żywiołami z klas CSS
-                  →  parser.ts   → BattleEvent[]  (maszyna stanów, linia po linii)
-                  →  stats.ts    → BattleStats    (agregacja, rozbicia, instancje)
-                  →  session.ts  → podział bufora na walki; która z nich jest TĄ
-                  →  overlay.ts  → panel w Shadow DOM
+Engine.battle.update  →  protokol-source.ts → komunikaty `t.m` + skład
+                      →  protokol.ts        → BattleEvent[]  (rozbiór klucz po kluczu)
+                      →  slownik-gry.ts     → brzmienia efektów z `window._t`
+                      →  stats.ts           → BattleStats  (agregacja, rozbicia, instancje)
+                      →  session.ts         → która walka jest TĄ
+                      →  overlay.ts         → panel w Shadow DOM
 ```
+
+`BattleEvent[]` (`types.ts`) jest KONTRAKTEM między źródłem a agregatem — i to
+on przeżył wymianę odczytu. Nagrania trzymają surowe komunikaty, nie policzone
+liczby, żeby dało się je przeliczyć nowszym dekoderem.
 
 Poboczne: `recorder.ts` + `archive.ts` (nagrywanie i odtwarzanie),
 `roster.ts` (skład z `Engine.battle`), `palette.ts`, `window.ts`,
@@ -76,9 +84,9 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
 - **Nie udawaj danych, których log nie ma.** Log nie mówi, kto nałożył truciznę
   ani kto leczył. Wolno pokazać „nie wiadomo”; nie wolno zgadnąć i pokazać
   nazwiska. Powody w `docs/DECYZJE.md`.
-- **Nieznane ma być głośne.** Linia, której parser nie rozumie, trafia do
-  `{kind: "unknown"}` i zapala ostrzeżenie w panelu. Wzorce są wąskie CELOWO —
-  szeroki połknie kiedyś linię z liczbą i zrobi to po cichu.
+- **Nieznane ma być głośne.** Klucz protokołu, którego dekoder nie zna, trafia
+  do `{kind: "unknown"}` i zapala ostrzeżenie w panelu. Tabela ról jest wąska
+  CELOWO — szeroka połknie kiedyś klucz z liczbą i zrobi to po cichu.
 - **Komentarz mówi DLACZEGO, nie CO.** Kod jest gęsto komentowany i to jest
   zamierzone: komentarze niosą powody decyzji, odrzucone warianty i pomiary.
 - **Kompilator zastępuje lintera.** Nie ma ESLinta; `noUnusedLocals`
@@ -90,18 +98,42 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
 - **Test ma móc paść.** Po napisaniu testu na naprawę **zepsuj naprawę
   i sprawdź, że test się zapala**. Zdarzyły się tu testy zielone i puste.
 - **Niezmienniki > pojedyncze asercje.** Najmocniejsze testy lecą po CAŁYM
-  korpusie i sprawdzają własność, nie liczbę: „każda linia rozpoznana”,
-  „rozbicia sumują się do skalarów”, „HTML daje to samo co tekst”.
+  korpusie i sprawdzają własność, nie liczbę: „każdy klucz rozpoznany”,
+  „rozbicia sumują się do skalarów”.
+
+  ⚠️ **Najmocniejszy z nich zniknął 2026‑08‑04.** `tests/orakulum.test.ts`
+  porównywało `dekoduj(protokół)` z `parse(odtworz(protokół))` — dwa rozłączne
+  kody czytające ten sam komunikat — i to ono złapało jedyny prawdziwy błąd
+  dekodera. Razem z parserem tekstu zniknęła druga strona porównania. Dekoder
+  nie ma dziś świadka spoza repo; to jest największa otwarta luka.
 - **Fixture jest dowodem**, nie „danymi testowymi”. Zrzuty w
   `tests/fixtures/new-engine/` mają `meta.json` z opisem, co pokrywają, czego
   w nich nie ma i co było trudne. Fixture'a się nie edytuje, żeby test przeszedł.
-- **Są DWA korpusy i odpowiadają na różne pytania.** `new-engine/` to tekst
-  i DOM z okna walki — materiał parsera. `grooove/` to surowy protokół silnika
-  z publicznych walk na grooove.pl, tylko ze światów **polskojęzycznych** (od
-  2026‑08‑04; powód w README tamtego katalogu) — „czy gra w ogóle emituje X”.
-  Parser tego drugiego nie czyta; pliki nazywają się tam `log.grooove.txt`, żeby
-  nie wpadły do globów testowych. Powody i granice:
-  `tests/fixtures/grooove/README.md`.
+- **Materiał testowy powstaje W KODZIE, nie w plikach danych.** Katalog
+  `tests/fixtures/` zszedł z drzewa 2026‑08‑04 — razem z korpusem grooove,
+  zamrożoną tabelą 233 kluczy i 25 walkami zamrożonymi jako `zdarzenia.json`.
+  Co jest zamiast:
+  - `tests/zdarzenia.ts` — pojedyncze `BattleEvent` budowane wprost;
+  - `tests/korpus.ts` — walki, po których chodzą NIEZMIENNIKI: pięć z generatora
+    (`tools/synthetic-log.ts`) plus jedna ręczna z kształtami, których generator
+    nie produkuje;
+  - `tests/walka-z-gry.ts` — **jedyny materiał nie‑syntetyczny**, jaki został:
+    18 komunikatów i skład z prawdziwego zrzutu `Engine.battle.update`.
+
+  ⚠️ **CO TO ODEBRAŁO, i to jest największa dziś luka repo.** Kształt, o którym
+  nie pomyśleliśmy, nie ma jak wpaść do materiału budowanego przez nas —
+  a korpus łapał je sam z siebie. Przestały być sprawdzane m.in.: zgodność
+  zaszytych identyfikatorów `_t` z assetem gry (dwa testy, jeden opisany
+  w swoim pliku jako „NAJWAŻNIEJSZY"), pokrycie tabeli ról przeciw 233 kluczom
+  gry (dwustronne), przekrój po typie obrażeń w walce grupowej, blok u celu,
+  super‑kryt i osłabienie DoT‑a z liczbami odtwarzalnymi ręcznie. Każde miejsce
+  ma ⚠️ z liczbami — szukaj po „razem z korpusem".
+
+  Odbudowa zaczyna się od zrzutu sondą (`tools/walka-probe.js`), a tabelę
+  kluczy wypisuje `bun tools/slownik.ts` z assetu gry.
+- **`tests/overlay.test.ts` był ostatni** i dlatego jego asercje wymieniają dziś
+  nazwy z generatora. Test panelu mówi „czy panel rysuje to, co dostał"; nie
+  mówi już „czy gra produkuje takie składy".
 
 ## Dwa zapisy zmian, dla dwóch czytelników
 
