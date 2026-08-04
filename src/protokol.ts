@@ -2,11 +2,20 @@
  * Protokół silnika walki — surowe komunikaty serwera, zanim gra zrobi z nich
  * zdania.
  *
- * DRUGIE ŹRÓDŁO, NIE ZAMIENNIK. `src/parser.ts` czyta tekst z okna walki i tak
- * zostaje: nagrania są surowym tekstem, a wklejka z „Kopiuj logi" innej drogi
- * nie ma. Ten plik czyta to, co gra dostaje OD SERWERA, i istnieje po to, żeby
- * dało się zapytać, czy obie drogi liczą to samo. Projekt i powody:
- * `docs/specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`.
+ * JEDYNE ŹRÓDŁO ZDARZEŃ. Ten plik czyta to, co gra dostaje OD SERWERA, i jest
+ * dziś jedyną drogą, którą liczby trafiają do panelu.
+ *
+ * ⚠️ **Nagłówek brzmiał tu „DRUGIE ŹRÓDŁO, NIE ZAMIENNIK" i było to prawdą
+ * przez jeden dzień.** `src/parser.ts` czytał tekst z okna walki, ten plik
+ * istniał po to, żeby dało się zapytać, czy obie drogi liczą to samo — i to
+ * pytanie padło: pierwsza walka zapisana obiema drogami rozstrzygnęła je na
+ * korzyść protokołu. Parser zszedł z drzewa 2026‑08‑04.
+ *
+ * Co to znaczy dla tego pliku: **nie ma już czym go sprawdzić.** Dopóki był
+ * drugi odczyt, błąd tutaj rozjeżdżał liczby i czujka to zapalała. Dziś błąd
+ * tutaj jest po prostu liczbą w panelu. Projekt, powody i koszt:
+ * `docs/specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`
+ * oraz `docs/specy/2026-08-04-parser-tekstu-i-korpus-schodza-z-drzewa.md`.
  *
  * KSZTAŁT KOMUNIKATU. Jedna linia protokołu wygląda tak:
  *
@@ -555,7 +564,8 @@ const MILCZACE: readonly string[] = [
  * staje się NAZWĄ KLASY CSS. Stąd `dmgd` w DOM i `+dmgd` w protokole to ta sama
  * litera — i stąd wspólna tabela żywiołów w `types.ts`.
  *
- * Klucz `+dmg` bez litery daje kod `p`, bo tak samo robi `src/source.ts:80`
+ * Klucz `+dmg` bez litery daje kod `p` — tak samo mapował to nieistniejący już
+ * `src/source.ts:80`
  * (`damage[1] || "p"`) po stronie tekstu. Dwie drogi mają dać tę samą etykietę.
  */
 export function rolaDomyslna(klucz: string): Rola | null {

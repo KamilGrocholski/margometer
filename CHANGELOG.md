@@ -28,6 +28,23 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Zmiana** — Archiwum zapisuje walki w nowym formacie i **nagrania sprzed tej
+  wersji przepadają**. Lista zaczyna się od zera; jeśli zależy Ci na starych
+  walkach, skopiuj je z archiwum, zanim zaktualizujesz dodatek.
+- **Zmiana** — Zniknęło ręczne wklejanie logu do archiwum. Panel czyta dziś
+  walkę wprost z gry, a zdania z „Kopiuj logi" nie są już dla niego czytelne.
+- **Zmiana** — W nagraniach lista postaci po obu stronach jest znów pełna:
+  podział „moi / przeciwnicy" i postacie, które nic nie zdążyły zrobić,
+  pokazują się tak samo jak w trwającej walce.
+- **Zmiana** — Zniknęło ostrzeżenie „dwa odczyty walki dały różne liczby".
+  Panel czyta walkę jedną drogą — tą dokładniejszą, prosto z gry — więc nie ma
+  już dwóch wyników do porównania.
+- **Zmiana** — Gdy licznik nie zdąży podpiąć się do walki, mówi o tym wyraźnym
+  ostrzeżeniem zamiast łagodnej notki: bez podpięcia w panelu stoją same zera
+  i wcześniej wyglądały jak wynik walki.
+
 ## [0.5.0] — 2026-08-04
 
 - **Nowość** — Panel czyta przebieg walki dwiema niezależnymi drogami

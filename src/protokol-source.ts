@@ -48,18 +48,25 @@ export type EventSource = {
   subscribe(listener: (porcja: PorcjaProtokolu) => void): () => void;
 };
 
-/** Odpowiednik `StaticLogSource` — do testów i do odtwarzania `protokol.json`. */
+/**
+ * Odpowiednik `StaticLogSource` — do testów i do odtwarzania `protokol.json`.
+ *
+ * `sklad` jest osobnym parametrem, bo bez niego `id` z komunikatów nie mają jak
+ * stać się nazwami, a agregat traci strony i przynależność do składu. Domyślnie
+ * pusty: część wywołań bada sam rozbiór komunikatów i nazwy są im obojętne.
+ */
 export class StaticProtocolSource implements EventSource {
   constructor(
     private readonly komunikaty: readonly string[],
     private readonly slownik: Slownik = new SlownikStaly([]),
+    private readonly sklad: readonly RosterEntry[] = [],
   ) {}
 
   subscribe(listener: (porcja: PorcjaProtokolu) => void): () => void {
     listener({
       komunikaty: this.komunikaty,
-      zdarzenia: dekoduj(this.komunikaty, [], this.slownik),
-      sklad: [],
+      zdarzenia: dekoduj(this.komunikaty, this.sklad, this.slownik),
+      sklad: this.sklad,
     });
     return () => {};
   }

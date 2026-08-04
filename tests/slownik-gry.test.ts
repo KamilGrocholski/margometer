@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { BEZ_SLOWNIKA, SlownikGry, SlownikStaly, type TranslationGlobals } from "../src/slownik-gry.ts";
-import { dekoduj, rola } from "../src/protokol.ts";
+import { dekoduj } from "../src/protokol.ts";
 import type { RosterEntry } from "../src/roster.ts";
-import type { Zamrozenie } from "../tools/slownik.ts";
 
 /**
  * Brzmienia z gry, nie z naszego kodu.
@@ -18,17 +17,22 @@ const SKLAD: RosterEntry[] = [
   { id: 2, name: "Locha", side: 1 },
 ];
 
-const ZAMROZONE = (await Bun.file(
-  new URL("./fixtures/klucze-protokolu.json", import.meta.url).pathname,
-).json()) as Zamrozenie;
-
-/** Słownik zbudowany z zamrożonej tabeli — dokładnie tak, jak zrobi to archiwum. */
+/**
+ * Kilka wpisów słownika, przepisanych z assetu gry.
+ *
+ * ⚠️ **Stała tu ZAMROŻONA TABELA** — `tests/fixtures/klucze-protokolu.json`,
+ * 233 klucze wyłuskane z assetu przez `bun tools/slownik.ts`. Katalog
+ * `tests/fixtures/` zszedł z drzewa 2026‑08‑04, a razem z nim **dwa testy,
+ * które pilnowały, że zaszyte u nas identyfikatory zgadzają się z grą** —
+ * opisane niżej. Zostaje garść wpisów wystarczająca do sprawdzenia
+ * MECHANIZMU podstawiania; zgodności z grą już nikt nie sprawdza.
+ */
 const zeZamrozenia = () =>
-  new SlownikStaly(
-    ZAMROZONE.klucze
-      .filter((w): w is typeof w & { id: string; zdanie: string } => w.id !== null && w.zdanie !== null)
-      .map((w) => [w.id, w.zdanie] as const),
-  );
+  new SlownikStaly([
+    ["msg_+pierce", "+Przebicie"],
+    ["msg_+acdmg %val%", "+Niszczenie pancerza o %val%"],
+    ["msg_+crit", "+Cios krytyczny"],
+  ]);
 
 describe("SlownikGry — odczyt window._t", () => {
   test("oddaje zdanie, które zwróciła gra", () => {
@@ -143,33 +147,23 @@ describe("etykiety proców w dekoderze", () => {
   });
 });
 
-describe("zaszyte identyfikatory nie mogą się rozjechać z zamrożoną tabelą", () => {
-  /**
-   * NAJWAŻNIEJSZY TEST TEGO PLIKU. Identyfikatory są zaszyte w `src/protokol.ts`,
-   * bo dodatek nie ma jak wylistować słownika gry. Zaszyta kopia, która
-   * rozjedzie się z tabelą, daje w panelu klucz zamiast zdania — po cichu,
-   * bo `zdanie()` na nieznanym identyfikatorze zwraca `null`, a nie błąd.
-   */
-  test("każdy identyfikator z tabeli ról stoi w zamrożonym słowniku", () => {
-    const znane = new Map(ZAMROZONE.klucze.map((w) => [w.klucz, w.id]));
-    const rozjazdy: string[] = [];
-    for (const [klucz, id] of znane) {
-      const r = rola(klucz);
-      if (r === null) continue;
-      const nasz = "id" in r ? r.id : null;
-      if (nasz !== null && nasz !== id) rozjazdy.push(`${klucz}: ${nasz} ≠ ${id}`);
-    }
-    expect(rozjazdy).toEqual([]);
-  });
-
-  test("każdy klucz ze zdaniem, który jest procem, MA u nas identyfikator", () => {
-    // Inaczej panel pokazałby klucz, mimo że gra ma dla niego zdanie.
-    const bezId: string[] = [];
-    for (const w of ZAMROZONE.klucze) {
-      const r = rola(w.klucz);
-      if (r?.typ !== "proc") continue;
-      if (w.zdanie !== null && !("id" in r && r.id)) bezId.push(w.klucz);
-    }
-    expect(bezId).toEqual([]);
-  });
-});
+/**
+ * ⚠️ **ZNIKŁ STĄD BLOK „zaszyte identyfikatory nie mogą się rozjechać
+ * z zamrożoną tabelą" — 2 testy, 2026‑08‑04, razem z `tests/fixtures/`.**
+ *
+ * Nagłówek tamtego bloku brzmiał **„NAJWAŻNIEJSZY TEST TEGO PLIKU"** i nie było
+ * to przesadą. Identyfikatory `_t` są zaszyte w `src/protokol.ts`, bo dodatek
+ * nie ma jak wylistować słownika gry (`const _dict` jest domknięty w module).
+ * Zaszyta kopia, która rozjedzie się z grą, daje w panelu KLUCZ zamiast zdania
+ * — i robi to **po cichu**, bo `zdanie()` na nieznanym identyfikatorze zwraca
+ * `null`, a nie błąd.
+ *
+ * Dwie strony, które przestały być sprawdzane:
+ * - każdy identyfikator z naszej tabeli ról stoi w słowniku gry pod tym samym
+ *   kluczem (nasza kopia nie zwietrzała po aktualizacji klienta);
+ * - każdy klucz, dla którego gra MA zdanie i który jest u nas procem, ma
+ *   u nas identyfikator (nie pokazujemy klucza tam, gdzie gra ma brzmienie).
+ *
+ * Odtworzyć to da się jedną komendą — `bun tools/slownik.ts` czyta asset gry
+ * i wypisuje tabelę. Brakuje wyłącznie miejsca, w którym wynik miałby osiąść.
+ */

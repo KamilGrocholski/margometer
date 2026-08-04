@@ -1,10 +1,18 @@
+import type { BattleEvent } from "../src/types.ts";
+
 /**
  * Drugi podgląd: 20 postaci, żeby zobaczyć, jak lista trzyma się przy pełnym
  * składzie — długie nicki, dwucyfrowe miejsca, wysoki panel.
  *
- * Log jest SYNTETYCZNY, w odróżnieniu od fixture'ów. Do testów by się nie
- * nadawał (nie dowodzi niczego o prawdziwym formacie), ale do oglądania układu
- * wystarczy: kształty linii przepisane z prawdziwych walk.
+ * ⚠️ **ODDAJE `BattleEvent[]`, a nie tekst — od 2026‑08‑04.** Wcześniej składał
+ * ZDANIA gry i przepuszczało się je przez `parse`. Parser tekstu zszedł
+ * z drzewa, a zdarzenia są kontraktem między każdym źródłem a agregatem, więc
+ * generator buduje je wprost. Przy okazji przestaje udawać, że dowodzi
+ * czegokolwiek o formacie logu — czego i tak nigdy nie robił.
+ *
+ * Walka jest SYNTETYCZNA, w odróżnieniu od fixture'ów. Do testów odczytu by się
+ * nie nadawała (nie pochodzi z gry), ale do oglądania układu i do testów PANELU
+ * wystarczy: kształty zdarzeń przepisane z prawdziwych walk.
  *
  * Dane są celowo ROZSTRZELONE. Podgląd ma pokazywać, czy układ znosi skrajności,
  * więc skład rozciąga się od głównego damagera po postać, która przez całą walkę
@@ -105,7 +113,7 @@ function rng(seed: number) {
 
 type Actor = Profile & { side: number; label: string; life: number; poisoned: number };
 
-export function syntheticFight(count: number): string {
+export function syntheticFight(count: number): BattleEvent[] {
   const random = rng(20260719);
 
   const actors: Actor[] = Array.from({ length: count }, (_, i) => {
@@ -124,16 +132,18 @@ export function syntheticFight(count: number): string {
   });
 
   const alive = (a: Actor) => a.life > 0;
-  /** Zawsze z procentem — bez niego parser nie rozpozna aktora w linii. */
-  const pct = (a: Actor) => `${Math.max(0, (a.life / a.hp) * 100).toFixed(2)}%`;
-  const roster = (side: number) =>
-    actors
-      .filter((a) => a.side === side)
-      .map((a) => `${a.name} (${a.level}${a.profession})`)
-      .join(", ");
+  const pct = (a: Actor) => Number(Math.max(0, (a.life / a.hp) * 100).toFixed(2));
 
-  const lines: string[] = [
-    `[b]Rozpoczęła się walka pomiędzy ${roster(0)} a ${roster(1)}[/b]`,
+  const events: BattleEvent[] = [
+    {
+      kind: "fight-start",
+      participants: actors.map((a) => ({
+        name: a.name,
+        level: a.level,
+        professionCode: a.profession,
+        side: a.side,
+      })),
+    },
   ];
 
   const hurt = (actor: Actor, amount: number) => {
@@ -145,19 +155,24 @@ export function syntheticFight(count: number): string {
       if (!alive(actor)) continue;
 
       if (actor.stun > 0 && random() < actor.stun) {
-        lines.push(`${actor.name} - utrata tury`, "");
+        events.push({ kind: "turn-lost", actor: actor.name });
         continue;
       }
 
-      // Trucizna tyka na początku tury zatrutego — tak jak w prawdziwym logu.
+      // Trucizna tyka na początku tury zatrutego — tak jak w prawdziwej walce.
       if (actor.poisoned > 0) {
         const tick = Math.round(actor.poisoned * (0.9 + random() * 0.2));
         hurt(actor, tick);
-        lines.push(`[b]  ${actor.name}(${pct(actor)}): ${tick} (osłabione o 24%) obrażeń od trucizny.[/b]`);
-        if (!alive(actor)) {
-          lines.push(`Poległ ${actor.name}`, "");
-          continue;
-        }
+        events.push({
+          kind: "dot",
+          target: actor.name,
+          targetHpPct: pct(actor),
+          amount: tick,
+          via: "od",
+          dotType: "trucizny",
+          weakenedPct: 24,
+        });
+        if (!alive(actor)) continue;
       }
 
       if (actor.heal > 0) {
@@ -171,13 +186,18 @@ export function syntheticFight(count: number): string {
           // bez źródła leci pod „Regeneracja”, nazwane rozbijają leczenie na
           // konkretne umiejętności.
           const roll = random();
-          const named = roll < 0.7 ? "Modlitwa" : "Dotyk anioła";
-          lines.push(
-            roll < 0.4
-              ? `[b]  Przywrócono ${amount} punktów życia ${wounded.name}(${pct(wounded)})[/b]`
-              : `[b]  ${wounded.name}(${pct(wounded)}): ${named}, zregenerowano ${amount} punktów życia.[/b]`,
-            "",
-          );
+          events.push({
+            kind: "heal",
+            // Bez nazwy leci pod „Regeneracja"; nazwane rozbijają leczenie na
+            // konkretne umiejętności — widok „OD CZEGO" ma mieć co pokazać.
+            ability: roll < 0.4 ? null : roll < 0.7 ? "Modlitwa" : "Dotyk anioła",
+            target: wounded.name,
+            amount,
+            // Log nigdy nie mówi, KTO leczył (`docs/DECYZJE.md`); `self` znaczy
+            // tu tyle, co przy proc-ach — efekt siadł na tym, kto go dostał.
+            self: roll >= 0.7,
+            targetHpPct: pct(wounded),
+          });
         }
       }
 
@@ -190,7 +210,7 @@ export function syntheticFight(count: number): string {
       const ability = actor.abilities.length > 0 && random() < 0.6
         ? actor.abilities[Math.floor(random() * actor.abilities.length)]!
         : null;
-      if (ability) lines.push(`${actor.name} wykonuje ${ability}.`, "");
+      if (ability) events.push({ kind: "ability", actor: actor.name, name: ability });
 
       // Zwykły atak to zawsze jeden blok; kilka bloków dają tylko umiejętności
       // z `MULTI_STRIKE`. Pętla i tak urywa się na śmierci celu, więc użycie
@@ -217,42 +237,55 @@ export function syntheticFight(count: number): string {
           applied.push(missed ? 0 : Math.round(raw * reduction));
         }
 
-        const modifiers: string[] = [];
-        if (crit) modifiers.push("  +Cios krytyczny");
-        if (crit && actor.secondary && random() < 0.4) modifiers.push("   +Cios krytyczny broni pomocniczej");
-        if (dodged) modifiers.push("  -Unik");
+        const superCrit = crit && actor.secondary && random() < 0.4;
+        const procs: string[] = [];
         for (const proc of actor.procs) {
-          if (random() < 0.35) modifiers.push(`+${proc}`);
+          if (random() < 0.35) procs.push(proc);
         }
-        if (target.block > 0 && random() < 0.4) {
-          const blocked = Math.round(target.block * (0.6 + random() * 0.8));
-          modifiers.push(`  -Zablokowanie ${blocked} obrażeń`);
-        }
+        const blocked =
+          target.block > 0 && random() < 0.4
+            ? Math.round(target.block * (0.6 + random() * 0.8))
+            : null;
 
         const total = applied.reduce((sum, n) => sum + n, 0);
         hurt(target, total);
 
-        lines.push(
-          `${actor.name}(${pct(actor)}) uderzył z siłą  ${raws.map((n) => `+${n}`).join("  ")}`,
-          ...modifiers,
-          `${target.name}(${pct(target)}) otrzymał  ${applied.map((n) => `-${n}`).join("  ")}  obrażeń`,
-          "",
-        );
+        events.push({
+          kind: "attack",
+          source: actor.name,
+          target: target.name,
+          sourceHpPct: pct(actor),
+          targetHpPct: pct(target),
+          hits: raws.map((raw, n) => ({
+            raw,
+            applied: applied[n]!,
+            crit,
+            superCrit: superCrit && n > 0,
+            secondary: n > 0,
+            element: null,
+            // Unik CZĘŚCIOWY: główna broń przepadła, pomocnicza mimo to trafiła.
+            dodged: dodged && n === 0,
+          })),
+          dodged,
+          blocked,
+          procs,
+          ability,
+          strike: true,
+        });
 
         if (actor.poison > 0 && target.poisoned === 0 && alive(target)) {
           target.poisoned = actor.poison;
         }
-        if (!alive(target)) lines.push(`Poległ ${target.name}`, "");
       }
     }
   }
 
-  const winners = actors.filter((a) => a.side === 0 && alive(a)).map((a) => a.name);
-  lines.push(
-    `[b]Zwyciężyła drużyna ${winners.join(", ")}[/b]`,
-    "[b]Zwycięzca zdobył łącznie 184320 punktów doświadczenia[/b]",
-    "[b]Dodatkowe punkty doświadczenia z przedmiotów +21504.[/b]",
-  );
+  events.push({
+    kind: "fight-end",
+    outcome: "victory",
+    actors: actors.filter((a) => a.side === 0 && alive(a)).map((a) => a.name),
+    result: "Zwyciężyła drużyna",
+  });
 
-  return lines.join("\n");
+  return events;
 }

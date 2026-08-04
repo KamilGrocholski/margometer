@@ -2,11 +2,10 @@ import { Archive } from "./archive.ts";
 import { Overlay } from "./overlay.ts";
 import { Recorder } from "./recorder.ts";
 import { EngineProtocolSource, type EventSource } from "./protokol-source.ts";
-import { EngineRosterSource, type GameGlobals, type RosterSource } from "./roster.ts";
-import { pustyOdczyt, rozjazdy, walkaZakonczona } from "./rozjazd.ts";
+import { EngineRosterSource, type GameGlobals } from "./roster.ts";
+import { pustyOdczyt, walkaZakonczona } from "./rozjazd.ts";
 import { Session } from "./session.ts";
-import { EMPTY_STATS, type BattleStats } from "./stats.ts";
-import { DomLogSource, findBattleLog, type LogSource } from "./source.ts";
+import { EMPTY_STATS } from "./stats.ts";
 
 /** Ile czekać na pojawienie się okna walki w DOM, zanim odpuścimy. */
 const LOOKUP_INTERVAL_MS = 1000;
@@ -21,115 +20,53 @@ const LOOKUP_INTERVAL_MS = 1000;
 const GIVE_UP_AFTER = 20;
 
 /**
- * Z której drogi panel bierze liczby.
+ * Spina protokół silnika z panelem, archiwum i nagrywarką.
  *
- * **Protokół, gdy cokolwiek POLICZYŁ; tekst w przeciwnym razie.**
+ * ⚠️ **NAZYWAŁO SIĘ TO `startKontrola` i było CZUJKĄ** — drugim odczytem walki,
+ * który tylko porównywał się z pierwszym (tekstowym) i nie miał prawa karmić
+ * panelu liczbami. Powód tamtej ostrożności: bez walki zapisanej obiema drogami
+ * nie dało się odróżnić „nowe liczby są lepsze" od „nowe liczby są inne".
+ * Walka zapisana obiema drogami przyszła 2026‑08‑04 i rozstrzygnęła to na
+ * korzyść protokołu, więc czujka przestała być czujką, a odczyt tekstowy zszedł
+ * z drzewa. Została jedna droga i to ona rysuje panel.
  *
- * ⚠️ Warunkiem jest TREŚĆ, nie liczba wierszy — i ta różnica kosztowała jedno
- * złe wskazanie w grze (2026‑08‑04). Wiersze biorą się ze składu podanego
- * z gry, więc sesja protokołu, która nie zobaczyła ani jednego ciosu, ma
- * komplet postaci i same zera. Warunek „są wiersze" wybierał wtedy zera zamiast
- * poprawnego odczytu z tekstu.
- *
- * DLACZEGO PROTOKÓŁ WYGRYWA. Niesie `id` po obu stronach każdego zdarzenia,
- * żywioł jako klucz zamiast klasy CSS, rozbite składniki redukcji i brzmienia
- * prosto z gry. Tekst jest rekonstrukcją tego wszystkiego ze zdań.
- *
- * DLACZEGO TEKST ZOSTAJE. Nagrania to surowy tekst (`recorder.ts:1‑16`),
- * wklejony log nie ma innej drogi, archiwum odtwarza przez `parse` — i żadna
- * z tych ścieżek nie ma `Engine.battle`.
- *
- * ⚠️ **TRYB AWARII, KTÓREGO TO NIE ZAMYKA.** Gdyby owinięcie `update` padło
- * w POŁOWIE walki, sesja protokołu zamarza z niepustym składem i panel
- * pokazywałby liczby sprzed awarii, podczas gdy tekst leci dalej. Łapie to
- * czujka na koniec walki — ostrzeżeniem, nie ciszą — ale dopiero wtedy.
+ * Wszystko jest tu w try/catch nie z ostrożności wobec własnego kodu, tylko
+ * dlatego, że **ten callback leci ze środka `Engine.battle.update`**: wyjątek,
+ * który stąd wyjdzie, przewraca graczowi TURĘ, a nie panel.
  */
-export function zrodloPanelu(zTekstu: BattleStats, zProtokolu: BattleStats): BattleStats {
-  return pustyOdczyt(zProtokolu) ? zTekstu : zProtokolu;
-}
-
 export function start(
-  source: LogSource,
+  source: EventSource,
   overlay: Overlay,
-  session: Session = new Session(),
-  roster?: RosterSource,
+  sesja: Session = new Session(),
   recorder?: Recorder,
-  sesjaProtokolu?: Session,
 ): () => void {
-  return source.subscribe((text) => {
+  return source.subscribe((porcja) => {
     // Nagrywanie idzie PIERWSZE i we własnej osłonie. Kolejność nie jest
-    // kosmetyką: gdyby parser się wysypał, zabrałby ze sobą zapis — czyli
-    // jedyny surowy log, którym dałoby się tę awarię odtworzyć. Nagranie ma
-    // przeżyć licznik, nie odwrotnie.
+    // kosmetyką: gdyby dekoder się wysypał, zabrałby ze sobą zapis — czyli
+    // jedyny surowy materiał, którym dałoby się tę awarię odtworzyć. Nagranie
+    // ma przeżyć licznik, nie odwrotnie.
     try {
-      // Ten sam tekst, który dostaje parser — nagranie odtwarza WEJŚCIE
+      // Te same komunikaty, które dostaje dekoder — nagranie odtwarza WEJŚCIE
       // licznika, a nie jego wynik.
-      recorder?.capture(text);
+      recorder?.capture(porcja);
     } catch (error) {
       console.error("[MargoMeter] nagrywanie padło", error);
     }
 
-    // Callback leci z mikrotaska, więc nieprzechwycony wyjątek wypada do
-    // kontekstu STRONY GRY i powtarza się przy każdej mutacji DOM. Ta sama
-    // zasada co przy archiwum niżej: dodatek ma paść cicho, nie zasypać konsoli
-    // gry przy każdej linii logu.
     try {
-      // Skład czytamy przy każdej zmianie logu, nie raz na starcie: gra
-      // podmienia `battle` między walkami, a odczyt jest tani i defensywny.
-      session.update(text, roster?.current());
-      overlay.render(
-        sesjaProtokolu === undefined
-          ? session.current()
-          : zrodloPanelu(session.current(), sesjaProtokolu.current()),
-      );
-    } catch (error) {
-      console.error("[MargoMeter] licznik padł na tej porcji logu", error);
-    }
-  });
-}
+      sesja.updateEvents(porcja.zdarzenia, [...porcja.sklad]);
+      const odczyt = sesja.current();
 
-/**
- * Drugi odczyt tej samej walki — z protokołu silnika — i porównanie go
- * z pierwszym.
- *
- * NIE KARMI PANELU LICZBAMI. Panel dalej liczy z tekstu; stąd idzie wyłącznie
- * odpowiedź na pytanie „czy obie drogi zgadzają się co do skalarów". Powód
- * stoi w `docs/specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`:
- * bez walki zapisanej obiema drogami nie da się odróżnić „nowe liczby są
- * lepsze" od „nowe liczby są inne", więc protokół dostaje głos, nie władzę.
- *
- * Cała ścieżka jest w try/catch, bo to najmłodszy kod w repo i ma prawo się
- * mylić — ale nie ma prawa zabrać ze sobą licznika, który działa.
- */
-export function startKontrola(
-  source: EventSource,
-  zTekstu: Session,
-  overlay: Overlay,
-  sesjaProtokolu: Session = new Session(),
-): () => void {
-  return source.subscribe((porcja) => {
-    try {
-      sesjaProtokolu.updateEvents(porcja.zdarzenia, [...porcja.sklad]);
-      const zProtokolu = sesjaProtokolu.current();
-
-      // OSTRZEŻENIE GAŚNIE RAZEM Z WALKĄ. Bez tego napis z walki, w której
-      // protokół się nie podpiął, wisiał nad następną — i to jest dokładnie
-      // to, co zobaczył pierwszy gracz: poprawne liczby w panelu i ostrzeżenie
-      // o rozjeździe z poprzedniej walki.
-      if (!walkaZakonczona(porcja.zdarzenia)) overlay.setRozjazdy([]);
-      else if (pustyOdczyt(zProtokolu)) {
-        // INNA USTERKA, INNY KOMUNIKAT. Pusty odczyt nie znaczy „liczby się
-        // różnią" — znaczy „nie zdążyliśmy się podpiąć do tej walki".
-        // Nazwanie tego rozjazdem opisywałoby objaw jako przyczynę.
-        overlay.setRozjazdy([]);
-        overlay.setSpoznionePodpiecie(true);
-      } else {
-        overlay.setSpoznionePodpiecie(false);
-        overlay.setRozjazdy(rozjazdy(zTekstu.current(), zProtokolu));
-      }
-      overlay.render(zrodloPanelu(zTekstu.current(), zProtokolu));
+      // OSTRZEŻENIE GAŚNIE RAZEM Z WALKĄ. Bez tego napis z walki, do której
+      // nie zdążyliśmy się podpiąć, wisiał nad następną — i to jest dokładnie
+      // to, co zobaczył pierwszy gracz.
+      //
+      // Wyrokujemy dopiero na KOŃCU walki, bo w trakcie „zero liczb" znaczy
+      // po prostu „jeszcze nikt nie uderzył".
+      overlay.setSpoznionePodpiecie(walkaZakonczona(porcja.zdarzenia) && pustyOdczyt(odczyt));
+      overlay.render(odczyt);
     } catch (error) {
-      console.error("[MargoMeter] czujka protokołu padła", error);
+      console.error("[MargoMeter] licznik padł na tej porcji", error);
     }
   });
 }
@@ -137,34 +74,42 @@ export function startKontrola(
 /**
  * Czy to w ogóle strona gry.
  *
- * Sprawdzamy najpierw globalne `Engine` (tanie, jedno pole), a dopiero potem
- * okno walki w DOM (przeczesuje dokument). Kolejność ma znaczenie: na stronie
- * pomocy pierwszy warunek odpada od razu i drugi już nie rusza.
+ * Pytamy WYŁĄCZNIE o globalne `Engine`. Do 2026‑08‑04 był tu jeszcze drugi
+ * warunek — okno walki w DOM — bo stamtąd brał się log. Dziś czytamy
+ * `Engine.battle`, więc strona z oknem walki, ale bez `Engine`, nie dałaby nam
+ * NICZEGO do przeczytania: drugi warunek obiecywałby grę tam, gdzie dodatek
+ * i tak stanąłby pusty. Przy okazji znika przeczesywanie całego dokumentu co
+ * sekundę na podstronach, które grą nie są.
  */
-function looksLikeGame(window: GameGlobals, findLog: () => Element | null): boolean {
+function looksLikeGame(window: GameGlobals): boolean {
   try {
-    if (window.Engine ?? window.getEngine) return true;
+    return Boolean(window.Engine ?? window.getEngine);
   } catch {
     // Dostęp do wnętrzności gry może rzucić przy zmianie kontekstu strony.
+    return false;
   }
-  return findLog() !== null;
 }
 
 export type BootOptions = {
   /** Cykliczne sprawdzanie — wstrzykiwane, żeby dało się je przewinąć w teście. */
   schedule?: (step: () => void, everyMs: number) => number;
   cancel?: (handle: number) => void;
-  /** Gdzie szukać okna walki. */
-  findLog?: () => Element | null;
   /** Globalne obiekty gry; osobno od `document`, bo tylko stąd czytamy `Engine`. */
   window?: GameGlobals;
   storage?: Storage;
 };
 
 /**
- * Punkt wejścia userscriptu: czeka, aż w DOM pojawi się log walki, i wtedy
- * podpina overlay. Log istnieje dopiero po wejściu w walkę, więc szukamy go
- * cyklicznie zamiast raz przy starcie.
+ * Punkt wejścia userscriptu: czeka, aż na stronie pojawi się `Engine`, i wtedy
+ * podpina panel. Cyklicznie, a nie raz na starcie, bo skrypt wstaje razem
+ * z dokumentem, a silnik gry chwilę później.
+ *
+ * ⚠️ **PĘTLA UPROŚCIŁA SIĘ 2026‑08‑04 i to jest cała jej treść.** Wcześniej
+ * musiała jeszcze pilnować, KTÓRY węzeł DOM niesie okno walki: gra potrafi
+ * podmienić kontener w trakcie walki, więc trzeba było przepinać obserwatora
+ * i trzymać sesję poza subskrypcją, żeby liczby zostały na ekranie. Protokół
+ * nie ma kontenera — `Engine.battle` żyje niezależnie od DOM — więc podpinamy
+ * się RAZ i to wszystko.
  *
  * Zwraca funkcję zatrzymującą — userscript jej nie woła, ale bez niej nie dało
  * się sprawdzić, że pętla faktycznie gaśnie poza grą.
@@ -172,47 +117,33 @@ export type BootOptions = {
 export function boot(options: BootOptions = {}): () => void {
   const schedule = options.schedule ?? ((step, everyMs) => setInterval(step, everyMs) as never);
   const cancel = options.cancel ?? ((handle: number) => clearInterval(handle));
-  const findLog = options.findLog ?? findBattleLog;
   const globals = options.window ?? (globalThis as GameGlobals);
   const storage = options.storage ?? safeStorage();
 
   let overlay: Overlay | null = null;
   let recorder: Recorder | null = null;
-  // Sesja żyje dłużej niż subskrypcja, bo gra potrafi podmienić kontener logu
-  // w trakcie walki — wtedy przepinamy obserwatora, a liczby bieżącej walki
-  // mają zostać na ekranie.
-  const session = new Session();
-  // Jedna sesja protokołu na cały `boot`, wspólna dla obu spięć: karmi ją
-  // czujka, a czyta z niej panel. Dwie osobne rozjechałyby się o porcję.
-  const sesjaProtokolu = new Session();
+  const sesja = new Session();
   const roster = new EngineRosterSource(globals);
-  let unsubscribe: (() => void) | null = null;
-  // Czujka podpina się RAZ, do globali, a nie do kontenera logu: `Engine.battle`
-  // żyje niezależnie od tego, który węzeł DOM akurat niesie okno walki.
-  let odepnijKontrole: (() => void) | null = null;
-  let container: Element | null = null;
+  let odepnij: (() => void) | null = null;
   let missing = 0;
   let handle: number | null = null;
 
   const stop = () => {
     if (handle !== null) cancel(handle);
     handle = null;
-    unsubscribe?.();
-    unsubscribe = null;
-    odepnijKontrole?.();
-    odepnijKontrole = null;
+    odepnij?.();
+    odepnij = null;
     // Panel MÓGŁ już powstać: `missing` zeruje się przy każdym udanym odczycie,
     // więc strona potrafi przestać wyglądać na grę długo po jego narysowaniu.
-    // Komentarz niżej („panel się tu nie pojawił") zakładał inaczej.
     overlay?.destroy();
     overlay = null;
   };
 
   handle = schedule(() => {
-    if (!looksLikeGame(globals, findLog)) {
+    if (!looksLikeGame(globals)) {
       missing += 1;
-      // Nie na stronie gry — gasimy pętlę zamiast przeczesywać cudzy dokument
-      // w kółko. `stop()` zdejmuje przy okazji panel, jeśli zdążył powstać.
+      // Nie na stronie gry — gasimy pętlę zamiast tykać w kółko do końca życia
+      // karty. `stop()` zdejmuje przy okazji panel, jeśli zdążył powstać.
       if (missing >= GIVE_UP_AFTER) stop();
       return;
     }
@@ -234,34 +165,20 @@ export function boot(options: BootOptions = {}): () => void {
       }
     }
 
-    if (overlay && odepnijKontrole === null) {
+    if (odepnij === null) {
       try {
-        odepnijKontrole = startKontrola(
+        odepnij = start(
           new EngineProtocolSource(globals, roster),
-          session,
           overlay,
-          sesjaProtokolu,
+          sesja,
+          recorder ?? undefined,
         );
       } catch (error) {
-        // Czujka jest dodatkiem do dodatku. Gdy nie wstanie, licznik ma działać
-        // dalej — ta sama zasada, co przy archiwum wyżej.
-        console.error("[MargoMeter] czujka protokołu nie wystartowała", error);
+        // Panel stoi już na ekranie i ma na nim zostać, choćby pusty —
+        // ta sama zasada, co przy archiwum wyżej.
+        console.error("[MargoMeter] odczyt protokołu nie wystartował", error);
       }
     }
-
-    const found = findLog();
-    if (!found || found === container) return;
-
-    unsubscribe?.();
-    container = found;
-    unsubscribe = start(
-      new DomLogSource(found),
-      overlay,
-      session,
-      roster,
-      recorder ?? undefined,
-      sesjaProtokolu,
-    );
   }, LOOKUP_INTERVAL_MS);
 
   return stop;

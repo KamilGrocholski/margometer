@@ -44,7 +44,7 @@ const CACHE = new URL("../.cache/", import.meta.url).pathname;
 /**
  * Świat, z którego bierzemy klienta. Dowolny publiczny wystarczy — pliki są
  * wspólne, w adresie różni się tylko poddomena. `tempest` jest w whiteliście
- * `tools/grooove.ts`, więc nie dokłada tu nowej decyzji o tym, skąd wolno brać.
+ * reszta narzędzi, więc nie dokłada tu nowej decyzji o tym, skąd wolno brać.
  */
 const SWIAT = "tempest";
 
@@ -332,6 +332,14 @@ export function buildKlienta(html: string): string {
  * przeglądarki. Ten plik jest **plikiem źródłowym**, na którym stoi i dodatek,
  * i weryfikacja.
  */
+/**
+ * Gdzie `--zamroz` odkłada tabelę.
+ *
+ * ⚠️ Plik **nie istnieje od 2026‑08‑04** — `tests/fixtures/` zeszło z drzewa,
+ * a razem z nim dwa testy pilnujące, że zaszyte u nas identyfikatory zgadzają
+ * się z grą. Ścieżka zostaje, bo to jedyna droga powrotna: `--zamroz` odtworzy
+ * plik, a testy trzeba będzie napisać od nowa (`AGENTS.md`).
+ */
 const ZAMROZENIE = new URL("../tests/fixtures/klucze-protokolu.json", import.meta.url).pathname;
 
 export type WpisZamrozony = {
@@ -355,8 +363,13 @@ export type WpisZamrozony = {
  *
  * Lista jest RĘCZNA i taka zostaje: to nie jest zbiór, który da się wyliczyć
  * z renderera, tylko te miejsca, w których czytaliśmy jego kod i widzieliśmy
- * wywołanie `_t`. Identyfikator, którego tu brakuje, objawi się jako
- * nieodtworzony komunikat w `tools/odtworz.ts` — głośno, nie po cichu.
+ * wywołanie `_t`.
+ *
+ * ⚠️ **Brakujący identyfikator nie ma już kto zgłosić.** Do 2026‑08‑04 objawiał
+ * się jako nieodtworzony komunikat w `tools/odtworz.ts` — narzędziu składającym
+ * z tych ram zdania gry na potrzeby orakulum. Orakulum i `odtworz.ts` zeszły
+ * z drzewa razem z parserem tekstu, więc luka w tej liście jest dziś cicha.
+ * To jest koszt tamtej decyzji, nie przeoczenie.
  */
 const RAMY = [
   "msg_dmgdone %name1% %hpp% %val%",

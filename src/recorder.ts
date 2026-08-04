@@ -1,11 +1,22 @@
 /**
  * Nagrywanie walk do localStorage.
  *
- * Zapisujemy SUROWY tekst logu, nie policzone statystyki. Trzy powody:
- * jest najmniejszy (średnia walka to ~2,6 tys. znaków wobec ~4,5 tys. dla
- * `BattleStats` w JSON-ie), przeżywa każdą zmianę kształtu statystyk, a przede
- * wszystkim — pozwala przeliczyć stare nagrania nowym parserem. Statystyki
- * zamrożone w JSON-ie są bezużyteczne w dniu, w którym łatamy lukę w parserze.
+ * Zapisujemy SUROWE KOMUNIKATY PROTOKOŁU, nie policzone statystyki i nie
+ * zdarzenia. Powód jest ten sam, dla którego wcześniej trzymaliśmy surowy tekst:
+ * nagranie ma dać się przeliczyć NOWSZYM dekoderem. Cokolwiek policzonego,
+ * zamrożone w JSON-ie, jest bezużyteczne w dniu, w którym łatamy lukę
+ * w odczycie — a łataliśmy ją dwa razy w ciągu jednego dnia (`d4be27e`,
+ * `a5e9150`).
+ *
+ * Razem z komunikatami idzie SKŁAD. Bez niego `id` nie ma jak stać się nazwą,
+ * a archiwum odtwarza nagranie długo po zamknięciu gry, więc rostera nie ma
+ * gdzie wziąć.
+ *
+ * ⚠️ **FORMAT `v: 2` NIE CZYTA NAGRAŃ `v: 1`.** Tamte trzymały tekst z okna
+ * walki, a parser tekstu zszedł z drzewa — nie ma czym ich odczytać. Indeks
+ * w starej wersji jest odrzucany przy starcie i archiwum zaczyna od zera.
+ * To jest strata dla gracza i jest świadoma; alternatywą było trzymanie
+ * całego parsera wyłącznie dla archiwum.
  *
  * Magazyn dzielimy z grą: `@grant none` znaczy, że siedzimy w kontekście
  * strony, a `localStorage` na `tempest.margonem.pl` to ten sam ~5 MB kubełek,
@@ -15,8 +26,8 @@
  * odmówi.
  */
 
-import { canonicalLine } from "./parser.ts";
-import { FIGHT_START_TEXT } from "./types.ts";
+import type { RosterEntry } from "./roster.ts";
+import type { PorcjaProtokolu } from "./protokol-source.ts";
 
 const KEY_PREFIX = "margometer.rec.";
 const INDEX_KEY = `${KEY_PREFIX}index`;
@@ -26,7 +37,12 @@ const FLAG_KEY = `${KEY_PREFIX}on`;
 /**
  * Ile znaków wolno zająć nagraniom. Przeglądarki liczą po 2 bajty na znak
  * (UTF-16), więc 500 tys. znaków to ~1 MB z ~5 MB origin — reszta zostaje grze.
- * Przy średniej walce (2,6 tys. znaków) mieści się tu ~190 walk.
+ *
+ * ⚠️ Ile walk się tu mieści, przestało być zmierzone. Przy tekście była to
+ * średnia 2,6 tys. znaków i ~190 walk; protokół jest gęstszy na komunikat, ale
+ * komunikatów jest mniej niż linii (18 na walkę w jedynym zrzucie, jaki mamy).
+ * Budżet zostaje ten sam, bo chroni GRĘ przed zapchanym kubełkiem, a nie nas
+ * przed małym archiwum — ale liczby walk nie wpisuję, dopóki jej nie zmierzę.
  */
 export const BUDGET_CHARS = 500_000;
 
@@ -36,8 +52,6 @@ export const BUDGET_CHARS = 500_000;
  * utrwaliła się parę razy w trakcie, zamiast przy każdej linii.
  */
 const INDEX_FLUSH_CHARS = 2_000;
-
-const FIGHT_START = new RegExp(FIGHT_START_TEXT);
 
 /** Jedno nagranie w indeksie. Sam tekst leży pod osobnym kluczem. */
 export type Recording = {
@@ -49,22 +63,54 @@ export type Recording = {
   at: number;
 };
 
+/**
+ * Treść jednego nagrania. Leży pod kluczem `margometer.rec.<id>` jako JSON.
+ */
+export type Nagranie = {
+  komunikaty: string[];
+  sklad: RosterEntry[];
+};
+
 type Index = {
-  v: 1;
+  v: 2;
   /** Licznik identyfikatorów. Nie długość listy — kasowanie by go cofało. */
   next: number;
   fights: Recording[];
 };
 
-const EMPTY_INDEX: Index = { v: 1, next: 1, fights: [] };
+const EMPTY_INDEX: Index = { v: 2, next: 1, fights: [] };
 
 /** Walka widoczna w buforze wraz z tym, ile jej już zapisaliśmy. */
 type ActiveRecording = {
   id: number;
-  lines: string[];
-  /** Długość ostatnio zapisanego tekstu — po niej poznajemy, że nic nie urosło. */
+  komunikaty: string[];
+  sklad: RosterEntry[];
+  /** Długość ostatnio zapisanego JSON-a — po niej poznajemy, że nic nie urosło. */
   saved: number;
 };
+
+/**
+ * Tytuł nagrania — jedyne, po czym da się je rozpoznać na liście.
+ *
+ * Przy tekście brała go pierwsza linia, czyli zdanie gry „Rozpoczęła się walka
+ * pomiędzy…". Protokół takiego zdania NIE MUSI nieść: klient syntetyzuje je sam,
+ * poza `data.m` (`Battle.js:945`), więc w zrzucie bywa i nie bywa.
+ *
+ * Składamy więc własny, ze składu — i celowo **nie udajemy zdania gry**.
+ * Formatowanie „A, B a C" wyglądałoby jak cytat z logu, a nim nie jest.
+ */
+export function tytul(sklad: readonly RosterEntry[]): string {
+  const strona = (side: number) => sklad.filter((w) => w.side === side).map((w) => w.name);
+  // Skrót taki sam, jaki archiwum stosowało dotąd do linii otwierającej —
+  // wiersz listy ma stałą szerokość, a dziesięcioosobowa drużyna go rozpycha.
+  const skrot = (nazwy: string[]) =>
+    nazwy.length <= 2 ? nazwy.join(", ") : `${nazwy[0]}, ${nazwy[1]} +${nazwy.length - 2}`;
+
+  const nasi = skrot(strona(0));
+  const obcy = skrot(strona(1));
+  if (!nasi || !obcy) return nasi || obcy || "walka bez składu";
+  return `${nasi} vs ${obcy}`;
+}
 
 /**
  * Tyle magazynu, ile nagrywarce potrzeba.
@@ -76,40 +122,6 @@ type ActiveRecording = {
 export type RecorderStorage = Pick<Storage, "getItem" | "setItem" | "removeItem"> &
   Partial<Pick<Storage, "key" | "length">>;
 
-/**
- * Dzieli bufor logu na walki po liniach otwierających.
- *
- * Odpowiednik `splitFights` z sesji, tylko na tekście zamiast na zdarzeniach —
- * nagranie ma być dokładnie tym, co widział parser, więc nie może przechodzić
- * przez zdarzenia i z powrotem.
- */
-export function splitLines(text: string): string[][] {
-  const fights: string[][] = [];
-
-  for (const line of text.split("\n")) {
-    if (line.trim() === "") continue;
-    if (FIGHT_START.test(line)) {
-      const previous = fights.at(-1);
-      // Margonem potrafi zdublować linię rozpoczęcia — powtórzenie TEJ SAMEJ
-      // linii nie zaczyna nowej walki, bo poprzednia nie ma jeszcze treści.
-      // Nagłówek o innej treści to już druga walka, choćby pierwsza skończyła
-      // się na samym nagłówku; inaczej dwie walki wpadały do jednego nagrania.
-      //
-      // Porównujemy przez `canonicalLine`, czyli DOKŁADNIE tak, jak widzi to
-      // parser — inaczej sesja i nagrywarka odpowiadają różnie na to samo
-      // pytanie. Zwykły `trim()` wystarczał tylko dopóty, dopóki gra nie
-      // rozjechała bbcode'u ani odstępów; wtedy archiwum dostawało dwa
-      // nagrania na jedną walkę.
-      const isDuplicate =
-        previous?.length === 1 && canonicalLine(previous[0]!) === canonicalLine(line);
-      if (!isDuplicate) fights.push([]);
-    }
-    if (fights.length === 0) fights.push([]);
-    fights.at(-1)!.push(line);
-  }
-
-  return fights;
-}
 
 /**
  * Czy wpis indeksu ma wszystko, czego od niego oczekujemy.
@@ -133,52 +145,21 @@ function isRecording(value: unknown): value is Recording {
 }
 
 /**
- * Czy `current` to ta sama walka co `previous`, tylko doczytana?
+ * Czy `biezace` to ta sama walka co `poprzednie`, tylko doczytana?
  *
- * Nowa walka ZAWSZE zaczyna się linią otwierającą. Jej brak znaczy więc, że
- * patrzymy na ogon walki, której nagłówek wyjechał już z bufora — czymś nowym
- * być nie może. Z linią otwierającą decyduje wspólny początek: ta sama walka
- * dostaje linie na dole i nigdy nie chudnie.
- */
-function continues(previous: string[], current: string[]): boolean {
-  if (!current.some((line) => FIGHT_START.test(line))) return true;
-  if (current.length < previous.length) return false;
-  return previous.every((line, i) => sameOrGrown(line, current[i], i === previous.length - 1));
-}
-
-/**
- * Czy linia się zgadza — z jednym ustępstwem dla OSTATNIEJ.
+ * ⚠️ **TU ZNIKNĘŁA CAŁA KLASA ZŁOŻONOŚCI.** Do 2026‑08‑04 stały w tym miejscu
+ * trzy funkcje — `continues`, `sameOrGrown`, `merge` — i wszystkie istniały
+ * wyłącznie dlatego, że bufor DOM jest RUCHOMYM OKNEM: gra przycinała log od
+ * góry, a ostatnia linia potrafiła urosnąć w miejscu między dwoma mikrotaskami.
+ * Trzeba było szukać najdłuższego wspólnego ogona i sklejać po nim.
  *
- * Gra trzyma cały blok ataku w jednym węźle: tekst „uderzył z siłą" i liczby
- * obrażeń stoją w TEJ SAMEJ linii, a `DomLogSource` zgłasza zmiany po
- * mikrotasku. Dwie mutacje tego samego węzła w różnych taskach dawały więc
- * bufor, którego ostatnia linia jest DŁUŻSZĄ wersją poprzedniej — twarde
- * porównanie uznawało to za inną walkę i rozcinało nagranie na dwa.
+ * Protokół nie ma okna. `EngineProtocolSource` trzyma komunikaty JEDNEJ walki
+ * i zeruje bufor przy nowej, więc lista albo rośnie od początku, albo jest
+ * nową walką. Zostaje sprawdzenie prefiksu.
  */
-function sameOrGrown(previous: string, current: string | undefined, last: boolean): boolean {
-  if (current === undefined) return false;
-  return previous === current || (last && current.startsWith(previous));
-}
-
-/**
- * Skleja to, co mamy, z tym, co widać teraz.
- *
- * Gra przycina log od góry, więc bufor bywa OGONEM nagrania, nie jego
- * przedłużeniem — zwykłe doklejenie zdublowałoby wspólną część. Szukamy więc
- * najdłuższego ogona nagrania, który jest początkiem bufora, i dopisujemy
- * dopiero to, co za nim. Dla walki, która po prostu urosła, ogonem tym jest
- * całe nagranie i wychodzi zwykłe doklejenie.
- */
-function merge(previous: string[], current: string[]): string[] {
-  for (let overlap = Math.min(previous.length, current.length); overlap > 0; overlap -= 1) {
-    const tail = previous.slice(previous.length - overlap);
-    const fits = tail.every((line, i) => sameOrGrown(line, current[i], i === tail.length - 1));
-    if (!fits) continue;
-    // Ostatnia wspólna linia mogła urosnąć w miejscu (patrz `sameOrGrown`),
-    // więc bierzemy jej świeższą wersję zamiast tej, którą mamy zapisaną.
-    return [...previous.slice(0, previous.length - 1), current[overlap - 1]!, ...current.slice(overlap)];
-  }
-  return [...previous, ...current];
+function przedluza(poprzednie: readonly string[], biezace: readonly string[]): boolean {
+  if (biezace.length < poprzednie.length) return false;
+  return poprzednie.every((komunikat, i) => komunikat === biezace[i]);
 }
 
 export type RecorderOptions = {
@@ -232,9 +213,17 @@ export class Recorder {
   private resume(): ActiveRecording[] {
     const last = this.index.fights.at(-1);
     if (!last) return [];
-    const text = this.read(last.id);
-    if (text === null) return [];
-    return [{ id: last.id, lines: text.split("\n"), saved: text.length }];
+    const surowe = this.storage?.getItem(KEY_PREFIX + last.id);
+    const nagranie = this.read(last.id);
+    if (nagranie === null || surowe === undefined || surowe === null) return [];
+    return [
+      {
+        id: last.id,
+        komunikaty: nagranie.komunikaty,
+        sklad: nagranie.sklad,
+        saved: surowe.length,
+      },
+    ];
   }
 
   isRecording(): boolean {
@@ -267,9 +256,21 @@ export class Recorder {
     return this.index.fights.map((fight) => ({ ...fight }));
   }
 
-  /** Surowy log jednego nagrania. null, gdy klucz zniknął spod indeksu. */
-  read(id: number): string | null {
-    return this.storage?.getItem(KEY_PREFIX + id) ?? null;
+  /**
+   * Treść jednego nagrania. `null`, gdy klucz zniknął spod indeksu albo trzyma
+   * coś, czego nie umiemy odczytać — na przykład nagranie w starym formacie,
+   * które przetrwało kasowanie indeksu.
+   */
+  read(id: number): Nagranie | null {
+    const surowe = this.storage?.getItem(KEY_PREFIX + id);
+    if (typeof surowe !== "string") return null;
+    try {
+      const parsed = JSON.parse(surowe) as Partial<Nagranie>;
+      if (!Array.isArray(parsed.komunikaty) || !Array.isArray(parsed.sklad)) return null;
+      return { komunikaty: parsed.komunikaty, sklad: parsed.sklad };
+    } catch {
+      return null;
+    }
   }
 
   /** Czy zapis się wysypał — overlay ma to powiedzieć wprost. */
@@ -328,53 +329,44 @@ export class Recorder {
   }
 
   /**
-   * Nowa treść bufora logu. Wołane przy każdej zmianie, tak jak `Session.update`.
+   * Nowa porcja z protokołu. Wołane przy każdym wywołaniu `Engine.battle.update`
+   * niosącym komunikaty, tak jak `Session.updateEvents`.
    *
-   * Walki dopasowujemy od KOŃCA bufora — dokładnie jak sesja i z tego samego
-   * powodu: log traci treść od góry, a dorasta na dole, więc ani indeks, ani
-   * pierwsza linia nie są stałą tożsamością.
+   * Jedna walka na raz — protokół nie ma bufora z kilkoma naraz, bo źródło
+   * zeruje go przy każdej nowej. To jest cała różnica wobec wersji tekstowej,
+   * która dopasowywała walki od KOŃCA bufora, bo log tracił treść od góry.
    */
-  capture(text: string): void {
+  capture(porcja: PorcjaProtokolu): void {
     if (!this.on || this.failed) return;
+    if (porcja.komunikaty.length === 0) return;
 
-    const fights = splitLines(text);
-    const next: ActiveRecording[] = new Array(fights.length);
-    let oldIndex = this.active.length - 1;
+    const komunikaty = [...porcja.komunikaty];
+    const sklad = [...porcja.sklad];
+    const biezace = this.active[0];
 
-    for (let i = fights.length - 1; i >= 0; i -= 1) {
-      const lines = fights[i]!;
-      const previous = oldIndex >= 0 ? this.active[oldIndex] : undefined;
-      if (previous && continues(previous.lines, lines)) {
-        oldIndex -= 1;
-        next[i] = { id: previous.id, lines: merge(previous.lines, lines), saved: previous.saved };
-      } else {
-        next[i] = { id: this.index.next, lines, saved: -1 };
-        this.index.next += 1;
-      }
+    if (biezace && przedluza(biezace.komunikaty, komunikaty)) {
+      biezace.komunikaty = komunikaty;
+      biezace.sklad = sklad;
+    } else {
+      this.active = [{ id: this.index.next, komunikaty, sklad, saved: -1 }];
+      this.index.next += 1;
     }
 
-    this.active = next;
-
-    // Kopia, bo `evict`/`drop` w środku zapisu podmieniają `this.active` —
-    // pętla po żywej tablicy oznaczała `saved` na nagraniu, którego już nie ma.
-    for (const fight of [...this.active]) {
-      const content = fight.lines.join("\n");
-      // Zapis idzie kluczem na walkę, nie jednym blobem — inaczej każda nowa
-      // linia logu przepisywałaby całe archiwum, synchronicznie, w wątku gry.
-      if (content.length === fight.saved) continue;
-      if (!this.save(fight.id, content)) return;
-      fight.saved = content.length;
-    }
+    const nagranie = this.active[0]!;
+    const tresc = JSON.stringify({ komunikaty: nagranie.komunikaty, sklad: nagranie.sklad });
+    if (tresc.length === nagranie.saved) return;
+    if (!this.save(nagranie.id, tresc, tytul(nagranie.sklad))) return;
+    nagranie.saved = tresc.length;
   }
 
-  private save(id: number, text: string): boolean {
+  private save(id: number, text: string, title: string): boolean {
     const entry = this.index.fights.find((fight) => fight.id === id);
     const previousChars = entry?.chars;
     if (entry) entry.chars = text.length;
     else {
       this.index.fights.push({
         id,
-        title: text.split("\n")[0] ?? "",
+        title,
         chars: text.length,
         at: this.now(),
       });
@@ -549,7 +541,7 @@ export class Recorder {
       const raw = this.storage?.getItem(INDEX_KEY);
       if (!raw) return fresh();
       const parsed = JSON.parse(raw) as Partial<Index>;
-      if (parsed.v !== 1) return fresh();
+      if (parsed.v !== 2) return fresh();
       if (!Array.isArray(parsed.fights)) return fresh();
 
       const fights = parsed.fights.filter(isRecording);
@@ -560,7 +552,7 @@ export class Recorder {
       // nadpisałoby stare pod tym samym kluczem.
       const highest = fights.reduce((max, fight) => Math.max(max, fight.id), 0);
       const next = typeof parsed.next === "number" && Number.isFinite(parsed.next) ? parsed.next : 0;
-      return { v: 1, next: Math.max(next, highest + 1), fights };
+      return { v: 2, next: Math.max(next, highest + 1), fights };
     } catch {
       return fresh();
     }

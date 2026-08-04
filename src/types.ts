@@ -1,23 +1,24 @@
 /**
- * Znacznik doklejany przez `extractText` do liczby obrażeń, gdy DOM gry niesie
- * żywioł w klasie CSS (`<b class="dmgc">`). W samym tekście logu żywiołu nie ma
- * — widać go wyłącznie po kolorze, więc bez DOM-u ta informacja nie istnieje.
- */
-export const ELEMENT_MARKER = "\u0001";
-
-/**
- * Zdanie otwierające walkę — jedyne, po czym poznajemy jej początek.
+ * ⚠️ **STAŁY TU DWA EKSPORTY I OBA BYŁY MARTWE OD 2026‑08‑04.**
  *
- * Stoi tu, a nie w trzech modułach osobno, bo decyduje o TRZECH niezależnych
- * rzeczach: znalezieniu okna walki w DOM (`source.ts`), podziale na walki
- * w parserze i podziale na nagrania w nagrywarce. Zmiana formatu po stronie
- * gry wywala wszystkie trzy PO CICHU — czujka `unknown` pilnuje wyłącznie
- * parsera, więc panel powiedziałby „brak danych", a nie „nie rozumiem".
+ * `ELEMENT_MARKER` (`"\u0001"`) — znacznik doklejany przez `extractText` do
+ * liczby obrażeń, gdy DOM gry niósł żywioł w klasie CSS (`<b class="dmgc">`).
+ * W tekście logu żywiołu nie było, widać go było wyłącznie po kolorze. Protokół
+ * podaje żywioł KLUCZEM, więc nie ma już czego znaczyć.
  *
- * Każdy moduł buduje z tego własny wzorzec: parser potrzebuje zakotwiczenia
- * i grupy ze składem, pozostałe tylko sprawdzają obecność.
+ * `FIGHT_START_TEXT` (`"Rozpoczęła się walka pomiędzy"`) — zdanie otwierające.
+ * Docstring twierdził, że stała decyduje o TRZECH rzeczach: znalezieniu okna
+ * walki w DOM, podziale na walki w parserze i podziale na nagrania. Dwie
+ * pierwsze zeszły z drzewa, a nagrywarka składa dziś tytuł ze SKŁADU
+ * (`recorder.tytul`), bo protokół tego zdania nie musi nieść — klient
+ * syntetyzuje je sam, poza `data.m`.
+ *
+ * ⚠️ **Dlaczego kompilator ich nie złapał, choć `noUnusedLocals` jest włączone.**
+ * Ta flaga widzi zmienne LOKALNE; eksport bez ani jednego importera jest dla
+ * niej poprawnym API modułu. To jest granica narzędzia, którą warto znać:
+ * skasowanie czytelnika nie unieważnia tego, co czytał, a brama przechodzi na
+ * zielono. Jedyne, co to łapie, to `grep -rn NAZWA --include=*.ts`.
  */
-export const FIGHT_START_TEXT = "Rozpoczęła się walka pomiędzy";
 
 /** Kod profesji tak, jak pojawia się w logu, np. `85b`. */
 export type ProfessionCode = "w" | "p" | "t" | "h" | "m" | "b";

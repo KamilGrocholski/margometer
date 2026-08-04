@@ -1,116 +1,105 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Overlay } from "../src/overlay.ts";
 import { Session } from "../src/session.ts";
-import { DomLogSource, findBattleLog, StaticLogSource } from "../src/source.ts";
 import { Recorder } from "../src/recorder.ts";
-import { boot, start, startKontrola, zrodloPanelu } from "../src/index.ts";
+import { boot, start } from "../src/index.ts";
 import { StaticProtocolSource } from "../src/protokol-source.ts";
+import { BEZ_SLOWNIKA } from "../src/slownik-gry.ts";
 import type { BattleEvent } from "../src/types.ts";
-import { EMPTY_STATS, type BattleStats } from "../src/stats.ts";
-import { number, readFixture } from "./helpers.ts";
+
+import { KOMUNIKATY, SKLAD } from "./walka-z-gry.ts";
 
 describe("spięcie źródła z overlayem", () => {
-  test("cały łańcuch: DOM gry → parser → overlay", async () => {
-    // Odtwarzamy okno walki tak, jak wyglądałoby w grze: linie w <div>-ach.
-    const log = document.createElement("div");
-    log.id = "log-walki";
-    for (const line of (await readFixture("new-engine/2026-07-18_lowca-vs-paladyni")).split("\n")) {
-      log.append(Object.assign(document.createElement("div"), { textContent: line }));
-    }
-    document.body.append(log);
-
-    const container = findBattleLog();
-    expect(container?.id).toBe("log-walki");
-
+  /**
+   * Cały łańcuch: `Engine.battle.update` → dekoder → agregat → panel.
+   *
+   * Do 2026‑08‑04 stały tu DWA testy i oba szły przez DOM: budowały okno walki
+   * z `<div>`-ów, karmiły `DomLogSource` i sprawdzały, że dopisana linia
+   * przelicza panel. Okna walki nie czytamy — materiałem jest prawdziwy zrzut
+   * protokołu, a „dopisana linia" to kolejny komunikat.
+   */
+  test("cały łańcuch: protokół gry → dekoder → panel", () => {
     const overlay = new Overlay();
-    const stop = start(new DomLogSource(container!), overlay);
+    start(new StaticProtocolSource(KOMUNIKATY, BEZ_SLOWNIKA, SKLAD), overlay, new Session());
 
-    // Jeden wspólny ranking, malejąco — strona nie ma wpływu na kolejność.
     const labels = [...overlay.shadow.querySelectorAll(".label")].map((el) => el.textContent);
-    expect(labels).toEqual(["Południca", "Wieczornica *", "Łowca głów z psk"]);
-
-    // Po dopisaniu linii overlay musi się sam przeliczyć.
-    log.append(
-      Object.assign(document.createElement("div"), {
-        textContent: "Południca(100%) uderzył(a) z siłą  +900",
-      }),
-      Object.assign(document.createElement("div"), {
-        textContent: "Łowca głów z psk(0%) otrzymał  -500  obrażeń",
-      }),
-    );
-    await new Promise((resolve) => queueMicrotask(() => resolve(null)));
-
-    // Wiersz bierzemy po nazwie: sekcje układają moją stronę przed przeciwnikami,
-    // a dopisane obrażenia zadała Południca.
-    const poludnica = [...overlay.shadow.querySelectorAll<HTMLElement>(".row")].find(
-      (row) => row.dataset.actor === "Południca",
-    );
-    expect(poludnica?.querySelector(".value")?.textContent).toContain(number.format(978 + 500));
-    stop();
+    expect(labels).toContain("Łowcożyr Kazrek");
+    // Skład jest z gry, więc na liście stoją także ci, którzy nic nie zadali.
+    expect(labels.length).toBe(SKLAD.length);
   });
 
-  test("statyczne źródło renderuje statystyki walki", async () => {
+  test("kolejna porcja przelicza panel, a nie dokłada się do poprzedniej", () => {
     const overlay = new Overlay();
-    start(new StaticLogSource(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")), overlay);
+    const sesja = new Session();
+    const wartosc = (name: string) =>
+      [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
+        .find((row) => row.dataset.actor === name)
+        ?.querySelector(".value")?.textContent ?? "";
 
-    const labels = [...overlay.shadow.querySelectorAll(".label")].map((el) => el.textContent);
-    expect(labels).toEqual(["Magister Kazrek", "Kukła Treningowa"]);
-    expect(overlay.shadow.querySelector(".value")?.textContent).toContain("36");
+    // Protokół podaje CAŁY prefiks przy każdej porcji — panel ma liczyć od zera.
+    start(new StaticProtocolSource(KOMUNIKATY.slice(0, 2), BEZ_SLOWNIKA, SKLAD), overlay, sesja);
+    const polowa = wartosc("Łowcożyr Kazrek");
+
+    start(new StaticProtocolSource(KOMUNIKATY, BEZ_SLOWNIKA, SKLAD), overlay, sesja);
+    const calosc = wartosc("Łowcożyr Kazrek");
+
+    expect(polowa).not.toBe("");
+    expect(calosc).not.toBe(polowa);
   });
 });
 
-describe("spięcie nagrywarki ze źródłem logu", () => {
-  test("start() podaje nagrywarce ten sam tekst, który dostał parser", async () => {
-    const text = await readFixture("new-engine/2026-07-18_tancerz-vs-kukla");
+describe("spięcie nagrywarki ze źródłem protokołu", () => {
+  // Nagrywarka zapisuje KOMUNIKATY, nie tekst z okna walki, więc spięcie siedzi
+  // tam, gdzie protokół — w `start()`, razem z sesją i panelem.
+  const pamiec = () => {
     const store = new Map<string, string>();
-    const storage = {
+    return {
       getItem: (k: string) => store.get(k) ?? null,
       setItem: (k: string, v: string) => void store.set(k, v),
       removeItem: (k: string) => void store.delete(k),
     };
-    const recorder = new Recorder({ storage });
+  };
+
+  const zrodlo = () => new StaticProtocolSource(KOMUNIKATY, BEZ_SLOWNIKA, SKLAD);
+
+  test("start() podaje nagrywarce te same komunikaty, które dostał dekoder", () => {
+    const recorder = new Recorder({ storage: pamiec() });
     recorder.toggle();
     const overlay = new Overlay({ recorder });
 
-    start(new StaticLogSource(text), overlay, new Session(), undefined, recorder);
+    start(zrodlo(), overlay, new Session(), recorder);
 
     expect(recorder.count()).toBe(1);
     // Overlay pokazuje ten sam stan, co nagrywarka zapisała.
     expect(overlay.shadow.querySelector(".rec-bar .grow")!.textContent).toContain("1 walka");
-    const recorded = recorder.dump() ?? "";
-    for (const line of text.split("\n").filter((l) => l.trim() !== "")) {
-      expect(recorded).toContain(line);
-    }
+    // Nagranie odtwarza WEJŚCIE licznika, znak w znak — nie jego wynik.
+    expect(recorder.read(recorder.list()[0]!.id)).toEqual({
+      komunikaty: KOMUNIKATY,
+      sklad: SKLAD,
+    });
   });
 
-  // Nagranie ma przeżyć licznik, nie odwrotnie: gdy wysypie się parsowanie,
-  // surowy log jest JEDYNĄ rzeczą, którą da się tę awarię odtworzyć. Dlatego
-  // zapis idzie pierwszy i we własnej osłonie.
-  test("awaria licznika nie zabiera ze sobą nagrywania", async () => {
-    const text = await readFixture("new-engine/2026-07-18_tancerz-vs-kukla");
-    const store = new Map<string, string>();
-    const storage = {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => void store.set(k, v),
-      removeItem: (k: string) => void store.delete(k),
-    };
-    const recorder = new Recorder({ storage });
+  // Nagranie ma przeżyć licznik, nie odwrotnie: gdy wysypie się liczenie,
+  // surowe komunikaty są JEDYNĄ rzeczą, którą da się tę awarię odtworzyć.
+  // Dlatego zapis idzie pierwszy i we własnej osłonie.
+  test("awaria licznika nie zabiera ze sobą nagrywania", () => {
+    const recorder = new Recorder({ storage: pamiec() });
     recorder.toggle();
 
-    const session = new Session();
-    session.update = () => {
-      throw new Error("parser padł");
+    const sesja = new Session();
+    sesja.updateEvents = () => {
+      throw new Error("licznik padł");
     };
     const errors: unknown[] = [];
     const console_error = console.error;
     console.error = (...args: unknown[]) => void errors.push(args);
 
     try {
-      // Nie może wylecieć na zewnątrz: callback leci z mikrotaska, więc
-      // wyjątek wypadłby do kontekstu STRONY GRY i powtarzał się przy każdej
-      // mutacji DOM.
+      // Nie może wylecieć na zewnątrz: callback leci z opakowanego
+      // `Engine.battle.update`, więc wyjątek wypadłby do kontekstu STRONY GRY
+      // i przewracał turę.
       expect(() =>
-        start(new StaticLogSource(text), new Overlay({ recorder }), session, undefined, recorder),
+        start(zrodlo(), new Overlay({ recorder }), sesja, recorder),
       ).not.toThrow();
     } finally {
       console.error = console_error;
@@ -165,7 +154,6 @@ describe("start dodatku", () => {
     boot({
       schedule: loop.schedule,
       cancel: loop.cancel,
-      findLog: () => null,
       window: {},
       storage,
     });
@@ -186,37 +174,36 @@ describe("start dodatku", () => {
     boot({
       schedule: loop.schedule,
       cancel: loop.cancel,
-      findLog: () => null,
       window: { Engine: {} },
       storage,
     });
 
     loop.tick();
     expect(panelShown()).toBe(true);
-    // Gra jest, więc pętla ma dalej szukać okna walki, choćby go jeszcze nie było.
+    // Gra jest, więc pętla ma tykać dalej — panel stoi, dopóki stoi `Engine`.
     loop.tick(30);
     expect(loop.running).toBe(true);
   });
 
-  test("samo okno walki w DOM też uruchamia licznik", () => {
-    // Bez `Engine` (inna wersja klienta, wklejony podgląd) zostaje dowód
-    // z DOM-u — i on wystarcza.
+  test("samo okno walki w DOM JUŻ NIE uruchamia licznika", () => {
+    // ⚠️ Zmiana z 2026‑08‑04, i to zamierzona. Dopóki log brało się z DOM-u,
+    // okno walki bez `Engine` (inna wersja klienta, wklejony podgląd) było
+    // wystarczającym dowodem gry. Dziś czytamy `Engine.battle` — bez niego
+    // panel stanąłby pusty, więc rysowanie go obiecywałoby licznik, którego
+    // nie ma. Pętla ma zamiast tego zgasnąć, jak na każdej innej podstronie.
     const log = document.createElement("div");
-    log.textContent = "Rozpoczęła się walka pomiędzy Kamil (120h) a Wilk (10w)";
+    log.id = "log-walki";
     document.body.append(log);
 
     const loop = manualLoop();
-    boot({
-      schedule: loop.schedule,
-      cancel: loop.cancel,
-      findLog: () => log,
-      window: {},
-      storage,
-    });
+    boot({ schedule: loop.schedule, cancel: loop.cancel, window: {}, storage });
 
-    loop.tick();
-    expect(panelShown()).toBe(true);
-    expect(loop.running).toBe(true);
+    loop.tick(20);
+    // `panelShown()` szuka byle `<div>`, a my sami jednego dołożyliśmy —
+    // liczymy więc dzieci `body`: ma zostać wyłącznie nasz log, bez hosta panelu.
+    expect(document.body.children).toHaveLength(1);
+    expect(document.body.children[0]).toBe(log);
+    expect(loop.running).toBe(false);
   });
 
   test("panel powstaje RAZ, nie przy każdym tyknięciu", () => {
@@ -224,7 +211,6 @@ describe("start dodatku", () => {
     boot({
       schedule: loop.schedule,
       cancel: loop.cancel,
-      findLog: () => null,
       window: { Engine: {} },
       storage,
     });
@@ -234,78 +220,25 @@ describe("start dodatku", () => {
   });
 });
 
-describe("zrodloPanelu — z której drogi panel bierze liczby", () => {
-  /** Wiersz z treścią: cokolwiek policzone. */
-  const zTrescia = (name: string): BattleStats =>
-    ({ ...EMPTY_STATS, actors: [{ name, damageDealt: 100, hits: 1 } as never] }) as BattleStats;
-  /** Wiersz BEZ treści — tak wygląda skład z gry bez ani jednego zdarzenia. */
-  const bezTresci = (name: string): BattleStats =>
-    ({
-      ...EMPTY_STATS,
-      actors: [
-        { name, damageDealt: 0, damageTaken: 0, healingDone: 0, healingReceived: 0, hits: 0 } as never,
-      ],
-    }) as BattleStats;
+/**
+ * ⚠️ **`zrodloPanelu` ZNIKŁO 2026‑08‑04**, a razem z nim 5 testów.
+ *
+ * Rozstrzygało, z której z dwóch dróg panel bierze liczby: „protokół, gdy
+ * cokolwiek POLICZYŁ; tekst w przeciwnym razie". Warunkiem była TREŚĆ, a nie
+ * liczba wierszy — i ta różnica kosztowała jedno złe wskazanie w grze. Droga
+ * została jedna, więc nie ma czego wybierać; sam warunek żyje dalej jako
+ * `pustyOdczyt` i to on odpowiada dziś na pytanie „czy zdążyliśmy się podpiąć"
+ * (`tests/rozjazd.test.ts`).
+ */
 
-  test("protokół wygrywa, gdy cokolwiek POLICZYŁ", () => {
-    const wynik = zrodloPanelu(zTrescia("z tekstu"), zTrescia("z protokołu"));
-    expect(wynik.actors[0]!.name).toBe("z protokołu");
-  });
-
-  test("protokół z WIERSZAMI, ale bez treści, PRZEGRYWA z tekstem", () => {
-    // Ta usterka pokazała się w grze 2026‑08‑04: owinięcie `update` podpięło
-    // się po pierwszej porcji, a w niej potrafi przyjść cała walka. Sesja
-    // protokołu miała wtedy komplet postaci ze składu i same zera — i wygrywała
-    // z poprawnym odczytem, więc panel pokazywał zera.
-    const wynik = zrodloPanelu(zTrescia("z tekstu"), bezTresci("z protokołu"));
-    expect(wynik.actors[0]!.name).toBe("z tekstu");
-  });
-
-  test("pusta sesja protokołu oddaje panel tekstowi", () => {
-    // Tak wygląda wklejony log, archiwum i strona bez `Engine.battle`.
-    const wynik = zrodloPanelu(zTrescia("z tekstu"), EMPTY_STATS);
-    expect(wynik.actors[0]!.name).toBe("z tekstu");
-  });
-
-  test("obie puste — panel dostaje pustkę, a nie wyjątek", () => {
-    expect(zrodloPanelu(EMPTY_STATS, EMPTY_STATS).actors).toEqual([]);
-  });
-});
-
-describe("panel rysuje z protokołu, gdy protokół mówi", () => {
-  test("`start` bez sesji protokołu rysuje z tekstu — ścieżka archiwum i wklejki", () => {
-    // Domyślny brak parametru to NIE to samo, co pusta sesja: znaczy „ta droga
-    // w ogóle nie ma protokołu" i ma działać jak przed 2026‑08‑04. Log jest
-    // wpisany wprost, a nie brany z korpusu — pytanie dotyczy SPIĘCIA, nie
-    // zawartości fixture'ów (i nie każdy fixture ma `raw.txt`).
-    const log = [
-      "Rozpoczęła się walka pomiędzy Kamil(100lvl m) a Locha(50lvl w).",
-      "Kamil(100%) uderzył z siłą 455",
-      "Locha(40.37%) otrzymał 455 obrażeń",
-    ].join("\n");
-    const widziane: string[][] = [];
-    const overlay = {
-      render: (stats: BattleStats) => widziane.push(stats.actors.map((a) => a.name)),
-      setRozjazdy: () => {},
-    } as unknown as Overlay;
-
-    start(new StaticLogSource(log), overlay, new Session());
-
-    expect(widziane.at(-1)).toContain("Kamil");
-  });
-});
-
-describe("ostrzeżenie o protokole nie przeżywa walki", () => {
+describe("ostrzeżenie o spóźnionym podpięciu nie przeżywa walki", () => {
   /** Atrapa panelu: notuje, co dostało i w jakiej kolejności. */
   const panel = () => {
-    const rozjazdy: number[] = [];
     const spoznienia: boolean[] = [];
     return {
-      rozjazdy,
       spoznienia,
       overlay: {
         render: () => {},
-        setRozjazdy: (r: unknown[]) => rozjazdy.push(r.length),
         setSpoznionePodpiecie: (s: boolean) => spoznienia.push(s),
       } as unknown as Overlay,
     };
@@ -338,49 +271,28 @@ describe("ostrzeżenie o protokole nie przeżywa walki", () => {
   /** Porcja z protokołu — komunikaty są tu nieistotne, liczy się odczyt i skład. */
   const porcja = (zdarzenia: BattleEvent[]) => ({ komunikaty: [], zdarzenia, sklad });
 
-  test("porcja W TRAKCIE walki CZYŚCI ostrzeżenie z poprzedniej", () => {
-    // To jest ta usterka: napis z walki, w której protokół się nie podpiął,
-    // wisiał nad następną — bo `setRozjazdy` wołane było tylko na koniec.
+  test("porcja W TRAKCIE walki nie zapala ostrzeżenia, choćby nie było liczb", () => {
+    // To jest ta usterka: napis z walki, w której nie zdążyliśmy się podpiąć,
+    // wisiał nad następną. Wyrokujemy dopiero na końcu, ale GASIMY po drodze.
     const p = panel();
-    const zTekstu = new Session();
-    zTekstu.updateEvents(zdarzeniaCiosu, sklad);
-    startKontrola(new StaticProtocolSource([]), zTekstu, p.overlay, new Session());
+    start({ subscribe: (l) => (l(porcja([])), () => {}) }, p.overlay, new Session());
 
-    const kontrola = startKontrola(
-      { subscribe: (l) => (l(porcja(zdarzeniaCiosu)), () => {}) },
-      zTekstu,
-      p.overlay,
-      new Session(),
-    );
-    kontrola();
-
-    expect(p.rozjazdy.at(-1)).toBe(0);
+    expect(p.spoznienia.at(-1)).toBe(false);
   });
 
-  test("koniec walki z PUSTYM protokołem mówi o spóźnieniu, nie o rozjeździe", () => {
+  test("koniec walki z PUSTYM odczytem mówi o spóźnieniu", () => {
     const p = panel();
-    const zTekstu = new Session();
-    zTekstu.updateEvents(zdarzeniaCiosu, sklad);
-    // Protokół dostaje samo rozstrzygnięcie — zero obrażeń, komplet wierszy.
-    startKontrola(
-      { subscribe: (l) => (l(porcja(koniec)), () => {}) },
-      zTekstu,
-      p.overlay,
-      new Session(),
-    );
+    // Sam koniec walki — zero obrażeń, a wiersze i tak będą, bo jest skład.
+    start({ subscribe: (l) => (l(porcja(koniec)), () => {}) }, p.overlay, new Session());
 
     expect(p.spoznienia.at(-1)).toBe(true);
-    expect(p.rozjazdy.at(-1)).toBe(0);
   });
 
-  test("koniec walki z PEŁNYM protokołem gasi flagę spóźnienia", () => {
+  test("koniec walki z PEŁNYM odczytem gasi flagę spóźnienia", () => {
     // Inaczej flaga zapalona raz wisiałaby do końca sesji.
     const p = panel();
-    const zTekstu = new Session();
-    zTekstu.updateEvents(zdarzeniaCiosu, sklad);
-    startKontrola(
+    start(
       { subscribe: (l) => (l(porcja([...zdarzeniaCiosu, ...koniec])), () => {}) },
-      zTekstu,
       p.overlay,
       new Session(),
     );

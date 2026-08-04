@@ -39,7 +39,7 @@ const CACHE = new URL("../.cache/", import.meta.url).pathname;
 /**
  * Host z buildem deweloperskim.
  *
- * Nie jest to „świat" w sensie `tools/grooove.ts` — nie ma tu graczy ani walk do
+ * Nie jest to „świat" w sensie listy światów gry — nie ma tu graczy ani walk do
  * pobrania, jest sam serwowany klient. Dlatego whitelista światów go nie
  * obejmuje i obejmować nie musi.
  */

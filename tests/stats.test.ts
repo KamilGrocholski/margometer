@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { Glob } from "bun";
 import {
   aggregate,
   EMPTY_STATS,
@@ -13,8 +12,8 @@ import { dotLabel, typeDisplay, type AttackerBreakdown, type BattleEvent } from 
 import { TYPE_COLORS } from "../src/palette.ts";
 import { EngineRosterSource, type RosterEntry } from "../src/roster.ts";
 import { cios, krok, nieznane, otwarcie, trafienie, tykniecie, umiejetnosc } from "./zdarzenia.ts";
+import { KORPUS } from "./korpus.ts";
 
-const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
 
 /**
  * Korpus jako STRUMIENIE ZDARZEŃ.
@@ -38,18 +37,7 @@ const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
  * Konwersja z `raw.txt` zostawiłaby przekrój po żywiołach bez strażnika po
  * korpusie — a to jedyna rzecz, którą tamta droga dokładała.
  */
-type Zamrozone = { zrodlo: string; zamrozone: string; zdarzenia: BattleEvent[] };
-
-const fixtures = [...new Glob("*/*/zdarzenia.json").scanSync(FIXTURES)].map((path) => ({
-  path,
-  name: path.replace(/\/zdarzenia\.json$/, ""),
-  events: async (): Promise<BattleEvent[]> =>
-    ((await Bun.file(FIXTURES + path).json()) as Zamrozone).zdarzenia,
-}));
-
-/** Zdarzenia jednej walki po nazwie katalogu — dla testów wskazujących konkretną. */
-const zdarzeniaZ = async (nazwa: string): Promise<BattleEvent[]> =>
-  ((await Bun.file(`${FIXTURES}${nazwa}/zdarzenia.json`).json()) as Zamrozone).zdarzenia;
+const fixtures = KORPUS;
 
 const tier = (label: string, by: Array<[string, number, number]>): AttackerBreakdown => ({
   label,
@@ -146,7 +134,7 @@ describe("leadsDeeper", () => {
  */
 describe.each(fixtures)("$name — odwrócenie zgadza się z dealtBy", (fixture) => {
   test("etykieta po etykiecie, nie tylko sumą", async () => {
-    const stats = aggregate(await fixture.events());
+    const stats = aggregate(fixture.events);
 
     for (const actor of stats.actors) {
       const inverted = new Map(invertBreakdown(actor.dealtToBy).map((one) => [one.label, one]));
@@ -162,7 +150,7 @@ describe.each(fixtures)("$name — odwrócenie zgadza się z dealtBy", (fixture)
   });
 
   test("suma odwrócenia to obrażenia zadane postaci", async () => {
-    const stats = aggregate(await fixture.events());
+    const stats = aggregate(fixture.events);
 
     for (const actor of stats.actors) {
       const total = invertBreakdown(actor.dealtToBy).reduce((sum, one) => sum + one.amount, 0);
@@ -201,7 +189,7 @@ describe("EMPTY_STATS jest współdzielonym singletonem", () => {
  */
 describe.each(fixtures)("$name — zranienie zgadza się z proca", (fixture) => {
   test("każde tyknięcie ma proc o tej samej kwocie", async () => {
-    const events = await fixture.events();
+    const events = fixture.events;
     /** Ostatni proc na cel — jeden obejmuje kilka tyknięć pod rząd. */
     const announced = new Map<string, number>();
     const mismatched: string[] = [];
@@ -224,101 +212,50 @@ describe.each(fixtures)("$name — zranienie zgadza się z proca", (fixture) => 
   });
 });
 
-describe("zranienie ma sprawcę mimo tłumu po drugiej stronie", () => {
-  test("proc wskazuje sprawcę tam, gdzie układ stron nie rozstrzyga", async () => {
-    // 10 graczy vs boss: `opponentOf` milczy, bo po drugiej stronie stoi
-    // dziesięciu. Zranienie mimo to ma właściciela, bo log go nazwał.
-    const stats = aggregate(
-      await zdarzeniaZ("new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo"),
-    );
-
-    const lowca = stats.actors.find((a) => a.name === "Łowcomir Kazrek")!;
-    expect(lowca.dealtBy.find((d) => d.label === "Zranienie")?.amount).toBe(3380);
-
-    // Reszta puli zostaje bez sprawcy — i przestaje udawać samą truciznę.
-    expect(stats.unattributedDotDamage.types).toEqual([
-      { label: "Trucizna", amount: 40435 },
-      { label: "Ogień", amount: 556 },
-    ]);
-  });
-});
-
 /**
- * Walka, w której widać obie sprawy naraz: dziesięciu graczy bije bossa
- * (więc jest po czym drążyć) i tyka w niego trucizna, której log nikomu nie
- * przypisuje.
+ * ⚠️ **ZNIKŁY STĄD DWA BLOKI I SIEDEM ASERCJI — 2026‑08‑04, razem z korpusem.**
+ *
+ * Stały na jednej walce (`2026-07-31_druzyna-vs-hildur-zwyciestwo`: dziesięciu
+ * graczy przeciw bossowi) i to ona była w nich dowodem. Co dokładnie przestało
+ * być sprawdzane — zapisuję z liczbami, bo bez nich ten wpis nie ma wartości:
+ *
+ * - **zranienie ma sprawcę mimo tłumu po drugiej stronie.** `opponentOf`
+ *   milczy przy dziesięciu przeciwnikach, ale proc „+Zranienie (N)" nazywa
+ *   sprawcę wprost — `Łowcomir Kazrek` miał z tego 3380. Reszta puli zostawała
+ *   bez sprawcy i rozkładała się na `Trucizna 40435` + `Ogień 556`, czyli
+ *   przestawała udawać samą truciznę.
+ * - **scalanie rodzin w przekroju po typie.** „ogień" z klasy CSS i „od ognia"
+ *   z tykającego efektu miały wyjść JEDNYM wierszem: `38005 + 556`.
+ * - **leczenie bez leczącego idzie za stronami**, nie jedną liczbą: suma
+ *   `133867` rozkładała się na strony i zgadzała z sumą po postaciach.
+ *
+ * Wszystkie trzy są własnościami `stats.ts`, nie tamtej walki — ale **żadna nie
+ * ma dziś materiału, na którym mogłaby paść.** Generator syntetyczny nie
+ * produkuje ani proca „Zranienie (N)", ani żywiołów z dwóch źródeł naraz.
+ * To jest luka do zamknięcia, nie sprzątanie.
  */
-describe("boss z Hildur — rozbicie po zmianie nazewnictwa", () => {
-  // Zrzut z DOM-u, nie tekstowy: żywioł siedzi wyłącznie w klasie CSS, więc
-  // tylko tędy widać, że „ogień" z ciosu i „ogień" z tyknięcia to jeden wiersz.
-  const load = async () =>
-    aggregate(await zdarzeniaZ("new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo"));
-  const boss = async () =>
-    (await load()).actors.find((a) => a.name === "Hildur Muza Śmierci")!;
-
-  test("przekrój po typie ma po jednym wierszu na rodzinę", async () => {
-    const types = (await boss()).takenByType;
-    // Żadna rodzina nie stoi dwa razy — to był cały problem: „ogień" z klasy
-    // CSS obok „od ognia" z tykającego efektu.
-    expect(types.map((t) => t.label)).toEqual([...new Set(types.map((t) => t.label))]);
-    // Cios i tyknięcie tego samego żywiołu sumują się w jednym wierszu.
-    expect(types.find((t) => t.label === "Ogień")?.amount).toBe(38005 + 556);
-  });
-
-  test("przekrój po typie nadal sumuje się do obrażeń przyjętych", async () => {
-    // To INNY podział tych samych obrażeń, nie dodatkowe obrażenia — scalanie
-    // rodzin nie ma prawa tej równości ruszyć.
-    const hildur = await boss();
-    expect(hildur.takenByType.reduce((sum, t) => sum + t.amount, 0)).toBe(hildur.damageTaken);
-  });
-
-  test("wszystko bez sprawcy stoi w jednej pozycji, na końcu listy", async () => {
-    const tiers = (await boss()).takenFromBy;
-    const unattributed = tiers.filter((t) => t.label === UNATTRIBUTED_SOURCE);
-
-    expect(unattributed).toHaveLength(1);
-    // Na końcu bez względu na kwotę: 40 991 zmieściłoby się w środku rankingu,
-    // a tam czytałoby się jak jeszcze jeden przeciwnik.
-    expect(tiers.at(-1)).toBe(unattributed[0]!);
-    expect(unattributed[0]!.by).toEqual([
-      { label: "Trucizna", amount: 40435, hits: 37 },
-      { label: "Ogień", amount: 556, hits: 2 },
-    ]);
-    // Reszta pierwszego szczebla to już wyłącznie postacie.
-    const names = new Set((await load()).actors.map((a) => a.name));
-    for (const tier of tiers.slice(0, -1)) expect(names.has(tier.label)).toBe(true);
-  });
-
-  test("pozycja zbiorcza prowadzi głębiej, bo mówi coś nowego", async () => {
-    const tiers = (await boss()).takenFromBy;
-    expect(leadsDeeper(tiers.at(-1)!)).toBe(true);
-  });
-
-  test("leczenie bez sprawcy dzieli się po stronie leczonego", async () => {
-    const stats = await load();
-    const healing = stats.unattributedHealing;
-    // Boss stoi po stronie 1, drużyna po 0 — pula NIE może być jedną liczbą
-    // pokazywaną tak samo na obu zakładkach filtra.
-    expect(healing.mine).toBeGreaterThan(0);
-    expect(totalBySide(healing)).toBe(133867);
-    // Suma po postaciach zgadza się z sumą po stronach.
-    expect(stats.actors.reduce((sum, a) => sum + a.unattributedHealingReceived, 0)).toBe(
-      totalBySide(healing),
-    );
-  });
-});
 
 describe("trucizna w walce grupowej", () => {
-  const events = async () => zdarzeniaZ("new-engine/2026-07-18_lowca-dom-trucizna");
-  const load = async () => aggregate(await events());
+  test("wskazuje sprawcę trucizny po STRONIE konfliktu, nie po liczbie postaci", () => {
+    // 1 vs 3: po drugiej stronie Lochy stoi dokładnie JEDEN gracz, więc
+    // wątpliwości nie ma, choć uczestników walki jest czterech. Liczy się
+    // strona, nie rozmiar walki — i to jest cała treść tego testu.
+    //
+    // ⚠️ Do 2026‑08‑04 stała za tym prawdziwa walka z korpusu
+    // (`2026-07-18_lowca-dom-trucizna`), w której łowca miał
+    // `Zwykły atak 786 (2 ciosy)` + `Trucizna 140 (1)`. Materiał jest dziś
+    // pisany ręcznie, więc test dowodzi REGUŁY, a nie tego, że reguła zgadza
+    // się z grą.
+    const stats = aggregate([
+      otwarcie(["Łowca 100h"], ["Locha 40w", "Locha 40w", "Odyniec 41w"]),
+      cios("Łowca", "Locha", [trafienie(400, 393)], { targetHpPct: 60 }),
+      cios("Łowca", "Locha", [trafienie(400, 393)], { targetHpPct: 20 }),
+      tykniecie("Locha", 10, 140, "trucizny"),
+    ]);
 
-  test("wskazuje sprawcę trucizny po stronie konfliktu, nie po liczbie postaci", async () => {
-    // 1 vs 3: po drugiej stronie Lochy stoi dokładnie jeden gracz, więc
-    // wątpliwości nie ma, choć uczestników walki jest czterech.
-    const stats = await load();
+    // Sprawca ustalony: po drugiej stronie Lochy stoi tylko Łowca.
     expect(totalBySide(stats.unattributedDotDamage)).toBe(0);
-
-    const lowca = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
+    const lowca = stats.actors.find((a) => a.name === "Łowca")!;
     expect(lowca.dealtBy).toEqual([
       { label: "Zwykły atak", amount: 786, hits: 2 },
       { label: "Trucizna", amount: 140, hits: 1 },
@@ -359,25 +296,27 @@ describe("trucizna w walce grupowej", () => {
     expect(stats.ambiguousNames).toEqual(["Wilk"]);
   });
 
-  test("rozdziela duplikaty, które oba zaczynają na 100%", async () => {
-    const stats = aggregate(
-      await zdarzeniaZ("new-engine/2026-07-18_lowca-vs-gnolle-rozdzielanie"),
-    );
+  test("rozdziela duplikaty, które oba zaczynają na 100%", () => {
+    // Podziału nie wymusza START (obaj na 100%), tylko akcja postaci o życiu
+    // WYŻSZYM niż ostatnio widziane pod tą nazwą — życie nie rośnie, więc to
+    // ktoś inny. To najtrudniejszy przypadek rozdzielania instancji.
+    //
+    // ⚠️ Stała za tym walka `2026-07-18_lowca-vs-gnolle-rozdzielanie`
+    // (usunięta 2026‑08‑04): `Gnoll łucznik #1` miał `2337/439`,
+    // `#2` — `1522/460`, a `Gnoll szaman` padł bez jednej akcji i mimo to miał
+    // wiersz z `0/1411`. Materiał jest dziś pisany ręcznie.
+    const stats = aggregate([
+      otwarcie(["Łowca 100h"], ["Gnoll łucznik 40t", "Gnoll łucznik 40t"]),
+      cios("Łowca", "Gnoll łucznik", [trafienie(300)], { targetHpPct: 0 }),
+      // Ten sam nick na 100% PO tym, jak spadł do zera — to musi być drugi.
+      cios("Gnoll łucznik", "Łowca", [trafienie(120)], { sourceHpPct: 100, targetHpPct: 80 }),
+      cios("Łowca", "Gnoll łucznik", [trafienie(200)], { targetHpPct: 30 }),
+    ]);
 
-    // Podziału nie wymusza start (obaj na 100%), tylko linia "Gnoll łucznik(100%)
-    // uderzył" stojąca PO "Gnoll łucznik(0%)" — życie nie rośnie, więc to ktoś inny.
     const first = stats.actors.find((a) => a.name === "Gnoll łucznik #1")!;
     const second = stats.actors.find((a) => a.name === "Gnoll łucznik #2")!;
-    expect([first.damageTaken, first.damageDealt]).toEqual([2337, 439]);
-    expect([second.damageTaken, second.damageDealt]).toEqual([1522, 460]);
-
-    // Szaman padł bez jednej akcji, ale ma być widoczny.
-    expect(stats.actors.find((a) => a.name === "Gnoll szaman")).toMatchObject({
-      damageDealt: 0,
-      damageTaken: 1411,
-    });
-
-    // Cały log rozpoznany — łącznie z "atak w martwego przeciwnika".
+    expect([first.damageTaken, first.damageDealt]).toEqual([300, 0]);
+    expect([second.damageTaken, second.damageDealt]).toEqual([200, 120]);
     expect(stats.unknownLines).toBe(0);
     expect(stats.ambiguousNames).toEqual(["Gnoll łucznik #1", "Gnoll łucznik #2"]);
   });
@@ -653,29 +592,44 @@ describe("trucizna w walce grupowej", () => {
    * różne rodzaje obrażeń. Test trzyma oba szczeble naraz, bo dopiero razem
    * mówią, że informacja nie ginie — tylko nie jest wierszem rankingu.
    */
-  test("rozróżnia klasy obrażeń fizycznych: zwarcie kontra dystans", async () => {
-    const parsed = await events();
+  test("rozróżnia klasy obrażeń fizycznych: zwarcie kontra dystans", () => {
+    // Dwie różne klasy z protokołu (`+dmgd` łowcy kontra `+dmg` odyńca) mają
+    // zostać rozróżnione w `hit.element`, a mimo to trafić do JEDNEJ rodziny
+    // „Broń" w przekroju panelu. To ta sama oś (czym uderzono), nie dwa rodzaje.
+    const walka = [
+      otwarcie(["Łowca 100h"], ["Odyniec 41w"]),
+      cios("Łowca", "Odyniec", [trafienie(400, 393, { element: "dystansowe" })], {
+        targetHpPct: 60,
+      }),
+      cios("Łowca", "Odyniec", [trafienie(400, 393, { element: "dystansowe" })], {
+        targetHpPct: 20,
+      }),
+      tykniecie("Odyniec", 10, 140, "trucizny"),
+      cios("Odyniec", "Łowca", [trafienie(100, 95, { element: "fizyczne" })], {
+        sourceHpPct: 10,
+        targetHpPct: 90,
+      }),
+    ];
     const elementsOf = (name: string) =>
       new Set(
-        parsed.flatMap((event) =>
+        walka.flatMap((event) =>
           event.kind === "attack" && event.source === name
             ? event.hits.map((hit) => hit.element)
             : [],
         ),
       );
-    expect(elementsOf("Łowcożyr Kazrek")).toEqual(new Set(["dystansowe"]));
+    expect(elementsOf("Łowca")).toEqual(new Set(["dystansowe"]));
     expect(elementsOf("Odyniec")).toEqual(new Set(["fizyczne"]));
 
-    const stats = aggregate(parsed);
-    expect(stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!.dealtByType).toEqual([
+    const stats = aggregate(walka);
+    // Obie klasy pod jedną rodziną, a trucizna osobno.
+    expect(stats.actors.find((a) => a.name === "Łowca")!.dealtByType).toEqual([
       { label: "Broń", amount: 786, hits: 2 },
       { label: "Trucizna", amount: 140, hits: 1 },
     ]);
-    // Dwa Odyńce log rozdziela: jeden zbity do 40.37%, drugi atakuje ze 100%.
-    expect(stats.actors.find((a) => a.name === "Odyniec #2")!.dealtByType).toEqual([
+    expect(stats.actors.find((a) => a.name === "Odyniec")!.dealtByType).toEqual([
       { label: "Broń", amount: 95, hits: 1 },
     ]);
-    expect(stats.actors.find((a) => a.name === "Odyniec #1")!.damageTaken).toBe(455);
   });
 });
 /**
@@ -743,9 +697,9 @@ describe("niezmienniki liczb", () => {
    * Po zamrożeniu korpusu droga jest jedna, a bogatszy odczyt (z DOM‑u tam,
    * gdzie był) siedzi już w `zdarzenia.json`.
    */
-  const przelot = (fixture: { events: () => Promise<BattleEvent[]> }) => {
+  const przelot = (fixture: { events: BattleEvent[] }) => {
     test("rozbicia domykają się ze skalarami", async () => {
-      expect(mismatches(aggregate(await fixture.events()))).toEqual([]);
+      expect(mismatches(aggregate(fixture.events))).toEqual([]);
     });
 
     /**
@@ -757,7 +711,7 @@ describe("niezmienniki liczb", () => {
      * liczniki i suma była o niego za duża.
      */
     test("ciosy i uniki sumują się do liczby ataków", async () => {
-      const events = await fixture.events();
+      const events = fixture.events;
       const stats = aggregate(events);
       const ataki = events.filter((e) => e.kind === "attack" && e.strike).length;
       const ciosy = stats.actors.reduce((sum, a) => sum + a.hits, 0);
@@ -795,7 +749,7 @@ describe("niezmienniki liczb", () => {
      * tu kontraktem.
      */
     test("typeByLabel: etykiety bez duplikatów, rodziny znane palecie", async () => {
-      const stats = aggregate(await fixture.events());
+      const stats = aggregate(fixture.events);
       const problemy: string[] = [];
       for (const actor of stats.actors) {
         const widziane = new Set<string>();
@@ -812,59 +766,31 @@ describe("niezmienniki liczb", () => {
   });
 
 });
-
 /**
- * Trzy pola, które parser liczył od dawna, a które do niedawna nie docierały
- * nigdzie (`SOLID §4.22`).
+ * ⚠️ **ZNIKŁ STĄD BLOK „blok, super-kryt i osłabienie DoT-a" — 4 testy,
+ * 2026‑08‑04, razem z korpusem** (`SOLID §4.22`).
  *
- * Liczby są konkretne, nie „większe od zera": każda z nich stoi w JEDNEJ walce
- * i daje się odtworzyć z logu ręcznie, więc test mówi, że rachunek jest ten sam,
- * a nie tylko że coś się policzyło.
+ * Każda asercja stała na konkretnej walce i dawała się odtworzyć z logu
+ * ręcznie — dlatego liczby były konkretne, a nie „większe od zera". Co przestało
+ * być sprawdzane:
+ *
+ * - **blok siada u CELU, nie u napastnika** — „Zablokowanie 23 obrażeń" stało
+ *   w bloku ciosu łowcy, ale mówiło o tarczy `Wieczornicy`: ona miała
+ *   `damageBlocked 23`, łowca `0`, a `damageAbsorbed` Wieczornicy `497`
+ *   (blok jest CZĘŚCIĄ pochłoniętych, nie liczbą obok nich);
+ * - **super-kryt jest podzbiorem krytów** — boss `crits 7 / superCrits 1`,
+ *   a w innej walce `Wyczxs` miał `3 / 3`, czyli skrajny przypadek, w którym
+ *   nawias powtarza liczbę wiodącą i jest to POPRAWNE;
+ * - **osłabienie DoT-a odtwarza się z kwoty po osłabieniu** — z linii
+ *   „236 (osłabione o 19%)" wychodzi baza 236 / 0,81 = 291, czyli
+ *   `damageWeakened 55`, przy `damageTaken 1188` liczonym z kwot Z LOGU;
+ * - **bez takiej linii pola stoją na ZERZE** — walka z kukłą, gdzie zero jest
+ *   wynikiem, nie brakiem: panel na jego podstawie CHOWA człony liczników.
+ *
+ * Generator syntetyczny produkuje bloki i super-kryty, ale **nie da się z niego
+ * wyprowadzić liczby sprawdzalnej ręcznie** — sam ją policzył. Test na takim
+ * materiale sprawdzałby agregat przeciw agregatowi.
  */
-describe("blok, super-kryt i osłabienie DoT-a", () => {
-  const load = async (name: string) =>
-    aggregate(await zdarzeniaZ(`new-engine/${name}`));
-  const actor = (stats: Aggregate, name: string) => stats.actors.find((a) => a.name === name)!;
-
-  test("blok siada u CELU, nie u napastnika", async () => {
-    // "Zablokowanie 23 obrażeń" stoi w bloku ciosu łowcy, ale mówi o tarczy
-    // Wieczornicy — i to ona ma je mieć.
-    const stats = await load("2026-07-18_lowca-vs-paladyni");
-    expect(actor(stats, "Wieczornica").damageBlocked).toBe(23);
-    expect(actor(stats, "Łowca głów z psk").damageBlocked).toBe(0);
-    // Blok jest częścią pochłoniętych, nie liczbą obok nich.
-    expect(actor(stats, "Wieczornica").damageAbsorbed).toBe(497);
-  });
-
-  test("super-kryt jest podzbiorem krytów", async () => {
-    const stats = await load("2026-07-31_druzyna-vs-hildur-zwyciestwo");
-    // Hildur ma siedem krytów, z czego jeden „bardzo krytyczny".
-    expect(actor(stats, "Hildur Muza Śmierci")).toMatchObject({ crits: 7, superCrits: 1 });
-    // Skrajny przypadek z innej walki: wszystkie kryty są super. Wtedy nawias
-    // powtarza liczbę wiodącą i to jest poprawne — nie jest to sygnał błędu.
-    const third = await load("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
-    expect(actor(third, "Wyczxs")).toMatchObject({ crits: 3, superCrits: 3 });
-  });
-
-  test("osłabienie DoT-a odtwarza się z kwoty po osłabieniu", async () => {
-    // Jedyna osłabiona linia w tej walce:
-    //   "Łowcomir Kazrek(67.58%) otrzymał 236 (osłabione o 19%) obrażeń od ognia."
-    // Pełne tyknięcie to 236 / 0,81 = 291,36 → 291, więc osłabienie zdjęło 55.
-    const stats = await load("2026-07-18_lowca-vs-tropiciel-glebokarana");
-    expect(actor(stats, "Łowcomir Kazrek").damageWeakened).toBe(55);
-    // Przyjęte zostają kwotą Z LOGU — odtworzona baza nie wchodzi do sum.
-    expect(actor(stats, "Łowcomir Kazrek").damageTaken).toBe(1188);
-  });
-
-  test("bez takiej linii pola stoją na zerze", async () => {
-    // Walka z kukłą: żadnego bloku i żadnego kryta po obu stronach. Zero jest
-    // tu wynikiem, nie brakiem — panel na jego podstawie CHOWA człony liczników.
-    const stats = await load("2026-07-18_tancerz-vs-kukla");
-    for (const a of stats.actors) {
-      expect({ blok: a.damageBlocked, superKryt: a.superCrits }).toEqual({ blok: 0, superKryt: 0 });
-    }
-  });
-});
 
 /**
  * Etykiety, które WYMYŚLAMY, kontra nazwy, które przychodzą z gry.
@@ -896,7 +822,7 @@ describe("zarezerwowane etykiety nie kolidują z nazwami z gry", () => {
 
   test.each(fixtures)("$name", async (fixture) => {
     const names = new Set<string>();
-    for (const event of await fixture.events()) {
+    for (const event of fixture.events) {
       if (event.kind === "ability") {
         names.add(event.name);
         names.add(event.actor);

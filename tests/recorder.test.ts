@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { Recorder, splitLines, type RecorderStorage } from "../src/recorder.ts";
-
-const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
-const readFixture = (name: string) => Bun.file(`${FIXTURES}${name}/raw.txt`).text();
+import { Recorder, tytul, type Nagranie, type RecorderStorage } from "../src/recorder.ts";
+import type { PorcjaProtokolu } from "../src/protokol-source.ts";
+import type { RosterEntry } from "../src/roster.ts";
 
 /** Magazyn w pamięci — z opcjonalnym limitem, żeby dało się wywołać przepełnienie. */
 class FakeStorage implements RecorderStorage {
@@ -43,23 +42,46 @@ class FakeStorage implements RecorderStorage {
     return total;
   }
 
+  /** Surowe JSON-y nagrań, w kolejności zapisu. */
   logs(): string[] {
     return [...this.data]
       .filter(([key]) => /^margometer\.rec\.\d+$/.test(key))
       .map(([, value]) => value);
   }
+
+  /** To samo, ale odczytane — bo od 2026‑08‑04 nagranie jest JSON-em, nie tekstem. */
+  nagrania(): Nagranie[] {
+    return this.logs().map((raw) => JSON.parse(raw) as Nagranie);
+  }
 }
 
-const FIGHT_A = [
-  "Rozpoczęła się walka pomiędzy Kamil(100h) a Wilk(80x)",
-  "Kamil(100%) uderzył z siłą +120 Wilk",
-  "Wilk(70%) otrzymał(a) -100 obrażeń",
-].join("\n");
+const SKLAD_A: RosterEntry[] = [
+  { id: 482845, name: "Kamil", side: 0, prof: "h", lvl: 100 },
+  { id: 255967, name: "Wilk", side: 1, prof: "x", lvl: 80 },
+];
 
-const FIGHT_B = [
-  "Rozpoczęła się walka pomiędzy Kamil(100h) a Gnoll(90x)",
-  "Kamil(100%) uderzył z siłą +200 Gnoll",
-].join("\n");
+const SKLAD_B: RosterEntry[] = [
+  { id: 482845, name: "Kamil", side: 0, prof: "h", lvl: 100 },
+  { id: 700001, name: "Gnoll", side: 1, prof: "x", lvl: 90 },
+];
+
+const KOM_A = [
+  "482845=100.00;-255967=37.61;+dmgd=483;+acdmg=5;-dmgd=233",
+  "-255967=19.27;0;poison=140,14",
+];
+
+const KOM_B = ["482845=100.00;-700001=61.00;+dmgd=901"];
+
+/** Porcja tak, jak podaje ją `EngineProtocolSource`. `zdarzenia` nagrywarki nie obchodzą. */
+const porcja = (komunikaty: string[], sklad: RosterEntry[] = SKLAD_A): PorcjaProtokolu => ({
+  komunikaty,
+  zdarzenia: [],
+  sklad,
+});
+
+/** Ile znaków zajmie takie nagranie w magazynie — budżet liczy się właśnie z tego. */
+const zapis = (komunikaty: string[], sklad: RosterEntry[]) =>
+  JSON.stringify({ komunikaty, sklad }).length;
 
 let storage: FakeStorage;
 let clock: number;
@@ -71,55 +93,31 @@ beforeEach(() => {
   clock = 1_700_000_000_000;
 });
 
-describe("dzielenie bufora na walki", () => {
-  /**
-   * Walki jako teksty. Stała tu funkcja `splitRawFights` w `recorder.ts`,
-   * opisana wprost jako „do testów" — czyli produkcyjny moduł eksportował API,
-   * którego produkcja nie woła (`SOLID §9`). Sklejanie linii jest sprawą testu,
-   * więc zostało w teście; sprawdzana logika jest ta sama, bo `splitLines` to
-   * dokładnie ta funkcja, którą woła `Recorder.capture`.
-   */
-  const splitRawFights = (text: string) => splitLines(text).map((lines) => lines.join("\n"));
-
-  test("tnie po linii rozpoczęcia", () => {
-    expect(splitRawFights(`${FIGHT_A}\n${FIGHT_B}`)).toEqual([FIGHT_A, FIGHT_B]);
+describe("tytuł nagrania", () => {
+  // Protokół NIE MUSI nieść zdania „Rozpoczęła się walka pomiędzy…" — klient
+  // składa je sam, poza `data.m`. Tytuł powstaje więc ze składu i celowo nie
+  // udaje cytatu z logu.
+  test("obie strony po przecinku, rozdzielone „vs”", () => {
+    expect(tytul(SKLAD_A)).toBe("Kamil vs Wilk");
   });
 
-  test("zdublowana linia rozpoczęcia nie otwiera drugiej walki", () => {
-    const start = FIGHT_A.split("\n")[0]!;
-    expect(splitRawFights(`${start}\n${FIGHT_A}`)).toHaveLength(1);
+  test("powyżej dwóch nazw na stronie reszta idzie jako „+N”", () => {
+    const tlum: RosterEntry[] = [
+      { id: 1, name: "A", side: 0 },
+      { id: 2, name: "B", side: 0 },
+      { id: 3, name: "C", side: 0 },
+      { id: 4, name: "D", side: 0 },
+      { id: 5, name: "Wróg", side: 1 },
+    ];
+    expect(tytul(tlum)).toBe("A, B +2 vs Wróg");
   });
 
-  test("walka skończona na samym nagłówku nie skleja się z następną", () => {
-    // Nagłówek INNEJ walki nie jest dublem, choćby poprzednia nie miała nic
-    // poza swoim — inaczej dwie walki wpadały do jednego nagrania.
-    const stub = FIGHT_A.split("\n")[0]!;
-    expect(splitRawFights(`${stub}\n${FIGHT_B}`)).toEqual([stub, FIGHT_B]);
+  test("jedna strona pusta nie daje wiszącego „vs”", () => {
+    expect(tytul([{ id: 1, name: "Kamil", side: 0 }])).toBe("Kamil");
   });
 
-  // Sesja rozstrzyga duplikat nagłówka po SKŁADZIE odczytanym przez parser,
-  // czyli po zdjęciu bbcode'u i zwinięciu odstępów. Nagrywarka porównywała
-  // surowy tekst dosłownie, więc wystarczyło, że gra rozjechała `[b]`, i obie
-  // strony dawały inną odpowiedź: panel widział jedną walkę, archiwum
-  // zapisywało dwie, w tym jedną śmieciową.
-  test("rozjechany bbcode nie rozcina walki na dwa nagrania", () => {
-    const head = "Rozpoczęła się walka pomiędzy Kamil Kazrek (70h) a Regulus (63w)";
-    expect(splitRawFights(`[b]${head}[/b]\n[b]${head}\n[/b]`)).toHaveLength(1);
-  });
-
-  test("inne odstępy w nagłówku to nadal ta sama walka", () => {
-    const head = "Rozpoczęła się walka pomiędzy Kamil Kazrek (70h) a Regulus (63w)";
-    expect(splitRawFights(`${head}\nRozpoczęła się walka pomiędzy  Kamil Kazrek (70h)  a Regulus (63w)`)).toHaveLength(1);
-  });
-
-  test("nagranie zostaje SUROWE — normalizacja dotyczy tylko porównania", () => {
-    const head = "[b]Rozpoczęła się walka pomiędzy Kamil Kazrek (70h) a Regulus (63w)[/b]";
-    expect(splitRawFights(head)).toEqual([head]);
-  });
-
-  test("ogon bez linii rozpoczęcia zostaje jedną walką", () => {
-    const tail = FIGHT_A.split("\n").slice(1).join("\n");
-    expect(splitRawFights(tail)).toEqual([tail]);
+  test("skład pusty mówi to wprost, zamiast dawać pusty wiersz", () => {
+    expect(tytul([])).toBe("walka bez składu");
   });
 });
 
@@ -127,7 +125,7 @@ describe("nagrywanie", () => {
   test("wyłączone nie zapisuje niczego", () => {
     const rec = recorder();
 
-    rec.capture(FIGHT_A);
+    rec.capture(porcja(KOM_A));
 
     expect(rec.count()).toBe(0);
     expect(storage.logs()).toEqual([]);
@@ -137,59 +135,87 @@ describe("nagrywanie", () => {
     const rec = recorder();
     rec.toggle();
 
-    rec.capture(FIGHT_A);
+    rec.capture(porcja(KOM_A));
 
     expect(rec.isRecording()).toBe(true);
     expect(rec.count()).toBe(1);
-    expect(storage.logs()).toEqual([FIGHT_A]);
-    expect(rec.chars()).toBe(FIGHT_A.length);
+    expect(rec.chars()).toBe(zapis(KOM_A, SKLAD_A));
+  });
+
+  test("nagranie niesie KOMUNIKATY i SKŁAD, znak w znak", () => {
+    // Sedno formatu `v: 2`: nagranie ma dać się przeliczyć nowszym dekoderem,
+    // więc zapisujemy surowy protokół, a nie policzone zdarzenia.
+    const rec = recorder();
+    rec.toggle();
+
+    rec.capture(porcja(KOM_A));
+
+    expect(storage.nagrania()).toEqual([{ komunikaty: KOM_A, sklad: SKLAD_A }]);
+  });
+
+  test("porcja bez komunikatów nie zakłada nagrania", () => {
+    const rec = recorder();
+    rec.toggle();
+
+    rec.capture(porcja([]));
+
+    expect(rec.count()).toBe(0);
   });
 
   test("doczytana walka nadpisuje wpis zamiast zakładać drugi", () => {
     const rec = recorder();
     rec.toggle();
 
-    rec.capture(FIGHT_A);
-    const grown = `${FIGHT_A}\nKamil(100%) uderzył z siłą +130 Wilk`;
-    rec.capture(grown);
+    rec.capture(porcja(KOM_A));
+    const dluzsza = [...KOM_A, "482845=100.00;-255967=12.00;+dmgd=310"];
+    rec.capture(porcja(dluzsza));
 
     expect(rec.count()).toBe(1);
-    expect(storage.logs()).toEqual([grown]);
+    expect(storage.nagrania()[0]?.komunikaty).toEqual(dluzsza);
   });
 
-  test("druga walka w buforze to osobne nagranie", () => {
+  test("skład doczytany w trakcie walki nadpisuje ten sprzed", () => {
+    // Roster bywa pusty w pierwszej porcji — wtedy `id` nie mają jak stać się
+    // nazwami. Nagranie musi wziąć ten późniejszy, inaczej zostaje bez nazw.
     const rec = recorder();
     rec.toggle();
 
-    rec.capture(FIGHT_A);
-    rec.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    rec.capture(porcja(KOM_A, []));
+    rec.capture(porcja(KOM_A, SKLAD_A));
+
+    expect(rec.count()).toBe(1);
+    expect(storage.nagrania()[0]?.sklad).toEqual(SKLAD_A);
+  });
+
+  test("nowa walka to osobne nagranie", () => {
+    const rec = recorder();
+    rec.toggle();
+
+    rec.capture(porcja(KOM_A));
+    rec.capture(porcja(KOM_B, SKLAD_B));
 
     expect(rec.count()).toBe(2);
-    expect(storage.logs()).toEqual([FIGHT_A, FIGHT_B]);
+    expect(storage.nagrania().map((one) => one.komunikaty)).toEqual([KOM_A, KOM_B]);
   });
 
-  test("przycięty od góry bufor dokleja się do nagrania, nie dubluje go", () => {
+  test("krótsza lista komunikatów to nowa walka, nie ucięcie starej", () => {
     const rec = recorder();
     rec.toggle();
 
-    rec.capture(FIGHT_A);
-    // Gra wyrzuciła nagłówek z okna, a na dole dorosła kolejna linia.
-    const trimmed = [...FIGHT_A.split("\n").slice(1), "Wilk(70%) uderzył z siłą +40 Kamil"].join(
-      "\n",
-    );
-    rec.capture(trimmed);
+    rec.capture(porcja(KOM_A));
+    rec.capture(porcja(KOM_A.slice(0, 1)));
 
-    expect(rec.count()).toBe(1);
-    expect(storage.logs()[0]).toBe(`${FIGHT_A}\nWilk(70%) uderzył z siłą +40 Kamil`);
+    expect(rec.count()).toBe(2);
   });
 
-  test("ta sama walka od nowa po wyczyszczeniu logu to nowe nagranie", () => {
+  test("podmieniony komunikat w środku to nowa walka, choćby lista rosła", () => {
+    // Tu pilnujemy, że `przedluza` sprawdza TREŚĆ, a nie samą długość: druga
+    // walka bywa dłuższa od pierwszej i wpadłaby do jej nagrania.
     const rec = recorder();
     rec.toggle();
 
-    rec.capture(`${FIGHT_A}\nKamil(100%) uderzył z siłą +130 Wilk`);
-    // Gra wyczyściła okno i bijemy to samo jeszcze raz — krócej niż poprzednio.
-    rec.capture(FIGHT_A);
+    rec.capture(porcja(KOM_A));
+    rec.capture(porcja([KOM_A[0]!, "inny", ...KOM_B]));
 
     expect(rec.count()).toBe(2);
   });
@@ -197,11 +223,11 @@ describe("nagrywanie", () => {
   test("wyłączenie i włączenie zaczyna nowe nagranie tej samej walki", () => {
     const rec = recorder();
     rec.toggle();
-    rec.capture(FIGHT_A);
+    rec.capture(porcja(KOM_A));
 
     rec.toggle();
     rec.toggle();
-    rec.capture(FIGHT_A);
+    rec.capture(porcja(KOM_A));
 
     expect(rec.isRecording()).toBe(true);
     expect(rec.count()).toBe(2);
@@ -216,59 +242,60 @@ describe("nagrywanie", () => {
   test("nagrania przeżywają odświeżenie strony", () => {
     const first = recorder();
     first.toggle();
-    first.capture(FIGHT_A);
+    first.capture(porcja(KOM_A));
 
     const second = recorder();
 
     expect(second.count()).toBe(1);
-    expect(second.dump()).toContain(FIGHT_A);
+    expect(second.read(second.list()[0]!.id)?.komunikaty).toEqual(KOM_A);
   });
 
   test("kolejne nagranie po odświeżeniu nie nadpisuje poprzedniego", () => {
     const first = recorder();
     first.toggle();
-    first.capture(FIGHT_A);
+    first.capture(porcja(KOM_A));
 
     const second = recorder();
-    second.capture(FIGHT_B);
+    second.capture(porcja(KOM_B, SKLAD_B));
 
     expect(second.count()).toBe(2);
-    expect(storage.logs()).toEqual([FIGHT_A, FIGHT_B]);
+    expect(storage.nagrania().map((one) => one.komunikaty)).toEqual([KOM_A, KOM_B]);
   });
 });
 
 describe("budżet magazynu", () => {
   test("po przekroczeniu budżetu wypadają najstarsze nagrania", () => {
-    const rec = recorder({ budgetChars: FIGHT_A.length + 10 });
+    const rec = recorder({ budgetChars: zapis(KOM_A, SKLAD_A) + 10 });
     rec.toggle();
 
-    rec.capture(FIGHT_A);
-    rec.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    rec.capture(porcja(KOM_A));
+    rec.capture(porcja(KOM_B, SKLAD_B));
 
     expect(rec.count()).toBe(1);
-    expect(storage.logs()).toEqual([FIGHT_B]);
+    expect(storage.nagrania().map((one) => one.komunikaty)).toEqual([KOM_B]);
   });
 
   test("bieżąca walka nigdy nie leci jako pierwsza", () => {
     const rec = recorder({ budgetChars: 1 });
     rec.toggle();
 
-    rec.capture(FIGHT_A);
+    rec.capture(porcja(KOM_A));
 
-    expect(storage.logs()).toEqual([FIGHT_A]);
+    expect(storage.nagrania().map((one) => one.komunikaty)).toEqual([KOM_A]);
   });
 
-  test("pełny magazyn gry zwalnia miejsce po naszej stronie", async () => {
+  test("pełny magazyn gry zwalnia miejsce po naszej stronie", () => {
     const rec = recorder();
     rec.toggle();
-    rec.capture(FIGHT_A);
+    rec.capture(porcja(KOM_A));
     // Coś innego (gra) zajęło resztę kubełka.
-    storage.limit = storage.getItem("margometer.rec.index")!.length + FIGHT_B.length + 200;
+    storage.limit =
+      storage.getItem("margometer.rec.index")!.length + zapis(KOM_B, SKLAD_B) + 200;
 
-    rec.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    rec.capture(porcja(KOM_B, SKLAD_B));
 
     expect(rec.isRecording()).toBe(true);
-    expect(storage.logs()).toEqual([FIGHT_B]);
+    expect(storage.nagrania().map((one) => one.komunikaty)).toEqual([KOM_B]);
   });
 
   test("gdy zwolnienie wszystkiego nie pomaga, nagrywanie gaśnie", () => {
@@ -276,7 +303,7 @@ describe("budżet magazynu", () => {
     rec.toggle();
     storage.limit = 1;
 
-    rec.capture(FIGHT_A);
+    rec.capture(porcja(KOM_A));
 
     expect(rec.isFailed()).toBe(true);
     expect(rec.isRecording()).toBe(false);
@@ -285,15 +312,43 @@ describe("budżet magazynu", () => {
 });
 
 describe("odczyt nagrań", () => {
+  test("read oddaje to, co weszło", () => {
+    const rec = recorder();
+    rec.toggle();
+    rec.capture(porcja(KOM_A));
+
+    expect(rec.read(rec.list()[0]!.id)).toEqual({ komunikaty: KOM_A, sklad: SKLAD_A });
+  });
+
+  test("nagranie w starym formacie czyta się jako null, a nie jako pustka", () => {
+    // Nagrania `v: 1` trzymały TEKST z okna walki. Parser tekstu zszedł z drzewa,
+    // więc odczytać ich nie ma czym — a `JSON.parse` na takim tekście rzuca.
+    // Ma z tego wyjść „nie ma czego pokazać", nie walka o zerowych liczbach.
+    storage.setItem("margometer.rec.4", "Rozpoczęła się walka pomiędzy Kamil(100h) a Wilk(80x)");
+
+    expect(recorder().read(4)).toBeNull();
+  });
+
+  test("JSON bez wymaganych pól też jest null", () => {
+    storage.setItem("margometer.rec.4", JSON.stringify({ komunikaty: KOM_A }));
+
+    expect(recorder().read(4)).toBeNull();
+  });
+
+  test("read na nieznanym id to null", () => {
+    expect(recorder().read(99)).toBeNull();
+  });
+
   test("dump skleja walki z nagłówkami", () => {
     const rec = recorder();
     rec.toggle();
-    rec.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    rec.capture(porcja(KOM_A));
+    rec.capture(porcja(KOM_B, SKLAD_B));
 
     const dump = rec.dump() ?? "";
 
-    expect(dump).toContain(FIGHT_A);
-    expect(dump).toContain(FIGHT_B);
+    expect(dump).toContain(KOM_A[0]!);
+    expect(dump).toContain(KOM_B[0]!);
     expect(dump.match(/=== walka \d+ · /g)).toHaveLength(2);
   });
 
@@ -304,7 +359,8 @@ describe("odczyt nagrań", () => {
   test("clear kasuje nagrania i klucze", () => {
     const rec = recorder();
     rec.toggle();
-    rec.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    rec.capture(porcja(KOM_A));
+    rec.capture(porcja(KOM_B, SKLAD_B));
 
     rec.clear();
 
@@ -316,29 +372,13 @@ describe("odczyt nagrań", () => {
   test("po wyczyszczeniu dalsze nagrywanie działa", () => {
     const rec = recorder();
     rec.toggle();
-    rec.capture(FIGHT_A);
+    rec.capture(porcja(KOM_A));
     rec.clear();
 
-    rec.capture(FIGHT_B);
+    rec.capture(porcja(KOM_B, SKLAD_B));
 
     expect(rec.count()).toBe(1);
-    expect(storage.logs()).toEqual([FIGHT_B]);
-  });
-});
-
-describe("na prawdziwym logu", () => {
-  test("nagranie jest znak w znak tym, co dostał parser", async () => {
-    const text = await readFixture("new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa");
-    const rec = recorder();
-    rec.toggle();
-
-    // Log dochodzi po kawałku, tak jak w grze.
-    const lines = text.split("\n");
-    for (let i = 1; i <= lines.length; i += 1) rec.capture(lines.slice(0, i).join("\n"));
-
-    const recorded = storage.logs().join("\n");
-    const expected = lines.filter((line) => line.trim() !== "").join("\n");
-    expect(recorded).toBe(expected);
+    expect(storage.nagrania().map((one) => one.komunikaty)).toEqual([KOM_B]);
   });
 });
 
@@ -349,47 +389,28 @@ describe("walka przerwana odświeżeniem strony", () => {
     // i zakładał drugie nagranie, którego prefiksem było pierwsze.
     const first = recorder();
     first.toggle();
-    first.capture(FIGHT_A);
+    first.capture(porcja(KOM_A));
     expect(first.count()).toBe(1);
 
     const after = recorder();
     expect(after.isRecording()).toBe(true);
-    after.capture(`${FIGHT_A}\nWilk(70%) uderzył z siłą +50 Kamil`);
+    const dluzsza = [...KOM_A, "-255967=0.00;0;dead"];
+    after.capture(porcja(dluzsza));
 
     expect(after.count()).toBe(1);
-    expect(storage.logs()).toHaveLength(1);
-    expect(storage.logs()[0]).toContain("Wilk(70%) uderzył z siłą +50 Kamil");
+    expect(storage.nagrania()[0]?.komunikaty).toEqual(dluzsza);
   });
 
   test("nowa walka po odświeżeniu dostaje własne nagranie", () => {
     const first = recorder();
     first.toggle();
-    first.capture(FIGHT_A);
+    first.capture(porcja(KOM_A));
 
     const after = recorder();
-    after.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    after.capture(porcja(KOM_B, SKLAD_B));
 
     expect(after.count()).toBe(2);
-    expect(storage.logs()).toEqual([FIGHT_A, FIGHT_B]);
-  });
-});
-
-describe("ostatnia linia rosnąca w miejscu", () => {
-  test("dopisanie liczby do tej samej linii nie rozcina nagrania", () => {
-    // Gra trzyma cały blok ataku w JEDNYM węźle: tekst i liczby obrażeń stoją
-    // w tej samej linii, a zmiany przychodzą po mikrotasku. Dwie mutacje
-    // w różnych taskach dawały bufor z dłuższą wersją ostatniej linii.
-    const rec = recorder();
-    rec.toggle();
-    rec.capture("Rozpoczęła się walka pomiędzy Kamil(100h) a Wilk(80x)\nKamil(100%) uderzył z siłą");
-    rec.capture(
-      "Rozpoczęła się walka pomiędzy Kamil(100h) a Wilk(80x)\nKamil(100%) uderzył z siłą +120 Wilk",
-    );
-
-    expect(rec.count()).toBe(1);
-    expect(storage.logs()[0]).toContain("+120 Wilk");
-    // Urwana wersja linii nie może zostać obok pełnej.
-    expect(storage.logs()[0]!.split("\n")).toHaveLength(2);
+    expect(storage.nagrania().map((one) => one.komunikaty)).toEqual([KOM_A, KOM_B]);
   });
 });
 
@@ -400,58 +421,81 @@ describe("zepsuty indeks w magazynie", () => {
     // kubełka, który dzielimy z grą.
     storage.setItem(
       "margometer.rec.index",
-      JSON.stringify({ v: 1, next: 2, fights: [{ id: 1, title: "stara" }] }),
+      JSON.stringify({ v: 2, next: 2, fights: [{ id: 1, title: "stara" }] }),
     );
 
-    const rec = recorder({ budgetChars: FIGHT_A.length + 10 });
+    const rec = recorder({ budgetChars: zapis(KOM_A, SKLAD_A) + 10 });
     expect(rec.count()).toBe(0);
     expect(Number.isFinite(rec.chars())).toBe(true);
 
     rec.toggle();
-    rec.capture(FIGHT_A);
-    rec.capture(`${FIGHT_A}\n${FIGHT_B}`);
-    expect(rec.chars()).toBeLessThanOrEqual(FIGHT_A.length + 10);
+    rec.capture(porcja(KOM_A));
+    rec.capture(porcja(KOM_B, SKLAD_B));
+    expect(rec.chars()).toBeLessThanOrEqual(zapis(KOM_A, SKLAD_A) + 10);
   });
 
   test("indeks w nieznanej wersji jest odrzucany, nie zgadywany", () => {
     storage.setItem(
       "margometer.rec.index",
-      JSON.stringify({ v: 2, next: 5, fights: [{ id: 1, title: "x", chars: 10, at: 1 }] }),
+      JSON.stringify({ v: 3, next: 5, fights: [{ id: 1, title: "x", chars: 10, at: 1 }] }),
     );
     expect(recorder().count()).toBe(0);
   });
 
-  test("nowe nagranie nie nadpisuje istniejącego, gdy `next` kłamie", () => {
-    storage.setItem("margometer.rec.7", FIGHT_A);
+  test("STARE nagrania `v: 1` przepadają, zamiast czytać się jako protokół", () => {
+    // Świadoma strata z 2026‑08‑04. Tamten indeks opisywał tekst z okna walki,
+    // a odczytu tekstu już nie ma. Gdyby `v: 1` przechodziło, archiwum
+    // pokazywałoby wiersze, których nie da się otworzyć.
     storage.setItem(
       "margometer.rec.index",
       JSON.stringify({
         v: 1,
+        next: 2,
+        fights: [{ id: 1, title: "Rozpoczęła się walka…", chars: 100, at: 1 }],
+      }),
+    );
+    storage.setItem("margometer.rec.1", "Rozpoczęła się walka pomiędzy Kamil(100h) a Wilk(80x)");
+
+    const rec = recorder();
+
+    expect(rec.count()).toBe(0);
+    expect(storage.logs()).toEqual([]);
+  });
+
+  test("nowe nagranie nie nadpisuje istniejącego, gdy `next` kłamie", () => {
+    const stare = JSON.stringify({ komunikaty: KOM_A, sklad: SKLAD_A });
+    storage.setItem("margometer.rec.7", stare);
+    storage.setItem(
+      "margometer.rec.index",
+      JSON.stringify({
+        v: 2,
         next: 1,
-        fights: [{ id: 7, title: "stara", chars: FIGHT_A.length, at: 1 }],
+        fights: [{ id: 7, title: "stara", chars: stare.length, at: 1 }],
       }),
     );
 
     const rec = recorder();
     rec.toggle();
-    rec.capture(FIGHT_B);
+    rec.capture(porcja(KOM_B, SKLAD_B));
 
     expect(rec.list().map((one) => one.id)).toEqual([7, 8]);
-    expect(storage.logs()).toEqual([FIGHT_A, FIGHT_B]);
+    expect(storage.nagrania().map((one) => one.komunikaty)).toEqual([KOM_A, KOM_B]);
   });
 });
 
 describe("nagrania osierocone przez indeks", () => {
-  // Uszkodzony indeks zwracał pusty stan, ale teksty walk zostawały
+  // Uszkodzony indeks zwracał pusty stan, ale treści walk zostawały
   // w magazynie NA ZAWSZE: `clear()` chodzi po indeksie, więc ich nie widział,
   // `chars()` raportował zero, a `evict()` uważał, że jest miejsce. Do ~1 MB
   // znikało z kubełka dzielonego z GRĄ.
   const orphanKeys = () => [...storage.data.keys()].filter((key) => /\.\d+$/.test(key));
+  const tresc = (komunikaty: string[], sklad: RosterEntry[]) =>
+    JSON.stringify({ komunikaty, sklad });
 
   test("indeks w nieznanej wersji zabiera ze sobą swoje nagrania", () => {
-    storage.setItem("margometer.rec.1", FIGHT_A);
-    storage.setItem("margometer.rec.2", FIGHT_B);
-    storage.setItem("margometer.rec.index", JSON.stringify({ v: 2, next: 9, fights: [] }));
+    storage.setItem("margometer.rec.1", tresc(KOM_A, SKLAD_A));
+    storage.setItem("margometer.rec.2", tresc(KOM_B, SKLAD_B));
+    storage.setItem("margometer.rec.index", JSON.stringify({ v: 3, next: 9, fights: [] }));
 
     const rec = recorder();
 
@@ -460,7 +504,7 @@ describe("nagrania osierocone przez indeks", () => {
   });
 
   test("indeks nie do odczytania też", () => {
-    storage.setItem("margometer.rec.1", FIGHT_A);
+    storage.setItem("margometer.rec.1", tresc(KOM_A, SKLAD_A));
     storage.setItem("margometer.rec.index", "{to nie jest JSON");
 
     recorder();
@@ -469,24 +513,24 @@ describe("nagrania osierocone przez indeks", () => {
   });
 
   test("brak indeksu przy istniejących nagraniach to też sieroty", () => {
-    storage.setItem("margometer.rec.1", FIGHT_A);
+    storage.setItem("margometer.rec.1", tresc(KOM_A, SKLAD_A));
 
     recorder();
 
     expect(orphanKeys()).toEqual([]);
   });
 
-  test("wpis odrzucony przez walidację zabiera swój tekst, reszta zostaje", () => {
-    storage.setItem("margometer.rec.1", FIGHT_A);
-    storage.setItem("margometer.rec.2", FIGHT_B);
+  test("wpis odrzucony przez walidację zabiera swoją treść, reszta zostaje", () => {
+    storage.setItem("margometer.rec.1", tresc(KOM_A, SKLAD_A));
+    storage.setItem("margometer.rec.2", tresc(KOM_B, SKLAD_B));
     storage.setItem(
       "margometer.rec.index",
       JSON.stringify({
-        v: 1,
+        v: 2,
         next: 3,
         // Drugi wpis bez `chars` — `isRecording` go odrzuci.
         fights: [
-          { id: 1, title: "dobra", chars: FIGHT_A.length, at: 1 },
+          { id: 1, title: "dobra", chars: 10, at: 1 },
           { id: 2, title: "kaleka" },
         ],
       }),
@@ -503,7 +547,7 @@ describe("nagrania osierocone przez indeks", () => {
     rec.toggle();
     expect(storage.getItem("margometer.rec.on")).toBe("1");
 
-    storage.setItem("margometer.rec.index", JSON.stringify({ v: 2, next: 1, fights: [] }));
+    storage.setItem("margometer.rec.index", JSON.stringify({ v: 3, next: 1, fights: [] }));
     recorder();
 
     expect(storage.getItem("margometer.rec.on")).toBe("1");
@@ -512,8 +556,8 @@ describe("nagrania osierocone przez indeks", () => {
   test("wyczyszczenie obejmuje także to spoza indeksu", () => {
     const rec = recorder();
     rec.toggle();
-    rec.capture(FIGHT_A);
-    storage.setItem("margometer.rec.999", FIGHT_B);
+    rec.capture(porcja(KOM_A));
+    storage.setItem("margometer.rec.999", tresc(KOM_B, SKLAD_B));
 
     rec.clear();
 
@@ -528,13 +572,13 @@ describe("nagrania osierocone przez indeks", () => {
       setItem: (key: string, value: string) => storage.setItem(key, value),
       removeItem: (key: string) => storage.removeItem(key),
     };
-    storage.setItem("margometer.rec.1", FIGHT_A);
-    storage.setItem("margometer.rec.index", JSON.stringify({ v: 2, next: 9, fights: [] }));
+    storage.setItem("margometer.rec.1", tresc(KOM_A, SKLAD_A));
+    storage.setItem("margometer.rec.index", JSON.stringify({ v: 3, next: 9, fights: [] }));
 
     const rec = new Recorder({ storage: blind, now: () => 1 });
 
     expect(rec.count()).toBe(0);
-    expect(storage.getItem("margometer.rec.1")).toBe(FIGHT_A);
+    expect(storage.getItem("margometer.rec.1")).toBe(tresc(KOM_A, SKLAD_A));
   });
 });
 
@@ -542,11 +586,11 @@ describe("wygaszenie nagrywania przeżywa odświeżenie", () => {
   test("brak miejsca gasi nagrywanie NA TRWAŁE", () => {
     const rec = recorder();
     rec.toggle();
-    rec.capture(FIGHT_A);
+    rec.capture(porcja(KOM_A));
 
     // Od teraz magazyn odmawia wszystkiego — zwolnienie miejsca nie pomoże.
     storage.limit = 0;
-    rec.capture(FIGHT_B);
+    rec.capture(porcja(KOM_B, SKLAD_B));
 
     expect(rec.isRecording()).toBe(false);
     expect(rec.isFailed()).toBe(true);
@@ -567,7 +611,7 @@ describe("wygaszenie nagrywania przeżywa odświeżenie", () => {
   });
 });
 
-describe("indeks nie leci do magazynu przy każdej linii", () => {
+describe("indeks nie leci do magazynu przy każdej porcji", () => {
   /** Liczy zapisy pod klucz indeksu — to on był przepisywany w kółko. */
   class CountingStorage extends FakeStorage {
     indexWrites = 0;
@@ -585,24 +629,24 @@ describe("indeks nie leci do magazynu przy każdej linii", () => {
     counting = new CountingStorage();
   });
 
-  /** Walka doczytująca się linia po linii, jak w grze. */
-  const grow = (recorder: Recorder, lines: number) => {
-    let buffer = FIGHT_A;
-    for (let i = 0; i < lines; i += 1) {
-      buffer += `\nKamil(100%) uderzył z siłą +${100 + i} Wilk`;
-      recorder.capture(buffer);
+  /** Walka rosnąca komunikat po komunikacie, jak w grze. */
+  const grow = (recorder: Recorder, ile: number) => {
+    const komunikaty = [...KOM_A];
+    for (let i = 0; i < ile; i += 1) {
+      komunikaty.push(`482845=100.00;-255967=${(90 - i).toFixed(2)};+dmgd=${100 + i}`);
+      recorder.capture(porcja([...komunikaty]));
     }
-    return buffer;
+    return komunikaty;
   };
 
-  test("rosnący tekst nie przepisuje indeksu w kółko", () => {
+  test("rosnąca walka nie przepisuje indeksu w kółko", () => {
     const recorder = rec();
     recorder.toggle();
     counting.indexWrites = 0;
 
     grow(recorder, 50);
 
-    // Bez progu byłoby po jednym zapisie na linię, plus założenie nagrania.
+    // Bez progu byłoby po jednym zapisie na porcję, plus założenie nagrania.
     expect(counting.indexWrites).toBeLessThan(5);
   });
 
@@ -610,28 +654,28 @@ describe("indeks nie leci do magazynu przy każdej linii", () => {
     const recorder = rec();
     recorder.toggle();
 
-    const buffer = grow(recorder, 50);
+    const komunikaty = grow(recorder, 50);
 
     // Budżet i eksmisja liczą się z tego, nie z tego, co zdążyło trafić na dysk.
-    expect(recorder.chars()).toBe(buffer.length);
+    expect(recorder.chars()).toBe(zapis(komunikaty, SKLAD_A));
   });
 
   test("nowe nagranie utrwala się NATYCHMIAST — to zmiana kształtu", () => {
     const recorder = rec();
     recorder.toggle();
-    recorder.capture(FIGHT_A);
-    recorder.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    recorder.capture(porcja(KOM_A));
+    recorder.capture(porcja(KOM_B, SKLAD_B));
 
     // Bez odczekania na próg: po odświeżeniu obie walki mają być w indeksie,
-    // inaczej druga byłaby tekstem bez wpisu, czyli sierotą.
+    // inaczej druga byłaby treścią bez wpisu, czyli sierotą.
     expect(new Recorder({ storage: counting, now: () => 1 }).count()).toBe(2);
   });
 
   test("skasowanie nagrania utrwala się natychmiast", () => {
     const recorder = rec();
     recorder.toggle();
-    recorder.capture(FIGHT_A);
-    recorder.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    recorder.capture(porcja(KOM_A));
+    recorder.capture(porcja(KOM_B, SKLAD_B));
     const [first] = recorder.list();
 
     recorder.remove(first!.id);
@@ -642,26 +686,28 @@ describe("indeks nie leci do magazynu przy każdej linii", () => {
   test("wyłączenie nagrywania domyka odłożone rozmiary", () => {
     const recorder = rec();
     recorder.toggle();
-    const buffer = grow(recorder, 20);
+    const komunikaty = grow(recorder, 20);
 
     recorder.toggle();
 
     // Gorąca ścieżka się skończyła, więc indeks ma odtąd mówić prawdę co do znaku.
-    expect(new Recorder({ storage: counting, now: () => 1 }).chars()).toBe(buffer.length);
+    expect(new Recorder({ storage: counting, now: () => 1 }).chars()).toBe(
+      zapis(komunikaty, SKLAD_A),
+    );
   });
 
   test("eksmisja utrwala się natychmiast, mimo progu", () => {
     const recorder = new Recorder({
       storage: counting,
       now: () => 1,
-      budgetChars: FIGHT_A.length + 10,
+      budgetChars: zapis(KOM_A, SKLAD_A) + 10,
     });
     recorder.toggle();
-    recorder.capture(FIGHT_A);
-    recorder.capture(`${FIGHT_A}\n${FIGHT_B}`);
+    recorder.capture(porcja(KOM_A));
+    recorder.capture(porcja(KOM_B, SKLAD_B));
 
     const after = new Recorder({ storage: counting, now: () => 1 });
     expect(after.count()).toBe(1);
-    expect(counting.logs()).toEqual([FIGHT_B]);
+    expect(counting.nagrania().map((one) => one.komunikaty)).toEqual([KOM_B]);
   });
 });

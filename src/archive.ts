@@ -1,15 +1,23 @@
 /**
- * Okno archiwum: lista nagranych walk, ręczne wklejenie logu i odtwarzanie.
+ * Okno archiwum: lista nagranych walk i odtwarzanie.
  *
  * Statystyk nie liczymy tu od nowa — wczytana walka trafia do GŁÓWNEGO panelu
  * przez `showPreview`. Dzięki temu wszystko, co panel już umie (metryki, filtr
  * składu, na turę, drążenie w postać i w cel), działa dla nagrań za darmo.
  *
- * Nagrania zostają surowym logiem, a statystyki liczą się przy każdym otwarciu.
- * Po każdej naprawie parsera stare walki liczą się więc poprawnie same z siebie
- * — policzone raz i zamrożone w JSON-ie już by się nie poprawiły.
+ * Nagrania zostają SUROWYMI KOMUNIKATAMI protokołu, a zdarzenia i statystyki
+ * liczą się przy każdym otwarciu. Po każdej naprawie dekodera stare walki liczą
+ * się więc poprawnie same z siebie — policzone raz i zamrożone w JSON-ie już by
+ * się nie poprawiły.
+ *
+ * ⚠️ **Ręczne wklejenie logu zniknęło stąd 2026‑08‑04**, razem z parserem
+ * tekstu. Wklejało się zdania z „Kopiuj logi", a te nie są już dla nikogo
+ * czytelne: protokół i tekst to dwa różne języki i tłumaczy tylko sama gra.
  */
-import { parse } from "./parser.ts";
+import { dekoduj } from "./protokol.ts";
+import { SlownikGry, type Slownik, type TranslationGlobals } from "./slownik-gry.ts";
+import type { RosterEntry } from "./roster.ts";
+import type { Nagranie } from "./recorder.ts";
 import { storedBoolean, storedNumber, storedRecord } from "./stored-state.ts";
 import type { Recording } from "./recorder.ts";
 import { aggregate, type BattleStats } from "./stats.ts";
@@ -21,7 +29,7 @@ import { Confirm } from "./confirm.ts";
 /** Tyle, ile archiwum potrzebuje od nagrywarki. */
 export type ArchiveRecorder = {
   list(): Recording[];
-  read(id: number): string | null;
+  read(id: number): Nagranie | null;
   /** Kasowanie pojedynczego nagrania. Opcjonalne — atrapy w testach go nie mają. */
   remove?(id: number): void;
 };
@@ -73,28 +81,17 @@ const VISIBLE_ROWS = 8;
 const FILL_CHUNK = 8;
 const FILL_MS = 16;
 
-/** "Kamil vs Regulus", "Kamil, Fover vs Gnoll +2" — po składzie z linii otwierającej. */
-function labelOf(events: BattleEvent[]): string {
-  const start = events.find((event) => event.kind === "fight-start");
-  if (!start) return "walka bez składu";
-
-  const side = (which: number) =>
-    start.participants.filter((one) => one.side === which).map((one) => one.name);
-  const short = (names: string[]) =>
-    names.length <= 2 ? names.join(", ") : `${names[0]}, ${names[1]} +${names.length - 2}`;
-
-  const mine = short(side(0));
-  const enemy = short(side(1));
-  if (!mine || !enemy) return mine || enemy || "walka bez składu";
-  return `${mine} vs ${enemy}`;
-}
-
 /**
- * Etykieta z samego tekstu. Nagranie bez linii otwierającej (gra przycięła log,
- * zanim je włączyliśmy) etykiety mieć nie może — i tak to mówi wprost.
+ * Etykieta nagrania.
+ *
+ * Do 2026‑08‑04 składała ją tu funkcja `labelOf`, przepuszczając przez parser
+ * PIERWSZĄ LINIĘ nagrania — czyli zdanie gry „Rozpoczęła się walka pomiędzy…".
+ * Protokół takiego zdania nie musi nieść (klient syntetyzuje je sam, poza
+ * `data.m`), więc tytuł składa dziś nagrywarka ze SKŁADU i zapisuje gotowy
+ * w indeksie. Tutaj zostaje wyłącznie obrona przed pustym wpisem.
  */
-export function fightLabel(text: string): string {
-  return labelOf(parse(text));
+export function fightLabel(title: string): string {
+  return title.trim() === "" ? "walka bez składu" : title;
 }
 
 /** "19:04" dla dzisiejszych, "22.07 19:04" dla starszych. */
@@ -110,21 +107,33 @@ export function whenLabel(at: number, now: number): string {
   return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")} ${time}`;
 }
 
-/** Co pokazać w wierszu poza nazwą — liczone leniwie, przy rysowaniu listy. */
+/**
+ * Co pokazać w wierszu poza nazwą — liczone leniwie, przy rysowaniu listy.
+ *
+ * NAZWY tu nie ma i to jest zmiana z 2026‑08‑04. Wcześniej składało się ją
+ * z `fight-start` w strumieniu, więc żeby poznać skład walki, trzeba było ją
+ * najpierw sparsować. Protokół `fight-start` nie niesie — klient syntetyzuje
+ * linię otwierającą sam, poza `data.m` — więc tytuł zna wyłącznie nagrywarka,
+ * która widziała roster, i zapisuje go gotowy w indeksie. Wiersz bierze nazwę
+ * stamtąd i nie ma już powodu na nią czekać.
+ */
 type Summary = {
   stats: BattleStats;
-  label: string;
   outcome: "victory" | "defeat" | "draw" | null;
   turns: number;
   damage: number;
 };
 
-function summarize(events: BattleEvent[]): Summary {
-  const stats = aggregate(events);
+function summarize(events: BattleEvent[], sklad: RosterEntry[]): Summary {
+  // SKŁAD IDZIE DO AGREGATU, a nie tylko do dekodera. Bez niego wszyscy aktorzy
+  // mają `side: null` i `inRoster: false`: filtr „nasi / obcy" w podglądzie nie
+  // ma czego filtrować, a postać, która nic nie zdążyła zrobić, wypada z listy
+  // zamiast stać na zerach. Na żywo robi to `Session.updateEvents`; nagranie
+  // trzyma skład właśnie po to, żeby dało się to powtórzyć po tygodniu.
+  const stats = aggregate(events, sklad);
   const end = events.find((event) => event.kind === "fight-end");
   return {
     stats,
-    label: labelOf(events),
     outcome: end?.outcome ?? null,
     turns: stats.timeline.length,
     damage: stats.actors.reduce((sum, actor) => sum + actor.damageDealt, 0),
@@ -140,6 +149,14 @@ export type ArchiveOptions = {
   storage?: Pick<Storage, "getItem" | "setItem"> | undefined;
   ticker?: Ticker;
   now?: () => number;
+  /**
+   * Brzmienia efektów przy odtwarzaniu. Domyślnie z gry — archiwum otwiera się
+   * na jej stronie, więc `window._t` tam jest. Wstrzykiwane, bo poza stroną
+   * (test, przyszłe odtwarzanie offline) trzeba je wziąć skądinąd, a milczący
+   * `globalThis` dawałby to samo co brak słownika i nikt by nie wiedział, czy
+   * tak miało być.
+   */
+  slownik?: Slownik;
 };
 
 export class Archive {
@@ -155,6 +172,7 @@ export class Archive {
    * nie powtarzamy: przy zapisie liczyłaby to samo, co `Session` liczy na żywo.
    */
   private readonly summaries = new Map<string, Summary>();
+  private readonly slownik: Slownik;
   /**
    * Wiersze czekające na podsumowanie — patrz `renderList`.
    *
@@ -167,7 +185,6 @@ export class Archive {
   private opened: number | null = null;
   /** Identyfikatory nagrań z ostatniego renderu listy — patrz `sync`. */
   private listSignature = "";
-  private pasting = false;
   /**
    * Pytanie „na pewno?" przy kasowaniu POJEDYNCZEGO nagrania.
    *
@@ -177,8 +194,6 @@ export class Archive {
    * kliknąć ✕, odejść i wrócić po godzinie w to samo miejsce.
    */
   private readonly confirmRemove: Confirm<number>;
-  /** Trwałe pole wklejania — patrz `renderPaste`. */
-  private pasteBox: HTMLElement | null = null;
   /**
    * Krótka odpowiedź na kliknięcie, które nic nie zrobiło.
    *
@@ -189,8 +204,9 @@ export class Archive {
   private notice: string | null = null;
   private noticeHandle: number | null = null;
   private replay: {
-    lines: string[];
-    /** Ile linii już podano licznikowi. */
+    komunikaty: string[];
+    sklad: RosterEntry[];
+    /** Ile komunikatów już podano licznikowi. */
     at: number;
     playing: boolean;
     speed: number;
@@ -205,6 +221,7 @@ export class Archive {
     this.storage = options.storage;
     this.ticker = options.ticker ?? realTicker;
     this.now = options.now ?? Date.now;
+    this.slownik = options.slownik ?? new SlownikGry(globalThis as TranslationGlobals);
     this.confirmRemove = new Confirm<number>({
       now: this.now,
       ticker: this.ticker,
@@ -268,39 +285,57 @@ export class Archive {
     this.overlay.refresh();
   }
 
+  /**
+   * Wpis indeksu razem z treścią — albo `null`, gdy którejkolwiek połowy brak.
+   *
+   * Obie są potrzebne RAZEM: treść niesie komunikaty, a wpis niesie tytuł
+   * i `chars`, czyli klucz cache'u. Wpis bez treści to nagranie, które
+   * przepadło spod indeksu; treść bez wpisu to sierota, której archiwum
+   * i tak nie pokazuje.
+   */
+  private nagranieZWpisem(id: number): { entry: Recording; nagranie: Nagranie } | null {
+    const entry = this.recorder.list().find((one) => one.id === id);
+    if (!entry) return null;
+    const nagranie = this.recorder.read(id);
+    return nagranie === null ? null : { entry, nagranie };
+  }
+
   /** Wczytuje nagranie do panelu jako gotowe statystyki. */
   open(id: number): void {
-    const text = this.recorder.read(id);
+    const found = this.nagranieZWpisem(id);
     // Indeks obiecuje nagranie, którego pod kluczem nie ma — wiersz wygląda
     // normalnie, a klik nie robił nic. Lepiej powiedzieć, że przepadło.
-    if (text === null) {
+    if (found === null) {
       this.say("Tego nagrania już nie ma w pamięci przeglądarki.");
       return;
     }
     this.stopReplay();
     this.opened = id;
-    this.overlay.showPreview(this.summaryOf(id, text).stats, this.viewFor(id, text, null));
+    this.overlay.showPreview(
+      this.summaryOf(found.entry, found.nagranie).stats,
+      this.viewFor(found.entry, null),
+    );
     this.render();
   }
 
-  /** Wczytuje nagranie i odtwarza je od pierwszej linii. */
+  /** Wczytuje nagranie i odtwarza je od pierwszego komunikatu. */
   play(id: number): void {
-    const text = this.recorder.read(id);
-    if (text === null) {
+    const found = this.nagranieZWpisem(id);
+    if (found === null) {
       this.say("Tego nagrania już nie ma w pamięci przeglądarki.");
       return;
     }
     this.stopReplay();
     this.opened = id;
 
-    const lines = text.split("\n").filter((line) => line.trim() !== "");
-    const view = this.viewFor(id, text, null);
+    const view = this.viewFor(found.entry, null);
     this.replay = {
-      lines,
+      komunikaty: found.nagranie.komunikaty,
+      sklad: found.nagranie.sklad,
       at: 0,
       playing: false,
       speed: 1,
-      turns: this.summaryOf(id, text).turns,
+      turns: this.summaryOf(found.entry, found.nagranie).turns,
       handle: null,
       view,
     };
@@ -311,27 +346,6 @@ export class Archive {
     this.render();
   }
 
-  /** Ręcznie wklejony log — pokazujemy go, ale nie zapisujemy w archiwum. */
-  loadPasted(text: string): void {
-    // Kliknięcie w „wczytaj” przy pustym polu wychodziło stąd bez słowa, więc
-    // przycisk wyglądał na zepsuty. Odpowiedź jest tania, milczenie kosztuje.
-    if (text.trim() === "") {
-      this.say("Najpierw wklej log walki.");
-      return;
-    }
-    this.stopReplay();
-    this.opened = null;
-    const events = parse(text);
-    const view: PreviewView = {
-      source: "wklejony log",
-      title: labelOf(events),
-      replay: null,
-      close: () => this.closePreview(),
-    };
-    this.overlay.showPreview(aggregate(events), view);
-    this.pasting = false;
-    this.render();
-  }
 
   private closePreview(): void {
     this.stopReplay();
@@ -340,12 +354,10 @@ export class Archive {
     this.render();
   }
 
-  private viewFor(id: number, text: string, replay: ReplayView | null): PreviewView {
-    const entry = this.recorder.list().find((one) => one.id === id);
-    const when = entry ? whenLabel(entry.at, this.now()) : "";
+  private viewFor(entry: Recording, replay: ReplayView | null): PreviewView {
     return {
-      source: when ? `z archiwum · ${when}` : "z archiwum",
-      title: this.summaryOf(id, text).label,
+      source: `z archiwum · ${whenLabel(entry.at, this.now())}`,
+      title: fightLabel(entry.title),
       replay,
       close: () => this.closePreview(),
     };
@@ -364,31 +376,30 @@ export class Archive {
     if (!replay) return null;
     return {
       playing: replay.playing,
-      progress: replay.lines.length === 0 ? 0 : replay.at / replay.lines.length,
+      progress: replay.komunikaty.length === 0 ? 0 : replay.at / replay.komunikaty.length,
       speed: replay.speed,
       label: `tura ${shown.timeline.length}/${replay.turns}`,
       toggle: () => this.setPlaying(!replay.playing),
       cycleSpeed: () => this.cycleSpeed(),
-      seek: (fraction) => this.seek(Math.round(fraction * replay.lines.length)),
+      seek: (fraction) => this.seek(Math.round(fraction * replay.komunikaty.length)),
     };
   }
 
   private frameStats(at: number, replay = this.replay!): BattleStats {
-    // Parsujemy CAŁY prefiks od nowa, dokładnie jak `Session` przy każdej
-    // zmianie logu w grze — dzięki temu odtwarzanie idzie tą samą ścieżką
-    // co licznik na żywo i nie ma osobnej, drugiej prawdy.
-    const events = parse(replay.lines.slice(0, at).join("\n"));
-
-    // Krok po linii potrafi zatrzymać się MIĘDZY linią ciosu ("uderzył") a linią
-    // obrażeń ("otrzymał"). Parser słusznie zgłasza wtedy niedomknięty cios jako
-    // linię nierozpoznaną — ale w połowie odtwarzania to nie zmiana formatu,
-    // tylko klatka złapana w pół akcji. Bez tego ostrzeżenie w stopce mrugałoby
-    // co drugą klatkę. Zdejmujemy tylko OSTATNIE zdarzenie i tylko przed końcem
-    // nagrania: na `at === lines.length` żadnego niedomknięcia już nie ma, więc
-    // realne nierozpoznane linie zostają i ostrzeżenie działa jak w grze.
-    if (at < replay.lines.length && events.at(-1)?.kind === "unknown") events.pop();
-
-    return aggregate(events);
+    // Dekodujemy CAŁY prefiks od nowa, dokładnie jak `Session` przy każdej
+    // porcji w grze — dzięki temu odtwarzanie idzie tą samą ścieżką co licznik
+    // na żywo i nie ma osobnej, drugiej prawdy.
+    //
+    // ⚠️ Zniknęło stąd zdejmowanie ostatniego `unknown`. Przy tekście krok po
+    // LINII potrafił zatrzymać się między „uderzył" a „otrzymał", więc parser
+    // słusznie zgłaszał niedomknięty cios — a w połowie odtwarzania to była
+    // klatka złapana w pół akcji, nie zmiana formatu. Protokół takiego stanu
+    // nie ma: jeden komunikat niesie CAŁY blok, więc prefiks komunikatów jest
+    // zawsze domknięty i każdy `unknown` znaczy to samo, co w grze.
+    return aggregate(
+      dekoduj(replay.komunikaty.slice(0, at), replay.sklad, this.slownik),
+      replay.sklad,
+    );
   }
 
   private setPlaying(playing: boolean): void {
@@ -396,7 +407,7 @@ export class Archive {
     if (!replay) return;
 
     // Koniec logu: „graj" startuje od początku, zamiast stać w miejscu.
-    if (playing && replay.at >= replay.lines.length) replay.at = 0;
+    if (playing && replay.at >= replay.komunikaty.length) replay.at = 0;
     replay.playing = playing;
     if (replay.handle !== null) {
       this.ticker.stop(replay.handle);
@@ -421,7 +432,7 @@ export class Archive {
   private step(): void {
     const replay = this.replay;
     if (!replay) return;
-    if (replay.at >= replay.lines.length) {
+    if (replay.at >= replay.komunikaty.length) {
       this.setPlaying(false);
       return;
     }
@@ -432,7 +443,7 @@ export class Archive {
   private seek(at: number): void {
     const replay = this.replay;
     if (!replay) return;
-    replay.at = Math.max(0, Math.min(at, replay.lines.length));
+    replay.at = Math.max(0, Math.min(at, replay.komunikaty.length));
     this.pushFrame();
   }
 
@@ -451,21 +462,31 @@ export class Archive {
   }
 
   /**
-   * Kluczem jest długość tekstu, nie samo `id`: nagranie trwającej walki rośnie,
-   * a jej podsumowanie musi rosnąć razem z nim.
+   * Kluczem jest `chars` Z INDEKSU, nie samo `id`: nagranie trwającej walki
+   * rośnie, a jej podsumowanie musi rosnąć razem z nim.
+   *
+   * ⚠️ **Musi to być liczba, którą `cached()` zna BEZ wczytywania nagrania** —
+   * inaczej pytanie „czy trzeba liczyć" kosztowałoby dokładnie tę pracę, której
+   * unikamy. Dlatego nie `komunikaty.length`, choć byłoby czytelniejsze:
+   * długości listy nie da się poznać, nie czytając JSON-a. `chars` mierzy
+   * dokładnie ten JSON (`recorder.ts` ustawia je na `text.length` przy zapisie),
+   * więc rośnie razem z komunikatami.
    */
-  private summaryOf(id: number, text: string): Summary {
-    const key = `${id}:${text.length}`;
+  private summaryOf(entry: Recording, nagranie: Nagranie): Summary {
+    const key = `${entry.id}:${entry.chars}`;
     const cached = this.summaries.get(key);
     if (cached) return cached;
-    // Klucz niesie DŁUGOŚĆ tekstu, więc trwające nagranie zakłada nowy wpis przy
+    // Klucz niesie ROZMIAR, więc trwające nagranie zakłada nowy wpis przy
     // każdym doczytaniu, a stary zostaje z pełnym `BattleStats` w środku (z osią
     // tur i macierzą). Zdejmujemy poprzednie wersje TEGO nagrania — cache ma
     // pamiętać ostatni kształt, nie historię kształtów.
     for (const old of this.summaries.keys()) {
-      if (old !== key && old.startsWith(`${id}:`)) this.summaries.delete(old);
+      if (old !== key && old.startsWith(`${entry.id}:`)) this.summaries.delete(old);
     }
-    const summary = summarize(parse(text));
+    const summary = summarize(
+      dekoduj(nagranie.komunikaty, nagranie.sklad, this.slownik),
+      nagranie.sklad,
+    );
     this.summaries.set(key, summary);
     return summary;
   }
@@ -510,7 +531,6 @@ export class Archive {
     }
     this.window.append(list);
     list.scrollTop = scroll;
-    if (this.pasting) this.window.append(this.renderPaste());
   }
 
   private renderHeader(): HTMLElement {
@@ -519,16 +539,6 @@ export class Archive {
     title.className = "title";
     title.textContent = "Archiwum walk";
 
-    const paste = document.createElement("button");
-    paste.type = "button";
-    paste.dataset.action = "archive-paste";
-    paste.textContent = "wklej";
-    paste.setAttribute("aria-pressed", String(this.pasting));
-    paste.setAttribute("aria-label", "Wklej log ręcznie");
-    paste.addEventListener("click", () => {
-      this.pasting = !this.pasting;
-      this.render();
-    });
 
     const close = document.createElement("button");
     close.type = "button";
@@ -537,7 +547,7 @@ export class Archive {
     close.setAttribute("aria-label", "Zamknij archiwum");
     close.addEventListener("click", () => this.toggle());
 
-    header.append(title, paste, close);
+    header.append(title, close);
     makeDraggable(header, {
       position: () => ({ x: this.state.x, y: this.state.y }),
       move: (x, y) => this.moveTo(x, y),
@@ -588,13 +598,10 @@ export class Archive {
   }
 
   /**
-   * Czy podsumowanie tego nagrania jest już policzone.
+   * Czy podsumowanie tego nagrania jest już policzone — bez sięgania po treść.
    *
-   * Klucz musi być TEN SAM, co w `summaryOf`, a tam jest nim długość tekstu.
-   * `chars` z indeksu nagrywarki jest tą samą liczbą (`recorder.ts` ustawia je
-   * na `text.length` przy każdym zapisie) — i o to tu chodzi: dzięki temu
-   * pytanie „czy trzeba liczyć" nie wymaga wczytania nagrania, czyli tej samej
-   * pracy, której unikamy.
+   * Klucz jest TEN SAM, co w `summaryOf`; powód, dla którego stoi na `chars`,
+   * a nie na liczbie komunikatów, jest opisany tam.
    */
   private cached(entry: Recording): boolean {
     return this.summaries.has(`${entry.id}:${entry.chars}`);
@@ -603,18 +610,18 @@ export class Archive {
   /**
    * Podsumowanie wiersza — z cache'u, a dopiero potem z magazynu.
    *
-   * Kolejność jest tu całą treścią. `summaryOf` potrzebuje TEKSTU, żeby złożyć
-   * klucz, więc pytanie go o gotowy wynik wymagało wcześniej wczytania
-   * nagrania. `render()` leci po każdej skończonej walce, a wiersze powstają
-   * wtedy od nowa — przy 190 nagraniach był to komplet odczytów z
-   * `localStorage` za każdym razem, tylko po to, żeby trafić w cache.
+   * Kolejność jest tu całą treścią. Gdyby klucz cache'u wymagał TREŚCI
+   * nagrania, pytanie o gotowy wynik znaczyłoby wczytanie go z magazynu.
+   * `render()` leci po każdej skończonej walce, a wiersze powstają wtedy od
+   * nowa — przy 190 nagraniach byłby to komplet odczytów z `localStorage` za
+   * każdym razem, tylko po to, żeby trafić w cache.
    */
   private summaryFor(entry: Recording): Summary | null {
     const cached = this.summaries.get(`${entry.id}:${entry.chars}`);
     if (cached) return cached;
-    const text = this.recorder.read(entry.id);
-    if (text === null) return null;
-    return this.summaryOf(entry.id, text);
+    const nagranie = this.recorder.read(entry.id);
+    if (nagranie === null) return null;
+    return this.summaryOf(entry, nagranie);
   }
 
   /**
@@ -648,21 +655,19 @@ export class Archive {
    * Dokłada do wiersza to, co pochodzi z podsumowania — resztę narysował już
    * `renderRow` z samego indeksu.
    *
-   * Węzły wyszukiwane po klasie, a nie przekazywane parametrem, bo woła to
+   * NAZWY tu nie ma: tytuł stoi w indeksie i wiersz ma go od pierwszej klatki.
+   * Wcześniej `fillRow` go PODMIENIAŁ, bo skład dawało się poznać dopiero po
+   * sparsowaniu logu — więc wiersz spod krawędzi wisiał przez chwilę z inną
+   * nazwą niż docelowa.
+   *
+   * Węzeł wyszukiwany po klasie, a nie przekazywany parametrem, bo woła to
    * dwoje: `renderRow` od razu (wiersz widoczny albo policzony wcześniej)
    * i krok tickera później (wiersz spod krawędzi).
    */
   private fillRow(row: HTMLElement, entry: Recording): void {
     const summary = this.summaryFor(entry);
-    // Nagranie zniknęło spod indeksu — wiersz zostaje przy nazwie z tytułu.
-    // To ta sama sytuacja, którą stara ścieżka kwitowała `summary === null`.
+    // Nagranie zniknęło spod indeksu — wiersz zostaje przy samej godzinie.
     if (summary === null) return;
-
-    const name = row.querySelector<HTMLElement>(".archive-name");
-    if (name) {
-      name.textContent = summary.label;
-      name.title = summary.label;
-    }
 
     const meta = row.querySelector<HTMLElement>(".archive-meta");
     if (!meta) return;
@@ -696,10 +701,8 @@ export class Archive {
     box.className = "grow";
     const name = document.createElement("div");
     name.className = "archive-name";
-    // Nazwa z pełnego logu, nie z samej linii tytułowej: przy nagraniu zaczętym
-    // w środku walki linia otwierająca bywa w środku tekstu albo wcale. Tytuł
-    // z indeksu jest tu wartością TYMCZASOWĄ — `fillRow` podmieni ją na nazwę
-    // z logu, gdy tylko podsumowanie będzie policzone.
+    // Tytuł z indeksu i to jest już nazwa OSTATECZNA — złożyła ją nagrywarka
+    // ze składu, który widziała w chwili nagrywania.
     name.textContent = fightLabel(entry.title);
     // Jedyny wyjątek od zasady „bez natywnych dymków" (patrz `overlay.ts`):
     // archiwum nie ma własnej warstwy dymka, a ucięty skład jest nie do
@@ -768,40 +771,6 @@ export class Archive {
     if (eager || this.cached(entry)) this.fillRow(row, entry);
     else this.pending.push({ row, entry });
     return row;
-  }
-
-  /**
-   * Pole wklejania jest TRWAŁE: `render()` czyści okno, a leci ono po każdej
-   * skończonej walce w trakcie nagrywania (`sync`), więc wpisywany log ginął
-   * w połowie pisania. Ten sam węzeł wraca do okna z zachowaną treścią.
-   */
-  private renderPaste(): HTMLElement {
-    return (this.pasteBox ??= this.buildPaste());
-  }
-
-  private buildPaste(): HTMLElement {
-    const box = document.createElement("div");
-    box.className = "archive-paste";
-
-    const area = document.createElement("textarea");
-    area.dataset.field = "paste";
-    area.placeholder = "Wklej tu log walki...";
-
-    const row = document.createElement("div");
-    row.className = "archive-paste-actions";
-    const hint = document.createElement("span");
-    hint.className = "hint";
-    hint.textContent = "Wklejony log tylko podglądamy — nie trafia do archiwum.";
-
-    const load = document.createElement("button");
-    load.type = "button";
-    load.dataset.action = "archive-load-pasted";
-    load.textContent = "wczytaj";
-    load.addEventListener("click", () => this.loadPasted(area.value));
-
-    row.append(hint, load);
-    box.append(area, row);
-    return box;
   }
 
   /**

@@ -1,2 +1,0 @@
-team=476529|Niepoznasz|f|1|478652|Tordejszyn|m|1|479412|Taomoirou|m|1|482836|Mr Shard|m|1|488254|Atelanta|m|1|488265|Na bank nie Foan|f|1|489473|Two For Youu|m|1|495587|Public Enemy Number I|m|1|496177|Maleko na Długach|m|2|496910|To chyba Subeczek|m|1|498671|Zły Darkness|m|1
-log=|495587.100.00;495587.100.00;p_.Podwójny dech;skillId.89;d__per.20|479412.100.00;496177.94.87;p_.Piętno bestii;skillId.264;@spell-taken_D-all|0;0;winner.?|496177.94.87;0;flee

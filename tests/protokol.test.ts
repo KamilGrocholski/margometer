@@ -15,17 +15,18 @@ import type { RosterEntry } from "../src/roster.ts";
  *
  * SKĄD BIORĄ SIĘ WEJŚCIA. Dwa źródła, oba prawdziwe, i to jest tu ważne:
  *
- * - **korpus protokołu** (`tests/fixtures/grooove/`) — kształty z prawdziwych
- *   walk, przepisane na dialekt gry (grooove rozdziela klucz od wartości
- *   kropką, gra znakiem `=`; powody w README tamtego katalogu);
+ * - **kształty z prawdziwych walk**, przepisane do treści testów. ⚠️ Brały się
+ *   z korpusu protokołu z grooove.pl (przekodowanego przez cudzy serwis:
+ *   kropka zamiast `=`); korpus zszedł z drzewa 2026‑08‑04, a kształty zostały
+ *   w komentarzach przy asercjach;
  * - **źródło renderera gry** — przypadki brzegowe, których w korpusie nie ma,
  *   ale które `battleMsg` obsługuje jawnie i dlatego wiadomo, że istnieją.
  *
  * Czego te testy NIE dowodzą: że gra wysyła dokładnie takie komunikaty. Tego
  * nie dowiedzie nic aż do zrzutu z gry — repo nie ma dziś ani jednej walki
- * zapisanej protokołem (`tests/fixtures/new-engine/`: 24 katalogi, 0 plików
- * `protokol.json`). Tutaj sprawdzamy, że rozbiór odwzorowuje `battleMsg`
- * znak w znak, a nie że wejście jest autentyczne.
+ * zapisanej protokołem. Jedyna, jaką repo ma, leży w `tests/walka-z-gry.ts`
+ * i czytają ją testy archiwum oraz `index`. Tutaj sprawdzamy, że rozbiór
+ * odwzorowuje `battleMsg` znak w znak, a nie że wejście jest autentyczne.
  */
 
 describe("rozbierz: strony", () => {
@@ -198,28 +199,24 @@ describe("liczba", () => {
  * o kluczu, którego gra nie ma (tabela, która zwietrzała po aktualizacji
  * klienta). To dwa różne błędy i jednostronny test przepuściłby drugi.
  */
-const ZAMROZONE_KLUCZE: string[] = (
-  (await Bun.file(new URL("./fixtures/klucze-protokolu.json", import.meta.url).pathname).json())
-    .klucze as { klucz: string }[]
-).map((w) => w.klucz);
-
-describe("pokrycie tabeli kluczy", () => {
-  test("każdy klucz z zamrożonej listy ma rolę", () => {
-    const bezRoli = ZAMROZONE_KLUCZE.filter((k) => rola(k) === null);
-    expect(bezRoli).toEqual([]);
-  });
-
-  test("każdy klucz tabeli stoi na zamrożonej liście", () => {
-    const zbior = new Set(ZAMROZONE_KLUCZE);
-    // Bez tej strony tabela mogłaby puchnąć o klucze wymyślone albo zdjęte
-    // przez grę — i nikt by się nie dowiedział, bo pierwsza strona przechodzi.
-    expect(znaneKlucze().filter((k) => !zbior.has(k))).toEqual([]);
-  });
-
-  test("tabela pokrywa listę co do jednego klucza", () => {
-    expect(znaneKlucze()).toEqual([...ZAMROZONE_KLUCZE].sort());
-  });
-});
+/**
+ * ⚠️ **ZNIKŁ STĄD BLOK „pokrycie tabeli kluczy" — 3 testy, 2026‑08‑04, razem
+ * z zamrożoną tabelą kluczy.**
+ *
+ * Tamta tabela to były 233 klucze wyłuskane z assetu gry przez
+ * `bun tools/slownik.ts`, a test był **DWUSTRONNY** i nie była to nadmiarowość:
+ *
+ * - „każdy klucz z zamrożonej listy ma rolę" łapało klucz GRY, o którym nie
+ *   wiemy — czyli obrażenia liczone po cichu jako zero;
+ * - „każdy klucz naszej tabeli stoi na liście" łapało nasz wpis o kluczu,
+ *   którego gra NIE MA — czyli tabelę zwietrzałą po aktualizacji klienta.
+ *
+ * To są dwa różne błędy i jednostronny test przepuściłby drugi. Dziś nie
+ * sprawdza ich żaden: `znaneKlucze()` nie ma z czym się porównać.
+ *
+ * `bun tools/slownik.ts` dalej czyta asset gry i wypisuje tę tabelę — brakuje
+ * wyłącznie miejsca, w którym wynik miałby osiąść.
+ */
 
 describe("rolaDomyslna: gałąź `default` renderera", () => {
   test("zadane i przyjęte rozróżnia ZNAK, tak jak gra", () => {
@@ -312,14 +309,17 @@ describe("dekoduj: cios", () => {
     ]);
   });
 
-  test("ta sama liczba, co po stronie tekstu — miniatura orakulum", () => {
-    // `tests/walka.test.ts` przepuszcza render tej samej akcji przez
-    // findBattleLog → extractText → parse i dostaje `cios.hits[0].raw === 455`.
-    // Tu ta sama liczba przychodzi drugą drogą, z klucza `+dmgd=455`. Zgodność
-    // dwóch NIEZALEŻNYCH dróg to jest cały pomysł na czujkę.
-    const [z] = dekoduj(["1=100.00;2=40.37;+dmgd=455;-dmgd=455"], SKLAD);
-    expect((z as { hits: { raw: number }[] }).hits[0]!.raw).toBe(455);
-  });
+  // ⚠️ **STAŁ TU TEST „ta sama liczba, co po stronie tekstu — miniatura
+  // orakulum" i zszedł 2026‑08‑04.** Brał ten sam komunikat, wyciągał z niego
+  // 455 i pokazywał, że zgadza się z 455, które `parse` wyczytało z renderu tej
+  // samej akcji (`tests/walka.test.ts`). Cała jego wartość siedziała w tamtej
+  // DRUGIEJ stronie porównania; bez niej został sprawdzian, że z `+dmgd=455`
+  // wychodzi 455 — czyli dokładnie to, co asercja wyżej robi na tym samym
+  // komunikacie. Test, który powtarza sąsiada, kosztuje uwagę i nic nie chroni.
+  //
+  // Nie jest to sprzątanie: **tu naprawdę ubyło pokrycie**, tylko nie w tym
+  // pliku. Ubyło go w chwili, w której zniknął parser, a ten test przez jedną
+  // rundę udawał, że nie.
 
   test("blok i unik siadają na ciosie, a nie obok niego", () => {
     const [z] = dekoduj(["1=100.00;2=98.29;+dmg=823;-blok=247;-evade;-dmg=0"], SKLAD);

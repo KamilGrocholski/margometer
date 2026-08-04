@@ -1,12 +1,23 @@
-import { Glob } from "bun";
 import { describe, expect, test } from "bun:test";
-import { parse } from "../src/parser.ts";
 import { aggregate, EMPTY_STATS, type Aggregate } from "../src/stats.ts";
 import { Overlay } from "../src/overlay.ts";
 import { Session, splitFights } from "../src/session.ts";
-import { DomLogSource } from "../src/source.ts";
+import { StaticProtocolSource } from "../src/protokol-source.ts";
 import { start } from "../src/index.ts";
-import { readFixture } from "./helpers.ts";
+import { dekoduj } from "../src/protokol.ts";
+import { OSOBLIWOSCI, WALKI } from "./korpus.ts";
+
+/**
+ * Dwie ROZŁĄCZNE walki — żadna nazwa się nie powtarza.
+ *
+ * ⚠️ Do 2026‑08‑04 brały się z korpusu (`tancerz-vs-kukla`, `lowca-vs-druzyna`
+ * i inne). Korpusu nie ma; rozłączność składów jest tu warunkiem, bez którego
+ * „liczy się OSTATNIA walka" nie da się w ogóle sprawdzić.
+ */
+const PIERWSZA = OSOBLIWOSCI; // Gracz, Locha, Odyniec
+const DRUGA = WALKI[0]!.events; // Tancogniew Kazrek, Magister Długonogi
+import { cios, otwarcie, trafienie } from "./zdarzenia.ts";
+import type { RosterEntry } from "../src/roster.ts";
 
 /**
  * Ten plik miał do 2026‑08‑03 dwa razy tyle testów i większość dotyczyła SUMY
@@ -18,31 +29,26 @@ import { readFixture } from "./helpers.ts";
  * z nich jest TĄ**. Reszta była kosztem funkcji, której nie ma.
  */
 describe("sesja", () => {
-  test("dzieli bufor na osobne walki", async () => {
-    const text = `${await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")}
-${await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")}`;
-
-    expect(splitFights(parse(text))).toHaveLength(2);
+  test("dzieli bufor na osobne walki", () => {
+    expect(splitFights([...PIERWSZA, ...DRUGA])).toHaveLength(2);
   });
 
-  test("zdublowana linia rozpoczęcia nie tworzy drugiej walki", async () => {
-    // Log z paladynami ma linię "Rozpoczęła się walka" dwa razy pod rząd.
-    const events = parse(await readFixture("new-engine/2026-07-18_lowca-vs-paladyni"));
-    expect(splitFights(events)).toHaveLength(1);
+  test("zdublowana linia rozpoczęcia nie tworzy drugiej walki", () => {
+    // Margonem potrafi zdublować nagłówek. Powtórzenie TEGO SAMEGO składu nie
+    // zaczyna drugiej walki, bo poprzednia nie ma jeszcze treści.
+    const [naglowek] = PIERWSZA;
+    expect(splitFights([naglowek!, ...PIERWSZA])).toHaveLength(1);
   });
 
   test("walka skończona na samym nagłówku nie skleja się z następną", () => {
     // Ucieczka albo przerwanie: pierwsza walka nie ma nic poza nagłówkiem.
     // Dawniej wystarczało to, by drugi nagłówek uznać za dubel — obie walki
     // wpadały w jedną, ze składem pierwszej.
-    const events = parse(
-      [
-        "Rozpoczęła się walka pomiędzy Gracz (1w) a Wilk (1w)",
-        "Rozpoczęła się walka pomiędzy Gracz (1w) a Niedźwiedź (1w)",
-        "Gracz(100%) uderzył z siłą  +300",
-        "Niedźwiedź(60%) otrzymał(a)  -300  obrażeń",
-      ].join("\n"),
-    );
+    const events = [
+      otwarcie(["Gracz 1w"], ["Wilk 1w"]),
+      otwarcie(["Gracz 1w"], ["Niedźwiedź 1w"]),
+      cios("Gracz", "Niedźwiedź", [trafienie(300)], { targetHpPct: 60 }),
+    ];
 
     const fights = splitFights(events);
     expect(fights).toHaveLength(2);
@@ -57,34 +63,30 @@ ${await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")}`;
     // Podział ma sens tylko wtedy, gdy wybiera ostatnią walkę, a nie sumuje
     // bufor. Test wymaga postaci, która występuje WYŁĄCZNIE w pierwszej walce:
     // gdyby liczyły się obie, znalazłaby się w wyniku.
-    const pierwsza = await readFixture("new-engine/2026-07-18_lowca-vs-druzyna");
-    const druga = await readFixture("new-engine/2026-07-18_lowca-vs-paladyni");
-
     const solo = new Session();
-    solo.update(pierwsza);
-    expect(solo.current().actors.some((a) => a.name === "Łowcożyr Kazrek")).toBe(true);
+    solo.updateEvents(PIERWSZA);
+    expect(solo.current().actors.some((a) => a.name === "Gracz")).toBe(true);
 
     const session = new Session();
-    session.update(`${pierwsza}\n${druga}`);
-    expect(session.current().actors.some((a) => a.name === "Łowcożyr Kazrek")).toBe(false);
-    expect(session.current().actors.some((a) => a.name === "Łowca głów z psk")).toBe(true);
+    session.updateEvents([...PIERWSZA, ...DRUGA]);
+    // `Gracz` występuje WYŁĄCZNIE w pierwszej — gdyby liczyły się obie, byłby.
+    expect(session.current().actors.some((a) => a.name === "Gracz")).toBe(false);
+    expect(session.current().actors.some((a) => a.name === "Tancogniew Kazrek")).toBe(true);
   });
 
   test("ta sama walka wczytana drugi raz nie podwaja liczb bieżącej walki", async () => {
     // Bufor bywa odczytywany kilka razy bez zmiany treści (mutacja DOM-u, która
     // niczego nie dopisała). `update` liczy od zera przy każdym wywołaniu, więc
     // to musi być idempotentne — inaczej panel rósłby sam z siebie.
-    const text = await readFixture("new-engine/2026-07-18_mag-vs-druzyna-umiejetnosci");
     const session = new Session();
+    const bijacy = "Tancogniew Kazrek";
 
-    session.update(text);
-    const jedna = session.current().actors.find((a) => a.name === "wf mushita psk")!.damageDealt;
+    session.updateEvents(DRUGA);
+    const jedna = session.current().actors.find((a) => a.name === bijacy)!.damageDealt;
     expect(jedna).toBeGreaterThan(0);
 
-    session.update(text);
-    expect(session.current().actors.find((a) => a.name === "wf mushita psk")!.damageDealt).toBe(
-      jedna,
-    );
+    session.updateEvents(DRUGA);
+    expect(session.current().actors.find((a) => a.name === bijacy)!.damageDealt).toBe(jedna);
   });
 
   test("skład z gry stosuje się do walki, która jest liczona", async () => {
@@ -92,11 +94,8 @@ ${await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")}`;
     // `i === fights.length - 1`, bo `aggregate` szło po wszystkich walkach
     // w buforze; dziś liczy się tylko ostatnia, więc warunek zniknął — a to,
     // czego pilnował, ma zostać prawdą.
-    const pierwsza = await readFixture("new-engine/2026-07-18_tancerz-vs-kukla");
-    const druga = await readFixture("new-engine/2026-07-18_lowca-vs-druzyna");
-
     const session = new Session();
-    session.update(`${pierwsza}\n${druga}`, [
+    session.updateEvents([...PIERWSZA, ...DRUGA], [
       { id: 1, name: "Podstawiony", side: 0, prof: "w", lvl: 1 },
     ]);
 
@@ -110,49 +109,60 @@ describe("panel dostaje bieżącą walkę, nie historię", () => {
   const dealtBy = (stats: Aggregate, name: string) =>
     stats.actors.find((a) => a.name === name)?.damageDealt ?? 0;
 
-  test("po podmianie kontenera logu przez grę widać już tylko nową walkę", async () => {
+  test("nowa walka zastępuje poprzednią, zamiast się do niej doklejać", async () => {
+    // Do 2026‑08‑04 opisywał to PODMIANĘ KONTENERA logu przez grę: subskrypcja
+    // szła od zera razem z nowym węzłem DOM. Protokół nie ma kontenera —
+    // `EngineProtocolSource` zeruje bufor komunikatów przy nowym obiekcie
+    // walki — ale wymóg wobec sesji jest ten sam i to jego pilnujemy.
     const session = new Session();
     const overlay = new Overlay();
 
-    const makeLog = (text: string) => {
-      const log = document.createElement("div");
-      for (const line of text.split("\n")) {
-        log.append(Object.assign(document.createElement("div"), { textContent: line }));
-      }
-      document.body.append(log);
-      return log;
-    };
+    session.updateEvents(PIERWSZA);
+    overlay.render(session.current());
+    expect(dealtBy(session.current(), "Gracz")).toBeGreaterThan(0);
 
-    const magiem = await readFixture("new-engine/2026-07-18_mag-vs-druzyna-umiejetnosci");
-    start(new DomLogSource(makeLog(magiem)), overlay, session)();
-    expect(dealtBy(session.current(), "wf mushita psk")).toBeGreaterThan(0);
+    session.updateEvents(DRUGA);
+    overlay.render(session.current());
 
-    // Gra buduje okno walki od nowa pod następną walkę — subskrypcja leci od
-    // zera. Panel ma pokazać nową walkę, nie doklejać jej do poprzedniej.
-    const wojownikiem = await readFixture("new-engine/2026-07-18_wojownik-vs-druzyna-umiejetnosci");
-    const stop = start(new DomLogSource(makeLog(wojownikiem)), overlay, session);
-
-    expect(dealtBy(session.current(), "Woj Zandan Długonogi")).toBeGreaterThan(0);
-    expect(dealtBy(session.current(), "wf mushita psk")).toBe(0);
-    stop();
+    expect(dealtBy(session.current(), "Tancogniew Kazrek")).toBeGreaterThan(0);
+    expect(dealtBy(session.current(), "Gracz")).toBe(0);
   });
 
-  test("rosnący bufor daje na końcu to samo, co wczytany w całości", async () => {
-    // Odtwarza doczytywanie się logu w grze: bufor rośnie linia po linii.
-    // Panel przerysowuje się przy każdej emisji, więc liczby po ostatniej muszą
-    // być tymi, które daje jednorazowe wczytanie całości.
-    const lines = (await readFixture("new-engine/2026-07-18_mag-vs-druzyna-umiejetnosci")).split(
-      "\n",
-    );
+  test("rosnący strumień daje na końcu to samo, co wczytany w całości", async () => {
+    // Odtwarza doczytywanie się walki w grze: `EngineProtocolSource` dekoduje
+    // CAŁY prefiks przy każdej porcji, więc sesja dostaje coraz dłuższą listę.
+    // Liczby po ostatniej porcji muszą być tymi, które daje jedno wczytanie.
     const rosnaco = new Session();
-    for (const upTo of [8, 20, lines.length]) rosnaco.update(lines.slice(0, upTo).join("\n"));
+    for (const upTo of [8, 20, DRUGA.length]) rosnaco.updateEvents(DRUGA.slice(0, upTo));
 
     const naraz = new Session();
-    naraz.update(lines.join("\n"));
+    naraz.updateEvents(DRUGA);
 
-    expect(dealtBy(rosnaco.current(), "wf mushita psk")).toBe(
-      dealtBy(naraz.current(), "wf mushita psk"),
+    expect(dealtBy(rosnaco.current(), "Tancogniew Kazrek")).toBe(
+      dealtBy(naraz.current(), "Tancogniew Kazrek"),
     );
+  });
+
+  test("start() karmi sesję i panel z jednego strumienia", async () => {
+    // Spięcie źródło → sesja → panel. Wcześniej pilnował tego test wyżej,
+    // przez `DomLogSource`; dziś jedyną drogą jest `EventSource`.
+    const session = new Session();
+    const overlay = new Overlay();
+    const SKLAD: RosterEntry[] = [
+      { id: 1, name: "Kamil", side: 0 },
+      { id: 2, name: "Locha", side: 1 },
+    ];
+
+    start(
+      new StaticProtocolSource(["1=100.00;2=40.37;+dmgd=455;-dmgd=455"], undefined, SKLAD),
+      overlay,
+      session,
+    );
+
+    expect(dealtBy(session.current(), "Kamil")).toBe(455);
+    expect(
+      [...overlay.shadow.querySelectorAll(".label")].map((el) => el.textContent),
+    ).toContain("Kamil");
   });
 });
 
@@ -165,36 +175,39 @@ describe("panel dostaje bieżącą walkę, nie historię", () => {
  * znaczyć: mierzyłoby różnicę między dwoma agregatami, a nie między odczytami.
  */
 describe("Session.updateEvents", () => {
-  const KORPUS = new URL("./fixtures/", import.meta.url).pathname;
-  const wszystkie = [...new Glob("*/*/raw.txt").scanSync(KORPUS)].map((sciezka) => ({
-    nazwa: sciezka.replace("/raw.txt", ""),
-    sciezka: `${KORPUS}${sciezka}`,
-  }));
-
   test("korpus jest niepusty — inaczej niezmiennik niżej byłby zielony i pusty", () => {
-    expect(wszystkie.length).toBeGreaterThan(10);
+    expect(WALKI.length).toBeGreaterThan(3);
   });
 
-  test.each(wszystkie)(
-    "$nazwa — updateEvents(parse(tekst)) daje to samo, co update(tekst)",
-    async ({ sciezka }) => {
-      // Niezmiennik jest darmowy i pilnuje delegacji: gdyby `update` przestało
-      // przechodzić przez `updateEvents`, dwie drogi mogłyby się rozjechać
-      // po cichu, a to jest jedyne miejsce, w którym da się to złapać bez gry.
-      const tekst = await Bun.file(sciezka).text();
-      const przezTekst = new Session();
-      przezTekst.update(tekst);
-      const przezZdarzenia = new Session();
-      przezZdarzenia.updateEvents(parse(tekst));
-      expect(przezZdarzenia.current()).toEqual(przezTekst.current());
-    },
-  );
+  /**
+   * ⚠️ Niezmiennik chodził do 2026‑08‑04 po katalogach `tests/fixtures/`
+   * — 25 prawdziwych walk. Chodzi dziś po walkach budowanych w kodzie
+   * (`tests/korpus.ts`), więc sprawdza tę samą WŁASNOŚĆ na uboższym materiale.
+   */
+  test.each(WALKI)("$name — jedna walka w korpusie to jedna walka w sesji", ({ events }) => {
+    expect(splitFights(events).filter((f) => f.length > 0)).toHaveLength(1);
+
+    const sesja = new Session();
+    sesja.updateEvents(events);
+    expect(sesja.current().actors.length).toBeGreaterThan(0);
+  });
 
   test("skład z gry dociera tą samą drogą", () => {
-    const zdarzenia = parse("Rozpoczęła się walka pomiędzy Kamil(100lvl m) a Locha(50lvl w).");
     const sesja = new Session();
-    sesja.updateEvents(zdarzenia, [{ id: 7, name: "Kamil", side: 0 }]);
+    sesja.updateEvents([otwarcie(["Kamil 100m"], ["Locha 50w"])], [
+      { id: 7, name: "Kamil", side: 0 },
+    ]);
     expect(sesja.current().actors.some((a) => a.name === "Kamil")).toBe(true);
+  });
+
+  test("zdarzenia z protokołu idą tą samą drogą, co z korpusu", () => {
+    const SKLAD: RosterEntry[] = [
+      { id: 1, name: "Kamil", side: 0 },
+      { id: 2, name: "Locha", side: 1 },
+    ];
+    const sesja = new Session();
+    sesja.updateEvents(dekoduj(["1=100.00;2=40.37;+dmgd=455;-dmgd=455"], SKLAD), SKLAD);
+    expect(sesja.current().actors.find((a) => a.name === "Kamil")?.damageDealt).toBe(455);
   });
 
   test("pusta lista zdarzeń daje zerowe statystyki, a nie wyjątek", () => {

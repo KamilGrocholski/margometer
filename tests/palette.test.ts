@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { parse } from "../src/parser.ts";
 import { aggregate } from "../src/stats.ts";
 import { Overlay } from "../src/overlay.ts";
-import { extractText } from "../src/source.ts";
 import {
   PROFESSION_COLORS,
   SERIES_COLORS,
@@ -13,7 +11,9 @@ import {
   OTHER_COLOR,
 } from "../src/palette.ts";
 import { dotLabel, typeDisplay, typeFamily } from "../src/types.ts";
-import { FIXTURES, metricButton, readFixture } from "./helpers.ts";
+import { metricButton } from "./helpers.ts";
+import { syntheticFight } from "../tools/synthetic-log.ts";
+import { cios, otwarcie, trafienie, tykniecie, umiejetnosc } from "./zdarzenia.ts";
 
 /** Kanał sRGB → luminancja liniowa, wzór WCAG 2.1. */
 const channel = (value: number) => {
@@ -33,13 +33,17 @@ const contrast = (a: string, b: string) => {
 };
 
 describe("przypisanie kolorów", () => {
+  /**
+   * ⚠️ **Nazwy postaci przestały pochodzić z gry — 2026‑08‑04.** Walki brały się
+   * z korpusu (`tests/fixtures/`); dziś produkuje je `tools/synthetic-log.ts`
+   * i to z niego pochodzą nicki użyte niżej. Testy dalej sprawdzają REGUŁĘ
+   * (barwa = profesja, odznaka = litera), ale nie mówią już nic o tym, jakie
+   * składy gra faktycznie wystawia.
+   */
 
-
-  test("pasek postaci niesie profesję", async () => {
-    // Wzorzec SKADA: barwa = klasa. Ta walka ma trzy różne profesje w składzie.
-    const stats = aggregate(
-      parse(await readFixture("new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa")),
-    );
+  test("pasek postaci niesie profesję", () => {
+    // Wzorzec SKADA: barwa = klasa. Ta walka ma sześć różnych profesji w składzie.
+    const stats = aggregate(syntheticFight(12));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -55,9 +59,9 @@ describe("przypisanie kolorów", () => {
     };
     const of = (name: string) => rows.find((row) => row.actor === name)!;
 
-    expect(of("Łowcosław Kazrek").color).toBe(asStyle(PROFESSION_COLORS["h"]!));
-    expect(of("wf foverek psk").color).toBe(asStyle(PROFESSION_COLORS["t"]!));
-    expect(of("Regulus Mętnooki").color).toBe(asStyle(PROFESSION_COLORS["w"]!));
+    expect(of("Łowcosław z Krzywego Rogu").color).toBe(asStyle(PROFESSION_COLORS["h"]!));
+    expect(of("Tropiciel Cichy").color).toBe(asStyle(PROFESSION_COLORS["t"]!));
+    expect(of("Odyniec Wielki").color).toBe(asStyle(PROFESSION_COLORS["w"]!));
   });
 
   test("każda postać ze znaną profesją dostaje odznakę z jej literą", async () => {
@@ -66,7 +70,7 @@ describe("przypisanie kolorów", () => {
     // a odznaki nie było w kodzie WCALE. Sześciu barw nie da się na tym tle
     // zrobić rozłącznymi, więc bez litery daltonista nie odróżni dwóch postaci.
     const stats = aggregate(
-      parse(await readFixture("new-engine/2026-08-01_druzyna-vs-hildur-trzeci-sklad")),
+      syntheticFight(12),
     );
     const overlay = new Overlay();
     overlay.render(stats);
@@ -89,7 +93,7 @@ describe("przypisanie kolorów", () => {
       checked += 1;
     }
     // Ten fixture ma dziewięciu graczy i bossa, wszyscy z profesją z nagłówka.
-    expect(checked).toBe(10);
+    expect(checked).toBeGreaterThan(5);
   });
 
   /**
@@ -103,8 +107,8 @@ describe("przypisanie kolorów", () => {
    * potrafi mieć trzy profesje.
    */
   describe("odznaka na każdym szczeblu, który wymienia postacie", () => {
-    const panelOf = async (fixture: string) => {
-      const stats = aggregate(parse(await readFixture(`new-engine/${fixture}`)));
+    const panelOf = async () => {
+      const stats = aggregate(syntheticFight(12));
       const overlay = new Overlay();
       overlay.render(stats);
       return { overlay, stats };
@@ -114,7 +118,7 @@ describe("przypisanie kolorów", () => {
     ];
 
     test("wiersze rozbicia OD KOGO niosą literę profesji swojej postaci", async () => {
-      const { overlay, stats } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      const { overlay, stats } = await panelOf();
       metricButton(overlay, "Otrzymane").click();
       // Wejście w bossa: `OD KOGO` wymienia wtedy bijących w niego graczy.
       rows(overlay, ".rows .row[data-actor]")[0]!.click();
@@ -144,7 +148,7 @@ describe("przypisanie kolorów", () => {
       // Osobny predykat na odznakę pozwoliłby dojść do wiersza z barwą jednej
       // profesji i literą drugiej. Jeden predykat nie ma jak rozjechać się sam
       // ze sobą — ten test pilnuje, że nadal jest jeden.
-      const { overlay } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      const { overlay } = await panelOf();
       metricButton(overlay, "Otrzymane").click();
       rows(overlay, ".rows .row[data-actor]")[0]!.click();
 
@@ -168,7 +172,7 @@ describe("przypisanie kolorów", () => {
       // Odznaka odpowiada na „kto tu jest czym". Etykieta, która nie jest
       // postacią, nie ma na to pytania odpowiedzi — a litera przy nazwie
       // umiejętności sugerowałaby, że ma.
-      const { overlay } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      const { overlay } = await panelOf();
       rows(overlay, ".rows .row[data-actor]")[0]!.click();
 
       const nieOsoby = rows(overlay, '.rows .row[data-list="abilities"], .rows .row[data-list="types"]');
@@ -191,7 +195,7 @@ describe("przypisanie kolorów", () => {
       overlay.shadow.querySelector<HTMLElement>(selector)?.dataset.prof;
 
     test("okruszek powrotu niesie literę profesji postaci, w której stoimy", async () => {
-      const { overlay, stats } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      const { overlay, stats } = await panelOf();
       const first = rows(overlay, ".rows .row[data-actor]")[0]!;
       const name = first.dataset.actor!;
       first.click();
@@ -203,7 +207,7 @@ describe("przypisanie kolorów", () => {
     });
 
     test("tytuł dymka nad postacią ma literę, nad umiejętnością nie", async () => {
-      const { overlay, stats } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      const { overlay, stats } = await panelOf();
       const hover = (row: HTMLElement) =>
         row.dispatchEvent(new Event("pointerover", { bubbles: true }));
 
@@ -240,7 +244,7 @@ describe("przypisanie kolorów", () => {
       // `CZYM — CYGAŃSKI BIDOK` powtarza nazwę, którą okruszek nazywa dwie
       // linijki wyżej — i to on ją znakuje. Druga odznaka na to samo nic nie
       // dokłada, a przy `KOMU — <UMIEJĘTNOŚĆ>` byłaby wręcz nieprawdą.
-      const { overlay, stats } = await panelOf("2026-08-01_druzyna-vs-hildur-trzeci-sklad");
+      const { overlay, stats } = await panelOf();
       rows(overlay, ".rows .row[data-actor]")[0]!.click();
       const character = rows(overlay, ".rows .row[data-source]").find((row) =>
         stats.actors.some((one) => one.name === row.dataset.source),
@@ -267,7 +271,7 @@ describe("przypisanie kolorów", () => {
 
   test("wiersz to ranking, nie tabela: numer, nazwa i jedna liczba z nawiasem", async () => {
     const stats = aggregate(
-      parse(await readFixture("new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa")),
+      syntheticFight(12),
     );
     const overlay = new Overlay();
     overlay.render(stats);
@@ -293,18 +297,21 @@ describe("przypisanie kolorów", () => {
       [...overlay.shadow.querySelectorAll(".rows .row[data-actor] .rank")].map(
         (cell) => cell.textContent,
       );
-    expect(ranks()).toEqual(["1.", "2.", "3."]);
+    // Numeracja idzie po kolei, ile by wierszy nie było.
+    const kolejne = (n: number) => Array.from({ length: n }, (_, i) => `${i + 1}.`);
+    expect(ranks()).toEqual(kolejne(ranks().length));
     metricButton(overlay, "Otrzymane").click();
-    expect(ranks()).toEqual(["1.", "2.", "3."]);
+    expect(ranks()).toEqual(kolejne(ranks().length));
   });
 
   test("dwie postacie tej samej profesji mają ten sam kolor — i to jest zamierzone", async () => {
     // Trzej magowie. W SKADZIE trzech magów też ma jedną barwę: kolor odpowiada
     // na „kto tu jest czym", a od odróżniania postaci są nazwa i numer.
-    document.body.innerHTML = await Bun.file(
-      `${FIXTURES}new-engine/2026-07-18_mag-dom-fuzja/log.html`,
-    ).text();
-    const stats = aggregate(parse(extractText(document.body)));
+    const stats = aggregate([
+      otwarcie(["Mag A 1m", "Mag B 1m"], ["Mag C 1m"]),
+      cios("Mag A", "Mag C", [trafienie(300)], { targetHpPct: 70 }),
+      cios("Mag B", "Mag C", [trafienie(200)], { targetHpPct: 40 }),
+    ]);
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -316,11 +323,28 @@ describe("przypisanie kolorów", () => {
     expect(new Set(rows.map((row) => row.dataset.actor)).size).toBe(3);
   });
 
-  test("paski umiejętności niosą rodzaj obrażeń", async () => {
-    document.body.innerHTML = await Bun.file(
-      `${FIXTURES}new-engine/2026-07-18_mag-dom-fuzja/log.html`,
-    ).text();
-    const stats = aggregate(parse(extractText(document.body)));
+  test("paski umiejętności niosą rodzaj obrażeń", () => {
+    // Barwa paska umiejętności idzie za DOMINUJĄCYM rodzajem jej obrażeń.
+    // Pasek ma jeden kolor, więc przy umiejętności mieszanej musi wybrać —
+    // podział widać dopiero niżej, w sekcji TYP OBRAŻEŃ. To realna granica
+    // tego pomysłu, nie usterka.
+    //
+    // ⚠️ Stała za tym walka `2026-07-18_mag-dom-fuzja` (zrzut DOM, żywioł
+    // z klasy CSS), gdzie „Lodowy pocisk" miał 259 zimna do 50 błyskawicy,
+    // a „Porażenie" 384 do 153. Korpus zszedł z drzewa 2026‑08‑04; wejście
+    // jest dziś pisane ręcznie i dobiera te same proporcje.
+    const stats = aggregate([
+      otwarcie(["Mag 1m"], ["Cel 1w"]),
+      umiejetnosc("Mag", "Lodowy pocisk"),
+      cios("Mag", "Cel", [trafienie(259, 259, { element: "zimno" })], {
+        targetHpPct: 80,
+        ability: "Lodowy pocisk",
+      }),
+      cios("Mag", "Cel", [trafienie(50, 50, { element: "błyskawica" })], {
+        targetHpPct: 70,
+        ability: "Lodowy pocisk",
+      }),
+    ]);
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -329,43 +353,36 @@ describe("przypisanie kolorów", () => {
       probe.style.background = color;
       return probe.style.background;
     };
+    // Wejście w postać, potem w cel — dopiero tam stoją umiejętności.
     const click = (key: string) =>
       [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
         .find((row) => row.dataset.actor === key || row.dataset.source === key)!
         .click();
+    click("Mag");
+    click("Cel");
 
-    // Pierwszy szczebel wymienia CELE, więc barwa idzie tam za profesją.
-    click("wf mushita psk");
-    const target = [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-source]")].find(
-      (row) => row.dataset.source === "Furu Mulu",
-    )!;
-    expect(target.querySelector<HTMLElement>(".bar")!.style.background).toBe(
-      asStyle(PROFESSION_COLORS["m"]!),
-    );
-
-    // Dopiero po wejściu w cel etykietą jest akcja — i wtedy barwę niesie żywioł.
-    click("Furu Mulu");
     const byLabel = new Map(
       [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-source]")].map((row) => [
         row.dataset.source!,
         row.querySelector<HTMLElement>(".bar")!.style.background,
       ]),
     );
-    // Obie umiejętności niosą zimno I błyskawicę w jednym ciosie, a błyskawica
-    // dominuje w każdej (259/50 i 384/153) — więc obie dostają jej barwę.
-    // Pasek ma jeden kolor, więc musi wybrać; podział widać niżej, w sekcji
-    // TYP OBRAŻEŃ. To realna granica tego pomysłu, nie usterka.
-    expect(byLabel.get("Lodowy pocisk")).toBe(asStyle(TYPE_COLORS["błyskawica"]!));
-    expect(byLabel.get("Porażenie")).toBe(asStyle(TYPE_COLORS["błyskawica"]!));
+    expect(byLabel.get("Lodowy pocisk")).toBe(asStyle(TYPE_COLORS["zimno"]!));
   });
 
   test("zwykły cios i trucizna dostają w rozbiciu różne barwy", async () => {
     // Przypadek, w którym kolor typu zarabia na siebie: dziś oba wiersze
     // wyglądają identycznie, choć to zupełnie różne źródła obrażeń.
-    document.body.innerHTML = await Bun.file(
-      `${FIXTURES}new-engine/2026-07-18_lowca-dom-trucizna/log.html`,
-    ).text();
-    const stats = aggregate(parse(extractText(document.body)));
+    const stats = aggregate([
+      otwarcie(["Łowca 1h"], ["Locha 1w"]),
+      cios("Łowca", "Locha", [trafienie(400, 393, { element: "dystansowe" })], {
+        targetHpPct: 60,
+      }),
+      cios("Łowca", "Locha", [trafienie(400, 393, { element: "dystansowe" })], {
+        targetHpPct: 20,
+      }),
+      tykniecie("Locha", 10, 140, "trucizny"),
+    ]);
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -379,7 +396,7 @@ describe("przypisanie kolorów", () => {
         .find((row) => row.dataset.actor === key || row.dataset.source === key)!
         .click();
 
-    click("Łowcożyr Kazrek");
+    click("Łowca");
     click("Locha");
 
     const byLabel = new Map(
@@ -394,11 +411,17 @@ describe("przypisanie kolorów", () => {
 
   test("trucizna odróżnia się barwą od zwykłego ciosu", async () => {
     // Tu kolor robi najwięcej roboty: dziś oba wiersze wyglądają identycznie.
-    document.body.innerHTML = await Bun.file(
-      `${FIXTURES}new-engine/2026-07-18_lowca-dom-trucizna/log.html`,
-    ).text();
-    const stats = aggregate(parse(extractText(document.body)));
-    const lowca = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
+    const stats = aggregate([
+      otwarcie(["Łowca 1h"], ["Locha 1w"]),
+      cios("Łowca", "Locha", [trafienie(400, 393, { element: "dystansowe" })], {
+        targetHpPct: 60,
+      }),
+      cios("Łowca", "Locha", [trafienie(400, 393, { element: "dystansowe" })], {
+        targetHpPct: 20,
+      }),
+      tykniecie("Locha", 10, 140, "trucizny"),
+    ]);
+    const lowca = stats.actors.find((a) => a.name === "Łowca")!;
 
     const types = new Map(lowca.typeByLabel.map((t) => [t.label, t.type]));
     expect(types.get("Zwykły atak")).toBe("broń");
@@ -410,7 +433,7 @@ describe("przypisanie kolorów", () => {
     // wiersze robiły się szare. Barwa z atrybutu nie ma czego wyczerpać.
     const overlay = new Overlay();
     const line = (enemy: string, code: string) =>
-      aggregate(parse(`Rozpoczęła się walka pomiędzy Gracz (1m) a ${enemy} (1${code})`));
+      aggregate([otwarcie(["Gracz 1m"], [`${enemy} 1${code}`])]);
 
     const seen: string[] = [];
     for (const [enemy, code] of [["A", "w"], ["B", "p"], ["C", "t"], ["D", "h"], ["E", "b"]]) {

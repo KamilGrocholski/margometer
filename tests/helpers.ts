@@ -6,9 +6,27 @@
  * w każdym pliku rozjechałaby się przy pierwszej zmianie formatu.
  */
 import type { Overlay } from "../src/overlay.ts";
+import type { BattleEvent } from "../src/types.ts";
+import { syntheticFight } from "../tools/synthetic-log.ts";
 
-export const FIXTURES = new URL("./fixtures/", import.meta.url).pathname;
-export const readFixture = (name: string) => Bun.file(`${FIXTURES}${name}/raw.txt`).text();
+/**
+ * Walka „z korpusu" — SYNTETYCZNA, bo korpusu nie ma.
+ *
+ * ⚠️ **`tests/fixtures/` zniknęło 2026‑08‑04 w całości.** Funkcja przyjmuje
+ * dalej nazwę katalogu — tak wygodniej było przepiąć ~30 wywołań — ale **nie
+ * czyta niczego z dysku**: nazwa służy wyłącznie do tego, żeby ta sama nazwa
+ * dawała zawsze tę samą walkę. Walki produkuje `tools/synthetic-log.ts`,
+ * deterministycznie.
+ *
+ * Co to znaczy dla testów, które ją wołają: sensowne zostaje pytanie „czy panel
+ * rysuje to, co dostał"; znika pytanie „czy gra produkuje takie kształty".
+ */
+export function readEvents(name: string): BattleEvent[] {
+  const ROZMIARY = [2, 3, 4, 6, 8, 12, 20];
+  let suma = 0;
+  for (const znak of name) suma = (suma * 31 + znak.codePointAt(0)!) >>> 0;
+  return syntheticFight(ROZMIARY[suma % ROZMIARY.length]!);
+}
 
 export const number = new Intl.NumberFormat("pl-PL");
 /** Musi się zgadzać z formatem tempa w `overlay.ts`. */

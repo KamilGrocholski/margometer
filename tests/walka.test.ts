@@ -6,27 +6,23 @@ import {
   komunikaty,
   meta,
   odchudz,
-  renderParujeSie,
-  rozjazdyParowania,
   skladZeZrzutu,
-  sklejRender,
   stronyKomunikatu,
   type Wywolanie,
   type Zrzut,
 } from "../tools/walka.ts";
-import { extractText, findBattleLog } from "../src/source.ts";
-import { parse } from "../src/parser.ts";
 
 /**
  * Czego te testy pilnują: żeby zrzut z sondy zamienił się w fixture, który
  * NIE KŁAMIE. Sonda jest przeglądarkowa i testu jednostkowego mieć nie może;
  * wszystko, co da się sprawdzić bez gry, sprawdza się tutaj.
  *
- * Najważniejszy jest ostatni blok. Fixture z tej drogi wchodzi do globu
- * `*&#47;*&#47;log.html` w `parser.test.ts` i od razu podlega niezmiennikowi
- * „każda linia rozpoznana". Gdyby `sklejRender` dawał kształt, którego
- * `findBattleLog` nie znajduje, test parsera przeszedłby na PUSTYM wejściu —
- * zielony i pusty, czyli dokładnie to, przed czym ostrzega `AGENTS.md`.
+ * ⚠️ **ZNIKŁY STĄD TRZY BLOKI — 2026‑08‑04.** `rozjazdyParowania`,
+ * `renderParujeSie` i opis `sklejRender` pilnowały WĘZŁÓW RENDERU: sonda
+ * zbierała je obok komunikatów, narzędzie sklejało z nich `log.html`, a ten
+ * wchodził do globu testowego parsera. Cała ta ścieżka istniała po to, żeby
+ * dało się porównać protokół z odczytem tekstu. Parsera nie ma, więc nie ma
+ * ani czego porównywać, ani czym.
  */
 
 /** Dwa wywołania sondy: otwarcie walki i jeden cios. Kształt jak z gry. */
@@ -35,9 +31,6 @@ const WPISY: Wywolanie[] = [
     nr: 0,
     ladunek: { init: "1" },
     komunikaty: ["0;0;txt=Rozpoczęła się walka pomiędzy Kamil (10w) a Wilk (9w)"],
-    render: [
-      '<div class="battle-msg txt">Rozpoczęła się walka pomiędzy Kamil (10w) a Wilk (9w)</div>',
-    ],
     wojownicyPrzed: [],
     wojownicyPo: [{ id: 1, name: "Kamil", hp: { cur: 100, max: 100 } }],
   },
@@ -45,11 +38,6 @@ const WPISY: Wywolanie[] = [
     nr: 1,
     ladunek: {},
     komunikaty: ["1=100.00;2=40.37;+dmgd=455;+pierce;-dmgd=455"],
-    render: [
-      '<div class="battle-msg attack">Kamil(100%) uderzył z siłą <b class="dmgd">+455</b>' +
-        '<br><font color="82ff88">+Przebicie</font><br>' +
-        'Wilk(40.37%) otrzymał(a) <b class="dmgd" prof-w="">-455</b> obrażeń<br></div>',
-    ],
     wojownicyPrzed: [{ id: 2, name: "Wilk", hp: { cur: 100, max: 100 } }],
     wojownicyPo: [{ id: 2, name: "Wilk", hp: { cur: 40, max: 100 } }],
   },
@@ -141,46 +129,24 @@ describe("histogram", () => {
   });
 });
 
-describe("rozjazdyParowania", () => {
-  test("zgodne wywołania nie zgłaszają nic", () => {
-    expect(rozjazdyParowania(WPISY)).toEqual([]);
-  });
-
-  test("węzeł bez komunikatu jest zgłoszony", () => {
-    // To jedyny sprawdzian, czy para jest parą. Bez niego `log.html`
-    // i `protokol.json` mogłyby opisywać różne rzeczy, a fixture kłamałby cicho.
-    const zepsute = [{ ...WPISY[1]!, render: [...WPISY[1]!.render, "<div>obce</div>"] }];
-    expect(rozjazdyParowania(zepsute)).toEqual([{ nr: 1, komunikatow: 1, wezlow: 2 }]);
-  });
-});
-
 describe("meta", () => {
-  const opis = JSON.parse(meta(czytajZrzut(JSON.stringify(ZRZUT)), "2026-08-04", true));
-  const bezRenderu = JSON.parse(meta(czytajZrzut(JSON.stringify(ZRZUT)), "2026-08-04", false));
+  const opis = JSON.parse(meta(czytajZrzut(JSON.stringify(ZRZUT)), "2026-08-04"));
 
   test("trzyma się schematu korpusu new-engine", () => {
     expect(opis.client).toBe("new-engine");
-    expect(opis.format).toBe("protokol+html");
     expect(opis.clientBuild).toBe("1785244275300");
   });
 
-  test("bez renderu `format` NIE kłamie, że render tam jest", () => {
-    // Fixture bez `log.html` opisany jako `protokol+html` kazałby następnemu
-    // czytelnikowi szukać pliku, którego nie ma — albo, gorzej, uznać, że
-    // zniknął przez pomyłkę.
-    expect(bezRenderu.format).toBe("protokol");
-    expect(bezRenderu.source).not.toContain("log.html");
-  });
-
-  test("bez renderu POWÓD stoi w `missing`, a nie tylko w konsoli", () => {
-    // Ostrzeżenie z `--rozbij` widzi wyłącznie ten, kto rozbijał zrzut.
-    // Powód ma przeżyć w pliku, bo to on trafia do repo.
-    expect(bezRenderu.missing[0]).toContain("log.html");
-    expect(bezRenderu.missing[0]).toContain("węzłów renderu");
+  test("`format` mówi, co w fixturze NAPRAWDĘ jest", () => {
+    // Pole miało dwie wartości — `protokol+html` i `protokol` — bo render
+    // wchodził warunkowo. Zostaje jedna, bo fixture ma dziś jeden kształt;
+    // wartość zostaje jawna, żeby starsze katalogi dało się od nowych odróżnić.
+    expect(opis.format).toBe("protokol");
+    expect(opis.source).not.toContain("log.html");
   });
 
   test("covers/missing/notes czekają na człowieka", () => {
-    // Ta sama konwencja co w `tools/grooove.ts` — narzędzie nie zmyśla opisu,
+    // Narzędzie nie zmyśla opisu,
     // a niewypełniony fixture ma być widoczny na pierwszy rzut oka.
     expect(opis.covers[0]).toContain("DO UZUPEŁNIENIA");
     expect(opis.missing[0]).toContain("DO UZUPEŁNIENIA");
@@ -191,42 +157,6 @@ describe("meta", () => {
     // Skład da się wyciągnąć z `otwarcie`, ale poziom i profesja z protokołu
     // nie wychodzą. Wpisanie tu połowicznych danych byłoby udawaniem.
     expect(opis.participants).toEqual([]);
-  });
-});
-
-describe("sklejRender — fixture musi być czytelny dla parsera", () => {
-  const html = sklejRender(WPISY);
-
-  test("kształt jest ten sam co w dzisiejszych log.html", () => {
-    expect(html.startsWith('<div class="scroll-pane">')).toBe(true);
-    expect(html.trimEnd().endsWith("</div>")).toBe(true);
-  });
-
-  test("`findBattleLog` znajduje kontener w tym kształcie", () => {
-    // Gdyby nie znajdował, niezmiennik „każda linia rozpoznana" leciałby po
-    // pustym wejściu i był zielony bez treści.
-    document.body.innerHTML = html;
-    expect(findBattleLog(document)).not.toBeNull();
-  });
-
-  test("droga przez DOM daje te same zdarzenia, co niosą komunikaty", () => {
-    document.body.innerHTML = html;
-    const zdarzenia = parse(extractText(findBattleLog(document)!));
-    expect(zdarzenia.filter((z) => z.kind === "unknown")).toEqual([]);
-    expect(zdarzenia.some((z) => z.kind === "fight-start")).toBe(true);
-
-    const cios = zdarzenia.find((z) => z.kind === "attack");
-    expect(cios).toBeDefined();
-    // Liczba z renderu i liczba z protokołu (`+dmgd=455`) to ta sama liczba —
-    // to jest w miniaturze cały pomysł na orakulum z etapu 2.
-    expect(cios?.kind === "attack" && cios.hits[0]?.raw).toBe(455);
-  });
-
-  test("żywioł z klasy CSS przeżywa drogę do parsera", () => {
-    document.body.innerHTML = html;
-    const zdarzenia = parse(extractText(findBattleLog(document)!));
-    const cios = zdarzenia.find((z) => z.kind === "attack");
-    expect(cios?.kind === "attack" && cios.hits[0]?.element).toBe("dystansowe");
   });
 });
 
@@ -243,7 +173,6 @@ describe("skladZeZrzutu", () => {
     nr: 0,
     ladunek,
     komunikaty: [],
-    render: [],
     wojownicyPrzed: [],
     wojownicyPo: wojownicy,
   });
@@ -311,31 +240,11 @@ describe("skladZeZrzutu", () => {
   });
 });
 
-describe("renderParujeSie — czy render wolno zapisać jako dowód", () => {
-  test("tyle samo węzłów co komunikatów — render wchodzi", () => {
-    expect(renderParujeSie(WPISY)).toBe(true);
-  });
-
-  test("nadmiarowy węzeł blokuje zapis renderu", () => {
-    // Kształt z pierwszego prawdziwego zrzutu: gra przerysowuje węzły, więc
-    // przyrost liczony po długości listy łapie te same linie po kilka razy.
-    // Rekonstrukcja z takiego materiału zawyżyła obrażenia (5345 zamiast 2784).
-    const zdublowane = [{ ...WPISY[1]!, render: [...WPISY[1]!.render, "<div>ten sam</div>"] }];
-    expect(renderParujeSie(zdublowane)).toBe(false);
-  });
-
-  test("brakujący węzeł też blokuje — rozjazd w drugą stronę liczy się tak samo", () => {
-    const bezWezla = [{ ...WPISY[1]!, render: [] }];
-    expect(renderParujeSie(bezWezla)).toBe(false);
-  });
-});
-
 describe("odchudz — zrzut bez powtórzeń", () => {
   const wpis = (nr: number, ladunek: Record<string, unknown>, wojownicy: unknown[] = [], kom: string[] = []): Wywolanie => ({
     nr,
     ladunek,
     komunikaty: kom,
-    render: [],
     wojownicyPrzed: [],
     wojownicyPo: wojownicy,
   });

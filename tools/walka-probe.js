@@ -1,12 +1,18 @@
 /**
- * Sonda protokołu walki — zbiera to, CZEGO REPO NIE MA: jedną walkę zapisaną
- * naraz jako protokół silnika i jako tekst z okna.
+ * Sonda protokołu walki — zbiera surowy materiał dowodowy z gry.
  *
- * PO CO. `docs/ROADMAP.md` nazywa tę parę „największą dziś dziurą i jedyną
- * pozycją, której nie da się załatać bez gracza". Bez niej protokół i tekst są
- * dwoma korpusami odpowiadającymi na różne pytania i nic nie sprawdza liczb
- * parsera przeciw czemukolwiek spoza repo. Z nią protokół staje się
- * NIEZALEŻNYM ORAKULEM: obrażenia per postać, bloki, leczenie, krzywa życia.
+ * PO CO. `protokol.json` jest jedynym korpusem, który da się sprawdzić przeciw
+ * grze, i jedynym, z którego rosną nowe fixture'y. Wszystko inne w repo jest
+ * albo odczytem (zamrożonym), albo protokołem przekodowanym przez cudzy serwis
+ * (`tests/fixtures/grooove/`).
+ *
+ * ⚠️ **ZBIERAŁA TU JESZCZE WĘZŁY RENDERU — do 2026‑08‑04.** Dokładała do
+ * każdego wywołania linie `.battle-msg` doklejone przez klienta, indeksowane
+ * równolegle do `t.m`, żeby dało się wyprowadzić odpowiedniość
+ * komunikat ↔ zdanie JEDEN DO JEDNEGO. Z tego powstawał `log.html` i na nim
+ * stało porównanie protokołu z parserem tekstu. Parsera nie ma, `log.html` nie
+ * ma czytelnika — więc zbieranie węzłów było kosztem bez odbiorcy i zeszło
+ * razem z nimi.
  *
  * SKĄD BIERZE PROTOKÓŁ. Okno walki nie dostaje zdań — dostaje protokół, i cały
  * przechodzi przez jedno wywołanie `Engine.battle.update(t)`. `t.m` to tablica
@@ -21,14 +27,9 @@
  * karty do czasu `pobierz()`.
  *
  * CO ZBIERA, poza samym protokołem — bo protokół sam w sobie mamy już
- * z grooove.pl, a tego nie mamy:
- *   1. WĘZŁY RENDERU doklejone w tym samym wywołaniu, indeksowane równolegle
- *      do `t.m`. To daje odpowiedniość komunikat ↔ zdanie JEDEN DO JEDNEGO,
- *      czyli materiał, z którego mapowanie protokół→parser wyprowadza się
- *      z danych, zamiast być zgadywane.
- *   2. MIGAWKI WOJOWNIKÓW przed i po każdym wywołaniu (`hp.cur`, `hp.max`).
- *      To jest krzywa życia z `docs/DECYZJE.md:277` — „osobna, znacznie głębsza
- *      integracja, i nie jest zrobiona".
+ * z grooove.pl, a tego nie mamy: MIGAWKI WOJOWNIKÓW przed i po każdym wywołaniu
+ * (`hp.cur`, `hp.max`). To jest krzywa życia z `docs/DECYZJE.md:277` — „osobna,
+ * znacznie głębsza integracja, i nie jest zrobiona".
  *
  * UŻYCIE
  *   1. Otwórz walkę w grze i wklej ten plik do konsoli (sonda potrzebuje
@@ -36,10 +37,7 @@
  *      czeka, więc wklejenie zawczasu też jest w porządku).
  *   2. Stocz walkę do końca.
  *   3. `margometerWalka.pobierz()` — zapisuje plik JSON.
- *   4. W oknie walki naciśnij „Kopiuj logi" i wklej wynik do `raw.txt`.
- *      Sonda tego NIE robi za ciebie: tekst z tego przycisku jest osobnym
- *      dowodem i ma pochodzić z gry, nie z naszego sklejania węzłów.
- *   5. `bun tools/walka.ts --rozbij <plik> --nazwa <slug>`
+ *   4. `bun tools/walka.ts --rozbij <plik> --nazwa <slug>`
  *
  * Podgląd bez zapisu: `margometerWalka.stan()`. Zdjęcie sondy: `.stop()`.
  */
@@ -86,24 +84,12 @@
       ac: w.ac && typeof w.ac === "object" ? { ...w.ac } : (w.ac ?? null),
     }));
 
-  /**
-   * Węzły renderu. `battle-msg` to klasa nadawana przez klienta każdej linii
-   * logu (widać ją w `tests/fixtures/new-engine/*&#47;log.html`).
-   *
-   * Selektor jest tu świadomym wyjątkiem od zasady z `src/source.ts`, gdzie
-   * kontener szukamy PO TREŚCI, bo selektory gra potrafi zmienić. Tam kosztem
-   * pomyłki jest panel liczący źle u gracza; tu — jedno nieudane zbieranie
-   * fixture'a, które widać od razu (`stan()` pokaże zero węzłów). Za tę cenę
-   * dostajemy granicę linii dokładnie tam, gdzie stawia ją klient.
-   */
-  const wezly = () => [...document.querySelectorAll(".battle-msg")];
-
   const wpisy = [];
   let owinieta = null;
   let oryginal = null;
   let otwarcie = null;
 
-  const zapisz = (t, przed, po, nowe) => {
+  const zapisz = (t, przed, po) => {
     // `t` jest cudzym obiektem i żyje dalej po naszym powrocie — kopiujemy go
     // przez JSON, żeby zrzut nie pokazał stanu z KOŃCA walki zamiast z chwili
     // wywołania. To samo dotyczy `t.m`.
@@ -123,30 +109,19 @@
       nr: wpisy.length,
       ladunek,
       komunikaty,
-      render: nowe.map((w) => w.outerHTML),
       wojownicyPrzed: przed,
       wojownicyPo: po,
     });
-
-    // Rozjazd liczb jest jedyną rzeczą, która psuje parę cicho — węzeł bez
-    // komunikatu albo odwrotnie znaczy, że indeksowanie równoległe nie trzyma.
-    if (komunikaty.length !== nowe.length) {
-      console.warn(
-        `[walka] wywołanie ${wpisy.length - 1}: ${komunikaty.length} komunikatów, ` +
-          `${nowe.length} węzłów renderu — para dla tego wywołania jest niepewna.`,
-      );
-    }
   };
 
   const owin = (battle) => {
     oryginal = battle.update;
     const opakowanie = function (t) {
       const przed = migawka(battle);
-      const bylo = wezly().length;
       const wynik = oryginal.apply(this, arguments);
       // Migawka PO oryginale: klient aktualizuje wojowników w środku `update`,
       // więc para przed/po obejmuje dokładnie tę porcję zdarzeń.
-      zapisz(t, przed, migawka(battle), wezly().slice(bylo));
+      zapisz(t, przed, migawka(battle));
       return wynik;
     };
     opakowanie.__margometer = WERSJA;
@@ -170,14 +145,11 @@
   window.margometerWalka = {
     stan: () => {
       const komunikaty = wpisy.reduce((suma, w) => suma + w.komunikaty.length, 0);
-      const render = wpisy.reduce((suma, w) => suma + w.render.length, 0);
-      console.log(
-        `[walka] wywołań: ${wpisy.length}, komunikatów: ${komunikaty}, węzłów renderu: ${render}`,
-      );
-      if (render === 0 && komunikaty > 0) {
-        console.warn("[walka] zero węzłów renderu — klasa `.battle-msg` się zmieniła?");
+      console.log(`[walka] wywołań: ${wpisy.length}, komunikatów: ${komunikaty}`);
+      if (komunikaty === 0 && wpisy.length > 0) {
+        console.warn("[walka] zero komunikatów — `t.m` zmieniło kształt?");
       }
-      return { wywolan: wpisy.length, komunikaty, render, otwarcie };
+      return { wywolan: wpisy.length, komunikaty, otwarcie };
     },
 
     zrzut: () => ({

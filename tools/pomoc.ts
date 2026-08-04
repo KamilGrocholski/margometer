@@ -81,7 +81,8 @@ export function wiek(pobrane: Date | null, teraz: Date): string {
  * jedynym sposobem na aktualizację było ręczne skasowanie pliku z katalogu,
  * o którym trzeba było najpierw wiedzieć.
  *
- * Wyeksportowana, bo `tools/luki.ts` czyta ten sam artykuł. Drugie pobieranie
+ * ⚠️ Wyeksportowana dla `tools/luki.ts`, które zeszło z drzewa 2026‑08‑04 —
+ * poza własnym CLI nie ma dziś czytelnika. Drugie pobieranie
  * obok tego znaczyłoby drugi zapis w `.cache/`, drugą zasadę odświeżania
  * i dwa różne wieki zrzutu w wyjściu dwóch narzędzi mówiących o tym samym.
  */

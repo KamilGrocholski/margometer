@@ -1,4 +1,3 @@
-import { parse } from "./parser.ts";
 import type { RosterEntry } from "./roster.ts";
 import { aggregate, EMPTY_STATS, type BattleStats } from "./stats.ts";
 import type { BattleEvent, Participant } from "./types.ts";
@@ -70,22 +69,12 @@ export class Session {
    * pilnujący, żeby skład z gry nie poszedł na walki wcześniejsze, liczone
    * na potrzeby sumy sesji. Sumy nie ma, wcześniejszych walk nie liczymy,
    * warunek nie ma czego chronić.
-   */
-  update(text: string, fromGame?: RosterEntry[] | null): void {
-    this.updateEvents(parse(text), fromGame);
-  }
-
-  /**
-   * To samo, co `update`, dla źródła podającego zdarzenia gotowe.
    *
-   * Istnieje, bo protokół silnika (`src/protokol.ts`) wystawia `BattleEvent[]`
-   * bez przechodzenia przez tekst — a `splitFights` i `aggregate` mają zostać
-   * WSPÓLNE dla obu dróg. Gdyby drugie źródło dostało własny podział na walki
-   * albo własny agregat, porównanie wyników przestałoby cokolwiek znaczyć:
-   * mierzyłoby różnicę między dwoma agregatami, a nie między dwoma odczytami.
-   *
-   * `update` deleguje tutaj, więc każdy dzisiejszy test sesji jest zarazem
-   * testem tej metody.
+   * ⚠️ **STAŁA TU JESZCZE `update(text)`**, która robiła `parse(text)` i wołała
+   * to samo. Zniknęła 2026‑08‑04 razem z parserem tekstu: zdarzenia przychodzą
+   * dziś jedną drogą, wprost z protokołu silnika. Nazwa `updateEvents` została,
+   * choć nie ma już od czego się odróżniać — zmiana kosztowałaby dotknięcie
+   * wszystkich wywołań po to, żeby nic nie zmienić.
    */
   updateEvents(events: BattleEvent[], fromGame?: RosterEntry[] | null): void {
     // Liczy się WYŁĄCZNIE ostatnia walka w buforze — jedyna, o którą ktokolwiek

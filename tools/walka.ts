@@ -2,28 +2,27 @@
  * Rozbicie zrzutu z `tools/walka-probe.js` na fixture korpusu — i podgląd tego,
  * co w zrzucie siedzi.
  *
- * CO POWSTAJE. Katalog w `tests/fixtures/new-engine/` z trzema plikami:
+ * CO POWSTAJE. Katalog w `tests/fixtures/new-engine/` z dwoma plikami — ⚠️ ten
+ * katalog **nie istnieje od 2026‑08‑04** (materiał testowy powstaje w kodzie,
+ * `AGENTS.md`). Narzędzie go odtworzy przy pierwszym zrzucie i to jest jego
+ * dzisiejsza rola: droga powrotna do materiału z gry.
  *
- *   log.html      — węzły renderu w kontenerze `.scroll-pane`, czyli DOKŁADNIE
- *                   ten kształt, który mają dzisiejsze fixture'y HTML i który
- *                   czyta `src/source.ts`. Wchodzi do globu `*&#47;*&#47;log.html`,
- *                   więc od razu przechodzi niezmienniki parsera. **Powstaje
- *                   TYLKO wtedy, gdy węzły parują się z komunikatami** — patrz
- *                   `rozjazdyParowania` i komentarz przy zapisie.
- *   protokol.json — surowe ładunki `Engine.battle.update`, migawki wojowników
- *                   i indeksowanie węzłów renderu równolegle do komunikatów.
+ *   protokol.json — surowe ładunki `Engine.battle.update` i migawki wojowników.
  *   meta.json     — szkielet opisu, z `covers`/`missing`/`notes` do wypełnienia.
  *
- * DLACZEGO `protokol.json`, a nie `log.grooove.txt`. Bo to nie jest ten sam
- * materiał. Korpus grooove ma protokół PRZEKODOWANY przez cudzy serwis
- * (`=` na `.`, `+` na `@`, `dmg` skrócone do `D`) i bez renderu gry obok. Tutaj
- * leży ładunek jeden do jednego z klienta plus zdania, które gra z niego
- * ułożyła. Nazwa musi się też różnić od `raw.txt` i `log.html`, żeby NIE wpaść
- * w globy testowe parsera — powód opisany w `tests/fixtures/grooove/README.md`.
+ * ⚠️ **TRZECIM PLIKIEM BYŁ `log.html` i zniknął 2026‑08‑04.** Sonda zbierała
+ * obok komunikatów WĘZŁY RENDERU, a narzędzie sklejało z nich kontener
+ * `.scroll-pane` — dokładnie ten kształt, który czytał `src/source.ts`. Sens
+ * miało to jeden: dało się tę samą walkę przepuścić drugą drogą (`extractText`
+ * + `parse`) i porównać liczby. Parser tekstu zszedł z drzewa, więc `log.html`
+ * nie ma czytelnika, a zbieranie węzłów było kosztem bez odbiorcy.
  *
- * CZEGO TO NIE ROBI. Nie składa `raw.txt`. Tekst z przycisku „Kopiuj logi" jest
- * osobnym dowodem i ma pochodzić z gry; sklejanie go z węzłów renderu byłoby
- * naszą rekonstrukcją udającą zrzut. Plik dokłada się ręcznie, obok.
+ * DLACZEGO `protokol.json` z sondy, a nie z cudzego serwisu. ⚠️ Do 2026‑08‑04
+ * repo miało drugi korpus — `tests/fixtures/grooove/`, protokół z publicznych
+ * walk na grooove.pl. Był PRZEKODOWANY przez tamten serwis (`=` na `.`,
+ * `+` na `@`, `dmg` skrócone do `D`), więc odpowiadał wyłącznie na pytanie
+ * „czy gra w ogóle emituje klucz X". Zszedł z drzewa razem z całym
+ * `tests/fixtures/`. Tutaj leży ładunek jeden do jednego z klienta.
  *
  * Użycie:
  *   bun tools/walka.ts --rozbij ~/Pobrane/walka-tempest-….json --nazwa pvp-trucizna
@@ -40,7 +39,6 @@ export type Wywolanie = {
   nr: number;
   ladunek: Record<string, unknown>;
   komunikaty: string[];
-  render: string[];
   wojownicyPrzed: unknown[];
   wojownicyPo: unknown[];
 };
@@ -91,18 +89,6 @@ export function czytajZrzut(tekst: string): Zrzut {
 }
 
 /**
- * Węzły renderu sklejone w kontener `.scroll-pane`.
- *
- * Kształt przepisany z dzisiejszych fixture'ów HTML (`log.html` w korpusie),
- * bo to on jest wejściem `findBattleLog`/`extractText`. Bez kontenera zrzut
- * miałby kilkaset korzeni i `findBattleLog` szukałby wspólnego rodzica poza
- * naszym plikiem.
- */
-export function sklejRender(wpisy: Wywolanie[]): string {
-  return `<div class="scroll-pane">${wpisy.flatMap((w) => w.render).join("")}</div>\n`;
-}
-
-/**
  * Wszystkie komunikaty protokołu, w kolejności zapisu.
  *
  * Wywołania są tu granicą porcji, nie zdarzenia — jedno `update` niesie tyle
@@ -120,8 +106,7 @@ export function komunikaty(wpisy: Wywolanie[]): string[] {
  * pierwsze segmenty to strony. Klucz kończy się na PIERWSZYM `=`, bo wartości
  * bywają złożone. Parametry bez wartości (`r`, `N`, `Y`) są całym segmentem.
  *
- * Odpowiednik `kluczeZdarzenia` z `tools/grooove.ts` — tam separatorem jest
- * kropka, bo grooove przekodowuje protokół. Tu jest `=`, czyli to, co naprawdę
+ * Separatorem jest `=`, czyli to, co naprawdę
  * przysyła serwer. Dwie funkcje zamiast jednej z parametrem, żeby nie dało się
  * przez pomyłkę puścić jednego korpusu drugą gramatyką.
  */
@@ -235,20 +220,6 @@ export function histogram(wiadomosci: string[]): [string, number][] {
   return [...licznik].sort((a, b) => b[1] - a[1]);
 }
 
-/**
- * Czy komunikaty i węzły renderu dają się indeksować równolegle.
- *
- * To jest jedyny sprawdzian tego, czy para w ogóle jest parą. Renderer składa
- * jeden węzeł na komunikat, więc rozjazd znaczy, że sonda przegapiła węzły
- * (zmieniona klasa `.battle-msg`) albo złapała cudze. Wtedy `log.html`
- * i `protokol.json` opisują różne rzeczy, a fixture kłamie po cichu.
- */
-export function rozjazdyParowania(wpisy: Wywolanie[]): { nr: number; komunikatow: number; wezlow: number }[] {
-  return wpisy
-    .map((w) => ({ nr: w.nr, komunikatow: w.komunikaty.length, wezlow: w.render.length }))
-    .filter((w) => w.komunikatow !== w.wezlow);
-}
-
 /** Szkielet `meta.json` w schemacie korpusu `new-engine`. */
 /**
  * Zrzut bez powtórzeń — wpisy, które nie wnoszą nic nowego, wypadają.
@@ -286,39 +257,19 @@ export function odchudz(wpisy: Wywolanie[]): Wywolanie[] {
   });
 }
 
-/**
- * Czy render z tego zrzutu wolno zapisać jako materiał dowodowy.
- *
- * Osobna funkcja, a nie warunek w CLI, z jednego powodu: CLI nie ma testów
- * (siedzi za `import.meta.main`), więc decyzja schowana tam nie daje się
- * zmutować. Sprawdzone — mutant `zRenderem = true` w CLI nie zapalał niczego.
- */
-export function renderParujeSie(wpisy: Wywolanie[]): boolean {
-  return rozjazdyParowania(wpisy).length === 0;
-}
-
-export function meta(zrzut: Zrzut, dzis: string, zRenderem: boolean): string {
+export function meta(zrzut: Zrzut, dzis: string): string {
   return `${JSON.stringify(
     {
       client: "new-engine",
       capturedAt: dzis,
       clientBuild: zrzut.build,
       world: zrzut.swiat,
-      source: zRenderem
-        ? "tools/walka-probe.js — ładunki Engine.battle.update (protokol.json) " +
-          "i węzły renderu z tej samej walki (log.html)"
-        : "tools/walka-probe.js — ładunki Engine.battle.update (protokol.json)",
-      format: zRenderem ? "protokol+html" : "protokol",
+      source: "tools/walka-probe.js — ładunki Engine.battle.update (protokol.json)",
+      format: "protokol",
       opening: zrzut.otwarcie,
       participants: [],
       covers: ["DO UZUPEŁNIENIA — co siedzi w tej walce, po przejrzeniu"],
-      missing: zRenderem
-        ? ["DO UZUPEŁNIENIA"]
-        : [
-            "log.html — sonda zebrała inną liczbę węzłów renderu niż komunikatów, " +
-              "więc rekonstrukcja zdublowałaby albo zgubiła linie; render z tej " +
-              "walki NIE jest materiałem dowodowym i dlatego go tu nie ma",
-          ],
+      missing: ["DO UZUPEŁNIENIA"],
       notes: "DO UZUPEŁNIENIA",
     },
     null,
@@ -361,27 +312,12 @@ if (import.meta.main) {
       throw new Error(`${katalog} już istnieje — fixture'a się nie nadpisuje`);
     }
 
-    const rozjazdy = rozjazdyParowania(zrzut.wpisy);
-    // RENDER WCHODZI TYLKO WTEDY, GDY PARUJE SIĘ Z KOMUNIKATAMI.
-    //
-    // Do 2026‑08‑04 narzędzie ostrzegało o rozjeździe i zapisywało `log.html`
-    // mimo to — czyli produkowało fixture, o którym samo mówiło, że kłamie.
-    // Na pierwszym prawdziwym zrzucie kosztowało to konkretną liczbę: sonda
-    // zebrała 38 węzłów przy 18 komunikatach (gra przerysowuje węzły, więc
-    // przyrost liczony po długości listy łapie je po kilka razy), a `parse`
-    // na tak sklejonym HTML‑u dał 5345 obrażeń zamiast 2784.
-    //
-    // Fixture bez `log.html` jest niepełny, ale PRAWDZIWY. Fixture z takim
-    // `log.html` wchodzi do globu `*&#47;*&#47;log.html` i zawyża liczby w testach,
-    // o których nikt już nie pamięta, że pochodzą z rekonstrukcji.
-    const zRenderem = renderParujeSie(zrzut.wpisy);
-    if (zRenderem) await Bun.write(`${katalog}log.html`, sklejRender(zrzut.wpisy));
     const chude = odchudz(zrzut.wpisy);
     await Bun.write(
       `${katalog}protokol.json`,
       `${JSON.stringify({ ...zrzut, wpisy: chude }, null, 2)}\n`,
     );
-    await Bun.write(`${katalog}meta.json`, meta(zrzut, dzis, zRenderem));
+    await Bun.write(`${katalog}meta.json`, meta(zrzut, dzis));
 
     const wiadomosci = komunikaty(zrzut.wpisy);
     console.log(`zapisane: ${katalog}`);
@@ -398,17 +334,9 @@ if (import.meta.main) {
     if (zrzut.otwarcie === null) {
       console.warn(
         "  ⚠ brak linii otwierającej — sonda była wklejona po rozpoczęciu walki. " +
-          "Fixture jest użyteczny, ale parser nie pozna z niego składu.",
+          "Fixture jest użyteczny, ale nie pozna z niego składu nikt, kto go czyta.",
       );
     }
-    if (rozjazdy.length > 0) {
-      console.warn(
-        `  ⚠ ${rozjazdy.length} wywołań ma inną liczbę komunikatów niż węzłów renderu — ` +
-          "log.html NIE został zapisany, bo rekonstrukcja zdublowałaby albo zgubiła linie.\n" +
-          "    Para tekst↔protokół stoi na raw.txt + protokol.json i jest nietknięta.",
-      );
-    }
-    console.log("  raw.txt dołóż ręcznie z przycisku „Kopiuj logi” — narzędzie go nie składa");
     console.log("  covers/missing/notes czekają na wypełnienie — narzędzie ich nie zmyśla");
     process.exit(0);
   }

@@ -8,7 +8,6 @@ import {
   type BattleStats,
   type BySide,
 } from "./stats.ts";
-import type { Rozjazd } from "./rozjazd.ts";
 import { STYLE } from "./style.ts";
 import { PROFESSIONS, type ActorStats, type AttackerBreakdown } from "./types.ts";
 import { VERSION } from "./version.ts";
@@ -179,8 +178,6 @@ const fightWord = (count: number) => plural(count, ["walka", "walki", "walk"]);
 const lineWord = (count: number) => plural(count, ["linia", "linie", "linii"]);
 const unknownWord = (count: number) =>
   plural(count, ["nierozpoznana", "nierozpoznane", "nierozpoznanych"]);
-/** „i 1 różnica" zamiast „i 1 różnic". */
-const roznicaWord = (count: number) => plural(count, ["różnica", "różnice", "różnic"]);
 /** Wspólne dla panelu i archiwum — te same liczniki stoją w obu. */
 export const turnWord = (count: number) => plural(count, ["tura", "tury", "tur"]);
 
@@ -727,21 +724,13 @@ export class Overlay {
   /** Co stoi pod kursorem — trzymane między rerenderami. */
   private hovered: HoverTarget | null = null;
   /**
-   * Rozjazdy między odczytem z tekstu a odczytem z protokołu silnika.
+   * Czy nie zdążyliśmy podpiąć się do tej walki.
    *
    * STOI OSOBNO, A NIE W `BattleStats`, i to jest decyzja, nie wygoda.
-   * `aggregate` nie wie o protokole i nie ma się dowiedzieć; archiwum trzyma
-   * `BattleStats` z nagrań, w których protokołu nie było, więc pole zawsze
-   * puste twierdziłoby „zgodne" — czyli kłamałoby o niczym.
-   */
-  private rozjazdyProtokolu: Rozjazd[] = [];
-  /**
-   * Czy protokół nie zdążył się podpiąć do tej walki.
-   *
-   * Osobno od `rozjazdyProtokolu`, bo to INNA usterka: tam dwa odczyty się nie
-   * zgadzają, tu drugiego odczytu po prostu nie ma. Wspólny komunikat
-   * opisywałby objaw jako przyczynę i kazał szukać błędu w liczbach, których
-   * nikt nie policzył.
+   * `aggregate` nie wie, skąd wzięły się zdarzenia, i nie ma się dowiedzieć;
+   * archiwum trzyma `BattleStats` z nagrań, przy których pytanie „czy zdążył
+   * się podpiąć" nie ma sensu — pole zawsze puste twierdziłoby „zdążył", czyli
+   * kłamałoby o niczym.
    */
   private spoznionePodpiecie = false;
   /**
@@ -944,14 +933,9 @@ export class Overlay {
    * czego pomylić, więc nie ma czego pilnować typem.
    */
   /**
-   * Wynik czujki protokołu. Wołane tylko na końcu walki — patrz
-   * `walkaZakonczona` w `src/rozjazd.ts`.
+   * Patrz `spoznionePodpiecie`. Wołane przy każdej porcji, ale wyrokuje dopiero
+   * na końcu walki — patrz `walkaZakonczona` w `src/rozjazd.ts`.
    */
-  setRozjazdy(rozjazdy: Rozjazd[]): void {
-    this.rozjazdyProtokolu = rozjazdy;
-  }
-
-  /** Patrz `spoznionePodpiecie`. */
   setSpoznionePodpiecie(spoznione: boolean): void {
     this.spoznionePodpiecie = spoznione;
   }
@@ -2800,26 +2784,12 @@ export class Overlay {
       });
     }
     if (this.spoznionePodpiecie) {
-      // Nie „⚠", bo to nie jest ostrzeżenie o LICZBACH — liczby są poprawne,
-      // tylko pochodzą z okna walki zamiast z danych gry. Gracz ma wiedzieć,
-      // że stracił dokładniejszy odczyt, a nie że coś się nie zgadza.
+      // ⚠, a nie ⓘ — i to jest zmiana z 2026‑08‑04. Dopóki liczby dało się
+      // wziąć z okna walki, spóźnione podpięcie kosztowało tylko dokładność
+      // i komunikat brzmiał łagodnie. Odczyt jest dziś jeden: gdy się nie
+      // podepnie, w panelu stoją SAME ZERA i wyglądają jak wynik walki.
       notes.push({
-        text: "ⓘ licznik nie zdążył podpiąć się do tej walki — liczby z okna walki",
-        warn: false,
-      });
-    }
-    if (this.rozjazdyProtokolu.length > 0) {
-      // Osobno od linii nierozpoznanych: tam wiemy, że czegoś nie przeczytaliśmy.
-      // Tu przeczytaliśmy DWIE RAZY i wyszło inaczej — czyli któraś z liczb
-      // w panelu jest zła, tylko nie wiadomo która. To ostrzejszy komunikat
-      // i ma brzmieć ostrzej.
-      const pierwszy = this.rozjazdyProtokolu[0]!;
-      const reszta = this.rozjazdyProtokolu.length - 1;
-      notes.push({
-        text:
-          `⚠ dwa odczyty walki dały różne liczby: ${pierwszy.etykieta}, ` +
-          `${pierwszy.pole} ${pierwszy.zTekstu} kontra ${pierwszy.zProtokolu}` +
-          (reszta > 0 ? ` (i ${reszta} ${roznicaWord(reszta)})` : ""),
+        text: "⚠ licznik nie zdążył podpiąć się do tej walki — brak liczb",
         warn: true,
       });
     }

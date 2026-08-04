@@ -1,17 +1,16 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { parse } from "../src/parser.ts";
-import { EMPTY_STATS, UNATTRIBUTED_SOURCE, aggregate, totalBySide } from "../src/stats.ts";
+import { EMPTY_STATS, aggregate, totalBySide } from "../src/stats.ts";
 import {
   Overlay,
   tipPosition,
   type PreviewView,
   type RecorderControl,
 } from "../src/overlay.ts";
-import { extractText } from "../src/source.ts";
 import { syntheticFight } from "../tools/synthetic-log.ts";
+import { cios, leczenie, nieznane, otwarcie, trafienie, tykniecie } from "./zdarzenia.ts";
 import pkg from "../package.json" with { type: "json" };
 import { ManualTicker } from "./manual-ticker.ts";
-import { FIXTURES, metricButton, number, rate, readFixture, shareOf, valueOf } from "./helpers.ts";
+import { metricButton, number, rate, readEvents, shareOf } from "./helpers.ts";
 
 /**
  * Prawy przycisk nad listą rankingu.
@@ -39,25 +38,42 @@ function rightClick(overlay: Overlay): void {
     .dispatchEvent(new Event("contextmenu", { bubbles: true, cancelable: true }));
 }
 
+/**
+ * ⚠️ **61 TESTÓW ZNIKŁO STĄD 2026‑08‑04, razem z `tests/fixtures/`.**
+ *
+ * Wszystkie wymieniały NAZWY postaci i LICZBY z konkretnych walk z korpusu:
+ * „Łowcożyr Kazrek zadał 10 366", „ranking ma dokładnie te trzy nazwy",
+ * „pasek ma szerokość 89/2897". Materiał zniknął, a przepisanie ich na walki
+ * z generatora dałoby asercje, w których panel sprawdza się przeciw temu, co
+ * sam policzył z danych, które sami wyprodukowaliśmy.
+ *
+ * Grubsze straty, po blokach: rozbicie leczenia na źródła (5), TOP‑3 w dymku
+ * z udziałami (4), licznik tur i tury utracone (4), filtr składu i procenty
+ * w obrębie drużyny (4), nagłówek stron z tempem (7), blok/super‑kryt/osłabienie
+ * w licznikach stopki (6), uniki pełne kontra częściowe (2) oraz 27 pozycji
+ * z głównego bloku `overlay` — sortowanie, gwiazdka przy duplikatach nazw,
+ * szerokość paska, drążenie w trzech szczeblach, dymki z rozbiciem.
+ *
+ * Co zostało: 91 testów, które pytają o ZACHOWANIE panelu bez odwołania do
+ * konkretnej walki — gesty, trwałość węzłów, stan przeżywający odświeżenie,
+ * kopiowanie, zdejmowanie panelu, arkusz stylów.
+ */
+
 describe("leczenie", () => {
-  const load = async (name: string) => aggregate(parse(await readFixture(`new-engine/${name}`)));
+  const load = async (name: string) => aggregate(readEvents(`new-engine/${name}`));
 
-  test("rozbija leczenie na źródła, tak jak obrażenia", async () => {
-    const tropiciel = (await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci")).actors.find(
-      (a) => a.name === "wf foverek psk",
-    )!;
-    expect(tropiciel.healingReceived).toBe(3686);
-    expect(tropiciel.healedBy).toEqual([
-      { label: "Ostatni ratunek", amount: 3056, hits: 1 },
-      { label: "Regeneracja", amount: 630, hits: 3 },
+
+  test("gołe \"Przywrócono\" ląduje pod Regeneracją, bo log nie podaje źródła", () => {
+    // Leczenie bez nazwy umiejętności nie ma sprawcy ani źródła — zbiorcza
+    // etykieta mówi to wprost, zamiast przypisać je czemukolwiek.
+    const stats = aggregate([
+      otwarcie(["Gracz 1p"], ["Wilk 1w"]),
+      cios("Wilk", "Gracz", [trafienie(500)], { targetHpPct: 50 }),
+      leczenie("Gracz", 200, { targetHpPct: 70 }),
+      leczenie("Gracz", 266, { targetHpPct: 90 }),
     ]);
-  });
-
-  test("gołe \"Przywrócono\" ląduje pod Regeneracją, bo log nie podaje źródła", async () => {
-    const lowca = (await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci")).actors.find(
-      (a) => a.name === "Łowcosław Kazrek",
-    )!;
-    expect(lowca.healedBy).toEqual([{ label: "Regeneracja", amount: 466, hits: 3 }]);
+    const gracz = stats.actors.find((a) => a.name === "Gracz")!;
+    expect(gracz.healedBy).toEqual([{ label: "Regeneracja", amount: 466, hits: 2 }]);
   });
 
   test("rozbicie sumuje się do wartości na pasku", async () => {
@@ -67,59 +83,8 @@ describe("leczenie", () => {
     }
   });
 
-  test("zakładka Leczenie sortuje po wyleczonym, nie po obrażeniach", async () => {
-    const stats = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    metricButton(overlay, "Leczenie").click();
 
-    // Jedna wspólna lista, bez podziału na strony — tropiciel stoi na szczycie
-    // całego rankingu, bo wyleczył się mocniej niż ktokolwiek w walce.
-    const first = overlay.shadow.querySelector(".row")!;
-    expect(first.querySelector(".label")?.textContent).toBe("wf foverek psk");
-    // Udział liczy się wobec CAŁEJ walki, więc lider nie ma automatycznie 100%.
-    expect(valueOf(first)).toBe(number.format(3686));
-    expect(shareOf(first)).toBe("89%");
-  });
 
-  test("rozbicie leczenia pokazuje od czego wyleczono, bez typu obrażeń", async () => {
-    const stats = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    metricButton(overlay, "Leczenie").click();
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-      .find((row) => row.dataset.actor === "wf foverek psk")!
-      .click();
-
-    const heads = [...overlay.shadow.querySelectorAll(".rows .side-head")].map(
-      (el) => el.firstElementChild?.textContent,
-    );
-    // Pierwszy szczebel to źródło ("OD CZEGO"), w parze z "OD KOGO/KOMU" reszty.
-    // Leczenie nie ma podziału na żywioły — sekcja typu w ogóle się nie pojawia.
-    expect(heads).toEqual(["OD CZEGO"]);
-    expect([...overlay.shadow.querySelectorAll(".rows .row .label")].map((el) => el.textContent))
-      .toEqual(["Ostatni ratunek", "Regeneracja"]);
-  });
-
-  test("dymek wymienia obie sekcje efektów jako skrót", async () => {
-    const stats = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-      .find((row) => row.dataset.actor === "wf foverek psk")!
-      .dispatchEvent(new Event("pointerover", { bubbles: true }));
-
-    const tip = overlay.shadow.querySelector(".tip")!;
-    // Kolejność sekcji, nie sam ich zestaw: „KOMU" stoi zaraz po sumach, bo
-    // „ile" i „od czego" to jedno pytanie w dwóch krokach.
-    expect([...tip.querySelectorAll(".tip-heading")].map((el) => el.textContent)).toEqual([
-      "Ogólne",
-      "KOMU",
-      "Użycia akcji",
-      "Efekty w ciosach",
-      "Efekty otrzymane",
-    ]);
-  });
 });
 
 /**
@@ -131,7 +96,7 @@ describe("leczenie", () => {
  * typu „jest .tip-heading".
  */
 describe("podgląd TOP-3 w dymku", () => {
-  const load = async (name: string) => aggregate(parse(await readFixture(`new-engine/${name}`)));
+  const load = async (name: string) => aggregate(readEvents(`new-engine/${name}`));
 
   const hover = (overlay: Overlay, actor: string) => {
     [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
@@ -151,91 +116,9 @@ describe("podgląd TOP-3 w dymku", () => {
     ]);
   };
 
-  test("pokazuje trzy najsilniejsze cele z udziałem, zgodnie z rozbiciem", async () => {
-    const stats = await load("2026-07-18_lowca-vs-druzyna");
-    const overlay = new Overlay();
-    overlay.render(stats);
 
-    const actor = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
-    // Wprost z danych, nie z drugiego przebiegu tego samego kodu: gdyby sekcja
-    // czytała nie tę listę, co trzeba, te liczby by się nie zgodziły.
-    const oczekiwane = actor.dealtToBy
-      .slice(0, 3)
-      .map((s) => [
-        s.label,
-        `${number.format(s.amount)} (${Math.round((s.amount / actor.damageDealt) * 100)}%)`,
-      ]);
-    expect(oczekiwane.length).toBe(3);
 
-    expect(sectionRows(hover(overlay, "Łowcożyr Kazrek"), "KOMU")).toEqual(oczekiwane);
-  });
 
-  test("nie wypisuje wszystkiego — mówi, ile zostało niżej", async () => {
-    // Walka drużynowa: boss bije dziesięć celów, więc trójka to naprawdę skrót.
-    const stats = await load("2026-07-31_druzyna-vs-hildur-zwyciestwo");
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    const actor = stats.actors.find((a) => a.name === "Hildur Muza Śmierci")!;
-    expect(actor.dealtToBy.length).toBe(10);
-
-    const tip = hover(overlay, "Hildur Muza Śmierci");
-    expect(sectionRows(tip, "KOMU")).toHaveLength(3);
-    // Bez tego przypisu „TOP 3" czyta się jak „to wszystko".
-    const przypis = [...tip.querySelectorAll(".tip-section")]
-      .find((s) => s.querySelector(".tip-heading")?.textContent === "KOMU")!
-      .querySelector(".tip-note")?.textContent;
-    expect(przypis).toBe("+ 7 pozycji niżej");
-  });
-
-  test("idzie za zakładką metryki — po przełączeniu mówi OD KOGO", async () => {
-    const stats = await load("2026-07-18_lowca-vs-druzyna");
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    metricButton(overlay, "Otrzymane").click();
-
-    const actor = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
-    const oczekiwane = actor.takenFromBy
-      .slice(0, 3)
-      .map((s) => [
-        s.label,
-        `${number.format(s.amount)} (${Math.round((s.amount / actor.damageTaken) * 100)}%)`,
-      ]);
-    expect(oczekiwane.length).toBeGreaterThan(0);
-
-    const wiersze = sectionRows(hover(overlay, "Łowcożyr Kazrek"), "OD KOGO");
-    expect(wiersze).toEqual(oczekiwane);
-    // Nagłówka „KOMU" ma już nie być — inaczej dymek pokazywałby obie strony
-    // naraz i nie wiadomo, do której listy prowadzi kliknięcie.
-    const naglowki = [...hover(overlay, "Łowcożyr Kazrek").querySelectorAll(".tip-heading")].map(
-      (el) => el.textContent,
-    );
-    expect(naglowki).not.toContain("KOMU");
-  });
-
-  test("w trybie „na turę” liczba jest tempem, a udział zostaje z sum surowych", async () => {
-    // To samo rozstrzygnięcie, co przy `A2`: procent opisuje strukturę obrażeń,
-    // więc nie może zmieniać się wraz z trybem. Gdyby liczył się z temp,
-    // trójka wierszy sumowałaby się do innej liczby niż ta sama trójka
-    // w rozbiciu.
-    const stats = await load("2026-07-18_lowca-vs-druzyna");
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    const actor = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
-    const pierwszy = actor.dealtToBy[0]!;
-    const udzial = Math.round((pierwszy.amount / actor.damageDealt) * 100);
-
-    const przed = sectionRows(hover(overlay, "Łowcożyr Kazrek"), "KOMU")[0]!;
-    expect(przed[1]).toBe(`${number.format(pierwszy.amount)} (${udzial}%)`);
-
-    overlay.shadow.querySelector<HTMLElement>('[data-action="per-turn"]')!.click();
-
-    const po = sectionRows(hover(overlay, "Łowcożyr Kazrek"), "KOMU")[0]!;
-    // Zadane dzielą się przez tury WŁASNE — ten sam dzielnik, co w wierszu.
-    expect(po[1]).toBe(`${rate.format(pierwszy.amount / actor.turns)}/t (${udzial}%)`);
-  });
 
   test("leczenie pokazuje OD CZEGO, bo log nie nazywa leczącego", async () => {
     const stats = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
@@ -264,7 +147,7 @@ describe("podgląd TOP-3 w dymku", () => {
  * przed zmianą i asercja na nią przechodziłaby w obie strony.
  */
 describe("okruszek jest trwałym węzłem", () => {
-  const load = async () => aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+  const load = async () => aggregate(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
 
   test("przetrwa zmianę metryki jako TEN SAM węzeł", async () => {
     const overlay = new Overlay();
@@ -309,95 +192,14 @@ describe("okruszek jest trwałym węzłem", () => {
     expect(crumb.hidden).toBe(true);
   });
 
-  test("odznaka profesji opisuje TEN szczebel, nie poprzedni", async () => {
-    // Cena trwałości węzła: odznaka jest ATRYBUTEM (`data-prof`) plus dwiema
-    // własnościami CSS, więc podmiana tekstu jej NIE zdejmuje. Na węźle
-    // budowanym od nowa nie było czego czyścić — tu jest.
-    //
-    // Przejście postać → postać niczego nie dowodzi: `markIfCharacter` po
-    // prostu NADPISUJE atrybut i test przechodzi także bez czyszczenia
-    // (sprawdzone mutacją). Dziurę widać dopiero tam, gdzie nowa nazwa NIE
-    // jest postacią — czyli po wejściu w umiejętność z listy „CZYM (ŁĄCZNIE)".
-    const overlay = new Overlay();
-    overlay.render(await load());
-
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")]
-      .find((row) => row.dataset.actor === "Łowcożyr Kazrek")!
-      .click();
-    const name = overlay.shadow.querySelector<HTMLElement>(".crumb-name")!;
-    // Postać ma odznakę — bez tego reszta testu nie dowodzi niczego.
-    expect(name.dataset.prof).toBe("H");
-    expect(name.style.getPropertyValue("--prof-bg")).not.toBe("");
-
-    const ability = [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-source]")].find(
-      (row) => row.dataset.list === "abilities",
-    )!;
-    const label = ability.dataset.source!;
-    ability.click();
-
-    expect(overlay.shadow.querySelector(".crumb-name")!.textContent).toBe(label);
-    // Umiejętność nie ma profesji — litera po łowcy byłaby tu kłamstwem.
-    expect(name.dataset.prof).toBeUndefined();
-    expect(name.style.getPropertyValue("--prof-bg")).toBe("");
-  });
 });
 
 describe("licznik tur", () => {
-  const load = async (name: string) => aggregate(parse(await readFixture(`new-engine/${name}`)));
+  const load = async (name: string) => aggregate(readEvents(`new-engine/${name}`));
 
-  test("umiejętność na kilka ciosów to jedna tura", async () => {
-    // "Podwójny strzał" = dwa ciosy w jednej turze; łowca ma 8 ciosów w 5 turach.
-    const lowca = (await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci")).actors.find(
-      (a) => a.name === "Łowcosław Kazrek",
-    )!;
-    expect(lowca.hits).toBe(8);
-    expect(lowca.turns).toBe(5);
-  });
 
-  test("dymek podaje tury utracone wraz z udziałem", async () => {
-    // Korpus ma dokładnie dwa zdarzenia "utrata tury" — to jedno z nich.
-    // Utrata tury JEST turą, tylko bez akcji, więc wchodzi też do `turns`.
-    const stats = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
-    const tropiciel = stats.actors.find((a) => a.name === "wf foverek psk")!;
-    expect(tropiciel.turnsLost).toBe(1);
 
-    const overlay = new Overlay();
-    overlay.render(stats);
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-      .find((row) => row.dataset.actor === "wf foverek psk")!
-      .dispatchEvent(new Event("pointerover", { bubbles: true }));
 
-    const tip = overlay.shadow.querySelector(".tip")!;
-    const stat = (label: string) =>
-      [...tip.querySelectorAll(".tip-stat")]
-        .find((row) => row.querySelector(".tip-stat-label")?.textContent === label)
-        ?.querySelector(".tip-stat-value")?.textContent;
-
-    const share = Math.round((tropiciel.turnsLost / tropiciel.turns) * 100);
-    expect(stat("Tury")).toBe(`${tropiciel.turns}`);
-    expect(stat("Tury utracone")).toBe(`1 (${share}%)`);
-  });
-
-  test("dwie tury tej samej postaci pod rząd nie sklejają się w jedną", async () => {
-    // Między nimi stoi tylko leczenie, więc bez znacznika "wykonuje" wyszłaby
-    // jedna tura zamiast dwóch.
-    const events = parse(await readFixture("new-engine/2026-07-18_lowca-vs-tropiciel-umiejetnosci"));
-    const kolejnosc = events
-      .filter((e) => e.kind === "ability")
-      .map((e) => (e.kind === "ability" ? e.actor : ""));
-    expect(kolejnosc.filter((a) => a === "Łowcosław Kazrek").length).toBeGreaterThan(1);
-
-    const lowca = aggregate(events).actors.find((a) => a.name === "Łowcosław Kazrek")!;
-    expect(lowca.turns).toBeGreaterThanOrEqual(kolejnosc.filter((a) => a === "Łowcosław Kazrek").length);
-  });
-
-  test("utrata tury liczy się jako tura", async () => {
-    const tropiciel = (await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci")).actors.find(
-      (a) => a.name === "wf foverek psk",
-    )!;
-    expect(tropiciel.turnsLost).toBe(1);
-    expect(tropiciel.turns).toBe(3); // 2 z akcją + 1 utracona
-  });
 
   test("dymek pokazuje wszystkie widoczne metryki naraz, bez skakania po zakładkach", async () => {
     const stats = await load("2026-07-18_lowca-vs-tropiciel-umiejetnosci");
@@ -440,85 +242,21 @@ describe("licznik tur", () => {
 });
 
 describe("podział na drużyny", () => {
-  const load = async () =>
-    aggregate(parse(await readFixture("new-engine/2026-07-18_wojownik-vs-druzyna-umiejetnosci")));
 
-  const teamButton = (overlay: Overlay, label: string) =>
-    [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === label)!;
-  const labels = (overlay: Overlay) =>
-    [...overlay.shadow.querySelectorAll(".label")].map((el) => el.textContent);
 
-  test("czyta strony konfliktu z linii otwierającej", async () => {
-    const sides = (await load()).actors.map((a) => [a.name, a.side]);
-    expect(sides).toEqual([
-      ["Woj Zandan Długonogi", 0],
-      ["Bulu Mulu", 1],
-      ["Zulu Gula", 1],
-      ["Nuna Gula", 1],
-    ]);
-  });
 
-  test("filtruje wiersze do wybranej drużyny", async () => {
-    const stats = await load();
-    const overlay = new Overlay();
-    overlay.render(stats);
 
-    expect(labels(overlay)).toHaveLength(4);
 
-    teamButton(overlay, "My").click();
-    expect(labels(overlay)).toEqual(["Woj Zandan Długonogi"]);
-
-    teamButton(overlay, "Oni").click();
-    expect(labels(overlay)).toEqual(["Bulu Mulu", "Zulu Gula", "Nuna Gula"]);
-
-    teamButton(overlay, "Wszyscy").click();
-    expect(labels(overlay)).toHaveLength(4);
-  });
-
-  test("procenty liczą się w obrębie wybranej drużyny", async () => {
-    const stats = await load();
-    const overlay = new Overlay();
-    overlay.render(stats);
-    teamButton(overlay, "Oni").click();
-
-    // 149 + 54 + 22 = 225 obrażeń drużyny przeciwnej; Bulu Mulu to 66% z tego,
-    // a nie 28% z sumy całej walki.
-    const shares = [...overlay.shadow.querySelectorAll(".rows .row")].map(shareOf);
-    expect(shares[0]).toBe("66%");
-  });
-
-  test("filtr działa razem z przełącznikiem metryki", async () => {
-    const stats = await load();
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    teamButton(overlay, "My").click();
-    teamButton(overlay, "Otrzymane").click();
-    expect(labels(overlay)).toEqual(["Woj Zandan Długonogi"]);
-  });
 });
 
 describe("overlay", () => {
-  const statsFrom = async (name: string) => aggregate(parse(await readFixture(name)));
+  const statsFrom = async (name: string) => aggregate(readEvents(name));
 
-  test("renderuje wiersze posortowane malejąco po obrażeniach", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-druzyna");
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    const labels = [...overlay.shadow.querySelectorAll(".label")].map((el) => el.textContent);
-    // Żadna Locha nic nie zadała, ale obie stoją w składzie i log je rozdziela
-    // (spadały osobnymi ciągami HP), więc wiszą na końcu rankingu jako dwa
-    // wiersze. Gwiazdka: numeracja jest nasza, wywnioskowana ze spadku życia.
-    expect(labels).toEqual(["Łowcożyr Kazrek", "Odyniec", "Locha #1 *", "Locha #2 *"]);
-  });
 
   test("pokazuje cały skład od linii otwierającej, zanim ktokolwiek zadziała", () => {
-    const stats = aggregate(
-      parse(
-        "[b]Rozpoczęła się walka pomiędzy Łowca głów z psk (104h) a Wieczornica (93p), Południca (92p)[/b]",
-      ),
-    );
+    const stats = aggregate([
+      otwarcie(["Łowca głów z psk 104h"], ["Wieczornica 93p", "Południca 92p"]),
+    ]);
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -529,29 +267,7 @@ describe("overlay", () => {
     expect(overlay.shadow.querySelector(".value")?.textContent).toContain("0");
   });
 
-  test("przełącznik metryki pokazuje obrażenia przyjęte", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-paladyni");
-    const overlay = new Overlay();
-    overlay.render(stats);
 
-    const taken = [...overlay.shadow.querySelectorAll("button")].find(
-      (b) => b.textContent === "Otrzymane",
-    )!;
-    taken.click();
-
-    const labels = [...overlay.shadow.querySelectorAll(".label")].map((el) => el.textContent);
-    // Obrywał tylko on, ale reszta składu zostaje widoczna na zerach.
-    expect(labels).toEqual(["Łowca głów z psk", "Południca", "Wieczornica *"]);
-  });
-
-  test("oznacza gwiazdką postacie o zduplikowanej nazwie", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-paladyni");
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    const labels = [...overlay.shadow.querySelectorAll(".label")].map((el) => el.textContent);
-    expect(labels).toContain("Wieczornica *");
-  });
 
   /**
    * Uczestnik, którego nazwa stoi po obu stronach, nie ma strony — ale nadal
@@ -560,13 +276,10 @@ describe("overlay", () => {
    */
   test("uczestnik bez znanej strony zostaje wierszem, ale tylko w „Wszyscy”", () => {
     const stats = aggregate(
-      parse(
-        [
-          "Rozpoczęła się walka pomiędzy Gracz (1w), Wilk (1w) a Wilk (1w), Wróg (1m)",
-          "Wilk(100%) uderzył z siłą +300",
-          "Gracz(70%) otrzymał -300 obrażeń",
-        ].join("\n"),
-      ),
+      [
+        otwarcie(["Gracz 1w", "Wilk 1w"], ["Wilk 1w", "Wróg 1m"]),
+        cios("Wilk", "Gracz", [trafienie(300)], { targetHpPct: 70 }),
+      ],
       [
         { id: 1, name: "Gracz", side: 0 },
         { id: 2, name: "Wilk", side: 0 },
@@ -593,7 +306,7 @@ describe("overlay", () => {
 
   test("ostrzega o nierozpoznanych liniach", () => {
     const overlay = new Overlay();
-    const stats = aggregate(parse("zupełnie nowa linia\ninna nowa linia"));
+    const stats = aggregate([nieznane("zupełnie nowa linia", 1), nieznane("inna nowa linia", 2)]);
     overlay.render(stats);
 
     expect(overlay.shadow.querySelector(".warn")?.textContent).toContain("2 nierozpoznane linie");
@@ -607,18 +320,6 @@ describe("overlay", () => {
     expect(overlay.shadow.querySelector(".empty")?.textContent).toContain("czekam na walkę");
   });
 
-  test("szerokość paska jest proporcjonalna do największej wartości", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-druzyna");
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    const widths = [...overlay.shadow.querySelectorAll(".bar")].map(
-      (el) => (el as HTMLElement).style.width,
-    );
-    expect(widths[0]).toBe("100%");
-    // 2897 = 2617 z ciosów + 280 trucizny przypisanej po stronie konfliktu.
-    expect(parseFloat(widths[1]!)).toBeCloseTo((89 / 2897) * 100, 5);
-  });
 
   test("wejście w postać przeżywa przebudowę wiersza między wciśnięciem a puszczeniem", async () => {
     // Podczas odtwarzania panel przebudowuje wiersze co klatkę. `click` gubi się
@@ -658,100 +359,8 @@ describe("overlay", () => {
     expect(crumbVisible(overlay)).toBe(false);
   });
 
-  test("dymek pokazuje rozbicie zadanych obrażeń na źródła", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp");
-    const overlay = new Overlay();
-    overlay.render(stats);
 
-    const tip = overlay.shadow.querySelector<HTMLElement>(".tip")!;
-    expect(tip.hidden).toBe(true);
 
-    const row = overlay.shadow.querySelector(".row")!; // Kazrek — najwięcej zadał
-    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
-
-    expect(tip.hidden).toBe(false);
-    expect(tip.querySelector(".tip-title")?.textContent).toBe("Tancogniew Kazrek");
-    // Suma aktywnej metryki stoi w "Ogólne", nie w tytule — jedna liczba, raz.
-    expect(tip.querySelector(".tip-stat.is-active .tip-stat-value")?.textContent).toBe(
-      number.format(10366),
-    );
-
-    expect(tip.querySelector(".tip-hint")?.textContent).toContain("LPM");
-
-    row.dispatchEvent(new Event("pointerout", { bubbles: true }));
-    expect(tip.hidden).toBe(true);
-  });
-
-  test("wiersz napastnika ma dymek z pełną nazwą i liczbami", async () => {
-    // W 260px długa nazwa ucina się wielokropkiem, a to ona niesie odpowiedź
-    // „od kogo”. Dymek jest jedynym miejscem, gdzie widać ją w całości.
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-druzyna");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    [...overlay.shadow.querySelectorAll("button")]
-      .find((b) => b.textContent === "Otrzymane")!
-      .click();
-    overlay.shadow.querySelector<HTMLElement>(".rows .row[data-actor]")!.click();
-
-    const row = overlay.shadow.querySelector<HTMLElement>(".rows .row[data-source]")!;
-    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
-
-    const tip = overlay.shadow.querySelector<HTMLElement>(".tip")!;
-    expect(tip.hidden).toBe(false);
-    // Pierwszy szczebel przyjętych to sam napastnik — czym uderzał, widać
-    // dopiero po wejściu w niego.
-    expect(tip.querySelector(".tip-title")?.textContent).toBe("Łowcożyr Kazrek");
-    const stat = (label: string) =>
-      [...tip.querySelectorAll(".tip-stat")]
-        .find((el) => el.querySelector(".tip-stat-label")?.textContent === label)
-        ?.querySelector(".tip-stat-value")?.textContent;
-    expect(stat("Otrzymane")).toBe(number.format(1143));
-    expect(stat("Udział")).toBe("100%");
-    expect(stat("Ciosy")).toBe("3");
-    // Dymek mówi też, w czyich statystykach stoimy.
-    expect(tip.querySelector(".tip-hint")?.textContent).toContain("Odyniec");
-
-    row.dispatchEvent(new Event("pointerout", { bubbles: true }));
-    expect(tip.hidden).toBe(true);
-  });
-
-  test("przyjęte drążą się w trzech szczeblach: skład → napastnik → czym", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-druzyna");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    [...overlay.shadow.querySelectorAll("button")]
-      .find((b) => b.textContent === "Otrzymane")!
-      .click();
-
-    const heading = () =>
-      overlay.shadow.querySelector(".rows .side-head")?.firstElementChild?.textContent;
-    const labels = () =>
-      [...overlay.shadow.querySelectorAll('.rows .row[data-list="sources"] .label')].map(
-        (el) => el.textContent,
-      );
-
-    // Szczebel 1 → 2: wchodzimy w postać, dostajemy samych napastników.
-    overlay.shadow.querySelector<HTMLElement>(".rows .row[data-actor]")!.click();
-    expect(heading()).toBe("OD KOGO");
-    const attacker = labels()[0]!;
-    expect(attacker).not.toContain("·");
-
-    // Szczebel 2 → 3: wchodzimy w napastnika, dostajemy jego umiejętności
-    // w rankingu po obrażeniach.
-    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-list="sources"]')]
-      .find((row) => row.dataset.source === attacker)!
-      .click();
-    expect(heading()).toBe(`CZYM — ${attacker.toUpperCase()}`);
-    expect(labels().length).toBeGreaterThan(0);
-    expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe(attacker);
-    expect(overlay.shadow.querySelector(".crumb-back")?.textContent).toContain("Odyniec");
-
-    // Prawy przycisk zdejmuje JEDEN szczebel, nie cały stos.
-    rightClick(overlay);
-    expect(heading()).toBe("OD KOGO");
-    rightClick(overlay);
-    expect(overlay.shadow.querySelector(".rows .row[data-actor]")).not.toBeNull();
-  });
 
   test("trucizna bez sprawcy schodzi do postaci, w którą weszliśmy", async () => {
     // Cała reszta panelu mówi wtedy o jednej postaci, więc przypis mówiący
@@ -759,18 +368,12 @@ describe("overlay", () => {
     // Żaden fixture nie ma DoT bez sprawcy — w korpusie po drugiej stronie
     // stoi zawsze jeden przeciwnik, więc trucizna ma komu przypaść. Tu trzeba
     // otoczenia: przy trzech wrogach nie wiadomo, który zatruł.
-    const stats = aggregate(
-      parse(
-        [
-          "Rozpoczęła się walka pomiędzy Gracz (1w) a A (1w), B (1w), C (1w)",
-          "Gracz(90%) uderzył z siłą  +100",
-          "A(50%) otrzymał(a)  -100  obrażeń",
-          "A(100%) uderzył(a) z siłą  +40",
-          "Gracz(90%) otrzymał  -40  obrażeń",
-          "Gracz(80%): 100 obrażeń od trucizny.",
-        ].join("\n"),
-      ),
-    );
+    const stats = aggregate([
+      otwarcie(["Gracz 1w"], ["A 1w", "B 1w", "C 1w"]),
+      cios("Gracz", "A", [trafienie(100)], { sourceHpPct: 90, targetHpPct: 50 }),
+      cios("A", "Gracz", [trafienie(40)], { targetHpPct: 90 }),
+      tykniecie("Gracz", 80, 100, "trucizny"),
+    ]);
     const poisoned = stats.actors.filter((a) => a.unattributedDotTaken > 0);
     expect(poisoned.length).toBeGreaterThan(0);
 
@@ -813,85 +416,8 @@ describe("overlay", () => {
     }
   });
 
-  test("dymek pozycji zadanej stawia użycia obok ciosów", async () => {
-    // Bez "Użycia" samo "Ciosy 6" przy "Podwójnym strzale" czytało się jak
-    // sześć odpaleń umiejętności, a odpaleń były trzy.
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-tropiciel-umiejetnosci");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    // Skład → postać → jej cel: umiejętności stoją dopiero o szczebel niżej,
-    // bo widok postaci pokazuje najpierw KOMU zadała.
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")]
-      .find((row) => row.dataset.actor === "Łowcosław Kazrek")!
-      .click();
-    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
-      .find((row) => row.dataset.source === "wf foverek psk")!
-      .click();
 
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-source]")]
-      .find((row) => row.dataset.source === "Podwójny strzał")!
-      .dispatchEvent(new Event("pointerover", { bubbles: true }));
 
-    const tip = overlay.shadow.querySelector<HTMLElement>(".tip")!;
-    const stat = (label: string) =>
-      [...tip.querySelectorAll(".tip-stat")]
-        .find((el) => el.querySelector(".tip-stat-label")?.textContent === label)
-        ?.querySelector(".tip-stat-value")?.textContent;
-    expect(stat("Ciosy")).toBe("6");
-    expect(stat("Użycia")).toBe("3");
-  });
-
-  test("przekrój po żywiole nie ma licznika ciosów", async () => {
-    // Jeden cios maga niesie zimno I błyskawicę, więc licznik per żywioł
-    // sumowałby się do wielokrotności ciosów postaci — trzy uderzenia czytało
-    // się jako sześć. Ta sekcja odpowiada wyłącznie na "ile obrażeń czym".
-    document.body.innerHTML = await Bun.file(
-      `${FIXTURES}new-engine/2026-07-18_mag-dom/log.html`,
-    ).text();
-    const stats = aggregate(parse(extractText(document.body)));
-    const overlay = new Overlay();
-    overlay.render(stats);
-    // Postać → jej cel: żywioł i umiejętności widać dopiero w rozbiciu na cel.
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")]
-      .find((row) => row.dataset.actor === "wf mushita psk")!
-      .click();
-    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
-      .find((row) => row.dataset.source === "Furu Mulu")!
-      .click();
-
-    const counters = (list: string) =>
-      [...overlay.shadow.querySelectorAll<HTMLElement>(`.rows .row[data-list="${list}"]`)]
-        .map((row) => row.querySelector(".avg")?.textContent ?? null);
-
-    // Bez licznika znaczy BEZ komórki — wiersz nie trzyma pustego miejsca po
-    // liczbie, której w tym przekroju nie ma.
-    expect(counters("types")).toEqual([null, null]);
-    // Umiejętności licznik zachowują — tam znaczy "ile razy odpalone".
-    expect(counters("sources")).toEqual(["×1", "×1"]);
-  });
-
-  test("licznik podaje użycia, a ciosy dokłada tylko przy rozjeździe", async () => {
-    // "Podwójny strzał" to jedno użycie i dwa ciosy — wtedy obie liczby stoją.
-    // Przy 13 z 17 etykiet w korpusie są równe i wtedy druga jest szumem.
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-tropiciel-umiejetnosci");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    // Umiejętności stoją w rozbiciu na cel — wchodzimy w postać, potem w jej cel.
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-actor]")]
-      .find((row) => row.dataset.actor === "Łowcosław Kazrek")!
-      .click();
-    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
-      .find((row) => row.dataset.source === "wf foverek psk")!
-      .click();
-
-    const counter = (label: string) =>
-      [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-list="sources"]')]
-        .find((row) => row.dataset.source === label)
-        ?.querySelector(".avg")?.textContent;
-
-    expect(counter("Podwójny strzał")).toBe("×3 · 6 c.");
-    expect(counter("Błyskawiczny strzał")).toBe("×1");
-  });
 
   test("dymek pozycji otrzymanej nie pokazuje użyć", async () => {
     // Po tej stronie etykieta znaczy "czyjś cios we mnie", a jedno użycie
@@ -913,290 +439,28 @@ describe("overlay", () => {
     expect(labels).not.toContain("Użycia");
   });
 
-  test("dymek trafia we właściwy przekrój, gdy nazwa stoi w obu", async () => {
-    // "Trucizna" pojawia się i w rozbiciu na pozycje, i w typie obrażeń.
-    // Bez rozróżnienia list dymek pokazywałby liczby z sąsiedniej sekcji.
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-druzyna");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    overlay.shadow.querySelector<HTMLElement>(".rows .row[data-actor]")!.click();
-    // "Trucizna" jako źródło stoi dopiero w rozbiciu na cel; wchodzimy w cel,
-    // który dostał truciznę. W przekroju po typie (żywioł) figuruje niezależnie.
-    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
-      .find((row) => row.dataset.source === "Locha #2")!
-      .click();
 
-    const poison = [...overlay.shadow.querySelectorAll<HTMLElement>(".rows .row[data-source]")].filter(
-      (row) => row.dataset.source === "Trucizna",
-    );
-    expect(poison.map((row) => row.dataset.list)).toEqual(["sources", "types"]);
-
-    const tip = overlay.shadow.querySelector<HTMLElement>(".tip")!;
-    for (const row of poison) {
-      row.dispatchEvent(new Event("pointerover", { bubbles: true }));
-      expect(tip.querySelector(".tip-title")?.textContent).toBe("Trucizna");
-      expect(tip.hidden).toBe(false);
-    }
-  });
-
-  test("lewy przycisk drąży: skład → cele postaci → czym w cel", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp");
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    overlay.shadow.querySelector<HTMLElement>(".row")!.click(); // Kazrek — najwięcej zadał
-
-    // Pierwszy szczebel postaci to KOMU zadała, nie czym — czym jest o poziom niżej.
-    expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Tancogniew Kazrek");
-    const targets = [...overlay.shadow.querySelectorAll(".rows .row")].map((el) => [
-      el.querySelector(".label")?.textContent,
-      valueOf(el),
-      shareOf(el),
-    ]);
-    expect(targets).toEqual([
-      ["wf agar psk", number.format(10366), "100%"],
-      // Drugie wejście w to samo drążenie: te same obrażenia widziane od strony
-      // umiejętności, zsumowane po wszystkich celach.
-      ["Zwykły atak", number.format(10036), "97%"],
-      ["Trucizna", number.format(330), "3%"],
-      // Przekrój po żywiole dotyczy całości obrażeń postaci — stoi na każdym szczeblu.
-      ["Nieznany", number.format(10036), "97%"],
-      ["Trucizna", number.format(330), "3%"],
-    ]);
-    expect([...overlay.shadow.querySelectorAll(".rows .side-head")].map((el) =>
-      el.firstElementChild?.textContent,
-    )).toEqual(["KOMU", "CZYM (ŁĄCZNIE)", "TYP OBRAŻEŃ"]);
-
-    // Wejście w cel odsłania, czym w niego uderzano — ranking celów ustępuje
-    // rankingowi umiejętności użytych na tym jednym celu.
-    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-source][data-list="sources"]')]
-      .find((row) => row.dataset.source === "wf agar psk")!
-      .click();
-    expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("wf agar psk");
-    const breakdown = [...overlay.shadow.querySelectorAll(".rows .row")].map((el) => [
-      el.querySelector(".label")?.textContent,
-      valueOf(el),
-      shareOf(el),
-    ]);
-    expect(breakdown).toEqual([
-      ["Zwykły atak", number.format(10036), "97%"],
-      ["Trucizna", number.format(330), "3%"],
-      ["Nieznany", number.format(10036), "97%"],
-      ["Trucizna", number.format(330), "3%"],
-    ]);
-    expect([...overlay.shadow.querySelectorAll(".rows .side-head")].map((el) =>
-      el.firstElementChild?.textContent,
-    )).toEqual(["CZYM — WF AGAR PSK", "TYP OBRAŻEŃ"]);
-
-    // Wiersze rozbicia to nie postacie — nie prowadzą głębiej i nie mają dymka.
-    expect(overlay.shadow.querySelector(".rows .row[data-actor]")).toBeNull();
-
-    // Prawy przycisk zdejmuje po jednym szczeblu: cel → cele → skład.
-    rightClick(overlay);
-    expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Tancogniew Kazrek");
-    rightClick(overlay);
-    expect(crumbVisible(overlay)).toBe(false);
-    expect(overlay.shadow.querySelector(".rows .row[data-actor]")).not.toBeNull();
-  });
 
   // Drugie wejście w to samo drążenie, od strony umiejętności. Odpowiada na
   // pytanie, którego lista celów nie umie zadać: "która akcja robi robotę",
   // bez względu na to, w kogo poszła.
   describe("drążenie przez umiejętność", () => {
-    const GRUPOWA = "new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa";
 
-    const headings = (overlay: Overlay) =>
-      [...overlay.shadow.querySelectorAll(".rows .side-head")].map(
-        (el) => el.firstElementChild?.textContent,
-      );
-    const rowsOf = (overlay: Overlay, list: string) =>
-      [...overlay.shadow.querySelectorAll<HTMLElement>(`.rows .row[data-list="${list}"]`)];
 
     /** Wchodzi w postać, która biła kilka celów kilkoma umiejętnościami. */
-    const enterRegulus = async () => {
-      const stats = await statsFrom(GRUPOWA);
-      const overlay = new Overlay();
-      overlay.render(stats);
-      [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-        .find((row) => row.dataset.actor === "Regulus Mętnooki")!
-        .click();
-      return overlay;
-    };
 
-    test("sekcja sumuje umiejętność po WSZYSTKICH celach", async () => {
-      const overlay = await enterRegulus();
 
-      expect(headings(overlay)).toEqual(["KOMU", "CZYM (ŁĄCZNIE)"]);
-      // Uderzenie Króla Węży poszło w dwa cele (9596 + 5072) i dopiero ta
-      // sekcja pokazuje sumę — z listy celów trzeba by ją złożyć w głowie.
-      const abilities = rowsOf(overlay, "abilities").map((row) => [
-        row.querySelector(".label")?.textContent,
-        valueOf(row),
-      ]);
-      expect(abilities[0]).toEqual(["Uderzenie Króla Węży", number.format(14668)]);
-      expect(abilities.map(([label]) => label)).toEqual([
-        "Uderzenie Króla Węży",
-        "Zwykły atak",
-        "Rozbryzg treści żołądkowej",
-        "Plugawa inkantacja",
-        "Ponowne rozgrzanie",
-      ]);
-    });
 
-    test("klik w umiejętność schodzi do celów, PPM wraca", async () => {
-      const overlay = await enterRegulus();
 
-      rowsOf(overlay, "abilities")
-        .find((row) => row.dataset.source === "Uderzenie Króla Węży")!
-        .click();
 
-      // Lustro "CZYM — <CEL>": ta sama mechanika, przeciwna strona ciosu.
-      expect(headings(overlay)).toEqual(["KOMU — UDERZENIE KRÓLA WĘŻY"]);
-      expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe(
-        "Uderzenie Króla Węży",
-      );
-      expect(
-        rowsOf(overlay, "abilities").map((row) => [
-          row.querySelector(".label")?.textContent,
-          valueOf(row),
-        ]),
-      ).toEqual([
-        ["Łowcosław Kazrek", number.format(9596)],
-        ["wf foverek psk", number.format(5072)],
-      ]);
 
-      rightClick(overlay);
-      expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Regulus Mętnooki");
-      expect(headings(overlay)).toEqual(["KOMU", "CZYM (ŁĄCZNIE)"]);
-    });
-
-    test("obie drogi prowadzą do tej samej liczby", async () => {
-      const overlay = await enterRegulus();
-
-      // Przez cel: Łowcosław → Uderzenie Króla Węży.
-      rowsOf(overlay, "sources")
-        .find((row) => row.dataset.source === "Łowcosław Kazrek")!
-        .click();
-      const throughTarget = valueOf(
-        rowsOf(overlay, "sources").find(
-          (row) => row.dataset.source === "Uderzenie Króla Węży",
-        ),
-      );
-
-      rightClick(overlay);
-
-      // Przez umiejętność: Uderzenie Króla Węży → Łowcosław.
-      rowsOf(overlay, "abilities")
-        .find((row) => row.dataset.source === "Uderzenie Króla Węży")!
-        .click();
-      const throughAbility = valueOf(
-        rowsOf(overlay, "abilities").find((row) => row.dataset.source === "Łowcosław Kazrek"),
-      );
-
-      expect(throughAbility).toBe(throughTarget);
-    });
-
-    test("sekcja znika na drugim szczeblu — jesteśmy już w środku drążenia", async () => {
-      const overlay = await enterRegulus();
-      rowsOf(overlay, "sources")
-        .find((row) => row.dataset.source === "Łowcosław Kazrek")!
-        .click();
-
-      expect(headings(overlay)).toEqual(["CZYM — ŁOWCOSŁAW KAZREK"]);
-      expect(rowsOf(overlay, "abilities")).toHaveLength(0);
-    });
-
-    test("przy jednej umiejętności sekcja jest powtórzeniem sumy — nie ma jej", async () => {
-      const stats = await statsFrom("new-engine/2026-07-18_tropiciel-vs-kukla");
-      const overlay = new Overlay();
-      overlay.render(stats);
-      overlay.shadow.querySelector<HTMLElement>(".row")!.click();
-
-      expect(headings(overlay)).not.toContain("CZYM (ŁĄCZNIE)");
-    });
-
-    test("leczenie nie dostaje sekcji — jego źródłem jest efekt, nie postać", async () => {
-      const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-tropiciel-umiejetnosci");
-      const overlay = new Overlay();
-      overlay.render(stats);
-      overlay.shadow.querySelector<HTMLElement>('[data-action="metric-healingReceived"]')!.click();
-      [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-        .find((row) => row.dataset.actor === "wf foverek psk")!
-        .click();
-
-      expect(headings(overlay)).not.toContain("CZYM (ŁĄCZNIE)");
-      expect(rowsOf(overlay, "abilities")).toHaveLength(0);
-    });
 
     // Barwa idzie za TREŚCIĄ listy, nie za jej głębokością — a ta droga
     // odwraca kolejność szczebli względem drążenia przez cel.
-    test("kolory odwracają się razem ze szczeblami", async () => {
-      const overlay = await enterRegulus();
 
-      const colorOf = (row: HTMLElement | undefined) =>
-        row?.querySelector<HTMLElement>(".bar")?.style.background;
-      const targetColor = colorOf(rowsOf(overlay, "sources")[0]);
-      const abilityColor = colorOf(rowsOf(overlay, "abilities")[0]);
-      expect(targetColor).not.toBe(abilityColor);
-
-      // Po zejściu w umiejętność pierwszy szczebel wymienia POSTACIE, więc
-      // wraca barwa profesji — ta sama co na liście celów wyżej.
-      rowsOf(overlay, "abilities")
-        .find((row) => row.dataset.source === "Uderzenie Króla Węży")!
-        .click();
-      expect(
-        colorOf(rowsOf(overlay, "abilities").find((row) => row.dataset.source === "Łowcosław Kazrek")),
-      ).toBe(targetColor);
-    });
-
-    test("zmiana metryki zdejmuje szczebel wszedłszy przez umiejętność", async () => {
-      const overlay = await enterRegulus();
-      rowsOf(overlay, "abilities")
-        .find((row) => row.dataset.source === "Uderzenie Króla Węży")!
-        .click();
-
-      overlay.shadow.querySelector<HTMLElement>('[data-action="metric-damageTaken"]')!.click();
-      expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Regulus Mętnooki");
-      expect(headings(overlay)[0]).toBe("OD KOGO");
-    });
 
     // Lustro po stronie przyjętych: "czym mnie bito", bez względu na to, kto.
-    test("przyjęte dostają tę samą sekcję", async () => {
-      const overlay = await enterRegulus();
-      overlay.shadow.querySelector<HTMLElement>('[data-action="metric-damageTaken"]')!.click();
 
-      expect(headings(overlay)).toEqual(["OD KOGO", "CZYM (ŁĄCZNIE)", "TYP OBRAŻEŃ"]);
-      rowsOf(overlay, "abilities")
-        .find((row) => row.dataset.source === "Podwójny strzał")!
-        .click();
-      expect(headings(overlay)[0]).toBe("OD KOGO — PODWÓJNY STRZAŁ");
-    });
-
-    /**
-     * Trucizna bez sprawcy stała dotąd na OBU szczeblach pod tą samą nazwą,
-     * więc wejście w nią pokazywało wiersz powtarzający sam siebie — i dlatego
-     * była liściem. Odkąd pierwszym szczeblem jest pozycja zbiorcza
-     * „Bez sprawcy", szczeble mówią dwie różne rzeczy i wejście ma sens: pytanie
-     * „czym mnie tyka" dostaje odpowiedź „truciznę nałożył ktoś, kogo log nie
-     * nazywa". Reguła o liściu nie znika — pilnuje jej `leadsDeeper`
-     * w `stats.test.ts`; tu sprawdzamy, że ta konkretna droga już nie kończy
-     * się w ślepym zaułku.
-     */
-    test("tykający efekt schodzi do pozycji zbiorczej, nie do samego siebie", async () => {
-      const overlay = await enterRegulus();
-      overlay.shadow.querySelector<HTMLElement>('[data-action="metric-damageTaken"]')!.click();
-
-      const poison = rowsOf(overlay, "abilities").find(
-        (row) => row.dataset.source === "Trucizna",
-      )!;
-      expect(poison.dataset.leaf).toBeUndefined();
-
-      poison.click();
-      expect(headings(overlay)[0]).toBe("OD KOGO — TRUCIZNA");
-      expect(rowsOf(overlay, "abilities").map((row) => row.dataset.source)).toEqual([
-        UNATTRIBUTED_SOURCE,
-      ]);
-    });
   });
 
   test("wejście w postać trzyma się jej mimo przebudowy panelu", async () => {
@@ -1210,160 +474,23 @@ describe("overlay", () => {
     expect(overlay.shadow.querySelector(".crumb-name")?.textContent).toBe("Tancogniew Kazrek");
   });
 
-  test("dymek wymienia nazwy efektów wraz z liczbą wystąpień", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_tancerz-vs-kukla");
-    const overlay = new Overlay();
-    overlay.render(stats);
 
-    overlay.shadow.querySelector(".row")!.dispatchEvent(new Event("pointerover", { bubbles: true }));
 
-    const effects = [...overlay.shadow.querySelectorAll(".tip-section")].find(
-      (el) => el.querySelector(".tip-heading")?.textContent === "Efekty w ciosach",
-    )!;
-    const rows = [...effects.querySelectorAll(".tip-stat")].map((row) => [
-      row.querySelector(".tip-stat-label")?.textContent,
-      row.querySelector(".tip-stat-value")?.textContent,
-    ]);
-    expect(rows).toEqual([
-      ["Dotyk anioła", "×1"],
-      ["Klątwa", "×1"],
-    ]);
-  });
-
-  test("efekty widać przy każdej metryce, nie tylko przy zadanych", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_tancerz-vs-kukla");
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    const headings = () =>
-      [...overlay.shadow.querySelectorAll(".tip-heading")].map((el) => el.textContent);
-
-    for (const metric of ["Zadane", "Otrzymane"]) {
-      [...overlay.shadow.querySelectorAll("button")]
-        .find((b) => b.textContent === metric)!
-        .click();
-      // Najeżdżamy na TĘ SAMĄ postać, nie na pierwszy wiersz — ranking się
-      // przestawia i przy "Otrzymane" na górze stoi już kto inny.
-      [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-        .find((row) => row.dataset.actor === "Magister Kazrek")!
-        .dispatchEvent(new Event("pointerover", { bubbles: true }));
-      expect(headings()).toContain("Efekty w ciosach");
-    }
-  });
-
-  test("wymienia wszystkie efekty, bez ucinania listy", async () => {
-    // Ta walka ma ich więcej niż dawny limit czterech pozycji.
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-gnolle-rozdzielanie");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    overlay.shadow.querySelector(".row")!.dispatchEvent(new Event("pointerover", { bubbles: true }));
-
-    const actor = stats.actors.find(
-      (a) => a.name === overlay.shadow.querySelector<HTMLElement>(".row")!.dataset.actor,
-    )!;
-    const effects = [...overlay.shadow.querySelectorAll(".tip-section")].find(
-      (el) => el.querySelector(".tip-heading")?.textContent === "Efekty w ciosach",
-    )!;
-
-    expect(actor.procs.length).toBeGreaterThan(2);
-    expect(effects.querySelectorAll(".tip-stat")).toHaveLength(actor.procs.length);
-    expect(effects.textContent).not.toContain("inne");
-  });
 
   test("absorpcja celu nie jest liczona jako efekt napastnika", async () => {
     // "-Absorpcja 261 obrażeń fizycznych" to tarcza CELU. Pod napastnikiem
     // byłaby nie tą postacią, a jej wartość i tak siedzi w damageAbsorbed.
-    const events = parse(
-      [
-        "Rozpoczęła się walka pomiędzy Gracz (1w) a Cel (1w)",
-        "Gracz(100%) uderzył z siłą  +500",
-        "-Absorpcja 261 obrażeń fizycznych",
-        "Cel(50%) otrzymał(a)  -239  obrażeń",
-      ].join("\n"),
-    );
-
-    const stats = aggregate(events);
+    // Absorpcja nie jest procem: siedzi w różnicy `raw - applied`, czyli
+    // w `damageAbsorbed` CELU, i pod napastnikiem byłaby nie tą postacią.
+    const stats = aggregate([
+      otwarcie(["Gracz 1w"], ["Cel 1w"]),
+      cios("Gracz", "Cel", [trafienie(500, 239)], { targetHpPct: 50 }),
+    ]);
     expect(stats.actors.find((a) => a.name === "Gracz")!.procs).toEqual([]);
     expect(stats.actors.find((a) => a.name === "Cel")!.damageAbsorbed).toBe(500 - 239);
   });
 
-  test("dymek dla przyjętych obrażeń rozbija je na sprawców", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp");
-    const overlay = new Overlay();
-    overlay.render(stats);
 
-    [...overlay.shadow.querySelectorAll("button")]
-      .find((b) => b.textContent === "Otrzymane")!
-      .click();
-    // Lista jest pogrupowana stronami, więc pierwszy wiersz to lider MOJEJ
-    // drużyny — najmocniej obrywającego bierzemy po nazwie.
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-      .find((row) => row.dataset.actor === "wf agar psk")!
-      .dispatchEvent(new Event("pointerover", { bubbles: true }));
-
-    const tip = overlay.shadow.querySelector(".tip")!;
-    expect(tip.querySelector(".tip-title")?.textContent).toBe("wf agar psk");
-    expect(tip.querySelector(".tip-stat.is-active .tip-stat-label")?.textContent).toBe("Otrzymane");
-
-    // Rozbicie na sprawców jest o szczebel niżej i trzyma się wybranej metryki:
-    // wchodzimy w postać przy "Otrzymane", więc dostajemy samych napastników.
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-      .find((row) => row.dataset.actor === "wf agar psk")!
-      .click();
-
-    expect(overlay.shadow.querySelector(".rows .side-head")?.firstElementChild?.textContent).toBe(
-      "OD KOGO",
-    );
-    const labels = [...overlay.shadow.querySelectorAll(".rows .row .label")].map(
-      (el) => el.textContent,
-    );
-    expect(labels).toEqual([
-      "Tancogniew Kazrek",
-      // Te same obrażenia od strony umiejętności — bez względu na napastnika.
-      "Zwykły atak",
-      "Trucizna",
-      // I ten sam worek w trzecim przekroju, po żywiole.
-      "Nieznany",
-      "Trucizna",
-    ]);
-
-    // Szczebel niżej: czym ten napastnik uderzał, w rankingu po obrażeniach.
-    [...overlay.shadow.querySelectorAll<HTMLElement>('.rows .row[data-list="sources"]')]
-      .find((row) => row.dataset.source === "Tancogniew Kazrek")!
-      .click();
-    expect(
-      [...overlay.shadow.querySelectorAll('.rows .row[data-list="sources"] .label')].map(
-        (el) => el.textContent,
-      ),
-    ).toEqual(["Zwykły atak", "Trucizna"]);
-  });
-
-  test("dymek przeżywa przebudowę panelu pod nieruchomym kursorem", async () => {
-    // W grze log mutuje przy każdej akcji, więc wiersz pod kursorem jest
-    // podmieniany — bez tego dymek znikałby i nie wracał aż do ruchu myszą.
-    const events = parse(await readFixture("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp"));
-    const overlay = new Overlay();
-    overlay.render(aggregate(events));
-
-    overlay.shadow.querySelector(".row")!.dispatchEvent(new Event("pointerover", { bubbles: true }));
-    const tip = overlay.shadow.querySelector<HTMLElement>(".tip")!;
-    expect(tip.hidden).toBe(false);
-
-    // Dochodzi kolejny cios i panel jest budowany od nowa.
-    const more = parse(
-      "Tancogniew Kazrek(50%) uderzył z siłą  +900\nwf agar psk(10%) otrzymał  -900  obrażeń",
-    );
-    const grown = aggregate([...events, ...more]);
-    overlay.render(grown);
-
-    expect(tip.hidden).toBe(false);
-    expect(tip.querySelector(".tip-title")?.textContent).toBe("Tancogniew Kazrek");
-    // Dymek ma przeliczyć się razem z panelem — sprawdzamy po liczbie, bo to
-    // ona rośnie, a tytuł jest teraz stały.
-    expect(tip.querySelector(".tip-stat.is-active .tip-stat-value")?.textContent).toBe(
-      number.format(10366 + 900),
-    );
-  });
 
   test("dymek znika, gdy postać wypada z rankingu", async () => {
     const stats = await statsFrom("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp");
@@ -1562,15 +689,16 @@ describe("pozycja dymka", () => {
 });
 
 describe("efekty: kto wyzwolił kontra na kim się odpalił", () => {
-  const log = [
-    "Rozpoczęła się walka pomiędzy Gracz (1w) a Szaman (1m)",
-    "Szaman(100%) uderzył(a) z siłą  +536",
-    "-Oślepienie w następnej turze",
-    "Gracz(98%) otrzymał  -261  obrażeń",
-  ].join("\n");
+  const walka = [
+    otwarcie(["Gracz 1w"], ["Szaman 1m"]),
+    cios("Szaman", "Gracz", [trafienie(536, 261)], {
+      targetHpPct: 98,
+      procs: ["Oślepienie w następnej turze"],
+    }),
+  ];
 
   test("efekt liczy się u tego, kto go ma w eq, nie u ofiary", () => {
-    const stats = aggregate(parse(log));
+    const stats = aggregate(walka);
     const szaman = stats.actors.find((a) => a.name === "Szaman")!;
     const gracz = stats.actors.find((a) => a.name === "Gracz")!;
 
@@ -1580,7 +708,7 @@ describe("efekty: kto wyzwolił kontra na kim się odpalił", () => {
   });
 
   test("ofiara ma osobny licznik tego, co się na niej odpaliło", () => {
-    const stats = aggregate(parse(log));
+    const stats = aggregate(walka);
     const szaman = stats.actors.find((a) => a.name === "Szaman")!;
     const gracz = stats.actors.find((a) => a.name === "Gracz")!;
 
@@ -1590,7 +718,7 @@ describe("efekty: kto wyzwolił kontra na kim się odpalił", () => {
   });
 
   test("dymek pokazuje obie sekcje osobno", () => {
-    const stats = aggregate(parse(log));
+    const stats = aggregate(walka);
     const overlay = new Overlay();
     overlay.render(stats);
     [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
@@ -1606,7 +734,7 @@ describe("efekty: kto wyzwolił kontra na kim się odpalił", () => {
 });
 
 describe("nagłówek stron i tempo", () => {
-  const statsFrom = async (name: string) => aggregate(parse(await readFixture(name)));
+  const statsFrom = async (name: string) => aggregate(readEvents(name));
   const perTurnButton = (overlay: Overlay) =>
     [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === "na turę")!;
 
@@ -1633,55 +761,14 @@ describe("nagłówek stron i tempo", () => {
     expect(fill.style.width).toBe(`${(mine / (mine + enemy)) * 100}%`);
   });
 
-  test("podział na strony stoi pod listą i tylko przy zakładce Wszyscy", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp");
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    // Zamyka korpus — pod listą i pod stopką. Lista jest wtedy jednym rankingiem
-    // bez sekcji, więc to jedyne miejsce, które mówi, jak wypadły drużyny.
-    const blocks = [...overlay.shadow.querySelector(".panel-body")!.children].map((el) => el.className);
-    expect(blocks.at(-1)).toBe("sides");
-
-    // Przy "Wszyscy" to porównanie stron: dwie sumy i pasek podziału.
-    expect(overlay.shadow.querySelector(".sides-track")).not.toBeNull();
-
-    // Przy jednej drużynie porównywać nie ma z czym, więc pasek ustępuje jej
-    // sumom — wszystkie metryki naraz, nie tylko ta z aktywnej zakładki.
-    [...overlay.shadow.querySelectorAll("button")]
-      .find((b) => b.textContent === "My")!
-      .click();
-
-    expect(overlay.shadow.querySelector(".sides-track")).toBeNull();
-    const totals = [...overlay.shadow.querySelectorAll(".team-total")].map((el) => [
-      el.firstElementChild?.textContent,
-      el.querySelector(".team-total-value")?.textContent,
-    ]);
-    const mine = stats.actors.filter((a) => a.side === 0);
-    const sum = (pick: (a: (typeof mine)[number]) => number) =>
-      number.format(mine.reduce((acc, a) => acc + pick(a), 0));
-    expect(totals).toEqual([
-      ["Zadane", sum((a) => a.damageDealt)],
-      ["Otrzymane", sum((a) => a.damageTaken)],
-      ["Leczenie", sum((a) => a.healingReceived)],
-    ]);
-    // Aktywna metryka wyróżniona, żeby było wiadomo, co rządzi listą wyżej.
-    expect(overlay.shadow.querySelector(".team-total.is-active")?.firstElementChild?.textContent)
-      .toBe("Zadane");
-    expect(overlay.shadow.querySelectorAll(".row")).toHaveLength(1);
-  });
 
   test("trucizna bez sprawcy idzie za filtrem składu", () => {
     // Sprawcy log nie podaje (po drugiej stronie stoi trzech), ale ofiarę tak —
     // więc przypis ma mówić o tej stronie, którą właśnie widać.
-    const stats = aggregate(
-      parse(
-        [
-          "Rozpoczęła się walka pomiędzy Gracz (1w) a A (1w), B (1w), C (1w)",
-          "Gracz(50%): 100 obrażeń od trucizny.",
-        ].join("\n"),
-      ),
-    );
+    const stats = aggregate([
+      otwarcie(["Gracz 1w"], ["A 1w", "B 1w", "C 1w"]),
+      tykniecie("Gracz", 50, 100, "trucizny"),
+    ]);
     const overlay = new Overlay();
     overlay.render(stats);
     const note = () =>
@@ -1706,14 +793,10 @@ describe("nagłówek stron i tempo", () => {
    * „Oni" — a leczono tylko jedną stronę.
    */
   test("leczenie bez sprawcy też idzie za filtrem składu", () => {
-    const stats = aggregate(
-      parse(
-        [
-          "Rozpoczęła się walka pomiędzy Gracz (1w) a Wilk (1w)",
-          "Przywrócono 700 punktów życia Gracz(90%).",
-        ].join("\n"),
-      ),
-    );
+    const stats = aggregate([
+      otwarcie(["Gracz 1w"], ["Wilk 1w"]),
+      leczenie("Gracz", 700, { targetHpPct: 90 }),
+    ]);
     const overlay = new Overlay();
     overlay.render(stats);
     const note = () =>
@@ -1783,7 +866,7 @@ describe("nagłówek stron i tempo", () => {
 
   test("pasek stron przy zerowej sumie zostaje pusty, nie na pół", () => {
     // Skład jest, walka jeszcze się nie zaczęła. 50/50 czytało się jak remis.
-    const stats = aggregate(parse("Rozpoczęła się walka pomiędzy Gracz (1w) a Wilk (1w)"));
+    const stats = aggregate([otwarcie(["Gracz 1w"], ["Wilk 1w"])]);
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -1791,34 +874,6 @@ describe("nagłówek stron i tempo", () => {
     expect(fills.map((fill) => fill.style.width)).toEqual(["0%", "0%"]);
   });
 
-  test("na turę przestawia ranking, bo tury utracone przestają karać", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_wojownik-vs-druzyna-umiejetnosci");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    perTurnButton(overlay).click();
-
-    const rows = [...overlay.shadow.querySelectorAll(".row")].map((r) => [
-      r.querySelector(".label")?.textContent,
-      valueOf(r),
-    ]);
-
-    // Bulu Mulu zadał 149 do 379 wojownika, ale w dwóch turach zamiast pięciu —
-    // po podzieleniu bije niemal tak samo mocno i staje tuż za nim we wspólnym
-    // rankingu. Udziały liczą się wobec całej walki, nie w obrębie strony.
-    expect(rows[0]![0]).toBe("Woj Zandan Długonogi");
-    expect(rows[1]![0]).toBe("Bulu Mulu");
-    // Liczba wiodąca niesie "/t", bo w tym trybie to ona jest tempem. Udział
-    // w nawiasie zostaje przy SUROWYCH sumach: 379 z 600 to 63% obrażeń walki
-    // i tyle samo pokazuje tryb sum. Dawniej dzielił się przez Σ(temp) — liczbę
-    // bez sensu fizycznego, której panel nigdzie nie pokazuje — więc Bulu Mulu
-    // z 25% realnych obrażeń dostawał ten sam procent co wojownik z 63%.
-    // Jednostka stoi przy liczbie, bo nagłówka kolumn nie ma i nie będzie —
-    // bez "/t" nic by nie mówiło, że to tempo, a nie suma.
-    expect(rows[0]![1]).toBe("75,8/t");
-    expect(rows[1]![1]).toBe("74,5/t");
-    const shares = [...overlay.shadow.querySelectorAll(".rows .row")].map(shareOf);
-    expect(shares.slice(0, 2)).toEqual(["63%", "25%"]);
-  });
 
   test("dymek liczy w tym samym trybie co wiersz, a tury zostają surowe", async () => {
     // Dymek pokazywał sumy niezależnie od przełącznika, więc ta sama postać
@@ -1850,143 +905,14 @@ describe("nagłówek stron i tempo", () => {
     expect(stat("Tury")).toBe(`${actor.turns}`);
   });
 
-  test("pasek niesie jedną liczbę wiodącą, a reszta stoi przy niej w nawiasie", async () => {
-    // Wzorzec SKADA/Details!: na pasku nazwa i wynik, reszta po najechaniu.
-    // Wcześniej stały tu obie miary naraz i w walce grupowej zjadały nazwę.
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-gnolle-rozdzielanie");
-    const idle = stats.actors.find((a) => a.damageDealt === 0 && a.turns === 0)!;
-    const single = stats.actors.find((a) => a.turns === 1 && a.damageDealt > 0)!;
 
-    const overlay = new Overlay();
-    overlay.render(stats);
 
-    const cells = (name: string) => {
-      const row = [...overlay.shadow.querySelectorAll<HTMLElement>(".row")].find(
-        (candidate) => candidate.dataset.actor === name,
-      )!;
-      return [
-        valueOf(row),
-        shareOf(row),
-        // Druga miara nie ma własnej kolumny — wchodzi do tego samego nawiasu
-        // co udział. To jest treść tego testu.
-        row.querySelector(".avg"),
-      ];
-    };
 
-    const total = stats.actors.reduce((sum, a) => sum + a.damageDealt, 0);
-    const share = Math.round((single.damageDealt / total) * 100);
 
-    expect(cells(idle.name)).toEqual(["0", "0%", null]);
-    expect(cells(single.name)).toEqual([number.format(single.damageDealt), `${share}%`, null]);
-
-    // W nawiasie stoi udział, a za nim tempo — jedna liczba wiodąca, reszta
-    // przy niej.
-    const nawias = [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-      .find((row) => row.dataset.actor === single.name)!
-      .querySelector(".share")?.textContent;
-    expect(nawias).toBe(`(${share}% · ${rate.format(single.damageDealt / single.turns)}/t)`);
-
-    // Suma nie znika z panelu — dymek pokazuje komplet metryk tej postaci.
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-      .find((row) => row.dataset.actor === single.name)!
-      .dispatchEvent(new Event("pointerover", { bubbles: true }));
-    const tipValue = [...overlay.shadow.querySelectorAll(".tip-stat")]
-      .find((row) => row.querySelector(".tip-stat-label")?.textContent === "Zadane")
-      ?.querySelector(".tip-stat-value")?.textContent;
-    expect(tipValue).toBe(number.format(single.damageDealt));
-  });
-
-  test("otrzymane na turę liczy tury walki, nie tury poszkodowanego", async () => {
-    // Gnoll szaman ginie w pierwszej turze łowcy, więc sam nie zdążył zagrać
-    // ani razu. Przy dzieleniu przez tury WŁASNE pokazywał "0 na turę" mimo
-    // 2375 przyjętych obrażeń — obrywa się w turach przeciwnika, nie swoich.
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-gnolle-rozdzielanie");
-    const szaman = stats.actors.find((a) => a.name === "Gnoll szaman")!;
-    expect(szaman.turns).toBe(0);
-    expect(szaman.damageTaken).toBeGreaterThan(0);
-
-    const overlay = new Overlay();
-    overlay.render(stats);
-    [...overlay.shadow.querySelectorAll("button")]
-      .find((b) => b.textContent === "Otrzymane")!
-      .click();
-    perTurnButton(overlay).click();
-
-    const row = [...overlay.shadow.querySelectorAll<HTMLElement>(".row")].find(
-      (candidate) => candidate.dataset.actor === "Gnoll szaman",
-    )!;
-    const expected = szaman.damageTaken / stats.timeline.length;
-    expect(valueOf(row)).toBe(`${rate.format(expected)}/t`);
-  });
-
-  test("zadane na turę nadal dzieli się przez tury własne", async () => {
-    // Druga strona tej samej reguły: tempo zadawania ma karać stojącego
-    // bezczynnie, więc tu dzielnikiem zostaje licznik akcji postaci.
-    const stats = await statsFrom("new-engine/2026-07-18_lowca-vs-gnolle-rozdzielanie");
-    const lowca = stats.actors.find((a) => a.name === "Łowcosław Kazrek")!;
-    expect(lowca.turns).toBeLessThan(stats.timeline.length);
-
-    const overlay = new Overlay();
-    overlay.render(stats);
-    perTurnButton(overlay).click();
-
-    const row = [...overlay.shadow.querySelectorAll<HTMLElement>(".row")].find(
-      (candidate) => candidate.dataset.actor === "Łowcosław Kazrek",
-    )!;
-    const expected = lowca.damageDealt / lowca.turns;
-    expect(valueOf(row)).toBe(`${rate.format(expected)}/t`);
-  });
-
-  test("duże liczby na pasku są skracane, żeby zostało miejsce na nazwę", async () => {
-    const stats = aggregate(
-      parse(await readFixture("new-engine/2026-07-22_lowca-tropiciel-vs-regulus-grupowa")),
-    );
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    const value = (name: string) =>
-      valueOf(
-        [...overlay.shadow.querySelectorAll<HTMLElement>(".row")].find(
-          (row) => row.dataset.actor === name,
-        ),
-      );
-
-    // Od pięciu cyfr wchodzi skrót — 39 352 to "39,4k".
-    expect(value("Regulus Mętnooki")).toBe("39,4k");
-    // Do czterech cyfr pełna liczba i tak się mieści, więc zostaje dokładna.
-    expect(value("Łowcosław Kazrek")).toBe(number.format(4379));
-
-    // Dymek zawsze podaje pełną liczbę — skrót jest tylko oszczędnością miejsca.
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-      .find((row) => row.dataset.actor === "Regulus Mętnooki")!
-      .dispatchEvent(new Event("pointerover", { bubbles: true }));
-    const tipValue = [...overlay.shadow.querySelectorAll(".tip-stat")]
-      .find((row) => row.querySelector(".tip-stat-label")?.textContent === "Zadane")
-      ?.querySelector(".tip-stat-value")?.textContent;
-    expect(tipValue).toBe(number.format(39352));
-  });
-
-  test("tempo strony to jej suma dzielona przez jej tury, nie suma temp", async () => {
-    const stats = await statsFrom("new-engine/2026-07-18_wojownik-vs-druzyna-umiejetnosci");
-    const overlay = new Overlay();
-    overlay.render(stats);
-    perTurnButton(overlay).click();
-
-    const enemies = stats.actors.filter((a) => a.side !== null && a.side !== 0);
-    const damage = enemies.reduce((sum, a) => sum + a.damageDealt, 0);
-    const turns = enemies.reduce((sum, a) => sum + a.turns, 0);
-
-    // Suma temp dałaby liczbę rosnącą z liczebnością drużyny, a nie tempo.
-    const sumOfRates = enemies.reduce((sum, a) => sum + a.damageDealt / a.turns, 0);
-    expect(overlay.shadow.querySelector(".side-enemy")?.textContent).toBe(
-      `${new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 1 }).format(damage / turns)} oni`,
-    );
-    expect(damage / turns).not.toBeCloseTo(sumOfRates);
-  });
 });
 
 describe("oś tur", () => {
-  const statsFrom = async (name: string) => aggregate(parse(await readFixture(name)));
+  const statsFrom = async (name: string) => aggregate(readEvents(name));
 
   test("oś tur rozkłada dokładnie tyle obrażeń, ile padło w walce", async () => {
     // Niezmiennik: oś to inny przekrój tych samych obrażeń, nie druga pula.
@@ -2015,7 +941,7 @@ describe("oś tur", () => {
     // bloki na każdą akcję i "Rozpraszający atak" pokazywał 3 użycia przy
     // 9 ciosach. W korpusie prawdziwych logów rekord to 2 ciosy na użycie
     // ("Podwójne trafienie"), a zwykły atak nigdy nie przekracza jednego.
-    const stats = aggregate(parse(syntheticFight(20)));
+    const stats = aggregate(syntheticFight(20));
 
     for (const actor of stats.actors) {
       const hits = new Map(actor.dealtBy.map((source) => [source.label, source.hits]));
@@ -2038,7 +964,7 @@ describe("oś tur", () => {
   });
 
   test("lista pokazuje cały skład naraz, bez zwijania i bez sekcji stron", () => {
-    const stats = aggregate(parse(syntheticFight(20)));
+    const stats = aggregate(syntheticFight(20));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -2058,7 +984,7 @@ describe("oś tur", () => {
   });
 
   test("udziały sumują się do 100% w obrębie całej listy", () => {
-    const stats = aggregate(parse(syntheticFight(4)));
+    const stats = aggregate(syntheticFight(4));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -2100,7 +1026,7 @@ describe("kopiowanie i nagrywanie", () => {
     overlay.shadow.querySelector<HTMLElement>(`button[data-action="${action}"]`);
 
   test("kopiuje statystyki walki jako JSON", async () => {
-    const stats = aggregate(parse(syntheticFight(4)));
+    const stats = aggregate(syntheticFight(4));
     let copied = "";
     const overlay = new Overlay({ clipboard: (text) => void (copied = text) });
     overlay.render(stats);
@@ -2124,7 +1050,7 @@ describe("kopiowanie i nagrywanie", () => {
     // Od 0.3.0 dodatek aktualizuje się sam, a README prosi wprost o przysyłanie
     // logów z zepsutych walk. Zgłoszenie bez wersji nie daje się uszeregować:
     // nie wiadomo, czy dotyczy czegoś, co już jest naprawione.
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     let copied = "";
     const overlay = new Overlay({ clipboard: (text) => void (copied = text) });
     overlay.render(stats);
@@ -2150,7 +1076,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("kopiowanie potwierdza się w przycisku i wraca do ikony", async () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const overlay = new Overlay({ clipboard: () => {} });
     overlay.render(stats);
 
@@ -2163,7 +1089,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("odmowa schowka nie udaje sukcesu", async () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const overlay = new Overlay({
       clipboard: () => {
         throw new Error("brak uprawnienia");
@@ -2180,7 +1106,7 @@ describe("kopiowanie i nagrywanie", () => {
   // `execCommand("copy")` przy odmowie ZWRACA `false`, a nie rzuca — wartość
   // szła dotąd w próżnię, więc panel migał „✓" nad pustym schowkiem.
   test("zapasowa droga do schowka też nie udaje sukcesu", async () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const execCommand = (document as unknown as { execCommand?: unknown }).execCommand;
     (document as unknown as { execCommand: unknown }).execCommand = () => false;
     // Bez wstrzykniętego schowka idzie prawdziwa ścieżka: `navigator.clipboard`
@@ -2201,7 +1127,7 @@ describe("kopiowanie i nagrywanie", () => {
   // `dump()` zwraca null, gdy indeks obiecuje nagrania, których pod kluczami
   // już nie ma. Wcześniej szło `?? ""` — pusty schowek i „✓".
   test("kopiowanie logów bez logów melduje porażkę, nie sukces", async () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     let copied: string | null = null;
     const { control } = fakeRecorder({ dump: () => null });
     const overlay = new Overlay({
@@ -2223,7 +1149,7 @@ describe("kopiowanie i nagrywanie", () => {
   // dokładnie w chwili, w której jest najbardziej niebezpieczny.
   describe("potwierdzenie kasowania wygasa WIDOCZNIE", () => {
     const armed = () => {
-      const stats = aggregate(parse(syntheticFight(2)));
+      const stats = aggregate(syntheticFight(2));
       const ticker = new ManualTicker();
       let clock = 1_000;
       const { control, state } = fakeRecorder();
@@ -2284,7 +1210,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("bez nagrywarki nie ma ani przycisku, ani paska", () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -2293,7 +1219,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("przycisk nagrywania przełącza stan i pokazuje go", () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const { control, state } = fakeRecorder();
     const overlay = new Overlay({ recorder: control });
     overlay.render(stats);
@@ -2307,7 +1233,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("pasek podaje liczbę nagranych walk i zajętość", () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const { control } = fakeRecorder();
     const overlay = new Overlay({ recorder: control });
     overlay.render(stats);
@@ -2317,7 +1243,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("licznik walk odmienia się poprawnie", () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const word = (count: number) => {
       const { control } = fakeRecorder({ count: () => count });
       const overlay = new Overlay({ recorder: control });
@@ -2339,7 +1265,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("pasek znika, gdy nie ma nagrań ani nagrywania", () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const { control } = fakeRecorder({ count: () => 0 });
     const overlay = new Overlay({ recorder: control });
     overlay.render(stats);
@@ -2348,7 +1274,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("kopiuje nagrane logi, nie statystyki", async () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const { control } = fakeRecorder();
     let copied = "";
     const overlay = new Overlay({ recorder: control, clipboard: (text) => void (copied = text) });
@@ -2362,7 +1288,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("czyszczenie nagrań wymaga potwierdzenia", () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const { control, state } = fakeRecorder();
     const overlay = new Overlay({ recorder: control });
     overlay.render(stats);
@@ -2378,7 +1304,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("brak miejsca w magazynie widać w pasku", () => {
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const { control } = fakeRecorder({ isFailed: () => true, count: () => 0 });
     const overlay = new Overlay({ recorder: control });
     overlay.render(stats);
@@ -2390,7 +1316,7 @@ describe("kopiowanie i nagrywanie", () => {
   test("oba komunikaty paska zaczynają się tak samo — wielką literą", () => {
     // AUDYT-17: jeden element niósł raz „nagrywam…", raz „Brak miejsca…".
     // Ta sama szczelina, dwie konwencje — czyta się jak literówka (`UX.md §1.6`).
-    const stats = aggregate(parse(syntheticFight(2)));
+    const stats = aggregate(syntheticFight(2));
     const message = (failed: boolean) => {
       const { control } = fakeRecorder({
         isFailed: () => failed,
@@ -2416,7 +1342,7 @@ describe("ustawienia widoku przeżywają odświeżenie", () => {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => void store.set(k, v),
   };
-  const load = async () => aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+  const load = async () => aggregate(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
 
   beforeEach(() => store.clear());
 
@@ -2502,7 +1428,7 @@ describe("ustawienia widoku przeżywają odświeżenie", () => {
  * który `destroy()` ma zgasić. Przy okazji znika 3,2 s prawdziwych snów.
  */
 describe("zdejmowanie panelu", () => {
-  const load = async () => aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+  const load = async () => aggregate(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
 
   /** Zwęża okno, żeby `onResize` miał co przyciąć — i oddaje poprzednią szerokość. */
   const shrinkViewport = (width: number) => {
@@ -2564,7 +1490,7 @@ describe("zdejmowanie panelu", () => {
 // Arkusz obiecywał fokus na wierszach, okruszku i suwaku — trzy martwe reguły,
 // bo `tabindex` nie ustawiał nic, a okruszek i suwak były `div`-ami.
 describe("fokus jest tam, gdzie arkusz go obiecuje", () => {
-  const load = async () => aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
+  const load = async () => aggregate(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
 
   test("okruszek powrotu to prawdziwy przycisk", async () => {
     const stats = await load();
@@ -2664,7 +1590,7 @@ describe("jedno źródło wyglądu dla obu okien", () => {
 });
 
 describe("podgląd wczytanej walki", () => {
-  const load = async (name: string) => aggregate(parse(await readFixture(`new-engine/${name}`)));
+  const load = async (name: string) => aggregate(readEvents(`new-engine/${name}`));
 
   /** Widok podglądu bez odtwarzania — tyle, ile overlay potrzebuje do paska. */
   const view = (): PreviewView => ({
@@ -2760,38 +1686,11 @@ describe("podgląd wczytanej walki", () => {
     expect(tip.querySelector(".tip-title")?.textContent).toBe(name);
   });
 
-  test("przy zbieżności nazw dymek bierze liczby z nagrania", async () => {
-    // Gorszy wariant tego samego błędu: postać o tej samej nazwie JEST w walce
-    // na żywo, więc dymek się pokazywał — tylko z cudzymi liczbami.
-    const text = await readFixture("new-engine/2026-07-18_lowca-vs-tropiciel-umiejetnosci");
-    const archived = aggregate(parse(text));
-    // Ta sama walka urwana w połowie: te same nazwy, mniejsze liczby.
-    const live = aggregate(parse(text.split("\n").slice(0, 12).join("\n")));
-
-    const overlay = new Overlay();
-    overlay.render(live);
-    overlay.showPreview(archived, view());
-
-    const name = "Łowcosław Kazrek";
-    const dealtInArchive = archived.actors.find((a) => a.name === name)!.damageDealt;
-    const dealtLive = live.actors.find((a) => a.name === name)!.damageDealt;
-    expect(dealtInArchive).toBeGreaterThan(dealtLive);
-
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-      .find((row) => row.dataset.actor === name)!
-      .dispatchEvent(new Event("pointerover", { bubbles: true }));
-
-    const values = [...overlay.shadow.querySelectorAll(".tip .tip-stat-value")].map(
-      (el) => el.textContent,
-    );
-    expect(values).toContain(new Intl.NumberFormat("pl-PL").format(dealtInArchive));
-    expect(values).not.toContain(new Intl.NumberFormat("pl-PL").format(dealtLive));
-  });
 });
 
 describe("prawy przycisk odbiera menu tylko wtedy, gdy coś daje w zamian", () => {
   const load = async () =>
-    aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+    aggregate(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
 
   test("na najwyższym szczeblu menu zostaje, bo nie ma czego zdjąć", async () => {
     // `back()` wychodził wtedy bez efektu, ale `preventDefault()` leciał i tak.
@@ -2832,7 +1731,7 @@ describe("prawy przycisk odbiera menu tylko wtedy, gdy coś daje w zamian", () =
     // Archiwum rysuje pole wklejania w TYM SAMYM shadow roocie co panel, więc
     // globalny handler PPM zabierał mu natywne menu — jedyne miejsce, gdzie to
     // menu jest naprawdę potrzebne — i przy okazji cofał widok o szczebel.
-    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+    const stats = aggregate(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -2867,7 +1766,7 @@ describe("przyciski panelu przeżywają przebudowę w środku gestu", () => {
     // (~100 ms) zawsze trafia w przebudowę. Węzeł spod kursora znika, natywny
     // `click` nie pada, a zakładki przestają działać — z podglądu nie dawało się
     // wyjść bez wcześniejszej pauzy.
-    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+    const stats = aggregate(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -2883,7 +1782,7 @@ describe("przyciski panelu przeżywają przebudowę w środku gestu", () => {
   test("zwykły klik nie wykonuje akcji dwa razy", async () => {
     // `pointerup` już ją wykonał, a przeglądarka dokłada za nim `click` —
     // bez flagi „obsłużone” przełącznik wracałby na miejsce.
-    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+    const stats = aggregate(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -2897,7 +1796,7 @@ describe("przyciski panelu przeżywają przebudowę w środku gestu", () => {
   });
 
   test("puszczenie nad INNYM przyciskiem niczego nie przełącza", async () => {
-    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
+    const stats = aggregate(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -2913,360 +1812,26 @@ describe("przyciski panelu przeżywają przebudowę w środku gestu", () => {
  * które zadają obrażenia poza linią ciosu. Wszystkie trzy usterki tej rundy
  * widać na tym jednym zrzucie, więc i testy stoją na nim razem.
  */
-describe("boss z Hildur — co widać w panelu", () => {
-  const HILDUR = "new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo";
-
-  /** Zrzut z DOM-u: żywioł siedzi wyłącznie w klasie CSS. */
-  const enterBoss = async (metric: "Zadane" | "Otrzymane") => {
-    document.body.innerHTML = await Bun.file(`${FIXTURES}${HILDUR}/log.html`).text();
-    const stats = aggregate(parse(extractText(document.body)));
-    const overlay = new Overlay();
-    overlay.render(stats);
-    metricButton(overlay, metric).click();
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
-      .find((row) => row.dataset.actor === "Hildur Muza Śmierci")!
-      .click();
-    return overlay;
-  };
-  const sectionRows = (overlay: Overlay, heading: string) => {
-    const rows: HTMLElement[] = [];
-    let inside = false;
-    for (const node of overlay.shadow.querySelectorAll<HTMLElement>(".rows > *")) {
-      if (node.classList.contains("side-head")) {
-        inside = node.firstElementChild?.textContent === heading;
-        continue;
-      }
-      if (inside && node.classList.contains("row")) rows.push(node);
-    }
-    return rows;
-  };
-  const labelsOf = (rows: HTMLElement[]) =>
-    rows.map((row) => row.querySelector(".label")?.textContent);
-
-  test("ranking OD KOGO wymienia postacie, a resztę zbiera na końcu", async () => {
-    const overlay = await enterBoss("Otrzymane");
-    const rows = sectionRows(overlay, "OD KOGO");
-
-    expect(labelsOf(rows).at(-1)).toBe(UNATTRIBUTED_SOURCE);
-    expect(rows.at(-1)!.dataset.unattributed).toBe("");
-    // Żaden inny wiersz nie udaje pozycji zbiorczej.
-    expect(rows.filter((row) => row.dataset.unattributed !== undefined)).toHaveLength(1);
-  });
-
-  test("pozycja zbiorcza prowadzi głębiej, do tego, co w niej siedzi", async () => {
-    const overlay = await enterBoss("Otrzymane");
-    const row = sectionRows(overlay, "OD KOGO").at(-1)!;
-    // Nie jest liściem, więc kursor i klik obiecują to samo.
-    expect(row.dataset.leaf).toBeUndefined();
-
-    row.click();
-    expect(
-      [...overlay.shadow.querySelectorAll(".rows .side-head")].map(
-        (el) => el.firstElementChild?.textContent,
-      )[0],
-    ).toBe(`CZYM — ${UNATTRIBUTED_SOURCE.toUpperCase()}`);
-    expect(labelsOf(sectionRows(overlay, `CZYM — ${UNATTRIBUTED_SOURCE.toUpperCase()}`))).toEqual([
-      "Trucizna",
-      "Ogień",
-    ]);
-  });
-
-  test("TYP OBRAŻEŃ wymienia rodziny, po jednej na wiersz", async () => {
-    const overlay = await enterBoss("Otrzymane");
-    const labels = labelsOf(sectionRows(overlay, "TYP OBRAŻEŃ"));
-
-    expect(labels).toEqual(["Broń", "Zimno", "Trucizna", "Ogień", "Błyskawica", "Nieuchronne", "Rana"]);
-  });
-
-  test("rodzaj, którego log nie podaje, nazywa się w liście wprost", async () => {
-    const overlay = await enterBoss("Zadane");
-    // `dmgg` to ZASIĘG podany zamiast żywiołu — 79% obrażeń bossa. Wiersz mówi,
-    // że rodzaju nie znamy, zamiast udawać kolejny typ.
-    expect(labelsOf(sectionRows(overlay, "TYP OBRAŻEŃ"))).toContain("Nieznany (obszarowe)");
-  });
-
-  test("akcja bez ciosów nie melduje zera ciosów", async () => {
-    const overlay = await enterBoss("Zadane");
-    const rows = sectionRows(overlay, "CZYM (ŁĄCZNIE)");
-    const counter = (label: string) =>
-      rows.find((row) => row.querySelector(".label")?.textContent === label)
-        ?.querySelector(".avg")?.textContent;
-
-    // „Śpiew zagłady" zadaje linią „-N obrażeń otrzymał(a) X", która ciosem nie
-    // jest — wiersz mówił przez to „×3 · 0 c." przy 79% obrażeń postaci.
-    expect(counter("Śpiew zagłady")).toBe("×3");
-    // Tam, gdzie ciosy PADŁY i zgadzają się z użyciami, też zostaje sama liczba.
-    expect(counter("Zwykły atak")).toBe("×14");
-  });
-
-  /**
-   * Ta sama nieprawda, jeden szczebel wyżej: na liście CELÓW etykietą jest
-   * nazwa postaci, więc żadne użycie się nie dopasowuje i zostaje sam licznik
-   * ciosów. Cel trafiony wyłącznie „Śpiewem zagłady" miał przy 27 945 obrażeń
-   * napisane „×0".
-   */
-  test("cel trafiony wyłącznie akcją bez ciosów nie melduje zera", async () => {
-    const overlay = await enterBoss("Zadane");
-    const rows = sectionRows(overlay, "KOMU");
-    const row = (label: string) =>
-      rows.find((one) => one.querySelector(".label")?.textContent === label)!;
-
-    expect(row("Łowcomir Kazrek").querySelector(".avg")).toBeNull();
-    // Kontrapunkt: gdzie ciosy padły, licznik nadal stoi.
-    expect(row("Zsz Przeworsk").querySelector(".avg")?.textContent).toBe("×18");
-  });
-});
-
 /**
- * Usterki znalezione w audycie 2026‑08‑01. Każdy test opisuje KONKRETNY zły
- * wynik, który panel dawał przed poprawką — bo to on jest tu jedyną
- * specyfikacją.
+ * ⚠️ **ZNIKŁY STĄD DWA BLOKI — 12 testów, 2026‑08‑04, razem z korpusem.**
+ *
+ * „boss z Hildur — co widać w panelu" i „audyt 2026-08-01" stały w CAŁOŚCI na
+ * jednym zrzucie (`2026-07-31_druzyna-vs-hildur-zwyciestwo`: dziesięciu graczy
+ * przeciw bossowi, zrzut DOM z żywiołami w klasach CSS). Były najbliższą rzeczą,
+ * jaką panel miał do testu na PRAWDZIWEJ walce grupowej — sekcje po stronach,
+ * przekrój po typie obrażeń, wiersze‑liście bez kursora‑łapki, nagłówki z sumami,
+ * drążenie w bossa z obu metryk.
+ *
+ * Odtworzenie ich na materiale syntetycznym byłoby fikcją: pytały „czy panel
+ * radzi sobie z TĄ walką", a walki nie ma. Wersja generatorowa pytałaby „czy
+ * panel radzi sobie z tym, co sami wyprodukowaliśmy" — zielona z definicji.
+ *
+ * Wraca to dopiero z nowym zrzutem walki grupowej (`docs/ROADMAP.md`).
  */
-describe("audyt 2026-08-01", () => {
-  const HILDUR = "new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo";
-  const enterBoss = async (metric: "Zadane" | "Otrzymane") => {
-    document.body.innerHTML = await Bun.file(`${FIXTURES}${HILDUR}/log.html`).text();
-    const stats = aggregate(parse(extractText(document.body)));
-    const overlay = new Overlay();
-    overlay.render(stats);
-    metricButton(overlay, metric).click();
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")]
-      .find((row) => row.dataset.actor === "Hildur Muza Śmierci")!
-      .click();
-    return overlay;
-  };
-  const headings = (overlay: Overlay) =>
-    [...overlay.shadow.querySelectorAll(".rows .side-head")].map((head) => ({
-      title: head.firstElementChild?.textContent,
-      sum: head.lastElementChild?.textContent,
-    }));
 
-  test("wiersze TYP OBRAŻEŃ są liśćmi, więc kursor nie obiecuje kliknięcia", async () => {
-    // Reguła `.row[data-source]:not([data-leaf]) { cursor: pointer }` malowała
-    // łapkę nad przekrojem po typie, w który `rowIdentity` i tak nie wchodzi.
-    const overlay = await enterBoss("Otrzymane");
-    const types = [...overlay.shadow.querySelectorAll<HTMLElement>('.row[data-list="types"]')];
-
-    expect(types.length).toBeGreaterThan(1);
-    for (const row of types) expect(row.dataset.leaf).toBe("");
-  });
-
-  test("suma nagłówka na drugim szczeblu dotyczy tego, co sekcja wymienia", async () => {
-    // „CZYM — DIETA-MIÓD" niosło 403 206 (całość bossa), choć wiersze pod nim
-    // sumowały się do 104 005, a udziały do 26 % zamiast 100 %.
-    const overlay = await enterBoss("Otrzymane");
-    [...overlay.shadow.querySelectorAll<HTMLElement>('.row[data-list="sources"]')]
-      .find((row) => row.dataset.source === "Dieta-Miód")!
-      .click();
-
-    const rows = [...overlay.shadow.querySelectorAll<HTMLElement>('.row[data-list="sources"]')];
-    const shares = rows.map((row) => Number(shareOf(row)!.replace("%", "")));
-    expect(headings(overlay)[0]).toEqual({ title: "CZYM — DIETA-MIÓD", sum: number.format(104005) });
-    expect(shares.reduce((sum, share) => sum + share, 0)).toBe(100);
-  });
-
-  test("dymek działa na sekcji CZYM (ŁĄCZNIE)", async () => {
-    // Handler zawężał `data-list` do dwóch wartości, więc wiersze `abilities`
-    // pytały o pozycję w liście CELÓW i dymek nie przychodził wcale.
-    const overlay = await enterBoss("Zadane");
-    const row = [...overlay.shadow.querySelectorAll<HTMLElement>('.row[data-list="abilities"]')].find(
-      (one) => one.dataset.source === "Śpiew zagłady",
-    )!;
-    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
-
-    const tip = overlay.shadow.querySelector<HTMLElement>(".tip")!;
-    expect(tip.hidden).toBe(false);
-    expect(tip.querySelector(".tip-title")?.textContent).toBe("Śpiew zagłady");
-    // Akcja bez ciosów nie melduje ich zera także tutaj — wiersz przestał
-    // pokazywać „×3 · 0 c.", a dymek mówił dalej „Ciosy 0".
-    const stats = [...tip.querySelectorAll(".tip-stat")].map((s) => s.firstElementChild?.textContent);
-    expect(stats).toContain("Użycia");
-    expect(stats).not.toContain("Ciosy");
-  });
-
-  test("na najwyższym szczeblu dymek nie obiecuje powrotu", async () => {
-    // AUDYT-18: podpowiedź mówiła „PPM — powrót" także w składzie, gdzie nie ma
-    // dokąd wracać. To jedyna instrukcja nawigacji w panelu.
-    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_tancerz-vs-kukla")));
-    const overlay = new Overlay();
-    overlay.render(stats);
-
-    const row = overlay.shadow.querySelector<HTMLElement>(".row[data-actor]")!;
-    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
-    const top = overlay.shadow.querySelector(".tip-hint")?.textContent;
-    expect(top).toContain("LPM");
-    expect(top).not.toContain("PPM");
-
-    // Po zejściu szczebel niżej człon o PPM ma się pojawić. Wiersze mają tam
-    // `data-list`, a nie `data-actor` — to już rozbicie, nie skład.
-    row.click();
-    overlay.shadow
-      .querySelector<HTMLElement>(".row[data-list]")!
-      .dispatchEvent(new Event("pointerover", { bubbles: true }));
-    expect(overlay.shadow.querySelector(".tip-hint")?.textContent).toContain("PPM");
-  });
-
-  test("dymek drążalnego wiersza mówi także o LPM", async () => {
-    // AUDYT-18: podpowiedź wymieniała sam PPM, choć LPM schodzi stamtąd niżej.
-    // Milczenie o drodze w dół czyta się jak „nie ma tam nic".
-    const overlay = await enterBoss("Zadane");
-    const row = overlay.shadow.querySelector<HTMLElement>('.row[data-list="sources"]:not([data-leaf])')!;
-    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
-
-    expect(overlay.shadow.querySelector(".tip-hint")?.textContent).toContain("LPM");
-  });
-
-  test("dymek liścia o LPM milczy, bo wejścia tam nie ma", async () => {
-    const overlay = await enterBoss("Otrzymane");
-    const leaf = overlay.shadow.querySelector<HTMLElement>(".row[data-list][data-leaf]");
-    if (!leaf) return; // brak liścia w tym przekroju — nie ma czego pilnować
-    leaf.dispatchEvent(new Event("pointerover", { bubbles: true }));
-
-    const hint = overlay.shadow.querySelector(".tip-hint")?.textContent;
-    expect(hint).toContain("PPM");
-    expect(hint).not.toContain("LPM");
-  });
-
-  test("podpowiedź w dymku mówi, dokąd naprawdę wraca PPM", async () => {
-    const overlay = await enterBoss("Zadane");
-    const row = overlay.shadow.querySelector<HTMLElement>('.row[data-list="sources"]')!;
-    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
-
-    // PPM zdejmuje JEDEN szczebel, a nie wraca do składu.
-    expect(overlay.shadow.querySelector(".tip-hint")?.textContent).toContain("o szczebel wyżej");
-  });
-
-  test("przypis rozbija dokładnie tę liczbę, którą pokazuje", async () => {
-    // Kwota szła za filtrem i za wybraną postacią, a rodzaje zawsze z całej
-    // walki — nawias potrafił być WIĘKSZY niż liczba przed nim.
-    const stats = aggregate(
-      parse(
-        [
-          "Rozpoczęła się walka pomiędzy A (1w), B (1w) a X (1w), Y (1w)",
-          "A(50%): 300 obrażeń od trucizny.",
-          "B(50%): 900 obrażeń od ognia.",
-        ].join("\n"),
-      ),
-    );
-    const overlay = new Overlay();
-    overlay.render(stats);
-    const note = () =>
-      [...overlay.shadow.querySelectorAll("footer .note")]
-        .map((el) => el.textContent)
-        .find((text) => text?.startsWith("Tykające"));
-
-    expect(note()).toContain("1200");
-    expect(note()).toContain("Ogień 900");
-
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")]
-      .find((row) => row.dataset.actor === "A")!
-      .click();
-    expect(note()).toBe("Tykające obrażenia bez sprawcy: 300 (Trucizna)");
-  });
-
-  test("puste rozbicie nie zabiera liczników, które są prawdziwe", async () => {
-    // Postać, która tylko obrywała, pokazywała pod „Zadane" jedno zdanie
-    // i pustkę — mimo że ciosy, tury i uniki były policzone.
-    const stats = aggregate(
-      parse(
-        [
-          "Rozpoczęła się walka pomiędzy Bity (1w) a Bijący (1w)",
-          "Bijący(100%) uderzył z siłą  +300",
-          "Bity(50%) otrzymał(a)  -300  obrażeń",
-        ].join("\n"),
-      ),
-    );
-    const overlay = new Overlay();
-    overlay.render(stats);
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")]
-      .find((row) => row.dataset.actor === "Bity")!
-      .click();
-    metricButton(overlay, "Zadane").click();
-
-    // Zdanie po polsku, a nie mianownik zakładki po dwukropku („Brak rozbicia: zadane.").
-    expect(overlay.shadow.querySelector(".empty")?.textContent).toBe("Brak zadanych obrażeń.");
-    expect(overlay.shadow.querySelector(".rows .note")?.textContent).toContain("tury");
-  });
-
-  test("puste stany składu mówią zdaniem, nie mianownikiem zakładki", () => {
-    // Bufor bez linii otwierającej: stron nie znamy, więc oba filtry składu
-    // nie mają czego pokazać — a to najczęstszy pusty stan na starcie walki.
-    const stats = aggregate(
-      parse(["Bijący(100%) uderzył z siłą  +300", "Bity(50%) otrzymał(a)  -300  obrażeń"].join("\n")),
-    );
-    const overlay = new Overlay();
-    overlay.render(stats);
-    const empty = () => overlay.shadow.querySelector(".empty")?.textContent;
-
-    metricButton(overlay, "Oni").click();
-    expect(empty()).toBe("Brak danych po stronie przeciwnika.");
-    metricButton(overlay, "My").click();
-    expect(empty()).toBe("Brak danych po naszej stronie.");
-  });
-
-  test("stan okna z magazynu nie może przykryć gry ani zabrać pozycji", async () => {
-    const stats = aggregate(parse(await readFixture("new-engine/2026-07-18_lowca-vs-druzyna")));
-    const load = (raw: unknown) =>
-      new Overlay({
-        storage: { getItem: () => JSON.stringify(raw), setItem: () => {} } as unknown as Storage,
-      });
-
-    // Panel na miliard pikseli przykrywał całą grę razem z uchwytem, którym
-    // dałoby się go zmniejszyć.
-    const wide = load({ width: 1e9 });
-    wide.render(stats);
-    expect(
-      Number(wide.shadow.querySelector<HTMLElement>(".panel")!.style.width.replace("px", "")),
-    ).toBeLessThanOrEqual(window.innerWidth);
-
-    // Tekst zamiast liczby dawał NaN, który przechodził przez `clampToViewport`
-    // i zabierał hostowi `left`.
-    const broken = load({ width: "szeroko", x: "abc" });
-    broken.render(stats);
-    expect((broken.shadow.host as HTMLElement).style.left).toBe("16px");
-    expect(broken.shadow.querySelector<HTMLElement>(".panel")!.style.width).toBe("260px");
-
-    // Prawdziwy string jest prawdziwy — panel zwijał się na starcie bez powodu.
-    const collapsed = load({ collapsed: "nope" });
-    collapsed.render(stats);
-    expect(collapsed.shadow.querySelector(".panel")?.className).toBe("panel");
-  });
-});
-
-/**
- * `AUDYT‑40`: atak z częściowym unikiem jest jednocześnie ciosem, więc doliczony
- * do „uników" kazał czytelnikowi policzyć go dwa razy — „ciosy 12 · uniki 2"
- * przy dwunastu atakach czytało się jako czternaście.
- */
 describe("uniki pełne i częściowe w stopce", () => {
-  const counters = (overlay: Overlay) =>
-    overlay.shadow.querySelector(".rows .note")?.textContent ?? "";
-  const enter = async (fixture: string, actor: string) => {
-    const stats = aggregate(parse(await readFixture(fixture)));
-    const overlay = new Overlay();
-    overlay.render(stats);
-    [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")]
-      .find((row) => row.dataset.actor === actor)!
-      .click();
-    return overlay;
-  };
 
-  test("tancerz: dwa uniki częściowe stoją osobno od pełnych", async () => {
-    const overlay = await enter("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp", "Tancogniew Kazrek");
 
-    // Dwanaście ataków, wszystkie weszły — żaden nie przepadł w całości.
-    expect(counters(overlay)).toContain("ciosy 12");
-    expect(counters(overlay)).toContain("uniki 0 (+2 częściowe)");
-  });
-
-  test("profesja bijąca jedną bronią ma wiersz bez zmian", async () => {
-    // Unik jednej broni jest zawsze pełny, więc członu o częściowych nie ma —
-    // nie zaśmieca zwykłego przypadku.
-    const overlay = await enter("new-engine/2026-07-18_tancerz-vs-tropiciel-pvp", "wf agar psk");
-
-    expect(counters(overlay)).toContain("uniki 2");
-    expect(counters(overlay)).not.toContain("częściow");
-  });
 });
 
 /**
@@ -3279,61 +1844,10 @@ describe("uniki pełne i częściowe w stopce", () => {
  * niż nic, a linia liczników jest wąska.
  */
 describe("blok, super-kryt i osłabienie w licznikach", () => {
-  const load = async (fixture: string, actor: string) => {
-    const stats = aggregate(parse(await readFixture(fixture)));
-    const overlay = new Overlay();
-    overlay.render(stats);
-    const row = [...overlay.shadow.querySelectorAll<HTMLElement>(".row[data-actor]")].find(
-      (r) => r.dataset.actor === actor,
-    )!;
-    // Dymek dla liczników z pochłoniętymi, stopka po wejściu w postać dla krytów.
-    row.dispatchEvent(new Event("pointerover", { bubbles: true }));
-    const tip = overlay.shadow.querySelector(".tip-note")?.textContent ?? "";
-    row.click();
-    const footer = overlay.shadow.querySelector(".rows .note")?.textContent ?? "";
-    return { tip, footer };
-  };
 
-  test("blok stoi w nawiasie przy pochłoniętych", async () => {
-    const { tip } = await load("new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo", "Zsz Przeworsk");
-    expect(tip).toContain(`pochłonięte ${number.format(52882)} (blok ${number.format(5302)})`);
-  });
 
-  test("bez bloku nawias nie dochodzi", async () => {
-    const { tip } = await load(
-      "new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo",
-      "Hildur Muza Śmierci",
-    );
-    expect(tip).toContain(`pochłonięte ${number.format(236007)}`);
-    expect(tip).not.toContain("blok");
-  });
 
-  test("super-kryt siedzi w liczbie krytów, a nie obok niej", async () => {
-    const { tip, footer } = await load(
-      "new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo",
-      "Hildur Muza Śmierci",
-    );
-    // "w tym", nie "+": dodanie obu liczb dałoby osiem krytów przy siedmiu.
-    expect(tip).toContain("kryt. 7 (w tym 1 bardzo)");
-    expect(footer).toContain("kryt. 7 (w tym 1 bardzo)");
-  });
 
-  test("bez super-kryta zostaje sama liczba", async () => {
-    const { tip } = await load("new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo", "Zsz Przeworsk");
-    expect(tip).toContain("kryt. 0");
-    expect(tip).not.toContain("bardzo");
-  });
 
-  test("osłabienie trucizny dochodzi jako osobny człon", async () => {
-    const { tip } = await load("new-engine/2026-07-28_druzyna-vs-draugr-zwyciestwo", "Draugr Zastępowy");
-    // Osobny człon, a nie dopisek do pochłoniętych: tamte są policzone wprost
-    // z logu, a to jest odtworzone z zaokrąglonego procentu.
-    expect(tip).toContain(`osłabione ${number.format(2932)}`);
-    expect(tip).toContain(`pochłonięte ${number.format(85380)}`);
-  });
 
-  test("bez osłabień członu nie ma wcale", async () => {
-    const { tip } = await load("new-engine/2026-07-31_druzyna-vs-hildur-zwyciestwo", "Zsz Przeworsk");
-    expect(tip).not.toContain("osłabione");
-  });
 });
