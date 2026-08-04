@@ -266,8 +266,8 @@ describe("rola: nieznane ma być głośne", () => {
 
   test("role znaczące niosą dowód, nie domysł", () => {
     expect(rola("-blok")).toEqual({ typ: "blok" });
-    expect(rola("heal_target")).toEqual({ typ: "leczenie", strona: "cel" });
-    expect(rola("heal")).toEqual({ typ: "leczenie", strona: "nadawca" });
+    expect(rola("heal_target")).toEqual({ typ: "leczenie", strona: "cel", wlasne: false });
+    expect(rola("heal")).toEqual({ typ: "leczenie", strona: "nadawca", wlasne: false });
     expect(rola("poison")).toEqual({ typ: "dot", przyimek: "od", rodzaj: "trucizny" });
     expect(rola("injure")).toEqual({ typ: "dot", przyimek: "po", rodzaj: "zranieniu" });
     expect(rola("+thirdatt")).toEqual({ typ: "ciosProc", kod: "3" });
@@ -351,9 +351,13 @@ describe("dekoduj: cios", () => {
 });
 
 describe("dekoduj: leczenie i obrażenia bez sprawcy", () => {
-  test("`heal` leczy NADAWCĘ i jest oznaczone jako własne", () => {
+  test("`heal` leczy NADAWCĘ, ale NIE jest oznaczone jako własne", () => {
+    // ⚠️ Ten test twierdził do 2026‑08‑04 `self: true` i był NAPISANY POD BŁĄD:
+    // powstał razem z dekoderem, z tego samego założenia, które orakulum potem
+    // obaliło. Zielony test nie jest dowodem, gdy autor testu i autor kodu
+    // wierzą w to samo — dopiero druga, niezależna droga to rozstrzygnęła.
     const [z] = dekoduj(["1=99.04;0;heal=1356"], SKLAD);
-    expect(z).toMatchObject({ kind: "heal", target: "Kamil", amount: 1356, self: true });
+    expect(z).toMatchObject({ kind: "heal", target: "Kamil", amount: 1356, self: false });
   });
 
   test("`heal_target` leczy CEL i własne już nie jest", () => {
@@ -464,5 +468,39 @@ describe("dekoduj: nieznane jest głośne", () => {
 
   test("puste segmenty nie są kluczami i nie krzyczą", () => {
     expect(dekoduj(["0;0;;"], SKLAD)).toEqual([]);
+  });
+});
+
+describe("dekoduj: leczenie bez leczącego zostaje bez leczącego", () => {
+  /**
+   * Usterka złapana przez orakulum na PIERWSZEJ parze tekst↔protokół
+   * (2026‑08‑04). Dekoder wyprowadzał `self` ze strony komunikatu i dawał
+   * `true` dla klucza `heal`, którego komunikat ma drugą stronę PUSTĄ — czyli
+   * kredytował leczenie postaci, o której log milczy.
+   */
+  test("`heal` NIE przypisuje leczenia nikomu", () => {
+    // `482845=100.00;0;heal=99` — druga strona pusta. Parser tekstu na tej
+    // samej akcji („Przywrócono 99 punktów życia X") daje self: false, więc
+    // kwota idzie do puli nieprzypisanej. Protokół ma robić to samo.
+    const [z] = dekoduj(["1=100.00;0;heal=99"], SKLAD);
+    expect(z).toMatchObject({ kind: "heal", target: "Kamil", amount: 99, self: false });
+  });
+
+  test("`heal_target` też nie — leczył ktoś inny, tylko log go nie nazywa", () => {
+    const [z] = dekoduj(["1=100.00;2=80.00;heal_target=4639"], SKLAD);
+    expect(z).toMatchObject({ kind: "heal", target: "Locha", self: false });
+  });
+
+  test("„Ostatni ratunek” i „Dotyk anioła” ZOSTAJĄ własne", () => {
+    // Jedyne dwa przypadki, w których efekt z definicji siada na trafionym —
+    // i dokładnie te dwa, które `types.ts:117‑128` wymienia z nazwy.
+    expect(dekoduj(["1=50.00;0;legbon_lastheal=980,Kamil"], SKLAD)[0]).toMatchObject({
+      kind: "heal",
+      self: true,
+    });
+    expect(dekoduj(["1=50.00;0;legbon_holytouch_heal=120"], SKLAD)[0]).toMatchObject({
+      kind: "heal",
+      self: true,
+    });
   });
 });

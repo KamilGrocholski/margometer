@@ -192,12 +192,26 @@ export type Rola =
   /** `-absorb=N`, `-absorbm=N` → „-Absorpcja N obrażeń fizycznych/magicznych". */
   | { typ: "absorpcja" }
   /**
-   * Leczenie w PUNKTACH życia. `strona` mówi, kogo gra podstawia w zdanie:
-   * `nadawca` to `f1` (id1), `cel` to `f2` (id2) — i to jest jedyne miejsce,
-   * w którym protokół rozstrzyga coś, co w tekście jest wnioskiem
-   * (patrz `Hit`/`heal.self` w `types.ts`).
+   * Leczenie w PUNKTACH życia.
+   *
+   * `strona` mówi, kogo gra podstawia w zdanie: `nadawca` to `f1` (id1),
+   * `cel` to `f2` (id2).
+   *
+   * `wlasne` odpowiada polu `heal.self` z `types.ts` i **jest osobną
+   * informacją, a nie funkcją `strona`** — to sprostowanie z 2026‑08‑04,
+   * zapłacone pierwszą parą tekst↔protokół. Wyprowadzanie go ze `strona`
+   * dawało `self: true` dla klucza `heal`, którego komunikat ma DRUGĄ STRONĘ
+   * PUSTĄ (`482845=100.00;0;heal=99`) — czyli nie mówi, kto leczył. Dekoder
+   * kredytował wtedy leczenie postaci, o której log milczy, co jest wprost
+   * „udawaniem danych, których log nie ma" i łamie „Leczenie bez leczącego"
+   * z `docs/DECYZJE.md`.
+   *
+   * `true` zostaje tylko tam, gdzie efekt Z DEFINICJI siada na trafionym —
+   * czyli przy „Dotyku anioła" i „Ostatnim ratunku". To dokładnie te dwa
+   * przykłady, które `types.ts:117‑128` wymienia jako jedyne przypadki
+   * `self: true`, i ta zbieżność jest dowodem, nie zbiegiem okoliczności.
    */
-  | { typ: "leczenie"; strona: "nadawca" | "cel" }
+  | { typ: "leczenie"; strona: "nadawca" | "cel"; wlasne: boolean }
   /** Obrażenia bez sprawcy, tykające w czasie. `przyimek` i `rodzaj` z brzmienia. */
   | { typ: "dot"; przyimek: "od" | "po"; rodzaj: string }
   /** `absolute=N` → „%name% otrzymał %val% obrażeń nieuchronnych." */
@@ -253,21 +267,21 @@ const ROLE: Readonly<Record<string, Rola>> = {
   // — leczenie w punktach ————————————————————————————————————————
   // „%gain_lost% %val% punktów życia %name%" — %name% to f1. Znak wartości
   // rozstrzyga „Przywrócono" kontra „Stracono" (:1090, `m[1] >= 0`).
-  heal: { typ: "leczenie", strona: "nadawca" },
+  heal: { typ: "leczenie", strona: "nadawca", wlasne: false },
   // „Przywrócono %val% punktów życia %name%."
-  afterheal: { typ: "leczenie", strona: "nadawca" },
+  afterheal: { typ: "leczenie", strona: "nadawca", wlasne: false },
   // „Uleczono %target% o %val% punktów życia." — %target% to f2 (:960).
   // To STRUKTURALNY dowód na `heal.self === false` z `types.ts:117‑128`, gdzie
   // dotąd stał wniosek z samego brzmienia.
-  heal_target: { typ: "leczenie", strona: "cel" },
+  heal_target: { typ: "leczenie", strona: "cel", wlasne: false },
   // Ten sam identyfikator słownika co `heal_target`.
-  npc_heal: { typ: "leczenie", strona: "cel" },
+  npc_heal: { typ: "leczenie", strona: "cel", wlasne: false },
   // „Dotyk anioła: zregenerowano %val% punktów życia %name%"
-  legbon_holytouch_heal: { typ: "leczenie", strona: "nadawca" },
+  legbon_holytouch_heal: { typ: "leczenie", strona: "nadawca", wlasne: true },
   // „%val%: Ostatni ratunek, zregenerowano %val2% punktów życia." Wartość jest
   // DWUCZŁONOWA i człony są odwrócone względem zdania: renderer podstawia
   // `'%val%': mm[1]` (nazwa) i `'%val2%': mm[0]` (kwota). Kwota to człon ZEROWY.
-  legbon_lastheal: { typ: "leczenie", strona: "nadawca" },
+  legbon_lastheal: { typ: "leczenie", strona: "nadawca", wlasne: true },
 
   // — obrażenia bez sprawcy ————————————————————————————————————————
   // Przyimki są dosłownie te ze zdań gry i trafiają w pole `via` z `types.ts`.
@@ -520,9 +534,11 @@ export function dekoduj(
               ability: zapowiedziana,
               target: strona,
               amount: kwota,
-              // Protokół podaje OBIE strony, więc „czy leczony to leczący" jest
-              // tu faktem, a nie wnioskiem — inaczej niż w `parser.ts`.
-              self: r.strona === "nadawca",
+              // NIE wyprowadzane ze `strona` — patrz komentarz przy `Rola`.
+              // Klucz `heal` ma pustą drugą stronę, więc leczącego nie zna
+              // ani tekst, ani protokół; kredytowanie go komukolwiek byłoby
+              // wymyślaniem danych.
+              self: r.wlasne,
               targetHpPct: hpp,
             });
           break;
