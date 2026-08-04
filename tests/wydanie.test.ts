@@ -38,6 +38,8 @@ const CHECK_YML = await plik(".github/workflows/check.yml");
 const RELEASE_YML = await plik(".github/workflows/release.yml");
 const DOCS_README = await plik("docs/README.md");
 const WYDANIE = await plik("docs/WYDANIE.md");
+const CHANGELOG_MD = await plik("CHANGELOG.md");
+const PACKAGE_JSON = JSON.parse(await plik("package.json")) as { version: string };
 
 describe("sekcja [Niewydane]", () => {
   test("czyta wpisy, nie linie", () => {
@@ -251,6 +253,19 @@ describe("procedura wydania", () => {
     // i to jest awaria cicha, bo `git tag` i `git push` wykonają się bez błędu.
     const prefiks = tagi[0]!.replace("*", "");
     expect(WYDANIE).toContain(`git tag ${prefiks}X.Y.Z`);
+  });
+
+  test("numer z package.json ma swoją sekcję w CHANGELOG-u", () => {
+    // Krok 2 (`package.json`) zrobiony bez kroku 1 (przeniesienie sekcji) —
+    // połowa incydentu z „Co się psuje cicho”. Zbudowany userscript ogłasza
+    // wtedy graczowi numer, którego CHANGELOG nie umie wytłumaczyć, a wydanie
+    // przerwie się dopiero na tagu, kodem 1 z `tools/changelog.ts`.
+    //
+    // Czego ta asercja NIE łapie — i dlatego nie wolno się na niej opierać:
+    // BRAKU TAGA. Stan z 2026-08-03 (0.4.0 w obu plikach, `git tag -l` → sam
+    // `v0.3.0`) przechodzi ją zielono. Na to jest sonda z `docs/WYDANIE.md`
+    // i sygnał w podsumowaniu CI, nie test — repo nie zna swoich tagów.
+    expect(CHANGELOG_MD).toContain(`## [${PACKAGE_JSON.version}]`);
   });
 
   test("sygnał w CI nie odsyła do nieistniejącego pliku", async () => {

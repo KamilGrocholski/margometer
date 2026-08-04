@@ -1,12 +1,78 @@
 # Wydanie — jak wypuścić nową wersję
 
-Odpowiada na jedno pytanie: **co trzeba zrobić, żeby zmiana z repo dotarła do
-gracza.** Trzy kroki robi człowiek, resztę robi CI na tagu.
+Odpowiada na dwa pytania: **pod jakim numerem** i **co trzeba zrobić, żeby
+zmiana z repo dotarła do gracza.** Trzy kroki robi człowiek, resztę robi CI
+na tagu.
 
 Do 2026‑08‑03 tej odpowiedzi nie dało się przeczytać w jednym miejscu — stała
 rozbita na komentarz w `CHANGELOG.md`, jedno zdanie w `TOOLING.md`, komentarze
 w `release.yml` i wiedzę właściciela repo. To nie jest problem porządkowy:
 **tak właśnie wyglądał incydent z 2026‑08‑03**, opisany niżej.
+
+---
+
+## Który numer
+
+Odpowiada na pytanie zadawane PRZED pierwszym krokiem: **0.4.0 czy 0.4.1.**
+Do 2026‑08‑03 stało tu pół zdania doklejone do kroku 1 — i to za mało, skoro
+pytanie wróciło.
+
+### Metodologia: SemVer
+
+[Semantyczne wersjonowanie 2.0.0](https://semver.org/lang/pl/). Ten sam numer
+stoi w `package.json` (bez `v`) i w tagu (z `v`) — `release.yml` porównuje jedno
+z drugim i przerywa przy rozjeździe.
+
+Bez sufiksów `-alpha.N`, choć projekt jest w alfie; powód i sprawdzenie, że
+Tampermonkey by je uniósł — [`TOOLING.md`](TOOLING.md) → „Faza wczesna”.
+
+### W fazie `0.x` trzecia cyfra nie jest używana
+
+**Każde wydanie widoczne dla użytkownika to `0.MINOR + 1`.** Po `0.4.0` idzie
+`0.5.0`, także gdy w środku są same poprawki. **`0.4.1` w tej fazie nie
+powstaje** i nie jest to przeoczenie.
+
+Powód: w `0.x` rozróżnienie „nowość czy poprawka” **nic graczowi w numerze nie
+daje** — SemVer przy zerowym MAJOR-ze nie obiecuje zgodności w ogóle
+(„Major version zero (0.y.z) is for initial development. Anything MAY change at
+any time.”), więc `0.4.1` nie znaczyłoby „bezpieczniejsza aktualizacja niż
+`0.5.0`”. Informację o rodzaju zmiany niesie CHANGELOG, gdzie każdy wpis jest
+jawnie **Nowość** / **Zmiana** / **Poprawka** — a tam widać ją per zmiana,
+nie zlepioną w jedną cyfrę na całe wydanie. Numer nie musi tego powtarzać,
+a decyzja podejmowana przy każdym wydaniu kosztuje.
+
+### Numer, który nie wyjechał, jest wolny
+
+Dopóki taga `vX.Y.Z` nie ma, ten numer **nie jest niczyj**: nikomu nic pod nim
+nie obiecano, więc wpisy w jego sekcji wolno dopisywać, poprawiać i zlewać,
+a datę przestawiać. Po tagu sekcji się nie rusza — ktoś już to wydanie ma.
+
+Sprawdzenie zajmuje sekundę i robi się je PRZED podbiciem numeru:
+
+```bash
+git tag -l                 # czy numer z package.json ma tu swój tag
+git describe --tags        # v0.3.0-22-g… → 22 commity po ostatnim wydaniu
+```
+
+Tak wygląda stan z 2026‑08‑03: `package.json` niesie `0.4.0`, `CHANGELOG.md` ma
+sekcję `## [0.4.0]`, a jedyny tag to `v0.3.0`. Następne wydanie jest więc
+**`v0.4.0`** — nie `0.4.1` i nie `0.5.0`. Podbicie zostawiłoby w historii dziurę
+po wersji, której nikt nigdy nie miał, a przy zgłoszeniu „mam 0.4.0” nie dałoby
+się odpowiedzieć, co ono zawierało. Cała ta sytuacja opisana jest niżej,
+w „Co się psuje cicho”.
+
+### Wydanie przerwane przez CI też nie podbija numeru
+
+`tools/changelog.ts` z kodem 1, rozjazd tag ↔ `package.json`, brama, która nie
+przeszła — **usuń tag, popraw, wypchnij ten sam numer.** Numer zużywa dopiero
+wydanie, które powstało; tag bez wydania nic nie obiecał.
+
+### Po `1.0.0` — zwykły SemVer
+
+MAJOR, gdy pęka coś, na czym gracz polega: zapisane ustawienia, nazwy, układ
+panelu. MINOR na nową funkcję, PATCH na samo naprawianie. Dopiero wtedy trzecia
+cyfra zaczyna cokolwiek znaczyć — i dopiero wtedy warto przy każdym wydaniu
+zdecydować, która to.
 
 ---
 
@@ -19,8 +85,8 @@ zawartość`), potem tag.
 
 W `CHANGELOG.md`: nagłówek `## [Niewydane]` zamienia się na
 `## [X.Y.Z] — RRRR-MM-DD`. Wpisy zostają takie, jakie są — były pisane przy
-okazji zmian i dla użytkownika, więc nie ma czego przepisywać. Numer wg SemVer;
-w fazie `0.x` **każda** zmiana widoczna dla użytkownika idzie na `0.MINOR`.
+okazji zmian i dla użytkownika, więc nie ma czego przepisywać. Skąd wziąć sam
+numer — „Który numer” wyżej.
 
 > Pominięty krok jest GŁOŚNY: `tools/changelog.ts X.Y.Z` nie znajdzie sekcji
 > `## [X.Y.Z]`, wyjdzie z kodem 1 i wydanie nie powstanie. Tag zostanie, ale bez
@@ -151,12 +217,8 @@ Cztery rzeczy, których nikt nie zgłosi, bo wyglądają na sukces:
   na SCALENIU obu bloków z powrotem w jedno `0.4.0` — numer nie był niczyj, bo
   nigdy nie wyjechał, więc nic nie trzeba było przenosić wyżej.
 
-  Sprawdzenie zajmuje sekundę i warto je zrobić PRZED podbiciem numeru:
-
-  ```bash
-  git describe --tags        # v0.3.0-21-g… → 21 commitów po ostatnim wydaniu
-  git tag -l                 # czy numer z package.json ma tu swój tag
-  ```
+  Sonda, która to wykrywa w sekundę, stoi wyżej — „Który numer” → „Numer, który
+  nie wyjechał, jest wolny”. Robi się ją PRZED podbiciem numeru.
 
   Żaden strażnik tego nie złapie i to jest świadome: twardy patrzy na
   `[Niewydane]`, a ta sekcja po kroku 1 jest pusta **zgodnie z regułą**
