@@ -156,6 +156,72 @@ export function stronyKomunikatu(
     .filter((s): s is { id: number; hpp: number | null } => s !== null);
 }
 
+/**
+ * Skład walki odczytany ze zrzutu — `id`, `name` i strona.
+ *
+ * PO CO. Dekoder protokołu zamienia `id` na nazwę wyłącznie po tej liście,
+ * a `aggregate` bierze ją jako skład autorytatywny. Bez niej porównanie obu
+ * dróg mierzyłoby też różnicę w numeracji instancji, a nie same liczby.
+ *
+ * SKĄD `side`. Migawka niesie `team` z gry, a nasza strona 0 to drużyna GRACZA
+ * — więc potrzebny jest `myteam` z ładunku, i to on decyduje. Wersja
+ * „`team !== 2` to strona 0" jest kusząca, bo tak klient dzieli skład w linii
+ * otwierającej (`Battle.js:935‑936`), ale opiera się na założeniu, że gracz
+ * nigdy nie stoi w drużynie 2 — a tego nikt nie sprawdził. Zrzut bez `myteam`
+ * ma więc paść z powodem, zamiast zgadywać stronę i cicho odwrócić drużyny.
+ *
+ * Wojownicy zbierani są ze WSZYSTKICH wywołań, nie z pierwszego: skład potrafi
+ * urosnąć w trakcie (przyzwania, zastępowi), a późniejsza migawka nie unieważnia
+ * wcześniejszej — wygrywa ostatnie wystąpienie danego `id`.
+ */
+export function skladZeZrzutu(zrzut: Zrzut): {
+  id: number;
+  name: string;
+  side: number;
+  prof?: string;
+  lvl?: number;
+}[] {
+  const myteam = mojaDruzyna(zrzut);
+  if (myteam === null) {
+    throw new Error(
+      "zrzut nie niesie `myteam` w żadnym ładunku — bez niego nie da się " +
+        "odróżnić drużyny gracza od przeciwnej, a zgadnięcie odwróciłoby strony",
+    );
+  }
+
+  const wg = new Map<number, { id: number; name: string; side: number; prof?: string; lvl?: number }>();
+  for (const wpis of zrzut.wpisy) {
+    for (const surowy of [...wpis.wojownicyPrzed, ...wpis.wojownicyPo]) {
+      if (typeof surowy !== "object" || surowy === null) continue;
+      const w = surowy as Record<string, unknown>;
+      const id = w["id"];
+      const name = w["name"];
+      const team = w["team"];
+      if (typeof id !== "number" || typeof name !== "string" || name === "") continue;
+      if (typeof team !== "number") continue;
+      const prof = w["prof"];
+      const lvl = w["lvl"];
+      wg.set(id, {
+        id,
+        name,
+        side: team === myteam ? 0 : 1,
+        ...(typeof prof === "string" ? { prof } : {}),
+        ...(typeof lvl === "number" ? { lvl } : {}),
+      });
+    }
+  }
+  return [...wg.values()];
+}
+
+/** `myteam` z pierwszego ładunku, który go niesie. Gra podaje je raz, przy otwarciu. */
+export function mojaDruzyna(zrzut: Zrzut): number | null {
+  for (const wpis of zrzut.wpisy) {
+    const wartosc = wpis.ladunek["myteam"];
+    if (typeof wartosc === "number") return wartosc;
+  }
+  return null;
+}
+
 /** Histogram kluczy, od najczęstszego. */
 export function histogram(wiadomosci: string[]): [string, number][] {
   const licznik = new Map<string, number>();

@@ -6,9 +6,11 @@ import {
   komunikaty,
   meta,
   rozjazdyParowania,
+  skladZeZrzutu,
   sklejRender,
   stronyKomunikatu,
   type Wywolanie,
+  type Zrzut,
 } from "../tools/walka.ts";
 import { extractText, findBattleLog } from "../src/source.ts";
 import { parse } from "../src/parser.ts";
@@ -215,5 +217,78 @@ describe("komunikaty", () => {
     // Jedno `update` niesie tyle komunikatów, ile serwer akurat przysłał —
     // ta granica nie znaczy nic dla treści walki.
     expect(komunikaty(WPISY)).toHaveLength(2);
+  });
+});
+
+describe("skladZeZrzutu", () => {
+  const wpis = (ladunek: Record<string, unknown>, wojownicy: unknown[]): Wywolanie => ({
+    nr: 0,
+    ladunek,
+    komunikaty: [],
+    render: [],
+    wojownicyPrzed: [],
+    wojownicyPo: wojownicy,
+  });
+  const zrzut = (wpisy: Wywolanie[]): Zrzut => ({
+    wersja: 1,
+    przy: "2026-08-04T10:00:00.000Z",
+    swiat: "tempest",
+    build: "1785244275300",
+    otwarcie: null,
+    wpisy,
+  });
+
+  const KAMIL = { id: 1, name: "Kamil", team: 1, prof: "m", lvl: 100 };
+  const LOCHA = { id: 2, name: "Locha", team: 2, prof: "w", lvl: 50 };
+
+  test("strona 0 to drużyna gracza, wskazana przez `myteam`", () => {
+    const sklad = skladZeZrzutu(zrzut([wpis({ myteam: 1 }, [KAMIL, LOCHA])]));
+    expect(sklad).toEqual([
+      { id: 1, name: "Kamil", side: 0, prof: "m", lvl: 100 },
+      { id: 2, name: "Locha", side: 1, prof: "w", lvl: 50 },
+    ]);
+  });
+
+  test("gracz w drużynie 2 odwraca strony — i to jest cały powód, dla którego czytamy `myteam`", () => {
+    // Wersja „team !== 2 to strona 0" dałaby tu odwrotnie. Nikt nie sprawdził,
+    // czy gracz bywa drużyną 2, więc zgadywanie tu byłoby cichym odwróceniem
+    // drużyn w panelu.
+    const sklad = skladZeZrzutu(zrzut([wpis({ myteam: 2 }, [KAMIL, LOCHA])]));
+    expect(sklad.find((w) => w.name === "Locha")?.side).toBe(0);
+    expect(sklad.find((w) => w.name === "Kamil")?.side).toBe(1);
+  });
+
+  test("zrzut bez `myteam` PADA z powodem, zamiast zgadywać stronę", () => {
+    expect(() => skladZeZrzutu(zrzut([wpis({}, [KAMIL])]))).toThrow(/myteam/);
+  });
+
+  test("skład zbiera się ze WSZYSTKICH wywołań, nie z pierwszego", () => {
+    // Przyzwania i zastępowi dochodzą w trakcie walki.
+    const przyzwany = { id: 3, name: "Wilk", team: 1, prof: "w", lvl: 20 };
+    const sklad = skladZeZrzutu(
+      zrzut([wpis({ myteam: 1 }, [KAMIL]), wpis({}, [KAMIL, przyzwany])]),
+    );
+    expect(sklad.map((w) => w.name).sort()).toEqual(["Kamil", "Wilk"]);
+  });
+
+  test("wpisy bez id, nazwy albo drużyny są pomijane, a nie wpisywane z zerami", () => {
+    const sklad = skladZeZrzutu(
+      zrzut([
+        wpis({ myteam: 1 }, [
+          KAMIL,
+          { id: null, name: "Bez id", team: 1 },
+          { id: 9, name: "", team: 1 },
+          { id: 10, name: "Bez drużyny", team: null },
+        ]),
+      ]),
+    );
+    expect(sklad).toHaveLength(1);
+  });
+
+  test("pola opcjonalne nie wchodzą jako undefined, gdy zrzut ich nie ma", () => {
+    const sklad = skladZeZrzutu(
+      zrzut([wpis({ myteam: 1 }, [{ id: 1, name: "Kamil", team: 1, prof: null, lvl: null }])]),
+    );
+    expect(sklad[0]).toEqual({ id: 1, name: "Kamil", side: 0 });
   });
 });
