@@ -132,7 +132,8 @@ Patrz też znane ograniczenie „Leczenie bez leczącego” w `DECYZJE.md`.
 Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`
 w `meta.json`, zweryfikowany po `covers`:
 - **Para: ta sama walka jako tekst i jako protokół.** Największa dziś dziura
-  i jedyna pozycja tutaj, której **nie da się załatać bez gracza**. Protokół
+  i jedyna pozycja tutaj, której **nie da się załatać bez gracza** — ale od
+  2026‑08‑04 przeszkoda jest już tylko taka, a nie narzędziowa. Protokół
   z grooove.pl jest wewnętrznie spójny co do promila: z par (spadek życia
   w procentach, suma kluczy `-D*`) wychodzi to samo maksymalne HP z pięciu
   i sześciu niezależnych obserwacji, rozrzut 0,0–0,1 % (zmierzone 2026‑08‑04 na
@@ -143,28 +144,38 @@ w `meta.json`, zweryfikowany po `covers`:
   spoza repo — testy pilnują niezmienników i spójności wewnętrznej, a nie
   tego, czy suma się zgadza z prawdą.
 
-  Czego próbowano i dlaczego nie wystarcza: wyszukiwarka grooove przyjmuje
-  **ID gracza, nie nick**, więc naszych fixture'ów nie da się tam odnaleźć po
-  nazwie; wklejarka `/battle/wklej-walke` przyjmuje **wyłącznie protokół
-  z dodatku „Panel walk"** i odrzuca log tekstowy. Potrzebna jest jedna walka
-  z włączonym dodatkiem i równoległym „Kopiuj logi" z okna — plus zanotowane
-  ID walki, żeby dało się pobrać protokół przez `bun tools/grooove.ts`.
-- **Krwawa udręka ( anguish )** — pomoc opisuje ją jako „obrażenia od krwawienia
-  rozłożone w czasie na pięć tur", czyli rodzinę, którą parser czyta jako
-  `kind: "dot"`, a agregat przypisuje albo wrzuca do puli „Bez sprawcy".
-  W korpusie tekstowym **nie ma ani jednego wystąpienia** rdzenia „udrę";
-  w korpusie protokołu jest 11 razy w dwóch walkach. To jedyny z dziesięciu
-  bonusów legendarnych wymienionych w pomocy, którego korpus nie zna
-  (`MECHANIKA.md`, `bun tools/luki.ts`);
-- **Wściekłość ( rage )** — 26 wystąpień w korpusie protokołu, zero
-  w tekstowym; najczęstszy klucz bez odpowiednika. Renderer grooove.pl składa
-  z niego `+Wściekłość: atak +N`, czyli kształt bliźniaczy do obsługiwanego
-  `Piętno bestii: atak +N` — ale to CUDZY renderer i jego brzmienia nie wolno
-  przepisać do wzorca. Potrzebny zrzut z gry.
+  **Czego już nie trzeba szukać u kogoś innego.** Droga przez grooove.pl była
+  ślepa: wyszukiwarka przyjmuje **ID gracza, nie nick**, a wklejarka
+  `/battle/wklej-walke` **wyłącznie protokół z dodatku „Panel walk"**.
+  Od 2026‑08‑04 protokół bierze się wprost z gry, sondą `tools/walka-probe.js`
+  (owija `Engine.battle.update`), a `bun tools/walka.ts --rozbij` składa z tego
+  fixture. Zostaje **jeden krok, którego nie da się zautomatyzować**: przycisk
+  „Kopiuj logi" w oknie walki. Tekst forumowy powstaje w tej samej pętli
+  renderera, ale instancja `BattleMessages` jest w kliencie prywatna modułowo
+  (`Battle.js:36`), więc sonda go nie dosięgnie — i dlatego „bez gracza" zostaje
+  prawdą.
 
-  ⚠️ Obu tych zrzutów **nie da się zrobić z grooove.pl** — tamten korpus niesie
-  protokół, nie tekst. Trzeba walki w grze i przycisku „Kopiuj logi", a oba
-  efekty są bonusami legendarnymi, więc potrzebny jest ekwipunek, który je ma.
+  **Orakulum czeka już napisane.** `tests/orakulum.test.ts` porównuje
+  `dekoduj(protokol.json)` z `parse(raw.txt)` i uruchamia się SAM, gdy pierwsza
+  para wyląduje w korpusie; dziś wypisuje na stderr, że nic nie dowodzi.
+  Jak dołożyć parę: nagłówek `tools/walka-probe.js`.
+- **Krwawa udręka ( anguish )** — 11 wystąpień w korpusie protokołu, zero
+  w tekstowym (rdzeń „udrę");
+- **Wściekłość ( rage )** — 26 wystąpień w korpusie protokołu, zero
+  w tekstowym; najczęstszy klucz bez odpowiednika.
+
+  ⚠️ **Oba te punkty ZMALAŁY 2026‑08‑04 i trzeba powiedzieć, o ile.** Stało tu,
+  że są to kandydaci na ciche luki parsera i że brzmienia nie wolno przepisać,
+  bo znamy je tylko z cudzego renderera. Brzmienia znamy dziś **z assetu gry**
+  (`bun tools/slownik.ts`), a sprawdzenie ich przez `parse` pokazało, że
+  **parser czyta OBA już teraz**: linia krwawienia wchodzi jako `kind: "dot"`
+  (wzorzec jest ogólny co do rodzaju), a Wściekłość jako proc z liczbą
+  znormalizowaną do `+N`. Cytaty i pomiary: `MECHANIKA.md`.
+
+  Zostaje więc luka **KORPUSU, nie parsera**: zrzut jest wart zebrania jako
+  potwierdzenie, nie jako warunek napisania wzorca. Nadal nie da się go zrobić
+  z grooove.pl (tamten korpus niesie protokół, nie tekst), a oba efekty są
+  bonusami legendarnymi, więc potrzebny jest ekwipunek, który je ma.
 - **Siedem kluczy protokołu, które wyszły z korpusu 2026‑08‑04** razem z dwiema
   walkami z Cronusa, gdy korpus stał się tylko polskojęzyczny: `z__crit`,
   `z__pierce`, `spell-taken_D`, `critval-allies`, `critmval-allies`, `rk_per`,

@@ -62,6 +62,26 @@ wzór na kryta wjechał tu jako `critgain [%] = …` — z `WebFetch`. W artykul
 razu. Błąd jednej spacji, ale w zapisie, który udaje cytat, i tak jest
 dyskwalifikujący: następny czytelnik szukałby frazy, której w źródle nie ma.
 
+### 4b. Trzeci szczebel: asset klienta gry (od 2026‑08‑04)
+
+Pomoc mówi, jak mechanika **działa**. Osobne pytanie brzmi „jak BRZMI linia,
+którą gra o tym wypisze" — i na nie pomoc nie odpowiada nigdy. Odpowiada
+tabela tłumaczeń klienta:
+
+```bash
+bun tools/slownik.ts --klucz "anguish"
+```
+
+Wyjście to **szablon zdania z assetu gry**, więc cytat stąd jest cytatem z gry,
+nie z cudzej reimplementacji. Do rejestru wkleja się go tak samo dosłownie jak
+zdanie z pomocy, razem z identyfikatorem i numerem builda.
+
+⚠️ **Czego szablon NIE dowodzi.** (1) Że gra wypisze tę linię w konkretnej
+walce — słownik zna brzmienie, nie warunek. (2) Że linia wygląda dokładnie tak
+po złożeniu: `battleMsg` skleja w jedno zdanie kilka kluczy, podstawia odmianę
+pod `#`/`$`, zamienia `++` na `+` i dokleja `<br>`. **Wzorzec parsera stawia się
+na zrzucie z gry; szablon mówi, CZEGO w zrzucie szukać.**
+
 ### 5. Dopiero teraz korpus
 
 `bun -e '…'` z importem `parse`/`aggregate` po `tests/fixtures/*/*/raw.txt`.
@@ -98,6 +118,9 @@ zamknął `AUDYT‑40` fałszywym wnioskiem na tydzień.
 | **Mechanika walk** | `pomoc.margonem.pl/index/view,372` | **Jedyny adres, który się liczy.** ~399 tys. znaków: system walki, system tur, statystyki postaci i NPC, efekty umiejętności, atrakcje. Wzory i pełne opisy zdarzeń |
 | Mechanika Gry | `pomoc.margonem.pl/index/view,3` | O walce **nic** — „Wszelkie informacje odnośnie mechaniki walk … zostały przeniesione do Dokumentacji Mechaniki walk”. Sprawdzone 2026‑08‑01 |
 | Słowniczek | `pomoc.margonem.pl/index/view,183` | Ogólne pojęcia. Nie zna ani uniku, ani bloku, ani ciosu krytycznego. Sprawdzone 2026‑08‑01 |
+
+| **Tabela tłumaczeń klienta** | `commons.margonem.pl/js/dictionaries/dictionary_pl.js` | **Brzmienia linii**, nie mechanika. 233 etykiety renderera, 223 ze zdaniem, 0 do wyjaśnienia (build `1785244275300`, 2026‑08‑04). Sonda: `bun tools/slownik.ts` |
+| Źródła klienta (build dev) | `experimental.margonem.pl` | Warunki i komentarze autorów przy każdej gałęzi. **Sześć tygodni starszy od produkcji** — struktura tak, brzmienia nie. Sonda: `bun tools/zrodla.ts --pokaz` |
 
 Reszta pomocy nie była przeglądana systematycznie. Znajdziesz coś — dopisz tutaj
 **razem z cytatem**, nie sam adres.
@@ -301,18 +324,32 @@ w korpusie nie ma. Nie wolno na tej podstawie napisać, że „trująca mgła ko
 Sprawdzone 2026‑08‑03 sondą `bun tools/pomoc.ts "Krwawa udręka"`. Literówka
 „możesz zajść” i „prawdopodobienstwo” są w źródle — cytat jest dosłowny.
 
-**Wniosek dla kodu: na razie żaden, i to jest cała treść tego wpisu.** To jest
-**źródło obrażeń rozłożone na tury**, czyli ta sama rodzina co trucizna
-i głęboka rana, które parser czyta jako `kind: "dot"`, a `stats.ts` przypisuje
-albo wrzuca do puli „Bez sprawcy”. Ale **nie wiemy, jak brzmi jego linia
-w oknie walki** i nie wolno tego zgadnąć — w korpusie tekstowym nie ma ani
-jednego wystąpienia rdzenia „udrę” (sprawdzone `grep`‑em po wszystkich
-`raw.txt`).
+**Brzmienie linii jest znane od 2026‑08‑04** — z assetu gry, nie z domysłu:
 
-Że efekt naprawdę zachodzi w prawdziwych walkach, dowodzi korpus protokołu:
-`anguish` i `@legbon_anguish` występują tam 11 razy w dwóch walkach
-(`tests/fixtures/grooove/`, wypisze `bun tools/luki.ts`). Ten wpis jest więc
-**pozycją na liście zakupowej zrzutów**, nie zleceniem na wzorzec.
+> `msg_anguish %name% %hpp% %val0%`
+> → `%name%(%hpp%%): %val0% obrażeń od krwawienia.`
+>
+> `msg_anguish %name% %hpp% %val0% %val1%`
+> → `%name%(%hpp%%): %val0% (osłabione o %val1%%) obrażeń od krwawienia.`
+
+Sonda: `bun tools/slownik.ts --klucz "anguish"`, build `1785244275300`.
+
+⚠️ **To unieważnia zdanie, które stało tu do 2026‑08‑04**: „nie wiemy, jak brzmi
+jego linia w oknie walki i nie wolno tego zgadnąć". Wiemy — i nie trzeba było
+zgadywać, bo brzmienie stoi w assecie klienta.
+
+**Wniosek dla kodu — i to jest zwrot względem poprzedniej wersji wpisu:
+parser TO JUŻ CZYTA.** `RE_DOT` jest ogólny co do rodzaju
+(`obrażeń (od|po) (.+?)`), więc linia krwawienia wchodzi jako
+`kind: "dot"`, `via: "od"`, `dotType: "krwawienia"` — sprawdzone przez
+przepuszczenie zdania ze słownika przez `parse`. Wariant dwuczłonowy też:
+`(osłabione o N%)` siedzi we wzorcu i trafia do `weakenedPct`.
+
+Czyli **`anguish` nigdy nie był cichą luką PARSERA — był luką KORPUSU.**
+W korpusie tekstowym nadal nie ma ani jednego wystąpienia rdzenia „udrę”,
+a że efekt zachodzi w prawdziwych walkach, dowodzi korpus protokołu (11 razy
+w dwóch walkach, `bun tools/luki.ts`). Zrzut jest więc dalej wart zebrania —
+ale jako POTWIERDZENIE, nie jako warunek napisania wzorca.
 
 Bonus stoi też w cytacie z listy bonusów legendarnych przy wpisie o ciosie
 bardzo krytycznym wyżej — na dziesięć wymienionych tam bonusów korpus tekstowy
@@ -330,18 +367,31 @@ zna wszystkie poza tym jednym.
 
 Sprawdzone 2026‑08‑03 sondą `bun tools/pomoc.ts "Wściekłość ( rage )"`.
 
-**Wniosek dla kodu: żaden — ale to najostrzejszy kandydat na cichą lukę, jaki
-mamy.** Rdzeń „wście” nie występuje w korpusie tekstowym ani razu, a `@rage`
-jest w korpusie protokołu **26 razy w sześciu walkach** i jest tam najczęstszą
-pozycją bez odpowiednika.
+**Gra wypisuje z tego powodu linię i jej brzmienie jest znane od 2026‑08‑04:**
 
-⚠️ **Czego ten wpis NIE mówi.** Że gra wypisuje z tego powodu jakąkolwiek linię.
-Wiemy tylko tyle, że renderer grooove.pl składa z tego klucza tekst
-`+Wściekłość: atak +N` — a to jest **CUDZA reimplementacja**, nie gra, i jej
-brzmienia nie wolno przepisać do wzorca (powody i pomiary:
-`tests/fixtures/grooove/README.md`). Podobieństwo do obsługiwanej rodziny
-`Piętno bestii: atak +N` jest powodem, żeby takiej walki poszukać — nie żeby
-dopisać wzorzec w ciemno.
+> `msg_+rage %val%` → `+Wściekłość: atak +%val%`
+> `msg_-rage` → `-Wściekłość`
+
+Sonda: `bun tools/slownik.ts --klucz "+rage"`, build `1785244275300`.
+
+⚠️ **To unieważnia ostrzeżenie, które stało tu do 2026‑08‑04**: „czego ten wpis
+NIE mówi — że gra wypisuje z tego powodu jakąkolwiek linię". Wypisuje.
+
+**Sprostowanie, które warto zapamiętać osobno:** brzmienie z assetu gry jest
+**identyczne** z tym, które składa renderer grooove.pl. Zakaz przepisywania
+tamtych brzmień był i zostaje słuszny co do METODY — cudza reimplementacja
+bywa do tyłu i tego samego dnia złapaliśmy ją na `+wound` („Ciężka rana"
+zamiast „Głęboka rana", `docs/specy/2026-08-04-protokol-silnika-jako-zrodlo-parsera.md`).
+Ale w TYM kluczu akurat miała rację, i zapisanie samego zakazu bez tego faktu
+byłoby myleniem dobrej reguły z nieomylnością.
+
+**Wniosek dla kodu — zwrot względem poprzedniej wersji wpisu: parser TO JUŻ
+CZYTA.** Obie linie wchodzą w bloku ciosu jako proc, a liczba jest
+normalizowana do `+N`, więc dwa różne trafienia dają jedną etykietę
+`Wściekłość: atak +N` z licznikiem 2 — sprawdzone przez `parse` + `aggregate`
+na zdaniach ze słownika. **To NIE jest cicha luka parsera; to luka korpusu.**
+Rdzeń „wście” nie występuje w korpusie tekstowym ani razu, a `@rage` jest
+w korpusie protokołu 26 razy w sześciu walkach.
 
 ---
 
@@ -351,5 +401,30 @@ dopisać wzorzec w ciemno.
 |---|---|---|
 | Czy „osłabione o N%” przy DoT‑cie to etap 1 z kolejności redukcji? | Nasze `damageWeakened` odtwarza pełne tyknięcie z `amount/(1−p)` na podstawie 16 obserwacji. Pomoc opisuje efekty `poison_lowdmg_per-enemies` i mówi, że wynik osłabienia widać „jako obrażenia wylosowane przez atakującego” — jeśli to ta sama rzecz, nasze odtworzenie ma potwierdzenie albo obalenie | niesprawdzone |
 | Jak log zapisuje **pomocniczy** cios bardzo krytyczny? | Pomoc mówi, że to osobne zdarzenie; parser nie rozróżnia | brak próbki w korpusie |
-| Czy gra pisze linię, w której JEDNA postać leczy DRUGĄ? | Blokuje drill „leczenie — od kogo” (`ROADMAP`) | niesprawdzone |
+| Czy gra pisze linię, w której JEDNA postać leczy DRUGĄ? | Blokuje drill „leczenie — od kogo” (`ROADMAP`) | **odpowiedziane 2026‑08‑04, patrz niżej** |
 | Czy gra dopuszcza tę samą nazwę po obu stronach walki? | `AUDYT‑39` naprawiono na teście syntetycznym, bo korpus takiego układu nie ma | niesprawdzone |
+
+### Leczenie kierowane — tekst nazywa LECZONEGO, protokół zna też LECZĄCEGO ✅
+
+Pytanie z tabeli wyżej („czy gra pisze linię, w której jedna postać leczy
+drugą") ma dwie różne odpowiedzi, zależnie od tego, którą drogą się patrzy.
+
+**Tekst: linia istnieje, ale nazywa tylko leczonego.**
+
+> `msg_heal_target %target% %val%` → `Uleczono %target% o %val% punktów życia.`
+
+Sonda: `bun tools/slownik.ts --klucz "heal_target"`, build `1785244275300`.
+Parser czyta to od dawna (`RE_HEAL_TARGET`), a korpus tekstowy ma tę linię
+w **7 z 24** fixture'ów. Leczącego w tym zdaniu nie ma i nie da się go stamtąd
+wyczytać — to jest dokładnie ograniczenie „Leczenie bez leczącego"
+z `docs/DECYZJE.md`.
+
+**Protokół: obie strony stoją w komunikacie.** Renderer podstawia pod
+`%target%` pole `f2.name`, czyli DRUGĄ stronę komunikatu — a pierwszą jest
+nadawca, czyli leczący. Klucz `heal_target` niesie więc parę
+`leczący → leczony` strukturalnie, bez zgadywania po nazwach.
+
+⚠️ **Czego to jeszcze nie znaczy.** Że drill „leczenie — od kogo" da się
+zbudować: dowód pochodzi z odczytu renderera, nie ze zrzutu z gry, a panel
+liczy dziś z tekstu. To jest **argument za zrzutem**, nie zamknięcie tematu —
+i pierwsza pozycja, którą warto sprawdzić, gdy para tekst↔protokół powstanie.

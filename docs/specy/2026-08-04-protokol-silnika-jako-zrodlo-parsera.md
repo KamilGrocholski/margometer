@@ -1,6 +1,6 @@
 # Protokół silnika zamiast zdrapywania DOM — źródło danych parsera
 
-Status: projekt
+Status: wdrożone · 2026-08-04 · 1cf30ca (etapy 2‑3 mają własne speki)
 
 ## Problem
 
@@ -334,3 +334,21 @@ zdarzeń z tym, co pokazało okno walki.
   forumowy powstaje w tej samej pętli (`BattleMessages.js:1186`), ale instancja
   `BattleMessages` jest modułowo prywatna (`Battle.js:36`). „Kopiuj logi”
   zostaje krokiem ręcznym, a sonda musi dalej zbierać węzły `.battle-msg`.
+- **2026-08-04** — **krok 4 planu domknięty**, a jego wynik jest odwrotny do
+  tego, co ten spec zapowiadał. Zapowiadał, że wpisy o `+rage` i `anguish`
+  „przechodzą z »nie wiemy, jak brzmi« na cytat z assetu" i że to **dwie ciche
+  luki parsera potwierdzone źródłem**. Brzmienia rzeczywiście przeszły — ale
+  sprawdzenie ich przez `parse` pokazało, że **parser czyta oba już teraz**:
+  `RE_DOT` jest ogólny co do rodzaju, więc linia krwawienia wchodzi jako `dot`
+  (z `weakenedPct` z wariantu dwuczłonowego), a Wściekłość wchodzi jako proc
+  z liczbą znormalizowaną do `+N`. To luka KORPUSU, nie parsera.
+
+  Wniosek metodologiczny: **„korpus tego nie zna" i „parser tego nie umie" to
+  dwa różne zdania**, a ten spec — i `ROADMAP.md` przed nim — używały ich
+  zamiennie. Odróżnienie kosztowało jedno przepuszczenie zdania ze słownika
+  przez `parse`.
+
+  Przy okazji odpowiedziane pytanie z sekcji „Otwarte" w `MECHANIKA.md`:
+  gra pisze linię o leczeniu kierowanym (`Uleczono X o N punktów życia.`,
+  w korpusie 7 z 24 fixture'ów), ale **nazywa w niej tylko leczonego**;
+  leczącego zna dopiero protokół, bo `heal_target` niesie obie strony.
