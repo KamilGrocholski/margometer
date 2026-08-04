@@ -8,6 +8,7 @@ import {
   type BattleStats,
   type BySide,
 } from "./stats.ts";
+import type { Rozjazd } from "./rozjazd.ts";
 import { STYLE } from "./style.ts";
 import { PROFESSIONS, type ActorStats, type AttackerBreakdown } from "./types.ts";
 import { VERSION } from "./version.ts";
@@ -178,6 +179,8 @@ const fightWord = (count: number) => plural(count, ["walka", "walki", "walk"]);
 const lineWord = (count: number) => plural(count, ["linia", "linie", "linii"]);
 const unknownWord = (count: number) =>
   plural(count, ["nierozpoznana", "nierozpoznane", "nierozpoznanych"]);
+/** „i 1 różnica" zamiast „i 1 różnic". */
+const roznicaWord = (count: number) => plural(count, ["różnica", "różnice", "różnic"]);
 /** Wspólne dla panelu i archiwum — te same liczniki stoją w obu. */
 export const turnWord = (count: number) => plural(count, ["tura", "tury", "tur"]);
 
@@ -724,6 +727,15 @@ export class Overlay {
   /** Co stoi pod kursorem — trzymane między rerenderami. */
   private hovered: HoverTarget | null = null;
   /**
+   * Rozjazdy między odczytem z tekstu a odczytem z protokołu silnika.
+   *
+   * STOI OSOBNO, A NIE W `BattleStats`, i to jest decyzja, nie wygoda.
+   * `aggregate` nie wie o protokole i nie ma się dowiedzieć; archiwum trzyma
+   * `BattleStats` z nagrań, w których protokołu nie było, więc pole zawsze
+   * puste twierdziłoby „zgodne" — czyli kłamałoby o niczym.
+   */
+  private rozjazdyProtokolu: Rozjazd[] = [];
+  /**
    * Postać, w którą weszliśmy lewym przyciskiem. `null` to lista składu.
    *
    * Tożsamością jest NAZWA, nie węzeł ani indeks: panel przebudowuje się przy
@@ -922,6 +934,14 @@ export class Overlay {
    * przyjętych i leczenia. Mina zniknęła razem z sumą (`AUDYT‑6`) — nie ma
    * czego pomylić, więc nie ma czego pilnować typem.
    */
+  /**
+   * Wynik czujki protokołu. Wołane tylko na końcu walki — patrz
+   * `walkaZakonczona` w `src/rozjazd.ts`.
+   */
+  setRozjazdy(rozjazdy: Rozjazd[]): void {
+    this.rozjazdyProtokolu = rozjazdy;
+  }
+
   render(fight: BattleStats): void {
     this.latest = { fight };
     // Akcje należą do TEJ wersji panelu: co render buduje, to render rejestruje.
@@ -2762,6 +2782,21 @@ export class Overlay {
       // wiadomo — i to ona ma trafić do zgłoszenia.
       notes.push({
         text: `⚠ nieznany rodzaj obrażeń: ${stats.unknownElements.join(", ")}`,
+        warn: true,
+      });
+    }
+    if (this.rozjazdyProtokolu.length > 0) {
+      // Osobno od linii nierozpoznanych: tam wiemy, że czegoś nie przeczytaliśmy.
+      // Tu przeczytaliśmy DWIE RAZY i wyszło inaczej — czyli któraś z liczb
+      // w panelu jest zła, tylko nie wiadomo która. To ostrzejszy komunikat
+      // i ma brzmieć ostrzej.
+      const pierwszy = this.rozjazdyProtokolu[0]!;
+      const reszta = this.rozjazdyProtokolu.length - 1;
+      notes.push({
+        text:
+          `⚠ dwa odczyty walki dały różne liczby: ${pierwszy.etykieta}, ` +
+          `${pierwszy.pole} ${pierwszy.zTekstu} kontra ${pierwszy.zProtokolu}` +
+          (reszta > 0 ? ` (i ${reszta} ${roznicaWord(reszta)})` : ""),
         warn: true,
       });
     }

@@ -1,7 +1,9 @@
 import { Archive } from "./archive.ts";
 import { Overlay } from "./overlay.ts";
 import { Recorder } from "./recorder.ts";
+import { EngineProtocolSource, type EventSource } from "./protokol-source.ts";
 import { EngineRosterSource, type GameGlobals, type RosterSource } from "./roster.ts";
+import { rozjazdy, walkaZakonczona } from "./rozjazd.ts";
 import { Session } from "./session.ts";
 import { EMPTY_STATS } from "./stats.ts";
 import { DomLogSource, findBattleLog, type LogSource } from "./source.ts";
@@ -49,6 +51,40 @@ export function start(
       overlay.render(session.current());
     } catch (error) {
       console.error("[MargoMeter] licznik padł na tej porcji logu", error);
+    }
+  });
+}
+
+/**
+ * Drugi odczyt tej samej walki — z protokołu silnika — i porównanie go
+ * z pierwszym.
+ *
+ * NIE KARMI PANELU LICZBAMI. Panel dalej liczy z tekstu; stąd idzie wyłącznie
+ * odpowiedź na pytanie „czy obie drogi zgadzają się co do skalarów". Powód
+ * stoi w `docs/specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`:
+ * bez walki zapisanej obiema drogami nie da się odróżnić „nowe liczby są
+ * lepsze" od „nowe liczby są inne", więc protokół dostaje głos, nie władzę.
+ *
+ * Cała ścieżka jest w try/catch, bo to najmłodszy kod w repo i ma prawo się
+ * mylić — ale nie ma prawa zabrać ze sobą licznika, który działa.
+ */
+export function startKontrola(
+  source: EventSource,
+  zTekstu: Session,
+  overlay: Overlay,
+  roster?: RosterSource,
+  sesjaProtokolu: Session = new Session(),
+): () => void {
+  return source.subscribe((events) => {
+    try {
+      sesjaProtokolu.updateEvents(events, roster?.current());
+      // Porównanie DOPIERO na koniec walki: w trakcie obie drogi mają inną
+      // kadencję i różnica bywa tylko przesunięciem w czasie.
+      if (!walkaZakonczona(events)) return;
+      overlay.setRozjazdy(rozjazdy(zTekstu.current(), sesjaProtokolu.current()));
+      overlay.render(zTekstu.current());
+    } catch (error) {
+      console.error("[MargoMeter] czujka protokołu padła", error);
     }
   });
 }
@@ -103,6 +139,9 @@ export function boot(options: BootOptions = {}): () => void {
   const session = new Session();
   const roster = new EngineRosterSource(globals);
   let unsubscribe: (() => void) | null = null;
+  // Czujka podpina się RAZ, do globali, a nie do kontenera logu: `Engine.battle`
+  // żyje niezależnie od tego, który węzeł DOM akurat niesie okno walki.
+  let odepnijKontrole: (() => void) | null = null;
   let container: Element | null = null;
   let missing = 0;
   let handle: number | null = null;
@@ -112,6 +151,8 @@ export function boot(options: BootOptions = {}): () => void {
     handle = null;
     unsubscribe?.();
     unsubscribe = null;
+    odepnijKontrole?.();
+    odepnijKontrole = null;
     // Panel MÓGŁ już powstać: `missing` zeruje się przy każdym udanym odczycie,
     // więc strona potrafi przestać wyglądać na grę długo po jego narysowaniu.
     // Komentarz niżej („panel się tu nie pojawił") zakładał inaczej.
@@ -142,6 +183,21 @@ export function boot(options: BootOptions = {}): () => void {
       } catch (error) {
         // Rozsypane archiwum nie może zabrać ze sobą licznika obrażeń.
         console.error("[MargoMeter] archiwum nie wystartowało", error);
+      }
+    }
+
+    if (overlay && odepnijKontrole === null) {
+      try {
+        odepnijKontrole = startKontrola(
+          new EngineProtocolSource(globals, roster),
+          session,
+          overlay,
+          roster,
+        );
+      } catch (error) {
+        // Czujka jest dodatkiem do dodatku. Gdy nie wstanie, licznik ma działać
+        // dalej — ta sama zasada, co przy archiwum wyżej.
+        console.error("[MargoMeter] czujka protokołu nie wystartowała", error);
       }
     }
 

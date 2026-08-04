@@ -28,6 +28,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Nowość** — Panel czyta teraz przebieg walki dwiema niezależnymi drogami
+  i porównuje wynik. Gdy po zakończeniu walki obie drogi podadzą inne liczby,
+  na dole panelu pojawia się ostrzeżenie z nazwą postaci i obiema wartościami.
+  Liczby w panelu pochodzą dalej z okna walki — druga droga tylko sprawdza.
+
 ## [0.4.0] — 2026-08-04
 
 - **Nowość** — Panel pokazuje numer wersji dodatku, a skopiowane statystyki
