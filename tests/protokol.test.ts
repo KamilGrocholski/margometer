@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { czlony, liczba, rozbierz } from "../src/protokol.ts";
+import { czlony, liczba, rola, rolaDomyslna, rozbierz, znaneKlucze } from "../src/protokol.ts";
 
 /**
  * Rozbiór komunikatu protokołu.
@@ -172,5 +172,95 @@ describe("liczba", () => {
     expect(liczba(null)).toBeNull();
     expect(liczba("")).toBeNull();
     expect(liczba("nic")).toBeNull();
+  });
+});
+
+/**
+ * POKRYCIE — czy wiemy o KAŻDYM kluczu, który gra umie wysłać.
+ *
+ * To jest jedyne miejsce w repo, gdzie pokrycie da się DOMKNĄĆ, a nie tylko
+ * oszacować. Korpus tekstowy ma zero linii `unknown` i — jak mówi
+ * `docs/ROADMAP.md` — „sam z siebie nie mówi nic o tym, czego parser NIE
+ * rozpoznaje". Zbiór kluczy protokołu jest za to skończony i policzalny, więc
+ * pytanie „czy czegoś nam brakuje" ma tutaj odpowiedź.
+ *
+ * Test jest DWUSTRONNY i to nie jest nadmiarowość. Jedna strona łapie klucz
+ * gry, o którym nie wiemy (cicho niepoliczone obrażenia); druga — nasz wpis
+ * o kluczu, którego gra nie ma (tabela, która zwietrzała po aktualizacji
+ * klienta). To dwa różne błędy i jednostronny test przepuściłby drugi.
+ */
+const ZAMROZONE_KLUCZE: string[] = (
+  await Bun.file(new URL("./fixtures/klucze-protokolu.json", import.meta.url).pathname).json()
+).klucze;
+
+describe("pokrycie tabeli kluczy", () => {
+  test("każdy klucz z zamrożonej listy ma rolę", () => {
+    const bezRoli = ZAMROZONE_KLUCZE.filter((k) => rola(k) === null);
+    expect(bezRoli).toEqual([]);
+  });
+
+  test("każdy klucz tabeli stoi na zamrożonej liście", () => {
+    const zbior = new Set(ZAMROZONE_KLUCZE);
+    // Bez tej strony tabela mogłaby puchnąć o klucze wymyślone albo zdjęte
+    // przez grę — i nikt by się nie dowiedział, bo pierwsza strona przechodzi.
+    expect(znaneKlucze().filter((k) => !zbior.has(k))).toEqual([]);
+  });
+
+  test("tabela pokrywa listę co do jednego klucza", () => {
+    expect(znaneKlucze()).toEqual([...ZAMROZONE_KLUCZE].sort());
+  });
+});
+
+describe("rolaDomyslna: gałąź `default` renderera", () => {
+  test("zadane i przyjęte rozróżnia ZNAK, tak jak gra", () => {
+    // :1102-1117 — `m[0].substr(1,3) === 'dmg'`, potem `charAt(0)`.
+    expect(rolaDomyslna("+dmgd")).toEqual({ typ: "cios", kod: "d" });
+    expect(rolaDomyslna("-dmgd")).toEqual({ typ: "przyjete", kod: "d" });
+  });
+
+  test("`+dmg` bez litery daje kod `p`, jak po stronie tekstu", () => {
+    // src/source.ts:80 robi `damage[1] || "p"`. Obie drogi mają dać tę samą
+    // etykietę żywiołu, inaczej czujka krzyczałaby na własnym nazewnictwie.
+    expect(rolaDomyslna("+dmg")).toEqual({ typ: "cios", kod: "p" });
+  });
+
+  test("kod nieznany przechodzi surowy, zamiast wypaść", () => {
+    // Nowy żywioł po stronie gry ma dojść do `nazwaZywiolu` i zapalić się jako
+    // `dmgX` w panelu — a nie zniknąć tutaj.
+    expect(rolaDomyslna("+dmgZZ")).toEqual({ typ: "cios", kod: "ZZ" });
+  });
+
+  test("klucze niepodobne do obrażeń odpada", () => {
+    expect(rolaDomyslna("+crit")).toBeNull();
+    expect(rolaDomyslna("dmg_hpp")).toBeNull();
+    expect(rolaDomyslna("heal")).toBeNull();
+  });
+
+  test("`+dmgX` NIE stoi w tabeli wyliczonej — ma iść gałęzią domyślną", () => {
+    // Wpisanie ich zamknęłoby listę tam, gdzie gra ma ją otwartą.
+    expect(znaneKlucze()).not.toContain("+dmgd");
+    expect(rola("+dmgd")).toEqual({ typ: "cios", kod: "d" });
+  });
+});
+
+describe("rola: nieznane ma być głośne", () => {
+  test("klucz spoza tabeli i spoza gałęzi domyślnej daje null", () => {
+    expect(rola("klucz-ktorego-gra-nie-ma")).toBeNull();
+  });
+
+  test("milczące mają rolę `cisza`, a nie brak roli", () => {
+    // „Gra tego nie wypisuje" to ODPOWIEDŹ. Zlanie jej z „nie wiemy" dałoby
+    // czujkę krzyczącą o kluczach, o których wiadomo wszystko.
+    expect(rola("skillId")).toEqual({ typ: "cisza" });
+    expect(rola("balloflight")).toEqual({ typ: "cisza" });
+  });
+
+  test("role znaczące niosą dowód, nie domysł", () => {
+    expect(rola("-blok")).toEqual({ typ: "blok" });
+    expect(rola("heal_target")).toEqual({ typ: "leczenie", strona: "cel" });
+    expect(rola("heal")).toEqual({ typ: "leczenie", strona: "nadawca" });
+    expect(rola("poison")).toEqual({ typ: "dot", przyimek: "od", rodzaj: "trucizny" });
+    expect(rola("injure")).toEqual({ typ: "dot", przyimek: "po", rodzaj: "zranieniu" });
+    expect(rola("+thirdatt")).toEqual({ typ: "ciosProc", kod: "3" });
   });
 });

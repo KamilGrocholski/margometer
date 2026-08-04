@@ -162,3 +162,240 @@ export function liczba(wartosc: string | null): number | null {
   const n = Number.parseInt(wartosc, 10);
   return Number.isFinite(n) ? n : null;
 }
+
+/**
+ * Co dany klucz WNOSI do zdarzenia.
+ *
+ * Rola opisuje KLUCZ, nie zdarzenie — zamiana roli na `BattleEvent` dzieje się
+ * piętro wyżej, w `dekoduj`. Podział jest celowy: tabela ma dać się czytać obok
+ * `case`'ów renderera, a te też nie wiedzą, w jakie zdanie złożą się na końcu.
+ *
+ * KAŻDA ROLA MA PRZY SOBIE DOWÓD. Albo ciało gałęzi z `BattleMessages.js`, albo
+ * zdanie ze słownika gry (`bun tools/slownik.ts --klucz "…"`). Reguła
+ * z `docs/MECHANIKA.md` obowiązuje tu tak samo jak w dokumentach: zdanie o tym,
+ * co gra robi, wymaga cytatu, a nie wniosku z nazwy klucza.
+ */
+export type Rola =
+  /** Liczba doklejana do `attack` — obrażenia zadane. `kod` to litera żywiołu. */
+  | { typ: "cios"; kod: string }
+  /** Liczba doklejana do `take` — obrażenia przyjęte po redukcji. */
+  | { typ: "przyjete"; kod: string }
+  /** Niesie liczbę I JEST procem naraz — `+thirdatt` robi oba (`:623‑624`). */
+  | { typ: "ciosProc"; kod: string }
+  /** `-blok=N` → „-Zablokowanie N obrażeń". */
+  | { typ: "blok" }
+  /** `-evade` → „-Unik". Flaga, bez wartości. */
+  | { typ: "unik" }
+  /** `-absorb=N`, `-absorbm=N` → „-Absorpcja N obrażeń fizycznych/magicznych". */
+  | { typ: "absorpcja" }
+  /**
+   * Leczenie w PUNKTACH życia. `strona` mówi, kogo gra podstawia w zdanie:
+   * `nadawca` to `f1` (id1), `cel` to `f2` (id2) — i to jest jedyne miejsce,
+   * w którym protokół rozstrzyga coś, co w tekście jest wnioskiem
+   * (patrz `Hit`/`heal.self` w `types.ts`).
+   */
+  | { typ: "leczenie"; strona: "nadawca" | "cel" }
+  /** Obrażenia bez sprawcy, tykające w czasie. `przyimek` i `rodzaj` z brzmienia. */
+  | { typ: "dot"; przyimek: "od" | "po"; rodzaj: string }
+  /** `absolute=N` → „%name% otrzymał %val% obrażeń nieuchronnych." */
+  | { typ: "nieuchronne" }
+  /** `tspell`, `prepare` — zapowiedź umiejętności, obrażenia w kolejnym komunikacie. */
+  | { typ: "zapowiedz" }
+  /** `winner`, `loser` — rozstrzygnięcie walki. */
+  | { typ: "koniec"; wynik: "victory" | "defeat" }
+  /** `flee=…` — ucieczka. Osobno od `koniec`, bo nie jest ani wygraną, ani porażką. */
+  | { typ: "ucieczka" }
+  /** `txt=…` — gotowy tekst od serwera, wklejany bez tłumaczenia (`:1084`). */
+  | { typ: "tekst" }
+  /** `step` → „%name% zrobił krok do przodu." */
+  | { typ: "krok" }
+  /**
+   * Nazwany efekt, którego NIE LICZYMY do żadnego skalara.
+   *
+   * ⚠️ Czyta się to „nie udowodniono, że niesie liczbę, którą liczymy", a nie
+   * „na pewno nie niesie". Część z tych 201 kluczy niesie wartości procentowe
+   * (`+crush_fire` → „+Zmiażdżenie %val%%", `healall_per` → „Uleczono
+   * sojuszników o %val%% życia"), część kwoty, których nie da się przypisać
+   * postaci (`healall` → „%name% uzdrowił swoją drużynę (%val%)"). Wariant
+   * zachowawczy jest wybrany świadomie: w etapie 3a protokół karmi wyłącznie
+   * czujkę, więc pomyłka daje ALARM DO ZBADANIA, a nie cichą złą liczbę.
+   */
+  | { typ: "proc" }
+  /** Gra ma dla tego klucza puste ciało i nie wypisuje NICZEGO. To odpowiedź, nie luka. */
+  | { typ: "cisza" };
+
+/**
+ * Role przypisane pojedynczo, każda z dowodem.
+ *
+ * Klucze `+dmgX` i `-dmgX` tu NIE STOJĄ i nie mają stać — obsługuje je
+ * `rolaDomyslna`, bo gra też ich nie wylicza, tylko rozpoznaje w gałęzi
+ * `default`. Wpisanie ich zamknęłoby listę tam, gdzie gra ma ją otwartą.
+ */
+const ROLE: Readonly<Record<string, Rola>> = {
+  // — obrażenia ————————————————————————————————————————————————
+  // `attack += '<b class=dmgo>+' + m[1]` (:620) — żywioł zaszyty w klasie, nie
+  // w kluczu, więc kod bierzemy stamtąd.
+  "+of_dmg": { typ: "cios", kod: "o" },
+  // :623-624 — najpierw proc „+Trzeci cios", potem `attack += <b class=third>`.
+  "+thirdatt": { typ: "ciosProc", kod: "3" },
+  // :863-864 — `take += <b class=third>` oraz `takenum += m[1]`.
+  "-thirdatt": { typ: "przyjete", kod: "3" },
+
+  // — redukcja po stronie celu ————————————————————————————————————
+  "-blok": { typ: "blok" },
+  "-evade": { typ: "unik" },
+  "-absorb": { typ: "absorpcja" },
+  "-absorbm": { typ: "absorpcja" },
+
+  // — leczenie w punktach ————————————————————————————————————————
+  // „%gain_lost% %val% punktów życia %name%" — %name% to f1. Znak wartości
+  // rozstrzyga „Przywrócono" kontra „Stracono" (:1090, `m[1] >= 0`).
+  heal: { typ: "leczenie", strona: "nadawca" },
+  // „Przywrócono %val% punktów życia %name%."
+  afterheal: { typ: "leczenie", strona: "nadawca" },
+  // „Uleczono %target% o %val% punktów życia." — %target% to f2 (:960).
+  // To STRUKTURALNY dowód na `heal.self === false` z `types.ts:117‑128`, gdzie
+  // dotąd stał wniosek z samego brzmienia.
+  heal_target: { typ: "leczenie", strona: "cel" },
+  // Ten sam identyfikator słownika co `heal_target`.
+  npc_heal: { typ: "leczenie", strona: "cel" },
+  // „Dotyk anioła: zregenerowano %val% punktów życia %name%"
+  legbon_holytouch_heal: { typ: "leczenie", strona: "nadawca" },
+  // „%val%: Ostatni ratunek, zregenerowano %val2% punktów życia." Wartość jest
+  // DWUCZŁONOWA i człony są odwrócone względem zdania: renderer podstawia
+  // `'%val%': mm[1]` (nazwa) i `'%val2%': mm[0]` (kwota). Kwota to człon ZEROWY.
+  legbon_lastheal: { typ: "leczenie", strona: "nadawca" },
+
+  // — obrażenia bez sprawcy ————————————————————————————————————————
+  // Przyimki są dosłownie te ze zdań gry i trafiają w pole `via` z `types.ts`.
+  poison: { typ: "dot", przyimek: "od", rodzaj: "trucizny" },
+  wound: { typ: "dot", przyimek: "od", rodzaj: "głębokiej rany" },
+  injure: { typ: "dot", przyimek: "po", rodzaj: "zranieniu" },
+  anguish: { typ: "dot", przyimek: "od", rodzaj: "krwawienia" },
+  absolute: { typ: "nieuchronne" },
+
+  // — przebieg walki ————————————————————————————————————————————
+  // „%name% wykonuje %name2%" / „%name% przygotowuje się do rzucenia %name2%".
+  tspell: { typ: "zapowiedz" },
+  prepare: { typ: "zapowiedz" },
+  winner: { typ: "koniec", wynik: "victory" },
+  loser: { typ: "koniec", wynik: "defeat" },
+  flee: { typ: "ucieczka" },
+  txt: { typ: "tekst" },
+  step: { typ: "krok" },
+};
+
+/**
+ * Klucze, przy których gra wypisuje zdanie, ale my nie liczymy z nich niczego.
+ *
+ * Lista jest WYLICZONA, a nie domyślna, i to jest cała jej wartość. Gdyby
+ * nieznany klucz wpadał tu z automatu, nowy klucz z obrażeniami zostałby
+ * połknięty po cichu — a to jest dokładnie ten tryb awarii, przed którym broni
+ * reguła „nieznane ma być głośne" z `AGENTS.md`.
+ */
+const PROCE: readonly string[] = [
+  "+abdest", "+abdest_per", "+abmdest_per", "+absorb",
+  "+absorbm", "+acdmg", "+acdmg_destroyed", "+actdmg",
+  "+crit", "+critpierce", "+critpoison_per", "+critsa",
+  "+critsa_per", "+critslow", "+critslow_per", "+critwound",
+  "+crush", "+crush_distance", "+crush_fire", "+crush_frost",
+  "+crush_light", "+crush_physical", "+distract", "+endest",
+  "+energy", "+engback", "+exp", "+fastarrow",
+  "+firearrow", "+freeze", "+immobilize", "+injure",
+  "+legbon_anguish", "+legbon_curse", "+legbon_frenzy_main", "+legbon_frenzy_off",
+  "+legbon_holytouch", "+legbon_puncture", "+legbon_pushback", "+legbon_verycrit",
+  "+lowheal2turns", "+manadest", "+mcurse", "+of_crit",
+  "+of_wound", "+of_woundmagic", "+of_woundpoison", "+oth_cover",
+  "+oth_dmg", "+ph", "+pierce", "+rage",
+  "+resdmg", "+resdmgc", "+resdmgf", "+resdmgl",
+  "+rotatingblade", "+spell-taken_dmg", "+spell-taken_dmg-all", "+spell-vamp_time",
+  "+stun", "+stun2", "+stun2-c", "+stun2-d",
+  "+stun2-f", "+stun2-l", "+superspell-dispel", "+superspell-prevented",
+  "+swing", "+taken_dmg", "+verycrit", "+vulture",
+  "+wound", "+woundfrost", "+woundmagic", "+woundpoison",
+  "-arrowblock", "-contra", "-endest", "-immunity_to_dmg",
+  "-legbon_cleanse", "-legbon_critred", "-legbon_dmgred", "-legbon_facade",
+  "-legbon_glare", "-legbon_resgain", "-legbon_retaliation", "-lowcritallval",
+  "-manadest", "-parry", "-pierceb", "-poison_lowdmg_per",
+  "-rage", "-redabdest_per", "-redacdmg", "-redacdmg_per",
+  "-reddest_per", "-redendest", "-redendest_per", "-redmanadest",
+  "-redmanadest_per", "-resmanaendest", "-spell-distortion", "-spell-immunity_to_dmg",
+  "-tenacity", "achpp_per", "active_block_per", "active_decblock_per-enemies",
+  "active_resall_per", "alllowdmg", "allslow", "allslow_per",
+  "ansgame", "antidote", "arrowrain", "aura-ac",
+  "aura-ac_per", "aura-adddmg2_per-meele", "aura-resall", "aura-sa",
+  "aura-sa_per", "bandage", "blackout", "blizzard",
+  "chainlightning_perw", "combo-max", "cover", "critmval-allies",
+  "critmval-enemies", "critstagnation", "critval-allies", "critval-enemies",
+  "critwound", "distortion", "distractshoot", "disturb",
+  "disturbshoot", "dloot", "dmg-target_physical", "dmg_hpp",
+  "doubleshoot", "en-regen", "en-regen-cast", "energy",
+  "energyout", "fire", "fireshield", "firewall",
+  "footshoot", "frost", "frostshield", "heal_per",
+  "heal_per-allies", "heal_per-enemies", "healall", "healall_per",
+  "hp_per-allies", "hp_per-enemies", "insult", "light",
+  "lightshield", "lightshield2", "loot", "lowheal_per-enemies",
+  "mana", "managain", "manatransfer", "mlightshiled",
+  "of-woundstart", "physical", "poison_lowdmg_per-enemies", "poisonspread",
+  "poisonspread_failkey", "removedot", "removedot-allies", "removeslow-allies",
+  "removestun", "removestun-allies", "resfire_per", "resfrost_per",
+  "reslight_per", "reusearrows", "rime_per", "shout",
+  "soullink", "spell-taken_dmg", "stealmana", "stinkbomb",
+  "stinkbomb_crit", "stinkbomb_pierce", "storm", "sunreduction",
+  "sunshield", "sunshield_per", "surpass_bonus_total", "tcustom",
+  "thunder", "trickyknife", "vamp", "vamp_time",
+  "woundextend",
+];
+
+/**
+ * Klucze z pustym ciałem — gra świadomie nie wypisuje NICZEGO.
+ *
+ * „Nie wypisuje" to ODPOWIEDŹ, a nie luka, i dlatego stoją osobno od proców:
+ * `skillId` niesie numer umiejętności dla mechaniki gry, a nie dla logu, i nie
+ * ma czego z niego przeczytać. Zlanie tego z „nie wiemy" dałoby czujkę
+ * krzyczącą o kluczach, o których wiadomo wszystko.
+ */
+const MILCZACE: readonly string[] = [
+  "-reddest_per0", "active_absorbdest_per", "active_decblock_per", "balloflight",
+  "chainlightning", "daggerthrow", "skillId",
+];
+
+/**
+ * Gałąź `default` renderera, obliczana zamiast wyliczana wpisami.
+ *
+ * `BattleMessages.js:1102‑1117`: gdy `m[0].substr(1, 3) === 'dmg'`, znak wiodący
+ * rozstrzyga stronę (`+` → `attack`, `-` → `take`), a reszta klucza po znaku
+ * staje się NAZWĄ KLASY CSS. Stąd `dmgd` w DOM i `+dmgd` w protokole to ta sama
+ * litera — i stąd wspólna tabela żywiołów w `types.ts`.
+ *
+ * Klucz `+dmg` bez litery daje kod `p`, bo tak samo robi `src/source.ts:80`
+ * (`damage[1] || "p"`) po stronie tekstu. Dwie drogi mają dać tę samą etykietę.
+ */
+export function rolaDomyslna(klucz: string): Rola | null {
+  if (klucz.substring(1, 4) !== "dmg") return null;
+  const znak = klucz.charAt(0);
+  if (znak !== "+" && znak !== "-") return null;
+  const kod = klucz.slice(4) || "p";
+  return znak === "+" ? { typ: "cios", kod } : { typ: "przyjete", kod };
+}
+
+/**
+ * Rola klucza albo `null`, gdy o kluczu nic nie wiemy.
+ *
+ * `null` znaczy „nieznane" i ma być GŁOŚNE — czytelnik zamienia je na
+ * `{kind: "unknown"}`. Gra ma tu swój odpowiednik piętro wyżej:
+ * `msg_unknown_prameter` w gałęzi `default` (:1117).
+ */
+export function rola(klucz: string): Rola | null {
+  return ROLE[klucz] ?? rolaDomyslna(klucz) ?? WYLICZONE.get(klucz) ?? null;
+}
+
+const WYLICZONE = new Map<string, Rola>([
+  ...PROCE.map((k) => [k, { typ: "proc" } as Rola] as const),
+  ...MILCZACE.map((k) => [k, { typ: "cisza" } as Rola] as const),
+]);
+
+/** Wszystkie klucze, o których tabela cokolwiek wie — materiał dla testu pokrycia. */
+export function znaneKlucze(): string[] {
+  return [...Object.keys(ROLE), ...PROCE, ...MILCZACE].sort();
+}
