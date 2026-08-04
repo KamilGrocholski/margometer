@@ -3,7 +3,9 @@ import { Overlay } from "../src/overlay.ts";
 import { Session } from "../src/session.ts";
 import { DomLogSource, findBattleLog, StaticLogSource } from "../src/source.ts";
 import { Recorder } from "../src/recorder.ts";
-import { boot, start, zrodloPanelu } from "../src/index.ts";
+import { boot, start, startKontrola, zrodloPanelu } from "../src/index.ts";
+import { StaticProtocolSource } from "../src/protokol-source.ts";
+import type { BattleEvent } from "../src/types.ts";
 import { EMPTY_STATS, type BattleStats } from "../src/stats.ts";
 import { number, readFixture } from "./helpers.ts";
 
@@ -290,5 +292,100 @@ describe("panel rysuje z protokołu, gdy protokół mówi", () => {
     start(new StaticLogSource(log), overlay, new Session());
 
     expect(widziane.at(-1)).toContain("Kamil");
+  });
+});
+
+describe("ostrzeżenie o protokole nie przeżywa walki", () => {
+  /** Atrapa panelu: notuje, co dostało i w jakiej kolejności. */
+  const panel = () => {
+    const rozjazdy: number[] = [];
+    const spoznienia: boolean[] = [];
+    return {
+      rozjazdy,
+      spoznienia,
+      overlay: {
+        render: () => {},
+        setRozjazdy: (r: unknown[]) => rozjazdy.push(r.length),
+        setSpoznionePodpiecie: (s: boolean) => spoznienia.push(s),
+      } as unknown as Overlay,
+    };
+  };
+
+  const zdarzeniaCiosu: BattleEvent[] = [
+    {
+      kind: "attack",
+      source: "Kamil",
+      target: "Locha",
+      sourceHpPct: 100,
+      targetHpPct: 50,
+      hits: [
+        { raw: 10, applied: 10, crit: false, superCrit: false, secondary: false, element: null, dodged: false },
+      ],
+      dodged: false,
+      blocked: null,
+      procs: [],
+      ability: null,
+      strike: true,
+    },
+  ];
+  const koniec: BattleEvent[] = [
+    { kind: "fight-end", outcome: "victory", actors: ["Kamil"], result: "" },
+  ];
+  const sklad = [
+    { id: 1, name: "Kamil", side: 0 },
+    { id: 2, name: "Locha", side: 1 },
+  ];
+
+  test("porcja W TRAKCIE walki CZYŚCI ostrzeżenie z poprzedniej", () => {
+    // To jest ta usterka: napis z walki, w której protokół się nie podpiął,
+    // wisiał nad następną — bo `setRozjazdy` wołane było tylko na koniec.
+    const p = panel();
+    const zTekstu = new Session();
+    zTekstu.updateEvents(zdarzeniaCiosu, sklad);
+    startKontrola(new StaticProtocolSource([]), zTekstu, p.overlay, undefined, new Session());
+
+    const kontrola = startKontrola(
+      { subscribe: (l) => (l(zdarzeniaCiosu), () => {}) },
+      zTekstu,
+      p.overlay,
+      { current: () => sklad },
+      new Session(),
+    );
+    kontrola();
+
+    expect(p.rozjazdy.at(-1)).toBe(0);
+  });
+
+  test("koniec walki z PUSTYM protokołem mówi o spóźnieniu, nie o rozjeździe", () => {
+    const p = panel();
+    const zTekstu = new Session();
+    zTekstu.updateEvents(zdarzeniaCiosu, sklad);
+    // Protokół dostaje samo rozstrzygnięcie — zero obrażeń, komplet wierszy.
+    startKontrola(
+      { subscribe: (l) => (l(koniec), () => {}) },
+      zTekstu,
+      p.overlay,
+      { current: () => sklad },
+      new Session(),
+    );
+
+    expect(p.spoznienia.at(-1)).toBe(true);
+    expect(p.rozjazdy.at(-1)).toBe(0);
+  });
+
+  test("koniec walki z PEŁNYM protokołem gasi flagę spóźnienia", () => {
+    // Inaczej flaga zapalona raz wisiałaby do końca sesji.
+    const p = panel();
+    const zTekstu = new Session();
+    zTekstu.updateEvents(zdarzeniaCiosu, sklad);
+    startKontrola(
+      { subscribe: (l) => (l([...zdarzeniaCiosu, ...koniec]), () => {}) },
+      zTekstu,
+      p.overlay,
+      { current: () => sklad },
+      new Session(),
+    );
+
+    expect(p.spoznienia.at(-1)).toBe(false);
   });
 });

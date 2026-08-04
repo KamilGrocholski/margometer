@@ -78,8 +78,23 @@ const WERSJA = 1;
 
 type Opakowanie = ((...argumenty: unknown[]) => unknown) & { [ZNACZNIK]?: number };
 
-/** Co ile sprawdzać, czy gra nie podmieniła obiektu walki. */
-const CZESTOTLIWOSC_MS = 500;
+/**
+ * Co ile sprawdzać, czy gra nie podmieniła obiektu walki.
+ *
+ * ⚠️ **TO JEST WYŚCIG I ZOSTAJE WYŚCIGIEM.** Gra tworzy NOWY obiekt walki przy
+ * każdej walce, więc między jej startem a naszym tikiem jest okno, w którym
+ * `update` leci nieowinięte. Okno jest groźniejsze, niż wygląda: w jedynym
+ * zrzucie, jaki mamy, **wszystkie 18 komunikatów walki przyszło w JEDNYM
+ * wywołaniu**, więc jedna przegapiona porcja to cała walka.
+ *
+ * 500 → 150 ms zwęża okno ponad trzykrotnie i nic nie kosztuje: sprawdzenie to
+ * odczyt jednej właściwości i porównanie tożsamości obiektu. Ale **nie zamyka**
+ * wyścigu i nie ma udawać, że zamyka — zamykają go dopiero dwie rzeczy po
+ * stronie panelu: pusty odczyt nie przejmuje liczb (`zrodloPanelu`), a gracz
+ * dostaje osobny komunikat o spóźnionym podpięciu zamiast fałszywego
+ * ostrzeżenia o rozjeździe.
+ */
+const CZESTOTLIWOSC_MS = 150;
 
 export type ProtocolSourceOptions = {
   /** Wstrzykiwane, żeby dało się przewinąć zegar w teście — jak w `index.ts`. */

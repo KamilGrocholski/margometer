@@ -111,13 +111,24 @@ export function startKontrola(
   return source.subscribe((events) => {
     try {
       sesjaProtokolu.updateEvents(events, roster?.current());
-      // Porównanie DOPIERO na koniec walki: w trakcie obie drogi mają inną
-      // kadencję i różnica bywa tylko przesunięciem w czasie. Rysujemy jednak
-      // od razu — panel ma nadążać za walką, a nie czekać na jej koniec.
-      if (walkaZakonczona(events)) {
-        overlay.setRozjazdy(rozjazdy(zTekstu.current(), sesjaProtokolu.current()));
+      const zProtokolu = sesjaProtokolu.current();
+
+      // OSTRZEŻENIE GAŚNIE RAZEM Z WALKĄ. Bez tego napis z walki, w której
+      // protokół się nie podpiął, wisiał nad następną — i to jest dokładnie
+      // to, co zobaczył pierwszy gracz: poprawne liczby w panelu i ostrzeżenie
+      // o rozjeździe z poprzedniej walki.
+      if (!walkaZakonczona(events)) overlay.setRozjazdy([]);
+      else if (pustyOdczyt(zProtokolu)) {
+        // INNA USTERKA, INNY KOMUNIKAT. Pusty odczyt nie znaczy „liczby się
+        // różnią" — znaczy „nie zdążyliśmy się podpiąć do tej walki".
+        // Nazwanie tego rozjazdem opisywałoby objaw jako przyczynę.
+        overlay.setRozjazdy([]);
+        overlay.setSpoznionePodpiecie(true);
+      } else {
+        overlay.setSpoznionePodpiecie(false);
+        overlay.setRozjazdy(rozjazdy(zTekstu.current(), zProtokolu));
       }
-      overlay.render(zrodloPanelu(zTekstu.current(), sesjaProtokolu.current()));
+      overlay.render(zrodloPanelu(zTekstu.current(), zProtokolu));
     } catch (error) {
       console.error("[MargoMeter] czujka protokołu padła", error);
     }

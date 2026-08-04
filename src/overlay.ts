@@ -736,6 +736,15 @@ export class Overlay {
    */
   private rozjazdyProtokolu: Rozjazd[] = [];
   /**
+   * Czy protokół nie zdążył się podpiąć do tej walki.
+   *
+   * Osobno od `rozjazdyProtokolu`, bo to INNA usterka: tam dwa odczyty się nie
+   * zgadzają, tu drugiego odczytu po prostu nie ma. Wspólny komunikat
+   * opisywałby objaw jako przyczynę i kazał szukać błędu w liczbach, których
+   * nikt nie policzył.
+   */
+  private spoznionePodpiecie = false;
+  /**
    * Postać, w którą weszliśmy lewym przyciskiem. `null` to lista składu.
    *
    * Tożsamością jest NAZWA, nie węzeł ani indeks: panel przebudowuje się przy
@@ -940,6 +949,11 @@ export class Overlay {
    */
   setRozjazdy(rozjazdy: Rozjazd[]): void {
     this.rozjazdyProtokolu = rozjazdy;
+  }
+
+  /** Patrz `spoznionePodpiecie`. */
+  setSpoznionePodpiecie(spoznione: boolean): void {
+    this.spoznionePodpiecie = spoznione;
   }
 
   render(fight: BattleStats): void {
@@ -2783,6 +2797,15 @@ export class Overlay {
       notes.push({
         text: `⚠ nieznany rodzaj obrażeń: ${stats.unknownElements.join(", ")}`,
         warn: true,
+      });
+    }
+    if (this.spoznionePodpiecie) {
+      // Nie „⚠", bo to nie jest ostrzeżenie o LICZBACH — liczby są poprawne,
+      // tylko pochodzą z okna walki zamiast z danych gry. Gracz ma wiedzieć,
+      // że stracił dokładniejszy odczyt, a nie że coś się nie zgadza.
+      notes.push({
+        text: "ⓘ licznik nie zdążył podpiąć się do tej walki — liczby z okna walki",
+        warn: false,
       });
     }
     if (this.rozjazdyProtokolu.length > 0) {
