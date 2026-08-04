@@ -1,5 +1,5 @@
 import { dekoduj } from "./protokol.ts";
-import type { GameGlobals, RosterSource } from "./roster.ts";
+import type { GameGlobals, RosterEntry, RosterSource } from "./roster.ts";
 import { SlownikGry, SlownikStaly, type Slownik, type TranslationGlobals } from "./slownik-gry.ts";
 import type { BattleEvent } from "./types.ts";
 
@@ -26,16 +26,26 @@ import type { BattleEvent } from "./types.ts";
  */
 
 /**
- * Kontrakt osobny od `LogSource`, a nie generyk nad nim.
+ * Jedna porcja z protokołu.
  *
- * `LogSource` obiecuje „PEŁNA TREŚĆ bufora po każdej zmianie" i tę obietnicę
- * spełniają oba dzisiejsze źródła. To obiecuje „wszystkie zdarzenia walki po
- * każdej porcji" — wspólna jest tylko nazwa metody. Uogólnienie do
- * `LogSource<T>` związałoby `MutationObserver` z podmianą funkcji silnika
- * jednym typem i zmusiło `start()` do rozgałęzienia po kształcie ładunku.
+ * Niesie i SUROWY materiał, i odczyt. Nie jest to nadmiarowość: nagrywarka
+ * zapisuje `komunikaty`, żeby dało się przeliczyć stare nagranie nowszym
+ * dekoderem — ta sama zasada, dla której nagrania trzymały wcześniej surowy
+ * tekst, a nie policzone statystyki (`recorder.ts`). `sklad` idzie razem, bo
+ * bez niego `id` nie ma jak stać się nazwą, a nagranie bez nazw jest nieczytelne.
+ */
+export type PorcjaProtokolu = {
+  komunikaty: readonly string[];
+  zdarzenia: BattleEvent[];
+  sklad: readonly RosterEntry[];
+};
+
+/**
+ * Źródło porcji. Obiecuje „wszystkie komunikaty walki po każdej porcji" —
+ * czyli narastający strumień, nie przyrost.
  */
 export type EventSource = {
-  subscribe(listener: (events: BattleEvent[]) => void): () => void;
+  subscribe(listener: (porcja: PorcjaProtokolu) => void): () => void;
 };
 
 /** Odpowiednik `StaticLogSource` — do testów i do odtwarzania `protokol.json`. */
@@ -45,8 +55,12 @@ export class StaticProtocolSource implements EventSource {
     private readonly slownik: Slownik = new SlownikStaly([]),
   ) {}
 
-  subscribe(listener: (events: BattleEvent[]) => void): () => void {
-    listener(dekoduj(this.komunikaty, [], this.slownik));
+  subscribe(listener: (porcja: PorcjaProtokolu) => void): () => void {
+    listener({
+      komunikaty: this.komunikaty,
+      zdarzenia: dekoduj(this.komunikaty, [], this.slownik),
+      sklad: [],
+    });
     return () => {};
   }
 }
@@ -120,7 +134,7 @@ export class EngineProtocolSource implements EventSource {
     private readonly slownik: Slownik = new SlownikGry(window),
   ) {}
 
-  subscribe(listener: (events: BattleEvent[]) => void): () => void {
+  subscribe(listener: (porcja: PorcjaProtokolu) => void): () => void {
     const schedule =
       this.options.schedule ?? ((step, everyMs) => setInterval(step, everyMs) as never);
     const cancel = this.options.cancel ?? ((handle: number) => clearInterval(handle));
@@ -152,7 +166,7 @@ export class EngineProtocolSource implements EventSource {
       : null;
   }
 
-  private zapewnijOwiniecie(listener: (events: BattleEvent[]) => void): void {
+  private zapewnijOwiniecie(listener: (porcja: PorcjaProtokolu) => void): void {
     const battle = this.battle();
     if (battle === null) return;
 
@@ -192,7 +206,7 @@ export class EngineProtocolSource implements EventSource {
    * Ładunek `t` → zdarzenia. Wszystko tu jest defensywne, bo kształt `t` jest
    * kontraktem, którego nikt nam nie obiecał.
    */
-  private przyjmij(ladunek: unknown, listener: (events: BattleEvent[]) => void): void {
+  private przyjmij(ladunek: unknown, listener: (porcja: PorcjaProtokolu) => void): void {
     if (typeof ladunek !== "object" || ladunek === null) return;
     const t = ladunek as Record<string, unknown>;
 
@@ -200,10 +214,15 @@ export class EngineProtocolSource implements EventSource {
     if (porcja.length === 0) return;
 
     this.komunikaty.push(...porcja);
+    const sklad = this.roster.current() ?? [];
     // Dekodujemy CAŁĄ walkę od nowa, nie przyrost. Ta sama decyzja co
     // w `session.ts:53‑57`: stan przyrostowy byłby źródłem podwójnego liczenia,
     // a walka ma kilkadziesiąt komunikatów, więc koszt jest bez znaczenia.
-    listener(dekoduj(this.komunikaty, this.roster.current() ?? [], this.slownik));
+    listener({
+      komunikaty: [...this.komunikaty],
+      zdarzenia: dekoduj(this.komunikaty, sklad, this.slownik),
+      sklad,
+    });
   }
 
   /**

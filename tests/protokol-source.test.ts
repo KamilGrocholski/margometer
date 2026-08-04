@@ -48,7 +48,7 @@ function gra(update: (...a: unknown[]) => unknown) {
 describe("StaticProtocolSource", () => {
   test("oddaje zdarzenia raz i nie wymaga gry", () => {
     const widziane: BattleEvent[][] = [];
-    new StaticProtocolSource(["0;0;txt=start"]).subscribe((z) => widziane.push(z));
+    new StaticProtocolSource(["0;0;txt=start"]).subscribe((p) => widziane.push(p.zdarzenia));
     expect(widziane).toHaveLength(1);
     expect(widziane[0]).toEqual([{ kind: "info", line: "start" }]);
   });
@@ -136,7 +136,7 @@ describe("EngineProtocolSource: co dociera do słuchacza", () => {
     const { globals, battle } = gra(() => undefined);
     const z = zegar();
     const widziane: BattleEvent[][] = [];
-    new EngineProtocolSource(globals, roster(), z).subscribe((e) => widziane.push(e));
+    new EngineProtocolSource(globals, roster(), z).subscribe((p) => widziane.push(p.zdarzenia));
 
     const update = battle["update"] as (...a: unknown[]) => unknown;
     update({ m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"] });
@@ -151,7 +151,7 @@ describe("EngineProtocolSource: co dociera do słuchacza", () => {
     const { globals, battle } = gra(() => undefined);
     const z = zegar();
     const widziane: BattleEvent[][] = [];
-    new EngineProtocolSource(globals, roster(), z).subscribe((e) => widziane.push(e));
+    new EngineProtocolSource(globals, roster(), z).subscribe((p) => widziane.push(p.zdarzenia));
 
     (battle["update"] as (...a: unknown[]) => unknown)({
       m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"],
@@ -192,7 +192,7 @@ describe("EngineProtocolSource: co dociera do słuchacza", () => {
     const { globals, battle } = gra(() => undefined);
     const z = zegar();
     const widziane: BattleEvent[][] = [];
-    new EngineProtocolSource(globals, roster(), z).subscribe((e) => widziane.push(e));
+    new EngineProtocolSource(globals, roster(), z).subscribe((p) => widziane.push(p.zdarzenia));
 
     (battle["update"] as (...a: unknown[]) => unknown)({
       m: { "0": "1=100.00;2=90.00;+dmg=10;-dmg=10" },
@@ -205,7 +205,7 @@ describe("EngineProtocolSource: co dociera do słuchacza", () => {
     const { globals, battle } = gra(() => undefined);
     const z = zegar();
     const widziane: BattleEvent[][] = [];
-    new EngineProtocolSource(globals, roster(null), z).subscribe((e) => widziane.push(e));
+    new EngineProtocolSource(globals, roster(null), z).subscribe((p) => widziane.push(p.zdarzenia));
 
     (battle["update"] as (...a: unknown[]) => unknown)({
       m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"],
@@ -243,5 +243,58 @@ describe("EngineProtocolSource: gra, której nie ma", () => {
     expect(() =>
       new EngineProtocolSource(globals, roster(), z).subscribe(() => {}),
     ).not.toThrow();
+  });
+});
+
+describe("porcja niesie SUROWY materiał, nie tylko odczyt", () => {
+  /**
+   * Nagrywarka zapisuje `komunikaty`, a nie `zdarzenia` — ta sama zasada, dla
+   * której nagrania trzymały wcześniej surowy tekst zamiast policzonych
+   * statystyk: nagranie ma dać się przeliczyć NOWSZYM dekoderem. Bez tego
+   * pierwsza łatka w dekoderze unieważnia całe archiwum.
+   */
+  test("komunikaty jadą razem ze zdarzeniami i NARASTAJĄ", () => {
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    const widziane: (readonly string[])[] = [];
+    new EngineProtocolSource(globals, roster(), z).subscribe((p) => widziane.push(p.komunikaty));
+
+    const update = battle["update"] as (...a: unknown[]) => unknown;
+    update({ m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"] });
+    update({ m: ["0;0;winner=Kamil"] });
+
+    expect(widziane[0]).toEqual(["1=100.00;2=90.00;+dmg=10;-dmg=10"]);
+    expect(widziane[1]).toEqual(["1=100.00;2=90.00;+dmg=10;-dmg=10", "0;0;winner=Kamil"]);
+  });
+
+  test("skład jedzie razem — bez niego `id` nie ma jak stać się nazwą", () => {
+    // Archiwum odtwarza nagranie po zamknięciu gry, więc nie ma skąd wziąć
+    // rostera. Musi przyjść w porcji i zostać zapisany razem z komunikatami.
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    const widziane: RosterEntry[][] = [];
+    new EngineProtocolSource(globals, roster(), z).subscribe((p) => widziane.push([...p.sklad]));
+
+    (battle["update"] as (...a: unknown[]) => unknown)({
+      m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"],
+    });
+
+    expect(widziane.at(-1)).toEqual(SKLAD);
+  });
+
+  test("kopia, nie żywa referencja — kolejna porcja nie przepisuje poprzedniej", () => {
+    // `this.komunikaty` rośnie w miejscu. Oddanie go wprost sprawiłoby, że
+    // nagranie zapisane przy porcji 1 zmieniłoby się po porcji 2 — a nagrywarka
+    // porównuje z nim treść, żeby wiedzieć, czy jest co zapisywać.
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    const widziane: (readonly string[])[] = [];
+    new EngineProtocolSource(globals, roster(), z).subscribe((p) => widziane.push(p.komunikaty));
+
+    const update = battle["update"] as (...a: unknown[]) => unknown;
+    update({ m: ["0;0;txt=a"] });
+    update({ m: ["0;0;txt=b"] });
+
+    expect(widziane[0]).toHaveLength(1);
   });
 });

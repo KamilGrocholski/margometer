@@ -105,19 +105,18 @@ export function startKontrola(
   source: EventSource,
   zTekstu: Session,
   overlay: Overlay,
-  roster?: RosterSource,
   sesjaProtokolu: Session = new Session(),
 ): () => void {
-  return source.subscribe((events) => {
+  return source.subscribe((porcja) => {
     try {
-      sesjaProtokolu.updateEvents(events, roster?.current());
+      sesjaProtokolu.updateEvents(porcja.zdarzenia, [...porcja.sklad]);
       const zProtokolu = sesjaProtokolu.current();
 
       // OSTRZEŻENIE GAŚNIE RAZEM Z WALKĄ. Bez tego napis z walki, w której
       // protokół się nie podpiął, wisiał nad następną — i to jest dokładnie
       // to, co zobaczył pierwszy gracz: poprawne liczby w panelu i ostrzeżenie
       // o rozjeździe z poprzedniej walki.
-      if (!walkaZakonczona(events)) overlay.setRozjazdy([]);
+      if (!walkaZakonczona(porcja.zdarzenia)) overlay.setRozjazdy([]);
       else if (pustyOdczyt(zProtokolu)) {
         // INNA USTERKA, INNY KOMUNIKAT. Pusty odczyt nie znaczy „liczby się
         // różnią" — znaczy „nie zdążyliśmy się podpiąć do tej walki".
@@ -241,7 +240,6 @@ export function boot(options: BootOptions = {}): () => void {
           new EngineProtocolSource(globals, roster),
           session,
           overlay,
-          roster,
           sesjaProtokolu,
         );
       } catch (error) {

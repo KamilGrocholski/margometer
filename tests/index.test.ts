@@ -335,6 +335,8 @@ describe("ostrzeżenie o protokole nie przeżywa walki", () => {
     { id: 1, name: "Kamil", side: 0 },
     { id: 2, name: "Locha", side: 1 },
   ];
+  /** Porcja z protokołu — komunikaty są tu nieistotne, liczy się odczyt i skład. */
+  const porcja = (zdarzenia: BattleEvent[]) => ({ komunikaty: [], zdarzenia, sklad });
 
   test("porcja W TRAKCIE walki CZYŚCI ostrzeżenie z poprzedniej", () => {
     // To jest ta usterka: napis z walki, w której protokół się nie podpiął,
@@ -342,13 +344,12 @@ describe("ostrzeżenie o protokole nie przeżywa walki", () => {
     const p = panel();
     const zTekstu = new Session();
     zTekstu.updateEvents(zdarzeniaCiosu, sklad);
-    startKontrola(new StaticProtocolSource([]), zTekstu, p.overlay, undefined, new Session());
+    startKontrola(new StaticProtocolSource([]), zTekstu, p.overlay, new Session());
 
     const kontrola = startKontrola(
-      { subscribe: (l) => (l(zdarzeniaCiosu), () => {}) },
+      { subscribe: (l) => (l(porcja(zdarzeniaCiosu)), () => {}) },
       zTekstu,
       p.overlay,
-      { current: () => sklad },
       new Session(),
     );
     kontrola();
@@ -362,10 +363,9 @@ describe("ostrzeżenie o protokole nie przeżywa walki", () => {
     zTekstu.updateEvents(zdarzeniaCiosu, sklad);
     // Protokół dostaje samo rozstrzygnięcie — zero obrażeń, komplet wierszy.
     startKontrola(
-      { subscribe: (l) => (l(koniec), () => {}) },
+      { subscribe: (l) => (l(porcja(koniec)), () => {}) },
       zTekstu,
       p.overlay,
-      { current: () => sklad },
       new Session(),
     );
 
@@ -379,10 +379,9 @@ describe("ostrzeżenie o protokole nie przeżywa walki", () => {
     const zTekstu = new Session();
     zTekstu.updateEvents(zdarzeniaCiosu, sklad);
     startKontrola(
-      { subscribe: (l) => (l([...zdarzeniaCiosu, ...koniec]), () => {}) },
+      { subscribe: (l) => (l(porcja([...zdarzeniaCiosu, ...koniec])), () => {}) },
       zTekstu,
       p.overlay,
-      { current: () => sklad },
       new Session(),
     );
 
