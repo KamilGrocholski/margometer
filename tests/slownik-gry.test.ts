@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { BEZ_SLOWNIKA, SlownikGry, SlownikStaly, type TranslationGlobals } from "../src/slownik-gry.ts";
-import { dekoduj } from "../src/protokol.ts";
+import { dekoduj, rola, znaneKlucze } from "../src/protokol.ts";
 import type { RosterEntry } from "../src/roster.ts";
+import { slownikZeZamrozenia } from "../tools/slownik.ts";
+import { ZAMROZENIE } from "./klucze-protokolu.ts";
 
 /**
  * Brzmienia z gry, nie z naszego kodu.
@@ -18,21 +20,14 @@ const SKLAD: RosterEntry[] = [
 ];
 
 /**
- * Kilka wpisów słownika, przepisanych z assetu gry.
+ * Słownik złożony z tabeli zamrożonej z assetu gry — 233 klucze,
+ * `bun tools/slownik.ts --zamroz`.
  *
- * ⚠️ **Stała tu ZAMROŻONA TABELA** — `tests/fixtures/klucze-protokolu.json`,
- * 233 klucze wyłuskane z assetu przez `bun tools/slownik.ts`. Katalog
- * `tests/fixtures/` zszedł z drzewa 2026‑08‑04, a razem z nim **dwa testy,
- * które pilnowały, że zaszyte u nas identyfikatory zgadzają się z grą** —
- * opisane niżej. Zostaje garść wpisów wystarczająca do sprawdzenia
- * MECHANIZMU podstawiania; zgodności z grą już nikt nie sprawdza.
+ * Testy niżej sprawdzają MECHANIZM podstawiania, ale robią to na prawdziwych
+ * brzmieniach, a nie na garści wpisów przepisanych ręcznie. Różnica jest realna:
+ * ręczna kopia zgadza się z grą z definicji, bo obie strony pisze ta sama osoba.
  */
-const zeZamrozenia = () =>
-  new SlownikStaly([
-    ["msg_+pierce", "+Przebicie"],
-    ["msg_+acdmg %val%", "+Niszczenie pancerza o %val%"],
-    ["msg_+crit", "+Cios krytyczny"],
-  ]);
+const zeZamrozenia = () => slownikZeZamrozenia(ZAMROZENIE);
 
 describe("SlownikGry — odczyt window._t", () => {
   test("oddaje zdanie, które zwróciła gra", () => {
@@ -107,14 +102,14 @@ describe("etykiety proców w dekoderze", () => {
       SKLAD,
       zeZamrozenia(),
     );
-    // Znak wiodący spada — tak samo jak zdejmuje go `RE_MODIFIER` po stronie
-    // tekstu. Inaczej ten sam efekt stałby w panelu jako dwie pozycje.
+    // Znak wiodący spada — inaczej ten sam efekt stałby w panelu jako dwie
+    // różne pozycje, „Przebicie" i „+Przebicie".
     expect((z as { procs: string[] }).procs).toEqual(["Przebicie"]);
   });
 
   test("proc z wartością dostaje ją podstawioną", () => {
     // `+acdmg=5` → „+Niszczenie pancerza o %val%" → „+Niszczenie pancerza o 5".
-    // Ta sama linia stoi w raw.txt pierwszej pary tekst↔protokół.
+    // Ten sam kształt niesie prawdziwa walka w `tests/walka-z-gry.ts`.
     const [z] = dekoduj(
       ["1=100.00;2=90.00;+dmgd=466;+acdmg=5;-dmgd=223"],
       SKLAD,
@@ -139,8 +134,8 @@ describe("etykiety proców w dekoderze", () => {
   });
 
   test("kryt NIE jest procem — protokół ma na niego własny klucz", () => {
-    // Ścieżka tekstowa konsumuje „+Cios krytyczny" do `Hit.crit` zamiast
-    // wypisywać go jako efekt; protokół robi to samo, tyle że po kluczu.
+    // Kryt wchodzi do `Hit.crit`, a nie na listę efektów — i rozstrzyga o tym
+    // KLUCZ, nie brzmienie zdania.
     const [z] = dekoduj(["1=100.00;2=90.00;+dmgd=10;+crit;-dmgd=10"], SKLAD, zeZamrozenia());
     expect((z as { procs: string[] }).procs).toEqual([]);
     expect((z as { hits: { crit: boolean }[] }).hits[0]!.crit).toBe(true);
@@ -148,22 +143,45 @@ describe("etykiety proców w dekoderze", () => {
 });
 
 /**
- * ⚠️ **ZNIKŁ STĄD BLOK „zaszyte identyfikatory nie mogą się rozjechać
- * z zamrożoną tabelą" — 2 testy, 2026‑08‑04, razem z `tests/fixtures/`.**
+ * **NAJWAŻNIEJSZY TEST TEGO PLIKU.**
  *
- * Nagłówek tamtego bloku brzmiał **„NAJWAŻNIEJSZY TEST TEGO PLIKU"** i nie było
- * to przesadą. Identyfikatory `_t` są zaszyte w `src/protokol.ts`, bo dodatek
- * nie ma jak wylistować słownika gry (`const _dict` jest domknięty w module).
+ * Identyfikatory `_t` są zaszyte w `src/protokol.ts`, bo dodatek nie ma jak
+ * wylistować słownika gry (`const _dict` jest w produkcji domknięty w module).
  * Zaszyta kopia, która rozjedzie się z grą, daje w panelu KLUCZ zamiast zdania
  * — i robi to **po cichu**, bo `zdanie()` na nieznanym identyfikatorze zwraca
- * `null`, a nie błąd.
+ * `null`, a nie błąd. Nic w dodatku tego nie zauważy; zauważy to gracz.
  *
- * Dwie strony, które przestały być sprawdzane:
- * - każdy identyfikator z naszej tabeli ról stoi w słowniku gry pod tym samym
- *   kluczem (nasza kopia nie zwietrzała po aktualizacji klienta);
- * - każdy klucz, dla którego gra MA zdanie i który jest u nas procem, ma
- *   u nas identyfikator (nie pokazujemy klucza tam, gdzie gra ma brzmienie).
+ * ⚠️ **BLOK STAŁ PUSTY MIĘDZY 2026‑08‑04 A DZIŚ**, bo świadek — zamrożona
+ * tabela z assetu gry — leżał jako plik danych obok testów i zszedł z drzewa
+ * razem z całym tamtym katalogiem, zabierając ze sobą oba te testy. Dziś jest
+ * z powrotem, jako moduł (`tests/klucze-protokolu.ts`), i odtwarza go
+ * `bun tools/slownik.ts --zamroz`.
  *
- * Odtworzyć to da się jedną komendą — `bun tools/slownik.ts` czyta asset gry
- * i wypisuje tabelę. Brakuje wyłącznie miejsca, w którym wynik miałby osiąść.
+ * Czego ten blok NIE dowodzi: że zdanie brzmi dobrze po polsku ani że gra
+ * wypisze je w tej walce. Dowodzi jednego — że pytamy o identyfikator, który
+ * gra zna.
  */
+describe("zaszyte identyfikatory kontra asset gry", () => {
+  const slownik = slownikZeZamrozenia(ZAMROZENIE);
+
+  test("każdy identyfikator z tabeli ról ma zdanie w słowniku gry", () => {
+    // Strona pierwsza: nasza kopia nie zwietrzała po aktualizacji klienta.
+    const bezZdania = znaneKlucze()
+      .map((klucz) => ({ klucz, rola: rola(klucz) }))
+      .filter((w) => w.rola !== null && "id" in w.rola)
+      .map((w) => ({ klucz: w.klucz, id: (w.rola as { id: string }).id }))
+      .filter((w) => slownik.zdanie(w.id) === null);
+
+    // Lista, nie liczba: przy rozjeździe ma być widać KTÓRY klucz, bo poprawka
+    // idzie do konkretnego wpisu w `ROLE`/`PROCE`.
+    expect(bezZdania).toEqual([]);
+  });
+
+  test("proc z prawdziwym brzmieniem gry dociera do panelu złożony", () => {
+    // Druga strona tej samej rzeczy: nie „czy identyfikator istnieje", tylko
+    // czy zdanie spod niego przechodzi całą drogę do `procs`. Wejście jest
+    // prawdziwym komunikatem z `tests/walka-z-gry.ts`.
+    const [z] = dekoduj(["1=100.00;2=70.07;+dmgd=466;+acdmg=5;-dmgd=223"], SKLAD, slownik);
+    expect((z as { procs: string[] }).procs).toEqual(["Niszczenie pancerza o 5"]);
+  });
+});

@@ -9,6 +9,7 @@ import {
   znaneKlucze,
 } from "../src/protokol.ts";
 import type { RosterEntry } from "../src/roster.ts";
+import { ZAMROZENIE } from "./klucze-protokolu.ts";
 
 /**
  * Rozbiór komunikatu protokołu.
@@ -16,17 +17,17 @@ import type { RosterEntry } from "../src/roster.ts";
  * SKĄD BIORĄ SIĘ WEJŚCIA. Dwa źródła, oba prawdziwe, i to jest tu ważne:
  *
  * - **kształty z prawdziwych walk**, przepisane do treści testów. ⚠️ Brały się
- *   z korpusu protokołu z grooove.pl (przekodowanego przez cudzy serwis:
- *   kropka zamiast `=`); korpus zszedł z drzewa 2026‑08‑04, a kształty zostały
- *   w komentarzach przy asercjach;
- * - **źródło renderera gry** — przypadki brzegowe, których w korpusie nie ma,
+ *   z 12 publicznych zapisów walk, PRZEKODOWANYCH przez cudzy serwis (kropka
+ *   zamiast `=`, `@` zamiast `+`); tamten materiał zszedł z drzewa 2026‑08‑04,
+ *   a kształty zostały w komentarzach przy asercjach — dlatego stoją tam
+ *   w tamtej, przekodowanej postaci;
+ * - **źródło renderera gry** — przypadki brzegowe, których w materiale nie ma,
  *   ale które `battleMsg` obsługuje jawnie i dlatego wiadomo, że istnieją.
  *
- * Czego te testy NIE dowodzą: że gra wysyła dokładnie takie komunikaty. Tego
- * nie dowiedzie nic aż do zrzutu z gry — repo nie ma dziś ani jednej walki
- * zapisanej protokołem. Jedyna, jaką repo ma, leży w `tests/walka-z-gry.ts`
- * i czytają ją testy archiwum oraz `index`. Tutaj sprawdzamy, że rozbiór
- * odwzorowuje `battleMsg` znak w znak, a nie że wejście jest autentyczne.
+ * Czego te testy NIE dowodzą: że gra wysyła dokładnie takie komunikaty. Repo
+ * ma na to JEDNĄ walkę i leży ona w `tests/walka-z-gry.ts` — czytają ją testy
+ * archiwum oraz `index`. Tutaj sprawdzamy, że rozbiór odwzorowuje `battleMsg`
+ * znak w znak, a nie że wejście jest autentyczne.
  */
 
 describe("rozbierz: strony", () => {
@@ -37,7 +38,7 @@ describe("rozbierz: strony", () => {
   });
 
   test("brak celu to null, a nie wojownik o id 0", () => {
-    // Kształt tyknięcia DoT-a z korpusu: `119444.6.71;0;anguish.3615`.
+    // Kształt tyknięcia DoT-a z prawdziwych walk: `119444.6.71;0;anguish.3615`.
     // Gra sprawdza `if (id2)` i przy zerze podstawia atrapę zamiast wojownika,
     // więc zero NIE jest identyfikatorem. Zwrócenie `{id: 0}` dałoby zdarzenia
     // przypisane nieistniejącej postaci.
@@ -53,7 +54,7 @@ describe("rozbierz: strony", () => {
   });
 
   test("obie strony puste — komunikat systemowy", () => {
-    // `0;0;txt=…` i `0;0;winner.…` z korpusu: linia otwierająca i rozstrzygnięcie.
+    // `0;0;txt=…` i `0;0;winner.…` z prawdziwych walk: linia otwierająca i rozstrzygnięcie.
     const k = rozbierz("0;0;winner=Baylan");
     expect(k.nadawca).toBeNull();
     expect(k.cel).toBeNull();
@@ -75,7 +76,7 @@ describe("rozbierz: strony", () => {
   });
 
   test("życie nieliczbowe daje null, a nie zero", () => {
-    // Zero to poprawna wartość życia — postać martwa (`439082.0.00` w korpusie).
+    // Zero to poprawna wartość życia — postać martwa (`439082.0.00` w tamtym materiale).
     // Zlanie „nie umiem odczytać" z „zero procent" ogłaszałoby zgony.
     expect(rozbierz("1=nic;0;heal=5").nadawca).toEqual({ id: 1, hpp: null });
     expect(rozbierz("1=0.00;0;heal=5").nadawca).toEqual({ id: 1, hpp: 0 });
@@ -84,7 +85,7 @@ describe("rozbierz: strony", () => {
 
 describe("rozbierz: parametry", () => {
   test("klucz z wartością i flaga bez wartości stoją obok siebie", () => {
-    // `+pierce` i `r` z korpusu to flagi — segment bez znaku równości.
+    // `+pierce` i `r` z prawdziwej walki to flagi — segment bez znaku równości.
     const k = rozbierz("1=100.00;2=98.29;+dmgd=455;+pierce;-dmgd=455");
     expect(k.parametry.map((p) => p.klucz)).toEqual(["+dmgd", "+pierce", "-dmgd"]);
     expect(k.parametry[0]!.wartosc).toBe("455");
@@ -121,7 +122,7 @@ describe("rozbierz: parametry", () => {
   });
 
   test("nazwa umiejętności z nawiasami i przecinkami przechodzi w całości", () => {
-    // Prawdziwy kształt z korpusu: `p_.Wyzywający okrzyk;skillId.188;n.Toffi-Pawełek`.
+    // Prawdziwy kształt z prawdziwych walk: `p_.Wyzywający okrzyk;skillId.188;n.Toffi-Pawełek`.
     const k = rozbierz("498891=91.53;439082=73.83;tspell=Wyzywający okrzyk;skillId=188");
     expect(k.parametry[0]!.wartosc).toBe("Wyzywający okrzyk");
     expect(k.parametry[1]!.wartosc).toBe("188");
@@ -151,7 +152,7 @@ describe("rozbierz: wejścia zdegenerowane nie wywracają rozbioru", () => {
 
 describe("czlony", () => {
   test("rozdziela przecinkiem, tak jak gra", () => {
-    // `heal=1356,-15` z korpusu (`l.1356,-15`) — gra robi m[1].split(',')
+    // `heal=1356,-15` z prawdziwej walki (`l.1356,-15`) — gra robi m[1].split(',')
     // i sięga po multi[0], multi[1].
     expect(czlony("1356,-15")).toEqual(["1356", "-15"]);
   });
@@ -168,13 +169,13 @@ describe("czlony", () => {
 
 describe("liczba", () => {
   test("czyta wartości dodatnie i ujemne", () => {
-    // Ujemne są realne: `l.-58` z korpusu to utrata życia, nie leczenie.
+    // Ujemne są realne: `l.-58` z prawdziwej walki to utrata życia, nie leczenie.
     expect(liczba("455")).toBe(455);
     expect(liczba("-58")).toBe(-58);
   });
 
   test("zero jest liczbą, a nie brakiem", () => {
-    // `-D.0` pada w korpusie i znaczy „obrażenia zredukowane do zera".
+    // `-D.0` pada w prawdziwych walkach i znaczy „obrażenia zredukowane do zera".
     expect(liczba("0")).toBe(0);
   });
 
@@ -189,34 +190,47 @@ describe("liczba", () => {
  * POKRYCIE — czy wiemy o KAŻDYM kluczu, który gra umie wysłać.
  *
  * To jest jedyne miejsce w repo, gdzie pokrycie da się DOMKNĄĆ, a nie tylko
- * oszacować. Korpus tekstowy ma zero linii `unknown` i — jak mówi
- * `docs/ROADMAP.md` — „sam z siebie nie mówi nic o tym, czego parser NIE
- * rozpoznaje". Zbiór kluczy protokołu jest za to skończony i policzalny, więc
- * pytanie „czy czegoś nam brakuje" ma tutaj odpowiedź.
+ * oszacować. Materiał z jednej walki ma zero kluczy `unknown` i sam z siebie
+ * nie mówi nic o tym, czego dekoder NIE rozpoznaje. Zbiór kluczy protokołu jest
+ * za to skończony i policzalny — 233 etykiety w assecie klienta — więc pytanie
+ * „czy czegoś nam brakuje" ma tutaj odpowiedź, a nie oszacowanie.
  *
  * Test jest DWUSTRONNY i to nie jest nadmiarowość. Jedna strona łapie klucz
  * gry, o którym nie wiemy (cicho niepoliczone obrażenia); druga — nasz wpis
  * o kluczu, którego gra nie ma (tabela, która zwietrzała po aktualizacji
  * klienta). To dwa różne błędy i jednostronny test przepuściłby drugi.
+ *
+ * ⚠️ **BLOK STAŁ PUSTY MIĘDZY 2026‑08‑04 A DZIŚ**, bo `znaneKlucze()` nie miało
+ * z czym się porównać: zamrożona tabela leżała jako plik danych obok testów
+ * i zeszła z drzewa razem z nimi. Wrócił świadek, nie test — asercje niżej są
+ * napisane od nowa.
  */
-/**
- * ⚠️ **ZNIKŁ STĄD BLOK „pokrycie tabeli kluczy" — 3 testy, 2026‑08‑04, razem
- * z zamrożoną tabelą kluczy.**
- *
- * Tamta tabela to były 233 klucze wyłuskane z assetu gry przez
- * `bun tools/slownik.ts`, a test był **DWUSTRONNY** i nie była to nadmiarowość:
- *
- * - „każdy klucz z zamrożonej listy ma rolę" łapało klucz GRY, o którym nie
- *   wiemy — czyli obrażenia liczone po cichu jako zero;
- * - „każdy klucz naszej tabeli stoi na liście" łapało nasz wpis o kluczu,
- *   którego gra NIE MA — czyli tabelę zwietrzałą po aktualizacji klienta.
- *
- * To są dwa różne błędy i jednostronny test przepuściłby drugi. Dziś nie
- * sprawdza ich żaden: `znaneKlucze()` nie ma z czym się porównać.
- *
- * `bun tools/slownik.ts` dalej czyta asset gry i wypisuje tę tabelę — brakuje
- * wyłącznie miejsca, w którym wynik miałby osiąść.
- */
+describe("pokrycie tabeli ról kontra asset gry", () => {
+  test("każdy klucz, który gra zna, ma u nas rolę", () => {
+    // Strona pierwsza: klucz gry, o którym nie wiemy, wpada do `{kind:"unknown"}`
+    // — hałasuje w panelu, ale nie mówi, ILE przez niego przepadło.
+    expect(ZAMROZENIE.klucze.map((w) => w.klucz).filter((k) => rola(k) === null)).toEqual([]);
+  });
+
+  test("i odwrotnie — nie znamy klucza, którego gra nie ma", () => {
+    // Strona druga. Bez niej tabela mogłaby puchnąć o klucze wymyślone przy
+    // debugowaniu albo zwietrzałe po aktualizacji klienta, i nikt by tego nie
+    // zauważył. `+dmgX`/`-dmgX` NIE wchodzą do `znaneKlucze()` — obsługuje je
+    // `rolaDomyslna`, bo gra też ich nie wylicza, tylko rozpoznaje w `default`.
+    const gra = new Set(ZAMROZENIE.klucze.map((w) => w.klucz));
+    expect(znaneKlucze().filter((klucz) => !gra.has(klucz))).toEqual([]);
+  });
+
+  test("klucze, przy których gra MILCZY, są u nas ciszą — nie procem bez zdania", () => {
+    // Gra ma dla nich puste ciało i świadomie nic nie wypisuje. Wpisanie ich
+    // jako proców dałoby w panelu goły klucz tam, gdzie gra celowo milczy —
+    // czyli hałas udający efekt. To rozróżnienie jest jedynym powodem, dla
+    // którego zamrożenie w ogóle niesie pole `milczy`.
+    const milczace = ZAMROZENIE.klucze.filter((w) => w.milczy).map((w) => w.klucz);
+    expect(milczace.length).toBeGreaterThan(0);
+    expect(milczace.filter((klucz) => rola(klucz)?.typ !== "cisza")).toEqual([]);
+  });
+});
 
 describe("rolaDomyslna: gałąź `default` renderera", () => {
   test("zadane i przyjęte rozróżnia ZNAK, tak jak gra", () => {
@@ -226,8 +240,8 @@ describe("rolaDomyslna: gałąź `default` renderera", () => {
   });
 
   test("`+dmg` bez litery daje kod `p`, jak po stronie tekstu", () => {
-    // src/source.ts:80 robi `damage[1] || "p"`. Obie drogi mają dać tę samą
-    // etykietę żywiołu, inaczej czujka krzyczałaby na własnym nazewnictwie.
+    // Kod `p` jest NASZ — gra przy `+dmg` nie podaje żadnej litery, a bez kodu
+    // „fizyczne" nie miałoby jak trafić do tabeli żywiołów.
     expect(rolaDomyslna("+dmg")).toEqual({ typ: "cios", kod: "p" });
   });
 
@@ -309,17 +323,16 @@ describe("dekoduj: cios", () => {
     ]);
   });
 
-  // ⚠️ **STAŁ TU TEST „ta sama liczba, co po stronie tekstu — miniatura
-  // orakulum" i zszedł 2026‑08‑04.** Brał ten sam komunikat, wyciągał z niego
-  // 455 i pokazywał, że zgadza się z 455, które `parse` wyczytało z renderu tej
-  // samej akcji (`tests/walka.test.ts`). Cała jego wartość siedziała w tamtej
-  // DRUGIEJ stronie porównania; bez niej został sprawdzian, że z `+dmgd=455`
-  // wychodzi 455 — czyli dokładnie to, co asercja wyżej robi na tym samym
-  // komunikacie. Test, który powtarza sąsiada, kosztuje uwagę i nic nie chroni.
+  // ⚠️ **STAŁ TU TEST „ta sama liczba, co po drugiej stronie" i zszedł
+  // 2026‑08‑04.** Brał ten sam komunikat, wyciągał z niego 455 i pokazywał, że
+  // zgadza się z 455 odczytanym DRUGĄ, niezależną drogą. Cała jego wartość
+  // siedziała w tamtej drugiej stronie; bez niej został sprawdzian, że
+  // z `+dmgd=455` wychodzi 455 — czyli dokładnie to, co asercja wyżej robi na
+  // tym samym komunikacie. Test powtarzający sąsiada kosztuje uwagę i nic nie
+  // chroni.
   //
   // Nie jest to sprzątanie: **tu naprawdę ubyło pokrycie**, tylko nie w tym
-  // pliku. Ubyło go w chwili, w której zniknął parser, a ten test przez jedną
-  // rundę udawał, że nie.
+  // pliku. Ubyło go w chwili, w której zniknął drugi odczyt.
 
   test("blok i unik siadają na ciosie, a nie obok niego", () => {
     const [z] = dekoduj(["1=100.00;2=98.29;+dmg=823;-blok=247;-evade;-dmg=0"], SKLAD);
@@ -341,7 +354,7 @@ describe("dekoduj: cios", () => {
   });
 
   test("nierówna liczba zadanych i przyjętych — nic nie ginie, ale się zapala", () => {
-    // Kształt z korpusu: jedna liczba zadana, dwie przyjęte.
+    // Kształt z prawdziwych walk: jedna liczba zadana, dwie przyjęte.
     const zd = dekoduj(["1=100.00;2=61.72;+dmgd=897;-dmgd=184;-dmga=135"], SKLAD);
     const cios = zd.find((z) => z.kind === "attack") as { hits: { raw: number; applied: number }[] };
     expect(cios.hits.map((h) => h.applied)).toEqual([184, 135]);
@@ -354,9 +367,9 @@ describe("dekoduj: cios", () => {
 describe("dekoduj: leczenie i obrażenia bez sprawcy", () => {
   test("`heal` leczy NADAWCĘ, ale NIE jest oznaczone jako własne", () => {
     // ⚠️ Ten test twierdził do 2026‑08‑04 `self: true` i był NAPISANY POD BŁĄD:
-    // powstał razem z dekoderem, z tego samego założenia, które orakulum potem
-    // obaliło. Zielony test nie jest dowodem, gdy autor testu i autor kodu
-    // wierzą w to samo — dopiero druga, niezależna droga to rozstrzygnęła.
+    // powstał razem z dekoderem, z tego samego założenia. Obaliło je dopiero
+    // porównanie z DRUGIM, niezależnym odczytem tej samej walki. Zielony test
+    // nie jest dowodem, gdy autor testu i autor kodu wierzą w to samo.
     const [z] = dekoduj(["1=99.04;0;heal=1356"], SKLAD);
     expect(z).toMatchObject({ kind: "heal", target: "Kamil", amount: 1356, self: false });
   });
@@ -474,15 +487,18 @@ describe("dekoduj: nieznane jest głośne", () => {
 
 describe("dekoduj: leczenie bez leczącego zostaje bez leczącego", () => {
   /**
-   * Usterka złapana przez orakulum na PIERWSZEJ parze tekst↔protokół
-   * (2026‑08‑04). Dekoder wyprowadzał `self` ze strony komunikatu i dawał
+   * Usterka złapana przez porównanie dwóch niezależnych odczytów tej samej
+   * walki — pierwszej i jedynej takiej pary (2026‑08‑04). To JEDYNY prawdziwy
+   * błąd dekodera, jaki tamto porównanie znalazło, i zarazem powód, dla którego
+   * jego zniknięcie jest zapisane jako największa otwarta luka repo.
+   * Dekoder wyprowadzał `self` ze strony komunikatu i dawał
    * `true` dla klucza `heal`, którego komunikat ma drugą stronę PUSTĄ — czyli
    * kredytował leczenie postaci, o której log milczy.
    */
   test("`heal` NIE przypisuje leczenia nikomu", () => {
-    // `482845=100.00;0;heal=99` — druga strona pusta. Parser tekstu na tej
-    // samej akcji („Przywrócono 99 punktów życia X") daje self: false, więc
-    // kwota idzie do puli nieprzypisanej. Protokół ma robić to samo.
+    // `482845=100.00;0;heal=99` — druga strona PUSTA, czyli log nie mówi, kto
+    // leczył. Kwota idzie do puli nieprzypisanej; skredytowanie jej nadawcy
+    // byłoby zgadnięciem nazwiska, którego log nie podał.
     const [z] = dekoduj(["1=100.00;0;heal=99"], SKLAD);
     expect(z).toMatchObject({ kind: "heal", target: "Kamil", amount: 99, self: false });
   });
@@ -509,7 +525,7 @@ describe("dekoduj: leczenie bez leczącego zostaje bez leczącego", () => {
 describe("dekoduj: osłabienie DoT-a", () => {
   test("drugi człon wartości to procent osłabienia", () => {
     // `poison=140,14` z pierwszej pary. Słownik gry: „%val0% (osłabione
-    // o %val1%%) obrażeń od trucizny." — parser tekstu czyta 14 od dawna.
+    // o %val1%%) obrażeń od trucizny." — czyli 14 stoi w komunikacie wprost.
     const [z] = dekoduj(["1=19.27;0;poison=140,14"], SKLAD);
     expect(z).toMatchObject({ kind: "dot", amount: 140, weakenedPct: 14, dotType: "trucizny" });
   });
