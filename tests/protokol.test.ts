@@ -1,5 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { czlony, liczba, rola, rolaDomyslna, rozbierz, znaneKlucze } from "../src/protokol.ts";
+import {
+  czlony,
+  dekoduj,
+  liczba,
+  rola,
+  rolaDomyslna,
+  rozbierz,
+  znaneKlucze,
+} from "../src/protokol.ts";
+import type { RosterEntry } from "../src/roster.ts";
 
 /**
  * Rozbiór komunikatu protokołu.
@@ -262,5 +271,198 @@ describe("rola: nieznane ma być głośne", () => {
     expect(rola("poison")).toEqual({ typ: "dot", przyimek: "od", rodzaj: "trucizny" });
     expect(rola("injure")).toEqual({ typ: "dot", przyimek: "po", rodzaj: "zranieniu" });
     expect(rola("+thirdatt")).toEqual({ typ: "ciosProc", kod: "3" });
+  });
+});
+
+/**
+ * DEKODER — komunikaty na zdarzenia.
+ *
+ * Najmniej pewna warstwa i testy tego nie ukrywają: sprawdzają, że składanie
+ * jest KONSEKWENTNE i że niepewność jest głośna, a nie że odwzorowuje grę.
+ * Tego drugiego nie dowiedzie nic aż do walki zapisanej obiema drogami.
+ */
+const SKLAD: RosterEntry[] = [
+  { id: 1, name: "Kamil", side: 0 },
+  { id: 2, name: "Locha", side: 1 },
+];
+
+describe("dekoduj: cios", () => {
+  test("zadane i przyjęte składają się w jedno trafienie", () => {
+    const [z] = dekoduj(["1=100.00;2=40.37;+dmgd=455;+pierce;-dmgd=455"], SKLAD);
+    expect(z).toMatchObject({
+      kind: "attack",
+      source: "Kamil",
+      target: "Locha",
+      sourceHpPct: 100,
+      targetHpPct: 40.37,
+      strike: true,
+      procs: ["+pierce"],
+    });
+    expect((z as { hits: unknown[] }).hits).toEqual([
+      {
+        raw: 455,
+        applied: 455,
+        crit: false,
+        superCrit: false,
+        secondary: false,
+        element: "dystansowe",
+        dodged: false,
+      },
+    ]);
+  });
+
+  test("ta sama liczba, co po stronie tekstu — miniatura orakulum", () => {
+    // `tests/walka.test.ts` przepuszcza render tej samej akcji przez
+    // findBattleLog → extractText → parse i dostaje `cios.hits[0].raw === 455`.
+    // Tu ta sama liczba przychodzi drugą drogą, z klucza `+dmgd=455`. Zgodność
+    // dwóch NIEZALEŻNYCH dróg to jest cały pomysł na czujkę.
+    const [z] = dekoduj(["1=100.00;2=40.37;+dmgd=455;-dmgd=455"], SKLAD);
+    expect((z as { hits: { raw: number }[] }).hits[0]!.raw).toBe(455);
+  });
+
+  test("blok i unik siadają na ciosie, a nie obok niego", () => {
+    const [z] = dekoduj(["1=100.00;2=98.29;+dmg=823;-blok=247;-evade;-dmg=0"], SKLAD);
+    expect(z).toMatchObject({ kind: "attack", blocked: 247, dodged: true });
+  });
+
+  test("dwa żywioły w jednym komunikacie dają dwa trafienia, drugie jako wtórne", () => {
+    const [z] = dekoduj(["1=100.00;2=98.29;+dmgc=453;+dmgl=887;-dmgc=13;-dmgl=224"], SKLAD);
+    const hits = (z as { hits: { element: string; secondary: boolean; applied: number }[] }).hits;
+    expect(hits.map((h) => h.element)).toEqual(["zimno", "błyskawica"]);
+    expect(hits.map((h) => h.secondary)).toEqual([false, true]);
+    expect(hits.map((h) => h.applied)).toEqual([13, 224]);
+  });
+
+  test("`+thirdatt` niesie liczbę I proc naraz", () => {
+    const [z] = dekoduj(["1=100.00;2=98.29;+thirdatt=120;-thirdatt=100"], SKLAD);
+    expect(z).toMatchObject({ kind: "attack", procs: ["+thirdatt"] });
+    expect((z as { hits: { element: string }[] }).hits[0]!.element).toBe("trzeci cios");
+  });
+
+  test("nierówna liczba zadanych i przyjętych — nic nie ginie, ale się zapala", () => {
+    // Kształt z korpusu: jedna liczba zadana, dwie przyjęte.
+    const zd = dekoduj(["1=100.00;2=61.72;+dmgd=897;-dmgd=184;-dmga=135"], SKLAD);
+    const cios = zd.find((z) => z.kind === "attack") as { hits: { raw: number; applied: number }[] };
+    expect(cios.hits.map((h) => h.applied)).toEqual([184, 135]);
+    expect(cios.hits.map((h) => h.raw)).toEqual([897, 0]);
+    // Suma przyjętych zostaje prawdziwa, a rozjazd długości jest zgłoszony.
+    expect(zd.some((z) => z.kind === "unknown")).toBe(true);
+  });
+});
+
+describe("dekoduj: leczenie i obrażenia bez sprawcy", () => {
+  test("`heal` leczy NADAWCĘ i jest oznaczone jako własne", () => {
+    const [z] = dekoduj(["1=99.04;0;heal=1356"], SKLAD);
+    expect(z).toMatchObject({ kind: "heal", target: "Kamil", amount: 1356, self: true });
+  });
+
+  test("`heal_target` leczy CEL i własne już nie jest", () => {
+    // Struktura protokołu rozstrzyga to, co w tekście jest wnioskiem
+    // (`types.ts:117‑128`): „Uleczono X" rzucił ktoś inny.
+    const [z] = dekoduj(["1=100.00;2=80.00;heal_target=4639"], SKLAD);
+    expect(z).toMatchObject({ kind: "heal", target: "Locha", amount: 4639, self: false });
+  });
+
+  test("kwota stoi w członie ZEROWYM, choć zdanie sugeruje odwrotnie", () => {
+    // `legbon_lastheal`: renderer podstawia '%val%': mm[1] (nazwa),
+    // '%val2%': mm[0] (kwota). Czytanie zdania bez zajrzenia do podstawienia
+    // dałoby leczenie równe numerowi postaci.
+    const [z] = dekoduj(["1=50.00;0;legbon_lastheal=980,Kamil"], SKLAD);
+    expect(z).toMatchObject({ kind: "heal", amount: 980 });
+  });
+
+  test("DoT trafia w nadawcę i niesie przyimek z brzmienia gry", () => {
+    const zd = dekoduj(["1=6.71;0;anguish=3615", "1=6.00;0;injure=120"], SKLAD);
+    expect(zd[0]).toMatchObject({
+      kind: "dot",
+      target: "Kamil",
+      amount: 3615,
+      via: "od",
+      dotType: "krwawienia",
+    });
+    expect(zd[1]).toMatchObject({ via: "po", dotType: "zranieniu" });
+  });
+
+  test("obrażenia nieuchronne są ciosem BEZ ciosu — jak własne obrażenia umiejętności", () => {
+    const [z] = dekoduj(["1=88.00;0;absolute=507"], SKLAD);
+    expect(z).toMatchObject({
+      kind: "attack",
+      source: "Kamil",
+      target: "Kamil",
+      strike: false,
+      sourceHpPct: null,
+    });
+  });
+});
+
+describe("dekoduj: przebieg walki", () => {
+  test("zapowiedź umiejętności dokleja się do NASTĘPNEGO ciosu i tylko do niego", () => {
+    const zd = dekoduj(
+      [
+        "1=100.00;2=100.00;tspell=Porażenie;skillId=70",
+        "1=100.00;2=94.92;+dmgc=453;-dmgc=13",
+        "1=100.00;2=90.00;+dmgc=100;-dmgc=50",
+      ],
+      SKLAD,
+    );
+    expect(zd[0]).toEqual({ kind: "ability", actor: "Kamil", name: "Porażenie" });
+    expect(zd[1]).toMatchObject({ kind: "attack", ability: "Porażenie" });
+    expect(zd[2]).toMatchObject({ kind: "attack", ability: null });
+  });
+
+  test("rozstrzygnięcie walki, z drużyną i bez", () => {
+    const [a] = dekoduj(["0;0;winner=Kamil, Locha"], SKLAD);
+    expect(a).toMatchObject({ kind: "fight-end", outcome: "victory", actors: ["Kamil", "Locha"] });
+    const [b] = dekoduj(["0;0;loser=Kamil"], SKLAD);
+    expect(b).toMatchObject({ kind: "fight-end", outcome: "defeat" });
+  });
+
+  test("`winner=?` to remis, a nie zwycięstwo postaci o nazwie „?”", () => {
+    // Gra idzie wtedy gałęzią `battle_no_winner` i nazwiska nie wypisuje.
+    const [z] = dekoduj(["0;0;winner=?"], SKLAD);
+    expect(z).toMatchObject({ kind: "fight-end", outcome: "draw", actors: [] });
+  });
+
+  test("`txt` oddaje tekst serwera bez tłumaczenia", () => {
+    const [z] = dekoduj(["0;0;txt=Rozpoczęła się walka pomiędzy"], SKLAD);
+    expect(z).toEqual({ kind: "info", line: "Rozpoczęła się walka pomiędzy" });
+  });
+});
+
+describe("dekoduj: nieznane jest głośne", () => {
+  test("nierozpoznany klucz daje `unknown` z CAŁYM segmentem, nie z samym kluczem", () => {
+    const zd = dekoduj(["1=100.00;2=90.00;+dmg=10;-dmg=10;czegoNieZnamy=7"], SKLAD);
+    expect(zd).toContainEqual({ kind: "unknown", line: "czegoNieZnamy=7", lineNo: 0 });
+  });
+
+  test("nieznany klucz NIE kasuje reszty komunikatu", () => {
+    // Ostrzej niż po stronie tekstu, gdzie nierozpoznana bywa cała linia.
+    const zd = dekoduj(["1=100.00;2=90.00;+dmg=10;-dmg=10;czegoNieZnamy=7"], SKLAD);
+    expect(zd.some((z) => z.kind === "attack")).toBe(true);
+  });
+
+  test("`lineNo` to numer KOMUNIKATU, bo linii protokół nie ma", () => {
+    const zd = dekoduj(["0;0;txt=start", "1=100.00;2=90.00;nieznany"], SKLAD);
+    expect(zd.find((z) => z.kind === "unknown")).toMatchObject({ lineNo: 1 });
+  });
+
+  test("id spoza składu nie dostaje zmyślonej nazwy", () => {
+    const zd = dekoduj(["999=100.00;2=90.00;+dmg=10;-dmg=10"], SKLAD);
+    expect(zd).toEqual([{ kind: "unknown", line: "999=100.00;2=90.00;+dmg=10;-dmg=10", lineNo: 0 }]);
+  });
+
+  test("obcięcie na drugim `=` zapala czujkę", () => {
+    const zd = dekoduj(["1=100.00;2=90.00;klucz=a=b"], SKLAD);
+    expect(zd.some((z) => z.kind === "unknown")).toBe(true);
+  });
+
+  test("milczący klucz NIE zapala czujki", () => {
+    // `skillId` to odpowiedź, nie luka.
+    const zd = dekoduj(["1=100.00;2=100.00;tspell=Cios;skillId=70"], SKLAD);
+    expect(zd.some((z) => z.kind === "unknown")).toBe(false);
+  });
+
+  test("puste segmenty nie są kluczami i nie krzyczą", () => {
+    expect(dekoduj(["0;0;;"], SKLAD)).toEqual([]);
   });
 });

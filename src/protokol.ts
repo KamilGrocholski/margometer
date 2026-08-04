@@ -24,6 +24,9 @@
  * w drzewie plików, a nie schowane w środku modułu.
  */
 
+import { nazwaZywiolu, type BattleEvent, type Hit } from "./types.ts";
+import type { RosterEntry } from "./roster.ts";
+
 /**
  * Strona komunikatu: identyfikator wojownika i jego życie w setnych procenta.
  *
@@ -398,4 +401,283 @@ const WYLICZONE = new Map<string, Rola>([
 /** Wszystkie klucze, o których tabela cokolwiek wie — materiał dla testu pokrycia. */
 export function znaneKlucze(): string[] {
   return [...Object.keys(ROLE), ...PROCE, ...MILCZACE].sort();
+}
+
+/**
+ * Komunikaty JEDNEJ walki → zdarzenia.
+ *
+ * BIERZE CAŁĄ WALKĘ, NIE PORCJĘ, i to jest ta sama decyzja, co w `session.ts:53‑57`
+ * po stronie tekstu: stan przyrostowy między wywołaniami byłby źródłem podwójnego
+ * liczenia. Zysk dodatkowy jest tu większy niż tam — funkcja zostaje CZYSTA, więc
+ * daje się przetestować bez gry, a gry w repo nie ma.
+ *
+ * `sklad` służy WYŁĄCZNIE zamianie `id` na nazwę. Nazwa jest kluczem-etykietą
+ * w `stats.ts`, więc identyfikator bez nazwy nie ma jak trafić do panelu —
+ * a zmyślenie nazwy łamie „nie udawaj danych, których log nie ma". Taki
+ * komunikat idzie w całości do `unknown`.
+ *
+ * ⚠️ **TO JEST NAJMNIEJ PEWNA WARSTWA TEGO PLIKU.** Rozbiór odwzorowuje sześć
+ * linii gry, tabela ról ma przy każdym wpisie cytat — a tutaj składamy z tego
+ * zdarzenia w kształcie, który wymyślił parser tekstu, i nie ma ani jednej
+ * walki zapisanej obiema drogami, żeby to sprawdzić. Dlatego pierwszym
+ * czytelnikiem jest CZUJKA, nie panel: pomyłka ma dać alarm do zbadania.
+ */
+export function dekoduj(
+  komunikaty: readonly string[],
+  sklad: readonly RosterEntry[],
+): BattleEvent[] {
+  const nazwy = new Map(sklad.map((w) => [w.id, w.name]));
+  const zdarzenia: BattleEvent[] = [];
+  // Zapowiedź umiejętności przychodzi OSOBNYM komunikatem, a obrażenia dopiero
+  // następnym (w korpusie: `…;p_.Porażenie;skillId.70` i dopiero potem `@Dc.…`).
+  // Stan jest lokalny dla wywołania, więc funkcja zostaje czysta.
+  let zapowiedziana: string | null = null;
+
+  komunikaty.forEach((surowy, nr) => {
+    const { nadawca, cel, parametry } = rozbierz(surowy);
+    const nieznany = (co: string) => zdarzenia.push({ kind: "unknown", line: co, lineNo: nr });
+
+    const nadawcaNazwa = nadawca === null ? null : (nazwy.get(nadawca.id) ?? null);
+    const celNazwa = cel === null ? null : (nazwy.get(cel.id) ?? null);
+    if ((nadawca !== null && nadawcaNazwa === null) || (cel !== null && celNazwa === null)) {
+      // Id spoza składu. Nie zgadujemy — cały komunikat idzie do czujki.
+      nieznany(surowy);
+      return;
+    }
+
+    const zadane: Hit[] = [];
+    const przyjete: number[] = [];
+    const procy: string[] = [];
+    let blok: number | null = null;
+    let unik = false;
+
+    for (const p of parametry) {
+      // Pusty segment (`…;;`) nie jest kluczem i nie ma o czym krzyczeć — gra
+      // też przechodzi po nim gałęzią `default` bez skutku, bo `substr` pustego
+      // ciągu nie da „dmg".
+      if (p.klucz === "") continue;
+      if (p.obciete) nieznany(p.surowy);
+
+      const r = rola(p.klucz);
+      if (r === null) {
+        nieznany(p.surowy);
+        continue;
+      }
+
+      switch (r.typ) {
+        case "cios":
+        case "ciosProc": {
+          const wartosc = liczba(p.wartosc);
+          if (wartosc === null) {
+            nieznany(p.surowy);
+            break;
+          }
+          if (r.typ === "ciosProc") procy.push(p.klucz);
+          zadane.push({
+            raw: wartosc,
+            // Uzupełniane niżej, gdy poznamy stronę przyjętą. Zero tutaj jest
+            // zaślepką, nie odczytem — i dlatego parowanie ma własny komentarz.
+            applied: 0,
+            crit: false,
+            superCrit: false,
+            secondary: zadane.length > 0,
+            element: nazwaZywiolu(r.kod),
+            dodged: false,
+          });
+          break;
+        }
+        case "przyjete": {
+          const wartosc = liczba(p.wartosc);
+          if (wartosc === null) nieznany(p.surowy);
+          else przyjete.push(wartosc);
+          break;
+        }
+        case "blok": {
+          const wartosc = liczba(p.wartosc);
+          if (wartosc === null) nieznany(p.surowy);
+          else blok = (blok ?? 0) + wartosc;
+          break;
+        }
+        case "unik":
+          unik = true;
+          break;
+        case "absorpcja":
+        case "proc":
+          procy.push(p.klucz);
+          break;
+        case "cisza":
+          break;
+        case "leczenie": {
+          const strona = r.strona === "cel" ? celNazwa : nadawcaNazwa;
+          const hpp = r.strona === "cel" ? (cel?.hpp ?? null) : (nadawca?.hpp ?? null);
+          // Kwota stoi w członie ZEROWYM także przy wartościach dwuczłonowych —
+          // patrz `legbon_lastheal`, gdzie zdanie sugeruje odwrotnie.
+          const kwota = liczba(czlony(p.wartosc)[0] ?? null);
+          if (strona === null || kwota === null) nieznany(p.surowy);
+          else
+            zdarzenia.push({
+              kind: "heal",
+              ability: zapowiedziana,
+              target: strona,
+              amount: kwota,
+              // Protokół podaje OBIE strony, więc „czy leczony to leczący" jest
+              // tu faktem, a nie wnioskiem — inaczej niż w `parser.ts`.
+              self: r.strona === "nadawca",
+              targetHpPct: hpp,
+            });
+          break;
+        }
+        case "dot": {
+          const kwota = liczba(czlony(p.wartosc)[0] ?? null);
+          if (nadawcaNazwa === null || kwota === null || nadawca === null) nieznany(p.surowy);
+          else
+            zdarzenia.push({
+              kind: "dot",
+              target: nadawcaNazwa,
+              targetHpPct: nadawca.hpp ?? 0,
+              amount: kwota,
+              via: r.przyimek,
+              dotType: r.rodzaj,
+              // Protokół nie niesie osłabienia DoT-a osobnym kluczem — pytanie
+              // „osłabione o N%" zostaje otwarte tak samo jak po stronie tekstu.
+              weakenedPct: null,
+            });
+          break;
+        }
+        case "nieuchronne": {
+          // „%name% otrzymał %val% obrażeń nieuchronnych." Bez sprawcy i bez
+          // przyimka, więc do `dot` nie pasuje. `attack` bez ciosu jest tym,
+          // czym parser opisuje własne obrażenia umiejętności (`strike: false`).
+          const kwota = liczba(p.wartosc);
+          if (nadawcaNazwa === null || kwota === null || nadawca === null) nieznany(p.surowy);
+          else
+            zdarzenia.push({
+              kind: "attack",
+              source: nadawcaNazwa,
+              target: nadawcaNazwa,
+              sourceHpPct: null,
+              targetHpPct: nadawca.hpp ?? 0,
+              hits: [
+                {
+                  raw: kwota,
+                  applied: kwota,
+                  crit: false,
+                  superCrit: false,
+                  secondary: false,
+                  element: nazwaZywiolu("a"),
+                  dodged: false,
+                },
+              ],
+              dodged: false,
+              blocked: null,
+              procs: [],
+              ability: zapowiedziana,
+              strike: false,
+            });
+          break;
+        }
+        case "zapowiedz": {
+          if (nadawcaNazwa === null || p.wartosc === null) nieznany(p.surowy);
+          else {
+            zapowiedziana = p.wartosc;
+            zdarzenia.push({ kind: "ability", actor: nadawcaNazwa, name: p.wartosc });
+          }
+          break;
+        }
+        case "koniec": {
+          zdarzenia.push({
+            kind: "fight-end",
+            // `winner=?` to walka bez rozstrzygnięcia — gra idzie wtedy gałęzią
+            // `battle_no_winner` (`:180`), a nie wypisuje nazwiska.
+            outcome: p.wartosc === "?" ? "draw" : r.wynik,
+            actors: p.wartosc === null || p.wartosc === "?" ? [] : p.wartosc.split(", "),
+            result: p.surowy,
+          });
+          break;
+        }
+        case "ucieczka":
+          zdarzenia.push({ kind: "info", line: p.surowy });
+          break;
+        case "tekst":
+          zdarzenia.push({ kind: "info", line: p.wartosc ?? "" });
+          break;
+        case "krok": {
+          if (nadawcaNazwa === null || nadawca === null) nieznany(p.surowy);
+          else
+            zdarzenia.push({
+              kind: "move",
+              actor: nadawcaNazwa,
+              hpPct: nadawca.hpp ?? 0,
+              description: p.surowy,
+            });
+          break;
+        }
+      }
+    }
+
+    if (zadane.length === 0 && przyjete.length === 0) {
+      // Bez ani jednej liczby obrażeń gra nie składa zdania „uderzył z siłą"
+      // (`:1127`, warunek `attack != ''`), więc i my nie robimy ciosu. Blok
+      // i unik bez ciosu też nie mają czego opisać — ale nie giną, bo gra
+      // wypisuje je osobną linią, a czujka porównuje skalary, nie linie.
+      if (blok !== null || unik) zdarzenia.push({ kind: "info", line: surowy });
+      return;
+    }
+
+    if (nadawcaNazwa === null || celNazwa === null) {
+      nieznany(surowy);
+      return;
+    }
+
+    // PAROWANIE ZADANYCH Z PRZYJĘTYMI IDZIE PO KOLEJNOŚCI, tak jak gra skleja
+    // `attack` i `take` w pętli `for (var k in msg)`. To jest INNY algorytm niż
+    // `pairApplied`/`buildHits` w `parser.ts` i różnica jest ZAMIERZONA: tam
+    // parowanie liczb w tekście jest heurystyką, tu obie strony stoją w jednym
+    // komunikacie. Gdyby heurystyka parsera się myliła, ta różnica jest jedyną
+    // rzeczą, która to pokaże.
+    //
+    // ⚠️ Długości bywają RÓŻNE i to widać w korpusie: `@Dd.897;…;-Dd.184;-Da.135`
+    // ma jedną liczbę zadaną i dwie przyjęte. Nadmiar NIE GINIE — dostaje własne
+    // trafienie z `raw: 0` — bo `aggregate` sumuje `raw` i `applied` osobno,
+    // więc skalary zostają prawdziwe. Rozjazd długości jest jednak zapalany
+    // jako `unknown`: to sygnał, że nasz model ciosu nie pokrywa się z grą,
+    // i pierwsza walka ze zrzutem ma to rozstrzygnąć.
+    if (zadane.length !== przyjete.length) nieznany(surowy);
+    const trafienia: Hit[] = [];
+    for (let i = 0; i < Math.max(zadane.length, przyjete.length); i += 1) {
+      const z = zadane[i];
+      trafienia.push(
+        z === undefined
+          ? {
+              raw: 0,
+              applied: przyjete[i] ?? 0,
+              crit: false,
+              superCrit: false,
+              secondary: i > 0,
+              element: null,
+              dodged: false,
+            }
+          : { ...z, applied: przyjete[i] ?? 0 },
+      );
+    }
+
+    zdarzenia.push({
+      kind: "attack",
+      source: nadawcaNazwa,
+      target: celNazwa,
+      sourceHpPct: nadawca?.hpp ?? null,
+      targetHpPct: cel?.hpp ?? 0,
+      hits: trafienia,
+      dodged: unik,
+      blocked: blok,
+      procs: procy,
+      ability: zapowiedziana,
+      strike: true,
+    });
+    // Umiejętność obejmuje jeden cios; kolejny bez własnej zapowiedzi jest już
+    // zwykły. Tak samo czyta to parser tekstu.
+    zapowiedziana = null;
+  });
+
+  return zdarzenia;
 }
