@@ -23,7 +23,12 @@ brak może sprawić, że panel pokaże złą liczbę, nie mówiąc o tym ani sł
 - czujki, które są węższe od tego, co przepuszcza kod przed nimi;
 - fallbacki zamieniające brak danych w zero albo w kopię sąsiada;
 - **dowód, że czujka `unknown` jest ciasna** — korpus ma zero nieznanych linii,
-  więc sam z siebie nie mówi nic o tym, czego parser NIE rozpoznaje;
+  więc sam z siebie nie mówi nic o tym, czego parser NIE rozpoznaje.
+  Pierwsze spojrzenie z zewnątrz jest od 2026‑08‑03: `bun tools/luki.ts` składa
+  pomoc gry, korpus protokołu z grooove.pl i korpus tekstowy, i wypisuje efekty,
+  które gra dokumentuje i które w prawdziwych walkach zachodzą, a nasz korpus
+  ich nie zna. Dziś takich kandydatów jest **dwóch** — patrz „Czego brakuje
+  w korpusie" niżej;
 - niezmienniki po całym korpusie tam, gdzie dziś ich nie ma — zwłaszcza na
   ścieżce przez DOM, jedynej niosącej żywioły;
 - brakujące fixture'y (sekcja „Czego brakuje w korpusie" niżej);
@@ -126,6 +131,22 @@ Patrz też znane ograniczenie „Leczenie bez leczącego” w `DECYZJE.md`.
 ## Czego brakuje w korpusie fixture'ów
 Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`
 w `meta.json`, zweryfikowany po `covers`:
+- **Krwawa udręka ( anguish )** — pomoc opisuje ją jako „obrażenia od krwawienia
+  rozłożone w czasie na pięć tur", czyli rodzinę, którą parser czyta jako
+  `kind: "dot"`, a agregat przypisuje albo wrzuca do puli „Bez sprawcy".
+  W korpusie tekstowym **nie ma ani jednego wystąpienia** rdzenia „udrę";
+  w korpusie protokołu jest 11 razy w dwóch walkach. To jedyny z dziesięciu
+  bonusów legendarnych wymienionych w pomocy, którego korpus nie zna
+  (`MECHANIKA.md`, `bun tools/luki.ts`);
+- **Wściekłość ( rage )** — 32 wystąpienia w korpusie protokołu, zero
+  w tekstowym; najczęstszy klucz bez odpowiednika. Renderer grooove.pl składa
+  z niego `+Wściekłość: atak +N`, czyli kształt bliźniaczy do obsługiwanego
+  `Piętno bestii: atak +N` — ale to CUDZY renderer i jego brzmienia nie wolno
+  przepisać do wzorca. Potrzebny zrzut z gry.
+
+  ⚠️ Obu tych zrzutów **nie da się zrobić z grooove.pl** — tamten korpus niesie
+  protokół, nie tekst. Trzeba walki w grze i przycisku „Kopiuj logi", a oba
+  efekty są bonusami legendarnymi, więc potrzebny jest ekwipunek, który je ma.
 - **log właścicielki** — formy żeńskie czasownika są obsłużone w regexach, ale
   sprawdzone tylko na ręcznie pisanych stringach (`SOLID.md §4.8`);
 - **walka z przyciętym nagłówkiem** — rozstrzyga, czy `SOLID.md §4.12` (sumy

@@ -285,6 +285,64 @@ pomoc o koszcie zdrowia tej aury milczy, a drugiej walki z tą aurą i tą lini�
 w korpusie nie ma. Nie wolno na tej podstawie napisać, że „trująca mgła kosztuje
 życie”.
 
+### Krwawa udręka ( anguish ) — obrażenia w czasie, których korpus NIE zna ✅
+
+> „Krwawa udręka ( anguish ) • **Działanie:** podczas walki istnieje
+> prawdopodobieństwo na zajście zdarzenia, podczas którego na cel ataku zostają
+> zaaplikowane **obrażenia od krwawienia rozłożone w czasie na pięć tur**.
+> • Zdarzenie możesz zajść wyłącznie, jeżeli podczas ciosu nie zaszedł unik,
+> neutralizacja strzały ( arrowblock ) oraz parowanie ( parry ). • Parametr
+> zmienny: prawdopodobienstwo zajścia zdarzenia. • Wartość początkowa: 8%
+> (kolejne wartości kumulacji: 12%, 14%, 15%, 16%, 16%). • Bonus ma charakter
+> ofensywny i prowadzi do skrócenia walki. • **Obrażenia od krwawienia są
+> obrażeniami nieuchronnymi**, redukowanymi jedynie przez efekty takich
+> umiejętności jak Strach ( dmg_from_player_per ) […]”
+
+Sprawdzone 2026‑08‑03 sondą `bun tools/pomoc.ts "Krwawa udręka"`. Literówka
+„możesz zajść” i „prawdopodobienstwo” są w źródle — cytat jest dosłowny.
+
+**Wniosek dla kodu: na razie żaden, i to jest cała treść tego wpisu.** To jest
+**źródło obrażeń rozłożone na tury**, czyli ta sama rodzina co trucizna
+i głęboka rana, które parser czyta jako `kind: "dot"`, a `stats.ts` przypisuje
+albo wrzuca do puli „Bez sprawcy”. Ale **nie wiemy, jak brzmi jego linia
+w oknie walki** i nie wolno tego zgadnąć — w korpusie tekstowym nie ma ani
+jednego wystąpienia rdzenia „udrę” (sprawdzone `grep`‑em po wszystkich
+`raw.txt`).
+
+Że efekt naprawdę zachodzi w prawdziwych walkach, dowodzi korpus protokołu:
+`anguish` i `@legbon_anguish` występują tam 11 razy w dwóch walkach
+(`tests/fixtures/grooove/`, wypisze `bun tools/luki.ts`). Ten wpis jest więc
+**pozycją na liście zakupowej zrzutów**, nie zleceniem na wzorzec.
+
+Bonus stoi też w cytacie z listy bonusów legendarnych przy wpisie o ciosie
+bardzo krytycznym wyżej — na dziesięć wymienionych tam bonusów korpus tekstowy
+zna wszystkie poza tym jednym.
+
+### Wściekłość ( rage ) — efekt tylko przeciw potworom, korpus NIE zna ✅
+
+> „Wściekłość ( rage ) • Odpowiada za wyzwolenie efektu Wściekłości , wraz
+> z każdym **trafionym w potwora ciosem krytycznym**, na określoną liczbę tur.
+> • Zwiększa obrażenia fizyczne o 10%.
+>
+> Wściekłość na 3 tury ( rage_3turns ) • Odpowiada za wyzwolenie efektu
+> Wściekłości , wraz z każdym trafionym w potwora ciosem krytycznym, na 3 tury.
+> • Zwiększa obrażenia fizyczne o wartość określoną jako parametr statystyki.”
+
+Sprawdzone 2026‑08‑03 sondą `bun tools/pomoc.ts "Wściekłość ( rage )"`.
+
+**Wniosek dla kodu: żaden — ale to najostrzejszy kandydat na cichą lukę, jaki
+mamy.** Rdzeń „wście” nie występuje w korpusie tekstowym ani razu, a `@rage`
+jest w korpusie protokołu **32 razy** i jest tam najczęstszą pozycją bez
+odpowiednika.
+
+⚠️ **Czego ten wpis NIE mówi.** Że gra wypisuje z tego powodu jakąkolwiek linię.
+Wiemy tylko tyle, że renderer grooove.pl składa z tego klucza tekst
+`+Wściekłość: atak +N` — a to jest **CUDZA reimplementacja**, nie gra, i jej
+brzmienia nie wolno przepisać do wzorca (powody i pomiary:
+`tests/fixtures/grooove/README.md`). Podobieństwo do obsługiwanej rodziny
+`Piętno bestii: atak +N` jest powodem, żeby takiej walki poszukać — nie żeby
+dopisać wzorzec w ciemno.
+
 ---
 
 ## Otwarte — pytania, które warto tędy przepuścić

@@ -99,6 +99,33 @@ Droga jest zawsze ta sama: klucz z korpusu → rdzeń nazwy → `bun tools/pomoc
 <rdzeń>` → cytat do rejestru w `docs/MECHANIKA.md`. Procedura i powód, dla
 którego NIE robi się tego `WebFetch`-em, stoją w tamtym pliku.
 
+**Ta droga jest zautomatyzowana — `bun tools/luki.ts`.** Narzędzie składa trzy
+źródła (pomoc gry, ten korpus, korpus tekstowy) i rozkłada 130 kluczy na cztery
+kubełki: `ZNANE`, `LUKA`, `STAT` (statystyka bez linii w logu) i `NIEZNANE`.
+
+## Co ten korpus już dał
+
+Dwa efekty, które gra dokumentuje, protokół dowodzi w prawdziwych walkach,
+a korpus tekstowy **nie zna ich ani razu**:
+
+- **Krwawa udręka ( anguish )** — 11 wystąpień w dwóch walkach. Pomoc:
+  „obrażenia od krwawienia rozłożone w czasie na pięć tur", czyli ta sama
+  rodzina co trucizna i głęboka rana, którą parser czyta jako `kind: "dot"`,
+  a agregat przypisuje sprawcy. Jedyny z dziesięciu bonusów legendarnych
+  wymienionych w pomocy, którego korpus tekstowy nie widział.
+- **Wściekłość ( rage )** — 32 wystąpienia, najczęstszy klucz bez odpowiednika.
+
+Oba siedzą w `docs/MECHANIKA.md` z dosłownymi cytatami i w `docs/ROADMAP.md`
+jako brakujące fixture'y. **Żaden z nich nie jest podstawą do dopisania wzorca
+w parserze** — protokół nie mówi, jak brzmi linia, a renderu grooove'a nie wolno
+przepisać. To pozycje na liście zakupowej: takich walek trzeba poszukać w grze.
+
+To jest zarazem odpowiedź na pytanie „po co ten korpus, skoro parser go nie
+czyta". `docs/ROADMAP.md` stawia pod kierunkiem „jakość danych" pozycję *dowód,
+że czujka `unknown` jest ciasna — korpus ma zero nieznanych linii, więc sam
+z siebie nie mówi nic o tym, czego parser NIE rozpoznaje*. Korpus protokołu jest
+tym spojrzeniem z zewnątrz.
+
 **Czego korpus NIE rozstrzyga.** Nie mówi, jak dana wartość wygląda w oknie
 walki — tego trzeba szukać w `../new-engine/` albo zrobić nowy zrzut z gry.
 Klucz obecny tutaj i nieobecny tam znaczy tylko tyle, że **nie mamy próbki

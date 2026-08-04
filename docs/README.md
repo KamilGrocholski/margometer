@@ -63,7 +63,7 @@ ich w całości — każdy odpowiada na inne pytanie.
 | [`UX-POPRAWKI.md`](UX-POPRAWKI.md) | **Co poprawić w panelu?** Lista `A*` (usterki) i `B*` (wygody). | Gdy szukasz roboty o dobrym zwrocie |
 | [`ROADMAP.md`](ROADMAP.md) | **Co jest zrobione, co wstrzymane — i co jest KIERUNKIEM teraz?** Od 2026‑08‑03 pierwsza sekcja mówi, na czym skupia się praca i co się do tego liczy. | Gdy pytasz „czy ta funkcja w ogóle miała powstać?" — i zanim zaproponujesz nową |
 | [`TOOLING.md`](TOOLING.md) | **Jak to się buduje i trafia do użytkownika?** `@match`, wersjonowanie, CI. | Przy `build.ts`, `tools/`, wydaniu |
-| [`WYDANIE.md`](WYDANIE.md) | **Jak wypuścić nową wersję?** Trzy kroki człowieka, reszta na tagu; co robią dwaj strażnicy i co się przy wydaniu psuje CICHO. | Przy wydaniu i gdy strażnik `wydanie` zapali bramę |
+| [`WYDANIE.md`](WYDANIE.md) | **Jak wypuścić nową wersję — i pod jakim numerem?** SemVer w tym repo (dlaczego `0.4.1` nie powstaje), trzy kroki człowieka, reszta na tagu; co robią dwaj strażnicy i co się przy wydaniu psuje CICHO. | Przy wydaniu, przy pytaniu „który numer" i gdy strażnik `wydanie` zapali bramę |
 | [`specy/`](specy/) | **Jak rozumowaliśmy przy TEJ zmianie?** Jeden plik na rundę pracy — problem, wybrane rozwiązanie i **odrzucone warianty**. Reszta tej tabeli to rejestry per temat; to jest oś prostopadła. | Zanim zaprojektujesz większą zmianę — i zaraz po tym, jak ją zaprojektujesz |
 | [`screenshots/`](screenshots/) | Obrazki do `README.md` w korzeniu, z konwencją nazw i listą rzeczy, o których trzeba pamiętać przy robieniu zrzutu. | Gdy zrzuty w README przestały pokazywać panel takim, jaki jest |
 
@@ -71,6 +71,14 @@ Poza `docs/`: **[`tests/fixtures/`](../tests/fixtures/new-engine/)** — przy ka
 zrzucie walki stoi `meta.json` z opisem, co ten fixture pokrywa (`covers`), czego
 w nim nie ma (`missing`) i co było w nim trudnego (`notes`). To najszybsza droga
 do pytania „czy mam próbkę z X?".
+
+Fixture'y stoją w **dwóch korpusach i odpowiadają na różne pytania**.
+`new-engine/` to zrzuty tekstu i DOM-u z okna walki — materiał dla parsera,
+„czy to czytamy". [`grooove/`](../tests/fixtures/grooove/) to surowy protokół
+silnika pobrany z publicznych walk na grooove.pl — „czy gra to w ogóle emituje
+i jak często". Parser tego drugiego NIE czyta i czytać nie ma; pliki nazywają
+się tam `log.grooove.txt` właśnie po to, żeby nie wpadły do globów testowych.
+Powody, granice i pomiary: [`grooove/README.md`](../tests/fixtures/grooove/README.md).
 
 ---
 
@@ -93,6 +101,7 @@ Procedura, żeby to się nie powtórzyło: [`MECHANIKA.md`](MECHANIKA.md).
 | [margonem.pl](https://www.margonem.pl/) | Sama gra. Dodatek startuje na światach `*.margonem.pl` i `*.margonem.com` — listę wraz z wykluczeniami trzyma [`tools/userscript-meta.ts`](../tools/userscript-meta.ts) |
 | [**Mechanika walk**](https://pomoc.margonem.pl/index/view,372) | **Pełna specyfikacja mechaniki na ~399 tys. znaków** — nie skrót. System walki, system tur, statystyki postaci i NPC, efekty umiejętności, atrakcje; wzory (`evade`, `block`, `crit gain`), kolejność redukcji obrażeń, opis każdego zdarzenia z nazwą silnikową. Czytaj sondą `tools/pomoc.ts`, nie streszczeniem — dlaczego, mówi [`MECHANIKA.md`](MECHANIKA.md) |
 | [pomoc.margonem.pl](https://pomoc.margonem.pl/) | Reszta oficjalnej pomocy. `view,3` odsyła całą walkę do artykułu wyżej, `view,183` (Słowniczek) nie zna ani uniku, ani bloku — sprawdzone 2026‑08‑01. Reszty nie przeglądaliśmy; znajdziesz coś, dopisz **razem z cytatem** |
+| [grooove.pl/battle](https://grooove.pl/battle/) | Publiczne zrzuty walk graczy, ale w postaci **surowego protokołu silnika**, nie tekstu z okna walki. Filtr `?w=<świat>`, pojedyncza walka pod `/battle/id,<ID>`. Wybrane 12 leży w [`tests/fixtures/grooove/`](../tests/fixtures/grooove/); pobiera je [`tools/grooove.ts`](../tools/grooove.ts). Uwaga: tekst, który ta strona pokazuje, składa jej WŁASNY renderer i jest do tyłu za grą — liczby w README korpusu |
 | [tampermonkey.net](https://www.tampermonkey.net/) | Rozszerzenie, które uruchamia zbudowany `dist/margometer.user.js` |
 | [bun.sh](https://bun.sh/) | Cały toolchain: runtime, testy, bundler |
 
@@ -112,8 +121,9 @@ bo to jedyny znany nam sposób, w jaki ten plik potrafi skłamać.
 
 ### Skąd brać wiedzę, której tu nie ma
 
-Cztery drogi, wszystkie użyte w przeszłości. **Kolejność nie jest przypadkowa:
-najpierw sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.**
+Pięć dróg; cztery pierwsze były już używane, piąta powstała 2026‑08‑03 razem
+z korpusem, do którego odsyła. **Kolejność nie jest przypadkowa: najpierw
+sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.**
 
 0. **Oficjalna pomoc gry.** `bun tools/pomoc.ts "Blok ( blok )"` — sonda po
    pełnym tekście artykułu „Mechanika walk”. Procedura, rejestr odpowiedzi
@@ -143,6 +153,22 @@ najpierw sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.
    po `tests/fixtures/*/*/raw.txt`. To najtańszy sposób odpowiedzi na „ile razy
    w ogóle występuje X" — i standardowy krok przed każdym twierdzeniem
    o zachowaniu gry.
+4. **Korpus protokołu z grooove.pl.** `bun tools/grooove.ts --parametry` —
+   130 kluczy silnika z 12 publicznych walk, [`tests/fixtures/grooove/`](../tests/fixtures/grooove/).
+   Odpowiada na inne pytanie niż punkt 1: tam pytamy „czy parser to czyta",
+   tu „czy gra to w ogóle emituje". Klucze są w dużej części nazwami
+   silnikowymi, których używa pomoc gry (`legbon_facade` → „Fasada opieki
+   ( facade )"), więc z tego korpusu prowadzi krótka droga z powrotem do
+   punktu 0. Czego NIE rozstrzyga: jak dana wartość wygląda w oknie walki —
+   klucz obecny tu i nieobecny w `new-engine/` znaczy tylko, że nie mamy
+   próbki tekstowej.
+
+   Tę drogę przechodzi za ciebie **[`bun tools/luki.ts`](../tools/luki.ts)**:
+   składa punkty 0, 3 i 4 naraz i rozkłada klucze na `ZNANE`, `LUKA`, `STAT`
+   i `NIEZNANE`. `LUKA` to efekt, który pomoc opisuje, protokół dowodzi
+   w prawdziwych walkach, a korpus tekstowy zna go zero razy — czyli kandydat
+   na cichą lukę parsera i pozycja na liście zakupowej zrzutów. **Nie jest to
+   podstawa do rozszerzania wzorców**: najpierw zrzut z gry, potem wzorzec.
 
 ---
 
@@ -164,7 +190,9 @@ To już się zdarzyło kilka razy; każdy przypadek ma swoje ID w `AUDYT.md`.
 **Fixture jest dowodem.** Zrzuty w `tests/fixtures/` to nie „dane testowe", tylko
 materiał dowodowy: twierdzenia o zachowaniu gry opierają się na nich i są w nich
 policzone. Nowy fixture dostaje `meta.json`. Fixture'a się nie edytuje ręcznie,
-żeby test przeszedł.
+żeby test przeszedł. Dotyczy obu korpusów — w `grooove/` opisy z `meta.json`
+mają nawet własny test, który sprawdza, czy wymienione w nich klucze protokołu
+naprawdę są (albo naprawdę ich nie ma) w opisywanym pliku.
 
 **Komentarz mówi DLACZEGO, nie CO.** Kod jest gęsto komentowany i to jest
 zamierzone — komentarze niosą powody decyzji, odrzucone warianty i pomiary.
