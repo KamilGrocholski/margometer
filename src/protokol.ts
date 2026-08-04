@@ -582,6 +582,19 @@ export function rolaDomyslna(klucz: string): Rola | null {
  * `null` znaczy „nieznane" i ma być GŁOŚNE — czytelnik zamienia je na
  * `{kind: "unknown"}`. Gra ma tu swój odpowiednik piętro wyżej:
  * `msg_unknown_prameter` w gałęzi `default` (:1117).
+ *
+ * ⚠️ **TRZY TABELE MUSZĄ BYĆ ROZŁĄCZNE, a ta funkcja tego NIE SPRAWDZA.**
+ * Kolejność `??` jest pierwszeństwem: `ROLE` bije wszystko, `MILCZACE` bije
+ * `PROCE` (patrz `WYLICZONE`). Klucz wpisany omyłkiem do dwóch tabel nie daje
+ * ani błędu, ani ostrzeżenia — po prostu jedna z decyzji przestaje działać
+ * i nikt się o tym nie dowiada. Znalezione 2026‑08‑04 przy mutacji, która
+ * z tego właśnie powodu nie zapaliła testu.
+ *
+ * Pilnuje tego niezmiennik „żaden klucz nie stoi w dwóch tabelach naraz"
+ * w `tests/protokol.test.ts`, a nie kod tutaj: tabele są literałami, więc
+ * duplikat jest błędem programisty łapalnym w bramie. Rzucanie przy ładowaniu
+ * modułu byłoby dla GRACZA gorsze niż sam duplikat — zdejmowałoby cały panel
+ * za pomyłkę, która i tak nie przeszłaby przez `bun run check`.
  */
 export function rola(klucz: string): Rola | null {
   return ROLE[klucz] ?? rolaDomyslna(klucz) ?? WYLICZONE.get(klucz) ?? null;
@@ -592,9 +605,24 @@ const WYLICZONE = new Map<string, Rola>([
   ...MILCZACE.map((k) => [k, { typ: "cisza" } as Rola] as const),
 ]);
 
-/** Wszystkie klucze, o których tabela cokolwiek wie — materiał dla testu pokrycia. */
+/**
+ * Klucze każdej z trzech tabel OSOBNO — materiał dla niezmiennika rozłączności.
+ *
+ * Po co osobno, skoro `znaneKlucze()` niżej i tak je skleja: bo niezmiennik
+ * postawiony na sklejonej liście da się wyłączyć jednym `new Set(...)` w tej
+ * funkcji, i będzie to wyglądało na porządki. Sprawdzone mutacją — odsianie
+ * powtórzeń w `znaneKlucze()` uciszało test i nic się nie zapalało. Tutaj nie
+ * ma czego odsiewać, bo to jest projekcja tabel, nie ich suma.
+ */
+export const TABELE_KLUCZY: Readonly<Record<"role" | "proce" | "milczace", readonly string[]>> = {
+  role: Object.keys(ROLE),
+  proce: Object.keys(PROCE),
+  milczace: MILCZACE,
+};
+
+/** Wszystkie klucze, o których tabele cokolwiek wiedzą — materiał dla testów pokrycia. */
 export function znaneKlucze(): string[] {
-  return [...Object.keys(ROLE), ...Object.keys(PROCE), ...MILCZACE].sort();
+  return [...TABELE_KLUCZY.role, ...TABELE_KLUCZY.proce, ...TABELE_KLUCZY.milczace].sort();
 }
 
 /**

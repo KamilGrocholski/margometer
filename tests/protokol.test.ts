@@ -6,6 +6,7 @@ import {
   rola,
   rolaDomyslna,
   rozbierz,
+  TABELE_KLUCZY,
   znaneKlucze,
 } from "../src/protokol.ts";
 import type { RosterEntry } from "../src/roster.ts";
@@ -122,7 +123,7 @@ describe("rozbierz: parametry", () => {
   });
 
   test("nazwa umiejętności z nawiasami i przecinkami przechodzi w całości", () => {
-    // Prawdziwy kształt z prawdziwych walk: `p_.Wyzywający okrzyk;skillId.188;n.Toffi-Pawełek`.
+    // Kształt z prawdziwej walki: `p_.Wyzywający okrzyk;skillId.188;n.Toffi-Pawełek`.
     const k = rozbierz("498891=91.53;439082=73.83;tspell=Wyzywający okrzyk;skillId=188");
     expect(k.parametry[0]!.wartosc).toBe("Wyzywający okrzyk");
     expect(k.parametry[1]!.wartosc).toBe("188");
@@ -219,6 +220,34 @@ describe("pokrycie tabeli ról kontra asset gry", () => {
     // `rolaDomyslna`, bo gra też ich nie wylicza, tylko rozpoznaje w `default`.
     const gra = new Set(ZAMROZENIE.klucze.map((w) => w.klucz));
     expect(znaneKlucze().filter((klucz) => !gra.has(klucz))).toEqual([]);
+  });
+
+  test("żaden klucz nie stoi w dwóch tabelach naraz", () => {
+    // ⚠️ NAJCICHSZY BŁĄD, JAKI TE TABELE POTRAFIĄ ZROBIĆ. `rola()` bierze
+    // pierwszą pasującą (`ROLE` przed `PROCE` przed `MILCZACE`), więc klucz
+    // wpisany omyłkiem do dwóch daje po cichu decyzję jednej z nich, a druga
+    // przestaje istnieć. Ani `tsc`, ani żadna asercja pokrycia tego nie widzi:
+    // klucz JEST znany, tylko znaczy co innego, niż ktoś napisał.
+    //
+    // Znalezione 2026‑08‑04 przy mutacji, która miała zapalić test „klucze
+    // milczące są ciszą": dopisanie klucza z `MILCZACE` do `PROCE` nie zmieniło
+    // NICZEGO, bo `WYLICZONE` skleja mapę z `MILCZACE` na końcu. Mutacja nie
+    // zapaliła nie dlatego, że test był słaby, tylko dlatego, że pułapka jest
+    // głębiej — i dopiero to ją ujawniło.
+    //
+    // Idzie po `TABELE_KLUCZY`, a NIE po `znaneKlucze()`, i to też jest wynik
+    // mutacji: na sklejonej liście wystarczyło `new Set(...)` w `znaneKlucze()`,
+    // żeby ten test zamilkł, a zmiana wyglądałaby na porządki.
+    const pary = [
+      ["role", "proce"],
+      ["role", "milczace"],
+      ["proce", "milczace"],
+    ] as const;
+    const kolizje = pary.flatMap(([a, b]) => {
+      const drugi = new Set(TABELE_KLUCZY[b]);
+      return TABELE_KLUCZY[a].filter((k) => drugi.has(k)).map((k) => `${k}: ${a} + ${b}`);
+    });
+    expect(kolizje).toEqual([]);
   });
 
   test("klucze, przy których gra MILCZY, są u nas ciszą — nie procem bez zdania", () => {
