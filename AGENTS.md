@@ -1,8 +1,22 @@
 # AGENTS.md
 
 Licznik obrażeń do przeglądarkowej gry [Margonem](https://www.margonem.pl/) —
-userscript rysujący panel ze statystykami nad grą. Czyta okno walki i nic
-więcej: nie wysyła zapytań, nie dotyka stanu gry, nie automatyzuje niczego.
+userscript rysujący panel ze statystykami nad grą. **Czyta i nic poza tym:
+nie wysyła zapytań, nie zmienia przebiegu walki, nie automatyzuje niczego.**
+
+Czyta dwiema drogami. Okno walki w DOM (`source.ts`) — i to jest droga, z której
+liczy panel. Od 2026‑08‑04 także **surowy protokół silnika**, przez owinięcie
+`Engine.battle.update` (`protokol-source.ts`), żeby dało się zapytać, czy obie
+drogi liczą to samo.
+
+⚠️ **Zdanie „nie dotyka stanu gry" stało tu do 2026‑08‑04 i przestało być
+prawdziwe.** Owinięcie cudzej funkcji jest dotknięciem, choćby nic nie zmieniało
+— i lepiej to napisać, niż bronić definicji słowa „dotyka". Co dodatek nadal
+gwarantuje i czym to jest zabezpieczone w kodzie: oryginał leci pierwszy, jego
+wynik wraca nietknięty, nasz wyjątek nie wychodzi do gry, a przy odpięciu
+zdejmujemy wyłącznie SWOJĄ warstwę. Każde z tych czterech ma swój test
+i sprawdzoną mutację. Powody i odrzucone warianty:
+[`docs/specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`](docs/specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md).
 
 **Polski wszędzie** — komentarze, testy, dokumentacja, komunikaty commitów.
 
