@@ -1,6 +1,7 @@
+import { Glob } from "bun";
 import { describe, expect, test } from "bun:test";
 import { parse } from "../src/parser.ts";
-import { aggregate, type Aggregate } from "../src/stats.ts";
+import { aggregate, EMPTY_STATS, type Aggregate } from "../src/stats.ts";
 import { Overlay } from "../src/overlay.ts";
 import { Session, splitFights } from "../src/session.ts";
 import { DomLogSource } from "../src/source.ts";
@@ -152,5 +153,53 @@ describe("panel dostaje bieżącą walkę, nie historię", () => {
     expect(dealtBy(rosnaco.current(), "wf mushita psk")).toBe(
       dealtBy(naraz.current(), "wf mushita psk"),
     );
+  });
+});
+
+/**
+ * `updateEvents` — wspólne wejście dla obu źródeł.
+ *
+ * Metoda istnieje po to, żeby protokół silnika trafiał do TEGO SAMEGO
+ * `splitFights` i `aggregate`, co tekst. Gdyby drugie źródło dostało własny
+ * podział na walki albo własny agregat, porównanie wyników przestałoby cokolwiek
+ * znaczyć: mierzyłoby różnicę między dwoma agregatami, a nie między odczytami.
+ */
+describe("Session.updateEvents", () => {
+  const KORPUS = new URL("./fixtures/", import.meta.url).pathname;
+  const wszystkie = [...new Glob("*/*/raw.txt").scanSync(KORPUS)].map((sciezka) => ({
+    nazwa: sciezka.replace("/raw.txt", ""),
+    sciezka: `${KORPUS}${sciezka}`,
+  }));
+
+  test("korpus jest niepusty — inaczej niezmiennik niżej byłby zielony i pusty", () => {
+    expect(wszystkie.length).toBeGreaterThan(10);
+  });
+
+  test.each(wszystkie)(
+    "$nazwa — updateEvents(parse(tekst)) daje to samo, co update(tekst)",
+    async ({ sciezka }) => {
+      // Niezmiennik jest darmowy i pilnuje delegacji: gdyby `update` przestało
+      // przechodzić przez `updateEvents`, dwie drogi mogłyby się rozjechać
+      // po cichu, a to jest jedyne miejsce, w którym da się to złapać bez gry.
+      const tekst = await Bun.file(sciezka).text();
+      const przezTekst = new Session();
+      przezTekst.update(tekst);
+      const przezZdarzenia = new Session();
+      przezZdarzenia.updateEvents(parse(tekst));
+      expect(przezZdarzenia.current()).toEqual(przezTekst.current());
+    },
+  );
+
+  test("skład z gry dociera tą samą drogą", () => {
+    const zdarzenia = parse("Rozpoczęła się walka pomiędzy Kamil(100lvl m) a Locha(50lvl w).");
+    const sesja = new Session();
+    sesja.updateEvents(zdarzenia, [{ id: 7, name: "Kamil", side: 0 }]);
+    expect(sesja.current().actors.some((a) => a.name === "Kamil")).toBe(true);
+  });
+
+  test("pusta lista zdarzeń daje zerowe statystyki, a nie wyjątek", () => {
+    const sesja = new Session();
+    sesja.updateEvents([]);
+    expect(sesja.current()).toEqual(EMPTY_STATS);
   });
 });

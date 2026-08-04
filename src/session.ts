@@ -72,11 +72,32 @@ export class Session {
    * warunek nie ma czego chronić.
    */
   update(text: string, fromGame?: RosterEntry[] | null): void {
+    this.updateEvents(parse(text), fromGame);
+  }
+
+  /**
+   * To samo, co `update`, dla źródła podającego zdarzenia gotowe.
+   *
+   * Istnieje, bo protokół silnika (`src/protokol.ts`) wystawia `BattleEvent[]`
+   * bez przechodzenia przez tekst — a `splitFights` i `aggregate` mają zostać
+   * WSPÓLNE dla obu dróg. Gdyby drugie źródło dostało własny podział na walki
+   * albo własny agregat, porównanie wyników przestałoby cokolwiek znaczyć:
+   * mierzyłoby różnicę między dwoma agregatami, a nie między dwoma odczytami.
+   *
+   * `update` deleguje tutaj, więc każdy dzisiejszy test sesji jest zarazem
+   * testem tej metody.
+   */
+  updateEvents(events: BattleEvent[], fromGame?: RosterEntry[] | null): void {
     // Liczy się WYŁĄCZNIE ostatnia walka w buforze — jedyna, o którą ktokolwiek
     // pyta. Wcześniej `aggregate` szło po każdej walce w buforze, bo zamknięte
     // trzeba było doliczyć do sumy sesji; przy logu z kilkoma walkami była to
     // praca w wątku gry na poczet widoku, którego nie ma.
-    const fights = splitFights(parse(text)).filter((events) => events.length > 0);
+    //
+    // Strumień protokołu jednej walki NIE MA po czym się dzielić: linię
+    // otwierającą klient syntetyzuje sam, poza `data.m` (`Battle.js:945`).
+    // `splitFights` zwraca wtedy jedną walkę i to jest poprawne — `Engine.battle`
+    // żyje jedną walką, a nowa dostaje nowy obiekt i wyzerowany bufor.
+    const fights = splitFights(events).filter((events) => events.length > 0);
     const last = fights.at(-1);
     this.currentStats = last ? aggregate(last, fromGame) : EMPTY_STATS;
   }
