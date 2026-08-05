@@ -463,6 +463,14 @@ describe("dekoduj: po czyjej stronie zaszedł efekt", () => {
     // że należą do postaci, która obrywa.
     ["-immunity_to_dmg", "target"],
     ["-redabdest_per", "target"],
+    // ⚠️ PUŁAPKA ODWROTNA (`AUDYT‑94`). Pomoc mówi o nich „zwiększa odporność
+    // Postaci, NA KTÓRĄ RZUCONA JEST UMIEJĘTNOŚĆ" — brzmi jak wskazanie celu,
+    // ale wskazuje BENEFICJENTA, nie sprawcę. Wyzwala je umiejętność
+    // rzucającego, więc zostają przy nim. Dopisanie ich do `STRONA_CELU`
+    // „bo pomoc mówi o celu" ma się tu zapalić.
+    ["resfire_per", "attacker"],
+    ["resfrost_per", "attacker"],
+    ["reslight_per", "attacker"],
     // Kotwice: te dwa źródła są zgodne i mają zostać zgodne.
     ["-parry", "target"],
     ["+pierce", "attacker"],

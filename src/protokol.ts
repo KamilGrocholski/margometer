@@ -323,6 +323,30 @@ export type Rola =
  * gra robi tak wyłącznie w gałęzi `default` i tylko dla rodziny `dmg`. Poza nią:
  * `+absorb` należy do celu MIMO plusa, a `-legbon_facade` (`:811`) do celu NIE
  * należy MIMO minusa. Lista jest więc WYLICZONA i tak ma zostać.
+ *
+ * ⚠️ **KTO WYZWOLIŁ ≠ KTO KORZYSTA — drugie rozróżnienie, po tym z `AUDYT‑93`,
+ * i myli się dokładnie tak samo łatwo** (`AUDYT‑94`). Katalog pomocy opisuje
+ * część efektów od strony BENEFICJENTA, nie sprawcy:
+ *
+ *     resfire_per — „zwiększa odporność na ogień Postaci, NA KTÓRĄ RZUCONA
+ *                   JEST UMIEJĘTNOŚĆ"
+ *
+ * Czyta się to jak wskazanie drugiego segmentu, ale mówi tylko, komu efekt
+ * pomaga. Wyzwala go UMIEJĘTNOŚĆ RZUCAJĄCEGO, więc `procs` („efekty, które ta
+ * postać ma z ekwipunku") należą do pierwszego segmentu. Jest to lustrzane
+ * odbicie pomyłki z `+critpoison_per`, tyle że w drugą stronę: tam kubełek
+ * wskazywał bitego, bo efekt na nim LĄDUJE; tu zdanie wskazuje bitego, bo mu
+ * SŁUŻY. Ani „ląduje", ani „służy" nie znaczy „wyzwolił".
+ *
+ * **Test przy każdym kolejnym wpisie:** czy gdyby ta postać zdjęła cały swój
+ * ekwipunek i umiejętności, efekt nadal by zaszedł? Jeśli tak — nie jest jej.
+ *
+ * STAN PRZEGLĄDU (2026‑08‑06). Wszystkie 60 kluczy domyślnie „napastnik",
+ * które katalog pomocy opisuje, zostały przeczytane po jednym. **Zero zmian
+ * w tabeli** — każdy opis potwierdził domyślną stronę. Dla tych 60 „napastnik"
+ * przestało więc być założeniem i jest odczytem. Zostaje 117 kluczy bez
+ * DRUGIEGO ŹRÓDŁA W OGÓLE; tam „napastnik" nadal jest założeniem i nic tego
+ * dziś nie zmieni (`AUDYT‑94`).
  */
 
 /**

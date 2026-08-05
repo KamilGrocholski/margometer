@@ -429,13 +429,46 @@ według siły dowodu: grupa A — kubełek i katalog zgodne (19 kluczy); grupa B
 katalog przeciw kubełkowi, wygrywa katalog (2 klucze); grupa C — sam kubełek,
 bez potwierdzenia (2 klucze, i tak są oznaczone).
 
-⚠️ **Co ZOSTAJE nierozstrzygnięte.** `tm[1]` mieści 165 kluczy i jest kubełkiem
-NEUTRALNYM — nie „stroną bijącego”. Katalog pomocy rozstrzygnął z nich dwa;
-dla reszty **nie mamy ani dowodu, ani przeciwdowodu**, a domyślne „bijący” jest
-założeniem, nie odczytem. Wiadomo przy tym, że kubełek bywa w obrębie jednej
-rodziny NIEKONSEKWENTNY: `-redendest` i `-redmanadest` (`:971`, `:975`) idą do
-`tm[1]`, a ich warianty `_per` do `tm[2]`, przy identycznym znaczeniu — więc
-w `tm[1]` niemal na pewno siedzą kolejne efekty celu, których nie umiemy wskazać.
+⚠️ **DRUGIE ROZRÓŻNIENIE: KTO WYZWOLIŁ ≠ KTO KORZYSTA** (dopisane 2026‑08‑06,
+`AUDYT‑94`). Katalog opisuje część efektów od strony BENEFICJENTA:
+
+> `resfire_per` — „zwiększa odporność na ogień Postaci, **na którą rzucona jest
+> umiejętność**”
+
+Czyta się to jak wskazanie drugiego segmentu, ale mówi tylko, komu efekt POMAGA.
+Wyzwala go umiejętność rzucającego, więc należy do pierwszego segmentu. Jest to
+lustrzane odbicie pomyłki z `+critpoison_per`: tam kubełek wskazywał bitego, bo
+efekt na nim **ląduje**; tu zdanie wskazuje bitego, bo mu **służy**. Ani
+„ląduje”, ani „służy” nie znaczy „wyzwolił”.
+
+**Test przy każdym kolejnym wpisie:** czy gdyby ta postać zdjęła cały swój
+ekwipunek i umiejętności, efekt nadal by zaszedł? Jeśli tak — nie jest jej.
+
+**Przegląd 2026‑08‑06: wszystkie 60 opisanych kluczy przeczytane po jednym.**
+Wynik: **zero zmian w tabeli** — każdy opis potwierdził domyślnego napastnika.
+To jest wynik pozytywny, nie brak wyniku: dla tych 60 „napastnik” przestało być
+założeniem i stało się odczytem.
+
+⚠️ **Co ZOSTAJE nierozstrzygnięte.** `tm[1]` jest kubełkiem NEUTRALNYM — nie
+„stroną bijącego”. Po przeglądzie zostaje **117 kluczy bez żadnego drugiego
+źródła**: katalog pomocy ich nie opisuje, a renderer wkłada je do kubełka, który
+o stronie nie mówi. Tam „napastnik” jest nadal **założeniem**. Wiadomo przy tym,
+że kubełek bywa w obrębie jednej rodziny NIEKONSEKWENTNY: `-redendest`
+i `-redmanadest` (`:971`, `:975`) idą do `tm[1]`, a ich warianty `_per` do
+`tm[2]` przy identycznym znaczeniu — więc wśród tych 117 niemal na pewno siedzą
+kolejne efekty celu, których nie umiemy wskazać. **Zrzut z gry tego nie zamknie**
+i to jest zmierzone: protokół nie koduje właściciela efektu w ogóle (komunikat
+to dwa segmenty `id` i płaska lista kluczy), więc więcej materiału daje więcej
+wystąpień tego samego kształtu, a nie nową informację.
+
+⚠️ **Dwa znaleziska poboczne z tego przeglądu**, obie poza jego tematem:
+- `dmg-target_physical` („na przeciwnika zostają nałożone obrażenia fizyczne
+  o stałej wartości”) i `vamp` („zadaje stałe obrażenia od umiejętności oraz
+  przywraca Postaci punkty zdrowia”) **NIOSĄ OBRAŻENIA**, a stoją u nas w tabeli
+  efektów nieliczonych — dołączają do `fire`, `frost`, `light`, `physical`.
+- Efekty z komunikatu BEZ ani jednej liczby obrażeń **przepadają w całości**:
+  dekoder kończy taki komunikat wcześniej i lista `procs` nie trafia nigdzie.
+  Sprawdzone: `tspell=Tarcza;resfire_per=20` daje samo zdarzenie `ability`.
 
 ⚠️ **Drugie ograniczenie: `fire`, `frost`, `light`, `physical` NIOSĄ OBRAŻENIA.**
 Ich zdania brzmią „%name% otrzymał %val% obrażeń od ognia” (`:317‑330`, `:402`),

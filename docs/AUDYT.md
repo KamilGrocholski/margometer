@@ -92,7 +92,7 @@ zrobionego na materiale, który do repo nie wszedł** — czyli praktyka, któr�
 sama runda opisuje jako przyczynę fałszywego buildu i której w tym samym
 commicie zakazuje.
 
-**Dopisane 2026‑08‑05 (sekcja `J`):** `AUDYT‑87`…`AUDYT‑93` — audyt **PO**
+**Dopisane 2026‑08‑05 (sekcja `J`, domknięta 2026‑08‑06):** `AUDYT‑87`…`AUDYT‑94` — audyt **PO**
 commicie `72dc330`, na czystym drzewie i zielonej bramie. Pierwszy raz runda
 szukała wyłącznie tego, co definiuje kierunek z `ROADMAP.md`: *złej liczby
 pokazanej bez ani jednego słowa ostrzeżenia*. Znalazła trzy takie miejsca —
@@ -2686,8 +2686,70 @@ i `-redmanadest` (`:971`, `:975`) idą do `tm[1]`, a ich warianty `_per` do
 kolejne efekty celu, których nie umiemy wskazać. Ograniczenie jest dziś
 NAZWANE w trzech miejscach (kod, rejestr mechaniki, ten wpis) i nie ma terminu.
 
+> ⚠️ **Zmniejszone 2026‑08‑06 przez `AUDYT‑94`** — nie zamknięte. Sześćdziesiąt
+> z tych kluczy przeczytano po jednym w katalogu pomocy i wszystkie potwierdziły
+> domyślną stronę, więc dla nich „bijący" jest już odczytem. Otwarte zostaje
+> **117 kluczy bez żadnego drugiego źródła**. Liczby „165" i „163" wyżej opisują
+> stan sprzed tamtego przeglądu i tak mają być czytane; aktualną wartość podaje
+> `AUDYT‑94`. Wpis zostaje bez przepisywania, bo cała sekcja opisuje stan SPRZED
+> naprawy — ale bez tego odsyłacza byłby to piąty w tym pliku status żyjący
+> w dwóch miejscach naraz.
+
 **Docelowo.** `docs/MECHANIKA.md` — sprostowanie przy wpisie „Po czyjej stronie
 zachodzi efekt".
+
+### AUDYT‑94 — 60 kluczy przeczytanych po jednym: strona domyślna się broni ⚪ M — ✅ ZAMKNIĘTE ✓
+
+`src/protokol.ts` (komentarz przy `STRONA_CELU`) · `docs/MECHANIKA.md`
+
+**Problem.** Po `AUDYT‑93` zostało 177 kluczy ze stroną „napastnik" przyjętą
+DOMYŚLNIE, czyli 177 twierdzeń bez odczytu. Z tego 60 miało opis w katalogu
+efektów pomocy gry, po którym przeszedł dotąd tylko zgrubny wzorzec szukający
+słów o obronie — a dwa klucze (`-immunity_to_dmg`, `-redabdest_per`) wyszły
+właśnie z takiego opisu przeczytanego zdanie po zdaniu.
+
+**✓ Zrobione.** Przeczytane wszystkie 60, po jednym. **Zero zmian w tabeli** —
+każdy opis potwierdził domyślnego napastnika. To jest wynik POZYTYWNY, nie brak
+wyniku: dla tych 60 „napastnik" przestało być założeniem i jest odczytem.
+Zostaje **117 kluczy bez żadnego drugiego źródła**.
+
+⚠️ **Przegląd o mało nie wprowadził błędu i to jest jego najważniejsza treść.**
+Trzy klucze — `resfire_per`, `resfrost_per`, `reslight_per` — katalog opisuje
+zdaniem „zwiększa odporność na ogień Postaci, **na którą rzucona jest
+umiejętność**". Czyta się to jak wskazanie drugiego segmentu i o krok dzieliło
+je od wpisania do `STRONA_CELU`. Mówi jednak tylko, komu efekt POMAGA; wyzwala
+go umiejętność rzucającego.
+
+To jest **lustrzane odbicie pomyłki z `AUDYT‑93`**: tam kubełek wskazywał
+bitego, bo efekt na nim LĄDUJE; tu zdanie wskazuje bitego, bo mu SŁUŻY. Ani
+„ląduje", ani „służy" nie znaczy „wyzwolił". Stąd test, który wchodzi do repo
+razem z tym wpisem: trzy klucze zapinają się jako `attacker`, a dopisanie ich do
+tabeli „bo pomoc mówi o celu" zapala trzy asercje.
+
+**Test przy każdym kolejnym wpisie**, zapisany w kodzie i w rejestrze: *czy
+gdyby ta postać zdjęła cały swój ekwipunek i umiejętności, efekt nadal by
+zaszedł?* Jeśli tak — nie jest jej.
+
+⚠️ **Co ZOSTAJE otwarte i czego NIE domknie materiał z gry.** 117 kluczy bez
+drugiego źródła. Zrzut ich nie rozstrzygnie i to jest zmierzone, nie
+przypuszczane: protokół **nie koduje właściciela efektu w ogóle** — komunikat to
+dwa segmenty `id` i płaska lista kluczy, więc więcej materiału daje więcej
+wystąpień tego samego kształtu, a nie nową informację. Migawka wojownika niesie
+tylko `hp`, `mana`, `energy`, `ac`, więc korelacją różnic dałoby się ruszyć
+**26 ze 177** — i tylko te, które w danej walce wystąpią. Zmierzone: jedyna
+prawdziwa walka w repo pokazuje **3 różne klucze efektów**. Sprawdzone i również
+ślepe: pole „• Wyzwolenie:" w katalogu nazywa warstwę obliczeń, nie postać
+(0 ze 177 mówi „u przeciwnika"), a archiwum walk grooove.pl niesie prawdziwy
+protokół, ale w skompresowanym dialekcie (`@Dd` zamiast `+dmgd`) i z tymi samymi
+dwoma segmentami.
+
+⚠️ **Dwa znaleziska poboczne**, obie poza tematem przeglądu i obie otwarte:
+`dmg-target_physical` oraz `vamp` NIOSĄ OBRAŻENIA, a stoją w tabeli efektów
+nieliczonych (dołączają do `fire`, `frost`, `light`, `physical` z `AUDYT‑87`);
+efekty z komunikatu BEZ ani jednej liczby obrażeń przepadają w całości —
+sprawdzone, `tspell=Tarcza;resfire_per=20` daje samo zdarzenie `ability`.
+
+**Docelowo.** `docs/MECHANIKA.md` — wpis „Po czyjej stronie zachodzi efekt".
 
 ### AUDYT‑88 — ujemny `heal` to REALNY UBYTEK HP, a liczy się jako leczenie 🔴 S — ✅ NAPRAWIONE ✓
 
