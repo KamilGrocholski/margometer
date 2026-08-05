@@ -1,4 +1,4 @@
-import type { BattleEvent } from "../src/types.ts";
+import type { BattleEvent, Proc } from "../src/types.ts";
 
 /**
  * Drugi podgląd: 20 postaci, żeby zobaczyć, jak lista trzyma się przy pełnym
@@ -254,9 +254,14 @@ export function syntheticFight(count: number): BattleEvent[] {
         }
 
         const superCrit = crit && actor.secondary && random() < 0.4;
-        const procs: string[] = [];
+        // Generator zna tylko efekty Z EKWIPUNKU bijącego, więc wszystkie idą
+        // po jego stronie. Efektów obronnych (`side: "target"`) nie produkuje —
+        // te ma jedyny materiał z gry i budowane w kodzie zdarzenia testowe.
+        const procs: Proc[] = [];
         for (const proc of actor.procs) {
-          if (random() < 0.35) procs.push(proc);
+          if (random() < 0.35) {
+            procs.push({ key: proc, label: proc, value: null, side: "attacker" });
+          }
         }
         const blocked =
           target.block > 0 && random() < 0.4

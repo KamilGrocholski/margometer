@@ -6,8 +6,23 @@
  * w każdym pliku rozjechałaby się przy pierwszej zmianie formatu.
  */
 import type { Overlay } from "../src/overlay.ts";
-import type { BattleEvent } from "../src/types.ts";
+import type { BattleEvent, Proc } from "../src/types.ts";
 import { syntheticFight } from "../tools/synthetic-log.ts";
+
+/**
+ * Efekt w ciosie — materiał testowy dla `BattleEvent.attack.procs`.
+ *
+ * Domyślnie po stronie BIJĄCEGO, bo tak jest z większością (167 z 200 kluczy).
+ * `side: "target"` podaje się jawnie i to jest zamierzone: strona jest tu
+ * treścią testu, a nie szczegółem konstrukcji.
+ *
+ * `key` domyślnie schodzi z etykiety, bo w większości testów nie ma znaczenia —
+ * liczy się tam, gdzie kod DECYDUJE po kluczu (`+injure`), i wtedy podaje się go
+ * wprost.
+ */
+export function efekt(label: string, poza: Partial<Proc> = {}): Proc {
+  return { key: label, label, value: null, side: "attacker", ...poza };
+}
 
 /**
  * Walka pod nazwą — SYNTETYCZNA, deterministyczna, **nieczytana z dysku**.

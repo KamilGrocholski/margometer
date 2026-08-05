@@ -337,7 +337,9 @@ describe("dekoduj: cios", () => {
       sourceHpPct: 100,
       targetHpPct: 40.37,
       strike: true,
-      procs: ["+pierce"],
+      // Efekt niesie klucz, wartość i STRONĘ — nie samą etykietę (`AUDYT‑87`).
+      // `+pierce` jest przebiciem BIJĄCEGO, więc strona domyślna.
+      procs: [{ key: "+pierce", label: "+pierce", value: null, side: "attacker" }],
     });
     expect((z as { hits: unknown[] }).hits).toEqual([
       {
@@ -378,7 +380,10 @@ describe("dekoduj: cios", () => {
 
   test("`+thirdatt` niesie liczbę I proc naraz", () => {
     const [z] = dekoduj(["1=100.00;2=98.29;+thirdatt=120;-thirdatt=100"], SKLAD);
-    expect(z).toMatchObject({ kind: "attack", procs: ["+thirdatt"] });
+    expect(z).toMatchObject({
+      kind: "attack",
+      procs: [{ key: "+thirdatt", label: "+thirdatt", value: "120", side: "attacker" }],
+    });
     expect((z as { hits: { element: string }[] }).hits[0]!.element).toBe("trzeci cios");
   });
 
@@ -390,6 +395,56 @@ describe("dekoduj: cios", () => {
     expect(cios.hits.map((h) => h.raw)).toEqual([897, 0]);
     // Suma przyjętych zostaje prawdziwa, a rozjazd długości jest zgłoszony.
     expect(zd.some((z) => z.kind === "unknown")).toBe(true);
+  });
+});
+
+/**
+ * Strona efektu — `AUDYT‑87`.
+ *
+ * Dowód, dlaczego to nie jest szczegół: `-parry` i `-absorb` stoją w KOMUNIKACIE
+ * BIJĄCEGO, a opisują tarczę BITEGO. Gra renderuje je do `tm[2]`, czyli do tego
+ * samego kubełka co `-blok` i `-evade` (`BattleMessages.js:827,830,832,850`).
+ */
+describe("dekoduj: po czyjej stronie zaszedł efekt", () => {
+  test("efekt obronny należy do CELU, choć stoi w komunikacie bijącego", () => {
+    const [z] = dekoduj(["1=100.00;2=50.00;+dmgd=500;-dmgd=300;-absorb=200;-parry"], SKLAD);
+    const procs = (z as { procs: { key: string; side: string }[] }).procs;
+    expect(procs.map((p) => [p.key, p.side])).toEqual([
+      ["-absorb", "target"],
+      ["-parry", "target"],
+    ]);
+  });
+
+  test("efekt zaczepny zostaje przy bijącym", () => {
+    const [z] = dekoduj(["1=100.00;2=90.00;+dmgd=10;+pierce;+acdmg=5;-dmgd=10"], SKLAD);
+    const procs = (z as { procs: { key: string; side: string }[] }).procs;
+    expect(procs.map((p) => [p.key, p.side])).toEqual([
+      ["+pierce", "attacker"],
+      ["+acdmg", "attacker"],
+    ]);
+  });
+
+  test("ZNAK KLUCZA nie rozstrzyga strony i nie wolno go za to brać", () => {
+    // Dwa kontrprzykłady naraz, po jednym w każdą stronę. Gdyby ktoś zastąpił
+    // wyliczoną listę regułą „minus znaczy cel", ten test się zapala.
+    const [z] = dekoduj(
+      ["1=100.00;2=50.00;+dmgd=500;-dmgd=300;+absorb=90;-legbon_facade=7"],
+      SKLAD,
+    );
+    const procs = (z as { procs: { key: string; side: string }[] }).procs;
+    expect(procs.map((p) => [p.key, p.side])).toEqual([
+      // plus, a jednak cel („Odnowienie absorpcji", `:847`)
+      ["+absorb", "target"],
+      // minus, a jednak nie cel (`tm[1]`, kubełek neutralny, `:811`)
+      ["-legbon_facade", "attacker"],
+    ]);
+  });
+
+  test("efekt niesie WARTOŚĆ, żeby decyzje nie szły po zdaniu", () => {
+    // `AUDYT‑89`: kwota zranienia ma się dać odczytać bez czytania etykiety.
+    const [z] = dekoduj(["1=100.00;2=90.00;+dmgd=10;+injure=339;-dmgd=10"], SKLAD);
+    const procs = (z as { procs: { key: string; value: string | null }[] }).procs;
+    expect(procs).toMatchObject([{ key: "+injure", value: "339" }]);
   });
 });
 

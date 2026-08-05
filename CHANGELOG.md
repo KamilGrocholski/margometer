@@ -54,6 +54,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   zapisanych w archiwum walkach też się przez to zmienią.
 - **Poprawka** — Zniknął wiersz „Tury utracone”. Pokazywał zawsze zero i wyglądał
   jak pomiar, a gra nie mówi, komu tura przepadła — więc nie było czego liczyć.
+- **Poprawka** — Efekty obronne — parowanie, kontra, blok przebicia, absorpcja,
+  zablokowana strzała — liczą się temu, kto oberwał, a nie temu, kto uderzył.
+  Dotąd w podpowiedzi napastnika stało, że sparował i pochłonął własny cios,
+  a broniący się miał te same efekty wpisane jako „otrzymane”. Dotyczy
+  dwudziestu czterech efektów; te zaczepne (przebicie, niszczenie pancerza)
+  zostają tam, gdzie były.
+- **Poprawka** — Obrażenia od zranienia trafiają na konto tego, kto je nałożył,
+  także wtedy, gdy gra pisze o nim w innym języku niż polski albo zmieni
+  brzmienie opisu przy aktualizacji. Wcześniej rozpoznanie szło po treści
+  zdania, więc w takiej sytuacji obrażenia po cichu przenosiły się do puli
+  „bez sprawcy”.
 
 ## [0.5.0] — 2026-08-05
 

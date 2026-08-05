@@ -152,6 +152,51 @@ export type Hit = {
 };
 
 /**
+ * Efekt bez własnej liczby obrażeń: „Przebicie", „Parowanie", „Absorpcja N".
+ *
+ * ⚠️ **TO BYŁ `string` — SAMA ETYKIETA — I TO KOSZTOWAŁO DWA BŁĘDY NARAZ**
+ * (`AUDYT‑87`, `AUDYT‑89`). Protokół niesie przy każdym efekcie trzy rzeczy:
+ * klucz, wartość i — przez tabelę ról — stronę, po której efekt zaszedł.
+ * Kontrakt przepuszczał dalej wyłącznie gotowe zdanie, więc `stats.ts` nie miał
+ * czym przypisać efektu poprawnie, choćby chciał:
+ *
+ * - **strona.** Każdy proc szedł na konto BIJĄCEGO, a gra renderuje 24 z nich
+ *   po stronie BITEGO (`side: "target"` niżej). Napastnik miał w dymku
+ *   napisane, że sparował i pochłonął cios, który sam zadał.
+ * - **klucz.** Jedyne przypisanie sprawcy tykającego efektu („+Zranienie (N)")
+ *   dopasowywało się wyrażeniem regularnym do POLSKIEGO zdania złożonego przez
+ *   słownik GRY. Zdanie należy do gry i do języka klienta — wiązanie po nim
+ *   gasło po cichu przy zmianie brzmienia albo na kliencie nie‑polskim.
+ *
+ * Wniosek ogólniejszy od obu poprawek: **etykieta jest do POKAZANIA, nie do
+ * PODEJMOWANIA DECYZJI.** Wszystko, co decyduje, ma iść po `key`.
+ */
+export type Proc = {
+  /**
+   * Klucz protokołu (`+pierce`, `-parry`). Tożsamość efektu — niezależna od
+   * języka klienta i od tego, jak gra przeformułuje zdanie w aktualizacji.
+   */
+  key: string;
+  /**
+   * Brzmienie ze słownika GRY, ze znakiem wiodącym już zdjętym. Gdy słownika
+   * nie ma (archiwum bez gry, test) albo gra nie zna identyfikatora — sam
+   * klucz. Wyłącznie do pokazania.
+   */
+  label: string;
+  /** Wartość parametru, surowa jak w komunikacie. `null` dla flag bez `=`. */
+  value: string | null;
+  /**
+   * Po czyjej stronie efekt zaszedł.
+   *
+   * ⚠️ **ZE ZNAKU KLUCZA TEGO NIE DA SIĘ ODCZYTAĆ** i to jest cała trudność:
+   * `+absorb` („Odnowienie absorpcji") należy do celu mimo plusa, a
+   * `-legbon_facade` do napastnika mimo minusa. Rozstrzyga wyłącznie tabela
+   * ról w `protokol.ts`, a ona cytuje przy każdym wpisie linię renderera gry.
+   */
+  side: "attacker" | "target";
+};
+
+/**
  * ⚠️ **`*Id` TO TOŻSAMOŚĆ POSTACI, NIE OZDOBA.** Protokół niesie `id` po obu
  * stronach każdego zdarzenia i to jest jedyna droga, żeby rozdzielić dwie
  * postacie o tej samej nazwie CZYTAJĄC, zamiast wnioskując ze spadku życia.
@@ -188,8 +233,13 @@ export type BattleEvent =
       dodged: boolean;
       /** Ile obrażeń cel zablokował ("Zablokowanie 47 obrażeń"). */
       blocked: number | null;
-      /** Efekty bez własnych liczb obrażeń: "Klątwa", "Szybka strzała", ... */
-      procs: string[];
+      /**
+       * Efekty bez własnych liczb obrażeń: "Klątwa", "Szybka strzała", ...
+       *
+       * Każdy niesie stronę, po której zaszedł — patrz `Proc`. Nie wszystkie
+       * należą do bijącego, choć wszystkie stoją w JEGO komunikacie.
+       */
+      procs: Proc[];
       /**
        * Umiejętność zapowiedziana linią "X wykonuje Y." albo null dla zwykłego
        * ciosu. Jedna umiejętność potrafi objąć kilka ataków pod rząd.

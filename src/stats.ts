@@ -1,3 +1,4 @@
+import { liczba } from "./protokol.ts";
 import type { RosterEntry } from "./roster.ts";
 import { UNKNOWN_ELEMENT, dotLabel, typeDisplay, typeFamily } from "./types.ts";
 import type {
@@ -446,16 +447,35 @@ export function byAmountUnattributedLast(
   return b.amount - a.amount;
 }
 /**
- * "+Zranienie (339)" — jedyny zmierzony proc, który nazywa NARAZ sprawcę
- * (stoi przy jego ciosie) i dokładną kwotę przyszłego tyknięcia.
+ * `+injure` — jedyny proc, który nazywa NARAZ sprawcę (stoi przy jego ciosie)
+ * i dokładną kwotę przyszłego tyknięcia („+Zranienie (339)").
  *
  * Dlatego tylko ten jeden wiąże DoT ze sprawcą wprost, z pominięciem zgadywania
  * po układzie stron: kwota daje się porównać z tyknięciem, więc wiązanie jest
  * SPRAWDZALNE, a nie oparte na kolejności linii. "+Głęboka rana" kwoty nie
  * podaje (jeden proc, tyknięcia 754 → 1131), a trucizna, ogień i błyskawice nie
  * mają w logu żadnego proca nakładającego — te zostają przy `opponentOf`.
+ *
+ * ⚠️ **STAŁO TU WYRAŻENIE REGULARNE `/^Zranienie \((\d+)\)$/` I BYŁ TO BŁĄD**
+ * (`AUDYT‑89`). Dopasowywało się do ZDANIA złożonego przez słownik GRY, czyli
+ * do tekstu, który należy do gry i do języka klienta — a `slownik-gry.ts`
+ * istnieje właśnie po to, żeby panel mówił w języku klienta, także po
+ * aktualizacji gry. Wiązanie gasło więc po cichu, bez ani jednego ostrzeżenia.
+ *
+ * Zmierzone na jednym komunikacie `+dmgd=400;-dmgd=400;+injure=150` i tyknięciu
+ * `injure=150`, zmieniając WYŁĄCZNIE słownik:
+ *
+ * | słownik | „OD KOGO" u celu | `damageDealt` bijącego |
+ * |---|---|---|
+ * | polski | Łowca 550 | 550 |
+ * | angielski | Łowca 400 · Bez sprawcy 150 | **400** |
+ * | brak (klucz surowy) | Łowca 400 · Bez sprawcy 150 | **400** |
+ *
+ * Klucz stał w komunikacie przez cały czas — tyle że kontrakt `procs` niósł
+ * dalej samą etykietę. Dziś niesie `Proc` z kluczem i wartością, więc decyzja
+ * idzie po `key`, a kwota po `value`, i obie są niezależne od brzmienia.
  */
-const RE_WOUND_PROC = /^Zranienie \((\d+)\)$/;
+const WOUND_KEY = "+injure";
 /** Typ DoT-a, przy którym wiązanie z proca ma sens — patrz `RE_WOUND_PROC`. */
 const WOUND_DOT = "po zranieniu";
 
@@ -1049,12 +1069,28 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         // go wyzwolił (bo to on ma go w ekwipunku), i pod tym, na kim się
         // odpalił. To dwa różne pytania i jedna liczba nie odpowiada na oba.
         for (const proc of event.procs) {
-          const label = procLabel(proc);
-          bumpCount(breakdownOf(sourceKey).procs, label);
-          bumpCount(breakdownOf(targetKey).procsReceived, label);
+          const label = procLabel(proc.label);
+          // ⚠️ **STRONA IDZIE Z EFEKTU, NIE Z UKŁADU ZDARZENIA** (`AUDYT‑87`).
+          // Do 2026‑08‑05 stało tu na sztywno `sourceKey`/`targetKey`, czyli
+          // KAŻDY efekt szedł na konto bijącego — a gra renderuje 24 z nich po
+          // stronie bitego (`STRONA_CELU` w `protokol.ts`, dowód przy liście).
+          // Skutek: napastnik miał w dymku „Parowanie" i „Absorpcja N obrażeń"
+          // przy ciosie, który sam zadał, a bity — te same efekty w rubryce
+          // „Efekty otrzymane", choć to on je wyzwolił.
+          //
+          // Oba wiersze zostają, bo pytania są dwa („co ja nakładam" kontra „co
+          // się na mnie sypie"); zmienia się wyłącznie to, kto jest kim.
+          const owner = proc.side === "target" ? targetKey : sourceKey;
+          const other = proc.side === "target" ? sourceKey : targetKey;
+          bumpCount(breakdownOf(owner).procs, label);
+          bumpCount(breakdownOf(other).procsReceived, label);
           // Jedyny proc, który nazywa i sprawcę, i kwotę przyszłego tyknięcia.
-          const wound = RE_WOUND_PROC.exec(proc);
-          if (wound) woundBy.set(targetKey, { source: sourceKey, amount: parseInt(wound[1]!, 10) });
+          // Po KLUCZU, nie po zdaniu — patrz `WOUND_KEY`. Sprawcą jest bijący
+          // niezależnie od `owner`: `+injure` stoi po jego stronie (`:704`).
+          if (proc.key === WOUND_KEY) {
+            const amount = liczba(proc.value);
+            if (amount !== null) woundBy.set(targetKey, { source: sourceKey, amount });
+          }
         }
         break;
       }

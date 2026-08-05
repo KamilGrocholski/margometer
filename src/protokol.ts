@@ -34,7 +34,7 @@
  */
 
 import { BEZ_SLOWNIKA, type Slownik } from "./slownik-gry.ts";
-import { nazwaZywiolu, type BattleEvent, type Hit } from "./types.ts";
+import { nazwaZywiolu, type BattleEvent, type Hit, type Proc } from "./types.ts";
 import type { RosterEntry } from "./roster.ts";
 
 /**
@@ -210,7 +210,7 @@ export type Rola =
    */
   | { typ: "kryt"; rodzaj: "glowny" | "pomocniczy" | "bardzo" }
   /** `-absorb=N`, `-absorbm=N` → „-Absorpcja N obrażeń fizycznych/magicznych". */
-  | { typ: "absorpcja"; id: string }
+  | { typ: "absorpcja"; id: string; strona?: "cel" }
   /**
    * Leczenie w PUNKTACH życia.
    *
@@ -268,9 +268,66 @@ export type Rola =
    * zachowawczy jest wybrany świadomie: w etapie 3a protokół karmi wyłącznie
    * czujkę, więc pomyłka daje ALARM DO ZBADANIA, a nie cichą złą liczbę.
    */
-  | { typ: "proc"; id: string }
+  | { typ: "proc"; id: string; strona?: "cel" }
   /** Gra ma dla tego klucza puste ciało i nie wypisuje NICZEGO. To odpowiedź, nie luka. */
   | { typ: "cisza" };
+
+/**
+ * Klucze, przy których efekt należy do CELU, a nie do bijącego (`AUDYT‑87`).
+ *
+ * DOWÓD JEST STRUKTURALNY I POCHODZI Z RENDERERA GRY. `battleMsg` składa jedną
+ * linię logu z trzech kubełków (`BattleMessages.js:162`, `var tm = ['','','']`)
+ * i przy ciosie wypełnia skrajne dwa (`:1127‑1129`):
+ *
+ *     tm[0] = _t('msg_dmgdone %name1% …',  {'%name1%': f1.name, …})  // BIJĄCY
+ *     tm[2] += _t('msg_dmgtaken %name1% …', {'%name1%': f2.name, …}) // BITY
+ *
+ * Czyli `tm[0]` to zdanie o `f1` (pierwszy segment komunikatu), a `tm[2]`
+ * o `f2` (drugi). Klucz dopisujący się do `tm[2]` opisuje więc CEL — i jest to
+ * ten sam kubełek, w którym stoją `-blok` (`:827`) i `-evade` (`:830`), czyli
+ * dwie rzeczy, które ten dekoder przypisuje celowi od początku, osobnymi rolami.
+ * Ta zbieżność jest tu najmocniejszym argumentem: reguła nie jest nowa, była
+ * tylko stosowana do dwóch kluczy zamiast do dwudziestu sześciu.
+ *
+ * ⚠️ **ZNAK WIODĄCY NIE JEST REGUŁĄ I NIE WOLNO GO ZA NIĄ BRAĆ.** Kusi, bo
+ * `rolaDomyslna` niżej odczytuje stronę właśnie ze znaku — ale tam gra sama tak
+ * robi, w gałęzi `default` i wyłącznie dla rodziny `dmg`. Poza nią zgodności
+ * nie ma: `+absorb` („Odnowienie absorpcji", `:847`) należy do celu MIMO plusa,
+ * a `-legbon_facade` (`:811`) do nikogo szczególnego MIMO minusa — idzie do
+ * `tm[1]`, kubełka neutralnego. Lista jest więc WYLICZONA, każdy wpis
+ * z numerem linii, i tak ma zostać.
+ *
+ * Jak powstała: przejściem wszystkich 200 kluczy trafiających do `procy[]`
+ * przez ciała gałęzi `battleMsg` (build deweloperski `1781609507010`), łącznie
+ * z gałęziami zbiorczymi — `+crush_*`, `fire`, `frost`, `light`, `physical`
+ * dzielą ciało z innymi kluczami i wszystkie kończą w `tm[1]`.
+ */
+const STRONA_CELU: readonly string[] = [
+  "+absorb", // :847  „Odnowienie absorpcji %val%" — plus, a mimo to cel
+  "+absorbm", // :853
+  "+critpoison_per", // :900  „+Czarna krew %val%"
+  "+legbon_puncture", // :869
+  "+rage", // :841  „+Wściekłość: atak %val%"
+  "+superspell-prevented", // :782
+  "+vulture", // :878  „+Wzmocnienie ataku o %val%%"
+  "-absorb", // :850  rola `absorpcja`, nie `proc`
+  "-absorbm", // :856  rola `absorpcja`, nie `proc`
+  "-arrowblock", // :859  „Strzała zablokowana"
+  "-contra", // :838  „-Kontra"
+  "-legbon_cleanse", // :776
+  "-legbon_critred", // :866
+  "-legbon_glare", // :779
+  "-legbon_resgain", // :872  „-Ochrona żywiołów"
+  "-parry", // :832  „-Parowanie"
+  "-pierceb", // :835  „-Blok przebicia"
+  "-rage", // :844  „-Wściekłość"
+  "-redacdmg", // :884  „Redukcja niszczenia pancerza o %val%"
+  "-redacdmg_per", // :887
+  "-reddest_per", // :881
+  "-redendest_per", // :893
+  "-redmanadest_per", // :890
+  "-resmanaendest", // :896
+];
 
 /**
  * Role przypisane pojedynczo, każda z dowodem.
@@ -300,8 +357,10 @@ const ROLE: Readonly<Record<string, Rola>> = {
   "+verycrit": { typ: "kryt", rodzaj: "bardzo" },
   "+legbon_verycrit": { typ: "kryt", rodzaj: "bardzo" },
   "+of_crit": { typ: "kryt", rodzaj: "pomocniczy" },
-  "-absorb": { typ: "absorpcja", id: "msg_-absorb %val%" },
-  "-absorbm": { typ: "absorpcja", id: "msg_-absorbm %val%" },
+  // Strona z `STRONA_CELU`, tak jak u proców — absorpcja jest tarczą BITEGO,
+  // choć jej liczba stoi w komunikacie bijącego.
+  "-absorb": { typ: "absorpcja", id: "msg_-absorb %val%", strona: "cel" },
+  "-absorbm": { typ: "absorpcja", id: "msg_-absorbm %val%", strona: "cel" },
 
   // — leczenie w punktach ————————————————————————————————————————
   // „%gain_lost% %val% punktów życia %name%" — %name% to f1. Znak wartości
@@ -607,8 +666,13 @@ export function rola(klucz: string): Rola | null {
   return ROLE[klucz] ?? rolaDomyslna(klucz) ?? WYLICZONE.get(klucz) ?? null;
 }
 
+const CEL = new Set(STRONA_CELU);
+
 const WYLICZONE = new Map<string, Rola>([
-  ...Object.entries(PROCE).map(([k, id]) => [k, { typ: "proc", id } as Rola] as const),
+  ...Object.entries(PROCE).map(
+    ([k, id]) =>
+      [k, (CEL.has(k) ? { typ: "proc", id, strona: "cel" } : { typ: "proc", id }) as Rola] as const,
+  ),
   ...MILCZACE.map((k) => [k, { typ: "cisza" } as Rola] as const),
 ]);
 
@@ -739,9 +803,22 @@ export function dekoduj(
       return zdanie === null ? p.klucz : zdanie.replace(/^[+-]\s*/, "");
     };
 
+    /**
+     * Efekt gotowy dla `stats.ts`: klucz i wartość obok brzmienia.
+     *
+     * Brzmienie jest DO POKAZANIA, klucz DO DECYDOWANIA — patrz `Proc`
+     * w `types.ts`. Strona idzie z tabeli ról, nigdy ze znaku klucza.
+     */
+    const proc = (p: Parametr, r: { id: string; strona?: "cel" }): Proc => ({
+      key: p.klucz,
+      label: etykieta(p, r.id),
+      value: p.wartosc,
+      side: r.strona === "cel" ? "target" : "attacker",
+    });
+
     const zadane: Hit[] = [];
     const przyjete: number[] = [];
-    const procy: string[] = [];
+    const procy: Proc[] = [];
     let blok: number | null = null;
     let unik = false;
     let krytGlowny = false;
@@ -769,7 +846,9 @@ export function dekoduj(
             nieznany(p.surowy);
             break;
           }
-          if (r.typ === "ciosProc") procy.push(etykieta(p, r.id));
+          // `+thirdatt` niesie liczbę I jest procem naraz; jako cios należy do
+          // bijącego, więc `strona` zostaje domyślna.
+          if (r.typ === "ciosProc") procy.push(proc(p, { id: r.id }));
           zadane.push({
             raw: wartosc,
             // Uzupełniane niżej, gdy poznamy stronę przyjętą. Zero tutaj jest
@@ -805,7 +884,7 @@ export function dekoduj(
           break;
         case "absorpcja":
         case "proc":
-          procy.push(etykieta(p, r.id));
+          procy.push(proc(p, r));
           break;
         case "cisza":
           break;

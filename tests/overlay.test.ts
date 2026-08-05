@@ -10,7 +10,7 @@ import { syntheticFight } from "../tools/synthetic-log.ts";
 import { cios, leczenie, nieznane, otwarcie, trafienie, tykniecie } from "./zdarzenia.ts";
 import pkg from "../package.json" with { type: "json" };
 import { ManualTicker } from "./manual-ticker.ts";
-import { metricButton, number, rate, readEvents, shareOf } from "./helpers.ts";
+import { efekt, metricButton, number, rate, readEvents, shareOf } from "./helpers.ts";
 
 /**
  * Prawy przycisk nad listą rankingu.
@@ -697,7 +697,7 @@ describe("efekty: kto wyzwolił kontra na kim się odpalił", () => {
     otwarcie(["Gracz 1w"], ["Szaman 1m"]),
     cios("Szaman", "Gracz", [trafienie(536, 261)], {
       targetHpPct: 98,
-      procs: ["Oślepienie w następnej turze"],
+      procs: [efekt("Oślepienie w następnej turze")],
     }),
   ];
 

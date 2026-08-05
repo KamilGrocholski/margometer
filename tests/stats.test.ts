@@ -24,6 +24,7 @@ import {
 } from "./zdarzenia.ts";
 import { KORPUS } from "./korpus.ts";
 import { dekoduj } from "../src/protokol.ts";
+import { SlownikStaly } from "../src/slownik-gry.ts";
 import { KOMUNIKATY as KOMUNIKATY_Z_GRY, SKLAD as SKLAD_Z_GRY } from "./walka-z-gry.ts";
 
 
@@ -280,8 +281,12 @@ describe.each(KORPUS)("$name — zranienie zgadza się z proca", (fixture) => {
     for (const event of events) {
       if (event.kind === "attack") {
         for (const proc of event.procs) {
-          const wound = /^Zranienie \((\d+)\)$/.exec(proc);
-          if (wound) announced.set(event.target, parseInt(wound[1]!, 10));
+          // Po KLUCZU, nie po zdaniu — tak samo jak `stats.ts` od `AUDYT‑89`.
+          // Test dopasowujący się do polskiego brzmienia byłby zielony także
+          // wtedy, gdy kod przestałby wiązać cokolwiek na kliencie nie‑polskim.
+          if (proc.key === "+injure" && proc.value !== null) {
+            announced.set(event.target, parseInt(proc.value, 10));
+          }
         }
       }
       if (event.kind === "dot" && `${event.via} ${event.dotType}` === "po zranieniu") {
@@ -1188,5 +1193,84 @@ describe("tura jest akcją", () => {
     // Kwota nie przepada — trafia do tury tła, czyli tam, gdzie agregat trzyma
     // „nie wiemy, czyja to tura”.
     expect(stats.timeline.reduce((sum, s) => sum + s.damage, 0)).toBe(507);
+  });
+});
+
+/**
+ * Efekty w dymku — kto je wyzwolił, a na kim się odpaliły (`AUDYT‑87`).
+ *
+ * Do 2026‑08‑05 KAŻDY efekt szedł na konto bijącego, więc napastnik miał
+ * w rubryce „Efekty w ciosach" napisane, że sparował i pochłonął cios, który
+ * sam zadał. Gra mówi co innego: 24 klucze renderuje po stronie bitego, w tym
+ * samym kubełku, w którym stoją blok i unik (`STRONA_CELU` w `protokol.ts`).
+ */
+describe("strona efektu decyduje, czyj jest licznik", () => {
+  const SKLAD: RosterEntry[] = [
+    { id: 1, name: "Napastnik", side: 0 },
+    { id: 2, name: "Cel", side: 1 },
+  ];
+  const stats = aggregate(
+    dekoduj(["1=100.00;2=50.00;+dmgd=500;-dmgd=300;+pierce;-parry;-absorb=200"], SKLAD),
+    SKLAD,
+  );
+  const napastnik = stats.actors.find((a) => a.name === "Napastnik")!;
+  const cel = stats.actors.find((a) => a.name === "Cel")!;
+
+  test("obronne liczą się BITEMU, nie bijącemu", () => {
+    // Parowanie i absorpcja to tarcza celu. Gdyby wróciło stare `sourceKey`
+    // na sztywno, obie pozycje przeskoczyłyby do napastnika i test się zapali.
+    expect(cel.procs.map((p) => p.label).sort()).toEqual(["-absorb", "-parry"]);
+    expect(napastnik.procsReceived.map((p) => p.label).sort()).toEqual(["-absorb", "-parry"]);
+  });
+
+  test("zaczepne zostają przy bijącym", () => {
+    expect(napastnik.procs.map((p) => p.label)).toEqual(["+pierce"]);
+    expect(cel.procsReceived.map((p) => p.label)).toEqual(["+pierce"]);
+  });
+
+  test("żaden efekt nie ginie i żaden nie liczy się dwa razy", () => {
+    // Niezmiennik ponad pojedynczą asercją: sumy obu rubryk po obu postaciach
+    // mają się zgadzać z liczbą efektów w komunikacie (3).
+    const wyzwolone = stats.actors.reduce((s, a) => s + a.procs.length, 0);
+    const otrzymane = stats.actors.reduce((s, a) => s + a.procsReceived.length, 0);
+    expect([wyzwolone, otrzymane]).toEqual([3, 3]);
+  });
+});
+
+/**
+ * Przypisanie sprawcy zranienia nie zależy od JĘZYKA KLIENTA (`AUDYT‑89`).
+ *
+ * Wiązanie szło kiedyś wyrażeniem regularnym po polskim zdaniu ze słownika GRY.
+ * Zdanie należy do gry, więc na kliencie nie‑polskim — albo po przeformułowaniu
+ * przy aktualizacji — wiązanie gasło BEZ OSTRZEŻENIA, a 150 obrażeń przenosiło
+ * się z konta łowcy do puli „Bez sprawcy".
+ */
+describe("zranienie wiąże się po kluczu, nie po brzmieniu", () => {
+  const SKLAD: RosterEntry[] = [
+    { id: 1, name: "Łowca", side: 0 },
+    { id: 2, name: "Mag", side: 0 },
+    { id: 3, name: "Wilk", side: 1 },
+    { id: 4, name: "Niedźwiedź", side: 1 },
+  ];
+  // Dwie postacie po stronie przeciwnej, żeby `opponentOf` NIE mogło podstawić
+  // sprawcy — inaczej test przechodzi z powodu, którego nie bada.
+  const KOMUNIKATY = [
+    "1=100.00;3=90.00;+dmgd=400;-dmgd=400;+injure=150",
+    "3=80.00;0;injure=150",
+  ];
+
+  test.each([
+    ["polski", "+Zranienie (%val%)"],
+    ["angielski", "+Wound (%val%)"],
+    ["klient bez tego zdania", null],
+  ])("brzmienie „%s” nie zmienia liczb", (_nazwa, zdanie) => {
+    const slownik = new SlownikStaly(zdanie === null ? [] : [["msg_+injure %val%", zdanie]]);
+    const stats = aggregate(dekoduj(KOMUNIKATY, SKLAD, slownik), SKLAD);
+    const lowca = stats.actors.find((a) => a.name === "Łowca")!;
+
+    // 400 z ciosu + 150 z tyknięcia zranienia, które ten cios zapowiedział.
+    expect(lowca.damageDealt).toBe(550);
+    // Nic nie wpada do puli bez sprawcy — sprawca stoi w komunikacie.
+    expect(totalBySide(stats.unattributedDotDamage)).toBe(0);
   });
 });

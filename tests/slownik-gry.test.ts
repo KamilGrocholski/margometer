@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { BEZ_SLOWNIKA, SlownikGry, SlownikStaly, type TranslationGlobals } from "../src/slownik-gry.ts";
 import { dekoduj, rola, znaneKlucze } from "../src/protokol.ts";
 import type { RosterEntry } from "../src/roster.ts";
+import type { BattleEvent } from "../src/types.ts";
 import { slownikZeZamrozenia } from "../tools/slownik.ts";
 import { ZAMROZENIE } from "./klucze-protokolu.ts";
 
@@ -28,6 +29,16 @@ const SKLAD: RosterEntry[] = [
  * ręczna kopia zgadza się z grą z definicji, bo obie strony pisze ta sama osoba.
  */
 const zeZamrozenia = () => slownikZeZamrozenia(ZAMROZENIE);
+
+/**
+ * Same BRZMIENIA efektów z pierwszego zdarzenia — bo o brzmienia jest ten plik.
+ *
+ * `Proc` niesie od `AUDYT‑87` także klucz, wartość i stronę; pilnują ich testy
+ * w `protokol.test.ts` i `stats.test.ts`. Tutaj wyciągnięcie samej etykiety
+ * trzyma asercje przy pytaniu, które te testy zadają.
+ */
+const etykiety = (z: BattleEvent | undefined): string[] =>
+  z !== undefined && z.kind === "attack" ? z.procs.map((p) => p.label) : [];
 
 describe("SlownikGry — odczyt window._t", () => {
   test("oddaje zdanie, które zwróciła gra", () => {
@@ -104,7 +115,7 @@ describe("etykiety proców w dekoderze", () => {
     );
     // Znak wiodący spada — inaczej ten sam efekt stałby w panelu jako dwie
     // różne pozycje, „Przebicie" i „+Przebicie".
-    expect((z as { procs: string[] }).procs).toEqual(["Przebicie"]);
+    expect(etykiety(z)).toEqual(["Przebicie"]);
   });
 
   test("proc z wartością dostaje ją podstawioną", () => {
@@ -115,14 +126,14 @@ describe("etykiety proców w dekoderze", () => {
       SKLAD,
       zeZamrozenia(),
     );
-    expect((z as { procs: string[] }).procs).toEqual(["Niszczenie pancerza o 5"]);
+    expect(etykiety(z)).toEqual(["Niszczenie pancerza o 5"]);
   });
 
   test("BEZ słownika zostaje KLUCZ, a nie zmyślona etykieta", () => {
     // Klucz jest prawdą. Brzmienie wymyślone przez nas nie byłoby — i to jest
     // ta sama reguła, co „nie udawaj danych, których log nie ma".
     const [z] = dekoduj(["1=100.00;2=90.00;+dmgd=10;+pierce;-dmgd=10"], SKLAD, BEZ_SLOWNIKA);
-    expect((z as { procs: string[] }).procs).toEqual(["+pierce"]);
+    expect(etykiety(z)).toEqual(["+pierce"]);
   });
 
   test("klucz, którego gra nie zna, też zostaje kluczem", () => {
@@ -130,14 +141,14 @@ describe("etykiety proców w dekoderze", () => {
     // tylko krytem — bierzemy inny proc bez zdania w słowniku.
     const pusty = new SlownikStaly([]);
     const [z] = dekoduj(["1=100.00;2=90.00;+dmgd=10;+pierce;-dmgd=10"], SKLAD, pusty);
-    expect((z as { procs: string[] }).procs).toEqual(["+pierce"]);
+    expect(etykiety(z)).toEqual(["+pierce"]);
   });
 
   test("kryt NIE jest procem — protokół ma na niego własny klucz", () => {
     // Kryt wchodzi do `Hit.crit`, a nie na listę efektów — i rozstrzyga o tym
     // KLUCZ, nie brzmienie zdania.
     const [z] = dekoduj(["1=100.00;2=90.00;+dmgd=10;+crit;-dmgd=10"], SKLAD, zeZamrozenia());
-    expect((z as { procs: string[] }).procs).toEqual([]);
+    expect(etykiety(z)).toEqual([]);
     expect((z as { hits: { crit: boolean }[] }).hits[0]!.crit).toBe(true);
   });
 });
@@ -182,6 +193,6 @@ describe("zaszyte identyfikatory kontra asset gry", () => {
     // czy zdanie spod niego przechodzi całą drogę do `procs`. Wejście jest
     // prawdziwym komunikatem z `tests/walka-z-gry.ts`.
     const [z] = dekoduj(["1=100.00;2=70.07;+dmgd=466;+acdmg=5;-dmgd=223"], SKLAD, slownik);
-    expect((z as { procs: string[] }).procs).toEqual(["Niszczenie pancerza o 5"]);
+    expect(etykiety(z)).toEqual(["Niszczenie pancerza o 5"]);
   });
 });
