@@ -30,6 +30,22 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — W pasku tytułu panelu jest zębatka. Otwiera osobne okienko
+  z ustawieniami, które przesuwa się tak samo jak panel i archiwum, a to, czy
+  jest otwarte, zostaje po odświeżeniu gry.
+- **Nowość** — W ustawieniach można włączyć tryb dla twórcy dodatku. Pojawia się
+  wtedy przycisk „Zrzut walki”, który zapisuje na dysk plik ze wszystkim, co
+  dodatek odczytał z walk od otwarcia gry — razem z życiem postaci w każdej
+  chwili walki. Taki plik warto dołączyć do zgłoszenia błędu, bo pozwala
+  odtworzyć dokładnie tę samą walkę. Nie wychodzi nigdzie sam z siebie:
+  zapisuje się u Ciebie i to Ty decydujesz, komu go wyślesz. Dopóki tryb jest
+  włączony, zębatka ma kropkę — bo raz włączony zostaje także po odświeżeniu
+  gry, a zbieranie kosztuje trochę pracy przy każdej turze.
+- **Poprawka** — Druga i każda kolejna walka stoczona bez zmiany mapy pokazuje
+  SWOJE liczby. Dotąd doliczała się do poprzedniej: po dwóch walkach pod rząd
+  panel pokazywał sumę obu, razem z postaciami z tej pierwszej, i nie mówił
+  o tym ani słowem. W archiwum obie walki lądowały w jednym nagraniu. Na
+  sprawdzonej walce druga potrafiła pokazać dokładnie dwa razy za dużo.
 - **Poprawka** — Tury liczą się tak, jak liczy je gra: turą jest jedna akcja —
   cios, użycie umiejętności albo krok do przodu. Wcześniej kilka akcji tej samej
   postaci pod rząd sklejało się w jedną turę, a szybka postać dostaje kolejkę

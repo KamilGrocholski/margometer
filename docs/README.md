@@ -44,7 +44,8 @@ klucz zamiast klasy CSS i rozbite składniki redukcji; tekst był rekonstrukcją
 tego wszystkiego ze zdań. Powody i koszt: `AGENTS.md` oraz `docs/specy/`.
 
 Poboczne: `recorder.ts` + `archive.ts` (nagrywanie i odtwarzanie walk),
-`roster.ts` (skład z `Engine.battle`), `palette.ts`
+`zrzut.ts` + `opcje.ts` (zbieranie surowego materiału z gry i okno ustawień
+z trybem deweloperskim), `roster.ts` (skład z `Engine.battle`), `palette.ts`
 (barwy), `window.ts` (geometria okna), `stored-state.ts` (stan z `localStorage`),
 `confirm.ts` (pytanie „na pewno?" z wygasaniem, wspólne dla panelu i archiwum),
 `version.ts` (numer wersji dla wnętrza bundle'a), `style.ts` (arkusz obu okien:
@@ -100,9 +101,14 @@ odtwarzalnymi ręcznie oraz 61 testów panelu. Każde miejsce ma ⚠️ z liczba
 
 ✅ **Część wróciła tego samego dnia**, gdy tabela kluczy dostała miejsce
 w kodzie: zgodność zaszytych identyfikatorów `_t` z assetem gry i dwustronne
-pokrycie tabeli ról przeciw 233 kluczom (569 testów). Reszta drogi powrotnej
-jest otwarta: `tools/walka-probe.js` zbiera zrzut z gry,
-`bun tools/walka.ts --rozbij … --nazwa <slug>` robi z niego moduł w `tests/`.
+pokrycie tabeli ról przeciw 233 kluczom (569 testów).
+
+✅ **Druga część wróciła 2026‑08‑05**: `tests/fixtures/*.json` niesie znów
+SUROWY protokół, a niezmienniki odkrywają pliki same (`tests/fixtury.ts`).
+Zrzut robi albo sam dodatek (zębatka → tryb deweloperski → „Zrzut walki”), albo
+`tools/walka-probe.js` w konsoli; `bun tools/walka.ts --zachowaj … --nazwa <slug>`
+zapisuje fixture, `--rozbij` robi z niego moduł w `tests/`. ⚠️ Prawdziwa walka
+jest w korpusie **jedna**, nie dwadzieścia pięć — skala nie wróciła.
 
 ---
 
@@ -154,10 +160,19 @@ sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.**
    i powód, dla którego NIE robi się tego `WebFetch`-em: [`MECHANIKA.md`](MECHANIKA.md).
    Ta droga została dopisana 2026‑08‑01 i jest tu zerowa, bo przez rok była
    pomijana — a odpowiadała na pytania, które mierzyliśmy z korpusu.
-1. **Nowy zrzut walki.** [`tools/walka-probe.js`](../tools/walka-probe.js)
-   wkleja się do konsoli na karcie z grą, owija `Engine.battle.update` i zbiera
-   surowe ładunki. Potem `bun tools/walka.ts --rozbij <plik> --nazwa <slug>`
-   zapisze `tests/walka-<slug>.ts` — moduł z komunikatami, składem i nagłówkiem,
+1. **Nowy zrzut walki — dwie drogi, jeden kształt pliku.**
+   - **Z dodatku:** zębatka → „Tryb deweloperski" → „Zrzut walki". Nie wymaga
+     niczego przed walką (tryb raz włączony zostaje) i nie owija
+     `Engine.battle.update` drugi raz. Zbiera całą sesję, więc przy kilku
+     walkach `--rozbij`/`--zachowaj` żądają `--walka <n>`.
+   - **Sondą:** [`tools/walka-probe.js`](../tools/walka-probe.js) wklejony do
+     konsoli PRZED walką. Zostaje i ma zostać — działa bez instalowania dodatku
+     i jest jedyną drogą, gdy podejrzenie pada na sam dodatek.
+
+   Potem `bun tools/walka.ts --zachowaj <plik> --nazwa <slug>` zapisze fixture
+   w `tests/fixtures/` (surowy protokół z migawkami `hp.max` — po nim chodzą
+   niezmienniki), a `--rozbij <plik> --nazwa <slug>` zapisze
+   `tests/walka-<slug>.ts` — moduł z komunikatami, składem i nagłówkiem,
    w którym trzy pola opisu czekają na wypełnienie przez człowieka.
 
    ⚠️ **Stało tu co innego do 2026‑08‑04**: „nowy fixture ma mieć DWA pliki —
@@ -208,9 +223,11 @@ szeroki wzorzec połykał całe klasy linii; każdy przypadek ma swoje ID
 w `AUDYT.md` i reguła przeszła na dekoder razem z odczytem.
 
 **Materiał z gry jest dowodem.** ⚠️ Zdanie mówiło kiedyś o katalogu ze zrzutami,
-którego nie ma od 2026‑08‑04. Reguła zostaje i dotyczy tego, co po nim zostało:
-`tests/walka-z-gry.ts` jest zrzutem z gry, a `tests/klucze-protokolu.ts`
-odczytem jej assetu — twierdzenia o zachowaniu gry wolno opierać na nich.
+skasowanym 2026‑08‑04 — **katalog wrócił 2026‑08‑05** i reguła dotyczy dziś
+znów jego: `tests/fixtures/*.json` niesie surowy protokół tak, jak przysłał go
+serwer. Obok stoją `tests/walka-z-gry.ts` (kopia jednego z fixture'ów, związana
+z oryginałem testem) i `tests/klucze-protokolu.ts` (odczyt assetu gry) —
+twierdzenia o zachowaniu gry wolno opierać na nich.
 Wszystko inne w testach produkujemy sami i dowodem NIE JEST. Materiału z gry nie
 edytuje się ręcznie, żeby test przeszedł — a tabeli kluczy nie edytuje się
 w ogóle: jest wygenerowana i mówi to w pierwszej linii.

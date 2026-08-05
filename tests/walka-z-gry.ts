@@ -1,23 +1,40 @@
 import type { RosterEntry } from "../src/roster.ts";
 
 /**
- * JEDYNA prawdziwa walka, jaka została w repo — przepisana do kodu.
+ * Prawdziwa walka z gry, wygodna do importu — łowca przeciw odyńcom.
  *
- * Pochodzi ze zrzutu `tools/walka-probe.js` (świat `tempest`, build
- * `1781609507010`, łowca przeciw odyńcom). Leżał do 2026‑08‑04 jako plik danych
- * obok testów; ten materiał **nie jest syntetyczny** i dlatego zostaje —
- * 18 komunikatów mieści się w pliku źródłowym, a plik danych nie był tu do
- * niczego potrzebny. Kolejny taki moduł składa `bun tools/walka.ts --rozbij`.
+ * Świat `tempest`, build `1785244275300`, zrzut `tools/walka-probe.js`
+ * z 2026‑08‑04.
  *
- * ⚠️ **TO JEST CAŁY MATERIAŁ, KTÓRY MOŻNA SPRAWDZIĆ PRZECIW GRZE.** Wszystko
- * inne w testach produkujemy sami (`tests/korpus.ts`, `tools/synthetic-log.ts`).
+ * ⚠️ **BUILD STAŁ TU BŁĘDNY DO 2026‑08‑05: `1781609507010`.** To jest numer
+ * builda DEWELOPERSKIEGO rozpakowanych źródeł klienta (experimental.margonem.pl,
+ * `docs/specy/2026-08-04-zrodla-klienta-z-buildu-deweloperskiego.md`), sześć
+ * tygodni starszego od walki. Wziął się stąd, że nagłówek przepisywał człowiek
+ * przy przenoszeniu materiału z plików danych do kodu — a dwa numery builda
+ * leżały wtedy obok siebie. Prawdziwy potwierdzają dwa niezależne zapisy:
+ * sam zrzut i skasowany `meta.json`
+ * (`git show eb9e76c^:tests/fixtures/new-engine/2026-08-04_tempest_lowca-vs-odyncze/meta.json`).
+ * **To jest cały argument za tym, żeby pochodzenia nie przepisywać ręką.**
+ *
+ * ⚠️ **PRZESTAŁ TU STAĆ NAPIS „JEDYNA PRAWDZIWA WALKA, JAKA ZOSTAŁA".** Od
+ * 2026‑08‑05 surowy materiał wrócił do `tests/fixtures/` i to on jest oryginałem:
+ * ten moduł niesie DOKŁADNIE te same komunikaty i skład, co
+ * `tests/fixtures/2026-08-04-tempest-lowca-vs-odyncze.json`, i pilnuje tego test
+ * („moduł z tej walki nie rozjeżdża się z fixture'em"). Fixture niesie ponadto
+ * to, czego moduł zmieścić nie może: ładunki, granice wywołań i `hp.max`, na
+ * którym stoi jedyny świadek dekodera spoza dekodera.
+ *
+ * PO CO WIĘC MODUŁ. Cztery miejsca importują tę walkę jako gotowe `KOMUNIKATY`
+ * i `SKLAD` (`archive.test.ts`, `index.test.ts`, `stats.test.ts` oraz `build.ts`
+ * jako seed podglądu), a `build.ts` nie ma jak czytać katalogu testów. Moduł
+ * jest wygodą, nie źródłem — i dlatego wolno go regenerować, a nie edytować.
+ *
  * Jedna walka to jedna walka: nie ma tu bloku, uniku, absorpcji z własnym
  * kluczem ani zapowiedzi umiejętności. Lista zakupowa na następny zrzut stoi
  * w `docs/ROADMAP.md`.
  *
- * **Niczego się tu nie edytuje, żeby test przeszedł.** Ta sama reguła, która
- * obowiązywała fixture'y — z tą różnicą, że tutaj nie ma już do czego wrócić
- * po oryginał.
+ * **Niczego się tu nie edytuje, żeby test przeszedł.** Gdy coś się nie zgadza,
+ * wraca się do fixture'a — a od 2026‑08‑05 jest do czego wracać.
  *
  * Co w niej siedzi: łowca (`+dmgd`, dystansowe) przeciw trzem potworom, dwa
  * krytyki, przebicie, redukcja pancerzem (`+acdmg`), tyknięcie trucizny

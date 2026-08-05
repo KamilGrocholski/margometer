@@ -6,6 +6,7 @@ paths:
   - "docs/**/*.md"
   - "tests/korpus.ts"
   - "tests/walka-z-gry.ts"
+  - "tests/fixtures/README.md"
 ---
 
 # Zdanie o mechanice gry wymaga dowodu ze źródła
@@ -19,6 +20,11 @@ oba wzorce przeżyły pliki, do których wskazywały, więc reguła **nie ładow
 się tam, gdzie zdania o mechanice gry naprawdę powstają**. Ścieżka, która nigdy
 się nie dopasuje, wygląda w pliku dokładnie tak samo jak działająca. Kasując
 plik z `src/` albo `tests/`, sprawdź tę listę.
+
+⚠️ Uwaga przy `tests/fixtures/README.md`: katalog wrócił 2026‑08‑05, ale
+**`meta.json` nie wraca** — opis materiału stoi dziś w jednym `README.md`, a nie
+w pliku na walkę. Stary wzorzec `tests/fixtures/**/meta.json` byłby dziś martwy
+po raz drugi z tego samego powodu.
 
 **Kiedy dotyczy.** Gdy piszesz (w kodzie, komentarzu, dokumencie albo w
 odpowiedzi) zdanie o tym, jak zachowuje się GRA, a nie nasz kod. Test: **czy

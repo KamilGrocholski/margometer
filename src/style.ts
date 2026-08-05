@@ -96,7 +96,7 @@ const SHARED = `
    doklejana w JS: klasa wymagałaby zmiany w dwóch plikach i dałoby się
    o nią zapomnieć przy trzecim oknie. Tu zapomnieć się nie da — nowe okno
    albo jest na tej liście, albo nie wygląda jak okno. */
-.panel, .archive {
+.panel, .archive, .opcje {
   background: var(--surface-window);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -109,9 +109,9 @@ const SHARED = `
   flex-direction: column;
   overflow: hidden;
 }
-/* Nagłówek jest uchwytem przeciągania w obu oknach. */
-.panel header, .archive header { cursor: grab; }
-.panel header.dragging, .archive header.dragging { cursor: grabbing; }
+/* Nagłówek jest uchwytem przeciągania w każdym z okien. */
+.panel header, .archive header, .opcje header { cursor: grab; }
+.panel header.dragging, .archive header.dragging, .opcje header.dragging { cursor: grabbing; }
 `;
 
 /** Reguły panelu i dymka. */
@@ -536,4 +536,52 @@ const ARCHIVE = `
  * kosztu w tym nie ma, a alternatywa (dokładanie arkusza przy `attachArchive`)
  * przywracałaby dwa źródła wyglądu, czyli to, przed czym ten plik powstał.
  */
-export const STYLE = [TOKENS, SHARED, PANEL, ARCHIVE].join("\n");
+const OPCJE = `
+/* Jak przy archiwum: \`hidden\` przegrywa z \`display: flex\` z prymitywów. */
+.opcje[hidden] { display: none; }
+.opcje {
+  position: fixed;
+  z-index: 1;
+  width: 300px;
+}
+/* WSZYSTKO PREFIKSOWANE. Shadow root jest jeden i dzielimy go z panelem —
+   \`.row\`, \`.hint\` czy \`.actions\` bez prefiksu wzięłyby reguły panelu,
+   a testy panelu czytają \`.row\` po całym roocie. Lekcja z \`.archive-paste-actions\`
+   wyżej: kolizja była objawem wspólnego zasięgu, nie pecha. */
+.opcje-section { display: flex; flex-direction: column; gap: 6px; padding: 8px; }
+.opcje-toggle {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.opcje-hint { margin: 0; font-size: 11px; color: var(--ink-muted); opacity: 0.75; }
+.opcje-stan { margin: 0; font-size: 11px; }
+/* Bufor, który stanął, ma być widać. Ten sam token co w archiwum. */
+.opcje-warn { margin: 0; font-size: 11px; color: var(--warning); }
+/* Zębatka z CZYNNYM trybem deweloperskim (AUDYT-84).
+   Kropka, nie inny kolor całego przycisku: przycisk niesie już stan
+   „otwarte/zamknięte" przez aria-pressed i swoje tło, więc drugi stan musi
+   mieć własne miejsce, zamiast walczyć o to samo. Kolor ostrzegawczy, bo to
+   jest stan, w którym dodatek zbiera dane i płaci za to przy każdej turze. */
+button.opcje-dev-czynny { position: relative; }
+button.opcje-dev-czynny::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+.opcje-actions { display: flex; gap: 6px; align-items: center; }
+.opcje-notice {
+  padding: 5px 8px;
+  font-size: 11px;
+  color: var(--warning);
+  border-top: 1px solid var(--border-soft);
+}
+`;
+
+export const STYLE = [TOKENS, SHARED, PANEL, ARCHIVE, OPCJE].join("\n");

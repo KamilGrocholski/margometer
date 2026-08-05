@@ -5,6 +5,18 @@
  * grze** — wszystko inne w testach repo produkuje samo. Rozbija go na moduł
  * `bun tools/walka.ts --rozbij`.
  *
+ * ⚠️ **OD 2026‑08‑05 TO SAMO ROBI DODATEK** (zębatka → „Tryb deweloperski" →
+ * „Zrzut walki", `src/zrzut.ts`) i produkuje plik w TYM SAMYM kształcie —
+ * `Zrzut` mieszka dziś w `src/zrzut.ts`, a to narzędzie importuje go stamtąd.
+ * Dodatek jest wygodniejszy w każdym zwykłym przypadku: nie trzeba pamiętać
+ * przed walką i nie zakłada DRUGIEJ warstwy na `Engine.battle.update`.
+ *
+ * **Ta sonda mimo to zostaje i ma zostać**, bo odpowiada na pytanie, na które
+ * dodatek odpowiedzieć nie może: działa bez instalowania czegokolwiek i jest
+ * jedyną drogą, gdy podejrzenie pada na SAM DODATEK. Zrzut zebrany kodem,
+ * który się bada, nie świadczy o niczym. Jedna różnica przy rozbijaniu: sonda
+ * nie numeruje walk (żyje jedną), więc jej pliki nie wymagają `--walka <n>`.
+ *
  * ⚠️ **ZBIERAŁA TU JESZCZE WĘZŁY RENDERU — do 2026‑08‑04.** Dokładała do
  * każdego wywołania linie `.battle-msg` doklejone przez klienta, indeksowane
  * równolegle do `t.m`, żeby dało się wyprowadzić odpowiedniość
@@ -154,6 +166,12 @@
 
     zrzut: () => ({
       wersja: WERSJA,
+      // ⚠️ **SONDA TEGO POLA NIE PISAŁA I DLATEGO NARZĘDZIE ZGADYWAŁO**
+      // (`AUDYT‑64`). `--pokaz` drukowało „źródło: sonda" z wartości domyślnej,
+      // nie z pliku — więc zrzut z dodatku bez pola wyglądałby identycznie.
+      // Od kiedy piszą je OBIE drogi, brak pola znaczy dokładnie jedno:
+      // plik sprzed 2026‑08‑05, o pochodzeniu nie do ustalenia z niego samego.
+      zrodlo: "sonda",
       przy: new Date().toISOString(),
       swiat: location.hostname.split(".")[0],
       // Numer builda klienta z nazwy bundla. Bez niego, gdy gra zmieni format,
@@ -180,8 +198,15 @@
       const a = document.createElement("a");
       a.href = url;
       a.download = nazwa;
+      // Kotwica w dokumencie, zwolnienie URL-a w następnym takcie — ta sama
+      // poprawka co w `src/zrzut.ts` (`AUDYT‑69`) i z tego samego powodu:
+      // odczepiony węzeł plus natychmiastowy `revoke` potrafią w Firefoksie
+      // przerwać pobieranie po cichu. Sonda ma zostać zamienna z dodatkiem
+      // co do bajta, więc obie drogi zapisują tak samo.
+      document.body.append(a);
       a.click();
-      URL.revokeObjectURL(url);
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
       console.log(`[walka] zapisane: ${nazwa}`);
       return nazwa;
     },

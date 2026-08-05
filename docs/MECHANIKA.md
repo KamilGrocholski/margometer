@@ -687,3 +687,83 @@ gra przyznaje turę (`Battle.js:444,450` → `newTurn(data.current)`). To
 autorytatywny sygnał i jest w ładunku, który już przechwytujemy, ale w naszym
 jedynym zrzucie CAŁA walka przyszła jednym wywołaniem `update`, więc nie
 rozstrzygnąłby ani jednej z 18 linii. Trop stoi w `docs/ROADMAP.md`.
+
+### Granica walk — `data.init` zaczyna walkę, ale `Engine.battle` się NIE zmienia ✅
+
+Pytanie: **po czym poznać, że w sesji zaczęła się NOWA walka.** Dotyczy gry,
+nie nas: cudze repo czytające ten sam strumień `Engine.battle.update` ma
+dokładnie ten sam problem.
+
+**Metoda: trzeci szczebel** (`§4b`) — asset klienta, build deweloperski
+`1781609507010`, plus pomiar na materiale. Pomoc gry o kształcie ładunku nie
+mówi nic i mówić nie może; to nie jest pytanie o mechanikę walki, tylko
+o protokół.
+
+**Cytat 1 — `data.init` jest znacznikiem startu i klient działa na nim wprost**
+(`.cache/margonem-zrodla-1781609507010/src/js/Margonem/core/battle/Battle.js:344`):
+
+```js
+this.update = (data) => {
+    let notCloseNow = !isset(data.close);
+    if (isset(data.init)) {
+        isAutoFightForAllAvailable = null;
+        self.setDateTime();
+        this.closeOtherWindows();
+    }
+```
+
+**Cytat 2 — na `init` klient przelicza skład od zera** (`Battle.js:954`):
+
+```js
+for (var j in test) {
+    if (data.init) self.w_amount++;
+```
+
+**Cytat 3 — linia otwierająca wychodzi przy PUSTYCH drużynach, nie przy `init`**
+(`Battle.js:911`, `:945`):
+
+```js
+this.updateWarriors = function (data) {
+    if (!teamIDs['1'].length) {
+        …
+        BattleMessages.battleMsg('0;0;txt=' + _t('battle_starts_between %grp1% %grp2%', …));
+```
+
+**Pomiar, który to potwierdza i który był powodem pytania.** Zrzut z 2026‑08‑05
+(`walka-tempest-2026-08-05T11-49-44-019Z.json`, świat `tempest`, build
+`1785244275300`) niesie PIĘĆ wywołań i DWIE walki:
+
+| wpis | ładunek | skład po wywołaniu |
+|---|---|---|
+| 0 | `endBattle`, `move` | Kazrek, Warchlak, Locha, Locha |
+| 1 | `close`, `endBattle`, `move` | — (pusty) |
+| 2 | **`init`**, `myteam`, `current`, `turns_warriors`, … | Kazrek, Odyniec, Odyniec |
+| 3 | `w` | Kazrek, Odyniec, Odyniec |
+| 4 | `endBattle`, `m` (11 komunikatów) | Kazrek, Odyniec, Odyniec |
+
+Obsada zmienia się w całości poza graczem, a mimo to **wszystkie pięć wpisów ma
+`walka: 1`**. Nasze numerowanie chodzi po TOŻSAMOŚCI obiektu `Engine.battle`
+(`src/protokol-source.ts:241`), a ten obiekt gra tworzy raz i używa go dalej;
+zmienia się jego stan wewnętrzny, nie referencja.
+
+**Wniosek dla kodu.** Granicą walki jest `data.init` w ładunku, a nie zmiana
+obiektu. Tożsamość obiektu jest warunkiem WYSTARCZAJĄCYM (nowy obiekt to na
+pewno nowa walka), ale nie KONIECZNYM — i to jest cała różnica.
+
+**Czego ten wpis NIE rozstrzyga.** Czy `init` przychodzi ZAWSZE, także po
+przeładowaniu strony w trakcie walki (`Battle.js:827‑828` i `:833` wspominają
+„reload”), oraz czy `close` bez `init` potrafi zamknąć walkę tak, że następna
+nie dostanie `init`. Materiału na to nie ma — potrzebny zrzut z przeładowaniem.
+
+⚠️ **Stało tu `Battle.js:824` i był to zły numer linii** (`AUDYT‑74`). Linia 824
+to `const initLoot = isset(allData.loot) && …`; słowo „reload” pada w `455`,
+`827`, `828` i `833`. Cztery pozostałe cytaty tego wpisu (`:344`, `:911`,
+`:945`, `:954`) sprawdzono co do linii i trafiają.
+
+⚠️ **Pomiar wyżej opiera się na pliku, którego w repo NIE MA** (`AUDYT‑75`).
+`walka-tempest-2026-08-05T11-49-44-019Z.json` odpadł jako sklejony i nie wszedł
+do `tests/fixtures/`, więc tabeli pięciu wywołań nie da się dziś odtworzyć.
+Sam WNIOSEK stoi niezależnie: opierają go cztery cytaty z klienta powyżej oraz
+pomiar na żywym odczycie (`AUDYT‑56` — druga walka zadawała 5568 zamiast 2784
+obrażeń, dopóki granicą była tożsamość obiektu). Zapisane tutaj, bo to ten sam
+gatunek zapisu, który w tym repo dwa razy skłamał o buildzie.

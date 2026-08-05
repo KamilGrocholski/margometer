@@ -168,6 +168,104 @@ describe("EngineProtocolSource: co dociera do słuchacza", () => {
     expect(widziane.at(-1)!.filter((e) => e.kind === "attack")).toHaveLength(1);
   });
 
+  /**
+   * GRANICĄ WALKI JEST `data.init` — i to jest ważniejszy test od tego wyżej.
+   *
+   * ⚠️ Tamten opisuje warunek WYSTARCZAJĄCY, którym gra się nie posługuje:
+   * `Engine.battle` powstaje raz i żyje całą sesję, zmienia się jego stan, nie
+   * referencja (`docs/MECHANIKA.md`, wpis „Granica walk"). Dopóki zerowanie
+   * stało wyłącznie na tożsamości obiektu, druga walka doliczała się do
+   * pierwszej — zmierzone na panelu: 2644 → 5288 obrażeń, 12 → 24 tury
+   * (`AUDYT‑56`). Ten test pilnuje drogi, którą gra NAPRAWDĘ chodzi.
+   */
+  test("`data.init` ZERUJE bufor, choć obiekt walki zostaje ten sam", () => {
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    const widziane: BattleEvent[][] = [];
+    new EngineProtocolSource(globals, roster(), z).subscribe((p) => widziane.push(p.zdarzenia));
+    const update = battle["update"] as (...a: unknown[]) => unknown;
+
+    update({ m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"] });
+    expect(widziane.at(-1)!.filter((e) => e.kind === "attack")).toHaveLength(1);
+
+    // Koniec pierwszej walki i początek drugiej — TEN SAM obiekt `battle`,
+    // dokładnie tak, jak w jedynym zrzucie z gry, który to pokazał.
+    update({ init: "1", myteam: 1 });
+    update({ m: ["1=100.00;2=70.00;+dmg=30;-dmg=30"] });
+
+    // Jedno trafienie, nie dwa: komunikat pierwszej walki nie należy do drugiej.
+    expect(widziane.at(-1)!.filter((e) => e.kind === "attack")).toHaveLength(1);
+  });
+
+  test("`init` PIERWSZEJ walki po podpięciu nie odcina jej drugi raz", () => {
+    // Podpięcie się już odcięło walkę (nowy obiekt `battle`), więc jej własny
+    // `init` nie ma czego dzielić. Bez tego pierwszy zrzut w sesji nosiłby
+    // numer 2, a `otwarcia` szukałyby linii pod numerem, którego nikt nie ma.
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    const walki: number[] = [];
+    let numer = 0;
+    new EngineProtocolSource(globals, roster(), {
+      ...z,
+      kolekcjoner: {
+        nowaWalka: () => void walki.push((numer += 1)),
+        przed: () => null,
+        po: () => {},
+      },
+    }).subscribe(() => {});
+
+    const update = battle["update"] as (...a: unknown[]) => unknown;
+    update({ init: "1", myteam: 1 });
+
+    // Jedno odcięcie — z podpięcia. `init` tej samej walki go nie powtarza.
+    expect(walki).toEqual([1]);
+
+    // Ale `init` NASTĘPNEJ walki już tak.
+    update({ m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"] });
+    update({ init: "1", myteam: 1 });
+    expect(walki).toEqual([1, 2]);
+  });
+
+  test("awaria GRY tuż po odcięciu nie gubi granicy NASTĘPNEJ walki", () => {
+    // ⚠️ Znalezione przy przeglądzie własnej naprawy `AUDYT‑56`, nie w audycie —
+    // i pierwsza wersja tego testu była ZIELONA przy zepsutym kodzie, bo
+    // odtwarzała nie ten moment. Flaga `swiezaWalka` jest `true` tylko TUŻ PO
+    // odcięciu; żeby awaria gry miała znaczenie, musi paść dokładnie wtedy.
+    //
+    // Wyjątek z `oryginal.apply` jest błędem GRY i leci dalej nietknięty. Gdyby
+    // zabrał ze sobą wyzerowanie flagi (czyli gdyby nie stała w `finally`),
+    // NASTĘPNY `init` zostałby przeoczony jako „ta sama świeża walka" — i zrzut
+    // zapisałby dwie walki pod jednym numerem.
+    let psuj = true;
+    const { globals, battle } = gra(() => {
+      if (psuj) throw new Error("gra padła na tej porcji");
+      return undefined;
+    });
+    const z = zegar();
+    const walki: number[] = [];
+    let numer = 0;
+    new EngineProtocolSource(globals, roster(), {
+      ...z,
+      kolekcjoner: {
+        nowaWalka: () => void walki.push((numer += 1)),
+        przed: () => null,
+        po: () => {},
+      },
+    }).subscribe(() => {});
+    const update = battle["update"] as (...a: unknown[]) => unknown;
+
+    // Podpięcie odcięło pierwszą walkę, więc flaga jest podniesiona.
+    expect(walki).toEqual([1]);
+
+    // I właśnie teraz gra się wywraca. Jej wyjątek MA wyjść do gry.
+    expect(() => update({ m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"] })).toThrow(/gra padła/);
+    psuj = false;
+
+    // Granica następnej walki musi nadal działać.
+    update({ init: "1", myteam: 1 });
+    expect(walki).toEqual([1, 2]);
+  });
+
   test("ładunek bez `m` nie budzi słuchacza", () => {
     // `update` leci też przy samej zmianie tury albo życia. Wołanie słuchacza
     // bez nowych komunikatów przeliczałoby walkę bez powodu.
@@ -414,5 +512,108 @@ describe("EngineProtocolSource: skład walki narasta", () => {
     (nowaBattle["update"] as (...a: unknown[]) => unknown)({ m: ["0;0;txt=b"] });
 
     expect(widziane.at(-1)).toEqual(drugi);
+  });
+});
+
+/**
+ * Kolekcjoner zrzutu (`src/zrzut.ts`) wpięty w TO SAMO owinięcie.
+ *
+ * Po co osobny blok: zbieranie fixture'ów dokłada nasz kod PRZED oryginalnym
+ * `update` — a do tej pory wszystko, co robiliśmy, działo się po nim. To jedyne
+ * miejsce, w którym nasza awaria potrafi przewrócić graczowi turę, zanim gra
+ * cokolwiek policzy. Te testy pilnują, że nie potrafi.
+ */
+describe("EngineProtocolSource: zbieranie zrzutu", () => {
+  /** Atrapa kolekcjonera z zapisem kolejności wywołań. */
+  function kolekcjoner(rzuc: { przed?: boolean; po?: boolean } = {}) {
+    const slad: string[] = [];
+    return {
+      slad,
+      atrapa: {
+        przed: () => {
+          slad.push("przed");
+          if (rzuc.przed) throw new Error("kolekcjoner padł przed oryginałem");
+          return [{ id: 1, name: "Kamil", team: 1, prof: null, lvl: null, hp: null, mana: null, energy: null, ac: null }];
+        },
+        po: () => {
+          slad.push("po");
+          if (rzuc.po) throw new Error("kolekcjoner padł po oryginale");
+        },
+        nowaWalka: () => void slad.push("nowaWalka"),
+      },
+    };
+  }
+
+  test("migawka „przed” powstaje PRZED oryginałem, a zapis PO nim", () => {
+    const k = kolekcjoner();
+    const { globals, battle } = gra(() => void k.slad.push("oryginał"));
+    new EngineProtocolSource(globals, roster(), {
+      ...zegar(),
+      kolekcjoner: k.atrapa,
+    }).subscribe(() => {});
+
+    (battle["update"] as (...a: unknown[]) => unknown)({ m: ["0;0;txt=a"] });
+
+    // `nowaWalka` leci przy podpięciu, bo to pierwsza walka tej sesji.
+    expect(k.slad).toEqual(["nowaWalka", "przed", "oryginał", "po"]);
+  });
+
+  test("rzucający kolekcjoner PRZED oryginałem nie przewraca `update`", () => {
+    const k = kolekcjoner({ przed: true });
+    const { globals, battle } = gra(() => "wynik oryginału");
+    const widziane: unknown[] = [];
+    new EngineProtocolSource(globals, roster(), {
+      ...zegar(),
+      kolekcjoner: k.atrapa,
+    }).subscribe((p) => widziane.push(p.zdarzenia));
+
+    const update = battle["update"] as (...a: unknown[]) => unknown;
+    expect(() => update({ m: ["0;0;txt=a"] })).not.toThrow();
+    expect(update({ m: ["0;0;txt=b"] })).toBe("wynik oryginału");
+    // Odczyt leci dalej, mimo że zbieranie padło.
+    expect(widziane).toHaveLength(2);
+  });
+
+  test("rzucający kolekcjoner PO oryginale nie zatrzymuje licznika", () => {
+    // Narzędzie deweloperskie nie ma prawa zamrozić panelu. We wspólnym `try`
+    // rzucone `po()` przeskakiwałoby `przyjmij` i panel stanąłby po cichu.
+    const k = kolekcjoner({ po: true });
+    const { globals, battle } = gra(() => undefined);
+    const widziane: unknown[] = [];
+    new EngineProtocolSource(globals, roster(), {
+      ...zegar(),
+      kolekcjoner: k.atrapa,
+    }).subscribe((p) => widziane.push(p.zdarzenia));
+
+    (battle["update"] as (...a: unknown[]) => unknown)({ m: ["0;0;txt=a"] });
+
+    expect(widziane).toHaveLength(1);
+  });
+
+  test("podmiana obiektu walki zgłasza kolekcjonerowi NOWĄ WALKĘ", () => {
+    const k = kolekcjoner();
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    new EngineProtocolSource(globals, roster(), { ...z, kolekcjoner: k.atrapa }).subscribe(() => {});
+    (battle["update"] as (...a: unknown[]) => unknown)({ m: ["0;0;txt=a"] });
+
+    const nowaBattle: Record<string, unknown> = { update: () => undefined };
+    (globals.Engine as { battle?: unknown }).battle = nowaBattle;
+    z.tik();
+
+    expect(k.slad.filter((s) => s === "nowaWalka")).toHaveLength(2);
+  });
+
+  test("bez kolekcjonera nic się nie zmienia", () => {
+    const { globals, battle } = gra(() => "wynik oryginału");
+    const widziane: unknown[] = [];
+    new EngineProtocolSource(globals, roster(), zegar()).subscribe((p) =>
+      widziane.push(p.zdarzenia),
+    );
+
+    expect((battle["update"] as (...a: unknown[]) => unknown)({ m: ["0;0;txt=a"] })).toBe(
+      "wynik oryginału",
+    );
+    expect(widziane).toHaveLength(1);
   });
 });

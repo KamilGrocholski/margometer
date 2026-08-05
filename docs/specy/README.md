@@ -78,6 +78,9 @@ później. Kod mówi, co wybrano; nie mówi, czego nie wybrano i dlaczego.
 | [`2026-08-04-protokol-silnika-jako-zrodlo-parsera.md`](2026-08-04-protokol-silnika-jako-zrodlo-parsera.md) | wdrożone · 2026‑08‑04 |
 | [`2026-08-04-zrodla-klienta-z-buildu-deweloperskiego.md`](2026-08-04-zrodla-klienta-z-buildu-deweloperskiego.md) | wdrożone · 2026‑08‑04 |
 | [`2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`](2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md) | wdrożone (3a) · 2026‑08‑04 |
+| [`2026-08-05-tura-to-akcja.md`](2026-08-05-tura-to-akcja.md) | wdrożone · 2026‑08‑05 |
+| [`2026-08-05-zrzut-fixturow-z-dodatku.md`](2026-08-05-zrzut-fixturow-z-dodatku.md) | wdrożone · 2026‑08‑05 |
+| [`2026-08-05-surowy-material-z-gry-wraca-do-repo.md`](2026-08-05-surowy-material-z-gry-wraca-do-repo.md) | wdrożone · 2026‑08‑05 |
 
 Tabelę uzupełnia się ręcznie przy dodaniu pliku.
 

@@ -1,4 +1,5 @@
 import { Archive } from "./archive.ts";
+import { Opcje } from "./opcje.ts";
 import { Overlay } from "./overlay.ts";
 import { Recorder } from "./recorder.ts";
 import { EngineProtocolSource, type EventSource } from "./protokol-source.ts";
@@ -6,6 +7,7 @@ import { EngineRosterSource, type GameGlobals } from "./roster.ts";
 import { pustyOdczyt, walkaZakonczona } from "./stan-odczytu.ts";
 import { Session } from "./session.ts";
 import { EMPTY_STATS } from "./stats.ts";
+import { kolekcjonerStrony } from "./zrzut.ts";
 
 /** Co ile pytać stronę, czy pojawił się już silnik gry. */
 const LOOKUP_INTERVAL_MS = 1000;
@@ -124,6 +126,10 @@ export function boot(options: BootOptions = {}): () => void {
   let recorder: Recorder | null = null;
   const sesja = new Session();
   const roster = new EngineRosterSource(globals);
+  // Kolekcjoner powstaje PRZED panelem i przed źródłem, bo czyta własną flagę
+  // z magazynu i musi być gotowy na pierwszą walkę — także tę, która zacznie
+  // się, zanim gracz otworzy ustawienia.
+  const kolekcjoner = kolekcjonerStrony(storage);
   let odepnij: (() => void) | null = null;
   let missing = 0;
   let handle: number | null = null;
@@ -163,12 +169,20 @@ export function boot(options: BootOptions = {}): () => void {
         // Rozsypane archiwum nie może zabrać ze sobą licznika obrażeń.
         console.error("[MargoMeter] archiwum nie wystartowało", error);
       }
+      try {
+        // Osobne `try` od archiwum, nie wspólne: dwa dodatki obok licznika mają
+        // padać niezależnie. We wspólnym bloku rozsypane archiwum zabierałoby
+        // ustawienia, choć nie mają ze sobą nic wspólnego.
+        overlay.attachOpcje(new Opcje({ overlay, zrzut: kolekcjoner, storage }));
+      } catch (error) {
+        console.error("[MargoMeter] ustawienia nie wystartowały", error);
+      }
     }
 
     if (odepnij === null) {
       try {
         odepnij = start(
-          new EngineProtocolSource(globals, roster),
+          new EngineProtocolSource(globals, roster, { kolekcjoner }),
           overlay,
           sesja,
           recorder ?? undefined,

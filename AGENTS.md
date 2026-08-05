@@ -58,6 +58,7 @@ on przeżył wymianę odczytu. Nagrania trzymają surowe komunikaty, nie policzo
 liczby, żeby dało się je przeliczyć nowszym dekoderem.
 
 Poboczne: `recorder.ts` + `archive.ts` (nagrywanie i odtwarzanie),
+`zrzut.ts` + `opcje.ts` (zbieranie materiału z gry i okno ustawień),
 `roster.ts` (skład z `Engine.battle`), `palette.ts`, `window.ts`,
 `stored-state.ts`, `confirm.ts` (pytanie „na pewno?" z wygasaniem),
 `version.ts` (numer wersji w panelu i w skopiowanym JSON-ie),
@@ -104,37 +105,119 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
   ⚠️ **Najmocniejszy z nich zniknął 2026‑08‑04.** Porównywał `dekoduj(protokół)`
   z odczytem tej samej walki DRUGĄ, rozłączną drogą — i to on złapał jedyny
   prawdziwy błąd dekodera. Razem z tamtym odczytem zniknęła druga strona
-  porównania. **Składanie zdarzeń nie ma dziś świadka spoza repo i to jest
-  największa otwarta luka**; same klucze świadka mają (niżej).
-- **Materiał z gry jest dowodem**, nie „danymi testowymi”. Moduł ze zrzutu
-  niesie w nagłówku pochodzenie (świat, build, daty) i opis tego, co pokrywa,
-  czego w nim nie ma i co było trudne. Nie edytuje się go, żeby test przeszedł.
-- **Materiał testowy powstaje W KODZIE, nie w plikach danych.** Pliki danych
-  obok testów zeszły z drzewa 2026‑08‑04 — 25 walk, korpus z cudzego serwisu
-  i zamrożona tabela kluczy. Co jest zamiast:
-  - `tests/zdarzenia.ts` — pojedyncze `BattleEvent` budowane wprost;
-  - `tests/korpus.ts` — walki, po których chodzą NIEZMIENNIKI: pięć z generatora
-    (`tools/synthetic-log.ts`) plus jedna ręczna z kształtami, których generator
-    nie produkuje;
-  - `tests/walka-z-gry.ts` — **jedyna prawdziwa walka**, jaka została:
-    18 komunikatów i skład z prawdziwego zrzutu `Engine.battle.update`;
-  - `tests/klucze-protokolu.ts` — **jedyny fakt o grze sprawdzalny bez sieci**:
-    233 klucze renderera z assetu klienta, WYGENEROWANE
-    (`bun tools/slownik.ts --zamroz`), nie pisane ręcznie.
+  porównania.
 
-  ⚠️ **CO TO ODEBRAŁO.** Kształt, o którym nie pomyśleliśmy, nie ma jak wpaść
-  do materiału budowanego przez nas — a 25 prawdziwych walk łapało je samo
-  z siebie. Przestały być sprawdzane m.in.: przekrój po typie obrażeń w walce
-  grupowej, blok u celu, super‑kryt i osłabienie DoT‑a z liczbami odtwarzalnymi
-  ręcznie. Każde miejsce ma ⚠️ z liczbami.
+  ✅ **Częściowy świadek wrócił 2026‑08‑05** i stoi w `tests/fixtury.test.ts`.
+  Protokół podaje procent życia celu, migawka wojownika niesie `hp.max`; te dwie
+  liczby idą z różnych miejsc i nikt ich u nas nie uzgadnia, więc skumulowane
+  obrażenia muszą trafić w podany procent. **Obejmuje tylko obrażenia** — cel,
+  który padł, wypada z porównania, a uleczony wypada od chwili uleczenia
+  (`AUDYT‑61`). Blok i absorpcja przez świadka **przechodzą**, bo `applied` to
+  liczba PO redukcji; niesprawdzone są ich osobne składniki. Obrażenia ZADANE
+  i rozbicia nadal świadka nie mają.
+- **Materiał z gry jest dowodem**, nie „danymi testowymi”. Pochodzenie (świat,
+  build, daty, źródło) niesie **sam zrzut** w `tests/fixtures/`; opis tego, co
+  pokrywa, czego w nim nie ma i co było trudne, stoi w `tests/fixtures/README.md`
+  i **bez POLICZONYCH liczb** — te wypisuje `--pokaz`. ⚠️ Reguła brzmiała tu
+  „bez liczb" i była za szeroka wobec własnego powodu (`AUDYT‑80`): README niesie
+  `id` wojowników i daty, bo bez nich nie da się powiedzieć, co plik pokrywa.
+  Zakaz dotyczy liczb, które maszyna umie policzyć z pliku — bo tylko one
+  rozjeżdżają się po cichu. Nie edytuje się tego, żeby test
+  przeszedł.
 
-  ✅ Wróciło 2026‑08‑04, gdy tabela kluczy dostała miejsce w kodzie: zgodność
-  zaszytych identyfikatorów `_t` z assetem gry oraz **dwustronne** pokrycie
-  tabeli ról przeciw 233 kluczom gry. Obie mutacje sprawdzone.
+  ⚠️ Powód, dla którego pochodzenia się nie przepisuje: nagłówek
+  `tests/walka-z-gry.ts` podawał build `1781609507010` — deweloperski, sześć
+  tygodni starszy od walki — bo przy przenoszeniu materiału do kodu przepisywał
+  go człowiek. Prawdziwy (`1785244275300`) potwierdzają dwa niezależne zapisy.
+- **POLICZONE liczby nie wchodzą do plików danych; SUROWY materiał z gry —
+  owszem.** Reguła brzmiała tu do 2026‑08‑05 szerzej („materiał testowy powstaje
+  W KODZIE, nie w plikach danych") i była za szeroka wobec własnego powodu.
+  Powodem skasowania `tests/fixtures/` 2026‑08‑04 był `zdarzenia.json`: 1,44 MB
+  **wyjścia parsera, który właśnie zszedł z drzewa** — nie do zregenerowania,
+  nie do sprawdzenia przeciw grze, z ewentualnym błędem tamtego parsera
+  zamrożonym w środku. Surowy protokół nigdy nie był zarzutem; leżał w tym samym
+  katalogu jako `protokol.json` i był chwalony.
 
-  Kolejny materiał z gry bierze się ze zrzutu sondą (`tools/walka-probe.js`),
-  a rozbija go `bun tools/walka.ts --rozbij … --nazwa <slug>` — prosto do
-  modułu w `tests/`.
+  Gdzie dziś przebiega granica:
+  - **Nasze liczby → do kodu.** `tests/zdarzenia.ts` (pojedyncze `BattleEvent`),
+    `tests/korpus.ts` (walki z generatora plus jedna ręczna),
+    `tests/klucze-protokolu.ts` (233 klucze renderera, WYGENEROWANE przez
+    `bun tools/slownik.ts --zamroz`, nie pisane ręcznie).
+  - **Protokół tak, jak przysłał go serwer → do `tests/fixtures/*.json`**, przez
+    `bun tools/walka.ts --zachowaj … --nazwa <slug>`. Bo moduł z `--rozbij`
+    gubi `hp.max`, ładunki i granice wywołań, a bez `hp.max` nie ma świadka
+    dekodera spoza dekodera (niżej).
+
+  **Warunek, pod którym katalog wrócił: niezmienniki ODKRYWAJĄ pliki same**
+  (`tests/fixtury.ts` + `tests/fixtury.test.ts`, wciągane też do `KORPUS`).
+  Drugi zarzut z tamtej rundy brzmiał „plik danych da się dołożyć bez dotknięcia
+  jednego testu, leżał martwy i nikt tego nie widział" — i to jest prawda o
+  katalogu, którego nikt nie czyta. Tu zrzut wrzucony do katalogu jest sprawdzany
+  od razu; sprawdzone pomiarem: dorzucenie jednego pliku dało **16 testów
+  więcej** (702 → 718, pomiar 2026‑08‑05 przez skopiowanie fixture'a pod inną
+  nazwą i usunięcie go). ⚠️ Stało tu `14` (`AUDYT‑82`) — i lekcja jest ogólniejsza
+  od poprawki: **ta liczba rośnie razem z zestawem testów**, więc nie ma sensu
+  cytować jej jako stałej. Znaczenie ma znak, nie wartość: nowy plik dokłada
+  testy, zamiast leżeć martwo.
+
+  Katalog **pusty** zapala osobny test (`FIXTURY.length > 0`) — sprawdzone.
+  ⚠️ Literówka w ŚCIEŻCE nie zapala testu, tylko wywraca ładowanie modułu
+  (`AUDYT‑76`): `readdirSync` rzuca ENOENT na poziomie `tests/fixtury.ts`, więc
+  strażnik w ogóle nie startuje, a razem z nim pada `tests/stats.test.ts`, który
+  importuje `KORPUS`. Głośno — ale nie „osobnym testem", i tak to trzeba czytać.
+  Zmierzoną mutacją była literówka w ROZSZERZENIU (`.jsonx`), i tylko ona kończy
+  się „strażnik zapala się, reszta milczy".
+
+  `tests/walka-z-gry.ts` **zostaje**, ale przestał być oryginałem: jest kopią
+  jednego z fixture'ów dla czterech miejsc, które importują gotowe `KOMUNIKATY`
+  i `SKLAD` (w tym `build.ts`, który katalogu testów nie czyta). Rozjazd kopii
+  z oryginałem zapala test.
+
+  ⚠️ **CO ODEBRAŁO SKASOWANIE 25 WALK — i ile z tego wróciło.** Kształt, o którym
+  nie pomyśleliśmy, nie ma jak wpaść do materiału budowanego przez nas; 25
+  prawdziwych walk łapało je samo z siebie. Od 2026‑08‑05 prawdziwe walki znów
+  są w pętli niezmienników, ale jest ich **JEDNA**, nie dwadzieścia pięć. Nadal
+  nie są sprawdzane: przekrój po typie obrażeń w walce grupowej, blok u celu
+  i super‑kryt. Każde miejsce ma ⚠️ z liczbami.
+
+  ⚠️ **Stało tu „dwie" do 2026‑08‑05** (`AUDYT‑58`). Runda celowała w dwa
+  fixture'y, drugi odpadł jako sklejony — a liczba została w prozie i rozeszła
+  się stąd do pięciu innych miejsc. `find tests/fixtures -name '*.json'` mówi
+  `1`; `ROADMAP.md` i `tests/fixtures/README.md` mówiły „jedna" od początku.
+
+  ✅ Co wróciło i kiedy:
+  - 2026‑08‑04 — zgodność zaszytych identyfikatorów `_t` z assetem gry
+    i **dwustronne** pokrycie tabeli ról przeciw 233 kluczom gry.
+  - 2026‑08‑05 — **częściowy świadek dekodera spoza dekodera**. Protokół podaje
+    procent życia celu, migawka wojownika niesie `hp.max`; te dwie liczby idą
+    z różnych miejsc i nikt ich u nas nie uzgadnia, więc skumulowane obrażenia
+    muszą trafić w podany procent (763 − 243 = 520; 520/763 = 68,15 %). Zmierzone
+    na jedynej prawdziwej walce: **7 porównań, 0 rozjazdów**; dekoder sumujący
+    `raw` zamiast `applied` daje **6 rozjazdów**, czyli zapala 6 z 7.
+    **Obejmuje tylko obrażenia** — cel, który padł, wypada z porównania,
+    a uleczony wypada od chwili uleczenia (`AUDYT‑61`: leczenie przesuwa BAZĘ,
+    więc milczenie o nim dawało fałszywy alarm na poprawnym dekoderze). Blok
+    i absorpcja przez świadka **przechodzą**, bo `applied` to liczba PO redukcji;
+    niesprawdzone są ich osobne składniki.
+
+    ⚠️ **Stały tu liczby z materiału, którego w repo NIE MA** (`AUDYT‑58`,
+    `AUDYT‑59`): „16 trafień na dwóch walkach" i przykład `763 − 225 = 538;
+    538/763 = 70,51 %` z `id -255970`. Ani `70.51`, ani `225`, ani `538`, ani
+    takiego `id` nie ma w `tests/fixtures/` — przyszły z odrzuconego zrzutu
+    i przeżyły go w prozie. Liczba `6` jako jedyna była prawdziwa.
+
+  Kolejny materiał z gry ma **dwie drogi**, obie kończące się tym samym
+  `bun tools/walka.ts --zachowaj … --nazwa <slug>` (i zwykle także `--rozbij`)
+  oraz tym samym kształtem pliku
+  (`Zrzut` w `src/zrzut.ts` — JEDEN typ dla obu stron):
+  - **z dodatku**: zębatka → „Tryb deweloperski" → „Zrzut walki". Nie wymaga
+    niczego przed walką, bo tryb raz włączony zostaje, i **nie owija
+    `Engine.battle.update` drugi raz**. Zbiera całą sesję, więc przy kilku
+    walkach `--rozbij` żąda `--walka <n>`; numery pokazuje `--pokaz`.
+  - **sondą** (`tools/walka-probe.js`) wklejoną do konsoli przed walką. Zostaje
+    i ma zostać: działa bez instalowania dodatku i jest jedyną drogą, gdy
+    podejrzenie pada na sam dodatek — zrzut zebrany zepsutym kodem nie świadczy
+    o niczym.
 - **`tests/overlay.test.ts` był ostatni** i dlatego jego asercje wymieniają dziś
   nazwy z generatora. Test panelu mówi „czy panel rysuje to, co dostał"; nie
   mówi już „czy gra produkuje takie składy".

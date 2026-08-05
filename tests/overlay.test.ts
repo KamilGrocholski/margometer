@@ -1560,14 +1560,24 @@ describe("jedno źródło wyglądu dla obu okien", () => {
     expect(sheet()).toContain(".archive-row");
   });
 
-  test("chrome okna opisuje JEDNA reguła, wspólna dla panelu i archiwum", () => {
+  test("chrome okna opisuje JEDNA reguła, wspólna dla WSZYSTKICH okien", () => {
     const css = sheet();
-    // Żadne z okien nie ma własnej deklaracji tła — obie czytają token.
-    for (const selector of [".panel", ".archive"]) {
+    // Lista, nie para. Do 2026‑08‑05 stały tu wpisane z palca dwa selektory
+    // i dopisanie trzeciego okna (ustawienia) zapaliło ten test — czyli zrobił
+    // dokładnie to, co obiecuje komentarz w arkuszu: „nowe okno albo jest na
+    // tej liście, albo nie wygląda jak okno". Zostaje pętlą, żeby czwarte okno
+    // też się o niego potknęło.
+    const OKNA = [".panel", ".archive", ".opcje"];
+    // Żadne z okien nie ma własnej deklaracji tła — wszystkie czytają token.
+    for (const selector of OKNA) {
       const own = new RegExp(`^\\${selector} \\{[^}]*background:`, "m").exec(css);
       expect([selector, own]).toEqual([selector, null]);
     }
-    expect(css).toContain(".panel, .archive {");
+    expect(css).toContain(`${OKNA.join(", ")} {`);
+    // I każde z nich jest uchwytem przeciągania — reguła kursora ma tę samą listę.
+    for (const selector of OKNA) {
+      expect(css).toContain(`${selector} header`);
+    }
   });
 
   test("każdy token pada w arkuszu dokładnie raz jako deklaracja", () => {

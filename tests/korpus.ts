@@ -1,13 +1,21 @@
 import { syntheticFight } from "../tools/synthetic-log.ts";
 import { cios, leczenie, otwarcie, trafienie, tykniecie, umiejetnosc } from "./zdarzenia.ts";
+import { FIXTURY } from "./fixtury.ts";
+import { dekoduj } from "../src/protokol.ts";
 import type { BattleEvent } from "../src/types.ts";
 
 /**
- * Walki, po których chodzą NIEZMIENNIKI — budowane w kodzie, nie wczytywane.
+ * Walki, po których chodzą NIEZMIENNIKI.
  *
- * ⚠️ **ZASTĘPUJE ZESTAW 25 PRAWDZIWYCH WALK, USUNIĘTY 2026‑08‑04, I JEST OD
- * NIEGO SŁABSZY.** Trzeba to powiedzieć wprost, bo różnica jest w rodzaju, nie
- * w stopniu:
+ * ⚠️ **DO 2026‑08‑05 STAŁO TU „budowane w kodzie, nie wczytywane" i przestało
+ * być prawdą**: `WALKI_Z_GRY` na dole pliku wczytuje surowy materiał
+ * z `tests/fixtures/`. Ostrzeżenie niżej zostaje mimo to w całości, bo dotyczy
+ * SKALI, a ta się nie zmieniła: prawdziwa walka jest w korpusie jedna, nie
+ * dwadzieścia pięć.
+ *
+ * ⚠️ **TO, CO NIŻEJ, ZASTĘPUJE ZESTAW 25 PRAWDZIWYCH WALK, USUNIĘTY 2026‑08‑04,
+ * I JEST OD NIEGO SŁABSZE.** Trzeba to powiedzieć wprost, bo różnica jest
+ * w rodzaju, nie w stopniu:
  *
  * - Tamten zestaw niósł **25 prawdziwych walk i 4904 zdarzenia** — walki
  *   grupowe, bossy, trucizna bez sprawcy, absorpcja, rozdzielanie instancji po
@@ -74,8 +82,32 @@ export const OSOBLIWOSCI: BattleEvent[] = [
   { kind: "fight-end", outcome: "victory", actors: ["Gracz"], result: "Zwyciężyła drużyna" },
 ];
 
+/**
+ * Prawdziwe walki z `tests/fixtures/` — przeliczone dekoderem przy każdym
+ * uruchomieniu, nie zamrożone.
+ *
+ * ⚠️ **TO JEST CZĘŚCIOWA ODPOWIEDŹ NA OSTRZEŻENIE Z GÓRY TEGO PLIKU.** Stało
+ * tam — i nadal stoi — że kształt, o którym nie pomyśleliśmy, nie ma jak wpaść
+ * do materiału budowanego przez nas. Od 2026‑08‑05 wpada, choć na razie
+ * z JEDNEJ walki, a nie z dwudziestu pięciu. Ostrzeżenie zostaje, bo różnica
+ * między jedną a dwudziestoma pięcioma jest w tym miejscu istotą sprawy.
+ *
+ * ⚠️ Stało tu „z DWÓCH walk" (`AUDYT‑58`) — runda celowała w dwa fixture'y,
+ * drugi odpadł jako sklejony, a liczba została. `WALKI_Z_GRY.length` mówi `1`.
+ *
+ * Kluczowa różnica wobec skasowanego `zdarzenia.json`: tam leżały POLICZONE
+ * zdarzenia, więc błąd parsera był w nich zamrożony i testy sprawdzały się
+ * przeciw niemu. Tu leży surowy protokół, a `dekoduj` chodzi po nim przy każdym
+ * `bun test` — poprawka dekodera od razu zmienia to, po czym chodzą niezmienniki.
+ */
+export const WALKI_Z_GRY: { name: string; events: BattleEvent[] }[] = FIXTURY.map((f) => ({
+  name: f.nazwa,
+  events: dekoduj(f.komunikaty, f.sklad),
+}));
+
 /** Wszystko, po czym chodzą niezmienniki. */
 export const KORPUS: { name: string; events: BattleEvent[] }[] = [
   ...WALKI,
   { name: "osobliwosci", events: OSOBLIWOSCI },
+  ...WALKI_Z_GRY,
 ];

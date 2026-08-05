@@ -1,5 +1,6 @@
 import { dekoduj } from "./protokol.ts";
 import type { GameGlobals, RosterEntry, RosterSource } from "./roster.ts";
+import { zaczynaWalke, type Kolekcjoner, type MigawkaWojownika } from "./zrzut.ts";
 import { SlownikGry, SlownikStaly, type Slownik, type TranslationGlobals } from "./slownik-gry.ts";
 import type { BattleEvent } from "./types.ts";
 
@@ -157,6 +158,18 @@ export type ProtocolSourceOptions = {
   /** Wstrzykiwane, żeby dało się przewinąć zegar w teście — jak w `index.ts`. */
   schedule?: (step: () => void, everyMs: number) => number;
   cancel?: (handle: number) => void;
+  /**
+   * Zbieranie surowego materiału do fixture'ów (`src/zrzut.ts`).
+   *
+   * ⚠️ **JEST TU PO TO, ŻEBY NIE OWIJAĆ `update` DRUGI RAZ.** Sonda
+   * `tools/walka-probe.js` zakłada własną warstwę obok naszej i to jest jej
+   * jedyna wada: dwie warstwy na tej samej funkcji znoszą sens czterech
+   * gwarancji, które ten plik składa. Kolekcjoner dostaje więc te same
+   * argumenty, które i tak przez to opakowanie przechodzą — i nic poza tym.
+   *
+   * Nieobecny domyślnie: dodatek bez trybu deweloperskiego nie płaci nic.
+   */
+  kolekcjoner?: Kolekcjoner;
 };
 
 export class EngineProtocolSource implements EventSource {
@@ -165,6 +178,15 @@ export class EngineProtocolSource implements EventSource {
   private sklad: RosterEntry[] = [];
   /** Obiekt walki, na którym stoi nasze opakowanie — tożsamość, nie zawartość. */
   private owiniety: Record<string, unknown> | null = null;
+  /**
+   * Czy od ostatniego odcięcia nie przeszło przez nas ani jedno wywołanie.
+   *
+   * Istnieje dla JEDNEGO przypadku i bez niego byłby regres: podpięcie się
+   * przed pierwszą walką odcina ją (nowy obiekt `battle`), a chwilę potem
+   * przychodzi jej `init` — bez tej flagi ta sama walka policzyłaby się dwa
+   * razy i pierwszy fixture w sesji nosiłby numer 2.
+   */
+  private swiezaWalka = false;
   private oryginal: ((...argumenty: unknown[]) => unknown) | null = null;
 
   /**
@@ -222,33 +244,112 @@ export class EngineProtocolSource implements EventSource {
     // więc „update jest już owinięty" trzeba pytać o TEN obiekt, nie w ogóle.
     if (this.owiniety === battle && (update as Opakowanie)[ZNACZNIK] === WERSJA) return;
 
-    // Nowa walka — poprzednie komunikaty i poprzedni skład nie należą do niej.
-    // Bez tego zerowania druga walka w sesji liczyłaby się razem z pierwszą,
-    // a jej `id` rozwiązywałyby się po nazwach z tamtej.
-    if (this.owiniety !== battle) {
-      this.komunikaty = [];
-      this.sklad = [];
-    }
+    // Nowy OBIEKT walki to na pewno nowa walka. Warunek WYSTARCZAJĄCY, ale nie
+    // konieczny — patrz `odetnijWalke` i `zaczynaWalke`.
+    if (this.owiniety !== battle) this.odetnijWalke();
 
     const oryginal = update as (...argumenty: unknown[]) => unknown;
     const owinieta: Opakowanie = (...argumenty: unknown[]): unknown => {
-      // ORYGINAŁ LECI PIERWSZY, a jego wynik wraca NIETKNIĘTY. To nie wygoda —
-      // to warunek obietnicy „nie zmieniamy przebiegu walki".
-      const wynik = oryginal.apply(battle, argumenty);
+      // ⚠️ **GRANICĄ WALKI JEST `data.init`, A NIE WYMIANA OBIEKTU** (`AUDYT‑56`).
+      // Warunek wyżej stał tu sam i był NIEKONIECZNY: gra tworzy `Engine.battle`
+      // raz i używa go dalej, zmieniając stan, nie referencję. Zmierzone na
+      // panelu, nie wywnioskowane — ten sam strumień podany dwa razy dawał
+      // 2644 → 5288 obrażeń i 12 → 24 tury, bo `splitFights` nie ma po czym
+      // dzielić (protokół nie niesie `fight-start`, klient syntetyzuje linię
+      // otwierającą poza `data.m`). Druga walka w sesji liczyła się razem
+      // z pierwszą i rozwiązywała `id` po nazwach z tamtej.
+      //
+      // Odcięcie leci PRZED wszystkim innym w tym wywołaniu, bo kolekcjoner
+      // zapisuje ładunek `init` już pod NOWYM numerem walki — inaczej wpis
+      // otwierający trafiałby do poprzedniej.
       try {
-        this.przyjmij(argumenty[0], listener);
+        if (zaczynaWalke(argumenty[0]) && !this.swiezaWalka) this.odetnijWalke();
       } catch (error) {
-        // Wyjątek z NASZEGO kodu nie ma prawa wyjść do gry. Osłona szczelniejsza
-        // niż w `index.ts:45`, bo tam awaria psuje panel, a tu psułaby TURĘ.
-        console.error("[MargoMeter] protokół padł na tej porcji", error);
+        // Jak wszystko przed oryginałem: nasz błąd nie ma prawa przewrócić tury.
+        console.error("[MargoMeter] granica walki nie została odczytana", error);
       }
-      return wynik;
+
+      // ⚠️ **JEDYNY NASZ KOD PRZED ORYGINAŁEM — I DLATEGO MA WŁASNĄ OSŁONĘ.**
+      // Migawka „przed" musi powstać, zanim gra przeliczy porcję, bo inaczej nie
+      // ma z czym porównać stanu „po". Ale wyjątek stąd przewróciłby graczowi
+      // turę, ZANIM cokolwiek się policzy — czyli gorzej niż wyjątek z odczytu.
+      // Osłona niżej go nie obejmuje, bo tamta stoi za `oryginal.apply`.
+      let przed: MigawkaWojownika[] | null = null;
+      try {
+        przed = this.options.kolekcjoner?.przed(battle) ?? null;
+      } catch (error) {
+        console.error("[MargoMeter] zrzut padł przed porcją", error);
+      }
+
+      // ⚠️ **`finally`, NIE ZWYKŁA LINIA NA KOŃCU.** Wyjątek z `oryginal.apply`
+      // jest błędem GRY i ma lecieć dalej nietknięty — ale gdyby zabrał ze sobą
+      // wyzerowanie flagi, `swiezaWalka` zostałaby `true` na zawsze i NASTĘPNY
+      // `init` zostałby przeoczony jako „ta sama świeża walka". Czyli dokładnie
+      // sklejenie dwóch walk, które ten plik przed chwilą naprawił (`AUDYT‑56`),
+      // wróciłoby wąskim wejściem: jedna awaria gry i licznik znów sumuje.
+      try {
+        // ORYGINAŁ LECI PIERWSZY, a jego wynik wraca NIETKNIĘTY. To nie wygoda —
+        // to warunek obietnicy „nie zmieniamy przebiegu walki".
+        const wynik = oryginal.apply(battle, argumenty);
+
+        // OSOBNA OSŁONA, nie wspólna z odczytem — i to jest różnica, która ma
+        // znaczenie. Zrzut leci PRZED dekoderem z tego samego powodu, dla którego
+        // nagrywanie wyprzedza licznik w `index.ts:48`: gdyby dekoder się wysypał,
+        // zabrałby ze sobą surowy materiał, którym dałoby się tę awarię odtworzyć.
+        // Ale odwrotnie już NIE: narzędzie deweloperskie nie ma prawa zatrzymać
+        // licznika, który jest produktem. We wspólnym `try` rzucone `po()`
+        // przeskakiwałoby `przyjmij` i panel zamarłby po cichu.
+        try {
+          this.options.kolekcjoner?.po(argumenty[0], battle, przed);
+        } catch (error) {
+          console.error("[MargoMeter] zrzut padł na tej porcji", error);
+        }
+
+        try {
+          this.przyjmij(argumenty[0], listener);
+        } catch (error) {
+          // Wyjątek z NASZEGO kodu nie ma prawa wyjść do gry. Osłona szczelniejsza
+          // niż w `index.ts:45`, bo tam awaria psuje panel, a tu psułaby TURĘ.
+          console.error("[MargoMeter] protokół padł na tej porcji", error);
+        }
+        return wynik;
+      } finally {
+        // Wywołanie przez nas przeszło, więc świeżość odcięcia się kończy:
+        // następny `init` opisuje już NASTĘPNĄ walkę. Zerujemy na wyjściu,
+        // nie na wejściu, żeby `init` PIERWSZEJ walki po podpięciu nie liczył
+        // jej drugi raz — patrz `odetnijWalke`.
+        this.swiezaWalka = false;
+      }
     };
     owinieta[ZNACZNIK] = WERSJA;
 
     battle["update"] = owinieta;
     this.owiniety = battle;
     this.oryginal = oryginal;
+  }
+
+  /**
+   * Odcina TĘ walkę od poprzedniej — jedno miejsce dla obu granic.
+   *
+   * Woła się z dwóch stron i to jest cała historia `AUDYT‑56`: z wymiany
+   * obiektu `Engine.battle` (warunek WYSTARCZAJĄCY — nowy obiekt to na pewno
+   * nowa walka) i z `data.init` w ładunku (warunek KONIECZNY — bo obiektu gra
+   * nie wymienia). Dopóki stała tu tylko pierwsza droga, druga walka w sesji
+   * doliczała się do pierwszej.
+   *
+   * Bufor komunikatów i skład lecą do zera, bo nie należą do nowej walki.
+   * Kolekcjoner dostaje NUMER, ale swojego zapisu nie czyści: zrzut ma
+   * obejmować całą sesję, a granicę niesie pole `walka` w każdym wpisie.
+   */
+  private odetnijWalke(): void {
+    this.komunikaty = [];
+    this.sklad = [];
+    this.swiezaWalka = true;
+    try {
+      this.options.kolekcjoner?.nowaWalka();
+    } catch (error) {
+      console.error("[MargoMeter] zrzut nie odnotował nowej walki", error);
+    }
   }
 
   /**

@@ -195,6 +195,73 @@ ostrzega przed dokładnie tym („czyta się to «nie udowodniono, że niesie li
 którą liczymy», a nie «na pewno nie niesie»”).
 
 ## Czego brakuje w korpusie fixture'ów
+
+✅ **ZBIERANIE MATERIAŁU PRZESTAŁO WYMAGAĆ KONSOLI — 2026‑08‑05.** Cztery
+pozycje kończą się zdaniem „brakuje zrzutu z gry" — **trzy wyżej** (`heal_target`,
+`data.current`, `bandage`/`vamp_time`) i **jedna niżej**, w liście zakupowej
+(blok/unik/absorpcja/zapowiedź). ⚠️ Stało tu „cztery pozycje wyżej" (`AUDYT‑79`).
+Wszystkie cztery czekały na to samo: wklejenie sondy do konsoli PRZED walką, czyli na to, żeby
+ktoś przewidział, w której walce padnie szukany klucz. Od tej rundy zrzut robi
+sam dodatek — zębatka → „Tryb deweloperski" → „Zrzut walki" — raz włączony
+zbiera całą sesję, a plik ma ten sam kształt, więc `bun tools/walka.ts --rozbij`
+czyta go bez zmian. Powody, odrzucone warianty i to, czego runda NIE domyka:
+[`specy/2026-08-05-zrzut-fixturow-z-dodatku.md`](specy/2026-08-05-zrzut-fixturow-z-dodatku.md).
+
+⚠️ **To zmienia koszt, a nie stan.** Żadna z czterech pozycji nie jest zamknięta:
+narzędzie nie jest materiałem. Do dziś nie wiadomo też, czy zrzut z dodatku
+zgadza się ze zrzutem sondy z tej samej walki — sprawdzone jest wyłącznie to,
+że oba mają ten sam kształt.
+
+✅ **SUROWY MATERIAŁ WRÓCIŁ DO REPO — 2026‑08‑05.** `tests/fixtures/*.json`
+niesie zrzuty tak, jak przysłał je serwer, a niezmienniki ODKRYWAJĄ pliki same
+(`tests/fixtury.ts`, `tests/fixtury.test.ts`, wciągnięcie do `KORPUS`). Dzięki
+`hp.max` z migawek repo ma znów **częściowego świadka dekodera spoza dekodera**:
+skumulowane obrażenia muszą trafić w procent życia podany przez protokół
+(**7 porównań, 0 rozjazdów**; mutacja `raw` zamiast `applied` zapala 6 z 7 —
+stało tu „16 trafień", liczba z odrzuconego zrzutu, `AUDYT‑58`). Powody
+i granica wobec decyzji z 2026‑08‑04:
+[`specy/2026-08-05-surowy-material-z-gry-wraca-do-repo.md`](specy/2026-08-05-surowy-material-z-gry-wraca-do-repo.md).
+
+⚠️ **W katalogu leży JEDNA walka, nie dwie** — i to jest znalezisko tej rundy,
+opisane niżej: pierwszy zrzut z dodatku okazał się dwiema walkami w jednym
+pliku i został odrzucony.
+
+## Granica walk — nasze numerowanie nie widzi drugiej walki w sesji
+
+**To jest pozycja o BŁĘDZIE, nie o brakującej funkcji**, i zdaje test kierunku
+wprost: panel może pokazać złą liczbę, nie mówiąc o tym ani słowem.
+
+`protokol-source.ts:241` zeruje komunikaty i skład, gdy zmieni się TOŻSAMOŚĆ
+obiektu `Engine.battle`. Pierwszy prawdziwy zrzut z dodatku pokazał, że gra tego
+obiektu **nie wymienia** — pięć wywołań, dwie walki (koniec starcia z warchlakami,
+`close`, potem `init` i starcie z odyńcami), wszystkie z `walka: 1`, a
+`skladZeZrzutu` daje z tego sześciu wojowników, z czego trzech nie pada w żadnym
+komunikacie. Że granicą jest `data.init`, wie klient gry — cytaty z `Battle.js`
+i pomiar: `docs/MECHANIKA.md`, wpis „Granica walk".
+
+**Co już zrobione:** `--zachowaj` odmawia sklejonym zrzutom, a dwa niezmienniki
+łapią taki plik, gdyby ktoś wrzucił go ręcznie („jeden plik to jedna walka",
+„skład nie ma duchów"). Materiał do repo nie wejdzie po cichu.
+
+✅ **ODCZYT NA ŻYWO NAPRAWIONY — 2026‑08‑05** (`AUDYT‑56`, `AUDYT‑57`). Do tej
+rundy nic w `src/` nie czytało `init`, więc druga walka w sesji liczyła się
+razem z pierwszą i rozwiązywała `id` po nazwach z tamtej. Stało tu, że nie
+zmierzono, czy panel to pokazuje, i że `session.ts` może to maskować — **nie
+maskował**. Pomiar tą samą sondą przed i po, dwie walki przez
+`EngineProtokolSource` → `Session`, obiekt `battle` ani razu nie wymieniony:
+druga walka zadawała **5568 zamiast 2784** obrażeń, 16 zamiast 8 trafień i 24
+zamiast 12 tur. To samo sklejenie szło do archiwum — dwie walki w jednym
+nagraniu.
+
+Granicą jest dziś `data.init`; predykat `zaczynaWalke` stoi w `src/zrzut.ts`
+i woła go **zarówno dodatek, jak i `graniceWalk` w narzędziu**, żeby definicja
+granicy nie mogła się rozjechać po cichu.
+
+⚠️ **Co nadal otwarte:** czy `init` przychodzi ZAWSZE — także po przeładowaniu
+strony w trakcie walki — i czy `close` bez `init` potrafi zamknąć walkę tak, że
+następna go nie dostanie. Oba przypadki nazywa `docs/MECHANIKA.md` i żadnego nie
+rozstrzyga materiał. Potrzebny zrzut z przeładowaniem.
+
 Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`
 w `meta.json`, zweryfikowany po `covers`:
 - ~~**Para: ta sama walka jako tekst i jako protokół.**~~ **ZAŁATANA 2026‑08‑04**

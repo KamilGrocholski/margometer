@@ -461,6 +461,28 @@ export type ArchiveControl = {
   destroy?(): void;
 };
 
+/**
+ * Okno ustawień widziane przez overlay — tylko tyle, ile trzeba, żeby narysować
+ * zębatkę. Reszta siedzi w `opcje.ts`. Bez `sync()`: ustawienia nie zależą od
+ * tego, co przybyło w walce.
+ */
+export type OpcjeControl = {
+  isOpen(): boolean;
+  toggle(): void;
+  /**
+   * Czy tryb deweloperski JEST CZYNNY — zębatka ma to pokazać (`AUDYT‑84`).
+   *
+   * Flaga przeżywa odświeżenie strony, a jedyny sygnał o niej siedział
+   * w ZAMKNIĘTYM oknie ustawień. Gracz, który włączył tryb raz i zapomniał,
+   * płacił przy każdym wejściu do gry migawkę na wywołanie i rósł do sufitu
+   * bufora, nie mając jak się o tym dowiedzieć. Opcjonalne, bo atrapy w testach
+   * panelu go nie mają.
+   */
+  trybCzynny?(): boolean;
+  /** Zatrzymuje odliczanie. Opcjonalne — atrapy w testach go nie mają. */
+  destroy?(): void;
+};
+
 /** Sterowanie odtwarzaniem, rysowane w pasku podglądu. */
 export type ReplayView = {
   playing: boolean;
@@ -620,6 +642,8 @@ export class Overlay {
     record: HTMLButtonElement | null;
     /** Gotowy, ale wchodzi do nagłówka dopiero przy `attachArchive`. */
     archive: HTMLButtonElement;
+    /** To samo, co `archive`, tyle że przy `attachOpcje`. */
+    opcje: HTMLButtonElement;
     collapse: HTMLButtonElement;
   };
   /** Paski stanu z ostatniego renderu — do zdjęcia przy następnym. */
@@ -672,6 +696,7 @@ export class Overlay {
    */
   private readonly confirmClear: Confirm<void>;
   private archive: ArchiveControl | null = null;
+  private opcje: OpcjeControl | null = null;
   /** Trzymane, żeby `destroy()` miało co zdjąć z `window`. */
   private readonly onResize: () => void;
   /**
@@ -1087,6 +1112,7 @@ export class Overlay {
     window.removeEventListener("resize", this.onResize);
     this.stopFlash();
     this.archive?.destroy?.();
+    this.opcje?.destroy?.();
     this.host.remove();
   }
 
@@ -1113,7 +1139,16 @@ export class Overlay {
     this.refresh();
   }
 
-  /** Przerysowanie na żądanie — archiwum woła je, gdy zmienia swój stan. */
+  /**
+   * Okno ustawień — dokładnie ta sama droga co archiwum i z tego samego powodu:
+   * rysuje się w TYM shadow roocie, więc nie może powstać przed overlayem.
+   */
+  attachOpcje(opcje: OpcjeControl): void {
+    this.opcje = opcje;
+    this.refresh();
+  }
+
+  /** Przerysowanie na żądanie — archiwum i ustawienia wołają je przy zmianie stanu. */
   refresh(): void {
     this.rerender();
   }
@@ -1193,6 +1228,15 @@ export class Overlay {
     archive.textContent = "▤";
     archive.addEventListener("click", () => this.archive?.toggle());
 
+    // To samo co archiwum: gotowy od początku, do nagłówka wchodzi przy
+    // `attachOpcje`. Zębatka stoi PO archiwum i przed zwijaniem, żeby dwie
+    // rzeczy otwierające okna sąsiadowały ze sobą.
+    const opcje = document.createElement("button");
+    opcje.type = "button";
+    opcje.dataset.action = "opcje";
+    opcje.textContent = "⚙";
+    opcje.addEventListener("click", () => this.opcje?.toggle());
+
     const collapse = document.createElement("button");
     collapse.type = "button";
     collapse.dataset.action = "collapse";
@@ -1203,12 +1247,12 @@ export class Overlay {
     });
 
     header.append(title, version, copy, ...(record ? [record] : []), collapse);
-    return { copy, record, archive, collapse };
+    return { copy, record, archive, opcje, collapse };
   }
 
   /** Odświeża podpisy trwałego nagłówka. Węzły zostają — patrz `header`. */
   private updateHeader(): void {
-    const { copy, record, archive, collapse } = this.headerButtons;
+    const { copy, record, archive, opcje, collapse } = this.headerButtons;
 
     copy.textContent = this.flash?.key === "copy-stats" ? this.flash.label : "⧉";
 
@@ -1227,6 +1271,18 @@ export class Overlay {
       const open = this.archive.isOpen();
       archive.setAttribute("aria-pressed", String(open));
       archive.setAttribute("aria-label", open ? "Zamknij archiwum" : "Archiwum walk");
+    }
+
+    if (this.opcje) {
+      if (opcje.parentNode !== this.header) collapse.before(opcje);
+      const open = this.opcje.isOpen();
+      opcje.setAttribute("aria-pressed", String(open));
+      // Znacznik trybu idzie i do WYGLĄDU (kropka w arkuszu), i do NAZWY —
+      // bo sam kolor nie jest informacją dla czytnika ekranu.
+      const dev = this.opcje.trybCzynny?.() === true;
+      opcje.classList.toggle("opcje-dev-czynny", dev);
+      const co = open ? "Zamknij ustawienia" : "Ustawienia";
+      opcje.setAttribute("aria-label", dev ? `${co} — tryb deweloperski włączony` : co);
     }
 
     collapse.textContent = this.state.collapsed ? "▢" : "—";

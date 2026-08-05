@@ -335,6 +335,15 @@ export class Recorder {
    * Jedna walka na raz — protokół nie ma bufora z kilkoma naraz, bo źródło
    * zeruje go przy każdej nowej. To jest cała różnica wobec wersji tekstowej,
    * która dopasowywała walki od KOŃCA bufora, bo log tracił treść od góry.
+   *
+   * ⚠️ **TO ZDANIE BYŁO NIEPRAWDZIWE MIĘDZY 2026‑08‑04 A 2026‑08‑05**
+   * (`AUDYT‑57`). Źródło zerowało bufor wyłącznie przy wymianie obiektu
+   * `Engine.battle`, a gra go nie wymienia — więc druga walka przychodziła tu
+   * jako PRZEDŁUŻENIE pierwszej i `przedluza()` niżej wpisywało obie do jednego
+   * nagrania, pod tytułem ze scalonego składu. Zmierzone na atrapie magazynu:
+   * trzy porcje, dwie walki, `count() === 1`. Dziś zdanie znów jest prawdziwe,
+   * bo granicą stał się `data.init` — ale zostaje tu zapisane, że ten akapit
+   * opisuje CUDZE zachowanie i milczy, gdy tamto się zmieni.
    */
   capture(porcja: PorcjaProtokolu): void {
     if (!this.on || this.failed) return;

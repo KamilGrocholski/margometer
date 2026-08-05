@@ -84,8 +84,17 @@ export class Session {
     //
     // Strumień protokołu jednej walki NIE MA po czym się dzielić: linię
     // otwierającą klient syntetyzuje sam, poza `data.m` (`Battle.js:945`).
-    // `splitFights` zwraca wtedy jedną walkę i to jest poprawne — `Engine.battle`
-    // żyje jedną walką, a nowa dostaje nowy obiekt i wyzerowany bufor.
+    // `splitFights` zwraca wtedy jedną walkę i to jest poprawne — pod warunkiem,
+    // że bufor niesie JEDNĄ walkę.
+    //
+    // ⚠️ **STAŁO TU „`Engine.battle` żyje jedną walką, a nowa dostaje nowy
+    // obiekt i wyzerowany bufor" I BYŁA TO NIEPRAWDA** (`AUDYT‑57`). Gra tworzy
+    // ten obiekt raz i używa go dalej, więc bufor nie zerował się między
+    // walkami, a `splitFights` nie miało po czym dzielić — druga walka
+    // doliczała się do pierwszej (2644 → 5288 obrażeń, 12 → 24 tury).
+    // Warunku pilnuje dziś `protokol-source.ts`, odcinając bufor na `data.init`;
+    // ta funkcja nie ma jak sprawdzić, czy dostała jedną walkę, i dlatego to
+    // zdanie jest ZAŁOŻENIEM o cudzym kodzie, a nie opisem tutejszego.
     const fights = splitFights(events).filter((events) => events.length > 0);
     const last = fights.at(-1);
     this.currentStats = last ? aggregate(last, fromGame) : EMPTY_STATS;

@@ -72,8 +72,20 @@ czekająca na wejście do gry.
 **Dopisane 2026‑08‑05 (sekcja `I`):** `AUDYT‑56`…`AUDYT‑84` — przegląd rundy
 **przed** commitem, czyli pierwszy raz zgodnie z zasadą, którą trzy poprzednie
 audyty ustaliły po fakcie. Runda leżała w drzewie roboczym: `src/zrzut.ts`,
-`src/opcje.ts`, powrót `tests/fixtures/`, przebudowa `tools/walka.ts`. **Żadna
-pozycja z tej sekcji nie jest naprawiona** — audyt był zamówiony jako sam zapis.
+`src/opcje.ts`, powrót `tests/fixtures/`, przebudowa `tools/walka.ts`. Audyt był
+zamówiony jako sam zapis, więc sekcja powstała **w całości otwarta**; osobnymi
+decyzjami domknięto potem **WSZYSTKIE 29 pozycji**: siedem 🔴 (`AUDYT‑56`…`62`),
+trzynaście 🟡 (`63`…`75`) i dziewięć ⚪ (`76`…`84`). Doszła jedna spoza audytu —
+`AUDYT‑85`, **regresja samych napraw**, złapana przeglądem drzewa roboczego
+PRZED commitem — a przy okazji `AUDYT‑86`. To czwarty dowód zasady „przegląd
+przed commitem"; trzy poprzednie zebrano po fakcie, ten pierwszy raz przed.
+
+⚠️ **Zamknięte ≠ bez reszty.** Trzy rzeczy zostają nazwane przy swoich wpisach
+i nie mają terminu: `init` po przeładowaniu strony i `close` bez `init`
+(`AUDYT‑56` — brak materiału), regułę leczenia w świadku trzyma dziś wyłącznie
+test syntetyczny (`AUDYT‑61` — brak fixture'a z leczeniem w środku walki),
+a zapis pliku na dysk nie ma i nie będzie miał testu (`AUDYT‑69`). Cztery
+pozycje `ROADMAP.md` czekające na nowy materiał ta runda też otwiera dalej.
 Wzorzec, który przez nie przechodzi, jest jeden i wart osobnego zdania:
 **cztery z pięciu nietrafionych liczb to liczby przepisane ręką z pomiaru
 zrobionego na materiale, który do repo nie wszedł** — czyli praktyka, którą ta
@@ -1791,7 +1803,7 @@ niezależne (migawka nie przechodzi przez dekoder); 233 klucze i build
 Oba specy same nazywają to, czego nie domykają. **Znaleziska niżej dotyczą liczb
 w prozie i granicy walk — nie fundamentów.**
 
-### AUDYT‑56 — druga walka w sesji dolicza się do pierwszej 🔴 S — OTWARTE ✓
+### AUDYT‑56 — druga walka w sesji dolicza się do pierwszej 🔴 S — ✅ NAPRAWIONE ✓
 
 `src/protokol-source.ts:241` (zerowanie bufora) · `src/session.ts:89` (`splitFights`)
 
@@ -1827,7 +1839,41 @@ ten rodzaj błędu, który „Kierunek na teraz” w `ROADMAP.md` stawia najwyż
 Naprawa (granicą jest `data.init`) osobną rundą, tak jak chce spec; blokada
 „najpierw odtworzenie, dopiero potem naprawa” właśnie znikła.
 
-### AUDYT‑57 — to samo sklejenie trafia do ARCHIWUM, a kod niesie fałszywe uzasadnienie 🔴 XS — OTWARTE ✓
+**Zrobione.** Granicą walki jest dziś `data.init` w ładunku. Odcięcie
+(`odetnijWalke`) wołane jest z DWÓCH stron: z wymiany obiektu `Engine.battle`
+(warunek wystarczający, zostaje) i z `init` (warunek konieczny, nowy). Predykat
+`zaczynaWalke` zamieszkał w `src/zrzut.ts`, a `graniceWalk` w `tools/walka.ts`
+woła właśnie jego — **jedna definicja granicy dla dodatku i dla narzędzia**,
+bo dwie rozjechałyby się cicho: narzędzie odmawiałoby plikom, które dodatek
+uważa za jedną walkę, albo odwrotnie.
+
+**Pomiar przed i po, tą samą sondą i tą samą ścieżką** (dwie walki przez
+`EngineProtocolSource` → `Session`, `init` między nimi, obiekt `battle` ani razu
+nie wymieniony):
+
+```
+                    przed        po
+walka 1 — zadane     2784      2784
+walka 2 — zadane     5568      2784   ← przestało się doliczać
+walka 2 — trafienia    16         8
+walka 2 — tury         24        12
+```
+
+**Jedna rzecz dołożona przy okazji, bo bez niej byłby regres:** flaga
+`swiezaWalka`. Podpięcie się przed pierwszą walką odcina ją (nowy obiekt), a jej
+własny `init` przychodzi chwilę później — bez flagi ta sama walka liczyłaby się
+dwa razy i pierwszy fixture w sesji nosiłby numer 2. Ma własny test.
+
+**Czy testy potrafią paść.** Gałąź `init` wyłączona → padają **dokładnie dwa**
+nowe testy (`27 pass, 2 fail`), reszta pliku zostaje zielona.
+
+**Co ZOSTAJE otwarte.** `docs/MECHANIKA.md` nazywa dwa przypadki, których nie
+rozstrzyga żaden materiał: czy `init` przychodzi ZAWSZE, także po przeładowaniu
+strony w trakcie walki, oraz czy `close` bez `init` potrafi zamknąć walkę tak,
+że następna `init` nie dostanie. Ta poprawka ich nie zamyka — w obu bufor
+zachowa się jak przedtem. Potrzebny zrzut z przeładowaniem.
+
+### AUDYT‑57 — to samo sklejenie trafia do ARCHIWUM, a kod niesie fałszywe uzasadnienie 🔴 XS — ✅ NAPRAWIONE ✓
 
 `src/recorder.ts:339` (`capture`) · `:160` (`przedluza`) · komentarze `:335‑337`
 i `src/session.ts:88`
@@ -1850,7 +1896,15 @@ następny czytelnik oprze na tych zdaniach decyzję.
 
 **Docelowo.** Sprostowanie obu komentarzy w tej samej rundzie co `AUDYT‑56`.
 
-### AUDYT‑58 — „16 trafień” świadka to w rzeczywistości 7 🔴 XS — OTWARTE ✓
+**Zrobione.** Oba zdania sprostowane i — co ważniejsze — **oba przestały
+udawać opis tutejszego kodu**. `recorder.ts` mówi dziś wprost, że akapit
+opisuje CUDZE zachowanie i milczy, gdy tamto się zmieni; `session.ts` nazywa
+swoje zdanie ZAŁOŻENIEM o `protokol-source.ts`, bo `splitFights` nie ma jak
+sprawdzić, czy dostało jedną walkę. Samo sklejanie w archiwum znikło razem
+z naprawą `AUDYT‑56`: bufor jest odcinany, więc `przedluza()` nie widzi już
+drugiej walki jako przedłużenia pierwszej.
+
+### AUDYT‑58 — „16 trafień” świadka to w rzeczywistości 7 🔴 XS — ✅ NAPRAWIONE ✓
 
 `AGENTS.md:172` · `docs/ROADMAP.md:218` · `tests/fixtury.test.ts:141` ·
 `tools/walka.ts:354` · `docs/specy/2026-08-05-surowy-material-z-gry-wraca-do-repo.md:63`
@@ -1876,7 +1930,20 @@ każde narzędzie. Ta sama runda dopisała regułę, którą to łamie („liczb
 porównań w teście (razem z `AUDYT‑61`) — żeby proza nie mogła oderwać się od
 materiału drugi raz.
 
-### AUDYT‑59 — przykład rachunkowy podany jako cytat z materiału nie pochodzi z żadnego materiału 🔴 XS — OTWARTE ✓
+**Zrobione.** Sprostowane w sześciu miejscach: `AGENTS.md`, `docs/ROADMAP.md`,
+`tools/walka.ts`, `tests/korpus.ts`, `tests/fixtury.test.ts` i spec (ten ostatni
+dostał wpis w „Zmiany wpisu”). Wszędzie stoi dziś **7 porównań, 0 rozjazdów**,
+a mutacja `raw` opisana jako „zapala 6 z 7” — bo sama `6` była prawdziwa i to
+warto było zachować. Każde miejsce niesie ⚠️ z tym, co stało tam wcześniej.
+
+**Wykonanie odbiegło od propozycji w drugiej połowie i to jest ważniejsze niż
+samo sprostowanie.** Asercji na LICZBĘ porównań nie ma i nie będzie: związałaby
+test z jednym plikiem, a katalog ma rosnąć. Zamiast niej stoi
+`expect(bezMaksa).toBe(0)` — „każdy cel, który nadawał się do porównania, ma
+znane `hp.max`”. Broni przed tym samym (cichym spadkiem liczby porównań), nie
+rotuje przy nowym fixturze i **da się zepsuć**: patrz mutacja przy `AUDYT‑61`.
+
+### AUDYT‑59 — przykład rachunkowy podany jako cytat z materiału nie pochodzi z żadnego materiału 🔴 XS — ✅ NAPRAWIONE ✓
 
 `AGENTS.md:171` · `tests/fixtury.test.ts:134‑139` · `tools/walka.ts:354` · spec `:57‑61`
 
@@ -1904,7 +1971,11 @@ fałszywego buildu.
 
 **Docelowo.** Podmiana przykładu na policzony z materiału, w czterech miejscach.
 
-### AUDYT‑60 — „skład nie ma duchów” szuka `id` jako PODCIĄGU 🔴 XS — OTWARTE ✓
+**Zrobione.** Wszędzie stoi dziś `763 − 243 = 520; 520/763 = 68,15 %`
+z `id -255967` — liczby wyjęte z pliku, który leży w repo. Stary przykład
+zostaje zacytowany jako to, czym był, bo bez tego sprostowanie nic nie uczy.
+
+### AUDYT‑60 — „skład nie ma duchów” szuka `id` jako PODCIĄGU 🔴 XS — ✅ NAPRAWIONE ✓
 
 `tests/fixtury.test.ts:95‑96` · drugie sito: `:85`
 
@@ -1929,7 +2000,26 @@ w trakcie walki. Sklejony fixture bez `init` przechodzi więc oba.
 **Docelowo.** Porównanie po realnych `id`; `stronyKomunikatu`
 (`tools/walka.ts:186`) już je wyciąga. Plus dolna granica na `granice.length`.
 
-### AUDYT‑61 — świadek zapali się FAŁSZYWIE przy pierwszym fixturze z leczeniem w środku walki 🔴 XS — OTWARTE
+**Zrobione.** Oba sita naraz, zgodnie z propozycją. Test duchów porównuje dziś
+zbiór `id` wyciągniętych przez `stronyKomunikatu` — czyli tak, jak komunikat
+rozcina dekoder — zamiast szukać cyfr w sklejonym łańcuchu. Granica walk zeszła
+z `toBeLessThanOrEqual(1)` na `toBe(1)`: zero `init` nie znaczy „plik czysty",
+tylko „plik, o którym nie wiadomo".
+
+⚠️ **Koszt tej drugiej zmiany jest realny i stoi wypisany w teście:** materiał
+zebrany od środka walki do repo nie wejdzie. Obie udokumentowane drogi dają
+`init` (sondę wkleja się PRZED walką, tryb deweloperski raz włączony zostaje),
+więc dziś nic to nie odcina — ale gdy taki zrzut przyjdzie, test zapali się
+głośno i wtedy zapadnie decyzja. Cicha zieleń jej nie zastąpi.
+
+**Czy testy potrafią paść — sprawdzone trzema mutacjami, nie obiecane.**
+Do składu wstrzyknięty duch o `id 2845` (podciąg `482845`, czyli gracza):
+**nowe sito go łapie, STARE przepuszcza** — ten sam materiał, `1 pass, 0 fail`
+przed poprawką i `fail` po niej. To jest cały dowód, że zmiana nie jest
+kosmetyczna. Trzecia mutacja: `init` usunięty z ładunków → `Expected: 1,
+Received: 0`, czyli granica zapala się tam, gdzie wcześniej milczała.
+
+### AUDYT‑61 — świadek zapali się FAŁSZYWIE przy pierwszym fixturze z leczeniem w środku walki 🔴 S — ✅ NAPRAWIONE ✓
 
 `tests/fixtury.test.ts:157‑186` (akumulator) · `:191` (strażnik)
 
@@ -1952,7 +2042,39 @@ asercją obiecuje więcej, niż ona robi.
 **Docelowo.** `heal` na celu wyrzuca ten cel z porównania (albo dodaje `amount`
 do bazy); `sprawdzonych` porównywane z liczbą kandydatów, nie z zerem.
 
-### AUDYT‑62 — zamknięte okno ustawień wraca na ekran samo 🔴 XS — OTWARTE ✓
+**Zrobione.** Uleczony cel wypada z porównań od chwili uleczenia. Wariant
+„dodaj `amount` do bazy” odrzucony i warto powiedzieć dlaczego: leczenie ponad
+pulę życia gra ucina, a log nie mówi, ile z niego weszło — doliczanie byłoby
+dokładne tylko pozornie i łamałoby regułę „nie udawaj danych, których log nie
+ma”. Zamiast asercji na liczbę porównań stoi `expect(bezMaksa).toBe(0)`, powód
+przy `AUDYT‑58`.
+
+**Świadek wyszedł z ciała testu do `tests/fixtury.ts` jako `swiadekZycia()`
+i to nie jest kosmetyka.** Materiał w repo nie zawiera leczenia w środku walki
+— jedyne leczenie pada na gracza PO jego ostatnim zranieniu — więc obsługa
+leczenia była kodem, którego usunięcie **niczego nie zapalało**: 7 porównań
+i 0 rozjazdów przed poprawką i po niej. Wyciągnięta funkcja dostała trzy testy
+na zdarzeniach budowanych w kodzie, niezależne od tego, co leży w katalogu.
+Fixture'ów to nie zastępuje: tam sprawdzamy MATERIAŁ, tu REGUŁĘ.
+
+**Czy testy potrafią paść — dwie mutacje.**
+
+```
+świadek ignoruje `heal`     → (fail) „uleczony cel wypada z porównań,
+   (stan sprzed poprawki)             zamiast zapalać fałszywy rozjazd”
+                                      12 pass, 1 fail — i ANI JEDEN test
+                                      po fixture'ach, co jest tu całą pointą
+
+`maksZycia` zbiera 1 cel    → (fail) „procent życia z protokołu zgadza się
+   zamiast 4                          z obrażeniami z dekodera”
+                                      Expected: 0, Received: 6
+```
+
+Druga mutacja jest dowodem na to, po co `bezMaksa` w ogóle powstało: przy starej
+asercji `sprawdzonych > 0` ten sam ubytek zostawiał **jedno** porównanie
+i przechodził na zielono.
+
+### AUDYT‑62 — zamknięte okno ustawień wraca na ekran samo 🔴 XS — ✅ NAPRAWIONE ✓
 
 `src/opcje.ts:129` (`render` bez strażnika) · `:110` (`toggle`) · `:262` (`powiedz`)
 kontra `src/archive.ts:510`
@@ -1982,11 +2104,32 @@ zamknięto” — dziś `opcje.test.ts:206` sprawdza wyłącznie okno otwarte. O
 rozważenia: czy `destroy()` zatrzymał ticker (`ManualTicker` wystawia `running`
 właśnie po to, a nikt tego nie sprawdza).
 
+**Zrobione.** Strażnik `if (!this.state.open) return;` wrócił na pierwszą linię
+`render()`, plus test „gasnąca odpowiedź NIE otwiera zamkniętego okna
+z powrotem”, który pyta o trzy rzeczy naraz: `hidden`, `isOpen()` i `aria-pressed`
+zębatki.
+
+**Wykonanie odbiegło od propozycji w jednym punkcie i warto wiedzieć,
+dlaczego.** Ticker `powiedz()` **NIE** jest zatrzymywany przy zamknięciu, choć
+`AUDYT‑53` uczyło odwrotnie. Różnica jest taka, że tamten zegar liczył
+podsumowania (`193 ms w wątku gry`), a ten tylko czeka cztery sekundy — i po
+drodze **czyści `notice`**. Zatrzymany wymagałby wyzerowania `notice` w tym
+samym miejscu, inaczej stara odpowiedź czekałaby w oknie na następne otwarcie.
+`archive.ts` rozstrzyga to tak samo i zostawienie rozbieżności między oknami
+byłoby gorsze niż jeden żyjący ticker.
+
+`destroy()` z propozycji **zostaje otwarte** — nadal nikt nie sprawdza, że gasi
+ticker, mimo że `ManualTicker.running` istnieje właśnie po to.
+
+**Czy test potrafi paść — sprawdzone.** Strażnik zdjęty → `(fail) zapis zrzutu >
+gasnąca odpowiedź NIE otwiera zamkniętego okna z powrotem`, `16 pass, 1 fail`,
+i zapalił się **dokładnie ten jeden** test, żaden inny.
+
 ---
 
 Pozycje 🟡 — warte roboty, żadna nie blokuje commita.
 
-### AUDYT‑63 — fixture niesie pole, którego nie produkuje żaden dzisiejszy pisarz 🟡 S — OTWARTE ✓
+### AUDYT‑63 — fixture niesie pole, którego nie produkuje żaden dzisiejszy pisarz 🟡 S — ✅ NAPRAWIONE ✓
 
 Wszystkie 4 wpisy w `tests/fixtures/2026-08-04-tempest-lowca-vs-odyncze.json`
 mają `render: string[]` z **HTML‑em renderera klienta**
@@ -2002,7 +2145,19 @@ i niewracające. Przeżywa to wyłącznie dlatego, że czytelnik nie waliduje wp
 (`AUDYT‑65`). **Docelowo.** Albo pole wypada przy zapisie, albo wchodzi do typu
 i do prozy — dziś jest ani tu, ani tu.
 
-### AUDYT‑64 — pochodzenie fixture'a jest przepisane ręką, czyli tym, co runda miała skasować 🟡 XS — OTWARTE ✓
+**Zrobione — do prozy, nie do typu, a plik ZOSTAJE.** Wycięcie `render` byłoby
+edytowaniem materiału dowodowego, czego `AGENTS.md` zabrania; wciągnięcie go do
+`Wywolanie` obiecywałoby pole, którego żaden dzisiejszy pisarz nie produkuje.
+Opisane więc w `tests/fixtures/README.md` (skąd się wzięło, czemu nie wróci,
+że nic u nas go nie czyta) oraz w nagłówku `tests/fixtury.ts`, gdzie stało za
+szerokie zdanie: `komunikaty` i `ladunek` są z serwera, `render` jest z klienta,
+a „bez ani jednej naszej liczby” i „wyłącznie z serwera” to nie to samo.
+
+Przepuszczanie pól nadmiarowych przestało być skutkiem braku walidacji i stało
+się **decyzją z testem** („czytelnik odrzuca niepełne, nie bogatsze”,
+`AUDYT‑65`) — inaczej naprawa tamtej pozycji wyrzuciłaby ten plik z repo.
+
+### AUDYT‑64 — pochodzenie fixture'a jest przepisane ręką, czyli tym, co runda miała skasować 🟡 XS — ✅ NAPRAWIONE ✓
 
 Klucze pliku: `wersja, przy, swiat, build, otwarcie, wpisy, odchudzonych` —
 **`zrodlo` nie ma**, a `otwarcie` to `null`. „Zrzut sondy `tools/walka-probe.js`”
@@ -2016,7 +2171,25 @@ Sprzeczne wprost z `AGENTS.md:138` („pochodzenie — świat, build, daty, **ź
 — niesie sam zrzut”) i z `tests/fixtures/README.md:7`. **Docelowo.** Asercja na
 `zrodlo` w teście nagłówka; proza w README przestaje zastępować metadaną.
 
-### AUDYT‑65 — `czytajZrzut` nie sprawdza ANI JEDNEGO pola wpisu 🟡 S — OTWARTE ✓
+**Zrobione INACZEJ, i to jest ważniejsze niż propozycja.** Przy pisaniu asercji
+wyszło, czego wpis nie zauważył: **sonda w ogóle nie pisała `zrodlo`**. Pole
+znał tylko dodatek, więc „brak = sonda" nie było lenistwem narzędzia, tylko
+jedyną dostępną odpowiedzią — i tym samym każdy przyszły zrzut sondy też byłby
+zgadywany. Naprawa idzie więc od strony PISARZA: sonda zapisuje dziś
+`zrodlo: "sonda"`, a narzędzie przestało podstawiać cokolwiek pod brak pola.
+
+Trzy miejsca zgadywały (`modulZrzutu`, ostrzeżenie o braku linii otwierającej,
+`--pokaz`); wszystkie trzy chodzą teraz po jednym `pochodzenie()`, które dla
+pliku bez pola mówi wprost **„Zrzut o NIEUSTALONYM pochodzeniu (plik sprzed
+2026‑08‑05)"**. To jest reguła repo zastosowana do nas samych: wolno pokazać
+„nie wiadomo", nie wolno zgadnąć.
+
+⚠️ **Asercji na `zrodlo` w teście nagłówka fixture'a NIE MA** i nie będzie
+dopóty, dopóki jedyny plik w katalogu jej nie spełnia. Zamiast niej stoją dwa
+testy na samym narzędziu: zrzut z polem opisuje się swoim narzędziem, zrzut bez
+pola mówi „nieustalone”.
+
+### AUDYT‑65 — `czytajZrzut` nie sprawdza ANI JEDNEGO pola wpisu 🟡 S — ✅ NAPRAWIONE ✓
 
 `tools/walka.ts:70‑104` waliduje `wersja`, `Array.isArray(wpisy)` i
 `wpisy.length > 0` — przy własnym komentarzu „sprawdzamy **każde** pole, bo
@@ -2027,7 +2200,14 @@ Zmierzony skutek: wpis bez `komunikaty` przechodzi przez `flatMap` (`:154`) jako
 `dekoduj` z dziurą zamiast komunikatu. **Docelowo.** Walidacja pól wpisu albo
 skreślenie obietnicy z obu komentarzy.
 
-### AUDYT‑66 — `wybierzWalke` przemyca do fixture'a metadane innych walk 🟡 XS — OTWARTE ✓
+**Zrobione.** Walidacja, nie skreślenie obietnicy — `wpisZrzutu` sprawdza `nr`,
+`ladunek`, `komunikaty` (lista TEKSTÓW) i obie listy wojowników, i rzuca
+**z numerem wpisu**, bo plik ma setki wywołań. Pola NADMIAROWE przechodzą
+świadomie: czytelnik ma odrzucać materiał niepełny, nie bogatszy, niż zna —
+inaczej odpadłby najstarszy fixture z polem `render` (`AUDYT‑63`) i każdy zrzut
+z przyszłej sondy. Mutacja: `wpisy` znów bez walidacji → **4 testy padają**.
+
+### AUDYT‑66 — `wybierzWalke` przemyca do fixture'a metadane innych walk 🟡 XS — ✅ NAPRAWIONE ✓
 
 `tools/walka.ts:143` zwraca `{ ...zrzut, otwarcie, wpisy }`, czyli zostawia
 `otwarcia` CAŁEJ sesji oraz `pominietych`/`przepelniony` liczone dla wszystkich
@@ -2035,19 +2215,32 @@ walk. Fixture jednej walki wychodzi z linią otwierającą walki obcej pod
 `otwarcia["2"]`. Materiał dowodowy niosący metadane o materiale, którego w nim
 nie ma — ten sam zarzut, który runda stawia skasowanemu `meta.json`.
 
-### AUDYT‑67 — `--zachowaj` nie istnieje w tekście użycia CLI 🟡 XS — OTWARTE ✓
+**Zrobione.** Pola wypisywane po jednym zamiast `...zrzut`. `pominietych`
+i `przepelniony` NIE przechodzą — są własnością sesji, nie walki, i zawężone nie
+dają się policzyć, bo zrzut nie mówi, ile odsiano w której. Milczenie jest tu
+uczciwsze niż liczba o niejasnym zakresie. `otwarcie` bierze się wyłącznie
+z `otwarcia[numer]`, bez podstawiania linii sesji. Mutacja: `...zrzut` z powrotem
+→ pada test „NIE przenosi metadanych cudzych walk”.
+
+### AUDYT‑67 — `--zachowaj` nie istnieje w tekście użycia CLI 🟡 XS — ✅ NAPRAWIONE ✓
 
 `bun tools/walka.ts` bez argumentów wypisuje `--rozbij`, `--rozbij --walka`,
 `--pokaz`, `--klucze`. Flaga, wokół której zbudowana jest cała runda i którą
 polecają `AGENTS.md` oraz `tests/fixtures/README.md`, w tym tekście nie pada.
 Nagłówek pliku ją ma — ale nagłówka nikt nie czyta z terminala.
 
+**Zrobione.** `--zachowaj` stoi teraz **pierwszy**, bo to on robi materiał
+wchodzący do repo, plus dwa zdania o tym, czym różni się od `--rozbij` (fixture
+z migawkami kontra moduł dla `build.ts`). Drobiazgi z akapitu niżej — ciche
+pierwszeństwo flag, `--walka abc` → „walki NaN”, `tekstowa` łykająca kolejną
+flagę — **zostają otwarte**; to osobna robota nad parsowaniem argumentów.
+
 Przy okazji, z tego samego bloku (`tools/walka.ts:460‑642`, **całkowicie bez
 testów**): `--zachowaj X --rozbij Y` wykona po cichu tylko pierwsze; `--walka abc`
 daje „w zrzucie nie ma walki NaN”; `tekstowa` nie sprawdza, czy wartość nie jest
 kolejną flagą, więc `--zachowaj --nazwa x` pada z mylącym komunikatem.
 
-### AUDYT‑68 — `docs/README.md` nie przeszedł tej rundy 🟡 XS — OTWARTE ✓
+### AUDYT‑68 — `docs/README.md` nie przeszedł tej rundy 🟡 XS — ✅ NAPRAWIONE ✓
 
 `AGENTS.md` dostało nowe moduły i nową drogę zbierania materiału, indeks całego
 repo nie:
@@ -2058,7 +2251,12 @@ repo nie:
 - `:210` „⚠️ Zdanie mówiło kiedyś o katalogu ze zrzutami, **którego nie ma od
   2026‑08‑04**” — katalog wrócił w tej właśnie rundzie.
 
-### AUDYT‑69 — `URL.revokeObjectURL` w tym samym takcie co `click()` 🟡 XS — OTWARTE
+**Zrobione.** Wszystkie cztery miejsca. Mapa modułów ma `zrzut.ts` i `opcje.ts`;
+punkt „Nowy zrzut walki” opisuje OBIE drogi (dodatek i sonda) razem
+z `--zachowaj`; akapit o materiale jako dowodzie mówi, że katalog wrócił —
+z ⚠️ o tym, że prawdziwa walka jest **jedna**, nie dwadzieścia pięć.
+
+### AUDYT‑69 — `URL.revokeObjectURL` w tym samym takcie co `click()` 🟡 XS — ✅ NAPRAWIONE
 
 `src/zrzut.ts:470‑479` (`zapiszPlik`) i `tools/walka-probe.js:186‑196` (`pobierz`)
 tworzą blob‑URL, klikają **odczepioną** kotwicę i zwalniają URL synchronicznie
@@ -2073,7 +2271,17 @@ wada jest nieszkodliwa (konsola dewelopera), w dodatku jest jedyną drogą wyjś
 materiału dla gracza. **Docelowo.** Odroczone zwolnienie; sprawdzenie ręczne,
 w grze, opisane w commicie — testu na to nie będzie w rozsądnym koszcie.
 
-### AUDYT‑70 — `wyczysc()` w trakcie walki psuje numerację nieodwracalnie 🟡 XS — OTWARTE ✓
+**Zrobione.** Kotwica wchodzi do `document.body` przed kliknięciem i wychodzi po
+nim, a `URL.revokeObjectURL` leci przez `setTimeout(…, 0)`. Ta sama poprawka
+w obu miejscach — dodatek i sonda mają zapisywać tak samo, żeby ich zrzuty dały
+się porównywać.
+
+⚠️ **Testu nie ma i nie będzie**, tak jak zapowiadał „Docelowo”: `click()` na
+`<a download>` nie robi w jsdom nic, a atrapa `saveFile` w `Opcje` omija
+dokładnie tę funkcję. Zostaje sprawdzenie ręczne w przeglądarce — i to jest
+jedyna pozycja z tej transzy bez świadka w testach.
+
+### AUDYT‑70 — `wyczysc()` w trakcie walki psuje numerację nieodwracalnie 🟡 XS — ✅ NAPRAWIONE ✓
 
 `src/zrzut.ts:454` ustawia `walka = 0`, ale `nowaWalka()` odpala się wyłącznie
 przy zmianie tożsamości `Engine.battle` (`protokol-source.ts:249`) — czyli dla
@@ -2082,7 +2290,19 @@ zostaje `null`, a strażnik `walka === 0` (`:306`) czyni doganianie linii
 otwierającej martwym. Do tego docstring (`:41`) mówi „liczony od zera”, podczas
 gdy numeracja startuje od 1 — potwierdza to własny test `zrzut.test.ts:352`.
 
-### AUDYT‑71 — `plural` przepisany zamiast zaimportowany, z uzasadnieniem obok tematu 🟡 XS — OTWARTE ✓
+**Zrobione, ale INACZEJ, niż wyglądało na początku.** Połowę tej pozycji zamknął
+`AUDYT‑56`: skoro granicą jest `data.init`, numeracja po czyszczeniu wraca sama
+przy następnej walce. Zostawał przypadek trwającej walki — i tu zmieniło się
+zachowanie: **`wyczysc()` nie zeruje już numeru**. Stare uzasadnienie („pierwsza
+zapisana walka ma być pierwszą, a nie ósmą”) było życzeniem kosmetycznym, którego
+ceną był numer `0`, którego żadna walka nie nosi. Czyszczenie kasuje ZAPIS, nie
+przebieg sesji.
+
+Cena, wypisana w kodzie: po czyszczeniu numery bywają nieciągłe. Spec zrzutu
+uznał tę nieciągłość za dopuszczalną, zanim jeszcze zaszła. Test, który żądał
+starego zachowania, został przepisany na nowe — razem z powodem.
+
+### AUDYT‑71 — `plural` przepisany zamiast zaimportowany, z uzasadnieniem obok tematu 🟡 XS — ✅ NAPRAWIONE ✓
 
 `src/overlay.ts:168` **eksportuje** `plural(count, forms)` i ma już
 `fightWord = plural(count, ["walka","walki","walk"])` (`:176`) — identyczne co do
@@ -2091,7 +2311,11 @@ bez problemu, więc warstwy to nie blokują. Komentarz przy duplikacie („osobn
 tamta odmienia turę”) uzasadnia go przez `turnWord`, a nie przez `plural` — czyli
 argumentem, który nie obowiązuje.
 
-### AUDYT‑72 — sufit zrzutu i migawka „przed” bez ani jednego testu 🟡 S — OTWARTE
+**Zrobione.** Oba ciała zastąpione wywołaniami `plural` z `overlay.ts`; zostały
+dwie linie zamiast szesnastu. Cykl importów nie powstaje — `overlay.ts` nie zna
+`opcje.ts`, widzi tylko typ `OpcjeControl`, dokładnie jak przy archiwum.
+
+### AUDYT‑72 — sufit zrzutu i migawka „przed” bez ani jednego testu 🟡 S — ✅ NAPRAWIONE ✓
 
 `MAX_WPISOW = 2000` (`src/zrzut.ts:142`) nie jest sprawdzony niczym: `przepelniony`
 pojawia się tylko jako `false` na świeżym kolekcjonerze (`zrzut.test.ts:346` —
@@ -2105,7 +2329,18 @@ Osobno i poważniej: **`wojownicyPrzed` nie stoi nigdzie po prawej stronie
 i dla którego kontrakt ma dwie metody zamiast jednej — a wstawienie `[]` zamiast
 `przed` przechodzi cały zestaw.
 
-### AUDYT‑73 — `wojownicyPrzed: przed ?? []` udaje dane, których nie ma 🟡 XS — OTWARTE ✓
+**Zrobione.** Sufit jest wstrzykiwany trzecim argumentem konstruktora —
+wyłącznie po to, żeby dał się przetestować; na prawdziwych 2000 test kosztowałby
+tyle iteracji z różnymi stanami. Doszły trzy testy sufitu (zbieranie STAJE
+i mówi o tym, wpisy sprzed sufitu zostają nietknięte, `przed()` przestaje robić
+migawki) i dwa na migawkę „przed" (wpis niesie stan SPRZED wywołania, różny od
+stanu po; brak migawki daje `null`).
+
+**Mutacje.** `wojownicyPrzed: []` zamiast `przed` → padają **2 testy**; sufit
+przestaje zatrzymywać zbieranie → padają **3**. Przed tą rundą obie mutacje
+przechodziły cały zestaw na zielono.
+
+### AUDYT‑73 — `wojownicyPrzed: przed ?? []` udaje dane, których nie ma 🟡 XS — ✅ NAPRAWIONE ✓
 
 `src/zrzut.ts:378` zamienia `null` („migawka nie powstała”) w `[]` („walka nie
 miała wojowników”). Czytelnik zrzutu nie odróżni tych dwóch rzeczy, a
@@ -2113,14 +2348,26 @@ miała wojowników”). Czytelnik zrzutu nie odróżni tych dwóch rzeczy, a
 podstawę świadka. Sprzeczne z regułą „nie udawaj danych, których log nie ma”;
 `roster.ts` w tej samej sytuacji woli `null` niż pusty skład.
 
-### AUDYT‑74 — `Battle.js:824` nie mówi o „reload” 🟡 XS — OTWARTE ✓
+**Zrobione.** `wojownicyPrzed` ma dziś typ `unknown[] | null`, zapis oddaje
+`przed` bez podstawiania, a czytelnik przepuszcza `null` i odrzuca wszystko, co
+nie jest ani listą, ani `null`em. `wojownicyPo` zostaje wymagane — powstaje PO
+oryginalnym `update`, więc jego brak znaczy uszkodzony zapis, nie niewiedzę.
+
+⚠️ **Czego to nie naprawia wstecz:** pliki sprzed 2026‑08‑05 mają w tym polu `[]`
+i nie da się dziś powiedzieć, które z nich znaczyło „brak migawki". Czytelnik ich
+nie odrzuca; jednoznaczne są dopiero nowe zrzuty. Stoi to wypisane przy typie.
+
+### AUDYT‑74 — `Battle.js:824` nie mówi o „reload” 🟡 XS — ✅ NAPRAWIONE ✓
 
 `docs/MECHANIKA.md`, wpis „Granica walk”, sekcja „Czego ten wpis NIE rozstrzyga”.
 Linia 824 assetu to `const initLoot = isset(allData.loot) && …`; słowo „reload”
 pada w `455`, `827`, `828` i `833`. Pozostałe cztery cytaty z tego wpisu
 (`:344`, `:911`, `:945`, `:954`) trafiają **co do linii** — ten jeden nie.
 
-### AUDYT‑75 — pomiar, na którym stoi wpis „Granica walk”, jest nieweryfikowalny 🟡 XS — OTWARTE
+**Zrobione.** Numer poprawiony na `827‑828` i `833`, z ⚠️ mówiącym, co stało
+tam wcześniej i że pozostałe cztery cytaty sprawdzono.
+
+### AUDYT‑75 — pomiar, na którym stoi wpis „Granica walk”, jest nieweryfikowalny 🟡 XS — ✅ NAPRAWIONE
 
 Tabela pięciu wywołań i dwóch walk w `docs/MECHANIKA.md` odsyła do
 `walka-tempest-2026-08-05T11-49-44-019Z.json`, którego w repo nie ma — odpadł
@@ -2129,6 +2376,12 @@ czterema cytatami z `Battle.js` (sprawdzone co do linii) i pomiarem z `AUDYT‑5
 Ale sam pomiar stoi wyłącznie na słowie autora, a to gatunek zapisu, który w tym
 repo już dwa razy skłamał. **Docelowo.** Albo odsyłacz do `AUDYT‑56` jako
 odtwarzalnej podstawy, albo zdanie mówiące wprost, że pliku nie ma.
+
+**Zrobione — oba naraz.** `docs/MECHANIKA.md` mówi dziś wprost, że pliku
+w repo nie ma i że tabeli nie da się odtworzyć, a zaraz obok wskazuje dwie
+podstawy, które odtworzyć się dają: cztery cytaty z klienta i pomiar
+z `AUDYT‑56`. Wniosek zostaje, jego dowód przestał zależeć od pliku, którego
+nikt już nie zobaczy.
 
 ---
 
@@ -2141,43 +2394,143 @@ Pozycje ⚪ — drobne, zapisane żeby nie ginęły.
   `tests/stats.test.ts`. Głośno — ale nie „osobnym testem”. Zmierzoną mutacją
   w specu była literówka w **rozszerzeniu**, i tylko ta kończy się „strażnik
   i NIC więcej”. Zdanie uogólnia pomiar, którego nie zrobiono.
+  **✅ Zrobione:** zdanie w `AGENTS.md` rozdziela dziś oba przypadki i mówi, co
+  naprawdę dzieje się przy złej ścieżce — ENOENT przy ładowaniu modułu, razem
+  z nim pada `tests/stats.test.ts`.
 - **AUDYT‑77** ⚪ XS ✓ — „nic tu nie jest wymienione z nazwy” (`tests/fixtury.ts:33`,
   powtórzone w `tests/fixtury.test.ts:17`) kontra `tests/fixtury.test.ts:50`:
   `FIXTURY.find((x) => x.nazwa === "2026-08-04-tempest-lowca-vs-odyncze")`.
   Zapala się głośno przy zmianie nazwy, więc to nie cicha zieleń — ale zdanie
   jest fałszywe i akurat w tym pliku.
+  **✅ Zrobione:** nagłówek `tests/fixtury.ts` mówi dziś „`readdirSync` bierze
+  każdy `.json`" i osobno przyznaje, że jeden plik jest wołany po nazwie — po to,
+  żeby porównać kopię z oryginałem. Odkrywanie dotyczy PĘTLI niezmienników.
 - **AUDYT‑78** ⚪ XS ✓ — test kopii (`tests/fixtury.test.ts:49`) porównuje
   `KOMUNIKATY` i `SKLAD` wyczerpująco, ale **nie nagłówek** — czyli nie to, co
   się zepsuło (build `1781609507010` w prozie modułu). `f.zrzut.build` jest w tym
   samym teście, obok; brakuje jednego `toContain`.
+  **✅ Zrobione:** osobny test czyta `tests/walka-z-gry.ts` jako TEKST i porównuje
+  nagłówek z `build` oraz `swiat` fixture'a. **Mutacja rozstrzygająca:** wpisanie
+  z powrotem historycznego `1781609507010` zapala **dokładnie ten jeden test** —
+  błąd, który kiedyś przeszedł niezauważony przez dobę, dziś nie przejdzie.
 - **AUDYT‑79** ⚪ XS ✓ — `docs/ROADMAP.md:200`: „**Cztery pozycje wyżej** kończą
   się zdaniem «brakuje zrzutu z gry»”. Wyżej są **trzy**; czwarta leży niżej,
   w liście na `:270`.
+  **✅ Zrobione:** zdanie wymienia dziś trzy pozycje z nazwy i mówi, że czwarta
+  stoi w liście zakupowej niżej.
 - **AUDYT‑80** ⚪ XS ✓ — `AGENTS.md:141` żąda od `tests/fixtures/README.md` opisu
   **bez liczb**; ten README niesie `1,44 MB` i `id −255967 i −255969`. Reguła
   łamie się w pliku, którego dotyczy.
+  **✅ Zrobione przez zwężenie REGUŁY, nie przez cięcie README.** Zakaz brzmi
+  dziś „bez POLICZONYCH liczb" — tych, które maszyna umie wyliczyć z pliku, bo
+  tylko one rozjeżdżają się po cichu. `id` i daty zostają: bez nich nie da się
+  powiedzieć, co plik pokrywa.
 - **AUDYT‑81** ⚪ S — `czyZachowac` decyduje PO głębokiej kopii: `po()`
   (`src/zrzut.ts:351‑361`) robi `JSON.parse(JSON.stringify(ladunek))` i `migawka()`
   **przed** sprawdzeniem, czy wpis w ogóle zostanie. W jedynym zrzucie odpadło
   565 z 569 wywołań — każde zapłaciło pełną serializację ładunku razem z `w`,
   w callbacku wewnątrz `Engine.battle.update`. Koszt płacony wyłącznie przy
   włączonym trybie deweloperskim, stąd ⚪, a nie 🟡.
+  **✅ Zrobione:** decyzja `czyZachowac` leci PRZED kopią, kształt liczony jest
+  z ORYGINAŁU (te same klucze), kopiowane jest wyłącznie to, co zostaje.
+  **Pomiar na ładunku w skali walki grupowej** — 12 wojowników po ~20 pól,
+  565 dokładnych powtórzeń, rozkład z prawdziwego zrzutu: **18,9 → 5,6 ms**,
+  czyli 0,033 → 0,010 ms na wywołanie.
 - **AUDYT‑82** ⚪ XS — **sporne i nierozstrzygnięte w tym audycie.** `AGENTS.md:150`
   i spec mówią „dorzucenie jednego pliku dało **14** testów więcej” (121 → 135);
   drugi rachunek dał **16** (8 z `describe.each` w `fixtury.test.ts` + 8 z pętli
   po `KORPUS` w `stats.test.ts`). Rozstrzyga jeden pomiar: skopiować fixture pod
   inną nazwą, policzyć, skasować. Audyt był tylko‑do‑odczytu, więc go nie zrobił
   — i to jest jedyna liczba z tej rundy, która **nie została sprawdzona**.
+  **✅ Zmierzone:** 702 → **718** ze skopiowanym fixturem, 702 po jego usunięciu.
+  Różnica **16**, nie 14. Lekcja jest ogólniejsza od poprawki i tak ją zapisano
+  w `AGENTS.md`: ta liczba rośnie razem z zestawem testów, więc nie ma sensu
+  cytować jej jako stałej — znaczenie ma znak, nie wartość.
 - **AUDYT‑83** ⚪ XS ✓ — `Kolekcjoner.wlaczony()` (`src/zrzut.ts:125`) nie jest
   wołane przez jedynego konsumenta typu (`protokol-source.ts`); okno ustawień
   używa własnego `ZrodloZrzutu` (`opcje.ts:37`). Martwy człon kontraktu, którego
   `noUnusedLocals` nie łapie, bo atrapy w testach go implementują.
+  **✅ Zrobione:** `wlaczony()` zszedł z typu `Kolekcjoner`; metoda
+  w `KolekcjonerZrzutu` zostaje, bo to ona odpowiada oknu. Kompilator od razu
+  wskazał dwie atrapy, które ją implementowały.
 - **AUDYT‑84** ⚪ S — tryb deweloperski przeżywa odświeżenie (`margometer.dev`
   zapisywane jako `"0"`, nie kasowane — inaczej niż `recorder.ts:488`), a jedyny
   sygnał, że jest czynny, siedzi **w zamkniętym oknie** (`.opcje-warn`). Zębatka
   w nagłówku panelu pokazuje wyłącznie „otwarte/zamknięte”. Gracz, który włączył
   tryb raz i zapomniał, płaci koszt z `AUDYT‑81` przy każdym wejściu do gry i nie
   ma jak się o tym dowiedzieć.
+  **✅ Zrobione:** zębatka nosi kropkę, dopóki tryb jest czynny — i **nie samym
+  kolorem**: `aria-label` mówi „tryb deweloperski włączony". Kropka, a nie inne
+  tło przycisku, bo tło niesie już stan „otwarte/zamknięte". **Mutacja:** zdjęte
+  `overlay.refresh()` przy przełączniku → pada dokładnie ten jeden test.
+  ⚠️ Wyłącznika awaryjnego NIE MA i nie było w propozycji — kropka odpowiada na
+  „nie wiem, że zbieram", nie na „chcę wyłączyć spoza okna".
+
+---
+
+### AUDYT‑85 — awaria gry gubiła granicę następnej walki 🔴 XS — ✅ NAPRAWIONE ✓ (regresja rundy napraw)
+
+`src/protokol-source.ts` (opakowanie `update`, flaga `swiezaWalka`)
+
+**Problem.** Znalezione **nie przez audyt, tylko przez przegląd własnych
+napraw** — i to jest czwarty dowód tej samej zasady, tym razem złapany PRZED
+commitem. Naprawa `AUDYT‑56` dołożyła flagę `swiezaWalka`, żeby `init` pierwszej
+walki nie liczył jej drugi raz. Flaga była zerowana **zwykłą linią na końcu
+opakowania**, a nie w `finally`.
+
+Wyjątek z `oryginal.apply` jest błędem GRY i ma lecieć dalej nietknięty — ale
+zabierał ze sobą wyzerowanie flagi. Gdy gra wywracała się na wywołaniu tuż po
+odcięciu, flaga zostawała `true` i **następny `init` był przeoczony jako „ta
+sama świeża walka"**. Czyli sklejenie dwóch walk, przed chwilą naprawione,
+wracało wąskim wejściem: jedna awaria gry i zrzut zapisuje dwie walki pod
+jednym numerem.
+
+**Zrobione.** `try { … } finally { this.swiezaWalka = false; }`. Wyjątek gry
+nadal wychodzi nietknięty — zmienia się tylko to, że nasz stan zostaje
+uporządkowany po drodze.
+
+⚠️ **PIERWSZA WERSJA TESTU BYŁA ZIELONA PRZY ZEPSUTYM KODZIE** i to jest tu
+najważniejsza lekcja. Odtwarzała „gra pada w środku walki", a flaga jest `true`
+wyłącznie **tuż po odcięciu** — więc test opisywał moment, w którym błąd nie
+zachodzi. Dopiero mutacja pokazała, że test nic nie pilnuje. Reguła „zepsuj
+naprawę i sprawdź, że test się zapala" zadziałała dokładnie tam, gdzie miała:
+nie na kodzie, tylko na TEŚCIE.
+
+Poprawiona wersja stawia awarię na pierwszym wywołaniu po podpięciu i patrzy na
+licznik walk kolekcjonera, nie na obrażenia w panelu — bo bufor komunikatów jest
+wtedy pusty i panel nie ma czego skleić. Mutacja: zerowanie flagi poza `finally`
+→ pada dokładnie ten jeden test.
+
+**Co przy okazji zostaje powiedziane, a nie naprawione.** Walidacja wpisów
+z `AUDYT‑65` rzuca przy WCZYTANIU, a `tests/fixtury.ts` czyta katalog na
+poziomie modułu — więc uszkodzony fixture wywraca ładowanie i zabiera ze sobą
+`tests/stats.test.ts`, dokładnie jak literówka w ścieżce z `AUDYT‑76`. Jest to
+głośne i takie ma być; warto tylko wiedzieć, że komunikat przyjdzie z importu,
+a nie z nazwanego testu.
+
+### AUDYT‑86 — narzędzie milczało o URWANYM zrzucie 🟡 XS — ✅ NAPRAWIONE ✓ (z przeglądu rundy napraw)
+
+`tools/walka.ts` (`--pokaz`, `--zachowaj`)
+
+**Problem.** Pole `przepelniony` znaczy „bufor zbierania dobił do sufitu
+i stanął", czyli **końca walki w zrzucie nie ma**. Okno ustawień mówi o tym
+graczowi, `czytajZrzut` przepuszcza pole dalej, a `AUDYT‑72` dołożył mu właśnie
+pierwsze testy. Tylko że OFFLINE — w jedynym momencie, w którym materiał wchodzi
+do repo — nie oglądał go **nikt**: ani `--pokaz`, ani `--zachowaj`. Fixture
+z urwanym końcem wyglądałby jak walka, która po prostu tak się skończyła, a opis
+„czego w nim nie ma" pisałby człowiek nieświadomy urwania.
+
+To jest ta sama klasa, co `AUDYT‑64`: sygnał istnieje w danych i nie dociera
+do człowieka w miejscu, w którym podejmuje decyzję.
+
+**Zrobione.** Wspólne `urwany()` — `--pokaz` wypisuje ostrzeżenie razem
+z nagłówkiem, `--zachowaj` powtarza je po zapisie. **Ostrzeżenie, nie odmowa:**
+urwany zrzut nadal niesie materiał, a wycięcie go po swojemu byłoby edytowaniem
+dowodu. Przy okazji `--pokaz` pokazuje `pominietych`, czyli ile gra odsiała jako
+powtórzenia — druga liczba, która leżała w pliku i nie miała czytelnika.
+
+**Mutacja:** `urwany()` zawsze milczy → pada test „zrzut z pełnym buforem daje
+ostrzeżenie".
 
 ---
 ## G. Otwarte z poprzednich rund
