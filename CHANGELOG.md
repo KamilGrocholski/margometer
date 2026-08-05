@@ -28,23 +28,6 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
-## [Niewydane]
-
-- **Poprawka** — Postacie o tej samej nazwie dostają w panelu SWOJE liczby.
-  Dotąd panel zgadywał, która to która, po spadku życia — a gdy obie stały na
-  tyle samo, cała kwota lądowała na jednej z nich. Gra podaje tę informację
-  wprost, więc znika też gwiazdka „liczba niepewna" przy takich wierszach,
-  a przy tej samej nazwie po obu stronach widać wreszcie, kto jest czyj.
-- **Poprawka** — Obrażenia zwykłego ataku przestają się pokazywać pod nazwą
-  wcześniejszej umiejętności. Wystarczyło, że między zapowiedzią a ciosem stanęło
-  leczenie albo krok — nazwa umiejętności czekała wtedy na pierwszy cios, jaki
-  nadszedł, i zabierała mu obrażenia w zestawieniu „czym".
-- **Poprawka** — Panel przestaje gubić liczby w walkach, w których gra na chwilę
-  nie podaje składu. Wystarczyła jedna taka chwila, żeby statystyki spadły do
-  zera, zniknął podział na drużyny i rozróżnienie postaci o tej samej nazwie,
-  a na dole pojawiło się ostrzeżenie o nierozpoznanych danych. Zapisane wtedy
-  nagranie zostawało takie na zawsze.
-
 ## [0.5.0] — 2026-08-05
 
 - **Zmiana** — Panel liczy z tego, co gra dostaje z serwera w trakcie walki,
@@ -66,6 +49,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Poprawka** — W nagraniach lista postaci po obu stronach jest znów pełna:
   podział „moi / przeciwnicy" i postacie, które nic nie zdążyły zrobić,
   pokazują się tak samo jak w trwającej walce.
+- **Poprawka** — Postacie o tej samej nazwie dostają w panelu SWOJE liczby.
+  Dotąd panel zgadywał, która to która, po spadku życia — a gdy obie stały na
+  tyle samo, cała kwota lądowała na jednej z nich. Gra podaje tę informację
+  wprost, więc znika też gwiazdka „liczba niepewna" przy takich wierszach,
+  a przy tej samej nazwie po obu stronach widać wreszcie, kto jest czyj.
 
 ## [0.4.0] — 2026-08-04
 
