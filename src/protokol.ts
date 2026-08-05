@@ -677,9 +677,32 @@ export function dekoduj(
   // (`docs/MECHANIKA.md` §„Sprawca DoT‑a").
   //
   // Stan jest lokalny dla wywołania, więc funkcja zostaje czysta.
+  //
+  // ⚠️ **ZASIĘG TO JEDEN KOMUNIKAT, nie „do najbliższego ciosu"** — naprawione
+  // 2026‑08‑05 po audycie. Wcześniej zapowiedź gasła WYŁĄCZNIE po złożeniu
+  // ciosu, więc ścieżki `heal`, `nieuchronne` i oba wcześniejsze `return`
+  // zostawiały ją uzbrojoną i przyklejała się do cudzej akcji:
+  //
+  //   tspell=Uzdrowienie → heal=500 → zwykły +dmgd=400
+  //     … i obrażenia broni szły w panelu pod „Uzdrowienie";
+  //   tspell=Porażenie → step → zwykły +dmgd=400
+  //     … i zapowiedź przeżywała komunikat pośredni.
+  //
+  // Cytat wyżej rozstrzyga to wprost: gra skleja komunikat ze `skillId`
+  // z NASTĘPNYM (`nextIndex = parseIndexM + 1`) i z niczym więcej.
+  //
+  // `swiezaZapowiedz` odróżnia „ustawiona W TYM komunikacie" (ma dożyć
+  // następnego) od „przyszła z poprzedniego" (ten komunikat jest tym, który
+  // obejmuje — i na jego końcu gaśnie).
   let zapowiedziana: string | null = null;
+  let swiezaZapowiedz = false;
 
-  komunikaty.forEach((surowy, nr) => {
+  /**
+   * Jeden komunikat → zdarzenia. Wydzielone z pętli WYŁĄCZNIE po to, żeby
+   * wygaszanie zapowiedzi niżej wykonało się także po wcześniejszych `return`
+   * w środku — bo to właśnie one zostawiały ją uzbrojoną.
+   */
+  const przetworzKomunikat = (surowy: string, nr: number): void => {
     const { nadawca, cel, parametry } = rozbierz(surowy);
     const nieznany = (co: string) => zdarzenia.push({ kind: "unknown", line: co, lineNo: nr });
 
@@ -868,6 +891,7 @@ export function dekoduj(
           if (nadawcaNazwa === null || p.wartosc === null) nieznany(p.surowy);
           else {
             zapowiedziana = p.wartosc;
+            swiezaZapowiedz = true;
             zdarzenia.push({ kind: "ability", actor: nadawcaNazwa, name: p.wartosc });
           }
           break;
@@ -973,6 +997,16 @@ export function dekoduj(
     // Umiejętność obejmuje jeden cios; kolejny bez własnej zapowiedzi jest już
     // zwykły.
     zapowiedziana = null;
+  };
+
+  komunikaty.forEach((surowy, nr) => {
+    przetworzKomunikat(surowy, nr);
+    // ZAPOWIEDŹ ŻYJE JEDEN KOMUNIKAT. Ustawiona tutaj — dożywa następnego
+    // (`nextIndex = parseIndexM + 1` po stronie gry). Przyszła z poprzedniego —
+    // ten komunikat był tym, który obejmowała, więc gaśnie bez względu na to,
+    // czy złożył się z niej cios, leczenie, czy nic.
+    if (swiezaZapowiedz) swiezaZapowiedz = false;
+    else zapowiedziana = null;
   });
 
   return zdarzenia;

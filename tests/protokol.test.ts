@@ -457,6 +457,61 @@ describe("dekoduj: przebieg walki", () => {
     expect(zd[2]).toMatchObject({ kind: "attack", ability: null });
   });
 
+  /**
+   * ZASIĘG ZAPOWIEDZI TO JEDEN KOMUNIKAT — trzy kształty, które do 2026‑08‑05
+   * dawały złą liczbę w rozbiciu „CZYM", i żaden z nich nie zapalał niczego.
+   *
+   * Zapowiedź gasła WYŁĄCZNIE po złożeniu ciosu, więc każda ścieżka kończąca
+   * komunikat inaczej (leczenie, krok, komunikat bez liczb) zostawiała ją
+   * uzbrojoną — i przyklejała ją do pierwszego ciosu, jaki nadszedł, choćby
+   * kilka komunikatów później.
+   *
+   * Rozstrzyga to cytat z gry stojący przy `dekoduj`: komunikat ze `skillId`
+   * jest sklejany z NASTĘPNYM (`nextIndex = parseIndexM + 1`) i z niczym więcej.
+   */
+  test("leczenie zjada zapowiedź — następny zwykły cios jej NIE dostaje", () => {
+    // Najostrzejszy z trzech: obrażenia broni szły w panelu pod nazwą
+    // umiejętności LECZĄCEJ.
+    const zd = dekoduj(
+      [
+        "1=100.00;2=100.00;tspell=Uzdrowienie;skillId=7",
+        "1=100.00;0;heal=500",
+        "1=100.00;2=80.00;+dmgd=400;-dmgd=400",
+      ],
+      SKLAD,
+    );
+    expect(zd.find((e) => e.kind === "heal")).toMatchObject({ ability: "Uzdrowienie" });
+    expect(zd.find((e) => e.kind === "attack")).toMatchObject({ ability: null });
+  });
+
+  test("komunikat pośredni zjada zapowiedź — krok też jest komunikatem", () => {
+    const zd = dekoduj(
+      [
+        "1=100.00;2=100.00;tspell=Porażenie;skillId=70",
+        "1=100.00;0;step",
+        "1=100.00;2=80.00;+dmgd=400;-dmgd=400",
+      ],
+      SKLAD,
+    );
+    expect(zd.find((e) => e.kind === "attack")).toMatchObject({ ability: null });
+  });
+
+  test("zapowiedź i obrażenia w TYM SAMYM komunikacie — cios dostaje, następny nie", () => {
+    // Druga strona reguły. Gdyby wygaszanie było ślepe na „ustawiona właśnie
+    // teraz", zapowiedź przeżyłaby własny komunikat i poszła na kolejny.
+    const zd = dekoduj(
+      [
+        "1=100.00;2=80.00;tspell=Fuzja;skillId=9;+dmgc=400;-dmgc=400",
+        "1=100.00;2=60.00;+dmgd=100;-dmgd=100",
+      ],
+      SKLAD,
+    );
+    const ciosy = zd.filter((e) => e.kind === "attack");
+    expect(ciosy).toHaveLength(2);
+    expect(ciosy[0]).toMatchObject({ ability: "Fuzja" });
+    expect(ciosy[1]).toMatchObject({ ability: null });
+  });
+
   test("rozstrzygnięcie walki, z drużyną i bez", () => {
     const [a] = dekoduj(["0;0;winner=Kamil, Locha"], SKLAD);
     expect(a).toMatchObject({ kind: "fight-end", outcome: "victory", actors: ["Kamil", "Locha"] });

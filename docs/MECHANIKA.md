@@ -559,3 +559,42 @@ z `Communication.js` `[0,1,2]` przy trzech. **Żaden z 547 plików nie czyta
 identyczność, więc nic z niej nie wynika — ale to jedyne pole `t`, którego nie
 rozumiemy. Do rozstrzygnięcia potrzebny zrzut, w którym `mi` identycznością NIE
 jest, i nie wiadomo, czy taki istnieje.
+
+### Zasięg zapowiedzi umiejętności — JEDEN komunikat ✅ (pomoc milczy, źródło rozstrzyga)
+
+Pytanie: przez ile komunikatów obowiązuje zapowiedź (`tspell`, `prepare`),
+zanim obrażenia przestaną do niej należeć. Odpowiedź decyduje o tym, pod jaką
+nazwą stoją obrażenia w rozbiciu „CZYM", więc pomyłka daje złą liczbę bez ani
+jednego ostrzeżenia — i dawała ją do 2026‑08‑05.
+
+**Pomoc gry NIE ROZSTRZYGA.** Sonda `bun tools/pomoc.ts "przygotowuje się do
+rzucenia"` — **0 wystąpień** w artykule `view,372` (zrzut z 2026‑08‑01). Wpis
+negatywny wiąże tylko z tą frazą i tą datą; artykuł opisuje mechanikę zdarzeń,
+a nie sposób, w jaki serwer paczkuje komunikaty.
+
+**Rozstrzyga ŹRÓDŁO KLIENTA**, build deweloperski `1781609507010`:
+
+> ```js
+> let str    = allM[indexM];
+> let result = str.match(/skillId=([0-9]*)/g);
+> if (result) {
+>     let nextIndex = parseIndexM + 1;
+>     if (allM[nextIndex]) str = allM[indexM] + ',' + allM[nextIndex];
+> ```
+> — `battleEffects/BattleEffectsController.js:237‑255`
+
+Komunikat ze `skillId` gra skleja z **NASTĘPNYM** i traktuje oba jako jedną
+akcję. `nextIndex = parseIndexM + 1` — bez pętli, bez szukania najbliższego
+ciosu. Zasięg to jeden komunikat i tyle.
+
+**Co to unieważniło po naszej stronie.** Dekoder trzymał zapowiedź uzbrojoną aż
+do najbliższego CIOSU, więc leczenie, krok albo komunikat bez liczb jej nie
+gasiły — i przyklejała się do cudzej akcji kilka komunikatów dalej. Odtworzone
+i naprawione 2026‑08‑05 (`tests/protokol.test.ts`, trzy kształty).
+
+⚠️ **Czego ten wpis NIE mówi.** Że `prepare` („przygotowuje się do rzucenia")
+ma ten sam zasięg co `tspell`. Cytat mówi o kluczu `skillId`, a nie o tym,
+który klucz zapowiedzi mu towarzyszy; w naszym jedynym zrzucie z gry nie ma ani
+jednej zapowiedzi, więc pomiaru też nie ma. Traktujemy `prepare` tak jak
+`tspell`, bo to jedyna udokumentowana reguła — ale jeśli kiedyś zrzut pokaże
+obrażenia dwa komunikaty po `prepare`, to jest miejsce, w którym trzeba zajrzeć.

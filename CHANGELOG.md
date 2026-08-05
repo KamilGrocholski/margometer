@@ -30,6 +30,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Obrażenia zwykłego ataku przestają się pokazywać pod nazwą
+  wcześniejszej umiejętności. Wystarczyło, że między zapowiedzią a ciosem stanęło
+  leczenie albo krok — nazwa umiejętności czekała wtedy na pierwszy cios, jaki
+  nadszedł, i zabierała mu obrażenia w zestawieniu „czym".
 - **Poprawka** — Panel przestaje gubić liczby w walkach, w których gra na chwilę
   nie podaje składu. Wystarczyła jedna taka chwila, żeby statystyki spadły do
   zera, zniknął podział na drużyny i rozróżnienie postaci o tej samej nazwie,
