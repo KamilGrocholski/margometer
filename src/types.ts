@@ -157,9 +157,14 @@ export type Hit = {
  * postacie o tej samej nazwie CZYTAJĄC, zamiast wnioskując ze spadku życia.
  * Pola są opcjonalne, bo materiał budowany w kodzie (`tests/zdarzenia.ts`,
  * `tools/synthetic-log.ts`) ich nie ma — i ma dalej chodzić heurystyką.
- * Wypełnia je WYŁĄCZNIE `dekoduj`; `turn-lost` ich nie dostaje, bo dekoder
- * takiego zdarzenia nie emituje, a pole, którego nikt nie ustawia, jest gorsze
- * niż jego brak.
+ * Wypełnia je WYŁĄCZNIE `dekoduj`.
+ *
+ * ⚠️ Ta sama reguła — **pole, którego nikt nie ustawia, jest gorsze niż jego
+ * brak** — zdjęła stąd 2026‑08‑05 całe zdarzenie `turn-lost` i licznik
+ * `turnsLost`. Dekoder protokołu nigdy takiego zdarzenia nie emitował (klucze
+ * ogłuszenia siedzą w tabeli `PROCE` i nie niosą skutku), więc panel pokazywał
+ * „Tury utracone 0" jako POMIAR, którym to nie było. Powody:
+ * `docs/specy/2026-08-05-tura-to-akcja.md`.
  */
 export type BattleEvent =
   | { kind: "fight-start"; participants: Participant[] }
@@ -257,7 +262,6 @@ export type BattleEvent =
       weakenedPct: number | null;
     }
   | { kind: "move"; actor: string; actorId?: number; hpPct: number; description: string }
-  | { kind: "turn-lost"; actor: string }
   | {
       kind: "fight-end";
       outcome: "victory" | "defeat" | "draw";
@@ -581,14 +585,26 @@ export type ActorStats = {
    */
   superCrits: number;
   /**
-   * Tury, w których postać działała. Log nie numeruje tur, więc turą jest
-   * nieprzerwany ciąg jej akcji: "Podwójny strzał" to dwa ciosy w JEDNEJ turze.
-   * Wliczamy też tury utracone.
+   * Tury postaci. **Tura jest AKCJĄ** — tak definiuje ją gra (pomoc, „2. System
+   * tur"): „numerowana (od 1 wzwyż) akcja […] przyznawana" jednej postaci naraz.
+   * Akcją jest zwykły atak, zapowiedź umiejętności i krok do przodu; tyknięcie
+   * DoT-a i leczenie bez zapowiedzi — nie.
+   *
+   * Kilka ciosów jednej zapowiedzianej umiejętności to JEDNA tura, bo turę
+   * otworzyła zapowiedź. Kilka akcji tej samej postaci pod rząd to natomiast
+   * tyle tur, ile akcji: kolejność wynika ze skumulowanego czasu ataku, więc
+   * szybka postać rutynowo dostaje turę kilka razy z rzędu.
+   *
+   * ⚠️ **Liczba jest przybliżeniem od DWÓCH stron i żadnej z nich nie umiemy
+   * dziś domknąć.** W dół: tura bez akcji (ogłuszenie, sen) nie zostawia
+   * w protokole śladu, więc jej tu nie ma. W górę: dodatkowe ataki z
+   * `add_attacks` („Podwójny strzał") policzą się jako osobne tury, choć pomoc
+   * gry mówi wprost, że na liczbę tur nie wpływają — protokół ich nie znakuje.
+   * Szczegóły i pomiary: `beginTurn` w `stats.ts` oraz `docs/MECHANIKA.md`.
    */
   turns: number;
   /** Najsilniejszy pojedynczy cios — suma jego liczb, nie największa z nich. */
   maxHit: number;
-  turnsLost: number;
   /** Z czego złożyły się obrażenia zadane, malejąco. */
   dealtBy: DamageSource[];
   /**

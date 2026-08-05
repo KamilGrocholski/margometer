@@ -154,10 +154,14 @@ export function syntheticFight(count: number): BattleEvent[] {
     for (const actor of actors) {
       if (!alive(actor)) continue;
 
-      if (actor.stun > 0 && random() < actor.stun) {
-        events.push({ kind: "turn-lost", actor: actor.name });
-        continue;
-      }
+      // Ogłuszenie: postać nie robi w tej turze NIC i nie zostawia po sobie ani
+      // jednego zdarzenia. Do 2026‑08‑05 leciało stąd `{kind: "turn-lost"}` —
+      // zdarzenie, którego dekoder protokołu nigdy nie emitował, więc generator
+      // produkował kształt niemożliwy w prawdziwym materiale i karmił nim
+      // licznik, który przez to wyglądał na zasilony. Cisza jest wierniejsza:
+      // tak właśnie wygląda utracona tura w protokole i dlatego jej tam nie
+      // widać. Patrz `docs/specy/2026-08-05-tura-to-akcja.md`.
+      if (actor.stun > 0 && random() < actor.stun) continue;
 
       // Trucizna tyka na początku tury zatrutego — tak jak w prawdziwej walce.
       if (actor.poisoned > 0) {

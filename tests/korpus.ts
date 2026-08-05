@@ -29,7 +29,15 @@ import type { BattleEvent } from "../src/types.ts";
 /**
  * Skrajności dobrane tak, żeby niezmienniki miały na czym paść:
  * 2 to samo 1v1, 20 to pełny skład z krytykami, unikami, blokami, leczeniem,
- * trucizną, wielotrafieniem i postaciami tracącymi tury.
+ * trucizną, wielotrafieniem i postaciami, które tracą turę (czyli milczą przez
+ * całą swoją kolejkę — tak wygląda ogłuszenie w protokole).
+ *
+ * ⚠️ **Czego generator NIE produkuje: dwóch akcji tej samej postaci pod rząd.**
+ * Daje jedną akcję na postać na rundę i przeplata postacie, więc kształt, na
+ * którym pękało liczenie tur do 2026‑08‑05, nie ma tu jak wystąpić. Niezmiennik
+ * „każda akcja z logu ma swoją turę na osi” chodzi po tych pięciu walkach i
+ * mutacja cofająca tamtą naprawę NIE zapala go na żadnej z nich — łapie ją
+ * wyłącznie `OSOBLIWOSCI` niżej. Sprawdzone, nie domyślone.
  */
 export const WALKI: { name: string; events: BattleEvent[] }[] = [2, 4, 7, 12, 20].map((n) => ({
   name: `syntetyczna-${n}`,
@@ -56,6 +64,8 @@ export const OSOBLIWOSCI: BattleEvent[] = [
   // Leczenie bez leczącego — log nie mówi, kto rzucił.
   leczenie("Gracz", 700, { targetHpPct: 90 }),
   // Zapowiedź umiejętności doklejona do NASTĘPNEGO ciosu, nie do siebie.
+  // Zarazem JEDYNY w korpusie świadek reguły „tura to akcja”: dwa ciosy Gracza
+  // wyżej to dwie tury, a zapowiedź plus jej cios — jedna.
   umiejetnosc("Gracz", "Podwójny strzał"),
   cios("Gracz", "Odyniec", [trafienie(400, 400)], {
     targetHpPct: 20,

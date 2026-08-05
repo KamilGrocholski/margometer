@@ -28,6 +28,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Tury liczą się tak, jak liczy je gra: turą jest jedna akcja —
+  cios, użycie umiejętności albo krok do przodu. Wcześniej kilka akcji tej samej
+  postaci pod rząd sklejało się w jedną turę, a szybka postać dostaje kolejkę
+  kilka razy z rzędu zupełnie normalnie. Dlatego wszystko liczone „na turę”
+  bywało zawyżone — na sprawdzonej walce dokładnie dwukrotnie. Liczby przy
+  zapisanych w archiwum walkach też się przez to zmienią.
+- **Poprawka** — Zniknął wiersz „Tury utracone”. Pokazywał zawsze zero i wyglądał
+  jak pomiar, a gra nie mówi, komu tura przepadła — więc nie było czego liczyć.
+
 ## [0.5.0] — 2026-08-05
 
 - **Zmiana** — Panel liczy z tego, co gra dostaje z serwera w trakcie walki,
@@ -222,8 +233,10 @@ pliku u siebie.
 - **Zmiana** — Zakładka „Tury" wycofana z opisu wydania 0.1.0 — nigdy nie dało
   się jej wybrać. Średnia „na turę" jest za to w każdym wierszu.
 - **Poprawka** — Walki grupowe gubiły część statystyk. Leczenie potworów,
-  utrata tury z powodem, wzmocnienie za małą grupę, ładowanie ciosów specjalnych
-  i „Ostatni ratunek" są już rozumiane.
+  wzmocnienie za małą grupę, ładowanie ciosów specjalnych i „Ostatni ratunek"
+  są już rozumiane. (Wpis wymieniał też utratę tury — od przejścia na odczyt
+  z serwera nie było jej skąd wziąć, a licznik pokazywał zero. Zdjęty w
+  `[Niewydane]`.)
 - **Poprawka** — Dymek nad wierszem wczytanego nagrania znów się pokazuje.
   Wcześniej nie pojawiał się wcale, a przy walce z postacią o tej samej nazwie
   pokazywał cudze liczby.

@@ -55,8 +55,9 @@ klasę** cichych błędów, należy tu wprost (`R4`).
   ⚠️ z zastrzeżeniem: `/t` znaczy dwie różne rzeczy zależnie od metryki i wiersze
   nie sumują się do drużyny przy Zadanych — `DECYZJE.md` „Na turę”, do decyzji
   projektowej, nie do łatki.
-- ✅ Hover pokazuje skrót statystyk: zadane, otrzymane, leczenie, tury, utracone
-  tury, **efekty w ciosach** (`procs`) i **efekty otrzymane** (`procsReceived`),
+- ✅ Hover pokazuje skrót statystyk: zadane, otrzymane, leczenie, tury (wiersz
+  „utracone tury” zszedł 2026‑08‑05 — nic go nie zasilało),
+  **efekty w ciosach** (`procs`) i **efekty otrzymane** (`procsReceived`),
   czyli klątwy, dotyki anioła i bardzo krytyczne — po nazwie i liczbie.
   ⚠️ ale w podglądzie z archiwum dymek dziś nie działa wcale (`UX-POPRAWKI.md A7`).
 - ✅ Statystyki wg drużyny: nagłówek stron z paskiem podziału i sumy zespołu
@@ -99,9 +100,11 @@ były wstrzymane, zostaje — pokazuje, ile taka pozycja potrafi kosztować, zan
 ktoś ją rozstrzygnie.
 - ❌ **Metryka „Tury” — ODPUSZCZONA 2026‑08‑03.** `"turns"` zeszło z typu
   `Metric` i z obu map etykiet; `turnRows` zszedł już 2026‑07‑31 (`95d02d7`).
-  Tury i tury utracone zostają w dymku i tam odpowiadają na swoje pytanie,
-  a średnia na turę stoi w każdym wierszu — czwarta zakładka nie miała czego
-  dołożyć. Kod wraca z historii, gdyby decyzja się odwróciła.
+  Tury zostają w dymku i tam odpowiadają na swoje pytanie, a średnia na turę
+  stoi w każdym wierszu — czwarta zakładka nie miała czego dołożyć. Kod wraca
+  z historii, gdyby decyzja się odwróciła.
+  (Wiersz „tury utracone”, wymieniany tu do 2026‑08‑05, zszedł z drzewa razem
+  z polem `turnsLost` — nic go nigdy nie zasilało.)
 - ❌ **Oś tur i skupienie ognia — PORZUCONE 2026‑08‑03.** Renderery zeszły
   z drzewa już 2026‑07‑31 (`95d02d7`) i czekały na decyzję „CO mają pokazywać”.
   Decyzja: nie wracają. Razem z nimi poszły **`stats.deaths` i `stats.matrix`**,
@@ -146,6 +149,28 @@ który raz leczy, a raz nie — powody w `DECYZJE.md` §„Leczenie bez leczące
 **Czego brakuje do domknięcia:** zrzutu z gry z kluczem `heal_target`. Jedyna
 prawdziwa walka w repo ma sam `heal=99`, więc atrybucja stoi dziś na odczycie
 renderera, a nie na materiale.
+
+## Tura z autorytatywnego sygnału — `data.current`
+
+Znalezione przy naprawie licznika tur 2026‑08‑05, **nie zrobione**. Licznik jest
+dziś WNIOSKIEM ze strumienia komunikatów („akcja = tura”) i z tego powodu myli
+się w obie strony: nie widzi tur bez akcji (ogłuszenie) i liczy podwójnie
+dodatkowe ataki z `add_attacks`. Powody i pomiary:
+[`specy/2026-08-05-tura-to-akcja.md`](specy/2026-08-05-tura-to-akcja.md).
+
+Sygnał autorytatywny **jest w ładunku, który już przechwytujemy**: `data.current`
+niesie `id` postaci, której gra przyznaje turę (`Battle.js:444,450` →
+`self.newTurn(data.current)`). Co go dziś blokuje:
+
+- **W jedynym zrzucie cała walka (18 komunikatów) przyszła w JEDNYM wywołaniu
+  `update`** — to była walka automatyczna, którą silnik liczy sekwencyjnie
+  i oddaje w całości. Dla takiej walki `current` nie rozstrzyga ani jednej linii.
+- `recorder.ts` zapisuje wyłącznie komunikaty, więc dopięcie `current` zmienia
+  FORMAT nagrań — czyli powtarza „nagrania sprzed tej wersji przepadają”.
+
+**Czego brakuje do domknięcia:** zrzutu z walki TUROWEJ (PvP albo ręcznej z NPC),
+w której porcje przychodzą osobno — dopiero on pokaże, ile `current` naprawdę
+pokrywa i czy warto za to płacić formatem nagrań.
 
 ## Leczenie, które nie liczy się do niczego — `bandage` i `vamp_time`
 

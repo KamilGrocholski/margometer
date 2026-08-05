@@ -48,7 +48,8 @@ function rightClick(overlay: Overlay): void {
  * sam policzył z danych, które sami wyprodukowaliśmy.
  *
  * Grubsze straty, po blokach: rozbicie leczenia na źródła (5), TOP‑3 w dymku
- * z udziałami (4), licznik tur i tury utracone (4), filtr składu i procenty
+ * z udziałami (4), licznik tur (4; tury utracone zeszły z drzewa 2026‑08‑05
+ * razem z polem, którego nikt nie zasilał), filtr składu i procenty
  * w obrębie drużyny (4), nagłówek stron z tempem (7), blok/super‑kryt/osłabienie
  * w licznikach stopki (6), uniki pełne kontra częściowe (2) oraz 27 pozycji
  * z głównego bloku `overlay` — sortowanie, gwiazdka przy duplikatach nazw,
@@ -223,9 +224,12 @@ describe("licznik tur", () => {
     // Tury stoją tu mimo braku własnej zakładki: bez nich sumy nie mają skali.
     expect(stat("Tury")).toBe(`${actor.turns}`);
 
-    // Tury utracone stoją ZAWSZE, także jako zero: brak wiersza czytałoby się
-    // jak brak pomiaru, a nie jak brak strat.
-    expect(stat("Tury utracone")).toBeDefined();
+    // ⚠️ Stała tu asercja odwrotna — „Tury utracone stoją ZAWSZE, także jako
+    // zero, bo brak wiersza czytałoby się jak brak pomiaru". Było odwrotnie: to
+    // ZERO czytało się jak pomiar, bo dekoder protokołu nigdy nie emitował
+    // utraty tury i liczba nie mogła wyjść inna. Wiersz zszedł 2026‑08‑05
+    // razem z polem `turnsLost`; tu pilnujemy, żeby nie wrócił po cichu.
+    expect(stat("Tury utracone")).toBeUndefined();
 
     // Aktywna metryka wyróżniona, żeby było wiadomo, wobec czego jest ranking.
     const active = [...tip.querySelectorAll(".tip-stat.is-active")];

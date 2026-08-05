@@ -20,7 +20,7 @@ import { storedBoolean, storedNumber, storedOneOf, storedRecord } from "./stored
  *
  * Stała tu czwarta wartość — `"turns"` — i była nieosiągalna z UI, bo `METRICS`
  * jej nie wystawiał. Odpuszczona 2026‑08‑03 razem z osią tur: średnia na turę
- * stoi dziś w każdym wierszu, a same tury i tury utracone — w dymku. Czwarta
+ * stoi dziś w każdym wierszu, a same tury — w dymku. Czwarta
  * zakładka nie miała czego dołożyć, a typ obiecywał, że kiedyś będzie.
  */
 export type Metric = "damageDealt" | "damageTaken" | "healingReceived";
@@ -266,8 +266,13 @@ const RESIZE_MARGIN = 8;
  *
  * Obrażenia ZADANE dzielą się przez tury własne, bo pytanie brzmi „ile wykręcam
  * jedną akcją”. Suma karze tego, kto stracił tury na ogłuszeniu — a to nie
- * znaczy, że bije słabiej. Tury utracone są wliczone w `turns`, więc dzielenie
- * je uwzględnia.
+ * znaczy, że bije słabiej.
+ *
+ * ⚠️ Od 2026‑08‑05 dzielnik jest AKCJĄ, a nie ciągiem akcji — do tej daty
+ * kolejne akcje tej samej postaci sklejały się w jedną turę, więc ta średnia
+ * bywała zawyżona nawet dwukrotnie. Zdanie „ile wykręcam jedną akcją” jest
+ * prawdziwe dopiero teraz. Tury BEZ akcji (ogłuszenie) nadal nie mają jak
+ * trafić do licznika — patrz `ActorStats.turns`.
  *
  * Obrażenia PRZYJĘTE dzielą się przez tury całej walki, bo bierze się je w
  * turach przeciwnika — własny licznik akcji nie ma z nimi nic wspólnego.
@@ -1869,8 +1874,8 @@ export class Overlay {
             : "OD KOGO";
 
     if (sources.length === 0) {
-      // Liczniki zostają: `ciosy · kryt. · uniki · maks. cios · tury · utracone`
-      // są prawdziwe niezależnie od metryki, a wcześniej znikały razem z listą.
+      // Liczniki zostają: `ciosy · kryt. · uniki · maks. cios · tury` są
+      // prawdziwe niezależnie od metryki, a wcześniej znikały razem z listą.
       // Postać, która tylko obrywała, pokazywała pod „Zadane" jedno zdanie
       // i pustkę — mimo że dane o niej były.
       container.append(div("empty", EMPTY_BREAKDOWN[this.metric]), this.counters(actor));
@@ -2037,7 +2042,6 @@ export class Overlay {
         dodgeLabel(actor),
         `maks. cios ${number.format(actor.maxHit)}`,
         `tury ${actor.turns}`,
-        `utracone ${actor.turnsLost}`,
       ].join(" · "),
     );
   }
@@ -2428,24 +2432,17 @@ export class Overlay {
 
     // Tury stoją tu jako pełnoprawna pozycja, nie w linijce liczników niżej:
     // bez nich sumy nie mają skali — 5000 obrażeń w trzech turach i w dwunastu
-    // to dwie różne postacie. Tury utracone pokazujemy ZAWSZE, także jako zero,
-    // bo brak wiersza czyta się jak brak pomiaru, a nie jak brak strat.
+    // to dwie różne postacie.
     //
-    // Obie liczby zostają surowe także przy „na turę”: tury na turę to z
-    // definicji 1, a udział tur utraconych jest już ułamkiem. To one są
-    // mianownikiem dla wierszy wyżej — dzielenie ich przez siebie zabrałoby
-    // jedyną skalę, wobec której tamto tempo cokolwiek znaczy.
+    // Liczba zostaje surowa także przy „na turę”: tury na turę to z definicji 1.
+    // To ona jest mianownikiem dla wierszy wyżej — podzielona przez siebie
+    // zabrałaby jedyną skalę, wobec której tamto tempo cokolwiek znaczy.
+    //
+    // ⚠️ Wiersz „Tury utracone” stał tu do 2026‑08‑05 z uzasadnieniem „brak
+    // wiersza czyta się jak brak pomiaru”. Był odwrotnie: to ZERO czytało się
+    // jak pomiar, bo dekoder protokołu nigdy nie emitował zdarzenia utraty tury,
+    // więc liczba nie mogła być inna niż 0. Zdjęty razem z polem `turnsLost`.
     section.append(tipStat(TURNS_LABEL, `${actor.turns}`));
-    // Udział mówi więcej niż sama liczba: 3 utracone z 4 to inna walka niż
-    // 3 z 30. `turns` zawiera tury utracone, więc jest właściwym mianownikiem.
-    section.append(
-      tipStat(
-        "Tury utracone",
-        actor.turns > 0
-          ? `${actor.turnsLost} (${Math.round((actor.turnsLost / actor.turns) * 100)}%)`
-          : `${actor.turnsLost}`,
-      ),
-    );
 
     // Liczniki, które nie mają własnej zakładki, a mówią o jakości gry.
     const counters = [

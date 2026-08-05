@@ -82,8 +82,6 @@ function namesIn(event: BattleEvent): NameRef[] {
           ];
     case "ability":
       return [[event.actor, null, false, event.actorId]];
-    case "turn-lost":
-      return [[event.actor, null]];
     default:
       return [];
   }
@@ -487,7 +485,7 @@ const SELF_INFLICTED_DOTS = new Set(["od ubytku życia"]);
  * środku. Puste, bo to nie jest niczyja tura z nazwy: gdybyśmy wstawili tu
  * jakąkolwiek nazwę, kolumna na osi dostałaby stronę, o której log milczy.
  */
-const BACKGROUND_ACTOR = "";
+export const BACKGROUND_ACTOR = "";
 
 /**
  * Sprowadza wariantowe nazwy efektów do jednej etykiety: "Niszczenie pancerza
@@ -697,7 +695,6 @@ function blank(name: string): ActorStats {
     superCrits: 0,
     turns: 0,
     maxHit: 0,
-    turnsLost: 0,
     dealtBy: [],
     takenFrom: [],
     dealtByType: [],
@@ -829,10 +826,6 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     return enemies.length === 1 ? enemies[0]!.key : null;
   };
 
-  /**
-   * Kto działał ostatnio. Turę zamyka dopiero akcja kogoś innego — DoT-y i
-   * leczenie lecą pomiędzy, ale nie są niczyją akcją, więc jej nie przerywają.
-   */
   // Oś tur walki. Rośnie razem z turami postaci, ale numeruje je globalnie —
   // dopiero na tym da się zestawić obie strony obok siebie.
   const timeline: TurnSlice[] = [];
@@ -857,22 +850,39 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     slice.damage += amount;
   };
 
-  let lastActor: string | null = null;
-  const beginTurn = (actor: string) => {
-    if (actor === lastActor) return;
-    get(actor).turns += 1;
-    openTurn(actor);
-    lastActor = actor;
-  };
   /**
-   * Nowa tura mimo tego samego aktora. Zapowiedź "X wykonuje Y." jest twardym
-   * znacznikiem: bez niej dwie tury pod rząd tej samej postaci (gdy przeciwnik
-   * stracił swoją) skleiłyby się w jedną.
+   * Otwiera turę. **TURA JEST AKCJĄ** — jedną, numerowaną, przyznaną jednej
+   * postaci. Pomoc gry, rozdział „2. System tur" (`view,372`):
+   *
+   * > Tura w systemie tur to numerowana (od 1 wzwyż) akcja, którą Postać może
+   * > wykonać […]. Tura jest akcją przyznawaną i tylko jedna Postać w danym
+   * > momencie może uzyskać możliwość wykonania tury.
+   *
+   * ⚠️ **DO 2026‑08‑05 STAŁO TU COŚ PRZECIWNEGO.** Turą był NIEPRZERWANY CIĄG
+   * akcji tej samej postaci (`if (actor === lastActor) return`) — założenie, że
+   * dwie akcje pod rząd to jedna tura. Gra tak nie działa: kolejność wynika ze
+   * skumulowanego czasu ataku („Pierwszeństwo w wykonaniu tury ma Gracz, którego
+   * przewidywany licznik czasu trwania ataków […] będzie najniższy"), więc
+   * szybka postać RUTYNOWO dostaje kilka tur pod rząd. Zmierzone na jedynej
+   * prawdziwej walce w repo (`tests/walka-z-gry.ts`): „Łowcożyr Kazrek" wykonuje
+   * 8 ataków, a panel liczył mu 4 tury — obrażenia na turę własną wychodziły
+   * 696 zamiast 348, czyli dokładnie dwa razy za dużo.
+   *
+   * ⚠️ **CO ZOSTAJE ZŁE.** Dodatkowe ataki z `add_attacks` („Podwójny strzał")
+   * policzą się jako osobne tury, choć pomoc gry mówi wprost: „Na liczbę tur nie
+   * wpływają dodatkowe tury wynikające z efektu add_attacks". Protokół ich nie
+   * znakuje — klient przypina `skillId` wyłącznie do NASTĘPNEGO komunikatu, bez
+   * pętli (`BattleEffectsController.js:239‑248`), więc dodatkowy atak przychodzi
+   * osobnym komunikatem z `ability: null` i jest dla nas nieodróżnialny od
+   * zwykłego ataku. To jest ścisła poprawa — błąd z systematycznego (każda para
+   * kolejnych akcji) zrobił się ograniczony (umiejętności z `add_attacks`) — ale
+   * nie zniknął.
+   *
+   * Co jest akcją, a co nie, rozstrzygają MIEJSCA WOŁANIA, nie ta funkcja.
    */
-  const forceTurn = (actor: string) => {
+  const beginTurn = (actor: string) => {
     get(actor).turns += 1;
     openTurn(actor);
-    lastActor = actor;
   };
 
   // Sprawcy log nie zna, ale POSZKODOWANEGO tak — zbieramy po nim, a na stronę
@@ -903,7 +913,17 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
       case "attack": {
         const sourceKey = resolve(event.source, event.sourceHpPct, false, event.sourceId);
         const targetKey = resolve(event.target, event.targetHpPct, false, event.targetId);
-        beginTurn(sourceKey);
+        // Turę otwiera AKCJA — i to jest dokładnie ten sam predykat, którym niżej
+        // liczy się użycie zwykłego ataku. Nie zbieg okoliczności: „jedno użycie
+        // zwykłego ataku" i „jedna tura" to ta sama rzecz opisana z dwóch stron.
+        //
+        // Cios należący do ZAPOWIEDZIANEJ umiejętności tury nie otwiera, bo
+        // otworzyła ją zapowiedź „X wykonuje Y" — jedna akcja, choćby weszła
+        // kilkoma ciosami. Własne obrażenia umiejętności (`strike: false`) też
+        // nie: lecą obok ciosu, a ich „nadawcą" w protokole bywa poszkodowany,
+        // więc otwarta z nich tura siadałaby nie tej postaci, co trzeba.
+        const zwyklyAtak = event.ability === null && event.strike;
+        if (zwyklyAtak) beginTurn(sourceKey);
         const source = get(sourceKey);
         const target = get(targetKey);
         // Obie liczby ciosu idą pod jedną nazwę — to jedna akcja, nie dwie.
@@ -912,7 +932,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         // odpowiada jednemu odpaleniu; ciosów pod tą nazwą bywa więcej.
         // Zwykły atak własnej linii nie ma, więc liczymy go tutaj — jeden
         // atak to jedno użycie, także gdy przepadł na uniku.
-        if (event.ability === null && event.strike) {
+        if (zwyklyAtak) {
           bumpCount(breakdownOf(sourceKey).abilityUses, PLAIN_ATTACK);
         }
         // Cios liczymy raz, choćby niósł kilka liczb (mag: zimno + błyskawica).
@@ -1178,13 +1198,6 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         }
         break;
       }
-      case "turn-lost": {
-        // Utrata tury to nadal tura tej postaci — po prostu bez akcji.
-        const actorKey = resolve(event.actor, null);
-        forceTurn(actorKey);
-        get(actorKey).turnsLost += 1;
-        break;
-      }
       case "unknown":
         unknownLines += 1;
         break;
@@ -1193,7 +1206,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         break;
       case "ability": {
         const actorKey = resolve(event.actor, null, false, event.actorId);
-        forceTurn(actorKey);
+        beginTurn(actorKey);
         bumpCount(breakdownOf(actorKey).abilityUses, event.name);
         break;
       }

@@ -614,3 +614,76 @@ który klucz zapowiedzi mu towarzyszy; w naszym jedynym zrzucie z gry nie ma ani
 jednej zapowiedzi, więc pomiaru też nie ma. Traktujemy `prepare` tak jak
 `tspell`, bo to jedyna udokumentowana reguła — ale jeśli kiedyś zrzut pokaże
 obrażenia dwa komunikaty po `prepare`, to jest miejsce, w którym trzeba zajrzeć.
+
+### System tur — tura to AKCJA, numerowana i przyznawana jednej postaci ✅
+
+Pytanie: czym jest tura, którą liczy panel. Odpowiedź jest mianownikiem trybu
+„na turę”, więc pomyłka w niej przekłamuje KAŻDĄ liczbę z sufiksem `/t` — i
+przekłamywała je do 2026‑08‑05.
+
+**Pomoc gry ma na to cały rozdział „2. System tur”**, którego ten rejestr nie
+miał do dziś ani w wersji pozytywnej, ani negatywnej. Sonda
+`bun tools/pomoc.ts "System tur"` (zrzut z 2026‑08‑01):
+
+> „Tura w systemie tur to numerowana (od 1 wzwyż) akcja, którą Postać może
+> wykonać w sposób automatyczny (w przypadku NPC lub Graczy wybierających opcję
+> automatycznej walki) lub manualny (wtedy Gracz ma przyznawany czas na ruch).
+> **Tura jest akcją przyznawaną i tylko jedna Postać w danym momencie może
+> uzyskać możliwość wykonania tury.**”
+>
+> „**Na liczbę tur nie wpływają dodatkowe tury wynikające z efektu
+> `add_attacks`**, występującego na przykład w umiejętności Podwójny strzał.”
+>
+> „**Pierwszeństwo w wykonaniu tury ma Gracz, którego przewidywany licznik czasu
+> trwania ataków po zakończeniu następnej jego tury będzie najniższy.** […] Tura
+> zostanie przyznana Graczowi, którego predykcyjna wartość licznika będzie
+> najniższa.”
+>
+> „Maksymalny liczba tur w walce jest sumą liczby tur wszystkich Graczy
+> uczestniczących w walce i wynosi: `max_moves = 75 * players_amount`”
+
+Co jest akcją — rozdział „1.4. Akcje Gracza w walce”:
+
+> „Gracz ma do dyspozycji wykonanie następujących akcji: • **Akcja domyślna -
+> podstawowy atak oraz krok do przodu** • **Rzucenie umiejętności** […]”
+
+**Wniosek dla kodu.** Turą jest jedna akcja: zwykły atak, zapowiedź
+umiejętności, krok do przodu. Nie jest nią tyknięcie DoT‑a ani leczenie bez
+zapowiedzi. Kilka ciosów JEDNEJ zapowiedzianej umiejętności to jedna tura;
+kilka akcji tej samej postaci pod rząd to tyle tur, ile akcji — bo kolejność
+wynika ze skumulowanego czasu ataku, więc szybka postać dostaje turę kilka razy
+z rzędu i jest to sytuacja normalna, nie wyjątek.
+
+⚠️ **Ten wpis unieważnia regułę, na której kod stał od początku.** `stats.ts`
+definiował turę jako NIEPRZERWANY CIĄG akcji tej samej postaci (`if (actor ===
+lastActor) return`), a `types.ts` zapisywał to jako „log nie numeruje tur, więc
+turą jest nieprzerwany ciąg jej akcji”. Pomiar na jedynej prawdziwej walce
+(`tests/walka-z-gry.ts`): „Łowcożyr Kazrek” wykonuje 8 ataków bez ani jednej
+zapowiedzi, a panel liczył mu **4 tury** — obrażenia na turę własną wychodziły
+696 zamiast 348, czyli **dokładnie dwa razy za dużo**. Naprawione 2026‑08‑05,
+spec: `docs/specy/2026-08-05-tura-to-akcja.md`.
+
+⚠️ **CZEGO NADAL NIE UMIEMY, w obie strony.**
+
+- **W dół.** Tura utracona (ogłuszenie, sen) nie zostawia w protokole ŻADNEGO
+  śladu — klucze `+stun`, `+stun2*`, `+freeze`, `+immobilize` stoją na
+  komunikacie SPRAWCY i nie mówią, czyja tura przepadła. Licznik jej nie widzi.
+  To ten fakt zdjął z drzewa pole `turnsLost`, które pokazywało zero jako pomiar.
+- **W górę.** Dodatkowe ataki z `add_attacks` policzą się jako osobne tury,
+  wbrew cytatowi wyżej. Protokół ich nie znakuje: `skillId` przypina się do
+  jednego następnego komunikatu (wpis „Zasięg zapowiedzi” wyżej), więc dodatkowy
+  atak przychodzi osobnym komunikatem z pustą zapowiedzią i jest nieodróżnialny
+  od zwykłego ataku. **Materiału z `add_attacks` repo nie ma** — potrzebny zrzut
+  walki z „Podwójnym strzałem”.
+
+**Otwarte, do następnego zrzutu.** Czy `step` potrafi przyjść w JEDNYM
+komunikacie razem z liczbami obrażeń. Dziś dekoder wypuściłby z takiego
+komunikatu i `move`, i `attack`, czyli dwie tury zamiast jednej. W jedynym
+zrzucie kroki przychodzą osobno i bez ani jednej liczby
+(`-255967=100.00;0;step`), więc pomiaru na to nie ma.
+
+**Czego ten wpis NIE dotyka.** `data.current` z ładunku `t` — ID postaci, której
+gra przyznaje turę (`Battle.js:444,450` → `newTurn(data.current)`). To
+autorytatywny sygnał i jest w ładunku, który już przechwytujemy, ale w naszym
+jedynym zrzucie CAŁA walka przyszła jednym wywołaniem `update`, więc nie
+rozstrzygnąłby ani jednej z 18 linii. Trop stoi w `docs/ROADMAP.md`.

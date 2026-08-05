@@ -629,6 +629,28 @@ cyfry z regułą, którą deklaruje kod. Źle jest co innego: **ten sam sufiks `
 opisuje w panelu trzy różne wielkości naraz i nic tego nie sygnalizuje.** Stąd
 odczucie „pokazuje źle” jest uzasadnione, nawet jeśli dzielenie jest poprawne.
 
+> ⚠️ **SPROSTOWANIE 2026‑08‑05.** Akapit wyżej jest prawdą o arytmetyce
+> i nieprawdą o wyniku, a różnicy nie widać, bo pomiar sprawdzał liczby
+> **przeciw regule zadeklarowanej w kodzie** — i tam się zgadzały. Reguła była
+> zła: turą był nieprzerwany ciąg akcji tej samej postaci, podczas gdy gra
+> definiuje turę jako pojedynczą przyznaną akcję. Kolumna `tury=14 / 5 / 7`
+> w surowych danych niżej jest więc **zaniżona**, a wszystkie tempa `/t` policzone
+> z niej — zawyżone. Na jedynej prawdziwej walce, jaka została w repo,
+> zawyżenie wyniosło **dokładnie dwa razy** (696 zamiast 348 na turę).
+>
+> Wniosek „użytkownik ma rację, ale z innego powodu” trzeba czytać jako
+> „użytkownik miał rację TAKŻE z tego powodu”. Naprawione 2026‑08‑05, licznik
+> jest już zgodny z pomocą gry: [`specy/2026-08-05-tura-to-akcja.md`](specy/2026-08-05-tura-to-akcja.md),
+> rejestr — [`MECHANIKA.md`](MECHANIKA.md), wpis „System tur”.
+>
+> **Trzy pozycje niżej zostają otwarte**, bo dotyczą doboru dzielnika, a nie
+> jego wartości: naprawa licznika ich nie tyka.
+>
+> Nauka na przyszłość, warta więcej niż sama poprawka: „sprawdziłem liczby
+> i zgadzają się z kodem” nie jest weryfikacją, jeśli nikt nie sprawdził
+> **reguły** przeciw źródłu spoza repo. Procedura z `MECHANIKA.md` istnieje
+> dokładnie po to i tutaj nie została przeprowadzona.
+
 Surowe dane fixture'u:
 
 ```
@@ -890,7 +912,8 @@ poddrzewa, czyli wymusza layout na każdą linię.
 **~~Metryka „Tury" jest nieosiągalna z UI.~~ ZAMKNIĘTE 2026‑08‑03 — odpuszczona.**
 Opis był trafny („funkcja porzucona w połowie, nie przeoczenie") i tak też
 została rozstrzygnięta: `"turns"` zeszło z typu `Metric`, `turnRows()` z drzewa
-już 2026‑07‑31. Tury i tury utracone zostają w dymku.
+już 2026‑07‑31. Tury zostają w dymku (tury utracone zeszły stamtąd 2026‑08‑05
+razem z polem, którego dekoder nigdy nie zasilał).
 
 **~~Sesja jest liczona i nigdy nie pokazywana.~~ ZAMKNIĘTE 2026‑08‑03 —
 usunięta.** `Session.total()`, `mergeStats` i drugi argument `render()` zeszły

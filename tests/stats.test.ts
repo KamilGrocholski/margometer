@@ -5,6 +5,7 @@ import {
   invertBreakdown,
   leadsDeeper,
   UNATTRIBUTED_SOURCE,
+  BACKGROUND_ACTOR,
   totalBySide,
   type Aggregate,
 } from "../src/stats.ts";
@@ -956,6 +957,38 @@ describe("niezmienniki liczb", () => {
 
       expect(ciosy + uniki).toBe(ataki);
     });
+
+    /**
+     * Każda AKCJA z logu ma swoją turę na osi, i nic poza akcjami i tłem tam
+     * nie stoi. Ta sama para asercji co przy ciosach: raz od strony postaci
+     * (Σ `turns`), raz od strony osi (`timeline.length`).
+     *
+     * Rozjazd między nimi to DOKŁADNIE liczba tur tła — a to jest wiązanie
+     * dwóch liczb, które panel i archiwum podpisują tym samym słowem „tur”
+     * (`overlay.ts` sumuje `actor.turns`, `archive.ts` bierze `timeline.length`).
+     *
+     * ⚠️ **Ten niezmiennik stoi na JEDNYM fixture z sześciu.** Mutacja cofająca
+     * naprawę (`if (actor === lastActor) return` w `beginTurn`) zapala go
+     * wyłącznie na `OSOBLIWOSCI`; pięć walk syntetycznych przechodzi ją bez
+     * drgnięcia, bo generator daje jedną akcję na postać na rundę i przeplata
+     * postacie, więc dwie akcje tej samej postaci pod rząd tam nie powstają.
+     * Sprawdzone, nie domyślone.
+     */
+    test("każda akcja z logu ma swoją turę na osi", async () => {
+      const events = fixture.events;
+      const stats = aggregate(events);
+      const akcje = events.filter(
+        (e) =>
+          (e.kind === "attack" && e.strike && e.ability === null) ||
+          e.kind === "ability" ||
+          e.kind === "move",
+      ).length;
+      const tury = stats.actors.reduce((sum, a) => sum + a.turns, 0);
+      const tlo = stats.timeline.filter((s) => s.actor === BACKGROUND_ACTOR).length;
+
+      expect(tury).toBe(akcje);
+      expect(stats.timeline).toHaveLength(akcje + tlo);
+    });
   };
 
   describe.each(KORPUS)("$name", (fixture) => {
@@ -1067,5 +1100,93 @@ describe("zarezerwowane etykiety nie kolidują z nazwami z gry", () => {
       if (event.kind === "fight-start") for (const p of event.participants) names.add(p.name);
     }
     expect([...names].filter((name) => RESERVED.has(name))).toEqual([]);
+  });
+});
+
+/**
+ * TURA JEST AKCJĄ — reguła wzięta z pomocy gry, rozdział „2. System tur”:
+ *
+ * > Tura w systemie tur to numerowana (od 1 wzwyż) akcja, którą Postać może
+ * > wykonać […]. Tura jest akcją przyznawaną i tylko jedna Postać w danym
+ * > momencie może uzyskać możliwość wykonania tury.
+ *
+ * ⚠️ **Do 2026‑08‑05 kod robił coś przeciwnego i NIC tego nie pilnowało.**
+ * Turą był nieprzerwany ciąg akcji tej samej postaci, więc szybka postać —
+ * a kolejność tur wynika ze skumulowanego czasu ataku, czyli szybka postać
+ * dostaje turę kilka razy z rzędu rutynowo — miała tury sklejone. Cały zestaw
+ * przechodził tę pomyłkę na zielono.
+ */
+describe("tura jest akcją", () => {
+  /**
+   * NAJMOCNIEJSZY z tych testów, bo jedyny sprawdzalny przeciw grze: prawdziwy
+   * zrzut `Engine.battle.update`, nie materiał, który sami wyprodukowaliśmy.
+   */
+  test("materiał z gry: osiem ataków to osiem tur, nie cztery", async () => {
+    const stats = aggregate(dekoduj(KOMUNIKATY_Z_GRY, SKLAD_Z_GRY), SKLAD_Z_GRY);
+    const tury = (name: string) => stats.actors.find((a) => a.name === name)!.turns;
+
+    // Osiem osobnych ataków w komunikatach i ANI JEDNEJ zapowiedzi umiejętności
+    // w całej walce, więc osiem akcji i osiem tur. Panel liczył cztery.
+    expect(tury("Łowcożyr Kazrek")).toBe(8);
+    expect(tury("Odyniec #1")).toBe(3); // dwa kroki do przodu + jeden cios
+    expect(tury("Odyniec #2")).toBe(1); // sam krok do przodu
+    expect(tury("Locha")).toBe(0); // zginęła, zanim dostała turę
+    expect(stats.timeline).toHaveLength(12); // 9 ataków + 3 kroki
+
+    // Sedno zgłoszenia: średnia „na turę” była zawyżona DOKŁADNIE dwukrotnie.
+    const kazrek = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
+    expect(kazrek.damageDealt).toBe(2784);
+    expect(kazrek.damageDealt / kazrek.turns).toBe(348); // było 696
+  });
+
+  /**
+   * Druga strona tej samej reguły — bez niej „tura = akcja” zrobiłaby
+   * z wielotrafienia tyle tur, ile ciosów. Turę otwiera ZAPOWIEDŹ; ciosy, które
+   * do niej należą, są tą samą akcją.
+   */
+  test("kilka ciosów jednej zapowiedzi to JEDNA tura", async () => {
+    const stats = aggregate([
+      otwarcie(["Gracz 100t"], ["Wilk 40w"]),
+      umiejetnosc("Gracz", "Lodowa strzała"),
+      cios("Gracz", "Wilk", [trafienie(300)], { ability: "Lodowa strzała", targetHpPct: 70 }),
+      cios("Gracz", "Wilk", [trafienie(300)], { ability: "Lodowa strzała", targetHpPct: 40 }),
+    ]);
+
+    expect(stats.actors.find((a) => a.name === "Gracz")!.turns).toBe(1);
+    expect(stats.timeline).toHaveLength(1);
+  });
+
+  /**
+   * Krok do przodu jest akcją — pomoc gry, „Akcja domyślna – podstawowy atak
+   * oraz krok do przodu”. Dwa kroki pod rząd to dwie tury i jest to układ
+   * z prawdziwej walki: postać z pozycji pierwszej podchodzi do trzeciej
+   * dwoma krokami, w dwóch osobnych turach.
+   */
+  test("dwa kroki tej samej postaci to dwie tury", async () => {
+    const stats = aggregate([
+      otwarcie(["Gracz 100h"], ["Wilk 40w"]),
+      krok("Wilk", 100),
+      krok("Wilk", 100),
+    ]);
+
+    expect(stats.actors.find((a) => a.name === "Wilk")!.turns).toBe(2);
+  });
+
+  /**
+   * Własne obrażenia umiejętności (`strike: false`) nie są akcją POSZKODOWANEGO.
+   * Na buforze przyciętym w środku umiejętności zapowiedzi nie widać, więc
+   * reguła musi trzymać sama ze strażnika `strike`, a nie przez to, że
+   * zapowiedź akurat była.
+   */
+  test("własne obrażenia umiejętności nie otwierają tury poszkodowanemu", async () => {
+    const stats = aggregate([
+      otwarcie(["Gracz 100m"], ["Wilk 40w"]),
+      cios("Wilk", "Wilk", [trafienie(507)], { strike: false, targetHpPct: 60 }),
+    ]);
+
+    expect(stats.actors.find((a) => a.name === "Wilk")!.turns).toBe(0);
+    // Kwota nie przepada — trafia do tury tła, czyli tam, gdzie agregat trzyma
+    // „nie wiemy, czyja to tura”.
+    expect(stats.timeline.reduce((sum, s) => sum + s.damage, 0)).toBe(507);
   });
 });
