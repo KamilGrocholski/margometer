@@ -269,7 +269,13 @@ słowem** nie wspomina o koszcie zdrowia po stronie rzucającego.
 
 **Pomiar korpusu rozstrzygnął.** Siedem kolejnych tyknięć Łowcomira Kazrka
 z fixture'a `2026-08-03_druzyna-vs-hildur-absorpcja`, czytanych jako „liczba to
-ubytek, procent to stan PO nim”:
+ubytek, procent to stan PO nim”.
+
+⚠️ **Tego pliku w repo NIE MA od 2026‑08‑04** (`AUDYT‑91`) — zszedł z drzewa
+razem z pozostałymi 24 walkami. Tabela niżej i liczby przy „Skutku” były
+prawdziwe, gdy je mierzono, ale **nikt ich dziś nie powtórzy**. Sam kierunek
+odczytu ma jednak drugie, mocniejsze potwierdzenie: warunek `m[1] >= 0`
+w rendererze (cytat wyżej) mówi to samo bez żadnego pomiaru.
 
 | ubytek | życie przed → po | wyliczona pula |
 |---:|---|---:|
@@ -286,10 +292,37 @@ odczycie (przyrost życia) procent musiałby rosnąć — a rośnie wyłącznie 
 liniach „Przywrócono”.
 
 **Wniosek dla kodu.** Liczba to **realny ubytek HP**, a minus przed nią jest
-ozdobnikiem zapisu, nie negacją. Parser czyta ją jako tyknięcie
-(`RE_HP_LOST` → `kind: "dot"`), a etykieta „Ubytek życia” w `DOT_LABELS` jest
-**nasza**, bo log rodzaju nie podaje — dlatego w panelu stoi jako
-„Nieznany (Ubytek życia)”, tak samo jak `globalne` wyżej.
+ozdobnikiem zapisu, nie negacją. Dekoder czyta ją jako tyknięcie
+(`kind: "dot"`, rodzaj „od ubytku życia”), a etykieta „Ubytek życia”
+w `DOT_LABELS` jest **nasza**, bo log rodzaju nie podaje — dlatego w panelu stoi
+jako „Nieznany (Ubytek życia)”, tak samo jak `globalne` wyżej.
+
+**Skąd ta linia bierze się w protokole — dopisane 2026‑08‑05.** Nie ma na nią
+osobnego klucza: to **`heal` z wartością UJEMNĄ**. Renderer wybiera człon zdania
+znakiem (`BattleMessages.js:301`):
+
+> ```js
+> '%gain_lost%': (m[1] >= 0 ? _t('part_gained') : _t('part_lost'))
+> //(m[1]>0?'Przywrócono ':'Stracono ')+m[1]+' punktów życia '+f1.name
+> ```
+
+`%gain_lost%` stoi w zdaniu **wyłącznie** klucza `heal`; `afterheal` (`:235`),
+`heal_target` (`:959`), `npc_heal`, `legbon_holytouch_heal` (`:796`)
+i `legbon_lastheal` (`:587`) składają bezwarunkowe „Przywrócono”.
+
+⚠️ **DWA ZDANIA TEGO WPISU BYŁY NIEPRAWDĄ PRZEZ DOBĘ** (`AUDYT‑88`). Stało tu
+„Parser czyta ją jako tyknięcie (`RE_HP_LOST` → `kind:"dot"`)” — a parser tekstu
+zszedł z drzewa 2026‑08‑04 i droga protokołu tego zachowania **nigdy nie
+miała**: `heal=-92` wychodziło jako `{kind:"heal", amount:-92}`, więc ubytek nie
+liczył się jako obrażenia w ogóle (`damageTaken: 0`), tylko siadał w „uleczone”
+ze znakiem minus. Razem z parserem osierocone zostały trzy strażniki opisane
+niżej — `SELF_INFLICTED_DOTS`, `DOT_LABELS["od ubytku życia"]` i wyjątek przy
+`UNKNOWN_DETAIL` — i **wszystkie trzy były martwe**, bo broniły przed
+zdarzeniem, którego nikt już nie produkował. Naprawione 2026‑08‑05.
+
+**Wniosek ogólniejszy od tej poprawki:** kasując ścieżkę WEJŚCIA, trzeba przejść
+to, co po niej zostaje na WYJŚCIU. Martwy strażnik nie zapala testu i nie łapie
+go `noUnusedLocals` — jest czytany, tylko przez warunek, który nigdy nie zachodzi.
 
 **Sprawcy nie przypisujemy — świadomie, i to jest wniosek z KIERUNKU efektu.**
 Agregat zna regułę „gdy po drugiej stronie stoi dokładnie jeden przeciwnik, to
@@ -312,6 +345,67 @@ rzuciły trującą mgłę, i maleje ~5/turę do zera (92→87→…→5, 20 tykn
 pomoc o koszcie zdrowia tej aury milczy, a drugiej walki z tą aurą i tą linią
 w korpusie nie ma. Nie wolno na tej podstawie napisać, że „trująca mgła kosztuje
 życie”.
+
+### Po czyjej stronie zachodzi efekt — rozstrzyga kubełek renderera, nie znak klucza ✅
+
+Pytanie: komu przypisać „Parowanie”, „Absorpcja N obrażeń”, „Kontra” — bijącemu
+czy bitemu. Dotyczy gry, nie nas: **wszystkie te klucze stoją w komunikacie
+bijącego**, więc cudze repo czytające ten sam strumień ma dokładnie ten sam
+problem.
+
+**Metoda: trzeci szczebel** (`§4b`) — asset klienta, build deweloperski
+`1781609507010`. Pomoc gry o tym nie mówi i mówić nie musi: to pytanie
+o protokół i o renderer, nie o mechanikę walki.
+
+**Dowód jest strukturalny.** `battleMsg` składa jedną linię logu z trzech
+kubełków (`BattleMessages.js:162`, `var tm = ['', '', '']`) i przy ciosie
+wypełnia skrajne dwa (`:1127‑1129`):
+
+> ```js
+> tm[0]  = _t('msg_dmgdone %name1% %hpp% %val%',  {'%name1%': f1.name, …});
+> tm[2] += _t('msg_dmgtaken %name1% %hpp% %val%', {'%name1%': f2.name, …});
+> ```
+
+Czyli `tm[0]` to zdanie o `f1` (pierwszy segment komunikatu — bijący), a `tm[2]`
+o `f2` (drugi — bity). **Klucz dopisujący się do `tm[2]` opisuje CEL.**
+
+Najmocniejsze potwierdzenie tej reguły leży w tym samym kubełku: stoją w nim
+`-blok` (`:827`) i `-evade` (`:830`) — dwie rzeczy, które ten dodatek przypisuje
+celowi od początku i osobnymi rolami. Reguła nie jest więc nowa; była stosowana
+do dwóch kluczy zamiast do dwudziestu sześciu.
+
+**Zmierzone:** przejściem wszystkich 200 kluczy trafiających u nas do listy
+efektów przez ciała gałęzi `battleMsg`, łącznie z gałęziami zbiorczymi.
+**24 lądują w `tm[2]`:**
+
+`+absorb` `+absorbm` `+critpoison_per` `+legbon_puncture` `+rage`
+`+superspell-prevented` `+vulture` `-absorb` `-absorbm` `-arrowblock` `-contra`
+`-legbon_cleanse` `-legbon_critred` `-legbon_glare` `-legbon_resgain` `-parry`
+`-pierceb` `-rage` `-redacdmg` `-redacdmg_per` `-reddest_per` `-redendest_per`
+`-redmanadest_per` `-resmanaendest`
+
+⚠️ **ZNAK WIODĄCY NIE JEST REGUŁĄ.** Kusi, bo dla rodziny `dmg` gra sama czyta
+stronę ze znaku — ale robi to w gałęzi `default` (`:1102‑1117`) i tylko tam.
+Poza nią zgodności nie ma, i to w obie strony: `+absorb` („Odnowienie
+absorpcji”, `:847`) należy do celu **mimo plusa**, a `-legbon_facade` (`:811`)
+idzie do neutralnego `tm[1]` **mimo minusa**. Reguła „minus znaczy cel” byłaby
+o pięć kluczy za szeroka i o siedem za wąska.
+
+**Wniosek dla kodu.** Strona należy do KLUCZA i jest wyliczona wpis po wpisie
+(`STRONA_CELU` w `src/protokol.ts`, każdy z numerem linii renderera). Do
+2026‑08‑05 każdy efekt szedł na konto bijącego, więc napastnik miał w dymku
+napisane, że sparował i pochłonął cios, który sam zadał (`AUDYT‑87`).
+
+⚠️ **Czego ten wpis NIE mówi.** Co znaczy `tm[1]`. Stoi w nim 167 z 200 kluczy —
+od zwycięstwa w walce po aury drużynowe — więc jest kubełkiem NEUTRALNYM, a nie
+„stroną bijącego”. Traktujemy te efekty jak zaczepne, bo większość taka jest, ale
+**dla tej grupy nie mamy dowodu z rendererra, tylko brak przeciwdowodu**. Klucz
+z `tm[1]`, który należy do celu, dziś zostałby po cichu przypisany bijącemu.
+
+⚠️ **Drugie ograniczenie: `fire`, `frost`, `light`, `physical` NIOSĄ OBRAŻENIA.**
+Ich zdania brzmią „%name% otrzymał %val% obrażeń od ognia” (`:317‑330`, `:402`),
+a dodatek trzyma je w tabeli efektów nieliczonych. To osobna sprawa od stron
+i nie jest dziś naprawiona; zapisana tu, żeby nie wypadła z pola widzenia.
 
 ### Krwawa udręka ( anguish ) — obrażenia w czasie, których korpus NIE zna ✅
 

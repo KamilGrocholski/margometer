@@ -1,9 +1,12 @@
 ---
 paths:
   - "src/protokol.ts"
+  - "src/protokol-source.ts"
   - "src/stats.ts"
   - "src/types.ts"
+  - "src/zrzut.ts"
   - "docs/**/*.md"
+  - "tests/fixtury.ts"
   - "tests/korpus.ts"
   - "tests/walka-z-gry.ts"
   - "tests/fixtures/README.md"
@@ -20,6 +23,17 @@ oba wzorce przeżyły pliki, do których wskazywały, więc reguła **nie ładow
 się tam, gdzie zdania o mechanice gry naprawdę powstają**. Ścieżka, która nigdy
 się nie dopasuje, wygląda w pliku dokładnie tak samo jak działająca. Kasując
 plik z `src/` albo `tests/`, sprawdź tę listę.
+
+⚠️ **A trzeci raz zawiodła INACZEJ — nie przez ścieżkę martwą, tylko przez
+BRAKUJĄCĄ** (`AUDYT‑92`, 2026‑08‑05). Lista wymieniała trzy pliki `src/`
+i przez dobę nie było wśród nich `src/protokol-source.ts` ani `src/zrzut.ts` —
+a to tam przeniosła się granica walki (`data.init`), czyli zdanie o grze tak
+czyste, że dostało **najnowszy wpis tego rejestru**. Brakowało też
+`tests/fixtury.ts`, gdzie mieszka świadek dekodera i trzy twierdzenia o tym, co
+protokół podaje przy zgonie i po uleczeniu. Wniosek jest szerszy od poprawki:
+lista starzeje się nie tylko wtedy, gdy plik ZNIKA, ale i wtedy, gdy wiedza
+PRZEPROWADZA SIĘ do pliku, którego na liście nie było. Pisząc nowy wpis
+rejestru, sprawdź, czy plik, którego dotyczy, tu stoi.
 
 ⚠️ Uwaga przy `tests/fixtures/README.md`: katalog wrócił 2026‑08‑05, ale
 **`meta.json` nie wraca** — opis materiału stoi dziś w jednym `README.md`, a nie

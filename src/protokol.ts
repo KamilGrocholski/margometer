@@ -1104,12 +1104,21 @@ export function dekoduj(
     // że obie strony stoją w jednym komunikacie — odczyt ze zdań musiał je
     // parować heurystycznie i to była jego największa słabość.
     //
-    // ⚠️ Długości bywają RÓŻNE i widać to w prawdziwych walkach: `+dmgd=897;…;-dmgd=184;-dmga=135`
-    // ma jedną liczbę zadaną i dwie przyjęte. Nadmiar NIE GINIE — dostaje własne
+    // ⚠️ Długości MOGĄ być różne: `+dmgd=897;…;-dmgd=184;-dmga=135` ma jedną
+    // liczbę zadaną i dwie przyjęte. Nadmiar NIE GINIE — dostaje własne
     // trafienie z `raw: 0` — bo `aggregate` sumuje `raw` i `applied` osobno,
     // więc skalary zostają prawdziwe. Rozjazd długości jest jednak zapalany
-    // jako `unknown`: to sygnał, że nasz model ciosu nie pokrywa się z grą,
-    // i pierwsza walka ze zrzutem ma to rozstrzygnąć.
+    // jako `unknown`: to sygnał, że nasz model ciosu nie pokrywa się z grą.
+    //
+    // ⚠️ **STAŁO TU „widać to w prawdziwych walkach" I OBIETNICA, ŻE
+    // „pierwsza walka ze zrzutem ma to rozstrzygnąć"** (`AUDYT‑90`). Zrzut jest
+    // w repo od 2026‑08‑05 i rozstrzygnął: **0 rozjazdów** na 18 komunikatach
+    // `2026-08-04-tempest-lowca-vs-odyncze` (zero `unknown`, świadek 7/7).
+    // Kształt powyżej pochodzi z 25 walk skasowanych 2026‑08‑04 i dziś żyje
+    // wyłącznie jako asercja syntetyczna w `tests/protokol.test.ts`. Gałąź
+    // ZOSTAJE — nadmiar naprawdę nie ma gdzie zginąć, a `unknown` jest tu tani —
+    // ale „widać to w prawdziwych walkach" nie jest już zdaniem, które ktokolwiek
+    // w tym repo umie sprawdzić. Rozstrzygnie je dopiero drugi zrzut.
     if (zadane.length !== przyjete.length) nieznany(surowy);
     const trafienia: Hit[] = [];
     for (let i = 0; i < Math.max(zadane.length, przyjete.length); i += 1) {

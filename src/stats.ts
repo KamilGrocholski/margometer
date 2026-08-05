@@ -495,6 +495,17 @@ const WOUND_DOT = "po zranieniu";
  * mieli w panelu napisane, że oberwali od niego 966 i 1 060 — czyli 100 % tego,
  * co stracili, choć boss nie tknął żadnego z nich ani razu.
  *
+ * ⚠️ **TEGO POMIARU NIE DA SIĘ DZIŚ POWTÓRZYĆ** (`AUDYT‑91`). Fixture, na którym
+ * stoi, zszedł z drzewa 2026‑08‑04 razem z pozostałymi 24 walkami i `find` nie
+ * znajduje go w repo. Liczby zostają, bo były prawdziwe, gdy je zmierzono —
+ * ale czytelnik ma wiedzieć, że nie sprawdzi ich sam. Sam wyjątek świadka MA:
+ * `SELF_INFLICTED_DOTS` jest sprawdzane w `tests/stats.test.ts` na zdarzeniach
+ * budowanych w kodzie, w układzie 1 vs 1 — bo tylko taki go dotyka.
+ *
+ * ⚠️ Do 2026‑08‑05 ten wyjątek był przy tym MARTWY: żadna ścieżka dekodera nie
+ * produkowała rodzaju „od ubytku życia", bo linię „Stracono" czytał parser
+ * tekstu, skasowany 2026‑08‑04. Wrócił razem z `AUDYT‑88`.
+ *
  * Zbiór, nie pojedyncza stała, bo to KATEGORIA: każdy kolejny efekt „z własnej
  * strony" ma tu dopisać jedną linię, a nie kolejny warunek w `case "dot"`.
  */

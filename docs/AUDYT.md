@@ -92,6 +92,30 @@ zrobionego na materiale, który do repo nie wszedł** — czyli praktyka, któr�
 sama runda opisuje jako przyczynę fałszywego buildu i której w tym samym
 commicie zakazuje.
 
+**Dopisane 2026‑08‑05 (sekcja `J`):** `AUDYT‑87`…`AUDYT‑92` — audyt **PO**
+commicie `72dc330`, na czystym drzewie i zielonej bramie. Pierwszy raz runda
+szukała wyłącznie tego, co definiuje kierunek z `ROADMAP.md`: *złej liczby
+pokazanej bez ani jednego słowa ostrzeżenia*. Znalazła trzy takie miejsca —
+efekty obronne liczone napastnikowi (`87`), ubytek życia liczony jako leczenie
+na minusie (`88`) i przypisanie sprawcy zranienia zależne od języka klienta
+(`89`) — plus trzy sprostowania (`90`…`92`). Wszystkie naprawione w tej samej
+rundzie, każda naprawa z **zepsutą i zmierzoną mutacją**.
+
+⚠️ **Dwa z trzech błędów miały JEDNĄ przyczynę i to jest lekcja tej sekcji.**
+`BattleEvent.attack.procs` był `string[]`, czyli samą etykietą; protokół niósł
+przy każdym efekcie klucz, wartość i stronę. Kontrakt gubił dwie z trzech
+rzeczy, więc agregat nie miał czym przypisać efektu poprawnie — **nie było to
+przeoczenie w agregacie, tylko brak w typie**. Reguła z `CLAUDE.md` („to typ
+jest tu obietnicą") ma tu trzeci dowód, tym razem od strony pola, którego
+w typie ZABRAKŁO, a nie takiego, które ktoś zapomniał odczytać.
+
+⚠️ **Drugi wzorzec, warty osobnego zdania:** `AUDYT‑88` był cichą regresją po
+skasowaniu parsera tekstu 2026‑08‑04, a razem z nim w drzewie zostały **trzy
+martwe strażniki** broniące przed zdarzeniem, którego nikt już nie produkował.
+Nie zapalał ich żaden test i nie łapie ich `noUnusedLocals` — są czytane, tylko
+przez warunek, który nigdy nie zachodzi. **Kasując ścieżkę WEJŚCIA, trzeba
+przejść to, co po niej zostaje na WYJŚCIU.**
+
 Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
@@ -2533,6 +2557,197 @@ powtórzenia — druga liczba, która leżała w pliku i nie miała czytelnika.
 ostrzeżenie".
 
 ---
+---
+## J. Atrybucja efektów, leczenia i ubytku życia — audyt PO commicie `72dc330` (2026‑08‑05)
+
+Drzewo robocze było czyste, brama zielona (`bun run check` → **708 zielonych**),
+a `AUDYT‑56…86` domknięte. Ta runda nie przeglądała więc czekającej zmiany,
+tylko **stan po tamtych naprawach** — i celowała wyłącznie w test, którym
+`ROADMAP.md` definiuje kierunek od 2026‑08‑03: *czy brak tej rzeczy może
+sprawić, że panel pokaże złą liczbę, nie mówiąc o tym ani słowem?*
+
+Znaleziska: **trzy takie miejsca**, wszystkie zreprodukowane pomiarem. Żadne
+z nich nie zapala `unknownLines` ani `unknownElements`, czyli jedynych dwóch
+czujek panelu — były ciche z definicji, nie przez przeoczenie.
+
+**Czego audyt NIE podważa**, żeby nie zginęło w liście: cztery gwarancje
+owinięcia `Engine.battle.update` (oryginał pierwszy, wynik nietknięty, wyjątek
+nie wychodzi, zdejmujemy tylko swoje); granica walki na `data.init`; świadek
+`hp.max` (7 porównań, 0 rozjazdów); rozdzielenie `damageBlocked` jako PODZBIORU
+`damageAbsorbed` — sprawdzone, zgadza się i jest tak opisane w panelu;
+zgodność 233 kluczy z assetem; parowanie zadanych z przyjętymi (0 rozjazdów na
+materiale). **Sumy obrażeń były i są poprawne — ta runda dotyczy tego, KOMU się
+liczą.**
+
+⚠️ **Dwa z trzech znalezisk miały JEDNĄ przyczynę** i to jest lekcja tej rundy.
+`BattleEvent.attack.procs` był `string[]` — samą etykietą do pokazania —
+podczas gdy protokół niesie przy każdym efekcie klucz, wartość i (przez tabelę
+ról) stronę. Kontrakt przepuszczał dalej jedną z trzech rzeczy, więc `stats.ts`
+nie miał czym przypisać efektu poprawnie, **choćby chciał**. Wniosek zapisany
+przy typie `Proc`: *etykieta jest do POKAZANIA, nie do PODEJMOWANIA DECYZJI.*
+
+### AUDYT‑87 — efekty OBRONNE liczą się napastnikowi 🔴 M — ✅ NAPRAWIONE ✓
+
+`src/stats.ts` (pętla po `event.procs`) · `src/protokol.ts` (`STRONA_CELU`)
+
+**Problem.** Każdy proc szedł do `procs` napastnika i do `procsReceived` celu —
+na sztywno. Gra mówi co innego: `battleMsg` składa linię z trzech kubełków
+(`BattleMessages.js:162`) i przy ciosie wypełnia skrajne dwa (`:1127‑1129`),
+`tm[0]` zdaniem o `f1` (bijący), `tm[2]` o `f2` (bity). Klucz dopisujący się do
+`tm[2]` opisuje CEL — i jest to ten sam kubełek, w którym stoją `-blok` (`:827`)
+i `-evade` (`:830`), czyli dwie rzeczy, które dekoder przypisuje celowi od
+początku. Reguła nie była nowa, tylko stosowana do dwóch kluczy zamiast do 26.
+
+**✓ Zmierzone.** Przejściem wszystkich **200** kluczy trafiających do listy
+efektów przez ciała gałęzi `battleMsg`: **24 lądują w `tm[2]`**. Reprodukcja na
+`1=100.00;2=50.00;+dmgd=500;-dmgd=300;-absorb=200;-parry` — napastnik miał
+w rubryce „Efekty w ciosach" wpisane `-absorb` i `-parry`, czyli tarczę, którą
+podniósł ktoś inny; bity miał je w „Efekty otrzymane".
+
+⚠️ **Pierwszy pomiar dał 17 i był ZA NISKI** — skrypt nie radził sobie
+z gałęziami zbiorczymi. Poprawiony wyłuskał jeszcze siedem (`+critpoison_per`,
+`+vulture`, `-redacdmg`, `-redacdmg_per`, `-reddest_per`, `-redendest_per`,
+`-redmanadest_per`); dziewięć nierozstrzygniętych (`+crush_*`, `fire`, `frost`,
+`light`, `physical`) sprawdzono ręcznie — wszystkie `tm[1]`. Lekcja: przy
+skanowaniu cudzego `switch`‑a fall‑through jest regułą, nie wyjątkiem, i pomiar
+bez jego obsługi myli się **w dół**, czyli po cichu.
+
+**Zrobione.** `Rola` niesie `strona`, lista `STRONA_CELU` jest wyliczona wpis po
+wpisie z numerem linii renderera, `stats.ts` kieruje efekt do właściciela.
+**Mutacja:** strona z powrotem na sztywno → 2 fail (716/2). Doszedł niezmiennik
+„żaden efekt nie ginie i żaden nie liczy się dwa razy".
+
+⚠️ **Co ZOSTAJE otwarte.** `tm[1]` mieści 167 z 200 kluczy i jest kubełkiem
+NEUTRALNYM, nie „stroną bijącego". Traktujemy je jak zaczepne, bo większość taka
+jest — ale dla tej grupy **nie mamy dowodu, tylko brak przeciwdowodu**. Klucz
+z `tm[1]` należący do celu nadal poszedłby po cichu do napastnika.
+
+**Docelowo.** `docs/MECHANIKA.md` — wpis „Po czyjej stronie zachodzi efekt".
+
+### AUDYT‑88 — ujemny `heal` to REALNY UBYTEK HP, a liczy się jako leczenie 🔴 S — ✅ NAPRAWIONE ✓
+
+`src/protokol.ts` (`case "leczenie"`)
+
+**Problem.** Klucz `heal` z wartością ujemną to w grze „Stracono −92 punktów
+życia X" — rozstrzyga o tym znak, w jednym warunku (`BattleMessages.js:301`,
+`m[1] >= 0 ? part_gained : part_lost`). Dekoder oddawał to bez ani jednego
+warunku jako `{kind:"heal", amount:-92}`.
+
+**✓ Zmierzone** na `1=88.00;0;heal=-92`: `healingReceived −92`, `damageTaken 0`,
+wiersz rozbicia „Regeneracja −92", `unattributedHealing.mine −92`. Czyli 92
+punkty realnej straty **znikały z obrażeń** i siadały w „uleczone" ze znakiem
+minus.
+
+⚠️ **To była cicha REGRESJA po skasowaniu parsera 2026‑08‑04**, nie brak funkcji.
+Parser czytał tę linię jako `RE_HP_LOST → kind:"dot"`; droga protokołu tego
+zachowania nigdy nie miała. Zostawiło to w drzewie **trzy martwe strażniki**:
+`SELF_INFLICTED_DOTS`, `DOT_LABELS["od ubytku życia"]` i wyjątek przy
+`UNKNOWN_DETAIL`. Żaden nie zapalał testu i żadnego nie łapie `noUnusedLocals` —
+są CZYTANE, tylko przez warunek, który nigdy nie zachodził.
+
+**Zrobione.** Ujemna kwota przy `heal` → `kind:"dot"`, rodzaj „od ubytku życia",
+kwota dodatnia (minus jest ozdobnikiem zapisu, nie negacją). Zakres wąski
+świadomie: `%gain_lost%` stoi w zdaniu wyłącznie klucza `heal` — sprawdzone po
+jednym dla pięciu pozostałych kluczy leczenia — więc ujemna kwota przy nich idzie
+do `{kind:"unknown"}`, głośno. **Mutacja:** wyłączenie obu gałęzi → 5 fail
+(718/5), w tym „sprawcy NIE zgadujemy, choć przeciwnik jest tylko jeden".
+
+⚠️ **Co ZOSTAJE otwarte.** Materiału z tą linią repo NIE MA (patrz `AUDYT‑91`),
+więc poprawka stoi na źródle renderera — mocnym — i na pomiarze, którego dziś
+nikt nie powtórzy. Testy są syntetyczne.
+
+**Docelowo.** `docs/MECHANIKA.md` — wpis „Linia »Stracono −N punktów życia«".
+
+### AUDYT‑89 — przypisanie sprawcy zranienia wisi na POLSKIM zdaniu z gry 🟡 S — ✅ NAPRAWIONE ✓
+
+`src/stats.ts` (`RE_WOUND_PROC`)
+
+**Problem.** Jedyne miejsce, w którym tykający efekt dostaje sprawcę WPROST,
+wiązało się wyrażeniem `/^Zranienie \((\d+)\)$/` do zdania złożonego przez
+**słownik GRY**, w języku klienta. `AGENTS.md` mówi wprost, że `slownik-gry.ts`
+istnieje po to, by panel mówił „w języku klienta, także po aktualizacji gry" —
+etykieta jest więc z założenia zmienna, a wiązanie po niej z założenia kruche.
+Druga połowa wiązania (`WOUND_DOT = "po zranieniu"`) jest NASZA i stała;
+niestabilna była dokładnie ta jedna.
+
+**✓ Zmierzone** na `+dmgd=400;-dmgd=400;+injure=150` plus tyknięcie `injure=150`,
+zmieniając WYŁĄCZNIE słownik:
+
+| słownik | „OD KOGO" u celu | `damageDealt` bijącego |
+|---|---|---|
+| polski | Łowca 550 | 550 |
+| angielski | Łowca 400 · Bez sprawcy 150 | **400** |
+| brak zdania w kliencie | Łowca 400 · Bez sprawcy 150 | **400** |
+
+**Zrobione.** Decyzja idzie po `proc.key === "+injure"`, kwota po `proc.value`.
+**Mutacja:** wiązanie z powrotem po zdaniu → 2 fail (716/2) — przypadki
+„angielski" i „klient bez tego zdania". Przypadek „polski" zostaje **zielony**
+i to jest cały sens tego testu: stary kod był zielony po polsku i zepsuty wszędzie
+indziej.
+
+**Docelowo.** `SOLID.md` — jako przykład decyzji podejmowanej po napisie.
+
+### AUDYT‑90 — obietnica „pierwsza walka ze zrzutem to rozstrzygnie" doczekała się zrzutu ⚪ XS — ✅ NAPRAWIONE ✓
+
+`src/protokol.ts` (parowanie zadanych z przyjętymi)
+
+**Problem.** Komentarz twierdził „Długości bywają RÓŻNE i **widać to
+w prawdziwych walkach**" i obiecywał, że rozstrzygnie to pierwszy zrzut. Zrzut
+jest w repo od 2026‑08‑05 i nikt go o to nie zapytał.
+
+**✓ Zmierzone.** `2026-08-04-tempest-lowca-vs-odyncze`: **0 rozjazdów** na 18
+komunikatach, 0 `unknown`, świadek 7/7. Cytowany przykład (`+dmgd=897;…`)
+pochodzi z 25 walk skasowanych 2026‑08‑04 i żyje dziś wyłącznie jako asercja
+syntetyczna w `tests/protokol.test.ts`.
+
+**Zrobione.** Obietnica zamieniona na wynik pomiaru. Gałąź ZOSTAJE — nadmiar
+naprawdę nie ma gdzie zginąć, a `unknown` jest tani — ale zdanie „widać to
+w prawdziwych walkach" nie jest już czymś, co ktokolwiek w repo umie sprawdzić.
+
+**Docelowo.** Zostaje przy kodzie.
+
+### AUDYT‑91 — uzasadnienie żywego strażnika stoi na pomiarze z nieistniejącego pliku ⚪ XS — ✅ NAPRAWIONE ✓
+
+`src/stats.ts` (`SELF_INFLICTED_DOTS`) · `docs/MECHANIKA.md`
+
+**Problem.** Oba miejsca uzasadniają regułę pomiarem na
+`2026-08-03_druzyna-vs-hildur-absorpcja` (2 026 obrażeń, 966 i 1 060 u dwóch
+graczy, siedem tyknięć z pulą ~19 000). `find` nie znajduje tego pliku — zszedł
+z drzewa 2026‑08‑04.
+
+⚠️ **To NIE jest ten sam błąd co `AUDYT‑58/59`** i nie należy ich mylić. Tam
+liczby pochodziły z materiału, który do repo **nigdy nie wszedł** — czyli były
+niesprawdzalne od chwili zapisania. Tu były prawdziwe, gdy je mierzono; zmieniło
+się to, że **czytelnik nie powtórzy ich sam**. Brakowało ostrzeżenia, nie prawdy.
+
+**Zrobione.** ⚠️ w obu miejscach. Przy okazji wyszło, że sam strażnik ma dziś
+świadka lepszego niż tamten pomiar: warunek `m[1] >= 0` w rendererze mówi to
+samo bez żadnego materiału, a `SELF_INFLICTED_DOTS` jest sprawdzane testem
+w układzie 1 vs 1 — jedynym, który go w ogóle dotyka.
+
+**Docelowo.** Zostaje przy kodzie i przy rejestrze.
+
+### AUDYT‑92 — reguła ścieżkowa zawodzi po raz trzeci, tym razem przez ścieżkę BRAKUJĄCĄ ⚪ XS — ✅ NAPRAWIONE ✓
+
+`.claude/rules/mechanika-gry.md` (`paths:`)
+
+**Problem.** Lista nie obejmowała `src/protokol-source.ts`, `src/zrzut.ts` ani
+`tests/fixtury.ts` — a to tam przeniosła się granica walki (`data.init`), czyli
+zdanie o grze tak czyste, że dostało **najnowszy wpis rejestru**, oraz świadek
+dekodera z trzema twierdzeniami o tym, co protokół podaje przy zgonie i po
+uleczeniu.
+
+⚠️ **Reguła sama ostrzega, że zawiodła już dwa razy — obie te awarie były
+ŚCIEŻKĄ MARTWĄ** (`src/parser.ts`, `tests/fixtures/**/meta.json`). Ta jest
+trzecia i **inna**: nie plik zniknął, tylko wiedza PRZEPROWADZIŁA SIĘ do pliku,
+którego na liście nigdy nie było. Kontrola „czy każdy wzorzec się dopasowuje"
+tego nie łapie — wszystkie siedem wzorców dopasowywało się poprawnie.
+
+**Zrobione.** Trzy ścieżki dopisane, wniosek zapisany w regule: pisząc nowy wpis
+rejestru, sprawdź, czy plik, którego dotyczy, na tej liście stoi.
+
+**Docelowo.** Zostaje przy regule.
+
 ## G. Otwarte z poprzednich rund
 
 Bez nowych ID — sam wskaźnik, żeby ten dokument był pełną migawką otwartych
