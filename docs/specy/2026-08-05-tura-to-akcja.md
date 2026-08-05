@@ -1,6 +1,6 @@
 # Tura jest akcją, a nie ciągiem akcji
 
-Status: wdrożone · 2026-08-05
+Status: wdrożone · 2026-08-05 · `58459ad`
 
 ## Problem
 
