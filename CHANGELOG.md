@@ -28,6 +28,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Panel przestaje gubić liczby w walkach, w których gra na chwilę
+  nie podaje składu. Wystarczyła jedna taka chwila, żeby statystyki spadły do
+  zera, zniknął podział na drużyny i rozróżnienie postaci o tej samej nazwie,
+  a na dole pojawiło się ostrzeżenie o nierozpoznanych danych. Zapisane wtedy
+  nagranie zostawało takie na zawsze.
+
 ## [0.5.0] — 2026-08-05
 
 - **Zmiana** — Panel liczy z tego, co gra dostaje z serwera w trakcie walki,

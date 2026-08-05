@@ -95,6 +95,40 @@ function porcjaKomunikatow(m: unknown): string[] {
   return surowe.filter((x): x is string => typeof x === "string");
 }
 
+/**
+ * Skład walki narastająco: unia po `id`, późniejsza migawka NADPISUJE wpis,
+ * ale go nie kasuje.
+ *
+ * ⚠️ **BEZ TEGO JEDNA PUSTA MIGAWKA UNIEWAŻNIA CAŁĄ WALKĘ.** Dekoder zamienia
+ * `id` na nazwę wyłącznie po tej liście, a dekodujemy CAŁĄ walkę od nowa przy
+ * każdej porcji — więc skład, który na chwilę zniknie, zabiera ze sobą także to,
+ * co zostało odczytane wcześniej. Zmierzone na `tests/walka-z-gry.ts`: ze składem
+ * 17 zdarzeń, 0 nieznanych i 2883 obrażeń zadanych; bez składu te same
+ * 17 komunikatów daje **14 nieznanych i 0 obrażeń**.
+ *
+ * Kiedy migawka bywa pusta: `EngineRosterSource.current()` zwraca `null` przy
+ * braku `battle`, pustych `warriors` i braku `myteam` — a nasz odczyt leci PO
+ * oryginalnym `update`, więc na komunikacie zamykającym walkę gra może mieć stan
+ * już posprzątany.
+ *
+ * To jest ta sama reguła, którą `skladZeZrzutu` w `tools/walka.ts` stosuje do
+ * zrzutów („skład potrafi urosnąć w trakcie […] a późniejsza migawka nie
+ * unieważnia wcześniejszej"). Do dziś stosowało ją wyłącznie narzędzie, a odczyt
+ * na żywo brał samą bieżącą migawkę — i ta asymetria była całym błędem.
+ *
+ * Kolejność pierwszego wystąpienia zostaje: skład bywa tytułem nagrania
+ * (`recorder.tytul`), a tytuł przestawiający postacie przy każdej porcji
+ * wyglądałby na inną walkę.
+ */
+export function scalSklad(
+  dotychczas: readonly RosterEntry[],
+  migawka: readonly RosterEntry[],
+): RosterEntry[] {
+  const wg = new Map(dotychczas.map((w) => [w.id, w]));
+  for (const w of migawka) wg.set(w.id, w);
+  return [...wg.values()];
+}
+
 /** Znacznik na opakowaniu — patrz `zdejmij`. Wersja, żeby dwie różne dały się rozpoznać. */
 const ZNACZNIK = "__margometerProtokol";
 const WERSJA = 1;
@@ -127,6 +161,8 @@ export type ProtocolSourceOptions = {
 
 export class EngineProtocolSource implements EventSource {
   private komunikaty: string[] = [];
+  /** Skład TEJ walki, narastająco — patrz `scalSklad`. Zerowany razem z `komunikaty`. */
+  private sklad: RosterEntry[] = [];
   /** Obiekt walki, na którym stoi nasze opakowanie — tożsamość, nie zawartość. */
   private owiniety: Record<string, unknown> | null = null;
   private oryginal: ((...argumenty: unknown[]) => unknown) | null = null;
@@ -186,9 +222,13 @@ export class EngineProtocolSource implements EventSource {
     // więc „update jest już owinięty" trzeba pytać o TEN obiekt, nie w ogóle.
     if (this.owiniety === battle && (update as Opakowanie)[ZNACZNIK] === WERSJA) return;
 
-    // Nowa walka — poprzednie komunikaty nie należą do niej. Bez tego zerowania
-    // druga walka w sesji liczyłaby się razem z pierwszą.
-    if (this.owiniety !== battle) this.komunikaty = [];
+    // Nowa walka — poprzednie komunikaty i poprzedni skład nie należą do niej.
+    // Bez tego zerowania druga walka w sesji liczyłaby się razem z pierwszą,
+    // a jej `id` rozwiązywałyby się po nazwach z tamtej.
+    if (this.owiniety !== battle) {
+      this.komunikaty = [];
+      this.sklad = [];
+    }
 
     const oryginal = update as (...argumenty: unknown[]) => unknown;
     const owinieta: Opakowanie = (...argumenty: unknown[]): unknown => {
@@ -223,7 +263,12 @@ export class EngineProtocolSource implements EventSource {
     if (porcja.length === 0) return;
 
     this.komunikaty.push(...porcja);
-    const sklad = this.roster.current() ?? [];
+    // Migawka DOKŁADA się do składu walki, zamiast go zastępować. `null` znaczy
+    // „gra akurat nie wystawia stanu", a nie „walka nie ma uczestników" —
+    // potraktowanie tego jako pustego składu kasowało cały dotychczasowy odczyt.
+    const migawka = this.roster.current();
+    if (migawka !== null) this.sklad = scalSklad(this.sklad, migawka);
+    const sklad = this.sklad;
     // Dekodujemy CAŁĄ walkę od nowa, nie przyrost. Ta sama decyzja co
     // w `session.ts:53‑57`: stan przyrostowy byłby źródłem podwójnego liczenia,
     // a walka ma kilkadziesiąt komunikatów, więc koszt jest bez znaczenia.
@@ -248,6 +293,7 @@ export class EngineProtocolSource implements EventSource {
     this.owiniety = null;
     this.oryginal = null;
     this.komunikaty = [];
+    this.sklad = [];
     if (battle === null || oryginal === null) return;
 
     const biezacy = battle["update"];

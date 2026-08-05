@@ -298,3 +298,121 @@ describe("porcja niesie SUROWY materiał, nie tylko odczyt", () => {
     expect(widziane[0]).toHaveLength(1);
   });
 });
+
+/** Roster oddający kolejne migawki — gra podaje przy każdym wywołaniu inny stan. */
+const rosterKolejno = (...migawki: (RosterEntry[] | null)[]): RosterSource => {
+  let i = 0;
+  return { current: () => migawki[Math.min(i++, migawki.length - 1)] ?? null };
+};
+
+/**
+ * Skład NARASTA i nie ma prawa zniknąć w trakcie walki.
+ *
+ * ⚠️ **TU SIEDZIAŁ NAJDROŻSZY BŁĄD TEGO PLIKU** (znaleziony audytem 2026‑08‑05).
+ * Źródło brało samą BIEŻĄCĄ migawkę i podawało `?? []` dalej, a dekoder zamienia
+ * `id` na nazwę wyłącznie po tej liście — przy czym dekodujemy CAŁĄ walkę od
+ * nowa przy każdej porcji. Jedna migawka, której gra nie wystawiła, unieważniała
+ * więc cały dotychczasowy odczyt: zmierzone na `tests/walka-z-gry.ts` 17 zdarzeń,
+ * 0 nieznanych i 2883 obrażeń zadanych zamieniało się w 14 nieznanych i 0 obrażeń.
+ *
+ * Kosztowało to podwójnie, bo `Recorder.capture` nadpisuje składem nagranie —
+ * pusta migawka na końcu walki zapisywała się NA TRWAŁE.
+ */
+describe("EngineProtocolSource: skład walki narasta", () => {
+  test("migawka `null` nie kasuje tego, co już wiemy", () => {
+    // `null` znaczy „gra akurat nie wystawia stanu", a nie „walka nie ma
+    // uczestników". Odczyt leci PO oryginalnym `update`, więc na komunikacie
+    // zamykającym walkę gra może mieć stan już posprzątany.
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    const widziane: RosterEntry[][] = [];
+    new EngineProtocolSource(globals, rosterKolejno(SKLAD, null), z).subscribe((p) =>
+      widziane.push([...p.sklad]),
+    );
+
+    const update = battle["update"] as (...a: unknown[]) => unknown;
+    update({ m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"] });
+    update({ m: ["0;0;winner=Kamil"] });
+
+    expect(widziane.at(-1)).toEqual(SKLAD);
+  });
+
+  test("liczby przeżywają zniknięcie składu, a nie tylko nazwy", () => {
+    // Sedno, i dlatego asercja idzie po ZDARZENIACH, a nie po `p.sklad`:
+    // to nie skład jest produktem, tylko odczyt, który bez niego pada do zera.
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    const widziane: BattleEvent[][] = [];
+    new EngineProtocolSource(globals, rosterKolejno(SKLAD, null), z).subscribe((p) =>
+      widziane.push(p.zdarzenia),
+    );
+
+    const update = battle["update"] as (...a: unknown[]) => unknown;
+    update({ m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"] });
+    update({ m: ["1=100.00;2=80.00;+dmg=10;-dmg=10"] });
+
+    const ostatnie = widziane.at(-1)!;
+    expect(ostatnie.filter((e) => e.kind === "unknown")).toEqual([]);
+    expect(ostatnie.filter((e) => e.kind === "attack")).toHaveLength(2);
+  });
+
+  test("uboższa migawka nie zdejmuje nikogo — postać, która padła, zostaje w składzie", () => {
+    // Gra potrafi podać przy kolejnym wywołaniu mniej wojowników. Gdyby skład
+    // szedł za tym w dół, komunikaty POLEGŁEJ postaci — już odczytane — stałyby
+    // się nieznane przy następnym przeliczeniu i jej obrażenia zniknęłyby
+    // z panelu w środku walki.
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    const widziane: RosterEntry[][] = [];
+    new EngineProtocolSource(globals, rosterKolejno(SKLAD, [SKLAD[0]!]), z).subscribe((p) =>
+      widziane.push([...p.sklad]),
+    );
+
+    const update = battle["update"] as (...a: unknown[]) => unknown;
+    update({ m: ["1=100.00;2=90.00;+dmg=10;-dmg=10"] });
+    update({ m: ["1=100.00;2=0.00;+dmg=10;-dmg=10"] });
+
+    expect(widziane.at(-1)).toEqual(SKLAD);
+  });
+
+  test("późniejsza migawka NADPISUJE wpis o tym samym `id`", () => {
+    // Narastanie nie znaczy zamrożenia: przyzwany dochodzi, a poprawiona nazwa
+    // albo strona ma wygrać. Inaczej pierwsza migawka rządziłaby całą walką.
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    const widziane: RosterEntry[][] = [];
+    const poprawiony: RosterEntry[] = [{ id: 2, name: "Locha", side: 1, lvl: 40 }];
+    new EngineProtocolSource(globals, rosterKolejno(SKLAD, poprawiony), z).subscribe((p) =>
+      widziane.push([...p.sklad]),
+    );
+
+    const update = battle["update"] as (...a: unknown[]) => unknown;
+    update({ m: ["0;0;txt=a"] });
+    update({ m: ["0;0;txt=b"] });
+
+    expect(widziane.at(-1)).toEqual([SKLAD[0]!, { id: 2, name: "Locha", side: 1, lvl: 40 }]);
+  });
+
+  test("NOWA walka zaczyna od pustego składu, a nie od poprzedniego", () => {
+    // Druga strona tej samej reguły. Gdyby skład przeżył podmianę obiektu walki,
+    // `id` z nowej walki rozwiązywałyby się po nazwach ze starej — czyli panel
+    // pokazywałby postacie, których w tej walce nie ma.
+    const { globals, battle } = gra(() => undefined);
+    const z = zegar();
+    const widziane: RosterEntry[][] = [];
+    const drugi: RosterEntry[] = [{ id: 9, name: "Wilk", side: 1 }];
+    new EngineProtocolSource(globals, rosterKolejno(SKLAD, drugi), z).subscribe((p) =>
+      widziane.push([...p.sklad]),
+    );
+
+    (battle["update"] as (...a: unknown[]) => unknown)({ m: ["0;0;txt=a"] });
+
+    // Gra podmienia obiekt walki razem z walką — tożsamość, nie zawartość.
+    const nowaBattle: Record<string, unknown> = { update: () => undefined };
+    (globals.Engine as { battle?: unknown }).battle = nowaBattle;
+    z.tik();
+    (nowaBattle["update"] as (...a: unknown[]) => unknown)({ m: ["0;0;txt=b"] });
+
+    expect(widziane.at(-1)).toEqual(drugi);
+  });
+});
