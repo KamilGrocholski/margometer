@@ -308,7 +308,14 @@ describe("rola: nieznane ma być głośne", () => {
   test("role znaczące niosą dowód, nie domysł", () => {
     expect(rola("-blok")).toEqual({ typ: "blok" });
     expect(rola("heal_target")).toEqual({ typ: "leczenie", strona: "cel", wlasne: false });
-    expect(rola("heal")).toEqual({ typ: "leczenie", strona: "nadawca", wlasne: false });
+    // `znakZnaczacy` ma WYŁĄCZNIE `heal` — jako jedyny klucz leczenia, którego
+    // zdanie niesie `%gain_lost%`, więc ujemna kwota znaczy przy nim „Stracono".
+    expect(rola("heal")).toEqual({
+      typ: "leczenie",
+      strona: "nadawca",
+      wlasne: false,
+      znakZnaczacy: true,
+    });
     expect(rola("poison")).toEqual({ typ: "dot", przyimek: "od", rodzaj: "trucizny" });
     expect(rola("injure")).toEqual({ typ: "dot", przyimek: "po", rodzaj: "zranieniu" });
     expect(rola("+thirdatt")).toEqual({ typ: "ciosProc", kod: "3", id: "+third_strike" });
@@ -456,6 +463,30 @@ describe("dekoduj: leczenie i obrażenia bez sprawcy", () => {
     // nie jest dowodem, gdy autor testu i autor kodu wierzą w to samo.
     const [z] = dekoduj(["1=99.04;0;heal=1356"], SKLAD);
     expect(z).toMatchObject({ kind: "heal", target: "Kamil", amount: 1356, self: false });
+  });
+
+  test("`heal` z kwotą UJEMNĄ to ubytek życia, nie leczenie na minusie", () => {
+    // „Stracono −92 punktów życia X". Gra rozstrzyga to ZNAKIEM, w jednym
+    // warunku: `m[1] >= 0 ? part_gained : part_lost` (`BattleMessages.js:301`).
+    // Do 2026‑08‑05 wychodziło stąd leczenie na −92, więc realny ubytek nie
+    // liczył się jako obrażenia w ogóle.
+    const [z] = dekoduj(["1=88.00;0;heal=-92"], SKLAD);
+    expect(z).toMatchObject({
+      kind: "dot",
+      target: "Kamil",
+      // Kwota DODATNIA — minus jest ozdobnikiem zapisu, nie negacją.
+      amount: 92,
+      via: "od",
+      dotType: "ubytku życia",
+    });
+  });
+
+  test("ujemna kwota przy INNYM kluczu leczenia jest głośna", () => {
+    // `%gain_lost%` stoi wyłącznie w zdaniu klucza `heal`; pozostałe składają
+    // bezwarunkowe „Przywrócono". Minus przy nich to kształt spoza reguły gry —
+    // ma zapalić czujkę, a nie zostać po cichu przemianowany na ubytek.
+    const zd = dekoduj(["1=88.00;2=50.00;heal_target=-50"], SKLAD);
+    expect(zd).toEqual([{ kind: "unknown", line: "heal_target=-50", lineNo: 0 }]);
   });
 
   test("`heal_target` leczy CEL i własne już nie jest", () => {

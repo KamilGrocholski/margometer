@@ -1274,3 +1274,44 @@ describe("zranienie wiąże się po kluczu, nie po brzmieniu", () => {
     expect(totalBySide(stats.unattributedDotDamage)).toBe(0);
   });
 });
+
+/**
+ * Ubytek życia nie ma sprawcy — i to jest ODPOWIEDŹ, nie luka (`AUDYT‑88`).
+ *
+ * `opponentOf` zna regułę „gdy po drugiej stronie stoi dokładnie jeden
+ * przeciwnik, to on nałożył tykający efekt". Dla trucizny jest słuszna; tutaj
+ * byłaby fałszem, bo pomiar w `docs/MECHANIKA.md` wskazuje źródło po TEJ SAMEJ
+ * stronie co cel. Układ 1 vs 1 jest tu celowy: to jedyny, w którym `opponentOf`
+ * ma kogo podstawić, więc tylko on bada `SELF_INFLICTED_DOTS`.
+ */
+describe("„Stracono N punktów życia” liczy się jako obrażenia bez sprawcy", () => {
+  const SKLAD: RosterEntry[] = [
+    { id: 1, name: "Gracz", side: 0 },
+    { id: 2, name: "Boss", side: 1 },
+  ];
+  const stats = aggregate(dekoduj(["1=88.00;0;heal=-92"], SKLAD), SKLAD);
+  const gracz = stats.actors.find((a) => a.name === "Gracz")!;
+  const boss = stats.actors.find((a) => a.name === "Boss")!;
+
+  test("kwota jest obrażeniami, a nie leczeniem na minusie", () => {
+    expect(gracz.damageTaken).toBe(92);
+    // Zero, nie −92: przed poprawką stała tu ujemna liczba, a wiersz rozbicia
+    // nazywał się „Regeneracja".
+    expect(gracz.healingReceived).toBe(0);
+    expect(gracz.healedBy).toEqual([]);
+  });
+
+  test("sprawcy NIE zgadujemy, choć przeciwnik jest tylko jeden", () => {
+    expect(gracz.takenFromBy.map((t) => t.label)).toEqual([UNATTRIBUTED_SOURCE]);
+    // Boss nie tknął nikogo — doliczenie mu tej kwoty byłoby twierdzeniem,
+    // którego log nie niesie.
+    expect(boss.damageDealt).toBe(0);
+  });
+
+  test("pula bez sprawcy mówi, CO w niej siedzi", () => {
+    expect(stats.unattributedDotDamage.mine).toBe(92);
+    expect(stats.unattributedDotDamage.types).toEqual([{ label: "Ubytek życia", amount: 92 }]);
+    // Leczenie zostaje nietknięte — to nie jest jego pula.
+    expect(totalBySide(stats.unattributedHealing)).toBe(0);
+  });
+});

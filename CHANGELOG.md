@@ -60,6 +60,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   a broniący się miał te same efekty wpisane jako „otrzymane”. Dotyczy
   dwudziestu czterech efektów; te zaczepne (przebicie, niszczenie pancerza)
   zostają tam, gdzie były.
+- **Poprawka** — Utrata życia, którą gra opisuje jako „Stracono N punktów
+  życia”, liczy się jako obrażenia. Dotąd trafiała do rubryki „uleczone” ze
+  znakiem minus i nie było jej widać w obrażeniach w ogóle. Trafia do puli „bez
+  sprawcy”, bo gra nie mówi, co ją wywołało — a wygląda na to, że przychodzi
+  z własnej strony, więc dopisanie jej przeciwnikowi byłoby zmyśleniem.
 - **Poprawka** — Obrażenia od zranienia trafiają na konto tego, kto je nałożył,
   także wtedy, gdy gra pisze o nim w innym języku niż polski albo zmieni
   brzmienie opisu przy aktualizacji. Wcześniej rozpoznanie szło po treści

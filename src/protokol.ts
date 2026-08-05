@@ -237,7 +237,26 @@ export type Rola =
    * wychodzi z dekodera jako `heal.healer`; `wlasne` zostaje `false`, bo są
    * to dwie różne informacje i tylko jedna z nich pochodzi z tabeli.
    */
-  | { typ: "leczenie"; strona: "nadawca" | "cel"; wlasne: boolean }
+  | {
+      typ: "leczenie";
+      strona: "nadawca" | "cel";
+      wlasne: boolean;
+      /**
+       * Czy ZNAK wartości rozstrzyga „Przywrócono" kontra „Stracono".
+       *
+       * Prawdziwe wyłącznie dla klucza `heal`, i to nie z ostrożności, tylko
+       * z odczytu: `%gain_lost%` stoi w JEGO jednym zdaniu, a renderer wybiera
+       * człon warunkiem `m[1] >= 0` (`BattleMessages.js:301`). Wszystkie
+       * pozostałe klucze leczenia — `afterheal` (`:235`), `heal_target`
+       * (`:959`), `npc_heal`, `legbon_holytouch_heal` (`:796`),
+       * `legbon_lastheal` (`:587`) — składają bezwarunkowe „Przywrócono".
+       *
+       * Ujemna kwota przy którymkolwiek z NICH jest więc kształtem spoza reguły
+       * gry i ma iść do `unknown`, a nie zostać po cichu przemianowana na
+       * ubytek. „Nieznane ma być głośne".
+       */
+      znakZnaczacy?: boolean;
+    }
   /** Obrażenia bez sprawcy, tykające w czasie. `przyimek` i `rodzaj` z brzmienia. */
   | { typ: "dot"; przyimek: "od" | "po"; rodzaj: string }
   /** `absolute=N` → „%name% otrzymał %val% obrażeń nieuchronnych." */
@@ -365,7 +384,7 @@ const ROLE: Readonly<Record<string, Rola>> = {
   // — leczenie w punktach ————————————————————————————————————————
   // „%gain_lost% %val% punktów życia %name%" — %name% to f1. Znak wartości
   // rozstrzyga „Przywrócono" kontra „Stracono" (:1090, `m[1] >= 0`).
-  heal: { typ: "leczenie", strona: "nadawca", wlasne: false },
+  heal: { typ: "leczenie", strona: "nadawca", wlasne: false, znakZnaczacy: true },
   // „Przywrócono %val% punktów życia %name%."
   afterheal: { typ: "leczenie", strona: "nadawca", wlasne: false },
   // „Uleczono %target% o %val% punktów życia." — %target% to f2 (:960).
@@ -896,6 +915,39 @@ export function dekoduj(
           // patrz `legbon_lastheal`, gdzie zdanie sugeruje odwrotnie.
           const kwota = liczba(czlony(p.wartosc)[0] ?? null);
           if (strona === null || kwota === null) nieznany(p.surowy);
+          // ⚠️ **UJEMNA KWOTA TO „STRACONO", CZYLI REALNY UBYTEK ŻYCIA**
+          // (`AUDYT‑88`). Gra rozstrzyga to znakiem, w jednym warunku
+          // (`BattleMessages.js:301`):
+          //
+          //     '%gain_lost%': (m[1] >= 0 ? _t('part_gained') : _t('part_lost'))
+          //     //(m[1]>0?'Przywrócono ':'Stracono ')+m[1]+' punktów życia '
+          //
+          // Do 2026‑08‑05 wychodziło stąd `{kind:"heal", amount:-92}`, więc
+          // ubytek NIE liczył się jako obrażenia (`damageTaken: 0`), a siadał
+          // w „uleczone" ze znakiem minus, w wierszu „Regeneracja −92". Był to
+          // skutek uboczny skasowania parsera tekstu: tamten czytał tę linię
+          // jako `kind:"dot"` i to zachowanie tu wraca.
+          //
+          // Kwota idzie DODATNIA, bo minus jest ozdobnikiem zapisu, nie
+          // negacją — pomiar w `docs/MECHANIKA.md` („Linia »Stracono −N…«").
+          // Rodzaj „od ubytku życia" jest NASZ, bo log źródła nie nazywa,
+          // i dlatego `SELF_INFLICTED_DOTS` w `stats.ts` odbiera tej puli
+          // zgadywanie sprawcy: efekt idzie z tej samej strony co cel.
+          else if (kwota < 0 && r.znakZnaczacy === true && nadawca !== null)
+            zdarzenia.push({
+              kind: "dot",
+              target: strona,
+              targetId: nadawca.id,
+              targetHpPct: nadawca.hpp ?? 0,
+              amount: -kwota,
+              via: "od",
+              dotType: "ubytku życia",
+              // Zdanie „Stracono" nie ma drugiego członu z osłabieniem.
+              weakenedPct: null,
+            });
+          // Ujemna kwota przy kluczu, którego zdanie NIE ma `%gain_lost%`, jest
+          // kształtem spoza reguły gry. Głośno, zamiast po cichu przemianować.
+          else if (kwota < 0) nieznany(p.surowy);
           else
             zdarzenia.push({
               kind: "heal",
