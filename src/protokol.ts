@@ -804,6 +804,7 @@ export function dekoduj(
           break;
         case "leczenie": {
           const strona = r.strona === "cel" ? celNazwa : nadawcaNazwa;
+          const stronaId = r.strona === "cel" ? cel?.id : nadawca?.id;
           const hpp = r.strona === "cel" ? (cel?.hpp ?? null) : (nadawca?.hpp ?? null);
           // Kwota stoi w członie ZEROWYM także przy wartościach dwuczłonowych —
           // patrz `legbon_lastheal`, gdzie zdanie sugeruje odwrotnie.
@@ -814,6 +815,7 @@ export function dekoduj(
               kind: "heal",
               ability: zapowiedziana,
               target: strona,
+              ...(stronaId === undefined ? {} : { targetId: stronaId }),
               amount: kwota,
               // NIE wyprowadzane ze `strona` — patrz komentarz przy `Rola`.
               // Klucz `heal` ma pustą drugą stronę, więc leczącego nie zna
@@ -831,6 +833,7 @@ export function dekoduj(
             zdarzenia.push({
               kind: "dot",
               target: nadawcaNazwa,
+              targetId: nadawca.id,
               targetHpPct: nadawca.hpp ?? 0,
               amount: kwota,
               via: r.przyimek,
@@ -866,6 +869,8 @@ export function dekoduj(
               kind: "attack",
               source: nadawcaNazwa,
               target: nadawcaNazwa,
+              sourceId: nadawca.id,
+              targetId: nadawca.id,
               sourceHpPct: null,
               targetHpPct: nadawca.hpp ?? 0,
               hits: [
@@ -892,7 +897,12 @@ export function dekoduj(
           else {
             zapowiedziana = p.wartosc;
             swiezaZapowiedz = true;
-            zdarzenia.push({ kind: "ability", actor: nadawcaNazwa, name: p.wartosc });
+            zdarzenia.push({
+              kind: "ability",
+              actor: nadawcaNazwa,
+              ...(nadawca === null ? {} : { actorId: nadawca.id }),
+              name: p.wartosc,
+            });
           }
           break;
         }
@@ -919,6 +929,7 @@ export function dekoduj(
             zdarzenia.push({
               kind: "move",
               actor: nadawcaNazwa,
+              actorId: nadawca.id,
               hpPct: nadawca.hpp ?? 0,
               description: p.surowy,
             });
@@ -985,6 +996,8 @@ export function dekoduj(
       kind: "attack",
       source: nadawcaNazwa,
       target: celNazwa,
+      ...(nadawca === null ? {} : { sourceId: nadawca.id }),
+      ...(cel === null ? {} : { targetId: cel.id }),
       sourceHpPct: nadawca?.hpp ?? null,
       targetHpPct: cel?.hpp ?? 0,
       hits: trafienia,

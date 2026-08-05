@@ -151,12 +151,25 @@ export type Hit = {
   dodged: boolean;
 };
 
+/**
+ * ⚠️ **`*Id` TO TOŻSAMOŚĆ POSTACI, NIE OZDOBA.** Protokół niesie `id` po obu
+ * stronach każdego zdarzenia i to jest jedyna droga, żeby rozdzielić dwie
+ * postacie o tej samej nazwie CZYTAJĄC, zamiast wnioskując ze spadku życia.
+ * Pola są opcjonalne, bo materiał budowany w kodzie (`tests/zdarzenia.ts`,
+ * `tools/synthetic-log.ts`) ich nie ma — i ma dalej chodzić heurystyką.
+ * Wypełnia je WYŁĄCZNIE `dekoduj`; `turn-lost` ich nie dostaje, bo dekoder
+ * takiego zdarzenia nie emituje, a pole, którego nikt nie ustawia, jest gorsze
+ * niż jego brak.
+ */
 export type BattleEvent =
   | { kind: "fight-start"; participants: Participant[] }
   | {
       kind: "attack";
       source: string;
       target: string;
+      /** Tożsamość bijącego i celu z protokołu — patrz nagłówek nad `BattleEvent`. */
+      sourceId?: number;
+      targetId?: number;
       /**
        * `null`, gdy log nie podaje życia bijącego — tak jest przy własnych
        * obrażeniach umiejętności ("-507 obrażeń otrzymał(a) X"). Zaślepka `0`
@@ -189,6 +202,7 @@ export type BattleEvent =
       kind: "heal";
       ability: string | null;
       target: string;
+      targetId?: number;
       amount: number;
       /**
        * Czy leczonym jest ten sam, kto leczył — jedyne, co o sprawcy da się
@@ -213,6 +227,7 @@ export type BattleEvent =
   | {
       kind: "dot";
       target: string;
+      targetId?: number;
       targetHpPct: number;
       amount: number;
       /** Przyimek z logu: "od trucizny" kontra "po zranieniu". */
@@ -221,7 +236,7 @@ export type BattleEvent =
       /** "osłabione o 25%" → 25. */
       weakenedPct: number | null;
     }
-  | { kind: "move"; actor: string; hpPct: number; description: string }
+  | { kind: "move"; actor: string; actorId?: number; hpPct: number; description: string }
   | { kind: "turn-lost"; actor: string }
   | {
       kind: "fight-end";
@@ -231,7 +246,7 @@ export type BattleEvent =
       result: string;
     }
   /** Zapowiedź umiejętności; obrażenia niosą dopiero kolejne linie. */
-  | { kind: "ability"; actor: string; name: string }
+  | { kind: "ability"; actor: string; actorId?: number; name: string }
   /** Komunikat tła bez wpływu na statystyki (aura, brak Punktów Honoru, ...). */
   | { kind: "info"; line: string }
   /**

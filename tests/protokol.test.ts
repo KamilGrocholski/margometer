@@ -452,7 +452,9 @@ describe("dekoduj: przebieg walki", () => {
       ],
       SKLAD,
     );
-    expect(zd[0]).toEqual({ kind: "ability", actor: "Kamil", name: "Porażenie" });
+    // `actorId` jedzie razem z nazwą od 2026‑08‑05 — to po nim `stats.ts`
+    // rozdziela postacie o tej samej nazwie, zamiast zgadywać po spadku życia.
+    expect(zd[0]).toEqual({ kind: "ability", actor: "Kamil", actorId: 1, name: "Porażenie" });
     expect(zd[1]).toMatchObject({ kind: "attack", ability: "Porażenie" });
     expect(zd[2]).toMatchObject({ kind: "attack", ability: null });
   });

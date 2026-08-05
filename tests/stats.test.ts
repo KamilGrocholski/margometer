@@ -13,6 +13,8 @@ import { TYPE_COLORS } from "../src/palette.ts";
 import { EngineRosterSource, type RosterEntry } from "../src/roster.ts";
 import { cios, krok, nieznane, otwarcie, trafienie, tykniecie, umiejetnosc } from "./zdarzenia.ts";
 import { KORPUS } from "./korpus.ts";
+import { dekoduj } from "../src/protokol.ts";
+import { KOMUNIKATY as KOMUNIKATY_Z_GRY, SKLAD as SKLAD_Z_GRY } from "./walka-z-gry.ts";
 
 
 /**
@@ -147,6 +149,89 @@ describe.each(KORPUS)("$name — odwrócenie zgadza się z dealtBy", (fixture) =
       const viaTargets = actor.dealtToBy.reduce((sum, one) => sum + one.amount, 0);
       expect(total).toBe(viaTargets);
     }
+  });
+});
+
+/**
+ * ROZDZIELANIE INSTANCJI PO `id` — odczyt zamiast zgadywania.
+ *
+ * ⚠️ **Do 2026‑08‑05 ta korzyść z protokołu nie była zrealizowana.** `AGENTS.md`
+ * uzasadniał przejście na protokół m.in. tym, że niesie on `id` po obu stronach
+ * każdego zdarzenia, więc rozdzielanie postaci o tej samej nazwie jest DARMOWE —
+ * a `dekoduj` zamieniał `id` na nazwę przy wejściu i identyfikator wyrzucał.
+ * `stats.ts` dalej zgadywał po spadku życia, choć odpowiedź stała w komunikacie.
+ *
+ * Warunek jest ZERO-JEDYNKOWY per nazwa: skład musi mieć `id` przy każdym wpisie
+ * tej nazwy i każde jej wystąpienie w zdarzeniach musi nieść pasujący `id`.
+ * Inaczej ta sama postać dostałaby w jednej walce dwa różne numery.
+ */
+describe("instancje po identyfikatorze", () => {
+  const DWA_ODYNCE: RosterEntry[] = [
+    { id: 1, name: "Kamil", side: 0 },
+    { id: 3, name: "Odyniec", side: 1 },
+    { id: 4, name: "Odyniec", side: 1 },
+  ];
+
+  test("dwie postacie o tej samej nazwie i tym samym życiu dostają SWOJE obrażenia", () => {
+    // Sedno. Obie schodzą do 90%, więc heurystyka nie ma czego rozróżnić —
+    // „ostatnio aktywna" zgarniała obie linie i pokazywała 20/0.
+    const stats = aggregate(
+      dekoduj(
+        ["1=100.00;3=90.00;+dmg=10;-dmg=10", "1=100.00;4=90.00;+dmg=10;-dmg=10"],
+        DWA_ODYNCE,
+      ),
+      DWA_ODYNCE,
+    );
+    const taken = (name: string) => stats.actors.find((a) => a.name === name)!.damageTaken;
+
+    expect(taken("Odyniec #1")).toBe(10);
+    expect(taken("Odyniec #2")).toBe(10);
+    // Numer jest odczytany, nie zgadnięty — więc gwiazdki niepewności nie ma.
+    expect(stats.ambiguousNames).toEqual([]);
+  });
+
+  test("numer idzie z kolejności SKŁADU, nie z kolejności ujawniania w logu", () => {
+    // ⚠️ Dlaczego to jest osobny test: heurystyka numerowała w kolejności, w
+    // jakiej log pokazuje postacie. Log rośnie, a przeliczamy go CAŁY przy
+    // każdej porcji — numer potrafił się więc przesunąć między klatkami panelu.
+    // Z pozycji w składzie jest stały, choćby pierwszy oberwał ten drugi.
+    const stats = aggregate(
+      dekoduj(["1=100.00;4=90.00;+dmg=10;-dmg=10"], DWA_ODYNCE),
+      DWA_ODYNCE,
+    );
+    const taken = (name: string) => stats.actors.find((a) => a.name === name)!.damageTaken;
+
+    // `id: 4` jest DRUGI w składzie, więc jest `#2` — mimo że ujawnił się pierwszy.
+    expect(taken("Odyniec #2")).toBe(10);
+    expect(taken("Odyniec #1")).toBe(0);
+  });
+
+  test("CZĘŚCIOWE identyfikatory wyłączają tryb `id` dla całej nazwy", () => {
+    // Gdyby część wystąpień szła po `id`, a część po spadku życia, ta sama
+    // postać dostałaby w jednej walce dwa różne numery — błąd gorszy od tego,
+    // który naprawiamy. Wystarczy JEDNO zdarzenie bez `id`, żeby cała nazwa
+    // wróciła do heurystyki (i odzyskała gwiazdkę).
+    const stats = aggregate(
+      [...dekoduj(["1=100.00;3=90.00;+dmg=10;-dmg=10"], DWA_ODYNCE), krok("Odyniec", 90)],
+      DWA_ODYNCE,
+    );
+    expect(stats.ambiguousNames).toEqual(["Odyniec #1", "Odyniec #2"]);
+  });
+
+  test("materiał z gry przestaje mieć gwiazdkę, a liczby zostają te same", () => {
+    // Jedyna prawdziwa walka, jaką repo ma. Liczby nie mają drgnąć — zmiana
+    // dotyczy tego, KOMU są przypisane, a nie ile ich jest.
+    const stats = aggregate(dekoduj(KOMUNIKATY_Z_GRY, SKLAD_Z_GRY), SKLAD_Z_GRY);
+    const dealt = (name: string) => stats.actors.find((a) => a.name === name)!.damageDealt;
+    const taken = (name: string) => stats.actors.find((a) => a.name === name)!.damageTaken;
+
+    expect(dealt("Łowcożyr Kazrek")).toBe(2784);
+    // `-255967` stoi w składzie jako pierwszy Odyniec, więc jest `#1` — i to on
+    // oddał cios za 99 oraz przyjął tyknięcie trucizny.
+    expect(dealt("Odyniec #1")).toBe(99);
+    expect(taken("Odyniec #1")).toBe(831);
+    expect(taken("Odyniec #2")).toBe(1119);
+    expect(stats.ambiguousNames).toEqual([]);
   });
 });
 
@@ -339,15 +424,46 @@ describe("trucizna w walce grupowej", () => {
    * po obu stronach nie da się więc powiedzieć, który wiersz jest czyj, i to
    * dotyczy KAŻDEJ instancji, także pierwszej.
    */
-  test("ta sama nazwa po obu stronach nie dostaje żadnej strony", () => {
-    const log = [
-      otwarcie(["Gracz 1w", "Wilk 1w"], ["Wilk 1w", "Wróg 1m"]),
-      // ⚠️ Gołe „otrzymał" bez poprzedzającego ciosu jest zdarzeniem
-      // NIEROZPOZNANYM i do statystyk nie wchodzi. Zostaje wiernie:
-      // ten test stoi wyłącznie na składzie, a nie na obrażeniach.
-      nieznane("Wilk(80%) otrzymał -100 obrażeń", 2),
-    ];
-    const stats = aggregate(log, [
+  const LOG_DWA_WILKI = [
+    otwarcie(["Gracz 1w", "Wilk 1w"], ["Wilk 1w", "Wróg 1m"]),
+    // ⚠️ Gołe „otrzymał" bez poprzedzającego ciosu jest zdarzeniem
+    // NIEROZPOZNANYM i do statystyk nie wchodzi. Zostaje wiernie:
+    // te dwa testy stoją wyłącznie na składzie, a nie na obrażeniach.
+    nieznane("Wilk(80%) otrzymał -100 obrażeń", 2),
+  ];
+
+  test("ta sama nazwa po obu stronach BEZ identyfikatorów nie dostaje żadnej strony", () => {
+    // Zdarzenia budowane w kodzie NIE mają `id` (tak wygląda materiał
+    // syntetyczny i tak wyglądały nagrania sprzed protokołu), więc numer
+    // instancji nadaje kolejność UJAWNIANIA w logu — a ta nie ma nic wspólnego
+    // z kolejnością składu. „Wilk #1" nie znaczy wtedy „ten nasz”.
+    // Nie "obie po stronie 0" — to było twierdzenie, i fałszywe.
+    const stats = aggregate(
+      [...LOG_DWA_WILKI, krok("Wilk", 80), krok("Wilk", 60)],
+      [
+        { id: 1, name: "Gracz", side: 0 },
+        { id: 2, name: "Wilk", side: 0 },
+        { id: 3, name: "Wilk", side: 1 },
+        { id: 4, name: "Wróg", side: 1 },
+      ],
+    );
+    const side = (name: string) => stats.actors.find((a) => a.name === name)!.side;
+
+    expect(side("Wilk #1")).toBeNull();
+    expect(side("Wilk #2")).toBeNull();
+    expect(side("Gracz")).toBe(0);
+    expect(side("Wróg")).toBe(1);
+    // I gwiazdka ZOSTAJE — tu numer naprawdę jest domysłem.
+    expect(stats.ambiguousNames).toEqual(["Wilk #1", "Wilk #2"]);
+  });
+
+  test("ta sama nazwa po obu stronach Z identyfikatorami dostaje PRAWDZIWE strony", () => {
+    // ⚠️ **TO JEST ZMIANA Z 2026‑08‑05, nie regresja poprzedniego testu.**
+    // Gdy skład niesie `id`, wiersz `#n` to KONKRETNY wpis składu — ten n‑ty
+    // w jego kolejności — więc strona jest odczytana, a nie zgadnięta.
+    // `null` znaczyło „nie wiadomo"; tutaj wiadomo, a `null` byłby wtedy
+    // zaniżeniem tego, co repo naprawdę wie.
+    const stats = aggregate(LOG_DWA_WILKI, [
       { id: 1, name: "Gracz", side: 0 },
       { id: 2, name: "Wilk", side: 0 },
       { id: 3, name: "Wilk", side: 1 },
@@ -355,12 +471,12 @@ describe("trucizna w walce grupowej", () => {
     ]);
     const side = (name: string) => stats.actors.find((a) => a.name === name)!.side;
 
-    // Nie "obie po stronie 0" — to było twierdzenie, i fałszywe.
-    expect(side("Wilk #1")).toBeNull();
-    expect(side("Wilk #2")).toBeNull();
-    // Nazwy jednoznaczne muszą zostać nietknięte.
+    expect(side("Wilk #1")).toBe(0);
+    expect(side("Wilk #2")).toBe(1);
     expect(side("Gracz")).toBe(0);
     expect(side("Wróg")).toBe(1);
+    // I nie ma przy nich gwiazdki: numer nie jest domysłem.
+    expect(stats.ambiguousNames).toEqual([]);
   });
 
   test("dwie postacie tej samej nazwy po JEDNEJ stronie stronę zachowują", () => {

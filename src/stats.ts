@@ -8,8 +8,20 @@ import type {
   ProcCount,
 } from "./types.ts";
 
-/** Wpis składu w postaci, w której liczy go agregacja — bez względu na źródło. */
-type Seat = { name: string; side: number; prof?: string | undefined; level?: number | undefined };
+/**
+ * Wpis składu w postaci, w której liczy go agregacja — bez względu na źródło.
+ *
+ * `id` niesie WYŁĄCZNIE skład z gry; linia otwierająca go nie ma. To dlatego
+ * rozdzielanie instancji po identyfikatorze wymaga OBU stron naraz — składu
+ * z gry i zdarzeń z protokołu — i samo się wyłącza wszędzie indziej.
+ */
+type Seat = {
+  id?: number;
+  name: string;
+  side: number;
+  prof?: string | undefined;
+  level?: number | undefined;
+};
 
 /**
  * Etykieta instancji postaci o zdublowanej nazwie. Numer jest NASZ — log nie
@@ -27,7 +39,7 @@ type Instance = { index: number; hpPct: number; touched: number };
  * znaczy "ta wartość jest PO wyleczeniu" — jedyny przypadek, w którym życie
  * idzie w górę, więc dopasowanie instancji musi patrzeć w drugą stronę.
  */
-type NameRef = [name: string, hpPct: number | null, rising?: boolean];
+type NameRef = [name: string, hpPct: number | null, rising?: boolean, id?: number | undefined];
 
 /**
  * Wymienia nazwy padające w zdarzeniu wraz z procentem życia, jaki niesie ta
@@ -39,19 +51,20 @@ function namesIn(event: BattleEvent): NameRef[] {
   switch (event.kind) {
     case "attack":
       return [
-        [event.source, event.sourceHpPct],
-        [event.target, event.targetHpPct],
+        [event.source, event.sourceHpPct, false, event.sourceId],
+        [event.target, event.targetHpPct, false, event.targetId],
       ];
     case "dot":
-      return [[event.target, event.targetHpPct]];
+      return [[event.target, event.targetHpPct, false, event.targetId]];
     case "move":
-      return [[event.actor, event.hpPct]];
+      return [[event.actor, event.hpPct, false, event.actorId]];
     // Leczenie jako jedyne PODNOSI życie, więc dopasowanie idzie od dołu —
     // patrz `rising` w `instanceResolver`.
     case "heal":
-      return [[event.target, event.targetHpPct, true]];
-    case "turn-lost":
+      return [[event.target, event.targetHpPct, true, event.targetId]];
     case "ability":
+      return [[event.actor, null, false, event.actorId]];
+    case "turn-lost":
       return [[event.actor, null]];
     default:
       return [];
@@ -85,6 +98,28 @@ function instanceResolver(
   const counts = new Map<string, number>();
   for (const participant of roster) {
     counts.set(participant.name, (counts.get(participant.name) ?? 0) + 1);
+  }
+
+  /**
+   * NUMER INSTANCJI ODCZYTANY, NIE ZGADNIĘTY — `id` → pozycja w składzie.
+   *
+   * Protokół niesie `id` po obu stronach każdego zdarzenia, a skład z gry niesie
+   * je przy każdym wpisie. Gdy obie strony są, rozdzielanie postaci o tej samej
+   * nazwie przestaje być wnioskiem ze spadku życia i staje się odczytem.
+   *
+   * ⚠️ **NUMER IDZIE Z KOLEJNOŚCI SKŁADU, NIE Z KOLEJNOŚCI UJAWNIANIA** i to nie
+   * jest szczegół. Heurystyka numeruje w kolejności, w jakiej log pokazuje
+   * postacie — a log rośnie i przeliczamy go CAŁY przy każdej porcji, więc numer
+   * potrafił się przesunąć między klatkami. Z pozycji w składzie jest stały,
+   * a `seats` (budowane z tej samej kolejności) zgadza się z `resolve`
+   * z definicji, a nie przypadkiem.
+   */
+  const indexById = new Map<string, Map<number, number>>();
+  for (const participant of roster) {
+    if (participant.id === undefined) continue;
+    const wg = indexById.get(participant.name) ?? new Map<number, number>();
+    indexById.set(participant.name, wg);
+    if (!wg.has(participant.id)) wg.set(participant.id, wg.size);
   }
 
   const track = () => {
@@ -168,12 +203,40 @@ function instanceResolver(
     };
   };
 
+  /**
+   * Nazwy, które wolno rozdzielić po `id` — decyzja jest ZERO-JEDYNKOWA.
+   *
+   * Warunek jest potrójny i każdy człon ma powód: w składzie musi stać więcej
+   * niż jeden wpis tej nazwy (inaczej nie ma czego rozdzielać), wszystkie te
+   * wpisy muszą mieć `id` (skład z gry, nie z linii otwierającej), a KAŻDE
+   * wystąpienie nazwy w zdarzeniach musi nieść `id` pasujący do składu.
+   *
+   * Ostatni człon jest tym, przez który to jest „wszystko albo nic": gdyby część
+   * wystąpień szła po `id`, a część po spadku życia, ta sama postać dostawałaby
+   * dwa różne numery w jednej walce — czyli błąd gorszy od tego, który naprawiamy.
+   */
+  const poId = new Set<string>();
+  for (const [name, total] of counts) {
+    if (total < 2) continue;
+    const wg = indexById.get(name);
+    if (wg === undefined || wg.size !== total) continue;
+    poId.add(name);
+  }
+  for (const event of events) {
+    for (const [name, , , id] of namesIn(event)) {
+      if (!poId.has(name)) continue;
+      if (id === undefined || !indexById.get(name)?.has(id)) poId.delete(name);
+    }
+  }
+
   // Przebieg rozpoznawczy: ile instancji każda nazwa faktycznie ujawni. Dopiero
-  // to rozstrzyga, czy etykietą jest goła nazwa, czy "Nazwa #n".
+  // to rozstrzyga, czy etykietą jest goła nazwa, czy "Nazwa #n". Nazwy w trybie
+  // `id` go nie potrzebują — ich liczba wierszy stoi w składzie.
   const dry = track();
   const spawned = new Map<string, number>();
   for (const event of events) {
     for (const [name, hpPct, rising] of namesIn(event)) {
+      if (poId.has(name)) continue;
       const index = dry(name, hpPct, rising);
       spawned.set(name, Math.max(spawned.get(name) ?? 0, index + 1));
     }
@@ -181,14 +244,24 @@ function instanceResolver(
 
   /** Ile wierszy dana nazwa dostanie. Ze składu z gry — tyle, ile postaci. */
   const rows = (name: string): number =>
-    authoritative ? (counts.get(name) ?? 1) : (spawned.get(name) ?? 0);
+    poId.has(name) || authoritative ? (counts.get(name) ?? 1) : (spawned.get(name) ?? 0);
 
   const label = (name: string, index: number): string =>
     rows(name) > 1 ? instanceLabel(name, index) : name;
 
   const live = track();
-  const resolve = (name: string, hpPct: number | null, rising = false): string =>
-    label(name, live(name, hpPct, rising));
+  const resolve = (
+    name: string,
+    hpPct: number | null,
+    rising = false,
+    id?: number | undefined,
+  ): string => {
+    if (poId.has(name) && id !== undefined) {
+      const index = indexById.get(name)?.get(id);
+      if (index !== undefined) return label(name, index);
+    }
+    return label(name, live(name, hpPct, rising));
+  };
 
   /**
    * Skład z rozwiniętymi duplikatami — po jednym wpisie na wiersz.
@@ -218,6 +291,23 @@ function instanceResolver(
     }
   }
 
+  /**
+   * Wpisy składu pogrupowane po nazwie, W KOLEJNOŚCI SKŁADU.
+   *
+   * ⚠️ Potrzebne, bo pętla niżej iteruje po składzie, a dla nazwy zdublowanej
+   * zakłada WSZYSTKIE jej wiersze przy pierwszym napotkanym wpisie — kolejne są
+   * pomijane przez `used`. Branie strony i profesji z tamtego jednego wpisu
+   * dawało obu Wilkom stronę pierwszego z nich. Przy heurystyce to nie bolało,
+   * bo strona i tak schodziła do `null`; w trybie `id` byłoby to twierdzenie,
+   * i fałszywe.
+   */
+  const wpisyWgNazwy = new Map<string, Seat[]>();
+  for (const participant of roster) {
+    const lista = wpisyWgNazwy.get(participant.name) ?? [];
+    wpisyWgNazwy.set(participant.name, lista);
+    lista.push(participant);
+  }
+
   const seats = (() => {
     const out: Array<{
       key: string;
@@ -236,11 +326,22 @@ function instanceResolver(
         // nie linii logu, więc dostaje je każdy wiersz, także ten na zerach.
         // Profesja i poziom zostają przy wpisie: przy nazwie po obu stronach to
         // i tak ten sam potwór, więc "Wilk 10x" jest prawdą, choć strona nie.
+        // W trybie `id` wiersz `#n` to KONKRETNY wpis składu — ten n-ty
+        // w kolejności. Strona, profesja i poziom idą więc z niego, a nie
+        // z pierwszego wpisu o tej nazwie.
+        const wpis = poId.has(participant.name)
+          ? (wpisyWgNazwy.get(participant.name)?.[index] ?? participant)
+          : participant;
         out.push({
           key,
-          side: sideByName.get(participant.name) ?? null,
-          prof: participant.prof,
-          level: participant.level,
+          // ⚠️ W trybie `id` strona jest ODCZYTANA ze składu, więc `null` przy
+          // nazwie stojącej po obu stronach przestaje być potrzebne — wiemy,
+          // KTÓRA to instancja, więc wiemy i po czyjej stoi stronie.
+          side: poId.has(participant.name)
+            ? wpis.side
+            : (sideByName.get(participant.name) ?? null),
+          prof: wpis.prof,
+          level: wpis.level,
         });
       }
     }
@@ -256,6 +357,10 @@ function instanceResolver(
    * i całość obrażeń wylądowała na tych, które ujawnił.
    */
   const ambiguousKeys = [...counts]
+    // Nazwa rozdzielona po `id` NIE jest niepewna: numer jest odczytany
+    // z protokołu, a nie wywnioskowany ze spadku życia. Gwiazdka przy takim
+    // wierszu twierdziłaby, że liczbie nie ufamy — a ufamy.
+    .filter(([name]) => !poId.has(name))
     .filter(([, total]) => total > 1)
     .flatMap(([name]) => {
       const count = Math.max(rows(name), 1);
@@ -665,6 +770,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
 
   const roster: Seat[] = useGame
     ? fromGame.map((entry) => ({
+        id: entry.id,
         name: entry.name,
         side: entry.side,
         prof: entry.prof ?? fromLogByName.get(entry.name)?.professionCode,
@@ -777,8 +883,8 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
   for (const event of events) {
     switch (event.kind) {
       case "attack": {
-        const sourceKey = resolve(event.source, event.sourceHpPct);
-        const targetKey = resolve(event.target, event.targetHpPct);
+        const sourceKey = resolve(event.source, event.sourceHpPct, false, event.sourceId);
+        const targetKey = resolve(event.target, event.targetHpPct, false, event.targetId);
         beginTurn(sourceKey);
         const source = get(sourceKey);
         const target = get(targetKey);
@@ -915,7 +1021,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         break;
       }
       case "dot": {
-        const targetKey = resolve(event.target, event.targetHpPct);
+        const targetKey = resolve(event.target, event.targetHpPct, false, event.targetId);
         // Dwie postacie tej samej nazwy. SUROWA rozstrzyga o wiązaniu, bo musi
         // pasować do `WOUND_DOT`, czyli do zapisu z logu; wygładzona idzie do
         // panelu. Rozdzielone, bo pomylenie ich zrywa wiązanie „+Zranienie (N)"
@@ -1012,7 +1118,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         // Procent życia PO wyleczeniu — stąd `rising`. Gdy go nie ma (leczenie
         // potwora bez procentu), instancja bierze się po ostatniej aktywności,
         // tak jak dotąd.
-        const targetKey = resolve(event.target, event.targetHpPct, true);
+        const targetKey = resolve(event.target, event.targetHpPct, true, event.targetId);
         get(targetKey).healingReceived += event.amount;
         // "Razy" w rozbiciu leczenia: jedna linia to jedno wyleczenie.
         const healLabel = event.ability ?? PLAIN_HEAL;
@@ -1042,10 +1148,10 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         unknownLines += 1;
         break;
       case "move":
-        beginTurn(resolve(event.actor, event.hpPct));
+        beginTurn(resolve(event.actor, event.hpPct, false, event.actorId));
         break;
       case "ability": {
-        const actorKey = resolve(event.actor, null);
+        const actorKey = resolve(event.actor, null, false, event.actorId);
         forceTurn(actorKey);
         bumpCount(breakdownOf(actorKey).abilityUses, event.name);
         break;

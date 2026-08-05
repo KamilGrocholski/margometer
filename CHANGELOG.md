@@ -30,6 +30,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Postacie o tej samej nazwie dostają w panelu SWOJE liczby.
+  Dotąd panel zgadywał, która to która, po spadku życia — a gdy obie stały na
+  tyle samo, cała kwota lądowała na jednej z nich. Gra podaje tę informację
+  wprost, więc znika też gwiazdka „liczba niepewna" przy takich wierszach,
+  a przy tej samej nazwie po obu stronach widać wreszcie, kto jest czyj.
 - **Poprawka** — Obrażenia zwykłego ataku przestają się pokazywać pod nazwą
   wcześniejszej umiejętności. Wystarczyło, że między zapowiedzią a ciosem stanęło
   leczenie albo krok — nazwa umiejętności czekała wtedy na pierwszy cios, jaki
