@@ -92,7 +92,7 @@ zrobionego na materiale, który do repo nie wszedł** — czyli praktyka, któr�
 sama runda opisuje jako przyczynę fałszywego buildu i której w tym samym
 commicie zakazuje.
 
-**Dopisane 2026‑08‑05 (sekcja `J`):** `AUDYT‑87`…`AUDYT‑92` — audyt **PO**
+**Dopisane 2026‑08‑05 (sekcja `J`):** `AUDYT‑87`…`AUDYT‑93` — audyt **PO**
 commicie `72dc330`, na czystym drzewie i zielonej bramie. Pierwszy raz runda
 szukała wyłącznie tego, co definiuje kierunek z `ROADMAP.md`: *złej liczby
 pokazanej bez ani jednego słowa ostrzeżenia*. Znalazła trzy takie miejsca —
@@ -100,6 +100,15 @@ efekty obronne liczone napastnikowi (`87`), ubytek życia liczony jako leczenie
 na minusie (`88`) i przypisanie sprawcy zranienia zależne od języka klienta
 (`89`) — plus trzy sprostowania (`90`…`92`). Wszystkie naprawione w tej samej
 rundzie, każda naprawa z **zepsutą i zmierzoną mutacją**.
+
+⚠️ **`AUDYT‑93` jest korektą `AUDYT‑87`, dopisaną po jego naprawie**, i sekcja
+zostawia oba wpisy obok siebie celowo. Tamten postawił tabelę stron na JEDNYM
+źródle i wyglądał na mocny — cytat z kodu gry, numery linii, 200 przejrzanych
+kluczy — a mimo to pomylił się na trzech z dwudziestu czterech, bo **pytanie,
+na które odpowiada źródło, nie było pytaniem, które zadaje panel**. Kubełek
+renderera mówi, KOGO efekt dotyczy; `procs` pyta, KTO go wyzwolił. Drugie
+źródło (katalog efektów w pomocy gry) nie dołożyło precyzji — zmieniło
+odpowiedź. Jedno źródło nie ma jak pomylić się widocznie.
 
 ⚠️ **Dwa z trzech błędów miały JEDNĄ przyczynę i to jest lekcja tej sekcji.**
 `BattleEvent.attack.procs` był `string[]`, czyli samą etykietą; protokół niósł
@@ -2623,6 +2632,62 @@ jest — ale dla tej grupy **nie mamy dowodu, tylko brak przeciwdowodu**. Klucz
 z `tm[1]` należący do celu nadal poszedłby po cichu do napastnika.
 
 **Docelowo.** `docs/MECHANIKA.md` — wpis „Po czyjej stronie zachodzi efekt".
+
+### AUDYT‑93 — kubełek renderera mówi, KOGO efekt dotyczy, a nie KTO go wyzwolił 🔴 S — ✅ NAPRAWIONE ✓ (korekta `AUDYT‑87`)
+
+`src/protokol.ts` (`STRONA_CELU`) · `docs/MECHANIKA.md`
+
+**Problem.** `AUDYT‑87` postawił całą tabelę stron na JEDNYM źródle — kubełku
+`tm[2]` w rendererze — i wyciągnął z niego wniosek, którego on nie niesie.
+`tm[2]` dowodzi, że zdanie **dotyczy** bitego, czyli że efekt na nim WYLĄDOWAŁ.
+Panel pyta o co innego: `procs` to „efekty, które ta postać ma z ekwipunku", czyli
+o WYZWOLENIE. Dla efektów obronnych oba znaczenia się pokrywają — parowanie
+dotyczy bitego i należy do bitego — ale dla debuffów rzucanych ciosem rozjeżdżają
+się, bo ląduje na bitym coś, co wyzwolił bijący.
+
+**✓ Zmierzone.** Drugim, niezależnym źródłem: **katalog efektów w pomocy gry**
+(`view,372`, wpisy „pasywny/aktywny *nazwa* • Działanie: …"), opisujący efekt
+z perspektywy postaci, KTÓRA GO MA. Pokrycie: **68 z 200 naszych kluczy**. Tam,
+gdzie oba źródła mówią o obronie, są zgodne co do jednego (6/6). Rozjazd wyszedł
+na trzech kluczach — i wszystkie trzy `AUDYT‑87` wpisał do tabeli błędnie:
+
+| klucz | kubełek | co mówi pomoc |
+|---|---|---|
+| `+critpoison_per` | `tm[2]` | „…leczenie z ekwipunku **atakowanego** Gracza zostaje zredukowane" — kryt jest bijącego |
+| `+vulture` | `tm[2]` | `vulture_perw`: „…**obrażenia zadane** zostają zwiększone" |
+| `+legbon_puncture` | `tm[2]` | „**wszystkie ataki** pomijają %val%% defensywy" |
+
+W drugą stronę katalog dołożył dwa klucze, których kubełek NIE wskazywał, bo gra
+drukuje je w neutralnym `tm[1]`: `-immunity_to_dmg` („Postać staje się
+niewrażliwa na **otrzymywane** obrażenia") i `-redabdest_per` („redukuje
+niszczenie absorpcji, którego źródłem są przedmioty **przeciwnika**").
+
+**Zrobione.** `STRONA_CELU` rozbita według SIŁY DOWODU, nie alfabetycznie:
+grupa A — oba źródła zgodne (19); grupa B — katalog przeciw kubełkowi, wygrywa
+katalog (2); grupa C — sam kubełek, bez potwierdzenia (2, oznaczone jako
+najsłabszy fragment listy). Trzy wycofane klucze są wymienione z nazwy w kodzie,
+żeby nikt nie dodał ich z powrotem „bo są w `tm[2]`". **Mutacja:** powrót do
+„wszystko z `tm[2]` to cel" → 5 fail (76/5).
+
+⚠️ **Wniosek, przez który ta pozycja w ogóle powstała.** `AUDYT‑87` miał JEDNO
+źródło i wyglądał na mocny — cytat z kodu gry, numery linii, 200 przejrzanych
+kluczy. Zawiódł nie na dokładności, tylko na tym, że **pytanie źródła nie było
+pytaniem panelu**. Drugie źródło nie dołożyło precyzji; zmieniło odpowiedź na
+trzech kluczach z dwudziestu czterech. To jest ta sama lekcja, którą repo
+zapisało przy usuwaniu drugiego odczytu walki: jedno źródło nie ma jak się
+pomylić WIDOCZNIE.
+
+⚠️ **Co ZOSTAJE otwarte — i to jest większa część problemu.** `tm[1]` mieści
+**165 kluczy** i jest kubełkiem neutralnym. Katalog rozstrzygnął z nich dwa; dla
+pozostałych 163 domyślne „bijący" jest **założeniem, nie odczytem**. Wiadomo
+przy tym, że kubełek bywa w obrębie jednej rodziny niekonsekwentny: `-redendest`
+i `-redmanadest` (`:971`, `:975`) idą do `tm[1]`, a ich warianty `_per` do
+`tm[2]`, przy identycznym znaczeniu — więc w `tm[1]` niemal na pewno siedzą
+kolejne efekty celu, których nie umiemy wskazać. Ograniczenie jest dziś
+NAZWANE w trzech miejscach (kod, rejestr mechaniki, ten wpis) i nie ma terminu.
+
+**Docelowo.** `docs/MECHANIKA.md` — sprostowanie przy wpisie „Po czyjej stronie
+zachodzi efekt".
 
 ### AUDYT‑88 — ujemny `heal` to REALNY UBYTEK HP, a liczy się jako leczenie 🔴 S — ✅ NAPRAWIONE ✓
 

@@ -292,61 +292,127 @@ export type Rola =
   | { typ: "cisza" };
 
 /**
- * Klucze, przy których efekt należy do CELU, a nie do bijącego (`AUDYT‑87`).
+ * Klucze, przy których efekt należy do CELU, a nie do bijącego (`AUDYT‑87`,
+ * skorygowane `AUDYT‑93`).
  *
- * DOWÓD JEST STRUKTURALNY I POCHODZI Z RENDERERA GRY. `battleMsg` składa jedną
- * linię logu z trzech kubełków (`BattleMessages.js:162`, `var tm = ['','','']`)
- * i przy ciosie wypełnia skrajne dwa (`:1127‑1129`):
+ * ⚠️ **CZEGO KUBEŁEK RENDERERA DOWODZI, A CZEGO NIE — i to jest tu najważniejsze
+ * zdanie.** `battleMsg` składa linię z trzech kubełków (`:162`) i przy ciosie
+ * wypełnia skrajne dwa (`:1127‑1129`):
  *
  *     tm[0] = _t('msg_dmgdone %name1% …',  {'%name1%': f1.name, …})  // BIJĄCY
  *     tm[2] += _t('msg_dmgtaken %name1% …', {'%name1%': f2.name, …}) // BITY
  *
- * Czyli `tm[0]` to zdanie o `f1` (pierwszy segment komunikatu), a `tm[2]`
- * o `f2` (drugi). Klucz dopisujący się do `tm[2]` opisuje więc CEL — i jest to
- * ten sam kubełek, w którym stoją `-blok` (`:827`) i `-evade` (`:830`), czyli
- * dwie rzeczy, które ten dekoder przypisuje celowi od początku, osobnymi rolami.
- * Ta zbieżność jest tu najmocniejszym argumentem: reguła nie jest nowa, była
- * tylko stosowana do dwóch kluczy zamiast do dwudziestu sześciu.
+ * Klucz dopisujący się do `tm[2]` dowodzi więc, że zdanie **DOTYCZY** `f2` —
+ * czyli że efekt na `f2` WYLĄDOWAŁ. **Nie dowodzi, że `f2` go WYZWOLIŁ**, a to
+ * właśnie o wyzwolenie pyta pole `procs` („efekty, które ta postać ma z
+ * ekwipunku"). Dla efektów OBRONNYCH oba znaczenia się pokrywają: `-parry`
+ * dotyczy bitego i należy do bitego. Dla debuffów rzucanych ciosem — rozjeżdżają
+ * się: `+critpoison_per` („Czarna krew") ląduje na bitym, ale wyzwala go KRYT
+ * BIJĄCEGO.
  *
- * ⚠️ **ZNAK WIODĄCY NIE JEST REGUŁĄ I NIE WOLNO GO ZA NIĄ BRAĆ.** Kusi, bo
- * `rolaDomyslna` niżej odczytuje stronę właśnie ze znaku — ale tam gra sama tak
- * robi, w gałęzi `default` i wyłącznie dla rodziny `dmg`. Poza nią zgodności
- * nie ma: `+absorb` („Odnowienie absorpcji", `:847`) należy do celu MIMO plusa,
- * a `-legbon_facade` (`:811`) do nikogo szczególnego MIMO minusa — idzie do
- * `tm[1]`, kubełka neutralnego. Lista jest więc WYLICZONA, każdy wpis
- * z numerem linii, i tak ma zostać.
+ * Rozróżnienia tego NIE BYŁO w pierwszej wersji tej listy i kosztowało trzy
+ * błędne wpisy (`AUDYT‑93`). Dlatego lista stoi dziś na DWÓCH źródłach, nie
+ * jednym, i jest rozbita według tego, jak mocne jest każde.
  *
- * Jak powstała: przejściem wszystkich 200 kluczy trafiających do `procy[]`
- * przez ciała gałęzi `battleMsg` (build deweloperski `1781609507010`), łącznie
- * z gałęziami zbiorczymi — `+crush_*`, `fire`, `frost`, `light`, `physical`
- * dzielą ciało z innymi kluczami i wszystkie kończą w `tm[1]`.
+ * DRUGIE ŹRÓDŁO: katalog efektów w pomocy gry (`bun tools/pomoc.ts`, artykuł
+ * `view,372`) — wpisy „pasywny/aktywny <nazwa> • Działanie: …" opisują efekt
+ * z perspektywy POSTACI, KTÓRA GO MA, więc mówią wprost o wyzwoleniu. Katalog
+ * pokrywa 68 z naszych 200 kluczy.
+ *
+ * ⚠️ **ZNAK WIODĄCY NIE JEST REGUŁĄ.** `rolaDomyslna` czyta stronę ze znaku, ale
+ * gra robi tak wyłącznie w gałęzi `default` i tylko dla rodziny `dmg`. Poza nią:
+ * `+absorb` należy do celu MIMO plusa, a `-legbon_facade` (`:811`) do celu NIE
+ * należy MIMO minusa. Lista jest więc WYLICZONA i tak ma zostać.
  */
-const STRONA_CELU: readonly string[] = [
-  "+absorb", // :847  „Odnowienie absorpcji %val%" — plus, a mimo to cel
-  "+absorbm", // :853
-  "+critpoison_per", // :900  „+Czarna krew %val%"
-  "+legbon_puncture", // :869
-  "+rage", // :841  „+Wściekłość: atak %val%"
-  "+superspell-prevented", // :782
-  "+vulture", // :878  „+Wzmocnienie ataku o %val%%"
-  "-absorb", // :850  rola `absorpcja`, nie `proc`
-  "-absorbm", // :856  rola `absorpcja`, nie `proc`
-  "-arrowblock", // :859  „Strzała zablokowana"
-  "-contra", // :838  „-Kontra"
-  "-legbon_cleanse", // :776
-  "-legbon_critred", // :866
-  "-legbon_glare", // :779
+
+/**
+ * **Grupa A — dwa źródła zgodne.** Kubełek `tm[2]` mówi „dotyczy bitego",
+ * a katalog pomocy albo samo zdanie mówi, że to bity efekt WYZWOLIŁ (jego
+ * unik, tarcza, odporność, kontra). Najmocniejsza część listy.
+ */
+const CEL_DWA_ZRODLA: readonly string[] = [
+  // Katalog pomocy potwierdza wprost, że efekt należy do bitego:
+  "-parry", // :832  pomoc: „określa szansę na zajście zdarzenia (Parowanie)"
+  "-contra", // :838  pomoc: „zwiększa szansę na zajście zdarzenia kontry"
+  "+rage", // :841  pomoc: „PO OTRZYMANIU przez Postać ciosu krytycznego…"
+  "-rage", // :844  pomoc: jw. — to samo zdarzenie, druga strona zapisu
+  "-redacdmg_per", // :887  pomoc: „redukuje niszczenie pancerza, którego ŹRÓDŁEM SĄ PRZEDMIOTY PRZECIWNIKA"
+  "-reddest_per", // :881  pomoc: „redukuje niszczenie energii i many, którego źródłem są przedmioty przeciwnika"
+  // Zdanie renderera opisuje czynność albo mienie BITEGO — katalog ich nie zna,
+  // ale opis nie zostawia wątpliwości, kto tu działa:
+  "-absorb", // :850  „-Absorpcja %val% obrażeń fizycznych" — tarcza bitego
+  "-absorbm", // :856  „-Absorpcja %val% obrażeń magicznych"
+  "+absorb", // :847  „+Odnowienie %val% absorpcji" — odnawia się tarcza bitego
+  "+absorbm", // :853  „+Odnowienie %val% absorpcji magicznej"
+  "-arrowblock", // :859  „-Strzała zneutralizowana" — to bity ją zneutralizował
+  "-pierceb", // :835  „-Blok przebicia" — to bity blokuje
+  "-legbon_critred", // :866  „-Krytyczna osłona, osłabienie obrażeń o %val%%"
   "-legbon_resgain", // :872  „-Ochrona żywiołów"
-  "-parry", // :832  „-Parowanie"
-  "-pierceb", // :835  „-Blok przebicia"
-  "-rage", // :844  „-Wściekłość"
-  "-redacdmg", // :884  „Redukcja niszczenia pancerza o %val%"
-  "-redacdmg_per", // :887
-  "-reddest_per", // :881
-  "-redendest_per", // :893
-  "-redmanadest_per", // :890
-  "-resmanaendest", // :896
+  "-legbon_cleanse", // :776  „-Płomienne oczyszczenie"
+  "-redacdmg", // :884  „Redukcja niszczenia pancerza" — rodzina jak `_per` wyżej
+  "-redendest_per", // :893  jw.
+  "-redmanadest_per", // :890  jw.
+  "-resmanaendest", // :896  „-Bonus przeklęty: obniżenie niszczenia many i energii"
 ];
+
+/**
+ * **Grupa B — katalog pomocy przeciw kubełkowi, wygrywa katalog.**
+ *
+ * Gra drukuje te efekty w `tm[1]`, czyli w kubełku NEUTRALNYM, więc renderer nie
+ * mówi o nich nic. Katalog mówi wprost, że należą do postaci, która obrywa —
+ * a potwierdza to RODZINA: `-redabdest_per` stoi obok `-redacdmg_per`
+ * i `-reddest_per`, które gra drukuje w `tm[2]` i które katalog opisuje tym
+ * samym zdaniem co do słowa.
+ *
+ * ⚠️ To jest jedyne miejsce tej listy, gdzie wpis powstał BEZ poparcia kubełka.
+ * Rozjazd renderera w obrębie jednej rodziny jest udokumentowany: `-redendest`
+ * i `-redmanadest` (`:971`, `:975`) idą do `tm[1]`, a ich warianty `_per` do
+ * `tm[2]` — przy identycznym znaczeniu. Kubełek bywa więc niekonsekwentny i nie
+ * jest wyrocznią tam, gdzie katalog mówi jasno.
+ */
+const CEL_Z_POMOCY: readonly string[] = [
+  "-immunity_to_dmg", // pomoc: „Postać staje się niewrażliwa na OTRZYMYWANE obrażenia"
+  "-redabdest_per", // pomoc: „redukuje niszczenie absorpcji, którego źródłem są przedmioty PRZECIWNIKA"
+];
+
+/**
+ * **Grupa C — sam kubełek, bez drugiego źródła.**
+ *
+ * `tm[2]` dowodzi, że zdanie dotyczy bitego; nic nie mówi, kto efekt wyzwolił,
+ * a katalog pomocy tych kluczy nie zna. Zostają po stronie celu, bo tam kładzie
+ * je jedyne źródło, jakie mamy — ale **jest to najsłabszy fragment listy i ma
+ * być tak czytany**. Rozstrzygnie je dopiero materiał z gry albo rozszerzenie
+ * katalogu.
+ */
+const CEL_SAM_KUBELEK: readonly string[] = [
+  "-legbon_glare", // :779  „-Oślepienie w następnej turze" — kto oślepia, nie wiadomo
+  "+superspell-prevented", // :782  „Zapobiegnięto ładowaniu ciosu specjalnego."
+];
+
+const STRONA_CELU: readonly string[] = [
+  ...CEL_DWA_ZRODLA,
+  ...CEL_Z_POMOCY,
+  ...CEL_SAM_KUBELEK,
+];
+
+/**
+ * **Wycofane z listy `AUDYT‑93`** — gra drukuje je w `tm[2]`, ale drugie źródło
+ * mówi, że wyzwala je BIJĄCY. Stoją tu wymienione z nazwy, żeby nikt nie dodał
+ * ich z powrotem „bo są w `tm[2]`":
+ *
+ * - `+critpoison_per` (`:900`) — pomoc: „w przypadku zajścia zdarzenia ciosu
+ *   krytycznego […] leczenie pochodzące z ekwipunku ATAKOWANEGO Gracza zostaje
+ *   zredukowane". Kryt jest bijącego, efekt jest z JEGO ekwipunku.
+ * - `+vulture` (`:878`) — „+Wzmocnienie ataku o %val%%"; pomoc dla `vulture_perw`:
+ *   „gdy cel ataku ma poziom zdrowia niższy niż 20%, OBRAŻENIA ZADANE zostają
+ *   zwiększone". Rośnie atak bijącego.
+ * - `+legbon_puncture` (`:869`) — „+Przeszywająca skuteczność, WSZYSTKIE ATAKI
+ *   pomijają %val%% defensywy". Atakuje bijący.
+ *
+ * Wszystkie trzy to debuffy/bonusy rzucane ciosem: LĄDUJĄ na bitym (stąd `tm[2]`),
+ * ale należą do bijącego. To one pokazały, że kubełek odpowiada na pytanie
+ * „kogo dotyczy", a nie „kto wyzwolił".
+ */
 
 /**
  * Role przypisane pojedynczo, każda z dowodem.

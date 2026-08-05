@@ -447,6 +447,31 @@ describe("dekoduj: po czyjej stronie zaszedł efekt", () => {
     ]);
   });
 
+  /**
+   * `AUDYT‑93` — kubełek renderera mówi, KOGO efekt dotyczy, a nie KTO go
+   * wyzwolił. Dla efektów obronnych oba znaczenia się pokrywają; dla debuffów
+   * rzucanych ciosem rozjeżdżają się, i to na tych trzech kluczach pierwsza
+   * wersja tabeli się pomyliła.
+   */
+  test.each([
+    // Wycofane z `STRONA_CELU`: gra drukuje je w `tm[2]`, ale pomoc mówi, że
+    // wyzwala je BIJĄCY. Wpisanie ich z powrotem „bo są w tm[2]" ma paść.
+    ["+critpoison_per", "attacker"],
+    ["+vulture", "attacker"],
+    ["+legbon_puncture", "attacker"],
+    // Dopisane: gra drukuje je w kubełku NEUTRALNYM, ale pomoc mówi wprost,
+    // że należą do postaci, która obrywa.
+    ["-immunity_to_dmg", "target"],
+    ["-redabdest_per", "target"],
+    // Kotwice: te dwa źródła są zgodne i mają zostać zgodne.
+    ["-parry", "target"],
+    ["+pierce", "attacker"],
+  ])("%s należy do strony: %s", (klucz, strona) => {
+    const [z] = dekoduj([`1=100.00;2=90.00;+dmgd=10;${klucz}=1;-dmgd=10`], SKLAD);
+    const procs = (z as { procs: { key: string; side: string }[] }).procs;
+    expect(procs.find((p) => p.key === klucz)?.side).toBe(strona);
+  });
+
   test("efekt niesie WARTOŚĆ, żeby decyzje nie szły po zdaniu", () => {
     // `AUDYT‑89`: kwota zranienia ma się dać odczytać bez czytania etykiety.
     const [z] = dekoduj(["1=100.00;2=90.00;+dmgd=10;+injure=339;-dmgd=10"], SKLAD);

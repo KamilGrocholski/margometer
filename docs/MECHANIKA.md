@@ -396,11 +396,46 @@ o pięć kluczy za szeroka i o siedem za wąska.
 2026‑08‑05 każdy efekt szedł na konto bijącego, więc napastnik miał w dymku
 napisane, że sparował i pochłonął cios, który sam zadał (`AUDYT‑87`).
 
-⚠️ **Czego ten wpis NIE mówi.** Co znaczy `tm[1]`. Stoi w nim 167 z 200 kluczy —
-od zwycięstwa w walce po aury drużynowe — więc jest kubełkiem NEUTRALNYM, a nie
-„stroną bijącego”. Traktujemy te efekty jak zaczepne, bo większość taka jest, ale
-**dla tej grupy nie mamy dowodu z rendererra, tylko brak przeciwdowodu**. Klucz
-z `tm[1]`, który należy do celu, dziś zostałby po cichu przypisany bijącemu.
+⚠️ **SPROSTOWANIE 2026‑08‑05 — TEN WPIS PYTAŁ O ZŁĄ RZECZ** (`AUDYT‑93`).
+Powyższe mówi „klucz w `tm[2]` opisuje CEL” i to jest prawda, ale odpowiada na
+pytanie **kogo efekt DOTYCZY**, a nie **kto go WYZWOLIŁ** — a panel pyta o to
+drugie (`procs` to „efekty, które ta postać ma z ekwipunku”). Dla efektów
+obronnych oba znaczenia się pokrywają: parowanie dotyczy bitego i należy do
+bitego. Dla debuffów rzucanych ciosem **rozjeżdżają się**: efekt ląduje na bitym
+(stąd `tm[2]`), ale wyzwala go ekwipunek bijącego.
+
+Kosztowało to trzy błędne wpisy w tabeli, wykryte drugim źródłem:
+
+> `+critpoison_per` — „w przypadku zajścia zdarzenia ciosu krytycznego […]
+> leczenie pochodzące z ekwipunku **atakowanego** Gracza zostaje zredukowane”
+>
+> `vulture_perw` — „gdy cel ataku ma poziom zdrowia niższy niż 20%, **obrażenia
+> zadane** zostają zwiększone o część obrażeń wykonanych”
+>
+> `+legbon_puncture` — „+Przeszywająca skuteczność, **wszystkie ataki** pomijają
+> %val%% defensywy”
+
+Wszystkie trzy zwiększają siłę BIJĄCEGO i wszystkie trzy gra drukuje w `tm[2]`.
+
+**Drugie źródło: katalog efektów w pomocy gry.** Artykuł `view,372` zawiera wpisy
+w postaci „pasywny/aktywny *nazwa* • Działanie: … • Zmienna: … • Wyzwolenie: …”,
+opisujące efekt **z perspektywy postaci, która go ma** — czyli mówiące wprost
+o wyzwoleniu. Zmierzone pokrycie: **68 z naszych 200 kluczy**. Tam, gdzie oba
+źródła istnieją i mówią o obronie, są zgodne co do jednego (`-parry`, `-contra`,
+`+rage`, `-rage`, `-redacdmg_per`, `-reddest_per`).
+
+**Wniosek dla kodu.** Tabela `STRONA_CELU` stoi na dwóch źródłach i jest rozbita
+według siły dowodu: grupa A — kubełek i katalog zgodne (19 kluczy); grupa B —
+katalog przeciw kubełkowi, wygrywa katalog (2 klucze); grupa C — sam kubełek,
+bez potwierdzenia (2 klucze, i tak są oznaczone).
+
+⚠️ **Co ZOSTAJE nierozstrzygnięte.** `tm[1]` mieści 165 kluczy i jest kubełkiem
+NEUTRALNYM — nie „stroną bijącego”. Katalog pomocy rozstrzygnął z nich dwa;
+dla reszty **nie mamy ani dowodu, ani przeciwdowodu**, a domyślne „bijący” jest
+założeniem, nie odczytem. Wiadomo przy tym, że kubełek bywa w obrębie jednej
+rodziny NIEKONSEKWENTNY: `-redendest` i `-redmanadest` (`:971`, `:975`) idą do
+`tm[1]`, a ich warianty `_per` do `tm[2]`, przy identycznym znaczeniu — więc
+w `tm[1]` niemal na pewno siedzą kolejne efekty celu, których nie umiemy wskazać.
 
 ⚠️ **Drugie ograniczenie: `fire`, `frost`, `light`, `physical` NIOSĄ OBRAŻENIA.**
 Ich zdania brzmią „%name% otrzymał %val% obrażeń od ognia” (`:317‑330`, `:402`),

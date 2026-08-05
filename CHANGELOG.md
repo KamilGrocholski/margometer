@@ -58,8 +58,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   zablokowana strzała — liczą się temu, kto oberwał, a nie temu, kto uderzył.
   Dotąd w podpowiedzi napastnika stało, że sparował i pochłonął własny cios,
   a broniący się miał te same efekty wpisane jako „otrzymane”. Dotyczy
-  dwudziestu czterech efektów; te zaczepne (przebicie, niszczenie pancerza)
-  zostają tam, gdzie były.
+  dwudziestu trzech efektów; te zaczepne (przebicie, niszczenie pancerza,
+  czarna krew, przeszywająca skuteczność) zostają tam, gdzie były — także wtedy,
+  gdy gra wypisuje je w linii obrywającego.
 - **Poprawka** — Utrata życia, którą gra opisuje jako „Stracono N punktów
   życia”, liczy się jako obrażenia. Dotąd trafiała do rubryki „uleczone” ze
   znakiem minus i nie było jej widać w obrażeniach w ogóle. Trafia do puli „bez
