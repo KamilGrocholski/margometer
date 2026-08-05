@@ -186,16 +186,28 @@ export function syntheticFight(count: number): BattleEvent[] {
           // bez źródła leci pod „Regeneracja”, nazwane rozbijają leczenie na
           // konkretne umiejętności.
           const roll = random();
+          // Trzy szyki leczenia, po jednym na każdy kształt komunikatu — bo
+          // każdy trafia w agregacie do INNEGO worka i korpus ma przejść przez
+          // wszystkie trzy, a nie tylko przez najczęstszy:
+          //
+          //   `heal`        → nikt (pula „bez sprawcy")
+          //   `heal_target` → leczący (`healer`, obie strony w komunikacie)
+          //   proc          → leczony (`self`)
+          const kierowane = roll >= 0.4 && roll < 0.7;
           events.push({
             kind: "heal",
             // Bez nazwy leci pod „Regeneracja"; nazwane rozbijają leczenie na
             // konkretne umiejętności — widok „OD CZEGO" ma mieć co pokazać.
-            ability: roll < 0.4 ? null : roll < 0.7 ? "Modlitwa" : "Dotyk anioła",
+            ability: roll < 0.4 ? null : kierowane ? "Modlitwa" : "Dotyk anioła",
             target: wounded.name,
             amount,
-            // Log nigdy nie mówi, KTO leczył (`docs/DECYZJE.md`); `self` znaczy
-            // tu tyle, co przy proc-ach — efekt siadł na tym, kto go dostał.
+            // `self` znaczy tu tyle, co przy proc-ach — efekt siadł na tym, kto
+            // go dostał, a komunikat drugiej strony nie ma w ogóle.
             self: roll >= 0.7,
+            // Leczenie KIEROWANE niesie leczącego, bo jego komunikat ma obie
+            // strony. `wounded` bywa tu samym `actor` — to nie usterka, tylko
+            // układ `id1 == id2`, który gra rozróżnia sama.
+            ...(kierowane ? { healer: actor.name, healerHpPct: pct(actor) } : {}),
             targetHpPct: pct(wounded),
           });
         }

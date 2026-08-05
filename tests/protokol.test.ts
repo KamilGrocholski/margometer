@@ -589,14 +589,65 @@ describe("dekoduj: leczenie bez leczącego zostaje bez leczącego", () => {
     expect(z).toMatchObject({ kind: "heal", target: "Kamil", amount: 99, self: false });
   });
 
-  test("`heal_target` też nie — leczył ktoś inny, tylko log go nie nazywa", () => {
+  test("`heal_target` nie jest własne — leczony to nie leczący", () => {
     const [z] = dekoduj(["1=100.00;2=80.00;heal_target=4639"], SKLAD);
     expect(z).toMatchObject({ kind: "heal", target: "Locha", self: false });
   });
 
+  /**
+   * Druga strona tej samej medalu, dopisana 2026‑08‑05.
+   *
+   * Nagłówek tego bloku brzmiał „leczenie bez leczącego zostaje bez leczącego"
+   * i był prawdziwy dla klucza `heal`, ale rozciągnął się na `heal_target`,
+   * gdzie leczący STOI w komunikacie. Renderer podstawia pod `%target%` pole
+   * `f2` (`BattleMessages.js:956‑969`), więc pierwszy segment to rzucający —
+   * a dekoder go wyrzucał, przez co całe leczenie kierowane szło do puli
+   * „bez sprawcy".
+   */
+  test("`heal_target` NIESIE leczącego — to pierwszy segment komunikatu", () => {
+    const [z] = dekoduj(["1=100.00;2=80.00;heal_target=4639"], SKLAD);
+    expect(z).toMatchObject({
+      kind: "heal",
+      target: "Locha",
+      healer: "Kamil",
+      healerId: 1,
+      healerHpPct: 100,
+    });
+  });
+
+  test("`npc_heal` tak samo — ten sam kształt komunikatu", () => {
+    const [z] = dekoduj(["2=90.00;1=30.00;npc_heal=250"], SKLAD);
+    expect(z).toMatchObject({ kind: "heal", target: "Kamil", healer: "Locha", healerId: 2 });
+  });
+
+  test("leczenie kierowane na SIEBIE zostaje kierowane — gra rozróżnia ten układ", () => {
+    // `id1 == id2`. Gra sama go wyodrębnia (`BattleMessages.js:953`:
+    // `id1 == id2 ? part_himself : f2.name`), więc nie jest to zdegenerowany
+    // przypadek do wyprostowania, tylko normalny szyk. `self` zostaje `false`,
+    // bo pochodzi z tabeli ról, a nie z porównania stron — rozstrzyga `healer`.
+    const [z] = dekoduj(["1=100.00;1=60.00;heal_target=700"], SKLAD);
+    expect(z).toMatchObject({ kind: "heal", target: "Kamil", healer: "Kamil", self: false });
+  });
+
+  test("`heal` i proce leczącego NIE dostają — nie ma go w komunikacie", () => {
+    // To jest strażnik regresji `d4be27e`: gdyby `healer` zaczął się wypełniać
+    // przy `strona: "nadawca"`, leczenie z pustą drugą stroną znów byłoby
+    // kredytowane postaci, o której log milczy.
+    for (const linia of [
+      "1=100.00;0;heal=99",
+      "1=100.00;0;afterheal=42",
+      "1=50.00;0;legbon_holytouch_heal=120",
+    ]) {
+      const [z] = dekoduj([linia], SKLAD);
+      expect(z).toMatchObject({ kind: "heal" });
+      expect(z).not.toHaveProperty("healer");
+    }
+  });
+
   test("„Ostatni ratunek” i „Dotyk anioła” ZOSTAJĄ własne", () => {
     // Jedyne dwa przypadki, w których efekt z definicji siada na trafionym —
-    // i dokładnie te dwa, które `types.ts:117‑128` wymienia z nazwy.
+    // i dokładnie te dwa, które komentarz przy `heal.self` w `types.ts`
+    // wymienia z nazwy.
     expect(dekoduj(["1=50.00;0;legbon_lastheal=980,Kamil"], SKLAD)[0]).toMatchObject({
       kind: "heal",
       self: true,

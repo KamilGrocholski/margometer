@@ -205,17 +205,37 @@ export type BattleEvent =
       targetId?: number;
       amount: number;
       /**
-       * Czy leczonym jest ten sam, kto leczył — jedyne, co o sprawcy da się
-       * z logu wyczytać. `true` dla proc-ów i samoratunku ("Dotyk anioła",
-       * "Ostatni ratunek"), gdzie efekt z definicji siada na trafionym.
+       * Czy leczonym jest ten sam, kto leczył — jedyne, co o sprawcy mówi
+       * komunikat Z PUSTĄ DRUGĄ STRONĄ. `true` dla proc-ów i samoratunku
+       * ("Dotyk anioła", "Ostatni ratunek"), gdzie efekt z definicji siada
+       * na trafionym.
        *
        * Nie wystarczy tu `ability !== null`. "Uleczono X o N punktów życia."
        * TEŻ niesie nazwę umiejętności, ale rzucił ją ktoś inny — i tylko to
        * pole trzyma statystyki z dala od dopisania leczonemu cudzej roboty.
-       * Kto konkretnie leczył, nadal nie wychodzi z logu: patrz `docs/DECYZJE.md`
-       * §"Leczenie bez leczącego".
+       *
+       * ⚠️ Do 2026‑08‑05 stało tu „kto konkretnie leczył, nadal nie wychodzi
+       * z logu". Dla `heal`/`afterheal` to nadal prawda; dla leczenia
+       * KIEROWANEGO nie — patrz `healer` niżej.
        */
       self: boolean;
+      /**
+       * Kto leczył — wypełnione WYŁĄCZNIE tam, gdzie komunikat ma obie strony
+       * (`heal_target`, `npc_heal`). `undefined` znaczy „nie wiadomo", i tak
+       * ma zostać: `heal=99` przychodzi jako `482845=100.00;0;heal=99`, więc
+       * leczącego nie zna ani log, ani sam klient gry.
+       *
+       * Nazwane `healer`, a nie `source`, bo „źródło" w leczeniu jest już
+       * zajęte przez `ActorStats.healedBy` i znaczy CO (Regeneracja, aura),
+       * a nie KTO. Dwa różne pytania nie mają dzielić nazwy.
+       *
+       * `self` zostaje osobno i nie jest tym samym: obsługuje proce, których
+       * komunikat drugiej strony nie ma w ogóle.
+       */
+      healer?: string;
+      healerId?: number;
+      /** Życie leczącego, do rozdzielenia instancji o tej samej nazwie. */
+      healerHpPct?: number | null;
       /**
        * Życie celu PO wyleczeniu — log podaje je przy większości linii leczenia.
        * `null` tylko tam, gdzie go faktycznie nie ma (leczenie potwora bez

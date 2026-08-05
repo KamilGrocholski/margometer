@@ -28,6 +28,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Leczenie rzucone na kogoś innego trafiało w całości do puli
+  „bez sprawcy", choć gra podaje, kto leczył. Teraz zapisuje się leczącemu,
+  a przypis w stopce liczy już tylko to, czego naprawdę nie da się nikomu
+  przypisać — samo „Przywrócono N punktów życia" i tykające efekty. W drużynie
+  z uzdrowicielem ta różnica potrafi iść w setki tysięcy punktów.
+
 ## [0.5.0] — 2026-08-05
 
 - **Zmiana** — Panel liczy z tego, co gra dostaje z serwera w trakcie walki,

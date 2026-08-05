@@ -197,9 +197,16 @@ piętra 2 i 3 z tabelki wyżej nadal nie są wiązane. Szczegóły: `AUDYT.md AU
 
 ### Leczenie bez leczącego
 
+⚠️ **Tytuł tej sekcji jest od 2026‑08‑05 za szeroki i zostaje tylko dlatego, że
+odsyła do niego pół repo.** Bez leczącego zostaje dziś `heal` i `afterheal`;
+leczenie KIEROWANE (`heal_target`, `npc_heal`) leczącego ma i jest mu
+zapisywane. Co się zmieniło i dlaczego dopiero teraz — na końcu sekcji.
+
 Widok **Wyleczone** ma w spec trzy szczeble (ranking → wg postaci → wg
-umiejętności), ale środkowego — **wg postaci (kto leczył)** — nie da się zbudować:
-linia leczenia nie niesie sprawcy. `Przywrócono N punktów życia X` podaje tylko
+umiejętności), ale środkowego — **wg postaci (kto leczył)** — nie da się
+WYPEŁNIĆ DLA WSZYSTKICH TRZECH SZYKÓW, a to jest powód mocniejszy niż „nie da
+się zbudować": zbudować się dziś da, tylko wyszedłby dziurawy.
+`Przywrócono N punktów życia X` podaje tylko
 uleczonego, a `X: Ostatni ratunek, zregenerowano N` to samoleczenie/regeneracja
 bez rzucającego. Dlatego gołe „Przywrócono" ląduje pod `Regeneracja`, a rozbicie
 leczenia idzie **wprost do źródła** (`healedBy`), z pominięciem szczebla postaci.
@@ -236,10 +243,33 @@ leczenie postaci, o której log milczy — pierwsza para tekst↔protokół poka
 to jako jedyną rozbieżność w całej walce (`fix` w `d4be27e`).
 
 Protokół rozstrzyga sprawcę **wyłącznie przy `heal_target`/`npc_heal`**, gdzie
-pierwszą stroną jest leczący, a drugą leczony. Nawet tam nie da się tego dziś
-zapisać: `BattleEvent.heal` nie ma pola na leczącego, bo powstało pod log
-tekstowy, który go nie zna. To jest realny kandydat na rozszerzenie — ale
-dopiero wtedy, gdy panel będzie liczył z protokołu, a nie z tekstu.
+pierwszą stroną jest leczący, a drugą leczony.
+
+**Zrobione 2026‑08‑05.** Zdanie, które stało tu wcześniej — *„Nawet tam nie da
+się tego dziś zapisać: `BattleEvent.heal` nie ma pola na leczącego… To jest
+realny kandydat na rozszerzenie, ale dopiero wtedy, gdy panel będzie liczył
+z protokołu, a nie z tekstu"* — **postawiło warunek, który spełnił się
+`eb9e76c`** (patrz §„Panel liczy dziś z protokołu silnika" niżej), a mimo to
+zostało w rejestrze jako zakaz. Tak starzeje się dokumentacja: warunek wygasa
+cicho, a zdanie zostaje i czyta się jak decyzja.
+
+Co jest dziś: `BattleEvent.heal` ma `healer`/`healerId`/`healerHpPct`,
+wypełniane WYŁĄCZNIE przy `strona: "cel"`, a `stats.ts` kredytuje tę kwotę
+leczącemu zamiast wrzucać ją do puli nieprzypisanej. Skutek dla liczb: healer
+miał dotąd `healingDone: 0` mimo stu tysięcy wyleczonych punktów, a stopka
+mówiła „nie wiadomo kto" o czymś, co stało w komunikacie.
+
+**Czego to NIE zmieniło i dlaczego.** Rozbicie leczenia dalej ma jeden szczebel
+„OD CZEGO" i szczebla „kto leczył" **nadal nie ma** — bo argument wyżej
+(„szczebel wypełniony tylko dla jednego z trzech szyków kłamałby bardziej niż
+jego brak") NIE wygasł i nic w tej rundzie go nie ruszyło. Znajomość leczącego
+i pokazanie go w drążeniu to dwie różne decyzje; ta runda podjęła pierwszą.
+
+⚠️ **Czym to jest podparte, a czym nie.** Dowód, że leczącym jest pierwszy
+segment, pochodzi z odczytu renderera (`BattleMessages.js:956‑969`), a więc
+mówi o FORMACIE. Zrzutu z gry z kluczem `heal_target` repo nie ma — jedyna
+prawdziwa walka (`tests/walka-z-gry.ts`) ma sam `heal=99`. Testy dowodzą reguły
+agregatu, nie tego, że reguła zgadza się z grą.
 
 Zdarzenie `heal` niesie za to pole `self` — „czy leczony i leczący to ta sama
 postać". Tyle i tylko tyle da się z logu wyczytać, a wystarcza, żeby `healingDone`
@@ -319,9 +349,14 @@ zrzutów nie zmienił swojego formatu ani razu, a wewnętrzne struktury klienta
 takiej gwarancji nie mają i mogą paść przy każdym patchu. Z gry warto brać
 wyłącznie roster: `id`, `name`, `team`."*
 
-**Co się zmieniło.** Panel liczy dziś z protokołu silnika, a tekst jest drogą
-zapasową i kontrolną. Rozstrzygnęły trzy rzeczy, żadna z nich to nie zmiana
-zdania:
+**Co się zmieniło.** Panel liczy dziś z protokołu silnika. Rozstrzygnęły trzy
+rzeczy, żadna z nich to nie zmiana zdania:
+
+⚠️ Stało tu „a tekst jest drogą zapasową i kontrolną" i było prawdą przez jeden
+dzień: parser tekstu zszedł z drzewa 2026‑08‑04 (`eb9e76c`), więc drogi
+zapasowej NIE MA — protokół jest jedyną. To ta sama pułapka, co przy „Leczeniu
+bez leczącego" wyżej: zdanie opisujące stan przejściowy zostaje po tym, jak
+stan minął.
 
 1. **Pojawił się materiał, którego wtedy nie było** — jedna walka zapisana
    obiema drogami. Na niej wszystkie trzynaście porównywanych pól zgadza się co

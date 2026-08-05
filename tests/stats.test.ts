@@ -11,7 +11,16 @@ import {
 import { dotLabel, typeDisplay, type AttackerBreakdown, type BattleEvent } from "../src/types.ts";
 import { TYPE_COLORS } from "../src/palette.ts";
 import { EngineRosterSource, type RosterEntry } from "../src/roster.ts";
-import { cios, krok, nieznane, otwarcie, trafienie, tykniecie, umiejetnosc } from "./zdarzenia.ts";
+import {
+  cios,
+  krok,
+  leczenie,
+  nieznane,
+  otwarcie,
+  trafienie,
+  tykniecie,
+  umiejetnosc,
+} from "./zdarzenia.ts";
 import { KORPUS } from "./korpus.ts";
 import { dekoduj } from "../src/protokol.ts";
 import { KOMUNIKATY as KOMUNIKATY_Z_GRY, SKLAD as SKLAD_Z_GRY } from "./walka-z-gry.ts";
@@ -307,6 +316,130 @@ describe.each(KORPUS)("$name — zranienie zgadza się z proca", (fixture) => {
  * produkuje ani proca „Zranienie (N)", ani żywiołów z dwóch źródeł naraz.
  * To jest luka do zamknięcia, nie sprzątanie.
  */
+
+/**
+ * Leczenie kierowane — kwota trafia do LECZĄCEGO, nie do puli „bez sprawcy".
+ *
+ * Do 2026‑08‑05 cała trójka szyków leczenia lądowała w jednym worku poza
+ * dwoma procami samoratunku, bo `BattleEvent.heal` nie miało pola na
+ * leczącego. Skutkiem były dwie nieprawdy naraz: healer w PvP grupowym miał
+ * `healingDone: 0` mimo stu tysięcy wyleczonych punktów, a stopka twierdziła
+ * „nie wiadomo kto" o czymś, co protokół podaje wprost.
+ *
+ * ⚠️ **Materiał jest budowany ręcznie i to jest tu słabym miejscem.** Jedyna
+ * prawdziwa walka w repo (`tests/walka-z-gry.ts`) ma `heal=99` bez leczącego,
+ * a klucza `heal_target` nie ma w ogóle — dowód, że leczącym jest pierwszy
+ * segment, pochodzi z odczytu renderera gry, nie ze zrzutu. Te testy dowodzą
+ * więc REGUŁY agregatu, nie tego, że reguła zgadza się z grą.
+ */
+describe("leczenie kierowane ma leczącego", () => {
+  const walka = (nadpisz: Parameters<typeof leczenie>[2]): Aggregate =>
+    aggregate([
+      otwarcie(["Kapłan 100p", "Wojownik 100w"], ["Boss 150w"]),
+      leczenie("Wojownik", 500, nadpisz),
+    ]);
+
+  test("kwota idzie do leczącego, a pula „bez sprawcy” o nią maleje", () => {
+    const stats = walka({ healer: "Kapłan", ability: "Modlitwa" });
+    const kaplan = stats.actors.find((a) => a.name === "Kapłan")!;
+    const wojownik = stats.actors.find((a) => a.name === "Wojownik")!;
+
+    expect(kaplan.healingDone).toBe(500);
+    expect(wojownik.healingReceived).toBe(500);
+    expect(totalBySide(stats.unattributedHealing)).toBe(0);
+    expect(wojownik.unattributedHealingReceived).toBe(0);
+    // Leczący nie dostaje cudzego leczenia w drugą stronę — to osobna liczba.
+    expect(kaplan.healingReceived).toBe(0);
+  });
+
+  test("rozbicie zostaje „OD CZEGO” — leczący NIE wchodzi do niego", () => {
+    // Świadome ograniczenie zakresu: znamy leczącego, ale widok leczenia ma
+    // jeden szczebel i ma go zachować. Szczebel „kto leczył" dałoby się
+    // wypełnić tylko dla JEDNEGO z trzech szyków, więc w panelu wyglądałby
+    // jak healer, który raz leczy, a raz nie (`docs/DECYZJE.md`).
+    const wojownik = walka({ healer: "Kapłan", ability: "Modlitwa" }).actors.find(
+      (a) => a.name === "Wojownik",
+    )!;
+    expect(wojownik.healedBy).toEqual([{ label: "Modlitwa", amount: 500, hits: 1 }]);
+  });
+
+  test("leczenie kierowane na SIEBIE liczy się raz, nie dwa", () => {
+    // Układ `id1 == id2` — gra wyodrębnia go sama (`BattleMessages.js:953`).
+    // Tu leczący i leczony sprowadzają się do tego samego klucza, więc obie
+    // liczby siadają na jednej postaci i żadna nie może się zdublować.
+    const stats = aggregate([
+      otwarcie(["Kapłan 100p"], ["Boss 150w"]),
+      leczenie("Kapłan", 700, { healer: "Kapłan", ability: "Modlitwa" }),
+    ]);
+    const kaplan = stats.actors.find((a) => a.name === "Kapłan")!;
+    expect(kaplan.healingDone).toBe(700);
+    expect(kaplan.healingReceived).toBe(700);
+    expect(totalBySide(stats.unattributedHealing)).toBe(0);
+  });
+
+  test("bez leczącego kwota ZOSTAJE bez sprawcy", () => {
+    // Strażnik regresji `d4be27e` po stronie agregatu: „Przywrócono N punktów
+    // życia X" nie ma drugiej strony i nie wolno go nikomu dopisać.
+    const stats = walka({});
+    expect(totalBySide(stats.unattributedHealing)).toBe(500);
+    for (const a of stats.actors) expect(a.healingDone).toBe(0);
+  });
+
+  test("`self` nadal działa dla proców — leczącego w komunikacie nie ma", () => {
+    const stats = aggregate([
+      otwarcie(["Kapłan 100p"], ["Boss 150w"]),
+      leczenie("Kapłan", 120, { self: true, ability: "Dotyk anioła" }),
+    ]);
+    const kaplan = stats.actors.find((a) => a.name === "Kapłan")!;
+    expect(kaplan.healingDone).toBe(120);
+    expect(totalBySide(stats.unattributedHealing)).toBe(0);
+  });
+
+  test("dwóch leczących o tej samej nazwie rozdziela `id`, a nie spadek życia", () => {
+    // Cała droga naraz — komunikaty protokołu, dekoder, agregat — bo to jedyny
+    // sposób, żeby przejść ŚCIEŻKĄ PO `id`, a ta jest tu istotna: dwóch Kapłanów
+    // leczy tę samą postać, więc heurystyka po życiu nie ma czego rozdzielić.
+    //
+    // To zarazem strażnik `namesIn`: leczący musi być w obu przebiegach
+    // rozpoznawczych. Bez niego `poId` nie widzi drugiego Kapłana i oba
+    // leczenia schodzą się w jeden wiersz z sumą 1400.
+    const sklad: RosterEntry[] = [
+      { id: 1, name: "Kapłan", side: 0 },
+      { id: 2, name: "Kapłan", side: 0 },
+      { id: 3, name: "Wojownik", side: 0 },
+      { id: 4, name: "Boss", side: 1 },
+    ];
+    const stats = aggregate(
+      dekoduj(["1=100.00;3=40.00;heal_target=500", "2=100.00;3=80.00;heal_target=900"], sklad),
+      sklad,
+    );
+    const done = (name: string) => stats.actors.find((a) => a.name === name)!.healingDone;
+    expect(done("Kapłan #1")).toBe(500);
+    expect(done("Kapłan #2")).toBe(900);
+    expect(stats.actors.find((a) => a.name === "Wojownik")!.healingReceived).toBe(1400);
+    expect(totalBySide(stats.unattributedHealing)).toBe(0);
+  });
+
+  test("leczący liczy się do rozpoznawania instancji, choć sam nie jest leczony", () => {
+    // Ten sam układ BEZ składu z gry, czyli ścieżką po życiu zamiast po `id`.
+    // Pilnuje `namesIn`: leczący musi wchodzić do OBU przebiegów rozpoznawczych,
+    // a nie tylko do właściwego liczenia.
+    //
+    // Bez tego dwaj Kapłani, którzy w całej walce nie oberwali ani razu, nie
+    // ujawniają się w przebiegu rozpoznawczym w ogóle — więc nazwa dostaje
+    // ZERO wierszy, numeracja się nie włącza i obie kwoty schodzą się w jeden
+    // wiersz `Kapłan 1400`. Zmierzone na mutacji, nie wydedukowane.
+    const stats = aggregate([
+      otwarcie(["Kapłan 100p", "Kapłan 100p", "Wojownik 100w"], ["Boss 150w"]),
+      leczenie("Wojownik", 500, { healer: "Kapłan", healerHpPct: 40 }),
+      leczenie("Wojownik", 900, { healer: "Kapłan", healerHpPct: 90 }),
+    ]);
+    const done = (name: string) => stats.actors.find((a) => a.name === name)?.healingDone;
+    expect(done("Kapłan #1")).toBe(500);
+    expect(done("Kapłan #2")).toBe(900);
+    expect(done("Kapłan")).toBeUndefined();
+  });
+});
 
 describe("trucizna w walce grupowej", () => {
   test("wskazuje sprawcę trucizny po STRONIE konfliktu, nie po liczbie postaci", () => {

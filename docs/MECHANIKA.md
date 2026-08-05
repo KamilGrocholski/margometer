@@ -433,10 +433,26 @@ z `docs/DECYZJE.md`.
 nadawca, czyli leczący. Klucz `heal_target` niesie więc parę
 `leczący → leczony` strukturalnie, bez zgadywania po nazwach.
 
-⚠️ **Czego to jeszcze nie znaczy.** Że drill „leczenie — od kogo" da się
-zbudować: dowód pochodzi z odczytu renderera, nie ze zrzutu z gry, a panel
-liczy dziś z tekstu. To jest **argument za zrzutem**, nie zamknięcie tematu —
-i pierwsza pozycja, którą warto sprawdzić, gdy para tekst↔protokół powstanie.
+**Wykorzystane 2026‑08‑05.** `BattleEvent.heal` niesie odtąd
+`healer`/`healerId`/`healerHpPct` przy `heal_target` i `npc_heal`, a agregat
+kredytuje tę kwotę leczącemu zamiast puli „bez sprawcy".
+
+⚠️ **Czego to nadal nie znaczy — dwie rzeczy, i obie zostają otwarte.**
+
+1. **Że dowód jest ze zrzutu.** Nie jest: pochodzi z odczytu renderera, więc
+   mówi o FORMACIE. Klucza `heal_target` nie ma w jedynej prawdziwej walce,
+   jaką repo ma (`tests/walka-z-gry.ts` — sam `heal=99`). Zrzut z walki
+   z uzdrowicielem leczącym KOGOŚ INNEGO jest wciąż najbardziej opłacalną
+   rzeczą do złapania sondą.
+2. **Że drążenie „leczenie — od kogo" da się zbudować.** To osobna decyzja
+   i nadal jest na „nie" — nie z braku danych, tylko dlatego, że szczebel
+   wypełniony dla jednego z trzech szyków leczenia kłamie bardziej niż jego
+   brak (`docs/DECYZJE.md` §„Leczenie bez leczącego").
+
+⚠️ Stało tu wcześniej „panel liczy dziś z tekstu" jako powód, dla którego temat
+jest zamknięty. Powód wygasł w `eb9e76c` — **tego samego dnia, w którym akapit
+powstał** (2026‑08‑04), i przeleżał tak dobę, nie zapalając niczego. Warunek
+wpisany do rejestru nie ma żadnego strażnika poza kimś, kto go przeczyta.
 
 ### Sprawca DoT-a — nie zna go też KLIENT gry ✅ (odpowiedź negatywna)
 

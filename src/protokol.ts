@@ -228,8 +228,14 @@ export type Rola =
    *
    * `true` zostaje tylko tam, gdzie efekt Z DEFINICJI siada na trafionym —
    * czyli przy „Dotyku anioła" i „Ostatnim ratunku". To dokładnie te dwa
-   * przykłady, które `types.ts:117‑128` wymienia jako jedyne przypadki
-   * `self: true`, i ta zbieżność jest dowodem, nie zbiegiem okoliczności.
+   * przykłady, które komentarz przy `heal.self` w `types.ts` wymienia jako
+   * jedyne przypadki `self: true`, i ta zbieżność jest dowodem, nie zbiegiem
+   * okoliczności.
+   *
+   * ⚠️ `wlasne: false` NIE znaczy „sprawca nieznany" — znaczy tylko „leczony
+   * to nie leczący". Przy `strona: "cel"` sprawca jest znany i od 2026‑08‑05
+   * wychodzi z dekodera jako `heal.healer`; `wlasne` zostaje `false`, bo są
+   * to dwie różne informacje i tylko jedna z nich pochodzi z tabeli.
    */
   | { typ: "leczenie"; strona: "nadawca" | "cel"; wlasne: boolean }
   /** Obrażenia bez sprawcy, tykające w czasie. `przyimek` i `rodzaj` z brzmienia. */
@@ -304,8 +310,9 @@ const ROLE: Readonly<Record<string, Rola>> = {
   // „Przywrócono %val% punktów życia %name%."
   afterheal: { typ: "leczenie", strona: "nadawca", wlasne: false },
   // „Uleczono %target% o %val% punktów życia." — %target% to f2 (:960).
-  // To STRUKTURALNY dowód na `heal.self === false` z `types.ts:117‑128`, gdzie
-  // dotąd stał wniosek z samego brzmienia.
+  // To STRUKTURALNY dowód na `heal.self === false`, gdzie dotąd stał wniosek
+  // z samego brzmienia — i zarazem dowód, że LECZĄCYM jest f1, bo skoro cel
+  // stoi w drugim segmencie, to rzucający stoi w pierwszym.
   heal_target: { typ: "leczenie", strona: "cel", wlasne: false },
   // Ten sam identyfikator słownika co `heal_target`.
   npc_heal: { typ: "leczenie", strona: "cel", wlasne: false },
@@ -822,6 +829,15 @@ export function dekoduj(
               // ani tekst, ani protokół; kredytowanie go komukolwiek byłoby
               // wymyślaniem danych.
               self: r.wlasne,
+              // Ale przy `strona: "cel"` druga strona ISTNIEJE, a leczącym jest
+              // pierwsza — renderer podstawia pod `%target%` pole `f2`
+              // (`BattleMessages.js:956‑969`), więc `f1` to rzucający. Milczenie
+              // o nim było stratą danych, nie ostrożnością: całe leczenie
+              // kierowane szło do puli „bez sprawcy", choć sprawca stał
+              // w komunikacie. `heal` i proce zostają bez leczącego.
+              ...(r.strona === "cel" && nadawca !== null && nadawcaNazwa !== null
+                ? { healer: nadawcaNazwa, healerId: nadawca.id, healerHpPct: nadawca.hpp }
+                : {}),
               targetHpPct: hpp,
             });
           break;

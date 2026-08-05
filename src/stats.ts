@@ -59,9 +59,27 @@ function namesIn(event: BattleEvent): NameRef[] {
     case "move":
       return [[event.actor, event.hpPct, false, event.actorId]];
     // Leczenie jako jedyne PODNOSI życie, więc dopasowanie idzie od dołu —
-    // patrz `rising` w `instanceResolver`.
+    // patrz `rising` w `instanceResolver`. Dotyczy to WYŁĄCZNIE leczonego:
+    // leczącemu własny czar życia nie podnosi, więc jego `rising` zostaje
+    // `false`. Leczący stoi tu od 2026‑08‑05 i musi — inaczej oba przebiegi
+    // rozpoznawcze go nie widzą i leczenie dwóch postaci o tej samej nazwie
+    // schodzi się w jeden wiersz.
+    //
+    // Kolejność — leczony pierwszy, leczący drugi — jest przepisana z `case
+    // "heal"` niżej, bo nagłówek tej funkcji żąda, żeby oba przebiegi widziały
+    // TĘ SAMĄ kolejność.
+    //
+    // ⚠️ Ale nic tego nie pilnuje: mutacja zamieniająca te dwa wiersze przeszła
+    // 594/0. Rozjazd dałby się zobaczyć dopiero wtedy, gdy leczący i leczony
+    // mają TĘ SAMĄ nazwę i są różnymi instancjami rozdzielanymi po życiu —
+    // układu tego nie ma w żadnym materiale, jaki repo ma.
     case "heal":
-      return [[event.target, event.targetHpPct, true, event.targetId]];
+      return event.healer === undefined
+        ? [[event.target, event.targetHpPct, true, event.targetId]]
+        : [
+            [event.target, event.targetHpPct, true, event.targetId],
+            [event.healer, event.healerHpPct ?? null, false, event.healerId],
+          ];
     case "ability":
       return [[event.actor, null, false, event.actorId]];
     case "turn-lost":
@@ -1124,11 +1142,34 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         const healLabel = event.ability ?? PLAIN_HEAL;
         addDamage(breakdownOf(targetKey).healed, healLabel, event.amount);
         countStrike(breakdownOf(targetKey).healed, healLabel);
-        // Log nie podaje leczącego — najwyżej tyle, że leczony i leczący to ta
-        // sama postać (proc, samoratunek). Tylko wtedy wolno komuś tę kwotę
-        // dopisać; "Uleczono X o N" niesie nazwę umiejętności, ale rzucił ją
-        // ktoś inny, więc mimo nazwy idzie do puli nierozdzielonej.
-        if (event.self) get(targetKey).healingDone += event.amount;
+        // Komu dopisać tę kwotę — trzy przypadki, w tej kolejności:
+        //
+        // 1. `healer` — leczenie kierowane, sprawca stoi w komunikacie. Do
+        //    2026‑08‑05 szło razem z resztą do puli „bez sprawcy", więc healer
+        //    w PvP grupowym miał `healingDone: 0` mimo stu tysięcy wyleczonych
+        //    punktów, a stopka twierdziła „nie wiadomo kto" o czymś, co wiadomo.
+        // 2. `self` — proce i samoratunek. Komunikat ma pustą drugą stronę,
+        //    więc leczącego nie zna, ale wiadomo, że siedzi na leczonym.
+        // 3. reszta — "Przywrócono N punktów życia X". Tu naprawdę nie wiadomo
+        //    i tak ma zostać: klient gry też nie wie (`docs/MECHANIKA.md`).
+        //
+        // `healer` idzie PIERWSZY, bo pochodzi z komunikatu, a `self` z tabeli
+        // ról — przy sprzeczności chcemy danych, nie tabeli.
+        //
+        // ⚠️ **Żaden test tego nie pilnuje i nie ma udawać, że pilnuje.**
+        // Mutacja odwracająca kolejność na `self ?? healer` przeszła 593/0:
+        // dziś ŻADEN klucz nie ma naraz `wlasne: true` i dwóch stron, więc oba
+        // warunki nigdy nie są prawdziwe jednocześnie. Kolejność jest więc
+        // wyborem na przyszłość, nie zabezpieczeniem czegokolwiek — i gdyby
+        // ktoś ją odwrócił, nic się nie zapali. Ten sam kształt uczciwości, co
+        // przy `indexOf("=") > 0` w `protokol.ts`.
+        const healerKey =
+          event.healer !== undefined
+            ? resolve(event.healer, event.healerHpPct ?? null, false, event.healerId)
+            : event.self
+              ? targetKey
+              : null;
+        if (healerKey !== null) get(healerKey).healingDone += event.amount;
         else {
           unattributedHealingByTarget.set(
             targetKey,

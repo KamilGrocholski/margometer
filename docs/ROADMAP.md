@@ -64,7 +64,9 @@ klasę** cichych błędów, należy tu wprost (`R4`).
 
 ## Faza 2 — ZROBIONA poza „procowaniem”
 - ✅ Otrzymane obrażenia (pełne drążenie, lustro zadanych)
-- ✅ Uleczone (jeden szczebel: „OD CZEGO” — patrz ograniczenie niżej)
+- ✅ Uleczone (jeden szczebel: „OD CZEGO” — patrz ograniczenie niżej).
+  Od 2026‑08‑05 leczenie kierowane ma zapisanego LECZĄCEGO (`healingDone`),
+  ale drążenie „kto leczył” to osobna, wciąż otwarta pozycja.
 - ⬜ **Procowanie jako osobny panel** — nadal bez pomysłu na kształt. Dane są
   (`procs`, `procsReceived` liczone dla obu stron), brakuje decyzji, czy to
   w ogóle ma być osobny widok, czy dymek wystarczy. Zderzyć z zasadą „nie robić
@@ -114,22 +116,58 @@ ktoś ją rozstrzygnie.
   o bieżącej walce, a skopiowany JSON też.
 
 ## Do zbadania osobno — leczenie „od kogo”
-Wyleczone mają mieć drill „wg postaci” jak zadane/otrzymane, ale PYTANIE, CZY SIĘ DA.
-Stan z korpusu (wszystkie linie leczenia): każde leczenie jest samoistne, log nie
-nazywa leczącego. Trzy formy:
-- „Przywrócono N punktów życia X” — regeneracja/kradzież życia, BEZ źródła
-- „X: Ostatni ratunek, zregenerowano N” — samoratunek, źródło = X sam
-- „Dotyk anioła: zregenerowano N punktów życia X” — token przed dwukropkiem to
-  nazwa EFEKTU, nie postać; cel to znów X
 
-Wniosek: literalne „która postać leczyła” zawsze = leczony (samoleczenie), drill
-miałby jeden wiersz. Realne „od kogo” wymaga logu, gdzie JEDNA postać leczy DRUGĄ
-(np. paladyn sojusznika) — takiej linii w korpusie NIE MA, format sprawcy nieznany.
-Do zrobienia, gdy pojawi się próbka takiego logu: złapać format i przypisać
-leczącego (analogicznie do napastników/trucizny). Alternatywa bez nowych danych:
-pierwszy szczebel „OD CZEGO” (źródło: Regeneracja/aura/samoratunek) — to
-praktycznie dzisiejsze `healedBy`, tylko jako drill. **To już jest zrobione.**
-Patrz też znane ograniczenie „Leczenie bez leczącego” w `DECYZJE.md`.
+⚠️ **Ta sekcja opisywała stan KORPUSU TEKSTOWEGO, którego nie ma od 2026‑08‑04,
+i kończyła się zdaniem „format sprawcy nieznany". Format jest znany.** Zostaje
+przepisana, a nie skasowana, bo pomyłka jest tu pouczająca: „nie ma tego
+w naszej próbce" zostało zapisane jako „gra tego nie ma", a to dwie różne
+rzeczy. Przy pytaniu o FORMAT sięga się po kod gry, przy pytaniu o CZĘSTOŚĆ po
+próbkę — reguła stoi w `MECHANIKA.md` i została tu złamana.
+
+**Co jest znane (2026‑08‑05).** Protokół niesie leczącego przy `heal_target`
+i `npc_heal`: renderer podstawia pod `%target%` pole `f2`, czyli DRUGĄ stronę
+komunikatu, więc pierwszą jest rzucający (`BattleMessages.js:956‑969`).
+
+**Co jest ZROBIONE.** Atrybucja: `BattleEvent.heal` niesie
+`healer`/`healerId`/`healerHpPct`, a `stats.ts` zapisuje kwotę leczącemu
+zamiast wrzucać ją do puli „bez sprawcy". Healer przestał mieć `healingDone: 0`.
+
+**Co ZOSTAJE otwarte.** Samo drążenie „wg postaci (kto leczył)" — i **nie
+z braku danych**, tylko dlatego, że dałoby się je wypełnić jedynie dla jednego
+z trzech szyków leczenia:
+- „Przywrócono N punktów życia X” — regeneracja/kradzież życia, BEZ sprawcy
+  i klient gry też go nie zna;
+- „Uleczono X o N punktów życia” — leczenie kierowane, sprawca ZNANY;
+- „Dotyk anioła / Ostatni ratunek” — samoleczenie, sprawca = leczony.
+
+Wiersz wypełniony w jednej trzeciej przypadków wygląda w panelu jak healer,
+który raz leczy, a raz nie — powody w `DECYZJE.md` §„Leczenie bez leczącego”.
+
+**Czego brakuje do domknięcia:** zrzutu z gry z kluczem `heal_target`. Jedyna
+prawdziwa walka w repo ma sam `heal=99`, więc atrybucja stoi dziś na odczycie
+renderera, a nie na materiale.
+
+## Leczenie, które nie liczy się do niczego — `bandage` i `vamp_time`
+
+Znalezione przy okazji 2026‑08‑05, **nie zrobione**. Oba klucze stoją w tabeli
+`PROCE` (`src/protokol.ts`), czyli „gra wypisuje zdanie, ale my nie liczymy
+z niego niczego" — a oba niosą leczenie **w punktach życia**:
+
+- `bandage` → „Uleczono %name% o %val% punktów życia.” Renderer:
+  `'%val%': a[0]`, `'%name%': f1.name` (`BattleMessages.js:378‑392`), czyli
+  kwota w punktach na pierwszej stronie komunikatu.
+- `vamp_time` → „+Uleczono za %val% punktów życia” (`BattleMessages.js:1018‑1039`).
+
+To NIE jest „bez sprawcy” — sprawca jest znany (to `f1`). To leczenie, które
+w panelu **nie istnieje wcale**: nie wchodzi ani do `healingReceived`, ani do
+puli nieprzypisanej, więc nie zostawia po sobie nawet przypisu. Kwalifikuje się
+do kierunku „jakość danych” wprost: panel pokazuje złą liczbę i nie mówi o tym
+ani słowem.
+
+Czego brakuje: zrzutu z walki, w której któryś z tych kluczy pada — bez niego
+byłoby to przeniesienie do ról na podstawie samego brzmienia. Docstring `PROCE`
+ostrzega przed dokładnie tym („czyta się to «nie udowodniono, że niesie liczbę,
+którą liczymy», a nie «na pewno nie niesie»”).
 
 ## Czego brakuje w korpusie fixture'ów
 Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`
