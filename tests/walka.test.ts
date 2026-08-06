@@ -160,6 +160,44 @@ describe("czytajZrzut", () => {
       // czytelnik zna, ma się dać przeczytać.
       const zrzut = czytajZrzut(zeZlymWpisem({ ...WPISY[1], render: ["<div>x</div>"] }));
       expect(zrzut.wpisy).toHaveLength(2);
+      // Nie sam KSZTAŁT — sama TREŚĆ. Wpis przepuszczony, ale wypatroszony,
+      // dałby tę samą długość listy.
+      expect((zrzut.wpisy[1] as Record<string, unknown>)["render"]).toEqual(["<div>x</div>"]);
+    });
+
+    /**
+     * ⚠️ **NAZWA TESTU WYŻEJ OBIECYWAŁA DWA POZIOMY, A SPRAWDZAŁA JEDEN**
+     * (`AUDYT‑105`). „Czytelnik odrzuca niepełne, nie bogatsze" jest zdaniem
+     * o CAŁYM zrzucie; asercja dotyczyła wyłącznie wywołania. Nagłówek był
+     * przepisywany pole po polu, więc nieznany klucz na wierzchu przepadał bez
+     * słowa — i przepadał NA ZAWSZE, bo `--pseudonimizuj` nadpisuje plik
+     * źródłowy w miejscu, na materiale, który „nie ma jak powstać ponownie".
+     */
+    test("pole nadmiarowe NA WIERZCHU też przechodzi, nie tylko w wywołaniu", () => {
+      const zrzut = czytajZrzut(JSON.stringify({ ...ZRZUT, notatka: "z przyszłej sondy" }));
+
+      expect((zrzut as Record<string, unknown>)["notatka"]).toBe("z przyszłej sondy");
+      // Para: nadmiar przechodzi, ale nie kosztem walidacji pól ZNANYCH.
+      expect(zrzut.swiat).toBe("tempest");
+    });
+
+    /**
+     * PARA DO POWYŻSZEGO — i to ona rozstrzygnęła kształt naprawy.
+     *
+     * Rozsypanie CAŁEGO wejścia przed polami sprawdzanymi przepuszczałoby
+     * nadmiar, ale zarazem wpuszczałoby z powrotem wartości, którym warunki
+     * niżej właśnie odmówiły: te pola odsiewa się milczącym POMINIĘCIEM, a
+     * spread dokłada klucz niezależnie od tego, czy warunek go chciał. „Naprawa"
+     * zamieniłaby wtedy sprawdzany nagłówek w nienaruszalny.
+     */
+    test("zła wartość pola ZNANEGO nadal odpada, mimo przepuszczania nadmiaru", () => {
+      const zrzut = czytajZrzut(
+        JSON.stringify({ ...ZRZUT, zrodlo: "cudze", pominietych: "dużo", przepelniony: "tak" }),
+      );
+
+      expect(zrzut.zrodlo).toBeUndefined();
+      expect(zrzut.pominietych).toBeUndefined();
+      expect(zrzut.przepelniony).toBeUndefined();
     });
   });
 });

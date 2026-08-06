@@ -61,6 +61,22 @@ import type { Wywolanie, Zrzut } from "../src/zrzut.ts";
 import { zaczynaWalke } from "../src/zrzut.ts";
 
 /**
+ * Pola nagłówka, które ten czytelnik SPRAWDZA — i tylko dlatego istnieje ta
+ * lista. Wszystko spoza niej przechodzi jako nadmiar (`AUDYT‑105`).
+ *
+ * Nie jest to opis formatu ani jego dokumentacja: `Zrzut` w `src/zrzut.ts`
+ * pozostaje jedynym zapisem kształtu. To jest wyłącznie odpowiedź na pytanie
+ * „czy o tym kluczu mam już zdanie" — i dlatego wolno jej się zestarzeć
+ * w jedną tylko stronę. Pole dopisane do `Zrzut` i zapomniane tutaj przejdzie
+ * nietknięte jako nadmiar, czyli najgorsze, co się stanie, to brak walidacji
+ * pola, które i tak jej wcześniej nie miało.
+ */
+const ZNANE_POLA = new Set([
+  "wersja", "przy", "swiat", "build", "otwarcie", "otwarcia", "zrodlo",
+  "pominietych", "przepelniony", "odchudzonych", "pseudonimow", "opisow", "wpisy",
+]);
+
+/**
  * Sprawdzenie kształtu zrzutu przy WCZYTANIU, nie przy użyciu.
  *
  * Zrzut przychodzi z przeglądarki, przez plik na dysku, czasem po ręcznej
@@ -88,6 +104,32 @@ export function czytajZrzut(tekst: string): Zrzut {
     );
   }
   return {
+    // ⚠️ **NADMIAR NAGŁÓWKA PRZECHODZI — I DO 2026‑08‑06 NIE PRZECHODZIŁ**
+    // (`AUDYT‑105`). Docstring `wpisZrzutu` obiecuje: „zrzut z przyszłą wersją
+    // sondy ma się dać przeczytać", i dla WYWOŁAŃ obietnica była spełniona
+    // (`w as Wywolanie` przepuszcza wszystko — patrz `render` w najstarszym
+    // fixturze). Nagłówek był przepisywany pole po polu, więc nieznany klucz
+    // na wierzchu przepadał bez słowa. Jedna obietnica, dwa poziomy, prawdziwa
+    // na jednym.
+    //
+    // Kosztowało to dopiero w parze z `--pseudonimizuj`, który nadpisuje plik
+    // ŹRÓDŁOWY w miejscu — czyli na materiale, który „nie ma jak powstać
+    // ponownie inaczej niż nowym zrzutem".
+    //
+    // ⚠️ **PRZEPUSZCZAMY WYŁĄCZNIE KLUCZE NIEZNANE, nie cały obiekt** — i to
+    // nie jest ostrożność na zapas, tylko warunek, żeby ta zmiana nie skasowała
+    // walidacji. Pola opcjonalne niżej odsiewają złe wartości milczącym
+    // pominięciem (`zrodlo` spoza dwóch dozwolonych, `pominietych` nie-liczbą).
+    // Rozsypanie CAŁEGO wejścia wpuściłoby je z powrotem, bo spread dokłada
+    // klucz, którego warunek właśnie odmówił — czyli „naprawa" zamieniłaby
+    // sprawdzany nagłówek w nienaruszalny.
+    //
+    // Znane klucze wypisane z nazwy: to ta sama lista, którą widać niżej, więc
+    // nowe pole dopisane po jednej stronie i zapomniane po drugiej po prostu
+    // przejdzie jako nadmiar — a nie ominie sprawdzenia.
+    ...Object.fromEntries(
+      Object.entries(dane as Record<string, unknown>).filter(([k]) => !ZNANE_POLA.has(k)),
+    ),
     wersja: z.wersja,
     przy: typeof z.przy === "string" ? z.przy : new Date().toISOString(),
     swiat: typeof z.swiat === "string" ? z.swiat : "nieznany",
@@ -123,6 +165,15 @@ export function czytajZrzut(tekst: string): Zrzut {
  * Pola nadmiarowe zostają nietknięte — patrz `render` w najstarszym fixturze
  * (`AUDYT‑63`). Czytelnik ma odrzucać materiał NIEPEŁNY, a nie bogatszy, niż
  * zna: zrzut z przyszłą wersją sondy ma się dać przeczytać.
+ *
+ * ⚠️ **TO ZDANIE STAŁO TU I BYŁO PRAWDZIWE NA JEDNYM Z DWÓCH POZIOMÓW**
+ * (`AUDYT‑105`). Dla wywołań spełniało je `w as Wywolanie`, które przepuszcza
+ * wszystko; nagłówek zrzutu `czytajZrzut` przepisywało pole po polu, więc
+ * nieznany klucz na wierzchu przepadał bez słowa. Obietnica ogólna, spełnienie
+ * miejscowe — i nikt tego nie zobaczył, bo test nazwany „pole NADMIAROWE
+ * przechodzi" sprawdzał wyłącznie ten poziom, na którym akurat działało.
+ * Dziś przechodzą oba, a filtr `ZNANE_POLA` pilnuje, żeby nadmiar nie wchodził
+ * kosztem walidacji pól znanych.
  */
 function wpisZrzutu(wpis: unknown, i: number): Wywolanie {
   const gdzie = `wpis ${i}`;
