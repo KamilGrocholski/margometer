@@ -263,6 +263,13 @@ niosących punkty; siedem naprawiono, zostają cztery. Pełna tabela z cytatami:
   tabelaryczna. Wartość jest trójczłonowa (`kwota,klasa,nick`) i niesie w środku
   **trzecią postać**, a cały kontrakt zdarzeń stoi na dwóch stronach komunikatu.
 
+  ⚠️ **`+oth_dmg` GINIE PODWÓJNIE i to zmienia kolejność prac** (`AUDYT‑102`).
+  Pada w `grupa-vs-hildur` **71 razy**, i za każdym z nich komunikat nie niesie
+  ani jednej liczby obrażeń — więc wypada w całości przez pozycję „Efekty
+  z komunikatu bez obrażeń przepadają" wyżej, jeszcze zanim ta tabela zdąży coś
+  o nim postanowić. Przeniesienie go do ról **nie dałoby nic**, dopóki tamta
+  pozycja stoi. Zależność jest jednostronna: tamta naprawa nie potrzebuje tej.
+
 ## Efekty z komunikatu bez obrażeń przepadają w całości
 
 Znalezione 2026‑08‑06 (`AUDYT‑98`), **nie zrobione**. Komunikat, w którym nie ma
@@ -275,10 +282,27 @@ Czego brakuje: **miejsca, w którym efekt może usiąść poza ciosem**, czyli z
 kontraktu `BattleEvent` — a za nią `stats.ts`, `overlay.ts` i odtwarzania
 nagrań. Sygnał, że potrzebny jest spec, jest tu spełniony.
 
-⚠️ Nie wiadomo przy tym, jak często gra takie komunikaty wysyła: renderer je
-składa (`tm[1]` wypełnia się niezależnie od warunku `attack != ''`), ale jedyna
-prawdziwa walka w repo nie ma ani jednego. To pozycja, przy której zrzut jest
-warunkiem sensownego ZAKRESU, a nie warunkiem zrozumienia formatu.
+⚠️ **STAŁO TU „nie wiadomo, jak często gra takie komunikaty wysyła […] jedyna
+prawdziwa walka w repo nie ma ani jednego" I PRZESTAŁO BYĆ PRAWDĄ TEGO SAMEGO
+DNIA** (`AUDYT‑102`). Przewrócił to commit `412579d` — ten sam, który dołożył
+drugą prawdziwą walkę. Zdanie o rendererze (`tm[1]` wypełnia się niezależnie od
+warunku `attack != ''`) zostaje; zdanie o materiale nie.
+
+✅ **ZAKRES JEST DZIŚ ZMIERZONY**, na `2026-08-06-tempest-grupa-vs-hildur`:
+**91 takich komunikatów, 247 ginących efektów**, 15 różnych kluczy. Najczęstszy
+to `+oth_dmg` (71×) — ten sam, który stoi w sekcji „Cztery klucze…" niżej, więc
+**ginie podwójnie** i kolejność obu pozycji nie jest dowolna. Rozkład i cytaty:
+`docs/AUDYT.md`, `AUDYT‑102`.
+
+✅ **ZAKRES NAPRAWY JEST WĘŻSZY, NIŻ MÓWI OPIS.** Wczesny powrót zabiera też
+`blok`, `unik` i `kryt`, ale tych BEZ obrażeń nie ma w materiale ani razu
+(0/0/0 na obu fixture'ach) — ginie wyłącznie lista efektów. Potrzebne jest więc
+miejsce dla EFEKTU poza ciosem; blok i unik mają już swoją gałąź (`kind: "info"`).
+
+⚠️ **Wniosek ogólniejszy od tej pozycji.** Warunek „brakuje zrzutu" potrafi
+zniknąć **bez niczyjej decyzji**, bo materiał wchodzi do repo inną drogą niż
+rejestr — i wtedy nie zapala się nic. Wchodzący fixture powinien być momentem
+przejrzenia pozycji, które na fixture czekały; dziś nie jest.
 
 ## Czego brakuje w korpusie fixture'ów
 

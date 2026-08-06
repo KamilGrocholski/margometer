@@ -3094,14 +3094,27 @@ w „efektach w ciosach", ani w „otrzymanych", ani w `unknown`.
 
 **Dlaczego NIE w tej rundzie.** Naprawa wymaga miejsca, w którym efekt może
 usiąść poza ciosem — czyli zmiany kontraktu `BattleEvent`, a za nią `stats.ts`,
-`overlay.ts` i odtwarzania nagrań. Repo nie ma przy tym materiału dowodzącego,
-że gra takie komunikaty naprawdę wysyła: renderer je składa (`tm[1]` wypełnia
-się niezależnie od warunku `attack != ''`), ale jedyna prawdziwa walka w repo
-nie ma ani jednego takiego komunikatu. Decyzja właściciela repo: zapis teraz,
+`overlay.ts` i odtwarzania nagrań. Decyzja właściciela repo: zapis teraz,
 naprawa osobno.
 
+⚠️ **DRUGI POWÓD STAŁ TU I PRZESTAŁ BYĆ PRAWDĄ TEGO SAMEGO DNIA** (`AUDYT‑102`).
+Brzmiał: *„Repo nie ma przy tym materiału dowodzącego, że gra takie komunikaty
+naprawdę wysyła: renderer je składa (`tm[1]` wypełnia się niezależnie od warunku
+`attack != ''`), ale jedyna prawdziwa walka w repo nie ma ani jednego takiego
+komunikatu"*. Zdanie o rendererze zostaje i jest prawdziwe. Zdanie o materiale
+było prawdziwe przy JEDNYM fixturze i przewrócił je commit `412579d` — ten sam,
+który dołożył drugą prawdziwą walkę. Zmierzone na `grupa-vs-hildur`:
+**91 takich komunikatów, 247 ginących efektów**, w tym `+oth_dmg` 71 razy.
+Pełne liczby, rozkład kluczy i zawężenie („ginie wyłącznie `procy`; `blok`,
+`unik` i `kryt` bez obrażeń w materiale nie występują") stoją w `AUDYT‑102`.
+
+**Status się przez to NIE ZMIENIA — zmienia się podstawa.** Odroczenie stoi na
+koszcie zmiany kontraktu, i to wystarcza. Nie stoi już na braku materiału.
+
 **Docelowo.** Osobna runda; sygnał, że spec jest potrzebny, jest tu spełniony
-(zmiana kontraktu dotykająca czterech modułów).
+(zmiana kontraktu dotykająca czterech modułów). ⚠️ Kolejność wobec `AUDYT‑99`
+nie jest dowolna: `+oth_dmg` ginie przez OBIE pozycje naraz, więc naprawa jednej
+z nich przy tym kluczu nie da nic, dopóki stoi druga.
 
 ### AUDYT‑99 — cztery dalsze klucze z liczbami zostają nieliczone ⚪ M — ⬜ ZAPISANE, nienaprawione
 
@@ -3210,6 +3223,179 @@ jak rozpoznać właściciela i nie próbuje.
 **Co ZOSTAJE otwarte:** `Gracz L` (mag, poziom 27) był nierozstrzygalny —
 kontekst mieszał w jednej tabeli graczy i potwory. Zszedł jako gracz, czyli
 w stronę bezpieczną; jeśli to NPC, ubyło trochę wierności opisu.
+
+## M. Dekoder i droga materiału — audyt PO commicie `412579d` (2026‑08‑06)
+
+Przegląd dwóch rzeczy, których runda z 2026‑08‑06 dotknęła najmocniej: dekodera
+protokołu i drogi, którą materiał z gry wchodzi do repo (`src/zrzut.ts` →
+`tools/walka.ts` → `tests/fixtures/`).
+
+**Cztery znaleziska, każde zmierzone** — trzy sondą na kodzie, jedno na
+materiale. Trzy naprawione w tej rundzie; czwarte to `AUDYT‑102`, które niczego
+nie naprawia, tylko odbiera innej pozycji jej nieaktualne uzasadnienie.
+
+⚠️ **Wspólny mianownik trzech usterek jest wart nazwania osobno: żadna nie
+siedziała w kodzie, który ktoś napisał źle.** Wszystkie trzy powstały tam, gdzie
+ZAKRES obietnicy był szerszy od zakresu jej strażnika — zbiorczy komentarz
+o dwóch polach (`AUDYT‑103`), próg trzymany po jednej stronie granicy
+(`AUDYT‑104`), test nazwany regułą i sprawdzający jeden jej przypadek
+(`AUDYT‑105`). To jest ta sama choroba, którą `AGENTS.md` opisuje jako „reguła
+bez strażnika po stronie danych", tylko o poziom niżej: **strażnik był, tylko
+węższy niż jego własna nazwa.**
+
+### AUDYT‑102 — `AUDYT‑98` odroczono na podstawie zdania, które przestało być prawdą tego samego dnia 🟡 M — ⬜ ZAPISANE, nienaprawione
+
+`docs/AUDYT.md` (`AUDYT‑98`), `docs/ROADMAP.md` (wpis „Efekty z komunikatu bez
+obrażeń przepadają w całości")
+
+**Problem.** Oba miejsca uzasadniają odroczenie tak samo: *„repo nie ma przy tym
+materiału dowodzącego, że gra takie komunikaty naprawdę wysyła […] jedyna
+prawdziwa walka w repo nie ma ani jednego takiego komunikatu"*. Zdanie było
+prawdziwe przy jednym fixturze i **przestało nim być w commicie `412579d`** —
+tym samym, który dołożył drugą prawdziwą walkę. Materiał przyszedł, pomiaru
+nikt nie powtórzył, a uzasadnienie zostało.
+
+**✓ Zmierzone** (`dekoduj` + `rola`, oba fixture'y):
+
+| | `lowca-vs-odyncze` | `grupa-vs-hildur` |
+|---|---|---|
+| komunikaty bez obrażeń niosące efekty | 1 | **91** |
+| efektów ginących w całości | 1 | **247** |
+
+Rozkład kluczy w `grupa-vs-hildur`:
+
+```
+  71  +oth_dmg                  11  alllowdmg           4  aura-resall
+  47  -poison_lowdmg_per        10  active_block_per    4  aura-sa_per
+  31  combo-max                 10  energy              1  poison_lowdmg_per-enemies
+  15  mana                       5  allslow_per
+  12  healall_per               11  shout
+  11  active_decblock_per-enemies                        4  aura-ac_per
+```
+
+⚠️ **`+oth_dmg` (71×) ginie PODWÓJNIE.** Stoi w tabeli `AUDYT‑99` jako klucz
+niosący liczbę, której nie liczymy — i niezależnie od tego wypada z komunikatu
+w całości. Naprawa `AUDYT‑99` przy tym kluczu nie zrobiłaby więc nic, dopóki
+stoi `AUDYT‑98`, i odwrotnie. Kolejność tych dwóch pozycji nie jest dowolna.
+
+**✓ Zmierzone także ZAWĘŻENIE, i ono zmniejsza zakres naprawy.** `AUDYT‑98`
+mówi „gubi CAŁĄ listę efektów" i jest to prawda o kodzie, ale nie o materiale:
+wczesny powrót zabiera też `blok`, `unik` i `kryt`, a tych **bez obrażeń nie ma
+w materiale ani razu** (0/0/0 na obu plikach). Ginie wyłącznie `procy`. Naprawa
+potrzebuje więc miejsca dla EFEKTU poza ciosem, a nie dla bloku i uniku poza
+ciosem — te drugie mają już swoją gałąź (`kind: "info"`).
+
+**Docelowo.** `AUDYT‑98` **zostaje otwarte** — zmienia się jego podstawa, nie
+status. Decyzja właściciela repo o odroczeniu naprawy stoi; zmienia się to, że
+nie opiera się już na „braku materiału", bo materiał jest i jest go dużo.
+Sygnał, że potrzebny jest spec, pozostaje spełniony (zmiana kontraktu
+`BattleEvent`, za nią `stats.ts`, `overlay.ts` i odtwarzanie nagrań).
+
+⚠️ **Wniosek na przyszłość, wart więcej niż sama poprawka.** Pozycja odroczona
+„z braku materiału" ma w sobie **warunek, który może zniknąć bez niczyjej
+decyzji** — i wtedy nie zapala się nic, bo materiał wchodzi do repo inną drogą
+niż rejestr. Dwa razy w tym repo zapisano „sprawdzone w pomocy, milczy"
+o rzeczach, które pomoc opisuje wprost (`docs/MECHANIKA.md`); to jest ten sam
+kształt w trzecim wariancie. **Wchodzący fixture powinien być momentem
+przejrzenia pozycji, które na fixture czekały** — dziś nie jest i nic tego nie
+przypomina.
+
+### AUDYT‑103 — `--zachowaj … --walka <n>` gubił ostrzeżenie o URWANYM zrzucie 🟡 S — ✅ NAPRAWIONE ✓
+
+`tools/walka.ts` (`wybierzWalke`)
+
+**Problem.** Funkcja wypisuje pola po jednym i nie przepuszczała `przepelniony`,
+więc `urwany()` w `--zachowaj` dostawał zrzut zawężony i milczał. Ostrzeżenie
+dołożone przy `AUDYT‑86` było martwe dokładnie na tej drodze, po której chodzi
+materiał z DODATKU: zrzut z dodatku obejmuje całą sesję, przy kilku walkach
+`--walka <n>` jest wymagane, a to ono woła `wybierzWalke`.
+
+**✓ Zmierzone.** Zrzut z `przepelniony: true` → `urwany()` ostrzega; po
+`wybierzWalke(…, 2)` → `przepelniony: undefined`, `urwany()` milczy.
+
+**Naprawa.** Flaga przechodzi dla walki o NAJWYŻSZYM numerze obecnym w zrzucie.
+Nie zawsze: `KolekcjonerZrzutu.po` po przepełnieniu wychodzi wcześniej, więc
+urwana jest walka bieżąca w tamtej chwili, czyli ostatnia — a ostrzeganie
+o urwaniu walki, która skończyła się cała, uczyłoby ludzi ignorować ostrzeżenie.
+Jest to zdanie o NASZYM kolektorze, nie o grze, więc nie przechodziło procedury
+z `docs/MECHANIKA.md`.
+
+**Mutacje** (obie uruchomione i cofnięte): flaga nie przechodzi wcale → zapala
+„urwany zrzut ZOSTAJE urwany…"; flaga przechodzi zawsze → zapala „walka
+WCZEŚNIEJSZA nie dziedziczy urwania". Każda zapala DOKŁADNIE jeden test i za
+każdym razem inny.
+
+⚠️ **Usterka była zakodowana jako OCZEKIWANIE.** `expect(jedna.przepelniony)
+.toBeUndefined()` stało w teście „wybierzWalke NIE przenosi metadanych cudzych
+walk", i to na walce 2 — czyli na tej jedynej, dla której flaga powinna była
+przejść. Powód: komentarz uzasadniał oba pola jednym zdaniem („własność sesji,
+nie walki"), co o `pominietych` jest prawdą (licznik, nie da się rozdzielić),
+a o `przepelniony` nie (fakt o KOŃCU bufora). **Test napisany razem ze zbiorczym
+uzasadnieniem dziedziczy jego zasięg** i potem broni już nie decyzji, tylko
+sformułowania.
+
+### AUDYT‑104 — zrzut bez granicy walki zapisywał się, a padał dopiero w testach 🟡 S — ✅ NAPRAWIONE ✓
+
+`tools/walka.ts` (`--zachowaj`, dziś `granicaDoZapisu`)
+
+**Problem.** Warunek pytał o `granice.length > 1`, więc zrzut BEZ ani jednego
+`init` przechodził. `tests/fixtury.test.ts:129` żąda `toBe(1)` — zaostrzone przy
+`AUDYT‑60`, bo zero to nie „plik czysty", tylko „plik, o którym nie wiadomo":
+zrzut zebrany od środka walki wygląda tak samo jak ogon jednej walki sklejony
+z całą następną.
+
+**✓ Zmierzone.** Narzędzie ZAPISYWAŁO plik i drukowało *„niezmienniki obejmą go
+bez dopisywania czegokolwiek"*, po czym `bun test` szło na czerwono — z
+materiałem z gry już leżącym w `tests/fixtures/`.
+
+**Naprawa.** Próg zaostrzony do „dokładnie jedna granica, na początku", z DWOMA
+komunikatami, bo powody prowadzą do różnych czynności: kilka walk wymaga
+`--walka <n>`, brak granicy — zebrania materiału od nowa.
+
+⚠️ **CO TO ZA RODZAJ BŁĘDU.** `zaczynaWalke` mieszka w `src/zrzut.ts` po to, żeby
+dodatek i narzędzie mówiły o granicy TO SAMO — i ta ostrożność zadziałała,
+predykat się nie rozjechał. Rozjechał się **PRÓG postawiony na tym samym
+predykacie przez dwie strony**. Wniosek: jedna definicja nie wystarcza, jeśli
+dwie strony stawiają na niej różne wymagania; wspólny ma być także warunek
+akceptacji, nie sam odczyt.
+
+⚠️ **Warunek nie miał testu, bo stał w bloku `import.meta.main`** — czyli tam,
+gdzie brama go nie ogląda (`bun test` nie uruchamia gałęzi CLI; `tools/walka.ts`
+miało tam 60 % linii). Wystawienie `granicaDoZapisu` było warunkiem, żeby próg
+mógł w ogóle dostać strażnika. **Reszta CLI nadal testów nie ma** — wyszedł
+jeden warunek, nie całe polecenie.
+
+**Mutacje:** stary próg → zapala „ZERO granic odmawia…" ORAZ „próg zgadza się
+ze strażnikiem"; jeden komunikat na oba powody → zapala tylko ten pierwszy.
+
+### AUDYT‑105 — pole nadmiarowe w NAGŁÓWKU zrzutu ginęło, wbrew obietnicy ⚪ S — ✅ NAPRAWIONE ✓
+
+`tools/walka.ts` (`czytajZrzut`)
+
+**Problem.** Docstring `wpisZrzutu` obiecuje: *„Pola nadmiarowe zostają
+nietknięte […] zrzut z przyszłą wersją sondy ma się dać przeczytać"*. Dla
+WYWOŁAŃ obietnicę spełniało `w as Wywolanie`; nagłówek był przepisywany pole po
+polu, więc nieznany klucz na wierzchu przepadał bez słowa.
+
+**✓ Zmierzone.** `render` w wywołaniu zostaje, `notatka` na wierzchu ginie.
+
+**Dlaczego to kosztuje.** Samo czytanie niczego nie psuje — psuje
+`--pseudonimizuj`, który nadpisuje plik ŹRÓDŁOWY w miejscu, czyli na materiale,
+o którym ten sam plik pisze, że „nie ma jak powstać ponownie inaczej niż nowym
+zrzutem". Strata jest wtedy nieodwracalna i cicha.
+
+**Odrzucony wariant, zmierzony mutacją.** Rozsypanie CAŁEGO wejścia przed polami
+sprawdzanymi przepuszcza nadmiar, ale wpuszcza z powrotem wartości, którym
+warunki niżej odmówiły — `zrodlo`, `pominietych` i `przepelniony` odsiewa się
+milczącym POMINIĘCIEM, a spread dokłada klucz niezależnie od tego, czy warunek
+go chciał. Kupiłoby to nadmiar za walidację. Przechodzą więc wyłącznie klucze
+spoza `ZNANE_POLA`.
+
+⚠️ **Usterkę przykrył TEST, nie kod.** „pole NADMIAROWE przechodzi — czytelnik
+odrzuca niepełne, nie bogatsze" jest nazwą o CAŁYM zrzucie; asercja dotyczyła
+wyłącznie wywołania. Zielony test o nazwie brzmiącej jak reguła czyta się jak
+dowód na regułę, a jest dowodem na jeden jej przypadek. **Przy teście nazwanym
+regułą warto policzyć, ile przypadków ta reguła ma.**
 
 ## G. Otwarte z poprzednich rund
 
