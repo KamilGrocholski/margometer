@@ -59,6 +59,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   Aura rzucona na siebie liczy się raz, a nie dwa razy w dwóch wierszach.
 - **Poprawka** — Efekt, którego nazwy gra nie potrafi złożyć w całości, pokazuje
   się pod swoją nazwą techniczną zamiast pod zdaniem z dziurą w środku.
+- **Poprawka** — Efekty przejmowania obrażeń pokazują pełne zdanie z gry —
+  z kwotą i z tym, kogo dotyczyły — zamiast samej nazwy technicznej.
 - **Poprawka** — Rozbicie obrażeń na rodzaje (broń, ogień, zimno, błyskawica…)
   podaje przy każdym rodzaju jego własną liczbę. Gdy gra nie powiedziała, ile
   z któregoś rodzaju weszło w cel, liczba należąca do następnego trafiała pod

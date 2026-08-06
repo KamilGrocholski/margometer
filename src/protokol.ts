@@ -830,6 +830,73 @@ const PROCE: Readonly<Record<string, string>> = {
 };
 
 /**
+ * Klucze, przy których zdanie gry żąda WIĘCEJ niż `%val%`, a klient mówi wprost,
+ * czym wypełnić resztę — z SAMEJ WARTOŚCI parametru (`AUDYT‑106`).
+ *
+ * ⚠️ **LISTA JEST WYLICZONA I MA TAKA ZOSTAĆ.** Reguła wspólna („podstaw
+ * `%name%` z pierwszej strony") jest DOWODLIWIE BŁĘDNA i to jest zmierzone,
+ * nie przewidziane: przy `+oth_dmg=8868,g,Gracz 10(70.85%)` z `f1=Hildur`
+ * i `f2=Gracz 4` nick z wartości nie jest ANI JEDNĄ ze stron. Klient potwierdza
+ * rozjazd wprost — przy `shout`, `mana`, `energy` i `aura-resall` podstawia
+ * `f1.name`, a tutaj trzeci człon wartości. Jeden wzór dla wszystkich skłamałby
+ * w 71 ze 147 przypadków; to ten sam rodzaj uogólnienia, który kosztował
+ * `AUDYT‑93` i `AUDYT‑94`.
+ *
+ * Dowód dla obu wpisów, `BattleMessages.js:596‑607`, dosłownie:
+ *
+ *     case '+oth_dmg':
+ *         var mm = m[1].split(',');
+ *         tm[1] += '<b class=dmg' + mm[1] + '>' + _t('msg_+oth_dmg %val% %name%', {
+ *                 '%val%': mm[0],
+ *                 '%name%': mm[2]
+ *             }) + '<br>'; //+'   -'+mm[0]+'</b> obrażeń otrzymał(a) '+mm[2]+'<br>'
+ *
+ *     case '+oth_cover':
+ *         var mm = m[1].split(',');
+ *         tm[1] += _t('msg_+oth_cover %val% %name%', {'%val%': mm[0], '%name%': mm[2]}) + '<br>';
+ *
+ * ⚠️ Człon ŚRODKOWY (`mm[1]`) to KOD ŻYWIOŁU — wchodzi w `class=dmg{mm[1]}`,
+ * czyli w tę samą konwencję, co gałąź `default`. Do etykiety nie wchodzi, bo
+ * gra też go tam nie wkleja; zapisany, żeby następny czytelnik nie wziął go za
+ * „klasę postaci". Zmierzone na materiale: wszystkie cztery występujące kody
+ * (`a`, `g`, `f`, `c`) są w tabeli `ELEMENTS` z `types.ts`.
+ *
+ * ⚠️ **CO TO ZNACZY, A CZEGO NIE ZNACZY.** Podstawienie dotyczy WYŁĄCZNIE
+ * brzmienia. Obrażeń z `+oth_dmg` nadal NIE LICZYMY — świadek życia poprawia
+ * się z 0/71 na 25/71 po ich doliczeniu, więc kierunek jest pewny, a wielkość
+ * nie (`AUDYT‑106`).
+ */
+const PODSTAWIENIA_Z_WARTOSCI: Readonly<Record<string, readonly [string, number][]>> = {
+  "+oth_dmg": [
+    ["%val%", 0],
+    ["%name%", 2],
+  ],
+  "+oth_cover": [
+    ["%val%", 0],
+    ["%name%", 2],
+  ],
+};
+
+/**
+ * Parametry do podstawienia w zdaniu gry dla tego segmentu.
+ *
+ * Domyślnie samo `%val%` z całej wartości — tak było od początku. Klucze
+ * z `PODSTAWIENIA_Z_WARTOSCI` dostają człony rozdzielone przecinkiem, bo tak
+ * czyta je klient.
+ */
+export function parametryZdania(p: Parametr): Record<string, string> | undefined {
+  if (p.wartosc === null) return undefined;
+  const wzor = PODSTAWIENIA_Z_WARTOSCI[p.klucz];
+  if (wzor === undefined) return { "%val%": p.wartosc };
+  const czesci = czlony(p.wartosc);
+  // Wartość krótsza, niż wzór zakłada, znaczy zmianę formatu. Oddajemy wtedy
+  // samo `%val%`, więc zdanie zostaje z dziurą i spada do klucza piętro wyżej —
+  // czyli awaria jest GŁOŚNA, a nie podstawiona pustym ciągiem.
+  if (wzor.some(([, gdzie]) => czesci[gdzie] === undefined)) return { "%val%": p.wartosc };
+  return Object.fromEntries(wzor.map(([nazwa, gdzie]) => [nazwa, czesci[gdzie]!]));
+}
+
+/**
  * Klucze z pustym ciałem — gra świadomie nie wypisuje NICZEGO.
  *
  * „Nie wypisuje" to ODPOWIEDŹ, a nie luka, i dlatego stoją osobno od proców:
@@ -1034,7 +1101,7 @@ export function dekoduj(
      * brzmienie zmyślone przez nas nie byłoby.
      */
     const etykieta = (p: Parametr, id: string): string => {
-      const zdanie = slownik.zdanie(id, p.wartosc === null ? undefined : { "%val%": p.wartosc });
+      const zdanie = slownik.zdanie(id, parametryZdania(p));
       // ZDANIE Z NIEWYPEŁNIONĄ DZIURĄ JEST GORSZE OD KLUCZA — i to jest pomiar,
       // nie ostrożność (`AUDYT‑98`). Podstawiamy wyłącznie `%val%`, a spora
       // część identyfikatorów żąda więcej: `msg_+oth_dmg %val% %name%`,
@@ -1050,15 +1117,18 @@ export function dekoduj(
       //   +oth_dmg=8868,g,Gracz 10(70.85%)  | f1=Hildur…  f2=Gracz 4
       //   shout=Hildur Muza Śmierci         | f1=Gracz 4  f2=Hildur…
       //
-      // W pierwszym nick z wartości nie jest ANI `f1`, ANI `f2` — to TRZECIA
-      // postać (`AUDYT‑106`; 40 razy z 71, a 24 razy jest nią BOSS, więc nazwa
-      // „osłona kompana" z rejestru okazała się zmyślona). W drugim `%name%` to sama
-      // WARTOŚĆ, nie strona. Reguła podstawiania jest różna dla różnych kluczy,
-      // więc jedna wspólna skłamałaby w 71 ze 147 przypadków — a to jest
-      // dokładnie ten rodzaj uogólnienia, który kosztował `AUDYT‑93` i `‑94`.
+      // W pierwszym nick z wartości nie jest ANI `f1`, ANI `f2`. W drugim
+      // `%name%` to sama WARTOŚĆ, nie strona. Reguła podstawiania jest różna dla
+      // różnych kluczy, więc jedna wspólna skłamałaby w 71 ze 147 przypadków —
+      // a to jest dokładnie ten rodzaj uogólnienia, który kosztował `AUDYT‑93`
+      // i `‑94`. **Klient potwierdził to później, wprost**: przy `shout`, `mana`,
+      // `energy` i `aura-resall` `%name%` to `f1.name`, a przy `+oth_dmg`
+      // i `+oth_cover` — trzeci człon wartości (`AUDYT‑106`).
       //
       // Klucz jest PRAWDĄ; zdanie z dziurą udaje brzmienie z gry, którym nie
-      // jest. Wolno pokazać „nie wiadomo", nie wolno zgadnąć.
+      // jest. Wolno pokazać „nie wiadomo", nie wolno zgadnąć — ale gdy klient
+      // MÓWI, czym wypełnić dziurę, to już nie jest zgadywanie i wtedy
+      // podstawia je `PODSTAWIENIA_Z_WARTOSCI` piętro wyżej.
       if (zdanie === null || /%[a-z_0-9]+%/i.test(zdanie)) return p.klucz;
       // ZNAK WIODĄCY SPADA. Gra dokleja go do zdania, bo w oknie walki niesie
       // informację (dodatnie efekty na plusie, ujemne na minusie); w panelu

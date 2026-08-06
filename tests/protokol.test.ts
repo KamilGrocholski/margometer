@@ -10,7 +10,8 @@ import {
   TABELE_KLUCZY,
   znaneKlucze,
 } from "../src/protokol.ts";
-import { dotLabel, RODZAJE_Z_ETYKIETA } from "../src/types.ts";
+import { dotLabel, RODZAJE_Z_ETYKIETA, type BattleEvent } from "../src/types.ts";
+import { SlownikStaly } from "../src/slownik-gry.ts";
 import type { RosterEntry } from "../src/roster.ts";
 import { ZAMROZENIE } from "./klucze-protokolu.ts";
 
@@ -938,17 +939,26 @@ describe("dekoduj: efekt rzucony poza ciosem", () => {
  * z dziurą, **147 z 546** po wpuszczeniu efektów spoza ciosu.
  */
 describe("dekoduj: brzmienie z dziurą jest gorsze od klucza", () => {
-  const slownikZ = (zdanie: string) => ({ zdanie: () => zdanie });
+  /**
+   * Atrapa PODSTAWIAJĄCA, a nie zwracająca stały napis — inaczej testy niżej
+   * byłyby zielone niezależnie od tego, co robi `parametryZdania`. `SlownikStaly`
+   * używa tego samego `podstaw`, co ścieżka produkcyjna.
+   */
+  const slownikZ = (id: string, szablon: string) => new SlownikStaly([[id, szablon]]);
+  const etykiety = (z: BattleEvent | undefined) =>
+    (z as { procs: { key: string; label: string }[] }).procs.map((p) => p.label);
 
   test("zdanie z niepodstawionym `%name%` ustępuje kluczowi", () => {
+    // `mana` — klucz, którego NIE MA w `PODSTAWIENIA_Z_WARTOSCI`. Klient
+    // podstawia tam `f1.name`, czyli nazwę spoza wartości, więc my nie mamy
+    // czym wypełnić dziury i zdanie ustępuje kluczowi.
     const [z] = dekoduj(
-      ["1=100.00;2=90.00;+dmgd=10;-dmgd=10;+oth_dmg=8868,g,Ktoś(70.85%)"],
+      ["1=100.00;2=90.00;+dmgd=10;-dmgd=10;mana=-50"],
       SKLAD,
-      slownikZ("+Osłona %val% %name%"),
+      slownikZ("msg_receivemana %name% %val%", "%name% odzyskał %val% many"),
     );
-    const procs = (z as { procs: { key: string; label: string }[] }).procs;
 
-    expect(procs[0]!.label).toBe("+oth_dmg");
+    expect(etykiety(z)).toEqual(["mana"]);
   });
 
   test("zdanie BEZ dziury przechodzi normalnie — para dla testu wyżej", () => {
@@ -957,11 +967,50 @@ describe("dekoduj: brzmienie z dziurą jest gorsze od klucza", () => {
     const [z] = dekoduj(
       ["1=100.00;2=90.00;+dmgd=10;-dmgd=10;+pierce"],
       SKLAD,
-      slownikZ("+Przebicie"),
+      slownikZ("msg_+pierce", "+Przebicie"),
     );
-    const procs = (z as { procs: { key: string; label: string }[] }).procs;
 
-    expect(procs[0]!.label).toBe("Przebicie");
+    expect(etykiety(z)).toEqual(["Przebicie"]);
+  });
+
+  /**
+   * `+oth_dmg` — dziura, którą KLIENT każe wypełnić z samej wartości
+   * (`AUDYT‑106`). `BattleMessages.js:596‑602`: `'%val%': mm[0]`,
+   * `'%name%': mm[2]`. To nie jest zgadywanie, więc etykieta ma być zdaniem.
+   */
+  test("`+oth_dmg` wypełnia `%name%` z TRZECIEGO członu wartości", () => {
+    const [z] = dekoduj(
+      ["1=100.00;2=90.00;+dmgd=10;-dmgd=10;+oth_dmg=8868,g,Ktoś(70.85%)"],
+      SKLAD,
+      slownikZ("msg_+oth_dmg %val% %name%", "−%val% obrażeń otrzymał %name%"),
+    );
+
+    expect(etykiety(z)).toEqual(["−8868 obrażeń otrzymał Ktoś(70.85%)"]);
+  });
+
+  /**
+   * ⚠️ **PODSTAWIENIE DOTYCZY BRZMIENIA, NIE LICZB.** Świadek życia poprawia się
+   * po doliczeniu tych obrażeń z 0/71 na 25/71 — kierunek pewny, wielkość nie —
+   * więc `+oth_dmg` zostaje procem. Ta asercja pilnuje decyzji: gdyby ktoś przy
+   * okazji ładniejszej etykiety przeniósł klucz do obrażeń, zapali się tutaj.
+   */
+  test("ładniejsza etykieta NIE zamienia `+oth_dmg` w obrażenia", () => {
+    const zd = dekoduj(["1=100.00;2=90.00;+oth_dmg=8868,g,Ktoś(70.85%)"], SKLAD);
+
+    expect(zd.filter((z) => z.kind === "attack")).toEqual([]);
+    expect(zd.filter((z) => z.kind === "unknown")).toEqual([]);
+  });
+
+  test("wartość krótsza, niż zakłada wzór, spada do klucza zamiast pustego miejsca", () => {
+    // Zmiana formatu po stronie gry ma być GŁOŚNA. Podstawienie pustym ciągiem
+    // dałoby „−8868 obrażeń otrzymał ", czyli zdanie wyglądające na poprawne.
+    const [z] = dekoduj(
+      ["1=100.00;2=90.00;+dmgd=10;-dmgd=10;+oth_dmg=8868,g"],
+      SKLAD,
+      slownikZ("msg_+oth_dmg %val% %name%", "−%val% obrażeń otrzymał %name%"),
+    );
+
+    expect(etykiety(z)).toEqual(["+oth_dmg"]);
   });
 });
 
