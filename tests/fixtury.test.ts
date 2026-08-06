@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { FIXTURY, swiadekZycia, type Fixtura } from "./fixtury.ts";
 import { cios, leczenie, trafienie } from "./zdarzenia.ts";
-import { graniceWalk, pseudonimizuj, stronyKomunikatu } from "../tools/walka.ts";
+import {
+  graniceWalk,
+  pseudonimizuj,
+  stronyKomunikatu,
+  zdejmijOpisy,
+  ZDJETY_OPIS,
+} from "../tools/walka.ts";
 import { KOMUNIKATY, SKLAD } from "./walka-z-gry.ts";
 import { dekoduj } from "../src/protokol.ts";
 import { aggregate } from "../src/stats.ts";
@@ -205,6 +211,55 @@ describe.each(FIXTURY)("$nazwa", (f: Fixtura) => {
    */
   test("plik jest punktem stałym pseudonimizacji — nie został ani jeden nick", () => {
     expect(pseudonimizuj(f.zrzut).zmienionych).toBe(0);
+  });
+
+  /**
+   * ZDANIE NAPISANE PRZEZ TWÓRCÓW GRY NIE MA PRAWA LEŻEĆ W REPO NA MIT —
+   * znów dwa strażniki, znów dlatego, że łapią co innego.
+   *
+   * Ten pierwszy jest punktem stałym, tak jak przy pseudonimach: `zdejmijOpisy`
+   * jest idempotentne, więc plik po redakcji nie ma już czego zdejmować.
+   * Zna jednak wyłącznie POLE NUMER 5 w grupie po dziesięć — jeśli gra kiedyś
+   * przestawi układ ładunku, ten strażnik będzie milczał na całej tablicy.
+   */
+  test("plik jest punktem stałym zdejmowania opisów", () => {
+    expect(zdejmijOpisy(f.zrzut).zdjetych).toBe(0);
+  });
+
+  /**
+   * Drugi NIE ZNA ŻADNEGO OFFSETU i to jest cały jego sens.
+   *
+   * Sito po kształcie tekstu: **pięć słów albo więcej**. Zmierzony margines na
+   * zrzucie z 2026‑08‑06 jest szeroki i to on wyznaczył próg — opisy mają
+   * 9, 11, 24, 25 i 27 słów, a WSZYSTKO, co w `skills` zostaje (nazwa
+   * umiejętności, `reqp=h;reqw=dis;lvl=25`, `red-sa=16;cooldown=5`, `1/10`),
+   * ma ich najwyżej dwa. Kuszące „dwa polskie słowa obok siebie" próbowano
+   * pierwsze i było o jeden krok za szerokie: zapala się na `Błyskawiczny
+   * strzał`, czyli na NAZWIE umiejętności, która jest nazwą funkcyjną i ma tu
+   * zostać.
+   *
+   * ⚠️ **DWIE MUTACJE, obie uruchomione i cofnięte (2026‑08‑06):**
+   *
+   * | co zepsute | co się zapaliło |
+   * |---|---|
+   * | zdanie z gry wstawione na offset 5 | OBA strażniki |
+   * | zdanie z gry wstawione na INNY offset | **tylko ten** — dowód, że nie jest kopią tamtego |
+   *
+   * Czego NIE łapie żaden z dwóch: zdania z gry poza `ladunek.skills` w ogóle —
+   * w `txt=`, w `render`, w komunikacie. To ta sama granica, co przy nickach,
+   * i domyka ją ten sam krok 4 dla człowieka w `tests/fixtures/README.md`.
+   */
+  test("w `skills` nie ma ani jednego zdania z gry, niezależnie od układu pól", () => {
+    const zdania: string[] = [];
+    for (const wpis of f.zrzut.wpisy) {
+      const skills = wpis.ladunek["skills"];
+      if (!Array.isArray(skills)) continue;
+      for (const pole of skills) {
+        if (typeof pole !== "string" || pole === ZDJETY_OPIS) continue;
+        if (pole.trim().split(/\s+/).filter(Boolean).length >= 5) zdania.push(pole);
+      }
+    }
+    expect(zdania).toEqual([]);
   });
 
   test("skład da się wyprowadzić — zrzut niesie `myteam`", () => {

@@ -15,6 +15,8 @@ import {
   walkiWZrzucie,
   wybierzWalke,
   zachowajZrzut,
+  zdejmijOpisy,
+  ZDJETY_OPIS,
   type Wywolanie,
   type Zrzut,
 } from "../tools/walka.ts";
@@ -558,6 +560,97 @@ describe("pseudonimizuj", () => {
 
     const powtornie = JSON.parse(zachowajZrzut(czytajZrzut(JSON.stringify(zapisany)))) as Zrzut;
     expect(powtornie.pseudonimow).toBe(2);
+  });
+});
+
+/**
+ * `zdejmijOpisy` — zdania napisane przez twórców gry nie wchodzą do repo na MIT.
+ *
+ * Druga kategoria po pseudonimach i z tego samego powodu: `NOTICE.md`, regulamin
+ * gry VII.2 m. Reguła ⛔ **BRZMIENIA GRY → NIGDZIE** stała w `AGENTS.md` od
+ * 2026‑08‑06 i po stronie materiału nie pilnowało jej nic — dokładnie ta sama
+ * dziura, którą tego samego dnia zamknięto po stronie nicków.
+ *
+ * ⚠️ **ZDANIA W TYM BLOKU SĄ ZMYŚLONE I MAJĄ TAKIE ZOSTAĆ**, z tego samego
+ * powodu, co zmyślone nicki wyżej: test „usuwacz cudzej treści działa" niosący
+ * cudzą treść jest najgłupszą wersją tego błędu.
+ */
+describe("zdejmijOpisy", () => {
+  // Układ z gry: dziesięć pól na umiejętność, opis na piątym.
+  const umiejetnosc = (opis: string) => [
+    "85",
+    "Nazwa Umiejętności",
+    "5",
+    "9",
+    "4",
+    opis,
+    "reqp=h;lvl=25",
+    "1/10",
+    "red-sa=16;cooldown=5",
+    "",
+  ];
+  const zeSkillami = (skills: unknown[]): Zrzut => ({
+    wersja: 1,
+    przy: "2026-08-06T10:00:00.000Z",
+    swiat: "tempest",
+    build: "1785244275300",
+    otwarcie: null,
+    wpisy: [
+      {
+        nr: 0,
+        ladunek: { init: "1", myteam: 1, skills },
+        komunikaty: [],
+        wojownicyPrzed: [],
+        wojownicyPo: [],
+      },
+    ],
+  });
+
+  const skills = (z: Zrzut) => z.wpisy[0]!.ladunek["skills"] as string[];
+
+  test("opis schodzi, a `id`, nazwa, wymagania i parametry ZOSTAJĄ", () => {
+    // To jest cała granica tej funkcji: nazwy funkcyjne są materiałem i zostają,
+    // proza jest cudzą twórczością i schodzi. Ta sama linia, co przy `+abdest`
+    // kontra zdanie spod tego klucza.
+    const wynik = zdejmijOpisy(zeSkillami(umiejetnosc("Zmyślone zdanie o czymś tam.")));
+
+    expect(wynik.zdjetych).toBe(1);
+    expect(skills(wynik.zrzut)[5]).toBe(ZDJETY_OPIS);
+    expect(skills(wynik.zrzut)[0]).toBe("85");
+    expect(skills(wynik.zrzut)[1]).toBe("Nazwa Umiejętności");
+    expect(skills(wynik.zrzut)[6]).toBe("reqp=h;lvl=25");
+    expect(skills(wynik.zrzut)[8]).toBe("red-sa=16;cooldown=5");
+  });
+
+  test("pusty opis nie jest zdjęciem — nie ma czego liczyć", () => {
+    // Umiejętność bez opisu wygląda tak samo w zrzucie z gry; liczenie jej
+    // podniosłoby `opisow` o coś, czego nigdy w pliku nie było.
+    expect(zdejmijOpisy(zeSkillami(umiejetnosc(""))).zdjetych).toBe(0);
+  });
+
+  test("drugi przebieg nie zmienia nic — na tym stoi strażnik fixture'ów", () => {
+    const raz = zdejmijOpisy(zeSkillami(umiejetnosc("Zmyślone zdanie o czymś tam.")));
+    const dwa = zdejmijOpisy(raz.zrzut);
+
+    expect(dwa.zdjetych).toBe(0);
+    expect(dwa.zrzut).toEqual(raz.zrzut);
+  });
+
+  test("tablica o nieznanym układzie ZATRZYMUJE zapis, zamiast ciąć po numerze", () => {
+    // Grupa po dziesięć jest zdaniem o GRZE (`docs/MECHANIKA.md`). Gdyby gra
+    // przestawiła układ, wycięcie pola 5 usunęłoby nie to, co trzeba — i zrobiło
+    // to na materiale dowodowym, po cichu.
+    expect(() => zdejmijOpisy(zeSkillami(["85", "Nazwa", "5"]))).toThrow(/wielokrotność/);
+  });
+
+  test("`opisow` mówi, ile zdjęto, i SUMUJE się przy powtórnym przebiegu", () => {
+    const zapisany = JSON.parse(
+      zachowajZrzut(zeSkillami(umiejetnosc("Zmyślone zdanie o czymś tam."))),
+    ) as Zrzut;
+    expect(zapisany.opisow).toBe(1);
+
+    const powtornie = JSON.parse(zachowajZrzut(czytajZrzut(JSON.stringify(zapisany)))) as Zrzut;
+    expect(powtornie.opisow).toBe(1);
   });
 });
 

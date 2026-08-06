@@ -38,8 +38,8 @@ i na jakiej podstawie:
   `maZdanie: boolean`, ubyło 0 testów. Dodatek brzmienia bierze z żywej gry
   przez `window._t`, więc użytkownik niczego nie traci.
 
-- **Zrzut własnej walki** — `tests/fixtures/*.json`. Zapis jednej walki własną
-  postacią przeciw potworom, tak jak przysłał go serwer. Pole `render` niesie
+- **Zrzuty własnych walk** — `tests/fixtures/*.json`. Zapisy walk własną
+  postacią, tak jak przysłał je serwer. W najstarszym pliku pole `render` niesie
   36 zdań złożonych przez klienta gry (6,4 kB) — nasz kod ich nie czyta,
   a wycięcie ich byłoby edytowaniem materiału dowodowego, czego `AGENTS.md`
   zabrania. To zapis własnej rozgrywki, nie wyciąg ze słownika gry, i tak jest
@@ -52,7 +52,19 @@ i na jakiej podstawie:
   jednym pliku**, a nie o procedurze: jedyny fixture to walka solo z potworami,
   więc nie było czego wpuścić. Lista brakującego materiału (blok, unik,
   absorpcja, walka turowa) prowadzi wprost do walk grupowych i PvP, więc
-  przypadek przestałby wystarczać przy następnym zrzucie.
+  przypadek przestałby wystarczać przy następnym zrzucie. **Przestał tego samego
+  dnia:** drugi fixture to walka dziesięciorga graczy i wszedł już z gotowym
+  podstawieniem.
+
+  **Opisy umiejętności są z tych plików ZDJĘTE.** Ładunek walki niesie pełne
+  opisy umiejętności napisane przez twórców gry („Wzmacniasz truciznę, którą
+  nasączona jest twoja strzała…"). To cudza twórczość — **ta sama podstawa, co
+  przy szablonach renderera wyżej** — więc zdejmuje je `zdejmijOpisy`
+  w `tools/walka.ts`, automatycznie przy każdym wejściu materiału, a ile zeszło,
+  mówi pole `opisow` w samym pliku. Zostają `id` umiejętności, jej NAZWA,
+  wymagania i parametry (`red-sa=16;cooldown=5`): to nazwy funkcyjne, a nazwa
+  umiejętności przychodzi i tak w samym protokole (`tspell=Zatruta strzała`),
+  więc jej wycięcie nic by nie zmieniło.
 
   Zostają `id`, poziomy i wszystkie liczby — bez `id` protokół nie ma jak
   wskazać stron, a liczby są w tym pliku dowodem. To jest więc

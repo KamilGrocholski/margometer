@@ -101,6 +101,7 @@ export function czytajZrzut(tekst: string): Zrzut {
     ...(z.przepelniony === true ? { przepelniony: true } : {}),
     ...(typeof z.odchudzonych === "number" ? { odchudzonych: z.odchudzonych } : {}),
     ...(typeof z.pseudonimow === "number" ? { pseudonimow: z.pseudonimow } : {}),
+    ...(typeof z.opisow === "number" ? { opisow: z.opisow } : {}),
     wpisy: z.wpisy.map(wpisZrzutu),
   };
 }
@@ -544,6 +545,77 @@ export function pseudonimizuj(zrzut: Zrzut): Pseudonimizacja {
   return { zrzut: mapuj(zrzut) as Zrzut, zmienionych, mapa };
 }
 
+/** Ile pól opisu zeszło z ładunku. */
+export type Odopisanie = { zrzut: Zrzut; zdjetych: number };
+
+/**
+ * Pole na opis w `ladunek.skills`. Grupa opisuje jedną umiejętność.
+ *
+ * ⚠️ **TO JEST ZDANIE O GRZE** i podlega procedurze z `docs/MECHANIKA.md`.
+ * Zmierzone na zrzucie z 2026‑08‑06 (`tempest`, build `1785244275300`):
+ * tablica ma 70 pól na 7 umiejętności, a w grupie stoją kolejno `id`, nazwa,
+ * dwie liczby, jeszcze jedna, OPIS, wymagania (`reqp=h;lvl=25`), postęp
+ * (`1/10`), parametry (`red-sa=16;cooldown=5`) i puste. Odczytane z materiału,
+ * nie z pomocy gry — pomoc formatu ładunku nie opisuje ani jednym zdaniem.
+ */
+const POL_W_UMIEJETNOSCI = 10;
+const OPIS_W_UMIEJETNOSCI = 5;
+
+/** Czym zastępujemy opis. Widoczne, żeby nie udawało „gra nic nie przysłała". */
+export const ZDJETY_OPIS = "(opis z gry — zdjęty, NOTICE.md)";
+
+/**
+ * Zrzut bez opisów umiejętności skopiowanych z gry.
+ *
+ * PO CO, I NIE JEST TO OSTROŻNOŚĆ. `ladunek.skills` niesie pełne zdania
+ * autorstwa twórców gry („Wzmacniasz truciznę, którą nasączona jest twoja
+ * strzała…"). To cudza twórczość i w publicznym repozytorium na MIT nie ma jej
+ * prawa być — ta sama podstawa, co przy szablonach renderera (`NOTICE.md`,
+ * regulamin gry VII.2 m). Reguła ⛔ **BRZMIENIA GRY → NIGDZIE** stała w
+ * `AGENTS.md` od 2026‑08‑06 i po stronie MATERIAŁU nie pilnowało jej nic —
+ * dokładnie tak samo, jak przed tą samą datą było z pseudonimami.
+ *
+ * CO ZOSTAJE NIETKNIĘTE: `id` umiejętności, jej NAZWA, wymagania, postęp
+ * i parametry. To nazwy funkcyjne, nie proza — ta sama granica, co przy
+ * `+abdest` kontra „+Zniszczono %val% absorpcji". Nazwa umiejętności zostaje
+ * także dlatego, że protokół niesie ją niezależnie (`tspell=Zatruta strzała`)
+ * i wycięcie jej z ładunku niczego by nie zmieniło.
+ *
+ * ODMOWA PRZY NIEZNANYM KSZTAŁCIE. Grupa po dziesięć jest zdaniem o grze
+ * (wyżej), więc tablica, która się na dziesięć nie dzieli, **zatrzymuje zapis**.
+ * Ciche wycięcie pola 5 z tablicy o innym układzie usunęłoby nie to, co trzeba,
+ * i zrobiłoby to na materiale dowodowym.
+ *
+ * CZEGO TA FUNKCJA NIE ZROBI — ta sama granica, co przy `pseudonimizuj`, i tak
+ * samo trafia do procedury dla człowieka. Zna wyłącznie `ladunek.skills`.
+ * Zdanie z gry wstawione gdziekolwiek indziej (opis w `txt=`, komunikat
+ * renderera) przechodzi przez nią nietknięte.
+ */
+export function zdejmijOpisy(zrzut: Zrzut): Odopisanie {
+  let zdjetych = 0;
+  const wpisy = zrzut.wpisy.map((wpis) => {
+    const surowe = wpis.ladunek["skills"];
+    if (!Array.isArray(surowe) || surowe.length === 0) return wpis;
+    if (surowe.length % POL_W_UMIEJETNOSCI !== 0) {
+      throw new Error(
+        `\`ladunek.skills\` w wywołaniu ${wpis.nr} ma ${surowe.length} pól, a nie ` +
+          `wielokrotność ${POL_W_UMIEJETNOSCI} — układ ładunku jest inny, niż zakłada ` +
+          "`zdejmijOpisy`. Wycięcie pola po numerze usunęłoby nie to, co trzeba.",
+      );
+    }
+    const skills = surowe.map((pole, i) => {
+      if (i % POL_W_UMIEJETNOSCI !== OPIS_W_UMIEJETNOSCI) return pole;
+      // Puste pole to umiejętność, której gra opisu nie przysłała — nie ma czego
+      // zdejmować i nie ma czego liczyć.
+      if (typeof pole !== "string" || pole === "" || pole === ZDJETY_OPIS) return pole;
+      zdjetych += 1;
+      return ZDJETY_OPIS;
+    });
+    return { ...wpis, ladunek: { ...wpis.ladunek, skills } };
+  });
+  return { zrzut: { ...zrzut, wpisy }, zdjetych };
+}
+
 /**
  * Wywołania, w których ładunek niesie `init` — czyli GRANICE WALK.
  *
@@ -635,9 +707,16 @@ export function nazwaFixtura(zrzut: Zrzut, nazwa: string): string {
  * tamtej rundy — „plik danych da się dołożyć bez dotknięcia jednego testu,
  * leżał martwy" — zamyka `tests/fixtury.test.ts`, który odkrywa pliki SAM.
  *
- * WCIĘTY, nie zminifikowany: 28 kB zamiast 16 kB przy największym zrzucie, za to
- * diff przy podmianie materiału daje się przeczytać. Ten sam wybór, co przy
- * zamrożonej tabeli kluczy (`tools/slownik.ts --zamroz`).
+ * WCIĘTY, nie zminifikowany: diff przy podmianie materiału daje się przeczytać.
+ * Ten sam wybór, co przy zamrożonej tabeli kluczy (`tools/slownik.ts --zamroz`).
+ *
+ * ⚠️ **STAŁA TU LICZBA „28 kB zamiast 16 kB przy największym zrzucie"**
+ * i skalibrowana była na plik z jednym wywołaniem. Walka grupowa z 2026‑08‑06
+ * ma ich 102 i daje **1,4 MB zamiast 0,6 MB** — ta sama decyzja, ale kosztuje
+ * pięćdziesiąt razy więcej i warto, żeby następny czytelnik znał prawdziwy
+ * rząd wielkości, zanim ją powtórzy. Wybór został świadomie: materiału z gry
+ * i tak się ręcznie nie edytuje, ale to WŁAŚNIE diff mówi, czy podmiana pliku
+ * zmieniła materiał, czy tylko go przeformatowała.
  */
 export function zachowajZrzut(zrzut: Zrzut): string {
   // PSEUDONIMY LECĄ PIERWSZE, przed odchudzaniem — żeby nie było w tym pliku ani
@@ -645,17 +724,22 @@ export function zachowajZrzut(zrzut: Zrzut): string {
   // Kolejność nie zmienia wyniku (`odchudz` porównuje kształty i stany, a te
   // podstawienie zachowuje), więc decyduje o niej wyłącznie ta zasada.
   const czysty = pseudonimizuj(zrzut);
+  // OPISY UMIEJĘTNOŚCI SCHODZĄ ZARAZ POTEM, z tego samego powodu i w tej samej
+  // kolejności: cudza treść ma wyjść z danych, zanim cokolwiek zacznie je ciąć.
+  const bezOpisow = zdejmijOpisy(czysty.zrzut);
   // ODCHUDZANIE ROBI NARZĘDZIE, NIE CZŁOWIEK. Ręczne wycinanie wpisów byłoby
   // edytowaniem materiału dowodowego, czego `AGENTS.md` zabrania; `odchudz`
   // robi to deterministycznie i nie gubi informacji (zostaje każde wywołanie
   // z komunikatami, każdy nowy kształt ładunku i każda nowa migawka).
-  const chude = odchudz(czysty.zrzut.wpisy);
+  const chude = odchudz(bezOpisow.zrzut.wpisy);
   return `${JSON.stringify(
     {
-      ...czysty.zrzut,
+      ...bezOpisow.zrzut,
       // SUMUJEMY, a nie nadpisujemy: plik przepuszczony przez `--pseudonimizuj`
       // drugi raz podstawia zero i ma zachować pamięć o pierwszym przebiegu.
       pseudonimow: (zrzut.pseudonimow ?? 0) + czysty.zmienionych,
+      // Ta sama zasada, co linijkę wyżej.
+      opisow: (zrzut.opisow ?? 0) + bezOpisow.zdjetych,
       // Ile odpadło TU, przy zachowaniu — osobno od `pominietych`, które niesie
       // to, co odsiał kolekcjoner jeszcze w grze. Zsumowane w jedno pole nie
       // dałoby się już rozdzielić, a to dwa różne fakty o materiale.
@@ -668,25 +752,39 @@ export function zachowajZrzut(zrzut: Zrzut): string {
 }
 
 /**
- * Fixture przepuszczony przez podstawienie JESZCZE RAZ, bez odchudzania.
+ * Fixture przepuszczony przez REDAKCJĘ jeszcze raz, bez odchudzania.
  *
  * PO CO OSOBNO OD `zachowajZrzut`. Plik leżący już w `tests/fixtures/` jest
  * odchudzony, więc powtórne `odchudz` policzyłoby `odchudzonych: 0` i skasowało
  * prawdziwą liczbę z pierwszego przebiegu — a to jedyny ślad po tym, ile z tamtego
  * zrzutu było odpytywaniem po walce.
  *
- * Istnieje, bo materiał wchodzący do repo przed 2026‑08‑06 podstawienia nie
+ * Istnieje, bo materiał wchodzący do repo przed 2026‑08‑06 redakcji nie
  * przechodził, a oryginalnych zrzutów w repo NIE MA i `--zachowaj` nie ma czego
  * powtórzyć. Droga jednorazowa z założenia; nowe pliki załatwia `--zachowaj`.
+ *
+ * ⚠️ **ROBI OBA ZABIEGI, nie sam podstawienie.** Opisy umiejętności zeszły
+ * z drzewa tego samego dnia co pseudonimy i z tego samego powodu; gdyby ta droga
+ * zdejmowała tylko jedno, plik „po redakcji" nadal łamałby regułę, a strażnik
+ * zapalałby się bez narzędzia, którym dałoby się go zgasić.
  */
-export function przepiszFixture(zrzut: Zrzut): { tresc: string; wynik: Pseudonimizacja } {
+export function przepiszFixture(zrzut: Zrzut): {
+  tresc: string;
+  wynik: Pseudonimizacja;
+  zdjetych: number;
+} {
   const wynik = pseudonimizuj(zrzut);
+  const bezOpisow = zdejmijOpisy(wynik.zrzut);
   const tresc = `${JSON.stringify(
-    { ...wynik.zrzut, pseudonimow: (zrzut.pseudonimow ?? 0) + wynik.zmienionych },
+    {
+      ...bezOpisow.zrzut,
+      pseudonimow: (zrzut.pseudonimow ?? 0) + wynik.zmienionych,
+      opisow: (zrzut.opisow ?? 0) + bezOpisow.zdjetych,
+    },
     null,
     2,
   )}\n`;
-  return { tresc, wynik };
+  return { tresc, wynik, zdjetych: bezOpisow.zdjetych };
 }
 
 /**
@@ -812,15 +910,37 @@ if (import.meta.main) {
   const przepisz = tekstowa(argumenty, "--pseudonimizuj");
   const klucze = argumenty.includes("--klucze");
 
+  // ROZSTRZYGANIE FLAG JEST WYKLUCZAJĄCE, nie kumulatywne: pierwsza dopasowana
+  // gałąź kończy się `process.exit(0)`. Podanie dwóch trybów naraz wykonywało
+  // po cichu tylko ten wcześniejszy — a `--pseudonimizuj --zachowaj` wygląda
+  // jak prośba o oba i nadpisuje plik ŹRÓDŁOWY zamiast zapisać fixture.
+  // Odmowa zamiast cichego wyboru; ta sama zasada, co przy zrzucie sklejonym
+  // z dwóch walk.
+  const tryby = [
+    ["--pseudonimizuj", przepisz],
+    ["--zachowaj", zachowaj],
+    ["--rozbij", rozbij],
+    ["--pokaz", pokaz],
+    ["--klucze", klucze ? "" : null],
+  ].filter(([, wartosc]) => wartosc !== null);
+  if (tryby.length > 1) {
+    throw new Error(
+      `podano ${tryby.length} tryby naraz (${tryby.map(([flaga]) => flaga).join(", ")}) — ` +
+        "narzędzie wykonuje dokładnie jeden i nie ma jak zgadnąć który",
+    );
+  }
+
   if (przepisz !== null) {
     const zrzut = czytajZrzut(await Bun.file(przepisz).text());
-    const { tresc, wynik } = przepiszFixture(zrzut);
-    if (wynik.zmienionych === 0) {
-      console.log(`${przepisz}: nie ma czego podstawiać — plik już jest po redakcji`);
+    const { tresc, wynik, zdjetych } = przepiszFixture(zrzut);
+    if (wynik.zmienionych === 0 && zdjetych === 0) {
+      console.log(`${przepisz}: nie ma czego redagować — plik już jest po niej`);
       process.exit(0);
     }
     await Bun.write(przepisz, tresc);
-    console.log(`przepisane: ${przepisz} (${wynik.zmienionych} wystąpień)`);
+    console.log(
+      `przepisane: ${przepisz} (${wynik.zmienionych} pseudonimów, ${zdjetych} opisów)`,
+    );
     raportPodstawien(wynik);
     process.exit(0);
   }
@@ -875,11 +995,13 @@ if (import.meta.main) {
     // wiedzieć o wypisywaniu na ekran.
     const podstawienia = pseudonimizuj(zrzut);
     console.log(`  pseudonimów podstawionych: ${podstawienia.zmienionych}`);
+    console.log(`  opisów umiejętności zdjętych: ${zdejmijOpisy(zrzut).zdjetych}`);
     raportPodstawien(podstawienia);
     console.log("  niezmienniki z `tests/fixtury.test.ts` obejmą go bez dopisywania czegokolwiek");
     console.log(
       "  ⚠ przeczytaj jeszcze `otwarcie` i `render` w zapisanym pliku — nazwy spoza " +
-        "`w{}` przechodzą przez podstawienie nietknięte (tests/fixtures/README.md, krok 4)",
+        "`w{}` i zdania z gry spoza `skills` przechodzą przez redakcję nietknięte " +
+        "(tests/fixtures/README.md, krok 4)",
     );
     process.exit(0);
   }
@@ -995,8 +1117,9 @@ if (import.meta.main) {
       "  bun tools/walka.ts --pseudonimizuj <tests/fixtures/….json>  (redakcja starego pliku)",
       "",
       "`--zachowaj` zapisuje SUROWY zrzut jako fixture — z migawkami `hp.max`,",
-      "ładunkami i granicami wywołań, i PO podstawieniu pseudonimów graczy",
-      "(`Gracz 1`, `Gracz 2`; repo jest publiczne). `--rozbij` robi z niego moduł",
+      "ładunkami i granicami wywołań, i PO REDAKCJI: pseudonimy graczy schodzą",
+      "na `Gracz 1`, `Gracz 2`, a opisy umiejętności z `ladunek.skills` znikają",
+      "(repo jest publiczne i na MIT — NOTICE.md). `--rozbij` robi z niego moduł",
       "TS z komunikatami i składem; modułu potrzebuje `build.ts`, fixture'a —",
       "niezmienniki w `tests/fixtury.test.ts`.",
       "",

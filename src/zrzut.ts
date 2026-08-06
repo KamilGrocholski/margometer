@@ -103,7 +103,16 @@ export type Zrzut = {
    * zostaje dla zgodności ze zrzutami sondy i niesie linię PIERWSZEJ walki.
    */
   otwarcia?: Record<string, string | null>;
-  /** Skąd wziął się zrzut. Brak pola znaczy „sonda" — tak wyglądają stare pliki. */
+  /**
+   * Skąd wziął się zrzut. **Brak pola znaczy „NIE WIADOMO", a nie „sonda".**
+   *
+   * ⚠️ Stało tu „brak pola znaczy »sonda« — tak wyglądają stare pliki" i było
+   * to o jeden krok za daleko: prawdą jest, że tak wyglądają stare pliki sondy,
+   * nieprawdą — że tak wygląda WYŁĄCZNIE plik sondy. Czytelnik po drugiej
+   * stronie (`pochodzenie` w `tools/walka.ts`) naprawił to przy `AUDYT‑64`
+   * i mówi „Zrzut o NIEUSTALONYM pochodzeniu"; proza tutaj została przy starym
+   * zdaniu i przez dobę te dwa pliki mówiły co innego o tym samym polu.
+   */
   zrodlo?: "sonda" | "dodatek";
   /**
    * Ile wywołań odpadło jako DOKŁADNE powtórzenie. Patrz `czyZachowac`.
@@ -135,6 +144,19 @@ export type Zrzut = {
    * brak pola znaczy „plik sprzed 2026‑08‑06, redakcji nie było".
    */
   pseudonimow?: number;
+  /**
+   * Ile opisów umiejętności zdjęto z `ladunek.skills`, zanim zrzut trafił do repo.
+   *
+   * TRZECIE POLE TEGO SAMEGO WZORU, co `odchudzonych` i `pseudonimow`: pisze je
+   * wyłącznie `zdejmijOpisy` w `tools/walka.ts`, dodatek nigdy. Powód jest ten
+   * sam co przy pseudonimach i jest LICENCYJNY, nie techniczny: opis
+   * umiejętności to cudza twórczość, a repozytorium jest publiczne i na MIT
+   * (`NOTICE.md`). Plik ma sam mówić, że przeszedł ten zabieg.
+   *
+   * `0` znaczy „nie było czego zdejmować"; brak pola znaczy „plik sprzed
+   * 2026‑08‑06".
+   */
+  opisow?: number;
   wpisy: Wywolanie[];
 };
 
