@@ -3081,7 +3081,7 @@ czyli niezmiennik zapala się na tym, co naprawdę stało w drzewie.
 
 **Docelowo.** Zostaje przy kodzie.
 
-### AUDYT‑98 — komunikat bez ani jednej liczby obrażeń gubi CAŁĄ listę efektów 🟡 M — ⬜ ZAPISANE, nienaprawione
+### AUDYT‑98 — komunikat bez ani jednej liczby obrażeń gubi CAŁĄ listę efektów 🟡 M — ✅ NAPRAWIONE ✓
 
 `src/protokol.ts` (wczesny powrót przy `zadane.length === 0 && przyjete.length === 0`)
 
@@ -3108,13 +3108,55 @@ który dołożył drugą prawdziwą walkę. Zmierzone na `grupa-vs-hildur`:
 Pełne liczby, rozkład kluczy i zawężenie („ginie wyłącznie `procy`; `blok`,
 `unik` i `kryt` bez obrażeń w materiale nie występują") stoją w `AUDYT‑102`.
 
-**Status się przez to NIE ZMIENIA — zmienia się podstawa.** Odroczenie stoi na
-koszcie zmiany kontraktu, i to wystarcza. Nie stoi już na braku materiału.
+**✅ NAPRAWIONE 2026‑08‑06** (`4039be7`). `BattleEvent` ma wariant
+`kind: "effect"` — efekt bez trafień, ze stronami i zapowiedzianą
+umiejętnością. Projekt, odrzucone warianty i pomiary:
+[`specy/2026-08-06-efekt-poza-ciosem.md`](specy/2026-08-06-efekt-poza-ciosem.md).
+Efekty docierające do panelu: **299 → 546**.
 
-**Docelowo.** Osobna runda; sygnał, że spec jest potrzebny, jest tu spełniony
-(zmiana kontraktu dotykająca czterech modułów). ⚠️ Kolejność wobec `AUDYT‑99`
-nie jest dowolna: `+oth_dmg` ginie przez OBIE pozycje naraz, więc naprawa jednej
-z nich przy tym kluczu nie da nic, dopóki stoi druga.
+⚠️ **PROMIEŃ OKAZAŁ SIĘ MNIEJSZY, NIŻ ZAPOWIADAŁ TEN WPIS.** Stało tu „za nią
+`stats.ts`, `overlay.ts` i odtwarzanie nagrań". Sprawdzone w kodzie: `overlay.ts`
+renderuje `actor.procs` ogólnie (`:2552`, `:2642`), a nagrania trzymają SUROWE
+komunikaty i `archive.ts:400` woła `dekoduj` od nowa — więc żadne z nich nie
+wymagało zmiany, a stare nagrania przeliczają się same. Ruszyły `types.ts`,
+`protokol.ts`, `stats.ts`. Zapowiedź promienia była ostrożna, nie zmierzona.
+
+**Czego naprawa wymagała PONAD sam wariant** — i bez czego byłaby regresją:
+
+- **Strażnik dziury w etykiecie.** `etykieta()` podstawia wyłącznie `%val%`,
+  a `msg_+oth_dmg %val% %name%` żąda więcej. Dziś **0 z 299** etykiet ma dziurę;
+  po wpuszczeniu efektów spoza ciosu byłoby **147 z 546**, czyli gracz zobaczyłby
+  dosłowne „%name%". Zdanie z dziurą ustępuje kluczowi. Wariant „podstaw `%name%`
+  z pierwszej strony" jest DOWODLIWIE błędny — przy `+oth_dmg` nick z wartości
+  nie jest ani `f1`, ani `f2`, tylko trzecią postacią; skłamałby w 71 ze 147.
+- **Dwa strażniki wyczerpania w `stats.ts`.** `namesIn` miało `default: return []`
+  (nowy wariant nie wniósłby nazw do rozpoznawania instancji — efekt siadłby na
+  złej instancji przy zdublowanych nazwach, PO CICHU), a główny `switch` nie miał
+  niczego. Ta sama awaria co ta pozycja, piętro wyżej. Odtąd oba są błędem
+  KOMPILACJI (`TS2366`, `TS2322`, sprawdzone mutacją). ⚠️ Strażnik **nie rzuca** —
+  ta sama decyzja co przy `rola()`: wyjątek w agregacie zdejmuje graczowi cały
+  panel za pomyłkę, którą i tak zatrzymuje brama.
+
+**Kształt spoza planu, znaleziony przez MNIEJSZY fixture:** `0;0;+exp=3973` —
+komunikat bez obu stron. Pierwsza wersja słała go do `unknown` i zapaliła
+`unknownLines`. Idzie do `info`: rozumiemy wszystko, tylko log nie mówi, czyj to
+efekt, a przypisanie graczowi byłoby zgadywaniem — oczywistym, ale `DECYZJE.md`
+nie robi wyjątku dla oczywistych.
+
+**Czym to jest pilnowane** — i to jest ważniejsze od samej naprawy. Nowy
+niezmiennik po całym korpusie w `tests/fixtury.test.ts`: *każdy efekt
+z komunikatu wychodzi ze zdarzeń*. Napisany PIERWSZY i sprawdzony, że pada
+(299 ≠ 546, 11 ≠ 12). Repo miało już `unknownLines === 0`, czyli pytało „czy
+dekoder ROZUMIE klucz" — i odpowiedź była twierdząca przez cały czas. **Nikt nie
+pytał, czy to, co zrozumiał, gdziekolwiek WYCHODZI.** Rozpoznanie i doręczenie
+to dwa różne pytania; przez brak drugiego 247 efektów ginęło niezauważone.
+
+⚠️ **Co ZOSTAJE otwarte.** `AUDYT‑99` przy `+oth_dmg`: klucz jest dziś WIDOCZNY,
+ale nadal NIELICZONY — niesie kwotę i trzecią postać w wartości, a kontrakt
+zdarzeń stoi na dwóch stronach komunikatu. Jego etykieta pokazuje klucz, nie
+zdanie, i tak zostanie, dopóki nie wiadomo, czym wypełnić `%name%`. Zdanie
+o kolejności obu pozycji zostaje w mocy w JEDNĄ stronę: naprawa `AUDYT‑99` przy
+tym kluczu miała sens dopiero po tej.
 
 ### AUDYT‑99 — cztery dalsze klucze z liczbami zostają nieliczone ⚪ M — ⬜ ZAPISANE, nienaprawione
 
@@ -3285,11 +3327,18 @@ w materiale ani razu** (0/0/0 na obu plikach). Ginie wyłącznie `procy`. Napraw
 potrzebuje więc miejsca dla EFEKTU poza ciosem, a nie dla bloku i uniku poza
 ciosem — te drugie mają już swoją gałąź (`kind: "info"`).
 
-**Docelowo.** `AUDYT‑98` **zostaje otwarte** — zmienia się jego podstawa, nie
-status. Decyzja właściciela repo o odroczeniu naprawy stoi; zmienia się to, że
-nie opiera się już na „braku materiału", bo materiał jest i jest go dużo.
-Sygnał, że potrzebny jest spec, pozostaje spełniony (zmiana kontraktu
-`BattleEvent`, za nią `stats.ts`, `overlay.ts` i odtwarzanie nagrań).
+**Docelowo.** ✅ **Ten pomiar był podstawą naprawy — `AUDYT‑98` zamknięte tego
+samego dnia** (`4039be7`), razem ze specem
+[`specy/2026-08-06-efekt-poza-ciosem.md`](specy/2026-08-06-efekt-poza-ciosem.md).
+Zapisane wyżej ZAWĘŻENIE („ginie wyłącznie `procy`") okazało się trafne i to ono
+wyznaczyło zakres: naprawa dołożyła miejsce dla EFEKTU poza ciosem i nie
+ruszała bloku ani uniku.
+
+⚠️ **Rachunek za tę pozycję, wystawiony po naprawie.** Odroczenie stało na
+zdaniu o braku materiału, które było nieaktualne od doby; sama naprawa zajęła
+jedną rundę i okazała się mniejsza, niż zapowiadał promień w `AUDYT‑98`
+(`overlay.ts` i nagrania nietknięte). Nie znaczy to, że decyzja o odroczeniu
+była zła — znaczy, że **stała na wejściu, którego nikt nie odświeżył**.
 
 ⚠️ **Wniosek na przyszłość, wart więcej niż sama poprawka.** Pozycja odroczona
 „z braku materiału" ma w sobie **warunek, który może zniknąć bez niczyjej

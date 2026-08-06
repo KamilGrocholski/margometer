@@ -263,24 +263,45 @@ niosących punkty; siedem naprawiono, zostają cztery. Pełna tabela z cytatami:
   tabelaryczna. Wartość jest trójczłonowa (`kwota,klasa,nick`) i niesie w środku
   **trzecią postać**, a cały kontrakt zdarzeń stoi na dwóch stronach komunikatu.
 
-  ⚠️ **`+oth_dmg` GINIE PODWÓJNIE i to zmienia kolejność prac** (`AUDYT‑102`).
+  ⚠️ **`+oth_dmg` GINĄŁ PODWÓJNIE i to ustawiło kolejność prac** (`AUDYT‑102`).
   Pada w `grupa-vs-hildur` **71 razy**, i za każdym z nich komunikat nie niesie
-  ani jednej liczby obrażeń — więc wypada w całości przez pozycję „Efekty
-  z komunikatu bez obrażeń przepadają" wyżej, jeszcze zanim ta tabela zdąży coś
-  o nim postanowić. Przeniesienie go do ról **nie dałoby nic**, dopóki tamta
-  pozycja stoi. Zależność jest jednostronna: tamta naprawa nie potrzebuje tej.
+  ani jednej liczby obrażeń — więc wypadał w całości przez pozycję „Efekty
+  z komunikatu bez obrażeń przepadają" wyżej, zanim ta tabela zdążyła cokolwiek
+  o nim postanowić. Przeniesienie go do ról nie dałoby wtedy nic.
 
-## Efekty z komunikatu bez obrażeń przepadają w całości
+  ✅ **Pierwsza połowa zdjęta 2026‑08‑06** (`4039be7`): klucz jest dziś
+  WIDOCZNY w dymku. ⚠️ Nadal **NIELICZONY** — i to jest cała reszta tej pozycji.
+  Do tego jego etykieta pokazuje sam klucz, nie zdanie, bo `%name%` w
+  `msg_+oth_dmg %val% %name%` nie ma czym się wypełnić: nick stoi WEWNĄTRZ
+  wartości i nie jest ani pierwszą, ani drugą stroną komunikatu. Zmierzone —
+  `+oth_dmg=8868,g,Gracz 10(70.85%)` przy `f1=Hildur`, `f2=Gracz 4`. To ta sama
+  trzecia postać, o której mówi akapit wyżej, tyle że widziana od strony
+  brzmienia.
 
-Znalezione 2026‑08‑06 (`AUDYT‑98`), **nie zrobione**. Komunikat, w którym nie ma
-ani jednej liczby obrażeń, kończy się w dekoderze wcześniej — i zabiera ze sobą
-zebraną listę efektów. Zmierzone: `tspell=Tarcza;resfire_per=20` daje **samo
-zdarzenie `ability`**, a `resfire_per` nie trafia nigdzie: ani do „efektów
-w ciosach", ani do „otrzymanych", ani do `unknown`.
+## Efekty z komunikatu bez obrażeń przepadają w całości ✅
 
-Czego brakuje: **miejsca, w którym efekt może usiąść poza ciosem**, czyli zmiany
-kontraktu `BattleEvent` — a za nią `stats.ts`, `overlay.ts` i odtwarzania
-nagrań. Sygnał, że potrzebny jest spec, jest tu spełniony.
+✅ **ZROBIONE 2026‑08‑06** (`AUDYT‑98`, commit `4039be7`). `BattleEvent` ma
+wariant `kind: "effect"` — efekt bez trafień. Efekty docierające do panelu:
+**299 → 546**. Projekt, odrzucone warianty i pomiary:
+[`specy/2026-08-06-efekt-poza-ciosem.md`](specy/2026-08-06-efekt-poza-ciosem.md).
+
+⚠️ **Promień był mniejszy, niż zapowiadał ten wpis.** Stało tu „a za nią
+`stats.ts`, `overlay.ts` i odtwarzania nagrań". Ruszyły `types.ts`,
+`protokol.ts` i `stats.ts`; `overlay.ts` renderuje `actor.procs` ogólnie,
+a nagrania trzymają surowe komunikaty i przeliczają się nowym dekoderem same.
+
+⚠️ **Naprawa wymagała drugiej połowy, której ten wpis nie przewidywał.**
+`etykieta()` podstawia wyłącznie `%val%`, więc samo wpuszczenie efektów
+podniosłoby liczbę etykiet z niewypełnioną dziurą z **0 z 299** do **147 z 546**
+— gracz zobaczyłby w dymku dosłowne „%name%". Zdanie z dziurą ustępuje dziś
+KLUCZOWI. Wniosek na przyszłość: pozycja „dołóż miejsce w kontrakcie" potrafi
+mieć drugą połowę po stronie PREZENTACJI, a widać ją dopiero po pomiarze.
+
+Poniższy opis zostaje jako zapis stanu sprzed naprawy. Komunikat, w którym nie
+ma ani jednej liczby obrażeń, kończył się w dekoderze wcześniej — i zabierał ze
+sobą zebraną listę efektów. Zmierzone: `tspell=Tarcza;resfire_per=20` dawało
+**samo zdarzenie `ability`**, a `resfire_per` nie trafiał nigdzie: ani do
+„efektów w ciosach", ani do „otrzymanych", ani do `unknown`.
 
 ⚠️ **STAŁO TU „nie wiadomo, jak często gra takie komunikaty wysyła […] jedyna
 prawdziwa walka w repo nie ma ani jednego" I PRZESTAŁO BYĆ PRAWDĄ TEGO SAMEGO
