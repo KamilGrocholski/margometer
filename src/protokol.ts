@@ -990,11 +990,35 @@ export function dekoduj(
      */
     const etykieta = (p: Parametr, id: string): string => {
       const zdanie = slownik.zdanie(id, p.wartosc === null ? undefined : { "%val%": p.wartosc });
+      // ZDANIE Z NIEWYPEŁNIONĄ DZIURĄ JEST GORSZE OD KLUCZA — i to jest pomiar,
+      // nie ostrożność (`AUDYT‑98`). Podstawiamy wyłącznie `%val%`, a spora
+      // część identyfikatorów żąda więcej: `msg_+oth_dmg %val% %name%`,
+      // `msg_energy %name% %gain_loss% %val%`. Dopóki takie klucze nie
+      // docierały do panelu, nie było tego widać: zmierzone na obu fixture'ach
+      // **0 z 299** dzisiejszych etykiet ma dziurę. Wpuszczenie efektów spoza
+      // ciosu podnosi to do **147 z 546**, czyli gracz zobaczyłby w dymku
+      // dosłowne „%name%".
+      //
+      // ⚠️ **DLACZEGO NIE PODSTAWIAMY `%name%` Z PIERWSZEJ STRONY** — bo to
+      // jest wariant DOWODLIWIE BŁĘDNY, obalony materiałem:
+      //
+      //   +oth_dmg=8868,g,Gracz 10(70.85%)  | f1=Hildur…  f2=Gracz 4
+      //   shout=Hildur Muza Śmierci         | f1=Gracz 4  f2=Hildur…
+      //
+      // W pierwszym nick z wartości nie jest ANI `f1`, ANI `f2` — to TRZECIA
+      // postać (`ROADMAP.md`, „osłona kompana"). W drugim `%name%` to sama
+      // WARTOŚĆ, nie strona. Reguła podstawiania jest różna dla różnych kluczy,
+      // więc jedna wspólna skłamałaby w 71 ze 147 przypadków — a to jest
+      // dokładnie ten rodzaj uogólnienia, który kosztował `AUDYT‑93` i `‑94`.
+      //
+      // Klucz jest PRAWDĄ; zdanie z dziurą udaje brzmienie z gry, którym nie
+      // jest. Wolno pokazać „nie wiadomo", nie wolno zgadnąć.
+      if (zdanie === null || /%[a-z_0-9]+%/i.test(zdanie)) return p.klucz;
       // ZNAK WIODĄCY SPADA. Gra dokleja go do zdania, bo w oknie walki niesie
       // informację (dodatnie efekty na plusie, ujemne na minusie); w panelu
       // efekt stoi już w kolumnie, która to mówi, a „+Przebicie" obok
       // „Przebicie" wyglądałoby na dwie różne rzeczy.
-      return zdanie === null ? p.klucz : zdanie.replace(/^[+-]\s*/, "");
+      return zdanie.replace(/^[+-]\s*/, "");
     };
 
     /**
@@ -1283,6 +1307,51 @@ export function dekoduj(
       // i unik bez ciosu też nie mają czego opisać — ale nie giną, bo gra
       // wypisuje je osobną linią, a czujka porównuje skalary, nie linie.
       if (blok !== null || unik) zdarzenia.push({ kind: "info", line: surowy });
+      // ⚠️ **DO 2026‑08‑06 LISTA `procy` GINĘŁA TU W CAŁOŚCI** (`AUDYT‑98`).
+      // Powrót nie czytał jej wcale, więc efekt z komunikatu bez obrażeń nie
+      // trafiał ani do „efektów w ciosach", ani do „otrzymanych", ani do
+      // `unknown` — dekoder rozpoznawał klucz poprawnie i porzucał wynik.
+      // Zmierzone na `grupa-vs-hildur`: 91 komunikatów, 247 efektów.
+      //
+      // ⚠️ Ciosu z tego NIE robimy i to jest cała racja osobnego wariantu:
+      // `attack` z pustym `hits` dałoby w `stats.ts` trafienie, turę i wiersz
+      // w rozbiciu, czyli udawałoby cios, którego gra nie opisała.
+      //
+      // ⚠️ **KOMUNIKAT BEZ NADAWCY IDZIE DO `info`, NIE DO `unknown`** — i ta
+      // różnica jest tu cała. `unknown` znaczy „dekoder nie rozumie klucza"
+      // i zapala ostrzeżenie w panelu; tutaj rozumiemy wszystko, tylko log nie
+      // mówi, CZYJ to efekt. Zmierzone: jedyny taki w materiale to
+      // `0;0;+exp=3973`, czyli doświadczenie z końca walki, które gra przypisuje
+      // dosłownie nikomu (obie strony zerowe).
+      //
+      // Przypisanie go graczowi byłoby zgadywaniem — oczywistym, ale wciąż
+      // zgadywaniem, a `docs/DECYZJE.md` nie robi wyjątku dla oczywistych.
+      // `info` jest dokładnie tym kubełkiem: „komunikat tła bez wpływu na
+      // statystyki" (`types.ts`).
+      if (procy.length > 0) {
+        if (nadawcaNazwa === null || nadawca === null)
+          zdarzenia.push({ kind: "info", line: surowy });
+        else
+          zdarzenia.push({
+            kind: "effect",
+            source: nadawcaNazwa,
+            // `null` przy komunikacie bez drugiej strony (`…;0;…`) — jeden taki
+            // w materiale (`poison_lowdmg_per-enemies`).
+            target: celNazwa,
+            sourceId: nadawca.id,
+            ...(cel === null ? {} : { targetId: cel.id }),
+            sourceHpPct: nadawca.hpp,
+            targetHpPct: cel?.hpp ?? null,
+            procs: procy,
+            ability: zapowiedziana,
+          });
+      }
+      // ⚠️ **ZAPOWIEDŹ GAŚNIE TAK SAMO JAK DOTĄD, i to jest świadome.**
+      // Zerowania tutaj NIE MA — robi to pętla na końcu `dekoduj`, bo gra
+      // skleja komunikat ze `skillId` z NASTĘPNYM i z niczym więcej
+      // (`BattleEffectsController.js:237‑255`). Aury przychodzą razem
+      // z `tspell` w tym samym komunikacie, więc `zapowiedziana` jest tu już
+      // ustawiona i ma dożyć następnego — dokładnie jak przed tą zmianą.
       return;
     }
 

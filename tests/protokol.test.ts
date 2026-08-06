@@ -792,6 +792,130 @@ describe("dekoduj: przebieg walki", () => {
   });
 });
 
+/**
+ * EFEKT BEZ ANI JEDNEJ LICZBY OBRAŻEŃ — `AUDYT‑98`.
+ *
+ * Do 2026‑08‑06 wczesny powrót nie czytał zebranej listy `procy`, więc taki
+ * komunikat dawał ZERO zdarzeń niosących efekt. Zmierzone na
+ * `2026-08-06-tempest-grupa-vs-hildur`: 91 komunikatów, 247 efektów, żaden
+ * nieobecny w `unknown` — czyli dekoder rozpoznawał klucze poprawnie
+ * i porzucał wynik. Pełne liczby: `docs/AUDYT.md`, `AUDYT‑102`.
+ *
+ * Kształty niżej są PRZEPISANE Z MATERIAŁU, nie wymyślone — po jednym na każdy
+ * z trzech układów stron, które w nim występują.
+ */
+describe("dekoduj: efekt rzucony poza ciosem", () => {
+  test("aura na kompana daje `effect`, a nie ciszę", () => {
+    // Kształt z materiału: `469657=100.00;-10000249=99.60;tspell=Szadź;…`
+    const zd = dekoduj(["1=100.00;2=99.60;tspell=Szadź;skillId=123;allslow_per=14"], SKLAD);
+
+    expect(zd).toContainEqual(
+      expect.objectContaining({
+        kind: "effect",
+        source: "Kamil",
+        target: "Locha",
+        ability: "Szadź",
+        procs: [expect.objectContaining({ key: "allslow_per", value: "14" })],
+      }),
+    );
+  });
+
+  /**
+   * ⚠️ **CIOSU Z TEGO NIE MA I TO JEST OSOBNA ASERCJA.** Gałąź mogłaby
+   * „naprawić" problem, emitując `attack` z pustym `hits` — a wtedy `stats.ts`
+   * policzyłby trafienie, turę i wiersz w rozbiciu, czyli panel pokazałby cios,
+   * którego gra nie opisała (`BattleMessages.js:1127`, warunek `attack != ''`).
+   * Sama obecność efektu tego nie wyłapie.
+   */
+  test("z komunikatu bez obrażeń NIE powstaje cios", () => {
+    const zd = dekoduj(["1=100.00;2=99.60;tspell=Szadź;skillId=123;allslow_per=14"], SKLAD);
+    expect(zd.filter((z) => z.kind === "attack")).toEqual([]);
+  });
+
+  test("samobuf — obie strony to ta sama postać, i tak ma zostać zapisane", () => {
+    // Kształt z materiału: `466476=94.30;466476=94.30;tspell=Aura ochrony;…`
+    const zd = dekoduj(["1=94.30;1=94.30;tspell=Aura ochrony;skillId=76;aura-resall=15"], SKLAD);
+
+    expect(zd).toContainEqual(
+      expect.objectContaining({ kind: "effect", source: "Kamil", target: "Kamil" }),
+    );
+  });
+
+  test("komunikat bez drugiej strony daje `effect` z celem `null`", () => {
+    // Kształt z materiału: `467968=100.00;0;poison_lowdmg_per-enemies=10`
+    const zd = dekoduj(["1=100.00;0;poison_lowdmg_per-enemies=10"], SKLAD);
+
+    expect(zd).toContainEqual(
+      expect.objectContaining({ kind: "effect", source: "Kamil", target: null }),
+    );
+  });
+
+  /**
+   * ⚠️ **BEZ NADAWCY TO `info`, NIE `unknown`** — i ta różnica jest treścią
+   * testu, nie jego szczegółem. `unknown` znaczy „dekoder nie rozumie klucza"
+   * i zapala graczowi ostrzeżenie o niepełnych statystykach; tutaj rozumiemy
+   * wszystko, tylko log nie mówi, czyj to efekt. Jedyny taki w materiale to
+   * `0;0;+exp=3973` — doświadczenie z końca walki, przypisane dosłownie nikomu.
+   */
+  test("efekt bez ANI JEDNEJ strony nie zapala czujki nieznanego", () => {
+    const zd = dekoduj(["0;0;+exp=3973"], SKLAD);
+
+    expect(zd).toEqual([{ kind: "info", line: "0;0;+exp=3973" }]);
+    expect(zd.filter((z) => z.kind === "unknown")).toEqual([]);
+  });
+
+  test("komunikat Z obrażeniami nadal daje cios z efektami — regresja", () => {
+    // Para dla całego bloku: naprawa dotyczy WYŁĄCZNIE gałęzi bez obrażeń.
+    // Gdyby efekty przeniosły się do `effect` także przy ciosie, panel straciłby
+    // powiązanie efektu z trafieniem.
+    const zd = dekoduj(["1=100.00;2=90.00;+dmgd=10;+pierce;-dmgd=10"], SKLAD);
+
+    expect(zd.filter((z) => z.kind === "effect")).toEqual([]);
+    expect(zd).toContainEqual(
+      expect.objectContaining({
+        kind: "attack",
+        procs: [expect.objectContaining({ key: "+pierce" })],
+      }),
+    );
+  });
+});
+
+/**
+ * ETYKIETA Z NIEWYPEŁNIONĄ DZIURĄ SPADA DO KLUCZA — `AUDYT‑98`.
+ *
+ * `etykieta()` podstawia wyłącznie `%val%`, a część identyfikatorów żąda
+ * więcej (`msg_+oth_dmg %val% %name%`). Dopóki te klucze nie docierały do
+ * panelu, nie było tego widać: zmierzone **0 z 299** dzisiejszych etykiet
+ * z dziurą, **147 z 546** po wpuszczeniu efektów spoza ciosu.
+ */
+describe("dekoduj: brzmienie z dziurą jest gorsze od klucza", () => {
+  const slownikZ = (zdanie: string) => ({ zdanie: () => zdanie });
+
+  test("zdanie z niepodstawionym `%name%` ustępuje kluczowi", () => {
+    const [z] = dekoduj(
+      ["1=100.00;2=90.00;+dmgd=10;-dmgd=10;+oth_dmg=8868,g,Ktoś(70.85%)"],
+      SKLAD,
+      slownikZ("+Osłona %val% %name%"),
+    );
+    const procs = (z as { procs: { key: string; label: string }[] }).procs;
+
+    expect(procs[0]!.label).toBe("+oth_dmg");
+  });
+
+  test("zdanie BEZ dziury przechodzi normalnie — para dla testu wyżej", () => {
+    // Bez niej „zawsze zwracaj klucz" przeszłoby tak samo, a to skasowałoby
+    // cały sens słownika gry.
+    const [z] = dekoduj(
+      ["1=100.00;2=90.00;+dmgd=10;-dmgd=10;+pierce"],
+      SKLAD,
+      slownikZ("+Przebicie"),
+    );
+    const procs = (z as { procs: { key: string; label: string }[] }).procs;
+
+    expect(procs[0]!.label).toBe("Przebicie");
+  });
+});
+
 describe("dekoduj: nieznane jest głośne", () => {
   test("nierozpoznany klucz daje `unknown` z CAŁYM segmentem, nie z samym kluczem", () => {
     const zd = dekoduj(["1=100.00;2=90.00;+dmg=10;-dmg=10;czegoNieZnamy=7"], SKLAD);

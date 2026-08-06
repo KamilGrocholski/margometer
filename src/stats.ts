@@ -83,7 +83,29 @@ function namesIn(event: BattleEvent): NameRef[] {
           ];
     case "ability":
       return [[event.actor, null, false, event.actorId]];
-    default:
+    // Kolejność MUSI być ta sama, co w `case "effect"` w `aggregate` — nagłówek
+    // tej funkcji żąda tego od obu przebiegów. Cel bywa `null` (komunikat bez
+    // drugiej strony) i wtedy po prostu go tu nie ma.
+    case "effect":
+      return event.target === null
+        ? [[event.source, event.sourceHpPct, false, event.sourceId]]
+        : [
+            [event.source, event.sourceHpPct, false, event.sourceId],
+            [event.target, event.targetHpPct, false, event.targetId],
+          ];
+    // ⚠️ **STAŁO TU `default: return []` I BYŁA TO PUŁAPKA** (`AUDYT‑98`).
+    // Nowy wariant `BattleEvent` wpadał do niej bez słowa, więc jego postacie
+    // nie wchodziły do rozpoznawania instancji — a wtedy efekt siada na
+    // niewłaściwej instancji przy dwóch postaciach o tej samej nazwie i robi to
+    // po cichu. To ta sama awaria, którą ta runda naprawia piętro niżej,
+    // w dekoderze; nie ma sensu naprawiać jednej, zostawiając drugą.
+    //
+    // Wyliczenie zamiast `default` sprawia, że następny wariant jest BŁĘDEM
+    // KOMPILACJI — `noImplicitReturns` nie pozwoli funkcji wyjść bez `return`.
+    case "fight-start":
+    case "fight-end":
+    case "info":
+    case "unknown":
       return [];
   }
 }
@@ -1257,10 +1279,66 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         bumpCount(breakdownOf(actorKey).abilityUses, event.name);
         break;
       }
+      /**
+       * EFEKT BEZ CIOSU — aury, wzmocnienia drużyny, osłona kompana
+       * (`AUDYT‑98`).
+       *
+       * Pętla po `procs` jest CELOWO taka sama jak w `case "attack"`: to ten
+       * sam efekt, tyle że gra nie dołożyła do niego liczby obrażeń. Różnice
+       * są dwie i obie mają powód.
+       */
+      case "effect": {
+        const sourceKey = resolve(event.source, event.sourceHpPct, false, event.sourceId);
+        const targetKey =
+          event.target === null
+            ? null
+            : resolve(event.target, event.targetHpPct, false, event.targetId);
+        // ⚠️ **`beginTurn` NIE JEST TU WOŁANE, i to jest decyzja.** Aury
+        // przychodzą razem z `tspell`, więc `case "ability"` wyżej już otworzył
+        // turę dla tej samej postaci (85 z 91 zmierzonych komunikatów).
+        // Drugie wywołanie zawyżałoby licznik tur, czyli naprawiając jedną
+        // liczbę, popsulibyśmy inną. Pozostałe 6 komunikatów tury nie otwiera
+        // — tak samo jak przed tą zmianą, bo wtedy nie dawały żadnego zdarzenia.
+        for (const proc of event.procs) {
+          const label = procLabel(proc.label);
+          const owner = proc.side === "target" && targetKey !== null ? targetKey : sourceKey;
+          const other = proc.side === "target" ? sourceKey : targetKey;
+          bumpCount(breakdownOf(owner).procs, label);
+          // ⚠️ **SAMOBUF LICZY SIĘ RAZ.** Przy aurze rzuconej na siebie obie
+          // strony komunikatu to ta sama postać (44 z 91 zmierzonych), więc
+          // lustrzany wiersz pokazałby „Aura ochrony ×1" dwa razy w JEDNYM
+          // dymku, w dwóch rubrykach. Oba zdania są prawdziwe — wyzwoliła
+          // i dostała — ale czyta się to jak podwójne liczenie, a rubryka
+          // „Efekty otrzymane" odpowiada na pytanie „co się na mnie sypie",
+          // które przy własnej aurze nie ma sensu. `null` po drugiej stronie
+          // wypada z tego samego powodu: nie ma komu przypisać lustra.
+          if (other !== null && other !== owner) {
+            bumpCount(breakdownOf(other).procsReceived, label);
+          }
+        }
+        break;
+      }
       case "fight-start":
       case "fight-end":
       case "info":
         break;
+      // ⚠️ **STRAŻNIK WYCZERPANIA — dołożony przy `AUDYT‑98`.** Ten `switch`
+      // nie miał ani `default`, ani tej linii, więc nowy wariant `BattleEvent`
+      // przechodziłby przez agregat NIE ROBIĄC NIC i nie zapalając niczego.
+      // Dokładnie tak zginęło 247 efektów piętro niżej. Odtąd to błąd
+      // KOMPILACJI (sprawdzone mutacją: `TS2322 … is not assignable to 'never'`).
+      //
+      // ⚠️ **NIE RZUCA — i to jest ta sama decyzja, co przy `rola()`
+      // w `protokol.ts`.** Pierwsza wersja miała tu `throw`; wariant odrzucony,
+      // bo wyjątek w agregacie zdejmuje graczowi CAŁY panel za pomyłkę
+      // programisty, która i tak nie przeszłaby przez `bun run check`. Strażnik
+      // ma stać w bramie, nie w produkcie. Samo przypisanie do `never`
+      // wystarcza — kompilator jest tu jedynym potrzebnym czytelnikiem.
+      default: {
+        const wyczerpane: never = event;
+        void wyczerpane;
+        break;
+      }
     }
   }
 

@@ -321,6 +321,47 @@ export type BattleEvent =
     }
   /** Zapowiedź umiejętności; obrażenia niosą dopiero kolejne linie. */
   | { kind: "ability"; actor: string; actorId?: number; name: string }
+  /**
+   * Efekty z komunikatu, w którym NIE MA ani jednej liczby obrażeń — aury,
+   * wzmocnienia drużyny, osłona kompana.
+   *
+   * ⚠️ **PO CO OSOBNY WARIANT, SKORO `attack.procs` JUŻ ISTNIEJE.** Bo cios
+   * bez ani jednej liczby obrażeń nie jest ciosem: gra nie składa wtedy zdania
+   * „uderzył z siłą" (`BattleMessages.js:1127`, warunek `attack != ''`),
+   * a `stats.ts` liczyłoby z takiego zdarzenia trafienie, turę i wiersz
+   * w rozbiciu. Zdarzenie `attack` z pustym `hits` byłoby udawaniem ciosu,
+   * którego log nie ma.
+   *
+   * ⚠️ **CZEGO BRAK TEGO WARIANTU KOSZTOWAŁ** (`AUDYT‑98`, skala `AUDYT‑102`):
+   * dekoder rozpoznawał te klucze poprawnie, składał `Proc`, po czym porzucał
+   * CAŁĄ listę przy wczesnym powrocie. Zmierzone na
+   * `2026-08-06-tempest-grupa-vs-hildur`: **91 komunikatów, 247 efektów**,
+   * nieobecnych ani w „efektach w ciosach", ani w „otrzymanych", ani
+   * w `unknown`. Czujka `unknown` tego nie łapała i nie mogła — pytała, czy
+   * dekoder klucz ROZUMIE, a nie czy cokolwiek z niego WYCHODZI.
+   */
+  | {
+      kind: "effect";
+      source: string;
+      /**
+       * `null`, gdy komunikat nie ma drugiej strony (`…;0;…`) — tak przychodzi
+       * `poison_lowdmg_per-enemies`. Jeden taki w materiale i dlatego pole jest
+       * nullowalne, a nie pominięte: odrzucenie takiego komunikatu byłoby tą
+       * samą cichą stratą, którą ten wariant naprawia.
+       */
+      target: string | null;
+      sourceId?: number;
+      targetId?: number;
+      sourceHpPct: number | null;
+      targetHpPct: number | null;
+      /** Jak w `attack.procs` — każdy niesie stronę, po której zaszedł. */
+      procs: Proc[];
+      /**
+       * Umiejętność, która te efekty rzuciła. Wypełniona w 85 z 91 zmierzonych
+       * komunikatów, bo aury przychodzą razem z `tspell` w tym samym wywołaniu.
+       */
+      ability: string | null;
+    }
   /** Komunikat tła bez wpływu na statystyki (aura, brak Punktów Honoru, ...). */
   | { kind: "info"; line: string }
   /**

@@ -47,6 +47,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Opis dodatku mówi wprost, że twórcy Margonem go nie
   autoryzowali, i przytacza punkty regulaminu, które go dotyczą. Instalujesz
   na własne ryzyko — przeczytaj to przed instalacją.
+- **Poprawka** — Aury, wzmocnienia drużyny i osłona kompana pokazują się teraz
+  w podglądzie postaci, w wierszach „Efekty w ciosach” i „Efekty otrzymane”.
+  Dotąd znikały bez śladu: dodatek liczył wyłącznie efekty towarzyszące ciosowi,
+  a wszystko rzucone osobno — bez zadanych obrażeń — przepadało i nie zostawiało
+  nawet ostrzeżenia. Na sprawdzonej walce grupowej było tego 247 efektów.
+  Aura rzucona na siebie liczy się raz, a nie dwa razy w dwóch wierszach.
+- **Poprawka** — Efekt, którego nazwy gra nie potrafi złożyć w całości, pokazuje
+  się pod swoją nazwą techniczną zamiast pod zdaniem z dziurą w środku.
 - **Poprawka** — Rozbicie obrażeń na rodzaje (broń, ogień, zimno, błyskawica…)
   podaje przy każdym rodzaju jego własną liczbę. Gdy gra nie powiedziała, ile
   z któregoś rodzaju weszło w cel, liczba należąca do następnego trafiała pod

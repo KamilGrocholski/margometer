@@ -1238,6 +1238,79 @@ describe("strona efektu decyduje, czyj jest licznik", () => {
 });
 
 /**
+ * EFEKT RZUCONY POZA CIOSEM DOCIERA DO DYMKA — `AUDYT‑98`.
+ *
+ * Komunikat bez ani jednej liczby obrażeń gubił całą listę efektów w dekoderze,
+ * więc do agregatu nie docierało z niego NIC. Zmierzone na materiale:
+ * 91 komunikatów, 247 efektów (`AUDYT‑102`). Tutaj sprawdzamy drugą połowę
+ * drogi — czy `stats.ts` policzy je tak samo jak efekty z ciosu.
+ */
+describe("efekt bez ciosu liczy się jak efekt z ciosu", () => {
+  const SKLAD: RosterEntry[] = [
+    { id: 1, name: "Mag", side: 0 },
+    { id: 2, name: "Kompan", side: 0 },
+  ];
+
+  test("aura na kompana: wyzwalającemu w `procs`, obdarowanemu w `procsReceived`", () => {
+    const stats = aggregate(
+      dekoduj(["1=100.00;2=99.60;tspell=Szadź;skillId=123;allslow_per=14"], SKLAD),
+      SKLAD,
+    );
+    const mag = stats.actors.find((a) => a.name === "Mag")!;
+    const kompan = stats.actors.find((a) => a.name === "Kompan")!;
+
+    expect(mag.procs.map((p) => p.label)).toEqual(["allslow_per"]);
+    expect(kompan.procsReceived.map((p) => p.label)).toEqual(["allslow_per"]);
+  });
+
+  /**
+   * ⚠️ **SAMOBUF LICZY SIĘ RAZ — decyzja właściciela repo, nie skutek uboczny.**
+   * Przy aurze rzuconej na siebie obie strony komunikatu to ta sama postać
+   * (44 z 91 zmierzonych), więc lustrzany wiersz pokazałby „Aura ochrony ×1"
+   * DWA RAZY w jednym dymku. Oba zdania są prawdziwe — wyzwoliła i dostała —
+   * ale rubryka „Efekty otrzymane" odpowiada na pytanie „co się na mnie sypie",
+   * które przy własnej aurze nie ma sensu.
+   */
+  test("samobuf nie pokazuje się graczowi dwa razy", () => {
+    const stats = aggregate(
+      dekoduj(["1=94.30;1=94.30;tspell=Aura ochrony;skillId=76;aura-resall=15"], SKLAD),
+      SKLAD,
+    );
+    const mag = stats.actors.find((a) => a.name === "Mag")!;
+
+    expect(mag.procs.map((p) => p.label)).toEqual(["aura-resall"]);
+    expect(mag.procsReceived).toEqual([]);
+  });
+
+  test("efekt bez drugiej strony trafia do wyzwalającego i nie gubi się", () => {
+    const stats = aggregate(
+      dekoduj(["1=100.00;0;poison_lowdmg_per-enemies=10"], SKLAD),
+      SKLAD,
+    );
+    const mag = stats.actors.find((a) => a.name === "Mag")!;
+
+    expect(mag.procs.map((p) => p.label)).toEqual(["poison_lowdmg_per-enemies"]);
+  });
+
+  /**
+   * ⚠️ **TURA SIĘ NIE DUBLUJE — i to jest asercja, nie przypis.** Aury
+   * przychodzą razem z `tspell`, więc zdarzenie `ability` już otwiera turę.
+   * Gdyby `case "effect"` też wołał `beginTurn`, naprawiając jedną liczbę
+   * popsulibyśmy inną — a licznik tur ma w tym repo własną, świeżą historię
+   * pomyłek (`docs/specy/2026-08-05-tura-to-akcja.md`).
+   */
+  test("efekt nie otwiera drugiej tury obok zapowiedzi", () => {
+    const stats = aggregate(
+      dekoduj(["1=94.30;1=94.30;tspell=Aura ochrony;skillId=76;aura-resall=15"], SKLAD),
+      SKLAD,
+    );
+    const mag = stats.actors.find((a) => a.name === "Mag")!;
+
+    expect(mag.turns).toBe(1);
+  });
+});
+
+/**
  * Przypisanie sprawcy zranienia nie zależy od JĘZYKA KLIENTA (`AUDYT‑89`).
  *
  * Wiązanie szło kiedyś wyrażeniem regularnym po polskim zdaniu ze słownika GRY.

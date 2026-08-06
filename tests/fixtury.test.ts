@@ -10,7 +10,7 @@ import {
   ZDJETY_OPIS,
 } from "../tools/walka.ts";
 import { KOMUNIKATY, SKLAD } from "./walka-z-gry.ts";
-import { dekoduj } from "../src/protokol.ts";
+import { dekoduj, rola, rozbierz } from "../src/protokol.ts";
 import { aggregate } from "../src/stats.ts";
 
 /**
@@ -283,6 +283,64 @@ describe.each(FIXTURY)("$nazwa", (f: Fixtura) => {
 
   test("każdy żywioł nazwany — zero nieznanych kodów `dmgX`", () => {
     expect(stats.unknownElements).toEqual([]);
+  });
+
+  /**
+   * KAŻDY EFEKT Z KOMUNIKATU MA WYJŚĆ ZE ZDARZEŃ — niezmiennik, którego brak
+   * kosztował 247 zgubionych efektów (`AUDYT‑98`, skala w `AUDYT‑102`).
+   *
+   * ⚠️ **TO JEST TEST, KTÓRY ZŁAPAŁBY TAMTĄ USTERKĘ SAM**, i dlatego stoi tu,
+   * a nie wśród asercji jednostkowych. Repo miało już `unknownLines === 0`
+   * i `unknownElements === []`, więc pytało „czy dekoder ROZUMIE każdy klucz" —
+   * i na to odpowiedź była twierdząca przez cały czas. Nikt nie pytał, **czy to,
+   * co zrozumiał, gdziekolwiek WYCHODZI**. Dekoder rozpoznawał `aura-resall`
+   * poprawnie, przypisywał mu rolę, składał `Proc`… i porzucał całą listę przy
+   * wczesnym powrocie, bo komunikat nie miał ani jednej liczby obrażeń.
+   *
+   * Rozpoznanie i doręczenie to dwa różne pytania. Czujka `unknown` odpowiada
+   * na pierwsze; ten niezmiennik na drugie.
+   *
+   * LICZYMY WYSTĄPIENIA, NIE KLUCZE — bo `combo-max` pada 31 razy i zgubienie
+   * trzydziestu z nich zostawiłoby zbiór kluczy nietknięty. Strona lewa idzie
+   * przez `rola()`, czyli przez tabelę, a nie przez listę pisaną tutaj: nowy
+   * klucz w tabeli wchodzi do niezmiennika bez dopisywania czegokolwiek.
+   *
+   * ⚠️ **JEDNO WYŁĄCZENIE, I NIE JEST NIM „żeby test przeszedł".** Efekt
+   * z komunikatu BEZ NADAWCY nie ma komu zostać przypisany: jedyny taki
+   * w materiale to `0;0;+exp=3973`, gdzie gra podaje obie strony jako zerowe.
+   * Trafia do `info` — świadomie, bo przypisanie go graczowi byłoby zgadywaniem
+   * (oczywistym, ale `docs/DECYZJE.md` nie robi wyjątku dla oczywistych).
+   *
+   * Dlatego wyłączenie jest LICZONE osobno, a nie odjęte po cichu: gdyby
+   * nieprzypisywalnych efektów zaczęło przybywać, druga asercja to pokaże,
+   * zamiast pozwolić im rosnąć pod pierwszą.
+   */
+  test("każdy efekt z komunikatu wychodzi ze zdarzeń — nic nie przepada po drodze", () => {
+    const wSkladzie = new Set(f.sklad.map((w) => w.id));
+    let zWlascicielem = 0;
+    let bezWlasciciela = 0;
+
+    for (const komunikat of f.komunikaty) {
+      const { nadawca, parametry } = rozbierz(komunikat);
+      const efekty = parametry.filter((p) => {
+        if (p.klucz === "") return false;
+        const r = rola(p.klucz);
+        return r !== null && (r.typ === "proc" || r.typ === "absorpcja" || r.typ === "ciosProc");
+      }).length;
+      if (efekty === 0) continue;
+      if (nadawca !== null && wSkladzie.has(nadawca.id)) zWlascicielem += efekty;
+      else bezWlasciciela += efekty;
+    }
+
+    const wZdarzeniach = zdarzenia.reduce(
+      (suma, z) => suma + ("procs" in z ? z.procs.length : 0),
+      0,
+    );
+
+    expect(wZdarzeniach).toBe(zWlascicielem);
+    // Nieprzypisywalne WOLNO mieć, ale nie wolno ich mieć dużo i nie wolno
+    // dowiedzieć się o tym przypadkiem. Dziś: 1 w całym korpusie (`+exp`).
+    expect(bezWlasciciela).toBeLessThanOrEqual(1);
   });
 
   /**
