@@ -50,8 +50,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Poprawka** — Obrażenia od umiejętności zadających z góry ustaloną wartość
   (tych, których pancerz nie zmniejsza) liczą się do statystyk. Wcześniej nie
   liczyły się wcale.
-- **Poprawka** — Aury, wzmocnienia drużyny i osłona kompana pokazują się teraz
-  w podglądzie postaci, w wierszach „Efekty w ciosach” i „Efekty otrzymane”.
+- **Poprawka** — Aury, wzmocnienia drużyny i inne efekty rzucane poza ciosem
+  pokazują się teraz w podglądzie postaci, w wierszach „Efekty w ciosach”
+  i „Efekty otrzymane”.
   Dotąd znikały bez śladu: dodatek liczył wyłącznie efekty towarzyszące ciosowi,
   a wszystko rzucone osobno — bez zadanych obrażeń — przepadało i nie zostawiało
   nawet ostrzeżenia. Na sprawdzonej walce grupowej było tego 247 efektów.

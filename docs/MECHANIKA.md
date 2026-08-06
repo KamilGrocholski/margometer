@@ -601,10 +601,18 @@ i modyfikatory, nie kwoty).
 | `physical` | „%name% otrzymał# %val% obrażeń fizycznych." | `f1` | ✅ tyknięcie |
 | `bandage` | „Uleczono %name% o %val% punktów życia." | `f1` | ✅ leczenie |
 | `vamp_time` | „+Uleczono za %val% punktów życia" | — | ✅ leczenie |
-| `dmg-target_physical` | „%target% otrzymuje %val% obrażeń" | `f2` | ⬜ otwarte |
+| `dmg-target_physical` | „%target% otrzymuje %val% obrażeń" | `f2` | ✅ obrażenia celu |
 | `vamp` | „%name% zadał %val% obrażeń %target% lecząc za nie siebie." | `f1`→`f2` | ⬜ otwarte |
 | `+oth_cover` | „%name% przejął(eła) %val% obrażeń." | trzecia postać | ⬜ otwarte |
 | `+oth_dmg` | „−%val% obrażeń otrzymał(a) %name%." | trzecia postać | ⬜ otwarte |
+
+⚠️ **Kolumna „strona" przy dwóch ostatnich jest ODCZYTEM Z MATERIAŁU, nie
+z renderera — i to trzeba czytać inaczej niż resztę tabeli** (`AUDYT‑106`).
+Przy pozostałych dziewięciu stronę daje podstawienie (`'%name%': f1.name`
+kontra `'%target%': f2.name`); przy `+oth_cover`/`+oth_dmg` „trzecia postać"
+wychodzi z tego, że nick stoi WEWNĄTRZ wartości. Zmierzone na
+`grupa-vs-hildur`: 40 razy z 71 jest to postać spoza obu stron komunikatu,
+31 razy — druga strona. Czyli „trzecia" jest prawdą o CZĘŚCI przypadków.
 
 Kolumna „strona” pochodzi z PODSTAWIENIA w rendererze, nie ze zdania:
 `'%name%': f1.name` kontra `'%target%': f2.name`.
@@ -658,6 +666,31 @@ otwarte. Rozdział tych dwóch pytań (FORMAT → kod gry, CZĘSTOŚĆ →
 materiał) jest w tej procedurze od początku i został tu złamany raz, we własną
 stronę: `ROADMAP.md` trzymał `bandage` i `vamp_time` jako „czekające na zrzut”,
 choć zrzut nigdy nie był potrzebny do odpowiedzi, na którą czekały.
+
+⚠️ **Doprecyzowanie „kilkanaście razy" — jest ich 71** (`AUDYT‑106`, zmierzone
+2026‑08‑06). Liczba nie jest tu ozdobą, bo dopiero ona pokazuje, ile ta pozycja
+kosztuje: świadek `hp.max` przeciw procentowi z wartości daje **0 trafień na 18
+bez doliczenia `+oth_dmg`** — osłaniane postacie wychodzą u nas na 100 % życia,
+gdy log mówi 52–70 %. Doliczenie podnosi to do 5, więc kierunek jest pewny,
+a wielkość nie: 13 rozjazdów zostaje i nasze sumy są wtedy za NISKIE.
+
+⚠️ **A `+oth_dmg` i `+oth_cover` NIE MAJĄ HASŁA W KATALOGU** — `grep` po
+`.cache/pomoc-372.txt` daje przy obu zero. Nazwa „osłona kompana" wzięła się
+z brzmienia klucza, a nie z dokumentacji. Materiał jej przeczy: adresatem jest
+24 razy z 71 BOSS.
+
+⚠️ **Jak daleko zaszła, zanim ktoś ją sprawdził — policzone gitem, nie
+z pamięci.** Do 2026‑08‑06 stała w **jednym** miejscu (`ROADMAP.md:262`).
+Runda z tego samego dnia rozniosła ją do **pięciu kolejnych plików**
+(`CHANGELOG.md`, `src/types.ts`, `src/stats.ts`, `src/protokol.ts` i spec) —
+i była to runda, która ten obszar AUDYTOWAŁA. Cytowanie własnego rejestru czyta
+się jak sprawdzanie źródła, a nim nie jest; jedno zdanie bez pokrycia rozmnaża
+się przez cytowanie szybciej, niż powstaje.
+To jest ten sam błąd, co przy `AUDYT‑93` i `AUDYT‑94`, w trzecim wariancie —
+tam mylono „kogo dotyczy" z „kto wyzwolił", tu **nazwę własną klucza wzięto za
+jego opis**. Za każdym razem brakował ten sam krok: sprawdzić, czy źródło
+w ogóle o tym mówi. Tu wystarczał jeden `grep` po pliku leżącym w `.cache/`
+od dwóch dni.
 
 ### Wściekłość ( rage ) — efekt tylko przeciw potworom, korpus NIE zna ✅
 

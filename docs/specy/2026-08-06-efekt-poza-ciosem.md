@@ -163,3 +163,17 @@ nagrania przeliczą się same.
 ## Zmiany wpisu
 
 - **2026-08-06** — powstał; wdrożony tego samego dnia (`4039be7`).
+- **2026-08-06** — ⚠️ **sprostowanie do dwóch miejsc tego pliku.** Pisałem tu
+  „osłona kompana" jako opis `+oth_cover`/`+oth_dmg`, powtarzając za
+  `ROADMAP.md`. Nazwa okazała się bez pokrycia: katalog efektów gry nie zna
+  ani jednego z tych kluczy, a materiał jej przeczy — adresatem jest 24 razy
+  z 71 BOSS (`AUDYT‑106`). Treść speca zostaje, bo jest zapisem rozumowania
+  z tamtej chwili; ta linia mówi, w którym miejscu było ono oparte na cudzym
+  zdaniu, którego nikt nie sprawdził.
+
+  **Wniosek wart więcej od poprawki, policzony gitem:** do 2026‑08‑06 nazwa
+  stała w **jednym** miejscu (`ROADMAP.md:262`). Ta runda rozniosła ją do
+  **pięciu kolejnych plików** (`CHANGELOG.md`, `src/types.ts`, `src/stats.ts`,
+  `src/protokol.ts` i ten spec) — będąc rundą, która ten obszar AUDYTOWAŁA.
+  Cytowanie własnego rejestru czyta się jak sprawdzanie źródła, a nim nie jest;
+  zdanie bez pokrycia rozmnaża się przez cytowanie szybciej, niż powstaje.

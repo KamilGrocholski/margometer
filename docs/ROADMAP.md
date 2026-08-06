@@ -238,18 +238,24 @@ przed przenoszeniem z brzmienia („czyta się to «nie udowodniono, że niesie
 liczbę, którą liczymy», a nie «na pewno nie niesie»”) i to ostrzeżenie zostaje
 w mocy; przeniesienie stanęło na kodzie renderera, nie na brzmieniu.
 
-## Cztery klucze z liczbami, które nadal się nie liczą
+## Trzy klucze z liczbami, które nadal się nie liczą
 
-Znalezione 2026‑08‑06 tym samym skanem co dwa wyżej (`AUDYT‑99`), **nie
-zrobione**. Ze skanu 197 kluczy `PROCE` przeciw słownikowi gry wyszło jedenaście
-niosących punkty; siedem naprawiono, zostają cztery. Pełna tabela z cytatami:
-`MECHANIKA.md`, wpis „Które klucze protokołu niosą PUNKTY życia".
+Znalezione 2026‑08‑06 tym samym skanem co dwa wyżej (`AUDYT‑99`). Ze skanu 197
+kluczy `PROCE` przeciw słownikowi gry wyszło jedenaście niosących punkty;
+osiem naprawiono, zostają trzy. Pełna tabela z cytatami: `MECHANIKA.md`, wpis
+„Które klucze protokołu niosą PUNKTY życia".
 
-- **`dmg-target_physical`** („%target% otrzymuje %val% obrażeń") — **najbliższy
-  do zrobienia i wypadł poza tamtą rundę tylko dlatego, że zakres ustalono,
-  zanim przeczytano katalog pomocy.** Trzy źródła zgodne, strona jednoznaczna
-  (`f2`), brak ryzyka podwojenia, katalog dodaje nawet „obrażenia nie są
-  redukowane przez pancerz".
+⚠️ **Stały tu CZTERY do 2026‑08‑06.** Nagłówek z liczbą starzeje się razem
+z pozycją — ta sama lekcja, co przy „dwóch fixture'ach" (`AUDYT‑58`): licz
+listą, nie nagłówkiem.
+
+- ~~**`dmg-target_physical`**~~ ✅ **ZROBIONE 2026‑08‑06** (`fea3874`). Weszło
+  do `ROLE` jako obrażenia o stałej wartości zadane CELOWI, `strike: false`,
+  `raw === applied` (katalog: „nie są redukowane przez pancerz"). ⚠️ Klucz nie
+  pada w żadnym materiale — zero wystąpień w obu fixture'ach i w `KORPUS` —
+  więc świadka nie ma i mieć nie będzie; wpis stoi na kliencie gry. Ryzyko
+  podwojenia, gdyby gra wysyłała przy nim także `-dmgX`, zostaje **otwarte**
+  i jest jedyną rzeczą, do której zrzut jest tu naprawdę potrzebny.
 - **`vamp`** („zadał %val% obrażeń %target% lecząc za nie siebie") — otwarte
   z JEDNEGO powodu i warto go nazwać dokładnie: nie wiadomo, czy ta liczba
   dubluje się z `-dmgd` tego samego komunikatu. Katalog mówi „zadaje **stałe
@@ -259,9 +265,25 @@ niosących punkty; siedem naprawiono, zostają cztery. Pełna tabela z cytatami:
   obrażeń przeciw procentowi życia u świadka pokaże, czy liczyć raz, czy dwa.
   **To jest pozycja, którą materiał NAPRAWDĘ domyka** — w odróżnieniu od tych,
   które na zrzut czekały niepotrzebnie.
-- **`+oth_cover`, `+oth_dmg`** (osłona kompana) — pozycja PROJEKTOWA, nie
-  tabelaryczna. Wartość jest trójczłonowa (`kwota,klasa,nick`) i niesie w środku
-  **trzecią postać**, a cały kontrakt zdarzeń stoi na dwóch stronach komunikatu.
+- **`+oth_cover`, `+oth_dmg`** — pozycja **MECHANIKI NIEROZPOZNANEJ**, nie
+  tabelaryczna i nie projektowa. Wartość jest trójczłonowa
+  (`kwota,klasa,nick(procent)`) i niesie w środku **trzecią postać**, a cały
+  kontrakt zdarzeń stoi na dwóch stronach komunikatu.
+
+  ⚠️ **STAŁO TU „(osłona kompana)" I JEST TO NAZWA BEZ POKRYCIA** (`AUDYT‑106`).
+  Katalog efektów nie zna ANI JEDNEGO z tych dwóch kluczy (`grep` po
+  `.cache/pomoc-372.txt`: `oth_cover` → 0, `oth_dmg` → 0); określenie wzięło się
+  z brzmienia klucza. Materiał mu przeczy: adresatem jest **24 razy z 71 boss**,
+  czego „kompan przejmuje cios za kolegę" nie tłumaczy. Różnica jest praktyczna,
+  nie słowna — „projektowa" znaczy „wiemy co to, nie wiemy gdzie położyć",
+  a tu **nie wiadomo, co to jest**, więc następnym krokiem jest czytanie klienta
+  gry, nie projektowanie kontraktu.
+
+  ⚠️ **A liczby są duże i to jest najpilniejsza część tej pozycji.** Świadek
+  `hp.max` przeciw procentowi zaszytemu w wartości: **bez doliczenia `+oth_dmg`
+  0 trafień na 18** — osłaniane postacie wychodzą u nas na 100 % życia, gdy log
+  mówi 52–70 %. Doliczenie daje 5 trafień, więc kierunek jest pewny, ale 13
+  rozjazdów zostaje. Pomiar i cytaty: `docs/AUDYT.md`, `AUDYT‑106`.
 
   ⚠️ **`+oth_dmg` GINĄŁ PODWÓJNIE i to ustawiło kolejność prac** (`AUDYT‑102`).
   Pada w `grupa-vs-hildur` **71 razy**, i za każdym z nich komunikat nie niesie

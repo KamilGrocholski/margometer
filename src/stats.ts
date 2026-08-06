@@ -1280,8 +1280,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         break;
       }
       /**
-       * EFEKT BEZ CIOSU — aury, wzmocnienia drużyny, osłona kompana
-       * (`AUDYT‑98`).
+       * EFEKT BEZ CIOSU — aury i wzmocnienia drużyny (`AUDYT‑98`).
        *
        * Pętla po `procs` jest CELOWO taka sama jak w `case "attack"`: to ten
        * sam efekt, tyle że gra nie dołożyła do niego liczby obrażeń. Różnice

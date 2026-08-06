@@ -322,8 +322,13 @@ export type BattleEvent =
   /** Zapowiedź umiejętności; obrażenia niosą dopiero kolejne linie. */
   | { kind: "ability"; actor: string; actorId?: number; name: string }
   /**
-   * Efekty z komunikatu, w którym NIE MA ani jednej liczby obrażeń — aury,
-   * wzmocnienia drużyny, osłona kompana.
+   * Efekty z komunikatu, w którym NIE MA ani jednej liczby obrażeń — aury
+   * i wzmocnienia drużyny.
+   *
+   * ⚠️ Stało tu jeszcze „osłona kompana" jako trzeci przykład i **zeszło
+   * 2026‑08‑06** (`AUDYT‑106`): to nazwa dla `+oth_cover`/`+oth_dmg`, której
+   * katalog efektów gry nie zna, a materiał jej przeczy. Przykład opisujący
+   * mechanikę, której nikt nie rozpoznał, jest gorszy niż dwa przykłady.
    *
    * ⚠️ **PO CO OSOBNY WARIANT, SKORO `attack.procs` JUŻ ISTNIEJE.** Bo cios
    * bez ani jednej liczby obrażeń nie jest ciosem: gra nie składa wtedy zdania

@@ -1051,7 +1051,8 @@ export function dekoduj(
       //   shout=Hildur Muza Śmierci         | f1=Gracz 4  f2=Hildur…
       //
       // W pierwszym nick z wartości nie jest ANI `f1`, ANI `f2` — to TRZECIA
-      // postać (`ROADMAP.md`, „osłona kompana"). W drugim `%name%` to sama
+      // postać (`AUDYT‑106`; 40 razy z 71, a 24 razy jest nią BOSS, więc nazwa
+      // „osłona kompana" z rejestru okazała się zmyślona). W drugim `%name%` to sama
       // WARTOŚĆ, nie strona. Reguła podstawiania jest różna dla różnych kluczy,
       // więc jedna wspólna skłamałaby w 71 ze 147 przypadków — a to jest
       // dokładnie ten rodzaj uogólnienia, który kosztował `AUDYT‑93` i `‑94`.

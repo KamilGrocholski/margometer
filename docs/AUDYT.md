@@ -3158,11 +3158,26 @@ zdanie, i tak zostanie, dopóki nie wiadomo, czym wypełnić `%name%`. Zdanie
 o kolejności obu pozycji zostaje w mocy w JEDNĄ stronę: naprawa `AUDYT‑99` przy
 tym kluczu miała sens dopiero po tej.
 
-### AUDYT‑99 — cztery dalsze klucze z liczbami zostają nieliczone ⚪ M — ⬜ ZAPISANE, nienaprawione
+### AUDYT‑99 — cztery dalsze klucze z liczbami zostają nieliczone ⚪ M — 🟡 CZĘŚCIOWO (1 z 4)
 
 `src/protokol.ts` (`PROCE`)
 
-**Problem.** Ze skanu jedenastu kluczy siedem naprawiono. Zostają cztery.
+✅ **`dmg-target_physical` ZROBIONE 2026‑08‑06** (`fea3874`) — weszło do `ROLE`
+jako obrażenia o stałej wartości zadane CELOWI, `strike: false`,
+`raw === applied`. Dowód sprawdzony u źródła, nie przepisany stąd; katalog
+dokłada zdanie, którego ten wpis nie cytował: „Obrażenia mogą zostać zwiększone
+przez bonus […] Obrażenia fizyczne ( dmgmulphysical )" — własny mnożnik, czyli
+własna ścieżka liczenia.
+
+⚠️ **Zostaje otwarte przy nim jedno: ryzyko podwojenia.** Katalog opisuje
+MECHANIKĘ, nie zapis w protokole; gdyby gra wysyłała przy tym kluczu także
+`-dmgX`, liczba by się podwoiła. Klucz nie pada w żadnym materiale (zero
+w obu fixture'ach i w `KORPUS`), więc świadka nie ma i mieć nie będzie.
+
+⬜ **Zostają trzy:** `vamp`, `+oth_cover`, `+oth_dmg`. Ostatni ma własny wpis
+z pomiarem — `AUDYT‑106`.
+
+**Problem.** Ze skanu jedenastu kluczy siedem naprawiono. Zostawały cztery.
 
 | klucz | zdanie gry | co niesie |
 |---|---|---|
@@ -3445,6 +3460,78 @@ odrzuca niepełne, nie bogatsze" jest nazwą o CAŁYM zrzucie; asercja dotyczył
 wyłącznie wywołania. Zielony test o nazwie brzmiącej jak reguła czyta się jak
 dowód na regułę, a jest dowodem na jeden jej przypadek. **Przy teście nazwanym
 regułą warto policzyć, ile przypadków ta reguła ma.**
+
+### AUDYT‑106 — `+oth_dmg` niesie obrażenia, które nie docierają NIGDZIE, a jego nazwa w rejestrze jest zmyślona 🔴 M — ⬜ ZAPISANE, nienaprawione
+
+`src/protokol.ts` (`PROCE`), `docs/MECHANIKA.md`, `docs/ROADMAP.md`
+
+**Problem, część pierwsza — LICZBY.** `+oth_dmg` pada w
+`2026-08-06-tempest-grupa-vs-hildur` **71 razy** i stoi w `PROCE`, czyli nie
+liczy się do niczego. Wartość jest trójczłonowa (`kwota,klasa,nick(procent)`)
+i niesie procent życia adresata — czyli **własnego świadka**.
+
+**✓ Zmierzone** — świadek `hp.max` przeciw temu procentowi, dwa NIEZALEŻNE
+przebiegi po całej walce (pierwsza wersja pomiaru doliczała warunkowo i przez to
+zależała od samej siebie; wynik niżej jest z poprawionej):
+
+| | trafień | rozjazdów |
+|---|---|---|
+| nie licząc `+oth_dmg` (stan dzisiejszy) | **0** | 18 |
+| licząc `+oth_dmg` jako obrażenia | 5 | 13 |
+
+Pierwszy wiersz rozstrzyga: osłaniane postacie wychodzą u nas na **100 % życia**,
+gdy log w tej samej chwili mówi 52–70 %. **Panel zaniża obrażenia przyjęte i nie
+mówi o tym ani słowem** — pozycja zdaje test kierunku „jakość danych" wprost,
+mocniej niż `AUDYT‑98`, bo tam ginęły etykiety, a tu giną PUNKTY ŻYCIA.
+
+⚠️ **Ale doliczenie NIE domyka sprawy i dlatego to jest wpis, a nie naprawa.**
+Zostaje 13 rozjazdów, a nasze sumy są wtedy za NISKIE (67,26 % kontra 61,55 %;
+53,20 % kontra 52,32 %). Czegoś w tej mechanice nie rozumiemy, a liczba wpisana
+dziś byłaby zgadywaniem z lepszą statystyką — nie odczytem.
+
+**Problem, część druga — NAZWA.** `ROADMAP.md:262` opisuje `+oth_cover`/
+`+oth_dmg` jako **„osłonę kompana"**. To określenie **nie ma poparcia w żadnym
+źródle**:
+
+```
+w .cache/pomoc-372.txt:   dmg-target_physical  1
+                          vamp                 1
+                          oth_cover            0
+                          oth_dmg              0
+```
+
+Katalog efektów nie zna ani jednego z tych dwóch kluczy. Nazwa wzięła się
+z brzmienia klucza — i **materiał jej przeczy**: adresatem jest 24 razy z 71
+**Hildur, czyli BOSS**. „Kompan przejmuje cios za kolegę" tego nie tłumaczy.
+
+**✓ Co materiał ROZSTRZYGA** (i to jedno wolno zapisać jako pewne):
+- 71 z 71 wystąpień ma dokładnie trzy człony i procent życia w trzecim;
+- 71 z 71 stoi w komunikacie **bez ani jednej liczby obrażeń**, więc podwojenia
+  z `-dmgd` w tym samym komunikacie NIE MA;
+- adresat zawsze jest w składzie: 40× trzecia postać, 31× druga strona (`f2`).
+
+**Docelowo.** Pozycja przestaje być „projektowa" i staje się **„mechanika
+nierozpoznana"** — to inny rodzaj otwarcia i inna robota. Projektowa znaczy
+„wiemy, co to jest, nie wiemy, gdzie to położyć"; tutaj nie wiemy, CO TO JEST.
+Następny krok to czytanie klienta gry (`tools/zrodla.ts`, gałąź `+oth_dmg`
+w `BattleMessages.js`), a nie projektowanie kontraktu na trzecią postać.
+
+⚠️ **Wniosek ogólniejszy — trzeci raz ten sam kształt.** `AUDYT‑93` pomylił
+„kogo dotyczy" z „kto wyzwolił", `AUDYT‑94` — „komu służy" z „kto wyzwolił",
+a tutaj **nazwa własna klucza została wzięta za jego opis**. Za każdym razem
+brakującym krokiem było to samo: sprawdzenie, czy źródło w ogóle o tym mówi.
+Katalog pomocy odpowiada „nie znam" w jednym `grep` i ten `grep` nie został
+zrobiony, choć artykuł leżał w `.cache/` od dwóch dni.
+
+⚠️ **A wniosek DRUGI jest gorszy od pierwszego i policzony gitem.** Do
+2026‑08‑06 nazwa stała w JEDNYM miejscu. Runda z tego samego dnia (`4039be7`,
+efekt poza ciosem) rozniosła ją do **pięciu kolejnych plików** — `CHANGELOG.md`
+(czyli do tekstu dla GRACZA), `src/types.ts`, `src/stats.ts`, `src/protokol.ts`
+i speca — i była to runda AUDYTUJĄCA ten obszar. Nikt jej nie zmyślił drugi raz;
+każde z tych pięciu miejsc CYTOWAŁO `ROADMAP.md`. **Cytowanie własnego rejestru
+czyta się jak sprawdzanie źródła, a nim nie jest** — i jest to szybsza droga
+rozprzestrzeniania nieprawdy niż jej wymyślenie, bo za każdym razem wygląda na
+staranność. Sprostowane we wszystkich sześciu miejscach tą samą rundą.
 
 ## G. Otwarte z poprzednich rund
 
