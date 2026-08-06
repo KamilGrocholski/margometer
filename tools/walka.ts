@@ -657,6 +657,56 @@ export function graniceWalk(wpisy: Wywolanie[]): number[] {
 }
 
 /**
+ * Czy ten zrzut wolno zapisać jako fixture — albo powód odmowy.
+ *
+ * ⚠️ **STAŁO TO W BLOKU `import.meta.main` I DLATEGO NIE MIAŁO ANI JEDNEGO
+ * TESTU** (`AUDYT‑104`). Warunek zamknięty w CLI jest w tym repo kodem, którego
+ * brama nie ogląda: `bun test` nie uruchamia gałęzi za `import.meta.main`, więc
+ * `tools/walka.ts` miało tam 60 % linii i całą tę decyzję poza zasięgiem.
+ * Wystawienie funkcji jest połową naprawy; drugą jest próg niżej.
+ *
+ * ⚠️ **PRÓG ROZJECHAŁ SIĘ ZE STRAŻNIKIEM I ZERO PRZECHODZIŁO.** Warunek pytał
+ * o `granice.length > 1`, więc zrzut BEZ ani jednego `init` zapisywał się bez
+ * słowa — a `tests/fixtury.test.ts` żąda od pliku w katalogu dokładnie jednej
+ * granicy (`toBe(1)`, zaostrzone przy `AUDYT‑60`, bo zero to nie „plik czysty",
+ * tylko „plik, o którym nie wiadomo"). Skutek był zmierzony: narzędzie
+ * zapisywało plik, drukowało „niezmienniki obejmą go bez dopisywania
+ * czegokolwiek" i `bun test` szło na czerwono. Materiał z gry leżał już wtedy
+ * w `tests/fixtures/`, a komunikat narzędzia mówił nieprawdę o tym, co się
+ * zaraz stanie.
+ *
+ * To jest ten sam rodzaj rozjazdu, przed którym broni wspólne `zaczynaWalke`
+ * w `src/zrzut.ts` — tyle że tam pilnowano PREDYKATU, a rozjechał się PRÓG.
+ * Wniosek szerszy od poprawki: jedna definicja granicy nie wystarcza, jeśli
+ * dwie strony stawiają na niej różne wymagania.
+ *
+ * POWODY SĄ DWA I MAJĄ RÓŻNE KOMUNIKATY, bo prowadzą do różnych czynności:
+ * kilka walk w pliku wymaga `--walka <n>`, brak granicy — nowego zbierania.
+ */
+export function granicaDoZapisu(wpisy: Wywolanie[], sciezka: string): string | null {
+  const granice = graniceWalk(wpisy);
+  const pierwszy = wpisy[0]?.nr;
+  if (granice.length === 1 && granice[0] === pierwszy) return null;
+
+  const podglad = `Podgląd: bun tools/walka.ts --pokaz ${sciezka}.`;
+  if (granice.length === 0) {
+    return (
+      "zrzut nie niesie ANI JEDNEJ granicy walki (`init`) — zbieranie zaczęło się " +
+      "od środka walki. Taki plik wygląda tak samo jak ogon jednej walki sklejony " +
+      `z całą następną, i dlatego \`tests/fixtury.test.ts\` odrzuca go tak samo. ${podglad} ` +
+      "Obie udokumentowane drogi dają `init`: sondę wkleja się PRZED walką, " +
+      "a tryb deweloperski raz włączony zostaje. Powód: docs/AUDYT.md, `AUDYT‑60`."
+    );
+  }
+  return (
+    `zrzut niesie granicę walki (\`init\`) w wywołaniu ${granice.join(", ")}, ` +
+    "a nie na samym początku — to więcej niż jedna walka w jednym pliku. " +
+    `Wskaż jedną przez --walka <n>. ${podglad} Powód i cytaty z klienta gry: ` +
+    "docs/MECHANIKA.md, wpis „Granica walk”."
+  );
+}
+
+/**
  * Skąd wziął się materiał — jednym zdaniem, do nagłówka modułu i do `--pokaz`.
  *
  * Pochodzenie musi się zgadzać co do narzędzia: nagłówek mówiący „zrzut sondy"
@@ -974,15 +1024,13 @@ if (import.meta.main) {
     // z dodatku wszedł do repo jako jeden fixture z dwóch walk — i wyglądałby
     // na dowód. Odmowa, nie ciche przycięcie: gdzie przebiega granica, widać
     // w `--pokaz`, a wycięcie po swojemu byłoby edytowaniem materiału.
-    const granice = graniceWalk(odchudz(zrzut.wpisy));
-    if (granice.length > 1 || (granice.length === 1 && granice[0] !== odchudz(zrzut.wpisy)[0]?.nr)) {
-      throw new Error(
-        `zrzut niesie granicę walki (\`init\`) w wywołaniu ${granice.join(", ")}, ` +
-          "a nie na samym początku — to więcej niż jedna walka w jednym pliku. " +
-          `Podgląd: bun tools/walka.ts --pokaz ${zachowaj}. Powód i cytaty z klienta gry: ` +
-          "docs/MECHANIKA.md, wpis „Granica walk”.",
-      );
-    }
+    //
+    // Sam warunek stoi w `granicaDoZapisu`, a nie tutaj — bo tutaj nie miał jak
+    // dostać testu (`AUDYT‑104`). `odchudz` leci RAZ; stało dwa razy w jednym
+    // warunku, na zrzucie o 1,4 MB.
+    const chudeDoGranicy = odchudz(zrzut.wpisy);
+    const odmowa = granicaDoZapisu(chudeDoGranicy, zachowaj);
+    if (odmowa !== null) throw new Error(odmowa);
 
     const plik = `${FIXTURY}${nazwaFixtura(zrzut, nazwa)}`;
     if (existsSync(plik)) {
@@ -1004,7 +1052,7 @@ if (import.meta.main) {
     const ostrzezenieZapisu = urwany(zrzut);
     if (ostrzezenieZapisu !== null) console.warn(`  ⚠ ${ostrzezenieZapisu}`);
     console.log(
-      `  wywołań: ${zrzut.wpisy.length} → ${odchudz(zrzut.wpisy).length}, ` +
+      `  wywołań: ${zrzut.wpisy.length} → ${chudeDoGranicy.length}, ` +
         `komunikatów: ${wiadomosci.length}, kluczy: ${histogram(wiadomosci).length}, ` +
         `w składzie: ${sklad.length}`,
     );

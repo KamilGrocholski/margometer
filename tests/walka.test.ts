@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   czytajZrzut,
+  granicaDoZapisu,
   graniceWalk,
   histogram,
   kluczeKomunikatu,
@@ -740,6 +741,81 @@ describe("zachowajZrzut", () => {
     expect(nazwaFixtura(czytajZrzut(JSON.stringify(ZRZUT)), "kamil-vs-wilk")).toBe(
       "2026-08-04-tempest-kamil-vs-wilk.json",
     );
+  });
+});
+
+/**
+ * WARUNEK WPUSZCZAJĄCY MATERIAŁ DO REPO — i do 2026‑08‑06 bez ani jednego testu.
+ *
+ * Stał w bloku `import.meta.main`, czyli tam, gdzie brama go nie ogląda:
+ * `bun test` nie uruchamia gałęzi CLI, więc decyzja „czy ten plik wolno zapisać"
+ * była poza zasięgiem wszystkiego (`AUDYT‑104`). Testy niżej pilnują PROGU,
+ * bo to on się rozjechał — nie predykatu, którego pilnuje wspólne `zaczynaWalke`.
+ */
+describe("granicaDoZapisu", () => {
+  const wpis = (nr: number, ladunek: Record<string, unknown>): Wywolanie => ({
+    nr,
+    walka: 1,
+    ladunek,
+    komunikaty: [],
+    wojownicyPrzed: [],
+    wojownicyPo: [],
+  });
+
+  test("dokładnie jedna granica NA POCZĄTKU przechodzi", () => {
+    expect(granicaDoZapisu([wpis(0, { init: "1" }), wpis(1, {})], "x.json")).toBeNull();
+  });
+
+  /**
+   * ⚠️ **TO JEST TA GAŁĄŹ, KTÓRA PRZEPUSZCZAŁA.** Warunek pytał o
+   * `granice.length > 1`, więc zrzut bez ani jednego `init` zapisywał się bez
+   * słowa — a `tests/fixtury.test.ts:129` żąda `toBe(1)`. Zmierzone przed
+   * naprawą: narzędzie ZAPISYWAŁO plik i drukowało „niezmienniki obejmą go bez
+   * dopisywania czegokolwiek", po czym `bun test` szło na czerwono.
+   */
+  test("ZERO granic odmawia — to nie „plik czysty”, tylko „plik, o którym nie wiadomo”", () => {
+    const powod = granicaDoZapisu([wpis(0, { myteam: 1 }), wpis(1, {})], "x.json");
+
+    expect(powod).toContain("ANI JEDNEJ granicy");
+    // Powód ma prowadzić do CZYNNOŚCI, a ta jest inna niż przy sklejeniu:
+    // tu trzeba zebrać materiał od nowa, nie wskazać numer walki.
+    expect(powod).not.toContain("--walka");
+  });
+
+  test("granica NIE na początku odmawia i prowadzi do `--walka`", () => {
+    const powod = granicaDoZapisu([wpis(0, { endBattle: 1 }), wpis(1, { init: "1" })], "x.json");
+
+    expect(powod).toContain("--walka");
+    expect(powod).toContain("1");
+  });
+
+  test("dwie granice odmawiają i wypisują OBIE", () => {
+    const powod = granicaDoZapisu(
+      [wpis(0, { init: "1" }), wpis(1, {}), wpis(2, { init: "1" })],
+      "x.json",
+    );
+
+    expect(powod).toContain("0, 2");
+  });
+
+  /**
+   * Para wiążąca narzędzie ze strażnikiem — bo to ich rozjazd był usterką.
+   *
+   * Gdyby próg tutaj znów poluzował, ten test przejdzie, a `bun test` padnie
+   * na `tests/fixtury.test.ts`. Ta asercja mówi wprost, że oba mają wymagać
+   * TEGO SAMEGO, i zapali się przy rozejściu, zamiast czekać na fixture.
+   */
+  test("próg narzędzia zgadza się ze strażnikiem fixture'ów", () => {
+    for (const wpisy of [
+      [wpis(0, { myteam: 1 })], // zero granic
+      [wpis(0, {}), wpis(1, { init: "1" })], // granica nie na początku
+      [wpis(0, { init: "1" }), wpis(1, { init: "1" })], // dwie granice
+      [wpis(0, { init: "1" })], // dokładnie jedna, na początku
+    ]) {
+      const granice = graniceWalk(wpisy);
+      const strażnikPrzejdzie = granice.length === 1 && granice[0] === wpisy[0]?.nr;
+      expect(granicaDoZapisu(wpisy, "x.json") === null).toBe(strażnikPrzejdzie);
+    }
   });
 });
 
