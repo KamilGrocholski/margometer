@@ -6,9 +6,11 @@ import {
   rola,
   rolaDomyslna,
   rozbierz,
+  RODZAJE_DOT,
   TABELE_KLUCZY,
   znaneKlucze,
 } from "../src/protokol.ts";
+import { dotLabel, RODZAJE_Z_ETYKIETA } from "../src/types.ts";
 import type { RosterEntry } from "../src/roster.ts";
 import { ZAMROZENIE } from "./klucze-protokolu.ts";
 
@@ -323,6 +325,43 @@ describe("rola: nieznane ma być głośne", () => {
 });
 
 /**
+ * Niezmiennik, którego brak pozwolił dwóm etykietom przeżyć własny parser
+ * (`AUDYT‑97`).
+ *
+ * `DOT_LABELS` miało od 2026‑08‑04 wpisy „od ognia" i „od błyskawic", a żadna
+ * ścieżka dekodera ich nie produkowała — bo `fire` i `light` stały w tabeli
+ * efektów nieliczonych. Martwy wpis w mapie wygląda tak samo jak żywy, więc
+ * pojedyncza asercja („«od ognia» daje «Ogień»") była przez te dwa dni ZIELONA
+ * i bezużyteczna.
+ *
+ * Dlatego OBIE strony. Każda łapie inną awarię i żadna nie zastępuje drugiej:
+ * pierwsza łapie rodzaj bez etykiety (fraza przyimkowa wycieka do panelu),
+ * druga łapie etykietę bez rodzaju (kod, który nikogo nie obsługuje).
+ */
+describe("rodzaje tykających obrażeń: dekoder i etykiety zgadzają się w OBIE strony", () => {
+  test("każdy rodzaj, który dekoder umie wypuścić, ma etykietę", () => {
+    const bezEtykiety = RODZAJE_DOT.filter((r) => !RODZAJE_Z_ETYKIETA.includes(r));
+    expect(bezEtykiety).toEqual([]);
+  });
+
+  test("każda etykieta ma rodzaj, który ją wywoła", () => {
+    const martwe = RODZAJE_Z_ETYKIETA.filter((r) => !RODZAJE_DOT.includes(r));
+    expect(martwe).toEqual([]);
+  });
+
+  test("etykieta jest RZECZOWNIKIEM, a nie frazą przyimkową z logu", () => {
+    // Powód istnienia całej mapy: w panelu ta kolumna sąsiaduje z nazwami
+    // umiejętności („Niszczycielski cios"), więc „od krwawienia" czyta się
+    // w niej jak usterka. Sprawdzane po WŁASNOŚCI, nie po liście nazw — lista
+    // rosłaby razem z tabelą i zestarzała się przy pierwszym nowym rodzaju.
+    for (const rodzaj of RODZAJE_DOT) {
+      const [przyimek, ...reszta] = rodzaj.split(" ");
+      expect(dotLabel(przyimek!, reszta.join(" "))).not.toStartWith(`${przyimek} `);
+    }
+  });
+});
+
+/**
  * DEKODER — komunikaty na zdarzenia.
  *
  * Najmniej pewna warstwa i testy tego nie ukrywają: sprawdzają, że składanie
@@ -547,6 +586,47 @@ describe("dekoduj: leczenie i obrażenia bez sprawcy", () => {
       dotType: "krwawienia",
     });
     expect(zd[1]).toMatchObject({ via: "po", dotType: "zranieniu" });
+  });
+
+  test.each([
+    // `critwound` — trzy źródła zgodne, opis przy wpisie w `ROLE`. Wartość
+    // DWUCZŁONOWA, tak jak przy truciźnie: kwota i procent osłabienia.
+    ["critwound=140,14", "od", "ciężkiej rany", 140, 14],
+    // Cztery żywioły. Renderer robi `m[1].split(',')` przy trzech pierwszych…
+    ["fire=88,10", "od", "ognia", 88, 10],
+    ["frost=88", "od", "zimna", 88, null],
+    ["light=88", "od", "błyskawic", 88, null],
+    // …a przy `physical` NIE robi (`:402‑404`), więc drugiego członu nie ma
+    // i `null` jest tu zgodnością z grą, a nie zgubioną liczbą.
+    ["physical=88", "od", "obrażeń fizycznych", 88, null],
+  ])(
+    "`%s` to tyknięcie, nie efekt bez liczby (AUDYT‑95)",
+    (segment, przyimek, rodzaj, kwota, oslabienie) => {
+      // Do 2026‑08‑06 każdy z tych pięciu kluczy stał w tabeli efektów
+      // NIELICZONYCH, więc taki komunikat dawał ZERO zdarzeń — bez `unknown`,
+      // bez ostrzeżenia w panelu, bez śladu. Punkty życia znikały po cichu.
+      const zd = dekoduj([`1=19.27;0;${segment}`], SKLAD);
+      expect(zd).toHaveLength(1);
+      expect(zd[0]).toMatchObject({
+        kind: "dot",
+        target: "Kamil",
+        amount: kwota,
+        via: przyimek,
+        dotType: rodzaj,
+        weakenedPct: oslabienie,
+      });
+    },
+  );
+
+  test("`critwound` tyka tak samo jak `wound` — bo renderer składa je tym samym kodem", () => {
+    // Sedno `AUDYT‑95` w jednej asercji: `:249‑253` kontra `:259‑263` różnią
+    // się kolorem czcionki i identyfikatorem zdania. Wszystko poza rodzajem ma
+    // wyjść identyczne, a rodzaj ma być różny, bo różne są ZDANIA gry.
+    const [ciezka] = dekoduj(["1=19.27;0;critwound=140,14"], SKLAD);
+    const [gleboka] = dekoduj(["1=19.27;0;wound=140,14"], SKLAD);
+    expect({ ...ciezka, dotType: null }).toEqual({ ...gleboka, dotType: null });
+    expect(ciezka).toMatchObject({ dotType: "ciężkiej rany" });
+    expect(gleboka).toMatchObject({ dotType: "głębokiej rany" });
   });
 
   test("obrażenia nieuchronne są ciosem BEZ ciosu — jak własne obrażenia umiejętności", () => {

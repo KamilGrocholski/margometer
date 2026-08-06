@@ -71,6 +71,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   brzmienie opisu przy aktualizacji. Wcześniej rozpoznanie szło po treści
   zdania, więc w takiej sytuacji obrażenia po cichu przenosiły się do puli
   „bez sprawcy”.
+- **Poprawka** — Obrażenia od ognia, zimna, błyskawic, ciężkiej rany i obrażenia
+  fizyczne wchodzą wreszcie do statystyk. Gra wypisuje je w logu walki osobnym
+  zdaniem („Kazrek otrzymał 88 obrażeń od ognia”), a panel ich nie liczył wcale —
+  ani w obrażeniach przyjętych, ani w rozbiciu, ani w ostrzeżeniu o czymś
+  nieznanym. Wchodzą tam, gdzie trucizna i głęboka rana: do puli „bez sprawcy”,
+  chyba że po drugiej stronie stoi dokładnie jeden przeciwnik.
+- **Poprawka** — Wiersz krwawienia nazywa się w panelu „Krwawienie”, a nie
+  „od krwawienia”, czyli tak samo jak wszystkie sąsiednie.
 
 ## [0.5.0] — 2026-08-05
 

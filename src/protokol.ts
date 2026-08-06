@@ -497,6 +497,56 @@ const ROLE: Readonly<Record<string, Rola>> = {
   wound: { typ: "dot", przyimek: "od", rodzaj: "głębokiej rany" },
   injure: { typ: "dot", przyimek: "po", rodzaj: "zranieniu" },
   anguish: { typ: "dot", przyimek: "od", rodzaj: "krwawienia" },
+
+  // ⚠️ **PIĘĆ PONIŻSZYCH STAŁO W `PROCE` DO 2026‑08‑06 I NIE LICZYŁO SIĘ DO
+  // NICZEGO** (`AUDYT‑95`). Nie był to brak funkcji, tylko cicha REGRESJA po
+  // skasowaniu parsera tekstu 2026‑08‑04: `DOT_LABELS` w `types.ts` miało przez
+  // te dwa dni wpisy „od ognia" i „od błyskawic", których żadna ścieżka
+  // dekodera nie umiała wyprodukować (`AUDYT‑97`). Parser te obrażenia liczył;
+  // droga protokołu nie liczyła ich nigdy.
+  //
+  // `critwound` ma dowód z TRZECH źródeł i to on rozstrzygnął całą piątkę:
+  //   1. renderer, `:259‑263` kontra `:249‑253` (`wound`) — ten sam `f1.name`,
+  //      ten sam `m[1].split(',')` na kwotę i procent, ta sama para
+  //      identyfikatorów `%val%` / `%val0% %val1%`. Znak w znak z kluczem,
+  //      który stoi wyżej w tej tabeli od początku;
+  //   2. słownik gry: „%name%: %val% obrażeń od ciężkiej rany.";
+  //   3. katalog pomocy (`view,372`), dosłownie: „aplikowane są na cel
+  //      obrażenia od głębokiej rany (JAKO OSOBNA INSTANCJA wyniszczeń)
+  //      o wartości 10% obrażeń zadanych na 3 tury".
+  //
+  // Trzecie źródło było tu warunkiem wejścia, nie ozdobą: „osobna instancja"
+  // znaczy, że to NIE jest rozbicie ciosu, więc doliczenie tego nie podwaja
+  // liczby, która już gdzieś siedzi. Bez tego zdania piątka zostałaby otwarta.
+  //
+  // ⚠️ „ciężkiej", nie „głębokiej", choć katalog nazywa TYP obrażeń głęboką
+  // raną. Rodzaj bierzemy ze ZDANIA, które widzi gracz — reguła cztery linie
+  // wyżej. Wiersz panelu ma się zgadzać z logiem walki; rozjazd z katalogiem
+  // opisuje `docs/MECHANIKA.md`, a nie kod. W przekroju „TYP OBRAŻEŃ" i tak
+  // schodzą się w jedną rodzinę („rana"), więc nic się przez to nie rozsypuje.
+  critwound: { typ: "dot", przyimek: "od", rodzaj: "ciężkiej rany" },
+  // Cztery żywioły mają dwa źródła zamiast trzech — katalog pomocy nie ma dla
+  // nich haseł, bo to nie są efekty ekwipunku, tylko zdania o typie obrażeń.
+  // Renderer (`:317‑333`, `:402‑404`) i słownik zgadzają się co do wszystkiego,
+  // co jest tu potrzebne: `f1.name` (pierwszy segment) i ten sam rozbiór
+  // `%val0% (osłabione o %val1%%)` co przy truciźnie.
+  //
+  // Ryzyko „to jest rozbicie ŻYWIOŁOWE tego samego ciosu" odpada z kodu, nie
+  // z domysłu: `Hit.element` bierze żywioł z KLUCZA obrażeń (`+of_dmg` →
+  // `kod: "o"`, wyżej w tej tabeli), a nie z tych kluczy.
+  fire: { typ: "dot", przyimek: "od", rodzaj: "ognia" },
+  frost: { typ: "dot", przyimek: "od", rodzaj: "zimna" },
+  light: { typ: "dot", przyimek: "od", rodzaj: "błyskawic" },
+  // ⚠️ **JEDYNY WPIS ŁAMIĄCY GRAMATYKĘ `przyimek + rodzaj` — i tak ma zostać.**
+  // Zdanie gry brzmi „%name% otrzymał# %val% obrażeń fizycznych." i nie ma
+  // w nim przyimka, więc sklejka daje „od obrażeń fizycznych". Do panelu to
+  // NIE trafia: przykrywa je `DOT_LABELS["od obrażeń fizycznych"]`, a
+  // niezmiennik w `tests/protokol.test.ts` pilnuje, żeby ta etykieta istniała.
+  // Zapisane wprost, bo bez tego zdania wygląda to na literówkę do poprawienia.
+  //
+  // Renderer nie robi tu `split(',')` (`:402‑404`), więc drugiego członu nie
+  // ma — `weakenedPct` wyjdzie `null` i to jest zgodne, a nie zgubione.
+  physical: { typ: "dot", przyimek: "od", rodzaj: "obrażeń fizycznych" },
   absolute: { typ: "nieuchronne" },
 
   // — przebieg walki ————————————————————————————————————————————
@@ -647,7 +697,6 @@ const PROCE: Readonly<Record<string, string>> = {
   "critstagnation": "msg_critstagnation",
   "critval-allies": "eng_game_only_val_critval-allies %val%",
   "critval-enemies": "eng_game_only_val_critval-enemies %val%",
-  "critwound": "msg_critwound %name% %val%",
   "distortion": "eng_game_only_nick_distortion %name%",
   "distractshoot": "msg_distractshoot",
   "disturb": "msg_disturb",
@@ -660,11 +709,9 @@ const PROCE: Readonly<Record<string, string>> = {
   "en-regen-cast": "msg_en-regen-cast %name% %target%",
   "energy": "msg_energy %name% %gain_loss% %val%",
   "energyout": "msg_energyout %val%",
-  "fire": "msg_fire %name% %val%",
   "fireshield": "msg_fireshield %name%",
   "firewall": "msg_firewall %name%",
   "footshoot": "msg_footshoot %name%",
-  "frost": "msg_frost %name% %val%",
   "frostshield": "msg_frostshield %name%",
   "heal_per": "msg_heal_per %name%",
   "heal_per-allies": "eng_game_nick_and_value_heal_per-allies %name% %val%",
@@ -674,7 +721,6 @@ const PROCE: Readonly<Record<string, string>> = {
   "hp_per-allies": "eng_game_nick_and_value_hp_per-allies %name% %val%",
   "hp_per-enemies": "eng_game_nick_and_value_hp_per-enemies %name% %val%",
   "insult": "msg_insult %name% %name2% %val%",
-  "light": "msg_light %name% %val%",
   "lightshield": "msg_lightshield %name%",
   "lightshield2": "msg_lightshield2 %name%",
   "loot": "msg_loot %name% %g1% %m1%",
@@ -684,7 +730,6 @@ const PROCE: Readonly<Record<string, string>> = {
   "manatransfer": "msg_manatransfer %name% %val% %name2%",
   "mlightshiled": "msg_mlightshiled %name%",
   "of-woundstart": "msg_of-woundstart",
-  "physical": "msg_physical %name% %val%",
   "poison_lowdmg_per-enemies": "msg_poison_lowdmg_per-enemies %val%",
   "poisonspread": "msg_poisonspread",
   "poisonspread_failkey": "msg_poisonspread_failkey",
@@ -799,6 +844,25 @@ export const TABELE_KLUCZY: Readonly<Record<"role" | "proce" | "milczace", reado
   proce: Object.keys(PROCE),
   milczace: MILCZACE,
 };
+
+/**
+ * Rodzaje tykających obrażeń, jakie ten dekoder POTRAFI wypuścić — w zapisie
+ * `przyimek + rodzaj`, czyli dokładnie tym, którym `dotLabel` szuka etykiety.
+ *
+ * Wyliczane z tabeli, a nie wypisane ręcznie: lista pisana ręcznie zestarzałaby
+ * się przy pierwszym nowym `dot` i zrobiłaby to po cichu — a to jest dokładnie
+ * ta awaria, którą ma łapać niezmiennik po drugiej stronie (`AUDYT‑97`).
+ *
+ * `"od ubytku życia"` dochodzi osobno i musi, bo jako jedyny rodzaj nie ma
+ * swojego klucza w tabeli: powstaje z UJEMNEJ wartości przy `heal` (`AUDYT‑88`),
+ * czyli z gałęzi w `dekoduj`, a nie z wpisu w `ROLE`.
+ */
+export const RODZAJE_DOT: readonly string[] = [
+  ...new Set([
+    ...Object.values(ROLE).flatMap((r) => (r.typ === "dot" ? [`${r.przyimek} ${r.rodzaj}`] : [])),
+    "od ubytku życia",
+  ]),
+];
 
 /** Wszystkie klucze, o których tabele cokolwiek wiedzą — materiał dla testów pokrycia. */
 export function znaneKlucze(): string[] {

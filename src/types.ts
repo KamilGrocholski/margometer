@@ -519,21 +519,53 @@ export function typeDisplay(type: string): string {
  * w takiej kolumnie czyta się jak usterka, bo nią jest: to jedyne pozycje,
  * które łamią gramatykę całej listy.
  *
- * Mapa, a nie odmiana z reguł: pięć rodzajów w całym pomiarze, a złe odmienienie
- * szóstego byłoby gorsze niż zostawienie go w spokoju.
+ * Mapa, a nie odmiana z reguł: dziewięć rodzajów w całym pomiarze, a złe
+ * odmienienie dziesiątego byłoby gorsze niż zostawienie go w spokoju.
+ *
+ * ⚠️ **TA MAPA ROZJECHAŁA SIĘ Z DEKODEREM NA DWA DNI I NIKT TEGO NIE WIDZIAŁ**
+ * (`AUDYT‑97`). Od skasowania parsera tekstu 2026‑08‑04 wpisy „od ognia"
+ * i „od błyskawic" były MARTWE — żadna ścieżka nie umiała wyprodukować tych
+ * rodzajów, bo klucze `fire` i `light` stały w tabeli efektów NIELICZONYCH.
+ * Martwy wpis w mapie etykiet wygląda dokładnie tak samo jak żywy, więc jedyne,
+ * co to łapie, to niezmiennik OBUSTRONNY: każdy rodzaj produkowany przez
+ * dekoder ma tu etykietę i każda etykieta ma swój rodzaj
+ * (`tests/protokol.test.ts`). Stoi od 2026‑08‑06 i sprawdzony jest w obie
+ * strony, bo tylko jedna z nich łapie ten konkretny rozjazd.
  */
 const DOT_LABELS: Record<string, string> = {
   "od trucizny": "Trucizna",
   "od głębokiej rany": "Głęboka rana",
+  "od ciężkiej rany": "Ciężka rana",
   "od ognia": "Ogień",
-  "po zranieniu": "Zranienie",
+  "od zimna": "Zimno",
   "od błyskawic": "Błyskawica",
+  // Etykiety nie da się zbudować z rodzaju regułą, bo zdanie gry nie ma tu
+  // przyimka („obrażeń fizycznych", nie „od czegoś") — powód przy kluczu
+  // `physical` w `protokol.ts`.
+  "od obrażeń fizycznych": "Obrażenia fizyczne",
+  "po zranieniu": "Zranienie",
+  // Brakowało do 2026‑08‑06, choć klucz `anguish` stoi w tabeli ról od dawna:
+  // wiersz szedł do panelu dosłownym „od krwawienia", czyli jako jedyna fraza
+  // przyimkowa w kolumnie rzeczowników. To jest właśnie ta usterka, przed którą
+  // broni nagłówek tej mapy — i przeżyła w niej, bo nic nie porównywało tej
+  // listy z listą rodzajów dekodera.
+  "od krwawienia": "Krwawienie",
   // Jedyna pozycja tej mapy, której odpowiednika NIE MA w logu: „Stracono
   // -92 punktów życia X" podaje kwotę i postać, ale nie nazywa źródła. Nazwa
   // jest więc nasza i celowo opisuje SKUTEK ("ubyło życia"), a nie zgadniętą
   // przyczynę — wpis w `docs/MECHANIKA.md`.
   "od ubytku życia": "Ubytek życia",
 };
+
+/**
+ * Klucze `DOT_LABELS` — materiał dla niezmiennika obustronnego, nie do czytania
+ * etykiet (od tego jest `dotLabel`).
+ *
+ * Osobny eksport zamiast wystawienia całej mapy, bo mapa wystawiona na zewnątrz
+ * zaprasza do omijania `dotLabel`, a wtedy fallback „rodzaj spoza mapy zostaje
+ * dosłowny" przestaje być jednym miejscem.
+ */
+export const RODZAJE_Z_ETYKIETA: readonly string[] = Object.keys(DOT_LABELS);
 
 /**
  * Etykieta tykającego efektu. Rodzaj spoza mapy zostaje DOSŁOWNIE taki, jak
