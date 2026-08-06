@@ -491,6 +491,29 @@ const ROLE: Readonly<Record<string, Rola>> = {
   // `'%val%': mm[1]` (nazwa) i `'%val2%': mm[0]` (kwota). Kwota to człon ZEROWY.
   legbon_lastheal: { typ: "leczenie", strona: "nadawca", wlasne: true },
 
+  // ⚠️ **DWA PONIŻSZE STAŁY W `PROCE` DO 2026‑08‑06** (`AUDYT‑96`). Oba niosą
+  // leczenie w PUNKTACH życia i oba nie liczyły się do niczego: ani do
+  // `healingReceived`, ani do puli bez leczącego, więc nie zostawiały po sobie
+  // nawet przypisu. `ROADMAP.md` nazywał tę pozycję od 2026‑08‑05 i czekał na
+  // zrzut, „bo bez niego byłoby to przeniesienie na podstawie samego brzmienia".
+  // Brzmienie nigdy nie było tu jedynym dowodem — jest nim PODSTAWIENIE
+  // w rendererze, a to leżało w `.cache/` przez cały ten czas.
+  //
+  // „Uleczono %name% o %val% punktów życia." — `'%val%': a[0]`,
+  // `'%name%': f1.name` (`:378‑392`), czyli leczonym jest pierwszy segment.
+  bandage: { typ: "leczenie", strona: "nadawca", wlasne: false },
+  // „+Uleczono za %val% punktów życia" (`:1018‑1039`).
+  //
+  // ⚠️ **DOWÓD SŁABSZY NIŻ PRZY `bandage` I MA BYĆ TAK ZAPISANY.** To zdanie NIE
+  // PODSTAWIA ŻADNEJ NAZWY, więc „pierwszy segment" jest tu wnioskiem
+  // z konwencji (`heal`, `afterheal`), a nie odczytem. Sekcja `J` dwa razy
+  // pokazała, ile kosztuje uznanie takiego wniosku za odczyt (`AUDYT‑93`,
+  // `AUDYT‑94`). Katalog pomocy hasła `vamp_time` nie ma; ma `vamp_time_per`
+  // („przywracający zdrowie Postaci o wartości części obrażeń zadanych
+  // w przeciwnika"), co wskazuje na bijącego — ale to INNY KLUCZ i nie wolno
+  // przenosić z niego wniosku wprost.
+  vamp_time: { typ: "leczenie", strona: "nadawca", wlasne: false },
+
   // — obrażenia bez sprawcy ————————————————————————————————————————
   // Przyimki są dosłownie te ze zdań gry i trafiają w pole `via` z `types.ts`.
   poison: { typ: "dot", przyimek: "od", rodzaj: "trucizny" },
@@ -686,7 +709,6 @@ const PROCE: Readonly<Record<string, string>> = {
   "aura-resall": "msg_aura-resall %val% %name%",
   "aura-sa": "msg_aura-sa %val%",
   "aura-sa_per": "msg_aura-sa_per_new %val% %name%",
-  "bandage": "msg_aura-bandage %val%",
   "blackout": "msg_blackout",
   "blizzard": "msg_blizzard",
   "chainlightning_perw": "msg_chainlightning_perw %name%",
@@ -759,7 +781,6 @@ const PROCE: Readonly<Record<string, string>> = {
   "thunder": "msg_thunder %name%",
   "trickyknife": "msg_trickyknife %name% %target%",
   "vamp": "msg_vamp %val%",
-  "vamp_time": "eng_game_only_val_vamp_time %val%",
   "woundextend": "msg_woundextend %name% %target%",
 };
 
@@ -1067,6 +1088,16 @@ export function dekoduj(
           const hpp = r.strona === "cel" ? (cel?.hpp ?? null) : (nadawca?.hpp ?? null);
           // Kwota stoi w członie ZEROWYM także przy wartościach dwuczłonowych —
           // patrz `legbon_lastheal`, gdzie zdanie sugeruje odwrotnie.
+          //
+          // ⚠️ **DRUGI CZŁON GINIE I TO JEST ŚWIADOME, ale nie jest darmowe**
+          // (`AUDYT‑96`). Przy `bandage` i `vamp_time` niesie on PROCENT
+          // OSŁABIENIA leczenia („%val% (osłabiono o %val2%%)"), czyli to samo,
+          // co `weakenedPct` przy tyknięciach — a `BattleEvent.heal` nie ma
+          // gdzie tego położyć. Różnica wobec `AUDYT‑95` jest jednak istotna
+          // i dlatego to NIE blokuje przeniesienia: kwota z członu zerowego jest
+          // już PO osłabieniu, więc liczba w panelu zostaje prawdziwa. Tracimy
+          // „ile osłabienie zdjęło", a nie samo leczenie. Dołożenie pola byłoby
+          // zmianą kontraktu poza zakresem tej rundy — zapisane w `docs/AUDYT.md`.
           const kwota = liczba(czlony(p.wartosc)[0] ?? null);
           if (strona === null || kwota === null) nieznany(p.surowy);
           // ⚠️ **UJEMNA KWOTA TO „STRACONO", CZYLI REALNY UBYTEK ŻYCIA**

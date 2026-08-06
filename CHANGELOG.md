@@ -79,6 +79,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   chyba że po drugiej stronie stoi dokładnie jeden przeciwnik.
 - **Poprawka** — Wiersz krwawienia nazywa się w panelu „Krwawienie”, a nie
   „od krwawienia”, czyli tak samo jak wszystkie sąsiednie.
+- **Poprawka** — Leczenie z opatrunku i z wampiryzmu wchodzi do rubryki
+  „uleczone”. Dotąd nie było go w panelu w ogóle: ani przy postaci, ani w puli
+  bez leczącego, ani jako przypis.
 
 ## [0.5.0] — 2026-08-05
 

@@ -576,6 +576,30 @@ describe("dekoduj: leczenie i obrażenia bez sprawcy", () => {
     expect(z).toMatchObject({ kind: "heal", amount: 980 });
   });
 
+  test.each([
+    // „Uleczono %name% o %val% punktów życia." — `'%name%': f1.name` (`:378‑392`).
+    ["bandage=200", 200],
+    // „+Uleczono za %val% punktów życia" (`:1018‑1039`).
+    ["vamp_time=75", 75],
+  ])("`%s` to leczenie w punktach, nie efekt bez liczby (AUDYT‑96)", (segment, kwota) => {
+    // Do 2026‑08‑06 oba klucze stały w tabeli efektów NIELICZONYCH, więc taki
+    // komunikat dawał zero zdarzeń: leczenie nie wchodziło ani do `healingReceived`,
+    // ani do puli bez leczącego, czyli nie zostawiało po sobie nawet przypisu.
+    const zd = dekoduj([`1=88.00;0;${segment}`], SKLAD);
+    expect(zd).toHaveLength(1);
+    expect(zd[0]).toMatchObject({ kind: "heal", target: "Kamil", amount: kwota, self: false });
+  });
+
+  test("osłabienie leczenia nie psuje KWOTY, choć samo przepada", () => {
+    // Wariant dwuczłonowy: „%val% (osłabiono o %val2%%)". Drugiego członu
+    // `BattleEvent.heal` nie ma gdzie położyć i to jest zapisane jako otwarte
+    // (`AUDYT‑96`) — ale kwota z członu zerowego stoi już PO osłabieniu, więc
+    // liczba w panelu zostaje prawdziwa. Test pilnuje właśnie tego: obecność
+    // drugiego członu nie ma prawa ruszyć pierwszego ani zamienić go w `unknown`.
+    const [z] = dekoduj(["1=88.00;0;bandage=200,15"], SKLAD);
+    expect(z).toMatchObject({ kind: "heal", amount: 200 });
+  });
+
   test("DoT trafia w nadawcę i niesie przyimek z brzmienia gry", () => {
     const zd = dekoduj(["1=6.71;0;anguish=3615", "1=6.00;0;injure=120"], SKLAD);
     expect(zd[0]).toMatchObject({
