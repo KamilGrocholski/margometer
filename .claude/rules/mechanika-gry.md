@@ -7,9 +7,11 @@ paths:
   - "src/zrzut.ts"
   - "docs/**/*.md"
   - "tests/fixtury.ts"
+  - "tests/fixtury.test.ts"
   - "tests/korpus.ts"
   - "tests/walka-z-gry.ts"
   - "tests/fixtures/README.md"
+  - "tools/walka.ts"
 ---
 
 # Zdanie o mechanice gry wymaga dowodu ze źródła
@@ -34,6 +36,14 @@ protokół podaje przy zgonie i po uleczeniu. Wniosek jest szerszy od poprawki:
 lista starzeje się nie tylko wtedy, gdy plik ZNIKA, ale i wtedy, gdy wiedza
 PRZEPROWADZA SIĘ do pliku, którego na liście nie było. Pisząc nowy wpis
 rejestru, sprawdź, czy plik, którego dotyczy, tu stoi.
+
+⚠️ **Czwarty raz, znów przez ścieżkę BRAKUJĄCĄ** (`AUDYT‑100`, 2026‑08‑06):
+`tools/walka.ts` nie stał tu, a od tej rundy mieszka w nim zdanie o grze
+sprawdzalne w cudzym repo — **`npc: 0` w `ladunek.w` znaczy „gracz"**, i to na
+nim stoi cała redakcja pseudonimów. Razem z nim doszedł `tests/fixtury.test.ts`,
+gdzie stoją twierdzenia o tym, co protokół podaje przy zgonie i po uleczeniu.
+Wniosek jest ten sam co przy trzecim razie i wart powtórzenia: lista starzeje
+się także wtedy, gdy wiedza PRZEPROWADZA SIĘ do pliku, którego na niej nie było.
 
 ⚠️ Uwaga przy `tests/fixtures/README.md`: katalog wrócił 2026‑08‑05, ale
 **`meta.json` nie wraca** — opis materiału stoi dziś w jednym `README.md`, a nie

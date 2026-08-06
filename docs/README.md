@@ -175,6 +175,11 @@ sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.**
    `tests/walka-<slug>.ts` — moduł z komunikatami, składem i nagłówkiem,
    w którym trzy pola opisu czekają na wypełnienie przez człowieka.
 
+   **Pełna procedura — osiem kroków, razem z tymi, których narzędzie za Ciebie
+   nie zrobi — stoi w [`tests/fixtures/README.md`](../tests/fixtures/README.md).**
+   Tam też: dlaczego pseudonimy graczy wchodzą do repo wyłącznie jako
+   `Gracz N` i czego strażniki NIE łapią.
+
    ⚠️ **Stało tu co innego do 2026‑08‑04**: „nowy fixture ma mieć DWA pliki —
    `raw.txt` (tekst z «Kopiuj logi») i `log.html` (zrzut DOM, bo żywioł siedzi
    wyłącznie w klasie CSS)". Obu formatów nie ma już w repo i nie ma czym ich

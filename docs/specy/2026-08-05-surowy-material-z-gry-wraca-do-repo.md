@@ -179,9 +179,20 @@ To jest odpowiedź na zarzut „martwy plik danych", sprawdzona, a nie obiecana.
   w tej rundzie, bo `build.ts` potrzebuje modułu, a jedna zmiana naraz.
 - **Świadek nie obejmuje obrażeń ZADANYCH ani rozbić.** Do tego potrzebny jest
   drugi, niezależny czytelnik komunikatów — a jego nie ma i nie zanosi się.
-- **Prywatność.** Repo jest publiczne. Fixture niesie nazwę postaci, świat
+- ~~**Prywatność.** Repo jest publiczne. Fixture niesie nazwę postaci, świat
   i statystyki (`hp.max` 5815, `ac.cur` 239) — wchodzi to do historii gita na
-  stałe i nie da się tego wycofać podmianą pliku.
+  stałe i nie da się tego wycofać podmianą pliku.~~ **ZAMKNIĘTE CO DO NAZW —
+  2026‑08‑06.** Podstawia je `pseudonimizuj` w `tools/walka.ts` przy każdym
+  `--zachowaj`, pilnują dwa niezmienniki w `tests/fixtury.test.ts`, a istniejący
+  plik przeszedł redakcję (34 wystąpienia). Procedura: `tests/fixtures/README.md`.
+
+  **Co z tej pozycji ZOSTAJE otwarte** — i zdanie „nie da się wycofać podmianą
+  pliku" było tu prawdziwe, więc zostaje: oryginał siedzi w historii gita
+  i tam zostanie, bo przepisywanie historii publicznego repo kosztuje więcej,
+  niż daje (ta sama granica, co przy zrzutach ekranu). Zostają też `id`, świat
+  i statystyki — to pseudonimizacja, nie anonimizacja. I zostaje **krok, którego
+  nie da się zautomatyzować**: nazwa niezwiązana z żadnym `id` przechodzi przez
+  podstawienie nietknięta i nie zapala ani jednego strażnika (zmierzone).
 
 ## Zmiany wpisu
 

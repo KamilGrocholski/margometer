@@ -1,16 +1,79 @@
 # Surowy materiał z gry
 
 Pliki w tym katalogu to **zrzuty `Engine.battle.update` tak, jak przysłał je
-serwer gry** — bez ani jednej naszej liczby. Powstają przez
+serwer gry** — bez ani jednej naszej liczby, z jedną redakcją opisaną niżej
+(pseudonimy graczy). Powstają przez
 `bun tools/walka.ts --zachowaj <plik> --nazwa <slug>`; nie edytuje się ich
 ręcznie, także wtedy (zwłaszcza wtedy), gdy test się o nie zapala.
 
-Pochodzenie każdego pliku niesie on sam: `swiat`, `build`, `przy`, `zrodlo`,
-`otwarcie`. **Tu opisujemy tylko to, czego maszyna nie wyprodukuje** — co dana
-walka pokrywa i czego w niej nie ma. Liczby wypisuje narzędzie
-(`--pokaz`, `--klucze`); liczba przepisana do prozy rozjeżdża się z materiałem,
-co w tym repo już raz się stało (`tests/walka-z-gry.ts` podawał przez dobę
-build deweloperski zamiast prawdziwego).
+Pochodzenie każdego pliku niesie on sam: `swiat`, `build`, `przy`, `otwarcie`,
+a od 2026‑08‑05 także `zrodlo`. **Tu opisujemy tylko to, czego maszyna nie
+wyprodukuje** — co dana walka pokrywa i czego w niej nie ma. Liczby wypisuje
+narzędzie (`--pokaz`, `--klucze`); liczba przepisana do prozy rozjeżdża się
+z materiałem, co w tym repo już raz się stało (`tests/walka-z-gry.ts` podawał
+przez dobę build deweloperski zamiast prawdziwego).
+
+⚠️ Zdanie o `zrodlo` stało tu bez zastrzeżenia i było o jeden plik za szerokie:
+jedyny fixture w katalogu tego pola **nie ma**, bo zebrała go sonda sprzed
+2026‑08‑05. Narzędzie ma dla tego przypadku osobne zdanie („Zrzut o NIEUSTALONYM
+pochodzeniu"), a nie zgadywanie.
+
+## Jak materiał wchodzi do tego katalogu
+
+Kroki stały dotąd rozsypane w czterech miejscach (`docs/README.md`, `AGENTS.md`,
+nagłówek wyżej, tekst użycia narzędzia) i w żadnym nie było kroków 4, 6, 7 i 8.
+
+1. **Zbierz zrzut.** Dodatek: zębatka → „Tryb deweloperski" → „Zrzut walki"
+   (zbiera całą sesję). Albo sonda `tools/walka-probe.js` wklejona do konsoli
+   PRZED walką — działa bez instalowania dodatku i jest jedyną drogą, gdy
+   podejrzenie pada na sam dodatek.
+2. **`bun tools/walka.ts --pokaz <plik>`** — ile walk siedzi w pliku, gdzie
+   przebiegają granice, czy zrzut nie jest urwany.
+3. **`bun tools/walka.ts --zachowaj <plik> --nazwa <slug> [--walka <n>]`.**
+   Narzędzie **odmawia** zrzutom sklejonym z kilku walk, zrzutom bez `myteam`
+   i takim, w których nie da się ustalić, kto jest graczem, a kto potworem.
+   Wypisuje mapę podstawionych pseudonimów — obejrzyj ją; to jedyny moment,
+   w którym widać, że ktoś został wzięty za kogo innego.
+4. **Przeczytaj `otwarcie` i `render` w zapisanym pliku — OCZAMI.** To jedyny
+   krok, którego żaden test nie domknie: podstawienie zna wyłącznie nazwy
+   związane z `id`, a nick niezwiązany z żadnym wojownikiem przechodzi przez
+   nie nietknięty (mutacja z 2026‑08‑06: nazwa wstawiona tylko w `render` nie
+   zapala ani jednego strażnika).
+5. **`--rozbij`** tylko wtedy, gdy moduł TS jest naprawdę potrzebny — dziś
+   potrzebuje go `build.ts`, który katalogu testów nie czyta.
+6. **Dopisz sekcję `## <nazwa pliku>`** z trójką **Co pokrywa / Czego nie ma /
+   Co było trudne**, i bez POLICZONYCH liczb — te wypisuje `--pokaz`.
+7. **`bun run check`.** Nowy plik ma dołożyć testy, nie leżeć martwo.
+8. **Skreśl, co domknął**, na liście zakupowej w `docs/ROADMAP.md`.
+
+## Pseudonimy graczy się PODSTAWIA, i robi to narzędzie
+
+Każdy wojownik, którego gra oznaczyła `npc: 0`, wchodzi tu jako `Gracz 1`,
+`Gracz 2`, … Podstawienie robi `pseudonimizuj` w `tools/walka.ts` — automatycznie,
+przy każdym `--zachowaj`. Pilnują tego dwa niezmienniki w `tests/fixtury.test.ts`.
+
+**Powód, i nie jest nim ostrożność.** Repozytorium jest publiczne, fixture idzie
+do gita NA ZAWSZE, a `docs/screenshots/README.md` zapisuje wprost, że historii
+tego repo się nie przepisuje — więc pierwsza pomyłka jest nieodwracalna.
+Pseudonimy to dane osób, które nie miały jak się na to zgodzić; szczegóły
+i podstawa w [`NOTICE.md`](../../NOTICE.md).
+
+Co zostaje NIETKNIĘTE i dlaczego: `id`, `lvl`, `prof`, wszystkie liczby i nazwy
+POTWORÓW. `id` jest tym, po czym protokół identyfikuje strony i na czym stoi
+świadek `hp.max`; nazwy potworów są elementem gry, nie danymi człowieka, i to po
+nich widać, że dwie instancje o tej samej nazwie rozdzielają się po `id`.
+Nazwijmy więc rzecz po imieniu: to jest **pseudonimizacja, nie anonimizacja** —
+gra nadal umie odwzorować `id` na nick.
+
+⚠️ **Etykiety są LOKALNE DLA PLIKU.** `Gracz 1` w jednym fixturze i `Gracz 1`
+w innym to dwie różne osoby, a z `Gracz A`…`Gracz G` z prozy repo nie mają nic
+wspólnego — tamte znaczą konkretne postacie konsekwentnie w każdym pliku
+(`NOTICE.md`). Stąd cyfra zamiast litery: ten sam napis o dwóch znaczeniach
+rozjechałby się po cichu.
+
+Numeracja idzie po `id` rosnąco, a mapa `nick → Gracz N` **nie jest nigdzie
+zapisywana** — leci na ekran przy zapisie i tyle. Słownik wiążący nick
+z liczbami byłby gorszy od samego nicka.
 
 ## Dlaczego to jest katalog z plikami, skoro `AGENTS.md` każe budować materiał w kodzie
 
@@ -36,6 +99,14 @@ Zrzut sondy `tools/walka-probe.js`. Łowca (`+dmgd`, dystansowe) przeciw trzem
 potworom, w tym dwóm o TEJ SAMEJ nazwie („Odyniec", `id` −255967 i −255969) —
 protokół rozdziela je po `id`, więc heurystyka po spadku życia nie ma tu prawa
 się odezwać.
+
+⚠️ **`Gracz 1` w tym pliku to REDAKCJA z 2026‑08‑06, nie nazwa z gry.** Plik
+wszedł do repo, zanim podstawienie w ogóle istniało, i niósł prawdziwą nazwę
+postaci w 34 miejscach; przepisał go `bun tools/walka.ts --pseudonimizuj`.
+Pole `pseudonimow` w pliku mówi ile, `odchudzonych` zostało nietknięte. Redakcja
+jest nieodwracalna i zrobiona na miejscu, więc **w historii gita oryginał
+zostaje** — ta sama świadoma granica, co przy zrzutach ekranu
+(`docs/screenshots/README.md`).
 
 **Co pokrywa:** dwa krytyki, przebicie, redukcja pancerzem (`+acdmg`), tyknięcie
 trucizny z osłabieniem w drugim członie wartości, cios potwora z

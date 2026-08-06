@@ -162,10 +162,28 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
     `zamrozenie` do modułu` (`tests/slownik.test.ts`, mutacja sprawdzona).
     Ta sama reguła dotyczy pseudonimów innych graczy — na zrzutach ekranu
     też (`docs/screenshots/README.md`).
+  - ⛔ **PSEUDONIMY GRACZY → DO FIXTURE'A WYŁĄCZNIE JAKO `Gracz N`.** Czwarta
+    kategoria, dopisana 2026‑08‑06 — bo trzecia mówiła „ta sama reguła dotyczy
+    pseudonimów" i **niczego nie pilnowała po stronie materiału z gry**. Każdy
+    wojownik z `npc: 0` wchodzi do `tests/fixtures/` jako `Gracz 1`, `Gracz 2`, …;
+    podstawia `pseudonimizuj` w `tools/walka.ts`, automatycznie przy każdym
+    `--zachowaj`, a pilnują dwa niezmienniki w `tests/fixtury.test.ts`. `id`,
+    liczby i nazwy POTWORÓW zostają nietknięte — to one są w tym pliku dowodem.
+    Etykiety są **lokalne dla pliku** i nie mają nic wspólnego z `Gracz A`…
+    `Gracz G` z prozy; stąd cyfra zamiast litery. Pełna procedura wejścia
+    materiału: `tests/fixtures/README.md`.
+
+    ⚠️ **Jednego kroku nie da się zautomatyzować i trzeba o tym wiedzieć.**
+    Podstawienie zna wyłącznie nazwy związane z `id`. Nick niezwiązany z żadnym
+    wojownikiem — wstawiony tylko w `render`, w `txt=` z łupem, należący do
+    kogoś, kto wypadł przed pierwszą migawką — przechodzi przez nie nietknięty
+    i **nie zapala ani jednego strażnika** (zmierzone mutacją). Dlatego procedura
+    ma krok „przeczytaj `otwarcie` i `render` oczami".
   - **Protokół tak, jak przysłał go serwer → do `tests/fixtures/*.json`**, przez
     `bun tools/walka.ts --zachowaj … --nazwa <slug>`. Bo moduł z `--rozbij`
     gubi `hp.max`, ładunki i granice wywołań, a bez `hp.max` nie ma świadka
-    dekodera spoza dekodera (niżej).
+    dekodera spoza dekodera (niżej). „Tak, jak przysłał go serwer" ma odtąd
+    jeden wyjątek i jest nim kategoria wyżej.
 
   **Warunek, pod którym katalog wrócił: niezmienniki ODKRYWAJĄ pliki same**
   (`tests/fixtury.ts` + `tests/fixtury.test.ts`, wciągane też do `KORPUS`).
