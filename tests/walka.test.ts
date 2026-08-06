@@ -818,20 +818,59 @@ describe("zrzut z kilku walk", () => {
     // ⚠️ `AUDYT‑66`. Stało tu `{ ...zrzut, otwarcie, wpisy }`, więc fixture
     // jednej walki wychodził z `otwarcia` CAŁEJ sesji — czyli z linią
     // otwierającą walki, której w pliku nie ma — a do tego z `pominietych`
-    // i `przepelniony` policzonymi dla wszystkich walk naraz. To ten sam
-    // zarzut, który ta runda postawiła skasowanemu `meta.json`.
+    // policzonym dla wszystkich walk naraz. To ten sam zarzut, który ta runda
+    // postawiła skasowanemu `meta.json`.
     const jedna = wybierzWalke(
-      czytajZrzut(JSON.stringify({ ...SESJA, pominietych: 57, przepelniony: true })),
+      czytajZrzut(JSON.stringify({ ...SESJA, pominietych: 57 })),
       2,
     );
 
     expect(jedna.otwarcia).toBeUndefined();
+    // `pominietych` jest LICZNIKIEM sesji: zawężony nie da się policzyć, bo
+    // zrzut nie mówi, ile odsiano w której walce.
     expect(jedna.pominietych).toBeUndefined();
-    expect(jedna.przepelniony).toBeUndefined();
     // Pochodzenie zostaje — ono dotyczy pliku, nie walki.
     expect(jedna.zrodlo).toBe("dodatek");
     expect(jedna.swiat).toBe("tempest");
     expect(jedna.otwarcie).toBe("Rozpoczęła się walka pomiędzy C a D");
+  });
+
+  /**
+   * `przepelniony` STAŁO W TEŚCIE WYŻEJ JAKO `toBeUndefined()` — czyli usterka
+   * była zakodowana jako oczekiwanie (`AUDYT‑103`).
+   *
+   * Zbiorcze zdanie „`pominietych` i `przepelniony` są własnością sesji" jest
+   * prawdą o liczniku i nieprawdą o fladze: ta nie jest liczbą do rozdzielenia,
+   * tylko faktem o KOŃCU bufora. Którą walkę bufor uciął, wynika z naszego
+   * własnego kodu — `KolekcjonerZrzutu.po` po przepełnieniu wychodzi wcześniej
+   * i nie zapisuje już nic — więc urwana jest walka o NAJWYŻSZYM numerze.
+   *
+   * Skutek był zmierzony i trafiał dokładnie w drogę materiału z dodatku:
+   * `--zachowaj … --walka <n>` woła `urwany()` na zrzucie JUŻ zawężonym, więc
+   * ostrzeżenie z `AUDYT‑86` milczało — i to przy walce, którą się zwykle
+   * wybiera, bo ostatniej.
+   */
+  test("urwany zrzut ZOSTAJE urwany po zawężeniu do ostatniej walki", () => {
+    const ostatnia = wybierzWalke(
+      czytajZrzut(JSON.stringify({ ...SESJA, przepelniony: true })),
+      2,
+    );
+
+    expect(ostatnia.przepelniony).toBe(true);
+    expect(urwany(ostatnia)).toContain("URWANY");
+  });
+
+  test("walka WCZEŚNIEJSZA nie dziedziczy urwania — bufor jej nie tknął", () => {
+    // Para dla testu wyżej. Bez niej „przepuszczaj zawsze" przechodziłoby tak
+    // samo, a to byłoby ostrzeganie o urwaniu walki, która skończyła się cała.
+    // Fałszywe ostrzeżenie na materiale dowodowym uczy ludzi je ignorować.
+    const pierwsza = wybierzWalke(
+      czytajZrzut(JSON.stringify({ ...SESJA, przepelniony: true })),
+      1,
+    );
+
+    expect(pierwsza.przepelniony).toBeUndefined();
+    expect(urwany(pierwsza)).toBeNull();
   });
 
   test("moduł ze zrzutu dodatku nie podaje się za zrzut sondy", () => {

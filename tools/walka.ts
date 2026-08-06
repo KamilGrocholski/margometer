@@ -184,9 +184,26 @@ export function walkiWZrzucie(zrzut: Zrzut): number[] {
  * `meta.json`: materiał dowodowy niosący metadane o materiale, którego w nim
  * nie ma. Dlatego pola wypisujemy po jednym, a nie rozsypujemy.
  *
- * `pominietych` i `przepelniony` NIE przechodzą, bo są własnością sesji, nie
- * walki, i zawężone nie dałyby się policzyć — zrzut nie mówi, ile odsiano
- * w której walce. Milczenie jest tu uczciwsze niż liczba o niejasnym zakresie.
+ * `pominietych` NIE przechodzi, bo jest LICZNIKIEM sesji i zawężony nie dałby
+ * się policzyć — zrzut nie mówi, ile odsiano w której walce. Milczenie jest tu
+ * uczciwsze niż liczba o niejasnym zakresie.
+ *
+ * ⚠️ **`przepelniony` STAŁ OBOK NIEGO W TYM SAMYM ZDANIU I BYŁ TO BŁĄD**
+ * (`AUDYT‑103`). Zbiorcze uzasadnienie „własność sesji, nie walki" jest prawdą
+ * o liczniku, a nieprawdą o tej fladze: to nie jest liczba do rozdzielenia,
+ * tylko fakt o KOŃCU bufora. Którą walkę bufor uciął, wynika z NASZEGO kodu,
+ * a nie z gry — `KolekcjonerZrzutu.po` po przepełnieniu wychodzi wcześniej
+ * i nie zapisuje już nic, więc urwana jest walka BIEŻĄCA w tamtej chwili,
+ * czyli ta o najwyższym numerze obecnym w zrzucie.
+ *
+ * Skutek zgubienia flagi był zmierzony i dotykał dokładnie tej drogi, po której
+ * chodzi materiał z dodatku: `--zachowaj … --walka <n>` woła `urwany()` na
+ * zrzucie JUŻ zawężonym, więc ostrzeżenie z `AUDYT‑86` milczało — i milczało
+ * przy walce o najwyższym numerze, czyli tej, którą się zwykle wybiera.
+ *
+ * Dlatego flaga przechodzi WYŁĄCZNIE dla ostatniej walki. Puszczenie jej zawsze
+ * byłoby ostrzeganiem o urwaniu walki, której bufor nie tknął — a fałszywe
+ * ostrzeżenie na materiale dowodowym uczy ludzi je ignorować.
  */
 export function wybierzWalke(zrzut: Zrzut, numer: number): Zrzut {
   const wpisy = zrzut.wpisy
@@ -197,6 +214,7 @@ export function wybierzWalke(zrzut: Zrzut, numer: number): Zrzut {
       `w zrzucie nie ma walki ${numer} — są: ${walkiWZrzucie(zrzut).join(", ") || "brak numeracji"}`,
     );
   }
+  const ostatnia = walkiWZrzucie(zrzut).at(-1);
   return {
     wersja: zrzut.wersja,
     przy: zrzut.przy,
@@ -207,6 +225,7 @@ export function wybierzWalke(zrzut: Zrzut, numer: number): Zrzut {
     // w mniejszej skali.
     otwarcie: zrzut.otwarcia?.[String(numer)] ?? null,
     ...(zrzut.zrodlo !== undefined ? { zrodlo: zrzut.zrodlo } : {}),
+    ...(zrzut.przepelniony === true && numer === ostatnia ? { przepelniony: true } : {}),
     wpisy,
   };
 }
