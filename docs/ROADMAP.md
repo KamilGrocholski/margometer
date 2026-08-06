@@ -265,25 +265,31 @@ listą, nie nagłówkiem.
   obrażeń przeciw procentowi życia u świadka pokaże, czy liczyć raz, czy dwa.
   **To jest pozycja, którą materiał NAPRAWDĘ domyka** — w odróżnieniu od tych,
   które na zrzut czekały niepotrzebnie.
-- **`+oth_cover`, `+oth_dmg`** — pozycja **MECHANIKI NIEROZPOZNANEJ**, nie
-  tabelaryczna i nie projektowa. Wartość jest trójczłonowa
-  (`kwota,klasa,nick(procent)`) i niesie w środku **trzecią postać**, a cały
-  kontrakt zdarzeń stoi na dwóch stronach komunikatu.
+- **`+oth_cover`, `+oth_dmg`** — **format ZNANY, liczenie OTWARTE**
+  (`AUDYT‑106`). Wartość jest trójczłonowa i klient mówi, czym jest każdy człon:
+  `mm[0]` kwota, **`mm[1]` KOD ŻYWIOŁU** (wchodzi w `class=dmg{mm[1]}`),
+  `mm[2]` nazwa odbiorcy. ✅ Na tym stanęła naprawa etykiet (`e7087a3`):
+  71 efektów pokazuje dziś zdanie gry zamiast klucza.
 
-  ⚠️ **STAŁO TU „(osłona kompana)" I JEST TO NAZWA BEZ POKRYCIA** (`AUDYT‑106`).
-  Katalog efektów nie zna ANI JEDNEGO z tych dwóch kluczy (`grep` po
-  `.cache/pomoc-372.txt`: `oth_cover` → 0, `oth_dmg` → 0); określenie wzięło się
-  z brzmienia klucza. Materiał mu przeczy: adresatem jest **24 razy z 71 boss**,
-  czego „kompan przejmuje cios za kolegę" nie tłumaczy. Różnica jest praktyczna,
-  nie słowna — „projektowa" znaczy „wiemy co to, nie wiemy gdzie położyć",
-  a tu **nie wiadomo, co to jest**, więc następnym krokiem jest czytanie klienta
-  gry, nie projektowanie kontraktu.
+  ⚠️ **STAŁO TU „(osłona kompana)", potem „NAZWA BEZ POKRYCIA" — i oba były
+  nieścisłe.** Pierwsze sklejało dwa różne klucze; drugie (moje, z 2026‑08‑06)
+  ogłaszało brak wiedzy po sprawdzeniu JEDNEGO źródła. Katalog pomocy istotnie
+  nie zna obu kluczy, ale klient opisuje je we własnym komentarzu i leżał
+  rozpakowany w `.cache/`. Dziś wiadomo: `+oth_cover` to przejęcie obrażeń,
+  a `+oth_dmg` to **lista celów umiejętności obszarowej** — do 20 wpisów
+  w jednym komunikacie, i dlatego adresatem bywa boss.
+
+  ⚠️ Wartość niesie też **nazwę TRZECIEJ postaci**, a kontrakt zdarzeń stoi na
+  dwóch stronach komunikatu — to zostaje prawdą i to jest praca projektowa,
+  gdy przyjdzie liczyć.
 
   ⚠️ **A liczby są duże i to jest najpilniejsza część tej pozycji.** Świadek
   `hp.max` przeciw procentowi zaszytemu w wartości: **bez doliczenia `+oth_dmg`
-  0 trafień na 18** — osłaniane postacie wychodzą u nas na 100 % życia, gdy log
-  mówi 52–70 %. Doliczenie daje 5 trafień, więc kierunek jest pewny, ale 13
-  rozjazdów zostaje. Pomiar i cytaty: `docs/AUDYT.md`, `AUDYT‑106`.
+  0 trafień** — i to w obu modelach leczenia (0/18 przy pomijaniu uleczonych,
+  0/71 przy modelowaniu). Trafione postacie wychodzą u nas na 100 % życia, gdy
+  log mówi 52–70 %. Doliczenie daje 5 i 25, więc kierunek jest pewny, wielkość
+  nie. **Domknie to zrzut z walki BEZ leczenia** — ten sam, którego potrzebuje
+  świadek, więc jedna walka zamyka dwie pozycje. Pomiary: `AUDYT‑106`.
 
   ⚠️ **`+oth_dmg` GINĄŁ PODWÓJNIE i to ustawiło kolejność prac** (`AUDYT‑102`).
   Pada w `grupa-vs-hildur` **71 razy**, i za każdym z nich komunikat nie niesie

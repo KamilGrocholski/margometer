@@ -3490,8 +3490,8 @@ Zostaje 13 rozjazdów, a nasze sumy są wtedy za NISKIE (67,26 % kontra 61,55 %;
 dziś byłaby zgadywaniem z lepszą statystyką — nie odczytem.
 
 **Problem, część druga — NAZWA.** `ROADMAP.md:262` opisuje `+oth_cover`/
-`+oth_dmg` jako **„osłonę kompana"**. To określenie **nie ma poparcia w żadnym
-źródle**:
+`+oth_dmg` jako **„osłonę kompana"**. Katalog efektów nie zna ani jednego
+z tych dwóch kluczy:
 
 ```
 w .cache/pomoc-372.txt:   dmg-target_physical  1
@@ -3500,9 +3500,46 @@ w .cache/pomoc-372.txt:   dmg-target_physical  1
                           oth_dmg              0
 ```
 
-Katalog efektów nie zna ani jednego z tych dwóch kluczy. Nazwa wzięła się
-z brzmienia klucza — i **materiał jej przeczy**: adresatem jest 24 razy z 71
-**Hildur, czyli BOSS**. „Kompan przejmuje cios za kolegę" tego nie tłumaczy.
+Materiał tej nazwie przeczy: adresatem jest 24 razy z 71 **Hildur, czyli BOSS**.
+„Kompan przejmuje cios za kolegę" tego nie tłumaczy.
+
+⚠️ **SPROSTOWANIE DO POWYŻSZEGO, jeden dzień później — TO ZDANIE BYŁO ZA MOCNE
+I JEST MOJE.** Napisałem tu „nie ma poparcia w ŻADNYM źródle" i „nazwa
+zmyślona", opierając się na jednym `grep` po katalogu pomocy. **Klient gry
+opisuje tę mechanikę we własnym komentarzu** i leżał rozpakowany w `.cache/`
+przez cały ten czas:
+
+    case '+oth_cover':
+        var mm = m[1].split(',');
+        tm[1] += _t('msg_+oth_cover %val% %name%', {'%val%': mm[0], '%name%': mm[2]})
+            + '<br>'; //mm[1]+' przejął(eła) '+mm[0]+' obrażeń<br>'
+
+„Przejął(eła) N obrażeń" **to jest osłona**. Nazwa nie była więc zmyślona.
+Prawdziwe błędy są dwa i oba węższe:
+
+1. **Sklejenie DWÓCH kluczy pod jedną nazwą.** `+oth_cover` to przejęcie
+   obrażeń; `+oth_dmg` to LISTA TRAFIONYCH przez umiejętność obszarową (do 20
+   wpisów w jednym komunikacie, 24 z 29 komunikatów z zapowiedzią). Wspólny
+   przedrostek nie znaczy wspólnej mechaniki — i to dlatego boss trafia na tę
+   listę, co przy „osłonie" wyglądało na sprzeczność.
+2. **Ogłoszenie braku wiedzy po sprawdzeniu JEDNEGO źródła.** „Katalog nie zna"
+   zapisałem jako „nie wiadomo, co to jest". **Sprawdzenie jednego źródła
+   i sprawdzenie źródeł to nie to samo** — a jest to lustrzane odbicie błędu,
+   który sam w tym wpisie wytknąłem: tam ktoś przyjął nazwę bez sprawdzenia
+   źródła, tu ja odrzuciłem ją bez sprawdzenia wszystkich.
+
+**✅ FORMAT JEST DZIŚ ROZSTRZYGNIĘTY** (`BattleMessages.js:596‑607`), trzy
+ustalenia, żadne wcześniej niezapisane:
+
+- `mm[0]` — kwota;
+- **`mm[1]` — KOD ŻYWIOŁU**, wchodzi w `class=dmg{mm[1]}`, czyli w tę samą
+  konwencję, co gałąź `default`. Zmierzone: wszystkie cztery występujące kody
+  (`a`, `g`, `f`, `c`) są w tabeli `ELEMENTS`. Do 2026‑08‑07 `ROADMAP.md`
+  nazywał go „klasą", co czytało się jak klasa POSTACI;
+- `mm[2]` — **nazwa odbiorcy**, podstawiana pod `%name%`.
+
+Na tym stoi naprawa etykiet z `e7087a3`: 71 efektów pokazuje dziś zdanie gry
+zamiast klucza (etykiety spadające do klucza **200 → 129**).
 
 **✓ Co materiał ROZSTRZYGA** (i to jedno wolno zapisać jako pewne):
 - 71 z 71 wystąpień ma dokładnie trzy człony i procent życia w trzecim;
@@ -3510,18 +3547,38 @@ z brzmienia klucza — i **materiał jej przeczy**: adresatem jest 24 razy z 71
   z `-dmgd` w tym samym komunikacie NIE MA;
 - adresat zawsze jest w składzie: 40× trzecia postać, 31× druga strona (`f2`).
 
-**Docelowo.** Pozycja przestaje być „projektowa" i staje się **„mechanika
-nierozpoznana"** — to inny rodzaj otwarcia i inna robota. Projektowa znaczy
-„wiemy, co to jest, nie wiemy, gdzie to położyć"; tutaj nie wiemy, CO TO JEST.
-Następny krok to czytanie klienta gry (`tools/zrodla.ts`, gałąź `+oth_dmg`
-w `BattleMessages.js`), a nie projektowanie kontraktu na trzecią postać.
+**Docelowo.** ⚠️ Stało tu „pozycja staje się MECHANIKĄ NIEROZPOZNANĄ […]
+następny krok to czytanie klienta gry". Krok został zrobiony NAZAJUTRZ i zajął
+jeden `grep` — źródła leżały rozpakowane w `.cache/` przez cały czas, sieć nie
+była potrzebna. Dziś więc:
+
+- **format ✅ ROZSTRZYGNIĘTY** (wyżej), a na nim stoi naprawa etykiet `e7087a3`;
+- **liczenie ⬜ OTWARTE** — i to jest jedyne, czego klient nie mówi.
+
+Czterech pomiarów świadka, dwa modele leczenia:
+
+| model | trafień | rozjazdów |
+|---|---|---|
+| bez `+oth_dmg`, cele leczone pominięte | 0 | 18 |
+| z `+oth_dmg`, cele leczone pominięte | 5 | 13 |
+| bez `+oth_dmg`, leczenie modelowane | 0 | 71 |
+| z `+oth_dmg`, leczenie modelowane | **25** | 46 |
+
+Kierunek jest pewny — **zawsze 0 bez, zawsze więcej z** — a wielkość nie.
+Rozjazdy są zdominowane przez leczenie, którego nadmiar gra ucina i log go nie
+podaje; to ten sam powód, dla którego `swiadekZycia` wyklucza uleczone cele
+(`AUDYT‑61`). **Domknie to zrzut z walki BEZ leczenia** — dokładnie ten sam,
+którego repo potrzebuje do wzmocnienia świadka, więc jedna walka zamyka dwie
+pozycje.
 
 ⚠️ **Wniosek ogólniejszy — trzeci raz ten sam kształt.** `AUDYT‑93` pomylił
 „kogo dotyczy" z „kto wyzwolił", `AUDYT‑94` — „komu służy" z „kto wyzwolił",
-a tutaj **nazwa własna klucza została wzięta za jego opis**. Za każdym razem
-brakującym krokiem było to samo: sprawdzenie, czy źródło w ogóle o tym mówi.
-Katalog pomocy odpowiada „nie znam" w jednym `grep` i ten `grep` nie został
-zrobiony, choć artykuł leżał w `.cache/` od dwóch dni.
+a tutaj wpis rejestru **wziął nazwę własną klucza za jego opis**, ja zaś
+**wziąłem milczenie jednego źródła za brak wiedzy**. Za każdym razem brakującym
+krokiem było to samo: sprawdzić, czy źródło w ogóle o tym mówi — z tym, że
+źródeł jest kilka i pytać trzeba wszystkich. Katalog pomocy odpowiada „nie
+znam" w jednym `grep`; klient odpowiada „oto ciało gałęzi" w drugim. Oba pliki
+leżały w `.cache/`.
 
 ⚠️ **A wniosek DRUGI jest gorszy od pierwszego i policzony gitem.** Do
 2026‑08‑06 nazwa stała w JEDNYM miejscu. Runda z tego samego dnia (`4039be7`,

@@ -606,13 +606,38 @@ i modyfikatory, nie kwoty).
 | `+oth_cover` | „%name% przejął(eła) %val% obrażeń." | trzecia postać | ⬜ otwarte |
 | `+oth_dmg` | „−%val% obrażeń otrzymał(a) %name%." | trzecia postać | ⬜ otwarte |
 
-⚠️ **Kolumna „strona" przy dwóch ostatnich jest ODCZYTEM Z MATERIAŁU, nie
-z renderera — i to trzeba czytać inaczej niż resztę tabeli** (`AUDYT‑106`).
-Przy pozostałych dziewięciu stronę daje podstawienie (`'%name%': f1.name`
-kontra `'%target%': f2.name`); przy `+oth_cover`/`+oth_dmg` „trzecia postać"
-wychodzi z tego, że nick stoi WEWNĄTRZ wartości. Zmierzone na
-`grupa-vs-hildur`: 40 razy z 71 jest to postać spoza obu stron komunikatu,
-31 razy — druga strona. Czyli „trzecia" jest prawdą o CZĘŚCI przypadków.
+⚠️ **Kolumna „strona" przy dwóch ostatnich NIE JEST STRONĄ KOMUNIKATU — odbiorcę
+podaje SAMA WARTOŚĆ** (`AUDYT‑106`). Przy pozostałych dziewięciu stronę daje
+podstawienie (`'%name%': f1.name` kontra `'%target%': f2.name`); tutaj klient
+podstawia trzeci człon wartości, więc pytanie „która strona" w ogóle nie ma tu
+zastosowania. Cytat, `BattleMessages.js:596‑607`:
+
+```js
+case '+oth_dmg':
+    var mm = m[1].split(',');
+    tm[1] += '<b class=dmg' + mm[1] + '>' + _t('msg_+oth_dmg %val% %name%', {
+            '%val%': mm[0],
+            '%name%': mm[2]
+        }) + '<br>'; //+'   -'+mm[0]+'</b> obrażeń otrzymał(a) '+mm[2]+'<br>'
+
+case '+oth_cover':
+    var mm = m[1].split(',');
+    tm[1] += _t('msg_+oth_cover %val% %name%', {'%val%': mm[0], '%name%': mm[2]})
+        + '<br>'; //mm[1]+' przejął(eła) '+mm[0]+' obrażeń<br>'
+```
+
+**Trzy człony:** `mm[0]` kwota, **`mm[1]` KOD ŻYWIOŁU** (wchodzi w
+`class=dmg{mm[1]}` — ta sama konwencja, co gałąź `default`; zmierzone: wszystkie
+cztery występujące kody `a`, `g`, `f`, `c` są w tabeli `ELEMENTS`), `mm[2]`
+nazwa odbiorcy. ⚠️ Do 2026‑08‑07 `ROADMAP.md` nazywał `mm[1]` „klasą", co
+czytało się jak klasa POSTACI.
+
+⚠️ **Że adresatem bywa boss, przestało być zagadką.** Zmierzone: 40 razy z 71
+jest to postać spoza obu stron komunikatu, 31 razy — druga strona; do 20 wpisów
+`+oth_dmg` w JEDNYM komunikacie. To jest **lista celów umiejętności
+obszarowej**, a nie osłona jednej postaci — i dlatego boss się na niej
+znajduje. `+oth_cover` to co innego mimo wspólnego przedrostka: „przejął(eła)
+N obrażeń".
 
 Kolumna „strona” pochodzi z PODSTAWIENIA w rendererze, nie ze zdania:
 `'%name%': f1.name` kontra `'%target%': f2.name`.
@@ -675,9 +700,22 @@ gdy log mówi 52–70 %. Doliczenie podnosi to do 5, więc kierunek jest pewny,
 a wielkość nie: 13 rozjazdów zostaje i nasze sumy są wtedy za NISKIE.
 
 ⚠️ **A `+oth_dmg` i `+oth_cover` NIE MAJĄ HASŁA W KATALOGU** — `grep` po
-`.cache/pomoc-372.txt` daje przy obu zero. Nazwa „osłona kompana" wzięła się
-z brzmienia klucza, a nie z dokumentacji. Materiał jej przeczy: adresatem jest
-24 razy z 71 BOSS.
+`.cache/pomoc-372.txt` daje przy obu zero.
+
+⚠️ **Ale „katalog nie zna" NIE ZNACZY „nie wiadomo", i to jest sprostowanie
+do zdania, które stało tu przez dobę** (`AUDYT‑106`, 2026‑08‑07). Napisałem
+wtedy, że nazwa „osłona kompana" jest zmyślona; klient opisuje tę mechanikę we
+własnym komentarzu („przejął(eła) N obrażeń" przy `+oth_cover`) i leżał
+rozpakowany w `.cache/` przez cały ten czas. Nazwa była trafna dla `+oth_cover`
+i nietrafna dla `+oth_dmg` — błędem było **sklejenie dwóch kluczy pod jedną**,
+a nie samo słowo.
+
+**Wniosek dla tej procedury, i dlatego stoi tu, a nie tylko w `AUDYT.md`:**
+punkt 1 mówi „sprawdź rejestr", punkt 2 „sonda po pomoc". Ta runda pokazała, że
+**milczenie pomocy nie zamyka pytania, dopóki nie zapytano klienta** — a to dwa
+różne źródła i odpowiadają na różne rzeczy. Pomoc mówi, CO efekt robi
+w mechanice; klient mówi, JAK wygląda w protokole. Zdanie „dokumentacja tego nie
+rozstrzyga" wolno napisać dopiero po obu.
 
 ⚠️ **Jak daleko zaszła, zanim ktoś ją sprawdził — policzone gitem, nie
 z pamięci.** Do 2026‑08‑06 stała w **jednym** miejscu (`ROADMAP.md:262`).
