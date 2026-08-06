@@ -261,6 +261,22 @@ export type Rola =
   | { typ: "dot"; przyimek: "od" | "po"; rodzaj: string }
   /** `absolute=N` → „%name% otrzymał %val% obrażeń nieuchronnych." */
   | { typ: "nieuchronne" }
+  /**
+   * Obrażenia o STAŁEJ wartości, zadane CELOWI przez umiejętność — nie cios.
+   *
+   * ⚠️ **DLACZEGO OSOBNA ROLA, A NIE JEDNA Z TRZECH ISTNIEJĄCYCH** — bo każda
+   * z nich kłamałaby o czymś innym:
+   *
+   * - `cios` wpadłby do parowania po żywiole, a pary (`-dmgp`) przy tym kluczu
+   *   nie ma. `applied` wyszłoby `0`, więc panel policzyłby te obrażenia jako
+   *   W CAŁOŚCI POCHŁONIĘTE — wprost przeciwnie do tego, co mówi katalog;
+   * - `dot` to obrażenia BEZ sprawcy, a tu sprawca stoi w pierwszym segmencie;
+   * - `nieuchronne` siada na NADAWCY (własne obrażenia umiejętności), a te
+   *   lecą w drugą stronę.
+   *
+   * `kod` jest kodem żywiołu dla `ELEMENTS` — „fizyczne" dosłownie za katalogiem.
+   */
+  | { typ: "obrazeniaCelu"; kod: string }
   /** `tspell`, `prepare` — zapowiedź umiejętności, obrażenia w kolejnym komunikacie. */
   | { typ: "zapowiedz" }
   /** `winner`, `loser` — rozstrzygnięcie walki. */
@@ -572,6 +588,33 @@ const ROLE: Readonly<Record<string, Rola>> = {
   physical: { typ: "dot", przyimek: "od", rodzaj: "obrażeń fizycznych" },
   absolute: { typ: "nieuchronne" },
 
+  // ⚠️ **STAŁO W `PROCE` DO 2026‑08‑06 I NIE LICZYŁO SIĘ DO NICZEGO**
+  // (`AUDYT‑99`). Zdanie gry: „%target% otrzymuje %val% obrażeń" — `%target%`
+  // to `f2`, więc obrażenia siadają na DRUGIM segmencie, a nie na pierwszym.
+  //
+  // Trzy źródła zgodne. Katalog efektów (`bun tools/pomoc.ts`, artykuł
+  // `view,372`), dosłownie:
+  //
+  //   „aktywny dmg-target_physical • Działanie: na przeciwnika zostają nałożone
+  //    obrażenia fizyczne o stałej wartości. • Zmienna: liczba punktów obrażeń
+  //    zadanych w przeciwnika. • Wyzwolenie: warstwa inicjacji. • Obrażenia nie
+  //    są redukowane przez pancerz. • Obrażenia mogą zostać zwiększone przez
+  //    bonus z ekwipunku o nazwie Obrażenia fizyczne ( dmgmulphysical )."
+  //
+  // Dwa ostatnie zdania są tu DOWODEM, nie ozdobą, i odpowiadają na jedyne
+  // trudne pytanie — czy to osobna liczba, czy rozbicie ciosu. „Nie są
+  // redukowane przez pancerz" odróżnia je od trafienia, którego liczba jest już
+  // PO redukcji; „własny mnożnik `dmgmulphysical`" mówi o osobnej ścieżce
+  // liczenia. Ten sam próg przeszły `bandage` i `vamp_time` (`AUDYT‑96`).
+  //
+  // ⚠️ **CZEGO TEN DOWÓD NIE OBEJMUJE — i to jest ryzyko zapisane świadomie.**
+  // Katalog opisuje MECHANIKĘ, nie zapis w protokole. Gdyby gra wysyłała przy
+  // tym kluczu TAKŻE `-dmgX`, liczba by się podwoiła. Materiału z tym kluczem
+  // repo NIE MA (zero wystąpień w obu fixture'ach i w całym `KORPUS`), więc
+  // sprawdzić tego dziś nie ma jak. To jedyna rzecz, do której zrzut jest tu
+  // naprawdę potrzebny — i jedyna, na którą klient gry nie odpowiada.
+  "dmg-target_physical": { typ: "obrazeniaCelu", kod: "p" },
+
   // — przebieg walki ————————————————————————————————————————————
   // „%name% wykonuje %name2%" / „%name% przygotowuje się do rzucenia %name2%".
   tspell: { typ: "zapowiedz" },
@@ -724,7 +767,9 @@ const PROCE: Readonly<Record<string, string>> = {
   "disturb": "msg_disturb",
   "disturbshoot": "msg_disturbshoot",
   "dloot": "msg_dloot %name% %g1% %m1%",
-  "dmg-target_physical": "eng_game_opponent_nick_and_value_dmg-target_physical %target% %val%",
+  // `dmg-target_physical` zszedł stąd do `ROLE` 2026‑08‑06 (`AUDYT‑99`) — niesie
+  // punkty obrażeń, więc „gra wypisuje zdanie, ale my nic z niego nie liczymy"
+  // przestało być o nim prawdą.
   "dmg_hpp": "msg_-dmg_hpp",
   "doubleshoot": "msg_doubleshoot %name%",
   "en-regen": "msg_en-regen %gain_lost% %name% %val%",
@@ -1244,6 +1289,51 @@ export function dekoduj(
                   superCrit: false,
                   secondary: false,
                   element: nazwaZywiolu("a"),
+                  dodged: false,
+                },
+              ],
+              dodged: false,
+              blocked: null,
+              procs: [],
+              ability: zapowiedziana,
+              strike: false,
+            });
+          break;
+        }
+        /**
+         * Obrażenia o stałej wartości, zadane CELOWI (`AUDYT‑99`).
+         *
+         * Lustro `nieuchronne`: ten sam kształt zdarzenia, ale strony są dwie
+         * i różne. `raw === applied`, bo katalog mówi wprost „obrażenia nie są
+         * redukowane przez pancerz" — zaślepka `applied: 0`, którą dostaje cios
+         * bez pary, byłaby tu odczytana jako „wszystko pochłonięte".
+         *
+         * `strike: false` z tego samego powodu, co przy `nieuchronne`: to nie
+         * jest cios bronią, więc nie ma podbijać licznika trafień ani tur.
+         * Gra też go tak nie liczy — zdanie „uderzył z siłą" składa wyłącznie
+         * warunek `attack != ''` (`BattleMessages.js:1127`), a ten klucz do
+         * `attack` nie dokłada.
+         */
+        case "obrazeniaCelu": {
+          const kwota = liczba(p.wartosc);
+          if (nadawcaNazwa === null || celNazwa === null || kwota === null) nieznany(p.surowy);
+          else
+            zdarzenia.push({
+              kind: "attack",
+              source: nadawcaNazwa,
+              target: celNazwa,
+              ...(nadawca === null ? {} : { sourceId: nadawca.id }),
+              ...(cel === null ? {} : { targetId: cel.id }),
+              sourceHpPct: nadawca?.hpp ?? null,
+              targetHpPct: cel?.hpp ?? 0,
+              hits: [
+                {
+                  raw: kwota,
+                  applied: kwota,
+                  crit: false,
+                  superCrit: false,
+                  secondary: false,
+                  element: nazwaZywiolu(r.kod),
                   dodged: false,
                 },
               ],

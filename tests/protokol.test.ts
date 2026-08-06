@@ -636,6 +636,55 @@ describe("dekoduj: leczenie i obrażenia bez sprawcy", () => {
     expect(z).toMatchObject({ kind: "heal", amount: 200 });
   });
 
+  /**
+   * `dmg-target_physical` — obrażenia o STAŁEJ wartości, zadane CELOWI
+   * (`AUDYT‑99`, przeniesione z `PROCE` do `ROLE` 2026‑08‑06).
+   *
+   * ⚠️ **TEN KLUCZ NIE MA I NIE BĘDZIE MIAŁ ŚWIADKA NA MATERIALE.** Nie pada
+   * ani razu w obu fixture'ach, ani w całym `KORPUS` — sprawdzone pomiarem.
+   * Wpis stoi na kliencie gry (katalog efektów, słownik, podstawienie
+   * w rendererze), a te testy sprawdzają wyłącznie, czy dekoder robi z tego to,
+   * co zapisano przy wpisie. Nie udają pokrycia materiałem i nie mają go udawać.
+   */
+  test("obrażenia o stałej wartości siadają na CELU, nie na nadawcy", () => {
+    // Zdanie gry: „%target% otrzymuje %val% obrażeń" — `%target%` to `f2`.
+    const [z] = dekoduj(["1=100.00;2=80.00;dmg-target_physical=250"], SKLAD);
+
+    expect(z).toMatchObject({
+      kind: "attack",
+      source: "Kamil",
+      target: "Locha",
+      // `raw === applied`, bo katalog mówi „obrażenia nie są redukowane przez
+      // pancerz". Zaślepka `applied: 0` czytałaby się jako „wszystko pochłonięte".
+      hits: [expect.objectContaining({ raw: 250, applied: 250, element: "fizyczne" })],
+      // Nie cios bronią — nie ma podbijać licznika trafień ani tur.
+      strike: false,
+    });
+  });
+
+  /**
+   * PARA NEGATYWNA: klucz NIE wchodzi do parowania po żywiole.
+   *
+   * Gdyby dostał rolę `cios`, wpadłby do puli parowanej z `-dmgX`. Pary dla
+   * niego nie ma, więc `applied` wyszłoby `0` — a wtedy `stats.ts` policzyłby
+   * te obrażenia jako w całości pochłonięte (`damageAbsorbed += raw - applied`).
+   * Ten test pilnuje, że stoi obok ciosu, a nie w nim.
+   */
+  test("stoi OBOK ciosu, a nie w jego parowaniu", () => {
+    const zd = dekoduj(
+      ["1=100.00;2=80.00;+dmgd=100;-dmgd=60;dmg-target_physical=250"],
+      SKLAD,
+    );
+    const ciosy = zd.filter((z) => z.kind === "attack");
+
+    // Dwa OSOBNE zdarzenia: stałe obrażenia i właściwy cios.
+    expect(ciosy).toHaveLength(2);
+    expect(ciosy[0]).toMatchObject({ strike: false, hits: [expect.objectContaining({ applied: 250 })] });
+    expect(ciosy[1]).toMatchObject({ strike: true, hits: [expect.objectContaining({ raw: 100, applied: 60 })] });
+    // I ani jednego `unknown` — 250 nie jest „przyjętym bez pary".
+    expect(zd.filter((z) => z.kind === "unknown")).toEqual([]);
+  });
+
   test("DoT trafia w nadawcę i niesie przyimek z brzmienia gry", () => {
     const zd = dekoduj(["1=6.71;0;anguish=3615", "1=6.00;0;injure=120"], SKLAD);
     expect(zd[0]).toMatchObject({

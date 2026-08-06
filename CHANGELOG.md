@@ -47,6 +47,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Opis dodatku mówi wprost, że twórcy Margonem go nie
   autoryzowali, i przytacza punkty regulaminu, które go dotyczą. Instalujesz
   na własne ryzyko — przeczytaj to przed instalacją.
+- **Poprawka** — Obrażenia od umiejętności zadających z góry ustaloną wartość
+  (tych, których pancerz nie zmniejsza) liczą się do statystyk. Wcześniej nie
+  liczyły się wcale.
 - **Poprawka** — Aury, wzmocnienia drużyny i osłona kompana pokazują się teraz
   w podglądzie postaci, w wierszach „Efekty w ciosach” i „Efekty otrzymane”.
   Dotąd znikały bez śladu: dodatek liczył wyłącznie efekty towarzyszące ciosowi,
