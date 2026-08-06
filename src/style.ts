@@ -334,8 +334,10 @@ button[aria-pressed="true"] { background: var(--active); color: var(--ink); }
   color: var(--ink-muted);
 }
 .side-head .sum { margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
-/* Nazwa w nagłówku ustępuje, suma nie: przy długim nicku ("CZYM — Jordi El
-   Nino Polla") to opis miał się skrócić, a nie liczba wyjechać poza panel. */
+/* Nazwa w nagłówku ustępuje, suma nie: przy długim nicku (zmierzone na takim
+   o 21 znakach, z tagiem gildii przed nazwą) to opis miał się skrócić, a nie
+   liczba wyjechać poza panel. Nick zszedł stąd 2026‑08‑06 razem z resztą
+   cudzych pseudonimów — długość była tu argumentem, nie on sam. */
 .side-head .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* Ścieżka powrotu z widoku pojedynczej postaci. */
 .crumb { display: flex; align-items: baseline; gap: 6px; padding: 6px 8px 0; font-size: 11px; }

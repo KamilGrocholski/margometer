@@ -74,6 +74,12 @@ const MULTI_STRIKE: Record<string, number> = {
  * Dwadzieścia sylwetek zamiast jednej formuły. Formuła dawała dwadzieścia
  * wariantów tej samej postaci; tu każdy wiersz listy ma inny powód, żeby
  * wyglądać inaczej — inny wynik, inny kształt rozbicia w dymku.
+ *
+ * ⚠️ **NAZWY MAJĄ BYĆ ZMYŚLONE, i jedna nie była** (`AUDYT‑101`, 2026‑08‑06).
+ * Wiersz maga niósł nazwę zlepioną z dwóch prawdziwych nicków z walki grupowej;
+ * zszedł, bo żaden test się do niego nie odwoływał. Postacie AUTORA na tej
+ * liście zostają — zgoda jest, a te same nazwy niosą testy i historia gita.
+ * Dopisując wiersz: wymyślaj, nie przepisuj z rankingu.
  */
 const PROFILES: Profile[] = [
   // Strona 0 — drużyna gracza.
@@ -90,7 +96,7 @@ const PROFILES: Profile[] = [
   // Strona 1 — przeciwnicy.
   { name: "Zandan Nocny", level: 170, profession: "w", power: 990, hp: 18200, crit: 0.35, dodge: 0.06, secondary: false, block: 460, heal: 0, poison: 0, stun: 0, abilities: ["Cios przez pancerz", "Wir ostrzy"], procs: ["Krwawienie", "Niszczenie pancerza"] },
   { name: "Mushita Gula", level: 166, profession: "h", power: 720, hp: 7800, crit: 0.28, dodge: 0.15, secondary: false, block: 0, heal: 0, poison: 310, stun: 0, abilities: ["Zatruta strzała", "Grad strzał"], procs: ["Zatrucie"] },
-  { name: "Foverek Mulu", level: 162, profession: "m", power: 610, hp: 5900, crit: 0.4, dodge: 0.02, secondary: true, block: 0, heal: 0, poison: 0, stun: 0, abilities: ["Kula ognia", "Porażenie"], procs: ["Podpalenie"] },
+  { name: "Magik z Mokradeł", level: 162, profession: "m", power: 610, hp: 5900, crit: 0.4, dodge: 0.02, secondary: true, block: 0, heal: 0, poison: 0, stun: 0, abilities: ["Kula ognia", "Porażenie"], procs: ["Podpalenie"] },
   { name: "Szaman z Krzywego Rogu", level: 157, profession: "p", power: 190, hp: 11400, crit: 0.1, dodge: 0.05, secondary: false, block: 280, heal: 940, poison: 0, stun: 0, abilities: ["Modlitwa", "Ostatni ratunek"], procs: [] },
   // Nazwy są UNIKALNE. Duplikaty ("Locha", "Locha") uruchomiłyby rozdzielanie
   // instancji po HP, a ten podgląd sprawdza układ listy, nie tę heurystykę.

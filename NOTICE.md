@@ -39,21 +39,48 @@ i na jakiej podstawie:
   przez `window._t`, więc użytkownik niczego nie traci.
 
 - **Zrzut własnej walki** — `tests/fixtures/*.json`. Zapis jednej walki własną
-  postacią przeciw potworom, tak jak przysłał go serwer. Nie ma w nim danych
-  innych graczy. Pole `render` niesie 36 zdań złożonych przez klienta gry
-  (6,4 kB) — nasz kod ich nie czyta, a wycięcie ich byłoby edytowaniem
-  materiału dowodowego, czego `AGENTS.md` zabrania. To zapis własnej rozgrywki,
-  nie wyciąg ze słownika gry, i tak jest tu traktowany.
+  postacią przeciw potworom, tak jak przysłał go serwer. Pole `render` niesie
+  36 zdań złożonych przez klienta gry (6,4 kB) — nasz kod ich nie czyta,
+  a wycięcie ich byłoby edytowaniem materiału dowodowego, czego `AGENTS.md`
+  zabrania. To zapis własnej rozgrywki, nie wyciąg ze słownika gry, i tak jest
+  tu traktowany.
+
+  **Nazwy postaci są w tych plikach podstawione** — `Gracz 1`, `Gracz 2`, …
+  Robi to `pseudonimizuj` w `tools/walka.ts`, przy każdym wejściu materiału do
+  repo, a pilnują dwa niezmienniki w `tests/fixtury.test.ts`. ⚠️ Do 2026‑08‑06
+  stało tu „Nie ma w nim danych innych graczy" — i było to prawdą **o tym
+  jednym pliku**, a nie o procedurze: jedyny fixture to walka solo z potworami,
+  więc nie było czego wpuścić. Lista brakującego materiału (blok, unik,
+  absorpcja, walka turowa) prowadzi wprost do walk grupowych i PvP, więc
+  przypadek przestałby wystarczać przy następnym zrzucie.
+
+  Zostają `id`, poziomy i wszystkie liczby — bez `id` protokół nie ma jak
+  wskazać stron, a liczby są w tym pliku dowodem. To jest więc
+  **pseudonimizacja, nie anonimizacja**: gra nadal umie odwzorować `id` na nick.
+  Redakcja jest nieodwracalna i zrobiona na miejscu, więc w historii gita
+  oryginał zostaje — ta sama świadoma granica, co przy zrzutach ekranu.
 
 - **Zrzuty ekranu** — `docs/screenshots/`. Pokazują panel dodatku, nie grafikę
   gry. Pseudonimy dziesięciu innych graczy są **zamazane**; powód i procedura
   w [`docs/screenshots/README.md`](docs/screenshots/README.md).
 
 - **Pomiary z walk grupowych w `docs/`, `src/` i `tests/`** — pseudonimy innych
-  graczy zastąpione 2026‑08‑06 etykietami `Gracz A`…`Gracz G`, **konsekwentnie
+  graczy zastąpione 2026‑08‑06 etykietami `Gracz A`…`Gracz L`, **konsekwentnie
   w całym repozytorium**: ta sama etykieta znaczy tę samą postać w każdym
   pliku. Wszystkie liczby zostały nietknięte, bo to one są w tych zapisach
   dowodem — pseudonim nigdy niczego nie dowodził.
+
+  ⚠️ **Pierwsze podejście skończyło się na `G` i pominęło cały blok** — trzy
+  nazwy w surowych danych walki grupowej, dwie w tabeli kodów profesji, jedną
+  w komentarzu w `src/style.ts`. Domknięte tego samego dnia (`AUDYT‑101`).
+  Razem z jedną podmianą W DRUGĄ STRONĘ: `Regulus Mętnooki` to NPC i etykieta
+  wróciła do nazwy, bo napis „regulus" siedział w tym materiale dwa razy — raz
+  jako boss, raz w nicku gracza — a redakcja robiona okiem skleiła je w jedno.
+
+  **Postacie autora zostają** — w prozie, w `tools/synthetic-log.ts` i w testach.
+  Zgoda jest, a te same nazwy niosą generator i historia gita. W plikach
+  `tests/fixtures/` nie zostają: tam podstawienie jest mechaniczne i nie ma jak
+  rozpoznać właściciela, więc nie próbuje.
 
   Robione razem z redakcją zrzutów ekranu i z tego samego powodu: bez tego
   zakrywanie nicków na obrazkach byłoby teatrem. `docs/specy/2026-08-03-porzucone-funkcje-schodza-z-drzewa.md`

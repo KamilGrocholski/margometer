@@ -3121,6 +3121,75 @@ projektowa, nie tabelaryczna.
 **Docelowo.** `docs/MECHANIKA.md` — wpis „Które klucze protokołu niosą punkty
 życia" wymienia całą jedenastkę razem ze statusem.
 
+## L. Redakcja pseudonimów — przegląd PO commicie `f0c97d6` (2026‑08‑06)
+
+Runda `f0c97d6` zdjęła z drzewa cudzą treść: 236 zdań gry, dziesięć pseudonimów
+ze zrzutów ekranu i nicki z prozy (`Gracz A`…`Gracz G`). Ten przegląd zaczął się
+od pytania, które postawił użytkownik: **skoro anonimizacja już jest, to co
+dokładnie ma przez nią przechodzić przy następnym materiale z gry.** Odpowiedź
+wymagała spojrzenia na drogę wejścia materiału — i wtedy wyszło, że tamta runda
+zabezpieczyła NOŚNIKI, które już były w repo, a nie DROGĘ, którą przychodzą nowe.
+
+### AUDYT‑100 — `--zachowaj` wpuszczał do publicznego repo dowolny pseudonim 🔴 M — ✅ NAPRAWIONE ✓
+
+`tools/walka.ts`
+
+Nic w drodze materiału z gry do `tests/fixtures/` nie dotykało nazw. Że nie
+było skutku, jest własnością MATERIAŁU, nie procedury: jedyny fixture to walka
+solo z potworami, więc `npc: 0` jest w nim jeden — własna postać. Lista
+zakupowa z `docs/ROADMAP.md` (blok, unik, absorpcja, walka turowa) prowadzi
+wprost do walk grupowych i PvP.
+
+Koszt pomyłki jest tu asymetryczny i dlatego pozycja jest 🔴: fixture idzie do
+gita NA ZAWSZE, a `docs/screenshots/README.md` zapisuje wprost, że historii tego
+repo się nie przepisuje.
+
+**Naprawione:** `pseudonimizuj` w `tools/walka.ts` podstawia `Gracz 1`,
+`Gracz 2`, … każdemu wojownikowi z `npc: 0`, przy każdym `--zachowaj`; dwa
+niezmienniki w `tests/fixtury.test.ts` pilnują, że nikt tego nie ominął;
+istniejący plik przeszedł `--pseudonimizuj` (34 wystąpienia). Procedura wejścia
+materiału — osiem kroków — stoi w `tests/fixtures/README.md`.
+
+**Co ZOSTAJE otwarte, zmierzone mutacją:** nick niezwiązany z żadnym `id`
+(wstawiony tylko w `render`, w `txt=` z łupem, należący do kogoś, kto wypadł
+przed pierwszą migawką) przechodzi przez podstawienie nietknięty i **nie zapala
+ani jednego strażnika**. Stąd krok 4 procedury jest dla człowieka i nie ma jak
+przestać nim być.
+
+### AUDYT‑101 — redakcja prozy z 2026‑08‑06 pominęła cały blok i raz trafiła w NPC‑a ⚪ S — ✅ NAPRAWIONE ✓
+
+`docs/DECYZJE.md`, `docs/SOLID.md`, `src/style.ts`
+
+Tamta runda wypisała w swoim komunikacie wniosek „redakcja jednego nośnika nie
+jest redakcją" i **sama go nie domknęła**. Zostało:
+
+- `docs/DECYZJE.md` — blok surowych danych walki grupowej z trzema nazwami,
+  sekcja o kodach profesji z dwiema, `src/style.ts` — nick z tagiem gildii
+  w komentarzu o skracaniu etykiety;
+- `docs/DECYZJE.md` — `Regulusa` → `Gracza B` **na NPC‑u**. Że to boss, a nie
+  gracz, rozstrzyga sąsiedni wiersz w `docs/SOLID.md`: ta sama tabela stawia
+  obok `Draugr Zastępowy` w identycznej roli. Rdzeń „regulus" występował w tym
+  materiale dwa razy — raz jako boss `Regulus Mętnooki`, raz w środku nicku
+  gracza (dziś `Gracz B`) — i redakcja robiona okiem skleiła je w jedno.
+
+  ⚠️ Zdanie wyżej samo przez chwilę niosło ten nick, wypisany po to, żeby
+  wyjaśnić pomyłkę. To jest ta sama pułapka, co w `docs/specy/…-porzucone-funkcje…`:
+  **pseudonim wraca do repo najłatwiej w akapicie o tym, jak się go usuwa.**
+
+**Wniosek, po co ta pozycja tu stoi:** podmiana robiona okiem nie zbiega się.
+Jedyne miejsce, w którym da się ją zrobić mechanicznie, to fixture — bo tam gra
+sama mówi `npc: 0|1`. W prozie takiego sygnału nie ma i nie będzie, więc regułą
+jest tu **kierunek pod niepewność**: nie wiadomo czyj nick — schodzi.
+
+**Granica, świadomie:** własne postacie autora (klaster `Kazrek`) w prozie
+i w `tools/synthetic-log.ts` **zostają** — zgoda jest, a te same nazwy niosą
+generator, testy i historia gita. W FIXTURZE nie zostają, bo tam reguła nie ma
+jak rozpoznać właściciela i nie próbuje.
+
+**Co ZOSTAJE otwarte:** `Gracz L` (mag, poziom 27) był nierozstrzygalny —
+kontekst mieszał w jednej tabeli graczy i potwory. Zszedł jako gracz, czyli
+w stronę bezpieczną; jeśli to NPC, ubyło trochę wierności opisu.
+
 ## G. Otwarte z poprzednich rund
 
 Bez nowych ID — sam wskaźnik, żeby ten dokument był pełną migawką otwartych

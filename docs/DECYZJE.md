@@ -399,8 +399,8 @@ nieznanej, i **potwory mają prawdziwe kody, nie zaślepkę**:
 
 ```
 b tancerz ostrzy · Tancogniew Kazrek (64)   p paladyn   · Wieczornica (93), Południca (92)
-h łowca          · Łowcosław Kazrek (70)    t tropiciel · wf agar psk (63)
-m mag            · Zulu Mulu (27)           w wojownik  · Odyniec (41), Locha (40)
+h łowca          · Łowcosław Kazrek (70)    t tropiciel · Gracz J (63)
+m mag            · Gracz L (27)             w wojownik  · Odyniec (41), Locha (40)
 ```
 
 Pokrycie pełne: cały skład, obie strony, od pierwszej linii, także we wklejonym
@@ -423,7 +423,7 @@ profesję ZADAJĄCEGO, nie celu:
 
 ```html
 Odyniec(40.37%) otrzymał(a) <b class="dmgd" prof-h="">-455       <!-- bije łowca (h) -->
-Łowcożyr Kazrek(98.37%) otrzymał <b class="dmg" prof-w="">-95    <!-- bije Odyniec (w) -->
+Gracz 1(98.37%) otrzymał <b class="dmg" prof-w="">-95    <!-- bije Odyniec (w) -->
 ```
 
 Do składu bezużyteczne, ale to jedyna droga, żeby nazwy w `ELEMENTS` przestały
@@ -656,7 +656,7 @@ Surowe dane fixture'u:
 ```
 Regulus Mętnooki  side=1  tury=14  zadane=39352  otrzymane=16601
 Łowcosław Kazrek  side=0  tury= 5  zadane= 4379  otrzymane=20166
-wf foverek psk    side=0  tury= 7  zadane= 2889  otrzymane=19186
+Gracz I           side=0  tury= 7  zadane= 2889  otrzymane=19186
 ```
 
 ### 1. Wiersze nie sumują się do drużyny — ale tylko przy Zadanych
@@ -678,7 +678,7 @@ dwie różne arytmetyki, zero sygnału w UI. Reguła sama w sobie jest przemyśl
 
 ### 2. Procent w nawiasie nie opisuje liczby, przy której stoi
 
-W trybie „na turę” wiersz Gracza B pokazuje `2810,9/t (84% · 39,4k)`. Ale 84% to
+W trybie „na turę” wiersz Regulusa Mętnookiego pokazuje `2810,9/t (84% · 39,4k)`. Ale 84% to
 udział w SUROWYCH sumach (39352 z 46620), a nie udział pokazanego tempa
 (2810,9 z 4099,4 = 69%). To jest świadoma decyzja z `UX-POPRAWKI.md A2` — mianownikiem
 Σ(temp) była wielkość bez sensu fizycznego, więc udziały celowo zostały przy
