@@ -42,7 +42,7 @@ function rightClick(overlay: Overlay): void {
  * ⚠️ **61 TESTÓW ZNIKŁO STĄD 2026‑08‑04, razem z materiałem z prawdziwych walk.**
  *
  * Wszystkie wymieniały NAZWY postaci i LICZBY z konkretnych walk z korpusu:
- * „Łowcożyr Kazrek zadał 10 366", „ranking ma dokładnie te trzy nazwy",
+ * „Gracz 1 zadał 10 366", „ranking ma dokładnie te trzy nazwy",
  * „pasek ma szerokość 89/2897". Materiał zniknął, a przepisanie ich na walki
  * z generatora dałoby asercje, w których panel sprawdza się przeciw temu, co
  * sam policzył z danych, które sami wyprodukowaliśmy.

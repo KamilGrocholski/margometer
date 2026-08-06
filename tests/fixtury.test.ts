@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { FIXTURY, swiadekZycia, type Fixtura } from "./fixtury.ts";
 import { cios, leczenie, trafienie } from "./zdarzenia.ts";
-import { graniceWalk, stronyKomunikatu } from "../tools/walka.ts";
+import { graniceWalk, pseudonimizuj, stronyKomunikatu } from "../tools/walka.ts";
 import { KOMUNIKATY, SKLAD } from "./walka-z-gry.ts";
 import { dekoduj } from "../src/protokol.ts";
 import { aggregate } from "../src/stats.ts";
@@ -145,6 +145,66 @@ describe.each(FIXTURY)("$nazwa", (f: Fixtura) => {
     const duchy = f.sklad.filter((w) => !wKomunikatach.has(w.id)).map((w) => w.name);
 
     expect(duchy).toEqual([]);
+  });
+
+  /**
+   * PSEUDONIM GRACZA NIE MA PRAWA LEŻEĆ W PUBLICZNYM REPO — dwa strażniki, bo
+   * łapią co innego.
+   *
+   * Ten pierwszy pyta o KSZTAŁT: każdy wojownik, którego gra oznaczyła `npc: 0`,
+   * ma w `ladunek.w` etykietę zastępczą. Czyta ładunek wprost, a nie `f.sklad`,
+   * bo skład idzie z migawek i `npc` w nim nie ma — a to `npc` jest tu jedynym
+   * rozstrzygnięciem, kto jest człowiekiem.
+   */
+  test("każdy gracz w tym pliku ma zastępnik, nie pseudonim", () => {
+    const gracze: string[] = [];
+    for (const wpis of f.zrzut.wpisy) {
+      const w = wpis.ladunek["w"];
+      if (typeof w !== "object" || w === null) continue;
+      for (const surowy of Object.values(w as Record<string, unknown>)) {
+        if (typeof surowy !== "object" || surowy === null) continue;
+        const woj = surowy as Record<string, unknown>;
+        if (woj["npc"] === 0 && typeof woj["name"] === "string") gracze.push(woj["name"] as string);
+      }
+    }
+
+    // Pusta lista przeszłaby ten test nic nie sprawdzając — a walka bez ani
+    // jednego `npc: 0` znaczy, że `w` nie ma albo `npc` zniknęło z protokołu.
+    // Jedno i drugie wywraca `pseudonimizuj`, więc ma być głośne tutaj.
+    expect(gracze.length).toBeGreaterThan(0);
+    for (const nazwa of gracze) expect(nazwa).toMatch(/^Gracz \d+$/);
+  });
+
+  /**
+   * Drugi strażnik pyta o COŚ INNEGO niż pierwszy — i to jest ZMIERZONE.
+   *
+   * Nazwa siedzi w zrzucie w pięciu miejscach naraz: `ladunek.w.<id>.name`,
+   * migawki `wojownicyPrzed/Po`, `komunikaty` (`winner=`, `loser=`, `txt=`),
+   * `render[]` i `otwarcie`. Strażnik wyżej ogląda JEDNO z nich. Ten działa
+   * przez punkt stały: `pseudonimizuj` jest idempotentne, więc plik po redakcji
+   * nie ma już czego podstawiać, a każde wystąpienie nazwy związanej
+   * z wojownikiem podniesie licznik.
+   *
+   * ⚠️ **DOKŁADNIE CO ŁAPIE, A CZEGO NIE — trzy mutacje, każda uruchomiona
+   * i cofnięta (2026‑08‑06):**
+   *
+   * | co zepsute | co się zapaliło |
+   * |---|---|
+   * | nick w `ladunek.w` | OBA strażniki |
+   * | nick TYLKO w migawce, `w{}` czyste | **tylko ten** — dowód, że nie jest kopią tamtego |
+   * | nick TYLKO w `render`, nigdzie indziej | **NIC. Zero czerwonych.** |
+   *
+   * Trzeci wiersz jest granicą tego strażnika i nie wolno go czytać inaczej.
+   * `pseudonimizuj` zna wyłącznie nazwy związane z `id` — z `ladunek.w` albo
+   * z migawek. Napis, który z żadnym wojownikiem nie jest związany (nick kogoś,
+   * kto wypadł przed pierwszą migawką; cudza nazwa w `txt=` z łupem; zdanie
+   * w `render` po ręcznej poprawce połowicznej), przechodzi tędy nietknięty
+   * i **żaden test tego nie powie**. Dlatego procedura
+   * w `tests/fixtures/README.md` ma krok 4 dla człowieka: przeczytać `otwarcie`
+   * i `render` oczami. Ten test tego kroku nie zastępuje i nigdy nie zastąpi.
+   */
+  test("plik jest punktem stałym pseudonimizacji — nie został ani jeden nick", () => {
+    expect(pseudonimizuj(f.zrzut).zmienionych).toBe(0);
   });
 
   test("skład da się wyprowadzić — zrzut niesie `myteam`", () => {

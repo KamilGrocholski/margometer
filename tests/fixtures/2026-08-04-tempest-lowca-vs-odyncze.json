@@ -4,6 +4,7 @@
   "swiat": "tempest",
   "build": "1785244275300",
   "otwarcie": null,
+  "odchudzonych": 565,
   "wpisy": [
     {
       "nr": 0,
@@ -38,7 +39,7 @@
         "w": {
           "482845": {
             "originalId": 482845,
-            "name": "Łowcożyr Kazrek",
+            "name": "Gracz 1",
             "lvl": 40,
             "oplvl": 40,
             "prof": "h",
@@ -245,14 +246,14 @@
       },
       "komunikaty": [],
       "render": [
-        "<div class=\"battle-msg txt\" style=\"opacity: 1;\">Rozpoczęła się walka pomiędzy Łowcożyr Kazrek (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>",
-        "<div class=\"battle-msg txt\">Rozpoczęła się walka pomiędzy Łowcożyr Kazrek (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>"
+        "<div class=\"battle-msg txt\" style=\"opacity: 1;\">Rozpoczęła się walka pomiędzy Gracz 1 (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>",
+        "<div class=\"battle-msg txt\">Rozpoczęła się walka pomiędzy Gracz 1 (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>"
       ],
       "wojownicyPrzed": [],
       "wojownicyPo": [
         {
           "id": 482845,
-          "name": "Łowcożyr Kazrek",
+          "name": "Gracz 1",
           "team": 1,
           "prof": "h",
           "lvl": 40,
@@ -376,7 +377,7 @@
       "wojownicyPrzed": [
         {
           "id": 482845,
-          "name": "Łowcożyr Kazrek",
+          "name": "Gracz 1",
           "team": 1,
           "prof": "h",
           "lvl": 40,
@@ -450,7 +451,7 @@
       "wojownicyPo": [
         {
           "id": 482845,
-          "name": "Łowcożyr Kazrek",
+          "name": "Gracz 1",
           "team": 1,
           "prof": "h",
           "lvl": 40,
@@ -621,7 +622,7 @@
           "-255967=19.27;482845=98.30;+dmg=331;-legbon_facade=13;-dmg=99",
           "482845=100.00;0;heal=99",
           "482845=100.00;-255967=0.00;+dmgd=458;+acdmg=5;-dmgd=215",
-          "0;0;winner=Łowcożyr Kazrek",
+          "0;0;winner=Gracz 1",
           "0;0;loser=Odyniec, Odyniec, Locha",
           "0;0;+exp=3973",
           "0;0;txt=Locha: zdobyto Skóra z dzika"
@@ -662,45 +663,45 @@
         "-255967=19.27;482845=98.30;+dmg=331;-legbon_facade=13;-dmg=99",
         "482845=100.00;0;heal=99",
         "482845=100.00;-255967=0.00;+dmgd=458;+acdmg=5;-dmgd=215",
-        "0;0;winner=Łowcożyr Kazrek",
+        "0;0;winner=Gracz 1",
         "0;0;loser=Odyniec, Odyniec, Locha",
         "0;0;+exp=3973",
         "0;0;txt=Locha: zdobyto Skóra z dzika"
       ],
       "render": [
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+612</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br>+Niszczenie pancerza o 5<br>Locha(21.34%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-363</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+612</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br>+Niszczenie pancerza o 5<br>Locha(21.34%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-363</b> obrażeń<br></div>",
         "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
         "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+485</b><br>+Niszczenie pancerza o 5<br>Locha(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-248</b> obrażeń<br></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+658</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(13.76%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-658</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+485</b><br>+Niszczenie pancerza o 5<br>Locha(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-248</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+658</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(13.76%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-658</b> obrażeń<br></div>",
         "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+461</b><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-461</b> obrażeń<br></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+498</b><br>+Niszczenie pancerza o 5<br>Odyniec(68.15%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-243</b> obrażeń<br></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+483</b><br>+Niszczenie pancerza o 5<br>Odyniec(37.61%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-233</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+461</b><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-461</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+498</b><br>+Niszczenie pancerza o 5<br>Odyniec(68.15%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-243</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+483</b><br>+Niszczenie pancerza o 5<br>Odyniec(37.61%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-233</b> obrażeń<br></div>",
         "<div class=\"battle-msg neu\"><font color=\"30ff00\"><i>Odyniec(19.27%): 140 (osłabione o 14%) obrażeń od trucizny.</i></font><br></div>",
-        "<div class=\"battle-msg attack2\">Odyniec(19.27%) uderzył(a) z siłą <b class=\"dmg\">+331</b><br><font color=\"c7c8eb\"><b><i>-Fasada opieki, 13% redukcji ciosów do końca walki</i></b></font><br>Łowcożyr Kazrek(98.30%) otrzymał <b class=\"dmg\" prof-w=\"\">-99</b> obrażeń<br></div>",
-        "<div class=\"battle-msg neu\"><font color=\"4afffd\"><i>Przywrócono 99 punktów życia Łowcożyr Kazrek(100%)</i></font><br></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+458</b><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-215</b> obrażeń<br></div>",
-        "<div class=\"battle-msg win\">Zwyciężył Łowcożyr Kazrek</div>",
+        "<div class=\"battle-msg attack2\">Odyniec(19.27%) uderzył(a) z siłą <b class=\"dmg\">+331</b><br><font color=\"c7c8eb\"><b><i>-Fasada opieki, 13% redukcji ciosów do końca walki</i></b></font><br>Gracz 1(98.30%) otrzymał <b class=\"dmg\" prof-w=\"\">-99</b> obrażeń<br></div>",
+        "<div class=\"battle-msg neu\"><font color=\"4afffd\"><i>Przywrócono 99 punktów życia Gracz 1(100%)</i></font><br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+458</b><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-215</b> obrażeń<br></div>",
+        "<div class=\"battle-msg win\">Zwyciężył Gracz 1</div>",
         "<div class=\"battle-msg lose\">Poległa drużyna Odyniec, Odyniec, Locha</div>",
         "<div class=\"battle-msg exp\">Zwycięzca zdobył łącznie 3973 punktów doświadczenia<br></div>",
         "<div class=\"battle-msg txt\">Locha: zdobyto Skóra z dzika</div>",
-        "<div class=\"battle-msg txt\">Rozpoczęła się walka pomiędzy Łowcożyr Kazrek (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+466</b><br>+Niszczenie pancerza o 5<br>Locha(70.07%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-223</b> obrażeń<br></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+612</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br>+Niszczenie pancerza o 5<br>Locha(21.34%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-363</b> obrażeń<br></div>",
+        "<div class=\"battle-msg txt\">Rozpoczęła się walka pomiędzy Gracz 1 (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+466</b><br>+Niszczenie pancerza o 5<br>Locha(70.07%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-223</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+612</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br>+Niszczenie pancerza o 5<br>Locha(21.34%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-363</b> obrażeń<br></div>",
         "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
         "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+485</b><br>+Niszczenie pancerza o 5<br>Locha(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-248</b> obrażeń<br></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+658</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(13.76%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-658</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+485</b><br>+Niszczenie pancerza o 5<br>Locha(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-248</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+658</b><br><font color=\"ff96b1\"><i>+Cios krytyczny</i></font><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(13.76%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-658</b> obrażeń<br></div>",
         "<div class=\"battle-msg neu\"><font color=\"white\">Odyniec(100%) zrobił(a) krok do przodu.</font></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+461</b><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-461</b> obrażeń<br></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+498</b><br>+Niszczenie pancerza o 5<br>Odyniec(68.15%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-243</b> obrażeń<br></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+483</b><br>+Niszczenie pancerza o 5<br>Odyniec(37.61%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-233</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+461</b><br><font color=\"82ff88\">+Przebicie</font><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-461</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+498</b><br>+Niszczenie pancerza o 5<br>Odyniec(68.15%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-243</b> obrażeń<br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+483</b><br>+Niszczenie pancerza o 5<br>Odyniec(37.61%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-233</b> obrażeń<br></div>",
         "<div class=\"battle-msg neu\"><font color=\"30ff00\"><i>Odyniec(19.27%): 140 (osłabione o 14%) obrażeń od trucizny.</i></font><br></div>",
-        "<div class=\"battle-msg attack2\">Odyniec(19.27%) uderzył(a) z siłą <b class=\"dmg\">+331</b><br><font color=\"c7c8eb\"><b><i>-Fasada opieki, 13% redukcji ciosów do końca walki</i></b></font><br>Łowcożyr Kazrek(98.30%) otrzymał <b class=\"dmg\" prof-w=\"\">-99</b> obrażeń<br></div>",
-        "<div class=\"battle-msg neu\"><font color=\"4afffd\"><i>Przywrócono 99 punktów życia Łowcożyr Kazrek(100%)</i></font><br></div>",
-        "<div class=\"battle-msg attack\">Łowcożyr Kazrek(100%) uderzył z siłą <b class=\"dmgd\">+458</b><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-215</b> obrażeń<br></div>",
-        "<div class=\"battle-msg win\">Zwyciężył Łowcożyr Kazrek</div>",
+        "<div class=\"battle-msg attack2\">Odyniec(19.27%) uderzył(a) z siłą <b class=\"dmg\">+331</b><br><font color=\"c7c8eb\"><b><i>-Fasada opieki, 13% redukcji ciosów do końca walki</i></b></font><br>Gracz 1(98.30%) otrzymał <b class=\"dmg\" prof-w=\"\">-99</b> obrażeń<br></div>",
+        "<div class=\"battle-msg neu\"><font color=\"4afffd\"><i>Przywrócono 99 punktów życia Gracz 1(100%)</i></font><br></div>",
+        "<div class=\"battle-msg attack\">Gracz 1(100%) uderzył z siłą <b class=\"dmgd\">+458</b><br>+Niszczenie pancerza o 5<br>Odyniec(0%) otrzymał(a) <b class=\"dmgd\" prof-h=\"\">-215</b> obrażeń<br></div>",
+        "<div class=\"battle-msg win\">Zwyciężył Gracz 1</div>",
         "<div class=\"battle-msg lose\">Poległa drużyna Odyniec, Odyniec, Locha</div>",
         "<div class=\"battle-msg exp\">Zwycięzca zdobył łącznie 3973 punktów doświadczenia<br></div>",
         "<div class=\"battle-msg txt\">Locha: zdobyto Skóra z dzika</div>"
@@ -708,7 +709,7 @@
       "wojownicyPrzed": [
         {
           "id": 482845,
-          "name": "Łowcożyr Kazrek",
+          "name": "Gracz 1",
           "team": 1,
           "prof": "h",
           "lvl": 40,
@@ -782,7 +783,7 @@
       "wojownicyPo": [
         {
           "id": 482845,
-          "name": "Łowcożyr Kazrek",
+          "name": "Gracz 1",
           "team": 1,
           "prof": "h",
           "lvl": 40,
@@ -865,7 +866,7 @@
       "wojownicyPrzed": [
         {
           "id": 482845,
-          "name": "Łowcożyr Kazrek",
+          "name": "Gracz 1",
           "team": 1,
           "prof": "h",
           "lvl": 40,
@@ -939,7 +940,7 @@
       "wojownicyPo": [
         {
           "id": 482845,
-          "name": "Łowcożyr Kazrek",
+          "name": "Gracz 1",
           "team": 1,
           "prof": "h",
           "lvl": 40,
@@ -1012,5 +1013,5 @@
       ]
     }
   ],
-  "odchudzonych": 565
+  "pseudonimow": 34
 }

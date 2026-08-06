@@ -23,7 +23,7 @@ describe("spięcie źródła z overlayem", () => {
     start(new StaticProtocolSource(KOMUNIKATY, BEZ_SLOWNIKA, SKLAD), overlay, new Session());
 
     const labels = [...overlay.shadow.querySelectorAll(".label")].map((el) => el.textContent);
-    expect(labels).toContain("Łowcożyr Kazrek");
+    expect(labels).toContain("Gracz 1");
     // Skład jest z gry, więc na liście stoją także ci, którzy nic nie zadali.
     expect(labels.length).toBe(SKLAD.length);
   });
@@ -38,10 +38,10 @@ describe("spięcie źródła z overlayem", () => {
 
     // Protokół podaje CAŁY prefiks przy każdej porcji — panel ma liczyć od zera.
     start(new StaticProtocolSource(KOMUNIKATY.slice(0, 2), BEZ_SLOWNIKA, SKLAD), overlay, sesja);
-    const polowa = wartosc("Łowcożyr Kazrek");
+    const polowa = wartosc("Gracz 1");
 
     start(new StaticProtocolSource(KOMUNIKATY, BEZ_SLOWNIKA, SKLAD), overlay, sesja);
-    const calosc = wartosc("Łowcożyr Kazrek");
+    const calosc = wartosc("Gracz 1");
 
     expect(polowa).not.toBe("");
     expect(calosc).not.toBe(polowa);

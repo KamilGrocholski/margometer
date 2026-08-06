@@ -122,6 +122,19 @@ export type Zrzut = {
    * `zachowajZrzut` w `tools/walka.ts`; dodatek go nie ustawia.
    */
   odchudzonych?: number;
+  /**
+   * Ile wystąpień pseudonimów podstawiono, zanim zrzut trafił do repo.
+   *
+   * TEN SAM WZÓR, CO `odchudzonych`: pisze to wyłącznie `pseudonimizuj`
+   * w `tools/walka.ts`, dodatek nigdy. Pole istnieje po to, żeby **plik sam
+   * mówił, że przeszedł redakcję** — inaczej `Gracz 1` wygląda jak nick, który
+   * ktoś naprawdę nosi, a to jest różnica między materiałem dowodowym
+   * a materiałem dowodowym po zabiegu.
+   *
+   * `0` znaczy „nie było czego podstawiać" i jest odpowiedzią, nie brakiem;
+   * brak pola znaczy „plik sprzed 2026‑08‑06, redakcji nie było".
+   */
+  pseudonimow?: number;
   wpisy: Wywolanie[];
 };
 

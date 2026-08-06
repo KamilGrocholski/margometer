@@ -895,7 +895,7 @@ z rzędu i jest to sytuacja normalna, nie wyjątek.
 definiował turę jako NIEPRZERWANY CIĄG akcji tej samej postaci (`if (actor ===
 lastActor) return`), a `types.ts` zapisywał to jako „log nie numeruje tur, więc
 turą jest nieprzerwany ciąg jej akcji”. Pomiar na jedynej prawdziwej walce
-(`tests/walka-z-gry.ts`): „Łowcożyr Kazrek” wykonuje 8 ataków bez ani jednej
+(`tests/walka-z-gry.ts`): „Gracz 1” wykonuje 8 ataków bez ani jednej
 zapowiedzi, a panel liczył mu **4 tury** — obrażenia na turę własną wychodziły
 696 zamiast 348, czyli **dokładnie dwa razy za dużo**. Naprawione 2026‑08‑05,
 spec: `docs/specy/2026-08-05-tura-to-akcja.md`.

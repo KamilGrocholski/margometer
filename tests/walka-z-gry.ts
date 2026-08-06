@@ -29,6 +29,14 @@ import type { RosterEntry } from "../src/roster.ts";
  * jako seed podglądu), a `build.ts` nie ma jak czytać katalogu testów. Moduł
  * jest wygodą, nie źródłem — i dlatego wolno go regenerować, a nie edytować.
  *
+ * ⚠️ **`Gracz 1` NIE JEST NICKIEM Z GRY — 2026‑08‑06.** W tej walce stała
+ * prawdziwa nazwa postaci; zeszła razem z fixture'em, bo repozytorium jest
+ * publiczne, a podstawienie robi dziś `pseudonimizuj` w `tools/walka.ts`.
+ * Powody: `NOTICE.md`. Ten jeden raz moduł został poprawiony RĘCZNIE zamiast
+ * zregenerowany — regeneracja skasowałaby cały ten nagłówek razem ze
+ * sprostowaniem o buildzie wyżej, a podstawienie jest dokładnie tym samym,
+ * które przeszedł fixture. Że nie rozjechało się o znak, pilnuje test.
+ *
  * Jedna walka to jedna walka: nie ma tu bloku, uniku, absorpcji z własnym
  * kluczem ani zapowiedzi umiejętności. Lista zakupowa na następny zrzut stoi
  * w `docs/ROADMAP.md`.
@@ -56,7 +64,7 @@ export const KOMUNIKATY: string[] = [
   "-255967=19.27;482845=98.30;+dmg=331;-legbon_facade=13;-dmg=99",
   "482845=100.00;0;heal=99",
   "482845=100.00;-255967=0.00;+dmgd=458;+acdmg=5;-dmgd=215",
-  "0;0;winner=Łowcożyr Kazrek",
+  "0;0;winner=Gracz 1",
   "0;0;loser=Odyniec, Odyniec, Locha",
   "0;0;+exp=3973",
   "0;0;txt=Locha: zdobyto Skóra z dzika",
@@ -70,7 +78,7 @@ export const KOMUNIKATY: string[] = [
  * rozdzielania instancji, i w protokole jest ono darmowe, bo `id` rozstrzyga.
  */
 export const SKLAD: RosterEntry[] = [
-  { id: 482845, name: "Łowcożyr Kazrek", side: 0, prof: "h", lvl: 40 },
+  { id: 482845, name: "Gracz 1", side: 0, prof: "h", lvl: 40 },
   { id: -161518, name: "Locha", side: 1, prof: "w", lvl: 40 },
   { id: -255967, name: "Odyniec", side: 1, prof: "w", lvl: 41 },
   { id: -255969, name: "Odyniec", side: 1, prof: "w", lvl: 41 },

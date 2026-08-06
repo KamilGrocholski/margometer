@@ -42,7 +42,7 @@ const magazyn = (poczatek: Record<string, string> = {}) => {
 const battle = (myteam = 1) => ({
   myteam,
   warriorsList: {
-    a: { id: 482845, name: "Łowcożyr Kazrek", team: 1, prof: "h", lvl: 40, hp: { cur: 900, max: 900 } },
+    a: { id: 482845, name: "Gracz 1", team: 1, prof: "h", lvl: 40, hp: { cur: 900, max: 900 } },
     b: { id: -255967, name: "Odyniec", team: 2, prof: "w", lvl: 41, hp: { cur: 500, max: 500 } },
   },
 });
@@ -80,7 +80,7 @@ describe("zrzut z dodatku czyta się narzędziem od zrzutów z sondy", () => {
     // To jest sedno: strony liczy narzędzie, z `myteam` i surowego `team`.
     expect(mojaDruzyna(odczytany)).toBe(1);
     expect(skladZeZrzutu(odczytany)).toEqual([
-      { id: 482845, name: "Łowcożyr Kazrek", side: 0, prof: "h", lvl: 40 },
+      { id: 482845, name: "Gracz 1", side: 0, prof: "h", lvl: 40 },
       { id: -255967, name: "Odyniec", side: 1, prof: "w", lvl: 41 },
     ]);
   });

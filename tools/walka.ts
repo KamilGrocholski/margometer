@@ -100,6 +100,7 @@ export function czytajZrzut(tekst: string): Zrzut {
     ...(typeof z.pominietych === "number" ? { pominietych: z.pominietych } : {}),
     ...(z.przepelniony === true ? { przepelniony: true } : {}),
     ...(typeof z.odchudzonych === "number" ? { odchudzonych: z.odchudzonych } : {}),
+    ...(typeof z.pseudonimow === "number" ? { pseudonimow: z.pseudonimow } : {}),
     wpisy: z.wpisy.map(wpisZrzutu),
   };
 }
@@ -383,6 +384,166 @@ export function odchudz(wpisy: Wywolanie[]): Wywolanie[] {
   });
 }
 
+export type Pseudonimizacja = {
+  zrzut: Zrzut;
+  /** Ile WYSTĄPIEŃ podstawiono. `0` znaczy „w tym zrzucie nie ma już czego podstawiać". */
+  zmienionych: number;
+  /** Co na co. Idzie na stdout i NIGDZIE indziej — patrz komentarz przy funkcji. */
+  mapa: Map<string, string>;
+};
+
+/**
+ * Zrzut z pseudonimami graczy zastąpionymi etykietami `Gracz 1`, `Gracz 2`, …
+ *
+ * PO CO. Repozytorium jest publiczne, a fixture idzie do gita NA ZAWSZE —
+ * `docs/screenshots/README.md` zapisuje wprost, że historii tego repo się nie
+ * przepisuje, więc pierwsza pomyłka jest nieodwracalna. Do 2026‑08‑06 nic tej
+ * drogi nie pilnowało; że nie było skutku, było własnością MATERIAŁU (jedyny
+ * fixture to walka solo z potworami), a nie procedury. Lista zakupowa
+ * z `docs/ROADMAP.md` — blok, unik, absorpcja, walka turowa — prowadzi wprost
+ * do walk grupowych i PvP, czyli do nicków ludzi, którzy nie mieli jak się
+ * na to zgodzić.
+ *
+ * ⚠️ **TO NIE JEST ZŁAMANIE REGUŁY „materiału się nie edytuje"** i granica
+ * przebiega dokładnie tam, gdzie przy `odchudz`. Zakaz broni przed wycinaniem
+ * tego, co NIEWYGODNE — przed człowiekiem, który usuwa wpis, żeby test
+ * przeszedł. Tu podstawienie jest deterministyczne, niezależne od tego, czy
+ * cokolwiek świeci, i **jawne w samym pliku** (`pseudonimow`). Żadna liczba
+ * i żadne `id` się nie rusza, więc każdy dowód, jaki ten plik niósł, niesie
+ * dalej.
+ *
+ * NAZWIJMY RZECZ PO IMIENIU: to jest **pseudonimizacja, nie anonimizacja**.
+ * `id` zostają, bo to po nich protokół identyfikuje strony (`482845=100.00;…`)
+ * i na nich stoi świadek `hp.max` — gra nadal umie odwzorować `id` na nick.
+ * Ubywa to, co identyfikuje człowieka komuś, kto czyta GitHuba.
+ *
+ * DLACZEGO CYFRA, A NIE LITERA. W prozie repo `Gracz A`…`Gracz G` znaczą
+ * KONKRETNE postacie, konsekwentnie w każdym pliku (`NOTICE.md`). Etykiety tutaj
+ * są lokalne dla JEDNEGO zrzutu i z tamtymi nie mają nic wspólnego. Ten sam
+ * napis o dwóch znaczeniach rozjeżdża się po cichu, a cyfra kosztuje zero.
+ *
+ * KTO JEST GRACZEM, MÓWI `npc` z `ladunek.w` — i tylko ono. Kuszące „ujemne `id`
+ * to potwór" byłoby zdaniem o GRZE i wymagałoby procedury z `docs/MECHANIKA.md`;
+ * nikt jej nie przeszedł, więc tego zdania tu nie ma. `MigawkaWojownika` pola
+ * `npc` NIE NIESIE, dlatego migawki rozstrzyga `id` z ładunku, a wojownik,
+ * którego `npc` nie da się ustalić, **zatrzymuje zapis**. Ciche `Gracz N` dla
+ * potwora psułoby materiał; ciche pominięcie gracza wpuszczałoby nick do repo.
+ *
+ * PODSTAWIENIE IDZIE PO CAŁYM JSON‑IE, nie po samym `w{}`, bo nick siedzi
+ * w pięciu miejscach naraz: `ladunek.w.<id>.name`, `wojownicyPrzed/Po[].name`,
+ * `komunikaty` (`winner=`, `loser=`, `txt=`), `render[]` i `otwarcie`.
+ * `replaceAll` zamiast regexa — z tego samego powodu, co przy `podstaw()`
+ * w `src/slownik-gry.ts`: nicki w tej grze zawierają nawiasy i kropki.
+ * Od najdłuższej nazwy do najkrótszej, żeby nick będący podciągiem innego nie
+ * pokaleczył tamtego.
+ *
+ * CZEGO TA FUNKCJA NIE ZROBI — i dlatego procedura w `tests/fixtures/README.md`
+ * ma osobny krok dla człowieka. Zna wyłącznie nazwy ZWIĄZANE Z `id`: te
+ * z `ladunek.w` i te z migawek. Napis niezwiązany z żadnym wojownikiem — nick
+ * kogoś, kto wypadł przed pierwszą migawką, cudza nazwa w `txt=` z łupem —
+ * przejdzie przez nią nietknięty. Zmierzone: nick wstawiony TYLKO w `render`
+ * nie zapala ani jednego z dwóch strażników w `tests/fixtury.test.ts`,
+ * bo dziedziczą one tę samą granicę.
+ */
+export function pseudonimizuj(zrzut: Zrzut): Pseudonimizacja {
+  const npc = new Map<number, number>();
+  // ⚠️ **ZBIÓR NAZW NA `id`, NIE JEDNA NAZWA** — i to jest poprawka wymuszona
+  // przez zmierzoną mutację, nie przezorność. Pierwsza wersja robiła
+  // `nazwy.set(id, name)`, więc wygrywało OSTATNIE wystąpienie; nick wstawiony
+  // do wcześniejszej migawki tego samego wojownika nie trafiał do mapy i
+  // przechodził przez podstawienie nietknięty. Strażnik „punkt stały" milczał,
+  // bo z jego punktu widzenia nie było czego podmieniać.
+  const nazwy = new Map<number, Set<string>>();
+  const zapamietaj = (id: number, nazwa: unknown) => {
+    if (typeof nazwa !== "string" || nazwa === "") return;
+    const zbior = nazwy.get(id) ?? new Set<string>();
+    zbior.add(nazwa);
+    nazwy.set(id, zbior);
+  };
+
+  for (const wpis of zrzut.wpisy) {
+    const w = wpis.ladunek["w"];
+    if (typeof w === "object" && w !== null) {
+      for (const [klucz, surowy] of Object.entries(w as Record<string, unknown>)) {
+        if (typeof surowy !== "object" || surowy === null) continue;
+        const woj = surowy as Record<string, unknown>;
+        const id = typeof woj["id"] === "number" ? (woj["id"] as number) : Number(klucz);
+        if (!Number.isFinite(id)) continue;
+        if (typeof woj["npc"] === "number") npc.set(id, woj["npc"] as number);
+        zapamietaj(id, woj["name"]);
+      }
+    }
+    for (const surowy of [...(wpis.wojownicyPrzed ?? []), ...wpis.wojownicyPo]) {
+      if (typeof surowy !== "object" || surowy === null) continue;
+      const woj = surowy as Record<string, unknown>;
+      if (typeof woj["id"] !== "number") continue;
+      zapamietaj(woj["id"] as number, woj["name"]);
+    }
+  }
+
+  const bezFlagi = [...nazwy.keys()].filter((id) => !npc.has(id)).sort((a, b) => a - b);
+  if (bezFlagi.length > 0) {
+    throw new Error(
+      `nie da się ustalić, czy wojownik ${bezFlagi.join(", ")} jest graczem czy potworem — ` +
+        "`npc` niesie wyłącznie `ladunek.w`, a tych `id` tam nie ma. " +
+        "Zgadnięcie w jedną stronę psuje materiał, w drugą wpuszcza pseudonim do repo.",
+    );
+  }
+
+  const gracze = [...nazwy.keys()].filter((id) => npc.get(id) === 0).sort((a, b) => a - b);
+  const mapa = new Map<string, string>();
+  gracze.forEach((id, i) => {
+    const etykieta = `Gracz ${i + 1}`;
+    for (const nick of nazwy.get(id)!) {
+      // Dwaj gracze o TEJ SAMEJ nazwie rozjechaliby podstawienie tekstowe: w `w{}`
+      // rozdziela ich `id`, ale w `render` i `winner=` stoi sam napis i nie ma jak
+      // powiedzieć, o którego chodzi. Odmowa zamiast zgadywania.
+      if (mapa.has(nick) && mapa.get(nick) !== etykieta) {
+        throw new Error(
+          "dwóch graczy nosi tę samą nazwę — podstawienie tekstowe nie ma jak ich rozdzielić",
+        );
+      }
+      mapa.set(nick, etykieta);
+    }
+  });
+
+  const pary = [...mapa].filter(([nick, na]) => nick !== na).sort((a, b) => b[0].length - a[0].length);
+  // Etykieta, która jest jednocześnie CZYJĄŚ nazwą do podmiany, zamieniłaby
+  // podstawienie w permutację robioną po kolei — a taka kaleczy samą siebie.
+  // W pliku z narzędzia to nie ma prawa wystąpić; w ręcznie poprawionym owszem.
+  const cele = new Set(pary.map(([, na]) => na));
+  const kolizja = pary.find(([nick]) => cele.has(nick));
+  if (kolizja !== undefined) {
+    throw new Error(
+      `nazwa \`${kolizja[0]}\` jest jednocześnie etykietą zastępczą — plik wygląda na ` +
+        "poprawiony ręcznie, a podstawienia po kolei nie da się wtedy zrobić bezpiecznie",
+    );
+  }
+
+  let zmienionych = 0;
+  const podmien = (tekst: string): string => {
+    let wynik = tekst;
+    for (const [nick, na] of pary) {
+      const ile = wynik.split(nick).length - 1;
+      if (ile === 0) continue;
+      zmienionych += ile;
+      wynik = wynik.replaceAll(nick, na);
+    }
+    return wynik;
+  };
+  const mapuj = (wartosc: unknown): unknown => {
+    if (typeof wartosc === "string") return podmien(wartosc);
+    if (Array.isArray(wartosc)) return wartosc.map(mapuj);
+    if (typeof wartosc === "object" && wartosc !== null) {
+      // KLUCZE zostają nietknięte: to `id` wojowników (`"482845"`), nie nazwy.
+      return Object.fromEntries(Object.entries(wartosc).map(([k, v]) => [k, mapuj(v)]));
+    }
+    return wartosc;
+  };
+
+  return { zrzut: mapuj(zrzut) as Zrzut, zmienionych, mapa };
+}
+
 /**
  * Wywołania, w których ładunek niesie `init` — czyli GRANICE WALK.
  *
@@ -479,14 +640,22 @@ export function nazwaFixtura(zrzut: Zrzut, nazwa: string): string {
  * zamrożonej tabeli kluczy (`tools/slownik.ts --zamroz`).
  */
 export function zachowajZrzut(zrzut: Zrzut): string {
+  // PSEUDONIMY LECĄ PIERWSZE, przed odchudzaniem — żeby nie było w tym pliku ani
+  // jednego kroku, na którym prawdziwy nick jest jeszcze w danych „tylko chwilę".
+  // Kolejność nie zmienia wyniku (`odchudz` porównuje kształty i stany, a te
+  // podstawienie zachowuje), więc decyduje o niej wyłącznie ta zasada.
+  const czysty = pseudonimizuj(zrzut);
   // ODCHUDZANIE ROBI NARZĘDZIE, NIE CZŁOWIEK. Ręczne wycinanie wpisów byłoby
   // edytowaniem materiału dowodowego, czego `AGENTS.md` zabrania; `odchudz`
   // robi to deterministycznie i nie gubi informacji (zostaje każde wywołanie
   // z komunikatami, każdy nowy kształt ładunku i każda nowa migawka).
-  const chude = odchudz(zrzut.wpisy);
+  const chude = odchudz(czysty.zrzut.wpisy);
   return `${JSON.stringify(
     {
-      ...zrzut,
+      ...czysty.zrzut,
+      // SUMUJEMY, a nie nadpisujemy: plik przepuszczony przez `--pseudonimizuj`
+      // drugi raz podstawia zero i ma zachować pamięć o pierwszym przebiegu.
+      pseudonimow: (zrzut.pseudonimow ?? 0) + czysty.zmienionych,
       // Ile odpadło TU, przy zachowaniu — osobno od `pominietych`, które niesie
       // to, co odsiał kolekcjoner jeszcze w grze. Zsumowane w jedno pole nie
       // dałoby się już rozdzielić, a to dwa różne fakty o materiale.
@@ -496,6 +665,28 @@ export function zachowajZrzut(zrzut: Zrzut): string {
     null,
     2,
   )}\n`;
+}
+
+/**
+ * Fixture przepuszczony przez podstawienie JESZCZE RAZ, bez odchudzania.
+ *
+ * PO CO OSOBNO OD `zachowajZrzut`. Plik leżący już w `tests/fixtures/` jest
+ * odchudzony, więc powtórne `odchudz` policzyłoby `odchudzonych: 0` i skasowało
+ * prawdziwą liczbę z pierwszego przebiegu — a to jedyny ślad po tym, ile z tamtego
+ * zrzutu było odpytywaniem po walce.
+ *
+ * Istnieje, bo materiał wchodzący do repo przed 2026‑08‑06 podstawienia nie
+ * przechodził, a oryginalnych zrzutów w repo NIE MA i `--zachowaj` nie ma czego
+ * powtórzyć. Droga jednorazowa z założenia; nowe pliki załatwia `--zachowaj`.
+ */
+export function przepiszFixture(zrzut: Zrzut): { tresc: string; wynik: Pseudonimizacja } {
+  const wynik = pseudonimizuj(zrzut);
+  const tresc = `${JSON.stringify(
+    { ...wynik.zrzut, pseudonimow: (zrzut.pseudonimow ?? 0) + wynik.zmienionych },
+    null,
+    2,
+  )}\n`;
+  return { tresc, wynik };
 }
 
 /**
@@ -591,6 +782,25 @@ function jednaWalka(wczytany: Zrzut, wybrana: string | null, sciezka: string): Z
   return wybrana === null ? wczytany : wybierzWalke(wczytany, Number(wybrana));
 }
 
+/**
+ * Mapa podstawień na STDOUT — i nigdzie indziej.
+ *
+ * Człowiek ma zobaczyć, co narzędzie zamieniło, bo to jedyny moment, w którym
+ * da się wychwycić, że gracz został wzięty za potwora albo odwrotnie. Zapisanie
+ * tej mapy do repo byłoby wniesieniem z powrotem dokładnie tego, czego plik
+ * właśnie się pozbył — słownik `nick → Gracz N` jest gorszy od samego nicka,
+ * bo wiąże go z liczbami.
+ */
+function raportPodstawien(wynik: Pseudonimizacja): void {
+  for (const [nick, na] of wynik.mapa) {
+    if (nick === na) continue;
+    console.log(`  ${nick} → ${na}`);
+  }
+  if (wynik.zmienionych > 0) {
+    console.log("  (mapa idzie tylko na ekran — do repo nie trafia w żadnej postaci)");
+  }
+}
+
 /** CLI za bramką, żeby dało się ten plik zaimportować — jak w `tools/pomoc.ts`. */
 if (import.meta.main) {
   const argumenty = process.argv.slice(2);
@@ -599,7 +809,21 @@ if (import.meta.main) {
   const nazwa = tekstowa(argumenty, "--nazwa");
   const wybranaWalka = tekstowa(argumenty, "--walka");
   const pokaz = tekstowa(argumenty, "--pokaz");
+  const przepisz = tekstowa(argumenty, "--pseudonimizuj");
   const klucze = argumenty.includes("--klucze");
+
+  if (przepisz !== null) {
+    const zrzut = czytajZrzut(await Bun.file(przepisz).text());
+    const { tresc, wynik } = przepiszFixture(zrzut);
+    if (wynik.zmienionych === 0) {
+      console.log(`${przepisz}: nie ma czego podstawiać — plik już jest po redakcji`);
+      process.exit(0);
+    }
+    await Bun.write(przepisz, tresc);
+    console.log(`przepisane: ${przepisz} (${wynik.zmienionych} wystąpień)`);
+    raportPodstawien(wynik);
+    process.exit(0);
+  }
 
   if (zachowaj !== null) {
     if (nazwa === null) throw new Error("wymagane --nazwa (krótki opis do nazwy pliku)");
@@ -645,7 +869,18 @@ if (import.meta.main) {
         `komunikatów: ${wiadomosci.length}, kluczy: ${histogram(wiadomosci).length}, ` +
         `w składzie: ${sklad.length}`,
     );
+    // Drugie wywołanie tej samej funkcji, co w `zachowajZrzut` — deterministycznej,
+    // więc dającej to samo. Alternatywą było przeciągnięcie mapy przez sygnaturę
+    // `zachowajZrzut`, która ma cztery miejsca wołające i po nic nie potrzebuje
+    // wiedzieć o wypisywaniu na ekran.
+    const podstawienia = pseudonimizuj(zrzut);
+    console.log(`  pseudonimów podstawionych: ${podstawienia.zmienionych}`);
+    raportPodstawien(podstawienia);
     console.log("  niezmienniki z `tests/fixtury.test.ts` obejmą go bez dopisywania czegokolwiek");
+    console.log(
+      "  ⚠ przeczytaj jeszcze `otwarcie` i `render` w zapisanym pliku — nazwy spoza " +
+        "`w{}` przechodzą przez podstawienie nietknięte (tests/fixtures/README.md, krok 4)",
+    );
     process.exit(0);
   }
 
@@ -757,10 +992,12 @@ if (import.meta.main) {
       "  bun tools/walka.ts --rozbij <plik.json> --nazwa <slug> --walka <n>",
       "  bun tools/walka.ts --pokaz <plik.json>",
       "  bun tools/walka.ts --klucze <plik.json> […]",
+      "  bun tools/walka.ts --pseudonimizuj <tests/fixtures/….json>  (redakcja starego pliku)",
       "",
       "`--zachowaj` zapisuje SUROWY zrzut jako fixture — z migawkami `hp.max`,",
-      "ładunkami i granicami wywołań. `--rozbij` robi z niego moduł TS",
-      "z komunikatami i składem; modułu potrzebuje `build.ts`, fixture'a —",
+      "ładunkami i granicami wywołań, i PO podstawieniu pseudonimów graczy",
+      "(`Gracz 1`, `Gracz 2`; repo jest publiczne). `--rozbij` robi z niego moduł",
+      "TS z komunikatami i składem; modułu potrzebuje `build.ts`, fixture'a —",
       "niezmienniki w `tests/fixtury.test.ts`.",
       "",
       "zrzut robi albo dodatek (zębatka → tryb deweloperski → „Zrzut walki”),",

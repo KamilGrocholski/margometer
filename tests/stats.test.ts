@@ -236,7 +236,7 @@ describe("instancje po identyfikatorze", () => {
     const dealt = (name: string) => stats.actors.find((a) => a.name === name)!.damageDealt;
     const taken = (name: string) => stats.actors.find((a) => a.name === name)!.damageTaken;
 
-    expect(dealt("Łowcożyr Kazrek")).toBe(2784);
+    expect(dealt("Gracz 1")).toBe(2784);
     // `-255967` stoi w składzie jako pierwszy Odyniec, więc jest `#1` — i to on
     // oddał cios za 99 oraz przyjął tyknięcie trucizny.
     expect(dealt("Odyniec #1")).toBe(99);
@@ -1132,14 +1132,14 @@ describe("tura jest akcją", () => {
 
     // Osiem osobnych ataków w komunikatach i ANI JEDNEJ zapowiedzi umiejętności
     // w całej walce, więc osiem akcji i osiem tur. Panel liczył cztery.
-    expect(tury("Łowcożyr Kazrek")).toBe(8);
+    expect(tury("Gracz 1")).toBe(8);
     expect(tury("Odyniec #1")).toBe(3); // dwa kroki do przodu + jeden cios
     expect(tury("Odyniec #2")).toBe(1); // sam krok do przodu
     expect(tury("Locha")).toBe(0); // zginęła, zanim dostała turę
     expect(stats.timeline).toHaveLength(12); // 9 ataków + 3 kroki
 
     // Sedno zgłoszenia: średnia „na turę” była zawyżona DOKŁADNIE dwukrotnie.
-    const kazrek = stats.actors.find((a) => a.name === "Łowcożyr Kazrek")!;
+    const kazrek = stats.actors.find((a) => a.name === "Gracz 1")!;
     expect(kazrek.damageDealt).toBe(2784);
     expect(kazrek.damageDealt / kazrek.turns).toBe(348); // było 696
   });

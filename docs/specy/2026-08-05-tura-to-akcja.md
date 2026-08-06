@@ -32,7 +32,7 @@ w jedną nie jest przybliżeniem — jest odwrotnością reguły gry.
 
 | postać | akcje w logu | tury przed | tury po |
 |---|---|---|---|
-| Łowcożyr Kazrek | 8 ataków, 0 zapowiedzi | **4** | 8 |
+| Gracz 1 | 8 ataków, 0 zapowiedzi | **4** | 8 |
 | Odyniec #1 | 2 × krok + 1 cios | 3 | 3 |
 | Odyniec #2 | 1 × krok | 1 | 1 |
 | Locha | zginęła przed swoją turą | 0 | 0 |

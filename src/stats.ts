@@ -895,7 +895,7 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
    * skumulowanego czasu ataku („Pierwszeństwo w wykonaniu tury ma Gracz, którego
    * przewidywany licznik czasu trwania ataków […] będzie najniższy"), więc
    * szybka postać RUTYNOWO dostaje kilka tur pod rząd. Zmierzone na jedynej
-   * prawdziwej walce w repo (`tests/walka-z-gry.ts`): „Łowcożyr Kazrek" wykonuje
+   * prawdziwej walce w repo (`tests/walka-z-gry.ts`): „Gracz 1" wykonuje
    * 8 ataków, a panel liczył mu 4 tury — obrażenia na turę własną wychodziły
    * 696 zamiast 348, czyli dokładnie dwa razy za dużo.
    *

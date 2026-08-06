@@ -8,6 +8,7 @@ import {
   modulZrzutu,
   nazwaFixtura,
   odchudz,
+  pseudonimizuj,
   skladZeZrzutu,
   stronyKomunikatu,
   urwany,
@@ -30,11 +31,25 @@ import {
  * czego porównywać, ani czym.
  */
 
-/** Dwa wywołania sondy: otwarcie walki i jeden cios. Kształt jak z gry. */
+/**
+ * Dwa wywołania sondy: otwarcie walki i jeden cios. Kształt jak z gry.
+ *
+ * ⚠️ **`ladunek.w` NIE JEST TU OZDOBĄ** — od 2026‑08‑06 to jedyne miejsce
+ * niosące `npc`, czyli jedyne, po którym `pseudonimizuj` odróżnia gracza od
+ * potwora. Zrzut bez niego zatrzymuje `--zachowaj` z powodem, i tak ma być:
+ * migawka `MigawkaWojownika` pola `npc` nie ma, a zgadywanie po znaku `id`
+ * byłoby zdaniem o GRZE bez przejścia procedury z `docs/MECHANIKA.md`.
+ */
 const WPISY: Wywolanie[] = [
   {
     nr: 0,
-    ladunek: { init: "1" },
+    ladunek: {
+      init: "1",
+      w: {
+        "1": { id: 1, name: "Kamil", npc: 0, team: 1 },
+        "2": { id: 2, name: "Wilk", npc: 1, team: 2 },
+      },
+    },
     komunikaty: ["0;0;txt=Rozpoczęła się walka pomiędzy Kamil (10w) a Wilk (9w)"],
     wojownicyPrzed: [],
     wojownicyPo: [{ id: 1, name: "Kamil", hp: { cur: 100, max: 100 } }],
@@ -413,6 +428,136 @@ describe("odchudz — zrzut bez powtórzeń", () => {
   test("nic do odrzucenia — zrzut przechodzi bez zmian", () => {
     const wpisy = [wpis(0, { a: 1 }), wpis(1, { b: 2 })];
     expect(odchudz(wpisy)).toHaveLength(2);
+  });
+});
+
+/**
+ * `pseudonimizuj` — pseudonimy graczy nie wchodzą do publicznego repo.
+ *
+ * ⚠️ **NAZWY W TYM BLOKU SĄ ZMYŚLONE I MAJĄ TAKIE ZOSTAĆ.** Wstawienie tu
+ * prawdziwego nicka byłoby wniesieniem do repo dokładnie tego, czego ta funkcja
+ * ma się pozbywać — a test „anonimizator działa" niosący cudzy pseudonim jest
+ * najgłupszą możliwą wersją tego błędu.
+ */
+describe("pseudonimizuj", () => {
+  const walka = (
+    wojownicy: Record<string, unknown>,
+    kom: string[] = [],
+    dodatkowe: Partial<Zrzut> = {},
+  ): Zrzut => ({
+    wersja: 1,
+    przy: "2026-08-06T10:00:00.000Z",
+    swiat: "tempest",
+    build: "1785244275300",
+    otwarcie: null,
+    ...dodatkowe,
+    wpisy: [
+      {
+        nr: 0,
+        ladunek: { init: "1", myteam: 1, w: wojownicy },
+        komunikaty: kom,
+        wojownicyPrzed: [],
+        wojownicyPo: Object.values(wojownicy),
+      },
+    ],
+  });
+
+  const GRACZ = { id: 1, name: "Nazwa Gracza", npc: 0, team: 1 };
+  const POTWOR = { id: -2, name: "Odyniec", npc: 1, team: 2 };
+
+  test("gracz dostaje etykietę, potwór zostaje sobą", () => {
+    // Nazwy potworów są elementem gry, nie danymi człowieka, i są dowodem:
+    // to po nich widać, że dwie instancje o tej samej nazwie rozdzielają się
+    // po `id`. Podstawienie ich zabrałoby materiał i nie dałoby nic w zamian.
+    const wynik = pseudonimizuj(walka({ "1": GRACZ, "-2": POTWOR }));
+    const w = wynik.zrzut.wpisy[0]!.ladunek["w"] as Record<string, { name: string }>;
+
+    expect(w["1"]!.name).toBe("Gracz 1");
+    expect(w["-2"]!.name).toBe("Odyniec");
+    expect(wynik.mapa.get("Nazwa Gracza")).toBe("Gracz 1");
+  });
+
+  test("podstawienie łapie komunikaty, migawki, `render` i `otwarcie`, nie sam `w{}`", () => {
+    // To jest cały powód, dla którego funkcja chodzi po całym JSON-ie: nazwa
+    // siedzi w zrzucie w pięciu miejscach naraz, a podmiana w jednym zostawia
+    // plik, który wygląda na zredagowany i nie jest.
+    const zrzut = walka({ "1": GRACZ, "-2": POTWOR }, ["0;0;winner=Nazwa Gracza"], {
+      otwarcie: "Rozpoczęła się walka pomiędzy Nazwa Gracza (40h) a Odyniec (41w)",
+    });
+    (zrzut.wpisy[0] as unknown as Record<string, unknown>)["render"] = [
+      "<div>Nazwa Gracza(100%) uderzył z siłą</div>",
+    ];
+    const wynik = pseudonimizuj(zrzut);
+    const wpis = wynik.zrzut.wpisy[0] as unknown as Record<string, unknown>;
+
+    expect(wynik.zrzut.wpisy[0]!.komunikaty).toEqual(["0;0;winner=Gracz 1"]);
+    expect(wynik.zrzut.otwarcie).toBe("Rozpoczęła się walka pomiędzy Gracz 1 (40h) a Odyniec (41w)");
+    expect(wpis["render"]).toEqual(["<div>Gracz 1(100%) uderzył z siłą</div>"]);
+    expect((wynik.zrzut.wpisy[0]!.wojownicyPo[0] as { name: string }).name).toBe("Gracz 1");
+  });
+
+  test("liczby i `id` przechodzą NIETKNIĘTE — plik ma zostać dowodem", () => {
+    const zrzut = walka({ "1": { ...GRACZ, hp: { max: 5815, cur: 900 } }, "-2": POTWOR }, [
+      "1=100.00;-2=68.15;+dmgd=498;-dmgd=243",
+    ]);
+    const wynik = pseudonimizuj(zrzut);
+    const w = wynik.zrzut.wpisy[0]!.ladunek["w"] as Record<string, { id: number; hp: unknown }>;
+
+    expect(w["1"]!.id).toBe(1);
+    expect(w["1"]!.hp).toEqual({ max: 5815, cur: 900 });
+    expect(wynik.zrzut.wpisy[0]!.komunikaty[0]).toBe("1=100.00;-2=68.15;+dmgd=498;-dmgd=243");
+  });
+
+  test("nazwa będąca PODCIĄGIEM innej nie kaleczy tamtej", () => {
+    // Bez sortowania od najdłuższej „Aro" podstawione pierwsze zrobiłoby
+    // z „Aro Wielki" napis „Gracz 2 Wielki" — postać, której nie ma.
+    const zrzut = walka(
+      {
+        "1": { id: 1, name: "Aro Wielki", npc: 0, team: 1 },
+        "2": { id: 2, name: "Aro", npc: 0, team: 1 },
+      },
+      ["0;0;winner=Aro Wielki, Aro"],
+    );
+
+    expect(pseudonimizuj(zrzut).zrzut.wpisy[0]!.komunikaty[0]).toBe("0;0;winner=Gracz 1, Gracz 2");
+  });
+
+  test("wojownik bez `npc` ZATRZYMUJE zapis, zamiast zgadywać", () => {
+    // `npc` niesie wyłącznie `ladunek.w`; migawka go nie ma. Zgadnięcie
+    // „gracz" psułoby nazwy potworów, zgadnięcie „potwór" wpuszczałoby nick.
+    const zrzut = walka({ "1": GRACZ });
+    zrzut.wpisy[0]!.wojownicyPo = [{ id: 7, name: "Ktoś Obcy", team: 2 }];
+
+    expect(() => pseudonimizuj(zrzut)).toThrow(/nie da się ustalić/);
+  });
+
+  test("dwóch graczy o tej samej nazwie ZATRZYMUJE zapis", () => {
+    // W `w{}` rozdziela ich `id`, ale w `render` i `winner=` stoi sam napis.
+    const zrzut = walka({
+      "1": { id: 1, name: "Ta Sama", npc: 0, team: 1 },
+      "2": { id: 2, name: "Ta Sama", npc: 0, team: 2 },
+    });
+
+    expect(() => pseudonimizuj(zrzut)).toThrow(/tę samą nazwę/);
+  });
+
+  test("drugi przebieg nie zmienia nic — na tym stoi strażnik fixture'ów", () => {
+    const raz = pseudonimizuj(walka({ "1": GRACZ, "-2": POTWOR }, ["0;0;winner=Nazwa Gracza"]));
+    const dwa = pseudonimizuj(raz.zrzut);
+
+    expect(raz.zmienionych).toBeGreaterThan(0);
+    expect(dwa.zmienionych).toBe(0);
+    expect(dwa.zrzut).toEqual(raz.zrzut);
+  });
+
+  test("`pseudonimow` mówi, ile podstawiono, i SUMUJE się przy powtórnym przebiegu", () => {
+    // Bez sumowania plik przepuszczony drugi raz zapominałby, że przeszedł
+    // redakcję — a to jedyny ślad odróżniający `Gracz 1` od czyjegoś nicka.
+    const zapisany = JSON.parse(zachowajZrzut(walka({ "1": GRACZ, "-2": POTWOR }))) as Zrzut;
+    expect(zapisany.pseudonimow).toBe(2);
+
+    const powtornie = JSON.parse(zachowajZrzut(czytajZrzut(JSON.stringify(zapisany)))) as Zrzut;
+    expect(powtornie.pseudonimow).toBe(2);
   });
 });
 
