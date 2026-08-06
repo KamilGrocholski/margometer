@@ -172,9 +172,30 @@ niesie `id` postaci, której gra przyznaje turę (`Battle.js:444,450` →
 w której porcje przychodzą osobno — dopiero on pokaże, ile `current` naprawdę
 pokrywa i czy warto za to płacić formatem nagrań.
 
-## Leczenie, które nie liczy się do niczego — `bandage` i `vamp_time`
+## Leczenie, które nie liczy się do niczego — `bandage` i `vamp_time` ✅
 
-Znalezione przy okazji 2026‑08‑05, **nie zrobione**. Oba klucze stoją w tabeli
+✅ **ZROBIONE 2026‑08‑06** (`AUDYT‑96`). Oba klucze są w tabeli ról jako
+leczenie; komunikat `bandage=200` daje `{kind:"heal", amount:200}` zamiast zera
+zdarzeń. Otwarty zostaje **drugi człon wartości** — procent osłabienia leczenia,
+którego `BattleEvent.heal` nie ma gdzie położyć (tyknięcia mają na to
+`weakenedPct`, leczenie nie). Kwota z członu zerowego stoi już PO osłabieniu,
+więc liczba w panelu jest prawdziwa; tracimy „ile osłabienie zdjęło”.
+
+⚠️ **SPROSTOWANIE — akapit zamykający tę sekcję był NIEPRAWDĄ w chwili
+pisania.** Stało tu: *„Czego brakuje: zrzutu z walki, w której któryś z tych
+kluczy pada — bez niego byłoby to przeniesienie do ról na podstawie samego
+brzmienia"*. Brzmienie nie było jedynym dowodem, jaki repo miało. Dowodem jest
+PODSTAWIENIE w rendererze (`'%name%': f1.name`, `:378‑392`), a asset klienta
+leżał w `.cache/` przez cały ten czas — pozycja czekała na materiał, którego
+jej pytanie nie wymagało.
+
+**Wniosek, przez który to zdanie tu zostaje:** warunek „potrzebny zrzut” bywa
+odruchem, nie diagnozą. Zrzut odpowiada na pytanie CZY I JAK CZĘSTO klucz pada;
+na pytanie CO ON ZNACZY odpowiada klient gry. Rozdział tych dwóch pytań stoi
+w `MECHANIKA.md` od dawna i został tu złamany przez nas. Zrzut nadal jest wart
+zebrania — jako POTWIERDZENIE, nie jako warunek napisania wpisu.
+
+Poniższy opis zostaje jako zapis stanu sprzed naprawy. Oba klucze stały w tabeli
 `PROCE` (`src/protokol.ts`), czyli „gra wypisuje zdanie, ale my nie liczymy
 z niego niczego" — a oba niosą leczenie **w punktach życia**:
 
@@ -183,16 +204,66 @@ z niego niczego" — a oba niosą leczenie **w punktach życia**:
   kwota w punktach na pierwszej stronie komunikatu.
 - `vamp_time` → „+Uleczono za %val% punktów życia” (`BattleMessages.js:1018‑1039`).
 
-To NIE jest „bez sprawcy” — sprawca jest znany (to `f1`). To leczenie, które
-w panelu **nie istnieje wcale**: nie wchodzi ani do `healingReceived`, ani do
-puli nieprzypisanej, więc nie zostawia po sobie nawet przypisu. Kwalifikuje się
-do kierunku „jakość danych” wprost: panel pokazuje złą liczbę i nie mówi o tym
-ani słowem.
+To leczenie, które w panelu **nie istniało wcale**: nie wchodziło ani do
+`healingReceived`, ani do puli nieprzypisanej, więc nie zostawiało po sobie nawet
+przypisu. Kwalifikowało się do kierunku „jakość danych” wprost: panel pokazywał
+złą liczbę i nie mówił o tym ani słowem.
 
-Czego brakuje: zrzutu z walki, w której któryś z tych kluczy pada — bez niego
-byłoby to przeniesienie do ról na podstawie samego brzmienia. Docstring `PROCE`
-ostrzega przed dokładnie tym („czyta się to «nie udowodniono, że niesie liczbę,
-którą liczymy», a nie «na pewno nie niesie»”).
+⚠️ Stało tu jeszcze „To NIE jest «bez sprawcy» — sprawca jest znany (to `f1`)”
+i było to za mocne o jeden klucz. Przy `bandage` renderer podstawia nazwę
+wprost; przy `vamp_time` zdanie **nie podstawia żadnej** („+Uleczono za %val%
+punktów życia”), więc pierwszy segment jest tam wnioskiem z konwencji, nie
+odczytem. W kodzie oba mają dziś `wlasne: false`, a różnica siły dowodu stoi
+przy nich w komentarzu.
+
+~~Czego brakuje: zrzutu z walki, w której któryś z tych kluczy pada — bez niego
+byłoby to przeniesienie do ról na podstawie samego brzmienia.~~ **Skreślone
+2026‑08‑06 — patrz sprostowanie na początku sekcji.** Docstring `PROCE` ostrzega
+przed przenoszeniem z brzmienia („czyta się to «nie udowodniono, że niesie
+liczbę, którą liczymy», a nie «na pewno nie niesie»”) i to ostrzeżenie zostaje
+w mocy; przeniesienie stanęło na kodzie renderera, nie na brzmieniu.
+
+## Cztery klucze z liczbami, które nadal się nie liczą
+
+Znalezione 2026‑08‑06 tym samym skanem co dwa wyżej (`AUDYT‑99`), **nie
+zrobione**. Ze skanu 197 kluczy `PROCE` przeciw słownikowi gry wyszło jedenaście
+niosących punkty; siedem naprawiono, zostają cztery. Pełna tabela z cytatami:
+`MECHANIKA.md`, wpis „Które klucze protokołu niosą PUNKTY życia".
+
+- **`dmg-target_physical`** („%target% otrzymuje %val% obrażeń") — **najbliższy
+  do zrobienia i wypadł poza tamtą rundę tylko dlatego, że zakres ustalono,
+  zanim przeczytano katalog pomocy.** Trzy źródła zgodne, strona jednoznaczna
+  (`f2`), brak ryzyka podwojenia, katalog dodaje nawet „obrażenia nie są
+  redukowane przez pancerz".
+- **`vamp`** („zadał %val% obrażeń %target% lecząc za nie siebie") — otwarte
+  z JEDNEGO powodu i warto go nazwać dokładnie: nie wiadomo, czy ta liczba
+  dubluje się z `-dmgd` tego samego komunikatu. Katalog mówi „zadaje **stałe
+  obrażenia od umiejętności** oraz przywraca Postaci punkty zdrowia o tę samą
+  wartość", co przemawia za osobną liczbą — ale nie rozstrzyga, bo nie mówi
+  o zapisie w protokole. Rozstrzygnie to zrzut z walki z tym kluczem: suma
+  obrażeń przeciw procentowi życia u świadka pokaże, czy liczyć raz, czy dwa.
+  **To jest pozycja, którą materiał NAPRAWDĘ domyka** — w odróżnieniu od tych,
+  które na zrzut czekały niepotrzebnie.
+- **`+oth_cover`, `+oth_dmg`** (osłona kompana) — pozycja PROJEKTOWA, nie
+  tabelaryczna. Wartość jest trójczłonowa (`kwota,klasa,nick`) i niesie w środku
+  **trzecią postać**, a cały kontrakt zdarzeń stoi na dwóch stronach komunikatu.
+
+## Efekty z komunikatu bez obrażeń przepadają w całości
+
+Znalezione 2026‑08‑06 (`AUDYT‑98`), **nie zrobione**. Komunikat, w którym nie ma
+ani jednej liczby obrażeń, kończy się w dekoderze wcześniej — i zabiera ze sobą
+zebraną listę efektów. Zmierzone: `tspell=Tarcza;resfire_per=20` daje **samo
+zdarzenie `ability`**, a `resfire_per` nie trafia nigdzie: ani do „efektów
+w ciosach", ani do „otrzymanych", ani do `unknown`.
+
+Czego brakuje: **miejsca, w którym efekt może usiąść poza ciosem**, czyli zmiany
+kontraktu `BattleEvent` — a za nią `stats.ts`, `overlay.ts` i odtwarzania
+nagrań. Sygnał, że potrzebny jest spec, jest tu spełniony.
+
+⚠️ Nie wiadomo przy tym, jak często gra takie komunikaty wysyła: renderer je
+składa (`tm[1]` wypełnia się niezależnie od warunku `attack != ''`), ale jedyna
+prawdziwa walka w repo nie ma ani jednego. To pozycja, przy której zrzut jest
+warunkiem sensownego ZAKRESU, a nie warunkiem zrozumienia formatu.
 
 ## Czego brakuje w korpusie fixture'ów
 

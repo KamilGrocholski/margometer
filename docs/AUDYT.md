@@ -125,6 +125,34 @@ Nie zapalał ich żaden test i nie łapie ich `noUnusedLocals` — są czytane, 
 przez warunek, który nigdy nie zachodzi. **Kasując ścieżkę WEJŚCIA, trzeba
 przejść to, co po niej zostaje na WYJŚCIU.**
 
+**Dopisane 2026‑08‑06 (sekcja `K`):** `AUDYT‑95`…`AUDYT‑99` — runda wyrosła
+z dwóch przypisów, którymi kończyła się sekcja `J` („⚠️ znalezisko poboczne,
+otwarte"). Zmierzenie ich pokazało, że były czubkiem czegoś większego.
+
+⚠️ **Metoda, która to znalazła, jest tu warta więcej niż same pozycje.** Nie było
+to czytanie kodu ani szukanie po omacku, tylko jedno przejście **wszystkich 197
+kluczy tabeli efektów nieliczonych przeciw słownikowi gry** z jednym pytaniem:
+*czy zdanie tego klucza mówi o punktach obrażeń albo punktach życia?* Odpowiedź:
+**jedenaście kluczy**, siedem naprawionych w tej rundzie, cztery zapisane jako
+otwarte. Skan zajął jedno uruchomienie i wart jest powtórzenia po każdej
+aktualizacji gry.
+
+⚠️ **Wniosek ogólniejszy od jedenastu kluczy: reguła „nieznane ma być głośne"
+nie chroni przed ZNANYM, o którym zdecydowano źle.** Klucz w `PROCE` jest dla
+dekodera rozpoznany, więc nie zapala `unknown` — a `PROCE` jest tabelą DECYZJI
+i decyzja bywa zła. Milczy wtedy dokładnie tak samo skutecznie jak brak wpisu.
+Docstring tabeli ostrzega przed jej rozdęciem („lista jest WYLICZONA, a nie
+domyślna"); tego, że wyliczona lista też się myli, nie ostrzegał nikt.
+
+⚠️ **Trzeci raz ten sam kształt: martwy kod po skasowanym parserze.**
+`AUDYT‑97` znalazł w `DOT_LABELS` dwie etykiety, których żadna ścieżka dekodera
+nie produkowała od 2026‑08‑04 — i to one **dowiodły**, że `AUDYT‑95` jest cichą
+regresją, a nie brakiem funkcji: parser tekstu te obrażenia liczył, droga
+protokołu nie liczyła ich nigdy. Po `AUDYT‑88` (trzy martwe strażniki) i po
+`AUDYT‑92` (ścieżka, do której przeprowadziła się wiedza) reguła „kasując
+ścieżkę WEJŚCIA, przejdź to, co zostaje na WYJŚCIU" ma trzeci dowód w ciągu
+trzech dni.
+
 Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
@@ -2874,6 +2902,224 @@ tego nie łapie — wszystkie siedem wzorców dopasowywało się poprawnie.
 rejestru, sprawdź, czy plik, którego dotyczy, na tej liście stoi.
 
 **Docelowo.** Zostaje przy regule.
+
+## K. Punkty życia w tabeli efektów nieliczonych — audyt PO commicie `60fec71` (2026‑08‑06)
+
+Sekcja `J` domknięta, drzewo czyste, brama zielona (**733 zielone**). Ta runda
+nie zaczęła się od przeglądu, tylko od **dwóch przypisów, którymi `AUDYT‑94`
+kończył swój wpis**: że `dmg-target_physical` i `vamp` niosą obrażenia mimo
+miejsca w tabeli efektów nieliczonych, i że efekty z komunikatu bez obrażeń
+przepadają w całości. Oba zapisano wtedy jako „poza tematem przeglądu".
+
+Zmierzenie ich zajęło pół godziny i pokazało, że były czubkiem czegoś
+większego. Zamiast sprawdzać te dwa klucze, przeszedł **skan wszystkich 197
+kluczy `PROCE` przeciw słownikowi gry**, pytając o jedno: czy zdanie klucza mówi
+o punktach obrażeń albo punktach życia. Wyszło **jedenaście**.
+
+⚠️ **Lekcja o samym rejestrze, nie o kodzie:** przypis „znalezisko poboczne,
+otwarte" jest tanim sposobem zamknięcia rundy i drogim sposobem zgubienia
+sprawy. Te dwa przeżyły jeden dzień i tylko dlatego, że ktoś je przeczytał
+następnego ranka. Gdyby stały tam tydzień, wyglądałyby na znane i obsłużone.
+
+**Czego ta runda NIE podważa:** wszystkiego z listy w sekcji `J` (cztery
+gwarancje owinięcia, granica `data.init`, świadek `hp.max`, zgodność 233 kluczy)
+plus tabeli stron efektu z `AUDYT‑93`/`94`. **Sumy obrażeń z ciosów były i są
+poprawne** — ta runda dotyczy liczb, które do sum nigdy nie wchodziły.
+
+### AUDYT‑95 — pięć kluczy z obrażeniami stoi w tabeli efektów NIELICZONYCH 🔴 M — ✅ NAPRAWIONE ✓
+
+`src/protokol.ts` (`PROCE` → `ROLE`)
+
+**Problem.** `critwound`, `fire`, `frost`, `light` i `physical` niosą punkty
+obrażeń, a stoją w tabeli, której cały sens brzmi „gra wypisuje zdanie, ale my
+nie liczymy z niego niczego". Komunikat złożony wyłącznie z takiego klucza daje
+ZERO zdarzeń — bez `unknown`, bez ostrzeżenia, bez śladu.
+
+**✓ Zmierzone**, sonda na dekoderze:
+
+```
+-255967=19.27;0;poison=140,14      → dot 140, „od trucizny", osłabione 14 %   ← kontrola
+-255967=19.27;0;critwound=140,14   → (zero zdarzeń)
+-255967=19.27;0;fire=88            → (zero zdarzeń)
+-255967=19.27;0;physical=88        → (zero zdarzeń)
+```
+
+⚠️ **To była cicha REGRESJA po skasowaniu parsera tekstu 2026‑08‑04, nie brak
+funkcji** — i dowodzi tego samo repo, a nie rozumowanie: patrz `AUDYT‑97`.
+
+**Trzy niezależne źródła, i trzecie było warunkiem wejścia.** Ryzyko było jedno:
+że te liczby są ROZBICIEM ciosu, czyli że doliczenie ich podwoi coś, co już
+siedzi w `-dmgd`. Rozstrzygnął katalog pomocy (`view,372`), dosłownie: *„aktywny
+critwound • Działanie: […] aplikowane są na cel obrażenia od głębokiej rany
+**(jako osobna instancja wyniszczeń)** o wartości 10% obrażeń zadanych na 3
+tury."* Bez tego zdania piątka zostałaby otwarta — renderer i słownik mówiły,
+KTO i ILE, ale nie mówiły, czy liczba jest nowa.
+
+Dla czterech żywiołów to samo ryzyko odpada **z kodu, nie z domysłu**:
+`Hit.element` bierze żywioł z KLUCZA obrażeń (`+of_dmg` → `kod: "o"`), a nie
+z tych kluczy. `critwound` ma poza tym dowód najmocniejszy z możliwych —
+renderer składa go tym samym kodem co `wound`, który stoi w tabeli ról od
+początku (`BattleMessages.js:259‑263` kontra `:249‑253`; ten sam `f1.name`, ten
+sam `m[1].split(',')`, ta sama para `%val%` / `%val0% %val1%`).
+
+**Zrobione.** Pięć wpisów w `ROLE` jako `dot`, każdy z cytatem. **Mutacja:**
+stan dokładnie sprzed zmiany (`fire` i `light` z powrotem w `PROCE`) → 3 fail
+(90/3), w tym niezmiennik z `AUDYT‑97`.
+
+⚠️ **Decyzja, która mogła pójść inaczej: „ciężkiej", nie „głębokiej" rany.**
+Katalog nazywa TYP obrażeń głęboką raną; zdanie, które widzi gracz, mówi „od
+ciężkiej rany". Wygrywa zdanie, bo reguła tabeli brzmi „przyimki są dosłownie te
+ze zdań gry", a wiersz panelu ma się zgadzać z logiem walki. W przekroju „TYP
+OBRAŻEŃ" i tak schodzą się w jedną rodzinę („rana"), więc nic się nie rozsypuje.
+
+⚠️ **Co ZOSTAJE otwarte.** Testy są syntetyczne i takie zostaną: jedyna
+prawdziwa walka w repo NIE NIESIE ani jednego z tych pięciu kluczy. Fixture
+wychodzi co do jednego taki sam (2784, 831/834/1119, świadek 7/7) — to dowód, że
+nic nie zepsuto, nie że naprawiono.
+
+**Docelowo.** `docs/MECHANIKA.md` — wpis „Które klucze protokołu niosą punkty
+życia".
+
+### AUDYT‑96 — `bandage` i `vamp_time` niosą leczenie, które w panelu NIE ISTNIEJE 🔴 S — ✅ NAPRAWIONE ✓
+
+`src/protokol.ts` (`PROCE` → `ROLE`) · `docs/ROADMAP.md`
+
+**Problem.** Oba klucze niosą leczenie w punktach życia i oba stoją w `PROCE`.
+To nie jest „leczenie bez leczącego" — to leczenie, którego nie ma nigdzie: ani
+w `healingReceived`, ani w puli nieprzypisanej, więc nie zostawia po sobie nawet
+przypisu.
+
+**✓ Zmierzone:** `482845=100.00;0;bandage=200` → zero zdarzeń;
+`482845=100.00;0;vamp_time=75` → zero zdarzeń.
+
+⚠️ **SPROSTOWANIE DO `ROADMAP.md` i to jest tu najważniejsze.** Pozycja stała
+tam od 2026‑08‑05 z warunkiem: *„brakuje zrzutu z walki, w której któryś z tych
+kluczy pada — bez niego byłoby to przeniesienie do ról na podstawie samego
+brzmienia"*. Zdanie było **nieprawdziwe w chwili pisania**. Brzmienie nie było
+jedynym dowodem, jaki repo miało: dowodem jest PODSTAWIENIE w rendererze
+(`'%name%': f1.name`, `:378‑392`), a `.cache/margonem-zrodla-1781609507010/`
+leżało na dysku przez cały ten czas.
+
+Wniosek ogólniejszy: **warunek „potrzebny zrzut" bywa odruchem, nie diagnozą.**
+Zrzut odpowiada na pytanie CZY I JAK CZĘSTO klucz pada; na pytanie CO ON ZNACZY
+odpowiada klient gry. Tylko drugie z nich blokowało tę pozycję, a reguła
+rozdzielająca te dwa pytania stoi w `MECHANIKA.md` od dawna.
+
+**Zrobione.** Dwa wpisy w `ROLE`. **Mutacja:** oba z powrotem do `PROCE` →
+3 fail (93/3).
+
+⚠️ **Dwa klucze, dwie różne siły dowodu — i tak są zapisane w kodzie.**
+`bandage` podstawia nazwę wprost. `vamp_time` NIE PODSTAWIA ŻADNEJ („+Uleczono
+za %val% punktów życia"), więc „pierwszy segment" jest przy nim wnioskiem
+z konwencji, nie odczytem. Sekcja `J` dwa razy pokazała, ile kosztuje pomylenie
+tych dwóch rzeczy.
+
+⚠️ **Co ZOSTAJE otwarte.** Oba klucze mają wariant dwuczłonowy z PROCENTEM
+OSŁABIENIA leczenia, a `BattleEvent.heal` nie ma gdzie tego położyć — inaczej
+niż tyknięcia, które mają `weakenedPct`. Drugi człon przepada. Nie blokowało to
+przeniesienia, bo kwota z członu zerowego stoi już PO osłabieniu: tracimy „ile
+osłabienie zdjęło", a nie samo leczenie. Dołożenie pola to zmiana kontraktu
+i osobna runda.
+
+**Docelowo.** `docs/ROADMAP.md` — sekcja „Leczenie, które nie liczy się do
+niczego" zamknięta wraz ze sprostowaniem.
+
+### AUDYT‑97 — dwie martwe etykiety i jedna brakująca w `DOT_LABELS` 🟡 S — ✅ NAPRAWIONE ✓
+
+`src/types.ts` (`DOT_LABELS`)
+
+**Problem.** Mapa ma wpisy `"od ognia" → "Ogień"` i `"od błyskawic" →
+"Błyskawica"`, a żadna ścieżka dekodera ich nie produkuje: `dotType` przyjmuje
+pięć wartości i nie ma wśród nich żywiołu. Brakuje za to `"od krwawienia"`, choć
+`anguish` stoi w tabeli ról od dawna — jego wiersz idzie do panelu dosłowną
+frazą przyimkową, jako jedyny w kolumnie rzeczowników.
+
+⚠️ **Ta pozycja jest DOWODEM dla `AUDYT‑95`, nie tylko usterką obok niego.**
+Martwe etykiety mogły powstać wyłącznie tak, że coś je kiedyś wywoływało: parser
+tekstu obrażenia od ognia i błyskawic LICZYŁ. Droga protokołu nie liczyła ich
+nigdy. To rozstrzyga, że `AUDYT‑95` opisuje regresję, a nie brak funkcji — i jest
+to trzeci w ciągu trzech dni przypadek tego samego kształtu (`AUDYT‑88`:
+trzy martwe strażniki; `AUDYT‑92`: ścieżka, do której przeprowadziła się wiedza).
+
+**Zrobione.** Mapa domknięta do kompletu (dochodzą „od zimna", „od ciężkiej
+rany", „od obrażeń fizycznych", „od krwawienia"), a przede wszystkim wchodzi
+**niezmiennik OBUSTRONNY**: każdy rodzaj produkowany przez dekoder ma etykietę
+i każda etykieta ma rodzaj, który ją wywoła. Materiałem jest `RODZAJE_DOT`,
+WYLICZONE z tabeli ról — lista pisana ręcznie zestarzałaby się przy pierwszym
+nowym `dot` i zrobiłaby to po cichu.
+
+⚠️ **Dlaczego akurat obustronny.** Martwy wpis w mapie etykiet wygląda dokładnie
+tak samo jak żywy, więc pojedyncza asercja („«od ognia» daje «Ogień»") była przez
+te dwa dni ZIELONA i bezużyteczna. Każda strona łapie inną awarię: pierwsza —
+rodzaj bez etykiety (fraza przyimkowa wycieka do panelu), druga — etykietę bez
+rodzaju (kod, który nikogo nie obsługuje).
+
+**Mutacje:** skasowanie wpisu → 2 fail (91/2); dopisanie etykiety, której nikt
+nie wywoła → 1 fail (92/1); **stan dokładnie sprzed rundy** → 3 fail (90/3),
+czyli niezmiennik zapala się na tym, co naprawdę stało w drzewie.
+
+**Docelowo.** Zostaje przy kodzie.
+
+### AUDYT‑98 — komunikat bez ani jednej liczby obrażeń gubi CAŁĄ listę efektów 🟡 M — ⬜ ZAPISANE, nienaprawione
+
+`src/protokol.ts` (wczesny powrót przy `zadane.length === 0 && przyjete.length === 0`)
+
+**Problem.** Gałąź kończąca komunikat bez obrażeń nie czyta zebranej listy
+`procy` — więc efekty z takiego komunikatu nie trafiają nigdzie. Nie ma ich ani
+w „efektach w ciosach", ani w „otrzymanych", ani w `unknown`.
+
+**✓ Zmierzone:** `482845=100.00;-255967=70.00;tspell=Tarcza;resfire_per=20` daje
+**samo zdarzenie `ability`**; `resfire_per` przepada.
+
+**Dlaczego NIE w tej rundzie.** Naprawa wymaga miejsca, w którym efekt może
+usiąść poza ciosem — czyli zmiany kontraktu `BattleEvent`, a za nią `stats.ts`,
+`overlay.ts` i odtwarzania nagrań. Repo nie ma przy tym materiału dowodzącego,
+że gra takie komunikaty naprawdę wysyła: renderer je składa (`tm[1]` wypełnia
+się niezależnie od warunku `attack != ''`), ale jedyna prawdziwa walka w repo
+nie ma ani jednego takiego komunikatu. Decyzja właściciela repo: zapis teraz,
+naprawa osobno.
+
+**Docelowo.** Osobna runda; sygnał, że spec jest potrzebny, jest tu spełniony
+(zmiana kontraktu dotykająca czterech modułów).
+
+### AUDYT‑99 — cztery dalsze klucze z liczbami zostają nieliczone ⚪ M — ⬜ ZAPISANE, nienaprawione
+
+`src/protokol.ts` (`PROCE`)
+
+**Problem.** Ze skanu jedenastu kluczy siedem naprawiono. Zostają cztery.
+
+| klucz | zdanie gry | co niesie |
+|---|---|---|
+| `dmg-target_physical` | „%target% otrzymuje %val% obrażeń" | obrażenia u `f2` |
+| `vamp` | „%name% zadał %val% obrażeń %target% lecząc za nie siebie." | obrażenia i leczenie |
+| `+oth_cover` | „%name% przejął(eła) %val% obrażeń." | obrażenia przejęte |
+| `+oth_dmg` | „−%val% obrażeń otrzymał(a) %name%." | obrażenia u osłanianego |
+
+⚠️ **`dmg-target_physical` — dowód okazał się MOCNIEJSZY, niż zakładał zakres
+rundy, i to jest sprostowanie do własnego planu.** Katalog pomocy: *„aktywny
+dmg-target_physical • Działanie: na przeciwnika zostają nałożone obrażenia
+fizyczne o stałej wartości […] Obrażenia nie są redukowane przez pancerz."*
+Trzy źródła zgodne, strona jednoznaczna (`f2`), brak ryzyka podwojenia. Jest to
+dziś **najbliższy kandydat na następną rundę** i wypadł poza tę wyłącznie
+dlatego, że zakres ustalono, zanim przeczytano katalog.
+
+⚠️ **`vamp` — sprostowanie do uzasadnienia, którym sam odradzałem go liczyć.**
+Argumentem było, że „zadał %val% obrażeń […] lecząc za nie siebie" opisuje
+PORCJĘ ciosu, więc liczenie podwoiłoby liczbę. Katalog mówi co innego: *„zadaje
+stałe obrażenia od umiejętności oraz przywraca Postaci punkty zdrowia o tę samą
+wartość"* — czyli obrażenia własne umiejętności. Zakres zostaje wąski, ale jego
+uzasadnienie brzmi teraz **„nie rozstrzygnięto, czy `vamp` dubluje się z `-dmgd`
+tego samego komunikatu"**, a nie „bo na pewno dubluje". Wybór jest zachowawczy:
+zaniża, nie zawyża — i tak ma być czytany.
+
+**`+oth_cover` i `+oth_dmg` są z tej czwórki najtrudniejsze** i nie z powodu
+dowodu. Wartość jest TRÓJCZŁONOWA (`kwota,klasa,nick`, `:596‑607`) i niesie
+w środku **TRZECIĄ POSTAĆ** — osłanianego. Cały kontrakt zdarzeń stoi na dwóch
+stronach komunikatu, więc nie ma dziś czym jej przypisać. To jest pozycja
+projektowa, nie tabelaryczna.
+
+**Docelowo.** `docs/MECHANIKA.md` — wpis „Które klucze protokołu niosą punkty
+życia" wymienia całą jedenastkę razem ze statusem.
 
 ## G. Otwarte z poprzednich rund
 

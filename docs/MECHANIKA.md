@@ -526,6 +526,81 @@ Bonus stoi też w cytacie z listy bonusów legendarnych przy wpisie o ciosie
 bardzo krytycznym wyżej — na dziesięć wymienionych tam bonusów korpus tekstowy
 zna wszystkie poza tym jednym.
 
+### Które klucze protokołu niosą PUNKTY życia — jedenaście spoza tabeli ról ✅
+
+Pytanie o grę, nie o nas: **czy zdanie, które gra składa z tego klucza, podaje
+liczbę punktów obrażeń albo punktów życia?** Test z `AGENTS.md` przechodzi —
+w cudzym repo czytającym ten sam log odpowiedź byłaby ta sama.
+
+**Metoda (2026‑08‑06, `AUDYT‑95…99`).** Nie czytanie po jednym, tylko jedno
+przejście **wszystkich 197 kluczy tabeli `PROCE`** przeciw słownikowi gry
+(build `1785244275300`), z pytaniem o rdzenie „obrażeń” i „punktów życia”.
+Trafień z LICZBĄ BEZWZGLĘDNĄ: **jedenaście** (reszta z 27 dopasowań to procenty
+i modyfikatory, nie kwoty).
+
+| klucz | zdanie gry (dosłownie ze słownika) | strona | status |
+|---|---|---|---|
+| `critwound` | „%name%: %val% obrażeń od ciężkiej rany." | `f1` | ✅ tyknięcie |
+| `fire` | „%name% otrzymał# %val% obrażeń od ognia." | `f1` | ✅ tyknięcie |
+| `frost` | „%name% otrzymał# %val% obrażeń od zimna." | `f1` | ✅ tyknięcie |
+| `light` | „%name% otrzymał# %val% obrażeń od błyskawic." | `f1` | ✅ tyknięcie |
+| `physical` | „%name% otrzymał# %val% obrażeń fizycznych." | `f1` | ✅ tyknięcie |
+| `bandage` | „Uleczono %name% o %val% punktów życia." | `f1` | ✅ leczenie |
+| `vamp_time` | „+Uleczono za %val% punktów życia" | — | ✅ leczenie |
+| `dmg-target_physical` | „%target% otrzymuje %val% obrażeń" | `f2` | ⬜ otwarte |
+| `vamp` | „%name% zadał %val% obrażeń %target% lecząc za nie siebie." | `f1`→`f2` | ⬜ otwarte |
+| `+oth_cover` | „%name% przejął(eła) %val% obrażeń." | trzecia postać | ⬜ otwarte |
+| `+oth_dmg` | „−%val% obrażeń otrzymał(a) %name%." | trzecia postać | ⬜ otwarte |
+
+Kolumna „strona” pochodzi z PODSTAWIENIA w rendererze, nie ze zdania:
+`'%name%': f1.name` kontra `'%target%': f2.name`.
+
+**Pytanie, które o mało nie zostało zadane, a było jedyne trudne:** czy te
+liczby są OSOBNE, czy są rozbiciem ciosu — bo w drugim wypadku doliczenie ich
+podwaja coś, co już siedzi w `-dmgd`. Rozstrzyga to katalog efektów:
+
+> „aktywny critwound • **Działanie:** w przypadku zajścia zdarzenia ciosu
+> krytycznego lub ciosu krytycznego pomocniczego, których wartość obrażeń
+> zadanych w Gracza jest większa od zera, istnieje szansa na zajście zdarzenia
+> (Ciężka rana), podczas którego aplikowane są na cel obrażenia od głębokiej rany
+> **(jako osobna instancja wyniszczeń)** o wartości 10% obrażeń zadanych na 3
+> tury. • Zmienna: szansa na zajście zdarzenia ciężkiej rany po zajściu
+> zdarzenia ciosu krytycznego. • Aplikacja: warstwa zdarzeń. • Wyzwolenie:
+> warstwa inicjacji u przeciwnika.”
+
+> „aktywny dmg-target_physical • **Działanie:** na przeciwnika zostają nałożone
+> obrażenia fizyczne o stałej wartości. • Zmienna: liczba punktów obrażeń
+> zadanych w przeciwnika. • Wyzwolenie: warstwa inicjacji. • **Obrażenia nie są
+> redukowane przez pancerz.**”
+
+> „aktywny vamp • **Działanie: zadaje stałe obrażenia od umiejętności** oraz
+> przywraca Postaci punkty zdrowia o tę samą wartość. • Zmienna: liczba punktów
+> obrażeń oraz leczenia. • Wyzwolenie: warstwa inicjacji.”
+
+Sonda: `bun tools/pomoc.ts` na artykule `view,372` (mechanika walk), zrzut
+w `.cache/pomoc-372.txt`. Cytaty dosłowne.
+
+Dla czterech żywiołów katalog haseł NIE MA — to nie są efekty ekwipunku, tylko
+zdania o typie obrażeń — więc stoją na dwóch źródłach zamiast trzech. Ryzyko
+podwojenia odpada u nich **z kodu**: żywioł ciosu niesie sam klucz obrażeń
+(gałąź `default` renderera robi `substr(1)` i wkleja wynik jako klasę `dmgX`),
+więc `fire=88` nie ma jak być rozbiciem `-dmgd`.
+
+⚠️ **ROZJAZD MIĘDZY ŹRÓDŁAMI, rozstrzygnięty na korzyść zdania (punkt 6
+procedury).** Katalog nazywa obrażenia z `critwound` „**od głębokiej** rany”;
+zdanie, które gracz widzi w logu walki, mówi „**od ciężkiej** rany”. Klient jest
+tu bliżej gracza niż dokumentacja, a wiersz panelu ma się zgadzać z logiem, więc
+w kodzie stoi „ciężkiej”. W przekroju „TYP OBRAŻEŃ” obie schodzą się w jedną
+rodzinę („rana”), więc rozjazd nie rozbija sumy — gdyby rozbijał, decyzja
+mogłaby wyjść odwrotnie.
+
+⚠️ **Czego ten wpis NIE mówi: jak często te klucze padają.** To jest pytanie do
+próbki, nie do klienta gry — a jedyna prawdziwa walka w repo nie niesie ani
+jednego z jedenastu. Rozdział tych dwóch pytań (FORMAT → kod gry, CZĘSTOŚĆ →
+materiał) jest w tej procedurze od początku i został tu złamany raz, we własną
+stronę: `ROADMAP.md` trzymał `bandage` i `vamp_time` jako „czekające na zrzut”,
+choć zrzut nigdy nie był potrzebny do odpowiedzi, na którą czekały.
+
 ### Wściekłość ( rage ) — efekt tylko przeciw potworom, korpus NIE zna ✅
 
 > „Wściekłość ( rage ) • Odpowiada za wyzwolenie efektu Wściekłości , wraz
