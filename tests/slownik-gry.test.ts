@@ -114,19 +114,26 @@ describe("etykiety proców w dekoderze", () => {
       zeZamrozenia(),
     );
     // Znak wiodący spada — inaczej ten sam efekt stałby w panelu jako dwie
-    // różne pozycje, „Przebicie" i „+Przebicie".
-    expect(etykiety(z)).toEqual(["Przebicie"]);
+    // różne pozycje, „pierce" i „+pierce".
+    //
+    // ⚠️ Stało tu „Przebicie" do 2026‑08‑06, bo zamrożenie niosło brzmienia
+    // z gry. Dziś niesie `maZdanie: boolean`, a `slownikZeZamrozenia` składa
+    // szablon ZASTĘPCZY z klucza (`NOTICE.md`). Test nie stracił przez to nic
+    // ze swojej treści: pytał i pyta, czy etykieta przychodzi ZE SŁOWNIKA
+    // i czy po drodze spada znak — nie o to, jak brzmi polskie zdanie.
+    expect(etykiety(z)).toEqual(["pierce"]);
   });
 
   test("proc z wartością dostaje ją podstawioną", () => {
-    // `+acdmg=5` → „+Niszczenie pancerza o %val%" → „+Niszczenie pancerza o 5".
-    // Ten sam kształt niesie prawdziwa walka w `tests/walka-z-gry.ts`.
+    // `+acdmg=5` → szablon „+acdmg %val%" → „acdmg 5". Ten sam kształt niesie
+    // prawdziwa walka w `tests/walka-z-gry.ts`; w grze zdanie brzmi inaczej
+    // i to jest bez znaczenia — sprawdzamy PODSTAWIENIE, nie brzmienie.
     const [z] = dekoduj(
       ["1=100.00;2=90.00;+dmgd=466;+acdmg=5;-dmgd=223"],
       SKLAD,
       zeZamrozenia(),
     );
-    expect(etykiety(z)).toEqual(["Niszczenie pancerza o 5"]);
+    expect(etykiety(z)).toEqual(["acdmg 5"]);
   });
 
   test("BEZ słownika zostaje KLUCZ, a nie zmyślona etykieta", () => {
@@ -188,11 +195,18 @@ describe("zaszyte identyfikatory kontra asset gry", () => {
     expect(bezZdania).toEqual([]);
   });
 
-  test("proc z prawdziwym brzmieniem gry dociera do panelu złożony", () => {
+  test("proc spod identyfikatora, który gra zna, dociera do panelu złożony", () => {
     // Druga strona tej samej rzeczy: nie „czy identyfikator istnieje", tylko
     // czy zdanie spod niego przechodzi całą drogę do `procs`. Wejście jest
     // prawdziwym komunikatem z `tests/walka-z-gry.ts`.
+    //
+    // ⚠️ Test nazywał się „z prawdziwym brzmieniem gry" i asertował
+    // „Niszczenie pancerza o 5". Tamto brzmienie zeszło z drzewa 2026‑08‑06
+    // razem z całą kopią słownika gry (`NOTICE.md`); tu zostaje szablon
+    // zastępczy. Co ten test dowodzi, nie zmieniło się ani o krok: że wpis
+    // z zamrożenia dojechał do `procs` z podstawioną wartością. Czego NIE
+    // dowodzi — i nie dowodził wcześniej — że gracz zobaczy takie zdanie.
     const [z] = dekoduj(["1=100.00;2=70.07;+dmgd=466;+acdmg=5;-dmgd=223"], SKLAD, slownik);
-    expect(etykiety(z)).toEqual(["Niszczenie pancerza o 5"]);
+    expect(etykiety(z)).toEqual(["acdmg 5"]);
   });
 });

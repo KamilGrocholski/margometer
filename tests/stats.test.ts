@@ -309,7 +309,7 @@ describe.each(KORPUS)("$name — zranienie zgadza się z proca", (fixture) => {
  *
  * - **zranienie ma sprawcę mimo tłumu po drugiej stronie.** `opponentOf`
  *   milczy przy dziesięciu przeciwnikach, ale proc „+Zranienie (N)" nazywa
- *   sprawcę wprost — `Łowcomir Kazrek` miał z tego 3380. Reszta puli zostawała
+ *   sprawcę wprost — `Gracz C` miał z tego 3380. Reszta puli zostawała
  *   bez sprawcy i rozkładała się na `Trucizna 40435` + `Ogień 556`, czyli
  *   przestawała udawać samą truciznę.
  * - **scalanie rodzin w przekroju po typie.** „ogień" z klasy CSS i „od ognia"

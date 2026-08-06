@@ -347,8 +347,29 @@ export type WpisZamrozony = {
   klucz: string;
   /** Identyfikator `_t`, np. `msg_+rage %val%`. `null`, gdy zdania nie ma. */
   id: string | null;
-  /** Szablon ze słownika gry, z podstawieniami `%val%`, `%name%`, `%hpp%`. */
-  zdanie: string | null;
+  /**
+   * Czy gra ma dla tego identyfikatora zdanie. **Samego zdania tu nie ma i nie
+   * będzie** — patrz `NOTICE.md`.
+   *
+   * Do 2026‑08‑06 stało tu `zdanie: string | null` i zamrożenie niosło 223
+   * polskie brzmienia przepisane z assetu gry („+Zniszczono %val% absorpcji").
+   * To cudza twórczość w publicznym repozytorium na licencji MIT, czyli
+   * redystrybucja na prawach, których nie mamy — regulamin gry VII.2 m) mówi
+   * o tym wprost, a licencja gracza (XIX.2) sięga „celów osobistych", nie
+   * rozpowszechniania.
+   *
+   * Wyszło przy tym, że **testom brzmienia nigdy nie były potrzebne**: pytają
+   * wyłącznie, CZY gra zna identyfikator, o który pytamy (`slownik-gry.test.ts`
+   * → `zdanie(id) === null`), a nie jak on brzmi. Zamiana na `boolean`
+   * kosztowała 0 testów. Sprawdzone tak, jak każe `AGENTS.md`: `maZdanie:
+   * false` wstawione w JEDEN wpis (`+pierce`) zapala dwa testy —
+   * `każdy identyfikator z tabeli ról ma zdanie w słowniku gry` oraz
+   * `ze słownikiem gry proc dostaje ZDANIE, nie klucz`.
+   *
+   * Dodatek brzmień i tak nigdy stąd nie brał — bierze je z żywej gry przez
+   * `window._t` (`src/slownik-gry.ts`), więc użytkownik nie traci nic.
+   */
+  maZdanie: boolean;
   /** Gra ma puste ciało i nie wypisuje NICZEGO — odpowiedź, nie luka. */
   milczy: boolean;
 };
@@ -395,9 +416,37 @@ export type Zamrozenie = {
   zmierzone: string;
   metoda: string;
   klucze: WpisZamrozony[];
-  /** Szablony spoza tabeli kluczy — patrz `RAMY`. `null` znaczy „gra tego nie zna". */
-  ramy: Record<string, string | null>;
+  /** Szablony spoza tabeli kluczy — patrz `RAMY`. `false` znaczy „gra tego nie zna". */
+  ramy: Record<string, boolean>;
 };
+
+/** Podstawienia w identyfikatorze: `%val%`, `%name1%`, `%hpp%`. */
+const PODSTAWIENIE = /%[a-z0-9]+%/gi;
+
+/**
+ * Szablon ZASTĘPCZY — złożony z klucza i podstawień, które niesie identyfikator.
+ *
+ * `+acdmg` + `msg_+acdmg %val%` → `+acdmg %val%`.
+ *
+ * PO CO, skoro gra ma prawdziwe zdanie. Bo prawdziwego w repozytorium nie ma
+ * (patrz `WpisZamrozony.maZdanie`), a testy poza przeglądarką potrzebują
+ * słownika, który ODPOWIADA — inaczej nie da się odróżnić „gra nie zna tego
+ * identyfikatora" od „nie mamy brzmienia".
+ *
+ * Zastępnik jest przy okazji MOCNIEJSZY od kopii brzmienia, i to nie jest
+ * pocieszenie po stracie. Zdanie z gry przepisane do testu zgadza się z drugą
+ * stroną z definicji, gdy obie pisze ten sam człowiek — ten sam zarzut, który
+ * `slownik-gry.test.ts` stawia „garści wpisów przepisanych ręcznie". Szablon
+ * zbudowany z klucza nie ma jak przypadkiem zgadzać się z niczym, co
+ * zaszyliśmy: gdyby dekoder zaczął zmyślać etykietę zamiast brać ją ze
+ * słownika, polska kopia mogłaby to ukryć, a `+acdmg %val%` nie ukryje.
+ *
+ * Podstawienia zostają, bo bez nich `SlownikStaly` nie ma czego podstawić
+ * i test „proc z wartością dostaje ją podstawioną" zrobiłby się zielony i pusty.
+ */
+export function zastepczeZdanie(klucz: string, id: string): string {
+  return [klucz, ...(id.match(PODSTAWIENIE) ?? [])].join(" ");
+}
 
 /**
  * Zamrożona tabela → słownik do użycia poza przeglądarką.
@@ -405,11 +454,20 @@ export type Zamrozenie = {
  * Jedno miejsce, żeby testy i narzędzia budowały go tak samo; różnice
  * w składaniu (np. pominięcie `ramy`) dałyby ciche „nie znam identyfikatora",
  * a to w odtwarzaniu wygląda jak brak szablonu w grze.
+ *
+ * ⚠️ Zdania są ZASTĘPCZE, nie z gry — patrz `zastepczeZdanie`. Ten słownik
+ * odpowiada na pytanie „czy gra zna ten identyfikator", a nie „jak to brzmi
+ * po polsku". Na to drugie odpowiada wyłącznie żywa gra przez `window._t`.
  */
 export function slownikZeZamrozenia(z: Zamrozenie): SlownikStaly {
   const wpisy: [string, string][] = [];
-  for (const w of z.klucze) if (w.id !== null && w.zdanie !== null) wpisy.push([w.id, w.zdanie]);
-  for (const [id, szablon] of Object.entries(z.ramy)) if (szablon !== null) wpisy.push([id, szablon]);
+  for (const w of z.klucze) {
+    if (w.id !== null && w.maZdanie) wpisy.push([w.id, zastepczeZdanie(w.klucz, w.id)]);
+  }
+  for (const [id, zna] of Object.entries(z.ramy)) {
+    // Rama nie ma osobnego klucza — jej rdzeniem jest sam identyfikator.
+    if (zna) wpisy.push([id, zastepczeZdanie(id.split(" %")[0]!, id)]);
+  }
   return new SlownikStaly(wpisy);
 }
 
@@ -435,11 +493,12 @@ export function zamrozenie(
     .map((w) => ({
       klucz: w.klucz,
       id: w.identyfikator,
-      zdanie: w.zdanie,
+      maZdanie: w.zdanie !== null,
       milczy: w.zdanie === null && werdykt(ciala.get(w.klucz) ?? "") === "nic",
     }));
-  const ramy: Record<string, string | null> = {};
-  for (const id of RAMY) ramy[id] = indeks.get(id) ?? null;
+  // Samo `czy gra zna`, bez szablonu. Ten sam powód, co przy `maZdanie`.
+  const ramy: Record<string, boolean> = {};
+  for (const id of RAMY) ramy[id] = indeks.get(id) !== undefined;
 
   return {
     build,
@@ -479,6 +538,11 @@ export function modulZamrozenia(z: Zamrozenie): string {
     " *",
     " * `milczy` znaczy „gra ma dla tej etykiety puste ciało i świadomie nic nie",
     ' * wypisuje" — dla dekodera to odpowiedź, nie luka.',
+    " *",
+    " * ⚠️ **BRZMIEŃ TU NIE MA — i to jest celowe.** `maZdanie` mówi tylko, CZY gra",
+    " * ma dla identyfikatora zdanie; polskie teksty należą do Garmory i nie leżą",
+    " * w tym repozytorium (`NOTICE.md`). Testom to wystarcza, dodatek bierze",
+    " * brzmienia z żywej gry przez `window._t`. Nie dopisuj ich z powrotem.",
     " */",
     'import type { Zamrozenie } from "../tools/slownik.ts";',
     "",
@@ -528,7 +592,7 @@ if (import.meta.main) {
     const zapis = zamrozenie(build, dzis, wszystkie, etykiety, indeksTlumaczen(slownik));
     await Bun.write(ZAMROZENIE, modulZamrozenia(zapis));
     console.log(
-      `zamrożono ${zapis.klucze.length} etykiet (${zapis.klucze.filter((w) => w.milczy).length} milczących, ${zapis.klucze.filter((w) => w.zdanie !== null).length} ze zdaniem) → ${ZAMROZENIE}`,
+      `zamrożono ${zapis.klucze.length} etykiet (${zapis.klucze.filter((w) => w.milczy).length} milczących, ${zapis.klucze.filter((w) => w.maZdanie).length} ze zdaniem) → ${ZAMROZENIE}`,
     );
     process.exit(0);
   }

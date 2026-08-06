@@ -86,7 +86,7 @@ describe("przypisanie kolorów", () => {
       expect(label.dataset.prof).toBe(actor.professionCode.toUpperCase());
       // Nazwa ma zostać DOKŁADNIE nazwą: odznaka jest warstwą nad nią
       // (`::before`), a nie węzłem w treści — inaczej każde pytanie o nazwę
-      // zaczyna zwracać „HŁowca głów z psk". Porównanie pełne, nie „nie zawiera
+      // zaczyna zwracać „HŁowca Wichrów". Porównanie pełne, nie „nie zawiera
       // litery": nazwy same z siebie niosą te litery („Hildur Muza Śmierci").
       const star = stats.ambiguousNames.includes(actor.name) ? " *" : "";
       expect(label.textContent).toBe(`${actor.name}${star}`);

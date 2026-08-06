@@ -2223,7 +2223,7 @@ export class Overlay {
       // komórka i nie jako osobny węzeł. Oba warianty były już tu próbowane
       // przy `AUDYT-14` i oba się nie udały: komórka kładzie test „wiersz to
       // ranking, nie tabela", a węzeł wchodzi do `textContent` i nazwa zaczyna
-      // brzmieć „HŁowca głów z psk".
+      // brzmieć „HŁowca Wichrów".
       const profession = professionFor(source.label);
       if (profession) this.markProfession(label, profession);
       text.append(label, value);
@@ -2361,7 +2361,7 @@ export class Overlay {
       //
       // Rysowana przez `::before` z `attr()`, a nie osobnym węzłem, bo inaczej
       // litera wchodzi do `textContent` wiersza i każde pytanie „jak nazywa się
-      // ta postać" — w kodzie i w testach — zaczyna zwracać „HŁowca głów z psk".
+      // ta postać" — w kodzie i w testach — zaczyna zwracać „HŁowca Wichrów".
       // Nazwa ma zostać nazwą; odznaka jest warstwą NAD nią.
       if (actor.professionCode) this.markProfession(label, actor.professionCode);
       // Gwiazdka: pod tą nazwą kryje się w walce więcej niż jedna postać.

@@ -1,7 +1,7 @@
 // WYGENEROWANE — nie edytuj ręcznie. Odtwarza: `bun tools/slownik.ts --zamroz`.
 /**
  * Etykiety renderera walki z assetu gry — build `1785244275300`, świat
- * `tempest`, pomiar 2026-08-04.
+ * `tempest`, pomiar 2026-08-06.
  *
  * PO CO TU LEŻY. Dodatek rozwiązuje brzmienia w locie przez `window._t`,
  * ale identyfikatory, o które pyta, są ZASZYTE w `src/protokol.ts` — listy
@@ -12,1427 +12,1432 @@
  *
  * `milczy` znaczy „gra ma dla tej etykiety puste ciało i świadomie nic nie
  * wypisuje" — dla dekodera to odpowiedź, nie luka.
+ *
+ * ⚠️ **BRZMIEŃ TU NIE MA — i to jest celowe.** `maZdanie` mówi tylko, CZY gra
+ * ma dla identyfikatora zdanie; polskie teksty należą do Garmory i nie leżą
+ * w tym repozytorium (`NOTICE.md`). Testom to wystarcza, dodatek bierze
+ * brzmienia z żywej gry przez `window._t`. Nie dopisuj ich z powrotem.
  */
 import type { Zamrozenie } from "../tools/slownik.ts";
 
 export const ZAMROZENIE: Zamrozenie = {
   "build": "1785244275300",
   "swiat": "tempest",
-  "zmierzone": "2026-08-04",
+  "zmierzone": "2026-08-06",
   "metoda": "bun tools/slownik.ts --zamroz",
   "klucze": [
     {
       "klucz": "+abdest",
       "id": "msg_+abdest %val%",
-      "zdanie": "+Zniszczono %val% absorpcji",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+abdest_per",
       "id": "msg_only_val_+abdest_per",
-      "zdanie": "+Zniszczono %val% absorpcji",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+abmdest_per",
       "id": "msg_only_val_+abmdest_per",
-      "zdanie": "+Zniszczono %val% absorpcji magicznej",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+absorb",
       "id": "msg_+absorb %val%",
-      "zdanie": "+Odnowienie %val% absorpcji",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+absorbm",
       "id": "msg_+absorbm %val%",
-      "zdanie": "+Odnowienie %val% absorpcji magicznej",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+acdmg",
       "id": "msg_+acdmg %val%",
-      "zdanie": "+Niszczenie pancerza o %val%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+acdmg_destroyed",
       "id": "msg_+acdmg_destroyed",
-      "zdanie": "+Zniszczono pancerz przeciwnika.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+actdmg",
       "id": "msg_+actdmg %val%",
-      "zdanie": "+Niszczenie odporności na truciznę o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+crit",
       "id": "msg_+crit",
-      "zdanie": "+Cios krytyczny",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+critpierce",
       "id": "eng_game_only_val_+critpierce %val%",
-      "zdanie": "+Destrukcyjna strzała - zniszczenie %val% punktów pancerza",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+critpoison_per",
       "id": "msg_+critpoison_per %val%",
-      "zdanie": "+Osłabienie następnego przywrócenia życia o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+critsa",
       "id": "msg_+critsa %val%",
-      "zdanie": "+Zwiększenie szybkości ataku o %val%% na 3 tury",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+critsa_per",
       "id": "msg_+critsa_per %val%",
-      "zdanie": "+Przyspieszenie o %val%% po krytyku na 3 tury.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+critslow",
       "id": "msg_+hithurt %val%",
-      "zdanie": "Bolesny cios, spowolnienie o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+critslow_per",
       "id": "msg_+critslow_per= %val%",
-      "zdanie": "+Krytyczne spowolnienie o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+critwound",
       "id": "msg_+critwound",
-      "zdanie": "+Ciężka rana",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+crush",
       "id": "eng_game_only_val_+crush %val%",
-      "zdanie": "+Zmiażdżenie %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+crush_distance",
       "id": "eng_game_only_val_+crush %val%",
-      "zdanie": "+Zmiażdżenie %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+crush_fire",
       "id": "eng_game_only_val_+crush %val%",
-      "zdanie": "+Zmiażdżenie %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+crush_frost",
       "id": "eng_game_only_val_+crush %val%",
-      "zdanie": "+Zmiażdżenie %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+crush_light",
       "id": "eng_game_only_val_+crush %val%",
-      "zdanie": "+Zmiażdżenie %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+crush_physical",
       "id": "eng_game_only_val_+crush %val%",
-      "zdanie": "+Zmiażdżenie %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+distract",
       "id": "msg_+distract",
-      "zdanie": "+Wytrącenie z równowagi",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+endest",
       "id": "msg_+endest %val%",
-      "zdanie": "+Zniszczono %val% energii",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+energy",
       "id": "msg_+energy %val%",
-      "zdanie": "+Obniżenie energii o %val% po zamroczeniu",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+engback",
       "id": "msg_+engback %val%",
-      "zdanie": "%val% energii",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+exp",
       "id": "msg_+exp %val%",
-      "zdanie": "Zwycięzca zdobył łącznie %val% punktów doświadczenia",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+fastarrow",
       "id": "msg_+fastarrow",
-      "zdanie": "+Szybka strzała",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+firearrow",
       "id": "msg_+firearrow",
-      "zdanie": "+Płonąca strzała",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+freeze",
       "id": "msg_+freeze",
-      "zdanie": "+Zamrożenie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+immobilize",
       "id": "msg_+immobilize",
-      "zdanie": "+Unieruchomienie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+injure",
       "id": "msg_+injure %val%",
-      "zdanie": "+Zranienie (%val%)",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+legbon_anguish",
       "id": "msg_+legbon_anguish %val%",
-      "zdanie": "+Krwawa udręka",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+legbon_curse",
       "id": "msg_+legbon_curse",
-      "zdanie": "+Klątwa",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+legbon_frenzy_main",
       "id": "msg_+legbon_frenzy_main %val%",
-      "zdanie": "+Eskalacja szału, ataki ulegają wzmocnieniu (%val%/5)",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+legbon_frenzy_off",
       "id": "msg_+legbon_frenzy_off %val%",
-      "zdanie": "+Eskalacja szału, ataki pomocnicze ulegają wzmocnieniu (%val%/5)",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+legbon_holytouch",
       "id": "msg_+legbon_holytouch %val%",
-      "zdanie": "+Dotyk anioła",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+legbon_puncture",
       "id": "msg_+legbon_puncture %val%",
-      "zdanie": "+Przeszywająca skuteczność, wszystkie ataki pomijają %val%% defensywy",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+legbon_pushback",
       "id": "msg_+legbon_pushback",
-      "zdanie": "+Odepchnięcie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+legbon_verycrit",
       "id": "msg_+legbon_verycrit",
-      "zdanie": "+Cios bardzo krytyczny",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+lowheal2turns",
       "id": "msg_+lowheal2turns %val%",
-      "zdanie": "+Bonus przeklęty: redukcja leczenia turowego o %val% życia",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+manadest",
       "id": "msg_+manadest %val%",
-      "zdanie": "+Zniszczono %val% many",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+mcurse",
       "id": "msg_+mcurse",
-      "zdanie": "+Klątwa",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+of_crit",
       "id": "msg_+of_crit",
-      "zdanie": "+Cios krytyczny broni pomocniczej",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+of_dmg",
       "id": null,
-      "zdanie": null,
+      "maZdanie": false,
       "milczy": false
     },
     {
       "klucz": "+of_wound",
       "id": "msg_+of_wound",
-      "zdanie": "+Głęboka rana broni pomocniczej",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+of_woundmagic",
       "id": "msg_of_woundmagic %val%",
-      "zdanie": "+Głęboka rana pomocnicza (-%val%% osłabiona magią żywiołu)",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+of_woundpoison",
       "id": "msg_of_woundpoison %val%",
-      "zdanie": "+Głęboka rana pomocnicza (-%val%% osłabiona trucizną)",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+oth_cover",
       "id": "msg_+oth_cover %val% %name%",
-      "zdanie": "%name% przejął(eła) %val% obrażeń.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+oth_dmg",
       "id": "msg_+oth_dmg %val% %name%",
-      "zdanie": " -%val%</b> obrażeń otrzymał(a) %name%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+ph",
       "id": "msg_+ph %val%",
-      "zdanie": "Zwycięzca zdobył łącznie %val% punktów honoru.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+pierce",
       "id": "msg_+pierce",
-      "zdanie": "+Przebicie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+rage",
       "id": "msg_+rage %val%",
-      "zdanie": "+Wściekłość: atak +%val%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+resdmg",
       "id": "msg_+resdmg %val%",
-      "zdanie": "+Niszczenie odporności magicznych o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+resdmgc",
       "id": "msg_+resdmgc %val%",
-      "zdanie": "+Niszczenie odporności na zimno  o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+resdmgf",
       "id": "msg_+resdmgf %val%",
-      "zdanie": "+Niszczenie odporności na ogień o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+resdmgl",
       "id": "msg_+resdmgl %val%",
-      "zdanie": "+Niszczenie odporności na błyskawice o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+rotatingblade",
       "id": "msg_+rotatingblade",
-      "zdanie": "+Wirujące ostrze",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+spell-taken_dmg",
       "id": "eng_game_only_nick_+spell-taken_dmg %name%",
-      "zdanie": "%name% otrzymuje zwiększone obrażenia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+spell-taken_dmg-all",
       "id": "end-game-without-percent+spell-taken_dmg-all",
-      "zdanie": "Wszyscy przeciwnicy otrzymują zwiększone obrażenia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+spell-vamp_time",
       "id": "eng_game_only_nick_+spell-vamp_time %name%",
-      "zdanie": "%name% wpada w amok",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+stun",
       "id": "msg_+stun",
-      "zdanie": "+Ogłuszenie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+stun2",
       "id": "msg_+stun2",
-      "zdanie": "+Potężne ogłuszenie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+stun2-c",
       "id": "msg_+stun2-c",
-      "zdanie": "+Potężne zamrożenie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+stun2-d",
       "id": "msg_+stun2-d",
-      "zdanie": "+Potężna przeszywająca strzała",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+stun2-f",
       "id": "msg_+stun2-f",
-      "zdanie": "+Potężne poparzenie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+stun2-l",
       "id": "msg_+stun2-l",
-      "zdanie": "+Potężne porażenie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+superspell-dispel",
       "id": "msg_+dispel",
-      "zdanie": "Przerwanie ciosu specjalnego.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+superspell-prevented",
       "id": "msg_+superspell-prevented",
-      "zdanie": "Zapobiegnięto ładowaniu ciosu specjalnego.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+swing",
       "id": "msg_+swing",
-      "zdanie": "+Rozmach",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+taken_dmg",
       "id": "eng_game_only_val_+taken_dmg %val%",
-      "zdanie": "+Piętno bestii: atak +%val%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+thirdatt",
       "id": "+third_strike",
-      "zdanie": "+Trzeci cios",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+verycrit",
       "id": "msg_+verycrit",
-      "zdanie": "+Cios bardzo krytyczny",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+vulture",
       "id": "msg_+vulture= %val%",
-      "zdanie": "+Łatwy cel: atak +%val%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+wound",
       "id": "msg_+wound",
-      "zdanie": "+Głęboka rana",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+woundfrost",
       "id": "msg_woundfrost %val%",
-      "zdanie": "+Głęboka rana (-%val%% osłabiona magią zimna)",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+woundmagic",
       "id": "msg_woundmagic %val%",
-      "zdanie": "+Głęboka rana (-%val%% osłabiona magią żywiołu)",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "+woundpoison",
       "id": "msg_woundpoison %val%",
-      "zdanie": "+Głęboka rana (-%val%% osłabiona trucizną)",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-absorb",
       "id": "msg_-absorb %val%",
-      "zdanie": "-Absorpcja %val% obrażeń fizycznych",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-absorbm",
       "id": "msg_-absorbm %val%",
-      "zdanie": "-Absorpcja %val% obrażeń magicznych",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-arrowblock",
       "id": "msg_-arrowblock",
-      "zdanie": "-Strzała zneutralizowana",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-blok",
       "id": "msg_-blok %val%",
-      "zdanie": "-Zablokowanie %val% obrażeń",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-contra",
       "id": "msg_-contra",
-      "zdanie": "-Kontratak",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-endest",
       "id": "msg_-endest %val%",
-      "zdanie": "-Zniszczono %val% energii",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-evade",
       "id": "msg_-evade",
-      "zdanie": "-Unik",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-immunity_to_dmg",
       "id": "end-game-without-percent-immunity_to_dmg",
-      "zdanie": "-Niewrażliwość na otrzymywane obrażenia",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-legbon_cleanse",
       "id": "msg_-legbon_cleanse",
-      "zdanie": "-Płomienne oczyszczenie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-legbon_critred",
       "id": "msg_-legbon_critred %val%",
-      "zdanie": "-Krytyczna osłona, osłabienie obrażeń o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-legbon_dmgred",
       "id": "msg_-legbon_dmgred %val%",
-      "zdanie": "-Aktywna ochrona fizyczna %val%% obrażeń na całą walkę",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-legbon_facade",
       "id": "msg_-legbon_facade %val%",
-      "zdanie": "-Fasada opieki, %val%% redukcji ciosów do końca walki",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-legbon_glare",
       "id": "msg_-legbon_glare",
-      "zdanie": "-Oślepienie w następnej turze",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-legbon_resgain",
       "id": "msg_-legbon_resgain",
-      "zdanie": "-Ochrona żywiołów",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-legbon_retaliation",
       "id": "msg_-legbon_retaliation %val%",
-      "zdanie": "-Aura odwetu",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-lowcritallval",
       "id": "msg_-lowcritallval %val%",
-      "zdanie": "-Bonus przeklęty: obniżenie mocy krytyka fizycznego i magicznego o %val%% przez całą walkę",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-manadest",
       "id": "msg_-manadest %val%",
-      "zdanie": "-Zniszczono %val% many",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-parry",
       "id": "msg_-parry",
-      "zdanie": "-Parowanie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-pierceb",
       "id": "msg_-pierceb",
-      "zdanie": "-Blok przebicia",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-poison_lowdmg_per",
       "id": "msg_-poison_lowdmg_per %val%",
-      "zdanie": "-Osłabienie przez truciznę zadawanych obrażeń o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-rage",
       "id": "msg_-rage",
-      "zdanie": "-Wściekłość",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-redabdest_per",
       "id": "msg_redabdest_per %m1%",
-      "zdanie": "-Aktywna redukcja niszczenia absorpcji: %m1%% przez całą walkę",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-redacdmg",
       "id": "msg_-redacdmg %val%",
-      "zdanie": "-Bonus przeklęty: obniżenie niszczenia pancerza przez całą walkę o %val% pkt",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-redacdmg_per",
       "id": "msg_-redacdmg_per %val%",
-      "zdanie": "-Aktywna redukcja niszczenia pancerza: %val%% przez całą walkę",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-reddest_per",
       "id": "msg_-reddest_per %val%",
-      "zdanie": "-Aktywna redukcja niszczenia energii i many: %val%% przez całą walkę",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-reddest_per0",
       "id": null,
-      "zdanie": null,
+      "maZdanie": false,
       "milczy": true
     },
     {
       "klucz": "-redendest",
       "id": "msg_-redendest %val%",
-      "zdanie": "-Redukcja niszczenia %val% energii",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-redendest_per",
       "id": "msg_-redendest_per %val%",
-      "zdanie": "-Aktywna redukcja niszczenia energii: %val%% przez całą walkę",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-redmanadest",
       "id": "msg_-redmanadest %val%",
-      "zdanie": "-Redukcja niszczenia %val% many",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-redmanadest_per",
       "id": "msg_-redmanadest_per %val%",
-      "zdanie": "-Aktywna redukcja niszczenia many: %val%% przez całą walkę",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-resmanaendest",
       "id": "msg_-resmanaendest %val%",
-      "zdanie": "-Bonus przeklęty: obniżenie niszczenia many o %val1% oraz energii o %val2% przez całą walkę",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-spell-distortion",
       "id": "eng_game_nick_and_opponent_-spell-distortion %name% %target%",
-      "zdanie": "%target% został spaczony.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-spell-immunity_to_dmg",
       "id": "eng_game_nick_and_friendnick_-spell-immunity_to_dmg %name%",
-      "zdanie": "%name% wywołuje u siebie wewnętrzny spokój",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-tenacity",
       "id": "msg_-tenacity",
-      "zdanie": "-Wytrwałość",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "-thirdatt",
       "id": null,
-      "zdanie": null,
+      "maZdanie": false,
       "milczy": false
     },
     {
       "klucz": "absolute",
       "id": "msg_absolute %name% %val%",
-      "zdanie": "%name% otrzymał %val% obrażeń nieuchronnych.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "achpp_per",
       "id": "achpp_per",
-      "zdanie": "Zwiększenie pancerza o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "active_absorbdest_per",
       "id": null,
-      "zdanie": null,
+      "maZdanie": false,
       "milczy": true
     },
     {
       "klucz": "active_block_per",
       "id": "msg_only_val_active_block_per",
-      "zdanie": "Zwiększenie szansy na blok o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "active_decblock_per",
       "id": null,
-      "zdanie": null,
+      "maZdanie": false,
       "milczy": true
     },
     {
       "klucz": "active_decblock_per-enemies",
       "id": "msg_only_val_active_decblock_per-enemies",
-      "zdanie": "Zmniejszenie szansy na blok u przeciwników o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "active_resall_per",
       "id": "msg_only_val_active_resall_per",
-      "zdanie": "Odporność na obrażenia od ataków +%val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "afterheal",
       "id": "msg_afterheal %name% %val%",
-      "zdanie": "Przywrócono %val% punktów życia %name%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "alllowdmg",
       "id": "msg_alllowdmg %val% %name%",
-      "zdanie": "Zmniejszenie ataku przeciwników o %val%%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "allslow",
       "id": "msg_allslow",
-      "zdanie": "Przeszywający krzyk.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "allslow_per",
       "id": "msg_allslow_per %val% %name%",
-      "zdanie": "Spowolnienie przeciwników o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "anguish",
       "id": "msg_anguish %name% %hpp% %val0%",
-      "zdanie": "%name%(%hpp%%): %val0% obrażeń od krwawienia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "ansgame",
       "id": "msg_ansgame",
-      "zdanie": "%name% rzuca czar! Wykonaj rzut obronny!",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "antidote",
       "id": "msg_antidote %val%",
-      "zdanie": "Odporność na truciznę +%val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "arrowrain",
       "id": "msg_arrowrain",
-      "zdanie": "Deszcz strzał.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "aura-ac",
       "id": "msg_aura-ac %val%",
-      "zdanie": "Aura ochrony fizycznej, pancerz+%val%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "aura-ac_per",
       "id": "msg_aura-ac_per %val% %name%",
-      "zdanie": "Aura ochrony fizycznej została aktywowana (+%val%% pancerza).",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "aura-adddmg2_per-meele",
       "id": "msg_blesswords_perw %val% %name%",
-      "zdanie": "Wzmocnienie obrażeń fizycznych od mieczy dla wszystkich w drużynie +%val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "aura-resall",
       "id": "msg_aura-resall %val% %name%",
-      "zdanie": "Aura ochrony magicznej została aktywowana (+%val%% odporności).",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "aura-sa",
       "id": "msg_aura-sa %val%",
-      "zdanie": "Aura szybkości, szybkość ataku zwiększona o %val%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "aura-sa_per",
       "id": "msg_aura-sa_per_new %val% %name%",
-      "zdanie": "Aura szybkości została aktywowana (+%val%% szybkości ataku).",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "balloflight",
       "id": null,
-      "zdanie": null,
+      "maZdanie": false,
       "milczy": true
     },
     {
       "klucz": "bandage",
       "id": "msg_aura-bandage %val%",
-      "zdanie": "Uleczono %name% o %val% punktów życia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "blackout",
       "id": "msg_blackout",
-      "zdanie": "Zamroczenie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "blizzard",
       "id": "msg_blizzard",
-      "zdanie": "Lodowa zamieć.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "chainlightning",
       "id": null,
-      "zdanie": null,
+      "maZdanie": false,
       "milczy": true
     },
     {
       "klucz": "chainlightning_perw",
       "id": "msg_chainlightning_perw %name%",
-      "zdanie": "%name% przyzywa z nieba łańcuch piorunów.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "combo-max",
       "id": "msg_combo-max",
-      "zdanie": "+Kombinacja x%val%!",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "cover",
       "id": "msg_cover",
-      "zdanie": "Osłona kompana ciałem.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "critmval-allies",
       "id": "eng_game_only_val_critmval-allies %val%",
-      "zdanie": "Moc ciosu krytycznego magicznego sojuszników: +%val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "critmval-enemies",
       "id": "eng_game_only_val_critmval-enemies %val%",
-      "zdanie": "Moc ciosu krytycznego magicznego przeciwników: %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "critstagnation",
       "id": "msg_critstagnation",
-      "zdanie": "+Stagnacja",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "critval-allies",
       "id": "eng_game_only_val_critval-allies %val%",
-      "zdanie": "Moc ciosu krytycznego fizycznego sojuszników: +%val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "critval-enemies",
       "id": "eng_game_only_val_critval-enemies %val%",
-      "zdanie": "Moc ciosu krytycznego fizycznego przeciwników: %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "critwound",
       "id": "msg_critwound %name% %val%",
-      "zdanie": "%name%: %val% obrażeń od ciężkiej rany.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "daggerthrow",
       "id": null,
-      "zdanie": null,
+      "maZdanie": false,
       "milczy": true
     },
     {
       "klucz": "distortion",
       "id": "eng_game_only_nick_distortion %name%",
-      "zdanie": "%name% - spaczenie",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "distractshoot",
       "id": "msg_distractshoot",
-      "zdanie": "+Wytrącająca strzała",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "disturb",
       "id": "msg_disturb",
-      "zdanie": "Rozproszenie przeciwnika.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "disturbshoot",
       "id": "msg_disturbshoot",
-      "zdanie": "Rozpraszający strzał",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "dloot",
       "id": "msg_dloot %name% %g1% %m1%",
-      "zdanie": "%name% zdobył %g1% %m1%, jednak ze względu na przewagę poziomu przedmiot uległ zniszczeniu.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "dmg-target_physical",
       "id": "eng_game_opponent_nick_and_value_dmg-target_physical %target% %val%",
-      "zdanie": "%target% otrzymuje %val% obrażeń",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "dmg_hpp",
       "id": "msg_-dmg_hpp",
-      "zdanie": "-Przeciwnik jest odporny na procentową utratę życia",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "doubleshoot",
       "id": "msg_doubleshoot %name%",
-      "zdanie": "%name% wykonał# podwójny strzał.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "en-regen",
       "id": "msg_en-regen %gain_lost% %name% %val%",
-      "zdanie": "%gain_lost% %val% energii %name%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "en-regen-cast",
       "id": "msg_en-regen-cast %name% %target%",
-      "zdanie": "Czar został rzucony na %target%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "energy",
       "id": "msg_energy %name% %gain_loss% %val%",
-      "zdanie": "%name% %gain_loss% %val% energii.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "energyout",
       "id": "msg_energyout %val%",
-      "zdanie": "-%val% energii przez 5 kolejnych ciosów",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "fire",
       "id": "msg_fire %name% %val%",
-      "zdanie": "%name% otrzymał# %val% obrażeń od ognia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "fireshield",
       "id": "msg_fireshield %name%",
-      "zdanie": "%name% rzucił tarczę ognia na %target%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "firewall",
       "id": "msg_firewall %name%",
-      "zdanie": "%name% rzucił# czar ściana ognia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "flee",
       "id": "msg_flee %name% %hp%",
-      "zdanie": "Walka przerwana! %name%(%hp%) użył(a) przedmiotu umożliwiającego ucieczkę z walki!",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "footshoot",
       "id": "msg_footshoot %name%",
-      "zdanie": "%name% strzelił w stopę wroga: %target%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "frost",
       "id": "msg_frost %name% %val%",
-      "zdanie": "%name% otrzymał# %val% obrażeń od zimna.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "frostshield",
       "id": "msg_frostshield %name%",
-      "zdanie": "%name% rzucił tarczę mrozu na %target%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "heal",
       "id": "msg_heal %gain_lost% %name% %val%",
-      "zdanie": "%gain_lost% %val% punktów życia %name%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "heal_per",
       "id": "msg_heal_per %name%",
-      "zdanie": "%name% uzdrawia %target%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "heal_per-allies",
       "id": "eng_game_nick_and_value_heal_per-allies %name% %val%",
-      "zdanie": "%name% promieniuje magią: przywracane przez sojuszników życie +%val%%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "heal_per-enemies",
       "id": "eng_game_nick_and_value_heal_per-enemies %name% %val%",
-      "zdanie": "%name% promieniuje spaczoną magią: przywracane przez przeciwników życie %val%%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "heal_target",
       "id": "msg_heal_target %target% %val%",
-      "zdanie": "Uleczono %target% o %val% punktów życia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "healall",
       "id": "msg_healall %name% %val%",
-      "zdanie": "%name% uzdrowił swoją drużynę (%val%).",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "healall_per",
       "id": "msg_healall_per %name% %val%",
-      "zdanie": "Uleczono sojuszników o %val%% życia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "hp_per-allies",
       "id": "eng_game_nick_and_value_hp_per-allies %name% %val%",
-      "zdanie": "%name% emanuje aurą życia: +%val%% maksymalnego życia dla sojuszników.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "hp_per-enemies",
       "id": "eng_game_nick_and_value_hp_per-enemies %name% %val%",
-      "zdanie": "%name% emanuje aurą śmierci: %val%% życia dla przeciwników",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "injure",
       "id": "msg_injure %name% %val%",
-      "zdanie": "%name%: %val% obrażeń po zranieniu.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "insult",
       "id": "msg_insult %name% %name2% %val%",
-      "zdanie": "%name% obraził %name2% na %val% tur.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "legbon_holytouch_heal",
       "id": "msg_legbon_holytouch_heal %val%",
-      "zdanie": "Dotyk anioła: zregenerowano %val% punktów życia %name%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "legbon_lastheal",
       "id": "msg_legbon_lastheal %val%",
-      "zdanie": "%val%: Ostatni ratunek, zregenerowano %val2% punktów życia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "light",
       "id": "msg_light %name% %val%",
-      "zdanie": "%name% otrzymał# %val% obrażeń od błyskawic.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "lightshield",
       "id": "msg_lightshield %name%",
-      "zdanie": "Czar został rzucony na %target%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "lightshield2",
       "id": "msg_lightshield2 %name%",
-      "zdanie": "%name% rzuca magiczną barierę na %target%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "loot",
       "id": "msg_loot %name% %g1% %m1%",
-      "zdanie": "%name% zdobył %g1% %m1%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "loser",
       "id": "loser_is %name% %posfix%",
-      "zdanie": "Poległ%posfix% %name%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "lowheal_per-enemies",
       "id": "msg_lowheal_per-enemies val",
-      "zdanie": "Osłabienie leczenia z umiejętności aktywnych drużyny przeciwnej o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "mana",
       "id": "msg_receivemana %name% %val%",
-      "zdanie": "%name% otrzymuje %val% many",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "managain",
       "id": "msg_managain %name% %val%",
-      "zdanie": "%name% otrzymał %val% many.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "manatransfer",
       "id": "msg_manatransfer %name% %val% %name2%",
-      "zdanie": "%name% przekazał %val% many Graczowi %name2%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "mlightshiled",
       "id": "msg_mlightshiled %name%",
-      "zdanie": "%name% rzucił tarczę błyskawic na %target%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "npc_heal",
       "id": "msg_heal_target %target% %val%",
-      "zdanie": "Uleczono %target% o %val% punktów życia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "of-woundstart",
       "id": "msg_of-woundstart",
-      "zdanie": "Otwarcie ran bronią pomocniczą",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "physical",
       "id": "msg_physical %name% %val%",
-      "zdanie": "%name% otrzymał# %val% obrażeń fizycznych.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "poison",
       "id": "msg_poison %name% %val%",
-      "zdanie": "%name%: %val% obrażeń od trucizny.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "poison_lowdmg_per-enemies",
       "id": "msg_poison_lowdmg_per-enemies %val%",
-      "zdanie": "%name% spowija się trującą mgłą: -%val%% obrażeń zadawanych przez zatrutych przeciwników.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "poisonspread",
       "id": "msg_poisonspread",
-      "zdanie": "Zatruci przeciwnicy: ",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "poisonspread_failkey",
       "id": "msg_poisonspread_failkey",
-      "zdanie": "Brak przeciwników do zatrucia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "prepare",
       "id": "msg_prepare %name%",
-      "zdanie": "%name% przygotowuje się do wykonania %name2%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "removedot",
       "id": "skill_removedot",
-      "zdanie": "Usunięcie obrażeń warunkowych.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "removedot-allies",
       "id": "skill_removedot-allies",
-      "zdanie": "Usunięcie obrażeń warunkowych ze swojej drużyny.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "removeslow-allies",
       "id": "msg_removeslow-allies",
-      "zdanie": "Usunięcie spowolnień ze swojej drużyny",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "removestun",
       "id": "skill_removestun",
-      "zdanie": "Usunięcie ogłuszeń.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "removestun-allies",
       "id": "msg_removestun-allies",
-      "zdanie": "Usunięcie ogłuszeń ze swojej drużyny",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "resfire_per",
       "id": "msg_resfire_per %val%",
-      "zdanie": "Odporność na ogień +%val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "resfrost_per",
       "id": "msg_resfrost_per %val%",
-      "zdanie": "Odporność na zimno +%val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "reslight_per",
       "id": "msg_reslight_per %val%",
-      "zdanie": "Odporność na błyskawice +%val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "reusearrows",
       "id": "msg_reusearrows_one",
-      "zdanie": "Odzyskano jedną strzałę dla",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "rime_per",
       "id": "msg_rime_per %val% %name%",
-      "zdanie": "%name% wykonuje podmuch mrozu, spowolnienie przeciwników o %val%%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "shout",
       "id": "msg_shout %name%",
-      "zdanie": "Uwaga %name2% została skupiona na %name%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "skillId",
       "id": null,
-      "zdanie": null,
+      "maZdanie": false,
       "milczy": true
     },
     {
       "klucz": "soullink",
       "id": "msg_soullink %name%",
-      "zdanie": "%name% duchowo wspiera swoją drużynę.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "spell-taken_dmg",
       "id": "eng_game_nick_and_opponent_spell-taken_dmg %name% %target%",
-      "zdanie": "%target% otrzymuje zwiększone obrażenia.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "stealmana",
       "id": "msg_stealmana %name%",
-      "zdanie": "Skradziono %val% punktów many przeciwnikowi %target%",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "step",
       "id": "msg_step %name% %g1%",
-      "zdanie": "%name% zrobił%g1% krok do przodu.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "stinkbomb",
       "id": "msg_stinkbomb %name% %name2%",
-      "zdanie": "%name2% ma obniżoną szansę na cios krytyczny i przebicie.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "stinkbomb_crit",
       "id": "eng_game_only_nick_stinkbomb_crit %name%",
-      "zdanie": "%name% ma obniżoną szansę na cios krytyczny.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "stinkbomb_pierce",
       "id": "eng_game_only_nick_stinkbomb_pierce %name%",
-      "zdanie": "%name% ma obniżoną szansę na przebicie.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "storm",
       "id": "msg_storm %name%",
-      "zdanie": "%name% wezwał# burzę z piorunami.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "sunreduction",
       "id": "msg_sunreduction %name%",
-      "zdanie": "%name% rzucił odporność słońca na %target%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "sunshield",
       "id": "msg_sunshield %name%",
-      "zdanie": "%name% rzucił tarczę słońca na %target%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "sunshield_per",
       "id": "msg_sunshield %name%",
-      "zdanie": "%name% rzucił tarczę słońca na %target%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "surpass_bonus_total",
       "id": "surpass_bonus_total %val% %name%",
-      "zdanie": "Wzmocnienie %name% o %val%% ze względu na małą grupę przeciwników",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "tcustom",
       "id": "msg_tcustom_target %target% %val%",
-      "zdanie": "%target% - użycie przedmiotu specjalnego: %val%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "thunder",
       "id": "msg_thunder %name%",
-      "zdanie": "%name% wezwał# grom z nieba.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "trickyknife",
       "id": "msg_trickyknife %name% %target%",
-      "zdanie": "%name% zadaje przeciwnikowi %target% zdradziecki cios",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "tspell",
       "id": "msg_tspell %name%",
-      "zdanie": "%name% wykonuje %name2%.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "txt",
       "id": null,
-      "zdanie": null,
+      "maZdanie": false,
       "milczy": false
     },
     {
       "klucz": "vamp",
       "id": "msg_vamp %val%",
-      "zdanie": "%name% zadał %val% obrażeń %target% lecząc za nie siebie.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "vamp_time",
       "id": "eng_game_only_val_vamp_time %val%",
-      "zdanie": "+Uleczono za %val% punktów życia",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "winner",
       "id": "battle_no_winner",
-      "zdanie": "Walka nie wyłoniła zwycięzcy",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "wound",
       "id": "msg_wound %name% %val%",
-      "zdanie": "%name%: %val% obrażeń od głębokiej rany.",
+      "maZdanie": true,
       "milczy": false
     },
     {
       "klucz": "woundextend",
       "id": "msg_woundextend %name% %target%",
-      "zdanie": "%name% rozszarpuje rany %target%",
+      "maZdanie": true,
       "milczy": false
     }
   ],
   "ramy": {
-    "msg_dmgdone %name1% %hpp% %val%": "%name1%(%hpp%%) uderzył# z siłą %val%",
-    "msg_dmgtaken %name1% %hpp% %val%": "%name1%(%hpp%%) otrzymał$ %val% obrażeń",
-    "winner_is %name% %posfix%": "Zwyciężył%posfix% %name%",
-    "winner_team_is %name% %posfix%": "Zwyciężyła drużyna %name%",
-    "loser_is %name% %posfix%": "Poległ%posfix% %name%",
-    "loser_team_is %name% %posfix%": "Poległa drużyna %name%",
-    "battle_no_winner": "Walka nie wyłoniła zwycięzcy",
-    "msg_poison %name% %val0% %val1%": "%name%: %val0% (osłabione o %val1%%) obrażeń od trucizny.",
-    "msg_wound_multi %name% %val0% %val1%": "%name%: %val0% (osłabione o %val1%%) obrażeń od głębokiej rany.",
-    "msg_injure %name% %val0% %val1%": "%name%: %val%  (osłabione o %val1%%) obrażeń po zranieniu.",
-    "msg_anguish %name% %hpp% %val0% %val1%": "%name%(%hpp%%): %val0% (osłabione o %val1%%) obrażeń od krwawienia.",
-    "part_gained": "Przywrócono",
-    "part_lost": "Stracono"
+    "msg_dmgdone %name1% %hpp% %val%": true,
+    "msg_dmgtaken %name1% %hpp% %val%": true,
+    "winner_is %name% %posfix%": true,
+    "winner_team_is %name% %posfix%": true,
+    "loser_is %name% %posfix%": true,
+    "loser_team_is %name% %posfix%": true,
+    "battle_no_winner": true,
+    "msg_poison %name% %val0% %val1%": true,
+    "msg_wound_multi %name% %val0% %val1%": true,
+    "msg_injure %name% %val0% %val1%": true,
+    "msg_anguish %name% %hpp% %val0% %val1%": true,
+    "part_gained": true,
+    "part_lost": true
   }
 };

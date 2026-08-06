@@ -491,7 +491,7 @@ const WOUND_DOT = "po zranieniu";
  *
  * Bez tego wyjątku kwota lądowała na jedynym przeciwniku i nie było w tym ani
  * jednej prawdziwej liczby: na `2026-08-03_druzyna-vs-hildur-absorpcja` boss
- * dostawał 2 026 obrażeń, których nie zadał, a Łowcomir Kazrek i Png Holak
+ * dostawał 2 026 obrażeń, których nie zadał, a Gracz C i Gracz G
  * mieli w panelu napisane, że oberwali od niego 966 i 1 060 — czyli 100 % tego,
  * co stracili, choć boss nie tknął żadnego z nich ani razu.
  *

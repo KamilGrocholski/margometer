@@ -267,7 +267,7 @@ zatrutych przeciwników”), to w pomocy:
 Artykuł opisuje ją **wyłącznie** jako redukcję obrażeń przeciwnika i **ani
 słowem** nie wspomina o koszcie zdrowia po stronie rzucającego.
 
-**Pomiar korpusu rozstrzygnął.** Siedem kolejnych tyknięć Łowcomira Kazrka
+**Pomiar korpusu rozstrzygnął.** Siedem kolejnych tyknięć Gracza C
 z fixture'a `2026-08-03_druzyna-vs-hildur-absorpcja`, czytanych jako „liczba to
 ubytek, procent to stan PO nim”.
 
@@ -334,7 +334,7 @@ stronie co cel**. Stąd `SELF_INFLICTED_DOTS` w `stats.ts` — kwota idzie do pu
 ⚠️ **To zdanie zastępuje wcześniejsze, które było nieprawdą.** Stało tu
 „parser liczy ją jako tyknięcie bez sprawcy”; parser owszem, ale agregat
 sprawcę **dopisywał**. Skutek na `2026-08-03_druzyna-vs-hildur-absorpcja`: boss
-dostawał 2 026 obrażeń, których nie zadał, a Łowcomir Kazrek i Png Holak mieli
+dostawał 2 026 obrażeń, których nie zadał, a Gracz C i Gracz G mieli
 w panelu „OD KOGO: Hildur Muza Śmierci” na 100 % tego, co stracili — mimo że
 boss nie tknął żadnego z nich ani razu. Znalezione audytem 2026‑08‑03, już po
 commicie; naprawione tego samego dnia.

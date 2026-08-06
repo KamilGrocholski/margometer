@@ -300,7 +300,7 @@ walki — to decyzja, nie łatka.**
 większym zrzucie.** `2026-07-31_druzyna-vs-hildur-zwyciestwo/log.html` to **584
 węzły `.battle-msg` i 1373 wyciągnięte linie** (poprzedni rekord: 371 i 742).
 Linia otwierająca **jest na miejscu** — pierwszą linią z `extractText` jest
-`Rozpoczęła się walka pomiędzy wf regulus psk (90t), …`.
+`Rozpoczęła się walka pomiędzy Gracz B (90t), …`.
 
 Co to zmienia: „nie mamy dość długiej walki” przestaje być wytłumaczeniem. Przy
 1373 liniach gra nadal nie przycina, więc **ciężar dowodu się odwrócił** — to

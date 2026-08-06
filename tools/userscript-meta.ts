@@ -20,6 +20,12 @@ import { META_FILE, USERSCRIPT_FILE } from "./artifacts.ts";
  * kilkanaście commitów funkcjonalnych, bo numer żył osobno od `package.json`.
  * Adres repozytorium jest dokładnie tą samą klasą danych.
  *
+ * `@license` jest tu, a nie tylko w `LICENSE`, bo **do użytkownika dociera sam
+ * plik `.user.js`** — Tampermonkey pokazuje ten nagłówek w oknie instalacji
+ * i w liście skryptów, a repozytorium widzi ułamek instalujących. Greasy Fork
+ * czyta to samo pole. Bez niego zainstalowany dodatek nie niesie o sobie
+ * informacji, na jakich prawach się go dostało.
+ *
  * `releases/latest/download/...` nie zawiera numeru wersji, więc nagłówek nie
  * wymaga edycji przy żadnym kolejnym wydaniu — GitHub sam przekierowuje na
  * ostatnie. Aktualizacja sprawdza się po LEKKIM `.meta.js` (sam ten nagłówek,
@@ -48,7 +54,8 @@ export function banner(version: string, description: string, homepage: string): 
 // @namespace    ${homepage}
 // @version      ${version}
 // @description  ${description}
-// @author       kamil
+// @author       Kamil Grocholski
+// @license      MIT
 // @homepageURL  ${homepage}
 // @downloadURL  ${release}/${USERSCRIPT_FILE}
 // @updateURL    ${release}/${META_FILE}

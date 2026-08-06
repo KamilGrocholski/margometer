@@ -124,8 +124,8 @@ zamknięte trzeba było doliczyć do sumy. Bufor z 5 walkami i 2260 liniami:
 przy każdej linii logu.
 
 **Prawdziwy render, nie tylko asercje.** Dymek bossa z
-`2026-07-31_druzyna-vs-hildur-zwyciestwo` daje `Zsz Przeworsk 87 810 (26%)`,
-`wf regulus psk 34 584 (10%)`, `Łowcomir Kazrek 27 945 (8%)`, `+ 7 pozycji
+`2026-07-31_druzyna-vs-hildur-zwyciestwo` daje `Gracz A 87 810 (26%)`,
+`Gracz B 34 584 (10%)`, `Gracz C 27 945 (8%)`, `+ 7 pozycji
 niżej`, okruszek `‹ skład | Hildur Muza Śmierci` z `data-prof="M"` — i ani
 jednego wiersza z energią w „Efektach w ciosach".
 

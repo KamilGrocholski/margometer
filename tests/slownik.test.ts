@@ -9,6 +9,7 @@ import {
   slownikZeZamrozenia,
   tabela,
   werdykt,
+  zamrozenie,
   type Zamrozenie,
   zdanieDlaIdentyfikatora,
 } from "../tools/slownik.ts";
@@ -227,12 +228,15 @@ describe("modulZamrozenia", () => {
     zmierzone: "2026-08-04",
     metoda: "bun tools/slownik.ts --zamroz",
     klucze: [
-      // Zdanie z cudzysłowem i ukośnikiem — dokładnie to, na czym poległby
-      // własny serializator, a `JSON.stringify` nie.
-      { klucz: "+x", id: 'msg_+x "%val%"', zdanie: 'Efekt \\ "%val%"', milczy: false },
-      { klucz: "+cichy", id: null, zdanie: null, milczy: true },
+      // Cudzysłów i ukośnik — dokładnie to, na czym poległby własny
+      // serializator, a `JSON.stringify` nie. Do 2026‑08‑06 niosło je pole
+      // `zdanie`; po wycięciu brzmień gry (`NOTICE.md`) jedynym polem, które
+      // takie znaki niesie, jest `id` — więc test przeniósł się na nie, zamiast
+      // zniknąć razem ze zdaniem.
+      { klucz: "+x", id: 'msg_+x \\ "%val%"', maZdanie: true, milczy: false },
+      { klucz: "+cichy", id: null, maZdanie: false, milczy: true },
     ],
-    ramy: { battle_no_winner: "Walka nie wyłoniła zwycięzcy" },
+    ramy: { battle_no_winner: true },
   };
   const kod = modulZamrozenia(ZRODLO);
 
@@ -257,13 +261,47 @@ describe("modulZamrozenia", () => {
     expect(kod.split("\n")[0]).toContain("--zamroz");
   });
 
-  test("wraca przez `slownikZeZamrozenia` do tych samych zdań", () => {
+  test("wraca przez `slownikZeZamrozenia` do szablonów zastępczych", () => {
     // Pętla domknięta: to, co narzędzie wypisuje, ma się dać odczytać z powrotem
     // tą samą drogą, którą czytają testy. Bez tego moduł mógłby być poprawnym
     // TypeScriptem i pustym słownikiem naraz.
+    //
+    // Zdania są ZASTĘPCZE (klucz + podstawienia z identyfikatora), bo brzmień
+    // gry w repozytorium nie ma. Pytanie, na które ten słownik odpowiada, brzmi
+    // „czy gra zna ten identyfikator", a nie „jak to brzmi po polsku".
     const slownik = slownikZeZamrozenia(ZRODLO);
-    expect(slownik.zdanie('msg_+x "%val%"')).toBe('Efekt \\ "%val%"');
-    expect(slownik.zdanie("battle_no_winner")).toBe("Walka nie wyłoniła zwycięzcy");
-    expect(kod).toContain(JSON.stringify('Efekt \\ "%val%"'));
+    expect(slownik.zdanie('msg_+x \\ "%val%"')).toBe("+x %val%");
+    expect(slownik.zdanie("battle_no_winner")).toBe("battle_no_winner");
+    expect(kod).toContain(JSON.stringify('msg_+x \\ "%val%"'));
+  });
+
+  test("identyfikator bez zdania nie trafia do słownika", () => {
+    // `maZdanie: false` ma znaczyć „gra tego nie zna", a nie „mamy pusty
+    // szablon". Bez tej asercji zastępnik mógłby powstawać dla każdego wpisu
+    // i test wyżej (`zaszyte identyfikatory kontra asset gry`) zrobiłby się
+    // zielony i pusty — odpowiadałby zawsze.
+    expect(slownikZeZamrozenia(ZRODLO).zdanie("msg_+cichy")).toBeNull();
+  });
+
+  test("brzmienia z gry NIE przechodzą przez `zamrozenie` do modułu", () => {
+    // Strażnik licencyjny, nie stylistyczny. Do 2026‑08‑06 zamrożenie niosło
+    // 223 polskie zdania przepisane z assetu gry; wróciłyby jednym polem
+    // dopisanym w `zamrozenie()` — i wróciłyby po cichu, bo żaden test ich nie
+    // czytał. Wejście CELOWO niesie brzmienie: gdyby wyciekło, test je znajdzie.
+    // Powody: `NOTICE.md`.
+    const modul = modulZamrozenia(
+      zamrozenie(
+        "1785244275300",
+        "2026-08-06",
+        [{ klucz: "+x", identyfikator: "msg_+x %val%", zdanie: "+Brzmienie z gry %val%" }],
+        new Map(),
+        new Map([["battle_no_winner", "Walka nie wyłoniła zwycięzcy"]]),
+      ),
+    );
+    expect(modul).not.toContain("Brzmienie z gry");
+    expect(modul).not.toContain("Walka nie wyłoniła zwycięzcy");
+    // …a sam fakt „gra to zna" ma przejść, inaczej strażnik chroniłby pustki.
+    expect(modul).toContain('"maZdanie": true');
+    expect(modul).toContain('"battle_no_winner": true');
   });
 });

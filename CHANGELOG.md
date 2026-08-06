@@ -41,6 +41,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   zapisuje się u Ciebie i to Ty decydujesz, komu go wyślesz. Dopóki tryb jest
   włączony, zębatka ma kropkę — bo raz włączony zostaje także po odświeżeniu
   gry, a zbieranie kosztuje trochę pracy przy każdej turze.
+- **Zmiana** — Dodatek ma licencję MIT. Wolno go czytać, zmieniać
+  i rozpowszechniać, byle zostawić notę o autorstwie. Licencja jedzie razem
+  z plikiem dodatku, więc widać ją już w okienku instalacji.
+- **Zmiana** — Opis dodatku mówi wprost, że twórcy Margonem go nie
+  autoryzowali, i przytacza punkty regulaminu, które go dotyczą. Instalujesz
+  na własne ryzyko — przeczytaj to przed instalacją.
 - **Poprawka** — Druga i każda kolejna walka stoczona bez zmiany mapy pokazuje
   SWOJE liczby. Dotąd doliczała się do poprzedniej: po dwóch walkach pod rząd
   panel pokazywał sumę obu, razem z postaciami z tej pierwszej, i nie mówił

@@ -19,6 +19,13 @@ nigdy nie zaszło. Zgodności tej listy z assetem gry pilnuje zamrożona tabela
 `tests/klucze-protokolu.ts` (233 klucze, build `1785244275300`) i cztery testy
 wokół niej; odtwarza ją `bun tools/slownik.ts --zamroz`.
 
+⚠️ **Tabela niesie klucze i identyfikatory, ale NIE brzmienia** (od
+2026‑08‑06). Że gra dla identyfikatora zdanie ma, mówi `maZdanie: boolean`; jak
+ono brzmi, mówi wyłącznie żywa gra. Powód jest licencyjny, nie techniczny —
+`NOTICE.md`. Skutek uboczny wart zapamiętania: kopia cudzego tekstu leżała tam
+przez trzy dni i **żaden test nigdy o nią nie zapytał**. Materiał, którego nikt
+nie czyta, nie broni się sam tym, że pochodzi z gry.
+
 ⚠️ **Zdanie „nie dotyka stanu gry" stało tu do 2026‑08‑04 i przestało być
 prawdziwe.** Owinięcie cudzej funkcji jest dotknięciem, choćby nic nie zmieniało
 — i lepiej to napisać, niż bronić definicji słowa „dotyka". Co dodatek nadal
@@ -143,6 +150,18 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
     `tests/korpus.ts` (walki z generatora plus jedna ręczna),
     `tests/klucze-protokolu.ts` (233 klucze renderera, WYGENEROWANE przez
     `bun tools/slownik.ts --zamroz`, nie pisane ręcznie).
+  - ⛔ **BRZMIENIA GRY → NIGDZIE.** Trzecia kategoria, dopisana 2026‑08‑06.
+    Klucz `+abdest` i identyfikator `msg_+abdest %val%` to nazwy funkcyjne
+    i zostają; polskie zdanie spod nich („+Zniszczono %val% absorpcji") jest
+    cudzą twórczością i w publicznym repozytorium na MIT nie ma go prawa być
+    (`NOTICE.md`, regulamin gry VII.2 m). Zamrożenie niosło 236 takich zdań
+    do 2026‑08‑06; dziś niesie `maZdanie: boolean`, a słownik dla testów
+    składa szablony ZASTĘPCZE z klucza. **Kosztowało to 0 testów** — okazało
+    się, że żaden nigdy nie pytał, jak zdanie brzmi, tylko czy gra je zna.
+    Powrót brzmień zapala strażnika `brzmienia z gry NIE przechodzą przez
+    `zamrozenie` do modułu` (`tests/slownik.test.ts`, mutacja sprawdzona).
+    Ta sama reguła dotyczy pseudonimów innych graczy — na zrzutach ekranu
+    też (`docs/screenshots/README.md`).
   - **Protokół tak, jak przysłał go serwer → do `tests/fixtures/*.json`**, przez
     `bun tools/walka.ts --zachowaj … --nazwa <slug>`. Bo moduł z `--rozbij`
     gubi `hp.max`, ładunki i granice wywołań, a bez `hp.max` nie ma świadka

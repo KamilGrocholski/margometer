@@ -170,14 +170,22 @@ Ze składów korpusu wychodzą **74 unikalne nazwy, z czego 8 zawiera słowo, kt
 gdzie indziej w logu jest kotwicą**:
 
 ```
-Łowca głów z psk      Utopiony w Barszczu   nie jadam kwasuw     Maleko na Długach
-Łowca z Dzielnicy     Arek to Wyłudzacz     Tylko po Regulusa    I Prawo Kirchoffa
+Zbieracz Ziół z Rosy  Utopiony w Kotle      nie sypiam nocami    Maleńki na Długach
+Łowca z Przedmieścia  Antek to Wyłudzacz    Tylko po Zwycięstwo  I Zasada Zachowania
 ```
 
-Ostatnie dwa są rozstrzygające. `Tylko po Regulusa` niesie `po` — czyli DOSŁOWNIE
-przyimek, którym `RE_DOT` odróżnia „obrażeń **od** trucizny" od „obrażeń **po**
-zranieniu". `I Prawo Kirchoffa` zaczyna się od `I`, spójnika rozdzielającego
-nazwy w składzie. Każda reguła leksykalna „maksymalny ciąg wyrazów" zjadłaby
+⚠️ **Te osiem nazw to ZASTĘPNIKI, wstawione 2026‑08‑06.** Stały tu prawdziwe
+pseudonimy ośmiu graczy, a repozytorium jest publiczne (`NOTICE.md`). Zastępniki
+niosą DOKŁADNIE te własności leksykalne, o które w tym akapicie chodzi — kotwicę
+`z`, `w`, `na`, `to`, małą literę na początku, przyimek `po` i wiodące `I`.
+Pomiar (**74 unikalne nazwy, 8 kolidujących**) jest prawdziwy i pochodzi
+z korpusu, którego w repo nie ma od 2026‑08‑04; nazw i tak nie dało się już
+zweryfikować.
+
+Ostatnie dwa są rozstrzygające. `Tylko po Zwycięstwo` niesie `po` — czyli
+DOSŁOWNIE przyimek, którym `RE_DOT` odróżnia „obrażeń **od** trucizny" od
+„obrażeń **po** zranieniu". `I Zasada Zachowania` zaczyna się od `I`, spójnika
+rozdzielającego nazwy w składzie. Każda reguła leksykalna „maksymalny ciąg wyrazów" zjadłaby
 kotwicę (`z siłą`, `o`, `uderzył`) albo rozcięła nazwę na spójniku. Nazwę
 odróżnia **wyłącznie pozycja względem kotwicy**,
 a pozycja to gramatyka. Powstaje więc dopiero tam, przez `nazwaDo(kotwica)`,

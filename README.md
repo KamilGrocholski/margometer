@@ -24,6 +24,60 @@ liczy to, co już się wydarzyło.
 
 ---
 
+## Dodatek a regulamin Margonem
+
+**MargoMeter nie jest autoryzowany przez Garmory** i nie ma po co udawać, że
+sprawa jest oczywista. Przeczytaj to przed instalacją.
+
+Co dodatek robi naprawdę — sprawdzalne w kodzie, nie tylko deklarowane:
+
+- **nie wysyła niczego** — w całym `src/` nie ma ani jednego `fetch`,
+  `XMLHttpRequest`, `WebSocket` ani `sendBeacon`;
+- **nie automatyzuje** — nie klika, nie symuluje klawiatury, nie wykonuje
+  żadnej akcji w grze;
+- **nie zmienia przebiegu walki** — owija `Engine.battle.update`, ale oryginał
+  leci pierwszy, a jego wynik wraca nietknięty; każda z tych gwarancji ma swój
+  test i sprawdzoną mutację;
+- **czyta i liczy** to, co gra sama dostała z serwera.
+
+I mimo to: **owinięcie cudzej funkcji jest dotknięciem klienta gry**, a
+[regulamin][reg] w VII.2 g) zakazuje — bez jasno wyrażonej zgody Usługodawcy —
+korzystania z:
+
+> (ii) usług, oprogramowania lub innych narzędzi technicznych bądź
+> informatycznych, **bez względu na ich sposób działania**, służących do
+> wspomagania […] udziału w Grze […]
+>
+> (iii) oprogramowania, którego użycie prowadzi do modyfikacji sposobu
+> działania Gry, **w tym sposobu działania Gry na urządzeniu końcowym Gracza** […]
+
+„Jasno wyrażona zgoda" jest tam zdefiniowana wąsko — jako oficjalny komunikat
+wskazujący **konkretne** oprogramowanie. MargoMeter takiego nie ma. Sankcją
+z [Taryfikatora Kar][tar] (V.4 a) za Niedozwolone Oprogramowanie jest **stała
+blokada Konta**.
+
+Z drugiej strony sam Usługodawca zakłada istnienie dodatków spoza swojej listy
+— strona [Bezpieczeństwo][bez] (VII.2) mówi „Wszelkich innych dodatków używasz
+na własną odpowiedzialność!", a nie „są zakazane" — i prowadzi
+[Niezbędnik Dodatkopisarzy][nie], czyli oficjalną dokumentację dla piszących
+dodatki.
+
+**Czego z tego nie wiemy:** jak Garmory zakwalifikuje akurat licznik, który
+tylko czyta. To ich decyzja, nie nasza, i nikt jej dotąd nie pytał.
+**Co z tego wynika dla Ciebie:** instalujesz na własne ryzyko, a ryzykiem jest
+konto. Jeśli to dla Ciebie za dużo — nie instaluj, i to jest rozsądny wybór.
+
+Garmory: jeżeli cokolwiek tu jest nie tak, [Panel Kontaktowy][kon] — poprawimy
+albo zdejmiemy.
+
+[reg]: https://pomoc.margonem.pl/index/view,323
+[tar]: https://pomoc.margonem.pl/index/view,331
+[bez]: https://pomoc.margonem.pl/index/view,240
+[nie]: https://pomoc.margonem.pl/index/view,409
+[kon]: https://www.margonem.pl/?task=contact
+
+---
+
 ## Jak zainstalować
 
 **1. Zainstaluj [Tampermonkey](https://www.tampermonkey.net/)** — rozszerzenie do
@@ -105,6 +159,11 @@ w samego bossa, więc widać jego stronę starcia.
 > siedem), pozycje bez sprawcy zeszły do jednego wiersza na końcu rankingu,
 > a paski są jaśniejsze, żeby tekst na nich przechodził próg czytelności.
 > Do wymiany.
+>
+> **Pseudonimy dziesięciu graczy są na obu obrazkach zakryte** — to publiczne
+> repozytorium, a oni nie mieli jak się na to zgodzić. Paski, liczby i procenty
+> zostały nietknięte, bo to o nich są te ilustracje. Procedura i powody:
+> [`docs/screenshots/README.md`](docs/screenshots/README.md).
 
 **Zadane — co boss zadał i czym**
 
@@ -142,7 +201,21 @@ Pracujesz tu z agentem AI (Claude Code, Codex, Cursor…)? Instrukcje projektu
 stoją w [`AGENTS.md`](AGENTS.md) — otwartym formacie, który te narzędzia czytają
 same.
 
-Materiał, na którym stoją testy, siedzi **w kodzie**, nie w plikach danych:
-prawdziwa walka z gry w [`tests/walka-z-gry.ts`](tests/walka-z-gry.ts), walki
-dla niezmienników w [`tests/korpus.ts`](tests/korpus.ts), a lista kluczy
-odczytana z klienta gry w `tests/klucze-protokolu.ts`.
+Materiał, na którym stoją testy: **nasze** liczby powstają w kodzie
+([`tests/korpus.ts`](tests/korpus.ts), `tests/klucze-protokolu.ts`), a **surowy
+protokół tak, jak przysłał go serwer** leży w `tests/fixtures/` — niezmienniki
+odkrywają te pliki same. [`tests/walka-z-gry.ts`](tests/walka-z-gry.ts) jest
+dziś kopią jednego z fixture'ów dla miejsc, które importują gotowe komunikaty;
+rozjazd kopii z oryginałem zapala test. Granica między jednym a drugim i powód,
+dla którego przebiega właśnie tam — w [`AGENTS.md`](AGENTS.md).
+
+---
+
+## Licencja
+
+Kod jest na [licencji MIT](LICENSE) — rób z nim, co chcesz, zostaw tylko notę.
+
+Margonem jest grą **Garmory sp. z o.o. sp.k.** i MIT jej **nie obejmuje**: ani
+nazwy, ani grafik, ani tekstów, ani kodu klienta. Co dokładnie z gry siedzi
+w tym repozytorium, na jakiej podstawie i czego celowo tu nie ma —
+[`NOTICE.md`](NOTICE.md).

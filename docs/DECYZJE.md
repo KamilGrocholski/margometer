@@ -165,7 +165,7 @@ a `UX.md` stawia zasadę „nie udawać danych, których log nie ma". Zostaje.
 
 Skutek praktyczny: w walce 10v1 z Hildur `opponentOf` milczy dla wszystkiego (po
 drugiej stronie stoi dziesięciu), ale zranienie i tak ma właściciela — 3 380
-obrażeń wróciło do Łowcomira. W puli zostały trucizna (40 435) i ogień (556).
+obrażeń wróciło do Gracza C. W puli zostały trucizna (40 435) i ogień (556).
 
 Obecne zachowanie: DoT przypisujemy sprawcy tylko wtedy, gdy po przeciwnej stronie
 stoi dokładnie jeden przeciwnik (`opponentOf` w `stats.ts`). W innym wypadku obrażenia
@@ -217,8 +217,8 @@ się przez postać (`dealtToBy` / `takenFromBy`), bo tam obie strony ciosu są w
 logu; leczenie tej symetrii nie ma.
 
 **Trzeci szyk, i najbliższy kontrprzykład, jaki ta sekcja dostała.** Leczenie
-kierowane — `Uleczono Zsz Przeworsk o 11937 punktów życia.` — stoi wprost pod
-zapowiedzią `Er Al Safar wykonuje Leczenie ran.`, więc **nazwa umiejętności jest
+kierowane — `Uleczono Gracza A o 11937 punktów życia.` — stoi wprost pod
+zapowiedzią `Gracz D wykonuje Leczenie ran.`, więc **nazwa umiejętności jest
 znana**, a przy odrobinie dobrej woli i rzucający też. Mimo to szczebla „kto
 leczył" **nadal nie budujemy**, i nie jest to zaniechanie:
 
@@ -276,7 +276,7 @@ postać". Tyle i tylko tyle da się z logu wyczytać, a wystarcza, żeby `healin
 nie dostawał cudzej roboty. Wcześniej rolę tę pełniło `ability !== null`, co
 działało dopóty, dopóki nazwane leczenie zawsze siadało na trafionym (`Dotyk
 anioła`, `Ostatni ratunek`). Fixture `2026-07-31_druzyna-vs-hildur-zwyciestwo`
-trzyma oba warianty naraz — Hubert Ivan leczy siebie, Er Al Safar leczy kogoś
+trzyma oba warianty naraz — Gracz E leczy siebie, Gracz D leczy kogoś
 innego, obaj tą samą umiejętnością — i jest jedynym dowodem, że to rozróżnienie
 w ogóle jest potrzebne.
 
@@ -678,7 +678,7 @@ dwie różne arytmetyki, zero sygnału w UI. Reguła sama w sobie jest przemyśl
 
 ### 2. Procent w nawiasie nie opisuje liczby, przy której stoi
 
-W trybie „na turę” wiersz Regulusa pokazuje `2810,9/t (84% · 39,4k)`. Ale 84% to
+W trybie „na turę” wiersz Gracza B pokazuje `2810,9/t (84% · 39,4k)`. Ale 84% to
 udział w SUROWYCH sumach (39352 z 46620), a nie udział pokazanego tempa
 (2810,9 z 4099,4 = 69%). To jest świadoma decyzja z `UX-POPRAWKI.md A2` — mianownikiem
 Σ(temp) była wielkość bez sensu fizycznego, więc udziały celowo zostały przy

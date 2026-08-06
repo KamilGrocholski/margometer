@@ -85,7 +85,7 @@ byłby pełny, a krótkie zrobiłyby się nieczytelne. Poprawiony został koment
 **Odznaka jako czwarta komórka wiersza albo osobny węzeł w etykiecie.** Oba
 warianty były już tu próbowane przy `AUDYT-14` i oba upadły: komórka kładzie test
 „wiersz to ranking, nie tabela", a węzeł wchodzi do `textContent` i nazwa zaczyna
-brzmieć „HŁowca głów z psk". Zostaje `::before` na `.label`.
+brzmieć „HŁowca Wichrów". Zostaje `::before` na `.label`.
 
 **Wspólna klasa `.window-chrome` doklejana w JS.** Wymagałaby zmiany w dwóch
 plikach przy każdym nowym oknie i dałoby się o nią zapomnieć. Reguła

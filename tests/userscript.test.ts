@@ -116,6 +116,15 @@ describe("kanał aktualizacji", () => {
     }
   });
 
+  test("licencja jedzie razem z plikiem i zgadza się z package.json", () => {
+    // Do użytkownika dociera SAM `.user.js`, nie repozytorium: Tampermonkey
+    // pokazuje ten nagłówek przy instalacji, a `LICENSE` widzi tylko ten, kto
+    // wejdzie na GitHuba. Dwa zapisy licencji, które się rozjadą, są gorsze niż
+    // jeden — dlatego porównanie z `package.json`, a nie literał obok literału.
+    expect(metaField(META, "license")).toEqual([pkg.license]);
+    expect(pkg.license).toBe("MIT");
+  });
+
   test("tożsamość dodatku wskazuje prawdziwe repozytorium", () => {
     // Stało tu `https://github.com/margometer` — adres, którego nie ma.
     // `@namespace` jest identyfikatorem, więc jego zmiana rozdziela instalacje;

@@ -259,14 +259,14 @@ describe("overlay", () => {
 
   test("pokazuje cały skład od linii otwierającej, zanim ktokolwiek zadziała", () => {
     const stats = aggregate([
-      otwarcie(["Łowca głów z psk 104h"], ["Wieczornica 93p", "Południca 92p"]),
+      otwarcie(["Łowca Wichrów 104h"], ["Wieczornica 93p", "Południca 92p"]),
     ]);
     const overlay = new Overlay();
     overlay.render(stats);
 
     const labels = [...overlay.shadow.querySelectorAll(".label")].map((el) => el.textContent);
     // Na samych zerach o kolejności decyduje alfabet (Ł przed P).
-    expect(labels).toEqual(["Łowca głów z psk", "Południca", "Wieczornica"]);
+    expect(labels).toEqual(["Łowca Wichrów", "Południca", "Wieczornica"]);
     // Sam wiersz to za mało: zero musi być widoczne jako zero, nie jako pustka.
     expect(overlay.shadow.querySelector(".value")?.textContent).toContain("0");
   });

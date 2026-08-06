@@ -509,8 +509,8 @@ osobna sprawa (`§9`, martwy kod), nie usterka widoku.
 w dniu, w którym zapadło, i przestało być słuszne **tego samego dnia**: `487ccf9`
 dołożył polu `heal.self` i przy okazji sam przypis w stopce. Od tamtego commita:
 
-- teza o redundancji **już nie zachodzi**. Leczenie kierowane („`Er Al Safar
-  wykonuje Leczenie ran.`" → „`Uleczono Zsz Przeworsk o 11937 punktów życia.`")
+- teza o redundancji **już nie zachodzi**. Leczenie kierowane („`Gracz D
+  wykonuje Leczenie ran.`" → „`Uleczono Gracza A o 11937 punktów życia.`")
   ma `self: false`, więc wchodzi do puli — ale w `healedBy` stoi pod NAZWĄ
   UMIEJĘTNOŚCI, nie pod „Regeneracją". Pula i suma widocznych „Regeneracji" to
   od tego momentu dwie różne liczby;
@@ -715,7 +715,7 @@ odznakę jako czwarte rodzeństwo w `.row-text` i **natychmiast położyła test
 
 **Rysuje ją `::before` z `attr(data-prof)`, nie osobny węzeł.** Druga wersja
 wstawiała `<span>` do etykiety — komplet testów przechodził, ale `textContent`
-wiersza zaczął zwracać „HŁowca głów z psk". Pseudoelement trzyma literę poza
+wiersza zaczął zwracać „HŁowca Wichrów". Pseudoelement trzyma literę poza
 strumieniem tekstu: nazwa zostaje nazwą dla kodu, testów i schowka, a odznaka
 jest warstwą nad nią. Barwy jadą zmiennymi CSS (`--prof-bg`, `--prof-ink`),
 bo do pseudoelementu nie sięga styl inline.
