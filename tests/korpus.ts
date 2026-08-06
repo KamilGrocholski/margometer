@@ -88,12 +88,19 @@ export const OSOBLIWOSCI: BattleEvent[] = [
  *
  * ⚠️ **TO JEST CZĘŚCIOWA ODPOWIEDŹ NA OSTRZEŻENIE Z GÓRY TEGO PLIKU.** Stało
  * tam — i nadal stoi — że kształt, o którym nie pomyśleliśmy, nie ma jak wpaść
- * do materiału budowanego przez nas. Od 2026‑08‑05 wpada, choć na razie
- * z JEDNEJ walki, a nie z dwudziestu pięciu. Ostrzeżenie zostaje, bo różnica
- * między jedną a dwudziestoma pięcioma jest w tym miejscu istotą sprawy.
+ * do materiału budowanego przez nas. Od 2026‑08‑05 wpada; od 2026‑08‑06 z DWÓCH
+ * walk, a nie z dwudziestu pięciu. Ostrzeżenie zostaje, bo różnica między dwiema
+ * a dwudziestoma pięcioma jest w tym miejscu istotą sprawy.
  *
- * ⚠️ Stało tu „z DWÓCH walk" (`AUDYT‑58`) — runda celowała w dwa fixture'y,
- * drugi odpadł jako sklejony, a liczba została. `WALKI_Z_GRY.length` mówi `1`.
+ * ✅ **Druga walka od razu na coś wpadła** — i to jest najlepszy dowód, jaki ten
+ * plik ma na własne istnienie. Materiał z 2026‑08‑06 nie chciał wejść: dawał 16
+ * komunikatów `unknown`, bo dekoder parował zadane z przyjętymi po KOLEJNOŚCI,
+ * choć gra nie paruje ich wcale. Nikt tego nie szukał; przyniosła to walka.
+ *
+ * ⚠️ Stało tu „z DWÓCH walk" (`AUDYT‑58`) — runda z 2026‑08‑05 celowała w dwa
+ * fixture'y, drugi odpadł jako sklejony, a liczba została w prozie na dobę
+ * wcześniej, niż była prawdziwa. Liczby nie przepisuje się z planu; mówi ją
+ * `WALKI_Z_GRY.length`.
  *
  * Kluczowa różnica wobec skasowanego `zdarzenia.json`: tam leżały POLICZONE
  * zdarzenia, więc błąd parsera był w nich zamrożony i testy sprawdzały się

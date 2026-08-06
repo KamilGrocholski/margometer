@@ -107,8 +107,11 @@ pokrycie tabeli ról przeciw 233 kluczom (569 testów).
 SUROWY protokół, a niezmienniki odkrywają pliki same (`tests/fixtury.ts`).
 Zrzut robi albo sam dodatek (zębatka → tryb deweloperski → „Zrzut walki”), albo
 `tools/walka-probe.js` w konsoli; `bun tools/walka.ts --zachowaj … --nazwa <slug>`
-zapisuje fixture, `--rozbij` robi z niego moduł w `tests/`. ⚠️ Prawdziwa walka
-jest w korpusie **jedna**, nie dwadzieścia pięć — skala nie wróciła.
+zapisuje fixture, `--rozbij` robi z niego moduł w `tests/`. ⚠️ Prawdziwych walk
+jest w korpusie **dwie** (druga od 2026‑08‑06), nie dwadzieścia pięć — skala nie
+wróciła. Za to druga od razu na coś wpadła: nie chciała wejść, dopóki nie
+naprawiono dekodera, który parował obrażenia zadane z przyjętymi po kolejności
+zamiast po żywiole.
 
 ---
 
@@ -178,7 +181,8 @@ sprawdź, czy odpowiedź jest już napisana, a dopiero potem ją mierz.**
    **Pełna procedura — osiem kroków, razem z tymi, których narzędzie za Ciebie
    nie zrobi — stoi w [`tests/fixtures/README.md`](../tests/fixtures/README.md).**
    Tam też: dlaczego pseudonimy graczy wchodzą do repo wyłącznie jako
-   `Gracz N` i czego strażniki NIE łapią.
+   `Gracz N`, dlaczego opisy umiejętności nie wchodzą wcale i czego strażniki
+   NIE łapią.
 
    ⚠️ **Stało tu co innego do 2026‑08‑04**: „nowy fixture ma mieć DWA pliki —
    `raw.txt` (tekst z «Kopiuj logi») i `log.html` (zrzut DOM, bo żywioł siedzi

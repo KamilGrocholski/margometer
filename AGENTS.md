@@ -122,6 +122,14 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
   (`AUDYT‑61`). Blok i absorpcja przez świadka **przechodzą**, bo `applied` to
   liczba PO redukcji; niesprawdzone są ich osobne składniki. Obrażenia ZADANE
   i rozbicia nadal świadka nie mają.
+
+  ⚠️ **DRUGI FIXTURE POKAZAŁ, ŻE ŚWIADEK NIE ROŚNIE Z MATERIAŁEM** (2026‑08‑06).
+  `grupa-vs-hildur` jest pięćdziesiąt razy większy od starszego pliku i robi
+  **mniej porównań** — potwór leczy się niemal w każdej turze, a uleczony cel
+  wypada z porównań od tej chwili. Liczby wypisuje test; nie cytuje się ich tutaj
+  z tego samego powodu, co przy `702 → 718`. Wniosek zostaje: **szerokość kluczy
+  i głębokość świadka to dwie różne rzeczy.** Zrzut, który ma wzmocnić świadka,
+  musi być walką BEZ leczenia celu, a nie po prostu dłuższą.
 - **Materiał z gry jest dowodem**, nie „danymi testowymi”. Pochodzenie (świat,
   build, daty, źródło) niesie **sam zrzut** w `tests/fixtures/`; opis tego, co
   pokrywa, czego w nim nie ma i co było trudne, stoi w `tests/fixtures/README.md`
@@ -179,23 +187,41 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
     kogoś, kto wypadł przed pierwszą migawką — przechodzi przez nie nietknięty
     i **nie zapala ani jednego strażnika** (zmierzone mutacją). Dlatego procedura
     ma krok „przeczytaj `otwarcie` i `render` oczami".
+  - ⛔ **OPISY UMIEJĘTNOŚCI → DO FIXTURE'A NIGDY.** Piąta kategoria, dopisana
+    2026‑08‑06 tego samego dnia co czwarta i **z tego samego powodu**: trzecia
+    mówiła „brzmienia gry → nigdzie", a `ladunek.skills` w pierwszym zrzucie,
+    który je niósł, przeszedłby z pięcioma pełnymi zdaniami autorstwa twórców
+    gry. Zdejmuje je `zdejmijOpisy` w `tools/walka.ts`, automatycznie przy każdym
+    `--zachowaj`; ile zeszło, mówi pole `opisow` w pliku, a pilnują dwa
+    niezmienniki w `tests/fixtury.test.ts` — jeden po położeniu pola, drugi po
+    kształcie tekstu, żeby zmiana układu ładunku nie uciszyła obu naraz.
+    `id` umiejętności, jej NAZWA, wymagania i parametry zostają: to nazwy
+    funkcyjne, ta sama granica co przy `+abdest`.
+
+    ⚠️ **Wniosek warty więcej niż sama kategoria.** Reguła „brzmienia gry →
+    nigdzie" istniała od rana i **nie chroniła materiału**, bo pilnował jej
+    strażnik po stronie SŁOWNIKA. Dwa razy pod rząd — przy pseudonimach
+    i tutaj — okazało się to samo: **reguła bez strażnika po stronie danych jest
+    regułą o kodzie, nie o repozytorium.** Pisząc następną, sprawdź, którędy do
+    repo wchodzą pliki.
   - **Protokół tak, jak przysłał go serwer → do `tests/fixtures/*.json`**, przez
     `bun tools/walka.ts --zachowaj … --nazwa <slug>`. Bo moduł z `--rozbij`
     gubi `hp.max`, ładunki i granice wywołań, a bez `hp.max` nie ma świadka
     dekodera spoza dekodera (niżej). „Tak, jak przysłał go serwer" ma odtąd
-    jeden wyjątek i jest nim kategoria wyżej.
+    **dwa wyjątki** i są nimi dwie kategorie wyżej; oba są liczone w samym pliku
+    (`pseudonimow`, `opisow`).
 
   **Warunek, pod którym katalog wrócił: niezmienniki ODKRYWAJĄ pliki same**
   (`tests/fixtury.ts` + `tests/fixtury.test.ts`, wciągane też do `KORPUS`).
   Drugi zarzut z tamtej rundy brzmiał „plik danych da się dołożyć bez dotknięcia
   jednego testu, leżał martwy i nikt tego nie widział" — i to jest prawda o
   katalogu, którego nikt nie czyta. Tu zrzut wrzucony do katalogu jest sprawdzany
-  od razu; sprawdzone pomiarem: dorzucenie jednego pliku dało **16 testów
-  więcej** (702 → 718, pomiar 2026‑08‑05 przez skopiowanie fixture'a pod inną
-  nazwą i usunięcie go). ⚠️ Stało tu `14` (`AUDYT‑82`) — i lekcja jest ogólniejsza
-  od poprawki: **ta liczba rośnie razem z zestawem testów**, więc nie ma sensu
-  cytować jej jako stałej. Znaczenie ma znak, nie wartość: nowy plik dokłada
-  testy, zamiast leżeć martwo.
+  od razu; sprawdzone pomiarem **dwa razy, na dwóch różnych zestawach testów**:
+  2026‑08‑05 dorzucenie pliku dało 16 testów więcej, 2026‑08‑06 — 20. ⚠️ Stało
+  tu `14`, potem `16` (`AUDYT‑82`), i lekcja jest ogólniejsza od poprawki:
+  **ta liczba rośnie razem z zestawem testów**, więc nie ma sensu cytować jej
+  jako stałej. Znaczenie ma znak, nie wartość: nowy plik dokłada testy, zamiast
+  leżeć martwo. Pomiar robi się przez usunięcie pliku i porównanie `bun test`.
 
   Katalog **pusty** zapala osobny test (`FIXTURY.length > 0`) — sprawdzone.
   ⚠️ Literówka w ŚCIEŻCE nie zapala testu, tylko wywraca ładowanie modułu
@@ -213,14 +239,24 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
   ⚠️ **CO ODEBRAŁO SKASOWANIE 25 WALK — i ile z tego wróciło.** Kształt, o którym
   nie pomyśleliśmy, nie ma jak wpaść do materiału budowanego przez nas; 25
   prawdziwych walk łapało je samo z siebie. Od 2026‑08‑05 prawdziwe walki znów
-  są w pętli niezmienników, ale jest ich **JEDNA**, nie dwadzieścia pięć. Nadal
-  nie są sprawdzane: przekrój po typie obrażeń w walce grupowej, blok u celu
-  i super‑kryt. Każde miejsce ma ⚠️ z liczbami.
+  są w pętli niezmienników, a od 2026‑08‑06 są ich **DWIE**, nie dwadzieścia
+  pięć.
+
+  ✅ **Trzy kształty wymienione tu jako niesprawdzane PRZYSZŁY z drugą walką**
+  (2026‑08‑06): przekrój po typie obrażeń w walce grupowej, blok u celu
+  i super‑kryt. To nie jest zbieg okoliczności ani zasługa planowania — 25 walk
+  łapało takie rzeczy same z siebie i **jedna prawdziwa walka też je złapała**,
+  łącznie z błędem dekodera, o którym nikt nie wiedział (parowanie po kolejności,
+  16 komunikatów `unknown`). Dowód działa w obie strony: materiał z gry naprawdę
+  niesie kształty, na które nie wpadamy, i naprawdę wystarczy go MAŁO, żeby to
+  pokazać.
 
   ⚠️ **Stało tu „dwie" do 2026‑08‑05** (`AUDYT‑58`). Runda celowała w dwa
   fixture'y, drugi odpadł jako sklejony — a liczba została w prozie i rozeszła
-  się stąd do pięciu innych miejsc. `find tests/fixtures -name '*.json'` mówi
-  `1`; `ROADMAP.md` i `tests/fixtures/README.md` mówiły „jedna" od początku.
+  się stąd do pięciu innych miejsc. `find tests/fixtures -name '*.json'` mówiło
+  wtedy `1`; `ROADMAP.md` i `tests/fixtures/README.md` mówiły „jedna" od
+  początku. Od 2026‑08‑06 prawdziwą liczbą jest `2` — i lekcja z tamtego
+  sprostowania zostaje: **licz plikiem, nie pamięcią.**
 
   ✅ Co wróciło i kiedy:
   - 2026‑08‑04 — zgodność zaszytych identyfikatorów `_t` z assetem gry
@@ -242,6 +278,14 @@ czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
     538/763 = 70,51 %` z `id -255970`. Ani `70.51`, ani `225`, ani `538`, ani
     takiego `id` nie ma w `tests/fixtures/` — przyszły z odrzuconego zrzutu
     i przeżyły go w prozie. Liczba `6` jako jedyna była prawdziwa.
+  - 2026‑08‑06 — **druga prawdziwa walka**, grupowa, w ponad stu wywołaniach.
+    Przyniosła blok u celu, absorpcję z własnymi kluczami, zapowiedź
+    umiejętności, `heal_target` w dwóch szykach, super‑kryt, przekrój po
+    żywiołach i zmienny `data.current`. **Nie weszła od razu**: dawała 16
+    komunikatów `unknown` i weszła dopiero po poprawce dekodera, który parował
+    zadane z przyjętymi po KOLEJNOŚCI, choć gra nie paruje ich wcale
+    (`docs/MECHANIKA.md`, wpis „Zadane i przyjęte NIE SĄ PAROWANE").
+    ⚠️ Świadka **nie wzmocniła** — patrz sekcja „Testy" wyżej.
 
   Kolejny materiał z gry ma **dwie drogi**, obie kończące się tym samym
   `bun tools/walka.ts --zachowaj … --nazwa <slug>` (i zwykle także `--rozbij`)

@@ -146,9 +146,17 @@ z trzech szyków leczenia:
 Wiersz wypełniony w jednej trzeciej przypadków wygląda w panelu jak healer,
 który raz leczy, a raz nie — powody w `DECYZJE.md` §„Leczenie bez leczącego”.
 
-**Czego brakuje do domknięcia:** zrzutu z gry z kluczem `heal_target`. Jedyna
-prawdziwa walka w repo ma sam `heal=99`, więc atrybucja stoi dziś na odczycie
-renderera, a nie na materiale.
+~~**Czego brakuje do domknięcia:** zrzutu z gry z kluczem `heal_target`.~~
+✅ **MATERIAŁ JEST — 2026‑08‑06.** `2026-08-06-tempest-grupa-vs-hildur` niesie
+`heal_target` w dwóch szykach naraz: samoleczenie (`Osłona tarczą`, obie strony
+komunikatu to ten sam `id`) i leczenie CUDZE (`Leczenie ran`, dwa różne `id`) —
+czyli dokładnie ta para, na której odczyt renderera („pierwsza strona to
+rzucający") daje się sprawdzić przeciw materiałowi. Atrybucja przestała stać na
+samym kodzie gry.
+
+⚠️ **To nie zamyka pozycji, tylko jej podstawę.** Otwarte zostaje to samo, co
+wyżej — drążenie „wg postaci (kto leczył)" nadal dałoby się wypełnić tylko dla
+jednego z trzech szyków, a to jest decyzja projektowa, nie brak danych.
 
 ## Tura z autorytatywnego sygnału — `data.current`
 
@@ -162,15 +170,22 @@ Sygnał autorytatywny **jest w ładunku, który już przechwytujemy**: `data.cur
 niesie `id` postaci, której gra przyznaje turę (`Battle.js:444,450` →
 `self.newTurn(data.current)`). Co go dziś blokuje:
 
-- **W jedynym zrzucie cała walka (18 komunikatów) przyszła w JEDNYM wywołaniu
-  `update`** — to była walka automatyczna, którą silnik liczy sekwencyjnie
-  i oddaje w całości. Dla takiej walki `current` nie rozstrzyga ani jednej linii.
+- ~~**W jedynym zrzucie cała walka (18 komunikatów) przyszła w JEDNYM wywołaniu
+  `update`**~~ — to była walka automatyczna, którą silnik liczy sekwencyjnie
+  i oddaje w całości. ✅ **Przestało blokować 2026‑08‑06:**
+  `2026-08-06-tempest-grupa-vs-hildur` przyszedł w ponad stu wywołaniach,
+  a `current` zmienia się między nimi. Materiał do sprawdzenia, ile `current`
+  pokrywa, JEST.
 - `recorder.ts` zapisuje wyłącznie komunikaty, więc dopięcie `current` zmienia
   FORMAT nagrań — czyli powtarza „nagrania sprzed tej wersji przepadają”.
+  **To zostaje jedynym powodem, dla którego pozycja jest otwarta**, i jest to
+  koszt, nie brak.
 
-**Czego brakuje do domknięcia:** zrzutu z walki TUROWEJ (PvP albo ręcznej z NPC),
-w której porcje przychodzą osobno — dopiero on pokaże, ile `current` naprawdę
-pokrywa i czy warto za to płacić formatem nagrań.
+⚠️ **Czego materiał z 2026‑08‑06 NIE rozstrzyga.** To walka grupowa z potworem,
+nie PvP i nie ręczna z NPC. `current` w niej jest, ale nikt nie sprawdził, czy
+walka sterowana ręcznie porcjuje wywołania tak samo — a to od tego zależy, ile
+`current` naprawdę zmienia. Zdanie „brakuje zrzutu z walki TUROWEJ" schodzi więc
+tylko o tyle, o ile dotyczyło GRANIC WYWOŁAŃ.
 
 ## Leczenie, które nie liczy się do niczego — `bandage` i `vamp_time` ✅
 
@@ -283,6 +298,20 @@ narzędzie nie jest materiałem. Do dziś nie wiadomo też, czy zrzut z dodatku
 zgadza się ze zrzutem sondy z tej samej walki — sprawdzone jest wyłącznie to,
 że oba mają ten sam kształt.
 
+✅ **MATERIAŁ PRZYSZEDŁ — 2026‑08‑06.** `2026-08-06-tempest-grupa-vs-hildur`
+zamyka po stronie MATERIAŁU trzy z tych czterech pozycji: `heal_target`,
+granice wywołań dla `data.current` i całą listę zakupową poza unikiem.
+Zdanie wyżej („narzędzie nie jest materiałem") było trafne i to jest jego
+rozstrzygnięcie: pierwszy zrzut zebrany dodatkiem, a nie konsolą, wystarczył.
+Czego NIE zamyka, stoi przy każdej pozycji z osobna; `bandage`/`vamp_time`
+i unik nadal czekają.
+
+⚠️ **Zdanie o zgodności dwóch dróg ZOSTAJE nierozstrzygnięte i zmienił się
+tylko jego kontekst.** Katalog ma dziś po jednym pliku z każdej drogi — ale
+z dwóch RÓŻNYCH walk, więc porównać ich nie ma jak. Do domknięcia trzeba tej
+samej walki zebranej oboma sposobami naraz, a to wymaga włączonego dodatku
+i wklejonej sondy jednocześnie.
+
 ✅ **SUROWY MATERIAŁ WRÓCIŁ DO REPO — 2026‑08‑05.** `tests/fixtures/*.json`
 niesie zrzuty tak, jak przysłał je serwer, a niezmienniki ODKRYWAJĄ pliki same
 (`tests/fixtury.ts`, `tests/fixtury.test.ts`, wciągnięcie do `KORPUS`). Dzięki
@@ -295,7 +324,15 @@ i granica wobec decyzji z 2026‑08‑04:
 
 ⚠️ **W katalogu leży JEDNA walka, nie dwie** — i to jest znalezisko tej rundy,
 opisane niżej: pierwszy zrzut z dodatku okazał się dwiema walkami w jednym
-pliku i został odrzucony.
+pliku i został odrzucony. ✅ **Druga weszła 2026‑08‑06** (`grupa-vs-hildur`),
+innym zrzutem, z jedną walką w pliku.
+
+⚠️ **Świadek nie urósł proporcjonalnie i tak trzeba to czytać.** Nowy plik jest
+pięćdziesiąt razy większy i daje **mniej porównań niż stary**, bo potwór leczy
+się niemal w każdej turze, a uleczony cel wypada z porównań (`AUDYT‑61`).
+Zmierzone liczby stoją w `tests/fixtury.test.ts` i wypisuje je test. Wniosek
+ogólniejszy od tej pozycji: **szerokość kluczy i głębokość świadka to dwie różne
+rzeczy**, a materiał potrafi dać pierwszą, nie dając drugiej.
 
 ## Granica walk — nasze numerowanie nie widzi drugiej walki w sesji
 
@@ -353,9 +390,23 @@ w `meta.json`, zweryfikowany po `covers`:
   słownika, a nie orakulum, bo `damageWeakened` nie wchodzi do porównywanych
   skalarów (`a5e9150`). Wniosek: **czujka i czytanie źródeł łapią co innego.**
 
-  **Czego ta para nie ma:** bloku, uniku, absorpcji, zapowiedzi umiejętności.
-  To jest lista zakupowa na następny zrzut. (Stało tu jeszcze „ani `log.html`" —
-  bezprzedmiotowe od 2026‑08‑04, sonda nie zbiera już węzłów renderu.)
+  **Czego ta para nie ma:** ~~bloku~~, uniku, ~~absorpcji~~, ~~zapowiedzi
+  umiejętności~~. To jest lista zakupowa na następny zrzut. (Stało tu jeszcze
+  „ani `log.html`" — bezprzedmiotowe od 2026‑08‑04, sonda nie zbiera już węzłów
+  renderu.)
+
+  ✅ **Trzy z czterech skreślone 2026‑08‑06** przez
+  `2026-08-06-tempest-grupa-vs-hildur`: `-blok` (dziewięć linii, wszystkie u tego
+  samego celu), `-absorb` i `-absorbm` z własnymi kluczami razem z ich
+  niszczeniem, `prepare=` rozłożone na kilka wywołań aż do `(100%)`. **Zostaje
+  UNIK** — i to jest cała dzisiejsza lista zakupowa, razem z `bandage`
+  i `vamp_time` z pozycji wyżej.
+
+  ⚠️ **Skreślenie znaczy „materiał JEST", nie „przeliczone i zgodne".** Świadek
+  `hp.max` obejmuje wyłącznie obrażenia i przechodzi po sumie `applied`, więc
+  blok i absorpcja przechodzą przezeń jako składnik już odjęty; ich OSOBNE
+  składniki nadal nie mają świadka spoza dekodera. To samo zastrzeżenie, co
+  w `AGENTS.md`.
 
   Poniższy akapit opisuje stan sprzed tej pary i zostaje jako zapis drogi:
 
@@ -384,9 +435,18 @@ w `meta.json`, zweryfikowany po `covers`:
   ⚠️ **ORAKULUM ZESZŁO Z DRZEWA 2026‑08‑04 I TO JEST DZIŚ NAJWIĘKSZA OTWARTA
   LUKA.** `tests/orakulum.test.ts` porównywało `dekoduj(komunikaty)` z
   `parse(odtworz(komunikaty))` — dwa rozłączne kody czytające ten sam komunikat
-  — i to ono złapało jedyny prawdziwy błąd dekodera (leczenie przypisywane
+  — i to ono złapało pierwszy prawdziwy błąd dekodera (leczenie przypisywane
   sobie). Razem z parserem tekstu zniknęła druga strona porównania; skasowanie
   było świadomą decyzją, nie przeoczeniem.
+
+  ⚠️ **Stało tu „JEDYNY prawdziwy błąd dekodera" i przestało być prawdą
+  2026‑08‑06.** Drugi znalazł się bez orakulum: parowanie zadanych z przyjętymi
+  po kolejności, złapane przez sam MATERIAŁ — nowy fixture dał 16 komunikatów
+  `unknown` i nie chciał wejść. To osłabia zdanie „dekoder nie ma dziś świadka
+  spoza repo" o tyle, o ile prawdziwa walka jest takim świadkiem: nie sprawdza
+  liczby po liczbie, ale kształtu, którego nie umiemy wymyślić, dostarcza sama.
+  Luka **zostaje otwarta** — jedna walka nie zastępuje orakulum — ale nie jest
+  już prawdą, że nic spoza repo dekodera nie sprawdza.
 
   **Dekoder nie ma dziś świadka spoza repo.** Wszystkie pozostałe testy pytają
   repo o zgodność z samym sobą — a to jest dokładnie ten kształt, który był
