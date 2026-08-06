@@ -1010,8 +1010,12 @@ export function dekoduj(
       side: r.strona === "cel" ? "target" : "attacker",
     });
 
-    const zadane: Hit[] = [];
-    const przyjete: number[] = [];
+    // ŻYWIOŁ TRZYMAMY JAKO KOD, nie jako `element`. `nazwaZywiolu` jest stratne
+    // (nieznana litera wychodzi jako `dmg<litera>`, a `+dmg` bez litery i `dmgp`
+    // dałyby ten sam napis), więc na klucz parowania się nie nadaje. Sam `Hit`
+    // kodu nie niesie — to szczegół protokołu, a nie część kontraktu zdarzeń.
+    const zadane: { kod: string; hit: Hit }[] = [];
+    const przyjete: { kod: string; wartosc: number }[] = [];
     const procy: Proc[] = [];
     let blok: number | null = null;
     let unik = false;
@@ -1044,22 +1048,25 @@ export function dekoduj(
           // bijącego, więc `strona` zostaje domyślna.
           if (r.typ === "ciosProc") procy.push(proc(p, { id: r.id }));
           zadane.push({
-            raw: wartosc,
-            // Uzupełniane niżej, gdy poznamy stronę przyjętą. Zero tutaj jest
-            // zaślepką, nie odczytem — i dlatego parowanie ma własny komentarz.
-            applied: 0,
-            crit: false,
-            superCrit: false,
-            secondary: zadane.length > 0,
-            element: nazwaZywiolu(r.kod),
-            dodged: false,
+            kod: r.kod,
+            hit: {
+              raw: wartosc,
+              // Uzupełniane niżej, gdy poznamy stronę przyjętą. Zero tutaj jest
+              // zaślepką, nie odczytem — i dlatego parowanie ma własny komentarz.
+              applied: 0,
+              crit: false,
+              superCrit: false,
+              secondary: zadane.length > 0,
+              element: nazwaZywiolu(r.kod),
+              dodged: false,
+            },
           });
           break;
         }
         case "przyjete": {
           const wartosc = liczba(p.wartosc);
           if (wartosc === null) nieznany(p.surowy);
-          else przyjete.push(wartosc);
+          else przyjete.push({ kod: r.kod, wartosc });
           break;
         }
         case "blok": {
@@ -1284,53 +1291,67 @@ export function dekoduj(
       return;
     }
 
-    // PAROWANIE ZADANYCH Z PRZYJĘTYMI IDZIE PO KOLEJNOŚCI, tak jak gra skleja
-    // `attack` i `take` w pętli `for (var k in msg)`. Jest to możliwe DLATEGO,
-    // że obie strony stoją w jednym komunikacie — odczyt ze zdań musiał je
-    // parować heurystycznie i to była jego największa słabość.
+    // PAROWANIE ZADANYCH Z PRZYJĘTYMI IDZIE PO ŻYWIOLE, bo tak robi gra —
+    // a ściślej: gra nie paruje ich wcale i żywioł bierze z samego klucza.
+    // `battleMsg` prowadzi dwa NIEZALEŻNE ciągi (`BattleMessages.js:165‑167`)
+    // i w gałęzi `default` dokleja do nich osobno, robiąc z klucza klasę CSS
+    // (`:1102‑1116`, `'<b class=' + m[0].substr(1) + …`). Indeksu, po którym
+    // dałoby się cokolwiek sparować, nie ma tam w ogóle.
     //
-    // ⚠️ Długości MOGĄ być różne: `+dmgd=897;…;-dmgd=184;-dmga=135` ma jedną
-    // liczbę zadaną i dwie przyjęte. Nadmiar NIE GINIE — dostaje własne
-    // trafienie z `raw: 0` — bo `aggregate` sumuje `raw` i `applied` osobno,
-    // więc skalary zostają prawdziwe. Rozjazd długości jest jednak zapalany
-    // jako `unknown`: to sygnał, że nasz model ciosu nie pokrywa się z grą.
+    // ⚠️ **DO 2026‑08‑06 SZŁO TO PO KOLEJNOŚCI I BYŁ TO NASZ WYMYSŁ, NIE
+    // ODCZYT.** Stało tu „tak jak gra skleja `attack` i `take` w pętli
+    // `for (var k in msg)`" — gra faktycznie idzie taką pętlą, ale skleja
+    // OSOBNO, a my z tego zdania wyprowadziliśmy parowanie, którego ono nie
+    // niesie. Skutek: przy `+dmgd,+dmgf,+dmgc` i tylko `-dmgd,-dmgc` przyjęte
+    // dla `dmgc` lądowało pod `dmgf`, a `dmgc` dostawało zero. Skalary
+    // zostawały prawdziwe (`aggregate` sumuje `raw` i `applied` osobno),
+    // kłamało rozbicie po żywiołach. Cytat i pomiar: `docs/MECHANIKA.md`,
+    // wpis „Zadane i przyjęte NIE SĄ PAROWANE".
     //
-    // ⚠️ **STAŁO TU „widać to w prawdziwych walkach" I OBIETNICA, ŻE
-    // „pierwsza walka ze zrzutem ma to rozstrzygnąć"** (`AUDYT‑90`). Zrzut jest
-    // w repo od 2026‑08‑05 i rozstrzygnął: **0 rozjazdów** na 18 komunikatach
-    // `2026-08-04-tempest-lowca-vs-odyncze` (zero `unknown`, świadek 7/7).
-    // Kształt powyżej pochodzi z 25 walk skasowanych 2026‑08‑04 i dziś żyje
-    // wyłącznie jako asercja syntetyczna w `tests/protokol.test.ts`. Gałąź
-    // ZOSTAJE — nadmiar naprawdę nie ma gdzie zginąć, a `unknown` jest tu tani —
-    // ale „widać to w prawdziwych walkach" nie jest już zdaniem, które ktokolwiek
-    // w tym repo umie sprawdzić. Rozstrzygnie je dopiero drugi zrzut.
-    if (zadane.length !== przyjete.length) nieznany(surowy);
+    // ⚠️ **OBIETNICA „ROZSTRZYGNIE JE DOPIERO DRUGI ZRZUT" JEST SPEŁNIONA**
+    // (`AUDYT‑90`). Drugi zrzut wszedł 2026‑08‑06 i na 188 liniach ciosu dał
+    // **172 listy równe co do kolejności, 16 właściwych podzbiorów, 0 innych
+    // kształtów**. Te 16 to jedyny powód, dla którego kolejność mogła kłamać —
+    // i jedyny, którego pierwszy zrzut (9 linii, wszystkie równe) nie miał jak
+    // pokazać.
+    //
+    // ⚠️ **KIERUNEK ODWROTNY ZOSTAJE NIEZNANY.** Przyjęte bez zadanego
+    // (`-thirdatt`, kod `3`; `-dmga` z komentarza sprzed tej rundy) nadal
+    // dostaje własne trafienie z `raw: 0` — nadmiar nie ma gdzie zginąć — ale
+    // ZAPALA `unknown`, bo materiału z takim kształtem repo nie ma. `+dmgX`
+    // bez pary już `unknown` NIE zapala: to jest ten rozstrzygnięty kształt
+    // i znaczy „pod tym żywiołem nie weszło nic".
+    const wolne = [...przyjete];
     const trafienia: Hit[] = [];
-    for (let i = 0; i < Math.max(zadane.length, przyjete.length); i += 1) {
-      const z = zadane[i];
-      trafienia.push(
-        z === undefined
-          ? {
-              raw: 0,
-              applied: przyjete[i] ?? 0,
-              crit: krytPomocniczy,
-              superCrit: false,
-              secondary: i > 0,
-              element: null,
-              dodged: unik && (przyjete[i] ?? 0) === 0,
-            }
-          : {
-              ...z,
-              applied: przyjete[i] ?? 0,
-              // Ten sam rozkład co `buildHits`: kryt broni pomocniczej siada na
-              // trafieniach wtórnych, główny i bardzo krytyczny na pierwszym.
-              crit: i > 0 ? krytPomocniczy : krytGlowny,
-              superCrit: i > 0 ? false : krytBardzo,
-              // Unik bywa CZĘŚCIOWY — o uniknięciu tego trafienia decyduje
-              // zerowa wartość przyjęta, nie sama obecność klucza.
-              dodged: unik && (przyjete[i] ?? 0) === 0,
-            },
-      );
+    for (const [i, z] of zadane.entries()) {
+      const gdzie = wolne.findIndex((w) => w.kod === z.kod);
+      // ZUŻYWAMY dopasowanie, zamiast tylko je znajdować: ten sam żywioł potrafi
+      // paść w komunikacie dwa razy (dwa strzały tą samą bronią), a wtedy drugie
+      // zadane ma dostać DRUGIE przyjęte, nie to samo co pierwsze.
+      const przyjeta = gdzie === -1 ? 0 : (wolne.splice(gdzie, 1)[0]?.wartosc ?? 0);
+      trafienia.push({
+        ...z.hit,
+        applied: przyjeta,
+        // Ten sam rozkład co `buildHits`: kryt broni pomocniczej siada na
+        // trafieniach wtórnych, główny i bardzo krytyczny na pierwszym.
+        crit: i > 0 ? krytPomocniczy : krytGlowny,
+        superCrit: i > 0 ? false : krytBardzo,
+        // Unik bywa CZĘŚCIOWY — o uniknięciu tego trafienia decyduje zerowa
+        // wartość przyjęta, nie sama obecność klucza.
+        dodged: unik && przyjeta === 0,
+      });
+    }
+    if (wolne.length > 0) nieznany(surowy);
+    for (const [i, w] of wolne.entries()) {
+      trafienia.push({
+        raw: 0,
+        applied: w.wartosc,
+        crit: krytPomocniczy,
+        superCrit: false,
+        secondary: zadane.length + i > 0,
+        element: null,
+        dodged: unik && w.wartosc === 0,
+      });
     }
 
     zdarzenia.push({

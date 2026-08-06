@@ -475,6 +475,60 @@ Ich zdania brzmią „%name% otrzymał %val% obrażeń od ognia” (`:317‑330`
 a dodatek trzyma je w tabeli efektów nieliczonych. To osobna sprawa od stron
 i nie jest dziś naprawiona; zapisana tu, żeby nie wypadła z pola widzenia.
 
+### Zadane i przyjęte NIE SĄ PAROWANE — gra prowadzi dwie osobne listy ✅
+
+Pytanie: w komunikacie `+dmgd=926;+dmgf=138;+dmgc=799;…;-dmgd=81;-dmgc=8` które
+przyjęte należy do którego zadanego. Dotyczy gry, nie nas: cudze repo czytające
+ten sam strumień ma ten sam komunikat i ten sam problem.
+
+**Pomoc gry milczy i to jest wynik, nie brak wyniku.** *nie znaleziono*
+w `view,372`; szukane: „obrażenia wykonane”, „obrażenia przyjęte”, „otrzymał”
+(jedno trafienie, o poziomie operacyjnym); metoda: `bun tools/pomoc.ts`; data:
+2026‑08‑06. Zgodne z tym, co ten plik mówi od założenia: pomoc opisuje
+mechanikę, nie format logu.
+
+**Metoda: trzeci szczebel** (`§4b`) — asset klienta, build deweloperski
+`1781609507010`. Sześć tygodni starszy od produkcji, ale pytanie jest
+o STRUKTURĘ, nie o brzmienie, więc mieści się w tym, na co ten szczebel wolno
+powołać.
+
+**Odpowiedź: gra nie paruje ich wcale.** `battleMsg` zakłada dwa NIEZALEŻNE
+ciągi (`BattleMessages.js:165‑167`) i w gałęzi `default` dokleja do nich osobno,
+biorąc żywioł z SAMEGO KLUCZA (`:1102‑1116`):
+
+> ```js
+> var tm = ['', '', ''], type = '', attack = '', take = '', takenum = 0;
+> …
+> if (m[0].substr(1, 3) == 'dmg') {
+>     if (m[0].charAt(0) == '+') { attack += '<b class=' + m[0].substr(1) + '>+' + m[1] + '</b>'; }
+>     else { take += '<b class=' + m[0].substr(1) + ' prof-' + f1.prof + '>-' + m[1] + '</b>'; takenum -= m[1]; }
+> }
+> ```
+
+Klasa CSS to `m[0].substr(1)`, czyli `dmgf`, `dmgc`, `dmgd` — **żywioł podaje
+klucz i nigdzie nie ma indeksu, po którym cokolwiek dałoby się sparować**. Poza
+gałęzią `default` jest tak samo: `+of_dmg` (`:619`), `+thirdatt` (`:624`)
+i `-thirdatt` (`:863`) też tylko doklejają. Skalar `takenum` (`:167`, `:864`,
+`:1114`) sumuje wyłącznie stronę przyjętą.
+
+**Wniosek dla kodu.** Parowanie PO POZYCJI było naszym wymysłem, nie odczytem.
+Do 2026‑08‑06 `dekoduj` sklejało `zadane[i]` z `przyjete[i]`, więc przy
+`+dmgd,+dmgf,+dmgc` i tylko `-dmgd,-dmgc` przyjęte dla `dmgc` lądowało pod
+`dmgf`, a `dmgc` dostawało zero. **Skalary zostawały prawdziwe** (`aggregate`
+sumuje `raw` i `applied` osobno), kłamało rozbicie po żywiołach. Parowanie idzie
+dziś po kluczu, a `+dmgX` bez pary znaczy „pod tym żywiołem nie weszło nic”.
+
+**Zmierzone na materiale** (`2026-08-06-tempest-grupa-vs-hildur`, 188 linii
+ciosu): **172 listy równe co do kolejności, 16 właściwych podzbiorów, 0 innych
+kształtów** — `-dmgX` nigdy nie wychodzi poza `+dmgX`. Na starszym fixturze
+(9 linii) wszystkie listy są równe, więc poprawka jest tam bezskutkowa i to
+zgadza się z tym, że tamten materiał nigdy tej gałęzi nie zapalił.
+
+⚠️ **Kierunek odwrotny ZOSTAJE nierozstrzygnięty.** Przyjęte bez zadanego
+(`-thirdatt`, kod `3`, oraz `-dmga` z komentarza przy `rozbierz`) nadal idzie
+do `unknown` — materiału z takim kształtem repo nie ma, a renderer o tym nic nie
+mówi, bo jemu to obojętne: dokleja do `take` i tyle.
+
 ### Krwawa udręka ( anguish ) — obrażenia w czasie, których korpus NIE zna ✅
 
 > „Krwawa udręka ( anguish ) • **Działanie:** podczas walki istnieje
@@ -595,8 +649,12 @@ rodzinę („rana”), więc rozjazd nie rozbija sumy — gdyby rozbijał, decyz
 mogłaby wyjść odwrotnie.
 
 ⚠️ **Czego ten wpis NIE mówi: jak często te klucze padają.** To jest pytanie do
-próbki, nie do klienta gry — a jedyna prawdziwa walka w repo nie niesie ani
-jednego z jedenastu. Rozdział tych dwóch pytań (FORMAT → kod gry, CZĘSTOŚĆ →
+próbki, nie do klienta gry — a przez dobę żadna prawdziwa walka w repo nie
+niosła ani jednego z jedenastu. ✅ **Od 2026‑08‑06 jeden jest**: `+oth_dmg`
+pada w `2026-08-06-tempest-grupa-vs-hildur` kilkanaście razy, zawsze w postaci
+`+oth_dmg=143,a,<nazwa>(4.78%)` — czyli z TRZECIĄ postacią i jej procentem życia
+w wartości. Pozostałych dziesięciu nadal nie ma i pytanie o częstość zostaje
+otwarte. Rozdział tych dwóch pytań (FORMAT → kod gry, CZĘSTOŚĆ →
 materiał) jest w tej procedurze od początku i został tu złamany raz, we własną
 stronę: `ROADMAP.md` trzymał `bandage` i `vamp_time` jako „czekające na zrzut”,
 choć zrzut nigdy nie był potrzebny do odpowiedzi, na którą czekały.

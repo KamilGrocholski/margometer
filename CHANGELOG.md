@@ -47,6 +47,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Opis dodatku mówi wprost, że twórcy Margonem go nie
   autoryzowali, i przytacza punkty regulaminu, które go dotyczą. Instalujesz
   na własne ryzyko — przeczytaj to przed instalacją.
+- **Poprawka** — Rozbicie obrażeń na rodzaje (broń, ogień, zimno, błyskawica…)
+  podaje przy każdym rodzaju jego własną liczbę. Gdy gra nie powiedziała, ile
+  z któregoś rodzaju weszło w cel, liczba należąca do następnego trafiała pod
+  ten pierwszy — sumy były poprawne, ale w rozbiciu jeden rodzaj miał za dużo,
+  a drugi za mało. Widać to było tylko w walkach, w których jeden cios zadaje
+  obrażenia kilku rodzajami naraz.
 - **Poprawka** — Druga i każda kolejna walka stoczona bez zmiany mapy pokazuje
   SWOJE liczby. Dotąd doliczała się do poprzedniej: po dwóch walkach pod rząd
   panel pokazywał sumę obu, razem z postaciami z tej pierwszej, i nie mówił

@@ -2861,6 +2861,27 @@ w prawdziwych walkach" nie jest już czymś, co ktokolwiek w repo umie sprawdzi�
 
 **Docelowo.** Zostaje przy kodzie.
 
+⚠️ **SPROSTOWANIE 2026‑08‑06 — TEN WPIS ZAMKNĄŁ SIĘ NA POMIARZE, KTÓRY NIE MIAŁ
+JAK NIC POKAZAĆ.** Wynik „0 rozjazdów na 18 komunikatach" był prawdziwy, ale
+mierzony na materiale, w którym **wszystkie 9 linii ciosu ma listy `+dmgX`
+i `-dmgX` równe co do kolejności** — czyli na próbce, gdzie parowanie po
+pozycji i parowanie po żywiole dają identyczny wynik z definicji. „Zmierzone
+i zgadza się" znaczyło tu „zmierzone tam, gdzie nie mogło się nie zgadzać".
+
+Drugi zrzut (`2026-08-06-tempest-grupa-vs-hildur`, 188 linii ciosu) dał **16
+linii, w których `-dmgX` jest właściwym podzbiorem `+dmgX`** — i wszystkie
+poszły do `unknown`, więc materiał nie chciał wejść do repo. Rozstrzygnął to
+asset klienta: gra **nie paruje tych dwóch stron wcale**, prowadzi dwa
+niezależne ciągi i żywioł bierze z samego klucza (`docs/MECHANIKA.md`, wpis
+„Zadane i przyjęte NIE SĄ PAROWANE"). Parowanie po kolejności było naszym
+wymysłem od początku; przy tych 16 liniach podstawiało przyjęte pod niewłaściwy
+żywioł. Skalary zostawały prawdziwe, rozbicie po żywiołach kłamało.
+
+**Wniosek ogólniejszy od poprawki, i to on jest tu wart zapamiętania:** pomiar
+na jednej próbce zamyka pozycję tylko wtedy, gdy próbka MOGŁA dać wynik
+przeciwny. Zanim wpiszesz „zmierzone, zgadza się", sprawdź, czy w tym materiale
+błąd, którego szukasz, miałby jak się ujawnić.
+
 ### AUDYT‑91 — uzasadnienie żywego strażnika stoi na pomiarze z nieistniejącego pliku ⚪ XS — ✅ NAPRAWIONE ✓
 
 `src/stats.ts` (`SELF_INFLICTED_DOTS`) · `docs/MECHANIKA.md`

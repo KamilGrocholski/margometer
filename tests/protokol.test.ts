@@ -440,7 +440,43 @@ describe("dekoduj: cios", () => {
     expect(cios.hits.map((h) => h.applied)).toEqual([184, 135]);
     expect(cios.hits.map((h) => h.raw)).toEqual([897, 0]);
     // Suma przyjętych zostaje prawdziwa, a rozjazd długości jest zgłoszony.
+    // ⚠️ To jest kierunek NIEROZSTRZYGNIĘTY — przyjęte bez zadanego. Kierunek
+    // odwrotny (`+dmgX` bez pary) `unknown` już nie zapala; test niżej.
     expect(zd.some((z) => z.kind === "unknown")).toBe(true);
+  });
+
+  test("przyjęte trafia pod SWÓJ żywioł, nie pod ten, który wypadł na tej pozycji", () => {
+    // Kształt zmierzony na `2026-08-06-tempest-grupa-vs-hildur`: trzy żywioły
+    // zadane, dwa przyjęte, a brakuje ŚRODKOWEGO. Parowanie po kolejności dawało
+    // tu `ogień ← 8` (przyjęte należące do zimna) i `zimno ← 0`.
+    const [z] = dekoduj(
+      ["1=100.00;2=99.57;+dmgd=926;+dmgf=138;+dmgc=799;-dmgd=81;-dmgc=8"],
+      SKLAD,
+    );
+    const hits = (z as { hits: { element: string; applied: number; raw: number }[] }).hits;
+    expect(hits.map((h) => `${h.element}:${h.raw}→${h.applied}`)).toEqual([
+      "dystansowe:926→81",
+      "ogień:138→0",
+      "zimno:799→8",
+    ]);
+  });
+
+  test("`+dmgX` bez pary nie jest już nieznanym kształtem", () => {
+    // Osobno od asercji wyżej, bo pyta o co innego: tamta o przypisanie liczb,
+    // ta o czujkę. Rozstrzygnięte 2026‑08‑06 assetem klienta — gra dwóch stron
+    // nie paruje w ogóle (`docs/MECHANIKA.md`, „Zadane i przyjęte NIE SĄ
+    // PAROWANE"), więc brak `-dmgf` znaczy „pod ogniem nie weszło nic", a nie
+    // „nasz model się rozjechał".
+    const zd = dekoduj(["1=100.00;2=99.57;+dmgd=926;+dmgf=138;-dmgd=81"], SKLAD);
+    expect(zd.some((z) => z.kind === "unknown")).toBe(false);
+  });
+
+  test("ten sam żywioł dwa razy — drugie zadane bierze DRUGIE przyjęte", () => {
+    // Zużywanie dopasowania, a nie samo jego znajdowanie. Bez `splice` oba
+    // trafienia dostałyby 100 i suma przyjętych urosłaby z 130 do 200.
+    const [z] = dekoduj(["1=100.00;2=98.29;+dmgd=500;+dmgd=400;-dmgd=100;-dmgd=30"], SKLAD);
+    const hits = (z as { hits: { applied: number }[] }).hits;
+    expect(hits.map((h) => h.applied)).toEqual([100, 30]);
   });
 });
 
