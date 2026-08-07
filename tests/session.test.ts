@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { aggregate, EMPTY_STATS, type Aggregate } from "../src/stats.ts";
+import { EMPTY_STATS, type Aggregate } from "../src/stats.ts";
 import { Overlay } from "../src/overlay.ts";
-import { Session, splitFights } from "../src/session.ts";
+import { Session } from "../src/session.ts";
 import { StaticProtocolSource } from "../src/protokol-source.ts";
 import { start } from "../src/index.ts";
 import { dekoduj } from "../src/protokol.ts";
-import { OSOBLIWOSCI, WALKI } from "./korpus.ts";
+import { OSOBLIWOSCI, WALKI, WALKI_Z_GRY } from "./korpus.ts";
 
 /**
  * Dwie ROZŁĄCZNE walki — żadna nazwa się nie powtarza.
@@ -16,7 +16,7 @@ import { OSOBLIWOSCI, WALKI } from "./korpus.ts";
  */
 const PIERWSZA = OSOBLIWOSCI; // Gracz, Locha, Odyniec
 const DRUGA = WALKI[0]!.events; // Tancogniew Kazrek, Magister Długonogi
-import { cios, otwarcie, trafienie } from "./zdarzenia.ts";
+import { otwarcie } from "./zdarzenia.ts";
 import type { RosterEntry } from "../src/roster.ts";
 
 /**
@@ -25,53 +25,48 @@ import type { RosterEntry } from "../src/roster.ts";
  * `mergeStats` nie zgubił nowego pola, żeby `copyActor` nie mutował walki
  * bieżącej. Suma zeszła z drzewa razem z nimi (`AUDYT‑6`).
  *
- * Zostaje to, co `Session` nadal robi: **dzieli bufor na walki i mówi, która
- * z nich jest TĄ**. Reszta była kosztem funkcji, której nie ma.
+ * ⚠️ **A do 2026‑08‑07 stało tu „zostaje to, co `Session` nadal robi: dzieli
+ * bufor na walki i mówi, która z nich jest TĄ" — i cztery testy tego
+ * pilnowały.** Wszystkie cztery budowały materiał z `otwarcie()`, czyli ze
+ * zdarzenia `fight-start`, którego dekoder protokołu **nigdy nie produkuje**
+ * (`AUDYT‑108`). Były zielone i sprawdzały funkcję, do której na żywo nie
+ * docierało nic. Zeszły razem z `splitFights`.
+ *
+ * Zostaje test niżej — jedyny, który o tę własność pyta **materiałem z gry**,
+ * a nie własnym. Pyta więc słabiej: „nie ma czego dzielić", zamiast „dzieli
+ * dobrze".
  */
 describe("sesja", () => {
-  test("dzieli bufor na osobne walki", () => {
-    expect(splitFights([...PIERWSZA, ...DRUGA])).toHaveLength(2);
+  test("korpus z gry jest niepusty — inaczej niezmiennik niżej byłby zielony i pusty", () => {
+    expect(WALKI_Z_GRY.length).toBeGreaterThan(0);
   });
 
-  test("zdublowana linia rozpoczęcia nie tworzy drugiej walki", () => {
-    // Margonem potrafi zdublować nagłówek. Powtórzenie TEGO SAMEGO składu nie
-    // zaczyna drugiej walki, bo poprzednia nie ma jeszcze treści.
-    const [naglowek] = PIERWSZA;
-    expect(splitFights([naglowek!, ...PIERWSZA])).toHaveLength(1);
-  });
+  test.each(WALKI_Z_GRY)(
+    "$name — walka z gry nie niesie ani jednej granicy, którą `Session` mogłaby ciąć",
+    ({ events }) => {
+      // To jest zdanie o GRZE, nie o nas, i dlatego stoi na fixture'ach:
+      // klient syntetyzuje linię otwierającą poza `data.m` (`Battle.js:945`),
+      // więc `fight-start` nie ma prawa przyjść protokołem. Gdyby kiedyś
+      // przyszedł, `Session` sumowałaby dwie walki w jedną i NIKT by tego nie
+      // zauważył — bo kryterium podziału już nie istnieje. Ten test jest
+      // jedynym miejscem, w którym takie zdarzenie zapaliłoby światło.
+      expect(events.filter((z) => z.kind === "fight-start")).toHaveLength(0);
+    },
+  );
 
-  test("walka skończona na samym nagłówku nie skleja się z następną", () => {
-    // Ucieczka albo przerwanie: pierwsza walka nie ma nic poza nagłówkiem.
-    // Dawniej wystarczało to, by drugi nagłówek uznać za dubel — obie walki
-    // wpadały w jedną, ze składem pierwszej.
-    const events = [
-      otwarcie(["Gracz 1w"], ["Wilk 1w"]),
-      otwarcie(["Gracz 1w"], ["Niedźwiedź 1w"]),
-      cios("Gracz", "Niedźwiedź", [trafienie(300)], { targetHpPct: 60 }),
-    ];
-
-    const fights = splitFights(events);
-    expect(fights).toHaveLength(2);
-    // Skład drugiej walki jest jej własny, nie odziedziczony po pierwszej.
-    expect(aggregate(fights[1]!).actors.map((a) => a.name).sort()).toEqual([
-      "Gracz",
-      "Niedźwiedź",
-    ]);
-  });
-
-  test("z bufora z kilkoma walkami liczy się OSTATNIA, nie wszystkie", async () => {
-    // Podział ma sens tylko wtedy, gdy wybiera ostatnią walkę, a nie sumuje
-    // bufor. Test wymaga postaci, która występuje WYŁĄCZNIE w pierwszej walce:
-    // gdyby liczyły się obie, znalazłaby się w wyniku.
-    const solo = new Session();
-    solo.updateEvents(PIERWSZA);
-    expect(solo.current().actors.some((a) => a.name === "Gracz")).toBe(true);
-
+  test("bufor z dwiema walkami SUMUJE — granica nie stoi już w tym pliku", () => {
+    // ⚠️ To NIE jest test naprawy, tylko zapis znanej dziury (`AUDYT‑108`).
+    // Dwie rozłączne walki w jednym buforze dają jeden wynik obejmujący obie.
+    // Tak było też PRZED skasowaniem `splitFights` — funkcja dzieliła po
+    // zdarzeniu, którego w tym materiale nie ma... ale materiał tutaj jest
+    // SYNTETYCZNY i `fight-start` niesie, więc przed zmianą ten test by padł.
+    // Stoi tu po to, żeby przyszła naprawa (podział po `fight-end`) miała co
+    // odwrócić, i żeby nikt nie uznał sumowania za zamierzone.
     const session = new Session();
     session.updateEvents([...PIERWSZA, ...DRUGA]);
-    // `Gracz` występuje WYŁĄCZNIE w pierwszej — gdyby liczyły się obie, byłby.
-    expect(session.current().actors.some((a) => a.name === "Gracz")).toBe(false);
-    expect(session.current().actors.some((a) => a.name === "Tancogniew Kazrek")).toBe(true);
+    const nazwy = session.current().actors.map((a) => a.name);
+    expect(nazwy).toContain("Gracz"); // wyłącznie z PIERWSZEJ
+    expect(nazwy).toContain("Tancogniew Kazrek"); // wyłącznie z DRUGIEJ
   });
 
   test("ta sama walka wczytana drugi raz nie podwaja liczb bieżącej walki", async () => {
@@ -89,17 +84,19 @@ describe("sesja", () => {
     expect(session.current().actors.find((a) => a.name === bijacy)!.damageDealt).toBe(jedna);
   });
 
-  test("skład z gry stosuje się do walki, która jest liczona", async () => {
-    // `fromGame` opisuje walkę TRWAJĄCĄ. Wcześniej pilnował tego warunek
-    // `i === fights.length - 1`, bo `aggregate` szło po wszystkich walkach
-    // w buforze; dziś liczy się tylko ostatnia, więc warunek zniknął — a to,
-    // czego pilnował, ma zostać prawdą.
+  test("skład z gry dociera do liczonej walki", async () => {
+    // `fromGame` opisuje walkę TRWAJĄCĄ i stosuje się bezwarunkowo.
+    //
+    // ⚠️ Komentarz stał tu w wersji „wchodzi do składu OSTATNIEJ walki, a nie
+    // pierwszej" i opisywał `splitFights`, którego nie ma. Test zostaje, bo
+    // pyta o coś, co nadal jest prawdą i nadal ma znaczenie: skład podany
+    // z gry ma dojść do agregatu. Przestał pytać o wybór walki, bo wyboru
+    // nie ma.
     const session = new Session();
-    session.updateEvents([...PIERWSZA, ...DRUGA], [
+    session.updateEvents(DRUGA, [
       { id: 1, name: "Podstawiony", side: 0, prof: "w", lvl: 1 },
     ]);
 
-    // Postać z rostera wchodzi do składu OSTATNIEJ walki, a nie pierwszej.
     const zRostera = session.current().actors.find((a) => a.name === "Podstawiony");
     expect(zRostera?.inRoster).toBe(true);
   });
@@ -167,12 +164,12 @@ describe("panel dostaje bieżącą walkę, nie historię", () => {
 });
 
 /**
- * `updateEvents` — wspólne wejście dla obu źródeł.
+ * `updateEvents` — jedyne wejście do agregatu na żywo.
  *
- * Metoda istnieje po to, żeby protokół silnika trafiał do TEGO SAMEGO
- * `splitFights` i `aggregate`, co tekst. Gdyby drugie źródło dostało własny
- * podział na walki albo własny agregat, porównanie wyników przestałoby cokolwiek
- * znaczyć: mierzyłoby różnicę między dwoma agregatami, a nie między odczytami.
+ * ⚠️ **Nagłówek brzmiał „wspólne wejście dla OBU źródeł" i uzasadniał się
+ * porównaniem dwóch odczytów.** Drugi odczyt zszedł z drzewa 2026‑08‑04,
+ * a `splitFights`, do którego oba miały trafiać, 2026‑08‑07 (`AUDYT‑108`).
+ * Z całego tamtego zdania zostaje `aggregate`.
  */
 describe("Session.updateEvents", () => {
   test("korpus jest niepusty — inaczej niezmiennik niżej byłby zielony i pusty", () => {
@@ -184,9 +181,11 @@ describe("Session.updateEvents", () => {
    * — 25 prawdziwych walk. Chodzi dziś po walkach budowanych w kodzie
    * (`tests/korpus.ts`), więc sprawdza tę samą WŁASNOŚĆ na uboższym materiale.
    */
-  test.each(WALKI)("$name — jedna walka w korpusie to jedna walka w sesji", ({ events }) => {
-    expect(splitFights(events).filter((f) => f.length > 0)).toHaveLength(1);
-
+  test.each(WALKI)("$name — walka z korpusu daje niepusty odczyt", ({ events }) => {
+    // ⚠️ Test pytał do 2026‑08‑07 także o `splitFights(events)` z wynikiem `1`
+    // i to była jego mocniejsza połowa. Zdjęta razem z funkcją: pytała, czy
+    // materiał, który sami zbudowaliśmy, ma jeden nagłówek — a nie o nic, co
+    // dzieje się na żywo.
     const sesja = new Session();
     sesja.updateEvents(events);
     expect(sesja.current().actors.length).toBeGreaterThan(0);

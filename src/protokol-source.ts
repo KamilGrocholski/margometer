@@ -254,10 +254,17 @@ export class EngineProtocolSource implements EventSource {
       // Warunek wyżej stał tu sam i był NIEKONIECZNY: gra tworzy `Engine.battle`
       // raz i używa go dalej, zmieniając stan, nie referencję. Zmierzone na
       // panelu, nie wywnioskowane — ten sam strumień podany dwa razy dawał
-      // 2644 → 5288 obrażeń i 12 → 24 tury, bo `splitFights` nie ma po czym
-      // dzielić (protokół nie niesie `fight-start`, klient syntetyzuje linię
-      // otwierającą poza `data.m`). Druga walka w sesji liczyła się razem
-      // z pierwszą i rozwiązywała `id` po nazwach z tamtej.
+      // 2644 → 5288 obrażeń i 12 → 24 tury. Druga walka w sesji liczyła się
+      // razem z pierwszą i rozwiązywała `id` po nazwach z tamtej.
+      //
+      // ⚠️ **I NIC W DÓŁ POTOKU TEGO NIE ŁAPIE — TO JEST JEDYNA GRANICA.**
+      // Zdanie stało tu jako „bo `splitFights` nie ma po czym dzielić", czyli
+      // wskazywało na drugą warstwę, która **od 2026‑08‑04 była martwa**:
+      // dzieliła po `fight-start`, a protokół takiego zdarzenia nie niesie
+      // (klient syntetyzuje linię otwierającą poza `data.m`). Zeszła z drzewa
+      // 2026‑08‑07 (`AUDYT‑108`). Odcięcie niżej jest więc JEDYNYM miejscem,
+      // w którym dwie walki przestają być jedną — pomyłka tutaj jest po prostu
+      // podwojoną liczbą w panelu, bez ostrzeżenia.
       //
       // Odcięcie leci PRZED wszystkim innym w tym wywołaniu, bo kolekcjoner
       // zapisuje ładunek `init` już pod NOWYM numerem walki — inaczej wpis

@@ -34,9 +34,14 @@ Engine.battle.update  →  protokol-source.ts → komunikaty `t.m` + skład
                       →  protokol.ts        → BattleEvent[]  (rozbiór klucz po kluczu)
                       →  slownik-gry.ts     → brzmienia efektów z `window._t`
                       →  stats.ts           → BattleStats  (agregacja, rozbicia, instancje)
-                      →  session.ts         → która walka jest TĄ
+                      →  session.ts         → pamięta ostatni odczyt
                       →  overlay.ts         → panel w Shadow DOM
 ```
+
+⚠️ **`session.ts` stało tu jako „która walka jest TĄ" do 2026‑08‑07** i przestało
+być prawdą wcześniej, niż to poprawiono: kryterium podziału dzieliło po
+zdarzeniu, którego dekoder nie produkuje od 2026‑08‑04 (`AUDYT‑108`). Granicę
+walki tnie dziś wyłącznie `protokol-source.ts` na `data.init`.
 
 ⚠️ **Stała tu droga przez DOM** (`source.ts` → `parser.ts`) i zeszła z drzewa
 2026‑08‑04. Protokół niesie `id` po obu stronach każdego zdarzenia, żywioł jako

@@ -3710,7 +3710,7 @@ owinąć", tylko „ktoś stanął nad nami" — i odpowiedzią jest odmowa pono
 owinięcia, nie owinięcie. Wariant „szukaj naszego znacznika w głąb łańcucha"
 odrzucony bez pomiaru: wymaga założeń o cudzym kształcie opakowania.
 
-### AUDYT‑108 — `splitFights` jest MARTWE, a granica walki stoi na jednym warunku 🔴 S — ⬜ ZAPISANE, nienaprawione ✓
+### AUDYT‑108 — `splitFights` jest MARTWE, a granica walki stoi na jednym warunku 🔴 S — ◧ POŁOWA NAPRAWIONA 2026‑08‑07, druga otwarta ✓
 
 `src/session.ts:17‑41`, `src/stats.ts:805`, `src/protokol.ts:1435`
 
@@ -3764,6 +3764,32 @@ walk"). Naprawa ma dwie połowy i wolno je rozdzielić: skasowanie martwego
 kryterium to `refactor`, dołożenie podziału po `fight-end` to zmiana zachowania
 i zasługuje na spec — bo trzeba rozstrzygnąć, co robić ze zdarzeniami między
 `fight-end` a następnym `init`.
+
+✅ **PIERWSZA POŁOWA ZROBIONA 2026‑08‑07.** `splitFights` i `participantsKey`
+zeszły z `src/session.ts`; `updateEvents` woła `aggregate` na całym buforze.
+Zmierzone przed i po na obu fixture'ach przez `Session` — **wszystkie liczby
+identyczne co do jednej** (zdarzenia, `unknown`, zadane, przyjęte, tury,
+aktorzy), czyli teza „to kryterium jest martwe" potwierdzona pomiarem, a nie
+samym `grep`em. Bramy nie ruszyło: 816 → 816 zielonych.
+
+Cztery testy stojące na `splitFights` zeszły razem z nim (`tests/session.test.ts`),
+bo wszystkie budowały materiał z `otwarcie()`. Weszły trzy inne: niezmiennik po
+fixture'ach „walka z gry nie niesie ani jednego `fight-start`" — **jedyne
+miejsce, w którym takie zdarzenie zapaliłoby dziś światło** — jego strażnik
+niepustości, oraz jawny zapis, że bufor z dwiema walkami SUMUJE. Ten ostatni
+sprawdzony mutacją: na kodzie sprzed zmiany **padłby** (`splitFights` zwracał
+ostatnią walkę, więc postać z pierwszej znikała).
+
+⚠️ **SPROSTOWANIE DO TEGO WPISU: `stats.ts:805` NIE JEST MARTWE.** Wpis wymienia
+je w nagłówku razem z `session.ts`, jakby obie linie schodziły jednym ruchem.
+Gałąź jest martwa **na żywo**, ale nie w repo: wisi na niej **cały korpus
+syntetyczny** — `aggregate` bez `fromGame` w `tests/korpus.ts`, `readEvents`
+w `tests/helpers.ts:39` i kilkadziesiąt wywołań w testach panelu i palety.
+Skasowanie wymaga przeprojektowania `tools/synthetic-log.ts`, żeby oddawał skład
+obok zdarzeń — własna runda z własnym specem. **Zdanie „gałąź żyje wyłącznie dla
+testów i `tools/`" było prawdziwe i mimo to mylące**: „żyje wyłącznie dla
+testów" czyta się jak „da się skasować", a znaczy tu „testy są jej jedynym
+konsumentem i dlatego kasowanie zaczyna się od nich".
 
 ### AUDYT‑109 — `DamageSource.hits` znaczy DWIE różne rzeczy, a docstring podaje jedną 🟡 S — ⬜ ZAPISANE, nienaprawione ✓
 

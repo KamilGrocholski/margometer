@@ -72,8 +72,14 @@ Engine.battle.update ──owinięcie──► komunikaty `t.m`
         ┌────────────────────┼─────────────────────┐
         ▼                    ▼                     ▼
    Session.updateEvents  Recorder.capture      Overlay.render
-   (która walka jest TĄ) (zapis SUROWCA)        (widok)
+   (pamięć odczytu)      (zapis SUROWCA)        (widok)
 ```
+
+⚠️ **W nawiasie stało „która walka jest TĄ" do 2026‑08‑07.** `splitFights`
+dzielił po `fight-start`, którego dekoder nie produkuje od 2026‑08‑04, więc opis
+przeżył swoje uzasadnienie o trzy dni (`AUDYT‑108`). Granicę walki tnie dziś
+wyłącznie `protokol-source.ts` na `data.init` — **jeden warunek, bez drugiego
+świadka**.
 
 ⚠️ Do 2026‑08‑04 pierwsze dwa piętra brzmiały
 `DOM gry ──extractText──► tekst ──parse──► BattleEvent[]`. Zmieniły się
@@ -317,6 +323,12 @@ Fakt na marginesie, warto zapisać: zdublowana linia `Rozpoczęła się walka`
 występuje **tylko w `raw.txt`** (wyjście „Kopiuj logi”), nie w DOM. Oba
 mechanizmy odsiewania dubla (`splitFights` w `session.ts`, `recorder.ts`)
 obsługują więc wyłącznie drogę wklejonego tekstu.
+
+⚠️ **Z tych dwóch został jeden.** Droga wklejonego tekstu zeszła z drzewa
+2026‑08‑04, a `splitFights` — 2026‑08‑07, bo od tamtej daty dzielił po
+zdarzeniu, którego nikt już nie produkował (`AUDYT‑108`). Akapit zostaje jako
+zapis o GRZE (dubel nagłówka istnieje i występuje tylko w `raw.txt`); zdanie
+o naszych mechanizmach dotyczy dziś samego `recorder.ts`.
 
 ### 4.13 F5 w trakcie walki nagrywa ją drugi raz 🟡 [NAPRAWIONE 2026‑07‑30]
 `recorder.ts:141`, `:154‑156`, `:227‑244` — `on` przeżywa odświeżenie
@@ -661,6 +673,15 @@ Obrażenia PRZED modyfikatorem (`parser.ts:37`), leczenie/DoT PRZED `endBlock`
   osobnych liczników („nieznany żywioł”, „raw ≠ applied co do LICZBY wartości”).
 
 ## 7. Sumowanie sesji — `src/session.ts`
+
+⚠️ **CAŁA TA SEKCJA OPISUJE KOD, KTÓREGO NIE MA.** Zostaje jako zapis
+rozumowania, nie jako lista roboty. Wymienia `parser.ts`, `source.ts`
+i `mergeStats` (zeszły 2026‑08‑03/04), `splitFights` i `participantsKey`
+(2026‑08‑07, `AUDYT‑108`) oraz sumowanie sesji, którego `Session` nie robi od
+`AUDYT‑6`. Z proponowanego `FightTracker` nie zostało nic do wspólnego: po
+skasowaniu martwego kryterium **`session.ts` nie dzieli już niczego**, a jedyną
+implementacją podziału w drzewie jest `splitLines` w `recorder.ts`. Numery linii
+z tej sekcji nie prowadzą tam, gdzie mówią.
 
 **DRY — dwa razy „ta sama walka?”, policzone.** 🔴 Dwie implementacje tych samych
 dwóch decyzji, ~45 linii plus trzy kopie wzorca:

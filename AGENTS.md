@@ -56,9 +56,16 @@ Engine.battle.update  →  protokol-source.ts → komunikaty `t.m` + skład
                       →  protokol.ts        → BattleEvent[]  (rozbiór klucz po kluczu)
                       →  slownik-gry.ts     → brzmienia efektów z `window._t`
                       →  stats.ts           → BattleStats  (agregacja, rozbicia, instancje)
-                      →  session.ts         → która walka jest TĄ
+                      →  session.ts         → pamięta ostatni odczyt
                       →  overlay.ts         → panel w Shadow DOM
 ```
+
+⚠️ **`session.ts` stało tu jako „która walka jest TĄ" do 2026‑08‑07.** Kryterium
+podziału (`splitFights`, po zdarzeniu `fight-start`) było martwe od 2026‑08‑04 —
+dekoder takiego zdarzenia nie produkuje — i zeszło z drzewa razem z tym opisem
+(`AUDYT‑108`). **Która walka jest TĄ, rozstrzyga dziś wyłącznie
+`protokol-source.ts`**, odcinając bufor na `data.init`. To jest jeden warunek
+bez drugiego świadka i tak ma być czytane.
 
 `BattleEvent[]` (`types.ts`) jest KONTRAKTEM między źródłem a agregatem — i to
 on przeżył wymianę odczytu. Nagrania trzymają surowe komunikaty, nie policzone

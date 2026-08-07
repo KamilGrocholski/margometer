@@ -457,15 +457,30 @@ następna go nie dostanie. Oba przypadki nazywa `docs/MECHANIKA.md` i żadnego n
 rozstrzyga materiał. Potrzebny zrzut z przeładowaniem.
 
 ⚠️ **Dopisane 2026‑08‑07 (`AUDYT‑108`): granica stoi na JEDNYM warunku, a druga
-obrona jest martwa.** Akapit wyżej mówi „granicą jest dziś `data.init`" i to
-prawda — ale `session.ts` miał być drugą warstwą i nią nie jest. `splitFights`
-dzieli po zdarzeniu `fight-start`, którego **dekoder protokołu nie produkuje od
+obrona była martwa.** Akapit wyżej mówi „granicą jest dziś `data.init`" i to
+prawda — ale `session.ts` miał być drugą warstwą i nią nie był. `splitFights`
+dzielił po zdarzeniu `fight-start`, którego **dekoder protokołu nie produkuje od
 2026‑08‑04**; jedynymi producentami w repo są generator i budowniczy testowy.
 Zmierzone: bufor z dwiema kopiami tej samej walki daje **2883 → 5766 obrażeń
 i 12 → 24 tury**, dokładnie jak przed naprawą z `AUDYT‑57`. Strumień niesie przy
 tym `fight-end` — 2× na walkę w obu fixture'ach — i nikt go do podziału nie
-czyta. Skutek uboczny tej samej martwoty: `stats.ts:805` zwraca na żywo zawsze
-`[]`, choć komentarz obok obiecuje odczyt „z linii otwierającej".
+czyta.
+
+✅ **Martwa obrona skasowana tego samego dnia** — `splitFights` zszedł
+z `src/session.ts`, a liczby na obu fixture'ach nie drgnęły (pomiar przed i po
+przez `Session`, wszystkie pola identyczne). **To nie jest naprawa granicy, tylko
+usunięcie złudzenia, że jest podwójna.** Granica nadal stoi na jednym warunku
+i tryb awarii jest niezmieniony — zmieniło się tyle, że `session.ts` już nie
+udaje drugiego świadka.
+
+⚠️ **Co z tego ZOSTAJE otwarte:** podział po `fight-end` jako druga, niezależna
+granica. To zmiana ZACHOWANIA, nie sprzątanie — trzeba rozstrzygnąć, co robić ze
+zdarzeniami między `fight-end` a następnym `init`, i to zasługuje na spec.
+Otwarte zostaje też `stats.ts:805` (zwraca na żywo zawsze `[]`, choć komentarz
+obok obiecuje odczyt „z linii otwierającej") — z tym, że **nie jest to gałąź
+martwa, tylko żywa wyłącznie dla korpusu syntetycznego**: wisi na niej
+`tools/synthetic-log.ts` i kilkadziesiąt testów panelu. Sprostowanie i powód
+przy wpisie `AUDYT‑108`.
 
 ⚠️ **Dopisane 2026‑08‑07 (`AUDYT‑107`): drugie źródło podwojenia, niezależne od
 granicy walki.** Gdy cudzy dodatek owinie `Engine.battle.update` **po nas**,
