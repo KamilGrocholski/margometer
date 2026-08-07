@@ -1,6 +1,11 @@
 import { dekoduj } from "./protokol.ts";
 import type { GameGlobals, RosterEntry, RosterSource } from "./roster.ts";
-import { zaczynaWalke, type Kolekcjoner, type MigawkaWojownika } from "./zrzut.ts";
+import {
+  komunikatyZLadunku,
+  zaczynaWalke,
+  type Kolekcjoner,
+  type MigawkaWojownika,
+} from "./zrzut.ts";
 import { SlownikGry, SlownikStaly, type Slownik, type TranslationGlobals } from "./slownik-gry.ts";
 import type { BattleEvent } from "./types.ts";
 
@@ -73,27 +78,6 @@ export class StaticProtocolSource implements EventSource {
     });
     return () => {};
   }
-}
-
-/**
- * `t.m` → lista komunikatów.
- *
- * Gra iteruje ten ładunek przez `for (var i in data.m)` (`Battle.js:460`), więc
- * **nie obiecuje jednego kształtu**: tablica i obiekt zachowują się tam tak
- * samo. Sonda z etapu 1 broni się przed obydwoma i to jest obrona na zapas,
- * nie wniosek z pomiaru — obiektu nikt jeszcze nie widział.
- *
- * Elementy nie-tekstowe odpadają zamiast lecieć do dekodera jako `String(x)`:
- * `"[object Object]"` rozbiłby się na komunikat o pustych stronach i zapalił
- * czujkę w miejscu, które z protokołem nie ma nic wspólnego.
- */
-function porcjaKomunikatow(m: unknown): string[] {
-  const surowe: unknown[] = Array.isArray(m)
-    ? m
-    : typeof m === "object" && m !== null
-      ? Object.values(m)
-      : [];
-  return surowe.filter((x): x is string => typeof x === "string");
 }
 
 /**
@@ -367,7 +351,10 @@ export class EngineProtocolSource implements EventSource {
     if (typeof ladunek !== "object" || ladunek === null) return;
     const t = ladunek as Record<string, unknown>;
 
-    const porcja = porcjaKomunikatow(t["m"]);
+    // Kształt `t.m` czyta WSPÓLNA definicja ze `zrzut.ts` — ta sama, której
+    // używa kolekcjoner. Powód, dla którego nie ma tu własnej kopii, stoi przy
+    // `komunikatyZLadunku` (`AUDYT‑117`).
+    const porcja = komunikatyZLadunku(t["m"]);
     if (porcja.length === 0) return;
 
     this.komunikaty.push(...porcja);

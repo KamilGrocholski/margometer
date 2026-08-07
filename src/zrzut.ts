@@ -92,6 +92,39 @@ export function zaczynaWalke(ladunek: unknown): boolean {
   return (ladunek as Record<string, unknown>)["init"] !== undefined;
 }
 
+/**
+ * `t.m` → lista komunikatów. Druga rzecz o kształcie ładunku wspólna dla
+ * dodatku i dla zrzutu, więc stoi obok `zaczynaWalke` i z tego samego powodu.
+ *
+ * ⚠️ **ISTNIAŁA W DWÓCH KOPIACH ZNAK W ZNAK** — tu jako `komunikatyZ`
+ * i w `protokol-source.ts` jako `porcjaKomunikatow` — a spinał je KOMENTARZ
+ * („Kształt jak w `protokol-source.ts:89`"), nie import (`AUDYT‑117`).
+ * Odsyłacz w prozie wygląda jak wspólna definicja i nią nie jest: rozjazd
+ * byłby cichy w jedną stronę, bo zrzut zbiera materiał na to samo wywołanie,
+ * z którego liczy panel, i to on jest potem dowodem.
+ *
+ * DLACZEGO TU, A NIE W `protokol.ts`: tamten plik celowo nie zna kształtu
+ * ładunku gry — wejściem są stringi i nic poza nimi. To najczystsza granica
+ * w repo i nie warto jej przebijać dla ośmiu linii.
+ *
+ * Gra iteruje ten ładunek przez `for (var i in data.m)` (`Battle.js:460`), więc
+ * **nie obiecuje jednego kształtu**: tablica i obiekt zachowują się tam tak
+ * samo. Bronimy się przed obydwoma i jest to obrona NA ZAPAS, nie wniosek
+ * z pomiaru — obiektu nikt jeszcze nie widział.
+ *
+ * Elementy nie-tekstowe odpadają zamiast lecieć dalej jako `String(x)`:
+ * `"[object Object]"` rozbiłby się na komunikat o pustych stronach i zapalił
+ * czujkę w miejscu, które z protokołem nie ma nic wspólnego.
+ */
+export function komunikatyZLadunku(m: unknown): string[] {
+  const surowe: unknown[] = Array.isArray(m)
+    ? m
+    : typeof m === "object" && m !== null
+      ? Object.values(m)
+      : [];
+  return surowe.filter((x): x is string => typeof x === "string");
+}
+
 export type Zrzut = {
   wersja: number;
   przy: string;
@@ -323,16 +356,6 @@ export function migawka(battle: Record<string, unknown>): MigawkaWojownika[] {
   });
 }
 
-/** `t.m` → lista komunikatów. Kształt jak w `protokol-source.ts:89`. */
-function komunikatyZ(m: unknown): string[] {
-  const surowe: unknown[] = Array.isArray(m)
-    ? m
-    : typeof m === "object" && m !== null
-      ? Object.values(m)
-      : [];
-  return surowe.filter((x): x is string => typeof x === "string");
-}
-
 /**
  * Zbiera surowe wywołania i składa z nich `Zrzut`.
  *
@@ -446,7 +469,7 @@ export class KolekcjonerZrzutu implements Kolekcjoner {
     if (typeof ladunek !== "object" || ladunek === null) return;
 
     const surowy = ladunek as Record<string, unknown>;
-    const komunikaty = komunikatyZ(surowy["m"]);
+    const komunikaty = komunikatyZLadunku(surowy["m"]);
     const po = migawka(battle);
 
     // ⚠️ **DECYZJA PRZED KOPIĄ, NIE PO NIEJ** (`AUDYT‑81`). Kolejność była
