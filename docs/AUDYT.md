@@ -153,6 +153,19 @@ protokołu nie liczyła ich nigdy. Po `AUDYT‑88` (trzy martwe strażniki) i po
 ścieżkę WEJŚCIA, przejdź to, co zostaje na WYJŚCIU" ma trzeci dowód w ciągu
 trzech dni.
 
+**Dopisane 2026‑08‑07 (sekcja `N`):** `AUDYT‑107`…`AUDYT‑116` — audyt **PO**
+commicie `d978554`, na czystym drzewie i zielonej bramie (816 zielonych).
+Przedmiotem była CAŁA droga liczby od gry do panelu, zamówiona jako audyt
+jakości kodu i poprawności pozyskiwania danych. Sekcja powstała **w całości
+otwarta**, jak `I`. Dziesięć znalezisk, każde zreprodukowane; dwa 🔴 — cudza
+warstwa na `Engine.battle.update` podwaja obrażenia w ciszy (`107`) i `splitFights`
+dzieli po zdarzeniu, którego dekoder nie produkuje od 2026‑08‑04 (`108`).
+
+⚠️ **Ten łańcuch akapitów sam jest dowodem `AUDYT‑116`.** Między `K` a tym
+zdaniem powinny stać dwa wpisy o sekcjach `L` i `M`; nie ma ich. Tak samo jak
+w tabeli `§0` konwencja nie została porzucona decyzją — przestała być
+wykonywana, i widać to dopiero, gdy się do niej dopisuje.
+
 Opisy zostają w czasie teraźniejszym, bo opisują STAN SPRZED
 naprawy — tak czyta się je najłatwiej przy kolejnej regresji w tym samym
 miejscu. Co faktycznie zrobiono, mówi linia `**Zrobione.**`; tam, gdzie
@@ -3589,6 +3602,487 @@ każde z tych pięciu miejsc CYTOWAŁO `ROADMAP.md`. **Cytowanie własnego rejes
 czyta się jak sprawdzanie źródła, a nim nie jest** — i jest to szybsza droga
 rozprzestrzeniania nieprawdy niż jej wymyślenie, bo za każdym razem wygląda na
 staranność. Sprostowane we wszystkich sześciu miejscach tą samą rundą.
+
+## N. Droga danych od gry do panelu — audyt PO commicie `d978554` (2026‑08‑07)
+
+Przegląd CAŁEJ drogi, którą liczba przechodzi od gry do panelu:
+`Engine.battle.update` → `protokol-source.ts` → `protokol.ts` → `stats.ts` →
+`session.ts` → `overlay.ts`. Zamówiony jako audyt jakości kodu i poprawności
+pozyskiwania danych; sekcja powstała **w całości otwarta**, wszystkie wpisy
+w statusie `⬜ ZAPISANE, nienaprawione` — jak sekcja `I`, gdzie naprawy szły
+osobnymi decyzjami.
+
+Drzewo czyste, brama zielona: **816 zielonych, 0 czerwonych, 2187 `expect()`,
+24 pliki**, `tsc --noEmit` bez błędu przy dziesięciu flagach ścisłości, **zero
+`any` i zero `@ts-ignore` w `src/`**.
+
+**Dziesięć znalezisk, każde zreprodukowane** — cztery atrapą na kodzie, pięć na
+materiale z `tests/fixtures/`, jedno `git`iem i `grep`em po `docs/`.
+
+⚠️ **Wspólny mianownik siedmiu z dziesięciu: liczba, która jest nieprawdziwa,
+gdy założenie spoza naszego kodu przestaje obowiązywać.** Cudzy dodatek owija
+`update` (`AUDYT‑107`), gra nie wymienia obiektu walki (`AUDYT‑108`), wojownik
+nie trafia do żadnej migawki (`AUDYT‑110`), serwer przysyła `-dmgX` bez pary
+(`AUDYT‑111`), magazyn oddaje nagranie w starym kształcie (`AUDYT‑112`). We
+wszystkich pięciu przypadkach **nasz kod jest napisany poprawnie względem
+własnych założeń** — i to jest właśnie powód, dla którego żaden test tego nie
+łapie: testy sprawdzają kod przeciw założeniom, a nie założenia przeciw światu.
+
+⚠️ **Drugi wzorzec, węższy i groźniejszy: ostrzeżenie, które MÓWI NIE O TYM.**
+Trzy pozycje (`AUDYT‑110`, `AUDYT‑111`, `AUDYT‑114`) zapalają `⚠ N nieznanych
+linii — statystyki niepełne` i przez to formalnie **nie są ciche** — reguła
+„nieznane ma być głośne" działa. Tyle że komunikat mierzy liczbę zdarzeń
+`unknown`, a użytkownik potrzebuje wiedzieć, ILE LICZB stracił. Te same trzy
+słowa opisują raz 2,5 % straty, raz 100 %, raz wyzerowaną kolumnę
+„pochłonięte". Po `AUDYT‑95` („reguła »nieznane ma być głośne« nie chroni przed
+ZNANYM, o którym zdecydowano źle") to jest jej druga granica: **głośne ostrzeżenie
+o złej jednostce chroni tak samo słabo jak ciche.**
+
+⚠️ **Trzeci wzorzec dotyczy tego rejestru, nie kodu.** `AUDYT‑115` i `AUDYT‑116`
+to dwa rozjazdy w `docs/`, oba w miejscach, do których inny dokument odsyła jako
+do źródła prawdy, i oba **bez strażnika**. `AGENTS.md` zapisał lekcję „reguła bez
+strażnika po stronie danych jest regułą o kodzie, nie o repozytorium" dwa razy
+2026‑08‑06 (pseudonimy, opisy umiejętności). Tu ma trzeci i czwarty dowód, tym
+razem nie o materiale z gry, tylko o samej dokumentacji.
+
+**Czego ta runda NIE podważa.** Niezmienniki sum i rozbić trzymają: sprawdzone
+niezależnie na obu prawdziwych walkach, `dealtBy`, `dealtByType`, `takenFrom`,
+`takenByType`, `healedBy`, `dealtToBy` i `takenFromBy` dają **0 rozjazdów
+w `amount`** (`AUDYT‑109` dotyczy wyłącznie `hits`). Parowanie zadane ↔ przyjęte
+po kodzie żywiołu działa — **0 komunikatów `unknown`** na 603 i 18 komunikatach.
+Nieznany KLUCZ jest izolowany do własnego segmentu i nie zjada liczb z tej samej
+linii (zmierzone podmianą `+acdmg` → `+acdmg_v2` w całym materiale: 100 % bazy
+obrażeń nienaruszone) — `AUDYT‑110` dotyczy brakującego `id`, nie nieznanego
+klucza, i te dwie rzeczy łatwo pomylić. Luka między zadanymi (388 029)
+a przyjętymi (433 722) to DoT bez sprawcy (49 318), czyli reguła „nie udawaj
+danych, których log nie ma", a nie błąd.
+
+⚠️ **Sprostowanie do WŁASNEGO pierwszego przebiegu tej rundy.** Zgłosiłem
+`src/protokol.ts:896` (`czesci[gdzie]!` w `parametryZdania`) jako dziurę
+w kontrakcie — „komunikat z mniejszą liczbą członów niż wzorzec da `undefined`
+przebrany za string". **Nieprawda: linia 895 sprawdza dokładnie ten przypadek**
+i oddaje wtedy samo `%val%`, z komentarzem tłumaczącym, że awaria ma być głośna.
+Wpis nie powstał, bo teza padła przy sprawdzeniu — ale mechanizm pomyłki wart
+jest zapisania: `!` w linii wygląda jak brak strażnika, a strażnik stał linijkę
+wyżej. **Non‑null assertion czyta się razem z poprzedzającym warunkiem, nie
+sama.** Z czternastu takich miejsc w `src/` sprawdziłem po kolei cztery
+najpodejrzliwiej wyglądające (`archive.ts:388`, `recorder.ts:364`,
+`overlay.ts:2302`, `session.ts:30`) — **wszystkie strzeżone**.
+
+### AUDYT‑107 — cudza warstwa na `Engine.battle.update` PODWAJA obrażenia, bez ani jednego ostrzeżenia 🔴 M — ⬜ ZAPISANE, nienaprawione ✓
+
+`src/protokol-source.ts:245` (`zapewnijOwiniecie`)
+
+**Problem.** Warunek pomijający jest koniunkcją: `this.owiniety === battle &&
+(update as Opakowanie)[ZNACZNIK] === WERSJA`. Gdy inny dodatek owinie `update`
+**po nas**, na wierzchu stoi cudza funkcja bez naszego znacznika → warunek
+fałszywy. Drugi warunek (`:249`) też nie ratuje, bo `owiniety === battle`, więc
+`odetnijWalke()` nie leci. Owijamy **drugi raz**, a `this.oryginal` staje się
+cudzą warstwą, która wewnątrz woła naszą starą. Jedno wywołanie gry przechodzi
+przez `przyjmij` dwa razy i `this.komunikaty.push(...porcja)` dubluje porcję.
+
+**✓ Zmierzone** na atrapie `Engine` (trzy identyczne ciosy po 100 obrażeń, cudza
+warstwa założona po naszej, potem nasz tik):
+
+| | zadane | komunikatów w buforze | `unknownLines` |
+|---|---|---|---|
+| bez cudzej warstwy | 300 | 3 | 0 |
+| z cudzą warstwą na wierzchu | **600** | **6** | **0** |
+
+Dokładnie ×2 i **całkowicie cicho**. To jest wprost test przynależności
+z `ROADMAP.md`: *czy panel może pokazać złą liczbę, nie mówiąc o tym ani słowem?*
+
+⚠️ **Plik ZNA to ryzyko i broni się przed jego własną połową.** Docstring
+`ProtocolSourceOptions.kolekcjoner` (`:159‑170`) mówi wprost: *„JEST TU PO TO,
+ŻEBY NIE OWIJAĆ `update` DRUGI RAZ […] dwie warstwy na tej samej funkcji znoszą
+sens czterech gwarancji, które ten plik składa"*. Cała ta ostrożność dotyczy
+NASZEJ drugiej warstwy (sonda `walka-probe.js`). Cudzej nie dotyczy nic.
+
+⚠️ **Asymetria między zakładaniem a zdejmowaniem.** `zdejmij()` (`:391‑404`) ma
+już regułę „na wierzchu stoi cudza warstwa → nie ruszamy niczego" i jest ona
+opisana jako umowa z gospodarzem strony. Zakładanie tej samej reguły nie ma —
+mimo że skutkiem jest podwojenie liczb, a nie tylko nieposprzątanie. **Ta sama
+sytuacja rozpoznana po jednej stronie cyklu życia i nierozpoznana po drugiej.**
+
+**Docelowo.** `src/protokol-source.ts`. Kierunek do rozważenia przy naprawie:
+gdy `owiniety === battle`, a znacznika na wierzchu nie ma, to nie jest „trzeba
+owinąć", tylko „ktoś stanął nad nami" — i odpowiedzią jest odmowa ponownego
+owinięcia, nie owinięcie. Wariant „szukaj naszego znacznika w głąb łańcucha"
+odrzucony bez pomiaru: wymaga założeń o cudzym kształcie opakowania.
+
+### AUDYT‑108 — `splitFights` jest MARTWE, a granica walki stoi na jednym warunku 🔴 S — ⬜ ZAPISANE, nienaprawione ✓
+
+`src/session.ts:17‑41`, `src/stats.ts:805`, `src/protokol.ts:1435`
+
+**Problem.** `splitFights` dzieli strumień na walki po zdarzeniu `fight-start`.
+Dekoder protokołu **nigdy takiego zdarzenia nie produkuje** — jedynymi
+producentami w całym repo są `tools/synthetic-log.ts:145` i `tests/zdarzenia.ts:44`,
+czyli generator i budowniczy testowy. Zdarzenie zeszło ze strumienia 2026‑08‑04
+razem z odczytem ze zdań (klient syntetyzuje linię otwierającą poza `data.m`);
+funkcja, która na nim stoi, została.
+
+**✓ Zmierzone.** Bufor z dwiema kopiami `2026-08-04-tempest-lowca-vs-odyncze`
+przepuszczony przez `Session`:
+
+| | zadane | tury | `fight-end` w strumieniu | `fight-start` |
+|---|---|---|---|---|
+| jedna walka | 2883 | 12 | 2 | 0 |
+| bufor z dwiema | **5766** | **24** | 4 | **0** |
+
+To liczbowo ten sam tryb awarii, który opisuje `AUDYT‑57` i cytuje komentarz
+w `src/session.ts:90‑97` („2644 → 5288 obrażeń, 12 → 24 tury"). Jedyną obroną
+jest dziś odcięcie bufora na `data.init` w `protokol-source.ts:266` — **jeden
+warunek, bez drugiego świadka**. `session.ts` przyznaje to o sobie wprost
+(`:96‑97`: *„ta funkcja nie ma jak sprawdzić, czy dostała jedną walkę, i dlatego
+to zdanie jest ZAŁOŻENIEM o cudzym kodzie, a nie opisem tutejszego"*).
+
+⚠️ **Strumień niesie sygnał, którego nikt nie czyta.** `fight-end` pada
+**dokładnie 2× na walkę w OBU fixture'ach** (winner + loser) i jest jedynym
+zdarzeniem granicznym, które dekoder naprawdę produkuje (`protokol.ts:1435`).
+Nie jest to sygnał równoważny `init` — mówi „walka się skończyła", nie „zaczyna
+się nowa" — ale jest **drugim, niezależnym źródłem** dla tej samej granicy,
+a `session.ts` dzieli dziś po zdarzeniu, którego nie ma, zamiast po tym, które
+jest.
+
+⚠️ **Skutek uboczny tej samej martwoty, w innym pliku.** `stats.ts:805`
+(`events.find(e => e.kind === "fight-start")?.participants ?? []`) zwraca na
+żywo **zawsze `[]`**, a komentarz dwie linie niżej obiecuje: *„Gdy go nie ma
+(testy, wklejony tekst, patch gry), lecimy z linii otwierającej — dokładnie jak
+przedtem"*. Linii otwierającej nie ma. To **fallback zamieniający brak danych
+w zero** — wzorzec wymieniony w `ROADMAP.md` z nazwy jako kwalifikujący się do
+kierunku. Gałąź żyje wyłącznie dla testów i `tools/`.
+
+⚠️ **Czwarty raz ten sam kształt: martwy kod po skasowanym parserze.** Po
+`AUDYT‑88` (trzy martwe strażniki), `AUDYT‑92` (ścieżka, do której przeprowadziła
+się wiedza) i `AUDYT‑97` (dwie martwe etykiety w `DOT_LABELS`) — tu martwe jest
+**całe kryterium podziału**, nie pojedynczy warunek. Reguła „kasując ścieżkę
+WEJŚCIA, przejdź to, co zostaje na WYJŚCIU" ma czwarty dowód, i tym razem
+najdroższy: martwy strażnik nie broni przed podwojeniem liczb.
+
+**Docelowo.** `src/session.ts` i `docs/ROADMAP.md` (otwarta pozycja „Granica
+walk"). Naprawa ma dwie połowy i wolno je rozdzielić: skasowanie martwego
+kryterium to `refactor`, dołożenie podziału po `fight-end` to zmiana zachowania
+i zasługuje na spec — bo trzeba rozstrzygnąć, co robić ze zdarzeniami między
+`fight-end` a następnym `init`.
+
+### AUDYT‑109 — `DamageSource.hits` znaczy DWIE różne rzeczy, a docstring podaje jedną 🟡 S — ⬜ ZAPISANE, nienaprawione ✓
+
+`src/types.ts:385‑397`, `src/types.ts:776‑781`, `src/stats.ts:1083‑1100`
+
+**Problem.** Docstring pola obiecuje: *„Ciosy, nie liczby obrażeń. Jeden cios
+potrafi nieść kilka liczb — tancerz bije dwiema broniami, mag zadaje zimno
+i błyskawicę naraz — a to nadal jedno uderzenie z kilku źródeł."* Jest to prawda
+w `dealtBy`/`takenFrom`, gdzie `countStrike` leci raz na zdarzenie
+(`stats.ts:1083‑1088`), i **nieprawda** w `dealtByType`/`takenByType`, gdzie
+leci raz na RODZINĘ typu obecną w ciosie (`:1097‑1100`). `ActorStats.dealtByType`
+dokłada drugą obietnicę — *„Suma jest identyczna jak w `dealtBy` — to inny
+podział, nie dodatkowe obrażenia"* — prawdziwą dla `amount` i milcząco fałszywą
+dla `hits`.
+
+**✓ Zmierzone** na `2026-08-06-tempest-grupa-vs-hildur`. Sumy `amount` zgadzają
+się wszędzie; rozjeżdżają się wyłącznie `hits`:
+
+| postać | pole | `dealtBy` / `takenFrom` | `dealtByType` / `takenByType` |
+|---|---|---|---|
+| Gracz 2 | zadane | 24 | **72** |
+| Gracz 9 | zadane | 18 | 36 |
+| Gracz 3 | zadane | 15 | 30 |
+| Gracz 7 | zadane | 12 | 24 |
+| Gracz 1 | zadane | 7 | 14 |
+| Hildur | zadane | 22 | 30 |
+| Hildur | przyjęte | 233 | **333** |
+| Gracz 4 | przyjęte | 22 | 30 |
+
+**Osiem rozjeżdżonych wierszy u siedmiu postaci z jedenastu**; pozostałe cztery
+biją jednym żywiołem i przez to się zgadzają — czyli **rozjazd jest regułą,
+a zgodność przypadkiem materiału.**
+
+⚠️ **Decyzja jest dobra, nosi ją zły typ.** Komentarz w `stats.ts:1089‑1096`
+uzasadnia to wprost i przekonująco: *„tu pytanie brzmi »ile ciosów niosło ten
+żywioł«"*, a odcięcie zdarzeń `strike: false` zostawiłoby pozycję z obrażeniami
+i zerem ciosów. Problemem nie jest rachunek, tylko to, że **`DamageSource` jest
+jednym typem dla dwóch pytań**, a jego docstring odpowiada tylko na jedno. Panel
+pokazuje obie liczby w tym samym wierszu.
+
+⚠️ **To jest ta sama reguła z `CLAUDE.md`, od strony, z której jeszcze nie
+padła.** „To typ jest tu obietnicą, a nie kod, który akurat go czyta" miało dotąd
+trzy dowody w postaci pola, którego w typie ZABRAKŁO (`AUDYT‑93`) albo które
+ktoś zapomniał odczytać. Tu pole jest, jest opisane, a opis jest prawdziwy dla
+połowy jego użyć. **Obietnica węższa od użycia zawodzi tak samo jak jej brak** —
+z tą różnicą, że wygląda na dotrzymaną.
+
+**Docelowo.** `src/types.ts`. Najtańszy wariant to sprostowanie docstringa i pola
+`hits` w `dealtByType` na własną nazwę; droższy i uczciwszy — osobny typ dla
+przekroju po typie. Wybór wymaga spojrzenia na `overlay.ts`, więc nie ta runda.
+
+### AUDYT‑110 — brak wojownika w składzie zabiera obrażenia, a ostrzeżenie mierzy nie to, co trzeba 🟡 S — ⬜ ZAPISANE, nienaprawione ✓
+
+`src/protokol.ts:1088‑1091`, `src/overlay.ts:2822‑2827`
+
+**Problem.** Komunikat, którego `id` (którejkolwiek strony) nie ma w składzie,
+schodzi **w całości** do `{kind:"unknown"}` — razem z liczbami, które były w nim
+czytelne. Nie jest to usterka rozbioru: bez nazwy nie ma komu przypisać
+obrażeń. Usterką jest to, ILE przez to znika i jak mało o tym mówimy.
+
+**✓ Zmierzone.** Usunięcie JEDNEGO wojownika ze składu przy niezmienionym
+materiale (`2026-08-06-tempest-grupa-vs-hildur`, baza 388 029 obrażeń zadanych):
+
+| usunięty | zdarzeń `unknown` | zadane | % bazy |
+|---|---|---|---|
+| Gracz 1 | 37 | 378 491 | 97,5 % |
+| Gracz 7 | 43 | 363 977 | 93,8 % |
+| Gracz 4 | 70 | 330 752 | 85,2 % |
+| Gracz 10 | 48 | 310 428 | 80,0 % |
+| Hildur (cel wszystkich) | 443 | **0** | **0 %** |
+
+**✓ Sprawdzone łagodzące** — żeby wpis nie był mocniejszy, niż wolno.
+`protokol-source.ts:378` przelicza **CAŁY bufor** przy każdej porcji,
+a `scalSklad` (`:124‑131`) kumuluje migawki zamiast je zastępować. Wojownik
+dopisany do składu później **naprawia więc wstecz własne wcześniejsze
+komunikaty** — to zasługa `36fe66a`. Ryzyko zostaje dla wojownika, którego nie
+ma w ŻADNEJ migawce, i dla ścieżki archiwum, gdzie migawek już nie będzie
+(`AUDYT‑112`).
+
+⚠️ **Ostrzeżenie jest, tylko liczy nie to.** Panel mówi `⚠ N nieznanych linii —
+statystyki niepełne`. Liczba `N` to liczba zdarzeń `unknown`; użytkownik
+potrzebuje wiedzieć, ile LICZB stracił. W tabeli wyżej „⚠ 37" znaczy 2,5 %
+straty, a „⚠ 443" — wszystko. Rozpiętość jest o dwa rzędy wielkości, a słowa
+te same.
+
+**Docelowo.** `docs/ROADMAP.md` i `src/stats.ts`. Kierunek: `unknown` niosące
+czytelne `+dmg*` mogłoby wnieść do agregatu samą KWOTĘ jako „bez sprawcy",
+zamiast przepadać — pula „Bez sprawcy" już istnieje i jest dokładnie po to.
+Wariant „zgadnij nazwę z `id`" odrzucony: łamie regułę „nie udawaj danych,
+których log nie ma".
+
+### AUDYT‑111 — „przyjęte bez zadanego" daje UJEMNE pochłonięcie, które zjada prawdziwe 🟡 S — ⬜ ZAPISANE, nienaprawione ✓
+
+`src/protokol.ts:1575‑1585`, `src/stats.ts:1032`
+
+**Problem.** Niesparowane `-dmgX` tworzy trafienie `raw: 0, applied: wartosc`
+(`protokol.ts:1575‑1585` — kształt świadomy, opisany i zapalający `unknown`
+w linii wyżej). Agregat liczy jednak `damageAbsorbed += hit.raw - hit.applied`
+(`stats.ts:1032`), czyli dla takiego trafienia wartość **ujemną** — a pochłonięcie
+sumuje się przez całą walkę.
+
+**✓ Zmierzone** na atrapie składu, trzy przebiegi:
+
+| komunikaty | pochłonięte u celu | `unknownLines` |
+|---|---|---|
+| `+dmgd=500;-dmgd=300` | 200 | 0 |
+| `-dmgd=200` sam | **−200** | 1 |
+| oba razem | **0** | 1 |
+
+Prawdziwe 200 pochłoniętych znika. Nie jest to strata cicha — `unknown` się
+zapala — ale mówi „jednej linii nie zrozumiałem", a nie „kolumna »pochłonięte«
+jest teraz nieprawdziwa dla tej postaci".
+
+⚠️ **Dwa pliki zgodne z sobą, niezgodne co do znaczenia.** `protokol.ts` mówi
+`raw: 0` w znaczeniu „nie wiemy, ile poleciało"; `stats.ts` czyta to jako „zero
+poleciało" i odejmuje. Żaden z nich nie jest napisany źle względem własnego
+komentarza. **Rozjazd siedzi w polu, przez które się porozumiewają** — i jest
+to trzeci raz w tym rejestrze (`AUDYT‑93`, `AUDYT‑109`), kiedy usterka mieszka
+w kontrakcie, a nie po żadnej z jego stron.
+
+⚠️ **Niezmiennik korpusowy tego nie łapie i nie może.** `stats.test.ts:944`
+sprawdza `damageBlocked ≤ damageAbsorbed`; obie liczby mogą być ujemne
+i nierówność zachodzi dalej. Brakuje najprostszego z możliwych: **żadna suma
+obrażeń nie ma prawa być ujemna.**
+
+**Docelowo.** `src/stats.ts` (pominięcie trafień `raw === 0 && applied > 0`
+w rachunku pochłonięcia) plus niezmiennik „skalary nieujemne" po całym
+`KORPUS`. Ten drugi wolno dołożyć od razu i osobno — jest tańszy niż decyzja
+o pierwszym.
+
+### AUDYT‑112 — `Recorder.read()` sprawdza pojemnik, nie zawartość 🟡 S — ⬜ ZAPISANE, nienaprawione
+
+`src/recorder.ts:264‑274`
+
+**Problem.**
+
+```ts
+const parsed = JSON.parse(surowe) as Partial<Nagranie>;
+if (!Array.isArray(parsed.komunikaty) || !Array.isArray(parsed.sklad)) return null;
+return { komunikaty: parsed.komunikaty, sklad: parsed.sklad };
+```
+
+Sprawdzone jest, że to tablice — nie to, co w nich stoi. `sklad` z elementami
+bez `id` albo `name` przechodzi i idzie prosto do `dekoduj`, czyli w tryb awarii
+z `AUDYT‑110` — tylko **bez szansy na naprawę wsteczną**, bo w odtwarzaniu
+migawek już nie będzie. Docstring metody obiecuje przy tym, że `null` obejmuje
+*„nagranie w starym formacie, które przetrwało kasowanie indeksu"* — obejmuje
+je tylko wtedy, gdy stary format różnił się kształtem POJEMNIKA.
+
+⚠️ **Wzorzec do naśladowania stoi 130 linii wyżej, w tym samym pliku.**
+`isRecording` (`:132‑144`) sprawdza KAŻDE pole i ma przy sobie komentarz mówiący,
+dlaczego: *„brakujące `chars` psuło arytmetykę budżetu […] brakujące `at` dawało
+»NaN.NaN NaN:NaN« w wierszu archiwum"*. Ta lekcja została wyciągnięta dla
+INDEKSU i nie przeszła na TREŚĆ — mimo że treść jest tym, z czego liczą się
+statystyki, a indeks tylko tym, co widać na liście.
+
+**Docelowo.** `src/recorder.ts`. Predykat na wpis składu ma już gdzie mieszkać
+(`RosterEntry` w `src/roster.ts`), a `roster.ts:105‑106` pomija po cichu
+wojownika bez `id`/`name`/`team` — czyli reguła istnieje, brakuje jej po tej
+stronie.
+
+### AUDYT‑113 — świadek dekodera robi 10 porównań na 1448 zdarzeń, a materiał ma na 108 więcej ⚪ M — ⬜ ZAPISANE, nienaprawione ✓
+
+`tests/fixtury.ts:141‑201` (`swiadekZycia`)
+
+**Problem.** Jedyny świadek dekodera spoza dekodera pokrywa dziś ułamek korpusu.
+
+**✓ Zmierzone:**
+
+| fixture | zdarzeń | `sprawdzonych` | `poLeczeniu` | `bezMaksa` | rozjazdy |
+|---|---|---|---|---|---|
+| `…lowca-vs-odyncze` | 18 | 7 | 0 | 0 | 0 |
+| `…grupa-vs-hildur` | 697 | **3** | **251** | 0 | 0 |
+
+Czułość jest w porządku i to trzeba powiedzieć razem z resztą: mutacja
+„sumuj `raw` zamiast `applied`" zapala **6 z 7** na małym fixture i **3 z 3** na
+dużym. Problemem jest wyłącznie głębokość — 10 porównań na 1448 zdarzeń `KORPUS`.
+
+**✓ Materiał na więcej JEST w pliku, którego już nie trzeba zdobywać.**
+Wszystkie **108** zdarzeń `heal` w dużym fixture niosą jednocześnie `amount`,
+`targetHpPct` i znane `hp.max` (zmierzone: 108 / 108 / 108). Stąd dwa ruchy, oba
+bez nowego zrzutu:
+
+1. **świadek leczenia** — `targetHpPct` po uleczeniu przeciw poprzedniemu
+   procentowi powiększonemu o `amount / max`; dziś leczenie **nie ma świadka
+   wcale**, a jest drugą co do wielkości liczbą w panelu;
+2. **ponowne zakotwiczenie po leczeniu** zamiast wykluczenia celu na zawsze —
+   zdarzenie `heal` samo podaje nowy procent, więc od niego można liczyć dalej
+   i odzyskać część z 251 porzuconych porównań.
+
+⚠️ **Reguła „uleczony wypada" jest słuszna i uzasadnia mniej, niż robi.**
+`AUDYT‑61` ustalił ją, bo nadmiar leczenia gra ucina i log nie mówi, ile weszło —
+to jest argument przeciw **doliczaniu `amount` do bazy**. Nie jest to argument
+przeciw **przyjęciu nowego punktu odniesienia, który protokół podaje wprost**
+w tym samym zdarzeniu. Trzy testy syntetyczne (`fixtury.test.ts:430‑478`)
+pilnują dziś reguły w jej dzisiejszym kształcie, więc zmiana zacznie się od nich.
+
+⚠️ **Zapisane wcześniej i nadal prawdziwe:** `tests/fixtures/README.md` mówi, że
+zrzut wzmacniający świadka musi być walką **BEZ leczenia celu**. Ta pozycja tego
+nie unieważnia — mówi tylko, że **część drogi da się przejść materiałem, który
+już jest**, zanim taka walka się trafi.
+
+**Docelowo.** `docs/ROADMAP.md` (pozycja „Czego brakuje w korpusie fixture'ów").
+Wykonanie osobną rundą i ze specem: to zmiana w jedynym świadku spoza dekodera,
+więc istnieje więcej niż jeden sensowny wariant i wybór trzeba uzasadnić.
+
+### AUDYT‑114 — `unknownLines` miesza dwie jednostki 🟡 XS — ⬜ ZAPISANE, nienaprawione ✓
+
+`src/protokol.ts:1084` (`nieznany`), `src/stats.ts:1270‑1272`, `src/overlay.ts:2822‑2827`
+
+**Problem.** `nieznany()` pushuje zdarzenie raz **na cały komunikat** (`:1090`
+— `id` spoza składu, `:1520` — brak nazwy strony) i raz **na pojedynczy
+parametr** (`:1171` — segment z drugim `=`, `:1174` — nieznany klucz, i sześć
+dalszych miejsc). `stats.ts` liczy zdarzenia, a panel nazywa je „liniami".
+
+**✓ Zmierzone.** Podmiana `+acdmg` → `+acdmg_v2` w całym materiale daje zdarzenia
+`unknown` o treści `"+acdmg_v2=50"` — czyli sam segment, przy komunikacie
+niosącym osiem członów — i **100 % bazy obrażeń nienaruszone**. Dla porównania
+`AUDYT‑110`: tam `line` niesie CAŁY komunikat, a obrażenia znikają. Ta sama
+liczba w panelu, dwa różne zdarzenia i dwie różne konsekwencje.
+
+⚠️ Wpis jest XS i celowo stoi osobno od `AUDYT‑110` i `AUDYT‑111`, choć wszystkie
+trzy dotyczą tego samego komunikatu: tamte dwa mówią, że ostrzeżenie **mierzy złą
+wielkość**, ten — że **nie ma nawet stałej jednostki**. Naprawa pierwszego bez
+drugiego dałaby dokładniejszą liczbę w niepewnej jednostce.
+
+**Docelowo.** `src/protokol.ts` — rozdzielenie na dwie liczby („komunikatów
+odrzuconych" i „segmentów niezrozumianych") albo domknięcie `unknown` do jednej
+jednostki. `docs/UX.md` przy brzmieniu komunikatu.
+
+### AUDYT‑115 — spis speców rozjechał się z katalogiem i nie ma strażnika ⚪ XS — ⬜ ZAPISANE, nienaprawione ✓
+
+`docs/specy/README.md`
+
+**Problem.** Tabela „Spis" wymienia **9** plików; katalog ma **11**. Brakuje
+`2026-08-04-parser-tekstu-i-korpus-schodza-z-drzewa.md` oraz
+`2026-08-06-efekt-poza-ciosem.md` (`Status: wdrożone · 2026‑08‑06 · 4039be7`).
+Ten drugi powstał w rundzie, która **sama siebie audytowała** — commit `67a9f46`
+nosi w nagłówku `docs(specy,…)`.
+
+**✓ Zmierzone.** `ls docs/specy/*.md` przeciw zawartości tabeli. `grep -rn
+"specy" tests/ tools/ .github/` nie znajduje ani jednego strażnika — trafienia
+są wyłącznie w komentarzach i prozie.
+
+⚠️ **Trzeci raz ta sama lekcja, tym razem nie o materiale z gry.** `AGENTS.md`
+zapisał 2026‑08‑06 dwa razy: *„reguła bez strażnika po stronie danych jest
+regułą o kodzie, nie o repozytorium"* — raz przy pseudonimach, raz przy opisach
+umiejętności. `README.md` speców mówi o sobie *„Tabelę uzupełnia się ręcznie
+przy dodaniu pliku"*, czyli reguła istnieje i jest zapisana. `CHANGELOG.md` ma
+test (`tests/changelog.test.ts`) i przez to **nie zdążył się rozjechać**; spis
+speców testu nie ma i rozjechał się dwa razy. **Porównanie tych dwóch plików
+jest tańszym dowodem tej reguły niż jakikolwiek wywód.**
+
+**Docelowo.** `tests/` — strażnik po wzorze `tests/fixtury.ts`: `readdirSync`
+po `docs/specy/`, każdy plik poza `README.md` i `SZABLON.md` ma mieć wiersz
+w tabeli. Pliki odkrywane, nie wymieniane — inaczej strażnik zestarzeje się tak
+samo jak spis.
+
+### AUDYT‑116 — tabela `§0`, do której odsyła `docs/README.md`, nie widzi 42 wpisów 🟡 S — ⬜ ZAPISANE, nienaprawione ✓
+
+`docs/AUDYT.md §0`, `docs/README.md:342`
+
+**Problem.** `docs/README.md` w sekcji „Co jest teraz otwarte" mówi: *„Nie
+przepisuję tu listy, bo zdezaktualizuje się w tydzień. Aktualny stan: **`AUDYT.md`**
+— tabela na górze pliku; przekreślone ID są zamknięte."* Tabela `§0` kończy się
+na `AUDYT‑52` i **nie ma w niej ani jednego ID z sekcji `I`, `J`, `K`, `L`, `M`**.
+
+**✓ Zmierzone** — stan zastany, czyli **przed** dopisaniem tej sekcji:
+
+| | ile |
+|---|---|
+| wpisów z własnym nagłówkiem `### AUDYT‑N` | **97** |
+| wierszy w tabeli `§0` | **55** |
+| ID z nagłówkiem, ale bez wiersza | **42** |
+
+⚠️ **Ta tabela zestarzała się w chwili powstania i nie jest to niedopatrzenie.**
+Sekcja `N` dokłada dziesięć wpisów i żadnego wiersza, więc dziś te liczby to
+**107 / 55 / 52** — sama runda pogłębiła rozjazd o dziesięć. Zapisane są liczby
+ZASTANE, bo to one mówią, jak duży był dług przed rundą; dzisiejsze poda
+`grep -c '^### AUDYT' docs/AUDYT.md` i policzenie wierszy `§0`. **Cytowanie tu
+liczby bieżącej byłoby dokładnie tą chorobą, którą ten wpis opisuje** — i to
+jest powód, dla którego rejestr każe liczyć plikiem, nie pamięcią.
+
+Brakujące to `56`…`75`, `85`, `86`, `87`…`94`, `95`…`99`, `100`…`106` — czyli
+**wszystko, co powstało od 2026‑08‑05**. Konwencja nie została porzucona
+decyzją; po prostu przestała być wykonywana i nikt tego nie zauważył, bo
+odsyłacz do niej stoi w INNYM pliku.
+
+**✓ Zmierzone, druga konwencja tego samego pliku.** Łańcuch akapitów
+`**Dopisane RRRR‑MM‑DD (sekcja X):**` w preambule urywa się na sekcji `K`:
+sekcje `L` (`AUDYT‑100`…`101`) i `M` (`AUDYT‑102`…`106`) nie mają w nim ani
+jednego zdania. Dwie niezależne konwencje tego samego pliku przestały być
+wykonywane **w tym samym tygodniu i z tego samego powodu** — obie wymagają
+dopisania w miejscu odległym od tego, gdzie się pracuje.
+
+⚠️ **Ostrzeżenie o starzeniu się dokumentacji zestarzało się samo — drugi raz
+w tym pliku.** Pierwszy raz zrobił to `AUDYT‑46` (przypis o rozjeździe numerów
+linii). Tu robi to zdanie *„nie przepisuję tu listy, bo zdezaktualizuje się
+w tydzień"* — napisane po to, żeby uniknąć rozjazdu, i odsyłające do miejsca,
+które rozjechało się o 42 pozycje. **Wskazanie źródła prawdy nie czyni z niego
+źródła prawdy.**
+
+⚠️ **Dlaczego to jest 🟡, a nie ⚪.** Wpis `§G` tej samej sekcji nosi od
+2026‑08‑02 wniosek *„tabela ze statusem cudzej pozycji jest długiem — docelowo
+zostawić tu same odsyłacze, bez kolumny statusu"*, opisany tam jako **„najtańsza
+otwarta robota w całym `docs/`"** i nadal niewykonany. `§0` jest tą samą
+konstrukcją o pięć razy większej skali. Decyzja „uzupełnić 42 wiersze" i decyzja
+„skasować tabelę, poprawić odsyłacz w `README.md`" prowadzą w przeciwne strony
+i **żadnej nie wolno podjąć mimochodem**, dlatego runda tego nie naprawia.
+
+⚠️ **Ta runda sama się o to potknęła.** Plan zakładał dopisanie wierszy `§0` dla
+sekcji `N` — jako że tak każe konwencja opisana w preambule. Sprawdzenie, gdzie
+te wiersze wstawić, było jedyną przyczyną odkrycia. **Konwencja czytana z opisu
+i konwencja odczytana z pliku to dwie różne rzeczy**, a różnicy nie widać,
+dopóki się czegoś nie dopisuje.
+
+**Docelowo.** `docs/AUDYT.md` i `docs/README.md` — jedną decyzją, nie dwiema.
+Sekcja `N` **celowo nie dokłada wierszy do `§0`**, żeby nie pogłębiać rozjazdu
+przed jej podjęciem; jest to zgodne z tym, co robiło pięć poprzednich sekcji.
 
 ## G. Otwarte z poprzednich rund
 

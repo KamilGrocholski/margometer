@@ -407,6 +407,19 @@ Zmierzone liczby stoją w `tests/fixtury.test.ts` i wypisuje je test. Wniosek
 ogólniejszy od tej pozycji: **szerokość kluczy i głębokość świadka to dwie różne
 rzeczy**, a materiał potrafi dać pierwszą, nie dając drugiej.
 
+⚠️ **Dopisane 2026‑08‑07 (`AUDYT‑113`): część drogi da się przejść materiałem,
+który JUŻ jest.** Akapit wyżej mówi, czego nowy plik nie dał, i to prawda —
+świadek robi dziś **10 porównań na 1448 zdarzeń** całego `KORPUS` (7 na małym
+fixturze, 3 na dużym, 251 porzuconych po leczeniu). Ale wszystkie **108**
+zdarzeń `heal` w dużym fixturze niosą jednocześnie `amount`, `targetHpPct`
+i znane `hp.max` (zmierzone 108/108/108), czyli komplet do dwóch ruchów bez
+nowego zrzutu: **świadka LECZENIA** (dziś leczenie nie ma świadka wcale)
+i **ponownego zakotwiczenia po uleczeniu** zamiast wykluczania celu na zawsze.
+Reguła z `AUDYT‑61` uzasadnia niedoliczanie `amount` do bazy — nie uzasadnia
+odrzucenia nowego punktu odniesienia, który protokół podaje w tym samym
+zdarzeniu. **Zdanie „domknie to zrzut z walki BEZ leczenia" zostaje w mocy**;
+zmienia się tylko to, że nie na wszystko trzeba czekać.
+
 ## Granica walk — nasze numerowanie nie widzi drugiej walki w sesji
 
 **To jest pozycja o BŁĘDZIE, nie o brakującej funkcji**, i zdaje test kierunku
@@ -442,6 +455,25 @@ granicy nie mogła się rozjechać po cichu.
 strony w trakcie walki — i czy `close` bez `init` potrafi zamknąć walkę tak, że
 następna go nie dostanie. Oba przypadki nazywa `docs/MECHANIKA.md` i żadnego nie
 rozstrzyga materiał. Potrzebny zrzut z przeładowaniem.
+
+⚠️ **Dopisane 2026‑08‑07 (`AUDYT‑108`): granica stoi na JEDNYM warunku, a druga
+obrona jest martwa.** Akapit wyżej mówi „granicą jest dziś `data.init`" i to
+prawda — ale `session.ts` miał być drugą warstwą i nią nie jest. `splitFights`
+dzieli po zdarzeniu `fight-start`, którego **dekoder protokołu nie produkuje od
+2026‑08‑04**; jedynymi producentami w repo są generator i budowniczy testowy.
+Zmierzone: bufor z dwiema kopiami tej samej walki daje **2883 → 5766 obrażeń
+i 12 → 24 tury**, dokładnie jak przed naprawą z `AUDYT‑57`. Strumień niesie przy
+tym `fight-end` — 2× na walkę w obu fixture'ach — i nikt go do podziału nie
+czyta. Skutek uboczny tej samej martwoty: `stats.ts:805` zwraca na żywo zawsze
+`[]`, choć komentarz obok obiecuje odczyt „z linii otwierającej".
+
+⚠️ **Dopisane 2026‑08‑07 (`AUDYT‑107`): drugie źródło podwojenia, niezależne od
+granicy walki.** Gdy cudzy dodatek owinie `Engine.battle.update` **po nas**,
+warunek pomijający w `zapewnijOwiniecie` nie zachodzi i owijamy drugi raz —
+jedno wywołanie gry przechodzi przez odczyt dwa razy. Zmierzone na atrapie:
+**300 → 600 obrażeń, 3 → 6 komunikatów, zero ostrzeżeń.** Ta pozycja mówi
+„nasze numerowanie nie widzi drugiej walki"; `AUDYT‑107` pokazuje, że **liczby
+potrafią się podwoić także w obrębie JEDNEJ walki**, i to bez udziału gry.
 
 Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`
 w `meta.json`, zweryfikowany po `covers`:
@@ -569,3 +601,42 @@ w `meta.json`, zweryfikowany po `covers`:
   i `2026-07-18_tropiciel-vs-kukla/raw.txt:31` (pliki zeszły z drzewa
   2026‑08‑04; zdarzenie siedzi dalej w ich `zdarzenia.json`). Skąd błąd i jak go
   nie powtórzyć — `SOLID.md §10`.
+
+## Rejestr, do którego odsyła dokumentacja, rozjechał się ze stanem repo
+
+Dopisane 2026‑08‑07 (`AUDYT‑115`, `AUDYT‑116`). Pozycja zdaje test kierunku
+pośrednio, przez wpis z sekcji „Co liczy się jako praca w tym kierunku":
+**rozjazdy między rejestrem a kodem**. Nie chodzi o liczbę w panelu, tylko
+o to, że lista otwartych spraw pokazuje mniej, niż jest — a decyzje o kolejności
+prac podejmuje się właśnie z niej.
+
+**✓ Zmierzone, dwie konwencje w `docs/AUDYT.md`:** wpisów z własnym nagłówkiem
+`### AUDYT‑N` jest **97**, wierszy w tabeli `§0` — **55**, czyli **42 ID nie ma
+wiersza** (wszystko od 2026‑08‑05). Łańcuch akapitów `**Dopisane …**`
+w preambule urywa się na sekcji `K`: sekcje `L` i `M` nie mają w nim ani jednego
+zdania. `docs/README.md:342` odsyła po „aktualny stan" właśnie do tabeli `§0`.
+
+**✓ Zmierzone, `docs/specy/README.md`:** katalog ma **11** speców, tabela „Spis"
+wymienia **9**. Brakuje `2026-08-04-parser-tekstu-i-korpus-schodza-z-drzewa.md`
+i `2026-08-06-efekt-poza-ciosem.md` — ten drugi powstał w rundzie, która sama
+siebie audytowała.
+
+⚠️ **Wspólna przyczyna jest jedna i ma już nazwę w `AGENTS.md`:** *reguła bez
+strażnika po stronie danych jest regułą o kodzie, nie o repozytorium.* Zapisano
+ją tam dwa razy 2026‑08‑06 (pseudonimy, opisy umiejętności) — obie o materiale
+z gry. Tu ta sama reguła zawodzi na samej dokumentacji. Dowód porównawczy jest
+tańszy niż wywód: `CHANGELOG.md` ma test (`tests/changelog.test.ts`) i nie
+zdążył się rozjechać ani razu; trzy spisy bez testu rozjechały się wszystkie.
+
+**Czego ta pozycja NIE rozstrzyga.** Czy tabelę `§0` uzupełnić, czy skasować.
+`§G` tego samego pliku nosi od 2026‑08‑02 wniosek „tabela ze statusem cudzej
+pozycji jest długiem — docelowo zostawić same odsyłacze", opisany tam jako
+najtańsza otwarta robota w `docs/` i nadal niewykonany. `§0` jest tą samą
+konstrukcją o pięć razy większej skali, więc obie drogi prowadzą w przeciwne
+strony i **żadnej nie wolno wybrać mimochodem**. Sekcja `N` rejestru celowo nie
+dokłada do `§0` własnych wierszy.
+
+**Co da się zrobić niezależnie od tej decyzji:** strażnik na `docs/specy/README.md`
+po wzorze `tests/fixtury.ts` — `readdirSync` odkrywa pliki, tabela musi je
+wymieniać. Pliki odkrywane, nie wpisywane, inaczej strażnik zestarzeje się tak
+samo jak spis.
