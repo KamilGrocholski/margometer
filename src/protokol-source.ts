@@ -172,6 +172,20 @@ export class EngineProtocolSource implements EventSource {
    */
   private swiezaWalka = false;
   private oryginal: ((...argumenty: unknown[]) => unknown) | null = null;
+  /**
+   * Czy na TYM obiekcie walki ktoś stanął nad nami — patrz `zapewnijOwiniecie`.
+   *
+   * Istnieje wyłącznie po to, żeby ostrzeżenie w konsoli padło RAZ, a nie co
+   * 150 ms: odmowa nie zmienia stanu, więc zegar wracałby w to samo miejsce
+   * przy każdym tiku. Zerowane przy nowym obiekcie walki, bo cudza warstwa
+   * stała na poprzednim.
+   *
+   * `zdejmij()` jej **nie rusza i nie musi**: zeruje `owiniety`, więc następny
+   * tik idzie gałęzią „nowy obiekt" i reset leci po drodze. Zapisane, bo przy
+   * polu pilnującym jednorazowości brak zerowania w metodzie sprzątającej
+   * wygląda na przeoczenie.
+   */
+  private cudzaWarstwa = false;
 
   /**
    * `window` niesie tu DWIE różne rzeczy z gry: `Engine` (protokół) i `_t`
@@ -228,9 +242,47 @@ export class EngineProtocolSource implements EventSource {
     // więc „update jest już owinięty" trzeba pytać o TEN obiekt, nie w ogóle.
     if (this.owiniety === battle && (update as Opakowanie)[ZNACZNIK] === WERSJA) return;
 
+    // ⚠️ **TEN SAM OBIEKT, A NASZEGO ZNACZNIKA NA WIERZCHU NIE MA: KTOŚ STANĄŁ
+    // NAD NAMI.** To NIE znaczy „trzeba owinąć" i właśnie tak było czytane do
+    // 2026‑08‑07 (`AUDYT‑107`). Owinięcie drugi raz wkłada nasze opakowanie do
+    // łańcucha DWA razy — a oba domknięcia dopisują do tego samego
+    // `this.komunikaty`, więc jedno wywołanie gry liczy się podwójnie.
+    // Zmierzone na atrapie: trzy identyczne ciosy po 100, cudza warstwa
+    // założona po naszej — **600 obrażeń i sześć komunikatów zamiast 300
+    // i trzech**, przy `unknownLines` równym zeru. Dokładnie ×2 i całkowicie
+    // cicho, bo każdy komunikat z osobna jest poprawny.
+    //
+    // Odmawiamy — i to jest ta sama reguła, którą `zdejmij()` stosuje od
+    // początku („zdejmujemy WYŁĄCZNIE swoje"). Asymetria między zakładaniem
+    // a zdejmowaniem była całym błędem: po jednej stronie cyklu życia cudza
+    // warstwa była rozpoznawana, po drugiej nie.
+    //
+    // CO ODMOWA KOSZTUJE, gdyby założenie okazało się złe. Zakładamy, że nasza
+    // warstwa nadal siedzi w łańcuchu pod cudzą — bo owinięcie ZWYKLE woła to,
+    // co zastało. Jeśli ktoś nas nie owinął, tylko PODMIENIŁ (`battle.update =
+    // wlasna`), zamilkniemy. Ale zamilkniemy GŁOŚNO: pusty odczyt na koniec
+    // walki zapala graczowi osobny komunikat o spóźnionym podpięciu
+    // (`stan-odczytu.ts`, `index.ts:68`). Wybieramy więc awarię, która ma
+    // czujkę, zamiast awarii, która nie ma żadnej.
+    //
+    // Wariant „szukaj naszego znacznika w głąb łańcucha" odrzucony bez pomiaru:
+    // wymaga założeń o kształcie cudzego opakowania, a niczego takiego nikt nam
+    // nie obiecał.
+    if (this.owiniety === battle) {
+      // Raz na warstwę, nie co 150 ms — zegar tyka dalej i wracałby tu w kółko.
+      if (!this.cudzaWarstwa) {
+        this.cudzaWarstwa = true;
+        console.warn(
+          "[MargoMeter] ktoś owinął Engine.battle.update po nas — nie owijam drugi raz",
+        );
+      }
+      return;
+    }
+
     // Nowy OBIEKT walki to na pewno nowa walka. Warunek WYSTARCZAJĄCY, ale nie
     // konieczny — patrz `odetnijWalke` i `zaczynaWalke`.
-    if (this.owiniety !== battle) this.odetnijWalke();
+    this.cudzaWarstwa = false;
+    this.odetnijWalke();
 
     const oryginal = update as (...argumenty: unknown[]) => unknown;
     const owinieta: Opakowanie = (...argumenty: unknown[]): unknown => {

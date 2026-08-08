@@ -483,12 +483,25 @@ martwa, tylko żywa wyłącznie dla korpusu syntetycznego**: wisi na niej
 przy wpisie `AUDYT‑108`.
 
 ⚠️ **Dopisane 2026‑08‑07 (`AUDYT‑107`): drugie źródło podwojenia, niezależne od
-granicy walki.** Gdy cudzy dodatek owinie `Engine.battle.update` **po nas**,
-warunek pomijający w `zapewnijOwiniecie` nie zachodzi i owijamy drugi raz —
-jedno wywołanie gry przechodzi przez odczyt dwa razy. Zmierzone na atrapie:
+granicy walki.** Gdy cudzy dodatek owinął `Engine.battle.update` **po nas**,
+warunek pomijający w `zapewnijOwiniecie` nie zachodził i owijaliśmy drugi raz —
+jedno wywołanie gry przechodziło przez odczyt dwa razy. Zmierzone na atrapie:
 **300 → 600 obrażeń, 3 → 6 komunikatów, zero ostrzeżeń.** Ta pozycja mówi
-„nasze numerowanie nie widzi drugiej walki"; `AUDYT‑107` pokazuje, że **liczby
+„nasze numerowanie nie widzi drugiej walki"; `AUDYT‑107` pokazał, że **liczby
 potrafią się podwoić także w obrębie JEDNEJ walki**, i to bez udziału gry.
+
+✅ **Zamknięte tego samego dnia** — `zapewnijOwiniecie` odmawia owinięcia, gdy
+`owiniety === battle`, a naszego znacznika na wierzchu nie ma. Ten sam układ
+atrapy po naprawie: **600 → 300 obrażeń, 6 → 3 komunikaty.** To jest ta sama
+reguła, którą `zdejmij()` stosował od pierwszego dnia („zdejmujemy wyłącznie
+swoje"); cała usterka polegała na tym, że **zakładanie jej nie miało**.
+
+⚠️ **Co z tego ZOSTAJE otwarte:** dodatek, który `update` **podmieni** zamiast
+owinąć, nadal zamyka nam usta i tego nie wykryjemy — odmowa zakłada, że nasza
+warstwa siedzi w łańcuchu pod cudzą. Różnica jest w tym, że zamilknięcie ma
+czujkę (pusty odczyt na koniec walki zapala graczowi komunikat o spóźnionym
+podpięciu, `stan-odczytu.ts`), a podwojenie nie miało żadnej. **Wymieniona
+została awaria cicha na głośną — nie „teraz działa zawsze".**
 
 Nie funkcja, ale warunek wejścia dla kilku rzeczy wyżej. Agregat pól `missing`
 w `meta.json`, zweryfikowany po `covers`:

@@ -47,6 +47,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Opis dodatku mówi wprost, że twórcy Margonem go nie
   autoryzowali, i przytacza punkty regulaminu, które go dotyczą. Instalujesz
   na własne ryzyko — przeczytaj to przed instalacją.
+- **Poprawka** — Gdy obok MargoMetra działa inny dodatek czytający przebieg
+  walki, liczby zostają prawdziwe. Dotąd w takiej sytuacji panel potrafił
+  pokazać dokładnie dwa razy za dużo — każdy cios liczył się dwukrotnie —
+  i nie mówił o tym ani słowem. Jeśli drugi dodatek zajmie miejsce MargoMetra
+  całkowicie, panel pokaże teraz zera i osobny komunikat, że nie zdążył się
+  podpiąć, zamiast wymyślonych liczb.
 - **Poprawka** — Obrażenia od umiejętności zadających z góry ustaloną wartość
   (tych, których pancerz nie zmniejsza) liczą się do statystyk. Wcześniej nie
   liczyły się wcale.

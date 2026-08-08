@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { EngineProtocolSource, StaticProtocolSource } from "../src/protokol-source.ts";
+import {
+  EngineProtocolSource,
+  StaticProtocolSource,
+  type PorcjaProtokolu,
+} from "../src/protokol-source.ts";
 import type { GameGlobals, RosterEntry, RosterSource } from "../src/roster.ts";
 import type { BattleEvent } from "../src/types.ts";
 
@@ -43,6 +47,16 @@ function zegar() {
 function gra(update: (...a: unknown[]) => unknown) {
   const battle: Record<string, unknown> = { update };
   return { globals: { Engine: { battle } } as GameGlobals, battle };
+}
+
+/** Jeden cios Kamila w Lochę za 100 — komunikat, nie zdarzenie. */
+const CIOS = "1=100.00;2=40.37;+dmgd=100;-dmgd=100";
+
+/** Suma obrażeń SUROWYCH ze zdarzeń — po niej widać podwojenie. */
+function obrazenia(zdarzenia: BattleEvent[]): number {
+  return zdarzenia
+    .filter((z) => z.kind === "attack")
+    .reduce((suma, z) => suma + z.hits.reduce((s, h) => s + h.raw, 0), 0);
 }
 
 describe("StaticProtocolSource", () => {
@@ -126,6 +140,46 @@ describe("EngineProtocolSource: umowa z gospodarzem strony", () => {
     expect(battle["update"]).toBe(poPierwszym);
     (battle["update"] as () => unknown)();
     expect(wywolania).toBe(1);
+  });
+
+  /**
+   * ⚠️ **DRUGA POŁOWA UMOWY, KTÓREJ NIE BYŁO DO 2026‑08‑07** (`AUDYT‑107`).
+   * Test wyżej („NIE zdejmujemy cudzej warstwy") pilnował ZDEJMOWANIA; przy
+   * ZAKŁADANIU ta sama sytuacja nie była rozpoznawana i kosztowała ×2 na
+   * liczbach, całkowicie po cichu.
+   *
+   * Dlaczego to jest gorsze niż zamilknięcie: zamilknięcie zapala graczowi
+   * komunikat o spóźnionym podpięciu (`stan-odczytu.ts`), a podwojona liczba
+   * nie zapala niczego — `unknownLines` zostaje zerem, bo każdy komunikat jest
+   * poprawny. Jest po prostu policzony dwa razy.
+   */
+  test("cudza warstwa NA WIERZCHU nie każe nam owijać drugi raz", () => {
+    const { globals, battle } = gra(() => "ok");
+    const z = zegar();
+    const porcje: PorcjaProtokolu[] = [];
+    new EngineProtocolSource(globals, roster(), z).subscribe((p) => porcje.push(p));
+
+    // Inny dodatek owija to, co zastał — czyli NASZE opakowanie. Nasza warstwa
+    // nadal siedzi w łańcuchu i nadal widzi każde wywołanie dokładnie raz.
+    const nasza = battle["update"] as (...a: unknown[]) => unknown;
+    battle["update"] = function (this: unknown, ...a: unknown[]) {
+      return nasza.apply(this, a);
+    };
+    const cudza = battle["update"];
+
+    z.tik();
+    z.tik();
+
+    // Nie podmieniamy cudzej warstwy — tak samo jak przy zdejmowaniu.
+    expect(battle["update"]).toBe(cudza);
+
+    (battle["update"] as (t: unknown) => unknown)({ m: [CIOS] });
+
+    // JEDEN cios w gra = JEDEN komunikat w buforze. Przed naprawą były dwa,
+    // bo nasze opakowanie stało w łańcuchu dwa razy i oba dopisywały do tego
+    // samego bufora.
+    expect(porcje.at(-1)!.komunikaty).toEqual([CIOS]);
+    expect(obrazenia(porcje.at(-1)!.zdarzenia)).toBe(100);
   });
 });
 

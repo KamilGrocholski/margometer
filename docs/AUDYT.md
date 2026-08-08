@@ -3669,7 +3669,7 @@ sama.** Z czternastu takich miejsc w `src/` sprawdziłem po kolei cztery
 najpodejrzliwiej wyglądające (`archive.ts:388`, `recorder.ts:364`,
 `overlay.ts:2302`, `session.ts:30`) — **wszystkie strzeżone**.
 
-### AUDYT‑107 — cudza warstwa na `Engine.battle.update` PODWAJA obrażenia, bez ani jednego ostrzeżenia 🔴 M — ⬜ ZAPISANE, nienaprawione ✓
+### AUDYT‑107 — cudza warstwa na `Engine.battle.update` PODWAJA obrażenia, bez ani jednego ostrzeżenia 🔴 M — ✅ NAPRAWIONE 2026‑08‑07 ✓
 
 `src/protokol-source.ts:245` (`zapewnijOwiniecie`)
 
@@ -3709,6 +3709,40 @@ gdy `owiniety === battle`, a znacznika na wierzchu nie ma, to nie jest „trzeba
 owinąć", tylko „ktoś stanął nad nami" — i odpowiedzią jest odmowa ponownego
 owinięcia, nie owinięcie. Wariant „szukaj naszego znacznika w głąb łańcucha"
 odrzucony bez pomiaru: wymaga założeń o cudzym kształcie opakowania.
+
+✅ **NAPRAWIONE 2026‑08‑07 — dokładnie tym kierunkiem.** `zapewnijOwiniecie`
+odmawia, gdy `owiniety === battle`, a naszego znacznika na wierzchu nie ma.
+Ostrzeżenie do konsoli pada **raz na warstwę**, nie co 150 ms: odmowa nie
+zmienia stanu, więc zegar wracałby w to samo miejsce przy każdym tiku.
+
+**✓ Zmierzone tą samą atrapą i tym samym układem, co pomiar wyżej** — trzy ciosy
+po 100, cudza warstwa założona po naszej, potem nasz tik:
+
+| | zadane | komunikatów w buforze | `unknownLines` |
+|---|---|---|---|
+| bez cudzej warstwy | 300 | 3 | 0 |
+| z cudzą warstwą, **przed naprawą** | **600** | **6** | 0 |
+| z cudzą warstwą, **po naprawie** | 300 | 3 | 0 |
+
+**✓ Mutacja sprawdzona.** Zdjęcie samej odmowy → pada **dokładnie jeden** test
+(`cudza warstwa NA WIERZCHU nie każe nam owijać drugi raz`, 30 pass / 1 fail),
+czyli test celuje w tę zmianę, a nie w jej okolice.
+
+⚠️ **CO NAPRAWA KOSZTUJE — i dlaczego mimo to jest tańsza.** Odmowa zakłada, że
+nasza warstwa nadal siedzi w łańcuchu pod cudzą, bo opakowanie ZWYKLE woła to,
+co zastało. Dodatek, który `update` **podmieni** zamiast owinąć, zamyka nam usta
+i tego nie wykryjemy. Ale zamilknięcie **ma czujkę** — pusty odczyt na koniec
+walki zapala graczowi komunikat o spóźnionym podpięciu (`stan-odczytu.ts`,
+`index.ts:68`) — a podwojenie nie miało żadnej: każdy komunikat był poprawny,
+`unknownLines` zostawało zerem. **Wymieniamy awarię cichą na awarię głośną**,
+i to jest cały zysk; nie jest nim „teraz działa zawsze".
+
+⚠️ **Wniosek ogólniejszy od poprawki.** Obie połowy cyklu życia opakowania
+widziały tę samą sytuację i tylko jedna ją rozpoznawała — `zdejmij()` miał
+regułę „zdejmujemy wyłącznie swoje" od pierwszego dnia. **Reguła zapisana po
+jednej stronie cyklu życia nie przenosi się na drugą sama**, a różnicy nie widać
+w kodzie, bo obie strony wyglądają na kompletne osobno. Przy następnym
+opakowaniu czegokolwiek: przejść zakładanie i zdejmowanie tą samą listą pytań.
 
 ### AUDYT‑108 — `splitFights` jest MARTWE, a granica walki stoi na jednym warunku 🔴 S — ◧ POŁOWA NAPRAWIONA 2026‑08‑07, druga otwarta ✓
 
