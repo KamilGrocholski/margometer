@@ -93,20 +93,23 @@ function decodeDamageToNamedCombatant(
 }
 
 /**
- * Health moving outside an attack, keyed by which way it goes.
+ * Health moving outside an attack: which way it goes, and which slot holds the
+ * combatant it happens to.
  *
- * The sign is ours to supply: the protocol states a magnitude and leaves the
- * direction to the key. Measured on the captured fights — healing added and the
- * other two subtracted is the only one of the four combinations under which the
- * stated percentages close.
+ * Both are ours to supply. The protocol states a magnitude and leaves the
+ * direction to the key; measured on the captured fights, healing added and the
+ * rest subtracted is the only one of the four combinations under which the
+ * stated percentages close. The slot is measured too — all but `heal_target`
+ * put their subject in the actor slot of a message whose target is nobody.
  *
  * `injure` and `+injure` are different keys and only this one moves health.
  */
-const HEALTH_CHANGE_SIGNS: Record<string, number> = {
-  heal: 1,
-  legbon_holytouch_heal: 1,
-  poison: -1,
-  injure: -1,
+const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> = {
+  heal: { sign: 1, isOnTarget: false },
+  legbon_holytouch_heal: { sign: 1, isOnTarget: false },
+  heal_target: { sign: 1, isOnTarget: true },
+  poison: { sign: -1, isOnTarget: false },
+  injure: { sign: -1, isOnTarget: false },
 };
 
 /** Two of these carry a second, comma-separated figure that nothing here explains. */
@@ -119,7 +122,7 @@ const VALUE_SEPARATOR = ",";
  */
 export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   ...Object.keys(OUTCOME_KEYS),
-  ...Object.keys(HEALTH_CHANGE_SIGNS),
+  ...Object.keys(HEALTH_CHANGE_KEYS),
   DAMAGE_TO_NAMED_KEY,
 ];
 
@@ -150,21 +153,19 @@ function decodeMessage(message: string): BattleEvent[] {
       continue;
     }
 
-    const sign = HEALTH_CHANGE_SIGNS[key];
-    if (sign !== undefined) {
-      // The subject sits in the actor slot: these messages name nobody as
-      // target. Measured — the percentage they state is the actor's, and it is
-      // the one the arithmetic closes against.
+    const healthChange = HEALTH_CHANGE_KEYS[key];
+    if (healthChange !== undefined) {
       const [magnitude, ...rest] = (value ?? "").split(VALUE_SEPARATOR);
       const amount = magnitude === undefined ? null : getIntegerFromText(magnitude);
       if (amount === null) {
         unreadKeys.push(key);
         continue;
       }
+      const subject = healthChange.isOnTarget ? parsed.target : parsed.actor;
       events.push({
         kind: "health-change",
-        combatantId: parsed.actor?.combatantId ?? null,
-        amount: amount * sign,
+        combatantId: subject?.combatantId ?? null,
+        amount: amount * healthChange.sign,
         source: key,
       });
       // The health figure is read; a second figure beside it is not. Reporting

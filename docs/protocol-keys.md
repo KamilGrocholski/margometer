@@ -117,6 +117,19 @@ it, so nothing downstream may credit it to anyone (§5).
 *Evidence:* as above. Before it was read, the first disagreement it caused was
 `-10000249=76.05;0;poison=563`.
 
+### `heal_target` — decoded
+
+Healing directed at the message **target**, which is what separates it from
+`heal`: same figure, same sign, the other slot. The only key of this family that
+does not put its subject in the actor slot, and the reason the decoder carries a
+slot per key rather than assuming one.
+
+*Health:* moves health
+
+*Evidence:* reading it on the target closed every comparison in the calls that
+carry it, first try and with no adjustment. Read on the actor instead, the same
+calls disagree.
+
 ### `legbon_holytouch_heal` — decoded
 
 Healing, same shape and slot as `heal`, from a legendary bonus rather than a
@@ -175,31 +188,32 @@ Each of these makes its engine call uncomparable. They are the queue the decoder
 works through next, and until it does, the witness declines to judge the calls
 they appear in rather than reporting our ignorance as the game's error.
 
-### `heal_target` — investigated
-
-Healing directed at the message target, unlike `heal`, which lands on the actor.
-
-*Health:* moves health
-
-*Evidence:* one attributable disagreement, and a large one — the target's stated
-percentage sits far above the arithmetic on a message carrying `heal_target`.
-
 ### `healall_per` — investigated
 
-Healing by a percentage that reaches combatants the message **never names**. The
-message names only the caster, on both sides.
+Healing by a percentage of **maximum** health, reaching every combatant on the
+caster's side and nobody on the other, clamped at full. The message names only
+the caster, in both slots.
 
 This is the one that decided the witness's shape. Dropping only the combatants a
-message names is not enough here, because the health moved somewhere else
-entirely: in one call the caster's message named nobody but the caster, while a
-combatant absent from it gained a fifth of their health, and the next comparison
-against that combatant was out by more than twenty percentage points. A key like
-this costs the whole call, not two combatants.
+message names is not enough here, because the health moved somewhere the message
+never mentions, and the next comparison against such a combatant was out by more
+than twenty percentage points. A key like this costs the whole call.
+
+**Not read, and not for want of understanding it.** The rule above is exact, but
+applying it needs to know who is on the caster's side, and *the protocol message
+does not say*. A roster would answer it; there is no roster yet, and the team
+numbers in the captured dumps are material this decoder never sees at run time.
+Guessing the side would be inventing data (§5), so the calls stay uncomparable
+until the roster exists.
 
 *Health:* moves health
 
-*Evidence:* attributable disagreements on its own messages, the first out by the
-percentage the key itself states.
+*Evidence:* one call carries a single `healall_per=30` message and nothing else.
+Every combatant on the caster's side gained exactly 30.00% of their own maximum;
+two of them landed on their maximum and gained less, which is where the clamp
+comes from. The opposing combatant gained nothing — an earlier reading that
+healed everyone present made agreement worse rather than better, which is how
+the side restriction was found.
 
 ---
 
