@@ -152,7 +152,9 @@ bun run build      # produces dist/margometer.user.js
 Tools are added when a question needs answering, not in advance (§7.1). Each one
 that exists is listed here with what it answers.
 
-*(none yet)*
+| Tool | Answers |
+|---|---|
+| `tools/dump.ts` | *What is inside a captured fight?* Parses dump files field by field and refuses anything unexpected. Library, not a CLI. |
 
 ---
 
@@ -231,8 +233,14 @@ tsconfig.json      Strict flags standing in for a linter — §9.3.
 src/
   userscript.ts    Bundle entry point. Empty so far.
 
+tools/
+  dump.ts          Reads captured fight material. The boundary where the files'
+                   Polish field names stop — §9.2.
+
 tests/
   fixtures/        Raw battle protocol captured from real fights. Evidence — §9.2.
+  fixtures.ts      Discovers the directory, exposes each capture plus max health.
+  fixtures.test.ts
   userscript.test.ts
 ```
 
