@@ -78,7 +78,7 @@ the first sign the rules have drifted from the tree.
   fights. This includes negative claims ("the log doesn't say who applied the
   poison"). **A quotation from the client carries the build it was read on** —
   without one it is dated to the day someone copied it, not to a state of the
-  game. Procedure: §7.5.
+  game. Procedure: §7.6.
 - `[ALWAYS] [core]` **Make unknown input loud.** A protocol key the decoder does
   not recognise becomes an explicit "unknown" event and surfaces in the panel.
   Silence is the failure mode that costs the most here: a number that is quietly
@@ -159,8 +159,9 @@ that exists is listed here with what it answers.
 | Tool | Answers |
 |---|---|
 | `tools/fight-dump-parser.ts` | *What is inside a captured fight?* Parses dump files field by field and refuses anything unexpected. Library, not a CLI. |
-| `tools/game-client-source.ts` | *What is the game serving, and give me its source.* `status` compares served build against the cache; `fetch [channel]` downloads into `.cache/` with provenance. §7.5. |
+| `tools/game-client-source.ts` | *What is the game serving, and give me its source.* `status` compares served build against the cache; `fetch [channel]` downloads into `.cache/` with provenance. §7.6. |
 | `tools/protocol-key-table.ts` | *Which protocol keys does the client know?* Lifts them from the cached production bundle; `freeze` writes `tests/frozen-protocol-keys.ts`. |
+| `tools/decoding-status.ts` | *How much of the protocol do we read?* Messages, events by kind, unread keys by frequency. Computed on demand — these figures never go into prose (§5). |
 
 ---
 
@@ -217,7 +218,39 @@ End a round with: what changed, what you validated and what came back, what you
 did **not** do and why. Report failures with the output. If a step was skipped,
 say so. Do not describe work as done until the gate is green.
 
-### 7.5 Working from the game's own sources
+### 7.5 What a round teaches
+
+A round that discovers something durable has three places to put it, and the
+order matters:
+
+1. **A guard**, if a machine can check it. Always the first choice.
+2. **A rule in this file**, if it needs judgment. Second choice, and it should
+   name the cost that produced it.
+3. **The commit message**, if it is neither — dated, immutable, and enough.
+
+What there is **no** place for: a file of accumulated lessons. An append-only
+list with no producer and no consumer is the artefact this project deleted
+14,000 lines of, and its weakness is not the writing but the not-reading. A
+lesson that stays a lesson is inert; a lesson that becomes a guard or a rule
+starts binding.
+
+Rules that arrived this way, each paid for once:
+
+- `[ALWAYS] [process]` **Restore a mutation from a copy, never with
+  `git checkout`.** The file may be carrying uncommitted work from the round in
+  progress, and `git checkout` takes it silently.
+- `[ALWAYS] [process]` **Read back the result of a scripted edit.** A
+  search-and-replace whose pattern no longer matches does nothing and says
+  nothing — it looks exactly like one that worked.
+- `[ALWAYS] [any]` **Extract structure with structure, not with a search.** A
+  list gathered by grepping a whole file quietly includes its neighbours: two
+  keys entered the first key table from a switch that had nothing to do with
+  battle messages.
+- `[ALWAYS] [process]` **A mutation that lights nothing is a finding.** Either
+  the test is missing or the code is inert. Twice here it was the second, and
+  both times the answer was to delete something rather than to add a test.
+
+### 7.6 Working from the game's own sources
 
 Some questions can only be settled by reading the game client: what a protocol
 key means, which keys the decoder does **not** know, in what order the engine
@@ -288,7 +321,17 @@ tsconfig.json            Strict flags standing in for a linter, and the `@/*`
 .github/workflows/       check.yml: the gate, nothing else yet.
 
 .cache/                  Game client sources, fetched on demand. NOT tracked and
-                         never published — §7.5. Absent until first fetched.
+                         never published — §7.6. Absent until first fetched.
+
+docs/
+  protocol-keys.md       What has been looked into, key by key: verdict,
+                         evidence, state. Guarded both ways against the decoder
+                         and the frozen table.
+  specs/                 Dated design records. No index — the directory is one.
+
+  ⚠️ docs/ may hold a GUARDED register or a DATED spec, and nothing else. No
+  status, no progress, no chronicle of rounds. That sentence is the only thing
+  standing between this directory and what the previous one became.
 
 libs/
   assert.ts              Assertions and their failure type. Depends on nothing;
@@ -319,10 +362,11 @@ tests/
                            states — two sources nothing here reconciles.
   source-layout.test.ts    Guards §9.3 imports-from-root plus §9.4 file and
                            function naming, §9.5 errors and assumptions, §9.6
-                           no blocking dialogs, §7.5 nothing fetched enters git.
+                           no blocking dialogs, §7.6 nothing fetched enters git.
                            Discovers files, never lists them.
   assert.test.ts  battle-event.test.ts  captured-fight-catalog.test.ts
-  margometer-error.test.ts  protocol-key-table.test.ts  protocol-message.test.ts
+  decoding-status.test.ts  margometer-error.test.ts  protocol-key-register.test.ts
+  protocol-key-table.test.ts  protocol-message.test.ts  spec-status.test.ts
   userscript-metadata.test.ts
 ```
 
