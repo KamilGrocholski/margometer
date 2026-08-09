@@ -38,6 +38,8 @@ Engine.battle.update  →  protokol-source.ts → komunikaty `t.m` + skład
                       →  overlay.ts         → panel w Shadow DOM
 ```
 
+To jest SKRÓT — **pełny przebieg stoi w [`POTOK.md`](POTOK.md)**.
+
 ⚠️ **`session.ts` stało tu jako „która walka jest TĄ" do 2026‑08‑07** i przestało
 być prawdą wcześniej, niż to poprawiono: kryterium podziału dzieliło po
 zdarzeniu, którego dekoder nie produkuje od 2026‑08‑04 (`AUDYT‑108`). Granicę
@@ -73,6 +75,7 @@ ich w całości — każdy odpowiada na inne pytanie.
 |---|---|---|
 | [`MECHANIKA.md`](MECHANIKA.md) | **Jak zachowuje się GRA — i skąd to wiadomo?** Procedura sprawdzania oficjalnej pomocy plus rejestr odpowiedzi z dosłownymi cytatami (albo jawnym „nie znaleziono”). | Zanim napiszesz JAKIEKOLWIEK zdanie o zachowaniu gry, także negatywne |
 | [`DECYZJE.md`](DECYZJE.md) | **Dlaczego kod wygląda tak, jak wygląda?** Czego log NIE mówi i co z tego wynika. Sekcje o truciźnie bez sprawcy, leczeniu bez leczącego, duplikatach nazw, kolorach, „na turę". | Zawsze, zanim zmienisz cokolwiek w `protokol.ts` albo `stats.ts` |
+| [`POTOK.md`](POTOK.md) | **Jak dane idą od gry do panelu — i w jakiej kolejności?** Cały przebieg: build i nagłówek userscriptu, pętla startowa, owinięcie `Engine.battle.update`, droga jednej porcji, dekodowanie, agregacja, panel, trzy tory boczne, gdzie mieszka stan. Diagramy plus proza; zero numerów linii, bo mają przeżyć. | Gdy pytasz „skąd ta liczba się wzięła" albo „co się dzieje, gdy…" — i zanim dotkniesz czegokolwiek w potoku |
 | [`AUDYT.md`](AUDYT.md) | **Co jest zepsute i co już naprawiono?** Rejestr z ID (`AUDYT‑N`), wagą, kosztem i — przy naprawionych — opisem, co konkretnie zrobiono. | Zanim zgłosisz „znalazłem błąd" — sprawdź, czy nie jest już zapisany albo świadomie odrzucony |
 | [`SOLID.md`](SOLID.md) | **Gdzie jest dług i czego nie widzą testy?** Usterki `§4.*`, architektura `§8`, martwy kod `§9`, luki zestawu `§10`. | Przy refaktorze i przy pytaniu „czy to jest pokryte?" |
 | [`UX.md`](UX.md) | **Jak panel ma się zachowywać?** Spec gestów i zasad, z ✅ (jest) i 🎯 (postulat). | Przy każdej zmianie w `overlay.ts` |

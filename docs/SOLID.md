@@ -75,6 +75,10 @@ Engine.battle.update ──owinięcie──► komunikaty `t.m`
    (pamięć odczytu)      (zapis SUROWCA)        (widok)
 ```
 
+Ten diagram jest tu po to, żeby dało się czytać `§4.*` i `§8` bez skakania po
+plikach. **Pełny przebieg, razem z inicjalizacją i torami bocznymi, stoi
+w [`POTOK.md`](POTOK.md)** — tu zostaje sam kształt zależności.
+
 ⚠️ **W nawiasie stało „która walka jest TĄ" do 2026‑08‑07.** `splitFights`
 dzielił po `fight-start`, którego dekoder nie produkuje od 2026‑08‑04, więc opis
 przeżył swoje uzasadnienie o trzy dni (`AUDYT‑108`). Granicę walki tnie dziś

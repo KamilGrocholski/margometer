@@ -60,6 +60,10 @@ Engine.battle.update  →  protokol-source.ts → komunikaty `t.m` + skład
                       →  overlay.ts         → panel w Shadow DOM
 ```
 
+To jest SKRÓT. **Pełny przebieg — od buildu, przez pętlę startową i owinięcie
+`Engine.battle.update`, po tory boczne i klucze w magazynie — stoi
+w [`docs/POTOK.md`](docs/POTOK.md)** i tam jest źródłem prawdy dla szczegółów.
+
 ⚠️ **`session.ts` stało tu jako „która walka jest TĄ" do 2026‑08‑07.** Kryterium
 podziału (`splitFights`, po zdarzeniu `fight-start`) było martwe od 2026‑08‑04 —
 dekoder takiego zdarzenia nie produkuje — i zeszło z drzewa razem z tym opisem
@@ -400,3 +404,7 @@ w historii bez pytania kogokolwiek.
 [`docs/README.md`](docs/README.md) — co gdzie siedzi, czego log o walce nie mówi
 i jak wyglądały poprzednie rundy. Katalog `docs/` czyta się **wybiórczo**: każdy
 plik odpowiada na inne pytanie i nikt nie czyta ich w całości.
+
+[`docs/POTOK.md`](docs/POTOK.md) — **cały przebieg dodatku**, gdy skrót z sekcji
+„Układ" wyżej nie wystarcza: inicjalizacja, owinięcie `Engine.battle.update`,
+droga jednej porcji danych, tory boczne, stan i klucze w magazynie.
