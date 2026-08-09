@@ -1,5 +1,5 @@
 /**
- * Reader for captured fight material.
+ * Parser for captured fight material.
  *
  * A dump is one recording session: every call the game engine made, with the
  * raw protocol it carried and a snapshot of every combatant taken before and
@@ -15,35 +15,35 @@
 
 export class FightDumpFormatError extends Error {
   constructor(path: string, expected: string, received: unknown) {
-    super(`${path}: expected ${expected}, got ${describeValue(received)}`);
+    super(`${path}: expected ${expected}, got ${getValueDescription(received)}`);
     this.name = "FightDumpFormatError";
   }
 }
 
-function describeValue(value: unknown): string {
+function getValueDescription(value: unknown): string {
   if (value === null) return "null";
   if (Array.isArray(value)) return `array(${value.length})`;
   return typeof value;
 }
 
-function expectObject(value: unknown, path: string): Record<string, unknown> {
+function requireObject(value: unknown, path: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new FightDumpFormatError(path, "an object", value);
   }
   return value as Record<string, unknown>;
 }
 
-function expectArray(value: unknown, path: string): unknown[] {
+function requireArray(value: unknown, path: string): unknown[] {
   if (!Array.isArray(value)) throw new FightDumpFormatError(path, "an array", value);
   return value;
 }
 
-function expectString(value: unknown, path: string): string {
+function requireString(value: unknown, path: string): string {
   if (typeof value !== "string") throw new FightDumpFormatError(path, "a string", value);
   return value;
 }
 
-function expectFiniteNumber(value: unknown, path: string): number {
+function requireFiniteNumber(value: unknown, path: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new FightDumpFormatError(path, "a finite number", value);
   }
@@ -87,41 +87,41 @@ export type FightDump = {
   calls: EngineCall[];
 };
 
-function readCombatantHealth(raw: unknown, path: string): CombatantHealth {
-  const health = expectObject(raw, path);
+function parseCombatantHealth(raw: unknown, path: string): CombatantHealth {
+  const health = requireObject(raw, path);
   return {
-    maximum: expectFiniteNumber(health["max"], `${path}.max`),
-    current: expectFiniteNumber(health["cur"], `${path}.cur`),
-    percent: expectFiniteNumber(health["hpp"], `${path}.hpp`),
+    maximum: requireFiniteNumber(health["max"], `${path}.max`),
+    current: requireFiniteNumber(health["cur"], `${path}.cur`),
+    percent: requireFiniteNumber(health["hpp"], `${path}.hpp`),
   };
 }
 
-function readCombatantSnapshots(raw: unknown, path: string): CombatantSnapshot[] {
-  return expectArray(raw, path).map((entry, index) => {
+function parseCombatantSnapshots(raw: unknown, path: string): CombatantSnapshot[] {
+  return requireArray(raw, path).map((entry, index) => {
     const at = `${path}[${index}]`;
-    const combatant = expectObject(entry, at);
+    const combatant = requireObject(entry, at);
     return {
-      id: expectFiniteNumber(combatant["id"], `${at}.id`),
-      name: expectString(combatant["name"], `${at}.name`),
-      team: expectFiniteNumber(combatant["team"], `${at}.team`),
-      profession: expectString(combatant["prof"], `${at}.prof`),
-      level: expectFiniteNumber(combatant["lvl"], `${at}.lvl`),
-      health: readCombatantHealth(combatant["hp"], `${at}.hp`),
+      id: requireFiniteNumber(combatant["id"], `${at}.id`),
+      name: requireString(combatant["name"], `${at}.name`),
+      team: requireFiniteNumber(combatant["team"], `${at}.team`),
+      profession: requireString(combatant["prof"], `${at}.prof`),
+      level: requireFiniteNumber(combatant["lvl"], `${at}.lvl`),
+      health: parseCombatantHealth(combatant["hp"], `${at}.hp`),
     };
   });
 }
 
-function readEngineCall(raw: unknown, path: string): EngineCall {
-  const call = expectObject(raw, path);
+function parseEngineCall(raw: unknown, path: string): EngineCall {
+  const call = requireObject(raw, path);
   return {
-    index: expectFiniteNumber(call["nr"], `${path}.nr`),
+    index: requireFiniteNumber(call["nr"], `${path}.nr`),
     fightNumber:
-      call["walka"] === undefined ? null : expectFiniteNumber(call["walka"], `${path}.walka`),
-    protocolMessages: expectArray(call["komunikaty"], `${path}.komunikaty`).map((message, i) =>
-      expectString(message, `${path}.komunikaty[${i}]`),
+      call["walka"] === undefined ? null : requireFiniteNumber(call["walka"], `${path}.walka`),
+    protocolMessages: requireArray(call["komunikaty"], `${path}.komunikaty`).map((message, i) =>
+      requireString(message, `${path}.komunikaty[${i}]`),
     ),
-    combatantsBefore: readCombatantSnapshots(call["wojownicyPrzed"], `${path}.wojownicyPrzed`),
-    combatantsAfter: readCombatantSnapshots(call["wojownicyPo"], `${path}.wojownicyPo`),
+    combatantsBefore: parseCombatantSnapshots(call["wojownicyPrzed"], `${path}.wojownicyPrzed`),
+    combatantsAfter: parseCombatantSnapshots(call["wojownicyPo"], `${path}.wojownicyPo`),
     // `render` — sentences the game client composed — is deliberately not read.
     // It is the game's own prose, and no part of this project depends on it.
   };
@@ -133,7 +133,7 @@ function readEngineCall(raw: unknown, path: string): EngineCall {
  * object: material that reads "successfully" but wrong is worse than material
  * that refuses to read.
  */
-export function readFightDump(source: string): FightDump {
+export function parseFightDump(source: string): FightDump {
   let parsed: unknown;
   try {
     parsed = JSON.parse(source);
@@ -145,18 +145,18 @@ export function readFightDump(source: string): FightDump {
     );
   }
 
-  const dump = expectObject(parsed, "<root>");
+  const dump = requireObject(parsed, "<root>");
   return {
-    formatVersion: expectFiniteNumber(dump["wersja"], "wersja"),
-    capturedAt: expectString(dump["przy"], "przy"),
-    world: expectString(dump["swiat"], "swiat"),
-    gameBuild: expectString(dump["build"], "build"),
-    calls: expectArray(dump["wpisy"], "wpisy").map((call, i) => readEngineCall(call, `wpisy[${i}]`)),
+    formatVersion: requireFiniteNumber(dump["wersja"], "wersja"),
+    capturedAt: requireString(dump["przy"], "przy"),
+    world: requireString(dump["swiat"], "swiat"),
+    gameBuild: requireString(dump["build"], "build"),
+    calls: requireArray(dump["wpisy"], "wpisy").map((call, i) => parseEngineCall(call, `wpisy[${i}]`)),
   };
 }
 
 /** Highest known maximum health per combatant, gathered from every snapshot in the dump. */
-export function maximumHealthByCombatantId(dump: FightDump): Map<number, number> {
+export function getMaximumHealthByCombatantId(dump: FightDump): Map<number, number> {
   const maximum = new Map<number, number>();
   for (const call of dump.calls) {
     for (const combatant of [...call.combatantsBefore, ...call.combatantsAfter]) {

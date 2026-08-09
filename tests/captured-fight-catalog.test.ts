@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { FightDumpFormatError, readFightDump } from "@/tools/fight-dump-reader.ts";
+import { FightDumpFormatError, parseFightDump } from "@/tools/fight-dump-parser.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
 // Not an assertion inside the loop below: a loop over an empty directory is
@@ -31,8 +31,8 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
     // health is never stated in the protocol, so without the snapshots there is
     // no way to check the decoder against anything but itself.
     test("carries maximum health per combatant", () => {
-      expect(fight.maximumHealthById.size).toBeGreaterThan(0);
-      for (const [id, maximum] of fight.maximumHealthById) {
+      expect(fight.maximumHealthByCombatantId.size).toBeGreaterThan(0);
+      for (const [id, maximum] of fight.maximumHealthByCombatantId) {
         expect(maximum, `combatant ${id}`).toBeGreaterThan(0);
       }
     });
@@ -62,12 +62,12 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
   },
 );
 
-describe("fight dump reader", () => {
+describe("fight dump parser", () => {
   test("refuses text that is not JSON", () => {
-    expect(() => readFightDump("not json")).toThrow(FightDumpFormatError);
+    expect(() => parseFightDump("not json")).toThrow(FightDumpFormatError);
   });
 
-  // A reader that hands back a half-read object turns a broken capture into
+  // A parser that hands back a half-read object turns a broken capture into
   // wrong numbers further down, where the cause is no longer visible.
   test("names the exact path of a bad field", () => {
     const dump = {
@@ -77,13 +77,13 @@ describe("fight dump reader", () => {
       build: "1",
       wpisy: [{ nr: 0, komunikaty: [], wojownicyPrzed: [], wojownicyPo: [{ id: "x" }] }],
     };
-    expect(() => readFightDump(JSON.stringify(dump))).toThrow(
+    expect(() => parseFightDump(JSON.stringify(dump))).toThrow(
       /wpisy\[0\]\.wojownicyPo\[0\]\.id: expected a finite number, got string/,
     );
   });
 
   test("refuses a missing top-level field instead of defaulting it", () => {
-    expect(() => readFightDump(JSON.stringify({ wersja: 1 }))).toThrow(/przy: expected a string/);
+    expect(() => parseFightDump(JSON.stringify({ wersja: 1 }))).toThrow(/przy: expected a string/);
   });
 
   test("accepts a capture without fight numbers", () => {
@@ -94,6 +94,6 @@ describe("fight dump reader", () => {
       build: "1",
       wpisy: [{ nr: 0, komunikaty: ["a"], wojownicyPrzed: [], wojownicyPo: [] }],
     };
-    expect(readFightDump(JSON.stringify(dump)).calls[0]!.fightNumber).toBeNull();
+    expect(parseFightDump(JSON.stringify(dump)).calls[0]!.fightNumber).toBeNull();
   });
 });

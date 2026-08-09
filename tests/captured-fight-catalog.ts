@@ -1,16 +1,16 @@
 import { readdirSync, readFileSync } from "node:fs";
 import {
-  maximumHealthByCombatantId,
-  readFightDump,
+  getMaximumHealthByCombatantId,
+  parseFightDump,
   type FightDump,
-} from "@/tools/fight-dump-reader.ts";
+} from "@/tools/fight-dump-parser.ts";
 
 const CAPTURED_FIGHTS_DIRECTORY = new URL("./captured-fights/", import.meta.url).pathname;
 
 export type CapturedFight = {
   name: string;
   dump: FightDump;
-  maximumHealthById: Map<number, number>;
+  maximumHealthByCombatantId: Map<number, number>;
 };
 
 /**
@@ -27,10 +27,10 @@ export const CAPTURED_FIGHTS: CapturedFight[] = readdirSync(CAPTURED_FIGHTS_DIRE
   .filter((file) => file.endsWith(".json"))
   .sort()
   .map((file) => {
-    const dump = readFightDump(readFileSync(CAPTURED_FIGHTS_DIRECTORY + file, "utf8"));
+    const dump = parseFightDump(readFileSync(CAPTURED_FIGHTS_DIRECTORY + file, "utf8"));
     return {
       name: file.replace(/\.json$/, ""),
       dump,
-      maximumHealthById: maximumHealthByCombatantId(dump),
+      maximumHealthByCombatantId: getMaximumHealthByCombatantId(dump),
     };
   });

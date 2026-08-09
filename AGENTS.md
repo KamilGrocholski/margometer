@@ -154,7 +154,7 @@ that exists is listed here with what it answers.
 
 | Tool | Answers |
 |---|---|
-| `tools/fight-dump-reader.ts` | *What is inside a captured fight?* Parses dump files field by field and refuses anything unexpected. Library, not a CLI. |
+| `tools/fight-dump-parser.ts` | *What is inside a captured fight?* Parses dump files field by field and refuses anything unexpected. Library, not a CLI. |
 
 ---
 
@@ -236,7 +236,7 @@ src/
   userscript-entry.ts    Bundle entry point. Empty so far.
 
 tools/
-  fight-dump-reader.ts   Reads captured fight material. The boundary where the
+  fight-dump-parser.ts   Parses captured fight material. The boundary where the
                          files' Polish field names stop — §9.2.
 
 tests/
@@ -246,8 +246,8 @@ tests/
                          Discovers that directory; exposes each capture plus
                          maximum health per combatant.
   captured-fight-catalog.test.ts
-  source-layout.test.ts    Guards the two conventions in §9.3 — imports from the
-                           root, kebab-case names that say what a file holds.
+  source-layout.test.ts    Guards §9.3 imports-from-root plus §9.4 file and
+                           function naming. Discovers files, never lists them.
   userscript-metadata.test.ts
 ```
 
@@ -314,8 +314,8 @@ numbers belong in code, where they can be regenerated.
 **`[ALWAYS] [any]` Imports are written from the repository root.**
 
 ```ts
-import { readFightDump } from "@/tools/fight-dump-reader.ts";   // yes
-import { readFightDump } from "../tools/fight-dump-reader.ts";  // no
+import { parseFightDump } from "@/tools/fight-dump-parser.ts";   // yes
+import { parseFightDump } from "../tools/fight-dump-parser.ts";  // no
 import { CAPTURED_FIGHTS } from "./captured-fight-catalog.ts";  // no — even a sibling
 ```
 
@@ -326,36 +326,93 @@ and moving a file no longer rewrites the imports of its neighbours. There is no
 depth at which `../../` is acceptable, and no exception for same-directory
 imports — mixing the two styles is how you end up needing to know both.
 
-**`[ALWAYS] [any]` Names say what the thing is, in full.**
+Imports are guarded by `tests/source-layout.test.ts`, which discovers the files
+rather than listing them.
 
-A name that can only be understood from the file it sits in is too short. This
-applies to files, directories, types, functions and variables alike:
+### 9.4 Naming
 
-| Instead of | Write |
+This project follows the [naming cheatsheet][cheatsheet] by kettanaito. Read it
+once; what follows is the binding subset plus the decisions it leaves open.
+
+[cheatsheet]: https://github.com/kettanaito/naming-cheatsheet
+
+**`[ALWAYS] [any]` A function name starts with the action it performs.**
+
+The action is not decoration — it tells the reader what the call *does* to the
+world before they read the arguments:
+
+| Action | Means |
 |---|---|
-| `dump.ts` | `fight-dump-reader.ts` |
-| `fixtures.ts` | `captured-fight-catalog.ts` |
-| `readDump` | `readFightDump` |
-| `banner` | `userscriptBanner` |
-| `Entry` | `EngineCall` |
-| `Warrior`, `W` | `CombatantSnapshot` |
-| `Hp { max, cur, hpp }` | `CombatantHealth { maximum, current, percent }` |
-| `field(key)` | `directive(key)` |
-| `TLDS` | `GAME_TOP_LEVEL_DOMAINS` |
+| `get` | Accesses data immediately. `getFruitCount()` |
+| `set` | Assigns a variable from one value to another. `setFruits(next)` |
+| `reset` | Restores a variable to its initial state. `resetFruits()` |
+| `remove` | Takes something **out of** somewhere. `removeFilter(name, filters)` |
+| `delete` | Erases something from existence. `deletePost(id)` |
+| `compose` | Creates new data **from** existing data. `composePageUrl(name, id)` |
+| `handle` | Handles an action; the usual name for a callback. `handleClick()` |
 
-Files are kebab-case and name their contents, not their category. `utils.ts`,
-`helpers.ts`, `common.ts`, `misc.ts` and `index.ts` are names nobody can predict
-the contents of, and `[NEVER]` get created here — including `index.ts`, which
-also makes every editor tab say the same thing. Abbreviate only where the game
-itself does.
+`remove` or `delete`? Look at the opposites: you `add` an item **to somewhere**,
+so its inverse is `remove`; you `create` something with no destination, so its
+inverse is `delete`.
 
-Both of these are guarded by `tests/source-layout.test.ts`, which discovers the
-files rather than listing them.
+Two more actions this project adds, because parsing is most of what it does, and
+neither is covered above:
 
-Length is not the goal — precision is. `id` stays `id`; `hpp` becomes `percent`
-because nobody outside the game's own source knows what the third `p` was.
+| Action | Means |
+|---|---|
+| `parse` | Turns text into a structure, throwing on anything unexpected. `parseFightDump(source)` |
+| `require` | Returns a value narrowed to a type, or throws. `requireFiniteNumber(value, path)` |
 
-### 9.4 UI
+Other verbs are allowed when they describe the action more precisely than
+anything above — `build`, `write`, `render`. What is `[NEVER]` allowed is a
+**synonym** for one already in the table: no `fetch` or `retrieve` where `get`
+fits, no `update` where `set` fits. Two words for one action means every reader
+has to check which one this codebase uses.
+
+**`[ALWAYS] [any]` Names follow A/HC/LC:**
+
+```
+prefix? + action (A) + high context (HC) + low context? (LC)
+```
+
+`getMaximumHealthByCombatantId` = get (A) + MaximumHealth (HC) + ByCombatantId (LC).
+
+**`[ALWAYS] [any]` Boolean names carry a prefix:**
+
+| Prefix | Means |
+|---|---|
+| `is` | A characteristic or state of the current context. `isBlue` |
+| `has` | The context possesses a value or state. `hasProducts` |
+| `should` | A positive conditional coupled with an action. `shouldUpdateUrl(url, expected)` |
+| `min` / `max` | A boundary. `maxHits` |
+| `prev` / `next` | A state transition. `prevPosts`, `nextPosts` |
+
+**S-I-D — short, intuitive, descriptive.** All three at once. Length is not the
+goal, precision is: `id` stays `id`, but `hpp` becomes `percent`, because nobody
+outside the game's own source knows what the third `p` stood for.
+
+**Reflect the expected result.** `isDisabled`, not `isEnabled` used negated.
+
+**No contractions.** `button`, not `btn`. `message`, not `msg`. Abbreviate only
+where the game itself does, and say so in a comment when you do.
+
+**Avoid duplicating the context a name already sits in.** Inside
+`fight-dump-parser.ts` the function is `parseEngineCall`, not
+`parseFightDumpEngineCall`.
+
+**Singular is one thing, plural is a collection.** `combatant` holds one;
+`combatants` holds many. A plural name that holds one value is a lie about the
+data structure.
+
+**Files are kebab-case and name their contents, not their category.**
+`utils.ts`, `helpers.ts`, `common.ts`, `misc.ts` and `index.ts` are names nobody
+can predict the contents of, and `[NEVER]` get created here — `index.ts` also
+makes every editor tab read the same. Guarded by `tests/source-layout.test.ts`.
+
+**Types name the thing, not its shape.** `CombatantSnapshot`, not `Warrior`,
+`W` or `CombatantData` — `Data` says nothing that the type itself does not.
+
+### 9.5 UI
 
 - The panel lives in a Shadow DOM and is cut off from the game's stylesheet
   (`all: initial` on the host). We are a guest on someone else's page.
@@ -366,7 +423,7 @@ because nobody outside the game's own source knows what the third `p` was.
 - **The panel says what it does not know.** Numbers the log cannot attribute to
   anyone are shown as unattributed, not silently folded into someone's total.
 
-### 9.5 Design System
+### 9.6 Design System
 
 - **Tokens, not literals.** Colours, spacing and radii are named; a raw hex in a
   rule is a bug.

@@ -8,7 +8,7 @@ const BUNDLE_ENTRY_POINT = "./src/userscript-entry.ts";
 const NON_GAME_HOSTS = ["www", "forum", "commons", "pomoc"];
 const GAME_TOP_LEVEL_DOMAINS = ["pl", "com"];
 
-export function userscriptBanner(version: string, description: string, homepage: string): string {
+export function composeUserscriptBanner(version: string, description: string, homepage: string): string {
   const directives = [
     ["name", "MargoMeter"],
     ["namespace", homepage],
@@ -52,7 +52,7 @@ async function buildUserscript(): Promise<void> {
   const [artifact] = result.outputs;
   if (!artifact) throw new Error("bundle produced no output");
 
-  const banner = userscriptBanner(manifest.version, manifest.description, manifest.homepage);
+  const banner = composeUserscriptBanner(manifest.version, manifest.description, manifest.homepage);
   const outputPath = `${OUTPUT_DIRECTORY}/${USERSCRIPT_FILENAME}`;
   await Bun.write(outputPath, banner + (await artifact.text()));
   console.log(`built ${outputPath}`);
