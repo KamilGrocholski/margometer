@@ -55,10 +55,10 @@ Untagged prose is context and reasoning — read it, but it does not bind.
 | `[data]` | Material captured from the game | `tests/captured-fights/` |
 | `[process]` | Commits, validation, workflow | — |
 
-⚠️ Only `[data]` has files today. The other paths appear as the code that needs
-them is written (see §7.1). **This table is the map — keep it true.** A scope
-whose path no longer exists, or a directory missing from this table, is the
-first sign the rules have drifted from the tree.
+⚠️ `[game]` and `[ui]` have no files yet; those paths appear as the code that
+needs them is written (see §7.1). **This table is the map — keep it true.** A
+scope whose path no longer exists, or a directory missing from this table, is
+the first sign the rules have drifted from the tree.
 
 ---
 
@@ -90,7 +90,7 @@ first sign the rules have drifted from the tree.
 
 - `[ASK] [process]` **Committing or pushing.** Finish a round with changes in
   the working tree and a summary, unless told otherwise.
-- `[ASK] [core]` **Changing the data contract** (`src/core/events.ts` and
+- `[ASK] [core]` **Changing the data contract** (`src/core/battle-event.ts` and
   anything that shapes what flows between decoder and aggregator). A field added
   to a type and forgotten downstream produces numbers that quietly shrink.
 - `[ASK] [any]` **Deleting or skipping a test.** Including "it's obsolete" —
@@ -234,6 +234,11 @@ tsconfig.json            Strict flags standing in for a linter, and the `@/*`
 
 src/
   userscript-entry.ts    Bundle entry point. Empty so far.
+  core/
+    protocol-message.ts  Grammar of one message: two sides, then key/value
+                         segments. Structure only, strict, reversible.
+    battle-event.ts      What the decoder produces. Grows one variant at a time.
+    fight-decoder.ts     Messages → events. Drops nothing, invents nothing.
 
 tools/
   fight-dump-parser.ts   Parses captured fight material. The boundary where the
@@ -245,7 +250,9 @@ tests/
   captured-fight-catalog.ts
                          Discovers that directory; exposes each capture plus
                          maximum health per combatant.
+  battle-event.test.ts
   captured-fight-catalog.test.ts
+  protocol-message.test.ts
   source-layout.test.ts    Guards §9.3 imports-from-root plus §9.4 file and
                            function naming. Discovers files, never lists them.
   userscript-metadata.test.ts
@@ -361,7 +368,13 @@ neither is covered above:
 | Action | Means |
 |---|---|
 | `parse` | Turns text into a structure, throwing on anything unexpected. `parseFightDump(source)` |
+| `decode` | Turns a structure into **meaning**. `decodeFight(messages)` |
 | `require` | Returns a value narrowed to a type, or throws. `requireFiniteNumber(value, path)` |
+
+`parse` and `decode` are not synonyms and the split is load-bearing here.
+`parseProtocolMessage` knows the grammar and nothing about what a key means;
+`decodeFight` knows what keys mean and nothing about the grammar. Keeping the
+verbs apart keeps the layers apart.
 
 Other verbs are allowed when they describe the action more precisely than
 anything above — `build`, `write`, `render`. What is `[NEVER]` allowed is a

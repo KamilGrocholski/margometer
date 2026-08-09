@@ -27,6 +27,7 @@ const ACTION_VERBS = [
   "compose",
   "handle",
   "parse",
+  "decode",
   "require",
   "build",
   "write",
