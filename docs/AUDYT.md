@@ -4238,6 +4238,102 @@ dopóki się czegoś nie dopisuje.
 Sekcja `N` **celowo nie dokłada wierszy do `§0`**, żeby nie pogłębiać rozjazdu
 przed jej podjęciem; jest to zgodne z tym, co robiło pięć poprzednich sekcji.
 
+## O. Granica `protokol.ts` / `protokol-source.ts` — przegląd PO commicie `9ddc798` (2026‑08‑07)
+
+Runda wyszła od pytania, **czym te dwa pliki się różnią, czy któryś jest zbędny
+i czy czegoś nie ma w potoku za dużo**. Odpowiedź na pierwsze dwa brzmi „nie":
+oś podziału to **czystość, nie temat** — `protokol.ts` jest funkcją czystą bez
+`try/catch` i bez globali, `protokol-source.ts` jedynym plikiem w `src/`
+dotykającym gry. Dowód niezależny od dokumentacji: `archive.ts:400`/`:487` wołają
+`dekoduj` wprost, więc scalenie wciągnęłoby `Engine` w zależności odtwarzania.
+Między tą parą **nie ma ani jednej wspólnej linii logiki** — źródło nie zna
+żadnego z 235 kluczy protokołu, dekoder nie zna `t.m`.
+
+⚠️ **Redundancja jednak jest, a w obu przypadkach spinał ją KOMENTARZ, nie kod.**
+To wspólny mianownik obu wpisów niżej i wniosek szerszy od nich: **odsyłacz
+w prozie wygląda jak wspólna definicja i nią nie jest.** Reguła „komentarz mówi
+DLACZEGO, nie CO" nie chroni przed kopią, gdy DLACZEGO brzmi „tak jak tam" — bo
+taki komentarz opisuje nie powód, tylko cudze położenie, i starzeje się razem
+z numerem linii.
+
+⚠️ **Ta sekcja sama jest dowodem na trzeci wzorzec z sekcji `N`** („rozjazdy
+w `docs/` bez strażnika"): powstała 2026‑08‑07 razem z trzema commitami, które
+opisuje, i **nie weszła do drzewa**. Commity `98b2d32`, `ec15b38` i `f713ddb`
+żyły w historii dobę bez swoich wpisów. Dopisana 2026‑08‑08.
+
+### AUDYT‑117 — `t.m` → komunikaty istniało w dwóch kopiach, spiętych odsyłaczem ⚪ S — ✅ NAPRAWIONE 2026‑08‑07 (`ec15b38`)
+
+`src/zrzut.ts:327‑334` (`komunikatyZ`), `src/protokol-source.ts:90‑97`
+(`porcjaKomunikatow`)
+
+**Problem.** Ta sama funkcja, znak w znak, w dwóch plikach. Spinał je komentarz
+`zrzut.ts:326`: *„`t.m` → lista komunikatów. Kształt jak w
+`protokol-source.ts:89`"* — odsyłacz zamiast importu, w dodatku z numerem linii,
+który już się przesunął.
+
+**Dlaczego to nie było błahe.** Rozjazd byłby cichy **w jedną tylko stronę**,
+i to w gorszą: zrzut zbiera materiał z TEGO SAMEGO wywołania, z którego liczy
+panel, a potem ten materiał leży w `tests/fixtures/` jako DOWÓD. Kopia, która
+zaczęłaby odsiewać inaczej niż odczyt na żywo, dałaby fixture niezgodny z tym,
+co widział gracz — a fixture jest jedyną rzeczą, którą prostuje się w tym repo
+materiałem, a nie rozumowaniem.
+
+**✓ Zmierzone mutacją po scaleniu.** `.slice(1)` dorzucone do wspólnej
+`komunikatyZLadunku` zapala **24 testy w dwóch plikach naraz**
+(`tests/protokol-source.test.ts` + `tests/zrzut.test.ts`, 34 pass / 24 fail) —
+obie strony naprawdę czytają jedną definicję, żadna nie jest martwa.
+
+**Naprawa.** `komunikatyZLadunku` wyeksportowana ze `zrzut.ts`, obok
+`zaczynaWalke` — ta sama funkcja stoi tam z tego samego powodu (`AUDYT‑56`).
+Kierunek wymuszony: `protokol-source.ts` już stamtąd importuje, odwrotny dałby
+cykl. Do `protokol.ts` **nie wolno** — ten plik celowo nie zna kształtu ładunku
+gry i to najczystsza granica w repo.
+
+### AUDYT‑118 — `tools/walka.ts` rozbiera protokół DRUGI raz, a test twierdzi, że tak samo 🟡 S — ⬜ ZAPISANE, nienaprawione ✓
+
+`tools/walka.ts:306‑337` (`kluczeKomunikatu`, `stronyKomunikatu`),
+`tests/fixtury.test.ts:146`
+
+**Problem.** Narzędzie rozbiera kształt `id;id;klucz=wartość` własnym kodem,
+a komentarz w `tests/fixtury.test.ts:146` mówi: *„`stronyKomunikatu` rozcina
+komunikat tak, jak robi to dekoder, więc porównanie idzie po REALNYCH stronach
+zdarzenia"*. **Nie rozcina tak samo**, i to dokładnie w miejscach, które
+`protokol.ts:83‑98` wymienia jako świadome odwzorowanie gry.
+
+**✓ Zmierzone** (`bun -e`, oba rozbiory na tych samych segmentach):
+
+| segment | `protokol.ts` (`parseInt`, `indexOf("=") > 0`) | `tools/walka.ts` (`Number`, `split("=")`) |
+|---|---|---|
+| `103655abc` | `{id: 103655, hpp: null}` | `null` |
+| `1=2=3` | `{id: 1, hpp: null}` | `{id: 1, hpp: 2}` |
+
+Pierwszy wiersz jest ten istotny: `parseInt("103655abc")` daje wojownika, bo
+**gra robi to samo** (`BattleMessages.js:124`, cytat w `protokol.ts:92‑93`).
+Dla narzędzia ten sam segment to brak strony.
+
+⚠️ **Tryb awarii jest GŁOŚNY i dlatego to nie jest klasa `AUDYT‑107`/`‑108`.**
+Jedynym konsumentem `stronyKomunikatu` w testach jest strażnik „duchy"
+(`tests/fixtury.test.ts:151`) — rozjazd zapaliłby go **fałszywie**, czyli
+zatrzymałby bramę, a nie przepuścił złą liczbę. Usterką nie jest ryzyko dla
+liczb, tylko **zdanie mocniejsze, niż kod je wspiera**, i brak czegokolwiek
+pilnującego równoważności. Drugi wiersz tabeli (`hpp`) nie ma dziś czytelnika,
+bo strażnik bierze samo `.id` — czyli jest to defekt UTAJONY, który ożyje przy
+pierwszym użyciu `hpp` po stronie narzędzia.
+
+**Docelowo.** `tools/walka.ts` — ale najpierw decyzja, której runda nie
+podejmuje, bo prowadzi w dwie przeciwne strony:
+- **niezależny świadek** (`tools/` czyta materiał drogą rozłączną z `src/`, żeby
+  błąd dekodera nie uciszył raportu) — wtedy równoważności NIE wolno wymuszać,
+  wolno ją tylko przetestować, a komentarz w `fixtury.test.ts` trzeba osłabić,
+  bo obiecuje coś przeciwnego;
+- **konsument `rozbierz`** — wtedy kopia znika jak w `AUDYT‑117`, ale
+  `tests/fixtury.test.ts` przestaje być świadkiem spoza dekodera i trzeba to
+  napisać wprost w tamtym pliku.
+
+Wariant „po prostu podmienić `Number` na `parseInt`" odrzucony bez pomiaru:
+zrównuje jeden z dwóch rozjazdów, zostawia drugi i **utrwala złudzenie
+równoważności**, którego cały wpis dotyczy.
+
 ## G. Otwarte z poprzednich rund
 
 Bez nowych ID — sam wskaźnik, żeby ten dokument był pełną migawką otwartych
