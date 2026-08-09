@@ -45,10 +45,20 @@ export type ProtocolKeyEntry = {
    * for a key the captures cannot settle either way.
    */
   healthEffect: ProtocolKeyHealthEffect | null;
+  /**
+   * How the verdict was reached, verbatim. Null where the entry leans on a
+   * neighbour's, which `loser` does — so this is read, not required.
+   */
+  evidence: string | null;
 };
 
 const ENTRY_HEADING = /^### `([^`]+)` — (.+)$/gm;
 const HEALTH_LINE = /^\*Health:\* (.+)$/m;
+/**
+ * To the next blank line, not to the end of the first one: evidence wraps, and
+ * the citation's date routinely lands on a later line than the article it dates.
+ */
+const EVIDENCE_PARAGRAPH = /^\*Evidence:\* ((?:.+\n?)+)/m;
 
 function isHealthEffect(value: string): value is ProtocolKeyHealthEffect {
   return (PROTOCOL_KEY_HEALTH_EFFECTS as readonly string[]).includes(value);
@@ -73,7 +83,12 @@ export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
     const body = register.slice(from, to);
     const health = HEALTH_LINE.exec(body);
 
-    if (health === null) return { key, state, healthEffect: null };
+    const cited = EVIDENCE_PARAGRAPH.exec(body);
+    // Joined into one line so a reader of it does not have to know where the
+    // prose happened to wrap.
+    const evidence = cited === null ? null : cited[1]!.replace(/\s+/g, " ").trim();
+
+    if (health === null) return { key, state, healthEffect: null, evidence };
 
     // A typo cannot be left to fall through as "no claim". It would read as
     // silence, the witness would stop excluding the key, coverage would shrink,
@@ -86,7 +101,7 @@ export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
       );
     }
 
-    return { key, state, healthEffect };
+    return { key, state, healthEffect, evidence };
   });
 }
 

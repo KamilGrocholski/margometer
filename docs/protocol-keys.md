@@ -5,8 +5,14 @@ investigating a key: some are already settled, and some were investigated and
 deliberately left alone.
 
 Each entry carries a **verdict** and its **evidence** — a measurement over the
-captured fights, or a citation from the game client with the build it was read
-on. A verdict without evidence is a guess someone will later mistake for a fact.
+captured fights, a citation from the game client with the build it was read on,
+or the game's published help with the date it was read (`bun tools/help-article.ts`).
+A verdict without evidence is a guess someone will later mistake for a fact.
+
+The help is the only source that says what an effect *does*, so it is the only
+one that can settle a *meaning*. It settles nothing else: the `*Health:*` line
+below is a measurement or it is absent, and no sentence of the game's is copied
+in here — an entry carries the locator and our own words.
 
 **Guarded** by `tests/protocol-key-register.test.ts`: this file cannot get ahead
 of the decoder or fall behind it. What it deliberately does **not** hold is any
@@ -221,12 +227,36 @@ the side restriction was found.
 
 ### `+injure` — investigated
 
-Not damage applied at the moment it appears. Left unread rather than guessed at.
+The deep wound an attack has just applied, announced inside that attack's own
+message. It moves no health where it appears: the wound arrives on later calls
+as its own `injure` message, which is the entry above.
 
-*Evidence:* measured twice on the group fight. In call 61 the target's health
-fell by exactly the attack plus `+oth_dmg`, with `+injure=179` present and
-contributing nothing; in call 23 the same, with `+injure=78`. Whatever it does,
-it does not move health then and there.
+**It stays unread for that reason, and not for want of understanding it.**
+Counting the announcement as damage would add the same wound twice — once where
+it is announced, and again on every tick.
+
+Two properties, both re-earned on every run by `tests/injure-rule.test.ts`: the
+amount is `floor(0.15 × the damage that message reports taken)`, and a fresh
+application **replaces** the wound already running rather than adding to it, so
+a smaller value supersedes a larger one.
+
+*Evidence:* the game's published help, article view,372, at the engine name
+`injure` (read 2026-08-09), states the rule in its own words — an event applying
+deep-wound damage over time worth 15% of the damage dealt, over three turns, not
+cumulative, overwritten by the freshest application. Checked against the group
+fight, which carries nine applications: the floor of that share reproduces all
+nine announced figures, among them 1638 taken → 245 announced and 658 → 98,
+where rounding instead of flooring would miss the second. Seven of the nine are
+followed by exactly three ticks of their own amount; the two that are not are
+the ones the material cuts short — call 82 announces 178, one tick follows, and
+call 91 replaces it with the smaller 157, which is the overwrite showing itself;
+the last application lands with the target at 0.94% and the fight ends.
+
+An earlier reading of this entry had only the negative half of it, measured on
+two calls: health fell by exactly the attack, `+injure` contributing nothing.
+That was true and stopped there, because nothing in the protocol says what the
+key is *for*. The documentation is what supplied the rule; the captures are what
+confirmed it.
 
 ---
 

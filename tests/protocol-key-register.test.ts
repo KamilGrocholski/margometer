@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/tests/frozen-protocol-keys.ts";
 import {
@@ -64,6 +65,32 @@ describe("the protocol key register", () => {
     const spoken = ENTRIES.map((entry) => entry.healthEffect).filter((effect) => effect !== null);
     expect(spoken.length).toBeGreaterThan(0);
     for (const effect of spoken) expect(PROTOCOL_KEY_HEALTH_EFFECTS).toContain(effect);
+  });
+});
+
+describe("a citation of the game's published help", () => {
+  const HELP_CITATION = /view,\d+/;
+  const READ_DATE = /\(read (\d{4}-\d{2}-\d{2})\)/;
+
+  const citing = ENTRIES.filter((entry) => entry.evidence !== null && HELP_CITATION.test(entry.evidence));
+
+  // Without this the rule below passes on an empty set, which is what a guard
+  // over a channel nobody uses looks like right up until someone uses it wrong.
+  test("is present in the register at all", () => {
+    expect(citing.length).toBeGreaterThan(0);
+  });
+
+  // The help carries no build id, so the read date is the only thing dating a
+  // claim from it. Without one the claim is dated to the day someone pasted it,
+  // and the game rewrites its own documentation — §7.6.
+  test("carries the date it was read, and a date that exists", () => {
+    for (const entry of citing) {
+      const read = READ_DATE.exec(entry.evidence ?? "");
+      expect(read, entry.key).not.toBeNull();
+      // Through the owner of `Date.parse` (§9.5): the shape above accepts
+      // 2026-02-30, which is not a day anything was read on.
+      expect(getMillisecondsFromIsoText(read?.[1] ?? ""), entry.key).not.toBeNull();
+    }
   });
 });
 
