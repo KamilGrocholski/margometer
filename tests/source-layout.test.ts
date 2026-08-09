@@ -98,6 +98,22 @@ describe("assumptions", () => {
   );
 });
 
+describe("interruption", () => {
+  // AGENTS.md §9.6. The panel is drawn over a game someone is actually playing.
+  // There is no failure in a damage meter worth a click from someone mid-fight,
+  // so the blocking dialogs are banned outright rather than discouraged.
+  test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
+    "%s never blocks the page with a dialog",
+    (file) => {
+      const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+      const blocking = [...source.matchAll(/\b(?:window\.)?(alert|confirm|prompt)\s*\(/g)].map(
+        (match) => match[1],
+      );
+      expect(blocking, file).toEqual([]);
+    },
+  );
+});
+
 describe("errors", () => {
   // AGENTS.md §9.5. The add-on shares a console with the game and with other
   // add-ons; an error that does not say whose it is costs whoever reports it.

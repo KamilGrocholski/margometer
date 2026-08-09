@@ -523,6 +523,64 @@ non-null assertions outside tests.
 - **The panel says what it does not know.** Numbers the log cannot attribute to
   anyone are shown as unattributed, not silently folded into someone's total.
 
+#### Failure in the UI — decided before any of it is written
+
+The panel is a guest on someone else's page, drawn over a game the person is
+actually playing. Two obligations pull against each other and **both** bind:
+the user must be able to tell that something is wrong, and nothing we do may
+stand between them and the game.
+
+The rule that resolves every case below: **a number that might be wrong must
+never look like a number that is right.**
+
+- `[NEVER] [ui]` **Interrupt.** No `alert`, `confirm` or `prompt`; no modal, no
+  overlay covering the game, no dialog to dismiss before continuing, no focus
+  stolen, no sound. There is no failure in a damage meter worth a click from
+  someone mid-fight.
+- `[NEVER] [ui]` **Vanish.** A failure never blanks the panel. Whatever can
+  still be drawn is drawn; only the part that failed is replaced, in place, by
+  a short marker saying it could not be drawn. Losing the whole panel because
+  one row misbehaved is a worse outcome than the misbehaving row.
+- `[ALWAYS] [ui]` **Render section by section, each isolated.** A section that
+  throws takes only itself down. This is what makes the rule above achievable
+  rather than aspirational, so it is a structural requirement on the renderer,
+  not a habit.
+- `[ALWAYS] [ui]` **Put the warning where the consequence is.** The question a
+  user actually has is *can I trust this number* — so the answer belongs next to
+  that number, not in a global banner. Totals that may be too low are marked at
+  the total; a combatant whose figures are incomplete is marked on that row.
+- `[ALWAYS] [ui]` **Quiet by default, detail on demand.** The mark is small and
+  static. What it means, and how to report it, comes on hover or click. Nothing
+  animates, flashes or moves to attract attention.
+- `[NEVER] [ui]` **Swallow silently.** Every caught failure produces both a
+  visible mark and exactly one branded console entry — **once**, not per render.
+  A repeat is counted, not reprinted; a render loop logging sixty times a second
+  is itself a way of disturbing the user.
+- `[ALWAYS] [ui]` **Treat a failure as state, not as a verdict.** Warnings are
+  scoped to the fight that produced them and clear when a later fight decodes
+  cleanly. Nothing gets permanently wedged, and nothing asks for a reload unless
+  there is genuinely nothing else left.
+- `[NEVER] [ui]` **Let an exception escape into the page.** Every event handler
+  we register catches its own. An add-on that breaks the game's own scripts has
+  done far more damage than one that shows a wrong number.
+- `[ALWAYS] [ui]` **Keep "unknown" and "zero" apart on screen**, not only in the
+  data. Zero means it happened and measured nothing; unknown means we could not
+  read it. Rendering the second as the first is the exact failure this whole
+  project is built to avoid.
+
+Two severities are enough, and adding a third is `[ASK]`:
+
+| Severity | Means | Shown as |
+|---|---|---|
+| **Suspect** | The numbers drew fine, but something was unreadable, so a total may be too low | A mark next to the affected figure; detail on demand |
+| **Undrawn** | A section could not be rendered at all | That section replaced in place by a short marker; everything else unaffected |
+
+Landing with the first UI file, not before: a test that a section which throws
+leaves its neighbours rendered; a test that no code path calls `alert`,
+`confirm` or `prompt`; a test that a handler which throws does not propagate out
+of the shadow root; and a test that unread-key counts from the decoder reach the
+panel instead of stopping at the aggregate.
+
 ### 9.7 Design System
 
 - **Tokens, not literals.** Colours, spacing and radii are named; a raw hex in a
