@@ -56,6 +56,47 @@ describe("over every captured fight", () => {
   );
 });
 
+/**
+ * The reduction the protocol reports, against the reduction that actually
+ * happened. Two figures meet here that the game never reconciles either, and the
+ * gap between them is the finding: it is not ours to close.
+ */
+describe("damage a defence stopped, over every captured fight", () => {
+  const ATTACKS = DECODED_FIGHTS.flatMap((fight) => fight.events).filter(
+    (event) => event.kind === "attack",
+  );
+  const DEFENDED = ATTACKS.filter((attack) => attack.prevented.length > 0);
+
+  function getTotal(amounts: readonly { amount: number }[]): number {
+    return amounts.reduce((sum, one) => sum + one.amount, 0);
+  }
+
+  function getGap(attack: (typeof ATTACKS)[number]): number {
+    return getTotal(attack.dealt) - getTotal(attack.taken);
+  }
+
+  test("occurs at all", () => {
+    expect(DEFENDED.length).toBeGreaterThan(0);
+  });
+
+  // It is part of what the blow lost on its way to the target, so it can never
+  // be more than the whole. Reading it into `taken` — the obvious mistake, and
+  // the one that would inflate every defender's losses — breaks this at once.
+  test("never exceeds what the blow lost between being dealt and being taken", () => {
+    const over = DEFENDED.filter((attack) => getTotal(attack.prevented) > getGap(attack));
+    expect(over.map((attack) => `${attack.actorId}->${attack.targetId}`)).toEqual([]);
+  });
+
+  // AGENTS.md §10 claimed that difference *was* the absorbed figure until this
+  // was measured: it is wider in 62 of the 68 messages carrying a defence,
+  // because armour and resistance reduce as well and the protocol reports
+  // neither. Deriving "absorbed" from the gap would state a number nobody sent.
+  test("is not that difference, because the protocol reports only part of the reduction", () => {
+    const wider = DEFENDED.filter((attack) => getTotal(attack.prevented) < getGap(attack));
+    expect(wider.length).toBeGreaterThan(DEFENDED.length / 2);
+  });
+});
+
 describe("decoding a single message", () => {
   test("reads the winners of a fight", () => {
     expect(decodeFight(["0;0;winner=Gracz 1, Gracz 2"])).toEqual([
@@ -86,6 +127,9 @@ describe("decoding a single message", () => {
         targetId: -161518,
         dealt: [{ damageType: "dmgd", amount: 466 }],
         taken: [{ damageType: "dmgd", amount: 223 }],
+        prevented: [],
+        procs: [],
+        destroyed: [],
       },
     ]);
   });
@@ -129,6 +173,68 @@ describe("decoding a single message", () => {
       expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
     },
   );
+
+  // Absorption and a block ride the message that carries the blow and belong to
+  // the target, as `taken` does. Kept out of `taken` on purpose: this is damage
+  // that never landed, and adding it there would inflate the target's losses.
+  test("reads what a defence stopped, apart from what the target took", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;+dmg=10917;-absorb=7399;-dmg=2466"]);
+    expect(event).toMatchObject({
+      taken: [{ damageType: "dmg", amount: 2466 }],
+      prevented: [{ prevention: "absorb", amount: 7399 }],
+    });
+  });
+
+  test("keeps each defence apart rather than summing them", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;+dmgd=809;-absorb=283;-absorbm=814;-dmgd=526"]);
+    expect(event).toMatchObject({
+      prevented: [
+        { prevention: "absorb", amount: 283 },
+        { prevention: "absorbm", amount: 814 },
+      ],
+    });
+  });
+
+  // Armour is in points and resistance in percentage points, so these are not
+  // damage and cannot be totalled with it. The damage family is recognised by
+  // characters 1 to 3, which are `acd` and `res` here — nothing was reading
+  // them as figures before, and nothing may start.
+  test("reads a statistic the blow destroyed without counting it as damage", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;+dmgd=466;+acdmg=50;+resdmg=1"]);
+    expect(event).toMatchObject({
+      dealt: [{ damageType: "dmgd", amount: 466 }],
+      destroyed: [
+        { statistic: "acdmg", amount: 50 },
+        { statistic: "resdmg", amount: 1 },
+      ],
+    });
+  });
+
+  test("reads an effect that fired with the blow and states no figure", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;+crit;+pierce;+dmgd=466"]);
+    expect(event).toMatchObject({ procs: ["crit", "pierce"] });
+  });
+
+  // Every occurrence in the captures arrives bare. A figure beside one is
+  // something nothing here explains, and reading the key as a flag anyway would
+  // drop that figure without a word.
+  test("reports an effect that arrives with a figure rather than reading it as a flag", () => {
+    const events = decodeFight(["1=100.00;2=50.00;+crit=1"]);
+    expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
+  });
+
+  test("reports a defence whose value is not a number rather than counting it", () => {
+    const events = decodeFight(["1=100.00;2=50.00;-absorb=plenty"]);
+    expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
+  });
+
+  // Not in the captures, where every annotation rides a message that also
+  // carries damage. It is a possible message rather than an impossible state,
+  // and emitting nothing for it would drop a blow that did happen.
+  test("reports an attack that carries an effect and no figures at all", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;+crit"]);
+    expect(event).toMatchObject({ kind: "attack", dealt: [], taken: [], procs: ["crit"] });
+  });
 
   test("reports an empty side rather than a fight won by one nameless combatant", () => {
     const events = decodeFight(["0;0;winner="]);

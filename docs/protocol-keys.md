@@ -188,6 +188,109 @@ that landed was measured rather than read: health drop matched the sum of
 
 ---
 
+## What an attack reports besides its figures
+
+Seven keys ride the message that carries a blow and add something to it that is
+not the damage: what a defence stopped, what the blow destroyed, what fired
+alongside it. The client spells each out as its own case rather than matching a
+family by shape, and every one of those branches does the same single thing —
+appends to a slot of the message's log array and assigns nothing.
+
+**Which combatant each figure belongs to comes from the help, not from the
+sign.** The client's log slots do not separate attacker from defender — the same
+slot receives the fight's winner and its unknown-parameter notice — so nothing in
+the bundle answers this. The help does, and it answers against the sign twice
+over: `-absorb` reduces damage the defender is taking, and `+acdmg` reduces a
+statistic of the *attacked* combatant. Both figures are the target's, and the two
+carry opposite signs.
+
+**None of them states a health figure, and none carries a `*Health:*` line
+saying so** — the register has no spelling for that, deliberately, and does not
+need one here. Reading a key is a stronger claim than describing it: these are
+now in the witness's arithmetic, which applies none of them, so if any did move
+health `tests/health-witness.test.ts` would disagree on the calls carrying it.
+The verdict is held by the same guard that holds the damage figures.
+
+Measured across both captures: all 256 occurrences arrive on a message that also
+carries damage and names a combatant on both sides.
+
+### `-absorb` — decoded
+
+Damage physical absorption stopped before it reached the target.
+
+*Evidence:* the game's published help, article view,372, at the engine name
+`absorb` (read 2026-08-09), describes it as a reduction of the physical damage a
+character is taking at that moment, capped at a share of the blow and drawn from
+a pool that runs out — which is why the figure is sometimes far below that cap.
+Production build `1785244275300`: the branch appends to a log slot and assigns
+nothing. 45 occurrences, every one with a value that reads as an integer.
+
+### `-absorbm` — decoded
+
+The same for magical absorption, which the help documents against fire, cold and
+lightning rather than physical damage, with a higher cap.
+
+*Evidence:* article view,372 at the engine name `absorbm` (read 2026-08-09), and
+the same branch shape in production build `1785244275300`. 27 occurrences.
+
+### `-blok` — decoded
+
+Damage a block stopped. The help ties the event to defending and to carrying a
+shield, so unlike the two above it can be absent from a combatant entirely.
+
+*Evidence:* article view,372 at the engine name `blok` (read 2026-08-09), and
+production build `1785244275300`, where the branch has the same shape as the
+absorption pair. 9 occurrences — the rarest of the seven, and the reason it is
+grouped with them rather than measured alone.
+
+### `+crit` — decoded
+
+A critical hit fired on this blow. **Carries no figure at all**: the protocol
+states the key and stops, and the client's branch composes its sentence without
+reading a value.
+
+*Evidence:* article view,372 at the engine name `crit` (read 2026-08-09) lists
+it among the events an attack can produce. Production build `1785244275300`:
+this branch is one of the two in the family that interpolates nothing. All 52
+occurrences arrive with no value, which is why a value would make it unread
+again rather than a flag with a number dropped beside it.
+
+### `+pierce` — decoded
+
+Armour piercing fired on this blow — the help states that within such a blow the
+target's armour does not reduce the damage. No figure, like `+crit`.
+
+*Evidence:* article view,372 at the engine name `pierce` (read 2026-08-09), and
+production build `1785244275300`. All 21 occurrences arrive with no value.
+
+### `+acdmg` — decoded
+
+Armour of the target destroyed by this blow, in points. **Not damage**, and the
+distinction is not pedantic: the help describes it as lowering a statistic
+before the blow's reduction is computed, with a floor below which it cannot go.
+Summed together with `dealt` it would be a total of two different things.
+
+*Evidence:* article view,372 at the engine name `acdmg` (read 2026-08-09), which
+is also what puts the figure on the target: the key carries `+`, and the help
+still describes it as lowering the *attacked* combatant's armour. Production
+build `1785244275300`: the branch interpolates the value into a log slot and
+assigns nothing. 41 occurrences. The shape rule for damage does not reach it —
+characters 1 to 3 are `acd`, not `dmg` — so nothing was reading it as a figure
+before.
+
+### `+resdmg` — decoded
+
+Elemental resistance of the target destroyed by this blow, which the help states
+in **percentage points** rather than in the points `+acdmg` uses. The two are
+kept in one shape here because the protocol gives no unit either way; what the
+figure means is the entry's job, not the type's.
+
+*Evidence:* article view,372 at the engine name `resdmg` (read 2026-08-09), and
+production build `1785244275300`. 61 occurrences — the most frequent of the
+seven.
+
+---
+
 ## Keys that move health and are not read yet
 
 Each of these makes its engine call uncomparable. They are the queue the decoder

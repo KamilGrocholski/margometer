@@ -4,6 +4,8 @@ import type {
   BattleEvent,
   DamageAmount,
   DamageToNamedCombatantEvent,
+  PreventedDamage,
+  StatisticDestruction,
 } from "@/src/core/battle-event.ts";
 import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
@@ -119,6 +121,21 @@ const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> 
 const VALUE_SEPARATOR = ",";
 
 /**
+ * What an attack reports besides its figures: a defence that stopped part of it,
+ * a statistic of the target it destroyed, an effect that fired with it.
+ *
+ * Listed rather than recognised by shape, because the client lists them too —
+ * each is its own case in the battle switch, unlike the damage family, which it
+ * matches by offset. Mirroring that means a key the game adds tomorrow stays
+ * unread and loud instead of being folded into a figure by a pattern that was
+ * never about it.
+ */
+const PREVENTED_DAMAGE_KEYS = ["-absorb", "-absorbm", "-blok"];
+const STATISTIC_DESTRUCTION_KEYS = ["+acdmg", "+resdmg"];
+/** Measured on the captures: all 73 occurrences arrive without a value. */
+const PROC_KEYS = ["+crit", "+pierce"];
+
+/**
  * Every named key the decoder claims to understand. Exported so a guard can hold it
  * against the keys the game actually knows — a key we handle that the client
  * has never heard of means we invented a meaning.
@@ -126,6 +143,9 @@ const VALUE_SEPARATOR = ",";
 export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   ...Object.keys(OUTCOME_KEYS),
   ...Object.keys(HEALTH_CHANGE_KEYS),
+  ...PREVENTED_DAMAGE_KEYS,
+  ...STATISTIC_DESTRUCTION_KEYS,
+  ...PROC_KEYS,
   DAMAGE_TO_NAMED_KEY,
 ];
 
@@ -145,6 +165,9 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
   const unreadKeys: string[] = [];
   const dealt: DamageAmount[] = [];
   const taken: DamageAmount[] = [];
+  const prevented: PreventedDamage[] = [];
+  const destroyed: StatisticDestruction[] = [];
+  const procs: string[] = [];
 
   for (const parameter of parsed.parameters) {
     const { key, value } = parameter;
@@ -182,6 +205,29 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
       continue;
     }
 
+    if (PREVENTED_DAMAGE_KEYS.includes(key)) {
+      const amount = value === null ? null : getIntegerFromText(value);
+      if (amount === null) unreadKeys.push(key);
+      else prevented.push({ prevention: key.slice(1), amount });
+      continue;
+    }
+
+    if (STATISTIC_DESTRUCTION_KEYS.includes(key)) {
+      const amount = value === null ? null : getIntegerFromText(value);
+      if (amount === null) unreadKeys.push(key);
+      else destroyed.push({ statistic: key.slice(1), amount });
+      continue;
+    }
+
+    if (PROC_KEYS.includes(key)) {
+      // A figure beside one of these is something the captures never showed and
+      // nothing here explains. The key goes back to unread rather than being
+      // read as a bare flag with a number quietly dropped beside it.
+      if (value === null) procs.push(key.slice(1));
+      else unreadKeys.push(key);
+      continue;
+    }
+
     if (isDamageKey(key)) {
       const damage = getDamageAmount(parameter);
       // A damage key whose value will not read as a number is worse than an
@@ -205,13 +251,21 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
     unreadKeys.push(key);
   }
 
-  if (dealt.length > 0 || taken.length > 0) {
+  // Anything the blow reported, not only its figures: a message carrying `+crit`
+  // and nothing else still describes an attack, and emitting nothing for it
+  // would drop it. Never seen in the captures, where every one of the 256
+  // annotations rides a message that also carries damage.
+  const reported = [dealt, taken, prevented, destroyed, procs].some((of) => of.length > 0);
+  if (reported) {
     events.push({
       kind: "attack",
       actorId: parsed.actor?.combatantId ?? null,
       targetId: parsed.target?.combatantId ?? null,
       dealt,
       taken,
+      prevented,
+      procs,
+      destroyed,
     });
   }
 

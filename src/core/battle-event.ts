@@ -17,6 +17,35 @@ export type DamageAmount = {
   amount: number;
 };
 
+/**
+ * Damage that did not land, and the defence the game credits with stopping it.
+ *
+ * **Not derivable from `dealt` minus `taken`.** Measured on the captured
+ * fights: that difference equals the sum of these figures in 6 of the 68
+ * messages carrying one, and exceeds it in the other 62. Armour and resistance
+ * reduce as well and the protocol reports neither, so the remainder is real and
+ * unattributable — reading the gap as absorption would state a number nobody
+ * sent.
+ */
+export type PreventedDamage = {
+  /** The client's own token — the key with its sign removed. */
+  prevention: string;
+  amount: number;
+};
+
+/**
+ * A statistic of the target this attack reduced. Not damage, and not comparable
+ * to damage: the game keeps armour in points and elemental resistance in
+ * percentage points, and the protocol states the figure without its unit. Kept
+ * apart from `dealt` for that reason — summed together they would be a total of
+ * two different things.
+ */
+export type StatisticDestruction = {
+  /** The client's own token — the key with its sign removed. */
+  statistic: string;
+  amount: number;
+};
+
 export type AttackEvent = {
   kind: "attack";
   /** Combatant ids, or null where the protocol named nobody on that side. */
@@ -30,6 +59,16 @@ export type AttackEvent = {
    * the sum of `dealt` in none of them.
    */
   taken: DamageAmount[];
+  /** What a defence stopped. Belongs to the target, as `taken` does. */
+  prevented: PreventedDamage[];
+  /**
+   * Effects that fired alongside the blow and carry **no figure at all** — the
+   * protocol states the name and nothing else. A token here is a fact about the
+   * attack, never a number, so nothing downstream may total them.
+   */
+  procs: string[];
+  /** Statistics of the target this blow reduced. Belongs to the target too. */
+  destroyed: StatisticDestruction[];
 };
 
 /**

@@ -872,8 +872,10 @@ Terms from the game, fixed here so module names do not drift apart.
 | **message** | One semicolon-delimited record inside the protocol payload. |
 | **key** | A named field inside a message — decides what the message means. |
 | **hit** | A single damage number. One attack can carry several. |
-| **raw / applied** | Damage before and after reduction. Their difference is absorbed. |
-| **proc** | An effect that fired alongside an attack. |
+| **raw / applied** | Damage before and after reduction. Their difference is **not** what a defence stopped — see `prevented`. |
+| **prevented** | Damage the protocol says a defence stopped: absorption, magic absorption, a block. One component of the reduction, never the whole — armour and resistance reduce as well and the protocol reports neither, so the rest of the gap is unattributable. Measured: the gap is wider in 62 of the 68 messages carrying a defence. |
+| **destroyed** | A statistic of the target an attack reduced — armour in points, elemental resistance in percentage points. Not damage, and never totalled with it. |
+| **proc** | An effect that fired alongside an attack. Carries no figure: the protocol states the name and stops. |
 | **element** | Damage type (fire, cold, physical, …), taken from the key. |
 | **dot** | Damage over time, ticking outside a direct attack. |
 | **unattributed** | A number the log does not tie to any actor. Shown, never guessed. |
