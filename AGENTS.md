@@ -276,6 +276,8 @@ this document starts lying.
 AGENTS.md          These rules. The only place they live.
 CLAUDE.md          One line importing AGENTS.md.
 README.md          For humans: what this is, how to build it, terms of service.
+LICENSE            MIT — covers what was written here, and nothing else.
+NOTICE.md          What of the game's is in this repository, and on what basis.
 
 build.ts                 Bundles src/ into dist/ and prepends the userscript
                          banner. Also exports userscriptBanner() — the test is

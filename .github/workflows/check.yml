@@ -5,7 +5,10 @@ name: check
 
 on:
   push:
-    branches: [main]
+    # The rewrite happens on its own branch, so that is where the gate is needed
+    # today. Without this a push there runs nothing at all — `pull_request` only
+    # fires once a PR exists.
+    branches: [main, "rewrite/**"]
   pull_request:
 
 jobs:

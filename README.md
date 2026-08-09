@@ -85,7 +85,19 @@ Conventions, workflow and the rules this repository is held to live in
 tools read it directly.
 
 The tests stand on **real material**: raw battle protocol captured from actual
-fights, under `tests/fixtures/`. It is treated as evidence rather than test
-data — it is never edited to make something pass, and the invariants discover
-the files by reading the directory, so a capture dropped in is checked
+fights, under `tests/captured-fights/`. It is treated as evidence rather than
+test data — it is never edited to make something pass, and the invariants
+discover the files by reading the directory, so a capture dropped in is checked
 immediately.
+
+---
+
+## Licence
+
+The code is [MIT licensed](LICENSE) — do what you like with it, just keep the
+notice.
+
+Margonem is a game by **Garmory sp. z o.o. sp.k.** and MIT does **not** cover
+it: not the name, not the artwork, not the text, not the client's code. What of
+the game's is in this repository, on what basis, and what is deliberately
+absent — [`NOTICE.md`](NOTICE.md).
