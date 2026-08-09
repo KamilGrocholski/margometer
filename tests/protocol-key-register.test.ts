@@ -1,7 +1,13 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/tests/frozen-protocol-keys.ts";
+import {
+  getKeysInState,
+  parseProtocolKeyRegister,
+  PROTOCOL_KEY_HEALTH_EFFECTS,
+  PROTOCOL_KEY_REGISTER,
+  ProtocolKeyRegisterError,
+} from "@/tests/protocol-key-register.ts";
 
 /**
  * Holds `docs/protocol-keys.md` to the code and to the game.
@@ -12,20 +18,8 @@ import { FROZEN_PROTOCOL_KEYS } from "@/tests/frozen-protocol-keys.ts";
  * key the game has never heard of.
  */
 
-const REGISTER = readFileSync(new URL("../docs/protocol-keys.md", import.meta.url).pathname, "utf8");
-
-const ENTRY = /^### `([^`]+)` — (.+)$/gm;
 const NAMED_KEYS = new Set<string>(FROZEN_PROTOCOL_KEYS.keys);
-
-type Entry = { key: string; state: string };
-const ENTRIES: Entry[] = [...REGISTER.matchAll(ENTRY)].map((match) => ({
-  key: match[1] as string,
-  state: match[2] as string,
-}));
-
-function getKeysInState(state: string): string[] {
-  return ENTRIES.filter((entry) => entry.state === state).map((entry) => entry.key);
-}
+const ENTRIES = PROTOCOL_KEY_REGISTER;
 
 function isComputedKey(key: string): boolean {
   const { marker, markerAt, markerLength } = FROZEN_PROTOCOL_KEYS.computedFamily;
@@ -49,6 +43,27 @@ describe("the protocol key register", () => {
   test("names no key twice", () => {
     const keys = ENTRIES.map((entry) => entry.key);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  // A health verdict misspelled would parse as no verdict at all: the witness
+  // would quietly stop skipping that key, coverage would shrink, and every guard
+  // here would still pass. Refusing the word outright is what keeps a typo from
+  // becoming a number that is too low.
+  test("refuses a health effect nothing knows how to check", () => {
+    const register = "### `heal` — investigated\n\n*Health:* moves helth\n";
+    expect(() => parseProtocolKeyRegister(register)).toThrow(ProtocolKeyRegisterError);
+  });
+
+  // Silence is a position, not an omission, so it has to survive parsing intact.
+  test("reads an entry with no health line as making no claim", () => {
+    const [entry] = parseProtocolKeyRegister("### `txt` — investigated\n\nNo verdict.\n");
+    expect(entry?.healthEffect).toBeNull();
+  });
+
+  test("states a health effect only in words the register defines", () => {
+    const spoken = ENTRIES.map((entry) => entry.healthEffect).filter((effect) => effect !== null);
+    expect(spoken.length).toBeGreaterThan(0);
+    for (const effect of spoken) expect(PROTOCOL_KEY_HEALTH_EFFECTS).toContain(effect);
   });
 });
 

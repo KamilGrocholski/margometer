@@ -10,7 +10,12 @@
  */
 
 /** Every failure the tooling can raise. One entry per subclass. */
-export type MargoMeterToolErrorCode = "FightDumpFormat" | "Bundle" | "GameSource" | "ProtocolKeyTable";
+export type MargoMeterToolErrorCode =
+  | "FightDumpFormat"
+  | "Bundle"
+  | "GameSource"
+  | "ProtocolKeyTable"
+  | "ProtocolKeyRegister";
 
 export abstract class MargoMeterToolError extends Error {
   readonly code: MargoMeterToolErrorCode;

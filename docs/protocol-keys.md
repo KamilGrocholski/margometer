@@ -14,6 +14,48 @@ count of progress — run `bun tools/decoding-status.ts` for that.
 
 ---
 
+## Where health comes from, and why every entry states one
+
+No key moves health. The client reads the health percentage off the **side
+segments** and applies it before it looks at a single key: `battleMsg` splits the
+message, and for each side that carries `=` it does
+`warriorsList[id].tmpHpp = parseFloatHP(…)`. The switch over keys that follows
+composes the battle log and nothing else — it contains no assignment to a
+fighter's health at all.
+
+*Evidence:* production build `1785244275300`, the same in development build
+`1781609507010`. Both `tmpHpp` assignments in the production bundle sit in
+`battleMsg`, ahead of the switch; searching the whole switch region for an
+assignment to a fighter's health finds none.
+
+So the question a key can answer is not "does it change health" but **"does it
+report a health figure the arithmetic has to account for"**. An entry that has
+settled that says so with one line:
+
+```
+*Health:* moves health
+```
+
+There is no opposite value, and the omission is the point. Silence means the
+material has not settled it — which is different from "it is harmless", and the
+two must not share a spelling. `tests/health-witness.test.ts` reads this line
+and skips any engine call carrying such a key, because a figure it cannot add is
+a figure that makes every later comparison in that call wrong.
+
+**The evidence is always a measurement on the captures**, never a citation:
+having established that the client only composes sentences, there is nothing in
+it left to cite. The measurement is the same one every time, and the guard
+re-runs it: admit the key to the witness and a comparison must disagree **on a
+message carrying that key**. A verdict that cannot be attributed to its own key
+is a cascade from a neighbour, and is not a verdict.
+
+**A key with no entry is let through**, and the witness is what pushes back: if
+it does report health, its comparisons stop matching. That is the design, not a
+caveat — the alternative is an entry per key with nothing behind it, which is the
+kind of bulk this directory exists to refuse.
+
+---
+
 ## Keys the decoder reads
 
 ### `winner` — decoded
@@ -36,6 +78,14 @@ attack aimed at someone else. Value is `amount,kind,name(percent%)`; the
 percentage belongs to the named combatant, not to the message target. The damage
 has already been reduced — unlike `+dmg`/`-dmg` there is no second figure.
 
+*Health:* moves health
+
+Accounted for rather than skipped: the witness resolves the name against the
+combatants the engine call started with and subtracts the figure there. A name
+matching none of them, or more than one, makes the call uncomparable instead —
+the boar fight fields two combatants called the same thing, so a unique match is
+a condition, not a formality.
+
 *Evidence:* in every call where a target lost more health than the attack
 accounted for, the shortfall equalled this amount exactly — 110, 247 and 123 in
 three separate calls. Three independent confirmations on real material, which is
@@ -53,6 +103,12 @@ taken, and calls everything outside that an unknown parameter. We mirror the
 rule rather than listing the family, so a kind the game has never sent still
 decodes.
 
+*Health:* moves health
+
+Accounted for — this is the figure the witness's arithmetic is built on. `?dmg*`
+is a shape rather than a key the protocol ever sends, so the entry never matches
+a message of its own.
+
 *Evidence:* the default branch of the battle switch, production build
 `1785244275300`, identical in the development build. Which sign is the damage
 that landed was measured rather than read: health drop matched the sum of
@@ -60,9 +116,65 @@ that landed was measured rather than read: health drop matched the sum of
 
 ---
 
+## Keys that move health and are not read yet
+
+Each of these makes its engine call uncomparable. They are the queue the decoder
+works through next, and until it does, the witness declines to judge the calls
+they appear in rather than reporting our ignorance as the game's error.
+
+### `heal` — investigated
+
+Health restored to, or lost by, the combatant in the **actor** slot. The message
+names nobody else: the shape is `<combatant>=<percent>;0;heal=<amount>`.
+
+*Health:* moves health
+
+*Evidence:* admitted to the witness as harmless, it disagrees on messages
+carrying it — `441390=47.00;0;heal=687`, where the protocol states a percentage
+above what the decoded damage alone would leave. Attributable, not a cascade.
+
+### `poison` — investigated
+
+Damage over time against the combatant in the actor slot, same shape as `heal`.
+The protocol does not say who applied it, so decoding it will produce
+unattributed damage rather than a guess (§5).
+
+*Health:* moves health
+
+*Evidence:* attributable disagreements on its own messages, first
+`-10000249=76.05;0;poison=563`.
+
+### `heal_target` — investigated
+
+Healing directed at the message target, unlike `heal`, which lands on the actor.
+
+*Health:* moves health
+
+*Evidence:* one attributable disagreement, and a large one — the target's stated
+percentage sits far above the arithmetic on a message carrying `heal_target`.
+
+### `healall_per` — investigated
+
+Healing by a percentage that reaches combatants the message **never names**. The
+message names only the caster, on both sides.
+
+This is the one that decided the witness's shape. Dropping only the combatants a
+message names is not enough here, because the health moved somewhere else
+entirely: in one call the caster's message named nobody but the caster, while a
+combatant absent from it gained a fifth of their health, and the next comparison
+against that combatant was out by more than twenty percentage points. A key like
+this costs the whole call, not two combatants.
+
+*Health:* moves health
+
+*Evidence:* attributable disagreements on its own messages, the first out by the
+percentage the key itself states.
+
+---
+
 ## Keys looked into and deliberately not read yet
 
-### `injure` — investigated
+### `+injure` — investigated
 
 Not damage applied at the moment it appears. Left unread rather than guessed at.
 
@@ -70,6 +182,23 @@ Not damage applied at the moment it appears. Left unread rather than guessed at.
 fell by exactly the attack plus `+oth_dmg`, with `+injure=179` present and
 contributing nothing; in call 23 the same, with `+injure=78`. Whatever it does,
 it does not move health then and there.
+
+### `injure` — investigated
+
+A different key from `+injure`, and the reason this entry exists separately: the
+two measurements above were made on `+injure` and were filed here, so this file
+described one key using another key's evidence. Bare `injure` appears on its own
+in the actor slot, `<combatant>=<percent>;0;injure=<amount>`, the same shape the
+health-moving keys use.
+
+Deliberately carries **no** health verdict. Every engine call containing it also
+contains `heal` or `poison`, so the witness never judges one, and admitting it
+changes neither the number of comparisons nor their outcome. The material cannot
+settle this key, and silence is what that looks like.
+
+*Evidence:* the absence of an effect either way is itself the measurement, and
+the guard holds it there — a health verdict for this key would have to produce a
+disagreement on a message carrying it, and none exists.
 
 ---
 
