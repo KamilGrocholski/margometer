@@ -1,5 +1,9 @@
 import { assert } from "@/libs/assert.ts";
-import type { BattleEvent, DamageAmount } from "@/src/core/battle-event.ts";
+import type {
+  BattleEvent,
+  DamageAmount,
+  DamageToNamedCombatantEvent,
+} from "@/src/core/battle-event.ts";
 import {
   parseProtocolMessage,
   ProtocolMessageFormatError,
@@ -47,11 +51,43 @@ function isDamageKey(key: string): boolean {
 }
 
 /**
+ * `amount,kind,name(percent%)` — the recipient arrives as a name here, not as an
+ * id, and the health it states is that combatant's, not the message target's.
+ */
+const DAMAGE_TO_NAMED_KEY = "+oth_dmg";
+const NAMED_WITH_PERCENT = /^(.*)\((\d+\.\d\d)%\)$/;
+
+function decodeDamageToNamedCombatant(
+  value: string | null,
+  actorId: number | null,
+): DamageToNamedCombatantEvent | null {
+  if (value === null) return null;
+
+  const [rawAmount, kind, rawName] = value.split(",");
+  if (rawAmount === undefined || kind === undefined || rawName === undefined) return null;
+
+  const amount = Number(rawAmount);
+  if (!Number.isInteger(amount)) return null;
+
+  const named = NAMED_WITH_PERCENT.exec(rawName);
+  return {
+    kind: "damage-to-named-combatant",
+    actorId,
+    targetName: named === null ? rawName : (named[1] ?? rawName),
+    targetHealthPercent: named === null ? null : Number(named[2]),
+    damage: { damageType: `${DAMAGE_MARKER}${kind}`, amount },
+  };
+}
+
+/**
  * Every named key the decoder claims to understand. Exported so a guard can hold it
  * against the keys the game actually knows — a key we handle that the client
  * has never heard of means we invented a meaning.
  */
-export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = Object.keys(OUTCOME_KEYS);
+export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
+  ...Object.keys(OUTCOME_KEYS),
+  DAMAGE_TO_NAMED_KEY,
+];
 
 function decodeMessage(message: string): BattleEvent[] {
   let parsed: ProtocolMessage;
@@ -72,6 +108,13 @@ function decodeMessage(message: string): BattleEvent[] {
 
   for (const parameter of parsed.parameters) {
     const { key, value } = parameter;
+
+    if (key === DAMAGE_TO_NAMED_KEY) {
+      const damage = decodeDamageToNamedCombatant(value, parsed.actor?.combatantId ?? null);
+      if (damage === null) unreadKeys.push(key);
+      else events.push(damage);
+      continue;
+    }
 
     if (isDamageKey(key)) {
       const damage = getDamageAmount(parameter);

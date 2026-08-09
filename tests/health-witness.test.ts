@@ -7,24 +7,23 @@ import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-cata
  * The decoder checked against something that is not the decoder.
  *
  * Two numbers meet here that nothing in this project reconciles: maximum and
- * current health, which come from the combatant snapshots taken around each
- * engine call, and the health percentage the protocol states inside the message
- * itself. If the damage we decode is right, the second follows from the first.
+ * current health, taken from the combatant snapshots around each engine call,
+ * and the health percentage the protocol states inside each message. If the
+ * damage we decode is right, the second follows from the first.
  *
- * Coverage grows as the decoder learns more keys. Today it is small, and the
- * "there is something to compare" test below is what stops that from passing
- * silently as zero.
+ * Coverage grows as the decoder learns more keys, because a combatant is only
+ * comparable while every message touching it has been fully read.
  */
 
 /** The protocol states percentages rounded to two places, so the comparison is too. */
 const TOLERANCE_IN_PERCENTAGE_POINTS = 0.02;
 
 /**
- * Keys observed alongside damage that carry no health change of their own.
+ * Keys seen beside damage that carry no health change of their own.
  *
- * This is an assumption held by this test, not a claim the decoder relies on:
- * if one of them did move health, the comparisons below would stop matching,
- * which is the correct way to find out.
+ * An assumption held by this test, not one the decoder relies on: if any of
+ * them did move health, these comparisons would stop matching, which is the
+ * right way to find out.
  */
 const KEYS_WITH_NO_HEALTH_EFFECT = [
   "tspell",
@@ -38,7 +37,7 @@ const KEYS_WITH_NO_HEALTH_EFFECT = [
 ];
 
 function isDamageKey(key: string): boolean {
-  return key.slice(1, 4) === "dmg" && key !== "+oth_dmg";
+  return key.slice(1, 4) === "dmg";
 }
 
 type Comparison = {
@@ -50,54 +49,73 @@ type Comparison = {
 };
 
 /**
- * Compares only the first message in a call to mention a combatant. After that
- * the running health depends on every earlier message, including ones carrying
- * keys the decoder cannot read yet.
+ * Walks a call message by message, subtracting the damage we decoded from the
+ * health the snapshot started with, and compares the running figure against
+ * what each message states.
+ *
+ * A combatant touched by a message the decoder could not fully read is dropped
+ * for the rest of that call: from then on the running figure is missing
+ * something, and comparing it would report our own ignorance as the game's
+ * error.
  */
 function getComparisons(fight: CapturedFight): Comparison[] {
   const comparisons: Comparison[] = [];
 
   for (const call of fight.dump.calls) {
-    const healthBefore = new Map(call.combatantsBefore.map((c) => [c.id, c.health.current]));
-    const alreadyMentioned = new Set<number>();
+    const runningHealth = new Map(call.combatantsBefore.map((c) => [c.id, c.health.current]));
+    const unaccountedFor = new Set<number>();
 
     for (const message of call.protocolMessages) {
       const parsed = parseProtocolMessage(message);
       const target = parsed.target;
-      const mentioned = [parsed.actor?.combatantId, parsed.target?.combatantId];
+      const decoded = decodeFight([message]);
 
-      const unaccounted = parsed.parameters.some(
+      const readable = !parsed.parameters.some(
         ({ key }) => !isDamageKey(key) && !KEYS_WITH_NO_HEALTH_EFFECT.includes(key),
       );
-      const startingHealth = target === null ? undefined : healthBefore.get(target.combatantId);
+      if (!readable) {
+        for (const id of [parsed.actor?.combatantId, parsed.target?.combatantId]) {
+          if (id !== undefined) unaccountedFor.add(id);
+        }
+        continue;
+      }
+
+      const takenByTarget = decoded
+        .filter((event) => event.kind === "attack")
+        .flatMap((event) => event.taken)
+        .reduce((total, damage) => total + damage.amount, 0);
+
+      if (target !== null && runningHealth.has(target.combatantId)) {
+        runningHealth.set(
+          target.combatantId,
+          (runningHealth.get(target.combatantId) ?? 0) - takenByTarget,
+        );
+      }
+      const remaining = target === null ? undefined : runningHealth.get(target.combatantId);
       const maximumHealth =
         target === null ? undefined : fight.maximumHealthByCombatantId.get(target.combatantId);
+      const landed = takenByTarget > 0;
 
       if (
         target !== null &&
         target.healthPercent !== null &&
-        !alreadyMentioned.has(target.combatantId) &&
-        startingHealth !== undefined &&
+        // A combatant that died clamps at zero, so the overkill is invisible and
+        // the arithmetic cannot close. Measured: the blow that ended the group
+        // fight dealt more than the boss had left.
+        target.healthPercent > 0 &&
+        remaining !== undefined &&
         maximumHealth !== undefined &&
-        !unaccounted
+        landed &&
+        !unaccountedFor.has(target.combatantId)
       ) {
-        const taken = decodeFight([message])
-          .filter((event) => event.kind === "attack")
-          .flatMap((event) => event.taken)
-          .reduce((total, damage) => total + damage.amount, 0);
-
-        if (taken > 0) {
-          comparisons.push({
-            fight: fight.name,
-            call: call.index,
-            combatantId: target.combatantId,
-            statedPercent: target.healthPercent,
-            percentFromDecodedDamage: ((startingHealth - taken) / maximumHealth) * 100,
-          });
-        }
+        comparisons.push({
+          fight: fight.name,
+          call: call.index,
+          combatantId: target.combatantId,
+          statedPercent: target.healthPercent,
+          percentFromDecodedDamage: (remaining / maximumHealth) * 100,
+        });
       }
-
-      for (const id of mentioned) if (id !== undefined) alreadyMentioned.add(id);
     }
   }
 

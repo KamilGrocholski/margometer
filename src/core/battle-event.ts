@@ -32,6 +32,24 @@ export type AttackEvent = {
   taken: DamageAmount[];
 };
 
+/**
+ * Damage the protocol reports against a **name** rather than an id, alongside
+ * an attack aimed at someone else.
+ *
+ * Measured on the captured fights: in every call where the target's health fell
+ * further than the attack accounted for, the shortfall equalled this figure
+ * exactly. It is damage that landed, already reduced — there is no second
+ * figure for it the way `dealt` and `taken` pair up.
+ */
+export type DamageToNamedCombatantEvent = {
+  kind: "damage-to-named-combatant";
+  actorId: number | null;
+  targetName: string;
+  /** Health the protocol states for that combatant once this damage is in. */
+  targetHealthPercent: number | null;
+  damage: DamageAmount;
+};
+
 export type FightOutcomeEvent = {
   kind: "fight-outcome";
   result: "won" | "lost";
@@ -50,12 +68,21 @@ export type UnknownMessageEvent = {
   reason: string;
 };
 
-export type BattleEvent = AttackEvent | FightOutcomeEvent | UnknownMessageEvent;
+export type BattleEvent =
+  | AttackEvent
+  | DamageToNamedCombatantEvent
+  | FightOutcomeEvent
+  | UnknownMessageEvent;
 
 /**
  * Every variant the union currently holds. Kept as a value because the guard
  * has to iterate it at runtime; `satisfies` is what stops it drifting from the
  * type.
  */
-export const BATTLE_EVENT_KINDS = ["attack", "fight-outcome", "unknown-message"] as const satisfies
+export const BATTLE_EVENT_KINDS = [
+  "attack",
+  "damage-to-named-combatant",
+  "fight-outcome",
+  "unknown-message",
+] as const satisfies
   readonly BattleEvent["kind"][];

@@ -114,6 +114,30 @@ describe("decoding a single message", () => {
     expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
   });
 
+  // The protocol names the recipient here instead of giving an id, and states
+  // that combatant's health rather than the message target's.
+  test("reads damage reported against a name", () => {
+    expect(decodeFight(["447544=100.00;-10000249=71.86;+oth_dmg=247,a,Hildur(71.86%)"])).toEqual([
+      {
+        kind: "damage-to-named-combatant",
+        actorId: 447544,
+        targetName: "Hildur",
+        targetHealthPercent: 71.86,
+        damage: { damageType: "dmga", amount: 247 },
+      },
+    ]);
+  });
+
+  test("keeps a name the protocol states without a percentage", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;+oth_dmg=5,f,Odyniec"]);
+    expect(event).toMatchObject({ targetName: "Odyniec", targetHealthPercent: null });
+  });
+
+  test("reports damage against a name that arrives in the wrong shape", () => {
+    const events = decodeFight(["1=100.00;2=50.00;+oth_dmg=5,f"]);
+    expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
+  });
+
   // Found by mutation testing: this used to trip an assertion and take the
   // panel down. A message with no parameters is odd but possible, so it is
   // reported like anything else the decoder cannot read.
