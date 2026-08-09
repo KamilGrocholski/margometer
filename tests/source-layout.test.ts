@@ -186,11 +186,11 @@ describe("function names", () => {
     const declared = [...source.matchAll(/\bfunction\s+([A-Za-z][A-Za-z0-9]*)\s*\(/g)].map(
       (match) => match[1]!,
     );
-    const arrows = [...source.matchAll(/\bconst\s+([A-Za-z][A-Za-z0-9]*)\s*=\s*(?:async\s*)?\(/g)]
-      .map((match) => match[1]!)
-      // Arrow constants that are values, not functions, are caught by the same
-      // pattern; SCREAMING_CASE names are never functions here.
-      .filter((name) => name !== name.toUpperCase());
+    // The `=>` is required: without it `const x = (a ?? b) as T` reads as a
+    // parameter list and the guard fires on a plain value.
+    const arrows = [
+      ...source.matchAll(/\bconst\s+([A-Za-z][A-Za-z0-9]*)\s*=\s*(?:async\s*)?\([^)]*\)[^=;\n]*=>/g),
+    ].map((match) => match[1]!);
 
     for (const name of [...declared, ...arrows]) {
       expect(name, `${file}: ${name}`).toMatch(allowed);

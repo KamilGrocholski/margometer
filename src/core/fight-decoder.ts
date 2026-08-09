@@ -26,6 +26,13 @@ const OUTCOME_KEYS: Record<string, "won" | "lost"> = {
   loser: "lost",
 };
 
+/**
+ * Every key the decoder claims to understand. Exported so a guard can hold it
+ * against the keys the game actually knows — a key we handle that the client
+ * has never heard of means we invented a meaning.
+ */
+export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = Object.keys(OUTCOME_KEYS);
+
 function decodeMessage(message: string): BattleEvent[] {
   let parsed: ProtocolMessage;
   try {
