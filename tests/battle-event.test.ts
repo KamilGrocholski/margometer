@@ -114,6 +114,41 @@ describe("decoding a single message", () => {
     expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
   });
 
+  // The expensive one, and the reason the decoder no longer calls `Number()`:
+  // `Number("")` is `0`, `0` is a valid damage figure, and an empty field would
+  // have arrived as a measurement nobody could tell from a real zero.
+  test("reports an empty damage value rather than reading it as zero", () => {
+    const events = decodeFight(["1=100.00;2=50.00;+dmgf="]);
+    expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
+  });
+
+  test.each([" 5 ", "0x10", "1e3", "+5"])(
+    "refuses a damage value of %p, which the protocol never writes",
+    (value) => {
+      const events = decodeFight([`1=100.00;2=50.00;+dmgf=${value}`]);
+      expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
+    },
+  );
+
+  test("reports an empty side rather than a fight won by one nameless combatant", () => {
+    const events = decodeFight(["0;0;winner="]);
+    expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
+  });
+
+  test("reports damage against an empty name rather than attributing it to nobody", () => {
+    const events = decodeFight(["1=100.00;2=50.00;+oth_dmg=5,f,(50.00%)"]);
+    expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
+  });
+
+  // An id longer than 2^53 would come back as its nearest neighbour, which is a
+  // combatant who does not exist. It is a format problem, so it becomes a loud
+  // unknown rather than an exception travelling into the game.
+  test("reports an id too large to read rather than attributing damage to its neighbour", () => {
+    const [event] = decodeFight(["9007199254740993=100.00;0;+dmgf=5"]);
+    expect(event?.kind).toBe("unknown-message");
+    expect((event as { reason: string }).reason).toMatch(/unusable id/);
+  });
+
   // The protocol names the recipient here instead of giving an id, and states
   // that combatant's health rather than the message target's.
   test("reads damage reported against a name", () => {

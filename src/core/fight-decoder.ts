@@ -1,4 +1,5 @@
 import { assert } from "@/libs/assert.ts";
+import { getDecimalFromText, getIntegerFromText } from "@/libs/number.ts";
 import type {
   BattleEvent,
   DamageAmount,
@@ -41,8 +42,8 @@ const DEALT_SIGN = "+";
 
 function getDamageAmount(parameter: { key: string; value: string | null }): DamageAmount | null {
   if (parameter.value === null) return null;
-  const amount = Number(parameter.value);
-  if (!Number.isInteger(amount)) return null;
+  const amount = getIntegerFromText(parameter.value);
+  if (amount === null) return null;
   return { damageType: parameter.key.slice(1), amount };
 }
 
@@ -66,15 +67,27 @@ function decodeDamageToNamedCombatant(
   const [rawAmount, kind, rawName] = value.split(",");
   if (rawAmount === undefined || kind === undefined || rawName === undefined) return null;
 
-  const amount = Number(rawAmount);
-  if (!Number.isInteger(amount)) return null;
+  const amount = getIntegerFromText(rawAmount);
+  if (amount === null) return null;
 
   const named = NAMED_WITH_PERCENT.exec(rawName);
+  // The `??` closes a gap in the type, not a real branch — `(.*)` always
+  // captures once the pattern matched. It falls into the check below rather than
+  // asserting, because an assertion here would travel into the game engine.
+  const targetName = named === null ? rawName : (named[1] ?? "");
+  // Damage against nobody is not damage we can attribute, and a blank name would
+  // travel on looking like one.
+  if (targetName === "") return null;
+
+  const rawPercent = named?.[2];
+  const targetHealthPercent = rawPercent === undefined ? null : getDecimalFromText(rawPercent);
+  if (rawPercent !== undefined && targetHealthPercent === null) return null;
+
   return {
     kind: "damage-to-named-combatant",
     actorId,
-    targetName: named === null ? rawName : (named[1] ?? rawName),
-    targetHealthPercent: named === null ? null : Number(named[2]),
+    targetName,
+    targetHealthPercent,
     damage: { damageType: `${DAMAGE_MARKER}${kind}`, amount },
   };
 }
@@ -128,8 +141,13 @@ function decodeMessage(message: string): BattleEvent[] {
 
     const result = OUTCOME_KEYS[key];
     if (result !== undefined && value !== null) {
-      events.push({ kind: "fight-outcome", result, combatantNames: value.split(NAME_SEPARATOR) });
-      continue;
+      const combatantNames = value.split(NAME_SEPARATOR);
+      // `"".split(", ")` is `[""]`, so an empty value reads as a side holding one
+      // nameless combatant. A side we cannot match against anyone is unread.
+      if (combatantNames.every((name) => name !== "")) {
+        events.push({ kind: "fight-outcome", result, combatantNames });
+        continue;
+      }
     }
     unreadKeys.push(key);
   }

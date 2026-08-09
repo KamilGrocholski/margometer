@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { composeDecimalText } from "@/libs/number.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
@@ -138,7 +139,7 @@ describe("decoded damage against the health the protocol states", () => {
         TOLERANCE_IN_PERCENTAGE_POINTS,
     ).map(
       (c) =>
-        `${c.fight} call ${c.call} id ${c.combatantId}: protocol says ${c.statedPercent}, decoded damage gives ${c.percentFromDecodedDamage.toFixed(2)}`,
+        `${c.fight} call ${c.call} id ${c.combatantId}: protocol says ${c.statedPercent}, decoded damage gives ${composeDecimalText(c.percentFromDecodedDamage, 2)}`,
     );
     expect(disagreements).toEqual([]);
   });

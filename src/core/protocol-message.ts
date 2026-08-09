@@ -14,6 +14,12 @@
  */
 
 import { assertDefined } from "@/libs/assert.ts";
+import {
+  composeDecimalText,
+  composeIntegerText,
+  getDecimalFromText,
+  getIntegerFromText,
+} from "@/libs/number.ts";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 
 export class ProtocolMessageFormatError extends MargoMeterError {
@@ -58,11 +64,30 @@ function parseMessageSide(segment: string, whole: string): MessageSide | null {
   const match = SIDE_PATTERN.exec(segment);
   if (!match) throw new ProtocolMessageFormatError(`side segment "${segment}" is not an id`, whole);
 
-  const [, id, percent] = match;
-  return {
-    combatantId: Number.parseInt(assertDefined(id, "SIDE_PATTERN captures the id"), 10),
-    healthPercent: percent === undefined ? null : Number.parseFloat(percent),
-  };
+  // The pattern proves the shape — digits, and a two-place percentage — so that
+  // the groups exist is an invariant of ours. That the digits fit in a number is
+  // not: the protocol could state an id longer than 2^53, and reading it as its
+  // nearest neighbour would attribute damage to a combatant who does not exist.
+  // Magnitude is therefore the game's business and refused like any other
+  // format problem, which the decoder turns into a loud unknown.
+  const id = assertDefined(match[1], "SIDE_PATTERN captures the id");
+  const percent = match[2];
+
+  const combatantId = getIntegerFromText(id);
+  if (combatantId === null) {
+    throw new ProtocolMessageFormatError(`side segment "${segment}" states an unusable id`, whole);
+  }
+
+  if (percent === undefined) return { combatantId, healthPercent: null };
+
+  const healthPercent = getDecimalFromText(percent);
+  if (healthPercent === null) {
+    throw new ProtocolMessageFormatError(
+      `side segment "${segment}" states an unusable percentage`,
+      whole,
+    );
+  }
+  return { combatantId, healthPercent };
 }
 
 function parseMessageParameter(segment: string): MessageParameter {
@@ -95,8 +120,12 @@ export function parseProtocolMessage(message: string): ProtocolMessage {
 export function composeProtocolMessage(parsed: ProtocolMessage): string {
   const composeSide = (side: MessageSide | null): string => {
     if (side === null) return NO_COMBATANT;
-    if (side.healthPercent === null) return String(side.combatantId);
-    return `${side.combatantId}=${side.healthPercent.toFixed(2)}`;
+    const id = composeIntegerText(side.combatantId);
+    if (side.healthPercent === null) return id;
+    // Two places, the same two `SIDE_PATTERN` insists on when reading. A value
+    // that will not write back at that width never parsed in the first place,
+    // which is why this asserts rather than returning something.
+    return `${id}=${composeDecimalText(side.healthPercent, 2)}`;
   };
 
   return [

@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
+import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 
 /**
  * Holds `docs/specs/` to a shape.
@@ -25,8 +26,9 @@ describe.each(SPEC_FILES)("%s", (file) => {
   test("is named for the day it was written", () => {
     expect(file).toMatch(DATED_NAME);
     const date = file.slice(0, "yyyy-mm-dd".length);
-    expect(Number.isNaN(Date.parse(date))).toBe(false);
-    expect(Date.parse(date)).toBeLessThanOrEqual(Date.now());
+    const written = getMillisecondsFromIsoText(date);
+    expect(written).not.toBeNull();
+    expect(written).toBeLessThanOrEqual(Date.now());
   });
 
   // Third line, not somewhere in the body: a status that has to be searched for

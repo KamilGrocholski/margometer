@@ -6,9 +6,13 @@
  * number that was true last week.
  */
 
+import { composeIntegerText } from "@/libs/number.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
+
+/** Wide enough for every count the captured material produces. */
+const COLUMN_WIDTH = 5;
 
 export type DecodingStatus = {
   messages: number;
@@ -80,12 +84,12 @@ function writeStatusReport(status: DecodingStatus): void {
   console.log();
   console.log("events by kind");
   for (const [kind, count] of Object.entries(status.eventsByKind).sort((a, b) => b[1] - a[1])) {
-    console.log(`  ${String(count).padStart(5)}  ${kind}`);
+    console.log(`  ${composeIntegerText(count).padStart(COLUMN_WIDTH)}  ${kind}`);
   }
   console.log();
   console.log("unread keys, most frequent first");
   for (const { key, occurrences } of status.unreadKeysByFrequency) {
-    console.log(`  ${String(occurrences).padStart(5)}  ${key}`);
+    console.log(`  ${composeIntegerText(occurrences).padStart(COLUMN_WIDTH)}  ${key}`);
   }
 }
 

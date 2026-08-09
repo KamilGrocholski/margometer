@@ -336,6 +336,14 @@ docs/
 libs/
   assert.ts              Assertions and their failure type. Depends on nothing;
                          outside both error hierarchies — §9.5.
+  number.ts              Every number read or written. Reading returns null and
+                         throws nothing, so the caller picks assert, error or
+                         unknown; writing asserts, because the number is ours.
+  json.ts                JSON.parse with its try/catch in one place, and its
+                         `any` replaced by `unknown`. Returns the value or the
+                         SyntaxError, never a bare null — §9.5.
+  timestamp.ts           Date.parse without the NaN, and without the shapes it
+                         accepts by surprise.
 
 src/
   userscript-entry.ts    Bundle entry point. Empty so far.
@@ -361,12 +369,14 @@ tests/
   health-witness.test.ts   Decoded damage against the health the protocol
                            states — two sources nothing here reconciles.
   source-layout.test.ts    Guards §9.3 imports-from-root plus §9.4 file and
-                           function naming, §9.5 errors and assumptions, §9.6
-                           no blocking dialogs, §7.6 nothing fetched enters git.
-                           Discovers files, never lists them.
+                           function naming, §9.5 errors, assumptions and the
+                           register of value readers, §9.6 no blocking dialogs,
+                           §7.6 nothing fetched enters git. Discovers files,
+                           never lists them.
   assert.test.ts  battle-event.test.ts  captured-fight-catalog.test.ts
-  decoding-status.test.ts  margometer-error.test.ts  protocol-key-register.test.ts
-  protocol-key-table.test.ts  protocol-message.test.ts  spec-status.test.ts
+  decoding-status.test.ts  json.test.ts  margometer-error.test.ts
+  number.test.ts  protocol-key-register.test.ts  protocol-key-table.test.ts
+  protocol-message.test.ts  spec-status.test.ts  timestamp.test.ts
   userscript-metadata.test.ts
 ```
 
@@ -382,11 +392,11 @@ The decoder, the aggregator, the game layer and the panel are yet to be written.
   everything → `libs`, entry point → everything. `core` imports from nothing but
   itself and `libs`.
 - `[ALWAYS] [libs]` **`libs/` is the bottom layer.** It holds things true in any
-  project — the assertion primitive, narrow helper types — and knows nothing
-  about the game, the protocol or the panel. It imports from `src/`, `tools/`
-  and `tests/` never. The moment it reaches upwards it stops being shared code
-  and becomes a second core, which is how a shared directory turns into a junk
-  drawer.
+  project — the assertion primitive, the value readers, narrow helper types —
+  and knows nothing about the game, the protocol or the panel. It imports from
+  `src/`, `tools/` and `tests/` never. The moment it reaches upwards it stops
+  being shared code and becomes a second core, which is how a shared directory
+  turns into a junk drawer.
 - `[ALWAYS] [core]` **`core` is pure** — no `document`, no `window`, no
   `localStorage`, no timers, no knowledge that a game engine exists. This is
   what makes the decoder and the aggregator testable without a browser and
@@ -613,9 +623,77 @@ discipline.
   covering for a loose type**, and the fix belongs in the type.
 - Tests keep `!`. A wrong assumption there fails the test anyway.
 
+#### Reading a value: which of the three
+
+The question is not "how much do I trust this variable". It is **who produced
+the value**, and **can anyone act on the failure**:
+
+| Where the value came from | Mechanism | Why |
+|---|---|---|
+| **Inside** — our own regex just matched it, our own invariant guarantees it | `assert` / `assertDefined` | Nobody can handle it; a break means the program is wrong. No `code`, travels up. |
+| **Outside, in `tools/`** — a file, a fetched bundle | a branded subclass with a `code`, thrown | A tool refuses bad material loudly rather than reading half of it. |
+| **Outside, in `src/`** — the live protocol | **data**: `null` → an explicit unknown event → a visible mark in the panel | An exception here reaches the game engine, and the user has to see that a number may be too low. |
+| A default that makes the number look right | **never** | `0` is a measurement. Substituting it is the failure this project exists to prevent. |
+
+The same value can need two of these in one function: a pattern that captured a
+group proves the **shape**, so a missing group is an assertion — but it says
+nothing about **magnitude**, and an id past 2^53 is the game's business, not
+ours. Shape inward, magnitude outward.
+
+- `[NEVER] [any]` **A cast off `JSON.parse`.** `as SomeType` on parsed text is
+  external data wearing a type: nothing was checked, and the first absent field
+  surfaces as `undefined` a layer later, where its cause is no longer visible.
+
+#### One way to read a value, and it lives in `libs/`
+
+JavaScript offers several spellings for reading the same value and they disagree
+quietly. `Number("")` is `0`, `parseInt("12abc")` is `12`, `Date.parse("nope")`
+is `NaN` and `NaN > limit` is `false`, `JSON.parse` throws and hands back `any`.
+Each of those produces a value nobody wrote, and a number that is quietly wrong
+looks exactly like a number that is right — the failure this project exists to
+prevent.
+
+So there is **one** way to read each, it lives in `libs/`, and everything else
+asks it. What that costs when it is not followed: two files knowing what a
+"valid id" is, disagreeing by a fraction, and a capture joining against a
+combatant who does not exist.
+
+**`[ALWAYS] [any]` A construct belongs to a primitive in `libs/` if it has more
+than one spelling in JavaScript, or if it can answer with a value nobody wrote.**
+`Number("")` → `0` is both. `new Date().toISOString()` is neither, and stays
+where it is used — the criterion is what keeps this rule from swallowing every
+line in the repository.
+
+The register, and the file that owns each:
+
+| Owner | Owns | Reading gives |
+|---|---|---|
+| `libs/number.ts` | `Number()`, `parseInt`, `parseFloat`, `BigInt`, `toFixed`, `String()` on a number, unary `+`, `typeof … === "number"` | `getIntegerFromText`, `getDecimalFromText`, `getIntegerFromValue`, `getFiniteNumberFromValue` → `number \| null` |
+| `libs/json.ts` | `JSON.parse` and its `try`/`catch` | `getValueFromJsonText` → a reading carrying the value **or** the `SyntaxError`, so the caller still has something to put in `cause` |
+| `libs/timestamp.ts` | `Date.parse` | `getMillisecondsFromIsoText` → `number \| null` |
+
+How to proceed when you need one:
+
+1. **Look in `libs/` first.** It is there — use it.
+2. **It is not there and it meets the criterion — add it there**, not at the call
+   site. Also when there is only one caller: §7.1's "a shared module appears at
+   the second consumer" is about modules, not about a function in a module that
+   already exists.
+3. **Reading returns `null` and throws nothing.** `libs/` does not decide policy —
+   the caller picks assert, thrown error or unknown per the table above, and only
+   the caller knows which. **Writing asserts instead**, because the number being
+   written is one we produced: `composeIntegerText` refuses `1e21` rather than
+   handing back the text `"1e+21"`.
+4. **A new primitive lands with its entry in the guard's register** (below) and
+   in §8. A primitive nobody is held to is a primitive with a second copy
+   somewhere by next week.
+
 Guarded by `tests/source-layout.test.ts`: no unbranded error, no error class
-outside the base files, each file extends the base belonging to its side, and no
-non-null assertions outside tests.
+outside the base files, each file extends the base belonging to its side, no
+non-null assertions outside tests, **every construct in the register spelled only
+by its owner — in tests too**, each owner still spelling what it owns, and no
+cast off `JSON.parse`. The guards read source with its comments stripped — a
+rule has to be explainable in the file it binds.
 
 ### 9.6 UI
 

@@ -14,6 +14,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { getValueFromJsonText } from "@/libs/json.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
 export class GameSourceError extends MargoMeterToolError {
@@ -76,6 +77,39 @@ function getManifestPath(channel: GameChannel): string {
   return `${getCacheDirectory(channel)}provenance.json`;
 }
 
+function requireStringField(value: unknown, field: string, channel: GameChannel): string {
+  if (typeof value !== "string" || value === "") {
+    throw new GameSourceError(`cache manifest for ${channel}: ${field} is not a non-empty string`);
+  }
+  return value;
+}
+
+/**
+ * The manifest decides whether the cache is stale, so a field it does not carry
+ * has to stop here. Cast to the type instead, and a truncated file passes as
+ * provenance, with `build` arriving as `undefined` at the comparison that is
+ * supposed to catch exactly that.
+ */
+function requireCachedClientSource(value: unknown, channel: GameChannel): CachedClientSource {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new GameSourceError(`cache manifest for ${channel} is not an object`);
+  }
+  const record = value as Record<string, unknown>;
+
+  const stated = requireStringField(record["channel"], "channel", channel);
+  if (stated !== channel) {
+    throw new GameSourceError(`cache manifest for ${channel} says it holds ${stated}`);
+  }
+
+  return {
+    channel,
+    build: requireStringField(record["build"], "build", channel),
+    host: requireStringField(record["host"], "host", channel),
+    fetchedAt: requireStringField(record["fetchedAt"], "fetchedAt", channel),
+    bundlePath: requireStringField(record["bundlePath"], "bundlePath", channel),
+  };
+}
+
 /**
  * What is cached right now, or null. Carries its own provenance, because a
  * directory that does not say what it holds is a directory nobody can trust.
@@ -83,11 +117,16 @@ function getManifestPath(channel: GameChannel): string {
 export function getCachedClientSource(channel: GameChannel): CachedClientSource | null {
   const manifest = getManifestPath(channel);
   if (!existsSync(manifest)) return null;
-  try {
-    return JSON.parse(readFileSync(manifest, "utf8")) as CachedClientSource;
-  } catch (cause) {
-    throw new GameSourceError(`cache manifest for ${channel} is unreadable`, { cause });
+
+  const { value, syntaxError } = getValueFromJsonText(readFileSync(manifest, "utf8"));
+  if (syntaxError !== null) {
+    throw new GameSourceError(`cache manifest for ${channel} is unreadable`, {
+      cause: syntaxError,
+    });
   }
+  // Checked after, not inside a `try`: a manifest that parsed fine and said the
+  // wrong thing is not a manifest that could not be read.
+  return requireCachedClientSource(value, channel);
 }
 
 export async function writeClientSourceCache(channel: GameChannel): Promise<CachedClientSource> {

@@ -13,6 +13,8 @@
  * files are not simply renamed.
  */
 
+import { getValueFromJsonText } from "@/libs/json.ts";
+import { getFiniteNumberFromValue, getIntegerFromValue } from "@/libs/number.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
 export class FightDumpFormatError extends MargoMeterToolError {
@@ -44,11 +46,23 @@ function requireString(value: unknown, path: string): string {
   return value;
 }
 
+/**
+ * Integer where the concept is one, and the same magnitude rule the live
+ * protocol is held to: a combatant id in a dump is the same id a message
+ * states, so reading it more loosely here would let a dump join against an id
+ * that cannot exist.
+ */
+function requireInteger(value: unknown, path: string): number {
+  const integer = getIntegerFromValue(value);
+  if (integer === null) throw new FightDumpFormatError(path, "a whole number", value);
+  return integer;
+}
+
+/** For the one figure the game itself states as a fraction. */
 function requireFiniteNumber(value: unknown, path: string): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new FightDumpFormatError(path, "a finite number", value);
-  }
-  return value;
+  const finite = getFiniteNumberFromValue(value);
+  if (finite === null) throw new FightDumpFormatError(path, "a finite number", value);
+  return finite;
 }
 
 export type CombatantHealth = {
@@ -91,8 +105,8 @@ export type FightDump = {
 function parseCombatantHealth(raw: unknown, path: string): CombatantHealth {
   const health = requireObject(raw, path);
   return {
-    maximum: requireFiniteNumber(health["max"], `${path}.max`),
-    current: requireFiniteNumber(health["cur"], `${path}.cur`),
+    maximum: requireInteger(health["max"], `${path}.max`),
+    current: requireInteger(health["cur"], `${path}.cur`),
     percent: requireFiniteNumber(health["hpp"], `${path}.hpp`),
   };
 }
@@ -102,11 +116,11 @@ function parseCombatantSnapshots(raw: unknown, path: string): CombatantSnapshot[
     const at = `${path}[${index}]`;
     const combatant = requireObject(entry, at);
     return {
-      id: requireFiniteNumber(combatant["id"], `${at}.id`),
+      id: requireInteger(combatant["id"], `${at}.id`),
       name: requireString(combatant["name"], `${at}.name`),
-      team: requireFiniteNumber(combatant["team"], `${at}.team`),
+      team: requireInteger(combatant["team"], `${at}.team`),
       profession: requireString(combatant["prof"], `${at}.prof`),
-      level: requireFiniteNumber(combatant["lvl"], `${at}.lvl`),
+      level: requireInteger(combatant["lvl"], `${at}.lvl`),
       health: parseCombatantHealth(combatant["hp"], `${at}.hp`),
     };
   });
@@ -115,9 +129,9 @@ function parseCombatantSnapshots(raw: unknown, path: string): CombatantSnapshot[
 function parseEngineCall(raw: unknown, path: string): EngineCall {
   const call = requireObject(raw, path);
   return {
-    index: requireFiniteNumber(call["nr"], `${path}.nr`),
+    index: requireInteger(call["nr"], `${path}.nr`),
     fightNumber:
-      call["walka"] === undefined ? null : requireFiniteNumber(call["walka"], `${path}.walka`),
+      call["walka"] === undefined ? null : requireInteger(call["walka"], `${path}.walka`),
     protocolMessages: requireArray(call["komunikaty"], `${path}.komunikaty`).map((message, i) =>
       requireString(message, `${path}.komunikaty[${i}]`),
     ),
@@ -135,18 +149,18 @@ function parseEngineCall(raw: unknown, path: string): EngineCall {
  * that refuses to read.
  */
 export function parseFightDump(source: string): FightDump {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(source);
-  } catch (cause) {
+  const { value, syntaxError } = getValueFromJsonText(source);
+  if (syntaxError !== null) {
     // The original goes in `cause`, not just its message: JSON.parse says which
     // byte it choked on, and that is the only useful thing about the failure.
-    throw new FightDumpFormatError("<root>", "valid JSON", source.slice(0, 40), { cause });
+    throw new FightDumpFormatError("<root>", "valid JSON", source.slice(0, 40), {
+      cause: syntaxError,
+    });
   }
 
-  const dump = requireObject(parsed, "<root>");
+  const dump = requireObject(value, "<root>");
   return {
-    formatVersion: requireFiniteNumber(dump["wersja"], "wersja"),
+    formatVersion: requireInteger(dump["wersja"], "wersja"),
     capturedAt: requireString(dump["przy"], "przy"),
     world: requireString(dump["swiat"], "swiat"),
     gameBuild: requireString(dump["build"], "build"),

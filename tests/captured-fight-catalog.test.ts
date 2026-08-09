@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { FightDumpFormatError, parseFightDump } from "@/tools/fight-dump-parser.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
@@ -14,7 +15,7 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
     test("states where it came from", () => {
       expect(fight.dump.world).not.toBe("");
       expect(fight.dump.gameBuild).not.toBe("");
-      expect(Number.isNaN(Date.parse(fight.dump.capturedAt))).toBe(false);
+      expect(getMillisecondsFromIsoText(fight.dump.capturedAt)).not.toBeNull();
     });
 
     test("carries engine calls", () => {
@@ -78,8 +79,22 @@ describe("fight dump parser", () => {
       wpisy: [{ nr: 0, komunikaty: [], wojownicyPrzed: [], wojownicyPo: [{ id: "x" }] }],
     };
     expect(() => parseFightDump(JSON.stringify(dump))).toThrow(
-      /wpisy\[0\]\.wojownicyPo\[0\]\.id: expected a finite number, got string/,
+      /wpisy\[0\]\.wojownicyPo\[0\]\.id: expected a whole number, got string/,
     );
+  });
+
+  // A combatant id is the same id the protocol states, and the protocol side
+  // refuses both of these. Read more loosely here and a capture would join
+  // against an id that cannot exist, which looks like a combatant nobody hit.
+  test.each([1.5, 9007199254740993])("refuses %p as a combatant id", (id) => {
+    const dump = {
+      wersja: 1,
+      przy: "2026-08-04T12:28:13.631Z",
+      swiat: "tempest",
+      build: "1",
+      wpisy: [{ nr: 0, komunikaty: [], wojownicyPrzed: [], wojownicyPo: [{ id }] }],
+    };
+    expect(() => parseFightDump(JSON.stringify(dump))).toThrow(/\.id: expected a whole number/);
   });
 
   test("refuses a missing top-level field instead of defaulting it", () => {

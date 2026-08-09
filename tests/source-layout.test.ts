@@ -16,6 +16,23 @@ function getTypeScriptFiles(directory: string): string[] {
 const SOURCE_FILES = [...SOURCE_DIRECTORIES.flatMap(getTypeScriptFiles), "build.ts"];
 
 /**
+ * Source with its comments removed, because every guard below is a text search
+ * and a comment is the one place a banned construct legitimately appears.
+ *
+ * Found the moment the first such guard landed: a comment explaining *why*
+ * `Number()` is banned tripped the ban. Rewording the comment would have made
+ * the trap permanent — the rules would be unexplainable in the files they bind.
+ *
+ * `//` is only treated as a comment at the start of a line or after whitespace,
+ * so `https://…` inside a string survives.
+ */
+function getSourceWithoutComments(file: string): string {
+  return readFileSync(REPOSITORY_ROOT + file, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|\s)\/\/.*$/gm, "$1");
+}
+
+/**
  * AGENTS.md §9.4. The canonical actions from the naming cheatsheet, plus the
  * ones this project adds because parsing is most of what it does. A verb that
  * is a synonym of one already here does not get added — two words for one
@@ -51,7 +68,7 @@ describe("import paths", () => {
   // sits, so you cannot tell what it points at without first working out where
   // you are — and moving a file rewrites its neighbours' imports.
   test.each(SOURCE_FILES)("%s imports from the repository root", (file) => {
-    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    const source = getSourceWithoutComments(file);
     const specifiers = [...source.matchAll(/\bfrom\s+"([^"]+)"/g)].map((match) => match[1]!);
     const relative = specifiers.filter((specifier) => specifier.startsWith("."));
     expect(relative).toEqual([]);
@@ -74,7 +91,7 @@ describe("layers", () => {
   test.each(SOURCE_FILES.filter((file) => file.startsWith("libs/")))(
     "%s depends on nothing above it",
     (file) => {
-      const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+      const source = getSourceWithoutComments(file);
       const reachingUp = [...source.matchAll(/\bfrom\s+"@\/(src|tools|tests)\//g)].map(
         (match) => match[0],
       );
@@ -90,11 +107,108 @@ describe("assumptions", () => {
   test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
     "%s states its assumptions instead of asserting non-null",
     (file) => {
-      const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+      const source = getSourceWithoutComments(file);
       const nonNull = [...source.matchAll(/[\w\]"')]!(?=[.,;)\s]|$)/gm)]
         .map((match) => match[0])
         .filter((match) => !match.startsWith("!"));
       expect(nonNull, file).toEqual([]);
+    },
+  );
+});
+
+describe("value parsing", () => {
+  /**
+   * AGENTS.md §9.5. Each of these has more than one spelling in JavaScript and a
+   * way of answering with a value nobody wrote — `Number("")` is `0`,
+   * `parseInt("12abc")` is `12`, `Date.parse("nope")` is `NaN`, `JSON.parse`
+   * throws and hands back `any`. One file owns each, so there is one place to
+   * read when the question is "what exactly does this accept".
+   *
+   * Every file is held to this, tests included: a test that reads a value its
+   * own way is a test proving something other than what ships.
+   */
+  const NUMBER = "libs/number.ts";
+  const JSON_TEXT = "libs/json.ts";
+  const TIMESTAMP = "libs/timestamp.ts";
+
+  const OWNED_CONSTRUCTS = [
+    // `\bNumber\s*\(` and not `Number` alone: `Number.isInteger` and its
+    // neighbours are checks, and banning the namespace would ban the checks too.
+    { pattern: /\bNumber\s*\(/g, owner: NUMBER },
+    // The `\b` also catches `Number.parseInt`, which is the same function.
+    { pattern: /\bparseInt\s*\(/g, owner: NUMBER },
+    { pattern: /\bparseFloat\s*\(/g, owner: NUMBER },
+    { pattern: /\bBigInt\s*\(/g, owner: NUMBER },
+    { pattern: /\.toFixed\s*\(/g, owner: NUMBER },
+    { pattern: /\bJSON\.parse\s*\(/g, owner: JSON_TEXT },
+    { pattern: /\bDate\.parse\s*\(/g, owner: TIMESTAMP },
+  ];
+
+  test.each(SOURCE_FILES)("%s reads values through the primitives", (file) => {
+    const source = getSourceWithoutComments(file);
+    const trespassing = OWNED_CONSTRUCTS.filter(({ owner }) => owner !== file).flatMap(
+      ({ pattern }) => [...source.matchAll(pattern)].map((match) => match[0]),
+    );
+    expect(trespassing, file).toEqual([]);
+  });
+
+  // Without this the guard above could be satisfied by a primitive that quietly
+  // stopped doing the thing it owns — every file would pass, and nothing would
+  // be reading values at all. One match is enough per owner: which of its
+  // constructs it needs is the primitive's business, not this file's.
+  //
+  // Comments stripped here too, and that is not symmetry for its own sake: the
+  // first version read the file raw and stayed green while every real call in
+  // `libs/number.ts` was mangled, because the docblock explaining `parseInt(`
+  // still mentioned it.
+  test.each([...new Set(OWNED_CONSTRUCTS.map(({ owner }) => owner))])(
+    "%s still spells what it owns",
+    (owner) => {
+      const source = getSourceWithoutComments(owner);
+      const spelled = OWNED_CONSTRUCTS.filter((construct) => construct.owner === owner).flatMap(
+        ({ pattern }) => [...source.matchAll(pattern)].map((match) => match[0]),
+      );
+      expect(spelled.length, owner).toBeGreaterThan(0);
+    },
+  );
+
+  /**
+   * The coercions with no name to search for. Held to `libs/`, `src/` and
+   * `tools/` only: `String(error)` in a test is not a number being read, and no
+   * regex can tell the two apart.
+   *
+   * The unary `+` pattern is deliberately narrow — it catches `= +text` and
+   * `(+text` and misses `a + b`. A guard that cried wolf on every addition would
+   * be turned off within a week, and a missed spelling is cheaper than that.
+   */
+  const UNNAMED_COERCIONS = [
+    /\bString\s*\(/g,
+    /[=(,[:]\s*\+[A-Za-z_$"'(]/g,
+    /\*\s*1\b/g,
+    /typeof\s+[\w.[\]"']+\s*===?\s*"number"/g,
+  ];
+
+  test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
+    "%s asks the primitives instead of coercing by hand",
+    (file) => {
+      if (file === NUMBER) return;
+      const source = getSourceWithoutComments(file);
+      const coerced = UNNAMED_COERCIONS.flatMap((pattern) =>
+        [...source.matchAll(pattern)].map((match) => match[0]),
+      );
+      expect(coerced, file).toEqual([]);
+    },
+  );
+
+  // A cast straight off `JSON.parse` is external data wearing a type. Nothing
+  // was checked; the first field that is missing surfaces as `undefined` a layer
+  // later, where what produced it is no longer visible.
+  test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
+    "%s validates parsed JSON instead of asserting its type",
+    (file) => {
+      const source = getSourceWithoutComments(file);
+      const asserted = [...source.matchAll(/JSON\.parse\b.*\bas\b.*/g)].map((match) => match[0]);
+      expect(asserted, file).toEqual([]);
     },
   );
 });
@@ -132,7 +246,7 @@ describe("interruption", () => {
   test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
     "%s never blocks the page with a dialog",
     (file) => {
-      const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+      const source = getSourceWithoutComments(file);
       const blocking = [...source.matchAll(/\b(?:window\.)?(alert|confirm|prompt)\s*\(/g)].map(
         (match) => match[1],
       );
@@ -153,13 +267,13 @@ describe("errors", () => {
   const TOOLING_BASE = "MargoMeterToolError";
 
   test.each(SOURCE_FILES)("%s throws no unbranded error", (file) => {
-    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    const source = getSourceWithoutComments(file);
     expect([...source.matchAll(/\bnew Error\s*\(/g)].length, file).toBe(0);
   });
 
   test.each(SOURCE_FILES)("%s declares no error class outside the two bases", (file) => {
     if (BASE_FILES.includes(file)) return;
-    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    const source = getSourceWithoutComments(file);
     expect([...source.matchAll(/\bextends\s+Error\b/g)].length, file).toBe(0);
   });
 
@@ -168,7 +282,7 @@ describe("errors", () => {
   // other, so the side a file sits on decides which base it may extend.
   test.each(SOURCE_FILES)("%s extends the base belonging to its side", (file) => {
     if (BASE_FILES.includes(file)) return;
-    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    const source = getSourceWithoutComments(file);
     const bases = [...source.matchAll(/\bextends\s+(MargoMeter\w*Error)\b/g)].map((m) => m[1]!);
     const expected = file.startsWith("src/") ? ADD_ON_BASE : TOOLING_BASE;
     for (const base of bases) expect(base, file).toBe(expected);
@@ -182,7 +296,7 @@ describe("function names", () => {
   // A name without an action tells you what a function is about but not what
   // calling it does — whether it reads, writes or creates.
   test.each(SOURCE_FILES)("%s names functions by the action they perform", (file) => {
-    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    const source = getSourceWithoutComments(file);
     const declared = [...source.matchAll(/\bfunction\s+([A-Za-z][A-Za-z0-9]*)\s*\(/g)].map(
       (match) => match[1]!,
     );

@@ -17,6 +17,8 @@
  */
 
 import { writeFileSync } from "node:fs";
+import { assertDefined } from "@/libs/assert.ts";
+import { getIntegerFromText } from "@/libs/number.ts";
 import { getCachedClientSource, getCachedBundle } from "@/tools/game-client-source.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
@@ -87,13 +89,22 @@ export function getComputedKeyFamily(bundle: string): ComputedKeyFamily {
       "no computed key family in the default branch — the client changed how it routes keys",
     );
   }
-  const [, marker, markerAt, markerLength, dealtSign] = match;
-  return {
-    marker: marker as string,
-    markerAt: Number(markerAt),
-    markerLength: Number(markerLength),
-    dealtSign: dealtSign as string,
-  };
+  // That the groups exist is ours to guarantee — the pattern captured them. What
+  // the client wrote inside them is not, so the offsets are refused rather than
+  // coerced: `Number()` on a mangled group would hand back a plausible index.
+  const marker = assertDefined(match[1], "DEFAULT_BRANCH captures the marker");
+  const markerAt = getIntegerFromText(assertDefined(match[2], "DEFAULT_BRANCH captures the offset"));
+  const markerLength = getIntegerFromText(
+    assertDefined(match[3], "DEFAULT_BRANCH captures the marker length"),
+  );
+  const dealtSign = assertDefined(match[4], "DEFAULT_BRANCH captures the dealt sign");
+
+  if (markerAt === null || markerLength === null) {
+    throw new ProtocolKeyTableError(
+      "the default branch's offsets do not read as numbers — the client changed how it routes keys",
+    );
+  }
+  return { marker, markerAt, markerLength, dealtSign };
 }
 
 export function getProtocolKeys(bundle: string): string[] {
