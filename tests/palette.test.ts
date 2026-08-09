@@ -11,7 +11,7 @@ import {
   OTHER_COLOR,
 } from "../src/palette.ts";
 import { dotLabel, typeDisplay, typeFamily } from "../src/types.ts";
-import { metricButton } from "./helpers.ts";
+import { metricButton, statsZWalki } from "./helpers.ts";
 import { syntheticFight } from "../tools/synthetic-log.ts";
 import { cios, otwarcie, trafienie, tykniecie, umiejetnosc } from "./zdarzenia.ts";
 
@@ -43,7 +43,7 @@ describe("przypisanie kolorów", () => {
 
   test("pasek postaci niesie profesję", () => {
     // Wzorzec SKADA: barwa = klasa. Ta walka ma sześć różnych profesji w składzie.
-    const stats = aggregate(syntheticFight(12));
+    const stats = statsZWalki(syntheticFight(12));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -69,9 +69,7 @@ describe("przypisanie kolorów", () => {
     // odznace („Rozróżnialność zapewnia odznaka z literą profesji, nie barwa"),
     // a odznaki nie było w kodzie WCALE. Sześciu barw nie da się na tym tle
     // zrobić rozłącznymi, więc bez litery daltonista nie odróżni dwóch postaci.
-    const stats = aggregate(
-      syntheticFight(12),
-    );
+    const stats = statsZWalki(syntheticFight(12));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -108,7 +106,7 @@ describe("przypisanie kolorów", () => {
    */
   describe("odznaka na każdym szczeblu, który wymienia postacie", () => {
     const panelOf = async () => {
-      const stats = aggregate(syntheticFight(12));
+      const stats = statsZWalki(syntheticFight(12));
       const overlay = new Overlay();
       overlay.render(stats);
       return { overlay, stats };
@@ -270,9 +268,7 @@ describe("przypisanie kolorów", () => {
   });
 
   test("wiersz to ranking, nie tabela: numer, nazwa i jedna liczba z nawiasem", async () => {
-    const stats = aggregate(
-      syntheticFight(12),
-    );
+    const stats = statsZWalki(syntheticFight(12));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -308,10 +304,9 @@ describe("przypisanie kolorów", () => {
     // Trzej magowie. W SKADZIE trzech magów też ma jedną barwę: kolor odpowiada
     // na „kto tu jest czym", a od odróżniania postaci są nazwa i numer.
     const stats = aggregate([
-      otwarcie(["Mag A 1m", "Mag B 1m"], ["Mag C 1m"]),
       cios("Mag A", "Mag C", [trafienie(300)], { targetHpPct: 70 }),
       cios("Mag B", "Mag C", [trafienie(200)], { targetHpPct: 40 }),
-    ]);
+    ], otwarcie(["Mag A 1m", "Mag B 1m"], ["Mag C 1m"]));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -334,7 +329,6 @@ describe("przypisanie kolorów", () => {
     // a „Porażenie" 384 do 153. Materiał zszedł z drzewa 2026‑08‑04; wejście
     // jest dziś pisane ręcznie i dobiera te same proporcje.
     const stats = aggregate([
-      otwarcie(["Mag 1m"], ["Cel 1w"]),
       umiejetnosc("Mag", "Lodowy pocisk"),
       cios("Mag", "Cel", [trafienie(259, 259, { element: "zimno" })], {
         targetHpPct: 80,
@@ -344,7 +338,7 @@ describe("przypisanie kolorów", () => {
         targetHpPct: 70,
         ability: "Lodowy pocisk",
       }),
-    ]);
+    ], otwarcie(["Mag 1m"], ["Cel 1w"]));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -374,7 +368,6 @@ describe("przypisanie kolorów", () => {
     // Przypadek, w którym kolor typu zarabia na siebie: dziś oba wiersze
     // wyglądają identycznie, choć to zupełnie różne źródła obrażeń.
     const stats = aggregate([
-      otwarcie(["Łowca 1h"], ["Locha 1w"]),
       cios("Łowca", "Locha", [trafienie(400, 393, { element: "dystansowe" })], {
         targetHpPct: 60,
       }),
@@ -382,7 +375,7 @@ describe("przypisanie kolorów", () => {
         targetHpPct: 20,
       }),
       tykniecie("Locha", 10, 140, "trucizny"),
-    ]);
+    ], otwarcie(["Łowca 1h"], ["Locha 1w"]));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -412,7 +405,6 @@ describe("przypisanie kolorów", () => {
   test("trucizna odróżnia się barwą od zwykłego ciosu", async () => {
     // Tu kolor robi najwięcej roboty: dziś oba wiersze wyglądają identycznie.
     const stats = aggregate([
-      otwarcie(["Łowca 1h"], ["Locha 1w"]),
       cios("Łowca", "Locha", [trafienie(400, 393, { element: "dystansowe" })], {
         targetHpPct: 60,
       }),
@@ -420,7 +412,7 @@ describe("przypisanie kolorów", () => {
         targetHpPct: 20,
       }),
       tykniecie("Locha", 10, 140, "trucizny"),
-    ]);
+    ], otwarcie(["Łowca 1h"], ["Locha 1w"]));
     const lowca = stats.actors.find((a) => a.name === "Łowca")!;
 
     const types = new Map(lowca.typeByLabel.map((t) => [t.label, t.type]));
@@ -433,7 +425,7 @@ describe("przypisanie kolorów", () => {
     // wiersze robiły się szare. Barwa z atrybutu nie ma czego wyczerpać.
     const overlay = new Overlay();
     const line = (enemy: string, code: string) =>
-      aggregate([otwarcie(["Gracz 1m"], [`${enemy} 1${code}`])]);
+      aggregate([], otwarcie(["Gracz 1m"], [`${enemy} 1${code}`]));
 
     const seen: string[] = [];
     for (const [enemy, code] of [["A", "w"], ["B", "p"], ["C", "t"], ["D", "h"], ["E", "b"]]) {

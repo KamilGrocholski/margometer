@@ -164,6 +164,62 @@ describe.each(KORPUS)("$name — odwrócenie zgadza się z dealtBy", (fixture) =
 });
 
 /**
+ * STRONA WIERSZA BIERZE SIĘ ZE SKŁADU — niezmiennik dopisany 2026‑08‑09 i to
+ * **odkrycie rundy, a nie jej plan**.
+ *
+ * Runda przepięła skład ze strumienia (`fight-start`) na drugi argument
+ * `aggregate`. Żeby sprawdzić, że nowy kanał niesie to samo co stary, zepsuto
+ * `side` w generatorze — wszystkim wpisom podstawiono `0`. **Nie zapaliło ani
+ * jednego z 851 testów.** Pusty skład zapala osiem (przez profesję i poziom),
+ * więc kanał jako taki był pilnowany; samo `side` nie było pilnowane niczym.
+ *
+ * To dziura SPRZED tej rundy: `fight-start` niósł `side` dokładnie tak samo
+ * i tak samo nikt go nie sprawdzał. Zapisana tutaj, bo strona decyduje o tym,
+ * po której stronie panel liczy sumy i kogo pokazuje filtr „Moi".
+ *
+ * Pytamy tylko o nazwy UNIKALNE w składzie: przy duplikacie wiersz nazywa się
+ * `Nazwa #n`, a przy tej samej nazwie po obu stronach strona jest celowo `null`
+ * („nie wiadomo") — jedno i drugie ma własne testy wyżej.
+ */
+/**
+ * ⚠️ **DRUGI STRAŻNIK, BO PIERWSZY NIE ŁAPIE TEGO, CO ZNALAZŁA MUTACJA.**
+ *
+ * Niezmiennik niżej porównuje wyjście agregatu z TYM SAMYM składem, który do
+ * niego wszedł — więc skład zepsuty u ŹRÓDŁA przechodzi przez niego zgodnie
+ * z samym sobą. Zmierzone: po podstawieniu `side: 0` wszystkim wpisom generatora
+ * tamten niezmiennik milczy, bo obie strony porównania mówią wtedy `0`.
+ *
+ * Ten pyta o skład, a nie o agregat: walka ma dwie strony. To najsłabsze
+ * możliwe zdanie na ten temat i wystarcza, żeby zapaść się nie dało po cichu.
+ */
+test.each(KORPUS)("$name — skład walki ma obie strony", ({ sklad }) => {
+  expect(new Set(sklad.map((w) => w.side))).toEqual(new Set([0, 1]));
+});
+
+describe.each(KORPUS)("$name — strony wierszy zgadzają się ze składem", (fixture) => {
+  test("każda nazwa unikalna w składzie ma w panelu stronę z tego składu", () => {
+    const stats = aggregate(fixture.events, fixture.sklad);
+    const ile = new Map<string, number>();
+    for (const w of fixture.sklad) ile.set(w.name, (ile.get(w.name) ?? 0) + 1);
+
+    let sprawdzonych = 0;
+    for (const wpis of fixture.sklad) {
+      if (ile.get(wpis.name) !== 1) continue;
+      const actor = stats.actors.find((a) => a.name === wpis.name);
+      if (actor === undefined) continue;
+      expect({ name: actor.name, side: actor.side }).toEqual({
+        name: wpis.name,
+        side: wpis.side,
+      });
+      sprawdzonych += 1;
+    }
+    // Bez tego niezmiennik byłby zielony i pusty na składzie samych duplikatów
+    // albo na walce, której panel nie pokazał ani jednego wiersza.
+    expect(sprawdzonych).toBeGreaterThan(0);
+  });
+});
+
+/**
  * ROZDZIELANIE INSTANCJI PO `id` — odczyt zamiast zgadywania.
  *
  * ⚠️ **Do 2026‑08‑05 ta korzyść z protokołu nie była zrealizowana.** `AGENTS.md`
@@ -412,9 +468,8 @@ describe.each(KORPUS)("$name — zranienie zgadza się z proca", (fixture) => {
 describe("leczenie kierowane ma leczącego", () => {
   const walka = (nadpisz: Parameters<typeof leczenie>[2]): Aggregate =>
     aggregate([
-      otwarcie(["Kapłan 100p", "Wojownik 100w"], ["Boss 150w"]),
       leczenie("Wojownik", 500, nadpisz),
-    ]);
+    ], otwarcie(["Kapłan 100p", "Wojownik 100w"], ["Boss 150w"]));
 
   test("kwota idzie do leczącego, a pula „bez sprawcy” o nią maleje", () => {
     const stats = walka({ healer: "Kapłan", ability: "Modlitwa" });
@@ -445,9 +500,8 @@ describe("leczenie kierowane ma leczącego", () => {
     // Tu leczący i leczony sprowadzają się do tego samego klucza, więc obie
     // liczby siadają na jednej postaci i żadna nie może się zdublować.
     const stats = aggregate([
-      otwarcie(["Kapłan 100p"], ["Boss 150w"]),
       leczenie("Kapłan", 700, { healer: "Kapłan", ability: "Modlitwa" }),
-    ]);
+    ], otwarcie(["Kapłan 100p"], ["Boss 150w"]));
     const kaplan = stats.actors.find((a) => a.name === "Kapłan")!;
     expect(kaplan.healingDone).toBe(700);
     expect(kaplan.healingReceived).toBe(700);
@@ -464,9 +518,8 @@ describe("leczenie kierowane ma leczącego", () => {
 
   test("`self` nadal działa dla proców — leczącego w komunikacie nie ma", () => {
     const stats = aggregate([
-      otwarcie(["Kapłan 100p"], ["Boss 150w"]),
       leczenie("Kapłan", 120, { self: true, ability: "Dotyk anioła" }),
-    ]);
+    ], otwarcie(["Kapłan 100p"], ["Boss 150w"]));
     const kaplan = stats.actors.find((a) => a.name === "Kapłan")!;
     expect(kaplan.healingDone).toBe(120);
     expect(totalBySide(stats.unattributedHealing)).toBe(0);
@@ -507,10 +560,9 @@ describe("leczenie kierowane ma leczącego", () => {
     // ZERO wierszy, numeracja się nie włącza i obie kwoty schodzą się w jeden
     // wiersz `Kapłan 1400`. Zmierzone na mutacji, nie wydedukowane.
     const stats = aggregate([
-      otwarcie(["Kapłan 100p", "Kapłan 100p", "Wojownik 100w"], ["Boss 150w"]),
       leczenie("Wojownik", 500, { healer: "Kapłan", healerHpPct: 40 }),
       leczenie("Wojownik", 900, { healer: "Kapłan", healerHpPct: 90 }),
-    ]);
+    ], otwarcie(["Kapłan 100p", "Kapłan 100p", "Wojownik 100w"], ["Boss 150w"]));
     const done = (name: string) => stats.actors.find((a) => a.name === name)?.healingDone;
     expect(done("Kapłan #1")).toBe(500);
     expect(done("Kapłan #2")).toBe(900);
@@ -530,11 +582,10 @@ describe("trucizna w walce grupowej", () => {
     // pisany ręcznie, więc test dowodzi REGUŁY, a nie tego, że reguła zgadza
     // się z grą.
     const stats = aggregate([
-      otwarcie(["Łowca 100h"], ["Locha 40w", "Locha 40w", "Odyniec 41w"]),
       cios("Łowca", "Locha", [trafienie(400, 393)], { targetHpPct: 60 }),
       cios("Łowca", "Locha", [trafienie(400, 393)], { targetHpPct: 20 }),
       tykniecie("Locha", 10, 140, "trucizny"),
-    ]);
+    ], otwarcie(["Łowca 100h"], ["Locha 40w", "Locha 40w", "Odyniec 41w"]));
 
     // Sprawca ustalony: po drugiej stronie Lochy stoi tylko Łowca.
     expect(totalBySide(stats.unattributedDotDamage)).toBe(0);
@@ -548,12 +599,12 @@ describe("trucizna w walce grupowej", () => {
   test("rozdziela zdublowaną nazwę, gdy ciągi HP się rozjeżdżają", () => {
     const stats = aggregate(
       [
-        otwarcie(["Gracz 1w"], ["Wilk 1w", "Wilk 1w"]),
         cios("Gracz", "Wilk", [trafienie(300)], { targetHpPct: 60 }),
         // Ten sam skok w górę: 100% nie może być tym wilkiem na 60%.
         krok("Wilk", 100),
         cios("Gracz", "Wilk", [trafienie(200)], { targetHpPct: 20 }),
       ],
+      otwarcie(["Gracz 1w"], ["Wilk 1w", "Wilk 1w"]),
     );
 
     // Oba trafienia w tego samego wilka: 60% → 20%. Drugi tylko zrobił krok.
@@ -562,21 +613,30 @@ describe("trucizna w walce grupowej", () => {
     expect(stats.ambiguousNames).toEqual(["Wilk #1", "Wilk #2"]);
   });
 
-  test("nie rozdziela zdublowanej nazwy, gdy log nie daje na to dowodu", () => {
-    const stats = aggregate(
-      [
-        otwarcie(["Gracz 1w"], ["Wilk 1w", "Wilk 1w"]),
-        // Obaj przez całą walkę na 100% — nie do rozróżnienia.
-        cios("Wilk", "Gracz", [trafienie(300)], { targetHpPct: 70 }),
-        cios("Wilk", "Gracz", [trafienie(200)], { targetHpPct: 50 }),
-      ],
-    );
+  /**
+   * ⚠️ **TEN TEST PYTAŁ DO 2026‑08‑09 O CO INNEGO I TAMTO PYTANIE PRZESTAŁO
+   * ISTNIEĆ.** Brzmiał „nie rozdziela zdublowanej nazwy, gdy log nie daje na to
+   * dowodu" i oczekiwał JEDNEGO scalonego wiersza z gwiazdką (`ambiguousNames:
+   * ["Wilk"]`) przy składzie, który o dwóch wilkach WIEDZIAŁ. Taki układ dawał
+   * się zbudować wyłącznie składem podanym przez `fight-start`, czyli poszlaką —
+   * a przy składzie z gry duplikat zawsze dostaje własny wiersz (test
+   * „skład z gry rozdziela nierozróżnialne duplikaty" niżej).
+   *
+   * Zostaje pytanie, które JEST produkcyjne: co widać, gdy składu nie ma wcale
+   * (gra jeszcze go nie wystawiła). Wtedy nie wiadomo nawet, że wilki są dwa —
+   * więc jeden wiersz i BEZ gwiazdki, bo gwiazdka twierdziłaby, że coś
+   * rozdzielamy.
+   */
+  test("bez składu z gry duplikat nie jest nawet widoczny jako duplikat", () => {
+    const stats = aggregate([
+      // Obaj przez całą walkę na 100% — nie do rozróżnienia.
+      cios("Wilk", "Gracz", [trafienie(300)], { targetHpPct: 70 }),
+      cios("Wilk", "Gracz", [trafienie(200)], { targetHpPct: 50 }),
+    ]);
 
-    // Jeden scalony wiersz. Rozbicie na #1/#2 przypisałoby konkretnemu wilkowi
-    // obrażenia, o których log milczy — to byłoby zmyślenie, nie statystyka.
     expect(stats.actors.map((a) => a.name)).toEqual(["Wilk", "Gracz"]);
     expect(stats.actors.find((a) => a.name === "Wilk")!.damageDealt).toBe(500);
-    expect(stats.ambiguousNames).toEqual(["Wilk"]);
+    expect(stats.ambiguousNames).toEqual([]);
   });
 
   test("rozdziela duplikaty, które oba zaczynają na 100%", () => {
@@ -589,12 +649,11 @@ describe("trucizna w walce grupowej", () => {
     // `#2` — `1522/460`, a `Gnoll szaman` padł bez jednej akcji i mimo to miał
     // wiersz z `0/1411`. Materiał jest dziś pisany ręcznie.
     const stats = aggregate([
-      otwarcie(["Łowca 100h"], ["Gnoll łucznik 40t", "Gnoll łucznik 40t"]),
       cios("Łowca", "Gnoll łucznik", [trafienie(300)], { targetHpPct: 0 }),
       // Ten sam nick na 100% PO tym, jak spadł do zera — to musi być drugi.
       cios("Gnoll łucznik", "Łowca", [trafienie(120)], { sourceHpPct: 100, targetHpPct: 80 }),
       cios("Łowca", "Gnoll łucznik", [trafienie(200)], { targetHpPct: 30 }),
-    ]);
+    ], otwarcie(["Łowca 100h"], ["Gnoll łucznik 40t", "Gnoll łucznik 40t"]));
 
     const first = stats.actors.find((a) => a.name === "Gnoll łucznik #1")!;
     const second = stats.actors.find((a) => a.name === "Gnoll łucznik #2")!;
@@ -606,7 +665,6 @@ describe("trucizna w walce grupowej", () => {
 
   test("skład z gry rozdziela nierozróżnialne duplikaty na osobne wiersze", () => {
     const log = [
-      otwarcie(["Gracz 1w"], ["Wilk 1w", "Wilk 1w"]),
       // Obaj przez całą walkę na 100% — log ich nie rozróżnia.
       cios("Wilk", "Gracz", [trafienie(300)], { targetHpPct: 70 }),
     ];
@@ -635,7 +693,6 @@ describe("trucizna w walce grupowej", () => {
    * dotyczy KAŻDEJ instancji, także pierwszej.
    */
   const LOG_DWA_WILKI = [
-    otwarcie(["Gracz 1w", "Wilk 1w"], ["Wilk 1w", "Wróg 1m"]),
     // ⚠️ Gołe „otrzymał" bez poprzedzającego ciosu jest zdarzeniem
     // NIEROZPOZNANYM i do statystyk nie wchodzi. Zostaje wiernie:
     // te dwa testy stoją wyłącznie na składzie, a nie na obrażeniach.
@@ -690,10 +747,7 @@ describe("trucizna w walce grupowej", () => {
   });
 
   test("dwie postacie tej samej nazwy po JEDNEJ stronie stronę zachowują", () => {
-    const log = [
-      otwarcie(["Gracz 1w"], ["Wilk 1w", "Wilk 1w"]),
-      nieznane("Wilk(80%) otrzymał -100 obrażeń", 2),
-    ];
+    const log = [nieznane("Wilk(80%) otrzymał -100 obrażeń", 2)];
     const stats = aggregate(log, [
       { id: 1, name: "Gracz", side: 0 },
       { id: 2, name: "Wilk", side: 1 },
@@ -711,10 +765,7 @@ describe("trucizna w walce grupowej", () => {
    * przeciwnikiem, więc przestaje być "dokładnie jeden" i przypisanie znika.
    */
   test("nazwa po obu stronach zabiera pewność, kto nałożył truciznę", () => {
-    const events = [
-      otwarcie(["Gracz 1w", "Wilk 1w"], ["Wilk 1w", "Wróg 1m"]),
-      tykniecie("Gracz", 90, 30, "trucizny"),
-    ];
+    const events = [tykniecie("Gracz", 90, 30, "trucizny")];
     const roster: RosterEntry[] = [
       { id: 1, name: "Gracz", side: 0 },
       { id: 2, name: "Wilk", side: 0 },
@@ -735,11 +786,11 @@ describe("trucizna w walce grupowej", () => {
 
   test("skład z gry pokazuje postać, o której log w ogóle nie wspomniał", () => {
     const stats = aggregate(
-      [otwarcie(["Gracz 1w"], ["Wilk 1w"])],
+      [cios("Gracz", "Wilk", [trafienie(100)], { targetHpPct: 80 })],
       [
         { id: 1, name: "Gracz", side: 0 },
         { id: 2, name: "Wilk", side: 1 },
-        // Log otwierający go pominął, ale w walce stoi.
+        // Log go nie wymienił ani razu, ale w walce stoi.
         { id: 3, name: "Niedźwiedź", side: 1 },
       ],
     );
@@ -792,19 +843,17 @@ describe("trucizna w walce grupowej", () => {
     expect(stats.actors.find((a) => a.name === "Wilk")!.professionCode).toBeNull();
   });
 
-  test("profesja z linii otwierającej uzupełnia skład z gry", () => {
-    // Skład z gry rządzi stronami, ale gdy nie niesie profesji, literę dokłada
-    // log — oba źródła piszą ją tym samym alfabetem.
-    const stats = aggregate(
-      [otwarcie(["Gracz 85b"], ["Wilk 12w"])],
-      [
-        { id: 1, name: "Gracz", side: 0 },
-        { id: 2, name: "Wilk", side: 1 },
-      ],
-    );
-    expect(stats.actors.find((a) => a.name === "Gracz")!.professionCode).toBe("b");
-    expect(stats.actors.find((a) => a.name === "Wilk")!.professionCode).toBe("w");
-  });
+  /**
+   * ⚠️ **STAŁ TU TEST „profesja z linii otwierającej uzupełnia skład z gry"
+   * I ZSZEDŁ 2026‑08‑09 RAZEM ZE SWOIM TEMATEM.** Sprawdzał `fromLogByName`:
+   * skład z gry bez `prof` miał dostać literę z linii otwierającej. Linii
+   * otwierającej protokół nie niesie, więc uzupełniać było CZYM wyłącznie
+   * w tym teście — w produkcji ta mapa była zawsze pusta.
+   *
+   * Co zostało po tamtej własności: gdy skład z gry nie poda profesji, jest
+   * `null` i panel nie pokazuje litery. Pilnuje tego test wyżej („skład z gry
+   * uzupełnia profesję…", asercja `toBeNull()` dla Wilka).
+   */
 
   test("brak walki albo obcy kształt danych nie wywraca odczytu składu", () => {
     expect(new EngineRosterSource({}).current()).toBeNull();
@@ -823,11 +872,12 @@ describe("trucizna w walce grupowej", () => {
 
   test("nie zgaduje sprawcy, gdy po drugiej stronie stoi kilku", async () => {
     // Gracz otoczony przez trzech: który z nich zatruł — nie wiadomo.
-    const events = [
-      otwarcie(["Gracz 1w"], ["A 1w", "B 1w", "C 1w"]),
-      tykniecie("Gracz", 50, 100, "trucizny"),
-    ];
-    const stats = aggregate(events);
+    const events = [tykniecie("Gracz", 50, 100, "trucizny")];
+    // ⚠️ Skład MUSI tu być podany. Bez niego `opponentOf` nie ma czego liczyć
+    // i oddaje `null` zawsze — test byłby zielony, ale z powodu „nie ma składu",
+    // a nie „po drugiej stronie stoi trzech". Do 2026‑08‑09 skład jechał
+    // w `events` jako `fight-start` i tego rozróżnienia nie było widać.
+    const stats = aggregate(events, otwarcie(["Gracz 1w"], ["A 1w", "B 1w", "C 1w"]));
     // Sprawcy nie znamy, ale poszkodowanego tak — trucizna ląduje po stronie gracza.
     expect(stats.unattributedDotDamage).toEqual({
       mine: 100,
@@ -876,7 +926,6 @@ describe("trucizna w walce grupowej", () => {
   test("maks. cios nie liczy własnych obrażeń umiejętności", () => {
     const stats = aggregate(
       [
-        otwarcie(["Gracz 1m"], ["Wilk 1w"]),
         umiejetnosc("Gracz", "Fuzja żywiołów"),
         // Własne obrażenia umiejętności — lecą OBOK ciosu, nie są ciosem
         // (`strike: false`) i dlatego nie liczą się do `maxHit`.
@@ -891,6 +940,7 @@ describe("trucizna w walce grupowej", () => {
           ability: "Fuzja żywiołów",
         }),
       ],
+      otwarcie(["Gracz 1m"], ["Wilk 1w"]),
     );
 
     const gracz = stats.actors.find((a) => a.name === "Gracz")!;
@@ -911,7 +961,6 @@ describe("trucizna w walce grupowej", () => {
     // zostać rozróżnione w `hit.element`, a mimo to trafić do JEDNEJ rodziny
     // „Broń" w przekroju panelu. To ta sama oś (czym uderzono), nie dwa rodzaje.
     const walka = [
-      otwarcie(["Łowca 100h"], ["Odyniec 41w"]),
       cios("Łowca", "Odyniec", [trafienie(400, 393, { element: "dystansowe" })], {
         targetHpPct: 60,
       }),
@@ -935,7 +984,7 @@ describe("trucizna w walce grupowej", () => {
     expect(elementsOf("Łowca")).toEqual(new Set(["dystansowe"]));
     expect(elementsOf("Odyniec")).toEqual(new Set(["fizyczne"]));
 
-    const stats = aggregate(walka);
+    const stats = aggregate(walka, otwarcie(["Łowca 100h"], ["Odyniec 41w"]));
     // Obie klasy pod jedną rodziną, a trucizna osobno.
     expect(stats.actors.find((a) => a.name === "Łowca")!.dealtByType).toEqual([
       { label: "Broń", amount: 786, hits: 2 },
@@ -1173,8 +1222,10 @@ describe("zarezerwowane etykiety nie kolidują z nazwami z gry", () => {
         names.add(event.name);
         names.add(event.actor);
       }
-      if (event.kind === "fight-start") for (const p of event.participants) names.add(p.name);
     }
+    // Skład idzie dziś obok zdarzeń, a nie w środku strumienia — te same nazwy,
+    // inny kanał (do 2026‑08‑09 czytało się je z `fight-start`).
+    for (const wpis of fixture.sklad) names.add(wpis.name);
     expect([...names].filter((name) => RESERVED.has(name))).toEqual([]);
   });
 });
@@ -1222,11 +1273,10 @@ describe("tura jest akcją", () => {
    */
   test("kilka ciosów jednej zapowiedzi to JEDNA tura", async () => {
     const stats = aggregate([
-      otwarcie(["Gracz 100t"], ["Wilk 40w"]),
       umiejetnosc("Gracz", "Lodowa strzała"),
       cios("Gracz", "Wilk", [trafienie(300)], { ability: "Lodowa strzała", targetHpPct: 70 }),
       cios("Gracz", "Wilk", [trafienie(300)], { ability: "Lodowa strzała", targetHpPct: 40 }),
-    ]);
+    ], otwarcie(["Gracz 100t"], ["Wilk 40w"]));
 
     expect(stats.actors.find((a) => a.name === "Gracz")!.turns).toBe(1);
     expect(stats.timeline).toHaveLength(1);
@@ -1240,10 +1290,9 @@ describe("tura jest akcją", () => {
    */
   test("dwa kroki tej samej postaci to dwie tury", async () => {
     const stats = aggregate([
-      otwarcie(["Gracz 100h"], ["Wilk 40w"]),
       krok("Wilk", 100),
       krok("Wilk", 100),
-    ]);
+    ], otwarcie(["Gracz 100h"], ["Wilk 40w"]));
 
     expect(stats.actors.find((a) => a.name === "Wilk")!.turns).toBe(2);
   });
@@ -1256,9 +1305,8 @@ describe("tura jest akcją", () => {
    */
   test("własne obrażenia umiejętności nie otwierają tury poszkodowanemu", async () => {
     const stats = aggregate([
-      otwarcie(["Gracz 100m"], ["Wilk 40w"]),
       cios("Wilk", "Wilk", [trafienie(507)], { strike: false, targetHpPct: 60 }),
-    ]);
+    ], otwarcie(["Gracz 100m"], ["Wilk 40w"]));
 
     expect(stats.actors.find((a) => a.name === "Wilk")!.turns).toBe(0);
     // Kwota nie przepada — trafia do tury tła, czyli tam, gdzie agregat trzyma

@@ -2,7 +2,18 @@ import { syntheticFight } from "../tools/synthetic-log.ts";
 import { cios, leczenie, otwarcie, trafienie, tykniecie, umiejetnosc } from "./zdarzenia.ts";
 import { FIXTURY } from "./fixtury.ts";
 import { dekoduj } from "../src/protokol.ts";
+import type { RosterEntry } from "../src/roster.ts";
 import type { BattleEvent } from "../src/types.ts";
+
+/**
+ * Walka w korpusie: zdarzenia I SKŁAD, bo agregat bierze oba osobno.
+ *
+ * ⚠️ **DO 2026‑08‑09 BYŁY TU SAME ZDARZENIA**, a skład jechał w środku strumienia
+ * jako `{kind: "fight-start"}` — wariant, którego dekoder protokołu nigdy nie
+ * produkował. Korpus karmił więc `stats.ts` drogą nieistniejącą w produkcji.
+ * Rozdzielenie na dwa pola jest tym, jak wygląda to na żywo.
+ */
+export type Walka = { name: string; events: BattleEvent[]; sklad: RosterEntry[] };
 
 /**
  * Walki, po których chodzą NIEZMIENNIKI.
@@ -47,10 +58,19 @@ import type { BattleEvent } from "../src/types.ts";
  * mutacja cofająca tamtą naprawę NIE zapala go na żadnej z nich — łapie ją
  * wyłącznie `OSOBLIWOSCI` niżej. Sprawdzone, nie domyślone.
  */
-export const WALKI: { name: string; events: BattleEvent[] }[] = [2, 4, 7, 12, 20].map((n) => ({
-  name: `syntetyczna-${n}`,
-  events: syntheticFight(n),
-}));
+export const WALKI: Walka[] = [2, 4, 7, 12, 20].map((n) => {
+  const { events, sklad } = syntheticFight(n);
+  return { name: `syntetyczna-${n}`, events, sklad };
+});
+
+/**
+ * Skład osobliwości — dwie „Lochy" po jednej stronie, czyli materiał dla
+ * rozdzielania instancji (`2026-07-18_lowca-vs-gnolle-rozdzielanie`).
+ */
+export const SKLAD_OSOBLIWOSCI: RosterEntry[] = otwarcie(
+  ["Gracz 100h"],
+  ["Locha 40w", "Locha 40w", "Odyniec 41w"],
+);
 
 /**
  * Walka z kształtami, których generator NIE produkuje, a które korpus miał.
@@ -59,9 +79,6 @@ export const WALKI: { name: string; events: BattleEvent[] }[] = [2, 4, 7, 12, 20
  * korpusie — nie „na wszelki wypadek".
  */
 export const OSOBLIWOSCI: BattleEvent[] = [
-  // Dwie postacie o TEJ SAMEJ nazwie po jednej stronie — materiał dla
-  // rozdzielania instancji (`2026-07-18_lowca-vs-gnolle-rozdzielanie`).
-  otwarcie(["Gracz 100h"], ["Locha 40w", "Locha 40w", "Odyniec 41w"]),
   cios("Gracz", "Locha", [trafienie(500, 300)], { targetHpPct: 70 }),
   cios("Gracz", "Locha", [trafienie(500, 280)], { targetHpPct: 45 }),
   // Trucizna BEZ SPRAWCY przy kilku przeciwnikach — jedyny kształt, w którym
@@ -79,7 +96,7 @@ export const OSOBLIWOSCI: BattleEvent[] = [
     targetHpPct: 20,
     ability: "Podwójny strzał",
   }),
-  { kind: "fight-end", outcome: "victory", actors: ["Gracz"], result: "Zwyciężyła drużyna" },
+  { kind: "fight-end", outcome: "victory" },
 ];
 
 /**
@@ -107,14 +124,15 @@ export const OSOBLIWOSCI: BattleEvent[] = [
  * przeciw niemu. Tu leży surowy protokół, a `dekoduj` chodzi po nim przy każdym
  * `bun test` — poprawka dekodera od razu zmienia to, po czym chodzą niezmienniki.
  */
-export const WALKI_Z_GRY: { name: string; events: BattleEvent[] }[] = FIXTURY.map((f) => ({
+export const WALKI_Z_GRY: Walka[] = FIXTURY.map((f) => ({
   name: f.nazwa,
   events: dekoduj(f.komunikaty, f.sklad),
+  sklad: f.sklad,
 }));
 
 /** Wszystko, po czym chodzą niezmienniki. */
-export const KORPUS: { name: string; events: BattleEvent[] }[] = [
+export const KORPUS: Walka[] = [
   ...WALKI,
-  { name: "osobliwosci", events: OSOBLIWOSCI },
+  { name: "osobliwosci", events: OSOBLIWOSCI, sklad: SKLAD_OSOBLIWOSCI },
   ...WALKI_Z_GRY,
 ];

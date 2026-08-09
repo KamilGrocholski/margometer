@@ -825,9 +825,20 @@ describe("dekoduj: przebieg walki", () => {
     expect(ciosy[1]).toMatchObject({ ability: null });
   });
 
-  test("rozstrzygnięcie walki, z drużyną i bez", () => {
+  /**
+   * ⚠️ **TEN TEST PYTAŁ TEŻ O LISTĘ NAZWISK I PRZESTAŁ 2026‑08‑09.** Sprawdzał
+   * `actors: ["Kamil", "Locha"]` — pole, którego **nikt poza tą asercją nie
+   * czytał**: ani `stats.ts`, ani panel, ani archiwum (jedyny konsument
+   * `fight-end` w produkcji bierze `outcome`). Zeszło razem z `result`.
+   *
+   * Warto zapisać, bo to poprawka do audytu, a nie tylko do kodu: pole nie było
+   * „bez czytelnika", tylko **czytane wyłącznie przez test, który sprawdzał, że
+   * jest wypełniane**. Taki test mierzy własne istnienie i wygląda przy tym
+   * dokładnie tak samo jak test niosący wymaganie.
+   */
+  test("rozstrzygnięcie walki: `winner` to zwycięstwo, `loser` to porażka", () => {
     const [a] = dekoduj(["0;0;winner=Kamil, Locha"], SKLAD);
-    expect(a).toMatchObject({ kind: "fight-end", outcome: "victory", actors: ["Kamil", "Locha"] });
+    expect(a).toMatchObject({ kind: "fight-end", outcome: "victory" });
     const [b] = dekoduj(["0;0;loser=Kamil"], SKLAD);
     expect(b).toMatchObject({ kind: "fight-end", outcome: "defeat" });
   });
@@ -835,7 +846,7 @@ describe("dekoduj: przebieg walki", () => {
   test("`winner=?` to remis, a nie zwycięstwo postaci o nazwie „?”", () => {
     // Gra idzie wtedy gałęzią `battle_no_winner` i nazwiska nie wypisuje.
     const [z] = dekoduj(["0;0;winner=?"], SKLAD);
-    expect(z).toMatchObject({ kind: "fight-end", outcome: "draw", actors: [] });
+    expect(z).toEqual({ kind: "fight-end", outcome: "draw" });
   });
 
   test("`txt` oddaje tekst serwera bez tłumaczenia", () => {

@@ -4334,6 +4334,98 @@ Wariant „po prostu podmienić `Number` na `parseInt`" odrzucony bez pomiaru:
 zrównuje jeden z dwóch rozjazdów, zostawia drugi i **utrwala złudzenie
 równoważności**, którego cały wpis dotyczy.
 
+## P. Kontrakt `BattleEvent` po wymianie źródła — przegląd PO commicie `01f3446` (2026‑08‑09)
+
+Runda wyszła od pytania: **czy problemem jest kontrakt sprzed wymiany parsera
+na protokół i czy `protokol.ts` ze `stats.ts` powinny grać jako całość.**
+
+**Odpowiedź na drugą połowę brzmi „nie" i rozstrzyga to kod, nie gust.**
+`archive.ts:400`/`:487` wołają `dekoduj` wprost, z pominięciem źródła, bo
+nagrania trzymają SUROWE komunikaty, nie policzone liczby. Scalenie dekodera
+z agregatem wciągnęłoby `Engine` w zależności odtwarzania i zabiło własność
+„stare nagranie przeliczysz nowszym dekoderem". To ten sam argument, którym
+sekcja `O` odrzuciła scalenie sąsiedniej pary. **Granica zostaje i jest dobra.**
+
+**Problemem jest TREŚĆ kontraktu, nie jego istnienie.** `BattleEvent` powstał
+dla parsera zdań i przeszedł wymianę źródła (2026‑08‑04) **bez rewizji** — spec
+tamtej rundy traktował jego nietykalność jako założoną oś, nie jako wniosek.
+Trzy miejsca w prozie (`POTOK.md`, `AGENTS.md`, `SOLID.md`) ogłaszały to
+przetrwanie ZALETĄ, bez pomiaru i bez strażnika.
+
+⚠️ **Piąty raz ten sam kształt: martwy kod po skasowanej ścieżce WEJŚCIA**
+(po `AUDYT‑88`, `‑92`, `‑97`, `‑108`). Reguła „kasując ścieżkę WEJŚCIA, przejdź
+to, co zostaje na WYJŚCIU" miała cztery zapisane dowody i **ani razu nie została
+zastosowana do `types.ts`** — choć ten sam plik nosił w nagłówku opis dwóch
+własnych martwych eksportów. Uogólnienie, którego brakowało: **kontrakt też jest
+wyjściem ścieżki wejścia.**
+
+### AUDYT‑119 — `fight-start` podpierał cały drugi tryb agregatu, nieosiągalny w produkcji 🔴 M — ✅ NAPRAWIONE 2026‑08‑09
+
+`src/types.ts` (wariant `fight-start`, typ `Participant`), `src/stats.ts`
+(`fromLog`, `fromLogByName`, gałąź `else` w `roster`, `authoritative`, przebieg
+rozpoznawczy `dry`/`spawned`, gałąź scalonego wiersza w `ambiguousKeys`)
+
+**Problem.** Dekoder protokołu nie produkował `fight-start` **ani razu** (zero
+`push` w `protokol.ts`; klient syntetyzuje linię otwierającą poza `data.m`).
+Wariant miał jednak ŻYWEGO konsumenta — `stats.ts` czytał z niego skład — więc
+nie wyglądał na martwy. Utrzymywał go przy życiu **wyłącznie własny korpus
+testowy**: `tools/synthetic-log.ts` i `tests/zdarzenia.ts` były jedynymi
+producentami w całym repo.
+
+**Dlaczego to nie było skreślenie jednej linijki.** Skład podany strumieniem był
+dla agregatu POSZLAKĄ, a skład podany drugim argumentem jest FAKTEM
+(`authoritative`). Wariant podpierał więc **cały drugi tryb rozdzielania
+instancji**, do którego w produkcji nie dało się wejść: skład idzie tam zawsze
+z `Engine.battle`. Razem z trybem zeszły dwie rzeczy, które bez niego nie liczyły
+już nic — przebieg rozpoznawczy (`dry`, `spawned`) i gałąź „scalony wiersz pod
+gołą nazwą" w `ambiguousKeys`.
+
+**Co to odebrało testom.** Cztery testy straciły TEMAT, nie tylko materiał, i
+zeszły z drzewa: strażnik „walka z gry nie niesie `fight-start`" (2 pozycje przez
+`test.each`), jego strażnik pustki, oraz „profesja z linii otwierającej uzupełnia
+skład z gry" — ten ostatni sprawdzał `fromLogByName`, czyli mapę, która
+w produkcji była zawsze pusta. Piąty („nie rozdziela zdublowanej nazwy, gdy log
+nie daje na to dowodu") został **przepisany na pytanie produkcyjne**: co widać,
+gdy składu nie ma wcale.
+
+⚠️ **Zdanie „strażnik zniknął" byłoby tu nieuczciwe.** Pytanie
+`z.kind === "fight-start"` nie jest dziś możliwe do ZAPISANIA — wariantu nie ma
+w typie, więc porównanie jest błędem kompilacji. Własność przeszła z jednego
+testu na jednym materiale do systemu typów.
+
+**✓ Zmierzone.** `bun test`: **855 → 867**. Świadek dekodera bez zmian (7 + 3 =
+10 porównań, 0 rozjazdów) — a to najczulszy punkt, bo zmiana ruszała drogę
+składu, nie dekodera. Dwie mutacje na potwierdzenie, że nowe niezmienniki
+potrafią paść: `sideByName` zawsze `0` zapala **12 testów**, pusty skład
+w generatorze — **8**.
+
+### AUDYT‑120 — `side` w składzie testowym nie było pilnowane NICZYM ⚪ S — ✅ NAPRAWIONE 2026‑08‑09
+
+`tools/synthetic-log.ts`, `tests/stats.test.ts`
+
+**Problem — i to jest ODKRYCIE rundy, nie jej plan.** Żeby sprawdzić, że nowy
+kanał składu niesie to samo co `fight-start`, podstawiono `side: 0` wszystkim
+wpisom generatora. **Nie zapaliło ani jednego z 851 testów.** Pusty skład zapala
+osiem (przez profesję i poziom), więc kanał jako taki był pilnowany; samo `side`
+nie było pilnowane niczym.
+
+To dziura **sprzed** tej rundy: `fight-start` niósł `side` dokładnie tak samo i
+tak samo nikt go nie sprawdzał. Strona decyduje o tym, po której stronie panel
+liczy sumy i kogo pokazuje filtr „Moi".
+
+**Naprawa — dwa niezmienniki, bo jeden nie wystarcza.** Pierwsza próba
+porównywała stronę wiersza ze stroną wpisu składu i **też nie zapaliła się na tej
+mutacji**: obie strony porównania czytają ten sam, zepsuty skład. Drugi pyta
+o sam skład („walka ma dwie strony") i dopiero on ją łapie.
+
+⚠️ **Wniosek ogólniejszy od poprawki:** niezmiennik porównujący wyjście
+z własnym wejściem jest ślepy na zepsucie WEJŚCIA. To ta sama klasa co „reguła
+bez strażnika po stronie danych" z `AGENTS.md` — tyle że tu strażnik istniał
+i patrzył w złą stronę.
+
+**✓ Zmierzone.** Mutacja `side: 0` w generatorze: przed — 0 czerwonych,
+po — **5**. Mutacja `sideByName` w agregacie: **12**.
+
 ## G. Otwarte z poprzednich rund
 
 Bez nowych ID — sam wskaźnik, żeby ten dokument był pełną migawką otwartych

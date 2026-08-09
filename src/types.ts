@@ -107,18 +107,6 @@ export function nazwaZywiolu(kod: string): string {
   return ELEMENTS[kod] ?? `dmg${kod}`;
 }
 
-export type Participant = {
-  name: string;
-  level: number;
-  /** Kod z logu. Nieznane litery zostawiamy surowe zamiast zgadywać. */
-  professionCode: string;
-  /**
-   * Strona konfliktu z linii otwierającej: 0 przed słowem "a", 1 po nim.
-   * Log pisany jest z perspektywy gracza, więc strona 0 to jego drużyna.
-   */
-  side: number;
-};
-
 /**
  * Pojedyncza liczba obrażeń w ramach jednego ataku. Linia "uderzył z siłą"
  * potrafi ich nieść kilka i log NIE mówi, czym one są: u tancerza ostrzy to
@@ -140,8 +128,19 @@ export type Hit = {
    */
   secondary: boolean;
   /**
-   * Żywioł odczytany z klasy CSS w DOM gry ("ogień", "błyskawica", "zimno").
-   * null dla obrażeń fizycznych i dla logu wklejonego jako sam tekst.
+   * Żywioł odczytany z KLUCZA protokołu (`+dmgf` → „ogień"), przez
+   * `nazwaZywiolu` wyżej.
+   *
+   * ⚠️ **DO 2026‑08‑09 STAŁO TU „odczytany z klasy CSS w DOM gry […] null dla
+   * obrażeń fizycznych i dla logu wklejonego jako sam tekst" I OBA CZŁONY BYŁY
+   * NIEPRAWDĄ.** Odczyt z DOM zszedł z drzewa 2026‑08‑04, a obrażenia fizyczne
+   * dostają `"fizyczne"` (`ELEMENTS.p`), nie `null`.
+   *
+   * `null` produkuje dziś DOKŁADNIE JEDEN przypadek, o którym tamten opis nie
+   * mówił: trafienie przyjęte, którego nie da się sparować z zadanym, bo gra
+   * tych dwóch stron nie paruje (`docs/MECHANIKA.md`, „Zadane i przyjęte NIE SĄ
+   * PAROWANE"). Wtedy nie wiadomo, czym oberwał, i tak trzeba to czytać —
+   * `stats.ts` podstawia wtedy etykietę „bez żywiołu".
    */
   element: string | null;
   /**
@@ -210,9 +209,25 @@ export type Proc = {
  * ogłuszenia siedzą w tabeli `PROCE` i nie niosą skutku), więc panel pokazywał
  * „Tury utracone 0" jako POMIAR, którym to nie było. Powody:
  * `docs/specy/2026-08-05-tura-to-akcja.md`.
+ *
+ * ⚠️ **A 2026‑08‑09 ta sama reguła zdjęła `fight-start` wraz z typem
+ * `Participant` — i to był NAJDROŻSZY z tych trzech przypadków.** Dekoder
+ * protokołu nie produkował go ani razu (klient syntetyzuje linię otwierającą
+ * poza `data.m`), ale wariant miał żywego konsumenta: `stats.ts` czytał z niego
+ * skład. Utrzymywał go przy życiu wyłącznie WŁASNY korpus testowy —
+ * `tools/synthetic-log.ts` i `tests/zdarzenia.ts` były jedynymi producentami.
+ *
+ * Kosztowało to więcej niż skreślenie linijki, bo skład podany strumieniem był
+ * dla agregatu POSZLAKĄ, a skład podany drugim argumentem jest FAKTEM. Wariant
+ * podpierał więc cały drugi tryb rozdzielania instancji, nieosiągalny
+ * w produkcji. Zszedł razem z nim; szczegóły przy `instanceResolver`.
+ *
+ * Wniosek ogólniejszy od poprawki: **kontrakt jest WYJŚCIEM ścieżki wejścia
+ * i starzeje się razem z nią.** Reguła „kasując ścieżkę WEJŚCIA, przejdź to, co
+ * zostaje na WYJŚCIU" miała w tym repo cztery zapisane dowody
+ * (`AUDYT‑88/‑92/‑97/‑108`) i ani razu nie została zastosowana do tego pliku.
  */
 export type BattleEvent =
-  | { kind: "fight-start"; participants: Participant[] }
   | {
       kind: "attack";
       source: string;
@@ -252,7 +267,16 @@ export type BattleEvent =
        */
       strike: boolean;
     }
-  /** `ability` jest null, gdy log nie podaje źródła (linia "Przywrócono N..."). */
+  /**
+   * `ability` jest `null`, gdy żadna zapowiedź umiejętności nie poprzedzała
+   * tego leczenia.
+   *
+   * ⚠️ **DO 2026‑08‑09 STAŁO TU „gdy log nie podaje źródła (linia »Przywrócono
+   * N…«)" I OPISYWAŁO PARSER ZDAŃ, NIE DEKODER.** Dekoder nie patrzy na kształt
+   * komunikatu leczenia: wstawia zapowiedź zapamiętaną z komunikatu
+   * POPRZEDNIEGO, niezależnie od klucza. Reguła jest więc o sąsiedztwie
+   * w strumieniu, a nie o treści linii.
+   */
   | {
       kind: "heal";
       ability: string | null;
@@ -311,13 +335,26 @@ export type BattleEvent =
       /** "osłabione o 25%" → 25. */
       weakenedPct: number | null;
     }
-  | { kind: "move"; actor: string; actorId?: number; hpPct: number; description: string }
+  // ⚠️ Stało tu jeszcze `description: string` z surową treścią komunikatu —
+  // pole bez ani jednego czytelnika, zdjęte 2026‑08‑09 razem z dwoma
+  // z `fight-end`. Krok niesie dziś to, po co jest czytany: kto i z jakim życiem.
+  | { kind: "move"; actor: string; actorId?: number; hpPct: number }
   | {
       kind: "fight-end";
+      /**
+       * ⚠️ **STAŁY TU JESZCZE `actors: string[]` I `result: string` — OBA BEZ
+       * ANI JEDNEGO CZYTELNIKA** (zdjęte 2026‑08‑09). Dekoder je wypełniał
+       * (`protokol.ts`, klucze `winner`/`loser`), ale w całym repo — `src/`,
+       * `tests/`, `tools/` — nikt ich nie odczytywał. Jedynym konsumentem tego
+       * wariantu jest `archive.ts`, przez `outcome`, oraz `stan-odczytu.ts`,
+       * przez sam dyskryminant.
+       *
+       * Kompilator tego nie łapie i to jest tu ogólna lekcja: `noUnusedLocals`
+       * widzi zmienne LOKALNE, a pole typu bez czytelnika jest dla niego
+       * poprawnym API. Jedyne, co takie pole znajduje, to
+       * `grep -rn "\.nazwa_pola\b" src/ tests/ tools/ --include=*.ts`.
+       */
       outcome: "victory" | "defeat" | "draw";
-      /** Kto wygrał/poległ. Pusta lista dla walki bez rozstrzygnięcia. */
-      actors: string[];
-      result: string;
     }
   /** Zapowiedź umiejętności; obrażenia niosą dopiero kolejne linie. */
   | { kind: "ability"; actor: string; actorId?: number; name: string }
@@ -390,6 +427,19 @@ export type BattleEvent =
    */
   | {
       kind: "unknown";
+      /**
+       * ⚠️ **`line` I `lineNo` NIE MAJĄ DZIŚ ANI JEDNEGO CZYTELNIKA** — ustawia
+       * je `dekoduj`, a `stats.ts` liczy wyłącznie `scope` i `dropped`
+       * (zmierzone 2026‑08‑09). Zostają mimo to, i to jest DECYZJA, nie
+       * przeoczenie: nierozpoznany klucz bez treści jest nie do zdiagnozowania,
+       * a to jedyny kanał, którym gra zgłasza własną zmianę. Panel mówi dziś,
+       * ILE komunikatów przepadło (`AUDYT‑114`), i nie mówi, CO w nich było.
+       * Dopóki tego nie pokazuje, oba pola są kosztem świadomym.
+       *
+       * ⚠️ `lineNo` niesie numer KOMUNIKATU, nie linii — protokół linii nie ma.
+       * Nazwa została z ery tekstu i jest myląca; zmiana dotknęłaby wywołań
+       * czujki w całym dekoderze, więc nie w tej rundzie.
+       */
       line: string;
       lineNo: number;
       /**

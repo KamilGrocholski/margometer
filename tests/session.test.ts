@@ -5,7 +5,8 @@ import { Session } from "../src/session.ts";
 import { StaticProtocolSource } from "../src/protokol-source.ts";
 import { start } from "../src/index.ts";
 import { dekoduj } from "../src/protokol.ts";
-import { OSOBLIWOSCI, WALKI, WALKI_Z_GRY } from "./korpus.ts";
+import { OSOBLIWOSCI, WALKI } from "./korpus.ts";
+import { krok } from "./zdarzenia.ts";
 
 /**
  * Dwie ROZŁĄCZNE walki — żadna nazwa się nie powtarza.
@@ -16,7 +17,6 @@ import { OSOBLIWOSCI, WALKI, WALKI_Z_GRY } from "./korpus.ts";
  */
 const PIERWSZA = OSOBLIWOSCI; // Gracz, Locha, Odyniec
 const DRUGA = WALKI[0]!.events; // Tancogniew Kazrek, Magister Długonogi
-import { otwarcie } from "./zdarzenia.ts";
 import type { RosterEntry } from "../src/roster.ts";
 
 /**
@@ -32,36 +32,41 @@ import type { RosterEntry } from "../src/roster.ts";
  * (`AUDYT‑108`). Były zielone i sprawdzały funkcję, do której na żywo nie
  * docierało nic. Zeszły razem z `splitFights`.
  *
- * Zostaje test niżej — jedyny, który o tę własność pyta **materiałem z gry**,
- * a nie własnym. Pyta więc słabiej: „nie ma czego dzielić", zamiast „dzieli
- * dobrze".
+ * ⚠️ **A 2026‑08‑09 zszedł piąty — ten jeden, który pytał materiałem z gry.**
+ * Stało tu, że „zostaje test niżej — jedyny, który o tę własność pyta materiałem
+ * z gry, a nie własnym". Pytał `z.kind === "fight-start"`, a wariantu nie ma już
+ * w `BattleEvent`, więc pytania nie da się dziś nawet zapisać. Własność, o którą
+ * pytał, przeszła z testu do systemu typów — i to jest mocniejsze miejsce, ale
+ * trzeba wiedzieć, że w TYM pliku nie stoi już nic o granicy walk.
  */
 describe("sesja", () => {
-  test("korpus z gry jest niepusty — inaczej niezmiennik niżej byłby zielony i pusty", () => {
-    expect(WALKI_Z_GRY.length).toBeGreaterThan(0);
-  });
-
-  test.each(WALKI_Z_GRY)(
-    "$name — walka z gry nie niesie ani jednej granicy, którą `Session` mogłaby ciąć",
-    ({ events }) => {
-      // To jest zdanie o GRZE, nie o nas, i dlatego stoi na fixture'ach:
-      // klient syntetyzuje linię otwierającą poza `data.m` (`Battle.js:945`),
-      // więc `fight-start` nie ma prawa przyjść protokołem. Gdyby kiedyś
-      // przyszedł, `Session` sumowałaby dwie walki w jedną i NIKT by tego nie
-      // zauważył — bo kryterium podziału już nie istnieje. Ten test jest
-      // jedynym miejscem, w którym takie zdarzenie zapaliłoby światło.
-      expect(events.filter((z) => z.kind === "fight-start")).toHaveLength(0);
-    },
-  );
+  /**
+   * ⚠️ **STAŁ TU TEST „walka z gry nie niesie ani jednej granicy" I ZSZEDŁ
+   * 2026‑08‑09 RAZEM Z WARIANTEM.** Pytał `events.filter(z => z.kind ===
+   * "fight-start")` o długość zero — czyli o coś, czego dziś **nie da się
+   * napisać**: wariant nie istnieje w `BattleEvent`, więc porównanie jest
+   * błędem kompilacji. To wzmocnienie, nie utrata: `toHaveLength(0)` sprawdzało
+   * jeden materiał przy jednym uruchomieniu, a system typów sprawdza wszystkie.
+   *
+   * Zdanie o grze, które ten test niósł, zostaje prawdziwe i nie ma go gdzie
+   * zgubić — stoi w `src/protokol-source.ts` przy granicy `data.init`.
+   *
+   * Razem z nim zszedł jego strażnik pustki („korpus z gry jest niepusty"),
+   * bo pilnował **tamtego** niezmiennika i po nim nie zostało nic do pilnowania.
+   * Że `tests/fixtures/` nie jest puste, mówi `tests/fixtury.test.ts`.
+   */
 
   test("bufor z dwiema walkami SUMUJE — granica nie stoi już w tym pliku", () => {
     // ⚠️ To NIE jest test naprawy, tylko zapis znanej dziury (`AUDYT‑108`).
     // Dwie rozłączne walki w jednym buforze dają jeden wynik obejmujący obie.
-    // Tak było też PRZED skasowaniem `splitFights` — funkcja dzieliła po
-    // zdarzeniu, którego w tym materiale nie ma... ale materiał tutaj jest
-    // SYNTETYCZNY i `fight-start` niesie, więc przed zmianą ten test by padł.
     // Stoi tu po to, żeby przyszła naprawa (podział po `fight-end`) miała co
     // odwrócić, i żeby nikt nie uznał sumowania za zamierzone.
+    //
+    // ⚠️ Stało tu do 2026‑08‑09, że materiał jest syntetyczny i „`fight-start`
+    // niesie, więc przed zmianą ten test by padł". Wariantu nie ma już w ogóle:
+    // skład jechał wtedy strumieniem, dziś idzie osobnym argumentem, a nazwy
+    // w asercjach niżej biorą się z samych ciosów. Zdanie o granicy zostaje
+    // prawdziwe — po prostu nie ma już czym jej nawet udawać.
     const session = new Session();
     session.updateEvents([...PIERWSZA, ...DRUGA]);
     const nazwy = session.current().actors.map((a) => a.name);
@@ -181,20 +186,29 @@ describe("Session.updateEvents", () => {
    * — 25 prawdziwych walk. Chodzi dziś po walkach budowanych w kodzie
    * (`tests/korpus.ts`), więc sprawdza tę samą WŁASNOŚĆ na uboższym materiale.
    */
-  test.each(WALKI)("$name — walka z korpusu daje niepusty odczyt", ({ events }) => {
+  test.each(WALKI)("$name — walka z korpusu daje niepusty odczyt", ({ events, sklad }) => {
     // ⚠️ Test pytał do 2026‑08‑07 także o `splitFights(events)` z wynikiem `1`
     // i to była jego mocniejsza połowa. Zdjęta razem z funkcją: pytała, czy
     // materiał, który sami zbudowaliśmy, ma jeden nagłówek — a nie o nic, co
     // dzieje się na żywo.
     const sesja = new Session();
-    sesja.updateEvents(events);
+    sesja.updateEvents(events, sklad);
     expect(sesja.current().actors.length).toBeGreaterThan(0);
   });
 
   test("skład z gry dociera tą samą drogą", () => {
+    // Zdarzenia NIE wymieniają Kamila — jedynym źródłem jego wiersza jest skład.
+    // Do 2026‑08‑09 stało tu obok `otwarcie()`, czyli drugi skład wpuszczony
+    // strumieniem, więc nie było widać, którym z dwóch kanałów Kamil dotarł.
+    //
+    // ⚠️ Zdarzenie musi tu być, i to nie jest ozdoba: `updateEvents` przy pustej
+    // liście oddaje `EMPTY_STATS`, nie zaglądając do składu (niżej, `:81`).
+    // Pierwsza wersja tej poprawki podawała `[]` i test padał — na zachowaniu,
+    // które jest zamierzone, a nie na regresji.
     const sesja = new Session();
-    sesja.updateEvents([otwarcie(["Kamil 100m"], ["Locha 50w"])], [
+    sesja.updateEvents([krok("Locha", 100)], [
       { id: 7, name: "Kamil", side: 0 },
+      { id: 8, name: "Locha", side: 1 },
     ]);
     expect(sesja.current().actors.some((a) => a.name === "Kamil")).toBe(true);
   });

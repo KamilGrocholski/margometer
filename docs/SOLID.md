@@ -46,6 +46,13 @@ i było to uzasadnione** — inaczej następny czytelnik uzna ją za nienaruszal
 i albo jej zaufa fałszywie, albo zignoruje w całości. `BattleEvent[]` przeżyło
 wymianę i jest dziś granicą najważniejszą.
 
+⚠️ **A 2026‑08‑09 okazało się, że „przeżyło" znaczyło tu za dużo** (`AUDYT‑119`).
+Granica przeżyła i jest dobra — ale jej ZAWARTOŚĆ nie została po tamtej wymianie
+przejrzana ani razu, więc niosła wariant nieprodukowany przez dekoder i cały
+martwy tryb agregatu, który się na nim opierał. **Nienaruszalna granica nie
+znaczy nienaruszalny typ**: to, że coś jest granicą, jest właśnie powodem, żeby
+po wymianie strony ją przejść, a nie żeby jej nie ruszać.
+
 Siatka bezpieczeństwa: **`bun run check`**. Stały tu liczby (testy, pokrycie)
 i były przeliczane cztery razy w trzy dni, za każdym razem starzejąc się do
 następnej rundy. Nie wracają — `bun test` mówi prawdę w kilka sekund

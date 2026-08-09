@@ -75,6 +75,16 @@ bez drugiego świadka i tak ma być czytane.
 on przeżył wymianę odczytu. Nagrania trzymają surowe komunikaty, nie policzone
 liczby, żeby dało się je przeliczyć nowszym dekoderem.
 
+⚠️ **Zdanie „przeżył wymianę odczytu" stało tu do 2026‑08‑09 jako sama zaleta
+i było przez to za miękkie** (`AUDYT‑119`). Przeżył ją **z bagażem, którego przez
+pięć dni nikt nie przeszedł**: wariant `fight-start`, którego dekoder nie
+produkuje ani razu, plus wiszący na nim martwy tryb w `stats.ts`. Utrzymywał go
+przy życiu WŁASNY korpus testowy. Granica między dekoderem a agregatem jest dobra
+i zostaje (dowód: `archive.ts` woła `dekoduj` wprost, więc scalenie wciągnęłoby
+`Engine` w odtwarzanie) — ale **sam kontrakt jest wyjściem ścieżki wejścia
+i starzeje się razem z nią.** Reguła „kasując ścieżkę WEJŚCIA, przejdź to, co
+zostaje na WYJŚCIU" ma pięć zapisanych dowodów i piąty jest właśnie o tym pliku.
+
 Poboczne: `recorder.ts` + `archive.ts` (nagrywanie i odtwarzanie),
 `zrzut.ts` + `opcje.ts` (zbieranie materiału z gry i okno ustawień),
 `roster.ts` (skład z `Engine.battle`), `palette.ts`, `window.ts`,

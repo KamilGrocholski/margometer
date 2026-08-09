@@ -43,6 +43,10 @@ Trzy rzeczy, których ten skrót nie pokazuje, a które są w potoku najważniej
 
 1. **`BattleEvent[]` (`types.ts`) jest KONTRAKTEM**, nie szczegółem. Przeżył
    wymianę całego odczytu w sierpniu 2026 i to on dzieli potok na „przed" i „po".
+   ⚠️ Ale **przeżył ją z bagażem** (`AUDYT‑119`, 2026‑08‑09): wariant
+   `fight-start`, którego dekoder nie produkuje ani razu, wraz z martwym trybem
+   `stats.ts` wiszącym na nim, dotrwał tu pięć dni na własnym korpusie testowym.
+   Granica jest dobra; jej ZAWARTOŚĆ starzeje się razem ze skasowanym wejściem.
 2. **Strzałki się rozgałęziają.** Po `stats.ts` idą trzy niezależne drogi:
    panel, nagrywarka i archiwum.
 3. **`dekoduj` ma dwóch konsumentów produkcyjnych**, nie jednego — `archive.ts`

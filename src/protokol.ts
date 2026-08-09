@@ -1462,8 +1462,6 @@ export function dekoduj(
             // `winner=?` to walka bez rozstrzygnięcia — gra idzie wtedy gałęzią
             // `battle_no_winner` (`:180`), a nie wypisuje nazwiska.
             outcome: p.wartosc === "?" ? "draw" : r.wynik,
-            actors: p.wartosc === null || p.wartosc === "?" ? [] : p.wartosc.split(", "),
-            result: p.surowy,
           });
           break;
         }
@@ -1481,7 +1479,6 @@ export function dekoduj(
               actor: nadawcaNazwa,
               actorId: nadawca.id,
               hpPct: nadawca.hpp ?? 0,
-              description: p.surowy,
             });
           break;
         }

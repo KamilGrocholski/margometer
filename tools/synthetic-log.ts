@@ -1,3 +1,4 @@
+import type { RosterEntry } from "../src/roster.ts";
 import type { BattleEvent, Proc } from "../src/types.ts";
 
 /**
@@ -9,6 +10,18 @@ import type { BattleEvent, Proc } from "../src/types.ts";
  * z drzewa, a zdarzenia są kontraktem między każdym źródłem a agregatem, więc
  * generator buduje je wprost. Przy okazji przestaje udawać, że dowodzi
  * czegokolwiek o formacie logu — czego i tak nigdy nie robił.
+ *
+ * ⚠️ **ODDAJE TEŻ SKŁAD, OSOBNO — od 2026‑08‑09.** Wcześniej wsuwał skład
+ * w strumień jako `{kind: "fight-start"}` i to był jedyny producent tego
+ * wariantu w repo obok `tests/zdarzenia.ts`. Dekoder protokołu nigdy go nie
+ * emitował, więc generator karmił `stats.ts` drogą, której produkcja nie ma:
+ * tam skład idzie WYŁĄCZNIE drugim kanałem, z `Engine.battle`. Wariant trzymał
+ * się przy życiu wyłącznie własnym korpusem testowym.
+ *
+ * Skutek, który trzeba znać przy czytaniu testów panelu: skład podany obok
+ * zdarzeń jest dla agregatu ROZSTRZYGAJĄCY (`authoritative` w `stats.ts`), więc
+ * postać, która przemilczała całą walkę, dostaje pusty wiersz. Tak samo dzieje
+ * się w grze i dlatego jest to wierniejsze, a nie tylko inne.
  *
  * Walka jest SYNTETYCZNA, w odróżnieniu od fixture'ów. Do testów odczytu by się
  * nie nadawała (nie pochodzi z gry), ale do oglądania układu i do testów PANELU
@@ -119,7 +132,10 @@ function rng(seed: number) {
 
 type Actor = Profile & { side: number; label: string; life: number; poisoned: number };
 
-export function syntheticFight(count: number): BattleEvent[] {
+/** Walka syntetyczna: zdarzenia i skład, tak jak dostaje je `aggregate` w grze. */
+export type SyntetycznaWalka = { events: BattleEvent[]; sklad: RosterEntry[] };
+
+export function syntheticFight(count: number): SyntetycznaWalka {
   const random = rng(20260719);
 
   const actors: Actor[] = Array.from({ length: count }, (_, i) => {
@@ -140,17 +156,18 @@ export function syntheticFight(count: number): BattleEvent[] {
   const alive = (a: Actor) => a.life > 0;
   const pct = (a: Actor) => Number(Math.max(0, (a.life / a.hp) * 100).toFixed(2));
 
-  const events: BattleEvent[] = [
-    {
-      kind: "fight-start",
-      participants: actors.map((a) => ({
-        name: a.name,
-        level: a.level,
-        professionCode: a.profession,
-        side: a.side,
-      })),
-    },
-  ];
+  // `id` nadane z indeksu, bo generator jest celowo bez `Math.random` i ma dawać
+  // ten sam podgląd przy każdym uruchomieniu. Wartości są dowolne — liczy się
+  // tylko to, że są różne, bo `stats.ts` używa ich jako klucza w składzie.
+  const sklad: RosterEntry[] = actors.map((a, i) => ({
+    id: i + 1,
+    name: a.name,
+    side: a.side,
+    prof: a.profession,
+    lvl: a.level,
+  }));
+
+  const events: BattleEvent[] = [];
 
   const hurt = (actor: Actor, amount: number) => {
     actor.life = Math.max(0, actor.life - amount);
@@ -307,12 +324,7 @@ export function syntheticFight(count: number): BattleEvent[] {
     }
   }
 
-  events.push({
-    kind: "fight-end",
-    outcome: "victory",
-    actors: actors.filter((a) => a.side === 0 && alive(a)).map((a) => a.name),
-    result: "Zwyciężyła drużyna",
-  });
+  events.push({ kind: "fight-end", outcome: "victory" });
 
-  return events;
+  return { events, sklad };
 }

@@ -10,7 +10,7 @@ import { syntheticFight } from "../tools/synthetic-log.ts";
 import { cios, leczenie, nieznane, otwarcie, trafienie, tykniecie } from "./zdarzenia.ts";
 import pkg from "../package.json" with { type: "json" };
 import { ManualTicker } from "./manual-ticker.ts";
-import { efekt, metricButton, number, rate, readEvents, shareOf } from "./helpers.ts";
+import { efekt, metricButton, number, rate, readEvents, shareOf, statsZWalki } from "./helpers.ts";
 
 /**
  * Prawy przycisk nad listą rankingu.
@@ -61,18 +61,17 @@ function rightClick(overlay: Overlay): void {
  */
 
 describe("leczenie", () => {
-  const load = async (name: string) => aggregate(readEvents(`new-engine/${name}`));
+  const load = async (name: string) => statsZWalki(readEvents(`new-engine/${name}`));
 
 
   test("gołe \"Przywrócono\" ląduje pod Regeneracją, bo log nie podaje źródła", () => {
     // Leczenie bez nazwy umiejętności nie ma sprawcy ani źródła — zbiorcza
     // etykieta mówi to wprost, zamiast przypisać je czemukolwiek.
     const stats = aggregate([
-      otwarcie(["Gracz 1p"], ["Wilk 1w"]),
       cios("Wilk", "Gracz", [trafienie(500)], { targetHpPct: 50 }),
       leczenie("Gracz", 200, { targetHpPct: 70 }),
       leczenie("Gracz", 266, { targetHpPct: 90 }),
-    ]);
+    ], otwarcie(["Gracz 1p"], ["Wilk 1w"]));
     const gracz = stats.actors.find((a) => a.name === "Gracz")!;
     expect(gracz.healedBy).toEqual([{ label: "Regeneracja", amount: 466, hits: 2 }]);
   });
@@ -97,7 +96,7 @@ describe("leczenie", () => {
  * typu „jest .tip-heading".
  */
 describe("podgląd TOP-3 w dymku", () => {
-  const load = async (name: string) => aggregate(readEvents(`new-engine/${name}`));
+  const load = async (name: string) => statsZWalki(readEvents(`new-engine/${name}`));
 
   const hover = (overlay: Overlay, actor: string) => {
     [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
@@ -148,7 +147,7 @@ describe("podgląd TOP-3 w dymku", () => {
  * przed zmianą i asercja na nią przechodziłaby w obie strony.
  */
 describe("okruszek jest trwałym węzłem", () => {
-  const load = async () => aggregate(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
+  const load = async () => statsZWalki(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
 
   test("przetrwa zmianę metryki jako TEN SAM węzeł", async () => {
     const overlay = new Overlay();
@@ -196,7 +195,7 @@ describe("okruszek jest trwałym węzłem", () => {
 });
 
 describe("licznik tur", () => {
-  const load = async (name: string) => aggregate(readEvents(`new-engine/${name}`));
+  const load = async (name: string) => statsZWalki(readEvents(`new-engine/${name}`));
 
 
 
@@ -254,13 +253,12 @@ describe("podział na drużyny", () => {
 });
 
 describe("overlay", () => {
-  const statsFrom = async (name: string) => aggregate(readEvents(name));
+  const statsFrom = async (name: string) => statsZWalki(readEvents(name));
 
 
   test("pokazuje cały skład od linii otwierającej, zanim ktokolwiek zadziała", () => {
     const stats = aggregate([
-      otwarcie(["Łowca Wichrów 104h"], ["Wieczornica 93p", "Południca 92p"]),
-    ]);
+    ], otwarcie(["Łowca Wichrów 104h"], ["Wieczornica 93p", "Południca 92p"]));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -280,10 +278,7 @@ describe("overlay", () => {
    */
   test("uczestnik bez znanej strony zostaje wierszem, ale tylko w „Wszyscy”", () => {
     const stats = aggregate(
-      [
-        otwarcie(["Gracz 1w", "Wilk 1w"], ["Wilk 1w", "Wróg 1m"]),
-        cios("Wilk", "Gracz", [trafienie(300)], { targetHpPct: 70 }),
-      ],
+      [cios("Wilk", "Gracz", [trafienie(300)], { targetHpPct: 70 })],
       [
         { id: 1, name: "Gracz", side: 0 },
         { id: 2, name: "Wilk", side: 0 },
@@ -456,11 +451,10 @@ describe("overlay", () => {
     // stoi zawsze jeden przeciwnik, więc trucizna ma komu przypaść. Tu trzeba
     // otoczenia: przy trzech wrogach nie wiadomo, który zatruł.
     const stats = aggregate([
-      otwarcie(["Gracz 1w"], ["A 1w", "B 1w", "C 1w"]),
       cios("Gracz", "A", [trafienie(100)], { sourceHpPct: 90, targetHpPct: 50 }),
       cios("A", "Gracz", [trafienie(40)], { targetHpPct: 90 }),
       tykniecie("Gracz", 80, 100, "trucizny"),
-    ]);
+    ], otwarcie(["Gracz 1w"], ["A 1w", "B 1w", "C 1w"]));
     const poisoned = stats.actors.filter((a) => a.unattributedDotTaken > 0);
     expect(poisoned.length).toBeGreaterThan(0);
 
@@ -570,9 +564,8 @@ describe("overlay", () => {
     // Absorpcja nie jest procem: siedzi w różnicy `raw - applied`, czyli
     // w `damageAbsorbed` CELU, i pod napastnikiem byłaby nie tą postacią.
     const stats = aggregate([
-      otwarcie(["Gracz 1w"], ["Cel 1w"]),
       cios("Gracz", "Cel", [trafienie(500, 239)], { targetHpPct: 50 }),
-    ]);
+    ], otwarcie(["Gracz 1w"], ["Cel 1w"]));
     expect(stats.actors.find((a) => a.name === "Gracz")!.procs).toEqual([]);
     expect(stats.actors.find((a) => a.name === "Cel")!.damageAbsorbed).toBe(500 - 239);
   });
@@ -777,15 +770,15 @@ describe("pozycja dymka", () => {
 
 describe("efekty: kto wyzwolił kontra na kim się odpalił", () => {
   const walka = [
-    otwarcie(["Gracz 1w"], ["Szaman 1m"]),
     cios("Szaman", "Gracz", [trafienie(536, 261)], {
       targetHpPct: 98,
       procs: [efekt("Oślepienie w następnej turze")],
     }),
   ];
+  const SKLAD = otwarcie(["Gracz 1w"], ["Szaman 1m"]);
 
   test("efekt liczy się u tego, kto go ma w eq, nie u ofiary", () => {
-    const stats = aggregate(walka);
+    const stats = aggregate(walka, SKLAD);
     const szaman = stats.actors.find((a) => a.name === "Szaman")!;
     const gracz = stats.actors.find((a) => a.name === "Gracz")!;
 
@@ -795,7 +788,7 @@ describe("efekty: kto wyzwolił kontra na kim się odpalił", () => {
   });
 
   test("ofiara ma osobny licznik tego, co się na niej odpaliło", () => {
-    const stats = aggregate(walka);
+    const stats = aggregate(walka, SKLAD);
     const szaman = stats.actors.find((a) => a.name === "Szaman")!;
     const gracz = stats.actors.find((a) => a.name === "Gracz")!;
 
@@ -805,7 +798,7 @@ describe("efekty: kto wyzwolił kontra na kim się odpalił", () => {
   });
 
   test("dymek pokazuje obie sekcje osobno", () => {
-    const stats = aggregate(walka);
+    const stats = aggregate(walka, SKLAD);
     const overlay = new Overlay();
     overlay.render(stats);
     [...overlay.shadow.querySelectorAll<HTMLElement>(".row")]
@@ -821,7 +814,7 @@ describe("efekty: kto wyzwolił kontra na kim się odpalił", () => {
 });
 
 describe("nagłówek stron i tempo", () => {
-  const statsFrom = async (name: string) => aggregate(readEvents(name));
+  const statsFrom = async (name: string) => statsZWalki(readEvents(name));
   const perTurnButton = (overlay: Overlay) =>
     [...overlay.shadow.querySelectorAll("button")].find((b) => b.textContent === "na turę")!;
 
@@ -853,9 +846,8 @@ describe("nagłówek stron i tempo", () => {
     // Sprawcy log nie podaje (po drugiej stronie stoi trzech), ale ofiarę tak —
     // więc przypis ma mówić o tej stronie, którą właśnie widać.
     const stats = aggregate([
-      otwarcie(["Gracz 1w"], ["A 1w", "B 1w", "C 1w"]),
       tykniecie("Gracz", 50, 100, "trucizny"),
-    ]);
+    ], otwarcie(["Gracz 1w"], ["A 1w", "B 1w", "C 1w"]));
     const overlay = new Overlay();
     overlay.render(stats);
     const note = () =>
@@ -881,9 +873,8 @@ describe("nagłówek stron i tempo", () => {
    */
   test("leczenie bez sprawcy też idzie za filtrem składu", () => {
     const stats = aggregate([
-      otwarcie(["Gracz 1w"], ["Wilk 1w"]),
       leczenie("Gracz", 700, { targetHpPct: 90 }),
-    ]);
+    ], otwarcie(["Gracz 1w"], ["Wilk 1w"]));
     const overlay = new Overlay();
     overlay.render(stats);
     const note = () =>
@@ -953,7 +944,7 @@ describe("nagłówek stron i tempo", () => {
 
   test("pasek stron przy zerowej sumie zostaje pusty, nie na pół", () => {
     // Skład jest, walka jeszcze się nie zaczęła. 50/50 czytało się jak remis.
-    const stats = aggregate([otwarcie(["Gracz 1w"], ["Wilk 1w"])]);
+    const stats = aggregate([], otwarcie(["Gracz 1w"], ["Wilk 1w"]));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -999,7 +990,7 @@ describe("nagłówek stron i tempo", () => {
 });
 
 describe("oś tur", () => {
-  const statsFrom = async (name: string) => aggregate(readEvents(name));
+  const statsFrom = async (name: string) => statsZWalki(readEvents(name));
 
   test("oś tur rozkłada dokładnie tyle obrażeń, ile padło w walce", async () => {
     // Niezmiennik: oś to inny przekrój tych samych obrażeń, nie druga pula.
@@ -1028,7 +1019,7 @@ describe("oś tur", () => {
     // bloki na każdą akcję i "Rozpraszający atak" pokazywał 3 użycia przy
     // 9 ciosach. W zmierzonych prawdziwych walkach rekord to 2 ciosy na użycie
     // ("Podwójne trafienie"), a zwykły atak nigdy nie przekracza jednego.
-    const stats = aggregate(syntheticFight(20));
+    const stats = statsZWalki(syntheticFight(20));
 
     for (const actor of stats.actors) {
       const hits = new Map(actor.dealtBy.map((source) => [source.label, source.hits]));
@@ -1051,7 +1042,7 @@ describe("oś tur", () => {
   });
 
   test("lista pokazuje cały skład naraz, bez zwijania i bez sekcji stron", () => {
-    const stats = aggregate(syntheticFight(20));
+    const stats = statsZWalki(syntheticFight(20));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -1071,7 +1062,7 @@ describe("oś tur", () => {
   });
 
   test("udziały sumują się do 100% w obrębie całej listy", () => {
-    const stats = aggregate(syntheticFight(4));
+    const stats = statsZWalki(syntheticFight(4));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -1113,7 +1104,7 @@ describe("kopiowanie i nagrywanie", () => {
     overlay.shadow.querySelector<HTMLElement>(`button[data-action="${action}"]`);
 
   test("kopiuje statystyki walki jako JSON", async () => {
-    const stats = aggregate(syntheticFight(4));
+    const stats = statsZWalki(syntheticFight(4));
     let copied = "";
     const overlay = new Overlay({ clipboard: (text) => void (copied = text) });
     overlay.render(stats);
@@ -1137,7 +1128,7 @@ describe("kopiowanie i nagrywanie", () => {
     // Od 0.3.0 dodatek aktualizuje się sam, a README prosi wprost o przysyłanie
     // logów z zepsutych walk. Zgłoszenie bez wersji nie daje się uszeregować:
     // nie wiadomo, czy dotyczy czegoś, co już jest naprawione.
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     let copied = "";
     const overlay = new Overlay({ clipboard: (text) => void (copied = text) });
     overlay.render(stats);
@@ -1163,7 +1154,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("kopiowanie potwierdza się w przycisku i wraca do ikony", async () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const overlay = new Overlay({ clipboard: () => {} });
     overlay.render(stats);
 
@@ -1176,7 +1167,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("odmowa schowka nie udaje sukcesu", async () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const overlay = new Overlay({
       clipboard: () => {
         throw new Error("brak uprawnienia");
@@ -1193,7 +1184,7 @@ describe("kopiowanie i nagrywanie", () => {
   // `execCommand("copy")` przy odmowie ZWRACA `false`, a nie rzuca — wartość
   // szła dotąd w próżnię, więc panel migał „✓" nad pustym schowkiem.
   test("zapasowa droga do schowka też nie udaje sukcesu", async () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const execCommand = (document as unknown as { execCommand?: unknown }).execCommand;
     (document as unknown as { execCommand: unknown }).execCommand = () => false;
     // Bez wstrzykniętego schowka idzie prawdziwa ścieżka: `navigator.clipboard`
@@ -1214,7 +1205,7 @@ describe("kopiowanie i nagrywanie", () => {
   // `dump()` zwraca null, gdy indeks obiecuje nagrania, których pod kluczami
   // już nie ma. Wcześniej szło `?? ""` — pusty schowek i „✓".
   test("kopiowanie logów bez logów melduje porażkę, nie sukces", async () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     let copied: string | null = null;
     const { control } = fakeRecorder({ dump: () => null });
     const overlay = new Overlay({
@@ -1236,7 +1227,7 @@ describe("kopiowanie i nagrywanie", () => {
   // dokładnie w chwili, w której jest najbardziej niebezpieczny.
   describe("potwierdzenie kasowania wygasa WIDOCZNIE", () => {
     const armed = () => {
-      const stats = aggregate(syntheticFight(2));
+      const stats = statsZWalki(syntheticFight(2));
       const ticker = new ManualTicker();
       let clock = 1_000;
       const { control, state } = fakeRecorder();
@@ -1297,7 +1288,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("bez nagrywarki nie ma ani przycisku, ani paska", () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -1306,7 +1297,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("przycisk nagrywania przełącza stan i pokazuje go", () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const { control, state } = fakeRecorder();
     const overlay = new Overlay({ recorder: control });
     overlay.render(stats);
@@ -1320,7 +1311,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("pasek podaje liczbę nagranych walk i zajętość", () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const { control } = fakeRecorder();
     const overlay = new Overlay({ recorder: control });
     overlay.render(stats);
@@ -1330,7 +1321,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("licznik walk odmienia się poprawnie", () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const word = (count: number) => {
       const { control } = fakeRecorder({ count: () => count });
       const overlay = new Overlay({ recorder: control });
@@ -1352,7 +1343,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("pasek znika, gdy nie ma nagrań ani nagrywania", () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const { control } = fakeRecorder({ count: () => 0 });
     const overlay = new Overlay({ recorder: control });
     overlay.render(stats);
@@ -1361,7 +1352,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("kopiuje nagrane logi, nie statystyki", async () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const { control } = fakeRecorder();
     let copied = "";
     const overlay = new Overlay({ recorder: control, clipboard: (text) => void (copied = text) });
@@ -1375,7 +1366,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("czyszczenie nagrań wymaga potwierdzenia", () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const { control, state } = fakeRecorder();
     const overlay = new Overlay({ recorder: control });
     overlay.render(stats);
@@ -1391,7 +1382,7 @@ describe("kopiowanie i nagrywanie", () => {
   });
 
   test("brak miejsca w magazynie widać w pasku", () => {
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const { control } = fakeRecorder({ isFailed: () => true, count: () => 0 });
     const overlay = new Overlay({ recorder: control });
     overlay.render(stats);
@@ -1403,7 +1394,7 @@ describe("kopiowanie i nagrywanie", () => {
   test("oba komunikaty paska zaczynają się tak samo — wielką literą", () => {
     // AUDYT-17: jeden element niósł raz „nagrywam…", raz „Brak miejsca…".
     // Ta sama szczelina, dwie konwencje — czyta się jak literówka (`UX.md §1.6`).
-    const stats = aggregate(syntheticFight(2));
+    const stats = statsZWalki(syntheticFight(2));
     const message = (failed: boolean) => {
       const { control } = fakeRecorder({
         isFailed: () => failed,
@@ -1429,7 +1420,7 @@ describe("ustawienia widoku przeżywają odświeżenie", () => {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => void store.set(k, v),
   };
-  const load = async () => aggregate(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
+  const load = async () => statsZWalki(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
 
   beforeEach(() => store.clear());
 
@@ -1515,7 +1506,7 @@ describe("ustawienia widoku przeżywają odświeżenie", () => {
  * który `destroy()` ma zgasić. Przy okazji znika 3,2 s prawdziwych snów.
  */
 describe("zdejmowanie panelu", () => {
-  const load = async () => aggregate(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
+  const load = async () => statsZWalki(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
 
   /** Zwęża okno, żeby `onResize` miał co przyciąć — i oddaje poprzednią szerokość. */
   const shrinkViewport = (width: number) => {
@@ -1577,7 +1568,7 @@ describe("zdejmowanie panelu", () => {
 // Arkusz obiecywał fokus na wierszach, okruszku i suwaku — trzy martwe reguły,
 // bo `tabindex` nie ustawiał nic, a okruszek i suwak były `div`-ami.
 describe("fokus jest tam, gdzie arkusz go obiecuje", () => {
-  const load = async () => aggregate(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
+  const load = async () => statsZWalki(readEvents("new-engine/2026-07-18_lowca-vs-druzyna"));
 
   test("okruszek powrotu to prawdziwy przycisk", async () => {
     const stats = await load();
@@ -1687,7 +1678,7 @@ describe("jedno źródło wyglądu dla obu okien", () => {
 });
 
 describe("podgląd wczytanej walki", () => {
-  const load = async (name: string) => aggregate(readEvents(`new-engine/${name}`));
+  const load = async (name: string) => statsZWalki(readEvents(`new-engine/${name}`));
 
   /** Widok podglądu bez odtwarzania — tyle, ile overlay potrzebuje do paska. */
   const view = (): PreviewView => ({
@@ -1787,7 +1778,7 @@ describe("podgląd wczytanej walki", () => {
 
 describe("prawy przycisk odbiera menu tylko wtedy, gdy coś daje w zamian", () => {
   const load = async () =>
-    aggregate(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
+    statsZWalki(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
 
   test("na najwyższym szczeblu menu zostaje, bo nie ma czego zdjąć", async () => {
     // `back()` wychodził wtedy bez efektu, ale `preventDefault()` leciał i tak.
@@ -1828,7 +1819,7 @@ describe("prawy przycisk odbiera menu tylko wtedy, gdy coś daje w zamian", () =
     // Archiwum rysuje pole wklejania w TYM SAMYM shadow roocie co panel, więc
     // globalny handler PPM zabierał mu natywne menu — jedyne miejsce, gdzie to
     // menu jest naprawdę potrzebne — i przy okazji cofał widok o szczebel.
-    const stats = aggregate(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
+    const stats = statsZWalki(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -1863,7 +1854,7 @@ describe("przyciski panelu przeżywają przebudowę w środku gestu", () => {
     // (~100 ms) zawsze trafia w przebudowę. Węzeł spod kursora znika, natywny
     // `click` nie pada, a zakładki przestają działać — z podglądu nie dawało się
     // wyjść bez wcześniejszej pauzy.
-    const stats = aggregate(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
+    const stats = statsZWalki(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -1879,7 +1870,7 @@ describe("przyciski panelu przeżywają przebudowę w środku gestu", () => {
   test("zwykły klik nie wykonuje akcji dwa razy", async () => {
     // `pointerup` już ją wykonał, a przeglądarka dokłada za nim `click` —
     // bez flagi „obsłużone” przełącznik wracałby na miejsce.
-    const stats = aggregate(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
+    const stats = statsZWalki(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
     const overlay = new Overlay();
     overlay.render(stats);
 
@@ -1893,7 +1884,7 @@ describe("przyciski panelu przeżywają przebudowę w środku gestu", () => {
   });
 
   test("puszczenie nad INNYM przyciskiem niczego nie przełącza", async () => {
-    const stats = aggregate(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
+    const stats = statsZWalki(readEvents("new-engine/2026-07-18_tancerz-vs-kukla"));
     const overlay = new Overlay();
     overlay.render(stats);
 

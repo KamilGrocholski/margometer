@@ -3,7 +3,7 @@ import { pustyOdczyt, walkaZakonczona } from "../src/stan-odczytu.ts";
 import { aggregate } from "../src/stats.ts";
 import { dekoduj } from "../src/protokol.ts";
 import type { RosterEntry } from "../src/roster.ts";
-import { cios, otwarcie, trafienie } from "./zdarzenia.ts";
+import { cios, trafienie } from "./zdarzenia.ts";
 
 /**
  * Stan odczytu — dwa pytania, które zostały po czujce.
@@ -24,7 +24,7 @@ const SKLAD: RosterEntry[] = [
 describe("walkaZakonczona", () => {
   test("rozstrzygnięcie kończy walkę", () => {
     expect(
-      walkaZakonczona([{ kind: "fight-end", outcome: "victory", actors: [], result: "" }]),
+      walkaZakonczona([{ kind: "fight-end", outcome: "victory" }]),
     ).toBe(true);
   });
 
@@ -49,10 +49,7 @@ describe("pustyOdczyt", () => {
 
   test("jeden cios wystarczy, żeby przestał być pusty", () => {
     const stats = aggregate(
-      [
-        otwarcie(["Kamil 100m"], ["Locha 50w"]),
-        cios("Kamil", "Locha", [trafienie(455)], { targetHpPct: 40.37 }),
-      ],
+      [cios("Kamil", "Locha", [trafienie(455)], { targetHpPct: 40.37 })],
       SKLAD,
     );
     expect(pustyOdczyt(stats)).toBe(false);
@@ -69,10 +66,7 @@ describe("pustyOdczyt", () => {
     // dołożenia im pola w `ActorStats`. Test stoi tu po to, żeby luka była
     // ZAPISANA, a nie odkryta drugi raz.
     const stats = aggregate(
-      [
-        otwarcie(["Kamil 100m"], ["Locha 50w"]),
-        cios("Kamil", "Locha", [trafienie(0, 0, { dodged: true })], { dodged: true }),
-      ],
+      [cios("Kamil", "Locha", [trafienie(0, 0, { dodged: true })], { dodged: true })],
       SKLAD,
     );
     expect(pustyOdczyt(stats)).toBe(true);

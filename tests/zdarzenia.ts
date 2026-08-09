@@ -1,4 +1,5 @@
-import type { BattleEvent, Hit, Participant } from "../src/types.ts";
+import type { RosterEntry } from "../src/roster.ts";
+import type { BattleEvent, Hit } from "../src/types.ts";
 
 /**
  * Budowanie strumieni `BattleEvent[]` wprost, bez przechodzenia przez odczyt.
@@ -17,36 +18,40 @@ import type { BattleEvent, Hit, Participant } from "../src/types.ts";
  * inaczej test opisywałby pomocnik, a nie agregat.
  */
 
-/** `Gracz (85b)` z linii otwierającej — nazwa, poziom, kod profesji, strona. */
-export function uczestnik(
-  name: string,
-  level: number,
-  professionCode: string,
-  side: number,
-): Participant {
-  return { name, level, professionCode, side };
-}
-
 /**
- * Linia otwierająca. Strona 0 to drużyna przed słowem „a", 1 po nim.
+ * SKŁAD walki, nie zdarzenie — drugi argument `aggregate`, ten sam kanał, którym
+ * skład podaje gra (`Engine.battle` → `roster.ts`).
+ *
+ * ⚠️ **DO 2026‑08‑09 ODDAWAŁO `{kind: "fight-start"}` I BYŁO TO JEDYNE, CO TEN
+ * WARIANT TRZYMAŁO PRZY ŻYCIU.** Dekoder protokołu nigdy go nie produkował, więc
+ * cały korpus testowy karmił `stats.ts` drogą, której produkcja nie ma. Nazwa
+ * `otwarcie` zostaje mimo zmiany typu: opisuje, CO się podaje (kto z kim staje
+ * do walki), a nie którym wariantem zdarzenia.
  *
  * Wygodny skrót zapisu `"Gracz 1w"` — bo w testach uczestnicy różnią się
  * zwykle tylko nazwą, a rozpisywanie czterech pól przy każdym zaciemniało
- * to, co w danym teście istotne.
+ * to, co w danym teście istotne. Strona 0 to drużyna gracza, 1 to przeciwnicy.
+ *
+ * `id` nadajemy z pozycji, bo `stats.ts` używa go jako klucza składu; wartości
+ * są dowolne, byle różne. Zdarzenia z tych pomocników `id` NIE niosą, więc
+ * rozdzielanie instancji leci tu heurystyką po życiu, dokładnie jak przedtem.
  */
-export function otwarcie(strona0: string[], strona1: string[]): BattleEvent {
-  const czytaj = (opis: string, side: number): Participant => {
+export function otwarcie(strona0: string[], strona1: string[]): RosterEntry[] {
+  const czytaj = (opis: string, side: number, id: number): RosterEntry => {
     const [name, statystyki] = opis.split(/\s+(?=\d)/);
     const poziom = Number.parseInt(statystyki ?? "1", 10);
-    return uczestnik(name!, Number.isFinite(poziom) ? poziom : 1, (statystyki ?? "1w").slice(-1), side);
+    return {
+      id,
+      name: name!,
+      side,
+      prof: (statystyki ?? "1w").slice(-1),
+      lvl: Number.isFinite(poziom) ? poziom : 1,
+    };
   };
-  return {
-    kind: "fight-start",
-    participants: [
-      ...strona0.map((o) => czytaj(o, 0)),
-      ...strona1.map((o) => czytaj(o, 1)),
-    ],
-  };
+  return [
+    ...strona0.map((o, i) => czytaj(o, 0, i + 1)),
+    ...strona1.map((o, i) => czytaj(o, 1, strona0.length + i + 1)),
+  ];
 }
 
 /** Pojedyncza liczba obrażeń w ciosie. Domyślnie zwykłe trafienie bez żywiołu. */
@@ -113,9 +118,9 @@ export function leczenie(
   };
 }
 
-/** „Wilk(100%) zrobił krok do przodu." */
-export function krok(actor: string, hpPct: number, description = "krok do przodu"): BattleEvent {
-  return { kind: "move", actor, hpPct, description };
+/** „Wilk(100%) zrobił krok do przodu." — treści komunikatu zdarzenie już nie niesie. */
+export function krok(actor: string, hpPct: number): BattleEvent {
+  return { kind: "move", actor, hpPct };
 }
 
 /** Zapowiedź „X wykonuje Y." — obrażenia niosą dopiero kolejne zdarzenia. */

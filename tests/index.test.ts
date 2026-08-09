@@ -262,7 +262,7 @@ describe("ostrzeżenie o spóźnionym podpięciu nie przeżywa walki", () => {
     },
   ];
   const koniec: BattleEvent[] = [
-    { kind: "fight-end", outcome: "victory", actors: ["Kamil"], result: "" },
+    { kind: "fight-end", outcome: "victory" },
   ];
   const sklad = [
     { id: 1, name: "Kamil", side: 0 },

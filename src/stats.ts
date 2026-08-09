@@ -102,7 +102,6 @@ function namesIn(event: BattleEvent): NameRef[] {
     //
     // Wyliczenie zamiast `default` sprawia, że następny wariant jest BŁĘDEM
     // KOMPILACJI — `noImplicitReturns` nie pozwoli funkcji wyjść bez `return`.
-    case "fight-start":
     case "fight-end":
     case "info":
     case "unknown":
@@ -123,17 +122,27 @@ function namesIn(event: BattleEvent): NameRef[] {
  * przypisałoby konkretnej postaci obrażenia, o których log milczy. Wtedy
  * zostaje jedna scalona instancja pod gołą nazwą, tak jak przed rozdzielaniem.
  */
-function instanceResolver(
-  roster: Seat[],
-  events: BattleEvent[],
-  /**
-   * Skład pochodzi z gry, nie z logu — wtedy liczba postaci o danej nazwie
-   * jest FAKTEM, a nie wnioskiem. Zmienia to dwie rzeczy: wiersze zakładamy
-   * wszystkim od razu (także tym, których log nigdy nie wymieni), a duplikaty
-   * numerujemy zawsze, bo wiemy, że to osobne postacie.
-   */
-  authoritative = false,
-) {
+/**
+ * ⚠️ **DO 2026‑08‑09 TA FUNKCJA MIAŁA DWA TRYBY I DRUGI BYŁ NIEOSIĄGALNY
+ * W PRODUKCJI.** Parametr `authoritative` odróżniał skład-FAKT (z `Engine.battle`)
+ * od składu-POSZLAKI, a poszlaka mogła przyjść wyłącznie zdarzeniem
+ * `fight-start` — którego dekoder protokołu nigdy nie produkował. Karmił go
+ * tylko własny korpus testowy.
+ *
+ * Co zeszło razem z tamtym trybem, bo bez niego nie liczyło już nic:
+ * - **przebieg rozpoznawczy** („ile instancji nazwa faktycznie ujawni") wraz
+ *   z mapą `spawned`. Przy składzie-fakcie liczbę wierszy podaje skład;
+ *   przy składzie pustym `track()` i tak zwracał zawsze 0, więc wychodziło 1.
+ *   Innej możliwości nie było.
+ * - **gałąź „scalony wiersz pod gołą nazwą"** w `ambiguousKeys`. Przy
+ *   składzie-fakcie duplikat zawsze dostaje `#1`/`#2`; scalenie wymagało
+ *   poszlaki.
+ *
+ * Co ZOSTAJE i nie ma nic wspólnego z tamtym trybem: heurystyka `track()`
+ * rozstrzygająca, KTÓREJ instancji dotyczy dana linia. Skład mówi tylko, ILE
+ * ich jest.
+ */
+function instanceResolver(roster: Seat[], events: BattleEvent[]) {
   const counts = new Map<string, number>();
   for (const participant of roster) {
     counts.set(participant.name, (counts.get(participant.name) ?? 0) + 1);
@@ -268,22 +277,13 @@ function instanceResolver(
     }
   }
 
-  // Przebieg rozpoznawczy: ile instancji każda nazwa faktycznie ujawni. Dopiero
-  // to rozstrzyga, czy etykietą jest goła nazwa, czy "Nazwa #n". Nazwy w trybie
-  // `id` go nie potrzebują — ich liczba wierszy stoi w składzie.
-  const dry = track();
-  const spawned = new Map<string, number>();
-  for (const event of events) {
-    for (const [name, hpPct, rising] of namesIn(event)) {
-      if (poId.has(name)) continue;
-      const index = dry(name, hpPct, rising);
-      spawned.set(name, Math.max(spawned.get(name) ?? 0, index + 1));
-    }
-  }
-
-  /** Ile wierszy dana nazwa dostanie. Ze składu z gry — tyle, ile postaci. */
-  const rows = (name: string): number =>
-    poId.has(name) || authoritative ? (counts.get(name) ?? 1) : (spawned.get(name) ?? 0);
+  /**
+   * Ile wierszy dana nazwa dostanie — tyle, ile stoi jej w składzie.
+   *
+   * `?? 1` dotyczy nazw SPOZA składu (log wymienia kogoś, kogo gra w składzie
+   * nie podała): jeden wiersz, bo nic nie mówi, że jest ich więcej.
+   */
+  const rows = (name: string): number => counts.get(name) ?? 1;
 
   const label = (name: string, index: number): string =>
     rows(name) > 1 ? instanceLabel(name, index) : name;
@@ -401,14 +401,14 @@ function instanceResolver(
     // wierszu twierdziłaby, że liczbie nie ufamy — a ufamy.
     .filter(([name]) => !poId.has(name))
     .filter(([, total]) => total > 1)
-    .flatMap(([name]) => {
-      const count = Math.max(rows(name), 1);
-      // Rozdzielone (#1, #2) albo scalone pod gołą nazwą — w obu razach liczba
-      // jest wnioskiem ze spadku HP, bo linia logu nie niesie tożsamości.
-      return count > 1
-        ? Array.from({ length: count }, (_, index) => instanceLabel(name, index))
-        : [name];
-    });
+    // Każdy duplikat dostaje własny wiersz (#1, #2), a liczba na nim jest
+    // wnioskiem ze spadku HP, bo linia logu nie niesie tożsamości — stąd
+    // gwiazdka. ⚠️ Stała tu druga gałąź, „scalone pod gołą nazwą", i była
+    // nieosiągalna bez składu-poszlaki (2026‑08‑09): przy składzie z gry
+    // `rows` równa się `total`, a `total > 1` sprawdza filtr wyżej.
+    .flatMap(([name, total]) =>
+      Array.from({ length: total }, (_, index) => instanceLabel(name, index)),
+    );
 
   return { resolve, seats, ambiguousKeys };
 }
@@ -829,20 +829,18 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     return breakdown;
   };
 
-  const fromLog = events.find((e) => e.kind === "fight-start")?.participants ?? [];
-  // Skład z gry ma pierwszeństwo: zna wszystkie postacie, także te, o których
-  // log milczy. Gdy go nie ma (testy, wklejony tekst, patch gry), lecimy z linii
-  // otwierającej — dokładnie jak przedtem.
-  const useGame = fromGame != null && fromGame.length > 0;
   /**
    * Jedyny skład, którym liczymy strony. Wszystko, co pyta „po której stronie
-   * stoi ta nazwa", MUSI czytać z tej samej listy co `seats` — inaczej przy
-   * wyjechanym z bufora nagłówku część kodu widzi skład z gry, a część pustkę.
+   * stoi ta nazwa", MUSI czytać z tej samej listy co `seats`.
+   *
+   * ⚠️ **DO 2026‑08‑09 STAŁO TU DRUGIE ŹRÓDŁO SKŁADU** — uczestnicy zdarzenia
+   * `fight-start`, z `fromLogByName` uzupełniającym profesję i poziom, oraz
+   * gałąź `else` lecąca „z linii otwierającej, dokładnie jak przedtem". Dekoder
+   * protokołu nie produkuje takiego zdarzenia, więc w produkcji ta lista była
+   * ZAWSZE pusta, a gałąź `else` — zawsze martwa. Karmił ją wyłącznie korpus
+   * testowy. Komentarz uzasadniał ją słowami „testy, wklejony tekst, patch
+   * gry"; ścieżka wklejonego tekstu zeszła z drzewa 2026‑08‑04.
    */
-  // Profesję i poziom niosą OBA źródła tak samo, więc bierzemy to, co jest.
-  // Skład z gry rządzi stronami, ale gdy jego wpis nie ma `prof` (starszy klient,
-  // patch), dokłada je linia otwierająca — i odwrotnie.
-  const fromLogByName = new Map(fromLog.map((p) => [p.name, p]));
   /**
    * Ile obrażeń dana etykieta zadała w każdej rodzinie typów.
    *
@@ -863,21 +861,14 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     families.set(family, (families.get(family) ?? 0) + amount);
   };
 
-  const roster: Seat[] = useGame
-    ? fromGame.map((entry) => ({
-        id: entry.id,
-        name: entry.name,
-        side: entry.side,
-        prof: entry.prof ?? fromLogByName.get(entry.name)?.professionCode,
-        level: entry.lvl ?? fromLogByName.get(entry.name)?.level,
-      }))
-    : fromLog.map((p) => ({
-        name: p.name,
-        side: p.side,
-        prof: p.professionCode,
-        level: p.level,
-      }));
-  const { resolve, seats, ambiguousKeys } = instanceResolver(roster, events, useGame);
+  const roster: Seat[] = (fromGame ?? []).map((entry) => ({
+    id: entry.id,
+    name: entry.name,
+    side: entry.side,
+    prof: entry.prof,
+    level: entry.lvl,
+  }));
+  const { resolve, seats, ambiguousKeys } = instanceResolver(roster, events);
 
   /**
    * Sprawcę tykającego efektu da się wskazać, gdy po drugiej stronie stoi
@@ -888,10 +879,10 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
    * Liczymy WPISY składu, nie unikalne nazwy: dwie "Lochy" po drugiej stronie
    * to dwóch możliwych sprawców, choć nazwa jest jedna.
    *
-   * Stronę celu bierzemy z tego samego `roster`, z którego powstały `seats` —
-   * przy składzie z gry działa więc także wtedy, gdy linia otwierająca wyjechała
-   * już z bufora. Wcześniej czytało to wyłącznie uczestników z `fight-start`,
-   * więc w tej samej walce sprawca trucizny „gubił się” po przycięciu logu.
+   * Stronę celu bierzemy z tego samego `roster`, z którego powstały `seats`.
+   * Historycznie czytało to uczestników linii otwierającej, więc sprawca
+   * trucizny „gubił się" po przycięciu logu; dziś skład idzie z gry i przycięcie
+   * bufora nic mu nie robi.
    */
   const opponentOf = (name: string): string | null => {
     const matches = roster.filter((p) => p.name === name);
@@ -1352,7 +1343,6 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         }
         break;
       }
-      case "fight-start":
       case "fight-end":
       case "info":
         break;
