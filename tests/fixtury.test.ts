@@ -278,7 +278,11 @@ describe.each(FIXTURY)("$nazwa", (f: Fixtura) => {
   });
 
   test("każdy klucz rozpoznany — zero nieznanych komunikatów", () => {
-    expect(stats.unknownLines).toBe(0);
+    // Trzy zera, nie jedno: `unknownKept` też musi być puste. Zastrzeżenie bez
+    // straty nie psuje liczb, ale w materiale z gry NIE MA go i to jest fakt
+    // wart pilnowania — pojawienie się go znaczy, że protokół przyniósł kształt,
+    // którego dekoder nie umie sparować (`AUDYT‑114`).
+    expect([stats.unknownMessages, stats.unknownSegments, stats.unknownKept]).toEqual([0, 0, 0]);
   });
 
   test("każdy żywioł nazwany — zero nieznanych kodów `dmgX`", () => {

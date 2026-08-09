@@ -174,10 +174,44 @@ export function plural(count: number, forms: [string, string, string]): string {
 }
 
 const fightWord = (count: number) => plural(count, ["walka", "walki", "walk"]);
-/** „1 nierozpoznana linia" zamiast „1 nierozpoznanych linii". */
-const lineWord = (count: number) => plural(count, ["linia", "linie", "linii"]);
-const unknownWord = (count: number) =>
-  plural(count, ["nierozpoznana", "nierozpoznane", "nierozpoznanych"]);
+/**
+ * ⚠️ **STAŁY TU `lineWord` I `unknownWord` — „N nierozpoznanych LINII".**
+ * Protokół linii nie ma, a liczba pod tym napisem mieszała komunikaty
+ * z segmentami (`AUDYT‑114`). Odmiany są dziś dwie, bo i wielkości są dwie.
+ */
+const messageWord = (count: number) =>
+  plural(count, ["komunikat", "komunikaty", "komunikatów"]);
+const segmentWord = (count: number) =>
+  plural(count, ["segment", "segmenty", "segmentów"]);
+/**
+ * ⚠️ **PRZYMIOTNIK ODMIENIA SIĘ RAZEM Z RZECZOWNIKIEM — i tu przez chwilę się
+ * nie odmieniał.** Pierwsza wersja `AUDYT‑114` deklinowała samo `segment`,
+ * a `niezrozumianych` stało w napisie na sztywno: wychodziło **„1 segment
+ * niezrozumianych"** i **„2 segmenty niezrozumianych"**, poprawne dopiero od
+ * pięciu. Skasowany w tej samej rundzie `unknownWord` istniał **dokładnie po
+ * to** (`["nierozpoznana", "nierozpoznane", "nierozpoznanych"]`) — czyli runda
+ * usunęła strażnika i od razu wpadła w dziurę, której on pilnował.
+ *
+ * Wniosek na przyszłość: liczebnik w napisie ciągnie za sobą KAŻDE słowo, które
+ * się z nim zgadza, a nie tylko to najbliższe.
+ */
+const misunderstoodWord = (count: number) =>
+  plural(count, ["niezrozumiany", "niezrozumiane", "niezrozumianych"]);
+const droppedWord = (count: number) =>
+  plural(count, ["odrzucony", "odrzucone", "odrzuconych"]);
+/**
+ * ⚠️ **RZECZOWNIK BEZ ZASIĘGU — I TO JEST DECYZJA, NIE STYL.** Napis brzmiał
+ * „N komunikatów policzonych mimo zastrzeżenia", a `unknownKept` **zlewa oba
+ * zasięgi**: obcięcie na drugim `=` to SEGMENT i renderowało się jako
+ * „1 komunikat policzony". Czyli runda rozdzielająca jednostki zostawiła
+ * fałszywą jednostkę w jedynym liczniku, który nie dostał osi `scope`.
+ *
+ * Wybrane zamiast czwartego pola (`unknownKeptSegments`), bo napis, który
+ * o zasięgu **nie mówi nic**, nie może o nim skłamać — a rozróżnienie i tak nie
+ * miałoby czytelnika: w obu fixture'ach z gry ten licznik jest zerem.
+ */
+const reservationWord = (count: number) =>
+  plural(count, ["zastrzeżenie", "zastrzeżenia", "zastrzeżeń"]);
 /** Wspólne dla panelu i archiwum — te same liczniki stoją w obu. */
 export const turnWord = (count: number) => plural(count, ["tura", "tury", "tur"]);
 
@@ -2819,12 +2853,37 @@ export class Overlay {
   private renderFooter(stats: BattleStats): HTMLElement | null {
     const notes: Array<{ text: string; warn: boolean }> = [];
 
-    if (stats.unknownLines > 0) {
+    // ⚠️ **KOLEJNOŚĆ NIE JEST KOSMETYKĄ.** Wiedzie liczba, która znaczy STRATĘ
+    // CAŁEGO komunikatu — bo to ona potrafi znaczyć „wszystko". Do 2026‑08‑07
+    // stał tu jeden napis dla obu wielkości i dla zerowej straty też
+    // (`AUDYT‑114`): „⚠ 35 nierozpoznanych linii" znaczyło 0 % straty,
+    // a „⚠ 443" — 100 %, tymi samymi słowami.
+    if (stats.unknownMessages > 0) {
       notes.push({
         text:
-          `⚠ ${stats.unknownLines} ${unknownWord(stats.unknownLines)} ` +
-          `${lineWord(stats.unknownLines)} — statystyki niepełne`,
+          `⚠ ${stats.unknownMessages} ${messageWord(stats.unknownMessages)} ` +
+          `${droppedWord(stats.unknownMessages)} — statystyki niepełne`,
         warn: true,
+      });
+    }
+    if (stats.unknownSegments > 0) {
+      // Bez „statystyki niepełne": reszta komunikatu weszła do liczb, więc
+      // strata jest częściowa i nie wolno jej opisywać tak samo jak całkowitej.
+      notes.push({
+        text:
+          `⚠ ${stats.unknownSegments} ${segmentWord(stats.unknownSegments)} ` +
+          `${misunderstoodWord(stats.unknownSegments)} w policzonych komunikatach`,
+        warn: true,
+      });
+    }
+    if (stats.unknownKept > 0) {
+      // `warn: false` — TO NIE JEST OSTRZEŻENIE O LICZBACH, tylko informacja,
+      // że coś w protokole nas zaskoczyło. Liczby są. Gdyby szło z ⚠, gracz
+      // dostawałby alarm o odczycie, który się udał.
+      notes.push({
+        text:
+          `ⓘ ${stats.unknownKept} ${reservationWord(stats.unknownKept)} — liczby są`,
+        warn: false,
       });
     }
     if (stats.unknownElements.length > 0) {

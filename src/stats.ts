@@ -664,12 +664,37 @@ export type Aggregate = {
    * ze spadku HP, a nie odczytując stan gry.
    */
   ambiguousNames: string[];
-  /** Komunikaty, których dekoder nie zrozumiał. Niezerowe = statystyki niepełne. */
-  unknownLines: number;
+  /**
+   * Komunikaty, z których nie weszło do statystyk NIC. To jest liczba mówiąca
+   * o STRACIE i to ona wiedzie w panelu.
+   *
+   * ⚠️ **STAŁO TU JEDNO POLE `unknownLines` I MIESZAŁO CZTERY RZECZY**
+   * (`AUDYT‑114`). Liczyło zdarzenia `unknown` bez względu na to, czy opisywały
+   * cały komunikat, czy jeden segment, i czy cokolwiek przez nie przepadło.
+   * Zmierzone: nieznany klucz dawał 35 przy 100 % obrażeń nienaruszonych,
+   * wojownik spoza składu — 443 przy 0 % obrażeń. Ten sam napis w panelu.
+   */
+  unknownMessages: number;
+  /**
+   * Segmenty, których nie zrozumiano WEWNĄTRZ policzonych komunikatów.
+   *
+   * Strata częściowa: reszta komunikatu weszła do liczb. Osobno od
+   * `unknownMessages`, bo skala jest inna o rząd wielkości — i właśnie zlanie
+   * tych dwóch było usterką.
+   */
+  unknownSegments: number;
+  /**
+   * Ile razy czujka zapaliła się, NIE tracąc liczby.
+   *
+   * Obcięcie na drugim `=` i niesparowane `-dmgX`. Nie jest to strata i nie ma
+   * prawa podbijać dwóch pól wyżej — ale znika też nie ma prawa, bo reguła brzmi
+   * „nieznane ma być głośne", a nie „nieznane ze stratą ma być głośne".
+   */
+  unknownKept: number;
   /**
    * Klasy `dmgX` z DOM gry, których nie umiemy nazwać — np. `dmgo`.
    *
-   * Osobno od `unknownLines`, bo linia jest zrozumiana i liczby się zgadzają;
+   * Osobno od liczników wyżej, bo komunikat jest zrozumiany i liczby się zgadzają;
    * niepewny jest sam RODZAJ obrażeń. Bez tego nowa klasa wsiąkała w „bez
    * żywiołu" razem z logiem wklejonym jako tekst, czyli zmiana formatu
    * przechodziła bez śladu — wbrew kontraktowi „nieznane ma być głośne".
@@ -711,7 +736,9 @@ export const EMPTY_STATS: BattleStats = Object.freeze({
   }),
   unattributedHealing: Object.freeze({ mine: 0, enemy: 0, loose: 0 }),
   ambiguousNames: Object.freeze([] as string[]),
-  unknownLines: 0,
+  unknownMessages: 0,
+  unknownSegments: 0,
+  unknownKept: 0,
   unknownElements: Object.freeze([] as string[]),
   timeline: Object.freeze([] as TurnSlice[]),
 }) as BattleStats;
@@ -954,7 +981,9 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
   // Leczącego log nie podaje, ale LECZONEGO tak — zbieramy po nim, a na stronę
   // przeliczymy na końcu, dokładnie tak samo jak przy tykających obrażeniach.
   const unattributedHealingByTarget = new Map<string, number>();
-  let unknownLines = 0;
+  let unknownMessages = 0;
+  let unknownSegments = 0;
+  let unknownKept = 0;
   /** Klasy `dmgX`, których nie umiemy nazwać — patrz `BattleStats`. */
   const unknownElements = new Set<string>();
   const noteElement = (element: string | null) => {
@@ -1268,7 +1297,13 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
         break;
       }
       case "unknown":
-        unknownLines += 1;
+        // Trzy liczniki, nie jeden — bo `unknown` niesie dwie osie i mieszanie
+        // ich dawało napis o tej samej treści przy 0 % i przy 100 % straty
+        // (`AUDYT‑114`). `dropped` rozstrzyga PIERWSZY: komunikat zachowany
+        // (niesparowane `-dmgX`) nie jest stratą, choć cytuje cały komunikat.
+        if (!event.dropped) unknownKept += 1;
+        else if (event.scope === "message") unknownMessages += 1;
+        else unknownSegments += 1;
         break;
       case "move":
         beginTurn(resolve(event.actor, event.hpPct, false, event.actorId));
@@ -1438,7 +1473,9 @@ export function aggregate(events: BattleEvent[], fromGame?: RosterEntry[] | null
     unattributedDotDamage,
     unattributedHealing,
     ambiguousNames: ambiguousKeys,
-    unknownLines,
+    unknownMessages,
+    unknownSegments,
+    unknownKept,
     unknownElements: [...unknownElements].sort(),
     timeline,
   };

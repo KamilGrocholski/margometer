@@ -595,7 +595,9 @@ describe("dekoduj: leczenie i obrażenia bez sprawcy", () => {
     // bezwarunkowe „Przywrócono". Minus przy nich to kształt spoza reguły gry —
     // ma zapalić czujkę, a nie zostać po cichu przemianowany na ubytek.
     const zd = dekoduj(["1=88.00;2=50.00;heal_target=-50"], SKLAD);
-    expect(zd).toEqual([{ kind: "unknown", line: "heal_target=-50", lineNo: 0 }]);
+    expect(zd).toEqual([
+      { kind: "unknown", line: "heal_target=-50", lineNo: 0, scope: "segment", dropped: true },
+    ]);
   });
 
   test("`heal_target` leczy CEL i własne już nie jest", () => {
@@ -1017,7 +1019,13 @@ describe("dekoduj: brzmienie z dziurą jest gorsze od klucza", () => {
 describe("dekoduj: nieznane jest głośne", () => {
   test("nierozpoznany klucz daje `unknown` z CAŁYM segmentem, nie z samym kluczem", () => {
     const zd = dekoduj(["1=100.00;2=90.00;+dmg=10;-dmg=10;czegoNieZnamy=7"], SKLAD);
-    expect(zd).toContainEqual({ kind: "unknown", line: "czegoNieZnamy=7", lineNo: 0 });
+    expect(zd).toContainEqual({
+      kind: "unknown",
+      line: "czegoNieZnamy=7",
+      lineNo: 0,
+      scope: "segment",
+      dropped: true,
+    });
   });
 
   test("nieznany klucz NIE kasuje reszty komunikatu", () => {
@@ -1033,12 +1041,73 @@ describe("dekoduj: nieznane jest głośne", () => {
 
   test("id spoza składu nie dostaje zmyślonej nazwy", () => {
     const zd = dekoduj(["999=100.00;2=90.00;+dmg=10;-dmg=10"], SKLAD);
-    expect(zd).toEqual([{ kind: "unknown", line: "999=100.00;2=90.00;+dmg=10;-dmg=10", lineNo: 0 }]);
+    expect(zd).toEqual([
+      {
+        kind: "unknown",
+        line: "999=100.00;2=90.00;+dmg=10;-dmg=10",
+        lineNo: 0,
+        scope: "message",
+        dropped: true,
+      },
+    ]);
   });
 
   test("obcięcie na drugim `=` zapala czujkę", () => {
     const zd = dekoduj(["1=100.00;2=90.00;klucz=a=b"], SKLAD);
     expect(zd.some((z) => z.kind === "unknown")).toBe(true);
+  });
+
+  /**
+   * CZTERY KOMÓRKI TABELI 2×2 — `scope` × `dropped`.
+   *
+   * ⚠️ **DO 2026‑08‑07 NIE BYŁO ANI JEDNEGO TAKIEGO TESTU** (`AUDYT‑114`).
+   * Zdarzenie `unknown` opisywało raz cały komunikat, raz segment, a `stats.ts`
+   * sumowało jedno z drugim — i **całą tę usterkę dało się naprawić albo zepsuć
+   * bez zmiany ani jednej asercji liczbowej w repo**. Zmierzone: jedyny test
+   * z twardą liczbą (`overlay.test.ts`) przechodził także po deduplikacji.
+   *
+   * Dlatego to jest test o KONTRAKCIE, nie o pojedynczym kształcie: każda
+   * kombinacja jest osiągalna z gry i każda znaczy dla gracza co innego.
+   */
+  describe("`unknown` deklaruje zasięg i skutek", () => {
+    const czujka = (komunikat: string) =>
+      dekoduj([komunikat], SKLAD)
+        .filter((z) => z.kind === "unknown")
+        .map((z) => ({ scope: z.scope, dropped: z.dropped }));
+
+    test("id spoza składu — CAŁY komunikat, wszystko stracone", () => {
+      expect(czujka("999=100.00;2=90.00;+dmg=10;-dmg=10")).toEqual([
+        { scope: "message", dropped: true },
+      ]);
+    });
+
+    test("nieznany klucz — SEGMENT, reszta komunikatu policzona", () => {
+      const zd = dekoduj(["1=100.00;2=90.00;+dmg=10;-dmg=10;czegoNieZnamy=7"], SKLAD);
+      expect(
+        zd.filter((z) => z.kind === "unknown").map((z) => ({ scope: z.scope, dropped: z.dropped })),
+      ).toEqual([{ scope: "segment", dropped: true }]);
+      // Dowód, że `dropped` mówi prawdę: cios z tego samego komunikatu JEST.
+      expect(zd.some((z) => z.kind === "attack")).toBe(true);
+    });
+
+    test("obcięcie na drugim `=` — SEGMENT, ale NIC nie stracone", () => {
+      // Gra gubi ogon tak samo (`BattleMessages.js:176`), a sam klucz jest
+      // przetwarzany dalej. To zastrzeżenie, nie strata.
+      expect(czujka("1=100.00;2=90.00;+dmg=10;-dmg=10;+pierce=a=b")).toEqual([
+        { scope: "segment", dropped: false },
+      ]);
+    });
+
+    test("niesparowane `-dmgX` — CAŁY komunikat, ale NIC nie stracone", () => {
+      // ⚠️ Komórka, której `AUDYT‑114` nie przewidywał. Cytujemy cały komunikat,
+      // bo niesparowana jest RELACJA między segmentami — a `attack` powstaje
+      // mimo to i obrażenia wchodzą do statystyk.
+      const zd = dekoduj(["1=100.00;2=40.37;+dmgf=100;-dmgd=100"], SKLAD);
+      expect(
+        zd.filter((z) => z.kind === "unknown").map((z) => ({ scope: z.scope, dropped: z.dropped })),
+      ).toEqual([{ scope: "message", dropped: false }]);
+      expect(zd.some((z) => z.kind === "attack")).toBe(true);
+    });
   });
 
   test("milczący klucz NIE zapala czujki", () => {

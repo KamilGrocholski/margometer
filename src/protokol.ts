@@ -1081,13 +1081,36 @@ export function dekoduj(
    */
   const przetworzKomunikat = (surowy: string, nr: number): void => {
     const { nadawca, cel, parametry } = rozbierz(surowy);
-    const nieznany = (co: string) => zdarzenia.push({ kind: "unknown", line: co, lineNo: nr });
+
+    /**
+     * Czujka nieznanego — TRZY nazwane wejścia zamiast jednego `nieznany`.
+     *
+     * ⚠️ **STAŁA TU JEDNA FUNKCJA I TO ONA BYŁA USTERKĄ** (`AUDYT‑114`). Piętnaście
+     * wywołań podawało jej raz cały komunikat, raz pojedynczy segment, a licznik
+     * piętro wyżej sumował jedno z drugim. Nazwa wywołania nie mówiła, co wchodzi,
+     * więc **nie dało się tego zauważyć w miejscu wywołania** — dopiero po
+     * przeczytaniu, czy argumentem jest `surowy`, czy `p.surowy`.
+     *
+     * Trzy wejścia zamiast parametru `scope: "message" | "segment"` dlatego, że
+     * przy parametrze dopisanie szesnastego wywołania z domyślną wartością
+     * wygląda jak reszta pliku. Tu nie ma czego pominąć: każde wywołanie MUSI
+     * wybrać komórkę tabeli 2×2 z docstringa `BattleEvent.unknown`.
+     */
+    const czujka = (co: string, scope: "message" | "segment", dropped: boolean) =>
+      zdarzenia.push({ kind: "unknown", line: co, lineNo: nr, scope, dropped });
+    /** Cały komunikat przepada — nic z niego nie wchodzi do statystyk. */
+    const odrzucKomunikat = (co: string) => czujka(co, "message", true);
+    /** Ten segment przepada; reszta komunikatu liczy się normalnie. */
+    const odrzucSegment = (co: string) => czujka(co, "segment", true);
+    /** Czujka zapala się, ale liczby SĄ — patrz `dropped` w `types.ts`. */
+    const zastrzezenie = (co: string, scope: "message" | "segment") =>
+      czujka(co, scope, false);
 
     const nadawcaNazwa = nadawca === null ? null : (nazwy.get(nadawca.id) ?? null);
     const celNazwa = cel === null ? null : (nazwy.get(cel.id) ?? null);
     if ((nadawca !== null && nadawcaNazwa === null) || (cel !== null && celNazwa === null)) {
       // Id spoza składu. Nie zgadujemy — cały komunikat idzie do czujki.
-      nieznany(surowy);
+      odrzucKomunikat(surowy);
       return;
     }
 
@@ -1168,11 +1191,14 @@ export function dekoduj(
       // też przechodzi po nim gałęzią `default` bez skutku, bo `substr` pustego
       // ciągu nie da „dmg".
       if (p.klucz === "") continue;
-      if (p.obciete) nieznany(p.surowy);
+      // ZASTRZEŻENIE, NIE ODRZUCENIE: klucz z drugiego `=` jest niżej
+      // przetwarzany normalnie, więc liczby z tego segmentu SĄ. Gubimy tylko
+      // ogon wartości — zgodnie z grą, która robi to samo (`BattleMessages.js:176`).
+      if (p.obciete) zastrzezenie(p.surowy, "segment");
 
       const r = rola(p.klucz);
       if (r === null) {
-        nieznany(p.surowy);
+        odrzucSegment(p.surowy);
         continue;
       }
 
@@ -1181,7 +1207,7 @@ export function dekoduj(
         case "ciosProc": {
           const wartosc = liczba(p.wartosc);
           if (wartosc === null) {
-            nieznany(p.surowy);
+            odrzucSegment(p.surowy);
             break;
           }
           // `+thirdatt` niesie liczbę I jest procem naraz; jako cios należy do
@@ -1205,13 +1231,13 @@ export function dekoduj(
         }
         case "przyjete": {
           const wartosc = liczba(p.wartosc);
-          if (wartosc === null) nieznany(p.surowy);
+          if (wartosc === null) odrzucSegment(p.surowy);
           else przyjete.push({ kod: r.kod, wartosc });
           break;
         }
         case "blok": {
           const wartosc = liczba(p.wartosc);
-          if (wartosc === null) nieznany(p.surowy);
+          if (wartosc === null) odrzucSegment(p.surowy);
           else blok = (blok ?? 0) + wartosc;
           break;
         }
@@ -1246,7 +1272,7 @@ export function dekoduj(
           // „ile osłabienie zdjęło", a nie samo leczenie. Dołożenie pola byłoby
           // zmianą kontraktu poza zakresem tej rundy — zapisane w `docs/AUDYT.md`.
           const kwota = liczba(czlony(p.wartosc)[0] ?? null);
-          if (strona === null || kwota === null) nieznany(p.surowy);
+          if (strona === null || kwota === null) odrzucSegment(p.surowy);
           // ⚠️ **UJEMNA KWOTA TO „STRACONO", CZYLI REALNY UBYTEK ŻYCIA**
           // (`AUDYT‑88`). Gra rozstrzyga to znakiem, w jednym warunku
           // (`BattleMessages.js:301`):
@@ -1279,7 +1305,7 @@ export function dekoduj(
             });
           // Ujemna kwota przy kluczu, którego zdanie NIE ma `%gain_lost%`, jest
           // kształtem spoza reguły gry. Głośno, zamiast po cichu przemianować.
-          else if (kwota < 0) nieznany(p.surowy);
+          else if (kwota < 0) odrzucSegment(p.surowy);
           else
             zdarzenia.push({
               kind: "heal",
@@ -1307,7 +1333,7 @@ export function dekoduj(
         }
         case "dot": {
           const kwota = liczba(czlony(p.wartosc)[0] ?? null);
-          if (nadawcaNazwa === null || kwota === null || nadawca === null) nieznany(p.surowy);
+          if (nadawcaNazwa === null || kwota === null || nadawca === null) odrzucSegment(p.surowy);
           else
             zdarzenia.push({
               kind: "dot",
@@ -1342,7 +1368,7 @@ export function dekoduj(
           // przyimka, więc do `dot` nie pasuje. `attack` bez ciosu (`strike: false`)
           // to kształt, którym `types.ts` opisuje własne obrażenia umiejętności.
           const kwota = liczba(p.wartosc);
-          if (nadawcaNazwa === null || kwota === null || nadawca === null) nieznany(p.surowy);
+          if (nadawcaNazwa === null || kwota === null || nadawca === null) odrzucSegment(p.surowy);
           else
             zdarzenia.push({
               kind: "attack",
@@ -1387,7 +1413,7 @@ export function dekoduj(
          */
         case "obrazeniaCelu": {
           const kwota = liczba(p.wartosc);
-          if (nadawcaNazwa === null || celNazwa === null || kwota === null) nieznany(p.surowy);
+          if (nadawcaNazwa === null || celNazwa === null || kwota === null) odrzucSegment(p.surowy);
           else
             zdarzenia.push({
               kind: "attack",
@@ -1417,7 +1443,7 @@ export function dekoduj(
           break;
         }
         case "zapowiedz": {
-          if (nadawcaNazwa === null || p.wartosc === null) nieznany(p.surowy);
+          if (nadawcaNazwa === null || p.wartosc === null) odrzucSegment(p.surowy);
           else {
             zapowiedziana = p.wartosc;
             swiezaZapowiedz = true;
@@ -1448,7 +1474,7 @@ export function dekoduj(
           zdarzenia.push({ kind: "info", line: p.wartosc ?? "" });
           break;
         case "krok": {
-          if (nadawcaNazwa === null || nadawca === null) nieznany(p.surowy);
+          if (nadawcaNazwa === null || nadawca === null) odrzucSegment(p.surowy);
           else
             zdarzenia.push({
               kind: "move",
@@ -1517,7 +1543,7 @@ export function dekoduj(
     }
 
     if (nadawcaNazwa === null || celNazwa === null) {
-      nieznany(surowy);
+      odrzucKomunikat(surowy);
       return;
     }
 
@@ -1571,7 +1597,12 @@ export function dekoduj(
         dodged: unik && przyjeta === 0,
       });
     }
-    if (wolne.length > 0) nieznany(surowy);
+    // ZASTRZEŻENIE, NIE ODRZUCENIE — i to jest komórka tabeli, której `AUDYT‑114`
+    // nie przewidywał. Cytujemy CAŁY komunikat (bo niesparowana jest relacja
+    // między segmentami, nie pojedynczy segment), ale zdarzenie `attack` powstaje
+    // niżej mimo wszystko i obrażenia wchodzą do statystyk. Do 2026‑08‑07 taki
+    // przypadek podbijał tę samą liczbę, co komunikat stracony w całości.
+    if (wolne.length > 0) zastrzezenie(surowy, "message");
     for (const [i, w] of wolne.entries()) {
       trafienia.push({
         raw: 0,

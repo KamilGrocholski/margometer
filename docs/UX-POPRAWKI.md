@@ -59,7 +59,7 @@ które nie działały wcale.
 | B6 | Ostrzeżenie, gdy nagrania wypychają najstarsze | S | 🟡 | otwarte (pasek pokazuje `N walk · M kB`, bez ułamka budżetu) |
 | B7 | Filtr / szukajka w archiwum (przeciwnik, wynik, dzień) | M | 🟡 | otwarte (w `archive.ts` zero pól wejściowych) |
 | B8 | ~~Klik w okruszek `‹ …` = powrót (dla myszy)~~ | S | — | **✅ ZROBIONE** (`overlay.ts:1654`) |
-| B9 | „Kopiuj nierozpoznane komunikaty” przy ostrzeżeniu odczytu | S | ⚪ | otwarte (`BattleStats` niesie tylko `unknownLines`) |
+| B9 | „Kopiuj nierozpoznane komunikaty” przy ostrzeżeniu odczytu | S | ⚪ | otwarte (`BattleStats` niesie same liczniki, bez treści — ale od `AUDYT‑114` wiadomo, CZEGO jest liczba) |
 | B10 | Eksport czytelny (Discord), nie tylko JSON | M | ⚪ | otwarte |
 | B11 | Onboarding: pierwsza walka mówi, co kliknąć | S | ⚪ | częściowo — dymek ma `tip-hint` „LPM — rozbicie · PPM — powrót” (`overlay.ts:2133`), ale trzeba na coś najechać, żeby go zobaczyć |
 | B12 | Reset ustawień nakładki | S | ⚪ | otwarte, ale **mniej pilne**: po `A10` okna nie da się już zgubić |
@@ -408,6 +408,19 @@ zgłosić lukę odczytu. `dekoduj` trzyma `line`/`lineNo` w zdarzeniu `unknown`
 (`line` to dziś SUROWY KOMUNIKAT protokołu, `lineNo` jego indeks) — a `aggregate`
 liczy tylko `unknownLines`, więc trzeba przepuścić same treści do `BattleStats`.
 Zamienia cichą regresję formatu w zgłoszenie na jeden klik.
+
+⚠️ **SPROSTOWANIE, 2026‑08‑08 (`AUDYT‑114`).** Akapit wyżej mówi „`line` to dziś
+SUROWY KOMUNIKAT protokołu" i **było to nieprawdą dla 12 z 15 miejsc** — całym
+komunikatem `line` bywa tylko przy id spoza składu, braku nazwy strony
+i niesparowanym `-dmgX`; w pozostałych jedenastu niesie POJEDYNCZY SEGMENT.
+Tak samo zdezaktualizowały się nazwy: pola `unknownLines` nie ma (trzy pola:
+`unknownMessages`, `unknownSegments`, `unknownKept`), a stopka nie mówi już
+„nierozpoznanych linii".
+
+✅ **Ta runda ZMNIEJSZYŁA koszt `B9`, nie zwiększyła.** Zdarzenie `unknown` niesie
+dziś `scope`, więc „skopiuj nierozpoznane" da się zrobić bez zgadywania, co
+wkleić: komunikaty w całości i segmenty osobno, a nie jedna lista dwóch różnych
+rzeczy. Do zrobienia zostaje samo przepuszczenie treści do `BattleStats`.
 
 **Zwrot z tego urósł po 2026‑08‑04**: nierozpoznany komunikat jest dziś jedyną
 rzeczą, po której poznamy, że gra dołożyła klucz — dekoder nie ma świadka spoza

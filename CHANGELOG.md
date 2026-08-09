@@ -47,6 +47,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Opis dodatku mówi wprost, że twórcy Margonem go nie
   autoryzowali, i przytacza punkty regulaminu, które go dotyczą. Instalujesz
   na własne ryzyko — przeczytaj to przed instalacją.
+- **Poprawka** — Ostrzeżenie na dole panelu mówi teraz, ile naprawdę przepadło.
+  Dotąd był jeden napis „N nierozpoznanych linii — statystyki niepełne" i znaczył
+  raz „nic nie przepadło", raz „przepadła cała walka" — tymi samymi słowami.
+  Teraz osobno widać, ile wiadomości z walki odrzucono w całości (i tylko wtedy
+  pada „statystyki niepełne"), ile pojedynczych drobiazgów nie zrozumiano
+  wewnątrz wiadomości, które policzono, i ile rzeczy policzono mimo zastrzeżenia.
+  To ostatnie nie jest już ostrzeżeniem, tylko informacją — bo liczby się
+  zgadzają.
 - **Poprawka** — Gdy obok MargoMetra działa inny dodatek czytający przebieg
   walki, liczby zostają prawdziwe. Dotąd w takiej sytuacji panel potrafił
   pokazać dokładnie dwa razy za dużo — każdy cios liczył się dwukrotnie —

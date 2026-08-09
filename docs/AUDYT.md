@@ -3612,6 +3612,14 @@ pozyskiwania danych; sekcja powstała **w całości otwarta**, wszystkie wpisy
 w statusie `⬜ ZAPISANE, nienaprawione` — jak sekcja `I`, gdzie naprawy szły
 osobnymi decyzjami.
 
+✅ **Stan na 2026‑08‑08:** `AUDYT‑107` i `AUDYT‑114` zamknięte, `AUDYT‑108`
+w połowie (martwe kryterium skasowane, podział po `fight-end` otwarty). Reszta
+bez zmian. Zdanie „powstała w całości otwarta" zostaje, bo opisuje moment
+powstania — **status pojedynczej pozycji czyta się z jej własnego nagłówka, nie
+stąd**. To ta sama pułapka, którą sekcja `§G` niesie jako wniosek od 2026‑08‑02
+(„tabela ze statusem cudzej pozycji jest długiem"): akapit zbiorczy starzeje się
+szybciej niż wpisy, które opisuje.
+
 Drzewo czyste, brama zielona: **816 zielonych, 0 czerwonych, 2187 `expect()`,
 24 pliki**, `tsc --noEmit` bez błędu przy dziesięciu flagach ścisłości, **zero
 `any` i zero `@ts-ignore` w `src/`**.
@@ -3903,11 +3911,24 @@ komunikaty** — to zasługa `36fe66a`. Ryzyko zostaje dla wojownika, którego n
 ma w ŻADNEJ migawce, i dla ścieżki archiwum, gdzie migawek już nie będzie
 (`AUDYT‑112`).
 
-⚠️ **Ostrzeżenie jest, tylko liczy nie to.** Panel mówi `⚠ N nieznanych linii —
-statystyki niepełne`. Liczba `N` to liczba zdarzeń `unknown`; użytkownik
+⚠️ **Ostrzeżenie jest, tylko liczy nie to.** Panel mówi `⚠ N nierozpoznanych
+linii — statystyki niepełne`. Liczba `N` to liczba zdarzeń `unknown`; użytkownik
 potrzebuje wiedzieć, ile LICZB stracił. W tabeli wyżej „⚠ 37" znaczy 2,5 %
 straty, a „⚠ 443" — wszystko. Rozpiętość jest o dwa rzędy wielkości, a słowa
 te same.
+
+⚠️ **Sprostowanie do CYTATU wyżej, dopisane 2026‑08‑08.** Stało tu `⚠ N
+nieznanych linii`, a kod mówił `nierozpoznanych` (`overlay.ts`, `unknownWord`).
+Drobiazg, ale wart odnotowania w tym akurat wpisie: **rejestr zarzucający panelowi
+nieprecyzyjne słowa sam zacytował je nieprecyzyjnie**, i to w tej samej rundzie,
+w której powstał. Cytat przepisany z pamięci wygląda tak samo jak cytat odczytany.
+
+✅ **CZĘŚĆ O JEDNOSTCE ZAMKNIĘTA 2026‑08‑08** (`AUDYT‑114`). Napis nie brzmi już
+tak samo przy 0 % i przy 100 % straty: stopka ma trzy niezależne komunikaty,
+a wiedzie ten o komunikatach ODRZUCONYCH. **To nie domyka tego wpisu** — dalej
+brakuje przejścia od liczby zdarzeń do liczby OBRAŻEŃ. Zmieniło się tyle, że
+liczba, którą gracz widzi na pierwszym miejscu, ma dziś stałą jednostkę i znaczy
+stratę.
 
 **Docelowo.** `docs/ROADMAP.md` i `src/stats.ts`. Kierunek: `unknown` niosące
 czytelne `+dmg*` mogłoby wnieść do agregatu samą KWOTĘ jako „bez sprawcy",
@@ -4030,7 +4051,7 @@ już jest**, zanim taka walka się trafi.
 Wykonanie osobną rundą i ze specem: to zmiana w jedynym świadku spoza dekodera,
 więc istnieje więcej niż jeden sensowny wariant i wybór trzeba uzasadnić.
 
-### AUDYT‑114 — `unknownLines` miesza dwie jednostki 🟡 XS — ⬜ ZAPISANE, nienaprawione ✓
+### AUDYT‑114 — `unknownLines` miesza dwie jednostki 🟡 XS — ✅ NAPRAWIONE 2026‑08‑08
 
 `src/protokol.ts:1084` (`nieznany`), `src/stats.ts:1270‑1272`, `src/overlay.ts:2822‑2827`
 
@@ -4053,6 +4074,79 @@ drugiego dałaby dokładniejszą liczbę w niepewnej jednostce.
 **Docelowo.** `src/protokol.ts` — rozdzielenie na dwie liczby („komunikatów
 odrzuconych" i „segmentów niezrozumianych") albo domknięcie `unknown` do jednej
 jednostki. `docs/UX.md` przy brzmieniu komunikatu.
+
+✅ **NAPRAWIONE 2026‑08‑08 — pierwszym wariantem, ale na DWÓCH osiach, nie
+jednej.**
+
+⚠️ **SPROSTOWANIE DO TEGO WPISU: osie są dwie, nie jedna, i czwarta komórka
+istnieje.** Wpis mówi „raz na cały komunikat, raz na pojedynczy parametr" i na
+tym poprzestaje. Zasięg to jednak tylko połowa: druga to SKUTEK. Zmierzone —
+`1=100.00;2=40.37;+dmgf=100;-dmgd=100` daje **naraz** `unknown` z całym
+komunikatem **i** zdarzenie `attack`, czyli cytat z całego komunikatu przy
+ZEROWEJ stracie (`protokol.ts`, niesparowane `-dmgX`). Tak samo obcięcie na
+drugim `=`: segment, ale klucz i tak jest przetwarzany. Rozdzielenie na dwie
+liczby wg samego zasięgu wrzuciłoby oba do „odrzuconych" i **liczyłoby jako
+stratę coś, co stratą nie jest**.
+
+Tabela, którą zdarzenie `unknown` niesie dziś w `scope` × `dropped`:
+
+| | odrzucone (strata) | zachowane (zero straty) |
+|---|---|---|
+| **komunikat** | id spoza składu, brak nazwy strony — 2 wywołania | niesparowane `-dmgX` — 1 wywołanie |
+| **segment** | nieznany klucz i 10 dalszych — 11 wywołań | obcięcie na drugim `=` — 1 wywołanie |
+
+**✓ Zmierzone na `2026-08-06-tempest-grupa-vs-hildur`**, tymi samymi dwoma
+wstrzyknięciami, którymi mierzono usterkę:
+
+| | `unknownMessages` | `unknownSegments` | `unknownKept` | suma | zadane |
+|---|---|---|---|---|---|
+| bez wstrzyknięcia | 0 | 0 | 0 | 0 | 388 029 |
+| `+acdmg` → `+acdmg_v2` | 0 | **35** | 0 | 35 | 388 029 |
+| wojownik poza składem | **443** | 0 | 0 | 443 | 0 |
+
+**Suma trzech nowych pól zgadza się ze starym `unknownLines` w każdym wierszu**
+(0 / 35 / 443) — czyli żadne zdarzenie nie wypadło przy rozdzieleniu, a oba
+wstrzyknięcia trafiają teraz w RÓŻNE pola.
+
+**Co się zmieniło w kodzie.** `nieznany()` rozpadło się na trzy nazwane wejścia
+(`odrzucKomunikat`, `odrzucSegment`, `zastrzezenie`), więc każde z 15 wywołań
+**deklaruje swoją komórkę w miejscu wywołania**. Parametr `scope` odrzucony
+świadomie: przy parametrze z wartością domyślną szesnaste wywołanie wyglądałoby
+jak reszta pliku. `unknownLines` zniknęło — nazwa była połową usterki.
+Stopka panelu ma trzy niezależne napisy, a zastrzeżenie bez straty idzie z `ⓘ`,
+nie z `⚠`.
+
+⚠️ **NAJWAŻNIEJSZE W TEJ RUNDZIE NIE JEST POLE, TYLKO TEST.** Przed nią licznik
+dało się przepisać na cokolwiek — grupowanie po `lineNo`, dwa pola, zliczanie
+znaków — i **cały pakiet przechodził bez zmiany ani jednej asercji liczbowej**.
+Jedyny test z twardą liczbą stał na stringu panelu i nie pytał o jednostkę wcale;
+reszta asertowała zero, niezmienne pod każdą zmianą. **✓ Zmierzone mutacją:**
+podmiana `odrzucSegment` → `odrzucKomunikat` w jednym wywołaniu zapala dziś
+**4 testy w dwóch plikach** (823 pass / 4 fail); przed rundą ta sama mutacja nie
+zapalała **żadnego**.
+
+⚠️ **RUNDA WPADŁA WE WŁASNĄ DZIURĘ — złapane w przeglądzie PRZED commitem.**
+Nowy napis o segmentach deklinował sam rzeczownik, a przymiotnik stał na sztywno
+w dopełniaczu mnogim: **„1 segment niezrozumianych"**, **„2 segmenty
+niezrozumianych"**, poprawnie dopiero od pięciu (zmierzone renderem na progach
+1 / 2 / 5). Skasowany W TEJ SAMEJ RUNDZIE `unknownWord`
+(`["nierozpoznana", "nierozpoznane", "nierozpoznanych"]`) istniał **dokładnie po
+to** — usunęliśmy strażnika i natychmiast weszliśmy tam, gdzie stał.
+
+Gorsze od samej literówki jest to, **czego nie złapał test**: asercja stała na
+`n = 1` i **przechodziła z błędną formą**, bo pytała o treść napisu, nie
+o zgodność liczebnika. To ta sama pułapka, którą cały ten wpis opisuje piętro
+wyżej — **test o wartości nie widzi usterki jednostki** — więc runda naprawiająca
+mieszanie jednostek popełniła jej odmianę w sobie samej. Dziś pilnują tego trzy
+progi polskiej odmiany w jednym teście; **✓ mutacja** (powrót do sztywnego
+przymiotnika) zapala **2 testy**, wcześniej **0**.
+
+**Wniosek ogólniejszy od poprawki.** Usterka polegała na tym, że jedna funkcja
+przyjmowała dwa różne rodzaje argumentu, a jej nazwa nie mówiła który —
+`nieznany(surowy)` i `nieznany(p.surowy)` czyta się identycznie i różnią się
+jednym znakiem. **Miejsce wywołania musi dać się przeczytać bez wchodzenia do
+definicji**; jeśli nie daje, jednostka rozjedzie się cicho i żaden test tego nie
+złapie, bo testy pytają o wartości, nie o jednostki.
 
 ### AUDYT‑115 — spis speców rozjechał się z katalogiem i nie ma strażnika ⚪ XS — ⬜ ZAPISANE, nienaprawione ✓
 

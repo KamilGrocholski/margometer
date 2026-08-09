@@ -185,6 +185,56 @@ liczby pod kursorem nie mogą uciekać.
   Zero chowa człon, ale nie chowa licznika stałego: `kryt. 0` stoi zawsze, bo
   zero krytów jest informacją o postaci; `(w tym 0 bardzo)` nie stoi, bo nie jest.
 
+- **Stopka: ostrzeżenie musi mówić, ILE STRACIŁEŚ, a nie ile razy coś nas
+  zaskoczyło.** Trzy niezależne napisy, w tej kolejności:
+
+  | napis | znak | kiedy |
+  |---|---|---|
+  | `N komunikatów odrzuconych — statystyki niepełne` | ⚠ | z tych komunikatów nie weszło NIC |
+  | `N segmentów niezrozumianych w policzonych komunikatach` | ⚠ | strata CZĘŚCIOWA — reszta komunikatu jest w liczbach |
+  | `N zastrzeżeń — liczby są` | ⓘ | protokół zaskoczył, ale **nic nie przepadło** |
+
+  ⚠️ **DO 2026‑08‑07 BYŁ TU JEDEN NAPIS DLA WSZYSTKICH TRZECH** — `⚠ N
+  nierozpoznanych linii — statystyki niepełne` — i to jest `AUDYT‑114`. Zmierzone:
+  nieznany klucz dawał `⚠ 35` przy **100 % obrażeń nienaruszonych**, a wojownik
+  spoza składu `⚠ 443` przy **0 % obrażeń**. Te same słowa, dwa rzędy wielkości
+  różnicy w tym, co gracz naprawdę stracił.
+
+  Trzy rzeczy w tym układzie są DECYZJĄ, nie układem:
+  - **wiedzie strata całkowita**, bo tylko ona potrafi znaczyć „wszystko";
+  - **segmenty nie dostają „statystyki niepełne"**, bo reszta komunikatu weszła
+    do liczb, a opisanie straty częściowej tak samo jak całkowitej było połową
+    tamtej usterki;
+  - **zastrzeżenie idzie z `ⓘ`, nie z `⚠`** — alarm o odczycie, który się udał,
+    uczy gracza ignorować alarmy;
+  - **trzeci napis NIE nazywa jednostki** („zastrzeżeń", nie „komunikatów"), bo
+    licznik pod nim zlewa oba zasięgi: obcięcie na drugim `=` to SEGMENT,
+    niesparowane `-dmgX` to KOMUNIKAT. Napis brzmiał tu „N komunikatów
+    policzonych mimo zastrzeżenia" i **kłamał dla połowy przypadków** — czyli
+    runda rozdzielająca jednostki zostawiła fałszywą jednostkę w jedynym
+    liczniku, którego nie rozdzieliła. Czwarte pole odrzucone: rozróżnienie nie
+    ma czytelnika, bo w obu fixture'ach z gry licznik jest zerem, a napis
+    milczący o zasięgu nie może o nim skłamać.
+
+  ⚠️ **`N` w tabeli wyżej jest SKRÓTEM — odmienia się KAŻDE słowo zgodne
+  z liczebnikiem, nie tylko rzeczownik.** Trzy progi polskiej odmiany:
+  `1 segment niezrozumiany` · `2 segmenty niezrozumiane` ·
+  `5 segmentów niezrozumianych`, i tak samo `komunikat odrzucony` /
+  `komunikaty odrzucone` oraz `komunikat policzony` / `komunikaty policzone`.
+
+  Nie jest to uwaga redakcyjna: pierwsza wersja `AUDYT‑114` deklinowała sam
+  rzeczownik i wypuszczała **„1 segment niezrozumianych"**, bo przymiotnik stał
+  w napisie na sztywno. Skasowany w tej samej rundzie `unknownWord` istniał
+  dokładnie po to — czyli runda **usunęła strażnika i natychmiast wpadła
+  w dziurę, której on pilnował**. Poprawione tego samego dnia; pilnuje tego dziś
+  test po wszystkich trzech progach (`tests/overlay.test.ts`), bo przy jednym
+  progu ta usterka jest niewidzialna.
+
+  ⚠️ Brzmienie tych napisów **nie miało zapisu NIGDZIE poza kodem** do 2026‑08‑08.
+  Ten akapit jest tym zapisem; zmiana słów w `overlay.ts` bez ruszenia go rozjedzie
+  dokument z produktem po cichu — dokładnie jak `B9` w `UX-POPRAWKI.md`, które
+  przez cztery dni opisywało pole o nazwie, której już nie było.
+
 ---
 
 ## 6. Czego świadomie NIE robić

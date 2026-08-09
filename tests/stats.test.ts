@@ -260,8 +260,79 @@ describe("EMPTY_STATS jest współdzielonym singletonem", () => {
 
   test("jest pusty pod każdym względem", () => {
     expect(EMPTY_STATS.actors).toEqual([]);
-    expect(EMPTY_STATS.unknownLines).toBe(0);
+    expect(EMPTY_STATS.unknownMessages).toBe(0);
+    expect(EMPTY_STATS.unknownSegments).toBe(0);
+    expect(EMPTY_STATS.unknownKept).toBe(0);
     expect(totalBySide(EMPTY_STATS.unattributedDotDamage)).toBe(0);
+  });
+});
+
+/**
+ * TRZY LICZNIKI `unknown`, NIE JEDEN — i to jest test, którego repo NIE MIAŁO
+ * do 2026‑08‑07 (`AUDYT‑114`).
+ *
+ * ⚠️ **Miara tej luki:** przed tą rundą `unknownLines += 1` dawało się przepisać
+ * na cokolwiek — grupowanie po `lineNo`, rozbicie na dwa pola, zliczanie znaków —
+ * i **cały pakiet przechodził bez zmiany ani jednej asercji liczbowej**. Jedyny
+ * test z twardą liczbą stał na stringu w panelu i nie pytał o jednostkę wcale.
+ *
+ * Dlatego te testy idą przez `dekoduj`, a nie przez ręcznie zbudowane zdarzenia:
+ * pytanie brzmi „czy PRODUCENT i LICZNIK mówią o tym samym", a materiał zbudowany
+ * w teście odpowiadałby na nie sam sobie.
+ */
+describe("liczniki `unknown` rozróżniają zasięg i skutek", () => {
+  const SKLAD_DWA: RosterEntry[] = [
+    { id: 1, name: "Kamil", side: 0 },
+    { id: 2, name: "Locha", side: 1 },
+  ];
+  const licz = (komunikaty: string[]) => {
+    const s = aggregate(dekoduj(komunikaty, SKLAD_DWA), SKLAD_DWA);
+    return {
+      komunikatow: s.unknownMessages,
+      segmentow: s.unknownSegments,
+      zachowanych: s.unknownKept,
+    };
+  };
+
+  test("JEDEN komunikat z trzema nieznanymi segmentami to 3 segmenty, nie 3 komunikaty", () => {
+    // Sedno usterki: stary licznik dawał tu `3` pod napisem „3 nierozpoznane
+    // linie", nie do odróżnienia od trzech komunikatów straconych w całości.
+    expect(licz(["1=100.00;2=90.00;+dmg=10;-dmg=10;coA=1;coB=2;coC=3"])).toEqual({
+      komunikatow: 0,
+      segmentow: 3,
+      zachowanych: 0,
+    });
+  });
+
+  test("TRZY komunikaty spoza składu to 3 komunikaty, nie 3 segmenty", () => {
+    // Ta sama liczba `3` w panelu, a znaczy coś zupełnie innego: tam nie
+    // przepadło nic, tu przepadło wszystko.
+    expect(
+      licz([
+        "999=100.00;2=90.00;+dmg=10;-dmg=10",
+        "998=100.00;2=90.00;+dmg=10;-dmg=10",
+        "997=100.00;2=90.00;+dmg=10;-dmg=10",
+      ]),
+    ).toEqual({ komunikatow: 3, segmentow: 0, zachowanych: 0 });
+  });
+
+  test("zastrzeżenie bez straty NIE podbija żadnego z dwóch liczników straty", () => {
+    // Niesparowane `-dmgX` (komunikat) i obcięcie na drugim `=` (segment).
+    // Oba zapalają czujkę, oba zostawiają liczby na miejscu.
+    expect(
+      licz(["1=100.00;2=40.37;+dmgf=100;-dmgd=100", "1=100.00;2=30.00;+dmg=10;-dmg=10;+pierce=a=b"]),
+    ).toEqual({ komunikatow: 0, segmentow: 0, zachowanych: 2 });
+  });
+
+  test("obrażenia z komunikatu z nieznanym segmentem WCHODZĄ do statystyk", () => {
+    // Dowód, że `unknownSegments` naprawdę znaczy „strata częściowa", a nie
+    // „strata" — bez tego rozdzielenie liczników byłoby samą kosmetyką nazw.
+    const s = aggregate(
+      dekoduj(["1=100.00;2=90.00;+dmg=10;-dmg=10;coA=1"], SKLAD_DWA),
+      SKLAD_DWA,
+    );
+    expect(s.unknownSegments).toBe(1);
+    expect(s.actors.find((a) => a.name === "Kamil")?.damageDealt).toBe(10);
   });
 });
 /**
@@ -529,7 +600,7 @@ describe("trucizna w walce grupowej", () => {
     const second = stats.actors.find((a) => a.name === "Gnoll łucznik #2")!;
     expect([first.damageTaken, first.damageDealt]).toEqual([300, 0]);
     expect([second.damageTaken, second.damageDealt]).toEqual([200, 120]);
-    expect(stats.unknownLines).toBe(0);
+    expect(stats.unknownMessages).toBe(0);
     expect(stats.ambiguousNames).toEqual(["Gnoll łucznik #1", "Gnoll łucznik #2"]);
   });
 

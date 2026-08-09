@@ -370,11 +370,47 @@ export type BattleEvent =
   /** Komunikat tła bez wpływu na statystyki (aura, brak Punktów Honoru, ...). */
   | { kind: "info"; line: string }
   /**
-   * Komunikat, którego dekoder nie rozumie. Nie połykamy go po cichu —
-   * niezerowa liczba takich zdarzeń oznacza, że format protokołu się zmienił
-   * i statystyki są niepełne.
+   * Coś, czego dekoder nie rozumie. Nie połykamy tego po cichu.
+   *
+   * ⚠️ **DOCSTRING BRZMIAŁ TU „Komunikat, którego dekoder nie rozumie" I BYŁA TO
+   * NIEPRAWDA** (`AUDYT‑114`). Utożsamiał zdarzenie z komunikatem, a producent
+   * tego nie dotrzymywał: `dekoduj` pushuje takie zdarzenie raz na CAŁY
+   * komunikat, raz na POJEDYNCZY segment. Licznik w `stats.ts` liczył zdarzenia,
+   * pole nazywało się `unknownLines`, panel mówił „linii" — **cztery nazwy na
+   * jedną wielkość i żadna prawdziwa**.
+   *
+   * Zmierzone na `2026-08-06-tempest-grupa-vs-hildur`: nieznany klucz daje
+   * **35 zdarzeń przy 100 % obrażeń nienaruszonych**, a wojownik spoza składu —
+   * **443 zdarzenia przy 0 % obrażeń**. Ta sama liczba w panelu, dwa rzędy
+   * wielkości różnicy w konsekwencji.
+   *
+   * Dlatego zdarzenie niesie dziś DWIE osie i obie są częścią kontraktu:
+   * `scope` mówi, ILE tekstu opisuje `line`, a `dropped` — czy przez to
+   * cokolwiek wypadło z liczb. Cztery kombinacje są osiągalne i każda ma test.
    */
-  | { kind: "unknown"; line: string; lineNo: number };
+  | {
+      kind: "unknown";
+      line: string;
+      lineNo: number;
+      /**
+       * Czy `line` to CAŁY komunikat, czy jeden jego segment.
+       *
+       * Nie jest to szczegół prezentacji: „jeden komunikat" i „jeden segment"
+       * różnią się skalą o rząd wielkości, a do 2026‑08‑07 wpadały do tego
+       * samego licznika.
+       */
+      scope: "message" | "segment";
+      /**
+       * Czy przez to cokolwiek NIE weszło do statystyk.
+       *
+       * `false` znaczy „zapaliliśmy czujkę, ale liczby są" — i taki przypadek
+       * istnieje w obu zasięgach: obcięcie na drugim `=` (segment; klucz i tak
+       * jest przetwarzany) oraz niesparowane `-dmgX` (komunikat; zdarzenie
+       * `attack` MIMO TO powstaje). Bez tego pola oba podbijały licznik straty,
+       * niczego nie tracąc.
+       */
+      dropped: boolean;
+    };
 
 /**
  * Jeden wiersz rozbicia obrażeń, pokazywany po najechaniu na pasek.

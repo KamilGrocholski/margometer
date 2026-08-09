@@ -308,12 +308,95 @@ describe("overlay", () => {
     expect(shown()).toEqual(["Wróg"]);
   });
 
-  test("ostrzega o nierozpoznanych liniach", () => {
+  /**
+   * ⚠️ **TEN TEST ASERTOWAŁ „2 nierozpoznane LINIE" DO 2026‑08‑07** i był jedynym
+   * w repo z twardą liczbą pod tym ostrzeżeniem. Protokół linii nie ma, a liczba
+   * mieszała komunikaty z segmentami i z przypadkami bez straty (`AUDYT‑114`).
+   * Dziś stopka ma trzy niezależne napisy i każdy z nich ma tu swój przypadek.
+   */
+  test("ostrzega o KOMUNIKATACH odrzuconych w całości", () => {
     const overlay = new Overlay();
-    const stats = aggregate([nieznane("zupełnie nowa linia", 1), nieznane("inna nowa linia", 2)]);
-    overlay.render(stats);
+    overlay.render(aggregate([nieznane("cały komunikat", 1), nieznane("i drugi", 2)]));
 
-    expect(overlay.shadow.querySelector(".warn")?.textContent).toContain("2 nierozpoznane linie");
+    expect(overlay.shadow.querySelector(".warn")?.textContent).toContain(
+      "2 komunikaty odrzucone — statystyki niepełne",
+    );
+  });
+
+  test("segmenty mają WŁASNY napis, bez „statystyki niepełne”", () => {
+    // Strata jest częściowa — reszta komunikatu weszła do liczb. Opisanie jej
+    // tak samo jak całkowitej było połową usterki.
+    const overlay = new Overlay();
+    overlay.render(aggregate([nieznane("coA=1", 1, { scope: "segment" })]));
+
+    const tekst = overlay.shadow.querySelector(".warn")?.textContent ?? "";
+    expect(tekst).toContain("1 segment niezrozumiany w policzonych komunikatach");
+    expect(tekst).not.toContain("statystyki niepełne");
+  });
+
+  /**
+   * ⚠️ **TEN TEST POWSTAŁ Z REGRESJI, KTÓRĄ ZROBIŁA WŁASNA RUNDA `AUDYT‑114`.**
+   * Napis deklinował sam rzeczownik, a przymiotnik stał na sztywno w dopełniaczu
+   * mnogim: **„1 segment niezrozumianych", „2 segmenty niezrozumianych"**,
+   * poprawnie dopiero od pięciu. Skasowany w tej samej rundzie `unknownWord`
+   * pilnował dokładnie tego.
+   *
+   * Dlatego asercja idzie po TRZECH progach polskiej odmiany (1 / 2‑4 / 5+),
+   * a nie po jednym: przy jednym progu ta usterka była niewidzialna — stary test
+   * stał na `n = 1` i **przechodził z błędną formą**, bo pytał o treść, nie
+   * o zgodność. Ta sama pułapka co w całym `AUDYT‑114`: test o wartości nie widzi
+   * usterki jednostki.
+   */
+  test("napis o segmentach odmienia się przez wszystkie trzy progi", () => {
+    const napis = (ile: number) => {
+      const overlay = new Overlay();
+      const zdarzenia = Array.from({ length: ile }, (_, i) =>
+        nieznane(`x${i}=1`, i, { scope: "segment" }),
+      );
+      overlay.render(aggregate(zdarzenia));
+      return overlay.shadow.querySelector(".warn")?.textContent ?? "";
+    };
+
+    expect(napis(1)).toContain("1 segment niezrozumiany");
+    expect(napis(2)).toContain("2 segmenty niezrozumiane");
+    expect(napis(5)).toContain("5 segmentów niezrozumianych");
+  });
+
+  test("zastrzeżenie bez straty NIE idzie jako ostrzeżenie", () => {
+    // `ⓘ`, nie `⚠`: liczby są. Gdyby szło z ostrzeżeniem, gracz dostawałby
+    // alarm o odczycie, który się udał.
+    const overlay = new Overlay();
+    overlay.render(aggregate([nieznane("1;2;+dmgf=100;-dmgd=100", 1, { dropped: false })]));
+
+    expect(overlay.shadow.querySelector(".warn")).toBeNull();
+    expect(overlay.shadow.textContent).toContain("1 zastrzeżenie — liczby są");
+  });
+
+  /**
+   * ⚠️ **NAPIS O ZASTRZEŻENIU NIE MA PRAWA NAZWAĆ ZASIĘGU.** `unknownKept` zlewa
+   * komunikaty z segmentami (obcięcie na drugim `=` to SEGMENT, niesparowane
+   * `-dmgX` to KOMUNIKAT), więc każde słowo nazywające jednostkę byłoby fałszywe
+   * dla połowy przypadków — a to dokładnie usterka, którą `AUDYT‑114` naprawia
+   * gdzie indziej. Test pilnuje BRAKU tych słów, bo sama poprawna treść nie
+   * odróżnia „świadomie neutralne" od „przypadkiem trafione".
+   */
+  test("zastrzeżenie NIE nazywa zasięgu — ani „komunikat”, ani „segment”", () => {
+    const stopka = (zd: Parameters<typeof aggregate>[0]) => {
+      const overlay = new Overlay();
+      overlay.render(aggregate(zd));
+      return overlay.shadow.textContent ?? "";
+    };
+
+    const zSegmentu = stopka([nieznane("+p=a=b", 0, { scope: "segment", dropped: false })]);
+    const zKomunikatu = stopka([nieznane("1;2;+dmgf=1;-dmgd=1", 0, { dropped: false })]);
+
+    // Oba zasięgi dają IDENTYCZNY napis — bo licznik ich nie rozróżnia.
+    expect(zSegmentu).toContain("1 zastrzeżenie — liczby są");
+    expect(zKomunikatu).toContain("1 zastrzeżenie — liczby są");
+    for (const tekst of [zSegmentu, zKomunikatu]) {
+      expect(tekst).not.toContain("komunikat policzony");
+      expect(tekst).not.toContain("segment policzony");
+    }
   });
 
   test("pokazuje komunikat, gdy nie ma danych", () => {

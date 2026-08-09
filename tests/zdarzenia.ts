@@ -133,6 +133,17 @@ export function umiejetnosc(actor: string, name: string): BattleEvent {
  * zamiast po cichu zniknąć. Inaczej test twierdziłby, że sprawdza coś, czego
  * jego wejście nigdy nie niosło.
  */
-export function nieznane(line: string, lineNo: number): BattleEvent {
-  return { kind: "unknown", line, lineNo };
+export function nieznane(
+  line: string,
+  lineNo: number,
+  /**
+   * Domyślnie CAŁY komunikat i STRATA — bo tak wyglądały wszystkie wejścia,
+   * dla których ten helper powstał (gołe „otrzymał" bez ciosu, `AUDYT‑114`).
+   * Wywołania badające segment podają to jawnie; domyślna wartość jest tu
+   * wygodą TESTU, a nie skrótem dostępnym w `src/`, gdzie każde wywołanie
+   * czujki musi wybrać komórkę samo.
+   */
+  poza: Partial<Pick<Extract<BattleEvent, { kind: "unknown" }>, "scope" | "dropped">> = {},
+): BattleEvent {
+  return { kind: "unknown", line, lineNo, scope: "message", dropped: true, ...poza };
 }
