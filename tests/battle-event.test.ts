@@ -78,6 +78,42 @@ describe("decoding a single message", () => {
     });
   });
 
+  test("reads damage dealt and damage taken as separate figures", () => {
+    expect(decodeFight(["482845=100.00;-161518=70.07;+dmgd=466;-dmgd=223"])).toEqual([
+      {
+        kind: "attack",
+        actorId: 482845,
+        targetId: -161518,
+        dealt: [{ damageType: "dmgd", amount: 466 }],
+        taken: [{ damageType: "dmgd", amount: 223 }],
+      },
+    ]);
+  });
+
+  // The client recognises damage by shape, not from a list, so a kind it has
+  // never sent before still decodes. Mirroring that is the point.
+  test("reads a damage kind it has never seen before", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;+dmgz=7"]);
+    expect(event).toMatchObject({ dealt: [{ damageType: "dmgz", amount: 7 }] });
+  });
+
+  test("keeps each damage kind apart rather than summing them", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;+dmgf=10;+dmgc=20"]);
+    expect(event).toMatchObject({
+      dealt: [
+        { damageType: "dmgf", amount: 10 },
+        { damageType: "dmgc", amount: 20 },
+      ],
+    });
+  });
+
+  // A damage key whose value will not read as a number is worse than an unknown
+  // key: it looks like a figure and is not one.
+  test("reports a damage key whose value is not a number instead of counting it", () => {
+    const events = decodeFight(["1=100.00;2=50.00;+dmgf=lots"]);
+    expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
+  });
+
   // Found by mutation testing: this used to trip an assertion and take the
   // panel down. A message with no parameters is odd but possible, so it is
   // reported like anything else the decoder cannot read.

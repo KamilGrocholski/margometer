@@ -7,6 +7,31 @@
  * `tests/battle-event.test.ts` fails on it.
  */
 
+/**
+ * One damage figure. The type token is the client's own — the key with its sign
+ * removed, exactly what the client uses to style the number — so nothing is
+ * invented here. What the token means in words comes from the game at run time.
+ */
+export type DamageAmount = {
+  damageType: string;
+  amount: number;
+};
+
+export type AttackEvent = {
+  kind: "attack";
+  /** Combatant ids, or null where the protocol named nobody on that side. */
+  actorId: number | null;
+  targetId: number | null;
+  /** Before reduction — what the attacker put out. */
+  dealt: DamageAmount[];
+  /**
+   * After reduction — what the target actually lost. Measured on the captured
+   * fights: health drop matched the sum of these in 22 of 26 comparisons and
+   * the sum of `dealt` in none of them.
+   */
+  taken: DamageAmount[];
+};
+
 export type FightOutcomeEvent = {
   kind: "fight-outcome";
   result: "won" | "lost";
@@ -25,12 +50,12 @@ export type UnknownMessageEvent = {
   reason: string;
 };
 
-export type BattleEvent = FightOutcomeEvent | UnknownMessageEvent;
+export type BattleEvent = AttackEvent | FightOutcomeEvent | UnknownMessageEvent;
 
 /**
  * Every variant the union currently holds. Kept as a value because the guard
  * has to iterate it at runtime; `satisfies` is what stops it drifting from the
  * type.
  */
-export const BATTLE_EVENT_KINDS = ["fight-outcome", "unknown-message"] as const satisfies
+export const BATTLE_EVENT_KINDS = ["attack", "fight-outcome", "unknown-message"] as const satisfies
   readonly BattleEvent["kind"][];

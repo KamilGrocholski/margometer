@@ -1,5 +1,5 @@
 import { assert } from "@/libs/assert.ts";
-import type { BattleEvent } from "@/src/core/battle-event.ts";
+import type { BattleEvent, DamageAmount } from "@/src/core/battle-event.ts";
 import {
   parseProtocolMessage,
   ProtocolMessageFormatError,
@@ -27,7 +27,27 @@ const OUTCOME_KEYS: Record<string, "won" | "lost"> = {
 };
 
 /**
- * Every key the decoder claims to understand. Exported so a guard can hold it
+ * The client does not spell out damage keys. Its default branch recognises them
+ * by shape — a sign, then `dmg`, then a token naming the kind — and treats
+ * anything else as a parameter it does not know. We mirror that rather than
+ * listing the family, because the game can add a kind without changing this.
+ */
+const DAMAGE_MARKER = "dmg";
+const DEALT_SIGN = "+";
+
+function getDamageAmount(parameter: { key: string; value: string | null }): DamageAmount | null {
+  if (parameter.value === null) return null;
+  const amount = Number(parameter.value);
+  if (!Number.isInteger(amount)) return null;
+  return { damageType: parameter.key.slice(1), amount };
+}
+
+function isDamageKey(key: string): boolean {
+  return key.slice(1, 1 + DAMAGE_MARKER.length) === DAMAGE_MARKER;
+}
+
+/**
+ * Every named key the decoder claims to understand. Exported so a guard can hold it
  * against the keys the game actually knows — a key we handle that the client
  * has never heard of means we invented a meaning.
  */
@@ -47,14 +67,38 @@ function decodeMessage(message: string): BattleEvent[] {
 
   const events: BattleEvent[] = [];
   const unreadKeys: string[] = [];
+  const dealt: DamageAmount[] = [];
+  const taken: DamageAmount[] = [];
 
-  for (const { key, value } of parsed.parameters) {
+  for (const parameter of parsed.parameters) {
+    const { key, value } = parameter;
+
+    if (isDamageKey(key)) {
+      const damage = getDamageAmount(parameter);
+      // A damage key whose value will not read as a number is worse than an
+      // unknown key: it looks like a figure and is not one.
+      if (damage === null) unreadKeys.push(key);
+      else if (key.startsWith(DEALT_SIGN)) dealt.push(damage);
+      else taken.push(damage);
+      continue;
+    }
+
     const result = OUTCOME_KEYS[key];
     if (result !== undefined && value !== null) {
       events.push({ kind: "fight-outcome", result, combatantNames: value.split(NAME_SEPARATOR) });
       continue;
     }
     unreadKeys.push(key);
+  }
+
+  if (dealt.length > 0 || taken.length > 0) {
+    events.push({
+      kind: "attack",
+      actorId: parsed.actor?.combatantId ?? null,
+      targetId: parsed.target?.combatantId ?? null,
+      dealt,
+      taken,
+    });
   }
 
   // Reported even when the message also produced something readable: a message
