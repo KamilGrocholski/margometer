@@ -2,7 +2,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 
 const REPOSITORY_ROOT = new URL("../", import.meta.url).pathname;
-const SOURCE_DIRECTORIES = ["src", "tools", "tests"];
+const SOURCE_DIRECTORIES = ["libs", "src", "tools", "tests"];
+/** Everything that ships or supports shipping. Tests are held to looser rules. */
+const NON_TEST_DIRECTORIES = ["libs/", "src/", "tools/"];
 
 function getTypeScriptFiles(directory: string): string[] {
   return readdirSync(REPOSITORY_ROOT + directory, { recursive: true, encoding: "utf8" })
@@ -28,6 +30,7 @@ const ACTION_VERBS = [
   "handle",
   "parse",
   "decode",
+  "assert",
   "require",
   "build",
   "write",
@@ -63,10 +66,46 @@ describe("file names", () => {
   });
 });
 
+describe("layers", () => {
+  // AGENTS.md §9.1. `libs/` is the bottom: things true in any project. The
+  // moment it reaches upwards it stops being shared code and becomes a second
+  // core, which is how a shared directory turns into a junk drawer.
+  test.each(SOURCE_FILES.filter((file) => file.startsWith("libs/")))(
+    "%s depends on nothing above it",
+    (file) => {
+      const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+      const reachingUp = [...source.matchAll(/\bfrom\s+"@\/(src|tools|tests)\//g)].map(
+        (match) => match[0],
+      );
+      expect(reachingUp).toEqual([]);
+    },
+  );
+});
+
+describe("assumptions", () => {
+  // AGENTS.md §9.5. `!` is an assumption that says nothing when it turns out
+  // wrong: `undefined` travels on and surfaces as a bad number a layer later,
+  // where the cause is no longer visible. `assertDefined` says it out loud.
+  test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
+    "%s states its assumptions instead of asserting non-null",
+    (file) => {
+      const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+      const nonNull = [...source.matchAll(/[\w\]"')]!(?=[.,;)\s]|$)/gm)]
+        .map((match) => match[0])
+        .filter((match) => !match.startsWith("!"));
+      expect(nonNull, file).toEqual([]);
+    },
+  );
+});
+
 describe("errors", () => {
   // AGENTS.md §9.5. The add-on shares a console with the game and with other
   // add-ons; an error that does not say whose it is costs whoever reports it.
-  const BASE_FILES = ["src/core/margometer-error.ts", "tools/margometer-tool-error.ts"];
+  const BASE_FILES = [
+    "libs/assert.ts",
+    "src/core/margometer-error.ts",
+    "tools/margometer-tool-error.ts",
+  ];
   const ADD_ON_BASE = "MargoMeterError";
   const TOOLING_BASE = "MargoMeterToolError";
 
@@ -94,7 +133,8 @@ describe("errors", () => {
 });
 
 describe("function names", () => {
-  const allowed = new RegExp(`^(${[...ACTION_VERBS, ...BOOLEAN_PREFIXES].join("|")})[A-Z]`);
+  // The verb may be the whole name — `assert(condition)` needs no noun after it.
+  const allowed = new RegExp(`^(${[...ACTION_VERBS, ...BOOLEAN_PREFIXES].join("|")})([A-Z]|$)`);
 
   // A name without an action tells you what a function is about but not what
   // calling it does — whether it reads, writes or creates.

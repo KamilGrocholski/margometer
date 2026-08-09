@@ -13,6 +13,7 @@
  * as if it were understood.
  */
 
+import { assertDefined } from "@/libs/assert.ts";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 
 export class ProtocolMessageFormatError extends MargoMeterError {
@@ -59,7 +60,7 @@ function parseMessageSide(segment: string, whole: string): MessageSide | null {
 
   const [, id, percent] = match;
   return {
-    combatantId: Number.parseInt(id!, 10),
+    combatantId: Number.parseInt(assertDefined(id, "SIDE_PATTERN captures the id"), 10),
     healthPercent: percent === undefined ? null : Number.parseFloat(percent),
   };
 }
@@ -76,9 +77,10 @@ export function parseProtocolMessage(message: string): ProtocolMessage {
     throw new ProtocolMessageFormatError("fewer than two side segments", message);
   }
 
+  const [actor, target] = segments;
   return {
-    actor: parseMessageSide(segments[0]!, message),
-    target: parseMessageSide(segments[1]!, message),
+    actor: parseMessageSide(assertDefined(actor, "message has a first segment"), message),
+    target: parseMessageSide(assertDefined(target, "message has a second segment"), message),
     parameters: segments.slice(2).map(parseMessageParameter),
   };
 }

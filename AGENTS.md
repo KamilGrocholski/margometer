@@ -49,6 +49,7 @@ Untagged prose is context and reasoning — read it, but it does not bind.
 | Tag | Meaning | Paths |
 |---|---|---|
 | `[any]` | Everywhere in the repo | — |
+| `[libs]` | True in any project; knows nothing of this one | `libs/` |
 | `[core]` | Pure logic: decoding, aggregation, contracts | `src/core/` |
 | `[game]` | Anything touching the live game client | `src/game/` |
 | `[ui]` | The panel and everything it draws | `src/ui/` |
@@ -232,6 +233,10 @@ tsconfig.json            Strict flags standing in for a linter, and the `@/*`
                          import alias — §9.3.
 .github/workflows/       check.yml: the gate, nothing else yet.
 
+libs/
+  assert.ts              Assertions and their failure type. Depends on nothing;
+                         outside both error hierarchies — §9.5.
+
 src/
   userscript-entry.ts    Bundle entry point. Empty so far.
   core/
@@ -250,8 +255,10 @@ tests/
   captured-fight-catalog.ts
                          Discovers that directory; exposes each capture plus
                          maximum health per combatant.
+  assert.test.ts
   battle-event.test.ts
   captured-fight-catalog.test.ts
+  margometer-error.test.ts
   protocol-message.test.ts
   source-layout.test.ts    Guards §9.3 imports-from-root plus §9.4 file and
                            function naming. Discovers files, never lists them.
@@ -267,7 +274,14 @@ The decoder, the aggregator, the game layer and the panel are yet to be written.
 ### 9.1 Architecture
 
 - `[ALWAYS] [core]` **Dependencies point one way:** `ui → core`, `game → core`,
-  entry point → everything. `core` imports from nothing but itself.
+  everything → `libs`, entry point → everything. `core` imports from nothing but
+  itself and `libs`.
+- `[ALWAYS] [libs]` **`libs/` is the bottom layer.** It holds things true in any
+  project — the assertion primitive, narrow helper types — and knows nothing
+  about the game, the protocol or the panel. It imports from `src/`, `tools/`
+  and `tests/` never. The moment it reaches upwards it stops being shared code
+  and becomes a second core, which is how a shared directory turns into a junk
+  drawer.
 - `[ALWAYS] [core]` **`core` is pure** — no `document`, no `window`, no
   `localStorage`, no timers, no knowledge that a game engine exists. This is
   what makes the decoder and the aggregator testable without a browser and
@@ -467,8 +481,36 @@ whose job is to convert that into an event.
 **In `tools/`, throwing is the correct behaviour.** A tool handed bad material
 refuses it loudly rather than reading half of it and carrying on.
 
+#### Assertions are a different category
+
+An error class and a `code` exist so that someone can **recognise a failure and
+handle it**. That only makes sense for failures we know *can* happen. A broken
+invariant cannot be handled — the only correct response is to fix the program —
+so it gets neither.
+
+`libs/assert.ts` therefore sits outside both hierarchies: `AssertionFailure`,
+no `code`, its own root, `name = "MargoMeter/Assertion"`. This is the `Result`
+versus `panic!` split, and it pays for itself immediately: a `catch` testing
+`instanceof MargoMeterError` will not treat a broken assertion as a domain
+failure, because it is not one. That falls out of the types instead of needing
+discipline.
+
+- `[ALWAYS]` Use `assert` / `assertDefined` for what must never happen.
+  `[NEVER]` use them for a failure you know can occur — that is an error class.
+- `[ALWAYS]` The message names the **invariant**, not the condition:
+  `"SIDE_PATTERN captures the id"`, not `"id is not undefined"`. Where it broke
+  comes from the stack, which gives the exact file and line.
+- `[NEVER] [any]` **`!` (non-null assertion) in `libs/`, `src/` or `tools/`.**
+  It is an assumption that says nothing when it turns out wrong: `undefined`
+  travels on and surfaces as a bad number a layer later, where the cause is no
+  longer visible. Use `assertDefined` — but first ask whether the type can
+  simply be made precise. **An assert over a type that could have been exact is
+  covering for a loose type**, and the fix belongs in the type.
+- Tests keep `!`. A wrong assumption there fails the test anyway.
+
 Guarded by `tests/source-layout.test.ts`: no unbranded error, no error class
-outside the base files, and each file extends the base belonging to its side.
+outside the base files, each file extends the base belonging to its side, and no
+non-null assertions outside tests.
 
 ### 9.6 UI
 

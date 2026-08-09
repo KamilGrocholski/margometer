@@ -78,6 +78,23 @@ describe("decoding a single message", () => {
     });
   });
 
+  // Found by mutation testing: this used to trip an assertion and take the
+  // panel down. A message with no parameters is odd but possible, so it is
+  // reported like anything else the decoder cannot read.
+  test("reports a message that carries no parameters at all", () => {
+    expect(decodeFight(["0;0"])).toEqual([
+      { kind: "unknown-message", message: "0;0", reason: "carries no parameters" },
+    ]);
+  });
+
+  // A bare `catch` would turn every failure into "the game changed its format",
+  // including our own bugs. Here the parser fails for a reason that is not a
+  // format problem at all, and it has to travel rather than be relabelled.
+  test("lets a failure that is not a format problem travel instead of relabelling it", () => {
+    const notAMessage = null as unknown as string;
+    expect(() => decodeFight([notAMessage])).toThrow(TypeError);
+  });
+
   test("reports a message it cannot even read as a message", () => {
     const [event] = decodeFight(["winner;0;step"]);
     expect(event?.kind).toBe("unknown-message");

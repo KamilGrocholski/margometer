@@ -1,5 +1,10 @@
+import { assert } from "@/libs/assert.ts";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
-import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
+import {
+  parseProtocolMessage,
+  ProtocolMessageFormatError,
+  type ProtocolMessage,
+} from "@/src/core/protocol-message.ts";
 
 /**
  * Turns the protocol of one fight into events.
@@ -26,7 +31,11 @@ function decodeMessage(message: string): BattleEvent[] {
   try {
     parsed = parseProtocolMessage(message);
   } catch (error) {
-    return [{ kind: "unknown-message", message, reason: (error as Error).message }];
+    // Narrow on purpose. A bare `catch` would also swallow broken assertions
+    // and turn a bug of ours into "the game changed its format" — the most
+    // expensive kind of wrong number this project can produce.
+    if (!(error instanceof ProtocolMessageFormatError)) throw error;
+    return [{ kind: "unknown-message", message, reason: error.message }];
   }
 
   const events: BattleEvent[] = [];
@@ -51,6 +60,17 @@ function decodeMessage(message: string): BattleEvent[] {
     });
   }
 
+  // A message carrying no parameters at all says nothing, and saying nothing
+  // back would be the one thing rule 1 forbids. Never seen in captured
+  // material, but it is a possible message rather than an impossible state, so
+  // it gets reported rather than crashing the panel.
+  if (events.length === 0) {
+    events.push({ kind: "unknown-message", message, reason: "carries no parameters" });
+  }
+
+  // Rule 1, now held by construction. This can only fire if a future edit
+  // breaks that — which is exactly when silence would be most expensive.
+  assert(events.length > 0, "every message produces at least one event");
   return events;
 }
 

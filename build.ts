@@ -15,8 +15,11 @@ const BUNDLE_ENTRY_POINT = "./src/userscript-entry.ts";
 const NON_GAME_HOSTS = ["www", "forum", "commons", "pomoc"];
 const GAME_TOP_LEVEL_DOMAINS = ["pl", "com"];
 
+/** A metadata directive: the key Tampermonkey reads, and its value. */
+type UserscriptDirective = readonly [key: string, value: string];
+
 export function composeUserscriptBanner(version: string, description: string, homepage: string): string {
-  const directives = [
+  const directives: UserscriptDirective[] = [
     ["name", "MargoMeter"],
     ["namespace", homepage],
     ["version", version],
@@ -25,9 +28,13 @@ export function composeUserscriptBanner(version: string, description: string, ho
     ["homepageURL", homepage],
     // The trailing `/*` matters: @match compares the whole path, so a pattern
     // without it never fires on a world that carries a query string.
-    ...GAME_TOP_LEVEL_DOMAINS.map((tld) => ["match", `https://*.margonem.${tld}/*`]),
+    ...GAME_TOP_LEVEL_DOMAINS.map(
+      (tld) => ["match", `https://*.margonem.${tld}/*`] as UserscriptDirective,
+    ),
     ...NON_GAME_HOSTS.flatMap((host) =>
-      GAME_TOP_LEVEL_DOMAINS.map((tld) => ["exclude", `https://${host}.margonem.${tld}/*`]),
+      GAME_TOP_LEVEL_DOMAINS.map(
+        (tld) => ["exclude", `https://${host}.margonem.${tld}/*`] as UserscriptDirective,
+      ),
     ),
     ["noframes", ""],
     ["grant", "none"],
@@ -35,7 +42,7 @@ export function composeUserscriptBanner(version: string, description: string, ho
   ];
 
   const body = directives
-    .map(([key, value]) => `// @${key!.padEnd(12)} ${value}`.trimEnd())
+    .map(([key, value]) => `// @${key.padEnd(12)} ${value}`.trimEnd())
     .join("\n");
 
   return `// ==UserScript==\n${body}\n// ==/UserScript==\n`;
