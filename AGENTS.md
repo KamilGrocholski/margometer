@@ -1,420 +1,326 @@
 # AGENTS.md
 
-Licznik obrażeń do przeglądarkowej gry [Margonem](https://www.margonem.pl/) —
-userscript rysujący panel ze statystykami nad grą. **Czyta i nic poza tym:
-nie wysyła zapytań, nie zmienia przebiegu walki, nie automatyzuje niczego.**
+The single source of rules for anyone — human or agent — working in this
+repository. `CLAUDE.md` only imports this file. If a rule is not here, it is not
+a rule.
 
-Czyta **surowy protokół silnika** — przez owinięcie `Engine.battle.update`
-(`protokol-source.ts`). To jest jedyna droga; okno walki w DOM zeszło z drzewa
-2026‑08‑04 razem z odczytem ze zdań, bo protokół niesie `id` po obu stronach
-każdego zdarzenia, żywioł jako klucz zamiast klasy CSS i rozbite składniki
-redukcji, a tekst był rekonstrukcją tego wszystkiego ze zdań.
+---
 
-**Brzmienia bierze z gry, nie z własnego kodu.** `slownik-gry.ts` woła globalne
-`window._t` — tę samą funkcję, którą renderer walki składa swoje zdania — więc
-panel pokazuje `+Przebicie`, a nie klucz `+pierce`, i robi to w języku klienta,
-także po aktualizacji gry. To ODCZYT, nie zapytanie: nic nie wychodzi na sieć,
-a pytamy wyłącznie o identyfikatory zaszyte w `protokol.ts`, żeby chybienie
-nigdy nie zaszło. Zgodności tej listy z assetem gry pilnuje zamrożona tabela
-`tests/klucze-protokolu.ts` (233 klucze, build `1785244275300`) i cztery testy
-wokół niej; odtwarza ją `bun tools/slownik.ts --zamroz`.
+## 1. Project
 
-⚠️ **Tabela niesie klucze i identyfikatory, ale NIE brzmienia** (od
-2026‑08‑06). Że gra dla identyfikatora zdanie ma, mówi `maZdanie: boolean`; jak
-ono brzmi, mówi wyłącznie żywa gra. Powód jest licencyjny, nie techniczny —
-`NOTICE.md`. Skutek uboczny wart zapamiętania: kopia cudzego tekstu leżała tam
-przez trzy dni i **żaden test nigdy o nią nie zapytał**. Materiał, którego nikt
-nie czyta, nie broni się sam tym, że pochodzi z gry.
+MargoMeter is a damage meter for [Margonem](https://www.margonem.pl/), a
+browser-based turn-based RPG. It ships as a userscript that draws a statistics
+panel over the running game.
 
-⚠️ **Zdanie „nie dotyka stanu gry" stało tu do 2026‑08‑04 i przestało być
-prawdziwe.** Owinięcie cudzej funkcji jest dotknięciem, choćby nic nie zmieniało
-— i lepiej to napisać, niż bronić definicji słowa „dotyka". Co dodatek nadal
-gwarantuje i czym to jest zabezpieczone w kodzie: oryginał leci pierwszy, jego
-wynik wraca nietknięty, nasz wyjątek nie wychodzi do gry, a przy odpięciu
-zdejmujemy wyłącznie SWOJĄ warstwę. Każde z tych czterech ma swój test
-i sprawdzoną mutację. Powody i odrzucone warianty:
-[`docs/specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md`](docs/specy/2026-08-04-protokol-jako-drugie-zrodlo-zdarzen.md).
+**It reads and does nothing else.** No network requests, no automation, no
+influence on how a fight plays out. It counts what already happened.
 
-**Polski wszędzie** — komentarze, testy, dokumentacja, komunikaty commitów.
+The data source is the **raw battle protocol** — the payload the game's own
+engine receives from the server. We read it by wrapping the engine's update
+function: the original runs first, its return value comes back untouched.
 
-## Komendy
+Stack: Bun + TypeScript, zero runtime dependencies, one bundled userscript as
+output.
+
+**This tree was rebuilt from scratch.** Only `tests/fixtures/*.json` carried
+over from the previous incarnation; every other file is new. Do not look to git
+history before that point for how things "used to be done" — the conventions
+here supersede it.
+
+---
+
+## 2. Boundary Labels
+
+Rules below are tagged so you can tell at a glance whether one binds the file
+you are touching.
+
+**Strength** — how much room you have:
+
+| Tag | Meaning |
+|---|---|
+| `[ALWAYS]` | Do it every time. No judgment call. |
+| `[ASK]` | Stop and ask the user before doing it. |
+| `[NEVER]` | Do not do it. Not "prefer not to". |
+
+Untagged prose is context and reasoning — read it, but it does not bind.
+
+**Scope** — where a rule applies:
+
+| Tag | Meaning | Paths |
+|---|---|---|
+| `[any]` | Everywhere in the repo | — |
+| `[core]` | Pure logic: decoding, aggregation, contracts | `src/core/` |
+| `[game]` | Anything touching the live game client | `src/game/` |
+| `[ui]` | The panel and everything it draws | `src/ui/` |
+| `[data]` | Material captured from the game | `tests/fixtures/` |
+| `[process]` | Commits, validation, workflow | — |
+
+⚠️ Only `[data]` has files today. The other paths appear as the code that needs
+them is written (see §7.1). **This table is the map — keep it true.** A scope
+whose path no longer exists, or a directory missing from this table, is the
+first sign the rules have drifted from the tree.
+
+---
+
+## 3. ALWAYS
+
+- `[ALWAYS] [any]` **Run the validation command after every change**, including
+  a one-line edit. See §6.1. "It's too small to break anything" is how it breaks.
+- `[ALWAYS] [process]` **Prove a new test can fail.** After writing a test,
+  break the thing it covers and confirm it goes red, then restore. A test that
+  cannot fail is worse than no test: it reports safety that is not there. Say in
+  the commit message what you broke and what lit up.
+- `[ALWAYS] [any]` **Cite the source for any claim about the game.** If a
+  sentence would be true in someone else's repository reading the same protocol,
+  it is a claim about the game, not about us — and it needs a reference to the
+  game's own documentation, its client asset, or a measurement on the fixtures.
+  This includes negative claims ("the log doesn't say who applied the poison").
+- `[ALWAYS] [core]` **Make unknown input loud.** A protocol key the decoder does
+  not recognise becomes an explicit "unknown" event and surfaces in the panel.
+  Silence is the failure mode that costs the most here: a number that is quietly
+  too low looks exactly like a number that is right.
+- `[ALWAYS] [any]` **Write English** — code, comments, test names,
+  documentation, commit messages. The one exception is §9.2.
+- `[ALWAYS] [process]` **Leave the gate green.** Every commit passes §6.1 on its
+  own, including when you split one change across several commits.
+
+---
+
+## 4. ASK FIRST
+
+- `[ASK] [process]` **Committing or pushing.** Finish a round with changes in
+  the working tree and a summary, unless told otherwise.
+- `[ASK] [core]` **Changing the data contract** (`src/core/events.ts` and
+  anything that shapes what flows between decoder and aggregator). A field added
+  to a type and forgotten downstream produces numbers that quietly shrink.
+- `[ASK] [any]` **Deleting or skipping a test.** Including "it's obsolete" —
+  especially then.
+- `[ASK] [any]` **Adding a dependency.** This project has zero runtime
+  dependencies and that is a feature.
+- `[ASK] [data]` **Touching anything under `tests/fixtures/`.** See §9.2.
+- `[ASK] [any]` **Turning off a compiler flag or a guard test** to make
+  something pass. The flag is the point.
+- `[ASK] [any]` **Adding a file nothing uses yet.** See §7.1.
+
+---
+
+## 5. NEVER
+
+- `[NEVER] [game]` **Send anything over the network from the userscript.** No
+  `fetch`, `XMLHttpRequest`, `WebSocket`, `sendBeacon`. This is checkable in the
+  source and people do check it.
+- `[NEVER] [game]` **Automate the game or change how a fight plays out.** No
+  clicking, no synthesised input, no altering the engine's behaviour or its
+  return values.
+- `[NEVER] [data]` **Edit a fixture to make a test pass.** The material is
+  evidence. If a fixture contradicts the code, the code is wrong or the
+  understanding is — fix that, or record the discrepancy.
+- `[NEVER] [any]` **Copy the game's own prose into this repository.** Key names
+  and identifiers are functional and may be stored; the sentences the game
+  displays are someone else's work. Player nicknames likewise: they never enter
+  the repo.
+- `[NEVER] [core]` **Invent data the log does not carry.** The protocol does not
+  say who applied a damage-over-time effect or who healed. Showing "unknown" is
+  allowed; guessing a name is not.
+- `[NEVER] [any]` **Comment the obvious.** See §9.3.
+- `[NEVER] [any]` **Leave a number in prose that a machine could compute.**
+  Test counts, coverage, line counts and file counts go stale silently. If it
+  can be measured, measure it at read time instead of writing it down.
+
+---
+
+## 6. Commands
+
+### 6.1 Validation
 
 ```bash
-bun install
-bun run check     # typecheck + testy + build  ← to jest brama, ma przechodzić
-bun test          # same testy
-bun run build     # → dist/margometer.user.js
+bun run check      # typecheck + tests + build — THE GATE, must pass
 ```
 
-Każdy commit ma przechodzić `bun run check` osobno, także przy rozbijaniu
-większej zmiany na kilka.
-
-## Układ
-
-```
-Engine.battle.update  →  protokol-source.ts → komunikaty `t.m` + skład
-                      →  protokol.ts        → BattleEvent[]  (rozbiór klucz po kluczu)
-                      →  slownik-gry.ts     → brzmienia efektów z `window._t`
-                      →  stats.ts           → BattleStats  (agregacja, rozbicia, instancje)
-                      →  session.ts         → pamięta ostatni odczyt
-                      →  overlay.ts         → panel w Shadow DOM
-```
-
-To jest SKRÓT. **Pełny przebieg — od buildu, przez pętlę startową i owinięcie
-`Engine.battle.update`, po tory boczne i klucze w magazynie — stoi
-w [`docs/POTOK.md`](docs/POTOK.md)** i tam jest źródłem prawdy dla szczegółów.
-
-⚠️ **`session.ts` stało tu jako „która walka jest TĄ" do 2026‑08‑07.** Kryterium
-podziału (`splitFights`, po zdarzeniu `fight-start`) było martwe od 2026‑08‑04 —
-dekoder takiego zdarzenia nie produkuje — i zeszło z drzewa razem z tym opisem
-(`AUDYT‑108`). **Która walka jest TĄ, rozstrzyga dziś wyłącznie
-`protokol-source.ts`**, odcinając bufor na `data.init`. To jest jeden warunek
-bez drugiego świadka i tak ma być czytane.
-
-`BattleEvent[]` (`types.ts`) jest KONTRAKTEM między źródłem a agregatem — i to
-on przeżył wymianę odczytu. Nagrania trzymają surowe komunikaty, nie policzone
-liczby, żeby dało się je przeliczyć nowszym dekoderem.
-
-⚠️ **Zdanie „przeżył wymianę odczytu" stało tu do 2026‑08‑09 jako sama zaleta
-i było przez to za miękkie** (`AUDYT‑119`). Przeżył ją **z bagażem, którego przez
-pięć dni nikt nie przeszedł**: wariant `fight-start`, którego dekoder nie
-produkuje ani razu, plus wiszący na nim martwy tryb w `stats.ts`. Utrzymywał go
-przy życiu WŁASNY korpus testowy. Granica między dekoderem a agregatem jest dobra
-i zostaje (dowód: `archive.ts` woła `dekoduj` wprost, więc scalenie wciągnęłoby
-`Engine` w odtwarzanie) — ale **sam kontrakt jest wyjściem ścieżki wejścia
-i starzeje się razem z nią.** Reguła „kasując ścieżkę WEJŚCIA, przejdź to, co
-zostaje na WYJŚCIU" ma pięć zapisanych dowodów i piąty jest właśnie o tym pliku.
-
-Poboczne: `recorder.ts` + `archive.ts` (nagrywanie i odtwarzanie),
-`zrzut.ts` + `opcje.ts` (zbieranie materiału z gry i okno ustawień),
-`roster.ts` (skład z `Engine.battle`), `palette.ts`, `window.ts`,
-`stored-state.ts`, `confirm.ts` (pytanie „na pewno?" z wygasaniem),
-`version.ts` (numer wersji w panelu i w skopiowanym JSON-ie),
-`style.ts` (arkusz OBU okien — panelu i archiwum).
-
-## Zanim napiszesz zdanie o tym, jak zachowuje się GRA
-
-**Przejdź procedurę z [`docs/MECHANIKA.md`](docs/MECHANIKA.md).** Gra ma oficjalną
-dokumentację mechaniki walk i jest w niej więcej, niż to repo zakładało — wzory
-na unik i blok, kolejność redukcji obrażeń, opisy zdarzeń. Sonda:
+Run it after every change. It is deliberately one command so there is no version
+of "I ran the tests but not the build" — the build assembles the userscript and
+can fail on its own.
 
 ```bash
-bun tools/pomoc.ts "Blok ( blok )"
+bun test           # tests only, while iterating
+bun run typecheck  # types only
+bun run build      # produces dist/margometer.user.js
 ```
 
-Dotyczy **tak samo zdań negatywnych**: „dokumentacja tego nie rozstrzyga” bez
-przejścia procedury jest w tym repo już dwa razy zapisaną nieprawdą.
+### 6.2 Tooling
 
-Test, czy to pytanie o mechanikę: **czy zdanie byłoby prawdziwe w cudzym repo
-czytającym ten sam log?** Jeśli tak — to o grze, nie o nas.
+Tools are added when a question needs answering, not in advance (§7.1). Each one
+that exists is listed here with what it answers.
 
-## Konwencje kodu
+*(none yet)*
 
-- **Nie udawaj danych, których log nie ma.** Log nie mówi, kto nałożył truciznę
-  ani kto leczył. Wolno pokazać „nie wiadomo”; nie wolno zgadnąć i pokazać
-  nazwiska. Powody w `docs/DECYZJE.md`.
-- **Nieznane ma być głośne.** Klucz protokołu, którego dekoder nie zna, trafia
-  do `{kind: "unknown"}` i zapala ostrzeżenie w panelu. Tabela ról jest wąska
-  CELOWO — szeroka połknie kiedyś klucz z liczbą i zrobi to po cichu.
-- **Komentarz mówi DLACZEGO, nie CO.** Kod jest gęsto komentowany i to jest
-  zamierzone: komentarze niosą powody decyzji, odrzucone warianty i pomiary.
-- **Kompilator zastępuje lintera.** Nie ma ESLinta; `noUnusedLocals`
-  i `noUnusedParameters` są włączone, żeby martwy kod był błędem kompilacji.
-  Nie wyłączaj ich, żeby coś przeszło.
+---
 
-## Testy
+## 7. Workflow Orchestration
 
-- **Test ma móc paść.** Po napisaniu testu na naprawę **zepsuj naprawę
-  i sprawdź, że test się zapala**. Zdarzyły się tu testy zielone i puste.
-- **Niezmienniki > pojedyncze asercje.** Najmocniejsze testy lecą po CAŁYM
-  korpusie i sprawdzają własność, nie liczbę: „każdy klucz rozpoznany”,
-  „rozbicia sumują się do skalarów”.
+### 7.1 Shape of a round
 
-  ⚠️ **Najmocniejszy z nich zniknął 2026‑08‑04.** Porównywał `dekoduj(protokół)`
-  z odczytem tej samej walki DRUGĄ, rozłączną drogą — i to on złapał jedyny
-  prawdziwy błąd dekodera. Razem z tamtym odczytem zniknęła druga strona
-  porównania.
+**Nothing exists before it is needed.** This applies to files, directories,
+helper modules, tools and guards alike:
 
-  ✅ **Częściowy świadek wrócił 2026‑08‑05** i stoi w `tests/fixtury.test.ts`.
-  Protokół podaje procent życia celu, migawka wojownika niesie `hp.max`; te dwie
-  liczby idą z różnych miejsc i nikt ich u nas nie uzgadnia, więc skumulowane
-  obrażenia muszą trafić w podany procent. **Obejmuje tylko obrażenia** — cel,
-  który padł, wypada z porównania, a uleczony wypada od chwili uleczenia
-  (`AUDYT‑61`). Blok i absorpcja przez świadka **przechodzą**, bo `applied` to
-  liczba PO redukcji; niesprawdzone są ich osobne składniki. Obrażenia ZADANE
-  i rozbicia nadal świadka nie mają.
+- A file is created in the commit that uses it. There are no files "for later" —
+  the compiler enforces this (§9.3).
+- A directory appears with its first file.
+- A shared module appears at the **second** consumer, not the first.
+- A guard test appears when there is something to guard: the layering rule lands
+  with the second layer, not the first.
+- A tool appears alongside the question it answers.
 
-  ⚠️ **DRUGI FIXTURE POKAZAŁ, ŻE ŚWIADEK NIE ROŚNIE Z MATERIAŁEM** (2026‑08‑06).
-  `grupa-vs-hildur` jest pięćdziesiąt razy większy od starszego pliku i robi
-  **mniej porównań** — potwór leczy się niemal w każdej turze, a uleczony cel
-  wypada z porównań od tej chwili. Liczby wypisuje test; nie cytuje się ich tutaj
-  z tego samego powodu, co przy `702 → 718`. Wniosek zostaje: **szerokość kluczy
-  i głębokość świadka to dwie różne rzeczy.** Zrzut, który ma wzmocnić świadka,
-  musi być walką BEZ leczenia celu, a nie po prostu dłuższą.
-- **Materiał z gry jest dowodem**, nie „danymi testowymi”. Pochodzenie (świat,
-  build, daty, źródło) niesie **sam zrzut** w `tests/fixtures/`; opis tego, co
-  pokrywa, czego w nim nie ma i co było trudne, stoi w `tests/fixtures/README.md`
-  i **bez POLICZONYCH liczb** — te wypisuje `--pokaz`. ⚠️ Reguła brzmiała tu
-  „bez liczb" i była za szeroka wobec własnego powodu (`AUDYT‑80`): README niesie
-  `id` wojowników i daty, bo bez nich nie da się powiedzieć, co plik pokrywa.
-  Zakaz dotyczy liczb, które maszyna umie policzyć z pliku — bo tylko one
-  rozjeżdżają się po cichu. Nie edytuje się tego, żeby test
-  przeszedł.
+The intended shape (`core` → `game` → `ui`) is a **direction, not scaffolding**.
 
-  ⚠️ Powód, dla którego pochodzenia się nie przepisuje: nagłówek
-  `tests/walka-z-gry.ts` podawał build `1781609507010` — deweloperski, sześć
-  tygodni starszy od walki — bo przy przenoszeniu materiału do kodu przepisywał
-  go człowiek. Prawdziwy (`1785244275300`) potwierdzają dwa niezależne zapisy.
-- **POLICZONE liczby nie wchodzą do plików danych; SUROWY materiał z gry —
-  owszem.** Reguła brzmiała tu do 2026‑08‑05 szerzej („materiał testowy powstaje
-  W KODZIE, nie w plikach danych") i była za szeroka wobec własnego powodu.
-  Powodem skasowania `tests/fixtures/` 2026‑08‑04 był `zdarzenia.json`: 1,44 MB
-  **wyjścia parsera, który właśnie zszedł z drzewa** — nie do zregenerowania,
-  nie do sprawdzenia przeciw grze, z ewentualnym błędem tamtego parsera
-  zamrożonym w środku. Surowy protokół nigdy nie był zarzutem; leżał w tym samym
-  katalogu jako `protokol.json` i był chwalony.
+A round: understand the problem → change the smallest thing that addresses it →
+validate (§6.1) → report (§7.4). If you catch yourself writing a plan, the
+change is big enough to deserve one written down before the code.
 
-  Gdzie dziś przebiega granica:
-  - **Nasze liczby → do kodu.** `tests/zdarzenia.ts` (pojedyncze `BattleEvent`),
-    `tests/korpus.ts` (walki z generatora plus jedna ręczna),
-    `tests/klucze-protokolu.ts` (233 klucze renderera, WYGENEROWANE przez
-    `bun tools/slownik.ts --zamroz`, nie pisane ręcznie).
-  - ⛔ **BRZMIENIA GRY → NIGDZIE.** Trzecia kategoria, dopisana 2026‑08‑06.
-    Klucz `+abdest` i identyfikator `msg_+abdest %val%` to nazwy funkcyjne
-    i zostają; polskie zdanie spod nich („+Zniszczono %val% absorpcji") jest
-    cudzą twórczością i w publicznym repozytorium na MIT nie ma go prawa być
-    (`NOTICE.md`, regulamin gry VII.2 m). Zamrożenie niosło 236 takich zdań
-    do 2026‑08‑06; dziś niesie `maZdanie: boolean`, a słownik dla testów
-    składa szablony ZASTĘPCZE z klucza. **Kosztowało to 0 testów** — okazało
-    się, że żaden nigdy nie pytał, jak zdanie brzmi, tylko czy gra je zna.
-    Powrót brzmień zapala strażnika `brzmienia z gry NIE przechodzą przez
-    `zamrozenie` do modułu` (`tests/slownik.test.ts`, mutacja sprawdzona).
-    Ta sama reguła dotyczy pseudonimów innych graczy — na zrzutach ekranu
-    też (`docs/screenshots/README.md`).
-  - ⛔ **PSEUDONIMY GRACZY → DO FIXTURE'A WYŁĄCZNIE JAKO `Gracz N`.** Czwarta
-    kategoria, dopisana 2026‑08‑06 — bo trzecia mówiła „ta sama reguła dotyczy
-    pseudonimów" i **niczego nie pilnowała po stronie materiału z gry**. Każdy
-    wojownik z `npc: 0` wchodzi do `tests/fixtures/` jako `Gracz 1`, `Gracz 2`, …;
-    podstawia `pseudonimizuj` w `tools/walka.ts`, automatycznie przy każdym
-    `--zachowaj`, a pilnują dwa niezmienniki w `tests/fixtury.test.ts`. `id`,
-    liczby i nazwy POTWORÓW zostają nietknięte — to one są w tym pliku dowodem.
-    Etykiety są **lokalne dla pliku** i nie mają nic wspólnego z `Gracz A`…
-    `Gracz G` z prozy; stąd cyfra zamiast litery. Pełna procedura wejścia
-    materiału: `tests/fixtures/README.md`.
+### 7.2 Commits
 
-    ⚠️ **Jednego kroku nie da się zautomatyzować i trzeba o tym wiedzieć.**
-    Podstawienie zna wyłącznie nazwy związane z `id`. Nick niezwiązany z żadnym
-    wojownikiem — wstawiony tylko w `render`, w `txt=` z łupem, należący do
-    kogoś, kto wypadł przed pierwszą migawką — przechodzi przez nie nietknięty
-    i **nie zapala ani jednego strażnika** (zmierzone mutacją). Dlatego procedura
-    ma krok „przeczytaj `otwarcie` i `render` oczami".
-  - ⛔ **OPISY UMIEJĘTNOŚCI → DO FIXTURE'A NIGDY.** Piąta kategoria, dopisana
-    2026‑08‑06 tego samego dnia co czwarta i **z tego samego powodu**: trzecia
-    mówiła „brzmienia gry → nigdzie", a `ladunek.skills` w pierwszym zrzucie,
-    który je niósł, przeszedłby z pięcioma pełnymi zdaniami autorstwa twórców
-    gry. Zdejmuje je `zdejmijOpisy` w `tools/walka.ts`, automatycznie przy każdym
-    `--zachowaj`; ile zeszło, mówi pole `opisow` w pliku, a pilnują dwa
-    niezmienniki w `tests/fixtury.test.ts` — jeden po położeniu pola, drugi po
-    kształcie tekstu, żeby zmiana układu ładunku nie uciszyła obu naraz.
-    `id` umiejętności, jej NAZWA, wymagania i parametry zostają: to nazwy
-    funkcyjne, ta sama granica co przy `+abdest`.
+Conventional Commits, English: `type(scope): effect`.
 
-    ⚠️ **Wniosek warty więcej niż sama kategoria.** Reguła „brzmienia gry →
-    nigdzie" istniała od rana i **nie chroniła materiału**, bo pilnował jej
-    strażnik po stronie SŁOWNIKA. Dwa razy pod rząd — przy pseudonimach
-    i tutaj — okazało się to samo: **reguła bez strażnika po stronie danych jest
-    regułą o kodzie, nie o repozytorium.** Pisząc następną, sprawdź, którędy do
-    repo wchodzą pliki.
-  - **Protokół tak, jak przysłał go serwer → do `tests/fixtures/*.json`**, przez
-    `bun tools/walka.ts --zachowaj … --nazwa <slug>`. Bo moduł z `--rozbij`
-    gubi `hp.max`, ładunki i granice wywołań, a bez `hp.max` nie ma świadka
-    dekodera spoza dekodera (niżej). „Tak, jak przysłał go serwer" ma odtąd
-    **dwa wyjątki** i są nimi dwie kategorie wyżej; oba są liczone w samym pliku
-    (`pseudonimow`, `opisow`).
+Types in use: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `chore`.
 
-  **Warunek, pod którym katalog wrócił: niezmienniki ODKRYWAJĄ pliki same**
-  (`tests/fixtury.ts` + `tests/fixtury.test.ts`, wciągane też do `KORPUS`).
-  Drugi zarzut z tamtej rundy brzmiał „plik danych da się dołożyć bez dotknięcia
-  jednego testu, leżał martwy i nikt tego nie widział" — i to jest prawda o
-  katalogu, którego nikt nie czyta. Tu zrzut wrzucony do katalogu jest sprawdzany
-  od razu; sprawdzone pomiarem **dwa razy, na dwóch różnych zestawach testów**:
-  2026‑08‑05 dorzucenie pliku dało 16 testów więcej, 2026‑08‑06 — 20. ⚠️ Stało
-  tu `14`, potem `16` (`AUDYT‑82`), i lekcja jest ogólniejsza od poprawki:
-  **ta liczba rośnie razem z zestawem testów**, więc nie ma sensu cytować jej
-  jako stałej. Znaczenie ma znak, nie wartość: nowy plik dokłada testy, zamiast
-  leżeć martwo. Pomiar robi się przez usunięcie pliku i porównanie `bun test`.
+**The header names the effect, not the activity** — "blocked hits reach the
+panel", not "add block handling".
 
-  Katalog **pusty** zapala osobny test (`FIXTURY.length > 0`) — sprawdzone.
-  ⚠️ Literówka w ŚCIEŻCE nie zapala testu, tylko wywraca ładowanie modułu
-  (`AUDYT‑76`): `readdirSync` rzuca ENOENT na poziomie `tests/fixtury.ts`, więc
-  strażnik w ogóle nie startuje, a razem z nim pada `tests/stats.test.ts`, który
-  importuje `KORPUS`. Głośno — ale nie „osobnym testem", i tak to trzeba czytać.
-  Zmierzoną mutacją była literówka w ROZSZERZENIU (`.jsonx`), i tylko ona kończy
-  się „strażnik zapala się, reszta milczy".
+**The body is the primary record of reasoning.** The diff already shows what
+changed; the message has to say *why this and not something else*. No length
+limit. A one-line body on a non-trivial change is a gap, not brevity. Include:
 
-  `tests/walka-z-gry.ts` **zostaje**, ale przestał być oryginałem: jest kopią
-  jednego z fixture'ów dla czterech miejsc, które importują gotowe `KOMUNIKATY`
-  i `SKLAD` (w tym `build.ts`, który katalogu testów nie czyta). Rozjazd kopii
-  z oryginałem zapala test.
+- **Numbers, not adjectives.** "269 → 62 ms over 190 recordings", not "faster".
+- **What decided it** — a measurement, or taste. Say which.
+- **Rejected alternatives.** The code never records what was not chosen.
+- **Whether the test can fail** — what you broke, what lit up (§3).
+- **What stays open.** "Fixed" must not imply more than it does.
 
-  ⚠️ **CO ODEBRAŁO SKASOWANIE 25 WALK — i ile z tego wróciło.** Kształt, o którym
-  nie pomyśleliśmy, nie ma jak wpaść do materiału budowanego przez nas; 25
-  prawdziwych walk łapało je samo z siebie. Od 2026‑08‑05 prawdziwe walki znów
-  są w pętli niezmienników, a od 2026‑08‑06 są ich **DWIE**, nie dwadzieścia
-  pięć.
+### 7.3 Parallelism and subagents
 
-  ✅ **Trzy kształty wymienione tu jako niesprawdzane PRZYSZŁY z drugą walką**
-  (2026‑08‑06): przekrój po typie obrażeń w walce grupowej, blok u celu
-  i super‑kryt. To nie jest zbieg okoliczności ani zasługa planowania — 25 walk
-  łapało takie rzeczy same z siebie i **jedna prawdziwa walka też je złapała**,
-  łącznie z błędem dekodera, o którym nikt nie wiedział (parowanie po kolejności,
-  16 komunikatów `unknown`). Dowód działa w obie strony: materiał z gry naprawdę
-  niesie kształty, na które nie wpadamy, i naprawdę wystarczy go MAŁO, żeby to
-  pokazać.
+- Independent tool calls go in one message so they run concurrently.
+- Delegate to a subagent when answering would mean reading across many files and
+  you only need the conclusion. Do not delegate a single-file lookup.
+- Do not run a search yourself that you have already delegated.
 
-  ⚠️ **Stało tu „dwie" do 2026‑08‑05** (`AUDYT‑58`). Runda celowała w dwa
-  fixture'y, drugi odpadł jako sklejony — a liczba została w prozie i rozeszła
-  się stąd do pięciu innych miejsc. `find tests/fixtures -name '*.json'` mówiło
-  wtedy `1`; `ROADMAP.md` i `tests/fixtures/README.md` mówiły „jedna" od
-  początku. Od 2026‑08‑06 prawdziwą liczbą jest `2` — i lekcja z tamtego
-  sprostowania zostaje: **licz plikiem, nie pamięcią.**
+### 7.4 Reporting
 
-  ✅ Co wróciło i kiedy:
-  - 2026‑08‑04 — zgodność zaszytych identyfikatorów `_t` z assetem gry
-    i **dwustronne** pokrycie tabeli ról przeciw 233 kluczom gry.
-  - 2026‑08‑05 — **częściowy świadek dekodera spoza dekodera**. Protokół podaje
-    procent życia celu, migawka wojownika niesie `hp.max`; te dwie liczby idą
-    z różnych miejsc i nikt ich u nas nie uzgadnia, więc skumulowane obrażenia
-    muszą trafić w podany procent (763 − 243 = 520; 520/763 = 68,15 %). Zmierzone
-    na jedynej prawdziwej walce: **7 porównań, 0 rozjazdów**; dekoder sumujący
-    `raw` zamiast `applied` daje **6 rozjazdów**, czyli zapala 6 z 7.
-    **Obejmuje tylko obrażenia** — cel, który padł, wypada z porównania,
-    a uleczony wypada od chwili uleczenia (`AUDYT‑61`: leczenie przesuwa BAZĘ,
-    więc milczenie o nim dawało fałszywy alarm na poprawnym dekoderze). Blok
-    i absorpcja przez świadka **przechodzą**, bo `applied` to liczba PO redukcji;
-    niesprawdzone są ich osobne składniki.
+End a round with: what changed, what you validated and what came back, what you
+did **not** do and why. Report failures with the output. If a step was skipped,
+say so. Do not describe work as done until the gate is green.
 
-    ⚠️ **Stały tu liczby z materiału, którego w repo NIE MA** (`AUDYT‑58`,
-    `AUDYT‑59`): „16 trafień na dwóch walkach" i przykład `763 − 225 = 538;
-    538/763 = 70,51 %` z `id -255970`. Ani `70.51`, ani `225`, ani `538`, ani
-    takiego `id` nie ma w `tests/fixtures/` — przyszły z odrzuconego zrzutu
-    i przeżyły go w prozie. Liczba `6` jako jedyna była prawdziwa.
-  - 2026‑08‑06 — **druga prawdziwa walka**, grupowa, w ponad stu wywołaniach.
-    Przyniosła blok u celu, absorpcję z własnymi kluczami, zapowiedź
-    umiejętności, `heal_target` w dwóch szykach, super‑kryt, przekrój po
-    żywiołach i zmienny `data.current`. **Nie weszła od razu**: dawała 16
-    komunikatów `unknown` i weszła dopiero po poprawce dekodera, który parował
-    zadane z przyjętymi po KOLEJNOŚCI, choć gra nie paruje ich wcale
-    (`docs/MECHANIKA.md`, wpis „Zadane i przyjęte NIE SĄ PAROWANE").
-    ⚠️ Świadka **nie wzmocniła** — patrz sekcja „Testy" wyżej.
+---
 
-  Kolejny materiał z gry ma **dwie drogi**, obie kończące się tym samym
-  `bun tools/walka.ts --zachowaj … --nazwa <slug>` (i zwykle także `--rozbij`)
-  oraz tym samym kształtem pliku
-  (`Zrzut` w `src/zrzut.ts` — JEDEN typ dla obu stron):
-  - **z dodatku**: zębatka → „Tryb deweloperski" → „Zrzut walki". Nie wymaga
-    niczego przed walką, bo tryb raz włączony zostaje, i **nie owija
-    `Engine.battle.update` drugi raz**. Zbiera całą sesję, więc przy kilku
-    walkach `--rozbij` żąda `--walka <n>`; numery pokazuje `--pokaz`.
-  - **sondą** (`tools/walka-probe.js`) wklejoną do konsoli przed walką. Zostaje
-    i ma zostać: działa bez instalowania dodatku i jest jedyną drogą, gdy
-    podejrzenie pada na sam dodatek — zrzut zebrany zepsutym kodem nie świadczy
-    o niczym.
-- **`tests/overlay.test.ts` był ostatni** i dlatego jego asercje wymieniają dziś
-  nazwy z generatora. Test panelu mówi „czy panel rysuje to, co dostał"; nie
-  mówi już „czy gra produkuje takie składy".
+## 8. Structure
 
-## Dwa zapisy zmian, dla dwóch czytelników
+Reflects the tree as it is. **Update it in the same commit that changes the
+tree** — a structure section that lists directories which do not exist is how
+this document starts lying.
 
-- **`CHANGELOG.md` jest DLA UŻYTKOWNIKA.** Płaska lista na wersję, każdy wpis
-  zaczyna się od **Nowość** / **Zmiana** / **Poprawka**. Bez pojęć
-  programistycznych — nie „parser", „regex", „cache". Pilnuje tego test
-  (`tests/changelog.test.ts`), bo regułę łamie się niechcący, pisząc zaraz po
-  wyjściu z kodu. Refaktory, testy i narzędzia tu **nie wchodzą**.
+```
+tests/fixtures/    Raw battle protocol captured from real fights. Evidence — §9.2.
+```
 
-  **Zmiana w `src/` wymaga ruszenia listy wpisów w `CHANGELOG.md`** — w praktyce
-  sekcji `[Niewydane]`, bo tam trafiają nowe. Pilnuje tego strażnik w `check.yml`
-  (logika i powody: `tools/wydanie.ts`). Liczy się cały zakres PR-a albo pusha,
-  nie pojedynczy commit, więc wpis wolno dołożyć osobno; poprawienie istniejącego
-  wpisu też wystarcza. Porównywana jest CAŁA lista, a nie sama `[Niewydane]`:
-  zakres obejmujący wydanie przenosi wpisy pod numer wersji i przy węższym
-  porównaniu wyglądał jak brak wpisu (fałszywy alarm 2026‑08‑04). Typy, których użytkownik nie
-  widzi (`refactor`, `test`, `docs`, `build`, `chore`, `ci`, `style`), zwalniają
-  same z siebie. Gdy `feat` albo `fix` naprawdę go nie dotyczy — dopisz
-  `[bez-changeloga]` do komunikatu commita. Furtka istnieje po to, żeby reguła
-  wyżej („refaktory tu nie wchodzą") i strażnik nie kazały wybierać między sobą.
+Everything else is yet to be written.
 
-  **Samo wydanie** — przeniesienie sekcji, `package.json`, tag i to, co robi
-  potem CI — stoi w [`docs/WYDANIE.md`](docs/WYDANIE.md). Wpis w `[Niewydane]`
-  nie jest wydaniem: zmiana dociera do gracza dopiero z tagiem.
-- **`docs/specy/` jest DLA PROGRAMISTY.** Jeden plik na rundę wymagającą
-  zaprojektowania: problem, rozwiązanie, **odrzucone warianty**, weryfikacja.
-  Sygnał, że spec jest potrzebny: łapiesz się na tym, że piszesz plan. Szablon
-  i zasady — [`docs/specy/README.md`](docs/specy/README.md).
+---
 
-## Commity
+## 9. Rules
 
-**Komunikat commita jest tu głównym zapisem rozumowania.** Kod mówi, CO jest —
-diff pokazuje to lepiej niż jakikolwiek opis. Komunikat ma powiedzieć,
-**DLACZEGO tak, a nie inaczej**, i to on zostaje, gdy za miesiąc ktoś pyta
-„czemu to tak działa". Rejestry w `docs/` niosą stan, specy niosą projekt,
-commit niesie **decyzję w momencie jej podejmowania**.
+### 9.1 Architecture
 
-- **Nie commituj bez proszenia.** Runda kończy się zmianami w drzewie roboczym
-  i podsumowaniem, chyba że padnie inne polecenie.
-- **Przegląd PRZED commitem, nie po.** Jeden z audytów znalazł jedenaście
-  rzeczy, z czego pięć było regresjami rundy czekającej właśnie na commit.
-- **Każdy commit przechodzi `bun run check` osobno**, także przy rozbijaniu
-  większej zmiany na kilka.
-- **Dokumentacja starzeje się szybciej niż kod.** Jeśli opierasz decyzję na
-  zdaniu z `docs/`, sprawdź je w kodzie; jeśli się rozjechało, popraw dokument
-  w tej samej rundzie — i napisz w commicie, co zastałeś.
+- `[ALWAYS] [core]` **Dependencies point one way:** `ui → core`, `game → core`,
+  entry point → everything. `core` imports from nothing but itself.
+- `[ALWAYS] [core]` **`core` is pure** — no `document`, no `window`, no
+  `localStorage`, no timers, no knowledge that a game engine exists. This is
+  what makes the decoder and the aggregator testable without a browser and
+  without the game, and it is not negotiable for convenience.
+- `[ALWAYS] [game]` **All contact with the game client lives in `game/`.** One
+  place to audit, one place to break.
+- `[ALWAYS] [ui]` **The panel renders state handed to it.** It never computes
+  statistics itself.
+- Prefer a narrow module over a broad one. A file that needs a table of contents
+  needs splitting instead.
 
-### Nagłówek
+### 9.2 Data
 
-`typ(zakres): skutek` — Conventional Commits, po polsku. Typy w użyciu:
-`feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`.
+`tests/fixtures/*.json` is raw protocol captured from real fights. It is
+**evidence, not test data**, and the difference is operative:
 
-Nagłówek nazywa **skutek**, nie czynność: „blok, super-kryt i osłabienie DoT-a
-docierają do panelu", a nie „dodaj obsługę bloku". Gdy zmiana zamyka pozycję
-z rejestru, jej ID idzie w nawias — `(SOLID §4.22, §4.18)`, `(AUDYT-14/17/18/19)`
-— żeby dało się przejść od wpisu do zmiany i z powrotem.
+- `[NEVER] [data]` Edit it to make anything pass.
+- `[ASK] [data]` Any change at all, including reformatting.
+- `[ALWAYS] [data]` **Field names inside these files stay in Polish**
+  (`ladunek`, `komunikaty`, `wojownicyPrzed`, …). This is the sole exception to
+  the English rule: renaming them would be editing the evidence. The boundary is
+  the reader that parses them — Polish names stop there and go no further.
+- `[ALWAYS] [data]` **Fixtures are discovered by reading the directory**, never
+  by a hand-maintained list of names. A file dropped in is checked immediately
+  rather than sitting dead.
+- `[ALWAYS] [data]` **An empty fixture directory fails its own test.** A loop
+  over nothing is green and proves nothing.
+- Player nicknames are substituted before material enters the repo; game-written
+  ability descriptions are stripped. Both are done by tooling, not by hand.
 
-### Treść
+Computed numbers do not belong in data files — only raw material does. Our own
+numbers belong in code, where they can be regenerated.
 
-Bez limitu długości. Commit na trzydzieści linii jest tu normą, jeśli tyle
-zajmuje uzasadnienie; commit na jedną linię przy nietrywialnej zmianie jest
-brakiem, nie zwięzłością. Co ma się w niej znaleźć:
+### 9.3 Code
 
-- **Liczby, nie przymiotniki.** „269 → 62 ms przy 190 nagraniach", nie „szybciej".
-  Przy zmianach wydajnościowych pomiar przed i po, tą samą sondą. Przy zmianach
-  w dekoderze i agregacie — przeliczenie na materiale z `tests/`.
-- **Co rozstrzygnęło wybór.** Jeśli decydował pomiar, a nie gust, napisz to
-  wprost. Jeśli decydował gust, też.
-- **Odrzucone warianty i dlaczego.** Kod nigdy nie mówi, czego NIE wybrano.
-  Wariant odrzucony z powodu, który kiedyś zniknie, zasługuje na osobne zdanie.
-- **Czy test potrafi paść.** Po napisaniu testu zepsuj naprawę i sprawdź, że
-  się zapala — a potem napisz w commicie, że to zrobiłeś i co się zapaliło.
-- **Co ZOSTAJE otwarte.** „Naprawione" nie ma znaczyć więcej, niż znaczy.
-  Koszty dołożone przy okazji też się tu wpisuje.
-- **Sprostowania.** Jeśli zdanie z `docs/` okazało się nieprawdą — co mówiło,
-  co jest naprawdę i skąd wzięła się pomyłka.
-- **Wnioski na przyszłość.** Jeśli runda czegoś nauczyła, zdanie o tym jest
-  warte więcej niż opis kodu. Kilka reguł z tego pliku powstało właśnie tak.
+- **No linter, by choice — the compiler replaces it.** `noUnusedLocals` and
+  `noUnusedParameters` make dead code a compile error rather than something to
+  read past. `noUncheckedIndexedAccess` makes indexing prove itself. `[ASK]`
+  before weakening any of these; they exist to catch code that does not exist
+  yet.
+- **Comments say WHY, never WHAT.** The code already says what it does.
+- **Comment only what earns it:** a decision with a rejected alternative, a
+  measurement, a constraint imposed by the game, a trap someone will otherwise
+  fall into twice. `[NEVER]` comment the obvious — no `// increment counter`, no
+  restating a signature in prose above it.
+- **Keep comments short.** A few lines. If a comment needs paragraphs, the
+  reasoning belongs in the commit message and the comment points at it.
+- **Unknown is loud, never zero.** A parse that fails returns `null` or an
+  explicit unknown; it does not substitute `0` and it does not copy a neighbour.
+- **Names are English and say what the thing is**, not how it is implemented.
 
-Niczego z tego nie sprawdza żaden hook ani test — dlatego jest zapisane tutaj.
+### 9.4 UI
 
-### Stopka
+- The panel lives in a Shadow DOM and is cut off from the game's stylesheet
+  (`all: initial` on the host). We are a guest on someone else's page.
+- Event handling is delegated at the root, not bound per row, so re-rendering
+  never loses handlers.
+- Panel state that survives a reload is validated on read — never trusted raw
+  from storage.
+- **The panel says what it does not know.** Numbers the log cannot attribute to
+  anyone are shown as unattributed, not silently folded into someone's total.
 
-Agent dopisuje `Co-Authored-By`. Zmiana wykonana narzędziem ma być rozpoznawalna
-w historii bez pytania kogokolwiek.
+### 9.5 Design System
 
-## Dalej
+- **Tokens, not literals.** Colours, spacing and radii are named; a raw hex in a
+  rule is a bug.
+- **Dark-first.** The panel sits over a dark game client.
+- **Text on a coloured bar must clear WCAG AA contrast**, checked by a test
+  rather than by eye.
+- **Colour never carries meaning alone** — it accompanies a label or a number.
+- Concrete token values land with the first UI file, not before.
 
-[`docs/README.md`](docs/README.md) — co gdzie siedzi, czego log o walce nie mówi
-i jak wyglądały poprzednie rundy. Katalog `docs/` czyta się **wybiórczo**: każdy
-plik odpowiada na inne pytanie i nikt nie czyta ich w całości.
+---
 
-[`docs/POTOK.md`](docs/POTOK.md) — **cały przebieg dodatku**, gdy skrót z sekcji
-„Układ" wyżej nie wystarcza: inicjalizacja, owinięcie `Engine.battle.update`,
-droga jednej porcji danych, tory boczne, stan i klucze w magazynie.
+## 10. Glossary
+
+Terms from the game, fixed here so module names do not drift apart.
+
+| Term | Meaning |
+|---|---|
+| **fight** | One battle, start to finish. The unit everything is scoped to. |
+| **turn** | One action by one combatant. Not a round of the whole roster. |
+| **roster** | The combatants on both sides, with side, level and profession. |
+| **side** | Which team a combatant is on, from the local player's perspective. |
+| **protocol** | The raw payload the engine receives; our only data source. |
+| **message** | One semicolon-delimited record inside the protocol payload. |
+| **key** | A named field inside a message — decides what the message means. |
+| **hit** | A single damage number. One attack can carry several. |
+| **raw / applied** | Damage before and after reduction. Their difference is absorbed. |
+| **proc** | An effect that fired alongside an attack. |
+| **element** | Damage type (fire, cold, physical, …), taken from the key. |
+| **dot** | Damage over time, ticking outside a direct attack. |
+| **unattributed** | A number the log does not tie to any actor. Shown, never guessed. |
