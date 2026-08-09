@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { composeDecimalText } from "@/libs/number.ts";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
@@ -46,21 +47,6 @@ type Comparison = {
 };
 
 /**
- * Combatant ids by name, for the one key that identifies its victim by name.
- * Ambiguous names map to null rather than to the first match: the boar fight
- * fields two combatants called the same thing, and picking either would move
- * real damage onto the wrong one.
- */
-function getCombatantIdByName(fight: CapturedFight, callIndex: number): Map<string, number | null> {
-  const byName = new Map<string, number | null>();
-  const call = fight.dump.calls.find((candidate) => candidate.index === callIndex);
-  for (const combatant of call?.combatantsBefore ?? []) {
-    byName.set(combatant.name, byName.has(combatant.name) ? null : combatant.id);
-  }
-  return byName;
-}
-
-/**
  * Replays each engine call, subtracting the damage we decoded from the health the
  * snapshot started with, and compares the running figure against what each message
  * states — for **both** sides, not only the target. The actor side carries a
@@ -89,11 +75,13 @@ function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[
     if (unaccounted) continue;
 
     const runningHealth = new Map(call.combatantsBefore.map((c) => [c.id, c.health.current]));
-    const combatantIdByName = getCombatantIdByName(fight, call.index);
-    let namedVictimUnresolved = false;
+    // The roster the decoder would have at run time, rebuilt from what the
+    // engine call started with. Resolving names is the decoder's job now, so the
+    // replay hands it the same material and reads the id off the event.
+    const roster = composeCombatantRoster(call.combatantsBefore);
 
     for (const { message, parsed } of messages) {
-      const events = decodeFight([message]);
+      const events = decodeFight([message], roster);
 
       const takenByTarget = events
         .filter((event) => event.kind === "attack")
@@ -119,16 +107,19 @@ function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[
 
       for (const event of events) {
         if (event.kind !== "damage-to-named-combatant") continue;
-        const victim = combatantIdByName.get(event.targetName);
-        // Damage that landed on somebody we cannot pin down is damage missing
-        // from the running total, and the rest of this call would report that as
-        // the game's error.
-        if (victim === undefined || victim === null) namedVictimUnresolved = true;
-        else if (runningHealth.has(victim)) {
-          runningHealth.set(victim, (runningHealth.get(victim) ?? 0) - event.damage.amount);
+        // An unresolved name would leave the running total short and the next
+        // comparison would blame the game for it. That it never happens on this
+        // material is not assumed here — it is asserted below, where a future
+        // capture that breaks it says so plainly instead of arriving as a
+        // mysterious disagreement.
+        if (event.targetId === null) continue;
+        if (runningHealth.has(event.targetId)) {
+          runningHealth.set(
+            event.targetId,
+            (runningHealth.get(event.targetId) ?? 0) - event.damage.amount,
+          );
         }
       }
-      if (namedVictimUnresolved) break;
 
       for (const side of [parsed.actor, parsed.target]) {
         if (side === null || side.healthPercent === null) continue;
@@ -210,5 +201,30 @@ describe("every health verdict in the register is one the captures still refuse"
     );
 
     expect(carryingKey.map(composeReport).slice(0, 1)).not.toEqual([]);
+  });
+});
+
+/**
+ * The replay subtracts damage stated against a name only because every such name
+ * in this material resolves to exactly one combatant. That is a property of the
+ * captures, not a law — two combatants sharing a name do occur here, just never
+ * as the victim of this key — so it is checked rather than relied on.
+ */
+describe("damage stated against a name", () => {
+  const named = CAPTURED_FIGHTS.flatMap((fight) =>
+    fight.dump.calls.flatMap((call) =>
+      decodeFight(call.protocolMessages, composeCombatantRoster(call.combatantsBefore)).filter(
+        (event) => event.kind === "damage-to-named-combatant",
+      ),
+    ),
+  );
+
+  test("occurs at all", () => {
+    expect(named.length).toBeGreaterThan(0);
+  });
+
+  test("names a combatant the roster can identify, every time", () => {
+    const unresolved = named.filter((event) => event.targetId === null).map((e) => e.targetName);
+    expect(unresolved).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 
 /**
@@ -31,5 +32,36 @@ describe("a health figure with a second figure beside it", () => {
   test("a lone figure is not reported unread", () => {
     const lone = decodeFight(["1=50.00;0;poison=140"]);
     expect(lone.filter((event) => event.kind === "unknown-message")).toEqual([]);
+  });
+});
+
+describe("damage stated against a name, with a roster to resolve it", () => {
+  const message = "1=100.00;2=50.00;+oth_dmg=247,a,Odyniec(50.00%)";
+
+  test("resolves to the combatant that name belongs to", () => {
+    const roster = composeCombatantRoster([
+      { id: 2, name: "Odyniec" },
+      { id: 3, name: "Locha" },
+    ]);
+    const [event] = decodeFight([message], roster);
+    expect(event).toMatchObject({ targetName: "Odyniec", targetId: 2 });
+  });
+
+  // Two boars answer to the same name in one of the captured fights. Picking
+  // either would put real damage on the wrong combatant, which is worse than
+  // putting it on nobody.
+  test("resolves to nobody when two combatants answer to the name", () => {
+    const roster = composeCombatantRoster([
+      { id: 2, name: "Odyniec" },
+      { id: 3, name: "Odyniec" },
+    ]);
+    const [event] = decodeFight([message], roster);
+    expect(event).toMatchObject({ targetName: "Odyniec", targetId: null });
+  });
+
+  test("resolves to nobody when the roster has never heard the name", () => {
+    const roster = composeCombatantRoster([{ id: 3, name: "Locha" }]);
+    const [event] = decodeFight([message], roster);
+    expect(event).toMatchObject({ targetId: null });
   });
 });

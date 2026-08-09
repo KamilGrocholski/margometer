@@ -45,6 +45,13 @@ export type DamageToNamedCombatantEvent = {
   kind: "damage-to-named-combatant";
   actorId: number | null;
   targetName: string;
+  /**
+   * The combatant that name belongs to, once a roster could say. Null when
+   * there was no roster, when the name is in none of it, or when more than one
+   * combatant answers to it — all three mean the same thing downstream, which
+   * is that this damage cannot be put on anyone's row.
+   */
+  targetId: number | null;
   /** Health the protocol states for that combatant once this damage is in. */
   targetHealthPercent: number | null;
   damage: DamageAmount;

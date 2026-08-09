@@ -157,6 +157,9 @@ describe("decoding a single message", () => {
         kind: "damage-to-named-combatant",
         actorId: 447544,
         targetName: "Hildur",
+        // No roster was handed in, so the name resolves to nobody rather than
+        // to a guess.
+        targetId: null,
         targetHealthPercent: 71.86,
         damage: { damageType: "dmga", amount: 247 },
       },

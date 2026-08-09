@@ -5,6 +5,7 @@ import type {
   DamageAmount,
   DamageToNamedCombatantEvent,
 } from "@/src/core/battle-event.ts";
+import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
   parseProtocolMessage,
   ProtocolMessageFormatError,
@@ -61,6 +62,7 @@ const NAMED_WITH_PERCENT = /^(.*)\((\d+\.\d\d)%\)$/;
 function decodeDamageToNamedCombatant(
   value: string | null,
   actorId: number | null,
+  roster: CombatantRoster | null,
 ): DamageToNamedCombatantEvent | null {
   if (value === null) return null;
 
@@ -87,6 +89,7 @@ function decodeDamageToNamedCombatant(
     kind: "damage-to-named-combatant",
     actorId,
     targetName,
+    targetId: roster === null ? null : getCombatantIdByName(roster, targetName),
     targetHealthPercent,
     damage: { damageType: `${DAMAGE_MARKER}${kind}`, amount },
   };
@@ -126,7 +129,7 @@ export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   DAMAGE_TO_NAMED_KEY,
 ];
 
-function decodeMessage(message: string): BattleEvent[] {
+function decodeMessage(message: string, roster: CombatantRoster | null): BattleEvent[] {
   let parsed: ProtocolMessage;
   try {
     parsed = parseProtocolMessage(message);
@@ -147,7 +150,11 @@ function decodeMessage(message: string): BattleEvent[] {
     const { key, value } = parameter;
 
     if (key === DAMAGE_TO_NAMED_KEY) {
-      const damage = decodeDamageToNamedCombatant(value, parsed.actor?.combatantId ?? null);
+      const damage = decodeDamageToNamedCombatant(
+        value,
+        parsed.actor?.combatantId ?? null,
+        roster,
+      );
       if (damage === null) unreadKeys.push(key);
       else events.push(damage);
       continue;
@@ -232,6 +239,14 @@ function decodeMessage(message: string): BattleEvent[] {
   return events;
 }
 
-export function decodeFight(messages: readonly string[]): BattleEvent[] {
-  return messages.flatMap(decodeMessage);
+/**
+ * The roster is optional because a fight can be joined already in progress, and
+ * a missing roster must degrade to "we cannot say who" rather than to a guess or
+ * to nothing decoded at all.
+ */
+export function decodeFight(
+  messages: readonly string[],
+  roster: CombatantRoster | null = null,
+): BattleEvent[] {
+  return messages.flatMap((message) => decodeMessage(message, roster));
 }

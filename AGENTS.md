@@ -351,7 +351,11 @@ src/
     protocol-message.ts  Grammar of one message: two sides, then key/value
                          segments. Structure only, strict, reversible.
     battle-event.ts      What the decoder produces. Grows one variant at a time.
+    combatant-roster.ts  Who is in the fight, so a name the protocol states can
+                         be matched to an id. An ambiguous name resolves to
+                         nobody — never to the first match.
     fight-decoder.ts     Messages → events. Drops nothing, invents nothing.
+                         Takes the roster; without one, names resolve to nobody.
 
 tools/
   fight-dump-parser.ts   Parses captured fight material. The boundary where the
