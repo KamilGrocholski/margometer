@@ -50,6 +50,33 @@ export type DamageToNamedCombatantEvent = {
   damage: DamageAmount;
 };
 
+/**
+ * Health that moved outside an attack.
+ *
+ * One variant for healing and for damage over time, because the protocol tells
+ * them apart only by which key it used and tells us nothing else about either:
+ * there is no actor, no attacker, no source beyond the key itself. Splitting
+ * them into `heal` and `damage-over-time` would put our reading of the key into
+ * the type, and the client's own `heal` can state a loss as readily as a gain.
+ *
+ * Measured on the captured fights: applying these as signed health, healing up
+ * and the rest down, closes the arithmetic against the percentages the protocol
+ * states where before it could not be attempted at all.
+ */
+export type HealthChangeEvent = {
+  kind: "health-change";
+  /**
+   * Whose health moved. The protocol puts them in the **actor** slot of a
+   * message whose target is nobody — the slot holds the subject here, not an
+   * attacker, and no message of this shape names anyone else.
+   */
+  combatantId: number | null;
+  /** Signed: positive is health restored, negative is health lost. */
+  amount: number;
+  /** The protocol key as written. Who caused it is not in the log (§5). */
+  source: string;
+};
+
 export type FightOutcomeEvent = {
   kind: "fight-outcome";
   result: "won" | "lost";
@@ -71,6 +98,7 @@ export type UnknownMessageEvent = {
 export type BattleEvent =
   | AttackEvent
   | DamageToNamedCombatantEvent
+  | HealthChangeEvent
   | FightOutcomeEvent
   | UnknownMessageEvent;
 
@@ -82,6 +110,7 @@ export type BattleEvent =
 export const BATTLE_EVENT_KINDS = [
   "attack",
   "damage-to-named-combatant",
+  "health-change",
   "fight-outcome",
   "unknown-message",
 ] as const satisfies

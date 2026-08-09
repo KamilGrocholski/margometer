@@ -382,7 +382,8 @@ tests/
                            §7.6 nothing fetched enters git. Discovers files,
                            never lists them.
   assert.test.ts  battle-event.test.ts  captured-fight-catalog.test.ts
-  decoding-status.test.ts  json.test.ts  margometer-error.test.ts
+  decoding-status.test.ts  fight-decoder.test.ts  json.test.ts
+  margometer-error.test.ts
   number.test.ts  protocol-key-register.test.ts  protocol-key-table.test.ts
   protocol-message.test.ts  spec-status.test.ts  timestamp.test.ts
   userscript-metadata.test.ts

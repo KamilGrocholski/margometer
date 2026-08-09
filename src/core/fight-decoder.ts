@@ -93,12 +93,33 @@ function decodeDamageToNamedCombatant(
 }
 
 /**
+ * Health moving outside an attack, keyed by which way it goes.
+ *
+ * The sign is ours to supply: the protocol states a magnitude and leaves the
+ * direction to the key. Measured on the captured fights — healing added and the
+ * other two subtracted is the only one of the four combinations under which the
+ * stated percentages close.
+ *
+ * `injure` and `+injure` are different keys and only this one moves health.
+ */
+const HEALTH_CHANGE_SIGNS: Record<string, number> = {
+  heal: 1,
+  legbon_holytouch_heal: 1,
+  poison: -1,
+  injure: -1,
+};
+
+/** Two of these carry a second, comma-separated figure that nothing here explains. */
+const VALUE_SEPARATOR = ",";
+
+/**
  * Every named key the decoder claims to understand. Exported so a guard can hold it
  * against the keys the game actually knows — a key we handle that the client
  * has never heard of means we invented a meaning.
  */
 export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   ...Object.keys(OUTCOME_KEYS),
+  ...Object.keys(HEALTH_CHANGE_SIGNS),
   DAMAGE_TO_NAMED_KEY,
 ];
 
@@ -126,6 +147,30 @@ function decodeMessage(message: string): BattleEvent[] {
       const damage = decodeDamageToNamedCombatant(value, parsed.actor?.combatantId ?? null);
       if (damage === null) unreadKeys.push(key);
       else events.push(damage);
+      continue;
+    }
+
+    const sign = HEALTH_CHANGE_SIGNS[key];
+    if (sign !== undefined) {
+      // The subject sits in the actor slot: these messages name nobody as
+      // target. Measured — the percentage they state is the actor's, and it is
+      // the one the arithmetic closes against.
+      const [magnitude, ...rest] = (value ?? "").split(VALUE_SEPARATOR);
+      const amount = magnitude === undefined ? null : getIntegerFromText(magnitude);
+      if (amount === null) {
+        unreadKeys.push(key);
+        continue;
+      }
+      events.push({
+        kind: "health-change",
+        combatantId: parsed.actor?.combatantId ?? null,
+        amount: amount * sign,
+        source: key,
+      });
+      // The health figure is read; a second figure beside it is not. Reporting
+      // the key as unread as well is the honest half-and-half: the number is
+      // usable, and something in the message still is not understood.
+      if (rest.length > 0) unreadKeys.push(key);
       continue;
     }
 

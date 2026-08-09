@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { composeDecimalText } from "@/libs/number.ts";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
@@ -21,19 +21,19 @@ import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 /** The protocol states percentages rounded to two places, so the comparison is too. */
 const TOLERANCE_IN_PERCENTAGE_POINTS = 0.02;
 
-/**
- * The health figures this replay adds up itself, and therefore does not have to
- * skip. Not a claim about the game — a description of the arithmetic below, which
- * is why it lives here and not in the register.
- */
-const DAMAGE_TO_NAMED_KEY = "+oth_dmg";
-
 function isDamageKey(key: string): boolean {
   return key.slice(1, 4) === "dmg";
 }
 
+/**
+ * The health figures this replay adds up itself, and therefore does not have to
+ * skip. Not a claim about the game — a description of the arithmetic below,
+ * which is why it is derived from the decoder rather than listed here: the
+ * replay consumes every event the decoder produces, so what it accounts for is
+ * exactly what the decoder reads.
+ */
 function isAccountedByTheReplay(key: string): boolean {
-  return isDamageKey(key) || key === DAMAGE_TO_NAMED_KEY;
+  return isDamageKey(key) || UNDERSTOOD_PROTOCOL_KEYS.includes(key);
 }
 
 type Comparison = {
@@ -105,6 +105,15 @@ function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[
         runningHealth.set(
           target.combatantId,
           (runningHealth.get(target.combatantId) ?? 0) - takenByTarget,
+        );
+      }
+
+      for (const event of events) {
+        if (event.kind !== "health-change") continue;
+        if (event.combatantId === null || !runningHealth.has(event.combatantId)) continue;
+        runningHealth.set(
+          event.combatantId,
+          (runningHealth.get(event.combatantId) ?? 0) + event.amount,
         );
       }
 

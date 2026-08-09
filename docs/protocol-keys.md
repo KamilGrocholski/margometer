@@ -1,8 +1,8 @@
 # Protocol keys — what has been looked into
 
 What we know about individual keys, and how we came to know it. Read this before
-investigating a key: several here were already settled, and two were investigated
-and deliberately left alone.
+investigating a key: some are already settled, and some were investigated and
+deliberately left alone.
 
 Each entry carries a **verdict** and its **evidence** — a measurement over the
 captured fights, or a citation from the game client with the build it was read
@@ -91,6 +91,59 @@ accounted for, the shortfall equalled this amount exactly — 110, 247 and 123 i
 three separate calls. Three independent confirmations on real material, which is
 why this is not read off the client's sentence template.
 
+### `heal` — decoded
+
+Health restored to, or lost by, the combatant in the **actor** slot of a message
+whose target is nobody: `<combatant>=<percent>;0;heal=<amount>`. The slot holds
+the subject here rather than an attacker, and no message of this shape names
+anyone else. Read as a positive health change; the client will state a loss with
+a negative amount, which needs no special case because the figure is signed.
+
+*Health:* moves health
+
+*Evidence:* of the four ways to sign `heal` and `poison`, only healing added and
+poison subtracted closes the stated percentages — the other three leave hundreds
+of comparisons disagreeing. Applying it moved the witness from declining every
+call that contains it to agreeing on them.
+
+### `poison` — decoded
+
+Damage over time, same shape and same slot as `heal`, read as a negative health
+change. **Unattributed by construction:** the protocol does not say who applied
+it, so nothing downstream may credit it to anyone (§5).
+
+*Health:* moves health
+
+*Evidence:* as above. Before it was read, the first disagreement it caused was
+`-10000249=76.05;0;poison=563`.
+
+### `legbon_holytouch_heal` — decoded
+
+Healing, same shape and slot as `heal`, from a legendary bonus rather than a
+spell. Read identically; nothing about it needed a separate rule.
+
+*Health:* moves health
+
+*Evidence:* found by the witness rather than looked for. With `heal`, `poison`
+and `injure` read, three comparisons still disagreed, all for one combatant and
+all by the same six percentage points — `legbon_holytouch_heal=976` against a
+maximum of 16278. Reading it closed them.
+
+### `injure` — decoded
+
+Damage, applied where it appears — same shape and slot again. A **different key**
+from `+injure`, which is not damage; this file previously described `injure`
+using `+injure`'s evidence, and the split is what let the two be measured apart.
+
+*Health:* moves health
+
+*Evidence:* it could not be settled at all until `heal` and `poison` were read,
+because every call containing it also contains one of those and the witness
+declined them all. Once they were read, the residue was exact: after
+`-10000249=99.95;0;injure=148` the stated percentage sat 148 below the
+arithmetic, and reading it as damage turned that disagreement, and eighty-odd
+others, into agreements.
+
 ---
 
 ## Families the decoder reads by shape
@@ -121,28 +174,6 @@ that landed was measured rather than read: health drop matched the sum of
 Each of these makes its engine call uncomparable. They are the queue the decoder
 works through next, and until it does, the witness declines to judge the calls
 they appear in rather than reporting our ignorance as the game's error.
-
-### `heal` — investigated
-
-Health restored to, or lost by, the combatant in the **actor** slot. The message
-names nobody else: the shape is `<combatant>=<percent>;0;heal=<amount>`.
-
-*Health:* moves health
-
-*Evidence:* admitted to the witness as harmless, it disagrees on messages
-carrying it — `441390=47.00;0;heal=687`, where the protocol states a percentage
-above what the decoded damage alone would leave. Attributable, not a cascade.
-
-### `poison` — investigated
-
-Damage over time against the combatant in the actor slot, same shape as `heal`.
-The protocol does not say who applied it, so decoding it will produce
-unattributed damage rather than a guess (§5).
-
-*Health:* moves health
-
-*Evidence:* attributable disagreements on its own messages, first
-`-10000249=76.05;0;poison=563`.
 
 ### `heal_target` — investigated
 
@@ -182,23 +213,6 @@ Not damage applied at the moment it appears. Left unread rather than guessed at.
 fell by exactly the attack plus `+oth_dmg`, with `+injure=179` present and
 contributing nothing; in call 23 the same, with `+injure=78`. Whatever it does,
 it does not move health then and there.
-
-### `injure` — investigated
-
-A different key from `+injure`, and the reason this entry exists separately: the
-two measurements above were made on `+injure` and were filed here, so this file
-described one key using another key's evidence. Bare `injure` appears on its own
-in the actor slot, `<combatant>=<percent>;0;injure=<amount>`, the same shape the
-health-moving keys use.
-
-Deliberately carries **no** health verdict. Every engine call containing it also
-contains `heal` or `poison`, so the witness never judges one, and admitting it
-changes neither the number of comparisons nor their outcome. The material cannot
-settle this key, and silence is what that looks like.
-
-*Evidence:* the absence of an effect either way is itself the measurement, and
-the guard holds it there — a health verdict for this key would have to produce a
-disagreement on a message carrying it, and none exists.
 
 ---
 
