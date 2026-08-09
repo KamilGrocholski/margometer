@@ -291,6 +291,49 @@ seven.
 
 ---
 
+## The announcement that comes before the blow
+
+### `tspell` — decoded
+
+The skill a combatant used, by name, in a message that carries **no damage at
+all**: measured, none of the 197 announcements in the captures holds a damage
+key. Whatever the skill then does arrives in later messages and the protocol
+never joins the two, so tying damage back to the skill that caused it is an
+inference and the decoder does not attempt one.
+
+The value is the name the player's own client displays. It is read at run time
+and shown, never stored here — the same footing as the sentences the client
+composes from keys, and for the same reason (NOTICE.md). No example of one
+appears in this file or in any test.
+
+*Evidence:* production build `1785244275300`, where the branch composes a
+sentence naming the combatant in the actor slot and the value, and sets the
+attack animation. Measured on the captures: an actor in every one of the 197,
+the same combatant in both slots in 44, and no target at all in 15. The game's
+published help documents neither this key nor `skillId` — article view,372 (read
+2026-08-09), searched for `tspell`, `( tspell )`, `skillId` and `( skillId )`,
+none of which occurs. That is expected rather than surprising: the help
+describes mechanics, and these two are how a message is assembled.
+
+### `skillId` — decoded
+
+The game's own identifier for that skill, attached to the same announcement.
+Read as part of it rather than on its own: an id with no name is a skill nothing
+can put on screen.
+
+**The client does nothing with it.** Its branch in the battle switch is an empty
+`break` — the key is listed only so it does not fall through to the
+unknown-parameter notice, which is what makes it a pass-through identifier
+rather than something the log is composed from.
+
+*Evidence:* production build `1785244275300` for the empty branch. Measured on
+the captures: present on 182 of the 197 announcements, absent from 15, and never
+once on a message that does not also carry `tspell`. That last figure is why a
+lone id is reported unread instead of decoded — the protocol has not yet shown
+one, so reading it would be describing a message we have never seen.
+
+---
+
 ## Keys that move health and are not read yet
 
 Each of these makes its engine call uncomparable. They are the queue the decoder

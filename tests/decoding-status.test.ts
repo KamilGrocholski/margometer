@@ -28,14 +28,29 @@ describe("decoding status", () => {
     expect(Object.values(STATUS.eventsByKind).every((count) => count > 0)).toBe(true);
   });
 
-  // The tool asks the decoder whether it reads a key by handing it that key
-  // alone, with a real value. An earlier version passed no value and reported
-  // damage keys as unread — the counters looked plausible and were wrong.
+  // The tool asks whether a key contributes to the reading of a real message
+  // that carried it. Two earlier versions got this wrong in the same direction:
+  // the first passed no value and reported damage keys as unread, the second
+  // handed the key over alone and reported `skillId` as unread — a key read
+  // only in the company of `tspell`. Both times the counters looked plausible.
   test("reports no key as unread that the decoder demonstrably reads", () => {
     const unread = STATUS.unreadKeysByFrequency.map((entry) => entry.key);
-    for (const key of ["+dmgc", "-dmgc", "+oth_dmg", "winner"]) {
+    for (const key of ["+dmgc", "-dmgc", "+oth_dmg", "winner", "tspell", "-absorb", "+crit"]) {
       expect(unread, key).not.toContain(key);
     }
+  });
+
+  // Separately, because it is the case that broke the probe rather than another
+  // key that happens to be read: alone this one decodes to nothing on purpose.
+  test("reports no key as unread that is read only alongside another", () => {
+    const unread = STATUS.unreadKeysByFrequency.map((entry) => entry.key);
+    expect(unread).not.toContain("skillId");
+  });
+
+  // The inverse, so the probe cannot go green by calling everything read.
+  test("still reports a key the decoder genuinely has no meaning for", () => {
+    const unread = STATUS.unreadKeysByFrequency.map((entry) => entry.key);
+    expect(unread).toContain("step");
   });
 
   test("ranks unread keys by how often they occur", () => {

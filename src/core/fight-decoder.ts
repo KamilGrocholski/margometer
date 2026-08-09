@@ -136,6 +136,18 @@ const STATISTIC_DESTRUCTION_KEYS = ["+acdmg", "+resdmg"];
 const PROC_KEYS = ["+crit", "+pierce"];
 
 /**
+ * The two halves of a skill announcement, read together because neither is the
+ * whole of it: the name is what the player sees, the id is what the game calls
+ * it, and 15 of the 197 announcements carry only the first.
+ *
+ * The client itself does nothing with the id — its branch is an empty `break`,
+ * there so the key does not fall through to the unknown-parameter notice.
+ * Production build `1785244275300`.
+ */
+const SKILL_NAME_KEY = "tspell";
+const SKILL_ID_KEY = "skillId";
+
+/**
  * Every named key the decoder claims to understand. Exported so a guard can hold it
  * against the keys the game actually knows — a key we handle that the client
  * has never heard of means we invented a meaning.
@@ -146,6 +158,8 @@ export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   ...PREVENTED_DAMAGE_KEYS,
   ...STATISTIC_DESTRUCTION_KEYS,
   ...PROC_KEYS,
+  SKILL_NAME_KEY,
+  SKILL_ID_KEY,
   DAMAGE_TO_NAMED_KEY,
 ];
 
@@ -168,6 +182,10 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
   const prevented: PreventedDamage[] = [];
   const destroyed: StatisticDestruction[] = [];
   const procs: string[] = [];
+  // Read after the loop rather than inside it: the two keys are one fact, and
+  // nothing guarantees the protocol writes them in a fixed order.
+  let skillName: string | null = null;
+  let skillId: number | null = null;
 
   for (const parameter of parsed.parameters) {
     const { key, value } = parameter;
@@ -202,6 +220,20 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
       // the key as unread as well is the honest half-and-half: the number is
       // usable, and something in the message still is not understood.
       if (rest.length > 0) unreadKeys.push(key);
+      continue;
+    }
+
+    if (key === SKILL_NAME_KEY) {
+      // A blank name would travel on looking like a skill nobody can name.
+      if (value === null || value === "") unreadKeys.push(key);
+      else skillName = value;
+      continue;
+    }
+
+    if (key === SKILL_ID_KEY) {
+      const id = value === null ? null : getIntegerFromText(value);
+      if (id === null) unreadKeys.push(key);
+      else skillId = id;
       continue;
     }
 
@@ -267,6 +299,21 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
       procs,
       destroyed,
     });
+  }
+
+  if (skillName !== null) {
+    events.push({
+      kind: "skill-used",
+      actorId: parsed.actor?.combatantId ?? null,
+      targetId: parsed.target?.combatantId ?? null,
+      skillName,
+      skillId,
+    });
+  } else if (skillId !== null) {
+    // An id with no name is a skill nothing can put on screen, and the captures
+    // have never sent one — 0 of 197. Reported rather than turned into an event
+    // whose name we would have to invent.
+    unreadKeys.push(SKILL_ID_KEY);
   }
 
   // Reported even when the message also produced something readable: a message

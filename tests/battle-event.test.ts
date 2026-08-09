@@ -97,6 +97,48 @@ describe("damage a defence stopped, over every captured fight", () => {
   });
 });
 
+/**
+ * What the captures say about a skill announcement, re-earned rather than
+ * quoted from the register: both properties below are why the decoder reads the
+ * two keys as one fact and refuses a lone identifier.
+ */
+describe("a skill announcement, over every captured fight", () => {
+  const MESSAGES = DECODED_FIGHTS.flatMap((fight) =>
+    fight.messages.map((message) => ({ message, events: decodeFight([message]) })),
+  );
+  const ANNOUNCEMENTS = MESSAGES.filter((one) =>
+    one.events.some((event) => event.kind === "skill-used"),
+  );
+
+  test("occurs at all", () => {
+    expect(ANNOUNCEMENTS.length).toBeGreaterThan(0);
+  });
+
+  // The announcement is not the blow. Whatever the skill does arrives in later
+  // messages and nothing in the protocol joins the two, so any consumer tying
+  // damage back to a skill is inferring rather than reading.
+  test("never carries damage of its own", () => {
+    const carrying = ANNOUNCEMENTS.filter((one) =>
+      one.events.some((event) => event.kind === "attack"),
+    );
+    expect(carrying.map((one) => one.message)).toEqual([]);
+  });
+
+  // The identifier is optional and the name is not, which is the whole reason
+  // the event is built on the name. If a capture ever carries a lone id, the
+  // decoder reports it unread — and this is where that would first show.
+  test("never states an identifier without a name", () => {
+    const lone = MESSAGES.filter(
+      (one) =>
+        !one.events.some((event) => event.kind === "skill-used") &&
+        one.events.some(
+          (event) => event.kind === "unknown-message" && event.reason.includes("skillId"),
+        ),
+    );
+    expect(lone.map((one) => one.message)).toEqual([]);
+  });
+});
+
 describe("decoding a single message", () => {
   test("reads the winners of a fight", () => {
     expect(decodeFight(["0;0;winner=Gracz 1, Gracz 2"])).toEqual([
@@ -234,6 +276,64 @@ describe("decoding a single message", () => {
   test("reports an attack that carries an effect and no figures at all", () => {
     const [event] = decodeFight(["1=100.00;2=50.00;+crit"]);
     expect(event).toMatchObject({ kind: "attack", dealt: [], taken: [], procs: ["crit"] });
+  });
+
+  // Names here are invented, as the captures' player names are. The skill names
+  // the protocol actually carries are the game's own and are not written down
+  // in this repository — NOTICE.md.
+  test("reads a skill announcement with the game's identifier for it", () => {
+    expect(decodeFight(["467968=100.00;-10000249=100.00;tspell=Skill One;skillId=23"])).toEqual([
+      {
+        kind: "skill-used",
+        actorId: 467968,
+        targetId: -10000249,
+        skillName: "Skill One",
+        skillId: 23,
+      },
+    ]);
+  });
+
+  // 15 of the 197 announcements in the captures carry no identifier, which is
+  // why the name is what the event is built on rather than the other way round.
+  test("reads an announcement that carries no identifier", () => {
+    const [event] = decodeFight(["-10000249=100.00;0;tspell=Skill Two"]);
+    expect(event).toMatchObject({ skillName: "Skill Two", skillId: null, targetId: null });
+  });
+
+  // The protocol has never sent one — 0 of 197 — so reading it would mean
+  // describing a message nobody has seen, and inventing the name it lacks.
+  //
+  // The reason is asserted, not just the kind: without the branch that reports
+  // it, this message produces no event at all and the decoder's last-resort
+  // "carries no parameters" fallback answers with an `unknown-message` too. A
+  // test reading only the kind passes on the wrong one — it did, until a
+  // mutation lit nothing and said so.
+  test("reports an identifier that arrives without a name, naming the key", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;skillId=23"]);
+    expect(event).toEqual({
+      kind: "unknown-message",
+      message: "1=100.00;2=50.00;skillId=23",
+      reason: "no meaning yet for skillId",
+    });
+  });
+
+  test("reports a blank name rather than announcing a skill nobody can name", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;tspell=;skillId=23"]);
+    expect(event).toMatchObject({
+      kind: "unknown-message",
+      reason: "no meaning yet for tspell, skillId",
+    });
+  });
+
+  test("reports an identifier that is not a number rather than reading past it", () => {
+    const events = decodeFight(["1=100.00;2=50.00;tspell=Skill One;skillId=twenty"]);
+    expect(events.map((event) => event.kind)).toEqual(["skill-used", "unknown-message"]);
+  });
+
+  // Order is not guaranteed by anything, and the two keys are one fact.
+  test("reads the two halves whichever way round they arrive", () => {
+    const [event] = decodeFight(["1=100.00;2=50.00;skillId=23;tspell=Skill One"]);
+    expect(event).toMatchObject({ skillName: "Skill One", skillId: 23 });
   });
 
   test("reports an empty side rather than a fight won by one nameless combatant", () => {

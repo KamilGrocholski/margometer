@@ -123,6 +123,35 @@ export type HealthChangeEvent = {
   source: string;
 };
 
+/**
+ * A named skill a combatant used, announced in a message of its own.
+ *
+ * **Not part of the blow.** Measured on the captured fights: none of the 197
+ * announcements carries a damage figure — whatever the skill then does arrives
+ * in later messages, and nothing in the protocol joins the two. Tying damage
+ * back to the skill that caused it is therefore an inference, not a reading,
+ * and this event deliberately does not attempt it.
+ */
+export type SkillUsedEvent = {
+  kind: "skill-used";
+  actorId: number | null;
+  /**
+   * Often the actor itself, and sometimes nobody: measured, 44 of the
+   * announcements name the user in both slots and 15 name no target at all.
+   */
+  targetId: number | null;
+  /**
+   * As the protocol states it, which is the name the player's own client shows
+   * — so it arrives in their language and is never stored here (NOTICE.md).
+   */
+  skillName: string;
+  /**
+   * The game's own identifier, where the message carried one. Null on 15 of the
+   * 197 announcements, which is why the name is what this event is built on.
+   */
+  skillId: number | null;
+};
+
 export type FightOutcomeEvent = {
   kind: "fight-outcome";
   result: "won" | "lost";
@@ -145,6 +174,7 @@ export type BattleEvent =
   | AttackEvent
   | DamageToNamedCombatantEvent
   | HealthChangeEvent
+  | SkillUsedEvent
   | FightOutcomeEvent
   | UnknownMessageEvent;
 
@@ -157,6 +187,7 @@ export const BATTLE_EVENT_KINDS = [
   "attack",
   "damage-to-named-combatant",
   "health-change",
+  "skill-used",
   "fight-outcome",
   "unknown-message",
 ] as const satisfies

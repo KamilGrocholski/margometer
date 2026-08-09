@@ -876,6 +876,7 @@ Terms from the game, fixed here so module names do not drift apart.
 | **prevented** | Damage the protocol says a defence stopped: absorption, magic absorption, a block. One component of the reduction, never the whole — armour and resistance reduce as well and the protocol reports neither, so the rest of the gap is unattributable. Measured: the gap is wider in 62 of the 68 messages carrying a defence. |
 | **destroyed** | A statistic of the target an attack reduced — armour in points, elemental resistance in percentage points. Not damage, and never totalled with it. |
 | **proc** | An effect that fired alongside an attack. Carries no figure: the protocol states the name and stops. |
+| **skill** | A named ability a combatant used. Announced in a message of its own, carrying no damage; whatever it then does arrives later and the protocol never joins the two. Tying damage to a skill is an inference, not a reading. |
 | **element** | Damage type (fire, cold, physical, …), taken from the key. |
 | **dot** | Damage over time, ticking outside a direct attack. |
 | **unattributed** | A number the log does not tie to any actor. Shown, never guessed. |

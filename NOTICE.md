@@ -36,7 +36,7 @@ language the player's client uses.
 Recordings of the author's own fights, kept as the server sent them. They are
 what lets the decoder be checked against something other than itself.
 
-Two things in them are worth naming plainly rather than leaving for someone to
+Three things in them are worth naming plainly rather than leaving for someone to
 discover:
 
 - **The older recording carries a `render` field** — 38 sentences the game
@@ -47,6 +47,11 @@ discover:
   extract from the game's dictionary.
 - **`txt=` fields name items** dropped at the end of a fight, again as part of
   that session's own record.
+- **`tspell=` fields name skills** the combatants used — the game's own names
+  for its abilities, as the server sent them. The decoder reads this key and
+  passes the name to the panel at run time, on the same footing as the
+  sentences above: shown in the player's own language, and written down nowhere
+  else here. No such name appears in a test, in `docs/`, or in a comment.
 
 **Player nicknames are not here.** Everyone with a player id is substituted —
 `Gracz 1`, `Gracz 2`, … — before material enters the repository, and a test holds

@@ -6,6 +6,7 @@
  * number that was true last week.
  */
 
+import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText } from "@/libs/number.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
@@ -23,23 +24,50 @@ export type DecodingStatus = {
   unreadKeysByFrequency: Array<{ key: string; occurrences: number }>;
 };
 
+/** Everything a message yielded except the notice saying what was not read. */
+function composeReadingOf(message: string): string {
+  return JSON.stringify(
+    decodeFight([message]).filter((event) => event.kind !== "unknown-message"),
+  );
+}
+
+function composeMessageWithoutKey(message: string, key: string): string {
+  const segments = message.split(";");
+  return [
+    ...segments.slice(0, 2),
+    ...segments.slice(2).filter((segment) => segment.split("=")[0] !== key),
+  ].join(";");
+}
+
 /**
- * Whether the decoder has a meaning for a key, asked by handing it that key on
- * its own — with a real value from the material, because several keys are only
- * readable when they carry one.
+ * Whether the decoder has a meaning for a key, asked by taking it out of a real
+ * message that carried it and seeing whether the reading changes.
  *
- * Deliberately not read out of the unknown event's `reason`: that text is meant
+ * **Not by handing it the key on its own**, which is what this did until
+ * `skillId` arrived: that key is read only in the company of `tspell`, alone it
+ * is deliberately unread, and the probe reported all 182 of its occurrences as
+ * a key the decoder has no meaning for. A tool feeding the queue of "what to
+ * investigate next" sending someone back to a settled key is the same wrong
+ * number this project refuses everywhere else. The earlier version of the same
+ * bug passed no value at all and reported damage keys as unread.
+ *
+ * The unknown notice is excluded from the comparison on purpose: removing an
+ * unread key changes the list of keys that notice names, so leaving it in would
+ * make every key look read.
+ *
+ * Deliberately not read out of that notice's `reason` either — the text is meant
  * for a person, and parsing it back would tie this tool to its wording.
  */
-function isKeyRead(key: string, sampleValue: string | null): boolean {
-  const segment = sampleValue === null ? key : `${key}=${sampleValue}`;
-  return decodeFight([`0;0;${segment}`]).some((event) => event.kind !== "unknown-message");
+function isKeyRead(key: string, sampleMessage: string): boolean {
+  return composeReadingOf(sampleMessage) !== composeReadingOf(
+    composeMessageWithoutKey(sampleMessage, key),
+  );
 }
 
 export function getDecodingStatus(fights: readonly CapturedFight[]): DecodingStatus {
   const eventsByKind: Record<string, number> = {};
   const occurrences = new Map<string, number>();
-  const sampleValues = new Map<string, string | null>();
+  const sampleMessages = new Map<string, string>();
   let messages = 0;
   let messagesWithUnread = 0;
 
@@ -54,16 +82,24 @@ export function getDecodingStatus(fights: readonly CapturedFight[]): DecodingSta
         }
         if (events.some((event) => event.kind === "unknown-message")) messagesWithUnread += 1;
 
-        for (const { key, value } of parseProtocolMessage(message).parameters) {
+        for (const { key } of parseProtocolMessage(message).parameters) {
           occurrences.set(key, (occurrences.get(key) ?? 0) + 1);
-          if (!sampleValues.has(key)) sampleValues.set(key, value);
+          if (!sampleMessages.has(key)) sampleMessages.set(key, message);
         }
       }
     }
   }
 
   const unreadOccurrences = new Map(
-    [...occurrences].filter(([key]) => !isKeyRead(key, sampleValues.get(key) ?? null)),
+    [...occurrences].filter(([key]) => {
+      // A key counted but never sampled cannot happen — both come from the same
+      // loop over the same parameters — so it is an assertion, not a branch.
+      const sample = assertDefined(
+        sampleMessages.get(key),
+        "every counted key was sampled from the message it occurred in",
+      );
+      return !isKeyRead(key, sample);
+    }),
   );
 
   return {
