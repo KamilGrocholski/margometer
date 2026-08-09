@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 
@@ -96,6 +97,32 @@ describe("assumptions", () => {
       expect(nonNull, file).toEqual([]);
     },
   );
+});
+
+describe("fetched game sources", () => {
+  // AGENTS.md §7.5. The game client is someone else's copyrighted work; we may
+  // read it locally to understand the protocol, and it may never be published.
+  const CACHE_DIRECTORY = ".cache/";
+
+  test("the cache directory is ignored by git", () => {
+    const ignored = readFileSync(`${REPOSITORY_ROOT}.gitignore`, "utf8")
+      .split("\n")
+      .map((line) => line.trim());
+    expect(ignored).toContain(CACHE_DIRECTORY);
+  });
+
+  // This is the one that matters. `.gitignore` does nothing for a file already
+  // tracked, or added with `-f`, and "we ignore that directory" is exactly the
+  // sentence someone would believe instead of checking.
+  test("no fetched source is tracked in git", () => {
+    const tracked = execFileSync("git", ["ls-files", "--", CACHE_DIRECTORY], {
+      cwd: REPOSITORY_ROOT,
+      encoding: "utf8",
+    })
+      .split("\n")
+      .filter((line) => line !== "");
+    expect(tracked).toEqual([]);
+  });
 });
 
 describe("interruption", () => {

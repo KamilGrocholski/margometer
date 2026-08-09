@@ -74,8 +74,11 @@ the first sign the rules have drifted from the tree.
 - `[ALWAYS] [any]` **Cite the source for any claim about the game.** If a
   sentence would be true in someone else's repository reading the same protocol,
   it is a claim about the game, not about us — and it needs a reference to the
-  game's own documentation, its client asset, or a measurement on the captured fights.
-  This includes negative claims ("the log doesn't say who applied the poison").
+  game's own documentation, its client asset, or a measurement on the captured
+  fights. This includes negative claims ("the log doesn't say who applied the
+  poison"). **A quotation from the client carries the build it was read on** —
+  without one it is dated to the day someone copied it, not to a state of the
+  game. Procedure: §7.5.
 - `[ALWAYS] [core]` **Make unknown input loud.** A protocol key the decoder does
   not recognise becomes an explicit "unknown" event and surfaces in the panel.
   Silence is the failure mode that costs the most here: a number that is quietly
@@ -212,6 +215,53 @@ End a round with: what changed, what you validated and what came back, what you
 did **not** do and why. Report failures with the output. If a step was skipped,
 say so. Do not describe work as done until the gate is green.
 
+### 7.5 Working from the game's own sources
+
+Some questions can only be settled by reading the game client: what a protocol
+key means, which keys the decoder does **not** know, in what order the engine
+assembles a message. That is knowledge about someone else's system, so it comes
+from the source and it is **dated by build**, because the game changes.
+
+**Two channels, and they are not interchangeable:**
+
+| Channel | Host | What it gives |
+|---|---|---|
+| **production** | `<world>.margonem.pl` | What players actually run. Minified, no source maps. |
+| **development** | `experimental.margonem.pl` | Readable — original module paths and class names survive. |
+
+The build id appears both in the script filename (`main.min<build>.js`) and in
+the page as `build = { version: … }`, so it can be read with one light request
+without downloading megabytes.
+
+⚠️ **The readable channel is not the channel the material came from.** At the
+time of writing the development build is *older* than production — it lags, it
+does not lead — while the captured fights come from production. So:
+
+- `[ALWAYS]` **Production decides.** A claim may be *found* in the development
+  build, because that is the one a human can read, but it is **confirmed against
+  production** before anything is built on it. The note records both builds when
+  both were used.
+- `[ALWAYS]` **Every claim about the game carries the build it was checked on.**
+  A quotation without a build is dated to the day someone copied it, not to a
+  state of the game.
+
+**Where the files live, and what may leave.** Fetched sources exist only in
+`.cache/`, which is outside git — a copyright requirement, not tidiness. What
+may be lifted out of them are **functional names**: protocol keys, identifiers.
+What may never be is the prose the game displays (§5). The cache records its own
+provenance — channel, build, world, when it was fetched — because a directory
+that does not say what it holds is a directory nobody can trust.
+
+**When to re-fetch, and what I do without being asked.** Before basing a
+decision on the sources I read the served build with one light request and
+compare it to the cache. If they differ, or the cache is empty, **I say so and
+propose fetching** rather than quietly working from something stale. If they
+match, I say nothing and carry on.
+
+Fetching is done by a tool in this repo, never by a command pasted from memory,
+so that what was downloaded can be repeated exactly. It appears in §6.2 once it
+exists.
+
 ---
 
 ## 8. Structure
@@ -232,6 +282,9 @@ package.json             Version, scripts. `bun run check` is the gate.
 tsconfig.json            Strict flags standing in for a linter, and the `@/*`
                          import alias — §9.3.
 .github/workflows/       check.yml: the gate, nothing else yet.
+
+.cache/                  Game client sources, fetched on demand. NOT tracked and
+                         never published — §7.5. Absent until first fetched.
 
 libs/
   assert.ts              Assertions and their failure type. Depends on nothing;
