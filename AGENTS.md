@@ -218,10 +218,25 @@ tree** — a structure section that lists directories which do not exist is how
 this document starts lying.
 
 ```
-tests/fixtures/    Raw battle protocol captured from real fights. Evidence — §9.2.
+AGENTS.md          These rules. The only place they live.
+CLAUDE.md          One line importing AGENTS.md.
+README.md          For humans: what this is, how to build it, terms of service.
+
+build.ts           Bundles src/ into dist/ and prepends the userscript banner.
+                   Also exports banner() — the test is its second consumer.
+package.json       Version, scripts. `bun run check` is the gate.
+tsconfig.json      Strict flags standing in for a linter — §9.3.
+.github/workflows/ check.yml: the gate, nothing else yet.
+
+src/
+  userscript.ts    Bundle entry point. Empty so far.
+
+tests/
+  fixtures/        Raw battle protocol captured from real fights. Evidence — §9.2.
+  userscript.test.ts
 ```
 
-Everything else is yet to be written.
+The decoder, the aggregator, the game layer and the panel are yet to be written.
 
 ---
 

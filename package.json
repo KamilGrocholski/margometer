@@ -1,0 +1,25 @@
+{
+  "name": "margometer",
+  "version": "0.5.0",
+  "description": "Damage meter for Margonem — live fight statistics",
+  "homepage": "https://github.com/KamilGrocholski/margometer",
+  "author": "Kamil Grocholski",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KamilGrocholski/margometer.git"
+  },
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun run build.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run typecheck && bun test && bun run build"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

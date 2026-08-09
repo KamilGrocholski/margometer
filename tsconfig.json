@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM"],
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+
+    "strict": true,
+    "skipLibCheck": true,
+
+    // There is no linter here on purpose — the compiler is its replacement.
+    // These two turn dead code into a build failure instead of something to
+    // read past, which is the only thing standing between this tree and the
+    // uncalled functions the previous one accumulated.
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    // The decoder lives on indexing regex groups and arrays. This forces every
+    // access to prove itself rather than assume a hit.
+    "noUncheckedIndexedAccess": true,
+
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false
+  }
+}
