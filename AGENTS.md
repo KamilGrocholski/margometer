@@ -162,6 +162,7 @@ that exists is listed here with what it answers.
 | `tools/game-client-source.ts` | *What is the game serving, and give me its source.* `status` compares served build against the cache; `fetch [channel]` downloads into `.cache/` with provenance. §7.6. |
 | `tools/protocol-key-table.ts` | *Which protocol keys does the client know?* Lifts them from the cached production bundle; `freeze` writes `tests/frozen-protocol-keys.ts`. |
 | `tools/decoding-status.ts` | *How much of the protocol do we read?* Messages, events by kind, unread keys by frequency. Computed on demand — these figures never go into prose (§5). |
+| `tools/help-article.ts` | *What does the game's own documentation say about this mechanic?* `fetch` caches an article, `search` prints raw context around a phrase and exits non-zero when there is none. §7.6. |
 
 ---
 
@@ -297,6 +298,57 @@ Fetching is done by a tool in this repo, never by a command pasted from memory,
 so that what was downloaded can be repeated exactly. It appears in §6.2 once it
 exists.
 
+### The published help — a different source, not a third channel
+
+`pomoc.margonem.pl` is the operator's own documentation of the mechanics. It has
+no build id and no readable twin, so the rules above do not transfer; it needs
+its own, and it earns them because it is **the only source that says what an
+effect does**. The client bundle says which keys exist and composes sentences
+from them; it does not say that a wound is worth 15% of the damage taken.
+
+- `[ALWAYS]` **Read it with `tools/help-article.ts`**, not with a summarising
+  fetch. The mechanics article is large enough that a summariser answers with its
+  table of contents, and "not found in the fetched text" then reads exactly like
+  "the game does not document it". That false negative has been written into a
+  register as a fact before.
+- `[ALWAYS]` **Search by the engine name, not by a word.** The help prints it in
+  parentheses beside the human name — `Unik ( evade )` — and that parenthesis is
+  the only thing joining an article to a protocol key. A bare word matches longer
+  words too and pushes the real hit past the limit.
+- `[ALWAYS]` **A claim from the help carries the date it was read**, the way a
+  claim from the client carries its build — the help has no build id, so the date
+  is the only thing dating it.
+- `[ALWAYS]` **Documentation settles a meaning; the captures settle a number.**
+  Where the two disagree, the disagreement is the finding — the help does not
+  overrule a measurement on our own material.
+- `[NEVER]` **Copy a sentence of it into the repository.** Not even as evidence:
+  an entry carries the locator (`view,372`, the engine name, the read date) and
+  our own words. NOTICE.md says the game's prose is absent here in any form, and
+  that has to stay true.
+
+**When I reach for it, without being asked.** The rules above say how to read the
+help and what may leave it; without this paragraph they say nothing about opening
+it at all, and an agent that never does breaks none of them. That omission is not
+hypothetical — it is why this channel sat unused for the whole life of the
+register while §3 admitted it from the start. So:
+
+- **Before filing or changing a verdict in `docs/protocol-keys.md`.** The
+  register is where a claim about the game stops being a working note, so it is
+  the last place a guess should arrive unchecked.
+- **Before writing a negative claim** — "the protocol does not say who healed",
+  "nothing documents this". I ask, and I record the phrases I tried, because
+  *not found* and *not documented* are different claims and only one of them is
+  usually true. The tool exits non-zero on silence so that difference is visible
+  to a script and not only to whoever read the terminal.
+- **When `bun tools/decoding-status.ts` puts a key at the top of the unread
+  list.** That list is where the next question comes from, the help is where it
+  gets asked, and the captures are what settle it. The shape of the round:
+  unread key → help → measurement → guard → entry.
+- **When the dump is a week old or more**, which the tool prints on its first
+  line: I say so and re-fetch before deciding, the same way I compare the served
+  build before working from a cached bundle. Reporting the age is the tool's
+  job; doing something about it is mine.
+
 ---
 
 ## 8. Structure
@@ -358,8 +410,19 @@ src/
                          Takes the roster; without one, names resolve to nobody.
 
 tools/
+  margometer-tool-error.ts
+                         Base for everything the tooling throws — §9.5.
   fight-dump-parser.ts   Parses captured fight material. The boundary where the
                          files' Polish field names stop — §9.2.
+  game-client-source.ts  Fetches the client bundle into .cache/, with provenance,
+                         and compares the cached build against the served one.
+  protocol-key-table.ts  Lifts the client's key list out of that bundle; `freeze`
+                         writes tests/frozen-protocol-keys.ts.
+  decoding-status.ts     How much of the protocol we read, computed on demand.
+  help-article.ts        Fetches an article of the game's published help into
+                         .cache/ and prints raw context around a phrase. Prints
+                         the age of the dump, and says NOT FOUND out loud —
+                         silence is a claim too, so it also exits non-zero.
 
 tests/
   captured-fights/       Raw battle protocol captured from real fights.
@@ -386,8 +449,8 @@ tests/
                            §7.6 nothing fetched enters git. Discovers files,
                            never lists them.
   assert.test.ts  battle-event.test.ts  captured-fight-catalog.test.ts
-  decoding-status.test.ts  fight-decoder.test.ts  json.test.ts
-  margometer-error.test.ts
+  decoding-status.test.ts  fight-decoder.test.ts  help-article.test.ts
+  json.test.ts  margometer-error.test.ts
   number.test.ts  protocol-key-register.test.ts  protocol-key-table.test.ts
   protocol-message.test.ts  spec-status.test.ts  timestamp.test.ts
   userscript-metadata.test.ts

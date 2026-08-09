@@ -14,6 +14,7 @@ export type MargoMeterToolErrorCode =
   | "FightDumpFormat"
   | "Bundle"
   | "GameSource"
+  | "HelpArticle"
   | "ProtocolKeyTable"
   | "ProtocolKeyRegister";
 
