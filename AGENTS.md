@@ -22,7 +22,7 @@ function: the original runs first, its return value comes back untouched.
 Stack: Bun + TypeScript, zero runtime dependencies, one bundled userscript as
 output.
 
-**This tree was rebuilt from scratch.** Only `tests/fixtures/*.json` carried
+**This tree was rebuilt from scratch.** Only `tests/captured-fights/*.json` carried
 over from the previous incarnation; every other file is new. Do not look to git
 history before that point for how things "used to be done" — the conventions
 here supersede it.
@@ -52,7 +52,7 @@ Untagged prose is context and reasoning — read it, but it does not bind.
 | `[core]` | Pure logic: decoding, aggregation, contracts | `src/core/` |
 | `[game]` | Anything touching the live game client | `src/game/` |
 | `[ui]` | The panel and everything it draws | `src/ui/` |
-| `[data]` | Material captured from the game | `tests/fixtures/` |
+| `[data]` | Material captured from the game | `tests/captured-fights/` |
 | `[process]` | Commits, validation, workflow | — |
 
 ⚠️ Only `[data]` has files today. The other paths appear as the code that needs
@@ -73,7 +73,7 @@ first sign the rules have drifted from the tree.
 - `[ALWAYS] [any]` **Cite the source for any claim about the game.** If a
   sentence would be true in someone else's repository reading the same protocol,
   it is a claim about the game, not about us — and it needs a reference to the
-  game's own documentation, its client asset, or a measurement on the fixtures.
+  game's own documentation, its client asset, or a measurement on the captured fights.
   This includes negative claims ("the log doesn't say who applied the poison").
 - `[ALWAYS] [core]` **Make unknown input loud.** A protocol key the decoder does
   not recognise becomes an explicit "unknown" event and surfaces in the panel.
@@ -97,7 +97,7 @@ first sign the rules have drifted from the tree.
   especially then.
 - `[ASK] [any]` **Adding a dependency.** This project has zero runtime
   dependencies and that is a feature.
-- `[ASK] [data]` **Touching anything under `tests/fixtures/`.** See §9.2.
+- `[ASK] [data]` **Touching anything under `tests/captured-fights/`.** See §9.2.
 - `[ASK] [any]` **Turning off a compiler flag or a guard test** to make
   something pass. The flag is the point.
 - `[ASK] [any]` **Adding a file nothing uses yet.** See §7.1.
@@ -112,8 +112,8 @@ first sign the rules have drifted from the tree.
 - `[NEVER] [game]` **Automate the game or change how a fight plays out.** No
   clicking, no synthesised input, no altering the engine's behaviour or its
   return values.
-- `[NEVER] [data]` **Edit a fixture to make a test pass.** The material is
-  evidence. If a fixture contradicts the code, the code is wrong or the
+- `[NEVER] [data]` **Edit captured material to make a test pass.** The material is
+  evidence. If a capture contradicts the code, the code is wrong or the
   understanding is — fix that, or record the discrepancy.
 - `[NEVER] [any]` **Copy the game's own prose into this repository.** Key names
   and identifiers are functional and may be stored; the sentences the game
@@ -154,7 +154,7 @@ that exists is listed here with what it answers.
 
 | Tool | Answers |
 |---|---|
-| `tools/dump.ts` | *What is inside a captured fight?* Parses dump files field by field and refuses anything unexpected. Library, not a CLI. |
+| `tools/fight-dump-reader.ts` | *What is inside a captured fight?* Parses dump files field by field and refuses anything unexpected. Library, not a CLI. |
 
 ---
 
@@ -224,24 +224,31 @@ AGENTS.md          These rules. The only place they live.
 CLAUDE.md          One line importing AGENTS.md.
 README.md          For humans: what this is, how to build it, terms of service.
 
-build.ts           Bundles src/ into dist/ and prepends the userscript banner.
-                   Also exports banner() — the test is its second consumer.
-package.json       Version, scripts. `bun run check` is the gate.
-tsconfig.json      Strict flags standing in for a linter — §9.3.
-.github/workflows/ check.yml: the gate, nothing else yet.
+build.ts                 Bundles src/ into dist/ and prepends the userscript
+                         banner. Also exports userscriptBanner() — the test is
+                         its second consumer.
+package.json             Version, scripts. `bun run check` is the gate.
+tsconfig.json            Strict flags standing in for a linter, and the `@/*`
+                         import alias — §9.3.
+.github/workflows/       check.yml: the gate, nothing else yet.
 
 src/
-  userscript.ts    Bundle entry point. Empty so far.
+  userscript-entry.ts    Bundle entry point. Empty so far.
 
 tools/
-  dump.ts          Reads captured fight material. The boundary where the files'
-                   Polish field names stop — §9.2.
+  fight-dump-reader.ts   Reads captured fight material. The boundary where the
+                         files' Polish field names stop — §9.2.
 
 tests/
-  fixtures/        Raw battle protocol captured from real fights. Evidence — §9.2.
-  fixtures.ts      Discovers the directory, exposes each capture plus max health.
-  fixtures.test.ts
-  userscript.test.ts
+  captured-fights/       Raw battle protocol captured from real fights.
+                         Evidence — §9.2.
+  captured-fight-catalog.ts
+                         Discovers that directory; exposes each capture plus
+                         maximum health per combatant.
+  captured-fight-catalog.test.ts
+  source-layout.test.ts    Guards the two conventions in §9.3 — imports from the
+                           root, kebab-case names that say what a file holds.
+  userscript-metadata.test.ts
 ```
 
 The decoder, the aggregator, the game layer and the panel are yet to be written.
@@ -267,7 +274,7 @@ The decoder, the aggregator, the game layer and the panel are yet to be written.
 
 ### 9.2 Data
 
-`tests/fixtures/*.json` is raw protocol captured from real fights. It is
+`tests/captured-fights/*.json` is raw protocol captured from real fights. It is
 **evidence, not test data**, and the difference is operative:
 
 - `[NEVER] [data]` Edit it to make anything pass.
@@ -279,7 +286,7 @@ The decoder, the aggregator, the game layer and the panel are yet to be written.
 - `[ALWAYS] [data]` **Fixtures are discovered by reading the directory**, never
   by a hand-maintained list of names. A file dropped in is checked immediately
   rather than sitting dead.
-- `[ALWAYS] [data]` **An empty fixture directory fails its own test.** A loop
+- `[ALWAYS] [data]` **An empty capture directory fails its own test.** A loop
   over nothing is green and proves nothing.
 - Player nicknames are substituted before material enters the repo; game-written
   ability descriptions are stripped. Both are done by tooling, not by hand.
@@ -303,7 +310,50 @@ numbers belong in code, where they can be regenerated.
   reasoning belongs in the commit message and the comment points at it.
 - **Unknown is loud, never zero.** A parse that fails returns `null` or an
   explicit unknown; it does not substitute `0` and it does not copy a neighbour.
-- **Names are English and say what the thing is**, not how it is implemented.
+
+**`[ALWAYS] [any]` Imports are written from the repository root.**
+
+```ts
+import { readFightDump } from "@/tools/fight-dump-reader.ts";   // yes
+import { readFightDump } from "../tools/fight-dump-reader.ts";  // no
+import { CAPTURED_FIGHTS } from "./captured-fight-catalog.ts";  // no — even a sibling
+```
+
+`@/*` maps to the repository root (`tsconfig.json` → `paths`). Two reasons, and
+the second is the one that matters: a path reads the same wherever it appears,
+so you can tell what is being imported without first working out where you are;
+and moving a file no longer rewrites the imports of its neighbours. There is no
+depth at which `../../` is acceptable, and no exception for same-directory
+imports — mixing the two styles is how you end up needing to know both.
+
+**`[ALWAYS] [any]` Names say what the thing is, in full.**
+
+A name that can only be understood from the file it sits in is too short. This
+applies to files, directories, types, functions and variables alike:
+
+| Instead of | Write |
+|---|---|
+| `dump.ts` | `fight-dump-reader.ts` |
+| `fixtures.ts` | `captured-fight-catalog.ts` |
+| `readDump` | `readFightDump` |
+| `banner` | `userscriptBanner` |
+| `Entry` | `EngineCall` |
+| `Warrior`, `W` | `CombatantSnapshot` |
+| `Hp { max, cur, hpp }` | `CombatantHealth { maximum, current, percent }` |
+| `field(key)` | `directive(key)` |
+| `TLDS` | `GAME_TOP_LEVEL_DOMAINS` |
+
+Files are kebab-case and name their contents, not their category. `utils.ts`,
+`helpers.ts`, `common.ts`, `misc.ts` and `index.ts` are names nobody can predict
+the contents of, and `[NEVER]` get created here — including `index.ts`, which
+also makes every editor tab say the same thing. Abbreviate only where the game
+itself does.
+
+Both of these are guarded by `tests/source-layout.test.ts`, which discovers the
+files rather than listing them.
+
+Length is not the goal — precision is. `id` stays `id`; `hpp` becomes `percent`
+because nobody outside the game's own source knows what the third `p` was.
 
 ### 9.4 UI
 

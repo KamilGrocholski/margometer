@@ -10,6 +10,15 @@
     "resolveJsonModule": true,
     "noEmit": true,
 
+    // Every import is written from the repository root: `@/tools/x.ts`, never
+    // `../../tools/x.ts`. A path that reads the same wherever it appears says
+    // where the thing comes from, and moving a file no longer rewrites the
+    // imports of its neighbours.
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+
     "strict": true,
     "skipLibCheck": true,
 

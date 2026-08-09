@@ -1,41 +1,42 @@
-import pkg from "./package.json";
+import manifest from "@/package.json";
 
-const OUT_DIR = "./dist";
-export const USERSCRIPT_FILE = "margometer.user.js";
+const OUTPUT_DIRECTORY = "./dist";
+const USERSCRIPT_FILENAME = "margometer.user.js";
+const BUNDLE_ENTRY_POINT = "./src/userscript-entry.ts";
 
 /** Game worlds live on per-world subdomains; these are the site, not a world. */
 const NON_GAME_HOSTS = ["www", "forum", "commons", "pomoc"];
-const TLDS = ["pl", "com"];
+const GAME_TOP_LEVEL_DOMAINS = ["pl", "com"];
 
-export function banner(version: string, description: string, homepage: string): string {
-  const lines = [
+export function userscriptBanner(version: string, description: string, homepage: string): string {
+  const directives = [
     ["name", "MargoMeter"],
     ["namespace", homepage],
     ["version", version],
     ["description", description],
-    ["author", pkg.author],
+    ["author", manifest.author],
     ["homepageURL", homepage],
     // The trailing `/*` matters: @match compares the whole path, so a pattern
     // without it never fires on a world that carries a query string.
-    ...TLDS.map((tld) => ["match", `https://*.margonem.${tld}/*`]),
+    ...GAME_TOP_LEVEL_DOMAINS.map((tld) => ["match", `https://*.margonem.${tld}/*`]),
     ...NON_GAME_HOSTS.flatMap((host) =>
-      TLDS.map((tld) => ["exclude", `https://${host}.margonem.${tld}/*`]),
+      GAME_TOP_LEVEL_DOMAINS.map((tld) => ["exclude", `https://${host}.margonem.${tld}/*`]),
     ),
     ["noframes", ""],
     ["grant", "none"],
     ["run-at", "document-idle"],
   ];
 
-  const body = lines
+  const body = directives
     .map(([key, value]) => `// @${key!.padEnd(12)} ${value}`.trimEnd())
     .join("\n");
 
   return `// ==UserScript==\n${body}\n// ==/UserScript==\n`;
 }
 
-async function build(): Promise<void> {
+async function buildUserscript(): Promise<void> {
   const result = await Bun.build({
-    entrypoints: ["./src/userscript.ts"],
+    entrypoints: [BUNDLE_ENTRY_POINT],
     target: "browser",
     // Tampermonkey does not load ES modules, and the file is meant to stay
     // readable for whoever installs it — so IIFE, and no minification.
@@ -51,10 +52,10 @@ async function build(): Promise<void> {
   const [artifact] = result.outputs;
   if (!artifact) throw new Error("bundle produced no output");
 
-  const head = banner(pkg.version, pkg.description, pkg.homepage);
-  const path = `${OUT_DIR}/${USERSCRIPT_FILE}`;
-  await Bun.write(path, head + (await artifact.text()));
-  console.log(`built ${path}`);
+  const banner = userscriptBanner(manifest.version, manifest.description, manifest.homepage);
+  const outputPath = `${OUTPUT_DIRECTORY}/${USERSCRIPT_FILENAME}`;
+  await Bun.write(outputPath, banner + (await artifact.text()));
+  console.log(`built ${outputPath}`);
 }
 
-if (import.meta.main) await build();
+if (import.meta.main) await buildUserscript();
