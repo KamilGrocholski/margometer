@@ -425,7 +425,52 @@ makes every editor tab read the same. Guarded by `tests/source-layout.test.ts`.
 **Types name the thing, not its shape.** `CombatantSnapshot`, not `Warrior`,
 `W` or `CombatantData` — `Data` says nothing that the type itself does not.
 
-### 9.5 UI
+### 9.5 Errors
+
+Throwing is right here, but only as a **local** mechanism. The add-on wraps a
+function belonging to the game engine, so an exception of ours reaching the game
+breaks the one promise the add-on makes.
+
+**`[ALWAYS]` Every error we throw belongs to a branded hierarchy.**
+`[NEVER]` a bare `new Error(...)`, and `[NEVER]` `extends Error` outside a base
+file. The add-on shares a console with the game and with other add-ons; an error
+that does not say whose it is costs whoever reports it and costs us reading the
+report. The brand goes in `name`, where the console shows it first:
+`MargoMeter/ProtocolMessageFormat`.
+
+**Two hierarchies, one per world.**
+
+| Base | Where | Name looks like |
+|---|---|---|
+| `MargoMeterError` — `src/core/margometer-error.ts` | ships to the browser | `MargoMeter/…` |
+| `MargoMeterToolError` — `tools/margometer-tool-error.ts` | runs in a terminal | `MargoMeterTool/…` |
+
+They are deliberately disjoint. A `catch` in the add-on must not swallow a tool
+error believing it caught its own. Both bases are **abstract**: every kind of
+failure gets a named subclass and a `code`, so callers tell them apart without
+matching on message text.
+
+**`[ALWAYS]` Catch narrowly — exactly the error you expect.** A bare
+`catch (error)` around a call that can fail in one known way will also swallow
+bugs, and a bug disguised as "the game changed" is the most expensive kind of
+wrong number this project can produce.
+
+**`[ALWAYS]` Pass the original in `cause` when wrapping.** Without it, all that
+survives a `JSON.parse` failure is our own sentence, and the position the parser
+choked on — the only useful part — is gone.
+
+**An expected failure in shipped code is DATA, not an exception that
+propagates.** The game changes its format, so the message becomes an "unknown"
+event the panel can show. The parser may throw because it has exactly one caller
+whose job is to convert that into an event.
+
+**In `tools/`, throwing is the correct behaviour.** A tool handed bad material
+refuses it loudly rather than reading half of it and carrying on.
+
+Guarded by `tests/source-layout.test.ts`: no unbranded error, no error class
+outside the base files, and each file extends the base belonging to its side.
+
+### 9.6 UI
 
 - The panel lives in a Shadow DOM and is cut off from the game's stylesheet
   (`all: initial` on the host). We are a guest on someone else's page.
@@ -436,7 +481,7 @@ makes every editor tab read the same. Guarded by `tests/source-layout.test.ts`.
 - **The panel says what it does not know.** Numbers the log cannot attribute to
   anyone are shown as unattributed, not silently folded into someone's total.
 
-### 9.6 Design System
+### 9.7 Design System
 
 - **Tokens, not literals.** Colours, spacing and radii are named; a raw hex in a
   rule is a bug.

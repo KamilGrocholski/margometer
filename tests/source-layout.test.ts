@@ -63,6 +63,36 @@ describe("file names", () => {
   });
 });
 
+describe("errors", () => {
+  // AGENTS.md §9.5. The add-on shares a console with the game and with other
+  // add-ons; an error that does not say whose it is costs whoever reports it.
+  const BASE_FILES = ["src/core/margometer-error.ts", "tools/margometer-tool-error.ts"];
+  const ADD_ON_BASE = "MargoMeterError";
+  const TOOLING_BASE = "MargoMeterToolError";
+
+  test.each(SOURCE_FILES)("%s throws no unbranded error", (file) => {
+    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    expect([...source.matchAll(/\bnew Error\s*\(/g)].length, file).toBe(0);
+  });
+
+  test.each(SOURCE_FILES)("%s declares no error class outside the two bases", (file) => {
+    if (BASE_FILES.includes(file)) return;
+    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    expect([...source.matchAll(/\bextends\s+Error\b/g)].length, file).toBe(0);
+  });
+
+  // Two hierarchies, one per world: the add-on runs inside the game's page, the
+  // tooling runs in a terminal. Nothing should catch one thinking it caught the
+  // other, so the side a file sits on decides which base it may extend.
+  test.each(SOURCE_FILES)("%s extends the base belonging to its side", (file) => {
+    if (BASE_FILES.includes(file)) return;
+    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    const bases = [...source.matchAll(/\bextends\s+(MargoMeter\w*Error)\b/g)].map((m) => m[1]!);
+    const expected = file.startsWith("src/") ? ADD_ON_BASE : TOOLING_BASE;
+    for (const base of bases) expect(base, file).toBe(expected);
+  });
+});
+
 describe("function names", () => {
   const allowed = new RegExp(`^(${[...ACTION_VERBS, ...BOOLEAN_PREFIXES].join("|")})[A-Z]`);
 

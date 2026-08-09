@@ -13,10 +13,11 @@
  * files are not simply renamed.
  */
 
-export class FightDumpFormatError extends Error {
-  constructor(path: string, expected: string, received: unknown) {
-    super(`${path}: expected ${expected}, got ${getValueDescription(received)}`);
-    this.name = "FightDumpFormatError";
+import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
+
+export class FightDumpFormatError extends MargoMeterToolError {
+  constructor(path: string, expected: string, received: unknown, options?: ErrorOptions) {
+    super("FightDumpFormat", `${path}: expected ${expected}, got ${getValueDescription(received)}`, options);
   }
 }
 
@@ -138,11 +139,9 @@ export function parseFightDump(source: string): FightDump {
   try {
     parsed = JSON.parse(source);
   } catch (cause) {
-    throw new FightDumpFormatError(
-      "<root>",
-      "valid JSON",
-      cause instanceof Error ? cause.message : cause,
-    );
+    // The original goes in `cause`, not just its message: JSON.parse says which
+    // byte it choked on, and that is the only useful thing about the failure.
+    throw new FightDumpFormatError("<root>", "valid JSON", source.slice(0, 40), { cause });
   }
 
   const dump = requireObject(parsed, "<root>");

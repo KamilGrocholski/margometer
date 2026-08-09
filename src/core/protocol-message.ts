@@ -13,10 +13,11 @@
  * as if it were understood.
  */
 
-export class ProtocolMessageFormatError extends Error {
+import { MargoMeterError } from "@/src/core/margometer-error.ts";
+
+export class ProtocolMessageFormatError extends MargoMeterError {
   constructor(reason: string, message: string) {
-    super(`${reason}: ${JSON.stringify(message)}`);
-    this.name = "ProtocolMessageFormatError";
+    super("ProtocolMessageFormat", `${reason}: ${JSON.stringify(message)}`);
   }
 }
 

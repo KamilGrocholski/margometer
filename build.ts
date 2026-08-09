@@ -1,4 +1,11 @@
 import manifest from "@/package.json";
+import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
+
+class BundleError extends MargoMeterToolError {
+  constructor(reason: string) {
+    super("Bundle", reason);
+  }
+}
 
 const OUTPUT_DIRECTORY = "./dist";
 const USERSCRIPT_FILENAME = "margometer.user.js";
@@ -46,11 +53,11 @@ async function buildUserscript(): Promise<void> {
 
   if (!result.success) {
     for (const log of result.logs) console.error(log);
-    throw new Error("bundle failed");
+    throw new BundleError("bundle failed");
   }
 
   const [artifact] = result.outputs;
-  if (!artifact) throw new Error("bundle produced no output");
+  if (!artifact) throw new BundleError("bundle produced no output");
 
   const banner = composeUserscriptBanner(manifest.version, manifest.description, manifest.homepage);
   const outputPath = `${OUTPUT_DIRECTORY}/${USERSCRIPT_FILENAME}`;
