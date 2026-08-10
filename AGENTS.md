@@ -449,6 +449,23 @@ tests/
   injure-rule.test.ts      The rule the register states for `+injure`, re-earned:
                            the share it announces, and that it stays unread so
                            the wound is not counted twice.
+  absorption-destruction-rule.test.ts
+                           What `+abdest_per` and `+abmdest_per` report: points
+                           and not the share their names suggest, falling by at
+                           least the 5% the skill announces, down to the floor of
+                           zero — and why the announcement itself stays unread.
+  poison-reduction-rule.test.ts
+                           The rule the register states for `-poison_lowdmg_per`:
+                           once per combatant damaged rather than per damage
+                           element, always carrying a figure, and held to making
+                           no health claim — which is what leaves the witness
+                           free to earn the figures beside it.
+  skill-announcement-rule.test.ts
+                           What an announcement carries: no key of the damage
+                           family, but damage aimed at a name and healing ride it
+                           in the same message — the correction of a claim the
+                           register had settled wrong. Plus `combo-max`, which
+                           rides only announcements and stays unread.
   source-layout.test.ts    Guards §9.3 imports-from-root plus §9.4 file and
                            function naming, §9.5 errors, assumptions and the
                            register of value readers, §9.6 no blocking dialogs,
@@ -874,9 +891,9 @@ Terms from the game, fixed here so module names do not drift apart.
 | **hit** | A single damage number. One attack can carry several. |
 | **raw / applied** | Damage before and after reduction. Their difference is **not** what a defence stopped — see `prevented`. |
 | **prevented** | Damage the protocol says a defence stopped: absorption, magic absorption, a block. One component of the reduction, never the whole — armour and resistance reduce as well and the protocol reports neither, so the rest of the gap is unattributable. Measured: the gap is wider in 62 of the 68 messages carrying a defence. |
-| **destroyed** | A statistic of the target an attack reduced — armour in points, elemental resistance in percentage points. Not damage, and never totalled with it. |
+| **destroyed** | A statistic of the target an attack reduced — armour and absorption in points, elemental resistance in percentage points. Not damage, and never totalled with it; the members are not in one unit either, so they are not totalled with each other. |
 | **proc** | An effect that fired alongside an attack. Carries no figure: the protocol states the name and stops. |
-| **skill** | A named ability a combatant used. Announced in a message of its own, carrying no damage; whatever it then does arrives later and the protocol never joins the two. Tying damage to a skill is an inference, not a reading. |
+| **skill** | A named ability a combatant used. Its announcement carries no key of the damage family, but it is not always a message of its own: damage aimed at a name, and healing, ride the announcement itself. That the figure is the skill's doing is still not stated, so tying the two remains an inference, not a reading. |
 | **element** | Damage type (fire, cold, physical, …), taken from the key. |
 | **dot** | Damage over time, ticking outside a direct attack. |
 | **unattributed** | A number the log does not tie to any actor. Shown, never guessed. |

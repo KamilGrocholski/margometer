@@ -18,8 +18,6 @@ in here — an entry carries the locator and our own words.
 of the decoder or fall behind it. What it deliberately does **not** hold is any
 count of progress — run `bun tools/decoding-status.ts` for that.
 
----
-
 ## Where health comes from, and why every entry states one
 
 No key moves health. The client reads the health percentage off the **side
@@ -190,10 +188,11 @@ that landed was measured rather than read: health drop matched the sum of
 
 ## What an attack reports besides its figures
 
-Seven keys ride the message that carries a blow and add something to it that is
+Nine keys ride the message that carries a blow and add something to it that is
 not the damage: what a defence stopped, what the blow destroyed, what fired
-alongside it. The client spells each out as its own case rather than matching a
-family by shape, and every one of those branches does the same single thing —
+alongside it. The client names each rather than matching a family by shape —
+mostly one case per key, though the absorption pair shares one with a key that
+is not ours — and every one of those branches does the same single thing:
 appends to a slot of the message's log array and assigns nothing.
 
 **Which combatant each figure belongs to comes from the help, not from the
@@ -211,7 +210,7 @@ now in the witness's arithmetic, which applies none of them, so if any did move
 health `tests/health-witness.test.ts` would disagree on the calls carrying it.
 The verdict is held by the same guard that holds the damage figures.
 
-Measured across both captures: all 256 occurrences arrive on a message that also
+Measured across both captures: all 292 occurrences arrive on a message that also
 carries damage and names a combatant on both sides.
 
 ### `-absorb` — decoded
@@ -287,7 +286,43 @@ figure means is the entry's job, not the type's.
 
 *Evidence:* article view,372 at the engine name `resdmg` (read 2026-08-09), and
 production build `1785244275300`. 61 occurrences — the most frequent of the
-seven.
+nine.
+
+### `+abdest_per` — decoded
+
+Absorption of the target destroyed by this blow, **in points** — despite the
+name. The `_per` belongs to the share the skill announces, not to what this
+reports: the figure is the quantity that share removed.
+
+### `+abmdest_per` — decoded
+
+The same for magical absorption. The two always arrive together and are read
+identically; nothing separates them but which pool they empty.
+
+*Evidence:* both entries, measured on the group fight, the only capture carrying
+them. 18 occurrences each, every one on a blow, never apart from the other, and
+values from 6017 down to 0 — which is what rules out a percentage and is why the
+suffix is not trusted. The help documents the *effect* rather than these keys, at
+the engine name `active_absorbdest_per` (read 2026-08-09): a passive destroying a
+share of the opponent's current absorption and magical absorption, applied before
+the attack is reduced by any form of damage reduction, and unable to take
+absorption below zero. That floor is visible here — `+abmdest_per` reaches 0 and
+the protocol still reports it rather than falling silent.
+
+The share the help describes is stated in the fight itself, as
+`active_absorbdest_per=5` (its own entry below), and the reports agree with it:
+against the single target that carries them, each report is smaller than the one
+before by at least that 5%, the closest being 6017 → 5717. Both directions are
+held by `tests/absorption-destruction-rule.test.ts`. What is **not** established
+is the absorption pool itself — the captures record health and nothing else, so
+the share can be checked against consecutive reports but never against the
+quantity it was taken from.
+
+Production build `1785244275300` gives both keys one shared case, alongside
+`active_resall_per`, which appends the value to a log slot and assigns nothing;
+the readable development build `1781609507010` has the same shape. All 18 calls
+carrying them are judged by `tests/health-witness.test.ts` and agree, which is
+what places them outside the health arithmetic.
 
 ---
 
@@ -295,11 +330,18 @@ seven.
 
 ### `tspell` — decoded
 
-The skill a combatant used, by name, in a message that carries **no damage at
-all**: measured, none of the 197 announcements in the captures holds a damage
-key. Whatever the skill then does arrives in later messages and the protocol
-never joins the two, so tying damage back to the skill that caused it is an
-inference and the decoder does not attempt one.
+The skill a combatant used, by name. The announcement carries no key of the
+**damage family** — measured, none of the 197 in the captures does — but that is
+narrower than it sounds, and an earlier version of this entry said "no damage at
+all" and was wrong.
+
+**Damage aimed at a name rides the announcement itself.** 33 of the 197 carry
+either `+oth_dmg` or a key the register says moves health, in the same message as
+the skill name, never both at once. So the protocol does sometimes put a skill
+and a figure together; what it still does not state is that the figure is the
+skill's doing. Tying them remains an inference, and the decoder does not attempt
+one — it emits the announcement and the figure as separate events from the same
+message. Guarded, in both directions, by `tests/skill-announcement-rule.test.ts`.
 
 The value is the name the player's own client displays. It is read at run time
 and shown, never stored here — the same footing as the sentences the client
@@ -404,7 +446,105 @@ That was true and stopped there, because nothing in the protocol says what the
 key is *for*. The documentation is what supplied the rule; the captures are what
 confirmed it.
 
----
+### `-poison_lowdmg_per` — investigated
+
+The share by which a blow was weakened because the combatant dealing it was
+poisoned, reported inside that blow's own message. A **percentage, not points**,
+and unlike the three defences it is not a figure that was subtracted from
+anything we can see: the damage keys beside it already have it applied.
+
+**It stays unread for that reason, and not for want of understanding it.** There
+is no slot it could fill honestly. `prevented` holds points a defence stopped and
+would total a percentage with them; the flag family holds keys that carry no
+figure at all, and this one always carries one. Reading it anywhere would either
+double a reduction that already happened or invent a unit.
+
+Two properties re-earned on every run by `tests/poison-reduction-rule.test.ts`:
+it arrives **once per combatant the message reports damage against** — not once
+per damage element — and it always carries a figure. A third test holds the
+entry to making no health claim, because the moment it does, the witness skips
+every call carrying it and the paragraph below stops being checked by anything.
+
+No health line, which is the register making no claim rather than an omission:
+what the captures settle is that the damage reported beside it needs no
+adjustment, and that is a different statement from the key moving health itself.
+
+*Evidence:* the game's published help, article view,372, at the engine name
+`poison_lowdmg_per-enemies` (read 2026-08-09) — the form the help documents,
+which is the aura that grants the effect rather than the per-blow report —
+describes a passive reducing an opponent's attack and non-periodic damage while
+that opponent carries poison from any source, states the variable as the share
+reduced, and says outright that what the fight log shows is already lowered by
+it. Production build `1785244275300` carries `-poison_lowdmg_per` as its own case
+in the battle switch, appending to a log slot and assigning nothing, next to the
+`poison_lowdmg_per-enemies` case; the readable development build `1781609507010`
+is where the pair was found. Both keys are in the frozen table.
+
+Measured on the group fight, the only capture carrying either: 68 occurrences
+across 26 messages, every value `10`, and the aura declared once — in a message
+naming a single combatant in the actor slot, carrying no damage, with the same
+value `10`, which is what joins the log report to the documented effect. All 26
+messages report damage, and in all 26 the number of occurrences equals the number
+of combatants damaged. Counting damage **elements** instead holds for only 19 of
+the 26: seven blows carry two elements and still report one reduction, which is
+what rules that reading out. 16 of the 23 calls carrying the key are judged by
+`tests/health-witness.test.ts` — the other 7 are skipped over unrelated keys —
+and they agree, which is the measurement behind "already net". Nothing here
+establishes what the blow would have been without it: the protocol reports the
+reduced figure and never the raw one, so the amount removed is not recoverable.
+
+### `active_absorbdest_per` — investigated
+
+The share of current absorption a skill destroys, stated **on the announcement of
+that skill** rather than on any blow. The two keys above are what the share then
+removes, and they arrive in later messages.
+
+**It stays unread because the protocol never joins the two.** A skill
+announcement carries no damage and no target statistic — measured, every one of
+its 43 occurrences rides a message whose only other keys are `tspell` and
+`skillId`. Attaching the share to the blows that follow is exactly the inference
+§5 forbids: the reports already state what was destroyed, so nothing is lost by
+declining it, and crediting a later blow to this announcement would be a join we
+invented.
+
+The client hides it too: production build `1785244275300` gives it an empty
+`break` in the battle switch, next to `balloflight` and `active_decblock_per`,
+which the readable development build `1781609507010` marks as hidden. Like
+`skillId`, the branch exists so the key does not fall through to the
+unknown-parameter notice — the client knows it and deliberately shows nothing.
+
+⚠️ The same name also appears in a **second switch** in the same module, the one
+composing skill descriptions. That switch is not about battle messages, and the
+frozen table is bounded by brace balance so it holds only the battle one — the
+trap §7.5 records, met again here.
+
+*Evidence:* the help, article view,372, at that engine name (read 2026-08-09) —
+the description quoted under `+abdest_per` above. Measured on the group fight,
+the only capture carrying it: 43 occurrences, every value `5`, every one on a
+skill announcement. Held by `tests/absorption-destruction-rule.test.ts`, which
+also refuses a second distinct value — the entry's claim is that the fight
+declares one share, not that the key is a constant.
+
+### `combo-max` — investigated
+
+How many accumulated combination points the announced skill will spend. A
+**count, not a quantity** — the captures state 1, 2 and 3 — and like the share
+above it qualifies the skill rather than reporting anything that happened.
+
+**It stays unread because it describes an input, not an outcome.** Whatever the
+points are then worth arrives as ordinary figures in the message or in later
+ones, already computed; reading the cap would add a number that measures nothing
+that was done to anybody.
+
+*Evidence:* the help never documents the key on its own — article view,372 (read
+2026-08-09) mentions it only inside six other effects, each saying it spends
+accumulated combination points up to the number this parameter sets, which is
+where the reading comes from. Measured on the group fight, the only capture
+carrying it: 31 occurrences, values `1` (15), `2` (15) and `3` (1), and **every
+one on a skill announcement** — none anywhere else. Held by
+`tests/skill-announcement-rule.test.ts`, which also refuses a figure in the range
+the protocol's quantities occupy, so a cap and a count of points cannot be
+confused with one.
 
 ## Investigated and found not to be battle keys
 

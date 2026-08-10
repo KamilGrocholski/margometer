@@ -35,10 +35,11 @@ export type PreventedDamage = {
 
 /**
  * A statistic of the target this attack reduced. Not damage, and not comparable
- * to damage: the game keeps armour in points and elemental resistance in
- * percentage points, and the protocol states the figure without its unit. Kept
- * apart from `dealt` for that reason — summed together they would be a total of
- * two different things.
+ * to damage: the game keeps armour and absorption in points and elemental
+ * resistance in percentage points, and the protocol states the figure without
+ * its unit. Kept apart from `dealt` for that reason — summed together they would
+ * be a total of two different things, and the members of this family are not all
+ * in one unit either.
  */
 export type StatisticDestruction = {
   /** The client's own token — the key with its sign removed. */

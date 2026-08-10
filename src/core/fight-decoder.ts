@@ -124,14 +124,20 @@ const VALUE_SEPARATOR = ",";
  * What an attack reports besides its figures: a defence that stopped part of it,
  * a statistic of the target it destroyed, an effect that fired with it.
  *
- * Listed rather than recognised by shape, because the client lists them too —
- * each is its own case in the battle switch, unlike the damage family, which it
- * matches by offset. Mirroring that means a key the game adds tomorrow stays
- * unread and loud instead of being folded into a figure by a pattern that was
- * never about it.
+ * Listed rather than recognised by shape, because the client names them too —
+ * mostly one case per key, and the absorption pair sharing one — unlike the
+ * damage family, which it matches by offset. Mirroring that means a key the game
+ * adds tomorrow stays unread and loud instead of being folded into a figure by a
+ * pattern that was never about it.
  */
 const PREVENTED_DAMAGE_KEYS = ["-absorb", "-absorbm", "-blok"];
-const STATISTIC_DESTRUCTION_KEYS = ["+acdmg", "+resdmg"];
+/**
+ * `_per` names the share the skill declares, not the figure these report: the
+ * captures carry values into the thousands, which is a quantity of absorption
+ * and could not be a percentage. Trusting the suffix would have put a share into
+ * a slot holding points.
+ */
+const STATISTIC_DESTRUCTION_KEYS = ["+acdmg", "+resdmg", "+abdest_per", "+abmdest_per"];
 /** Measured on the captures: all 73 occurrences arrive without a value. */
 const PROC_KEYS = ["+crit", "+pierce"];
 
