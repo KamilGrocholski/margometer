@@ -440,7 +440,10 @@ tests/
                          health witness both start here; a misspelled health
                          verdict is refused rather than read as silence, and a
                          citation of the published help is held to carrying the
-                         date it was read on. Its test also holds the register against the captures: a key the
+                         date it was read on, and each entry's `*Shape:*` line —
+                         how many occurrences, where they sit, what they state —
+                         is parsed into a structure a test re-measures. Its test
+                         also holds the register against the captures: a key the
                          material carries and nobody has looked at fails the gate
                          rather than waiting in `decoding-status` for someone to
                          run the tool.

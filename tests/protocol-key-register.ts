@@ -13,6 +13,7 @@
  */
 
 import { readFileSync } from "node:fs";
+import { getIntegerFromText } from "@/libs/number.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
 export class ProtocolKeyRegisterError extends MargoMeterToolError {
@@ -37,6 +38,46 @@ export const PROTOCOL_KEY_HEALTH_EFFECTS = ["moves health"] as const;
 
 export type ProtocolKeyHealthEffect = (typeof PROTOCOL_KEY_HEALTH_EFFECTS)[number];
 
+/**
+ * Where every occurrence of a key sits. One phrase has to hold for **all** of
+ * them, so the weakest true one is the right one — "on a blow" is a stronger
+ * claim than "on a message reporting damage" and a key that does both takes the
+ * second.
+ */
+export const PROTOCOL_KEY_PLACEMENTS = [
+  "alone in its message",
+  "on a skill announcement",
+  "on a blow",
+  "on a message reporting damage",
+] as const;
+
+export type ProtocolKeyPlacement = (typeof PROTOCOL_KEY_PLACEMENTS)[number];
+
+/** What the key states beside itself, again as one phrase true of every occurrence. */
+export const PROTOCOL_KEY_VALUE_SHAPES = [
+  "no value",
+  "a whole number",
+  "a number",
+  "text",
+] as const;
+
+export type ProtocolKeyValueShape = (typeof PROTOCOL_KEY_VALUE_SHAPES)[number];
+
+/**
+ * What the captures show about a key, in a form a test can re-earn.
+ *
+ * The register was, until this existed, prose all the way down: an entry could
+ * state a count and a placement and nothing would ever read them again. That is
+ * the failure this repository is built against — a claim with a date on it looks
+ * exactly like a checked one. The health line already worked this way; this is
+ * the same idea applied to what every entry says about its own material.
+ */
+export type ProtocolKeyShape = {
+  occurrences: number;
+  placement: ProtocolKeyPlacement;
+  valueShape: ProtocolKeyValueShape;
+};
+
 export type ProtocolKeyEntry = {
   key: string;
   state: string;
@@ -50,10 +91,13 @@ export type ProtocolKeyEntry = {
    * neighbour's, which `loser` does — so this is read, not required.
    */
   evidence: string | null;
+  /** Null for a key the captures do not carry, which is the only excuse for its absence. */
+  shape: ProtocolKeyShape | null;
 };
 
 const ENTRY_HEADING = /^### `([^`]+)` — (.+)$/gm;
 const HEALTH_LINE = /^\*Health:\* (.+)$/m;
+const SHAPE_LINE = /^\*Shape:\* (\d+) occurrences; ([^;]+); (.+)$/m;
 /**
  * To the next blank line, not to the end of the first one: evidence wraps, and
  * the citation's date routinely lands on a later line than the article it dates.
@@ -62,6 +106,38 @@ const EVIDENCE_PARAGRAPH = /^\*Evidence:\* ((?:.+\n?)+)/m;
 
 function isHealthEffect(value: string): value is ProtocolKeyHealthEffect {
   return (PROTOCOL_KEY_HEALTH_EFFECTS as readonly string[]).includes(value);
+}
+
+function isPlacement(value: string): value is ProtocolKeyPlacement {
+  return (PROTOCOL_KEY_PLACEMENTS as readonly string[]).includes(value);
+}
+
+function isValueShape(value: string): value is ProtocolKeyValueShape {
+  return (PROTOCOL_KEY_VALUE_SHAPES as readonly string[]).includes(value);
+}
+
+/**
+ * Refuses a phrase it does not define, for the reason the health line does: a
+ * shape nothing knows how to check would pass as a claim while checking nothing,
+ * and it would look more settled than silence, not less.
+ */
+function parseShape(body: string, key: string): ProtocolKeyShape | null {
+  const stated = SHAPE_LINE.exec(body);
+  if (stated === null) return null;
+
+  const occurrences = getIntegerFromText(stated[1]!);
+  if (occurrences === null) {
+    throw new ProtocolKeyRegisterError(`\`${key}\` states an unreadable occurrence count`);
+  }
+  const placement = stated[2]!;
+  if (!isPlacement(placement)) {
+    throw new ProtocolKeyRegisterError(`\`${key}\` states a placement nothing checks: "${placement}"`);
+  }
+  const valueShape = stated[3]!;
+  if (!isValueShape(valueShape)) {
+    throw new ProtocolKeyRegisterError(`\`${key}\` states a value shape nothing checks: "${valueShape}"`);
+  }
+  return { occurrences, placement, valueShape };
 }
 
 export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
@@ -88,7 +164,9 @@ export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
     // prose happened to wrap.
     const evidence = cited === null ? null : cited[1]!.replace(/\s+/g, " ").trim();
 
-    if (health === null) return { key, state, healthEffect: null, evidence };
+    const shape = parseShape(body, key);
+
+    if (health === null) return { key, state, healthEffect: null, evidence, shape };
 
     // A typo cannot be left to fall through as "no claim". It would read as
     // silence, the witness would stop excluding the key, coverage would shrink,
@@ -101,7 +179,7 @@ export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
       );
     }
 
-    return { key, state, healthEffect, evidence };
+    return { key, state, healthEffect, evidence, shape };
   });
 }
 

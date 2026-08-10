@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { getDecimalFromText, getIntegerFromText } from "@/libs/number.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
@@ -177,4 +178,100 @@ describe("the register against the captured material", () => {
     expect(unaccounted).toEqual([]);
   });
 
+  /**
+   * Every occurrence of every key, in the two forms the `*Shape:*` line states.
+   *
+   * Computed here rather than trusted from the entry, so the register's own
+   * numbers are the thing under test. A phrase has to hold for **all** of a
+   * key's occurrences; where more than one does, the weakest is the honest one,
+   * which is why the order below is widest-last.
+   */
+  type Occurrence = { keys: string[]; value: string | null };
+
+  const OCCURRENCES_BY_KEY = new Map<string, Occurrence[]>();
+  for (const fight of CAPTURED_FIGHTS) {
+    for (const call of fight.dump.calls) {
+      for (const message of call.protocolMessages) {
+        const { parameters } = parseProtocolMessage(message);
+        const keys = parameters.map((parameter) => parameter.key);
+        for (const parameter of parameters) {
+          const carried = OCCURRENCES_BY_KEY.get(parameter.key) ?? [];
+          carried.push({ keys, value: parameter.value });
+          OCCURRENCES_BY_KEY.set(parameter.key, carried);
+        }
+      }
+    }
+  }
+
+  function getPlacement(occurrences: Occurrence[]): string {
+    if (occurrences.every((of) => of.keys.length === 1)) return "alone in its message";
+    if (occurrences.every((of) => of.keys.includes("tspell"))) return "on a skill announcement";
+    if (occurrences.every((of) => of.keys.some(isComputedKey))) return "on a blow";
+    if (
+      occurrences.every((of) => of.keys.some(isComputedKey) || of.keys.includes("+oth_dmg"))
+    ) {
+      return "on a message reporting damage";
+    }
+    return "anywhere";
+  }
+
+  function getValueShape(occurrences: Occurrence[]): string {
+    if (occurrences.every((of) => of.value === null)) return "no value";
+    if (occurrences.every((of) => of.value !== null && getIntegerFromText(of.value) !== null)) {
+      return "a whole number";
+    }
+    // Either reader, because they split on the decimal point rather than on
+    // "is this a number": `healall_per` states 30 and 22.5 in the same fight,
+    // and asking only the decimal reader files that key as text.
+    if (
+      occurrences.every(
+        (of) =>
+          of.value !== null &&
+          (getIntegerFromText(of.value) !== null || getDecimalFromText(of.value) !== null),
+      )
+    ) {
+      return "a number";
+    }
+    if (occurrences.every((of) => of.value !== null)) return "text";
+    return "mixed";
+  }
+
+  test("some entry states a shape at all", () => {
+    expect(ENTRIES.filter((entry) => entry.shape !== null).length).toBeGreaterThan(0);
+  });
+
+  test("every shape an entry states is the one the captures show", () => {
+    const disagreeing = ENTRIES.flatMap((entry) => {
+      if (entry.shape === null) return [];
+      const occurrences = OCCURRENCES_BY_KEY.get(entry.key) ?? [];
+      const measured = {
+        occurrences: occurrences.length,
+        placement: getPlacement(occurrences),
+        valueShape: getValueShape(occurrences),
+      };
+      const stated = {
+        occurrences: entry.shape.occurrences,
+        placement: entry.shape.placement as string,
+        valueShape: entry.shape.valueShape as string,
+      };
+      const agrees =
+        measured.occurrences === stated.occurrences &&
+        measured.placement === stated.placement &&
+        measured.valueShape === stated.valueShape;
+      return agrees ? [] : [{ key: entry.key, stated, measured }];
+    });
+    expect(disagreeing).toEqual([]);
+  });
+
+  /**
+   * The other direction. Without it an entry could drop its shape line and lose
+   * nothing — the check above would simply skip it, which is how a guarded claim
+   * quietly becomes prose again.
+   */
+  test("every entry for a key the captures carry states one", () => {
+    const silent = ENTRIES.filter(
+      (entry) => entry.shape === null && OCCURRENCES_BY_KEY.has(entry.key),
+    ).map((entry) => entry.key);
+    expect(silent).toEqual([]);
+  });
 });
