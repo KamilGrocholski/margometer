@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 
-const REPOSITORY_ROOT = new URL("../", import.meta.url).pathname;
+const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 const SOURCE_DIRECTORIES = ["libs", "src", "tools", "tests"];
 /** Everything that ships or supports shipping. Tests are held to looser rules. */
 const NON_TEST_DIRECTORIES = ["libs/", "src/", "tools/"];

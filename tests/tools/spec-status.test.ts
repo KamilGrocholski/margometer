@@ -10,7 +10,7 @@ import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
  * is the index, and cannot disagree with itself.
  */
 
-const SPECS_DIRECTORY = new URL("../docs/specs/", import.meta.url).pathname;
+const SPECS_DIRECTORY = new URL("../../docs/specs/", import.meta.url).pathname;
 const SPEC_FILES = readdirSync(SPECS_DIRECTORY).filter((file) => file.endsWith(".md"));
 
 const DATED_NAME = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(-[a-z0-9]+)*\.md$/;

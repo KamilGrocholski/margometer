@@ -480,7 +480,7 @@ tests/
                          Reads docs/protocol-keys.md into entries — verdict,
                          health line, evidence. The register's own guard and the
                          health witness both start here; a misspelled health
-                         verdict is refused rather than read as silence, and a
+                         verdict is refused rather than read as silence, a
                          citation of the published help is held to carrying the
                          date it was read on, and each entry's `*Shape:*` line —
                          how many occurrences, where they sit, what they state —
@@ -489,62 +489,87 @@ tests/
                          material carries and nobody has looked at fails the gate
                          rather than waiting in `decoding-status` for someone to
                          run the tool.
-  health-witness.test.ts   Decoded damage against the health the protocol
-                           states — two sources nothing here reconciles. Both
-                           sides of every message, whole calls skipped where a
-                           health figure cannot be added, and each health verdict
-                           in the register re-earned on every run.
-  injure-rule.test.ts      The rule the register states for `+injure`, re-earned:
-                           the share it announces, and that it stays unread so
-                           the wound is not counted twice.
-  absorption-destruction-rule.test.ts
-                           What `+abdest_per` and `+abmdest_per` report: points
-                           and not the share their names suggest, falling by at
-                           least the 5% the skill announces, down to the floor of
-                           zero — and why the announcement itself stays unread.
-  poison-reduction-rule.test.ts
-                           The rule the register states for `-poison_lowdmg_per`:
-                           once per combatant damaged rather than per damage
-                           element, always carrying a figure, and held to making
-                           no health claim — which is what leaves the witness
-                           free to earn the figures beside it.
-  proc-rule.test.ts        What may be read as a flag: decoded from the captures
-                           rather than from the decoder's list, plus the key that
-                           looks like one and is refused because the client
-                           states a figure for it.
-  fight-statistics.test.ts The aggregate: every figure landed is also a figure
-                           taken, raw and applied stay different numbers, and
-                           anything the log ties to nobody reaches the bucket
-                           instead of a row. Says why a fight-scale check against
-                           the snapshots is absent.
-  battle-session.test.ts   How a fight is assembled from payloads: where one
-                           ends, a roster that only ever grows, and a side
-                           remembered from the one payload that states it.
-  engine-attachment.test.ts
-                           Finding the game on an injected clock, and the whole
-                           add-on driven end to end by a captured fight through
-                           the entry point the userscript actually runs.
-  panel.test.ts            The panel against §9.6 and §9.7, on a fake document:
-                           what survives a section failing, that a handler cannot
-                           escape into the page, that unread keys reach the
-                           screen, and that every bar clears AA by measurement.
-  skill-announcement-rule.test.ts
-                           What an announcement carries: no key of the damage
-                           family, but damage aimed at a name and healing ride it
-                           in the same message — the correction of a claim the
-                           register had settled wrong. Plus `combo-max`, which
-                           rides only announcements and stays unread.
-  source-layout.test.ts    Guards §9.3 imports-from-root plus §9.4 file and
-                           function naming, §9.5 errors, assumptions and the
-                           register of value readers, §9.6 no blocking dialogs,
-                           §7.6 nothing fetched enters git. Discovers files,
-                           never lists them.
-  assert.test.ts  battle-event.test.ts  captured-fight-catalog.test.ts
-  decoding-status.test.ts  fight-decoder.test.ts  help-article.test.ts
-  json.test.ts  margometer-error.test.ts
-  number.test.ts  protocol-key-register.test.ts  protocol-key-table.test.ts
-  protocol-message.test.ts  spec-status.test.ts  timestamp.test.ts
-  userscript-metadata.test.ts
+
+  ⚠️ A test sits where the thing it tests sits. The four entries above are the
+  exception and stay at the root: they are material and shared readers rather
+  than tests, `tools/protocol-key-table.ts` writes the frozen table to that exact
+  path, and `@/…` imports are absolute — so moving them would rewrite twenty
+  files to no purpose.
+
+  libs/
+    assert.test.ts  json.test.ts  number.test.ts  timestamp.test.ts
+
+  core/                  The decoder and the aggregate, and every claim about the
+                         game held to the captures — those rules guard what the
+                         decoder reads, so they live beside it.
+    health-witness.test.ts   Decoded damage against the health the protocol
+                             states — two sources nothing here reconciles. Both
+                             sides of every message, whole calls skipped where a
+                             health figure cannot be added, and each health
+                             verdict in the register re-earned on every run.
+    injure-rule.test.ts      The rule the register states for `+injure`:
+                             the share it announces, and that it stays unread so
+                             the wound is not counted twice.
+    absorption-destruction-rule.test.ts
+                             What `+abdest_per` and `+abmdest_per` report: points
+                             and not the share their names suggest, falling by at
+                             least the 5% the skill announces, down to the floor
+                             of zero — and why the announcement stays unread.
+    poison-reduction-rule.test.ts
+                             The rule for `-poison_lowdmg_per`: once per
+                             combatant damaged rather than per damage element,
+                             always carrying a figure, and held to making no
+                             health claim — which is what leaves the witness free
+                             to earn the figures beside it.
+    proc-rule.test.ts        What may be read as a flag: decoded from the
+                             captures rather than from the decoder's list, plus
+                             the key that looks like one and is refused because
+                             the client states a figure for it.
+    skill-announcement-rule.test.ts
+                             What an announcement carries: no key of the damage
+                             family, but damage aimed at a name and healing ride
+                             it in the same message — the correction of a claim
+                             the register had settled wrong. Plus `combo-max`.
+    fight-statistics.test.ts The aggregate: every figure landed is also a figure
+                             taken, raw and applied stay different numbers, and
+                             anything the log ties to nobody reaches the bucket
+                             instead of a row. Says why a fight-scale check
+                             against the snapshots is absent.
+    battle-event.test.ts  fight-decoder.test.ts  margometer-error.test.ts
+    protocol-key-register.test.ts  protocol-message.test.ts
+
+  game/
+    engine-battle-wrap.test.ts
+                             The promises the wrap makes to the game: original
+                             first, its value untouched, no exception of ours
+                             escaping, one layer, and a detach that leaves the
+                             object as it was found.
+    engine-attachment.test.ts
+                             Finding the game on an injected clock, and the whole
+                             add-on driven end to end by a captured fight through
+                             the entry point the userscript actually runs.
+    battle-session.test.ts   How a fight is assembled from payloads: where one
+                             ends, a roster that only ever grows, and a side
+                             remembered from the one payload that states it.
+
+  ui/
+    panel.test.ts            The panel against §9.6 and §9.7, on a fake document:
+                             what survives a section failing, that a handler
+                             cannot escape into the page, that unread keys reach
+                             the screen, and that every bar clears AA by
+                             measurement.
+
+  tools/                 The tooling, the build, and the rules the repository
+                         holds itself to.
+    source-layout.test.ts    Guards §9.3 imports-from-root plus §9.4 file and
+                             function naming, §9.5 errors, assumptions and the
+                             register of value readers, §9.6 no blocking dialogs,
+                             §9.1 layering and §5 no network, §7.6 nothing
+                             fetched enters git. Discovers files, never lists
+                             them — which is why it keeps working after a move
+                             like this one.
+    captured-fight-catalog.test.ts  decoding-status.test.ts  help-article.test.ts
+    protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```
 
 The game layer and the panel are yet to be written.
