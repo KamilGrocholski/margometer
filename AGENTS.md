@@ -56,10 +56,10 @@ Untagged prose is context and reasoning — read it, but it does not bind.
 | `[data]` | Material captured from the game | `tests/captured-fights/` |
 | `[process]` | Commits, validation, workflow | — |
 
-⚠️ `[game]` and `[ui]` have no files yet; those paths appear as the code that
-needs them is written (see §7.1). **This table is the map — keep it true.** A
-scope whose path no longer exists, or a directory missing from this table, is
-the first sign the rules have drifted from the tree.
+⚠️ `[ui]` has no files yet; that path appears as the code that needs it is
+written (see §7.1). **This table is the map — keep it true.** A scope whose path
+no longer exists, or a directory missing from this table, is the first sign the
+rules have drifted from the tree.
 
 ---
 
@@ -415,6 +415,17 @@ src/
                          per side. Raw and applied kept apart, units never
                          totalled across, and what could not be read, attributed
                          or placed on a side carried rather than dropped.
+  game/
+    engine-battle-wrap.ts
+                         The only code here that changes a running game: it
+                         replaces `Engine.battle.updateData` so the protocol can
+                         be read. Its own file so the whole of our contact with
+                         the game is one sitting's reading. Original first, its
+                         value untouched, no exception of ours escaping, and a
+                         detach that removes only our layer.
+    engine-roster.ts     Who is fighting, read live, and — from `myteam` — which
+                         side is the player's. The one thing `core` cannot know,
+                         decided here so no core type has to carry it.
 
 tools/
   margometer-tool-error.ts

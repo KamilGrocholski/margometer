@@ -98,6 +98,61 @@ describe("layers", () => {
       expect(reachingUp).toEqual([]);
     },
   );
+
+  /**
+   * AGENTS.md §9.1, and §7.1's rule about when a guard is allowed to exist: the
+   * layering rule lands with the **second** layer, not the first. `src/game/` is
+   * that second layer, so this arrives now rather than as scaffolding earlier.
+   *
+   * `core` is what makes the decoder and the aggregate testable without a
+   * browser and without the game. One import of `game/` ends that quietly — the
+   * tests keep passing until the day someone runs them somewhere there is no
+   * `window`.
+   */
+  test.each(SOURCE_FILES.filter((file) => file.startsWith("src/core/")))(
+    "%s keeps core independent of the game and the panel",
+    (file) => {
+      const source = getSourceWithoutComments(file);
+      const reachingOut = [...source.matchAll(/\bfrom\s+"@\/src\/(game|ui)\//g)].map(
+        (match) => match[0],
+      );
+      expect(reachingOut, file).toEqual([]);
+    },
+  );
+
+  // §9.1 again, from the other side: contact with the game client lives in
+  // `game/` so there is one place to audit and one place to break.
+  test.each(SOURCE_FILES.filter((file) => file.startsWith("src/core/")))(
+    "%s reaches for nothing the browser owns",
+    (file) => {
+      const source = getSourceWithoutComments(file);
+      const reachingOut = [
+        ...source.matchAll(/\b(document|localStorage|sessionStorage|setTimeout|setInterval)\b/g),
+      ].map((match) => match[1]);
+      expect(reachingOut, file).toEqual([]);
+    },
+  );
+});
+
+/**
+ * AGENTS.md §5, the promise the add-on is judged on.
+ *
+ * "This is checkable in the source and people do check it" — so it is checked
+ * here too, rather than left as a sentence in a readme. It binds everything that
+ * ships, which is `src/`; the tooling downloads the client bundle and the help,
+ * and is not part of the userscript.
+ */
+describe("the promise not to talk to the network", () => {
+  test.each(SOURCE_FILES.filter((file) => file.startsWith("src/")))(
+    "%s sends nothing anywhere",
+    (file) => {
+      const source = getSourceWithoutComments(file);
+      const sending = [
+        ...source.matchAll(/\b(fetch|XMLHttpRequest|WebSocket|sendBeacon|EventSource)\b/g),
+      ].map((match) => match[1]);
+      expect(sending, file).toEqual([]);
+    },
+  );
 });
 
 describe("assumptions", () => {

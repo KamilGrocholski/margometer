@@ -11,7 +11,7 @@
  */
 
 /** Every failure the add-on can raise. One entry per subclass. */
-export type MargoMeterErrorCode = "ProtocolMessageFormat";
+export type MargoMeterErrorCode = "ProtocolMessageFormat" | "EngineBattleWrap";
 
 export abstract class MargoMeterError extends Error {
   readonly code: MargoMeterErrorCode;
