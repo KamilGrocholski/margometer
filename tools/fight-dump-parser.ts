@@ -91,6 +91,17 @@ export type EngineCall = {
   protocolMessages: string[];
   combatantsBefore: CombatantSnapshot[];
   combatantsAfter: CombatantSnapshot[];
+  /**
+   * The argument the engine call carried, exactly as recorded.
+   *
+   * Left as `unknown` on purpose. Every other field here is parsed because
+   * something depends on its shape; this one exists so the live path can be
+   * replayed against the same material the offline path uses, and the code under
+   * test is precisely the code that decides what the shape is. Parsing it here
+   * would mean this file and `src/game/` both deciding, and a replay that agrees
+   * because both sides made the same assumption proves nothing.
+   */
+  payload: unknown;
 };
 
 export type FightDump = {
@@ -137,6 +148,7 @@ function parseEngineCall(raw: unknown, path: string): EngineCall {
     ),
     combatantsBefore: parseCombatantSnapshots(call["wojownicyPrzed"], `${path}.wojownicyPrzed`),
     combatantsAfter: parseCombatantSnapshots(call["wojownicyPo"], `${path}.wojownicyPo`),
+    payload: call["ladunek"],
     // `render` — sentences the game client composed — is deliberately not read.
     // It is the game's own prose, and no part of this project depends on it.
   };

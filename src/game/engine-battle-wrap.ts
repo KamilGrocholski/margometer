@@ -70,7 +70,7 @@ export type BattleWrapOptions = {
    * not throw itself; if it does, the error is swallowed here rather than
    * travelling into the game.
    */
-  onReadingFailure?: (error: unknown) => void;
+  onReadingFailure?: ((error: unknown) => void) | undefined;
 };
 
 /**

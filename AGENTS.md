@@ -400,7 +400,9 @@ libs/
                          accepts by surprise.
 
 src/
-  userscript-entry.ts    Bundle entry point. Empty so far.
+  userscript-entry.ts    Bundle entry point, and the only file that reads a
+                         global. Wires the game to the reading and holds the
+                         session; draws nothing yet.
   core/
     protocol-message.ts  Grammar of one message: two sides, then key/value
                          segments. Structure only, strict, reversible.
@@ -426,12 +428,22 @@ src/
     engine-roster.ts     Who is fighting, read live, and — from `myteam` — which
                          side is the player's. The one thing `core` cannot know,
                          decided here so no core type has to carry it.
+    engine-attachment.ts Finds the battle object, which may not exist yet, wraps
+                         it once and stops looking. The game does not replace it,
+                         so this is a search and not a watch.
+    battle-session.ts    One fight accumulated payload by payload: `init` opens
+                         it, the roster arrives in fragments that merge, and
+                         `myteam` arrives once or never. Pure — the mutable
+                         variable belongs to whoever drives it.
 
 tools/
   margometer-tool-error.ts
                          Base for everything the tooling throws — §9.5.
   fight-dump-parser.ts   Parses captured fight material. The boundary where the
-                         files' Polish field names stop — §9.2.
+                         files' Polish field names stop — §9.2. The engine call's
+                         own argument is carried through unparsed, so the live
+                         path can be replayed against the same material without
+                         this file and `src/game/` both deciding its shape.
   game-client-source.ts  Fetches the client bundle into .cache/, with provenance,
                          and compares the cached build against the served one.
   protocol-key-table.ts  Lifts the client's key list out of that bundle; `freeze`
@@ -496,6 +508,13 @@ tests/
                            anything the log ties to nobody reaches the bucket
                            instead of a row. Says why a fight-scale check against
                            the snapshots is absent.
+  battle-session.test.ts   How a fight is assembled from payloads: where one
+                           ends, a roster that only ever grows, and a side
+                           remembered from the one payload that states it.
+  engine-attachment.test.ts
+                           Finding the game on an injected clock, and the whole
+                           add-on driven end to end by a captured fight through
+                           the entry point the userscript actually runs.
   skill-announcement-rule.test.ts
                            What an announcement carries: no key of the damage
                            family, but damage aimed at a name and healing ride it
