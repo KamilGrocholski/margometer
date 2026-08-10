@@ -56,10 +56,9 @@ Untagged prose is context and reasoning — read it, but it does not bind.
 | `[data]` | Material captured from the game | `tests/captured-fights/` |
 | `[process]` | Commits, validation, workflow | — |
 
-⚠️ `[ui]` has no files yet; that path appears as the code that needs it is
-written (see §7.1). **This table is the map — keep it true.** A scope whose path
-no longer exists, or a directory missing from this table, is the first sign the
-rules have drifted from the tree.
+⚠️ **This table is the map — keep it true.** A scope whose path no longer
+exists, or a directory missing from this table, is the first sign the rules have
+drifted from the tree.
 
 ---
 
@@ -435,6 +434,16 @@ src/
                          it, the roster arrives in fragments that merge, and
                          `myteam` arrives once or never. Pure — the mutable
                          variable belongs to whoever drives it.
+  ui/
+    panel-tokens.ts      Every colour, space and radius, named once, plus the
+                         contrast arithmetic a test needs to hold them to §9.7.
+                         The bar tint is a measured value, not a taste.
+    panel-view.ts        What the panel shows, as data: rows, shares, headings
+                         and the notices that qualify them. No DOM, so all of it
+                         is checkable.
+    panel-element.ts     The same, drawn. Takes a document as an argument, opens
+                         one shadow root, and renders section by section so that
+                         one failure is the size of the thing that failed.
 
 tools/
   margometer-tool-error.ts
@@ -515,6 +524,10 @@ tests/
                            Finding the game on an injected clock, and the whole
                            add-on driven end to end by a captured fight through
                            the entry point the userscript actually runs.
+  panel.test.ts            The panel against §9.6 and §9.7, on a fake document:
+                           what survives a section failing, that a handler cannot
+                           escape into the page, that unread keys reach the
+                           screen, and that every bar clears AA by measurement.
   skill-announcement-rule.test.ts
                            What an announcement carries: no key of the damage
                            family, but damage aimed at a name and healing ride it

@@ -37,6 +37,16 @@ export type RosteredCombatant = {
    * fight, so this is a property of the roster rather than of a moment in it.
    */
   side: number;
+  /**
+   * The game's own one-letter profession code, or null where it said none.
+   *
+   * Carried for the panel, which colours a bar by profession rather than by
+   * identity: two mages get one colour on purpose, because the question a colour
+   * answers is "who is what", and who-is-who is the name beside it. Null is a
+   * real answer — an unrecognised code must not borrow another profession's
+   * colour.
+   */
+  profession: string | null;
 };
 
 export type CombatantRoster = {

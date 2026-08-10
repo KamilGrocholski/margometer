@@ -209,7 +209,7 @@ describe("rows grouped by side", () => {
   // A roster that knows one combatant and not the other must not quietly file
   // the stranger anywhere.
   test("a combatant the roster never heard of is placed on no side", () => {
-    const roster = composeCombatantRoster([{ id: 7, name: "known", side: 1 }]);
+    const roster = composeCombatantRoster([{ id: 7, name: "known", side: 1, profession: null }]);
     const statistics = composeFightStatistics(
       [{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 8 }],
       roster,

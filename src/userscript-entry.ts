@@ -20,6 +20,13 @@ import {
   type FightReading,
 } from "@/src/game/battle-session.ts";
 import { setEngineAttachment, type GameWindow } from "@/src/game/engine-attachment.ts";
+import {
+  renderPanelInto,
+  setPanelRoot,
+  type PanelDocument,
+  type PanelHost,
+} from "@/src/ui/panel-element.ts";
+import { composePanelView, type PanelMetric } from "@/src/ui/panel-view.ts";
 
 export type MargoMeterOptions = {
   /** Told after every payload, with the fight as it now stands. */
@@ -103,12 +110,75 @@ export function shouldStartHere(scope: { document?: unknown }): boolean {
  * this file is loaded — and in a test runner there is no `document`, so
  * importing this module attaches to nothing.
  */
-const page = globalThis as GameWindow & { document?: unknown; [PAGE_HANDLE]?: MargoMeter };
+/**
+ * The page as this file needs it: the game, a document to draw into, and a name
+ * to answer to.
+ */
+type HostPage = GameWindow & {
+  document?: {
+    createElement(tag: string): unknown;
+    body?: { append(node: unknown): void } | undefined;
+  };
+  [PAGE_HANDLE]?: MargoMeter;
+};
+
+/**
+ * Draws the panel and keeps it in step with the fight.
+ *
+ * The whole panel is rebuilt on each reading rather than patched. That is the
+ * cheap thing to be right about: a fight produces a payload every few seconds,
+ * and §9.6's "render section by section, each isolated" is a property of
+ * building, not of diffing. Losing a hand-written patcher's edge cases is worth
+ * more than the frames it would save.
+ */
+function composePanelMount(page: HostPage): ((reading: FightReading) => void) | null {
+  const document = page.document as PanelDocument | undefined;
+  if (document === undefined) return null;
+
+  const host = document.createElement("div") as PanelHost;
+  host.style.setProperty("position", "fixed");
+  host.style.setProperty("top", "8px");
+  host.style.setProperty("right", "8px");
+  host.style.setProperty("z-index", "9999");
+  page.document?.body?.append(host);
+  // Opened once: `attachShadow` throws on a second call for the same element.
+  const container = setPanelRoot(document, host);
+
+  let metric: PanelMetric = "dealt";
+  let latest: FightReading | null = null;
+  let reported = false;
+
+  const renderLatest = (): void => {
+    if (latest === null) return;
+    renderPanelInto(document, container, composePanelView(latest, metric), {
+      onMetricChosen: (chosen) => {
+        metric = chosen;
+        renderLatest();
+      },
+      // Once, not per render: a panel logging sixty times a second is itself a
+      // way of disturbing someone (§9.6).
+      onSectionFailure: (error) => {
+        if (reported) return;
+        reported = true;
+        console.warn("MargoMeter/PanelSection", error);
+      },
+    });
+  };
+
+  return (reading) => {
+    latest = reading;
+    renderLatest();
+  };
+}
+
+const page = globalThis as HostPage;
 if (shouldStartHere(page)) {
+  const renderReading = composePanelMount(page);
   page[PAGE_HANDLE] = setMargoMeter(page, {
     // One line, once, when the wrap goes on. Branded like every other thing this
     // add-on writes to a console it shares with the game (§9.5). It is not a
     // running commentary: nothing else here prints.
     onAttached: () => console.info("MargoMeter/attached"),
+    onReading: (reading) => renderReading?.(reading),
   });
 }

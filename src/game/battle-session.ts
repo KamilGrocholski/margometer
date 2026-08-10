@@ -19,7 +19,7 @@
  */
 
 import { getIntegerFromText, getIntegerFromValue } from "@/libs/number.ts";
-import type { RosteredCombatant } from "@/src/core/combatant-roster.ts";
+import type { CombatantRoster, RosteredCombatant } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import {
@@ -95,6 +95,14 @@ export function composeNextSession(
 /** What a panel is handed: the numbers, and everything qualifying them. */
 export type FightReading = {
   statistics: FightStatistics;
+  /**
+   * The roster the statistics were built against.
+   *
+   * Carried rather than left for the reader to rebuild: the aggregate works in
+   * ids, and a panel that had to compose its own roster to turn those back into
+   * names would be a second place deciding who is who.
+   */
+  roster: CombatantRoster;
   ourSide: number | null;
   isFromFightStart: boolean;
 };
@@ -111,6 +119,7 @@ export function composeFightReading(session: BattleSession): FightReading {
   const { roster } = composeBattleRoster(session.combatants, session.ourSide);
   return {
     statistics: composeFightStatistics(decodeFight(session.messages, roster), roster),
+    roster,
     ourSide: session.ourSide,
     isFromFightStart: session.isFromFightStart,
   };

@@ -54,7 +54,12 @@ export function composeRosteredCombatant(value: unknown): RosteredCombatant | nu
   const name = warrior["name"];
   if (id === null || side === null || typeof name !== "string" || name === "") return null;
 
-  return { id, name, side };
+  // Absent rather than defaulted: a combatant whose profession the game did not
+  // state must not be drawn as though it had one.
+  const stated = warrior["prof"];
+  const profession = typeof stated === "string" && stated !== "" ? stated : null;
+
+  return { id, name, side, profession };
 }
 
 /**

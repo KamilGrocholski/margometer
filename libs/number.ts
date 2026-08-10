@@ -32,6 +32,7 @@ import { assert } from "@/libs/assert.ts";
 
 const INTEGER_TEXT = /^-?\d+$/;
 const DECIMAL_TEXT = /^-?\d+\.\d+$/;
+const HEXADECIMAL_TEXT = /^[0-9a-f]+$/i;
 
 /**
  * Null unless the text is a plain decimal integer that survives the round trip.
@@ -41,6 +42,20 @@ const DECIMAL_TEXT = /^-?\d+\.\d+$/;
 export function getIntegerFromText(text: string): number | null {
   if (!INTEGER_TEXT.test(text)) return null;
   const value = Number(text);
+  return Number.isSafeInteger(value) ? value : null;
+}
+
+/**
+ * Null unless the text is hexadecimal digits and nothing else.
+ *
+ * Its own reader because the ways of spelling this all lie: `parseInt("zz", 16)`
+ * is `NaN`, `parseInt("ffzz", 16)` is 255 — it reads as far as it can and keeps
+ * what it got — and `Number("0xff")` needs a prefix the text may not carry. A
+ * colour channel read half-way is a colour nobody chose.
+ */
+export function getIntegerFromHexadecimalText(text: string): number | null {
+  if (!HEXADECIMAL_TEXT.test(text)) return null;
+  const value = parseInt(text, 16);
   return Number.isSafeInteger(value) ? value : null;
 }
 

@@ -46,12 +46,12 @@ describe("where one fight ends and the next begins", () => {
     const stale = composeNextSession(composeEmptySession(), {}, ["from an older fight"]);
     const fresh = composeNextSession(
       stale,
-      { init: "1", myteam: 1, w: { "7": { id: 7, name: "a", team: 1 } } },
+      { init: "1", myteam: 1, w: { "7": { id: 7, name: "a", team: 1, prof: "m" } } },
       ["the new fight's first message"],
     );
 
     expect(fresh.messages).toEqual(["the new fight's first message"]);
-    expect(fresh.combatants).toEqual([{ id: 7, name: "a", side: 1 }]);
+    expect(fresh.combatants).toEqual([{ id: 7, name: "a", side: 1, profession: "m" }]);
     expect(fresh.ourSide).toBe(1);
     expect(fresh.isFromFightStart).toBe(true);
   });
@@ -66,9 +66,9 @@ describe("the roster as it arrives in pieces", () => {
   test("a fragment adds and never takes away", () => {
     let session = composeNextSession(composeEmptySession(), {
       init: "1",
-      w: { "1": { id: 1, name: "one", team: 1 }, "2": { id: 2, name: "two", team: 2 } },
+      w: { "1": { id: 1, name: "one", team: 1, prof: "m" }, "2": { id: 2, name: "two", team: 2, prof: "m" } },
     }, []);
-    session = composeNextSession(session, { w: { "3": { id: 3, name: "three", team: 2 } } }, []);
+    session = composeNextSession(session, { w: { "3": { id: 3, name: "three", team: 2, prof: "m" } } }, []);
 
     expect(session.combatants.map((combatant) => combatant.id)).toEqual([1, 2, 3]);
   });
@@ -76,7 +76,7 @@ describe("the roster as it arrives in pieces", () => {
   test("a payload mentioning nobody leaves the roster standing", () => {
     let session = composeNextSession(composeEmptySession(), {
       init: "1",
-      w: { "1": { id: 1, name: "one", team: 1 } },
+      w: { "1": { id: 1, name: "one", team: 1, prof: "m" } },
     }, []);
     session = composeNextSession(session, { m: ["a message and no warriors"] }, ["x"]);
 
@@ -87,9 +87,9 @@ describe("the roster as it arrives in pieces", () => {
   test("a fragment updates in place rather than moving anyone", () => {
     let session = composeNextSession(composeEmptySession(), {
       init: "1",
-      w: { "1": { id: 1, name: "one", team: 1 }, "2": { id: 2, name: "two", team: 2 } },
+      w: { "1": { id: 1, name: "one", team: 1, prof: "m" }, "2": { id: 2, name: "two", team: 2, prof: "m" } },
     }, []);
-    session = composeNextSession(session, { w: { "1": { id: 1, name: "renamed", team: 1 } } }, []);
+    session = composeNextSession(session, { w: { "1": { id: 1, name: "renamed", team: 1, prof: "m" } } }, []);
 
     expect(session.combatants.map((combatant) => combatant.name)).toEqual(["renamed", "two"]);
   });

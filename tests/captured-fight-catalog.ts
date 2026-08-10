@@ -42,7 +42,12 @@ export function composeRosterFromSnapshots(
   snapshots: readonly CombatantSnapshot[],
 ): CombatantRoster {
   return composeCombatantRoster(
-    snapshots.map(({ id, name, team }) => ({ id, name, side: team })),
+    snapshots.map(({ id, name, team, profession }) => ({
+      id,
+      name,
+      side: team,
+      profession: profession === "" ? null : profession,
+    })),
   );
 }
 
