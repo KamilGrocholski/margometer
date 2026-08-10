@@ -12,9 +12,10 @@
  * match, because attributing real damage to the wrong combatant is the failure
  * this project exists to prevent, and it is worse than attributing it to no one.
  *
- * The roster carries what something reads. Team, level, profession and maximum
- * health all sit in the same material and are all deliberately absent: they join
- * when a consumer arrives, not before (AGENTS.md §7.1).
+ * The roster carries what something reads. Level, profession and maximum health
+ * all sit in the same material and are all deliberately absent: they join when a
+ * consumer arrives, not before (AGENTS.md §7.1). `side` joined when the
+ * aggregate needed to group rows.
  */
 
 /** Ids the roster could not tell apart by name. */
@@ -23,6 +24,19 @@ const AMBIGUOUS = null;
 export type RosteredCombatant = {
   id: number;
   name: string;
+  /**
+   * The team the game states, as a bare number.
+   *
+   * **Not "ours" or "theirs".** Which side the person watching belongs to is not
+   * in this material — a captured fight does not record who recorded it — and it
+   * is not in the protocol either. Only the game layer can say, because only it
+   * can ask the client who the local player is. Until something hands that in,
+   * two sides are two sides and neither is favoured.
+   *
+   * Measured on both captures: every combatant keeps the same team for the whole
+   * fight, so this is a property of the roster rather than of a moment in it.
+   */
+  side: number;
 };
 
 export type CombatantRoster = {

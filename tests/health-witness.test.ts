@@ -1,9 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { composeDecimalText } from "@/libs/number.ts";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
+import {
+  CAPTURED_FIGHTS,
+  composeRosterFromSnapshots,
+  type CapturedFight,
+} from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 
 /**
@@ -78,7 +81,7 @@ function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[
     // The roster the decoder would have at run time, rebuilt from what the
     // engine call started with. Resolving names is the decoder's job now, so the
     // replay hands it the same material and reads the id off the event.
-    const roster = composeCombatantRoster(call.combatantsBefore);
+    const roster = composeRosterFromSnapshots(call.combatantsBefore);
 
     for (const { message, parsed } of messages) {
       const events = decodeFight([message], roster);
@@ -213,7 +216,7 @@ describe("every health verdict in the register is one the captures still refuse"
 describe("damage stated against a name", () => {
   const named = CAPTURED_FIGHTS.flatMap((fight) =>
     fight.dump.calls.flatMap((call) =>
-      decodeFight(call.protocolMessages, composeCombatantRoster(call.combatantsBefore)).filter(
+      decodeFight(call.protocolMessages, composeRosterFromSnapshots(call.combatantsBefore)).filter(
         (event) => event.kind === "damage-to-named-combatant",
       ),
     ),

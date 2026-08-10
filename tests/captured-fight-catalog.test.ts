@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { FightDumpFormatError, parseFightDump } from "@/tools/fight-dump-parser.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
 
 // Not an assertion inside the loop below: a loop over an empty directory is
 // green and proves nothing. This is the test that notices the material is gone.
@@ -26,6 +26,27 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
       const messages = fight.dump.calls.flatMap((call) => call.protocolMessages);
       expect(messages.length).toBeGreaterThan(0);
       expect(messages.every((message) => message.length > 0)).toBe(true);
+    });
+
+    /**
+     * The trap `composeRosterOfFight` exists to avoid, held here rather than
+     * described there. A combatant appears in every call's snapshots, and the
+     * roster treats a name it meets twice as ambiguous — so composing from the
+     * raw concatenation resolves **every** name to nobody. Nothing would throw:
+     * the damage would simply arrive unattributed, and the totals would be right
+     * while every row was empty.
+     */
+    test("its whole-fight roster still resolves names", () => {
+      const roster = composeRosterOfFight(fight);
+      const resolved = [...roster.idByName.values()].filter((id) => id !== null);
+      expect(resolved.length).toBeGreaterThan(0);
+    });
+
+    // Sides are read from the material, not invented: a fight has more than one.
+    test("its combatants fall on more than one side", () => {
+      const roster = composeRosterOfFight(fight);
+      const sides = new Set([...roster.byId.values()].map((combatant) => combatant.side));
+      expect(sides.size).toBeGreaterThan(1);
     });
 
     // The whole reason a capture is a file and not a code module: maximum

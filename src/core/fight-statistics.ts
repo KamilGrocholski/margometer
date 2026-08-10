@@ -20,6 +20,7 @@
  */
 
 import type { BattleEvent } from "@/src/core/battle-event.ts";
+import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 
 /**
  * One combatant's figures, and the same shape used for everything that belongs
@@ -74,8 +75,30 @@ export type ReadingGaps = {
   messagesByReason: ReadonlyMap<string, number>;
 };
 
+/**
+ * One side's members and their figures added together.
+ *
+ * Summing across a side is safe in a way summing across units is not: every
+ * member's `taken` is health points, and every member's `destroyed` is added
+ * per token, so nothing here totals two different things. The side is identified
+ * by the bare team number — which of them is the watcher's own is not decided
+ * here, and is not in the material (`combatant-roster.ts`).
+ */
+export type SideStatistics = {
+  combatantIds: readonly number[];
+  totals: CombatantStatistics;
+};
+
 export type FightStatistics = {
   byCombatantId: ReadonlyMap<number, CombatantStatistics>;
+  /** Empty without a roster: sides come from the roster, never from the events. */
+  bySide: ReadonlyMap<number, SideStatistics>;
+  /**
+   * Combatants no roster could place, kept apart rather than dropped or put on a
+   * side that would then be wrong. Everyone lands here when there is no roster
+   * at all — a fight joined in progress still shows its rows, ungrouped.
+   */
+  combatantIdsWithoutSide: readonly number[];
   /** Figures the log ties to nobody. Same shape, never folded into a row. */
   unattributed: CombatantStatistics;
   reading: ReadingGaps;
@@ -118,7 +141,37 @@ function setRunningTotal(totals: Map<string, number>, token: string, amount: num
   totals.set(token, (totals.get(token) ?? 0) + amount);
 }
 
-export function composeFightStatistics(events: readonly BattleEvent[]): FightStatistics {
+/** Merges one row's figures into another, token by token so no unit is crossed. */
+function setTotalsFrom(into: Row, member: CombatantStatistics): void {
+  into.dealtRaw += member.dealtRaw;
+  into.dealtApplied += member.dealtApplied;
+  into.taken += member.taken;
+  into.healed += member.healed;
+  into.healthLost += member.healthLost;
+  into.skillsUsed += member.skillsUsed;
+
+  const keyed: Array<[Map<string, number>, ReadonlyMap<string, number>]> = [
+    [into.dealtAppliedByElement, member.dealtAppliedByElement],
+    [into.takenByElement, member.takenByElement],
+    [into.prevented, member.prevented],
+    [into.destroyed, member.destroyed],
+    [into.procsOnBlowsStruck, member.procsOnBlowsStruck],
+  ];
+  for (const [totals, from] of keyed) {
+    for (const [token, amount] of from) setRunningTotal(totals, token, amount);
+  }
+}
+
+/**
+ * The roster is optional and its absence is not an error: a fight can be joined
+ * in progress, and rows must still be produced. What is lost is the grouping,
+ * and that loss is stated rather than hidden — every combatant turns up in
+ * `combatantIdsWithoutSide`.
+ */
+export function composeFightStatistics(
+  events: readonly BattleEvent[],
+  roster: CombatantRoster | null = null,
+): FightStatistics {
   const rows = new Map<number, Row>();
   const unattributed = composeRow();
   const messagesByReason = new Map<string, number>();
@@ -206,8 +259,29 @@ export function composeFightStatistics(events: readonly BattleEvent[]): FightSta
     }
   }
 
+  // Grouped after the fact rather than during the loop: a figure lands on two
+  // rows whose sides differ, so accumulating sides inline would mean deciding
+  // twice per figure which side each half belongs to. Summing finished rows
+  // cannot get that wrong.
+  const bySide = new Map<number, { combatantIds: number[]; totals: Row }>();
+  const combatantIdsWithoutSide: number[] = [];
+
+  for (const [combatantId, row] of rows) {
+    const side = roster?.byId.get(combatantId)?.side;
+    if (side === undefined) {
+      combatantIdsWithoutSide.push(combatantId);
+      continue;
+    }
+    const group = bySide.get(side) ?? { combatantIds: [], totals: composeRow() };
+    group.combatantIds.push(combatantId);
+    setTotalsFrom(group.totals, row);
+    bySide.set(side, group);
+  }
+
   return {
     byCombatantId: rows,
+    bySide,
+    combatantIdsWithoutSide,
     unattributed,
     reading: { unreadableMessages, messagesByReason },
     outcome,

@@ -36,22 +36,22 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
 import {
   composeFightStatistics,
   type CombatantStatistics,
+  type SideStatistics,
 } from "@/src/core/fight-statistics.ts";
-import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
+import {
+  CAPTURED_FIGHTS,
+  composeRosterOfFight,
+  type CapturedFight,
+} from "@/tests/captured-fight-catalog.ts";
 
 function getStatisticsOf(fight: CapturedFight) {
-  const names = new Map<number, string>();
-  for (const call of fight.dump.calls) {
-    for (const combatant of [...call.combatantsBefore, ...call.combatantsAfter]) {
-      names.set(combatant.id, combatant.name);
-    }
-  }
-  const roster = composeCombatantRoster([...names].map(([id, name]) => ({ id, name })));
+  const roster = composeRosterOfFight(fight);
   return composeFightStatistics(
     decodeFight(
       fight.dump.calls.flatMap((call) => call.protocolMessages),
       roster,
     ),
+    roster,
   );
 }
 
@@ -143,6 +143,81 @@ describe("the aggregate over captured fights", () => {
     expect(idle).toBeDefined();
     expect(idle?.healed).toBe(0);
     expect(statistics.reading.unreadableMessages).toBeGreaterThan(0);
+  });
+});
+
+describe("rows grouped by side", () => {
+  test("both captures split into more than one side, with nobody left out", () => {
+    for (const { name, statistics } of FROM_CAPTURES) {
+      expect(statistics.bySide.size, name).toBeGreaterThan(1);
+      expect(statistics.combatantIdsWithoutSide, name).toEqual([]);
+
+      const grouped = [...statistics.bySide.values()].flatMap((side) => side.combatantIds);
+      expect(grouped.length, name).toBe(statistics.byCombatantId.size);
+      expect(new Set(grouped).size, name).toBe(grouped.length);
+    }
+  });
+
+  // Recomputed from the members rather than trusted, so the totals cannot drift
+  // from the rows they claim to add up.
+  test("a side's totals are its members added together", () => {
+    for (const { name, statistics } of FROM_CAPTURES) {
+      for (const [side, group] of statistics.bySide) {
+        const members = group.combatantIds.map((id) => statistics.byCombatantId.get(id));
+        const taken = members.reduce((total, row) => total + (row?.taken ?? 0), 0);
+        const landed = members.reduce((total, row) => total + (row?.dealtApplied ?? 0), 0);
+        expect(group.totals.taken, `${name} side ${side}`).toBe(taken);
+        expect(group.totals.dealtApplied, `${name} side ${side}`).toBe(landed);
+      }
+    }
+  });
+
+  /**
+   * What one side lands is what the other takes — exactly, in both captures.
+   *
+   * The strongest evidence the grouping is coherent: a combatant filed on the
+   * wrong side breaks it immediately, and no per-row check would notice.
+   *
+   * It **assumes nobody damages their own side**, which is true of this material
+   * and is not a law of the game. A capture with area damage catching an ally
+   * would fail here, and that is the intended outcome: the assumption is what
+   * changed, and someone should look rather than have it absorbed silently.
+   */
+  test("what one side lands is what the other takes", () => {
+    for (const { name, statistics } of FROM_CAPTURES) {
+      const sides = [...statistics.bySide.values()];
+      expect(sides.length, name).toBe(2);
+      const [first, second] = sides as [SideStatistics, SideStatistics];
+      expect(first.totals.dealtApplied, name).toBe(second.totals.taken);
+      expect(second.totals.dealtApplied, name).toBe(first.totals.taken);
+    }
+  });
+
+  /**
+   * Without a roster there are no sides, and that has to be visible rather than
+   * silent: a fight joined in progress still shows its rows, and the panel needs
+   * to know it cannot group them.
+   */
+  test("no roster means no sides, and every combatant said to be unplaced", () => {
+    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 8 }]);
+
+    expect(statistics.bySide.size).toBe(0);
+    expect([...statistics.combatantIdsWithoutSide].sort()).toEqual([7, 8]);
+    expect(statistics.byCombatantId.size).toBe(2);
+  });
+
+  // A roster that knows one combatant and not the other must not quietly file
+  // the stranger anywhere.
+  test("a combatant the roster never heard of is placed on no side", () => {
+    const roster = composeCombatantRoster([{ id: 7, name: "known", side: 1 }]);
+    const statistics = composeFightStatistics(
+      [{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 8 }],
+      roster,
+    );
+
+    expect([...statistics.bySide.keys()]).toEqual([1]);
+    expect(statistics.bySide.get(1)?.combatantIds).toEqual([7]);
+    expect(statistics.combatantIdsWithoutSide).toEqual([8]);
   });
 });
 

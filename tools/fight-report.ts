@@ -13,9 +13,12 @@
 
 import { composeIntegerText } from "@/libs/number.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fight-statistics.ts";
-import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
+import {
+  CAPTURED_FIGHTS,
+  composeRosterOfFight,
+  type CapturedFight,
+} from "@/tests/captured-fight-catalog.ts";
 
 const NUMBER_COLUMN = 9;
 const NAME_COLUMN = 28;
@@ -62,14 +65,13 @@ function writeRow(label: string, row: CombatantStatistics): void {
 
 function writeFightReport(fight: CapturedFight): void {
   const names = getNameByCombatantId(fight);
-  const roster = composeCombatantRoster(
-    [...names].map(([id, name]) => ({ id, name })),
-  );
+  const roster = composeRosterOfFight(fight);
   const statistics = composeFightStatistics(
     decodeFight(
       fight.dump.calls.flatMap((call) => call.protocolMessages),
       roster,
     ),
+    roster,
   );
 
   console.log(`\n=== ${fight.name} ===`);
@@ -82,11 +84,27 @@ function writeFightReport(fight: CapturedFight): void {
       .join("")}`,
   );
 
-  const ordered = [...statistics.byCombatantId].sort(
-    (a, b) => b[1].dealtApplied - a[1].dealtApplied,
-  );
-  for (const [combatantId, row] of ordered) {
-    writeRow(names.get(combatantId) ?? `id ${combatantId}`, row);
+  // Sides in their own order, each with its members under it. Neither side is
+  // called "ours": which one that is takes the game layer, so the bare team
+  // number is what gets printed.
+  const sides = [...statistics.bySide].sort((a, b) => a[0] - b[0]);
+  for (const [side, group] of sides) {
+    console.log(`  —— side ${side} (${group.combatantIds.length}) ——`);
+    const members = group.combatantIds
+      .map((combatantId) => [combatantId, statistics.byCombatantId.get(combatantId)] as const)
+      .sort((a, b) => (b[1]?.dealtApplied ?? 0) - (a[1]?.dealtApplied ?? 0));
+    for (const [combatantId, row] of members) {
+      if (row !== undefined) writeRow(names.get(combatantId) ?? `id ${combatantId}`, row);
+    }
+    writeRow(`side ${side} together`, group.totals);
+  }
+
+  if (statistics.combatantIdsWithoutSide.length > 0) {
+    console.log("  —— no side the roster could give ——");
+    for (const combatantId of statistics.combatantIdsWithoutSide) {
+      const row = statistics.byCombatantId.get(combatantId);
+      if (row !== undefined) writeRow(names.get(combatantId) ?? `id ${combatantId}`, row);
+    }
   }
 
   console.log("  —— not tied to anyone ——");
