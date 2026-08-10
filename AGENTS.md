@@ -162,6 +162,7 @@ that exists is listed here with what it answers.
 | `tools/game-client-source.ts` | *What is the game serving, and give me its source.* `status` compares served build against the cache; `fetch [channel]` downloads into `.cache/` with provenance. §7.6. |
 | `tools/protocol-key-table.ts` | *Which protocol keys does the client know?* Lifts them from the cached production bundle; `freeze` writes `tests/frozen-protocol-keys.ts`. |
 | `tools/decoding-status.ts` | *How much of the protocol do we read?* Messages, events by kind, unread keys by frequency. Computed on demand — these figures never go into prose (§5). |
+| `tools/fight-report.ts` | *What would the panel show for this fight?* Runs the decoder and the aggregate over each capture and prints the per-combatant table, so the numbers can be read before a panel exists. |
 | `tools/help-article.ts` | *What does the game's own documentation say about this mechanic?* `fetch` caches an article, `search` prints raw context around a phrase and exits non-zero when there is none. §7.6. |
 
 ---
@@ -409,6 +410,9 @@ src/
                          nobody — never to the first match.
     fight-decoder.ts     Messages → events. Drops nothing, invents nothing.
                          Takes the roster; without one, names resolve to nobody.
+    fight-statistics.ts  Events → the numbers a panel draws. Raw and applied kept
+                         apart, units never totalled across, and what could not
+                         be read or attributed carried rather than dropped.
 
 tools/
   margometer-tool-error.ts
@@ -420,6 +424,8 @@ tools/
   protocol-key-table.ts  Lifts the client's key list out of that bundle; `freeze`
                          writes tests/frozen-protocol-keys.ts.
   decoding-status.ts     How much of the protocol we read, computed on demand.
+  fight-report.ts        What a captured fight adds up to, per combatant — the
+                         aggregate printed against real material.
   help-article.ts        Fetches an article of the game's published help into
                          .cache/ and prints raw context around a phrase. Prints
                          the age of the dump, and says NOT FOUND out loud —
@@ -470,6 +476,11 @@ tests/
                            rather than from the decoder's list, plus the key that
                            looks like one and is refused because the client
                            states a figure for it.
+  fight-statistics.test.ts The aggregate: every figure landed is also a figure
+                           taken, raw and applied stay different numbers, and
+                           anything the log ties to nobody reaches the bucket
+                           instead of a row. Says why a fight-scale check against
+                           the snapshots is absent.
   skill-announcement-rule.test.ts
                            What an announcement carries: no key of the damage
                            family, but damage aimed at a name and healing ride it
@@ -489,7 +500,7 @@ tests/
   userscript-metadata.test.ts
 ```
 
-The decoder, the aggregator, the game layer and the panel are yet to be written.
+The game layer and the panel are yet to be written.
 
 ---
 

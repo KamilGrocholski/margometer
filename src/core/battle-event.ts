@@ -125,13 +125,19 @@ export type HealthChangeEvent = {
 };
 
 /**
- * A named skill a combatant used, announced in a message of its own.
+ * A named skill a combatant used.
  *
- * **Not part of the blow.** Measured on the captured fights: none of the 197
- * announcements carries a damage figure — whatever the skill then does arrives
- * in later messages, and nothing in the protocol joins the two. Tying damage
- * back to the skill that caused it is therefore an inference, not a reading,
- * and this event deliberately does not attempt it.
+ * **Not part of the blow**, but not a message of its own either, and an earlier
+ * version of this comment claimed both. Measured on the captured fights: none of
+ * the 197 announcements carries a key of the damage *family*, which is what had
+ * been checked — but 33 of them carry a figure all the same, 24 as `+oth_dmg`
+ * and 9 as a key the register lists as moving health, in the same message as the
+ * skill name.
+ *
+ * So the protocol does sometimes put a skill beside a figure. What it still does
+ * not state is that the figure is the skill's doing, so tying them remains an
+ * inference rather than a reading, and the decoder emits the two as separate
+ * events from the one message. Held by `tests/skill-announcement-rule.test.ts`.
  */
 export type SkillUsedEvent = {
   kind: "skill-used";
