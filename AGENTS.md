@@ -440,7 +440,10 @@ tests/
                          health witness both start here; a misspelled health
                          verdict is refused rather than read as silence, and a
                          citation of the published help is held to carrying the
-                         date it was read on.
+                         date it was read on. Its test also holds the register against the captures: a key the
+                         material carries and nobody has looked at fails the gate
+                         rather than waiting in `decoding-status` for someone to
+                         run the tool.
   health-witness.test.ts   Decoded damage against the health the protocol
                            states — two sources nothing here reconciles. Both
                            sides of every message, whole calls skipped where a
@@ -460,6 +463,10 @@ tests/
                            element, always carrying a figure, and held to making
                            no health claim — which is what leaves the witness
                            free to earn the figures beside it.
+  proc-rule.test.ts        What may be read as a flag: decoded from the captures
+                           rather than from the decoder's list, plus the key that
+                           looks like one and is refused because the client
+                           states a figure for it.
   skill-announcement-rule.test.ts
                            What an announcement carries: no key of the damage
                            family, but damage aimed at a name and healing ride it

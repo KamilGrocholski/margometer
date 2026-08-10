@@ -138,8 +138,28 @@ const PREVENTED_DAMAGE_KEYS = ["-absorb", "-absorbm", "-blok"];
  * a slot holding points.
  */
 const STATISTIC_DESTRUCTION_KEYS = ["+acdmg", "+resdmg", "+abdest_per", "+abmdest_per"];
-/** Measured on the captures: all 73 occurrences arrive without a value. */
-const PROC_KEYS = ["+crit", "+pierce"];
+/**
+ * Effects that fired with the blow and state no figure. Measured on the
+ * captures: every occurrence arrives without a value.
+ *
+ * Membership is decided by the client, not by the shape of the name: the game
+ * composes a sentence for each of these that interpolates nothing. A key whose
+ * sentence has a `%val%` hole belongs elsewhere even where our own material
+ * happens to carry no value for it — `+legbon_holytouch` is that case, and it
+ * stays unread for it.
+ */
+const PROC_KEYS = [
+  "+crit",
+  "+pierce",
+  "+stun",
+  "+freeze",
+  "+legbon_curse",
+  "+legbon_verycrit",
+  "+superspell-dispel",
+  "+acdmg_destroyed",
+  "-legbon_cleanse",
+  "-tenacity",
+];
 
 /**
  * The two halves of a skill announcement, read together because neither is the

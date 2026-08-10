@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
+import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/tests/frozen-protocol-keys.ts";
 import {
   getKeysInState,
@@ -133,4 +135,46 @@ describe("the register against the game", () => {
     const actuallyKeys = getKeysInState("not a battle key").filter((key) => NAMED_KEYS.has(key));
     expect(actuallyKeys).toEqual([]);
   });
+});
+
+/**
+ * The register against the material, which is the direction nothing held before.
+ *
+ * The two guards above keep it level with the decoder and with the client; both
+ * are satisfied by a register that has simply never heard of a key. What is left
+ * out then is exactly what the captures do contain and nobody has looked at —
+ * the state this file exists to make impossible.
+ *
+ * A key arriving in new material is therefore a failing test rather than a line
+ * further down the `decoding-status` output, where it can sit unread for as long
+ * as nobody runs the tool.
+ */
+describe("the register against the captured material", () => {
+  const CARRIED_KEYS = [
+    ...new Set(
+      CAPTURED_FIGHTS.flatMap((fight) =>
+        fight.dump.calls.flatMap((call) =>
+          call.protocolMessages.flatMap((message) =>
+            parseProtocolMessage(message).parameters.map((parameter) => parameter.key),
+          ),
+        ),
+      ),
+    ),
+  ];
+
+  test("the captures carry keys to check", () => {
+    expect(CARRIED_KEYS.length).toBeGreaterThan(0);
+  });
+
+  test("every key the captures carry is read, computed by shape, or has an entry", () => {
+    const described = new Set(ENTRIES.map((entry) => entry.key));
+    const unaccounted = CARRIED_KEYS.filter(
+      (key) =>
+        !described.has(key) &&
+        !UNDERSTOOD_PROTOCOL_KEYS.includes(key) &&
+        !isComputedKey(key.replace("?", "+")),
+    );
+    expect(unaccounted).toEqual([]);
+  });
+
 });
