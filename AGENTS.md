@@ -89,7 +89,14 @@ absent: a test is bound by the scope of the thing it tests.
   Silence is the failure mode that costs the most here: a number that is quietly
   too low looks exactly like a number that is right.
 - `[ALWAYS] [any]` **Write English** — code, comments, test names,
-  documentation, commit messages. The one exception is §9.2.
+  documentation, commit messages. Two exceptions, and neither is a matter of
+  taste: §9.2 (field names inside captured material) and **the text a player
+  reads, which is Polish** — the game is Polish and so are the people playing it,
+  while this rule is about the repository reading as one thing. The boundary is
+  the string itself: identifiers around it stay English, and a Polish sentence
+  never carries our vocabulary — no `protokół`, no `klucz`, no `komunikat`, no
+  key of the game's. A player is told what cannot be known, not why our reader
+  cannot know it (`docs/specs/2026-08-11-the-panel-that-drills.md`).
 - `[ALWAYS] [process]` **Leave the gate green.** Every commit passes §6.1 on its
   own, including when you split one change across several commits.
 
@@ -430,10 +437,23 @@ docs/
                          evidence, state. Guarded both ways against the decoder
                          and the frozen table.
   specs/                 Dated design records. No index — the directory is one.
+  design/panel.html      The panel, as a page you can click: the agreed layout
+                         driven by the two captured fights, so a decision about
+                         it can be looked at instead of imagined. Standalone by
+                         necessity — a file opened from disk can fetch nothing —
+                         and therefore a copy of the numbers rather than a second
+                         reader of them. **It is a drawing, not a source**: where
+                         it and the add-on disagree, the add-on is right and this
+                         is stale.
 
-  ⚠️ docs/ may hold a GUARDED register or a DATED spec, and nothing else. No
-  status, no progress, no chronicle of rounds. That sentence is the only thing
-  standing between this directory and what the previous one became.
+  ⚠️ docs/ may hold a GUARDED register, a DATED spec, or a design a spec points
+  at, and nothing else. No status, no progress, no chronicle of rounds. That
+  sentence is the only thing standing between this directory and what the
+  previous one became.
+
+  ⚠️ The design is admitted on one condition, and it is the condition the rest of
+  this directory is held to: **a spec has to name it**, so it cannot outlive the
+  decision it illustrates without `tests/tools/cited-paths.test.ts` noticing.
 
 libs/
   assert.ts              Assertions and their failure type. Depends on nothing;
@@ -451,6 +471,13 @@ libs/
                          accepts by surprise.
 
 src/
+  userscript-version.ts  What version this is, substituted at build time from
+                         `package.json` — one source, because a constant here
+                         would be a second and they would part company at the
+                         first release nobody edited twice. Two readers: the
+                         title bar, because reports arrive as screenshots, and
+                         the copied report, because a figure without its version
+                         cannot be tied to a release.
   userscript-entry.ts    Bundle entry point, and the only file that reads a
                          global. Wires the game to the reading, holds the session,
                          and mounts the panel — including the rule that the
@@ -481,7 +508,11 @@ src/
                          or placed on a side carried rather than dropped. A
                          declaration reaches no figure, said as an empty case
                          rather than by falling through — the compiler refuses a
-                         variant nobody decided about.
+                         variant nobody decided about. Holds what a drill needs
+                         and nothing derives cheaply: who hit whom, what moved
+                         health when no blow did, who healed whom where the game
+                         said, and a skill's figures — healing GIVEN, which is
+                         not the row's healing received and says so.
   game/
     engine-battle-wrap.ts
                          The only code here that changes a running game: it
@@ -500,8 +531,11 @@ src/
                          it, the roster arrives in fragments that merge, and
                          `myteam` arrives once or never. Counts the fights it has
                          watched open, which is the only thing surviving the
-                         reset — a warning is scoped to one fight (§9.6). Pure —
-                         the mutable variable belongs to whoever drives it.
+                         reset — a warning is scoped to one fight (§9.6) — and
+                         counts turns from `current`, the one thing the panel
+                         needs that no message carries: a turn-based fight has no
+                         seconds to divide by. Pure — the mutable variable belongs
+                         to whoever drives it.
     fight-capture.ts     The same fight kept so it can be written to a file: the
                          payload copied whole, and the combatants as the fight
                          held them before and after the call. The other direction
@@ -521,18 +555,27 @@ src/
                          in, where a drag lands, and what a remembered position
                          has to prove before it is believed. No DOM, so the clamp
                          that keeps the panel reachable is checkable on its own.
-    panel-view.ts        What the panel shows, as data: a header, rows, shares,
-                         and the marks that qualify a figure — one at the total
-                         that may be low, one in the header when the fight is not
-                         ours to count. Takes its own input type, so `ui` names no
-                         direction to `game`. No DOM, so all of it is checkable.
+    panel-view.ts        What the panel shows, as data — and the only file in the
+                         repository whose strings are Polish (§3). One ranking
+                         with a side filter, a rate that divides at every level,
+                         the drill and its breadcrumb, what a combatant with
+                         nothing gets instead of empty sections, and the row for
+                         what nobody can be charged with. Every token of the
+                         game's becomes a phrase before it reaches a label; one
+                         we cannot phrase travels as the game wrote it rather
+                         than as a guess. Takes its own input type, so `ui` names
+                         no direction to `game`. No DOM, so all of it is
+                         checkable.
     panel-element.ts     The same, drawn. Takes a document as an argument, opens
-                         one shadow root, binds one listener at that root, and
-                         renders region by region so that one failure is the size
-                         of the thing that failed. The title bar the panel is
-                         dragged by is built with the shadow root and not with the
-                         render, because a redraw replaces everything the render
-                         made — and a fight redraws every few seconds.
+                         one shadow root, listens at that root for every control
+                         it draws, and renders region by region so that one
+                         failure is the size of the thing that failed. The right
+                         button goes back from anywhere in the panel. The title
+                         bar the panel is dragged by — and the three buttons on
+                         it, one copy, one for the raw material, one collapse —
+                         is built with the shadow root and not with the render,
+                         because a redraw replaces everything the render made,
+                         and a fight redraws every few seconds.
 
 tools/
   margometer-tool-error.ts
@@ -646,6 +689,13 @@ tests/
                              family, but damage aimed at a name and healing ride
                              it in the same message — the correction of a claim
                              the register had settled wrong. Plus `combo-max`.
+    announced-skill-rule.test.ts
+                             What the game glues to an announcement, and what it
+                             refuses to: one message forward, same combatant, and
+                             a heal bound to whoever announced rather than to
+                             whoever received it. That last one is written from a
+                             mutation that lit nothing — the rule was right and
+                             the test was missing (§7.5).
     fight-statistics.test.ts The aggregate: every figure landed is also a figure
                              taken, raw and applied stay different numbers, and
                              anything the log ties to nobody reaches the bucket
@@ -681,13 +731,22 @@ tests/
                              a fight count that outlives the reset.
 
   ui/
-    panel.test.ts            The panel against §9.6 and §9.7, on a fake document:
-                             that everyone the aggregate counted is drawn once,
-                             what survives a section failing, that one listener
-                             serves the whole panel, that a handler cannot escape
-                             into the page, that what could not be read is marked
-                             at the total it may have shortened, and that every
-                             bar clears AA by measurement. The drag is here too,
+    panel-view.test.ts       What the panel decides, without a document: the
+                             ranking and its numbering, the fixed height, the rate
+                             that divides everywhere at once, the drill and what
+                             closes each section against the row it was entered
+                             from, zero and unknown as two different sentences —
+                             and a sweep over every screen the panel has holding
+                             its Polish to §3, so no word of ours and no key of
+                             the game's reaches a player.
+    panel.test.ts            The panel drawn, against §9.6 and §9.7, on a fake
+                             document: what survives a region failing, that the
+                             root serves every control, that a handler cannot
+                             escape into the page, that the right button goes back
+                             from anywhere, that the row saying something is
+                             missing sits outside the scrolling, and that every
+                             bar clears AA by measurement — each colour in the
+                             role it is actually used in. The drag is here too,
                              including the one property the design exists for: it
                              still works after twenty redraws.
     panel-placement.test.ts  The arithmetic that decides whether the panel can be
@@ -721,10 +780,11 @@ tests/
     protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```
 
-Every layer named above exists. What the panel does **not** do yet is listed in
-`docs/specs/2026-08-10-panel-and-tabs.md` under what it deliberately does not do;
-no fight is remembered once the next begins. Exactly one thing survives a reload,
-and it is not a measurement: where the panel was dragged to.
+Every layer named above exists. What the panel does, down to the words it says,
+is `docs/specs/2026-08-11-the-panel-that-drills.md`; what it refuses to do is the
+section of rejected alternatives that closes it. No fight is remembered once the
+next begins. Exactly one thing survives a reload, and it is not a measurement:
+where the panel was dragged to.
 
 ---
 

@@ -192,6 +192,7 @@ describe("decoding a single message", () => {
     expect(decodeFight(["482845=100.00;-161518=70.07;+dmgd=466;-dmgd=223"])).toEqual([
       {
         kind: "attack",
+        announced: null,
         actorId: 482845,
         targetId: -161518,
         dealt: [{ damageType: "dmgd", amount: 466 }],
@@ -391,6 +392,7 @@ describe("decoding a single message", () => {
     expect(decodeFight(["447544=100.00;-10000249=71.86;+oth_dmg=247,a,Hildur(71.86%)"])).toEqual([
       {
         kind: "damage-to-named-combatant",
+        announced: null,
         actorId: 447544,
         targetName: "Hildur",
         // No roster was handed in, so the name resolves to nobody rather than

@@ -56,9 +56,17 @@ function getStatisticsOf(fight: CapturedFight) {
   );
 }
 
+function getEventsOf(fight: CapturedFight): BattleEvent[] {
+  return decodeFight(
+    fight.dump.calls.flatMap((call) => call.protocolMessages),
+    composeRosterOfFight(fight),
+  );
+}
+
 const FROM_CAPTURES = CAPTURED_FIGHTS.map((fight) => ({
   name: fight.name,
   statistics: getStatisticsOf(fight),
+  events: getEventsOf(fight),
 }));
 
 function getEveryRow(statistics: ReturnType<typeof composeFightStatistics>): CombatantStatistics[] {
@@ -67,6 +75,7 @@ function getEveryRow(statistics: ReturnType<typeof composeFightStatistics>): Com
 
 const ATTACK_ON_NOBODY: BattleEvent = {
   kind: "attack",
+  announced: null,
   actorId: null,
   targetId: null,
   dealt: [{ damageType: "dmg", amount: 100 }],
@@ -264,7 +273,7 @@ describe("rows grouped by side", () => {
   // A roster that knows one combatant and not the other must not quietly file
   // the stranger anywhere.
   test("a combatant the roster never heard of is placed on no side", () => {
-    const roster = composeCombatantRoster([{ id: 7, name: "known", side: 1, profession: null }]);
+    const roster = composeCombatantRoster([{ id: 7, name: "known", side: 1, profession: null, level: null }]);
     const statistics = composeFightStatistics(
       [{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 8 }],
       roster,
@@ -310,6 +319,7 @@ describe("figures the log ties to nobody", () => {
     const statistics = composeFightStatistics([
       {
         kind: "damage-to-named-combatant",
+        announced: null,
         actorId: 7,
         targetName: "a name two combatants answer to",
         targetId: null,
@@ -326,8 +336,8 @@ describe("figures the log ties to nobody", () => {
 
   test("health moving for nobody is kept rather than discarded", () => {
     const statistics = composeFightStatistics([
-      { kind: "health-change", combatantId: null, amount: -300, source: "poison", declared: [] },
-      { kind: "health-change", combatantId: null, amount: 120, source: "heal", declared: [] },
+      { kind: "health-change", announced: null, combatantId: null, amount: -300, source: "poison", declared: [] },
+      { kind: "health-change", announced: null, combatantId: null, amount: 120, source: "heal", declared: [] },
     ]);
 
     expect(statistics.unattributed.healthLost).toBe(300);
@@ -343,4 +353,93 @@ describe("figures the log ties to nobody", () => {
     expect(statistics.unattributed.skillsUsed).toBe(1);
     expect(statistics.byCombatantId.size).toBe(0);
   });
+});
+
+/**
+ * The figures a row carries besides its totals: how a combatant fought, who they
+ * fought, and what moved their health when nobody swung.
+ *
+ * Every one of these is checked against the captures rather than against a
+ * fixture, because the question each answers is about real material — a
+ * hand-written blow can be made to satisfy any of them.
+ */
+describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
+  const rows = [...statistics.byCombatantId.values()];
+
+  /**
+   * Counted from the events rather than restated: the aggregate walks the same
+   * list, so the only check worth having comes at it from the decoder end.
+   *
+   * The distinction is not academic — a blow in this material carries several
+   * damage figures, so counting figures instead of swings inflates the number
+   * for exactly the combatants who hit hardest.
+   */
+  test("a blow is counted once however many figures it carried", () => {
+    const swings = new Map<number, number>();
+    const largest = new Map<number, number>();
+    for (const event of events) {
+      if (event.kind !== "attack" || event.actorId === null) continue;
+      swings.set(event.actorId, (swings.get(event.actorId) ?? 0) + 1);
+      const landed = event.taken.reduce((sum, one) => sum + one.amount, 0);
+      largest.set(event.actorId, Math.max(largest.get(event.actorId) ?? 0, landed));
+    }
+
+    for (const [id, row] of statistics.byCombatantId) {
+      expect(row.blowsStruck, String(id)).toBe(swings.get(id) ?? 0);
+      expect(row.largestBlow, String(id)).toBe(largest.get(id) ?? 0);
+    }
+  });
+
+  /**
+   * The two ends of one blow. They are filled a line apart in the same case, so
+   * a drift between them would be invisible in the totals — which is exactly why
+   * it is worth a test of its own.
+   */
+  test("who hit whom reads the same from both ends", () => {
+    for (const [id, row] of statistics.byCombatantId) {
+      for (const [targetId, byElement] of row.dealtByTargetId) {
+        const mirrored = statistics.byCombatantId.get(targetId)?.takenByActorId.get(id);
+        expect(mirrored).toEqual(byElement);
+      }
+    }
+  });
+
+  test("what a combatant dealt to named targets never exceeds what they landed", () => {
+    for (const row of rows) {
+      const byTarget = [...row.dealtByTargetId.values()].reduce(
+        (sum, byElement) => sum + [...byElement.values()].reduce((inner, one) => inner + one, 0),
+        0,
+      );
+      expect(byTarget).toBeLessThanOrEqual(row.dealtApplied);
+    }
+  });
+
+  /**
+   * Health that moved without a blow is the panel's `Bez sprawcy`, and the panel
+   * shows what it was made of. The sum has to be the whole of it, or the
+   * breakdown would be quietly short of the figure it explains.
+   */
+  test("health moved outside a blow adds up to its own sources", () => {
+    for (const row of rows) {
+      const lost = [...row.healthLostBySource.values()].reduce((sum, one) => sum + one, 0);
+      const healed = [...row.healedBySource.values()].reduce((sum, one) => sum + one, 0);
+
+      expect(lost).toBe(row.healthLost);
+      expect(healed).toBe(row.healed);
+    }
+  });
+});
+
+/**
+ * The counter test above is only worth running where a blow can carry several
+ * figures — otherwise counting figures and counting swings agree and the test
+ * proves nothing. The solo capture has no such blow, so the guard sits here,
+ * over the whole material, rather than inside a per-fight loop it would fail.
+ */
+test("the material contains a blow carrying more than one damage figure", () => {
+  const multiple = FROM_CAPTURES.flatMap(({ events }) =>
+    events.filter((event) => event.kind === "attack" && event.taken.length > 1),
+  );
+
+  expect(multiple.length).toBeGreaterThan(0);
 });

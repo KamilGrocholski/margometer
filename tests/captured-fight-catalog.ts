@@ -45,11 +45,12 @@ export function composeRosterFromSnapshots(
   snapshots: readonly CombatantSnapshot[],
 ): CombatantRoster {
   return composeCombatantRoster(
-    snapshots.map(({ id, name, team, profession }) => ({
+    snapshots.map(({ id, name, team, profession, level }) => ({
       id,
       name,
       side: team,
       profession: profession === "" ? null : profession,
+      level,
     })),
   );
 }

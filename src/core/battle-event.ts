@@ -47,6 +47,39 @@ export type StatisticDestruction = {
   amount: number;
 };
 
+/**
+ * The skill the game itself glued to this figure.
+ *
+ * **Not our inference.** The client appends the message *after* one carrying
+ * `skillId` to that message and renders the pair as one action — the branch that
+ * builds `allM[indexM] + ',' + allM[parseIndexM + 1]`, production build
+ * `1785244275300`. Reading the two together is therefore how the fight is
+ * composed, not a rule we invented about it.
+ *
+ * One condition is ours and it is narrower than the client's: **the glued
+ * message must have the same actor.** The client only needs the pair to draw one
+ * line; we need to know whose figure it is. Measured on
+ * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`: of 197
+ * announcements, 133 are followed by a message with the same actor and **32 by a
+ * message with a different one** — without the condition, an announcement takes
+ * somebody else's blow.
+ *
+ * Null on everything the game did not glue, which is most of a fight.
+ */
+export type AnnouncedSkill = {
+  /** As the protocol states it — the name the player's own client shows. */
+  skillName: string;
+  skillId: number | null;
+  /**
+   * Who announced it.
+   *
+   * Carried rather than derived, because on a health change the event's own
+   * combatant is the one **healed**, and the announcer is the only thing in the
+   * material that can stand for the healer.
+   */
+  actorId: number | null;
+};
+
 export type AttackEvent = {
   kind: "attack";
   /** Combatant ids, or null where the protocol named nobody on that side. */
@@ -76,6 +109,8 @@ export type AttackEvent = {
    * Never totalled with anything: see `DeclaredEffect`.
    */
   declared: DeclaredEffect[];
+  /** The skill the game glued this blow to, where it glued one. */
+  announced: AnnouncedSkill | null;
 };
 
 /**
@@ -101,6 +136,8 @@ export type DamageToNamedCombatantEvent = {
   /** Health the protocol states for that combatant once this damage is in. */
   targetHealthPercent: number | null;
   damage: DamageAmount;
+  /** The skill the game glued this figure to, where it glued one. */
+  announced: AnnouncedSkill | null;
 };
 
 /**
@@ -144,6 +181,15 @@ export type HealthChangeEvent = {
    * what a `DeclaredEffect` claims (`docs/protocol-keys.md`).
    */
   declared: DeclaredEffect[];
+  /**
+   * The skill this movement was glued to.
+   *
+   * This is the only place a **healer** can come from: the key states who was
+   * healed and never who did it, so where nothing was announced, nothing is
+   * claimed — and that is most of the healing in a fight. Measured on the group
+   * capture: 25 178 of 122 648 points restored carry an announcement.
+   */
+  announced: AnnouncedSkill | null;
 };
 
 /**

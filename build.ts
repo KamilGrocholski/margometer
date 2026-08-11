@@ -73,6 +73,16 @@ async function buildUserscript(): Promise<void> {
     // readable for whoever installs it — so IIFE, and no minification.
     format: "iife",
     minify: false,
+    /**
+     * The add-on's own version, substituted at build time.
+     *
+     * ⚠️ **One source, and it is `package.json`.** A constant in `src/` would be a
+     * second one, and the two would part company at the first release nobody
+     * remembered to edit twice — while the panel went on telling people a version
+     * that was never shipped. Reports arrive as screenshots at least as often as
+     * they arrive as files, which is the whole reason the number is on screen.
+     */
+    define: { __MARGOMETER_VERSION__: JSON.stringify(manifest.version) },
   });
 
   if (!result.success) {

@@ -1,9 +1,12 @@
 import { assert } from "@/libs/assert.ts";
 import { getDecimalFromText, getIntegerFromText, getNumberFromText } from "@/libs/number.ts";
 import type {
+  AnnouncedSkill,
+  AttackEvent,
   BattleEvent,
   DamageAmount,
   DamageToNamedCombatantEvent,
+  HealthChangeEvent,
   PreventedDamage,
   DeclaredEffect,
   StatisticDestruction,
@@ -90,6 +93,7 @@ function decodeDamageToNamedCombatant(
 
   return {
     kind: "damage-to-named-combatant",
+    announced: null,
     actorId,
     targetName,
     targetId: roster === null ? null : getCombatantIdByName(roster, targetName),
@@ -335,7 +339,13 @@ export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   DAMAGE_TO_NAMED_KEY,
 ];
 
-function decodeMessage(message: string, roster: CombatantRoster | null): BattleEvent[] {
+type MessageReading = {
+  /** The actor slot of the message itself — not of any one event on it. */
+  actorId: number | null;
+  events: BattleEvent[];
+};
+
+function decodeMessage(message: string, roster: CombatantRoster | null): MessageReading {
   let parsed: ProtocolMessage;
   try {
     parsed = parseProtocolMessage(message);
@@ -345,7 +355,10 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
     // expensive kind of wrong number this project can produce.
     if (!(error instanceof ProtocolMessageFormatError)) throw error;
     // No key to name: the grammar failed before there were parameters to read.
-    return [{ kind: "unknown-message", message, reason: error.message, unreadKeys: [] }];
+    return {
+      actorId: null,
+      events: [{ kind: "unknown-message", message, reason: error.message, unreadKeys: [] }],
+    };
   }
 
   const events: BattleEvent[] = [];
@@ -389,6 +402,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
       const declaredBeside: DeclaredEffect[] = [];
       events.push({
         kind: "health-change",
+        announced: null,
         combatantId: subject?.combatantId ?? null,
         amount: amount * healthChange.sign,
         source: key,
@@ -531,6 +545,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
   if (reported) {
     events.push({
       kind: "attack",
+      announced: null,
       actorId: parsed.actor?.combatantId ?? null,
       targetId: parsed.target?.combatantId ?? null,
       dealt,
@@ -599,17 +614,87 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
   // Rule 1, now held by construction. This can only fire if a future edit
   // breaks that — which is exactly when silence would be most expensive.
   assert(events.length > 0, "every message produces at least one event");
-  return events;
+  return { actorId: parsed.actor?.combatantId ?? null, events };
+}
+
+/** The figures a skill can be glued to. Nothing else carries `announced`. */
+function isGluable(
+  event: BattleEvent,
+): event is AttackEvent | DamageToNamedCombatantEvent | HealthChangeEvent {
+  return (
+    event.kind === "attack" ||
+    event.kind === "damage-to-named-combatant" ||
+    event.kind === "health-change"
+  );
+}
+
+/**
+ * Whose figure this is, for the purpose of the glue.
+ *
+ * A health change is the exception and the reason this function exists: its own
+ * combatant is the one **healed**, so asking it "whose is this" would bind a heal
+ * to the person who received it. It has no actor of its own, so the announcement
+ * is the only candidate, and the caller has already checked that the message it
+ * arrived on belongs to the announcer.
+ */
+function getGlueActor(
+  event: AttackEvent | DamageToNamedCombatantEvent | HealthChangeEvent,
+  announcer: number | null,
+): number | null {
+  return event.kind === "health-change" ? announcer : event.actorId;
 }
 
 /**
  * The roster is optional because a fight can be joined already in progress, and
  * a missing roster must degrade to "we cannot say who" rather than to a guess or
  * to nothing decoded at all.
+ *
+ * ⚠️ **This is not a `map` over messages, and cannot be.** The game glues a
+ * message carrying `skillId` to the one after it (`AnnouncedSkill`), so a figure
+ * knows which skill it belongs to only in the company of its neighbour. The
+ * state below is that neighbourhood and nothing more: it reaches exactly one
+ * message forward and is dropped whatever the next message turns out to be.
+ *
+ * The alternative — a rule reaching further, "the last skill this combatant
+ * announced" — is what a reader would reinvent from the panel, and it is wrong:
+ * 32 of the 197 announcements in the group capture are followed by a message
+ * belonging to somebody else, and a rule that waits for a match would eventually
+ * hand one of them the wrong skill.
  */
 export function decodeFight(
   messages: readonly string[],
   roster: CombatantRoster | null = null,
 ): BattleEvent[] {
-  return messages.flatMap((message) => decodeMessage(message, roster));
+  const events: BattleEvent[] = [];
+  let carried: AnnouncedSkill | null = null;
+
+  for (const message of messages) {
+    const { actorId, events: produced } = decodeMessage(message, roster);
+    const announcement = produced.find((event) => event.kind === "skill-used") ?? null;
+    const announced: AnnouncedSkill | null = announcement && {
+      skillName: announcement.skillName,
+      skillId: announcement.skillId,
+      actorId: announcement.actorId,
+    };
+
+    // An announcement binds the figures on its own message; anything else binds
+    // only what the message before it announced, and only if it is that
+    // combatant's message. The check is on the MESSAGE's actor, not the event's:
+    // a heal names its recipient, so an event-level check would bind the skill to
+    // whoever was healed.
+    const binding = announced ?? (carried !== null && actorId === carried.actorId ? carried : null);
+    if (binding !== null) {
+      for (const event of produced) {
+        if (!isGluable(event)) continue;
+        if (getGlueActor(event, binding.actorId) !== binding.actorId) continue;
+        event.announced = binding;
+      }
+    }
+
+    // Exactly one message forward, whatever that message turns out to be.
+    carried = announced;
+    events.push(...produced);
+  }
+
+  return events;
 }

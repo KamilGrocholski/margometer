@@ -32,6 +32,7 @@ describe("a health figure with a second figure beside it", () => {
     expect(events.filter((event) => event.kind === "health-change")).toEqual([
       {
         kind: "health-change",
+        announced: null,
         combatantId: 1,
         amount: -140,
         source: "poison",
@@ -63,8 +64,8 @@ describe("damage stated against a name, with a roster to resolve it", () => {
 
   test("resolves to the combatant that name belongs to", () => {
     const roster = composeCombatantRoster([
-      { id: 2, name: "Odyniec", side: 2, profession: null },
-      { id: 3, name: "Locha", side: 2, profession: null },
+      { id: 2, name: "Odyniec", side: 2, profession: null, level: null },
+      { id: 3, name: "Locha", side: 2, profession: null, level: null },
     ]);
     const [event] = decodeFight([message], roster);
     expect(event).toMatchObject({ targetName: "Odyniec", targetId: 2 });
@@ -75,15 +76,15 @@ describe("damage stated against a name, with a roster to resolve it", () => {
   // putting it on nobody.
   test("resolves to nobody when two combatants answer to the name", () => {
     const roster = composeCombatantRoster([
-      { id: 2, name: "Odyniec", side: 2, profession: null },
-      { id: 3, name: "Odyniec", side: 2, profession: null },
+      { id: 2, name: "Odyniec", side: 2, profession: null, level: null },
+      { id: 3, name: "Odyniec", side: 2, profession: null, level: null },
     ]);
     const [event] = decodeFight([message], roster);
     expect(event).toMatchObject({ targetName: "Odyniec", targetId: null });
   });
 
   test("resolves to nobody when the roster has never heard the name", () => {
-    const roster = composeCombatantRoster([{ id: 3, name: "Locha", side: 2, profession: null }]);
+    const roster = composeCombatantRoster([{ id: 3, name: "Locha", side: 2, profession: null, level: null }]);
     const [event] = decodeFight([message], roster);
     expect(event).toMatchObject({ targetId: null });
   });

@@ -59,7 +59,7 @@ export function composeRosteredCombatant(value: unknown): RosteredCombatant | nu
   const stated = warrior["prof"];
   const profession = typeof stated === "string" && stated !== "" ? stated : null;
 
-  return { id, name, side, profession };
+  return { id, name, side, profession, level: getIntegerFromValue(warrior["lvl"]) };
 }
 
 /**
@@ -103,10 +103,35 @@ export function getOurSideFromBattle(battle: unknown): number | null {
 export function composeMergedCombatants(
   known: readonly RosteredCombatant[],
   snapshot: readonly RosteredCombatant[],
-): RosteredCombatant[] {
+): readonly RosteredCombatant[] {
   const byId = new Map(known.map((combatant) => [combatant.id, combatant]));
   for (const combatant of snapshot) byId.set(combatant.id, combatant);
-  return [...byId.values()];
+  const merged = [...byId.values()];
+
+  /**
+   * The same list back when the fragment said nothing new.
+   *
+   * ⚠️ **Identity is a promise the caller leans on**, not an optimisation kept
+   * here for its own sake: the session decides whether a payload changed
+   * anything by comparing this against what it held, and skips reading the fight
+   * again when it did not. Comparing counts instead let a *renamed* combatant
+   * through as "nothing happened" — the roster keeps its size when a fragment
+   * corrects a name, and `battle-session.test.ts` caught exactly that.
+   */
+  const unchanged =
+    merged.length === known.length &&
+    merged.every((combatant, index) => {
+      const before = known[index];
+      return (
+        before !== undefined &&
+        before.id === combatant.id &&
+        before.name === combatant.name &&
+        before.side === combatant.side &&
+        before.profession === combatant.profession &&
+        before.level === combatant.level
+      );
+    });
+  return unchanged ? known : merged;
 }
 
 /**

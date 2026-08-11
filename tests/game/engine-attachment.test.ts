@@ -15,6 +15,7 @@ import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import type { FightReading } from "@/src/game/battle-session.ts";
 import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-attachment.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
+import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
 import {
   composePanelMount,
   setMargoMeter,
@@ -244,7 +245,19 @@ describe("the add-on driven by a captured fight", () => {
       expect(reading?.ourSide).not.toBeNull();
       expect(reading?.statistics.bySide.size).toBeGreaterThan(1);
       expect(reading?.statistics.combatantIdsWithoutSide).toEqual([]);
-      expect(readings.length).toBe(fight.dump.calls.length);
+      /**
+       * A reading per payload that carried something, not per payload.
+       *
+       * ⚠️ **This assertion used to say `calls.length`, and the change is a
+       * decision rather than a fix.** The game calls the engine far more often
+       * than a fight has turns, and a payload that brings no message, no roster
+       * fragment and no turn cannot change a single figure on screen — redrawing
+       * for it is work done in front of somebody who is playing. Both captures
+       * carry two such payloads, which is why the count is short by exactly two.
+       */
+      const carrying = fight.dump.calls.filter((call) => call.protocolMessages.length > 0).length;
+      expect(readings.length).toBeGreaterThanOrEqual(carrying);
+      expect(readings.length).toBeLessThan(fight.dump.calls.length);
 
       meter.stop();
       expect(Object.prototype.hasOwnProperty.call(battle, "updateData")).toBe(false);
@@ -388,8 +401,8 @@ describe("what a failing panel puts on the console", () => {
 
   function composeReadingOfFight(fightsStarted: number): FightReading {
     const roster = composeCombatantRoster([
-      { id: 1, name: "a mage", side: 1, profession: "m" },
-      { id: 3, name: "something large", side: 2, profession: null },
+      { id: 1, name: "a mage", side: 1, profession: "m", level: null },
+      { id: 3, name: "something large", side: 2, profession: null, level: null },
     ]);
     return {
       statistics: composeFightStatistics(
@@ -397,27 +410,39 @@ describe("what a failing panel puts on the console", () => {
         roster,
       ),
       roster,
+      turnsByCombatantId: new Map([[1, 3]]),
+      fightTurns: 3,
       ourSide: 1,
       isFromFightStart: true,
       fightsStarted,
     };
   }
 
+  /**
+   * ⚠️ **The mount speaks once too, and that is not the rule being broken.**
+   *
+   * This document refuses to make a span, and the title bar builds one for the
+   * version — so the failure happens before a fight is ever drawn. It is
+   * reported once, by the bar rather than by a section, and everything after it
+   * is the per-fight rule this test is actually about.
+   */
   test("one entry per fight however many times the fight redraws", () => {
     const said: unknown[][] = [];
     const render = composePanelMount(composePageThatCannotDrawSpans(), (brand, detail) =>
       said.push([brand, detail]),
     );
     expect(render).not.toBeNull();
+    expect(said.map(([brand]) => brand)).toEqual(["MargoMeter/PanelCapture"]);
+    const fromTheMount = said.length;
 
     const first = composeReadingOfFight(1);
     render?.(first);
     const afterOne = said.length;
     for (let redraws = 0; redraws < 20; redraws += 1) render?.(first);
 
-    expect(afterOne).toBe(1);
-    expect(said.length).toBe(1);
-    expect(said[0]?.[0]).toBe("MargoMeter/PanelSection");
+    expect(afterOne - fromTheMount).toBe(1);
+    expect(said.length - fromTheMount).toBe(1);
+    expect(said[fromTheMount]?.[0]).toBe("MargoMeter/PanelSection");
   });
 
   // Counted, not dropped: what the repeats came to is said once the fight they
@@ -428,13 +453,15 @@ describe("what a failing panel puts on the console", () => {
       said.push([brand, detail]),
     );
 
+    // The first entry is the mount's, for the reason the test above states.
+    const fromTheMount = said.length;
     render?.(composeReadingOfFight(1));
     render?.(composeReadingOfFight(1));
     render?.(composeReadingOfFight(2));
 
-    expect(said.length).toBe(3);
-    expect(`${said[1]?.[1]}`).toContain("failures in that fight, 1 printed");
-    expect(said[2]?.[0]).toBe("MargoMeter/PanelSection");
+    expect(said.length - fromTheMount).toBe(3);
+    expect(`${said[fromTheMount + 1]?.[1]}`).toContain("failures in that fight, 1 printed");
+    expect(said[fromTheMount + 2]?.[0]).toBe("MargoMeter/PanelSection");
   });
 
   test("a fight that draws cleanly says nothing at all", () => {
@@ -681,8 +708,12 @@ describe("remembering where the panel was put", () => {
     expect(() =>
       setDragThrough(root as StorageNode, { left: 400, top: 400 }, { left: 300, top: 300 }),
     ).not.toThrow();
-    // The panel still moved; only the remembering failed.
-    expect(getHostProperties()["left"]).toBe("1182px");
+    // The panel still moved; only the remembering failed. The number follows the
+    // width token rather than being chosen: a narrower panel may sit further
+    // right before the clamp catches it.
+    expect(getHostProperties()["left"]).toBe(
+      `${1492 - PANEL_PIXELS.width}px`,
+    );
   });
 
   test("the key the position is stored under is namespaced to this add-on", () => {

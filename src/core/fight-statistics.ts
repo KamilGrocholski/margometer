@@ -19,7 +19,8 @@
  *      into the bin.
  */
 
-import type { BattleEvent } from "@/src/core/battle-event.ts";
+import { composeIntegerText } from "@/libs/number.ts";
+import type { AnnouncedSkill, BattleEvent } from "@/src/core/battle-event.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 
 /**
@@ -30,6 +31,35 @@ import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
  * no second figure for it — which is exactly why it does not share a field with
  * `dealtApplied`. Adding them together would total a roll with a result.
  */
+/**
+ * One skill this combatant announced, and what the game glued to it.
+ *
+ * Keyed by the game's own identifier where it stated one, because two skills can
+ * share a name and only the id tells them apart. The name travels inside rather
+ * than as the key: it is what the panel shows, and 15 of the 197 announcements
+ * in the captures carry no id at all.
+ */
+export type SkillStatistics = {
+  /** As the protocol states it — read at run time, never stored here. */
+  skillName: string;
+  /** How many times it was announced. One announcement is one use. */
+  uses: number;
+  /** What landed on the message the game glued to the announcement. */
+  dealtApplied: number;
+  dealtByTargetId: ReadonlyMap<number, number>;
+  /**
+   * Health restored by it, and to whom.
+   *
+   * ⚠️ **This is healing GIVEN and it does not compare to a row's `healed`,**
+   * which is healing received. Measured on the group capture: two combatants
+   * gave 11 733 and 10 204 while receiving 6 426 and 3 651, because they were
+   * healing somebody else. A panel putting the two in one section would invite
+   * an addition that is not one.
+   */
+  healed: number;
+  healedByCombatantId: ReadonlyMap<number, number>;
+};
+
 export type CombatantStatistics = {
   /** What the protocol says was put out, before reduction. Blows only. */
   dealtRaw: number;
@@ -61,6 +91,44 @@ export type CombatantStatistics = {
    */
   procsOnBlowsStruck: ReadonlyMap<string, number>;
   skillsUsed: number;
+  /**
+   * How many blows this combatant struck, and the largest single one that landed.
+   *
+   * Blows rather than damage figures: one blow carries several elements and is
+   * still one swing. `largestBlow` sums a blow's landed figures before comparing,
+   * for the same reason.
+   */
+  blowsStruck: number;
+  largestBlow: number;
+  /** Who this combatant hit, and with what. The other end of `takenByActorId`. */
+  dealtByTargetId: ReadonlyMap<number, ReadonlyMap<string, number>>;
+  /**
+   * Who hit this combatant, and with what.
+   *
+   * Held here rather than left for the reader to derive from everyone else's
+   * `dealtByTargetId`: §9.1 says the panel computes no statistic, and a
+   * derivation across every other row is a statistic.
+   */
+  takenByActorId: ReadonlyMap<number, ReadonlyMap<string, number>>;
+  /**
+   * Where health went when no blow moved it, by the key the game used.
+   *
+   * Two maps rather than one signed map: they answer different questions and the
+   * panel shows them in different places.
+   */
+  healthLostBySource: ReadonlyMap<string, number>;
+  healedBySource: ReadonlyMap<string, number>;
+  /**
+   * Who healed this combatant, where the game glued the heal to an announcement.
+   *
+   * Most healing has no entry here, and that is the reading rather than a gap:
+   * measured on the group capture, 25 178 of 122 648 points restored carry an
+   * announcement. The rest is regeneration and self-healing that nothing
+   * announces, and the panel says so rather than guessing a healer.
+   */
+  healedByHealerId: ReadonlyMap<number, number>;
+  /** What this combatant announced, keyed by the game's own identifier. */
+  skills: ReadonlyMap<string, SkillStatistics>;
 };
 
 /**
@@ -152,6 +220,24 @@ type Row = {
   destroyed: Map<string, number>;
   procsOnBlowsStruck: Map<string, number>;
   skillsUsed: number;
+  blowsStruck: number;
+  largestBlow: number;
+  dealtByTargetId: Map<number, Map<string, number>>;
+  takenByActorId: Map<number, Map<string, number>>;
+  healthLostBySource: Map<string, number>;
+  healedBySource: Map<string, number>;
+  healedByHealerId: Map<number, number>;
+  skills: Map<string, MutableSkill>;
+};
+
+/** Mutable twin of `SkillStatistics`, for the same reason as `Row`. */
+type MutableSkill = {
+  skillName: string;
+  uses: number;
+  dealtApplied: number;
+  dealtByTargetId: Map<number, number>;
+  healed: number;
+  healedByCombatantId: Map<number, number>;
 };
 
 function composeRow(): Row {
@@ -167,7 +253,27 @@ function composeRow(): Row {
     destroyed: new Map(),
     procsOnBlowsStruck: new Map(),
     skillsUsed: 0,
+    blowsStruck: 0,
+    largestBlow: 0,
+    dealtByTargetId: new Map(),
+    takenByActorId: new Map(),
+    healthLostBySource: new Map(),
+    healedBySource: new Map(),
+    healedByHealerId: new Map(),
+    skills: new Map(),
   };
+}
+
+/** Adds to the running total this pair already carries, starting one at zero. */
+function setPairTotal(
+  pairs: Map<number, Map<string, number>>,
+  combatantId: number,
+  token: string,
+  amount: number,
+): void {
+  const row = pairs.get(combatantId) ?? new Map<string, number>();
+  row.set(token, (row.get(token) ?? 0) + amount);
+  pairs.set(combatantId, row);
 }
 
 /** Adds to the running total this token already carries, starting one at zero. */
@@ -214,6 +320,45 @@ export function composeFightStatistics(
   let unreadableMessages = 0;
   let outcome: FightStatistics["outcome"] = null;
 
+  /**
+   * The skill's slot on its announcer's row, created on first sight.
+   *
+   * Keyed by the game's identifier where there is one. Where there is not — 15
+   * of 197 announcements — the name is the key, which is the only thing left and
+   * is what the panel would show anyway. Two different skills sharing a name and
+   * both lacking an id would merge; the material has never shown one, and the
+   * alternative is a row nobody can label.
+   */
+  function getSkill(row: Row, announced: AnnouncedSkill): MutableSkill {
+    const key =
+      announced.skillId === null ? announced.skillName : composeIntegerText(announced.skillId);
+    const existing = row.skills.get(key);
+    if (existing !== undefined) return existing;
+    const fresh: MutableSkill = {
+      skillName: announced.skillName,
+      uses: 0,
+      dealtApplied: 0,
+      dealtByTargetId: new Map(),
+      healed: 0,
+      healedByCombatantId: new Map(),
+    };
+    row.skills.set(key, fresh);
+    return fresh;
+  }
+
+  /**
+   * Adds to the announcing combatant’s skill, and does nothing at all when the
+   * game glued nothing — which is most of a fight.
+   *
+   * The figure lands on the **announcer's** row even when the event belongs to
+   * somebody else: a heal is the case that matters, and its own combatant is the
+   * one healed.
+   */
+  function setSkillTotals(announced: AnnouncedSkill | null, add: (skill: MutableSkill) => void): void {
+    if (announced === null || announced.actorId === null) return;
+    add(getSkill(getRow(announced.actorId), announced));
+  }
+
   // A row appears for anyone the protocol names, so a combatant who only ever
   // took damage still has one. Null goes to the bucket rather than to a row
   // keyed by a made-up id.
@@ -234,14 +379,38 @@ export function composeFightStatistics(
 
         for (const damage of event.dealt) actor.dealtRaw += damage.amount;
 
+        // One swing, whatever it carried. Counted even when nothing landed: a
+        // blow that was absorbed to nothing still happened, and a count that
+        // skipped it would answer "how often did they connect" while being read
+        // as "how often did they swing".
+        actor.blowsStruck += 1;
+        let landed = 0;
+
         // The same figures twice, deliberately: what the target lost is what the
         // actor landed. One blow, two rows, and no third number invented.
         for (const damage of event.taken) {
+          landed += damage.amount;
           actor.dealtApplied += damage.amount;
           setRunningTotal(actor.dealtAppliedByElement, damage.damageType, damage.amount);
           target.taken += damage.amount;
           setRunningTotal(target.takenByElement, damage.damageType, damage.amount);
+          if (event.targetId !== null) {
+            setPairTotal(actor.dealtByTargetId, event.targetId, damage.damageType, damage.amount);
+          }
+          if (event.actorId !== null) {
+            setPairTotal(target.takenByActorId, event.actorId, damage.damageType, damage.amount);
+          }
         }
+        actor.largestBlow = Math.max(actor.largestBlow, landed);
+        setSkillTotals(event.announced, (skill) => {
+          skill.dealtApplied += landed;
+          if (event.targetId !== null && landed > 0) {
+            skill.dealtByTargetId.set(
+              event.targetId,
+              (skill.dealtByTargetId.get(event.targetId) ?? 0) + landed,
+            );
+          }
+        });
 
         // Both belong to the target — `battle-event.ts` says so, and the help
         // rather than the sign is what settled it.
@@ -267,18 +436,58 @@ export function composeFightStatistics(
         setRunningTotal(actor.dealtAppliedByElement, damageType, amount);
         target.taken += amount;
         setRunningTotal(target.takenByElement, damageType, amount);
+        if (event.targetId !== null) setPairTotal(actor.dealtByTargetId, event.targetId, damageType, amount);
+        if (event.actorId !== null) setPairTotal(target.takenByActorId, event.actorId, damageType, amount);
+        setSkillTotals(event.announced, (skill) => {
+          skill.dealtApplied += amount;
+          if (event.targetId !== null) {
+            skill.dealtByTargetId.set(
+              event.targetId,
+              (skill.dealtByTargetId.get(event.targetId) ?? 0) + amount,
+            );
+          }
+        });
         break;
       }
 
       case "health-change": {
         const subject = getRow(event.combatantId);
-        if (event.amount >= 0) subject.healed += event.amount;
-        else subject.healthLost += -event.amount;
+        if (event.amount >= 0) {
+          subject.healed += event.amount;
+          setRunningTotal(subject.healedBySource, event.source, event.amount);
+          // The healer comes from the announcement and from nowhere else — the
+          // key itself names only who was healed.
+          const healer = event.announced?.actorId ?? null;
+          if (healer !== null && event.combatantId !== null) {
+            subject.healedByHealerId.set(
+              healer,
+              (subject.healedByHealerId.get(healer) ?? 0) + event.amount,
+            );
+          }
+          setSkillTotals(event.announced, (skill) => {
+            skill.healed += event.amount;
+            if (event.combatantId !== null) {
+              skill.healedByCombatantId.set(
+                event.combatantId,
+                (skill.healedByCombatantId.get(event.combatantId) ?? 0) + event.amount,
+              );
+            }
+          });
+        } else {
+          subject.healthLost += -event.amount;
+          setRunningTotal(subject.healthLostBySource, event.source, -event.amount);
+        }
         break;
       }
 
       case "skill-used": {
-        getRow(event.actorId).skillsUsed += 1;
+        const actor = getRow(event.actorId);
+        actor.skillsUsed += 1;
+        getSkill(actor, {
+          skillName: event.skillName,
+          skillId: event.skillId,
+          actorId: event.actorId,
+        }).uses += 1;
         break;
       }
 

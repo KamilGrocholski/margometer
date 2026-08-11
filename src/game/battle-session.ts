@@ -19,6 +19,7 @@
  */
 
 import { getIntegerFromText, getIntegerFromValue } from "@/libs/number.ts";
+import type { BattleEvent } from "@/src/core/battle-event.ts";
 import type { CombatantRoster, RosteredCombatant } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
@@ -52,6 +53,51 @@ export type BattleSession = {
    * nothing here compares fights, it only has to change when one does.
    */
   fightsStarted: number;
+  /**
+   * How many turns each combatant has taken, and whose turn it is now.
+   *
+   * **The only thing in the payload envelope the panel needs and the messages do
+   * not carry.** A turn-based fight has no seconds to divide by, so "per turn" is
+   * the only rate that means anything here — and the protocol states the turn
+   * exactly once per payload, as `current`, naming whoever is acting.
+   *
+   * Counted on change rather than per payload: several payloads arrive inside one
+   * turn, so counting them would multiply everyone's turns by however chattily
+   * the server happened to narrate that fight.
+   *
+   * Read here rather than in `core` because it is not in a message — it is the
+   * envelope the engine call carried, which is this layer's business.
+   */
+  turnsByCombatantId: ReadonlyMap<number, number>;
+  /** Whose turn the last payload stated, so the next one can tell a change. */
+  actingCombatantId: number | null;
+  /**
+   * The fight decoded, kept rather than redone.
+   *
+   * ⚠️ **Measured, and the reason the panel felt heavy in a long fight.** Reading
+   * every message again on every payload costs time that grows with the fight:
+   * 603 messages → 4 ms on the worst payload, 3 618 → 18 ms, 6 030 → **39 ms**,
+   * and 13.7 s of it across that one fight. A turn-based game gives us a payload
+   * every few seconds, so the work is not wasted twice over — it is wasted in
+   * front of somebody who is playing.
+   *
+   * Kept **with the size of the roster it was read against**, because that is the
+   * one thing that can make an old reading wrong: the roster arrives in fragments,
+   * and damage stated against a name resolves to nobody until the fragment naming
+   * them lands. When it grows, everything is read again; while it does not, only
+   * what is new is.
+   */
+  events: readonly BattleEvent[];
+  decodedWithCombatants: number;
+  /**
+   * The last message already decoded.
+   *
+   * The glue reaches exactly one message forward (`AnnouncedSkill`), so a message
+   * arriving now may belong to the skill announced by the one before it — which
+   * is in the previous payload. It is re-read with the new batch and its events
+   * thrown away, because they are already here.
+   */
+  lastMessage: string | null;
 };
 
 export function composeEmptySession(): BattleSession {
@@ -61,7 +107,69 @@ export function composeEmptySession(): BattleSession {
     ourSide: null,
     isFromFightStart: false,
     fightsStarted: 0,
+    turnsByCombatantId: new Map(),
+    actingCombatantId: null,
+    events: [],
+    decodedWithCombatants: 0,
+    lastMessage: null,
   };
+}
+
+/**
+ * The fight's events after this payload — every message read exactly once, or
+ * every message read again where the roster has learnt a name since.
+ *
+ * The carry is what makes appending safe rather than merely fast: without it a
+ * blow that follows an announcement across a payload boundary would lose the
+ * skill it belongs to, which is a wrong number rather than a slow one.
+ */
+function composeNextEvents(
+  session: BattleSession,
+  messages: readonly string[],
+  combatants: readonly RosteredCombatant[],
+): readonly BattleEvent[] {
+  const { roster } = composeBattleRoster(combatants, session.ourSide);
+  if (combatants.length !== session.decodedWithCombatants) {
+    return decodeFight([...session.messages, ...messages], roster);
+  }
+  if (messages.length === 0) return session.events;
+
+  const carry = session.lastMessage;
+  if (carry === null) return [...session.events, ...decodeFight(messages, roster)];
+
+  const withCarry = decodeFight([carry, ...messages], roster);
+  const alone = decodeFight([carry], roster).length;
+  return [...session.events, ...withCarry.slice(alone)];
+}
+
+/** Whose turn this payload states, or null where it states none. */
+export function getActingCombatantId(payload: unknown): number | null {
+  if (typeof payload !== "object" || payload === null) return null;
+  return getIntegerFromValue((payload as Record<string, unknown>)["current"]);
+}
+
+/**
+ * The turn counts after this payload.
+ *
+ * A turn opens when the acting combatant *changes*. The same combatant acting
+ * twice in a row is therefore one turn here and two in the game — measured on
+ * the group capture, that never happens, and the alternative reads every payload
+ * of a long turn as a turn of its own.
+ */
+function composeNextTurns(
+  session: BattleSession,
+  acting: number | null,
+): { turnsByCombatantId: ReadonlyMap<number, number>; actingCombatantId: number | null } {
+  if (acting === null || acting === session.actingCombatantId) {
+    return {
+      turnsByCombatantId: session.turnsByCombatantId,
+      actingCombatantId: session.actingCombatantId ?? acting,
+    };
+  }
+
+  const turns = new Map(session.turnsByCombatantId);
+  turns.set(acting, (turns.get(acting) ?? 0) + 1);
+  return { turnsByCombatantId: turns, actingCombatantId: acting };
 }
 
 /**
@@ -97,9 +205,43 @@ export function composeNextSession(
   const previous = starting ? composeEmptySession() : session;
 
   const stated = getOurSideFromBattle(payload);
+  const turns = composeNextTurns(previous, getActingCombatantId(payload));
+  const combatants = composeMergedCombatants(
+    previous.combatants,
+    composeCombatantsFromBattle(payload),
+  );
+
+  /**
+   * A payload that changed nothing gives back the session it was handed.
+   *
+   * ⚠️ **Identity is the signal**, and it is the whole point: the caller redraws
+   * when the session is a new object, so returning the same one costs the
+   * aggregate and the render as well as this function. The game calls the engine
+   * far more often than a fight has turns — a step, a chat line, a window opening
+   * — and every one of those was rebuilding a panel that says exactly what it
+   * said before.
+   *
+   * Every part of it is by identity, and every part of it is exact: the merge
+   * hands back the list it was given when a fragment said nothing new
+   * (`composeMergedCombatants`), and `composeNextTurns` hands back its own map
+   * when the turn did not move.
+   */
+  const changedNothing =
+    !starting &&
+    messages.length === 0 &&
+    combatants === previous.combatants &&
+    turns.turnsByCombatantId === previous.turnsByCombatantId &&
+    turns.actingCombatantId === previous.actingCombatantId &&
+    (stated ?? previous.ourSide) === previous.ourSide;
+  if (changedNothing) return previous;
+
   return {
+    ...turns,
     messages: [...previous.messages, ...messages],
-    combatants: composeMergedCombatants(previous.combatants, composeCombatantsFromBattle(payload)),
+    combatants,
+    events: composeNextEvents(previous, messages, combatants),
+    decodedWithCombatants: combatants.length,
+    lastMessage: messages[messages.length - 1] ?? previous.lastMessage,
     // Kept once seen: it arrives on the opening payload only, so a later
     // fragment saying nothing about it must not erase it.
     ourSide: stated ?? previous.ourSide,
@@ -125,6 +267,17 @@ export type FightReading = {
   isFromFightStart: boolean;
   /** Changes when a new fight opens, so a warning can be scoped to one (§9.6). */
   fightsStarted: number;
+  /**
+   * Turns taken, per combatant, and by the whole fight.
+   *
+   * Both, because they divide different figures: what a combatant *dealt* answers
+   * "how much per action" and divides by their own turns, while what they took
+   * and were healed happens on everyone else's turns too and divides by the
+   * fight's. One divisor for both would make one of the two answer a question
+   * nobody asked.
+   */
+  turnsByCombatantId: ReadonlyMap<number, number>;
+  fightTurns: number;
 };
 
 /**
@@ -138,10 +291,12 @@ export type FightReading = {
 export function composeFightReading(session: BattleSession): FightReading {
   const { roster } = composeBattleRoster(session.combatants, session.ourSide);
   return {
-    statistics: composeFightStatistics(decodeFight(session.messages, roster), roster),
+    statistics: composeFightStatistics(session.events, roster),
     roster,
     ourSide: session.ourSide,
     isFromFightStart: session.isFromFightStart,
+    turnsByCombatantId: session.turnsByCombatantId,
+    fightTurns: [...session.turnsByCombatantId.values()].reduce((sum, one) => sum + one, 0),
     fightsStarted: session.fightsStarted,
   };
 }

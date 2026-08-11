@@ -72,11 +72,17 @@ export function getProfessionColour(profession: string | null): string {
  * width the stylesheet used. Two copies of `310` would drift, and the drift
  * would show as the panel jumping under the hand on the first grab.
  */
-export const PANEL_PIXELS = { space: 8, width: 310 } as const;
+export const PANEL_PIXELS = { space: 8, width: 260, tipWidth: 250 } as const;
 
 export const PANEL_TOKENS = {
   surface: "#17171c",
   surfaceRaised: "#1f1f26",
+  /**
+   * What a bar runs along, and what it means: **"there is nothing here yet"**
+   * rather than "this is a bar". The same track carries a row and the split
+   * between the two sides, because it is the same statement in both places.
+   */
+  track: "#24242a",
   border: "#2c2c35",
   text: "#e7e7ea",
   textQuiet: "#9a9aa6",
@@ -93,8 +99,53 @@ export const PANEL_TOKENS = {
    */
   barTint: "0.55",
   suspect: "#c98500",
-  radius: "6px",
+  /**
+   * The pair that means a side rather than a person.
+   *
+   * Deliberately not from the profession palette: those answer "who is what", and
+   * these two answer "which of the two teams" — a colour doing both would make a
+   * paladin's row look like the enemy's total. Never the only thing carrying the
+   * meaning either: the figures they colour are labelled and stand in fixed
+   * places (§9.7).
+   */
+  ours: "#6fbf8b",
+  theirs: "#e0736f",
+  /**
+   * One bar, and the height the list is measured in.
+   *
+   * The list promises a fixed number of rows and computes its height from this,
+   * so the two cannot drift: a taller row silently means a taller window rather
+   * than a broken promise.
+   */
+  rowHeight: "18px",
+  /**
+   * The two inks a profession badge can carry, and the only two.
+   *
+   * The letter is the **non-colour channel** the palette's whole argument rests
+   * on: six professions cannot be made mutually distinguishable on this
+   * background — the ceiling is four — so under colour-vision deficiency it is
+   * the letter, not the hue, that answers "who is what".
+   */
+  badgeInkDark: "#14141a",
+  badgeInkLight: "#ffffff",
+  /**
+   * How wide the detail window is.
+   *
+   * ⚠️ **Composed from the number above, and it was written the other way round
+   * first.** The code that decides which side of the pointer the tooltip opens on
+   * asked this token for a width, got `"250px"`, read it as no number at all and
+   * quietly used zero — so the tooltip never flipped and ran off the right edge
+   * of the page, which is precisely where the panel lives. Same lesson as
+   * `PANEL_PIXELS` above, paid for a second time: a length that arithmetic needs
+   * is a number first and CSS second.
+   */
+  tipWidth: `${composeIntegerText(PANEL_PIXELS.tipWidth)}px`,
+  radius: "8px",
   spaceSmall: "4px",
+  /** Half a step. The design puts a row's own text this far from its edge. */
+  spaceHalf: "2px",
+  /** The step every region is inset by: 5px down the panel, 7px across it. */
+  spaceRegion: "5px 7px",
   space: `${composeIntegerText(PANEL_PIXELS.space)}px`,
   spaceLarge: "12px",
   /** Narrow on purpose: the panel is a guest over a game someone is playing. */
@@ -158,6 +209,21 @@ export function composeColourOver(top: string, bottom: string, alpha: number): s
     mixed.push(Math.round(alpha * one + (1 - alpha) * other).toString(16).padStart(2, "0"));
   }
   return `#${mixed.join("")}`;
+}
+
+/**
+ * Dark ink or light, whichever reads better on that colour.
+ *
+ * Computed rather than tabulated, because a table drifts silently the first time
+ * a colour changes — and this is an accessibility floor, not a taste. One badge
+ * comes out light among dark ones and that is the price of the floor: at the
+ * hunter's green even pure black clears only 4.25, so no single ink works for
+ * all six professions.
+ */
+export function getProfessionInk(colour: string): string {
+  const dark = getContrastRatio(PANEL_TOKENS.badgeInkDark, colour) ?? 0;
+  const light = getContrastRatio(PANEL_TOKENS.badgeInkLight, colour) ?? 0;
+  return dark >= light ? PANEL_TOKENS.badgeInkDark : PANEL_TOKENS.badgeInkLight;
 }
 
 /** WCAG contrast ratio between two colours, or null if either is unreadable. */

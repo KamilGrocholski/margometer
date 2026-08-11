@@ -20,6 +20,7 @@ import {
   type FightReading,
 } from "@/src/game/battle-session.ts";
 import { setEngineAttachment, type GameWindow } from "@/src/game/engine-attachment.ts";
+import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
 import {
   composeCaptureFileName,
@@ -31,7 +32,8 @@ import {
   type CapturedCombatant,
   type FightCapture,
 } from "@/src/game/fight-capture.ts";
-import { getFiniteNumberFromValue } from "@/libs/number.ts";
+import {
+  getIntegerFromText, getFiniteNumberFromValue } from "@/libs/number.ts";
 import {
   renderPanelInto,
   setPanelRoot,
@@ -44,7 +46,12 @@ import {
   type PanelPosition,
   type PanelViewport,
 } from "@/src/ui/panel-placement.ts";
-import { composePanelView, type PanelMetric } from "@/src/ui/panel-view.ts";
+import {
+  composeDefaultState,
+  composePanelView,
+  type PanelDetailLine,
+  type PanelState,
+} from "@/src/ui/panel-view.ts";
 
 export type MargoMeterOptions = {
   /** Told after every payload, with the fight as it now stands. */
@@ -109,6 +116,7 @@ export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {})
   const stop = setEngineAttachment(
     page,
     (messages, payload) => {
+      const before = session;
       session = composeNextSession(session, payload, messages);
       read = true;
       /**
@@ -129,7 +137,9 @@ export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {})
         options.onCaptureFailure?.(error);
       }
       combatantsBefore = [];
-      options.onReading?.(composeFightReading(session));
+      // Nothing the panel draws can have changed, so nothing is drawn: the same
+      // session object back means the payload carried no fight (`composeNextSession`).
+      if (session !== before) options.onReading?.(composeFightReading(session));
     },
     {
       onBeforeOriginal: (battle) => {
@@ -196,6 +206,15 @@ type HostPage = GameWindow & {
   };
   /** The world a recording came from. Absent means the page did not say. */
   location?: { hostname?: string | undefined } | undefined;
+  /**
+   * Where a report goes when the reader asks for one.
+   *
+   * Optional throughout, because a browser may refuse it and a test has none —
+   * and refusing costs the copy and nothing else, the same shape as the stored
+   * position. Not a network call: §5 forbids sending anything anywhere, and
+   * handing a person their own numbers is not sending them.
+   */
+  navigator?: { clipboard?: { writeText?: ((text: string) => unknown) | undefined } | undefined } | undefined;
   /** For keeping the panel on screen. Absent means the page did not say. */
   innerWidth?: number | undefined;
   innerHeight?: number | undefined;
@@ -365,6 +384,14 @@ export function composePanelMount(
    * nothing is worse than one that is not there.
    */
   onCaptureRequested?: () => void,
+  /**
+   * What the copy button hands over, given the fight as it stands.
+   *
+   * Takes the reading rather than reaching for it, because the button is built
+   * once and the fight changes under it — a closure over the fight at mount time
+   * would copy an empty one for the rest of the session.
+   */
+  onCopyRequested?: (reading: FightReading | null) => void,
 ): ((reading: FightReading) => void) | null {
   const document = page.document as PanelDocument | undefined;
   if (document === undefined) return null;
@@ -388,6 +415,14 @@ export function composePanelMount(
   /** Once for the page, like the drag above: pressing a button is not a fight. */
   let captureFailureSaid = false;
 
+  /**
+   * One map, filled by every render and read by the tooltip.
+   *
+   * It has to be the same object on both sides: the tooltip is built once with
+   * the shadow root, and the rows it describes are rebuilt on every payload.
+   */
+  const details = new Map<unknown, PanelDetailLine[]>();
+
   // Opened once: `attachShadow` throws on a second call for the same element.
   const container = setPanelRoot(
     document,
@@ -403,27 +438,49 @@ export function composePanelMount(
       },
     },
     {
+      onCopyRequested: onCopyRequested === undefined ? undefined : () => onCopyRequested(latest),
       onCaptureRequested,
+      onCollapseToggled: () => {
+        state = { ...state, isCollapsed: !state.isCollapsed };
+        renderLatest();
+      },
       onSectionFailure: (error) => {
         if (captureFailureSaid) return;
         captureFailureSaid = true;
         warn("MargoMeter/PanelCapture", error);
       },
     },
+    details,
   );
 
-  let metric: PanelMetric = "dealt";
+  let state: PanelState = composeDefaultState();
   let latest: FightReading | null = null;
   let failuresThisFight = 0;
   let fightBeingCounted = 0;
 
+  /**
+   * Where a gesture becomes a state.
+   *
+   * All of it is here rather than in `ui`, and the split is the same one the
+   * whole layer keeps: the panel reports what was clicked, and what that means
+   * for what is on screen is decided outside it. Changing the metric drops the
+   * drill with it, because the level below belongs to the metric it was opened
+   * in — kept, it would draw one list under another list's heading.
+   */
+  const setState = (next: Partial<PanelState>): void => {
+    state = { ...state, ...next };
+    renderLatest();
+  };
+
   const renderLatest = (): void => {
     if (latest === null) return;
-    renderPanelInto(document, container, composePanelView(latest, metric), {
-      onMetricChosen: (chosen) => {
-        metric = chosen;
-        renderLatest();
-      },
+    renderPanelInto(document, container, composePanelView(latest, state), {
+      onMetricChosen: (chosen) =>
+        setState({ metric: chosen, focusTargetId: null, focusSkillKey: null }),
+      onTeamChosen: (chosen) => setState({ team: chosen }),
+      onPerTurnToggled: () => setState({ perTurn: !state.perTurn }),
+      onRowChosen: (key) => setState(composeStateFromRow(state, key)),
+      onBack: () => setState(composeStateAfterBack(state)),
       /**
        * Once per fight, not once per render: a fight redraws on every payload
        * and a panel logging each time is itself a way of disturbing someone
@@ -434,7 +491,7 @@ export function composePanelMount(
         failuresThisFight += 1;
         if (failuresThisFight === 1) warn("MargoMeter/PanelSection", error);
       },
-    });
+    }, state.isCollapsed, details);
   };
 
   return (reading) => {
@@ -456,6 +513,39 @@ export function composePanelMount(
 }
 
 /**
+ * What a clicked row does to the state.
+ *
+ * The key is the view's own and its prefix is what says which level was clicked;
+ * reading it here rather than passing three optional ids keeps `ui` free of the
+ * question "which of these is set".
+ */
+export function composeStateFromRow(state: PanelState, key: string): Partial<PanelState> {
+  if (key === "back") return composeStateAfterBack(state);
+
+  const [kind, rest] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
+  if (kind === "combatant") {
+    const id = getIntegerFromText(rest);
+    // A row whose id will not read is a row that leads nowhere, rather than one
+    // that opens somebody else's breakdown.
+    return id === null ? {} : { focusCombatantId: id, focusTargetId: null, focusSkillKey: null };
+  }
+  if (kind === "target") {
+    const id = getIntegerFromText(rest);
+    return id === null ? {} : { focusTargetId: id, focusSkillKey: null };
+  }
+  if (kind === "skill") return { focusSkillKey: rest, focusTargetId: null };
+  return {};
+}
+
+/** One level out, and only one: the way back is as small a step as the way in. */
+export function composeStateAfterBack(state: PanelState): Partial<PanelState> {
+  if (state.focusTargetId !== null || state.focusSkillKey !== null) {
+    return { focusTargetId: null, focusSkillKey: null };
+  }
+  return { focusCombatantId: null };
+}
+
+/**
  * Writes out whatever the meter is holding, under a name saying where and when.
  *
  * Written even when the fight is empty. A file stating `wpisy: []` is a true
@@ -472,6 +562,95 @@ export function writeCaptureToPage(page: HostPage, meter: MargoMeter): void {
   );
 }
 
+/**
+ * The fight, as something a person can paste into a report.
+ *
+ * Everything that qualifies the numbers travels with them, because a figure
+ * without its build, its world and its warnings is a figure nobody can act on:
+ * the add-on's version, the game's, where it was, when it was taken, who was
+ * watching, the whole roster, and every warning as an entry with a token beside
+ * it. **The tokens live here and nowhere the player reads** — the panel says
+ * what cannot be known, this says what we could not read (§3).
+ *
+ * Ids and tokens rather than sentences, on purpose: a report is read by us.
+ */
+export function composeReportText(page: HostPage, reading: FightReading | null): string {
+  const environment = composeCaptureEnvironment(page);
+  const report = {
+    dodatek: { nazwa: "MargoMeter", wersja: USERSCRIPT_VERSION },
+    gra: { swiat: environment.getWorld(), build: environment.getGameBuild() },
+    kiedy: environment.getCapturedAt(),
+    walka:
+      reading === null
+        ? null
+        : {
+            odPoczatku: reading.isFromFightStart,
+            tury: reading.fightTurns,
+            wynik: reading.statistics.outcome,
+            nasza_strona: reading.ourSide,
+            sklad: [...reading.roster.byId.values()],
+            tury_postaci: Object.fromEntries(reading.turnsByCombatantId),
+            postacie: Object.fromEntries(
+              [...reading.statistics.byCombatantId].map(([id, row]) => [
+                id,
+                composeReportRow(row),
+              ]),
+            ),
+            bez_sprawcy: composeReportRow(reading.statistics.unattributed),
+            odczyt: {
+              nieodczytane_komunikaty: reading.statistics.reading.unreadableMessages,
+              powody: Object.fromEntries(reading.statistics.reading.messagesByReason),
+              nieznane_klucze: Object.fromEntries(reading.statistics.reading.occurrencesByUnreadKey),
+              leczenie_bez_sumy: Object.fromEntries(
+                reading.statistics.reading.unaccountedHealthBySource,
+              ),
+            },
+          },
+  };
+  return JSON.stringify(report, null, 2);
+}
+
+/** One combatant's figures, with every map turned into something JSON can hold. */
+function composeReportRow(row: FightReading["statistics"]["unattributed"]): Record<string, unknown> {
+  return {
+    zadane_surowe: row.dealtRaw,
+    zadane: row.dealtApplied,
+    zadane_wg_rodzaju: Object.fromEntries(row.dealtAppliedByElement),
+    otrzymane: row.taken,
+    otrzymane_wg_rodzaju: Object.fromEntries(row.takenByElement),
+    utracone_poza_ciosem: row.healthLost,
+    utracone_wg_zrodla: Object.fromEntries(row.healthLostBySource),
+    leczenie: row.healed,
+    leczenie_wg_zrodla: Object.fromEntries(row.healedBySource),
+    leczenie_wg_leczacego: Object.fromEntries(row.healedByHealerId),
+    pochloniete: Object.fromEntries(row.prevented),
+    zniszczone: Object.fromEntries(row.destroyed),
+    efekty: Object.fromEntries(row.procsOnBlowsStruck),
+    ciosy: row.blowsStruck,
+    maks_cios: row.largestBlow,
+    uzycia_umiejetnosci: row.skillsUsed,
+    komu: Object.fromEntries(
+      [...row.dealtByTargetId].map(([id, byElement]) => [id, Object.fromEntries(byElement)]),
+    ),
+    od_kogo: Object.fromEntries(
+      [...row.takenByActorId].map(([id, byElement]) => [id, Object.fromEntries(byElement)]),
+    ),
+    umiejetnosci: Object.fromEntries(
+      [...row.skills].map(([key, skill]) => [
+        key,
+        {
+          nazwa: skill.skillName,
+          uzycia: skill.uses,
+          zadane: skill.dealtApplied,
+          komu: Object.fromEntries(skill.dealtByTargetId),
+          wyleczone: skill.healed,
+          komu_wyleczone: Object.fromEntries(skill.healedByCombatantId),
+        },
+      ]),
+    ),
+  };
+}
+
 const page = globalThis as HostPage;
 if (shouldStartHere(page)) {
   // The panel is mounted before the meter exists, and the button needs the meter
@@ -479,9 +658,22 @@ if (shouldStartHere(page)) {
   // there. Mounting after the meter instead would leave the first payloads of a
   // fight already under way with nowhere to draw.
   let meter: MargoMeter | null = null;
-  const renderReading = composePanelMount(page, undefined, () => {
-    if (meter !== null) writeCaptureToPage(page, meter);
-  });
+  const renderReading = composePanelMount(
+    page,
+    undefined,
+    () => {
+      if (meter !== null) writeCaptureToPage(page, meter);
+    },
+    /**
+     * The clipboard, not the network: §5 forbids the second and says nothing
+     * about the first, because handing a person their own numbers is not sending
+     * them anywhere. A browser that refuses the clipboard costs the copy and
+     * nothing else — the same shape as the stored position.
+     */
+    (reading) => {
+      void page.navigator?.clipboard?.writeText?.(composeReportText(page, reading));
+    },
+  );
   meter = setMargoMeter(page, {
     // One line, once, when the wrap goes on. Branded like every other thing this
     // add-on writes to a console it shares with the game (§9.5). It is not a

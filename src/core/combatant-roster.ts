@@ -12,10 +12,10 @@
  * match, because attributing real damage to the wrong combatant is the failure
  * this project exists to prevent, and it is worse than attributing it to no one.
  *
- * The roster carries what something reads. Level, profession and maximum health
- * all sit in the same material and are all deliberately absent: they join when a
- * consumer arrives, not before (AGENTS.md §7.1). `side` joined when the
- * aggregate needed to group rows.
+ * The roster carries what something reads. Maximum health sits in the same
+ * material and is deliberately absent: it joins when a consumer arrives, not
+ * before (AGENTS.md §7.1). `side` joined when the aggregate needed to group
+ * rows, and `level` when the panel's own detail line did.
  */
 
 /** Ids the roster could not tell apart by name. */
@@ -47,6 +47,14 @@ export type RosteredCombatant = {
    * colour.
    */
   profession: string | null;
+  /**
+   * The level the game states, or null where it stated none.
+   *
+   * Read for one line of the panel and no figure: it stands beside the
+   * profession, because "mag" says what somebody is and "mag (105)" says how much
+   * of it. Nothing divides by it and nothing ranks by it.
+   */
+  level: number | null;
 };
 
 export type CombatantRoster = {
