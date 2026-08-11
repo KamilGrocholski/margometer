@@ -142,6 +142,15 @@ function getEveryNode(node: FakeNode): FakeNode[] {
   return [node, ...node.children.flatMap(getEveryNode)];
 }
 
+/**
+ * By class list rather than by the whole string, which is what three callers
+ * were doing until the selected tab started carrying a second class and two of
+ * them quietly stopped finding it.
+ */
+function getTabsOf(node: FakeNode): FakeNode[] {
+  return getEveryNode(node).filter((each) => each.className.split(" ").includes("tab"));
+}
+
 /** A fight with two sides, damage on both, and something unreadable in it. */
 function composeReading(overrides: Partial<PanelReading> = {}): {
   reading: PanelReading;
@@ -574,7 +583,7 @@ describe("how the panel fails", () => {
       onSectionFailure: (error) => failures.push(error),
     }) as FakeNode;
 
-    const tabs = getEveryNode(panel).filter((node) => node.className === "tab");
+    const tabs = getTabsOf(panel);
     expect(tabs.length).toBe(PANEL_METRICS.length);
     for (const tab of tabs) expect(() => setClickOn(panel, tab)).not.toThrow();
     expect(failures.length).toBe(PANEL_METRICS.length);
@@ -589,7 +598,7 @@ describe("how the panel fails", () => {
       onMetricChosen: (metric) => chosen.push(metric),
     }) as FakeNode;
 
-    for (const tab of getEveryNode(panel).filter((node) => node.className === "tab")) {
+    for (const tab of getTabsOf(panel)) {
       setClickOn(panel, tab);
     }
     expect(chosen).toEqual([...PANEL_METRICS]);
@@ -608,6 +617,50 @@ describe("how the panel fails", () => {
       setClickOn(panel, row);
     }
     expect(chosen).toEqual([]);
+  });
+
+  /**
+   * ⚠️ **Both halves of this were written and they did not meet.** The render
+   * set a custom property `--selected` on the chosen tab; the stylesheet
+   * selected `.tab[data-selected="true"]`. Neither is wrong on its own, nothing
+   * in the type system joins them, and a fake document has no stylesheet — so
+   * every test passed while the panel drew three identical tabs and never said
+   * which metric was on screen. Found by looking at a screenshot.
+   *
+   * What is held here is the join itself: whatever mark the render puts on the
+   * selected tab, the stylesheet has to be a document that mentions it.
+   */
+  test("the chosen tab is marked, and the stylesheet knows the mark", () => {
+    const { reading } = composeReading();
+    const document = composeFakeDocument();
+    const roots: FakeNode[] = [];
+    const host = {
+      ...document.createElement("div"),
+      attachShadow(): PanelNode {
+        const root = document.createElement("div") as FakeNode;
+        roots.push(root);
+        return root;
+      },
+    } as unknown as PanelHost;
+
+    const container = setPanelRoot(document, host);
+    const styleText = getEveryNode(assertDefined(roots[0], "the shadow root was opened"))
+      .map((node) => node.textContent)
+      .join("\n");
+
+    for (const metric of PANEL_METRICS) {
+      renderPanelInto(document, container, composePanelView(reading, metric));
+      const tabs = getTabsOf(container as FakeNode);
+      expect(tabs.length).toBe(PANEL_METRICS.length);
+
+      const marked = tabs.filter((node) => node.className !== "tab");
+      expect(marked.length, metric).toBe(1);
+      expect(marked[0]!.textContent.toLowerCase(), metric).toBe(metric);
+
+      for (const name of marked[0]!.className.split(" ")) {
+        expect(styleText, `${metric}: nothing styles .${name}`).toContain(`.${name}`);
+      }
+    }
   });
 
   test("the panel goes in a shadow root, cut off from the game's stylesheet", () => {

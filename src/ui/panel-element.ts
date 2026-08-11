@@ -204,7 +204,7 @@ export function composePanelStyleText(): string {
   cursor: pointer;
   user-select: none;
 }
-.tab[data-selected="true"] { color: ${t.text}; background: ${t.surfaceRaised}; }
+.tab.selected { color: ${t.text}; background: ${t.surfaceRaised}; }
 .section { margin-top: ${t.spaceLarge}; }
 .section-heading {
   display: flex;
@@ -358,9 +358,14 @@ export function renderPanel(
     tabs.className = "tabs";
     for (const tab of view.tabs) {
       const button = document.createElement("div");
-      button.className = "tab";
+      // ⚠️ A class, because the two halves of this have to be spelled the same
+      // and once were not: the rule above selected `[data-selected="true"]`
+      // while this set a custom property `--selected` that nothing read. Neither
+      // side was wrong on its own, so the compiler had nothing to say and a fake
+      // document has no stylesheet — the panel simply drew three identical tabs
+      // and never showed which metric was on screen.
+      button.className = tab.isSelected ? "tab selected" : "tab";
       button.textContent = tab.label;
-      button.style.setProperty("--selected", tab.isSelected ? "1" : "0");
       metricByTab.set(button, tab.metric);
       tabs.append(button);
     }
