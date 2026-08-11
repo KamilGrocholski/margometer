@@ -14,8 +14,11 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import type { FightReading } from "@/src/game/battle-session.ts";
 import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-attachment.ts";
+import { composeCaptureText } from "@/src/game/fight-capture.ts";
 import { composePanelMount, setMargoMeter, shouldStartHere } from "@/src/userscript-entry.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { composeIntegerText } from "@/libs/number.ts";
+import { parseFightDump, type CombatantSnapshot } from "@/tools/fight-dump-parser.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
 
 /** A clock the test winds by hand. */
 function composeClock() {
@@ -240,6 +243,103 @@ describe("the add-on driven by a captured fight", () => {
 
       meter.stop();
       expect(Object.prototype.hasOwnProperty.call(battle, "updateData")).toBe(false);
+    },
+  );
+});
+
+/**
+ * The loop no other file can close: material out, and material back in.
+ *
+ * `src/game/fight-capture.ts` writes what `tools/fight-dump-parser.ts` reads, and
+ * each of them is checked on its own elsewhere. Neither of those checks would
+ * notice the two drifting apart — a writer and a reader that agree because both
+ * made the same wrong assumption prove nothing separately, and everything
+ * together.
+ *
+ * So a captured fight is replayed through the entry point the userscript runs,
+ * the recording the add-on would hand over is composed from it, and that text is
+ * read back by the offline parser and decoded. What comes out has to be the same
+ * fight.
+ */
+describe("a recording the add-on makes, read back as material", () => {
+  const ENVIRONMENT = {
+    getWorld: (): string => "tempest",
+    getGameBuild: (): string => "1786441768914",
+    getCapturedAt: (): string => "2026-08-11T12:00:00.000Z",
+  };
+
+  /**
+   * The fight's own combatants, in the shape the client keeps them — which is the
+   * shape of the payload's `w`, because that is where the client copies them from.
+   */
+  function setWarriorsList(
+    battle: Record<string, unknown>,
+    combatants: readonly CombatantSnapshot[],
+  ): void {
+    battle["warriorsList"] = Object.fromEntries(
+      combatants.map((one) => [
+        composeIntegerText(one.id),
+        {
+          id: one.id,
+          name: one.name,
+          team: one.team,
+          prof: one.profession,
+          lvl: one.level,
+          hp: { max: one.health.maximum, cur: one.health.current, hpp: one.health.percent },
+        },
+      ]),
+    );
+  }
+
+  test.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
+    "%s comes back out of the parser as the same fight",
+    (_name, fight) => {
+      let index = 0;
+      const battle = Object.create({
+        // The game moves the fight on and *then* the payload describes what moved,
+        // which is the order the before-hook exists for. Modelled, so a recording
+        // made here is one a real fight could have produced.
+        updateData(): string {
+          setWarriorsList(battle, fight.dump.calls[index]?.combatantsAfter ?? []);
+          return "the original's answer";
+        },
+      }) as Record<string, unknown>;
+
+      const meter = setMargoMeter({ Engine: { battle } });
+      const updateData = battle["updateData"] as (payload: unknown) => unknown;
+      for (const call of fight.dump.calls) {
+        index = call.index;
+        setWarriorsList(battle, call.combatantsBefore);
+        updateData(call.payload);
+      }
+
+      const written = composeCaptureText(meter.getCapture(), ENVIRONMENT);
+      const read = parseFightDump(written);
+
+      // Every message, in order: the thinning drops calls, never their contents.
+      const getMessagesOf = (calls: readonly { protocolMessages: readonly string[] }[]): string[] =>
+        calls.flatMap((call) => [...call.protocolMessages]);
+      expect(getMessagesOf(read.calls)).toEqual(getMessagesOf(fight.dump.calls));
+
+      // And the same fight when read as meaning, not as text.
+      const roster = composeRosterOfFight(fight);
+      expect(decodeFight(getMessagesOf(read.calls), roster)).toEqual(
+        decodeFight(getMessagesOf(fight.dump.calls), roster),
+      );
+
+      // The health the witness stands on survived the round trip on both sides.
+      const withCombatants = read.calls.filter((call) => call.combatantsAfter.length > 0);
+      expect(withCombatants.length).toBeGreaterThan(0);
+      for (const call of read.calls) {
+        const original = assertDefined(
+          fight.dump.calls.find((one) => one.index === call.index),
+          "a recorded call is one of the fight's own",
+        );
+        expect(call.combatantsAfter).toEqual(original.combatantsAfter);
+        expect(call.combatantsBefore).toEqual(original.combatantsBefore);
+      }
+
+      meter.stop();
     },
   );
 });

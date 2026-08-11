@@ -85,10 +85,26 @@ function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & 
     createElement(tag: string): FakeNode {
       created += 1;
       onCreate?.(tag);
+      let text = "";
       const node: FakeNode = {
         tag,
         className: "",
-        textContent: "",
+        /**
+         * **Assigning it replaces every child**, which is what a real DOM does
+         * and what a plain property here would not.
+         *
+         * Modelled because a mutation went unnoticed without it: building the
+         * title bar's button and *then* setting the bar's text drops the button
+         * on the floor in a browser, while a fake holding a plain string reports
+         * a working panel. Same class of blind spot as the two above.
+         */
+        get textContent(): string {
+          return text;
+        },
+        set textContent(next: string) {
+          text = next;
+          node.children = [];
+        },
         title: "",
         children: [],
         listeners: [],
@@ -852,6 +868,138 @@ describe("moving the panel", () => {
     expect(failures.length).toBe(1);
     // The failed move dropped the grab, so the pointerup after it reports nothing.
     expect(moved).toEqual([]);
+  });
+});
+
+/**
+ * The one control that hands the fight over rather than describing it.
+ *
+ * It lives in the title bar for the same reason the title bar itself does: a
+ * redraw replaces the container's children wholesale, and a fight redraws every
+ * few seconds. Everything below is about it surviving that, and about it not
+ * costing the drag it sits inside.
+ */
+describe("asking for the fight to be written out", () => {
+  function composeMountedPanel(actions: Parameters<typeof setPanelRoot>[3] = {}): {
+    document: PanelDocument;
+    root: FakeNode;
+    container: PanelNode;
+    titleBar: FakeNode;
+  } {
+    const document = composeFakeDocument();
+    let root: FakeNode | null = null;
+    const host = {
+      ...(document.createElement("div") as FakeNode),
+      attachShadow(): PanelNode {
+        root = document.createElement("div") as FakeNode;
+        return root;
+      },
+    } as unknown as PanelHost;
+
+    const container = setPanelRoot(
+      document,
+      host,
+      { position: null, getViewport: (): { width: number; height: number } => SCREEN_SIZE },
+      actions,
+    );
+    const opened = root as unknown as FakeNode;
+    const titleBar = assertDefined(
+      getEveryNode(opened).filter((node) => node.className === "titlebar")[0],
+      "mounting the panel draws a title bar",
+    );
+    return { document, root: opened, container, titleBar };
+  }
+
+  const SCREEN_SIZE = { width: 1000, height: 800 };
+
+  function getCaptureButton(root: FakeNode): FakeNode | undefined {
+    return getEveryNode(root).filter((node) => node.className === "titlebar-save")[0];
+  }
+
+  // A control nobody wired would be a promise the panel cannot keep, so it is not
+  // drawn at all rather than drawn dead.
+  test("no button is drawn when nobody is listening for it", () => {
+    const { root } = composeMountedPanel({});
+
+    expect(getCaptureButton(root)).toBeUndefined();
+  });
+
+  test("pressing it asks exactly once", () => {
+    const asked: number[] = [];
+    const { root } = composeMountedPanel({ onCaptureRequested: () => asked.push(1) });
+    const button = assertDefined(getCaptureButton(root), "the button is drawn");
+
+    setEventOn(root, "click", { target: button });
+
+    expect(asked.length).toBe(1);
+  });
+
+  /**
+   * ⚠️ **The property the whole design exists for.** Built inside `renderPanel`
+   * the button would be destroyed under the pointer by the next payload — which
+   * is exactly when someone has decided the fight was worth keeping.
+   */
+  test("it still works after twenty redraws", () => {
+    const asked: number[] = [];
+    const { document, root, container } = composeMountedPanel({
+      onCaptureRequested: () => asked.push(1),
+    });
+    const button = assertDefined(getCaptureButton(root), "the button is drawn");
+
+    for (let redraw = 0; redraw < 20; redraw += 1) {
+      renderPanelInto(document, container, composePanelView(composeReading().reading, "dealt"), {});
+    }
+    setEventOn(root, "click", { target: button });
+
+    expect(asked.length).toBe(1);
+    expect(getCaptureButton(root)).toBe(button);
+  });
+
+  // §9.6: an add-on that breaks the game's own scripts has done far more damage
+  // than one that shows a wrong number.
+  test("a handler that throws does not escape into the page", () => {
+    const failures: unknown[] = [];
+    const bug = undefined as unknown as { save: () => void };
+    const { root } = composeMountedPanel({
+      onCaptureRequested: () => bug.save(),
+      onSectionFailure: (error) => failures.push(error),
+    });
+    const button = assertDefined(getCaptureButton(root), "the button is drawn");
+
+    expect(() => setEventOn(root, "click", { target: button })).not.toThrow();
+    expect(failures.length).toBe(1);
+  });
+
+  /**
+   * The bar is what the panel is dragged by, and the button sits inside it. A
+   * press on the button must not begin a drag, and a press on the bar's own text
+   * must still begin one — which is why the label stays a bare text node rather
+   * than becoming an element of its own.
+   */
+  test("pressing the button moves nothing, while the bar still drags", () => {
+    const { root, titleBar } = composeMountedPanel({ onCaptureRequested: () => {} });
+    const button = assertDefined(getCaptureButton(root), "the button is drawn");
+    const host = getEveryNode(root)[0];
+
+    setEventOn(root, "pointerdown", { target: button, clientX: 500, clientY: 500, pointerId: 7 });
+    setEventOn(root, "pointermove", { target: button, clientX: 400, clientY: 400 });
+    expect(host?.properties["left"]).toBeUndefined();
+
+    setEventOn(root, "pointerdown", {
+      target: titleBar,
+      clientX: 500,
+      clientY: 500,
+      pointerId: 7,
+    });
+    expect(() => setEventOn(root, "pointermove", { target: titleBar, clientX: 400, clientY: 400 })).not.toThrow();
+  });
+
+  test("the button says what it does, in words as well as in place", () => {
+    const { root } = composeMountedPanel({ onCaptureRequested: () => {} });
+    const button = assertDefined(getCaptureButton(root), "the button is drawn");
+
+    expect(button.textContent).not.toBe("");
+    expect(button.title).not.toBe("");
   });
 });
 

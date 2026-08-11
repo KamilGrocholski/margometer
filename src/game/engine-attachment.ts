@@ -36,6 +36,8 @@ export type AttachmentOptions = {
   /** Told once, when the search stops without ever finding the game. */
   onSearchAbandoned?: (() => void) | undefined;
   onReadingFailure?: ((error: unknown) => void) | undefined;
+  /** Passed straight to the wrap: read before the original runs. See it there. */
+  onBeforeOriginal?: ((battle: EngineBattle) => void) | undefined;
 };
 
 /**
@@ -125,6 +127,7 @@ export function setEngineAttachment(
 
     removeWrap = setBattleWrap(battle, onMessages, {
       onReadingFailure: options.onReadingFailure,
+      onBeforeOriginal: options.onBeforeOriginal,
     });
     removeSearchTimer();
     options.onAttached?.();

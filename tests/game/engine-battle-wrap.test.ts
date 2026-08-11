@@ -105,6 +105,63 @@ describe("what the wrap promises the game", () => {
     expect(() => getBattleMethod(battle)({ m: [] })).not.toThrow();
   });
 
+  /**
+   * The before-hook exists so a collector can read the fight in the state the
+   * payload is about to replace. Ordering is the whole of what it buys: run it
+   * after the original and it reads the state *after*, which is the same thing
+   * the reading already sees.
+   */
+  test("the before-hook runs ahead of the original, on the battle object", () => {
+    const order: string[] = [];
+    const seen: unknown[] = [];
+    const battle = composeBattle(() => {
+      order.push("game");
+      return null;
+    });
+
+    setBattleWrap(battle, () => order.push("ours"), {
+      onBeforeOriginal: (given) => {
+        order.push("before");
+        seen.push(given);
+      },
+    });
+    getBattleMethod(battle)({ m: [] });
+
+    expect(order).toEqual(["before", "game", "ours"]);
+    expect(seen).toEqual([battle]);
+  });
+
+  /**
+   * ⚠️ **The reason the two guards are separate, and the mutation that proves
+   * it.** Put both in one `try` and this test goes red: a throwing collector
+   * jumps past `onMessages`, so a developer's tool for gathering material would
+   * silently stop the meter counting — the one failure such a tool must not
+   * have.
+   */
+  test("a throwing before-hook stops neither the game nor the reading", () => {
+    const order: string[] = [];
+    const failures: unknown[] = [];
+    const battle = composeBattle(() => {
+      order.push("game");
+      return "the original's answer";
+    });
+    const bug = undefined as unknown as { read: () => void };
+
+    setBattleWrap(battle, () => order.push("ours"), {
+      onBeforeOriginal: () => bug.read(),
+      onReadingFailure: (error) => failures.push(error),
+    });
+
+    let returned: unknown = null;
+    expect(() => {
+      returned = getBattleMethod(battle)({ m: ["a"] });
+    }).not.toThrow();
+
+    expect(order).toEqual(["game", "ours"]);
+    expect(returned).toBe("the original's answer");
+    expect(failures.length).toBe(1);
+  });
+
   test("wrapping twice leaves one layer, not two", () => {
     const battle = composeBattle();
     const batches: number[] = [];

@@ -142,6 +142,10 @@ be a claim about a fight, and a remembered corner is a claim about a window.
   about first — and the position above is remembered because it is not a fight.
 - **No resizing, and no collapsing.** Moving the panel answers the question those
   would ("it is in the way"), and each is a second thing to validate on read.
+- **No controls in the title bar that are about the numbers.** The bar carries
+  exactly one, and it is the exception that states the rule: it hands the fight
+  over as a file rather than describing it, which is why it is not a tab. Design
+  and refusals: `docs/specs/2026-08-11-capturing-a-fight-to-disk.md`.
 
 ## Rejected alternatives
 

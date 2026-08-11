@@ -71,6 +71,19 @@ export type BattleWrapOptions = {
    * travelling into the game.
    */
   onReadingFailure?: ((error: unknown) => void) | undefined;
+  /**
+   * Called with the battle object **before** the original runs, for anything that
+   * has to be read while the fight still holds the state the payload is about to
+   * change. Nothing here may alter the battle object or the arguments; this is
+   * the one place our code stands ahead of the game's own, and §5's promise is
+   * that a fight plays out exactly as it would without us.
+   *
+   * ⚠️ **Its own guard, deliberately not shared with the reading below.** A
+   * single `try` around both would let a throw here skip `onMessages` — so a
+   * developer-facing collector failing would stop the meter counting, which is
+   * the one failure mode a tool for collecting material must not have.
+   */
+  onBeforeOriginal?: ((battle: EngineBattle) => void) | undefined;
 };
 
 /**
@@ -102,22 +115,35 @@ export function setBattleWrap(
   // the page, on an object belonging to the game.
   const wasOwnProperty = Object.prototype.hasOwnProperty.call(battle, WRAPPED_METHOD);
 
+  /**
+   * The catches below are deliberately broad — the only two in this repository
+   * that are. Narrowing them would let some class of our own bugs escape into
+   * the game's call stack, and an add-on that breaks the game is worse than one
+   * that counts nothing (§9.6).
+   */
+  const handleFailure = (error: unknown): void => {
+    try {
+      options.onReadingFailure?.(error);
+    } catch {
+      // A failure reporter that fails is still not the game's problem.
+    }
+  };
+
   const wrapper: Wrapper = function (this: unknown, ...args: unknown[]): unknown {
-    // The original goes first and its value is what the caller gets. Our reading
+    // Ahead of the original, because what it reads is the state the payload is
+    // about to replace. Its own `try`: see `onBeforeOriginal`.
+    try {
+      options.onBeforeOriginal?.(battle);
+    } catch (error) {
+      handleFailure(error);
+    }
+    // The original goes next and its value is what the caller gets. Our reading
     // happens in between and can change neither.
     const result = original.apply(this, args);
     try {
       onMessages(getMessagesFromPayload(args[0]), args[0]);
     } catch (error) {
-      // The one catch in this repository that is deliberately broad. Narrowing
-      // it would let some class of our own bugs escape into the game's call
-      // stack, and an add-on that breaks the game is worse than one that counts
-      // nothing (§9.6).
-      try {
-        options.onReadingFailure?.(error);
-      } catch {
-        // A failure reporter that fails is still not the game's problem.
-      }
+      handleFailure(error);
     }
     return result;
   };

@@ -171,6 +171,7 @@ base every tool below throws from (§9.5).
 | `tools/decoding-status.ts` | *How much of the protocol do we read?* Messages, events by kind, unread keys by frequency. Computed on demand — these figures never go into prose (§5). |
 | `tools/fight-report.ts` | *What would the panel show for this fight?* Runs the decoder and the aggregate over each capture and prints the per-combatant table — everything the numbers hold, including what the panel has no room for. |
 | `tools/help-article.ts` | *What does the game's own documentation say about this mechanic?* `fetch` caches an article, `search` prints raw context around a phrase and exits non-zero when there is none. §7.6. |
+| `tools/captured-fight-intake.ts` | *This recording is worth keeping — put it in the repository.* Substitutes player nicknames, removes the game's ability descriptions, and writes the result into `tests/captured-fights/`. Refuses anything it cannot redact with certainty, and names the step that stays a person's. §9.2. |
 
 ---
 
@@ -477,6 +478,14 @@ src/
                          watched open, which is the only thing surviving the
                          reset — a warning is scoped to one fight (§9.6). Pure —
                          the mutable variable belongs to whoever drives it.
+    fight-capture.ts     The same fight kept so it can be written to a file: the
+                         payload copied whole, and the combatants as the fight
+                         held them before and after the call. The other direction
+                         of `tools/fight-dump-parser.ts` — the same format, so a
+                         new recording stands beside the ones already captured.
+                         Thinned as it is collected; redacts nothing, because
+                         redaction is the intake tool's job and this file's output
+                         never enters git.
   ui/
     panel-tokens.ts      Every colour, space and radius, named once, plus the
                          contrast arithmetic a test needs to hold them to §9.7.
@@ -520,6 +529,12 @@ tools/
                          .cache/ and prints raw context around a phrase. Prints
                          the age of the dump, and says NOT FOUND out loud —
                          silence is a claim too, so it also exits non-zero.
+  captured-fight-intake.ts
+                         The gate a recording passes to become material: player
+                         nicknames substituted, the game's own ability
+                         descriptions removed, both counted in the file itself.
+                         Refuses rather than guesses — `npc` alone says who is a
+                         person — and ends by naming the reading no test does.
 
 tests/
   captured-fights/       Raw battle protocol captured from real fights.

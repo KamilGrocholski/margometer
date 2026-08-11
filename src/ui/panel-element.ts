@@ -90,6 +90,24 @@ export type PanelHandlers = {
 };
 
 /**
+ * What the title bar offers besides being something to drag by.
+ *
+ * Separate from `PanelHandlers` because these belong to the bar, which is built
+ * once with the shadow root, while those belong to a render — and separate from
+ * `PanelPlacement` because a panel that cannot be moved should still be able to
+ * hand over the fight.
+ */
+export type PanelTitleBarActions = {
+  /**
+   * Told when the reader asked for the fight to be written out. What that means —
+   * a file, a name, a place — is the caller's: `ui` knows only that it was asked.
+   * Absent means no button is drawn at all, rather than one that does nothing.
+   */
+  onCaptureRequested?: (() => void) | undefined;
+  onSectionFailure?: ((error: unknown) => void) | undefined;
+};
+
+/**
  * Where the panel sits, and who is told when that changes.
  *
  * The whole of placement is `ui`'s: this file writes the styles, and the caller
@@ -161,6 +179,22 @@ export function composePanelStyleText(): string {
   padding: ${t.space};
   box-sizing: border-box;
 }
+/*
+ * Pushed to the far end, so the bar's own text keeps the near end and the two
+ * never fight over the middle. The pointer cursor is here to override the move
+ * cursor the bar sets: inheriting it would promise a drag from the one place in
+ * the bar that does not drag.
+ */
+.titlebar-save {
+  margin-left: auto;
+  padding: 0 ${t.spaceSmall};
+  border: 1px solid ${t.border};
+  border-radius: ${t.radius};
+  color: ${t.textQuiet};
+  background: ${t.surface};
+  cursor: pointer;
+}
+.titlebar-save:hover { color: ${t.text}; }
 .tabs { display: flex; gap: ${t.spaceSmall}; margin-bottom: ${t.space}; }
 .tab {
   padding: ${t.spaceSmall} ${t.space};
@@ -387,6 +421,7 @@ export function setPanelRoot(
   document: PanelDocument,
   host: PanelHost,
   placement?: PanelPlacement,
+  actions?: PanelTitleBarActions,
 ): PanelNode {
   const root = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
@@ -394,13 +429,50 @@ export function setPanelRoot(
 
   const titleBar = document.createElement("div");
   titleBar.className = "titlebar";
+  // Set before the button is appended, not after: `textContent` replaces every
+  // child, so the other order would wipe the button the line below adds. The text
+  // stays a bare text node, which is not an event target — so the drag's identity
+  // check on the bar keeps working wherever in the text it is grabbed.
   titleBar.textContent = "⠿ MargoMeter";
   titleBar.title = "Drag to move";
+  if (actions?.onCaptureRequested !== undefined) {
+    titleBar.append(setCaptureButton(document, root, actions));
+  }
 
   const container = document.createElement("div");
   root.append(style, titleBar, container);
   if (placement !== undefined) setPanelDrag(root, host, titleBar, placement);
   return container;
+}
+
+/**
+ * The one control that is not about the fight being drawn: it hands the fight
+ * over.
+ *
+ * Built with the bar rather than with the render, for the reason above it — and
+ * listened for at the **root**, keyed by node identity, which is the same shape
+ * the tab strip and the drag both use (§9.6). Its own `try`: a handler that
+ * throws must not reach a page the game is also listening on.
+ */
+function setCaptureButton(
+  document: PanelDocument,
+  root: PanelNode,
+  actions: PanelTitleBarActions,
+): PanelNode {
+  const button = document.createElement("div");
+  button.className = "titlebar-save";
+  button.textContent = "save";
+  button.title = "Write this fight to a file";
+
+  root.addEventListener("click", (event) => {
+    if (event.target !== button) return;
+    try {
+      actions.onCaptureRequested?.();
+    } catch (error) {
+      actions.onSectionFailure?.(error);
+    }
+  });
+  return button;
 }
 
 /**
