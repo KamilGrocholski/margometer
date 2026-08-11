@@ -266,12 +266,27 @@ function getGameBuildFromPage(page: HostPage): string | null {
 }
 
 /**
+ * Which world a recording came from, or the word that says we do not know.
+ *
+ * ⚠️ **`?? "unknown"` did not cover the case that happens.** A page with no
+ * hostname gives `""`, `"".split(".")[0]` is `""`, and an empty string is not
+ * nullish — so the recording carried a world of nothing and the file was named
+ * `margometer--2026-…json`, with a hole where the answer goes. That is the
+ * silence §9.3 forbids twice over: it is a value nobody wrote, and it reads as
+ * an answer rather than as its absence. Seen on a `file://` page.
+ */
+function getWorldFromPage(page: HostPage): string {
+  const world = page.location?.hostname?.split(".")[0];
+  return world === undefined || world === "" ? "unknown" : world;
+}
+
+/**
  * What a recording needs from the page, gathered in the one file allowed to read
  * it — so `src/game/fight-capture.ts` stays checkable without a browser.
  */
 function composeCaptureEnvironment(page: HostPage): CaptureEnvironment {
   return {
-    getWorld: () => page.location?.hostname?.split(".")[0] ?? "unknown",
+    getWorld: () => getWorldFromPage(page),
     getGameBuild: () => getGameBuildFromPage(page),
     getCapturedAt: () => new Date().toISOString(),
   };

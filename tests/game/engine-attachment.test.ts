@@ -14,8 +14,13 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import type { FightReading } from "@/src/game/battle-session.ts";
 import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-attachment.ts";
-import { composeCaptureText } from "@/src/game/fight-capture.ts";
-import { composePanelMount, setMargoMeter, shouldStartHere } from "@/src/userscript-entry.ts";
+import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
+import {
+  composePanelMount,
+  setMargoMeter,
+  shouldStartHere,
+  writeCaptureToPage,
+} from "@/src/userscript-entry.ts";
 import { composeIntegerText } from "@/libs/number.ts";
 import { parseFightDump, type CombatantSnapshot } from "@/tools/fight-dump-parser.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
@@ -716,5 +721,63 @@ describe("whether to start on this page", () => {
   // Which is also what keeps importing this module from attaching to anything.
   test("a test runner is not a page", () => {
     expect(shouldStartHere({})).toBe(false);
+  });
+});
+
+/**
+ * Where a recording says it came from.
+ *
+ * The one thing here the panel never shows and a reader always needs: a capture
+ * without a world is not comparable material (§7.6), and the file's own name is
+ * where that answer is first read.
+ */
+describe("the world a saved recording names", () => {
+  /** A page that keeps whatever the anchor was told, instead of downloading it. */
+  function composePageAt(location: { hostname?: string | undefined } | undefined): {
+    page: Parameters<typeof writeCaptureToPage>[0];
+    getNames: () => string[];
+  } {
+    const names: string[] = [];
+    const page = {
+      location,
+      document: {
+        createElement: (): unknown => ({
+          href: "",
+          set download(name: string) {
+            names.push(name);
+          },
+          click: (): void => {},
+          remove: (): void => {},
+        }),
+        body: { append: (): void => {} },
+      },
+    } as unknown as Parameters<typeof writeCaptureToPage>[0];
+    return { page, getNames: () => names };
+  }
+
+  const meter = {
+    getReading: () => null,
+    getCapture: () => composeEmptyCapture(),
+    stop: (): void => {},
+  };
+
+  test("a world page is named by its world", () => {
+    const { page, getNames } = composePageAt({ hostname: "tempest.margonem.pl" });
+    writeCaptureToPage(page, meter);
+    expect(getNames()[0]).toMatch(/^margometer-tempest-/);
+  });
+
+  /**
+   * ⚠️ **The gap `?? "unknown"` left.** An empty hostname is not nullish, so the
+   * fallback never fired and the file came out `margometer--2026-…json` — a name
+   * with a hole in it rather than a name saying it does not know. Both spellings
+   * of "the page did not say" have to reach the same word.
+   */
+  test("a page that does not say says so, rather than saying nothing", () => {
+    for (const location of [{ hostname: "" }, {}, undefined]) {
+      const { page, getNames } = composePageAt(location);
+      writeCaptureToPage(page, meter);
+      expect(getNames()[0], JSON.stringify(location)).toMatch(/^margometer-unknown-/);
+    }
   });
 });
