@@ -621,17 +621,33 @@ one says which it is.
 
 ---
 
-## Keys looked into and deliberately not read yet
+## Keys that state an input rather than an outcome
 
-### `+injure` — investigated
+Each of these was investigated, understood, and then deliberately left unread —
+because reading one as a figure would have doubled a reduction, counted a wound
+twice, or invented a unit. That was the right verdict and the wrong word for it:
+they were never *unknown*, and while they were filed as unread the panel warned
+that totals might be low on their account, which none of them could cause.
+
+Four of them are now `decoded` as **declarations** (§10): read, shown, and
+totalled with nothing. The reasoning that kept each out of a statistic is
+unchanged and is still the entry below — what changed on 2026-08-11 is that
+`AttackEvent` and `SkillUsedEvent` gained a `declared` slot, so "we understand
+this and it is not a measurement" became something the contract can say.
+
+The rest stay unread, and each says for itself why.
+
+### `+injure` — decoded
 
 The deep wound an attack has just applied, announced inside that attack's own
 message. It moves no health where it appears: the wound arrives on later calls
 as its own `injure` message, which is the entry above.
 
-**It stays unread for that reason, and not for want of understanding it.**
-Counting the announcement as damage would add the same wound twice — once where
-it is announced, and again on every tick.
+**It is read as a declaration and counted as nothing**, for that reason and not
+for want of understanding it: counting the announcement as damage would add the
+same wound twice — once where it is announced, and again on every tick. It lands
+in `AttackEvent.declared`, which is the slot for a share the protocol states
+rather than a figure it reports, and no statistic touches it.
 
 Two properties, both re-earned on every run by `tests/core/injure-rule.test.ts`:
 the amount is `floor(0.15 × the damage that message reports taken)`, and a fresh
@@ -658,18 +674,20 @@ That was true and stopped there, because nothing in the protocol says what the
 key is *for*. The documentation is what supplied the rule; the captures are what
 confirmed it.
 
-### `-poison_lowdmg_per` — investigated
+### `-poison_lowdmg_per` — decoded
 
 The share by which a blow was weakened because the combatant dealing it was
 poisoned, reported inside that blow's own message. A **percentage, not points**,
 and unlike the three defences it is not a figure that was subtracted from
 anything we can see: the damage keys beside it already have it applied.
 
-**It stays unread for that reason, and not for want of understanding it.** There
-is no slot it could fill honestly. `prevented` holds points a defence stopped and
-would total a percentage with them; the flag family holds keys that carry no
-figure at all, and this one always carries one. Reading it anywhere would either
-double a reduction that already happened or invent a unit.
+**It is read as a declaration and counted as nothing**, for that reason and not
+for want of understanding it. None of the slots that hold figures would be
+honest: `prevented` holds points a defence stopped and would total a percentage
+with them; the flag family holds keys carrying no figure at all, and this one
+always carries one. So it lands in `AttackEvent.declared` — a share the protocol
+states, beside figures that already have it applied — and adding it anywhere
+would double a reduction that has already happened.
 
 Two properties re-earned on every run by
 `tests/core/poison-reduction-rule.test.ts`: it arrives **once per combatant the
@@ -709,14 +727,15 @@ net". Nothing here establishes what the blow would have been without it: the
 protocol reports the reduced figure and never the raw one, so the amount removed
 is not recoverable.
 
-### `active_absorbdest_per` — investigated
+### `active_absorbdest_per` — decoded
 
 The share of current absorption a skill destroys, stated **on the announcement of
 that skill** rather than on any blow. The two keys above are what the share then
 removes, and they arrive in later messages.
 
-**It stays unread because the protocol never joins the two.** A skill
-announcement carries no damage and no target statistic — measured, every one of
+**It is read on its own announcement, and joined to no blow, because the protocol
+never joins the two.** A skill announcement carries no damage and no target
+statistic — measured, every one of
 its 43 occurrences rides a message whose only other keys are `tspell` and
 `skillId`. Attaching the share to the blows that follow is exactly the inference
 §5 forbids: the reports already state what was destroyed, so nothing is lost by
@@ -743,16 +762,16 @@ skill announcement. Held by `tests/core/absorption-destruction-rule.test.ts`,
 which also refuses a second distinct value — the entry's claim is that the fight
 declares one share, not that the key is a constant.
 
-### `combo-max` — investigated
+### `combo-max` — decoded
 
 How many accumulated combination points the announced skill will spend. A
 **count, not a quantity** — the captures state 1, 2 and 3 — and like the share
 above it qualifies the skill rather than reporting anything that happened.
 
-**It stays unread because it describes an input, not an outcome.** Whatever the
-points are then worth arrives as ordinary figures in the message or in later
-ones, already computed; reading the cap would add a number that measures nothing
-that was done to anybody.
+**It is read as a declaration and counted as nothing, because it describes an
+input, not an outcome.** Whatever the points are then worth arrives as ordinary
+figures in the message or in later ones, already computed; totalling the cap
+would add a number that measures nothing that was done to anybody.
 
 *Shape:* 31 occurrences; on a skill announcement; a whole number
 
@@ -766,15 +785,18 @@ one on a skill announcement** — none anywhere else. Held by
 range the protocol's quantities occupy, so a cap and a count of points cannot be
 confused with one.
 
-### `+engback` — investigated
+### `+engback` — decoded
 
 Energy returned to the attacker by this blow. Rides the blow, states a whole
 number, and — measured — **never arrives without `+crit`**: all 13 occurrences
 sit on a critical hit.
 
-**Unread because it is not a figure about anybody's health**, and the panel has
-no place for a resource yet. Reading it would mean a slot meaning "energy", with
-one consumer and nothing to compare it against.
+**Read as a declaration and counted as nothing**, because it is not a figure
+about anybody's health: energy is a unit no total here keeps, so this cannot
+shorten one. That is the second half of the declaration test — an outcome
+qualifies when its unit does. What it is emphatically not is a statistic: there
+is no energy total, and inventing one would mean a slot with one consumer and
+nothing to compare it against.
 
 *Shape:* 13 occurrences; on a blow; a whole number
 
@@ -782,7 +804,7 @@ one consumer and nothing to compare it against.
 that restore energy, without documenting the protocol key. 13 occurrences, every
 one on a blow beside `+crit`.
 
-### `+critslow_per` — investigated
+### `+critslow_per` — decoded
 
 An attack-speed reduction applied by a critical hit. States a whole number; all
 7 occurrences ride a blow carrying `+crit`.
@@ -790,9 +812,9 @@ An attack-speed reduction applied by a critical hit. States a whole number; all
 *Shape:* 7 occurrences; on a blow; a whole number
 
 *Evidence:* article view,372 (read 2026-08-09) lists `critslow_per` among the
-effects that combine additively to change attack speed. Not read for the same
-reason as `+engback`: attack speed is not health, and nothing downstream
-consumes it.
+effects that combine additively to change attack speed. Read as a declaration for
+the same reason as `+engback`: attack speed is a unit no total here keeps, so
+nothing totals it and nothing is missing when it is not.
 
 ### `+critpoison_per` — investigated
 
@@ -841,7 +863,7 @@ health — the same split as `injure` and `+injure`.
 fight. Not in the help: article view,372 (read 2026-08-09), searched for
 `legbon_holytouch` and `legbon`.
 
-### `poison_lowdmg_per-enemies` — investigated
+### `poison_lowdmg_per-enemies` — decoded
 
 The aura that grants the reduction `-poison_lowdmg_per` reports, declared once
 per fight rather than per blow. Described in full in that entry above; it has a
@@ -860,24 +882,35 @@ carry. The help documents the effect under this name — article view,372 (read
 
 These qualify the skill being announced: what it costs, what it grants, whom it
 affects. **None of them reports anything that happened to anybody**, which is
-what they have in common and why none is read.
+what they have in common.
 
 The pattern was settled twice already, by `active_absorbdest_per` and
 `combo-max` above: the announcement states an input, and whatever it is then
-worth arrives later as ordinary figures, already computed. Reading a declaration
-would add numbers that measure no event, and attaching one to a later blow is
-the join the protocol never states (§5).
+worth arrives later as ordinary figures, already computed. So none of these is a
+figure anything totals, and attaching one to a later blow would be the join the
+protocol never states (§5).
 
-They are also where a **contract change** would be needed rather than a decoder
-change: the `skill-used` event carries a name and an id and has nowhere to put
-an effect. That is `[ASK]` under §4, so it has not been made.
+**They are read all the same, and are `decoded` for it.** They needed a contract
+change rather than a decoder change — `skill-used` carried a name and an id and
+had nowhere to put an effect — which is `[ASK]` under §4; it was asked and
+granted on 2026-08-11, and `SkillUsedEvent.declared` is where they now land.
+
+What decided it was the cost of leaving them unread. An unread key means *this
+total may be low*, and the panel says so beside the figure; these eleven marked
+111 occurrences that way, none of which could lower any total. A warning that
+fires when nothing is wrong is a warning nobody reads, which would cost exactly
+the keys that do mean something.
+
+Their shape is checked rather than assumed: a value that will not read as a whole
+number sends the key back to unread, so a day when one of these starts carrying
+something else is loud rather than silent.
 
 *Evidence, shared:* every occurrence of every key below rides a message carrying
 `tspell`, and none rides a blow — measured across both captures. All appear only
 in the group fight. Held by `tests/core/skill-announcement-rule.test.ts` for
 `combo-max`; the rest rest on the measurement alone.
 
-### `active_decblock_per` — investigated
+### `active_decblock_per` — decoded
 
 A reduction of the target's chance to block, granted by the announced skill.
 
@@ -888,7 +921,7 @@ lower block chance. 26 occurrences, values 1, 2, 4 and 11. The client hides the
 key: production build `1785244275300` gives it an empty `break` in the battle
 switch, beside `active_absorbdest_per`.
 
-### `active_decblock_per-enemies` — investigated
+### `active_decblock_per-enemies` — decoded
 
 The same reduction, aimed at the opposing side rather than at one target — the
 `-enemies` suffix the protocol uses elsewhere for the same distinction.
@@ -898,7 +931,7 @@ The same reduction, aimed at the opposing side rather than at one target — the
 *Evidence:* article view,372 (read 2026-08-09), which lists it beside
 `decblock_per` and `active_decblock_per`. 11 occurrences, every value `10`.
 
-### `active_block_per` — investigated
+### `active_block_per` — decoded
 
 An increase to the announcer's own chance to block.
 
@@ -908,7 +941,7 @@ An increase to the announcer's own chance to block.
 `active_block_per`, described as raising block chance and applied at the
 initiation layer. 10 occurrences, every value `15`.
 
-### `alllowdmg` — investigated
+### `alllowdmg` — decoded
 
 A reduction to the damage dealt by everyone on the opposing side.
 
@@ -918,7 +951,7 @@ A reduction to the damage dealt by everyone on the opposing side.
 described as lowering the damage of all characters in the opposing team by the
 share the parameter sets. 11 occurrences, every value `5`.
 
-### `allslow_per` — investigated
+### `allslow_per` — decoded
 
 An attack-speed reduction applied across the opposing side.
 
@@ -927,7 +960,7 @@ An attack-speed reduction applied across the opposing side.
 *Evidence:* article view,372 (read 2026-08-09), which lists it among the effects
 combining additively to change attack speed. 5 occurrences, every value `14`.
 
-### `aura-ac_per` — investigated
+### `aura-ac_per` — decoded
 
 An aura raising armour, granted to the announcer's team.
 
@@ -936,7 +969,7 @@ An aura raising armour, granted to the announcer's team.
 *Evidence:* article view,372 (read 2026-08-09), which lists it among the effects
 that raise armour. 4 occurrences, every value `20`.
 
-### `aura-resall` — investigated
+### `aura-resall` — decoded
 
 An aura raising the team's resistances to fire, cold and lightning, in
 percentage points.
@@ -946,7 +979,7 @@ percentage points.
 *Evidence:* article view,372 (read 2026-08-09) at the engine name `aura-resall`.
 4 occurrences, every value `15`.
 
-### `aura-sa_per` — investigated
+### `aura-sa_per` — decoded
 
 An aura raising the team's attack speed.
 
@@ -955,7 +988,7 @@ An aura raising the team's attack speed.
 *Evidence:* article view,372 (read 2026-08-09), which lists it among the
 attack-speed effects. 4 occurrences, every value `20`.
 
-### `mana` — investigated
+### `mana` — decoded
 
 Mana the announced skill costs. **Signed, and negative in every occurrence** —
 the protocol states the change, not the price as a positive number.
@@ -965,7 +998,7 @@ the protocol states the change, not the price as a positive number.
 *Evidence:* article view,372 (read 2026-08-09) documents mana as a resource some
 skills consume. 15 occurrences, all negative, 10 of them beside `energy`.
 
-### `energy` — investigated
+### `energy` — decoded
 
 Energy the announced skill costs, the same shape as `mana`. Every occurrence in
 the captures states `0`, which is why nothing here claims it is ever otherwise.
@@ -975,7 +1008,7 @@ the captures states `0`, which is why nothing here claims it is ever otherwise.
 *Evidence:* article view,372 (read 2026-08-09) documents energy as a resource
 some skills consume. 10 occurrences, every one beside `mana`.
 
-### `shout` — investigated
+### `shout` — decoded
 
 A provocation: the announced skill forces those it covers to attack a named
 combatant. The value is that combatant's **name**, so it is read at run time and
@@ -996,7 +1029,13 @@ Each of these is the **only key in its message** — measured, without exception
 They describe the fight's progress or the client's own display rather than
 anything one combatant did to another, which is why none feeds a statistic.
 
-### `step` — investigated
+Having no blow and no announcement to ride, they had nowhere to land until
+`DeclarationEvent` existed; they are `decoded` into it now, and it reports no
+figure anything totals. `step` in particular is **not** read as a turn boundary:
+what is read is that the message stated `step` about a combatant, which is all
+the protocol says.
+
+### `step` — decoded
 
 Carries **no value at all** and names one combatant in the actor slot with no
 target. All 22 occurrences are a message holding nothing else, which is what a
@@ -1010,7 +1049,7 @@ entry does not either.
 §7.6 warns about rather than a mention. 22 occurrences, all valueless, all
 alone, always with an actor and never a target.
 
-### `prepare` — investigated
+### `prepare` — decoded
 
 A skill being prepared rather than used, stated as `name(percent%)`. The name is
 the client's display text, so no example of one appears here.
@@ -1021,7 +1060,7 @@ the client's display text, so no example of one appears here.
 `prepare`, which does not occur. 13 occurrences, each the only key in its
 message, every value matching that shape, always with an actor and no target.
 
-### `txt` — investigated
+### `txt` — decoded
 
 Free text the client shows in the battle log. **Nothing of it is stored here**,
 in this file or in any test: it carries the game's own sentences and player
@@ -1033,13 +1072,15 @@ names, which NOTICE.md keeps out of the repository entirely.
 `txt`, which does not occur. 13 occurrences, each alone in its message, naming
 no combatant at all.
 
-### `+exp` — investigated
+### `+exp` — decoded
 
 Experience awarded. Names no combatant and appears once in the whole material,
 at the end of a fight.
 
-**Unread because experience is not damage** and the panel counts what combatants
-did to each other. Nothing about it is uncertain; it is simply out of scope.
+**Read as a declaration and counted as nothing**, because experience is not
+damage and the panel counts what combatants did to each other. Nothing about it
+is uncertain; it is simply out of scope — which is a reading, and a different
+claim from a key nobody has looked at.
 
 *Shape:* 1 occurrences; alone in its message; a whole number
 

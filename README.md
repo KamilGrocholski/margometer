@@ -10,7 +10,7 @@ next to it. It does not automate anything, does not click for you, and does not
 affect how a fight plays out. It counts what already happened.
 
 > ⚠️ **Being rebuilt.** This branch is a rewrite from scratch. Only the captured
-> fight material under `tests/fixtures/` carried over from the previous
+> fight material under `tests/captured-fights/` carried over from the previous
 > implementation. Expect the tree to be incomplete while it is put back
 > together — see `AGENTS.md` for how the work is sequenced.
 

@@ -2,7 +2,7 @@
  * Fetches and caches the game client's own JavaScript.
  *
  * Some questions can only be answered by reading the client: what a protocol
- * key means, and which keys exist at all. AGENTS.md §7.5 has the procedure; the
+ * key means, and which keys exist at all. AGENTS.md §7.6 has the procedure; the
  * two rules that shape this file are:
  *
  *   - production decides, development is for reading. The development build

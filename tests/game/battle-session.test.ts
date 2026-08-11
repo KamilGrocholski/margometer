@@ -55,6 +55,34 @@ describe("where one fight ends and the next begins", () => {
     expect(fresh.ourSide).toBe(1);
     expect(fresh.isFromFightStart).toBe(true);
   });
+
+  /**
+   * The one thing that has to survive the reset.
+   *
+   * A warning is scoped to the fight that produced it and clears when a later
+   * fight decodes cleanly (§9.6), which needs the fights to be distinguishable.
+   * Everything else about a fight is deliberately forgotten at `init`; a counter
+   * that reset with them would make every fight look like the same one, and the
+   * panel would go quiet after its first failure ever.
+   */
+  test("the fights are counted, and the count outlives the reset", () => {
+    const first = composeNextSession(composeEmptySession(), { init: "1" }, ["a"]);
+    const during = composeNextSession(first, {}, ["b"]);
+    const second = composeNextSession(during, { init: "1" }, ["c"]);
+
+    expect(composeEmptySession().fightsStarted).toBe(0);
+    expect(first.fightsStarted).toBe(1);
+    expect(during.fightsStarted).toBe(1);
+    expect(second.fightsStarted).toBe(2);
+    expect(second.messages).toEqual(["c"]);
+  });
+
+  // Joined mid-fight: no `init` was ever seen, so no fight has been watched open.
+  test("a fight joined late is not counted as one that started", () => {
+    const joined = composeNextSession(composeEmptySession(), {}, ["mid-fight"]);
+    expect(joined.fightsStarted).toBe(0);
+    expect(joined.isFromFightStart).toBe(false);
+  });
 });
 
 describe("the roster as it arrives in pieces", () => {

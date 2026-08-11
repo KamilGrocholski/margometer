@@ -15,16 +15,37 @@
  */
 
 import { PANEL_TOKENS } from "@/src/ui/panel-tokens.ts";
-import type { PanelMetric, PanelSection, PanelView } from "@/src/ui/panel-view.ts";
+import type {
+  PanelHeader,
+  PanelMark,
+  PanelMetric,
+  PanelSection,
+  PanelView,
+} from "@/src/ui/panel-view.ts";
+
+/**
+ * What a click hands us. Only the target is used, and that is the whole point:
+ * one listener at the root can serve every control on the panel if it can tell
+ * which one was hit (§9.6).
+ */
+export type PanelEvent = { target: unknown };
 
 /** The slice of the DOM this file uses, so a test can supply the whole of it. */
 export type PanelNode = {
   className: string;
   textContent: string;
+  /**
+   * The detail behind a mark, shown on hover.
+   *
+   * The browser's own tooltip rather than one of ours: it needs no script, it
+   * cannot cover the game until the reader asks for it, and nothing of ours
+   * moves or animates to produce it (§9.6).
+   */
+  title: string;
   style: { setProperty(name: string, value: string): void };
   append(...nodes: PanelNode[]): void;
   replaceChildren(...nodes: PanelNode[]): void;
-  addEventListener(type: string, listener: () => void): void;
+  addEventListener(type: string, listener: (event: PanelEvent) => void): void;
 };
 
 export type PanelHost = PanelNode & {
@@ -96,9 +117,38 @@ export function composePanelStyleText(): string {
 .row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-value { font-variant-numeric: tabular-nums; padding-left: ${t.space}; }
 .row-share { color: ${t.textQuiet}; padding-left: ${t.spaceSmall}; }
-.notice { color: ${t.suspect}; margin-top: ${t.space}; font-size: 11px; }
+.header { display: flex; justify-content: space-between; align-items: baseline; }
+.header-outcome { color: ${t.textQuiet}; text-transform: uppercase; font-size: 10px; }
+/* Static, and never the only thing carrying the meaning — the detail is on it. */
+.mark { color: ${t.suspect}; padding-left: ${t.spaceSmall}; cursor: help; }
 .undrawn { color: ${t.textQuiet}; font-style: italic; }
 `.trim();
+}
+
+/** A mark, or nothing at all. The detail rides on it rather than beside it. */
+function renderMark(document: PanelDocument, mark: PanelMark | null): PanelNode[] {
+  if (mark === null) return [];
+  const node = document.createElement("span");
+  node.className = "mark";
+  node.textContent = mark.text;
+  node.title = mark.detail;
+  return [node];
+}
+
+function renderHeader(document: PanelDocument, header: PanelHeader): PanelNode {
+  const block = document.createElement("div");
+  block.className = "header";
+
+  const who = document.createElement("span");
+  who.textContent = header.title;
+  for (const mark of header.marks) who.append(...renderMark(document, mark));
+
+  const outcome = document.createElement("span");
+  outcome.className = "header-outcome";
+  outcome.textContent = header.outcomeText ?? "";
+
+  block.append(who, outcome);
+  return block;
 }
 
 function renderRows(document: PanelDocument, section: PanelSection): PanelNode[] {
@@ -139,6 +189,9 @@ function renderSection(document: PanelDocument, section: PanelSection): PanelNod
   what.textContent = section.heading;
   const total = document.createElement("span");
   total.textContent = section.totalText;
+  // The warning goes where the consequence is: beside the figure it qualifies,
+  // not in a banner at the foot of the panel (§9.6).
+  total.append(...renderMark(document, section.totalMark));
   heading.append(what, total);
 
   block.append(heading, ...renderRows(document, section));
@@ -166,43 +219,73 @@ export function renderPanel(
   const panel = document.createElement("div");
   panel.className = "panel";
 
-  const tabs = document.createElement("div");
-  tabs.className = "tabs";
-  for (const tab of view.tabs) {
-    const button = document.createElement("div");
-    button.className = "tab";
-    button.textContent = tab.label;
-    button.style.setProperty("--selected", tab.isSelected ? "1" : "0");
-    // Every handler catches its own. An add-on that breaks the game's scripts
-    // has done more damage than one that shows a wrong number (§9.6).
-    button.addEventListener("click", () => {
-      try {
-        handlers.onMetricChosen?.(tab.metric);
-      } catch (error) {
-        handlers.onSectionFailure?.(error);
-      }
-    });
-    tabs.append(button);
-  }
-  panel.append(tabs);
-
-  for (const section of view.sections) {
+  /**
+   * One listener, on the panel root, for however many controls the view holds.
+   *
+   * §9.6 asks for delegation rather than a binding per element, and identity is
+   * what the map is keyed by: a `data-` attribute would mean the panel deciding
+   * twice what a tab is — once when drawing it and once when reading it back.
+   */
+  const metricByTab = new Map<unknown, PanelMetric>();
+  panel.addEventListener("click", (event) => {
+    const metric = metricByTab.get(event.target);
+    if (metric === undefined) return;
+    // The handler catches its own. An add-on that breaks the game's scripts has
+    // done more damage than one that shows a wrong number (§9.6).
     try {
-      panel.append(renderSection(document, section));
+      handlers.onMetricChosen?.(metric);
     } catch (error) {
       handlers.onSectionFailure?.(error);
-      panel.append(renderUndrawnSection(document, section.heading));
     }
-  }
+  });
 
-  for (const notice of view.notices) {
-    const line = document.createElement("div");
-    line.className = "notice";
-    line.textContent = notice;
-    panel.append(line);
+  renderRegionInto(document, panel, handlers, "tabs", () => {
+    const tabs = document.createElement("div");
+    tabs.className = "tabs";
+    for (const tab of view.tabs) {
+      const button = document.createElement("div");
+      button.className = "tab";
+      button.textContent = tab.label;
+      button.style.setProperty("--selected", tab.isSelected ? "1" : "0");
+      metricByTab.set(button, tab.metric);
+      tabs.append(button);
+    }
+    return tabs;
+  });
+
+  renderRegionInto(document, panel, handlers, "header", () =>
+    renderHeader(document, view.header),
+  );
+
+  for (const section of view.sections) {
+    renderRegionInto(document, panel, handlers, section.heading, () =>
+      renderSection(document, section),
+    );
   }
 
   return panel;
+}
+
+/**
+ * Appends one region, or a marker the size of the region that failed.
+ *
+ * A function rather than a `try` per region because §9.6 makes the isolation
+ * structural: written out four times it is four places for the next region to be
+ * added without one.
+ */
+function renderRegionInto(
+  document: PanelDocument,
+  panel: PanelNode,
+  handlers: PanelHandlers,
+  heading: string,
+  render: () => PanelNode,
+): void {
+  try {
+    panel.append(render());
+  } catch (error) {
+    handlers.onSectionFailure?.(error);
+    panel.append(renderUndrawnSection(document, heading));
+  }
 }
 
 /**

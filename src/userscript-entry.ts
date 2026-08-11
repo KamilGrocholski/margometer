@@ -5,11 +5,11 @@
  * the game each live in a module that can be read on its own; this is the only
  * file that knows they go together, and the only one that touches `window`.
  *
- * **Nothing is drawn yet.** The panel is the next piece, and until it exists the
- * add-on reads and keeps the result. That is why `setMargoMeter` takes the
- * page rather than reaching for the global itself: the wiring is testable, and
- * the one unavoidable global read sits at the bottom of this file where an
- * auditor will find it.
+ * `setMargoMeter` takes the page rather than reaching for the global itself, so
+ * the wiring is testable and the one unavoidable global read sits at the bottom
+ * of this file where an auditor will find it. The panel is mounted the same way,
+ * from the document this file is handed — which is what lets the once-per-fight
+ * rule §9.6 asks for be checked without a browser.
  */
 
 import {
@@ -33,6 +33,8 @@ export type MargoMeterOptions = {
   onReading?: ((reading: FightReading) => void) | undefined;
   /** Told once, when the wrap is on the game. */
   onAttached?: (() => void) | undefined;
+  /** Told once, when the search gives up without ever finding the game. */
+  onSearchAbandoned?: (() => void) | undefined;
   onReadingFailure?: ((error: unknown) => void) | undefined;
   schedule?: ((step: () => void, everyMs: number) => number) | undefined;
   cancel?: ((handle: number) => void) | undefined;
@@ -47,10 +49,9 @@ export type MargoMeter = {
 /**
  * The name the running add-on answers to on the page.
  *
- * Until a panel exists this is the only way to see whether any of it works, and
- * it stays afterwards because "is it attached" is the first question anyone
- * reporting a wrong number will be asked. One property, namespaced, read-only in
- * spirit: the page belongs to the game.
+ * "Is it attached" is the first question anyone reporting a wrong number will be
+ * asked, and this is where it is answered from a console. One property,
+ * namespaced, read-only in spirit: the page belongs to the game.
  */
 export const PAGE_HANDLE = "margometer";
 
@@ -75,6 +76,7 @@ export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {})
     {
       onReadingFailure: options.onReadingFailure,
       onAttached: options.onAttached,
+      onSearchAbandoned: options.onSearchAbandoned,
       schedule: options.schedule,
       cancel: options.cancel,
     },
@@ -131,7 +133,12 @@ type HostPage = GameWindow & {
  * building, not of diffing. Losing a hand-written patcher's edge cases is worth
  * more than the frames it would save.
  */
-function composePanelMount(page: HostPage): ((reading: FightReading) => void) | null {
+export function composePanelMount(
+  page: HostPage,
+  /** Injected so the once-per-fight rule can be checked without a console. */
+  warn: (brand: string, detail: unknown) => void = (brand, detail) =>
+    console.warn(brand, detail),
+): ((reading: FightReading) => void) | null {
   const document = page.document as PanelDocument | undefined;
   if (document === undefined) return null;
 
@@ -146,7 +153,8 @@ function composePanelMount(page: HostPage): ((reading: FightReading) => void) | 
 
   let metric: PanelMetric = "dealt";
   let latest: FightReading | null = null;
-  let reported = false;
+  let failuresThisFight = 0;
+  let fightBeingCounted = 0;
 
   const renderLatest = (): void => {
     if (latest === null) return;
@@ -155,17 +163,32 @@ function composePanelMount(page: HostPage): ((reading: FightReading) => void) | 
         metric = chosen;
         renderLatest();
       },
-      // Once, not per render: a panel logging sixty times a second is itself a
-      // way of disturbing someone (§9.6).
+      /**
+       * Once per fight, not once per render: a fight redraws on every payload
+       * and a panel logging each time is itself a way of disturbing someone
+       * (§9.6). The repeats are counted rather than dropped, and what the count
+       * came to is said when the fight it belongs to is over.
+       */
       onSectionFailure: (error) => {
-        if (reported) return;
-        reported = true;
-        console.warn("MargoMeter/PanelSection", error);
+        failuresThisFight += 1;
+        if (failuresThisFight === 1) warn("MargoMeter/PanelSection", error);
       },
     });
   };
 
   return (reading) => {
+    // A warning belongs to the fight that produced it and clears with it (§9.6).
+    // Said here rather than in the handler because this is where the boundary is
+    // visible: the handler only ever sees failures, so a fight that ends cleanly
+    // would never reach it.
+    if (reading.fightsStarted !== fightBeingCounted) {
+      if (failuresThisFight > 1) {
+        warn("MargoMeter/PanelSection", `${failuresThisFight} failures in that fight, 1 printed`);
+      }
+      failuresThisFight = 0;
+      fightBeingCounted = reading.fightsStarted;
+    }
+
     latest = reading;
     renderLatest();
   };
@@ -179,6 +202,9 @@ if (shouldStartHere(page)) {
     // add-on writes to a console it shares with the game (§9.5). It is not a
     // running commentary: nothing else here prints.
     onAttached: () => console.info("MargoMeter/attached"),
+    // The other end of the same line: a page where the game never appeared says
+    // so once, rather than leaving a timer running and nothing on screen.
+    onSearchAbandoned: () => console.info("MargoMeter/no-game-here"),
     onReading: (reading) => renderReading?.(reading),
   });
 }

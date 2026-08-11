@@ -127,8 +127,31 @@ describe("layers", () => {
     (file) => {
       const source = getSourceWithoutComments(file);
       const reachingOut = [
-        ...source.matchAll(/\b(document|localStorage|sessionStorage|setTimeout|setInterval)\b/g),
+        ...source.matchAll(
+          /\b(document|window|localStorage|sessionStorage|setTimeout|setInterval)\b/g,
+        ),
       ].map((match) => match[1]);
+      expect(reachingOut, file).toEqual([]);
+    },
+  );
+
+  /**
+   * §9.1 lists the directions that exist — `ui → core`, `game → core`, everything
+   * → `libs`, entry point → everything — and `ui → game` is not one of them.
+   *
+   * ⚠️ **Arrived by being broken, and by a type import.** `panel-view.ts` took
+   * `FightReading` from `src/game/battle-session.ts`; nothing failed, because a
+   * type import compiles away. What it cost was the direction: the panel could no
+   * longer be read, tested or reused without the engine module in the graph, and
+   * the guard above covered `core` only, so the gate stayed green over it.
+   */
+  test.each(SOURCE_FILES.filter((file) => file.startsWith("src/ui/")))(
+    "%s draws what core produced, without reaching into the game",
+    (file) => {
+      const source = getSourceWithoutComments(file);
+      const reachingOut = [...source.matchAll(/\bfrom\s+"@\/src\/game\//g)].map(
+        (match) => match[0],
+      );
       expect(reachingOut, file).toEqual([]);
     },
   );
@@ -269,7 +292,7 @@ describe("value parsing", () => {
 });
 
 describe("fetched game sources", () => {
-  // AGENTS.md §7.5. The game client is someone else's copyrighted work; we may
+  // AGENTS.md §7.6. The game client is someone else's copyrighted work; we may
   // read it locally to understand the protocol, and it may never be published.
   const CACHE_DIRECTORY = ".cache/";
 

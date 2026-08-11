@@ -50,7 +50,7 @@ describe("decoding status", () => {
   // The inverse, so the probe cannot go green by calling everything read.
   test("still reports a key the decoder genuinely has no meaning for", () => {
     const unread = STATUS.unreadKeysByFrequency.map((entry) => entry.key);
-    expect(unread).toContain("step");
+    expect(unread).toContain("healall_per");
   });
 
   test("ranks unread keys by how often they occur", () => {

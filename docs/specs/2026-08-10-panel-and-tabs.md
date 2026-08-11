@@ -1,11 +1,16 @@
 # The panel and its tabs
 
-Status: draft
+Status: implemented
 
-What the add-on draws, decided before any of it is written. Design only — no
-code lands with this file. The rules it obeys are already in `AGENTS.md` §9.6
-(how the panel fails) and §9.7 (how it looks); this is where they become a
-layout.
+What the add-on draws, decided before any of it was written. The rules it obeys
+are already in `AGENTS.md` §9.6 (how the panel fails) and §9.7 (how it looks);
+this is where they became a layout.
+
+⚠️ **Two lines below were outgrown before this status caught up, and both are
+corrected in place rather than left to disagree with the tree.** The tab strip
+ships all three metrics rather than `dealt` alone, and the warning about unread
+keys spent its first commits as exactly the banner this file rejects. A spec that
+says `draft` while its code ships is a spec nobody rereads.
 
 ## The shape
 
@@ -26,9 +31,15 @@ A tab picks *which number the rows are ranked by*. It does not change who is
 listed, so switching tabs never makes a combatant appear or vanish — the eye
 keeps its place.
 
-The first and only tab built is **dealt**: `dealtApplied`, the damage a combatant
-actually landed. Later tabs are named here so the strip has a shape, and each
-lands with its own dated spec: taken, healed, and what a blow destroyed.
+The first tab is **dealt**: `dealtApplied`, the damage a combatant actually
+landed. **Taken** and **healed** shipped with it, and no separate spec was
+written for either — a tab differs from its neighbours only in which field of
+`CombatantStatistics` is ranked, so a spec per tab would be three files saying
+the same sentence about a different field name. What a blow **destroyed** is not
+a tab and does need its own spec when it comes: its members are not in one unit
+(points of armour beside percentage points of resistance), so ranking them
+against each other would be adding two different things — the mistake the
+aggregate is built to prevent.
 
 **`dealtRaw` is not a tab.** It is not comparable across combatants: damage the
 protocol states against a name carries no raw figure, so a combatant working
@@ -38,13 +49,19 @@ or nowhere.
 
 ## A row
 
-Rank, name, and **one** figure. A row is read at a glance during a fight, and a
-second number in it is a number nobody reads.
+Name, the figure, and the figure's share of the side. A row is read at a glance
+during a fight, so nothing else goes in one.
 
+- **No rank number.** The rows are already in order; a digit repeating their
+  position is the second number this section was written to keep out.
 - The figure is right-aligned and tabular, so the digits line up down the column
   and the eye compares lengths rather than reading each one.
-- A bar behind the row shows the share of the side's total. Colour never carries
-  the meaning alone (§9.7) — the figure is always there.
+- A bar behind the row shows the share of the side's total, and **the share is
+  written as well as drawn**. This is where the section's own "one figure" rule
+  gives way, and to a rule that outranks it: §9.7 says colour never carries
+  meaning alone, and a bar whose *length* is the meaning is the same case. The
+  alternative was a bar nobody could read a number off, which is a chart, not a
+  meter.
 - Sides are separated with their own heading and their own total. The player's
   own side is labelled as such, which the game states as `myteam`; when the game
   does not say, the sides are shown by number and neither is called ours. Silence
@@ -55,8 +72,11 @@ second number in it is a number nobody reads.
 This is the part that makes the panel worth trusting, and it is decided here
 rather than left to whoever writes the markup.
 
-- **Zero and unknown never look alike.** A combatant who dealt nothing shows `0`.
-  A figure we could not read shows a mark, never a number.
+- **Zero and unknown never look alike.** A combatant who dealt nothing shows `0`,
+  because the log measured nothing for them and that is a reading. What could not
+  be read is never a row of its own: the decoder cannot say whose figure a
+  message it failed to read would have been, so the mark goes on the total that
+  may be short of it — below — and never on a name it would be a guess about.
 - **A suspect total is marked at the total**, not in a banner. `FightStatistics`
   carries `reading.unreadableMessages`; while it is non-zero the fight's totals
   carry a small static mark meaning *this may be low*, with the detail on hover.

@@ -153,11 +153,12 @@ describe("decoding a single message", () => {
   });
 
   test("reports a key it has no meaning for, naming the key", () => {
-    const [event] = decodeFight(["0;0;+exp=3973"]);
+    const [event] = decodeFight(["0;0;-legbon_facade=13"]);
     expect(event).toEqual({
       kind: "unknown-message",
-      message: "0;0;+exp=3973",
-      reason: "no meaning yet for +exp",
+      message: "0;0;-legbon_facade=13",
+      reason: "no meaning yet for -legbon_facade",
+      unreadKeys: ["-legbon_facade"],
     });
   });
 
@@ -172,6 +173,7 @@ describe("decoding a single message", () => {
         prevented: [],
         procs: [],
         destroyed: [],
+        declared: [],
       },
     ]);
   });
@@ -289,6 +291,7 @@ describe("decoding a single message", () => {
         targetId: -10000249,
         skillName: "Skill One",
         skillId: 23,
+        declared: [],
       },
     ]);
   });
@@ -314,6 +317,7 @@ describe("decoding a single message", () => {
       kind: "unknown-message",
       message: "1=100.00;2=50.00;skillId=23",
       reason: "no meaning yet for skillId",
+      unreadKeys: ["skillId"],
     });
   });
 
@@ -387,7 +391,9 @@ describe("decoding a single message", () => {
   // reported like anything else the decoder cannot read.
   test("reports a message that carries no parameters at all", () => {
     expect(decodeFight(["0;0"])).toEqual([
-      { kind: "unknown-message", message: "0;0", reason: "carries no parameters" },
+      // No key to name — the message had none, which is not the same claim as
+      // a key nobody has read yet.
+      { kind: "unknown-message", message: "0;0", reason: "carries no parameters", unreadKeys: [] },
     ]);
   });
 
@@ -408,7 +414,7 @@ describe("decoding a single message", () => {
   // Half understood is not understood. Without this, a message carrying one
   // known key beside three unknown ones would look fully read.
   test("reports the unread keys of a message it partly understood", () => {
-    const events = decodeFight(["0;0;winner=Gracz 1;+exp=10"]);
+    const events = decodeFight(["0;0;winner=Gracz 1;-legbon_facade=13"]);
     expect(events.map((event) => event.kind)).toEqual(["fight-outcome", "unknown-message"]);
   });
 });

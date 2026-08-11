@@ -11,7 +11,8 @@
 
 import { describe, expect, test } from "bun:test";
 import { getIntegerFromText } from "@/libs/number.ts";
-import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
@@ -50,6 +51,22 @@ const MESSAGES: Message[] = CAPTURED_FIGHTS.flatMap((fight) =>
 );
 
 const ANNOUNCEMENTS = MESSAGES.filter(({ keys }) => keys.includes(SKILL_NAME_KEY));
+
+/** Restated here rather than exported: a guard that imports the list it guards
+ * against agrees with the decoder by construction and checks nothing. */
+const DECLARATION_KEYS = [
+  "active_decblock_per",
+  "active_decblock_per-enemies",
+  "active_block_per",
+  "alllowdmg",
+  "allslow_per",
+  "aura-ac_per",
+  "aura-resall",
+  "aura-sa_per",
+  "mana",
+  "energy",
+  "shout",
+];
 
 describe("what a skill announcement carries", () => {
   test("the captures carry announcements to check", () => {
@@ -107,7 +124,113 @@ describe("`combo-max` on that announcement", () => {
     }
   });
 
-  test("stays unread, because it qualifies a skill and not a figure", () => {
-    expect(UNDERSTOOD_PROTOCOL_KEYS).not.toContain(COMBO_LIMIT_KEY);
+  /**
+   * Read as a declaration: a count of points the skill will spend, which is an
+   * input. What the points come to arrives as ordinary figures, already computed,
+   * so nothing totals this — the second assertion is the one that matters.
+   */
+  test("is read as a declaration, and counts towards nothing", () => {
+    expect(UNDERSTOOD_PROTOCOL_KEYS).toContain(COMBO_LIMIT_KEY);
+
+    const statistics = composeFightStatistics(
+      decodeFight([`1=100.00;0;tspell=Something;${COMBO_LIMIT_KEY}=3`]),
+    );
+    expect(statistics.byCombatantId.get(1)?.skillsUsed).toBe(1);
+    expect(statistics.byCombatantId.get(1)?.dealtApplied).toBe(0);
+    expect(statistics.reading.unreadableMessages).toBe(0);
+  });
+});
+
+/**
+ * The eleven keys an announcement states about the skill itself.
+ *
+ * They are read — `SkillUsedEvent.declared` — and they are still not figures.
+ * Both halves are held here, because the first without the second is how a
+ * declaration becomes a statistic: `alllowdmg=5` says a skill will lower the
+ * other side's damage, not that anybody's damage fell by five of anything.
+ */
+describe("what an announcement declares about its skill", () => {
+  const DECLARED = CAPTURED_FIGHTS.flatMap((fight) =>
+    decodeFight(fight.dump.calls.flatMap((call) => call.protocolMessages)).flatMap((event) =>
+      event.kind === "skill-used" ? event.declared : [],
+    ),
+  );
+
+  test("the captures carry declarations to check", () => {
+    expect(DECLARED.length).toBeGreaterThan(0);
+  });
+
+  /**
+   * Every occurrence rides an announcement, which is the measurement the whole
+   * reading rests on: a declaration on a blow would be a declaration next to a
+   * figure, and that is the join the protocol never states.
+   */
+  test("every one of them arrived on a skill announcement", () => {
+    const onAnnouncements = MESSAGES.filter(({ keys }) =>
+      keys.some((key) => DECLARATION_KEYS.includes(key)),
+    );
+    expect(onAnnouncements.length).toBeGreaterThan(0);
+    for (const message of onAnnouncements) {
+      expect(message.keys, message.keys.join(";")).toContain(SKILL_NAME_KEY);
+    }
+  });
+
+  // The cost the game states is a fall, and it states it as one.
+  test("`mana` states a fall, never a price to be added", () => {
+    const mana = DECLARED.filter((declaration) => declaration.effect === "mana");
+    expect(mana.length).toBeGreaterThan(0);
+    for (const declaration of mana) expect(declaration.amount).toBeLessThan(0);
+  });
+
+  // The one whose value names somebody rather than counting something.
+  test("`shout` carries a name and no figure", () => {
+    const shouts = DECLARED.filter((declaration) => declaration.effect === "shout");
+    expect(shouts.length).toBeGreaterThan(0);
+    for (const shout of shouts) {
+      expect(shout.amount).toBeNull();
+      expect(shout.text).not.toBe("");
+      expect(shout.text).not.toBeNull();
+    }
+  });
+
+  /**
+   * The half that keeps a declaration from becoming a measurement: no figure any
+   * of these states reaches any combatant's row, or the unattributed bucket, or
+   * a side's totals.
+   */
+  test("nothing a declaration states reaches a statistic", () => {
+    const announced = decodeFight([
+      "1=100.00;0;tspell=Something;alllowdmg=5;aura-ac_per=20;mana=-3;energy=0",
+    ]);
+    const statistics = composeFightStatistics(announced);
+    const row = statistics.byCombatantId.get(1);
+
+    expect(announced[0]?.kind).toBe("skill-used");
+    expect(row?.skillsUsed).toBe(1);
+    expect(row?.dealtRaw).toBe(0);
+    expect(row?.dealtApplied).toBe(0);
+    expect(row?.taken).toBe(0);
+    expect(row?.healed).toBe(0);
+    expect(statistics.unattributed.taken).toBe(0);
+    expect(statistics.reading.unreadableMessages).toBe(0);
+  });
+
+  /**
+   * A declaration with no announcement has nowhere to belong, so it goes back to
+   * being unread rather than being dropped. Never seen in the captures — the test
+   * above is what says so — but the decoder must not lose one if it ever is.
+   */
+  test("a declaration with no skill to belong to is reported unread", () => {
+    const [event] = decodeFight(["1=100.00;0;alllowdmg=5"]);
+    expect(event?.kind).toBe("unknown-message");
+    expect(event).toMatchObject({ unreadKeys: ["alllowdmg"] });
+  });
+
+  // The shape is checked, not assumed: the day one of these carries something
+  // else, it is loud rather than quietly read as a declaration of nothing.
+  test("a declaration whose value is not a figure is reported unread", () => {
+    const events = decodeFight(["1=100.00;0;tspell=Something;alllowdmg=quite a lot"]);
+    expect(events.map((event) => event.kind)).toEqual(["skill-used", "unknown-message"]);
+    expect(events[1]).toMatchObject({ unreadKeys: ["alllowdmg"] });
   });
 });

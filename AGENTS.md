@@ -54,11 +54,17 @@ Untagged prose is context and reasoning — read it, but it does not bind.
 | `[game]` | Anything touching the live game client | `src/game/` |
 | `[ui]` | The panel and everything it draws | `src/ui/` |
 | `[data]` | Material captured from the game | `tests/captured-fights/` |
+| `[tools]` | Runs in a terminal, never ships | `tools/`, `build.ts` |
+| `[docs]` | The register and the specs | `docs/` |
 | `[process]` | Commits, validation, workflow | — |
+
+The entry point `src/userscript-entry.ts` is `[any]`: it is the one file allowed
+to know every layer at once, so no narrower scope would be true of it.
 
 ⚠️ **This table is the map — keep it true.** A scope whose path no longer
 exists, or a directory missing from this table, is the first sign the rules have
-drifted from the tree.
+drifted from the tree. `tests/` outside `tests/captured-fights/` is deliberately
+absent: a test is bound by the scope of the thing it tests.
 
 ---
 
@@ -153,7 +159,9 @@ bun run build      # produces dist/margometer.user.js
 ### 6.2 Tooling
 
 Tools are added when a question needs answering, not in advance (§7.1). Each one
-that exists is listed here with what it answers.
+that exists is listed here with what it answers. `tools/margometer-tool-error.ts`
+is the exception and stays out of the table: it answers no question, it is the
+base every tool below throws from (§9.5).
 
 | Tool | Answers |
 |---|---|
@@ -161,7 +169,7 @@ that exists is listed here with what it answers.
 | `tools/game-client-source.ts` | *What is the game serving, and give me its source.* `status` compares served build against the cache; `fetch [channel]` downloads into `.cache/` with provenance. §7.6. |
 | `tools/protocol-key-table.ts` | *Which protocol keys does the client know?* Lifts them from the cached production bundle; `freeze` writes `tests/frozen-protocol-keys.ts`. |
 | `tools/decoding-status.ts` | *How much of the protocol do we read?* Messages, events by kind, unread keys by frequency. Computed on demand — these figures never go into prose (§5). |
-| `tools/fight-report.ts` | *What would the panel show for this fight?* Runs the decoder and the aggregate over each capture and prints the per-combatant table, so the numbers can be read before a panel exists. |
+| `tools/fight-report.ts` | *What would the panel show for this fight?* Runs the decoder and the aggregate over each capture and prints the per-combatant table — everything the numbers hold, including what the panel has no room for. |
 | `tools/help-article.ts` | *What does the game's own documentation say about this mechanic?* `fetch` caches an article, `search` prints raw context around a phrase and exits non-zero when there is none. §7.6. |
 
 ---
@@ -366,11 +374,14 @@ LICENSE            MIT — covers what was written here, and nothing else.
 NOTICE.md          What of the game's is in this repository, and on what basis.
 
 build.ts                 Bundles src/ into dist/ and prepends the userscript
-                         banner. Also exports userscriptBanner() — the test is
-                         its second consumer.
+                         banner. Also exports composeUserscriptBanner() — the
+                         test is its second consumer.
 package.json             Version, scripts. `bun run check` is the gate.
 tsconfig.json            Strict flags standing in for a linter, and the `@/*`
                          import alias — §9.3.
+.gitignore               What never enters git, including `.cache/` — which
+                         `tests/tools/source-layout.test.ts` reads rather than
+                         trusts (§7.6).
 .github/workflows/       check.yml: the gate, nothing else yet.
 
 .cache/                  Game client sources, fetched on demand. NOT tracked and
@@ -400,23 +411,32 @@ libs/
 
 src/
   userscript-entry.ts    Bundle entry point, and the only file that reads a
-                         global. Wires the game to the reading and holds the
-                         session; draws nothing yet.
+                         global. Wires the game to the reading, holds the session,
+                         and mounts the panel — including the rule that the
+                         console hears about a failing section once per fight and
+                         not once per render.
   core/
     margometer-error.ts  Base for everything the add-on throws — §9.5.
     protocol-message.ts  Grammar of one message: two sides, then key/value
                          segments. Structure only, strict, reversible.
-    battle-event.ts      What the decoder produces. Grows one variant at a time.
+    battle-event.ts      What the decoder produces. Grows one variant at a time,
+                         and holds the line between a figure that measures
+                         something and one the protocol merely declares — §10.
     combatant-roster.ts  Who is in the fight, so a name the protocol states can
                          be matched to an id, and which side each is on. An
                          ambiguous name resolves to nobody — never to the first
                          match.
     fight-decoder.ts     Messages → events. Drops nothing, invents nothing.
                          Takes the roster; without one, names resolve to nobody.
+                         A key it cannot read is named, one entry per occurrence,
+                         so the panel can say which.
     fight-statistics.ts  Events → the numbers a panel draws, per combatant and
                          per side. Raw and applied kept apart, units never
                          totalled across, and what could not be read, attributed
-                         or placed on a side carried rather than dropped.
+                         or placed on a side carried rather than dropped. A
+                         declaration reaches no figure, said as an empty case
+                         rather than by falling through — the compiler refuses a
+                         variant nobody decided about.
   game/
     engine-battle-wrap.ts
                          The only code here that changes a running game: it
@@ -433,18 +453,23 @@ src/
                          so this is a search and not a watch.
     battle-session.ts    One fight accumulated payload by payload: `init` opens
                          it, the roster arrives in fragments that merge, and
-                         `myteam` arrives once or never. Pure — the mutable
-                         variable belongs to whoever drives it.
+                         `myteam` arrives once or never. Counts the fights it has
+                         watched open, which is the only thing surviving the
+                         reset — a warning is scoped to one fight (§9.6). Pure —
+                         the mutable variable belongs to whoever drives it.
   ui/
     panel-tokens.ts      Every colour, space and radius, named once, plus the
                          contrast arithmetic a test needs to hold them to §9.7.
                          The bar tint is a measured value, not a taste.
-    panel-view.ts        What the panel shows, as data: rows, shares, headings
-                         and the notices that qualify them. No DOM, so all of it
-                         is checkable.
+    panel-view.ts        What the panel shows, as data: a header, rows, shares,
+                         and the marks that qualify a figure — one at the total
+                         that may be low, one in the header when the fight is not
+                         ours to count. Takes its own input type, so `ui` names no
+                         direction to `game`. No DOM, so all of it is checkable.
     panel-element.ts     The same, drawn. Takes a document as an argument, opens
-                         one shadow root, and renders section by section so that
-                         one failure is the size of the thing that failed.
+                         one shadow root, binds one listener at that root, and
+                         renders region by region so that one failure is the size
+                         of the thing that failed.
 
 tools/
   margometer-tool-error.ts
@@ -543,6 +568,12 @@ tests/
                              anything the log ties to nobody reaches the bucket
                              instead of a row. Says why a fight-scale check
                              against the snapshots is absent.
+    declaration-rule.test.ts
+                             What the protocol states that no total counts, and
+                             the test a key passes to be read that way: every
+                             standalone key alone in its message, the aggregate
+                             computed twice and agreeing, and the four keys still
+                             refused with the reason each is refused.
     battle-event.test.ts  fight-decoder.test.ts  margometer-error.test.ts
     protocol-key-register.test.ts  protocol-message.test.ts
 
@@ -557,15 +588,18 @@ tests/
                              add-on driven end to end by a captured fight through
                              the entry point the userscript actually runs.
     battle-session.test.ts   How a fight is assembled from payloads: where one
-                             ends, a roster that only ever grows, and a side
-                             remembered from the one payload that states it.
+                             ends, a roster that only ever grows, a side
+                             remembered from the one payload that states it, and
+                             a fight count that outlives the reset.
 
   ui/
     panel.test.ts            The panel against §9.6 and §9.7, on a fake document:
-                             what survives a section failing, that a handler
-                             cannot escape into the page, that unread keys reach
-                             the screen, and that every bar clears AA by
-                             measurement.
+                             that everyone the aggregate counted is drawn once,
+                             what survives a section failing, that one listener
+                             serves the whole panel, that a handler cannot escape
+                             into the page, that what could not be read is marked
+                             at the total it may have shortened, and that every
+                             bar clears AA by measurement.
 
   tools/                 The tooling, the build, and the rules the repository
                          holds itself to.
@@ -578,10 +612,12 @@ tests/
                              like this one.
     cited-paths.test.ts      Every repository path this repository names in its
                              own text — documents and source comments alike —
-                             points at a file that exists. The move above left
-                             citations behind across five files and nothing
-                             noticed; "held by `x`" is the sentence that stops a
-                             reader checking whether anything holds it.
+                             points at a file that exists, every directory it
+                             names is there, and every §N.M it cites is a section
+                             these rules have. The move above left citations
+                             behind across five files and nothing noticed; "held
+                             by `x`" is the sentence that stops a reader checking
+                             whether anything holds it.
     structure-block.test.ts  The block above, against the tree it describes: every
                              name in it exists, and every tracked file under
                              `libs/`, `src/` and `tools/` appears. Reads the block
@@ -592,7 +628,10 @@ tests/
     protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```
 
-The game layer and the panel are yet to be written.
+Every layer named above exists. What the panel does **not** do yet is listed in
+`docs/specs/2026-08-10-panel-and-tabs.md` under what it deliberately does not do;
+nothing persists across a reload, and no fight is remembered once the next
+begins.
 
 ---
 
@@ -971,11 +1010,17 @@ Two severities are enough, and adding a third is `[ASK]`:
 | **Suspect** | The numbers drew fine, but something was unreadable, so a total may be too low | A mark next to the affected figure; detail on demand |
 | **Undrawn** | A section could not be rendered at all | That section replaced in place by a short marker; everything else unaffected |
 
-Landing with the first UI file, not before: a test that a section which throws
-leaves its neighbours rendered; a test that no code path calls `alert`,
+Landed with the first UI file, and each still there: a test that a section which
+throws leaves its neighbours rendered; a test that no code path calls `alert`,
 `confirm` or `prompt`; a test that a handler which throws does not propagate out
 of the shadow root; and a test that unread-key counts from the decoder reach the
 panel instead of stopping at the aggregate.
+
+The last of those went unmet for as long as `UnknownMessageEvent` carried only
+the decoder's prose: counting per key needed the contract widened, which is
+`[ASK]` under §4. It was asked, and the event now carries the keys themselves —
+so the panel names them, and a reader can look one up here and in
+`docs/protocol-keys.md` rather than reading a sentence they can do nothing with.
 
 ### 9.7 Design System
 
@@ -1007,6 +1052,7 @@ Terms from the game, fixed here so module names do not drift apart.
 | **prevented** | Damage the protocol says a defence stopped: absorption, magic absorption, a block. One component of the reduction, never the whole — armour and resistance reduce as well and the protocol reports neither, so the rest of the gap is unattributable. Measured: the gap is wider in 62 of the 68 messages carrying a defence. |
 | **destroyed** | A statistic of the target an attack reduced — armour and absorption in points, elemental resistance in percentage points. Not damage, and never totalled with it; the members are not in one unit either, so they are not totalled with each other. |
 | **proc** | An effect that fired alongside an attack. Carries no figure: the protocol states the name and stops. |
+| **declaration** | A figure the protocol states that **no total here counts**: an *input* (a share a skill will apply, what it costs, a weakening the figures beside it already have), or an outcome in a *unit this meter does not keep* (energy, attack speed, combination points, experience). Read, and **never totalled with anything**. The test a key must pass: *whatever this figure did, is it either reported elsewhere or in a unit no total keeps?* `healall_per` fails it — the health it restores is stated nowhere else — so it stays unread and its warning is true. |
 | **skill** | A named ability a combatant used. Its announcement carries no key of the damage family, but it is not always a message of its own: damage aimed at a name, and healing, ride the announcement itself. That the figure is the skill's doing is still not stated, so tying the two remains an inference, not a reading. |
 | **element** | Damage type (fire, cold, physical, …), taken from the key. |
 | **dot** | Damage over time, ticking outside a direct attack. |

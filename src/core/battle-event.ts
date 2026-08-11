@@ -70,6 +70,12 @@ export type AttackEvent = {
   procs: string[];
   /** Statistics of the target this blow reduced. Belongs to the target too. */
   destroyed: StatisticDestruction[];
+  /**
+   * Shares the message states about the blow itself — a weakening already applied
+   * to the figures beside them, or a wound announced here and delivered later.
+   * Never totalled with anything: see `DeclaredEffect`.
+   */
+  declared: DeclaredEffect[];
 };
 
 /**
@@ -125,6 +131,55 @@ export type HealthChangeEvent = {
 };
 
 /**
+ * Something the protocol states that **no total here counts**.
+ *
+ * Two kinds qualify, and the register says which each key is:
+ *
+ *   - an **input** rather than an outcome — what a skill costs, what it grants,
+ *     the share by which a blow was already weakened before it was reported;
+ *   - an outcome in a **unit this meter does not keep** — energy returned, attack
+ *     speed slowed, combination points spent.
+ *
+ * ⚠️ **Nothing downstream may total one.** `alllowdmg=5` says a skill lowers the
+ * opposing side's damage by a share; it does not say anybody's damage fell, and
+ * by how much is a question the later blows answer on their own, already reduced.
+ * `-poison_lowdmg_per=10` is the same shape from the other end: the figures beside
+ * it have it applied, so adding it anywhere would subtract a reduction twice.
+ *
+ * ⚠️ **The test a key must pass to land here**, and it is not "we understand it":
+ * *whatever this figure did, is it either reported elsewhere or in a unit no
+ * total here keeps?* `healall_per` is the key that fails it — the health it
+ * restores is stated nowhere else in the protocol, so reading it as a declaration
+ * would silence a warning while the healing total really is short. It stays
+ * unread for exactly that reason, and the mark it raises is true.
+ *
+ * Getting that test right is the whole value of the type: nineteen keys spent the
+ * life of the register marking their messages unread, which made the panel say a
+ * total might be low because of a key that could never have lowered one. A
+ * warning that fires when nothing is wrong is a warning nobody reads — and the
+ * one that matters is the one it would be lost among.
+ */
+export type DeclaredEffect = {
+  /** The client's own key, exactly as the protocol wrote it. */
+  effect: string;
+  /**
+   * The figure stated, signed as the protocol signs it — `mana` states what the
+   * resource does, which is fall, so it arrives negative. Null where the value is
+   * not a figure, or where the key carries none at all.
+   */
+  amount: number | null;
+  /**
+   * The value where it was not a figure, exactly as it arrived: a combatant's
+   * name for `shout`, a skill being prepared, the client's own log line for
+   * `txt`. What each one means is the register's business, not this type's.
+   *
+   * Read at run time and stored nowhere here — these carry the game's own words
+   * and other players' names (NOTICE.md).
+   */
+  text: string | null;
+};
+
+/**
  * A named skill a combatant used.
  *
  * **Not part of the blow**, but not a message of its own either, and an earlier
@@ -158,6 +213,34 @@ export type SkillUsedEvent = {
    * 197 announcements, which is why the name is what this event is built on.
    */
   skillId: number | null;
+  /**
+   * What the announcement states about the skill. Empty for most of them, and
+   * empty is a reading rather than a gap: the announcement said nothing further.
+   */
+  declared: DeclaredEffect[];
+};
+
+/**
+ * A message that states something and reports nothing that happened to anybody.
+ *
+ * Measured: every key that lands here is the **only** key in its message — a
+ * turn marker, a skill being prepared, a line for the client's own log, the
+ * experience at the end, an aura declared once for the fight. None of them rides
+ * a blow or an announcement, so there is no event of another kind for them to
+ * belong to, and without this one they would be indistinguishable from a key
+ * nobody has read yet.
+ *
+ * It reports **no figure any statistic touches**, which is the same promise
+ * `DeclaredEffect` makes everywhere else it appears.
+ */
+export type DeclarationEvent = {
+  kind: "declaration";
+  /**
+   * The combatant the message names, where it names one. `step` and `prepare`
+   * always name their actor; `txt` and `+exp` name nobody at all.
+   */
+  combatantId: number | null;
+  declared: DeclaredEffect[];
 };
 
 export type FightOutcomeEvent = {
@@ -176,6 +259,20 @@ export type UnknownMessageEvent = {
   message: string;
   /** Why it was not understood: unreadable grammar, or keys with no meaning yet. */
   reason: string;
+  /**
+   * The keys with no meaning yet, exactly as the protocol wrote them, one entry
+   * per occurrence.
+   *
+   * **Empty is a claim of its own**: the grammar itself was unreadable, or the
+   * message carried no parameters at all, so there is no key to name. It never
+   * means "nothing was unread" — this event exists only where something was.
+   *
+   * Carried as keys and not only as the prose in `reason` because a reader asking
+   * *what is my total missing* can act on a key and cannot act on a sentence:
+   * a key can be looked up in `docs/protocol-keys.md`, counted across a fight,
+   * and reported to us verbatim.
+   */
+  unreadKeys: readonly string[];
 };
 
 export type BattleEvent =
@@ -183,6 +280,7 @@ export type BattleEvent =
   | DamageToNamedCombatantEvent
   | HealthChangeEvent
   | SkillUsedEvent
+  | DeclarationEvent
   | FightOutcomeEvent
   | UnknownMessageEvent;
 
@@ -196,6 +294,7 @@ export const BATTLE_EVENT_KINDS = [
   "damage-to-named-combatant",
   "health-change",
   "skill-used",
+  "declaration",
   "fight-outcome",
   "unknown-message",
 ] as const satisfies

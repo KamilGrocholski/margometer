@@ -12,7 +12,8 @@
 
 import { describe, expect, test } from "bun:test";
 import { getIntegerFromText } from "@/libs/number.ts";
-import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
@@ -93,11 +94,51 @@ describe("what `-poison_lowdmg_per` reports", () => {
     expect(withoutFigure).toEqual([]);
   });
 
-  // The entry's conclusion. Nothing here reads a share, and the damage beside it
-  // is already net — so reading this key would either double the reduction or
-  // need a slot that means something no other key means.
-  test("stays unread, because the damage beside it is already reported net", () => {
-    expect(UNDERSTOOD_PROTOCOL_KEYS).not.toContain(REDUCTION_KEY);
+  /**
+   * The entry's conclusion, in the form the contract can now hold.
+   *
+   * The damage beside it is already net, so this share is subtracted from
+   * nothing and totalled with nothing — it is a **declaration**. Reading it as
+   * points would invent a unit; reading it as a reduction would take it twice.
+   * Until `AttackEvent` had a slot for a stated input, refusing to read it at all
+   * was the only way to say that; the claim held here is the stronger one.
+   */
+  test("is read as a declaration, and reduces nothing a second time", () => {
+    expect(UNDERSTOOD_PROTOCOL_KEYS).toContain(REDUCTION_KEY);
+
+    const statistics = composeFightStatistics(
+      decodeFight(["1=90.00;2=50.00;+dmg=500;-dmg=400;-poison_lowdmg_per=10"]),
+    );
+    expect(statistics.byCombatantId.get(2)?.taken).toBe(400);
+    expect(statistics.byCombatantId.get(1)?.dealtRaw).toBe(500);
+    expect(statistics.reading.unreadableMessages).toBe(0);
+  });
+
+  /**
+   * The five messages in the group fight whose damage is **all** aimed at names.
+   *
+   * They carry no `+dmg`/`-dmg` of their own, so before this key was read they
+   * produced no attack event at all — now they produce one carrying nothing but
+   * the declaration. That is the honest reading of an area blow, and it must stay
+   * empty: the damage itself belongs to the named combatants and is counted
+   * exactly once, through `damage-to-named-combatant`.
+   */
+  test("an area blow reported entirely against names counts once, not twice", () => {
+    const events = decodeFight([
+      "1=90.00;2=50.00;-poison_lowdmg_per=10;+oth_dmg=300,g,Gracz 1(80.00%)",
+    ]);
+    const attack = events.find((event) => event.kind === "attack");
+
+    expect(attack).toMatchObject({
+      dealt: [],
+      taken: [],
+      prevented: [],
+      destroyed: [],
+      procs: [],
+      declared: [{ effect: REDUCTION_KEY, amount: 10 }],
+    });
+    expect(events.some((event) => event.kind === "damage-to-named-combatant")).toBe(true);
+    expect(events.some((event) => event.kind === "unknown-message")).toBe(false);
   });
 
   /**

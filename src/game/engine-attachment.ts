@@ -10,7 +10,9 @@
  * initialisation (`docs/specs/2026-08-10-reading-a-live-fight.md`), and a
  * userscript at `document-idle` may arrive before or after that. So this looks
  * now, and keeps looking until it finds it — then stops looking. There is
- * nothing to poll for afterwards: the object is not replaced.
+ * nothing to poll for afterwards: the object is not replaced. It also stops
+ * looking when the game plainly is not coming, because a search with no end is
+ * something the page pays for forever.
  *
  * What polling cannot fix is a fight already in progress. That is not a bug to
  * engineer away but a fact to report, and `battle-session.ts` carries it as
@@ -31,6 +33,8 @@ export type AttachmentOptions = {
   cancel?: ((handle: number) => void) | undefined;
   /** Told once, when the wrap is on. */
   onAttached?: (() => void) | undefined;
+  /** Told once, when the search stops without ever finding the game. */
+  onSearchAbandoned?: (() => void) | undefined;
   onReadingFailure?: ((error: unknown) => void) | undefined;
 };
 
@@ -43,6 +47,21 @@ export type AttachmentOptions = {
  * this is a search, not a watch.
  */
 const LOOK_AGAIN_EVERY_MS = 100;
+
+/**
+ * How long to keep looking before accepting that the game is not coming.
+ *
+ * ⚠️ **Without a bound this timer runs ten times a second for the life of the
+ * tab.** A page that matches but never builds an engine — a world page that
+ * failed to load, anything the exclude list in `build.ts` does not catch — pays
+ * that forever, and the add-on has no way to say it is not running: a timer that
+ * never finds anything looks exactly like one that has nothing to do.
+ *
+ * A minute is taste, not a measurement, and it is deliberately generous: the cost
+ * of giving up too early is an add-on that never attaches on a slow machine,
+ * which is the worse failure of the two and the one nobody would report.
+ */
+const GIVE_UP_AFTER_MS = 60_000;
 
 /**
  * Reads `Engine.battle` without trusting any of it.
@@ -81,6 +100,7 @@ export function setEngineAttachment(
 
   let removeWrap: (() => void) | null = null;
   let handle: number | null = null;
+  let looksLeft = GIVE_UP_AFTER_MS / LOOK_AGAIN_EVERY_MS;
 
   function removeSearchTimer(): void {
     if (handle === null) return;
@@ -91,7 +111,17 @@ export function setEngineAttachment(
   function setWrapIfPresent(): void {
     if (removeWrap !== null) return;
     const battle = getBattleFromWindow(page);
-    if (battle === null) return;
+    if (battle === null) {
+      // Only a scheduled look counts against the bound; the first one happens
+      // before the timer exists and would otherwise cost a tick.
+      if (handle === null) return;
+      looksLeft -= 1;
+      if (looksLeft <= 0) {
+        removeSearchTimer();
+        options.onSearchAbandoned?.();
+      }
+      return;
+    }
 
     removeWrap = setBattleWrap(battle, onMessages, {
       onReadingFailure: options.onReadingFailure,

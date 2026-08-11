@@ -15,6 +15,21 @@ const BUNDLE_ENTRY_POINT = "./src/userscript-entry.ts";
 const NON_GAME_HOSTS = ["www", "forum", "commons", "pomoc"];
 const GAME_TOP_LEVEL_DOMAINS = ["pl", "com"];
 
+/**
+ * The same hosts as `@match` sees them, and the empty one is the point.
+ *
+ * ⚠️ **`*.margonem.pl` matches the bare `margonem.pl` as well as its
+ * subdomains.** Match patterns: `*.` followed by part of the hostname matches
+ * "the given host (and port) and any of its subdomains" — `*://*.mozilla.org/*`
+ * is listed there as matching `https://mozilla.org/`
+ * (developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Match_patterns,
+ * read 2026-08-11).
+ *
+ * So excluding `www` and leaving the bare domain out left the add-on loading on
+ * the operator's own site, which is exactly what this list exists to prevent.
+ */
+const NON_GAME_HOST_PREFIXES = [...NON_GAME_HOSTS.map((host) => `${host}.`), ""];
+
 /** A metadata directive: the key Tampermonkey reads, and its value. */
 type UserscriptDirective = readonly [key: string, value: string];
 
@@ -31,13 +46,15 @@ export function composeUserscriptBanner(version: string, description: string, ho
     ...GAME_TOP_LEVEL_DOMAINS.map(
       (tld) => ["match", `https://*.margonem.${tld}/*`] as UserscriptDirective,
     ),
-    ...NON_GAME_HOSTS.flatMap((host) =>
+    ...NON_GAME_HOST_PREFIXES.flatMap((host) =>
       GAME_TOP_LEVEL_DOMAINS.map(
-        (tld) => ["exclude", `https://${host}.margonem.${tld}/*`] as UserscriptDirective,
+        (tld) => ["exclude", `https://${host}margonem.${tld}/*`] as UserscriptDirective,
       ),
     ),
     ["noframes", ""],
     ["grant", "none"],
+    // The pasted file is the only copy of the licence a user receives.
+    ["license", "MIT"],
     ["run-at", "document-idle"],
   ];
 

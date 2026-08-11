@@ -12,7 +12,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { getIntegerFromText } from "@/libs/number.ts";
-import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
@@ -131,7 +131,21 @@ describe("the declaration that carries the share", () => {
     expect(stated).toEqual([String(DECLARED_SHARE_PERCENT)]);
   });
 
-  test("stays unread, because attaching it to a blow is not something the protocol states", () => {
-    expect(UNDERSTOOD_PROTOCOL_KEYS).not.toContain(DECLARATION_KEY);
+  /**
+   * Read as a declaration on the announcement it rides, and joined to no blow.
+   *
+   * The join is what the protocol never states, and that has not changed: the
+   * share lands in `SkillUsedEvent.declared`, beside the skill that declared it,
+   * and the reports of what was actually destroyed stay where they were — in
+   * `destroyed`, on the blows, in points.
+   */
+  test("is read on its announcement, and attached to no blow", () => {
+    expect(UNDERSTOOD_PROTOCOL_KEYS).toContain(DECLARATION_KEY);
+
+    const events = decodeFight([`1=100.00;0;tspell=Something;${DECLARATION_KEY}=5`]);
+    expect(events.map((event) => event.kind)).toEqual(["skill-used"]);
+    expect(events[0]).toMatchObject({
+      declared: [{ effect: DECLARATION_KEY, amount: 5 }],
+    });
   });
 });

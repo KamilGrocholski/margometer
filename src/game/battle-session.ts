@@ -43,10 +43,25 @@ export type BattleSession = {
    * that happens to be low (§9.6).
    */
   isFromFightStart: boolean;
+  /**
+   * How many fights this session has watched open.
+   *
+   * §9.6 scopes a warning to the fight that produced it and clears it when a
+   * later fight decodes cleanly, and that needs a way to tell one fight from the
+   * next. `init` is the only boundary the protocol gives, so this counts it —
+   * nothing here compares fights, it only has to change when one does.
+   */
+  fightsStarted: number;
 };
 
 export function composeEmptySession(): BattleSession {
-  return { messages: [], combatants: [], ourSide: null, isFromFightStart: false };
+  return {
+    messages: [],
+    combatants: [],
+    ourSide: null,
+    isFromFightStart: false,
+    fightsStarted: 0,
+  };
 }
 
 /**
@@ -89,6 +104,9 @@ export function composeNextSession(
     // fragment saying nothing about it must not erase it.
     ourSide: stated ?? previous.ourSide,
     isFromFightStart: starting || previous.isFromFightStart,
+    // Counted from `session` and not from `previous`: this is the one thing that
+    // must survive the reset, because telling the fights apart is its whole job.
+    fightsStarted: session.fightsStarted + (starting ? 1 : 0),
   };
 }
 
@@ -105,6 +123,8 @@ export type FightReading = {
   roster: CombatantRoster;
   ourSide: number | null;
   isFromFightStart: boolean;
+  /** Changes when a new fight opens, so a warning can be scoped to one (§9.6). */
+  fightsStarted: number;
 };
 
 /**
@@ -122,5 +142,6 @@ export function composeFightReading(session: BattleSession): FightReading {
     roster,
     ourSide: session.ourSide,
     isFromFightStart: session.isFromFightStart,
+    fightsStarted: session.fightsStarted,
   };
 }

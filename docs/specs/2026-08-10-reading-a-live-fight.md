@@ -1,6 +1,6 @@
 # Reading a live fight
 
-Status: draft
+Status: implemented
 
 How the add-on gets the battle protocol out of a running game, and what it
 promises the game in exchange. Everything below about the client was read from

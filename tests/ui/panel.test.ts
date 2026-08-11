@@ -14,17 +14,17 @@ import { describe, expect, test } from "bun:test";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import type { FightReading } from "@/src/game/battle-session.ts";
 import {
   composePanelStyleText,
   renderPanel,
   renderPanelInto,
   setPanelRoot,
   type PanelDocument,
+  type PanelEvent,
   type PanelHost,
   type PanelNode,
 } from "@/src/ui/panel-element.ts";
-import { getDecimalFromText } from "@/libs/number.ts";
+import { composeIntegerText, getDecimalFromText } from "@/libs/number.ts";
 import {
   composeColourOver,
   getContrastRatio,
@@ -32,14 +32,25 @@ import {
   SERIES_COLOURS,
   UNKNOWN_COLOUR,
 } from "@/src/ui/panel-tokens.ts";
-import { composePanelView, PANEL_METRICS } from "@/src/ui/panel-view.ts";
+import {
+  composePanelView,
+  PANEL_METRICS,
+  type PanelReading,
+  type PanelView,
+} from "@/src/ui/panel-view.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
 
 type FakeNode = PanelNode & {
   tag: string;
   children: FakeNode[];
-  listeners: Array<() => void>;
+  listeners: Array<(event: PanelEvent) => void>;
   properties: Record<string, string>;
 };
+
+/** Clicks a node the way a browser would: at the root, naming what was hit. */
+function setClickOn(root: FakeNode, target: FakeNode): void {
+  for (const listener of root.listeners) listener({ target });
+}
 
 function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & {
   getCreatedCount: () => number;
@@ -53,6 +64,7 @@ function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & 
         tag,
         className: "",
         textContent: "",
+        title: "",
         children: [],
         listeners: [],
         properties: {},
@@ -67,7 +79,7 @@ function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & 
         replaceChildren(...nodes: PanelNode[]): void {
           node.children = nodes as FakeNode[];
         },
-        addEventListener(_type: string, listener: () => void): void {
+        addEventListener(_type: string, listener: (event: PanelEvent) => void): void {
           node.listeners.push(listener);
         },
       };
@@ -82,8 +94,8 @@ function getEveryNode(node: FakeNode): FakeNode[] {
 }
 
 /** A fight with two sides, damage on both, and something unreadable in it. */
-function composeReading(overrides: Partial<FightReading> = {}): {
-  reading: FightReading;
+function composeReading(overrides: Partial<PanelReading> = {}): {
+  reading: PanelReading;
   roster: ReturnType<typeof composeCombatantRoster>;
 } {
   const roster = composeCombatantRoster([
@@ -104,6 +116,44 @@ function composeReading(overrides: Partial<FightReading> = {}): {
   };
 }
 
+/**
+ * Everyone the aggregate counted, as the panel would name them.
+ *
+ * The fallback repeats `panel-view.ts`'s on purpose: a combatant no roster
+ * describes is still somebody, and the id is the only name available.
+ */
+function getCountedNames(reading: PanelReading): string[] {
+  return [...reading.statistics.byCombatantId.keys()].map((combatantId) => {
+    const combatant = reading.roster.byId.get(combatantId);
+    return combatant?.name ?? `#${composeIntegerText(combatantId)}`;
+  });
+}
+
+function getDrawnNames(view: PanelView): string[] {
+  return view.sections.flatMap((section) => section.rows.map((row) => row.name));
+}
+
+/**
+ * Everyone counted is drawn exactly once, whatever bucket they landed in.
+ *
+ * ⚠️ **Written because it was false.** `combatantIdsWithoutSide` has been in the
+ * aggregate since sides were grouped, and no section ever read it: a combatant the
+ * roster could not place was counted and then dropped from the screen. A test
+ * naming that one bucket would go green again the day a third one is added and
+ * forgotten, so this counts rows against the aggregate instead. The only row that
+ * is not a combatant is the unattributed bucket, which is why it is added back
+ * rather than searched for by heading.
+ */
+function assertEveryoneCountedIsDrawn(reading: PanelReading): void {
+  const view = composePanelView(reading, "dealt");
+  const counted = getCountedNames(reading);
+  const drawn = getDrawnNames(view);
+  const bucket = reading.statistics.unattributed.dealtApplied > 0 ? 1 : 0;
+
+  expect(drawn.length).toBe(counted.length + bucket);
+  for (const name of counted) expect(drawn).toContain(name);
+}
+
 describe("what the panel puts on screen", () => {
   test("a side becomes a section, and its rows are ranked", () => {
     const { reading } = composeReading();
@@ -114,6 +164,43 @@ describe("what the panel puts on screen", () => {
     expect(ours.heading).toBe("Us");
     expect(ours.rows.map((row) => row.name)).toEqual(["a mage", "a hunter"]);
     expect(ours.rows[0]!.value).toBeGreaterThan(ours.rows[1]!.value);
+  });
+
+  /**
+   * A combatant the roster cannot place still fought, and their figures are still
+   * this fight's. Everyone lands in that bucket when a fight is joined with no
+   * roster at all, so it is not an exotic path.
+   */
+  test("a combatant no roster could place is still on screen", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "a mage", side: 1, profession: "m" },
+      { id: 3, name: "something large", side: 2, profession: null },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(["4=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+      roster,
+    );
+    const reading: PanelReading = { statistics, roster, ourSide: 1, isFromFightStart: true };
+
+    expect(statistics.combatantIdsWithoutSide).toEqual([4]);
+    const view = composePanelView(reading, "dealt");
+    expect(view.sections.map((section) => section.heading)).toContain("Side not stated");
+    expect(getDrawnNames(view)).toContain("#4");
+    assertEveryoneCountedIsDrawn(reading);
+  });
+
+  test.each(CAPTURED_FIGHTS)("$name: everyone it counted reaches the screen", (fight) => {
+    const roster = composeRosterOfFight(fight);
+    const statistics = composeFightStatistics(
+      decodeFight(
+        fight.dump.calls.flatMap((call) => call.protocolMessages),
+        roster,
+      ),
+      roster,
+    );
+
+    expect(statistics.byCombatantId.size).toBeGreaterThan(0);
+    assertEveryoneCountedIsDrawn({ statistics, roster, ourSide: null, isFromFightStart: true });
   });
 
   // The colour says what somebody is, so somebody the game did not describe must
@@ -146,23 +233,131 @@ describe("what the panel puts on screen", () => {
 
   /**
    * §9.6, and the reason the aggregate carries `reading` at all: a total that
-   * might be low has to be markable, and the two notices are different claims —
-   * one says the numbers are not this fight, the other that they may be short.
+   * might be low has to be markable.
+   *
+   * ⚠️ The mark is **at the total**, not in a banner at the foot of the panel.
+   * The question a reader has is *can I trust this number*, so the answer belongs
+   * beside that number — the banner is what `docs/specs/2026-08-10-panel-and-tabs.md`
+   * lists under its rejected alternatives, and it is what this replaced.
    */
-  test("what could not be read reaches the panel", () => {
+  test("a total that may be low is marked at the total", () => {
     const { reading } = composeReading();
     const view = composePanelView(reading, "dealt");
 
     expect(reading.statistics.reading.unreadableMessages).toBeGreaterThan(0);
-    expect(view.notices.join(" ")).toContain("not fully read");
+    for (const section of view.sections) {
+      expect(section.totalMark, section.heading).not.toBeNull();
+      expect(section.totalMark?.detail).toContain("not fully read");
+    }
   });
 
-  test("joining late is said separately from being a little low", () => {
+  /**
+   * Quiet by default, detail on demand — and the detail names **keys**.
+   *
+   * This is the test §9.6 asked for when the panel was still a design, and it
+   * could not be written until the decoder carried the keys rather than a
+   * sentence about them. A key is what a reader can act on: look it up in
+   * `docs/protocol-keys.md`, count it, or quote it to us exactly.
+   */
+  test("the mark is short, and names the keys when asked", () => {
+    const { reading } = composeReading();
+    const mark = composePanelView(reading, "dealt").sections[0]?.totalMark;
+
+    expect(reading.statistics.reading.occurrencesByUnreadKey.get("nonsense_key")).toBe(1);
+    expect(mark?.text.length).toBeLessThanOrEqual(2);
+    expect(mark?.detail).toContain("nonsense_key");
+  });
+
+  // Every key the captures leave unread reaches the screen, not a chosen few.
+  test.each(CAPTURED_FIGHTS)("$name: every key it could not read is named", (fight) => {
+    const roster = composeRosterOfFight(fight);
+    const statistics = composeFightStatistics(
+      decodeFight(
+        fight.dump.calls.flatMap((call) => call.protocolMessages),
+        roster,
+      ),
+      roster,
+    );
+    const detail = composePanelView(
+      { statistics, roster, ourSide: null, isFromFightStart: true },
+      "dealt",
+    ).sections[0]?.totalMark?.detail;
+
+    const unread = [...statistics.reading.occurrencesByUnreadKey.keys()];
+    expect(unread.length).toBeGreaterThan(0);
+    for (const key of unread) expect(detail, key).toContain(key);
+  });
+
+  /**
+   * A message whose grammar failed carries no key, and the panel still has to say
+   * something. The prose is the fallback, and it is only ever a fallback.
+   */
+  test("a message with no key to name falls back to the reason", () => {
+    const statistics = composeFightStatistics(decodeFight(["not a message at all"]));
+    const view = composePanelView(
+      { statistics, roster: composeCombatantRoster([]), ourSide: null, isFromFightStart: true },
+      "dealt",
+    );
+
+    expect(statistics.reading.occurrencesByUnreadKey.size).toBe(0);
+    expect(statistics.reading.unreadableMessages).toBe(1);
+    // Nothing decoded means no section to hang it on, so the header carries it.
+    expect(view.sections).toEqual([]);
+    expect(view.header.marks.map((mark) => mark.detail).join(" ")).toContain("not fully read");
+  });
+
+  test("nothing unread means nothing marked", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "a mage", side: 1, profession: "m" },
+      { id: 3, name: "something large", side: 2, profession: null },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+      roster,
+    );
+    const view = composePanelView(
+      { statistics, roster, ourSide: 1, isFromFightStart: true },
+      "dealt",
+    );
+
+    expect(statistics.reading.unreadableMessages).toBe(0);
+    for (const section of view.sections) expect(section.totalMark).toBeNull();
+  });
+
+  /**
+   * Joining late is a different claim from a total being short, and it is made in
+   * a different place: it qualifies every figure on the panel, so it sits in the
+   * header rather than on one total.
+   */
+  test("joining late is said in the header, not on a total", () => {
     const { reading } = composeReading({ isFromFightStart: false });
     const view = composePanelView(reading, "dealt");
 
-    expect(view.notices.length).toBe(2);
-    expect(view.notices[0]).toContain("Joined after");
+    expect(view.header.marks[0]?.detail).toContain("Joined after");
+    expect(composePanelView(composeReading().reading, "dealt").header.marks).toEqual([]);
+  });
+
+  // Computed since the aggregate had it and drawn nowhere until the header
+  // existed: a fight that has ended says so.
+  test("the header says who is fighting whom, and how it ended", () => {
+    const { reading } = composeReading();
+    const ongoing = composePanelView(reading, "dealt");
+
+    expect(ongoing.header.title).toBe("2 v 1");
+    expect(ongoing.header.outcomeText).toBeNull();
+
+    const roster = composeCombatantRoster([
+      { id: 1, name: "a mage", side: 1, profession: "m" },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(["0;0;winner=a mage"], roster),
+      roster,
+    );
+    const decided = composePanelView(
+      { statistics, roster, ourSide: 1, isFromFightStart: true },
+      "dealt",
+    );
+    expect(decided.header.outcomeText).toBe("won");
   });
 
   // A zero total would make every share `NaN`, which draws a bar of no length
@@ -210,6 +405,23 @@ describe("how the panel fails", () => {
     expect(text.some((each) => each.includes("Them"))).toBe(true);
   });
 
+  /**
+   * §9.6: event handling is delegated at the root, not bound per element.
+   *
+   * Counted rather than described, and counted over the whole tree: the previous
+   * shape bound one listener per tab inside the render loop, and the test that
+   * covered it asserted exactly that count — a guard holding the panel to the
+   * thing the rule forbids.
+   */
+  test("the whole panel carries one listener, wherever the controls are", () => {
+    const { reading } = composeReading();
+    const panel = renderPanel(composeFakeDocument(), composePanelView(reading, "dealt")) as FakeNode;
+
+    const listeners = getEveryNode(panel).flatMap((node) => node.listeners);
+    expect(listeners.length).toBe(1);
+    expect(panel.listeners.length).toBe(1);
+  });
+
   test("a handler that throws does not escape into the page", () => {
     const { reading } = composeReading();
     const view = composePanelView(reading, "dealt");
@@ -223,9 +435,9 @@ describe("how the panel fails", () => {
       onSectionFailure: (error) => failures.push(error),
     }) as FakeNode;
 
-    const listeners = getEveryNode(panel).flatMap((node) => node.listeners);
-    expect(listeners.length).toBe(PANEL_METRICS.length);
-    for (const listener of listeners) expect(() => listener()).not.toThrow();
+    const tabs = getEveryNode(panel).filter((node) => node.className === "tab");
+    expect(tabs.length).toBe(PANEL_METRICS.length);
+    for (const tab of tabs) expect(() => setClickOn(panel, tab)).not.toThrow();
     expect(failures.length).toBe(PANEL_METRICS.length);
   });
 
@@ -238,8 +450,25 @@ describe("how the panel fails", () => {
       onMetricChosen: (metric) => chosen.push(metric),
     }) as FakeNode;
 
-    for (const listener of getEveryNode(panel).flatMap((node) => node.listeners)) listener();
+    for (const tab of getEveryNode(panel).filter((node) => node.className === "tab")) {
+      setClickOn(panel, tab);
+    }
     expect(chosen).toEqual([...PANEL_METRICS]);
+  });
+
+  // A click on anything that is not a control is not a control being chosen.
+  test("a click on a row does nothing at all", () => {
+    const { reading } = composeReading();
+    const chosen: string[] = [];
+
+    const panel = renderPanel(composeFakeDocument(), composePanelView(reading, "dealt"), {
+      onMetricChosen: (metric) => chosen.push(metric),
+    }) as FakeNode;
+
+    for (const row of getEveryNode(panel).filter((node) => node.className === "row")) {
+      setClickOn(panel, row);
+    }
+    expect(chosen).toEqual([]);
   });
 
   test("the panel goes in a shadow root, cut off from the game's stylesheet", () => {

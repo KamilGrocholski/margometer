@@ -8,8 +8,12 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import type { FightReading } from "@/src/game/battle-session.ts";
 import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-attachment.ts";
-import { setMargoMeter, shouldStartHere } from "@/src/userscript-entry.ts";
+import { composePanelMount, setMargoMeter, shouldStartHere } from "@/src/userscript-entry.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
 /** A clock the test winds by hand. */
@@ -117,6 +121,57 @@ describe("attaching", () => {
     expect(clock.getCancelCount()).toBe(1);
   });
 
+  /**
+   * ⚠️ **The search used to have no end.** On a page that matches but never
+   * builds an engine it ran ten times a second for the life of the tab, and said
+   * nothing — a timer that never finds anything is indistinguishable from one
+   * with nothing to do.
+   *
+   * Driven on an injected clock rather than a real one, so the bound is checked
+   * without waiting a minute for it.
+   */
+  test("gives up eventually, says so once, and stops looking", () => {
+    const clock = composeClock();
+    let abandoned = 0;
+    let attached = 0;
+
+    setEngineAttachment({}, () => {}, {
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      onAttached: () => (attached += 1),
+      onSearchAbandoned: () => (abandoned += 1),
+    });
+
+    // A minute of looking at a tenth of a second each, and one more for luck.
+    for (let looks = 0; looks < 601; looks += 1) clock.tick();
+
+    expect(abandoned).toBe(1);
+    expect(attached).toBe(0);
+    expect(clock.getCancelCount()).toBe(1);
+  });
+
+  // Giving up is for a page with no game in it, not for a game that is slow.
+  test("a game that arrives late is still found", () => {
+    const clock = composeClock();
+    const page: { Engine?: { battle?: unknown } } = {};
+    let abandoned = 0;
+    let attached = 0;
+
+    setEngineAttachment(page, () => {}, {
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      onAttached: () => (attached += 1),
+      onSearchAbandoned: () => (abandoned += 1),
+    });
+
+    for (let looks = 0; looks < 500; looks += 1) clock.tick();
+    page.Engine = { battle: composeBattle() };
+    clock.tick();
+
+    expect(attached).toBe(1);
+    expect(abandoned).toBe(0);
+  });
+
   test("messages reach the caller once attached", () => {
     const battle = composeBattle();
     const seen: string[] = [];
@@ -186,6 +241,117 @@ describe("the add-on driven by a captured fight", () => {
       expect(Object.prototype.hasOwnProperty.call(battle, "updateData")).toBe(false);
     },
   );
+});
+
+/**
+ * What the panel is allowed to say on a console it shares with the game.
+ *
+ * §9.6 asks for one branded entry per failure rather than one per render, and
+ * for warnings scoped to the fight that produced them. Both are properties of
+ * the mount rather than of the panel, so they are checked where they live — with
+ * the sink injected, because the rule is about how often it is called.
+ */
+describe("what a failing panel puts on the console", () => {
+  /** A page whose every `span` refuses to be created, so sections cannot draw. */
+  function composePageThatCannotDrawSpans(): {
+    document: { createElement: (tag: string) => unknown; body: { append: () => void } };
+  } {
+    const composeNode = (): Record<string, unknown> => {
+      const node: Record<string, unknown> = {
+        className: "",
+        textContent: "",
+        title: "",
+        style: { setProperty: (): void => {} },
+        append: (): void => {},
+        replaceChildren: (): void => {},
+        addEventListener: (): void => {},
+        attachShadow: (): unknown => composeNode(),
+      };
+      return node;
+    };
+    return {
+      document: {
+        createElement: (tag: string): unknown => {
+          if (tag === "span") throw new TypeError("no spans today");
+          return composeNode();
+        },
+        body: { append: (): void => {} },
+      },
+    };
+  }
+
+  function composeReadingOfFight(fightsStarted: number): FightReading {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "a mage", side: 1, profession: "m" },
+      { id: 3, name: "something large", side: 2, profession: null },
+    ]);
+    return {
+      statistics: composeFightStatistics(
+        decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+        roster,
+      ),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+      fightsStarted,
+    };
+  }
+
+  test("one entry per fight however many times the fight redraws", () => {
+    const said: unknown[][] = [];
+    const render = composePanelMount(composePageThatCannotDrawSpans(), (brand, detail) =>
+      said.push([brand, detail]),
+    );
+    expect(render).not.toBeNull();
+
+    const first = composeReadingOfFight(1);
+    render?.(first);
+    const afterOne = said.length;
+    for (let redraws = 0; redraws < 20; redraws += 1) render?.(first);
+
+    expect(afterOne).toBe(1);
+    expect(said.length).toBe(1);
+    expect(said[0]?.[0]).toBe("MargoMeter/PanelSection");
+  });
+
+  // Counted, not dropped: what the repeats came to is said once the fight they
+  // belong to is over, and the next fight starts from nothing.
+  test("the repeats are counted, and a later fight is heard from again", () => {
+    const said: unknown[][] = [];
+    const render = composePanelMount(composePageThatCannotDrawSpans(), (brand, detail) =>
+      said.push([brand, detail]),
+    );
+
+    render?.(composeReadingOfFight(1));
+    render?.(composeReadingOfFight(1));
+    render?.(composeReadingOfFight(2));
+
+    expect(said.length).toBe(3);
+    expect(`${said[1]?.[1]}`).toContain("failures in that fight, 1 printed");
+    expect(said[2]?.[0]).toBe("MargoMeter/PanelSection");
+  });
+
+  test("a fight that draws cleanly says nothing at all", () => {
+    const said: unknown[][] = [];
+    const composeNode = (): Record<string, unknown> => ({
+      className: "",
+      textContent: "",
+      title: "",
+      style: { setProperty: (): void => {} },
+      append: (): void => {},
+      replaceChildren: (): void => {},
+      addEventListener: (): void => {},
+      attachShadow: (): unknown => composeNode(),
+    });
+    const render = composePanelMount(
+      { document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } } },
+      (brand, detail) => said.push([brand, detail]),
+    );
+
+    render?.(composeReadingOfFight(1));
+    render?.(composeReadingOfFight(2));
+    expect(said).toEqual([]);
+  });
 });
 
 /**

@@ -74,6 +74,7 @@ const ATTACK_ON_NOBODY: BattleEvent = {
   prevented: [{ prevention: "absorb", amount: 40 }],
   procs: ["crit"],
   destroyed: [{ statistic: "acdmg", amount: 7 }],
+  declared: [],
 };
 
 describe("the aggregate over captured fights", () => {
@@ -283,7 +284,7 @@ describe("figures the log ties to nobody", () => {
 
   test("a skill nobody is named for is counted, not attributed", () => {
     const statistics = composeFightStatistics([
-      { kind: "skill-used", actorId: null, targetId: null, skillName: "x", skillId: null },
+      { kind: "skill-used", actorId: null, targetId: null, skillName: "x", skillId: null, declared: [] },
     ]);
 
     expect(statistics.unattributed.skillsUsed).toBe(1);

@@ -63,16 +63,24 @@ export type CombatantStatistics = {
  * here (§9.6). A total that might be too low must be markable as such, and that
  * is impossible if the aggregate forgets there was anything it could not read.
  *
- * Counted by reason rather than by key: the decoder states its reason as prose
- * and does not carry the unread keys as data. Breaking them out per key means
- * widening `UnknownMessageEvent`, which is the decoder/aggregator contract and
- * `[ASK]` under §4 — so it is not done here.
+ * Counted twice over, because the two answer different questions. The reason is
+ * what happened to the message; the key is what a reader can act on — look up in
+ * `docs/protocol-keys.md`, or quote to us in a report. A message with two unread
+ * keys is one message and two occurrences, so the two totals do not agree, and
+ * they are not meant to.
  */
 export type ReadingGaps = {
   /** Messages that produced an unknown event — wholly or partly unread. */
   unreadableMessages: number;
   /** The decoder's own reason, with how often it arose. */
   messagesByReason: ReadonlyMap<string, number>;
+  /**
+   * Each key with no meaning yet, and how many times it turned up.
+   *
+   * Empty while every unknown message failed on its grammar rather than on a
+   * key — which is a different fault and stays visible in `messagesByReason`.
+   */
+  occurrencesByUnreadKey: ReadonlyMap<string, number>;
 };
 
 /**
@@ -175,6 +183,7 @@ export function composeFightStatistics(
   const rows = new Map<number, Row>();
   const unattributed = composeRow();
   const messagesByReason = new Map<string, number>();
+  const occurrencesByUnreadKey = new Map<string, number>();
   let unreadableMessages = 0;
   let outcome: FightStatistics["outcome"] = null;
 
@@ -254,6 +263,28 @@ export function composeFightStatistics(
       case "unknown-message": {
         unreadableMessages += 1;
         setRunningTotal(messagesByReason, event.reason, 1);
+        for (const key of event.unreadKeys) setRunningTotal(occurrencesByUnreadKey, key, 1);
+        break;
+      }
+
+      case "declaration": {
+        // Deliberately nothing. A declaration is a figure no total here counts
+        // (`battle-event.ts`), and an empty case is the difference between
+        // deciding that and forgetting it.
+        break;
+      }
+
+      default: {
+        /**
+         * The compiler's own exhaustiveness check, and it is load-bearing: §4
+         * makes the contract `[ASK]` because a variant added to `BattleEvent`
+         * and forgotten here produces totals that quietly shrink. Without this
+         * the switch simply falls through and says nothing. Unreachable at run
+         * time by construction, which is why it computes rather than throws — an
+         * exception here would reach the game engine.
+         */
+        const unhandled: never = event;
+        void unhandled;
         break;
       }
     }
@@ -283,7 +314,7 @@ export function composeFightStatistics(
     bySide,
     combatantIdsWithoutSide,
     unattributed,
-    reading: { unreadableMessages, messagesByReason },
+    reading: { unreadableMessages, messagesByReason, occurrencesByUnreadKey },
     outcome,
   };
 }

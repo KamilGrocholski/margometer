@@ -9,7 +9,8 @@
 
 import { describe, expect, test } from "bun:test";
 import { getIntegerFromText } from "@/libs/number.ts";
-import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
@@ -61,10 +62,32 @@ describe("what `+injure` announces", () => {
     expect(ANNOUNCEMENTS.every(({ taken }) => taken > 0)).toBe(true);
   });
 
-  // The reason the entry says "deliberately not read". The wound arrives again,
-  // in full, as its own tick; counting the announcement too doubles it.
-  test("stays unread, because the tick that follows is what moves health", () => {
-    expect(UNDERSTOOD_PROTOCOL_KEYS).not.toContain(ANNOUNCEMENT_KEY);
+  /**
+   * Read, and read as a **declaration** — which is the distinction the whole
+   * entry turns on. The wound arrives again, in full, as its own tick; counting
+   * the announcement as damage as well would land it twice.
+   *
+   * This test used to assert the key was not read at all. That was the only way
+   * to say "do not count this" while the contract had no slot for a stated
+   * input; now there is one, and the claim it holds is the stronger of the two —
+   * not *unseen*, but *seen and never totalled*.
+   */
+  test("is read as a declaration, and reaches no combatant's figures", () => {
+    expect(UNDERSTOOD_PROTOCOL_KEYS).toContain(ANNOUNCEMENT_KEY);
     expect(UNDERSTOOD_PROTOCOL_KEYS).toContain(TICK_KEY);
+
+    const [attack] = decodeFight(["1=90.00;2=50.00;+dmg=500;-dmg=400;+injure=60"]);
+    expect(attack).toMatchObject({
+      kind: "attack",
+      declared: [{ effect: ANNOUNCEMENT_KEY, amount: 60, text: null }],
+    });
+
+    const statistics = composeFightStatistics(
+      decodeFight(["1=90.00;2=50.00;+dmg=500;-dmg=400;+injure=60"]),
+    );
+    // 400 taken, and not one point more for the wound announced beside it.
+    expect(statistics.byCombatantId.get(2)?.taken).toBe(400);
+    expect(statistics.byCombatantId.get(1)?.dealtApplied).toBe(400);
+    expect(statistics.reading.unreadableMessages).toBe(0);
   });
 });

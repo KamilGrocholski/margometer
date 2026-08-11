@@ -54,6 +54,27 @@ const CITATION = new RegExp(
   "g",
 );
 
+/**
+ * A directory named in prose or in a comment, which the pattern above cannot see.
+ *
+ * ⚠️ **Its absence was paid for.** `README.md` told every reader that the material
+ * carried over from the previous incarnation lives in a `tests/fixtures`
+ * directory — written here without its slash, because with one this comment would
+ * be a dead citation itself. The directory is `tests/captured-fights/` and has
+ * been for the whole life of this tree. The guard above requires the extension —
+ * "the place is what §8's structure block already describes" — but §8's block
+ * covers `libs/`, `src/` and `tools/`, so nothing described that one, and nothing
+ * noticed.
+ *
+ * A directory citation misleads exactly as far as a file citation: it sends
+ * somebody to a place that is not there, and the reader who cannot find it does
+ * not conclude the document is wrong.
+ */
+const DIRECTORY_CITATION = new RegExp(
+  String.raw`\b(${AUTHORED_ROOTS.join("|")})/(?:[A-Za-z0-9._-]+/)*`,
+  "g",
+);
+
 function getAuthoredFiles(directory: string): string[] {
   const entries = readdirSync(REPOSITORY_ROOT + directory, { withFileTypes: true });
   return entries.flatMap((entry) => {
@@ -76,14 +97,31 @@ const AUTHORED_FILES = [
 
 type Citation = { path: string; citedIn: string };
 
-const CITATIONS: Citation[] = AUTHORED_FILES.flatMap((file) =>
-  [...readFileSync(REPOSITORY_ROOT + file, "utf8").matchAll(CITATION)]
-    // A glob names a set, and a set is not somewhere `existsSync` can look.
-    // `tests/captured-fights/*.json` is the only one, and §9.2 is where it is
-    // held to being read by discovery rather than by name.
-    .filter((match) => !match[0].includes("*"))
-    .map((match) => ({ path: match[0], citedIn: file })),
-);
+/**
+ * A web address, which is not a path into this repository however much it looks
+ * like one.
+ *
+ * Found immediately: a comment citing an MDN article, whose address carries a
+ * `docs` segment of its own with `Mozilla` under it, read as a citation of a
+ * directory here that has never existed. The scheme is optional because a
+ * comment often drops it, and what identifies an address without one is the dot
+ * in its host — which no directory in this repository has.
+ */
+const WEB_ADDRESS = /\b(?:https?:\/\/)?[a-z0-9-]+(?:\.[a-z0-9-]+)+\/\S*/gi;
+
+function getCitationsOf(pattern: RegExp): Citation[] {
+  return AUTHORED_FILES.flatMap((file) =>
+    [...readFileSync(REPOSITORY_ROOT + file, "utf8").replace(WEB_ADDRESS, " ").matchAll(pattern)]
+      // A glob names a set, and a set is not somewhere `existsSync` can look.
+      // `tests/captured-fights/*.json` is the only one, and §9.2 is where it is
+      // held to being read by discovery rather than by name.
+      .filter((match) => !match[0].includes("*"))
+      .map((match) => ({ path: match[0], citedIn: file })),
+  );
+}
+
+const CITATIONS: Citation[] = getCitationsOf(CITATION);
+const DIRECTORY_CITATIONS: Citation[] = getCitationsOf(DIRECTORY_CITATION);
 
 describe("paths the repository cites in its own text", () => {
   // Both counted, because either one going to zero turns the check below green
@@ -114,5 +152,49 @@ describe("paths the repository cites in its own text", () => {
       (citation) => !existsSync(REPOSITORY_ROOT + citation.path),
     ).map((citation) => `${citation.citedIn} cites ${citation.path}`);
     expect([...new Set(missing)].sort()).toEqual([]);
+  });
+
+  test("and every directory named is a directory that is there", () => {
+    expect(DIRECTORY_CITATIONS.length).toBeGreaterThan(CITATIONS.length);
+    const missing = DIRECTORY_CITATIONS.filter(
+      (citation) => !existsSync(REPOSITORY_ROOT + citation.path),
+    ).map((citation) => `${citation.citedIn} cites ${citation.path}`);
+    expect([...new Set(missing)].sort()).toEqual([]);
+  });
+});
+
+/**
+ * Every section of the rules this repository cites is a section it has.
+ *
+ * What this catches is renumbering: §9.6 becoming §9.7 orphans every `§9.6` in
+ * the tree at once, and there are dozens. What it cannot catch is a citation
+ * pointing at a section that exists and says something else — three of those were
+ * in the tree when this was written, all reading §7.5 where §7.6 was meant. That
+ * is a judgment call, so it is a rule and a fix rather than a guard, and this is
+ * only the half a machine can hold.
+ */
+describe("sections of the rules the repository cites", () => {
+  const RULES = readFileSync(REPOSITORY_ROOT + "AGENTS.md", "utf8");
+  const SECTIONS = new Set(
+    [...RULES.matchAll(/^#{2,4} (\d+(?:\.\d+)?)\.? /gm)].map((match) => match[1]),
+  );
+  const CITED = [...new Set([...RULES.matchAll(/§(\d+(?:\.\d+)?)/g)].map((match) => match[1]))];
+
+  const CITED_ELSEWHERE = AUTHORED_FILES.flatMap((file) =>
+    [...readFileSync(REPOSITORY_ROOT + file, "utf8").matchAll(/§(\d+(?:\.\d+)?)/g)].map(
+      (match) => ({ section: match[1] ?? "", citedIn: file }),
+    ),
+  );
+
+  test("the rules have numbered sections, and cite their own", () => {
+    expect(SECTIONS.size).toBeGreaterThan(10);
+    expect(CITED.length).toBeGreaterThan(10);
+  });
+
+  test("every section cited anywhere exists", () => {
+    const dangling = CITED_ELSEWHERE.filter(({ section }) => !SECTIONS.has(section)).map(
+      ({ section, citedIn }) => `${citedIn} cites §${section}`,
+    );
+    expect([...new Set(dangling)].sort()).toEqual([]);
   });
 });

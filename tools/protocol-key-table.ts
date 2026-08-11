@@ -6,7 +6,7 @@
  * the switch is the only complete answer to "what does the decoder not know
  * about" — captured fights only ever show the keys that happened to occur.
  *
- * Reads the **production** bundle, because production decides (AGENTS.md §7.5).
+ * Reads the **production** bundle, because production decides (AGENTS.md §7.6).
  * Measured when this was written: production carried four keys the readable
  * development build did not, and none the other way round. Trusting the
  * readable channel alone would have hidden them.

@@ -5,6 +5,7 @@ import type {
   DamageAmount,
   DamageToNamedCombatantEvent,
   PreventedDamage,
+  DeclaredEffect,
   StatisticDestruction,
 } from "@/src/core/battle-event.ts";
 import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
@@ -174,6 +175,96 @@ const SKILL_NAME_KEY = "tspell";
 const SKILL_ID_KEY = "skillId";
 
 /**
+ * What an announcement declares about the skill it announces.
+ *
+ * Every one of these rides a message carrying `tspell` and none rides a blow —
+ * measured across both captures, and the reason they are read here rather than
+ * anywhere near a figure. Each states an **input**: a cost, a grant, a share the
+ * skill will apply. What it comes to arrives later as ordinary damage, already
+ * computed, so nothing downstream may add one to a statistic
+ * (`docs/protocol-keys.md`, and `battle-event.ts` on `DeclaredEffect`).
+ *
+ * Reading them is what stops the panel warning about them: they marked 111
+ * occurrences unread, and an unread key means *this total may be low* — which
+ * none of these could ever cause.
+ *
+ * The shape is checked rather than assumed. A value that will not read as a
+ * whole number sends the key back to unread, so the day one of these starts
+ * carrying something else, it is loud instead of silently dropped.
+ */
+const SKILL_DECLARATION_KEYS = [
+  "active_decblock_per",
+  "active_decblock_per-enemies",
+  "active_block_per",
+  "alllowdmg",
+  "allslow_per",
+  "aura-ac_per",
+  "aura-resall",
+  "aura-sa_per",
+  "mana",
+  "energy",
+  // Settled long before there was a slot for them, and by the same argument:
+  // both state what the announced skill will spend or destroy, and what that
+  // comes to arrives later as ordinary figures.
+  "active_absorbdest_per",
+  "combo-max",
+];
+
+/**
+ * What a blow declares about itself.
+ *
+ * Neither is a figure of damage, and both were left unread for exactly that
+ * reason until there was somewhere honest to put them:
+ *
+ *   - `-poison_lowdmg_per` is the share by which the blow was already weakened,
+ *     so the damage keys beside it have it applied. Reading it as points would
+ *     invent a unit; reading it as a reduction would subtract it twice.
+ *   - `+injure` announces a deep wound worth a share of the damage just taken.
+ *     The wound itself arrives on later calls as its own `injure` message, which
+ *     the decoder does read — counting the announcement as well would land the
+ *     same wound twice.
+ *
+ * Both are held to their measured rules by `tests/core/poison-reduction-rule.test.ts`
+ * and `tests/core/injure-rule.test.ts`.
+ */
+const BLOW_DECLARATION_KEYS = [
+  "-poison_lowdmg_per",
+  "+injure",
+  // Outcomes rather than inputs, and read for the other half of the rule: energy
+  // and attack speed are units no total here keeps, so neither can shorten one.
+  // Both ride a critical hit in every occurrence the captures carry.
+  "+engback",
+  "+critslow_per",
+];
+
+/**
+ * Keys that are the whole of their message and report nothing that happened to
+ * anybody: a turn marker, a skill being prepared, a line for the client's own
+ * log, the experience at the end, an aura declared once for the fight.
+ *
+ * Measured: each is the only key in its message, without exception — which is why
+ * they need an event of their own rather than a slot on a blow. Two of them carry
+ * text rather than a figure, and one carries no value at all.
+ *
+ * `step` looks like a turn boundary and is not read as one. The protocol does not
+ * say that, and neither does this list: what is read is that the message stated
+ * `step` about a combatant (`docs/protocol-keys.md`).
+ */
+const STANDALONE_DECLARATION_KEYS = [
+  "step",
+  "prepare",
+  "txt",
+  "+exp",
+  "poison_lowdmg_per-enemies",
+];
+
+/**
+ * The one declaration whose value is a combatant's name rather than a figure:
+ * `shout` states who the skill forces its targets to attack.
+ */
+const SKILL_SHOUT_KEY = "shout";
+
+/**
  * Every named key the decoder claims to understand. Exported so a guard can hold it
  * against the keys the game actually knows — a key we handle that the client
  * has never heard of means we invented a meaning.
@@ -184,6 +275,10 @@ export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   ...PREVENTED_DAMAGE_KEYS,
   ...STATISTIC_DESTRUCTION_KEYS,
   ...PROC_KEYS,
+  ...SKILL_DECLARATION_KEYS,
+  ...BLOW_DECLARATION_KEYS,
+  ...STANDALONE_DECLARATION_KEYS,
+  SKILL_SHOUT_KEY,
   SKILL_NAME_KEY,
   SKILL_ID_KEY,
   DAMAGE_TO_NAMED_KEY,
@@ -198,7 +293,8 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
     // and turn a bug of ours into "the game changed its format" — the most
     // expensive kind of wrong number this project can produce.
     if (!(error instanceof ProtocolMessageFormatError)) throw error;
-    return [{ kind: "unknown-message", message, reason: error.message }];
+    // No key to name: the grammar failed before there were parameters to read.
+    return [{ kind: "unknown-message", message, reason: error.message, unreadKeys: [] }];
   }
 
   const events: BattleEvent[] = [];
@@ -208,10 +304,13 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
   const prevented: PreventedDamage[] = [];
   const destroyed: StatisticDestruction[] = [];
   const procs: string[] = [];
+  const blowDeclared: DeclaredEffect[] = [];
+  const standalone: DeclaredEffect[] = [];
   // Read after the loop rather than inside it: the two keys are one fact, and
   // nothing guarantees the protocol writes them in a fixed order.
   let skillName: string | null = null;
   let skillId: number | null = null;
+  const declared: DeclaredEffect[] = [];
 
   for (const parameter of parsed.parameters) {
     const { key, value } = parameter;
@@ -263,6 +362,21 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
       continue;
     }
 
+    if (SKILL_DECLARATION_KEYS.includes(key)) {
+      const amount = value === null ? null : getIntegerFromText(value);
+      if (amount === null) unreadKeys.push(key);
+      else declared.push({ effect: key, amount, text: null });
+      continue;
+    }
+
+    if (key === SKILL_SHOUT_KEY) {
+      // A blank name would travel on as a combatant nobody can find, which is
+      // the same fault as a blank skill name a few lines up.
+      if (value === null || value === "") unreadKeys.push(key);
+      else declared.push({ effect: key, amount: null, text: value });
+      continue;
+    }
+
     if (PREVENTED_DAMAGE_KEYS.includes(key)) {
       const amount = value === null ? null : getIntegerFromText(value);
       if (amount === null) unreadKeys.push(key);
@@ -274,6 +388,26 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
       const amount = value === null ? null : getIntegerFromText(value);
       if (amount === null) unreadKeys.push(key);
       else destroyed.push({ statistic: key.slice(1), amount });
+      continue;
+    }
+
+    if (STANDALONE_DECLARATION_KEYS.includes(key)) {
+      // A figure where there is one, the text where there is not, and neither
+      // where the key carries no value — all three are readings, and none is a
+      // number anything totals.
+      const amount = value === null ? null : getIntegerFromText(value);
+      standalone.push({
+        effect: key,
+        amount,
+        text: amount === null ? value : null,
+      });
+      continue;
+    }
+
+    if (BLOW_DECLARATION_KEYS.includes(key)) {
+      const amount = value === null ? null : getIntegerFromText(value);
+      if (amount === null) unreadKeys.push(key);
+      else blowDeclared.push({ effect: key, amount, text: null });
       continue;
     }
 
@@ -313,7 +447,12 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
   // and nothing else still describes an attack, and emitting nothing for it
   // would drop it. Never seen in the captures, where every one of the 256
   // annotations rides a message that also carries damage.
-  const reported = [dealt, taken, prevented, destroyed, procs].some((of) => of.length > 0);
+  // A declaration counts as something reported: a message stating only that a
+  // blow was weakened still describes a blow, and dropping it would lose the one
+  // thing that message says.
+  const reported = [dealt, taken, prevented, destroyed, procs, blowDeclared].some(
+    (of) => of.length > 0,
+  );
   if (reported) {
     events.push({
       kind: "attack",
@@ -324,6 +463,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
       prevented,
       procs,
       destroyed,
+      declared: blowDeclared,
     });
   }
 
@@ -334,12 +474,27 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
       targetId: parsed.target?.combatantId ?? null,
       skillName,
       skillId,
+      declared,
     });
-  } else if (skillId !== null) {
-    // An id with no name is a skill nothing can put on screen, and the captures
-    // have never sent one — 0 of 197. Reported rather than turned into an event
-    // whose name we would have to invent.
-    unreadKeys.push(SKILL_ID_KEY);
+  } else {
+    if (skillId !== null) {
+      // An id with no name is a skill nothing can put on screen, and the captures
+      // have never sent one — 0 of 197. Reported rather than turned into an event
+      // whose name we would have to invent.
+      unreadKeys.push(SKILL_ID_KEY);
+    }
+    // A declaration with no announcement to belong to has nowhere to go, and
+    // dropping it would be the silent loss the unread list exists to prevent.
+    // Never seen: every occurrence in the captures rides a `tspell` message.
+    for (const declaration of declared) unreadKeys.push(declaration.effect);
+  }
+
+  if (standalone.length > 0) {
+    events.push({
+      kind: "declaration",
+      combatantId: parsed.actor?.combatantId ?? null,
+      declared: standalone,
+    });
   }
 
   // Reported even when the message also produced something readable: a message
@@ -349,6 +504,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
       kind: "unknown-message",
       message,
       reason: `no meaning yet for ${unreadKeys.join(", ")}`,
+      unreadKeys,
     });
   }
 
@@ -357,7 +513,12 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
   // material, but it is a possible message rather than an impossible state, so
   // it gets reported rather than crashing the panel.
   if (events.length === 0) {
-    events.push({ kind: "unknown-message", message, reason: "carries no parameters" });
+    events.push({
+      kind: "unknown-message",
+      message,
+      reason: "carries no parameters",
+      unreadKeys: [],
+    });
   }
 
   // Rule 1, now held by construction. This can only fire if a future edit
