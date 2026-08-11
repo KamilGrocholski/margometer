@@ -299,6 +299,8 @@ Damage physical absorption stopped before it reached the target.
 
 *Shape:* 45 occurrences; on a blow; a whole number
 
+*Help:* names `absorb`
+
 *Evidence:* the game's published help, article view,372, at the engine name
 `absorb` (read 2026-08-09), describes it as a reduction of the physical damage a
 character is taking at that moment, capped at a share of the blow and drawn from
@@ -313,6 +315,8 @@ lightning rather than physical damage, with a higher cap.
 
 *Shape:* 27 occurrences; on a blow; a whole number
 
+*Help:* names `absorbm`
+
 *Evidence:* article view,372 at the engine name `absorbm` (read 2026-08-09), and
 the same branch shape in production build `1785244275300`. 27 occurrences.
 
@@ -322,6 +326,8 @@ Damage a block stopped. The help ties the event to defending and to carrying a
 shield, so unlike the two above it can be absent from a combatant entirely.
 
 *Shape:* 9 occurrences; on a blow; a whole number
+
+*Help:* names `blok`
 
 *Evidence:* article view,372 at the engine name `blok` (read 2026-08-09), and
 production build `1785244275300`, where the branch has the same shape as the
@@ -336,6 +342,8 @@ reading a value.
 
 *Shape:* 52 occurrences; on a blow; no value
 
+*Help:* names `crit`
+
 *Evidence:* article view,372 at the engine name `crit` (read 2026-08-09) lists
 it among the events an attack can produce. Production build `1785244275300`:
 this branch is one of the two in the family that interpolates nothing. All 52
@@ -348,6 +356,8 @@ Armour piercing fired on this blow — the help states that within such a blow t
 target's armour does not reduce the damage. No figure, like `+crit`.
 
 *Shape:* 21 occurrences; on a blow; no value
+
+*Help:* names `pierce`
 
 *Evidence:* article view,372 at the engine name `pierce` (read 2026-08-09), and
 production build `1785244275300`. All 21 occurrences arrive with no value.
@@ -367,13 +377,45 @@ production build `1785244275300` composes a sentence that interpolates nothing �
 which is the same test the two above passed, and the one `+legbon_holytouch`
 fails despite looking identical in our material (its own entry, below).
 
-⚠️ None of the eight is documented in the game's published help. Article
-view,372 (read 2026-08-09) was searched for `legbon`, `tenacity`,
-`acdmg_destroyed` and `dispel`, and answers to none of them; `stun` and `freeze`
-it does document, as events an attack can produce. The help describes mechanics,
-and a legendary bonus is equipment — so the silence is expected rather than
-suspicious, but it is recorded because *not found* and *not documented* are
-different claims.
+⚠️ **Four of the eight are documented, and this file said none of them were.**
+The claim rested on four phrases — `legbon`, `tenacity`, `acdmg_destroyed` and
+`dispel` — and not one of them is a name the help prints. The help joins an
+article to a key through the engine name in parentheses, and for this family that
+name is the key's **stem**: `verycrit`, `curse`, `cleanse`, `holytouch`. Searched
+by the stem (read 2026-08-09), the help answers to all four and describes each in
+full.
+
+That is the trap §7.6 records against `-legbon_facade`, sprung a second time on
+the same family — and a sentence of this file's own reasoning is what sealed it:
+*a legendary bonus is equipment, so the silence is expected rather than
+suspicious*. The silence was ours. An explanation for a negative is worth less
+than the search that was not run. Each entry below states the phrases its claim
+was measured on, on a line of its own.
+
+`tenacity`, `dispel` and `acdmg_destroyed` are **not** in article 372. That part
+held, and it is narrowed here to the article it was actually measured on — the
+help has no build id and no index this file reads, so "not documented" was always
+a wider claim than the evidence. `stun`, `freeze` and `pierce` it documents as
+events an attack can produce.
+
+**What the help settles is whose each event is, and it does not fall the same way
+for all four.** The event belongs to the bonus holder in every case; which
+combatant that is depends on what triggers it. `verycrit`, `curse` and
+`holytouch` fire when the holder **attacks**, so they belong to whoever swung.
+`cleanse` fires when the holder **is hit** — so its five occurrences belong to the
+combatant who was struck, on a blow they did not throw. That is why
+`procsOnBlowsStruck` counts by the blow rather than by the effect: the grouping
+stays true of both, which is the property it was named for before there was
+evidence it would be needed (`src/core/fight-statistics.ts`).
+
+An observation, and deliberately not promoted to a rule: across these four the
+sign tracks the trigger — `+` where the holder attacks, `-` where the holder is
+hit — and the client's `-legbon_glare`, which the help documents as firing on a
+received hit, would extend it. It stays an observation because the note opening
+this section shows the sign settling nothing in general (`-absorb` and `+acdmg`
+carry opposite signs and both figures are the target's), and because one of the
+four is a key no capture here carries. The help decides whose an event is; the
+sign is not evidence.
 
 ### `+stun` — decoded
 
@@ -382,6 +424,8 @@ notes it also appears under several other display names — which is why the key
 not the sentence, is what identifies it.
 
 *Shape:* 9 occurrences; on a blow; no value
+
+*Help:* names `stun`
 
 *Evidence:* article view,372 at the engine name `stun` (read 2026-08-09), the
 shared measurement above, and production build `1785244275300`. 9 occurrences.
@@ -393,44 +437,87 @@ a chance to freeze, which blocks the target's turn.
 
 *Shape:* 3 occurrences; on a blow; no value
 
+*Help:* names `freeze`
+
 *Evidence:* article view,372 at the engine name `freeze` (read 2026-08-09), and
 the shared measurement. 3 occurrences.
 
 ### `+legbon_verycrit` — decoded
 
-A legendary bonus fired on this blow: a very critical hit, which the help names
-among the events but does not tie to this key.
+A legendary bonus fired on this blow, and it is **the striker's**: the help
+describes a chance event, scaled by the holder's own critical-hit chance, that
+raises the force of their critical hit and triggers a critical for one turn. The
+help documents a second form under the same engine name, for a monster fighting a
+hero alone; nothing in the protocol distinguishes the two, so this entry does not
+either.
 
 *Shape:* 3 occurrences; on a blow; no value
 
-*Evidence:* the shared measurement, and production build `1785244275300`. 3
-occurrences. Not in the help — see the notice above.
+*Help:* names `verycrit`
+
+*Evidence:* article view,372 at the engine name `verycrit` (read 2026-08-09) for
+the effect and for whose it is; the shared measurement, and production build
+`1785244275300`. 3 occurrences.
 
 ### `+legbon_curse` — decoded
 
-A legendary bonus fired on this blow, cursing the target.
+A legendary bonus fired on this blow. **The event is the striker's and the effect
+is the target's**, which is the split the sign alone would not have given: the
+help describes a chance event, possible only when the holder attacks *and* hits,
+that makes the opponent forgo their next action. The help groups it with two
+siblings the client also has keys for — `+distract` and `-legbon_glare` — and
+states that only one of the three may sit on a combatant at a time, and that
+stunning is spent before any of them.
+
+None of that is in the protocol, which states the name and stops. It is recorded
+because it says whose the event is, and because the sibling keys are what a later
+capture would arrive carrying.
 
 *Shape:* 1 occurrences; on a blow; no value
 
-*Evidence:* the shared measurement. 1 occurrence, which is why nothing here says
-more than that it fired.
+*Help:* names `curse`
+
+*Evidence:* article view,372 at the engine name `curse` (read 2026-08-09) for the
+effect, its trigger and its siblings; the shared measurement. 1 occurrence, which
+is why nothing here rests on the material beyond that it fired.
 
 ### `-legbon_cleanse` — decoded
 
-A legendary bonus fired on the blow, cleansing an effect. Carries `-`, and like
-every sign in this family that settles nothing about whose it is — see the note
-opening this section.
+A legendary bonus fired on the blow, and **the one of this family that inverts**:
+the help states the event happens only when the holder **takes** a hit, and clears
+the damage-over-time, slowing and stunning effects standing on them. So its five
+occurrences belong to the combatant who was *struck*, not to the one who swung —
+the opposite of `+legbon_verycrit` beside it, on a message of the same shape.
+
+That is what makes `procsOnBlowsStruck` a grouping by the blow rather than by the
+effect worth having: it stays true of this key and of `+crit` at once, without
+either of them being counted on the wrong row (`src/core/fight-statistics.ts`).
+
+The `-` agrees here, and it is still not the evidence — the note opening this
+section shows the sign settling nothing in general.
 
 *Shape:* 5 occurrences; on a blow; no value
 
-*Evidence:* the shared measurement. 5 occurrences.
+*Help:* names `cleanse`
+
+*Evidence:* article view,372 at the engine name `cleanse` (read 2026-08-09) for
+the effect and for its trigger, which is what places it on the struck combatant;
+the shared measurement. 5 occurrences.
 
 ### `-tenacity` — decoded
 
-Tenacity fired on this blow. What it does is not established here: the help does
-not document the name, and the protocol states nothing but that it happened.
+Tenacity fired on this blow. What it does is not established here, and neither is
+whose it is: the protocol states nothing but that it happened, and article
+view,372 does not carry the name.
+
+**That negative is narrower than the one this entry used to make.** It said the
+help does not document it; what was measured is one article. The help has no build
+id and no index this file reads, so there is no reading of it that supports the
+wider claim — and the four keys corrected above are what the wider claim costs.
 
 *Shape:* 1 occurrences; on a blow; no value
+
+*Help:* names nothing of `tenacity`
 
 *Evidence:* the shared measurement. 1 occurrence.
 
@@ -442,8 +529,12 @@ differ, and a reason not to identify a key by the sentence it produces.
 
 *Shape:* 3 occurrences; on a blow; no value
 
+*Help:* names nothing of `superspell-dispel`, `dispel`, `superspell`
+
 *Evidence:* the shared measurement, and production build `1785244275300`, where
-the branch reads `msg_+dispel`. 3 occurrences.
+the branch reads `msg_+dispel`. 3 occurrences. The stem that worked for the four
+above was tried here too: `dispel` is the name the client's own sentence uses,
+and the article carries neither it nor `superspell`.
 
 ### `+acdmg_destroyed` — decoded
 
@@ -453,8 +544,12 @@ armour is gone and no amount.
 
 *Shape:* 2 occurrences; on a blow; no value
 
+*Help:* names nothing of `acdmg_destroyed`, `destroyed`
+
 *Evidence:* the shared measurement. 2 occurrences, both on a message that also
-carries `+acdmg`.
+carries `+acdmg`. The stem rule does not rescue this one and is worth saying so:
+stripping to `acdmg` lands on the article for the *figure* key below, which is a
+different key and would document the wrong thing.
 
 ### `+acdmg` — decoded
 
@@ -464,6 +559,8 @@ before the blow's reduction is computed, with a floor below which it cannot go.
 Summed together with `dealt` it would be a total of two different things.
 
 *Shape:* 41 occurrences; on a blow; a whole number
+
+*Help:* names `acdmg`
 
 *Evidence:* article view,372 at the engine name `acdmg` (read 2026-08-09), which
 is also what puts the figure on the target: the key carries `+`, and the help
@@ -481,6 +578,8 @@ kept in one shape here because the protocol gives no unit either way; what the
 figure means is the entry's job, not the type's.
 
 *Shape:* 61 occurrences; on a blow; a whole number
+
+*Help:* names `resdmg`
 
 *Evidence:* article view,372 at the engine name `resdmg` (read 2026-08-09), and
 production build `1785244275300`. 61 occurrences — the most frequent of the
@@ -552,6 +651,8 @@ composes from keys, and for the same reason (NOTICE.md). No example of one
 appears in this file or in any test.
 
 *Shape:* 197 occurrences; on a skill announcement; text
+
+*Help:* names nothing of `tspell`, `( tspell )`, `skillId`, `( skillId )`
 
 *Evidence:* production build `1785244275300`, where the branch composes a
 sentence naming the combatant in the actor slot and the value, and sets the
@@ -646,9 +747,24 @@ halved when the caster has no allies in the fight — every capture here is a gr
 the protocol pre-applies those the way it pre-applies the weakening is unknown,
 and it has to be known before a figure is drawn from this key.
 
+**The cap gained a second, independent statement on 2026-08-11, and the verdict
+did not move.** Reading the help by stem for the `legbon` family turned up
+`holytouch`, an unrelated bonus, capped by the help in the same words: restored
+health may not pass what the combatant began the fight with. So the bound is the
+game's general rule for restored health rather than a clause peculiar to this key,
+which is worth more than one article's sentence about one skill.
+
+It changes nothing here, and that is the point of recording it. The obstacle was
+never how well attested the cap is — it is the one reading in the material that
+refuses it, and a second source saying the same thing does not explain that
+reading. Drawing a figure now would still be too **high** wherever the cap binds,
+which is the one direction the panel cannot mark (§9.6). No figure is drawn.
+
 *Health:* moves health
 
 *Shape:* 12 occurrences; on a skill announcement; a number
+
+*Help:* names `healall_per`
 
 *Evidence:* article view,372 at the engine name `healall_per` (read 2026-08-09)
 for the four clauses above, none of which the protocol states. Measured on the
@@ -701,6 +817,8 @@ a smaller value supersedes a larger one.
 
 *Shape:* 9 occurrences; on a blow; a whole number
 
+*Help:* names `injure`
+
 *Evidence:* the game's published help, article view,372, at the engine name
 `injure` (read 2026-08-09), states the rule in its own words — an event applying
 deep-wound damage over time worth 15% of the damage dealt, over three turns, not
@@ -746,6 +864,8 @@ what the captures settle is that the damage reported beside it needs no
 adjustment, and that is a different statement from the key moving health itself.
 
 *Shape:* 68 occurrences; on a message reporting damage; a whole number
+
+*Help:* names `poison_lowdmg_per-enemies`
 
 *Evidence:* the game's published help, article view,372, at the engine name
 `poison_lowdmg_per-enemies` (read 2026-08-09) — the form the help documents,
@@ -800,6 +920,8 @@ trap §7.5 records, met again here.
 
 *Shape:* 43 occurrences; on a skill announcement; a whole number
 
+*Help:* names `active_absorbdest_per`
+
 *Evidence:* the help, article view,372, at that engine name (read 2026-08-09) —
 the description quoted under `+abdest_per` above. Measured on the group fight,
 the only capture carrying it: 43 occurrences, every value `5`, every one on a
@@ -819,6 +941,8 @@ figures in the message or in later ones, already computed; totalling the cap
 would add a number that measures nothing that was done to anybody.
 
 *Shape:* 31 occurrences; on a skill announcement; a whole number
+
+*Help:* names `combo-max`
 
 *Evidence:* the help never documents the key on its own — article view,372 (read
 2026-08-09) mentions it only inside six other effects, each saying it spends
@@ -845,6 +969,8 @@ nothing to compare it against.
 
 *Shape:* 13 occurrences; on a blow; a whole number
 
+*Help:* names `engback`
+
 *Evidence:* article view,372 (read 2026-08-09) names `engback` among the effects
 that restore energy, without documenting the protocol key. 13 occurrences, every
 one on a blow beside `+crit`.
@@ -855,6 +981,8 @@ An attack-speed reduction applied by a critical hit. States a whole number; all
 7 occurrences ride a blow carrying `+crit`.
 
 *Shape:* 7 occurrences; on a blow; a whole number
+
+*Help:* names `critslow_per`
 
 *Evidence:* article view,372 (read 2026-08-09) lists `critslow_per` among the
 effects that combine additively to change attack speed. Read as a declaration for
@@ -881,6 +1009,8 @@ carries it in a comparable call. That is the safety net this verdict rests on,
 and it runs on every gate.
 
 *Shape:* 2 occurrences; on a blow; a whole number
+
+*Help:* names `critpoison_per`
 
 *Evidence:* article view,372 (read 2026-08-09) at the engine name
 `critpoison_per`. 2 occurrences, both beside `+crit`.
@@ -923,6 +1053,8 @@ this is a settled negative, which is what this paragraph is for. It is re-earned
 every gate by `tests/core/health-witness.test.ts`, which judges that call rather
 than skipping it (measured 2026-08-11).
 
+*Help:* names `facade`
+
 *Evidence:* article view,372 (read 2026-08-09) at the engine name `facade`, for
 the effect and for the value it carries; the client composes its log line with a
 `%val%` hole, production build `1786441768914`. 2 occurrences in the captures,
@@ -948,11 +1080,32 @@ than by omission, and holds the value case too.
 A **different key** from `legbon_holytouch_heal`, which is decoded and does move
 health — the same split as `injure` and `+injure`.
 
+**The help documents the effect, and this entry said it did not.** The two phrases
+it recorded searching, `legbon_holytouch` and `legbon`, are the wrong shape; the
+stem `holytouch` answers. What the help states: a chance event, possible only when
+the holder attacks — hitting is not required — that puts a three-turn effect on
+**the holder themselves**, each trigger restoring a share of their health pool. It
+does not stack; a later event refreshes the duration instead.
+
+**It does not resolve the `%val%` disagreement, and the behaviour is unchanged.**
+The only figure the help attaches to the event is the *chance* of it happening,
+which is a property of the equipment rather than of this message, and the healing
+it describes is what `legbon_holytouch_heal` carries. So nothing here says what a
+value on this key would mean, and reading it as a flag would still settle from one
+message what the game settles. Documented is not the same as resolved — the entry
+above stands as written.
+
+One clause is worth more than this key. The help caps the restored health at what
+the holder began the fight with, the same bound `healall_per` argues over, stated
+for an unrelated bonus — see that entry.
+
 *Shape:* 1 occurrences; on a blow; no value
 
+*Help:* names `holytouch`
+
 *Evidence:* production build `1785244275300` against 1 occurrence in the group
-fight. Not in the help: article view,372 (read 2026-08-09), searched for
-`legbon_holytouch` and `legbon`.
+fight; article view,372 at the engine name `holytouch` (read 2026-08-09) for the
+effect, its trigger and whose it is.
 
 ### `poison_lowdmg_per-enemies` — decoded
 
@@ -961,6 +1114,8 @@ per fight rather than per blow. Described in full in that entry above; it has a
 heading of its own because it is a distinct key.
 
 *Shape:* 1 occurrences; alone in its message; a whole number
+
+*Help:* names `poison_lowdmg_per-enemies`
 
 *Evidence:* 1 occurrence in the group fight, naming a single combatant in the
 actor slot, carrying no damage, stating the same value the 68 blow reports
@@ -1007,6 +1162,8 @@ A reduction of the target's chance to block, granted by the announced skill.
 
 *Shape:* 26 occurrences; on a skill announcement; a whole number
 
+*Help:* names `active_decblock_per`
+
 *Evidence:* article view,372 (read 2026-08-09) names it among the effects that
 lower block chance. 26 occurrences, values 1, 2, 4 and 11. The client hides the
 key: production build `1785244275300` gives it an empty `break` in the battle
@@ -1019,6 +1176,8 @@ The same reduction, aimed at the opposing side rather than at one target — the
 
 *Shape:* 11 occurrences; on a skill announcement; a whole number
 
+*Help:* names `active_decblock_per-enemies`
+
 *Evidence:* article view,372 (read 2026-08-09), which lists it beside
 `decblock_per` and `active_decblock_per`. 11 occurrences, every value `10`.
 
@@ -1027,6 +1186,8 @@ The same reduction, aimed at the opposing side rather than at one target — the
 An increase to the announcer's own chance to block.
 
 *Shape:* 10 occurrences; on a skill announcement; a whole number
+
+*Help:* names `active_block_per`
 
 *Evidence:* article view,372 (read 2026-08-09) at the engine name
 `active_block_per`, described as raising block chance and applied at the
@@ -1038,6 +1199,8 @@ A reduction to the damage dealt by everyone on the opposing side.
 
 *Shape:* 11 occurrences; on a skill announcement; a whole number
 
+*Help:* names `alllowdmg`
+
 *Evidence:* article view,372 (read 2026-08-09) at the engine name `alllowdmg`,
 described as lowering the damage of all characters in the opposing team by the
 share the parameter sets. 11 occurrences, every value `5`.
@@ -1048,6 +1211,8 @@ An attack-speed reduction applied across the opposing side.
 
 *Shape:* 5 occurrences; on a skill announcement; a whole number
 
+*Help:* names `allslow_per`
+
 *Evidence:* article view,372 (read 2026-08-09), which lists it among the effects
 combining additively to change attack speed. 5 occurrences, every value `14`.
 
@@ -1056,6 +1221,8 @@ combining additively to change attack speed. 5 occurrences, every value `14`.
 An aura raising armour, granted to the announcer's team.
 
 *Shape:* 4 occurrences; on a skill announcement; a whole number
+
+*Help:* names `aura-ac_per`
 
 *Evidence:* article view,372 (read 2026-08-09), which lists it among the effects
 that raise armour. 4 occurrences, every value `20`.
@@ -1067,6 +1234,8 @@ percentage points.
 
 *Shape:* 4 occurrences; on a skill announcement; a whole number
 
+*Help:* names `aura-resall`
+
 *Evidence:* article view,372 (read 2026-08-09) at the engine name `aura-resall`.
 4 occurrences, every value `15`.
 
@@ -1075,6 +1244,8 @@ percentage points.
 An aura raising the team's attack speed.
 
 *Shape:* 4 occurrences; on a skill announcement; a whole number
+
+*Help:* names `aura-sa_per`
 
 *Evidence:* article view,372 (read 2026-08-09), which lists it among the
 attack-speed effects. 4 occurrences, every value `20`.
@@ -1086,6 +1257,8 @@ the protocol states the change, not the price as a positive number.
 
 *Shape:* 15 occurrences; on a skill announcement; a whole number
 
+*Help:* names `mana`
+
 *Evidence:* article view,372 (read 2026-08-09) documents mana as a resource some
 skills consume. 15 occurrences, all negative, 10 of them beside `energy`.
 
@@ -1095,6 +1268,8 @@ Energy the announced skill costs, the same shape as `mana`. Every occurrence in
 the captures states `0`, which is why nothing here claims it is ever otherwise.
 
 *Shape:* 10 occurrences; on a skill announcement; a whole number
+
+*Help:* names `energy`
 
 *Evidence:* article view,372 (read 2026-08-09) documents energy as a resource
 some skills consume. 10 occurrences, every one beside `mana`.
@@ -1106,6 +1281,8 @@ combatant. The value is that combatant's **name**, so it is read at run time and
 never stored here — the same footing as `tspell` (NOTICE.md).
 
 *Shape:* 11 occurrences; on a skill announcement; text
+
+*Help:* names `shout`
 
 *Evidence:* article view,372 (read 2026-08-09) at the engine name `shout`,
 described as forcing covered characters to attack a chosen target. 11
@@ -1135,6 +1312,8 @@ entry does not either.
 
 *Shape:* 22 occurrences; alone in its message; no value
 
+*Help:* names `step`
+
 *Evidence:* not documented. Article view,372 (read 2026-08-09) was searched for
 `step`; the only hit is inside a longer Polish word, which is the false positive
 §7.6 warns about rather than a mention. 22 occurrences, all valueless, all
@@ -1147,6 +1326,8 @@ the client's display text, so no example of one appears here.
 
 *Shape:* 13 occurrences; alone in its message; text
 
+*Help:* names nothing of `prepare`
+
 *Evidence:* not documented — article view,372 (read 2026-08-09), searched for
 `prepare`, which does not occur. 13 occurrences, each the only key in its
 message, every value matching that shape, always with an actor and no target.
@@ -1158,6 +1339,8 @@ in this file or in any test: it carries the game's own sentences and player
 names, which NOTICE.md keeps out of the repository entirely.
 
 *Shape:* 13 occurrences; alone in its message; text
+
+*Help:* names nothing of `txt`
 
 *Evidence:* not documented — article view,372 (read 2026-08-09), searched for
 `txt`, which does not occur. 13 occurrences, each alone in its message, naming
@@ -1174,6 +1357,8 @@ is uncertain; it is simply out of scope — which is a reading, and a different
 claim from a key nobody has looked at.
 
 *Shape:* 1 occurrences; alone in its message; a whole number
+
+*Help:* names `exp`
 
 *Evidence:* 1 occurrence, an integer, alone in its message with neither side
 named. Not documented as a protocol key in article view,372 (read 2026-08-09).

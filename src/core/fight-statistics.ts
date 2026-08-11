@@ -50,9 +50,14 @@ export type CombatantStatistics = {
    * Flags that fired on blows this combatant **struck**, counted by token.
    *
    * Named for the blow rather than for the effect on purpose: `+crit` is the
-   * striker's and `+stun` is done to the target, and the register settles whose
-   * each figure is from the help rather than from the sign — which it has not
-   * done for most of this family. What is true of all of them is who swung.
+   * striker's and `+stun` is done to the target. The help has since settled whose
+   * several more of them are, and the answer is why this name stays — they do not
+   * fall the same way. `+legbon_verycrit` fires when its bearer attacks;
+   * `-legbon_cleanse` fires when its bearer is hit, so it belongs to the
+   * combatant who was struck, on a blow they did not throw. Which slot of the
+   * message holds the bearer is not stated anywhere, so putting each effect on
+   * the row it belongs to would be a join the protocol does not make (§5).
+   * What is true of all of them is who swung.
    */
   procsOnBlowsStruck: ReadonlyMap<string, number>;
   skillsUsed: number;
