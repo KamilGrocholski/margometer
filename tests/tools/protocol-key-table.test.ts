@@ -106,4 +106,35 @@ describe("extracting the table", () => {
     const bundle = `x.manageBattleEffects(a,b);switch(q,O[0]){case"beta":x();case"alpha":y()}`;
     expect(getProtocolKeys(bundle)).toEqual(["alpha", "beta"]);
   });
+
+  /**
+   * ⚠️ **The regression, and the reason this test names three variables.**
+   *
+   * The tool searched for the literal `O[0]){` — the name the minifier gave that
+   * variable in build `1785244275300`. Build `1786441768914` calls it `y`, and
+   * the tool refused the whole bundle, reporting that the client had been
+   * restructured when nothing structural had changed. The test that should have
+   * caught it used `O` as well, so the guard agreed with the bug by construction.
+   *
+   * A minifier renames every local on every build. The name is therefore never
+   * the thing to match, and this holds the extraction to saying so.
+   */
+  test.each(["O", "y", "$", "_zz"])(
+    "reads the same keys whatever the minifier called the segment (%s)",
+    (name) => {
+      const bundle = `x.manageBattleEffects(${name}[0],${name}[1],c),${name}[0]){case"beta":x();case"alpha":y()}`;
+      expect(getProtocolKeys(bundle)).toEqual(["alpha", "beta"]);
+    },
+  );
+
+  /**
+   * And the reason the search starts at the anchor rather than at the bundle:
+   * `x[0]){` is an ordinary shape, and the first one in two megabytes belongs to
+   * whatever happens to be earliest. Here an earlier switch offers keys that are
+   * not battle keys at all — the trap §7.5 records, in its other direction.
+   */
+  test("takes the switch after the anchor, not the first one in the file", () => {
+    const bundle = `switch(w[0]){case"not_a_battle_key":q()};x.manageBattleEffects(y[0],c),y[0]){case"alpha":y()}`;
+    expect(getProtocolKeys(bundle)).toEqual(["alpha"]);
+  });
 });

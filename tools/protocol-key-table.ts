@@ -33,9 +33,22 @@ export class ProtocolKeyTableError extends MargoMeterToolError {
  * branches on the key half of a `key=value` segment. Both survive minification:
  * the call name because it is a public method, the keys because they are string
  * literals.
+ *
+ * ⚠️ **The subject is matched by shape, and the reason is a build.** It was the
+ * literal `O[0]){` — the name the minifier happened to give that variable in
+ * build `1785244275300`. Build `1786441768914` calls it `y`, and the tool refused
+ * the whole bundle over one renamed letter: it found the anchor and not the
+ * switch, which reads as "the client was restructured" when nothing structural
+ * had changed at all.
+ *
+ * A minifier renames every local on every build, so any literal name here is a
+ * dated fuse. What does not change is the shape: the discriminant is a comma
+ * expression ending in some identifier indexed at zero — the key half of the
+ * segment — followed by the switch block. That is structure, and §7.5 says to
+ * extract structure with structure.
  */
 const SWITCH_ANCHOR = "manageBattleEffects(";
-const SWITCH_SUBJECT = "O[0]){";
+const SWITCH_SUBJECT = /[A-Za-z_$]+\[0\]\)\{/;
 const CASE_LABEL = /case"([^"]*)":/g;
 
 /** The body of the first block that opens at or after `from`, brace-balanced. */
@@ -115,12 +128,16 @@ export function getProtocolKeys(bundle: string): string[] {
     );
   }
 
-  const subject = bundle.indexOf(SWITCH_SUBJECT, anchor);
-  if (subject === -1) {
+  // Searched from the anchor rather than over the whole bundle: `x[0]){` is an
+  // ordinary shape, and the first one in a two-megabyte file belongs to whatever
+  // happens to be earliest, not to this switch.
+  const found = SWITCH_SUBJECT.exec(bundle.slice(anchor));
+  if (found === null) {
     throw new ProtocolKeyTableError(
       `${SWITCH_ANCHOR} found but not the switch on the segment key`,
     );
   }
+  const subject = anchor + found.index;
 
   const keys = [...getBlockBody(bundle, subject).matchAll(CASE_LABEL)].map((match) => match[1]);
   const distinct = [...new Set(keys)].filter((key): key is string => key !== undefined);

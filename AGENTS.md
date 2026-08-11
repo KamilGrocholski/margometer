@@ -254,7 +254,12 @@ Rules that arrived this way, each paid for once:
 - `[ALWAYS] [any]` **Extract structure with structure, not with a search.** A
   list gathered by grepping a whole file quietly includes its neighbours: two
   keys entered the first key table from a switch that had nothing to do with
-  battle messages.
+  battle messages. Paid for twice, and the second time from the other side:
+  `tools/protocol-key-table.ts` anchored on `O[0]){`, a name the **minifier**
+  chose, and refused the next build entirely because it called the same variable
+  `y`. A minified name is a dated fuse — match the shape it appears in. The test
+  that should have caught it named `O` too, which is how a guard comes to agree
+  with the bug it was written to prevent.
 - `[ALWAYS] [process]` **A mutation that lights nothing is a finding.** Either
   the test is missing or the code is inert. Twice here it was the second, and
   both times the answer was to delete something rather than to add a test.
