@@ -22,11 +22,12 @@
  *     damage each; `healall_per` is the known cause and the register already
  *     states why it cannot be read without a roster side.
  *
- * The per-call version of this comparison is `tests/health-witness.test.ts`,
- * which handles both by skipping what it cannot add. Repeating it here at fight
- * scale would either duplicate that or need a tolerance wide enough to prove
- * nothing. What this file holds instead is the invariant the aggregate itself
- * owns: every figure landed is also a figure taken.
+ * The per-call version of this comparison is
+ * `tests/core/health-witness.test.ts`, which handles both by skipping what it
+ * cannot add. Repeating it here at fight scale would either duplicate that or
+ * need a tolerance wide enough to prove nothing. What this file holds instead is
+ * the invariant the aggregate itself owns: every figure landed is also a figure
+ * taken.
  */
 
 import { describe, expect, test } from "bun:test";

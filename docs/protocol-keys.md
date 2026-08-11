@@ -14,11 +14,11 @@ one that can settle a *meaning*. It settles nothing else: the `*Health:*` line
 below is a measurement or it is absent, and no sentence of the game's is copied
 in here — an entry carries the locator and our own words.
 
-**Guarded** by `tests/protocol-key-register.test.ts`: this file cannot get ahead
-of the decoder or fall behind it, and it cannot fall behind the captures either —
-a key the material carries with no entry here fails the gate. What it deliberately
-does **not** hold is any count of progress — run `bun tools/decoding-status.ts`
-for that.
+**Guarded** by `tests/core/protocol-key-register.test.ts`: this file cannot get
+ahead of the decoder or fall behind it, and it cannot fall behind the captures
+either — a key the material carries with no entry here fails the gate. What it
+deliberately does **not** hold is any count of progress — run `bun
+tools/decoding-status.ts` for that.
 
 ## What every entry states about its own material
 
@@ -74,9 +74,9 @@ settled that says so with one line:
 
 There is no opposite value, and the omission is the point. Silence means the
 material has not settled it — which is different from "it is harmless", and the
-two must not share a spelling. `tests/health-witness.test.ts` reads this line
-and skips any engine call carrying such a key, because a figure it cannot add is
-a figure that makes every later comparison in that call wrong.
+two must not share a spelling. `tests/core/health-witness.test.ts` reads this
+line and skips any engine call carrying such a key, because a figure it cannot
+add is a figure that makes every later comparison in that call wrong.
 
 **The evidence is always a measurement on the captures**, never a citation:
 having established that the client only composes sentences, there is nothing in
@@ -255,8 +255,8 @@ carry opposite signs.
 saying so** — the register has no spelling for that, deliberately, and does not
 need one here. Reading a key is a stronger claim than describing it: these are
 now in the witness's arithmetic, which applies none of them, so if any did move
-health `tests/health-witness.test.ts` would disagree on the calls carrying it.
-The verdict is held by the same guard that holds the damage figures.
+health `tests/core/health-witness.test.ts` would disagree on the calls carrying
+it. The verdict is held by the same guard that holds the damage figures.
 
 Measured across both captures: all 319 occurrences arrive on a message that also
 carries damage and names a combatant on both sides.
@@ -324,10 +324,11 @@ production build `1785244275300`. All 21 occurrences arrive with no value.
 
 Eight more keys are read the same way, and they are grouped because the evidence
 is one measurement rather than eight. Each states a fact about the blow and no
-figure; together with the two above, **all 100 occurrences in the captures arrive
-without a value, on a message that also carries damage and names a combatant on
-both sides**. `tests/proc-rule.test.ts` re-earns that by decoding the material
-and checking what actually landed, rather than by reading the decoder's list.
+figure; together with the two above, **all 100 occurrences in the captures
+arrive without a value, on a message that also carries damage and names a
+combatant on both sides**. `tests/core/proc-rule.test.ts` re-earns that by
+decoding the material and checking what actually landed, rather than by reading
+the decoder's list.
 
 **Membership is the client's to decide, not the name's.** For each of the eight,
 production build `1785244275300` composes a sentence that interpolates nothing —
@@ -482,16 +483,16 @@ The share the help describes is stated in the fight itself, as
 `active_absorbdest_per=5` (its own entry below), and the reports agree with it:
 against the single target that carries them, each report is smaller than the one
 before by at least that 5%, the closest being 6017 → 5717. Both directions are
-held by `tests/absorption-destruction-rule.test.ts`. What is **not** established
-is the absorption pool itself — the captures record health and nothing else, so
-the share can be checked against consecutive reports but never against the
-quantity it was taken from.
+held by `tests/core/absorption-destruction-rule.test.ts`. What is **not**
+established is the absorption pool itself — the captures record health and
+nothing else, so the share can be checked against consecutive reports but never
+against the quantity it was taken from.
 
 Production build `1785244275300` gives both keys one shared case, alongside
 `active_resall_per`, which appends the value to a log slot and assigns nothing;
 the readable development build `1781609507010` has the same shape. All 18 calls
-carrying them are judged by `tests/health-witness.test.ts` and agree, which is
-what places them outside the health arithmetic.
+carrying them are judged by `tests/core/health-witness.test.ts` and agree, which
+is what places them outside the health arithmetic.
 
 ---
 
@@ -505,12 +506,13 @@ narrower than it sounds, and an earlier version of this entry said "no damage at
 all" and was wrong.
 
 **Damage aimed at a name rides the announcement itself.** 33 of the 197 carry
-either `+oth_dmg` or a key the register says moves health, in the same message as
-the skill name, never both at once. So the protocol does sometimes put a skill
-and a figure together; what it still does not state is that the figure is the
-skill's doing. Tying them remains an inference, and the decoder does not attempt
-one — it emits the announcement and the figure as separate events from the same
-message. Guarded, in both directions, by `tests/skill-announcement-rule.test.ts`.
+either `+oth_dmg` or a key the register says moves health, in the same message
+as the skill name, never both at once. So the protocol does sometimes put a
+skill and a figure together; what it still does not state is that the figure is
+the skill's doing. Tying them remains an inference, and the decoder does not
+attempt one — it emits the announcement and the figure as separate events from
+the same message. Guarded, in both directions, by
+`tests/core/skill-announcement-rule.test.ts`.
 
 The value is the name the player's own client displays. It is read at run time
 and shown, never stored here — the same footing as the sentences the client
@@ -605,16 +607,17 @@ and it has to be known before a figure is drawn from this key.
 
 *Evidence:* article view,372 at the engine name `healall_per` (read 2026-08-09)
 for the four clauses above, none of which the protocol states. Measured on the
-group fight, which carries all twelve occurrences; three of them are the whole of
-their engine call, so their thirty health deltas are attributable to nothing else.
-The share is of the maximum — 7162 restored on a maximum of 23874 at 30%, where
-30% of that combatant's remaining 8749 would be 2624. It floors: a share landing
-on 5629.5 moved 5629. Capping at starting health reproduces 29 of the 30, capping
-at maximum 24, and the six that separate them each sat exactly at their starting
-health while short of maximum and gained nothing. Dropping the cap entirely
-reports 120% more healing than happened, across all twelve occurrences. Held by
-`tests/core/team-heal-rule.test.ts`, including the one reading that refuses the
-cap, named there rather than counted so that a second one says which it is.
+group fight, which carries all twelve occurrences; three of them are the whole
+of their engine call, so their thirty health deltas are attributable to nothing
+else. The share is of the maximum — 7162 restored on a maximum of 23874 at 30%,
+where 30% of that combatant's remaining 8749 would be 2624. It floors: a share
+landing on 5629.5 moved 5629. Capping at starting health reproduces 29 of the
+30, capping at maximum 24, and the six that separate them each sat exactly at
+their starting health while short of maximum and gained nothing. Dropping the
+cap entirely reports 120% more healing than happened, across all twelve
+occurrences. Held by `tests/core/team-heal-rule.test.ts`, including the one
+reading that refuses the cap, named there rather than counted so that a second
+one says which it is.
 
 ---
 
@@ -630,8 +633,8 @@ as its own `injure` message, which is the entry above.
 Counting the announcement as damage would add the same wound twice — once where
 it is announced, and again on every tick.
 
-Two properties, both re-earned on every run by `tests/injure-rule.test.ts`: the
-amount is `floor(0.15 × the damage that message reports taken)`, and a fresh
+Two properties, both re-earned on every run by `tests/core/injure-rule.test.ts`:
+the amount is `floor(0.15 × the damage that message reports taken)`, and a fresh
 application **replaces** the wound already running rather than adding to it, so
 a smaller value supersedes a larger one.
 
@@ -668,11 +671,12 @@ would total a percentage with them; the flag family holds keys that carry no
 figure at all, and this one always carries one. Reading it anywhere would either
 double a reduction that already happened or invent a unit.
 
-Two properties re-earned on every run by `tests/poison-reduction-rule.test.ts`:
-it arrives **once per combatant the message reports damage against** — not once
-per damage element — and it always carries a figure. A third test holds the
-entry to making no health claim, because the moment it does, the witness skips
-every call carrying it and the paragraph below stops being checked by anything.
+Two properties re-earned on every run by
+`tests/core/poison-reduction-rule.test.ts`: it arrives **once per combatant the
+message reports damage against** — not once per damage element — and it always
+carries a figure. A third test holds the entry to making no health claim,
+because the moment it does, the witness skips every call carrying it and the
+paragraph below stops being checked by anything.
 
 No health line, which is the register making no claim rather than an omission:
 what the captures settle is that the damage reported beside it needs no
@@ -695,14 +699,15 @@ Measured on the group fight, the only capture carrying either: 68 occurrences
 across 26 messages, every value `10`, and the aura declared once — in a message
 naming a single combatant in the actor slot, carrying no damage, with the same
 value `10`, which is what joins the log report to the documented effect. All 26
-messages report damage, and in all 26 the number of occurrences equals the number
-of combatants damaged. Counting damage **elements** instead holds for only 19 of
-the 26: seven blows carry two elements and still report one reduction, which is
-what rules that reading out. 16 of the 23 calls carrying the key are judged by
-`tests/health-witness.test.ts` — the other 7 are skipped over unrelated keys —
-and they agree, which is the measurement behind "already net". Nothing here
-establishes what the blow would have been without it: the protocol reports the
-reduced figure and never the raw one, so the amount removed is not recoverable.
+messages report damage, and in all 26 the number of occurrences equals the
+number of combatants damaged. Counting damage **elements** instead holds for
+only 19 of the 26: seven blows carry two elements and still report one
+reduction, which is what rules that reading out. 16 of the 23 calls carrying the
+key are judged by `tests/core/health-witness.test.ts` — the other 7 are skipped
+over unrelated keys — and they agree, which is the measurement behind "already
+net". Nothing here establishes what the blow would have been without it: the
+protocol reports the reduced figure and never the raw one, so the amount removed
+is not recoverable.
 
 ### `active_absorbdest_per` — investigated
 
@@ -734,8 +739,8 @@ trap §7.5 records, met again here.
 *Evidence:* the help, article view,372, at that engine name (read 2026-08-09) —
 the description quoted under `+abdest_per` above. Measured on the group fight,
 the only capture carrying it: 43 occurrences, every value `5`, every one on a
-skill announcement. Held by `tests/absorption-destruction-rule.test.ts`, which
-also refuses a second distinct value — the entry's claim is that the fight
+skill announcement. Held by `tests/core/absorption-destruction-rule.test.ts`,
+which also refuses a second distinct value — the entry's claim is that the fight
 declares one share, not that the key is a constant.
 
 ### `combo-max` — investigated
@@ -757,8 +762,8 @@ accumulated combination points up to the number this parameter sets, which is
 where the reading comes from. Measured on the group fight, the only capture
 carrying it: 31 occurrences, values `1` (15), `2` (15) and `3` (1), and **every
 one on a skill announcement** — none anywhere else. Held by
-`tests/skill-announcement-rule.test.ts`, which also refuses a figure in the range
-the protocol's quantities occupy, so a cap and a count of points cannot be
+`tests/core/skill-announcement-rule.test.ts`, which also refuses a figure in the
+range the protocol's quantities occupy, so a cap and a count of points cannot be
 confused with one.
 
 ### `+engback` — investigated
@@ -824,8 +829,8 @@ does not carry.
 
 That disagreement is the entry. Reading it as a flag would settle from one
 message what the game settles, and the figure would vanish the first time one
-arrived. It stays unread, and `tests/proc-rule.test.ts` holds it out of the flag
-family on purpose rather than by omission.
+arrived. It stays unread, and `tests/core/proc-rule.test.ts` holds it out of the
+flag family on purpose rather than by omission.
 
 A **different key** from `legbon_holytouch_heal`, which is decoded and does move
 health — the same split as `injure` and `+injure`.
@@ -869,7 +874,7 @@ an effect. That is `[ASK]` under §4, so it has not been made.
 
 *Evidence, shared:* every occurrence of every key below rides a message carrying
 `tspell`, and none rides a blow — measured across both captures. All appear only
-in the group fight. Held by `tests/skill-announcement-rule.test.ts` for
+in the group fight. Held by `tests/core/skill-announcement-rule.test.ts` for
 `combo-max`; the rest rest on the measurement alone.
 
 ### `active_decblock_per` — investigated

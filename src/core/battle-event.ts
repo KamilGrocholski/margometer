@@ -4,7 +4,7 @@
  * The union grows one variant at a time, alongside the decoder step that
  * produces it. A variant nothing produces is not a placeholder for future work
  * — it is dead weight that our own test data keeps alive, and
- * `tests/battle-event.test.ts` fails on it.
+ * `tests/core/battle-event.test.ts` fails on it.
  */
 
 /**
@@ -137,7 +137,8 @@ export type HealthChangeEvent = {
  * So the protocol does sometimes put a skill beside a figure. What it still does
  * not state is that the figure is the skill's doing, so tying them remains an
  * inference rather than a reading, and the decoder emits the two as separate
- * events from the one message. Held by `tests/skill-announcement-rule.test.ts`.
+ * events from the one message. Held by
+ * `tests/core/skill-announcement-rule.test.ts`.
  */
 export type SkillUsedEvent = {
   kind: "skill-used";

@@ -101,11 +101,11 @@ describe("what `-poison_lowdmg_per` reports", () => {
   });
 
   /**
-   * What keeps the evidence above from going vacuous. "Already net" is earned by
-   * `tests/health-witness.test.ts` agreeing on the calls that carry this key —
-   * and it only reaches them while the register makes no health claim here. File
-   * one, and every such call is skipped whole and the verdict quietly stops
-   * being checked by anything.
+   * What keeps the evidence above from going vacuous. "Already net" is earned
+   * by `tests/core/health-witness.test.ts` agreeing on the calls that carry this
+   * key — and it only reaches them while the register makes no health claim
+   * here. File one, and every such call is skipped whole and the verdict
+   * quietly stops being checked by anything.
    */
   test("makes no call unjudgeable, which is what leaves the witness to earn it", () => {
     expect(getKeysWithHealthEffect("moves health")).not.toContain(REDUCTION_KEY);

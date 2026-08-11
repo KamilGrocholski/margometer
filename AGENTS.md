@@ -318,7 +318,7 @@ from them; it does not say that a wound is worth 15% of the damage taken.
 - `[ALWAYS]` **A claim from the help carries the date it was read**, the way a
   claim from the client carries its build — the help has no build id, so the date
   is the only thing dating it. Guarded in the register by
-  `tests/protocol-key-register.test.ts`.
+  `tests/core/protocol-key-register.test.ts`.
 - `[ALWAYS]` **Documentation settles a meaning; the captures settle a number.**
   Where the two disagree, the disagreement is the finding — the help does not
   overrule a measurement on our own material.
@@ -575,6 +575,12 @@ tests/
                              fetched enters git. Discovers files, never lists
                              them — which is why it keeps working after a move
                              like this one.
+    cited-paths.test.ts      Every repository path this repository names in its
+                             own text — documents and source comments alike —
+                             points at a file that exists. The move above left
+                             citations behind across five files and nothing
+                             noticed; "held by `x`" is the sentence that stops a
+                             reader checking whether anything holds it.
     captured-fight-catalog.test.ts  decoding-status.test.ts  help-article.test.ts
     protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```
@@ -661,8 +667,8 @@ and moving a file no longer rewrites the imports of its neighbours. There is no
 depth at which `../../` is acceptable, and no exception for same-directory
 imports — mixing the two styles is how you end up needing to know both.
 
-Imports are guarded by `tests/source-layout.test.ts`, which discovers the files
-rather than listing them.
+Imports are guarded by `tests/tools/source-layout.test.ts`, which discovers the
+files rather than listing them.
 
 ### 9.4 Naming
 
@@ -748,7 +754,8 @@ data structure.
 **Files are kebab-case and name their contents, not their category.**
 `utils.ts`, `helpers.ts`, `common.ts`, `misc.ts` and `index.ts` are names nobody
 can predict the contents of, and `[NEVER]` get created here — `index.ts` also
-makes every editor tab read the same. Guarded by `tests/source-layout.test.ts`.
+makes every editor tab read the same. Guarded by
+`tests/tools/source-layout.test.ts`.
 
 **Types name the thing, not its shape.** `CombatantSnapshot`, not `Warrior`,
 `W` or `CombatantData` — `Data` says nothing that the type itself does not.
@@ -887,11 +894,11 @@ How to proceed when you need one:
    in §8. A primitive nobody is held to is a primitive with a second copy
    somewhere by next week.
 
-Guarded by `tests/source-layout.test.ts`: no unbranded error, no error class
-outside the base files, each file extends the base belonging to its side, no
-non-null assertions outside tests, **every construct in the register spelled only
-by its owner — in tests too**, each owner still spelling what it owns, and no
-cast off `JSON.parse`. The guards read source with its comments stripped — a
+Guarded by `tests/tools/source-layout.test.ts`: no unbranded error, no error
+class outside the base files, each file extends the base belonging to its side,
+no non-null assertions outside tests, **every construct in the register spelled
+only by its owner — in tests too**, each owner still spelling what it owns, and
+no cast off `JSON.parse`. The guards read source with its comments stripped — a
 rule has to be explainable in the file it binds.
 
 ### 9.6 UI
