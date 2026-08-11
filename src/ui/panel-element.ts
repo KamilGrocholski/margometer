@@ -11,9 +11,18 @@
  *
  *   - a section that throws takes only itself down;
  *   - a handler that throws does not escape into the page;
- *   - nothing here can interrupt — no dialog, no focus taken, nothing that moves.
+ *   - nothing here can interrupt — no dialog, no focus taken, nothing that moves
+ *     unless a hand is moving it.
  */
 
+import { getFiniteNumberFromValue } from "@/libs/number.ts";
+import type { PanelGrab, PanelPosition, PanelViewport } from "@/src/ui/panel-placement.ts";
+import {
+  composeClampedPosition,
+  composeDefaultPosition,
+  composeDraggedPosition,
+  composePositionDeclarations,
+} from "@/src/ui/panel-placement.ts";
 import { PANEL_TOKENS } from "@/src/ui/panel-tokens.ts";
 import type {
   PanelHeader,
@@ -24,11 +33,21 @@ import type {
 } from "@/src/ui/panel-view.ts";
 
 /**
- * What a click hands us. Only the target is used, and that is the whole point:
- * one listener at the root can serve every control on the panel if it can tell
- * which one was hit (§9.6).
+ * What an event hands us. The target is what a click needs, and that is the whole
+ * point: one listener at the root can serve every control on the panel if it can
+ * tell which one was hit (§9.6).
+ *
+ * The rest is what a drag needs, and all of it is optional because a click
+ * carries none of it — a pointer event that arrives without coordinates moves
+ * nothing rather than moving somewhere nobody asked for.
  */
-export type PanelEvent = { target: unknown };
+export type PanelEvent = {
+  target: unknown;
+  clientX?: number | undefined;
+  clientY?: number | undefined;
+  pointerId?: number | undefined;
+  preventDefault?: (() => void) | undefined;
+};
 
 /** The slice of the DOM this file uses, so a test can supply the whole of it. */
 export type PanelNode = {
@@ -46,6 +65,14 @@ export type PanelNode = {
   append(...nodes: PanelNode[]): void;
   replaceChildren(...nodes: PanelNode[]): void;
   addEventListener(type: string, listener: (event: PanelEvent) => void): void;
+  /**
+   * Optional, because a drag works without it while the pointer stays over the
+   * panel — capture is what keeps a fast one from being dropped the moment the
+   * cursor outruns the title bar. A fake document that does not offer it still
+   * drags.
+   */
+  setPointerCapture?: ((pointerId: number) => void) | undefined;
+  releasePointerCapture?: ((pointerId: number) => void) | undefined;
 };
 
 export type PanelHost = PanelNode & {
@@ -63,21 +90,74 @@ export type PanelHandlers = {
 };
 
 /**
+ * Where the panel sits, and who is told when that changes.
+ *
+ * The whole of placement is `ui`'s: this file writes the styles, and the caller
+ * only supplies the position it remembered and takes back the one the user
+ * settled on. Splitting it — the caller applying styles while this reported
+ * deltas — would put the position in two files and make a payload landing
+ * mid-drag something both of them have to be right about.
+ */
+export type PanelPlacement = {
+  /** What was remembered, already validated. Null keeps the default corner. */
+  position: PanelPosition | null;
+  /** Asked on every move, because a window can be resized during a drag. */
+  getViewport: () => PanelViewport | null;
+  /** Told when the drag ends, not while it runs — a caller may be writing to storage. */
+  onMoved?: ((position: PanelPosition) => void) | undefined;
+  onSectionFailure?: ((error: unknown) => void) | undefined;
+};
+
+/**
  * `all: initial` on the host, because the game's stylesheet is not ours to
  * inherit and a panel that changes shape when the game restyles itself is a
  * panel nobody can trust to be readable.
+ *
+ * The placement that never changes is here rather than written onto the host in
+ * script: the corner is where the panel starts, and a page where nothing was ever
+ * dragged should need no JavaScript to put it there. `display` is restated
+ * because `all: initial` resets it to `inline`, on which a fixed width means
+ * nothing — the panel had been laid out that way since it was written.
  */
 export function composePanelStyleText(): string {
   const t = PANEL_TOKENS;
   return `
-:host { all: initial; }
+:host {
+  all: initial;
+  display: block;
+  position: fixed;
+  top: ${t.space};
+  right: ${t.space};
+  z-index: ${t.layer};
+}
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: ${t.spaceSmall};
+  padding: ${t.spaceSmall} ${t.space};
+  font: 11px/1.2 system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: ${t.textQuiet};
+  background: ${t.surfaceRaised};
+  border: 1px solid ${t.border};
+  border-bottom: none;
+  border-radius: ${t.radius} ${t.radius} 0 0;
+  box-sizing: border-box;
+  width: ${t.width};
+  /* The affordance is the cursor and the grip; nothing animates to advertise it. */
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+}
 .panel {
   font: 12px/1.45 system-ui, sans-serif;
   width: ${t.width};
   color: ${t.text};
   background: ${t.surface};
   border: 1px solid ${t.border};
-  border-radius: ${t.radius};
+  /* Square at the top: the title bar above it carries those two corners. */
+  border-radius: 0 0 ${t.radius} ${t.radius};
   padding: ${t.space};
   box-sizing: border-box;
 }
@@ -296,15 +376,137 @@ function renderRegionInto(
  * then fail on every payload after — which, in a fight, is immediately. The
  * stylesheet is placed here for the same reason: it does not change, so it is
  * not something a redraw should keep rebuilding.
+ *
+ * ⚠️ **The title bar is here, and not in `renderPanel`, for a third reason that
+ * costs a drag if it is forgotten.** A redraw replaces the container's children
+ * wholesale, and a fight redraws every few seconds — a grab handle built inside
+ * the render would be destroyed under the pointer by the next payload, which is
+ * exactly when someone is most likely to be moving the panel out of the way.
  */
-export function setPanelRoot(document: PanelDocument, host: PanelHost): PanelNode {
+export function setPanelRoot(
+  document: PanelDocument,
+  host: PanelHost,
+  placement?: PanelPlacement,
+): PanelNode {
   const root = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
   style.textContent = composePanelStyleText();
 
+  const titleBar = document.createElement("div");
+  titleBar.className = "titlebar";
+  titleBar.textContent = "⠿ MargoMeter";
+  titleBar.title = "Drag to move";
+
   const container = document.createElement("div");
-  root.append(style, container);
+  root.append(style, titleBar, container);
+  if (placement !== undefined) setPanelDrag(root, host, titleBar, placement);
   return container;
+}
+
+/**
+ * The drag, delegated at the shadow root.
+ *
+ * §9.6 asks for one place that handles events rather than a binding per element,
+ * and identity is what says which element was hit — the same shape the tab strip
+ * uses. Here it also buys the property above: the root and the title bar both
+ * outlive every redraw, so a drag survives a payload landing in the middle of it.
+ *
+ * Pointer capture is what keeps a fast drag: without it the pointer outruns a
+ * 310px bar and the moves stop arriving. It is optional on the node so that a
+ * document which does not offer it still drags, just less forgivingly.
+ */
+function setPanelDrag(
+  root: PanelNode,
+  host: PanelHost,
+  titleBar: PanelNode,
+  placement: PanelPlacement,
+): void {
+  let position = placement.position;
+  let grab: PanelGrab | null = null;
+
+  const setHostPosition = (next: PanelPosition): void => {
+    position = next;
+    for (const [name, value] of composePositionDeclarations(next)) {
+      host.style.setProperty(name, value);
+    }
+  };
+
+  if (position !== null) setHostPosition(composeClampedPosition(position, placement.getViewport()));
+
+  /**
+   * Every one of these catches its own. An add-on that breaks the game's own
+   * scripts has done far more damage than one that shows a wrong number (§9.6),
+   * and a pointer handler is the one place a thrown error would reach the page on
+   * an event the page also listens for.
+   */
+  const setGuarded = (type: string, handle: (event: PanelEvent) => void): void => {
+    root.addEventListener(type, (event) => {
+      try {
+        handle(event);
+      } catch (error) {
+        grab = null;
+        placement.onSectionFailure?.(error);
+      }
+    });
+  };
+
+  setGuarded("pointerdown", (event) => {
+    if (event.target !== titleBar) return;
+    const pointer = getPointerFromEvent(event);
+    if (pointer === null) return;
+
+    // Nothing has written a `left` yet on the first grab, so where the panel
+    // already is has to be derived. A null here means the page did not say how
+    // wide it is, and a drag from a guessed origin would jump under the hand.
+    const from = position ?? composeDefaultPosition(placement.getViewport());
+    if (from === null) return;
+
+    // Without this the browser starts its own text or image drag from the bar.
+    event.preventDefault?.();
+    if (event.pointerId !== undefined) titleBar.setPointerCapture?.(event.pointerId);
+    grab = {
+      pointerLeft: pointer.left,
+      pointerTop: pointer.top,
+      panelLeft: from.left,
+      panelTop: from.top,
+    };
+  });
+
+  setGuarded("pointermove", (event) => {
+    if (grab === null) return;
+    const pointer = getPointerFromEvent(event);
+    if (pointer === null) return;
+    setHostPosition(composeDraggedPosition(grab, pointer, placement.getViewport()));
+  });
+
+  /**
+   * The caller hears once, at the end. A move reported per event would be a
+   * storage write per frame, and what a user settled on is the position they
+   * stopped at rather than every one they passed through.
+   */
+  const handleDragEnd = (event: PanelEvent): void => {
+    if (grab === null) return;
+    grab = null;
+    if (event.pointerId !== undefined) titleBar.releasePointerCapture?.(event.pointerId);
+    if (position !== null) placement.onMoved?.(position);
+  };
+
+  setGuarded("pointerup", handleDragEnd);
+  setGuarded("pointercancel", handleDragEnd);
+}
+
+/**
+ * Coordinates, or nothing at all.
+ *
+ * Read through `libs/number.ts` rather than trusted: they arrive from the page,
+ * and §9.5 puts every reading of an outside number in one place. A pointer event
+ * without them is not a reason to move the panel somewhere nobody asked for.
+ */
+function getPointerFromEvent(event: PanelEvent): { left: number; top: number } | null {
+  const left = getFiniteNumberFromValue(event.clientX);
+  const top = getFiniteNumberFromValue(event.clientY);
+  if (left === null || top === null) return null;
+  return { left, top };
 }
 
 /** Draws the panel into the container, replacing whatever was there. */

@@ -1,4 +1,4 @@
-import { getIntegerFromHexadecimalText } from "@/libs/number.ts";
+import { composeIntegerText, getIntegerFromHexadecimalText } from "@/libs/number.ts";
 
 /**
  * Every colour, space and radius the panel uses, named once.
@@ -62,6 +62,18 @@ export function getProfessionColour(profession: string | null): string {
   return PROFESSION_COLOURS[profession] ?? UNKNOWN_COLOUR;
 }
 
+/**
+ * The two lengths placement needs as numbers rather than as CSS.
+ *
+ * ⚠️ **The numbers are the source and the tokens are composed from them**, not
+ * the other way round. A panel anchored to the top-right corner by the
+ * stylesheet has no `left` anyone can read back, so the first drag has to work
+ * out where it already was — and it can only do that from the same margin and
+ * width the stylesheet used. Two copies of `310` would drift, and the drift
+ * would show as the panel jumping under the hand on the first grab.
+ */
+export const PANEL_PIXELS = { space: 8, width: 310 } as const;
+
 export const PANEL_TOKENS = {
   surface: "#17171c",
   surfaceRaised: "#1f1f26",
@@ -83,10 +95,17 @@ export const PANEL_TOKENS = {
   suspect: "#c98500",
   radius: "6px",
   spaceSmall: "4px",
-  space: "8px",
+  space: `${composeIntegerText(PANEL_PIXELS.space)}px`,
   spaceLarge: "12px",
   /** Narrow on purpose: the panel is a guest over a game someone is playing. */
-  width: "310px",
+  width: `${composeIntegerText(PANEL_PIXELS.width)}px`,
+  /**
+   * Above the game, and named here rather than typed into the entry point.
+   *
+   * High enough to clear the game's own windows, which is the whole requirement —
+   * there is nothing of ours for it to be relative to.
+   */
+  layer: "9999",
 } as const;
 
 /** One sRGB channel to linear light, WCAG 2.1. */

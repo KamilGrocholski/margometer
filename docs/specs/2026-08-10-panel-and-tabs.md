@@ -6,11 +6,13 @@ What the add-on draws, decided before any of it was written. The rules it obeys
 are already in `AGENTS.md` §9.6 (how the panel fails) and §9.7 (how it looks);
 this is where they became a layout.
 
-⚠️ **Two lines below were outgrown before this status caught up, and both are
+⚠️ **Four lines below were outgrown before this status caught up, and all are
 corrected in place rather than left to disagree with the tree.** The tab strip
 ships all three metrics rather than `dealt` alone, and the warning about unread
-keys spent its first commits as exactly the banner this file rejects. A spec that
-says `draft` while its code ships is a spec nobody rereads.
+keys spent its first commits as exactly the banner this file rejects. The panel
+has since become movable, which took two more: "nothing that moves" and "nothing
+persists" were both written about a panel nobody could pick up. A spec that says
+`draft` while its code ships is a spec nobody rereads.
 
 ## The shape
 
@@ -90,16 +92,56 @@ rather than left to whoever writes the markup.
   never distributed across the combatants who might have caused it (§5, and
   `unattributed` in the aggregate).
 
+## Where the panel sits
+
+The corner is the stylesheet's: `top`, `right`, and a width, on `:host`. A page
+where nothing was ever dragged needs no script to place the panel.
+
+It is movable because the corner it defaults to is a corner the game itself
+draws in, and the only remedy before this was editing the source.
+
+- **A title bar is the grab area**, and it is built with the shadow root rather
+  than with the render. This is the whole design, and the reason is timing: a
+  redraw replaces everything the render made, a fight redraws every few seconds,
+  and the moment someone reaches for the panel is the moment it is in the way of
+  something. A handle built inside the render would be destroyed under the
+  pointer exactly then.
+- **The drag is delegated at the shadow root**, keyed on the title bar's
+  identity — the same shape the tab strip uses, at a node that outlives a redraw.
+  The pointer is captured, so a drag faster than a 310px bar is not dropped.
+- **The panel cannot be dragged somewhere it cannot be dragged back from.** 64px
+  of it stays on screen. Losing the grab area over the edge would leave clearing
+  storage as the only remedy, which requires knowing this add-on stores anything.
+- **A page that will not say how big it is clamps nothing, and refuses the first
+  drag.** A corner-anchored panel has no `left` to read, so the first grab derives
+  where it already was from the width and margin the stylesheet used; without a
+  viewport there is nothing to derive it from, and a drag from a guessed origin
+  would snatch the panel out from under the hand. §9.3: unknown is loud, and a
+  viewport read as zero would pin the panel to the corner while looking like a
+  panel that works.
+- **Where it was left survives a reload**, and it is the only thing that does.
+  It is validated on read (§9.6) — a fraction, a number as text, a missing field
+  and a truncated write are all *no position*, which is the default corner. A
+  browser that refuses storage costs the position and nothing else.
+
+Nothing here is a measurement, which is why persisting it does not contradict
+"one fight is enough to be wrong about first" below: a remembered *number* would
+be a claim about a fight, and a remembered corner is a claim about a window.
+
 ## What this deliberately does not do
 
 - **No third row of tabs**, no per-skill or per-element view. The protocol does
   not join a skill to its damage, so a per-skill ranking would be an inference
   dressed as a reading.
 - **No table.** Rank, name, one figure — see above.
-- **Nothing that moves.** No animation, no flashing, no sound, no focus stealing.
-  The user is playing a game.
+- **Nothing that moves on its own.** No animation, no flashing, no sound, no
+  focus stealing. The user is playing a game. A drag is the exception that proves
+  the line: it moves because a hand is moving it, and it stops the instant the
+  hand does.
 - **No history across fights** in this spec. One fight is enough to be wrong
-  about first.
+  about first — and the position above is remembered because it is not a fight.
+- **No resizing, and no collapsing.** Moving the panel answers the question those
+  would ("it is in the way"), and each is a second thing to validate on read.
 
 ## Rejected alternatives
 
@@ -114,6 +156,20 @@ rather than left to whoever writes the markup.
 - **A global warning banner** for unreadable keys. §9.6 puts the warning where
   the consequence is: the question is *can I trust this number*, so the answer
   belongs beside that number.
+- **Dragging the panel by anywhere on it.** The largest target, and the one where
+  every press has to be decided into a drag or a click — with a tab strip already
+  in the panel, a stray drag while aiming for a tab is easy and there is no
+  threshold that makes it not so.
+- **Measuring the panel with `getBoundingClientRect` to clamp it.** It would widen
+  the DOM slice `src/ui/panel-element.ts` takes, and both fake documents, for a
+  refinement nobody can see — and the panel's height changes with every payload,
+  so what was measured is stale before the next move.
+- **Reporting the position on every pointer move.** The caller writes it to
+  storage; that would be a write per frame, and what someone settled on is where
+  they stopped rather than everywhere they passed through.
+- **The entry point applying the styles while the panel reported deltas.** Two
+  files holding one position, and a payload landing mid-drag becomes something
+  both of them have to be right about.
 - **Showing `dealt - taken` as damage prevented.** Not what a defence stopped;
   `prevented` is one component and the protocol reports neither armour nor
   resistance (`src/core/battle-event.ts`).

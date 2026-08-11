@@ -430,7 +430,10 @@ src/
                          global. Wires the game to the reading, holds the session,
                          and mounts the panel — including the rule that the
                          console hears about a failing section once per fight and
-                         not once per render.
+                         not once per render. Also the only file that reaches
+                         storage, which it does for one thing: where the panel was
+                         last dragged to. A browser that refuses storage costs the
+                         position and nothing else.
   core/
     margometer-error.ts  Base for everything the add-on throws — §9.5.
     protocol-message.ts  Grammar of one message: two sides, then key/value
@@ -477,7 +480,14 @@ src/
   ui/
     panel-tokens.ts      Every colour, space and radius, named once, plus the
                          contrast arithmetic a test needs to hold them to §9.7.
-                         The bar tint is a measured value, not a taste.
+                         The bar tint is a measured value, not a taste. Two of the
+                         lengths are numbers first and CSS second, because the
+                         first drag has to work out where the stylesheet already
+                         put a corner-anchored panel.
+    panel-placement.ts   Where the panel sits, as a value: the corner it starts
+                         in, where a drag lands, and what a remembered position
+                         has to prove before it is believed. No DOM, so the clamp
+                         that keeps the panel reachable is checkable on its own.
     panel-view.ts        What the panel shows, as data: a header, rows, shares,
                          and the marks that qualify a figure — one at the total
                          that may be low, one in the header when the fight is not
@@ -486,7 +496,10 @@ src/
     panel-element.ts     The same, drawn. Takes a document as an argument, opens
                          one shadow root, binds one listener at that root, and
                          renders region by region so that one failure is the size
-                         of the thing that failed.
+                         of the thing that failed. The title bar the panel is
+                         dragged by is built with the shadow root and not with the
+                         render, because a redraw replaces everything the render
+                         made — and a fight redraws every few seconds.
 
 tools/
   margometer-tool-error.ts
@@ -606,7 +619,10 @@ tests/
     engine-attachment.test.ts
                              Finding the game on an injected clock, and the whole
                              add-on driven end to end by a captured fight through
-                             the entry point the userscript actually runs.
+                             the entry point the userscript actually runs. Also
+                             the one loop no other file can close: a drag on a
+                             mounted panel, and the position the next page opens
+                             with.
     battle-session.test.ts   How a fight is assembled from payloads: where one
                              ends, a roster that only ever grows, a side
                              remembered from the one payload that states it, and
@@ -619,7 +635,12 @@ tests/
                              serves the whole panel, that a handler cannot escape
                              into the page, that what could not be read is marked
                              at the total it may have shortened, and that every
-                             bar clears AA by measurement.
+                             bar clears AA by measurement. The drag is here too,
+                             including the one property the design exists for: it
+                             still works after twenty redraws.
+    panel-placement.test.ts  The arithmetic that decides whether the panel can be
+                             dragged somewhere it cannot be dragged back from, and
+                             what a stored position has to prove on read.
 
   tools/                 The tooling, the build, and the rules the repository
                          holds itself to.
@@ -650,8 +671,8 @@ tests/
 
 Every layer named above exists. What the panel does **not** do yet is listed in
 `docs/specs/2026-08-10-panel-and-tabs.md` under what it deliberately does not do;
-nothing persists across a reload, and no fight is remembered once the next
-begins.
+no fight is remembered once the next begins. Exactly one thing survives a reload,
+and it is not a measurement: where the panel was dragged to.
 
 ---
 

@@ -8,6 +8,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { assertDefined } from "@/libs/assert.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
@@ -351,6 +352,246 @@ describe("what a failing panel puts on the console", () => {
     render?.(composeReadingOfFight(1));
     render?.(composeReadingOfFight(2));
     expect(said).toEqual([]);
+  });
+});
+
+/**
+ * Where the panel was left, across a reload.
+ *
+ * This is the only thing the add-on remembers, and it is remembered here rather
+ * than in `src/ui/` because reaching a global is this file's job alone (§8). What
+ * a stored value has to prove to be believed is checked next door in
+ * `tests/ui/panel-placement.test.ts`; what is checked here is that the mount asks
+ * at all, and that a page which refuses storage still gets a panel.
+ */
+describe("remembering where the panel was put", () => {
+  const POSITION_KEY = "margometer.panel-position";
+
+  type StorageNode = Record<string, unknown> & {
+    className: string;
+    properties: Record<string, string>;
+    listeners: Array<{ type: string; listener: (event: Record<string, unknown>) => void }>;
+  };
+
+  /**
+   * A page with enough of a document to drive a drag through the whole mount.
+   *
+   * Poorer than the one in `tests/ui/panel.test.ts` — it records only what these
+   * tests read — but real enough for the one thing that file cannot reach: what
+   * the mount does with the position once the panel reports it.
+   */
+  function composePageWithStorage(storage: {
+    getItem(key: string): string | null;
+    setItem(key: string, value: string): void;
+  }): {
+    page: Parameters<typeof composePanelMount>[0];
+    getHostProperties: () => Record<string, string>;
+    getRoot: () => StorageNode | null;
+  } {
+    let hostProperties: Record<string, string> = {};
+    let isHost = true;
+    let root: StorageNode | null = null;
+    const composeNode = (): StorageNode => {
+      const properties: Record<string, string> = {};
+      // The first element the mount creates is the host, and it is the only one
+      // whose inline styles say anything about where the panel is.
+      if (isHost) {
+        isHost = false;
+        hostProperties = properties;
+      }
+      const node: StorageNode = {
+        className: "",
+        textContent: "",
+        title: "",
+        properties,
+        listeners: [],
+        children: [] as StorageNode[],
+        style: {
+          setProperty: (name: string, value: string): void => void (properties[name] = value),
+        },
+        append: (...nodes: StorageNode[]): void =>
+          void (node["children"] as StorageNode[]).push(...nodes),
+        replaceChildren: (): void => {},
+        addEventListener: (
+          type: string,
+          listener: (event: Record<string, unknown>) => void,
+        ): void => void node.listeners.push({ type, listener }),
+        setPointerCapture: (): void => {},
+        releasePointerCapture: (): void => {},
+        attachShadow: (): unknown => {
+          root = composeNode();
+          return root;
+        },
+      };
+      return node;
+    };
+    return {
+      page: {
+        document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
+        innerWidth: 1600,
+        innerHeight: 900,
+        localStorage: storage,
+      },
+      getHostProperties: () => hostProperties,
+      getRoot: () => root,
+    };
+  }
+
+  /** Grabs the title bar at the root and drags it, the way the panel's own tests do. */
+  function setDragThrough(
+    root: StorageNode,
+    from: { left: number; top: number },
+    to: { left: number; top: number },
+  ): void {
+    const getEveryNode = (node: StorageNode): StorageNode[] => [
+      node,
+      ...(node["children"] as StorageNode[]).flatMap(getEveryNode),
+    ];
+    const titleBar = assertDefined(
+      getEveryNode(root).filter((node) => node.className === "titlebar")[0],
+      "mounting the panel draws a title bar",
+    );
+
+    const setEventAt = (type: string, event: Record<string, unknown>): void => {
+      for (const bound of root.listeners) if (bound.type === type) bound.listener(event);
+    };
+    setEventAt("pointerdown", {
+      target: titleBar,
+      clientX: from.left,
+      clientY: from.top,
+      pointerId: 3,
+    });
+    setEventAt("pointermove", { target: titleBar, clientX: to.left, clientY: to.top });
+    setEventAt("pointerup", { target: titleBar, pointerId: 3 });
+  }
+
+  test("a position that was stored is where the panel opens", () => {
+    const { page, getHostProperties } = composePageWithStorage({
+      getItem: () => '{"left":120,"top":240}',
+      setItem: () => {},
+    });
+
+    expect(composePanelMount(page)).not.toBeNull();
+    expect(getHostProperties()["left"]).toBe("120px");
+    expect(getHostProperties()["top"]).toBe("240px");
+  });
+
+  test("a position from a wider screen than this one comes back on screen", () => {
+    const { page, getHostProperties } = composePageWithStorage({
+      getItem: () => '{"left":3400,"top":50}',
+      setItem: () => {},
+    });
+
+    composePanelMount(page);
+    expect(getHostProperties()["left"]).toBe("1536px");
+  });
+
+  test.each([
+    ["nothing stored", null],
+    ["something that is not a position", '{"left":"far right"}'],
+    ["something that is not JSON", "left 12"],
+  ])("%s leaves the corner to the stylesheet", (_reason, stored) => {
+    const { page, getHostProperties } = composePageWithStorage({
+      getItem: () => stored,
+      setItem: () => {},
+    });
+
+    composePanelMount(page);
+    expect(getHostProperties()["left"]).toBeUndefined();
+  });
+
+  /**
+   * A browser can refuse storage outright — a private window, a third-party
+   * rule, a quota — and it does so by throwing. Losing the panel over where it
+   * would have been drawn is a far worse outcome than opening in the corner.
+   */
+  test("a page that refuses storage still gets a panel", () => {
+    const { page } = composePageWithStorage({
+      getItem: () => {
+        throw new TypeError("no storage here");
+      },
+      setItem: () => {
+        throw new TypeError("no storage here");
+      },
+    });
+
+    expect(() => composePanelMount(page)).not.toThrow();
+    expect(composePanelMount(page)).not.toBeNull();
+  });
+
+  test("a page with no storage at all still gets a panel", () => {
+    const composeNode = (): Record<string, unknown> => ({
+      className: "",
+      textContent: "",
+      title: "",
+      style: { setProperty: (): void => {} },
+      append: (): void => {},
+      replaceChildren: (): void => {},
+      addEventListener: (): void => {},
+      attachShadow: (): unknown => composeNode(),
+    });
+
+    expect(
+      composePanelMount({
+        document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
+      }),
+    ).not.toBeNull();
+  });
+
+  /** The whole loop the feature is: drag it, and the next page finds it there. */
+  test("what a drag settles on is what the next page reads back", () => {
+    const written: Array<[string, string]> = [];
+    const { page, getRoot } = composePageWithStorage({
+      getItem: () => '{"left":100,"top":100}',
+      setItem: (key, value) => void written.push([key, value]),
+    });
+
+    composePanelMount(page);
+    const root = getRoot();
+    expect(root).not.toBeNull();
+    setDragThrough(root as StorageNode, { left: 400, top: 400 }, { left: 450, top: 380 });
+
+    expect(written).toEqual([[POSITION_KEY, '{"left":150,"top":80}']]);
+
+    // And the page that opens next puts it there, which is the point of writing it.
+    const reopened = composePageWithStorage({
+      getItem: () => written[0]?.[1] ?? null,
+      setItem: () => {},
+    });
+    composePanelMount(reopened.page);
+    expect(reopened.getHostProperties()["left"]).toBe("150px");
+    expect(reopened.getHostProperties()["top"]).toBe("80px");
+  });
+
+  test("a storage that refuses the write loses the position and nothing else", () => {
+    const { page, getRoot, getHostProperties } = composePageWithStorage({
+      getItem: () => null,
+      setItem: () => {
+        throw new TypeError("quota");
+      },
+    });
+
+    composePanelMount(page);
+    const root = getRoot();
+    expect(() =>
+      setDragThrough(root as StorageNode, { left: 400, top: 400 }, { left: 300, top: 300 }),
+    ).not.toThrow();
+    // The panel still moved; only the remembering failed.
+    expect(getHostProperties()["left"]).toBe("1182px");
+  });
+
+  test("the key the position is stored under is namespaced to this add-on", () => {
+    const asked: string[] = [];
+    const { page } = composePageWithStorage({
+      getItem: (key) => {
+        asked.push(key);
+        return null;
+      },
+      setItem: () => {},
+    });
+
+    composePanelMount(page);
+    expect(asked).toEqual([POSITION_KEY]);
   });
 });
 

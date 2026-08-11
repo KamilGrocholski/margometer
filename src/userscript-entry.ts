@@ -20,12 +20,19 @@ import {
   type FightReading,
 } from "@/src/game/battle-session.ts";
 import { setEngineAttachment, type GameWindow } from "@/src/game/engine-attachment.ts";
+import { getFiniteNumberFromValue } from "@/libs/number.ts";
 import {
   renderPanelInto,
   setPanelRoot,
   type PanelDocument,
   type PanelHost,
 } from "@/src/ui/panel-element.ts";
+import {
+  composeStoredTextFromPosition,
+  getPositionFromStoredText,
+  type PanelPosition,
+  type PanelViewport,
+} from "@/src/ui/panel-placement.ts";
 import { composePanelView, type PanelMetric } from "@/src/ui/panel-view.ts";
 
 export type MargoMeterOptions = {
@@ -121,8 +128,64 @@ type HostPage = GameWindow & {
     createElement(tag: string): unknown;
     body?: { append(node: unknown): void } | undefined;
   };
+  /** For keeping the panel on screen. Absent means the page did not say. */
+  innerWidth?: number | undefined;
+  innerHeight?: number | undefined;
+  /**
+   * Injected like the document, so where the panel was left is checkable without
+   * a browser — and so `src/ui/` still touches no global.
+   */
+  localStorage?:
+    | {
+        getItem(key: string): string | null;
+        setItem(key: string, value: string): void;
+      }
+    | undefined;
   [PAGE_HANDLE]?: MargoMeter;
 };
+
+/** Namespaced, because the page belongs to the game and to every other add-on on it. */
+const POSITION_KEY = "margometer.panel-position";
+
+/**
+ * Where the panel was left, or null.
+ *
+ * The `try` is wider than §9.5 likes, and deliberately: a browser refusing
+ * storage is the expected failure here — private windows, third-party-storage
+ * rules, a quota — and it arrives as a `DOMException` under several different
+ * names, so there is nothing narrower to catch that would still catch them all.
+ * What is not swallowed is a bad *value*: that is read and rejected by
+ * `getPositionFromStoredText`, which is a different thing from the read failing.
+ */
+function getStoredPosition(page: HostPage): PanelPosition | null {
+  try {
+    const stored = page.localStorage?.getItem(POSITION_KEY);
+    return stored === null || stored === undefined ? null : getPositionFromStoredText(stored);
+  } catch {
+    return null;
+  }
+}
+
+/** The same the other way, and a failure to write is a panel that forgets — not a broken panel. */
+function setStoredPosition(page: HostPage, position: PanelPosition): void {
+  try {
+    page.localStorage?.setItem(POSITION_KEY, composeStoredTextFromPosition(position));
+  } catch {
+    return;
+  }
+}
+
+/**
+ * What the panel is kept inside. Null rather than zero where the page did not
+ * say: §9.3, and a viewport of zero would pin the panel to the corner while
+ * looking exactly like one that works.
+ */
+function getViewportFromPage(page: HostPage): PanelViewport | null {
+  const width = getFiniteNumberFromValue(page.innerWidth);
+  const height = getFiniteNumberFromValue(page.innerHeight);
+  if (width === null || height === null) return null;
+  return { width, height };
+}
 
 /**
  * Draws the panel and keeps it in step with the fight.
@@ -142,14 +205,33 @@ export function composePanelMount(
   const document = page.document as PanelDocument | undefined;
   if (document === undefined) return null;
 
+  // Where it sits is the stylesheet's, not this file's — all that is decided here
+  // is where it was left last time, which is the one part `src/ui/` cannot know.
   const host = document.createElement("div") as PanelHost;
-  host.style.setProperty("position", "fixed");
-  host.style.setProperty("top", "8px");
-  host.style.setProperty("right", "8px");
-  host.style.setProperty("z-index", "9999");
   page.document?.body?.append(host);
+
+  /**
+   * Once for the page, not once per fight like the section failures below.
+   *
+   * A drag is not scoped to a fight, and `pointermove` fires tens of times a
+   * second — a handler failing on each one would put the panel's own console
+   * entry in the way of whatever the user was actually trying to read (§9.6).
+   * Nothing is marked on screen for this: what a failed drag looks like is a
+   * panel that did not move, which the hand holding it can already see.
+   */
+  let dragFailureSaid = false;
+
   // Opened once: `attachShadow` throws on a second call for the same element.
-  const container = setPanelRoot(document, host);
+  const container = setPanelRoot(document, host, {
+    position: getStoredPosition(page),
+    getViewport: () => getViewportFromPage(page),
+    onMoved: (position) => setStoredPosition(page, position),
+    onSectionFailure: (error) => {
+      if (dragFailureSaid) return;
+      dragFailureSaid = true;
+      warn("MargoMeter/PanelDrag", error);
+    },
+  });
 
   let metric: PanelMetric = "dealt";
   let latest: FightReading | null = null;

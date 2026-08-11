@@ -24,6 +24,7 @@ import {
   type PanelHost,
   type PanelNode,
 } from "@/src/ui/panel-element.ts";
+import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getDecimalFromText } from "@/libs/number.ts";
 import {
   composeColourOver,
@@ -40,16 +41,40 @@ import {
 } from "@/src/ui/panel-view.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
 
+type FakeListener = { type: string; listener: (event: PanelEvent) => void };
+
 type FakeNode = PanelNode & {
   tag: string;
   children: FakeNode[];
-  listeners: Array<(event: PanelEvent) => void>;
+  listeners: FakeListener[];
   properties: Record<string, string>;
+  captured: number[];
+  released: number[];
 };
 
-/** Clicks a node the way a browser would: at the root, naming what was hit. */
+/**
+ * Dispatches the way a browser would: at the root, naming what was hit.
+ *
+ * Two things here are modelled rather than assumed, and each was found by a
+ * mutation the fake did not notice:
+ *
+ *   - **The type is honoured.** A fake that runs every listener whatever
+ *     happened cannot tell a `pointerup` from a `pointerdown`, and would report
+ *     a drag working while the panel stood still.
+ *   - **A node no longer in the tree gets nothing.** A redraw detaches whatever
+ *     it replaced, and a detached node stops receiving pointer events — so a
+ *     grab handle built inside the render is dead after the first payload. With
+ *     the target waved through, moving the title bar into the render passed
+ *     every test here: the listener is keyed on identity, and an object survives
+ *     being removed from a tree even though an element does not.
+ */
+function setEventOn(root: FakeNode, type: string, event: PanelEvent): void {
+  if (!getEveryNode(root).some((node) => node === event.target)) return;
+  for (const bound of root.listeners) if (bound.type === type) bound.listener(event);
+}
+
 function setClickOn(root: FakeNode, target: FakeNode): void {
-  for (const listener of root.listeners) listener({ target });
+  setEventOn(root, "click", { target });
 }
 
 function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & {
@@ -68,6 +93,8 @@ function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & 
         children: [],
         listeners: [],
         properties: {},
+        captured: [],
+        released: [],
         style: {
           setProperty(name: string, value: string): void {
             node.properties[name] = value;
@@ -79,8 +106,14 @@ function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & 
         replaceChildren(...nodes: PanelNode[]): void {
           node.children = nodes as FakeNode[];
         },
-        addEventListener(_type: string, listener: (event: PanelEvent) => void): void {
-          node.listeners.push(listener);
+        addEventListener(type: string, listener: (event: PanelEvent) => void): void {
+          node.listeners.push({ type, listener });
+        },
+        setPointerCapture(pointerId: number): void {
+          node.captured.push(pointerId);
+        },
+        releasePointerCapture(pointerId: number): void {
+          node.released.push(pointerId);
         },
       };
       return node;
@@ -580,6 +613,245 @@ describe("how the panel fails", () => {
     expect(attachments).toBe(1);
     // And each redraw replaces the last rather than stacking panels up.
     expect((container as FakeNode).children.length).toBe(1);
+  });
+});
+
+/**
+ * Moving the panel out of the way.
+ *
+ * The game draws things in the corner the panel was nailed to, so it has to be
+ * movable. What is checked here is everything about that a fake document can
+ * answer: where the styles end up, what survives a redraw, what is reported, and
+ * that none of it can escape into the page. Whether it feels right under a hand
+ * needs the game and a person.
+ */
+describe("moving the panel", () => {
+  const SCREEN = { width: 1000, height: 800 };
+
+  function composeMountedPanel(
+    placement: Partial<Parameters<typeof setPanelRoot>[2]> = {},
+  ): {
+    document: PanelDocument;
+    host: FakeNode;
+    root: FakeNode;
+    container: PanelNode;
+    titleBar: FakeNode;
+    moved: Array<{ left: number; top: number }>;
+    failures: unknown[];
+  } {
+    const document = composeFakeDocument();
+    const hostNode = document.createElement("div") as FakeNode;
+    let root: FakeNode | null = null;
+    const host = {
+      ...hostNode,
+      attachShadow(): PanelNode {
+        root = document.createElement("div") as FakeNode;
+        return root;
+      },
+    } as unknown as PanelHost;
+
+    const moved: Array<{ left: number; top: number }> = [];
+    const failures: unknown[] = [];
+    const container = setPanelRoot(document, host, {
+      position: placement.position ?? null,
+      getViewport: placement.getViewport ?? ((): typeof SCREEN | null => SCREEN),
+      onMoved: placement.onMoved ?? ((position): void => void moved.push(position)),
+      onSectionFailure: placement.onSectionFailure ?? ((error): void => void failures.push(error)),
+    });
+
+    const opened = root as unknown as FakeNode;
+    const titleBar = assertDefined(
+      getEveryNode(opened).filter((node) => node.className === "titlebar")[0],
+      "mounting the panel draws a title bar",
+    );
+    // The spread above copies the methods, and `style.setProperty` still writes
+    // to the node it closed over — so the styles land on `hostNode`, not on the
+    // literal. Asserting on the wrong one would pass whatever the code did.
+    return { document, host: hostNode, root: opened, container, titleBar, moved, failures };
+  }
+
+  function setDragTo(
+    root: FakeNode,
+    titleBar: FakeNode,
+    from: { left: number; top: number },
+    to: { left: number; top: number },
+  ): void {
+    setEventOn(root, "pointerdown", {
+      target: titleBar,
+      clientX: from.left,
+      clientY: from.top,
+      pointerId: 7,
+    });
+    setEventOn(root, "pointermove", { target: titleBar, clientX: to.left, clientY: to.top });
+    setEventOn(root, "pointerup", { target: titleBar, pointerId: 7 });
+  }
+
+  test("dragging the title bar puts the panel where it was dragged", () => {
+    const { host, root, titleBar } = composeMountedPanel({ position: { left: 100, top: 100 } });
+
+    setDragTo(root, titleBar, { left: 500, top: 500 }, { left: 460, top: 530 });
+
+    expect(host.properties["left"]).toBe("60px");
+    expect(host.properties["top"]).toBe("130px");
+    // Both edges pinned would stretch the host across the page.
+    expect(host.properties["right"]).toBe("auto");
+  });
+
+  /**
+   * ⚠️ **The reason the title bar is built in `setPanelRoot` and not in
+   * `renderPanel`.** A fight delivers a payload every few seconds and each one
+   * replaces the container's children wholesale — a grab handle built inside the
+   * render would be destroyed under the pointer at exactly the moment someone is
+   * dragging the panel off whatever they are trying to read.
+   */
+  test("a drag still works after the fight has redrawn the panel twenty times", () => {
+    const { reading } = composeReading();
+    const { document, host, root, container, titleBar } = composeMountedPanel({
+      position: { left: 100, top: 100 },
+    });
+
+    for (let redraws = 0; redraws < 20; redraws += 1) {
+      renderPanelInto(document, container, composePanelView(reading, "dealt"));
+    }
+    setDragTo(root, titleBar, { left: 500, top: 500 }, { left: 520, top: 540 });
+
+    expect(host.properties["left"]).toBe("120px");
+    expect(host.properties["top"]).toBe("140px");
+  });
+
+  test("the panel keeps moving while the pointer does", () => {
+    const { host, root, titleBar } = composeMountedPanel({ position: { left: 0, top: 0 } });
+
+    setEventOn(root, "pointerdown", { target: titleBar, clientX: 0, clientY: 0, pointerId: 1 });
+    for (const step of [10, 20, 30]) {
+      setEventOn(root, "pointermove", { target: titleBar, clientX: step, clientY: step });
+      expect(host.properties["left"]).toBe(`${composeIntegerText(step)}px`);
+    }
+  });
+
+  // What a user settled on is where they stopped, not every position they passed
+  // through — and the caller of this is writing to storage.
+  test("the caller hears once, at the end of the drag", () => {
+    const { root, titleBar, moved } = composeMountedPanel({ position: { left: 0, top: 0 } });
+
+    setEventOn(root, "pointerdown", { target: titleBar, clientX: 0, clientY: 0, pointerId: 1 });
+    for (const step of [10, 20, 30]) {
+      setEventOn(root, "pointermove", { target: titleBar, clientX: step, clientY: step });
+    }
+    expect(moved).toEqual([]);
+
+    setEventOn(root, "pointerup", { target: titleBar, pointerId: 1 });
+    expect(moved).toEqual([{ left: 30, top: 30 }]);
+  });
+
+  test("a pointer let go of outside the panel ends the drag rather than wedging it", () => {
+    const { host, root, titleBar, moved } = composeMountedPanel({ position: { left: 0, top: 0 } });
+
+    setEventOn(root, "pointerdown", { target: titleBar, clientX: 0, clientY: 0, pointerId: 1 });
+    setEventOn(root, "pointercancel", { target: titleBar, pointerId: 1 });
+    setEventOn(root, "pointermove", { target: titleBar, clientX: 300, clientY: 300 });
+
+    expect(moved).toEqual([{ left: 0, top: 0 }]);
+    expect(host.properties["left"]).toBe("0px");
+  });
+
+  test("the pointer is captured for the drag and let go of after it", () => {
+    const { root, titleBar } = composeMountedPanel({ position: { left: 0, top: 0 } });
+
+    setDragTo(root, titleBar, { left: 0, top: 0 }, { left: 10, top: 10 });
+
+    expect(titleBar.captured).toEqual([7]);
+    expect(titleBar.released).toEqual([7]);
+  });
+
+  test("pressing anywhere but the title bar moves nothing", () => {
+    const { reading } = composeReading();
+    const { document, host, root, container } = composeMountedPanel({
+      position: { left: 40, top: 40 },
+    });
+    renderPanelInto(document, container, composePanelView(reading, "dealt"));
+    const rows = getEveryNode(container as FakeNode).filter((node) => node.className === "row");
+    expect(rows.length).toBeGreaterThan(0);
+
+    for (const row of rows) {
+      setEventOn(root, "pointerdown", { target: row, clientX: 0, clientY: 0, pointerId: 1 });
+      setEventOn(root, "pointermove", { target: row, clientX: 900, clientY: 900 });
+    }
+
+    expect(host.properties["left"]).toBe("40px");
+    expect(host.properties["top"]).toBe("40px");
+  });
+
+  test("a remembered position too far right for this screen comes back on screen", () => {
+    const { host } = composeMountedPanel({ position: { left: 5000, top: 4000 } });
+
+    expect(host.properties["left"]).toBe("936px");
+    expect(host.properties["top"]).toBe("736px");
+  });
+
+  test("nothing remembered leaves the corner to the stylesheet", () => {
+    const { host } = composeMountedPanel();
+
+    expect(host.properties["left"]).toBeUndefined();
+    expect(host.properties["right"]).toBeUndefined();
+  });
+
+  // The first grab has to work out where a right-anchored panel already is, and
+  // a page that will not say how wide it is cannot be guessed at.
+  test("a first drag on a page of unknown size moves nothing rather than jumping", () => {
+    const { host, root, titleBar } = composeMountedPanel({ getViewport: () => null });
+
+    setDragTo(root, titleBar, { left: 500, top: 500 }, { left: 400, top: 400 });
+
+    expect(host.properties["left"]).toBeUndefined();
+  });
+
+  test("a pointer event carrying no coordinates moves nothing", () => {
+    const { host, root, titleBar } = composeMountedPanel({ position: { left: 40, top: 40 } });
+
+    setEventOn(root, "pointerdown", { target: titleBar });
+    setEventOn(root, "pointermove", { target: titleBar, clientX: 900, clientY: 900 });
+
+    expect(host.properties["left"]).toBe("40px");
+  });
+
+  /**
+   * §9.6: an add-on that breaks the game's own scripts has done far more damage
+   * than one that shows a wrong number — and a pointer event is one the page
+   * listens for too.
+   */
+  test("a drag handler that throws does not escape into the page", () => {
+    const failures: unknown[] = [];
+    const { root, titleBar } = composeMountedPanel({
+      position: { left: 0, top: 0 },
+      onMoved: () => {
+        const broken = undefined as unknown as { save: () => void };
+        broken.save();
+      },
+      onSectionFailure: (error) => void failures.push(error),
+    });
+
+    expect(() => setDragTo(root, titleBar, { left: 0, top: 0 }, { left: 5, top: 5 })).not.toThrow();
+    expect(failures.length).toBe(1);
+  });
+
+  test("a viewport that throws mid-drag leaves nothing held down", () => {
+    const failures: unknown[] = [];
+    let asked = 0;
+    const { root, titleBar, moved } = composeMountedPanel({
+      position: { left: 0, top: 0 },
+      getViewport: () => {
+        asked += 1;
+        if (asked > 1) throw new TypeError("no viewport today");
+        return SCREEN;
+      },
+      onSectionFailure: (error) => void failures.push(error),
+    });
+
+    expect(() => setDragTo(root, titleBar, { left: 0, top: 0 }, { left: 5, top: 5 })).not.toThrow();
+    expect(failures.length).toBe(1);
+    // The failed move dropped the grab, so the pointerup after it reports nothing.
+    expect(moved).toEqual([]);
   });
 });
 
