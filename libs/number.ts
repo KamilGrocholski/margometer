@@ -67,6 +67,23 @@ export function getDecimalFromText(text: string): number | null {
 }
 
 /**
+ * A number that may or may not carry a fraction — either spelling, one reader.
+ *
+ * Arrived at the third caller, which is the rule: the protocol states `30` and
+ * `22.5` for the same key in the same fight, so "is this a number" cannot be
+ * answered by either reader alone. Both were being tried in sequence in two
+ * tests and the decoder, and three copies of `a ?? b` is exactly how two files
+ * end up disagreeing about what a number is.
+ *
+ * Deliberately **not** a loosening of the two above: each still answers its own
+ * narrower question, and a caller that needs a whole number should keep asking
+ * for one.
+ */
+export function getNumberFromText(text: string): number | null {
+  return getIntegerFromText(text) ?? getDecimalFromText(text);
+}
+
+/**
  * A number that already arrived as a number — out of `JSON.parse`, so its type
  * is `unknown` and nothing has checked it. Same magnitude rule as the text
  * side: an id past 2^53 is refused rather than snapped to its neighbour, and a

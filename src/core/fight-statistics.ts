@@ -81,6 +81,16 @@ export type ReadingGaps = {
    * key — which is a different fault and stays visible in `messagesByReason`.
    */
   occurrencesByUnreadKey: ReadonlyMap<string, number>;
+  /**
+   * Health the protocol says moved and no row could take, by the key that said
+   * so, with how many times it happened.
+   *
+   * A **stronger claim** than anything above it: those say a total *may* be
+   * short, this says healing *is*, by an amount nobody can state. The two are
+   * kept apart because the panel has to say different things about them, and
+   * because one of them may go to zero while the other does not.
+   */
+  unaccountedHealthBySource: ReadonlyMap<string, number>;
 };
 
 /**
@@ -184,6 +194,7 @@ export function composeFightStatistics(
   const unattributed = composeRow();
   const messagesByReason = new Map<string, number>();
   const occurrencesByUnreadKey = new Map<string, number>();
+  const unaccountedHealthBySource = new Map<string, number>();
   let unreadableMessages = 0;
   let outcome: FightStatistics["outcome"] = null;
 
@@ -267,6 +278,13 @@ export function composeFightStatistics(
         break;
       }
 
+      case "unaccounted-health": {
+        // Counted, never placed. The protocol names the caster and not the
+        // healed, so a figure on any row would be a guess about whose (§5).
+        setRunningTotal(unaccountedHealthBySource, event.source, 1);
+        break;
+      }
+
       case "declaration": {
         // Deliberately nothing. A declaration is a figure no total here counts
         // (`battle-event.ts`), and an empty case is the difference between
@@ -314,7 +332,12 @@ export function composeFightStatistics(
     bySide,
     combatantIdsWithoutSide,
     unattributed,
-    reading: { unreadableMessages, messagesByReason, occurrencesByUnreadKey },
+    reading: {
+      unreadableMessages,
+      messagesByReason,
+      occurrencesByUnreadKey,
+      unaccountedHealthBySource,
+    },
     outcome,
   };
 }

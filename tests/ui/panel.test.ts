@@ -306,6 +306,59 @@ describe("what the panel puts on screen", () => {
     expect(view.header.marks.map((mark) => mark.detail).join(" ")).toContain("not fully read");
   });
 
+  /**
+   * ⚠️ **Found by a mutation that lit nothing.** Removing the healing gap from
+   * the mark's condition broke no test, because both captures also carry
+   * unreadable messages — so the mark happened to be there for the other reason.
+   * A fight with a team heal and nothing else unread is the case the whole
+   * `unaccounted-health` event exists for, and it was the one case unguarded.
+   *
+   * The claim it makes is the certain one: healing *is* low, not may be.
+   */
+  test("a team heal marks the total even when everything was read", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "a mage", side: 1, profession: "m" },
+      { id: 3, name: "something large", side: 2, profession: null },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(
+        ["1=90.00;3=50.00;+dmg=500;-dmg=400", "1=100.00;1=100.00;tspell=Something;healall_per=30"],
+        roster,
+      ),
+      roster,
+    );
+    const view = composePanelView(
+      { statistics, roster, ourSide: 1, isFromFightStart: true },
+      "healed",
+    );
+
+    expect(statistics.reading.unreadableMessages).toBe(0);
+    expect(statistics.reading.unaccountedHealthBySource.size).toBe(1);
+    for (const section of view.sections) {
+      expect(section.totalMark, section.heading).not.toBeNull();
+      expect(section.totalMark?.detail).toContain("counted for nobody");
+    }
+  });
+
+  // Ranked ahead of anything merely suspected, because it is the one line that
+  // is not a maybe.
+  test("the certain warning is said before the suspected one", () => {
+    const roster = composeCombatantRoster([{ id: 1, name: "a mage", side: 1, profession: "m" }]);
+    const statistics = composeFightStatistics(
+      decodeFight(
+        ["1=100.00;1=100.00;tspell=Something;healall_per=30", "0;0;nonsense_key=1"],
+        roster,
+      ),
+      roster,
+    );
+    const detail =
+      composePanelView({ statistics, roster, ourSide: 1, isFromFightStart: true }, "healed")
+        .sections[0]?.totalMark?.detail ?? "";
+
+    expect(detail).toContain("nonsense_key");
+    expect(detail.indexOf("counted for nobody")).toBeLessThan(detail.indexOf("nonsense_key"));
+  });
+
   test("nothing unread means nothing marked", () => {
     const roster = composeCombatantRoster([
       { id: 1, name: "a mage", side: 1, profession: "m" },

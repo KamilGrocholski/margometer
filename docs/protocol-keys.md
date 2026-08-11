@@ -557,7 +557,7 @@ Each of these makes its engine call uncomparable. They are the queue the decoder
 works through next, and until it does, the witness declines to judge the calls
 they appear in rather than reporting our ignorance as the game's error.
 
-### `healall_per` — investigated
+### `healall_per` — decoded
 
 Healing by a share of **maximum** health, floored, reaching every combatant on
 the caster's side and nobody on the other, and capped. The caster is the actor,
@@ -592,8 +592,21 @@ direction is the single case that refuses it, and one occurrence is not a rule.
 Reading the key on the strength of that would put a healing figure on screen that
 is too **high** wherever the cap actually binds, and the cap binds on 84 of 120
 side-mates. Too high is the one direction the panel cannot mark, because nothing
-would know it had happened (§9.6). So the calls stay uncomparable, and the queue
-above still holds one key.
+would know it had happened (§9.6). So the calls stay uncomparable and **no figure
+is drawn from this key**.
+
+**What changed on 2026-08-11 is that refusing the figure stopped meaning refusing
+the key.** The decoder reads it into `unaccounted-health` — the third answer
+between "read" and "no meaning yet" — which states what the old verdict could
+not: healing happened, it reached a whole side, and this meter cannot say whose.
+The panel says exactly that, ahead of anything it merely suspects, because it is
+the only line there that is certain rather than a maybe.
+
+The witness still skips these twelve calls, and now does so because the decoder
+says to: `UNATTRIBUTABLE_HEALTH_KEYS` is the list of keys it reads without being
+able to place them. Understanding a key and being able to add its figure are
+different properties, and the day they were conflated all twelve calls would have
+disagreed — correctly, since the health really did move.
 
 Two further clauses the help states and this material cannot test: the effect is
 halved when the caster has no allies in the fight — every capture here is a group
@@ -816,43 +829,67 @@ effects that combine additively to change attack speed. Read as a declaration fo
 the same reason as `+engback`: attack speed is a unit no total here keeps, so
 nothing totals it and nothing is missing when it is not.
 
-### `+critpoison_per` — investigated
+### `+critpoison_per` — decoded
 
 Healing or poison tied to a critical hit — the help lists it among the effects
 whose sum is capped, in the passage about healing. Both occurrences ride a blow
 with `+crit`.
 
-**Unread, and this one is a candidate to revisit**: the help places it near
-healing, and healing does move health. Two occurrences are too few to settle
-which side it lands on, and guessing would put a figure on the wrong combatant.
+**Read as a declaration, on a measurement rather than on the help.** The help
+places it near healing, and healing does move health — so the question was
+whether health moves here, and that is answerable. Of its two occurrences one
+sits in a call the team heal makes uncomparable; the other is a message where
+both sides state a percentage the decoded damage reproduces exactly, `466476` at
+94.30 and `-10000249` at 99.33. No health moved there beyond what is already
+accounted for.
+
+One measurable occurrence is one, and it is not the whole story: if this key ever
+does move health, the witness reports it as a disagreement the moment a capture
+carries it in a comparable call. That is the safety net this verdict rests on,
+and it runs on every gate.
 
 *Shape:* 2 occurrences; on a blow; a whole number
 
 *Evidence:* article view,372 (read 2026-08-09) at the engine name
 `critpoison_per`. 2 occurrences, both beside `+crit`.
 
-### `-legbon_facade` — investigated
+### `-legbon_facade` — decoded
 
 A legendary bonus riding the blow, stating a whole number. Nothing establishes
 what the number counts.
 
 *Shape:* 2 occurrences; on a blow; a whole number
 
+**Read as a declaration, which claims only what was measured.** What the number
+counts is still unknown and this entry still does not guess. What is settled is
+narrower and enough: it is **not health**. One of the two occurrences sits on a
+message where both sides state a percentage, and the damage the decoder reads
+reproduces both exactly — `-255967` at 19.27 and `482845` at 98.30, to the
+hundredth. A figure that moved health there would have left that comparison
+short.
+
 *Evidence:* not documented — article view,372 (read 2026-08-09) was searched for
 `legbon_facade` and `legbon`, neither of which occurs. 2 occurrences, values 13
-and 20, on blows that carry damage. Left unread rather than guessed at.
+and 20, on blows that carry damage. The health measurement above is re-run every
+gate by `tests/core/health-witness.test.ts`, which judges that call rather than
+skipping it (measured 2026-08-11).
 
-### `+legbon_holytouch` — investigated
+### `+legbon_holytouch` — decoded
 
 **The key that looks like a flag and is not.** In the captures it arrives with no
 value, exactly as `+crit` does — but production build `1785244275300` composes
 its sentence with a `%val%` hole, so the client expects a figure this occurrence
 does not carry.
 
-That disagreement is the entry. Reading it as a flag would settle from one
-message what the game settles, and the figure would vanish the first time one
-arrived. It stays unread, and `tests/core/proc-rule.test.ts` holds it out of the
-flag family on purpose rather than by omission.
+That disagreement is the entry, and it is preserved rather than resolved.
+Reading it as a flag would settle from one message what the game settles, and the
+figure would vanish the first time one arrived. So it is read as a **declaration
+while it carries no value, and reported unread the moment it carries one** —
+which is the disagreement made into behaviour instead of a note. Its single
+occurrence sits on a message where both sides state a percentage the decoded
+damage reproduces exactly, so nothing of health is missing there.
+`tests/core/proc-rule.test.ts` holds it out of the flag family on purpose rather
+than by omission, and holds the value case too.
 
 A **different key** from `legbon_holytouch_heal`, which is decoded and does move
 health — the same split as `injure` and `+injure`.

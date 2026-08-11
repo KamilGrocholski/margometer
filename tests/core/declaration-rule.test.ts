@@ -24,13 +24,17 @@ import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-ca
  */
 const STANDALONE_KEYS = ["step", "prepare", "txt", "+exp", "poison_lowdmg_per-enemies"];
 
-/** The four the decoder still refuses, and the reason each is refused. */
-const STILL_UNREAD: Array<[key: string, why: string]> = [
-  ["healall_per", "the health it restores is stated nowhere else"],
-  ["-legbon_facade", "nothing establishes what the number counts"],
-  ["+critpoison_per", "it may move health, and two occurrences cannot settle which way"],
-  ["+legbon_holytouch", "the client composes a figure this occurrence does not carry"],
-];
+/**
+ * The keys that pass the criterion on a **measurement of health** rather than on
+ * a reading of what they mean.
+ *
+ * Each rides a blow, and for each the decoded damage reproduces the percentages
+ * the same message states, to the hundredth — so whatever the figure did, it did
+ * not move health. `-legbon_facade` is the plainest case: nobody knows what it
+ * counts, and it is read all the same, because "not health" is the whole of what
+ * a declaration claims.
+ */
+const SETTLED_BY_THE_WITNESS = ["-legbon_facade", "+critpoison_per", "+legbon_holytouch"];
 
 const MESSAGES = CAPTURED_FIGHTS.flatMap((fight) =>
   fight.dump.calls.flatMap((call) => call.protocolMessages),
@@ -167,25 +171,68 @@ describe("what a declaration is allowed to do to the numbers", () => {
   });
 });
 
-describe("the keys that stay unread, and why each does", () => {
-  test.each(STILL_UNREAD)("`%s` is refused, because %s", (key) => {
-    expect(UNDERSTOOD_PROTOCOL_KEYS).not.toContain(key);
+describe("the keys the health arithmetic settled", () => {
+  test.each(SETTLED_BY_THE_WITNESS)("`%s` is read, and no total counts it", (key) => {
+    expect(UNDERSTOOD_PROTOCOL_KEYS).toContain(key);
   });
 
   /**
-   * The one that decides the rule, stated as the failure it prevents.
+   * The measurement itself, re-run here rather than quoted from the register:
+   * every message carrying one of these states a health percentage on at least
+   * one side, and the witness judges that call rather than skipping it.
    *
-   * `healall_per` is understood in every respect but one: the health it restores
-   * appears nowhere else in the protocol. Reading it as a declaration would take
-   * the mark off a total that really is short, which is the single direction the
-   * panel cannot recover from — nothing downstream would know (§9.6).
+   * If that stopped being true the entries above would rest on nothing, and the
+   * register would be quoting a measurement nobody makes any more.
    */
-  test("a team heal still marks its fight as not fully read", () => {
+  test.each(SETTLED_BY_THE_WITNESS)("`%s` rides a message that states health", (key) => {
+    const carrying = MESSAGES.map((message) => parseProtocolMessage(message)).filter(
+      ({ parameters }) => parameters.some((parameter) => parameter.key === key),
+    );
+
+    expect(carrying.length).toBeGreaterThan(0);
+    const stating = carrying.filter(
+      ({ actor, target }) => actor?.healthPercent != null || target?.healthPercent != null,
+    );
+    expect(stating.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The key that fails the criterion, and what is done about it instead.
+ *
+ * `healall_per` is understood in every respect but one: the health it restores
+ * appears nowhere else in the protocol. Calling it a declaration would take the
+ * mark off a total that really is short — the single direction the panel cannot
+ * recover from, because nothing downstream would know (§9.6). So it is read into
+ * an event that says so.
+ */
+describe("health that moved where nobody can be credited", () => {
+  test("a team heal is read, and says the healing is missing", () => {
     const events = decodeFight(["445202=100.00;445202=100.00;tspell=Something;healall_per=30"]);
     const statistics = composeFightStatistics(events);
 
-    expect(statistics.reading.unreadableMessages).toBe(1);
-    expect(statistics.reading.occurrencesByUnreadKey.get("healall_per")).toBe(1);
+    expect(UNDERSTOOD_PROTOCOL_KEYS).toContain("healall_per");
+    expect(statistics.reading.unreadableMessages).toBe(0);
+    expect(statistics.reading.unaccountedHealthBySource.get("healall_per")).toBe(1);
     expect(statistics.byCombatantId.get(445202)?.healed).toBe(0);
+    expect(statistics.unattributed.healed).toBe(0);
+  });
+
+  // Both captures, so the claim is about the material rather than an example.
+  test.each(CAPTURED_FIGHTS)("$name: every team heal is counted as missing", (fight) => {
+    const roster = composeRosterOfFight(fight);
+    const statistics = composeFightStatistics(
+      decodeFight(
+        fight.dump.calls.flatMap((call) => call.protocolMessages),
+        roster,
+      ),
+      roster,
+    );
+    const casts = statistics.reading.unaccountedHealthBySource.get("healall_per") ?? 0;
+    const stated = fight.dump.calls
+      .flatMap((call) => call.protocolMessages)
+      .filter((message) => message.includes("healall_per")).length;
+
+    expect(casts).toBe(stated);
   });
 });

@@ -15,8 +15,9 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { getDecimalFromText, getIntegerFromText } from "@/libs/number.ts";
-import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { getNumberFromText } from "@/libs/number.ts";
+import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
@@ -63,7 +64,7 @@ function getCasts(fight: CapturedFight): Cast[] {
       const percent =
         stated.value === null
           ? null
-          : (getIntegerFromText(stated.value) ?? getDecimalFromText(stated.value));
+          : getNumberFromText(stated.value);
       if (percent === null || parsed.actor === null) return [];
 
       return [{ fight: fight.name, call: call.index, casterId: parsed.actor.combatantId, percent }];
@@ -243,13 +244,34 @@ describe("what `healall_per` restores", () => {
   });
 
   /**
-   * The entry's conclusion. Everything above is exact except the cap, and a cap
-   * that is wrong on one combatant per cast is a healing figure too high — the
-   * one direction of error this project refuses, because the panel cannot mark
-   * what it does not know it got wrong.
+   * The entry's conclusion, and the shape it now takes.
+   *
+   * Everything above is exact except the cap, and a cap that is wrong on one
+   * combatant per cast is a healing figure too high — the one direction of error
+   * this project refuses, because the panel cannot mark what it does not know it
+   * got wrong. So **no figure is drawn from this key**, and that has not changed.
+   *
+   * What changed is that refusing the figure no longer means refusing the key.
+   * The decoder reads it into `unaccounted-health`, which says the thing the old
+   * "no meaning yet for healall_per" could not: healing happened, it reached a
+   * whole side, and this meter cannot say whose it was.
    */
-  test("stays unread while the cap has a reading the material refuses", () => {
-    expect(UNDERSTOOD_PROTOCOL_KEYS).not.toContain(TEAM_HEAL_KEY);
+  test("yields no healing figure, and says the healing is missing rather than unknown", () => {
+    expect(UNDERSTOOD_PROTOCOL_KEYS).toContain(TEAM_HEAL_KEY);
+
+    const events = decodeFight([`1=100.00;1=100.00;tspell=Something;${TEAM_HEAL_KEY}=30`]);
+    expect(events.map((event) => event.kind)).toEqual(["unaccounted-health", "skill-used"]);
+    expect(events[0]).toEqual({
+      kind: "unaccounted-health",
+      source: TEAM_HEAL_KEY,
+      combatantId: 1,
+      declaredShare: 30,
+    });
+
+    const statistics = composeFightStatistics(events);
+    expect(statistics.byCombatantId.get(1)?.healed).toBe(0);
+    expect(statistics.unattributed.healed).toBe(0);
+    expect(statistics.reading.unaccountedHealthBySource.get(TEAM_HEAL_KEY)).toBe(1);
   });
 
   /**

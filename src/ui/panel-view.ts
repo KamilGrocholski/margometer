@@ -167,20 +167,44 @@ function composeRow(
  * up in `docs/protocol-keys.md` and quoted to us verbatim, and a sentence cannot.
  */
 function composeSuspectMark(reading: PanelReading): PanelMark | null {
-  const { unreadableMessages, messagesByReason, occurrencesByUnreadKey } =
+  const { unreadableMessages, messagesByReason, occurrencesByUnreadKey, unaccountedHealthBySource } =
     reading.statistics.reading;
-  if (unreadableMessages === 0) return null;
+  if (unreadableMessages === 0 && unaccountedHealthBySource.size === 0) return null;
 
-  const named = occurrencesByUnreadKey.size > 0 ? occurrencesByUnreadKey : messagesByReason;
-  const detail = [...named]
-    .sort(([, one], [, other]) => other - one)
-    .map(([what, count]) => `${composeFigureText(count)}× ${what}`)
-    .join("\n");
+  const lines: string[] = [];
 
-  return {
-    text: "!",
-    detail: `${composeFigureText(unreadableMessages)} messages were not fully read, so this total may be low.\n${detail}`,
-  };
+  /**
+   * The stronger claim first, because it is the one that is certain.
+   *
+   * An unread key means a total *may* be low. This means healing *is* low, by an
+   * amount the protocol never states — it heals a whole side and names only the
+   * caster. Ranking it below "3× step" would bury the only line here that is not
+   * a maybe.
+   */
+  if (unaccountedHealthBySource.size > 0) {
+    const occurrences = [...unaccountedHealthBySource.values()].reduce(
+      (running, count) => running + count,
+      0,
+    );
+    lines.push(
+      `${composeFigureText(occurrences)} heals reached a whole side at once. The protocol names only the caster, so this healing is counted for nobody and the healing figures are low.`,
+    );
+    lines.push(...[...unaccountedHealthBySource.keys()].sort());
+  }
+
+  if (unreadableMessages > 0) {
+    const named = occurrencesByUnreadKey.size > 0 ? occurrencesByUnreadKey : messagesByReason;
+    lines.push(
+      `${composeFigureText(unreadableMessages)} messages were not fully read, so this total may be low.`,
+    );
+    lines.push(
+      ...[...named]
+        .sort(([, one], [, other]) => other - one)
+        .map(([what, count]) => `${composeFigureText(count)}× ${what}`),
+    );
+  }
+
+  return { text: "!", detail: lines.join("\n") };
 }
 
 /**

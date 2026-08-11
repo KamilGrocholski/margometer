@@ -149,9 +149,9 @@ export type HealthChangeEvent = {
  * ⚠️ **The test a key must pass to land here**, and it is not "we understand it":
  * *whatever this figure did, is it either reported elsewhere or in a unit no
  * total here keeps?* `healall_per` is the key that fails it — the health it
- * restores is stated nowhere else in the protocol, so reading it as a declaration
- * would silence a warning while the healing total really is short. It stays
- * unread for exactly that reason, and the mark it raises is true.
+ * restores is stated nowhere else in the protocol, so calling it a declaration
+ * would silence a warning while the healing total really is short. It is read as
+ * `UnaccountedHealthEvent` instead, which is the third answer this type is not.
  *
  * Getting that test right is the whole value of the type: nineteen keys spent the
  * life of the register marking their messages unread, which made the panel say a
@@ -243,6 +243,34 @@ export type DeclarationEvent = {
   declared: DeclaredEffect[];
 };
 
+/**
+ * Health the protocol says moved, in an amount this meter cannot put on anybody.
+ *
+ * ⚠️ **The third state, and the one whose absence kept `healall_per` unread.**
+ * Until this existed a key was either read — which promises nothing is missing —
+ * or unread, which says only *no meaning yet*. `healall_per` is neither: it is
+ * understood in every respect, and the health it restores is stated nowhere else
+ * in the protocol, so reading it as anything else would have taken the warning
+ * off a total that really is short.
+ *
+ * What it carries is deliberately not a figure of health. The share is stated,
+ * the recipients are not, and the amount would need a cap the material refuses
+ * once in twelve — so the honest reading is *this much is missing from the
+ * healing, and we cannot say whose*. The panel says exactly that.
+ */
+export type UnaccountedHealthEvent = {
+  kind: "unaccounted-health";
+  /** The key that states health moved. */
+  source: string;
+  /**
+   * Whom the protocol named. For `healall_per` that is the caster, never the
+   * healed — which is the whole difficulty, and why no figure lands on a row.
+   */
+  combatantId: number | null;
+  /** The share the protocol states, where it states one. Never health. */
+  declaredShare: number | null;
+};
+
 export type FightOutcomeEvent = {
   kind: "fight-outcome";
   result: "won" | "lost";
@@ -281,6 +309,7 @@ export type BattleEvent =
   | HealthChangeEvent
   | SkillUsedEvent
   | DeclarationEvent
+  | UnaccountedHealthEvent
   | FightOutcomeEvent
   | UnknownMessageEvent;
 
@@ -295,6 +324,7 @@ export const BATTLE_EVENT_KINDS = [
   "health-change",
   "skill-used",
   "declaration",
+  "unaccounted-health",
   "fight-outcome",
   "unknown-message",
 ] as const satisfies

@@ -97,16 +97,34 @@ describe("the key that looks like a proc and is not", () => {
     }
   });
 
-  // And why it is refused anyway: the client states a figure for it, so reading
-  // it as a bare flag would settle from our sample what the game settles.
-  test("is not read as one, and is reported unread instead", () => {
+  /**
+   * And why it is still refused the flag family: the client states a figure for
+   * it, so reading it as a bare flag would settle from our one sample what the
+   * game settles. It is read as a **declaration** instead — which claims only
+   * that no total counts it, measured by the health arithmetic closing exactly on
+   * the message that carries it — and **only while it carries no value**.
+   */
+  test("is not read as one, and a value sends it back to unread", () => {
     for (const message of carrying) {
       const events = decodeFight([message]);
-      const procs = events.filter((event) => event.kind === "attack").flatMap((event) => event.procs);
+      const procs = events
+        .filter((event) => event.kind === "attack")
+        .flatMap((event) => event.procs);
       expect(procs).not.toContain(LOOKS_LIKE_A_PROC.slice(1));
-
-      const unread = events.filter((event) => event.kind === "unknown-message");
-      expect(unread.some((event) => event.reason.includes(LOOKS_LIKE_A_PROC))).toBe(true);
+      expect(events.some((event) => event.kind === "unknown-message")).toBe(false);
+      expect(
+        events
+          .filter((event) => event.kind === "attack")
+          .flatMap((event) => event.declared)
+          .map((declared) => declared.effect),
+      ).toContain(LOOKS_LIKE_A_PROC);
     }
+
+    // The disagreement the entry is about: the day a figure arrives, it is loud.
+    const withFigure = decodeFight([`1=90.00;2=50.00;+dmg=5;-dmg=4;${LOOKS_LIKE_A_PROC}=7`]);
+    expect(withFigure.some((event) => event.kind === "unknown-message")).toBe(true);
+    expect(withFigure).toContainEqual(
+      expect.objectContaining({ unreadKeys: [LOOKS_LIKE_A_PROC] }),
+    );
   });
 });

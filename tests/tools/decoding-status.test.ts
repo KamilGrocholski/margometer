@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
 import { getDecodingStatus } from "@/tools/decoding-status.ts";
 
 /**
@@ -8,6 +8,31 @@ import { getDecodingStatus } from "@/tools/decoding-status.ts";
  * a miscount here would be quoted in a commit message as fact.
  */
 const STATUS = getDecodingStatus(CAPTURED_FIGHTS);
+
+/** One message, wrapped in the least material the probe will accept. */
+function composeFightOf(message: string): CapturedFight {
+  return {
+    name: "invented",
+    dump: {
+      formatVersion: 1,
+      capturedAt: "2026-08-11T00:00:00.000Z",
+      world: "nowhere",
+      gameBuild: "0",
+      calls: [
+        {
+          index: 0,
+          fightNumber: null,
+          protocolMessages: [message],
+          combatantsBefore: [],
+          combatantsAfter: [],
+          payload: {},
+        },
+      ],
+    },
+    maximumHealthByCombatantId: new Map(),
+    startingHealthByCombatantId: new Map(),
+  };
+}
 
 describe("decoding status", () => {
   test("counts every captured message once", () => {
@@ -47,10 +72,20 @@ describe("decoding status", () => {
     expect(unread).not.toContain("skillId");
   });
 
-  // The inverse, so the probe cannot go green by calling everything read.
+  /**
+   * The inverse, so the probe cannot go green by calling everything read.
+   *
+   * ⚠️ **Checked against a message written for the purpose, because the captured
+   * material no longer carries a single unread key.** That is the milestone this
+   * test used to stand on and can no longer: it named `step`, then `healall_per`,
+   * and both are read now. A probe that reports nothing unread is
+   * indistinguishable from one that has stopped looking, so the looking is what
+   * is checked here.
+   */
   test("still reports a key the decoder genuinely has no meaning for", () => {
-    const unread = STATUS.unreadKeysByFrequency.map((entry) => entry.key);
-    expect(unread).toContain("healall_per");
+    const invented = getDecodingStatus([composeFightOf("1=100.00;2=50.00;+dmg=5;no_such_key=1")]);
+    expect(invented.unreadKeysByFrequency.map((entry) => entry.key)).toEqual(["no_such_key"]);
+    expect(invented.messagesWithUnread).toBe(1);
   });
 
   test("ranks unread keys by how often they occur", () => {
@@ -59,9 +94,31 @@ describe("decoding status", () => {
     expect(counts.every((count) => count > 0)).toBe(true);
   });
 
-  // Not vacuous: there is still a great deal the decoder cannot read, and the
-  // day this list empties is the day the counter stops being interesting.
-  test("still has unread keys to report", () => {
-    expect(STATUS.unreadKeysByFrequency.length).toBeGreaterThan(0);
+  /**
+   * The day this list empties, which arrived on 2026-08-11.
+   *
+   * Asserted rather than left as an observation: every key in both captures is
+   * read now, so a key appearing here again means the material grew or the
+   * decoder lost something — and either is worth failing over rather than
+   * noticing months later. `bun tools/decoding-status.ts` is where the figure
+   * lives; this only holds it at zero.
+   */
+  test("has no unread key left in the captured material", () => {
+    expect(STATUS.unreadKeysByFrequency).toEqual([]);
+  });
+
+  /**
+   * What is left, and it is not a key: two messages state a health figure the
+   * decoder reads and a **second comma-separated member** it does not explain —
+   * `heal=3065,-45` and `poison=140,14`. The key is read, so no key is listed
+   * above; the message is not fully read, so it is still counted here and the
+   * panel still marks the total.
+   *
+   * That is the last thing in this material the decoder cannot account for, and
+   * two occurrences are not a rule. It stays loud until a capture carries enough
+   * of them to settle what the member is.
+   */
+  test("but two messages still carry a value member nothing explains", () => {
+    expect(STATUS.messagesWithUnread).toBe(2);
   });
 });

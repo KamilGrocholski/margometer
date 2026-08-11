@@ -1,5 +1,5 @@
 import { assert } from "@/libs/assert.ts";
-import { getDecimalFromText, getIntegerFromText } from "@/libs/number.ts";
+import { getDecimalFromText, getIntegerFromText, getNumberFromText } from "@/libs/number.ts";
 import type {
   BattleEvent,
   DamageAmount,
@@ -235,7 +235,26 @@ const BLOW_DECLARATION_KEYS = [
   // Both ride a critical hit in every occurrence the captures carry.
   "+engback",
   "+critslow_per",
+  // Neither states health: measured, every occurrence either sits on a message
+  // where both sides state a percentage the decoded damage reproduces exactly, or
+  // on a call the team heal makes uncomparable. What `-legbon_facade` counts is
+  // still unknown — what is settled is that it is not health.
+  "-legbon_facade",
+  "+critpoison_per",
 ];
+
+/**
+ * The declaration that carries **no value**, and is read only while it carries
+ * none.
+ *
+ * `+legbon_holytouch` arrives valueless in the captures, exactly as a flag does,
+ * but production build `1785244275300` composes its sentence with a `%val%` hole
+ * — so the client expects a figure this occurrence does not send. Reading it as a
+ * flag outright would settle from one message what the game settles, and the
+ * figure would vanish the first time one arrived. A value sends it back to
+ * unread, which is where that disagreement belongs.
+ */
+const VALUELESS_BLOW_DECLARATION_KEYS = ["+legbon_holytouch"];
 
 /**
  * Keys that are the whole of their message and report nothing that happened to
@@ -250,6 +269,24 @@ const BLOW_DECLARATION_KEYS = [
  * say that, and neither does this list: what is read is that the message stated
  * `step` about a combatant (`docs/protocol-keys.md`).
  */
+/**
+ * Keys the decoder **reads and cannot account for**: the protocol says health
+ * moved and states no figure any row could take.
+ *
+ * Exported because the health witness needs it. "Understood" and "the replay can
+ * add it" are different properties, and conflating them would make the witness
+ * stop skipping these calls the moment the key was read — every one of them would
+ * then disagree, for the good reason that the health really did move.
+ *
+ * `healall_per` restores a floored share of maximum to everyone on the caster's
+ * side, capped at the health each began the fight with. The share is stated; the
+ * recipients are not, and the cap has one reading in the material that refuses it
+ * — so a figure drawn from it would be too high wherever the cap binds, which is
+ * 84 of 120 side-mates, and too high is the direction the panel cannot mark
+ * (`docs/protocol-keys.md`).
+ */
+export const UNATTRIBUTABLE_HEALTH_KEYS: readonly string[] = ["healall_per"];
+
 const STANDALONE_DECLARATION_KEYS = [
   "step",
   "prepare",
@@ -278,6 +315,8 @@ export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   ...SKILL_DECLARATION_KEYS,
   ...BLOW_DECLARATION_KEYS,
   ...STANDALONE_DECLARATION_KEYS,
+  ...VALUELESS_BLOW_DECLARATION_KEYS,
+  ...UNATTRIBUTABLE_HEALTH_KEYS,
   SKILL_SHOUT_KEY,
   SKILL_NAME_KEY,
   SKILL_ID_KEY,
@@ -400,6 +439,24 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
         effect: key,
         amount,
         text: amount === null ? value : null,
+      });
+      continue;
+    }
+
+    if (VALUELESS_BLOW_DECLARATION_KEYS.includes(key)) {
+      if (value === null) blowDeclared.push({ effect: key, amount: null, text: null });
+      else unreadKeys.push(key);
+      continue;
+    }
+
+    if (UNATTRIBUTABLE_HEALTH_KEYS.includes(key)) {
+      events.push({
+        kind: "unaccounted-health",
+        source: key,
+        combatantId: parsed.actor?.combatantId ?? null,
+        // Either spelling: the protocol states `30` and `22.5` for this key in
+        // the same fight.
+        declaredShare: value === null ? null : getNumberFromText(value),
       });
       continue;
     }

@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { composeDecimalText } from "@/libs/number.ts";
-import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import {
+  decodeFight,
+  UNATTRIBUTABLE_HEALTH_KEYS,
+  UNDERSTOOD_PROTOCOL_KEYS,
+} from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
   CAPTURED_FIGHTS,
@@ -36,7 +40,19 @@ function isDamageKey(key: string): boolean {
  * replay consumes every event the decoder produces, so what it accounts for is
  * exactly what the decoder reads.
  */
+/**
+ * Whether the replay can **add** this key's figure — which is not the same as
+ * whether the decoder understands it, and the difference is load-bearing.
+ *
+ * ⚠️ `healall_per` is read now, and the replay still cannot account for it: it
+ * heals a whole side and names only the caster. Written as `UNDERSTOOD` alone,
+ * this predicate would stop skipping those twelve calls the moment the key was
+ * read, and every one of them would disagree — for the good reason that the
+ * health really did move. The decoder states which keys it reads without being
+ * able to place them, and this reads that list rather than guessing.
+ */
 function isAccountedByTheReplay(key: string): boolean {
+  if (UNATTRIBUTABLE_HEALTH_KEYS.includes(key)) return false;
   return isDamageKey(key) || UNDERSTOOD_PROTOCOL_KEYS.includes(key);
 }
 

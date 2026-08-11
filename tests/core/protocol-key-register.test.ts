@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { getDecimalFromText, getIntegerFromText } from "@/libs/number.ts";
+import { getIntegerFromText, getNumberFromText } from "@/libs/number.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
@@ -35,13 +35,19 @@ describe("the protocol key register", () => {
     expect(ENTRIES.length).toBeGreaterThan(0);
   });
 
+  /**
+   * ⚠️ Written as an exact set until 2026-08-11, which made it two assertions in
+   * one: that no unknown state is used, and that all three are in use. The second
+   * stopped being true the day the last `investigated` entry was read — a
+   * milestone, and not a reason for this guard to fail. `investigated` stays a
+   * legal state because the next key the game adds will need it.
+   */
+  const KNOWN_STATES = ["decoded", "investigated", "not a battle key"];
+
   test("uses only states the guard knows how to check", () => {
-    const states = new Set(ENTRIES.map((entry) => entry.state));
-    expect([...states].sort()).toEqual([
-      "decoded",
-      "investigated",
-      "not a battle key",
-    ]);
+    const states = [...new Set(ENTRIES.map((entry) => entry.state))].sort();
+    expect(states.filter((state) => !KNOWN_STATES.includes(state))).toEqual([]);
+    expect(states).toContain("decoded");
   });
 
   test("names no key twice", () => {
@@ -227,7 +233,7 @@ describe("the register against the captured material", () => {
       occurrences.every(
         (of) =>
           of.value !== null &&
-          (getIntegerFromText(of.value) !== null || getDecimalFromText(of.value) !== null),
+          getNumberFromText(of.value) !== null,
       )
     ) {
       return "a number";

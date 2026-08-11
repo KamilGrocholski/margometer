@@ -403,6 +403,9 @@ libs/
   number.ts              Every number read or written. Reading returns null and
                          throws nothing, so the caller picks assert, error or
                          unknown; writing asserts, because the number is ours.
+                         Whole, fractional, and either-of-the-two are three
+                         questions and three readers — the third arrived at its
+                         third caller, per §9.5.
   json.ts                JSON.parse with its try/catch in one place, and its
                          `any` replaced by `unknown`. Returns the value or the
                          SyntaxError, never a bare null — §9.5.
@@ -420,8 +423,9 @@ src/
     protocol-message.ts  Grammar of one message: two sides, then key/value
                          segments. Structure only, strict, reversible.
     battle-event.ts      What the decoder produces. Grows one variant at a time,
-                         and holds the line between a figure that measures
-                         something and one the protocol merely declares — §10.
+                         and holds three lines: a figure that measures something,
+                         one the protocol merely declares, and health that moved
+                         where nobody can be credited — §10.
     combatant-roster.ts  Who is in the fight, so a name the protocol states can
                          be matched to an id, and which side each is on. An
                          ambiguous name resolves to nobody — never to the first
@@ -556,8 +560,9 @@ tests/
     team-heal-rule.test.ts   What `healall_per` restores: a floored share of
                              maximum reaching one side only, the weakening the
                              protocol has already applied, and the cap — which
-                             one reading in the material refuses, which is why
-                             the key is still not read.
+                             one reading in the material refuses, which is why no
+                             figure is drawn from it and the panel says the
+                             healing is missing instead.
     skill-announcement-rule.test.ts
                              What an announcement carries: no key of the damage
                              family, but damage aimed at a name and healing ride
@@ -572,8 +577,10 @@ tests/
                              What the protocol states that no total counts, and
                              the test a key passes to be read that way: every
                              standalone key alone in its message, the aggregate
-                             computed twice and agreeing, and the four keys still
-                             refused with the reason each is refused.
+                             computed twice and agreeing, the three keys the
+                             health arithmetic settled, and the one it cannot —
+                             where the healing is reported missing rather than
+                             unknown.
     battle-event.test.ts  fight-decoder.test.ts  margometer-error.test.ts
     protocol-key-register.test.ts  protocol-message.test.ts
 
@@ -920,7 +927,7 @@ The register, and the file that owns each:
 
 | Owner | Owns | Reading gives |
 |---|---|---|
-| `libs/number.ts` | `Number()`, `parseInt`, `parseFloat`, `BigInt`, `toFixed`, `String()` on a number, unary `+`, `typeof … === "number"` | `getIntegerFromText`, `getDecimalFromText`, `getIntegerFromValue`, `getFiniteNumberFromValue` → `number \| null` |
+| `libs/number.ts` | `Number()`, `parseInt`, `parseFloat`, `BigInt`, `toFixed`, `String()` on a number, unary `+`, `typeof … === "number"` | `getIntegerFromText`, `getDecimalFromText`, `getNumberFromText`, `getIntegerFromValue`, `getFiniteNumberFromValue` → `number \| null` |
 | `libs/json.ts` | `JSON.parse` and its `try`/`catch` | `getValueFromJsonText` → a reading carrying the value **or** the `SyntaxError`, so the caller still has something to put in `cause` |
 | `libs/timestamp.ts` | `Date.parse` | `getMillisecondsFromIsoText` → `number \| null` |
 
@@ -1057,3 +1064,4 @@ Terms from the game, fixed here so module names do not drift apart.
 | **element** | Damage type (fire, cold, physical, …), taken from the key. |
 | **dot** | Damage over time, ticking outside a direct attack. |
 | **unattributed** | A number the log does not tie to any actor. Shown, never guessed. |
+| **unaccounted** | Health the protocol says moved in an amount nobody can size: a heal that reaches a whole side while the message names only the caster. Distinct from **unattributed**, which is a figure we have and cannot place — this is a figure we do not have. The panel states it ahead of anything it merely suspects, because it is the one warning that is certain rather than a maybe. |

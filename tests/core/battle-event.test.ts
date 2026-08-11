@@ -153,12 +153,14 @@ describe("decoding a single message", () => {
   });
 
   test("reports a key it has no meaning for, naming the key", () => {
-    const [event] = decodeFight(["0;0;-legbon_facade=13"]);
+    // Invented on purpose. Every key the captured material carries is read now,
+    // so the only honest example of an unread one is a key the game never sent.
+    const [event] = decodeFight(["0;0;no_such_key=13"]);
     expect(event).toEqual({
       kind: "unknown-message",
-      message: "0;0;-legbon_facade=13",
-      reason: "no meaning yet for -legbon_facade",
-      unreadKeys: ["-legbon_facade"],
+      message: "0;0;no_such_key=13",
+      reason: "no meaning yet for no_such_key",
+      unreadKeys: ["no_such_key"],
     });
   });
 
@@ -414,7 +416,7 @@ describe("decoding a single message", () => {
   // Half understood is not understood. Without this, a message carrying one
   // known key beside three unknown ones would look fully read.
   test("reports the unread keys of a message it partly understood", () => {
-    const events = decodeFight(["0;0;winner=Gracz 1;-legbon_facade=13"]);
+    const events = decodeFight(["0;0;winner=Gracz 1;no_such_key=13"]);
     expect(events.map((event) => event.kind)).toEqual(["fight-outcome", "unknown-message"]);
   });
 });
