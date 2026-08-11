@@ -862,6 +862,37 @@ describe("moving the panel", () => {
     expect(titleBar.released).toEqual([7]);
   });
 
+  /**
+   * ⚠️ **A page that refuses the capture must not cost the drag.** The comment
+   * on `setPanelDrag` says capture is optional so that a document without it
+   * still drags, just less forgivingly — which was true of it being *absent* and
+   * false of it *throwing*. `setPointerCapture` raises `InvalidPointerId` for a
+   * pointer it does not consider active, and standing ahead of the grab that
+   * threw the whole drag away: the guarded handler resets `grab`, so the panel
+   * did not move at all and the only trace was one `MargoMeter/PanelDrag` line.
+   * Seen in a browser, from a pointer event a real hand did not produce.
+   */
+  test("a title bar that refuses the pointer still drags", () => {
+    const { host, root, titleBar, moved, failures } = composeMountedPanel({
+      position: { left: 100, top: 100 },
+    });
+    // A `DOMException` and not one of ours: this is the browser refusing, and
+    // its name is the one Firefox uses. §9.5's guard reads tests too, which is
+    // how this came to be faithful rather than convenient.
+    titleBar.setPointerCapture = (): never => {
+      throw new DOMException("Invalid pointer id", "InvalidPointerIdError");
+    };
+
+    setDragTo(root, titleBar, { left: 500, top: 500 }, { left: 460, top: 530 });
+
+    expect(host.properties["left"]).toBe("60px");
+    expect(host.properties["top"]).toBe("130px");
+    expect(moved).toEqual([{ left: 60, top: 130 }]);
+    // The refusal is still a failure and is still said once, because a drag that
+    // stops following a fast pointer is worth knowing about (§9.6).
+    expect(failures.length).toBe(1);
+  });
+
   test("pressing anywhere but the title bar moves nothing", () => {
     const { reading } = composeReading();
     const { document, host, root, container } = composeMountedPanel({

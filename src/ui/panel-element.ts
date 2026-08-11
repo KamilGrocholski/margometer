@@ -527,6 +527,33 @@ function setPanelDrag(
     });
   };
 
+  /**
+   * Takes the pointer, or gives it back, without ever costing the drag.
+   *
+   * ⚠️ **Capture is the forgiving part of a drag, not the drag.** The note above
+   * says a document that does not offer it still drags, and that was true of the
+   * method being *absent* and false of it *throwing*: `setPointerCapture` rejects
+   * a pointer it does not consider active with `InvalidPointerId`, and one throw
+   * inside `setGuarded` clears the grab — so the panel did not move at all, and
+   * the only trace was a single line in a console shared with the game. Failing
+   * on the way out is worse still: the release sits after the grab is cleared and
+   * ahead of `onMoved`, so a drag would land and then not be remembered.
+   *
+   * The catch is wide for the reason the storage one in `userscript-entry.ts` is:
+   * this arrives as a `DOMException` under more than one name and there is
+   * nothing narrower that would catch them all. It is still reported — a drag
+   * that stops following a fast hand is worth knowing about (§9.6).
+   */
+  const setPointerHeld = (held: boolean, pointerId: number | undefined): void => {
+    if (pointerId === undefined) return;
+    try {
+      if (held) titleBar.setPointerCapture?.(pointerId);
+      else titleBar.releasePointerCapture?.(pointerId);
+    } catch (error) {
+      placement.onSectionFailure?.(error);
+    }
+  };
+
   setGuarded("pointerdown", (event) => {
     if (event.target !== titleBar) return;
     const pointer = getPointerFromEvent(event);
@@ -540,13 +567,15 @@ function setPanelDrag(
 
     // Without this the browser starts its own text or image drag from the bar.
     event.preventDefault?.();
-    if (event.pointerId !== undefined) titleBar.setPointerCapture?.(event.pointerId);
     grab = {
       pointerLeft: pointer.left,
       pointerTop: pointer.top,
       panelLeft: from.left,
       panelTop: from.top,
     };
+    // Last, and inside its own catch, because it is the only line here that can
+    // throw and it is not the drag.
+    setPointerHeld(true, event.pointerId);
   });
 
   setGuarded("pointermove", (event) => {
@@ -564,7 +593,7 @@ function setPanelDrag(
   const handleDragEnd = (event: PanelEvent): void => {
     if (grab === null) return;
     grab = null;
-    if (event.pointerId !== undefined) titleBar.releasePointerCapture?.(event.pointerId);
+    setPointerHeld(false, event.pointerId);
     if (position !== null) placement.onMoved?.(position);
   };
 
