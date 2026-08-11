@@ -403,6 +403,7 @@ src/
                          global. Wires the game to the reading and holds the
                          session; draws nothing yet.
   core/
+    margometer-error.ts  Base for everything the add-on throws — §9.5.
     protocol-message.ts  Grammar of one message: two sides, then key/value
                          segments. Structure only, strict, reversible.
     battle-event.ts      What the decoder produces. Grows one variant at a time.
@@ -581,6 +582,12 @@ tests/
                              citations behind across five files and nothing
                              noticed; "held by `x`" is the sentence that stops a
                              reader checking whether anything holds it.
+    structure-block.test.ts  The block above, against the tree it describes: every
+                             name in it exists, and every tracked file under
+                             `libs/`, `src/` and `tools/` appears. Reads the block
+                             by its indentation, not by searching it — §7.5. §8's
+                             "update it in the same commit" had been prose only,
+                             and this found a file that had never been listed.
     captured-fight-catalog.test.ts  decoding-status.test.ts  help-article.test.ts
     protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```
