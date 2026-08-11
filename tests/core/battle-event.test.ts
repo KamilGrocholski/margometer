@@ -13,16 +13,40 @@ describe("the event contract", () => {
   // The rule this project keeps relearning: a variant nothing produces stays
   // alive on our own test data, drags a branch of every consumer along with it,
   // and nobody notices until someone counts. Counting is this test.
-  test.each([...BATTLE_EVENT_KINDS])("%s is produced by the decoder on real material", (kind) => {
-    const produced = DECODED_FIGHTS.flatMap((fight) => fight.events).filter(
-      (event) => event.kind === kind,
-    );
-    expect(produced.length).toBeGreaterThan(0);
+/**
+   * ⚠️ **`unknown-message` stopped being produced by the captures on 2026-08-11,
+   * when the last key in them was read.** That is not the dead weight this test
+   * hunts: it is what the decoder says when the game sends something new, and the
+   * game will. So it is exempted here by name and produced on purpose below —
+   * exempting it silently would have let a genuinely dead variant hide behind the
+   * same excuse.
+   */
+  const FROM_A_LIVE_PROTOCOL = "unknown-message";
+
+  test.each([...BATTLE_EVENT_KINDS].filter((kind) => kind !== FROM_A_LIVE_PROTOCOL))(
+    "%s is produced by the decoder on real material",
+    (kind) => {
+      const produced = DECODED_FIGHTS.flatMap((fight) => fight.events).filter(
+        (event) => event.kind === kind,
+      );
+      expect(produced.length).toBeGreaterThan(0);
+    },
+  );
+
+  test("and the one the captures no longer carry is produced by a key the game never sent", () => {
+    const [event] = decodeFight(["0;0;no_such_key=1"]);
+    expect(event?.kind).toBe(FROM_A_LIVE_PROTOCOL);
+
+    const fromMaterial = new Set(DECODED_FIGHTS.flatMap((fight) => fight.events).map((e) => e.kind));
+    expect(fromMaterial.has(FROM_A_LIVE_PROTOCOL)).toBe(false);
   });
 
   test("the decoder produces no kind the contract does not declare", () => {
     const kinds = new Set(DECODED_FIGHTS.flatMap((fight) => fight.events).map((e) => e.kind));
-    expect([...kinds].sort()).toEqual([...BATTLE_EVENT_KINDS].sort());
+    for (const kind of kinds) expect([...BATTLE_EVENT_KINDS]).toContain(kind);
+    expect([...kinds].sort()).toEqual(
+      [...BATTLE_EVENT_KINDS].filter((kind) => kind !== FROM_A_LIVE_PROTOCOL).sort(),
+    );
   });
 });
 

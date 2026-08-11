@@ -108,17 +108,14 @@ describe("decoding status", () => {
   });
 
   /**
-   * What is left, and it is not a key: two messages state a health figure the
-   * decoder reads and a **second comma-separated member** it does not explain —
-   * `heal=3065,-45` and `poison=140,14`. The key is read, so no key is listed
-   * above; the message is not fully read, so it is still counted here and the
-   * panel still marks the total.
-   *
-   * That is the last thing in this material the decoder cannot account for, and
-   * two occurrences are not a rule. It stays loud until a capture carries enough
-   * of them to settle what the member is.
+   * And nothing left half-read either. The last two — `heal=3065,-45` and
+   * `poison=140,14` — carry a second value member whose **meaning** is still
+   * unknown, and that is a different thing from unaccounted: the health witness
+   * judges both calls and agrees on the very messages carrying them, so the
+   * member moves no health and shortens no total. It is carried beside the
+   * figure rather than reported against it.
    */
-  test("but two messages still carry a value member nothing explains", () => {
-    expect(STATUS.messagesWithUnread).toBe(2);
+  test("and no message left half-read either", () => {
+    expect(STATUS.messagesWithUnread).toBe(0);
   });
 });

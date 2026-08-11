@@ -10,23 +10,46 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
  * that produce no number and would otherwise be inert.
  */
 
+/**
+ * ⚠️ **This block used to say "half understood is not understood", and reported
+ * the key unread whenever a second figure sat beside the health one.**
+ *
+ * That was the right answer to a question nobody had measured. What is measured
+ * now: both calls carrying such a value — `poison=140,14` and `heal=3065,-45`,
+ * the only two in the material — are judged by the health witness and agree, on
+ * the very messages that carry them. The first member accounts for all the
+ * health movement, so the second moves none.
+ *
+ * So the two claims are separated. *Not understood* it remains: what the member
+ * states is unknown, and this file does not guess. *Unaccounted* it is not, and
+ * saying so would mark a fight where nothing is missing — which is the warning
+ * that costs the warnings that matter.
+ */
 describe("a health figure with a second figure beside it", () => {
-  // Two messages in the captures carry `poison=140,14` and `heal=3065,-45`.
-  // Reading the first component closes the arithmetic and the second explains
-  // nothing we know, so the number is used and the key is *still* reported
-  // unread. Half understood is not understood.
   const events = decodeFight(["1=50.00;0;poison=140,14"]);
 
   test("is read as the first component", () => {
     expect(events.filter((event) => event.kind === "health-change")).toEqual([
-      { kind: "health-change", combatantId: 1, amount: -140, source: "poison" },
+      {
+        kind: "health-change",
+        combatantId: 1,
+        amount: -140,
+        source: "poison",
+        declared: [{ effect: "poison", amount: 14, text: null }],
+      },
     ]);
   });
 
-  test("is reported unread as well, because the second figure is not understood", () => {
-    const unknown = events.filter((event) => event.kind === "unknown-message");
-    expect(unknown.length).toBe(1);
-    expect(unknown[0]?.reason).toContain("poison");
+  test("carries the second beside it, and reports nothing unread", () => {
+    expect(events.filter((event) => event.kind === "unknown-message")).toEqual([]);
+    expect(events.length).toBe(1);
+  });
+
+  // The shape is still checked: a member that is not a number is not carried.
+  test("a second member that is not a figure is reported unread", () => {
+    const odd = decodeFight(["1=50.00;0;poison=140,quite a lot"]);
+    expect(odd.some((event) => event.kind === "unknown-message")).toBe(true);
+    expect(odd).toContainEqual(expect.objectContaining({ unreadKeys: ["poison"] }));
   });
 
   test("a lone figure is not reported unread", () => {

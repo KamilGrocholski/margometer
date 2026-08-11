@@ -323,6 +323,14 @@ from them; it does not say that a wound is worth 15% of the damage taken.
   parentheses beside the human name — `Unik ( evade )` — and that parenthesis is
   the only thing joining an article to a protocol key. A bare word matches longer
   words too and pushes the real hit past the limit.
+- `[ALWAYS]` **Search a prefixed key by its stem as well.** A protocol key may
+  carry a prefix the help does not: `-legbon_facade` is documented as `facade`,
+  and searching `legbon_facade` and `legbon` found neither. The register carried
+  "not documented — nothing establishes what the number counts" for that key on
+  the strength of those two searches, and it was simply wrong. *Not found* and
+  *not documented* are different claims, and this is how the wrong one gets
+  written down: the phrases tried are recorded, and the one that would have
+  worked was not among them.
 - `[ALWAYS]` **A claim from the help carries the date it was read**, the way a
   claim from the client carries its build — the help has no build id, so the date
   is the only thing dating it. Guarded in the register by

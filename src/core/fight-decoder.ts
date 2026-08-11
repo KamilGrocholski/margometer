@@ -118,7 +118,19 @@ const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> 
   injure: { sign: -1, isOnTarget: false },
 };
 
-/** Two of these carry a second, comma-separated figure that nothing here explains. */
+/**
+ * This family may state a second figure after the health one, and the client
+ * splits on it too — `injure`, `poison` and `heal` each compose a different
+ * sentence when the value has two members, production build `1786441768914`.
+ *
+ * The member is a **signed change of something**: production build
+ * `1786441768914` shows its magnitude and derives *increased* or *decreased*
+ * from its sign. Which quantity changed is named only in the sentence the client
+ * fetches at run time, so it stays unestablished, and the sign is kept because
+ * the client keeps it. It is carried as a declaration rather than read, because
+ * the one thing measured about it is that it is not health — both calls are judged by
+ * `tests/core/health-witness.test.ts` and agree on the very messages carrying it.
+ */
 const VALUE_SEPARATOR = ",";
 
 /**
@@ -374,16 +386,22 @@ function decodeMessage(message: string, roster: CombatantRoster | null): BattleE
         continue;
       }
       const subject = healthChange.isOnTarget ? parsed.target : parsed.actor;
+      const declaredBeside: DeclaredEffect[] = [];
       events.push({
         kind: "health-change",
         combatantId: subject?.combatantId ?? null,
         amount: amount * healthChange.sign,
         source: key,
+        declared: declaredBeside,
       });
-      // The health figure is read; a second figure beside it is not. Reporting
-      // the key as unread as well is the honest half-and-half: the number is
-      // usable, and something in the message still is not understood.
-      if (rest.length > 0) unreadKeys.push(key);
+      // The health figure is read; a second one beside it is carried without
+      // being read. A member that will not read as a number goes back to unread
+      // — the shape is checked here as everywhere else.
+      for (const stated of rest) {
+        const extra = getNumberFromText(stated);
+        if (extra === null) unreadKeys.push(key);
+        else declaredBeside.push({ effect: key, amount: extra, text: null });
+      }
       continue;
     }
 

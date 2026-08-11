@@ -130,10 +130,37 @@ describe("the aggregate over captured fights", () => {
    * impossible if the aggregate forgets what it could not read. Both captures
    * carry unread keys, so this is measured rather than constructed.
    */
+  /**
+   * ⚠️ Both halves of this used to be measured on the captures, and one of them
+   * has gone to zero: no message in either fight is unread any more. The path is
+   * still worth guarding, so it is guarded on a message written for the purpose
+   * — and the captures are held to the new truth rather than the old one.
+   */
   test("what could not be read reaches the aggregate", () => {
+    const invented = composeFightStatistics(decodeFight(["0;0;no_such_key=1"]));
+    expect(invented.reading.unreadableMessages).toBe(1);
+    expect(invented.reading.messagesByReason.size).toBe(1);
+    expect(invented.reading.occurrencesByUnreadKey.get("no_such_key")).toBe(1);
+
     for (const { name, statistics } of FROM_CAPTURES) {
-      expect(statistics.reading.unreadableMessages, name).toBeGreaterThan(0);
-      expect(statistics.reading.messagesByReason.size, name).toBeGreaterThan(0);
+      expect(statistics.reading.unreadableMessages, name).toBe(0);
+    }
+  });
+
+  /**
+   * What the captures do still carry, and it is the stronger claim: healing that
+   * reached a whole side, which the protocol reports without naming anyone it
+   * healed. One fight has it and one does not, so both branches are real.
+   */
+  test("and health that moved where nobody can be credited is carried too", () => {
+    const withTeamHeal = FROM_CAPTURES.filter(
+      ({ statistics }) => statistics.reading.unaccountedHealthBySource.size > 0,
+    );
+    expect(withTeamHeal.length).toBeGreaterThan(0);
+    for (const { name, statistics } of withTeamHeal) {
+      expect(statistics.reading.unaccountedHealthBySource.get("healall_per"), name).toBeGreaterThan(
+        0,
+      );
     }
   });
 
@@ -144,7 +171,10 @@ describe("the aggregate over captured fights", () => {
     const idle = [...statistics.byCombatantId.values()].find((row) => row.healed === 0);
     expect(idle).toBeDefined();
     expect(idle?.healed).toBe(0);
-    expect(statistics.reading.unreadableMessages).toBeGreaterThan(0);
+
+    const unread = composeFightStatistics(decodeFight(["0;0;no_such_key=1"]));
+    expect(unread.reading.unreadableMessages).toBe(1);
+    expect(unread.byCombatantId.size).toBe(0);
   });
 });
 
@@ -273,8 +303,8 @@ describe("figures the log ties to nobody", () => {
 
   test("health moving for nobody is kept rather than discarded", () => {
     const statistics = composeFightStatistics([
-      { kind: "health-change", combatantId: null, amount: -300, source: "poison" },
-      { kind: "health-change", combatantId: null, amount: 120, source: "heal" },
+      { kind: "health-change", combatantId: null, amount: -300, source: "poison", declared: [] },
+      { kind: "health-change", combatantId: null, amount: 120, source: "heal", declared: [] },
     ]);
 
     expect(statistics.unattributed.healthLost).toBe(300);

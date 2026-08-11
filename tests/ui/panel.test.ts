@@ -268,8 +268,13 @@ describe("what the panel puts on screen", () => {
     expect(mark?.detail).toContain("nonsense_key");
   });
 
-  // Every key the captures leave unread reaches the screen, not a chosen few.
-  test.each(CAPTURED_FIGHTS)("$name: every key it could not read is named", (fight) => {
+  /**
+   * ⚠️ Asserted over the captures until 2026-08-11, when the last unread key in
+   * them was read. What the material can still show is the other half: whatever
+   * the aggregate does hold, the panel names. Today that is the team heal in one
+   * fight and nothing at all in the other, and both are checked.
+   */
+  test.each(CAPTURED_FIGHTS)("$name: whatever it could not account for is named", (fight) => {
     const roster = composeRosterOfFight(fight);
     const statistics = composeFightStatistics(
       decodeFight(
@@ -284,8 +289,11 @@ describe("what the panel puts on screen", () => {
     ).sections[0]?.totalMark?.detail;
 
     const unread = [...statistics.reading.occurrencesByUnreadKey.keys()];
-    expect(unread.length).toBeGreaterThan(0);
-    for (const key of unread) expect(detail, key).toContain(key);
+    const missing = [...statistics.reading.unaccountedHealthBySource.keys()];
+    expect(unread).toEqual([]);
+
+    for (const key of [...unread, ...missing]) expect(detail, key).toContain(key);
+    if (missing.length === 0) expect(detail).toBeUndefined();
   });
 
   /**

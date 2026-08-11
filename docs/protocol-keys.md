@@ -143,6 +143,31 @@ a negative amount, which needs no special case because the figure is signed.
 
 *Health:* moves health
 
+**A second value member, and what the client says about it.** The value may carry
+a second comma-separated figure — `heal=3065,-45` in the group fight, one
+occurrence — and the client splits on it, composing a different sentence when it
+is there: `msg_heal %gain_lost% %name% %val0% %val1%`, with `%val0%` the health
+figure and `%val1%` this one. `injure` and `poison` do the same.
+
+Its **shape** is settled and its **subject** is not. Production build
+`1786441768914` passes it as `Math.abs(R[1])` beside a direction the client
+derives from its sign — `getIncDecTranslation`, which answers *increased* above
+zero and *decreased* below. So the member is a signed change of some quantity,
+shown as a magnitude with its direction in words. Which quantity is named in the
+sentence, and the sentence lives in the translation table the client fetches at
+run time rather than in the bundle, so it is not ours to read here (NOTICE.md).
+
+⚠️ The older development build `1781609507010` passes `multi[1]` straight
+through, with no absolute value and no direction. This entry is why §7.6 says
+production decides: read there, the member looks like a plain number, and the
+half that makes it legible is missing.
+
+It is carried beside the health figure rather than reported unread, on the one
+thing that is measured: the call is judged by the witness and agrees, on the very
+message that carries it, so the first member accounts for all the health movement
+and the second moves none. *Not understood* and *unaccounted* are different
+claims, and only the first is true here.
+
 *Shape:* 97 occurrences; alone in its message; text
 
 *Evidence:* of the four ways to sign `heal` and `poison`, only healing added and
@@ -157,6 +182,13 @@ change. **Unattributed by construction:** the protocol does not say who applied
 it, so nothing downstream may credit it to anyone (§5).
 
 *Health:* moves health
+
+Carries a second value member in one occurrence — `poison=140,14` in the boar
+fight — read the same way as `heal`'s above and for the same measured reason: the
+call is judged and agrees on that message, so the member moves no health. The
+sign is the client's direction marker rather than noise: `14` here and `-45` on
+the heal render as *increased* and *decreased* of some quantity neither the
+protocol nor the bundle names.
 
 *Shape:* 46 occurrences; alone in its message; text
 
@@ -860,19 +892,41 @@ what the number counts.
 
 *Shape:* 2 occurrences; on a blow; a whole number
 
-**Read as a declaration, which claims only what was measured.** What the number
-counts is still unknown and this entry still does not guess. What is settled is
-narrower and enough: it is **not health**. One of the two occurrences sits on a
-message where both sides state a percentage, and the damage the decoder reads
-reproduces both exactly — `-255967` at 19.27 and `482845` at 98.30, to the
-hundredth. A figure that moved health there would have left that comparison
-short.
+A legendary bonus that **reduces the damage its bearer takes**, stated on the
+blow it reduced. The help describes it under the human name with the engine name
+`facade` beside it: a share of any non-zero damage taken in a blow is removed,
+covering physical, auxiliary, ranged and the elemental magics, and the reduction
+happens at the same moment as the reduction from resistances — which is where the
+help's own ordering of damage reduction places the legendary bonuses.
 
-*Evidence:* not documented — article view,372 (read 2026-08-09) was searched for
-`legbon_facade` and `legbon`, neither of which occurs. 2 occurrences, values 13
-and 20, on blows that carry damage. The health measurement above is re-run every
-gate by `tests/core/health-witness.test.ts`, which judges that call rather than
-skipping it (measured 2026-08-11).
+**Read as a declaration**, because it states a share and the figures beside it
+already have it applied, exactly as `-poison_lowdmg_per` does. It is **not**
+`prevented`: that family holds points a defence stopped, and this is not points.
+Measured — 13 sits on a blow of 331 raw and 20 on a blow of 7438, which as
+quantities removed would be 3.9% and 0.27% of those blows, and as the bonus's own
+strength are two ordinary character statistics. The help settles the direction:
+each legendary bonus carries a value expressing either a trigger chance or the
+percentage strength of the effect.
+
+⚠️ **The register said this key was undocumented, and it was wrong.** The search
+was for `legbon_facade` and `legbon`; the help prints the engine name without the
+protocol's prefix, so neither matched. §7.6 gained a rule from it: a protocol key
+carrying a prefix is searched by its stem too, because *not found* and *not
+documented* are different claims and this entry made the wrong one for two days.
+
+**No health line, and not for want of a measurement.** Both sides of the message
+carrying it state a percentage the decoded damage reproduces exactly — `-255967`
+at 19.27 and `482845` at 98.30 — so a figure that moved health there would have
+left that comparison short. The register has one spelling for a health verdict
+and no opposite, on purpose: silence is what an unsettled key looks like, and
+this is a settled negative, which is what this paragraph is for. It is re-earned
+every gate by `tests/core/health-witness.test.ts`, which judges that call rather
+than skipping it (measured 2026-08-11).
+
+*Evidence:* article view,372 (read 2026-08-09) at the engine name `facade`, for
+the effect and for the value it carries; the client composes its log line with a
+`%val%` hole, production build `1786441768914`. 2 occurrences in the captures,
+values 13 and 20, on blows that carry damage.
 
 ### `+legbon_holytouch` — decoded
 

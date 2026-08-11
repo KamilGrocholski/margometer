@@ -128,6 +128,22 @@ export type HealthChangeEvent = {
   amount: number;
   /** The protocol key as written. Who caused it is not in the log (§5). */
   source: string;
+  /**
+   * What the key stated **beside** the health figure, where it stated anything.
+   *
+   * The value of this family may carry a second comma-separated member, and the
+   * client renders a different sentence when it does. Its **shape** is settled —
+   * production build `1786441768914` shows its magnitude and derives *increased*
+   * or *decreased* from its sign — and its **subject** is not: which quantity
+   * changed is named only in the sentence, which the client fetches at run time.
+   * Two occurrences in the whole material, `heal=3065,-45` and `poison=140,14`.
+   *
+   * It is carried rather than read, on the one thing that **is** measured: the
+   * health arithmetic closes on both calls, and on the very messages that carry
+   * it, so whatever the member states, it is not health. That is the whole of
+   * what a `DeclaredEffect` claims (`docs/protocol-keys.md`).
+   */
+  declared: DeclaredEffect[];
 };
 
 /**
