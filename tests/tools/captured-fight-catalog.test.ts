@@ -59,6 +59,16 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
       }
     });
 
+    test("carries the health each combatant started the fight with", () => {
+      expect(fight.startingHealthByCombatantId.size).toBe(fight.maximumHealthByCombatantId.size);
+      for (const [id, starting] of fight.startingHealthByCombatantId) {
+        expect(starting, `combatant ${id}`).toBeGreaterThan(0);
+        expect(starting, `combatant ${id}`).toBeLessThanOrEqual(
+          fight.maximumHealthByCombatantId.get(id) ?? 0,
+        );
+      }
+    });
+
     test("every combatant in a snapshot has a name and an id", () => {
       for (const call of fight.dump.calls) {
         for (const combatant of [...call.combatantsBefore, ...call.combatantsAfter]) {
@@ -83,6 +93,19 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
     });
   },
 );
+
+// Without this the new reader could return the maximum health map and every
+// per-fight check above would still pass. Four of the eleven in the group
+// capture entered below their maximum, and that gap is the whole reason the two
+// are separate numbers.
+test("starting health is not simply maximum health under another name", () => {
+  const belowMaximum = CAPTURED_FIGHTS.flatMap((fight) =>
+    [...fight.startingHealthByCombatantId].filter(
+      ([id, starting]) => starting < (fight.maximumHealthByCombatantId.get(id) ?? 0),
+    ),
+  );
+  expect(belowMaximum.length).toBeGreaterThan(0);
+});
 
 describe("fight dump parser", () => {
   test("refuses text that is not JSON", () => {

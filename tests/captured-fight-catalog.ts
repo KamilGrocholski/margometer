@@ -5,6 +5,7 @@ import {
 } from "@/src/core/combatant-roster.ts";
 import {
   getMaximumHealthByCombatantId,
+  getStartingHealthByCombatantId,
   parseFightDump,
   type CombatantSnapshot,
   type FightDump,
@@ -16,6 +17,8 @@ export type CapturedFight = {
   name: string;
   dump: FightDump;
   maximumHealthByCombatantId: Map<number, number>;
+  /** What each combatant entered the fight holding — the ceiling a team heal caps against. */
+  startingHealthByCombatantId: Map<number, number>;
 };
 
 /**
@@ -79,5 +82,6 @@ export const CAPTURED_FIGHTS: CapturedFight[] = readdirSync(CAPTURED_FIGHTS_DIRE
       name: file.replace(/\.json$/, ""),
       dump,
       maximumHealthByCombatantId: getMaximumHealthByCombatantId(dump),
+      startingHealthByCombatantId: getStartingHealthByCombatantId(dump),
     };
   });

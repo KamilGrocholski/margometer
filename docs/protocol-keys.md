@@ -557,32 +557,64 @@ they appear in rather than reporting our ignorance as the game's error.
 
 ### `healall_per` — investigated
 
-Healing by a percentage of **maximum** health, reaching every combatant on the
-caster's side and nobody on the other, clamped at full. The message names only
-the caster, in both slots.
+Healing by a share of **maximum** health, floored, reaching every combatant on
+the caster's side and nobody on the other, and capped. The caster is the actor,
+and in eleven of twelve messages the target as well — call 79 states two
+different ids, so reading the caster from the target slot would credit the wrong
+combatant once in twelve.
 
 This is the one that decided the witness's shape. Dropping only the combatants a
 message names is not enough here, because the health moved somewhere the message
 never mentions, and the next comparison against such a combatant was out by more
 than twenty percentage points. A key like this costs the whole call.
 
-**Not read, and not for want of understanding it.** The rule above is exact, but
-applying it needs to know who is on the caster's side, and *the protocol message
-does not say*. A roster would answer it; there is no roster yet, and the team
-numbers in the captured dumps are material this decoder never sees at run time.
-Guessing the side would be inventing data (§5), so the calls stay uncomparable
-until the roster exists.
+The share needs no arithmetic of ours. The help says each successive use of a
+skill carrying the effect is weaker by a quarter of the base, and the protocol
+states the **result**: grouped by caster, the shares run 30 → 22.5 → 15 and
+22 → 16.5 → 11 → 5.5, every one of them the first times `1 − 0.25n`. Grouped by
+skill they would not, because two casters used the same skill from different
+bases — which is the reading to avoid, not a contradiction in the material.
+
+**Not read, and the reason has changed.** The old one was that nothing knew who
+stood on the caster's side. That is settled: the roster carries `side`, reaches
+the decoder, and the live payload's warriors carry `hp.max` beside it, so the
+share and its recipients are both available now.
+
+What is not settled is the **cap**. The help says the effect cannot restore a
+combatant past the health it began the fight with, and that reproduces every
+reading in the material but one: a combatant already above its starting health
+was taken to full anyway. It is also the only reading standing above its starting
+health when a cast landed — so the single case that could test the cap in that
+direction is the single case that refuses it, and one occurrence is not a rule.
+
+Reading the key on the strength of that would put a healing figure on screen that
+is too **high** wherever the cap actually binds, and the cap binds on 84 of 120
+side-mates. Too high is the one direction the panel cannot mark, because nothing
+would know it had happened (§9.6). So the calls stay uncomparable, and the queue
+above still holds one key.
+
+Two further clauses the help states and this material cannot test: the effect is
+halved when the caster has no allies in the fight — every capture here is a group
+— and it is reducible by `lowheal_per-enemies`, which no capture carries. Whether
+the protocol pre-applies those the way it pre-applies the weakening is unknown,
+and it has to be known before a figure is drawn from this key.
 
 *Health:* moves health
 
 *Shape:* 12 occurrences; on a skill announcement; a number
 
-*Evidence:* one call carries a single `healall_per=30` message and nothing else.
-Every combatant on the caster's side gained exactly 30.00% of their own maximum;
-two of them landed on their maximum and gained less, which is where the clamp
-comes from. The opposing combatant gained nothing — an earlier reading that
-healed everyone present made agreement worse rather than better, which is how
-the side restriction was found.
+*Evidence:* article view,372 at the engine name `healall_per` (read 2026-08-09)
+for the four clauses above, none of which the protocol states. Measured on the
+group fight, which carries all twelve occurrences; three of them are the whole of
+their engine call, so their thirty health deltas are attributable to nothing else.
+The share is of the maximum — 7162 restored on a maximum of 23874 at 30%, where
+30% of that combatant's remaining 8749 would be 2624. It floors: a share landing
+on 5629.5 moved 5629. Capping at starting health reproduces 29 of the 30, capping
+at maximum 24, and the six that separate them each sat exactly at their starting
+health while short of maximum and gained nothing. Dropping the cap entirely
+reports 120% more healing than happened, across all twelve occurrences. Held by
+`tests/core/team-heal-rule.test.ts`, including the one reading that refuses the
+cap, named there rather than counted so that a second one says which it is.
 
 ---
 

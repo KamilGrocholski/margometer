@@ -180,6 +180,27 @@ export function parseFightDump(source: string): FightDump {
   };
 }
 
+/**
+ * Health each combatant was first seen holding, which is where its fight began.
+ *
+ * First-seen rather than highest or lowest: the game's own healing caps against
+ * the figure a combatant entered the fight with, and four of the eleven in the
+ * group capture entered below their maximum, so the two are different numbers
+ * and only one of them is the cap.
+ *
+ * Read from the snapshots in call order, `before` ahead of `after`, because the
+ * opening call has no `before` at all.
+ */
+export function getStartingHealthByCombatantId(dump: FightDump): Map<number, number> {
+  const starting = new Map<number, number>();
+  for (const call of dump.calls) {
+    for (const combatant of [...call.combatantsBefore, ...call.combatantsAfter]) {
+      if (!starting.has(combatant.id)) starting.set(combatant.id, combatant.health.current);
+    }
+  }
+  return starting;
+}
+
 /** Highest known maximum health per combatant, gathered from every snapshot in the dump. */
 export function getMaximumHealthByCombatantId(dump: FightDump): Map<number, number> {
   const maximum = new Map<number, number>();
