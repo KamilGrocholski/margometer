@@ -48,9 +48,16 @@ const UNREADABLE_DIRECTORIES = ["node_modules", ".git", ".cache", "dist"];
  * An extension is required, which is what keeps directory mentions like
  * `tests/captured-fights/` and `docs/specs/` out — those name a place, and the
  * place is what §8's structure block already describes.
+ *
+ * ⚠️ **`html` joined the list the day something was cited with it**, and it
+ * arrived one comment too late: `docs/design/panel.html` was admitted to the
+ * repository on the stated condition that a spec name it and this guard hold
+ * the name — and the pattern did not know the extension, so for one commit the
+ * condition was prose. A list of extensions is a list of what can go stale
+ * without anybody hearing about it.
  */
 const CITATION = new RegExp(
-  String.raw`\b(${AUTHORED_ROOTS.join("|")})/[A-Za-z0-9._/-]*\.(ts|md|json|js|yml)\b`,
+  String.raw`\b(${AUTHORED_ROOTS.join("|")})/[A-Za-z0-9._/-]*\.(ts|md|json|js|yml|html)\b`,
   "g",
 );
 
