@@ -150,6 +150,16 @@ Run it after every change. It is deliberately one command so there is no version
 of "I ran the tests but not the build" — the build assembles the userscript and
 can fail on its own.
 
+- `[ALWAYS] [process]` **The local gate is the gate only against the lockfile.**
+  A package sitting in `node_modules` that `bun.lock` does not name is ambient
+  type information CI will not have, and `tsc` will use it without saying so.
+  Paid for once: `@types/jsdom` had drifted in unlocked, its `NodeListOf` is
+  iterable where the `lib` this repository sets makes it merely indexable, and a
+  cast in `src/userscript-entry.ts` typechecked here and failed on the runner.
+  Green locally and red in CI is the one failure the gate cannot report, so when
+  the two disagree, **reproduce it against the lockfile before touching the code**
+  — `bun install --frozen-lockfile` is what the runner does.
+
 ```bash
 bun test           # tests only, while iterating
 bun run typecheck  # types only

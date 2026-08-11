@@ -183,8 +183,16 @@ type HostPage = GameWindow & {
   document?: {
     createElement(tag: string): unknown;
     body?: { append(node: unknown): void } | undefined;
-    /** For the client's build id, which rides in a script's filename. */
-    querySelectorAll?: ((selector: string) => Iterable<{ src?: unknown }>) | undefined;
+    /**
+     * For the client's build id, which rides in a script's filename.
+     *
+     * `ArrayLike` and not `Iterable`, which is the weaker of the two and the only
+     * one true of what a browser hands back here. A real `NodeListOf` iterates at
+     * run time, but TypeScript only says so when `lib` carries `DOM.Iterable`,
+     * and this repository's does not — so `Iterable` typechecked locally against
+     * stray `@types/jsdom` and failed in CI, where the lockfile decides.
+     */
+    querySelectorAll?: ((selector: string) => ArrayLike<{ src?: unknown }>) | undefined;
   };
   /** The world a recording came from. Absent means the page did not say. */
   location?: { hostname?: string | undefined } | undefined;
@@ -249,7 +257,7 @@ function setStoredPosition(page: HostPage, position: PanelPosition): void {
 function getGameBuildFromPage(page: HostPage): string | null {
   const scripts = page.document?.querySelectorAll?.("script[src]");
   if (scripts === undefined) return null;
-  for (const script of scripts) {
+  for (const script of Array.from(scripts)) {
     const source = typeof script.src === "string" ? script.src : "";
     const found = /main\.min(\d{10,})\.js/.exec(source);
     if (found?.[1] !== undefined) return found[1];
