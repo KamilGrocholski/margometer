@@ -155,6 +155,27 @@ describe("layers", () => {
       expect(reachingOut, file).toEqual([]);
     },
   );
+
+  /**
+   * §9.1 from the last side that had no guard at all. `game → ui` is not one of
+   * the directions listed, and `game → entry point` would close the only cycle
+   * the graph could have — the entry point is the file allowed to know every
+   * layer, so nothing may know it back.
+   *
+   * Neither exists today; this exists because the guard above it records that a
+   * **type import** broke a direction in silence once already, and nothing here
+   * was watching this side.
+   */
+  test.each(SOURCE_FILES.filter((file) => file.startsWith("src/game/")))(
+    "%s reads the game for core, without reaching for the panel or the wiring",
+    (file) => {
+      const source = getSourceWithoutComments(file);
+      const reachingOut = [
+        ...source.matchAll(/\bfrom\s+"@\/src\/(ui\/|userscript-entry\.ts)/g),
+      ].map((match) => match[0]);
+      expect(reachingOut, file).toEqual([]);
+    },
+  );
 });
 
 /**
