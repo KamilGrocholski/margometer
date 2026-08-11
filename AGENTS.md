@@ -416,6 +416,11 @@ tsconfig.json            Strict flags standing in for a linter, and the `@/*`
                          `tests/tools/source-layout.test.ts` reads rather than
                          trusts (§7.6).
 .github/workflows/       check.yml: the gate, nothing else yet.
+.claude/skills/verify/   How to run the add-on rather than test it: the browser
+                         harness that puts the built userscript in front of a
+                         captured fight. Not a rule and not a gate — the gate is
+                         §6.1 and cannot see a panel. `settings.local.json` sits
+                         beside it and stays out of git, per machine.
 
 .cache/                  Game client sources, fetched on demand. NOT tracked and
                          never published — §7.6. Absent until first fetched.
