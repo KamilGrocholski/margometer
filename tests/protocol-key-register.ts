@@ -78,6 +78,39 @@ export type ProtocolKeyShape = {
   valueShape: ProtocolKeyValueShape;
 };
 
+/**
+ * What the game's published help says about a key, in a form a test can re-earn.
+ *
+ * **The line states an occurrence; the prose states what it means.** That split
+ * is the `*Shape:*` one: a machine can count a phrase in the article and cannot
+ * read the paragraph around it. `step` occurs four times and is documented
+ * nowhere — the hits sit inside longer Polish words — so a vocabulary of
+ * "documented" and "not documented" would have no true line for that entry, and
+ * the register has three like it.
+ *
+ * **Two obligations, and the second is the one that binds.**
+ *
+ * The first: every phrase named here is re-counted against
+ * `tests/frozen-help-phrases.ts`, so a claim cannot drift from the article.
+ *
+ * The second: a claim of silence must have tried the key's **stem**. This is the
+ * one that would have caught the failure, and the counting on its own would not
+ * have. Four keys of the `legbon` family sat filed as undocumented while the help
+ * described all four; the entry that got `+legbon_holytouch` wrong recorded the
+ * phrases it searched, exactly as §7.6 demands, and they were `legbon_holytouch`
+ * and `legbon`. Both count zero. A guard that re-measured only what was listed
+ * would have agreed with the bug — which is the shape §7.5 warns about, a guard
+ * naming the same wrong thing the code did.
+ */
+export const PROTOCOL_KEY_HELP_DIRECTIONS = ["names", "names nothing of"] as const;
+
+export type ProtocolKeyHelpDirection = (typeof PROTOCOL_KEY_HELP_DIRECTIONS)[number];
+
+export type ProtocolKeyHelpClaim = {
+  direction: ProtocolKeyHelpDirection;
+  phrases: string[];
+};
+
 export type ProtocolKeyEntry = {
   key: string;
   state: string;
@@ -93,11 +126,22 @@ export type ProtocolKeyEntry = {
   evidence: string | null;
   /** Null for a key the captures do not carry, which is the only excuse for its absence. */
   shape: ProtocolKeyShape | null;
+  /** Null where the entry makes no claim about the help at all. */
+  help: ProtocolKeyHelpClaim | null;
 };
 
 const ENTRY_HEADING = /^### `([^`]+)` — (.+)$/gm;
 const HEALTH_LINE = /^\*Health:\* (.+)$/m;
 const SHAPE_LINE = /^\*Shape:\* (\d+) occurrences; ([^;]+); (.+)$/m;
+/**
+ * Matched first and on purpose: a `*Help:*` line the two forms below do not
+ * recognise is **refused**, the way a misspelled health verdict is. Falling
+ * through to null instead would let "probably documented somewhere" sit in the
+ * register looking more settled than silence while checking nothing.
+ */
+const HELP_LINE = /^\*Help:\* (names nothing of|names) (.+)$/m;
+const HELP_ANY_LINE = /^\*Help:\* (.+)$/m;
+const BACKTICKED = /`([^`]+)`/g;
 /**
  * To the next blank line, not to the end of the first one: evidence wraps, and
  * the citation's date routinely lands on a later line than the article it dates.
@@ -140,6 +184,68 @@ function parseShape(body: string, key: string): ProtocolKeyShape | null {
   return { occurrences, placement, valueShape };
 }
 
+/**
+ * What a claim of silence is obliged to have searched: the key without its sign,
+ * and — where that name is compound — the tail after its first separator.
+ *
+ * The tail is the whole rule. The help joins an article to a key through the
+ * engine name it prints in parentheses, and for a compound key that name is
+ * routinely the tail alone: `legbon_holytouch` is published as `holytouch`,
+ * `legbon_facade` as `facade`. Searching the compound finds nothing and reads
+ * exactly like an article that does not cover the key.
+ *
+ * Deliberately **not** derived any further than this. `( freeze )` counts zero
+ * where bare `freeze` counts four, so a rule that parenthesised the name would
+ * bless a false silence for a key this register cites the help for. The phrases
+ * are stated by a person; this only refuses the ones that cannot have been enough.
+ */
+export function getRequiredHelpPhrases(key: string): string[] {
+  const bare = key.replace(/^[+-]/, "");
+  const separator = bare.search(/[_-]/);
+  if (separator === -1) return [bare];
+  return [bare, bare.slice(separator + 1)];
+}
+
+function isHelpDirection(value: string): value is ProtocolKeyHelpDirection {
+  return (PROTOCOL_KEY_HELP_DIRECTIONS as readonly string[]).includes(value);
+}
+
+function parseHelp(body: string, key: string): ProtocolKeyHelpClaim | null {
+  const line = HELP_LINE.exec(body);
+  if (line === null) {
+    // A line that exists and matches neither direction is refused rather than
+    // read as silence, the way a misspelled health verdict is.
+    const any = HELP_ANY_LINE.exec(body);
+    if (any !== null) {
+      throw new ProtocolKeyRegisterError(
+        `\`${key}\` states a help claim nothing checks: "${any[1]!}"`,
+      );
+    }
+    return null;
+  }
+
+  const direction = line[1]!;
+  if (!isHelpDirection(direction)) {
+    throw new ProtocolKeyRegisterError(`\`${key}\` states a help direction nothing checks: "${direction}"`);
+  }
+
+  const phrases = [...line[2]!.matchAll(BACKTICKED)].map((match) => match[1]!);
+  if (phrases.length === 0) {
+    throw new ProtocolKeyRegisterError(`\`${key}\` states a help claim naming no phrase`);
+  }
+
+  if (direction === "names nothing of") {
+    const missing = getRequiredHelpPhrases(key).filter((required) => !phrases.includes(required));
+    if (missing.length > 0) {
+      throw new ProtocolKeyRegisterError(
+        `\`${key}\` claims the help names nothing of it without trying ${missing.map((phrase) => `\`${phrase}\``).join(", ")}`,
+      );
+    }
+  }
+
+  return { direction, phrases };
+}
+
 export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
   const headings = [...register.matchAll(ENTRY_HEADING)];
   if (headings.length === 0) {
@@ -165,8 +271,9 @@ export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
     const evidence = cited === null ? null : cited[1]!.replace(/\s+/g, " ").trim();
 
     const shape = parseShape(body, key);
+    const help = parseHelp(body, key);
 
-    if (health === null) return { key, state, healthEffect: null, evidence, shape };
+    if (health === null) return { key, state, healthEffect: null, evidence, shape, help };
 
     // A typo cannot be left to fall through as "no claim". It would read as
     // silence, the witness would stop excluding the key, coverage would shrink,
@@ -179,7 +286,7 @@ export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
       );
     }
 
-    return { key, state, healthEffect, evidence, shape };
+    return { key, state, healthEffect, evidence, shape, help };
   });
 }
 

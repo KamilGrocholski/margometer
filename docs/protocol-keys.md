@@ -48,6 +48,44 @@ the prose and rests on the help and the client — no line of vocabulary is goin
 to check that. What it stops is the other half: a count or a placement that was
 true when someone typed it and has been quietly wrong since.
 
+### And what it says about the published help
+
+The same idea, applied to the one source that is somebody else's document and can
+change without telling us:
+
+```
+*Help:* names `verycrit`
+*Help:* names nothing of `tenacity`
+```
+
+**The line states an occurrence; the prose states what it means.** `names` claims
+only that the article carries the phrase — whether it *documents* the key is a
+paragraph a person has to read, and three entries here occur in the article
+without being documented by it. Every phrase is re-counted against
+`tests/frozen-help-phrases.ts`, which `bun tools/help-article.ts freeze` writes
+from the cached dump. Counts only: the help's own sentences never enter this
+repository, and a count is our measurement of the article rather than a piece of
+it (NOTICE.md).
+
+**An entry citing the help must carry the line.** Not every entry — a key nobody
+has asked the help about says nothing, and silence is the honest answer there.
+
+**A claim of silence must have tried the key's stem**, and this is the rule that
+does the work. The help joins an article to a key through the engine name it
+prints in parentheses, and for a compound key that name is routinely the tail
+alone — `legbon_facade` is published as `facade`. So `names nothing of` has to
+list the key without its sign, and the tail after the first separator.
+
+Re-counting alone would not have caught anything. The entry that got
+`+legbon_holytouch` wrong recorded the phrases it searched, exactly as §7.6 asks —
+`legbon_holytouch` and `legbon` — and both count zero. A guard re-measuring only
+what was listed would have agreed with the bug, which is the failure §7.5 names:
+a guard that names the same wrong thing the code did.
+
+The phrase is stated by a person and never derived. `( freeze )` counts zero where
+bare `freeze` counts four, so a rule that parenthesised the engine name would
+bless a false silence for a key this file cites the help for.
+
 ---
 
 ## Where health comes from, and why every entry states one
@@ -389,8 +427,8 @@ That is the trap §7.6 records against `-legbon_facade`, sprung a second time on
 the same family — and a sentence of this file's own reasoning is what sealed it:
 *a legendary bonus is equipment, so the silence is expected rather than
 suspicious*. The silence was ours. An explanation for a negative is worth less
-than the search that was not run. Each entry below states the phrases its claim
-was measured on, on a line of its own.
+than the search that was not run, which is why the `*Help:*` line now re-measures
+both directions on every gate rather than leaving the phrases tried as prose.
 
 `tenacity`, `dispel` and `acdmg_destroyed` are **not** in article 372. That part
 held, and it is narrowed here to the article it was actually measured on — the

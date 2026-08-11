@@ -4,9 +4,11 @@ import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { FROZEN_HELP_PHRASES } from "@/tests/frozen-help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/tests/frozen-protocol-keys.ts";
 import {
   getKeysInState,
+  getRequiredHelpPhrases,
   parseProtocolKeyRegister,
   PROTOCOL_KEY_HEALTH_EFFECTS,
   PROTOCOL_KEY_REGISTER,
@@ -24,6 +26,7 @@ import {
 
 const NAMED_KEYS = new Set<string>(FROZEN_PROTOCOL_KEYS.keys);
 const ENTRIES = PROTOCOL_KEY_REGISTER;
+const COUNTS = new Map<string, number>(Object.entries(FROZEN_HELP_PHRASES.counts));
 
 function isComputedKey(key: string): boolean {
   const { marker, markerAt, markerLength } = FROZEN_PROTOCOL_KEYS.computedFamily;
@@ -100,6 +103,131 @@ describe("a citation of the game's published help", () => {
       // 2026-02-30, which is not a day anything was read on.
       expect(getMillisecondsFromIsoText(read?.[1] ?? ""), entry.key).not.toBeNull();
     }
+  });
+
+  /**
+   * The obligation, and it is the half a count cannot supply.
+   *
+   * An entry that cites the help states a claim about someone else's document.
+   * Prose is where such a claim goes to stop being checked — four keys of the
+   * `legbon` family sat filed as undocumented while the help described all four
+   * — so citing the help means stating, on one line, the phrases the claim was
+   * measured on.
+   */
+  test("every entry citing the help states a *Help:* line", () => {
+    const silent = citing.filter((entry) => entry.help === null).map((entry) => entry.key);
+    expect(silent).toEqual([]);
+  });
+
+  test("both directions are exercised, so neither check passes on an empty set", () => {
+    const spoken = ENTRIES.map((entry) => entry.help).filter((claim) => claim !== null);
+    expect(spoken.filter((claim) => claim.direction === "names").length).toBeGreaterThan(0);
+    expect(spoken.filter((claim) => claim.direction === "names nothing of").length).toBeGreaterThan(0);
+  });
+
+  // Re-freezing is the fix, and the message says so: a phrase nobody counted is
+  // a claim nobody checked, which is the state this whole block exists to end.
+  test("every phrase the register names was counted into the frozen table", () => {
+    const uncounted = ENTRIES.flatMap((entry) =>
+      (entry.help?.phrases ?? []).filter((phrase) => !(phrase in FROZEN_HELP_PHRASES.counts)),
+    );
+    expect(uncounted).toEqual([]);
+  });
+
+  test("a phrase an entry says the help names occurs in the article", () => {
+    const absent = ENTRIES.flatMap((entry) =>
+      entry.help?.direction === "names"
+        ? entry.help.phrases
+            .filter((phrase) => (COUNTS.get(phrase) ?? 0) === 0)
+            .map((phrase) => `${entry.key} names ${phrase}`)
+        : [],
+    );
+    expect(absent).toEqual([]);
+  });
+
+  // The direction that decays quietly. A positive claim fails the moment someone
+  // looks it up; a negative just sits there being believed.
+  test("a phrase an entry says the help names nothing of occurs nowhere in it", () => {
+    const present = ENTRIES.flatMap((entry) =>
+      entry.help?.direction === "names nothing of"
+        ? entry.help.phrases
+            .filter((phrase) => (COUNTS.get(phrase) ?? 0) > 0)
+            .map((phrase) => `${entry.key} names nothing of ${phrase}, but the article carries it`)
+        : [],
+    );
+    expect(present).toEqual([]);
+  });
+
+  test("the frozen table says which article and which dump it counted", () => {
+    expect(FROZEN_HELP_PHRASES.article).toMatch(/^\d+$/);
+    expect(getMillisecondsFromIsoText(FROZEN_HELP_PHRASES.fetchedAt)).not.toBeNull();
+    expect(Object.keys(FROZEN_HELP_PHRASES.counts).length).toBeGreaterThan(0);
+  });
+
+  /**
+   * NOTICE.md's promise, made checkable on the one file that touches the
+   * operator's writing: the table carries engine names and figures we measured,
+   * never a phrase of the article's own prose.
+   */
+  test("the frozen table holds engine names and no prose", () => {
+    for (const phrase of Object.keys(FROZEN_HELP_PHRASES.counts)) {
+      expect(phrase, phrase).toMatch(/^\(? ?[A-Za-z0-9_+-]+ ?\)?$/);
+    }
+  });
+});
+
+describe("what a *Help:* line is allowed to say", () => {
+  test("refuses a direction nothing knows how to check", () => {
+    const register = "### `txt` — decoded\n\n*Help:* maybe documented `txt`\n";
+    expect(() => parseProtocolKeyRegister(register)).toThrow(ProtocolKeyRegisterError);
+  });
+
+  test("refuses a claim naming no phrase at all", () => {
+    const register = "### `txt` — decoded\n\n*Help:* names nothing of it\n";
+    expect(() => parseProtocolKeyRegister(register)).toThrow(ProtocolKeyRegisterError);
+  });
+
+  /**
+   * The historical bug, as an executable test.
+   *
+   * This is the line `-legbon_facade` actually carried, and every phrase in it
+   * counts zero — so a guard that re-measured only what was listed would have
+   * agreed with it. What refuses it is the obligation to have tried the stem,
+   * which is the name the help prints.
+   */
+  test("refuses a claim of silence that never tried the stem", () => {
+    const register =
+      "### `-legbon_facade` — decoded\n\n*Help:* names nothing of `legbon_facade`, `legbon`\n";
+    expect(() => parseProtocolKeyRegister(register)).toThrow(/facade/);
+  });
+
+  // The positive control: without it the rule above is satisfied by a check that
+  // throws on everything, which would pass while binding nothing.
+  test("accepts the same claim once the stem is among the phrases", () => {
+    const register =
+      "### `-legbon_facade` — decoded\n\n*Help:* names nothing of `legbon_facade`, `facade`\n";
+    const [entry] = parseProtocolKeyRegister(register);
+    expect(entry?.help?.phrases).toContain("facade");
+  });
+
+  test("asks nothing of a claim that the help does name the key", () => {
+    const register = "### `-legbon_facade` — decoded\n\n*Help:* names `facade`\n";
+    expect(parseProtocolKeyRegister(register)[0]?.help?.direction).toBe("names");
+  });
+
+  test("reads an entry with no help line as making no claim", () => {
+    const [entry] = parseProtocolKeyRegister("### `txt` — decoded\n\nNo verdict.\n");
+    expect(entry?.help).toBeNull();
+  });
+
+  // A compound name is where the stem rule bites; a simple one must not be asked
+  // for a second phrase that does not exist.
+  test("asks for the tail of a compound name and nothing more of a simple one", () => {
+    expect(getRequiredHelpPhrases("+legbon_holytouch")).toEqual([
+      "legbon_holytouch",
+      "holytouch",
+    ]);
+    expect(getRequiredHelpPhrases("-tenacity")).toEqual(["tenacity"]);
   });
 });
 
