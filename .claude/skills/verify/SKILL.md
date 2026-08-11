@@ -49,8 +49,11 @@ Order matters: the game, then the bundle, then the driver.
 
 Find the panel with `[...document.body.querySelectorAll("*")].find(e => e.shadowRoot)`
 — the shadow root is `mode: "open"`. Useful selectors: `.titlebar`,
-`.titlebar-save`, `.tab`, `.section`, `.row-name`, `.row-value`, `.mark`
-(its `title` is the detail).
+`.titlebar-save`, `.tab`, `.section`, `.row`, `.row-rank`, `.row-side`,
+`.row-name`, `.row-value`, `.bar` (its `style.width` is the leader-relative
+length, not the share), `.mark` (its `title` is the detail), `.footer`, and
+`.detail` with `.detail-close` — the detail opens by clicking any part of a row
+and closes the same way.
 
 ## Gotchas paid for
 

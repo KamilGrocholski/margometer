@@ -413,15 +413,27 @@ export function composePanelMount(
   );
 
   let metric: PanelMetric = "dealt";
+  /**
+   * Whose figures are open beside the panel. Held here for the same reason the
+   * metric is: `ui` renders what it is handed and remembers nothing between
+   * redraws, and a fight redraws every few seconds.
+   */
+  let selectedCombatantId: number | null = null;
   let latest: FightReading | null = null;
   let failuresThisFight = 0;
   let fightBeingCounted = 0;
 
   const renderLatest = (): void => {
     if (latest === null) return;
-    renderPanelInto(document, container, composePanelView(latest, metric), {
+    renderPanelInto(document, container, composePanelView(latest, metric, selectedCombatantId), {
       onMetricChosen: (chosen) => {
         metric = chosen;
+        renderLatest();
+      },
+      // Pressing the open row closes it, so the same gesture undoes itself and
+      // no second control is needed to get the ranking's full width back.
+      onCombatantChosen: (chosen) => {
+        selectedCombatantId = selectedCombatantId === chosen ? null : chosen;
         renderLatest();
       },
       /**
@@ -448,6 +460,11 @@ export function composePanelMount(
       }
       failuresThisFight = 0;
       fightBeingCounted = reading.fightsStarted;
+      // The chosen combatant belongs to the fight that was on screen. Carrying it
+      // into the next one would open a panel of figures about somebody who may
+      // not be in this fight at all — and the ids are the game's, so they would
+      // not even be absent, just wrong.
+      selectedCombatantId = null;
     }
 
     latest = reading;

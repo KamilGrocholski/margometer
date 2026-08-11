@@ -521,18 +521,26 @@ src/
                          in, where a drag lands, and what a remembered position
                          has to prove before it is believed. No DOM, so the clamp
                          that keeps the panel reachable is checkable on its own.
-    panel-view.ts        What the panel shows, as data: a header, rows, shares,
-                         and the marks that qualify a figure — one at the total
-                         that may be low, one in the header when the fight is not
-                         ours to count. Takes its own input type, so `ui` names no
-                         direction to `game`. No DOM, so all of it is checkable.
+    panel-view.ts        What the panel shows, as data: a header, one flat ranking
+                         whose rows carry rank, side and share, the marks that
+                         qualify a figure — one at the total that may be low, one
+                         in the header when the fight is not ours to count — a
+                         footer saying the same gaps at length, and one
+                         combatant's figures when a row is chosen. The bar's
+                         length and the printed share are deliberately different
+                         quantities; §8 of the panel spec says what that costs.
+                         Takes its own input type, so `ui` names no direction to
+                         `game`. No DOM, so all of it is checkable.
     panel-element.ts     The same, drawn. Takes a document as an argument, opens
                          one shadow root, binds one listener at that root, and
                          renders region by region so that one failure is the size
                          of the thing that failed. The title bar the panel is
                          dragged by is built with the shadow root and not with the
                          render, because a redraw replaces everything the render
-                         made — and a fight redraws every few seconds.
+                         made — and a fight redraws every few seconds. Every part
+                         of a row answers to that row, because a click reports the
+                         innermost node it landed on and a row registered alone
+                         opens only where nothing is written.
 
 tools/
   margometer-tool-error.ts
@@ -686,10 +694,13 @@ tests/
                              what survives a section failing, that one listener
                              serves the whole panel, that a handler cannot escape
                              into the page, that what could not be read is marked
-                             at the total it may have shortened, and that every
-                             bar clears AA by measurement. The drag is here too,
-                             including the one property the design exists for: it
-                             still works after twenty redraws.
+                             at the total it may have shortened *and* said again
+                             in the footer, and that every bar clears AA by
+                             measurement. The bar's width is read back off the
+                             node rather than off the view — drawing it from the
+                             share instead lit nothing until it was. The drag is
+                             here too, including the one property the design
+                             exists for: it still works after twenty redraws.
     panel-placement.test.ts  The arithmetic that decides whether the panel can be
                              dragged somewhere it cannot be dragged back from, and
                              what a stored position has to prove on read.

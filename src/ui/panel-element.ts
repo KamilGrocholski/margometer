@@ -25,6 +25,8 @@ import {
 } from "@/src/ui/panel-placement.ts";
 import { PANEL_TOKENS } from "@/src/ui/panel-tokens.ts";
 import type {
+  PanelDetail,
+  PanelFooterLine,
   PanelHeader,
   PanelMark,
   PanelMetric,
@@ -85,6 +87,11 @@ export type PanelDocument = {
 
 export type PanelHandlers = {
   onMetricChosen?: ((metric: PanelMetric) => void) | undefined;
+  /**
+   * A row was pressed. The panel does not decide what that opens — the caller
+   * holds which combatant is selected, the same way it holds which metric is.
+   */
+  onCombatantChosen?: ((combatantId: number) => void) | undefined;
   /** Told once per failure, so the caller can log it exactly once (§9.6). */
   onSectionFailure?: ((error: unknown) => void) | undefined;
 };
@@ -169,7 +176,13 @@ export function composePanelStyleText(): string {
   touch-action: none;
 }
 .panel {
-  font: 12px/1.45 system-ui, sans-serif;
+  /*
+   * 11px, not 12: the largest fight on record is eleven combatants, and at
+   * twelve the one flat ranking plus a footer runs past the fold on a laptop.
+   * The contrast test measures whatever this is set to; the size is the part a
+   * test cannot judge.
+   */
+  font: 11px/1.4 system-ui, sans-serif;
   width: ${t.width};
   color: ${t.text};
   background: ${t.surface};
@@ -178,6 +191,8 @@ export function composePanelStyleText(): string {
   border-radius: 0 0 ${t.radius} ${t.radius};
   padding: ${t.space};
   box-sizing: border-box;
+  /* The detail hangs off this box's own edge, so it is the positioning parent. */
+  position: relative;
 }
 /*
  * Pushed to the far end, so the bar's own text keeps the near end and the two
@@ -231,6 +246,64 @@ export function composePanelStyleText(): string {
 .row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-value { font-variant-numeric: tabular-nums; padding-left: ${t.space}; }
 .row-share { color: ${t.textQuiet}; padding-left: ${t.spaceSmall}; }
+/* Tabular so the digits line up down the column the way the figures do. */
+.row-rank {
+  color: ${t.textQuiet};
+  font-variant-numeric: tabular-nums;
+  padding-right: ${t.spaceSmall};
+}
+/*
+ * The side as a word, because the ranking is one flat list and no heading says
+ * it any more. §9.7: a coloured dot on its own would be colour carrying the
+ * whole meaning, and a dot beside the word would only repeat it.
+ */
+.row-side { color: ${t.textQuiet}; padding-right: ${t.spaceSmall}; }
+.row.selected { outline: 1px solid ${t.textQuiet}; }
+.footer {
+  margin-top: ${t.spaceLarge};
+  padding-top: ${t.spaceSmall};
+  border-top: 1px solid ${t.border};
+  color: ${t.textQuiet};
+}
+/*
+ * Certain and suspected do not look alike, for the same reason zero and unknown
+ * do not: one says healing IS short, the other that a total MAY be.
+ */
+.footer-line.certain { color: ${t.suspect}; }
+.detail {
+  position: absolute;
+  /* Off the panel's left edge: the default corner is the top right, so this is
+     the side with room. A panel dragged hard left takes the detail off screen,
+     which is the known cost of putting it beside rather than inside. */
+  right: 100%;
+  top: 0;
+  width: 260px;
+  margin-right: ${t.spaceSmall};
+  box-sizing: border-box;
+  color: ${t.text};
+  background: ${t.surfaceRaised};
+  border: 1px solid ${t.border};
+  border-radius: ${t.radius};
+  padding: ${t.space};
+}
+.detail-name {
+  display: flex;
+  justify-content: space-between;
+  color: ${t.textQuiet};
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10px;
+  margin-bottom: ${t.spaceSmall};
+}
+.detail-group { display: flex; justify-content: space-between; gap: ${t.space}; }
+/* Stacked, because a long list of the protocol's tokens right-aligned wraps in
+   the middle of one — the label reads as a heading and the list reads across. */
+.detail-group.tokens { display: block; margin-top: ${t.spaceSmall}; }
+.detail-label { color: ${t.textQuiet}; white-space: nowrap; }
+.detail-figure { font-variant-numeric: tabular-nums; text-align: right; }
+.detail-group.tokens .detail-figure { display: block; text-align: left; }
+.detail-note { color: ${t.textQuiet}; font-style: italic; margin-top: ${t.spaceSmall}; }
+.detail-close { cursor: pointer; padding: 0 ${t.spaceSmall}; }
 .header { display: flex; justify-content: space-between; align-items: baseline; }
 .header-outcome { color: ${t.textQuiet}; text-transform: uppercase; font-size: 10px; }
 /* Static, and never the only thing carrying the meaning — the detail is on it. */
@@ -265,19 +338,45 @@ function renderHeader(document: PanelDocument, header: PanelHeader): PanelNode {
   return block;
 }
 
-function renderRows(document: PanelDocument, section: PanelSection): PanelNode[] {
+function renderRows(
+  document: PanelDocument,
+  section: PanelSection,
+  selected: number | null,
+  /** Filled as rows are made, so a click can be answered by identity (§9.6). */
+  combatantByRow: Map<unknown, number>,
+): PanelNode[] {
   return section.rows.map((row) => {
     const line = document.createElement("div");
-    line.className = "row";
+    line.className = row.combatantId !== null && row.combatantId === selected ? "row selected" : "row";
 
     const bar = document.createElement("div");
     bar.className = "bar";
-    bar.style.setProperty("width", `${row.share * 100}%`);
+    // Against the largest row rather than the total, so the top row always fills
+    // the width. The share beside it is still the share of the total: the bar
+    // ranks, the figures state (`src/ui/panel-view.ts`).
+    bar.style.setProperty("width", `${row.barLength * 100}%`);
     bar.style.setProperty("background", row.colour);
 
     const name = document.createElement("span");
     name.className = "row-name";
-    name.textContent = row.name;
+
+    const rank = document.createElement("span");
+    rank.className = "row-rank";
+    rank.textContent = `${row.rankText}.`;
+    name.append(rank);
+
+    const parts: PanelNode[] = [line, bar, name, rank];
+    if (row.sideText !== null) {
+      const side = document.createElement("span");
+      side.className = "row-side";
+      side.textContent = row.sideText;
+      name.append(side);
+      parts.push(side);
+    }
+
+    const who = document.createElement("span");
+    who.textContent = row.name;
+    name.append(who);
 
     const value = document.createElement("span");
     value.className = "row-value";
@@ -289,11 +388,100 @@ function renderRows(document: PanelDocument, section: PanelSection): PanelNode[]
 
     value.append(share);
     line.append(bar, name, value);
+
+    /**
+     * ⚠️ **Every part of the row answers to the row, not just the row.** A click
+     * reports the innermost element it landed on, so a row registered by itself
+     * alone is a row that opens only where there is nothing written — the gap
+     * between the name and the figure. The tab strip does not need this because
+     * a tab's label is a bare text node and text nodes are not targets.
+     */
+    parts.push(who, value, share);
+    if (row.combatantId !== null) {
+      for (const part of parts) combatantByRow.set(part, row.combatantId);
+    }
     return line;
   });
 }
 
-function renderSection(document: PanelDocument, section: PanelSection): PanelNode {
+/**
+ * One combatant's figures, beside the ranking rather than inside it.
+ *
+ * The ranking stays on screen while this is open, which is the whole reason it
+ * is a second box and not an expanding row: a redraw arrives every few seconds
+ * and a list that changes height under the pointer is a list nobody can click
+ * twice in the same place.
+ */
+function renderDetail(
+  document: PanelDocument,
+  detail: PanelDetail,
+  /** Told which node closes this, so the × is wired rather than decorative. */
+  setClose: (node: PanelNode) => void,
+): PanelNode {
+  const block = document.createElement("div");
+  block.className = "detail";
+
+  const name = document.createElement("div");
+  name.className = "detail-name";
+  const who = document.createElement("span");
+  who.textContent = detail.name;
+  // A control that looks pressable and does nothing is a lie the panel tells
+  // once per reader. Pressing the open row closes it too; this is the obvious
+  // place to look for it.
+  const close = document.createElement("span");
+  close.className = "detail-close";
+  close.textContent = "×";
+  close.title = "Close";
+  setClose(close);
+  name.append(who, close);
+  block.append(name);
+
+  for (const group of detail.groups) {
+    const line = document.createElement("div");
+    line.className = group.isTokens ? "detail-group tokens" : "detail-group";
+    const label = document.createElement("span");
+    label.className = "detail-label";
+    label.textContent = group.label;
+    const figure = document.createElement("span");
+    figure.className = "detail-figure";
+    figure.textContent = group.text;
+    line.append(label, figure);
+    block.append(line);
+  }
+
+  const note = document.createElement("div");
+  note.className = "detail-note";
+  note.textContent = detail.note;
+  block.append(note);
+
+  return block;
+}
+
+/**
+ * What the reading is short of, spelled out at the foot.
+ *
+ * ⚠️ **In addition to the mark at each total, never instead of it.** §9.6 puts
+ * the warning where the consequence is; this says the same thing at length,
+ * where a sentence fits and a mark does not.
+ */
+function renderFooter(document: PanelDocument, lines: readonly PanelFooterLine[]): PanelNode {
+  const block = document.createElement("div");
+  block.className = "footer";
+  for (const line of lines) {
+    const node = document.createElement("div");
+    node.className = line.isCertain ? "footer-line certain" : "footer-line";
+    node.textContent = line.text;
+    block.append(node);
+  }
+  return block;
+}
+
+function renderSection(
+  document: PanelDocument,
+  section: PanelSection,
+  selected: number | null,
+  combatantByRow: Map<unknown, number>,
+): PanelNode {
   const block = document.createElement("div");
   block.className = "section";
 
@@ -308,7 +496,7 @@ function renderSection(document: PanelDocument, section: PanelSection): PanelNod
   total.append(...renderMark(document, section.totalMark));
   heading.append(what, total);
 
-  block.append(heading, ...renderRows(document, section));
+  block.append(heading, ...renderRows(document, section, selected, combatantByRow));
   return block;
 }
 
@@ -341,13 +529,16 @@ export function renderPanel(
    * twice what a tab is — once when drawing it and once when reading it back.
    */
   const metricByTab = new Map<unknown, PanelMetric>();
+  const combatantByRow = new Map<unknown, number>();
   panel.addEventListener("click", (event) => {
     const metric = metricByTab.get(event.target);
-    if (metric === undefined) return;
+    const combatantId = combatantByRow.get(event.target);
+    if (metric === undefined && combatantId === undefined) return;
     // The handler catches its own. An add-on that breaks the game's scripts has
     // done more damage than one that shows a wrong number (§9.6).
     try {
-      handlers.onMetricChosen?.(metric);
+      if (metric !== undefined) handlers.onMetricChosen?.(metric);
+      else if (combatantId !== undefined) handlers.onCombatantChosen?.(combatantId);
     } catch (error) {
       handlers.onSectionFailure?.(error);
     }
@@ -378,7 +569,26 @@ export function renderPanel(
 
   for (const section of view.sections) {
     renderRegionInto(document, panel, handlers, section.heading, () =>
-      renderSection(document, section),
+      renderSection(document, section, view.selectedCombatantId, combatantByRow),
+    );
+  }
+
+  if (view.footer.length > 0) {
+    renderRegionInto(document, panel, handlers, "what is missing", () =>
+      renderFooter(document, view.footer),
+    );
+  }
+
+  // Its own region, so a detail that throws leaves the ranking standing — which
+  // is the reason it is beside the panel rather than woven into a row (§9.6).
+  const detail = view.detail;
+  const selected = view.selectedCombatantId;
+  if (detail !== null && selected !== null) {
+    renderRegionInto(document, panel, handlers, "detail", () =>
+      // Closing is choosing the same combatant again, which is what the caller
+      // already treats as "close" — so the × needs no second handler and no
+      // second piece of state that could disagree with the first.
+      renderDetail(document, detail, (node) => combatantByRow.set(node, selected)),
     );
   }
 

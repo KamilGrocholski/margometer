@@ -62,14 +62,43 @@ function getMetricValue(row: CombatantStatistics, metric: PanelMetric): number {
 }
 
 export type PanelRow = {
+  /**
+   * Who this row is, so a click can name them without the panel reading a name
+   * back off the screen. Null for the row that belongs to nobody, which is also
+   * the row with nothing to open.
+   */
+  combatantId: number | null;
   name: string;
   /** Bar colour. Says what somebody is; the name says who. */
   colour: string;
+  /**
+   * Which side this combatant is on, as a word.
+   *
+   * The list is one flat ranking, so the side is no longer carried by which
+   * heading a row sits under and has to be said on the row itself. It is text
+   * rather than a coloured dot because §9.7 forbids colour carrying a meaning
+   * alone, and a dot beside the word would only repeat it.
+   */
+  sideText: string | null;
+  /** Position in this section by value. Nobody is rank 0. */
+  rankText: string;
   value: number;
   valueText: string;
-  /** Share of the section's total, 0–1, for the bar's length. */
+  /** Share of the section's total, 0–1. Written, no longer drawn. */
   share: number;
   shareText: string;
+  /**
+   * How long the bar is, 0–1, **against the largest row in the section** rather
+   * than against the total.
+   *
+   * ⚠️ **The bar and the printed share are now different quantities.** The bar
+   * compares this row with the top row; the percentage beside it is still the
+   * share of the section's total. So the bar can no longer be read off as a
+   * number — it ranks, and the figures state. The alternative was printing the
+   * leader-relative percentage, which is a number about another row rather than
+   * about this one.
+   */
+  barLength: number;
 };
 
 /**
@@ -82,6 +111,33 @@ export type PanelRow = {
 export type PanelMark = {
   text: string;
   detail: string;
+};
+
+/**
+ * What one combatant's figures hold, opened beside the ranking.
+ *
+ * Every group here is already in `CombatantStatistics`; none of it is computed
+ * (§9.1). Groups whose map is empty are absent rather than drawn as zero — a
+ * combatant nothing was prevented against did not prevent nothing, the protocol
+ * simply never mentioned it.
+ */
+export type PanelDetail = {
+  name: string;
+  /**
+   * `isTokens` marks a group whose text is a list of the protocol's own tokens
+   * rather than one figure. They are laid out differently because they are read
+   * differently: a single figure is compared with the one above it, and a token
+   * list is read across. Right-aligning a long list wraps it mid-token.
+   */
+  groups: Array<{ label: string; text: string; isTokens: boolean }>;
+  /** Said in the panel rather than left to the reader to wonder about. */
+  note: string;
+};
+
+/** One line of the footer, and whether it is certain or only suspected. */
+export type PanelFooterLine = {
+  text: string;
+  isCertain: boolean;
 };
 
 export type PanelSection = {
@@ -123,6 +179,20 @@ export type PanelView = {
   tabs: Array<{ metric: PanelMetric; label: string; isSelected: boolean }>;
   header: PanelHeader;
   sections: PanelSection[];
+  /**
+   * The same gaps the totals are marked with, spelled out at the foot.
+   *
+   * ⚠️ **This does not replace the mark at the total** and must not be allowed
+   * to. §9.6 puts the warning where the consequence is, and the panel spec
+   * rejected a banner *instead of* that mark. This is a summary in addition: the
+   * mark answers "can I trust this figure", the footer answers "what happened",
+   * and only the second fits a sentence.
+   */
+  footer: PanelFooterLine[];
+  /** The combatant whose figures are open beside the panel, if any. */
+  detail: PanelDetail | null;
+  /** Who that is, so the row they belong to can be drawn as chosen. */
+  selectedCombatantId: number | null;
 };
 
 /** Thousands spaced, as the game itself writes them. */
@@ -135,22 +205,47 @@ function composeShareText(share: number): string {
 }
 
 function composeRow(
+  combatantId: number | null,
   name: string,
   profession: string | null,
+  sideText: string | null,
+  rank: number,
   value: number,
   total: number,
+  leader: number,
 ): PanelRow {
   // A zero total would make every share `NaN`, which renders as a bar of no
-  // length and a label reading "NaN%" — a number nobody wrote (§9.5).
+  // length and a label reading "NaN%" — a number nobody wrote (§9.5). The
+  // leader is guarded for the same reason and separately, because a section can
+  // have a total while its largest row is zero only if some row is negative,
+  // and neither figure may be assumed from the other.
   const share = total > 0 ? value / total : 0;
   return {
+    combatantId,
     name,
     colour: getProfessionColour(profession),
+    sideText,
+    rankText: composeIntegerText(rank),
     value,
     valueText: composeFigureText(value),
     share,
     shareText: composeShareText(share),
+    barLength: leader > 0 ? value / leader : 0,
   };
+}
+
+/**
+ * Which side a combatant is on, in the words the panel may use.
+ *
+ * "us" and "them" are only available once the game has stated `myteam`; until
+ * then the side is named by its own number, because calling one of them ours
+ * would be the guess `src/core/combatant-roster.ts` refuses to make. A combatant
+ * the roster could not place says so rather than being left blank.
+ */
+function composeSideText(reading: PanelReading, side: number | null): string {
+  if (side === null) return "s?";
+  if (reading.ourSide === null) return `s${composeIntegerText(side)}`;
+  return reading.ourSide === side ? "us" : "them";
 }
 
 /**
@@ -167,89 +262,94 @@ function composeRow(
  * up in `docs/protocol-keys.md` and quoted to us verbatim, and a sentence cannot.
  */
 function composeSuspectMark(reading: PanelReading): PanelMark | null {
+  const lines = composeReadingGapLines(reading);
+  if (lines.length === 0) return null;
+  return { text: "!", detail: lines.map((line) => line.text).join("\n") };
+}
+
+/**
+ * What the reading is short of, as lines, certain ones first.
+ *
+ * One composer for both places this is said — the mark's detail and the footer.
+ * Written twice they would drift, and the two spellings would then disagree
+ * about the same fight on the same screen.
+ *
+ * The stronger claim leads, because it is the one that is certain. An unread key
+ * means a total *may* be low; an unaccounted heal means healing **is** low, by
+ * an amount the protocol never states — it reaches a whole side and names only
+ * the caster. Ranking that below "3× step" would bury the only line here that is
+ * not a maybe.
+ */
+function composeReadingGapLines(reading: PanelReading): PanelFooterLine[] {
   const { unreadableMessages, messagesByReason, occurrencesByUnreadKey, unaccountedHealthBySource } =
     reading.statistics.reading;
-  if (unreadableMessages === 0 && unaccountedHealthBySource.size === 0) return null;
 
-  const lines: string[] = [];
+  const lines: PanelFooterLine[] = [];
 
-  /**
-   * The stronger claim first, because it is the one that is certain.
-   *
-   * An unread key means a total *may* be low. This means healing *is* low, by an
-   * amount the protocol never states — it heals a whole side and names only the
-   * caster. Ranking it below "3× step" would bury the only line here that is not
-   * a maybe.
-   */
   if (unaccountedHealthBySource.size > 0) {
     const occurrences = [...unaccountedHealthBySource.values()].reduce(
       (running, count) => running + count,
       0,
     );
+    lines.push({
+      isCertain: true,
+      text: `${composeFigureText(occurrences)} heals reached a whole side at once. The protocol names only the caster, so this healing is counted for nobody and the healing figures are low.`,
+    });
     lines.push(
-      `${composeFigureText(occurrences)} heals reached a whole side at once. The protocol names only the caster, so this healing is counted for nobody and the healing figures are low.`,
+      ...[...unaccountedHealthBySource.keys()]
+        .sort()
+        .map((source) => ({ isCertain: true, text: source })),
     );
-    lines.push(...[...unaccountedHealthBySource.keys()].sort());
   }
 
   if (unreadableMessages > 0) {
     const named = occurrencesByUnreadKey.size > 0 ? occurrencesByUnreadKey : messagesByReason;
-    lines.push(
-      `${composeFigureText(unreadableMessages)} messages were not fully read, so this total may be low.`,
-    );
+    lines.push({
+      isCertain: false,
+      text: `${composeFigureText(unreadableMessages)} messages were not fully read, so this total may be low.`,
+    });
     lines.push(
       ...[...named]
         .sort(([, one], [, other]) => other - one)
-        .map(([what, count]) => `${composeFigureText(count)}× ${what}`),
+        .map(([what, count]) => ({
+          isCertain: false,
+          text: `${composeFigureText(count)}× ${what}`,
+        })),
     );
   }
 
-  return { text: "!", detail: lines.join("\n") };
+  return lines;
 }
 
 /**
- * One section per side, biggest figure first, and the player's own side first
- * among the sections when the game said which it is.
+ * Everyone in one ranking, whichever side they are on.
  *
- * When it did not, the sides keep their own order and neither is called ours —
- * silence is not a reason to guess (`src/core/combatant-roster.ts`).
+ * ⚠️ **The total this ranks against is the whole fight's, not one side's**, and
+ * that changes what the percentage beside each figure means: it is now the share
+ * of everything that happened, so an enemy can outrank the party in the party's
+ * own meter and the shares of both sides sum to one. Two headings and two totals
+ * said something narrower and said it per side; this says something wider and
+ * says it once. Which is wanted is a judgement, and it is recorded in
+ * `docs/specs/2026-08-10-panel-and-tabs.md` rather than left to whoever reads
+ * this function.
+ *
+ * Combatants the roster could not place are in the same list rather than in a
+ * section of their own — they say `s?` on the row. The promise that keeps
+ * (`src/core/fight-statistics.ts` holds them apart so their figures are drawn
+ * rather than silently dropped) is kept by listing them, not by heading them.
  */
-function composeSideSections(reading: PanelReading, metric: PanelMetric): PanelSection[] {
-  const sides = [...reading.statistics.bySide].sort(([one], [other]) => {
-    if (reading.ourSide === one) return -1;
-    if (reading.ourSide === other) return 1;
-    return one - other;
-  });
+function composeEveryoneSection(reading: PanelReading, metric: PanelMetric): PanelSection[] {
+  const combatantIds = [
+    ...[...reading.statistics.bySide]
+      .sort(([one], [other]) => {
+        if (reading.ourSide === one) return -1;
+        if (reading.ourSide === other) return 1;
+        return one - other;
+      })
+      .flatMap(([, group]) => group.combatantIds),
+    ...reading.statistics.combatantIdsWithoutSide,
+  ];
 
-  return sides.map(([side, group]) => {
-    const total = getMetricValue(group.totals, metric);
-    const rows = composeRankedRows(reading, group.combatantIds, metric, total);
-
-    const heading = reading.ourSide === side ? "Us" : reading.ourSide === null ? `Side ${composeIntegerText(side)}` : "Them";
-    return {
-      heading,
-      totalText: composeFigureText(total),
-      totalMark: composeSuspectMark(reading),
-      rows,
-    };
-  });
-}
-
-/**
- * Combatants the roster could not place on a side, in a section of their own.
- *
- * The aggregate keeps them apart rather than dropping them or putting them on a
- * side that would then be wrong (`src/core/fight-statistics.ts`), and this is
- * where that promise is kept. Without it their figures are counted and then never
- * drawn — a total that is quietly short, which is §9.6's "Vanish" and the exact
- * shape of wrongness this project exists to prevent. Everyone lands here when a
- * fight was joined with no roster at all, so it is not a rare path.
- *
- * Shown whenever anyone is in it, unlike the unattributed section below: there,
- * an empty section means nothing happened; here it means people are missing.
- */
-function composeUnplacedSection(reading: PanelReading, metric: PanelMetric): PanelSection[] {
-  const combatantIds = reading.statistics.combatantIdsWithoutSide;
   if (combatantIds.length === 0) return [];
 
   const total = combatantIds.reduce((running, combatantId) => {
@@ -259,7 +359,7 @@ function composeUnplacedSection(reading: PanelReading, metric: PanelMetric): Pan
 
   return [
     {
-      heading: "Side not stated",
+      heading: "Everyone",
       totalText: composeFigureText(total),
       totalMark: composeSuspectMark(reading),
       rows: composeRankedRows(reading, combatantIds, metric, total),
@@ -267,25 +367,41 @@ function composeUnplacedSection(reading: PanelReading, metric: PanelMetric): Pan
   ];
 }
 
-/** One row per combatant, biggest figure first. Shared by both sections above. */
+/** One row per combatant, biggest figure first, ranked and sized in one pass. */
 function composeRankedRows(
   reading: PanelReading,
   combatantIds: readonly number[],
   metric: PanelMetric,
   total: number,
 ): PanelRow[] {
-  return combatantIds
+  const measured = combatantIds
     .map((combatantId) => {
       const row = reading.statistics.byCombatantId.get(combatantId);
       const combatant = reading.roster.byId.get(combatantId);
-      return composeRow(
-        combatant?.name ?? `#${composeIntegerText(combatantId)}`,
-        combatant?.profession ?? null,
-        row === undefined ? 0 : getMetricValue(row, metric),
-        total,
-      );
+      return {
+        combatantId,
+        name: combatant?.name ?? `#${composeIntegerText(combatantId)}`,
+        profession: combatant?.profession ?? null,
+        sideText: composeSideText(reading, combatant?.side ?? null),
+        value: row === undefined ? 0 : getMetricValue(row, metric),
+      };
     })
     .sort((one, other) => other.value - one.value);
+
+  const leader = measured.reduce((largest, row) => Math.max(largest, row.value), 0);
+
+  return measured.map((row, index) =>
+    composeRow(
+      row.combatantId,
+      row.name,
+      row.profession,
+      row.sideText,
+      index + 1,
+      row.value,
+      total,
+      leader,
+    ),
+  );
 }
 
 /**
@@ -308,7 +424,9 @@ function composeUnattributedSection(
       heading: "Nobody the log names",
       totalText: composeFigureText(value),
       totalMark: composeSuspectMark(reading),
-      rows: [composeRow("unattributed", null, value, value)],
+      // No side, because that is the whole claim: the log ties this to nobody,
+      // so it belongs to neither of them.
+      rows: [composeRow(null, "unattributed", null, null, 1, value, value, value)],
     },
   ];
 }
@@ -390,10 +508,83 @@ function getOutcomeText(reading: PanelReading): string | null {
   return null;
 }
 
-export function composePanelView(reading: PanelReading, metric: PanelMetric): PanelView {
+/** `token figure  token figure`, or null when the map holds nothing. */
+function composeTokenText(counts: ReadonlyMap<string, number>): string | null {
+  if (counts.size === 0) return null;
+  return [...counts]
+    .sort(([, one], [, other]) => other - one)
+    .map(([token, count]) => `${token} ${composeFigureText(count)}`)
+    .join("   ");
+}
+
+/**
+ * One combatant's figures, opened beside the ranking.
+ *
+ * Nothing here is computed and nothing here is new: every group is a field of
+ * `CombatantStatistics` that the ranking has no room for. `dealtRaw` is labelled
+ * rather than shown bare, because it is the one figure on this list that is not
+ * comparable between combatants — damage the protocol states against a name
+ * carries no raw twin, so a combatant working through area damage has a raw
+ * figure smaller than what they landed.
+ */
+export function composeCombatantDetail(
+  reading: PanelReading,
+  combatantId: number,
+): PanelDetail | null {
+  const row = reading.statistics.byCombatantId.get(combatantId);
+  const combatant = reading.roster.byId.get(combatantId);
+  if (row === undefined) return null;
+
+  const name = combatant?.name ?? `#${composeIntegerText(combatantId)}`;
+  const groups: Array<{ label: string; text: string; isTokens: boolean }> = [
+    { label: "landed", text: composeFigureText(row.dealtApplied), isTokens: false },
+    { label: "raw, blows only", text: composeFigureText(row.dealtRaw), isTokens: false },
+    { label: "taken", text: composeFigureText(row.taken), isTokens: false },
+    { label: "healed", text: composeFigureText(row.healed), isTokens: false },
+  ];
+
+  if (row.healthLost > 0) {
+    groups.push({
+      label: "health lost",
+      text: composeFigureText(row.healthLost),
+      isTokens: false,
+    });
+  }
+
+  // Absent rather than zero: the protocol never mentioning a defence is not the
+  // same claim as a defence stopping nothing (§9.6).
+  const optional: Array<[string, ReadonlyMap<string, number>]> = [
+    ["dealt by element", row.dealtAppliedByElement],
+    ["taken by element", row.takenByElement],
+    ["prevented", row.prevented],
+    ["destroyed", row.destroyed],
+    ["procs on blows struck", row.procsOnBlowsStruck],
+  ];
+  for (const [label, counts] of optional) {
+    const text = composeTokenText(counts);
+    if (text !== null) groups.push({ label, text, isTokens: true });
+  }
+
+  groups.push({
+    label: "skills announced",
+    text: composeIntegerText(row.skillsUsed),
+    isTokens: false,
+  });
+
+  return {
+    name,
+    groups,
+    note: "No per-skill split: the protocol never joins a skill to its damage.",
+  };
+}
+
+export function composePanelView(
+  reading: PanelReading,
+  metric: PanelMetric,
+  selectedCombatantId: number | null = null,
+): PanelView {
   const sections = [
-    ...composeSideSections(reading, metric),
-    ...composeUnplacedSection(reading, metric),
+    ...composeEveryoneSection(reading, metric),
     ...composeUnattributedSection(reading, metric),
   ];
 
@@ -406,5 +597,9 @@ export function composePanelView(reading: PanelReading, metric: PanelMetric): Pa
     })),
     header: composeHeader(reading, sections),
     sections,
+    footer: composeReadingGapLines(reading),
+    detail:
+      selectedCombatantId === null ? null : composeCombatantDetail(reading, selectedCombatantId),
+    selectedCombatantId,
   };
 }

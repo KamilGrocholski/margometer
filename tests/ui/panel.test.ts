@@ -213,15 +213,72 @@ function assertEveryoneCountedIsDrawn(reading: PanelReading): void {
 }
 
 describe("what the panel puts on screen", () => {
-  test("a side becomes a section, and its rows are ranked", () => {
+  /**
+   * One ranking for everybody, so the side a row belongs to is no longer said by
+   * which heading it sits under and has to be said on the row.
+   *
+   * ⚠️ The total this ranks against is the whole fight's, so both sides' shares
+   * sum to one and an enemy can outrank the party. That is the cost of the flat
+   * list and it is stated in `docs/specs/2026-08-10-panel-and-tabs.md`.
+   */
+  test("everyone is one ranking, and each row says which side", () => {
     const { reading } = composeReading();
     const view = composePanelView(reading, "dealt");
 
-    expect(view.sections.length).toBeGreaterThan(1);
-    const ours = view.sections[0]!;
-    expect(ours.heading).toBe("Us");
-    expect(ours.rows.map((row) => row.name)).toEqual(["a mage", "a hunter"]);
-    expect(ours.rows[0]!.value).toBeGreaterThan(ours.rows[1]!.value);
+    const everyone = view.sections[0]!;
+    expect(everyone.heading).toBe("Everyone");
+    expect(everyone.rows.map((row) => row.name)).toEqual([
+      "a mage",
+      "a hunter",
+      "something large",
+    ]);
+    for (let index = 1; index < everyone.rows.length; index += 1) {
+      expect(everyone.rows[index]!.value).toBeLessThanOrEqual(everyone.rows[index - 1]!.value);
+    }
+    expect(everyone.rows.map((row) => row.sideText)).toEqual(["us", "us", "them"]);
+    expect(everyone.rows.map((row) => row.rankText)).toEqual(["1", "2", "3"]);
+  });
+
+  /**
+   * ⚠️ **Written because the model-level test above could not fail.** Drawing the
+   * bar from `share` instead of `barLength` left every assertion green: `share`
+   * is still on the row and still correct, so the view model said one thing and
+   * the renderer quietly did another — the same two-halves-never-meet shape that
+   * once drew three identical tabs. The width is therefore read back off the node
+   * the renderer actually built.
+   */
+  test("the bar the panel draws is the leader-relative one", () => {
+    const { reading } = composeReading();
+    const view = composePanelView(reading, "dealt");
+    const panel = renderPanel(composeFakeDocument(), view) as FakeNode;
+
+    const bars = getEveryNode(panel).filter((node) => node.className === "bar");
+    expect(bars.length).toBe(view.sections.flatMap((section) => section.rows).length);
+
+    const top = view.sections[0]!.rows[0]!;
+    expect(top.share).toBeLessThan(1);
+    expect(bars[0]!.properties["width"]).toBe("100%");
+  });
+
+  /**
+   * The bar ranks and the figures state, which are different jobs — so the top
+   * row fills the width whatever its share of the total happens to be.
+   *
+   * Guarded because the two are easy to confuse in the renderer: `share` is still
+   * on the row and still printed, and drawing the bar from it would look almost
+   * right and be wrong on every row but the first.
+   */
+  test("the bar is measured against the top row, not against the total", () => {
+    const { reading } = composeReading();
+    const rows = composePanelView(reading, "dealt").sections[0]!.rows;
+    const top = rows[0]!;
+
+    expect(top.barLength).toBe(1);
+    expect(top.share).toBeLessThan(1);
+    for (const row of rows) {
+      expect(row.barLength).toBeGreaterThanOrEqual(row.share);
+      expect(row.barLength).toBeLessThanOrEqual(1);
+    }
   });
 
   /**
@@ -242,8 +299,13 @@ describe("what the panel puts on screen", () => {
 
     expect(statistics.combatantIdsWithoutSide).toEqual([4]);
     const view = composePanelView(reading, "dealt");
-    expect(view.sections.map((section) => section.heading)).toContain("Side not stated");
     expect(getDrawnNames(view)).toContain("#4");
+    // No heading holds them any more, so the row itself has to say the roster
+    // could not place them — blank would read as "no side" rather than "unknown".
+    const unplaced = view.sections
+      .flatMap((section) => section.rows)
+      .find((row) => row.name === "#4");
+    expect(unplaced?.sideText).toBe("s?");
     assertEveryoneCountedIsDrawn(reading);
   });
 
@@ -266,9 +328,11 @@ describe("what the panel puts on screen", () => {
   test("a combatant with no stated profession gets no profession's colour", () => {
     const { reading } = composeReading();
     const view = composePanelView(reading, "dealt");
-    const theirs = view.sections.find((section) => section.heading === "Them")!;
+    const undescribed = view.sections
+      .flatMap((section) => section.rows)
+      .find((row) => row.name === "something large");
 
-    expect(theirs.rows[0]!.colour).toBe(UNKNOWN_COLOUR);
+    expect(undescribed?.colour).toBe(UNKNOWN_COLOUR);
   });
 
   test("every metric the strip offers can actually be ranked", () => {
@@ -522,6 +586,190 @@ describe("what the panel puts on screen", () => {
   });
 });
 
+describe("opening one combatant's figures", () => {
+  /**
+   * The detail is the whole reason the ranking may stay one figure wide: every
+   * group here is already in `CombatantStatistics` and none of it was drawn
+   * anywhere before.
+   */
+  test("the detail carries what the ranking has no room for", () => {
+    const { reading } = composeReading();
+    const view = composePanelView(reading, "dealt", 1);
+    const detail = assertDefined(view.detail, "a combatant with figures has a detail");
+
+    expect(detail.name).toBe("a mage");
+    const labels = detail.groups.map((group) => group.label);
+    expect(labels).toContain("landed");
+    expect(labels).toContain("raw, blows only");
+    expect(labels).toContain("dealt by element");
+    expect(labels).toContain("skills announced");
+    // Absent, not zero: the protocol never mentioning a defence is a different
+    // claim from a defence stopping nothing (§9.6).
+    expect(labels).not.toContain("prevented");
+    expect(detail.note).toContain("per-skill");
+  });
+
+  /**
+   * ⚠️ A control that looks pressable and does nothing is a lie the panel tells
+   * once per reader — and this one was decorative when it was first drawn.
+   */
+  test("the detail's close control actually closes it", () => {
+    const { reading } = composeReading();
+    const view = composePanelView(reading, "dealt", 1);
+    const chosen: number[] = [];
+    const panel = renderPanel(composeFakeDocument(), view, {
+      onCombatantChosen: (combatantId) => chosen.push(combatantId),
+    }) as FakeNode;
+
+    const close = assertDefined(
+      getEveryNode(panel).find((node) => node.className === "detail-close"),
+      "the detail drew a close control",
+    );
+    setClickOn(panel, close);
+    // Choosing the open combatant again is what the caller treats as closing, so
+    // no second handler and no second piece of state can disagree with the first.
+    expect(chosen).toEqual([1]);
+  });
+
+  test("nobody chosen is no detail, and a stranger is no detail either", () => {
+    const { reading } = composeReading();
+
+    expect(composePanelView(reading, "dealt").detail).toBeNull();
+    expect(composePanelView(reading, "dealt", 999).detail).toBeNull();
+  });
+
+  test("the chosen row is marked as chosen", () => {
+    const { reading } = composeReading();
+    const view = composePanelView(reading, "dealt", 1);
+    const panel = renderPanel(composeFakeDocument(), view) as FakeNode;
+
+    // Both halves of the class, because the selected *tab* carries "selected"
+    // too — a filter on that word alone finds two nodes and proves nothing.
+    const chosen = getEveryNode(panel).filter((node) => {
+      const classes = node.className.split(" ");
+      return classes.includes("row") && classes.includes("selected");
+    });
+    expect(chosen.length).toBe(1);
+  });
+
+  /**
+   * ⚠️ **The trap this exists for.** A click reports the innermost element it
+   * landed on, so a row registered by itself alone answers only where nothing is
+   * written — the sliver between the name and the figure. Pressing the name, the
+   * figure or the share is what a person actually does.
+   */
+  test("pressing any part of a row names that combatant", () => {
+    const { reading } = composeReading();
+    const view = composePanelView(reading, "dealt");
+    const chosen: number[] = [];
+    const panel = renderPanel(composeFakeDocument(), view, {
+      onCombatantChosen: (combatantId) => chosen.push(combatantId),
+    }) as FakeNode;
+
+    const topRow = assertDefined(
+      getEveryNode(panel).find((node) => node.className.split(" ").includes("row")),
+      "the ranking drew a row",
+    );
+    // Every node of that one row, the row itself included — the name, the rank,
+    // the figure, the share and the bar are all places a finger lands.
+    const parts = getEveryNode(topRow);
+    expect(parts.length).toBeGreaterThan(4);
+    for (const part of parts) setClickOn(panel, part);
+
+    expect(chosen.length).toBe(parts.length);
+    expect(new Set(chosen)).toEqual(new Set([1]));
+  });
+
+  test("the row that belongs to nobody opens nothing", () => {
+    const roster = composeCombatantRoster([{ id: 1, name: "a mage", side: 1, profession: "m" }]);
+    const statistics = composeFightStatistics(
+      decodeFight(["0;0;+dmg=70;-dmg=70"], roster),
+      roster,
+    );
+    const reading: PanelReading = { statistics, roster, ourSide: 1, isFromFightStart: true };
+    const view = composePanelView(reading, "dealt");
+
+    const bucket = view.sections.find((section) => section.heading === "Nobody the log names");
+    expect(assertDefined(bucket, "the unattributed bucket is drawn").rows[0]!.combatantId).toBeNull();
+
+    const chosen: number[] = [];
+    const panel = renderPanel(composeFakeDocument(), view, {
+      onCombatantChosen: (combatantId) => chosen.push(combatantId),
+    }) as FakeNode;
+    for (const node of getEveryNode(panel)) {
+      if (node.textContent === "unattributed") setClickOn(panel, node);
+    }
+    expect(chosen).toEqual([]);
+  });
+});
+
+describe("what the footer says", () => {
+  /**
+   * ⚠️ **In addition to the mark, never instead of it.** §9.6 puts the warning
+   * where the consequence is, and the panel spec rejected a banner that replaced
+   * it. Both halves are held here so that removing the mark to "avoid saying it
+   * twice" fails rather than reads as tidying.
+   */
+  test("the footer repeats what the totals are marked with, and the marks stay", () => {
+    const { reading } = composeReading();
+    const view = composePanelView(reading, "dealt");
+
+    expect(view.footer.length).toBeGreaterThan(0);
+    expect(view.footer.some((line) => line.text.includes("not fully read"))).toBe(true);
+    for (const section of view.sections) expect(section.totalMark).not.toBeNull();
+
+    // Said at the node, not only in the model: removing the footer region was
+    // caught until now only by the isolation test next door, which is a
+    // coincidence rather than a guard.
+    const panel = renderPanel(composeFakeDocument(), view) as FakeNode;
+    const footer = getEveryNode(panel).filter((node) => node.className === "footer");
+    expect(footer.length).toBe(1);
+  });
+
+  test("certain comes before suspected, and is marked as certain", () => {
+    const roster = composeCombatantRoster([{ id: 1, name: "a mage", side: 1, profession: "m" }]);
+    const statistics = composeFightStatistics(
+      decodeFight(["1=90.00;1=90.00;healall_per=10", "0;0;nonsense_key=1"], roster),
+      roster,
+    );
+    const view = composePanelView(
+      { statistics, roster, ourSide: 1, isFromFightStart: true },
+      "dealt",
+    );
+
+    expect(statistics.reading.unaccountedHealthBySource.size).toBeGreaterThan(0);
+    expect(statistics.reading.unreadableMessages).toBeGreaterThan(0);
+    const first = assertDefined(view.footer[0], "there is a first line");
+    expect(first.isCertain).toBe(true);
+    expect(first.text).toContain("healing figures are low");
+    expect(view.footer.some((line) => !line.isCertain)).toBe(true);
+    // Certain and suspected must not be told apart by wording alone: the flag is
+    // what the renderer colours by, so a line without it would look like a maybe.
+    const suspected = view.footer.filter((line) => !line.isCertain);
+    expect(suspected.every((line) => !line.text.includes("healing figures are low"))).toBe(true);
+  });
+
+  test("a fight that read cleanly has no footer at all", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "a mage", side: 1, profession: "m" },
+      { id: 3, name: "something large", side: 2, profession: null },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+      roster,
+    );
+    const view = composePanelView(
+      { statistics, roster, ourSide: 1, isFromFightStart: true },
+      "dealt",
+    );
+
+    expect(statistics.reading.unreadableMessages).toBe(0);
+    expect(view.footer).toEqual([]);
+    const panel = renderPanel(composeFakeDocument(), view) as FakeNode;
+    expect(getEveryNode(panel).some((node) => node.className === "footer")).toBe(false);
+  });
+});
+
 describe("how the panel fails", () => {
   /**
    * §9.6's structural requirement: a section that throws takes only itself down.
@@ -549,8 +797,11 @@ describe("how the panel fails", () => {
     expect(failures.length).toBe(1);
     const text = getEveryNode(panel).map((node) => node.textContent);
     expect(text.some((each) => each.includes("could not be drawn"))).toBe(true);
-    // The sections after the broken one still drew.
-    expect(text.some((each) => each.includes("Them"))).toBe(true);
+    // The region after the broken one still drew. The footer, now that the
+    // ranking is a single section: with one section there is no second section
+    // to survive, and a test that checked only for a neighbouring *section*
+    // would have gone quiet on the day the panel stopped having two.
+    expect(text.some((each) => each.includes("not fully read"))).toBe(true);
   });
 
   /**
