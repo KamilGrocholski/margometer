@@ -470,6 +470,35 @@ describe("what the panel puts on screen", () => {
     expect(decided.header.outcomeText).toBe("won");
   });
 
+  /**
+   * ⚠️ **The header called every finished fight a loss.** The protocol states
+   * both sides — one message names the winners, another the losers — and the
+   * aggregate kept whichever came last, which is always `loser`. The test above
+   * agreed with the bug because its fight states only a winner; a real one never
+   * does. So this one states both, from the seat of somebody on the winning
+   * side, which is the case the panel actually draws.
+   */
+  test("the header answers from the watcher's own side, not from the last message", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "a mage", side: 1, profession: "m" },
+      { id: 2, name: "a boar", side: 2, profession: null },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(["0;0;winner=a mage", "0;0;loser=a boar"], roster),
+      roster,
+    );
+    const compose = (ourSide: number | null): string | null =>
+      composePanelView({ statistics, roster, ourSide, isFromFightStart: true }, "dealt")
+        .header.outcomeText;
+
+    expect(compose(1)).toBe("won");
+    expect(compose(2)).toBe("lost");
+    // A side the game never named, and a side nobody in the fight is on: the
+    // header says nothing rather than picking one of the two words (§9.6).
+    expect(compose(null)).toBeNull();
+    expect(compose(3)).toBeNull();
+  });
+
   // A zero total would make every share `NaN`, which draws a bar of no length
   // and a label reading "NaN%" — a number nobody wrote.
   test("a fight where nothing happened yields no impossible shares", () => {

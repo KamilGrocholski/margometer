@@ -88,6 +88,29 @@ describe("the aggregate over captured fights", () => {
   });
 
   /**
+   * ⚠️ **The aggregate kept one outcome and the protocol states two.** The
+   * `loser` message arrives after the `winner` message, so a single variable
+   * held "lost" at the end of every fight ever recorded — including the boar
+   * fight, which the player finished at full health with all three opponents
+   * dead. Both fights carry exactly one of each message
+   * (`tests/core/battle-event.test.ts`), so the material settles this: whoever
+   * won has to survive the aggregate as well as the decoder.
+   */
+  test("both sides of the ending survive, and nobody is on both", () => {
+    for (const { name, statistics } of FROM_CAPTURES) {
+      const outcome = statistics.outcome;
+      expect(outcome, name).not.toBeNull();
+      if (outcome === null) continue;
+
+      expect(outcome.wonNames.length, name).toBeGreaterThan(0);
+      expect(outcome.lostNames.length, name).toBeGreaterThan(0);
+      for (const winner of outcome.wonNames) {
+        expect(outcome.lostNames, `${name}: ${winner}`).not.toContain(winner);
+      }
+    }
+  });
+
+  /**
    * One blow is one figure on two rows, so the two sides must balance exactly.
    * A conservation law rather than a spot check: it fails on any future change
    * that credits a striker without debiting a target, which is the shape a

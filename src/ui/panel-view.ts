@@ -11,7 +11,7 @@
  */
 
 import { composeDecimalText, composeIntegerText } from "@/libs/number.ts";
-import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
+import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type {
   CombatantStatistics,
   FightStatistics,
@@ -359,11 +359,35 @@ function composeHeader(reading: PanelReading, sections: readonly PanelSection[])
   const suspect = sections.length === 0 ? composeSuspectMark(reading) : null;
   if (suspect !== null) marks.push(suspect);
 
-  return {
-    title,
-    outcomeText: reading.statistics.outcome === null ? null : reading.statistics.outcome.result,
-    marks,
-  };
+  return { title, outcomeText: getOutcomeText(reading), marks };
+}
+
+/** Whether any of those names belongs to somebody on the watcher's own side. */
+function hasOurSide(reading: PanelReading, names: readonly string[]): boolean {
+  return names.some((name) => {
+    // Null for a name two combatants answer to, and the roster is right to
+    // refuse it — an ambiguous name is checked against the rest of the list
+    // instead of being resolved to whoever came first.
+    const id = getCombatantIdByName(reading.roster, name);
+    return id !== null && reading.roster.byId.get(id)?.side === reading.ourSide;
+  });
+}
+
+/**
+ * "won" or "lost" **from the watcher's seat**, or nothing at all.
+ *
+ * The protocol names both sides and says nothing about which is the reader's, so
+ * the answer is composed here, where `ourSide` is: the outcome is ours if one of
+ * the names on a side resolves to a combatant on it. Where the game never said
+ * `myteam`, or where no name resolves, the header says nothing — a fight the
+ * panel cannot place is not a fight it may call a loss.
+ */
+function getOutcomeText(reading: PanelReading): string | null {
+  const outcome = reading.statistics.outcome;
+  if (outcome === null || reading.ourSide === null) return null;
+  if (hasOurSide(reading, outcome.wonNames)) return "won";
+  if (hasOurSide(reading, outcome.lostNames)) return "lost";
+  return null;
 }
 
 export function composePanelView(reading: PanelReading, metric: PanelMetric): PanelView {

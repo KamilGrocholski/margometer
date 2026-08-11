@@ -119,8 +119,11 @@ function writeFightReport(fight: CapturedFight): void {
   for (const [reason, count] of worst) {
     console.log(`    ${composeIntegerText(count).padStart(4)}  ${reason.slice(0, 90)}`);
   }
+  // Both sides by name, and no verdict: a capture does not record who recorded
+  // it (§10, *side*), so this tool is in no position to say who won *for us*.
   if (statistics.outcome !== null) {
-    console.log(`  outcome: ${statistics.outcome.result}`);
+    console.log(`  won:  ${statistics.outcome.wonNames.join(", ") || "(nobody stated)"}`);
+    console.log(`  lost: ${statistics.outcome.lostNames.join(", ") || "(nobody stated)"}`);
   }
 }
 

@@ -125,7 +125,18 @@ export type FightStatistics = {
   /** Figures the log ties to nobody. Same shape, never folded into a row. */
   unattributed: CombatantStatistics;
   reading: ReadingGaps;
-  outcome: { result: "won" | "lost"; combatantNames: string[] } | null;
+  /**
+   * How the fight ended, as **two** lists of names — because the protocol states
+   * two, one message naming the winners and another the losers, and both
+   * captured fights carry exactly one of each (`tests/core/battle-event.test.ts`).
+   *
+   * ⚠️ **Keeping a single result made every fight a loss.** Whichever message
+   * arrived last won the variable, `loser` comes second, and the panel then told
+   * a player who had just killed three boars without losing a point of health
+   * that they had lost. Which of these two lists is the watcher's own is not
+   * decided here — that is the game layer's to say (§10, *side*).
+   */
+  outcome: { wonNames: readonly string[]; lostNames: readonly string[] } | null;
 };
 
 /** Mutable twin of the public type, so the public one can stay read-only. */
@@ -272,7 +283,15 @@ export function composeFightStatistics(
       }
 
       case "fight-outcome": {
-        outcome = { result: event.result, combatantNames: event.combatantNames };
+        // Merged rather than replaced: see the field's own note.
+        const stated: NonNullable<FightStatistics["outcome"]> = outcome ?? {
+          wonNames: [],
+          lostNames: [],
+        };
+        outcome =
+          event.result === "won"
+            ? { ...stated, wonNames: [...stated.wonNames, ...event.combatantNames] }
+            : { ...stated, lostNames: [...stated.lostNames, ...event.combatantNames] };
         break;
       }
 
