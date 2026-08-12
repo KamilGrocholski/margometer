@@ -711,13 +711,16 @@ function composeOpponentEntries(
  * ternary defaulting `taken` into the wording for `dealt`, which was only right
  * because of an early return forty lines above it.
  */
-const CLOSING_LABELS: Record<"dealt" | "healed", string> = {
+const CLOSING_LABELS: Record<PanelMetric, string> = {
   dealt: "Zwykły cios",
+  taken: "Zwykły cios",
   healed: "Nie wiadomo, czym",
 };
 
-const CLOSING_NOTES: Record<"dealt" | "healed", string> = {
+const CLOSING_NOTES: Record<PanelMetric, string> = {
   dealt:
+    "Cios, przed którym nie stała żadna umiejętność. Gra nie odróżnia go od dodatkowego zamachu, który sama jej dała.",
+  taken:
     "Cios, przed którym nie stała żadna umiejętność. Gra nie odróżnia go od dodatkowego zamachu, który sama jej dała.",
   healed: "Nic nie zapowiedziało tego leczenia, więc gra nie mówi, co je dało.",
 };
@@ -853,20 +856,107 @@ const SOURCE_HEADINGS: Record<PanelMetric, string> = {
 };
 
 /** The deepest level: one opponent, or one skill, of the combatant in focus. */
-function composeDeepList(reading: PanelReading, state: PanelState, combatantId: number): PanelList | null {
+/**
+ * A cross-section of a single row repeats the total standing over it, so it is
+ * not drawn at all.
+ *
+ * "bez żywiołu 100%" under a figure that already says the same number is not a
+ * second reading of anything — and three such sections in a row, which is what
+ * `Leczenie` produced, read as a panel that has run out of things to say. The
+ * list a level is *about* is always drawn; only the cross-sections beside it
+ * answer to this.
+ */
+function composeCrossSection(
+  heading: string,
+  entries: readonly BreakdownEntry[],
+): PanelList | null {
+  return entries.length > 1 ? composeBreakdownList(heading, entries) : null;
+}
+
+/**
+ * The skills behind one pair's figure — what this combatant used *on that one
+ * opponent*, rather than across the fight.
+ *
+ * The section closes against the pair's own total the way the fight-wide one
+ * closes against the combatant's: what no announcement covered is a row, not a
+ * silence, or the parts would sum to less than the figure they were entered from
+ * and nothing would say why.
+ */
+function composePairSkillEntries(
+  reading: PanelReading,
+  state: PanelState,
+  combatantId: number,
+  otherId: number,
+  pairTotal: number,
+): BreakdownEntry[] {
+  const entries: BreakdownEntry[] = [];
+  // Whose skills answer for this pair: mine when I dealt it, theirs when I took
+  // it, and theirs again when they healed me.
+  const ownerId = state.metric === "dealt" ? combatantId : otherId;
+  const subjectId = state.metric === "dealt" ? otherId : combatantId;
+
+  for (const [, skill] of getRow(reading, ownerId).skills) {
+    const amount =
+      state.metric === "healed"
+        ? (skill.healedByCombatantId.get(subjectId) ?? 0)
+        : (skill.dealtByTargetId.get(subjectId) ?? 0);
+    if (amount <= 0) continue;
+    entries.push({
+      key: `leaf:skill:${skill.skillName}`,
+      label: skill.skillName,
+      profession: null,
+      colour: UNKNOWN_COLOUR,
+      amount,
+      canDrill: false,
+      uses: skill.uses,
+      detail: [],
+    });
+  }
+
+  entries.sort((one, other) => other.amount - one.amount);
+
+  const named = entries.reduce((sum, entry) => sum + entry.amount, 0);
+  const rest = pairTotal - named;
+  if (rest > 0) {
+    entries.push({
+      key: "leaf:unannounced",
+      label: CLOSING_LABELS[state.metric],
+      profession: null,
+      colour: UNKNOWN_COLOUR,
+      amount: rest,
+      canDrill: false,
+      uses: null,
+      detail: [{ kind: "note", text: CLOSING_NOTES[state.metric] }],
+    });
+  }
+  return entries;
+}
+
+/**
+ * The deepest level: one opponent, or one skill, of the combatant in focus.
+ *
+ * Entering through an opponent asks *with what* — so the level lists skills, and
+ * the elements stand beside them as a second cut of the same figure. Entering
+ * through a skill asks the mirror question, *on whom*.
+ */
+function composeDeepLists(
+  reading: PanelReading,
+  state: PanelState,
+  combatantId: number,
+): PanelList[] {
   if (state.focusSkill !== null) {
     // The owner is stated rather than searched for. Looking the key up across
     // every row and taking the first match was a coin toss whenever two
     // combatants announced the same skill, which the group capture does.
     const skill = getRow(reading, state.focusSkill.ownerId).skills.get(state.focusSkill.key);
-    if (skill === undefined) return null;
+    if (skill === undefined) return [];
 
     const pairs =
       state.metric === "healed"
         ? [...skill.healedByCombatantId].filter(([id]) => id === combatantId)
         : [...skill.dealtByTargetId];
 
-    return composeBreakdownList(
+    const list = composeBreakdownList(
       `KOMU — ${skill.skillName}`,
       pairs
         .sort(([, one], [, other]) => other - one)
@@ -881,35 +971,33 @@ function composeDeepList(reading: PanelReading, state: PanelState, combatantId: 
           detail: [],
         })),
     );
+    return list === null ? [] : [list];
   }
 
   const otherId = state.focusTargetId;
-  if (otherId === null) return null;
-
-  // Healing names a caster rather than a target, so the level below one is what
-  // they cast — the same question, "with what", from the other side.
-  if (state.metric === "healed") {
-    const skills = [...getRow(reading, otherId).skills]
-      .map(([key, skill]) => ({
-        key: `leaf:${key}`,
-        label: skill.skillName,
-        profession: null,
-        colour: UNKNOWN_COLOUR,
-        amount: skill.healedByCombatantId.get(combatantId) ?? 0,
-        canDrill: false,
-        uses: skill.uses,
-        detail: [],
-      }))
-      .filter((entry) => entry.amount > 0);
-    return composeBreakdownList(`CZYM — ${getName(reading, otherId)}`, skills);
-  }
+  if (otherId === null) return [];
 
   const from = state.metric === "dealt" ? getRow(reading, combatantId) : getRow(reading, otherId);
   const to = state.metric === "dealt" ? otherId : combatantId;
-  const byElement = from.dealtByTargetId.get(to) ?? new Map<string, number>();
+  const byElement =
+    state.metric === "healed"
+      ? new Map<string, number>()
+      : (from.dealtByTargetId.get(to) ?? new Map<string, number>());
+  const pairTotal =
+    state.metric === "healed"
+      ? [...getRow(reading, otherId).skills.values()].reduce(
+          (sum, skill) => sum + (skill.healedByCombatantId.get(combatantId) ?? 0),
+          0,
+        )
+      : [...byElement.values()].reduce((sum, one) => sum + one, 0);
 
-  return composeBreakdownList(
-    `CZYM — ${getName(reading, otherId)}`,
+  const heading = `CZYM — ${getName(reading, otherId)}`;
+  const skills = composeBreakdownList(
+    heading,
+    composePairSkillEntries(reading, state, combatantId, otherId, pairTotal),
+  );
+  const elements = composeCrossSection(
+    SOURCE_HEADINGS[state.metric],
     [...byElement]
       .sort(([, one], [, other]) => other - one)
       .map(([token, amount]): BreakdownEntry => ({
@@ -923,6 +1011,8 @@ function composeDeepList(reading: PanelReading, state: PanelState, combatantId: 
         detail: [],
       })),
   );
+
+  return [skills, elements].filter((list): list is PanelList => list !== null);
 }
 
 /**
@@ -1123,14 +1213,13 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
       };
 
   if (deep) {
-    const list = composeDeepList(reading, state, focusId);
-    const lists = list === null ? [] : [list];
+    const lists = composeDeepLists(reading, state, focusId);
     return {
       ...shell,
       visibleRows: Math.min(Math.max(getRowsNeeded(lists), 1), BREAKDOWN_ROWS),
       crumb,
       lists,
-      emptyText: list === null ? "Nie ma czego pokazać." : null,
+      emptyText: lists.length === 0 ? "Nie ma czego pokazać." : null,
       emptyLimitText: null,
       pinnedRow: null,
       sides: null,
@@ -1168,8 +1257,8 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
 
   const lists = [
     composeBreakdownList(OPPONENT_HEADINGS[state.metric], composeOpponentEntries(reading, state, focusId)),
-    composeBreakdownList("CZYM (UMIEJĘTNOŚCI)", composeSkillEntries(reading, state, focusId)),
-    composeBreakdownList(SOURCE_HEADINGS[state.metric], composeSourceEntries(reading, state, focusId)),
+    composeCrossSection("CZYM (UMIEJĘTNOŚCI)", composeSkillEntries(reading, state, focusId)),
+    composeCrossSection(SOURCE_HEADINGS[state.metric], composeSourceEntries(reading, state, focusId)),
   ].filter((list): list is PanelList => list !== null);
 
   return {

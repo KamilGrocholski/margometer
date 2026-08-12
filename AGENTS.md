@@ -557,11 +557,15 @@ src/
                          that keeps the panel reachable is checkable on its own.
     panel-view.ts        What the panel shows, as data — and the only file in the
                          repository whose strings are Polish (§3). One ranking
-                         with a side filter, totals or one of the two turn rates
-                         — the reader picks the divisor, the metric no longer does
-                         — the drill and its breadcrumb, what a combatant with
-                         nothing gets instead of empty sections, and the row for
-                         what nobody can be charged with. Every token of the
+                         with a side filter, totals only, the drill and its
+                         breadcrumb, what a combatant with nothing gets instead of
+                         empty sections, and the row for what nobody can be charged
+                         with. Entering an opponent asks *with what*, so that level
+                         lists the skills used on them and closes them against that
+                         pair's own figure, with the damage types beside it as a
+                         second cut of the same number; a cut of one row is not
+                         drawn, because it repeats the total standing over it.
+                         Every token of the
                          game's becomes a phrase before it reaches a label; one
                          we cannot phrase travels as the game wrote it rather
                          than as a guess. Takes its own input type, so `ui` names
@@ -747,11 +751,10 @@ tests/
 
   ui/
     panel-view.test.ts       What the panel decides, without a document: the
-                             ranking and its numbering, the fixed height, each
-                             rate dividing everywhere at once and a fight with no
-                             turn axis offering none, the drill and what closes
-                             each section against the row it was entered from,
-                             zero and unknown as two different sentences —
+                             ranking and its numbering, the fixed height, the drill
+                             and what closes each section against the row it was
+                             entered from, the cut of one row that is not drawn at
+                             all, zero and unknown as two different sentences —
                              and a sweep over every screen the panel has holding
                              its Polish to §3, so no word of ours and no key of
                              the game's reaches a player.

@@ -229,8 +229,34 @@ describe("what nobody can be charged with", () => {
 });
 
 describe("drilling", () => {
+  /**
+   * A combatant with more than one of everything, because the cross-sections are
+   * drawn only where they divide something: one row repeats the total standing
+   * over it, which is not a second reading of anything.
+   */
+  function composeDrillReading(): PanelReading {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+      { id: 5, name: "coś mniejszego", side: 2, profession: null, level: null },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(
+        [
+          "1=90.00;3=50.00;tspell=Kula ognia;skillId=7",
+          "1=90.00;3=40.00;+dmgf=300;-dmgf=200",
+          "1=90.00;3=30.00;+dmg=500;-dmg=400",
+          "1=90.00;5=30.00;+dmgc=100;-dmgc=80",
+        ],
+        roster,
+      ),
+      roster,
+    );
+    return { statistics, roster, ourSide: 1, isFromFightStart: true };
+  }
+
   test("opens who, with what, and of what", () => {
-    const view = composePanelView(composeReading(), composeState({ focusCombatantId: 1 }));
+    const view = composePanelView(composeDrillReading(), composeState({ focusCombatantId: 1 }));
 
     expect(view.lists.map((list) => list.heading)).toEqual([
       "KOMU",
@@ -239,6 +265,36 @@ describe("drilling", () => {
     ]);
     expect(view.crumb?.backLabel).toBe("‹ skład");
     expect(view.crumb?.hereLabel).toBe("mag");
+  });
+
+  /**
+   * A cut of one row says the same thing as the figure above it. Three of them in
+   * a row is what `Leczenie` drew before this: the same number, three times, under
+   * three headings.
+   */
+  test("a cross-section of one row is not drawn at all", () => {
+    const view = composePanelView(composeReading(), composeState({ focusCombatantId: 1 }));
+
+    expect(view.lists.map((list) => list.heading)).toEqual(["KOMU"]);
+  });
+
+  /**
+   * Entering an opponent asks *with what*, so the level lists skills and closes
+   * them against that pair's own figure; the elements stand beside them as a
+   * second cut of the same number.
+   */
+  test("entering an opponent lists the skills used on them, then the damage types", () => {
+    const reading = composeDrillReading();
+    const view = composePanelView(
+      reading,
+      composeState({ focusCombatantId: 1, focusTargetId: 3 }),
+    );
+
+    expect(view.lists.map((list) => list.heading)).toEqual(["CZYM — coś dużego", "TYP OBRAŻEŃ"]);
+    expect(view.lists[0]!.rows.map((row) => row.label)).toEqual(["Kula ognia", "Zwykły cios"]);
+    // The section adds up to the figure it was entered from, which is what makes
+    // a breakdown safe to read.
+    expect(view.lists[0]!.totalText).toBe(view.lists[1]!.totalText);
   });
 
   /**
@@ -253,13 +309,13 @@ describe("drilling", () => {
    * reason the skills beside it do.
    */
   test("names what no skill announced, and says how many times", () => {
-    const view = composePanelView(composeReading(), composeState({ focusCombatantId: 1 }));
+    const view = composePanelView(composeDrillReading(), composeState({ focusCombatantId: 1 }));
     const skills = view.lists.find((list) => list.heading === "CZYM (UMIEJĘTNOŚCI)");
     const plain = skills?.rows.find((row) => row.label === "Zwykły cios");
 
     expect(plain).toBeDefined();
-    // One blow in the fixture carries no announcement over it.
-    expect(plain?.bracketText).toContain("×1");
+    // Two blows in the fixture carry no announcement over them.
+    expect(plain?.bracketText).toContain("×2");
   });
 
   /**
