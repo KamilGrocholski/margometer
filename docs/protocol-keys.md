@@ -138,7 +138,7 @@ The combatants on the winning side, as a single string, names separated by a
 comma and a space. Appears in a message that names no combatant at all: it is
 about the fight, not about anyone in it.
 
-*Shape:* 2 occurrences; alone in its message; text
+*Shape:* 3 occurrences; alone in its message; text
 
 *Evidence:* every occurrence in both captured fights has that shape, and both
 fights end with exactly one `winner` and one `loser`.
@@ -147,7 +147,7 @@ fights end with exactly one `winner` and one `loser`.
 
 The same, for the losing side.
 
-*Shape:* 2 occurrences; alone in its message; text
+*Shape:* 3 occurrences; alone in its message; text
 
 ### `+oth_dmg` — decoded
 
@@ -206,7 +206,7 @@ message that carries it, so the first member accounts for all the health movemen
 and the second moves none. *Not understood* and *unaccounted* are different
 claims, and only the first is true here.
 
-*Shape:* 97 occurrences; alone in its message; text
+*Shape:* 109 occurrences; alone in its message; text
 
 *Evidence:* of the four ways to sign `heal` and `poison`, only healing added and
 poison subtracted closes the stated percentages — the other three leave hundreds
@@ -228,7 +228,7 @@ sign is the client's direction marker rather than noise: `14` here and `-45` on
 the heal render as *increased* and *decreased* of some quantity neither the
 protocol nor the bundle names.
 
-*Shape:* 46 occurrences; alone in its message; text
+*Shape:* 50 occurrences; alone in its message; text
 
 *Evidence:* as above. Before it was read, the first disagreement it caused was
 `-10000249=76.05;0;poison=563`.
@@ -378,7 +378,7 @@ A critical hit fired on this blow. **Carries no figure at all**: the protocol
 states the key and stops, and the client's branch composes its sentence without
 reading a value.
 
-*Shape:* 52 occurrences; on a blow; no value
+*Shape:* 53 occurrences; on a blow; no value
 
 *Help:* names `crit`
 
@@ -387,6 +387,31 @@ it among the events an attack can produce. Production build `1785244275300`:
 this branch is one of the two in the family that interpolates nothing. All 52
 occurrences arrive with no value, which is why a value would make it unread
 again rather than a flag with a number dropped beside it.
+
+### `+of_crit` — decoded
+
+A critical hit with the **offhand weapon** fired on this blow. Carries no figure:
+the protocol states the key and stops.
+
+*Shape:* 1 occurrences; on a blow; no value
+
+*Help:* names `crit`
+
+*Evidence:* production build `1786514810315`, the battle-message branch
+`case"+of_crit"` composes its sentence as `_t("msg_+of_crit")` — no `%val%` hole,
+which is the membership rule `PROC_KEYS` states. The neighbouring `-blok` branch
+reads `_t("msg_-blok %val%",{"%val%":…})` in the same switch, so the difference
+is the client's own and not an inference from our material.
+
+⚠️ **The help documents the effect and never prints this key.** Article view,372
+(read 2026-08-09) has a section on the offhand critical hit — it states that
+offhand damage cannot be evaded, and that `lowcrit` lowers the chance of both the
+main and the offhand variant — but the engine name beside that section is absent.
+Phrases tried and nil: `of_crit`, `critof`, `ofcrit`, `crit_of`. The stem `crit`
+is what the article carries, which is why the line above claims that and not
+silence: *documented effect, undocumented name* is a different finding from
+*undocumented*. The same build corroborates the meaning outside the battle log —
+`this.of_crit` writes the character stat `helper-crit-chance`.
 
 ### `+pierce` — decoded
 
@@ -542,6 +567,25 @@ section shows the sign settling nothing in general.
 the effect and for its trigger, which is what places it on the struck combatant;
 the shared measurement. 5 occurrences.
 
+### `-evade` — decoded
+
+The target evaded this blow. Carries no figure, and sits on the defending side:
+every occurrence arrives beside `-dmg=0`, which is the blow landing nothing.
+
+*Shape:* 1 occurrences; on a blow; no value
+
+*Help:* names `evade`
+
+*Evidence:* article view,372 (read 2026-08-09) at the engine name `evade` —
+`Unik ( evade )`, "zdarzenie zachodzi podczas obrony", with the chance given as
+`evade points * 20 / min(lvl enemy, 300)`. Production build `1786514810315`:
+`case"-evade"` composes `_t("msg_-evade")` with no `%val%`, against the
+`msg_-blok %val%` branch two cases away — the client itself separates the flag
+from the figure.
+
+⚠️ **Not totalled with anything.** An evade is the absence of damage, not a
+quantity of it: the figure it would contribute is the `-dmg=0` already read.
+
 ### `-tenacity` — decoded
 
 Tenacity fired on this blow. What it does is not established here, and neither is
@@ -596,7 +640,7 @@ distinction is not pedantic: the help describes it as lowering a statistic
 before the blow's reduction is computed, with a floor below which it cannot go.
 Summed together with `dealt` it would be a total of two different things.
 
-*Shape:* 41 occurrences; on a blow; a whole number
+*Shape:* 55 occurrences; on a blow; a whole number
 
 *Help:* names `acdmg`
 
@@ -1394,7 +1438,7 @@ damage and the panel counts what combatants did to each other. Nothing about it
 is uncertain; it is simply out of scope — which is a reading, and a different
 claim from a key nobody has looked at.
 
-*Shape:* 1 occurrences; alone in its message; a whole number
+*Shape:* 2 occurrences; alone in its message; a whole number
 
 *Help:* names `exp`
 

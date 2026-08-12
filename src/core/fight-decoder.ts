@@ -174,8 +174,10 @@ const PROC_KEYS = [
   "+legbon_verycrit",
   "+superspell-dispel",
   "+acdmg_destroyed",
+  "+of_crit",
   "-legbon_cleanse",
   "-tenacity",
+  "-evade",
 ];
 
 /**

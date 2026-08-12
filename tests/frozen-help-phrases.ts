@@ -40,6 +40,7 @@ export const FROZEN_HELP_PHRASES = {
     "dispel": 0,
     "energy": 11,
     "engback": 2,
+    "evade": 50,
     "exp": 17,
     "facade": 1,
     "freeze": 4,

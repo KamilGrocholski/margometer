@@ -143,7 +143,9 @@ const ELEMENT_NAMES: Record<string, string> = {
 /** Effects that fire with a blow. Ours to phrase; the game only sends the token. */
 const EFFECT_NAMES: Record<string, string> = {
   crit: "trafienie krytyczne",
+  of_crit: "trafienie krytyczne bronią pomocniczą",
   legbon_verycrit: "bardzo silne trafienie krytyczne",
+  evade: "unik",
   pierce: "przebicie",
   stun: "ogłuszenie",
   freeze: "zamrożenie",
