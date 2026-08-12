@@ -302,6 +302,9 @@ function setRunningTotal(totals: Map<string, number>, token: string, amount: num
 function setTotalsFrom(into: Row, member: CombatantStatistics): void {
   into.dealtRaw += member.dealtRaw;
   into.dealtApplied += member.dealtApplied;
+  into.blowsStruck += member.blowsStruck;
+  into.blowsWithoutSkill += member.blowsWithoutSkill;
+  into.largestBlow = Math.max(into.largestBlow, member.largestBlow);
   into.taken += member.taken;
   into.healed += member.healed;
   into.healthLost += member.healthLost;

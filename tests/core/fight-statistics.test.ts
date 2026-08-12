@@ -31,7 +31,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { composeIntegerText } from "@/libs/number.ts";
+import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
@@ -466,6 +466,44 @@ describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
     for (const [id, row] of statistics.byCombatantId) {
       expect(row.blowsWithoutSkill, composeIntegerText(id)).toBe(plain.get(id) ?? 0);
       expect(row.blowsWithoutSkill).toBeLessThanOrEqual(row.blowsStruck);
+    }
+  });
+
+  /**
+   * Every figure a side's totals hold, against its members' — field by field,
+   * discovered from the object rather than listed.
+   *
+   * `SideStatistics.totals` is typed `CombatantStatistics`, so the type promises
+   * each of these is a measurement. A counter added to that type and merged
+   * nowhere leaves a side reading `0`, and a zero is a measurement: quietly too
+   * low looks exactly like right (§3). Three of them were doing that.
+   *
+   * `largestBlow` is the one thing this cannot discover for itself, because it
+   * is a maximum and not a sum — and the distinction is real rather than
+   * pedantic: in the group capture one side's largest blows sum to 42 631
+   * against a maximum of 9 807.
+   */
+  const MAXIMUM_FIELDS = new Set<keyof CombatantStatistics>(["largestBlow"]);
+
+  test("a side's totals are its members' totals, figure by figure", () => {
+    for (const [side, group] of statistics.bySide) {
+      const members = group.combatantIds.map((id) => statistics.byCombatantId.get(id));
+      const fields = Object.entries(group.totals)
+        .filter(([, value]) => getFiniteNumberFromValue(value) !== null)
+        .map(([field]) => field as keyof CombatantStatistics);
+
+      expect(fields.length).toBeGreaterThan(0);
+
+      for (const field of fields) {
+        const figures = members.map((row) => getFiniteNumberFromValue(row?.[field]) ?? 0);
+        const expected = MAXIMUM_FIELDS.has(field)
+          ? figures.reduce((most, one) => Math.max(most, one), 0)
+          : figures.reduce((sum, one) => sum + one, 0);
+
+        expect(getFiniteNumberFromValue(group.totals[field]), `${field} of ${composeIntegerText(side)}`).toBe(
+          expected,
+        );
+      }
     }
   });
 });
