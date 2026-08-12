@@ -8,7 +8,22 @@ class BundleError extends MargoMeterToolError {
 }
 
 const OUTPUT_DIRECTORY = "./dist";
-const USERSCRIPT_FILENAME = "margometer.user.js";
+export const USERSCRIPT_FILENAME = "margometer.user.js";
+/**
+ * The metadata block on its own, and it exists for one reason: **0.5.0 polls
+ * for it.**
+ *
+ * That release's `@updateURL` is
+ * `releases/latest/download/margometer.meta.js`, so a release attaching only the
+ * script leaves every copy installed from it checking a 404 — and a failed
+ * update check says nothing to the person running it. They would simply stay on
+ * 0.5.0 for good.
+ *
+ * It is also the cheaper poll for copies installed from here on: Tampermonkey
+ * fetches this file to compare versions and the whole bundle only when there is
+ * something to install.
+ */
+export const METADATA_FILENAME = "margometer.meta.js";
 const BUNDLE_ENTRY_POINT = "./src/userscript-entry.ts";
 
 /** Game worlds live on per-world subdomains; these are the site, not a world. */
@@ -53,13 +68,17 @@ export function composeUserscriptBanner(version: string, description: string, ho
      * it polls and `@downloadURL` for the file it then installs, and a copy with
      * only the first checks for updates it cannot fetch.
      *
-     * ⚠️ **This points at a release asset, so the release has to carry one.**
-     * `.github/workflows/release.yml` builds and attaches it on a tag; a release
-     * published by hand without the file leaves every installed copy polling a
-     * 404 — quietly, because that is what a failed update check does.
+     * ⚠️ **These point at release assets, so the release has to carry both.**
+     * `.github/workflows/release.yml` builds and attaches them on a tag; a
+     * release published by hand without them leaves every installed copy polling
+     * a 404 — quietly, because that is what a failed update check does.
+     *
+     * The poll goes to the metadata file and the install to the script, which is
+     * also the pair 0.5.0 was published with — so a copy installed from that
+     * release keeps updating rather than stopping where it is.
      */
     ["downloadURL", `${homepage}/releases/latest/download/${USERSCRIPT_FILENAME}`],
-    ["updateURL", `${homepage}/releases/latest/download/${USERSCRIPT_FILENAME}`],
+    ["updateURL", `${homepage}/releases/latest/download/${METADATA_FILENAME}`],
     // The trailing `/*` matters: @match compares the whole path, so a pattern
     // without it never fires on a world that carries a query string.
     ...GAME_TOP_LEVEL_DOMAINS.map(
@@ -116,6 +135,13 @@ async function buildUserscript(): Promise<void> {
   const outputPath = `${OUTPUT_DIRECTORY}/${USERSCRIPT_FILENAME}`;
   await Bun.write(outputPath, banner + (await artifact.text()));
   console.log(`built ${outputPath}`);
+
+  // The same banner, byte for byte, and never a second composition of it: two
+  // metadata blocks that could disagree is how an update check starts comparing
+  // against a version nobody shipped.
+  const metadataPath = `${OUTPUT_DIRECTORY}/${METADATA_FILENAME}`;
+  await Bun.write(metadataPath, banner);
+  console.log(`built ${metadataPath}`);
 }
 
 if (import.meta.main) await buildUserscript();

@@ -189,6 +189,7 @@ base every tool below throws from (§9.5).
 | `tools/fight-report.ts` | *What would the panel show for this fight?* Runs the decoder and the aggregate over each capture and prints the per-combatant table — everything the numbers hold, including what the panel has no room for. Prints the turn axis too, because every rate divides by it and it is not in a message. |
 | `tools/help-article.ts` | *What does the game's own documentation say about this mechanic?* `fetch` caches an article, `search` prints raw context around a phrase and exits non-zero when there is none, `freeze` writes `tests/frozen-help-phrases.ts` so the register's help claims are re-counted on every gate. §7.6. |
 | `tools/captured-fight-intake.ts` | *This recording is worth keeping — put it in the repository.* Substitutes player nicknames, removes the game's ability descriptions, and writes the result into `tests/captured-fights/`. Refuses anything it cannot redact with certainty, and names the step that stays a person's. §9.2. |
+| `tools/changelog.ts` | *What does this release say for itself?* Cuts one version's section out of `CHANGELOG.md` and adds the note saying which attached file to click. `notes <version>` prints it; a version with no section refuses rather than publishing silence. |
 
 ---
 
@@ -409,13 +410,23 @@ this document starts lying.
 ```
 AGENTS.md          These rules. The only place they live.
 CLAUDE.md          One line importing AGENTS.md.
-README.md          For humans: what this is, how to build it, terms of service.
+README.md          For humans: what this is, how to install and build it, terms
+                   of service.
+CHANGELOG.md       For players, and one of the three files here written in
+                   Polish (§3). A release's notes are its section, verbatim, so
+                   this is the only place a release says what changed. Entries
+                   are typed and a released section is frozen — somebody already
+                   has that version.
 LICENSE            MIT — covers what was written here, and nothing else.
 NOTICE.md          What of the game's is in this repository, and on what basis.
 
 build.ts                 Bundles src/ into dist/ and prepends the userscript
-                         banner. Also exports composeUserscriptBanner() — the
-                         test is its second consumer.
+                         banner. Writes the banner a second time on its own, as
+                         `margometer.meta.js`, because 0.5.0 polls for that name
+                         and a release without it stops every copy installed from
+                         that version — silently. Also exports
+                         composeUserscriptBanner() and both filenames, whose
+                         second consumers are the test and the release notes.
 package.json             Version, scripts. `bun run check` is the gate.
 tsconfig.json            Strict flags standing in for a linter, and the `@/*`
                          import alias — §9.3.
@@ -659,6 +670,12 @@ tools/
                          descriptions removed, both counted in the file itself.
                          Refuses rather than guesses — `npc` alone says who is a
                          person — and ends by naming the reading no test does.
+  changelog.ts           One version's section of CHANGELOG.md, which is what a
+                         release says, plus the note telling a reader which of
+                         the two attached files to click. A pure function with a
+                         test rather than `sed` in a YAML step: a line that only
+                         runs when a tag is pushed shows its typo at the most
+                         expensive moment. A version with no section refuses.
 
 tests/
   captured-fights/       Raw battle protocol captured from real fights.
@@ -886,6 +903,12 @@ tests/
                              by its indentation, not by searching it — §7.5. §8's
                              "update it in the same commit" had been prose only,
                              and this found a file that had never been listed.
+    changelog.test.ts        The release gate, as a test: the version in
+                             `package.json` has a section, that section stops at
+                             its neighbour, a number inside an entry is not
+                             mistaken for a heading, and every entry in the file
+                             opens with its kind. A number bumped without a
+                             section would publish a release saying nothing.
     captured-fight-catalog.test.ts  decoding-status.test.ts  help-article.test.ts
     protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```

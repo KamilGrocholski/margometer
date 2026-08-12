@@ -46,19 +46,27 @@ jobs:
             exit 1
           fi
           grep -qx "// @version      ${declared}" dist/margometer.user.js
+          grep -qx "// @version      ${declared}" dist/margometer.meta.js
+
+      # The notes are this version's section of CHANGELOG.md, which is the one
+      # document here written for players. Not a generated commit list: 108
+      # commits went into 0.6.0 and a dump of their subjects tells a player
+      # nothing they can act on. A version with no section fails here, loudly,
+      # rather than publishing a release that says nothing about itself.
+      - name: compose the release notes
+        run: bun tools/changelog.ts notes "${GITHUB_REF_NAME#v}" > release-notes.md
 
       # `gh` ships with the runner, so this adds no third-party action to a
       # repository that has no runtime dependencies either.
       #
-      # The notes are the tag's own message, not a generated commit list: 108
-      # commits went into 0.6.0 and a dump of their subjects tells a player
-      # nothing they can act on. ⚠️ **So the tag has to be annotated** — a
-      # lightweight one fails this step, which is the loud outcome. The tag is
-      # already pushed by then; delete it, annotate, push again.
+      # ⚠️ **Both files, and the metadata one is not optional.** 0.5.0 polls for
+      # `margometer.meta.js`; a release without it leaves every copy installed
+      # from that version checking a 404 and never updating.
       - name: publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/margometer.user.js \
+          gh release create "$GITHUB_REF_NAME" \
+            dist/margometer.user.js dist/margometer.meta.js \
             --title "MargoMeter $GITHUB_REF_NAME" \
-            --notes-from-tag
+            --notes-file release-notes.md

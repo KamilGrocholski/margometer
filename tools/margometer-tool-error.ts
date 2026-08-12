@@ -17,7 +17,8 @@ export type MargoMeterToolErrorCode =
   | "HelpArticle"
   | "ProtocolKeyTable"
   | "ProtocolKeyRegister"
-  | "CapturedFightIntake";
+  | "CapturedFightIntake"
+  | "Changelog";
 
 export abstract class MargoMeterToolError extends Error {
   readonly code: MargoMeterToolErrorCode;

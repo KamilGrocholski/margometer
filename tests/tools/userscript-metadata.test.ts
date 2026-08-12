@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import manifest from "@/package.json";
-import { composeUserscriptBanner } from "@/build.ts";
+import {
+  composeUserscriptBanner,
+  METADATA_FILENAME,
+  USERSCRIPT_FILENAME,
+} from "@/build.ts";
 
 const BANNER = composeUserscriptBanner(manifest.version, manifest.description, manifest.homepage);
 const getDirective = (key: string): string[] =>
@@ -29,13 +33,25 @@ describe("userscript metadata", () => {
    * `@updateURL` for the metadata poll, `@downloadURL` for the install that
    * follows it.
    */
-  test("points at the release asset for its own updates, without naming a version", () => {
-    const asset = `${manifest.homepage}/releases/latest/download/margometer.user.js`;
-    expect(getDirective("downloadURL")).toEqual([asset]);
-    expect(getDirective("updateURL")).toEqual([asset]);
+  test("points at the release assets for its own updates, without naming a version", () => {
+    const release = `${manifest.homepage}/releases/latest/download`;
+    expect(getDirective("downloadURL")).toEqual([`${release}/${USERSCRIPT_FILENAME}`]);
+    expect(getDirective("updateURL")).toEqual([`${release}/${METADATA_FILENAME}`]);
     for (const url of [...getDirective("downloadURL"), ...getDirective("updateURL")]) {
       expect(url).not.toContain(manifest.version);
     }
+  });
+
+  /**
+   * ⚠️ **0.5.0 polls for `margometer.meta.js`, so the name is not ours to
+   * change.** Every copy installed from that release asks for exactly this file
+   * under `releases/latest/download/`, and a release without it leaves them all
+   * checking a 404 — silently, which is what a failed update check does. The
+   * assertion is on the literal name and not on the constant, because the
+   * constant is the thing that must not drift.
+   */
+  test("keeps the metadata filename the previous release already polls for", () => {
+    expect(METADATA_FILENAME).toBe("margometer.meta.js");
   });
 
   test("declares no privileges and stays out of frames", () => {
