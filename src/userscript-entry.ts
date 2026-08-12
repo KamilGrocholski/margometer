@@ -50,6 +50,7 @@ import {
   composeDefaultState,
   composePanelView,
   type PanelDetailLine,
+  type PanelMetric,
   type PanelState,
   type PanelTeam,
 } from "@/src/ui/panel-view.ts";
@@ -476,8 +477,7 @@ export function composePanelMount(
   const renderLatest = (): void => {
     if (latest === null) return;
     renderPanelInto(document, container, composePanelView(latest, state), {
-      onMetricChosen: (chosen) =>
-        setState({ metric: chosen, focusTargetId: null, focusSkill: null }),
+      onMetricChosen: (chosen) => setState(composeStateAfterMetric(chosen)),
       onTeamChosen: (chosen) => setState(composeStateAfterTeam(chosen)),
       onRowChosen: (key) => setState(composeStateFromRow(state, key)),
       onBack: () => setState(composeStateAfterBack(state)),
@@ -572,6 +572,23 @@ export function composeStateAfterTeam(team: PanelTeam): Partial<PanelState> {
   return { team, focusCombatantId: null, focusTargetId: null, focusSkill: null };
 }
 
+/**
+ * Both control strips land here, because both answer the same question: which
+ * figure. What they share is the reset, and the deep level is the part that must
+ * go.
+ *
+ * ⚠️ **A deep level does not survive turning the figure round.** Under
+ * `Leczenie · otrzymane` an open skill belongs to whoever cast it — somebody
+ * other than the combatant in focus — while under `Leczenie · dane` the skills
+ * are the combatant's own. Carrying `focusSkill` across the flip opens a key that
+ * is not on that side of the join, and the same is true of `focusTargetId`, whose
+ * end of the pair the direction decides. The combatant stays: they exist in every
+ * metric, which is the asymmetry `composeStateAfterTeam` above is about.
+ */
+export function composeStateAfterMetric(metric: PanelMetric): Partial<PanelState> {
+  return { metric, focusTargetId: null, focusSkill: null };
+}
+
 /** One level out, and only one: the way back is as small a step as the way in. */
 export function composeStateAfterBack(state: PanelState): Partial<PanelState> {
   if (state.focusTargetId !== null || state.focusSkill !== null) {
@@ -656,6 +673,8 @@ function composeReportRow(row: FightReading["statistics"]["unattributed"]): Reco
     leczenie: row.healed,
     leczenie_wg_zrodla: Object.fromEntries(row.healedBySource),
     leczenie_wg_leczacego: Object.fromEntries(row.healedByHealerId),
+    leczenie_dane: row.healingGiven,
+    leczenie_dane_komu: Object.fromEntries(row.healingGivenByCombatantId),
     pochloniete: Object.fromEntries(row.prevented),
     zniszczone: Object.fromEntries(row.destroyed),
     efekty: Object.fromEntries(row.procsOnBlowsStruck),

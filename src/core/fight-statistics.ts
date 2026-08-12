@@ -142,6 +142,22 @@ export type CombatantStatistics = {
    * announces, and the panel says so rather than guessing a healer.
    */
   healedByHealerId: ReadonlyMap<number, number>;
+  /**
+   * Health this combatant restored to somebody, and to whom.
+   *
+   * The transpose of `healedByHealerId`, and held for the same reason it is —
+   * a derivation across every other row is a statistic, and §9.1 says the panel
+   * computes none. Healing is the one figure that reads in two directions, and
+   * only one of them was ever kept.
+   *
+   * ⚠️ **Not the row's own `healed`, which is what it received.** The two are
+   * different quantities that a shared word would merge: measured on the group
+   * capture, 25 178 points carry a healer against 122 648 restored. The gap is
+   * healing nothing announced, and it belongs to nobody rather than to the
+   * combatant it reached.
+   */
+  healingGiven: number;
+  healingGivenByCombatantId: ReadonlyMap<number, number>;
   /** What this combatant announced, keyed by the game's own identifier. */
   skills: ReadonlyMap<string, SkillStatistics>;
 };
@@ -243,6 +259,8 @@ type Row = {
   healthLostBySource: Map<string, number>;
   healedBySource: Map<string, number>;
   healedByHealerId: Map<number, number>;
+  healingGiven: number;
+  healingGivenByCombatantId: Map<number, number>;
   skills: Map<string, MutableSkill>;
 };
 
@@ -277,6 +295,8 @@ function composeRow(): Row {
     healthLostBySource: new Map(),
     healedBySource: new Map(),
     healedByHealerId: new Map(),
+    healingGiven: 0,
+    healingGivenByCombatantId: new Map(),
     skills: new Map(),
   };
 }
@@ -307,6 +327,7 @@ function setTotalsFrom(into: Row, member: CombatantStatistics): void {
   into.largestBlow = Math.max(into.largestBlow, member.largestBlow);
   into.taken += member.taken;
   into.healed += member.healed;
+  into.healingGiven += member.healingGiven;
   into.healthLost += member.healthLost;
   into.skillsUsed += member.skillsUsed;
 
@@ -483,6 +504,14 @@ export function composeFightStatistics(
             subject.healedByHealerId.set(
               healer,
               (subject.healedByHealerId.get(healer) ?? 0) + event.amount,
+            );
+            // Written here rather than derived later, so the two directions come
+            // from one reading of one event and cannot drift apart.
+            const giver = getRow(healer);
+            giver.healingGiven += event.amount;
+            giver.healingGivenByCombatantId.set(
+              event.combatantId,
+              (giver.healingGivenByCombatantId.get(event.combatantId) ?? 0) + event.amount,
             );
           }
           setSkillTotals(event.announced, (skill) => {

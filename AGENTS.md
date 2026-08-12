@@ -512,7 +512,13 @@ src/
                          and nothing derives cheaply: who hit whom, what moved
                          health when no blow did, who healed whom where the game
                          said, and a skill's figures — healing GIVEN, which is
-                         not the row's healing received and says so.
+                         not the row's healing received and says so. Healing is
+                         the one quantity kept in both directions, because it is
+                         the one that reads in both: a row holds what it received
+                         and what it gave, and deriving the second from everybody
+                         else's first would be a statistic computed in `ui` (§9.1).
+                         The two are held to being one reading transposed, and to
+                         balancing against what nobody announced.
   game/
     engine-battle-wrap.ts
                          The only code here that changes a running game: it
@@ -556,21 +562,25 @@ src/
                          has to prove before it is believed. No DOM, so the clamp
                          that keeps the panel reachable is checkable on its own.
     panel-view.ts        What the panel shows, as data — and the only file in the
-                         repository whose strings are Polish (§3). One ranking
-                         with a side filter, totals only, the drill and its
-                         breadcrumb, what a combatant with nothing gets instead of
-                         empty sections, and the row for what nobody can be charged
-                         with. Entering an opponent asks *with what*, so that level
-                         lists the skills used on them and closes them against that
-                         pair's own figure, with the damage types beside it as a
-                         second cut of the same number; a cut of one row is not
-                         drawn, because it repeats the total standing over it.
-                         Every token of the
-                         game's becomes a phrase before it reaches a label; one
-                         we cannot phrase travels as the game wrote it rather
-                         than as a guess. Takes its own input type, so `ui` names
-                         no direction to `game`. No DOM, so all of it is
-                         checkable.
+                         repository whose strings are Polish (§3). One ranking on
+                         two axes — a noun and a direction — with a side filter,
+                         totals only, the drill and its breadcrumb, what a
+                         combatant with nothing gets instead of empty sections,
+                         and the row for what nobody can be charged with. The axes
+                         are derived and the metric stays the one field the state
+                         holds, so a pair with no figure behind it is a screen
+                         that cannot be expressed. Entering an opponent asks
+                         *with what*, so that level lists the skills used on them
+                         and closes them against that pair's own figure, with the
+                         damage types beside it as a second cut of the same
+                         number; a cut of one row is not drawn, because it repeats
+                         the total standing over it. Every token of the game's
+                         becomes a phrase before it reaches a label; one we cannot
+                         phrase travels as the game wrote it rather than as a
+                         guess, and the captures are swept so that fallback is
+                         never what a player actually meets. Takes its own input
+                         type, so `ui` names no direction to `game`. No DOM, so
+                         all of it is checkable.
     panel-element.ts     The same, drawn. Takes a document as an argument, opens
                          one shadow root, listens at that root for every control
                          it draws, and renders region by region so that one
@@ -757,7 +767,15 @@ tests/
                              all, zero and unknown as two different sentences —
                              and a sweep over every screen the panel has holding
                              its Polish to §3, so no word of ours and no key of
-                             the game's reaches a player.
+                             the game's reaches a player. That sweep runs twice:
+                             once against words written down by hand, and once
+                             against every token the captures actually carry,
+                             because a hand-written list only ever forbids what
+                             somebody thought of — two keys reached the screen as
+                             the game wrote them for as long as they were missing
+                             from it. Also that no bar is drawn past the end of
+                             its track, which the hand-written fight cannot show
+                             and five of the seven captures could.
     panel.test.ts            The panel drawn, against §9.6 and §9.7, on a fake
                              document: what survives a region failing, that the
                              root serves every control, that a handler cannot

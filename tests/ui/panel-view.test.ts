@@ -12,7 +12,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
-import { composeIntegerText } from "@/libs/number.ts";
+import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
@@ -83,7 +83,8 @@ function getEveryString(view: PanelView): string[] {
     view.outcomeText ?? "",
     view.emptyText ?? "",
     view.emptyLimitText ?? "",
-    ...view.metricTabs.map((tab) => tab.label),
+    ...view.nounTabs.map((tab) => tab.label),
+    ...view.directionTabs.map((tab) => tab.label),
     ...view.teamTabs.map((tab) => tab.label),
     ...(view.crumb === null ? [] : [view.crumb.backLabel, view.crumb.hereLabel]),
     ...view.lists.flatMap((list) => [list.heading ?? "", list.totalText ?? ""]),
@@ -613,6 +614,189 @@ describe("against the captured fights", () => {
             row?.valueText ?? null,
           );
         }
+      }
+    }
+  });
+
+  /**
+   * ⚠️ **The same claim as the fixture test above, on material that can break it.**
+   *
+   * The hand-written fight has 60 points of poison against a 400-point mage, so
+   * the pinned row could not exceed the scale there however wrong the scale was —
+   * a guard agreeing with the bug it was written to prevent (§7.5). On the
+   * captures it exceeded it under `Leczenie` in five of seven, up to 1.56, and
+   * `.row { overflow: hidden }` clips that into a bar indistinguishable from a
+   * full one: the row that says *something here is missing* drawn as the largest
+   * thing in the fight.
+   */
+  /**
+   * ⚠️ **The share was halved under `Leczenie`, and nothing said so.**
+   *
+   * Healing nobody announced still lands on somebody, so it is already counted on
+   * the receiver's row; the pinned row marks it rather than adding it. Dividing by
+   * "the ranking plus this" therefore counted it twice — 44% reported against the
+   * 79% it is on the group capture. Under `Leczenie dane` the same points really
+   * are outside the ranking, so the two directions must arrive at **one** share of
+   * one whole. They are the same missing healing measured the same way.
+   */
+  test.each(fights)("$name reports one share for the healing nobody announced", ({ reading }) => {
+    const given = composePanelView(reading, composeState({ metric: "healingGiven" })).pinnedRow;
+    const received = composePanelView(reading, composeState({ metric: "healed" })).pinnedRow;
+    if (given === null || received === null) return;
+
+    expect(given.valueText).toBe(received.valueText);
+    expect(given.bracketText).toBe(received.bracketText);
+  });
+
+  /**
+   * ⚠️ **These figures used to be one `·`-joined line with no heading.**
+   *
+   * Points of armour, percentage points of resistance and absorbed damage stood
+   * in one string, which reads as one list of comparable things and invites the
+   * addition §10 forbids. They are two blocks now, each labelled, and the unit
+   * rides in the value of the one that is not in points.
+   */
+  /**
+   * ⚠️ **Read off the material, not off a list somebody keeps.**
+   *
+   * The sweep above holds the panel against tokens written down by hand, and a
+   * hand-written list only ever forbids what somebody thought of: `fastarrow` and
+   * `contra` reached the screen as the game wrote them for as long as they were
+   * absent from it. This takes every token the captures actually carry and asks
+   * whether any of them survived to a label — so a key the game adds next month
+   * fails the gate the first time a recording of it lands here.
+   */
+  test.each(fights)("$name turns every token the game wrote into a phrase", ({ reading }) => {
+    const tokens = new Set<string>();
+    for (const row of [...reading.statistics.byCombatantId.values(), reading.statistics.unattributed]) {
+      for (const token of row.procsOnBlowsStruck.keys()) tokens.add(token);
+      for (const token of row.prevented.keys()) tokens.add(token);
+      for (const token of row.destroyed.keys()) tokens.add(token);
+      for (const token of row.healedBySource.keys()) tokens.add(token);
+      for (const token of row.healthLostBySource.keys()) tokens.add(token);
+    }
+    expect(tokens.size, "the capture carries tokens to check").toBeGreaterThan(0);
+
+    for (const metric of PANEL_METRICS) {
+      for (const focusCombatantId of [null, ...reading.statistics.byCombatantId.keys()]) {
+        const strings = getEveryString(
+          composePanelView(reading, composeState({ metric, focusCombatantId })),
+        );
+        for (const token of tokens) {
+          // As a whole word, not as a substring: `blok` is the root of the Polish
+          // `zablokowane` and finding it there is the translation working, not
+          // failing. What must not appear is the token standing on its own.
+          const asWord = new RegExp(
+            `(^|[^\\p{L}])${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}]|$)`,
+            "u",
+          );
+          for (const text of strings) {
+            expect(asWord.test(text), `${metric} ${focusCombatantId} ${token} in "${text}"`).toBe(
+              false,
+            );
+          }
+        }
+      }
+    }
+  });
+
+  test.each(fights)("$name labels what a defence stopped and what an attack destroyed", ({ reading }) => {
+    for (const [id, row] of reading.statistics.byCombatantId) {
+      const detail = composePanelView(
+        reading,
+        composeState({ metric: "taken" }),
+      ).lists[0]!.rows.find((each) => each.key === `combatant:${id}`)?.detail;
+      if (detail === undefined) continue;
+
+      const headings = detail.filter((line) => line.kind === "heading").map((line) => line.text);
+      const stats = detail.filter((line) => line.kind === "stat");
+
+      const stoppedTokens = [...row.prevented.values()].filter((amount) => amount > 0);
+      if (stoppedTokens.length > 0) {
+        expect(headings, `${id} stopped`).toContain("Zatrzymane");
+        // Counted between its own heading and the next, so the assertion is
+        // about this block rather than about every stat in the tooltip — and it
+        // needs no second copy of the vocabulary to stay in step with.
+        const from = detail.findIndex((line) => line.kind === "heading" && line.text === "Zatrzymane");
+        const rest = detail.slice(from + 1);
+        const until = rest.findIndex((line) => line.kind === "heading");
+        const inBlock = until === -1 ? rest : rest.slice(0, until);
+        const stoppedLines = inBlock.filter((line) => line.kind === "stat");
+        expect(stoppedLines.length, `${id} stopped lines`).toBe(stoppedTokens.length);
+      }
+
+      if ([...row.destroyed.values()].some((amount) => amount > 0)) {
+        expect(headings, `${id} destroyed`).toContain("Zniszczone");
+        // The unit is the whole point of the split: resistance is percentage
+        // points and its neighbours are not, so exactly one of them says so.
+        const resistance = stats.find((line) => line.label === "zniszczona odporność");
+        const armour = stats.find((line) => line.label === "zniszczony pancerz");
+        if (resistance !== undefined) expect(resistance.value.endsWith("%")).toBe(true);
+        if (armour !== undefined) expect(armour.value.endsWith("%")).toBe(false);
+      }
+    }
+  });
+
+  /**
+   * ⚠️ **Every bracket on a screen divides by the same figure.**
+   *
+   * The ranking used to divide by the ranking and the pinned row by the ranking
+   * plus itself — two denominators, printed identically. Under `Zadane` it showed
+   * as rows adding to 107% and nobody noticed; under `Leczenie dane` as a ranking
+   * summing to 100% beside a row saying 79%.
+   *
+   * Checked by working backwards: a figure and its rounded share imply a range the
+   * denominator must lie in, and every row's range has to overlap every other's.
+   * That way the test never needs to know what the whole *is* — only that there is
+   * one of it, which is the property that broke.
+   */
+  test.each(fights)("$name divides every share by one and the same whole", ({ reading }) => {
+    for (const metric of PANEL_METRICS) {
+      for (const team of PANEL_TEAMS) {
+        const view = composePanelView(reading, composeState({ metric, team }));
+        const drawn = [
+          ...view.lists.flatMap((list) => list.rows),
+          ...(view.pinnedRow === null ? [] : [view.pinnedRow]),
+        ];
+
+        let low = 0;
+        let high = Number.POSITIVE_INFINITY;
+        for (const row of drawn) {
+          const value = getIntegerFromText(row.valueText.replace(/\s/g, ""));
+          const percent = getIntegerFromText(row.bracketText.replace(/[()%]/g, ""));
+          expect(value, row.valueText).not.toBeNull();
+          expect(percent, row.bracketText).not.toBeNull();
+          if (value === null || percent === null) continue;
+          // A share that rounded to zero bounds nothing, and a figure of zero
+          // divides by anything — neither says which whole was used.
+          if (value <= 0 || percent <= 0) continue;
+          low = Math.max(low, (value * 100) / (percent + 0.5));
+          high = Math.min(high, (value * 100) / (percent - 0.5));
+        }
+
+        if (low > 0 && Number.isFinite(high)) {
+          expect(low, `${metric} ${team}: the shares imply two different wholes`).toBeLessThanOrEqual(high);
+        }
+      }
+    }
+  });
+
+  test.each(fights)("$name never draws a bar past the end of its track", ({ reading }) => {
+    for (const metric of PANEL_METRICS) {
+      for (const team of PANEL_TEAMS) {
+        const view = composePanelView(reading, composeState({ metric, team }));
+        const drawn = [
+          ...view.lists.flatMap((list) => list.rows),
+          ...(view.pinnedRow === null ? [] : [view.pinnedRow]),
+        ];
+        if (drawn.length === 0) continue;
+
+        for (const row of drawn) {
+          expect(row.fill, `${metric} ${team} ${row.label}`).toBeLessThanOrEqual(1);
+        }
+        // And the scale is still tight: something on screen reaches the end, or
+        // clamping every bar would pass this while measuring against nothing.
+        expect(drawn.some((row) => row.fill === 1), `${metric} ${team}`).toBe(true);
       }
     }
   });

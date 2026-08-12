@@ -237,6 +237,9 @@ export function composePanelStyleText(): string {
   user-select: none;
 }
 .tab.selected { color: ${t.text}; background: ${t.surfaceRaised}; }
+/* Holds the side filter against the right edge, so the row reads as the two
+   controls it is rather than one strip of five words. */
+.tabs-gap { flex: 1; }
 .crumb { display: flex; gap: ${t.space}; align-items: baseline; padding: ${t.spaceRegion}; padding-bottom: 0; }
 .crumb-back { cursor: pointer; color: ${t.textQuiet}; }
 .crumb-back:hover { color: ${t.text}; }
@@ -598,27 +601,47 @@ export function renderPanel(
     return block;
   });
 
+  const renderMetricTab = (tab: {
+    metric: PanelMetric;
+    label: string;
+    isSelected: boolean;
+  }): PanelNode => {
+    const button = document.createElement("div");
+    // ⚠️ A class, because the two halves of this have to be spelled the same
+    // and once were not: the stylesheet selected one thing and the render set
+    // another, so the panel drew three identical tabs and never showed which
+    // metric was on screen.
+    button.className = tab.isSelected ? "tab selected" : "tab";
+    button.textContent = tab.label;
+    metricByTab.set(button, tab.metric);
+    return button;
+  };
+
   renderRegionInto(document, panel, handlers, "zakładki", () => {
     const tabs = document.createElement("div");
     tabs.className = "tabs";
-    for (const tab of view.metricTabs) {
-      const button = document.createElement("div");
-      // ⚠️ A class, because the two halves of this have to be spelled the same
-      // and once were not: the stylesheet selected one thing and the render set
-      // another, so the panel drew three identical tabs and never showed which
-      // metric was on screen.
-      button.className = tab.isSelected ? "tab selected" : "tab";
-      button.textContent = tab.label;
-      metricByTab.set(button, tab.metric);
-      tabs.append(button);
-    }
-
+    for (const tab of view.nounTabs) tabs.append(renderMetricTab(tab));
     return tabs;
   });
 
-  renderRegionInto(document, panel, handlers, "strony", () => {
+  /**
+   * One region for two controls, and the cost is stated: a throw here takes both
+   * strips rather than one. They share a row because the vertical budget is the
+   * list's — every strip is twenty pixels the ranking does not get — and a
+   * direction on its own line would spend a row to say one word.
+   */
+  renderRegionInto(document, panel, handlers, "kierunek i strony", () => {
     const tabs = document.createElement("div");
     tabs.className = "tabs sides-of";
+    for (const tab of view.directionTabs) tabs.append(renderMetricTab(tab));
+    // Pushes the side filter to the right edge, so the two controls read as two
+    // controls. Absent with the direction, which is why it is a node and not a
+    // margin on the first team tab.
+    if (view.directionTabs.length > 0) {
+      const gap = document.createElement("span");
+      gap.className = "tabs-gap";
+      tabs.append(gap);
+    }
     for (const tab of view.teamTabs) {
       const button = document.createElement("div");
       button.className = tab.isSelected ? "tab selected" : "tab";

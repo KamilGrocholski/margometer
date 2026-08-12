@@ -222,6 +222,12 @@ in the report with the token that produced it.
 - **A separate "leczenie zadane" metric.** It is a fourth ranking answering a
   question the third already answers from the other end, and it would put healing
   given beside healing received where they would be read as one column.
+
+  ⚠️ **Healing given exists now, and this rejection is why it took the shape it
+  did.** The objection held against a fourth *tab*; it does not hold against a
+  direction control, where the two are never on screen together. See
+  `docs/specs/2026-08-12-two-axes-and-the-other-direction.md`. Left as written,
+  for the reason at the top of this page.
 - **Splitting `Bez sprawcy` across sides under a filter.** There is no actor to
   split it by. Splitting by *victim* would be a different axis than the list uses
   and would read as if that side had dealt it.

@@ -25,6 +25,7 @@ import {
 import {
   composePanelMount,
   composeReportText,
+  composeStateAfterMetric,
   composeStateAfterTeam,
   composeStateFromRow,
   setMargoMeter,
@@ -930,6 +931,40 @@ describe("what a click does to the drill", () => {
     expect(view.lists[0]?.heading).toBeNull();
     expect(view.lists[0]?.rows.length).toBeGreaterThan(0);
   });
+
+  /**
+   * ⚠️ **Turning the figure round invalidates the level below it.**
+   *
+   * Under `Leczenie · otrzymane` an open skill belongs to whoever cast it, and
+   * under `Leczenie · dane` the skills on screen are the combatant's own. Kept
+   * across the flip, the key names a skill that is not on that side of the join —
+   * so the metric drops the deep level while keeping the combatant, who exists in
+   * every metric.
+   */
+  test("changing the figure closes the level below it, and keeps the combatant", () => {
+    const fight = assertDefined(CAPTURED_FIGHTS[1], "there is a group capture to read");
+    const base = composeReadingOfCapture(fight);
+    const focusCombatantId = assertDefined(
+      [...base.statistics.byCombatantId.keys()][0],
+      "the capture has a combatant",
+    );
+    const drilled = {
+      ...composeDefaultState(),
+      metric: "healed" as const,
+      focusCombatantId,
+      focusTargetId: 3,
+      focusSkill: { ownerId: 3, key: "whatever" },
+    };
+
+    const next = { ...drilled, ...composeStateAfterMetric("healingGiven") };
+
+    expect(next.focusCombatantId).toBe(focusCombatantId);
+    expect(next.focusTargetId).toBeNull();
+    expect(next.focusSkill).toBeNull();
+    // And the screen that comes out is the combatant's breakdown, not a deep level.
+    const view = composePanelView(base, next);
+    expect(view.crumb?.backLabel).toBe("‹ skład");
+  });
 });
 
 /**
@@ -950,6 +985,7 @@ describe("the report a reader copies", () => {
     otrzymane: "taken",
     utracone_poza_ciosem: "healthLost",
     leczenie: "healed",
+    leczenie_dane: "healingGiven",
     ciosy: "blowsStruck",
     ciosy_bez_umiejetnosci: "blowsWithoutSkill",
     maks_cios: "largestBlow",

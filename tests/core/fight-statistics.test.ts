@@ -286,6 +286,63 @@ describe("rows grouped by side", () => {
   });
 });
 
+/**
+ * Healing reads in two directions, and only one of them was ever kept.
+ *
+ * The panel is forbidden to derive the other for itself (§9.1), so the aggregate
+ * holds both — and holding two views of one quantity is exactly the arrangement
+ * that drifts. These three claims are what stop it: the two maps are one reading
+ * transposed, the fight balances, and a side total counts its own members.
+ */
+describe.each(FROM_CAPTURES)("$name healing in both directions", ({ statistics }) => {
+  test("what a healer gave is what the healed say they got", () => {
+    const givenPerPair = new Map<string, number>();
+    const receivedPerPair = new Map<string, number>();
+    for (const [id, row] of statistics.byCombatantId) {
+      for (const [to, amount] of row.healingGivenByCombatantId) {
+        givenPerPair.set(`${composeIntegerText(id)}->${composeIntegerText(to)}`, amount);
+      }
+      for (const [from, amount] of row.healedByHealerId) {
+        receivedPerPair.set(`${composeIntegerText(from)}->${composeIntegerText(id)}`, amount);
+      }
+    }
+
+    expect([...givenPerPair].sort()).toEqual([...receivedPerPair].sort());
+  });
+
+  test("a healer's total is the sum of what they gave each person", () => {
+    for (const [id, row] of statistics.byCombatantId) {
+      const perPerson = [...row.healingGivenByCombatantId.values()].reduce((sum, one) => sum + one, 0);
+      expect(row.healingGiven, composeIntegerText(id)).toBe(perPerson);
+    }
+  });
+
+  /**
+   * The balance the whole screen rests on: healing given, plus the healing
+   * nobody announced, is every point anybody received. Without the second term
+   * the two directions would look like a discrepancy rather than like a limit,
+   * and on this material most of the healing has no author at all.
+   */
+  test("given plus the healing nobody announced is all the healing received", () => {
+    let given = 0;
+    let received = 0;
+    let withoutHealer = 0;
+    for (const row of [...statistics.byCombatantId.values(), statistics.unattributed]) {
+      given += row.healingGiven;
+      received += row.healed;
+      const named = [...row.healedByHealerId.values()].reduce((sum, one) => sum + one, 0);
+      withoutHealer += row.healed - named;
+    }
+
+    expect(given + withoutHealer).toBe(received);
+  });
+
+  // No test here that a side's total counts it: dropping it from `setTotalsFrom`
+  // already lights "a side's totals are its members' totals, figure by figure",
+  // which is generic over every plain number a row holds. A second test for one
+  // claim is a test that has to be kept in step with the first.
+});
+
 describe("figures the log ties to nobody", () => {
   test("a blow naming neither side lands on nobody, and is not dropped", () => {
     const statistics = composeFightStatistics([ATTACK_ON_NOBODY]);

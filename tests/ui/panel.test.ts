@@ -147,6 +147,20 @@ function getByClass(node: FakeNode, className: string): FakeNode[] {
   return getEveryNode(node).filter((each) => each.className.split(" ").includes(className));
 }
 
+/**
+ * A control addressed by what it says, never by where it sits.
+ *
+ * ⚠️ **Twice now an index has moved under a test that kept passing.** First a flat
+ * index across every strip, when the rate control left the metric row; then an
+ * index *within* the side strip, when the direction control joined it and
+ * `tab[1]` stopped being `My`. A label is the one handle that does not slide:
+ * if it changes, the test fails for the reason it should.
+ */
+function getTabByLabel(node: FakeNode, label: string): FakeNode {
+  const found = getByClass(node, "tab").filter((tab) => tab.textContent === label);
+  return assertDefined(found[0], `a tab labelled ${label}`);
+}
+
 /** A fight with two sides, damage on both, and something unreadable in it. */
 function composeReading(): PanelReading {
   const roster = composeCombatantRoster([
@@ -318,13 +332,45 @@ describe("one gesture in, one gesture out", () => {
     expect(chosen).toEqual(["combatant:1"]);
   });
 
-  test("a click on a tab asks for that metric", () => {
+  /**
+   * The noun carries the direction across with it. From `Obrażenia · zadane`,
+   * `Leczenie` is healing **given** — turning the figure round under the hand of
+   * somebody who only asked to change the subject is the thing this prevents.
+   */
+  test("a click on a noun keeps the direction it was read in", () => {
     const metrics: string[] = [];
     const { panel } = renderInto(composeDefaultState(), {
       onMetricChosen: (metric: string) => metrics.push(metric),
     });
 
-    setClickOn(panel, assertDefined(getByClass(panel, "tab")[1], "the second metric tab"));
+    setClickOn(panel, getTabByLabel(panel, "Leczenie"));
+
+    expect(metrics).toEqual(["healingGiven"]);
+  });
+
+  test("and from the other direction it keeps that one instead", () => {
+    const metrics: string[] = [];
+    const { panel } = renderInto(
+      { ...composeDefaultState(), metric: "taken" },
+      { onMetricChosen: (metric: string) => metrics.push(metric) },
+    );
+
+    setClickOn(panel, getTabByLabel(panel, "Leczenie"));
+
+    expect(metrics).toEqual(["healed"]);
+  });
+
+  /**
+   * Both strips report the same kind of choice — which figure — so the drawing
+   * needs no second handler and no second map, however many axes the panel grows.
+   */
+  test("a click on a direction asks for that metric", () => {
+    const metrics: string[] = [];
+    const { panel } = renderInto(composeDefaultState(), {
+      onMetricChosen: (metric: string) => metrics.push(metric),
+    });
+
+    setClickOn(panel, getTabByLabel(panel, "otrzymane"));
 
     expect(metrics).toEqual(["taken"]);
   });
@@ -344,7 +390,7 @@ describe("one gesture in, one gesture out", () => {
     const { panel } = renderInto(composeDefaultState(), { onTeamChosen: (team: string) => teams.push(team) });
     const sides = assertDefined(getByClass(panel, "sides-of")[0], "the side strip");
 
-    setClickOn(panel, assertDefined(getByClass(sides, "tab")[1], "the second side tab"));
+    setClickOn(panel, getTabByLabel(sides, "My"));
     expect(teams).toEqual(["mine"]);
   });
 
