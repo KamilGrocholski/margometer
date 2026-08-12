@@ -1626,12 +1626,20 @@ figure anything totals. `step` in particular is **not** read as a turn boundary:
 what is read is that the message stated `step` about a combatant, which is all
 the protocol says.
 
+⚠️ **A turn is not found in any key of these, or of any other.** What marks one
+is which combatant is speaking, and how that is read is
+`docs/specs/2026-08-12-turns-the-messages-carry.md`. Two of the keys here bear on
+it, and only through their sides: `step` and `prepare` name an actor, so they sit
+inside that combatant's turn, while `txt` and `+exp` name nobody and so open no
+turn at all.
+
 ### `step` — decoded
 
 Carries **no value at all** and names one combatant in the actor slot with no
-target. All 22 occurrences are a message holding nothing else, which is what a
-turn boundary would look like — but the protocol does not say that, and this
-entry does not either.
+target. Every occurrence is a message holding nothing else, which is what a turn
+boundary would look like — but the protocol does not say that, and this entry
+does not either. The arithmetic agrees: the occurrences counted below stand
+against 1228 turns in the same material, and one capture contains none at all.
 
 *Shape:* 64 occurrences; alone in its message; no value
 
@@ -1639,8 +1647,8 @@ entry does not either.
 
 *Evidence:* not documented. Article view,372 (read 2026-08-09) was searched for
 `step`; the only hit is inside a longer Polish word, which is the false positive
-§7.6 warns about rather than a mention. 22 occurrences, all valueless, all
-alone, always with an actor and never a target.
+§7.6 warns about rather than a mention. Every occurrence is valueless and alone,
+always with an actor and never a target.
 
 ### `prepare` — decoded
 
@@ -1652,8 +1660,8 @@ the client's display text, so no example of one appears here.
 *Help:* names nothing of `prepare`
 
 *Evidence:* not documented — article view,372 (read 2026-08-09), searched for
-`prepare`, which does not occur. 13 occurrences, each the only key in its
-message, every value matching that shape, always with an actor and no target.
+`prepare`, which does not occur. Every occurrence is the only key in its message,
+every value matches that shape, and each has an actor and no target.
 
 ### `txt` — decoded
 
@@ -1666,13 +1674,14 @@ names, which NOTICE.md keeps out of the repository entirely.
 *Help:* names nothing of `txt`
 
 *Evidence:* not documented — article view,372 (read 2026-08-09), searched for
-`txt`, which does not occur. 13 occurrences, each alone in its message, naming
-no combatant at all.
+`txt`, which does not occur. Every occurrence is alone in its message, naming no
+combatant at all — which is why it opens no turn and continues the one it
+follows.
 
 ### `+exp` — decoded
 
-Experience awarded. Names no combatant and appears once in the whole material,
-at the end of a fight.
+Experience awarded. Names no combatant, and every occurrence is at the end of a
+fight.
 
 **Read as a declaration and counted as nothing**, because experience is not
 damage and the panel counts what combatants did to each other. Nothing about it
@@ -1683,8 +1692,8 @@ claim from a key nobody has looked at.
 
 *Help:* names `exp`
 
-*Evidence:* 1 occurrence, an integer, alone in its message with neither side
-named. Not documented as a protocol key in article view,372 (read 2026-08-09).
+*Evidence:* an integer, alone in its message with neither side named. Not
+documented as a protocol key in article view,372 (read 2026-08-09).
 
 ### `en-regen` — decoded
 
