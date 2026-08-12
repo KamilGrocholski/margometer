@@ -4,12 +4,6 @@ import {
   type CombatantRoster,
 } from "@/src/core/combatant-roster.ts";
 import {
-  composeEmptyTurnAxis,
-  composeNextTurnAxis,
-  composeTurnCounts,
-  type TurnCounts,
-} from "@/src/game/turn-axis.ts";
-import {
   getMaximumHealthByCombatantId,
   getStartingHealthByCombatantId,
   parseFightDump,
@@ -78,23 +72,6 @@ export function composeRosterOfFight(fight: CapturedFight): CombatantRoster {
     }
   }
   return composeRosterFromSnapshots([...byId.values()]);
-}
-
-/**
- * The turns a whole capture came to, replayed payload by payload.
- *
- * Here rather than in either test that needs it: `tests/game/turn-axis.test.ts`
- * measures the axis against the material, and `tests/game/engine-attachment.test.ts`
- * holds the entry point to the same answer. Two consumers is where a shared
- * reader belongs (§7.1), and one of them is checking the other, so they have to
- * be reading the same thing rather than two spellings of it.
- */
-export function composeTurnCountsOfFight(fight: CapturedFight): TurnCounts {
-  let axis = composeEmptyTurnAxis();
-  for (const call of fight.dump.calls) {
-    axis = composeNextTurnAxis(axis, call.payload, call.protocolMessages);
-  }
-  return composeTurnCounts(axis);
 }
 
 export const CAPTURED_FIGHTS: CapturedFight[] = readdirSync(CAPTURED_FIGHTS_DIRECTORY)

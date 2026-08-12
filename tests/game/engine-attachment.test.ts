@@ -36,7 +36,6 @@ import { parseFightDump, type CombatantSnapshot } from "@/tools/fight-dump-parse
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
-  composeTurnCountsOfFight,
 } from "@/tests/captured-fight-catalog.ts";
 
 /** A clock the test winds by hand. */
@@ -272,22 +271,6 @@ describe("the add-on driven by a captured fight", () => {
       expect(readings.length).toBeGreaterThanOrEqual(carrying);
       expect(readings.length).toBeLessThan(fight.dump.calls.length);
 
-      /**
-       * ⚠️ **The turn axis, end to end through the code the userscript runs.**
-       *
-       * This is where the bug lived and where nothing could see it: the group
-       * fight came out at 98 turns against the 299 the game numbered, so every
-       * rate the panel drew was 3.05× too high.
-       *
-       * Held against the axis replayed offline rather than against a number
-       * chosen per capture name. Two drivers reach the same material by different
-       * routes — the entry point through the wrap and the session, the helper
-       * straight down the payloads — so a divergence between them is the thing
-       * worth catching here. What the number itself has to be is settled in
-       * `tests/game/turn-axis.test.ts`, against the payloads, where 299 is still
-       * named outright.
-       */
-      expect(reading?.fightTurns).toBe(composeTurnCountsOfFight(fight).fightTurns);
 
       meter.stop();
       expect(Object.prototype.hasOwnProperty.call(battle, "updateData")).toBe(false);
@@ -440,9 +423,6 @@ describe("what a failing panel puts on the console", () => {
         roster,
       ),
       roster,
-      turnsByCombatantId: new Map([[1, 3]]),
-      fightTurns: 3,
-      turnsWithoutActor: 0,
       ourSide: 1,
       isFromFightStart: true,
       fightsStarted,
@@ -861,9 +841,6 @@ describe("what a click does to the drill", () => {
     return {
       statistics: composeFightStatistics(decodeFight(messages, roster), roster),
       roster,
-      turnsByCombatantId: new Map(),
-      fightTurns: null,
-      turnsWithoutActor: 0,
       ourSide: null,
       isFromFightStart: true,
       fightsStarted: 1,
@@ -985,9 +962,6 @@ describe("the report a reader copies", () => {
     return {
       statistics: composeFightStatistics(decodeFight(messages, roster), roster),
       roster,
-      turnsByCombatantId: new Map(),
-      fightTurns: null,
-      turnsWithoutActor: 0,
       ourSide: null,
       isFromFightStart: true,
       fightsStarted: 1,

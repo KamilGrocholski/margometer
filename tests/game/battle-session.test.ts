@@ -281,36 +281,4 @@ describe("a payload that carried nothing", () => {
     expect(renamed.combatants[0]?.name).toBe("ktoś inny");
   });
 
-  test("nor when the turn moved on", () => {
-    const opened = composeNextSession(
-      composeEmptySession(),
-      { init: 1, w: { 1: combatant }, turns_warriors: { "1": 1, "2": 2 } },
-      [],
-    );
-    const moved = composeNextSession(opened, { w: { 1: combatant }, turns_warriors: { "2": 2 } }, []);
-
-    expect(moved).not.toBe(opened);
-    expect(composeFightReading(moved).fightTurns).toBe(2);
-  });
-
-  /**
-   * ⚠️ **The opening payload carries the turn axis as well as the roster**, in
-   * every capture. Taking the axis from the session rather than from the fight it
-   * has just reset would carry the previous fight's first ordinal into this one,
-   * and `fightTurns` would then span two fights — a divisor hundreds of turns too
-   * large, and every rate silently too small.
-   */
-  test("a fight opening does not inherit the last one's turns", () => {
-    const first = composeNextSession(
-      composeEmptySession(),
-      { init: 1, w: { 1: combatant }, turns_warriors: { "1": 1, "2": 2 } },
-      [],
-    );
-    const late = composeNextSession(first, { turns_warriors: { "80": 1 } }, []);
-    const second = composeNextSession(late, { init: 1, w: { 1: combatant }, turns_warriors: { "1": 1 } }, []);
-    const moved = composeNextSession(second, { turns_warriors: { "3": 2 } }, []);
-
-    expect(composeFightReading(late).fightTurns).toBe(80);
-    expect(composeFightReading(moved).fightTurns).toBe(3);
-  });
 });

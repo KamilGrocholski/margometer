@@ -20,7 +20,6 @@ import {
   composeDefaultState,
   composePanelView,
   PANEL_METRICS,
-  PANEL_RATES,
   PANEL_TEAMS,
   type PanelReading,
   type PanelRow,
@@ -65,13 +64,6 @@ function composeReading(overrides: Partial<PanelReading> = {}): PanelReading {
     roster,
     ourSide: 1,
     isFromFightStart: true,
-    turnsByCombatantId: new Map([
-      [1, 2],
-      [2, 1],
-      [3, 1],
-    ]),
-    fightTurns: 4,
-    turnsWithoutActor: 0,
     ...overrides,
   };
 }
@@ -91,7 +83,6 @@ function getEveryString(view: PanelView): string[] {
     view.outcomeText ?? "",
     view.emptyText ?? "",
     view.emptyLimitText ?? "",
-    ...view.rateTabs.map((tab) => tab.label),
     ...view.metricTabs.map((tab) => tab.label),
     ...view.teamTabs.map((tab) => tab.label),
     ...(view.crumb === null ? [] : [view.crumb.backLabel, view.crumb.hereLabel]),
@@ -129,17 +120,10 @@ describe("the ranking", () => {
     expect(view.lists[0]!.rows.map((row) => row.label)).toContain("tarcza");
   });
 
-  test("the bracket carries the share and the other measure", () => {
+  test("the bracket carries the share of the whole", () => {
     const view = composePanelView(composeReading(), composeState());
 
-    expect(view.lists[0]!.rows[0]!.bracketText).toMatch(/^\(\d+% · [\d ,]+\/t\)$/);
-  });
-
-  test("under a rate the bracket carries the total instead", () => {
-    const view = composePanelView(composeReading(), composeState({ rate: "ownTurn" }));
-
-    expect(view.lists[0]!.rows[0]!.valueText).toMatch(/\/t$/);
-    expect(view.lists[0]!.rows[0]!.bracketText).toMatch(/^\(\d+% · [\d ]+\)$/);
+    expect(view.lists[0]!.rows[0]!.bracketText).toMatch(/^\(\d+%\)$/);
   });
 
   /**
@@ -189,9 +173,6 @@ describe("the ranking", () => {
       roster,
       ourSide: 1,
       isFromFightStart: true,
-      turnsByCombatantId: new Map([[1, 2]]),
-      fightTurns: 2,
-      turnsWithoutActor: 0,
     };
 
     const view = composePanelView(reading, composeState());
@@ -298,9 +279,6 @@ describe("drilling", () => {
       roster,
       ourSide: 1,
       isFromFightStart: true,
-      turnsByCombatantId: new Map([[1, 1]]),
-      fightTurns: 1,
-      turnsWithoutActor: 0,
     };
 
     const view = composePanelView(reading, composeState({ focusCombatantId: 1 }));
@@ -334,9 +312,6 @@ describe("drilling", () => {
           roster,
           ourSide: 1,
           isFromFightStart: true,
-          turnsByCombatantId: new Map([[1, 1]]),
-          fightTurns: 1,
-          turnsWithoutActor: 0,
         },
         composeState({ focusCombatantId: 1 }),
       ).emptyText;
@@ -413,9 +388,6 @@ describe("zero and unknown are different sentences", () => {
       roster,
       ourSide: 1,
       isFromFightStart: true,
-      turnsByCombatantId: new Map([[1, 1]]),
-      fightTurns: 1,
-      turnsWithoutActor: 0,
     };
 
     expect(composePanelView(clean, composeState({ focusCombatantId: 4 })).emptyLimitText).toBeNull();
@@ -435,192 +407,6 @@ describe("zero and unknown are different sentences", () => {
 
     expect(view.emptyText).toBe("Nikt jej nie leczył.");
     expect(view.emptyLimitText).toBeNull();
-  });
-});
-
-describe("na turę", () => {
-  /**
-   * ⚠️ **Two divisors on one screen, and it is not a mistake.** The mage's rate
-   * is what they dealt over the two turns *they* took; the poison's is what it
-   * did over the fight's four, because there is nobody whose turns it could be
-   * divided by — which is the rule `getDivisor` states for a figure with no
-   * combatant behind it.
-   *
-   * The bar still measures against the ranking's scale rather than its own, or
-   * the row saying something is missing would draw full width whatever it came
-   * to.
-   */
-  test("what nobody can be charged with divides by the fight, not by anyone's turns", () => {
-    const view = composePanelView(composeReading(), composeState({ rate: "ownTurn" }));
-
-    expect(view.pinnedRow?.valueText).toBe("15,0/t");
-    expect(view.lists[0]!.rows[0]!.valueText).toBe("200,0/t");
-    expect(view.pinnedRow?.fill).toBeCloseTo(15 / 200, 5);
-  });
-
-  /**
-   * The switch has to mean the same thing at every level. A rate in the ranking
-   * over totals in the breakdown is two questions answered on one screen with
-   * nothing saying which is which.
-   */
-  test("divides the ranking, the breakdown, its total and the side summary", () => {
-    const totals = composePanelView(composeReading(), composeState({ focusCombatantId: 1 }));
-    const rates = composePanelView(
-      composeReading(),
-      composeState({ focusCombatantId: 1, rate: "ownTurn" }),
-    );
-
-    expect(totals.lists[0]!.totalText).not.toContain("/t");
-    expect(rates.lists[0]!.totalText).toContain("/t");
-    expect(rates.lists[0]!.rows.every((row) => row.valueText.endsWith("/t"))).toBe(true);
-
-    const sides = composePanelView(composeReading(), composeState({ rate: "ownTurn" })).sides;
-    expect(sides?.mineText).toContain("/t");
-    expect(sides?.enemyText).toContain("/t");
-  });
-
-  /**
-   * ⚠️ **The metric no longer picks the divisor, the reader does.**
-   *
-   * This replaces a test that guarded the opposite: dealt divided by the
-   * combatant's own turns and taken by the fight's, under one button labelled
-   * only `na turę`. Both figures were defensible and neither was named, so one
-   * switch meant two things on one screen. The mage struck 400 over the two turns
-   * they took; the thing they were fighting took 560 over the one turn it took and
-   * over the fight's four — now the divisor is a choice and every metric follows it.
-   */
-  test("na turę postaci divides every metric by that combatant's own turns", () => {
-    const dealt = composePanelView(composeReading(), composeState({ rate: "ownTurn" }));
-    expect(dealt.lists[0]!.rows[0]!.valueText).toBe("200,0/t");
-
-    const taken = composePanelView(
-      composeReading(),
-      composeState({ rate: "ownTurn", metric: "taken" }),
-    );
-    const victim = taken.lists[0]!.rows.find((row) => row.label === "coś dużego");
-    expect(victim?.valueText).toBe("560,0/t");
-  });
-
-  test("na turę walki divides every metric by the fight's turns", () => {
-    const dealt = composePanelView(composeReading(), composeState({ rate: "fightTurn" }));
-    expect(dealt.lists[0]!.rows[0]!.valueText).toBe("100,0/t");
-
-    const taken = composePanelView(
-      composeReading(),
-      composeState({ rate: "fightTurn", metric: "taken" }),
-    );
-    const victim = taken.lists[0]!.rows.find((row) => row.label === "coś dużego");
-    expect(victim?.valueText).toBe("140,0/t");
-  });
-
-  /**
-   * A combatant the turn axis says nothing about has no rate — and a rate of zero
-   * would put them at the bottom of the ranking as if they had acted and achieved
-   * nothing. Zero and unknown are two sentences (§9.6), and the bar goes to zero
-   * because a bar cannot say "unknown" at all.
-   */
-  test("a combatant with no turns of their own gets a mark, not a zero", () => {
-    const reading = composeReading({ turnsByCombatantId: new Map([[2, 1]]), fightTurns: 4 });
-    const view = composePanelView(reading, composeState({ rate: "ownTurn" }));
-    const mage = view.lists[0]!.rows.find((row) => row.label === "mag");
-
-    expect(mage?.valueText).toBe("—/t");
-    expect(mage?.fill).toBe(0);
-  });
-
-  /**
-   * ⚠️ **One unknown rate must not take every bar with it.** The bar scale is the
-   * largest figure on screen, and `Math.max(most, NaN)` is `NaN` — so a single
-   * combatant the axis cannot serve would blank the whole panel.
-   */
-  test("the bar scale ignores a row whose rate cannot be computed", () => {
-    const reading = composeReading({ turnsByCombatantId: new Map([[2, 1]]), fightTurns: 4 });
-    const rows = composePanelView(reading, composeState({ rate: "ownTurn" })).lists[0]!.rows;
-
-    expect(rows.every((row) => Number.isFinite(row.fill))).toBe(true);
-    expect(Math.max(...rows.map((row) => row.fill))).toBeCloseTo(1, 5);
-  });
-
-  /**
-   * ⚠️ **A side's turns are counted, never derived from the other side's.**
-   *
-   * The arithmetic this replaces was `fightTurns − mineTurns`, which handed the
-   * enemy every turn nobody was named for and every turn of a combatant the
-   * roster could not place — deflating their rate by exactly that much. Here the
-   * fight ran 10 turns, our side took 3 of them and theirs took 1, and the other 6
-   * belong to nobody: subtracting would divide what the enemy took by 7 instead of
-   * by 1, and report 80,0/t where the truth is 560,0/t.
-   */
-  test("each side divides by its own turns, not by the fight less the other's", () => {
-    const reading = composeReading({
-      turnsByCombatantId: new Map([
-        [1, 2],
-        [2, 1],
-        [3, 1],
-      ]),
-      fightTurns: 10,
-      turnsWithoutActor: 6,
-    });
-    const ownTurn = composeState({ rate: "ownTurn" });
-
-    // 500 dealt over the three turns our side took, not over the fight's ten.
-    expect(composePanelView(reading, ownTurn).sides?.mineText).toBe("166,7/t");
-    expect(composePanelView(reading, { ...ownTurn, metric: "taken" }).sides?.enemyText).toBe(
-      "560,0/t",
-    );
-  });
-
-  /**
-   * Both captured solo fights arrive in one payload, so the game states one turn
-   * ordinal and never another. There is nothing to divide by, and §9.6 says a
-   * number that might be wrong must never look like one that is right — so the
-   * panel offers no rate and says why rather than dividing by a substituted 1.
-   */
-  test("a fight the game never numbered offers no rate and says so", () => {
-    const reading = composeReading({
-      fightTurns: null,
-      turnsByCombatantId: new Map(),
-      turnsWithoutActor: 0,
-    });
-    // The choice outlives a fight, so this is the state a reader actually arrives
-    // in — having picked a rate in the fight before.
-    const view = composePanelView(reading, composeState({ rate: "fightTurn" }));
-
-    expect(view.rateTabs.map((tab) => tab.isEnabled)).toEqual([true, false, false]);
-    expect(view.rateTabs.find((tab) => tab.isSelected)?.rate).toBe("total");
-    expect(view.lists[0]!.rows.every((row) => !row.valueText.includes("/t"))).toBe(true);
-    expect(view.warnings.some((one) => one.includes("tylko sumy"))).toBe(true);
-    // The turn count on a row is a dash and not a zero: they certainly took some.
-    const turnsLine = view.lists[0]!.rows[0]!.detail.find(
-      (line) => line.kind === "stat" && line.label === "Tury",
-    );
-    expect(turnsLine).toEqual({ kind: "stat", label: "Tury", value: "—", isStrong: false });
-  });
-
-  /**
-   * The warning belongs where the consequence is (§9.6), and under `Sumy` nothing
-   * divides — so there is no consequence and no sentence.
-   */
-  test("turns nobody was seen taking are warned about only under a rate", () => {
-    const reading = composeReading({ turnsWithoutActor: 2 });
-    const hasWarning = (state: PanelState) =>
-      composePanelView(reading, state).warnings.some((one) =>
-        one.includes("nie widać, kto działał"),
-      );
-
-    expect(hasWarning(composeState({ rate: "ownTurn" }))).toBe(true);
-    expect(hasWarning(composeState({ rate: "fightTurn" }))).toBe(true);
-    expect(hasWarning(composeState())).toBe(false);
-  });
-
-  test("the share and the side bar stay on raw sums", () => {
-    const totals = composePanelView(composeReading(), composeState());
-    const rates = composePanelView(composeReading(), composeState({ rate: "ownTurn" }));
-
-    expect(rates.sides?.mineShare).toBe(totals.sides?.mineShare);
-    expect(rates.lists[0]!.rows[0]!.bracketText.startsWith("(83%")).toBe(
-      totals.lists[0]!.rows[0]!.bracketText.startsWith("(83%"),
-    );
   });
 });
 
@@ -652,21 +438,14 @@ describe("the words a player reads", () => {
   test("carry no word from the code and no key from the game", () => {
     const strings: string[] = [];
 
-    // Both readings, because the sentences a fight with no turn axis produces are
-    // reachable from no other state — and a warning is exactly the kind of string
-    // that starts explaining the reader our own problem.
-    for (const reading of [
-      composeReading(),
-      composeReading({ fightTurns: null, turnsByCombatantId: new Map(), turnsWithoutActor: 0 }),
-      composeReading({ turnsWithoutActor: 2 }),
-    ]) {
+    for (const reading of [composeReading()]) {
       for (const metric of PANEL_METRICS) {
         for (const team of PANEL_TEAMS) {
-          for (const rate of PANEL_RATES) {
-            const base = composeState({ metric, team, rate });
+          {
+            const base = composeState({ metric, team });
             strings.push(...getEveryString(composePanelView(reading, base)));
             for (const focusCombatantId of reading.statistics.byCombatantId.keys()) {
-              const inside = composeState({ metric, team, rate, focusCombatantId });
+              const inside = composeState({ metric, team, focusCombatantId });
               strings.push(...getEveryString(composePanelView(reading, inside)));
               strings.push(
                 ...getEveryString(composePanelView(reading, { ...inside, focusTargetId: 3 })),
@@ -731,9 +510,6 @@ describe("against the captured fights", () => {
          * only make a rate look checked when the only thing checked was the
          * arithmetic of a figure nobody read off a capture.
          */
-        turnsByCombatantId: new Map(),
-        fightTurns: null,
-        turnsWithoutActor: 0,
       } satisfies PanelReading,
     };
   });
@@ -815,13 +591,8 @@ describe("what a bar's length says", () => {
     expect(largest.fill).toBe(1);
   });
 
-  /**
-   * Under a rate the biggest total is not the biggest figure: somebody who acted
-   * twice can out-rate the row above them, and a bar measured against the total
-   * would run past the end of its own row.
-   */
-  test("a rate measures against the biggest rate, not the biggest total", () => {
-    const view = composePanelView(composeReading(), composeState({ rate: "ownTurn" }));
+  test("every bar is measured against the biggest figure on screen", () => {
+    const view = composePanelView(composeReading(), composeState());
 
     for (const row of view.lists[0]!.rows) expect(row.fill).toBeLessThanOrEqual(1);
     expect(view.lists[0]!.rows.some((row) => row.fill === 1)).toBe(true);

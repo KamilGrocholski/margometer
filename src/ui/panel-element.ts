@@ -31,7 +31,6 @@ import type {
   PanelDetailLine,
   PanelList,
   PanelMetric,
-  PanelRate,
   PanelRow,
   PanelTeam,
   PanelView,
@@ -98,7 +97,6 @@ export type PanelDocument = {
 export type PanelHandlers = {
   onMetricChosen?: ((metric: PanelMetric) => void) | undefined;
   onTeamChosen?: ((team: PanelTeam) => void) | undefined;
-  onRateChosen?: ((rate: PanelRate) => void) | undefined;
   /** A row was clicked. The key is the view's own — see `PanelRow`. */
   onRowChosen?: ((key: string) => void) | undefined;
   /** One level back, from anywhere in the panel. */
@@ -239,10 +237,6 @@ export function composePanelStyleText(): string {
   user-select: none;
 }
 .tab.selected { color: ${t.text}; background: ${t.surfaceRaised}; }
-/* Dimmed and no longer a pointer: this fight has no turn axis, so there is no rate
-   to switch to. The warning below the list is what says why — the dimming alone
-   would be colour carrying a meaning (§9.7). */
-.tab.disabled { opacity: 0.5; cursor: default; }
 .crumb { display: flex; gap: ${t.space}; align-items: baseline; padding: ${t.spaceRegion}; padding-bottom: 0; }
 .crumb-back { cursor: pointer; color: ${t.textQuiet}; }
 .crumb-back:hover { color: ${t.text}; }
@@ -556,7 +550,6 @@ export function renderPanel(
    */
   const metricByTab = new Map<unknown, PanelMetric>();
   const teamByTab = new Map<unknown, PanelTeam>();
-  const rateByTab = new Map<unknown, PanelRate>();
   const rowsByNode = new Map<unknown, string>();
 
   // The handler catches its own. An add-on that breaks the game's scripts has
@@ -578,8 +571,6 @@ export function renderPanel(
 
     // A tab the view disabled was never put in the map, so it falls through to
     // the rows and fires nothing — no branch here, and nothing to forget.
-    const rate = rateByTab.get(event.target);
-    if (rate !== undefined) return handleGuarded(() => handlers.onRateChosen?.(rate));
 
     const key = rowsByNode.get(event.target);
     if (key !== undefined) return handleGuarded(() => handlers.onRowChosen?.(key));
@@ -633,28 +624,6 @@ export function renderPanel(
       button.className = tab.isSelected ? "tab selected" : "tab";
       button.textContent = tab.label;
       teamByTab.set(button, tab.team);
-      tabs.append(button);
-    }
-    return tabs;
-  });
-
-  /**
-   * A strip of its own, below the other two.
-   *
-   * The first two say *what* is counted and *who* is counted; this one says how
-   * the figure reads, which is why it stood apart even as a single button. It is a
-   * row rather than a corner of one because the three labels name their divisors
-   * — measured, about 205px against the 244px the panel has — and a label short
-   * enough to share the sides row would be back to a `/t` nobody can attribute.
-   */
-  renderRegionInto(document, panel, handlers, "tempo", () => {
-    const tabs = document.createElement("div");
-    tabs.className = "tabs rate-of";
-    for (const tab of view.rateTabs) {
-      const button = document.createElement("div");
-      button.className = `tab tab-rate${tab.isSelected ? " selected" : ""}${tab.isEnabled ? "" : " disabled"}`;
-      button.textContent = tab.label;
-      if (tab.isEnabled) rateByTab.set(button, tab.rate);
       tabs.append(button);
     }
     return tabs;

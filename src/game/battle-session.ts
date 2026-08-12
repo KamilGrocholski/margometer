@@ -29,12 +29,6 @@ import {
   composeMergedCombatants,
   getOurSideFromBattle,
 } from "@/src/game/engine-roster.ts";
-import {
-  composeEmptyTurnAxis,
-  composeNextTurnAxis,
-  composeTurnCounts,
-  type TurnAxis,
-} from "@/src/game/turn-axis.ts";
 
 export type BattleSession = {
   /** Every message of this fight, in arrival order. */
@@ -59,15 +53,6 @@ export type BattleSession = {
    * nothing here compares fights, it only has to change when one does.
    */
   fightsStarted: number;
-  /**
-   * The fight's turns, as the game numbers them.
-   *
-   * **The only thing in the payload envelope the panel needs and the messages do
-   * not carry**, so it is read here rather than in `core`: it is not in a message,
-   * it is the envelope the engine call arrived in, which is this layer's business.
-   * What a turn is and how far the reading can be trusted is `turn-axis.ts`.
-   */
-  turnAxis: TurnAxis;
   /**
    * The fight decoded, kept rather than redone.
    *
@@ -104,7 +89,6 @@ export function composeEmptySession(): BattleSession {
     ourSide: null,
     isFromFightStart: false,
     fightsStarted: 0,
-    turnAxis: composeEmptyTurnAxis(),
     events: [],
     decodedWithCombatants: 0,
     lastMessage: null,
@@ -171,7 +155,6 @@ export function composeNextSession(
   const previous = starting ? composeEmptySession() : session;
 
   const stated = getOurSideFromBattle(payload);
-  const turnAxis = composeNextTurnAxis(previous.turnAxis, payload, messages);
   const combatants = composeMergedCombatants(
     previous.combatants,
     composeCombatantsFromBattle(payload),
@@ -189,19 +172,16 @@ export function composeNextSession(
    *
    * Every part of it is by identity, and every part of it is exact: the merge
    * hands back the list it was given when a fragment said nothing new
-   * (`composeMergedCombatants`), and `composeNextTurnAxis` hands back its own axis
-   * when the turn did not move.
+   * (`composeMergedCombatants`).
    */
   const changedNothing =
     !starting &&
     messages.length === 0 &&
     combatants === previous.combatants &&
-    turnAxis === previous.turnAxis &&
     (stated ?? previous.ourSide) === previous.ourSide;
   if (changedNothing) return previous;
 
   return {
-    turnAxis,
     messages: [...previous.messages, ...messages],
     combatants,
     events: composeNextEvents(previous, messages, combatants),
@@ -232,19 +212,6 @@ export type FightReading = {
   isFromFightStart: boolean;
   /** Changes when a new fight opens, so a warning can be scoped to one (§9.6). */
   fightsStarted: number;
-  /**
-   * Turns taken, per combatant and by the whole fight, and the ones nobody was
-   * named for.
-   *
-   * All three, because the reader picks the divisor and each answer needs its
-   * qualification: a combatant's own turns answer "how much per action", the
-   * fight's answer "how much per turn of anyone's", and the third says how much of
-   * the second nobody could be placed in — without which the first two look
-   * complete when they are not (`turn-axis.ts`).
-   */
-  turnsByCombatantId: ReadonlyMap<number, number>;
-  fightTurns: number | null;
-  turnsWithoutActor: number;
 };
 
 /**
@@ -262,7 +229,6 @@ export function composeFightReading(session: BattleSession): FightReading {
     roster,
     ourSide: session.ourSide,
     isFromFightStart: session.isFromFightStart,
-    ...composeTurnCounts(session.turnAxis),
     fightsStarted: session.fightsStarted,
   };
 }

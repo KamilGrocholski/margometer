@@ -1626,12 +1626,9 @@ figure anything totals. `step` in particular is **not** read as a turn boundary:
 what is read is that the message stated `step` about a combatant, which is all
 the protocol says.
 
-⚠️ **A turn is not found in any key of these, or of any other.** What marks one
-is which combatant is speaking, and how that is read is
-`docs/specs/2026-08-12-turns-the-messages-carry.md`. Two of the keys here bear on
-it, and only through their sides: `step` and `prepare` name an actor, so they sit
-inside that combatant's turn, while `txt` and `+exp` name nobody and so open no
-turn at all.
+⚠️ **A turn is not found in any key of these, or of any other** — measured over
+every capture, against the 236 keys the client branches on. Nothing here counts
+turns, and the panel no longer divides by them.
 
 ### `step` — decoded
 
