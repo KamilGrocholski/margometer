@@ -476,7 +476,7 @@ export function composePanelMount(
     if (latest === null) return;
     renderPanelInto(document, container, composePanelView(latest, state), {
       onMetricChosen: (chosen) =>
-        setState({ metric: chosen, focusTargetId: null, focusSkillKey: null }),
+        setState({ metric: chosen, focusTargetId: null, focusSkill: null }),
       onTeamChosen: (chosen) => setState({ team: chosen }),
       onPerTurnToggled: () => setState({ perTurn: !state.perTurn }),
       onRowChosen: (key) => setState(composeStateFromRow(state, key)),
@@ -527,20 +527,37 @@ export function composeStateFromRow(state: PanelState, key: string): Partial<Pan
     const id = getIntegerFromText(rest);
     // A row whose id will not read is a row that leads nowhere, rather than one
     // that opens somebody else's breakdown.
-    return id === null ? {} : { focusCombatantId: id, focusTargetId: null, focusSkillKey: null };
+    return id === null ? {} : { focusCombatantId: id, focusTargetId: null, focusSkill: null };
   }
   if (kind === "target") {
     const id = getIntegerFromText(rest);
-    return id === null ? {} : { focusTargetId: id, focusSkillKey: null };
+    return id === null ? {} : { focusTargetId: id, focusSkill: null };
   }
-  if (kind === "skill") return { focusSkillKey: rest, focusTargetId: null };
+  if (kind === "skill") {
+    /**
+     * The owner is split off the front and whatever follows is taken whole: a
+     * skill's own key is the game's id where it stated one and the skill's
+     * **name** where it did not, so it can carry anything, including a colon.
+     *
+     * ⚠️ The guard is load-bearing rather than defensive. Without it a key we did
+     * not compose slices as `rest.slice(0, -1)`, which turns `78` into the owner
+     * id `7` — a row that quietly opens somebody else's figures, which is the
+     * whole defect this shape exists to end.
+     */
+    const divider = rest.indexOf(":");
+    if (divider < 0) return {};
+    const ownerId = getIntegerFromText(rest.slice(0, divider));
+    return ownerId === null
+      ? {}
+      : { focusSkill: { ownerId, key: rest.slice(divider + 1) }, focusTargetId: null };
+  }
   return {};
 }
 
 /** One level out, and only one: the way back is as small a step as the way in. */
 export function composeStateAfterBack(state: PanelState): Partial<PanelState> {
-  if (state.focusTargetId !== null || state.focusSkillKey !== null) {
-    return { focusTargetId: null, focusSkillKey: null };
+  if (state.focusTargetId !== null || state.focusSkill !== null) {
+    return { focusTargetId: null, focusSkill: null };
   }
   return { focusCombatantId: null };
 }

@@ -69,7 +69,21 @@ export type PanelState = {
   /** Whose breakdown is open, and how far into it. */
   focusCombatantId: number | null;
   focusTargetId: number | null;
-  focusSkillKey: string | null;
+  /**
+   * Which skill is open, and **whose**.
+   *
+   * The owner travels with the key because a key alone does not identify one:
+   * two combatants announcing the same skill share it, and under `Leczenie` the
+   * section is built from everybody else's skills, so the row that was clicked
+   * belongs to somebody other than the combatant in focus. Measured on the group
+   * capture — two combatants both announce `Leczenie ran` and both heal the same
+   * target, 11 733 and 10 204 — and picking the first match opened the wrong one.
+   *
+   * One pair rather than two loose fields: two optionals that must be set and
+   * cleared together are an invariant five call sites have to remember, and §9.5
+   * puts an assumption like that in the type instead.
+   */
+  focusSkill: { ownerId: number; key: string } | null;
   isCollapsed: boolean;
 };
 
@@ -80,7 +94,7 @@ export function composeDefaultState(): PanelState {
     perTurn: false,
     focusCombatantId: null,
     focusTargetId: null,
-    focusSkillKey: null,
+    focusSkill: null,
     isCollapsed: false,
   };
 }
@@ -783,10 +797,22 @@ function composeSkillEntries(
   if (state.metric === "taken") return [];
 
   const entries: BreakdownEntry[] = [];
-  const setEntry = (key: string, skill: SkillStatistics, amount: number): void => {
+  /**
+   * The owner rides in the key, in both metrics.
+   *
+   * Under `Zadane` it is always the combatant in focus and looks redundant; one
+   * shape of key is still worth more than two, because the entry point parses it
+   * and a second shape is a second parser to keep honest.
+   */
+  const setEntry = (
+    ownerId: number,
+    key: string,
+    skill: SkillStatistics,
+    amount: number,
+  ): void => {
     if (amount <= 0) return;
     entries.push({
-      key: `skill:${key}`,
+      key: `skill:${composeIntegerText(ownerId)}:${key}`,
       label: skill.skillName,
       profession: null,
       colour: UNKNOWN_COLOUR,
@@ -799,12 +825,12 @@ function composeSkillEntries(
 
   if (state.metric === "dealt") {
     for (const [key, skill] of getRow(reading, combatantId).skills) {
-      setEntry(key, skill, skill.dealtApplied);
+      setEntry(combatantId, key, skill, skill.dealtApplied);
     }
   } else {
-    for (const row of reading.statistics.byCombatantId.values()) {
+    for (const [ownerId, row] of reading.statistics.byCombatantId) {
       for (const [key, skill] of row.skills) {
-        setEntry(key, skill, skill.healedByCombatantId.get(combatantId) ?? 0);
+        setEntry(ownerId, key, skill, skill.healedByCombatantId.get(combatantId) ?? 0);
       }
     }
   }
@@ -894,12 +920,11 @@ const SOURCE_HEADINGS: Record<PanelMetric, string> = {
 function composeDeepList(reading: PanelReading, state: PanelState, combatantId: number): PanelList | null {
   const divisor = state.perTurn ? getDivisor(reading, combatantId, state.metric) : 1;
 
-  if (state.focusSkillKey !== null) {
-    const owner =
-      state.metric === "healed"
-        ? [...reading.statistics.byCombatantId.values()].find((row) => row.skills.has(state.focusSkillKey ?? ""))
-        : getRow(reading, combatantId);
-    const skill = owner?.skills.get(state.focusSkillKey);
+  if (state.focusSkill !== null) {
+    // The owner is stated rather than searched for. Looking the key up across
+    // every row and taking the first match was a coin toss whenever two
+    // combatants announced the same skill, which the group capture does.
+    const skill = getRow(reading, state.focusSkill.ownerId).skills.get(state.focusSkill.key);
     if (skill === undefined) return null;
 
     const pairs =
@@ -1157,13 +1182,17 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
     };
   }
 
-  const deep = state.focusTargetId !== null || state.focusSkillKey !== null;
+  const deep = state.focusTargetId !== null || state.focusSkill !== null;
   const crumb: PanelCrumb = deep
     ? {
         backLabel: `‹ ${getName(reading, focusId)}`,
         hereLabel:
-          state.focusSkillKey !== null
-            ? (getRow(reading, focusId).skills.get(state.focusSkillKey)?.skillName ?? "umiejętność")
+          state.focusSkill !== null
+            ? // Off the owner's row, not the focused one: under `Leczenie` the
+              // skill belongs to whoever healed, and reading it off the combatant
+              // being healed found nothing and said `umiejętność` instead.
+              (getRow(reading, state.focusSkill.ownerId).skills.get(state.focusSkill.key)
+                ?.skillName ?? "umiejętność")
             : getName(reading, state.focusTargetId ?? focusId),
         profession: null,
       }

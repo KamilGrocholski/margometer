@@ -18,8 +18,14 @@ import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-atta
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
 import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
 import {
+  composeDefaultState,
+  composePanelView,
+  PANEL_METRICS,
+} from "@/src/ui/panel-view.ts";
+import {
   composePanelMount,
   composeReportText,
+  composeStateFromRow,
   setMargoMeter,
   shouldStartHere,
   writeCaptureToPage,
@@ -813,6 +819,84 @@ describe("the world a saved recording names", () => {
       expect(getNames()[0], JSON.stringify(location)).toMatch(/^margometer-unknown-/);
     }
   });
+});
+
+/**
+ * The property the drill exists for: a row opens the figures it showed, under
+ * the name it showed.
+ *
+ * `panel-view.test.ts` holds "every section totals the row above it" one level
+ * up. This is the level below, and it needs the entry point rather than `ui`
+ * alone, because what a click *means* is decided here — the row key is composed
+ * in one file and read in another, and nothing until now checked that the two
+ * agree.
+ */
+describe("what a click does to the drill", () => {
+  function composeReadingOfCapture(fight: (typeof CAPTURED_FIGHTS)[number]): FightReading {
+    const roster = composeRosterOfFight(fight);
+    const messages = fight.dump.calls.flatMap((call) => call.protocolMessages);
+    return {
+      statistics: composeFightStatistics(decodeFight(messages, roster), roster),
+      roster,
+      turnsByCombatantId: new Map(),
+      fightTurns: 1,
+      ourSide: null,
+      isFromFightStart: true,
+      fightsStarted: 1,
+    };
+  }
+
+  /**
+   * Every drillable row of every breakdown, in every metric — which is the only
+   * way a collision between two combatants' rows shows up at all. Two healers
+   * announcing the same skill produced two rows the panel could not tell apart,
+   * and a sweep of one combatant would never have met the second one.
+   */
+  test.each(CAPTURED_FIGHTS)("$name opens what each row promised", (fight) => {
+    const reading = composeReadingOfCapture(fight);
+    let drilled = 0;
+
+    for (const metric of PANEL_METRICS) {
+      for (const focusCombatantId of reading.statistics.byCombatantId.keys()) {
+        const state = { ...composeDefaultState(), metric, focusCombatantId };
+        const view = composePanelView(reading, state);
+
+        for (const list of view.lists) {
+          for (const row of list.rows) {
+            if (!row.canDrill) continue;
+            drilled += 1;
+            const deep = composePanelView(reading, {
+              ...state,
+              ...composeStateFromRow(state, row.key),
+            });
+
+            const where = `${metric} ${composeIntegerText(focusCombatantId)} ${row.key}`;
+            expect(deep.lists[0]?.totalText, where).toBe(row.valueText);
+            expect(deep.crumb?.hereLabel, where).toBe(row.label);
+          }
+        }
+      }
+    }
+
+    expect(drilled).toBeGreaterThan(0);
+  });
+
+  /**
+   * ⚠️ A key we did not compose leads nowhere, rather than somewhere wrong.
+   *
+   * `skill:78` carries no owner, and slicing it as though it did turns `78` into
+   * the owner id `7` — a row silently opening a combatant nobody clicked, which
+   * is the shape of the defect this key was widened to end.
+   */
+  test("a skill key with no owner in it opens nothing", () => {
+    const state = { ...composeDefaultState(), focusCombatantId: 445202, metric: "healed" as const };
+
+    expect(composeStateFromRow(state, "skill:78")).toEqual({});
+    expect(composeStateFromRow(state, "skill:nonsense")).toEqual({});
+    // The owner has to read as a number, the same rule the other two kinds use.
+    expect(composeStateFromRow(state, "skill:abc:78")).toEqual({});
+  });
+
 });
 
 /**
