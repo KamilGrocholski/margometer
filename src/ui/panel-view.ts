@@ -244,6 +244,7 @@ const EFFECT_NAMES: Record<string, string> = {
   freeze: "zamrożenie",
   legbon_curse: "klątwa",
   legbon_cleanse: "oczyszczenie",
+  legbon_glare: "oślepienie",
   "superspell-dispel": "rozproszenie zaklęcia",
   acdmg_destroyed: "zniszczony pancerz",
   tenacity: "wytrwałość",
@@ -269,6 +270,7 @@ const HEALTH_SOURCE_NAMES: Record<string, string> = {
   heal: "leczenie",
   heal_target: "leczenie na wskazanego",
   legbon_holytouch_heal: "leczenie z efektu",
+  legbon_lastheal: "leczenie ratunkowe",
 };
 
 /**

@@ -141,6 +141,40 @@ export type DamageToNamedCombatantEvent = {
 };
 
 /**
+ * Healing the protocol reports against a **name** rather than an id, on a
+ * message whose actor and target are somebody else's fight.
+ *
+ * The mirror of `DamageToNamedCombatantEvent` and separate from it for the
+ * reason that variant exists at all: the figure belongs to a combatant the
+ * message does not put in either slot, so it needs the name and what a roster
+ * could make of it. Splitting healing from damage rather than signing one
+ * variant follows the protocol — the two arrive under keys with nothing in
+ * common, and the client reads their values differently.
+ *
+ * **No actor, and that is a claim.** The message's actor is whoever struck the
+ * blow this rode in on, and crediting them with the healing would be inventing a
+ * healer the log does not name (§5). The help says the effect is the *holder's*
+ * own and the holder is the one healed, which would make it a self-heal — but
+ * that is documentation about a mechanic, not something the protocol states, and
+ * `docs/protocol-keys.md` keeps the two apart.
+ *
+ * **No announcement either.** This fires on damage taken, not on a skill used,
+ * so gluing it to the announcement standing over the message would credit the
+ * attacker's skill with healing its own victim.
+ */
+export type HealingToNamedCombatantEvent = {
+  kind: "healing-to-named-combatant";
+  targetName: string;
+  /** Who that name belongs to, once a roster could say — null on all three ways it cannot. */
+  targetId: number | null;
+  /** Health the protocol states for that combatant once this healing is in. */
+  targetHealthPercent: number | null;
+  amount: number;
+  /** The protocol key as written, so a row can say which effect restored this. */
+  source: string;
+};
+
+/**
  * Health that moved outside an attack.
  *
  * One variant for healing and for damage over time, because the protocol tells
@@ -368,6 +402,7 @@ export type UnknownMessageEvent = {
 export type BattleEvent =
   | AttackEvent
   | DamageToNamedCombatantEvent
+  | HealingToNamedCombatantEvent
   | HealthChangeEvent
   | SkillUsedEvent
   | DeclarationEvent
@@ -383,6 +418,7 @@ export type BattleEvent =
 export const BATTLE_EVENT_KINDS = [
   "attack",
   "damage-to-named-combatant",
+  "healing-to-named-combatant",
   "health-change",
   "skill-used",
   "declaration",

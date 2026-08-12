@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { composeDecimalText } from "@/libs/number.ts";
+import type { BattleEvent } from "@/src/core/battle-event.ts";
 import {
   decodeFight,
   UNATTRIBUTABLE_HEALTH_KEYS,
@@ -9,6 +10,7 @@ import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
   CAPTURED_FIGHTS,
   composeRosterFromSnapshots,
+  composeRosterOfFight,
   type CapturedFight,
 } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
@@ -140,6 +142,21 @@ function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[
         }
       }
 
+      // The other direction of the same shape, and it moves health the same way
+      // the keys above do. Kept beside them rather than left out because a
+      // capture carrying it *and* an opening snapshot would otherwise disagree
+      // by exactly the healing, and blame the game for it.
+      for (const event of events) {
+        if (event.kind !== "healing-to-named-combatant") continue;
+        if (event.targetId === null) continue;
+        if (runningHealth.has(event.targetId)) {
+          runningHealth.set(
+            event.targetId,
+            (runningHealth.get(event.targetId) ?? 0) + event.amount,
+          );
+        }
+      }
+
       for (const side of [parsed.actor, parsed.target]) {
         if (side === null || side.healthPercent === null) continue;
         // A combatant that died clamps at zero, so the overkill is invisible and
@@ -224,26 +241,60 @@ describe("every health verdict in the register is one the captures still refuse"
 });
 
 /**
- * The replay subtracts damage stated against a name only because every such name
- * in this material resolves to exactly one combatant. That is a property of the
+ * The replay moves health stated against a name only because every such name in
+ * this material resolves to exactly one combatant. That is a property of the
  * captures, not a law — two combatants sharing a name do occur here, just never
- * as the victim of this key — so it is checked rather than relied on.
+ * as the subject of these keys — so it is checked rather than relied on.
+ *
+ * ⚠️ **Over the calls the replay can use, which is not all of them.** A call
+ * whose opening snapshot is empty gives the decoder no roster and the replay no
+ * health to run down, so it produces no comparison and an unresolved name there
+ * costs nothing. The duel capture is entirely of that kind: its whole fight
+ * arrives in one call, and its six named figures are held by the guard below
+ * instead — against the roster the live session accumulates, which is where
+ * they do have to resolve.
  */
-describe("damage stated against a name", () => {
-  const named = CAPTURED_FIGHTS.flatMap((fight) =>
-    fight.dump.calls.flatMap((call) =>
-      decodeFight(call.protocolMessages, composeRosterFromSnapshots(call.combatantsBefore)).filter(
-        (event) => event.kind === "damage-to-named-combatant",
+function isNamedSubject(event: BattleEvent): boolean {
+  return event.kind === "damage-to-named-combatant" || event.kind === "healing-to-named-combatant";
+}
+
+function getNamedSubjectId(event: BattleEvent): number | null {
+  return isNamedSubject(event) && "targetId" in event ? event.targetId : null;
+}
+
+describe("health stated against a name", () => {
+  const replayed = CAPTURED_FIGHTS.flatMap((fight) =>
+    fight.dump.calls
+      .filter((call) => call.combatantsBefore.length > 0)
+      .flatMap((call) =>
+        decodeFight(
+          call.protocolMessages,
+          composeRosterFromSnapshots(call.combatantsBefore),
+        ).filter(isNamedSubject),
       ),
-    ),
   );
 
   test("occurs at all", () => {
-    expect(named.length).toBeGreaterThan(0);
+    expect(replayed.length).toBeGreaterThan(0);
   });
 
-  test("names a combatant the roster can identify, every time", () => {
-    const unresolved = named.filter((event) => event.targetId === null).map((e) => e.targetName);
-    expect(unresolved).toEqual([]);
+  test("names a combatant the replay's own roster can identify, every time", () => {
+    expect(replayed.filter((event) => getNamedSubjectId(event) === null)).toEqual([]);
+  });
+
+  /**
+   * And the same over the whole corpus, against the roster a running fight
+   * holds: the session merges what every payload states, so nothing there is
+   * hostage to which call a figure happened to land in.
+   */
+  const live = CAPTURED_FIGHTS.flatMap((fight) =>
+    fight.dump.calls.flatMap((call) =>
+      decodeFight(call.protocolMessages, composeRosterOfFight(fight)).filter(isNamedSubject),
+    ),
+  );
+
+  test("resolves against the roster of the whole fight, in every capture", () => {
+    expect(live.length).toBeGreaterThan(replayed.length);
+    expect(live.filter((event) => getNamedSubjectId(event) === null)).toEqual([]);
   });
 });

@@ -47,7 +47,9 @@ describe("over every captured message", () => {
   // be about the fight itself — its outcome, the experience it paid out, and
   // free-text notices. Keeping the list closed makes a new kind of sideless
   // message fail here instead of being silently ignored by the decoder.
-  const FIGHT_LEVEL_KEYS = ["winner", "loser", "+exp", "txt"];
+  // `+ph` joined them with the first duel between two players: what the winner
+  // is paid is a fact about the fight and about neither combatant's row.
+  const FIGHT_LEVEL_KEYS = ["winner", "loser", "+exp", "txt", "+ph"];
 
   test("a message that names no side carries only fight-level keys", () => {
     const unexpected: string[] = [];

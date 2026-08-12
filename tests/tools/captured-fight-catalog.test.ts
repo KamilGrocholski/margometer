@@ -59,13 +59,40 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
       }
     });
 
+    /**
+     * Not every combatant, and the missing ones are the point: a capture whose
+     * first snapshot follows the whole fight witnesses the loser at zero, and a
+     * zero is refused rather than reported as the health they entered with
+     * (`tools/fight-dump-parser.ts`). What is held is that whoever is in the map
+     * is in it with a figure a combatant could actually have started on.
+     */
     test("carries the health each combatant started the fight with", () => {
-      expect(fight.startingHealthByCombatantId.size).toBe(fight.maximumHealthByCombatantId.size);
+      expect(fight.startingHealthByCombatantId.size).toBeGreaterThan(0);
+      expect(fight.startingHealthByCombatantId.size).toBeLessThanOrEqual(
+        fight.maximumHealthByCombatantId.size,
+      );
       for (const [id, starting] of fight.startingHealthByCombatantId) {
         expect(starting, `combatant ${id}`).toBeGreaterThan(0);
         expect(starting, `combatant ${id}`).toBeLessThanOrEqual(
           fight.maximumHealthByCombatantId.get(id) ?? 0,
         );
+      }
+    });
+
+    // And nobody is left out for any other reason: the withheld ones are exactly
+    // those this capture never saw alive, which is checkable against the
+    // snapshots rather than against a count somebody keeps up to date.
+    test("withholds it only for a combatant it never saw alive", () => {
+      const withheld = [...fight.maximumHealthByCombatantId.keys()].filter(
+        (id) => !fight.startingHealthByCombatantId.has(id),
+      );
+      for (const id of withheld) {
+        const alive = fight.dump.calls.flatMap((call) =>
+          [...call.combatantsBefore, ...call.combatantsAfter].filter(
+            (combatant) => combatant.id === id && combatant.health.current > 0,
+          ),
+        );
+        expect(alive, `combatant ${id}`).toEqual([]);
       }
     });
 

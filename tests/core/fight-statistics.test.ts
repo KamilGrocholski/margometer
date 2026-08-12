@@ -503,6 +503,21 @@ test("the material contains a blow carrying more than one damage figure", () => 
 });
 
 /**
+ * The split is only worth counting where the material has both kinds, and one
+ * capture has neither half: every blow in the duel is announced, all 41 of them.
+ * So the "both kinds exist" half sits over the whole corpus, beside the
+ * multiple-figures guard above and for the same reason, while the arithmetic
+ * below stays per fight where it belongs.
+ */
+test("the material contains a blow nobody announced", () => {
+  const plain = FROM_CAPTURES.flatMap(({ events }) =>
+    events.filter((event) => event.kind === "attack" && event.announced === null),
+  );
+
+  expect(plain.length).toBeGreaterThan(0);
+});
+
+/**
  * Blows nobody announced, which is most of what happens.
  *
  * Measured: 8 of 8 in the solo capture, and 21 of 31 for one hunter in the group
@@ -516,9 +531,6 @@ describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
       if (event.kind !== "attack" || event.actorId === null || event.announced !== null) continue;
       plain.set(event.actorId, (plain.get(event.actorId) ?? 0) + 1);
     }
-
-    // The material has to contain both kinds, or the split proves nothing.
-    expect([...plain.values()].reduce((sum, one) => sum + one, 0)).toBeGreaterThan(0);
 
     for (const [id, row] of statistics.byCombatantId) {
       expect(row.blowsWithoutSkill, composeIntegerText(id)).toBe(plain.get(id) ?? 0);

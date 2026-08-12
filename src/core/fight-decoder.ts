@@ -6,6 +6,7 @@ import type {
   BattleEvent,
   DamageAmount,
   DamageToNamedCombatantEvent,
+  HealingToNamedCombatantEvent,
   HealthChangeEvent,
   PreventedDamage,
   DeclaredEffect,
@@ -125,6 +126,57 @@ function decodeDamageToNamedCombatant(
 }
 
 /**
+ * Healing stated against a name, and the one key that does it.
+ *
+ * **Two members, in the order the client reads them**: production build
+ * `1786514810315` splits this value on the comma and renders `%val%` from the
+ * second member and `%val2%` from the first — so the figure comes first and the
+ * name second, the opposite way round from `+oth_dmg`, which is why this cannot
+ * share that reader.
+ *
+ * The percentage the name carries is the combatant's health with this healing
+ * already in: measured on the one occurrence the material holds, a target at
+ * 25.32% of 19047 took 1633 and ends the message at 63.00%, which is
+ * 4823 − 1633 + 8810. The help documents the effect firing below 18% of the pool
+ * (article view,372, engine name `lastheal`, read 2026-08-12), and 3190 is
+ * 16.75% — so both halves of the rule close on our own material.
+ */
+const HEALING_TO_NAMED_KEY = "legbon_lastheal";
+
+function decodeHealingToNamedCombatant(
+  key: string,
+  value: string | null,
+  roster: CombatantRoster | null,
+): HealingToNamedCombatantEvent | null {
+  if (value === null) return null;
+
+  const [rawAmount, rawName] = value.split(VALUE_SEPARATOR);
+  if (rawAmount === undefined || rawName === undefined) return null;
+
+  const amount = getIntegerFromText(rawAmount);
+  // Healing that took health away would be this reader misunderstanding its own
+  // key, not the game reporting a loss — the loss keys are elsewhere.
+  if (amount === null || amount < 0) return null;
+
+  const named = NAMED_WITH_PERCENT.exec(rawName);
+  const targetName = named === null ? rawName : (named[1] ?? "");
+  if (targetName === "") return null;
+
+  const rawPercent = named?.[2];
+  const targetHealthPercent = rawPercent === undefined ? null : getDecimalFromText(rawPercent);
+  if (rawPercent !== undefined && targetHealthPercent === null) return null;
+
+  return {
+    kind: "healing-to-named-combatant",
+    targetName,
+    targetId: roster === null ? null : getCombatantIdByName(roster, targetName),
+    targetHealthPercent,
+    amount,
+    source: key,
+  };
+}
+
+/**
  * Health moving outside an attack: which way it goes, and which slot holds the
  * combatant it happens to.
  *
@@ -206,6 +258,13 @@ const PROC_KEYS = [
   // captures agree — neither ever arrives carrying a value.
   "+fastarrow",
   "-contra",
+  // The sibling `+legbon_curse` was recorded as the one a later capture would
+  // arrive carrying, and it has. Settled the same way as the twelve above, on
+  // production build 1786514810315: `msg_-legbon_glare` is composed with no
+  // `%val%` hole, and the help documents it as an event rather than a figure —
+  // the holder, on taking a hit, costs the opponent their next action (article
+  // view,372, engine name `glare`, read 2026-08-12).
+  "-legbon_glare",
 ];
 
 /**
@@ -299,6 +358,11 @@ const BLOW_DECLARATION_KEYS = [
   // Both ride a critical hit in every occurrence the captures carry.
   "+engback",
   "+critslow_per",
+  // Energy again, and taken rather than given back: the help documents `endest`
+  // as destroying a fixed number of the opponent's energy points (article
+  // view,372, read 2026-08-12), and production build 1786514810315 composes it
+  // as `msg_-endest %val%`. Energy is a unit no total here keeps.
+  "-endest",
   // Neither states health: measured, every occurrence either sits on a message
   // where both sides state a percentage the decoded damage reproduces exactly, or
   // on a call the team heal makes uncomparable. What `-legbon_facade` counts is
@@ -385,6 +449,11 @@ const STANDALONE_DECLARATION_KEYS = [
   "poison_lowdmg_per-enemies",
   // Energy regained, stated on its own and in a unit no total here keeps.
   "en-regen",
+  // What the winner of a duel is paid, in a currency held outside the fight: the
+  // help gives it a section of its own (view,372 at the heading "Punkty
+  // Honoru", read 2026-08-12) and the client composes it as `msg_+ph %val%`, production build
+  // 1786514810315. It states no side, which is why it belongs here.
+  "+ph",
 ];
 
 /**
@@ -415,6 +484,7 @@ export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   SKILL_NAME_KEY,
   SKILL_ID_KEY,
   DAMAGE_TO_NAMED_KEY,
+  HEALING_TO_NAMED_KEY,
 ];
 
 type MessageReading = {
@@ -465,6 +535,13 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
       );
       if (damage === null) unreadKeys.push(key);
       else events.push(damage);
+      continue;
+    }
+
+    if (key === HEALING_TO_NAMED_KEY) {
+      const healing = decodeHealingToNamedCombatant(key, value, roster);
+      if (healing === null) unreadKeys.push(key);
+      else events.push(healing);
       continue;
     }
 

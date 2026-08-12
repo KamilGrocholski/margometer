@@ -190,12 +190,28 @@ export function parseFightDump(source: string): FightDump {
  *
  * Read from the snapshots in call order, `before` ahead of `after`, because the
  * opening call has no `before` at all.
+ *
+ * ⚠️ **First-seen is an approximation, and one capture shows how far it can be
+ * off.** The opening call carries messages of its own — 157 of them in
+ * `2026-08-12-experimental-tancerz-vs-wojownik`, where the whole fight arrives at
+ * once — so its snapshot is the state after those, not before them. A dead
+ * combatant is the reading where that is certain rather than suspected: nobody
+ * enters a fight at zero, and the help requires 85% of the base pool to start a
+ * duel at all (article view,372 at the heading "Punkty Honoru", read
+ * 2026-08-12). Those are left out, so a caller finds no figure instead of one
+ * that is wrong by a whole combatant.
+ *
+ * What that does not fix: a combatant merely *hit* before the first snapshot is
+ * still recorded low, and this reader cannot see it. Settling that means reading
+ * the health the messages state, which is the health witness's job and not this
+ * one's.
  */
 export function getStartingHealthByCombatantId(dump: FightDump): Map<number, number> {
   const starting = new Map<number, number>();
   for (const call of dump.calls) {
     for (const combatant of [...call.combatantsBefore, ...call.combatantsAfter]) {
-      if (!starting.has(combatant.id)) starting.set(combatant.id, combatant.health.current);
+      if (starting.has(combatant.id) || combatant.health.current === 0) continue;
+      starting.set(combatant.id, combatant.health.current);
     }
   }
   return starting;

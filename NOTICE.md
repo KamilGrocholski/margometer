@@ -45,8 +45,9 @@ discover:
   left in place because cutting it would mean editing evidence, which this
   project forbids itself. It is a record of one player's own session, not an
   extract from the game's dictionary.
-- **`txt=` fields name items** dropped at the end of a fight, again as part of
-  that session's own record.
+- **`txt=` fields name items** dropped at the end of a fight, say that a
+  combatant lost a turn, and in the duel capture name what the fight was fought
+  for — again as part of that session's own record.
 - **`tspell=` fields name skills** the combatants used — the game's own names
   for its abilities, as the server sent them. The decoder reads this key and
   passes the name to the panel at run time, on the same footing as the

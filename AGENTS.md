@@ -493,7 +493,11 @@ src/
     battle-event.ts      What the decoder produces. Grows one variant at a time,
                          and holds three lines: a figure that measures something,
                          one the protocol merely declares, and health that moved
-                         where nobody can be credited — §10.
+                         where nobody can be credited — §10. Health stated against
+                         a **name** rather than an id is two variants and not one
+                         signed variant, because damage and healing arrive under
+                         keys with nothing in common and the client reads their
+                         values in opposite orders.
     combatant-roster.ts  Who is in the fight, so a name the protocol states can
                          be matched to an id, and which side each is on. An
                          ambiguous name resolves to nobody — never to the first
@@ -656,7 +660,9 @@ tests/
   captured-fight-catalog.ts
                          Discovers that directory; exposes each capture, maximum
                          and starting health per combatant — different numbers,
-                         and only the second is what a team heal caps against —
+                         only the second is what a team heal caps against, and the
+                         second is missing for a combatant no snapshot ever saw
+                         alive rather than reported as zero —
                          and the rosters, per call and per whole fight, the
                          latter deduplicated by id, without which every name in
                          a fight resolves to nobody. Also the turns a whole
@@ -705,7 +711,20 @@ tests/
                              states — two sources nothing here reconciles. Both
                              sides of every message, whole calls skipped where a
                              health figure cannot be added, and each health
-                             verdict in the register re-earned on every run.
+                             verdict in the register re-earned on every run. Also
+                             that a figure stated against a name resolves to a
+                             combatant: over the calls the replay can use, and
+                             over the roster a running fight holds, which are not
+                             the same set and only the second reaches a capture
+                             whose whole fight arrives in one call.
+    last-heal-rule.test.ts   The rule for `legbon_lastheal`, which the witness
+                             cannot reach: the capture carrying it has no snapshot
+                             taken before its messages, so the health either side
+                             comes from the protocol's own percentages, two
+                             messages of them. The figure closes the gap between
+                             them, the blow before it left the combatant under the
+                             share the help documents, and the healing reaches the
+                             named row while no giver is credited with it.
     injure-rule.test.ts      The rule the register states for `+injure`: the
                              share it announces — of the **main** blow, not of
                              everything that landed with it, which is the

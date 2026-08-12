@@ -492,6 +492,16 @@ export function composeFightStatistics(
         break;
       }
 
+      case "healing-to-named-combatant": {
+        // Received and nothing else: the event carries no healer, so the giving
+        // direction stays empty rather than being credited to whoever swung.
+        // An unresolved name lands on nobody, exactly as the damage one does.
+        const subject = getRow(event.targetId);
+        subject.healed += event.amount;
+        setRunningTotal(subject.healedBySource, event.source, event.amount);
+        break;
+      }
+
       case "health-change": {
         const subject = getRow(event.combatantId);
         if (event.amount >= 0) {
