@@ -51,6 +51,7 @@ import {
   composePanelView,
   type PanelDetailLine,
   type PanelState,
+  type PanelTeam,
 } from "@/src/ui/panel-view.ts";
 
 export type MargoMeterOptions = {
@@ -477,7 +478,7 @@ export function composePanelMount(
     renderPanelInto(document, container, composePanelView(latest, state), {
       onMetricChosen: (chosen) =>
         setState({ metric: chosen, focusTargetId: null, focusSkill: null }),
-      onTeamChosen: (chosen) => setState({ team: chosen }),
+      onTeamChosen: (chosen) => setState(composeStateAfterTeam(chosen)),
       onPerTurnToggled: () => setState({ perTurn: !state.perTurn }),
       onRowChosen: (key) => setState(composeStateFromRow(state, key)),
       onBack: () => setState(composeStateAfterBack(state)),
@@ -552,6 +553,24 @@ export function composeStateFromRow(state: PanelState, key: string): Partial<Pan
       : { focusSkill: { ownerId, key: rest.slice(divider + 1) }, focusTargetId: null };
   }
   return {};
+}
+
+/**
+ * A side tab chooses who is on the list, so choosing one closes the breakdown.
+ *
+ * Further than the metric goes, and the asymmetry is the point: the same
+ * combatant exists in every metric, so switching metric keeps them in focus —
+ * but a side filter decides *who is on the list at all*, and can put the one in
+ * focus off it. Measured against the alternative: while a breakdown is open the
+ * team changes nothing on screen at either level, so a tab that only dropped the
+ * deep level would still look chosen while the panel did not move.
+ *
+ * Rejected: dropping the focus only when the filter excludes them. That needs
+ * the admission rule outside `ui`, where this file would hold a second copy of
+ * the ranking's logic — §9.1's line, spent on a nicety.
+ */
+export function composeStateAfterTeam(team: PanelTeam): Partial<PanelState> {
+  return { team, focusCombatantId: null, focusTargetId: null, focusSkill: null };
 }
 
 /** One level out, and only one: the way back is as small a step as the way in. */

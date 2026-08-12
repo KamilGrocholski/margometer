@@ -25,6 +25,7 @@ import {
 import {
   composePanelMount,
   composeReportText,
+  composeStateAfterTeam,
   composeStateFromRow,
   setMargoMeter,
   shouldStartHere,
@@ -897,6 +898,38 @@ describe("what a click does to the drill", () => {
     expect(composeStateFromRow(state, "skill:abc:78")).toEqual({});
   });
 
+  /**
+   * The complaint in one test: the tab looked chosen and the screen did not move.
+   *
+   * A breakdown is a level below the list, and a side filter chooses who is on
+   * the list — so it closes the breakdown rather than filtering one. Asserted by
+   * what a reader sees, not by the returned object, or it would only restate the
+   * function.
+   */
+  test("choosing a side goes back to the list that side filters", () => {
+    const fight = assertDefined(CAPTURED_FIGHTS[0], "there is a capture to read");
+    const base = composeReadingOfCapture(fight);
+    const focusCombatantId = assertDefined(
+      [...base.statistics.byCombatantId.keys()][0],
+      "the capture has a combatant",
+    );
+    // A side of our own, or both filters are empty and the assertion below would
+    // pass on a panel showing nothing.
+    const ourSide = assertDefined(
+      base.roster.byId.get(focusCombatantId)?.side,
+      "the roster puts that combatant on a side",
+    );
+    const reading = { ...base, ourSide };
+    const drilled = { ...composeDefaultState(), focusCombatantId, focusTargetId: 3 };
+
+    const view = composePanelView(reading, { ...drilled, ...composeStateAfterTeam("enemy") });
+
+    expect(view.crumb).toBeNull();
+    expect(view.teamTabs.find((tab) => tab.isSelected)?.team).toBe("enemy");
+    // A ranking again, and one holding somebody — not the breakdown it was in.
+    expect(view.lists[0]?.heading).toBeNull();
+    expect(view.lists[0]?.rows.length).toBeGreaterThan(0);
+  });
 });
 
 /**
