@@ -87,10 +87,18 @@ describe("moving the panel", () => {
     expect(composeDefaultPosition(null)).toBeNull();
   });
 
-  test("a position releases the corner it was anchored to", () => {
+  /**
+   * The fourth pair is what keeps the panel above the bottom of the screen: the
+   * ceiling in the stylesheet is the window's height less the top edge, and CSS
+   * cannot read a `top` back out of an inline style. So the same number is written
+   * twice, and the test holds the two to being the same number — a `--panel-top`
+   * that drifted from `top` would cap the panel against a place it is not.
+   */
+  test("a position releases the corner it was anchored to, and carries the ceiling with it", () => {
     expect(composePositionDeclarations({ left: 12, top: 34 })).toEqual([
       ["left", "12px"],
       ["top", "34px"],
+      ["--panel-top", "34px"],
       ["right", "auto"],
     ]);
   });

@@ -131,6 +131,10 @@ describe("the ranking", () => {
    * Ten under a filter because that is the most a side fields, eleven when both
    * are on the list. The number is the view's so the height can be computed from
    * a token rather than typed into a stylesheet twice.
+   *
+   * A **floor** and not a size: four combatants get eleven bars' worth of window,
+   * because a list that grew as they arrived would move under the hand of somebody
+   * reading it mid-fight. What a *breakdown* does with the same number is below.
    */
   test("says how many bars fit before the list scrolls", () => {
     expect(composePanelView(composeReading(), composeState()).visibleRows).toBe(11);
@@ -266,6 +270,23 @@ describe("drilling", () => {
     ]);
     expect(view.crumb?.backLabel).toBe("‹ skład");
     expect(view.crumb?.hereLabel).toBe("mag");
+  });
+
+  /**
+   * ⚠️ **The one this corrects used to shrink.** A breakdown sized purely to its
+   * content drew a window a fifth the height of the ranking it was opened from —
+   * so a click moved everything below the list up under the reader's hand, on the
+   * one gesture the panel exists for. The ranking's height is the floor, and the
+   * breakdown may only grow past it.
+   */
+  test("a breakdown is never shorter than the ranking it was opened from", () => {
+    const state = composeState({ focusCombatantId: 1 });
+    const view = composePanelView(composeReading(), state);
+
+    // One section of one row: two rows' worth of content in an eleven-row window.
+    expect(view.lists.reduce((rows, list) => rows + list.rows.length + 1, 0)).toBeLessThan(11);
+    expect(view.visibleRows).toBe(11);
+    expect(composePanelView(composeReading(), { ...state, team: "mine" }).visibleRows).toBe(10);
   });
 
   /**
@@ -419,6 +440,43 @@ describe("drilling", () => {
     );
 
     expect(view.lists[0]?.rows.every((row) => !row.canDrill)).toBe(true);
+  });
+});
+
+/**
+ * The field nothing draws, and the one thing it has to get right.
+ *
+ * A fight redraws every few seconds and every redraw builds a new list, so the
+ * reader's own scroll position can only survive if the drawing half can tell "the
+ * same screen again" from "they went somewhere". Every choice that changes what is
+ * in the list has to change this key; nothing else may.
+ */
+describe("which screen this is", () => {
+  const getKey = (state: Partial<PanelState>): string =>
+    composePanelView(composeReading(), composeState(state)).levelKey;
+
+  test("two readings of the same screen carry the same key", () => {
+    expect(getKey({ focusCombatantId: 1 })).toBe(getKey({ focusCombatantId: 1 }));
+    // The fight moves on and the figures change; the screen does not.
+    expect(composePanelView(composeReading(), composeState()).levelKey).toBe(
+      composePanelView(composeReading({ ourSide: 2 }), composeState()).levelKey,
+    );
+  });
+
+  test("every choice that changes the list changes it", () => {
+    const keys = [
+      getKey({}),
+      getKey({ metric: "taken" }),
+      getKey({ team: "mine" }),
+      getKey({ focusCombatantId: 1 }),
+      getKey({ focusCombatantId: 1, focusTargetId: 3 }),
+      getKey({ focusCombatantId: 1, focusSkill: { ownerId: 1, key: "7" } }),
+      // Same key, different owner: two combatants announcing one skill are two
+      // screens, which is the pair `focusSkill` carries a name for at all.
+      getKey({ focusCombatantId: 1, focusSkill: { ownerId: 2, key: "7" } }),
+    ];
+
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });
 
@@ -588,6 +646,33 @@ describe("against the captured fights", () => {
 
     expect(drawn.length).toBe(counted.length);
     for (const name of counted) expect(drawn).toContain(name);
+  });
+
+  /**
+   * The other half of the height rule, on material tall enough to break it.
+   *
+   * The hand-written fight cannot: every breakdown in it fits inside the floor, so
+   * a view that ignored its content entirely would pass there. A real group fight
+   * opens breakdowns of a dozen rows and more, and the claim is the same at both
+   * ends — the window is exactly what the sections need, or the ranking's height,
+   * whichever is larger. The last line is what makes the rest of it worth running:
+   * if no capture ever exceeds the floor, this test is arithmetic about nothing.
+   */
+  test("a breakdown gets the rows its sections need", () => {
+    let tallest = 0;
+    for (const { reading } of fights) {
+      for (const metric of PANEL_METRICS) {
+        for (const focusCombatantId of reading.statistics.byCombatantId.keys()) {
+          const view = composePanelView(reading, composeState({ metric, focusCombatantId }));
+          const needed = view.lists.reduce((rows, list) => rows + list.rows.length + 1, 0);
+
+          expect(view.visibleRows, `${metric} ${focusCombatantId}`).toBe(Math.max(needed, 11));
+          tallest = Math.max(tallest, view.visibleRows);
+        }
+      }
+    }
+
+    expect(tallest).toBeGreaterThan(11);
   });
 
   /**

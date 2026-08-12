@@ -384,20 +384,35 @@ export type PanelView = {
   teamTabs: Array<{ team: PanelTeam; label: string; isSelected: boolean }>;
   crumb: PanelCrumb | null;
   /**
-   * How many bars fit before the list scrolls.
+   * How many bars the list asks for before it scrolls.
    *
    * Eleven under `Wszyscy`, ten under a side filter — ten is the most a side
    * fields. A number rather than a stylesheet rule so the height is computed from
    * the row token and cannot drift when the type size changes.
    *
-   * ⚠️ **A breakdown gets as many as it needs, up to a ceiling**, and that is not
-   * an inconsistency. The ranking is a list somebody watches during a fight, so a
-   * height that changes as combatants join would move the window under their
-   * hand; a breakdown is opened deliberately, and it has three sections whose
-   * whole point is to be compared with each other. At eleven the last two sat
-   * under the fold and the panel looked like it had lost them.
+   * ⚠️ **A breakdown gets as many as it needs, and never fewer than the ranking**,
+   * and neither half of that is an inconsistency. The ranking is a list somebody
+   * watches during a fight, so a height that changed as combatants joined would
+   * move the window under their hand — a bigger fight scrolls instead. A breakdown
+   * is opened deliberately, and it has three sections whose whole point is to be
+   * compared with each other: at eleven the last two sat under the fold and the
+   * panel looked like it had lost them, and at its own size it used to *shrink* on
+   * the way in.
+   *
+   * ⚠️ **There is no ceiling here, and that is not an omission.** What a breakdown
+   * may have is a question about the screen, and this file knows nothing about
+   * screens — the stylesheet caps the panel against the window and against the
+   * share of it we are willing to cover.
    */
   visibleRows: number;
+  /**
+   * What screen this is, so a redraw of it can be told from a move to another.
+   *
+   * The one field nothing draws. The drawing half keeps the reader's scroll
+   * position across a redraw of the same screen and drops it when they navigated;
+   * it cannot work that out for itself, because a redraw builds every node again.
+   */
+  levelKey: string;
   lists: PanelList[];
   /** What a combatant with nothing in this metric gets instead of empty lists. */
   emptyText: string | null;
@@ -1366,21 +1381,53 @@ function composeSides(reading: PanelReading, state: PanelState): PanelSides | nu
   };
 }
 
-/** The ranking's height, in bars. Ten is the most one side fields. */
+/**
+ * The ranking's height, in bars, and the least any screen may be.
+ *
+ * Ten is the most one side fields, eleven the most a whole fight does — measured
+ * on the captures, where a group fight is ten of ours against one. A bigger fight
+ * scrolls rather than growing the window: a ranking is watched during a fight, and
+ * a height that changed as combatants joined would move it under the hand.
+ */
 const RANKING_ROWS = 11;
 const SIDE_ROWS = 10;
-
-/**
- * How tall a breakdown may grow before it scrolls.
- *
- * A ceiling rather than no limit: a fight of twenty against twenty would
- * otherwise draw a window taller than the game it sits on.
- */
-const BREAKDOWN_ROWS = 24;
 
 /** A section costs its rows plus the heading standing over them. */
 function getRowsNeeded(lists: readonly PanelList[]): number {
   return lists.reduce((rows, list) => rows + list.rows.length + 1, 0);
+}
+
+/**
+ * What the ranking shows, and the floor for everything opened from it.
+ *
+ * A breakdown reached from this list is never shorter than it — clicking a row
+ * must not shorten the window under the hand, which is what the shipped panel did
+ * until now: a breakdown of one section drew a window a fifth the height.
+ */
+function getFloorRows(team: PanelTeam): number {
+  return team === "all" ? RANKING_ROWS : SIDE_ROWS;
+}
+
+/**
+ * What a screen is, so a redraw of it can be told from a move to another one.
+ *
+ * Nothing draws this. It is here rather than in the file that draws because it is
+ * a fact about the state, checkable without a document — and the drawing half has
+ * no other way to know: every node is built again on every payload, so the
+ * reader's own scroll position is kept across the first and dropped on the second.
+ */
+function composeLevelKey(state: PanelState): string {
+  const composeIdText = (value: number | null): string =>
+    value === null ? "" : composeIntegerText(value);
+  return [
+    state.metric,
+    state.team,
+    composeIdText(state.focusCombatantId),
+    composeIdText(state.focusTargetId),
+    state.focusSkill === null
+      ? ""
+      : `${composeIdText(state.focusSkill.ownerId)}/${state.focusSkill.key}`,
+  ].join("|");
 }
 
 export function composePanelView(reading: PanelReading, state: PanelState): PanelView {
@@ -1405,8 +1452,9 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
       isSelected: team === state.team,
     })),
     // Ten under a filter because that is the most a side fields; eleven when the
-    // list can hold both. A breakdown overrides this below.
-    visibleRows: state.team === "all" ? RANKING_ROWS : SIDE_ROWS,
+    // list can hold both. A breakdown raises this below, and never lowers it.
+    visibleRows: getFloorRows(state.team),
+    levelKey: composeLevelKey(state),
     warnings: composeWarnings(reading),
   };
 
@@ -1462,7 +1510,7 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
     const lists = composeDeepLists(reading, state, focusId);
     return {
       ...shell,
-      visibleRows: Math.min(Math.max(getRowsNeeded(lists), 1), BREAKDOWN_ROWS),
+      visibleRows: Math.max(getRowsNeeded(lists), getFloorRows(state.team)),
       crumb,
       lists,
       emptyText: lists.length === 0 ? "Nie ma czego pokazać." : null,
@@ -1511,7 +1559,7 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
 
   return {
     ...shell,
-    visibleRows: Math.min(Math.max(getRowsNeeded(lists), 1), BREAKDOWN_ROWS),
+    visibleRows: Math.max(getRowsNeeded(lists), getFloorRows(state.team)),
     crumb,
     lists,
     emptyText: lists.length === 0 ? NOTHING_TEXTS[state.metric] : null,

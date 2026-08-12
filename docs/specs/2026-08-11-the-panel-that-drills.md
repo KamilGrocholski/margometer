@@ -91,6 +91,15 @@ written down, so changing the type size cannot quietly break the promise, and it
 is the same height in a breakdown, so clicking into a combatant does not move the
 window under the hand.
 
+⚠️ **Superseded by `docs/specs/2026-08-12-the-height-a-fight-needs.md`.** Eleven
+and ten turned out to be a *floor* rather than a size: the ranking keeps them
+exactly, and a breakdown may only grow past them. "The same height in a breakdown"
+survives as the half that matters — a breakdown is never *shorter* than the list
+it was opened from — and the shipped panel had already stopped honouring the other
+half, sizing a breakdown from one bar to twenty-four with nothing to catch it. What
+this section never had is a ceiling: nothing here bounds the panel against the
+window it is drawn on. Left as written.
+
 **`Bez sprawcy` sits below the list and outside its scrolling.** It is the one
 row that says *something here is missing*, so it is the one row that must not be
 able to disappear under an edge. It appears under **Zadane** and **Leczenie**
@@ -235,6 +244,13 @@ in the report with the token that produced it.
   numbers are short; hiding it below a fold is the one thing it must not do.
 - **Growing the list to fit everyone.** A fight of twenty makes a window taller
   than the game. Eleven and ten are the sizes the two views actually need.
+
+  ⚠️ **Still rejected for the ranking, and it is the objection that decided the
+  ceiling** in `docs/specs/2026-08-12-the-height-a-fight-needs.md`: a panel taller
+  than the game is the failure, so the panel is now capped against the window
+  itself rather than against a count of bars. What that spec overrules is only the
+  second sentence — eleven and ten are the sizes the *ranking* needs, and a
+  breakdown is allowed to be taller. Left as written.
 - **Keeping the sections when a combatant has nothing.** Three empty headings say
   the panel is broken; one sentence says the fight is.
 - **A per-warning copy button in the footer.** A second place that copies the

@@ -131,11 +131,21 @@ export function composeStoredTextFromPosition(position: PanelPosition): string {
  * `right: auto` is what releases the default corner: the stylesheet anchors the
  * host top-right, and a `left` alone would leave both edges pinned and stretch
  * the host across the page.
+ *
+ * ⚠️ **`--panel-top` is the same number as `top`, written twice on purpose.** The
+ * ceiling that keeps the panel above the bottom of the screen is the window's
+ * height less where the panel's top edge is, and CSS cannot read a `top` back out
+ * of an inline style. Composed here from one variable so the two cannot drift,
+ * and `top` stays a declaration of its own because an inline style is the one
+ * thing the game's stylesheet cannot outrank — a custom property alone would put
+ * the panel's own position within reach of the page.
  */
 export function composePositionDeclarations(position: PanelPosition): Array<[string, string]> {
+  const top = `${composeIntegerText(position.top)}px`;
   return [
     ["left", `${composeIntegerText(position.left)}px`],
-    ["top", `${composeIntegerText(position.top)}px`],
+    ["top", top],
+    ["--panel-top", top],
     ["right", "auto"],
   ];
 }

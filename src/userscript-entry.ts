@@ -39,6 +39,7 @@ import {
   setPanelRoot,
   type PanelDocument,
   type PanelHost,
+  type PanelScroll,
 } from "@/src/ui/panel-element.ts";
 import {
   composeStoredTextFromPosition,
@@ -425,6 +426,13 @@ export function composePanelMount(
    */
   const details = new Map<unknown, PanelDetailLine[]>();
 
+  /**
+   * One per mount, like the map above, and for the same reason: the render is what
+   * replaces the list, so where the reader had scrolled to has to survive between
+   * two of them.
+   */
+  const scroll: PanelScroll = { list: null, levelKey: null };
+
   // Opened once: `attachShadow` throws on a second call for the same element.
   const container = setPanelRoot(
     document,
@@ -491,7 +499,7 @@ export function composePanelMount(
         failuresThisFight += 1;
         if (failuresThisFight === 1) warn("MargoMeter/PanelSection", error);
       },
-    }, state.isCollapsed, details);
+    }, state.isCollapsed, details, scroll);
   };
 
   return (reading) => {

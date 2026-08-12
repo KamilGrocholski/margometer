@@ -25,7 +25,12 @@ import {
   composeDraggedPosition,
   composePositionDeclarations,
 } from "@/src/ui/panel-placement.ts";
-import { getProfessionInk, PANEL_PIXELS, PANEL_TOKENS } from "@/src/ui/panel-tokens.ts";
+import {
+  composeColourOver,
+  getProfessionInk,
+  PANEL_PIXELS,
+  PANEL_TOKENS,
+} from "@/src/ui/panel-tokens.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import type {
   PanelDetailLine,
@@ -77,6 +82,20 @@ export type PanelNode = {
    */
   setPointerCapture?: ((pointerId: number) => void) | undefined;
   releasePointerCapture?: ((pointerId: number) => void) | undefined;
+  /**
+   * Where the reader scrolled to, and the one number this file reads back out of
+   * the document.
+   *
+   * ⚠️ **Not the measurement §9.6 refuses.** That one is layout read in order to
+   * decide layout — what the tooltip's own docblock turns down, and why the panel's
+   * ceiling is a stylesheet rule. This is a value the *reader* put there with their
+   * own hand, read back so it can be handed to them again after a redraw.
+   *
+   * Optional like the pointer capture above: a fake document has no layout and
+   * nothing to scroll, and giving a position back to a node that never had one
+   * costs nothing.
+   */
+  scrollTop?: number | undefined;
 };
 
 export type PanelHost = PanelNode & {
@@ -158,22 +177,51 @@ export type PanelPlacement = {
  * nothing.
  *
  * ⚠️ **The list's height is arithmetic, not a number typed in.** The spec
- * promises eleven bars under `Wszyscy` and ten under a filter; both are computed
- * from the row height so that changing the type size cannot quietly break the
- * promise, and the count arrives as a custom property the render sets.
+ * promises at least eleven bars under `Wszyscy` and ten under a filter; both are
+ * computed from the row height so that changing the type size cannot quietly
+ * break the promise, and the count arrives as a custom property the render sets.
+ *
+ * ⚠️ **The floor is arithmetic and the ceiling is the window.** How many rows the
+ * list asks for is the view's decision; how many it may have is this file's, and
+ * it is one `max-height` on the host — so the panel cannot reach past the bottom
+ * edge of a screen this file never measures.
  */
 export function composePanelStyleText(): string {
   const t = PANEL_TOKENS;
   return `
 :host {
   all: initial;
-  display: block;
+  /*
+   * A column, so the list can be the one region that gives way to the ceiling
+   * below. Restated after \`all: initial\` for the same reason \`display: block\`
+   * was: the reset turns it into \`inline\`, on which none of this means anything.
+   */
+  display: flex;
+  flex-direction: column;
   position: fixed;
-  top: ${t.space};
+  /*
+   * Where the top edge is, as a value the ceiling can subtract. Written by
+   * placement on every move, defaulted here so a page where nothing was ever
+   * dragged needs no script — and \`all\` does not reset custom properties, which
+   * is what makes a default in this rule survive the line above.
+   */
+  --panel-top: ${t.space};
+  top: var(--panel-top);
   right: ${t.space};
+  /*
+   * ⚠️ **The panel never reaches past the bottom of the screen, and never covers
+   * more of it than the token allows.** In CSS rather than measured: the panel's
+   * height changes with every payload, so anything read out of the document is
+   * stale before the next one — the same reason the tooltip is placed from the
+   * pointer's own coordinates. The gap left at the bottom is the margin the panel
+   * starts with at the top.
+   */
+  max-height: min(calc(100vh - var(--panel-top) - ${t.space}), ${t.maxHeightShare});
   z-index: ${t.layer};
 }
 .titlebar {
+  /* Never the region that shrinks: it is the thing you grab. */
+  flex: none;
   display: flex;
   align-items: center;
   gap: ${t.spaceSmall};
@@ -209,6 +257,13 @@ export function composePanelStyleText(): string {
 .titlebar-raw { opacity: 0.55; }
 .titlebar-raw:hover { opacity: 1; }
 /*
+ * What every render draws into. It carries a class for one reason: a flex item
+ * whose overflow is visible refuses to shrink below its own content, so without
+ * \`min-height: 0\` here the ceiling on the host would stop at this node and never
+ * reach the list.
+ */
+.body { display: flex; flex-direction: column; min-height: 0; }
+/*
  * No padding of its own: every region below is inset by the same step instead,
  * which is what lets the list run the full width of the panel and the rules
  * between regions reach both edges.
@@ -222,7 +277,26 @@ export function composePanelStyleText(): string {
   /* Square at the top: the title bar above it carries those two corners. */
   border-radius: 0 0 ${t.radius} ${t.radius};
   box-sizing: border-box;
+  /* The other half of the chain the ceiling travels down — see .body. */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
+/*
+ * ⚠️ **Only the list gives way.** When the ceiling is lower than the panel wants
+ * to be, the shortfall has to come out of somewhere, and every region but one
+ * says the same thing at any height: a header, two strips of controls, the row
+ * for what nobody can be charged with, the summary, a warning. There is nothing
+ * to take off them, so they are told not to offer any — the list, which has a
+ * fold and a scrollbar, takes all of it.
+ *
+ * The second rule is more specific rather than merely later: a \`.panel > *\` moved
+ * below it would otherwise take the list's shrinking away without a word.
+ * \`.undrawn\` needs no rule of its own — it is a \`.panel > *\` like the region it
+ * replaced.
+ */
+.panel > * { flex: none; }
+.panel > .list { flex: 0 1 auto; }
 .tabs { display: flex; gap: ${t.spaceHalf}; padding: ${t.spaceRegion}; padding-bottom: 0; }
 /* Every strip after the first sits closer to it: they are one control, in rows.
    A sibling selector rather than a class, so a third strip needed no new rule and
@@ -245,17 +319,33 @@ export function composePanelStyleText(): string {
 .crumb-back:hover { color: ${t.text}; }
 .crumb-here { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /*
- * The list is the only thing that scrolls, and its height is fixed so the window
- * does not move under the hand when a combatant joins the fight or a breakdown
- * opens.
+ * The list is the only thing that scrolls, and the only thing that gives way.
+ *
+ * Its height is what the view asked for: eleven bars under \`Wszyscy\`, ten under a
+ * filter, and as many as a breakdown needs — never fewer than the ranking it was
+ * opened from, so clicking into a combatant cannot shorten the window under the
+ * hand. The ceiling on the host takes height back out of here and nowhere else.
+ *
+ * ⚠️ **Content box, deliberately.** The height above is the rows' own; the 12px of
+ * padding sits outside it. Adding \`box-sizing: border-box\` would fold the padding
+ * in and leave eleven bars a hair too tall for the list holding them, which shows
+ * up as a scrollbar on a list that fits.
  */
 .list {
   padding: ${t.spaceRegion};
   padding-bottom: 7px;
-  height: calc(var(--rows, 11) * (${t.rowHeight} + ${t.spaceHalf}) + 12px);
+  height: calc(var(--rows, 11) * (${t.rowHeight} + ${t.spaceHalf}) + ${t.spaceLarge});
   overflow-y: auto;
   overflow-x: hidden;
+  /* Reserved whether or not a scrollbar is showing: it appears and disappears
+     between two payloads, and a panel whose rows jump sideways every few seconds
+     while somebody is reading them is worse than eleven pixels of margin. */
+  scrollbar-gutter: stable;
+  /* A wheel that has run out of list stops here rather than turning into a scroll
+     of the game we are a guest on. */
+  overscroll-behavior: contain;
   scrollbar-width: thin;
+  scrollbar-color: ${t.border} transparent;
 }
 /*
  * Not uppercased by the stylesheet, which is what it did until a heading started
@@ -263,13 +353,33 @@ export function composePanelStyleText(): string {
  * headings are written in capitals where they are composed, so a name keeps the
  * case the game gave it.
  */
+/*
+ * ⚠️ **It stays at the top edge while its own section scrolls**, so a figure is
+ * never read under the wrong heading — a breakdown stacks three of them and the
+ * one you are looking at is the one that matters.
+ *
+ * The background and the \`z-index\` are not decoration and cannot be dropped: a
+ * row's bar is absolutely positioned and comes later in the tree, so a sticky
+ * heading without both is painted over by the bars sliding under it.
+ *
+ * ⚠️ **The quiet is in the colour now, not in an \`opacity\`.** It read the same
+ * either way while the heading stood still; sticking it over a scrolling row does
+ * not, because \`opacity\` fades the background with the text and a bar would ghost
+ * through it. The colour is the same composite the browser was making, computed
+ * once instead.
+ */
 .section-heading {
+  position: sticky;
+  /* Up by the list's own inset, because that padding is inside the scroll's clip
+     and the row scrolling away would otherwise show through it — see the token. */
+  top: -${t.spaceRegionDown};
+  z-index: 1;
+  background: ${t.surface};
   display: flex;
   justify-content: space-between;
-  color: ${t.textQuiet};
+  color: ${composeColourOver(t.textQuiet, t.surface, 0.85) ?? t.textQuiet};
   letter-spacing: 0.08em;
   font-size: 10px;
-  opacity: 0.85;
   padding: ${t.spaceSmall} ${t.spaceHalf} ${t.spaceHalf};
 }
 .row {
@@ -539,6 +649,12 @@ export function renderPanel(
    * one the hovering listener already holds.
    */
   details: Map<unknown, PanelDetailLine[]> = new Map(),
+  /**
+   * Where the list it draws is reported, so the reader's place in it can be given
+   * back. Handed in for the same reason `details` is, and left alone by a render
+   * that draws no list — a collapsed panel, or a region that failed.
+   */
+  scroll?: PanelScroll,
 ): PanelNode {
   const panel = document.createElement("div");
   panel.className = "panel";
@@ -675,6 +791,7 @@ export function renderPanel(
     const list = document.createElement("div");
     list.className = "list";
     list.style.setProperty("--rows", `${view.visibleRows}`);
+    if (scroll !== undefined) scroll.list = list;
 
     if (view.emptyText !== null) {
       const empty = document.createElement("div");
@@ -856,6 +973,10 @@ export function setPanelRoot(
   };
 
   const container = document.createElement("div");
+  // Named so the stylesheet can reach it: it is a link in the chain the panel's
+  // ceiling travels down to the list, and a node with no class is one it cannot
+  // pass through.
+  container.className = "body";
   const tip = document.createElement("div");
   tip.className = "tip";
   setTipHidden(tip, true);
@@ -1121,11 +1242,30 @@ function getPointerFromEvent(event: PanelEvent): { left: number; top: number } |
 }
 
 /**
+ * Where the reader left the list, and which screen that was.
+ *
+ * Held by the caller rather than in this module, for the reason `details` is: a
+ * redraw builds a new list, so the position has to come off the old node before it
+ * is replaced and go onto the new one afterwards — and the node type here exposes
+ * no children, so the node itself is what has to be remembered rather than found
+ * again. The screen travels with it because the answer differs: a reader who
+ * navigated starts at the top, a reader who stood still stays where they were.
+ */
+export type PanelScroll = { list: PanelNode | null; levelKey: string | null };
+
+/**
  * Draws the panel into the container, replacing whatever was there.
  *
  * A collapsed panel draws nothing at all rather than a panel with its body
  * hidden: the title bar is a separate node that outlives the render, so there is
  * always something left to grab and to expand from.
+ *
+ * ⚠️ **A fight redraws every few seconds, and every redraw is a new list.** Without
+ * the two lines below the reader is put back at the top of it on every payload,
+ * which in a fight big enough to scroll means scrolling again and again. The order
+ * they run in is the whole of the trick: read before the old node leaves the tree,
+ * write after the new one is in it — a node with no scroll height clamps whatever
+ * it is given to zero.
  */
 export function renderPanelInto(
   document: PanelDocument,
@@ -1134,11 +1274,20 @@ export function renderPanelInto(
   handlers: PanelHandlers = {},
   isCollapsed = false,
   details: Map<unknown, PanelDetailLine[]> = new Map(),
+  scroll: PanelScroll = { list: null, levelKey: null },
 ): void {
+  const kept = scroll.levelKey === view.levelKey ? (scroll.list?.scrollTop ?? 0) : 0;
+  scroll.levelKey = view.levelKey;
+
   if (isCollapsed) {
     container.replaceChildren();
     details.clear();
     return;
   }
-  container.replaceChildren(renderPanel(document, view, handlers, details));
+  container.replaceChildren(renderPanel(document, view, handlers, details, scroll));
+
+  // Whatever the render drew, which is the previous list where the list region
+  // itself failed — a node out of the tree, so writing to it changes nothing and
+  // needs no case of its own.
+  if (kept > 0 && scroll.list !== null) scroll.list.scrollTop = kept;
 }

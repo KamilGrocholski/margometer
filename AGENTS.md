@@ -556,11 +556,16 @@ src/
                          The bar tint is a measured value, not a taste. Two of the
                          lengths are numbers first and CSS second, because the
                          first drag has to work out where the stylesheet already
-                         put a corner-anchored panel.
+                         put a corner-anchored panel. The share of the window the
+                         panel may cover is a taste, and says so.
     panel-placement.ts   Where the panel sits, as a value: the corner it starts
                          in, where a drag lands, and what a remembered position
                          has to prove before it is believed. No DOM, so the clamp
                          that keeps the panel reachable is checkable on its own.
+                         Writes the top edge twice, once as a length CSS can
+                         subtract: the ceiling that keeps the panel above the
+                         bottom of the screen is measured from it, and CSS cannot
+                         read an inline `top` back out.
     panel-view.ts        What the panel shows, as data — and the only file in the
                          repository whose strings are Polish (§3). One ranking on
                          two axes — a noun and a direction — with a side filter,
@@ -579,7 +584,13 @@ src/
                          phrase travels as the game wrote it rather than as a
                          guess, and the captures are swept so that fallback is
                          never what a player actually meets. Takes its own input
-                         type, so `ui` names no direction to `game`. No DOM, so
+                         type, so `ui` names no direction to `game`. Says how
+                         many bars the list asks for and which screen it is —
+                         a floor the ranking keeps and a breakdown only grows past,
+                         and an identity nothing draws, so a redraw can be told
+                         from a move and the reader keeps their place. No ceiling
+                         here: what a list may have is a question about a screen,
+                         and this file knows nothing about screens. No DOM, so
                          all of it is checkable.
     panel-element.ts     The same, drawn. Takes a document as an argument, opens
                          one shadow root, listens at that root for every control
@@ -590,7 +601,12 @@ src/
                          it, one copy, one for the raw material, one collapse —
                          is built with the shadow root and not with the render,
                          because a redraw replaces everything the render made,
-                         and a fight redraws every few seconds.
+                         and a fight redraws every few seconds. That redraw is also
+                         why the one number this file reads back out of a document
+                         is read at all: where the reader had scrolled to, taken
+                         off the old list and handed to the new one. Holds the
+                         ceiling too — the panel against the window, and the list
+                         as the only region that gives way to it.
 
 tools/
   margometer-tool-error.ts
@@ -761,7 +777,11 @@ tests/
 
   ui/
     panel-view.test.ts       What the panel decides, without a document: the
-                             ranking and its numbering, the fixed height, the drill
+                             ranking and its numbering, the height it asks for —
+                             a floor of eleven bars the ranking keeps exactly and a
+                             breakdown may only grow past, held on the captures
+                             because the hand-written fight is too small to reach
+                             it — which screen a redraw is of, the drill
                              and what closes each section against the row it was
                              entered from, the cut of one row that is not drawn at
                              all, zero and unknown as two different sentences —
@@ -785,7 +805,12 @@ tests/
                              bar clears AA by measurement — each colour in the
                              role it is actually used in. The drag is here too,
                              including the one property the design exists for: it
-                             still works after twenty redraws.
+                             still works after twenty redraws. The window is here
+                             as well: that the panel is capped against the screen
+                             and the list is the one region that gives way, and
+                             that a redraw hands the reader back the place they had
+                             scrolled to — a fight redraws every few seconds, so
+                             without it a long list cannot be read at all.
     panel-placement.test.ts  The arithmetic that decides whether the panel can be
                              dragged somewhere it cannot be dragged back from, and
                              what a stored position has to prove on read.

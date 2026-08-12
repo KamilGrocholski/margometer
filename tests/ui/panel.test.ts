@@ -27,6 +27,7 @@ import {
   type PanelEvent,
   type PanelHost,
   type PanelNode,
+  type PanelScroll,
 } from "@/src/ui/panel-element.ts";
 import { composeColourOver, getContrastRatio, PANEL_TOKENS, SERIES_COLOURS } from "@/src/ui/panel-tokens.ts";
 import {
@@ -105,6 +106,14 @@ function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & 
         children: [],
         listeners: [],
         properties: {},
+        /**
+         * ⚠️ **A browser clamps this and the fake does not**, which is the edge of
+         * what the two tests below can say. They prove the number is taken off the
+         * old list and put back on the new one, in that order; that a real list
+         * then shows the same rows is the browser's own arithmetic, and it is
+         * `.claude/skills/verify` that looks at it.
+         */
+        scrollTop: 0,
         captured: [],
         released: [],
         style: {
@@ -203,6 +212,28 @@ function composeMountedPanel(actions = {}) {
   const container = setPanelRoot(document, host, undefined, actions, details) as FakeNode;
   const root = assertDefined(host.children[0], "the shadow root was opened") as FakeNode;
   return { document, host, root, container, details };
+}
+
+/**
+ * A mounted panel that keeps one scroll memory across renders, the way the mount
+ * does — the whole point being that the list is a different node every time.
+ */
+function composeRedrawnPanel() {
+  const { document, container } = composeMountedPanel();
+  const scroll: PanelScroll = { list: null, levelKey: null };
+  const renderScreen = (state: PanelState): FakeNode => {
+    renderPanelInto(
+      document,
+      container,
+      composePanelView(composeReading(), state),
+      {},
+      false,
+      new Map(),
+      scroll,
+    );
+    return assertDefined(getByClass(container, "list")[0], "the list was drawn");
+  };
+  return { container, renderScreen };
 }
 
 function renderInto(state: PanelState = composeDefaultState(), handlers = {}) {
@@ -314,11 +345,22 @@ describe("what reaches the screen", () => {
     expect(getEveryNode(list)).not.toContain(assertDefined(pinned[0], "pinned row"));
   });
 
+  /**
+   * Both numbers, because only one of them was ever checked here: a render that
+   * ignored the view and wrote eleven into the stylesheet passed this test for as
+   * long as it asked one question.
+   */
   test("the list says how many rows it shows before it scrolls", () => {
     const { panel } = renderInto();
     const list = assertDefined(getByClass(panel, "list")[0], "the list was drawn");
+    const filtered = renderInto({ ...composeDefaultState(), team: "mine" }).panel;
 
     expect(list.properties["--rows"]).toBe("11");
+    expect(
+      assertDefined(getByClass(filtered, "list")[0], "the filtered list was drawn").properties[
+        "--rows"
+      ],
+    ).toBe("10");
   });
 });
 
@@ -508,6 +550,33 @@ describe("the window itself", () => {
   });
 
   /**
+   * ⚠️ **A fight redraws every few seconds, and every redraw is a new list.**
+   * Without this the reader is put back at the top of it on every payload, so a
+   * fight big enough to scroll has to be scrolled again, and again, and again.
+   *
+   * The container is named too: the panel's ceiling reaches the list through it,
+   * and a node with no class is one the stylesheet cannot pass through.
+   */
+  test("the reader's place in the list survives a redraw of the same screen", () => {
+    const { container, renderScreen } = composeRedrawnPanel();
+    const state = composeDefaultState();
+
+    expect(container.className).toBe("body");
+
+    renderScreen(state).scrollTop = 60;
+    expect(renderScreen(state).scrollTop).toBe(60);
+  });
+
+  test("and starts at the top of a screen they moved to", () => {
+    const { renderScreen } = composeRedrawnPanel();
+
+    renderScreen(composeDefaultState()).scrollTop = 60;
+
+    // Into a combatant: a different list, so the old offset means nothing in it.
+    expect(renderScreen({ ...composeDefaultState(), focusCombatantId: 1 }).scrollTop).toBe(0);
+  });
+
+  /**
    * ⚠️ **The property the title bar's whole design exists for.** A fight redraws
    * every few seconds, and a grab handle built inside the render would be
    * destroyed under the pointer exactly when somebody is moving the panel out of
@@ -588,6 +657,42 @@ describe("what the panel never does", () => {
 
   test("the stylesheet cuts the panel off from the game's own", () => {
     expect(composePanelStyleText()).toContain("all: initial");
+  });
+
+  /**
+   * ⚠️ **The panel is a guest, and a guest does not cover the room.** Two limits,
+   * and the test holds both because they answer different failures: without the
+   * first, a breakdown opened on a panel dragged low runs off the bottom of the
+   * screen and takes its own figures with it; without the second, a tall monitor
+   * lets it cover the fight somebody is trying to watch.
+   *
+   * Checked as text, which is all a test without a browser can do here — the
+   * arrangement it describes is `.claude/skills/verify`'s to look at (§8: the gate
+   * cannot see a panel).
+   */
+  test("the panel is capped by the window, and the list is the only thing that gives way", () => {
+    const style = composePanelStyleText();
+
+    expect(style).toContain(
+      `max-height: min(calc(100vh - var(--panel-top) - ${PANEL_TOKENS.space}), ${PANEL_TOKENS.maxHeightShare})`,
+    );
+    // The chain the cap travels down, and the one region told to absorb it.
+    expect(style).toContain(".body { display: flex; flex-direction: column; min-height: 0; }");
+    expect(style).toContain(".panel > * { flex: none; }");
+    expect(style).toContain(".panel > .list { flex: 0 1 auto; }");
+  });
+
+  /**
+   * ⚠️ **Measured in a browser, because the gate cannot see this one.** A scroll
+   * container's padding is inside its clip, so a heading pinned at `top: 0` leaves
+   * the list's own five pixels above itself and the row that just scrolled away
+   * shows through them — half a bar hanging over the heading. The pull cancels the
+   * inset exactly, which is the whole reason the inset has a name of its own: two
+   * literals here would part company the first time the panel's spacing changed.
+   */
+  test("a sticky heading is pulled up by exactly the inset it has to cancel", () => {
+    expect(composePanelStyleText()).toContain(`top: -${PANEL_TOKENS.spaceRegionDown};`);
+    expect(PANEL_TOKENS.spaceRegion.startsWith(`${PANEL_TOKENS.spaceRegionDown} `)).toBe(true);
   });
 });
 

@@ -74,6 +74,12 @@ export function getProfessionColour(profession: string | null): string {
  */
 export const PANEL_PIXELS = { space: 8, width: 260, tipWidth: 250 } as const;
 
+/**
+ * How far down the panel a region is inset, named because two rules need it and
+ * the second one exists to cancel the first — see `spaceRegionDown`.
+ */
+const REGION_STEP_DOWN = "5px";
+
 export const PANEL_TOKENS = {
   surface: "#17171c",
   surfaceRaised: "#1f1f26",
@@ -113,11 +119,21 @@ export const PANEL_TOKENS = {
   /**
    * One bar, and the height the list is measured in.
    *
-   * The list promises a fixed number of rows and computes its height from this,
-   * so the two cannot drift: a taller row silently means a taller window rather
-   * than a broken promise.
+   * The list promises a *minimum* number of rows and computes its height from
+   * this, so the two cannot drift: a taller row silently means a taller window
+   * rather than a broken promise.
    */
   rowHeight: "18px",
+  /**
+   * The most of the window the panel may ever cover.
+   *
+   * Taste, and said so rather than dressed up as a measurement: we are a guest
+   * over a game somebody is playing, so a breakdown with forty rows to show does
+   * not get to take the screen just because a tall monitor could hold it. The
+   * other half of the ceiling is the window itself and lives in the stylesheet —
+   * this one binds where there is room to spare.
+   */
+  maxHeightShare: "66vh",
   /**
    * The two inks a profession badge can carry, and the only two.
    *
@@ -145,7 +161,17 @@ export const PANEL_TOKENS = {
   /** Half a step. The design puts a row's own text this far from its edge. */
   spaceHalf: "2px",
   /** The step every region is inset by: 5px down the panel, 7px across it. */
-  spaceRegion: "5px 7px",
+  spaceRegion: `${REGION_STEP_DOWN} 7px`,
+  /**
+   * The down half of that step, on its own, because one rule has to undo it.
+   *
+   * ⚠️ **A scroll container's padding is inside its clip**, so a sticky heading
+   * pinned at the top of the list leaves the list's own five pixels above itself —
+   * and what shows through them is the row that just scrolled away, which reads as
+   * half a bar hanging over the heading. The heading pulls itself up by exactly
+   * this, so the two cannot drift: measured in Firefox, 5px of a tinted bar.
+   */
+  spaceRegionDown: REGION_STEP_DOWN,
   space: `${composeIntegerText(PANEL_PIXELS.space)}px`,
   spaceLarge: "12px",
   /** Narrow on purpose: the panel is a guest over a game someone is playing. */
