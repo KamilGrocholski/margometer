@@ -9,20 +9,22 @@
 
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
+import { getValueFromJsonText } from "@/libs/json.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fight-statistics.ts";
 import type { FightReading } from "@/src/game/battle-session.ts";
 import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-attachment.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
 import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
 import {
   composePanelMount,
+  composeReportText,
   setMargoMeter,
   shouldStartHere,
   writeCaptureToPage,
 } from "@/src/userscript-entry.ts";
-import { composeIntegerText } from "@/libs/number.ts";
+import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
 import { parseFightDump, type CombatantSnapshot } from "@/tools/fight-dump-parser.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
 
@@ -809,6 +811,93 @@ describe("the world a saved recording names", () => {
       const { page, getNames } = composePageAt(location);
       writeCaptureToPage(page, meter);
       expect(getNames()[0], JSON.stringify(location)).toMatch(/^margometer-unknown-/);
+    }
+  });
+});
+
+/**
+ * The copied report, against the figures it claims to carry.
+ *
+ * A report is what a person attaches to a bug they are reporting, so a figure
+ * missing from it is a question nobody can answer afterwards. The map below is
+ * checked *both* ways: every Polish name carries its field's number, and the
+ * fields it covers are exactly the row's own — so a counter added to
+ * `CombatantStatistics` and forgotten here fails the gate rather than showing up
+ * as a hole in somebody's report months later.
+ */
+describe("the report a reader copies", () => {
+  /** Every plain number a row holds, and the name the report gives it. */
+  const FIGURE_KEYS: Record<string, keyof CombatantStatistics> = {
+    zadane_surowe: "dealtRaw",
+    zadane: "dealtApplied",
+    otrzymane: "taken",
+    utracone_poza_ciosem: "healthLost",
+    leczenie: "healed",
+    ciosy: "blowsStruck",
+    ciosy_bez_umiejetnosci: "blowsWithoutSkill",
+    maks_cios: "largestBlow",
+    uzycia_umiejetnosci: "skillsUsed",
+  };
+
+  function composeReadingOf(fight: (typeof CAPTURED_FIGHTS)[number]): FightReading {
+    const roster = composeRosterOfFight(fight);
+    const messages = fight.dump.calls.flatMap((call) => call.protocolMessages);
+    return {
+      statistics: composeFightStatistics(decodeFight(messages, roster), roster),
+      roster,
+      turnsByCombatantId: new Map(),
+      fightTurns: 1,
+      ourSide: null,
+      isFromFightStart: true,
+      fightsStarted: 1,
+    };
+  }
+
+  function getReport(reading: FightReading): Record<string, unknown> {
+    const reading_ = getValueFromJsonText(composeReportText({} as never, reading));
+    expect(reading_.syntaxError).toBeNull();
+    return reading_.value as Record<string, unknown>;
+  }
+
+  /**
+   * Discovered from the object rather than listed, which is the half of this a
+   * hand-written list cannot do: a new field shows up here without anybody
+   * remembering to add it.
+   */
+  test("names every plain number a row holds, and invents none", () => {
+    const fight = assertDefined(CAPTURED_FIGHTS[0], "there is a capture to read");
+    const row = assertDefined(
+      [...composeReadingOf(fight).statistics.byCombatantId.values()][0],
+      "the capture has a combatant",
+    );
+    const numeric = Object.entries(row)
+      .filter(([, value]) => getFiniteNumberFromValue(value) !== null)
+      .map(([field]) => field);
+
+    const covered: string[] = Object.values(FIGURE_KEYS);
+    expect(covered.sort()).toEqual(numeric.sort());
+  });
+
+  test.each(CAPTURED_FIGHTS)("$name carries the same figures the row does", (fight) => {
+    const reading = composeReadingOf(fight);
+    const walka = assertDefined(
+      (getReport(reading) as { walka?: { postacie?: Record<string, unknown> } }).walka,
+      "a reading composes a fight",
+    );
+    const postacie = assertDefined(walka.postacie, "the report lists the combatants");
+
+    for (const [id, row] of reading.statistics.byCombatantId) {
+      const reported = assertDefined(
+        postacie[composeIntegerText(id)],
+        `the report holds ${composeIntegerText(id)}`,
+      ) as Record<string, unknown>;
+
+      for (const [name, field] of Object.entries(FIGURE_KEYS)) {
+        expect(
+          getFiniteNumberFromValue(reported[name]),
+          `${name} of ${composeIntegerText(id)}`,
+        ).toBe(getFiniteNumberFromValue(row[field]));
+      }
     }
   });
 });

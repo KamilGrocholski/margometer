@@ -12,6 +12,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
+import { composeIntegerText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
@@ -157,6 +158,50 @@ describe("the ranking", () => {
     expect(ours.lists[0]!.rows.map((row) => row.label).sort()).toEqual(["mag", "tarcza", "łowca"]);
     expect(theirs.lists[0]!.rows.map((row) => row.label)).toEqual(["coś dużego"]);
   });
+
+  /**
+   * The bracket belongs to the number it breaks down, so it has to be a share of
+   * it and not a second count standing beside it.
+   *
+   * Its own fixture rather than the shared one: there every blow is plain, so
+   * `1 (w tym 1 zwykłe)` would pass just as well with the two fields swapped.
+   */
+  test("the counters break the blows down by what nobody announced", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    ]);
+    const reading: PanelReading = {
+      statistics: composeFightStatistics(
+        decodeFight(
+          [
+            "1=90.00;3=50.00;tspell=Kula ognia;skillId=7",
+            // Glued to the announcement above it, so a skill covers this one.
+            "1=90.00;3=40.00;+dmg=300;-dmg=200",
+            "1=90.00;3=30.00;+dmg=500;-dmg=400",
+          ],
+          roster,
+        ),
+        roster,
+      ),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+      turnsByCombatantId: new Map([[1, 2]]),
+      fightTurns: 2,
+    };
+
+    const view = composePanelView(reading, composeState());
+    const counters = view.lists[0]!.rows[0]!.detail.find(
+      (line) => line.kind !== "stat" && line.text.startsWith("ciosy"),
+    );
+
+    // Two blows, one of them announced — so the bracket is a part, not a total.
+    expect(counters).toEqual({
+      kind: "note",
+      text: "ciosy 2 (w tym 1 zwykłe) · kryt. 0 · maks. cios 400",
+    });
+  });
 });
 
 describe("what nobody can be charged with", () => {
@@ -217,11 +262,101 @@ describe("drilling", () => {
    * not cover has a row of its own, so the section adds up to the figure it was
    * entered from.
    */
-  test("names what no skill announced rather than leaving the section short", () => {
+  /**
+   * ⚠️ **The row a player asked for.** A combatant who announces nothing appeared
+   * only as a figure with no shape: the panel could say what a skill did and
+   * could not say that somebody simply swung. It carries a count for the same
+   * reason the skills beside it do.
+   */
+  test("names what no skill announced, and says how many times", () => {
     const view = composePanelView(composeReading(), composeState({ focusCombatantId: 1 }));
     const skills = view.lists.find((list) => list.heading === "CZYM (UMIEJĘTNOŚCI)");
+    const plain = skills?.rows.find((row) => row.label === "Zwykły cios");
 
-    expect(skills?.rows.map((row) => row.label)).toContain("Cios bez umiejętności");
+    expect(plain).toBeDefined();
+    // One blow in the fixture carries no announcement over it.
+    expect(plain?.bracketText).toContain("×1");
+  });
+
+  /**
+   * Three blows that were all blocked are still three blows. A section that drew
+   * the row only when it landed something would say the combatant did not swing.
+   */
+  test("draws the row even when those blows landed nothing", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    ]);
+    const reading: PanelReading = {
+      statistics: composeFightStatistics(
+        decodeFight(["1=90.00;3=100.00;+dmg=500;-absorb=500"], roster),
+        roster,
+      ),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+      turnsByCombatantId: new Map([[1, 1]]),
+      fightTurns: 1,
+    };
+
+    const view = composePanelView(reading, composeState({ focusCombatantId: 1 }));
+
+    // Nothing landed, so there are no sections — but the swing is still said.
+    expect(view.lists).toEqual([]);
+    expect(view.emptyText).toBe("Nie zadała nikomu obrażeń. Uderzyła 1 raz — nic nie weszło.");
+  });
+
+  /**
+   * Two cases, because `raz` has two forms and not the three most Polish nouns
+   * take: 2 razy and 5 razy are the same word. A test that also asserted 5 and
+   * 12 would be asserting the same branch three times over.
+   */
+  test("says one swing and several swings differently", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    ]);
+    const blocked = "1=90.00;3=100.00;+dmg=500;-absorb=500";
+    const compose = (blows: number): string | null =>
+      composePanelView(
+        {
+          statistics: composeFightStatistics(
+            decodeFight(
+              Array.from({ length: blows }, () => blocked),
+              roster,
+            ),
+            roster,
+          ),
+          roster,
+          ourSide: 1,
+          isFromFightStart: true,
+          turnsByCombatantId: new Map([[1, 1]]),
+          fightTurns: 1,
+        },
+        composeState({ focusCombatantId: 1 }),
+      ).emptyText;
+
+    expect(compose(1)).toContain("Uderzyła 1 raz —");
+    expect(compose(2)).toContain("Uderzyła 2 razy —");
+  });
+
+  /**
+   * ⚠️ **The assumption the closing row's wording rests on.** Nothing announces a
+   * blow you take, so `Otrzymane` has no skills section — which is why that row
+   * only ever has to speak for `Zadane` and `Leczenie`. Without this, deleting
+   * the early return in `composeSkillEntries` would put a row reading `Zwykły
+   * cios`, and a note about swinging at somebody, under damage received.
+   */
+  test("what was taken has no skills section, because nothing announces a blow you take", () => {
+    const reading = composeReading();
+
+    for (const focusCombatantId of reading.statistics.byCombatantId.keys()) {
+      const view = composePanelView(reading, composeState({ metric: "taken", focusCombatantId }));
+
+      expect(view.lists.map((list) => list.heading), composeIntegerText(focusCombatantId)).not.toContain(
+        "CZYM (UMIEJĘTNOŚCI)",
+      );
+    }
   });
 
   test("healing opens who healed, and one more level says with what", () => {

@@ -100,6 +100,21 @@ export type CombatantStatistics = {
    */
   blowsStruck: number;
   largestBlow: number;
+  /**
+   * Blows this combatant struck with no announcement over them.
+   *
+   * The other half of `blowsStruck`, and the one a player asks about: without it
+   * the panel can say what a skill did and cannot say that somebody swung plain.
+   * Measured on the captures — 8 of 8 in the solo fight, 21 of 31 for one hunter
+   * in the group one — so this is most of what happens, not a corner.
+   *
+   * ⚠️ **Not the same claim as "used a plain attack".** A blow with nothing
+   * announced over it is a plain attack *or* an extra swing the game granted and
+   * does not mark as one; the protocol does not tell the two apart, so the count
+   * is of blows nothing announced, and the panel says that rather than the other
+   * thing.
+   */
+  blowsWithoutSkill: number;
   /** Who this combatant hit, and with what. The other end of `takenByActorId`. */
   dealtByTargetId: ReadonlyMap<number, ReadonlyMap<string, number>>;
   /**
@@ -222,6 +237,7 @@ type Row = {
   skillsUsed: number;
   blowsStruck: number;
   largestBlow: number;
+  blowsWithoutSkill: number;
   dealtByTargetId: Map<number, Map<string, number>>;
   takenByActorId: Map<number, Map<string, number>>;
   healthLostBySource: Map<string, number>;
@@ -255,6 +271,7 @@ function composeRow(): Row {
     skillsUsed: 0,
     blowsStruck: 0,
     largestBlow: 0,
+    blowsWithoutSkill: 0,
     dealtByTargetId: new Map(),
     takenByActorId: new Map(),
     healthLostBySource: new Map(),
@@ -384,6 +401,7 @@ export function composeFightStatistics(
         // skipped it would answer "how often did they connect" while being read
         // as "how often did they swing".
         actor.blowsStruck += 1;
+        if (event.announced === null) actor.blowsWithoutSkill += 1;
         let landed = 0;
 
         // The same figures twice, deliberately: what the target lost is what the

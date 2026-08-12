@@ -627,6 +627,9 @@ function composeReportRow(row: FightReading["statistics"]["unattributed"]): Reco
     zniszczone: Object.fromEntries(row.destroyed),
     efekty: Object.fromEntries(row.procsOnBlowsStruck),
     ciosy: row.blowsStruck,
+    // Beside the number it breaks down, and named for what it means rather than
+    // for what the panel labels it: this file is read by us, not by a player.
+    ciosy_bez_umiejetnosci: row.blowsWithoutSkill,
     maks_cios: row.largestBlow,
     uzycia_umiejetnosci: row.skillsUsed,
     komu: Object.fromEntries(

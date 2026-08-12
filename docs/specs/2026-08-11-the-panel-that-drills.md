@@ -109,9 +109,12 @@ Leczenie    ranking ─LPM→ ┬ OD KOGO           ─LPM→ czym ten leczący
 
 Every section adds up to the figure it was entered from. Where the named parts
 fall short, the difference is a row rather than a silence: `Bez sprawcy` for a
-missing actor, `Cios bez umiejętności` and `Nie wiadomo, czym` for a missing
-name. A breakdown that quietly totals less than the row above it is the failure
-this project exists to prevent, in miniature.
+missing actor, `Zwykły cios` and `Nie wiadomo, czym` for a missing name. Under
+`Zadane` that row also carries **how many blows** it stands for, and it is drawn
+even when they landed nothing — three blows that were all blocked are three
+blows, and a section that skipped them would say the combatant did not swing. A
+breakdown that quietly totals less than the row above it is the failure this
+project exists to prevent, in miniature.
 
 ## What a skill did, and why that is a reading rather than a guess
 
@@ -130,8 +133,18 @@ announcements, 133 next messages with the same actor, and **32 with a different
 one** — without the condition, an announcement takes somebody else's blow.
 
 What that yields, measured on the same fight: per-combatant sums by skill never
-exceed the combatant's own total, with the remainder standing as
-`Cios bez umiejętności`. Nine of eleven combatants have some.
+exceed the combatant's own total, with the remainder standing as `Zwykły cios`.
+Nine of eleven combatants have some.
+
+**That row counts the blows as well as the damage**, because a blow nothing
+announced is most of what happens: 8 of 8 in the solo capture, 21 of 31 for one
+hunter in the group one. A combatant who announces nothing all fight would
+otherwise appear as a figure with no shape at all.
+
+⚠️ **It is not a claim that somebody used a plain attack.** A blow with nothing
+announced over it is a plain attack *or* an extra swing the game granted and does
+not mark as one, and the protocol does not tell the two apart. So the row names
+the blow and not the intent, and says so where it is read.
 
 **Healing is drilled the same way and gets an actor from the same rule** — a heal
 under an announcement belongs to whoever announced it. Measured: **25 178 of

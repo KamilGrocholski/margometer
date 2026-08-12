@@ -322,6 +322,7 @@ const EMPTY_ROW: CombatantStatistics = {
   skillsUsed: 0,
   blowsStruck: 0,
   largestBlow: 0,
+  blowsWithoutSkill: 0,
   dealtByTargetId: new Map(),
   takenByActorId: new Map(),
   healthLostBySource: new Map(),
@@ -413,7 +414,13 @@ function getRankedIds(reading: PanelReading, state: PanelState): number[] {
  * costume of a measurement (§9.6). It joins when the key is read.
  */
 function composeCounters(row: CombatantStatistics): string[] {
-  const counters = [`ciosy ${composeFigureText(row.blowsStruck)}`];
+  // The bracket belongs to the number it breaks down: blows nobody announced are
+  // part of the blows, not a second kind of thing standing beside them.
+  const counters = [
+    `ciosy ${composeFigureText(row.blowsStruck)}${
+      row.blowsWithoutSkill > 0 ? ` (w tym ${composeFigureText(row.blowsWithoutSkill)} zwykłe)` : ""
+    }`,
+  ];
 
   const critical = row.procsOnBlowsStruck.get("crit") ?? 0;
   const veryCritical = row.procsOnBlowsStruck.get("legbon_verycrit") ?? 0;
@@ -746,11 +753,33 @@ function composeOpponentEntries(
  * combatant's own. Their own skills answer how much they *gave*, which is a
  * different quantity and does not add up to the same total (`SkillStatistics`).
  */
+/**
+ * The row that closes a section against the row above it.
+ *
+ * Keyed by the two metrics that reach it rather than by all three, so the
+ * compiler refuses a metric nobody decided about — the previous spelling was a
+ * ternary defaulting `taken` into the wording for `dealt`, which was only right
+ * because of an early return forty lines above it.
+ */
+const CLOSING_LABELS: Record<"dealt" | "healed", string> = {
+  dealt: "Zwykły cios",
+  healed: "Nie wiadomo, czym",
+};
+
+const CLOSING_NOTES: Record<"dealt" | "healed", string> = {
+  dealt:
+    "Cios, przed którym nie stała żadna umiejętność. Gra nie odróżnia go od dodatkowego zamachu, który sama jej dała.",
+  healed: "Nic nie zapowiedziało tego leczenia, więc gra nie mówi, co je dało.",
+};
+
 function composeSkillEntries(
   reading: PanelReading,
   state: PanelState,
   combatantId: number,
 ): BreakdownEntry[] {
+  // Nothing announces a blow you take: the protocol names what hit you, never
+  // what the other side chose. So `Otrzymane` has no skills section at all, and
+  // the two metrics below are the only ones the labels have to answer for.
   if (state.metric === "taken") return [];
 
   const entries: BreakdownEntry[] = [];
@@ -782,28 +811,31 @@ function composeSkillEntries(
 
   entries.sort((one, other) => other.amount - one.amount);
 
-  // What no announcement covered closes the section against the row above it.
-  const total = getMetricValue(getRow(reading, combatantId), state.metric);
+  /**
+   * What no announcement covered closes the section against the row above it —
+   * and under `Zadane` it says **how many times**, because that is the question
+   * a plain attack raises: a combatant who never announces anything otherwise
+   * appears only as a figure with no shape.
+   *
+   * It is drawn even when it landed nothing, and that is the point: three blows
+   * that were all blocked are three blows, and a section that skipped them would
+   * say the combatant did not swing.
+   */
+  const row = getRow(reading, combatantId);
+  const total = getMetricValue(row, state.metric);
   const named = entries.reduce((sum, entry) => sum + entry.amount, 0);
-  const rest = total - named - (state.metric === "healed" ? 0 : 0);
-  if (rest > 0) {
+  const rest = total - named;
+  const plainBlows = state.metric === "dealt" ? row.blowsWithoutSkill : 0;
+  if (rest > 0 || plainBlows > 0) {
     entries.push({
       key: "unannounced",
-      label: state.metric === "healed" ? "Nie wiadomo, czym" : "Cios bez umiejętności",
+      label: CLOSING_LABELS[state.metric],
       profession: null,
       colour: UNKNOWN_COLOUR,
-      amount: rest,
+      amount: Math.max(rest, 0),
       canDrill: false,
-      uses: null,
-      detail: [
-        {
-          kind: "note",
-          text:
-            state.metric === "healed"
-              ? "Nic nie zapowiedziało tego leczenia, więc gra nie mówi, co je dało."
-              : "Cios, przed którym nie stała żadna umiejętność.",
-        },
-      ],
+      uses: plainBlows > 0 ? plainBlows : null,
+      detail: [{ kind: "note", text: CLOSING_NOTES[state.metric] }],
     });
   }
 
@@ -1157,11 +1189,27 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
   }
 
   if (getMetricValue(getRow(reading, focusId), state.metric) === 0) {
+    /**
+     * Zero landed is not zero done, and the difference is the whole complaint
+     * this answers: a combatant who swung and was blocked every time read as one
+     * who did nothing. The count comes from the same place the panel's own
+     * counters do, so the two cannot disagree.
+     *
+     * Two forms and not three: `raz` spells the paucal and the genitive plural
+     * the same way — 2 razy, 5 razy — so the rule most Polish nouns need does
+     * not apply to the only word this says.
+     */
+    const blows = getRow(reading, focusId).blowsStruck;
+    const swung =
+      state.metric === "dealt" && blows > 0
+        ? ` Uderzyła ${composeFigureText(blows)} ${blows === 1 ? "raz" : "razy"} — nic nie weszło.`
+        : "";
+
     return {
       ...shell,
       crumb,
       lists: [],
-      emptyText: NOTHING_TEXTS[state.metric],
+      emptyText: `${NOTHING_TEXTS[state.metric]}${swung}`,
       emptyLimitText:
         getUnattributedDamage(reading) > 0 ? (NOTHING_LIMIT_TEXTS[state.metric] ?? null) : null,
       pinnedRow: null,
