@@ -15,6 +15,11 @@ import { composeIntegerText } from "@/libs/number.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fight-statistics.ts";
 import {
+  composeEmptyTurnAxis,
+  composeNextTurnAxis,
+  composeTurnCounts,
+} from "@/src/game/turn-axis.ts";
+import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
   type CapturedFight,
@@ -63,6 +68,37 @@ function writeRow(label: string, row: CombatantStatistics): void {
   if (row.skillsUsed > 0) console.log(`      skills announced: ${row.skillsUsed}`);
 }
 
+/**
+ * The turns the game numbered, which every rate the panel draws divides by.
+ *
+ * Printed here because this file claims to show what the panel would show, and it
+ * could not: the axis is in the payload envelope, and this tool used to read only
+ * the messages. A divisor nobody can look at is a divisor nobody notices is wrong,
+ * which is how it stayed wrong.
+ */
+function writeTurnAxis(fight: CapturedFight, names: Map<number, string>): void {
+  let axis = composeEmptyTurnAxis();
+  for (const call of fight.dump.calls) axis = composeNextTurnAxis(axis, call.payload);
+  const counts = composeTurnCounts(axis);
+
+  console.log("\n  —— turns ——");
+  if (counts.fightTurns === null) {
+    console.log("    the game numbered no turn span here, so there is no rate to draw");
+    return;
+  }
+
+  const span = axis.observed;
+  console.log(
+    `    fight: ${composeIntegerText(counts.fightTurns)}` +
+      `${span === null ? "" : ` (ordinals ${composeIntegerText(span.firstTurn)}–${composeIntegerText(span.lastTurn)})`}` +
+      `, nobody named for ${composeIntegerText(counts.turnsWithoutActor)}`,
+  );
+  for (const [combatantId, turns] of [...counts.turnsByCombatantId].sort(([, a], [, b]) => b - a)) {
+    const name = names.get(combatantId) ?? `id ${composeIntegerText(combatantId)}`;
+    console.log(`    ${name.padEnd(NAME_COLUMN)}${composeIntegerText(turns).padStart(NUMBER_COLUMN)}`);
+  }
+}
+
 function writeFightReport(fight: CapturedFight): void {
   const names = getNameByCombatantId(fight);
   const roster = composeRosterOfFight(fight);
@@ -109,6 +145,8 @@ function writeFightReport(fight: CapturedFight): void {
 
   console.log("  —— not tied to anyone ——");
   writeRow("unattributed", statistics.unattributed);
+
+  writeTurnAxis(fight, names);
 
   console.log(
     `\n  unreadable messages: ${composeIntegerText(statistics.reading.unreadableMessages)}`,

@@ -29,6 +29,12 @@ import {
   composeMergedCombatants,
   getOurSideFromBattle,
 } from "@/src/game/engine-roster.ts";
+import {
+  composeEmptyTurnAxis,
+  composeNextTurnAxis,
+  composeTurnCounts,
+  type TurnAxis,
+} from "@/src/game/turn-axis.ts";
 
 export type BattleSession = {
   /** Every message of this fight, in arrival order. */
@@ -54,23 +60,14 @@ export type BattleSession = {
    */
   fightsStarted: number;
   /**
-   * How many turns each combatant has taken, and whose turn it is now.
+   * The fight's turns, as the game numbers them.
    *
    * **The only thing in the payload envelope the panel needs and the messages do
-   * not carry.** A turn-based fight has no seconds to divide by, so "per turn" is
-   * the only rate that means anything here — and the protocol states the turn
-   * exactly once per payload, as `current`, naming whoever is acting.
-   *
-   * Counted on change rather than per payload: several payloads arrive inside one
-   * turn, so counting them would multiply everyone's turns by however chattily
-   * the server happened to narrate that fight.
-   *
-   * Read here rather than in `core` because it is not in a message — it is the
-   * envelope the engine call carried, which is this layer's business.
+   * not carry**, so it is read here rather than in `core`: it is not in a message,
+   * it is the envelope the engine call arrived in, which is this layer's business.
+   * What a turn is and how far the reading can be trusted is `turn-axis.ts`.
    */
-  turnsByCombatantId: ReadonlyMap<number, number>;
-  /** Whose turn the last payload stated, so the next one can tell a change. */
-  actingCombatantId: number | null;
+  turnAxis: TurnAxis;
   /**
    * The fight decoded, kept rather than redone.
    *
@@ -107,8 +104,7 @@ export function composeEmptySession(): BattleSession {
     ourSide: null,
     isFromFightStart: false,
     fightsStarted: 0,
-    turnsByCombatantId: new Map(),
-    actingCombatantId: null,
+    turnAxis: composeEmptyTurnAxis(),
     events: [],
     decodedWithCombatants: 0,
     lastMessage: null,
@@ -140,36 +136,6 @@ function composeNextEvents(
   const withCarry = decodeFight([carry, ...messages], roster);
   const alone = decodeFight([carry], roster).length;
   return [...session.events, ...withCarry.slice(alone)];
-}
-
-/** Whose turn this payload states, or null where it states none. */
-export function getActingCombatantId(payload: unknown): number | null {
-  if (typeof payload !== "object" || payload === null) return null;
-  return getIntegerFromValue((payload as Record<string, unknown>)["current"]);
-}
-
-/**
- * The turn counts after this payload.
- *
- * A turn opens when the acting combatant *changes*. The same combatant acting
- * twice in a row is therefore one turn here and two in the game — measured on
- * the group capture, that never happens, and the alternative reads every payload
- * of a long turn as a turn of its own.
- */
-function composeNextTurns(
-  session: BattleSession,
-  acting: number | null,
-): { turnsByCombatantId: ReadonlyMap<number, number>; actingCombatantId: number | null } {
-  if (acting === null || acting === session.actingCombatantId) {
-    return {
-      turnsByCombatantId: session.turnsByCombatantId,
-      actingCombatantId: session.actingCombatantId ?? acting,
-    };
-  }
-
-  const turns = new Map(session.turnsByCombatantId);
-  turns.set(acting, (turns.get(acting) ?? 0) + 1);
-  return { turnsByCombatantId: turns, actingCombatantId: acting };
 }
 
 /**
@@ -205,7 +171,7 @@ export function composeNextSession(
   const previous = starting ? composeEmptySession() : session;
 
   const stated = getOurSideFromBattle(payload);
-  const turns = composeNextTurns(previous, getActingCombatantId(payload));
+  const turnAxis = composeNextTurnAxis(previous.turnAxis, payload);
   const combatants = composeMergedCombatants(
     previous.combatants,
     composeCombatantsFromBattle(payload),
@@ -223,20 +189,19 @@ export function composeNextSession(
    *
    * Every part of it is by identity, and every part of it is exact: the merge
    * hands back the list it was given when a fragment said nothing new
-   * (`composeMergedCombatants`), and `composeNextTurns` hands back its own map
+   * (`composeMergedCombatants`), and `composeNextTurnAxis` hands back its own axis
    * when the turn did not move.
    */
   const changedNothing =
     !starting &&
     messages.length === 0 &&
     combatants === previous.combatants &&
-    turns.turnsByCombatantId === previous.turnsByCombatantId &&
-    turns.actingCombatantId === previous.actingCombatantId &&
+    turnAxis === previous.turnAxis &&
     (stated ?? previous.ourSide) === previous.ourSide;
   if (changedNothing) return previous;
 
   return {
-    ...turns,
+    turnAxis,
     messages: [...previous.messages, ...messages],
     combatants,
     events: composeNextEvents(previous, messages, combatants),
@@ -268,16 +233,18 @@ export type FightReading = {
   /** Changes when a new fight opens, so a warning can be scoped to one (§9.6). */
   fightsStarted: number;
   /**
-   * Turns taken, per combatant, and by the whole fight.
+   * Turns taken, per combatant and by the whole fight, and the ones nobody was
+   * named for.
    *
-   * Both, because they divide different figures: what a combatant *dealt* answers
-   * "how much per action" and divides by their own turns, while what they took
-   * and were healed happens on everyone else's turns too and divides by the
-   * fight's. One divisor for both would make one of the two answer a question
-   * nobody asked.
+   * All three, because the reader picks the divisor and each answer needs its
+   * qualification: a combatant's own turns answer "how much per action", the
+   * fight's answer "how much per turn of anyone's", and the third says how much of
+   * the second nobody could be placed in — without which the first two look
+   * complete when they are not (`turn-axis.ts`).
    */
   turnsByCombatantId: ReadonlyMap<number, number>;
-  fightTurns: number;
+  fightTurns: number | null;
+  turnsWithoutActor: number;
 };
 
 /**
@@ -295,8 +262,7 @@ export function composeFightReading(session: BattleSession): FightReading {
     roster,
     ourSide: session.ourSide,
     isFromFightStart: session.isFromFightStart,
-    turnsByCombatantId: session.turnsByCombatantId,
-    fightTurns: [...session.turnsByCombatantId.values()].reduce((sum, one) => sum + one, 0),
+    ...composeTurnCounts(session.turnAxis),
     fightsStarted: session.fightsStarted,
   };
 }

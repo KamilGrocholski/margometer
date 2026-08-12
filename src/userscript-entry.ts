@@ -479,7 +479,9 @@ export function composePanelMount(
       onMetricChosen: (chosen) =>
         setState({ metric: chosen, focusTargetId: null, focusSkill: null }),
       onTeamChosen: (chosen) => setState(composeStateAfterTeam(chosen)),
-      onPerTurnToggled: () => setState({ perTurn: !state.perTurn }),
+      // No focus dropped: unlike the metric and the side, a rate changes how a
+      // figure is written and not which rows exist.
+      onRateChosen: (chosen) => setState({ rate: chosen }),
       onRowChosen: (key) => setState(composeStateFromRow(state, key)),
       onBack: () => setState(composeStateAfterBack(state)),
       /**
@@ -626,6 +628,9 @@ export function composeReportText(page: HostPage, reading: FightReading | null):
             nasza_strona: reading.ourSide,
             sklad: [...reading.roster.byId.values()],
             tury_postaci: Object.fromEntries(reading.turnsByCombatantId),
+            // Beside them because it qualifies them: the ordinals nobody was named
+            // for are the difference between the two lines above adding up and not.
+            tury_bez_postaci: reading.turnsWithoutActor,
             postacie: Object.fromEntries(
               [...reading.statistics.byCombatantId].map(([id, row]) => [
                 id,

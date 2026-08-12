@@ -40,6 +40,13 @@ read.
 
 ## Three metrics, a side filter, and a rate
 
+⚠️ **The rate is superseded by `docs/specs/2026-08-12-the-turn-axis.md`.** What
+follows was written over a turn count the add-on had invented — 98 against the 299
+the game numbered — so the divisor, the single `na turę` button and its placement
+are all replaced there. Everything else on this page stands. It is left as written
+rather than corrected in place, because a dated record that quietly changes its
+mind is a record of nothing.
+
 Two rows of controls, and they are different kinds of thing:
 
 - **Zadane / Otrzymane / Leczenie** — which figure the list ranks by.

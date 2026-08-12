@@ -178,6 +178,7 @@ function composeReading(): PanelReading {
       [2, 1],
     ]),
     fightTurns: 3,
+    turnsWithoutActor: 0,
   };
 }
 
@@ -323,31 +324,62 @@ describe("one gesture in, one gesture out", () => {
     expect(chosen).toEqual(["combatant:1"]);
   });
 
-  test("a click on a tab asks for that metric, and on the rate for the rate", () => {
+  test("a click on a tab asks for that metric, and on a rate tab for that rate", () => {
     const metrics: string[] = [];
-    let rates = 0;
+    const rates: string[] = [];
     const { panel } = renderInto(composeDefaultState(), {
       onMetricChosen: (metric: string) => metrics.push(metric),
-      onPerTurnToggled: () => {
-        rates += 1;
-      },
+      onRateChosen: (rate: string) => rates.push(rate),
     });
-    const tabs = getByClass(panel, "tab");
 
-    setClickOn(panel, assertDefined(tabs[1], "the second metric tab"));
-    setClickOn(panel, assertDefined(getByClass(panel, "tab-rate")[0], "the rate tab"));
+    setClickOn(panel, assertDefined(getByClass(panel, "tab")[1], "the second metric tab"));
+    // The middle of the three: totals, this combatant's turns, the fight's.
+    setClickOn(panel, assertDefined(getByClass(panel, "tab-rate")[1], "a rate tab"));
 
     expect(metrics).toEqual(["taken"]);
-    expect(rates).toBe(1);
+    expect(rates).toEqual(["ownTurn"]);
+  });
+
+  /**
+   * Selected from its own strip rather than by counting from the first.
+   *
+   * ⚠️ **A flat index across every tab is a test that keeps passing while it
+   * checks something else.** This one read `tabs[5]` and meant the side strip's
+   * second tab; moving the rate control out of the metric row slid `tabs[5]` onto
+   * a different button, and the assertion went green against the wrong one.
+   */
+  /**
+   * A control that cannot do anything must not answer a click.
+   *
+   * It is kept out of the map rather than guarded at the listener: a branch is
+   * something to forget, and an absent key falls through to the rows on its own.
+   * The fight it is drawn for is a real one — both solo captures state a single
+   * turn ordinal, so the panel meets this state on ordinary material.
+   */
+  test("a rate tab the fight cannot serve asks for nothing", () => {
+    const rates: string[] = [];
+    const document = composeFakeDocument();
+    const reading = { ...composeReading(), fightTurns: null, turnsByCombatantId: new Map() };
+    const panel = renderPanel(document, composePanelView(reading, composeDefaultState()), {
+      onRateChosen: (rate: string) => rates.push(rate),
+    }) as FakeNode;
+
+    const tabs = getByClass(panel, "tab-rate");
+    expect(tabs.map((tab) => tab.className.includes("disabled"))).toEqual([false, true, true]);
+
+    setClickOn(panel, assertDefined(tabs[2], "the disabled rate tab"));
+    expect(rates).toEqual([]);
+
+    setClickOn(panel, assertDefined(tabs[0], "the totals tab"));
+    expect(rates).toEqual(["total"]);
   });
 
   test("a side tab asks for that side", () => {
     const teams: string[] = [];
     const { panel } = renderInto(composeDefaultState(), { onTeamChosen: (team: string) => teams.push(team) });
-    // The side strip is the second one; its first tab is "Wszyscy".
-    const tabs = getByClass(panel, "tab");
+    const sides = assertDefined(getByClass(panel, "sides-of")[0], "the side strip");
 
-    setClickOn(panel, assertDefined(tabs[5], "a side tab"));
+    setClickOn(panel, assertDefined(getByClass(sides, "tab")[1], "the second side tab"));
     expect(teams).toEqual(["mine"]);
   });
 

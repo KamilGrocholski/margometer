@@ -268,6 +268,18 @@ describe("the add-on driven by a captured fight", () => {
       expect(readings.length).toBeGreaterThanOrEqual(carrying);
       expect(readings.length).toBeLessThan(fight.dump.calls.length);
 
+      /**
+       * ⚠️ **The turn axis, end to end through the code the userscript runs.**
+       *
+       * This is where the bug lived and where nothing could see it: the group
+       * fight came out at 98 turns against the 299 the game numbered, so every
+       * rate the panel drew was 3.05× too high. The two solo captures deliver
+       * their whole fight in one payload, so the game states one ordinal and the
+       * honest answer is that the turns are unknown.
+       */
+      const expectedTurns = fight.name.includes("grupa-vs-hildur") ? 299 : null;
+      expect(reading?.fightTurns).toBe(expectedTurns);
+
       meter.stop();
       expect(Object.prototype.hasOwnProperty.call(battle, "updateData")).toBe(false);
     },
@@ -421,6 +433,7 @@ describe("what a failing panel puts on the console", () => {
       roster,
       turnsByCombatantId: new Map([[1, 3]]),
       fightTurns: 3,
+      turnsWithoutActor: 0,
       ourSide: 1,
       isFromFightStart: true,
       fightsStarted,
@@ -840,7 +853,8 @@ describe("what a click does to the drill", () => {
       statistics: composeFightStatistics(decodeFight(messages, roster), roster),
       roster,
       turnsByCombatantId: new Map(),
-      fightTurns: 1,
+      fightTurns: null,
+      turnsWithoutActor: 0,
       ourSide: null,
       isFromFightStart: true,
       fightsStarted: 1,
@@ -963,7 +977,8 @@ describe("the report a reader copies", () => {
       statistics: composeFightStatistics(decodeFight(messages, roster), roster),
       roster,
       turnsByCombatantId: new Map(),
-      fightTurns: 1,
+      fightTurns: null,
+      turnsWithoutActor: 0,
       ourSide: null,
       isFromFightStart: true,
       fightsStarted: 1,

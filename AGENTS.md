@@ -186,7 +186,7 @@ base every tool below throws from (§9.5).
 | `tools/game-client-source.ts` | *What is the game serving, and give me its source.* `status` compares served build against the cache; `fetch [channel]` downloads into `.cache/` with provenance. §7.6. |
 | `tools/protocol-key-table.ts` | *Which protocol keys does the client know?* Lifts them from the cached production bundle; `freeze` writes `tests/frozen-protocol-keys.ts`. |
 | `tools/decoding-status.ts` | *How much of the protocol do we read?* Messages, events by kind, unread keys by frequency. Computed on demand — these figures never go into prose (§5). |
-| `tools/fight-report.ts` | *What would the panel show for this fight?* Runs the decoder and the aggregate over each capture and prints the per-combatant table — everything the numbers hold, including what the panel has no room for. |
+| `tools/fight-report.ts` | *What would the panel show for this fight?* Runs the decoder and the aggregate over each capture and prints the per-combatant table — everything the numbers hold, including what the panel has no room for. Prints the turn axis too, because every rate divides by it and it is not in a message. |
 | `tools/help-article.ts` | *What does the game's own documentation say about this mechanic?* `fetch` caches an article, `search` prints raw context around a phrase and exits non-zero when there is none, `freeze` writes `tests/frozen-help-phrases.ts` so the register's help claims are re-counted on every gate. §7.6. |
 | `tools/captured-fight-intake.ts` | *This recording is worth keeping — put it in the repository.* Substitutes player nicknames, removes the game's ability descriptions, and writes the result into `tests/captured-fights/`. Refuses anything it cannot redact with certainty, and names the step that stays a person's. §9.2. |
 
@@ -532,10 +532,16 @@ src/
                          `myteam` arrives once or never. Counts the fights it has
                          watched open, which is the only thing surviving the
                          reset — a warning is scoped to one fight (§9.6) — and
-                         counts turns from `current`, the one thing the panel
-                         needs that no message carries: a turn-based fight has no
-                         seconds to divide by. Pure — the mutable variable belongs
-                         to whoever drives it.
+                         holds the turn axis, which it takes from the payload the
+                         fight has just reset on and not from the one before.
+                         Pure — the mutable variable belongs to whoever drives it.
+    turn-axis.ts         What a turn is, read from the envelope: the game's own
+                         turn prediction, keyed by absolute ordinal. The fight's
+                         turns are the span it stated; a combatant's are the
+                         ordinals it last assigned them; the ones it never named
+                         are counted apart and reach nobody's row. A fight it
+                         numbered only once has no divisor at all, and says null
+                         rather than 1 — a rate over one turn is its own total.
     fight-capture.ts     The same fight kept so it can be written to a file: the
                          payload copied whole, and the combatants as the fight
                          held them before and after the call. The other direction
@@ -557,8 +563,9 @@ src/
                          that keeps the panel reachable is checkable on its own.
     panel-view.ts        What the panel shows, as data — and the only file in the
                          repository whose strings are Polish (§3). One ranking
-                         with a side filter, a rate that divides at every level,
-                         the drill and its breadcrumb, what a combatant with
+                         with a side filter, totals or one of the two turn rates
+                         — the reader picks the divisor, the metric no longer does
+                         — the drill and its breadcrumb, what a combatant with
                          nothing gets instead of empty sections, and the row for
                          what nobody can be charged with. Every token of the
                          game's becomes a phrase before it reaches a label; one
@@ -591,7 +598,8 @@ tools/
                          writes tests/frozen-protocol-keys.ts.
   decoding-status.ts     How much of the protocol we read, computed on demand.
   fight-report.ts        What a captured fight adds up to, per combatant — the
-                         aggregate printed against real material.
+                         aggregate printed against real material, and beneath it
+                         the turns the game numbered, which the panel divides by.
   help-article.ts        Fetches an article of the game's published help into
                          .cache/ and prints raw context around a phrase. Prints
                          the age of the dump, and says NOT FOUND out loud —
@@ -727,15 +735,24 @@ tests/
                              with.
     battle-session.test.ts   How a fight is assembled from payloads: where one
                              ends, a roster that only ever grows, a side
-                             remembered from the one payload that states it, and
-                             a fight count that outlives the reset.
+                             remembered from the one payload that states it, a
+                             fight count that outlives the reset, and a fight that
+                             does not inherit the last one's turns.
+    turn-axis.test.ts        The turns, measured on the captures rather than on a
+                             fixture: 299 in the group fight against the 98 the
+                             old reading gave, three ordinals nobody was named
+                             for, and a fight stated once carrying no divisor at
+                             all. Holds the claim that lets `current` go unread —
+                             that it and the least ordinal are one statement — on
+                             every payload of every capture.
 
   ui/
     panel-view.test.ts       What the panel decides, without a document: the
-                             ranking and its numbering, the fixed height, the rate
-                             that divides everywhere at once, the drill and what
-                             closes each section against the row it was entered
-                             from, zero and unknown as two different sentences —
+                             ranking and its numbering, the fixed height, each
+                             rate dividing everywhere at once and a fight with no
+                             turn axis offering none, the drill and what closes
+                             each section against the row it was entered from,
+                             zero and unknown as two different sentences —
                              and a sweep over every screen the panel has holding
                              its Polish to §3, so no word of ours and no key of
                              the game's reaches a player.
@@ -1194,7 +1211,8 @@ Terms from the game, fixed here so module names do not drift apart.
 | Term | Meaning |
 |---|---|
 | **fight** | One battle, start to finish. The unit everything is scoped to. |
-| **turn** | One action by one combatant. Not a round of the whole roster. |
+| **turn** | One action by one combatant. Not a round of the whole roster. The game numbers them, and the number is in the envelope rather than in any message — see **turn prediction**. |
+| **turn prediction** | The game's own queue of the next ten turns, `turns_warriors`, keyed by absolute turn ordinal. Its least ordinal is the turn being taken. A forecast, so it gets revised; the freshest statement is the one read. `docs/specs/2026-08-12-the-turn-axis.md`. |
 | **roster** | The combatants on both sides, with side, level and profession. |
 | **side** | Which team a combatant is on, as the game states it — a bare number. Which of them is the player's *own* is neither in the protocol nor in a capture, which does not record who recorded it; only the game layer can ask the client. So `core` groups sides and never favours one. |
 | **protocol** | The raw payload the engine receives; our only data source. |

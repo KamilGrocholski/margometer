@@ -42,10 +42,14 @@ export type PanelReading = {
   /** Which side is the watcher's own, when the game said. Never guessed. */
   ourSide: number | null;
   isFromFightStart: boolean;
-  /** Turns each combatant took. The divisor for what they dealt. */
+  /**
+   * Turns each combatant took, turns the fight ran, and the ones nobody was named
+   * for. Two divisors and their qualification — the reader picks between them.
+   */
   turnsByCombatantId: ReadonlyMap<number, number>;
-  /** Turns the fight took. The divisor for what was done *to* somebody. */
-  fightTurns: number;
+  /** Null where the game never numbered this fight's turns. Then there is no rate. */
+  fightTurns: number | null;
+  turnsWithoutActor: number;
 };
 
 export const PANEL_METRICS = ["dealt", "taken", "healed"] as const;
@@ -53,6 +57,17 @@ export type PanelMetric = (typeof PANEL_METRICS)[number];
 
 export const PANEL_TEAMS = ["all", "mine", "enemy"] as const;
 export type PanelTeam = (typeof PANEL_TEAMS)[number];
+
+/**
+ * Totals, or a rate over one of the two divisors the fight has.
+ *
+ * Three states rather than a switch plus a divisor: the metric used to choose the
+ * divisor — dealt over the combatant's own turns, taken and healed over the
+ * fight's — which meant one button meant two things and neither was labelled. The
+ * reader picks, and it means the same at every level.
+ */
+export const PANEL_RATES = ["total", "ownTurn", "fightTurn"] as const;
+export type PanelRate = (typeof PANEL_RATES)[number];
 
 /**
  * Everything the reader has chosen, and nothing they have not.
@@ -64,8 +79,8 @@ export type PanelTeam = (typeof PANEL_TEAMS)[number];
 export type PanelState = {
   metric: PanelMetric;
   team: PanelTeam;
-  /** Rate rather than total, everywhere at once — see `getDivisor`. */
-  perTurn: boolean;
+  /** Which figure is written, everywhere at once — see `getDivisor`. */
+  rate: PanelRate;
   /** Whose breakdown is open, and how far into it. */
   focusCombatantId: number | null;
   focusTargetId: number | null;
@@ -91,7 +106,7 @@ export function composeDefaultState(): PanelState {
   return {
     metric: "dealt",
     team: "all",
-    perTurn: false,
+    rate: "total",
     focusCombatantId: null,
     focusTargetId: null,
     focusSkill: null,
@@ -109,6 +124,19 @@ const TEAM_LABELS: Record<PanelTeam, string> = {
   all: "Wszyscy",
   mine: "My",
   enemy: "Oni",
+};
+
+/**
+ * The two divisors named, so neither has to be guessed from a `/t`.
+ *
+ * `Sumy` is the third state and not the absence of one: a reader has to be able to
+ * see which of the three they are in, and a pair of unselected buttons says only
+ * that neither is chosen.
+ */
+const RATE_LABELS: Record<PanelRate, string> = {
+  total: "Sumy",
+  ownTurn: "Na turę postaci",
+  fightTurn: "Na turę walki",
 };
 
 const PROFESSION_NAMES: Record<string, string> = {
@@ -290,7 +318,7 @@ export type PanelView = {
   outcomeText: string | null;
   metricTabs: Array<{ metric: PanelMetric; label: string; isSelected: boolean }>;
   teamTabs: Array<{ team: PanelTeam; label: string; isSelected: boolean }>;
-  perTurn: { label: string; isSelected: boolean };
+  rateTabs: Array<{ rate: PanelRate; label: string; isSelected: boolean; isEnabled: boolean }>;
   crumb: PanelCrumb | null;
   /**
    * How many bars fit before the list scrolls.
@@ -371,24 +399,49 @@ function getMetricValue(row: CombatantStatistics, metric: PanelMetric): number {
 }
 
 /**
- * What a figure is divided by under `na turę`.
+ * What a figure is divided by, or null where nothing can divide it.
  *
- * Dealt divides by the combatant's own turns — the question is how much they get
- * out of one action. Taken and healed divide by the fight's, because both happen
- * on everyone else's turns too. One divisor for both would make one of them
- * answer a question nobody asked.
+ * ⚠️ **Never substitutes 1.** The count it would have stood in for is unknown, and
+ * a rate over 1 is the figure's own total wearing the costume of a measurement —
+ * which is the one thing this panel exists to prevent (§9.5). Null travels to the
+ * screen and comes out as a mark, not as a number.
  *
- * Never zero: a fight whose turns were never stated would otherwise turn every
- * rate into a division by zero, which is a number nobody wrote (§9.5).
+ * A figure nobody can be charged with has no turns of its own, so the fight's are
+ * the only honest divisor for it — the argument `composePinnedRow` already makes,
+ * stated once here because this is where the decision belongs.
  */
-function getDivisor(reading: PanelReading, combatantId: number | null, metric: PanelMetric): number {
-  if (metric !== "dealt") return Math.max(reading.fightTurns, 1);
-  if (combatantId === null) return Math.max(reading.fightTurns, 1);
-  return Math.max(reading.turnsByCombatantId.get(combatantId) ?? 0, 1);
+function getDivisor(
+  reading: PanelReading,
+  combatantId: number | null,
+  rate: PanelRate,
+): number | null {
+  if (rate === "total") return null;
+  if (rate === "fightTurn" || combatantId === null) return reading.fightTurns;
+  return reading.turnsByCombatantId.get(combatantId) ?? null;
 }
 
-function composeValueText(value: number, perTurn: boolean): string {
-  return perTurn ? composeRateText(value) : composeFigureText(value);
+/**
+ * One figure, written the way the reader asked for it.
+ *
+ * The division lives here rather than at each of the nine places that need it:
+ * with a divisor that can be null, nine call sites are nine chances to let a
+ * `NaN` through, and one of them reaches a bar's width where it takes every other
+ * bar in the panel down with it.
+ */
+function composeValueText(value: number, divisor: number | null, rate: PanelRate): string {
+  if (rate === "total") return composeFigureText(value);
+  // The suffix stays, so the column still reads as a rate; the dash says the
+  // figure is missing rather than small. Zero and unknown are two sentences (§9.6).
+  if (divisor === null || divisor <= 0) return "—/t";
+  return composeRateText(value / divisor);
+}
+
+/** The share of a bar this figure fills, and never a `NaN` that would blank the rest. */
+function getFill(value: number, divisor: number | null, rate: PanelRate, largest: number): number {
+  if (largest <= 0) return 0;
+  if (rate === "total") return value / largest;
+  if (divisor === null || divisor <= 0) return 0;
+  return value / divisor / largest;
 }
 
 /**
@@ -398,8 +451,28 @@ function composeValueText(value: number, perTurn: boolean): string {
  * total and mighty blows — so the switch decides which one leads rather than
  * which one is visible.
  */
-function composeBracket(share: number, other: string): string {
-  return `(${composeShareText(share)} · ${other})`;
+function composeBracket(share: number, other: string | null): string {
+  return other === null ? `(${composeShareText(share)})` : `(${composeShareText(share)} · ${other})`;
+}
+
+/**
+ * The second figure in the bracket: the total when a rate leads, and the rate a
+ * reader would most likely want when totals do.
+ *
+ * Null where the fight has no turn axis. `(83% · —/t)` on every row of a fight
+ * that already says in a warning why there is no pace is noise, not information —
+ * the bracket is a footnote, and a footnote that repeats itself twelve times has
+ * stopped being one.
+ */
+function composeOtherMeasure(
+  reading: PanelReading,
+  raw: number,
+  combatantId: number | null,
+  rate: PanelRate,
+): string | null {
+  if (rate !== "total") return composeFigureText(raw);
+  if (reading.fightTurns === null) return null;
+  return composeValueText(raw, getDivisor(reading, combatantId, "ownTurn"), "ownTurn");
 }
 
 /** Everyone the current filter admits, biggest first. */
@@ -481,11 +554,15 @@ function composeCombatantDetail(
     });
   }
 
+  const divisor = getDivisor(reading, combatantId, state.rate);
   for (const metric of PANEL_METRICS) {
     const value = getMetricValue(row, metric);
-    const shown = state.perTurn ? value / getDivisor(reading, combatantId, metric) : value;
     lines.push(
-      composeStat(METRIC_LABELS[metric], composeValueText(shown, state.perTurn), metric === state.metric),
+      composeStat(
+        METRIC_LABELS[metric],
+        composeValueText(value, divisor, state.rate),
+        metric === state.metric,
+      ),
     );
     // Taken is the one figure made of two readings, so it says so where it
     // stands rather than leaving the difference to be discovered.
@@ -495,7 +572,15 @@ function composeCombatantDetail(
     }
   }
 
-  lines.push(composeStat("Tury", composeFigureText(reading.turnsByCombatantId.get(combatantId) ?? 0)));
+  // A dash rather than zero where the game never numbered the fight's turns: it
+  // certainly took some, and printing 0 would be our ignorance drawn as a fact.
+  const turns = reading.turnsByCombatantId.get(combatantId);
+  lines.push(
+    composeStat(
+      "Tury",
+      reading.fightTurns === null ? "—" : composeFigureText(turns ?? 0),
+    ),
+  );
   if (row.skillsUsed > 0) {
     lines.push(composeStat("Użycia umiejętności", composeFigureText(row.skillsUsed)));
   }
@@ -531,22 +616,18 @@ function composeRankedRow(
   largest: number,
 ): PanelRow {
   const raw = getMetricValue(getRow(reading, combatantId), state.metric);
-  const divisor = getDivisor(reading, combatantId, state.metric);
-  const shown = state.perTurn ? raw / divisor : raw;
+  const divisor = getDivisor(reading, combatantId, state.rate);
   return {
     key: `combatant:${composeIntegerText(combatantId)}`,
     rank,
     label: getName(reading, combatantId),
     profession: reading.roster.byId.get(combatantId)?.profession ?? null,
     colour: getProfessionColour(reading.roster.byId.get(combatantId)?.profession ?? null),
-    fill: largest > 0 ? shown / largest : 0,
-    valueText: composeValueText(shown, state.perTurn),
+    fill: getFill(raw, divisor, state.rate, largest),
+    valueText: composeValueText(raw, divisor, state.rate),
     // The share is always of the raw sums: it describes the shape of the fight,
     // not its pace, and a share of rates has no meaning to read off.
-    bracketText: composeBracket(
-      total > 0 ? raw / total : 0,
-      state.perTurn ? composeFigureText(raw) : composeRateText(raw / divisor),
-    ),
+    bracketText: composeBracket(total > 0 ? raw / total : 0, composeOtherMeasure(reading, raw, combatantId, state.rate)),
     canDrill: true,
     detail: composeCombatantDetail(reading, combatantId, state),
   };
@@ -634,13 +715,13 @@ function composePinnedRow(
    * nobody behind it, and this is its one caller. Spelling it a second time by
    * hand here was two copies of one decision.
    *
-   * ⚠️ **The ranked rows divide by their own turns and this one does not, and
-   * they still share one bar scale.** Two rates on one scale is a real cost and
-   * this is the cheaper side of it: a scale of its own would draw the row that
-   * says something is missing at full width whatever it came to.
+   * ⚠️ **Under `na turę postaci` the ranked rows divide by their own turns and
+   * this one does not, and they still share one bar scale.** Two rates on one
+   * scale is a real cost and this is the cheaper side of it: a scale of its own
+   * would draw the row that says something is missing at full width whatever it
+   * came to.
    */
-  const divisor = getDivisor(reading, null, state.metric);
-  const shown = state.perTurn ? value / divisor : value;
+  const divisor = getDivisor(reading, null, state.rate);
 
   return {
     key: "nobody",
@@ -650,8 +731,8 @@ function composePinnedRow(
     colour: UNKNOWN_COLOUR,
     // Measured against the same figure every other bar is, or the row that says
     // something is missing would look like the largest thing in the fight.
-    fill: largest > 0 ? shown / largest : 0,
-    valueText: composeValueText(shown, state.perTurn),
+    fill: getFill(value, divisor, state.rate, largest),
+    valueText: composeValueText(value, divisor, state.rate),
     bracketText: `(${composeShareText(total + value > 0 ? value / (total + value) : 0)})`,
     canDrill: false,
     detail: lines,
@@ -680,8 +761,8 @@ type BreakdownEntry = {
 function composeBreakdownList(
   heading: string,
   entries: readonly BreakdownEntry[],
-  divisor: number,
-  perTurn: boolean,
+  divisor: number | null,
+  rate: PanelRate,
 ): PanelList | null {
   if (entries.length === 0) return null;
 
@@ -690,15 +771,17 @@ function composeBreakdownList(
 
   return {
     heading,
-    totalText: composeValueText(perTurn ? total / divisor : total, perTurn),
+    totalText: composeValueText(total, divisor, rate),
     rows: entries.map((entry) => ({
       key: entry.key,
       rank: null,
       label: entry.label,
       profession: entry.profession,
       colour: entry.colour,
+      // Raw against raw: one divisor serves the whole section, so it cancels out
+      // of every bar in it and a null one would blank them all for nothing.
       fill: largest > 0 ? entry.amount / largest : 0,
-      valueText: composeValueText(perTurn ? entry.amount / divisor : entry.amount, perTurn),
+      valueText: composeValueText(entry.amount, divisor, rate),
       bracketText: `(${composeShareText(total > 0 ? entry.amount / total : 0)}${entry.uses === null ? "" : ` · ×${composeFigureText(entry.uses)}`})`,
       canDrill: entry.canDrill,
       detail: entry.detail,
@@ -929,7 +1012,7 @@ const SOURCE_HEADINGS: Record<PanelMetric, string> = {
 
 /** The deepest level: one opponent, or one skill, of the combatant in focus. */
 function composeDeepList(reading: PanelReading, state: PanelState, combatantId: number): PanelList | null {
-  const divisor = state.perTurn ? getDivisor(reading, combatantId, state.metric) : 1;
+  const divisor = getDivisor(reading, combatantId, state.rate);
 
   if (state.focusSkill !== null) {
     // The owner is stated rather than searched for. Looking the key up across
@@ -958,7 +1041,7 @@ function composeDeepList(reading: PanelReading, state: PanelState, combatantId: 
           detail: [],
         })),
       divisor,
-      state.perTurn,
+      state.rate,
     );
   }
 
@@ -980,7 +1063,7 @@ function composeDeepList(reading: PanelReading, state: PanelState, combatantId: 
         detail: [],
       }))
       .filter((entry) => entry.amount > 0);
-    return composeBreakdownList(`CZYM — ${getName(reading, otherId)}`, skills, divisor, state.perTurn);
+    return composeBreakdownList(`CZYM — ${getName(reading, otherId)}`, skills, divisor, state.rate);
   }
 
   const from = state.metric === "dealt" ? getRow(reading, combatantId) : getRow(reading, otherId);
@@ -1002,7 +1085,7 @@ function composeDeepList(reading: PanelReading, state: PanelState, combatantId: 
         detail: [],
       })),
     divisor,
-    state.perTurn,
+    state.rate,
   );
 }
 
@@ -1027,12 +1110,24 @@ const NOTHING_LIMIT_TEXTS: Partial<Record<PanelMetric, string>> = {
 };
 
 /** Every warning the reading carries, each as one sentence a player can act on. */
-function composeWarnings(reading: PanelReading): string[] {
+function composeWarnings(reading: PanelReading, state: PanelState): string[] {
   const warnings: string[] = [];
   const { unreadableMessages, unaccountedHealthBySource } = reading.statistics.reading;
 
   if (!reading.isFromFightStart) {
     warnings.push("Panel wpiął się w trakcie tej walki — to nie są jej pełne liczby.");
+  }
+
+  // Said whatever is on screen: it explains two disabled buttons, and a reader
+  // looking for the pace has to learn it is not there rather than not find it.
+  if (reading.fightTurns === null) {
+    warnings.push("Gra nie podała kolejnych tur tej walki — widać tylko sumy, bez tempa.");
+  } else if (state.rate !== "total" && reading.turnsWithoutActor > 0) {
+    // Only under a rate: §9.6 puts a warning where the consequence is, and under
+    // `Sumy` nothing divides, so there is no consequence to warn about.
+    warnings.push(
+      `W ${composeFigureText(reading.turnsWithoutActor)} ${reading.turnsWithoutActor === 1 ? "turze" : "turach"} gra nie podała, kto działa — tempo może być zawyżone.`,
+    );
   }
 
   // The certain one before the maybe: this says healing *is* short, by an amount
@@ -1097,24 +1192,42 @@ function composeSides(reading: PanelReading, state: PanelState): PanelSides | nu
 
   let mine = 0;
   let enemy = 0;
-  let mineTurns = 0;
   for (const [id, row] of reading.statistics.byCombatantId) {
     const side = reading.roster.byId.get(id)?.side ?? null;
     if (side === null) continue;
     const value = getMetricValue(row, state.metric);
-    if (side === reading.ourSide) {
-      mine += value;
-      mineTurns += reading.turnsByCombatantId.get(id) ?? 0;
-    } else enemy += value;
+    if (side === reading.ourSide) mine += value;
+    else enemy += value;
   }
 
-  const enemyTurns = Math.max(reading.fightTurns - mineTurns, 1);
-  const mineDivisor = state.metric === "dealt" ? Math.max(mineTurns, 1) : Math.max(reading.fightTurns, 1);
-  const enemyDivisor = state.metric === "dealt" ? enemyTurns : Math.max(reading.fightTurns, 1);
+  /**
+   * Each side's turns counted from the turns, not derived from the other side's.
+   *
+   * ⚠️ **The subtraction this replaces was wrong twice over.** It summed our turns
+   * while walking the *statistics*, so a combatant who acted and landed nothing was
+   * invisible to it, and it took the enemy's as the fight's less ours — which quietly
+   * handed them every turn nobody was named for and every turn of a combatant the
+   * roster could not place, deflating their rate by exactly that much.
+   *
+   * Both counts are therefore lower bounds and both rates upper bounds, by the
+   * turns `turnsWithoutActor` reports and the warning names.
+   */
+  let mineTurns = 0;
+  let enemyTurns = 0;
+  for (const [id, turns] of reading.turnsByCombatantId) {
+    const side = reading.roster.byId.get(id)?.side ?? null;
+    if (side === null) continue;
+    if (side === reading.ourSide) mineTurns += turns;
+    else enemyTurns += turns;
+  }
+
+  const ownTurns = state.rate === "ownTurn";
+  const mineDivisor = ownTurns ? mineTurns : reading.fightTurns;
+  const enemyDivisor = ownTurns ? enemyTurns : reading.fightTurns;
 
   return {
-    mineText: composeValueText(state.perTurn ? mine / mineDivisor : mine, state.perTurn),
-    enemyText: composeValueText(state.perTurn ? enemy / enemyDivisor : enemy, state.perTurn),
+    mineText: composeValueText(mine, mineDivisor, state.rate),
+    enemyText: composeValueText(enemy, enemyDivisor, state.rate),
     label: `${TEAM_LABELS.mine} / ${TEAM_LABELS.enemy}`,
     // From raw sums: the bar shows the share of the fight, and a share of two
     // rates with different divisors is not a share of anything.
@@ -1139,7 +1252,18 @@ function getRowsNeeded(lists: readonly PanelList[]): number {
   return lists.reduce((rows, list) => rows + list.rows.length + 1, 0);
 }
 
-export function composePanelView(reading: PanelReading, state: PanelState): PanelView {
+export function composePanelView(reading: PanelReading, given: PanelState): PanelView {
+  /**
+   * The rate that is actually in force, which is not always the one chosen.
+   *
+   * The choice outlives a fight — the state is never reset — so a reader who
+   * picked a rate in one fight meets the next one's unreadable turns still holding
+   * it. Normalising once here rather than guarding at each of the dozen places
+   * that read it means no site can be forgotten, and the choice is kept rather
+   * than thrown away: it comes back the moment a fight can serve it.
+   */
+  const state: PanelState = reading.fightTurns === null ? { ...given, rate: "total" } : given;
+
   const ranked = getRankedIds(reading, state);
   const total = ranked.reduce((sum, id) => sum + getMetricValue(getRow(reading, id), state.metric), 0);
 
@@ -1156,22 +1280,37 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
       label: TEAM_LABELS[team],
       isSelected: team === state.team,
     })),
-    perTurn: { label: "na turę", isSelected: state.perTurn },
+    rateTabs: PANEL_RATES.map((rate) => ({
+      rate,
+      label: RATE_LABELS[rate],
+      isSelected: rate === state.rate,
+      // A fight the game never numbered has no divisor, so the two rates are not
+      // offered rather than offered and answered with a dash on every row.
+      isEnabled: rate === "total" || reading.fightTurns !== null,
+    })),
     // Ten under a filter because that is the most a side fields; eleven when the
     // list can hold both. A breakdown overrides this below.
     visibleRows: state.team === "all" ? RANKING_ROWS : SIDE_ROWS,
-    warnings: composeWarnings(reading),
+    warnings: composeWarnings(reading, state),
   };
 
   const focusId = state.focusCombatantId;
   if (focusId === null) {
-    // The bar is measured against the biggest figure ON SCREEN, which under a
-    // rate is not the biggest total: somebody who acted twice can out-rate the
-    // combatant above them. Taking the first row's figure would draw a bar past
-    // the end of its row.
+    /**
+     * The bar is measured against the biggest figure ON SCREEN, which under a
+     * rate is not the biggest total: somebody who acted twice can out-rate the
+     * combatant above them. Taking the first row's figure would draw a bar past
+     * the end of its row.
+     *
+     * ⚠️ A row whose divisor is unknown is skipped rather than folded in.
+     * `Math.max(most, NaN)` is `NaN`, so one combatant the axis says nothing about
+     * would take the width of every bar in the panel with it.
+     */
     const largestShown = ranked.reduce((most, id) => {
       const value = getMetricValue(getRow(reading, id), state.metric);
-      return Math.max(most, state.perTurn ? value / getDivisor(reading, id, state.metric) : value);
+      if (state.rate === "total") return Math.max(most, value);
+      const divisor = getDivisor(reading, id, state.rate);
+      return divisor === null || divisor <= 0 ? most : Math.max(most, value / divisor);
     }, 0);
 
     return {
@@ -1257,25 +1396,25 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
     };
   }
 
-  const divisor = state.perTurn ? getDivisor(reading, focusId, state.metric) : 1;
+  const divisor = getDivisor(reading, focusId, state.rate);
   const lists = [
     composeBreakdownList(
       OPPONENT_HEADINGS[state.metric],
       composeOpponentEntries(reading, state, focusId),
       divisor,
-      state.perTurn,
+      state.rate,
     ),
     composeBreakdownList(
       "CZYM (UMIEJĘTNOŚCI)",
       composeSkillEntries(reading, state, focusId),
       divisor,
-      state.perTurn,
+      state.rate,
     ),
     composeBreakdownList(
       SOURCE_HEADINGS[state.metric],
       composeSourceEntries(reading, state, focusId),
       divisor,
-      state.perTurn,
+      state.rate,
     ),
   ].filter((list): list is PanelList => list !== null);
 
