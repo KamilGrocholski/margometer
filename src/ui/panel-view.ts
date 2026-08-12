@@ -359,8 +359,18 @@ export type PanelSides = {
   enemyText: string;
   /** Whose the two figures are. Colour alone never carries a meaning (§9.7). */
   label: string;
-  /** 0–1 of the bar that belongs to our side. From raw sums, never from a rate. */
-  mineShare: number;
+  /**
+   * What belongs to neither side, named and counted — absent where every point
+   * has one. Under a given direction this is the pinned row's own figure seen
+   * from the other question: a blow with no actor has no side to be put on.
+   */
+  nobody: { label: string; text: string } | null;
+  /**
+   * The three parts of one whole, from raw sums. **Null where there is nothing
+   * to divide** — a bar drawn from zero is a measurement of nothing, and this
+   * used to draw a half-and-half split of it (§9.6).
+   */
+  shares: { mine: number; enemy: number; nobody: number } | null;
 };
 
 export type PanelView = {
@@ -423,8 +433,15 @@ export type PanelView = {
    *
    * Outside `lists` because it is outside the scrolling: it is the one row that
    * says *something here is missing*, and it must not be able to leave the screen.
+   *
+   * **On all four screens of the ranking, and on none of the breakdowns.** Every
+   * tab has something here to say — two of them that the figure stands apart, two
+   * that it is already inside the rows — and for a whole release one of the four
+   * said nothing at all. A breakdown gets none of it: there the shortfall is that
+   * combatant's, and it closes their own section rather than standing over it.
    */
   pinnedRow: PanelRow | null;
+  /** The fight, on every screen. Null only where the game never said which side is ours. */
   sides: PanelSides | null;
   /** One sentence each, in the player's words. Empty when the reading was clean. */
   warnings: string[];
@@ -705,19 +722,47 @@ function getHealingWithoutHealer(row: CombatantStatistics): number {
  * on the captures — under `Leczenie` this figure beats every ranked row in five
  * of seven of them, up to 1.56× — and a fill over one is clipped by
  * `.row { overflow: hidden }` into a bar that looks exactly like a full one.
+ *
+ * ⚠️ **It depends on the noun and not on the direction, and that is the whole
+ * point of it.** The same points read from either end: given plus this is
+ * everything received, so the row is what makes the two directions balance
+ * instead of disagree. Measured on all seven captures, both nouns — the figure
+ * and its share come out identical under `Zadane` and `Otrzymane` (49 318 and
+ * 6.7% against Hildur), which is `Σ dealt + unattributed = Σ taken` said in the
+ * panel's own arithmetic.
  */
 function getPinnedValue(reading: PanelReading, state: PanelState): number {
-  if (state.metric === "taken") return 0;
   if (!isHealingMetric(state.metric)) return getUnattributedDamage(reading);
-  // The same figure under both healing directions, and that is the point: it is
-  // what the givers do not account for. Given plus this is everything received,
-  // so the row is what makes the two directions balance instead of disagree.
   return (
     [...reading.statistics.byCombatantId.values()].reduce(
       (sum, row) => sum + getHealingWithoutHealer(row),
       0,
     ) + reading.statistics.unattributed.healed
   );
+}
+
+/**
+ * The part of this screen's quantity that **no row holds** — what the rows are
+ * short of the fight by, and the one thing three decisions now share.
+ *
+ * **The direction settles it.** A figure with no actor is on nobody's *given* row
+ * by definition, so under `Zadane` and `Leczenie dane` it is the pinned figure
+ * entire. Under a received direction the health it moved landed on somebody and is
+ * counted there, and what is left over is only what the aggregate could not place
+ * at all: a target or a recipient that did not resolve. Zero on all seven
+ * captures, and read rather than written as zero — a figure that happens to be
+ * zero because nothing has broken yet is exactly the kind this panel exists not
+ * to miss.
+ *
+ * Three callers and one fact, which is why it is a function: the screen's whole
+ * grows by this, the summary's third part is this, and the sentence the pinned row
+ * says about itself turns on whether it is the whole figure or the remainder.
+ */
+function getFigureOutsideRows(reading: PanelReading, state: PanelState): number {
+  if (isGivenMetric(state.metric)) return getPinnedValue(reading, state);
+  return isHealingMetric(state.metric)
+    ? reading.statistics.unattributed.healed
+    : reading.statistics.unattributed.taken;
 }
 
 /**
@@ -731,18 +776,40 @@ function getPinnedValue(reading: PanelReading, state: PanelState): number {
  * beside a row saying 79%, which is two answers to two questions printed as
  * though they answered one.
  *
- * The whole is what is **on screen**: the rows the filter admits, plus the pinned
- * figure — counted once. Under `Leczenie` that figure is already inside the rows,
- * because healing nobody announced still landed on somebody and is counted on
- * their row; only the part belonging to nobody at all is outside. So the two
+ * The whole is what is **on screen**: the rows the filter admits, plus whatever
+ * no row holds — counted once. Under a received direction the pinned figure is
+ * already inside the rows, because health nobody can be charged with still landed
+ * on somebody; only the part belonging to nobody at all is outside. So the two
  * brackets there answer one question about one whole and still overlap, which is
- * the truth about them: they are two cuts of the same healing, and the pinned row
+ * the truth about them: they are two cuts of the same quantity, and the pinned row
  * says so in its own words rather than by arithmetic.
  */
 function getWholeOnScreen(reading: PanelReading, state: PanelState, total: number): number {
-  if (state.metric === "healed") return total + reading.statistics.unattributed.healed;
-  return total + getPinnedValue(reading, state);
+  return total + getFigureOutsideRows(reading, state);
 }
+
+/** What the game did not say, per noun. The limit, never our reason for it. */
+const PINNED_LIMIT_NOTES: Record<PanelNoun, string> = {
+  damage: "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.",
+  healing: "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
+};
+
+/**
+ * Where the figure stands against the list above it — the sentence that decides
+ * whether a reader may add it to what they have just read.
+ *
+ * Under a given direction the rows are the actors and nobody claims this, so the
+ * shares really do come to a hundred with it included. Under a received one the
+ * rows are the people it reached, so it is already among them and the shares on
+ * that screen overlap. Four sentences and not two: the compiler counts the rows,
+ * and the screen that had neither of them said nothing at all.
+ */
+const PINNED_STANDING_NOTES: Record<PanelMetric, string> = {
+  dealt: "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno.",
+  taken: "Te obrażenia są już policzone wyżej, u tych, którym ubyło życia.",
+  healingGiven: "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno.",
+  healed: "To leczenie jest już policzone wyżej, u tych, którzy je dostali.",
+};
 
 function composePinnedRow(
   reading: PanelReading,
@@ -751,25 +818,16 @@ function composePinnedRow(
   largest: number,
 ): PanelRow | null {
   const isHealing = isHealingMetric(state.metric);
-  if (state.metric === "taken") return null;
 
   const value = getPinnedValue(reading, state);
   if (value <= 0) return null;
 
-  const lines: PanelDetailLine[] = [{ kind: "title", text: "Bez sprawcy" }];
+  const lines: PanelDetailLine[] = [
+    { kind: "title", text: "Bez sprawcy" },
+    { kind: "note", text: PINNED_LIMIT_NOTES[METRIC_AXES[state.metric].noun] },
+    { kind: "note", text: PINNED_STANDING_NOTES[state.metric] },
+  ];
   if (isHealing) {
-    lines.push({ kind: "note", text: "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło." });
-    // The one difference between the two healing screens, and it decides whether
-    // this figure may be added to the ones above it. Under `otrzymane` the rows
-    // are the people it reached, so it is already among them; under `dane` the
-    // rows are the healers, and nobody claims it — the shares there really do
-    // come to a hundred with this one included.
-    lines.push({
-      kind: "note",
-      text: isGivenMetric(state.metric)
-        ? "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno."
-        : "To leczenie jest już policzone wyżej, u tych, którzy je dostali.",
-    });
     lines.push({ kind: "heading", text: "Komu" });
     for (const [id, row] of [...reading.statistics.byCombatantId].sort(
       ([, one], [, other]) => getHealingWithoutHealer(other) - getHealingWithoutHealer(one),
@@ -778,10 +836,9 @@ function composePinnedRow(
       if (amount > 0) lines.push(composeStat(getName(reading, id), composeFigureText(amount)));
     }
   } else {
-    lines.push({
-      kind: "note",
-      text: "Gra nie mówi, kto to zadał — dlatego stoi osobno, a nie na czyimś wierszu.",
-    });
+    // The source key both ways round: it is the only name the log has for these
+    // points, and a reader on `Otrzymane` wants it exactly as much — their own
+    // row already tells them how much, never what.
     lines.push({ kind: "heading", text: "Z czego" });
     for (const [token, amount] of [...getUnattributedDamageBySource(reading)].sort(
       ([, one], [, other]) => other - one,
@@ -1358,26 +1415,53 @@ function composeTitle(reading: PanelReading): string {
   return `${sizes.join(" vs ")}${unplaced > 0 ? ` +${composeIntegerText(unplaced)}` : ""}`;
 }
 
+/**
+ * The fight in two figures, and what belongs to neither.
+ *
+ * ⚠️ **It used to draw a part of the fight as the whole of it.** The two sides
+ * were summed off the rows and nothing else, so under `Zadane` the bar was short
+ * by everything with no actor — 1.3% to 18.6% across the captures — and under
+ * `Leczenie dane` by 55.6% to 88.3%, while the pinned row **directly above it**
+ * stated that very figure. Two regions of one screen answering with two different
+ * wholes, which is the defect the brackets were fixed for one region up. The third
+ * part closes it: mine plus enemy plus nobody is the figure every bracket on the
+ * screen divides by.
+ *
+ * **Fight-scope even under a side filter, and even inside a breakdown.** What it
+ * answers is how the fight is going, and that question does not change when the
+ * list narrows — only the label does, because two figures of a different scale
+ * standing under one combatant's breakdown would be read as that combatant's.
+ */
 function composeSides(reading: PanelReading, state: PanelState): PanelSides | null {
   if (reading.ourSide === null) return null;
 
   let mine = 0;
   let enemy = 0;
+  let nobody = getFigureOutsideRows(reading, state);
   for (const [id, row] of reading.statistics.byCombatantId) {
     const side = reading.roster.byId.get(id)?.side ?? null;
-    if (side === null) continue;
     const value = getMetricValue(row, state.metric);
-    if (side === reading.ourSide) mine += value;
+    // A combatant the roster cannot place was dropped here silently, while
+    // `composeTitle` was counting them in its `+N`. They have no side, and no
+    // side is what the third part is for.
+    if (side === null) nobody += value;
+    else if (side === reading.ourSide) mine += value;
     else enemy += value;
   }
 
+  const whole = mine + enemy + nobody;
+  const sides = `${TEAM_LABELS.mine} / ${TEAM_LABELS.enemy}`;
   return {
     mineText: composeFigureText(mine),
     enemyText: composeFigureText(enemy),
-    label: `${TEAM_LABELS.mine} / ${TEAM_LABELS.enemy}`,
+    label: state.focusCombatantId === null ? sides : `Cała walka · ${sides}`,
+    // Not `Bez sprawcy`, though on the screens where it is large it is the same
+    // points: a combatant with no side lands here too, and they have an actor.
+    // The chain is the pinned row's own — no actor, so nothing to put on a side.
+    nobody: nobody > 0 ? { label: "Bez strony", text: composeFigureText(nobody) } : null,
     // From raw sums: the bar shows the share of the fight, and a share of two
     // rates with different divisors is not a share of anything.
-    mineShare: mine + enemy > 0 ? mine / (mine + enemy) : 0.5,
+    shares: whole > 0 ? { mine: mine / whole, enemy: enemy / whole, nobody: nobody / whole } : null,
   };
 }
 
@@ -1516,7 +1600,7 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
       emptyText: lists.length === 0 ? "Nie ma czego pokazać." : null,
       emptyLimitText: null,
       pinnedRow: null,
-      sides: null,
+      sides: composeSides(reading, state),
     };
   }
 
@@ -1547,7 +1631,7 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
       emptyLimitText:
         getPinnedValue(reading, state) > 0 ? (NOTHING_LIMIT_TEXTS[state.metric] ?? null) : null,
       pinnedRow: null,
-      sides: null,
+      sides: composeSides(reading, state),
     };
   }
 
@@ -1565,6 +1649,6 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
     emptyText: lists.length === 0 ? NOTHING_TEXTS[state.metric] : null,
     emptyLimitText: null,
     pinnedRow: null,
-    sides: null,
+    sides: composeSides(reading, state),
   };
 }

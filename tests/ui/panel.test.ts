@@ -29,7 +29,13 @@ import {
   type PanelNode,
   type PanelScroll,
 } from "@/src/ui/panel-element.ts";
-import { composeColourOver, getContrastRatio, PANEL_TOKENS, SERIES_COLOURS } from "@/src/ui/panel-tokens.ts";
+import {
+  composeColourOver,
+  getContrastRatio,
+  PANEL_TOKENS,
+  SERIES_COLOURS,
+  UNKNOWN_COLOUR,
+} from "@/src/ui/panel-tokens.ts";
 import {
   composeDefaultState,
   composePanelView,
@@ -346,6 +352,65 @@ describe("what reaches the screen", () => {
   });
 
   /**
+   * ⚠️ **This region was drawn in every test in this file and asserted in none.**
+   *
+   * It divided the fight in two while a third of it belonged to neither side, and
+   * nothing here could see that, because nothing here looked. The bar closes now:
+   * as many segments as there are parts with a figure, and the third one named
+   * beneath rather than squeezed between the two that face each other.
+   */
+  test("the summary under the list divides the whole fight, not part of it", () => {
+    const { panel } = renderInto();
+    const region = assertDefined(getByClass(panel, "sides-region")[0], "the summary");
+    const track = assertDefined(getByClass(region, "sides-track")[0], "the split bar");
+    const spare = assertDefined(getByClass(region, "sides-spare")[0], "what has no side");
+
+    // 500 applied by our two, nothing back, and 60 of poison charged to nobody.
+    // Two segments and not three: a part with no figure is not drawn at all.
+    const widths = track.children.map((part) =>
+      assertDefined(
+        getDecimalFromText((part.properties["width"] ?? "").replace("%", "")),
+        "a segment carries a width",
+      ),
+    );
+    expect(widths.length).toBe(2);
+    expect(widths.reduce((sum, width) => sum + width, 0)).toBeCloseTo(100, 6);
+    expect(assertDefined(track.children[1], "the segment with no side").properties["background"]).toBe(
+      UNKNOWN_COLOUR,
+    );
+    expect(getEveryNode(spare).map((node) => node.textContent)).toEqual(
+      expect.arrayContaining(["Bez strony", "60"]),
+    );
+  });
+
+  /**
+   * A share of nothing is not a half-and-half split, and it used to draw one:
+   * `mineShare` fell back to `0.5`, so a fight with no healing at all showed the
+   * two sides evenly matched at it. Nothing measured is nothing drawn (§9.6).
+   */
+  test("draws no split bar where there is nothing to divide", () => {
+    const { panel } = renderInto({ ...composeDefaultState(), metric: "healingGiven" });
+    const region = assertDefined(getByClass(panel, "sides-region")[0], "the summary");
+
+    expect(getByClass(region, "sides-track").length).toBe(0);
+  });
+
+  /**
+   * The two figures are the fight's, whatever the list below them shows — so on a
+   * breakdown, where the list is one combatant, the label has to say whose they
+   * are. Without it they read as that combatant's, at ten times the scale.
+   */
+  test("says the summary is the whole fight once the list stops being one", () => {
+    const ranking = renderInto().panel;
+    const breakdown = renderInto({ ...composeDefaultState(), focusCombatantId: 1 }).panel;
+    const getSummaryLabel = (panel: FakeNode): string =>
+      assertDefined(getByClass(panel, "sides-label")[0], "the summary label").textContent;
+
+    expect(getSummaryLabel(ranking)).toBe("My / Oni");
+    expect(getSummaryLabel(breakdown)).toContain("Cała walka");
+  });
+
+  /**
    * Both numbers, because only one of them was ever checked here: a render that
    * ignored the view and wrote eleven into the stylesheet passed this test for as
    * long as it asked one question.
@@ -646,7 +711,9 @@ describe("what the panel never does", () => {
    * question nobody asks would be the wrong fix.
    */
   test("a side's own figure is readable in the colour it is written in", () => {
-    for (const colour of [PANEL_TOKENS.ours, PANEL_TOKENS.theirs]) {
+    // The third one joined them when the summary stopped dividing the fight in
+    // two: it is written as text under the bar, so it answers the same question.
+    for (const colour of [PANEL_TOKENS.ours, PANEL_TOKENS.theirs, UNKNOWN_COLOUR]) {
       const ratio = assertDefined(
         getContrastRatio(colour, PANEL_TOKENS.surface),
         `${colour} has a contrast ratio`,

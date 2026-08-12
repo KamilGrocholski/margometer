@@ -21,6 +21,7 @@ import {
   composePanelView,
   PANEL_METRICS,
   PANEL_TEAMS,
+  type PanelMetric,
   type PanelReading,
   type PanelRow,
   type PanelState,
@@ -76,10 +77,26 @@ function getEveryRow(view: PanelView): PanelRow[] {
   return [...view.lists.flatMap((list) => list.rows), ...(view.pinnedRow === null ? [] : [view.pinnedRow])];
 }
 
-/** Every string the panel would put on screen for this view. */
+/**
+ * Every string the panel would put on screen for this view.
+ *
+ * ⚠️ **The summary under the list was missing from here**, so the one region
+ * this round changes was also the one the §3 sweeps had never read. A list of
+ * places to look is a list somebody keeps, and it goes stale the moment a region
+ * is added — which is what happened.
+ */
 function getEveryString(view: PanelView): string[] {
   return [
     view.title,
+    ...(view.sides === null
+      ? []
+      : [
+          view.sides.label,
+          view.sides.mineText,
+          view.sides.enemyText,
+          view.sides.nobody?.label ?? "",
+          view.sides.nobody?.text ?? "",
+        ]),
     view.outcomeText ?? "",
     view.emptyText ?? "",
     view.emptyLimitText ?? "",
@@ -193,32 +210,75 @@ describe("the ranking", () => {
   });
 });
 
+/**
+ * Where the figure with no actor already sits among the rows — written out here
+ * rather than imported, so the guard states the claim instead of agreeing with
+ * whatever the view currently believes (§7.5).
+ *
+ * A blow with no actor is on nobody's *given* row, so under `Zadane` and
+ * `Leczenie dane` it is a figure of its own. The health it moved landed on
+ * somebody, so under `Otrzymane` and `Leczenie` it is already counted there and
+ * adding it again would double it.
+ */
+const IS_PINNED_INSIDE_ROWS: Record<PanelMetric, boolean> = {
+  dealt: false,
+  taken: true,
+  healingGiven: false,
+  healed: true,
+};
+
 describe("what nobody can be charged with", () => {
   /**
    * Health that fell without a blow is real damage with no attacker. It cannot
    * sit on a row, and dropping it would take 13% of what hit the boss in the
    * group capture off the screen.
    */
-  test("stands under the list, in its own row, for dealt and for healed", () => {
-    const dealt = composePanelView(composeReading(), composeState());
-    const healed = composePanelView(composeReading(), composeState({ metric: "healed" }));
+  /**
+   * ⚠️ **Every tab, and for a whole release one of the four had nothing.**
+   * `Otrzymane` returned early, so the one screen where 13% of what hit the boss
+   * in the group capture is *already inside the rows* was also the one screen
+   * that never said so.
+   */
+  test.each(PANEL_METRICS.map((metric) => [metric] as const))(
+    "stands under the list on %s, in its own row",
+    (metric) => {
+      const view = composePanelView(composeReading(), composeState({ metric }));
 
-    expect(dealt.pinnedRow?.label).toBe("Bez sprawcy");
-    expect(dealt.pinnedRow?.canDrill).toBe(false);
-    expect(healed.pinnedRow?.label).toBe("Bez sprawcy");
+      expect(view.pinnedRow?.label).toBe("Bez sprawcy");
+      expect(view.pinnedRow?.canDrill).toBe(false);
+    },
+  );
+
+  /**
+   * The sentence that decides whether a reader may add the figure to the rows —
+   * and the reason the row belongs on all four tabs rather than on the two where
+   * it stands apart. Under a received direction it does not stand apart, and
+   * saying nothing there is the same mistake as saying the wrong thing.
+   */
+  test.each([
+    ["dealt", "stoi osobno"],
+    ["taken", "już policzone wyżej"],
+    ["healingGiven", "stoi osobno"],
+    ["healed", "już policzone wyżej"],
+  ] as const)("says on %s where it stands against the rows", (metric, phrase) => {
+    const view = composePanelView(composeReading(), composeState({ metric }));
+
+    expect(
+      view.pinnedRow?.detail.map((line) => (line.kind === "stat" ? "" : line.text)).join(" "),
+    ).toContain(phrase);
   });
 
   /**
-   * Not under `Otrzymane`: there the victim is always named, so the figure sits
-   * on their row instead — and it is the same 60 points either way.
+   * Under `Otrzymane` the victim is always named, so the same 60 points are on
+   * their row as well — which is exactly why the pinned row there says they are.
    */
   test("is part of the victim's own figure under taken", () => {
     const view = composePanelView(composeReading(), composeState({ metric: "taken" }));
     const victim = view.lists[0]!.rows.find((row) => row.label === "coś dużego");
 
-    expect(view.pinnedRow).toBeNull();
     // 400 + 100 from the blows, and 60 that fell on its own.
     expect(victim?.valueText).toBe("560");
+    expect(view.pinnedRow?.valueText).toBe("60");
     expect(victim?.detail.map((line) => (line.kind === "stat" ? line.label : ""))).toContain(
       "  bez sprawcy",
     );
@@ -548,6 +608,10 @@ describe("the words a player reads", () => {
     "JSON",
     "payload",
     "event",
+    // Ours for the two things this panel is most tempted to name in English,
+    // and the region that says both of them was outside every sweep until now.
+    "unattributed",
+    "unaccounted",
   ];
 
   test("carry no word from the code and no key from the game", () => {
@@ -724,13 +788,74 @@ describe("against the captured fights", () => {
    * are outside the ranking, so the two directions must arrive at **one** share of
    * one whole. They are the same missing healing measured the same way.
    */
-  test.each(fights)("$name reports one share for the healing nobody announced", ({ reading }) => {
-    const given = composePanelView(reading, composeState({ metric: "healingGiven" })).pinnedRow;
-    const received = composePanelView(reading, composeState({ metric: "healed" })).pinnedRow;
-    if (given === null || received === null) return;
+  /**
+   * ⚠️ **And the same claim for damage, which is where the balance is written
+   * down.** `Σ dealt + unattributed = Σ taken` is the spec's own sentence, and
+   * this is the only place it is measured: the two directions state one figure
+   * and one share only if the totals either side of it agree to the point.
+   *
+   * It could not be made before this round — `Otrzymane` had no pinned row to
+   * compare against, which is how the balance went four screens unchecked.
+   */
+  test.each(
+    fights.flatMap((fight) =>
+      (
+        [
+          ["obrażenia", "dealt", "taken"],
+          ["leczenie", "healingGiven", "healed"],
+        ] as const
+      ).map(([noun, given, received]) => ({ ...fight, noun, given, received })),
+    ),
+  )("$name reports one figure for the $noun nobody can be charged with", ({ reading, given, received }) => {
+    const inGiven = composePanelView(reading, composeState({ metric: given })).pinnedRow;
+    const inReceived = composePanelView(reading, composeState({ metric: received })).pinnedRow;
 
-    expect(given.valueText).toBe(received.valueText);
-    expect(given.bracketText).toBe(received.bracketText);
+    // Both or neither, checked before the figures: a direction that simply stops
+    // drawing the row would otherwise pass this by having nothing to disagree
+    // with, which is how the missing screen survived until now.
+    expect(inGiven === null).toBe(inReceived === null);
+    if (inGiven === null || inReceived === null) return;
+
+    expect(inGiven.valueText).toBe(inReceived.valueText);
+    expect(inGiven.bracketText).toBe(inReceived.bracketText);
+  });
+
+  /**
+   * ⚠️ **The summary under the list used to draw a part of the fight as the whole
+   * of it.** It summed the rows and nothing else, so under `Zadane` it was short
+   * by everything with no actor — 1.3% to 18.6% across these captures — and under
+   * `Leczenie dane` by 55.6% to 88.3%, while the pinned row directly above it
+   * stated that very figure. On `2026-08-12-tempest-grupa-vs-hildur-2` the bar
+   * divided 14 393 points 100/0 with 109 113 unaccounted for beside it.
+   *
+   * Checked as a property rather than against a number: the three parts are one
+   * whole, so their shares come to one and their figures come to the figure every
+   * bracket on that screen divides by.
+   */
+  test.each(fights)("$name closes the summary against the whole on screen", ({ reading }) => {
+    for (const metric of PANEL_METRICS) {
+      const view = composePanelView(reading, composeState({ metric }));
+      const sides = view.sides;
+      if (sides === null || sides.shares === null) continue;
+
+      const where = `${reading.statistics.byCombatantId.size} ${metric}`;
+      expect(sides.shares.mine + sides.shares.enemy + sides.shares.nobody, where).toBeCloseTo(1, 10);
+
+      // Off the drawn text, which is what a person adds up. The rows plus the
+      // pinned row are the same whole read the other way round.
+      const parts = [sides.mineText, sides.enemyText, sides.nobody?.text ?? "0"].map((text) =>
+        assertDefined(getIntegerFromText(text.replace(/\s/gu, "")), `figure in ${text}`),
+      );
+      const rows = view.lists.flatMap((list) => list.rows);
+      const pinned = IS_PINNED_INSIDE_ROWS[metric] ? [] : [view.pinnedRow ?? []].flat();
+      const onScreen = [...rows, ...pinned]
+        .reduce(
+          (sum, row) =>
+            sum + assertDefined(getIntegerFromText(row.valueText.replace(/\s/gu, "")), row.key),
+          0,
+        );
+      expect(parts.reduce((sum, part) => sum + part, 0), where).toBe(onScreen);
+    }
   });
 
   /**

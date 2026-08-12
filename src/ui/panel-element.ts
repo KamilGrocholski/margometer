@@ -30,6 +30,7 @@ import {
   getProfessionInk,
   PANEL_PIXELS,
   PANEL_TOKENS,
+  UNKNOWN_COLOUR,
 } from "@/src/ui/panel-tokens.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import type {
@@ -461,6 +462,10 @@ export function composePanelStyleText(): string {
   font-weight: 600;
 }
 .sides-label { color: ${t.textQuiet}; font-weight: 400; opacity: 0.8; }
+/* Quieter and smaller than the confrontation above it: it is the part of the
+   fight that has nobody to be on a side of, not a third team. */
+.sides-spare { margin-top: ${t.spaceSmall}; font-size: 10px; }
+.sides-spare .sides-label { color: inherit; }
 .sides-track { display: flex; height: 4px; margin-top: ${t.spaceSmall}; border-radius: 3px; overflow: hidden; background: ${t.track}; }
 .warning { color: ${t.suspect}; padding: 0 7px 5px; }
 .warning:first-of-type { padding-top: 5px; border-top: 1px solid ${t.border}; }
@@ -837,18 +842,44 @@ export function renderPanel(
       enemy.textContent = sides.enemyText;
       enemy.style.setProperty("color", PANEL_TOKENS.theirs);
       line.append(mine, label, enemy);
+      block.append(line);
 
-      const track = document.createElement("div");
-      track.className = "sides-track";
-      const ours = document.createElement("span");
-      ours.style.setProperty("width", `${sides.mineShare * 100}%`);
-      ours.style.setProperty("background", PANEL_TOKENS.ours);
-      const theirs = document.createElement("span");
-      theirs.style.setProperty("width", `${(1 - sides.mineShare) * 100}%`);
-      theirs.style.setProperty("background", PANEL_TOKENS.theirs);
-      track.append(ours, theirs);
+      if (sides.shares !== null) {
+        const shares = sides.shares;
+        const track = document.createElement("div");
+        track.className = "sides-track";
+        // Three segments and not two, because two of them used to be drawn as the
+        // whole bar while the row above stated the third.
+        for (const [share, colour] of [
+          [shares.mine, PANEL_TOKENS.ours],
+          [shares.enemy, PANEL_TOKENS.theirs],
+          [shares.nobody, UNKNOWN_COLOUR],
+        ] as const) {
+          if (share <= 0) continue;
+          const part = document.createElement("span");
+          part.style.setProperty("width", `${share * 100}%`);
+          part.style.setProperty("background", colour);
+          track.append(part);
+        }
+        block.append(track);
+      }
 
-      block.append(line, track);
+      // Below the track rather than beside the two figures: the line above is a
+      // confrontation and reads as one, and this is not a third contestant.
+      if (sides.nobody !== null) {
+        const nobody = sides.nobody;
+        const spare = document.createElement("div");
+        spare.className = "sides sides-spare";
+        const name = document.createElement("span");
+        name.className = "sides-label";
+        name.textContent = nobody.label;
+        const value = document.createElement("span");
+        value.textContent = nobody.text;
+        spare.append(name, value);
+        spare.style.setProperty("color", UNKNOWN_COLOUR);
+        block.append(spare);
+      }
+
       return block;
     });
   }

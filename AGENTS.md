@@ -571,7 +571,16 @@ src/
                          two axes — a noun and a direction — with a side filter,
                          totals only, the drill and its breadcrumb, what a
                          combatant with nothing gets instead of empty sections,
-                         and the row for what nobody can be charged with. The axes
+                         and the row for what nobody can be charged with — on all
+                         four screens, because every one of them has something to
+                         say about it and one of them used to say nothing. The
+                         direction decides what: on two the figure stands apart, on
+                         two it is already inside the rows, and that one fact fixes
+                         the sentence, the screen's denominator and whether the
+                         summary needs a third part. Holds that summary too — the
+                         fight in two figures and what belongs to neither side,
+                         which is the same whole every bracket divides by, on every
+                         screen and not only the ranking. The axes
                          are derived and the metric stays the one field the state
                          holds, so a pair with no figure behind it is a screen
                          that cannot be expressed. Entering an opponent asks
@@ -606,7 +615,10 @@ src/
                          is read at all: where the reader had scrolled to, taken
                          off the old list and handed to the new one. Holds the
                          ceiling too — the panel against the window, and the list
-                         as the only region that gives way to it.
+                         as the only region that gives way to it. The summary's bar
+                         draws a segment per part that has a figure and no bar at
+                         all where there is nothing to divide, because a split of
+                         zero is a measurement of nothing.
 
 tools/
   margometer-tool-error.ts
@@ -795,7 +807,14 @@ tests/
                              the game wrote them for as long as they were missing
                              from it. Also that no bar is drawn past the end of
                              its track, which the hand-written fight cannot show
-                             and five of the seven captures could.
+                             and five of the seven captures could. And the balance
+                             the whole panel rests on, measurable only since both
+                             directions of both nouns draw the row: what nobody can
+                             be charged with comes to one figure and one share read
+                             from either end, which is `Σ zadane + bez sprawcy = Σ
+                             otrzymane` on real material. The summary is held to
+                             closing against that same whole — it used to sum the
+                             rows alone and draw up to 88% of a fight as nothing.
     panel.test.ts            The panel drawn, against §9.6 and §9.7, on a fake
                              document: what survives a region failing, that the
                              root serves every control, that a handler cannot
@@ -810,7 +829,11 @@ tests/
                              and the list is the one region that gives way, and
                              that a redraw hands the reader back the place they had
                              scrolled to — a fight redraws every few seconds, so
-                             without it a long list cannot be read at all.
+                             without it a long list cannot be read at all. The
+                             summary under the list is here at last: it was drawn in
+                             every test in this file and asserted in none, which is
+                             how it came to divide the fight in two while a fifth of
+                             it belonged to neither side.
     panel-placement.test.ts  The arithmetic that decides whether the panel can be
                              dragged somewhere it cannot be dragged back from, and
                              what a stored position has to prove on read.
