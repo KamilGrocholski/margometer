@@ -91,7 +91,9 @@ export function composeRosterOfFight(fight: CapturedFight): CombatantRoster {
  */
 export function composeTurnCountsOfFight(fight: CapturedFight): TurnCounts {
   let axis = composeEmptyTurnAxis();
-  for (const call of fight.dump.calls) axis = composeNextTurnAxis(axis, call.payload);
+  for (const call of fight.dump.calls) {
+    axis = composeNextTurnAxis(axis, call.payload, call.protocolMessages);
+  }
   return composeTurnCounts(axis);
 }
 

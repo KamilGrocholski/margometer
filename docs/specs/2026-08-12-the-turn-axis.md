@@ -2,6 +2,12 @@
 
 Status: implemented
 
+⚠️ **One section of this file is superseded** by
+`docs/specs/2026-08-12-turns-the-messages-carry.md`: *"What is a measurement and
+what is the game's forecast"*. Who took which turn is no longer read from the
+prediction's nine look-ahead entries but measured from the messages. The fight's
+turn count, the divisor control and everything else below stand.
+
 Supersedes the rate paragraphs of
 `docs/specs/2026-08-11-the-panel-that-drills.md` — its three metrics, its side
 filter and everything else it decides stand.

@@ -601,10 +601,12 @@ describe("na turę", () => {
    * The warning belongs where the consequence is (§9.6), and under `Sumy` nothing
    * divides — so there is no consequence and no sentence.
    */
-  test("turns nobody was named for are warned about only under a rate", () => {
+  test("turns nobody was seen taking are warned about only under a rate", () => {
     const reading = composeReading({ turnsWithoutActor: 2 });
     const hasWarning = (state: PanelState) =>
-      composePanelView(reading, state).warnings.some((one) => one.includes("kto działa"));
+      composePanelView(reading, state).warnings.some((one) =>
+        one.includes("nie widać, kto działał"),
+      );
 
     expect(hasWarning(composeState({ rate: "ownTurn" }))).toBe(true);
     expect(hasWarning(composeState({ rate: "fightTurn" }))).toBe(true);

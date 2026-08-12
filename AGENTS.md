@@ -494,6 +494,14 @@ src/
                          and holds three lines: a figure that measures something,
                          one the protocol merely declares, and health that moved
                          where nobody can be credited — §10.
+    message-run.ts       Which turn a stretch of messages narrates. No key marks a
+                         turn — measured, none exists — so the boundary is who is
+                         speaking: the consecutive messages one combatant is the
+                         actor of are one run, and a message naming nobody
+                         continues the run it follows rather than opening one.
+                         Runs are numbered by the ordinals the game states and
+                         never counted, because a combatant may take two turns in
+                         a row and counting runs halved everybody once already.
     combatant-roster.ts  Who is in the fight, so a name the protocol states can
                          be matched to an id, and which side each is on. An
                          ambiguous name resolves to nobody — never to the first
@@ -532,16 +540,20 @@ src/
                          `myteam` arrives once or never. Counts the fights it has
                          watched open, which is the only thing surviving the
                          reset — a warning is scoped to one fight (§9.6) — and
-                         holds the turn axis, which it takes from the payload the
-                         fight has just reset on and not from the one before.
+                         holds the turn axis, which it feeds the payload the fight
+                         has just reset on and that payload's messages — not the
+                         ones before it.
                          Pure — the mutable variable belongs to whoever drives it.
-    turn-axis.ts         What a turn is, read from the envelope: the game's own
-                         turn prediction, keyed by absolute ordinal. The fight's
-                         turns are the span it stated; a combatant's are the
-                         ordinals it last assigned them; the ones it never named
-                         are counted apart and reach nobody's row. A fight it
-                         numbered only once has no divisor at all, and says null
-                         rather than 1 — a rate over one turn is its own total.
+    turn-axis.ts         The turns, from two sources and neither of them a
+                         forecast. How many: the least entry of the envelope's
+                         `turns_warriors`, which is the turn being taken and not a
+                         prediction — the other nine entries are and go unread. Who
+                         took each: the messages, through `core/message-run.ts`.
+                         An ordinal no run filled reaches nobody's row, somebody
+                         who acted where no ordinal counts them reaches no total,
+                         and a fight numbered only once has no divisor at all —
+                         null rather than 1, because a rate over one turn is its
+                         own total.
     fight-capture.ts     The same fight kept so it can be written to a file: the
                          payload copied whole, and the combatants as the fight
                          held them before and after the call. The other direction
@@ -729,6 +741,15 @@ tests/
                              health arithmetic settled, and the one it cannot —
                              where the healing is reported missing rather than
                              unknown.
+    message-run.test.ts      The rule for splitting messages into runs and the
+                             arithmetic that numbers them: what continues a run
+                             rather than opening one, that a payload's runs start
+                             from the turn already in progress, that a turn
+                             narrated across two payloads takes one ordinal from
+                             each side, and that runs which will not reconcile
+                             number only the one the previous payload vouched for.
+                             Whether the rule is true of the game is measured next
+                             door, in `tests/game/turn-axis.test.ts`.
     battle-event.test.ts  fight-decoder.test.ts  margometer-error.test.ts
     protocol-key-register.test.ts  protocol-message.test.ts
 
@@ -752,17 +773,20 @@ tests/
                              does not inherit the last one's turns.
     turn-axis.test.ts        The turns, measured on the captures rather than on a
                              fixture: 299 in the group fight against the 98 the
-                             old reading gave, and three ordinals nobody was
-                             named for. Every other capture is held to the
+                             old reading gave. Every other capture is held to the
                              property instead of to a number — the fight ran from
                              the first ordinal the game named to the last, and one
                              ordinal is no divisor — because the test that named
                              a capture instead failed on four fights for being
                              called something else. Holds the claim that lets
                              `current` go unread — that it and the least ordinal
-                             are one statement — and the claim
-                             `composeNextTurnAxis` rests on, that the game never
-                             renumbers backwards.
+                             are one statement — the claim `composeNextTurnAxis`
+                             rests on, that the game never renumbers backwards,
+                             and the guard for the whole reading: an ordinal the
+                             prediction merely forecasts reaches nobody. How much
+                             the messages account for is a threshold over the whole
+                             corpus rather than a figure per capture, so a new
+                             recording is not a fixture edit.
 
   ui/
     panel-view.test.ts       What the panel decides, without a document: the
@@ -1229,8 +1253,9 @@ Terms from the game, fixed here so module names do not drift apart.
 | Term | Meaning |
 |---|---|
 | **fight** | One battle, start to finish. The unit everything is scoped to. |
-| **turn** | One action by one combatant. Not a round of the whole roster. The game numbers them, and the number is in the envelope rather than in any message — see **turn prediction**. |
-| **turn prediction** | The game's own queue of the next ten turns, `turns_warriors`, keyed by absolute turn ordinal. Its least ordinal is the turn being taken. A forecast, so it gets revised; the freshest statement is the one read. `docs/specs/2026-08-12-the-turn-axis.md`. |
+| **turn** | One action by one combatant. Not a round of the whole roster. The game numbers them, and the number is in the envelope rather than in any message; **who took one** is in the messages, as a **run**. No key marks a turn — measured, none exists. `docs/specs/2026-08-12-turns-the-messages-carry.md`. |
+| **turn prediction** | The game's own queue of the next ten turns, `turns_warriors`, keyed by absolute turn ordinal. Only its **least** entry is read, and that one is not a prediction: it is the turn being taken, and it equals `current` in every payload of the material. The nine that follow are a forecast of turns that may never happen and are read by nothing. |
+| **run** | The consecutive messages one combatant is the actor of — one turn's narration. A message naming nobody continues the run it follows rather than opening one. Runs are numbered by the ordinals, never counted: a combatant may take two turns in a row, and counting runs is how a previous incarnation halved everyone's count. |
 | **roster** | The combatants on both sides, with side, level and profession. |
 | **side** | Which team a combatant is on, as the game states it — a bare number. Which of them is the player's *own* is neither in the protocol nor in a capture, which does not record who recorded it; only the game layer can ask the client. So `core` groups sides and never favours one. |
 | **protocol** | The raw payload the engine receives; our only data source. |

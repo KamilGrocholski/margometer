@@ -1126,7 +1126,7 @@ function composeWarnings(reading: PanelReading, state: PanelState): string[] {
     // Only under a rate: §9.6 puts a warning where the consequence is, and under
     // `Sumy` nothing divides, so there is no consequence to warn about.
     warnings.push(
-      `W ${composeFigureText(reading.turnsWithoutActor)} ${reading.turnsWithoutActor === 1 ? "turze" : "turach"} gra nie podała, kto działa — tempo może być zawyżone.`,
+      `W ${composeFigureText(reading.turnsWithoutActor)} ${reading.turnsWithoutActor === 1 ? "turze" : "turach"} nie widać, kto działał — tempo może być zawyżone.`,
     );
   }
 

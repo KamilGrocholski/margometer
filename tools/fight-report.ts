@@ -78,10 +78,18 @@ function writeRow(label: string, row: CombatantStatistics): void {
  */
 function writeTurnAxis(fight: CapturedFight, names: Map<number, string>): void {
   let axis = composeEmptyTurnAxis();
-  for (const call of fight.dump.calls) axis = composeNextTurnAxis(axis, call.payload);
+  for (const call of fight.dump.calls) {
+    axis = composeNextTurnAxis(axis, call.payload, call.protocolMessages);
+  }
   const counts = composeTurnCounts(axis);
 
   console.log("\n  —— turns ——");
+  // Both leftovers print whether or not there is a span, because the fights with
+  // no span are made almost entirely of the second one.
+  console.log(
+    `    acted past the numbering: ${composeIntegerText(axis.turnsPastTheNumbering)}` +
+      `, payloads that would not reconcile: ${composeIntegerText(axis.unclosedPayloads)}`,
+  );
   if (counts.fightTurns === null) {
     console.log("    the game numbered no turn span here, so there is no rate to draw");
     return;
@@ -91,7 +99,7 @@ function writeTurnAxis(fight: CapturedFight, names: Map<number, string>): void {
   console.log(
     `    fight: ${composeIntegerText(counts.fightTurns)}` +
       `${span === null ? "" : ` (ordinals ${composeIntegerText(span.firstTurn)}–${composeIntegerText(span.lastTurn)})`}` +
-      `, nobody named for ${composeIntegerText(counts.turnsWithoutActor)}`,
+      `, nobody seen taking ${composeIntegerText(counts.turnsWithoutActor)}`,
   );
   for (const [combatantId, turns] of [...counts.turnsByCombatantId].sort(([, a], [, b]) => b - a)) {
     const name = names.get(combatantId) ?? `id ${composeIntegerText(combatantId)}`;

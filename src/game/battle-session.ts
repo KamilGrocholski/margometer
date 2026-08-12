@@ -171,7 +171,7 @@ export function composeNextSession(
   const previous = starting ? composeEmptySession() : session;
 
   const stated = getOurSideFromBattle(payload);
-  const turnAxis = composeNextTurnAxis(previous.turnAxis, payload);
+  const turnAxis = composeNextTurnAxis(previous.turnAxis, payload, messages);
   const combatants = composeMergedCombatants(
     previous.combatants,
     composeCombatantsFromBattle(payload),

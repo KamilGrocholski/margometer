@@ -1,38 +1,42 @@
 /**
- * The fight's turn axis, read from the payload envelope.
+ * The fight's turn axis: the ordinals the game numbers, and who took each.
  *
  * A turn-based fight has no seconds to divide by, so "per turn" is the only rate
- * that means anything here — and until this file existed the add-on did not read
- * the game's turn number at all. It counted its own, by watching `current` change
- * from one payload to the next, which counts **payloads that happened to arrive**.
- * Measured on `2026-08-06-tempest-grupa-vs-hildur`: that gives 98 where the game
- * numbered 299, so every rate was 3.05× too high, and per-combatant counts were a
- * sample of who was acting when a payload landed — one combatant credited 2 turns
- * against the ~22 the game scheduled, an 11× error on their own row.
+ * that means anything here — and the add-on used to count its own turns, by
+ * watching the acting combatant change from one payload to the next, which counts
+ * **payloads that happened to arrive**. Measured on
+ * `2026-08-06-tempest-grupa-vs-hildur`: 98 where the game numbered 299, so every
+ * rate was 3.05× too high.
  *
- * What the envelope actually carries, and the client's own name for it:
- * `turns_warriors` is the **turn prediction** — `updateTurnPredictions(turns)`,
- * read on production build 1786514810315 and development build 1781609507010 — a
- * map of turn ordinal to combatant id, ten wide. The client iterates it for order
- * and never reads a key, so what the keys *mean* comes from the material: across
- * all three captures the least key is the turn being taken, and it rises strictly,
- * 2 → 300 over 99 payloads with no step backwards.
+ * **Two questions, two sources, and neither of them is a forecast.**
  *
- * ⚠️ **It is a prediction, and predictions get revised.** 66 of 685 re-observations
- * disagreed with an earlier one, so the freshest statement wins. Checked against
- * the ordinals later seen as `current`: the entry for the very next turn was right
- * 45/45, and forecasts further out 84/96. That is the game's own statement about
- * who acts when — not a guess of ours — and it is why the turns nobody was named
- * for are carried separately rather than rounded away.
+ * *How many turns?* The envelope's `turns_warriors` is the client's own turn
+ * prediction — `updateTurnPredictions(turns)`, production build 1786514810315 and
+ * development build 1781609507010 — a map of ordinal to combatant id, ten wide.
+ * Only its **least entry** is read here, and that entry is a statement rather than
+ * a forecast: it is the turn being taken, it equals the envelope's `current` in
+ * 374 of 374 payloads, and it rises strictly, never once stepping back across all
+ * 367 transitions in the material. The other nine entries are a forecast of turns
+ * not yet taken and are **never read** — a turn that may never happen cannot count
+ * for anybody.
  *
- * `current` is not read here. It names the same combatant as the least ordinal and
- * so adds nothing to the reading — that agreement is a claim about the game, and
- * §7.5 puts a claim a machine can check in a guard rather than in a counter with
- * no consumer: `tests/game/turn-axis.test.ts` re-measures it on every capture,
- * every gate run.
+ * *Who took them?* The messages, in `message-run.ts`. That is the half this file
+ * used to take from the forecast, and taking it from the material instead is what
+ * makes a per-combatant turn a measurement. Measured: 1202 of the corpus's 1228
+ * ordinals are attributed this way, and three of the seven captures reach every
+ * ordinal they state.
+ *
+ * ⚠️ **What is left over is carried, never rounded away.** An ordinal no run
+ * filled reaches nobody's row, and somebody who acted where no ordinal counts it
+ * reaches no total at all. Both are visible in `tools/fight-report.ts`.
  */
 
 import { getIntegerFromText, getIntegerFromValue } from "@/libs/number.ts";
+import {
+  composeRunActorIds,
+  composeRunTurns,
+  type TurnStatement,
+} from "@/src/core/message-run.ts";
 
 export type TurnAxis = {
   /**
@@ -43,8 +47,12 @@ export type TurnAxis = {
    * leaving to every caller to remember.
    */
   observed: { firstTurn: number; lastTurn: number } | null;
-  /** Who the game says acts on each ordinal. The freshest statement wins. */
+  /** Who the messages show acting on each ordinal. */
   actorByTurn: ReadonlyMap<number, number>;
+  /** Runs no ordinal numbered — somebody acted, nothing counts the turn. */
+  turnsPastTheNumbering: number;
+  /** Payloads whose runs would not reconcile with the ordinal they state. */
+  unclosedPayloads: number;
 };
 
 export type TurnCounts = {
@@ -60,51 +68,62 @@ export type TurnCounts = {
   /** Empty whenever `fightTurns` is null: one turn is not a count of anybody's. */
   turnsByCombatantId: ReadonlyMap<number, number>;
   /**
-   * Ordinals inside the span no prediction ever named.
+   * Ordinals inside the span that no run filled.
    *
-   * The prediction reaches ten turns ahead and payloads can be further apart than
-   * that — measured, a gap of 13 from ordinal 235 to 248, leaving 245, 246 and 247
-   * named by nothing. They are counted here and never added to a row: a turn
-   * nobody was named for is not a turn somebody took.
+   * Three things land here and the panel cannot tell them apart: a gap between
+   * payloads wider than the turns they narrate, a turn forfeited with nothing said
+   * about it, and a payload whose runs refused to reconcile. Measured, 26 across
+   * the whole corpus. They are counted here and never added to a row: a turn
+   * nobody was seen taking is not a turn somebody took.
    */
   turnsWithoutActor: number;
 };
 
 export function composeEmptyTurnAxis(): TurnAxis {
-  return { observed: null, actorByTurn: new Map() };
+  return {
+    observed: null,
+    actorByTurn: new Map(),
+    turnsPastTheNumbering: 0,
+    unclosedPayloads: 0,
+  };
 }
 
-/** The prediction this payload carries, ordinal by ordinal, or null where it carries none. */
-function getTurnPrediction(payload: unknown): Map<number, number> | null {
+/**
+ * The turn this payload states, and who it says is taking it.
+ *
+ * The least ordinal only. Reading the rest would be reading the forecast, which
+ * is the whole thing this file stopped doing.
+ */
+function getStatedTurn(payload: unknown): TurnStatement | null {
   if (typeof payload !== "object" || payload === null) return null;
   const stated = (payload as Record<string, unknown>)["turns_warriors"];
   if (typeof stated !== "object" || stated === null) return null;
 
-  const prediction = new Map<number, number>();
+  let statement: TurnStatement | null = null;
   for (const [key, value] of Object.entries(stated)) {
     const turn = getIntegerFromText(key);
-    const combatantId = getIntegerFromValue(value);
-    if (turn === null || combatantId === null) continue;
-    prediction.set(turn, combatantId);
+    const actorId = getIntegerFromValue(value);
+    if (turn === null || actorId === null) continue;
+    if (statement === null || turn < statement.turn) statement = { turn, actorId };
   }
-  return prediction.size === 0 ? null : prediction;
+  return statement;
 }
 
 /**
- * The axis after one more payload.
+ * The axis after one more payload and the messages it brought.
  *
  * ⚠️ **Hands back the identical object when the payload moves nothing.** The
  * caller redraws on identity (`battle-session.ts`), and the game calls the engine
  * far more often than a fight has turns — a step, a chat line, a window opening.
- * Three cases move nothing: no prediction at all, none of it readable, and one
- * that states only what is already recorded. Ten map lookups are cheaper than the
- * map they avoid building and far cheaper than the panel they avoid redrawing.
+ * A payload with no messages that states the ordinal already recorded moves
+ * nothing, and that is most of them.
  */
-export function composeNextTurnAxis(axis: TurnAxis, payload: unknown): TurnAxis {
-  const prediction = getTurnPrediction(payload);
-  if (prediction === null) return axis;
-
-  const turn = Math.min(...prediction.keys());
+export function composeNextTurnAxis(
+  axis: TurnAxis,
+  payload: unknown,
+  messages: readonly string[],
+): TurnAxis {
+  const stated = getStatedTurn(payload);
 
   /**
    * An ordinal behind the span moves nothing at all.
@@ -112,42 +131,60 @@ export function composeNextTurnAxis(axis: TurnAxis, payload: unknown): TurnAxis 
    * It can only mean a fight that opened without us seeing `init` — and `init` is
    * where a fight begins (`battle-session.ts`), so treating this as a second fight
    * boundary would put that decision in two places. Accepting it instead would be
-   * worse: its ten entries would overwrite ordinals inside the current span with a
-   * different fight's combatants. Never observed — the ordinals rise strictly
-   * across all 99 payloads that state one — so it gets the handling that cannot be
-   * wrong rather than the one that guesses.
+   * worse: another fight's combatants would be written over ordinals inside this
+   * span. Never observed across the material, so it gets the handling that cannot
+   * be wrong rather than the one that guesses.
    */
-  if (axis.observed !== null && turn < axis.observed.lastTurn) return axis;
+  if (stated !== null && axis.observed !== null && stated.turn < axis.observed.lastTurn) {
+    return axis;
+  }
+
+  // The ordinal the previous payload stated: what this payload's first messages
+  // are still narrating (`message-run.ts`).
+  const turnInProgress = axis.observed?.lastTurn ?? null;
+  const numbering = composeRunTurns(composeRunActorIds(messages), turnInProgress, stated);
 
   const known = new Map(axis.actorByTurn);
   let moved = false;
-  for (const [ordinal, combatantId] of prediction) {
-    if (known.get(ordinal) === combatantId) continue;
-    known.set(ordinal, combatantId);
+  for (const [turn, actorId] of numbering.actorByTurn) {
+    if (known.get(turn) === actorId) continue;
+    known.set(turn, actorId);
     moved = true;
   }
-  if (!moved && turn === axis.observed?.lastTurn) return axis;
+
+  const turnsPastTheNumbering = axis.turnsPastTheNumbering + numbering.runsPastTheNumbering;
+  const unclosedPayloads = axis.unclosedPayloads + (numbering.isClosed ? 0 : 1);
+  const spanMoved = stated !== null && stated.turn !== axis.observed?.lastTurn;
+  if (
+    !moved &&
+    !spanMoved &&
+    turnsPastTheNumbering === axis.turnsPastTheNumbering &&
+    unclosedPayloads === axis.unclosedPayloads
+  ) {
+    return axis;
+  }
 
   return {
-    observed: { firstTurn: axis.observed?.firstTurn ?? turn, lastTurn: turn },
-    // The old map where the prediction stated nothing new, so a payload that only
-    // moved the span does not cost a copy of everything before it.
+    observed:
+      stated === null
+        ? axis.observed
+        : { firstTurn: axis.observed?.firstTurn ?? stated.turn, lastTurn: stated.turn },
+    // The old map where nothing was new, so a payload that only moved the span
+    // does not cost a copy of everything before it.
     actorByTurn: moved ? known : axis.actorByTurn,
+    turnsPastTheNumbering,
+    unclosedPayloads,
   };
 }
 
 /**
  * What the axis comes to: the fight's turns, everyone's, and the ones nobody was
- * named for.
+ * seen taking.
  *
- * Only ordinals inside the observed span are counted, and the count walks the
- * predictions rather than the span — the span is a number the game chose, and
+ * Only ordinals inside the observed span are counted, and the count walks what was
+ * attributed rather than the span — the span is a number the game chose, and
  * §9.5's "shape inward, magnitude outward" says an ordinal past anything we expect
  * is the game's business, not a loop somebody is waiting on mid-fight.
- *
- * Past the last turn we saw the prediction is still a forecast, and those turns
- * may never be taken — the fight ends, a combatant dies — so counting them would
- * credit somebody with actions the game merely intended for them.
  */
 export function composeTurnCounts(axis: TurnAxis): TurnCounts {
   const { observed } = axis;
@@ -156,13 +193,13 @@ export function composeTurnCounts(axis: TurnAxis): TurnCounts {
   }
 
   const turnsByCombatantId = new Map<number, number>();
-  let named = 0;
-  for (const [ordinal, combatantId] of axis.actorByTurn) {
-    if (ordinal < observed.firstTurn || ordinal > observed.lastTurn) continue;
+  let attributed = 0;
+  for (const [turn, combatantId] of axis.actorByTurn) {
+    if (turn < observed.firstTurn || turn > observed.lastTurn) continue;
     turnsByCombatantId.set(combatantId, (turnsByCombatantId.get(combatantId) ?? 0) + 1);
-    named += 1;
+    attributed += 1;
   }
 
   const fightTurns = observed.lastTurn - observed.firstTurn + 1;
-  return { fightTurns, turnsByCombatantId, turnsWithoutActor: fightTurns - named };
+  return { fightTurns, turnsByCombatantId, turnsWithoutActor: fightTurns - attributed };
 }
