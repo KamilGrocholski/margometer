@@ -434,6 +434,25 @@ describe("zero and unknown are different sentences", () => {
 
 describe("na turę", () => {
   /**
+   * ⚠️ **Two divisors on one screen, and it is not a mistake.** The mage's rate
+   * is what they dealt over the two turns *they* took; the poison's is what it
+   * did over the fight's four, because there is nobody whose turns it could be
+   * divided by — which is the rule `getDivisor` states for a figure with no
+   * combatant behind it.
+   *
+   * The bar still measures against the ranking's scale rather than its own, or
+   * the row saying something is missing would draw full width whatever it came
+   * to.
+   */
+  test("what nobody can be charged with divides by the fight, not by anyone's turns", () => {
+    const view = composePanelView(composeReading(), composeState({ perTurn: true }));
+
+    expect(view.pinnedRow?.valueText).toBe("15,0/t");
+    expect(view.lists[0]!.rows[0]!.valueText).toBe("200,0/t");
+    expect(view.pinnedRow?.fill).toBeCloseTo(15 / 200, 5);
+  });
+
+  /**
    * The switch has to mean the same thing at every level. A rate in the ranking
    * over totals in the breakdown is two questions answered on one screen with
    * nothing saying which is which.

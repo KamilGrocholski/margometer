@@ -531,15 +531,13 @@ function composeRankedRow(
   const raw = getMetricValue(getRow(reading, combatantId), state.metric);
   const divisor = getDivisor(reading, combatantId, state.metric);
   const shown = state.perTurn ? raw / divisor : raw;
-  const largestShown = state.perTurn ? largest : largest;
-
   return {
     key: `combatant:${composeIntegerText(combatantId)}`,
     rank,
     label: getName(reading, combatantId),
     profession: reading.roster.byId.get(combatantId)?.profession ?? null,
     colour: getProfessionColour(reading.roster.byId.get(combatantId)?.profession ?? null),
-    fill: largestShown > 0 ? shown / largestShown : 0,
+    fill: largest > 0 ? shown / largest : 0,
     valueText: composeValueText(shown, state.perTurn),
     // The share is always of the raw sums: it describes the shape of the fight,
     // not its pace, and a share of rates has no meaning to read off.
@@ -628,7 +626,18 @@ function composePinnedRow(
     });
   }
 
-  const divisor = Math.max(reading.fightTurns, 1);
+  /**
+   * No actor means no turns of its own, so the fight's are the only honest
+   * divisor — which is the rule `getDivisor` already states for a figure with
+   * nobody behind it, and this is its one caller. Spelling it a second time by
+   * hand here was two copies of one decision.
+   *
+   * ⚠️ **The ranked rows divide by their own turns and this one does not, and
+   * they still share one bar scale.** Two rates on one scale is a real cost and
+   * this is the cheaper side of it: a scale of its own would draw the row that
+   * says something is missing at full width whatever it came to.
+   */
+  const divisor = getDivisor(reading, null, state.metric);
   const shown = state.perTurn ? value / divisor : value;
 
   return {
