@@ -1,0 +1,64 @@
+# What a tag turns into: a release carrying the built userscript.
+#
+# The banner's @downloadURL points at `releases/latest/download/margometer.user.js`,
+# so an installed copy updates itself from whatever this attaches. A release
+# published without that asset leaves every installed copy polling a 404 — and a
+# failed update check is silent, which is why the file is built here rather than
+# uploaded by hand.
+#
+# The gate runs first and the release is gated on it. `bun run check` builds the
+# same file this uploads, so a tag that cannot pass the gate never becomes a
+# release somebody can install.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same pin as check.yml, and for the same reason: "latest" means the build
+      # changes one day with no change in the code.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+
+      # The version in the file has to be the version being tagged. They come
+      # from two different places — package.json and the tag — and nothing else
+      # compares them, so a tag pushed before the bump would publish a release
+      # whose file announces the previous version and never updates anybody.
+      - name: the tag and package.json agree
+        run: |
+          tagged="${GITHUB_REF_NAME#v}"
+          declared="$(bun --print 'require("./package.json").version')"
+          if [ "$tagged" != "$declared" ]; then
+            echo "tag ${GITHUB_REF_NAME} against package.json ${declared}" >&2
+            exit 1
+          fi
+          grep -qx "// @version      ${declared}" dist/margometer.user.js
+
+      # `gh` ships with the runner, so this adds no third-party action to a
+      # repository that has no runtime dependencies either.
+      #
+      # The notes are the tag's own message, not a generated commit list: 108
+      # commits went into 0.6.0 and a dump of their subjects tells a player
+      # nothing they can act on. ⚠️ **So the tag has to be annotated** — a
+      # lightweight one fails this step, which is the loud outcome. The tag is
+      # already pushed by then; delete it, annotate, push again.
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/margometer.user.js \
+            --title "MargoMeter $GITHUB_REF_NAME" \
+            --notes-from-tag

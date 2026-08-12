@@ -1,18 +1,25 @@
 # MargoMeter
 
 A damage meter for [Margonem](https://www.margonem.pl/) — live fight statistics
-in a panel over the game. What SKADA and Details! are to World of Warcraft,
-except Margonem is turn-based, so the counter counts per turn.
+in a panel over the game. What SKADA and Details! are to World of Warcraft.
+
+It shows **totals**, and deliberately no rate: two readings of "per turn" were
+built and both were withdrawn, because in a fast fight the game numbers several
+actions with one ordinal and a figure divided by that is wrong without saying so.
+What the panel does instead is name what it cannot attribute — health that moved
+where the log credits nobody is its own row, on every screen, rather than being
+folded quietly into somebody's total.
 
 The add-on **sends nothing and changes nothing in the game**: it reads the data
 the game itself receives from the server during a fight and draws its own panel
 next to it. It does not automate anything, does not click for you, and does not
 affect how a fight plays out. It counts what already happened.
 
-> ⚠️ **Being rebuilt.** This branch is a rewrite from scratch. Only the captured
-> fight material under `tests/captured-fights/` carried over from the previous
-> implementation. Expect the tree to be incomplete while it is put back
-> together — see `AGENTS.md` for how the work is sequenced.
+> **Rebuilt from scratch for 0.6.0.** Nothing of the previous implementation
+> survives except the captured fight material under `tests/captured-fights/`,
+> which is evidence and could not be regenerated. If you are coming from 0.5.0 or
+> earlier: this is the same add-on by name and a different one by construction,
+> and none of the older versions' behaviour should be assumed.
 
 ---
 
@@ -58,7 +65,19 @@ taken down.
 
 ---
 
-## Build it yourself
+## Install it
+
+Open [the latest release][latest] and click `margometer.user.js` — Tampermonkey
+recognises the file and offers to install it. The file carries `@updateURL`, so
+an installed copy checks that same release page for its next version.
+
+The file is built by CI from the tag, not uploaded by hand, and it is not
+minified: what you install is readable, and it is the same text this repository
+builds from `src/`.
+
+[latest]: https://github.com/KamilGrocholski/margometer/releases/latest
+
+## Or build it yourself
 
 Requires [Bun](https://bun.sh/):
 
@@ -68,8 +87,9 @@ bun run build
 ```
 
 This produces `dist/margometer.user.js`. Open the Tampermonkey menu → **Create
-a new script**, clear the editor, paste the whole file and save. Installed this
-way, the add-on does not update itself.
+a new script**, clear the editor, paste the whole file and save. Installed by
+pasting, the add-on does not update itself — Tampermonkey only polls for a script
+it installed from a URL.
 
 ---
 

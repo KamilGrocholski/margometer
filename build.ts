@@ -41,6 +41,25 @@ export function composeUserscriptBanner(version: string, description: string, ho
     ["description", description],
     ["author", manifest.author],
     ["homepageURL", homepage],
+    /**
+     * Where an installed copy looks for its next version.
+     *
+     * `releases/latest/download/<asset>` is GitHub's own stable redirect to the
+     * newest release's asset, so nothing here carries a version number that
+     * would have to be edited on every release — which is the mistake that makes
+     * an add-on offer an update to the version it is already running.
+     *
+     * Both keys, not one: Tampermonkey reads `@updateURL` for the metadata block
+     * it polls and `@downloadURL` for the file it then installs, and a copy with
+     * only the first checks for updates it cannot fetch.
+     *
+     * ⚠️ **This points at a release asset, so the release has to carry one.**
+     * `.github/workflows/release.yml` builds and attaches it on a tag; a release
+     * published by hand without the file leaves every installed copy polling a
+     * 404 — quietly, because that is what a failed update check does.
+     */
+    ["downloadURL", `${homepage}/releases/latest/download/${USERSCRIPT_FILENAME}`],
+    ["updateURL", `${homepage}/releases/latest/download/${USERSCRIPT_FILENAME}`],
     // The trailing `/*` matters: @match compares the whole path, so a pattern
     // without it never fires on a world that carries a query string.
     ...GAME_TOP_LEVEL_DOMAINS.map(

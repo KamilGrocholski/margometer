@@ -18,6 +18,26 @@ describe("userscript metadata", () => {
     expect(getDirective("version")).toEqual([manifest.version]);
   });
 
+  /**
+   * ⚠️ **Neither may carry a version number.** A per-release URL has to be
+   * edited on every release, and the release it is edited in is the one it
+   * points at — so an installed copy is offered the version it is already
+   * running. `releases/latest/download/` is GitHub's own redirect and stays
+   * true without being touched.
+   *
+   * Both keys are checked because they are read at different moments:
+   * `@updateURL` for the metadata poll, `@downloadURL` for the install that
+   * follows it.
+   */
+  test("points at the release asset for its own updates, without naming a version", () => {
+    const asset = `${manifest.homepage}/releases/latest/download/margometer.user.js`;
+    expect(getDirective("downloadURL")).toEqual([asset]);
+    expect(getDirective("updateURL")).toEqual([asset]);
+    for (const url of [...getDirective("downloadURL"), ...getDirective("updateURL")]) {
+      expect(url).not.toContain(manifest.version);
+    }
+  });
+
   test("declares no privileges and stays out of frames", () => {
     expect(getDirective("grant")).toEqual(["none"]);
     expect(BANNER).toContain("// @noframes");

@@ -422,7 +422,12 @@ tsconfig.json            Strict flags standing in for a linter, and the `@/*`
 .gitignore               What never enters git, including `.cache/` — which
                          `tests/tools/source-layout.test.ts` reads rather than
                          trusts (§7.6).
-.github/workflows/       check.yml: the gate, nothing else yet.
+.github/workflows/       check.yml: the gate. release.yml: what a `v*` tag turns
+                         into — the gate again, then the built userscript
+                         attached to a GitHub release, because the banner's
+                         `@updateURL` points at that asset and a release without
+                         it breaks updates silently. Also the one place the tag
+                         and `package.json` are compared.
 .claude/skills/verify/   How to run the add-on rather than test it: the browser
                          harness that puts the built userscript in front of a
                          captured fight. Not a rule and not a gate — the gate is
@@ -570,8 +575,9 @@ src/
                          subtract: the ceiling that keeps the panel above the
                          bottom of the screen is measured from it, and CSS cannot
                          read an inline `top` back out.
-    panel-view.ts        What the panel shows, as data — and the only file in the
-                         repository whose strings are Polish (§3). One ranking on
+    panel-view.ts        What the panel shows, as data — and, with the tooltips
+                         and region names in `panel-element.ts`, one of the two
+                         files in the repository whose strings are Polish (§3). One ranking on
                          two axes — a noun and a direction — with a side filter,
                          totals only, the drill and its breadcrumb, what a
                          combatant with nothing gets instead of empty sections,
