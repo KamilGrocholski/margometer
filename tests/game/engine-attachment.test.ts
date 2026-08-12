@@ -33,7 +33,11 @@ import {
 } from "@/src/userscript-entry.ts";
 import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
 import { parseFightDump, type CombatantSnapshot } from "@/tools/fight-dump-parser.ts";
-import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
+import {
+  CAPTURED_FIGHTS,
+  composeRosterOfFight,
+  composeTurnCountsOfFight,
+} from "@/tests/captured-fight-catalog.ts";
 
 /** A clock the test winds by hand. */
 function composeClock() {
@@ -273,12 +277,17 @@ describe("the add-on driven by a captured fight", () => {
        *
        * This is where the bug lived and where nothing could see it: the group
        * fight came out at 98 turns against the 299 the game numbered, so every
-       * rate the panel drew was 3.05× too high. The two solo captures deliver
-       * their whole fight in one payload, so the game states one ordinal and the
-       * honest answer is that the turns are unknown.
+       * rate the panel drew was 3.05× too high.
+       *
+       * Held against the axis replayed offline rather than against a number
+       * chosen per capture name. Two drivers reach the same material by different
+       * routes — the entry point through the wrap and the session, the helper
+       * straight down the payloads — so a divergence between them is the thing
+       * worth catching here. What the number itself has to be is settled in
+       * `tests/game/turn-axis.test.ts`, against the payloads, where 299 is still
+       * named outright.
        */
-      const expectedTurns = fight.name.includes("grupa-vs-hildur") ? 299 : null;
-      expect(reading?.fightTurns).toBe(expectedTurns);
+      expect(reading?.fightTurns).toBe(composeTurnCountsOfFight(fight).fightTurns);
 
       meter.stop();
       expect(Object.prototype.hasOwnProperty.call(battle, "updateData")).toBe(false);

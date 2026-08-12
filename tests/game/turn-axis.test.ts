@@ -181,7 +181,12 @@ describe("the captures", () => {
    * combatant the game gave 22 — made the ranking under the rate arbitrary.
    */
   test("the group fight ran 299 turns and three of them named nobody", () => {
-    const fight = CAPTURED_FIGHTS.find((one) => one.name.includes("grupa-vs-hildur"));
+    // Matched whole, not by `includes`: later captures are named after the same
+    // boss, and a substring would have handed this assertion whichever of them
+    // sorted first. It passed on luck for exactly as long as there was one.
+    const fight = CAPTURED_FIGHTS.find(
+      (one) => one.name === "2026-08-06-tempest-grupa-vs-hildur",
+    );
     expect(fight).toBeDefined();
     const counts = composeTurnCounts(composeAxisOfFight(fight!));
 
@@ -191,16 +196,48 @@ describe("the captures", () => {
     expect(counts.turnsByCombatantId.size).toBe(11);
     expect(Math.min(...counts.turnsByCombatantId.values())).toBeGreaterThan(20);
   });
+});
+
+/**
+ * What every capture's turn count has to be, computed from the payloads by the
+ * plainest reading there is: the game numbers the turn being taken, so the fight
+ * ran from the first ordinal it named to the last, and a fight it numbered only
+ * once has no span at all.
+ *
+ * ⚠️ **This replaced a test that pinned the answer to a capture's name** — every
+ * fight but `grupa-vs-hildur` was asserted to have no rate. That was true while
+ * the other two captures were solo fights delivered in a single payload, and it
+ * stopped being true the moment a second group fight arrived under another name.
+ * A name is not a property of the material, and the test would have failed for
+ * the one reason a test must not: the file was called something else.
+ *
+ * Deliberately not a table of per-capture turn counts. That works, but it makes
+ * every new recording a fixture edit, and a wrong number in it looks exactly like
+ * a right one.
+ */
+describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
+  const statedTurns = fight.dump.calls
+    .map((call) => getPrediction(call.payload))
+    .filter((prediction): prediction is Map<number, number> => prediction !== null)
+    .map((prediction) => Math.min(...prediction.keys()));
 
   /**
-   * Both solo captures deliver the whole fight in one payload, so the game states
-   * one ordinal and never another. The honest reading is that the turns are
-   * unknown — which is what the panel then says instead of drawing a rate.
+   * The claim `composeNextTurnAxis` rests on when it refuses an ordinal behind
+   * the span: the game never renumbers backwards. Prose in that file until now,
+   * and it is what makes the first and last statements below the least and the
+   * greatest.
    */
-  test.each(CAPTURED_FIGHTS.filter((one) => !one.name.includes("grupa-vs-hildur")))(
-    "$name states one ordinal, so it has no rate",
-    (fight) => {
-      expect(composeTurnCounts(composeAxisOfFight(fight)).fightTurns).toBeNull();
-    },
-  );
+  test("numbers its turns without ever stepping back", () => {
+    expect(statedTurns.length).toBeGreaterThan(0);
+    expect([...statedTurns].sort((one, other) => one - other)).toEqual(statedTurns);
+  });
+
+  test("runs from the first ordinal the game named to the last", () => {
+    const first = statedTurns[0]!;
+    const last = statedTurns[statedTurns.length - 1]!;
+
+    expect(composeTurnCounts(composeAxisOfFight(fight)).fightTurns).toBe(
+      first === last ? null : last - first + 1,
+    );
+  });
 });
