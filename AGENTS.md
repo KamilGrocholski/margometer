@@ -670,14 +670,21 @@ tests/
                              sides of every message, whole calls skipped where a
                              health figure cannot be added, and each health
                              verdict in the register re-earned on every run.
-    injure-rule.test.ts      The rule the register states for `+injure`:
-                             the share it announces, and that it stays unread so
-                             the wound is not counted twice.
+    injure-rule.test.ts      The rule the register states for `+injure`: the
+                             share it announces — of the **main** blow, not of
+                             everything that landed with it, which is the
+                             narrowing four group fights forced — and that it is
+                             read as a declaration so the wound is not counted
+                             twice.
     absorption-destruction-rule.test.ts
                              What `+abdest_per` and `+abmdest_per` report: points
                              and not the share their names suggest, falling by at
-                             least the 5% the skill announces, down to the floor
-                             of zero — and why the announcement stays unread.
+                             least the smallest share any caster announces, down
+                             to the floor of zero. The share belongs to the
+                             caster and not to the skill — two are stated and
+                             nobody states both — and the one reader that reports
+                             without ever announcing is named rather than
+                             filtered away.
     poison-reduction-rule.test.ts
                              The rule for `-poison_lowdmg_per`: once per
                              combatant damaged rather than per damage element,
@@ -690,10 +697,13 @@ tests/
                              the client states a figure for it.
     team-heal-rule.test.ts   What `healall_per` restores: a floored share of
                              maximum reaching one side only, the weakening the
-                             protocol has already applied, and the cap — which
-                             one reading in the material refuses, which is why no
-                             figure is drawn from it and the panel says the
-                             healing is missing instead.
+                             protocol has already applied — counted per fight,
+                             because a caster met in two of them starts again at
+                             the base — the dead, who are reached and restored
+                             nothing, and the cap, which one reading in the
+                             material refuses. That refusal is why no figure is
+                             drawn from it and the panel says the healing is
+                             missing instead.
     skill-announcement-rule.test.ts
                              What an announcement carries: no key of the damage
                              family, but damage aimed at a name and healing ride
@@ -1228,7 +1238,7 @@ Terms from the game, fixed here so module names do not drift apart.
 | **key** | A named field inside a message — decides what the message means. |
 | **hit** | A single damage number. One attack can carry several. |
 | **raw / applied** | Damage before and after reduction. Their difference is **not** what a defence stopped — see `prevented`. |
-| **prevented** | Damage the protocol says a defence stopped: absorption, magic absorption, a block. One component of the reduction, never the whole — armour and resistance reduce as well and the protocol reports neither, so the rest of the gap is unattributable. Measured: the gap is wider in 62 of the 68 messages carrying a defence. |
+| **prevented** | Damage the protocol says a defence stopped: absorption, magic absorption, a block. One component of the reduction, never the whole — armour and resistance reduce as well and the protocol reports neither, so the rest of the gap is unattributable. Measured: the gap is wider in 220 of the 241 messages carrying a defence. ⚠️ The gap is taken over damage whose **raw** side the protocol states — added damage (`dmga`) arrives applied with no raw counterpart, and counting it makes the gap too narrow to hold what a defence stopped. |
 | **destroyed** | A statistic of the target an attack reduced — armour and absorption in points, elemental resistance in percentage points. Not damage, and never totalled with it; the members are not in one unit either, so they are not totalled with each other. |
 | **proc** | An effect that fired alongside an attack. Carries no figure: the protocol states the name and stops. |
 | **declaration** | A figure the protocol states that **no total here counts**: an *input* (a share a skill will apply, what it costs, a weakening the figures beside it already have), or an outcome in a *unit this meter does not keep* (energy, attack speed, combination points, experience). Read, and **never totalled with anything**. The test a key must pass: *whatever this figure did, is it either reported elsewhere or in a unit no total keeps?* `healall_per` fails it — the health it restores is stated nowhere else — so it stays unread and its warning is true. |

@@ -143,9 +143,23 @@ describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
       return;
     }
 
-    expect(announcements).toBe(197);
-    expect(sameActor).toBe(133);
-    expect(otherActor).toBe(32);
+    /**
+     * ⚠️ **This read `toBe(197)` and could only ever be true of one capture.**
+     * The comment above already claimed the measurement was re-taken rather than
+     * quoted, and it was quoted — from the only fight in the corpus that
+     * announced anything. Four more group fights arrived and it failed on all
+     * four, for the one reason a test must not: they announce a different number
+     * of times, which is not a fault.
+     *
+     * What the narrowing actually needs is that the case it exists for is really
+     * in the material, fight by fight — an announcement whose very next message
+     * belongs to somebody else. Measured, every fight that announces at all
+     * carries some, so this is a property of the material rather than a total
+     * somebody has to re-measure.
+     */
+    expect(sameActor + otherActor).toBeLessThanOrEqual(announcements);
+    expect(otherActor).toBeGreaterThan(0);
+    expect(sameActor).toBeGreaterThan(0);
   });
 
   /**

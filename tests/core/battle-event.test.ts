@@ -95,8 +95,25 @@ describe("damage a defence stopped, over every captured fight", () => {
     return amounts.reduce((sum, one) => sum + one.amount, 0);
   }
 
+  /**
+   * What the blow lost on its way to the target, over the damage whose **raw**
+   * side the protocol actually states.
+   *
+   * ⚠️ **Added damage is set aside, and it has to be.** `dmga` arrives on the
+   * applied side with no raw counterpart anywhere in the message — the effect
+   * that produces it states a component, `+taken_dmg`, which is smaller than the
+   * applied figure in 31 of its 199 occurrences and so cannot be the raw whole.
+   * Subtracting an applied figure from a raw total that never included it makes
+   * the gap too narrow, and a defence then appears to have stopped more than the
+   * blow lost. That is what happened on 37 of the 241 defended blows the moment
+   * the 2026-08-12 group fights arrived; it is arithmetic of ours, not a defence
+   * behaving strangely.
+   */
+  const ADDED_DAMAGE_TYPE = "dmga";
+
   function getGap(attack: (typeof ATTACKS)[number]): number {
-    return getTotal(attack.dealt) - getTotal(attack.taken);
+    const taken = attack.taken.filter((one) => one.damageType !== ADDED_DAMAGE_TYPE);
+    return getTotal(attack.dealt) - getTotal(taken);
   }
 
   test("occurs at all", () => {

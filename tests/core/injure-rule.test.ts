@@ -20,6 +20,24 @@ const TICK_KEY = "injure";
 /** A floor, not a rounding: 658 taken announces 98, where rounding would say 99. */
 const WOUND_SHARE = 0.15;
 
+/**
+ * The two applied figures the share is **not** taken from.
+ *
+ * ⚠️ **The old three captures could not tell.** They carried `+injure` only on
+ * blows with a single applied figure, so "a share of the damage this message
+ * reports taken" fitted 17 of 17 and read as settled. The group fights of
+ * 2026-08-12 land it beside an offhand blow and beside added damage, and there
+ * the total is the wrong divisor: 1255 taken announces 37, which is the share of
+ * the 252 the main hand landed and nothing like the share of the whole.
+ *
+ * Excluding both makes it 20 of 20, including every one of the original 17 —
+ * neither key appears in those, so this narrows the rule without weakening what
+ * it already held. The help calls the Third Blow's damage auxiliary and says
+ * such damage is reduced by its own effects (`of-thirdatt`, read 2026-08-09);
+ * the wound is a share of the main blow, not of everything that landed with it.
+ */
+const SHARE_EXCLUDES = ["-dmgo", "-dmga"];
+
 type Announcement = { stated: number; taken: number; message: string };
 
 const ANNOUNCEMENTS: Announcement[] = CAPTURED_FIGHTS.flatMap((fight) =>
@@ -35,7 +53,12 @@ const ANNOUNCEMENTS: Announcement[] = CAPTURED_FIGHTS.flatMap((fight) =>
       // The figure health actually moves by, which is the side the witness adds
       // up as taken — not the raw roll the same message also carries.
       const taken = parameters
-        .filter((parameter) => parameter.key.startsWith("-dmg") && parameter.value !== null)
+        .filter(
+          (parameter) =>
+            parameter.key.startsWith("-dmg") &&
+            !SHARE_EXCLUDES.includes(parameter.key) &&
+            parameter.value !== null,
+        )
         .map((parameter) => getIntegerFromText(parameter.value ?? "") ?? 0)
         .reduce((total, amount) => total + amount, 0);
 

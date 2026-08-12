@@ -59,6 +59,28 @@ function isDamageKey(key: string): boolean {
 }
 
 /**
+ * Damage the client names instead of shaping — the one exception to the rule
+ * above, and it needs one because the shape rule cannot reach it.
+ *
+ * `thirdatt` is the Third Blow, an extra auxiliary attack the help documents as
+ * `of-thirdatt` (read 2026-08-09). It arrives as an ordinary raw/applied pair
+ * and carries no `dmg` marker, so the family rule walks straight past both
+ * halves and the meter simply lost that damage.
+ *
+ * ⚠️ **Earned on the health arithmetic, not on the name.** Before it was read,
+ * `tests/core/health-witness.test.ts` disagreed eight times in
+ * `2026-08-12-tempest-grupa-vs-draugr-2`, every one of them in the direction of
+ * too little damage decoded; reading the applied half closes all eight and
+ * introduces no disagreement anywhere else. That is the protocol's own stated
+ * percentages settling it, which is the only evidence this repository accepts
+ * for a key that moves health.
+ *
+ * The value is the damage type as well, so a Third Blow shows as its own kind
+ * rather than being folded into a weapon element it is not.
+ */
+const DAMAGE_KEYS_BY_NAME = ["+thirdatt", "-thirdatt"];
+
+/**
  * `amount,kind,name(percent%)` — the recipient arrives as a name here, not as an
  * id, and the health it states is that combatant's, not the message target's.
  */
@@ -178,6 +200,12 @@ const PROC_KEYS = [
   "-legbon_cleanse",
   "-tenacity",
   "-evade",
+  // Both settled the same way as the twelve above, on production build
+  // 1786514810315: `msg_+fastarrow` and `msg_-contra` are composed with no
+  // `%val%` hole, against the `msg_-blok %val%` branch in the same switch. The
+  // captures agree — neither ever arrives carrying a value.
+  "+fastarrow",
+  "-contra",
 ];
 
 /**
@@ -226,7 +254,25 @@ const SKILL_DECLARATION_KEYS = [
   // comes to arrives later as ordinary figures.
   "active_absorbdest_per",
   "combo-max",
+  // A share the aura will add to melee damage. Same argument as the rest: what
+  // it comes to arrives later as ordinary damage, already applied.
+  "aura-adddmg2_per-meele",
 ];
+
+/**
+ * The two an announcement states **without** a figure.
+ *
+ * They cannot go in the list above, which sends a key back to unread when its
+ * value will not read as a whole number — that check is what makes the shape of
+ * a declaration loud, and relaxing it for these would blind it for all of them.
+ * So they get their own list, exactly as `+legbon_holytouch` does on the blow
+ * side, and a value arriving on one is loud rather than silently dropped.
+ *
+ * Production build 1786514810315 composes both with no `%val%`: `en-regen-cast`
+ * interpolates two combatant names and no figure, and `+spell-taken_dmg-all`
+ * interpolates nothing at all.
+ */
+const VALUELESS_SKILL_DECLARATION_KEYS = ["+spell-taken_dmg-all", "en-regen-cast"];
 
 /**
  * What a blow declares about itself.
@@ -259,6 +305,32 @@ const BLOW_DECLARATION_KEYS = [
   // still unknown — what is settled is that it is not health.
   "-legbon_facade",
   "+critpoison_per",
+  // Four more shares a blow states about itself, each composed by production
+  // build 1786514810315 as a figure (`msg_+critsa %val%`, `msg_-legbon_critred
+  // %val%`, `msg_+legbon_puncture %val%`, `eng_game_only_val_+crush %val%`) and
+  // each stating an input to damage the keys beside it already carry.
+  "+critsa",
+  "-legbon_critred",
+  "+legbon_puncture",
+  "+crush_physical",
+  /**
+   * ⚠️ **The one that looks like damage and is not.** `+taken_dmg` rides every
+   * blow that carries `-dmga`, all 199 of them, and the tempting reading is that
+   * it is the raw half of that applied figure — the help documents
+   * `taken_dmg_per` as damage added to what the target takes, reduced by armour.
+   *
+   * The material refuses it: a raw figure cannot be smaller than its own applied
+   * counterpart, and `+taken_dmg` is smaller in 31 of the 199 and never once
+   * larger. So it states a component of the added damage, not the whole of it,
+   * and the whole is already reported as `-dmga` — which the shape rule reads.
+   * Counting it would add the same damage twice.
+   *
+   * The client agrees: it composes this one as `eng_game_only_val_+taken_dmg
+   * %val%`, sharing that branch with `+crush` and `+critpierce`, while `-dmga`
+   * falls to the default branch that recognises damage by shape. Production
+   * build 1786514810315.
+   */
+  "+taken_dmg",
 ];
 
 /**
@@ -311,6 +383,8 @@ const STANDALONE_DECLARATION_KEYS = [
   "txt",
   "+exp",
   "poison_lowdmg_per-enemies",
+  // Energy regained, stated on its own and in a unit no total here keeps.
+  "en-regen",
 ];
 
 /**
@@ -334,6 +408,8 @@ export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   ...BLOW_DECLARATION_KEYS,
   ...STANDALONE_DECLARATION_KEYS,
   ...VALUELESS_BLOW_DECLARATION_KEYS,
+  ...VALUELESS_SKILL_DECLARATION_KEYS,
+  ...DAMAGE_KEYS_BY_NAME,
   ...UNATTRIBUTABLE_HEALTH_KEYS,
   SKILL_SHOUT_KEY,
   SKILL_NAME_KEY,
@@ -442,6 +518,12 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
       continue;
     }
 
+    if (VALUELESS_SKILL_DECLARATION_KEYS.includes(key)) {
+      if (value === null) declared.push({ effect: key, amount: null, text: null });
+      else unreadKeys.push(key);
+      continue;
+    }
+
     if (key === SKILL_SHOUT_KEY) {
       // A blank name would travel on as a combatant nobody can find, which is
       // the same fault as a blank skill name a few lines up.
@@ -511,7 +593,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
       continue;
     }
 
-    if (isDamageKey(key)) {
+    if (DAMAGE_KEYS_BY_NAME.includes(key) || isDamageKey(key)) {
       const damage = getDamageAmount(parameter);
       // A damage key whose value will not read as a number is worse than an
       // unknown key: it looks like a figure and is not one.

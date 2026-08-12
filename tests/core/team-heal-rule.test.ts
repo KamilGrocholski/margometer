@@ -113,7 +113,23 @@ function getReadings(fight: CapturedFight): Reading[] {
 
 const CASTS: Cast[] = CAPTURED_FIGHTS.flatMap(getCasts);
 const READINGS: Reading[] = CAPTURED_FIGHTS.flatMap(getReadings);
-const SIDE_MATES: Reading[] = READINGS.filter((reading) => reading.isSideMate);
+/**
+ * Everyone on the caster's side who was **standing** when the cast landed.
+ *
+ * ⚠️ **The dead are excluded, and the test below is why that is a rule rather
+ * than a convenience.** The group fights of 2026-08-12 are the first material
+ * where a cast reaches a combatant at zero health, and it restores nothing to
+ * them — so a reading that expects the share to land on everyone reports healing
+ * that did not happen. Two such side-mates exist across every cast in the
+ * corpus, and neither was raised above zero.
+ */
+const SIDE_MATES: Reading[] = READINGS.filter(
+  (reading) => reading.isSideMate && reading.currentHealth > 0,
+);
+
+const DEAD_SIDE_MATES: Reading[] = READINGS.filter(
+  (reading) => reading.isSideMate && reading.currentHealth === 0,
+);
 
 /** The share before any cap, which is where the two rejected readings differ. */
 function getShare(reading: Reading, of: number, round: (value: number) => number): number {
@@ -154,9 +170,18 @@ describe("what `healall_per` restores", () => {
    * a contradiction.
    */
   test("the share the protocol states is already the weakened one", () => {
-    const byCaster = new Map<number, number[]>();
+    /**
+     * ⚠️ **Keyed by fight as well as by caster.** The weakening runs down within
+     * one fight and starts again at the base in the next, so a combatant met in
+     * two captures had both sequences concatenated into one and the second looked
+     * like a share that grew. Three of ten casters broke on that reading, and
+     * none of the thirteen does on this one — the rule was right and the grouping
+     * was wrong, which is exactly what a combatant id shared across fights buys.
+     */
+    const byCaster = new Map<string, number[]>();
     for (const cast of CASTS) {
-      byCaster.set(cast.casterId, [...(byCaster.get(cast.casterId) ?? []), cast.percent]);
+      const within = `${cast.fight}/${cast.casterId}`;
+      byCaster.set(within, [...(byCaster.get(within) ?? []), cast.percent]);
     }
 
     const disagreeing = [...byCaster].filter(([, shares]) =>
@@ -166,6 +191,18 @@ describe("what `healall_per` restores", () => {
       }),
     );
     expect(disagreeing).toEqual([]);
+  });
+
+  /**
+   * What the exclusion above claims, stated so it cannot become a silent filter.
+   * A team heal reaches the standing only: the dead are named by the side the
+   * same way everyone else is, and gain nothing.
+   */
+  test("a side-mate at zero health is reached and restored nothing", () => {
+    expect(DEAD_SIDE_MATES.length).toBeGreaterThan(0);
+    expect(DEAD_SIDE_MATES.filter((reading) => reading.gained !== 0).map(composeReport)).toEqual(
+      [],
+    );
   });
 
   test("nobody on the other side gains anything", () => {
