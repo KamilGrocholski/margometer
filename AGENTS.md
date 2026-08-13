@@ -55,7 +55,7 @@ Untagged prose is context and reasoning — read it, but it does not bind.
 | `[ui]` | The panel and everything it draws | `src/ui/` |
 | `[data]` | Material captured from the game | `tests/captured-fights/` |
 | `[tools]` | Runs in a terminal, never ships | `tools/`, `build.ts` |
-| `[docs]` | The register and the specs | `docs/` |
+| `[docs]` | The register, the specs and the audits | `docs/` |
 | `[process]` | Commits, validation, workflow | — |
 
 The entry point `src/userscript-entry.ts` is `[any]`: it is the one file allowed
@@ -399,6 +399,117 @@ register while §3 admitted it from the start. So:
   build before working from a cached bundle. Reporting the age is the tool's
   job; doing something about it is mine.
 
+### 7.7 Reading the whole tree at once
+
+An **audit** is one round that reads the whole repository and writes down what it
+found, dated by the commit it read. It measures this repository against its own
+rules — which is a different job from every other document here. A spec records a
+decision before the code exists; `docs/protocol-keys.md` records claims about
+someone else's system; an audit records the state of ours on a day.
+
+**Why one is needed at all, when §6.1 is a gate.** The gate can only be green.
+Every rule a machine holds passes by construction, so a guarded rule is exactly
+the rule an audit has least to say about. What it reads is the other half: the
+prose that has drifted from the tree, the duplication that crossed §7.1's second
+consumer without anybody counting, the exported name no test names, the rule that
+was written and never guarded. None of those turns anything red, and all of them
+are how a tree stops resembling its own description.
+
+⚠️ **An audit is admitted here on one condition, and it is the condition §8's
+first note exists to enforce: it is commissioned work, not a record.** It ships
+`open` and the round after it closes it. A file of findings nobody acts on is
+precisely the artefact §7.5 refuses — an append-only list with a producer and no
+consumer — and the only thing separating this from that is that the next commit
+is already the consumer. Two commits, and the second one is not optional.
+
+**What an audit covers.** Not "the code": the code is what the gate reads. These,
+and it says which it did:
+
+1. **The gate**, run, with its output written down as numbers rather than as
+   "passing" (§5).
+2. **The rules no machine holds.** §3, §5 and §9 in full, minus what
+   `tests/tools/source-layout.test.ts` already re-earns.
+3. **Prose against the tree** — §8's block, §2's scope table, `README.md`,
+   `NOTICE.md`. §8 says a block listing what does not exist "is how this document
+   starts lying"; an audit is when somebody checks whether it has.
+4. **Layering** (§9.1) and the register of value readers (§9.5).
+5. **Duplication**, against §7.1: a concept spelled twice is a module overdue,
+   and a concept spelled twice *differently* is a decision nobody made.
+6. **Coverage** — an exported name that no test names. Not a percentage: a name.
+7. **Size and split responsibility**, which is judgment and says so.
+8. **What it did not read.**
+
+- `[ALWAYS] [process]` **Say what was not read.** *Not looked at*, *looked at and
+  clean*, and *a finding* are three answers, and an audit that offers two of them
+  turns the first into the second by silence. This is §7.6's rule about the
+  published help arriving from the other side, and it was paid for twice there.
+- `[ALWAYS] [process]` **An audit carries the commit it read**, the way a claim
+  about the game carries its build. A finding with no tree under it is dated to
+  the day somebody typed it, not to a state of this repository.
+- `[ALWAYS] [process]` **A finding names a file, and a line where there is one.**
+  An observation that cannot be pointed at is an impression, and belongs in the
+  commit message where it will not be mistaken for a measurement.
+- `[ALWAYS] [process]` **Every finding closes into one of §7.5's three places — a
+  guard, a rule, a commit — or is declined with a reason.** Declining is a real
+  answer and the vocabulary has a word for it; leaving it open is not.
+- `[NEVER] [process]` **Fix while auditing.** The reading and the fixing are
+  separate commits, because a finding repaired in the same breath is a finding
+  whose reasoning nobody can read back. It also keeps the audit honest about
+  what the tree looked like: a file fixed before it was written down never
+  appears, and the count of what was wrong quietly becomes the count of what was
+  hard to fix.
+- `[NEVER] [docs]` **Append to a closed audit.** The next one is a new file at a
+  new commit. An audit that grows is a chronicle with a date on the wrong end.
+- `[ASK] [docs]` **Deleting an audit**, closed ones included. A closed audit is
+  the only record of what was declined and why.
+
+**The shape.** Held by `tests/tools/audit-status.test.ts`, and the part a machine
+can re-earn is written in a vocabulary this section defines — the same split
+`docs/protocol-keys.md` makes between an entry's prose and its `*Shape:*` line:
+
+```
+# The whole tree, read once
+
+Status: open
+Read at: a54ea70
+
+## What was measured
+
+## Findings
+
+### F1 — a title naming the effect, not the activity
+
+Prose: what is wrong, and what it costs.
+
+*Where:* `src/game/engine-roster.ts:103`
+*Closes:* open
+
+## Looked at and clean
+
+## What was not read
+```
+
+`Status:` is `open` or `closed`. `Read at:` is the commit the tree was read at.
+`*Closes:*` is one of `open`, ``guard `tests/…` ``, `rule §N.M`, `commit`, or
+`declined — <reason>`, and a `closed` audit has no finding still saying `open`.
+
+Findings are ordered by the order they are to be closed. **There is deliberately
+no severity word**: the register has none either, and a vocabulary of three
+severities is three arguments per finding about which one it is, none of which
+changes what gets done.
+
+**When I reach for one, without being asked.** The rules above say what an audit
+is and nothing about opening one, and an agent that never does breaks none of
+them — which is the omission §7.6 had to be amended for. So:
+
+- **Before a release tag.** A release is the moment the tree stops being ours
+  alone, and `CHANGELOG.md` says what changed, not what is true.
+- **When the same class of fault turns up in two different rounds.** Twice is
+  the point at which "I fixed it" stops being the right response and "how many
+  more are there" starts being the question.
+- **When a round touches a layer no audit has read.** The directory is the index,
+  as it is for `docs/specs/` — what is not in it has not been read.
+
 ---
 
 ## 8. Structure
@@ -453,6 +564,10 @@ docs/
                          evidence, state. Guarded both ways against the decoder
                          and the frozen table.
   specs/                 Dated design records. No index — the directory is one.
+  audits/                This repository measured against its own rules, on a
+                         day, at a commit — §7.7. Each one ships open and the
+                         round after it closes it, which is the whole of what
+                         separates the directory from a chronicle.
   design/panel.html      The panel, as a page you can click: the agreed layout
                          driven by the two captured fights, so a decision about
                          it can be looked at instead of imagined. Standalone by
@@ -462,10 +577,12 @@ docs/
                          it and the add-on disagree, the add-on is right and this
                          is stale.
 
-  ⚠️ docs/ may hold a GUARDED register, a DATED spec, or a design a spec points
-  at, and nothing else. No status, no progress, no chronicle of rounds. That
-  sentence is the only thing standing between this directory and what the
-  previous one became.
+  ⚠️ docs/ may hold a GUARDED register, a DATED spec, a design a spec points at,
+  or a DATED and GUARDED audit naming the commit it read — and nothing else. No
+  status, no progress, no chronicle of rounds. That sentence is the only thing
+  standing between this directory and what the previous one became, and the
+  audit is admitted by §7.7 on the condition that keeps it true: it is
+  commissioned work with a consumer, closed by the round that follows it.
 
   ⚠️ The design is admitted on one condition, and it is the condition the rest of
   this directory is held to: **a spec has to name it**, so it cannot outlive the
@@ -940,6 +1057,11 @@ tests/
                              mistaken for a heading, and every entry in the file
                              opens with its kind. A number bumped without a
                              section would publish a release saying nothing.
+    audit-status.test.ts     §7.7's shape, and the one rule that keeps an audit
+                             from becoming the thing §8 refuses: a closed one has
+                             no finding left open. Also that the commit it says
+                             it read is a commit — checked where the clone is
+                             deep enough to look, which CI's is not.
     captured-fight-catalog.test.ts  decoding-status.test.ts  help-article.test.ts
     protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```
