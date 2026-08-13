@@ -20,6 +20,7 @@ import {
   type FightReading,
 } from "@/src/game/battle-session.ts";
 import { setEngineAttachment, type GameWindow } from "@/src/game/engine-attachment.ts";
+import { getDictionaryReader, type DictionaryWindow } from "@/src/game/game-dictionary.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
 import {
@@ -192,7 +193,7 @@ export function shouldStartHere(scope: { document?: unknown }): boolean {
  * The page as this file needs it: the game, a document to draw into, and a name
  * to answer to.
  */
-type HostPage = GameWindow & {
+type HostPage = GameWindow & DictionaryWindow & {
   document?: {
     createElement(tag: string): unknown;
     body?: { append(node: unknown): void } | undefined;
@@ -433,6 +434,14 @@ export function composePanelMount(
    */
   const scroll: PanelScroll = { list: null, levelKey: null };
 
+  /**
+   * Once per mount, because the dictionary is built with the page and not with
+   * the fight — and because a page without one is a page that never grows one.
+   * Null here is the panel drawing its own words, which is what every test and
+   * every browser without the game sees.
+   */
+  const translate = getDictionaryReader(page);
+
   // Opened once: `attachShadow` throws on a second call for the same element.
   const container = setPanelRoot(
     document,
@@ -484,7 +493,7 @@ export function composePanelMount(
 
   const renderLatest = (): void => {
     if (latest === null) return;
-    renderPanelInto(document, container, composePanelView(latest, state), {
+    renderPanelInto(document, container, composePanelView(latest, state, translate), {
       onMetricChosen: (chosen) => setState(composeStateAfterMetric(chosen)),
       onTeamChosen: (chosen) => setState(composeStateAfterTeam(chosen)),
       onRowChosen: (key) => setState(composeStateFromRow(state, key)),

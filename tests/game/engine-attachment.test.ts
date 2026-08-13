@@ -15,7 +15,9 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fight-statistics.ts";
 import type { FightReading } from "@/src/game/battle-session.ts";
 import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-attachment.ts";
+import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
+import { EFFECT_NAMES } from "@/src/ui/panel-names.ts";
 import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
 import {
   composeDefaultState,
@@ -496,6 +498,104 @@ describe("what a failing panel puts on the console", () => {
     render?.(composeReadingOfFight(1));
     render?.(composeReadingOfFight(2));
     expect(said).toEqual([]);
+  });
+});
+
+/**
+ * The other loop no other file can close: the panel asking the client what it
+ * calls something.
+ *
+ * `src/ui/panel-names.ts` holds the identifiers and is checked against a fake
+ * translator; `src/game/game-dictionary.ts` reads `_t` and is checked against a
+ * fake page. Neither notices if the mount never joins them — and the join is
+ * one argument, in one file, with a default that quietly means "nobody asked".
+ * So the whole thing is driven from the page inwards: a `_t` of the shape the
+ * game has, a fight with a critical hit in it, and the client's own word on
+ * screen rather than ours.
+ */
+describe("the panel asking the running client for a name", () => {
+  /** The tooltip lines of every row, which is where a token's name is drawn. */
+  const getEveryDetailText = (view: ReturnType<typeof composePanelView>): string[] =>
+    view.lists.flatMap((list) =>
+      list.rows.flatMap((row) =>
+        row.detail.map((line) => ("text" in line ? line.text : `${line.label} ${line.value}`)),
+      ),
+    );
+
+  /** Poorer than the one in `tests/ui/panel.test.ts`: nothing here reads a node. */
+  function composePageWithDictionary(
+    translate: ((id: string) => string | undefined) | undefined,
+  ): Parameters<typeof composePanelMount>[0] {
+    const composeNode = (): Record<string, unknown> => ({
+      className: "",
+      textContent: "",
+      title: "",
+      style: { setProperty: (): void => {} },
+      append: (): void => {},
+      replaceChildren: (): void => {},
+      addEventListener: (): void => {},
+      attachShadow: (): unknown => composeNode(),
+    });
+    return {
+      ...(translate === undefined ? {} : { _t: translate }),
+      document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
+    };
+  }
+
+  function composeReadingWithAStun(): FightReading {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "a mage", side: 1, profession: "m", level: null },
+      { id: 3, name: "something large", side: 2, profession: null, level: null },
+    ]);
+    return {
+      statistics: composeFightStatistics(
+        decodeFight(["1=90.00;3=50.00;+stun;+dmg=500;-dmg=400"], roster),
+        roster,
+      ),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+      fightsStarted: 1,
+    };
+  }
+
+  test("asks it, by the identifier the panel holds for that token", () => {
+    const asked: string[] = [];
+    const render = composePanelMount(
+      composePageWithDictionary((id) => {
+        asked.push(id);
+        return undefined;
+      }),
+      () => {},
+    );
+    render?.(composeReadingWithAStun());
+
+    expect(asked).toContain(assertDefined(EFFECT_NAMES["stun"]?.id, "the panel names a stun"));
+  });
+
+  /**
+   * And what comes back is what is drawn. Held here rather than next door
+   * because the reader and the vocabulary are on opposite sides of §9.1 and this
+   * is the one file allowed to hold both at once.
+   */
+  test("draws what the client answered, over what we would have said", () => {
+    const page = composePageWithDictionary((id) => (id === "msg_+stun" ? "+Ogłuszenie" : undefined));
+    const reading = composeReadingWithAStun();
+    const said = getEveryDetailText(
+      composePanelView(reading, composeDefaultState(), getDictionaryReader(page)),
+    );
+    expect(said.some((text) => text.includes("Ogłuszenie ×"))).toBe(true);
+    expect(said.some((text) => text.includes("ogłuszenie ×"))).toBe(false);
+  });
+
+  test("asks nothing at all where the page has no dictionary", () => {
+    const render = composePanelMount(composePageWithDictionary(undefined), () => {});
+    expect(() => render?.(composeReadingWithAStun())).not.toThrow();
+
+    const said = getEveryDetailText(
+      composePanelView(composeReadingWithAStun(), composeDefaultState(), null),
+    );
+    expect(said.some((text) => text.includes("ogłuszenie ×"))).toBe(true);
   });
 });
 

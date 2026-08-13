@@ -33,6 +33,25 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Zmiana** — Efekty w ciosach nazywają się tak, jak nazywa je Twoja własna
+  gra. Dodatek pyta o nazwę klienta, w którym grasz, więc pojawia się dokładnie
+  to słowo, które widzisz w oknie walki — i w tym języku, w którym grasz. Tam,
+  gdzie gra nazwy nie ma, dodatek nadal podaje własną.
+- **Poprawka** — Kilka nazw było po prostu nie z tej beczki. `contra` to
+  **kontratak**, a nie „kontra"; przerwanie ciosu specjalnego opisywaliśmy jako
+  „rozproszenie zaklęcia", czyli coś zupełnie innego; niszczona **absorpcja**
+  chodziła jako „osłona".
+- **Poprawka** — Dwie różne rzeczy przestały się nazywać tak samo: niszczenie
+  pancerza (w punktach) i zniszczenie pancerza do końca stały jedna nad drugą
+  pod jednym podpisem i nie dało się ich rozróżnić.
+- **Poprawka** — Obrażenia fizyczne zadane komuś, kogo gra wskazuje z imienia,
+  trafiały czasem do osobnego wiersza wyglądającego identycznie jak ten obok.
+  To jeden wiersz, tak jak w grze.
+- **Poprawka** — Trzeci cios ma wreszcie nazwę; wcześniej stał w panelu jako
+  surowe słowo z protokołu.
+
 ## [0.6.0] — 2026-08-12
 
 Dodatek jest napisany **od zera**. Z poprzedniej wersji nie zostało nic poza

@@ -31,6 +31,25 @@ anything, and they are deliberately absent. The add-on reads them from the
 running game at run time instead, which also means it shows them in whatever
 language the player's client uses.
 
+### Dictionary identifiers — `src/ui/panel-names.ts`
+
+The sentence above is done by that file and by `src/game/game-dictionary.ts`,
+and they are named here because it is fair to ask what "reads them at run time"
+comes to in practice.
+
+The client's translation table is keyed by identifiers — `msg_+crit`,
+`msg_-contra`, `msg_+dispel` — and exposes a lookup, `_t`, to the page the
+add-on runs on. What is written down here is the **identifier** for each token
+the panel can ask about: a functional name of the same kind as the protocol keys
+above, and the join without which the lookup cannot be made. What comes back is
+used and not stored, so a player sees their own client's wording in their own
+language, and nothing of it ends up in a file, a test or a comment.
+
+Beside each identifier is a short Polish phrase of **ours**, which is what the
+panel draws where the client has no name for something, or is not on the page at
+all. Those phrases are this repository's own writing. Where the game's wording
+informed one, the entry says so in its own words; none of them is a quotation.
+
 ### Recorded fights — `tests/captured-fights/*.json`
 
 Recordings of the author's own fights, kept as the server sent them. They are

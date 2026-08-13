@@ -164,6 +164,14 @@ matching none of them, or more than one, makes the call uncomparable instead —
 the boar fight fields two combatants called the same thing, so a unique match is
 a condition, not a formality.
 
+⚠️ **The middle member can be blank, and blank is the plain element.** 66 of the
+occurrences write it as a single space. The client spends that member on one
+thing — `<b class=dmg"+D[1]+">`, production build `1785244275300` — and a class
+attribute of `"dmg "` is the class `dmg`, so the game makes no distinction
+there. Read literally it made `dmg ` a second element beside `dmg`, splitting
+107 952 points of physical damage into two rows nothing on screen could tell
+apart. Held by `tests/core/fight-decoder.test.ts`.
+
 *Shape:* 242 occurrences; on a message reporting damage; text
 
 *Evidence:* in every call where a target lost more health than the attack

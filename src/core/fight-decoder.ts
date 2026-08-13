@@ -84,6 +84,15 @@ const DAMAGE_KEYS_BY_NAME = ["+thirdatt", "-thirdatt"];
 /**
  * `amount,kind,name(percent%)` — the recipient arrives as a name here, not as an
  * id, and the health it states is that combatant's, not the message target's.
+ *
+ * ⚠️ **The kind is trimmed, and a blank one is the plain element.** 66
+ * occurrences in the captures write that field as a single space
+ * (`+oth_dmg=4439, ,Gracz 5(66.95%)`), which made `dmg ` a second element
+ * alongside `dmg` and drew two rows a reader cannot tell apart — 107 952 points
+ * of physical damage under a label that looked like the one above it. Production
+ * build `1785244275300` spends this field on one thing, `<b class=dmg"+D[1]+">`,
+ * and a class attribute of `"dmg "` **is** the class `dmg`, so the game itself
+ * never made the distinction we were making.
  */
 const DAMAGE_TO_NAMED_KEY = "+oth_dmg";
 const NAMED_WITH_PERCENT = /^(.*)\((\d+\.\d\d)%\)$/;
@@ -121,7 +130,7 @@ function decodeDamageToNamedCombatant(
     targetName,
     targetId: roster === null ? null : getCombatantIdByName(roster, targetName),
     targetHealthPercent,
-    damage: { damageType: `${DAMAGE_MARKER}${kind}`, amount },
+    damage: { damageType: `${DAMAGE_MARKER}${kind.trim()}`, amount },
   };
 }
 

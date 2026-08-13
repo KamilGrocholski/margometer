@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
 
 /**
  * Decoder rules that the captured material cannot pin down on its own, because
@@ -87,5 +88,39 @@ describe("damage stated against a name, with a roster to resolve it", () => {
     const roster = composeCombatantRoster([{ id: 3, name: "Locha", side: 2, profession: null, level: null }]);
     const [event] = decodeFight([message], roster);
     expect(event).toMatchObject({ targetId: null });
+  });
+
+  /**
+   * ⚠️ **The kind field arrives blank, and the game does not mind.** It spends
+   * that member on the CSS class `dmg{kind}`, where `"dmg "` and `"dmg"` are the
+   * same class — so a space there means the plain element and not a new one.
+   * Read literally it made a second physical element carrying six figures of
+   * damage under a label indistinguishable from the first.
+   */
+  test("a blank kind is the plain element, not a second one", () => {
+    const [blank] = decodeFight(["1=100.00;2=50.00;+oth_dmg=4439, ,Odyniec(66.95%)"]);
+    expect(blank).toMatchObject({ damage: { damageType: "dmg", amount: 4439 } });
+
+    const [stated] = decodeFight([message]);
+    expect(stated).toMatchObject({ damage: { damageType: "dmga", amount: 247 } });
+  });
+});
+
+/**
+ * The same, over the material rather than over one written-out message: no
+ * element the captures produce may carry whitespace, because a label is all a
+ * reader has to tell two of them apart.
+ */
+describe("every element the captures decode", () => {
+  test.each(CAPTURED_FIGHTS)("$name names no element with a blank in it", (fight) => {
+    const messages = fight.dump.calls.flatMap((call) => call.protocolMessages);
+    const elements = new Set<string>();
+    for (const event of decodeFight(messages, composeRosterOfFight(fight))) {
+      if (event.kind === "attack")
+        for (const damage of [...event.dealt, ...event.taken]) elements.add(damage.damageType);
+      if (event.kind === "damage-to-named-combatant") elements.add(event.damage.damageType);
+    }
+    expect(elements.size).toBeGreaterThan(0);
+    for (const element of elements) expect(element).toBe(element.trim());
   });
 });

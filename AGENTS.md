@@ -553,6 +553,14 @@ src/
     engine-attachment.ts Finds the battle object, which may not exist yet, wraps
                          it once and stops looking. The game does not replace it,
                          so this is a search and not a watch.
+    game-dictionary.ts   The client's own name for a thing, read from the page it
+                         draws over: the game ships a dictionary keyed by
+                         identifiers and exposes the lookup, so a player is told
+                         what their own client calls an effect, in their own
+                         language, and nothing of that wording is written down
+                         here. Only a **name** counts — an answer still carrying
+                         a `%val%` hole is a sentence with the figure cut out and
+                         is refused, so the panel says its own short word instead.
     battle-session.ts    One fight accumulated payload by payload: `init` opens
                          it, the roster arrives in fragments that merge, and
                          `myteam` arrives once or never. Counts the fights it has
@@ -571,6 +579,13 @@ src/
                          redaction is the intake tool's job and this file's output
                          never enters git.
   ui/
+    panel-names.ts       What the panel calls each name of the game's own: the
+                         client's identifier for it, and a phrase of ours for
+                         where the game has none or is not there to be asked.
+                         The identifier is functional and may be stored; the
+                         sentence it resolves to never is (NOTICE.md). Ours is
+                         what every test and every browser without the game sees,
+                         so it is a real answer rather than a placeholder.
     panel-tokens.ts      Every colour, space and radius, named once, plus the
                          contrast arithmetic a test needs to hold them to §9.7.
                          The bar tint is a measured value, not a taste. Two of the
@@ -610,11 +625,14 @@ src/
                          damage types beside it as a second cut of the same
                          number; a cut of one row is not drawn, because it repeats
                          the total standing over it. Every token of the game's
-                         becomes a phrase before it reaches a label; one we cannot
-                         phrase travels as the game wrote it rather than as a
-                         guess, and the captures are swept so that fallback is
-                         never what a player actually meets. Takes its own input
-                         type, so `ui` names no direction to `game`. Says how
+                         is named before it reaches a label — by the running
+                         client where it has a name for it, otherwise by
+                         `panel-names.ts` — and one nobody has named travels as
+                         the game wrote it rather than as a guess, with the
+                         captures swept so that last rung is never what a player
+                         actually meets. Takes its own input type and its own
+                         function type for that naming, so `ui` names no
+                         direction to `game`. Says how
                          many bars the list asks for and which screen it is —
                          a floor the ranking keeps and a breakdown only grows past,
                          and an identity nothing draws, so a redraw can be told
@@ -822,7 +840,15 @@ tests/
                              the entry point the userscript actually runs. Also
                              the one loop no other file can close: a drag on a
                              mounted panel, and the position the next page opens
-                             with.
+                             with — and the other one, the panel asking the
+                             running client for a name: the two halves of that
+                             live on opposite sides of §9.1 and this is the file
+                             allowed to hold both.
+    game-dictionary.test.ts  What counts as a label and what does not — the sign
+                             dropped, a hole refused — and every way a page can
+                             fail to answer: no lookup, no entry, the wrong kind
+                             of value, a fault reading it. All four give our own
+                             word rather than an exception the game would catch.
     battle-session.test.ts   How a fight is assembled from payloads: where one
                              ends, a roster that only ever grows, a side
                              remembered from the one payload that states it, a
@@ -830,6 +856,11 @@ tests/
                              does not inherit the last one's turns.
 
   ui/
+    panel-names.test.ts      The vocabulary held to saying each thing differently
+                             from every other thing — two quantities under one
+                             label is a wrong number that looks right — to asking
+                             a different question for each, and to asking nothing
+                             at all about a token the client has no name for.
     panel-view.test.ts       What the panel decides, without a document: the
                              ranking and its numbering, the height it asks for —
                              a floor of eleven bars the ranking keeps exactly and a

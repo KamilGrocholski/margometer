@@ -884,6 +884,11 @@ describe("against the captured fights", () => {
       for (const token of row.destroyed.keys()) tokens.add(token);
       for (const token of row.healedBySource.keys()) tokens.add(token);
       for (const token of row.healthLostBySource.keys()) tokens.add(token);
+      // The two the sweep was missing, and the omission cost exactly what the
+      // comment above predicts: `thirdatt` had no phrase at all, and `+oth_dmg`
+      // built a second physical element out of a blank kind field.
+      for (const token of row.dealtAppliedByElement.keys()) tokens.add(token);
+      for (const token of row.takenByElement.keys()) tokens.add(token);
     }
     expect(tokens.size, "the capture carries tokens to check").toBeGreaterThan(0);
 

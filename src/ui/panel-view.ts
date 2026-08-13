@@ -12,8 +12,10 @@
  * **The strings are Polish and nothing else here is** (§3). A sentence a player
  * reads never carries our vocabulary: it says what cannot be known, not why our
  * reader cannot know it. Every name of the game's own — a key, an effect token —
- * is turned into a Polish phrase before it reaches a label, and where we have no
- * phrase for one it travels as the game wrote it rather than as a guess.
+ * is named before it reaches a label, and `src/ui/panel-names.ts` decides by
+ * whom: the running client where it has a name for the thing, and this
+ * repository where it has not. A token nobody has named travels as the game
+ * wrote it rather than as a guess.
  */
 
 import { composeDecimalText, composeIntegerText } from "@/libs/number.ts";
@@ -23,6 +25,17 @@ import type {
   FightStatistics,
   SkillStatistics,
 } from "@/src/core/fight-statistics.ts";
+import {
+  DEFENCE_NAMES,
+  DESTRUCTION_NAMES,
+  EFFECT_NAMES,
+  ELEMENT_NAMES,
+  getPhrase,
+  HEALTH_SOURCE_NAMES,
+  PROFESSION_NAMES,
+  type TokenName,
+  type TranslateLabel,
+} from "@/src/ui/panel-names.ts";
 import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-tokens.ts";
 
 /**
@@ -197,92 +210,6 @@ function composeDirectionTabs(
     label: DIRECTION_LABELS[noun][METRIC_AXES[metric].direction],
     isSelected: metric === current,
   }));
-}
-
-const PROFESSION_NAMES: Record<string, string> = {
-  w: "wojownik",
-  p: "paladyn",
-  t: "tropiciel",
-  h: "łowca",
-  m: "mag",
-  b: "tancerz ostrzy",
-};
-
-/**
- * The letter in a damage key, in the player's words.
- *
- * ⚠️ **Not a taxonomy of elements, though it reads like one.** The game answers
- * three different questions with this one letter and picks whichever it has:
- * element (`f`, `l`, `c`), weapon or slot (none, `d`, `o`), reach (`g`), and
- * `a` for damage nothing reduces. So a figure keyed `dmgg` has no element we
- * know — the label says what the game said, not what we wish it had.
- */
-const ELEMENT_NAMES: Record<string, string> = {
-  dmg: "fizyczne",
-  dmgd: "dystansowe",
-  dmgo: "broń pomocnicza",
-  dmgf: "ogień",
-  dmgc: "zimno",
-  dmgl: "błyskawica",
-  dmga: "nieuchronne",
-  dmgg: "globalne",
-};
-
-/** Effects that fire with a blow. Ours to phrase; the game only sends the token. */
-const EFFECT_NAMES: Record<string, string> = {
-  crit: "trafienie krytyczne",
-  of_crit: "trafienie krytyczne bronią pomocniczą",
-  legbon_verycrit: "bardzo silne trafienie krytyczne",
-  evade: "unik",
-  // The last two the captures carry, and they were reaching the player as the
-  // game's own tokens through the fallback below — which the spec rejected by
-  // name: a token tells a player nothing they can act on.
-  fastarrow: "szybka strzała",
-  contra: "kontra",
-  pierce: "przebicie",
-  stun: "ogłuszenie",
-  freeze: "zamrożenie",
-  legbon_curse: "klątwa",
-  legbon_cleanse: "oczyszczenie",
-  legbon_glare: "oślepienie",
-  "superspell-dispel": "rozproszenie zaklęcia",
-  acdmg_destroyed: "zniszczony pancerz",
-  tenacity: "wytrwałość",
-};
-
-const DEFENCE_NAMES: Record<string, string> = {
-  absorb: "pochłonięte",
-  absorbm: "pochłonięte magicznie",
-  blok: "zablokowane",
-};
-
-const DESTRUCTION_NAMES: Record<string, string> = {
-  acdmg: "zniszczony pancerz",
-  resdmg: "zniszczona odporność",
-  abdest_per: "zniszczona osłona",
-  abmdest_per: "zniszczona osłona magiczna",
-};
-
-/** Where health went when no blow moved it. */
-const HEALTH_SOURCE_NAMES: Record<string, string> = {
-  poison: "trucizna",
-  injure: "rana",
-  heal: "leczenie",
-  heal_target: "leczenie na wskazanego",
-  legbon_holytouch_heal: "leczenie z efektu",
-  legbon_lastheal: "leczenie ratunkowe",
-};
-
-/**
- * A phrase for a token, or the token itself.
- *
- * The fallback is deliberate and is the whole reason this is one function: the
- * game can send something we have never named, and a row that vanished or read
- * "nieznane" would hide a real figure behind our own ignorance. What the player
- * sees then is ugly and true.
- */
-function getPhrase(names: Record<string, string>, token: string): string {
-  return names[token] ?? token;
 }
 
 /** Thousands spaced, as the game itself writes them. */
@@ -577,6 +504,7 @@ function composeCombatantDetail(
   reading: PanelReading,
   combatantId: number,
   state: PanelState,
+  translate: TranslateLabel | null,
 ): PanelDetailLine[] {
   const row = getRow(reading, combatantId);
   const combatant = reading.roster.byId.get(combatantId);
@@ -585,7 +513,7 @@ function composeCombatantDetail(
   const profession = combatant?.profession ?? null;
   const level = combatant?.level ?? null;
   if (profession !== null || level !== null) {
-    const named = profession === null ? "nieznana profesja" : getPhrase(PROFESSION_NAMES, profession);
+    const named = profession === null ? "nieznana profesja" : getPhrase(PROFESSION_NAMES, profession, translate);
     lines.push({
       kind: "heading",
       text: level === null ? named : `${named} (${composeIntegerText(level)})`,
@@ -612,7 +540,7 @@ function composeCombatantDetail(
 
   const effects = [...row.procsOnBlowsStruck]
     .filter(([token]) => token !== "crit" && token !== "legbon_verycrit")
-    .map(([token, count]) => `${getPhrase(EFFECT_NAMES, token)} ×${composeFigureText(count)}`);
+    .map(([token, count]) => `${getPhrase(EFFECT_NAMES, token, translate)} ×${composeFigureText(count)}`);
   if (effects.length > 0) {
     lines.push({ kind: "heading", text: "Efekty w ciosach" });
     lines.push({ kind: "note", text: effects.join(" · ") });
@@ -627,7 +555,7 @@ function composeCombatantDetail(
   if (stopped.length > 0) {
     lines.push({ kind: "heading", text: "Zatrzymane" });
     for (const [token, amount] of stopped) {
-      lines.push(composeStat(getPhrase(DEFENCE_NAMES, token), composeFigureText(amount)));
+      lines.push(composeStat(getPhrase(DEFENCE_NAMES, token, translate), composeFigureText(amount)));
     }
     // Said once, where the figures are: a defence is one part of the reduction and
     // the protocol reports neither armour nor resistance, so these do not add up to
@@ -639,7 +567,7 @@ function composeCombatantDetail(
   if (destroyed.length > 0) {
     lines.push({ kind: "heading", text: "Zniszczone" });
     for (const [token, amount] of destroyed) {
-      lines.push(composeStat(getPhrase(DESTRUCTION_NAMES, token), composeDestructionText(token, amount)));
+      lines.push(composeStat(getPhrase(DESTRUCTION_NAMES, token, translate), composeDestructionText(token, amount)));
     }
   }
 
@@ -657,6 +585,7 @@ function composeRankedRow(
   rank: number,
   whole: number,
   largest: number,
+  translate: TranslateLabel | null,
 ): PanelRow {
   const raw = getMetricValue(getRow(reading, combatantId), state.metric);
   return {
@@ -669,7 +598,7 @@ function composeRankedRow(
     valueText: composeFigureText(raw),
     bracketText: composeBracket(whole > 0 ? raw / whole : 0),
     canDrill: true,
-    detail: composeCombatantDetail(reading, combatantId, state),
+    detail: composeCombatantDetail(reading, combatantId, state, translate),
   };
 }
 
@@ -818,6 +747,7 @@ function composePinnedRow(
   state: PanelState,
   whole: number,
   largest: number,
+  translate: TranslateLabel | null,
 ): PanelRow | null {
   const isHealing = isHealingMetric(state.metric);
 
@@ -845,7 +775,7 @@ function composePinnedRow(
     for (const [token, amount] of [...getUnattributedDamageBySource(reading)].sort(
       ([, one], [, other]) => other - one,
     )) {
-      lines.push(composeStat(getPhrase(HEALTH_SOURCE_NAMES, token), composeFigureText(amount)));
+      lines.push(composeStat(getPhrase(HEALTH_SOURCE_NAMES, token, translate), composeFigureText(amount)));
     }
   }
   if (state.team !== "all") {
@@ -1109,16 +1039,17 @@ function composeSourceEntries(
   reading: PanelReading,
   state: PanelState,
   combatantId: number,
+  translate: TranslateLabel | null,
 ): BreakdownEntry[] {
   const row = getRow(reading, combatantId);
   const compose = (
-    names: Record<string, string>,
+    names: Record<string, TokenName>,
     tokens: ReadonlyMap<string, number>,
     colour: string,
   ): BreakdownEntry[] =>
     [...tokens].map(([token, amount]) => ({
       key: `source:${token}`,
-      label: getPhrase(names, token),
+      label: getPhrase(names, token, translate),
       profession: null,
       colour,
       amount,
@@ -1249,6 +1180,7 @@ function composeDeepLists(
   reading: PanelReading,
   state: PanelState,
   combatantId: number,
+  translate: TranslateLabel | null,
 ): PanelList[] {
   if (state.focusSkill !== null) {
     // The owner is stated rather than searched for. Looking the key up across
@@ -1313,7 +1245,7 @@ function composeDeepLists(
       .sort(([, one], [, other]) => other - one)
       .map(([token, amount]): BreakdownEntry => ({
         key: `leaf:${token}`,
-        label: getPhrase(ELEMENT_NAMES, token),
+        label: getPhrase(ELEMENT_NAMES, token, translate),
         profession: null,
         colour: UNKNOWN_COLOUR,
         amount,
@@ -1516,7 +1448,17 @@ function composeLevelKey(state: PanelState): string {
   ].join("|");
 }
 
-export function composePanelView(reading: PanelReading, state: PanelState): PanelView {
+/**
+ * `translate` is how the panel asks the running client what it calls something
+ * (`src/ui/panel-names.ts`). It defaults to nobody having asked, which is a real
+ * state and not a convenience: the fallbacks are what a player sees wherever the
+ * game is not on the page — and every test in this repository runs there.
+ */
+export function composePanelView(
+  reading: PanelReading,
+  state: PanelState,
+  translate: TranslateLabel | null = null,
+): PanelView {
   const ranked = getRankedIds(reading, state);
   const total = ranked.reduce((sum, id) => sum + getMetricValue(getRow(reading, id), state.metric), 0);
   // Computed once, here, and handed to both kinds of row — a second call site
@@ -1561,13 +1503,13 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
           heading: null,
           totalText: null,
           rows: ranked.map((id, index) =>
-            composeRankedRow(reading, state, id, index + 1, whole, largestShown),
+            composeRankedRow(reading, state, id, index + 1, whole, largestShown, translate),
           ),
         },
       ],
       emptyText: ranked.length === 0 ? "Nikogo tu jeszcze nie ma." : null,
       emptyLimitText: null,
-      pinnedRow: composePinnedRow(reading, state, whole, largestShown),
+      pinnedRow: composePinnedRow(reading, state, whole, largestShown, translate),
       sides: composeSides(reading, state),
     };
   }
@@ -1593,7 +1535,7 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
       };
 
   if (deep) {
-    const lists = composeDeepLists(reading, state, focusId);
+    const lists = composeDeepLists(reading, state, focusId, translate);
     return {
       ...shell,
       visibleRows: Math.max(getRowsNeeded(lists), getFloorRows(state.team)),
@@ -1640,7 +1582,7 @@ export function composePanelView(reading: PanelReading, state: PanelState): Pane
   const lists = [
     composeBreakdownList(OPPONENT_HEADINGS[state.metric], composeOpponentEntries(reading, state, focusId)),
     composeCrossSection("CZYM (UMIEJĘTNOŚCI)", composeSkillEntries(reading, state, focusId)),
-    composeCrossSection(SOURCE_HEADINGS[state.metric], composeSourceEntries(reading, state, focusId)),
+    composeCrossSection(SOURCE_HEADINGS[state.metric], composeSourceEntries(reading, state, focusId, translate)),
   ].filter((list): list is PanelList => list !== null);
 
   return {
