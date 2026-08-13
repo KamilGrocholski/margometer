@@ -771,7 +771,12 @@ src/
                          is refused, so the panel says its own short word instead.
     battle-session.ts    One fight accumulated payload by payload: `init` opens
                          it, the roster arrives in fragments that merge, and
-                         `myteam` arrives once or never. Counts the fights it has
+                         `myteam` arrives once or never. The fight is kept decoded
+                         against the roster it was read with, **by identity** —
+                         keyed on the roster's size instead, a fragment that
+                         corrected a name left every event already read attributed
+                         under the old one, and damage stated against that name
+                         reached nobody for the rest of the fight. Counts the fights it has
                          watched open, which is the only thing surviving the
                          reset — a warning is scoped to one fight (§9.6). Counts
                          what could not be read out of a payload too, by kind and

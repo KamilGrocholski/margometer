@@ -65,14 +65,25 @@ export type BattleSession = {
    * every few seconds, so the work is not wasted twice over — it is wasted in
    * front of somebody who is playing.
    *
-   * Kept **with the size of the roster it was read against**, because that is the
-   * one thing that can make an old reading wrong: the roster arrives in fragments,
-   * and damage stated against a name resolves to nobody until the fragment naming
-   * them lands. When it grows, everything is read again; while it does not, only
-   * what is new is.
+   * Kept **with the roster it was read against**, because that is the one thing
+   * that can make an old reading wrong: the roster arrives in fragments, and
+   * damage stated against a name resolves to nobody until the fragment naming
+   * them lands. When it changes, everything is read again; while it does not,
+   * only what is new is.
+   *
+   * ⚠️ **By identity, and it used to be by size.** A fragment can correct a
+   * combatant's *name* without changing how many there are — and then the
+   * append path ran, so every event already decoded kept the resolution it got
+   * under the old name. Measured: damage of 500 stated against a name the
+   * roster learnt one payload later reached nobody at all, permanently, while
+   * the roster on screen showed the corrected name. `composeMergedCombatants`
+   * returns the very list it was given when a fragment says nothing new
+   * (`engine-roster.ts`), so identity is exactly "did the roster change", and
+   * that contract is held there by a `toBe`. This is the same failure that
+   * function's own docblock records, surviving one level up.
    */
   events: readonly BattleEvent[];
-  decodedWithCombatants: number;
+  decodedCombatants: readonly RosteredCombatant[];
   /**
    * Payloads of this fight we no longer recognise, counted by what was wrong.
    *
@@ -120,7 +131,7 @@ export function composeEmptySession(): BattleSession {
     isFromFightStart: false,
     fightsStarted: 0,
     events: [],
-    decodedWithCombatants: 0,
+    decodedCombatants: [],
     unreadablePayloadsByFault: new Map(),
     lostMessages: 0,
     unreadableCombatants: 0,
@@ -162,7 +173,7 @@ function composeNextEvents(
   combatants: readonly RosteredCombatant[],
 ): readonly BattleEvent[] {
   const { roster } = composeBattleRoster(combatants, session.ourSide);
-  if (combatants.length !== session.decodedWithCombatants) {
+  if (combatants !== session.decodedCombatants) {
     return decodeFight([...session.messages, ...messages], roster);
   }
   if (messages.length === 0) return session.events;
@@ -244,7 +255,7 @@ export function composeNextSession(
     messages: [...previous.messages, ...messages],
     combatants,
     events: composeNextEvents(previous, messages, combatants),
-    decodedWithCombatants: combatants.length,
+    decodedCombatants: combatants,
     ...composeNextFaults(previous, reading),
     unreadableCombatants: previous.unreadableCombatants + fragment.unreadableEntries,
     lastMessage: messages[messages.length - 1] ?? previous.lastMessage,

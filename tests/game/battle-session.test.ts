@@ -293,6 +293,70 @@ describe("a fight read once rather than again and again", () => {
     expect(reading.statistics.byCombatantId.get(2)?.taken).toBe(250);
     expect(reading.statistics.unattributed.taken).toBe(0);
   });
+
+  /**
+   * ⚠️ **The same rule where the roster does not grow, which is where it was
+   * broken.** The test above covers a fragment that *adds* somebody; this one
+   * covers a fragment that *corrects* somebody, and the count is the same either
+   * side of it — so the cache, keyed on how many combatants there were, called it
+   * "nothing changed" and kept every event already decoded.
+   *
+   * Measured before the fix: 500 damage stated against a name the roster learnt
+   * one payload later reached nobody at all, for the rest of the fight, while the
+   * corrected name sat on screen in the roster. It is not a slow reading, it is a
+   * figure that never lands.
+   *
+   * This is the failure `engine-roster.ts` records in its own docblock, one level
+   * up: comparing counts instead of identity let a renamed combatant through.
+   */
+  test("and again when the roster corrects a name without changing its size", () => {
+    const named = "1=90.00;2=50.00;+oth_dmg=500,a,Odyniec(50.00%)";
+    const opening = {
+      init: 1,
+      myteam: 1,
+      w: {
+        1: { id: 1, name: "mag", team: 1, prof: "m", lvl: 100 },
+        2: { id: 2, name: "???", team: 2, prof: "w", lvl: 100 },
+      },
+    };
+    const corrected = { w: { 2: { id: 2, name: "Odyniec", team: 2, prof: "w", lvl: 100 } } };
+
+    let session = composeNextSession(composeEmptySession(), composeCleanReading(opening, [named]));
+    expect(composeFightReading(session).statistics.byCombatantId.get(2)?.taken).toBeUndefined();
+
+    session = composeNextSession(session, composeCleanReading(corrected, []));
+
+    expect(session.combatants.map((one) => one.name)).toEqual(["mag", "Odyniec"]);
+    expect(composeFightReading(session).statistics.byCombatantId.get(2)?.taken).toBe(500);
+  });
+
+  /**
+   * The other half of the same change, and the reason it is free: keying on
+   * identity rather than on size must not send the fight back through the decoder
+   * on every payload. `composeMergedCombatants` hands back the very list it was
+   * given when a fragment says nothing new, so a payload that adds only messages
+   * still takes the append path.
+   *
+   * Measured across the captures: identity and size call for the same **one**
+   * full reading per fight, so this costs nothing on real material.
+   */
+  test("but not when a fragment says nothing new about anybody", () => {
+    const roster = { w: { 1: { id: 1, name: "mag", team: 1, prof: "m", lvl: 100 } } };
+
+    let session = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading(roster, ["1=90.00;0;heal=10"]),
+    );
+    const readOnce = session.events;
+
+    // A payload that forces a new session — it could not be read — while saying
+    // nothing about the roster and carrying no messages. The events must be the
+    // very array from before, which is only true if the fight was not read again.
+    session = composeNextSession(session, getPayloadReading({ mm: ["a"], mi: [1] }));
+
+    expect(session.events).toBe(readOnce);
+    expect(session.decodedCombatants).toBe(session.combatants);
+  });
 });
 
 /**
