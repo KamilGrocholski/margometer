@@ -703,7 +703,15 @@ src/
                          and can never invent an alarm.
     engine-roster.ts     Who is fighting, read live, and — from `myteam` — which
                          side is the player's. The one thing `core` cannot know,
-                         decided here so no core type has to carry it.
+                         decided here so no core type has to carry it. Says how
+                         many entries named somebody and could not be read, which
+                         its own docblock had called the caller's business while
+                         no caller counted it. Only an entry naming somebody
+                         counts: the list is mostly health deltas, so counting
+                         every refusal would report a few hundred drops a fight
+                         and be noise rather than a warning. That the entries
+                         split cleanly into naming everybody and naming nobody is
+                         measured on the captures, not assumed.
     engine-attachment.ts Finds the battle object, which may not exist yet, wraps
                          it once and stops looking. The game does not replace it,
                          so this is a search and not a watch.

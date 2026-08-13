@@ -1,12 +1,14 @@
 import { describe, expect, test } from "bun:test";
+import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 import type { RosteredCombatant } from "@/src/core/combatant-roster.ts";
 import {
   composeBattleRoster,
-  composeCombatantsFromBattle,
+  composeRosterFragmentFromBattle,
   composeMergedCombatants,
   composeRosteredCombatant,
   getOurSideFromBattle,
 } from "@/src/game/engine-roster.ts";
+import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
 /**
  * The layer that decides which side is ours, held directly.
@@ -89,12 +91,19 @@ describe("the warriors a battle states", () => {
   };
 
   test("reads them keyed by id, taking the id from the entry", () => {
-    expect(composeCombatantsFromBattle(battle).map((one) => one.id)).toEqual([11, 22]);
+    const fragment = composeRosterFragmentFromBattle(battle);
+
+    expect(fragment.combatants.map((one) => one.id)).toEqual([11, 22]);
+    expect(fragment.unreadableEntries).toBe(0);
   });
 
   test("drops the unreadable ones and keeps the rest", () => {
     const mixed = { w: { a: { id: 1, team: 1, name: "one" }, b: { name: "no id" }, c: null } };
-    expect(composeCombatantsFromBattle(mixed).map((one) => one.name)).toEqual(["one"]);
+    const fragment = composeRosterFragmentFromBattle(mixed);
+
+    expect(fragment.combatants.map((one) => one.name)).toEqual(["one"]);
+    // `b` names somebody and cannot be read; `c` names nobody and is not a drop.
+    expect(fragment.unreadableEntries).toBe(1);
   });
 
   test.each([
@@ -102,7 +111,10 @@ describe("the warriors a battle states", () => {
     ["a battle with no warriors", {}],
     ["warriors that are not an object", { w: 5 }],
   ])("answers with an empty list for %s", (_what, value) => {
-    expect(composeCombatantsFromBattle(value)).toEqual([]);
+    expect(composeRosterFragmentFromBattle(value)).toEqual({
+      combatants: [],
+      unreadableEntries: 0,
+    });
   });
 });
 
@@ -182,5 +194,79 @@ describe("the roster core consumes", () => {
 
   test("keeps a side nobody stated as null rather than favouring one", () => {
     expect(composeBattleRoster([composeCombatant()], null).ourSide).toBeNull();
+  });
+});
+
+/**
+ * An entry that names somebody and cannot be read, against every payload the
+ * game has actually sent.
+ *
+ * ⚠️ **A dropped combatant does not merely go missing from a list.** Damage the
+ * protocol states against a name reaches a row only through the roster, so a
+ * combatant who drops out takes their name resolution with them and their
+ * figures land in the pile nobody can be charged with. Before this counter a
+ * renamed field did that in complete silence: the roster simply came back
+ * smaller, which is indistinguishable from a fragment that mentioned fewer
+ * people — and fragments do exactly that on nearly every call.
+ *
+ * The number that makes the counter safe is the second one below: the entries
+ * under `w` are overwhelmingly health deltas carrying an id and nothing else, so
+ * a counter of every refusal would report about 1 700 phantom drops per fight.
+ * What is counted is an entry that states one of the identity fields and still
+ * cannot be read, and the captures say that split is clean.
+ */
+describe("the captured roster fragments, read as the session reads them", () => {
+  const FRAGMENTS = CAPTURED_FIGHTS.flatMap((fight) =>
+    fight.dump.calls
+      .filter((call) => getRecordOrArrayFromValue(call.payload)?.["w"] !== undefined)
+      .map((call) => ({
+        fight: fight.name,
+        call: call.index,
+        entries: Object.values(
+          getRecordOrArrayFromValue(getRecordOrArrayFromValue(call.payload)?.["w"]) ?? {},
+        ),
+        fragment: composeRosterFragmentFromBattle(call.payload),
+      })),
+  );
+
+  test("there are fragments to read", () => {
+    expect(FRAGMENTS.length).toBeGreaterThan(0);
+  });
+
+  test("no entry that names somebody is one we cannot read", () => {
+    const unreadable = FRAGMENTS.filter(({ fragment }) => fragment.unreadableEntries > 0).map(
+      ({ fight, call, fragment }) => `${fight} call ${call}: ${fragment.unreadableEntries}`,
+    );
+
+    expect(unreadable).toEqual([]);
+  });
+
+  /**
+   * The split this counter's definition rests on, re-measured rather than
+   * remembered: every entry states all of the identity fields or none of them.
+   * If the game ever sends a partial one, this goes red and the definition needs
+   * deciding again — which is the point of measuring it here instead of writing
+   * the finding into a comment and moving on.
+   */
+  test("an entry names everybody or nobody, never somebody in part", () => {
+    const IDENTITY = ["name", "team", "prof", "lvl"];
+    const partial: string[] = [];
+    let naming = 0;
+    let silent = 0;
+
+    for (const { fight, call, entries } of FRAGMENTS) {
+      for (const entry of entries) {
+        const record = getRecordOrArrayFromValue(entry);
+        const stated = record === null ? [] : IDENTITY.filter((key) => record[key] !== undefined);
+        if (stated.length === IDENTITY.length) naming += 1;
+        else if (stated.length === 0) silent += 1;
+        else partial.push(`${fight} call ${call}: ${stated.join(",")}`);
+      }
+    }
+
+    expect(partial).toEqual([]);
+    expect(naming).toBeGreaterThan(0);
+    // The reason a counter of every refusal would be noise rather than a warning.
+    expect(silent).toBeGreaterThan(naming);
   });
 });

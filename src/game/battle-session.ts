@@ -27,8 +27,8 @@ import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-s
 import type { PayloadFault, PayloadReading } from "@/src/game/engine-battle-wrap.ts";
 import {
   composeBattleRoster,
-  composeCombatantsFromBattle,
   composeMergedCombatants,
+  composeRosterFragmentFromBattle,
   getOurSideFromBattle,
 } from "@/src/game/engine-roster.ts";
 
@@ -92,6 +92,16 @@ export type BattleSession = {
    */
   lostMessages: number;
   /**
+   * Entries of this fight that named a combatant we could not read.
+   *
+   * Its consequence is already on screen in two places and neither says why: a
+   * combatant nobody could place shows as an id and lands in the `+N` beside the
+   * fight's size, and damage stated against their name reaches nobody and swells
+   * the row for what cannot be charged to anyone. This is the reading that turns
+   * both into something a person can act on.
+   */
+  unreadableCombatants: number;
+  /**
    * The last message already decoded.
    *
    * The glue reaches exactly one message forward (`AnnouncedSkill`), so a message
@@ -113,6 +123,7 @@ export function composeEmptySession(): BattleSession {
     decodedWithCombatants: 0,
     unreadablePayloadsByFault: new Map(),
     lostMessages: 0,
+    unreadableCombatants: 0,
     lastMessage: null,
   };
 }
@@ -196,10 +207,8 @@ export function composeNextSession(
   const previous = starting ? composeEmptySession() : session;
 
   const stated = getOurSideFromBattle(payload);
-  const combatants = composeMergedCombatants(
-    previous.combatants,
-    composeCombatantsFromBattle(payload),
-  );
+  const fragment = composeRosterFragmentFromBattle(payload);
+  const combatants = composeMergedCombatants(previous.combatants, fragment.combatants);
 
   /**
    * A payload that changed nothing gives back the session it was handed.
@@ -225,6 +234,7 @@ export function composeNextSession(
   const changedNothing =
     !starting &&
     reading.fault === null &&
+    fragment.unreadableEntries === 0 &&
     messages.length === 0 &&
     combatants === previous.combatants &&
     (stated ?? previous.ourSide) === previous.ourSide;
@@ -236,6 +246,7 @@ export function composeNextSession(
     events: composeNextEvents(previous, messages, combatants),
     decodedWithCombatants: combatants.length,
     ...composeNextFaults(previous, reading),
+    unreadableCombatants: previous.unreadableCombatants + fragment.unreadableEntries,
     lastMessage: messages[messages.length - 1] ?? previous.lastMessage,
     // Kept once seen: it arrives on the opening payload only, so a later
     // fragment saying nothing about it must not erase it.

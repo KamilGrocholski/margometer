@@ -39,7 +39,20 @@ export type BattleRoster = {
  *
  * A combatant without an id cannot be joined to anything the protocol says, and
  * one without a side cannot be grouped — so a partial entry is dropped rather
- * than filled in. The count of what was dropped is the caller's business.
+ * than filled in. The count of what was dropped is the caller's business, and
+ * `composeRosterFragmentFromBattle` is the caller that keeps it; for the life of
+ * this file that sentence said the same thing and nobody counted anything.
+ *
+ * ⚠️ **The side is read as a number and not as text, unlike `isFightStart`.**
+ * That asymmetry is deliberate and was undocumented until it was worth stating:
+ * `init` is read from both spellings because the captures state `"1"` and the
+ * client compares with `==`, so mirroring its looseness is a reading of measured
+ * behaviour. Here the opposite is measured — `id`, `team` and `lvl` arrive as
+ * numbers in 1 794 of 1 794 captured entries — so accepting text would be
+ * widening a reader past its evidence. What was actually wrong is that a
+ * `team: "1"` vanished in silence; it is still refused, and now it is counted, so
+ * the day the game changes its mind the counter is the evidence that makes
+ * loosening this a decision rather than a guess.
  */
 export function composeRosteredCombatant(value: unknown): RosteredCombatant | null {
   const warrior = getRecordOrArrayFromValue(value);
@@ -59,23 +72,62 @@ export function composeRosteredCombatant(value: unknown): RosteredCombatant | nu
 }
 
 /**
+ * The fields an entry states when it is describing a person rather than a change
+ * to one.
+ *
+ * ⚠️ **This is what makes "unreadable" a sound thing to count.** Nearly every
+ * entry under `w` is refused, and almost all of those refusals are correct: the
+ * list is a delta, so most entries carry an id and a health figure and nothing
+ * else. Measured over the 8 captures — 1 794 entries in 389 payloads — **63
+ * state all four of these, 1 731 state none, and none states some**. That the
+ * split is perfectly bimodal is the whole licence for this definition; a counter
+ * that counted every refusal would report ~1 700 phantom drops per fight, and a
+ * warning that is wrong 1 731 times out of 1 794 is one nobody will read twice.
+ */
+const IDENTITY_FIELDS = ["name", "team", "prof", "lvl"] as const;
+
+/** Whether the entry is describing somebody, and so ought to be readable. */
+function hasStatedCombatant(value: unknown): boolean {
+  const entry = getRecordOrArrayFromValue(value);
+  if (entry === null) return false;
+  return IDENTITY_FIELDS.some((field) => entry[field] !== undefined);
+}
+
+export type RosterFragment = {
+  combatants: RosteredCombatant[];
+  /**
+   * Entries that named somebody and still could not be read.
+   *
+   * Zero in all 1 794 captured entries, which is the point: the day the game
+   * renames one of the fields a row needs, this stops being zero instead of the
+   * roster quietly getting smaller. A combatant who drops out does not merely go
+   * missing from the list — damage stated against their name resolves to nobody
+   * and lands in the pile the panel cannot charge anyone with, so a silent drop
+   * moves real figures rather than only hiding a name.
+   */
+  unreadableEntries: number;
+};
+
+/**
  * The warriors a battle payload or a battle object states, under `w`.
  *
  * The game keys them by id, so this reads values rather than assuming an array —
  * and reads the id from the entry itself rather than from the key, because the
  * entry is what the rest of the client uses.
  */
-export function composeCombatantsFromBattle(battle: unknown): RosteredCombatant[] {
+export function composeRosterFragmentFromBattle(battle: unknown): RosterFragment {
   const record = getRecordOrArrayFromValue(battle);
   const warriors = getRecordOrArrayFromValue(record?.["w"]);
-  if (warriors === null) return [];
+  if (warriors === null) return { combatants: [], unreadableEntries: 0 };
 
   const combatants: RosteredCombatant[] = [];
+  let unreadableEntries = 0;
   for (const value of Object.values(warriors)) {
     const combatant = composeRosteredCombatant(value);
     if (combatant !== null) combatants.push(combatant);
+    else if (hasStatedCombatant(value)) unreadableEntries += 1;
   }
-  return combatants;
+  return { combatants, unreadableEntries };
 }
 
 /** The player's own side, as the game states it, or null when it does not. */

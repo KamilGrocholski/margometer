@@ -354,6 +354,31 @@ describe("a payload that carried nothing", () => {
     expect(faulty.unreadablePayloadsByFault.get("messages-lost")).toBe(1);
     expect(faulty.lostMessages).toBe(1);
   });
+
+  /**
+   * ⚠️ **The same trap one field over, and it was open.** An entry naming
+   * somebody we cannot read adds no combatant, so the merged roster comes back by
+   * identity and the payload looks like one that changed nothing — the count
+   * would land in a session the caller never draws. Written because removing the
+   * clause that prevents it broke no test at all (§7.5): the reasoning had been
+   * copied from the fault above and the guard had not.
+   */
+  test("and not when an entry named somebody we could not read", () => {
+    const opened = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: 1, w: { 1: combatant } }, []),
+    );
+    // Names somebody, states no side, so it is refused — and it is the only
+    // thing in the payload, so nothing else can force a new session.
+    const unreadable = composeNextSession(
+      opened,
+      composeCleanReading({ w: { 2: { id: 2, name: "ktoś jeszcze", prof: "m", lvl: 100 } } }, []),
+    );
+
+    expect(unreadable).not.toBe(opened);
+    expect(unreadable.unreadableCombatants).toBe(1);
+    expect(unreadable.combatants).toEqual(opened.combatants);
+  });
 });
 
 describe("what this fight could not be read out of", () => {
