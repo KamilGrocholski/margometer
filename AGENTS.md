@@ -283,6 +283,24 @@ Rules that arrived this way, each paid for once:
 - `[ALWAYS] [process]` **A mutation that lights nothing is a finding.** Either
   the test is missing or the code is inert. Twice here it was the second, and
   both times the answer was to delete something rather than to add a test.
+- `[ALWAYS] [any]` **Test the boundary from both sides, and zero is the boundary.**
+  Paid for in three consecutive rounds, in three different layers, and every time
+  it was the same shape: a comparison against `0` that no test stood either side
+  of. `landed > 0`, `amount >= 0`, `amount < 0`, `statedCount > 0`,
+  `lostMessages: 0` — thirteen surviving mutants between them, and not one
+  changed a total on the captured material.
+
+  That is exactly why it keeps happening: **zero is the neutral element of every
+  sum here**, so getting the edge wrong moves no figure and changes what a figure
+  *means*. A blow that landed nothing becomes a blow that never reached anybody;
+  healing of nothing becomes a wound; a count of nothing becomes a message lost.
+  §9.6 spends a paragraph keeping "measured nothing" apart from "could not be
+  read", and this comparison is where the two touch.
+
+  So: a test at `0` needs one at `1` beside it, and one below where the type
+  allows it. A case sitting well clear of the edge holds one side of it — written
+  as `30`, the smallest blow the game can report went missing from the drill and
+  the suite stayed green.
 - `[ALWAYS] [any]` **A test that parses somebody else's output holds a transcript
   of it, never a sample somebody typed.** Paid for twice, and the second time
   expensively. `tools/mutation-sweep.ts` looked for `(fail)` in what `bun test`

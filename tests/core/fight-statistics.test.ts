@@ -31,6 +31,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
@@ -574,5 +575,103 @@ describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
         );
       }
     }
+  });
+});
+
+/**
+ * The four edges `bun tools/mutation-sweep.ts` found nothing holding.
+ *
+ * ⚠️ **Three of the four are the number zero**, which is the third round running
+ * that this boundary has turned out to be the untested one. It is not an
+ * accident of where tests were written: zero is the neutral element of every sum
+ * here, so an off-by-one at that edge changes no total on real material and
+ * changes the *meaning* of every figure that sits on the boundary. §9.6 spends a
+ * paragraph on keeping "measured nothing" apart from "could not be read", and
+ * this is where the two touch.
+ */
+describe("the edges of the aggregate", () => {
+  const roster = composeCombatantRoster([
+    { id: 1, name: "mag", side: 1, profession: "m", level: 100 },
+    { id: 2, name: "coś dużego", side: 2, profession: null, level: null },
+  ]);
+
+  /**
+   * Kills `landed > 0` → `>= 0` and → `> 1`. A blow that reached the target and
+   * did nothing must not open a per-target entry under the skill: the drill lists
+   * *whom this skill hit*, and an entry of zero says it hit somebody for nothing
+   * rather than that it never reached them at all.
+   */
+  test("a blow that landed nothing opens no entry under the skill that threw it", () => {
+    const statistics = composeFightStatistics(
+      decodeFight(
+        ["1=90.00;2=50.00;tspell=Kula ognia;skillId=7", "1=90.00;2=50.00;+dmg=0;-dmg=0"],
+        roster,
+      ),
+      roster,
+    );
+    const skill = [...assertDefined(statistics.byCombatantId.get(1), "the mage has a row").skills][0];
+
+    expect(assertDefined(skill, "the skill was announced")[1].dealtApplied).toBe(0);
+    expect([...assertDefined(skill, "the skill was announced")[1].dealtByTargetId]).toEqual([]);
+  });
+
+  /**
+   * One, and not a comfortable number: the boundary has two sides and a test
+   * sitting well clear of it only holds one. Written as `30` first, which left
+   * `landed > 0` → `> 1` alive — the smallest blow the game can report would
+   * have gone missing from the drill and nothing would have said so.
+   */
+  test("while the smallest blow there is does", () => {
+    const statistics = composeFightStatistics(
+      decodeFight(
+        ["1=90.00;2=50.00;tspell=Kula ognia;skillId=7", "1=90.00;2=50.00;+dmg=1;-dmg=1"],
+        roster,
+      ),
+      roster,
+    );
+    const skill = [...assertDefined(statistics.byCombatantId.get(1), "the mage has a row").skills][0];
+
+    expect([...assertDefined(skill, "the skill was announced")[1].dealtByTargetId]).toEqual([[2, 1]]);
+  });
+
+  /**
+   * Kills `event.amount >= 0` → `> 0` and → `>= 1`. Health that moved by zero is
+   * healing that measured nothing, and it belongs on the healed side of the row.
+   * Sent the other way it becomes health *lost*, so a figure of nothing turns
+   * into a wound nobody took.
+   */
+  test("health that moved by zero is healing of nothing, not damage of nothing", () => {
+    const statistics = composeFightStatistics(decodeFight(["1=90.00;0;heal=0"], roster), roster);
+    const row = assertDefined(statistics.byCombatantId.get(1), "the mage has a row");
+
+    expect(row.healed).toBe(0);
+    expect(row.healthLost).toBe(0);
+    expect([...row.healedBySource]).toEqual([["heal", 0]]);
+    expect([...row.healthLostBySource]).toEqual([]);
+  });
+
+  /** Kills `event.result === "won"` → `!==`, which swaps both sides of the fight. */
+  test("who won and who lost are not the same list", () => {
+    const statistics = composeFightStatistics(
+      decodeFight(["0;0;winner=mag", "0;0;loser=coś dużego"], roster),
+      roster,
+    );
+
+    expect(statistics.outcome).toEqual({ wonNames: ["mag"], lostNames: ["coś dużego"] });
+  });
+
+  /**
+   * Kills the `1` in `setRunningTotal(messagesByReason, event.reason, 1)`. The
+   * count is of messages, so each one adds itself once — a two counts every
+   * unreadable message twice and reports a fight as twice as unreadable as it is.
+   */
+  test("an unreadable message counts once, however many share its reason", () => {
+    const statistics = composeFightStatistics(
+      decodeFight(["0;0;no_such_key=1", "0;0;no_such_key=2", "0;0;other_key=3"]),
+    );
+
+    expect(statistics.reading.unreadableMessages).toBe(3);
+    expect([...statistics.reading.messagesByReason.values()]).toEqual([2, 1]);
+    expect(statistics.reading.occurrencesByUnreadKey.get("no_such_key")).toBe(2);
   });
 });

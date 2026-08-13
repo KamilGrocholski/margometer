@@ -107,6 +107,84 @@ describe("damage stated against a name, with a roster to resolve it", () => {
 });
 
 /**
+ * Healing stated against a name, at the edges nothing had reached.
+ *
+ * ⚠️ **Every one of these came out of `bun tools/mutation-sweep.ts`.** The rules
+ * were right and untested, and two of them guard the boundary this project keeps
+ * paying for: a figure of **zero** is a measurement, and refusing it turns "the
+ * game said nothing happened" into "we could not read it".
+ */
+describe("healing stated against a name, at its edges", () => {
+  const composeMessage = (value: string): string => `1=100.00;2=50.00;legbon_lastheal=${value}`;
+
+  test("a heal of zero is a heal that happened and measured nothing", () => {
+    // Kills `amount < 0` → `<= 0` and → `< 1`. A skill that fired and restored
+    // nothing is a real outcome; dropping it would take the event away entirely
+    // and leave the panel with no sign the skill was ever used.
+    const [event] = decodeFight([composeMessage("0,Odyniec(50.00%)")]);
+
+    expect(event).toMatchObject({ kind: "healing-to-named-combatant", amount: 0 });
+  });
+
+  test("a heal that took health away is this reader misunderstanding its key", () => {
+    expect(decodeFight([composeMessage("-40,Odyniec(50.00%)")])[0]).toMatchObject({
+      kind: "unknown-message",
+    });
+  });
+
+  /**
+   * Kills `rawPercent !== undefined` → `===`. With that flipped, a name carrying
+   * **no** percentage is refused — and the percentage is the optional half. The
+   * material always states it, so nothing here would have noticed the day a
+   * message arrived without one.
+   */
+  test("a name with no percentage beside it is still a name", () => {
+    const [event] = decodeFight([composeMessage("120,Odyniec")]);
+
+    expect(event).toMatchObject({
+      kind: "healing-to-named-combatant",
+      targetName: "Odyniec",
+      targetHealthPercent: null,
+      amount: 120,
+    });
+  });
+
+  test("but a percentage that is not a number is not a name we can trust", () => {
+    expect(decodeFight([composeMessage("120,Odyniec(nonsense%)")])[0]).toMatchObject({
+      targetName: "Odyniec(nonsense%)",
+    });
+  });
+});
+
+/**
+ * ⚠️ **A key whose value is blank is not a key we read.** `shout` names a
+ * combatant, so an empty one would travel on as somebody nobody can find — the
+ * same fault as a blank skill name, and the reason both are refused rather than
+ * carried. Kills `value === null || value === ""` → `&&`, which let the empty
+ * string through as a declaration.
+ */
+describe("a key that arrived with nothing in it", () => {
+  // `shout` says nothing on its own — it rides a skill announcement, the way
+  // `skillId` does. So the pair is what both cases are built from.
+  const composeMessage = (shout: string): string => `1=100.00;0;tspell=Okrzyk;shout=${shout}`;
+
+  test("a blank shout is named as unread rather than carried as a name", () => {
+    const events = decodeFight([composeMessage("")]);
+
+    expect(events).toMatchObject([
+      { kind: "skill-used", declared: [] },
+      { kind: "unknown-message", unreadKeys: ["shout"] },
+    ]);
+  });
+
+  test("while a shout with a name in it rides the announcement", () => {
+    expect(decodeFight([composeMessage("Odyniec")])).toMatchObject([
+      { kind: "skill-used", declared: [{ effect: "shout", text: "Odyniec" }] },
+    ]);
+  });
+});
+
+/**
  * The same, over the material rather than over one written-out message: no
  * element the captures produce may carry whitespace, because a label is all a
  * reader has to tell two of them apart.
