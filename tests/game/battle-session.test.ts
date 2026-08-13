@@ -427,6 +427,30 @@ describe("what this fight could not be read out of", () => {
     expect(session.fightsStarted).toBe(2);
   });
 
+  /**
+   * ⚠️ **The join between the counting and the saying, which nothing held.**
+   * Replacing all three counts in `composeFightReading` with fresh zeroes broke
+   * no test: the session counted correctly, the panel drew correctly whatever it
+   * was handed, and the one line joining them could hand over nothing at all
+   * without a word from the gate. That is the shape of every silence this round
+   * has removed — a value declared, passed as a constant, and indistinguishable
+   * from the real one at both ends.
+   */
+  test("and the reading a panel is handed carries them, rather than fresh zeroes", () => {
+    let session = composeNextSession(composeEmptySession(), composeCleanReading({ init: 1 }, []));
+    session = composeNextSession(session, getPayloadReading({ mm: ["a", "b"], mi: [1, 2] }));
+    session = composeNextSession(
+      session,
+      composeCleanReading({ w: { 2: { id: 2, name: "ktoś", prof: "m", lvl: 100 } } }, []),
+    );
+
+    expect(composeFightReading(session).engineReading).toEqual({
+      unreadablePayloadsByFault: new Map([["messages-lost", 1]]),
+      lostMessages: 2,
+      unreadableCombatants: 1,
+    });
+  });
+
   test("a fight that opens on a payload we could not read still opens", () => {
     // The fault must not cost the fight boundary: `init` is the only one the
     // protocol gives, and losing it would merge two fights into one total.

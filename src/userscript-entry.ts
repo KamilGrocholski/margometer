@@ -517,6 +517,8 @@ export function composePanelMount(
   let latest: FightReading | null = null;
   let failuresThisFight = 0;
   let fightBeingCounted = 0;
+  /** Per fight, like the counter above and cleared on the same boundary. */
+  let engineGapsSaid = false;
 
   /**
    * Where a gesture becomes a state.
@@ -563,11 +565,40 @@ export function composePanelMount(
       }
       failuresThisFight = 0;
       fightBeingCounted = reading.fightsStarted;
+      engineGapsSaid = false;
+    }
+
+    /**
+     * Once per fight, on the payload that first has something to say.
+     *
+     * The panel states this to the player in their own words; the console states
+     * it in ours, with the fault names, because that is the pair somebody needs
+     * to report it. Not per payload — a fight redraws every few seconds and the
+     * counts only grow, so a repeat would say the same thing louder (§9.6).
+     */
+    if (!engineGapsSaid && hasEngineGaps(reading.engineReading)) {
+      engineGapsSaid = true;
+      warn("MargoMeter/EngineReading", {
+        unreadablePayloadsByFault: Object.fromEntries(
+          reading.engineReading.unreadablePayloadsByFault,
+        ),
+        lostMessages: reading.engineReading.lostMessages,
+        unreadableCombatants: reading.engineReading.unreadableCombatants,
+      });
     }
 
     latest = reading;
     renderLatest();
   };
+}
+
+/** Whether the engine layer has anything to report about this fight. */
+function hasEngineGaps(gaps: FightReading["engineReading"]): boolean {
+  return (
+    gaps.unreadablePayloadsByFault.size > 0 ||
+    gaps.lostMessages > 0 ||
+    gaps.unreadableCombatants > 0
+  );
 }
 
 /**
@@ -627,6 +658,17 @@ export function composeReportText(page: HostPage, reading: FightReading | null):
               ]),
             ),
             unattributed: composeReportRow(reading.statistics.unattributed),
+            // Beside `reading` and not inside it: one says what never reached the
+            // decoder, the other what the decoder could not make sense of, and a
+            // report that merged them would lose the difference that decides
+            // which of the two somebody has to go and look at.
+            engineReading: {
+              unreadablePayloadsByFault: Object.fromEntries(
+                reading.engineReading.unreadablePayloadsByFault,
+              ),
+              lostMessages: reading.engineReading.lostMessages,
+              unreadableCombatants: reading.engineReading.unreadableCombatants,
+            },
             reading: {
               unreadableMessages: reading.statistics.reading.unreadableMessages,
               messagesByReason: Object.fromEntries(reading.statistics.reading.messagesByReason),

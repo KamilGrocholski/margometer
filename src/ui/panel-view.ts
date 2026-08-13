@@ -55,6 +55,27 @@ export type PanelReading = {
   /** Which side is the watcher's own, when the game said. Never guessed. */
   ourSide: number | null;
   isFromFightStart: boolean;
+  /**
+   * What the game handed over that never became part of the fight.
+   *
+   * Declared here rather than imported, the same way `ourSide` and
+   * `isFromFightStart` are: the shape is `game`'s to produce and this file must
+   * not learn that a game engine exists (§9.1). Structural typing is what lets
+   * both be true.
+   *
+   * **Optional here and required there.** A caller with no engine — the offline
+   * tools, every test in this file — truthfully has nothing to say about it, and
+   * saying nothing is not the same as saying zero. The producer cannot leave it
+   * out, which is where forgetting it would matter.
+   */
+  engineReading?:
+    | {
+        /** Keyed by what was wrong; the keys are `game`'s vocabulary, not ours. */
+        unreadablePayloadsByFault: ReadonlyMap<string, number>;
+        lostMessages: number;
+        unreadableCombatants: number;
+      }
+    | undefined;
 };
 
 export const PANEL_METRICS = ["dealt", "taken", "healingGiven", "healed"] as const;
@@ -1290,6 +1311,37 @@ function composeWarnings(reading: PanelReading): string[] {
 
   if (!reading.isFromFightStart) {
     warnings.push("Panel wpiął się w trakcie tej walki — to nie są jej pełne liczby.");
+  }
+
+  /**
+   * Ahead of everything below, because these two say the material never arrived.
+   *
+   * The lines further down qualify a fight that *was* read: a heal without a
+   * figure, a message carrying a key we have no meaning for. These say that part
+   * of the fight never reached the reader at all, which is a larger claim and a
+   * different repair. Neither carries a key of the game's or a word of ours — a
+   * player is told what cannot be known, not why our reader cannot know it (§3).
+   */
+  const engine = reading.engineReading;
+  if (engine !== undefined) {
+    const unreadablePayloads = [...engine.unreadablePayloadsByFault.values()].reduce(
+      (sum, count) => sum + count,
+      0,
+    );
+    if (engine.lostMessages > 0) {
+      warnings.push(
+        `Nie dotarło ${composeFigureText(engine.lostMessages)} ${engine.lostMessages === 1 ? "zdarzenie" : "zdarzeń"} z tej walki — liczby są zaniżone.`,
+      );
+    } else if (unreadablePayloads > 0) {
+      // Something was lost and nothing said how much, so the sentence carries no
+      // figure rather than carrying a zero (§9.6: unknown and zero stay apart).
+      warnings.push("Część tej walki nie dotarła do panelu — liczby są zaniżone.");
+    }
+    if (engine.unreadableCombatants > 0) {
+      warnings.push(
+        `Nie dało się odczytać ${composeFigureText(engine.unreadableCombatants)} ${engine.unreadableCombatants === 1 ? "postaci" : "postaci"} ze składu — część liczb może trafić nie do tej osoby.`,
+      );
+    }
   }
 
   // The certain one before the maybe: this says healing *is* short, by an amount

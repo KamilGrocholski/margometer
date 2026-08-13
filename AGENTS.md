@@ -645,7 +645,10 @@ src/
                          value and not a literal at the call, because the literal
                          was missing an option for the life of the project and
                          nothing could see it — the guard reads the names off the
-                         type. Also the only file that reaches
+                         type. Says once per fight, in our own vocabulary and with
+                         the fault names, what the panel says to the player in
+                         theirs — the pair somebody needs to report it. Also the
+                         only file that reaches
                          storage, which it does for one thing: where the panel was
                          last dragged to. A browser that refuses storage costs the
                          position and nothing else.
@@ -811,7 +814,15 @@ src/
                          captures swept so that last rung is never what a player
                          actually meets. Takes its own input type and its own
                          function type for that naming, so `ui` names no
-                         direction to `game`. Says how
+                         direction to `game` — including what the engine layer
+                         could not read, declared structurally here and optional,
+                         because a caller with no engine truthfully has nothing to
+                         say about it and nothing to say is not zero. That gap is
+                         said **above** everything the decoder qualifies: those
+                         lines suspect a total, these state that the material
+                         never arrived, and where nothing counted how much the
+                         sentence loses its figure rather than gaining a nought.
+                         Says how
                          many bars the list asks for and which screen it is —
                          a floor the ranking keeps and a breakdown only grows past,
                          and an identity nothing draws, so a redraw can be told

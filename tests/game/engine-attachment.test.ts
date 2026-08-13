@@ -15,7 +15,7 @@ import { getValueFromJsonText } from "@/libs/json.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fight-statistics.ts";
-import type { FightReading } from "@/src/game/battle-session.ts";
+import type { EngineReadingGaps, FightReading } from "@/src/game/battle-session.ts";
 import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-attachment.ts";
 import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
@@ -46,6 +46,20 @@ import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
 } from "@/tests/captured-fight-catalog.ts";
+
+/**
+ * A fight the engine layer handed over whole.
+ *
+ * Every reading built by hand in this file is one where nothing was lost, and
+ * saying so is not boilerplate: `FightReading.engineReading` is required exactly
+ * so that a producer cannot leave it out, and a test that quietly omitted it
+ * would be the only producer allowed to.
+ */
+const NOTHING_LOST: EngineReadingGaps = {
+  unreadablePayloadsByFault: new Map(),
+  lostMessages: 0,
+  unreadableCombatants: 0,
+};
 
 /** A clock the test winds by hand. */
 function composeClock() {
@@ -435,6 +449,7 @@ describe("what a failing panel puts on the console", () => {
       ourSide: 1,
       isFromFightStart: true,
       fightsStarted,
+      engineReading: NOTHING_LOST,
     };
   }
 
@@ -505,6 +520,87 @@ describe("what a failing panel puts on the console", () => {
     render?.(composeReadingOfFight(2));
     expect(said).toEqual([]);
   });
+
+  /**
+   * The console's half of what the panel says in Polish.
+   *
+   * The panel tells the player that part of the fight is missing; this tells
+   * whoever they report it to *which* part, in our own vocabulary, with the fault
+   * names. It obeys the same rule as the section failures beside it — a fight
+   * redraws every few seconds and these counts only ever grow, so a repeat would
+   * say the same thing louder rather than saying more (§9.6).
+   */
+  describe("a fight that did not all arrive", () => {
+    const composePage = () => {
+      const composeNode = (): Record<string, unknown> => ({
+        className: "",
+        textContent: "",
+        title: "",
+        style: { setProperty: (): void => {} },
+        append: (): void => {},
+        replaceChildren: (): void => {},
+        addEventListener: (): void => {},
+        attachShadow: (): unknown => composeNode(),
+      });
+      return {
+        document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
+      };
+    };
+
+    const composeReadingWithGaps = (fightsStarted: number, lostMessages: number): FightReading => ({
+      ...composeReadingOfFight(fightsStarted),
+      engineReading: {
+        unreadablePayloadsByFault: new Map([["messages-lost", 1]]),
+        lostMessages,
+        unreadableCombatants: 0,
+      },
+    });
+
+    test("is said once, however many times it redraws", () => {
+      const said: unknown[][] = [];
+      const render = composePanelMount(composePage(), (brand, detail) => said.push([brand, detail]));
+
+      const reading = composeReadingWithGaps(1, 3);
+      for (let redraws = 0; redraws < 20; redraws += 1) render?.(reading);
+
+      expect(said.map(([brand]) => brand)).toEqual(["MargoMeter/EngineReading"]);
+    });
+
+    test("and again for the next fight, because the counts start over", () => {
+      const said: unknown[][] = [];
+      const render = composePanelMount(composePage(), (brand, detail) => said.push([brand, detail]));
+
+      render?.(composeReadingWithGaps(1, 3));
+      render?.(composeReadingWithGaps(2, 1));
+
+      expect(said.map(([brand]) => brand)).toEqual([
+        "MargoMeter/EngineReading",
+        "MargoMeter/EngineReading",
+      ]);
+    });
+
+    test("a fight that arrived whole says nothing", () => {
+      const said: unknown[][] = [];
+      const render = composePanelMount(composePage(), (brand, detail) => said.push([brand, detail]));
+
+      render?.(composeReadingOfFight(1));
+
+      expect(said).toEqual([]);
+    });
+
+    test("what it says carries the counts a reporter would need", () => {
+      const said: unknown[][] = [];
+      const render = composePanelMount(composePage(), (brand, detail) => said.push([brand, detail]));
+
+      render?.(composeReadingWithGaps(1, 3));
+
+      expect(said[0]?.[1]).toEqual({
+        unreadablePayloadsByFault: { "messages-lost": 1 },
+        lostMessages: 3,
+        unreadableCombatants: 0,
+      });
+    });
+  });
 });
 
 /**
@@ -562,6 +658,7 @@ describe("the panel asking the running client for a name", () => {
       ourSide: 1,
       isFromFightStart: true,
       fightsStarted: 1,
+      engineReading: NOTHING_LOST,
     };
   }
 
@@ -951,6 +1048,7 @@ describe("what a click does to the drill", () => {
       ourSide: null,
       isFromFightStart: true,
       fightsStarted: 1,
+      engineReading: NOTHING_LOST,
     };
   }
 
@@ -1113,6 +1211,7 @@ describe("the report a reader copies", () => {
       ourSide: null,
       isFromFightStart: true,
       fightsStarted: 1,
+      engineReading: NOTHING_LOST,
     };
   }
 

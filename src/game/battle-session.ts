@@ -273,6 +273,27 @@ export type FightReading = {
   isFromFightStart: boolean;
   /** Changes when a new fight opens, so a warning can be scoped to one (§9.6). */
   fightsStarted: number;
+  /**
+   * What never reached the decoder, as against what the decoder could not read.
+   *
+   * ⚠️ **Two different sentences, and the panel has to say both.** `statistics.
+   * reading` holds messages that arrived and carried a key we have no meaning
+   * for. This holds messages and combatants that never arrived at all, because
+   * the shape they travel in stopped being one we recognise. A total can be too
+   * low for either reason and the fixes are not the same.
+   *
+   * Required rather than optional: this is where the producer is, and an optional
+   * field is the shape the last two silences had — something declared, never
+   * passed, and indistinguishable from something deliberately left out.
+   */
+  engineReading: EngineReadingGaps;
+};
+
+/** What the game handed over that this layer could not turn into a fight. */
+export type EngineReadingGaps = {
+  unreadablePayloadsByFault: ReadonlyMap<PayloadFault, number>;
+  lostMessages: number;
+  unreadableCombatants: number;
 };
 
 /**
@@ -291,5 +312,10 @@ export function composeFightReading(session: BattleSession): FightReading {
     ourSide: session.ourSide,
     isFromFightStart: session.isFromFightStart,
     fightsStarted: session.fightsStarted,
+    engineReading: {
+      unreadablePayloadsByFault: session.unreadablePayloadsByFault,
+      lostMessages: session.lostMessages,
+      unreadableCombatants: session.unreadableCombatants,
+    },
   };
 }

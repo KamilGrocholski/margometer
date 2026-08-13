@@ -684,7 +684,24 @@ describe("the words a player reads", () => {
   test("carry no word from the code and no key from the game", () => {
     const strings: string[] = [];
 
-    for (const reading of [composeReading()]) {
+    // The second is a fight that did not all arrive. Its sentences exist only
+    // when there is something to say, so a sweep over a clean reading alone would
+    // never see them — which is how a warning comes to name a field of the game's
+    // in front of a player.
+    const readings = [
+      composeReading(),
+      composeReading({
+        engineReading: {
+          unreadablePayloadsByFault: new Map([
+            ["messages-lost", 2],
+            ["payload-not-a-record", 1],
+          ]),
+          lostMessages: 5,
+          unreadableCombatants: 1,
+        },
+      }),
+    ];
+    for (const reading of readings) {
       for (const metric of PANEL_METRICS) {
         for (const team of PANEL_TEAMS) {
           {
@@ -727,6 +744,103 @@ describe("the words a player reads", () => {
 
     expect(view.warnings.some((warning) => warning.includes("Nie dało się odczytać"))).toBe(true);
     expect(view.warnings.join(" ")).not.toContain("nonsense_key");
+  });
+});
+
+/**
+ * A fight that never fully arrived, as against one that arrived and could not be
+ * read.
+ *
+ * ⚠️ **Two claims a player must be able to tell apart.** "A message carried
+ * something we have no meaning for" is a suspicion about a total. "Part of this
+ * fight never reached the panel" is a certainty about one, and the repairs are
+ * different. The panel had a sentence for the first and none for the second,
+ * because until now the second could not be observed at all — a renamed field
+ * simply produced a quiet zero.
+ */
+describe("a fight that did not all arrive", () => {
+  const composeGaps = (
+    gaps: Partial<NonNullable<PanelReading["engineReading"]>> = {},
+  ): NonNullable<PanelReading["engineReading"]> => ({
+    unreadablePayloadsByFault: new Map(),
+    lostMessages: 0,
+    unreadableCombatants: 0,
+    ...gaps,
+  });
+
+  const getWarnings = (gaps: NonNullable<PanelReading["engineReading"]>): string[] =>
+    composePanelView(composeReading({ engineReading: gaps }), composeState()).warnings;
+
+  test("a clean reading says none of this", () => {
+    const warnings = getWarnings(composeGaps()).join(" ");
+
+    expect(warnings).not.toContain("Nie dotarło");
+    expect(warnings).not.toContain("nie dotarła");
+    expect(warnings).not.toContain("ze składu");
+  });
+
+  test("a reading with no engine behind it says none of it either", () => {
+    // The offline tools and most of this file. Nothing to say is not zero.
+    const warnings = composePanelView(composeReading(), composeState()).warnings.join(" ");
+
+    expect(warnings).not.toContain("Nie dotarło");
+    expect(warnings).not.toContain("nie dotarła");
+  });
+
+  test("messages that never arrived are stated with their number", () => {
+    expect(getWarnings(composeGaps({ lostMessages: 7 }))[0]).toContain("7");
+    expect(getWarnings(composeGaps({ lostMessages: 7 }))[0]).toContain("Nie dotarło");
+  });
+
+  /**
+   * The case the count cannot be known: a payload we could not read at all never
+   * said how much was in it. §9.6 keeps unknown and zero apart on screen, so the
+   * sentence loses its figure rather than gaining a nought.
+   */
+  test("and without one where nothing said how many", () => {
+    const warnings = getWarnings(
+      composeGaps({ unreadablePayloadsByFault: new Map([["payload-not-a-record", 3]]) }),
+    );
+
+    expect(warnings.some((warning) => warning.includes("Część tej walki nie dotarła"))).toBe(true);
+    expect(warnings.join(" ")).not.toContain("0");
+  });
+
+  test("a combatant nobody could read is its own sentence", () => {
+    const warnings = getWarnings(composeGaps({ unreadableCombatants: 2 })).join(" ");
+
+    expect(warnings).toContain("ze składu");
+    expect(warnings).toContain("2");
+  });
+
+  /**
+   * The order is the rule the file already states for the warnings below: what is
+   * certain goes above what is merely suspected. These two are certain — the
+   * material is not here — so they precede the decoder's "some totals may be low".
+   */
+  test("what never arrived is said before what could not be read", () => {
+    const warnings = getWarnings(composeGaps({ lostMessages: 4 }));
+    const missing = warnings.findIndex((warning) => warning.includes("Nie dotarło"));
+    const unreadable = warnings.findIndex((warning) => warning.includes("Nie dało się odczytać"));
+
+    expect(missing).toBeGreaterThan(-1);
+    expect(unreadable).toBeGreaterThan(-1);
+    expect(missing).toBeLessThan(unreadable);
+  });
+
+  test("and neither sentence carries a word of ours or a name of the game's", () => {
+    const warnings = getWarnings(
+      composeGaps({
+        lostMessages: 4,
+        unreadableCombatants: 1,
+        unreadablePayloadsByFault: new Map([["messages-lost", 2]]),
+      }),
+    ).join(" ");
+
+    // The fault names are `game`'s vocabulary and must not reach a player.
+    for (const forbidden of ["messages-lost", "payload", "fault", "protok", "klucz"]) {
+      expect(warnings, forbidden).not.toContain(forbidden);
+    }
   });
 });
 

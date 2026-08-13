@@ -35,6 +35,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Panel mówi teraz, kiedy część walki do niego nie dotarła,
+  zamiast pokazywać resztę tak, jakby to była całość. Gdy gra przyśle coś w
+  postaci, której dodatek już nie rozpoznaje, na górze pojawia się zdanie o tym,
+  że liczby są zaniżone — wcześniej taka walka po prostu wychodziła na zero i nic
+  tego nie sygnalizowało.
+- **Poprawka** — To samo dla składu: jeśli którejś postaci nie da się odczytać,
+  panel to napisze. Wcześniej taka postać znikała po cichu, a obrażenia zadane
+  jej z imienia lądowały w wierszu „bez sprawcy".
 - **Zmiana** — Efekty w ciosach nazywają się tak, jak nazywa je Twoja własna
   gra. Dodatek pyta o nazwę klienta, w którym grasz, więc pojawia się dokładnie
   to słowo, które widzisz w oknie walki — i w tym języku, w którym grasz. Tam,
