@@ -540,6 +540,73 @@ describe("which screen this is", () => {
   });
 });
 
+/**
+ * ⚠️ **The title was swept for its language and never for its meaning.** It sits
+ * in `getEveryString`, so every word of it was held to §3 — and no test ever
+ * asked what it said. `bun tools/mutation-sweep.ts` found it: turning the
+ * "nobody is placed" test from `=== 0` into `=== 1` left 2046 tests green while
+ * a fight with one side on screen announced it had no roster at all.
+ */
+describe("the title says how big the fight is", () => {
+  const getTitle = (reading: PanelReading): string =>
+    composePanelView(reading, composeState()).title;
+
+  test("two sides are counted apart, ours first", () => {
+    expect(getTitle(composeReading())).toBe("3 vs 1");
+    expect(getTitle(composeReading({ ourSide: 2 }))).toBe("1 vs 3");
+  });
+
+  test("one side is a roster, not the absence of one", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 2, name: "łowca", side: 1, profession: "h", level: 93 },
+    ]);
+    const reading = composeReading({
+      roster,
+      statistics: composeFightStatistics(
+        decodeFight(["1=90.00;2=80.00;+dmg=100;-dmg=100"], roster),
+        roster,
+      ),
+    });
+
+    expect(getTitle(reading)).toBe("2");
+  });
+
+  test("nobody placed at all is the only thing that says so", () => {
+    // A roster that named nobody, which is what a fight the game never described
+    // looks like — the combatants still fight, and no side can be put to any of
+    // them. Not the same as `+1` below: there, somebody was placed.
+    const roster = composeCombatantRoster([]);
+    const reading = composeReading({
+      roster,
+      ourSide: null,
+      statistics: composeFightStatistics(
+        decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+        roster,
+      ),
+    });
+
+    expect(getTitle(reading)).toBe("brak składu");
+  });
+
+  test("a combatant the roster cannot place is added on, not folded in", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 2, name: "łowca", side: 1, profession: "h", level: 93 },
+    ]);
+    // Id 3 fights and is in no roster, so it has no side to be counted under.
+    const reading = composeReading({
+      roster,
+      statistics: composeFightStatistics(
+        decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+        roster,
+      ),
+    });
+
+    expect(getTitle(reading)).toBe("1 +1");
+  });
+});
+
 describe("zero and unknown are different sentences", () => {
   test("a combatant with nothing gets the fact, not three empty headings", () => {
     const view = composePanelView(composeReading(), composeState({ focusCombatantId: 4 }));
