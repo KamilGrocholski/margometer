@@ -69,6 +69,8 @@ export type MargoMeterOptions = {
   onSearchAbandoned?: (() => void) | undefined;
   /** Told once when another MargoMeter was already reading, so this one does not. */
   onAnotherReaderFound?: (() => void) | undefined;
+  /** Told once when the game is on the page and refuses to be read. */
+  onAttachmentRefused?: ((error: unknown) => void) | undefined;
   onReadingFailure?: ((error: unknown) => void) | undefined;
   /**
    * Told when keeping the recording throws. Its own channel, not `onReadingFailure`:
@@ -214,6 +216,7 @@ export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {})
       onAttached: options.onAttached,
       onSearchAbandoned: options.onSearchAbandoned,
       onAnotherReaderFound: options.onAnotherReaderFound,
+      onAttachmentRefused: options.onAttachmentRefused,
       schedule: options.schedule,
       cancel: options.cancel,
     },
@@ -779,6 +782,10 @@ export function composeMeterOptions(
     // a panel drawing nothing on a page where the add-on is working perfectly
     // well — in the other copy.
     onAnotherReaderFound: () => info("MargoMeter/another-copy-is-reading"),
+    // The game is here and its shape is not one we know. Said once; the search
+    // keeps going, because a battle object without its method is also what a
+    // client half-way through building one looks like.
+    onAttachmentRefused: (error) => warn("MargoMeter/AttachmentRefused", error),
     onReading: (reading) => renderReading?.(reading),
     onReadingFailure: composeFailureSink("MargoMeter/Reading", warn).report,
     onCaptureFailure: composeFailureSink("MargoMeter/Capture", warn).report,

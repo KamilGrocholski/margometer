@@ -760,7 +760,12 @@ src/
                          so this is a search and not a watch. Where another
                          MargoMeter already has the fight it stands down and says
                          which of the two happened — a copy that quietly draws
-                         nothing reads as broken and gets reported as broken.
+                         nothing reads as broken and gets reported as broken. A
+                         battle object it is refused is said once and the search
+                         goes on: the wrap's refusal used to escape the timer into
+                         the game's page, and again every tick for the rest of the
+                         minute. Both spellings of the engine are tried on their
+                         `battle` and not on their presence.
     game-dictionary.ts   The client's own name for a thing, read from the page it
                          draws over: the game ships a dictionary keyed by
                          identifiers and exposes the lookup, so a player is told

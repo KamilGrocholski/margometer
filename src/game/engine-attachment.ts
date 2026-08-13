@@ -20,7 +20,9 @@
  */
 
 import {
+  EngineBattleWrapError,
   setBattleWrap,
+  type BattleWrapAttachment,
   type EngineBattle,
   type PayloadReading,
 } from "@/src/game/engine-battle-wrap.ts";
@@ -46,6 +48,14 @@ export type AttachmentOptions = {
    * and a caller must not be able to treat them as the same event by accident.
    */
   onAnotherReaderFound?: (() => void) | undefined;
+  /**
+   * Told once when the game is there and will not be wrapped.
+   *
+   * Once, not per look: the search keeps going after a refusal, so a caller told
+   * every time would hear it six hundred times on a page whose client has
+   * renamed the method (§9.6).
+   */
+  onAttachmentRefused?: ((error: unknown) => void) | undefined;
   /** Told once, when the search stops without ever finding the game. */
   onSearchAbandoned?: (() => void) | undefined;
   onReadingFailure?: ((error: unknown) => void) | undefined;
@@ -87,8 +97,15 @@ const GIVE_UP_AFTER_MS = 60_000;
  */
 export function getBattleFromWindow(page: GameWindow): EngineBattle | null {
   try {
-    const engine = page.Engine ?? page.getEngine?.();
-    const battle = engine?.battle;
+    // ⚠️ **Both spellings, and the first that yields a battle wins.** Written as
+    // `page.Engine ?? page.getEngine?.()`, the fallback was keyed on `Engine`
+    // being *present* rather than on it having what we came for — so a page
+    // exposing a truthy `Engine` without a battle never tried the other
+    // spelling, ran the whole search out and reported no game on a page where
+    // the game was reachable.
+    const battle = [page.Engine, page.getEngine?.()].map((engine) => engine?.battle).find(
+      (candidate) => getRecordOrArrayFromValue(candidate) !== null,
+    );
     if (getRecordOrArrayFromValue(battle) === null) return null;
     return battle as EngineBattle;
   } catch {
@@ -115,6 +132,7 @@ export function setEngineAttachment(
 
   let removeWrap: (() => void) | null = null;
   let handle: number | null = null;
+  let refusalSaid = false;
   let looksLeft = GIVE_UP_AFTER_MS / LOOK_AGAIN_EVERY_MS;
 
   function removeSearchTimer(): void {
@@ -123,25 +141,60 @@ export function setEngineAttachment(
     handle = null;
   }
 
+  /**
+   * One look spent, and the end of the search when there are none left.
+   *
+   * Only a **scheduled** look counts: the first one happens before the timer
+   * exists and would otherwise cost a tick. Shared by both ways a look can come
+   * up empty — no battle object at all, and one we were refused — because giving
+   * up is the same event either way and having it written twice is how the two
+   * come to disagree.
+   */
+  function handleEmptyLook(): void {
+    if (handle === null) return;
+    looksLeft -= 1;
+    if (looksLeft > 0) return;
+    removeSearchTimer();
+    options.onSearchAbandoned?.();
+  }
+
   function setWrapIfPresent(): void {
     if (removeWrap !== null) return;
     const battle = getBattleFromWindow(page);
     if (battle === null) {
-      // Only a scheduled look counts against the bound; the first one happens
-      // before the timer exists and would otherwise cost a tick.
-      if (handle === null) return;
-      looksLeft -= 1;
-      if (looksLeft <= 0) {
-        removeSearchTimer();
-        options.onSearchAbandoned?.();
-      }
+      handleEmptyLook();
       return;
     }
 
-    const attachment = setBattleWrap(battle, onPayloadRead, {
-      onReadingFailure: options.onReadingFailure,
-      onBeforeOriginal: options.onBeforeOriginal,
-    });
+    /**
+     * ⚠️ **This runs inside a timer callback, and it throws.** `setBattleWrap`
+     * refuses a battle object whose method the client has renamed — correctly,
+     * because it will not guess. Uncaught here that exception escaped into the
+     * game's page, and because `removeSearchTimer()` below was never reached it
+     * did so again every 100 ms for the rest of the minute. An add-on that
+     * breaks the game's own scripts has done far more damage than one showing a
+     * wrong number (§9.6), and this was the one place left that could.
+     *
+     * Caught narrowly, and the search **continues**: a battle object that exists
+     * without its method is what a client half-way through building one looks
+     * like, so the next tick may well succeed. If it never does, the bound runs
+     * out and `onSearchAbandoned` says so, as it does for a page with no game.
+     */
+    let attachment: BattleWrapAttachment;
+    try {
+      attachment = setBattleWrap(battle, onPayloadRead, {
+        onReadingFailure: options.onReadingFailure,
+        onBeforeOriginal: options.onBeforeOriginal,
+      });
+    } catch (error) {
+      if (!(error instanceof EngineBattleWrapError)) throw error;
+      if (!refusalSaid) {
+        refusalSaid = true;
+        options.onAttachmentRefused?.(error);
+      }
+      handleEmptyLook();
+      return;
+    }
     removeWrap = attachment.remove;
     removeSearchTimer();
     // Either way the search is over — a page with another reader on it is not a

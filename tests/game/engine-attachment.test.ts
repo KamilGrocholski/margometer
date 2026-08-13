@@ -196,6 +196,100 @@ describe("attaching", () => {
     expect(clock.getCancelCount()).toBe(1);
   });
 
+  /**
+   * ⚠️ **The last place an exception of ours could reach the game's page.**
+   * `setBattleWrap` refuses a battle object whose method the client has renamed,
+   * and this call sits inside a timer callback — so the throw escaped, and
+   * because the timer was never cancelled it escaped again every 100 ms for the
+   * rest of the minute. §9.6 puts an add-on that breaks the game's own scripts
+   * below one that counts nothing, and this was the one path left that could.
+   */
+  test("a battle object we cannot wrap does not throw into the page", () => {
+    const clock = composeClock();
+    // An object the search finds and the wrap refuses: no `updateData` on it.
+    const page = { Engine: { battle: { notTheMethodWeKnow: () => {} } } };
+    const refused: unknown[] = [];
+
+    expect(() =>
+      setEngineAttachment(page, () => {}, {
+        schedule: clock.schedule,
+        cancel: clock.cancel,
+        onAttachmentRefused: (error) => refused.push(error),
+      }),
+    ).not.toThrow();
+
+    expect(() => clock.tick()).not.toThrow();
+    expect(refused).toHaveLength(1);
+  });
+
+  test("and says so once, however long the search runs", () => {
+    const clock = composeClock();
+    const page = { Engine: { battle: { notTheMethodWeKnow: () => {} } } };
+    let refused = 0;
+    let abandoned = 0;
+
+    setEngineAttachment(page, () => {}, {
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      onAttachmentRefused: () => (refused += 1),
+      onSearchAbandoned: () => (abandoned += 1),
+    });
+    for (let looks = 0; looks < 601; looks += 1) clock.tick();
+
+    // Once for the refusal, and the search still ends the way it ends for a page
+    // with no game at all: a refusal that never resolves is a game we never got.
+    expect(refused).toBe(1);
+    expect(abandoned).toBe(1);
+    expect(clock.getCancelCount()).toBe(1);
+  });
+
+  /**
+   * A battle object without its method is also what a client half-way through
+   * building one looks like, so a refusal must not end the search.
+   */
+  test("a game that finishes building after refusing us is still found", () => {
+    const clock = composeClock();
+    const battle = composeBattle();
+    const page: { Engine: { battle: Record<string, unknown> } } = {
+      Engine: { battle: { notTheMethodWeKnow: () => {} } },
+    };
+    let attached = 0;
+
+    setEngineAttachment(page, () => {}, {
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      onAttached: () => (attached += 1),
+    });
+    clock.tick();
+    expect(attached).toBe(0);
+
+    page.Engine = { battle };
+    clock.tick();
+
+    expect(attached).toBe(1);
+  });
+
+  /**
+   * ⚠️ **The fallback was keyed on the wrong thing.** `page.Engine ??
+   * page.getEngine?.()` takes the second spelling only when the first is
+   * *absent* — so a page exposing a truthy `Engine` with no battle on it never
+   * tried the other, ran the whole minute out and reported no game on a page
+   * where the game was reachable.
+   */
+  test("an Engine with no battle does not hide one the other spelling has", () => {
+    const battle = composeBattle();
+
+    expect(getBattleFromWindow({ Engine: {}, getEngine: () => ({ battle }) })).toBe(battle);
+    expect(getBattleFromWindow({ Engine: { battle: undefined }, getEngine: () => ({ battle }) })).toBe(
+      battle,
+    );
+    // And the first still wins where it has one, so nothing is preferred by accident.
+    const first = composeBattle();
+    expect(getBattleFromWindow({ Engine: { battle: first }, getEngine: () => ({ battle }) })).toBe(
+      first,
+    );
+  });
+
   // Giving up is for a page with no game in it, not for a game that is slow.
   test("a game that arrives late is still found", () => {
     const clock = composeClock();
