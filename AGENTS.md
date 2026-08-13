@@ -1003,7 +1003,12 @@ tests/
                          game held to the captures — those rules guard what the
                          decoder reads, so they live beside it.
     health-witness.test.ts   Decoded damage against the health the protocol
-                             states — two sources nothing here reconciles. Both
+                             states — two sources nothing here reconciles. How
+                             much of each fight it reaches is recorded per
+                             capture: the floor was "more than none", which is
+                             three and a half thousand comparisons below the real
+                             figure and would have let the strongest guard here
+                             go quiet without a word. Both
                              sides of every message, whole calls skipped where a
                              health figure cannot be added, and each health
                              verdict in the register re-earned on every run. Also

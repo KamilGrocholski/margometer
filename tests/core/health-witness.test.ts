@@ -198,11 +198,50 @@ function composeReport(comparison: Comparison): string {
 const KEYS_MOVING_HEALTH = getKeysWithHealthEffect("moves health");
 const COMPARISONS = CAPTURED_FIGHTS.flatMap((fight) => getComparisons(fight, KEYS_MOVING_HEALTH));
 
+/**
+ * How much of each fight this witness actually reaches.
+ *
+ * ⚠️ **The floor here used to be one.** `expect(COMPARISONS.length)
+ * .toBeGreaterThan(0)` was written against comparing nothing at all — the right
+ * worry, and a bound so far below the real figure that coverage could have
+ * collapsed from three and a half thousand comparisons to a single one with the
+ * gate staying green. This is the strongest guard in the repository, and the
+ * thing guarding *it* was the weakest statement that could be made.
+ *
+ * That is §7.5's rule about zero, pointed inward: a floor at zero holds one side
+ * of a boundary, and the side it holds is the one nothing was ever going to
+ * cross. Recorded per fight rather than as a total, because a total that fell by
+ * 851 would not say which fight stopped being witnessed — and losing one whole
+ * capture is exactly the shape this is meant to catch.
+ *
+ * A capture added or a skip rule changed will move these numbers, and the
+ * numbers then have to be restated. That is the friction this exists for: how
+ * much of the material the arithmetic actually closes over is a fact about the
+ * project, not a detail.
+ *
+ * `2026-08-12-experimental-tancerz-vs-wojownik` is **0 on purpose** and is
+ * listed rather than omitted: its whole fight arrives in one call with no
+ * opening snapshot, so the replay cannot seed a running total. Written down so
+ * that a fight falling to zero reads as a change and not as a fight that was
+ * never there.
+ */
+const COMPARISONS_BY_FIGHT: Record<string, number> = {
+  "2026-08-04-tempest-lowca-vs-odyncze": 20,
+  "2026-08-06-tempest-grupa-vs-hildur": 790,
+  "2026-08-11-tempest-tancerz-vs-wermont": 51,
+  "2026-08-12-experimental-tancerz-vs-wojownik": 0,
+  "2026-08-12-tempest-grupa-vs-draugr-1": 392,
+  "2026-08-12-tempest-grupa-vs-draugr-2": 748,
+  "2026-08-12-tempest-grupa-vs-hildur-1": 851,
+  "2026-08-12-tempest-grupa-vs-hildur-2": 679,
+};
+
 describe("decoded damage against the health the protocol states", () => {
-  // Without this the suite would stay green while comparing nothing at all —
-  // the failure mode this project keeps naming.
-  test("there is something to compare", () => {
-    expect(COMPARISONS.length).toBeGreaterThan(0);
+  test("reaches exactly as much of each fight as it is recorded to", () => {
+    const counted = Object.fromEntries(CAPTURED_FIGHTS.map((fight) => [fight.name, 0]));
+    for (const one of COMPARISONS) counted[one.fight] = (counted[one.fight] ?? 0) + 1;
+
+    expect(counted).toEqual(COMPARISONS_BY_FIGHT);
   });
 
   test("every comparison agrees", () => {
@@ -274,8 +313,15 @@ describe("health stated against a name", () => {
       ),
   );
 
-  test("occurs at all", () => {
-    expect(replayed.length).toBeGreaterThan(0);
+  /**
+   * The same floor, and the same reason it is a figure rather than "more than
+   * none": these are the health figures the protocol states against a **name**,
+   * and every one of them has to find its combatant. A count that quietly fell
+   * would take the claim below it with it — "every time" over three of them is
+   * not the same promise as "every time" over all of them.
+   */
+  test("occurs as often as it is recorded to", () => {
+    expect(replayed.length).toBe(237);
   });
 
   test("names a combatant the replay's own roster can identify, every time", () => {
