@@ -78,6 +78,43 @@ export type MargoMeterOptions = {
   cancel?: ((handle: number) => void) | undefined;
 };
 
+/**
+ * A failure channel that speaks the first time and counts after that.
+ *
+ * §9.6 asks for exactly one branded console entry per caught failure — "a repeat
+ * is counted, not reprinted" — and both of this file's failure channels fire from
+ * inside the wrap, which runs on **every payload**. A fight redraws every few
+ * seconds, so a channel that printed each time would put our own entry in front
+ * of whatever the person was reading, which is the disturbance §9.6 spends its
+ * length refusing.
+ *
+ * Once for the page rather than once per fight, like the drag and the capture
+ * button in `composePanelMount`: a throw out of the reading is a bug of ours, not
+ * a state of a fight, and the fight boundary is not visible from here — the
+ * session lives inside `setMargoMeter`. The repeats are counted and the count is
+ * readable through `getSilenced`, so a report can say how many followed the one
+ * that printed; nothing prints it on its own, because there is no moment in a
+ * page's life that is the right one to print a tally at.
+ */
+export function composeFailureSink(
+  brand: string,
+  warn: (brand: string, detail: unknown) => void,
+): { report: (error: unknown) => void; getSilenced: () => number } {
+  let said = false;
+  let silenced = 0;
+  return {
+    report: (error) => {
+      if (said) {
+        silenced += 1;
+        return;
+      }
+      said = true;
+      warn(brand, error);
+    },
+    getSilenced: () => silenced,
+  };
+}
+
 export type MargoMeter = {
   /** The fight as it now stands, or null before anything has been read. */
   getReading: () => FightReading | null;
@@ -646,6 +683,41 @@ function composeReportRow(row: FightReading["statistics"]["unattributed"]): Reco
   };
 }
 
+/**
+ * Everything the meter is told, as a value rather than as a literal at the call.
+ *
+ * ⚠️ **It is a function because the literal was wrong and nothing could say so.**
+ * `onReadingFailure` was declared on `MargoMeterOptions`, called at
+ * `src/game/engine-battle-wrap.ts`, and passed faithfully down through
+ * `setEngineAttachment` and `setMargoMeter` — and then the one call that ships
+ * never supplied it. An optional callback nobody passes is indistinguishable at
+ * every layer from one deliberately left out, so the compiler had nothing to say
+ * and neither did the gate. A literal inside `if (shouldStartHere(page))` runs at
+ * import and cannot be looked at; this can, and its guard reads the option names
+ * off the type rather than from a list somebody keeps (§7.5).
+ *
+ * The console is injected for the same reason `composePanelMount` injects `warn`:
+ * so the once-per-page rule is checkable without one.
+ */
+export function composeMeterOptions(
+  renderReading: ((reading: FightReading) => void) | null,
+  warn: (brand: string, detail: unknown) => void,
+  info: (message: string) => void,
+): MargoMeterOptions {
+  return {
+    // One line, once, when the wrap goes on. Branded like every other thing this
+    // add-on writes to a console it shares with the game (§9.5). It is not a
+    // running commentary: nothing else here prints.
+    onAttached: () => info("MargoMeter/attached"),
+    // The other end of the same line: a page where the game never appeared says
+    // so once, rather than leaving a timer running and nothing on screen.
+    onSearchAbandoned: () => info("MargoMeter/no-game-here"),
+    onReading: (reading) => renderReading?.(reading),
+    onReadingFailure: composeFailureSink("MargoMeter/Reading", warn).report,
+    onCaptureFailure: composeFailureSink("MargoMeter/Capture", warn).report,
+  };
+}
+
 const page = globalThis as HostPage;
 if (shouldStartHere(page)) {
   // The panel is mounted before the meter exists, and the button needs the meter
@@ -669,16 +741,13 @@ if (shouldStartHere(page)) {
       void page.navigator?.clipboard?.writeText?.(composeReportText(page, reading));
     },
   );
-  meter = setMargoMeter(page, {
-    // One line, once, when the wrap goes on. Branded like every other thing this
-    // add-on writes to a console it shares with the game (§9.5). It is not a
-    // running commentary: nothing else here prints.
-    onAttached: () => console.info("MargoMeter/attached"),
-    // The other end of the same line: a page where the game never appeared says
-    // so once, rather than leaving a timer running and nothing on screen.
-    onSearchAbandoned: () => console.info("MargoMeter/no-game-here"),
-    onReading: (reading) => renderReading?.(reading),
-    onCaptureFailure: (error) => console.warn("MargoMeter/Capture", error),
-  });
+  meter = setMargoMeter(
+    page,
+    composeMeterOptions(
+      renderReading,
+      (brand, detail) => console.warn(brand, detail),
+      (message) => console.info(message),
+    ),
+  );
   page[PAGE_HANDLE] = meter;
 }

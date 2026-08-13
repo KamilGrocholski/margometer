@@ -7,8 +7,10 @@
  * would be a person loading a userscript and watching.
  */
 
+import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
+import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
 import { getValueFromJsonText } from "@/libs/json.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
@@ -30,6 +32,8 @@ import {
   PANEL_METRICS,
 } from "@/src/ui/panel-view.ts";
 import {
+  composeFailureSink,
+  composeMeterOptions,
   composePanelMount,
   composeReportText,
   setMargoMeter,
@@ -1157,5 +1161,89 @@ describe("the report a reader copies", () => {
         );
       }
     }
+  });
+});
+
+/**
+ * The wiring between the meter's options and the one call that ships.
+ *
+ * ⚠️ **`onReadingFailure` was declared, called, threaded through two layers, and
+ * never passed.** The type had it, `src/game/engine-battle-wrap.ts` called it,
+ * `setEngineAttachment` and `setMargoMeter` both handed it down — and the block
+ * at the bottom of `src/userscript-entry.ts` supplied four options out of five.
+ * An optional callback nobody passes looks, at every layer, exactly like one
+ * deliberately left out, so in every release every exception raised inside the
+ * reading was caught by the wrap and dropped into `undefined`.
+ *
+ * What makes this a guard rather than a note: the option names are read **off
+ * the type declaration**, not from a list written here. A list would have to be
+ * remembered, and the thing being guarded is precisely that somebody did not
+ * remember.
+ */
+describe("what the meter is actually told", () => {
+  const SOURCE = readFileSync(`${import.meta.dir}/../../src/userscript-entry.ts`, "utf8");
+
+  /**
+   * The members of `MargoMeterOptions`, taken from the block that declares them
+   * rather than by searching the file — a search picks up the neighbours, which
+   * is how two keys once entered a table from a switch that had nothing to do
+   * with them (§7.5).
+   */
+  function getDeclaredOptionNames(): string[] {
+    const opening = "export type MargoMeterOptions = {";
+    const start = SOURCE.indexOf(opening);
+    expect(start, "the options type is declared").toBeGreaterThan(-1);
+    const end = SOURCE.indexOf("\n};", start);
+    expect(end, "the options type is closed").toBeGreaterThan(start);
+
+    const block = composeSourceWithoutComments(SOURCE.slice(start + opening.length, end));
+    return [...block.matchAll(/^\s{2}(\w+)\??:/gm)].map(([, name]) => assertDefined(name, "a member name"));
+  }
+
+  test("the type declares the members this test is about to hold", () => {
+    // Without this the two tests below would pass by comparing nothing, which is
+    // the failure mode this repository keeps naming.
+    expect(getDeclaredOptionNames()).toEqual(
+      expect.arrayContaining(["onReading", "onReadingFailure", "onCaptureFailure"]),
+    );
+  });
+
+  test("every failure channel the type declares is one the shipped call supplies", () => {
+    const supplied = composeMeterOptions(null, () => {}, () => {});
+    const failureChannels = getDeclaredOptionNames().filter((name) => name.endsWith("Failure"));
+
+    expect(failureChannels.length).toBeGreaterThan(0);
+    for (const channel of failureChannels) {
+      expect(typeof (supplied as Record<string, unknown>)[channel], channel).toBe("function");
+    }
+  });
+
+  test("a channel speaks once for the page and counts the rest", () => {
+    const said: Array<[string, unknown]> = [];
+    const sink = composeFailureSink("MargoMeter/Test", (brand, detail) => said.push([brand, detail]));
+
+    sink.report(new TypeError("first"));
+    sink.report(new TypeError("second"));
+    sink.report(new TypeError("third"));
+
+    expect(said).toEqual([["MargoMeter/Test", new TypeError("first")]]);
+    expect(sink.getSilenced()).toBe(2);
+  });
+
+  /**
+   * The two channels are separate on purpose: the recording is a developer's
+   * tool and the meter is the product, so one failing must not use up the other's
+   * one line. Sharing a sink between them is the plausible simplification, and
+   * this is what refuses it.
+   */
+  test("the reading and the recording do not spend each other's one line", () => {
+    const said: string[] = [];
+    const options = composeMeterOptions(null, (brand) => said.push(brand), () => {});
+
+    options.onReadingFailure?.(new TypeError("reading"));
+    options.onCaptureFailure?.(new TypeError("capture"));
+    options.onReadingFailure?.(new TypeError("reading again"));
+
+    expect(said).toEqual(["MargoMeter/Reading", "MargoMeter/Capture"]);
   });
 });

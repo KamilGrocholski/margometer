@@ -638,7 +638,14 @@ src/
                          global. Wires the game to the reading, holds the session,
                          and mounts the panel — including the rule that the
                          console hears about a failing section once per fight and
-                         not once per render. Also the only file that reaches
+                         not once per render, and its page-scoped twin: a reading
+                         that throws and a recording that throws each say so once
+                         and count the rest, on separate channels so neither
+                         spends the other's one line. What the meter is told is a
+                         value and not a literal at the call, because the literal
+                         was missing an option for the life of the project and
+                         nothing could see it — the guard reads the names off the
+                         type. Also the only file that reaches
                          storage, which it does for one thing: where the panel was
                          last dragged to. A browser that refuses storage costs the
                          position and nothing else.
