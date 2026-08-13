@@ -1,6 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
+import {
+  composeSourceWithoutComments,
+  getTextRangesFromSource,
+} from "@/libs/source-regions.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 const SOURCE_DIRECTORIES = ["libs", "src", "tools", "tests"];
@@ -23,13 +27,13 @@ const SOURCE_FILES = [...SOURCE_DIRECTORIES.flatMap(getTypeScriptFiles), "build.
  * `Number()` is banned tripped the ban. Rewording the comment would have made
  * the trap permanent — the rules would be unexplainable in the files they bind.
  *
- * `//` is only treated as a comment at the start of a line or after whitespace,
- * so `https://…` inside a string survives.
+ * The patterns themselves moved to `libs/source-regions.ts` when
+ * `tools/mutation-sweep.ts` became their second consumer (§7.1): it wants the
+ * spans rather than the stripped text, and two spellings of "where the comments
+ * are" is exactly the drift §7.5 keeps paying for.
  */
 function getSourceWithoutComments(file: string): string {
-  return readFileSync(REPOSITORY_ROOT + file, "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/(^|\s)\/\/.*$/gm, "$1");
+  return composeSourceWithoutComments(readFileSync(REPOSITORY_ROOT + file, "utf8"));
 }
 
 /**
@@ -465,8 +469,9 @@ describe("the language of the strings", () => {
 
   function getPolishStrings(file: string): string[] {
     const source = getSourceWithoutComments(file);
-    const literals = [...source.matchAll(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`[^`]*`/g)];
-    return literals.map((match) => match[0]).filter((text) => POLISH_LETTER.test(text));
+    return getTextRangesFromSource(source)
+      .map((range) => source.slice(range.start, range.end))
+      .filter((text) => POLISH_LETTER.test(text));
   }
 
   const SHIPPED = SOURCE_FILES.filter((file) => file.startsWith("src/") || file.startsWith("libs/"));

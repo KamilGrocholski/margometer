@@ -189,6 +189,7 @@ base every tool below throws from (§9.5).
 | `tools/fight-report.ts` | *What would the panel show for this fight?* Runs the decoder and the aggregate over each capture and prints the per-combatant table — everything the numbers hold, including what the panel has no room for. Prints the turn axis too, because every rate divides by it and it is not in a message. |
 | `tools/help-article.ts` | *What does the game's own documentation say about this mechanic?* `fetch` caches an article, `search` prints raw context around a phrase and exits non-zero when there is none, `freeze` writes `tests/frozen-help-phrases.ts` so the register's help claims are re-counted on every gate. §7.6. |
 | `tools/captured-fight-intake.ts` | *This recording is worth keeping — put it in the repository.* Substitutes player nicknames, removes the game's ability descriptions, and writes the result into `tests/captured-fights/`. Refuses anything it cannot redact with certainty, and names the step that stays a person's. §9.2. |
+| `tools/mutation-sweep.ts` | *Does this test light up when the thing it covers breaks?* Changes one character of meaning at a time, runs the gate, and reports what nothing noticed — §3's question, asked of code already here rather than only of a test being written. Writes mutants into the working tree, so it refuses to start against a dirty one. |
 | `tools/changelog.ts` | *What does this release say for itself?* Cuts one version's section out of `CHANGELOG.md` and adds the note saying which attached file to click. `notes <version>` prints it; a version with no section refuses rather than publishing silence. |
 
 ---
@@ -617,6 +618,13 @@ libs/
                          admitting an array as a record and five refusing one,
                          and neither group was wrong — the live client may send
                          either, a stored position may not.
+  source-regions.ts      Where the comments and the text literals sit in a piece
+                         of source. One fact, wanted in two shapes: the guards
+                         read source with its comments gone, the mutation sweep
+                         reads the spans it must not touch. Patterns and not a
+                         parser, and the cost is in the safe direction for both —
+                         a quotation mark in prose hides a span rather than
+                         inventing one.
 
 src/
   userscript-version.ts  What version this is, substituted at build time from
@@ -833,6 +841,16 @@ tools/
                          descriptions removed, both counted in the file itself.
                          Refuses rather than guesses — `npc` alone says who is a
                          person — and ends by naming the reading no test does.
+  mutation-sweep.ts      §3's question, asked of the tests already here: change
+                         one character of meaning, run the gate, and see whether
+                         anything goes red. What nothing notices is a finding of
+                         one of two kinds — an untested behaviour or an inert
+                         line — and which is a person's reading. Mutants go into
+                         the real files because that is what `bun test` reads, so
+                         the original is held in memory and written back after
+                         every run and it refuses to start against a dirty tree.
+                         A kill by a guard that reads source as text is counted
+                         apart: it says the spelling changed, not the behaviour.
   changelog.ts           One version's section of CHANGELOG.md, which is what a
                          release says, plus the note telling a reader which of
                          the two attached files to click. A pure function with a
@@ -1108,6 +1126,13 @@ tests/
                              no finding left open. Also that the commit it says
                              it read is a commit — checked where the clone is
                              deep enough to look, which CI's is not.
+    mutation-sweep.test.ts   The half of the sweep that decides what to break,
+                             held without breaking anything: a comment is not
+                             code, a module's name is not text the add-on says,
+                             and the one that matters — what it changes, it
+                             changes back byte for byte. The other half writes
+                             mutants into a working tree, and a test of that is a
+                             test that can leave one changed.
     game-client-source.test.ts
                              The tool that decides whether the cache is stale,
                              which had no test while its twin had one: the build

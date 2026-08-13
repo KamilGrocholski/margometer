@@ -1,0 +1,355 @@
+/**
+ * Whether a test lights up when the thing it covers breaks.
+ *
+ * §3 asks this of every **new** test and the commits record the answer. Nothing
+ * asks it of the ones already here, and a green gate cannot: a test that cannot
+ * fail passes exactly like a test that holds something. §7.5 has the receipts —
+ * twice a mutation lit nothing, and twice the answer was to delete code rather
+ * than to add a test.
+ *
+ * So: change one character of meaning, run the gate, and see whether anything
+ * goes red. A change nothing notices is a finding, and it is one of two — either
+ * the behaviour is untested, or the code is inert. Which of the two is a
+ * person's reading, not this tool's.
+ *
+ * **What it does to the working tree, and what protects it.** Mutants are
+ * written into the real files, because `bun test` reads the real files. The
+ * original is held in memory and written back after every single run — §7.5's
+ * rule, and the reason it exists: `git checkout` would take whatever
+ * uncommitted work was in the file. On top of that the sweep refuses to start
+ * against a dirty tree, so the only thing it can ever be holding is a commit.
+ *
+ * ⚠️ **A mutant killed only by a guard of shape is barely killed.**
+ * `tests/tools/source-layout.test.ts` and its neighbours read source as text, so
+ * they fail on changes no behaviour depends on. Reported apart from the rest,
+ * because a guard agreeing with the bug it was written to prevent is the failure
+ * §7.5 names, and counting those as kills would let this tool make the same one.
+ */
+
+import { spawnSync } from "node:child_process";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { assertDefined } from "@/libs/assert.ts";
+import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
+import { getCommentRangesFromSource, getTextRangesFromSource } from "@/libs/source-regions.ts";
+import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
+
+export class MutationSweepError extends MargoMeterToolError {
+  constructor(message: string, options?: ErrorOptions) {
+    super("MutationSweep", message, options);
+  }
+}
+
+const REPOSITORY_ROOT = new URL("../", import.meta.url).pathname;
+
+/** Everything that ships or supports shipping. Tests mutate nothing. */
+const SWEPT_DIRECTORIES = ["libs", "src", "tools"];
+const SWEPT_FILES = ["build.ts"];
+
+/**
+ * Guards that read source as text. A mutant only these object to changed the
+ * spelling of the tree and not what it does.
+ */
+const SHAPE_GUARDS = [
+  "tests/tools/source-layout.test.ts",
+  "tests/tools/structure-block.test.ts",
+  "tests/tools/cited-paths.test.ts",
+];
+
+/** Long enough for the whole gate, short enough that a hang is not a hang. */
+const RUN_TIMEOUT_MILLISECONDS = 120_000;
+
+export type Mutation = {
+  file: string;
+  offset: number;
+  /** One-based, because a finding names a file and a line (§7.7). */
+  line: number;
+  before: string;
+  after: string;
+  operator: string;
+};
+
+export type MutationOutcome = {
+  mutation: Mutation;
+  /** Test files that failed. Empty is the finding. */
+  killedBy: string[];
+  /** Killed, but only by a guard reading source as text. */
+  isShapeOnly: boolean;
+};
+
+type Rule = {
+  operator: string;
+  pattern: RegExp;
+  composeAfter: (match: RegExpMatchArray) => string | null;
+};
+
+/**
+ * Every operator is written with the spaces around it, and that is the whole of
+ * how this stays out of trouble: the tree is formatted, so a binary operator has
+ * them and `+=`, `++` and `-->` do not. A pattern of the bare character would
+ * mutate all three into something that does not parse, and an unparseable mutant
+ * is killed by everything while proving nothing.
+ */
+const RULES: Rule[] = [
+  { operator: "comparison", pattern: / > /g, composeAfter: () => " >= " },
+  { operator: "comparison", pattern: / >= /g, composeAfter: () => " > " },
+  { operator: "comparison", pattern: / < /g, composeAfter: () => " <= " },
+  { operator: "comparison", pattern: / <= /g, composeAfter: () => " < " },
+  { operator: "equality", pattern: / === /g, composeAfter: () => " !== " },
+  { operator: "equality", pattern: / !== /g, composeAfter: () => " === " },
+  { operator: "arithmetic", pattern: / \+ /g, composeAfter: () => " - " },
+  { operator: "arithmetic", pattern: / - /g, composeAfter: () => " + " },
+  { operator: "arithmetic", pattern: / \* /g, composeAfter: () => " / " },
+  { operator: "arithmetic", pattern: / \/ /g, composeAfter: () => " * " },
+  { operator: "logic", pattern: / && /g, composeAfter: () => " || " },
+  { operator: "logic", pattern: / \|\| /g, composeAfter: () => " && " },
+  {
+    // The lookahead keeps `!==` out of it, and the leading character is put back
+    // so the negation is the only thing that goes.
+    operator: "negation",
+    pattern: /([(\s=,[])!(?=[A-Za-z_$([])/g,
+    composeAfter: (match) => match[1] ?? "",
+  },
+  {
+    operator: "number",
+    pattern: /\b\d+\b/g,
+    composeAfter: (match) => {
+      const value = getIntegerFromText(match[0]);
+      return value === null ? null : composeIntegerText(value + 1);
+    },
+  },
+  { operator: "return", pattern: /\breturn true\b/g, composeAfter: () => "return false" },
+  { operator: "return", pattern: /\breturn false\b/g, composeAfter: () => "return true" },
+  { operator: "return", pattern: /\breturn null\b/g, composeAfter: () => "return undefined" },
+];
+
+/** What a mutated literal says instead. Nothing in the tree says it already. */
+const TEXT_SENTINEL = '"mutation-sweep"';
+
+function getLineOfOffset(source: string, offset: number): number {
+  return source.slice(0, offset).split("\n").length;
+}
+
+function isInsideRange(ranges: Array<{ start: number; end: number }>, from: number, to: number) {
+  return ranges.some((range) => from < range.end && range.start < to);
+}
+
+/**
+ * A literal naming a module is not text this add-on says — mutating it breaks
+ * the import, which kills the mutant by making the file unloadable and measures
+ * nothing about any test.
+ */
+function isModuleSpecifier(source: string, start: number): boolean {
+  return /\b(from|import|require)\s*\(?\s*$/.test(source.slice(0, start));
+}
+
+export function composeMutations(source: string, file: string): Mutation[] {
+  const comments = getCommentRangesFromSource(source);
+  const texts = getTextRangesFromSource(source);
+  const mutations: Mutation[] = [];
+
+  for (const rule of RULES) {
+    for (const match of source.matchAll(rule.pattern)) {
+      const offset = assertDefined(match.index, "matchAll states where it matched");
+      const before = match[0];
+      // Comments are not code, and a literal's contents are mutated whole below
+      // rather than one operator at a time.
+      if (isInsideRange(comments, offset, offset + before.length)) continue;
+      if (isInsideRange(texts, offset, offset + before.length)) continue;
+
+      const after = rule.composeAfter(match);
+      if (after === null || after === before) continue;
+      mutations.push({
+        file,
+        offset,
+        line: getLineOfOffset(source, offset),
+        before,
+        after,
+        operator: rule.operator,
+      });
+    }
+  }
+
+  for (const range of texts) {
+    const before = source.slice(range.start, range.end);
+    if (before.startsWith("`")) continue;
+    if (before.length <= 2) continue;
+    if (before === TEXT_SENTINEL) continue;
+    if (isModuleSpecifier(source, range.start)) continue;
+    mutations.push({
+      file,
+      offset: range.start,
+      line: getLineOfOffset(source, range.start),
+      before,
+      after: TEXT_SENTINEL,
+      operator: "text",
+    });
+  }
+
+  return mutations.sort((left, right) => left.offset - right.offset);
+}
+
+export function composeMutatedSource(source: string, mutation: Mutation): string {
+  const found = source.slice(mutation.offset, mutation.offset + mutation.before.length);
+  if (found !== mutation.before) {
+    throw new MutationSweepError(
+      `${mutation.file}:${mutation.line} no longer reads ${mutation.before} at ${mutation.offset}`,
+    );
+  }
+  return (
+    source.slice(0, mutation.offset) +
+    mutation.after +
+    source.slice(mutation.offset + mutation.before.length)
+  );
+}
+
+export function getFailingTestFiles(output: string): string[] {
+  const failing: string[] = [];
+  let current: string | null = null;
+  for (const line of output.split("\n")) {
+    const header = /^(\S+\.test\.ts):$/.exec(line);
+    if (header !== null) {
+      current = header[1] ?? null;
+      continue;
+    }
+    if (line.startsWith("(fail)") && current !== null && !failing.includes(current)) {
+      failing.push(current);
+    }
+  }
+  return failing;
+}
+
+type GateOutcome = { isRed: boolean; failing: string[] };
+
+function getGateOutcome(isBailing: boolean): GateOutcome {
+  const result = spawnSync("bun", isBailing ? ["test", "--bail=1"] : ["test"], {
+    cwd: REPOSITORY_ROOT,
+    encoding: "utf8",
+    timeout: RUN_TIMEOUT_MILLISECONDS,
+  });
+  // A mutant that stops the suite from loading at all produces no `(fail)` line
+  // and is still a kill, so the status decides and the names only describe.
+  return {
+    isRed: result.status !== 0,
+    failing: getFailingTestFiles(`${result.stdout ?? ""}\n${result.stderr ?? ""}`),
+  };
+}
+
+function assertCleanWorkingTree(): void {
+  const result = spawnSync("git", ["status", "--porcelain"], {
+    cwd: REPOSITORY_ROOT,
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    throw new MutationSweepError("git could not say whether the tree is clean");
+  }
+  if ((result.stdout ?? "").trim() !== "") {
+    throw new MutationSweepError(
+      "the working tree carries changes; this writes mutants into the files themselves and " +
+        "will not put anything at risk that a commit cannot restore",
+    );
+  }
+}
+
+export function getSweptFiles(): string[] {
+  const discovered = SWEPT_DIRECTORIES.flatMap((directory) =>
+    readdirSync(REPOSITORY_ROOT + directory, { recursive: true, encoding: "utf8" })
+      .filter((entry) => entry.endsWith(".ts"))
+      .map((entry) => `${directory}/${entry}`),
+  );
+  return [...discovered, ...SWEPT_FILES].sort();
+}
+
+function getMutationOutcomesOfFile(file: string): MutationOutcome[] {
+  const path = REPOSITORY_ROOT + file;
+  const original = readFileSync(path, "utf8");
+  const mutations = composeMutations(original, file);
+  const outcomes: MutationOutcome[] = [];
+
+  const handleInterrupt = () => {
+    writeFileSync(path, original);
+    process.exit(130);
+  };
+  process.on("SIGINT", handleInterrupt);
+  process.on("SIGTERM", handleInterrupt);
+
+  try {
+    for (const [index, mutation] of mutations.entries()) {
+      writeFileSync(path, composeMutatedSource(original, mutation));
+      let run = getGateOutcome(true);
+      // Only when nothing but a text search objected: the question is whether
+      // any behaviour noticed, and under `--bail` the first failure is the only
+      // one anybody saw.
+      if (run.isRed && run.failing.every((failing) => SHAPE_GUARDS.includes(failing))) {
+        run = getGateOutcome(false);
+      }
+      writeFileSync(path, original);
+      outcomes.push({
+        mutation,
+        killedBy: run.isRed ? run.failing : [],
+        isShapeOnly:
+          run.isRed && run.failing.length > 0 && run.failing.every((f) => SHAPE_GUARDS.includes(f)),
+      });
+      process.stderr.write(
+        `\r${file}  ${composeIntegerText(index + 1)}/${composeIntegerText(mutations.length)}   `,
+      );
+    }
+  } finally {
+    writeFileSync(path, original);
+    process.off("SIGINT", handleInterrupt);
+    process.off("SIGTERM", handleInterrupt);
+  }
+
+  return outcomes;
+}
+
+function writeSweepReport(outcomes: MutationOutcome[]): void {
+  const survived = outcomes.filter((outcome) => outcome.killedBy.length === 0);
+  const shapeOnly = outcomes.filter((outcome) => outcome.isShapeOnly);
+
+  const byFile = new Map<string, MutationOutcome[]>();
+  for (const outcome of outcomes) {
+    byFile.set(outcome.mutation.file, [...(byFile.get(outcome.mutation.file) ?? []), outcome]);
+  }
+
+  console.log();
+  for (const [file, forFile] of byFile) {
+    const alive = forFile.filter((outcome) => outcome.killedBy.length === 0).length;
+    console.log(
+      `${composeIntegerText(forFile.length).padStart(5)} mutants  ` +
+        `${composeIntegerText(alive).padStart(4)} survived   ${file}`,
+    );
+  }
+
+  console.log();
+  console.log("survivors");
+  for (const { mutation } of survived) {
+    console.log(
+      `  ${mutation.file}:${composeIntegerText(mutation.line)}  ` +
+        `${mutation.before} → ${mutation.after}  (${mutation.operator})`,
+    );
+  }
+
+  console.log();
+  console.log("killed only by a guard reading source as text");
+  for (const { mutation, killedBy } of shapeOnly) {
+    console.log(
+      `  ${mutation.file}:${composeIntegerText(mutation.line)}  ` +
+        `${mutation.before} → ${mutation.after}  (${killedBy.join(", ")})`,
+    );
+  }
+
+  console.log();
+  console.log(
+    `${composeIntegerText(outcomes.length)} mutants, ` +
+      `${composeIntegerText(outcomes.length - survived.length)} killed, ` +
+      `${composeIntegerText(survived.length)} survived, ` +
+      `${composeIntegerText(shapeOnly.length)} of the kills by shape alone`,
+  );
+}
+
+if (import.meta.main) {
+  const asked = process.argv.slice(2);
+  const files = asked.length > 0 ? asked : getSweptFiles();
+  assertCleanWorkingTree();
+  writeSweepReport(files.flatMap((file) => getMutationOutcomesOfFile(file)));
+}
