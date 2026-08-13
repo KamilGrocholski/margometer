@@ -16,7 +16,7 @@ import { describe, expect, test } from "bun:test";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import {
   EngineBattleWrapError,
-  getMessagesFromPayload,
+  getPayloadReading,
   removeBattleWrap,
   setBattleWrap,
   type EngineBattle,
@@ -166,8 +166,8 @@ describe("what the wrap promises the game", () => {
     const battle = composeBattle();
     const batches: number[] = [];
 
-    setBattleWrap(battle, (messages) => batches.push(messages.length));
-    setBattleWrap(battle, (messages) => batches.push(messages.length));
+    setBattleWrap(battle, (reading) => batches.push(reading.messages.length));
+    setBattleWrap(battle, (reading) => batches.push(reading.messages.length));
     getBattleMethod(battle)({ m: ["a", "b"] });
 
     expect(batches).toEqual([2]);
@@ -230,18 +230,143 @@ describe("what the wrap promises the game", () => {
   });
 });
 
+/**
+ * ⚠️ **This block used to assert the silence.** Its rule was "anything
+ * unexpected yields no messages rather than a guess — an empty batch is a state
+ * the panel already handles", and that is true of a payload which opens a fight
+ * and false of one whose shape we no longer recognise. Both produced the same
+ * empty list, so the day the game renames `m` every fight reads as zero messages
+ * and the panel draws the zeroes as though they were the count. A guess is not
+ * the only way to be wrong about somebody else's data; agreeing with yourself
+ * about it is the other.
+ */
 describe("what is read out of a payload", () => {
-  // The payload is the game's. Anything unexpected yields no messages rather
-  // than a guess — an empty batch is a state the panel already handles.
-  test.each([[undefined], [null], [42], [{}], [{ m: "not a list" }], [{ m: [1, 2] }]])(
-    "reads nothing out of %p",
+  test("a payload that mentions no messages is not a payload we failed to read", () => {
+    // 20 of the 400 captured engine calls look like this, every one of them a
+    // fight opening or closing. An alarm here is an alarm nobody reads.
+    for (const payload of [{}, { init: 1 }, { w: {} }]) {
+      expect(getPayloadReading(payload)).toEqual({
+        payload,
+        messages: [],
+        fault: null,
+        lostMessages: 0,
+      });
+    }
+  });
+
+  test("a payload carrying an empty list of messages is also clean", () => {
+    expect(getPayloadReading({ m: [], mi: [] }).fault).toBeNull();
+  });
+
+  test.each([[undefined], [null], [42], ["not a payload"]])(
+    "%p is not a payload at all, and says so",
     (payload) => {
-      expect(getMessagesFromPayload(payload)).toEqual([]);
+      const reading = getPayloadReading(payload);
+      expect(reading.fault).toBe("payload-not-a-record");
+      expect(reading.messages).toEqual([]);
+      // Not zero: something was lost and nothing said how much. A zero here
+      // would state that nothing was, which is the opposite of what is known.
+      expect(reading.lostMessages).toBeNull();
     },
   );
 
-  test("keeps the strings and drops what is not one", () => {
-    expect(getMessagesFromPayload({ m: ["a", 3, "b", null] })).toEqual(["a", "b"]);
+  test("messages that did not arrive as a list are a fault, not an empty fight", () => {
+    expect(getPayloadReading({ m: "not a list" }).fault).toBe("messages-not-a-list");
+    expect(getPayloadReading({ m: "not a list" }).lostMessages).toBeNull();
+    // The companion list still says how many there were, so here the number is
+    // knowable even though the messages are not.
+    expect(getPayloadReading({ m: {}, mi: [1, 2, 3] }).lostMessages).toBe(3);
+  });
+
+  /**
+   * The case this whole round exists for: the messages arrive under a name we do
+   * not know, and `mi` is what still says they arrived at all.
+   */
+  test("messages under a name we do not know are counted as lost", () => {
+    const reading = getPayloadReading({ mm: ["a", "b", "c"], mi: [1, 2, 3] });
+
+    expect(reading.fault).toBe("messages-lost");
+    expect(reading.lostMessages).toBe(3);
+    expect(reading.messages).toEqual([]);
+  });
+
+  test("an entry that is not text is counted, not dropped in silence", () => {
+    const reading = getPayloadReading({ m: ["a", 3, "b", null], mi: [1, 2, 3, 4] });
+
+    expect(reading.messages).toEqual(["a", "b"]);
+    expect(reading.fault).toBe("messages-lost");
+    expect(reading.lostMessages).toBe(2);
+  });
+
+  test("a short list is loud even where nothing counted it", () => {
+    // `m`'s own length is the second witness, so losing `mi` to a rename costs
+    // this case its count but not its alarm.
+    const reading = getPayloadReading({ m: ["a", 3] });
+
+    expect(reading.fault).toBe("messages-lost");
+    expect(reading.lostMessages).toBe(1);
+  });
+
+  /**
+   * ⚠️ **The one case `m` alone cannot see, and the whole reason `mi` is read.**
+   * Every other loss shows up as a gap between `m`'s length and the strings in
+   * it. A list that simply arrived shorter than the payload says it is has no
+   * such gap — `m` is internally consistent and wrong. Written because dropping
+   * the `mi` comparison from the reader broke nothing: the mutation survived, so
+   * the witness was being carried without being held (§7.5).
+   */
+  test("a list that arrived shorter than the payload counted is loud", () => {
+    const reading = getPayloadReading({ m: ["a"], mi: [1, 2, 3] });
+
+    expect(reading.messages).toEqual(["a"]);
+    expect(reading.fault).toBe("messages-lost");
+    expect(reading.lostMessages).toBe(2);
+  });
+
+  test("the payload is carried through untouched", () => {
+    // Deciding its shape is this layer's job and nobody else's, so what the
+    // session and the recording receive is the argument the game passed.
+    const payload = { m: ["a"], mi: [1], anything: { else: true } };
+
+    expect(getPayloadReading(payload).payload).toBe(payload);
+  });
+});
+
+/**
+ * The reader against every payload the game has actually sent us.
+ *
+ * This is the half that keeps the classifier honest. A fault that never fires is
+ * useless and a fault that fires on real material is worse than useless — it is
+ * the warning people learn to scroll past. Both are checked here at once.
+ */
+describe("the captured payloads, read as the wrap reads them", () => {
+  const READINGS = CAPTURED_FIGHTS.flatMap((fight) =>
+    fight.dump.calls.map((call) => ({
+      fight: fight.name,
+      call: call.index,
+      stated: call.protocolMessages,
+      reading: getPayloadReading(call.payload),
+    })),
+  );
+
+  test("there are payloads to read", () => {
+    expect(READINGS.length).toBeGreaterThan(0);
+  });
+
+  test("every one of them reads clean", () => {
+    const faulty = READINGS.filter(({ reading }) => reading.fault !== null).map(
+      ({ fight, call, reading }) => `${fight} call ${call}: ${reading.fault}`,
+    );
+
+    expect(faulty).toEqual([]);
+  });
+
+  test("and gives back exactly the messages the capture recorded", () => {
+    const wrong = READINGS.filter(
+      ({ stated, reading }) => reading.messages.join(" ") !== stated.join(" "),
+    ).map(({ fight, call }) => `${fight} call ${call}`);
+
+    expect(wrong).toEqual([]);
   });
 });
 
@@ -260,7 +385,7 @@ describe("a captured fight replayed through the wrap", () => {
     (_name, fight) => {
       const battle = composeBattle();
       const collected: string[] = [];
-      setBattleWrap(battle, (messages) => collected.push(...messages));
+      setBattleWrap(battle, (reading) => collected.push(...reading.messages));
 
       const updateData = getBattleMethod(battle);
       for (const call of fight.dump.calls) updateData({ m: call.protocolMessages });

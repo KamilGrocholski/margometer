@@ -206,7 +206,7 @@ describe("attaching", () => {
   test("messages reach the caller once attached", () => {
     const battle = composeBattle();
     const seen: string[] = [];
-    setEngineAttachment({ Engine: { battle } }, (messages) => seen.push(...messages));
+    setEngineAttachment({ Engine: { battle } }, (reading) => seen.push(...reading.messages));
 
     (battle["updateData"] as (payload: unknown) => unknown)({ m: ["one", "two"] });
     expect(seen).toEqual(["one", "two"]);

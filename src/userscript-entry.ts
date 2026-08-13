@@ -159,9 +159,10 @@ export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {})
 
   const stop = setEngineAttachment(
     page,
-    (messages, payload) => {
+    (reading) => {
+      const { payload, messages } = reading;
       const before = session;
-      session = composeNextSession(session, payload, messages);
+      session = composeNextSession(session, reading);
       read = true;
       /**
        * Guarded on its own, and ahead of nothing: keeping material is a

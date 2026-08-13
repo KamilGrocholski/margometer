@@ -24,6 +24,7 @@ import type { BattleEvent } from "@/src/core/battle-event.ts";
 import type { CombatantRoster, RosteredCombatant } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
+import type { PayloadFault, PayloadReading } from "@/src/game/engine-battle-wrap.ts";
 import {
   composeBattleRoster,
   composeCombatantsFromBattle,
@@ -73,6 +74,24 @@ export type BattleSession = {
   events: readonly BattleEvent[];
   decodedWithCombatants: number;
   /**
+   * Payloads of this fight we no longer recognise, counted by what was wrong.
+   *
+   * Scoped to the fight for free: `composeEmptySession` is what a fight start
+   * resets to, so §9.6's "a warning belongs to the fight that produced it" falls
+   * out of the structure rather than being remembered somewhere. Read from
+   * `previous` and never from `session`, which is what makes that true —
+   * `fightsStarted` is the one field that deliberately survives a reset.
+   */
+  unreadablePayloadsByFault: ReadonlyMap<PayloadFault, number>;
+  /**
+   * Messages this fight stated and we could not read.
+   *
+   * Only what could be counted. A payload that lost an unknown number is in the
+   * map above and contributes nothing here, because a zero would say "nothing was
+   * lost" about the one case where something certainly was.
+   */
+  lostMessages: number;
+  /**
    * The last message already decoded.
    *
    * The glue reaches exactly one message forward (`AnnouncedSkill`), so a message
@@ -92,7 +111,29 @@ export function composeEmptySession(): BattleSession {
     fightsStarted: 0,
     events: [],
     decodedWithCombatants: 0,
+    unreadablePayloadsByFault: new Map(),
+    lostMessages: 0,
     lastMessage: null,
+  };
+}
+
+/** The fault counts after one more payload, and the same map where it was clean. */
+function composeNextFaults(
+  previous: BattleSession,
+  reading: PayloadReading,
+): Pick<BattleSession, "unreadablePayloadsByFault" | "lostMessages"> {
+  if (reading.fault === null) {
+    return {
+      unreadablePayloadsByFault: previous.unreadablePayloadsByFault,
+      lostMessages: previous.lostMessages,
+    };
+  }
+
+  const byFault = new Map(previous.unreadablePayloadsByFault);
+  byFault.set(reading.fault, (byFault.get(reading.fault) ?? 0) + 1);
+  return {
+    unreadablePayloadsByFault: byFault,
+    lostMessages: previous.lostMessages + (reading.lostMessages ?? 0),
   };
 }
 
@@ -148,9 +189,9 @@ export function isFightStart(payload: unknown): boolean {
  */
 export function composeNextSession(
   session: BattleSession,
-  payload: unknown,
-  messages: readonly string[],
+  reading: PayloadReading,
 ): BattleSession {
+  const { payload, messages } = reading;
   const starting = isFightStart(payload);
   const previous = starting ? composeEmptySession() : session;
 
@@ -173,9 +214,17 @@ export function composeNextSession(
    * Every part of it is by identity, and every part of it is exact: the merge
    * hands back the list it was given when a fragment said nothing new
    * (`composeMergedCombatants`).
+   *
+   * ⚠️ **A faulty payload changes something even when it carries nothing.** It is
+   * the one clause here that is not about the fight: without it, a payload we
+   * could not read would be counted into a session the caller never looks at,
+   * because the caller redraws on identity — so the count would be right and
+   * invisible, which is the same as absent. This is the single easiest place for
+   * the whole of this round to be quietly undone, and it has its own test.
    */
   const changedNothing =
     !starting &&
+    reading.fault === null &&
     messages.length === 0 &&
     combatants === previous.combatants &&
     (stated ?? previous.ourSide) === previous.ourSide;
@@ -186,6 +235,7 @@ export function composeNextSession(
     combatants,
     events: composeNextEvents(previous, messages, combatants),
     decodedWithCombatants: combatants.length,
+    ...composeNextFaults(previous, reading),
     lastMessage: messages[messages.length - 1] ?? previous.lastMessage,
     // Kept once seen: it arrives on the opening payload only, so a later
     // fragment saying nothing about it must not erase it.

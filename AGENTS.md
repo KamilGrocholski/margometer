@@ -693,7 +693,14 @@ src/
                          be read. Its own file so the whole of our contact with
                          the game is one sitting's reading. Original first, its
                          value untouched, no exception of ours escaping, and a
-                         detach that removes only our layer.
+                         detach that removes only our layer. Answers with what it
+                         read rather than with a list: a payload that mentions no
+                         messages and one whose shape we no longer recognise were
+                         the same empty answer, so a renamed field read every
+                         fight as zero. The companion count the client itself
+                         never reads is what tells them apart — positive evidence
+                         that messages were stated, so losing it costs a witness
+                         and can never invent an alarm.
     engine-roster.ts     Who is fighting, read live, and — from `myteam` — which
                          side is the player's. The one thing `core` cannot know,
                          decided here so no core type has to carry it.
@@ -712,10 +719,14 @@ src/
                          it, the roster arrives in fragments that merge, and
                          `myteam` arrives once or never. Counts the fights it has
                          watched open, which is the only thing surviving the
-                         reset — a warning is scoped to one fight (§9.6) — and
-                         holds the turn axis, which it feeds the payload the fight
-                         has just reset on and that payload's messages — not the
-                         ones before it.
+                         reset — a warning is scoped to one fight (§9.6). Counts
+                         what could not be read out of a payload too, by kind and
+                         with the losses that could be sized, which needs no
+                         scoping of its own: the reset is what a fight start
+                         returns to. A payload with a fault changes the session
+                         even when it carries nothing, because the caller redraws
+                         on identity and a count nobody looks at is a count that
+                         is not there.
                          Pure — the mutable variable belongs to whoever drives it.
     fight-capture.ts     The same fight kept so it can be written to a file: the
                          payload copied whole, and the combatants as the fight

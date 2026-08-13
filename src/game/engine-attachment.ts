@@ -19,7 +19,11 @@
  * `isFromFightStart`.
  */
 
-import { setBattleWrap, type EngineBattle } from "@/src/game/engine-battle-wrap.ts";
+import {
+  setBattleWrap,
+  type EngineBattle,
+  type PayloadReading,
+} from "@/src/game/engine-battle-wrap.ts";
 import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 
 /** How the page exposes the game. Both spellings, because both are in the wild. */
@@ -94,7 +98,7 @@ export function getBattleFromWindow(page: GameWindow): EngineBattle | null {
  */
 export function setEngineAttachment(
   page: GameWindow,
-  onMessages: (messages: readonly string[], payload: unknown) => void,
+  onPayloadRead: (reading: PayloadReading) => void,
   options: AttachmentOptions = {},
 ): () => void {
   const schedule =
@@ -126,7 +130,7 @@ export function setEngineAttachment(
       return;
     }
 
-    removeWrap = setBattleWrap(battle, onMessages, {
+    removeWrap = setBattleWrap(battle, onPayloadRead, {
       onReadingFailure: options.onReadingFailure,
       onBeforeOriginal: options.onBeforeOriginal,
     });

@@ -14,11 +14,29 @@ import {
   composeNextSession,
   isFightStart,
 } from "@/src/game/battle-session.ts";
+import {
+  getPayloadReading,
+  type PayloadReading,
+} from "@/src/game/engine-battle-wrap.ts";
 import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
 
 /** The payload the engine call carried, as the capture recorded it. */
 function getPayloads(fight: CapturedFight): unknown[] {
   return fight.dump.calls.map((call) => call.payload);
+}
+
+/**
+ * A payload the wrap read without trouble.
+ *
+ * Most of this file is about what the session does with what it is handed, and
+ * the messages are stated apart from the payload so a case can be built without
+ * also building the field they arrive in. Where the *reading* is the subject —
+ * a payload we no longer recognise — the tests below use `getPayloadReading` on
+ * a real payload instead, because a hand-built fault proves only that the field
+ * can be set.
+ */
+function composeCleanReading(payload: unknown, messages: readonly string[] = []): PayloadReading {
+  return { payload, messages, fault: null, lostMessages: 0 };
 }
 
 describe("where one fight ends and the next begins", () => {
@@ -43,11 +61,16 @@ describe("where one fight ends and the next begins", () => {
    * them would throw away the beginning of the fight it just started.
    */
   test("an opening payload keeps what it arrived with", () => {
-    const stale = composeNextSession(composeEmptySession(), {}, ["from an older fight"]);
+    const stale = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({}, ["from an older fight"]),
+    );
     const fresh = composeNextSession(
       stale,
-      { init: "1", myteam: 1, w: { "7": { id: 7, name: "a", team: 1, prof: "m" } } },
-      ["the new fight's first message"],
+      composeCleanReading(
+        { init: "1", myteam: 1, w: { "7": { id: 7, name: "a", team: 1, prof: "m" } } },
+        ["the new fight's first message"],
+      ),
     );
 
     expect(fresh.messages).toEqual(["the new fight's first message"]);
@@ -66,9 +89,12 @@ describe("where one fight ends and the next begins", () => {
    * panel would go quiet after its first failure ever.
    */
   test("the fights are counted, and the count outlives the reset", () => {
-    const first = composeNextSession(composeEmptySession(), { init: "1" }, ["a"]);
-    const during = composeNextSession(first, {}, ["b"]);
-    const second = composeNextSession(during, { init: "1" }, ["c"]);
+    const first = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1" }, ["a"]),
+    );
+    const during = composeNextSession(first, composeCleanReading({}, ["b"]));
+    const second = composeNextSession(during, composeCleanReading({ init: "1" }, ["c"]));
 
     expect(composeEmptySession().fightsStarted).toBe(0);
     expect(first.fightsStarted).toBe(1);
@@ -79,7 +105,10 @@ describe("where one fight ends and the next begins", () => {
 
   // Joined mid-fight: no `init` was ever seen, so no fight has been watched open.
   test("a fight joined late is not counted as one that started", () => {
-    const joined = composeNextSession(composeEmptySession(), {}, ["mid-fight"]);
+    const joined = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({}, ["mid-fight"]),
+    );
     expect(joined.fightsStarted).toBe(0);
     expect(joined.isFromFightStart).toBe(false);
   });
@@ -92,32 +121,41 @@ describe("the roster as it arrives in pieces", () => {
    * roster — every name resolution in the fight depends on this.
    */
   test("a fragment adds and never takes away", () => {
-    let session = composeNextSession(composeEmptySession(), {
+    let session = composeNextSession(composeEmptySession(), composeCleanReading({
       init: "1",
       w: { "1": { id: 1, name: "one", team: 1, prof: "m" }, "2": { id: 2, name: "two", team: 2, prof: "m" } },
-    }, []);
-    session = composeNextSession(session, { w: { "3": { id: 3, name: "three", team: 2, prof: "m" } } }, []);
+    }, []));
+    session = composeNextSession(
+      session,
+      composeCleanReading({ w: { "3": { id: 3, name: "three", team: 2, prof: "m" } } }, []),
+    );
 
     expect(session.combatants.map((combatant) => combatant.id)).toEqual([1, 2, 3]);
   });
 
   test("a payload mentioning nobody leaves the roster standing", () => {
-    let session = composeNextSession(composeEmptySession(), {
+    let session = composeNextSession(composeEmptySession(), composeCleanReading({
       init: "1",
       w: { "1": { id: 1, name: "one", team: 1, prof: "m" } },
-    }, []);
-    session = composeNextSession(session, { m: ["a message and no warriors"] }, ["x"]);
+    }, []));
+    session = composeNextSession(
+      session,
+      composeCleanReading({ m: ["a message and no warriors"] }, ["x"]),
+    );
 
     expect(session.combatants.map((combatant) => combatant.id)).toEqual([1]);
   });
 
   // First-seen order survives, so a later update does not reshuffle the fight.
   test("a fragment updates in place rather than moving anyone", () => {
-    let session = composeNextSession(composeEmptySession(), {
+    let session = composeNextSession(composeEmptySession(), composeCleanReading({
       init: "1",
       w: { "1": { id: 1, name: "one", team: 1, prof: "m" }, "2": { id: 2, name: "two", team: 2, prof: "m" } },
-    }, []);
-    session = composeNextSession(session, { w: { "1": { id: 1, name: "renamed", team: 1, prof: "m" } } }, []);
+    }, []));
+    session = composeNextSession(
+      session,
+      composeCleanReading({ w: { "1": { id: 1, name: "renamed", team: 1, prof: "m" } } }, []),
+    );
 
     expect(session.combatants.map((combatant) => combatant.name)).toEqual(["renamed", "two"]);
   });
@@ -130,8 +168,11 @@ describe("which side is the player's", () => {
    * every fight.
    */
   test("is remembered once stated", () => {
-    let session = composeNextSession(composeEmptySession(), { init: "1", myteam: 2 }, []);
-    session = composeNextSession(session, { w: {} }, []);
+    let session = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1", myteam: 2 }, []),
+    );
+    session = composeNextSession(session, composeCleanReading({ w: {} }, []));
 
     expect(session.ourSide).toBe(2);
   });
@@ -139,7 +180,10 @@ describe("which side is the player's", () => {
   // Attaching mid-fight never sees the opening payload. Null is the truth, and
   // guessing would put every row under the wrong heading.
   test("is unknown when the fight was joined late", () => {
-    const session = composeNextSession(composeEmptySession(), { w: {} }, ["a message"]);
+    const session = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ w: {} }, ["a message"]),
+    );
 
     expect(session.ourSide).toBeNull();
     expect(session.isFromFightStart).toBe(false);
@@ -160,7 +204,10 @@ describe("a captured fight accumulated payload by payload", () => {
     (_name, fight) => {
       let session = composeEmptySession();
       for (const [at, payload] of getPayloads(fight).entries()) {
-        session = composeNextSession(session, payload, fight.dump.calls[at]!.protocolMessages);
+        session = composeNextSession(
+          session,
+          composeCleanReading(payload, fight.dump.calls[at]!.protocolMessages),
+        );
       }
 
       const reading = composeFightReading(session);
@@ -195,7 +242,7 @@ describe("a fight read once rather than again and again", () => {
   function getReadingOfWholeFight(messagesByPayload: readonly (readonly string[])[], payload: unknown) {
     let session = composeEmptySession();
     for (const messages of messagesByPayload) {
-      session = composeNextSession(session, payload, messages);
+      session = composeNextSession(session, composeCleanReading(payload, messages));
     }
     return composeFightReading(session);
   }
@@ -236,11 +283,11 @@ describe("a fight read once rather than again and again", () => {
     };
 
     let session = composeEmptySession();
-    session = composeNextSession(session, first, [named]);
+    session = composeNextSession(session, composeCleanReading(first, [named]));
     expect(composeFightReading(session).statistics.byCombatantId.has(2)).toBe(false);
 
     // Nothing new arrives with the second payload except the missing combatant.
-    session = composeNextSession(session, second, []);
+    session = composeNextSession(session, composeCleanReading(second, []));
     const reading = composeFightReading(session);
 
     expect(reading.statistics.byCombatantId.get(2)?.taken).toBe(250);
@@ -260,11 +307,14 @@ describe("a payload that carried nothing", () => {
   const combatant = { id: 1, name: "ktoś", team: 1, prof: "m", lvl: 100 };
 
   test("hands back the very session it was given", () => {
-    const opened = composeNextSession(composeEmptySession(), { init: 1, w: { 1: combatant } }, [
-      "1=100.00;0;heal=10",
-    ]);
+    const opened = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: 1, w: { 1: combatant } }, ["1=100.00;0;heal=10"]),
+    );
 
-    expect(composeNextSession(opened, { w: { 1: combatant } }, [])).toBe(opened);
+    expect(composeNextSession(opened, composeCleanReading({ w: { 1: combatant } }, []))).toBe(
+      opened,
+    );
   });
 
   /**
@@ -274,11 +324,93 @@ describe("a payload that carried nothing", () => {
    * for the rest of the fight.
    */
   test("but not when a fragment corrected somebody", () => {
-    const opened = composeNextSession(composeEmptySession(), { init: 1, w: { 1: combatant } }, []);
-    const renamed = composeNextSession(opened, { w: { 1: { ...combatant, name: "ktoś inny" } } }, []);
+    const opened = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: 1, w: { 1: combatant } }, []),
+    );
+    const renamed = composeNextSession(
+      opened,
+      composeCleanReading({ w: { 1: { ...combatant, name: "ktoś inny" } } }, []),
+    );
 
     expect(renamed).not.toBe(opened);
     expect(renamed.combatants[0]?.name).toBe("ktoś inny");
   });
 
+  /**
+   * ⚠️ **The single easiest place for the fault counting to be quietly undone.**
+   * The caller redraws on identity, so a payload we could not read that carried
+   * nothing else would be counted into a session nobody ever looks at again —
+   * the count would be correct and invisible, which is the same as absent.
+   */
+  test("and not when the payload was one we could not read", () => {
+    const opened = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: 1, w: { 1: combatant } }, []),
+    );
+    const faulty = composeNextSession(opened, getPayloadReading({ mm: ["a"], mi: [1] }));
+
+    expect(faulty).not.toBe(opened);
+    expect(faulty.unreadablePayloadsByFault.get("messages-lost")).toBe(1);
+    expect(faulty.lostMessages).toBe(1);
+  });
+});
+
+describe("what this fight could not be read out of", () => {
+  const combatant = { id: 1, name: "ktoś", team: 1, prof: "m", lvl: 100 };
+
+  test("a clean fight counts nothing and says so with an empty map", () => {
+    const session = composeNextSession(
+      composeEmptySession(),
+      getPayloadReading({ init: 1, w: { 1: combatant }, m: ["1=100.00;0;heal=10"], mi: [1] }),
+    );
+
+    expect(session.unreadablePayloadsByFault.size).toBe(0);
+    expect(session.lostMessages).toBe(0);
+  });
+
+  test("faults are counted by kind, and the countable losses added up", () => {
+    let session = composeNextSession(composeEmptySession(), composeCleanReading({ init: 1 }, []));
+    session = composeNextSession(session, getPayloadReading({ mm: ["a", "b"], mi: [1, 2] }));
+    session = composeNextSession(session, getPayloadReading({ mm: ["c"], mi: [1] }));
+    session = composeNextSession(session, getPayloadReading("not a payload"));
+
+    expect([...session.unreadablePayloadsByFault]).toEqual([
+      ["messages-lost", 2],
+      ["payload-not-a-record", 1],
+    ]);
+    // Three payloads went wrong and only two of them could say by how much. The
+    // third adds nothing rather than adding zero.
+    expect(session.lostMessages).toBe(3);
+  });
+
+  /**
+   * §9.6 scopes a warning to the fight that produced it. That falls out of the
+   * structure here — `composeEmptySession` is what a fight start resets to — and
+   * this is what holds it, because reading the counters from `session` instead of
+   * from `previous` would carry them across for the rest of the tab's life.
+   */
+  test("the count starts again with the next fight, and the fight count does not", () => {
+    let session = composeNextSession(composeEmptySession(), composeCleanReading({ init: 1 }, []));
+    session = composeNextSession(session, getPayloadReading({ mm: ["a"], mi: [1] }));
+    expect(session.lostMessages).toBe(1);
+
+    session = composeNextSession(session, composeCleanReading({ init: 1 }, []));
+
+    expect(session.unreadablePayloadsByFault.size).toBe(0);
+    expect(session.lostMessages).toBe(0);
+    expect(session.fightsStarted).toBe(2);
+  });
+
+  test("a fight that opens on a payload we could not read still opens", () => {
+    // The fault must not cost the fight boundary: `init` is the only one the
+    // protocol gives, and losing it would merge two fights into one total.
+    const session = composeNextSession(
+      composeEmptySession(),
+      getPayloadReading({ init: 1, mm: ["a"], mi: [1] }),
+    );
+
+    expect(session.fightsStarted).toBe(1);
+    expect(session.lostMessages).toBe(1);
+  });
 });

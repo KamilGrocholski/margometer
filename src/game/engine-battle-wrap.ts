@@ -53,15 +53,102 @@ function isOurWrapper(value: unknown): value is Wrapper {
 }
 
 /**
- * The payload is the game's, so nothing is assumed about it beyond the one field
- * we came for. A payload whose `m` is not a list of strings yields no messages
- * rather than a guess — the caller sees an empty batch, which is a state the
- * panel already has to handle for a fight joined late.
+ * The field the messages arrive in, and the one that says how many there were.
+ *
+ * `mi` is a companion list the client itself never reads — measured on production
+ * build `1786514810315`, no property access to it anywhere in the bundle. What it
+ * is *for* is therefore not something we can claim. What is measured, over the
+ * 400 engine calls in `tests/captured-fights/`, is that it counts the same things
+ * `m` does: present in the same 380 payloads, never without `m`, never `m`
+ * without it, and `mi.length === m.length` in 380 of 380.
+ *
+ * That makes it a witness that can only ever **add** signal. It is read as
+ * positive evidence that messages were stated, and nothing else — so losing it to
+ * a rename costs a witness and can never invent an alarm.
  */
-export function getMessagesFromPayload(payload: unknown): string[] {
-  const stated = getRecordOrArrayFromValue(payload)?.["m"];
-  if (!Array.isArray(stated)) return [];
-  return stated.filter((message): message is string => typeof message === "string");
+const MESSAGES_FIELD = "m";
+const MESSAGE_COUNT_FIELD = "mi";
+
+/**
+ * What went wrong reading a payload, where "nothing" is a real answer.
+ *
+ * ⚠️ **`messages-lost` is the one this file exists for.** If the game renames
+ * `m`, every payload yields no messages and the old reader said exactly what it
+ * says for a payload that opened a fight — so every fight read as zero and the
+ * panel drew zeroes as though they were the count.
+ */
+export type PayloadFault = "payload-not-a-record" | "messages-not-a-list" | "messages-lost";
+
+export type PayloadReading = {
+  /** Carried through untouched: deciding its shape is this layer's job alone. */
+  payload: unknown;
+  messages: readonly string[];
+  fault: PayloadFault | null;
+  /**
+   * How many the payload said it held that we could not read.
+   *
+   * `null` where something was lost and nothing said how much — a fault with no
+   * number is louder than a fault with a zero, and `0` here would be a figure
+   * nobody wrote (§9.3). `0` means exactly "nothing was lost".
+   */
+  lostMessages: number | null;
+};
+
+/**
+ * The payload, read for what it holds and for whether we still recognise it.
+ *
+ * Three states the old reader collapsed into one empty list, and the middle one
+ * is normal rather than wrong:
+ *
+ *   the payload did not mention messages   `m` absent, `mi` absent — 20 of 400
+ *                                          captured calls, every one of them a
+ *                                          fight opening or closing. Clean.
+ *   the payload carried none               `m: []`. Clean — and worth knowing
+ *                                          this never happens in 400 calls,
+ *                                          which is why it is not the same
+ *                                          observation as the line above.
+ *   we no longer recognise the payload     one of the three faults.
+ *
+ * Nothing is assumed about the payload beyond the two fields we came for, and a
+ * fault yields whatever could still be read rather than nothing (§9.6: never
+ * vanish). The messages are still returned alongside the fault.
+ */
+export function getPayloadReading(payload: unknown): PayloadReading {
+  const record = getRecordOrArrayFromValue(payload);
+  if (record === null) {
+    return { payload, messages: [], fault: "payload-not-a-record", lostMessages: null };
+  }
+
+  const stated = record[MESSAGES_FIELD];
+  const counted = record[MESSAGE_COUNT_FIELD];
+  const statedCount = Array.isArray(counted) ? counted.length : null;
+
+  if (stated === undefined) {
+    // The whole of the rename case: nothing under the name we know, and the
+    // companion list still saying how many there should have been.
+    if (statedCount !== null && statedCount > 0) {
+      return { payload, messages: [], fault: "messages-lost", lostMessages: statedCount };
+    }
+    return { payload, messages: [], fault: null, lostMessages: 0 };
+  }
+
+  if (!Array.isArray(stated)) {
+    return {
+      payload,
+      messages: [],
+      fault: "messages-not-a-list",
+      lostMessages: statedCount,
+    };
+  }
+
+  const messages = stated.filter((message): message is string => typeof message === "string");
+  // Two independent statements of how many there were, and the loss is measured
+  // against whichever saw more: `m`'s own length catches an entry that is not
+  // text even where `mi` is absent, and `mi` catches a list that arrived short.
+  const lost = Math.max(stated.length, statedCount ?? 0) - messages.length;
+  if (lost > 0) return { payload, messages, fault: "messages-lost", lostMessages: lost };
+
+  return { payload, messages, fault: null, lostMessages: 0 };
 }
 
 export type BattleWrapOptions = {
@@ -95,7 +182,7 @@ export type BattleWrapOptions = {
  */
 export function setBattleWrap(
   battle: EngineBattle,
-  onMessages: (messages: readonly string[], payload: unknown) => void,
+  onPayloadRead: (reading: PayloadReading) => void,
   options: BattleWrapOptions = {},
 ): () => void {
   const existing = battle[WRAPPED_METHOD];
@@ -141,7 +228,7 @@ export function setBattleWrap(
     // happens in between and can change neither.
     const result = original.apply(this, args);
     try {
-      onMessages(getMessagesFromPayload(args[0]), args[0]);
+      onPayloadRead(getPayloadReading(args[0]));
     } catch (error) {
       handleFailure(error);
     }
