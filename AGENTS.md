@@ -1118,11 +1118,24 @@ tests/
                              through the view until an audit asked what one of
                              them returns.
     panel-names.test.ts      The vocabulary held to saying each thing differently
-                             from every other thing — two quantities under one
+                             from every other thing — and, since a sweep put a
+                             sentinel through all 43 entries with nothing going
+                             red, to saying what it was written to say: the
+                             tables are recorded entry by entry, so changing what
+                             the panel calls something is one line of a diff and
+                             has to be meant. Also — two quantities under one
                              label is a wrong number that looks right — to asking
                              a different question for each, and to asking nothing
                              at all about a token the client has no name for.
-    panel-view.test.ts       What the panel decides, without a document: the
+    panel-view.test.ts       Every sentence the panel says, recorded rather than
+                             described — the §3 sweeps below check the words for
+                             what they must not say and pass just as happily when
+                             one phrase becomes a different phrase, which is how
+                             55 string literals here took a sentinel with nothing
+                             going red. Driven by the hand-written fight and not
+                             the captures, because the drill names skills and
+                             combatants and those are the game's own prose (§5).
+                             Also: what the panel decides, without a document: the
                              ranking and its numbering, the height it asks for —
                              a floor of eleven bars the ranking keeps exactly and a
                              breakdown may only grow past, held on the captures

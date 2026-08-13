@@ -1234,3 +1234,164 @@ describe("what a bar's length says", () => {
     expect(view.lists[0]!.rows.some((row) => row.fill === 1)).toBe(true);
   });
 });
+
+/**
+ * Every sentence this panel says, recorded rather than described.
+ *
+ * ⚠️ **The words were swept for what they must not say and never for what they
+ * do.** The block above walks every screen refusing a key of the game's or a
+ * term of ours — a check on the *vocabulary*, and it passes just as happily when
+ * one phrase is replaced by a different phrase. `bun tools/mutation-sweep.ts`
+ * put a sentinel through 55 string literals in this file and nothing anywhere
+ * went red. The panel's own title had already shown what that costs: it sat in
+ * the sweep the whole time, and still announced `brak składu` over a roster.
+ *
+ * So this holds the other half. It is the same walk, and it asserts the set of
+ * phrases exactly — a changed sentence has to be stated in a diff, and a new one
+ * has to be added here on purpose, which is the right amount of friction for a
+ * word a player reads (§3).
+ *
+ * **Driven by the hand-written fight and not the captures**, and that is the
+ * condition it exists under rather than a convenience: the drill names skills
+ * and combatants, and those are the game's own prose (§5, NOTICE.md). Anything
+ * carrying a figure or a name from the fixture is dropped, so what is left is
+ * only ever ours.
+ */
+describe("every sentence the panel says", () => {
+  const OURS = [
+    "  bez sprawcy",
+    "  z ciosów",
+    "Bez sprawcy",
+    "Bez strony",
+    "CZYM (UMIEJĘTNOŚCI)",
+    "Cała walka · My / Oni",
+    "Cios, przed którym nie stała żadna umiejętność. Gra nie odróżnia go od dodatkowego zamachu, który sama jej dała.",
+    "Część tej walki nie dotarła do panelu — liczby są zaniżone.",
+    "Część leczenia w tej walce jest bez sprawcy — nie da się sprawdzić, czy któreś z niego jest jej.",
+    "Część obrażeń w tej walce jest bez sprawcy — nie da się sprawdzić, czy któreś z nich są jej.",
+    "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
+    "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.",
+    "KOMU",
+    "Komu",
+    "LPM — rozbicie · PPM — powrót",
+    "Leczenie",
+    "Leczenie dane",
+    "My",
+    "My / Oni",
+    "Nic jej nie ubyło.",
+    "Nic nie zapowiedziało tego leczenia, więc gra nie mówi, co je dało.",
+    "Nie ma czego pokazać.",
+    "Nie wiadomo, czym",
+    "Nie zadała nikomu obrażeń.",
+    "Nikogo nie leczyła.",
+    "Nikt jej nie leczył.",
+    "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno.",
+    "OD CZEGO",
+    "OD KOGO",
+    "Obrażenia",
+    "Oni",
+    "Otrzymane",
+    "Panel wpiął się w trakcie tej walki — to nie są jej pełne liczby.",
+    "TYP OBRAŻEŃ",
+    "Te obrażenia są już policzone wyżej, u tych, którym ubyło życia.",
+    "To leczenie jest już policzone wyżej, u tych, którzy je dostali.",
+    "Użycia umiejętności",
+    "Wszyscy",
+    "Z całej walki — bez sprawcy nie ma czego przypisać do strony.",
+    "Z czego",
+    "Zadane",
+    "Zwykły cios",
+    "dane",
+    "fizyczne",
+    "leczenie",
+    "leczenie na wskazanego",
+    "otrzymane",
+    "trucizna",
+    "umiejętność",
+    "zadane",
+    "‹ skład",
+  ];
+
+  /**
+   * A figure or a name is data; everything else on the screen is our writing.
+   *
+   * Deliberately **not** `getEveryString`, which is right for its own job and
+   * wrong for this one: it renders a detail line as its label and its value
+   * joined, so every stat label would arrive carrying a number and be filtered
+   * away as data. Written out the first time, that silently dropped six phrases
+   * — including three of the four words on the tabs.
+   */
+  function getPhrasesOf(view: PanelView, reading: PanelReading): string[] {
+    const fromTheFight = [...reading.roster.byId.values()]
+      .map((one) => one.name)
+      .concat("Leczenie ran");
+    const said = [
+      view.title,
+      view.outcomeText ?? "",
+      view.emptyText ?? "",
+      view.emptyLimitText ?? "",
+      ...view.nounTabs.map((tab) => tab.label),
+      ...view.directionTabs.map((tab) => tab.label),
+      ...view.teamTabs.map((tab) => tab.label),
+      ...(view.sides === null ? [] : [view.sides.label, view.sides.nobody?.label ?? ""]),
+      ...(view.crumb === null ? [] : [view.crumb.backLabel, view.crumb.hereLabel]),
+      ...view.lists.flatMap((list) => [list.heading ?? "", list.totalText ?? ""]),
+      ...view.warnings,
+      ...getEveryRow(view).flatMap((row) => [
+        row.label,
+        ...row.detail.map((line) => (line.kind === "stat" ? line.label : line.text)),
+      ]),
+    ];
+
+    return said.filter(
+      (text) =>
+        text !== "" && !/\d/.test(text) && !fromTheFight.some((name) => text.includes(name)),
+    );
+  }
+
+  /**
+   * Three readings, because a warning that never fires is a sentence this walk
+   * never sees. Written after the sweep put a sentinel through the joined-late
+   * warning and nothing went red: the fixture starts at the beginning of its
+   * fight, so that line had no way to appear.
+   */
+  const READINGS = [
+    composeReading(),
+    composeReading({ isFromFightStart: false }),
+    composeReading({
+      engineReading: {
+        unreadablePayloadsByFault: new Map([["payload-not-a-record", 1]]),
+        lostMessages: 0,
+        unreadableCombatants: 0,
+      },
+    }),
+  ];
+
+  const said = new Set<string>();
+  for (const reading of READINGS) for (const metric of PANEL_METRICS) {
+    for (const team of PANEL_TEAMS) {
+      const base = composeState({ metric, team });
+      const states = [base];
+      for (const focusCombatantId of reading.statistics.byCombatantId.keys()) {
+        states.push({ ...base, focusCombatantId });
+        states.push({ ...base, focusCombatantId, focusSkill: { ownerId: focusCombatantId, key: "7" } });
+        for (const focusTargetId of reading.statistics.byCombatantId.keys()) {
+          states.push({ ...base, focusCombatantId, focusTargetId });
+        }
+      }
+      for (const state of states) {
+        for (const phrase of getPhrasesOf(composePanelView(reading, state), reading)) said.add(phrase);
+      }
+    }
+  }
+
+  test("is one that was decided, and every one that was decided is still said", () => {
+    expect([...said].sort()).toEqual([...OURS].sort());
+  });
+
+  // Without this the assertion above would pass by comparing two empty lists the
+  // day the walk stopped reaching any screen at all.
+  test("and there are sentences to hold", () => {
+    expect(said.size).toBeGreaterThan(40);
+  });
+});
