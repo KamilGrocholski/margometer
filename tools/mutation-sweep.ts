@@ -70,7 +70,20 @@ export type Mutation = {
 
 export type MutationOutcome = {
   mutation: Mutation;
-  /** Test files that failed. Empty is the finding. */
+  /**
+   * Whether the gate went red. **This is the verdict**, and it comes from the
+   * exit status alone.
+   *
+   * ⚠️ **It used to be `killedBy.length > 0`, and that made the parser the
+   * judge.** The comment beside the runner has always said "the status decides
+   * and the names only describe" — for a mutant that stops the suite loading at
+   * all, there is no failure line to read. Deriving the verdict from the names
+   * said the opposite, so the day the runner changed its failure marker every
+   * kill in every report became a survivor: a tool for finding tests that cannot
+   * fail, reporting that none of them can.
+   */
+  isKilled: boolean;
+  /** Test files that failed, where the output could be read. Descriptive only. */
   killedBy: string[];
   /** Killed, but only by a guard reading source as text. */
   isShapeOnly: boolean;
@@ -202,16 +215,40 @@ export function composeMutatedSource(source: string, mutation: Mutation): string
   );
 }
 
+/**
+ * What `bun test` marks a failed test with, once its colours are taken off.
+ *
+ * ⚠️ **Reading the wrong one cost this tool every verdict it ever gave.** The
+ * marker was `(fail)`, which the runner in use does not print — it prints `✗`,
+ * inside escape codes, so every failure parsed as no failure at all. The test
+ * that should have caught it asserted against a sample somebody had typed by
+ * hand, under a comment claiming it was "the shape `bun test` prints". That is a
+ * guard agreeing with the bug it was written to prevent (§7.5), and it is the
+ * second time in this repository that a hand-written sample of somebody else's
+ * output has done it.
+ *
+ * Both spellings are accepted, because which one appears is the runner's
+ * business and not a thing worth breaking on. What makes that safe rather than
+ * hopeful is that **this function no longer decides anything** — the exit status
+ * does, and these names only describe.
+ */
+const FAILURE_MARKERS = ["✗", "(fail)"];
+
+/** Escape codes, which the runner writes even when nothing is a terminal. */
+const ANSI = /\[[0-9;]*m/g;
+
 export function getFailingTestFiles(output: string): string[] {
   const failing: string[] = [];
   let current: string | null = null;
-  for (const line of output.split("\n")) {
+  for (const raw of output.split("\n")) {
+    const line = raw.replace(ANSI, "").trim();
     const header = /^(\S+\.test\.ts):$/.exec(line);
     if (header !== null) {
       current = header[1] ?? null;
       continue;
     }
-    if (line.startsWith("(fail)") && current !== null && !failing.includes(current)) {
+    const isFailure = FAILURE_MARKERS.some((marker) => line.startsWith(marker));
+    if (isFailure && current !== null && !failing.includes(current)) {
       failing.push(current);
     }
   }
@@ -279,12 +316,17 @@ function getMutationOutcomesOfFile(file: string): MutationOutcome[] {
       // Only when nothing but a text search objected: the question is whether
       // any behaviour noticed, and under `--bail` the first failure is the only
       // one anybody saw.
-      if (run.isRed && run.failing.every((failing) => SHAPE_GUARDS.includes(failing))) {
+      if (
+        run.isRed &&
+        run.failing.length > 0 &&
+        run.failing.every((failing) => SHAPE_GUARDS.includes(failing))
+      ) {
         run = getGateOutcome(false);
       }
       writeFileSync(path, original);
       outcomes.push({
         mutation,
+        isKilled: run.isRed,
         killedBy: run.isRed ? run.failing : [],
         isShapeOnly:
           run.isRed && run.failing.length > 0 && run.failing.every((f) => SHAPE_GUARDS.includes(f)),
@@ -303,7 +345,7 @@ function getMutationOutcomesOfFile(file: string): MutationOutcome[] {
 }
 
 function writeSweepReport(outcomes: MutationOutcome[]): void {
-  const survived = outcomes.filter((outcome) => outcome.killedBy.length === 0);
+  const survived = outcomes.filter((outcome) => !outcome.isKilled);
   const shapeOnly = outcomes.filter((outcome) => outcome.isShapeOnly);
 
   const byFile = new Map<string, MutationOutcome[]>();

@@ -160,17 +160,32 @@ describe("applying one", () => {
   });
 });
 
+/**
+ * ⚠️ **This block asserted against output nobody had ever seen the runner
+ * produce.** Its sample was typed by hand, under a comment claiming it was "the
+ * shape `bun test` prints", and it marked failures with `(fail)`. The runner
+ * marks them `✗`, wrapped in escape codes. So the parser returned no failing
+ * files for every real failure, and — because the verdict was derived from that
+ * list — **every kill in every sweep report was recorded as a survivor**: a tool
+ * built to find tests that cannot fail, reporting that none of them can.
+ *
+ * The sample below is a transcript of a real run, escape codes and all, taken
+ * from `bun test --bail=1` against a mutant of `src/game/battle-session.ts`. A
+ * hand-written sample of somebody else's output is a guard agreeing with the bug
+ * it was written to prevent (§7.5), and this repository has now paid for that
+ * twice — the first time on a minified variable name.
+ */
 describe("reading what the gate said", () => {
-  // The shape `bun test` prints: the file as a heading, its failures beneath it.
+  /** Verbatim from a real failing run, colours included. */
   const OUTPUT = [
     "bun test v1.3.14 (0d9b296a)",
     "",
     "tests/libs/record.test.ts:",
-    "error: expect(received).toBeNull()",
-    "(fail) refusing a list > refuses an array [0.11ms]",
-    "(fail) refusing a list > refuses an empty array [0.02ms]",
+    "\u001b[0m\u001b[31merror\u001b[0m\u001b[2m:\u001b[0m expect(received).toBeNull()",
+    "\u001b[0m\u001b[31m\u2717\u001b[0m \u001b[0mrefusing a list\u001b[2m >\u001b[0m\u001b[1m refuses an array\u001b[0m \u001b[2m[0.11ms\u001b[2m]\u001b[0m",
+    "\u001b[0m\u001b[31m\u2717\u001b[0m \u001b[0mrefusing a list\u001b[2m >\u001b[0m\u001b[1m refuses an empty array\u001b[0m",
     "tests/ui/panel-view.test.ts:",
-    "(fail) the ranking > numbers its rows [1.20ms]",
+    "\u001b[0m\u001b[31m\u2717\u001b[0m \u001b[0mthe ranking\u001b[2m >\u001b[0m\u001b[1m numbers its rows\u001b[0m",
     "Ran 2 tests across 2 files.",
   ].join("\n");
 
@@ -179,6 +194,29 @@ describe("reading what the gate said", () => {
       "tests/libs/record.test.ts",
       "tests/ui/panel-view.test.ts",
     ]);
+  });
+
+  /**
+   * The marker the sample above does *not* use. Kept because which one the
+   * runner prints is its business — and safe to keep only because this function
+   * no longer decides anything: the exit status is the verdict.
+   */
+  test("and reads the other spelling of a failure too", () => {
+    const output = ["tests/libs/json.test.ts:", "(fail) reading text > refuses nonsense"].join("\n");
+
+    expect(getFailingTestFiles(output)).toEqual(["tests/libs/json.test.ts"]);
+  });
+
+  test("a line that merely mentions a failing file is not a failure", () => {
+    // Every failure prints a stack, and every frame of it names a `.test.ts`
+    // path. Counting those would name files that never failed.
+    const output = [
+      "tests/ui/panel-view.test.ts:",
+      "      at <anonymous> (/repo/tests/game/engine-attachment.test.ts:296:31)",
+      "\u001b[0m\u001b[31m\u2717\u001b[0m the ranking > numbers its rows",
+    ].join("\n");
+
+    expect(getFailingTestFiles(output)).toEqual(["tests/ui/panel-view.test.ts"]);
   });
 
   test("a green run names nobody", () => {

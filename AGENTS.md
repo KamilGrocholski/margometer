@@ -283,6 +283,21 @@ Rules that arrived this way, each paid for once:
 - `[ALWAYS] [process]` **A mutation that lights nothing is a finding.** Either
   the test is missing or the code is inert. Twice here it was the second, and
   both times the answer was to delete something rather than to add a test.
+- `[ALWAYS] [any]` **A test that parses somebody else's output holds a transcript
+  of it, never a sample somebody typed.** Paid for twice, and the second time
+  expensively. `tools/mutation-sweep.ts` looked for `(fail)` in what `bun test`
+  prints; the runner prints `✗` inside escape codes, so every failure parsed as
+  none — and the test beside it asserted against a hand-written sample, under a
+  comment claiming it was the shape the runner produces. A guess about another
+  program's output is a claim about that program (§3), so it carries the same
+  burden: paste what it actually printed, or do not assert on it.
+- `[ALWAYS] [any]` **What decides is the status; what parses is description.** A
+  verdict derived from text somebody else formatted fails in the worst direction
+  — silently, and toward "nothing is wrong". The same sweep derived "this mutant
+  survived" from an empty list of failing files rather than from the exit code,
+  so a cosmetic parser bug became a tool reporting that no test in this
+  repository can fail. Where an exit code, a length or a type can carry the
+  answer, the parsed text may only name and never judge.
 
 ### 7.6 Working from the game's own sources
 
