@@ -51,7 +51,7 @@ drew an even split of zero: a measurement of nothing, which §9.6 exists to forb
 **Nothing guarded any of it.** No test in the repository referenced `sides`,
 `mineText` or `mineShare`, and `getEveryString` — the sweep that keeps our
 vocabulary off the screen — did not read the region either. It was drawn in every
-test in `tests/ui/panel.test.ts` and asserted in none.
+test in `tests/ui/panel-element.test.ts` and asserted in none.
 
 ## The rule: the direction says where the figure already is
 

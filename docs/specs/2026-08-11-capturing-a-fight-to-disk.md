@@ -187,7 +187,7 @@ nothing else:
 *then* setting the title bar's text drops the button on the floor in a browser,
 and the fake document reported a working panel — it held `textContent` as a plain
 string. The fake now clears its children on assignment, the way a real DOM does,
-which is the third DOM behaviour in `tests/ui/panel.test.ts` modelled because a
+which is the third DOM behaviour in `tests/ui/panel-element.test.ts` modelled because a
 mutation walked past it. Only then did the ordering become checkable.
 
 **The loop this round exists to close** is in `tests/game/engine-attachment.test.ts`:

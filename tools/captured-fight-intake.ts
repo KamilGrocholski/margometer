@@ -26,6 +26,7 @@ import { composeIntegerText, getIntegerFromValue } from "@/libs/number.ts";
 import { getValueFromJsonText } from "@/libs/json.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
+import { getRecordFromValue } from "@/libs/record.ts";
 
 export class CapturedFightIntakeError extends MargoMeterToolError {
   constructor(reason: string, options?: ErrorOptions) {
@@ -134,9 +135,9 @@ export function composePseudonymisedDump(dump: unknown): Pseudonymisation {
   };
 
   for (const call of getCalls(dump)) {
-    const combatants = getObject(call["ladunek"])?.["w"];
-    for (const [key, raw] of Object.entries(getObject(combatants) ?? {})) {
-      const combatant = getObject(raw);
+    const combatants = getRecordFromValue(call["ladunek"])?.["w"];
+    for (const [key, raw] of Object.entries(getRecordFromValue(combatants) ?? {})) {
+      const combatant = getRecordFromValue(raw);
       if (combatant === null) continue;
       const id = getIntegerFromValue(combatant["id"]) ?? getIntegerFromValue(key);
       if (id === null) continue;
@@ -146,7 +147,7 @@ export function composePseudonymisedDump(dump: unknown): Pseudonymisation {
     }
 
     for (const raw of [...getArray(call["wojownicyPrzed"]), ...getArray(call["wojownicyPo"])]) {
-      const combatant = getObject(raw);
+      const combatant = getRecordFromValue(raw);
       const id = combatant === null ? null : getIntegerFromValue(combatant["id"]);
       if (combatant === null || id === null) continue;
       setName(id, combatant["name"]);
@@ -237,7 +238,7 @@ export function removeSkillDescriptions(dump: unknown): DescriptionRemoval {
   let removed = 0;
 
   for (const call of getCalls(dump)) {
-    const payload = getObject(call["ladunek"]);
+    const payload = getRecordFromValue(call["ladunek"]);
     const abilities = payload === null ? null : payload["skills"];
     if (!Array.isArray(abilities)) continue;
 
@@ -276,7 +277,7 @@ export function composeIntakeText(dump: unknown): {
 } {
   const named = composePseudonymisedDump(dump);
   const described = removeSkillDescriptions(named.dump);
-  const header = getObject(described.dump);
+  const header = getRecordFromValue(described.dump);
   if (header === null) {
     throw new CapturedFightIntakeError("the recording is not an object");
   }
@@ -301,7 +302,7 @@ export function composeIntakeText(dump: unknown): {
  * world it came from, and what a person called it.
  */
 export function composeIntakePath(dump: unknown, slug: string): string {
-  const header = getObject(dump);
+  const header = getRecordFromValue(dump);
   const recordedAt = header === null ? null : header["przy"];
   if (typeof recordedAt !== "string" || getMillisecondsFromIsoText(recordedAt) === null) {
     throw new CapturedFightIntakeError("`przy` is not a timestamp — the recording says nothing about when");
@@ -316,19 +317,14 @@ export function composeIntakePath(dump: unknown, slug: string): string {
   return `${CAPTURED_FIGHTS_DIRECTORY}${recordedAt.slice(0, 10)}-${world}-${slug}.json`;
 }
 
-function getObject(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
 function getArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
 function getCalls(dump: unknown): Record<string, unknown>[] {
-  const calls = getObject(dump)?.["wpisy"];
+  const calls = getRecordFromValue(dump)?.["wpisy"];
   return getArray(calls)
-    .map(getObject)
+    .map(getRecordFromValue)
     .filter((call): call is Record<string, unknown> => call !== null);
 }
 
@@ -336,7 +332,7 @@ function getCalls(dump: unknown): Record<string, unknown>[] {
 function composeMappedValue(value: unknown, composeText: (text: string) => string): unknown {
   if (typeof value === "string") return composeText(value);
   if (Array.isArray(value)) return value.map((one) => composeMappedValue(one, composeText));
-  const object = getObject(value);
+  const object = getRecordFromValue(value);
   if (object === null) return value;
   return Object.fromEntries(
     Object.entries(object).map(([key, one]) => [key, composeMappedValue(one, composeText)]),

@@ -33,8 +33,7 @@ import {
   type CapturedCombatant,
   type FightCapture,
 } from "@/src/game/fight-capture.ts";
-import {
-  getIntegerFromText, getFiniteNumberFromValue } from "@/libs/number.ts";
+import { getFiniteNumberFromValue } from "@/libs/number.ts";
 import {
   renderPanelInto,
   setPanelRoot,
@@ -42,6 +41,12 @@ import {
   type PanelHost,
   type PanelScroll,
 } from "@/src/ui/panel-element.ts";
+import {
+  composeStateAfterBack,
+  composeStateAfterMetric,
+  composeStateAfterTeam,
+  composeStateFromRow,
+} from "@/src/ui/panel-state.ts";
 import {
   composeStoredTextFromPosition,
   getPositionFromStoredText,
@@ -52,9 +57,7 @@ import {
   composeDefaultState,
   composePanelView,
   type PanelDetailLine,
-  type PanelMetric,
   type PanelState,
-  type PanelTeam,
 } from "@/src/ui/panel-view.ts";
 
 export type MargoMeterOptions = {
@@ -530,91 +533,6 @@ export function composePanelMount(
 }
 
 /**
- * What a clicked row does to the state.
- *
- * The key is the view's own and its prefix is what says which level was clicked;
- * reading it here rather than passing three optional ids keeps `ui` free of the
- * question "which of these is set".
- */
-export function composeStateFromRow(state: PanelState, key: string): Partial<PanelState> {
-  if (key === "back") return composeStateAfterBack(state);
-
-  const [kind, rest] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
-  if (kind === "combatant") {
-    const id = getIntegerFromText(rest);
-    // A row whose id will not read is a row that leads nowhere, rather than one
-    // that opens somebody else's breakdown.
-    return id === null ? {} : { focusCombatantId: id, focusTargetId: null, focusSkill: null };
-  }
-  if (kind === "target") {
-    const id = getIntegerFromText(rest);
-    return id === null ? {} : { focusTargetId: id, focusSkill: null };
-  }
-  if (kind === "skill") {
-    /**
-     * The owner is split off the front and whatever follows is taken whole: a
-     * skill's own key is the game's id where it stated one and the skill's
-     * **name** where it did not, so it can carry anything, including a colon.
-     *
-     * ⚠️ The guard is load-bearing rather than defensive. Without it a key we did
-     * not compose slices as `rest.slice(0, -1)`, which turns `78` into the owner
-     * id `7` — a row that quietly opens somebody else's figures, which is the
-     * whole defect this shape exists to end.
-     */
-    const divider = rest.indexOf(":");
-    if (divider < 0) return {};
-    const ownerId = getIntegerFromText(rest.slice(0, divider));
-    return ownerId === null
-      ? {}
-      : { focusSkill: { ownerId, key: rest.slice(divider + 1) }, focusTargetId: null };
-  }
-  return {};
-}
-
-/**
- * A side tab chooses who is on the list, so choosing one closes the breakdown.
- *
- * Further than the metric goes, and the asymmetry is the point: the same
- * combatant exists in every metric, so switching metric keeps them in focus —
- * but a side filter decides *who is on the list at all*, and can put the one in
- * focus off it. Measured against the alternative: while a breakdown is open the
- * team changes nothing on screen at either level, so a tab that only dropped the
- * deep level would still look chosen while the panel did not move.
- *
- * Rejected: dropping the focus only when the filter excludes them. That needs
- * the admission rule outside `ui`, where this file would hold a second copy of
- * the ranking's logic — §9.1's line, spent on a nicety.
- */
-export function composeStateAfterTeam(team: PanelTeam): Partial<PanelState> {
-  return { team, focusCombatantId: null, focusTargetId: null, focusSkill: null };
-}
-
-/**
- * Both control strips land here, because both answer the same question: which
- * figure. What they share is the reset, and the deep level is the part that must
- * go.
- *
- * ⚠️ **A deep level does not survive turning the figure round.** Under
- * `Leczenie · otrzymane` an open skill belongs to whoever cast it — somebody
- * other than the combatant in focus — while under `Leczenie · dane` the skills
- * are the combatant's own. Carrying `focusSkill` across the flip opens a key that
- * is not on that side of the join, and the same is true of `focusTargetId`, whose
- * end of the pair the direction decides. The combatant stays: they exist in every
- * metric, which is the asymmetry `composeStateAfterTeam` above is about.
- */
-export function composeStateAfterMetric(metric: PanelMetric): Partial<PanelState> {
-  return { metric, focusTargetId: null, focusSkill: null };
-}
-
-/** One level out, and only one: the way back is as small a step as the way in. */
-export function composeStateAfterBack(state: PanelState): Partial<PanelState> {
-  if (state.focusTargetId !== null || state.focusSkill !== null) {
-    return { focusTargetId: null, focusSkill: null };
-  }
-  return { focusCombatantId: null };
-}
-
-/**
  * Writes out whatever the meter is holding, under a name saying where and when.
  *
  * Written even when the fight is empty. A file stating `wpisy: []` is a true
@@ -642,33 +560,40 @@ export function writeCaptureToPage(page: HostPage, meter: MargoMeter): void {
  * what cannot be known, this says what we could not read (§3).
  *
  * Ids and tokens rather than sentences, on purpose: a report is read by us.
+ *
+ * ⚠️ **English keys, and the comment above is why.** They were Polish until
+ * `docs/audits/2026-08-13-the-whole-tree-read-once.md` (F11) put the two
+ * sentences side by side: §3 makes Polish the exception for the text a *player*
+ * reads, and this file says its reader is us. The names are the aggregate's own,
+ * so a key in a pasted report can be grepped for in `src/core/fight-statistics.ts`
+ * — which the translations could not be.
  */
 export function composeReportText(page: HostPage, reading: FightReading | null): string {
   const environment = composeCaptureEnvironment(page);
   const report = {
-    dodatek: { nazwa: "MargoMeter", wersja: USERSCRIPT_VERSION },
-    gra: { swiat: environment.getWorld(), build: environment.getGameBuild() },
-    kiedy: environment.getCapturedAt(),
-    walka:
+    addon: { name: "MargoMeter", version: USERSCRIPT_VERSION },
+    game: { world: environment.getWorld(), build: environment.getGameBuild() },
+    capturedAt: environment.getCapturedAt(),
+    fight:
       reading === null
         ? null
         : {
-            odPoczatku: reading.isFromFightStart,
-            wynik: reading.statistics.outcome,
-            nasza_strona: reading.ourSide,
-            sklad: [...reading.roster.byId.values()],
-            postacie: Object.fromEntries(
+            isFromFightStart: reading.isFromFightStart,
+            outcome: reading.statistics.outcome,
+            ourSide: reading.ourSide,
+            roster: [...reading.roster.byId.values()],
+            combatants: Object.fromEntries(
               [...reading.statistics.byCombatantId].map(([id, row]) => [
                 id,
                 composeReportRow(row),
               ]),
             ),
-            bez_sprawcy: composeReportRow(reading.statistics.unattributed),
-            odczyt: {
-              nieodczytane_komunikaty: reading.statistics.reading.unreadableMessages,
-              powody: Object.fromEntries(reading.statistics.reading.messagesByReason),
-              nieznane_klucze: Object.fromEntries(reading.statistics.reading.occurrencesByUnreadKey),
-              leczenie_bez_sumy: Object.fromEntries(
+            unattributed: composeReportRow(reading.statistics.unattributed),
+            reading: {
+              unreadableMessages: reading.statistics.reading.unreadableMessages,
+              messagesByReason: Object.fromEntries(reading.statistics.reading.messagesByReason),
+              occurrencesByUnreadKey: Object.fromEntries(reading.statistics.reading.occurrencesByUnreadKey),
+              unaccountedHealthBySource: Object.fromEntries(
                 reading.statistics.reading.unaccountedHealthBySource,
               ),
             },
@@ -680,43 +605,41 @@ export function composeReportText(page: HostPage, reading: FightReading | null):
 /** One combatant's figures, with every map turned into something JSON can hold. */
 function composeReportRow(row: FightReading["statistics"]["unattributed"]): Record<string, unknown> {
   return {
-    zadane_surowe: row.dealtRaw,
-    zadane: row.dealtApplied,
-    zadane_wg_rodzaju: Object.fromEntries(row.dealtAppliedByElement),
-    otrzymane: row.taken,
-    otrzymane_wg_rodzaju: Object.fromEntries(row.takenByElement),
-    utracone_poza_ciosem: row.healthLost,
-    utracone_wg_zrodla: Object.fromEntries(row.healthLostBySource),
-    leczenie: row.healed,
-    leczenie_wg_zrodla: Object.fromEntries(row.healedBySource),
-    leczenie_wg_leczacego: Object.fromEntries(row.healedByHealerId),
-    leczenie_dane: row.healingGiven,
-    leczenie_dane_komu: Object.fromEntries(row.healingGivenByCombatantId),
-    pochloniete: Object.fromEntries(row.prevented),
-    zniszczone: Object.fromEntries(row.destroyed),
-    efekty: Object.fromEntries(row.procsOnBlowsStruck),
-    ciosy: row.blowsStruck,
-    // Beside the number it breaks down, and named for what it means rather than
-    // for what the panel labels it: this file is read by us, not by a player.
-    ciosy_bez_umiejetnosci: row.blowsWithoutSkill,
-    maks_cios: row.largestBlow,
-    uzycia_umiejetnosci: row.skillsUsed,
-    komu: Object.fromEntries(
+    dealtRaw: row.dealtRaw,
+    dealtApplied: row.dealtApplied,
+    dealtAppliedByElement: Object.fromEntries(row.dealtAppliedByElement),
+    taken: row.taken,
+    takenByElement: Object.fromEntries(row.takenByElement),
+    healthLost: row.healthLost,
+    healthLostBySource: Object.fromEntries(row.healthLostBySource),
+    healed: row.healed,
+    healedBySource: Object.fromEntries(row.healedBySource),
+    healedByHealerId: Object.fromEntries(row.healedByHealerId),
+    healingGiven: row.healingGiven,
+    healingGivenByCombatantId: Object.fromEntries(row.healingGivenByCombatantId),
+    prevented: Object.fromEntries(row.prevented),
+    destroyed: Object.fromEntries(row.destroyed),
+    procsOnBlowsStruck: Object.fromEntries(row.procsOnBlowsStruck),
+    blowsStruck: row.blowsStruck,
+    blowsWithoutSkill: row.blowsWithoutSkill,
+    largestBlow: row.largestBlow,
+    skillsUsed: row.skillsUsed,
+    dealtByTargetId: Object.fromEntries(
       [...row.dealtByTargetId].map(([id, byElement]) => [id, Object.fromEntries(byElement)]),
     ),
-    od_kogo: Object.fromEntries(
+    takenByActorId: Object.fromEntries(
       [...row.takenByActorId].map(([id, byElement]) => [id, Object.fromEntries(byElement)]),
     ),
-    umiejetnosci: Object.fromEntries(
+    skills: Object.fromEntries(
       [...row.skills].map(([key, skill]) => [
         key,
         {
-          nazwa: skill.skillName,
-          uzycia: skill.uses,
-          zadane: skill.dealtApplied,
-          komu: Object.fromEntries(skill.dealtByTargetId),
-          wyleczone: skill.healed,
-          komu_wyleczone: Object.fromEntries(skill.healedByCombatantId),
+          skillName: skill.skillName,
+          uses: skill.uses,
+          dealtApplied: skill.dealtApplied,
+          dealtByTargetId: Object.fromEntries(skill.dealtByTargetId),
+          healed: skill.healed,
+          healedByCombatantId: Object.fromEntries(skill.healedByCombatantId),
         },
       ]),
     ),

@@ -110,6 +110,24 @@ export function composeIntegerText(value: number): string {
   return value.toFixed(0);
 }
 
+/**
+ * A byte as two hexadecimal digits, which is the other direction of
+ * `getIntegerFromHexadecimalText`.
+ *
+ * It asserts rather than returning null because the number is ours: §9.5 splits
+ * reading from writing on exactly that. `.toString(16)` is one of the spellings
+ * that answers with a value nobody wrote — `(-1).toString(16)` is `"-1"` and
+ * `(1.5).toString(16)` is `"1.8"`, and either one padded to two digits is a
+ * colour channel that looks like a colour channel.
+ */
+export function composeHexadecimalByteText(value: number): string {
+  assert(
+    Number.isSafeInteger(value) && value >= 0 && value <= 255,
+    "a byte written back as hexadecimal is a whole number of one byte",
+  );
+  return value.toString(16).padStart(2, "0");
+}
+
 /** Fixed-point, `places` digits after the point. Same reasoning as above for the range. */
 export function composeDecimalText(value: number, places: number): string {
   assert(Number.isFinite(value), "a decimal written back is finite");

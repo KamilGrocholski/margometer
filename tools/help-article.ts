@@ -26,6 +26,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { getValueFromJsonText } from "@/libs/json.ts";
+import { getRecordFromValue } from "@/libs/record.ts";
 import { composeIntegerText, getIntegerFromText, getIntegerFromValue } from "@/libs/number.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
@@ -169,10 +170,10 @@ function requireStringField(value: unknown, field: string, article: string): str
  * exists to catch exactly that.
  */
 export function requireCachedHelpArticle(value: unknown, article: string): CachedHelpArticle {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  const record = getRecordFromValue(value);
+  if (record === null) {
     throw new HelpArticleError(`cache manifest for ${article} is not an object`);
   }
-  const record = value as Record<string, unknown>;
 
   const stated = requireStringField(record["article"], "article", article);
   if (stated !== article) {

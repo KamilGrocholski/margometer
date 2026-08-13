@@ -22,6 +22,7 @@
 
 import { getIntegerFromValue } from "@/libs/number.ts";
 import { getValueFromJsonText } from "@/libs/json.ts";
+import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 import { isFightStart } from "@/src/game/battle-session.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
 
@@ -116,15 +117,14 @@ export type CaptureEnvironment = {
  */
 export function composeSnapshotFromBattle(battle: EngineBattle): CapturedCombatant[] {
   for (const field of ["warriorsList", "warriors"]) {
-    const collection = battle[field];
-    if (typeof collection !== "object" || collection === null) continue;
+    const collection = getRecordOrArrayFromValue(battle[field]);
+    if (collection === null) continue;
 
-    const named = Object.values(collection as Record<string, unknown>).filter(
-      (combatant): combatant is Record<string, unknown> =>
-        typeof combatant === "object" &&
-        combatant !== null &&
-        typeof (combatant as Record<string, unknown>)["name"] === "string" &&
-        (combatant as Record<string, unknown>)["name"] !== "",
+    const named = Object.values(collection).filter(
+      (combatant): combatant is Record<string, unknown> => {
+        const named = getRecordOrArrayFromValue(combatant)?.["name"];
+        return typeof named === "string" && named !== "";
+      },
     );
     if (named.length === 0) continue;
 
@@ -144,8 +144,8 @@ export function composeSnapshotFromBattle(battle: EngineBattle): CapturedCombata
 }
 
 function composeShallowCopy(value: unknown): unknown {
-  if (typeof value !== "object" || value === null) return value ?? null;
-  return { ...(value as Record<string, unknown>) };
+  const record = getRecordOrArrayFromValue(value);
+  return record === null ? (value ?? null) : { ...record };
 }
 
 export function composeEmptyCapture(): FightCapture {
@@ -211,10 +211,8 @@ export function composeNextCapture(
 
 /** Which keys the payload carried, so a call introducing a new one is kept. */
 function composeShapeKey(payload: unknown): string {
-  if (typeof payload !== "object" || payload === null) return "";
-  return Object.keys(payload as Record<string, unknown>)
-    .sort()
-    .join(",");
+  const record = getRecordOrArrayFromValue(payload);
+  return record === null ? "" : Object.keys(record).sort().join(",");
 }
 
 function composeStateKey(combatants: readonly CapturedCombatant[]): string {

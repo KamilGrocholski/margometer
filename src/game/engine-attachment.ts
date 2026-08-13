@@ -20,6 +20,7 @@
  */
 
 import { setBattleWrap, type EngineBattle } from "@/src/game/engine-battle-wrap.ts";
+import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 
 /** How the page exposes the game. Both spellings, because both are in the wild. */
 export type GameWindow = {
@@ -76,7 +77,7 @@ export function getBattleFromWindow(page: GameWindow): EngineBattle | null {
   try {
     const engine = page.Engine ?? page.getEngine?.();
     const battle = engine?.battle;
-    if (typeof battle !== "object" || battle === null) return null;
+    if (getRecordOrArrayFromValue(battle) === null) return null;
     return battle as EngineBattle;
   } catch {
     return null;

@@ -14,6 +14,7 @@
  */
 
 import { getIntegerFromValue } from "@/libs/number.ts";
+import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 import {
   composeCombatantRoster,
   type CombatantRoster,
@@ -33,11 +34,6 @@ export type BattleRoster = {
   ourSide: number | null;
 };
 
-function getRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null) return null;
-  return value as Record<string, unknown>;
-}
-
 /**
  * One warrior, or null if the entry does not carry what a row needs.
  *
@@ -46,7 +42,7 @@ function getRecord(value: unknown): Record<string, unknown> | null {
  * than filled in. The count of what was dropped is the caller's business.
  */
 export function composeRosteredCombatant(value: unknown): RosteredCombatant | null {
-  const warrior = getRecord(value);
+  const warrior = getRecordOrArrayFromValue(value);
   if (warrior === null) return null;
 
   const id = getIntegerFromValue(warrior["id"]);
@@ -70,8 +66,8 @@ export function composeRosteredCombatant(value: unknown): RosteredCombatant | nu
  * entry is what the rest of the client uses.
  */
 export function composeCombatantsFromBattle(battle: unknown): RosteredCombatant[] {
-  const record = getRecord(battle);
-  const warriors = getRecord(record?.["w"]);
+  const record = getRecordOrArrayFromValue(battle);
+  const warriors = getRecordOrArrayFromValue(record?.["w"]);
   if (warriors === null) return [];
 
   const combatants: RosteredCombatant[] = [];
@@ -84,7 +80,7 @@ export function composeCombatantsFromBattle(battle: unknown): RosteredCombatant[
 
 /** The player's own side, as the game states it, or null when it does not. */
 export function getOurSideFromBattle(battle: unknown): number | null {
-  return getIntegerFromValue(getRecord(battle)?.["myteam"]);
+  return getIntegerFromValue(getRecordOrArrayFromValue(battle)?.["myteam"]);
 }
 
 /**

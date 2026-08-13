@@ -18,6 +18,7 @@
  */
 
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
+import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 
 export class EngineBattleWrapError extends MargoMeterError {
   constructor(reason: string) {
@@ -58,8 +59,7 @@ function isOurWrapper(value: unknown): value is Wrapper {
  * panel already has to handle for a fight joined late.
  */
 export function getMessagesFromPayload(payload: unknown): string[] {
-  if (typeof payload !== "object" || payload === null) return [];
-  const stated = (payload as Record<string, unknown>)["m"];
+  const stated = getRecordOrArrayFromValue(payload)?.["m"];
   if (!Array.isArray(stated)) return [];
   return stated.filter((message): message is string => typeof message === "string");
 }

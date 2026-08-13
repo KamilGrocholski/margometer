@@ -15,6 +15,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { getValueFromJsonText } from "@/libs/json.ts";
+import { getRecordFromValue } from "@/libs/record.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
 export class GameSourceError extends MargoMeterToolError {
@@ -60,6 +61,22 @@ export function getBuildFromPage(html: string): string {
   throw new GameSourceError("no build id on the page — the client's layout changed");
 }
 
+/**
+ * The channel named on the command line, or a refusal.
+ *
+ * `Object.hasOwn` rather than `in`, which walks the prototype chain: `in`
+ * accepted `toString`, `constructor` and the rest of `Object.prototype`, so
+ * `fetch toString` got past the check and reached a host that was a function.
+ * §7.6 keeps the two channels apart on purpose, and a check that admits a third
+ * thing is not keeping them apart.
+ */
+export function getChannelFromArgument(value: string): GameChannel {
+  if (!Object.hasOwn(CHANNEL_HOSTS, value)) {
+    throw new GameSourceError(`unknown channel "${value}"`);
+  }
+  return value as GameChannel;
+}
+
 export async function getServedBuild(channel: GameChannel): Promise<string> {
   const host = CHANNEL_HOSTS[channel];
   const response = await fetch(host);
@@ -91,10 +108,10 @@ function requireStringField(value: unknown, field: string, channel: GameChannel)
  * supposed to catch exactly that.
  */
 function requireCachedClientSource(value: unknown, channel: GameChannel): CachedClientSource {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  const record = getRecordFromValue(value);
+  if (record === null) {
     throw new GameSourceError(`cache manifest for ${channel} is not an object`);
   }
-  const record = value as Record<string, unknown>;
 
   const stated = requireStringField(record["channel"], "channel", channel);
   if (stated !== channel) {
@@ -182,9 +199,7 @@ if (import.meta.main) {
   if (command === "status") {
     await writeStatusReport();
   } else if (command === "fetch") {
-    const target = (channel ?? "production") as GameChannel;
-    if (!(target in CHANNEL_HOSTS)) throw new GameSourceError(`unknown channel "${target}"`);
-    const cached = await writeClientSourceCache(target);
+    const cached = await writeClientSourceCache(getChannelFromArgument(channel ?? "production"));
     console.log(`cached ${cached.channel} build ${cached.build} → ${cached.bundlePath}`);
   } else {
     console.log("usage: bun tools/game-client-source.ts status | fetch [production|development]");

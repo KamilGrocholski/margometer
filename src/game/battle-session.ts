@@ -19,6 +19,7 @@
  */
 
 import { getIntegerFromText, getIntegerFromValue } from "@/libs/number.ts";
+import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import type { CombatantRoster, RosteredCombatant } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
@@ -131,8 +132,7 @@ function composeNextEvents(
  * sends the other one.
  */
 export function isFightStart(payload: unknown): boolean {
-  if (typeof payload !== "object" || payload === null) return false;
-  const stated = (payload as Record<string, unknown>)["init"];
+  const stated = getRecordOrArrayFromValue(payload)?.["init"];
   const asNumber =
     typeof stated === "string" ? getIntegerFromText(stated) : getIntegerFromValue(stated);
   return asNumber === 1;

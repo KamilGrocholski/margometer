@@ -2,11 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { AssertionFailure } from "@/libs/assert.ts";
 import {
   composeDecimalText,
+  composeHexadecimalByteText,
   composeIntegerText,
   getDecimalFromText,
   getFiniteNumberFromValue,
+  getIntegerFromHexadecimalText,
   getIntegerFromText,
   getIntegerFromValue,
+  getNumberFromText,
 } from "@/libs/number.ts";
 
 /**
@@ -145,4 +148,100 @@ describe("writing a number back to text", () => {
     expect(() => composeDecimalText(1, -1)).toThrow(AssertionFailure);
     expect(() => composeDecimalText(1, 1.5)).toThrow(AssertionFailure);
   });
+});
+
+/**
+ * The two readers this file had never been asked a question of, found by
+ * `docs/audits/2026-08-13-the-whole-tree-read-once.md` (F3). Hexadecimal had
+ * **zero references anywhere** under `tests/` while being the reader the panel's
+ * contrast arithmetic rests on, and §9.7 makes that an accessibility floor.
+ *
+ * Every case below is a value one of the spellings its docblock names would have
+ * accepted, which is the whole argument for the reader existing.
+ */
+describe("reading an integer from hexadecimal text", () => {
+  test.each([
+    ["00", 0],
+    ["ff", 255],
+    ["FF", 255],
+    ["0a", 10],
+    ["7f3c9b", 8338587],
+  ])("%p reads as %p", (text, expected) => {
+    expect(getIntegerFromHexadecimalText(text)).toBe(expected);
+  });
+
+  /**
+   * ⚠️ `parseInt("ffzz", 16)` is 255 — it reads as far as it can and keeps what
+   * it got — and `parseInt("zz", 16)` is `NaN`. A colour channel read half-way is
+   * a colour nobody chose, and it is the failure mode that looks like success.
+   */
+  test.each([
+    ["ffzz", "read as far as it can and kept 255"],
+    ["zz", "NaN"],
+    ["", "zero, on some spellings"],
+    ["0xff", "the prefix `Number` would want and this text may not carry"],
+    [" ff", "whitespace, which trims silently"],
+    ["ff ", "whitespace, which trims silently"],
+    ["-ff", "a sign, which a byte does not carry"],
+    ["1.5", "a fraction"],
+  ])("%p is refused, where a lesser spelling gives %s", (text) => {
+    expect(getIntegerFromHexadecimalText(text)).toBeNull();
+  });
+});
+
+/**
+ * The reader that answers "is this a number at all", either spelling. It was
+ * exercised only incidentally from two tests in `tests/core/`, which is not the
+ * same as being asked what it accepts.
+ */
+describe("reading a number that may or may not carry a fraction", () => {
+  test.each([
+    ["30", 30],
+    ["22.5", 22.5],
+    ["-7", -7],
+    ["0", 0],
+  ])("%p reads as %p", (text, expected) => {
+    expect(getNumberFromText(text)).toBe(expected);
+  });
+
+  test.each(["", " ", "22.5.1", "1e3", ".5", "22px", "NaN", "Infinity"])(
+    "%p is refused",
+    (text) => {
+      expect(getNumberFromText(text)).toBeNull();
+    },
+  );
+});
+
+/**
+ * The other direction of the hexadecimal reader, which `libs/` did not own until
+ * the same audit (F7): the panel wrote it inline as `.toString(16)`.
+ */
+describe("writing a byte back as hexadecimal", () => {
+  test.each([
+    [0, "00"],
+    [10, "0a"],
+    [255, "ff"],
+    [128, "80"],
+  ])("%p writes as %p", (value, expected) => {
+    expect(composeHexadecimalByteText(value)).toBe(expected);
+  });
+
+  test("writes a round trip that reads back as itself", () => {
+    for (const value of [0, 1, 15, 16, 200, 255]) {
+      expect(getIntegerFromHexadecimalText(composeHexadecimalByteText(value))).toBe(value);
+    }
+  });
+
+  /**
+   * `(-1).toString(16)` is `"-1"` and `(1.5).toString(16)` is `"1.8"` — padded to
+   * two digits, either is a colour channel that looks exactly like a colour
+   * channel. The number is ours, so this is an invariant and not a failure
+   * anyone could handle (§9.5).
+   */
+  test.each([-1, 256, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 1e21])(
+    "%p cannot be written as a byte",
+    (value) => {
+      expect(() => composeHexadecimalByteText(value)).toThrow(AssertionFailure);
+    },
+  );
 });

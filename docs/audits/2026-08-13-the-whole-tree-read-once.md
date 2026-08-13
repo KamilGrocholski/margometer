@@ -1,6 +1,6 @@
 # The whole tree, read once
 
-Status: open
+Status: closed
 Read at: a54ea70
 
 The first audit, and the tree's first reading since it was rebuilt from scratch.
@@ -45,7 +45,7 @@ know (§10, *side*) — a wrong answer there puts every row under the wrong
 heading.
 
 *Where:* `src/game/engine-roster.ts:103`
-*Closes:* open
+*Closes:* guard `tests/game/engine-roster.test.ts`
 
 ### F2 — the tool that decides whether the cache is stale has no test
 
@@ -59,7 +59,7 @@ answer there is silent in the direction that costs: it reports the cache current
 and the next claim about the game is dated to a build nobody is running.
 
 *Where:* `tools/game-client-source.ts:53`
-*Closes:* open
+*Closes:* guard `tests/tools/game-client-source.test.ts`
 
 ### F3 — the one untested primitive is in the directory whose whole job is being trustworthy
 
@@ -75,7 +75,7 @@ Its own docblock is a list of traps — `parseInt("zz", 16)` is `NaN`,
 it; a reader nobody has asked a question of is that argument on credit.
 
 *Where:* `libs/number.ts:56`
-*Closes:* open
+*Closes:* guard `tests/libs/number.test.ts`
 
 ### F4 — a channel check that accepts `toString`
 
@@ -89,7 +89,7 @@ check that does not check*, in the file that decides which of the two channels
 §7.6 keeps apart is being read.
 
 *Where:* `tools/game-client-source.ts:186`
-*Closes:* open
+*Closes:* commit
 
 ### F5 — a roster listing one combatant twice loses that combatant's name
 
@@ -104,7 +104,7 @@ invariant is real, load-bearing, unstated and unasserted — the shape a latent
 fault has before somebody adds a third caller.
 
 *Where:* `src/core/combatant-roster.ts:74`
-*Closes:* open
+*Closes:* commit
 
 ### F6 — "is this an object" is answered nine times, and the answers disagree
 
@@ -130,7 +130,7 @@ may well be correct — what is missing is anybody having decided it.
 consumer, and this is the ninth.
 
 *Where:* `src/game/engine-roster.ts:36`
-*Closes:* open
+*Closes:* commit
 
 ### F7 — the one number conversion `libs/` does not own
 
@@ -144,7 +144,7 @@ construct with more than one spelling, spelled outside its owner — and it sits
 under the contrast arithmetic §9.7 makes an accessibility floor.
 
 *Where:* `src/ui/panel-tokens.ts:235`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F8 — the same colour pattern, written twice in one file
 
@@ -153,7 +153,7 @@ its own loop turning the three captures into channels with its own null
 handling. One file, two readers of one format.
 
 *Where:* `src/ui/panel-tokens.ts:204`
-*Closes:* open
+*Closes:* commit
 
 ### F9 — an export with no consumer outside its own file
 
@@ -163,7 +163,7 @@ so the compiler — which §9.3 puts in place of a linter — is blind to exactl
 one thing.
 
 *Where:* `src/ui/panel-tokens.ts:203`
-*Closes:* open
+*Closes:* commit
 
 ### F10 — §8 says two files are Polish, and four are
 
@@ -182,7 +182,7 @@ half of the block that guard cannot see: it checks that the names in the block
 exist, never that the sentences beside them are true.
 
 *Where:* `AGENTS.md:604`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F11 — a report in Polish that says its reader is us
 
@@ -197,7 +197,7 @@ does not reach a file we generate. Either the rule needs a third exception or th
 keys are in the wrong language, and the comment argues for the second.
 
 *Where:* `src/userscript-entry.ts:646`
-*Closes:* open
+*Closes:* commit
 
 ### F12 — the cast guard stops at the end of the line
 
@@ -211,7 +211,7 @@ finding: what is keeping them sound is the authors, and the guard has been
 agreeing with them for free.
 
 *Where:* `tests/tools/source-layout.test.ts:309`
-*Closes:* open
+*Closes:* commit
 
 ### F13 — 330 lines of stylesheet inside the renderer
 
@@ -224,7 +224,7 @@ largest single extractable unit in the tree and the one with the fewest edges: i
 takes nothing and returns a string.
 
 *Where:* `src/ui/panel-element.ts:190`
-*Closes:* open
+*Closes:* commit
 
 ### F14 — four pure functions in the file that is allowed to know everything
 
@@ -238,16 +238,22 @@ every layer at once (§2). That is a licence to do the wiring, not a place to ke
 pure functions that belong to `ui`.
 
 *Where:* `src/userscript-entry.ts:539`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-state.test.ts`
 
 ### F15 — the one test whose name does not say what it tests
 
-`tests/ui/panel.test.ts` tests `src/ui/panel-element.ts`. Every other test file
-in the tree is its subject's name plus `.test.ts`, which is what makes a missing
-test findable by looking.
+The tests for `src/ui/panel-element.ts` were named for the panel rather than for
+the file they cover. Every other test file in the tree is its subject's name plus
+`.test.ts`, which is what makes a missing test findable by looking rather than by
+remembering.
 
-*Where:* `tests/ui/panel.test.ts`
-*Closes:* open
+⚠️ The name that was wrong is deliberately not written here. `cited-paths.test.ts`
+holds an audit to the **tree**, not to the commit it was read at, so a finding
+whose close renames a file has to be renamed with it — or it becomes the dead
+citation this repository built that guard to catch. §7.7 says so.
+
+*Where:* `tests/ui/panel-element.test.ts`
+*Closes:* commit
 
 ### F16 — an edge between two layers that the rules do not mention
 
@@ -261,7 +267,7 @@ to reach it. The finding is that the graph §9.1 draws is not the graph the tree
 has, and an undrawn edge is one nobody can be held to.
 
 *Where:* `tools/fight-report.ts:21`
-*Closes:* open
+*Closes:* rule §9.1
 
 ### F17 — three files carry more than a reader can hold
 
@@ -276,7 +282,7 @@ defect. What a reader has to hold at once is the cost; whether a split lowers it
 or only moves it is the question the closing round has to answer.
 
 *Where:* `src/ui/panel-view.ts`
-*Closes:* open
+*Closes:* declined — all three read linearly and are the most heavily tested code here; a split moves the risk rather than removing it, and none of them needs a table of contents to be read in order
 
 ### F18 — "no such name" and "ambiguous name" come back as the same answer
 
@@ -290,7 +296,7 @@ makes `[ASK]`, and the panel has nothing it would do differently. Recorded so
 that the next person to ask is asking about a decision rather than an oversight.
 
 *Where:* `src/core/combatant-roster.ts:82`
-*Closes:* open
+*Closes:* declined — widening it is a data-contract change (§4) and the panel has nothing it would do differently with the two; the collapse is now a test rather than an accident
 
 ### F19 — the test file where a failure does not say what broke
 
@@ -304,7 +310,7 @@ Recorded because "deliberate" and "costless" are different, and the cost is that
 a red run here does not localise.
 
 *Where:* `tests/game/engine-attachment.test.ts`
-*Closes:* open
+*Closes:* declined — §8 already states it as deliberate, and the two loops it closes live on opposite sides of §9.1 and can be closed nowhere else
 
 ## Looked at and clean
 

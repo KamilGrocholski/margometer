@@ -69,9 +69,18 @@ export function composeCombatantRoster(
   const byId = new Map<number, RosteredCombatant>();
   const idByName = new Map<string, number | null>();
 
+  // Ambiguity is two combatants, not two entries. The same person listed twice —
+  // which every caller today prevents by deduplicating on id first, and none of
+  // them says so — used to make that person's own name resolve to nobody, so
+  // every figure the protocol stated against it went unattributed.
   for (const combatant of combatants) {
     byId.set(combatant.id, combatant);
-    idByName.set(combatant.name, idByName.has(combatant.name) ? AMBIGUOUS : combatant.id);
+    const stated = idByName.get(combatant.name);
+    const isSamePerson = stated === combatant.id;
+    idByName.set(
+      combatant.name,
+      !idByName.has(combatant.name) || isSamePerson ? combatant.id : AMBIGUOUS,
+    );
   }
 
   return { byId, idByName };

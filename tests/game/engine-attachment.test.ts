@@ -20,6 +20,11 @@ import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-captur
 import { EFFECT_NAMES } from "@/src/ui/panel-names.ts";
 import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
 import {
+  composeStateAfterMetric,
+  composeStateAfterTeam,
+  composeStateFromRow,
+} from "@/src/ui/panel-state.ts";
+import {
   composeDefaultState,
   composePanelView,
   PANEL_METRICS,
@@ -27,9 +32,6 @@ import {
 import {
   composePanelMount,
   composeReportText,
-  composeStateAfterMetric,
-  composeStateAfterTeam,
-  composeStateFromRow,
   setMargoMeter,
   shouldStartHere,
   writeCaptureToPage,
@@ -522,7 +524,7 @@ describe("the panel asking the running client for a name", () => {
       ),
     );
 
-  /** Poorer than the one in `tests/ui/panel.test.ts`: nothing here reads a node. */
+  /** Poorer than the one in `tests/ui/panel-element.test.ts`: nothing here reads a node. */
   function composePageWithDictionary(
     translate: ((id: string) => string | undefined) | undefined,
   ): Parameters<typeof composePanelMount>[0] {
@@ -620,7 +622,7 @@ describe("remembering where the panel was put", () => {
   /**
    * A page with enough of a document to drive a drag through the whole mount.
    *
-   * Poorer than the one in `tests/ui/panel.test.ts` — it records only what these
+   * Poorer than the one in `tests/ui/panel-element.test.ts` — it records only what these
    * tests read — but real enough for the one thing that file cannot reach: what
    * the mount does with the position once the panel reports it.
    */
@@ -1071,26 +1073,32 @@ describe("what a click does to the drill", () => {
  * The copied report, against the figures it claims to carry.
  *
  * A report is what a person attaches to a bug they are reporting, so a figure
- * missing from it is a question nobody can answer afterwards. The map below is
- * checked *both* ways: every Polish name carries its field's number, and the
- * fields it covers are exactly the row's own — so a counter added to
- * `CombatantStatistics` and forgotten here fails the gate rather than showing up
- * as a hole in somebody's report months later.
+ * missing from it is a question nobody can answer afterwards. The list below is
+ * checked *both* ways: every name carries its field's number, and the fields it
+ * covers are exactly the row's own — so a counter added to `CombatantStatistics`
+ * and forgotten here fails the gate rather than showing up as a hole in
+ * somebody's report months later.
+ *
+ * The names used to be Polish and are the row's own since
+ * `docs/audits/2026-08-13-the-whole-tree-read-once.md` (F11), which is why the
+ * map that joined them is now a list: a report key and a field name being the
+ * same string is itself the thing worth holding, and it is asserted below rather
+ * than assumed.
  */
 describe("the report a reader copies", () => {
-  /** Every plain number a row holds, and the name the report gives it. */
-  const FIGURE_KEYS: Record<string, keyof CombatantStatistics> = {
-    zadane_surowe: "dealtRaw",
-    zadane: "dealtApplied",
-    otrzymane: "taken",
-    utracone_poza_ciosem: "healthLost",
-    leczenie: "healed",
-    leczenie_dane: "healingGiven",
-    ciosy: "blowsStruck",
-    ciosy_bez_umiejetnosci: "blowsWithoutSkill",
-    maks_cios: "largestBlow",
-    uzycia_umiejetnosci: "skillsUsed",
-  };
+  /** Every plain number a row holds, under the name the report gives it — its own. */
+  const FIGURE_KEYS: (keyof CombatantStatistics)[] = [
+    "dealtRaw",
+    "dealtApplied",
+    "taken",
+    "healthLost",
+    "healed",
+    "healingGiven",
+    "blowsStruck",
+    "blowsWithoutSkill",
+    "largestBlow",
+    "skillsUsed",
+  ];
 
   function composeReadingOf(fight: (typeof CAPTURED_FIGHTS)[number]): FightReading {
     const roster = composeRosterOfFight(fight);
@@ -1125,29 +1133,28 @@ describe("the report a reader copies", () => {
       .filter(([, value]) => getFiniteNumberFromValue(value) !== null)
       .map(([field]) => field);
 
-    const covered: string[] = Object.values(FIGURE_KEYS);
+    const covered: string[] = [...FIGURE_KEYS];
     expect(covered.sort()).toEqual(numeric.sort());
   });
 
   test.each(CAPTURED_FIGHTS)("$name carries the same figures the row does", (fight) => {
     const reading = composeReadingOf(fight);
-    const walka = assertDefined(
-      (getReport(reading) as { walka?: { postacie?: Record<string, unknown> } }).walka,
+    const fought = assertDefined(
+      (getReport(reading) as { fight?: { combatants?: Record<string, unknown> } }).fight,
       "a reading composes a fight",
     );
-    const postacie = assertDefined(walka.postacie, "the report lists the combatants");
+    const combatants = assertDefined(fought.combatants, "the report lists the combatants");
 
     for (const [id, row] of reading.statistics.byCombatantId) {
       const reported = assertDefined(
-        postacie[composeIntegerText(id)],
+        combatants[composeIntegerText(id)],
         `the report holds ${composeIntegerText(id)}`,
       ) as Record<string, unknown>;
 
-      for (const [name, field] of Object.entries(FIGURE_KEYS)) {
-        expect(
-          getFiniteNumberFromValue(reported[name]),
-          `${name} of ${composeIntegerText(id)}`,
-        ).toBe(getFiniteNumberFromValue(row[field]));
+      for (const field of FIGURE_KEYS) {
+        expect(getFiniteNumberFromValue(reported[field]), `${field} of ${id}`).toBe(
+          getFiniteNumberFromValue(row[field]),
+        );
       }
     }
   });

@@ -229,6 +229,7 @@ describe("value parsing", () => {
   const NUMBER = "libs/number.ts";
   const JSON_TEXT = "libs/json.ts";
   const TIMESTAMP = "libs/timestamp.ts";
+  const RECORD = "libs/record.ts";
 
   const OWNED_CONSTRUCTS = [
     // `\bNumber\s*\(` and not `Number` alone: `Number.isInteger` and its
@@ -241,6 +242,11 @@ describe("value parsing", () => {
     { pattern: /\.toFixed\s*\(/g, owner: NUMBER },
     { pattern: /\bJSON\.parse\s*\(/g, owner: JSON_TEXT },
     { pattern: /\bDate\.parse\s*\(/g, owner: TIMESTAMP },
+    // A radix, not `.toString()` alone: writing a number in another base has the
+    // same way of answering with something nobody wrote as reading one does —
+    // `(-1).toString(16)` is `"-1"` — and it was the one conversion in `src/`
+    // that `libs/` did not own, under the contrast arithmetic §9.7 makes a floor.
+    { pattern: /\.toString\s*\(\s*\d+\s*\)/g, owner: NUMBER },
   ];
 
   test.each(SOURCE_FILES)("%s reads values through the primitives", (file) => {
@@ -285,12 +291,17 @@ describe("value parsing", () => {
     /[=(,[:]\s*\+[A-Za-z_$"'(]/g,
     /\*\s*1\b/g,
     /typeof\s+[\w.[\]"']+\s*===?\s*"number"/g,
+    // `typeof x === "object"` is true for `null`, so every site pairs it with a
+    // null check by hand — thirteen of them across ten files, of which eight
+    // admitted an array as a record and five refused one. Two answers to one
+    // question, and no file saying which it meant.
+    /typeof\s+[\w.[\]"']+\s*[!=]==?\s*"object"/g,
   ];
 
   test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
     "%s asks the primitives instead of coercing by hand",
     (file) => {
-      if (file === NUMBER) return;
+      if (file === NUMBER || file === RECORD) return;
       const source = getSourceWithoutComments(file);
       const coerced = UNNAMED_COERCIONS.flatMap((pattern) =>
         [...source.matchAll(pattern)].map((match) => match[0]),
@@ -306,7 +317,13 @@ describe("value parsing", () => {
     "%s validates parsed JSON instead of asserting its type",
     (file) => {
       const source = getSourceWithoutComments(file);
-      const asserted = [...source.matchAll(/JSON\.parse\b.*\bas\b.*/g)].map((match) => match[0]);
+      // `[\s\S]` and a bounded span rather than `.`: the pattern used to stop at
+      // the end of the line, so a cast written one line below its parse was
+      // invisible to it. Bounded because an unbounded reach would join a parse
+      // at the top of a file to an unrelated `as` at the bottom.
+      const asserted = [...source.matchAll(/JSON\.parse\b[\s\S]{0,200}?\bas\b.*/g)].map(
+        (match) => match[0],
+      );
       expect(asserted, file).toEqual([]);
     },
   );
@@ -407,6 +424,67 @@ describe("function names", () => {
 
     for (const name of [...declared, ...arrows]) {
       expect(name, `${file}: ${name}`).toMatch(allowed);
+    }
+  });
+});
+
+/**
+ * AGENTS.md §3. Which files speak Polish, and it is a short list on purpose.
+ *
+ * §3 admits exactly one kind of exception in shipped code — **the text a player
+ * reads** — and everything around it stays English. That was prose until
+ * `docs/audits/2026-08-13-the-whole-tree-read-once.md` (F10) checked it: §8's
+ * structure block claimed two files carried Polish strings and four did, because
+ * nothing re-measured the sentence beside a filename.
+ *
+ * ⚠️ **Frozen as a list rather than a rule, and the list is the point.** No
+ * pattern can tell a label a player reads from a Polish identifier that slipped
+ * in, so what a machine can hold is *which files are allowed to*. A fifth one
+ * appearing is a decision somebody should have to make on purpose.
+ */
+describe("the language of the strings", () => {
+  const POLISH_LETTER = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
+
+  /**
+   * `panel-view.ts` and `panel-element.ts` are the panel's own words — its rows,
+   * its tooltips, its region names. `panel-names.ts` is what the add-on calls a
+   * thing the running client has no name for: a phrase of ours, written by us,
+   * never a quotation of the game's (`NOTICE.md`).
+   *
+   * `src/userscript-entry.ts` was a fourth until F11 of the same audit turned the
+   * copied report's keys into the aggregate's own names, and
+   * `src/game/game-dictionary.ts` is deliberately absent — its Polish is a
+   * quotation inside a comment, which the stripper above removes and which no
+   * player ever reads.
+   */
+  const SPEAKS_POLISH = [
+    "src/ui/panel-element.ts",
+    "src/ui/panel-names.ts",
+    "src/ui/panel-view.ts",
+  ];
+
+  function getPolishStrings(file: string): string[] {
+    const source = getSourceWithoutComments(file);
+    const literals = [...source.matchAll(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`[^`]*`/g)];
+    return literals.map((match) => match[0]).filter((text) => POLISH_LETTER.test(text));
+  }
+
+  const SHIPPED = SOURCE_FILES.filter((file) => file.startsWith("src/") || file.startsWith("libs/"));
+
+  test("there are shipped files to read", () => {
+    expect(SHIPPED.length).toBeGreaterThan(0);
+  });
+
+  // Both directions, for `cited-paths.test.ts`'s reason: a list that only forbids
+  // catches nothing when the reader stops finding anything at all.
+  test("only the files allowed to speak Polish do", () => {
+    const speaking = SHIPPED.filter((file) => getPolishStrings(file).length > 0);
+    expect(speaking.sort()).toEqual([...SPEAKS_POLISH].sort());
+  });
+
+  test("and each of them still does", () => {
+    for (const file of SPEAKS_POLISH) {
+      expect(getPolishStrings(file).length, file).toBeGreaterThan(0);
     }
   });
 });

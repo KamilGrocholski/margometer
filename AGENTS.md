@@ -460,6 +460,14 @@ and it says which it did:
   hard to fix.
 - `[NEVER] [docs]` **Append to a closed audit.** The next one is a new file at a
   new commit. An audit that grows is a chronicle with a date on the wrong end.
+- `[ALWAYS] [docs]` **An audit is dated to a commit and its citations are held
+  to the tree.** `tests/tools/cited-paths.test.ts` walks `docs/` and knows
+  nothing of history, so a finding whose close renames or removes a file has to
+  be reworded in the closing commit. Paid for on the first audit's own last
+  finding, which was "this test is named for the wrong thing" and became a dead
+  citation the moment it was fixed. Write the finding so that closing it leaves
+  the citation true — name the file that will exist, and say what was wrong
+  about the old name rather than spelling it.
 - `[ASK] [docs]` **Deleting an audit**, closed ones included. A closed audit is
   the only record of what was declined and why.
 
@@ -602,6 +610,13 @@ libs/
                          SyntaxError, never a bare null — §9.5.
   timestamp.ts           Date.parse without the NaN, and without the shapes it
                          accepts by surprise.
+  record.ts              Narrowing an unknown value to something with keys, which
+                         `typeof` alone answers `"object"` for `null`. Two
+                         readers because there were two questions: thirteen sites
+                         in ten files had answered them both ways, eight
+                         admitting an array as a record and five refusing one,
+                         and neither group was wrong — the live client may send
+                         either, a stored position may not.
 
 src/
   userscript-version.ts  What version this is, substituted at build time from
@@ -703,6 +718,16 @@ src/
                          sentence it resolves to never is (NOTICE.md). Ours is
                          what every test and every browser without the game sees,
                          so it is a real answer rather than a placeholder.
+    panel-state.ts       What a click does to the panel's state: four pure
+                         functions, a state and a control in, the part that
+                         changes out. They lived among the wiring in the entry
+                         point, which is `[any]` so that it may do the wiring —
+                         not so that it may keep code knowing no layer at all.
+    panel-stylesheet.ts  The panel's stylesheet, as one string. Out of
+                         `panel-element.ts` because it was 330 lines of CSS
+                         beside a renderer, a drag and a tooltip, and because it
+                         takes nothing and returns a string — the split with the
+                         fewest edges rather than merely the biggest.
     panel-tokens.ts      Every colour, space and radius, named once, plus the
                          contrast arithmetic a test needs to hold them to §9.7.
                          The bar tint is a measured value, not a taste. Two of the
@@ -719,8 +744,11 @@ src/
                          bottom of the screen is measured from it, and CSS cannot
                          read an inline `top` back out.
     panel-view.ts        What the panel shows, as data — and, with the tooltips
-                         and region names in `panel-element.ts`, one of the two
-                         files in the repository whose strings are Polish (§3). One ranking on
+                         and region names in `panel-element.ts` and the phrases
+                         in `panel-names.ts`, one of the three files that ship
+                         whose strings are Polish (§3), which is a claim
+                         `tests/tools/source-layout.test.ts` now re-measures
+                         rather than a sentence beside a filename. One ranking on
                          two axes — a noun and a direction — with a side filter,
                          totals only, the drill and its breadcrumb, what a
                          combatant with nothing gets instead of empty sections,
@@ -860,7 +888,8 @@ tests/
   wrong the first time something was added beside them.
 
   libs/
-    assert.test.ts  json.test.ts  number.test.ts  timestamp.test.ts
+    assert.test.ts  json.test.ts  number.test.ts  record.test.ts
+    timestamp.test.ts
 
   core/                  The decoder and the aggregate, and every claim about the
                          game held to the captures — those rules guard what the
@@ -942,6 +971,12 @@ tests/
                              health arithmetic settled, and the one it cannot —
                              where the healing is reported missing rather than
                              unknown.
+    combatant-roster.test.ts The rule this module's own docblock calls the
+                             failure the project exists to prevent: a name two
+                             combatants answer to resolves to nobody, and one
+                             person listed twice is still that person — which it
+                             was not, for as long as ambiguity counted entries
+                             rather than combatants.
     battle-event.test.ts  fight-decoder.test.ts  margometer-error.test.ts
     protocol-key-register.test.ts  protocol-message.test.ts
 
@@ -966,6 +1001,12 @@ tests/
                              fail to answer: no lookup, no entry, the wrong kind
                              of value, a fault reading it. All four give our own
                              word rather than an exception the game would catch.
+    engine-roster.test.ts    The layer that decides which side is ours, held
+                             directly at last: what a warrior needs to be read,
+                             the side `myteam` states and the null that is a real
+                             answer, and the array **identity** the session leans
+                             on to skip re-reading a fight — a contract that was
+                             a comment and is now a `toBe`.
     battle-session.test.ts   How a fight is assembled from payloads: where one
                              ends, a roster that only ever grows, a side
                              remembered from the one payload that states it, a
@@ -973,6 +1014,11 @@ tests/
                              does not inherit the last one's turns.
 
   ui/
+    panel-state.test.ts      The four reducers on their own: which level a key
+                             opens, what a skill key may carry, and the guard
+                             that stops `78` opening combatant `7`. Driven only
+                             through the view until an audit asked what one of
+                             them returns.
     panel-names.test.ts      The vocabulary held to saying each thing differently
                              from every other thing — two quantities under one
                              label is a wrong number that looks right — to asking
@@ -1005,7 +1051,7 @@ tests/
                              otrzymane` on real material. The summary is held to
                              closing against that same whole — it used to sum the
                              rows alone and draw up to 88% of a fight as nothing.
-    panel.test.ts            The panel drawn, against §9.6 and §9.7, on a fake
+    panel-element.test.ts    The panel drawn, against §9.6 and §9.7, on a fake
                              document: what survives a region failing, that the
                              root serves every control, that a handler cannot
                              escape into the page, that the right button goes back
@@ -1062,6 +1108,12 @@ tests/
                              no finding left open. Also that the commit it says
                              it read is a commit — checked where the clone is
                              deep enough to look, which CI's is not.
+    game-client-source.test.ts
+                             The tool that decides whether the cache is stale,
+                             which had no test while its twin had one: the build
+                             read off a page, the inline object beating a stale
+                             script tag, and a channel check that no longer
+                             admits `toString` off the prototype chain.
     captured-fight-catalog.test.ts  decoding-status.test.ts  help-article.test.ts
     protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```
@@ -1093,6 +1145,14 @@ where the panel was dragged to.
   without the game, and it is not negotiable for convenience.
 - `[ALWAYS] [game]` **All contact with the game client lives in `game/`.** One
   place to audit, one place to break.
+- `[ALWAYS] [tools]` **A tool may read `tests/`; nothing in `tests/` reads a
+  tool for its material.** The captures live under `tests/captured-fights/` and
+  a tool that answers a question about them has to reach them —
+  `tools/fight-report.ts` and `tools/decoding-status.ts` both do, through
+  `tests/captured-fight-catalog.ts`. The edge is drawn here because it was the
+  one edge in the tree §9.1 did not mention, and an undrawn edge is one nobody
+  can be held to: it is what stopped a `[tools]` rule from being checkable, not
+  a licence for `tools/` to depend on a test's assertions.
 - `[ALWAYS] [ui]` **The panel renders state handed to it.** It never computes
   statistics itself.
 - Prefer a narrow module over a broad one. A file that needs a table of contents

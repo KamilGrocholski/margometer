@@ -1,4 +1,5 @@
 import { getValueFromJsonText } from "@/libs/json.ts";
+import { getRecordFromValue } from "@/libs/record.ts";
 import { composeIntegerText, getIntegerFromValue } from "@/libs/number.ts";
 import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
 
@@ -105,10 +106,9 @@ export function getPositionFromStoredText(text: string): PanelPosition | null {
   const reading = getValueFromJsonText(text);
   if (reading.syntaxError !== null) return null;
 
-  const stored = reading.value;
-  if (stored === null || typeof stored !== "object" || Array.isArray(stored)) return null;
+  const fields = getRecordFromValue(reading.value);
+  if (fields === null) return null;
 
-  const fields = stored as Record<string, unknown>;
   const left = getIntegerFromValue(fields["left"]);
   const top = getIntegerFromValue(fields["top"]);
   if (left === null || top === null) return null;

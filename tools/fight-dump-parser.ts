@@ -16,6 +16,7 @@
 import { getValueFromJsonText } from "@/libs/json.ts";
 import { getFiniteNumberFromValue, getIntegerFromValue } from "@/libs/number.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
+import { getRecordFromValue } from "@/libs/record.ts";
 
 export class FightDumpFormatError extends MargoMeterToolError {
   constructor(path: string, expected: string, received: unknown, options?: ErrorOptions) {
@@ -30,10 +31,9 @@ function getValueDescription(value: unknown): string {
 }
 
 function requireObject(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new FightDumpFormatError(path, "an object", value);
-  }
-  return value as Record<string, unknown>;
+  const record = getRecordFromValue(value);
+  if (record === null) throw new FightDumpFormatError(path, "an object", value);
+  return record;
 }
 
 function requireArray(value: unknown, path: string): unknown[] {

@@ -1,4 +1,8 @@
-import { composeIntegerText, getIntegerFromHexadecimalText } from "@/libs/number.ts";
+import {
+  composeHexadecimalByteText,
+  composeIntegerText,
+  getIntegerFromHexadecimalText,
+} from "@/libs/number.ts";
 
 /**
  * Every colour, space and radius the panel uses, named once.
@@ -194,23 +198,35 @@ function getLinearChannel(channel: number): number {
 }
 
 /**
- * Relative luminance of a `#rrggbb` colour, or null if it is not one.
+ * The three channels of a `#rrggbb` colour, or null if it is not one.
  *
- * Null rather than a throw: the caller is a test asking a question about a
- * value, and a malformed token is a fact to report rather than an exception to
- * handle.
+ * One reader, because the pattern and the digit-by-digit reading below it were
+ * written twice in this file with two different spellings of the same null
+ * handling — and a colour format that two functions disagree about is a contrast
+ * ratio computed against something nobody drew.
  */
-export function getRelativeLuminance(colour: string): number | null {
+function getChannelsFromColour(colour: string): number[] | null {
   const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(colour);
   if (match === null) return null;
 
   const channels = [match[1], match[2], match[3]].map((channel) =>
     getIntegerFromHexadecimalText(channel ?? ""),
   );
-  const [red, green, blue] = channels.map((channel) =>
-    channel === null ? null : getLinearChannel(channel),
-  );
-  if (red === null || green === null || blue === null) return null;
+  return channels.every((channel) => channel !== null) ? channels : null;
+}
+
+/**
+ * Relative luminance of a `#rrggbb` colour, or null if it is not one.
+ *
+ * Null rather than a throw: the caller is a test asking a question about a
+ * value, and a malformed token is a fact to report rather than an exception to
+ * handle.
+ */
+function getRelativeLuminance(colour: string): number | null {
+  const channels = getChannelsFromColour(colour);
+  if (channels === null) return null;
+
+  const [red, green, blue] = channels.map(getLinearChannel);
   if (red === undefined || green === undefined || blue === undefined) return null;
   return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
 }
@@ -222,18 +238,13 @@ export function getRelativeLuminance(colour: string): number | null {
  * and the point of this function is to predict what will actually be on screen.
  */
 export function composeColourOver(top: string, bottom: string, alpha: number): string | null {
-  const parts = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i;
-  const above = parts.exec(top);
-  const below = parts.exec(bottom);
+  const above = getChannelsFromColour(top);
+  const below = getChannelsFromColour(bottom);
   if (above === null || below === null) return null;
 
-  const mixed: string[] = [];
-  for (let channel = 1; channel <= 3; channel += 1) {
-    const one = getIntegerFromHexadecimalText(above[channel] ?? "");
-    const other = getIntegerFromHexadecimalText(below[channel] ?? "");
-    if (one === null || other === null) return null;
-    mixed.push(Math.round(alpha * one + (1 - alpha) * other).toString(16).padStart(2, "0"));
-  }
+  const mixed = above.map((one, channel) =>
+    composeHexadecimalByteText(Math.round(alpha * one + (1 - alpha) * (below[channel] ?? 0))),
+  );
   return `#${mixed.join("")}`;
 }
 

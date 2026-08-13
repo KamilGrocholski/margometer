@@ -18,8 +18,8 @@ import { getDecimalFromText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { composePanelStyleText } from "@/src/ui/panel-stylesheet.ts";
 import {
-  composePanelStyleText,
   renderPanel,
   renderPanelInto,
   setPanelRoot,
