@@ -191,6 +191,22 @@ describe("what the wrap promises the game", () => {
     expect(battle["updateData"]).toBe(before);
   });
 
+  /**
+   * ⚠️ **Only the refusals were ever asserted.** Three tests state that
+   * `removeBattleWrap` answers `false` where it must not act, and none stated
+   * that it answers `true` where it did — so a removal that worked and reported
+   * failure was invisible. That is the direction that matters: the caller uses
+   * the answer to decide whether the add-on is still on the page.
+   */
+  test("and says it removed something, not only when it did not", () => {
+    const battle = composeBattle();
+    setBattleWrap(battle, () => {});
+
+    expect(removeBattleWrap(battle)).toBe(true);
+    // And not twice: the record is gone, so there is nothing left to take off.
+    expect(removeBattleWrap(battle)).toBe(false);
+  });
+
   test("detaching restores an own property when the object had one", () => {
     const battle = composeBattle();
     const getOwnedAnswer = function getOwnedAnswer(): string {
@@ -434,6 +450,50 @@ describe("what is read out of a payload", () => {
     expect(reading.messages).toEqual(["a"]);
     expect(reading.fault).toBe("messages-lost");
     expect(reading.lostMessages).toBe(2);
+  });
+
+  /**
+   * The three that `bun tools/mutation-sweep.ts` found nothing holding, all of
+   * them a count that is present and says **nothing was lost**.
+   *
+   * Zero is the awkward number here: it is a real answer from the companion list
+   * and the neutral element of the arithmetic, so every off-by-one at the
+   * boundary reads as "a message went missing" when nothing did. A reader that
+   * cries loss on a fight where none happened is the warning people learn to
+   * ignore, which costs more than the warning was ever worth.
+   */
+  test("a count that is present and says zero is not a loss", () => {
+    // Kills `statedCount > 0` → `>= 0`: with the mutation this announces a fault
+    // carrying a loss of nought.
+    expect(getPayloadReading({ mi: [] })).toEqual({
+      payload: { mi: [] },
+      messages: [],
+      fault: null,
+      lostMessages: 0,
+    });
+  });
+
+  test("an empty list of messages with nothing counting it is not a loss either", () => {
+    // Kills `statedCount ?? 0` → `?? 1`: with the mutation an empty list is one
+    // message short of a count nobody stated.
+    expect(getPayloadReading({ m: [] })).toEqual({
+      payload: { m: [] },
+      messages: [],
+      fault: null,
+      lostMessages: 0,
+    });
+  });
+
+  test("and a payload that arrived whole reports nothing lost", () => {
+    // Kills `lostMessages: 0` → `1` on the return every ordinary payload takes.
+    // Every other clean case in this block goes out through the earlier return,
+    // so this line was the one nothing looked at.
+    expect(getPayloadReading({ m: ["a", "b"], mi: [1, 2] })).toEqual({
+      payload: { m: ["a", "b"], mi: [1, 2] },
+      messages: ["a", "b"],
+      fault: null,
+      lostMessages: 0,
+    });
   });
 
   test("the payload is carried through untouched", () => {

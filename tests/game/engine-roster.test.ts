@@ -106,6 +106,43 @@ describe("the warriors a battle states", () => {
     expect(fragment.unreadableEntries).toBe(1);
   });
 
+  /**
+   * ⚠️ **Three of the four identity fields were carried and never tested.**
+   * `hasStatedCombatant` asks whether *any* of them is stated, and every test
+   * here reached it through `name` — so `bun tools/mutation-sweep.ts` could
+   * replace `"team"`, `"prof"` or `"lvl"` in that list and nothing anywhere went
+   * red. The list looked like four claims about the game and was one.
+   *
+   * It matters which four, because the whole counter rests on the split being
+   * clean: an entry states all of them or none. A field quietly dropped from the
+   * list narrows what counts as "describing a person", and the first entry to
+   * arrive stating only that field goes back to vanishing in silence — which is
+   * the failure this counter exists to end.
+   */
+  test.each([["name", "ktoś"], ["team", 1], ["prof", "m"], ["lvl", 100]] as const)(
+    "an entry stating only %s is describing a person, so failing to read it counts",
+    (field, value) => {
+      // An id and one identity field: enough to be somebody, never enough to be
+      // read, because a row needs an id, a side and a name together.
+      const fragment = composeRosterFragmentFromBattle({ w: { a: { id: 1, [field]: value } } });
+
+      expect(fragment.combatants).toEqual([]);
+      expect(fragment.unreadableEntries).toBe(1);
+    },
+  );
+
+  /**
+   * The other side of the same claim, and the reason the counter is not noise:
+   * an entry carrying none of those fields is a health delta, not a person, and
+   * the captured material is overwhelmingly made of them.
+   */
+  test("an entry stating none of them is not a person and is not counted", () => {
+    const fragment = composeRosterFragmentFromBattle({ w: { a: { id: 1, hp: 120, ac: 4 } } });
+
+    expect(fragment.combatants).toEqual([]);
+    expect(fragment.unreadableEntries).toBe(0);
+  });
+
   test.each([
     ["nothing at all", undefined],
     ["a battle with no warriors", {}],
