@@ -38,6 +38,14 @@ export type AttachmentOptions = {
   cancel?: ((handle: number) => void) | undefined;
   /** Told once, when the wrap is on. */
   onAttached?: (() => void) | undefined;
+  /**
+   * Told once instead of `onAttached` when a MargoMeter was already reading.
+   *
+   * Its own callback rather than a flag on `onAttached`: the two lead to
+   * different outcomes — one panel that counts, and one copy that stands down —
+   * and a caller must not be able to treat them as the same event by accident.
+   */
+  onAnotherReaderFound?: (() => void) | undefined;
   /** Told once, when the search stops without ever finding the game. */
   onSearchAbandoned?: (() => void) | undefined;
   onReadingFailure?: ((error: unknown) => void) | undefined;
@@ -130,12 +138,17 @@ export function setEngineAttachment(
       return;
     }
 
-    removeWrap = setBattleWrap(battle, onPayloadRead, {
+    const attachment = setBattleWrap(battle, onPayloadRead, {
       onReadingFailure: options.onReadingFailure,
       onBeforeOriginal: options.onBeforeOriginal,
     });
+    removeWrap = attachment.remove;
     removeSearchTimer();
-    options.onAttached?.();
+    // Either way the search is over — a page with another reader on it is not a
+    // page where waiting longer changes anything. Which of the two happened is
+    // said, because a copy that quietly draws nothing is the silence §9.6 refuses.
+    if (attachment.hasAnotherReader) options.onAnotherReaderFound?.();
+    else options.onAttached?.();
   }
 
   setWrapIfPresent();

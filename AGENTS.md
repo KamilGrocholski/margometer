@@ -696,7 +696,14 @@ src/
                          be read. Its own file so the whole of our contact with
                          the game is one sitting's reading. Original first, its
                          value untouched, no exception of ours escaping, and a
-                         detach that removes only our layer. Answers with what it
+                         detach that removes only our layer — by identity, since
+                         two copies of one build carry the same marker and either
+                         one's remover would otherwise tear out the other's.
+                         Refuses to wrap where any MargoMeter already is,
+                         whatever version it claims: reading the marker's value
+                         as a version meant an older copy of ours was not
+                         recognised, a second layer went on, and every figure was
+                         counted twice. Answers with what it
                          read rather than with a list: a payload that mentions no
                          messages and one whose shape we no longer recognise were
                          the same empty answer, so a renamed field read every
@@ -717,7 +724,10 @@ src/
                          measured on the captures, not assumed.
     engine-attachment.ts Finds the battle object, which may not exist yet, wraps
                          it once and stops looking. The game does not replace it,
-                         so this is a search and not a watch.
+                         so this is a search and not a watch. Where another
+                         MargoMeter already has the fight it stands down and says
+                         which of the two happened — a copy that quietly draws
+                         nothing reads as broken and gets reported as broken.
     game-dictionary.ts   The client's own name for a thing, read from the page it
                          draws over: the game ships a dictionary keyed by
                          identifiers and exposes the lookup, so a player is told

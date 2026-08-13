@@ -33,12 +33,23 @@ export class EngineBattleWrapError extends MargoMeterError {
 const WRAPPED_METHOD = "updateData";
 
 /**
- * Marks our wrapper so detaching can tell it from someone else's.
+ * Marks our wrapper, so a second copy of the add-on can see it is not first.
  *
- * Carries a version because two add-ons of ours from different builds may meet
- * on one page, and "is this mine" then has to mean "is this mine, of this
- * vintage" — otherwise an older layer is removed by newer code that does not
- * know its shape.
+ * ⚠️ **The name is the contract; the value is not, and reading it as one was a
+ * bug that had not gone off yet.** This used to carry a version, and the check
+ * below asked `[WRAP_MARKER] === WRAP_VERSION`. The reasoning for that was about
+ * *removal* — do not tear out a layer whose shape you do not know — and it is
+ * correct there. Applied to *installation* it inverts: a wrapper of ours from
+ * another build fails the test, "already wrapped" does not fire, and a second
+ * layer goes on top of the first. Both then call the reading, and **every number
+ * is counted twice**.
+ *
+ * It has never fired because `WRAP_VERSION` has been `1` in every shipped build.
+ * The day it becomes `2` is the day anyone with both copies installed doubles
+ * every figure, in the release nobody would think to look at.
+ *
+ * So the version survives as the marker's value and stops being load-bearing: it
+ * tells whoever is reading a console which vintage is doing the reading.
  */
 const WRAP_MARKER = "__margometerBattleWrap";
 const WRAP_VERSION = 1;
@@ -46,10 +57,17 @@ const WRAP_VERSION = 1;
 /** The battle object as we use it: one method, and nothing else assumed. */
 export type EngineBattle = Record<string, unknown>;
 
-type Wrapper = ((...args: unknown[]) => unknown) & { [WRAP_MARKER]?: number };
+type Wrapper = ((...args: unknown[]) => unknown) & { [WRAP_MARKER]?: unknown };
 
-function isOurWrapper(value: unknown): value is Wrapper {
-  return typeof value === "function" && (value as Wrapper)[WRAP_MARKER] === WRAP_VERSION;
+/**
+ * Whether a MargoMeter — any MargoMeter — is already on this function.
+ *
+ * By the marker's presence, whatever its value: a version older than ours, newer
+ * than ours, or not a number at all. Every one of those is a reader that will
+ * count the fight, and two readers are two counts.
+ */
+function hasMargoMeterWrapper(value: unknown): value is Wrapper {
+  return typeof value === "function" && WRAP_MARKER in value;
 }
 
 /**
@@ -173,9 +191,20 @@ export type BattleWrapOptions = {
   onBeforeOriginal?: ((battle: EngineBattle) => void) | undefined;
 };
 
+/** What `setBattleWrap` did, so the caller can say why nothing is being read. */
+export type BattleWrapAttachment = {
+  remove: () => void;
+  /**
+   * Whether a MargoMeter was already reading this fight, so this one did not.
+   *
+   * Told rather than inferred: a copy that decides not to read must not then
+   * draw an empty panel in silence (§9.6). Its caller says so once and stops.
+   */
+  hasAnotherReader: boolean;
+};
+
 /**
- * Puts our wrapper on the battle object and hands back the function that takes
- * it off again.
+ * Puts our wrapper on the battle object and hands back the way to take it off.
  *
  * Returns a remover rather than exposing a detach that anyone can call on any
  * object: the pair that knows what was replaced is the pair that should undo it.
@@ -184,11 +213,24 @@ export function setBattleWrap(
   battle: EngineBattle,
   onPayloadRead: (reading: PayloadReading) => void,
   options: BattleWrapOptions = {},
-): () => void {
+): BattleWrapAttachment {
   const existing = battle[WRAPPED_METHOD];
-  // Wrapping twice would stack two layers on one function, and every promise
-  // this file makes is about there being exactly one.
-  if (isOurWrapper(existing)) return () => removeBattleWrap(battle);
+  /**
+   * Two guards, and the second is not covered by the first.
+   *
+   * A marker on the method catches the ordinary case — another copy wrapped and
+   * its layer is still on top. `ORIGINALS.has` catches the compound one: **this**
+   * copy already wrapped this object, and something else has since wrapped over
+   * us, so the marker we would find is not ours and the method is not ours
+   * either. Wrapping again there would put two of our layers in one stack with a
+   * stranger's between them.
+   */
+  if (hasMargoMeterWrapper(existing)) {
+    return { remove: () => removeBattleWrap(battle), hasAnotherReader: !ORIGINALS.has(battle) };
+  }
+  if (ORIGINALS.has(battle)) {
+    return { remove: () => removeBattleWrap(battle), hasAnotherReader: false };
+  }
 
   if (typeof existing !== "function") {
     throw new EngineBattleWrapError(
@@ -237,8 +279,8 @@ export function setBattleWrap(
   wrapper[WRAP_MARKER] = WRAP_VERSION;
 
   battle[WRAPPED_METHOD] = wrapper;
-  ORIGINALS.set(battle, { original, wasOwnProperty });
-  return () => removeBattleWrap(battle);
+  ORIGINALS.set(battle, { original, wasOwnProperty, wrapper });
+  return { remove: () => removeBattleWrap(battle), hasAnotherReader: false };
 }
 
 /**
@@ -247,21 +289,31 @@ export function setBattleWrap(
  * A `WeakMap` so that a battle object the game has finished with is not kept
  * alive by us — the add-on runs for as long as the tab does.
  */
-const ORIGINALS = new WeakMap<EngineBattle, { original: unknown; wasOwnProperty: boolean }>();
+const ORIGINALS = new WeakMap<
+  EngineBattle,
+  { original: unknown; wasOwnProperty: boolean; wrapper: Wrapper }
+>();
 
 /**
- * Takes our layer off, and only ours.
+ * Takes off the layer **this copy** put on, and only that one.
  *
  * If something else has wrapped on top since, the top layer is not ours and
  * removing it would tear out another add-on's work — so nothing happens and the
  * caller is told nothing happened. Doing it anyway is the failure mode we would
  * least like done to us.
+ *
+ * ⚠️ **By identity, not by the marker.** The marker says "a MargoMeter is here",
+ * which is the right question when deciding whether to wrap and the wrong one
+ * when deciding whether to remove: two copies of the *same* build carry the same
+ * marker and the same version, so either one's remover would have torn out the
+ * other's layer and left the game calling a function nobody owns. The wrapper
+ * this copy installed is kept beside the original, and only that exact function
+ * is taken off.
  */
 export function removeBattleWrap(battle: EngineBattle): boolean {
-  if (!isOurWrapper(battle[WRAPPED_METHOD])) return false;
-
   const replaced = ORIGINALS.get(battle);
   if (replaced === undefined) return false;
+  if (battle[WRAPPED_METHOD] !== replaced.wrapper) return false;
 
   if (replaced.wasOwnProperty) battle[WRAPPED_METHOD] = replaced.original;
   else delete battle[WRAPPED_METHOD];

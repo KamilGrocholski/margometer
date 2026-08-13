@@ -34,6 +34,7 @@ import {
 import {
   composeFailureSink,
   composeMeterOptions,
+  hasOtherMargoMeter,
   composePanelMount,
   composeReportText,
   setMargoMeter,
@@ -1344,5 +1345,94 @@ describe("what the meter is actually told", () => {
     options.onReadingFailure?.(new TypeError("reading again"));
 
     expect(said).toEqual(["MargoMeter/Reading", "MargoMeter/Capture"]);
+  });
+});
+
+/**
+ * The outermost guard against two copies counting one fight.
+ *
+ * The two in `src/game/engine-battle-wrap.ts` both look at the battle method,
+ * and there is a case neither can see: a third add-on wrapping *between* our two
+ * copies. By then the method on top belongs to a stranger, so "nobody has
+ * wrapped" and "we have, and somebody wrapped over us" look the same from there.
+ * This one never looks at the method.
+ */
+describe("a page that already has a MargoMeter", () => {
+  test("is recognised by the handle every build since 0.6.0 has set", () => {
+    const meter = { getReading: () => null, getCapture: composeEmptyCapture, stop: () => {} };
+
+    expect(hasOtherMargoMeter({ margometer: meter })).toBe(true);
+    expect(hasOtherMargoMeter({})).toBe(false);
+  });
+
+  /**
+   * ⚠️ **Another *copy* is not this copy wrapping twice**, and the difference is
+   * why this test installs a foreign wrapper by hand instead of calling
+   * `setEngineAttachment` twice. Two calls in one process share one module, one
+   * `ORIGINALS`, and are therefore one copy — which the wrap correctly reports as
+   * `hasAnotherReader: false`. A real second copy is a second module instance
+   * with its own record of what it replaced, and from here that looks like a
+   * marked wrapper nobody in this process installed.
+   */
+  function setForeignMargoMeter(battle: Record<string, unknown>): void {
+    const original = battle["updateData"] as (...args: unknown[]) => unknown;
+    const theirs = function (this: unknown, ...args: unknown[]): unknown {
+      return original.apply(this, args);
+    };
+    (theirs as unknown as Record<string, unknown>)["__margometerBattleWrap"] = 1;
+    battle["updateData"] = theirs;
+  }
+
+  test("the attachment says it stood down rather than that it attached", () => {
+    const clock = composeClock();
+    const battle = composeBattle();
+    setForeignMargoMeter(battle);
+    const said: string[] = [];
+
+    setEngineAttachment({ Engine: { battle } }, () => {}, {
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      onAttached: () => said.push("attached"),
+      onAnotherReaderFound: () => said.push("stood down"),
+    });
+
+    expect(said).toEqual(["stood down"]);
+  });
+
+  test("and stops looking, because waiting changes nothing", () => {
+    const clock = composeClock();
+    const page: { Engine?: { battle?: unknown } } = {};
+    let stoodDown = 0;
+
+    setEngineAttachment(page, () => {}, {
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      onAnotherReaderFound: () => (stoodDown += 1),
+    });
+
+    const battle = composeBattle();
+    setForeignMargoMeter(battle);
+    page.Engine = { battle };
+    clock.tick();
+    clock.tick();
+
+    expect(stoodDown).toBe(1);
+    expect(clock.getCancelCount()).toBe(1);
+  });
+
+  test("the fight is left to the copy that had it", () => {
+    const battle = composeBattle();
+    setForeignMargoMeter(battle);
+    const theirs = battle["updateData"];
+    const read: unknown[] = [];
+
+    setEngineAttachment({ Engine: { battle } }, (reading) => read.push(reading), {
+      schedule: () => 0,
+      cancel: () => {},
+    });
+    (battle["updateData"] as (payload: unknown) => unknown)({ m: ["a"], mi: [1] });
+
+    expect(battle["updateData"]).toBe(theirs);
+    expect(read).toEqual([]);
   });
 });

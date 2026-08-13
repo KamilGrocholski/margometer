@@ -40,6 +40,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   postaci, której dodatek już nie rozpoznaje, na górze pojawia się zdanie o tym,
   że liczby są zaniżone — wcześniej taka walka po prostu wychodziła na zero i nic
   tego nie sygnalizowało.
+- **Poprawka** — Dwie zainstalowane kopie dodatku nie policzą już walki dwa
+  razy. Jeśli któraś kopia jest szybsza, druga odsuwa się i mówi o tym w konsoli,
+  zamiast dokładać drugi panel liczący to samo.
 - **Poprawka** — To samo dla składu: jeśli którejś postaci nie da się odczytać,
   panel to napisze. Wcześniej taka postać znikała po cichu, a obrażenia zadane
   jej z imienia lądowały w wierszu „bez sprawcy".

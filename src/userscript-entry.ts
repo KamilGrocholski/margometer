@@ -67,6 +67,8 @@ export type MargoMeterOptions = {
   onAttached?: (() => void) | undefined;
   /** Told once, when the search gives up without ever finding the game. */
   onSearchAbandoned?: (() => void) | undefined;
+  /** Told once when another MargoMeter was already reading, so this one does not. */
+  onAnotherReaderFound?: (() => void) | undefined;
   onReadingFailure?: ((error: unknown) => void) | undefined;
   /**
    * Told when keeping the recording throws. Its own channel, not `onReadingFailure`:
@@ -133,6 +135,23 @@ export type MargoMeter = {
 export const PAGE_HANDLE = "margometer";
 
 /**
+ * Whether a MargoMeter is already running on this page.
+ *
+ * The outermost of the three guards against two copies counting one fight, and
+ * the only one that survives the case the other two cannot see: a third add-on
+ * wrapping the battle method *between* our two copies. Both of the guards in
+ * `src/game/engine-battle-wrap.ts` look at the method, and by then the method on
+ * top is a stranger's — so neither can tell "nobody has wrapped" from "we have,
+ * and somebody wrapped over us". This one never looks at the method at all.
+ *
+ * It costs nothing to add because the handle has been set by every build since
+ * 0.6.0; what was missing was anybody reading it.
+ */
+export function hasOtherMargoMeter(page: HostPage): boolean {
+  return page[PAGE_HANDLE] !== undefined;
+}
+
+/**
  * Attaches to the game and starts accumulating.
  *
  * The session is rebuilt rather than mutated on each payload, so the value handed
@@ -194,6 +213,7 @@ export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {})
       onReadingFailure: options.onReadingFailure,
       onAttached: options.onAttached,
       onSearchAbandoned: options.onSearchAbandoned,
+      onAnotherReaderFound: options.onAnotherReaderFound,
       schedule: options.schedule,
       cancel: options.cancel,
     },
@@ -755,6 +775,10 @@ export function composeMeterOptions(
     // The other end of the same line: a page where the game never appeared says
     // so once, rather than leaving a timer running and nothing on screen.
     onSearchAbandoned: () => info("MargoMeter/no-game-here"),
+    // A copy that stands down says which of the two it is. Silence here would be
+    // a panel drawing nothing on a page where the add-on is working perfectly
+    // well — in the other copy.
+    onAnotherReaderFound: () => info("MargoMeter/another-copy-is-reading"),
     onReading: (reading) => renderReading?.(reading),
     onReadingFailure: composeFailureSink("MargoMeter/Reading", warn).report,
     onCaptureFailure: composeFailureSink("MargoMeter/Capture", warn).report,
@@ -762,7 +786,13 @@ export function composeMeterOptions(
 }
 
 const page = globalThis as HostPage;
-if (shouldStartHere(page)) {
+if (hasOtherMargoMeter(page)) {
+  // Nothing is mounted and nothing is wrapped: two panels over one fight is a
+  // worse outcome than one, and this copy has no way to be the better of the two.
+  // Said out loud, because a second copy that installs and then draws nothing is
+  // indistinguishable from one that is broken.
+  console.info("MargoMeter/already-running-here");
+} else if (shouldStartHere(page)) {
   // The panel is mounted before the meter exists, and the button needs the meter
   // — so the button asks for it at the moment it is pressed, by which time it is
   // there. Mounting after the meter instead would leave the first payloads of a

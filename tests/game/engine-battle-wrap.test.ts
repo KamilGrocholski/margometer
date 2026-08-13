@@ -183,7 +183,7 @@ describe("what the wrap promises the game", () => {
     const battle = composeBattle();
     const before = battle["updateData"];
 
-    const remove = setBattleWrap(battle, () => {});
+    const { remove } = setBattleWrap(battle, () => {});
     expect(Object.prototype.hasOwnProperty.call(battle, "updateData")).toBe(true);
 
     remove();
@@ -198,7 +198,7 @@ describe("what the wrap promises the game", () => {
     };
     battle["updateData"] = getOwnedAnswer;
 
-    const remove = setBattleWrap(battle, () => {});
+    const { remove } = setBattleWrap(battle, () => {});
     remove();
 
     expect(Object.prototype.hasOwnProperty.call(battle, "updateData")).toBe(true);
@@ -227,6 +227,119 @@ describe("what the wrap promises the game", () => {
 
   test("refuses an object whose method the client has renamed", () => {
     expect(() => setBattleWrap({}, () => {})).toThrow(EngineBattleWrapError);
+  });
+});
+
+/**
+ * Two copies of the add-on on one page.
+ *
+ * ⚠️ **The failure this prevents doubles every figure in the panel, and it had
+ * not gone off yet.** The "already wrapped" guard used to ask whether the marker
+ * equalled *our* version, so a wrapper of ours from another build failed the
+ * test, the guard did not fire, and a second layer went on top. Both then read
+ * the same payload. `WRAP_VERSION` has been `1` in every shipped build, so the
+ * day it becomes `2` is the day anyone running both copies counts everything
+ * twice — in the release nobody would think to look at.
+ */
+describe("a second copy of the add-on", () => {
+  /** A wrapper of ours from a build that is not this one. */
+  function composeOlderWrapper(battle: EngineBattle, onCall: () => void): void {
+    const original = getBattleMethod(battle);
+    const older = function (this: unknown, ...args: unknown[]): unknown {
+      onCall();
+      return original.apply(this, args);
+    };
+    (older as unknown as Record<string, unknown>)["__margometerBattleWrap"] = 99;
+    battle["updateData"] = older;
+  }
+
+  test("does not wrap over a MargoMeter of another vintage", () => {
+    const battle = composeBattle();
+    composeOlderWrapper(battle, () => {});
+    const older = battle["updateData"];
+
+    const attachment = setBattleWrap(battle, () => {});
+
+    expect(battle["updateData"]).toBe(older);
+    expect(attachment.hasAnotherReader).toBe(true);
+  });
+
+  test("so the fight is counted once and not twice", () => {
+    const battle = composeBattle();
+    const counted: string[] = [];
+    composeOlderWrapper(battle, () => counted.push("older"));
+
+    setBattleWrap(battle, () => counted.push("ours"));
+    getBattleMethod(battle)({ m: ["a"], mi: [1] });
+
+    expect(counted).toEqual(["older"]);
+  });
+
+  test("and a marker whose value is not a version at all still counts as one", () => {
+    const battle = composeBattle();
+    const other = function (): string {
+      return "someone";
+    };
+    (other as unknown as Record<string, unknown>)["__margometerBattleWrap"] = "who knows";
+    battle["updateData"] = other;
+
+    expect(setBattleWrap(battle, () => {}).hasAnotherReader).toBe(true);
+    expect(battle["updateData"]).toBe(other);
+  });
+
+  /**
+   * ⚠️ **Removal by identity, not by the marker.** Two copies of the *same*
+   * build carry the same marker and the same version, so a removal that trusted
+   * the marker would tear out the other copy's layer and leave the game calling
+   * a function nobody owns.
+   */
+  test("cannot remove a layer it did not install, even one of ours", () => {
+    const battle = composeBattle();
+    composeOlderWrapper(battle, () => {});
+    const older = battle["updateData"];
+
+    setBattleWrap(battle, () => {});
+
+    expect(removeBattleWrap(battle)).toBe(false);
+    expect(battle["updateData"]).toBe(older);
+  });
+
+  /**
+   * ⚠️ **The case the identity check exists for, and the only one that reaches
+   * it.** In the test above this copy never wrapped, so removal stops at "I have
+   * no record of this object". Here it does have one — ours went on first, and
+   * another MargoMeter wrapped over the top afterwards. A removal that trusted
+   * the marker would find one, believe the top layer was ours, and restore the
+   * original *over* the other copy's wrapper: their layer gone, the game calling
+   * a function nobody owns, and no error anywhere.
+   */
+  test("and not when ours is underneath somebody else's MargoMeter", () => {
+    const battle = composeBattle();
+    setBattleWrap(battle, () => {});
+    const ours = battle["updateData"];
+
+    // The other copy wraps over us. Its wrapper carries the marker, exactly as
+    // ours does — two copies of one build agree on the version as well.
+    composeOlderWrapper(battle, () => {});
+    const theirs = battle["updateData"];
+
+    expect(theirs).not.toBe(ours);
+    expect(removeBattleWrap(battle)).toBe(false);
+    expect(battle["updateData"]).toBe(theirs);
+  });
+
+  test("wrapping the same object twice from one copy still leaves one layer", () => {
+    const battle = composeBattle();
+    const batches: number[] = [];
+
+    const first = setBattleWrap(battle, (reading) => batches.push(reading.messages.length));
+    const second = setBattleWrap(battle, (reading) => batches.push(reading.messages.length));
+    getBattleMethod(battle)({ m: ["a", "b"], mi: [1, 2] });
+
+    expect(batches).toEqual([2]);
+    // Ours, not a stranger's — so this copy still owns what it put on.
+    expect(first.hasAnotherReader).toBe(false);
+    expect(second.hasAnotherReader).toBe(false);
   });
 });
 
