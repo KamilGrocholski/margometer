@@ -274,6 +274,13 @@ const PROC_KEYS = [
   // the holder, on taking a hit, costs the opponent their next action (article
   // view,372, engine name `glare`, read 2026-08-12).
   "-legbon_glare",
+  // Settled the same way, on production build 1786514810315: `msg_-pierceb` is
+  // composed with no `%val%` hole. It is the one proc here that belongs to the
+  // **defence** — the help gives it as an event that can only occur after
+  // `+pierce` has, and that switches off the effects that event triggers
+  // (article view,372, engine name `pierceb`, read 2026-08-09). All three
+  // occurrences carry `+pierce` in the same message.
+  "-pierceb",
 ];
 
 /**
@@ -463,6 +470,16 @@ const STANDALONE_DECLARATION_KEYS = [
   // Honoru", read 2026-08-12) and the client composes it as `msg_+ph %val%`, production build
   // 1786514810315. It states no side, which is why it belongs here.
   "+ph",
+  // Health restored by a talisman **after the fight has ended**, which is the
+  // third shape a declaration takes here and the only one that is in a unit
+  // this meter does keep — see `DeclaredEffect`. Three sources agree and the
+  // last of them is our own: the help gives it as `hp restored = min(afterheal,
+  // hp start - hp current)` under talismans acting after the battle (article
+  // view,372, engine name `afterheal`, read 2026-08-09); production build
+  // 1786514810315 composes `msg_afterheal %name% %val%`; and every occurrence
+  // arrives after `winner`/`loser` with the recipients' health unmoved in the
+  // payload's own snapshots, each of them well below their maximum.
+  "afterheal",
 ];
 
 /**

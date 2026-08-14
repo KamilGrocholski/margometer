@@ -98,6 +98,7 @@ export const EFFECT_NAMES: Record<string, TokenName> = {
   fastarrow: { id: "msg_+fastarrow", fallback: "szybka strzała" },
   contra: { id: "msg_-contra", fallback: "kontratak" },
   pierce: { id: "msg_+pierce", fallback: "przebicie" },
+  pierceb: { id: "msg_-pierceb", fallback: "zablokowane przebicie" },
   stun: { id: "msg_+stun", fallback: "ogłuszenie" },
   freeze: { id: "msg_+freeze", fallback: "zamrożenie" },
   legbon_curse: { id: "msg_+legbon_curse", fallback: "klątwa" },

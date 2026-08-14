@@ -158,6 +158,7 @@ describe("the panel's own vocabulary, as decided", () => {
     ["fastarrow", "msg_+fastarrow", "szybka strzała"],
     ["contra", "msg_-contra", "kontratak"],
     ["pierce", "msg_+pierce", "przebicie"],
+    ["pierceb", "msg_-pierceb", "zablokowane przebicie"],
     ["stun", "msg_+stun", "ogłuszenie"],
     ["freeze", "msg_+freeze", "zamrożenie"],
     ["legbon_curse", "msg_+legbon_curse", "klątwa"],

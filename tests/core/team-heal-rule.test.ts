@@ -19,7 +19,11 @@ import { getNumberFromText } from "@/libs/number.ts";
 import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
+import {
+  CAPTURED_FIGHTS,
+  type CapturedFight,
+  composeRosterOfFight,
+} from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 
 const TEAM_HEAL_KEY = "healall_per";
@@ -111,6 +115,57 @@ function getReadings(fight: CapturedFight): Reading[] {
   });
 }
 
+/**
+ * Whose health had already moved when the fight's first snapshot was taken.
+ *
+ * ⚠️ **The cap below is measured against a figure the capture may not hold.**
+ * `startingHealthByCombatantId` reads the health a combatant was *first seen*
+ * holding, and that is the health they began the fight with only while nothing
+ * has reached them yet. Where something has, the recorded figure is too low by
+ * whatever it was, and a cap taken from it binds where the game's did not.
+ *
+ * Decided from the messages alone — who a health-moving event named before the
+ * first snapshot — so it is a fact about the recording and not about the heals
+ * under test. Anything else would be circular: the obvious tell, a combatant
+ * later standing above their recorded start, is only a tell if healing cannot
+ * exceed the entry health, which is the claim.
+ *
+ * ⚠️ **This is not a corner.** `2026-08-14-tempest-grupa-vs-hildur` opens with
+ * the boss casting `Śpiew zagłady` — one message carrying ten `+oth_dmg`
+ * figures, one per side-mate — before any snapshot exists, so every combatant in
+ * that fight has an entry health the capture does not hold. It is also the
+ * answer to the exception this file used to name: `445202` of 2026-08-06 was hit
+ * before that fight's first snapshot too. One cause, and the rule beneath it has
+ * no exception left.
+ */
+const UNKNOWN_ENTRY_HEALTH: Map<string, Set<number>> = new Map(
+  CAPTURED_FIGHTS.map((fight) => {
+    const opening: string[] = [];
+    for (const call of fight.dump.calls) {
+      if (call.combatantsBefore.length > 0) break;
+      opening.push(...call.protocolMessages);
+    }
+
+    const moved = new Set<number>();
+    for (const event of decodeFight(opening, composeRosterOfFight(fight))) {
+      const subject =
+        event.kind === "attack" ||
+        event.kind === "damage-to-named-combatant" ||
+        event.kind === "healing-to-named-combatant"
+          ? event.targetId
+          : event.kind === "health-change"
+            ? event.combatantId
+            : null;
+      if (subject !== null) moved.add(subject);
+    }
+    return [fight.name, moved];
+  }),
+);
+
+function hasKnownEntryHealth(reading: Reading): boolean {
+  return !(UNKNOWN_ENTRY_HEALTH.get(reading.fight)?.has(reading.combatantId) ?? false);
+}
+
 const CASTS: Cast[] = CAPTURED_FIGHTS.flatMap(getCasts);
 const READINGS: Reading[] = CAPTURED_FIGHTS.flatMap(getReadings);
 /**
@@ -148,11 +203,13 @@ function composeReport(reading: Reading): string {
 }
 
 function getDisagreeing(ceiling: (reading: Reading) => number): string[] {
-  return SIDE_MATES.filter(
-    (reading) =>
-      Math.abs(getRestored(reading, ceiling(reading)) - reading.gained) >
-      TOLERANCE_IN_HEALTH_POINTS,
-  ).map(composeReport);
+  return SIDE_MATES.filter(hasKnownEntryHealth)
+    .filter(
+      (reading) =>
+        Math.abs(getRestored(reading, ceiling(reading)) - reading.gained) >
+        TOLERANCE_IN_HEALTH_POINTS,
+    )
+    .map(composeReport);
 }
 
 describe("what `healall_per` restores", () => {
@@ -255,29 +312,42 @@ describe("what `healall_per` restores", () => {
   });
 
   /**
-   * The cap, and the single reading that refuses it.
+   * The cap, on every reading whose entry health the capture actually holds.
    *
    * The help says the effect cannot restore a combatant past the health it began
-   * the fight with, and that reproduces every reading here but one: a combatant
-   * already **above** its starting health was taken to full anyway. It is also
-   * the only reading in the material standing above its starting health when a
-   * cast landed — so the one case that could test the cap in that direction is
-   * the one case that refuses it, and the key stays unread on the strength of
-   * exactly that.
-   *
-   * Named rather than counted, so a second exception says which it is.
+   * the fight with, and that now reproduces every such reading without exception.
+   * It did not always: this test named one refusal, `445202` of 2026-08-06, and
+   * `2026-08-14-tempest-grupa-vs-hildur` arrived with sixteen more. Every one of
+   * the seventeen is a combatant whose health had already moved when the first
+   * snapshot was taken, so the figure they were measured against was never their
+   * entry health — see `UNKNOWN_ENTRY_HEALTH`. A rule with one exception invites
+   * a second reading; this one has none, and what looked like an exception was a
+   * missing input.
    */
-  test("the cap is the health the fight began with, on all but one reading", () => {
-    expect(getDisagreeing((reading) => reading.startingHealth)).toEqual([
-      "2026-08-06-tempest-grupa-vs-hildur call 59, combatant 445202",
-    ]);
+  test("the cap is the health the fight began with, wherever that is known", () => {
+    expect(getDisagreeing((reading) => reading.startingHealth)).toEqual([]);
   });
 
   /** The reading that fits worse, kept so the two cannot quietly swap places. */
-  test("and not maximum health, which the same material refuses six times over", () => {
+  test("and not maximum health, which the same material refuses", () => {
     expect(getDisagreeing((reading) => reading.maximumHealth).length).toBeGreaterThan(
       getDisagreeing((reading) => reading.startingHealth).length,
     );
+  });
+
+  /**
+   * The exclusion above, stated so it cannot become a silent filter — the shape
+   * this file already holds `DEAD_SIDE_MATES` to.
+   *
+   * Both halves matter. Something has to be excluded, or the guard is arithmetic
+   * about nothing; and something has to survive, or the cap is confirmed against
+   * an empty set. The second is the one that would fail quietly: sixteen of the
+   * twenty readings in the fight that forced this rule are excluded by it.
+   */
+  test("readings are excluded for a missing entry health, and not all of them are", () => {
+    const withoutEntryHealth = SIDE_MATES.filter((reading) => !hasKnownEntryHealth(reading));
+    expect(withoutEntryHealth.length).toBeGreaterThan(0);
+    expect(SIDE_MATES.filter(hasKnownEntryHealth).length).toBeGreaterThan(0);
   });
 
   /**

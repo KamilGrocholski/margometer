@@ -229,12 +229,21 @@ export type HealthChangeEvent = {
 /**
  * Something the protocol states that **no total here counts**.
  *
- * Two kinds qualify, and the register says which each key is:
+ * Three kinds qualify, and the register says which each key is:
  *
  *   - an **input** rather than an outcome — what a skill costs, what it grants,
  *     the share by which a blow was already weakened before it was reported;
  *   - an outcome in a **unit this meter does not keep** — energy returned, attack
- *     speed slowed, combination points spent.
+ *     speed slowed, combination points spent;
+ *   - an outcome **outside the fight this meter is scoped to**, whatever its
+ *     unit. `afterheal` is the one, and it is the only member in a unit that is
+ *     kept: a talisman restores health once the battle is over. The help gives
+ *     the arithmetic as `min(afterheal, hp start - hp current)` and puts it after
+ *     the fight (article view,372, read 2026-08-09); every occurrence arrives
+ *     after `winner`/`loser`; and the payload's own snapshots do not move,
+ *     with each recipient well below their maximum. A meter whose unit is
+ *     the fight counts it nowhere — but it is read, so the figure is on screen
+ *     rather than absent.
  *
  * ⚠️ **Nothing downstream may total one.** `alllowdmg=5` says a skill lowers the
  * opposing side's damage by a share; it does not say anybody's damage fell, and
@@ -243,8 +252,8 @@ export type HealthChangeEvent = {
  * it have it applied, so adding it anywhere would subtract a reduction twice.
  *
  * ⚠️ **The test a key must pass to land here**, and it is not "we understand it":
- * *whatever this figure did, is it either reported elsewhere or in a unit no
- * total here keeps?* `healall_per` is the key that fails it — the health it
+ * *whatever this figure did, is it reported elsewhere, or in a unit no total here
+ * keeps, or outside the fight?* `healall_per` is the key that fails it — the health it
  * restores is stated nowhere else in the protocol, so calling it a declaration
  * would silence a warning while the healing total really is short. It is read as
  * `UnaccountedHealthEvent` instead, which is the third answer this type is not.
