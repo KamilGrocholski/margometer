@@ -896,15 +896,6 @@ describe("against the captured fights", () => {
         roster,
         ourSide: 1,
         isFromFightStart: true,
-        /**
-         * No turn axis, which is what two of the three captures actually give.
-         *
-         * It used to say one turn per combatant — a number nobody measured, put
-         * there so the field could be filled. These tests are about what a
-         * breakdown adds up to, and a fabricated divisor cannot help them: it can
-         * only make a rate look checked when the only thing checked was the
-         * arithmetic of a figure nobody read off a capture.
-         */
       } satisfies PanelReading,
     };
   });
@@ -989,7 +980,7 @@ describe("against the captured fights", () => {
    * The hand-written fight has 60 points of poison against a 400-point mage, so
    * the pinned row could not exceed the scale there however wrong the scale was —
    * a guard agreeing with the bug it was written to prevent (§7.5). On the
-   * captures it exceeded it under `Leczenie` in five of seven, up to 1.56, and
+   * captures it exceeded it under `Leczenie` in most of them, up to 1.56, and
    * `.row { overflow: hidden }` clips that into a bar indistinguishable from a
    * full one: the row that says *something here is missing* drawn as the largest
    * thing in the fight.

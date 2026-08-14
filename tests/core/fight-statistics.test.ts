@@ -213,7 +213,7 @@ describe("the aggregate over captured fights", () => {
 });
 
 describe("rows grouped by side", () => {
-  test("both captures split into more than one side, with nobody left out", () => {
+  test("every capture splits into more than one side, with nobody left out", () => {
     for (const { name, statistics } of FROM_CAPTURES) {
       expect(statistics.bySide.size, name).toBeGreaterThan(1);
       expect(statistics.combatantIdsWithoutSide, name).toEqual([]);
@@ -239,7 +239,7 @@ describe("rows grouped by side", () => {
   });
 
   /**
-   * What one side lands is what the other takes — exactly, in both captures.
+   * What one side lands is what the other takes — exactly, on every capture.
    *
    * The strongest evidence the grouping is coherent: a combatant filed on the
    * wrong side breaks it immediately, and no per-row check would notice.

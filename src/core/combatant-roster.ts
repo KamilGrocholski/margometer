@@ -33,7 +33,7 @@ export type RosteredCombatant = {
    * can ask the client who the local player is. Until something hands that in,
    * two sides are two sides and neither is favoured.
    *
-   * Measured on both captures: every combatant keeps the same team for the whole
+   * Measured on every capture: every combatant keeps the same team for the whole
    * fight, so this is a property of the roster rather than of a moment in it.
    */
   side: number;

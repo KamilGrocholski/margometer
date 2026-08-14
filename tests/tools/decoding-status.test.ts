@@ -97,7 +97,7 @@ describe("decoding status", () => {
   /**
    * The day this list empties, which arrived on 2026-08-11.
    *
-   * Asserted rather than left as an observation: every key in both captures is
+   * Asserted rather than left as an observation: every key in every capture is
    * read now, so a key appearing here again means the material grew or the
    * decoder lost something — and either is worth failing over rather than
    * noticing months later. `bun tools/decoding-status.ts` is where the figure

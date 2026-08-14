@@ -244,7 +244,7 @@ function composeCopiedValue(value: unknown): unknown {
  * the 38 of them in the older capture as an exception that survives only because
  * cutting them would mean editing evidence, and material that never carried them
  * needs no exception. `otwarcie` is gone with the only reach into the page's DOM
- * that `src/` ever had; nothing reads it, and both captures on disk hold null.
+ * that `src/` ever had; nothing reads it, and every capture on disk holds null.
  */
 export function composeCaptureText(
   capture: FightCapture,

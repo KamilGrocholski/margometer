@@ -292,7 +292,7 @@ const SKILL_ID_KEY = "skillId";
  * What an announcement declares about the skill it announces.
  *
  * Every one of these rides a message carrying `tspell` and none rides a blow —
- * measured across both captures, and the reason they are read here rather than
+ * measured across every capture, and the reason they are read here rather than
  * anywhere near a figure. Each states an **input**: a cost, a grant, a share the
  * skill will apply. What it comes to arrives later as ordinary damage, already
  * computed, so nothing downstream may add one to a statistic

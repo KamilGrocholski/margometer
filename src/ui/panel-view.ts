@@ -701,14 +701,14 @@ function getHealingWithoutHealer(row: CombatantStatistics): number {
  *
  * Its own function because the bar's scale has to know it: the row is measured
  * against the largest figure **on screen**, and it is itself on screen. Measured
- * on the captures — under `Leczenie` this figure beats every ranked row in five
- * of seven of them, up to 1.56× — and a fill over one is clipped by
+ * on the captures — under `Leczenie` this figure beats every ranked row in most
+ * of them, up to 1.56× — and a fill over one is clipped by
  * `.row { overflow: hidden }` into a bar that looks exactly like a full one.
  *
  * ⚠️ **It depends on the noun and not on the direction, and that is the whole
  * point of it.** The same points read from either end: given plus this is
  * everything received, so the row is what makes the two directions balance
- * instead of disagree. Measured on all seven captures, both nouns — the figure
+ * instead of disagree. Measured on every capture, both nouns — the figure
  * and its share come out identical under `Zadane` and `Otrzymane` (49 318 and
  * 6.7% against Hildur), which is `Σ dealt + unattributed = Σ taken` said in the
  * panel's own arithmetic.
@@ -731,8 +731,8 @@ function getPinnedValue(reading: PanelReading, state: PanelState): number {
  * by definition, so under `Zadane` and `Leczenie dane` it is the pinned figure
  * entire. Under a received direction the health it moved landed on somebody and is
  * counted there, and what is left over is only what the aggregate could not place
- * at all: a target or a recipient that did not resolve. Zero on all seven
- * captures, and read rather than written as zero — a figure that happens to be
+ * at all: a target or a recipient that did not resolve. Zero on every capture,
+ * and read rather than written as zero — a figure that happens to be
  * zero because nothing has broken yet is exactly the kind this panel exists not
  * to miss.
  *
