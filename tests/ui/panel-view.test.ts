@@ -108,7 +108,7 @@ function getEveryString(view: PanelView): string[] {
     ...getEveryRow(view).flatMap((row) => [
       row.label,
       row.valueText,
-      row.bracketText,
+      row.bracketText ?? "",
       // Every line of the detail, whatever shape it is: a heading going technical
       // would be as bad as a label doing it, and only one of the two is obvious.
       ...row.detail.map((line) => (line.kind === "stat" ? `${line.label} ${line.value}` : line.text)),
@@ -225,6 +225,23 @@ const IS_PINNED_INSIDE_ROWS: Record<PanelMetric, boolean> = {
   taken: true,
   healingGiven: false,
   healed: true,
+};
+
+/**
+ * Whether the pinned row states a share **under a side filter** — written out
+ * per metric for the same reason the table above is, and because the compiler
+ * counting the rows is what makes a fifth screen ask the question rather than
+ * inherit an answer.
+ *
+ * It is the negation of `IS_PINNED_INSIDE_ROWS` and deliberately not spelled as
+ * one: that table says where the figure sits, this one says whether the
+ * denominator contains it, and a future screen could break the coincidence.
+ */
+const HAS_PINNED_SHARE_UNDER_FILTER: Record<PanelMetric, boolean> = {
+  dealt: true,
+  taken: false,
+  healingGiven: true,
+  healed: false,
 };
 
 describe("what nobody can be charged with", () => {
@@ -1158,6 +1175,9 @@ describe("against the captured fights", () => {
         let low = 0;
         let high = Number.POSITIVE_INFINITY;
         for (const row of drawn) {
+          // A row with no bracket states no whole, so it bounds nothing here.
+          // Which rows those are is held next door, not by silence in this loop.
+          if (row.bracketText === null) continue;
           const value = getIntegerFromText(row.valueText.replace(/\s/g, ""));
           const percent = getIntegerFromText(row.bracketText.replace(/[()%]/g, ""));
           expect(value, row.valueText).not.toBeNull();
@@ -1173,6 +1193,73 @@ describe("against the captured fights", () => {
         if (low > 0 && Number.isFinite(high)) {
           expect(low, `${metric} ${team}: the shares imply two different wholes`).toBeLessThanOrEqual(high);
         }
+      }
+    }
+  });
+
+  /**
+   * ⚠️ **A share of a whole the figure is not part of.**
+   *
+   * The test above holds that every bracket on a screen divides by *one* figure,
+   * and it passed while the pinned row printed 320%: the denominator really was
+   * the same one: it just did not contain the fight-wide numerator being divided
+   * by it. One denominator and a meaningless denominator look identical from
+   * inside that property, so the ceiling is stated here separately.
+   *
+   * Measured before the fix, over the captures: ten of the forty-eight filtered
+   * received screens went over a hundred, the worst at 320%.
+   */
+  test.each(fights)("$name never states a share above the whole", ({ reading }) => {
+    for (const metric of PANEL_METRICS) {
+      for (const team of PANEL_TEAMS) {
+        const view = composePanelView(reading, composeState({ metric, team }));
+        const drawn = [
+          ...view.lists.flatMap((list) => list.rows),
+          ...(view.pinnedRow === null ? [] : [view.pinnedRow]),
+        ];
+
+        for (const row of drawn) {
+          if (row.bracketText === null) continue;
+          const percent = getIntegerFromText(row.bracketText.replace(/[()%]/g, "").split("·")[0]!.trim());
+          expect(percent, `${metric} ${team} ${row.label} ${row.bracketText}`).not.toBeNull();
+          expect(percent ?? 0, `${metric} ${team} ${row.label} ${row.bracketText}`).toBeLessThanOrEqual(100);
+        }
+      }
+    }
+  });
+
+  /**
+   * The other end of the same fault: where the filtered side received nothing,
+   * the denominator was zero and a five-figure number printed `(0%)`. §9.6 keeps
+   * "measured nothing" apart from "could not be read", and a real figure drawn as
+   * nothing fails that in the direction that costs most.
+   */
+  test.each(fights)("$name never marks the pinned figure as none of the screen", ({ reading }) => {
+    for (const metric of PANEL_METRICS) {
+      for (const team of PANEL_TEAMS) {
+        const pinned = composePanelView(reading, composeState({ metric, team })).pinnedRow;
+        if (pinned === null || pinned.bracketText === null) continue;
+        const value = getIntegerFromText(pinned.valueText.replace(/\s/g, ""));
+        if (value === null || value <= 0) continue;
+        expect(pinned.bracketText, `${metric} ${team}`).not.toBe("(0%)");
+      }
+    }
+  });
+
+  /**
+   * Which screens state a share at all, held against a table rather than against
+   * whatever the view does. The bracket goes when the figure is not inside the
+   * denominator — a received direction under a side filter — and stays everywhere
+   * else, including `Wszyscy`, where the two cuts overlap on purpose and the row
+   * says so in words.
+   */
+  test.each(fights)("$name states the pinned share exactly where there is one", ({ reading }) => {
+    for (const metric of PANEL_METRICS) {
+      for (const team of PANEL_TEAMS) {
+        const pinned = composePanelView(reading, composeState({ metric, team })).pinnedRow;
+        if (pinned === null) continue;
+        const expected = team === "all" || HAS_PINNED_SHARE_UNDER_FILTER[metric];
+        expect(pinned.bracketText !== null, `${metric} ${team}`).toBe(expected);
       }
     }
   });

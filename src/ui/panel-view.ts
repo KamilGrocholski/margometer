@@ -282,8 +282,16 @@ export type PanelRow = {
   /** 0–1, against the largest row of the same list. */
   fill: number;
   valueText: string;
-  /** The share, and the other measure, in one bracket beside the figure. */
-  bracketText: string;
+  /**
+   * The share, and the other measure, in one bracket beside the figure.
+   *
+   * **Null where the figure has no share to state**, which is not the same as a
+   * share of nothing: the pinned row is fight-wide, so under a side filter its
+   * figure is not inside the denominator the rest of the screen divides by, and
+   * a percentage of the wrong whole came out at 320%. Nullable rather than
+   * empty, so the compiler asks the question at every row that is built.
+   */
+  bracketText: string | null;
   /** Whether a click goes anywhere. A leaf that offered one would be a lie. */
   canDrill: boolean;
   /** Detail on demand (§9.6). Empty means there is nothing more to say. */
@@ -455,6 +463,28 @@ function getFill(value: number, largest: number): number {
 /** The bracket beside the figure: what share of the whole it is. */
 function composeBracket(share: number): string {
   return `(${composeShareText(share)})`;
+}
+
+/**
+ * Whether the pinned figure is inside the denominator this screen divides by.
+ *
+ * The pinned row is fight-wide and says so, but `getWholeOnScreen` under a side
+ * filter is the rows that filter admits. Under a *given* direction that is still
+ * one whole containing the figure — `getFigureOutsideRows` adds it. Under a
+ * *received* one it does not: the health landed on somebody, so what is added is
+ * only the part no row holds at all, which is zero on every capture. A fight-wide
+ * numerator over one side's denominator then reads as a share of something that
+ * does not exist.
+ *
+ * ⚠️ **Measured, not feared.** Ten of the forty-eight filtered received screens
+ * over the captures printed a share above a hundred — 320% under `Leczenie · Oni`
+ * on the duel, 248% under `Leczenie · My` on the second Hildur fight — and two
+ * printed `(0%)` beside a five-figure number, because the opposing side received
+ * no healing and the denominator was zero. Both are the same fault from opposite
+ * ends, and §9.6 forbids the second twice over: a real figure drawn as nothing.
+ */
+function hasShareOnScreen(state: PanelState): boolean {
+  return state.team === "all" || isGivenMetric(state.metric);
 }
 
 /** Everyone the current filter admits, biggest first. */
@@ -816,7 +846,7 @@ function composePinnedRow(
     // something is missing would look like the largest thing in the fight.
     fill: getFill(value, largest),
     valueText: composeFigureText(value),
-    bracketText: composeBracket(whole > 0 ? value / whole : 0),
+    bracketText: hasShareOnScreen(state) ? composeBracket(whole > 0 ? value / whole : 0) : null,
     canDrill: false,
     detail: lines,
   };
