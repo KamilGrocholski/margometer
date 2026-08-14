@@ -45,13 +45,14 @@ import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
   type CapturedFight,
+  getMessagesOfFight,
 } from "@/tests/captured-fight-catalog.ts";
 
 function getStatisticsOf(fight: CapturedFight) {
   const roster = composeRosterOfFight(fight);
   return composeFightStatistics(
     decodeFight(
-      fight.dump.calls.flatMap((call) => call.protocolMessages),
+      getMessagesOfFight(fight),
       roster,
     ),
     roster,
@@ -60,7 +61,7 @@ function getStatisticsOf(fight: CapturedFight) {
 
 function getEventsOf(fight: CapturedFight): BattleEvent[] {
   return decodeFight(
-    fight.dump.calls.flatMap((call) => call.protocolMessages),
+    getMessagesOfFight(fight),
     composeRosterOfFight(fight),
   );
 }
@@ -103,7 +104,7 @@ describe("the aggregate over captured fights", () => {
    * `loser` message arrives after the `winner` message, so a single variable
    * held "lost" at the end of every fight ever recorded — including the boar
    * fight, which the player finished at full health with all three opponents
-   * dead. Both fights carry exactly one of each message
+   * dead. Every capture carries exactly one of each message
    * (`tests/core/battle-event.test.ts`), so the material settles this: whoever
    * won has to survive the aggregate as well as the decoder.
    */
@@ -161,8 +162,8 @@ describe("the aggregate over captured fights", () => {
 
   /**
    * §9.6: a total that might be too low has to be markable as such, which is
-   * impossible if the aggregate forgets what it could not read. Both captures
-   * carry unread keys, so this is measured rather than constructed.
+   * impossible if the aggregate forgets what it could not read. Every capture
+   * carries unread keys, so this is measured rather than constructed.
    */
   /**
    * ⚠️ Both halves of this used to be measured on the captures, and one of them

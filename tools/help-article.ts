@@ -25,7 +25,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { getValueFromJsonText } from "@/libs/json.ts";
+import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
 import { composeIntegerText, getIntegerFromText, getIntegerFromValue } from "@/libs/number.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
@@ -233,7 +233,7 @@ export async function writeHelpArticleCache(article: string): Promise<CachedHelp
     textPath,
     textLength: text.length,
   };
-  writeFileSync(getManifestPath(article), `${JSON.stringify(cached, null, 2)}\n`);
+  writeFileSync(getManifestPath(article), `${composeJsonText(cached, 2)}\n`);
   return cached;
 }
 
@@ -338,11 +338,11 @@ function composeFrozenModule(
 // undocumented while the help described all four — see the notice in that file.
 
 export const FROZEN_HELP_PHRASES = {
-  article: ${JSON.stringify(article)},
+  article: ${composeJsonText(article)},
   /** When the dump these counts were taken from was fetched, not when it was read. */
-  fetchedAt: ${JSON.stringify(fetchedAt)},
+  fetchedAt: ${composeJsonText(fetchedAt)},
   counts: {
-${counts.map(([phrase, count]) => `    ${JSON.stringify(phrase)}: ${composeIntegerText(count)},`).join("\n")}
+${counts.map(([phrase, count]) => `    ${composeJsonText(phrase)}: ${composeIntegerText(count)},`).join("\n")}
   },
 } as const;
 `;

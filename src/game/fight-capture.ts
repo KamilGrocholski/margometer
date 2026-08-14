@@ -5,7 +5,7 @@
  * captured material, this one produces it. **The shape is a contract, not an
  * invention** — the text composed here is exactly what the parser already reads,
  * Polish field names and all, because that is the only way a new recording can be
- * set beside the two already in `tests/captured-fights/`. §9.2 says the Polish
+ * set beside the ones already in `tests/captured-fights/`. §9.2 says the Polish
  * names stop at the reader that parses them; this is the same boundary from the
  * other side.
  *
@@ -21,12 +21,12 @@
  */
 
 import { getIntegerFromValue } from "@/libs/number.ts";
-import { getValueFromJsonText } from "@/libs/json.ts";
+import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 import { isFightStart } from "@/src/game/battle-session.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
 
-/** The format `tools/fight-dump-parser.ts` reads. Both existing captures carry 1. */
+/** The format `tools/fight-dump-parser.ts` reads. Every capture on disk carries 1. */
 const CAPTURE_FORMAT_VERSION = 1;
 
 /**
@@ -48,7 +48,7 @@ const MAXIMUM_CALLS = 2000;
  * and `tools/fight-dump-parser.ts` is where it is held to a shape.
  *
  * `npc` — the only field saying who is a person — is deliberately absent, exactly
- * as it is absent from the two captures on disk. It is not lost: it rides in the
+ * as it is absent from every capture on disk. It is not lost: it rides in the
  * payload's own `w`, which is recorded whole, and that is where the intake tool
  * reads it.
  */
@@ -216,7 +216,7 @@ function composeShapeKey(payload: unknown): string {
 }
 
 function composeStateKey(combatants: readonly CapturedCombatant[]): string {
-  return JSON.stringify(combatants);
+  return composeJsonText(combatants);
 }
 
 /**
@@ -228,7 +228,10 @@ function composeStateKey(combatants: readonly CapturedCombatant[]): string {
  * the moment of recording rather than silently at the end.
  */
 function composeCopiedValue(value: unknown): unknown {
-  const { value: copied } = getValueFromJsonText(JSON.stringify(value ?? null));
+  // `?? null` because `composeJsonText` refuses `undefined` outright, and a
+  // payload field the client left out is a thing that happens rather than a
+  // broken invariant.
+  const { value: copied } = getValueFromJsonText(composeJsonText(value ?? null));
   return copied;
 }
 
@@ -244,13 +247,14 @@ function composeCopiedValue(value: unknown): unknown {
  * the 38 of them in the older capture as an exception that survives only because
  * cutting them would mean editing evidence, and material that never carried them
  * needs no exception. `otwarcie` is gone with the only reach into the page's DOM
- * that `src/` ever had; nothing reads it, and every capture on disk holds null.
+ * that `src/` ever had; nothing reads it, the two captures that carried it hold
+ * null, and the six recorded since do not carry the key at all.
  */
 export function composeCaptureText(
   capture: FightCapture,
   environment: CaptureEnvironment,
 ): string {
-  return JSON.stringify(
+  return composeJsonText(
     {
       wersja: CAPTURE_FORMAT_VERSION,
       przy: environment.getCapturedAt(),
@@ -269,7 +273,6 @@ export function composeCaptureText(
         wojownicyPo: call.combatantsAfter,
       })),
     },
-    null,
     2,
   );
 }

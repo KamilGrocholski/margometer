@@ -39,7 +39,12 @@ export const SERIES_COLOURS = [
 /** For anyone whose profession the game did not state. Deliberately colourless. */
 export const UNKNOWN_COLOUR = "#8a8a80";
 
-const [BLUE, GREEN, MAGENTA, YELLOW, AQUA, ORANGE, VIOLET, RED] = SERIES_COLOURS;
+/**
+ * Six of the eight. The last two are unassigned and stay inside
+ * `SERIES_COLOURS`, which is exported and measured for contrast — naming them
+ * here bought nothing but a compiler complaint.
+ */
+const [BLUE, GREEN, MAGENTA, YELLOW, AQUA, ORANGE] = SERIES_COLOURS;
 
 /**
  * Profession → colour, the pattern damage meters have used for twenty years: the
@@ -57,9 +62,6 @@ export const PROFESSION_COLOURS: Record<string, string> = {
   m: BLUE,
   b: AQUA,
 };
-
-/** Unassigned so far; kept named so the palette's shape stays visible. */
-export const RESERVED_COLOURS = [VIOLET, RED] as const;
 
 export function getProfessionColour(profession: string | null): string {
   if (profession === null) return UNKNOWN_COLOUR;
@@ -83,6 +85,8 @@ export const PANEL_PIXELS = { space: 8, width: 260, tipWidth: 250 } as const;
  * the second one exists to cancel the first — see `spaceRegionDown`.
  */
 const REGION_STEP_DOWN = "5px";
+/** The other half of that step, named for the same reason: two rules want it. */
+const REGION_STEP_ACROSS = "7px";
 
 export const PANEL_TOKENS = {
   surface: "#17171c",
@@ -161,11 +165,31 @@ export const PANEL_TOKENS = {
    */
   tipWidth: `${composeIntegerText(PANEL_PIXELS.tipWidth)}px`,
   radius: "8px",
+  /** The small radius, on the things that sit inside something already rounded. */
+  radiusSmall: "3px",
+  /**
+   * Pure black, and only ever as a mask.
+   *
+   * A `mask-image` reads alpha and throws the hue away, so this is not a colour
+   * anybody sees — it is the opaque end of a gradient. Named anyway, because §9.7
+   * says a raw hex in a rule is a bug and an exception nobody can see the edge of
+   * is how the next one gets written
+   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F25).
+   */
+  maskInk: "#000000",
+  /**
+   * What lifts the detail window off the page.
+   *
+   * The whole declaration rather than the colour alone: the offset, the blur and
+   * the opacity are one decision about how far off the page it sits, and three
+   * tokens would let two of them be changed without the third.
+   */
+  windowShadow: "0 6px 20px rgb(0 0 0 / 55%)",
   spaceSmall: "4px",
   /** Half a step. The design puts a row's own text this far from its edge. */
   spaceHalf: "2px",
   /** The step every region is inset by: 5px down the panel, 7px across it. */
-  spaceRegion: `${REGION_STEP_DOWN} 7px`,
+  spaceRegion: `${REGION_STEP_DOWN} ${REGION_STEP_ACROSS}`,
   /**
    * The down half of that step, on its own, because one rule has to undo it.
    *
@@ -176,6 +200,8 @@ export const PANEL_TOKENS = {
    * this, so the two cannot drift: measured in Firefox, 5px of a tinted bar.
    */
   spaceRegionDown: REGION_STEP_DOWN,
+  /** The across half, for the rules that inset without stepping down. */
+  spaceRegionAcross: REGION_STEP_ACROSS,
   space: `${composeIntegerText(PANEL_PIXELS.space)}px`,
   spaceLarge: "12px",
   /** Narrow on purpose: the panel is a guest over a game someone is playing. */

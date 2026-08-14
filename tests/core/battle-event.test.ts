@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { BATTLE_EVENT_KINDS } from "@/src/core/battle-event.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 const DECODED_FIGHTS = CAPTURED_FIGHTS.map((fight) => ({
   name: fight.name,
-  messages: fight.dump.calls.flatMap((call) => call.protocolMessages),
-  events: decodeFight(fight.dump.calls.flatMap((call) => call.protocolMessages)),
+  messages: getMessagesOfFight(fight),
+  events: decodeFight(getMessagesOfFight(fight)),
 }));
 
 describe("the event contract", () => {

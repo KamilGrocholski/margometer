@@ -4,8 +4,8 @@
  * The game does not hand over a fight; it hands over pieces of one, and what
  * each piece contains was measured on the captures rather than assumed:
  *
- *   - **`init` marks the start, exactly once.** Both captures carry it on call 0
- *     and never again, so it is the fight boundary.
+ *   - **`init` marks the start, exactly once.** Every capture carries it on call
+ *     0 and never again, so it is the fight boundary.
  *   - **The roster arrives in fragments.** `w` is on nearly every call but holds
  *     between 1 and 11 of 11 warriors — a delta, not a snapshot. It merges, and
  *     a fragment that mentions nobody takes nobody away.

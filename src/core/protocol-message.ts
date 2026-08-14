@@ -13,6 +13,7 @@
  * as if it were understood.
  */
 
+import { composeJsonText } from "@/libs/json.ts";
 import { assertDefined } from "@/libs/assert.ts";
 import {
   composeDecimalText,
@@ -24,7 +25,7 @@ import { MargoMeterError } from "@/src/core/margometer-error.ts";
 
 export class ProtocolMessageFormatError extends MargoMeterError {
   constructor(reason: string, message: string) {
-    super("ProtocolMessageFormat", `${reason}: ${JSON.stringify(message)}`);
+    super("ProtocolMessageFormat", `${reason}: ${composeJsonText(message)}`);
   }
 }
 

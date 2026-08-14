@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 /**
  * Decoder rules that the captured material cannot pin down on its own, because
@@ -191,7 +191,7 @@ describe("a key that arrived with nothing in it", () => {
  */
 describe("every element the captures decode", () => {
   test.each(CAPTURED_FIGHTS)("$name names no element with a blank in it", (fight) => {
-    const messages = fight.dump.calls.flatMap((call) => call.protocolMessages);
+    const messages = getMessagesOfFight(fight);
     const elements = new Set<string>();
     for (const event of decodeFight(messages, composeRosterOfFight(fight))) {
       if (event.kind === "attack")

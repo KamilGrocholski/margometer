@@ -11,12 +11,14 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { composeJsonText } from "@/libs/json.ts";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import {
+  composeFigureText,
   composeDefaultState,
   composePanelView,
   PANEL_METRICS,
@@ -27,7 +29,7 @@ import {
   type PanelState,
   type PanelView,
 } from "@/src/ui/panel-view.ts";
-import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 /**
  * A fight with two sides, a healer, a tick of poison and one unreadable message.
@@ -884,7 +886,7 @@ describe("against the captured fights", () => {
     const roster = composeRosterOfFight(fight);
     const statistics = composeFightStatistics(
       decodeFight(
-        fight.dump.calls.flatMap((call) => call.protocolMessages),
+        getMessagesOfFight(fight),
         roster,
       ),
       roster,
@@ -1510,7 +1512,7 @@ describe("a target the fight cannot name", () => {
       { kind: "note", text: "Gra nie mówi, w kogo — wiadomo tylko, że cios wszedł." },
     ]);
     for (const forbidden of ["roster", "skład", "protok", "klucz", "null", "id"]) {
-      expect(`${missing?.label} ${JSON.stringify(missing?.detail)}`, forbidden).not.toContain(forbidden);
+      expect(`${missing?.label} ${composeJsonText(missing?.detail)}`, forbidden).not.toContain(forbidden);
     }
   });
 });
@@ -1651,5 +1653,43 @@ describe("every sentence the panel says", () => {
   // day the walk stopped reaching any screen at all.
   test("and there are sentences to hold", () => {
     expect(said.size).toBeGreaterThan(40);
+  });
+});
+
+/**
+ * The formatter every number on screen goes through.
+ *
+ * ⚠️ **No test named it.** It has twenty-seven callers inside its own file and
+ * had none outside, so every figure a player reads was formatted by code the
+ * gate could not have told you was there
+ * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F24).
+ */
+describe("how a figure is written", () => {
+  test("groups from the right, in threes", () => {
+    expect(composeFigureText(354258)).toBe("354 258");
+    expect(composeFigureText(1000)).toBe("1 000");
+    expect(composeFigureText(1000000)).toBe("1 000 000");
+  });
+
+  // Either side of where the grouping starts, because that is the boundary and
+  // §7.5 asks for both sides of one.
+  test("and not below a thousand", () => {
+    expect(composeFigureText(999)).toBe("999");
+    expect(composeFigureText(0)).toBe("0");
+    expect(composeFigureText(1)).toBe("1");
+  });
+
+  // A share is the only fractional figure that reaches it, and a bar's length is
+  // not a number anybody reads — so a figure is whole by the time it is drawn.
+  test("rounds rather than showing a fraction of a hit", () => {
+    expect(composeFigureText(1499.4)).toBe("1 499");
+    expect(composeFigureText(1499.6)).toBe("1 500");
+  });
+
+  // Health lost reaches the panel as a positive figure, but nothing in the type
+  // says so, and a minus sign that broke the grouping would be a wrong number
+  // that looks right.
+  test("a negative figure keeps its sign and its grouping", () => {
+    expect(composeFigureText(-354258)).toBe("-354 258");
   });
 });

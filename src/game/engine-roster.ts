@@ -139,7 +139,7 @@ export function getOurSideFromBattle(battle: unknown): number | null {
  * Merges a fresh snapshot into what is already known.
  *
  * **An empty snapshot takes nothing away, and this is the whole reason the
- * function exists.** Measured on the captured material: both fights contain a
+ * function exists.** Measured on the captured material: every capture contains a
  * call whose warrior list is empty, and the game can tidy its state before the
  * message that closes the fight. A roster that vanishes takes every name
  * resolution with it — and damage the protocol states against a name reaches a

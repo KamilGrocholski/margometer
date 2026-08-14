@@ -14,7 +14,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { getValueFromJsonText } from "@/libs/json.ts";
+import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import {
   CapturedFightIntakeError,
   composeIntakePath,
@@ -65,9 +65,9 @@ describe("who is a person, and who only looks like one", () => {
     expect(substitutions.get("SomeNickname")).toBe("Gracz 1");
     expect(substitutions.has("Locha")).toBe(false);
     expect(changed).toBe(2);
-    expect(JSON.stringify(redacted)).not.toContain("SomeNickname");
+    expect(composeJsonText(redacted)).not.toContain("SomeNickname");
     // Monsters are not people, and their names are what the recording is about.
-    expect(JSON.stringify(redacted)).toContain("Locha");
+    expect(composeJsonText(redacted)).toContain("Locha");
   });
 
   /**
@@ -109,8 +109,8 @@ describe("who is a person, and who only looks like one", () => {
 
     const { dump: redacted } = composePseudonymisedDump(recording);
 
-    expect(JSON.stringify(redacted)).not.toContain("EarlierName");
-    expect(JSON.stringify(redacted)).not.toContain("LaterName");
+    expect(composeJsonText(redacted)).not.toContain("EarlierName");
+    expect(composeJsonText(redacted)).not.toContain("LaterName");
   });
 
   // Ids are numbers, and the default sort is by spelling: `-9` before `-161518`
@@ -150,7 +150,7 @@ describe("the sentences the game's authors wrote", () => {
     const { dump: stripped, removed } = removeSkillDescriptions(recording);
 
     expect(removed).toBe(1);
-    const written = JSON.stringify(stripped);
+    const written = composeJsonText(stripped);
     expect(written).not.toContain("A whole sentence");
     expect(written).toContain(REMOVED_DESCRIPTION);
     // Functional names stay: the protocol carries the ability's name anyway.

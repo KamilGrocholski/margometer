@@ -19,8 +19,9 @@
     bierze sekcję TEJ wersji jako treść wydania (`tools/changelog.ts`) i wiesza
     zbudowane pliki. Sekcji po tagu się nie rusza — ktoś już to wydanie ma.
 
-  ⚠️ Ten plik jest po polsku, bo czyta go gracz. To jeden z trzech takich
-  w repozytorium; reszta, łącznie z regułami w AGENTS.md, jest po angielsku (§3).
+  ⚠️ Ten plik jest po polsku, bo czyta go gracz. To jedyny taki dokument
+  w repozytorium — po polsku są jeszcze słowa samego panelu, ale to kod, nie
+  proza. Reszta, łącznie z regułami w AGENTS.md, jest po angielsku (§3).
 -->
 
 # Zmiany

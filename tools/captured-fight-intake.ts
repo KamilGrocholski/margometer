@@ -23,7 +23,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { composeIntegerText, getIntegerFromValue } from "@/libs/number.ts";
-import { getValueFromJsonText } from "@/libs/json.ts";
+import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
@@ -290,7 +290,7 @@ export function composeIntakeText(dump: unknown): {
   return {
     // Indented, so a difference between two recordings is something a person can
     // read. It costs bytes and buys the only kind of review this material gets.
-    text: `${JSON.stringify(written, null, 2)}\n`,
+    text: `${composeJsonText(written, 2)}\n`,
     changed: named.changed,
     removed: described.removed,
     substitutions: named.substitutions,

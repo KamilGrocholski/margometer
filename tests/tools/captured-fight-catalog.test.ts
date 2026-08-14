@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { composeJsonText } from "@/libs/json.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { FightDumpFormatError, parseFightDump } from "@/tools/fight-dump-parser.ts";
-import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 // Not an assertion inside the loop below: a loop over an empty directory is
 // green and proves nothing. This is the test that notices the material is gone.
@@ -23,7 +24,7 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
     });
 
     test("carries protocol messages", () => {
-      const messages = fight.dump.calls.flatMap((call) => call.protocolMessages);
+      const messages = getMessagesOfFight(fight);
       expect(messages.length).toBeGreaterThan(0);
       expect(messages.every((message) => message.length > 0)).toBe(true);
     });
@@ -149,7 +150,7 @@ describe("fight dump parser", () => {
       build: "1",
       wpisy: [{ nr: 0, komunikaty: [], wojownicyPrzed: [], wojownicyPo: [{ id: "x" }] }],
     };
-    expect(() => parseFightDump(JSON.stringify(dump))).toThrow(
+    expect(() => parseFightDump(composeJsonText(dump))).toThrow(
       /wpisy\[0\]\.wojownicyPo\[0\]\.id: expected a whole number, got string/,
     );
   });
@@ -165,11 +166,11 @@ describe("fight dump parser", () => {
       build: "1",
       wpisy: [{ nr: 0, komunikaty: [], wojownicyPrzed: [], wojownicyPo: [{ id }] }],
     };
-    expect(() => parseFightDump(JSON.stringify(dump))).toThrow(/\.id: expected a whole number/);
+    expect(() => parseFightDump(composeJsonText(dump))).toThrow(/\.id: expected a whole number/);
   });
 
   test("refuses a missing top-level field instead of defaulting it", () => {
-    expect(() => parseFightDump(JSON.stringify({ wersja: 1 }))).toThrow(/przy: expected a string/);
+    expect(() => parseFightDump(composeJsonText({ wersja: 1 }))).toThrow(/przy: expected a string/);
   });
 
   test("accepts a capture without fight numbers", () => {
@@ -180,6 +181,6 @@ describe("fight dump parser", () => {
       build: "1",
       wpisy: [{ nr: 0, komunikaty: ["a"], wojownicyPrzed: [], wojownicyPo: [] }],
     };
-    expect(parseFightDump(JSON.stringify(dump)).calls[0]!.fightNumber).toBeNull();
+    expect(parseFightDump(composeJsonText(dump)).calls[0]!.fightNumber).toBeNull();
   });
 });

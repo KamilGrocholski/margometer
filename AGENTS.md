@@ -56,7 +56,7 @@ Untagged prose is context and reasoning — read it, but it does not bind.
 | `[data]` | Material captured from the game | `tests/captured-fights/` |
 | `[tools]` | Runs in a terminal, never ships | `tools/`, `build.ts` |
 | `[docs]` | The register, the specs and the audits | `docs/` |
-| `[process]` | Commits, validation, workflow | — |
+| `[process]` | Commits, validation, workflow | `.github/workflows/`, `.claude/skills/verify/` |
 
 The entry point `src/userscript-entry.ts` is `[any]`: it is the one file allowed
 to know every layer at once, so no narrower scope would be true of it.
@@ -186,7 +186,7 @@ base every tool below throws from (§9.5).
 | `tools/game-client-source.ts` | *What is the game serving, and give me its source.* `status` compares served build against the cache; `fetch [channel]` downloads into `.cache/` with provenance. §7.6. |
 | `tools/protocol-key-table.ts` | *Which protocol keys does the client know?* Lifts them from the cached production bundle; `freeze` writes `tests/frozen-protocol-keys.ts`. |
 | `tools/decoding-status.ts` | *How much of the protocol do we read?* Messages, events by kind, unread keys by frequency. Computed on demand — these figures never go into prose (§5). |
-| `tools/fight-report.ts` | *What would the panel show for this fight?* Runs the decoder and the aggregate over each capture and prints the per-combatant table — everything the numbers hold, including what the panel has no room for. Prints the turn axis too, because every rate divides by it and it is not in a message. |
+| `tools/fight-report.ts` | *What would the panel show for this fight?* Runs the decoder and the aggregate over each capture and prints the per-combatant table — everything the numbers hold, including what the panel has no room for. Prints the sides in the game's own numbering, the row nobody can be charged with, the messages it could not read with their reasons, and both sides of the outcome by name. |
 | `tools/help-article.ts` | *What does the game's own documentation say about this mechanic?* `fetch` caches an article, `search` prints raw context around a phrase and exits non-zero when there is none, `freeze` writes `tests/frozen-help-phrases.ts` so the register's help claims are re-counted on every gate. §7.6. |
 | `tools/captured-fight-intake.ts` | *This recording is worth keeping — put it in the repository.* Substitutes player nicknames, removes the game's ability descriptions, and writes the result into `tests/captured-fights/`. Refuses anything it cannot redact with certainty, and names the step that stays a person's. §9.2. |
 | `tools/mutation-sweep.ts` | *Does this test light up when the thing it covers breaks?* Changes one character of meaning at a time, runs the gate, and reports what nothing noticed — §3's question, asked of code already here rather than only of a test being written. Writes mutants into the working tree, so it refuses to start against a dirty one. |
@@ -565,8 +565,9 @@ AGENTS.md          These rules. The only place they live.
 CLAUDE.md          One line importing AGENTS.md.
 README.md          For humans: what this is, how to install and build it, terms
                    of service.
-CHANGELOG.md       For players, and one of the three files here written in
-                   Polish (§3). A release's notes are its section, verbatim, so
+CHANGELOG.md       For players, and the only *document* here written in Polish
+                   (§3) — the panel's own words are Polish too, and those are
+                   source rather than prose. A release's notes are its section, verbatim, so
                    this is the only place a release says what changed. Entries
                    are typed and a released section is frozen — somebody already
                    has that version.
@@ -639,11 +640,23 @@ libs/
                          Whole, fractional, and either-of-the-two are three
                          questions and three readers — the third arrived at its
                          third caller, per §9.5.
-  json.ts                JSON.parse with its try/catch in one place, and its
-                         `any` replaced by `unknown`. Returns the value or the
-                         SyntaxError, never a bare null — §9.5.
+  json.ts                JSON in both directions. Reading puts JSON.parse's
+                         try/catch in one place and replaces its `any` with
+                         `unknown`, returning the value or the SyntaxError and
+                         never a bare null. Writing asserts, because
+                         JSON.stringify answers `undefined` — the value, not the
+                         text — for `undefined`, a function or a symbol, under a
+                         return type saying `string`. §9.5.
   timestamp.ts           Date.parse without the NaN, and without the shapes it
                          accepts by surprise.
+  text-order.ts          Putting two pieces of text in order, and saying which
+                         question is being asked. `localeCompare` with no locale
+                         reads the runtime's default, so the order belongs to the
+                         machine rather than to the data — two tools sorted their
+                         output that way. Two readers: deterministic code-unit
+                         order for anything a machine diffs, and collated order
+                         for anything a person reads, with the locale required
+                         rather than defaulted.
   record.ts              Narrowing an unknown value to something with keys, which
                          `typeof` alone answers `"object"` for `null`. Two
                          readers because there were two questions: thirteen sites
@@ -651,8 +664,9 @@ libs/
                          admitting an array as a record and five refusing one,
                          and neither group was wrong — the live client may send
                          either, a stored position may not.
-  source-regions.ts      Where the comments and the text literals sit in a piece
-                         of source. One fact, wanted in two shapes: the guards
+  source-regions.ts      Where the comments, the text literals and the patterns
+                         sit in a piece of source. One fact, wanted in two
+                         shapes: the guards
                          read source with its comments gone, the mutation sweep
                          reads the spans it must not touch. Patterns and not a
                          parser, and the cost is in the safe direction for both —
@@ -666,9 +680,11 @@ src/
                          first release nobody edited twice. Two readers: the
                          title bar, because reports arrive as screenshots, and
                          the copied report, because a figure without its version
-                         cannot be tied to a release.
-  userscript-entry.ts    Bundle entry point, and the only file that reads a
-                         global. Wires the game to the reading, holds the session,
+                         cannot be tied to a release. Its fallback is the fourth
+                         Polish string that ships, and the one no diacritic can
+                         find — so the guard names the phrase instead (§3).
+  userscript-entry.ts    Bundle entry point, and the only file that reads the
+                         game off the page and writes a name back onto it. Wires the game to the reading, holds the session,
                          and mounts the panel — including the rule that the
                          console hears about a failing section once per fight and
                          not once per render, and its page-scoped twin: a reading
@@ -687,6 +703,12 @@ src/
                          position and nothing else.
   core/
     margometer-error.ts  Base for everything the add-on throws — §9.5.
+    game-build.ts        What a game build id looks like, and the two places the
+                         client states one — a script filename and an inline
+                         object. In `core` because it is the only layer both an
+                         add-on file and a tool may read, and both must read it
+                         the same way or the number in a recording and the number
+                         in the cache stop meaning the same thing (§7.6).
     protocol-message.ts  Grammar of one message: two sides, then key/value
                          segments. Structure only, strict, reversible.
     battle-event.ts      What the decoder produces. Grows one variant at a time,
@@ -835,7 +857,7 @@ src/
                          read an inline `top` back out.
     panel-view.ts        What the panel shows, as data — and, with the tooltips
                          and region names in `panel-element.ts` and the phrases
-                         in `panel-names.ts`, one of the three files that ship
+                         in `panel-names.ts`, one of the four files that ship
                          whose strings are Polish (§3), which is a claim
                          `tests/tools/source-layout.test.ts` now re-measures
                          rather than a sentence beside a filename. One ranking on
@@ -916,8 +938,8 @@ tools/
                          writes tests/frozen-protocol-keys.ts.
   decoding-status.ts     How much of the protocol we read, computed on demand.
   fight-report.ts        What a captured fight adds up to, per combatant — the
-                         aggregate printed against real material, and beneath it
-                         the turns the game numbered, which the panel divides by.
+                         aggregate printed against real material, side by side
+                         with what it could not read and who the game said won.
   help-article.ts        Fetches an article of the game's published help into
                          .cache/ and prints raw context around a phrase. Prints
                          the age of the dump, and says NOT FOUND out loud —
@@ -959,9 +981,7 @@ tests/
                          alive rather than reported as zero —
                          and the rosters, per call and per whole fight, the
                          latter deduplicated by id, without which every name in
-                         a fight resolves to nobody. Also the turns a whole
-                         capture came to, because two tests need them and one of
-                         them is checking the other.
+                         a fight resolves to nobody.
   frozen-protocol-keys.ts
                          GENERATED by tools/protocol-key-table.ts. Every key the
                          client knows, with the build it was read from.
@@ -1094,6 +1114,10 @@ tests/
     protocol-key-register.test.ts  protocol-message.test.ts
 
   game/
+    fight-capture.test.ts    The recording as a file, and the round trip that
+                             matters: what `src/game/fight-capture.ts` writes is
+                             read back by `tools/fight-dump-parser.ts`, so a
+                             new recording stands beside the ones already kept.
     engine-battle-wrap.test.ts
                              The promises the wrap makes to the game: original
                              first, its value untouched, no exception of ours
@@ -1123,8 +1147,10 @@ tests/
     battle-session.test.ts   How a fight is assembled from payloads: where one
                              ends, a roster that only ever grows, a side
                              remembered from the one payload that states it, a
-                             fight count that outlives the reset, and a fight that
-                             does not inherit the last one's turns.
+                             fight count that outlives the reset, and a payload
+                             carrying nothing that hands back the very session it
+                             was given — except where it corrected somebody or
+                             could not be read, which are changes with no figure.
 
   ui/
     panel-state.test.ts      The four reducers on their own: which level a key
@@ -1169,7 +1195,7 @@ tests/
                              the game wrote them for as long as they were missing
                              from it. Also that no bar is drawn past the end of
                              its track, which the hand-written fight cannot show
-                             and five of the seven captures could. And the balance
+                             and the captures can. And the balance
                              the whole panel rests on, measurable only since both
                              directions of both nouns draw the row: what nobody can
                              be charged with comes to one figure and one share read
@@ -1247,6 +1273,22 @@ tests/
                              read off a page, the inline object beating a stale
                              script tag, and a channel check that no longer
                              admits `toString` off the prototype chain.
+    tracked-text.test.ts     Every file this repository writes, held to being text
+                             a text tool can read. A literal NUL made the wrap's
+                             own test file binary, so `grep -r` skipped all of it
+                             in silence and a coverage sweep reported four of its
+                             exports as named by nothing; the audit describing
+                             that then did the same in the sentence describing it.
+                             Reads bytes rather than asking `file`, which calls an
+                             ESC byte text — there was one of those too. The
+                             captures are left out on purpose: they are evidence,
+                             and a guard whose only remedy is editing evidence is
+                             one that gets turned off.
+    captured-fight-intake.test.ts
+                             The gate a recording passes to enter the repository:
+                             every nickname substituted, the game's own ability
+                             descriptions gone, and a refusal where either cannot
+                             be done with certainty rather than a guess.
     captured-fight-catalog.test.ts  decoding-status.test.ts  help-article.test.ts
     protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```
@@ -1278,14 +1320,35 @@ where the panel was dragged to.
   without the game, and it is not negotiable for convenience.
 - `[ALWAYS] [game]` **All contact with the game client lives in `game/`.** One
   place to audit, one place to break.
-- `[ALWAYS] [tools]` **A tool may read `tests/`; nothing in `tests/` reads a
-  tool for its material.** The captures live under `tests/captured-fights/` and
-  a tool that answers a question about them has to reach them —
-  `tools/fight-report.ts` and `tools/decoding-status.ts` both do, through
-  `tests/captured-fight-catalog.ts`. The edge is drawn here because it was the
-  one edge in the tree §9.1 did not mention, and an undrawn edge is one nobody
-  can be held to: it is what stopped a `[tools]` rule from being checkable, not
-  a licence for `tools/` to depend on a test's assertions.
+- `[ALWAYS] [tools]` **A tool may read `tests/`; a test may read a tool only as
+  its subject or as the reader of the material — never for a tool's answer.**
+  The captures live under `tests/captured-fights/`, so a tool that answers a
+  question about them has to reach them: `tools/fight-report.ts` and
+  `tools/decoding-status.ts` both do, through `tests/captured-fight-catalog.ts`.
+  The other direction is real too, and it has exactly two shapes. `tests/tools/`
+  is where the tools are tested, so a file there names whichever tool it is
+  about. Everywhere else under `tests/`, two files in `tools/` may be read and no
+  others: `tools/fight-dump-parser.ts`, because captured material is read with
+  one reader on both sides and a second would let the live path and the offline
+  path disagree about what a capture says; and `tools/margometer-tool-error.ts`,
+  which is named as a subject where the two error hierarchies are proved
+  disjoint (§9.5).
+
+  ⚠️ **Paid for on arrival.** This clause first read "nothing in `tests/` reads a
+  tool for its material", and `tests/captured-fight-catalog.ts` had been doing
+  precisely that since before it was written — so a rule added to close an audit
+  finding was false the day it landed, and nothing went red, because no guard
+  held this direction at all. A rule nobody is held to is the shape the finding
+  it closed was about
+  (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F9).
+- `[ALWAYS] [any]` **`src/userscript-version.ts` is readable from any layer.**
+  It is a build-time constant and nothing else — substituted from
+  `package.json`, knowing nothing of the protocol, the game or the panel. Two
+  layers read it: `ui` draws it in the title bar, because reports arrive as
+  screenshots, and the entry point puts it in the copied report. Neither is one
+  of the four directions above, and it is named here for the reason the clause
+  above it was rewritten — an undrawn edge is one nobody can be held to
+  (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F10).
 - `[ALWAYS] [ui]` **The panel renders state handed to it.** It never computes
   statistics itself.
 - Prefer a narrow module over a broad one. A file that needs a table of contents
@@ -1552,9 +1615,11 @@ The register, and the file that owns each:
 
 | Owner | Owns | Reading gives |
 |---|---|---|
-| `libs/number.ts` | `Number()`, `parseInt`, `parseFloat`, `BigInt`, `toFixed`, `String()` on a number, unary `+`, `typeof … === "number"` | `getIntegerFromText`, `getDecimalFromText`, `getNumberFromText`, `getIntegerFromValue`, `getFiniteNumberFromValue` → `number \| null` |
-| `libs/json.ts` | `JSON.parse` and its `try`/`catch` | `getValueFromJsonText` → a reading carrying the value **or** the `SyntaxError`, so the caller still has something to put in `cause` |
+| `libs/number.ts` | `Number()`, `parseInt`, `parseFloat`, `BigInt`, `toFixed`, `.toString(radix)`, `String()` on a number, unary `+`, `typeof … === "number"` | reading: `getIntegerFromText`, `getDecimalFromText`, `getNumberFromText`, `getIntegerFromHexadecimalText`, `getIntegerFromValue`, `getFiniteNumberFromValue` → `number \| null`. Writing asserts instead: `composeIntegerText`, `composeDecimalText`, `composeHexadecimalByteText` |
+| `libs/json.ts` | `JSON.parse` and its `try`/`catch`, `JSON.stringify` | reading: `getValueFromJsonText` → a reading carrying the value **or** the `SyntaxError`, so the caller still has something to put in `cause`. Writing asserts: `composeJsonText` refuses a value with no JSON rather than handing back `undefined` under a type saying `string` |
+| `libs/text-order.ts` | `localeCompare` | `getTextOrder` → deterministic, by code unit, for anything a machine compares. `getCollatedTextOrder` → collated, with the locale required, for anything a person reads |
 | `libs/timestamp.ts` | `Date.parse` | `getMillisecondsFromIsoText` → `number \| null` |
+| `libs/record.ts` | `typeof … === "object"`, which is `true` for `null` | `getRecordFromValue`, `getRecordOrArrayFromValue` → `Record<string, unknown> \| null`. Two readers because a list arriving where an object belongs is a fault in one caller and a legitimate shape in another |
 
 How to proceed when you need one:
 
@@ -1578,6 +1643,15 @@ no non-null assertions outside tests, **every construct in the register spelled
 only by its owner — in tests too**, each owner still spelling what it owns, and
 no cast off `JSON.parse`. The guards read source with its comments stripped — a
 rule has to be explainable in the file it binds.
+
+One exception, and it is the guard's rather than a licence: **a construct with no
+name to search for is held to `libs/`, `src/` and `tools/` only.** `String(`,
+unary `+`, `* 1` and the two `typeof` comparisons are patterns and not
+identifiers, so `String(error)` in a test label matches while reading no value at
+all, and no regex can tell the two apart. Written down here because it was the
+guard's decision and not the rule's, which is a disagreement between two
+documents that each claim to be the register
+(`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F11).
 
 ### 9.6 UI
 

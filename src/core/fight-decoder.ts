@@ -420,19 +420,6 @@ const BLOW_DECLARATION_KEYS = [
 const VALUELESS_BLOW_DECLARATION_KEYS = ["+legbon_holytouch"];
 
 /**
- * Keys that are the whole of their message and report nothing that happened to
- * anybody: a turn marker, a skill being prepared, a line for the client's own
- * log, the experience at the end, an aura declared once for the fight.
- *
- * Measured: each is the only key in its message, without exception — which is why
- * they need an event of their own rather than a slot on a blow. Two of them carry
- * text rather than a figure, and one carries no value at all.
- *
- * `step` looks like a turn boundary and is not read as one. The protocol does not
- * say that, and neither does this list: what is read is that the message stated
- * `step` about a combatant (`docs/protocol-keys.md`).
- */
-/**
  * Keys the decoder **reads and cannot account for**: the protocol says health
  * moved and states no figure any row could take.
  *
@@ -450,6 +437,19 @@ const VALUELESS_BLOW_DECLARATION_KEYS = ["+legbon_holytouch"];
  */
 export const UNATTRIBUTABLE_HEALTH_KEYS: readonly string[] = ["healall_per"];
 
+/**
+ * Keys that are the whole of their message and report nothing that happened to
+ * anybody: a turn marker, a skill being prepared, a line for the client's own
+ * log, the experience at the end, an aura declared once for the fight.
+ *
+ * Measured: each is the only key in its message, without exception — which is why
+ * they need an event of their own rather than a slot on a blow. Two of them carry
+ * text rather than a figure, and one carries no value at all.
+ *
+ * `step` looks like a turn boundary and is not read as one. The protocol does not
+ * say that, and neither does this list: what is read is that the message stated
+ * `step` about a combatant (`docs/protocol-keys.md`).
+ */
 const STANDALONE_DECLARATION_KEYS = [
   "step",
   "prepare",

@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
-import { getValueFromJsonText } from "@/libs/json.ts";
+import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fight-statistics.ts";
@@ -46,6 +46,7 @@ import { parseFightDump, type CombatantSnapshot } from "@/tools/fight-dump-parse
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
+  getMessagesOfFight,
 } from "@/tests/captured-fight-catalog.ts";
 
 /**
@@ -382,8 +383,9 @@ describe("the add-on driven by a captured fight", () => {
        * decision rather than a fix.** The game calls the engine far more often
        * than a fight has turns, and a payload that brings no message, no roster
        * fragment and no turn cannot change a single figure on screen — redrawing
-       * for it is work done in front of somebody who is playing. Both captures
-       * carry two such payloads, which is why the count is short by exactly two.
+       * for it is work done in front of somebody who is playing. Every capture
+       * carries at least two such payloads — between two and five across the
+       * eight — which is why the count is short rather than equal.
        */
       const carrying = fight.dump.calls.filter((call) => call.protocolMessages.length > 0).length;
       expect(readings.length).toBeGreaterThanOrEqual(carrying);
@@ -1118,7 +1120,12 @@ describe("the world a saved recording names", () => {
     for (const location of [{ hostname: "" }, {}, undefined]) {
       const { page, getNames } = composePageAt(location);
       writeCaptureToPage(page, meter);
-      expect(getNames()[0], JSON.stringify(location)).toMatch(/^margometer-unknown-/);
+      // `?? null` because one of the three cases *is* `undefined`, which has no
+      // JSON — the exact answer `composeJsonText` asserts on rather than handing
+      // back the value `undefined` under a type saying `string`.
+      expect(getNames()[0], composeJsonText(location ?? null)).toMatch(
+        /^margometer-unknown-/,
+      );
     }
   });
 });
@@ -1136,7 +1143,7 @@ describe("the world a saved recording names", () => {
 describe("what a click does to the drill", () => {
   function composeReadingOfCapture(fight: (typeof CAPTURED_FIGHTS)[number]): FightReading {
     const roster = composeRosterOfFight(fight);
-    const messages = fight.dump.calls.flatMap((call) => call.protocolMessages);
+    const messages = getMessagesOfFight(fight);
     return {
       statistics: composeFightStatistics(decodeFight(messages, roster), roster),
       roster,
@@ -1299,7 +1306,7 @@ describe("the report a reader copies", () => {
 
   function composeReadingOf(fight: (typeof CAPTURED_FIGHTS)[number]): FightReading {
     const roster = composeRosterOfFight(fight);
-    const messages = fight.dump.calls.flatMap((call) => call.protocolMessages);
+    const messages = getMessagesOfFight(fight);
     return {
       statistics: composeFightStatistics(decodeFight(messages, roster), roster),
       roster,

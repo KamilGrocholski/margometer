@@ -24,14 +24,6 @@ import type { AnnouncedSkill, BattleEvent } from "@/src/core/battle-event.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 
 /**
- * One combatant's figures, and the same shape used for everything that belongs
- * to nobody.
- *
- * `dealtRaw` is absent for damage the protocol states against a name — there is
- * no second figure for it — which is exactly why it does not share a field with
- * `dealtApplied`. Adding them together would total a roll with a result.
- */
-/**
  * One skill this combatant announced, and what the game glued to it.
  *
  * Keyed by the game's own identifier where it stated one, because two skills can
@@ -60,6 +52,14 @@ export type SkillStatistics = {
   healedByCombatantId: ReadonlyMap<number, number>;
 };
 
+/**
+ * One combatant's figures, and the same shape used for everything that belongs
+ * to nobody.
+ *
+ * `dealtRaw` is absent for damage the protocol states against a name — there is
+ * no second figure for it — which is exactly why it does not share a field with
+ * `dealtApplied`. Adding them together would total a roll with a result.
+ */
 export type CombatantStatistics = {
   /** What the protocol says was put out, before reduction. Blows only. */
   dealtRaw: number;
@@ -226,8 +226,8 @@ export type FightStatistics = {
   reading: ReadingGaps;
   /**
    * How the fight ended, as **two** lists of names — because the protocol states
-   * two, one message naming the winners and another the losers, and both
-   * captured fights carry exactly one of each (`tests/core/battle-event.test.ts`).
+   * two, one message naming the winners and another the losers, and every
+   * capture carries exactly one of each (`tests/core/battle-event.test.ts`).
    *
    * ⚠️ **Keeping a single result made every fight a loss.** Whichever message
    * arrived last won the variable, `loser` comes second, and the panel then told

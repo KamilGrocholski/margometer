@@ -151,10 +151,10 @@ export function composePanelStyleText(): string {
 /* Every strip after the first sits closer to it: they are one control, in rows.
    A sibling selector rather than a class, so a third strip needed no new rule and
    sides-of did not have to become a name for something it is not. */
-.tabs + .tabs { padding-top: 3px; }
+.tabs + .tabs { padding-top: ${t.radiusSmall}; }
 .tab {
   padding: 1px ${t.spaceSmall};
-  border-radius: 3px;
+  border-radius: ${t.radiusSmall};
   color: ${t.textQuiet};
   background: transparent;
   cursor: pointer;
@@ -183,7 +183,7 @@ export function composePanelStyleText(): string {
  */
 .list {
   padding: ${t.spaceRegion};
-  padding-bottom: 7px;
+  padding-bottom: ${t.spaceRegionAcross};
   height: calc(var(--rows, 11) * (${t.rowHeight} + ${t.spaceHalf}) + ${t.spaceLarge});
   overflow-y: auto;
   overflow-x: hidden;
@@ -240,7 +240,7 @@ export function composePanelStyleText(): string {
   height: ${t.rowHeight};
   padding: 0 ${t.spaceSmall};
   margin-bottom: ${t.spaceHalf};
-  border-radius: 3px;
+  border-radius: ${t.radiusSmall};
   background: ${t.track};
   overflow: hidden;
 }
@@ -254,7 +254,7 @@ export function composePanelStyleText(): string {
  * token — which costs the hue the palette was validated at; the cap gives it
  * back somewhere no text sits. It says whose, while the length says how much.
  */
-.bar-cap { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px; }
+.bar-cap { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: ${t.radiusSmall} 0 0 ${t.radiusSmall}; }
 .row-rank, .row-name, .row-value { position: relative; }
 .row-rank { color: ${t.textQuiet}; font-variant-numeric: tabular-nums; padding-right: ${t.spaceSmall}; }
 /*
@@ -268,7 +268,7 @@ export function composePanelStyleText(): string {
   width: 13px;
   height: 13px;
   margin-right: ${t.spaceSmall};
-  border-radius: 3px;
+  border-radius: ${t.radiusSmall};
   font-size: 9px;
   font-weight: 700;
   line-height: 13px;
@@ -289,12 +289,12 @@ export function composePanelStyleText(): string {
  * The colour is the one for "we cannot say", which is the same thing the hatch
  * says in another channel (§9.7: never colour alone).
  */
-.pinned { padding: 0 7px 7px; }
+.pinned { padding: 0 ${t.spaceRegionAcross} ${t.spaceRegionAcross}; }
 .pinned .row { margin-top: ${t.spaceSmall}; border-top: 1px dashed ${t.border}; height: calc(${t.rowHeight} + 5px); }
 .pinned .bar, .pinned .bar-cap { top: 4px; }
 .pinned .bar {
   opacity: 0.4;
-  mask-image: repeating-linear-gradient(-45deg, #000 0 4px, transparent 4px 8px);
+  mask-image: repeating-linear-gradient(-45deg, ${t.maskInk} 0 4px, transparent 4px 8px);
 }
 .pinned .bar-cap { opacity: 0.7; }
 .header { display: flex; justify-content: space-between; align-items: baseline; padding: ${t.spaceRegion}; padding-bottom: 0; }
@@ -302,7 +302,7 @@ export function composePanelStyleText(): string {
 .empty { color: ${t.textQuiet}; padding: ${t.space} ${t.spaceHalf}; }
 /* The limit on what can be known reads quieter than the fact above it. */
 .empty-limit { display: block; margin-top: ${t.spaceSmall}; font-size: 10px; opacity: 0.85; }
-.sides-region { padding: ${t.spaceRegion}; padding-bottom: 7px; border-top: 1px solid ${t.border}; }
+.sides-region { padding: ${t.spaceRegion}; padding-bottom: ${t.spaceRegionAcross}; border-top: 1px solid ${t.border}; }
 .sides {
   display: flex;
   justify-content: space-between;
@@ -315,8 +315,8 @@ export function composePanelStyleText(): string {
    fight that has nobody to be on a side of, not a third team. */
 .sides-spare { margin-top: ${t.spaceSmall}; font-size: 10px; }
 .sides-spare .sides-label { color: inherit; }
-.sides-track { display: flex; height: 4px; margin-top: ${t.spaceSmall}; border-radius: 3px; overflow: hidden; background: ${t.track}; }
-.warning { color: ${t.suspect}; padding: 0 7px 5px; }
+.sides-track { display: flex; height: 4px; margin-top: ${t.spaceSmall}; border-radius: ${t.radiusSmall}; overflow: hidden; background: ${t.track}; }
+.warning { color: ${t.suspect}; padding: 0 ${t.spaceRegionAcross} ${t.spaceRegionDown}; }
 .warning:first-of-type { padding-top: 5px; border-top: 1px solid ${t.border}; }
 /*
  * The detail, as a window of ours rather than the browser's own tooltip.
@@ -342,7 +342,7 @@ export function composePanelStyleText(): string {
   background: ${t.surface};
   border: 1px solid ${t.border};
   border-radius: ${t.radius};
-  box-shadow: 0 6px 20px rgb(0 0 0 / 55%);
+  box-shadow: ${t.windowShadow};
   pointer-events: none;
   z-index: ${t.layer};
 }

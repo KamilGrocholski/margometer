@@ -19,6 +19,7 @@
  */
 
 import { composeDecimalText, composeIntegerText } from "@/libs/number.ts";
+import { getCollatedTextOrder } from "@/libs/text-order.ts";
 import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type {
   CombatantStatistics,
@@ -503,7 +504,9 @@ function getRankedIds(reading: PanelReading, state: PanelState): number[] {
     // A stable second key, so two combatants on zero do not swap places between
     // renders — the panel redraws every few seconds and a list that reshuffles
     // under the eye is unreadable.
-    return byValue !== 0 ? byValue : getName(reading, one).localeCompare(getName(reading, other), "pl");
+    return byValue !== 0
+      ? byValue
+      : getCollatedTextOrder(getName(reading, one), getName(reading, other), "pl");
   });
 }
 
@@ -983,14 +986,6 @@ function composeOpponentEntries(
 }
 
 /**
- * What this combatant did it with, or what was done to them.
- *
- * Under `Leczenie` the section counts what the row counts — healing **received**,
- * so it is built from everybody else's skills aimed here, not from this
- * combatant's own. Their own skills answer how much they *gave*, which is a
- * different quantity and does not add up to the same total (`SkillStatistics`).
- */
-/**
  * The row that closes a section against the row above it.
  *
  * Keyed by the two metrics that reach it rather than by all three, so the
@@ -1017,6 +1012,14 @@ const CLOSING_NOTES: Record<PanelMetric, string> = {
   healed: "Nic nie zapowiedziało tego leczenia, więc gra nie mówi, co je dało.",
 };
 
+/**
+ * What this combatant did it with, or what was done to them.
+ *
+ * Under `Leczenie` the section counts what the row counts — healing **received**,
+ * so it is built from everybody else's skills aimed here, not from this
+ * combatant's own. Their own skills answer how much they *gave*, which is a
+ * different quantity and does not add up to the same total (`SkillStatistics`).
+ */
 function composeSkillEntries(
   reading: PanelReading,
   state: PanelState,

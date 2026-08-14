@@ -16,7 +16,7 @@ import { describe, expect, test } from "bun:test";
 import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 /**
  * Restated rather than imported from the decoder: a guard that reads the list it
@@ -37,12 +37,12 @@ const STANDALONE_KEYS = ["step", "prepare", "txt", "+exp", "poison_lowdmg_per-en
 const SETTLED_BY_THE_WITNESS = ["-legbon_facade", "+critpoison_per", "+legbon_holytouch"];
 
 const MESSAGES = CAPTURED_FIGHTS.flatMap((fight) =>
-  fight.dump.calls.flatMap((call) => call.protocolMessages),
+  getMessagesOfFight(fight),
 );
 
 const EVENTS = CAPTURED_FIGHTS.flatMap((fight) =>
   decodeFight(
-    fight.dump.calls.flatMap((call) => call.protocolMessages),
+    getMessagesOfFight(fight),
     composeRosterOfFight(fight),
   ),
 );
@@ -119,7 +119,7 @@ describe("what a declaration is allowed to do to the numbers", () => {
   test.each(CAPTURED_FIGHTS)("$name: the totals are the same without them", (fight) => {
     const roster = composeRosterOfFight(fight);
     const events = decodeFight(
-      fight.dump.calls.flatMap((call) => call.protocolMessages),
+      getMessagesOfFight(fight),
       roster,
     );
     const withoutDeclarations = events
@@ -218,12 +218,12 @@ describe("health that moved where nobody can be credited", () => {
     expect(statistics.unattributed.healed).toBe(0);
   });
 
-  // Both captures, so the claim is about the material rather than an example.
+  // Every capture, so the claim is about the material rather than an example.
   test.each(CAPTURED_FIGHTS)("$name: every team heal is counted as missing", (fight) => {
     const roster = composeRosterOfFight(fight);
     const statistics = composeFightStatistics(
       decodeFight(
-        fight.dump.calls.flatMap((call) => call.protocolMessages),
+        getMessagesOfFight(fight),
         roster,
       ),
       roster,

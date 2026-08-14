@@ -21,7 +21,7 @@ import {
   setBattleWrap,
   type EngineBattle,
 } from "@/src/game/engine-battle-wrap.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 /**
  * A battle object shaped like the game's: the method lives on the prototype,
@@ -536,7 +536,13 @@ describe("the captured payloads, read as the wrap reads them", () => {
 
   test("and gives back exactly the messages the capture recorded", () => {
     const wrong = READINGS.filter(
-      ({ stated, reading }) => reading.messages.join(" ") !== stated.join(" "),
+      // The escape and not the byte. Written literally, a NUL makes this whole
+      // file binary to `file` and to `grep -r`, which skip it in silence — 572
+      // lines of the promises this add-on makes to the game, invisible to every
+      // search over the tree
+      // (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F1).
+      ({ stated, reading }) =>
+        reading.messages.join("\u0000") !== stated.join("\u0000"),
     ).map(({ fight, call }) => `${fight} call ${call}`);
 
     expect(wrong).toEqual([]);
@@ -563,7 +569,7 @@ describe("a captured fight replayed through the wrap", () => {
       const updateData = getBattleMethod(battle);
       for (const call of fight.dump.calls) updateData({ m: call.protocolMessages });
 
-      const offline = fight.dump.calls.flatMap((call) => call.protocolMessages);
+      const offline = getMessagesOfFight(fight);
       expect(collected).toEqual(offline);
       expect(decodeFight(collected)).toEqual(decodeFight(offline));
       expect(collected.length).toBeGreaterThan(0);

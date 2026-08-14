@@ -1,6 +1,6 @@
 # The whole tree, read again
 
-Status: open
+Status: closed
 Read at: e0098fd
 
 The second audit, twenty commits after the first. The gate was green at
@@ -53,6 +53,12 @@ every figure a comment in `src/game/` states was re-computed against the eight
 captures — 400 engine calls — with a script that reads the JSON rather than
 grepping it.
 
+⚠️ **Closed across two rounds, and the first of them is why `Read at:` matters.**
+`F1` and `F9` were closed on their own; the remaining twenty-four followed in one
+round after that. Every finding below describes the tree at `e0098fd` and is left
+in the tense it was written in — what changed is the `*Closes:*` line, which is
+the only part of a finding that is about the present.
+
 ## Findings
 
 ### F1 — a test file that no text tool can read
@@ -84,7 +90,7 @@ finding in one line, and it is why the close has to be a guard rather than a
 correction: the byte is invisible at every point a person would look.
 
 *Where:* `tests/game/engine-battle-wrap.test.ts:539`
-*Closes:* open
+*Closes:* guard `tests/tools/tracked-text.test.ts`
 
 ### F2 — three sentences say the panel divides by turns, and nothing counts turns
 
@@ -102,7 +108,7 @@ described as a live feature by the section whose own opening says that listing
 what does not exist is how this document starts lying.
 
 *Where:* `AGENTS.md:189`
-*Closes:* open
+*Closes:* commit
 
 ### F3 — "every capture on disk holds null", and six of the eight do not hold it
 
@@ -121,7 +127,7 @@ wording survives in `docs/specs/2026-08-11-capturing-a-fight-to-disk.md`, where
 it is still true, because a spec is dated.
 
 *Where:* `src/game/fight-capture.ts:247`
-*Closes:* open
+*Closes:* commit
 
 ### F4 — a fourth file ships Polish, and the guard written for that cannot see the word
 
@@ -142,7 +148,7 @@ three, `CHANGELOG.md:22` says three, `tools/changelog.ts:8` says one. This is
 F10 of the first audit, in the same sentence, one file further along.
 
 *Where:* `src/userscript-version.ts:12`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F5 — §2's scope table has stopped naming two directories of the tree
 
@@ -159,7 +165,7 @@ exemption sentence is the question; being absent without either is not an answer
 the table admits.
 
 *Where:* `AGENTS.md:66`
-*Closes:* open
+*Closes:* commit
 
 ### F6 — §8's block enumerates the test files and misses two
 
@@ -176,7 +182,7 @@ cover a test named nowhere at all, in a block that names its fifty-seven
 neighbours.
 
 *Where:* `AGENTS.md:1096`
-*Closes:* open
+*Closes:* commit
 
 ### F7 — five docblocks in shipped source sit above the wrong declaration
 
@@ -205,7 +211,7 @@ for the next declaration's, which is how a decision gets applied to something
 nobody decided it about.
 
 *Where:* `src/core/fight-decoder.ts:422`
-*Closes:* open
+*Closes:* commit
 
 ### F8 — the count the fixing commit did not reach
 
@@ -223,7 +229,7 @@ nothing has ever gone red over it: these are claims that got *more* true as
 material arrived and kept the arithmetic of when there were two.
 
 *Where:* `src/game/fight-capture.ts:8`
-*Closes:* open
+*Closes:* commit
 
 ### F9 — §9.1's newest sentence was false on the day it was written
 
@@ -248,7 +254,7 @@ holds the `tests → tools` direction at all**: the layer tests cover `libs`,
 the shape the first audit's F16 was supposed to end.
 
 *Where:* `tests/captured-fight-catalog.ts:6`
-*Closes:* open
+*Closes:* rule §9.1
 
 ### F10 — the guard closes the cycle on one side and leaves it open on the other
 
@@ -268,7 +274,7 @@ purpose. It is the first audit's F16 again: the graph §9.1 draws is not the gra
 the tree has, and an undrawn edge is one nobody can be held to.
 
 *Where:* `tests/tools/source-layout.test.ts:152`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F11 — §9.5's register has drifted from the guard that holds it
 
@@ -294,7 +300,7 @@ not the exemption: `tests/core/fight-statistics.test.ts:447` spells `String(id)`
 as a test label, which is not a value being read.
 
 *Where:* `AGENTS.md:1555`
-*Closes:* open
+*Closes:* rule §9.5
 
 ### F12 — the one owner nothing holds to spelling what it owns
 
@@ -311,7 +317,7 @@ broken today and not a reason the guard should agree with the bug it exists to
 prevent (§7.5).
 
 *Where:* `tests/tools/source-layout.test.ts:273`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F13 — the sweep's per-file table is judged by the parser the same file says must not judge
 
@@ -327,7 +333,7 @@ broken in the file whose own docblock records paying for it once already, in the
 same field, for the same reason.
 
 *Where:* `tools/mutation-sweep.ts:358`
-*Closes:* open
+*Closes:* commit
 
 ### F14 — a run that never happened reads as a kill
 
@@ -343,7 +349,7 @@ of them can. That is the same failure the docblock above `isKilled` was written
 about, surviving in the one place the fix did not reach.
 
 *Where:* `tools/mutation-sweep.ts:268`
-*Closes:* open
+*Closes:* commit
 
 ### F15 — the sweep's operators rest on a convention nothing holds
 
@@ -364,7 +370,7 @@ string and regex literals. So the convention holds, and nothing holds the
 convention.
 
 *Where:* `tools/mutation-sweep.ts:98`
-*Closes:* open
+*Closes:* guard `tests/tools/mutation-sweep.test.ts`
 
 ### F16 — `JSON.stringify` has three uncoordinated answers, one of them a state key
 
@@ -389,7 +395,7 @@ with no mark. This is the sentence `libs/record.ts` was written to close, for a
 different construct, one directory over.
 
 *Where:* `src/game/fight-capture.ts:219`
-*Closes:* open
+*Closes:* rule §9.5
 
 ### F17 — numbers written into the DOM by interpolation, in the layer that draws them
 
@@ -413,7 +419,7 @@ disciplined one is the file that computes the numbers while the loose one is the
 file that draws them.
 
 *Where:* `src/ui/panel-element.ts:181`
-*Closes:* open
+*Closes:* commit
 
 ### F18 — the build-number pattern, written twice across a layer boundary
 
@@ -429,7 +435,7 @@ without anything going red. `tools/game-client-source.ts:55` carries a third
 spelling of the same build-id shape.
 
 *Where:* `src/userscript-entry.ts:349`
-*Closes:* open
+*Closes:* commit
 
 ### F19 — the tool that re-implements the grammar whose owner it imports
 
@@ -446,7 +452,7 @@ whose output is the queue §7.6 says the next question comes from. A change to t
 grammar leaves it reporting against the old one.
 
 *Where:* `tools/decoding-status.ts:34`
-*Closes:* open
+*Closes:* commit
 
 ### F20 — "the messages of a captured fight", spelled seventeen times
 
@@ -462,7 +468,7 @@ that already exists, which §9.5's third instruction says does not even need the
 threshold argued.
 
 *Where:* `tests/captured-fight-catalog.ts:67`
-*Closes:* open
+*Closes:* commit
 
 ### F21 — two tools order their output by whatever machine ran them
 
@@ -479,7 +485,7 @@ output on differently configured machines see a difference that is not in the
 protocol.
 
 *Where:* `tools/decoding-status.ts:111`
-*Closes:* open
+*Closes:* rule §9.5
 
 ### F22 — an export that exists to keep the compiler quiet
 
@@ -498,7 +504,7 @@ explains the local ("kept named so the palette's shape stays visible"); nothing
 explains the export.
 
 *Where:* `src/ui/panel-tokens.ts:62`
-*Closes:* open
+*Closes:* commit
 
 ### F23 — a count kept for nobody
 
@@ -513,7 +519,7 @@ wanted. §7.1: nothing exists before it is needed, and a counter with no reader 
 either a report field that was never written or a line that should go.
 
 *Where:* `src/userscript-entry.ts:103`
-*Closes:* open
+*Closes:* commit
 
 ### F24 — three names, and no test names any of them
 
@@ -537,7 +543,7 @@ named by no test either, and `tools/fight-report.ts` — 130 lines, no exports �
 is named nowhere under `tests/` at all.
 
 *Where:* `libs/source-regions.ts:63`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-view.test.ts`
 
 ### F25 — the stylesheet states §9.7 and breaks it
 
@@ -553,7 +559,7 @@ measures contrast, which is the other half of §9.7, and neither of these two
 colours is on a path it measures.
 
 *Where:* `src/ui/panel-stylesheet.ts:297`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F26 — size, recorded again against a bigger file
 
@@ -569,7 +575,7 @@ all are the most heavily tested code here, and a split moves the risk rather tha
 removing it — has to be made against the file as it is now, not as it was.
 
 *Where:* `src/ui/panel-view.ts`
-*Closes:* open
+*Closes:* declined — all three still read linearly and are the most heavily tested code here, and the round that read them found their faults in single lines rather than in the shape; a split moves the risk rather than removing it, and none of them needs a table of contents to be read in order
 
 ## Looked at and clean
 

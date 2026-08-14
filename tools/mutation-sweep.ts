@@ -71,8 +71,16 @@ export type Mutation = {
 export type MutationOutcome = {
   mutation: Mutation;
   /**
-   * Whether the gate went red. **This is the verdict**, and it comes from the
-   * exit status alone.
+   * Whether the gate went red, or **null where the gate never finished**.
+   *
+   * The verdict comes from the exit status alone, and a run with no exit status
+   * has no verdict to give: `spawnSync` answers `status: null` on a timeout, and
+   * `null !== 0` reads as red, which reads as killed. A mutant that hangs the
+   * suite was therefore reported as a kill — silently, in the direction that
+   * costs, because the value of the report is its survivors
+   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F14). Three states,
+   * so the three counts add up to the number of mutants and nobody has to guess
+   * where the difference went.
    *
    * ⚠️ **It used to be `killedBy.length > 0`, and that made the parser the
    * judge.** The comment beside the runner has always said "the status decides
@@ -82,7 +90,7 @@ export type MutationOutcome = {
    * kill in every report became a survivor: a tool for finding tests that cannot
    * fail, reporting that none of them can.
    */
-  isKilled: boolean;
+  isKilled: boolean | null;
   /** Test files that failed, where the output could be read. Descriptive only. */
   killedBy: string[];
   /** Killed, but only by a guard reading source as text. */
@@ -96,25 +104,37 @@ type Rule = {
 };
 
 /**
- * Every operator is written with the spaces around it, and that is the whole of
- * how this stays out of trouble: the tree is formatted, so a binary operator has
- * them and `+=`, `++` and `-->` do not. A pattern of the bare character would
- * mutate all three into something that does not parse, and an unparseable mutant
- * is killed by everything while proving nothing.
+ * Every operator is matched between whitespace, and that is the whole of how
+ * this stays out of trouble: the tree is formatted, so a binary operator has
+ * whitespace either side and `+=`, `++` and `a[-1]` do not. A pattern of the
+ * bare character would mutate all three into something that does not parse, and
+ * an unparseable mutant is killed by everything while proving nothing.
+ *
+ * ⚠️ **`\s` and not a literal space, and that was worth seventeen mutants.** The
+ * patterns used to be written as ` && ` — a space on each side — which is not
+ * how a condition spanning several lines is spelled: the operator ends the line,
+ * and the character after it is a newline. So every multi-line boolean in this
+ * repository was invisible to the sweep, silently, and those are the most
+ * logic-dense expressions there are. Found by the guard written to hold the
+ * convention this comment claims
+ * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F15).
+ *
+ * The lookarounds are what keep the operator out of the match: replacing it with
+ * the bare spelling leaves the whitespace the tree already had.
  */
 const RULES: Rule[] = [
-  { operator: "comparison", pattern: / > /g, composeAfter: () => " >= " },
-  { operator: "comparison", pattern: / >= /g, composeAfter: () => " > " },
-  { operator: "comparison", pattern: / < /g, composeAfter: () => " <= " },
-  { operator: "comparison", pattern: / <= /g, composeAfter: () => " < " },
-  { operator: "equality", pattern: / === /g, composeAfter: () => " !== " },
-  { operator: "equality", pattern: / !== /g, composeAfter: () => " === " },
-  { operator: "arithmetic", pattern: / \+ /g, composeAfter: () => " - " },
-  { operator: "arithmetic", pattern: / - /g, composeAfter: () => " + " },
-  { operator: "arithmetic", pattern: / \* /g, composeAfter: () => " / " },
-  { operator: "arithmetic", pattern: / \/ /g, composeAfter: () => " * " },
-  { operator: "logic", pattern: / && /g, composeAfter: () => " || " },
-  { operator: "logic", pattern: / \|\| /g, composeAfter: () => " && " },
+  { operator: "comparison", pattern: /(?<=\s)>(?=\s)/g, composeAfter: () => ">=" },
+  { operator: "comparison", pattern: /(?<=\s)>=(?=\s)/g, composeAfter: () => ">" },
+  { operator: "comparison", pattern: /(?<=\s)<(?=\s)/g, composeAfter: () => "<=" },
+  { operator: "comparison", pattern: /(?<=\s)<=(?=\s)/g, composeAfter: () => "<" },
+  { operator: "equality", pattern: /(?<=\s)===(?=\s)/g, composeAfter: () => "!==" },
+  { operator: "equality", pattern: /(?<=\s)!==(?=\s)/g, composeAfter: () => "===" },
+  { operator: "arithmetic", pattern: /(?<=\s)\+(?=\s)/g, composeAfter: () => "-" },
+  { operator: "arithmetic", pattern: /(?<=\s)-(?=\s)/g, composeAfter: () => "+" },
+  { operator: "arithmetic", pattern: /(?<=\s)\*(?=\s)/g, composeAfter: () => "/" },
+  { operator: "arithmetic", pattern: /(?<=\s)\/(?=\s)/g, composeAfter: () => "*" },
+  { operator: "logic", pattern: /(?<=\s)&&(?=\s)/g, composeAfter: () => "||" },
+  { operator: "logic", pattern: /(?<=\s)\|\|(?=\s)/g, composeAfter: () => "&&" },
   {
     // The lookahead keeps `!==` out of it, and the leading character is put back
     // so the negation is the only thing that goes.
@@ -235,7 +255,7 @@ export function composeMutatedSource(source: string, mutation: Mutation): string
 const FAILURE_MARKERS = ["✗", "(fail)"];
 
 /** Escape codes, which the runner writes even when nothing is a terminal. */
-const ANSI = /\[[0-9;]*m/g;
+const ANSI = /\x1b\[[0-9;]*m/g;
 
 export function getFailingTestFiles(output: string): string[] {
   const failing: string[] = [];
@@ -255,7 +275,8 @@ export function getFailingTestFiles(output: string): string[] {
   return failing;
 }
 
-type GateOutcome = { isRed: boolean; failing: string[] };
+/** `isRed` is null where the gate never finished — see `MutationOutcome`. */
+type GateOutcome = { isRed: boolean | null; failing: string[] };
 
 function getGateOutcome(isBailing: boolean): GateOutcome {
   const result = spawnSync("bun", isBailing ? ["test", "--bail=1"] : ["test"], {
@@ -263,12 +284,38 @@ function getGateOutcome(isBailing: boolean): GateOutcome {
     encoding: "utf8",
     timeout: RUN_TIMEOUT_MILLISECONDS,
   });
-  // A mutant that stops the suite from loading at all produces no `(fail)` line
+
+  // ⚠️ **A runner that cannot be started is not a mutant nobody noticed.** It is
+  // the same `status: null` a timeout gives, and read as red it would report
+  // every mutant killed on a machine with no `bun` on its path — a tool for
+  // finding tests that cannot fail, answering that none of them can. Thrown
+  // rather than counted, because it is true of every run that follows and a
+  // report of five thousand unfinished runs says nothing anybody can act on.
+  if (result.error !== undefined) {
+    throw new MutationSweepError("the gate could not be run", { cause: result.error });
+  }
+
+  // A mutant that stops the suite from loading at all produces no failure line
   // and is still a kill, so the status decides and the names only describe.
   return {
-    isRed: result.status !== 0,
+    isRed: result.status === null ? null : result.status !== 0,
     failing: getFailingTestFiles(`${result.stdout ?? ""}\n${result.stderr ?? ""}`),
   };
+}
+
+/**
+ * Whether the only thing that went red reads source as text.
+ *
+ * One function because the run loop asked it twice, once to decide on a second
+ * run without `--bail` and once to record the outcome — and a predicate spelled
+ * twice is where the two come to disagree (§7.1).
+ */
+function isShapeOnlyKill(run: GateOutcome): boolean {
+  return (
+    run.isRed === true &&
+    run.failing.length > 0 &&
+    run.failing.every((failing) => SHAPE_GUARDS.includes(failing))
+  );
 }
 
 function assertCleanWorkingTree(): void {
@@ -316,20 +363,13 @@ function getMutationOutcomesOfFile(file: string): MutationOutcome[] {
       // Only when nothing but a text search objected: the question is whether
       // any behaviour noticed, and under `--bail` the first failure is the only
       // one anybody saw.
-      if (
-        run.isRed &&
-        run.failing.length > 0 &&
-        run.failing.every((failing) => SHAPE_GUARDS.includes(failing))
-      ) {
-        run = getGateOutcome(false);
-      }
+      if (isShapeOnlyKill(run)) run = getGateOutcome(false);
       writeFileSync(path, original);
       outcomes.push({
         mutation,
         isKilled: run.isRed,
-        killedBy: run.isRed ? run.failing : [],
-        isShapeOnly:
-          run.isRed && run.failing.length > 0 && run.failing.every((f) => SHAPE_GUARDS.includes(f)),
+        killedBy: run.isRed === true ? run.failing : [],
+        isShapeOnly: isShapeOnlyKill(run),
       });
       process.stderr.write(
         `\r${file}  ${composeIntegerText(index + 1)}/${composeIntegerText(mutations.length)}   `,
@@ -345,7 +385,8 @@ function getMutationOutcomesOfFile(file: string): MutationOutcome[] {
 }
 
 function writeSweepReport(outcomes: MutationOutcome[]): void {
-  const survived = outcomes.filter((outcome) => !outcome.isKilled);
+  const survived = outcomes.filter((outcome) => outcome.isKilled === false);
+  const unfinished = outcomes.filter((outcome) => outcome.isKilled === null);
   const shapeOnly = outcomes.filter((outcome) => outcome.isShapeOnly);
 
   const byFile = new Map<string, MutationOutcome[]>();
@@ -355,7 +396,13 @@ function writeSweepReport(outcomes: MutationOutcome[]): void {
 
   console.log();
   for (const [file, forFile] of byFile) {
-    const alive = forFile.filter((outcome) => outcome.killedBy.length === 0).length;
+    // ⚠️ **`isKilled`, not `killedBy.length`.** This line counted survivors from
+    // the parsed output while the totals below counted them from the exit
+    // status, so a mutant that stopped the suite loading — red, with no failure
+    // line to read — was a kill in one half of the report and a survivor in the
+    // other. The file's own docblock records paying for exactly this once
+    // already (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F13).
+    const alive = forFile.filter((outcome) => outcome.isKilled === false).length;
     console.log(
       `${composeIntegerText(forFile.length).padStart(5)} mutants  ` +
         `${composeIntegerText(alive).padStart(4)} survived   ${file}`,
@@ -380,11 +427,23 @@ function writeSweepReport(outcomes: MutationOutcome[]): void {
     );
   }
 
+  if (unfinished.length > 0) {
+    console.log();
+    console.log("the gate never finished, so these are neither");
+    for (const { mutation } of unfinished) {
+      console.log(
+        `  ${mutation.file}:${composeIntegerText(mutation.line)}  ` +
+          `${mutation.before} → ${mutation.after}  (${mutation.operator})`,
+      );
+    }
+  }
+
   console.log();
   console.log(
     `${composeIntegerText(outcomes.length)} mutants, ` +
-      `${composeIntegerText(outcomes.length - survived.length)} killed, ` +
+      `${composeIntegerText(outcomes.length - survived.length - unfinished.length)} killed, ` +
       `${composeIntegerText(survived.length)} survived, ` +
+      `${composeIntegerText(unfinished.length)} unfinished, ` +
       `${composeIntegerText(shapeOnly.length)} of the kills by shape alone`,
   );
 }

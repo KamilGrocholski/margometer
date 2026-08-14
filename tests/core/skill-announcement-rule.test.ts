@@ -14,7 +14,7 @@ import { getIntegerFromText } from "@/libs/number.ts";
 import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 
 const SKILL_NAME_KEY = "tspell";
@@ -151,7 +151,7 @@ describe("`combo-max` on that announcement", () => {
  */
 describe("what an announcement declares about its skill", () => {
   const DECLARED = CAPTURED_FIGHTS.flatMap((fight) =>
-    decodeFight(fight.dump.calls.flatMap((call) => call.protocolMessages)).flatMap((event) =>
+    decodeFight(getMessagesOfFight(fight)).flatMap((event) =>
       event.kind === "skill-used" ? event.declared : [],
     ),
   );

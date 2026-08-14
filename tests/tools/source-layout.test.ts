@@ -148,14 +148,22 @@ describe("layers", () => {
    * type import compiles away. What it cost was the direction: the panel could no
    * longer be read, tested or reused without the engine module in the graph, and
    * the guard above covered `core` only, so the gate stayed green over it.
+   *
+   * ⚠️ **The entry point is on this list too, and was not.** The guard below it
+   * closes `game → the entry point` and says why — it is the file allowed to know
+   * every layer, so nothing may know it back — while this one forbade only
+   * `ui → game`, leaving the same cycle open on the other side
+   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F10).
+   * `src/userscript-version.ts` is deliberately not forbidden: §9.1 names it as
+   * readable from any layer, and the panel draws it in the title bar.
    */
   test.each(SOURCE_FILES.filter((file) => file.startsWith("src/ui/")))(
-    "%s draws what core produced, without reaching into the game",
+    "%s draws what core produced, without reaching for the game or the wiring",
     (file) => {
       const source = getSourceWithoutComments(file);
-      const reachingOut = [...source.matchAll(/\bfrom\s+"@\/src\/game\//g)].map(
-        (match) => match[0],
-      );
+      const reachingOut = [
+        ...source.matchAll(/\bfrom\s+"@\/src\/(game\/|userscript-entry\.ts)/g),
+      ].map((match) => match[0]);
       expect(reachingOut, file).toEqual([]);
     },
   );
@@ -180,6 +188,41 @@ describe("layers", () => {
       expect(reachingOut, file).toEqual([]);
     },
   );
+
+  /**
+   * §9.1's last direction, and the only one that had no guard at all.
+   *
+   * ⚠️ **The rule it holds was false the day it was written.** It first read
+   * "nothing in `tests/` reads a tool for its material", added to close an audit
+   * finding about an undrawn edge — while `tests/captured-fight-catalog.ts` had
+   * been reading `tools/fight-dump-parser.ts` for exactly that all along. Nothing
+   * went red, because this side of the graph was the one side no test looked at
+   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F9).
+   *
+   * What the rule now says is what the tree does, and the split is subject
+   * against answer. `tests/tools/` is where the tools are tested, so it names
+   * whichever one it is about. Everywhere else, two files are readable and no
+   * others: the reader of the captured material, so that the live path and the
+   * offline path cannot disagree about what a capture says, and the tool error
+   * base, which is named as a subject when the two hierarchies are proved
+   * disjoint.
+   */
+  const TOOLS_A_TEST_MAY_READ = [
+    "@/tools/fight-dump-parser.ts",
+    "@/tools/margometer-tool-error.ts",
+  ];
+
+  test.each(
+    SOURCE_FILES.filter(
+      (file) => file.startsWith("tests/") && !file.startsWith("tests/tools/"),
+    ),
+  )("%s reads a tool for the material or not at all", (file) => {
+    const source = getSourceWithoutComments(file);
+    const reachingOut = [...source.matchAll(/\bfrom\s+"(@\/tools\/[^"]+)"/g)]
+      .map((match) => match[1] ?? "")
+      .filter((specifier) => !TOOLS_A_TEST_MAY_READ.includes(specifier));
+    expect(reachingOut, file).toEqual([]);
+  });
 });
 
 /**
@@ -234,6 +277,7 @@ describe("value parsing", () => {
   const JSON_TEXT = "libs/json.ts";
   const TIMESTAMP = "libs/timestamp.ts";
   const RECORD = "libs/record.ts";
+  const TEXT_ORDER = "libs/text-order.ts";
 
   const OWNED_CONSTRUCTS = [
     // `\bNumber\s*\(` and not `Number` alone: `Number.isInteger` and its
@@ -245,12 +289,23 @@ describe("value parsing", () => {
     { pattern: /\bBigInt\s*\(/g, owner: NUMBER },
     { pattern: /\.toFixed\s*\(/g, owner: NUMBER },
     { pattern: /\bJSON\.parse\s*\(/g, owner: JSON_TEXT },
+    // The write side, and it belongs here for the same reason the read side
+    // does: `JSON.stringify` answers `undefined` — the value, not the text —
+    // for `undefined`, a function or a symbol, while its return type says
+    // `string`. Three call sites had made three different decisions about that
+    // and none of them said so (F16).
+    { pattern: /\bJSON\.stringify\s*\(/g, owner: JSON_TEXT },
     { pattern: /\bDate\.parse\s*\(/g, owner: TIMESTAMP },
     // A radix, not `.toString()` alone: writing a number in another base has the
     // same way of answering with something nobody wrote as reading one does —
     // `(-1).toString(16)` is `"-1"` — and it was the one conversion in `src/`
     // that `libs/` did not own, under the contrast arithmetic §9.7 makes a floor.
     { pattern: /\.toString\s*\(\s*\d+\s*\)/g, owner: NUMBER },
+    // `localeCompare` with no locale reads the runtime's default, so the order
+    // it gives belongs to the machine rather than to the data — and two tools
+    // sorted their output with it (F21). The owner splits the deterministic
+    // question from the one a person reads, and requires the locale.
+    { pattern: /\.localeCompare\s*\(/g, owner: TEXT_ORDER },
   ];
 
   test.each(SOURCE_FILES)("%s reads values through the primitives", (file) => {
@@ -270,17 +325,6 @@ describe("value parsing", () => {
   // first version read the file raw and stayed green while every real call in
   // `libs/number.ts` was mangled, because the docblock explaining `parseInt(`
   // still mentioned it.
-  test.each([...new Set(OWNED_CONSTRUCTS.map(({ owner }) => owner))])(
-    "%s still spells what it owns",
-    (owner) => {
-      const source = getSourceWithoutComments(owner);
-      const spelled = OWNED_CONSTRUCTS.filter((construct) => construct.owner === owner).flatMap(
-        ({ pattern }) => [...source.matchAll(pattern)].map((match) => match[0]),
-      );
-      expect(spelled.length, owner).toBeGreaterThan(0);
-    },
-  );
-
   /**
    * The coercions with no name to search for. Held to `libs/`, `src/` and
    * `tools/` only: `String(error)` in a test is not a number being read, and no
@@ -291,23 +335,46 @@ describe("value parsing", () => {
    * be turned off within a week, and a missed spelling is cheaper than that.
    */
   const UNNAMED_COERCIONS = [
-    /\bString\s*\(/g,
-    /[=(,[:]\s*\+[A-Za-z_$"'(]/g,
-    /\*\s*1\b/g,
-    /typeof\s+[\w.[\]"']+\s*===?\s*"number"/g,
+    { pattern: /\bString\s*\(/g, owner: NUMBER },
+    { pattern: /[=(,[:]\s*\+[A-Za-z_$"'(]/g, owner: NUMBER },
+    { pattern: /\*\s*1\b/g, owner: NUMBER },
+    { pattern: /typeof\s+[\w.[\]"']+\s*===?\s*"number"/g, owner: NUMBER },
     // `typeof x === "object"` is true for `null`, so every site pairs it with a
     // null check by hand — thirteen of them across ten files, of which eight
     // admitted an array as a record and five refused one. Two answers to one
     // question, and no file saying which it meant.
-    /typeof\s+[\w.[\]"']+\s*[!=]==?\s*"object"/g,
+    { pattern: /typeof\s+[\w.[\]"']+\s*[!=]==?\s*"object"/g, owner: RECORD },
   ];
+
+  /**
+   * ⚠️ **Both lists, and `libs/record.ts` is why.** This iterated
+   * `OWNED_CONSTRUCTS` alone, which has no row for the record narrowing — that
+   * construct lives in `UNNAMED_COERCIONS` below. So the one owner this test was
+   * written for could have stopped doing its `null` check and every file here,
+   * `record.ts` included, would still have passed: the guard agreeing with the
+   * bug it exists to prevent, in the shape §7.5 keeps paying for
+   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F12).
+   */
+  const EVERY_OWNED_CONSTRUCT = [...OWNED_CONSTRUCTS, ...UNNAMED_COERCIONS];
+
+  test.each([...new Set(EVERY_OWNED_CONSTRUCT.map(({ owner }) => owner))])(
+    "%s still spells what it owns",
+    (owner) => {
+      const source = getSourceWithoutComments(owner);
+      const spelled = EVERY_OWNED_CONSTRUCT.filter(
+        (construct) => construct.owner === owner,
+      ).flatMap(({ pattern }) => [...source.matchAll(pattern)].map((match) => match[0]));
+      expect(spelled.length, owner).toBeGreaterThan(0);
+    },
+  );
+
 
   test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
     "%s asks the primitives instead of coercing by hand",
     (file) => {
       if (file === NUMBER || file === RECORD) return;
       const source = getSourceWithoutComments(file);
-      const coerced = UNNAMED_COERCIONS.flatMap((pattern) =>
+      const coerced = UNNAMED_COERCIONS.flatMap(({ pattern }) =>
         [...source.matchAll(pattern)].map((match) => match[0]),
       );
       expect(coerced, file).toEqual([]);
@@ -433,6 +500,51 @@ describe("function names", () => {
 });
 
 /**
+ * AGENTS.md §9.7's first line: **a raw hex in a rule is a bug.**
+ *
+ * It was prose only, and `src/ui/panel-stylesheet.ts` broke it in the docblock
+ * that states it — pure black in a hatch mask and a shadow colour, neither a
+ * token, beside a sentence reading "everything it draws with is a token"
+ * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F25). The contrast half
+ * of §9.7 has been measured since the first UI file landed; this is the half
+ * nothing was watching.
+ *
+ * ⚠️ **Colours only, and that is a boundary rather than an oversight.** §9.7
+ * names spacing and radii too, and those are named where two rules share one —
+ * but a font size, a badge's width and a hatch's pitch are one rule each, and a
+ * guard demanding a token per number would be a guard demanding a token nobody
+ * reads twice. A colour has no such case: it either belongs to the palette that
+ * was validated for contrast, or it is a value nobody checked.
+ */
+describe("the colours", () => {
+  const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/g;
+
+  /** Where a colour is decided, and the only place one may be written down. */
+  const PALETTE = "src/ui/panel-tokens.ts";
+
+  const DRAWING = SOURCE_FILES.filter(
+    (file) => file.startsWith("src/ui/") && file !== PALETTE,
+  );
+
+  test("there are files that draw", () => {
+    expect(DRAWING.length).toBeGreaterThan(0);
+  });
+
+  test.each(DRAWING)("%s draws with tokens rather than with colours", (file) => {
+    const source = getSourceWithoutComments(file);
+    const written = [...source.matchAll(COLOUR_LITERAL)].map((match) => match[0]);
+    expect(written, file).toEqual([]);
+  });
+
+  // The other direction, for the reason the Polish list gives: a guard that only
+  // forbids passes perfectly once the palette is empty.
+  test("and the palette still holds some", () => {
+    const source = getSourceWithoutComments(PALETTE);
+    expect([...source.matchAll(COLOUR_LITERAL)].length).toBeGreaterThan(0);
+  });
+});
+
+/**
  * AGENTS.md §3. Which files speak Polish, and it is a short list on purpose.
  *
  * §3 admits exactly one kind of exception in shipped code — **the text a player
@@ -443,8 +555,17 @@ describe("function names", () => {
  *
  * ⚠️ **Frozen as a list rather than a rule, and the list is the point.** No
  * pattern can tell a label a player reads from a Polish identifier that slipped
- * in, so what a machine can hold is *which files are allowed to*. A fifth one
+ * in, so what a machine can hold is *which files are allowed to*. A further one
  * appearing is a decision somebody should have to make on purpose.
+ *
+ * ⚠️ **Paid for again: a Polish phrase can carry no diacritic.**
+ * `src/userscript-version.ts` has shipped `"z drzewa"` to the title bar since the
+ * version was substituted at build time, and this guard could not see it — the
+ * detector below looks for a letter that phrase does not contain. So the count
+ * was wrong in four documents while the guard that exists to re-measure it stayed
+ * green (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F4). An entry may
+ * now carry the phrase that makes it Polish, and where it does, the phrase is
+ * what gets re-measured instead of the letter.
  */
 describe("the language of the strings", () => {
   const POLISH_LETTER = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
@@ -453,18 +574,20 @@ describe("the language of the strings", () => {
    * `panel-view.ts` and `panel-element.ts` are the panel's own words — its rows,
    * its tooltips, its region names. `panel-names.ts` is what the add-on calls a
    * thing the running client has no name for: a phrase of ours, written by us,
-   * never a quotation of the game's (`NOTICE.md`).
+   * never a quotation of the game's (`NOTICE.md`). `userscript-version.ts` says
+   * what a build nobody made is called, in the title bar beside the number.
    *
-   * `src/userscript-entry.ts` was a fourth until F11 of the same audit turned the
-   * copied report's keys into the aggregate's own names, and
+   * `src/userscript-entry.ts` was one of these until F11 of the first audit turned
+   * the copied report's keys into the aggregate's own names, and
    * `src/game/game-dictionary.ts` is deliberately absent — its Polish is a
    * quotation inside a comment, which the stripper above removes and which no
    * player ever reads.
    */
-  const SPEAKS_POLISH = [
-    "src/ui/panel-element.ts",
-    "src/ui/panel-names.ts",
-    "src/ui/panel-view.ts",
+  const SPEAKS_POLISH: Array<{ file: string; phrase?: string }> = [
+    { file: "src/ui/panel-element.ts" },
+    { file: "src/ui/panel-names.ts" },
+    { file: "src/ui/panel-view.ts" },
+    { file: "src/userscript-version.ts", phrase: '"z drzewa"' },
   ];
 
   function getPolishStrings(file: string): string[] {
@@ -483,13 +606,21 @@ describe("the language of the strings", () => {
   // Both directions, for `cited-paths.test.ts`'s reason: a list that only forbids
   // catches nothing when the reader stops finding anything at all.
   test("only the files allowed to speak Polish do", () => {
+    const listed = SPEAKS_POLISH.map((entry) => entry.file);
     const speaking = SHIPPED.filter((file) => getPolishStrings(file).length > 0);
-    expect(speaking.sort()).toEqual([...SPEAKS_POLISH].sort());
+    expect(speaking.filter((file) => !listed.includes(file))).toEqual([]);
   });
 
   test("and each of them still does", () => {
-    for (const file of SPEAKS_POLISH) {
-      expect(getPolishStrings(file).length, file).toBeGreaterThan(0);
+    for (const { file, phrase } of SPEAKS_POLISH) {
+      if (phrase === undefined) {
+        expect(getPolishStrings(file).length, file).toBeGreaterThan(0);
+        continue;
+      }
+      // Nothing to detect — the phrase carries no letter this reader knows, which
+      // is the whole reason the entry names it. Changing what the panel says here
+      // is one line of a diff and has to be meant.
+      expect(getSourceWithoutComments(file), file).toContain(phrase);
     }
   });
 });

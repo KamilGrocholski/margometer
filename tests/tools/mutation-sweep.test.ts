@@ -1,4 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
+import {
+  composeSourceWithBlankedComments,
+  getRegularExpressionRangesFromSource,
+  getTextRangesFromSource,
+} from "@/libs/source-regions.ts";
 import {
   composeMutatedSource,
   composeMutations,
@@ -242,5 +248,71 @@ describe("what gets swept", () => {
 
   test("and every one of them is somewhere to break", () => {
     expect(getSweptFiles().length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The convention the sweep's whole operator list rests on.
+ *
+ * Every rule is written with the spaces around it — ` === `, ` && ` — and the
+ * file says why: the tree is formatted, so a binary operator has them and `+=`,
+ * `++` and `-->` do not. A pattern of the bare character would mutate all three
+ * into something that does not parse, and an unparseable mutant is killed by
+ * everything while proving nothing.
+ *
+ * ⚠️ **Nothing formats the tree.** There is no prettier, biome, dprint or
+ * editorconfig here, no `format` script and no step in either workflow — §9.3
+ * takes the linter out on purpose and the compiler does not care about spaces.
+ * So `a+b` generates no mutant, and the report says there was nothing there to
+ * find: silent, and in the direction that costs, because the value of that
+ * report is its survivors
+ * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F15).
+ *
+ * ⚠️ **Only the four that cannot mean anything else.** `<` and `>` are generics
+ * as often as they are comparisons, and a guard that cried wolf on
+ * `Map<string, number>` would be turned off in a week — the same trade the
+ * unary-`+` pattern in `tests/tools/source-layout.test.ts` makes. A missed
+ * spelling is cheaper than a guard nobody keeps.
+ */
+describe("the spacing the sweep reads operators by", () => {
+  const UNMISTAKABLE_OPERATORS = ["===", "!==", "&&", "||"];
+
+  /**
+   * Comments, text literals and patterns blanked, offsets preserved.
+   *
+   * A comparison inside a string is not code, and one inside a pattern is data —
+   * `tools/mutation-sweep.ts`'s own rule table spells `===` and `&&` that way, so
+   * without the third of these the guard reported the file that states the
+   * convention as the only file breaking it.
+   */
+  function composeCodeOnly(source: string): string {
+    const blanked = composeSourceWithBlankedComments(source);
+    const characters = blanked.split("");
+    const spans = [
+      ...getTextRangesFromSource(source),
+      ...getRegularExpressionRangesFromSource(source),
+    ];
+    for (const { start, end } of spans) {
+      for (let index = start; index < end; index += 1) {
+        if (characters[index] !== "\n") characters[index] = " ";
+      }
+    }
+    return characters.join("");
+  }
+
+  test.each(getSweptFiles())("%s spaces the operators the sweep looks for", (file) => {
+    const code = composeCodeOnly(readFileSync(new URL(`../../${file}`, import.meta.url), "utf8"));
+    const unspaced: string[] = [];
+    for (const operator of UNMISTAKABLE_OPERATORS) {
+      let at = code.indexOf(operator);
+      while (at >= 0) {
+        const before = code[at - 1] ?? "";
+        const after = code[at + operator.length] ?? "";
+        const isSpaced = /^\s$/.test(before) && /^\s$/.test(after);
+        if (!isSpaced) unspaced.push(`${operator} at ${String(at)}`);
+        at = code.indexOf(operator, at + operator.length);
+      }
+    }
+    expect(unspaced, file).toEqual([]);
   });
 });

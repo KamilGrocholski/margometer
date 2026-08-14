@@ -19,6 +19,7 @@ import {
   type BattleSession,
   type FightReading,
 } from "@/src/game/battle-session.ts";
+import { composeJsonText } from "@/libs/json.ts";
 import { setEngineAttachment, type GameWindow } from "@/src/game/engine-attachment.ts";
 import { getDictionaryReader, type DictionaryWindow } from "@/src/game/game-dictionary.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
@@ -34,6 +35,7 @@ import {
   type FightCapture,
 } from "@/src/game/fight-capture.ts";
 import { getFiniteNumberFromValue } from "@/libs/number.ts";
+import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
 import {
   renderPanelInto,
   setPanelRoot,
@@ -95,15 +97,19 @@ export type MargoMeterOptions = {
  * Once for the page rather than once per fight, like the drag and the capture
  * button in `composePanelMount`: a throw out of the reading is a bug of ours, not
  * a state of a fight, and the fight boundary is not visible from here — the
- * session lives inside `setMargoMeter`. The repeats are counted and the count is
- * readable through `getSilenced`, so a report can say how many followed the one
- * that printed; nothing prints it on its own, because there is no moment in a
- * page's life that is the right one to print a tally at.
+ * session lives inside `setMargoMeter`. The repeats are counted, and the count
+ * reaches the copied report through `composeMeterOptions`, which hands the sinks
+ * back to whoever wired them. Nothing prints it on its own: there is no moment in
+ * a page's life that is the right one to print a tally at, and for a while there
+ * was no moment at which anything read it either
+ * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F23).
  */
+export type FailureSink = { report: (error: unknown) => void; getSilenced: () => number };
+
 export function composeFailureSink(
   brand: string,
   warn: (brand: string, detail: unknown) => void,
-): { report: (error: unknown) => void; getSilenced: () => number } {
+): FailureSink {
   let said = false;
   let silenced = 0;
   return {
@@ -118,6 +124,9 @@ export function composeFailureSink(
     getSilenced: () => silenced,
   };
 }
+
+/** The two channels a page's failures are counted on, kept so a report can say. */
+export type FailureSinks = { reading: FailureSink; capture: FailureSink };
 
 export type MargoMeter = {
   /** The fight as it now stands, or null before anything has been read. */
@@ -247,13 +256,6 @@ export function shouldStartHere(scope: { document?: unknown }): boolean {
 }
 
 /**
- * The one global read in the add-on, and its one global write.
- *
- * `globalThis` rather than `window` because that is what exists in both places
- * this file is loaded — and in a test runner there is no `document`, so
- * importing this module attaches to nothing.
- */
-/**
  * The page as this file needs it: the game, a document to draw into, and a name
  * to answer to.
  */
@@ -333,9 +335,12 @@ function setStoredPosition(page: HostPage, position: PanelPosition): void {
 /**
  * The client build a recording came from, or null.
  *
- * Read from a script's filename — `main.min<build>.js` — which is the same place
- * `tools/game-client-source.ts` reads it to decide which bundle to download, so
- * the number in a recording and the number in the cache mean the same thing.
+ * Read from a script's filename by `src/core/game-build.ts`, which is also what
+ * `tools/game-client-source.ts` asks when it decides which bundle to download —
+ * so the number in a recording and the number in the cache mean the same thing.
+ * They were two copies of one pattern until the coupling this sentence describes
+ * was made into a module rather than left to the sentence
+ * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F18).
  *
  * Null, never a stand-in, where the page does not say. §7.6: material from the
  * game without the client's version is not comparable material, and a recording
@@ -346,8 +351,8 @@ function getGameBuildFromPage(page: HostPage): string | null {
   if (scripts === undefined) return null;
   for (const script of Array.from(scripts)) {
     const source = typeof script.src === "string" ? script.src : "";
-    const found = /main\.min(\d{10,})\.js/.exec(source);
-    if (found?.[1] !== undefined) return found[1];
+    const build = getGameBuildFromScriptName(source);
+    if (build !== null) return build;
   }
   return null;
 }
@@ -660,12 +665,25 @@ export function writeCaptureToPage(page: HostPage, meter: MargoMeter): void {
  * so a key in a pasted report can be grepped for in `src/core/fight-statistics.ts`
  * — which the translations could not be.
  */
-export function composeReportText(page: HostPage, reading: FightReading | null): string {
+export function composeReportText(
+  page: HostPage,
+  reading: FightReading | null,
+  /**
+   * How many failures each channel counted without printing. Absent where the
+   * caller has no meter — a test mounting the panel alone — and absent is not
+   * zero, so the report leaves the field out rather than claiming none (§9.6).
+   */
+  silenced?: { reading: number; capture: number },
+): string {
   const environment = composeCaptureEnvironment(page);
   const report = {
     addon: { name: "MargoMeter", version: USERSCRIPT_VERSION },
     game: { world: environment.getWorld(), build: environment.getGameBuild() },
     capturedAt: environment.getCapturedAt(),
+    // One line printed per channel per page, and this is the rest of them —
+    // §9.6 says a repeat is counted rather than reprinted, and a count nobody
+    // can read is a count that is not there (F23).
+    silencedFailures: silenced ?? null,
     fight:
       reading === null
         ? null
@@ -702,7 +720,7 @@ export function composeReportText(page: HostPage, reading: FightReading | null):
             },
           },
   };
-  return JSON.stringify(report, null, 2);
+  return composeJsonText(report, 2);
 }
 
 /** One combatant's figures, with every map turned into something JSON can hold. */
@@ -769,7 +787,25 @@ export function composeMeterOptions(
   renderReading: ((reading: FightReading) => void) | null,
   warn: (brand: string, detail: unknown) => void,
   info: (message: string) => void,
+  /**
+   * Where the silenced counts go, so somebody can read them.
+   *
+   * ⚠️ **They had nowhere to go, and the docblock said otherwise.** Both sinks
+   * were built here and only `.report` was kept, so `getSilenced` could never be
+   * called by anything that ships — while §9.6 requires the repeats to be
+   * *counted* and not merely dropped, and the sink's own comment said the count
+   * existed "so a report can say how many followed the one that printed". The
+   * report carried no such field
+   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F23).
+   *
+   * Optional, because a caller that never copies a report has nothing to do with
+   * them and should not have to invent a place to put them.
+   */
+  onSinks?: (sinks: FailureSinks) => void,
 ): MargoMeterOptions {
+  const reading = composeFailureSink("MargoMeter/Reading", warn);
+  const capture = composeFailureSink("MargoMeter/Capture", warn);
+  onSinks?.({ reading, capture });
   return {
     // One line, once, when the wrap goes on. Branded like every other thing this
     // add-on writes to a console it shares with the game (§9.5). It is not a
@@ -787,11 +823,26 @@ export function composeMeterOptions(
     // client half-way through building one looks like.
     onAttachmentRefused: (error) => warn("MargoMeter/AttachmentRefused", error),
     onReading: (reading) => renderReading?.(reading),
-    onReadingFailure: composeFailureSink("MargoMeter/Reading", warn).report,
-    onCaptureFailure: composeFailureSink("MargoMeter/Capture", warn).report,
+    onReadingFailure: reading.report,
+    onCaptureFailure: capture.report,
   };
 }
 
+/**
+ * The page, read once, and the one name this add-on writes onto it.
+ *
+ * `globalThis` rather than `window` because that is what exists in both places
+ * this file is loaded — and in a test runner there is no `document`, so
+ * importing this module attaches to nothing.
+ *
+ * ⚠️ **This block used to sit six hundred lines up, above a type, where it
+ * documented nothing** and said "the one global read in the add-on", which is
+ * also not true: `src/game/engine-attachment.ts` reaches for `setInterval` and
+ * `clearInterval` when no clock is injected
+ * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F7). What is true is
+ * narrower and is the part that matters — this is the only file that reads the
+ * game off the page and the only one that writes a name back onto it.
+ */
 const page = globalThis as HostPage;
 if (hasOtherMargoMeter(page)) {
   // Nothing is mounted and nothing is wrapped: two panels over one fight is a
@@ -805,6 +856,7 @@ if (hasOtherMargoMeter(page)) {
   // there. Mounting after the meter instead would leave the first payloads of a
   // fight already under way with nowhere to draw.
   let meter: MargoMeter | null = null;
+  let sinks: FailureSinks | null = null;
   const renderReading = composePanelMount(
     page,
     undefined,
@@ -818,7 +870,15 @@ if (hasOtherMargoMeter(page)) {
      * nothing else — the same shape as the stored position.
      */
     (reading) => {
-      void page.navigator?.clipboard?.writeText?.(composeReportText(page, reading));
+      void page.navigator?.clipboard?.writeText?.(
+        composeReportText(
+          page,
+          reading,
+          sinks === null
+            ? undefined
+            : { reading: sinks.reading.getSilenced(), capture: sinks.capture.getSilenced() },
+        ),
+      );
     },
   );
   meter = setMargoMeter(
@@ -827,6 +887,9 @@ if (hasOtherMargoMeter(page)) {
       renderReading,
       (brand, detail) => console.warn(brand, detail),
       (message) => console.info(message),
+      (built) => {
+        sinks = built;
+      },
     ),
   );
   page[PAGE_HANDLE] = meter;

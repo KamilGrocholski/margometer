@@ -8,6 +8,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { composeJsonText } from "@/libs/json.ts";
 import {
   composeEmptySession,
   composeFightReading,
@@ -18,7 +19,7 @@ import {
   getPayloadReading,
   type PayloadReading,
 } from "@/src/game/engine-battle-wrap.ts";
-import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, type CapturedFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 /** The payload the engine call carried, as the capture recorded it. */
 function getPayloads(fight: CapturedFight): unknown[] {
@@ -211,7 +212,7 @@ describe("a captured fight accumulated payload by payload", () => {
       }
 
       const reading = composeFightReading(session);
-      expect(session.messages).toEqual(fight.dump.calls.flatMap((call) => call.protocolMessages));
+      expect(session.messages).toEqual(getMessagesOfFight(fight));
       expect(reading.isFromFightStart).toBe(true);
       expect(reading.ourSide).not.toBeNull();
 
@@ -262,8 +263,8 @@ describe("a fight read once rather than again and again", () => {
 
     const skills = [...(split.statistics.byCombatantId.get(1)?.skills.values() ?? [])];
     expect(skills.map((skill) => skill.dealtApplied)).toEqual([400]);
-    expect(JSON.stringify(split.statistics.byCombatantId.get(1))).toBe(
-      JSON.stringify(together.statistics.byCombatantId.get(1)),
+    expect(composeJsonText(split.statistics.byCombatantId.get(1))).toBe(
+      composeJsonText(together.statistics.byCombatantId.get(1)),
     );
   });
 

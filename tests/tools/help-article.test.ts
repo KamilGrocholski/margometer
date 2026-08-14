@@ -4,6 +4,7 @@ import {
   composeAgeText,
   getFragments,
   getOccurrenceCount,
+  getPhraseCounts,
   getTextFromHtml,
   HelpArticleError,
   requireArticleId,
@@ -142,5 +143,42 @@ describe("the article id", () => {
     expect(() => requireArticleId("../game-client")).toThrow(HelpArticleError);
     expect(() => requireArticleId("372x")).toThrow(HelpArticleError);
     expect(requireArticleId("372")).toBe("372");
+  });
+});
+
+/**
+ * The numbers `tests/frozen-help-phrases.ts` is made of.
+ *
+ * ⚠️ **Nothing named this function.** Every register claim about what the
+ * published help does or does not document is re-earned on each run against a
+ * table this produces — so the guard was held to its input and the input was
+ * held to nobody (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F24).
+ */
+describe("the counts a freeze is made of", () => {
+  const TEXT = "unik and unik and evade";
+
+  test("counts each phrase in the text it was given", () => {
+    expect(getPhraseCounts(TEXT, ["unik", "evade"])).toEqual([
+      ["evade", 1],
+      ["unik", 2],
+    ]);
+  });
+
+  // Zero is the answer the register leans on hardest: a claim that the help is
+  // silent about a key is exactly a count of none, so it has to be reported and
+  // not dropped.
+  test("a phrase that is not there counts none rather than going missing", () => {
+    expect(getPhraseCounts(TEXT, ["legbon_facade"])).toEqual([["legbon_facade", 0]]);
+  });
+
+  test("asking twice does not count twice, and the order is the phrase's", () => {
+    expect(getPhraseCounts(TEXT, ["unik", "evade", "unik"])).toEqual([
+      ["evade", 1],
+      ["unik", 2],
+    ]);
+  });
+
+  test("asking nothing answers nothing", () => {
+    expect(getPhraseCounts(TEXT, [])).toEqual([]);
   });
 });

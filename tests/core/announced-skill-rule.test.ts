@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 /**
  * The rule that lets a figure name the skill it came from.
@@ -107,7 +107,7 @@ describe("what the game glues to an announcement", () => {
 
 describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
   const roster = composeRosterOfFight(fight);
-  const messages = fight.dump.calls.flatMap((call) => call.protocolMessages);
+  const messages = getMessagesOfFight(fight);
   const events = decodeFight(messages, roster);
   const statistics = composeFightStatistics(events, roster);
   const rows = [...statistics.byCombatantId.values()];

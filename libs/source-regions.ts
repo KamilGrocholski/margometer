@@ -73,6 +73,40 @@ export function composeSourceWithBlankedComments(source: string): string {
 }
 
 /**
+ * Where a `/` opens a pattern rather than divides.
+ *
+ * The ambiguity is the whole difficulty and it is settled the way every reader
+ * settles it: by what comes before. After a value — a name, a number, a closing
+ * bracket — a slash is division; after an operator, a comma, an opening bracket
+ * or the start of a statement, it opens a literal. A regular expression cannot
+ * span a line, so the search for its end stops there.
+ *
+ * Added at one caller rather than two, which §9.5 admits for a function inside a
+ * module that already exists: `tests/tools/mutation-sweep.test.ts` asks whether
+ * the tree spells its operators the way the sweep reads them, and the sweep's
+ * own rule table spells `===` and `&&` **inside patterns**, where they are data.
+ * Without this the guard reported the file that defines the convention as the
+ * one file breaking it.
+ */
+const VALUE_BEFORE_SLASH = /[\w$)\]]$/;
+const REGULAR_EXPRESSION = /\/(?:[^/\\\n[]|\\.|\[(?:[^\]\\\n]|\\.)*\])+\/[dgimsuvy]*/g;
+
+export function getRegularExpressionRangesFromSource(source: string): SourceRange[] {
+  const blanked = composeSourceWithBlankedComments(source);
+  const ranges: SourceRange[] = [];
+  for (const match of blanked.matchAll(REGULAR_EXPRESSION)) {
+    const start = assertDefined(match.index, "matchAll states where it matched");
+    // Overlapping a literal already claimed means the earlier match won and this
+    // one is its tail — `matchAll` cannot produce that, but a division that
+    // opened a false literal can, and the earlier range is the safer of the two.
+    if (ranges.some((range) => start < range.end)) continue;
+    if (VALUE_BEFORE_SLASH.test(blanked.slice(0, start).trimEnd())) continue;
+    ranges.push({ start, end: start + match[0].length });
+  }
+  return ranges;
+}
+
+/**
  * Comments are blanked before the literals are read, not after: a lone
  * quotation mark in prose would otherwise open a literal that runs into the
  * code below it and swallow half a file.

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, type CapturedFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 import { getDecodingStatus } from "@/tools/decoding-status.ts";
 
 /**
@@ -37,7 +37,7 @@ function composeFightOf(message: string): CapturedFight {
 describe("decoding status", () => {
   test("counts every captured message once", () => {
     const messages = CAPTURED_FIGHTS.flatMap((fight) =>
-      fight.dump.calls.flatMap((call) => call.protocolMessages),
+      getMessagesOfFight(fight),
     );
     expect(STATUS.messages).toBe(messages.length);
   });

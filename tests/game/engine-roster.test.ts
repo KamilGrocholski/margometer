@@ -191,7 +191,7 @@ describe("merging a snapshot into what is known", () => {
     expect(composeMergedCombatants(known, [...known])).toBe(known);
   });
 
-  // Both captured fights contain a call whose warrior list is empty. A roster
+  // Every capture contains a call whose warrior list is empty. A roster
   // that vanished would take every name resolution with it.
   test("an empty snapshot takes nobody away", () => {
     expect(composeMergedCombatants(known, [])).toEqual(known);

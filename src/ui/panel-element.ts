@@ -17,7 +17,11 @@
  *     unless a hand is moving it.
  */
 
-import { getFiniteNumberFromValue } from "@/libs/number.ts";
+import {
+  composeDecimalText,
+  composeIntegerText,
+  getFiniteNumberFromValue,
+} from "@/libs/number.ts";
 import type { PanelGrab, PanelPosition, PanelViewport } from "@/src/ui/panel-placement.ts";
 import {
   composeClampedPosition,
@@ -178,7 +182,11 @@ function renderRow(
 
   const bar = document.createElement("div");
   bar.className = "bar";
-  bar.style.setProperty("width", `${row.fill * 100}%`);
+  // Through the writer, not through `${}`: a fill of one tenth interpolates as
+  // `10.000000000000002%`, and a value that is not a number at all reaches the
+  // declaration as `NaN` with nothing marked
+  // (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F17).
+  bar.style.setProperty("width", `${composeDecimalText(row.fill * 100, 1)}%`);
   bar.style.setProperty("background", row.colour);
 
   const cap = document.createElement("div");
@@ -454,7 +462,10 @@ export function renderPanel(
   renderRegionInto(document, panel, handlers, "lista", () => {
     const list = document.createElement("div");
     list.className = "list";
-    list.style.setProperty("--rows", `${view.visibleRows}`);
+    // `composeIntegerText` asserts on the two values that would make this
+    // declaration invalid without a mark: `1e21` interpolates as `"1e+21"` and
+    // `NaN` as `"NaN"`, and either leaves the list the wrong height (F17).
+    list.style.setProperty("--rows", composeIntegerText(view.visibleRows));
     if (scroll !== undefined) scroll.list = list;
 
     if (view.emptyText !== null) {
@@ -516,7 +527,7 @@ export function renderPanel(
         ] as const) {
           if (share <= 0) continue;
           const part = document.createElement("span");
-          part.style.setProperty("width", `${share * 100}%`);
+          part.style.setProperty("width", `${composeDecimalText(share * 100, 1)}%`);
           part.style.setProperty("background", colour);
           track.append(part);
         }
@@ -732,7 +743,13 @@ function setPanelTip(
      */
     const top = getFiniteNumberFromValue(event.clientY);
     if (top === null) return;
-    tip.style.setProperty("top", `${Math.max(top - getPanelTop(), 0)}px`);
+    tip.style.setProperty(
+      "top",
+      // Whole pixels: `clientY` is fractional on a scaled display, and a
+      // tooltip half a pixel higher is not a thing anybody can see — a
+      // declaration reading `292.33333333333px` is (F17).
+      `${composeDecimalText(Math.max(top - getPanelTop(), 0), 0)}px`,
+    );
   });
 
   /**

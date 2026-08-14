@@ -17,6 +17,7 @@
  */
 
 import { writeFileSync } from "node:fs";
+import { composeJsonText } from "@/libs/json.ts";
 import { assertDefined } from "@/libs/assert.ts";
 import { getIntegerFromText } from "@/libs/number.ts";
 import { getCachedClientSource, getCachedBundle } from "@/tools/game-client-source.ts";
@@ -157,9 +158,9 @@ function composeFrozenModule(build: string, keys: string[], family: ComputedKeyF
 export const FROZEN_PROTOCOL_KEYS = {
   gameBuild: "${build}",
   /** Keys the client recognises by shape rather than by name — see the tool. */
-  computedFamily: ${JSON.stringify(family)},
+  computedFamily: ${composeJsonText(family)},
   keys: [
-${keys.map((key) => `    ${JSON.stringify(key)},`).join("\n")}
+${keys.map((key) => `    ${composeJsonText(key)},`).join("\n")}
   ],
 } as const;
 `;

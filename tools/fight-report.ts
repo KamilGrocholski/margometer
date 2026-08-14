@@ -12,6 +12,7 @@
  */
 
 import { composeIntegerText } from "@/libs/number.ts";
+import { getTextOrder } from "@/libs/text-order.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fight-statistics.ts";
 import {
@@ -37,7 +38,7 @@ function getNameByCombatantId(fight: CapturedFight): Map<number, string> {
 function composeTokenText(totals: ReadonlyMap<string, number>): string {
   if (totals.size === 0) return "—";
   return [...totals]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .sort((a, b) => b[1] - a[1] || getTextOrder(a[0], b[0]))
     .map(([token, amount]) => `${token} ${composeIntegerText(amount)}`)
     .join("  ");
 }

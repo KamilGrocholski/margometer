@@ -6,10 +6,15 @@
  * number that was true last week.
  */
 
+import { composeJsonText } from "@/libs/json.ts";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText } from "@/libs/number.ts";
+import { getTextOrder } from "@/libs/text-order.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
+import {
+  composeProtocolMessage,
+  parseProtocolMessage,
+} from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
 
 /** Wide enough for every count the captured material produces. */
@@ -26,17 +31,28 @@ export type DecodingStatus = {
 
 /** Everything a message yielded except the notice saying what was not read. */
 function composeReadingOf(message: string): string {
-  return JSON.stringify(
+  return composeJsonText(
     decodeFight([message]).filter((event) => event.kind !== "unknown-message"),
   );
 }
 
+/**
+ * The same message with one key taken out of it.
+ *
+ * ⚠️ **Through the grammar's owner, not through `split(";")`.** This used to
+ * spell the separator, the `=` split and the rule that the first two segments
+ * are the sides — every one of them a fact `src/core/protocol-message.ts` owns,
+ * in a file that already imports it. §9.4 makes the `parse`/`decode` split
+ * load-bearing precisely so the grammar lives in one place, and a change to it
+ * would have left this tool reporting against the old one
+ * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F19).
+ */
 function composeMessageWithoutKey(message: string, key: string): string {
-  const segments = message.split(";");
-  return [
-    ...segments.slice(0, 2),
-    ...segments.slice(2).filter((segment) => segment.split("=")[0] !== key),
-  ].join(";");
+  const parsed = parseProtocolMessage(message);
+  return composeProtocolMessage({
+    ...parsed,
+    parameters: parsed.parameters.filter((parameter) => parameter.key !== key),
+  });
 }
 
 /**
@@ -108,7 +124,7 @@ export function getDecodingStatus(fights: readonly CapturedFight[]): DecodingSta
     eventsByKind,
     unreadKeysByFrequency: [...unreadOccurrences]
       .map(([key, occurrences]) => ({ key, occurrences }))
-      .sort((a, b) => b.occurrences - a.occurrences || a.key.localeCompare(b.key)),
+      .sort((a, b) => b.occurrences - a.occurrences || getTextOrder(a.key, b.key)),
   };
 }
 

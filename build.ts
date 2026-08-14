@@ -1,4 +1,5 @@
 import manifest from "@/package.json";
+import { composeJsonText } from "@/libs/json.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
 class BundleError extends MargoMeterToolError {
@@ -120,7 +121,7 @@ async function buildUserscript(): Promise<void> {
      * that was never shipped. Reports arrive as screenshots at least as often as
      * they arrive as files, which is the whole reason the number is on screen.
      */
-    define: { __MARGOMETER_VERSION__: JSON.stringify(manifest.version) },
+    define: { __MARGOMETER_VERSION__: composeJsonText(manifest.version) },
   });
 
   if (!result.success) {

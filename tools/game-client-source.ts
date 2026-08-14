@@ -14,8 +14,12 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { getValueFromJsonText } from "@/libs/json.ts";
+import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
+import {
+  getGameBuildFromInlineObject,
+  getGameBuildFromScriptName,
+} from "@/src/core/game-build.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
 export class GameSourceError extends MargoMeterToolError {
@@ -52,13 +56,14 @@ export type CachedClientSource = {
  * than the megabytes the bundle itself weighs.
  */
 export function getBuildFromPage(html: string): string {
-  const inline = /\bversion:\s*(\d{10,})/.exec(html);
-  if (inline?.[1] !== undefined) return inline[1];
-
-  const fromFilename = /main\.min(\d{10,})\.js/.exec(html);
-  if (fromFilename?.[1] !== undefined) return fromFilename[1];
-
-  throw new GameSourceError("no build id on the page — the client's layout changed");
+  // Both readers live in `src/core/game-build.ts`, because the add-on stamps the
+  // same number onto a recording and the two only compare if they are read the
+  // same way (F18). The inline object first: a page can carry a stale script tag.
+  const build = getGameBuildFromInlineObject(html) ?? getGameBuildFromScriptName(html);
+  if (build === null) {
+    throw new GameSourceError("no build id on the page — the client's layout changed");
+  }
+  return build;
 }
 
 /**
@@ -169,7 +174,7 @@ export async function writeClientSourceCache(channel: GameChannel): Promise<Cach
     fetchedAt: new Date().toISOString(),
     bundlePath,
   };
-  writeFileSync(getManifestPath(channel), `${JSON.stringify(cached, null, 2)}\n`);
+  writeFileSync(getManifestPath(channel), `${composeJsonText(cached, 2)}\n`);
   return cached;
 }
 
