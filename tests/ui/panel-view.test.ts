@@ -1435,6 +1435,95 @@ describe("what a bar's length says", () => {
  * carrying a figure or a name from the fixture is dropped, so what is left is
  * only ever ours.
  */
+/**
+ * A fight where the game names a target this fight has nobody to match.
+ *
+ * `+oth_dmg` states the target by **name**, and a name resolves through the
+ * roster — so it comes back as nobody when the roster is absent, when it holds
+ * no such name, or when two combatants answer to it
+ * (`src/core/combatant-roster.ts`). A fight joined in progress has no roster at
+ * all, which makes this the ordinary shape rather than a corner.
+ *
+ * The blow still lands on its striker's own figure, because `dealtApplied` is
+ * added whatever the other end did. Only the pair is missing.
+ */
+function composeReadingWithUnnamedTarget(): PanelReading {
+  const roster = composeCombatantRoster([
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+  ]);
+  const statistics = composeFightStatistics(
+    decodeFight(
+      [
+        "1=90.00;3=50.00;tspell=Ogień;skillId=9",
+        "1=90.00;3=40.00;+oth_dmg=400, ,ktoś inny(66.95%)",
+        "1=90.00;3=50.00;tspell=Ogień;skillId=9",
+        "1=90.00;3=40.00;+dmg=500;-dmg=300",
+      ],
+      roster,
+    ),
+    roster,
+  );
+  return { statistics, roster, ourSide: 1, isFromFightStart: true };
+}
+
+/**
+ * ⚠️ **The breakdown was empty under a row of 400.**
+ *
+ * Every section here closes against the row it was entered from, and that was
+ * held only for the two received directions — because those were the two whose
+ * shortfall the captures happen to contain. Under `Zadane` the pairs are written
+ * only where the target resolved while the row's figure is added regardless, so
+ * a name the roster could not place took the whole section with it: measured on
+ * the fight above before the fix, entering a combatant ranked at 400 produced no
+ * lists at all, and the panel did not even say they had done nothing, because
+ * they had not.
+ *
+ * The deep level had the same hole and no closing row of any kind — the one list
+ * in the panel that closed against nothing.
+ */
+describe("a target the fight cannot name", () => {
+  const reading = composeReadingWithUnnamedTarget();
+
+  test("still closes the opponents against the row above them", () => {
+    const view = composePanelView(reading, composeState({ metric: "dealt", focusCombatantId: 1 }));
+    const opponents = view.lists.find((list) => list.heading === "KOMU");
+
+    expect(opponents?.totalText).toBe("700");
+    expect(opponents?.rows.map((row) => [row.label, row.valueText])).toEqual([
+      ["coś dużego", "300"],
+      ["Nie wiadomo, w kogo", "400"],
+    ]);
+  });
+
+  test("still closes the deep level against the skill it was entered from", () => {
+    const view = composePanelView(
+      reading,
+      composeState({ metric: "dealt", focusCombatantId: 1, focusSkill: { ownerId: 1, key: "9" } }),
+    );
+
+    expect(view.lists[0]?.totalText).toBe("700");
+    expect(view.lists[0]?.rows.at(-1)?.label).toBe("Nie wiadomo, w kogo");
+  });
+
+  /**
+   * The row says what is not known, never why our reader cannot know it (§3) —
+   * and it is a different sentence from the received directions' on purpose:
+   * there nobody swung, here somebody did.
+   */
+  test("says what is missing without naming anything of ours", () => {
+    const view = composePanelView(reading, composeState({ metric: "dealt", focusCombatantId: 1 }));
+    const missing = view.lists.flatMap((list) => list.rows).find((row) => row.key === "nobody");
+
+    expect(missing?.detail).toEqual([
+      { kind: "note", text: "Gra nie mówi, w kogo — wiadomo tylko, że cios wszedł." },
+    ]);
+    for (const forbidden of ["roster", "skład", "protok", "klucz", "null", "id"]) {
+      expect(`${missing?.label} ${JSON.stringify(missing?.detail)}`, forbidden).not.toContain(forbidden);
+    }
+  });
+});
+
 describe("every sentence the panel says", () => {
   const OURS = [
     "  bez sprawcy",

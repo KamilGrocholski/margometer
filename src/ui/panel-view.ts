@@ -892,6 +892,34 @@ function composeBreakdownList(
   };
 }
 
+/**
+ * What the row holds that no pair does, and which end of the pair is missing.
+ *
+ * The two directions are short for **different reasons** and a shared sentence
+ * would be wrong on two screens: under a received direction nobody swung or
+ * healed, under a given one somebody did and the game named a target this fight
+ * has nobody to match. Four entries, so the compiler asks about a fifth screen
+ * rather than letting it inherit whichever wording came first.
+ */
+const MISSING_COUNTERPARTS: Record<PanelMetric, { label: string; note: string }> = {
+  dealt: {
+    label: "Nie wiadomo, w kogo",
+    note: "Gra nie mówi, w kogo — wiadomo tylko, że cios wszedł.",
+  },
+  taken: {
+    label: "Bez sprawcy",
+    note: "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.",
+  },
+  healingGiven: {
+    label: "Nie wiadomo, komu",
+    note: "Gra nie mówi, komu — wiadomo tylko, że leczenie weszło.",
+  },
+  healed: {
+    label: "Bez sprawcy",
+    note: "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
+  },
+};
+
 /** Who this combatant hit, or who hit them, or who healed them. */
 function composeOpponentEntries(
   reading: PanelReading,
@@ -928,34 +956,26 @@ function composeOpponentEntries(
 
   // The part with no counterpart stands in the same section, or the section would
   // total less than the row it was entered from with nothing saying why.
-  // Healing **given** has no orphan and needs none: a giver's total is the sum of
-  // what the announcements credited them with, so the section already closes.
-  // The healing nobody announced is not theirs to be short of — it stands at the
-  // ranking, in the pinned row, which is where the two directions balance.
-  const orphan =
-    state.metric === "taken"
-      ? row.healthLost
-      : state.metric === "healed"
-        ? getHealingWithoutHealer(row)
-        : 0;
+  //
+  // ⚠️ Taken as the row's own figure minus what the pairs hold, rather than named
+  // per metric. Spelled out, two of the four cases were simply missing: the pairs
+  // are only written where the other end **resolved**, while the row's figure is
+  // added whatever happened, so a target the roster cannot place left the section
+  // short. Measured on a fight whose target name is not in the roster — the shape
+  // a fight joined in progress gives, since names then resolve to nobody — a
+  // combatant ranked at 400 opened onto no sections at all.
+  const orphan = getMetricValue(row, state.metric) - pairs.reduce((sum, [, amount]) => sum + amount, 0);
   if (orphan > 0) {
+    const missing = MISSING_COUNTERPARTS[state.metric];
     entries.push({
       key: "nobody",
-      label: "Bez sprawcy",
+      label: missing.label,
       profession: null,
       colour: UNKNOWN_COLOUR,
       amount: orphan,
       canDrill: false,
       uses: null,
-      detail: [
-        {
-          kind: "note",
-          text:
-            state.metric === "taken"
-              ? "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło."
-              : "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
-        },
-      ],
+      detail: [{ kind: "note", text: missing.note }],
     });
   }
 
@@ -1250,21 +1270,43 @@ function composeDeepLists(
         ? [...skill.healedByCombatantId]
         : [...skill.healedByCombatantId].filter(([id]) => id === combatantId);
 
-    const list = composeBreakdownList(
-      `KOMU — ${skill.skillName}`,
-      pairs
-        .sort(([, one], [, other]) => other - one)
-        .map(([id, amount]) => ({
-          key: `leaf:${composeIntegerText(id)}`,
-          label: getName(reading, id),
-          profession: reading.roster.byId.get(id)?.profession ?? null,
-          colour: getProfessionColour(reading.roster.byId.get(id)?.profession ?? null),
-          amount,
-          canDrill: false,
-          uses: null,
-          detail: [],
-        })),
-    );
+    const entries: BreakdownEntry[] = pairs
+      .sort(([, one], [, other]) => other - one)
+      .map(([id, amount]) => ({
+        key: `leaf:${composeIntegerText(id)}`,
+        label: getName(reading, id),
+        profession: reading.roster.byId.get(id)?.profession ?? null,
+        colour: getProfessionColour(reading.roster.byId.get(id)?.profession ?? null),
+        amount,
+        canDrill: false,
+        uses: null,
+        detail: [],
+      }));
+
+    // ⚠️ **The one level in the panel that closed against nothing.** A skill's
+    // figure is added whatever the other end did, its pairs only where that end
+    // resolved, so this list could total less than the entry it was opened from
+    // and say nothing about the difference. Not under `Leczenie`: there the pairs
+    // are narrowed to the one the level was entered through, so the rest of the
+    // skill is deliberately absent and there is nothing to be short of.
+    const closeAgainst = state.metric === "healed" ? null : isHealingMetric(state.metric) ? skill.healed : skill.dealtApplied;
+    const orphan =
+      closeAgainst === null ? 0 : closeAgainst - entries.reduce((sum, entry) => sum + entry.amount, 0);
+    if (orphan > 0) {
+      const missing = MISSING_COUNTERPARTS[state.metric];
+      entries.push({
+        key: "nobody",
+        label: missing.label,
+        profession: null,
+        colour: UNKNOWN_COLOUR,
+        amount: orphan,
+        canDrill: false,
+        uses: null,
+        detail: [{ kind: "note", text: missing.note }],
+      });
+    }
+
+    const list = composeBreakdownList(`KOMU — ${skill.skillName}`, entries);
     return list === null ? [] : [list];
   }
 
