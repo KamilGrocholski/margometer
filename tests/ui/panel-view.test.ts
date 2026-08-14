@@ -78,6 +78,24 @@ function getEveryRow(view: PanelView): PanelRow[] {
 }
 
 /**
+ * What this screen divides by, as a number, read back off the summary.
+ *
+ * The view states the whole in exactly one place — `My + Oni + Bez strony`, the
+ * three parts every bracket on the screen is a share of. Reading it here rather
+ * than exporting the function keeps the test on what the panel *says*, which is
+ * the thing a wrong total would be wrong in.
+ */
+function getWholeFromSummary(view: PanelView): number | null {
+  const { sides } = view;
+  if (sides === null) return null;
+  const parts = [sides.mineText, sides.enemyText, sides.nobody?.text ?? "0"].map((text) =>
+    getIntegerFromText(text.replace(/\s/g, "")),
+  );
+  if (parts.some((part) => part === null)) return null;
+  return parts.reduce<number>((total, part) => total + (part ?? 0), 0);
+}
+
+/**
  * Every string the panel would put on screen for this view.
  *
  * ⚠️ **The summary under the list was missing from here**, so the one region
@@ -1014,8 +1032,81 @@ describe("against the captured fights", () => {
     expect(inGiven === null).toBe(inReceived === null);
     if (inGiven === null || inReceived === null) return;
 
+    // ⚠️ The figures being equal is structural, not measured: `getPinnedValue`
+    // branches on the noun alone, so both directions reach it down one arm and
+    // could not disagree. Kept because it is cheap and would catch a direction
+    // gaining its own reading, but the balance itself is the test below.
     expect(inGiven.valueText).toBe(inReceived.valueText);
     expect(inGiven.bracketText).toBe(inReceived.bracketText);
+  });
+
+  /**
+   * `Σ zadane + bez sprawcy = Σ otrzymane`, as an equation on integers.
+   *
+   * ⚠️ **The test above was standing in for this and could not do it.** One of
+   * its two comparisons is structural, and the other is a percentage rounded to
+   * the unit — so the balance was held to a point in a hundred on a figure that
+   * runs to six digits.
+   *
+   * The whole is read off the summary, because that is the one place the view
+   * states it as a number: `My + Oni + Bez strony` is the rows the screen admits
+   * plus whatever no row holds, which is `getWholeOnScreen` under no filter. The
+   * two directions reach it by different arms of `getMetricValue` and different
+   * arms of `getFigureOutsideRows`, so their agreement is a measurement.
+   */
+  test.each(
+    fights.flatMap((fight) =>
+      (
+        [
+          ["obrażenia", "dealt", "taken"],
+          ["leczenie", "healingGiven", "healed"],
+        ] as const
+      ).map(([noun, given, received]) => ({ ...fight, noun, given, received })),
+    ),
+  )("$name closes the $noun to the point from either direction", ({ reading, given, received }) => {
+    const inGiven = getWholeFromSummary(composePanelView(reading, composeState({ metric: given })));
+    const inReceived = getWholeFromSummary(composePanelView(reading, composeState({ metric: received })));
+
+    expect(inGiven).not.toBeNull();
+    expect(inGiven).toBe(inReceived);
+  });
+
+  /**
+   * The same equation over a fight where the bucket is **not empty**.
+   *
+   * ⚠️ **Every capture resolves every name, so `unattributed` is zero on all of
+   * them** — both its `dealtApplied` and its `taken`. The equation above would
+   * therefore hold just as well for a panel that had dropped the term entirely,
+   * which is the difference between a guard and a coincidence. A fight joined in
+   * progress has no roster and every name in it resolves to nobody
+   * (`src/core/fight-decoder.ts`), so this is the live shape, not a contrivance.
+   */
+  test("closes the damage from either direction when the figures have no actor", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(
+        [
+          // Nobody swung it, and it landed on somebody named.
+          "0;3=50.00;+dmg=500;-dmg=400",
+          // Somebody named swung it, and it landed on nobody the roster holds.
+          "1=90.00;0;+dmg=300;-dmg=200",
+        ],
+        roster,
+      ),
+      roster,
+    );
+    const reading = { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading;
+
+    // Read, not assumed: if a later round makes these resolve, the fight stops
+    // being the one this test is for and says so here rather than passing.
+    expect(statistics.unattributed.dealtApplied).toBe(400);
+    expect(statistics.unattributed.taken).toBe(200);
+
+    expect(getWholeFromSummary(composePanelView(reading, composeState({ metric: "dealt" })))).toBe(600);
+    expect(getWholeFromSummary(composePanelView(reading, composeState({ metric: "taken" })))).toBe(600);
   });
 
   /**
