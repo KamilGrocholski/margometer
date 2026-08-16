@@ -201,7 +201,7 @@ of the pattern in the tree, and it is in the function that decides whether a
 label can be read.
 
 *Where:* `src/ui/panel-tokens.ts:286`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-tokens.test.ts`
 
 ### F6 — a docblock above the wrong declaration, added by the commit that closed the finding about docblocks above the wrong declaration
 

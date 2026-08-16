@@ -1,3 +1,4 @@
+import { assertDefined } from "@/libs/assert.ts";
 import {
   composeHexadecimalByteText,
   composeIntegerText,
@@ -282,10 +283,34 @@ export function composeColourOver(top: string, bottom: string, alpha: number): s
  * comes out light among dark ones and that is the price of the floor: at the
  * hunter's green even pure black clears only 4.25, so no single ink works for
  * all six professions.
+ *
+ * ⚠️ **Asserted rather than defaulted, and the two nulls are why.** This read
+ * `getContrastRatio(…) ?? 0` on both sides. `getContrastRatio` answers null when
+ * a colour is unreadable and the function above argues for that null against a
+ * throw — but this caller reported nothing: both nulls became `0`, `0 >= 0` is
+ * true, and a colour nobody could measure shipped dark ink as confidently as one
+ * that was measured. §9.3's "unknown is loud, never zero" and §9.5's last table
+ * row both name that substitution as the failure this project exists to prevent,
+ * and it was sitting in the one function that decides whether a label can be read
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F5).
+ *
+ * An assertion and not an error class, because of **who produced the value**
+ * (§9.5). Every colour reaching here is one of ours: the caller passes
+ * `getProfessionColour`'s answer, which is `PROFESSION_COLOURS` or
+ * `UNKNOWN_COLOUR`, both declared in this file. A null means a token here is
+ * malformed, which nobody can handle and which the tests below already measure —
+ * so it is a broken invariant, not a domain failure, and it gets no `code`.
+ *
+ * Safe to throw from despite §9.6, because the panel's isolation is structural
+ * rather than a habit: `renderRegionInto` catches per region, so this becomes the
+ * marker that says one region could not be drawn while the rest of the panel
+ * stands. A badge whose ink was never measured is exactly what that marker is
+ * for.
  */
 export function getProfessionInk(colour: string): string {
-  const dark = getContrastRatio(PANEL_TOKENS.badgeInkDark, colour) ?? 0;
-  const light = getContrastRatio(PANEL_TOKENS.badgeInkLight, colour) ?? 0;
+  const invariant = "the ink and the badge colour are both readable";
+  const dark = assertDefined(getContrastRatio(PANEL_TOKENS.badgeInkDark, colour), invariant);
+  const light = assertDefined(getContrastRatio(PANEL_TOKENS.badgeInkLight, colour), invariant);
   return dark >= light ? PANEL_TOKENS.badgeInkDark : PANEL_TOKENS.badgeInkLight;
 }
 

@@ -1,0 +1,110 @@
+/**
+ * The arithmetic §9.7 turns on, held directly.
+ *
+ * `tests/ui/panel-element.test.ts` already measures every bar against WCAG AA in
+ * the role it is actually drawn in, which is the check that matters to a reader.
+ * What it cannot reach is what happens when a colour **cannot be measured at
+ * all**, because it only ever hands this module colours that can be — and that
+ * is where the defect was: `getProfessionInk` read
+ * `getContrastRatio(…) ?? 0` on both sides, so two unmeasurable colours became
+ * `0` and `0`, `0 >= 0` chose dark ink, and a badge nobody had measured shipped
+ * as confidently as one that had been
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F5).
+ *
+ * §9.3 puts it in one line — unknown is loud, never zero — and §9.5's last table
+ * row names the substitution as the failure this project exists to prevent. It
+ * was in the one function that decides whether a label can be read.
+ *
+ * This file is also the first test `src/ui/panel-tokens.ts` has had of its own,
+ * which the same audit raises separately as F11. That finding names five modules
+ * and this closes none of it: what is here is the surface F5 turns on.
+ */
+
+import { describe, expect, test } from "bun:test";
+import { AssertionFailure } from "@/libs/assert.ts";
+import { MargoMeterError } from "@/src/core/margometer-error.ts";
+import {
+  getContrastRatio,
+  getProfessionColour,
+  getProfessionInk,
+  PANEL_TOKENS,
+  PROFESSION_COLOURS,
+  UNKNOWN_COLOUR,
+} from "@/src/ui/panel-tokens.ts";
+
+/** Every colour the panel can actually hand the ink chooser. */
+const DRAWN_COLOURS = [...Object.values(PROFESSION_COLOURS), UNKNOWN_COLOUR];
+
+describe("choosing the ink for a badge", () => {
+  test("there are colours to choose against", () => {
+    expect(DRAWN_COLOURS.length).toBeGreaterThan(1);
+  });
+
+  /**
+   * The choice, restated as the measurement rather than as the answer: whichever
+   * ink measures higher on that colour is the one that comes back. Written this
+   * way so it cannot agree with a bug the way a tabulated expectation would —
+   * the point of computing the ink at all is that a table drifts.
+   */
+  test("picks whichever ink measures better on that colour", () => {
+    for (const colour of DRAWN_COLOURS) {
+      const dark = getContrastRatio(PANEL_TOKENS.badgeInkDark, colour);
+      const light = getContrastRatio(PANEL_TOKENS.badgeInkLight, colour);
+      expect(dark, colour).not.toBeNull();
+      expect(light, colour).not.toBeNull();
+      const better = (dark ?? 0) >= (light ?? 0) ? PANEL_TOKENS.badgeInkDark : PANEL_TOKENS.badgeInkLight;
+      expect(getProfessionInk(colour), colour).toBe(better);
+    }
+  });
+
+  /**
+   * Both inks are used, which is what makes the computation load-bearing rather
+   * than an elaborate way of always answering the same thing. §9.7's floor is
+   * what costs it: at one profession's colour even pure black falls short of
+   * what the other ink reaches, so no single ink works for all six.
+   */
+  test("and both of them come out somewhere", () => {
+    const chosen = new Set(DRAWN_COLOURS.map(getProfessionInk));
+    expect([...chosen].sort()).toEqual(
+      [PANEL_TOKENS.badgeInkDark, PANEL_TOKENS.badgeInkLight].sort(),
+    );
+  });
+
+  /**
+   * The one the `?? 0` swallowed. A colour that cannot be measured is not a
+   * colour that scores zero, and the two must not share an answer.
+   */
+  test("refuses a colour it cannot measure rather than inking it anyway", () => {
+    for (const unreadable of ["", "red", "#fff", "#12345g", "rgb(1,2,3)"]) {
+      expect(() => getProfessionInk(unreadable), unreadable).toThrow(AssertionFailure);
+    }
+  });
+
+  /**
+   * ⚠️ **An assertion and not a domain error, on purpose** (§9.5). Every colour
+   * that reaches this function is one of ours — `getProfessionColour` answers
+   * out of `PROFESSION_COLOURS` or `UNKNOWN_COLOUR`, both declared beside it — so
+   * a colour that cannot be read means a token in that file is malformed. Nobody
+   * can handle that, so it gets no `code`, and a `catch` testing for a domain
+   * failure must not swallow it.
+   */
+  test("throws the kind of failure nobody is meant to handle", () => {
+    let thrown: unknown = null;
+    try {
+      getProfessionInk("not a colour");
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(AssertionFailure);
+    expect(thrown).not.toBeInstanceOf(MargoMeterError);
+    expect((thrown as AssertionFailure).name).toBe("MargoMeter/Assertion");
+  });
+
+  // The join the panel actually makes: what the view puts on a row is what this
+  // is asked about, so an unnamed profession has to survive the round trip.
+  test("every colour the view can produce is one it can measure", () => {
+    for (const profession of [...Object.keys(PROFESSION_COLOURS), null, "no such profession"]) {
+      expect(() => getProfessionInk(getProfessionColour(profession)), String(profession)).not.toThrow();
+    }
+  });
+});

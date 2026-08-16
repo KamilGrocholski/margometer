@@ -1262,6 +1262,17 @@ tests/
     panel-placement.test.ts  The arithmetic that decides whether the panel can be
                              dragged somewhere it cannot be dragged back from, and
                              what a stored position has to prove on read.
+    panel-tokens.test.ts     The one thing `panel-element.test.ts` cannot reach,
+                             because it only ever hands this module colours that
+                             can be measured: what happens to one that cannot.
+                             `getProfessionInk` read `?? 0` on both sides, so two
+                             unmeasurable colours came to `0` and `0`, `0 >= 0`
+                             chose dark ink, and a badge nobody had measured
+                             shipped as confidently as one that had been. Held now
+                             to refusing, and to refusing with an **assertion** —
+                             every colour reaching it is one of ours, so a null
+                             means a token in that file is malformed and nobody
+                             can handle it (§9.5).
 
   tools/                 The tooling, the build, and the rules the repository
                          holds itself to.
