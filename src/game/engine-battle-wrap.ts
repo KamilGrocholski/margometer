@@ -75,10 +75,12 @@ function hasMargoMeterWrapper(value: unknown): value is Wrapper {
  *
  * `mi` is a companion list the client itself never reads — measured on production
  * build `1786514810315`, no property access to it anywhere in the bundle. What it
- * is *for* is therefore not something we can claim. What is measured, over the
- * 400 engine calls in `tests/captured-fights/`, is that it counts the same things
- * `m` does: present in the same 380 payloads, never without `m`, never `m`
- * without it, and `mi.length === m.length` in 380 of 380.
+ * is *for* is therefore not something we can claim. What is measured, over
+ * **every** captured engine call, is that it counts the same things `m` does: it
+ * is present in exactly the payloads `m` is, never without `m`, never `m` without
+ * it, and `mi.length === m.length` every time. Stated over all of them rather
+ * than as a count, so it stays true as recordings arrive (§3) — the count was
+ * written here as 380 of 400 and was wrong within a fortnight, twice.
  *
  * That makes it a witness that can only ever **add** signal. It is read as
  * positive evidence that messages were stated, and nothing else — so losing it to
@@ -118,12 +120,12 @@ export type PayloadReading = {
  * Three states the old reader collapsed into one empty list, and the middle one
  * is normal rather than wrong:
  *
- *   the payload did not mention messages   `m` absent, `mi` absent — 20 of 400
- *                                          captured calls, every one of them a
- *                                          fight opening or closing. Clean.
+ *   the payload did not mention messages   `m` absent, `mi` absent — a minority
+ *                                          of captured calls, every one of them
+ *                                          a fight opening or closing. Clean.
  *   the payload carried none               `m: []`. Clean — and worth knowing
- *                                          this never happens in 400 calls,
- *                                          which is why it is not the same
+ *                                          this happens in no captured call at
+ *                                          all, which is why it is not the same
  *                                          observation as the line above.
  *   we no longer recognise the payload     one of the three faults.
  *

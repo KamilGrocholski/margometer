@@ -89,6 +89,32 @@ absent: a test is bound by the scope of the thing it tests.
   poison"). **A quotation from the client carries the build it was read on** —
   without one it is dated to the day someone copied it, not to a state of the
   game. Procedure: §7.6.
+- `[ALWAYS] [any]` **A measurement over the captured fights names the material it
+  was taken on.** A recording is evidence and never changes (§9.2), so a figure
+  scoped to one — "of the 197 announcements in
+  `2026-08-06-tempest-grupa-vs-hildur.json`" — is true for good. A figure scoped
+  to *the captures* is true until the next recording arrives, which is a date
+  nobody wrote down: `1 794 of 1 794 captured entries` and `20 of 400 engine
+  calls` were both exactly right when typed and both silently wrong within a
+  fortnight. Name the file, or name the set and when it was that — `the 8
+  captures of 2026-08-12`. Where the claim is about *every* recording rather than
+  about a count, say that and drop the figure: "numbers in every captured entry"
+  outlives its own arithmetic.
+
+  ⚠️ **This is not §5's rule inverted, and the two have to be read together.** §5
+  refuses a number nobody can re-derive from a fixed thing — test counts, file
+  counts, a count of our own artefacts — because it has no referent and goes
+  stale by construction. This rule is about a figure that *is* the citation §3
+  demands, and the fix is the same one §7.6 applies to the client and §7.7 to an
+  audit: give it its referent. A measurement without one is not evidence, it is a
+  number.
+
+  **Paid for three times, one commit apart each.** The third audit filed nine of
+  them as F3 and declined to correct them again, because
+  `src/game/fight-capture.ts:251` had been rewritten one round earlier to close
+  the *second* audit's finding of the same shape and was invalidated by the very
+  next commit. Correcting the figures was never the missing part; it had been
+  done twice.
 - `[ALWAYS] [core]` **Make unknown input loud.** A protocol key the decoder does
   not recognise becomes an explicit "unknown" event and surfaces in the panel.
   Silence is the failure mode that costs the most here: a number that is quietly
@@ -1284,6 +1310,19 @@ tests/
                              read off a page, the inline object beating a stale
                              script tag, and a channel check that no longer
                              admits `toString` off the prototype chain.
+    measured-material.test.ts
+                             §3's rule that a measurement over the captures names
+                             the material it was taken on. A recording never
+                             changes, so a figure scoped to one by name is true
+                             for good and a figure scoped to *the captures* has a
+                             date nobody wrote down — which is how `1 794 of
+                             1 794 captured entries` was right when typed and
+                             wrong a fortnight later, three times, one commit
+                             apart. Deliberately narrow: it reads a count in
+                             digits and not one in words, because admitting the
+                             words took it from 5 sentences to 38 of which 2 were
+                             real, and a guard that is wrong nine times in ten is
+                             one somebody turns off.
     tracked-text.test.ts     Every file this repository writes, held to being text
                              a text tool can read. A literal NUL made the wrap's
                              own test file binary, so `grep -r` skipped all of it
@@ -1766,7 +1805,7 @@ Terms from the game, fixed here so module names do not drift apart.
 | **key** | A named field inside a message — decides what the message means. |
 | **hit** | A single damage number. One attack can carry several. |
 | **raw / applied** | Damage before and after reduction. Their difference is **not** what a defence stopped — see `prevented`. |
-| **prevented** | Damage the protocol says a defence stopped: absorption, magic absorption, a block. One component of the reduction, never the whole — armour and resistance reduce as well and the protocol reports neither, so the rest of the gap is unattributable. Measured: the gap is wider in 220 of the 241 messages carrying a defence. ⚠️ The gap is taken over damage whose **raw** side the protocol states — added damage (`dmga`) arrives applied with no raw counterpart, and counting it makes the gap too narrow to hold what a defence stopped. |
+| **prevented** | Damage the protocol says a defence stopped: absorption, magic absorption, a block. One component of the reduction, never the whole — armour and resistance reduce as well and the protocol reports neither, so the rest of the gap is unattributable. Measured over every captured message carrying a defence: the gap is wider on most of them and **narrower on none** — the direction is the claim, and a tally here would be a figure with no date on it (§3). ⚠️ The gap is taken over damage whose **raw** side the protocol states — added damage (`dmga`) arrives applied with no raw counterpart, and counting it makes the gap too narrow to hold what a defence stopped. |
 | **destroyed** | A statistic of the target an attack reduced — armour and absorption in points, elemental resistance in percentage points. Not damage, and never totalled with it; the members are not in one unit either, so they are not totalled with each other. |
 | **proc** | An effect that fired alongside an attack. Carries no figure: the protocol states the name and stops. |
 | **declaration** | A figure the protocol states that **no total here counts**: an *input* (a share a skill will apply, what it costs, a weakening the figures beside it already have), an outcome in a *unit this meter does not keep* (energy, attack speed, combination points, experience), or an outcome *outside the fight* whatever its unit (`afterheal`, a talisman restoring health once the battle is over). Read, and **never totalled with anything**. The test a key must pass: *whatever this figure did, is it reported elsewhere, or in a unit no total keeps, or outside the fight?* `healall_per` fails it — the health it restores is stated nowhere else, during the fight — so it stays unread and its warning is true. |

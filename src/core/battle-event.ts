@@ -20,12 +20,15 @@ export type DamageAmount = {
 /**
  * Damage that did not land, and the defence the game credits with stopping it.
  *
- * **Not derivable from `dealt` minus `taken`.** Measured on the captured
- * fights: that difference equals the sum of these figures in 6 of the 68
- * messages carrying one, and exceeds it in the other 62. Armour and resistance
- * reduce as well and the protocol reports neither, so the remainder is real and
- * unattributable — reading the gap as absorption would state a number nobody
- * sent.
+ * **Not derivable from `dealt` minus `taken`.** Measured over every captured
+ * message that carries one: the difference equals the sum of these figures in a
+ * minority of them and **exceeds it in all the rest, never falling below it**.
+ * Armour and resistance reduce as well and the protocol reports neither, so the
+ * remainder is real and unattributable — reading the gap as absorption would
+ * state a number nobody sent. Stated as a direction rather than as a tally
+ * because the tally is a figure with no date on it (§3);
+ * `tests/core/battle-event.test.ts` re-measures the direction on whatever
+ * material is there.
  */
 export type PreventedDamage = {
   /** The client's own token — the key with its sign removed. */
@@ -88,9 +91,12 @@ export type AttackEvent = {
   /** Before reduction — what the attacker put out. */
   dealt: DamageAmount[];
   /**
-   * After reduction — what the target actually lost. Measured on the captured
-   * fights: health drop matched the sum of these in 22 of 26 comparisons and
-   * the sum of `dealt` in none of them.
+   * After reduction — what the target actually lost. Measured at `c2aa329`, when
+   * the two readings were first told apart and the tree held 2 recordings: health
+   * drop matched the sum of these in 22 of 26 comparisons and the sum of `dealt`
+   * in none of them. `tests/core/health-witness.test.ts` has re-earned it on
+   * every recording since, which is why the figure does not need restating —
+   * it is the day the reading was decided, not a running total (§3).
    */
   taken: DamageAmount[];
   /** What a defence stopped. Belongs to the target, as `taken` does. */
@@ -207,11 +213,16 @@ export type HealthChangeEvent = {
    * production build `1786441768914` shows its magnitude and derives *increased*
    * or *decreased* from its sign — and its **subject** is not: which quantity
    * changed is named only in the sentence, which the client fetches at run time.
-   * Two occurrences in the whole material, `heal=3065,-45` and `poison=140,14`.
+   * `heal`, `poison` and `fire` all carry one, and the material holds hundreds.
+   *
+   * ⚠️ **This said "two occurrences in the whole material" and was false long
+   * before anybody noticed** — a figure over the captures with nothing dating it,
+   * which is the fault §3 now names. It survived two audits because a wrong count
+   * reads exactly like a right one.
    *
    * It is carried rather than read, on the one thing that **is** measured: the
-   * health arithmetic closes on both calls, and on the very messages that carry
-   * it, so whatever the member states, it is not health. That is the whole of
+   * health arithmetic closes on every call carrying one, and on the very messages
+   * that carry it, so whatever the member states, it is not health. That is the whole of
    * what a `DeclaredEffect` claims (`docs/protocol-keys.md`).
    */
   declared: DeclaredEffect[];
@@ -220,8 +231,9 @@ export type HealthChangeEvent = {
    *
    * This is the only place a **healer** can come from: the key states who was
    * healed and never who did it, so where nothing was announced, nothing is
-   * claimed — and that is most of the healing in a fight. Measured on the group
-   * capture: 25 178 of 122 648 points restored carry an announcement.
+   * claimed — and that is most of the healing in a fight. Measured on
+   * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`:
+   * 25 178 of 122 648 points restored carry an announcement.
    */
   announced: AnnouncedSkill | null;
 };
@@ -288,11 +300,12 @@ export type DeclaredEffect = {
  * A named skill a combatant used.
  *
  * **Not part of the blow**, but not a message of its own either, and an earlier
- * version of this comment claimed both. Measured on the captured fights: none of
- * the 197 announcements carries a key of the damage *family*, which is what had
- * been checked — but 33 of them carry a figure all the same, 24 as `+oth_dmg`
- * and 9 as a key the register lists as moving health, in the same message as the
- * skill name.
+ * version of this comment claimed both. Measured on
+ * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`:
+ * none of its 197 announcements carries a key of the damage *family*, which is
+ * what had been checked — but 33 of them carry a figure all the same, 24 as
+ * `+oth_dmg` and 9 as a key the register lists as moving health, in the same
+ * message as the skill name.
  *
  * So the protocol does sometimes put a skill beside a figure. What it still does
  * not state is that the figure is the skill's doing, so tying them remains an
@@ -304,8 +317,8 @@ export type SkillUsedEvent = {
   kind: "skill-used";
   actorId: number | null;
   /**
-   * Often the actor itself, and sometimes nobody: measured, 44 of the
-   * announcements name the user in both slots and 15 name no target at all.
+   * Often the actor itself, and sometimes nobody: of that same capture's 197
+   * announcements, 44 name the user in both slots and 15 name no target at all.
    */
   targetId: number | null;
   /**
@@ -314,8 +327,9 @@ export type SkillUsedEvent = {
    */
   skillName: string;
   /**
-   * The game's own identifier, where the message carried one. Null on 15 of the
-   * 197 announcements, which is why the name is what this event is built on.
+   * The game's own identifier, where the message carried one. Null on 15 of that
+   * capture's 197 announcements, which is why the name is what this event is
+   * built on.
    */
   skillId: number | null;
   /**

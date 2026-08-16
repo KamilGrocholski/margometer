@@ -16,10 +16,14 @@ import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/te
  * the key unread whenever a second figure sat beside the health one.**
  *
  * That was the right answer to a question nobody had measured. What is measured
- * now: both calls carrying such a value — `poison=140,14` and `heal=3065,-45`,
- * the only two in the material — are judged by the health witness and agree, on
- * the very messages that carry them. The first member accounts for all the
- * health movement, so the second moves none.
+ * now: every call carrying such a value — `heal`, `poison` and `fire` all send
+ * one, and the material holds hundreds — is judged by the health witness and
+ * agrees, on the very messages that carry them. The first member accounts for
+ * all the health movement, so the second moves none.
+ *
+ * ⚠️ **This said "the only two in the material" and had been false for rounds.**
+ * A figure over the captures with nothing dating it is a claim that expires
+ * without saying so, which is why §3 now requires the material to be named.
  *
  * So the two claims are separated. *Not understood* it remains: what the member
  * states is unknown, and this file does not guess. *Unaccounted* it is not, and

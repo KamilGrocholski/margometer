@@ -28,8 +28,9 @@ import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
  *
  * Keyed by the game's own identifier where it stated one, because two skills can
  * share a name and only the id tells them apart. The name travels inside rather
- * than as the key: it is what the panel shows, and 15 of the 197 announcements
- * in the captures carry no id at all.
+ * than as the key: it is what the panel shows, and on
+ * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`
+ * 15 of its 197 announcements carry no id at all.
  */
 export type SkillStatistics = {
   /** As the protocol states it — read at run time, never stored here. */
@@ -43,9 +44,10 @@ export type SkillStatistics = {
    * Health restored by it, and to whom.
    *
    * ⚠️ **This is healing GIVEN and it does not compare to a row's `healed`,**
-   * which is healing received. Measured on the group capture: two combatants
-   * gave 11 733 and 10 204 while receiving 6 426 and 3 651, because they were
-   * healing somebody else. A panel putting the two in one section would invite
+   * which is healing received. Measured on
+   * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`:
+   * two combatants gave 11 733 and 10 204 while receiving 6 426 and 3 651,
+   * because they were healing somebody else. A panel putting the two in one section would invite
    * an addition that is not one.
    */
   healed: number;
@@ -105,8 +107,10 @@ export type CombatantStatistics = {
    *
    * The other half of `blowsStruck`, and the one a player asks about: without it
    * the panel can say what a skill did and cannot say that somebody swung plain.
-   * Measured on the captures — 8 of 8 in the solo fight, 21 of 31 for one hunter
-   * in the group one — so this is most of what happens, not a corner.
+   * Measured on `tests/captured-fights/2026-08-04-tempest-lowca-vs-odyncze.json`,
+   * 8 of 8, and on
+   * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
+   * 21 of 31 for one hunter — so this is most of what happens, not a corner.
    *
    * ⚠️ **Not the same claim as "used a plain attack".** A blow with nothing
    * announced over it is a plain attack *or* an extra swing the game granted and
@@ -137,8 +141,9 @@ export type CombatantStatistics = {
    * Who healed this combatant, where the game glued the heal to an announcement.
    *
    * Most healing has no entry here, and that is the reading rather than a gap:
-   * measured on the group capture, 25 178 of 122 648 points restored carry an
-   * announcement. The rest is regeneration and self-healing that nothing
+   * measured on
+   * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
+   * 25 178 of 122 648 points restored carry an announcement. The rest is regeneration and self-healing that nothing
    * announces, and the panel says so rather than guessing a healer.
    */
   healedByHealerId: ReadonlyMap<number, number>;
@@ -151,8 +156,9 @@ export type CombatantStatistics = {
    * only one of them was ever kept.
    *
    * ⚠️ **Not the row's own `healed`, which is what it received.** The two are
-   * different quantities that a shared word would merge: measured on the group
-   * capture, 25 178 points carry a healer against 122 648 restored. The gap is
+   * different quantities that a shared word would merge: measured on
+   * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
+   * 25 178 points carry a healer against 122 648 restored. The gap is
    * healing nothing announced, and it belongs to nobody rather than to the
    * combatant it reached.
    */
@@ -364,8 +370,9 @@ export function composeFightStatistics(
   /**
    * The skill's slot on its announcer's row, created on first sight.
    *
-   * Keyed by the game's identifier where there is one. Where there is not — 15
-   * of 197 announcements — the name is the key, which is the only thing left and
+   * Keyed by the game's identifier where there is one. Where there is not — and
+   * the captures are full of it — the name is the key, which is the only thing
+   * left and
    * is what the panel would show anyway. Two different skills sharing a name and
    * both lacking an id would merge; the material has never shown one, and the
    * alternative is a row nobody can label.

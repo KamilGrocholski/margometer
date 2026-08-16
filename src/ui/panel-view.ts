@@ -445,8 +445,10 @@ function getName(reading: PanelReading, combatantId: number): string {
  * **Taken is a blow plus health that fell on its own**, and the two are separate
  * in the aggregate for a reason that does not apply here: they differ by whether
  * anyone can be charged with them, and to the combatant losing the health that is
- * no difference at all. Measured on the group capture: leaving the second out
- * would show the boss 49 318 short, 13% of everything that hit it.
+ * no difference at all. Measured on
+ * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`:
+ * leaving the second out would show the boss 49 318 short, 13% of everything
+ * that hit it.
  */
 function getMetricValue(row: CombatantStatistics, metric: PanelMetric): number {
   if (metric === "dealt") return row.dealtApplied;
@@ -477,9 +479,12 @@ function composeBracket(share: number): string {
  * numerator over one side's denominator then reads as a share of something that
  * does not exist.
  *
- * ⚠️ **Measured, not feared.** Ten of the forty-eight filtered received screens
- * over the captures printed a share above a hundred — 320% under `Leczenie · Oni`
- * on the duel, 248% under `Leczenie · My` on the second Hildur fight — and two
+ * ⚠️ **Measured, not feared.** Over the material as it stood when this was
+ * decided, a fifth of the filtered received screens printed a share above a
+ * hundred — 320% under `Leczenie · Oni` on
+ * `tests/captured-fights/2026-08-11-tempest-tancerz-vs-wermont.json`, 248% under
+ * `Leczenie · My` on
+ * `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json` — and two
  * printed `(0%)` beside a five-figure number, because the opposing side received
  * no healing and the denominator was zero. Both are the same fault from opposite
  * ends, and §9.6 forbids the second twice over: a real figure drawn as nothing.
@@ -705,14 +710,16 @@ function getHealingWithoutHealer(row: CombatantStatistics): number {
  * Its own function because the bar's scale has to know it: the row is measured
  * against the largest figure **on screen**, and it is itself on screen. Measured
  * on the captures — under `Leczenie` this figure beats every ranked row in most
- * of them, up to 1.56× — and a fill over one is clipped by
+ * of them, by more than half again at the widest — and a fill over one is
+ * clipped by
  * `.row { overflow: hidden }` into a bar that looks exactly like a full one.
  *
  * ⚠️ **It depends on the noun and not on the direction, and that is the whole
  * point of it.** The same points read from either end: given plus this is
  * everything received, so the row is what makes the two directions balance
  * instead of disagree. Measured on every capture, both nouns — the figure
- * and its share come out identical under `Zadane` and `Otrzymane` (49 318 and
+ * and its share come out identical under `Zadane` and `Otrzymane` (on
+ * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 49 318 and
  * 6.7% against Hildur), which is `Σ dealt + unattributed = Σ taken` said in the
  * panel's own arithmetic.
  */
@@ -1259,7 +1266,7 @@ function composeDeepLists(
   if (state.focusSkill !== null) {
     // The owner is stated rather than searched for. Looking the key up across
     // every row and taking the first match was a coin toss whenever two
-    // combatants announced the same skill, which the group capture does.
+    // combatants announce the same skill, which every group capture does.
     const skill = getRow(reading, state.focusSkill.ownerId).skills.get(state.focusSkill.key);
     if (skill === undefined) return [];
 
@@ -1481,8 +1488,9 @@ function composeTitle(reading: PanelReading): string {
  *
  * ⚠️ **It used to draw a part of the fight as the whole of it.** The two sides
  * were summed off the rows and nothing else, so under `Zadane` the bar was short
- * by everything with no actor — 1.3% to 18.6% across the captures — and under
- * `Leczenie dane` by 55.6% to 88.3%, while the pinned row **directly above it**
+ * by everything with no actor — by a few per cent to a fifth, across the
+ * captures as they stood — and under `Leczenie dane` by well over half, while
+ * the pinned row **directly above it**
  * stated that very figure. Two regions of one screen answering with two different
  * wholes, which is the defect the brackets were fixed for one region up. The third
  * part closes it: mine plus enemy plus nobody is the figure every bracket on the

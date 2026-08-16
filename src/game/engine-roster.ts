@@ -48,8 +48,8 @@ export type BattleRoster = {
  * `init` is read from both spellings because the captures state `"1"` and the
  * client compares with `==`, so mirroring its looseness is a reading of measured
  * behaviour. Here the opposite is measured — `id`, `team` and `lvl` arrive as
- * numbers in 1 794 of 1 794 captured entries — so accepting text would be
- * widening a reader past its evidence. What was actually wrong is that a
+ * numbers in **every** captured entry, without exception — so accepting text
+ * would be widening a reader past its evidence. What was actually wrong is that a
  * `team: "1"` vanished in silence; it is still refused, and now it is counted, so
  * the day the game changes its mind the counter is the evidence that makes
  * loosening this a decision rather than a guess.
@@ -78,11 +78,13 @@ export function composeRosteredCombatant(value: unknown): RosteredCombatant | nu
  * ⚠️ **This is what makes "unreadable" a sound thing to count.** Nearly every
  * entry under `w` is refused, and almost all of those refusals are correct: the
  * list is a delta, so most entries carry an id and a health figure and nothing
- * else. Measured over the 8 captures — 1 794 entries in 389 payloads — **63
- * state all four of these, 1 731 state none, and none states some**. That the
- * split is perfectly bimodal is the whole licence for this definition; a counter
- * that counted every refusal would report ~1 700 phantom drops per fight, and a
- * warning that is wrong 1 731 times out of 1 794 is one nobody will read twice.
+ * else. Measured over every captured entry: **some state all four of these, the
+ * rest state none, and none states some**. That the split is perfectly bimodal is
+ * the whole licence for this definition, and it is the shape rather than any
+ * count that licenses it — `tests/game/engine-roster.test.ts` re-earns the split
+ * on whatever material is there. Counting every refusal would warn on the great
+ * majority of entries in every fight, and a warning that is wrong far more often
+ * than it is right is one nobody will read twice.
  */
 const IDENTITY_FIELDS = ["name", "team", "prof", "lvl"] as const;
 
@@ -98,7 +100,7 @@ export type RosterFragment = {
   /**
    * Entries that named somebody and still could not be read.
    *
-   * Zero in all 1 794 captured entries, which is the point: the day the game
+   * Zero in every captured entry, which is the point: the day the game
    * renames one of the fields a row needs, this stops being zero instead of the
    * roster quietly getting smaller. A combatant who drops out does not merely go
    * missing from the list — damage stated against their name resolves to nobody

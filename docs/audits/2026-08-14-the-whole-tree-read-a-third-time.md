@@ -154,7 +154,7 @@ is `AGENTS.md`'s own trigger for asking how many more there are rather than
 correcting it again.
 
 *Where:* `src/game/engine-roster.ts:81`
-*Closes:* open
+*Closes:* guard `tests/tools/measured-material.test.ts`
 
 ### F4 — a fifth file ships player-facing Polish, and the guard cannot see this one either
 

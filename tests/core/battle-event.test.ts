@@ -102,12 +102,14 @@ describe("damage a defence stopped, over every captured fight", () => {
    * ⚠️ **Added damage is set aside, and it has to be.** `dmga` arrives on the
    * applied side with no raw counterpart anywhere in the message — the effect
    * that produces it states a component, `+taken_dmg`, which is smaller than the
-   * applied figure in 31 of its 199 occurrences and so cannot be the raw whole.
-   * Subtracting an applied figure from a raw total that never included it makes
-   * the gap too narrow, and a defence then appears to have stopped more than the
-   * blow lost. That is what happened on 37 of the 241 defended blows the moment
-   * the 2026-08-12 group fights arrived; it is arithmetic of ours, not a defence
-   * behaving strangely.
+   * applied figure on a sizeable minority of its occurrences and so cannot be the
+   * raw whole. Subtracting an applied figure from a raw total that never included
+   * it makes the gap too narrow, and a defence then appears to have stopped more
+   * than the blow lost. That is what happened to 37 of the 241 defended blows the
+   * day the 2026-08-12 group fights arrived; it is arithmetic of ours, not a
+   * defence behaving strangely. The 37 is dated to that intake on purpose — the
+   * test below re-measures the direction, which is the part that has to hold
+   * (§3).
    */
   const ADDED_DAMAGE_TYPE = "dmga";
 
@@ -129,9 +131,10 @@ describe("damage a defence stopped, over every captured fight", () => {
   });
 
   // AGENTS.md §10 claimed that difference *was* the absorbed figure until this
-  // was measured: it is wider in 62 of the 68 messages carrying a defence,
-  // because armour and resistance reduce as well and the protocol reports
-  // neither. Deriving "absorbed" from the gap would state a number nobody sent.
+  // was measured: it is wider on most messages carrying a defence and never
+  // narrower on any, because armour and resistance reduce as well and the
+  // protocol reports neither. Deriving "absorbed" from the gap would state a
+  // number nobody sent.
   test("is not that difference, because the protocol reports only part of the reduction", () => {
     const wider = DEFENDED.filter((attack) => getTotal(attack.prevented) < getGap(attack));
     expect(wider.length).toBeGreaterThan(DEFENDED.length / 2);
@@ -340,8 +343,10 @@ describe("decoding a single message", () => {
     ]);
   });
 
-  // 15 of the 197 announcements in the captures carry no identifier, which is
-  // why the name is what the event is built on rather than the other way round.
+  // 15 of the 197 announcements in
+  // `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`
+  // carry no identifier, which is why the name is what the event is built on
+  // rather than the other way round.
   test("reads an announcement that carries no identifier", () => {
     const [event] = decodeFight(["-10000249=100.00;0;tspell=Skill Two"]);
     expect(event).toMatchObject({ skillName: "Skill Two", skillId: null, targetId: null });

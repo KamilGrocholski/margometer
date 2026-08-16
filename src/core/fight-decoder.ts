@@ -85,11 +85,13 @@ const DAMAGE_KEYS_BY_NAME = ["+thirdatt", "-thirdatt"];
  * `amount,kind,name(percent%)` — the recipient arrives as a name here, not as an
  * id, and the health it states is that combatant's, not the message target's.
  *
- * ⚠️ **The kind is trimmed, and a blank one is the plain element.** 66
- * occurrences in the captures write that field as a single space
+ * ⚠️ **The kind is trimmed, and a blank one is the plain element.** Captured
+ * messages write that field as a single space routinely
  * (`+oth_dmg=4439, ,Gracz 5(66.95%)`), which made `dmg ` a second element
- * alongside `dmg` and drew two rows a reader cannot tell apart — 107 952 points
- * of physical damage under a label that looked like the one above it. Production
+ * alongside `dmg` and drew two rows a reader cannot tell apart — on
+ * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
+ * 107 952 points of physical damage under a label that looked like the one
+ * above it. Production
  * build `1785244275300` spends this field on one thing, `<b class=dmg"+D[1]+">`,
  * and a class attribute of `"dmg "` **is** the class `dmg`, so the game itself
  * never made the distinction we were making.
@@ -144,11 +146,17 @@ function decodeDamageToNamedCombatant(
  * share that reader.
  *
  * The percentage the name carries is the combatant's health with this healing
- * already in: measured on the one occurrence the material holds, a target at
- * 25.32% of 19047 took 1633 and ends the message at 63.00%, which is
- * 4823 − 1633 + 8810. The help documents the effect firing below 18% of the pool
- * (article view,372, engine name `lastheal`, read 2026-08-12), and 3190 is
- * 16.75% — so both halves of the rule close on our own material.
+ * already in. Measured on
+ * `tests/captured-fights/2026-08-12-experimental-tancerz-vs-wojownik.json`, the
+ * clearest of them because the blow is a single one: a target at 25.32% of 19047
+ * took 1633 and ends the message at 63.00%, which is 4823 − 1633 + 8810. The help
+ * documents the effect firing below 18% of the pool (article view,372, engine
+ * name `lastheal`, read 2026-08-12), and 3190 is 16.75%.
+ *
+ * ⚠️ **It rides a group blow too**, where the damage that triggered it is the
+ * segment naming the healed combatant rather than the message's own figures —
+ * which is why nothing here reads the message as a whole.
+ * `tests/core/last-heal-rule.test.ts` holds both halves over every occurrence.
  */
 const HEALING_TO_NAMED_KEY = "legbon_lastheal";
 
@@ -292,7 +300,8 @@ const PROC_KEYS = [
 /**
  * The two halves of a skill announcement, read together because neither is the
  * whole of it: the name is what the player sees, the id is what the game calls
- * it, and 15 of the 197 announcements carry only the first.
+ * it, and on `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`
+ * 15 of its 197 announcements carry only the first.
  *
  * The client itself does nothing with the id — its branch is an empty `break`,
  * there so the key does not fall through to the unknown-parameter notice.
@@ -407,13 +416,15 @@ const BLOW_DECLARATION_KEYS = [
   "+rage",
   /**
    * ⚠️ **The one that looks like damage and is not.** `+taken_dmg` rides every
-   * blow that carries `-dmga`, all 199 of them, and the tempting reading is that
-   * it is the raw half of that applied figure — the help documents
+   * blow that carries `-dmga`, without exception, and the tempting reading is
+   * that it is the raw half of that applied figure — the help documents
    * `taken_dmg_per` as damage added to what the target takes, reduced by armour.
    *
    * The material refuses it: a raw figure cannot be smaller than its own applied
-   * counterpart, and `+taken_dmg` is smaller in 31 of the 199 and never once
-   * larger. So it states a component of the added damage, not the whole of it,
+   * counterpart, and `+taken_dmg` is smaller on a sizeable minority of them and
+   * **never once larger**. That direction is the refutation and it is what
+   * `tests/core/battle-event.test.ts` re-measures; the tally was written here as
+   * 31 of 199 and stopped being true on the next intake (§3). So it states a component of the added damage, not the whole of it,
    * and the whole is already reported as `-dmga` — which the shape rule reads.
    * Counting it would add the same damage twice.
    *
@@ -451,7 +462,8 @@ const VALUELESS_BLOW_DECLARATION_KEYS = ["+legbon_holytouch"];
  * side, capped at the health each began the fight with. The share is stated; the
  * recipients are not, and the cap has one reading in the material that refuses it
  * — so a figure drawn from it would be too high wherever the cap binds, which is
- * 84 of 120 side-mates, and too high is the direction the panel cannot mark
+ * most of the side-mates it reaches, and too high is the direction the panel
+ * cannot mark
  * (`docs/protocol-keys.md`).
  */
 export const UNATTRIBUTABLE_HEALTH_KEYS: readonly string[] = ["healall_per"];
@@ -733,8 +745,8 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
 
   // Anything the blow reported, not only its figures: a message carrying `+crit`
   // and nothing else still describes an attack, and emitting nothing for it
-  // would drop it. Never seen in the captures, where every one of the 256
-  // annotations rides a message that also carries damage.
+  // would drop it. Never seen in the captures, where every such annotation
+  // rides a message that also carries damage.
   // A declaration counts as something reported: a message stating only that a
   // blow was weakened still describes a blow, and dropping it would lose the one
   // thing that message says.
@@ -856,7 +868,8 @@ function getGlueActor(
  *
  * The alternative — a rule reaching further, "the last skill this combatant
  * announced" — is what a reader would reinvent from the panel, and it is wrong:
- * 32 of the 197 announcements in the group capture are followed by a message
+ * On `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`
+ * 32 of its 197 announcements are followed by a message
  * belonging to somebody else, and a rule that waits for a match would eventually
  * hand one of them the wrong skill.
  */

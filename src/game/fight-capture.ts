@@ -244,11 +244,14 @@ function composeCopiedValue(value: unknown): unknown {
  *
  * Two fields the previous incarnation wrote are deliberately absent. `render` —
  * the sentences the client composed — is not collected at all: `NOTICE.md` names
- * the 38 of them in the older capture as an exception that survives only because
- * cutting them would mean editing evidence, and material that never carried them
- * needs no exception. `otwarcie` is gone with the only reach into the page's DOM
- * that `src/` ever had; nothing reads it, the two captures that carried it hold
- * null, and the six recorded since do not carry the key at all.
+ * the 38 of them in `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`
+ * as an exception that survives only because cutting them would mean editing
+ * evidence, and material that never carried them needs no exception. `otwarcie` is
+ * gone with the only reach into the page's DOM that `src/` ever had; nothing reads
+ * it, the two captures that carried it hold null, and no recording since carries
+ * the key at all. Stated as "no recording since" rather than as a count: this
+ * sentence has been rewritten twice to correct that figure and invalidated by the
+ * next commit both times (§3).
  */
 export function composeCaptureText(
   capture: FightCapture,

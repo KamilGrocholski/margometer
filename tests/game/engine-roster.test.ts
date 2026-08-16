@@ -246,9 +246,10 @@ describe("the roster core consumes", () => {
  * smaller, which is indistinguishable from a fragment that mentioned fewer
  * people — and fragments do exactly that on nearly every call.
  *
- * The number that makes the counter safe is the second one below: the entries
- * under `w` are overwhelmingly health deltas carrying an id and nothing else, so
- * a counter of every refusal would report about 1 700 phantom drops per fight.
+ * What makes the counter safe is the second measurement below: the entries under
+ * `w` are overwhelmingly health deltas carrying an id and nothing else, so a
+ * counter of every refusal would warn on the great majority of them in every
+ * fight.
  * What is counted is an entry that states one of the identity fields and still
  * cannot be read, and the captures say that split is clean.
  */
