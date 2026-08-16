@@ -51,7 +51,13 @@ function composeReading(overrides: Partial<PanelReading> = {}): PanelReading {
         "1=90.00;3=50.00;+dmg=500;-dmg=400",
         "2=90.00;3=40.00;+dmg=200;-dmg=100",
         "3=40.00;0;poison=60",
-        "1=90.00;4=80.00;tspell=Leczenie ran;skillId=7",
+        // The skill name is ours. This file is driven by a hand-written fight
+        // precisely because the drill names skills and combatants and those are
+        // the game's own prose (§5) — and it had one of the game's own ability
+        // names in it, which is the contradiction
+        // `docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md` F2 is
+        // about, arriving from a direction the finding did not name.
+        "1=90.00;4=80.00;tspell=Skill One;skillId=7",
         "1=90.00;4=95.00;heal_target=300",
         // Regeneration: nothing announced it, so nobody can be credited with it.
         "4=95.00;0;heal=50",
@@ -527,7 +533,7 @@ describe("drilling", () => {
       composeState({ metric: "healed", focusCombatantId: 4, focusTargetId: 1 }),
     );
     expect(second.lists[0]?.heading).toBe("CZYM — mag");
-    expect(second.lists[0]?.rows.map((row) => row.label)).toEqual(["Leczenie ran"]);
+    expect(second.lists[0]?.rows.map((row) => row.label)).toEqual(["Skill One"]);
   });
 
   test("a leaf offers no way further in", () => {
@@ -1584,7 +1590,7 @@ describe("every sentence the panel says", () => {
   function getPhrasesOf(view: PanelView, reading: PanelReading): string[] {
     const fromTheFight = [...reading.roster.byId.values()]
       .map((one) => one.name)
-      .concat("Leczenie ran");
+      .concat("Skill One");
     const said = [
       view.title,
       view.outcomeText ?? "",

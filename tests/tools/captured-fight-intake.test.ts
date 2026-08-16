@@ -133,7 +133,10 @@ describe("who is a person, and who only looks like one", () => {
 describe("the sentences the game's authors wrote", () => {
   const ABILITY = [
     "17",
-    "Zatruta strzała",
+    // Ours, not the game's: what this proves is that a functional name survives
+    // the redaction, and an invented one proves it exactly as well. The game's
+    // own ability names stay in the recordings and nowhere else (NOTICE.md).
+    "Skill One",
     "1",
     "2",
     "3",
@@ -154,7 +157,7 @@ describe("the sentences the game's authors wrote", () => {
     expect(written).not.toContain("A whole sentence");
     expect(written).toContain(REMOVED_DESCRIPTION);
     // Functional names stay: the protocol carries the ability's name anyway.
-    expect(written).toContain("Zatruta strzała");
+    expect(written).toContain("Skill One");
     expect(written).toContain("red-sa=16;cooldown=5");
   });
 

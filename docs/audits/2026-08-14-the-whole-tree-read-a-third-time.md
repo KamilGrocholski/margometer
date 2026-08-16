@@ -122,7 +122,7 @@ is expensive to the reader it was written for, and a document that contradicts
 itself thirty lines apart stops being read as a statement of fact.
 
 *Where:* `NOTICE.md:74`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F3 — every figure measured over the captures went stale one commit after it was written, for the third time
 

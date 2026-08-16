@@ -132,7 +132,7 @@ export type PanelState = {
    * two combatants announcing the same skill share it, and under `Leczenie` the
    * section is built from everybody else's skills, so the row that was clicked
    * belongs to somebody other than the combatant in focus. Measured on the group
-   * capture — two combatants both announce `Leczenie ran` and both heal the same
+   * capture — two combatants announce the same skill and both heal the same
    * target, 11 733 and 10 204 — and picking the first match opened the wrong one.
    *
    * One pair rather than two loose fields: two optionals that must be set and

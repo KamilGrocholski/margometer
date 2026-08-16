@@ -5,6 +5,7 @@ import {
   composeSourceWithoutComments,
   getTextRangesFromSource,
 } from "@/libs/source-regions.ts";
+import { CAPTURED_FIGHTS, getMessagesOfFight } from "@/tests/captured-fight-catalog.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 const SOURCE_DIRECTORIES = ["libs", "src", "tools", "tests"];
@@ -698,5 +699,56 @@ describe("the language of the strings", () => {
       getQuotedEntries(file).map((span) => `${file}: ${span.slice(0, 80)}`),
     );
     expect(quoted).toEqual([]);
+  });
+
+  /**
+   * And the game's own names for its abilities, which `NOTICE.md` promises
+   * appear nowhere here but the recordings.
+   *
+   * That promise was false in five files, and the audit that raised it found two
+   * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F2). One of
+   * the three it missed is the sharpest: `tests/ui/panel-view.test.ts` is driven
+   * by a hand-written fight rather than by the captures **because** the drill
+   * names skills and those are the game's prose — and its hand-written fight
+   * announced one of the game's own abilities.
+   *
+   * ⚠️ **The list comes from the material, never from a hand-written one.** A
+   * denylist somebody types is a denylist that falls behind the next recording,
+   * which is §9.2's rule for the captures pointed at prose: read the directory,
+   * do not name the files. Every `tspell=` value the captures carry is a name the
+   * operator wrote, so the captures are the list.
+   *
+   * Short names are left out. A name of four letters or fewer is as likely to be
+   * an ordinary Polish word the panel legitimately uses, and the four files
+   * allowed to speak Polish would start failing on their own vocabulary — which
+   * is the false positive that gets a guard turned off.
+   */
+  const SHORTEST_ABILITY_NAME = 5;
+
+  const ABILITY_NAMES = [
+    ...new Set(
+      CAPTURED_FIGHTS.flatMap((fight) =>
+        getMessagesOfFight(fight).flatMap((message) =>
+          message
+            .split(";")
+            .filter((segment) => segment.startsWith("tspell="))
+            .map((segment) => segment.slice("tspell=".length)),
+        ),
+      ),
+    ),
+  ].filter((name) => name.length >= SHORTEST_ABILITY_NAME);
+
+  test("the captures carry ability names to look for", () => {
+    expect(ABILITY_NAMES.length).toBeGreaterThan(0);
+  });
+
+  test("no name the game gave an ability is written down outside the recordings", () => {
+    const written = QUOTING_FILES.flatMap((file) => {
+      const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+      return ABILITY_NAMES.filter((name) => source.includes(name)).map(
+        (name) => `${file}: ${name}`,
+      );
+    });
+    expect(written).toEqual([]);
   });
 });

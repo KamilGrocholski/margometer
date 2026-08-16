@@ -131,7 +131,7 @@ function getReadings(fight: CapturedFight): Reading[] {
  * exceed the entry health, which is the claim.
  *
  * ⚠️ **This is not a corner.** `2026-08-14-tempest-grupa-vs-hildur` opens with
- * the boss casting `Śpiew zagłady` — one message carrying ten `+oth_dmg`
+ * the boss casting at the whole side — one message carrying ten `+oth_dmg`
  * figures, one per side-mate — before any snapshot exists, so every combatant in
  * that fight has an entry health the capture does not hold. It is also the
  * answer to the exception this file used to name: `445202` of 2026-08-06 was hit

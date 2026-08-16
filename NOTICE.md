@@ -71,7 +71,10 @@ discover:
   for its abilities, as the server sent them. The decoder reads this key and
   passes the name to the panel at run time, on the same footing as the
   sentences above: shown in the player's own language, and written down nowhere
-  else here. No such name appears in a test, in `docs/`, or in a comment.
+  else here. No such name appears in a test, in `docs/`, or in a comment, and
+  `tests/tools/source-layout.test.ts` re-earns that on every run — against the
+  names the recordings actually carry rather than against a list somebody typed,
+  so it cannot fall behind the next recording.
 
 **Player nicknames are not here.** Everyone with a player id is substituted —
 `Gracz 1`, `Gracz 2`, … — before material enters the repository, and a test holds
@@ -90,10 +93,20 @@ which git ignores, and a test asserts nothing under that path is ever tracked.
 
 ## What is deliberately not here
 
-- the game's sentences, in any form;
+- the game's sentences, written down as text of ours — in a table, a comment, a
+  test or a document. The one exception is named above and is not a copy of
+  anything: a single recording carries the log its own session composed, and
+  cutting it would mean editing evidence. Nothing here reads it and nothing here
+  quotes it;
 - any nickname belonging to another player;
 - artwork, sounds or any other asset;
 - any part of the client's source.
+
+Two of those are held by a test rather than by this paragraph: no entry of the
+client's dictionary is quoted anywhere, and no name the game gave an ability is
+written down outside the recordings
+(`tests/tools/source-layout.test.ts`). Both were promises here before they were
+checks, and both were false while they were only promises.
 
 ---
 
