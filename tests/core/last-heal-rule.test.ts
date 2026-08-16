@@ -2,17 +2,31 @@
  * The rule `docs/protocol-keys.md` states for `legbon_lastheal`, re-earned on
  * every run.
  *
- * It needs a file of its own because the health witness cannot reach it: the one
- * capture carrying this key has no snapshot taken before its messages — the whole
- * fight arrives in a single engine call — so the replay produces no comparison
- * for that fight at all, and a verdict resting on the witness would be resting on
- * nothing (AGENTS.md §7.5).
+ * It needs a file of its own because the health witness cannot reach it: the
+ * capture that carried this key first has no snapshot taken before its messages —
+ * the whole fight arrives in a single engine call — so the replay produces no
+ * comparison for that fight at all, and a verdict resting on the witness would be
+ * resting on nothing (AGENTS.md §7.5).
  *
- * What stands in for the snapshot is the protocol's own percentages, two
- * messages of them: the health a combatant is stated to hold before the blow, and
- * the health they are stated to hold after it. The figure this key announces is
- * exactly what closes the gap between them, and the help's trigger is checked on
- * the same arithmetic.
+ * What stands in for the snapshot is the protocol's own percentages: the health a
+ * combatant is stated to hold before the blow, and the health stated for them on
+ * the message carrying the heal.
+ *
+ * ⚠️ **The trigger and the arithmetic are two separate readings, and only one of
+ * them needs a history.** The share the help documents is checkable from the
+ * heal's own segment alone — what the combatant held after, less what was
+ * restored, is what the blow left them on — so it holds for every occurrence.
+ * The gap between two stated healths does need the messages in between, and the
+ * team heal is where that breaks: `healall_per` moves health the protocol states
+ * nowhere else (`docs/protocol-keys.md`), so an occurrence with one of those
+ * between its two statements is not measurable and says so rather than failing.
+ *
+ * Both distinctions arrived with the six group fights of 2026-08-15, which took
+ * this key from one occurrence to five. Written for a single blow against a
+ * single target, this file read the whole message's damage and a percentage from
+ * whichever message last mentioned the combatant — and a group blow breaks both:
+ * the damage is nine combatants' worth, and the percentage beside a name inside
+ * `+oth_dmg` was never being recorded at all.
  */
 
 import { describe, expect, test } from "bun:test";
@@ -30,8 +44,17 @@ const LAST_HEAL_KEY = "legbon_lastheal";
  */
 const TRIGGER_SHARE_OF_MAXIMUM = 0.18;
 
-/** Percentages arrive rounded to two places, so a point of health is the floor. */
-const TOLERANCE_IN_HEALTH_POINTS = 1;
+/**
+ * What two stated percentages can be out by, as a share of the pool.
+ *
+ * Derived rather than fixed. Percentages arrive rounded to two places, so each
+ * one is worth up to half of 0.01% of the pool and the gap holds two of them —
+ * 0.01% of maximum, which is under two points on a 19 000 pool and over three on
+ * a 32 000 one. A flat point was the old floor and it was right for the first
+ * capture's pool and wrong for the group fights': the widest true gap here is
+ * 1.7 points, and it is on the largest pool in the material.
+ */
+const TOLERANCE_SHARE_OF_MAXIMUM = 0.0001;
 
 type Occurrence = {
   fight: string;
@@ -39,62 +62,93 @@ type Occurrence = {
   /** The healed combatant, resolved from the name the value carries. */
   combatantId: number;
   maximumHealth: number;
-  /** What the protocol stated for them in the message before this one. */
-  healthBefore: number;
-  /** What it states for them on the message carrying the heal. */
+  /** What the protocol states for them on the message carrying the heal. */
   healthAfter: number;
-  /** Everything the blow itself took off them, decoded. */
-  damage: number;
   healing: number;
+  /**
+   * What the protocol last stated for them before this message, from the call's
+   * opening snapshot or from any segment since. Null where the call opened with
+   * no snapshot and nothing had stated one yet.
+   */
+  healthBefore: number | null;
+  /** What this message took off **this** combatant, and nobody else. */
+  damage: number;
+  /**
+   * Whether a heal the protocol does not size moved health since that statement.
+   * The arithmetic cannot close across one, and that is a fact about the team
+   * heal rather than about this key.
+   */
+  isCloudedByUnsizedHealing: boolean;
 };
 
-/**
- * Every occurrence, with the health either side of it read from the protocol.
- *
- * The percentage before comes from the **previous message that stated one** for
- * that combatant, which is the independent half: nothing about it is derived from
- * the figure under test, so the two can disagree.
- */
 const OCCURRENCES: Occurrence[] = CAPTURED_FIGHTS.flatMap((fight) => {
   const roster = composeRosterOfFight(fight);
   const maximumHealth = fight.maximumHealthByCombatantId;
 
   return fight.dump.calls.flatMap((call) => {
     const found: Occurrence[] = [];
-    const statedPercent = new Map<number, number>();
+    // Seeded from the snapshot the call opened with, which is the same source
+    // the health witness replays from. Without it the first heal in a call has
+    // no independent "before" at all, and two of the five did not.
+    const statedPercent = new Map(
+      call.combatantsBefore.map((combatant) => [combatant.id, combatant.health.percent]),
+    );
+    const clouded = new Set<number>();
 
     for (const message of call.protocolMessages) {
       const parsed = parseProtocolMessage(message);
       const events = decodeFight([message], roster);
-      const healing = events.filter((event) => event.kind === "healing-to-named-combatant");
 
-      for (const event of healing) {
+      for (const event of events) {
+        if (event.kind !== "healing-to-named-combatant") continue;
         const combatantId = event.targetId;
         const maximum = combatantId === null ? undefined : maximumHealth.get(combatantId);
-        const before = combatantId === null ? undefined : statedPercent.get(combatantId);
-        // Nothing is skipped quietly: an occurrence this cannot measure fails the
+        // Nothing is skipped quietly: an occurrence this cannot resolve fails the
         // completeness test below instead of shrinking the material silently.
-        if (combatantId === null || maximum === undefined || before === undefined) continue;
+        if (combatantId === null || maximum === undefined) continue;
         if (event.targetHealthPercent === null) continue;
 
+        const before = statedPercent.get(combatantId);
         found.push({
           fight: fight.name,
           call: call.index,
           combatantId,
           maximumHealth: maximum,
-          healthBefore: (before / 100) * maximum,
           healthAfter: (event.targetHealthPercent / 100) * maximum,
-          damage: events
-            .filter((event) => event.kind === "attack")
-            .flatMap((event) => event.taken)
-            .reduce((total, one) => total + one.amount, 0),
           healing: event.amount,
+          healthBefore: before === undefined ? null : (before / 100) * maximum,
+          damage: events.reduce((total, one) => {
+            if (one.kind === "damage-to-named-combatant" && one.targetId === combatantId) {
+              return total + one.damage.amount;
+            }
+            if (one.kind === "attack" && one.targetId === combatantId) {
+              return total + one.taken.reduce((sum, hit) => sum + hit.amount, 0);
+            }
+            return total;
+          }, 0),
+          isCloudedByUnsizedHealing: clouded.has(combatantId),
         });
       }
 
+      // A heal that reaches a whole side while the message names only its caster
+      // clouds everybody, and only a fresh statement clears it.
+      if (events.some((event) => event.kind === "unaccounted-health")) {
+        for (const id of maximumHealth.keys()) clouded.add(id);
+      }
       for (const side of [parsed.actor, parsed.target]) {
         if (side === null || side.healthPercent === null) continue;
         statedPercent.set(side.combatantId, side.healthPercent);
+        clouded.delete(side.combatantId);
+      }
+      // And the percentages stated beside a **name**, which a group blow puts
+      // inside its own segments and the two side slots never carry.
+      for (const event of events) {
+        if (event.kind !== "damage-to-named-combatant" && event.kind !== "healing-to-named-combatant") {
+          continue;
+        }
+        if (event.targetId === null || event.targetHealthPercent === null) continue;
+        statedPercent.set(event.targetId, event.targetHealthPercent);
+        clouded.delete(event.targetId);
       }
     }
 
@@ -119,31 +173,53 @@ describe("healing stated against a name", () => {
 
   // Every one of them, not merely the ones that happened to be measurable —
   // otherwise a reading that silently stopped resolving names would pass here.
-  test("every occurrence is read, and every one is measurable", () => {
+  test("every occurrence is read, and every one resolves to a combatant", () => {
     expect(OCCURRENCES.length).toBe(CARRYING_MESSAGES.length);
-  });
-
-  test("closes the gap between the health stated before and after", () => {
-    for (const one of OCCURRENCES) {
-      const expected = one.healthBefore - one.damage + one.healing;
-      expect(
-        Math.abs(expected - one.healthAfter),
-        `${one.fight} call ${one.call} combatant ${one.combatantId}`,
-      ).toBeLessThanOrEqual(TOLERANCE_IN_HEALTH_POINTS);
-    }
   });
 
   /**
    * The help's own trigger, on our material: the blow has to leave the holder
    * below 18% of the pool, and not dead. Both halves matter — a heal firing
    * above the threshold would mean the article describes something else.
+   *
+   * Read from the heal's own segment and nothing else, so it holds for every
+   * occurrence including the one the team heal clouds. The two closest sit at
+   * 0.1714 and 0.1675 of the pool, which is what makes 18% a threshold this
+   * material can actually see rather than a bound nothing approaches.
    */
   test("fires only where the blow left the combatant under the documented share", () => {
     for (const one of OCCURRENCES) {
-      const struck = one.healthBefore - one.damage;
+      const struck = one.healthAfter - one.healing;
       const label = `${one.fight} call ${one.call} combatant ${one.combatantId}`;
       expect(struck, label).toBeGreaterThan(0);
       expect(struck / one.maximumHealth, label).toBeLessThan(TRIGGER_SHARE_OF_MAXIMUM);
+    }
+  });
+
+  /**
+   * How many of them the arithmetic can close over, recorded rather than left to
+   * whatever the material happens to allow.
+   *
+   * §7.5's rule about floors: "the ones that worked" is a set that can shrink to
+   * one without anything going red, and the whole of this file's evidence is in
+   * that set.
+   */
+  test("closes over as much of the material as it is recorded to", () => {
+    const measurable = OCCURRENCES.filter(
+      (one) => one.healthBefore !== null && !one.isCloudedByUnsizedHealing,
+    );
+    expect(measurable.length).toBe(4);
+    expect(OCCURRENCES.length - measurable.length).toBe(1);
+  });
+
+  test("closes the gap between the health stated before and after", () => {
+    for (const one of OCCURRENCES) {
+      if (one.healthBefore === null || one.isCloudedByUnsizedHealing) continue;
+      const expected = one.healthBefore - one.damage + one.healing;
+      expect(
+        Math.abs(expected - one.healthAfter),
+        `${one.fight} call ${one.call} combatant ${one.combatantId}`,
+      ).toBeLessThanOrEqual(one.maximumHealth * TOLERANCE_SHARE_OF_MAXIMUM);
     }
   });
 

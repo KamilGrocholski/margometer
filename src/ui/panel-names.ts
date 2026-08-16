@@ -136,6 +136,11 @@ export const DESTRUCTION_NAMES: Record<string, TokenName> = {
 /** Where health went when no blow moved it. */
 export const HEALTH_SOURCE_NAMES: Record<string, TokenName> = {
   poison: { id: null, fallback: "trucizna" },
+  // Not "ogień", which is `dmgf`'s word above for the damage element: this is the
+  // burn ticking afterwards, and two quantities under one label is a wrong number
+  // that looks right. The client's own entry for it is a sentence with two holes,
+  // so there is no name to ask it for.
+  fire: { id: null, fallback: "podpalenie" },
   // The old phrase was "rana", which is the game's word for `wound` — a
   // different key, and one this meter also reads.
   injure: { id: null, fallback: "zranienie" },

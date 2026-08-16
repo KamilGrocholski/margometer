@@ -14,6 +14,8 @@ export const FROZEN_HELP_PHRASES = {
   /** When the dump these counts were taken from was fetched, not when it was read. */
   fetchedAt: "2026-08-09T21:49:44.598Z",
   counts: {
+    "( fire )": 2,
+    "( rage )": 1,
     "( skillId )": 0,
     "( tspell )": 0,
     "absorb": 19,

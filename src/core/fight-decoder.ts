@@ -203,6 +203,12 @@ const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> 
   heal_target: { sign: 1, isOnTarget: true },
   poison: { sign: -1, isOnTarget: false },
   injure: { sign: -1, isOnTarget: false },
+  // Elemental damage over time, and the client writes it as `poison`'s twin:
+  // production build 1786514810315 composes both from the actor slot, both split
+  // on the separator below, and the same bundle counts `fire` into its own damage
+  // sum (`updateStat("damage-fire", …)`). `light` and `frost` sit in that branch
+  // beside it and the captures carry neither, so they stay unread and loud (§3).
+  fire: { sign: -1, isOnTarget: false },
 };
 
 /**
@@ -393,6 +399,12 @@ const BLOW_DECLARATION_KEYS = [
   "-legbon_critred",
   "+legbon_puncture",
   "+crush_physical",
+  // Rage, which the help documents as a buff raising physical damage by 10% for a
+  // number of turns after a critical hit (article view,372 at the engine name
+  // `rage`, read 2026-08-09). Production build 1786514810315 composes it as
+  // `msg_+rage %val%`, an attack figure — an input to the damage the `dmg` keys
+  // beside it already report, and in a unit no total here keeps.
+  "+rage",
   /**
    * ⚠️ **The one that looks like damage and is not.** `+taken_dmg` rides every
    * blow that carries `-dmga`, all 199 of them, and the tempting reading is that

@@ -167,14 +167,27 @@ describe("what the absorption-destruction family reports", () => {
    * stop announcing tomorrow and take its reports out of the check with it, and
    * nothing would say so. What the constant it reports counts is not settled
    * here — only that it is not the falling pool the rest of the family reports.
+   *
+   * ⚠️ **Counted by combatant, not by `fight/combatant`**, which is the mistake
+   * the docblock above records from the other side. Written as a pair, the claim
+   * in this test's own name was false the moment the same person turned up in
+   * another capture: three group fights of 2026-08-15 met `440859` twice more and
+   * the recorded list grew to three entries while the number of readers stayed
+   * one. A silent reader met in four fights is the same finding four times over,
+   * and only the count of people is the claim worth holding.
    */
   test("exactly one reader reports without ever announcing a share", () => {
-    const silent = new Set(
-      DESTRUCTION_KEYS.flatMap(getReports)
-        .filter(({ fight, actorId }) => !DECLARING_CASTERS.has(`${fight}/${actorId}`))
-        .map(({ fight, actorId }) => `${fight}/${actorId}`),
+    const silentReports = DESTRUCTION_KEYS.flatMap(getReports).filter(
+      ({ fight, actorId }) => !DECLARING_CASTERS.has(`${fight}/${actorId}`),
     );
-    expect([...silent]).toEqual(["2026-08-12-tempest-grupa-vs-hildur-2/440859"]);
+    expect([...new Set(silentReports.map(({ actorId }) => actorId))]).toEqual([440859]);
+    // And where it was met, so a reader disappearing from three captures is a
+    // change rather than a list that quietly shortens.
+    expect([...new Set(silentReports.map(({ fight }) => fight))].sort()).toEqual([
+      "2026-08-12-tempest-grupa-vs-hildur-2",
+      "2026-08-15-tempest-grupa-vs-hildur-3",
+      "2026-08-15-tempest-grupa-vs-hildur-4",
+    ]);
 
     const values = new Set(
       DESTRUCTION_KEYS.flatMap(getReports)

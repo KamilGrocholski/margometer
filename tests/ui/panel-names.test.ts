@@ -183,6 +183,7 @@ describe("the panel's own vocabulary, as decided", () => {
   ],
   HEALTH_SOURCE_NAMES: [
     ["poison", null, "trucizna"],
+    ["fire", null, "podpalenie"],
     ["injure", null, "zranienie"],
     ["heal", null, "leczenie"],
     ["heal_target", null, "leczenie na wskazanego"],

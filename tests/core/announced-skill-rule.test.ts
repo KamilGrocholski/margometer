@@ -201,8 +201,10 @@ describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
   test("healing given by a skill matches the healing credited to its caster", () => {
     const givenByCaster = new Map<number, number>();
     for (const [id, row] of statistics.byCombatantId) {
-      const given = [...row.skills.values()].reduce((sum, skill) => sum + skill.healed, 0);
-      if (given > 0) givenByCaster.set(id, given);
+      givenByCaster.set(
+        id,
+        [...row.skills.values()].reduce((sum, skill) => sum + skill.healed, 0),
+      );
     }
 
     const creditedByCaster = new Map<number, number>();
@@ -212,7 +214,24 @@ describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
       }
     }
 
-    expect([...givenByCaster].sort()).toEqual([...creditedByCaster].sort());
+    /**
+     * ⚠️ **Over the union, with a missing caster read as zero — the `> 0` filter
+     * that used to build the left side was the bug.** A heal cast on somebody
+     * already at full health restores nothing and the protocol says so:
+     * `heal_target=0` in `2026-08-15-tempest-grupa-vs-hildur-1`. The aggregate
+     * credited that healer with 0, correctly — a heal that reached you and gave
+     * you nothing is not the same as no heal — while the filter dropped the very
+     * same 0 from the other side, so the two derivations of one figure disagreed
+     * on the one case where the figure is zero.
+     *
+     * §7.5's rule, in the layer it had not yet been paid for in: a comparison
+     * against `0` needs a test standing either side of it, and here zero is the
+     * neutral element of the sum, so nothing moved and only the key sets parted.
+     */
+    const casters = new Set([...givenByCaster.keys(), ...creditedByCaster.keys()]);
+    for (const id of casters) {
+      expect(givenByCaster.get(id) ?? 0, String(id)).toBe(creditedByCaster.get(id) ?? 0);
+    }
   });
 
   test("a use is counted for every announcement, and only for those", () => {
@@ -223,5 +242,37 @@ describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
     const announced = rows.reduce((sum, row) => sum + row.skillsUsed, 0);
 
     expect(uses).toBe(announced);
+  });
+});
+
+/**
+ * Both sides of the boundary the test above compares across, over the whole
+ * material rather than per fight — because only one capture has the near side.
+ *
+ * Comparing two derivations with a default of zero on each passes just as
+ * happily when nothing in the material is zero, and that is precisely how a heal
+ * of nothing went unnoticed: for eleven captures there was no such case, the
+ * left-hand map filtered `> 0`, and the two sides could not disagree because
+ * they never met on one. `heal_target=0` in `2026-08-15-tempest-grupa-vs-hildur-1`
+ * is the first heal in this repository's material that reached somebody and
+ * restored nothing, and §9.6 turns on that being a different thing from no heal
+ * at all.
+ */
+describe("a heal that restored nothing", () => {
+  const creditedEverywhere = CAPTURED_FIGHTS.flatMap((fight) => {
+    const statistics = composeFightStatistics(
+      fight.dump.calls.flatMap((call) =>
+        decodeFight(call.protocolMessages, composeRosterOfFight(fight)),
+      ),
+    );
+    return [...statistics.byCombatantId.values()].flatMap((row) => [
+      ...row.healedByHealerId.values(),
+    ]);
+  });
+
+  test("is credited to its healer as zero, and is not the only kind there is", () => {
+    expect(creditedEverywhere.filter((amount) => amount === 0)).toHaveLength(1);
+    expect(creditedEverywhere.filter((amount) => amount > 0).length).toBeGreaterThan(0);
+    expect(creditedEverywhere.filter((amount) => amount < 0)).toEqual([]);
   });
 });
