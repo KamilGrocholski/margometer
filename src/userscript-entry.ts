@@ -723,8 +723,25 @@ export function composeReportText(
   return composeJsonText(report, 2);
 }
 
-/** One combatant's figures, with every map turned into something JSON can hold. */
-function composeReportRow(row: FightReading["statistics"]["unattributed"]): Record<string, unknown> {
+/**
+ * One combatant's figures, with every map turned into something JSON can hold.
+ *
+ * ⚠️ **The return type is what holds this complete, and it used to be
+ * `Record<string, unknown>` — a type any subset satisfies.** §4 makes the data
+ * contract an `[ASK]` for one stated reason: a field added to a type and
+ * forgotten downstream produces numbers that quietly shrink. This is that
+ * downstream, and the consequence is specific — the report is what a player
+ * pastes when something looks wrong, so a field added to the aggregate and
+ * missed here is invisible in exactly the situation the report exists for
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F9).
+ *
+ * Keyed to the row's own type, so adding a figure to `CombatantStatistics`
+ * stops the build here until somebody decides how it is written down. §9.3's
+ * bargain: no linter, because the compiler is the one holding the rule.
+ */
+function composeReportRow(
+  row: FightReading["statistics"]["unattributed"],
+): Record<keyof FightReading["statistics"]["unattributed"], unknown> {
   return {
     dealtRaw: row.dealtRaw,
     dealtApplied: row.dealtApplied,

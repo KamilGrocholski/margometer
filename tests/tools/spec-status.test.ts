@@ -1,6 +1,6 @@
+import { expectDatedName } from "@/tests/dated-document.ts";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
-import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 
 /**
  * Holds `docs/specs/` to a shape.
@@ -13,7 +13,6 @@ import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 const SPECS_DIRECTORY = new URL("../../docs/specs/", import.meta.url).pathname;
 const SPEC_FILES = readdirSync(SPECS_DIRECTORY).filter((file) => file.endsWith(".md"));
 
-const DATED_NAME = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(-[a-z0-9]+)*\.md$/;
 const STATUS_LINE = /^Status: (draft|implemented)$/;
 
 test("there are specs to check", () => {
@@ -24,11 +23,7 @@ describe.each(SPEC_FILES)("%s", (file) => {
   const lines = readFileSync(SPECS_DIRECTORY + file, "utf8").split("\n");
 
   test("is named for the day it was written", () => {
-    expect(file).toMatch(DATED_NAME);
-    const date = file.slice(0, "yyyy-mm-dd".length);
-    const written = getMillisecondsFromIsoText(date);
-    expect(written).not.toBeNull();
-    expect(written).toBeLessThanOrEqual(Date.now());
+    expectDatedName(file);
   });
 
   // Third line, not somewhere in the body: a status that has to be searched for

@@ -60,6 +60,12 @@ const ACTION_VERBS = [
   "build",
   "write",
   "render",
+  // A shared assertion, which is a test's action and nobody else's. Not a synonym
+  // for `assert`, and §9.4 forbids only those: `assert` in this repository means
+  // §9.5's broken invariant, which throws `AssertionFailure` and carries no code,
+  // while this one fails a test and is meaningless outside one. Two words for one
+  // action would be the fault; one word for each of two actions is the rule.
+  "expect",
 ];
 /** Booleans read as a statement rather than an action. */
 const BOOLEAN_PREFIXES = ["is", "has", "should"];
@@ -143,54 +149,57 @@ describe("layers", () => {
   );
 
   /**
-   * §9.1 lists the directions that exist — `ui → core`, `game → core`, everything
-   * → `libs`, entry point → everything — and `ui → game` is not one of them.
+   * §9.1 as an **allowlist**, which is how the rule is written and was not how it
+   * was held.
    *
-   * ⚠️ **Arrived by being broken, and by a type import.** `panel-view.ts` took
-   * `FightReading` from `src/game/battle-session.ts`; nothing failed, because a
-   * type import compiles away. What it cost was the direction: the panel could no
-   * longer be read, tested or reused without the engine module in the graph, and
-   * the guard above covered `core` only, so the gate stayed green over it.
+   * The three clauses read "imports from nothing but itself and `libs`", and the
+   * guards read "does not import these two siblings" — so `src/core/**` importing
+   * `@/tools/…`, `@/tests/…` or `@/build.ts` landed green, and the same for `ui`
+   * and `game`. `libs/` was the only layer guarded in the general form, which is
+   * why it was the only one where the rule and the guard said the same thing
+   * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F12).
    *
-   * ⚠️ **The entry point is on this list too, and was not.** The guard below it
-   * closes `game → the entry point` and says why — it is the file allowed to know
-   * every layer, so nothing may know it back — while this one forbade only
-   * `ui → game`, leaving the same cycle open on the other side
+   * No violation existed when this was rewritten. The finding is the asymmetry,
+   * and it is the shape §9.1 was already amended for once: an undrawn edge is one
+   * nobody can be held to.
+   *
+   * ⚠️ **Two of the directions were paid for, and a denylist is what let both
+   * happen.** `panel-view.ts` took a type from `src/game/battle-session.ts` and
+   * nothing failed, because a type import compiles away — the panel could no
+   * longer be read or tested without the engine module in the graph. And
+   * `game → the entry point` sat unforbidden while `ui → game` was forbidden,
+   * leaving the same cycle open on the other side
    * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F10).
-   * `src/userscript-version.ts` is deliberately not forbidden: §9.1 names it as
-   * readable from any layer, and the panel draws it in the title bar.
-   */
-  test.each(SOURCE_FILES.filter((file) => file.startsWith("src/ui/")))(
-    "%s draws what core produced, without reaching for the game or the wiring",
-    (file) => {
-      const source = getSourceWithoutComments(file);
-      const reachingOut = [
-        ...source.matchAll(/\bfrom\s+"@\/src\/(game\/|userscript-entry\.ts)/g),
-      ].map((match) => match[0]);
-      expect(reachingOut, file).toEqual([]);
-    },
-  );
-
-  /**
-   * §9.1 from the last side that had no guard at all. `game → ui` is not one of
-   * the directions listed, and `game → entry point` would close the only cycle
-   * the graph could have — the entry point is the file allowed to know every
-   * layer, so nothing may know it back.
    *
-   * Neither exists today; this exists because the guard above it records that a
-   * **type import** broke a direction in silence once already, and nothing here
-   * was watching this side.
+   * `src/userscript-version.ts` is on every list: §9.1 names it readable from any
+   * layer, because it is a build-time constant that knows no layer at all.
    */
-  test.each(SOURCE_FILES.filter((file) => file.startsWith("src/game/")))(
-    "%s reads the game for core, without reaching for the panel or the wiring",
-    (file) => {
-      const source = getSourceWithoutComments(file);
-      const reachingOut = [
-        ...source.matchAll(/\bfrom\s+"@\/src\/(ui\/|userscript-entry\.ts)/g),
-      ].map((match) => match[0]);
-      expect(reachingOut, file).toEqual([]);
-    },
-  );
+  const VERSION = "@/src/userscript-version.ts";
+  const LAYERS = [
+    { directory: "libs/", mayImport: ["@/libs/"] },
+    { directory: "src/core/", mayImport: ["@/libs/", "@/src/core/", VERSION] },
+    { directory: "src/ui/", mayImport: ["@/libs/", "@/src/core/", "@/src/ui/", VERSION] },
+    { directory: "src/game/", mayImport: ["@/libs/", "@/src/core/", "@/src/game/", VERSION] },
+  ];
+
+  test.each(LAYERS.map(({ directory }) => directory))("%s is a layer with files in it", (directory) => {
+    expect(SOURCE_FILES.filter((file) => file.startsWith(directory)).length).toBeGreaterThan(0);
+  });
+
+  test.each(
+    LAYERS.flatMap(({ directory, mayImport }) =>
+      SOURCE_FILES.filter((file) => file.startsWith(directory)).map(
+        (file) => [file, mayImport] as const,
+      ),
+    ),
+  )("%s imports only from the layers §9.1 lets it", (file, mayImport) => {
+    const source = getSourceWithoutComments(file);
+    const reachingOut = [...source.matchAll(/\bfrom\s+"(@\/[^"]+)"/g)]
+      .map((match) => match[1] ?? "")
+      .filter((specifier) => !mayImport.some((allowed) => specifier.startsWith(allowed)));
+    expect(reachingOut, file).toEqual([]);
+  });
+
 
   /**
    * §9.1's last direction, and the only one that had no guard at all.

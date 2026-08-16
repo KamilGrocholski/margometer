@@ -272,7 +272,7 @@ exists for. The compiler cannot help: the function returns
 `Record<string, unknown>`, which is satisfied by any subset.
 
 *Where:* `src/userscript-entry.ts:726`
-*Closes:* open
+*Closes:* commit
 
 ### F10 — eleven exported names with no consumer and no test
 
@@ -343,7 +343,7 @@ everywhere. The finding is the asymmetry, and it is the shape §9.1 was already
 amended for once: an undrawn edge is one nobody can be held to.
 
 *Where:* `tests/tools/source-layout.test.ts:116`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F13 — the decoder's damage-key shape rule, four spellings and a bare `4`
 
@@ -483,7 +483,7 @@ which is a different trade, and it is the trade that has to be re-read rather
 than the conclusion inherited.
 
 *Where:* `tests/tools/audit-status.test.ts:33`
-*Closes:* open
+*Closes:* commit
 
 ### F21 — booleans with no prefix §9.4 admits
 

@@ -1,7 +1,7 @@
+import { expectDatedName } from "@/tests/dated-document.ts";
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
-import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 
 /**
  * Holds `docs/audits/` to §7.7's shape.
@@ -18,19 +18,25 @@ import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
  * different things anyway — a spec states what was rejected, an audit states
  * what was not read.
  *
- * ⚠️ **Rejected: sharing the dated-name pattern with `spec-status.test.ts`.**
- * The two agree on exactly one regex and disagree on the status vocabulary, the
- * required sections and everything below the heading. §7.1 puts a shared module
- * at the second consumer, and this would be one — but a module holding a single
- * regex makes each guard readable only with the other one open, which is a worse
- * trade than the duplication it removes.
+ * ⚠️ **The dated name *is* shared, and the decision not to share it was
+ * re-read rather than inherited.** This block used to argue that the two guards
+ * agree on exactly one regex and that a module holding one regex makes each
+ * readable only with the other open. That was true of a regex. They came to agree
+ * on a regex **and** a five-line check — filename matches, date parses, date is
+ * not in the future — which is a different trade
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F20).
+ *
+ * What moved to `tests/dated-document.ts` is exactly that one question. The two
+ * still disagree about the status vocabulary, the required sections and
+ * everything below the heading, and none of that went with it — so neither file
+ * needs the other open to be read, which was the whole of the original
+ * objection.
  */
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 const AUDITS_DIRECTORY = new URL("../../docs/audits/", import.meta.url).pathname;
 const AUDIT_FILES = readdirSync(AUDITS_DIRECTORY).filter((file) => file.endsWith(".md"));
 
-const DATED_NAME = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(-[a-z0-9]+)*\.md$/;
 const STATUS_LINE = /^Status: (open|closed)$/;
 
 /**
@@ -128,10 +134,7 @@ describe.each(AUDIT_FILES)("%s", (file) => {
   const findings = getFindings(text);
 
   test("is named for the day the tree was read", () => {
-    expect(file).toMatch(DATED_NAME);
-    const read = getMillisecondsFromIsoText(file.slice(0, "yyyy-mm-dd".length));
-    expect(read).not.toBeNull();
-    expect(read).toBeLessThanOrEqual(Date.now());
+    expectDatedName(file);
   });
 
   // Third and fourth lines, for `spec-status.test.ts`'s reason: a status that has

@@ -1048,6 +1048,15 @@ tests/
                          with the dump those counts came from. Counts only — the
                          help's own sentences stay out of the repository, and a
                          count is our measurement rather than a piece of it.
+  dated-document.ts      The one thing `docs/specs/` and `docs/audits/` share: a
+                         filename that is a date, and a date that has happened.
+                         Sharing it was rejected once and the rejection was
+                         re-read rather than inherited — the objection was to a
+                         module holding a single regex, and by the time it was
+                         looked at again the two guards agreed on a regex *and* a
+                         five-line check. Everything they disagree about — the
+                         status vocabulary, the required sections — stayed where
+                         it was, so neither file needs the other open.
   protocol-key-register.ts
                          Reads docs/protocol-keys.md into entries — verdict,
                          health line, evidence. The register's own guard and the
@@ -1557,6 +1566,7 @@ neither is covered above:
 | `parse` | Turns text into a structure, throwing on anything unexpected. `parseFightDump(source)` |
 | `decode` | Turns a structure into **meaning**. `decodeFight(messages)` |
 | `require` | Returns a value narrowed to a type, or throws. `requireFiniteNumber(value, path)` |
+| `expect` | Fails a test unless something holds. `expectDatedName(file)` — a test's action and nobody else's, and **not** a synonym for `assert`, which is §9.5's broken invariant and throws outside a test. |
 
 `parse` and `decode` are not synonyms and the split is load-bearing here.
 `parseProtocolMessage` knows the grammar and nothing about what a key means;
