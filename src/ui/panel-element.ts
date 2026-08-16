@@ -17,6 +17,7 @@
  *     unless a hand is moving it.
  */
 
+import { BACK_ROW_KEY } from "@/src/ui/panel-row-key.ts";
 import {
   composeDecimalText,
   composeIntegerText,
@@ -450,7 +451,7 @@ export function renderPanel(
       back.textContent = crumb.backLabel;
       // The same action as the right button, for a hand that would rather click
       // something than remember a gesture.
-      rowsByNode.set(back, "back");
+      rowsByNode.set(back, BACK_ROW_KEY);
       const here = document.createElement("span");
       here.className = "crumb-here";
       here.textContent = crumb.hereLabel;

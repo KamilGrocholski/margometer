@@ -431,7 +431,7 @@ what is guarded is one parser's handling of the grammar, never the grammar
 itself.
 
 *Where:* `src/ui/panel-state.ts:28`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-row-key.test.ts`
 
 ### F18 — the same sentence a player reads, written twice
 
@@ -445,7 +445,7 @@ because `tests/ui/panel-view.test.ts` records each screen's phrases against
 itself.
 
 *Where:* `src/ui/panel-view.ts:778`
-*Closes:* open
+*Closes:* commit
 
 ### F19 — a substituted zero written back over the evidence
 

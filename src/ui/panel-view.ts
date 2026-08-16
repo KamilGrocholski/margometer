@@ -18,6 +18,14 @@
  * wrote it rather than as a guess.
  */
 
+import {
+  composeCombatantRowKey,
+  composeLeafRowKey,
+  composeSkillRowKey,
+  composeTargetRowKey,
+  NOBODY_ROW_KEY,
+  UNANNOUNCED_ROW_KEY,
+} from "@/src/ui/panel-row-key.ts";
 import { composeDecimalText, composeIntegerText } from "@/libs/number.ts";
 import { getCollatedTextOrder } from "@/libs/text-order.ts";
 import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
@@ -649,7 +657,7 @@ function composeRankedRow(
 ): PanelRow {
   const raw = getMetricValue(getRow(reading, combatantId), state.metric);
   return {
-    key: `combatant:${composeIntegerText(combatantId)}`,
+    key: composeCombatantRowKey(combatantId),
     rank,
     label: getName(reading, combatantId),
     profession: reading.roster.byId.get(combatantId)?.profession ?? null,
@@ -781,10 +789,26 @@ function getWholeOnScreen(reading: PanelReading, state: PanelState, total: numbe
   return total + getFigureOutsideRows(reading, state);
 }
 
+/**
+ * The two sentences both tables below need, written once.
+ *
+ * ⚠️ **They used to be written twice, byte for byte.** The tables are two
+ * exhaustive records — one per noun, one per metric — and each is defended in
+ * prose as having exactly the entries it has, so the compiler asks about a fifth
+ * screen rather than letting one inherit whichever wording came first. That
+ * argument is right and it is about the *tables*. What was not right is that the
+ * **sentences** were duplicated: rewording one would leave the panel saying two
+ * different things about one limit, on two screens, and neither test would
+ * notice because each records its own screen's phrases against itself
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F18).
+ */
+const NOBODY_DEALT_NOTE = "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.";
+const NOBODY_HEALED_NOTE = "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.";
+
 /** What the game did not say, per noun. The limit, never our reason for it. */
 const PINNED_LIMIT_NOTES: Record<PanelNoun, string> = {
-  damage: "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.",
-  healing: "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
+  damage: NOBODY_DEALT_NOTE,
+  healing: NOBODY_HEALED_NOTE,
 };
 
 /**
@@ -848,7 +872,7 @@ function composePinnedRow(
   }
 
   return {
-    key: "nobody",
+    key: NOBODY_ROW_KEY,
     rank: null,
     label: "Bez sprawcy",
     profession: null,
@@ -919,7 +943,7 @@ const MISSING_COUNTERPARTS: Record<PanelMetric, { label: string; note: string }>
   },
   taken: {
     label: "Bez sprawcy",
-    note: "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.",
+    note: NOBODY_DEALT_NOTE,
   },
   healingGiven: {
     label: "Nie wiadomo, komu",
@@ -927,7 +951,7 @@ const MISSING_COUNTERPARTS: Record<PanelMetric, { label: string; note: string }>
   },
   healed: {
     label: "Bez sprawcy",
-    note: "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
+    note: NOBODY_HEALED_NOTE,
   },
 };
 
@@ -955,7 +979,7 @@ function composeOpponentEntries(
     .filter(([, amount]) => amount > 0)
     .sort(([, one], [, other]) => other - one)
     .map(([id, amount]) => ({
-      key: `target:${composeIntegerText(id)}`,
+      key: composeTargetRowKey(id),
       label: getName(reading, id),
       profession: reading.roster.byId.get(id)?.profession ?? null,
       colour: getProfessionColour(reading.roster.byId.get(id)?.profession ?? null),
@@ -979,7 +1003,7 @@ function composeOpponentEntries(
   if (orphan > 0) {
     const missing = MISSING_COUNTERPARTS[state.metric];
     entries.push({
-      key: "nobody",
+      key: NOBODY_ROW_KEY,
       label: missing.label,
       profession: null,
       colour: UNKNOWN_COLOUR,
@@ -1054,7 +1078,7 @@ function composeSkillEntries(
   ): void => {
     if (amount <= 0) return;
     entries.push({
-      key: `skill:${composeIntegerText(ownerId)}:${key}`,
+      key: composeSkillRowKey(ownerId, key),
       label: skill.skillName,
       profession: null,
       colour: UNKNOWN_COLOUR,
@@ -1102,7 +1126,7 @@ function composeSkillEntries(
   const plainBlows = state.metric === "dealt" ? row.blowsWithoutSkill : 0;
   if (rest > 0 || plainBlows > 0) {
     entries.push({
-      key: "unannounced",
+      key: UNANNOUNCED_ROW_KEY,
       label: CLOSING_LABELS[state.metric],
       profession: null,
       colour: UNKNOWN_COLOUR,
@@ -1222,7 +1246,7 @@ function composePairSkillEntries(
       : (skill.dealtByTargetId.get(subjectId) ?? 0);
     if (amount <= 0) continue;
     entries.push({
-      key: `leaf:skill:${skill.skillName}`,
+      key: composeLeafRowKey(`skill:${skill.skillName}`),
       label: skill.skillName,
       profession: null,
       colour: UNKNOWN_COLOUR,
@@ -1239,7 +1263,7 @@ function composePairSkillEntries(
   const rest = pairTotal - named;
   if (rest > 0) {
     entries.push({
-      key: "leaf:unannounced",
+      key: composeLeafRowKey(UNANNOUNCED_ROW_KEY),
       label: CLOSING_LABELS[state.metric],
       profession: null,
       colour: UNKNOWN_COLOUR,
@@ -1285,7 +1309,7 @@ function composeDeepLists(
     const entries: BreakdownEntry[] = pairs
       .sort(([, one], [, other]) => other - one)
       .map(([id, amount]) => ({
-        key: `leaf:${composeIntegerText(id)}`,
+        key: composeLeafRowKey(composeIntegerText(id)),
         label: getName(reading, id),
         profession: reading.roster.byId.get(id)?.profession ?? null,
         colour: getProfessionColour(reading.roster.byId.get(id)?.profession ?? null),
@@ -1307,7 +1331,7 @@ function composeDeepLists(
     if (orphan > 0) {
       const missing = MISSING_COUNTERPARTS[state.metric];
       entries.push({
-        key: "nobody",
+        key: NOBODY_ROW_KEY,
         label: missing.label,
         profession: null,
         colour: UNKNOWN_COLOUR,
@@ -1349,7 +1373,7 @@ function composeDeepLists(
     [...byElement]
       .sort(([, one], [, other]) => other - one)
       .map(([token, amount]): BreakdownEntry => ({
-        key: `leaf:${token}`,
+        key: composeLeafRowKey(token),
         label: getPhrase(ELEMENT_NAMES, token, translate),
         profession: null,
         colour: UNKNOWN_COLOUR,

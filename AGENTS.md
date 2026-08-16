@@ -878,6 +878,16 @@ src/
                          sentence it resolves to never is (NOTICE.md). Ours is
                          what every test and every browser without the game sees,
                          so it is a real answer rather than a placeholder.
+    panel-row-key.ts     The key a drawn row carries, composed and read in one
+                         place. It was a convention three files held separately —
+                         `panel-view.ts` wrote the keys, `panel-element.ts`
+                         invented one more for the breadcrumb, `panel-state.ts`
+                         took them apart by comparing prefixes — and nothing
+                         stated it. What a key **means** is a value rather than a
+                         prefix each caller reads, so what an unrecognised one
+                         opens is decided once. A skill's own key can carry a
+                         colon, because it is the game's identifier where there
+                         was one and the skill's name where there was not.
     panel-state.ts       What a click does to the panel's state: four pure
                          functions, a state and a control in, the part that
                          changes out. They lived among the wiring in the entry
@@ -1273,6 +1283,12 @@ tests/
     panel-placement.test.ts  The arithmetic that decides whether the panel can be
                              dragged somewhere it cannot be dragged back from, and
                              what a stored position has to prove on read.
+    panel-row-key.test.ts    The grammar itself, which nothing held before: the
+                             round trip, so what one end writes the other reads
+                             back as the same thing. `panel-state.test.ts` guards
+                             one parser against the mis-slicing bug and says
+                             nothing about whether the keys it is handed are the
+                             keys the view composes.
     panel-tokens.test.ts     The one thing `panel-element.test.ts` cannot reach,
                              because it only ever hands this module colours that
                              can be measured: what happens to one that cannot.

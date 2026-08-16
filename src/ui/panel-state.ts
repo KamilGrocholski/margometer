@@ -14,7 +14,7 @@
  * statistic, so §9.1's line is untouched.
  */
 
-import { getIntegerFromText } from "@/libs/number.ts";
+import { getRowKeyMeaning } from "@/src/ui/panel-row-key.ts";
 import type { PanelMetric, PanelState, PanelTeam } from "@/src/ui/panel-view.ts";
 
 /**
@@ -25,38 +25,28 @@ import type { PanelMetric, PanelState, PanelTeam } from "@/src/ui/panel-view.ts"
  * question "which of these is set".
  */
 export function composeStateFromRow(state: PanelState, key: string): Partial<PanelState> {
-  if (key === "back") return composeStateAfterBack(state);
-
-  const [kind, rest] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
-  if (kind === "combatant") {
-    const id = getIntegerFromText(rest);
-    // A row whose id will not read is a row that leads nowhere, rather than one
-    // that opens somebody else's breakdown.
-    return id === null ? {} : { focusCombatantId: id, focusTargetId: null, focusSkill: null };
+  const meaning = getRowKeyMeaning(key);
+  switch (meaning.opens) {
+    case "back":
+      return composeStateAfterBack(state);
+    case "combatant":
+      return {
+        focusCombatantId: meaning.combatantId,
+        focusTargetId: null,
+        focusSkill: null,
+      };
+    case "target":
+      return { focusTargetId: meaning.combatantId, focusSkill: null };
+    case "skill":
+      return {
+        focusSkill: { ownerId: meaning.ownerId, key: meaning.key },
+        focusTargetId: null,
+      };
+    case "nothing":
+      // A row that opens no level, said as a case rather than by falling
+      // through: the compiler refuses a meaning nobody decided about.
+      return {};
   }
-  if (kind === "target") {
-    const id = getIntegerFromText(rest);
-    return id === null ? {} : { focusTargetId: id, focusSkill: null };
-  }
-  if (kind === "skill") {
-    /**
-     * The owner is split off the front and whatever follows is taken whole: a
-     * skill's own key is the game's id where it stated one and the skill's
-     * **name** where it did not, so it can carry anything, including a colon.
-     *
-     * ⚠️ The guard is load-bearing rather than defensive. Without it a key we did
-     * not compose slices as `rest.slice(0, -1)`, which turns `78` into the owner
-     * id `7` — a row that quietly opens somebody else's figures, which is the
-     * whole defect this shape exists to end.
-     */
-    const divider = rest.indexOf(":");
-    if (divider < 0) return {};
-    const ownerId = getIntegerFromText(rest.slice(0, divider));
-    return ownerId === null
-      ? {}
-      : { focusSkill: { ownerId, key: rest.slice(divider + 1) }, focusTargetId: null };
-  }
-  return {};
 }
 
 /**
