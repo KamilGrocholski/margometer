@@ -97,7 +97,7 @@ Polish strings, and every occurrence above is either a comment or a test, which
 that guard reads past by construction.
 
 *Where:* `src/ui/panel-names.ts:116`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F2 — NOTICE.md makes two checkable claims and neither is true
 

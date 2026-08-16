@@ -60,9 +60,14 @@ Three consequences worth stating:
 ### An id is admitted only where the dictionary holds a name
 
 Most of that dictionary is sentences with `%val%` holes in them. A label is not
-a sentence with the figure cut out: `-Zablokowanie %val% obrażeń` comes back as
-"Zablokowanie obrażeń", and `+Niszczenie pancerza o %val%` as a dangling
-preposition. So the defences and the destructions keep `id: null` and a short
+a sentence with the figure cut out: a defence entry runs `<verb> %val% <noun>`
+and comes back as a verb beside its object with the number gone, and a
+destruction entry ends on the preposition that governed its hole, so cutting the
+hole leaves that preposition dangling. The shapes are described and never quoted
+— the sentences are the operator's writing, and NOTICE.md promises they are
+absent here in any form.
+
+So the defences and the destructions keep `id: null` and a short
 noun of ours — written from what the client's sentence *says*, which is how
 "osłona" became absorption — and only the effects, which the dictionary holds as
 names, carry an id.

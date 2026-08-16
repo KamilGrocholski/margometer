@@ -14,10 +14,12 @@
  * of the game's own sentences once already and is not growing another.
  *
  * ⚠️ **An id is admitted only where the dictionary holds a *name*.** Most of
- * that dictionary is sentences with `%val%` holes in them — `-Zablokowanie
- * %val% obrażeń`, `+Niszczenie pancerza o %val%` — and a label is not a
- * sentence with the figure cut out of it: what comes back is a dangling
- * preposition. Those tokens keep `id: null` and a short noun of ours, written
+ * that dictionary is sentences with `%val%` holes in them, and a label is not a
+ * sentence with the figure cut out of it: what comes back is a verb beside its
+ * object with the number gone, or a preposition left dangling where its hole
+ * was. The shapes are described and never quoted — the sentences are the
+ * operator's writing (§5, NOTICE.md), which is the same reason no table of them
+ * lives here. Those tokens keep `id: null` and a short noun of ours, written
  * from what the client's sentence says rather than from the token's spelling.
  * `src/game/game-dictionary.ts` enforces the same rule from the other side, so
  * a sentence appearing under an id we trusted falls back instead of drawing.
@@ -113,7 +115,11 @@ export const EFFECT_NAMES: Record<string, TokenName> = {
   tenacity: { id: "msg_-tenacity", fallback: "wytrwałość" },
 };
 
-/** All sentences in the dictionary — `-Absorpcja %val% obrażeń fizycznych`. */
+/**
+ * All sentences in the dictionary: each names the defence, then the figure it
+ * took off and the damage it took it off. A name with the figure cut out of it
+ * is not a label, so these keep a short noun of ours.
+ */
 export const DEFENCE_NAMES: Record<string, TokenName> = {
   absorb: { id: null, fallback: "pochłonięte" },
   absorbm: { id: null, fallback: "pochłonięte magicznie" },

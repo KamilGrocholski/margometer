@@ -2,8 +2,8 @@
  * §3's rule that a measurement over the captured fights names the material it was
  * taken on, re-earned over every comment this repository writes.
  *
- * **The fault it exists for, spelled three times a commit apart.** "1 794 of
- * 1 794 captured entries", "20 of 400 engine calls", "22 of 26 comparisons" —
+ * **The fault it exists for, spelled three times a commit apart.** `1 794 of
+ * 1 794 captured entries`, `20 of 400 engine calls`, `22 of 26 comparisons` —
  * every one of them exactly right when typed, every one silently wrong the next
  * time a recording arrived, and nothing anywhere went red. The third audit filed
  * nine of them and declined to correct them a fourth time, because correcting
@@ -22,14 +22,22 @@
  * count written in digits and misses one written in words — "Two occurrences in
  * the whole material" was false for rounds and this would not have flagged it.
  * The wide version was built and thrown away: admitting `two`…`twenty` took the
- * sweep from 5 sentences to 38, of which 2 were real, and a guard that is wrong
- * nine times out of ten is one somebody turns off — which is the argument
- * `tracked-text.test.ts` makes for leaving the captures out of its own sweep.
+ * sweep from 5 sentences to 38, of which 2 were real. A guard that is wrong nine
+ * times out of ten is one somebody turns off, which is the argument
+ * `tracked-text.test.ts` makes for leaving evidence out of its own sweep.
  * Narrow and quiet beats wide and ignored; the words are what §3 is for.
  *
  * The remedy for a false positive is the same as for a true one — name the
  * recording — so being flagged wrongly costs a citation the sentence is better
- * for having.
+ * for having. It cost exactly that twice on this file's own prose, one sentence
+ * quoting the bad examples without backticks and one counting something else
+ * beside the word `captures`.
+ *
+ * ⚠️ **It reads itself only once it is tracked.** The walk is `git ls-files`, so
+ * for the whole of the commit that introduced it this file was invisible to it —
+ * which is why those two sentences went in green and came out red one commit
+ * later. A guard that cannot see its own prose is one that has never been run
+ * against the hardest text in the repository to get right, which is its own.
  */
 
 import { execFileSync } from "node:child_process";

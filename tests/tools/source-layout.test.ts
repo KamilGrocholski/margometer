@@ -623,4 +623,80 @@ describe("the language of the strings", () => {
       expect(getSourceWithoutComments(file), file).toContain(phrase);
     }
   });
+
+  /**
+   * §5's other half, and the one nothing here could see: the game's own
+   * **sentences**, quoted rather than shipped.
+   *
+   * Three of them were written out verbatim in four files — twice in a docblock
+   * arguing why a sentence with its figure cut out is not a label, once above
+   * `DEFENCE_NAMES`, and four times as test data, one a whole sentence with its
+   * full stop. A fifth site in `docs/specs/` carried two of them again and no
+   * audit had found it. `NOTICE.md` promises a reader the game's prose is absent
+   * here in any form, which is checkable in thirty seconds with `grep`
+   * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F1).
+   *
+   * The guard above cannot reach any of it. It reads **shipped strings** with
+   * the comments stripped, and every occurrence was a comment or a test.
+   *
+   * **What is recognisable.** A dictionary entry is prose with the client's own
+   * template holes in it. Those holes are functional tokens of the same kind as a
+   * protocol key, so quoting one beside the identifier that composes it is a
+   * citation this repository makes everywhere and must keep making. What is a
+   * quotation is a hole with **the game's words around it**, and the detector for
+   * "the game's words" is the one already sitting above this test.
+   *
+   * ⚠️ **It misses an entry whose Polish carries no diacritic**, which is the
+   * same weakness `SPEAKS_POLISH` was amended for and it is not fixable here: two
+   * of the nine spans removed in the round that wrote this had none, and a reader
+   * took them out by hand. It also cannot see a dictionary *name*, which is a
+   * bare word indistinguishable from one of ours. That half stays §5's to enforce;
+   * this holds the half that recurs, because a hole is what makes an entry worth
+   * quoting in an argument about holes.
+   */
+  const CLIENT_HOLE = /%[a-z][a-z0-9_]*%/i;
+  /**
+   * No single-quoted form on purpose: an apostrophe in prose opens one and
+   * swallows the paragraph after it, which turned four files into false hits the
+   * first time this was run. This repository quotes with double quotes and
+   * backticks.
+   */
+  const QUOTED_SPAN = /`[^`\n]*`|"[^"\n]*"/g;
+
+  /** Documents included: a spec is where two of these had been sitting unread. */
+  const QUOTING_FILES = [
+    ...SOURCE_FILES,
+    ...execFileSync("git", ["ls-files", "docs"], { cwd: REPOSITORY_ROOT, encoding: "utf8" })
+      .split("\n")
+      .filter((file) => file.endsWith(".md")),
+    "AGENTS.md",
+    "NOTICE.md",
+    "README.md",
+    "CHANGELOG.md",
+  ];
+
+  function getQuotedEntries(file: string): string[] {
+    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    // Wrapped first: a comment or a paragraph puts one quotation on two lines,
+    // and a line-at-a-time reader saw neither half whole.
+    const flat = source.replace(/\n\s*\*?\s?/g, " ");
+    return [...flat.matchAll(QUOTED_SPAN)]
+      .map((match) => match[0])
+      .filter((span) => CLIENT_HOLE.test(span) && POLISH_LETTER.test(span));
+  }
+
+  test("there are files to read, and the client's holes are quoted in them", () => {
+    expect(QUOTING_FILES.length).toBeGreaterThan(0);
+    const quoting = QUOTING_FILES.filter((file) =>
+      CLIENT_HOLE.test(readFileSync(REPOSITORY_ROOT + file, "utf8")),
+    );
+    expect(quoting.length).toBeGreaterThan(0);
+  });
+
+  test("no entry of the client's dictionary is quoted, hole and words together", () => {
+    const quoted = QUOTING_FILES.flatMap((file) =>
+      getQuotedEntries(file).map((span) => `${file}: ${span.slice(0, 80)}`),
+    );
+    expect(quoted).toEqual([]);
+  });
 });

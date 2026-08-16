@@ -2,37 +2,54 @@ import { describe, expect, test } from "bun:test";
 import { getDictionaryReader, getLabelFromEntry } from "@/src/game/game-dictionary.ts";
 
 /**
- * The shapes below are the shapes the client's dictionary actually holds, read
- * on production build `1785244275300` — one per kind, not one per entry, and
- * written out here as the pattern rather than as the game's own sentences: what
- * is being checked is what this file does to a string, and a made-up string
- * proves that as well as a real one would.
+ * ⚠️ **Every string below is ours, and that is the point of them.**
+ *
+ * The docblock here used to say so while the strings were the client's own
+ * composed sentences, copied out verbatim — one of them a whole sentence with
+ * its full stop (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`,
+ * F1). §5 keeps the operator's writing out of this repository in any form and
+ * `NOTICE.md` promises a reader that it is out, so a claim to that effect had to
+ * become true rather than stay written down.
+ *
+ * **What is quoted is the shape, and the shape is all this file reads.**
+ * `getLabelFromEntry` looks at four things and no others: a leading sign, a
+ * `%…%` hole, a trailing full stop, and surrounding space. Every one of those is
+ * the client's template syntax, quoted verbatim and dated — production build
+ * `1785244275300`, where `_t` composes from `__translations` — and none of them
+ * is prose. The words between them are passed through untouched, so an English
+ * placeholder exercises the same branches a Polish sentence would.
+ *
+ * That is the line §7.5 draws from the other side, too. Its rule is that a test
+ * parsing somebody else's output holds a transcript of it rather than a sample
+ * somebody typed — and the output this parses is the punctuation, which is
+ * transcribed. Inventing the *hole* would be the fault that rule names; keeping
+ * the sentence around it is the fault §5 names.
  */
 describe("the label inside one of the client's strings", () => {
   test("drops the sign that says which way the effect went", () => {
-    expect(getLabelFromEntry("+Cios krytyczny")).toBe("Cios krytyczny");
-    expect(getLabelFromEntry("-Unik")).toBe("Unik");
+    expect(getLabelFromEntry("+Critical hit")).toBe("Critical hit");
+    expect(getLabelFromEntry("-Evade")).toBe("Evade");
   });
 
   test("drops a full stop the client ends a line with", () => {
-    expect(getLabelFromEntry("+Zniszczono pancerz przeciwnika.")).toBe(
-      "Zniszczono pancerz przeciwnika",
-    );
+    expect(getLabelFromEntry("+Armour destroyed outright.")).toBe("Armour destroyed outright");
   });
 
   /**
-   * ⚠️ **A sentence with the figure cut out of it is not a label.** Left in,
-   * `-Zablokowanie %val% obrażeń` draws as "Zablokowanie obrażeń" and
-   * `+Niszczenie pancerza o %val%` as a dangling preposition. The panel has its
-   * own short noun for every one of these, and this is what sends it there.
+   * ⚠️ **A sentence with the figure cut out of it is not a label.** Two shapes
+   * the dictionary holds and neither survives losing its hole: one runs
+   * `<verb> %val% <noun>` and comes back as a verb beside its object with the
+   * number gone, and one ends on the preposition that governed the hole, which
+   * is then left dangling. The panel has its own short noun for every one of
+   * these, and this is what sends it there.
    */
   test("refuses a sentence with a hole in it", () => {
-    expect(getLabelFromEntry("-Zablokowanie %val% obrażeń")).toBeNull();
-    expect(getLabelFromEntry("+Niszczenie pancerza o %val%")).toBeNull();
-    expect(getLabelFromEntry("%name%: %val% obrażeń od trucizny.")).toBeNull();
+    expect(getLabelFromEntry("-Blocked %val% damage")).toBeNull();
+    expect(getLabelFromEntry("+Armour destruction by %val%")).toBeNull();
+    expect(getLabelFromEntry("%name%: %val% damage from poison.")).toBeNull();
   });
 
-  /** The entry that is all hole and no name — `msg_+thirdatt %val%` is `+%val%`. */
+  /** The entry that is all hole and no name — `msg_+thirdatt` resolves to one. */
   test("refuses one that is nothing but a hole", () => {
     expect(getLabelFromEntry("+%val%")).toBeNull();
   });
@@ -51,9 +68,11 @@ describe("asking the page for a dictionary", () => {
   });
 
   test("reads what the client answers", () => {
-    const read = getDictionaryReader({ _t: (id: string) => (id === "msg_+crit" ? "+Cios krytyczny" : undefined) });
+    const read = getDictionaryReader({
+      _t: (id: string) => (id === "msg_+crit" ? "+Critical hit" : undefined),
+    });
     expect(read).not.toBeNull();
-    expect(read?.("msg_+crit")).toBe("Cios krytyczny");
+    expect(read?.("msg_+crit")).toBe("Critical hit");
   });
 
   /**

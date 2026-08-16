@@ -10,10 +10,16 @@
  *
  * ⚠️ **Only a name is a label.** Most of that dictionary is sentences with
  * `%val%` holes in them, and a sentence with the figure cut out of it is not a
- * label — `-Zablokowanie %val% obrażeń` becomes `Zablokowanie obrażeń`, and
- * `+Niszczenie pancerza o %val%` becomes a dangling preposition. So an answer
- * still carrying a hole is refused here and the panel falls back to its own
- * word. The two files agree on the rule from both ends: `panel-names.ts` only
+ * label. Two shapes make the point: a defence entry runs `<verb> %val% <noun>`
+ * and comes back as a verb beside its object with the number gone, and a
+ * destruction entry ends on the preposition that governed its hole, so cutting
+ * the hole leaves the preposition dangling. So an answer still carrying a hole is
+ * refused here and the panel falls back to its own word.
+ *
+ * The entries are described rather than quoted, here and everywhere below: they
+ * are sentences the operator wrote, and §5 keeps those out of this repository in
+ * any form (NOTICE.md). Their **shape** is ours to state, and it is what this
+ * file actually reads. The two files agree on the rule from both ends: `panel-names.ts` only
  * names an id it has read as a name, and this refuses to return a sentence in
  * case the game turns one into the other.
  *

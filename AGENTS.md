@@ -1271,7 +1271,13 @@ tests/
                              §9.1 layering and §5 no network, §7.6 nothing
                              fetched enters git. Discovers files, never lists
                              them — which is why it keeps working after a move
-                             like this one.
+                             like this one. §5's language rules are two here and
+                             not one: which files may **ship** Polish, and — since
+                             the first reads shipped strings with the comments
+                             stripped and so could not see any of it — that no
+                             entry of the client's dictionary is **quoted**
+                             anywhere, hole and Polish words together, comments
+                             and tests and `docs/` included.
     cited-paths.test.ts      Every repository path this repository names in its
                              own text — documents and source comments alike —
                              points at a file that exists, every directory it
