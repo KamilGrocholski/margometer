@@ -3,6 +3,7 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 
 /**
  * The rule that lets a figure name the skill it came from.
@@ -210,7 +211,7 @@ describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
     const creditedByCaster = new Map<number, number>();
     for (const row of statistics.byCombatantId.values()) {
       for (const [healer, amount] of row.healedByHealerId) {
-        creditedByCaster.set(healer, (creditedByCaster.get(healer) ?? 0) + amount);
+        setRunningTotal(creditedByCaster, healer, amount);
       }
     }
 

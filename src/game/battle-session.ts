@@ -21,6 +21,7 @@
 import { getIntegerFromText, getIntegerFromValue } from "@/libs/number.ts";
 import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 import type { CombatantRoster, RosteredCombatant } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
@@ -152,7 +153,7 @@ function composeNextFaults(
   }
 
   const byFault = new Map(previous.unreadablePayloadsByFault);
-  byFault.set(reading.fault, (byFault.get(reading.fault) ?? 0) + 1);
+  setRunningTotal(byFault, reading.fault, 1);
   return {
     unreadablePayloadsByFault: byFault,
     lostMessages: previous.lostMessages + (reading.lostMessages ?? 0),

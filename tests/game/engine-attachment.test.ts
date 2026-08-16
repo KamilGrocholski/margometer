@@ -46,6 +46,7 @@ import { parseFightDump, type CombatantSnapshot } from "@/tools/fight-dump-parse
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
+  getMessagesOfDump,
   getMessagesOfFight,
 } from "@/tests/captured-fight-catalog.ts";
 
@@ -468,14 +469,14 @@ describe("a recording the add-on makes, read back as material", () => {
       const read = parseFightDump(written);
 
       // Every message, in order: the thinning drops calls, never their contents.
-      const getMessagesOf = (calls: readonly { protocolMessages: readonly string[] }[]): string[] =>
-        calls.flatMap((call) => [...call.protocolMessages]);
-      expect(getMessagesOf(read.calls)).toEqual(getMessagesOf(fight.dump.calls));
+      // Read with the shared reader on both sides, so what "the messages of a
+      // recording" means here is what it means everywhere else.
+      expect(getMessagesOfDump(read)).toEqual(getMessagesOfDump(fight.dump));
 
       // And the same fight when read as meaning, not as text.
       const roster = composeRosterOfFight(fight);
-      expect(decodeFight(getMessagesOf(read.calls), roster)).toEqual(
-        decodeFight(getMessagesOf(fight.dump.calls), roster),
+      expect(decodeFight(getMessagesOfDump(read), roster)).toEqual(
+        decodeFight(getMessagesOfDump(fight.dump), roster),
       );
 
       // The health the witness stands on survived the round trip on both sides.

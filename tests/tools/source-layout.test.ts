@@ -281,6 +281,9 @@ describe("value parsing", () => {
   const TIMESTAMP = "libs/timestamp.ts";
   const RECORD = "libs/record.ts";
   const TEXT_ORDER = "libs/text-order.ts";
+  const RUNNING_TOTAL = "libs/running-total.ts";
+  const DECODER = "src/core/fight-decoder.ts";
+  const CATALOG = "tests/captured-fight-catalog.ts";
 
   const OWNED_CONSTRUCTS = [
     // `\bNumber\s*\(` and not `Number` alone: `Number.isInteger` and its
@@ -309,6 +312,45 @@ describe("value parsing", () => {
     // sorted their output with it (F21). The owner splits the deterministic
     // question from the one a person reads, and requires the locale.
     { pattern: /\.localeCompare\s*\(/g, owner: TEXT_ORDER },
+    /**
+     * Not a value reader, and the register holds it for the other reason §7.1
+     * gives: the second consumer arrived long ago and kept arriving. The same
+     * three tokens were written out twice in `src/core/fight-statistics.ts`,
+     * once in `src/ui/panel-view.ts`, once in `src/game/battle-session.ts` and
+     * twice in `tools/decoding-status.ts` — five copies over four files and
+     * three layers, and five is where one of them eventually gets written
+     * differently
+     * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F16).
+     */
+    { pattern: /\.set\(\s*([\w.[\]]+)\s*,\s*\(\s*\w+\.get\(\s*\1\s*\)\s*\?\?\s*0\s*\)/g, owner: RUNNING_TOTAL },
+    /**
+     * The decoder's own shape rule for a damage key, and the key it names a
+     * combatant with. Four test files had the offsets written out by hand and
+     * three had the key declared again under its own name, two of them under a
+     * comment saying this is the decoder's rule so the words mean the same in
+     * both places — which is a sentence a shared export makes true and a copy
+     * merely asserts (F13, F14). §7.5 has paid twice for the general version:
+     * a rule about the shape of somebody else's name, copied by hand, is a fuse.
+     */
+    { pattern: /slice\(\s*1\s*,\s*4\s*\)\s*===\s*"dmg"/g, owner: DECODER },
+    // A **declaration** of it and not a mention: `tests/frozen-protocol-keys.ts`
+    // is generated and lists every key the client knows, which is a table rather
+    // than a second decision about what this one is called.
+    { pattern: /=\s*"\+oth_dmg"/g, owner: DECODER },
+    /**
+     * The messages of a recording, which had been spelled seventeen times before
+     * a shared reader existed and still had three callers outside it afterwards —
+     * worse than no shared reader, because the next person reads the module and
+     * believes it is the only spelling (F15).
+     */
+    // The terminator matters: reading a call's messages *per call* is a different
+    // question and most of `tests/core/` legitimately asks it. What this catches
+    // is the flattening — the whole fight as one list, which is what the shared
+    // reader is.
+    {
+      pattern: /\.flatMap\(\s*\(\s*call\s*\)\s*=>\s*\[?\.{0,3}\s*call\.protocolMessages\]?\s*[),]/g,
+      owner: CATALOG,
+    },
   ];
 
   test.each(SOURCE_FILES)("%s reads values through the primitives", (file) => {

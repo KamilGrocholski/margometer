@@ -3,6 +3,7 @@ import { composeDecimalText } from "@/libs/number.ts";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import {
   decodeFight,
+  isDamageKey,
   UNATTRIBUTABLE_HEALTH_KEYS,
   UNDERSTOOD_PROTOCOL_KEYS,
 } from "@/src/core/fight-decoder.ts";
@@ -14,6 +15,7 @@ import {
   type CapturedFight,
 } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 
 /**
  * The decoder checked against something that is not the decoder.
@@ -30,10 +32,6 @@ import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 
 /** The protocol states percentages rounded to two places, so the comparison is too. */
 const TOLERANCE_IN_PERCENTAGE_POINTS = 0.02;
-
-function isDamageKey(key: string): boolean {
-  return key.slice(1, 4) === "dmg";
-}
 
 /**
  * The health figures this replay adds up itself, and therefore does not have to
@@ -110,19 +108,13 @@ function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[
 
       const target = parsed.target;
       if (target !== null && runningHealth.has(target.combatantId)) {
-        runningHealth.set(
-          target.combatantId,
-          (runningHealth.get(target.combatantId) ?? 0) - takenByTarget,
-        );
+        setRunningTotal(runningHealth, target.combatantId, -takenByTarget);
       }
 
       for (const event of events) {
         if (event.kind !== "health-change") continue;
         if (event.combatantId === null || !runningHealth.has(event.combatantId)) continue;
-        runningHealth.set(
-          event.combatantId,
-          (runningHealth.get(event.combatantId) ?? 0) + event.amount,
-        );
+        setRunningTotal(runningHealth, event.combatantId, event.amount);
       }
 
       for (const event of events) {
@@ -134,10 +126,7 @@ function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[
         // mysterious disagreement.
         if (event.targetId === null) continue;
         if (runningHealth.has(event.targetId)) {
-          runningHealth.set(
-            event.targetId,
-            (runningHealth.get(event.targetId) ?? 0) - event.damage.amount,
-          );
+          setRunningTotal(runningHealth, event.targetId, -event.damage.amount);
         }
       }
 
@@ -149,10 +138,7 @@ function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[
         if (event.kind !== "healing-to-named-combatant") continue;
         if (event.targetId === null) continue;
         if (runningHealth.has(event.targetId)) {
-          runningHealth.set(
-            event.targetId,
-            (runningHealth.get(event.targetId) ?? 0) + event.amount,
-          );
+          setRunningTotal(runningHealth, event.targetId, event.amount);
         }
       }
 

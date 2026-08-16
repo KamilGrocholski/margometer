@@ -364,7 +364,7 @@ search": a rule about the *shape* of somebody else's name, copied by hand, is a
 fuse.
 
 *Where:* `src/core/fight-decoder.ts:58`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F14 — one protocol key, one name, three declarations
 
@@ -378,7 +378,7 @@ Well past §7.1's second consumer, and it is the same shape as F13 one level dow
 the decoder owns what a key is called and three other files have taken a copy.
 
 *Where:* `src/core/fight-decoder.ts:97`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F15 — the reader added to close the last audit's F20 is bypassed by three callers
 
@@ -396,7 +396,7 @@ reader, because the next person reads the module and believes it is the only
 spelling.
 
 *Where:* `tools/fight-report.ts:72`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F16 — the running-total idiom, one private helper and five hand copies
 
@@ -413,7 +413,7 @@ over a map belongs to, since nothing about it knows the game, the protocol or th
 panel.
 
 *Where:* `src/core/fight-statistics.ts:317`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F17 — the panel's row-key grammar is a convention three files hold separately
 

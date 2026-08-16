@@ -75,7 +75,22 @@ export function composeRosterOfFight(fight: CapturedFight): CombatantRoster {
  * the material and the two readings every test needs of it live together.
  */
 export function getMessagesOfFight(fight: CapturedFight): string[] {
-  return fight.dump.calls.flatMap((call) => call.protocolMessages);
+  return getMessagesOfDump(fight.dump);
+}
+
+/**
+ * The same reading, of a dump that is not a capture in this directory.
+ *
+ * One caller and it is the reason this exists rather than a third spelling:
+ * `tests/game/engine-attachment.test.ts` writes a recording and reads it back,
+ * so it holds two `FightDump`s and no `CapturedFight` at all. It had a local
+ * `getMessagesOf` for exactly that, which is a shared reader with a caller
+ * outside it — worse than no shared reader, because the next person reads this
+ * module and believes it is the only spelling
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F15).
+ */
+export function getMessagesOfDump(dump: FightDump): string[] {
+  return dump.calls.flatMap((call) => call.protocolMessages);
 }
 
 /**

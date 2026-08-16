@@ -38,6 +38,7 @@ import {
   type TranslateLabel,
 } from "@/src/ui/panel-names.ts";
 import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-tokens.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 
 /**
  * What the panel is handed.
@@ -679,7 +680,7 @@ function getUnattributedDamageBySource(reading: PanelReading): Map<string, numbe
   const sources = new Map<string, number>();
   for (const row of reading.statistics.byCombatantId.values()) {
     for (const [token, amount] of row.healthLostBySource) {
-      sources.set(token, (sources.get(token) ?? 0) + amount);
+      setRunningTotal(sources, token, amount);
     }
   }
   return sources;

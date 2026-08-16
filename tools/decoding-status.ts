@@ -15,7 +15,12 @@ import {
   composeProtocolMessage,
   parseProtocolMessage,
 } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
+import {
+  CAPTURED_FIGHTS,
+  getMessagesOfFight,
+  type CapturedFight,
+} from "@/tests/captured-fight-catalog.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 
 /** Wide enough for every count the captured material produces. */
 const COLUMN_WIDTH = 5;
@@ -88,20 +93,18 @@ export function getDecodingStatus(fights: readonly CapturedFight[]): DecodingSta
   let messagesWithUnread = 0;
 
   for (const fight of fights) {
-    for (const call of fight.dump.calls) {
-      for (const message of call.protocolMessages) {
-        messages += 1;
+    for (const message of getMessagesOfFight(fight)) {
+      messages += 1;
 
-        const events = decodeFight([message]);
-        for (const event of events) {
-          eventsByKind[event.kind] = (eventsByKind[event.kind] ?? 0) + 1;
-        }
-        if (events.some((event) => event.kind === "unknown-message")) messagesWithUnread += 1;
+      const events = decodeFight([message]);
+      for (const event of events) {
+        eventsByKind[event.kind] = (eventsByKind[event.kind] ?? 0) + 1;
+      }
+      if (events.some((event) => event.kind === "unknown-message")) messagesWithUnread += 1;
 
-        for (const { key } of parseProtocolMessage(message).parameters) {
-          occurrences.set(key, (occurrences.get(key) ?? 0) + 1);
-          if (!sampleMessages.has(key)) sampleMessages.set(key, message);
-        }
+      for (const { key } of parseProtocolMessage(message).parameters) {
+        setRunningTotal(occurrences, key, 1);
+        if (!sampleMessages.has(key)) sampleMessages.set(key, message);
       }
     }
   }

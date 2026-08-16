@@ -18,6 +18,7 @@ import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fig
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
+  getMessagesOfFight,
   type CapturedFight,
 } from "@/tests/captured-fight-catalog.ts";
 
@@ -69,7 +70,7 @@ function writeFightReport(fight: CapturedFight): void {
   const roster = composeRosterOfFight(fight);
   const statistics = composeFightStatistics(
     decodeFight(
-      fight.dump.calls.flatMap((call) => call.protocolMessages),
+      getMessagesOfFight(fight),
       roster,
     ),
     roster,

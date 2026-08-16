@@ -30,6 +30,7 @@
  * taken.
  */
 
+import { setRunningTotal } from "@/libs/running-total.ts";
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
@@ -438,7 +439,7 @@ describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
     const largest = new Map<number, number>();
     for (const event of events) {
       if (event.kind !== "attack" || event.actorId === null) continue;
-      swings.set(event.actorId, (swings.get(event.actorId) ?? 0) + 1);
+      setRunningTotal(swings, event.actorId, 1);
       const landed = event.taken.reduce((sum, one) => sum + one.amount, 0);
       largest.set(event.actorId, Math.max(largest.get(event.actorId) ?? 0, landed));
     }
@@ -530,7 +531,7 @@ describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
     const plain = new Map<number, number>();
     for (const event of events) {
       if (event.kind !== "attack" || event.actorId === null || event.announced !== null) continue;
-      plain.set(event.actorId, (plain.get(event.actorId) ?? 0) + 1);
+      setRunningTotal(plain, event.actorId, 1);
     }
 
     for (const [id, row] of statistics.byCombatantId) {

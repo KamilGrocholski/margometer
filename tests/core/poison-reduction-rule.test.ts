@@ -12,19 +12,19 @@
 
 import { describe, expect, test } from "bun:test";
 import { getIntegerFromText } from "@/libs/number.ts";
-import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import {
+  DAMAGE_TO_NAMED_KEY,
+  decodeFight,
+  isDealtDamageKey,
+  UNDERSTOOD_PROTOCOL_KEYS,
+} from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 
 const REDUCTION_KEY = "-poison_lowdmg_per";
-const DAMAGE_TO_NAMED_KEY = "+oth_dmg";
 
-/** The dealt half of the damage family, by the same shape rule the decoder uses. */
-function isDealtDamageKey(key: string): boolean {
-  return key.startsWith("+") && key.slice(1, 4) === "dmg";
-}
 
 type Occurrence = {
   values: (string | null)[];

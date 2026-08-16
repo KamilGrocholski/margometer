@@ -55,8 +55,23 @@ function getDamageAmount(parameter: { key: string; value: string | null }): Dama
   return { damageType: parameter.key.slice(1), amount };
 }
 
-function isDamageKey(key: string): boolean {
+/**
+ * Whether a key is one of the damage family, by the client's own offset rule.
+ *
+ * Exported because four test files had written the offsets out by hand — two of
+ * them under a comment saying this is the decoder's own shape rule, so "damage
+ * key" means there what it means here, which is a sentence a shared export makes
+ * true and a copy merely asserts. §7.5 has paid twice for the general version of
+ * this: a rule about the *shape* of somebody else's name, copied by hand, is a
+ * fuse (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F13).
+ */
+export function isDamageKey(key: string): boolean {
   return key.slice(1, 1 + DAMAGE_MARKER.length) === DAMAGE_MARKER;
+}
+
+/** The dealt half of that family. The sign is the client's own direction marker. */
+export function isDealtDamageKey(key: string): boolean {
+  return key.startsWith(DEALT_SIGN) && isDamageKey(key);
 }
 
 /**
@@ -96,7 +111,7 @@ const DAMAGE_KEYS_BY_NAME = ["+thirdatt", "-thirdatt"];
  * and a class attribute of `"dmg "` **is** the class `dmg`, so the game itself
  * never made the distinction we were making.
  */
-const DAMAGE_TO_NAMED_KEY = "+oth_dmg";
+export const DAMAGE_TO_NAMED_KEY = "+oth_dmg";
 const NAMED_WITH_PERCENT = /^(.*)\((\d+\.\d\d)%\)$/;
 
 function decodeDamageToNamedCombatant(

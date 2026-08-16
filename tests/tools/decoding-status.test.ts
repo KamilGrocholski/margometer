@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { CAPTURED_FIGHTS, type CapturedFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 import { getDecodingStatus } from "@/tools/decoding-status.ts";
+import { DAMAGE_TO_NAMED_KEY } from "@/src/core/fight-decoder.ts";
 
 /**
  * The counters this project reports progress with. They are computed rather
@@ -60,7 +61,7 @@ describe("decoding status", () => {
   // only in the company of `tspell`. Both times the counters looked plausible.
   test("reports no key as unread that the decoder demonstrably reads", () => {
     const unread = STATUS.unreadKeysByFrequency.map((entry) => entry.key);
-    for (const key of ["+dmgc", "-dmgc", "+oth_dmg", "winner", "tspell", "-absorb", "+crit"]) {
+    for (const key of ["+dmgc", "-dmgc", DAMAGE_TO_NAMED_KEY, "winner", "tspell", "-absorb", "+crit"]) {
       expect(unread, key).not.toContain(key);
     }
   });

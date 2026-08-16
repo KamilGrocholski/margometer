@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { getIntegerFromText, getNumberFromText } from "@/libs/number.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
-import { UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { DAMAGE_TO_NAMED_KEY, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 import { FROZEN_HELP_PHRASES } from "@/tests/frozen-help-phrases.ts";
@@ -342,7 +342,9 @@ describe("the register against the captured material", () => {
     if (occurrences.every((of) => of.keys.includes("tspell"))) return "on a skill announcement";
     if (occurrences.every((of) => of.keys.some(isComputedKey))) return "on a blow";
     if (
-      occurrences.every((of) => of.keys.some(isComputedKey) || of.keys.includes("+oth_dmg"))
+      occurrences.every(
+        (of) => of.keys.some(isComputedKey) || of.keys.includes(DAMAGE_TO_NAMED_KEY),
+      )
     ) {
       return "on a message reporting damage";
     }

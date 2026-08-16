@@ -11,7 +11,12 @@
 
 import { describe, expect, test } from "bun:test";
 import { getIntegerFromText } from "@/libs/number.ts";
-import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import {
+  DAMAGE_TO_NAMED_KEY,
+  decodeFight,
+  isDamageKey,
+  UNDERSTOOD_PROTOCOL_KEYS,
+} from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
@@ -19,12 +24,7 @@ import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 
 const SKILL_NAME_KEY = "tspell";
 const COMBO_LIMIT_KEY = "combo-max";
-const DAMAGE_TO_NAMED_KEY = "+oth_dmg";
 
-/** The decoder's own shape rule, so "damage key" means here what it means there. */
-function isShapeDamageKey(key: string): boolean {
-  return key.slice(1, 4) === "dmg";
-}
 
 /**
  * A count of combination points, not a quantity of anything. Far below what the
@@ -75,7 +75,7 @@ describe("what a skill announcement carries", () => {
 
   // The half of the old claim that survived measuring it again.
   test("never carries a key from the damage family", () => {
-    const withDamage = ANNOUNCEMENTS.filter(({ keys }) => keys.some(isShapeDamageKey));
+    const withDamage = ANNOUNCEMENTS.filter(({ keys }) => keys.some(isDamageKey));
     expect(withDamage).toEqual([]);
   });
 

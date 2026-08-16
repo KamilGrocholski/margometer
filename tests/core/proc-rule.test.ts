@@ -13,7 +13,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { decodeFight, isDamageKey } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
@@ -23,10 +23,6 @@ import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
  * proc here and is not one, which is why it is named rather than described.
  */
 const LOOKS_LIKE_A_PROC = "+legbon_holytouch";
-
-function isShapeDamageKey(key: string): boolean {
-  return key.slice(1, 4) === "dmg";
-}
 
 type Landed = { proc: string; keys: { key: string; value: string | null }[]; onBlow: boolean };
 
@@ -40,7 +36,7 @@ const LANDED: Landed[] = CAPTURED_FIGHTS.flatMap((fight) =>
       return procs.map((proc) => ({
         proc,
         keys: parameters,
-        onBlow: parameters.some((parameter) => isShapeDamageKey(parameter.key)),
+        onBlow: parameters.some((parameter) => isDamageKey(parameter.key)),
       }));
     }),
   ),

@@ -229,8 +229,7 @@ describe("health that moved where nobody can be credited", () => {
       roster,
     );
     const casts = statistics.reading.unaccountedHealthBySource.get("healall_per") ?? 0;
-    const stated = fight.dump.calls
-      .flatMap((call) => call.protocolMessages)
+    const stated = getMessagesOfFight(fight)
       .filter((message) => message.includes("healall_per")).length;
 
     expect(casts).toBe(stated);

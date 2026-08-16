@@ -701,6 +701,17 @@ libs/
                          admitting an array as a record and five refusing one,
                          and neither group was wrong — the live client may send
                          either, a stored position may not.
+  running-total.ts       Adding to a total a map already carries, where a key
+                         nobody has seen starts at zero. One spelling in
+                         JavaScript, so §9.5's criterion does not put it here —
+                         §7.1's second consumer does, five times over: the same
+                         three tokens sat in `fight-statistics.ts` twice, in
+                         `panel-view.ts`, in `battle-session.ts` and twice in
+                         `decoding-status.ts`, across three layers. A counter
+                         over a map knows nothing of the game, the protocol or
+                         the panel. Two readers, because a total per **pair**
+                         starts its outer key at a map and its inner at a zero,
+                         and that is two starting values in one expression.
   source-regions.ts      Where the comments, the text literals and the patterns
                          sit in a piece of source. One fact, wanted in two
                          shapes: the guards
@@ -1054,7 +1065,7 @@ tests/
 
   libs/
     assert.test.ts  json.test.ts  number.test.ts  record.test.ts
-    timestamp.test.ts
+    running-total.test.ts  timestamp.test.ts
 
   core/                  The decoder and the aggregate, and every claim about the
                          game held to the captures — those rules guard what the
@@ -1296,7 +1307,13 @@ tests/
                              the recordings. Comments, tests and `docs/` included
                              for both. The ability names are read off the captures
                              rather than listed, so the check cannot fall behind
-                             the next recording. Which files may ship Polish now
+                             the next recording. The register of owned constructs
+                             holds four more that are not value readers at all —
+                             the decoder's damage-key shape and the key it names a
+                             combatant with, the messages of a whole recording,
+                             and the running total — because §7.1's second
+                             consumer had arrived for each of them several times
+                             over. Which files may ship Polish now
                              reads `tools/` too — a release's notes are read by
                              every player who installs an update and are composed
                              there, so "not in the bundle" was never a reason to

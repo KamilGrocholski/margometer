@@ -22,6 +22,7 @@
 import { composeIntegerText } from "@/libs/number.ts";
 import type { AnnouncedSkill, BattleEvent } from "@/src/core/battle-event.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
+import { setPairRunningTotal, setRunningTotal } from "@/libs/running-total.ts";
 
 /**
  * One skill this combatant announced, and what the game glued to it.
@@ -307,22 +308,6 @@ function composeRow(): Row {
   };
 }
 
-/** Adds to the running total this pair already carries, starting one at zero. */
-function setPairTotal(
-  pairs: Map<number, Map<string, number>>,
-  combatantId: number,
-  token: string,
-  amount: number,
-): void {
-  const row = pairs.get(combatantId) ?? new Map<string, number>();
-  row.set(token, (row.get(token) ?? 0) + amount);
-  pairs.set(combatantId, row);
-}
-
-/** Adds to the running total this token already carries, starting one at zero. */
-function setRunningTotal(totals: Map<string, number>, token: string, amount: number): void {
-  totals.set(token, (totals.get(token) ?? 0) + amount);
-}
 
 /** Merges one row's figures into another, token by token so no unit is crossed. */
 function setTotalsFrom(into: Row, member: CombatantStatistics): void {
@@ -444,10 +429,10 @@ export function composeFightStatistics(
           target.taken += damage.amount;
           setRunningTotal(target.takenByElement, damage.damageType, damage.amount);
           if (event.targetId !== null) {
-            setPairTotal(actor.dealtByTargetId, event.targetId, damage.damageType, damage.amount);
+            setPairRunningTotal(actor.dealtByTargetId, event.targetId, damage.damageType, damage.amount);
           }
           if (event.actorId !== null) {
-            setPairTotal(target.takenByActorId, event.actorId, damage.damageType, damage.amount);
+            setPairRunningTotal(target.takenByActorId, event.actorId, damage.damageType, damage.amount);
           }
         }
         actor.largestBlow = Math.max(actor.largestBlow, landed);
@@ -485,8 +470,8 @@ export function composeFightStatistics(
         setRunningTotal(actor.dealtAppliedByElement, damageType, amount);
         target.taken += amount;
         setRunningTotal(target.takenByElement, damageType, amount);
-        if (event.targetId !== null) setPairTotal(actor.dealtByTargetId, event.targetId, damageType, amount);
-        if (event.actorId !== null) setPairTotal(target.takenByActorId, event.actorId, damageType, amount);
+        if (event.targetId !== null) setPairRunningTotal(actor.dealtByTargetId, event.targetId, damageType, amount);
+        if (event.actorId !== null) setPairRunningTotal(target.takenByActorId, event.actorId, damageType, amount);
         setSkillTotals(event.announced, (skill) => {
           skill.dealtApplied += amount;
           if (event.targetId !== null) {
