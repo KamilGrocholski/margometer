@@ -116,8 +116,10 @@ describe("naming one token", () => {
  * do.** `tests/ui/panel-view.test.ts` walks every screen checking that no key of
  * the game's and no term of ours reaches a player — a vocabulary check, and it
  * passes just as happily when a phrase is replaced by a different phrase.
- * `bun tools/mutation-sweep.ts` put a sentinel through all 43 of these entries
- * and nothing anywhere went red.
+ * `bun tools/mutation-sweep.ts` put a sentinel through every one of these entries
+ * and nothing anywhere went red. (Written as "all 43" until there were 44 —
+ * `docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F8. The block
+ * below counts them; a sentence beside it cannot.)
  *
  * That is not a small hole. A fallback is what a player reads when their client
  * has no name for a token, and two of them saying the same thing is a wrong

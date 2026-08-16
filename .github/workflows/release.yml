@@ -49,10 +49,12 @@ jobs:
           grep -qx "// @version      ${declared}" dist/margometer.meta.js
 
       # The notes are this version's section of CHANGELOG.md, which is the one
-      # document here written for players. Not a generated commit list: 108
-      # commits went into 0.6.0 and a dump of their subjects tells a player
-      # nothing they can act on. A version with no section fails here, loudly,
-      # rather than publishing a release that says nothing about itself.
+      # document here written for players. Not a generated commit list: a release
+      # here is hundreds of commits and a dump of their subjects tells a player
+      # nothing they can act on. (The count used to be written out and was wrong
+      # by two — `docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`,
+      # F22.) A version with no section fails here, loudly, rather than
+      # publishing a release that says nothing about itself.
       - name: compose the release notes
         run: bun tools/changelog.ts notes "${GITHUB_REF_NAME#v}" > release-notes.md
 

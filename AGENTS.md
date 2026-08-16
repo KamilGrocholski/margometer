@@ -58,8 +58,13 @@ Untagged prose is context and reasoning — read it, but it does not bind.
 | `[docs]` | The register, the specs and the audits | `docs/` |
 | `[process]` | Commits, validation, workflow | `.github/workflows/`, `.claude/skills/verify/` |
 
-The entry point `src/userscript-entry.ts` is `[any]`: it is the one file allowed
-to know every layer at once, so no narrower scope would be true of it.
+Two files sit directly in `src/` and are `[any]`, for opposite reasons.
+`src/userscript-entry.ts` is allowed to know every layer at once, so no narrower
+scope would be true of it. `src/userscript-version.ts` knows **no** layer — it is
+a build-time constant substituted from `package.json` — so no narrower scope
+would be true of it either, and §9.1 lets every layer read it. Naming only the
+first left the file every layer reads bound by nothing
+(`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F23).
 
 ⚠️ **This table is the map — keep it true.** A scope whose path no longer
 exists, or a directory missing from this table, is the first sign the rules have
@@ -582,6 +587,11 @@ build.ts                 Bundles src/ into dist/ and prepends the userscript
                          composeUserscriptBanner() and both filenames, whose
                          second consumers are the test and the release notes.
 package.json             Version, scripts. `bun run check` is the gate.
+bun.lock                 What the gate is actually run against. Listed here
+                         because §6.1 turns on it: a package `node_modules` holds
+                         and this file does not name is ambient type information
+                         CI will not have, which is the one failure the local
+                         gate cannot report.
 tsconfig.json            Strict flags standing in for a linter, and the `@/*`
                          import alias — §9.3.
 .gitignore               What never enters git, including `.cache/` — which
@@ -596,8 +606,9 @@ tsconfig.json            Strict flags standing in for a linter, and the `@/*`
 .claude/skills/verify/   How to run the add-on rather than test it: the browser
                          harness that puts the built userscript in front of a
                          captured fight. Not a rule and not a gate — the gate is
-                         §6.1 and cannot see a panel. `settings.local.json` sits
-                         beside it and stays out of git, per machine.
+                         §6.1 and cannot see a panel. `.claude/settings.local.json`
+                         sits a directory above it and stays out of git, per
+                         machine.
 
 .cache/                  Game client sources, fetched on demand. NOT tracked and
                          never published — §7.6. Absent until first fetched.
@@ -1160,7 +1171,7 @@ tests/
                              them returns.
     panel-names.test.ts      The vocabulary held to saying each thing differently
                              from every other thing — and, since a sweep put a
-                             sentinel through all 43 entries with nothing going
+                             sentinel through every entry with nothing going
                              red, to saying what it was written to say: the
                              tables are recorded entry by entry, so changing what
                              the panel calls something is one line of a diff and

@@ -240,7 +240,7 @@ Nothing catches it because `tests/tools/structure-block.test.ts:109` asks git fo
 the root at all.
 
 *Where:* `tests/tools/structure-block.test.ts:109`
-*Closes:* open
+*Closes:* guard `tests/tools/structure-block.test.ts`
 
 ### F8 — "43 entries" is 44
 
@@ -255,7 +255,7 @@ nothing went red" reads as a measured hole, while 43 out of 44 reads as a
 miscount.
 
 *Where:* `tests/ui/panel-names.test.ts:119`
-*Closes:* open
+*Closes:* commit
 
 ### F9 — the copied report re-lists the data contract by hand
 
@@ -523,7 +523,7 @@ argument for release notes being a changelog section rather than a commit dump.
 is a count of our own artefacts left in prose, and it was already wrong.
 
 *Where:* `tests/tools/cited-paths.test.ts:100`
-*Closes:* open
+*Closes:* commit
 
 ### F23 — `src/userscript-version.ts` sits in no scope of §2
 
@@ -539,7 +539,7 @@ first sign the rules have drifted from the tree, and the file every layer reads
 carries no tag at all, so no rule written with a scope demonstrably binds it.
 
 *Where:* `AGENTS.md:53`
-*Closes:* open
+*Closes:* rule §2
 
 ### F24 — `settings.local.json` does not sit beside the verify skill
 
@@ -553,7 +553,7 @@ whose entire job is to state locations, in the one part of the tree
 `tests/tools/structure-block.test.ts` does not walk.
 
 *Where:* `AGENTS.md:599`
-*Closes:* open
+*Closes:* commit
 
 ### F25 — the gate still watches a branch that was merged, under a comment saying the work happens there
 
@@ -568,7 +568,7 @@ nothing; the comment is a sentence about how this repository is worked on that
 stopped being true, in the file a newcomer reads to find out how it is worked on.
 
 *Where:* `.github/workflows/check.yml:8`
-*Closes:* open
+*Closes:* commit
 
 ### F26 — size, recorded a third time, and the prose ratio underneath it
 

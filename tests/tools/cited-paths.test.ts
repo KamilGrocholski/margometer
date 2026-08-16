@@ -97,8 +97,10 @@ const FILES_BY_ROOT = new Map(AUTHORED_ROOTS.map((root) => [root, getAuthoredFil
 
 const AUTHORED_FILES = [
   ...[...FILES_BY_ROOT.values()].flat(),
-  // The four at the root are where the rules themselves live, so they are where
-  // a stale citation costs the most.
+  // The documents at the root are where the rules themselves live, so they are
+  // where a stale citation costs the most. Counted by the line below rather than
+  // stated here — the sentence said "the four" while there were five
+  // (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F22).
   ...readdirSync(REPOSITORY_ROOT).filter((file) => file.endsWith(".md")),
 ];
 

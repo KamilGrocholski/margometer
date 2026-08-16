@@ -116,6 +116,26 @@ function getTrackedSourceFiles(): string[] {
 
 const TRACKED_SOURCE_FILES = getTrackedSourceFiles();
 
+/**
+ * The root, which the walk above skips because it asks for three directories by
+ * name.
+ *
+ * Asked for separately rather than by widening that call, because the root is
+ * the one place the block enumerates file by file with no summarising: every
+ * root file has its own entry and its own sentence, so demanding one per file is
+ * holding the block to a shape it does claim. `bun.lock` had been tracked
+ * without an entry for the life of this tree, and it is the file §6.1's rule
+ * about the gate turns on
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F7).
+ */
+function getTrackedRootFiles(): string[] {
+  return execFileSync("git", ["ls-files"], { cwd: REPOSITORY_ROOT, encoding: "utf8" })
+    .split("\n")
+    .filter((file) => file !== "" && !file.includes("/"));
+}
+
+const TRACKED_ROOT_FILES = getTrackedRootFiles();
+
 describe("§8's structure block against the tree", () => {
   /**
    * Both counted, and the lesson is `cited-paths.test.ts`'s: with its walker
@@ -126,6 +146,7 @@ describe("§8's structure block against the tree", () => {
   test("the block was found, and the tree was read", () => {
     expect(ENTRIES.length).toBeGreaterThan(0);
     expect(TRACKED_SOURCE_FILES.length).toBeGreaterThan(0);
+    expect(TRACKED_ROOT_FILES.length).toBeGreaterThan(0);
   });
 
   test("every name it lists exists", () => {
@@ -146,5 +167,10 @@ describe("§8's structure block against the tree", () => {
     const listed = new Set(ENTRIES.map((entry) => entry.name));
     const absent = TRACKED_SOURCE_FILES.filter((file) => !listed.has(file.split("/").pop() ?? ""));
     expect(absent).toEqual([]);
+  });
+
+  test("every tracked file at the root appears in it", () => {
+    const listed = new Set(ENTRIES.map((entry) => entry.name));
+    expect(TRACKED_ROOT_FILES.filter((file) => !listed.has(file))).toEqual([]);
   });
 });
