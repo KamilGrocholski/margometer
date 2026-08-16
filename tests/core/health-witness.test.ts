@@ -41,8 +41,7 @@ function isDamageKey(key: string): boolean {
  * which is why it is derived from the decoder rather than listed here: the
  * replay consumes every event the decoder produces, so what it accounts for is
  * exactly what the decoder reads.
- */
-/**
+ *
  * Whether the replay can **add** this key's figure — which is not the same as
  * whether the decoder understands it, and the difference is load-bearing.
  *

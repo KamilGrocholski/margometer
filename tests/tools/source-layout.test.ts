@@ -2,7 +2,9 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import {
+  composeSourceWithBlankedComments,
   composeSourceWithoutComments,
+  getCommentRangesFromSource,
   getTextRangesFromSource,
 } from "@/libs/source-regions.ts";
 import { CAPTURED_FIGHTS, getMessagesOfFight } from "@/tests/captured-fight-catalog.ts";
@@ -546,6 +548,65 @@ describe("the colours", () => {
 });
 
 /**
+ * A docblock describes the declaration under it, and nothing else can be under
+ * it.
+ *
+ * ⚠️ **Two `/** *\/` blocks back to back is an orphan**, and the first one is the
+ * orphan: whatever it describes, the reader will attach it to the declaration the
+ * second block already claims. Five of them were found in shipped source by one
+ * audit; the commit that closed a *different* finding of the next audit created
+ * another, in `tests/captured-fight-catalog.ts`, where a full docblock for
+ * `CAPTURED_FIGHTS` sat above `getMessagesOfFight`'s own and the constant it
+ * described was declared 25 lines later
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F6).
+ *
+ * That is why this is a guard and not a third careful reading: the last round
+ * proved by example that reading is not enough, and this is the one shape of the
+ * fault a machine can see without knowing what any of the prose means.
+ */
+describe("a docblock and the declaration under it", () => {
+  /**
+   * ⚠️ **A file's own docblock is the exception, and the only one.** Several
+   * modules open with one and follow it immediately with the first declaration's;
+   * that block describes the module, so nothing is orphaned. It is told apart by
+   * where it starts and not by what it says: the module's block is the first
+   * thing in the file, and any other block back-to-back with the next one has
+   * lost whatever it was written above.
+   */
+  function getOrphanedDocblocks(file: string): string[] {
+    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    const docblocks = getCommentRangesFromSource(source).filter((range) =>
+      source.slice(range.start, range.start + 3) === "/**",
+    );
+    // Blanked rather than removed, so an offset still means what it did. Most
+    // modules here put their own docblock *after* the imports, so "first thing in
+    // the file" has to mean "nothing but imports has happened yet".
+    const blanked = composeSourceWithBlankedComments(source);
+    const isModuleBlock = (at: number): boolean =>
+      blanked.slice(0, at).replace(/import[\s\S]*?;/g, "").trim() === "";
+
+    return docblocks.flatMap((range, index) => {
+      const next = docblocks[index + 1];
+      if (next === undefined) return [];
+      if (source.slice(range.end, next.start).trim() !== "") return [];
+      if (isModuleBlock(range.start)) return [];
+      return [`${file}:${source.slice(0, range.start).split("\n").length}`];
+    });
+  }
+
+  test("there are docblocks to check", () => {
+    const blocks = SOURCE_FILES.flatMap((file) =>
+      getCommentRangesFromSource(readFileSync(REPOSITORY_ROOT + file, "utf8")),
+    );
+    expect(blocks.length).toBeGreaterThan(0);
+  });
+
+  test("no docblock is followed by another with nothing in between", () => {
+    expect(SOURCE_FILES.flatMap(getOrphanedDocblocks)).toEqual([]);
+  });
+});
+
+/**
  * AGENTS.md §3. Which files speak Polish, and it is a short list on purpose.
  *
  * §3 admits exactly one kind of exception in shipped code — **the text a player
@@ -583,12 +644,33 @@ describe("the language of the strings", () => {
    * `src/game/game-dictionary.ts` is deliberately absent — its Polish is a
    * quotation inside a comment, which the stripper above removes and which no
    * player ever reads.
+   *
+   * ⚠️ **`tools/changelog.ts` is the fifth, and it was invisible for the same
+   * reason F4 of the last audit found a fourth.** The walk below read `src/` and
+   * `libs/` only, so six lines of Polish a player reads on every release sat
+   * outside it — and two sentences in §8 stayed true on a technicality nobody had
+   * written down, one calling `CHANGELOG.md` the only *document* here in Polish
+   * and one calling the panel trio plus the version file the files that *ship*
+   * Polish. This file is neither a document nor shipped in the userscript, and
+   * "neither" is not a reason to be unwatched
+   * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F4).
    */
   const SPEAKS_POLISH: Array<{ file: string; phrase?: string }> = [
     { file: "src/ui/panel-element.ts" },
     { file: "src/ui/panel-names.ts" },
     { file: "src/ui/panel-view.ts" },
     { file: "src/userscript-version.ts", phrase: '"z drzewa"' },
+    { file: "tools/changelog.ts" },
+    /**
+     * A sixth, found by widening the walk and not by the audit that asked for
+     * it. Its Polish is neither a player's nor ours: it is the marker the
+     * **previous incarnation's** tooling wrote where a description came out, and
+     * it sits in a capture this repository still holds. Recognising only today's
+     * spelling would make the tool remove that marker as though it were prose
+     * from the game — rewriting evidence to match a newer convention, which §9.2
+     * forbids. The string is admitted because deleting it would be the fault.
+     */
+    { file: "tools/captured-fight-intake.ts" },
   ];
 
   function getPolishStrings(file: string): string[] {
@@ -598,7 +680,14 @@ describe("the language of the strings", () => {
       .filter((text) => POLISH_LETTER.test(text));
   }
 
-  const SHIPPED = SOURCE_FILES.filter((file) => file.startsWith("src/") || file.startsWith("libs/"));
+  /**
+   * Everything that reaches a person, which is not the same as everything that
+   * ships in the bundle: a release's notes are read by every player who installs
+   * an update, and they are composed in `tools/`.
+   */
+  const SHIPPED = SOURCE_FILES.filter((file) =>
+    NON_TEST_DIRECTORIES.some((directory) => file.startsWith(directory)),
+  );
 
   test("there are shipped files to read", () => {
     expect(SHIPPED.length).toBeGreaterThan(0);

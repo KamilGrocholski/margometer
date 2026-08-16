@@ -176,7 +176,7 @@ Polish that the guard written for that question could not see — and the remedy
 there was to widen what the guard reads.
 
 *Where:* `tools/changelog.ts:54`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F5 — a deliberate null collapsed to zero, in the one place accessibility is decided
 
@@ -220,7 +220,7 @@ to its declaration, and the last round proved by example that reading is not
 enough.
 
 *Where:* `tests/captured-fight-catalog.ts:66`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F7 — `bun.lock` is the one tracked root file §8's block does not name
 
@@ -466,7 +466,7 @@ rather than merely computed from it, and §9.5's table says a default that makes
 the number look right is never the answer.
 
 *Where:* `tools/captured-fight-intake.ts:287`
-*Closes:* open
+*Closes:* guard `tests/tools/captured-fight-intake.test.ts`
 
 ### F20 — the dated-name rule, byte-identical in two guards
 

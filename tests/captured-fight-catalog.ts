@@ -65,16 +65,6 @@ export function composeRosterOfFight(fight: CapturedFight): CombatantRoster {
 }
 
 /**
- * Every capture in `tests/captured-fights/`, read with the same reader the
- * tooling uses.
- *
- * Discovered by listing the directory rather than from a list of names: a file
- * dropped in is checked immediately instead of sitting dead, and that is the
- * condition under which data files are allowed in this repo at all.
- *
- * Sorted, because test numbering must not depend on filesystem order.
- */
-/**
  * Every protocol message a capture carries, in arrival order.
  *
  * One function rather than seventeen copies: `fight.dump.calls.flatMap(…)` was
@@ -88,6 +78,16 @@ export function getMessagesOfFight(fight: CapturedFight): string[] {
   return fight.dump.calls.flatMap((call) => call.protocolMessages);
 }
 
+/**
+ * Every capture in `tests/captured-fights/`, read with the same reader the
+ * tooling uses.
+ *
+ * Discovered by listing the directory rather than from a list of names: a file
+ * dropped in is checked immediately instead of sitting dead, and that is the
+ * condition under which data files are allowed in this repo at all.
+ *
+ * Sorted, because test numbering must not depend on filesystem order.
+ */
 export const CAPTURED_FIGHTS: CapturedFight[] = readdirSync(CAPTURED_FIGHTS_DIRECTORY)
   .filter((file) => file.endsWith(".json"))
   .sort()

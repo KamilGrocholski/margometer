@@ -275,8 +275,7 @@ describe("what nobody can be charged with", () => {
    * Health that fell without a blow is real damage with no attacker. It cannot
    * sit on a row, and dropping it would take 13% of what hit the boss in the
    * group capture off the screen.
-   */
-  /**
+   *
    * ⚠️ **Every tab, and for a whole release one of the four had nothing.**
    * `Otrzymane` returned early, so the one screen where 13% of what hit the boss
    * in the group capture is *already inside the rows* was also the one screen
@@ -426,8 +425,7 @@ describe("drilling", () => {
    * The property that makes a breakdown safe to read: what the named parts do
    * not cover has a row of its own, so the section adds up to the figure it was
    * entered from.
-   */
-  /**
+   *
    * ⚠️ **The row a player asked for.** A combatant who announces nothing appeared
    * only as a figure with no shape: the panel could say what a skill did and
    * could not say that somebody simply swung. It carries a count for the same
@@ -992,8 +990,7 @@ describe("against the captured fights", () => {
    * `.row { overflow: hidden }` clips that into a bar indistinguishable from a
    * full one: the row that says *something here is missing* drawn as the largest
    * thing in the fight.
-   */
-  /**
+   *
    * ⚠️ **The share was halved under `Leczenie`, and nothing said so.**
    *
    * Healing nobody announced still lands on somebody, so it is already counted on
@@ -1002,8 +999,7 @@ describe("against the captured fights", () => {
    * 79% it is on the group capture. Under `Leczenie dane` the same points really
    * are outside the ranking, so the two directions must arrive at **one** share of
    * one whole. They are the same missing healing measured the same way.
-   */
-  /**
+   *
    * ⚠️ **And the same claim for damage, which is where the balance is written
    * down.** `Σ dealt + unattributed = Σ taken` is the spec's own sentence, and
    * this is the only place it is measured: the two directions state one figure
@@ -1153,8 +1149,7 @@ describe("against the captured fights", () => {
    * in one string, which reads as one list of comparable things and invites the
    * addition §10 forbids. They are two blocks now, each labelled, and the unit
    * rides in the value of the one that is not in points.
-   */
-  /**
+   *
    * ⚠️ **Read off the material, not off a list somebody keeps.**
    *
    * The sweep above holds the panel against tokens written down by hand, and a
@@ -1428,13 +1423,12 @@ describe("what a bar's length says", () => {
  * has to be added here on purpose, which is the right amount of friction for a
  * word a player reads (§3).
  *
- * **Driven by the hand-written fight and not the captures**, and that is the
+ * *Driven by the hand-written fight and not the captures**, and that is the
  * condition it exists under rather than a convenience: the drill names skills
  * and combatants, and those are the game's own prose (§5, NOTICE.md). Anything
  * carrying a figure or a name from the fixture is dropped, so what is left is
  * only ever ours.
- */
-/**
+ *
  * A fight where the game names a target this fight has nobody to match.
  *
  * `+oth_dmg` states the target by **name**, and a name resolves through the

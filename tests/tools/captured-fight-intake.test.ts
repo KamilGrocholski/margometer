@@ -188,6 +188,48 @@ describe("the file that comes out", () => {
     expect(intake.changed).toBeGreaterThan(0);
   });
 
+  /**
+   * Absent and unreadable, which are not the same reading and one of them is not
+   * zero.
+   *
+   * A first intake has no such count and zero is right. A count the reader
+   * refuses means an earlier redaction did something this tool cannot size — and
+   * it used to read as zero and be written back into the file, stating that
+   * nothing had been substituted. §9.2 makes this the one place a wrong number is
+   * written **onto the evidence**
+   * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F19).
+   */
+  test("counts from nothing where a recording has never been redacted", () => {
+    const intake = composeIntakeText(
+      composeRecording({ "5": { id: 5, npc: 0, name: "SomeNickname" } }),
+    );
+    const written = getValueFromJsonText(intake.text).value as Record<string, unknown>;
+
+    expect(written["pseudonimow"]).toBe(intake.changed);
+    expect(written["opisow"]).toBe(0);
+  });
+
+  test("adds to a count already there rather than starting again", () => {
+    const recording = composeRecording({ "5": { id: 5, npc: 0, name: "SomeNickname" } });
+    (recording as Record<string, unknown>)["pseudonimow"] = 7;
+
+    const intake = composeIntakeText(recording);
+    const written = getValueFromJsonText(intake.text).value as Record<string, unknown>;
+
+    expect(written["pseudonimow"]).toBe(7 + intake.changed);
+  });
+
+  test("refuses a count it cannot read rather than writing zero over it", () => {
+    for (const unreadable of ["7", 7.5, -1, null, {}, []]) {
+      const recording = composeRecording({ "5": { id: 5, npc: 0, name: "SomeNickname" } });
+      (recording as Record<string, unknown>)["pseudonimow"] = unreadable;
+
+      expect(() => composeIntakeText(recording), String(unreadable)).toThrow(
+        CapturedFightIntakeError,
+      );
+    }
+  });
+
   test("is named for the day, the world and what a person called it", () => {
     const path = composeIntakePath(composeRecording({}), "pvp-poison");
 

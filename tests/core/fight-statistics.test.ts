@@ -164,8 +164,7 @@ describe("the aggregate over captured fights", () => {
    * §9.6: a total that might be too low has to be markable as such, which is
    * impossible if the aggregate forgets what it could not read. Every capture
    * carries unread keys, so this is measured rather than constructed.
-   */
-  /**
+   *
    * ⚠️ Both halves of this used to be measured on the captures, and one of them
    * has gone to zero: no message in either fight is unread any more. The path is
    * still worth guarding, so it is guarded on a message written for the purpose

@@ -1172,8 +1172,9 @@ const SOURCE_HEADINGS: Record<PanelMetric, string> = {
   healed: "OD CZEGO",
 };
 
-/** The deepest level: one opponent, or one skill, of the combatant in focus. */
 /**
+ * The deepest level: one opponent, or one skill, of the combatant in focus.
+ *
  * A cross-section of a single row repeats the total standing over it, so it is
  * not drawn at all.
  *

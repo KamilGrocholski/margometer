@@ -1282,7 +1282,11 @@ tests/
                              §9.1 layering and §5 no network, §7.6 nothing
                              fetched enters git. Discovers files, never lists
                              them — which is why it keeps working after a move
-                             like this one. §5's language rules are three here
+                             like this one. Also that a docblock is followed by a
+                             declaration and never by a second docblock: the
+                             first of two is the orphan, because a reader
+                             attaches it to whatever the second one already
+                             claims. §5's language rules are three here
                              and not one: which files may **ship** Polish, and —
                              since the first reads shipped strings with the
                              comments stripped and so could see neither — that no
@@ -1292,7 +1296,11 @@ tests/
                              the recordings. Comments, tests and `docs/` included
                              for both. The ability names are read off the captures
                              rather than listed, so the check cannot fall behind
-                             the next recording.
+                             the next recording. Which files may ship Polish now
+                             reads `tools/` too — a release's notes are read by
+                             every player who installs an update and are composed
+                             there, so "not in the bundle" was never a reason to
+                             be unwatched.
     cited-paths.test.ts      Every repository path this repository names in its
                              own text — documents and source comments alike —
                              points at a file that exists, every directory it
