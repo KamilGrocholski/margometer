@@ -31,7 +31,7 @@ import { getPinnedLeftover } from "@/src/ui/panel-nobody.ts";
 import type { PanelReading } from "@/src/ui/panel-reading.ts";
 import type { PanelRow, PanelView } from "@/src/ui/panel-shape.ts";
 import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
-import { composePanelView } from "@/src/ui/panel-view.ts";
+import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 /**
@@ -694,6 +694,21 @@ describe("zero and unknown are different sentences", () => {
     expect(view.emptyText).toBe("Nikt jej nie leczył.");
     expect(view.emptyLimitText).toBeNull();
   });
+
+  /**
+   * ⚠️ **A third state, and it is neither of the two above.** A combatant with
+   * nothing has been measured and came to zero; a figure we could not read is a
+   * limit; and before any payload there is no fight to have measured or failed to
+   * read. What the panel drew for it was nothing at all — a body so empty it was
+   * the same picture as a collapsed one — so the sentence is recorded here rather
+   * than described, and its height is held against the ranking's own.
+   */
+  test("no fight yet is a third sentence, and it states no figure", () => {
+    expect(PANEL_WAITING.text).toBe("Nie było jeszcze walki.");
+    expect(PANEL_WAITING.visibleRows).toBe(
+      composePanelView(composeReading(), composeState()).visibleRows,
+    );
+  });
 });
 
 describe("the words a player reads", () => {
@@ -726,7 +741,10 @@ describe("the words a player reads", () => {
   ];
 
   test("carry no word from the code and no key from the game", () => {
-    const strings: string[] = [];
+    // The one sentence that belongs to no view: it is what the panel says before
+    // there is a fight to compose one from, and a screen nothing sweeps is a
+    // screen where our vocabulary goes unnoticed.
+    const strings: string[] = [PANEL_WAITING.text];
 
     // The second is a fight that did not all arrive. Its sentences exist only
     // when there is something to say, so a sweep over a clean reading alone would

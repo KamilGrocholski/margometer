@@ -40,6 +40,7 @@ import type {
   PanelList,
   PanelRow,
   PanelView,
+  PanelWaiting,
 } from "@/src/ui/panel-shape.ts";
 
 /**
@@ -588,6 +589,49 @@ export function renderPanel(
 }
 
 /**
+ * The panel before a fight has reached it: one region, one sentence, no controls.
+ *
+ * ⚠️ **The body is drawn at the height it will be**, from the ranking's own floor
+ * (`PANEL_WAITING`), rather than at the height of one line. A panel whose body
+ * appears as a strip under its own title bar is the shape a *collapsed* panel has,
+ * which is the whole reason this exists: for the life of the project there was no
+ * render at all before the first payload, so the two states were the same picture
+ * and a player could not tell an add-on waiting from one that had died.
+ *
+ * Nothing here is a control, and none of the four maps `renderPanel` keeps has
+ * anything to hold: there is no row to open, no tab to choose and nowhere to go
+ * back to, so a listener would be a promise to act on a click that cannot happen.
+ * The region wrapper stays, because a region that throws must still be the size of
+ * the thing that threw (§9.6) — the sentence is one `textContent` away from being
+ * the only thing on screen.
+ */
+function renderWaiting(
+  document: PanelDocument,
+  waiting: PanelWaiting,
+  handlers: PanelHandlers,
+): PanelNode {
+  const panel = document.createElement("div");
+  panel.className = "panel";
+
+  renderRegionInto(document, panel, handlers, "lista", () => {
+    const list = document.createElement("div");
+    // The same node the ranking's rows sit in, so the height is the same
+    // arithmetic and not a second one. `composeIntegerText` asserts for the reason
+    // it does there: `NaN` interpolates as `"NaN"` and leaves the box unmeasured.
+    list.className = "list list-waiting";
+    list.style.setProperty("--MargoMeter-rows", composeIntegerText(waiting.visibleRows));
+
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = waiting.text;
+    list.append(empty);
+    return list;
+  });
+
+  return panel;
+}
+
+/**
  * Opens the shadow root once and returns what to draw into.
  *
  * ⚠️ **Once is not a preference.** `attachShadow` throws on an element that
@@ -1019,4 +1063,34 @@ export function renderPanelInto(
   // itself failed — a node out of the tree, so writing to it changes nothing and
   // needs no case of its own.
   if (kept > 0 && scroll.list !== null) scroll.list.scrollTop = kept;
+}
+
+/**
+ * Draws the waiting body into the container, replacing whatever was there.
+ *
+ * A sibling of `renderPanelInto` rather than a branch inside it, and the two share
+ * exactly one line — the collapse. Folding them together would mean a tag on
+ * `PanelView` for the compiler to discriminate on, which every screen and every
+ * test that builds one would then carry so that a state none of them can be could
+ * be told apart from them.
+ *
+ * ⚠️ **Neither `details` nor `scroll` is taken, and neither is an omission.**
+ * There is no row to describe and nothing that can be scrolled, and the state is
+ * one-way: `latest` in `src/userscript-entry.ts` is set on the first reading and
+ * never set back, so this is only ever what the panel drew *before* a fight and
+ * never what it returns to after one. There is nothing stale for it to leave
+ * behind.
+ */
+export function renderWaitingInto(
+  document: PanelDocument,
+  container: PanelNode,
+  waiting: PanelWaiting,
+  handlers: PanelHandlers = {},
+  isCollapsed = false,
+): void {
+  if (isCollapsed) {
+    container.replaceChildren();
+    return;
+  }
+  container.replaceChildren(renderWaiting(document, waiting, handlers));
 }

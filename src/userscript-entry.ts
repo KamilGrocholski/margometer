@@ -38,6 +38,7 @@ import { getFiniteNumberFromValue } from "@/libs/number.ts";
 import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
 import {
   renderPanelInto,
+  renderWaitingInto,
   setPanelRoot,
   type PanelDocument,
   type PanelHost,
@@ -58,7 +59,7 @@ import {
   type PanelViewport,
 } from "@/src/ui/panel-placement.ts";
 import type { PanelDetailLine } from "@/src/ui/panel-shape.ts";
-import { composePanelView } from "@/src/ui/panel-view.ts";
+import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
 
 export type MargoMeterOptions = {
   /** Told after every payload, with the fight as it now stands. */
@@ -538,6 +539,13 @@ export function composePanelMount(
   let hasReportedCaptureFailure = false;
 
   /**
+   * Once for the page, and for the plainest reason of the three: the body drawn
+   * before the first payload belongs to no fight, so there is no boundary the
+   * counter below could be cleared on.
+   */
+  let hasReportedWaitingFailure = false;
+
+  /**
    * One map, filled by every render and read by the tooltip.
    *
    * It has to be the same object on both sides: the tooltip is built once with
@@ -612,7 +620,26 @@ export function composePanelMount(
   };
 
   const renderLatest = (): void => {
-    if (latest === null) return;
+    /*
+     * ⚠️ **This used to be a bare `return`, and it is the whole of the defect it
+     * replaces.** The title bar is built with the shadow root and outlives every
+     * render, so a render that drew nothing left the panel looking exactly like a
+     * *collapsed* one — a bar and no body — for as long as the player had not
+     * fought. Two things followed from it: nothing said whether the add-on was
+     * waiting or broken, and the collapse button flipped a flag that reached a
+     * function which returned before drawing, so the one control on the bar did
+     * nothing at all until the first payload.
+     */
+    if (latest === null) {
+      renderWaitingInto(document, container, PANEL_WAITING, {
+        onSectionFailure: (error) => {
+          if (hasReportedWaitingFailure) return;
+          hasReportedWaitingFailure = true;
+          warn("MargoMeter/PanelSection", error);
+        },
+      }, state.isCollapsed);
+      return;
+    }
     renderPanelInto(document, container, composePanelView(latest, state, translate), {
       onMetricChosen: (chosen) => setState(composeStateAfterMetric(chosen)),
       onTeamChosen: (chosen) => setState(composeStateAfterTeam(chosen)),
@@ -630,6 +657,13 @@ export function composePanelMount(
       },
     }, state.isCollapsed, details, scroll);
   };
+
+  /*
+   * Drawn once here, so the panel is a panel from the moment it is on the page.
+   * It cannot go any earlier: `state` is declared below the shadow root, and
+   * `renderLatest` below that.
+   */
+  renderLatest();
 
   return (reading) => {
     // A warning belongs to the fight that produced it and clears with it (§9.6).

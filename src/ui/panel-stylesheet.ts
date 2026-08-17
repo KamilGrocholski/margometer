@@ -301,6 +301,13 @@ export function composePanelStyleText(): string {
 .header { display: flex; justify-content: space-between; align-items: baseline; padding: ${t.spaceRegion}; padding-bottom: 0; }
 .header-outcome { color: ${t.textQuiet}; text-transform: uppercase; font-size: 10px; }
 .empty { color: ${t.textQuiet}; padding: ${t.space} ${t.spaceHalf}; }
+/*
+ * The one list with nothing above the sentence, so the sentence is what the box
+ * is for. Everywhere else \`.empty\` is a line under rows or under a heading and
+ * reads correctly where it lands; here it would sit in the top corner of a box
+ * eleven bars tall, which reads as a panel that lost the rest of itself.
+ */
+.list-waiting { display: flex; align-items: center; justify-content: center; text-align: center; }
 /* The limit on what can be known reads quieter than the fact above it. */
 .empty-limit { display: block; margin-top: ${t.spaceSmall}; font-size: 10px; opacity: 0.85; }
 .sides-region { padding: ${t.spaceRegion}; padding-bottom: ${t.spaceRegionAcross}; border-top: 1px solid ${t.border}; }

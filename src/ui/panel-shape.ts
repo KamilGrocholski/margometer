@@ -159,3 +159,33 @@ export type PanelView = {
   /** One sentence each, in the player's words. Empty when the reading was clean. */
   warnings: string[];
 };
+
+/**
+ * What the panel shows before it has seen a fight at all.
+ *
+ * ⚠️ **Its own shape rather than a `PanelView` with every field emptied**, and the
+ * difference is §9.6's: a view states a fight, and here there is none. The route
+ * this refuses is one line — compose a view from an empty session — and it says
+ * three untrue things at once. The header would read `brak składu`, as though a
+ * fight had arrived with nobody in it. The warning strip would say the panel wired
+ * itself in mid-fight, because an empty session is not from a fight start. And
+ * every total would be `0`, which is a measurement of nothing rather than the
+ * absence of one.
+ *
+ * So the whole of it is one sentence and a height. There is nothing here for a
+ * control to act on, which is why there is no control: one that is drawn and does
+ * nothing is worse than one that is not there.
+ */
+export type PanelWaiting = {
+  /** Polish, like every filled field above (§3). */
+  text: string;
+  /**
+   * The ranking's floor, in bars.
+   *
+   * Carried rather than left to the stylesheet's own fallback so the two numbers
+   * cannot part company: the body a reader meets first is the height the list will
+   * be, and a panel that arrives as a strip under its own title bar reads as
+   * broken rather than as empty.
+   */
+  visibleRows: number;
+};

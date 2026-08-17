@@ -28,7 +28,7 @@ import {
   composeStateAfterTeam,
   composeStateFromRow,
 } from "@/src/ui/panel-state.ts";
-import { composePanelView } from "@/src/ui/panel-view.ts";
+import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
 import {
   composeFailureSink,
   composeMeterOptions,
@@ -1183,6 +1183,109 @@ describe("what the add-on leaves in the game's page", () => {
         );
       }
     }
+  });
+});
+
+/**
+ * The one state no fake next door can reach, because it is not a render's doing.
+ *
+ * ⚠️ **What the player met on a fresh page was a title bar and nothing under it.**
+ * The bar is built with the shadow root and outlives every render, so a mount that
+ * drew no body left the panel in exactly the shape a *collapsed* one has — and
+ * `tests/ui/panel-element.test.ts` asserts that shape as correct, because for a
+ * collapse it is. The two only tell each other apart here, where the mount decides
+ * whether a body is drawn at all, and neither the panel's own tests nor the view's
+ * can see the decision: it is one branch in `src/userscript-entry.ts`.
+ */
+describe("the panel before the first payload", () => {
+  type BodyNode = Record<string, unknown> & { className: string; children: BodyNode[] };
+
+  /** Keeps what a render put in the body, which every other fake here drops. */
+  function composePageWithABody(): {
+    page: Parameters<typeof composePanelMount>[0];
+    getBody: () => BodyNode;
+  } {
+    let root: BodyNode | null = null;
+    const composeNode = (): BodyNode => {
+      const node: BodyNode = {
+        className: "",
+        id: "",
+        textContent: "",
+        title: "",
+        children: [],
+        setAttribute: (): void => {},
+        style: { setProperty: (): void => {} },
+        append: (...nodes: BodyNode[]): void => void node.children.push(...nodes),
+        replaceChildren: (...nodes: BodyNode[]): void => void (node.children = nodes),
+        addEventListener: (): void => {},
+        attachShadow: (): unknown => {
+          root = composeNode();
+          return root;
+        },
+      };
+      return node;
+    };
+
+    return {
+      page: {
+        document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
+      } as Parameters<typeof composePanelMount>[0],
+      getBody: () => {
+        const opened = assertDefined(root, "mounting the panel opens a shadow root") as BodyNode;
+        const getEveryNode = (node: BodyNode): BodyNode[] => [
+          node,
+          ...node.children.flatMap(getEveryNode),
+        ];
+        return assertDefined(
+          getEveryNode(opened).filter((node) => node.className === "MargoMeter-body")[0],
+          "mounting the panel draws a body",
+        );
+      },
+    };
+  }
+
+  const getEveryText = (node: BodyNode): string[] => [
+    node["textContent"] as string,
+    ...node.children.flatMap(getEveryText),
+  ];
+
+  test("says so, instead of leaving a bar with nothing under it", () => {
+    const { page, getBody } = composePageWithABody();
+
+    composePanelMount(page);
+
+    const body = getBody();
+    expect(body.children.length).toBeGreaterThan(0);
+    expect(getEveryText(body)).toContain(PANEL_WAITING.text);
+  });
+
+  /** And gets out of the way of the fight, which is what it was holding a place for. */
+  test("gives way to the ranking on the first reading", () => {
+    const { page, getBody } = composePageWithABody();
+    const roster = composeCombatantRoster([
+      { id: 1, name: "a mage", side: 1, profession: "m", level: null },
+      { id: 3, name: "something large", side: 2, profession: null, level: null },
+    ]);
+    const render = assertDefined(composePanelMount(page), "the page can hold a panel");
+
+    render({
+      statistics: composeFightStatistics(
+        decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+        roster,
+      ),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+      fightsStarted: 1,
+      engineReading: NOTHING_LOST,
+    });
+
+    const said = getEveryText(getBody());
+    expect(said).not.toContain(PANEL_WAITING.text);
+    // A ranking holding somebody and a figure — not merely a different empty body.
+    expect(said).toContain("Obrażenia");
+    expect(said).toContain("a mage");
+    expect(said).toContain("400");
   });
 });
 

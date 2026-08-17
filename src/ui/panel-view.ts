@@ -85,6 +85,7 @@ import type {
   PanelRow,
   PanelSides,
   PanelView,
+  PanelWaiting,
 } from "@/src/ui/panel-shape.ts";
 import type { PanelState } from "@/src/ui/panel-state.ts";
 import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-tokens.ts";
@@ -731,6 +732,25 @@ function composeSides(reading: PanelReading, state: PanelState): PanelSides | nu
  */
 const RANKING_ROWS = 11;
 const SIDE_ROWS = 10;
+
+/**
+ * What the panel says before a fight has reached it.
+ *
+ * Here rather than in a file of its own for two reasons that both point at this
+ * one: the sentence belongs with every other sentence a screen says, and the
+ * height belongs beside `RANKING_ROWS`, which it has to match. Split off, the two
+ * numbers would be free to drift and nothing would notice — the empty body is the
+ * one screen with no figures to disagree about.
+ *
+ * The sentence obeys §3 the way the rest of them do: it says what has not
+ * happened, in the player's words, and nothing about why our reader has nothing
+ * to read. There is no limit line under it, because there is no limit — a fight
+ * that has not started is not a fight we failed to measure.
+ */
+export const PANEL_WAITING: PanelWaiting = {
+  text: "Nie było jeszcze walki.",
+  visibleRows: RANKING_ROWS,
+};
 
 /** A section costs its rows plus the heading standing over them. */
 function getRowsNeeded(lists: readonly PanelList[]): number {

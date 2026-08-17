@@ -808,7 +808,15 @@ src/
                          only file that reaches
                          storage, which it does for one thing: where the panel was
                          last dragged to. A browser that refuses storage costs the
-                         position and nothing else.
+                         position and nothing else. Decides, too, whether there is
+                         a body to draw at all, and draws one once at mount so that
+                         there always is: the branch used to be a bare return, so a
+                         page where nobody had fought yet held a title bar and
+                         nothing under it — the same picture a COLLAPSED panel has,
+                         with the collapse button inert because it flipped a flag
+                         into a function that returned before drawing. Neither
+                         `tests/ui/` nor the view can see that branch, which is why
+                         `tests/game/engine-attachment.test.ts` holds it.
   core/
     margometer-error.ts  Base for everything the add-on throws — §9.5.
     game-build.ts        What a game build id looks like, and the two places the
@@ -1030,7 +1038,13 @@ src/
                          `panel-element.ts` depends on the shape rather than on the
                          module that fills it — it took six names out of the
                          composing and so could not be read or tested without all
-                         of it in the graph.
+                         of it in the graph. Holds a SECOND contract, and it is
+                         not a view with its fields emptied: what the panel shows
+                         before it has seen a fight. A view states a fight, so an
+                         empty one states three things that are not true — a
+                         roster nobody is in, a panel that wired itself in
+                         mid-fight, and totals of `0`, which is a measurement of
+                         nothing rather than the absence of one.
     panel-reading.ts     What the panel is handed, and the three questions every
                          part of it asks of a combatant: which row, what are they
                          called, how much for this metric. Takes its own input type
@@ -1109,7 +1123,12 @@ src/
                          draws, so a redraw can be told from a move and the reader
                          keeps their place. No ceiling here: what a list may have is
                          a question about a screen, and this file knows nothing about
-                         screens. No DOM, so all of it is checkable.
+                         screens. No DOM, so all of it is checkable. Holds the one
+                         sentence belonging to no screen — what the panel says
+                         before a fight has reached it — because the sentence
+                         belongs with every other sentence a screen says and its
+                         height has to be the ranking's own, which is a number
+                         written down twelve lines above it.
     panel-element.ts     The same, drawn. Takes a document as an argument, opens
                          one shadow root, listens at that root for every control
                          it draws, and renders region by region so that one
@@ -1136,7 +1155,16 @@ src/
                          as the only region that gives way to it. The summary's bar
                          draws a segment per part that has a figure and no bar at
                          all where there is nothing to divide, because a split of
-                         zero is a measurement of nothing.
+                         zero is a measurement of nothing. Draws the body a panel
+                         with no fight yet has as well, and it is a sibling of the
+                         render rather than a branch in it: the two share one line
+                         — the collapse — and folding them together would put a tag
+                         on every screen and every test that builds one, so that a
+                         state none of them can be could be told apart from them.
+                         It takes neither the detail map nor the scroll memory,
+                         because there is nothing to hover and nothing to scroll,
+                         and the state is one-way — it is what the panel drew
+                         BEFORE a fight and never what it returns to after one.
 
   ⚠️ Six of those files were one file, and the split is the third audit's F26
   closed rather than recorded a fourth time. What stayed together is one screen's

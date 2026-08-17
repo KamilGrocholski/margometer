@@ -22,6 +22,7 @@ import { composePanelStyleText } from "@/src/ui/panel-stylesheet.ts";
 import {
   renderPanel,
   renderPanelInto,
+  renderWaitingInto,
   setPanelRoot,
   type PanelDocument,
   type PanelEvent,
@@ -40,7 +41,7 @@ import {
 import type { PanelReading } from "@/src/ui/panel-reading.ts";
 import type { PanelDetailLine } from "@/src/ui/panel-shape.ts";
 import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
-import { composePanelView } from "@/src/ui/panel-view.ts";
+import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
 
 type FakeListener = { type: string; listener: (event: PanelEvent) => void };
 
@@ -778,6 +779,75 @@ describe("the window itself", () => {
 
     renderPanelInto(document, container, view, {}, false);
     expect(container.children.length).toBe(1);
+  });
+
+  /**
+   * ⚠️ **The state the test above describes used to be reachable two ways**, and
+   * only one of them was a collapse. Before the first payload the mount drew
+   * nothing at all, so a panel waiting for a fight and a panel folded away were
+   * the same picture — a bar and no body — and neither said which it was.
+   */
+  describe("the panel before a fight has reached it", () => {
+    test("the body says so, rather than being empty", () => {
+      const { document, container } = composeMountedPanel();
+
+      renderWaitingInto(document, container, PANEL_WAITING);
+
+      const panel = assertDefined(container.children[0], "the waiting body was drawn");
+      const sentences = getByClass(panel, "empty").map((node) => node.textContent);
+      expect(sentences).toEqual([PANEL_WAITING.text]);
+    });
+
+    /**
+     * The one number the two states have to agree on. A body one line tall under a
+     * title bar is the shape of a collapsed panel again, so the height is the
+     * ranking's own — read off a real view rather than written down here, which is
+     * what makes the two impossible to drift apart.
+     */
+    test("it reserves the height the ranking will have", () => {
+      const { document, container } = composeMountedPanel();
+      const ranking = composePanelView(composeReading(), composeDefaultState());
+
+      renderWaitingInto(document, container, PANEL_WAITING);
+      const waiting = assertDefined(container.children[0], "the waiting body was drawn");
+      const box = assertDefined(getByClass(waiting, "list")[0], "the waiting body has a list");
+
+      expect(box.properties["--MargoMeter-rows"]).toBe(String(ranking.visibleRows));
+    });
+
+    test("it collapses and comes back, like the panel it precedes", () => {
+      const { document, root, container } = composeMountedPanel({
+        onCollapseToggled: () => undefined,
+      });
+
+      renderWaitingInto(document, container, PANEL_WAITING, {}, true);
+      expect(container.children.length).toBe(0);
+      expect(getByClass(root, "MargoMeter-titlebar").length).toBe(1);
+
+      renderWaitingInto(document, container, PANEL_WAITING, {}, false);
+      expect(container.children.length).toBe(1);
+    });
+
+    /** §9.6 forbids vanishing here too, and it is the only region there is. */
+    test("a region that throws leaves a marker rather than a blank body", () => {
+      const { document, container } = composeMountedPanel();
+      const waiting = { ...PANEL_WAITING };
+      Object.defineProperty(waiting, "visibleRows", {
+        get() {
+          const broken = undefined as unknown as { read: () => void };
+          broken.read();
+        },
+      });
+
+      const failures: unknown[] = [];
+      renderWaitingInto(document, container, waiting, {
+        onSectionFailure: (error) => failures.push(error),
+      });
+
+      const panel = assertDefined(container.children[0], "the waiting body was drawn");
+      expect(failures.length).toBe(1);
+      expect(getByClass(panel, "undrawn").length).toBe(1);
+    });
   });
 
   /**
