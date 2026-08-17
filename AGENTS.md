@@ -231,6 +231,7 @@ base every tool below throws from (§9.5).
 | `tools/help-article.ts` | *What does the game's own documentation say about this mechanic?* `fetch` caches an article, `search` prints raw context around a phrase and exits non-zero when there is none, `freeze` writes `tests/frozen-help-phrases.ts` so the register's help claims are re-counted on every gate. §7.6. |
 | `tools/captured-fight-intake.ts` | *This recording is worth keeping — put it in the repository.* Substitutes player nicknames, removes the game's ability descriptions, and writes the result into `tests/captured-fights/`. Refuses anything it cannot redact with certainty, and names the step that stays a person's. §9.2. |
 | `tools/mutation-sweep.ts` | *Does this test light up when the thing it covers breaks?* Changes one character of meaning at a time, runs the gate, and reports what nothing noticed — §3's question, asked of code already here rather than only of a test being written. Writes mutants into the working tree, so it refuses to start against a dirty one. |
+| `tools/preview-server.ts` | *What does the panel look like right now?* Serves the built userscript over a captured fight, steps the replay so a fight can be watched part-way through, and reloads the page when `src/` or `libs/` changes. `bun run preview`. The gate cannot see a panel (§6.1); this is what can. |
 | `tools/changelog.ts` | *What does this release say for itself?* Cuts one version's section out of `CHANGELOG.md` and adds the note saying which attached file to click. `notes <version>` prints it; a version with no section refuses rather than publishing silence. |
 
 ---
@@ -650,8 +651,16 @@ build.ts                 Bundles src/ into dist/ and prepends the userscript
                          and a release without it stops every copy installed from
                          that version — silently. Also exports
                          composeUserscriptBanner() and both filenames, whose
-                         second consumers are the test and the release notes.
-package.json             Version, scripts. `bun run check` is the gate.
+                         second consumers are the test and the release notes, and
+                         composeUserscriptFiles() — the bundling with nothing
+                         written down, whose second consumer is
+                         `tools/preview-server.ts` serving the same text over
+                         HTTP. ⚠️ That one passes `throw: false`, without which
+                         `Bun.build` rejects with somebody else's error class and
+                         the `success` check beside it is dead for the failure it
+                         was written for.
+package.json             Version, scripts. `bun run check` is the gate, and
+                         `bun run preview` is the panel in a browser.
 bun.lock                 What the gate is actually run against. Listed here
                          because §6.1 turns on it: a package `node_modules` holds
                          and this file does not name is ambient type information
@@ -668,10 +677,14 @@ tsconfig.json            Strict flags standing in for a linter, and the `@/*`
                          `@updateURL` points at that asset and a release without
                          it breaks updates silently. Also the one place the tag
                          and `package.json` are compared.
-.claude/skills/verify/   How to run the add-on rather than test it: the browser
-                         harness that puts the built userscript in front of a
-                         captured fight. Not a rule and not a gate — the gate is
-                         §6.1 and cannot see a panel. `.claude/settings.local.json`
+.claude/skills/verify/   How to run the add-on rather than test it: driving
+                         `bun run preview` in a real browser and reading what the
+                         panel drew. Not a rule and not a gate — the gate is
+                         §6.1 and cannot see a panel. It described a page to build
+                         by hand until the page became a tool; what is left here is
+                         the half a tool cannot hold — which flows are worth
+                         driving, and what a synthetic pointer does that a real one
+                         does not. `.claude/settings.local.json`
                          sits a directory above it and stays out of git, per
                          machine; `settings.json` beside it is tracked and holds
                          the one thing a rule alone cannot — the tool calls that
@@ -1110,6 +1123,21 @@ tools/
                          every run and it refuses to start against a dirty tree.
                          A kill by a guard that reads source as text is counted
                          apart: it says the spelling changed, not the behaviour.
+  preview-server.ts      The panel in a browser, changing while you edit it. Serves
+                         the built userscript over a captured fight, watches `src/`
+                         and `libs/`, and reloads on a rebuild — keeping the place
+                         in the fight, so an edit to `src/ui/` redraws the screen
+                         you were looking at. The replay is **stepped**, which is
+                         what makes the empty panel and a fight in progress
+                         reachable at all; backward re-feeds from the first payload
+                         rather than reloading, because that payload is the one
+                         carrying `init` and `init` is what resets the session. A
+                         rebuild that FAILS does not reload — it says so and leaves
+                         the last good panel up, since a page blanked by a
+                         half-typed line is worse than a stale one. It is the
+                         recipe in `.claude/skills/verify/SKILL.md` turned into
+                         something that exists; that document had described a page
+                         to build by hand, and two audits record nobody ever did.
   changelog.ts           One version's section of CHANGELOG.md, which is what a
                          release says, plus the note telling a reader which of
                          the two attached files to click. A pure function with a
@@ -1574,6 +1602,15 @@ tests/
                              every nickname substituted, the game's own ability
                              descriptions gone, and a refusal where either cannot
                              be done with certainty rather than a guess.
+    preview-server.test.ts   The page the preview draws, held where it can fail
+                             quietly: the engine stub folding into both names the
+                             add-on reads, the order the three scripts run in, and
+                             a recorded message that spells a closing tag being
+                             unable to end one. Plus the routes over a real socket
+                             on an ephemeral port, and the fact the rewind rests on
+                             — that every recording starts its fight on its first
+                             payload and nowhere else, re-measured per capture
+                             rather than written down as a count (§3).
     captured-fight-catalog.test.ts  decoding-status.test.ts  help-article.test.ts
     protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```

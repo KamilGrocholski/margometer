@@ -2,7 +2,7 @@ import manifest from "@/package.json";
 import { composeJsonText } from "@/libs/json.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
-class BundleError extends MargoMeterToolError {
+export class BundleError extends MargoMeterToolError {
   constructor(reason: string) {
     super("Bundle", reason);
   }
@@ -104,7 +104,29 @@ export function composeUserscriptBanner(version: string, description: string, ho
   return `// ==UserScript==\n${body}\n// ==/UserScript==\n`;
 }
 
-async function buildUserscript(): Promise<void> {
+/** The two files a build produces, as text, before anything writes them down. */
+export type UserscriptFiles = {
+  /** Banner + bundle — what `dist/margometer.user.js` holds. */
+  script: string;
+  /** The banner alone — what `dist/margometer.meta.js` holds. */
+  metadata: string;
+};
+
+/**
+ * The bundle and its banner, composed in memory.
+ *
+ * Split out of the writer at its second consumer (§7.1): `tools/preview-server.ts`
+ * serves the same text over HTTP instead of writing it to disk. What must not be
+ * spelled twice is everything below — `iife` because Tampermonkey does not load
+ * modules, `minify: false` because the file is meant to stay readable, and the
+ * version substituted from `package.json` — since a preview built on different
+ * settings is a preview of something nobody installs.
+ *
+ * ⚠️ **Both files come back from one call**, for the reason the writer used to
+ * give: two compositions of the banner can disagree, and then an update check
+ * compares against a version nobody shipped.
+ */
+export async function composeUserscriptFiles(): Promise<UserscriptFiles> {
   const result = await Bun.build({
     entrypoints: [BUNDLE_ENTRY_POINT],
     target: "browser",
@@ -112,6 +134,18 @@ async function buildUserscript(): Promise<void> {
     // readable for whoever installs it — so IIFE, and no minification.
     format: "iife",
     minify: false,
+    /**
+     * ⚠️ **Without this `Bun.build` throws an `AggregateError` and never returns
+     * a failed result**, so the check below was dead for the failure it was
+     * written for: measured by appending a syntax error to `src/ui/panel-figure-text.ts`,
+     * the default rejects with `Bundle failed` while `throw: false` comes back
+     * with `success: false` and four logs naming the line.
+     *
+     * It matters twice. A build here reported somebody else's error class instead
+     * of ours, and `tools/preview-server.ts` catches `BundleError` narrowly to
+     * show a failed rebuild in the browser — which it would never have caught.
+     */
+    throw: false,
     /**
      * The add-on's own version, substituted at build time.
      *
@@ -124,25 +158,38 @@ async function buildUserscript(): Promise<void> {
     define: { __MARGOMETER_VERSION__: composeJsonText(manifest.version) },
   });
 
+  /**
+   * ⚠️ **The logs travel in the message, not to the console.** The preview server
+   * shows a failed rebuild in a browser, where nobody is reading this terminal —
+   * and a rebuild that fails silently leaves a stale panel on screen looking
+   * exactly like a fresh one (§9.6).
+   */
   if (!result.success) {
-    for (const log of result.logs) console.error(log);
-    throw new BundleError("bundle failed");
+    throw new BundleError(`bundle failed\n${result.logs.map((log) => `${log}`).join("\n")}`);
   }
 
   const [artifact] = result.outputs;
   if (!artifact) throw new BundleError("bundle produced no output");
 
-  const banner = composeUserscriptBanner(manifest.version, manifest.description, manifest.homepage);
+  const metadata = composeUserscriptBanner(
+    manifest.version,
+    manifest.description,
+    manifest.homepage,
+  );
+  return { script: metadata + (await artifact.text()), metadata };
+}
+
+/** Named for what it does now that the composing has left: it writes the two files. */
+async function writeUserscriptFiles(): Promise<void> {
+  const files = await composeUserscriptFiles();
+
   const outputPath = `${OUTPUT_DIRECTORY}/${USERSCRIPT_FILENAME}`;
-  await Bun.write(outputPath, banner + (await artifact.text()));
+  await Bun.write(outputPath, files.script);
   console.log(`built ${outputPath}`);
 
-  // The same banner, byte for byte, and never a second composition of it: two
-  // metadata blocks that could disagree is how an update check starts comparing
-  // against a version nobody shipped.
   const metadataPath = `${OUTPUT_DIRECTORY}/${METADATA_FILENAME}`;
-  await Bun.write(metadataPath, banner);
+  await Bun.write(metadataPath, files.metadata);
   console.log(`built ${metadataPath}`);
 }
 
-if (import.meta.main) await buildUserscript();
+if (import.meta.main) await writeUserscriptFiles();
