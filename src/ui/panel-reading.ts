@@ -72,6 +72,7 @@ const EMPTY_ROW: CombatantStatistics = {
   takenByActorId: new Map(),
   healthLostBySource: new Map(),
   healedBySource: new Map(),
+  healedWithoutHealerBySource: new Map(),
   healedByHealerId: new Map(),
   healingGiven: 0,
   healingGivenByCombatantId: new Map(),
@@ -108,4 +109,28 @@ export function getMetricValue(row: CombatantStatistics, metric: PanelMetric): n
 export function getHealingWithoutHealer(row: CombatantStatistics): number {
   const named = [...row.healedByHealerId.values()].reduce((sum, one) => sum + one, 0);
   return Math.max(0, row.healed - named);
+}
+
+/**
+ * A blow this combatant took whose striker nobody could name — the damage twin of
+ * the healing above, and read the same way: what the row holds, less what it can
+ * put a name to.
+ *
+ * ⚠️ **Not the same thing as `healthLost`, and adding them is the point.** Health
+ * that fell outside a blow and a blow whose actor did not resolve are two ways for
+ * damage to belong to nobody, and the pinned row counts both — so a cut of that row
+ * by combatant has to as well, or it reports somebody's share as unplaceable while
+ * their own row is holding it.
+ *
+ * The aggregate writes `takenByActorId` only where the actor resolved
+ * (`src/core/fight-statistics.ts`), which is what makes the difference readable at
+ * all. Zero on every capture, because every name in them resolves; a fight joined
+ * in progress is where it is the whole figure.
+ */
+export function getDamageWithoutActor(row: CombatantStatistics): number {
+  let named = 0;
+  for (const byElement of row.takenByActorId.values()) {
+    for (const amount of byElement.values()) named += amount;
+  }
+  return Math.max(0, row.taken - named);
 }

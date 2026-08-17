@@ -139,8 +139,25 @@ export const DESTRUCTION_NAMES: Record<string, TokenName> = {
   abmdest_per: { id: null, fallback: "zniszczona absorpcja magiczna" },
 };
 
-/** Where health went when no blow moved it. */
-export const HEALTH_SOURCE_NAMES: Record<string, TokenName> = {
+/**
+ * Where health went when no blow moved it — **two tables, one per direction.**
+ *
+ * ⚠️ **One key is in both, and that is the whole reason for the split.**
+ * `docs/protocol-keys.md` records that the client states a health *loss* under
+ * `heal` with a negative figure, and the captures carry it: measured over
+ * `tests/captured-fights/`, the loss side holds `poison`, `fire`, `injure` and
+ * `heal`, the gain side holds `heal`, `heal_target`, `legbon_holytouch_heal` and
+ * `legbon_lastheal` — `heal` alone on both. Named once for both, it printed as
+ * `leczenie` under `Bez sprawcy` on the damage screens, which is the fault the
+ * comment on `fire` below already names: **two quantities under one label is a
+ * wrong number that looks right.**
+ *
+ * Neither table is a list of what the game may send: `getPhrase` falls back to the
+ * token itself, so an unnamed key still reaches the panel as the game wrote it.
+ * What the tables are held to is being exhaustive over the *material*, which
+ * `tests/ui/panel-names.test.ts` re-measures off the captures rather than listing.
+ */
+export const HEALTH_LOSS_SOURCE_NAMES: Record<string, TokenName> = {
   poison: { id: null, fallback: "trucizna" },
   // Not "ogień", which is `dmgf`'s word above for the damage element: this is the
   // burn ticking afterwards, and two quantities under one label is a wrong number
@@ -150,6 +167,18 @@ export const HEALTH_SOURCE_NAMES: Record<string, TokenName> = {
   // The old phrase was "rana", which is the game's word for `wound` — a
   // different key, and one this meter also reads.
   injure: { id: null, fallback: "zranienie" },
+  /**
+   * The healing key with a figure below zero — health that fell.
+   *
+   * The word says what the protocol stated and no more. The published help
+   * documents `heal` as restoration only (`pomoc.margonem.pl`, article `view,372`,
+   * `heal`, read 2026-08-09) and nothing there accounts for a negative, so a name
+   * explaining *why* the health fell would be ours rather than the game's (§5).
+   */
+  heal: { id: null, fallback: "ujemne leczenie" },
+};
+
+export const HEALTH_GAIN_SOURCE_NAMES: Record<string, TokenName> = {
   heal: { id: null, fallback: "leczenie" },
   heal_target: { id: null, fallback: "leczenie na wskazanego" },
   // Its own id resolves to a sentence; the proc that causes it resolves to the

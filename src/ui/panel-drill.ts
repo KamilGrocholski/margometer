@@ -26,7 +26,8 @@ import {
 import {
   ELEMENT_NAMES,
   getPhrase,
-  HEALTH_SOURCE_NAMES,
+  HEALTH_GAIN_SOURCE_NAMES,
+  HEALTH_LOSS_SOURCE_NAMES,
   type TokenName,
   type TranslateLabel,
 } from "@/src/ui/panel-names.ts";
@@ -316,7 +317,8 @@ function composeSourceEntries(
   // giver has none. An empty list here is a section that is not drawn, which is
   // the honest answer rather than repeating the recipients under a second name.
   if (state.metric === "healingGiven") return [];
-  if (state.metric === "healed") return compose(HEALTH_SOURCE_NAMES, row.healedBySource, UNKNOWN_COLOUR);
+  if (state.metric === "healed")
+    return compose(HEALTH_GAIN_SOURCE_NAMES, row.healedBySource, UNKNOWN_COLOUR);
 
   const entries = compose(
     ELEMENT_NAMES,
@@ -324,7 +326,7 @@ function composeSourceEntries(
     UNKNOWN_COLOUR,
   );
   if (state.metric === "taken") {
-    entries.push(...compose(HEALTH_SOURCE_NAMES, row.healthLostBySource, UNKNOWN_COLOUR));
+    entries.push(...compose(HEALTH_LOSS_SOURCE_NAMES, row.healthLostBySource, UNKNOWN_COLOUR));
   }
   return entries.sort((one, other) => other.amount - one.amount);
 }

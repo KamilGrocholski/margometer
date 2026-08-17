@@ -15,6 +15,7 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { PANEL_METRICS } from "@/src/ui/panel-metric.ts";
 import {
+  getDamageWithoutActor,
   getHealingWithoutHealer,
   getMetricValue,
   getName,
@@ -117,5 +118,53 @@ describe("healing with nobody to credit", () => {
     expect(getHealingWithoutHealer(composeRow(100, [[1, 140]]))).toBe(0);
     expect(getHealingWithoutHealer(composeRow(1, []))).toBe(1);
     expect(getHealingWithoutHealer(composeRow(0, []))).toBe(0);
+  });
+});
+
+/**
+ * The damage twin, and the one the panel had been doing without.
+ *
+ * `Bez sprawcy` counts health that fell outside a blow **and** a blow whose
+ * striker did not resolve. Cutting that row by combatant needs both, or somebody's
+ * share is reported as unplaceable while their own row is holding it — which is
+ * what a fight joined in progress would have shown, since no name resolves there
+ * (`src/core/fight-decoder.ts`).
+ */
+describe("a blow with nobody to charge it to", () => {
+  const composeRow = (taken: number, byActorId: Array<[number, Array<[string, number]>]>) => ({
+    ...getRow(composeReading(), 404),
+    taken,
+    takenByActorId: new Map(byActorId.map(([id, byElement]) => [id, new Map(byElement)])),
+  });
+
+  test("what is left after the named strikers, summed across their elements", () => {
+    expect(
+      getDamageWithoutActor(
+        composeRow(100, [
+          [1, [["dmg", 30]]],
+          [2, [["dmgf", 10]]],
+        ]),
+      ),
+    ).toBe(60);
+  });
+
+  // Both sides of zero, for the reason the healing twin above has them: a negative
+  // would be subtracted from a total somewhere as though somebody had measured it.
+  test("nothing left over where every blow has a striker", () => {
+    expect(getDamageWithoutActor(composeRow(100, [[1, [["dmg", 100]]]]))).toBe(0);
+    expect(getDamageWithoutActor(composeRow(100, [[1, [["dmg", 140]]]]))).toBe(0);
+    expect(getDamageWithoutActor(composeRow(1, []))).toBe(1);
+    expect(getDamageWithoutActor(composeRow(0, []))).toBe(0);
+  });
+
+  /**
+   * ⚠️ **It is not `healthLost` under another name.** A real fight's row can carry
+   * both, and the pinned row counts both — so the two are measured apart here, on
+   * a row where poison ticked and every blow had a striker.
+   */
+  test("says nothing about health that fell outside a blow", () => {
+    const row = getRow(composeReading(), 3);
+    expect(row.healthLost).toBeGreaterThan(0);
+    expect(getDamageWithoutActor(row)).toBe(0);
   });
 });

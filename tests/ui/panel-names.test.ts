@@ -6,10 +6,18 @@ import {
   EFFECT_NAMES,
   ELEMENT_NAMES,
   getPhrase,
-  HEALTH_SOURCE_NAMES,
+  HEALTH_GAIN_SOURCE_NAMES,
+  HEALTH_LOSS_SOURCE_NAMES,
   PROFESSION_NAMES,
   type TokenName,
 } from "@/src/ui/panel-names.ts";
+import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import {
+  CAPTURED_FIGHTS,
+  composeRosterOfFight,
+  getMessagesOfFight,
+} from "@/tests/captured-fight-catalog.ts";
 
 const VOCABULARY: Array<[string, Record<string, TokenName>]> = [
   ["professions", PROFESSION_NAMES],
@@ -17,7 +25,8 @@ const VOCABULARY: Array<[string, Record<string, TokenName>]> = [
   ["effects", EFFECT_NAMES],
   ["defences", DEFENCE_NAMES],
   ["destructions", DESTRUCTION_NAMES],
-  ["health sources", HEALTH_SOURCE_NAMES],
+  ["health losses", HEALTH_LOSS_SOURCE_NAMES],
+  ["health gains", HEALTH_GAIN_SOURCE_NAMES],
 ];
 
 const EVERY_NAME: Array<[string, string, TokenName]> = VOCABULARY.flatMap(([family, names]) =>
@@ -181,10 +190,13 @@ describe("the panel's own vocabulary, as decided", () => {
     ["abdest_per", null, "zniszczona absorpcja"],
     ["abmdest_per", null, "zniszczona absorpcja magiczna"],
   ],
-  HEALTH_SOURCE_NAMES: [
+  HEALTH_LOSS_SOURCE_NAMES: [
     ["poison", null, "trucizna"],
     ["fire", null, "podpalenie"],
     ["injure", null, "zranienie"],
+    ["heal", null, "ujemne leczenie"],
+  ],
+  HEALTH_GAIN_SOURCE_NAMES: [
     ["heal", null, "leczenie"],
     ["heal_target", null, "leczenie na wskazanego"],
     ["legbon_holytouch_heal", "msg_+legbon_holytouch", "dotyk anioła"],
@@ -201,7 +213,8 @@ describe("the panel's own vocabulary, as decided", () => {
           EFFECT_NAMES,
           DEFENCE_NAMES,
           DESTRUCTION_NAMES,
-          HEALTH_SOURCE_NAMES,
+          HEALTH_LOSS_SOURCE_NAMES,
+          HEALTH_GAIN_SOURCE_NAMES,
         } as Record<string, Record<string, TokenName>>
       )[name],
       `${name} is a table this file imports`,
@@ -215,6 +228,71 @@ describe("the panel's own vocabulary, as decided", () => {
   test("and the recording covers every table the module exports", () => {
     // Without this a table added later would simply not be held, and the block
     // above would keep passing while saying nothing about it.
-    expect(Object.keys(RECORDED).length).toBe(6);
+    expect(Object.keys(RECORDED).length).toBe(7);
+  });
+});
+
+/**
+ * The two health vocabularies against the material they are for.
+ *
+ * ⚠️ **One key is in both tables, and naming it once was a wrong number that
+ * looked right.** `docs/protocol-keys.md` records that the client states a health
+ * *loss* under `heal` with a negative figure; named once for both directions, that
+ * loss printed as `leczenie` under `Bez sprawcy` on `Zadane` and `Otrzymane` —
+ * healing on a damage screen.
+ *
+ * Read off the captures rather than listed, so the check cannot fall behind the
+ * next recording: a token the material carries and neither table names would leave
+ * a player reading the game's own key where a word belongs. `getPhrase` still
+ * falls back to the token, so this fails a test rather than a fight.
+ */
+describe("the two health vocabularies, against the captures", () => {
+  const SOURCES = CAPTURED_FIGHTS.map((fight) => {
+    const roster = composeRosterOfFight(fight);
+    const statistics = composeFightStatistics(decodeFight(getMessagesOfFight(fight), roster), roster);
+    const lost = new Set<string>();
+    const gained = new Set<string>();
+    for (const row of [...statistics.byCombatantId.values(), statistics.unattributed]) {
+      for (const token of row.healthLostBySource.keys()) lost.add(token);
+      for (const token of row.healedBySource.keys()) gained.add(token);
+    }
+    return { name: fight.name, lost: [...lost], gained: [...gained] };
+  });
+
+  test("there is material to read them off", () => {
+    expect(SOURCES.length).toBeGreaterThan(0);
+    expect(SOURCES.some(({ lost }) => lost.length > 0)).toBe(true);
+    expect(SOURCES.some(({ gained }) => gained.length > 0)).toBe(true);
+  });
+
+  test.each(SOURCES)("$name names every key health fell under", ({ lost }) => {
+    for (const token of lost) {
+      expect(Object.keys(HEALTH_LOSS_SOURCE_NAMES), token).toContain(token);
+    }
+  });
+
+  test.each(SOURCES)("$name names every key health arrived under", ({ gained }) => {
+    for (const token of gained) {
+      expect(Object.keys(HEALTH_GAIN_SOURCE_NAMES), token).toContain(token);
+    }
+  });
+
+  /**
+   * The reason the split exists, stated as a measurement rather than as prose: it
+   * would be worth nothing if the two tables happened to be disjoint, because then
+   * one table would have served. `heal` is the key that is in both, and if a later
+   * recording adds a second the split is earning its keep twice over.
+   */
+  test("and a key really does turn up on both sides", () => {
+    const lost = new Set(SOURCES.flatMap(({ lost: tokens }) => tokens));
+    const gained = new Set(SOURCES.flatMap(({ gained: tokens }) => tokens));
+    expect([...lost].filter((token) => gained.has(token))).toContain("heal");
+  });
+
+  /** And what it is called is not the same word on the two sides. */
+  test("and is not called the same thing on both", () => {
+    expect(getPhrase(HEALTH_LOSS_SOURCE_NAMES, "heal", null)).not.toBe(
+      getPhrase(HEALTH_GAIN_SOURCE_NAMES, "heal", null),
+    );
   });
 });

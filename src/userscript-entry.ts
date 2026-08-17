@@ -801,6 +801,7 @@ function composeReportRow(
     healthLostBySource: Object.fromEntries(row.healthLostBySource),
     healed: row.healed,
     healedBySource: Object.fromEntries(row.healedBySource),
+    healedWithoutHealerBySource: Object.fromEntries(row.healedWithoutHealerBySource),
     healedByHealerId: Object.fromEntries(row.healedByHealerId),
     healingGiven: row.healingGiven,
     healingGivenByCombatantId: Object.fromEntries(row.healingGivenByCombatantId),

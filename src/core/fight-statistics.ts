@@ -139,6 +139,23 @@ export type CombatantStatistics = {
   healthLostBySource: ReadonlyMap<string, number>;
   healedBySource: ReadonlyMap<string, number>;
   /**
+   * The part of `healedBySource` that no announcement gave a healer to.
+   *
+   * ⚠️ **Not a narrowing of `healedBySource` anybody can perform afterwards.**
+   * That map holds every point restored, whoever was credited with it; the panel's
+   * `Bez sprawcy` row holds only the points nobody was. A reader wanting to say
+   * *what* that row is made of therefore has nothing to read: measured on
+   * `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`, healing with
+   * no healer comes to 109 113 while `healedBySource` sums to 123 506, so the
+   * second overstates the first by more than a tenth and there is no arithmetic
+   * that recovers the split.
+   *
+   * Written in the same breath as `healedByHealerId` and exactly where that map is
+   * **not** — one reading of one event, the reasoning `healingGiven` already
+   * carries — so the two partition `healed` between them and cannot drift apart.
+   */
+  healedWithoutHealerBySource: ReadonlyMap<string, number>;
+  /**
    * Who healed this combatant, where the game glued the heal to an announcement.
    *
    * Most healing has no entry here, and that is the reading rather than a gap:
@@ -265,6 +282,7 @@ type Row = {
   takenByActorId: Map<number, Map<string, number>>;
   healthLostBySource: Map<string, number>;
   healedBySource: Map<string, number>;
+  healedWithoutHealerBySource: Map<string, number>;
   healedByHealerId: Map<number, number>;
   healingGiven: number;
   healingGivenByCombatantId: Map<number, number>;
@@ -301,6 +319,7 @@ function composeRow(): Row {
     takenByActorId: new Map(),
     healthLostBySource: new Map(),
     healedBySource: new Map(),
+    healedWithoutHealerBySource: new Map(),
     healedByHealerId: new Map(),
     healingGiven: 0,
     healingGivenByCombatantId: new Map(),
@@ -491,6 +510,10 @@ export function composeFightStatistics(
         const subject = getRow(event.targetId);
         subject.healed += event.amount;
         setRunningTotal(subject.healedBySource, event.source, event.amount);
+        // No healer to be had on this shape at all, so every point of it is the
+        // pinned row's — stated here rather than left to be inferred from the
+        // absence of an entry in `healedByHealerId`.
+        setRunningTotal(subject.healedWithoutHealerBySource, event.source, event.amount);
         break;
       }
 
@@ -502,6 +525,13 @@ export function composeFightStatistics(
           // The healer comes from the announcement and from nowhere else — the
           // key itself names only who was healed.
           const healer = event.announced?.actorId ?? null;
+          // The condition is the one below, negated on purpose rather than
+          // written afresh: the two maps partition `healed`, so a reader asking
+          // what the un-credited part was made of must be answered on exactly the
+          // points the credited one turned away.
+          if (healer === null || event.combatantId === null) {
+            setRunningTotal(subject.healedWithoutHealerBySource, event.source, event.amount);
+          }
           if (healer !== null && event.combatantId !== null) {
             subject.healedByHealerId.set(
               healer,

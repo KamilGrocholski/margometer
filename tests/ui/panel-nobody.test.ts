@@ -12,9 +12,11 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { getMetricNoun, PANEL_METRICS } from "@/src/ui/panel-metric.ts";
+import { getMetricNoun, isGivenMetric, PANEL_METRICS } from "@/src/ui/panel-metric.ts";
 import {
   getMissingCounterpart,
+  getPinnedBreakdownHeading,
+  getPinnedLeftover,
   getPinnedLimitNote,
   getPinnedStandingNote,
   NOBODY_LABEL,
@@ -81,6 +83,62 @@ describe("what is shared and what is not", () => {
     expect(getMissingCounterpart("dealt").note).not.toBe(getMissingCounterpart("healingGiven").note);
     expect(getMissingCounterpart("dealt").label).not.toBe(NOBODY_LABEL);
     expect(getMissingCounterpart("healingGiven").label).not.toBe(NOBODY_LABEL);
+  });
+
+  /**
+   * The cut belongs to the **direction**, which is the whole of what this pair was
+   * added for: both used to be chosen by the noun, so `Otrzymane` never said whom
+   * the health left and `Leczenie dane` listed the recipients of healing nobody
+   * gave. Held as *the two directions differ and each is one word* rather than by
+   * recording the words, for the reason at the top of this file.
+   */
+  test("one breakdown heading per direction, and the two differ", () => {
+    const byDirection = new Map<boolean, Set<string>>();
+    for (const metric of PANEL_METRICS) {
+      const given = isGivenMetric(metric);
+      byDirection.set(
+        given,
+        (byDirection.get(given) ?? new Set()).add(getPinnedBreakdownHeading(metric)),
+      );
+    }
+    expect(byDirection.size).toBe(2);
+    for (const [given, headings] of byDirection) expect(headings.size, String(given)).toBe(1);
+    expect(new Set([...byDirection.values()].flatMap((one) => [...one])).size).toBe(2);
+  });
+
+  /**
+   * The row closing a `Komu` cut exists exactly where that cut does, and nowhere
+   * else: under a given direction the cut is by source and the aggregate writes
+   * every point's key beside its total, so there is nothing that can be left over.
+   * A row offered there would be one that can only ever say zero.
+   */
+  test("a leftover row exactly where the cut is by combatant", () => {
+    for (const metric of PANEL_METRICS) {
+      expect(getPinnedLeftover(metric) === null, metric).toBe(isGivenMetric(metric));
+    }
+  });
+
+  /**
+   * ⚠️ **It must not borrow one of the sentences above.** Every other sentence in
+   * that file names a limit of the game's; this one names a limit of ours — the
+   * game did state a name, and no combatant in this fight answered to it. Saying
+   * "gra nie mówi" there would be a claim about the game that is false (§3).
+   */
+  test("and says something none of the other sentences says", () => {
+    const others = PANEL_METRICS.flatMap((metric) => [
+      getPinnedLimitNote(metric),
+      getPinnedStandingNote(metric),
+      getMissingCounterpart(metric).note,
+      getMissingCounterpart(metric).label,
+    ]);
+    for (const metric of PANEL_METRICS) {
+      const leftover = getPinnedLeftover(metric);
+      if (leftover === null) continue;
+      expect(leftover.label.length, metric).toBeGreaterThan(0);
+      expect(others, metric).not.toContain(leftover.note);
+      expect(others, metric).not.toContain(leftover.label);
+      expect(leftover.label, metric).not.toBe(NOBODY_LABEL);
+    }
   });
 
   // The scope sentence is a fifth thing and not a rewording of any of them: it says

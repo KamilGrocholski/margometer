@@ -345,6 +345,108 @@ describe.each(FROM_CAPTURES)("$name healing in both directions", ({ statistics }
   // claim is a test that has to be kept in step with the first.
 });
 
+/**
+ * Healing split by whether anybody was credited with it — one reading transposed,
+ * held the way `healingGiven` is.
+ *
+ * The panel's `Bez sprawcy` row stands for the healing nobody gave, and a reader
+ * asking *what it was made of* cannot be answered from `healedBySource`: that map
+ * holds every point restored, the credited ones included. Measured on
+ * `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`, the two differ
+ * by more than a tenth, so there is no arithmetic recovering the split afterwards
+ * and the aggregate has to write it.
+ *
+ * What holds the two together is that they **partition** `healed` — the same
+ * property `getHealingWithoutHealer` has been deriving in the panel all along, now
+ * with a source beside each point instead of one number.
+ */
+describe("healing with a healer and healing without one", () => {
+  test.each(FROM_CAPTURES)("$name splits every point restored between the two", ({ statistics }) => {
+    for (const row of getEveryRow(statistics)) {
+      const credited = [...row.healedByHealerId.values()].reduce((sum, one) => sum + one, 0);
+      const uncredited = [...row.healedWithoutHealerBySource.values()].reduce(
+        (sum, one) => sum + one,
+        0,
+      );
+      expect(credited + uncredited).toBe(row.healed);
+    }
+  });
+
+  /**
+   * And it is a partition of something, not of nothing: a capture where every
+   * point happened to be uncredited would let a map that simply copied
+   * `healedBySource` pass the sweep above.
+   */
+  test("the captures carry healing of both kinds", () => {
+    const credited = FROM_CAPTURES.flatMap(({ statistics }) => getEveryRow(statistics)).reduce(
+      (sum, row) => sum + [...row.healedByHealerId.values()].reduce((one, other) => one + other, 0),
+      0,
+    );
+    const uncredited = FROM_CAPTURES.flatMap(({ statistics }) => getEveryRow(statistics)).reduce(
+      (sum, row) =>
+        sum + [...row.healedWithoutHealerBySource.values()].reduce((one, other) => one + other, 0),
+      0,
+    );
+    expect(credited).toBeGreaterThan(0);
+    expect(uncredited).toBeGreaterThan(0);
+  });
+
+  /**
+   * The key stays with the points, which is the whole reason the map is keyed at
+   * all: a heal an announcement claimed and one that arrived on its own can share
+   * a source, and only the second is the pinned row's.
+   */
+  test("keeps the key the game stated, on the points nobody was credited with", () => {
+    const statistics = composeFightStatistics([
+      {
+        kind: "health-change",
+        combatantId: 4,
+        amount: 50,
+        source: "heal",
+        announced: null,
+        declared: [],
+      },
+      {
+        kind: "health-change",
+        combatantId: 4,
+        amount: 30,
+        source: "heal",
+        announced: { actorId: 9, skillName: "coś", skillId: null },
+        declared: [],
+      },
+    ]);
+
+    const row = assertDefined(statistics.byCombatantId.get(4), "the healed combatant has a row");
+    expect(row.healed).toBe(80);
+    expect(row.healedBySource.get("heal")).toBe(80);
+    expect(row.healedWithoutHealerBySource.get("heal")).toBe(50);
+    expect(row.healedByHealerId.get(9)).toBe(30);
+  });
+
+  /**
+   * Healing stated against a **name** carries no healer at all, so all of it is
+   * the pinned row's — written where the event is read rather than inferred from
+   * an empty `healedByHealerId`, which is the same absence a heal whose announcer
+   * did not resolve produces.
+   */
+  test("counts healing stated against a name as nobody's, by its own key", () => {
+    const statistics = composeFightStatistics([
+      {
+        kind: "healing-to-named-combatant",
+        targetName: "ktoś",
+        targetId: 2,
+        targetHealthPercent: null,
+        amount: 70,
+        source: "heal_target",
+      },
+    ]);
+
+    const row = assertDefined(statistics.byCombatantId.get(2), "the healed combatant has a row");
+    expect(row.healedWithoutHealerBySource.get("heal_target")).toBe(70);
+    expect(row.healedByHealerId.size).toBe(0);
+  });
+});
+
 describe("figures the log ties to nobody", () => {
   test("a blow naming neither side lands on nobody, and is not dropped", () => {
     const statistics = composeFightStatistics([ATTACK_ON_NOBODY]);

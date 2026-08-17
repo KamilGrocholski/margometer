@@ -53,18 +53,24 @@ import {
   DEFENCE_NAMES,
   DESTRUCTION_NAMES,
   EFFECT_NAMES,
+  ELEMENT_NAMES,
   getPhrase,
-  HEALTH_SOURCE_NAMES,
+  HEALTH_GAIN_SOURCE_NAMES,
+  HEALTH_LOSS_SOURCE_NAMES,
   PROFESSION_NAMES,
+  type TokenName,
   type TranslateLabel,
 } from "@/src/ui/panel-names.ts";
 import {
+  getPinnedBreakdownHeading,
+  getPinnedLeftover,
   getPinnedLimitNote,
   getPinnedStandingNote,
   NOBODY_LABEL,
   NOBODY_SCOPE_NOTE,
 } from "@/src/ui/panel-nobody.ts";
 import {
+  getDamageWithoutActor,
   getHealingWithoutHealer,
   getMetricValue,
   getName,
@@ -314,14 +320,90 @@ function getUnattributedDamage(reading: PanelReading): number {
   return total;
 }
 
-function getUnattributedDamageBySource(reading: PanelReading): Map<string, number> {
+/**
+ * What the pinned figure was made of, by the key the game stated it under.
+ *
+ * ⚠️ **The bucket for a blow nobody can be charged with is part of it.** Summing
+ * the rows' `healthLostBySource` alone left out `unattributed.dealtApplied`, which
+ * `getUnattributedDamage` adds — so the cut totalled less than the figure above it
+ * with nothing saying why, which is the failure this panel exists to prevent, in
+ * miniature (`docs/specs/2026-08-11-the-panel-that-drills.md`). Zero on every
+ * capture and therefore invisible, but a fight joined in progress resolves no name
+ * at all (`src/core/fight-decoder.ts`) and that is where the whole figure goes.
+ *
+ * Two vocabularies, because the two halves are keyed differently: the bucket holds
+ * damage **elements**, the rows hold the keys health fell under. The same pair
+ * `composeSourceEntries` already draws on `Otrzymane`.
+ */
+function getUnattributedDamageBySource(
+  reading: PanelReading,
+): Array<{ names: Record<string, TokenName>; token: string; amount: number }> {
+  const elements = new Map<string, number>();
+  for (const [token, amount] of reading.statistics.unattributed.dealtAppliedByElement) {
+    setRunningTotal(elements, token, amount);
+  }
+
   const sources = new Map<string, number>();
   for (const row of reading.statistics.byCombatantId.values()) {
     for (const [token, amount] of row.healthLostBySource) {
       setRunningTotal(sources, token, amount);
     }
   }
-  return sources;
+
+  return [
+    ...[...elements].map(([token, amount]) => ({ names: ELEMENT_NAMES, token, amount })),
+    ...[...sources].map(([token, amount]) => ({ names: HEALTH_LOSS_SOURCE_NAMES, token, amount })),
+  ];
+}
+
+/**
+ * The same for healing, and the reason `healedWithoutHealerBySource` exists.
+ *
+ * `healedBySource` would be the wrong map by a wide margin — it holds every point
+ * restored, including the ones an announcement gave a healer to, which are exactly
+ * the points this row does **not** stand for. Measured on
+ * `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`: 109 113 with
+ * no healer against 123 506 summed over `healedBySource`.
+ *
+ * The bucket is read alongside the rows rather than left out: healing that reached
+ * a name nobody could place carries its key just the same.
+ */
+function getUnattributedHealingBySource(
+  reading: PanelReading,
+): Array<{ names: Record<string, TokenName>; token: string; amount: number }> {
+  const sources = new Map<string, number>();
+  for (const row of [...reading.statistics.byCombatantId.values(), reading.statistics.unattributed]) {
+    for (const [token, amount] of row.healedWithoutHealerBySource) {
+      setRunningTotal(sources, token, amount);
+    }
+  }
+  return [...sources].map(([token, amount]) => ({ names: HEALTH_GAIN_SOURCE_NAMES, token, amount }));
+}
+
+/**
+ * The other cut of the same figure: whom the health it moved reached.
+ *
+ * Read off the rows, so what is left over is what no row holds — handed back
+ * beside the pairs rather than folded into them, because the two are different
+ * claims and `panel-nobody.ts` words the second one carefully.
+ */
+function getUnattributedByCombatant(
+  reading: PanelReading,
+  state: PanelState,
+  whole: number,
+): { pairs: Array<[number, number]>; leftover: number } {
+  const pairs: Array<[number, number]> = [];
+  for (const [id, row] of reading.statistics.byCombatantId) {
+    const amount = isHealingMetric(state.metric)
+      ? getHealingWithoutHealer(row)
+      : row.healthLost + getDamageWithoutActor(row);
+    if (amount > 0) pairs.push([id, amount]);
+  }
+  pairs.sort(([, one], [, other]) => other - one);
+  return {
+    pairs,
+    leftover: whole - pairs.reduce((sum, [, amount]) => sum + amount, 0),
+  };
 }
 
 /**
@@ -407,8 +489,6 @@ function composePinnedRow(
   largest: number,
   translate: TranslateLabel | null,
 ): PanelRow | null {
-  const isHealing = isHealingMetric(state.metric);
-
   const value = getPinnedValue(reading, state);
   if (value <= 0) return null;
 
@@ -416,26 +496,40 @@ function composePinnedRow(
     { kind: "title", text: NOBODY_LABEL },
     { kind: "note", text: getPinnedLimitNote(state.metric) },
     { kind: "note", text: getPinnedStandingNote(state.metric) },
+    { kind: "heading", text: getPinnedBreakdownHeading(state.metric) },
   ];
-  if (isHealing) {
-    lines.push({ kind: "heading", text: "Komu" });
-    for (const [id, row] of [...reading.statistics.byCombatantId].sort(
-      ([, one], [, other]) => getHealingWithoutHealer(other) - getHealingWithoutHealer(one),
-    )) {
-      const amount = getHealingWithoutHealer(row);
-      if (amount > 0) lines.push(composeStat(getName(reading, id), composeFigureText(amount)));
+
+  /**
+   * ⚠️ **The cut follows the direction, and the figure does not.** The same points
+   * read from either end, so the row counts one thing per noun — that identity is
+   * what makes the two directions balance rather than disagree, and it is measured
+   * (`tests/ui/panel-view.test.ts`). What the reader is asking is a different
+   * question: under a given direction, *what did this*; under a received one,
+   * *whom did it happen to*. Both used to answer the first, so `Otrzymane` never
+   * named a victim and `Leczenie dane` listed the recipients of healing nobody
+   * gave.
+   */
+  if (isGivenMetric(state.metric)) {
+    const parts = isHealingMetric(state.metric)
+      ? getUnattributedHealingBySource(reading)
+      : getUnattributedDamageBySource(reading);
+    for (const part of [...parts].sort((one, other) => other.amount - one.amount)) {
+      lines.push(
+        composeStat(getPhrase(part.names, part.token, translate), composeFigureText(part.amount)),
+      );
     }
   } else {
-    // The source key both ways round: it is the only name the log has for these
-    // points, and a reader on `Otrzymane` wants it exactly as much — their own
-    // row already tells them how much, never what.
-    lines.push({ kind: "heading", text: "Z czego" });
-    for (const [token, amount] of [...getUnattributedDamageBySource(reading)].sort(
-      ([, one], [, other]) => other - one,
-    )) {
-      lines.push(composeStat(getPhrase(HEALTH_SOURCE_NAMES, token, translate), composeFigureText(amount)));
+    const { pairs, leftover } = getUnattributedByCombatant(reading, state, value);
+    for (const [id, amount] of pairs) {
+      lines.push(composeStat(getName(reading, id), composeFigureText(amount)));
+    }
+    const unplaced = getPinnedLeftover(state.metric);
+    if (leftover > 0 && unplaced !== null) {
+      lines.push(composeStat(unplaced.label, composeFigureText(leftover)));
+      lines.push({ kind: "note", text: unplaced.note });
     }
   }
+
   if (state.team !== "all") lines.push({ kind: "note", text: NOBODY_SCOPE_NOTE });
 
   return {

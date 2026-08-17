@@ -23,6 +23,11 @@ import {
   PANEL_TEAMS,
   type PanelMetric,
 } from "@/src/ui/panel-metric.ts";
+import {
+  HEALTH_GAIN_SOURCE_NAMES,
+  HEALTH_LOSS_SOURCE_NAMES,
+} from "@/src/ui/panel-names.ts";
+import { getPinnedLeftover } from "@/src/ui/panel-nobody.ts";
 import type { PanelReading } from "@/src/ui/panel-reading.ts";
 import type { PanelRow, PanelView } from "@/src/ui/panel-shape.ts";
 import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
@@ -1034,6 +1039,67 @@ describe("against the captured fights", () => {
   });
 
   /**
+   * **The pinned row's own breakdown closes against the pinned row.**
+   *
+   * The property that makes all four cuts worth reading, and the one the panel
+   * demands of every other list it draws — a section that quietly totals less than
+   * the row above it with nothing saying why is the failure this project exists to
+   * prevent, in miniature (`docs/specs/2026-08-11-the-panel-that-drills.md`).
+   *
+   * ⚠️ **It did not hold on `Zadane` before this round**, and could not be seen: the
+   * cut summed the rows' `healthLostBySource` while the figure also carried
+   * `unattributed.dealtApplied`, which is zero on every capture and is the whole
+   * figure on a fight joined in progress, where no name resolves
+   * (`src/core/fight-decoder.ts`). The hand-written fight below reaches that shape;
+   * this reaches the sizes.
+   */
+  test.each(fights.flatMap((fight) => PANEL_METRICS.map((metric) => ({ ...fight, metric }))))(
+    "$name closes what nobody can be charged with against its own parts, on $metric",
+    ({ reading, metric }) => {
+      const view = composePanelView(reading, composeState({ metric }));
+      const pinned = view.pinnedRow;
+      expect(pinned).not.toBeNull();
+      if (pinned === null) return;
+
+      const parts = pinned.detail
+        .filter((line) => line.kind === "stat")
+        .map((line) => getIntegerFromText(line.value.replace(/\s/g, "")));
+      expect(parts.length).toBeGreaterThan(0);
+      expect(parts.every((part) => part !== null)).toBe(true);
+
+      const total = parts.reduce((sum: number, part) => sum + (part ?? 0), 0);
+      expect(composeFigureText(total)).toBe(pinned.valueText);
+    },
+  );
+
+  /**
+   * And the words it closes with belong to the screen.
+   *
+   * ⚠️ **`heal` is stated in both directions and used to be named once.** The
+   * client reports a health *loss* under it with a negative figure
+   * (`docs/protocol-keys.md`), so `Zadane` and `Otrzymane` printed `leczenie`
+   * against a row of damage — healing on a damage screen, which is what the whole
+   * of this round was reported as. Held against the **gain** table rather than
+   * against the word, so rewording either one cannot quietly satisfy it.
+   */
+  test.each(fights)("$name says no healing word on a damage screen", ({ reading }) => {
+    const gainOnly = Object.entries(HEALTH_GAIN_SOURCE_NAMES)
+      .filter(([token]) => !(token in HEALTH_LOSS_SOURCE_NAMES))
+      .map(([, named]) => named.fallback);
+    expect(gainOnly.length).toBeGreaterThan(0);
+
+    for (const metric of ["dealt", "taken"] as const) {
+      const pinned = composePanelView(reading, composeState({ metric })).pinnedRow;
+      const labels = [...(pinned?.detail ?? [])].map((line) =>
+        line.kind === "stat" ? line.label : "",
+      );
+      for (const word of [...gainOnly, HEALTH_GAIN_SOURCE_NAMES.heal?.fallback ?? ""]) {
+        expect(labels, `${metric}/${word}`).not.toContain(word);
+      }
+    }
+  });
+
+  /**
    * `Σ zadane + bez sprawcy = Σ otrzymane`, as an equation on integers.
    *
    * ⚠️ **The test above was standing in for this and could not do it.** One of
@@ -1100,6 +1166,53 @@ describe("against the captured fights", () => {
 
     expect(getWholeFromSummary(composePanelView(reading, composeState({ metric: "dealt" })))).toBe(600);
     expect(getWholeFromSummary(composePanelView(reading, composeState({ metric: "taken" })))).toBe(600);
+
+    /**
+     * ⚠️ **And the pinned row's own breakdown, which the captures cannot reach.**
+     * Every name in them resolves, so both cuts of this figure are empty there and
+     * a panel that had simply dropped the term would pass the sweep above. Here
+     * the blow with no striker is the whole figure — so `Zadane` has to name the
+     * element it arrived as, and `Otrzymane` has to name the combatant it landed
+     * on rather than filing 400 points as unplaceable while row 3 holds them.
+     */
+    const bySource = composePanelView(reading, composeState({ metric: "dealt" })).pinnedRow;
+    expect(bySource?.valueText).toBe("400");
+    expect(bySource?.detail.filter((line) => line.kind === "stat")).toEqual([
+      { kind: "stat", label: "fizyczne", value: "400", isStrong: false },
+    ]);
+
+    const byCombatant = composePanelView(reading, composeState({ metric: "taken" })).pinnedRow;
+    expect(byCombatant?.valueText).toBe("400");
+    expect(byCombatant?.detail.filter((line) => line.kind === "stat")).toEqual([
+      { kind: "stat", label: "coś dużego", value: "400", isStrong: false },
+    ]);
+  });
+
+  /**
+   * The other half of the same shape: a blow with no striker that also landed on
+   * nobody. Then there really is no row to put it on, and the cut says so in the
+   * one sentence in `panel-nobody.ts` that names a limit of **ours** rather than
+   * of the game's — the game did state a name, and this fight has nobody it fits.
+   */
+  test("names the part no row can hold, where a blow reached nobody either", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(["0;0;+dmg=500;-dmg=400"], roster),
+      roster,
+    );
+    const reading = { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading;
+
+    expect(statistics.unattributed.dealtApplied).toBe(400);
+    expect(statistics.unattributed.taken).toBe(400);
+
+    const pinned = composePanelView(reading, composeState({ metric: "taken" })).pinnedRow;
+    expect(pinned?.valueText).toBe("400");
+    const stats = [...(pinned?.detail ?? [])].filter((line) => line.kind === "stat");
+    expect(stats.length).toBe(1);
+    expect(stats[0]?.value).toBe("400");
+    expect(stats[0]?.label).toBe(getPinnedLeftover("taken")?.label);
   });
 
   /**

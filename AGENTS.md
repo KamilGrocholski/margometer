@@ -851,7 +851,15 @@ src/
                          and what it gave, and deriving the second from everybody
                          else's first would be a statistic computed in `ui` (§9.1).
                          The two are held to being one reading transposed, and to
-                         balancing against what nobody announced.
+                         balancing against what nobody announced. Healing also
+                         arrives split by whether anybody was credited with it,
+                         with the key beside each point: the row nobody can be
+                         charged with stands for the uncredited half alone, and
+                         `healedBySource` overstates it by more than a tenth on
+                         `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`
+                         — a difference no arithmetic afterwards recovers. Written
+                         exactly where the credited map is not, so the two
+                         partition what was received.
   game/
     engine-battle-wrap.ts
                          The only code here that changes a running game: it
@@ -937,7 +945,13 @@ src/
                          The identifier is functional and may be stored; the
                          sentence it resolves to never is (NOTICE.md). Ours is
                          what every test and every browser without the game sees,
-                         so it is a real answer rather than a placeholder.
+                         so it is a real answer rather than a placeholder. Health
+                         is named by TWO tables and not one, because a key can be
+                         stated in both directions: `heal` carries a loss when the
+                         figure is negative, and named once it printed "leczenie"
+                         under a row of damage. The tables are held to the captures
+                         rather than to a list, so the next recording cannot
+                         quietly outgrow them.
     panel-row-key.ts     The key a drawn row carries, composed and read in one
                          place. It was a convention three files held separately —
                          `panel-view.ts` wrote the keys, `panel-element.ts`
@@ -1029,7 +1043,11 @@ src/
                          and taken is a blow **plus** health that fell on its own.
                          Below both the ranking and the drill, because both ask all
                          three: left in the composing, the two would import each
-                         other.
+                         other. Holds the two "with nobody to credit" readings as
+                         well, healing and damage alike — what a row received less
+                         what it can put a name to, clamped at zero because a
+                         negative there would be subtracted from a total as though
+                         somebody had measured it.
     panel-nobody.ts      What the panel says where the game names nobody — §10's
                          unattributed, in the player's words. One limit sentence
                          per noun, one standing sentence per direction, and the row
@@ -1038,7 +1056,14 @@ src/
                          Readers rather than tables, so a screen's sentence is
                          looked up in one place while the tables stay exhaustive per
                          metric — the compiler asks about a fifth screen instead of
-                         letting it inherit whichever wording came first.
+                         letting it inherit whichever wording came first. Which cut
+                         the pinned row opens onto is decided here too, and it
+                         follows the DIRECTION where the figure follows the noun:
+                         given asks what did this, received asks whom it happened
+                         to. One entry here says what the game DID say and we could
+                         not place — the name it stated answers to nobody in this
+                         fight — and it is the only sentence in the file that names
+                         a limit of ours rather than of the protocol's.
     panel-drill.ts       What a row opens onto: the two levels below the ranking.
                          Entering an opponent asks *with what*, so that level lists
                          the skills used on them and closes them against that pair's
@@ -1060,7 +1085,15 @@ src/
                          because every one of them has something to say about it and
                          one of them used to say nothing; the direction decides what,
                          and that one fact fixes the sentence, the screen's
-                         denominator and whether the summary needs a third part.
+                         denominator and whether the summary needs a third part. It
+                         fixes the row's own BREAKDOWN too, which is the half that
+                         went by the noun for a release: given cuts by what stated
+                         the figure, received by whom it reached — so `Otrzymane`
+                         never named a victim and `Leczenie dane` listed the
+                         recipients of healing nobody gave. Each cut closes against
+                         the figure over it, the bucket for a name nobody could
+                         place included, or the row above says one thing and the
+                         parts below it another.
                          Every token of the game's is named before it reaches a
                          label — by the running client where it has a name for it,
                          otherwise by `panel-names.ts` — and one nobody has named
@@ -1307,7 +1340,12 @@ tests/
                              taken, raw and applied stay different numbers, and
                              anything the log ties to nobody reaches the bucket
                              instead of a row. Says why a fight-scale check
-                             against the snapshots is absent.
+                             against the snapshots is absent. Also the partition
+                             healing is split by: credited and uncredited come to
+                             what was received, on every capture and on both kinds
+                             of healing event — and the captures are held to
+                             carrying some of each, since one kind alone would let
+                             a map that copied `healedBySource` pass.
     declaration-rule.test.ts
                              What the protocol states that no total counts, and
                              the test a key passes to be read that way: every
@@ -1394,11 +1432,22 @@ tests/
                              never counted, and healing whose named healers come to
                              more than the whole. Both are §9.6's line — zero is a
                              measurement, so nothing measured must not read as one.
+                             The damage twin is held from both sides of zero
+                             beside them, and to being a different reading from
+                             health that fell outside a blow — the two are added
+                             together and a row that confused them would report
+                             somebody's share as unplaceable while their own row
+                             holds it.
     panel-nobody.test.ts     Which screens share a sentence and which must differ,
                              held instead of recording the sentences a third time —
                              the limit belongs to the noun, where it stands belongs
                              to the direction, and the row closing a breakdown says
-                             what the pinned row says rather than a copy of it.
+                             what the pinned row says rather than a copy of it. So
+                             does the pinned row's own cut, which follows the
+                             direction and not the noun; the row that closes it
+                             exists exactly where that cut is by combatant, and is
+                             held to borrowing none of the sentences around it,
+                             because it is the one naming a limit of ours.
     panel-drill.test.ts      The two levels swept over every combatant of every
                              capture, which the hand-written fight cannot do: every
                              section closes against the figure it was entered from,
@@ -1415,7 +1464,13 @@ tests/
                              has to be meant. Also — two quantities under one
                              label is a wrong number that looks right — to asking
                              a different question for each, and to asking nothing
-                             at all about a token the client has no name for.
+                             at all about a token the client has no name for. The
+                             two health tables are held to the captures instead of
+                             to a list, both ways round: every key health fell
+                             under is in one, every key it arrived under is in the
+                             other, and the material is held to still carrying a
+                             key that turns up in both — without one the split
+                             would be a table nobody needed.
     panel-view.test.ts       Every sentence the panel says, recorded rather than
                              described — the §3 sweeps below check the words for
                              what they must not say and pass just as happily when
@@ -1451,6 +1506,16 @@ tests/
                              otrzymane` on real material. The summary is held to
                              closing against that same whole — it used to sum the
                              rows alone and draw up to 88% of a fight as nothing.
+                             And that row's own breakdown, swept over every capture
+                             and every screen: the parts come to the figure over
+                             them, and no word of the healing vocabulary reaches a
+                             damage screen — held against the gain table rather
+                             than against a word, so rewording either cannot
+                             quietly satisfy it. The two shapes the captures cannot
+                             reach are hand-written beside it, because every name in
+                             them resolves and both cuts of that figure are
+                             therefore empty: a blow whose striker did not resolve
+                             but whose target did, and one where neither did.
     panel-element.test.ts    The panel drawn, against §9.6 and §9.7, on a fake
                              document: what survives a region failing, that every
                              child of the shadow root but the stylesheet says whose
