@@ -18,11 +18,8 @@
 ## In Progress
 
 ## Up Next
+- [ ] Verify the amount of resources this add-on needs in a browser (maybe there is a need to check execution time for each function, and to create a heatmap)
 - [ ] Panel does not respond immediately to user actions - dragging/moving the panel, changing tabs, navigating into a section, and going back.
-- [ ] Show all combatants in a battle - currently we need a combatant's turn to see him on the list. 
-I want every combatant to be visible at the beginning of a battle
-- [ ] Create and update screenshots after each release, use `screenshots` dir to store it
-- [ ] Add draw as an outcome
 
 ## Done
 - [x] Make sure there are no conflicts with Margonem names, CSS classes, and HTML ids - carefully create new names to assert no conflicts with 
@@ -34,7 +31,12 @@ Tip should stay at the y-axis level of the cursor.
 on the current selected panel view(healing taken - healing taken "bez sprawcy", healing done - healing done "bez sprawcy", damage taken - damage taken 
 "bez sprawcy", damage dealt - damage dealt "bez sprawcy")
 - [x] Make the main panel visible when there is no data - only title bar is visible, when no battle data has been recorded
+- [x] Show all combatants in a battle - currently we need a combatant's turn to see him on the list. 
+I want every combatant to be visible at the beginning of a battle
+- [x] Create a live preview on github pages
 
 ## Later
-- [ ] Read battle messages incrementaly
-- [ ] Use constants instead of literals for protocol keys (maybe everything except the ui text, not only protocol keys)
+- [ ] Add draw as an outcome (there is a problem with the protocol key, to make it work - do it later)
+- [ ] Read a battle messages incrementaly (just do a SPEC for now, nothing else)
+- [ ] Use constants instead of literals for the protocol keys (maybe everything except the ui text, not only the protocol keys)
+- [ ] Create and update screenshots after each release, use `screenshots` dir to store it
