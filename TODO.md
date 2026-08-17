@@ -16,7 +16,6 @@
 > Keep entries short: try to make tasks one line.
 
 ## In Progress
-- [ ] Create preview tool server with hotreloading
 
 ## Up Next
 - [ ] Keep tip panel withing the window - when the main panel is close enough to the edge of the window and there is no place for a tip, it cannot be fully seen
@@ -29,6 +28,7 @@ I want every combatant to be visible at the beginning of a battle
 ## Done
 - [x] Make sure there are no conflicts with Margonem names, CSS classes, and HTML ids - carefully create new names to assert no conflicts with 
 existing names, classes, and ids from the game. Add prefix `MargoMeter-` or `margometer` for each relevant element and entity.
+- [x] Create preview tool server with hotreloading
 
 ## Later
 - [ ] Tab changing, go back, go into are slow
