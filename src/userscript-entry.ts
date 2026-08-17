@@ -44,10 +44,12 @@ import {
   type PanelScroll,
 } from "@/src/ui/panel-element.ts";
 import {
+  composeDefaultState,
   composeStateAfterBack,
   composeStateAfterMetric,
   composeStateAfterTeam,
   composeStateFromRow,
+  type PanelState,
 } from "@/src/ui/panel-state.ts";
 import {
   composeStoredTextFromPosition,
@@ -55,12 +57,8 @@ import {
   type PanelPosition,
   type PanelViewport,
 } from "@/src/ui/panel-placement.ts";
-import {
-  composeDefaultState,
-  composePanelView,
-  type PanelDetailLine,
-  type PanelState,
-} from "@/src/ui/panel-view.ts";
+import type { PanelDetailLine } from "@/src/ui/panel-shape.ts";
+import { composePanelView } from "@/src/ui/panel-view.ts";
 
 export type MargoMeterOptions = {
   /** Told after every payload, with the fight as it now stands. */
@@ -110,15 +108,15 @@ export function composeFailureSink(
   brand: string,
   warn: (brand: string, detail: unknown) => void,
 ): FailureSink {
-  let said = false;
+  let hasReported = false;
   let silenced = 0;
   return {
     report: (error) => {
-      if (said) {
+      if (hasReported) {
         silenced += 1;
         return;
       }
-      said = true;
+      hasReported = true;
       warn(brand, error);
     },
     getSilenced: () => silenced,
@@ -171,7 +169,7 @@ export function hasOtherMargoMeter(page: HostPage): boolean {
  */
 export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {}): MargoMeter {
   let session: BattleSession = composeEmptySession();
-  let read = false;
+  let hasReading = false;
   let capture: FightCapture = composeEmptyCapture();
   /**
    * The combatants as the fight held them before the call the game is making now.
@@ -193,7 +191,7 @@ export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {})
       const { payload, messages } = reading;
       const before = session;
       session = composeNextSession(session, reading);
-      read = true;
+      hasReading = true;
       /**
        * Guarded on its own, and ahead of nothing: keeping material is a
        * developer's convenience, and it must never be the reason a fight stops
@@ -232,7 +230,7 @@ export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {})
   );
 
   return {
-    getReading: () => (read ? composeFightReading(session) : null),
+    getReading: () => (hasReading ? composeFightReading(session) : null),
     getCapture: () => capture,
     stop,
   };
@@ -483,10 +481,10 @@ export function composePanelMount(
    * Nothing is marked on screen for this: what a failed drag looks like is a
    * panel that did not move, which the hand holding it can already see.
    */
-  let dragFailureSaid = false;
+  let hasReportedDragFailure = false;
 
   /** Once for the page, like the drag above: pressing a button is not a fight. */
-  let captureFailureSaid = false;
+  let hasReportedCaptureFailure = false;
 
   /**
    * One map, filled by every render and read by the tooltip.
@@ -520,8 +518,8 @@ export function composePanelMount(
       getViewport: () => getViewportFromPage(page),
       onMoved: (position) => setStoredPosition(page, position),
       onSectionFailure: (error) => {
-        if (dragFailureSaid) return;
-        dragFailureSaid = true;
+        if (hasReportedDragFailure) return;
+        hasReportedDragFailure = true;
         warn("MargoMeter/PanelDrag", error);
       },
     },
@@ -533,8 +531,8 @@ export function composePanelMount(
         renderLatest();
       },
       onSectionFailure: (error) => {
-        if (captureFailureSaid) return;
-        captureFailureSaid = true;
+        if (hasReportedCaptureFailure) return;
+        hasReportedCaptureFailure = true;
         warn("MargoMeter/PanelCapture", error);
       },
     },
@@ -546,7 +544,7 @@ export function composePanelMount(
   let failuresThisFight = 0;
   let fightBeingCounted = 0;
   /** Per fight, like the counter above and cleared on the same boundary. */
-  let engineGapsSaid = false;
+  let hasReportedEngineGaps = false;
 
   /**
    * Where a gesture becomes a state.
@@ -593,7 +591,7 @@ export function composePanelMount(
       }
       failuresThisFight = 0;
       fightBeingCounted = reading.fightsStarted;
-      engineGapsSaid = false;
+      hasReportedEngineGaps = false;
     }
 
     /**
@@ -604,8 +602,8 @@ export function composePanelMount(
      * to report it. Not per payload — a fight redraws every few seconds and the
      * counts only grow, so a repeat would say the same thing louder (§9.6).
      */
-    if (!engineGapsSaid && hasEngineGaps(reading.engineReading)) {
-      engineGapsSaid = true;
+    if (!hasReportedEngineGaps && hasEngineGaps(reading.engineReading)) {
+      hasReportedEngineGaps = true;
       warn("MargoMeter/EngineReading", {
         unreadablePayloadsByFault: Object.fromEntries(
           reading.engineReading.unreadablePayloadsByFault,

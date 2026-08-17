@@ -17,18 +17,16 @@ import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
 import {
-  composeFigureText,
-  composeDefaultState,
-  composePanelView,
   PANEL_METRICS,
   PANEL_TEAMS,
   type PanelMetric,
-  type PanelReading,
-  type PanelRow,
-  type PanelState,
-  type PanelView,
-} from "@/src/ui/panel-view.ts";
+} from "@/src/ui/panel-metric.ts";
+import type { PanelReading } from "@/src/ui/panel-reading.ts";
+import type { PanelRow, PanelView } from "@/src/ui/panel-shape.ts";
+import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
+import { composePanelView } from "@/src/ui/panel-view.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 /**
@@ -150,7 +148,7 @@ describe("the ranking", () => {
 
     expect(rows.map((row) => row.rank)).toEqual([1, 2, 3, 4]);
     expect(rows[0]!.label).toBe("mag");
-    expect(rows.map((row) => row.canDrill)).toEqual([true, true, true, true]);
+    expect(rows.map((row) => row.isDrillable)).toEqual([true, true, true, true]);
   });
 
   /**
@@ -287,7 +285,7 @@ describe("what nobody can be charged with", () => {
       const view = composePanelView(composeReading(), composeState({ metric }));
 
       expect(view.pinnedRow?.label).toBe("Bez sprawcy");
-      expect(view.pinnedRow?.canDrill).toBe(false);
+      expect(view.pinnedRow?.isDrillable).toBe(false);
     },
   );
 
@@ -540,7 +538,7 @@ describe("drilling", () => {
       composeState({ focusCombatantId: 1, focusTargetId: 3 }),
     );
 
-    expect(view.lists[0]?.rows.every((row) => !row.canDrill)).toBe(true);
+    expect(view.lists[0]?.rows.every((row) => !row.isDrillable)).toBe(true);
   });
 });
 

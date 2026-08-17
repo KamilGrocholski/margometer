@@ -244,7 +244,7 @@ export function composePanelStyleText(): string {
   background: ${t.track};
   overflow: hidden;
 }
-.row.can-drill { cursor: pointer; }
+.row.drillable { cursor: pointer; }
 .row.leaf { cursor: help; }
 .bar { position: absolute; left: 0; top: 0; bottom: 0; opacity: ${t.barTint}; }
 /*

@@ -1,5 +1,5 @@
 /**
- * What the panel shows, as data.
+ * What the panel shows, as data: the ranking, and the arithmetic one screen is.
  *
  * The drawing is a separate file and a thin one, because everything worth
  * getting right is here: which rows exist, in what order, how long each bar is,
@@ -8,6 +8,18 @@
  *
  * §9.1 holds even inside `ui/`: nothing here computes a statistic. It takes what
  * the aggregate produced and decides how to present it.
+ *
+ * **What is no longer here**, because this file had grown into four subjects and
+ * its own docblocks into a table of contents
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26): the
+ * vocabulary and the control strips (`panel-metric.ts`), the shape the drawing
+ * consumes (`panel-shape.ts`), the reading and the three questions everything asks
+ * of a combatant (`panel-reading.ts`), the levels a row opens onto
+ * (`panel-drill.ts`), the sentences said where the game names nobody
+ * (`panel-nobody.ts`) and a figure as text (`panel-figure-text.ts`). What stayed
+ * is one screen: the list, the figure pinned under it, what every share divides by,
+ * and the summary and warnings standing over the lot — the arithmetic that has to
+ * agree with itself, kept where a disagreement is visible in one file.
  *
  * **The strings are Polish and nothing else here is** (§3). A sentence a player
  * reads never carries our vocabulary: it says what cannot be known, not why our
@@ -18,453 +30,58 @@
  * wrote it rather than as a guess.
  */
 
-import {
-  composeCombatantRowKey,
-  composeLeafRowKey,
-  composeSkillRowKey,
-  composeTargetRowKey,
-  NOBODY_ROW_KEY,
-  UNANNOUNCED_ROW_KEY,
-} from "@/src/ui/panel-row-key.ts";
-import { composeDecimalText, composeIntegerText } from "@/libs/number.ts";
+import { composeIntegerText } from "@/libs/number.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 import { getCollatedTextOrder } from "@/libs/text-order.ts";
-import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
-import type {
-  CombatantStatistics,
-  FightStatistics,
-  SkillStatistics,
-} from "@/src/core/fight-statistics.ts";
+import { getCombatantIdByName } from "@/src/core/combatant-roster.ts";
+import type { CombatantStatistics } from "@/src/core/fight-statistics.ts";
+import { composeBreakdownLists, composeDeepLists } from "@/src/ui/panel-drill.ts";
+import { composeFigureText, composeShareText } from "@/src/ui/panel-figure-text.ts";
+import {
+  composeDirectionTabs,
+  composeNounTabs,
+  composeTeamTabs,
+  isGivenMetric,
+  isHealingMetric,
+  METRIC_LABELS,
+  PANEL_METRICS,
+  TEAM_LABELS,
+  type PanelMetric,
+  type PanelTeam,
+} from "@/src/ui/panel-metric.ts";
 import {
   DEFENCE_NAMES,
   DESTRUCTION_NAMES,
   EFFECT_NAMES,
-  ELEMENT_NAMES,
   getPhrase,
   HEALTH_SOURCE_NAMES,
   PROFESSION_NAMES,
-  type TokenName,
   type TranslateLabel,
 } from "@/src/ui/panel-names.ts";
+import {
+  getPinnedLimitNote,
+  getPinnedStandingNote,
+  NOBODY_LABEL,
+  NOBODY_SCOPE_NOTE,
+} from "@/src/ui/panel-nobody.ts";
+import {
+  getHealingWithoutHealer,
+  getMetricValue,
+  getName,
+  getRow,
+  type PanelReading,
+} from "@/src/ui/panel-reading.ts";
+import { composeCombatantRowKey, NOBODY_ROW_KEY } from "@/src/ui/panel-row-key.ts";
+import type {
+  PanelCrumb,
+  PanelDetailLine,
+  PanelList,
+  PanelRow,
+  PanelSides,
+  PanelView,
+} from "@/src/ui/panel-shape.ts";
+import type { PanelState } from "@/src/ui/panel-state.ts";
 import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-tokens.ts";
-import { setRunningTotal } from "@/libs/running-total.ts";
-
-/**
- * What the panel is handed.
- *
- * Declared here rather than imported from `src/game/battle-session.ts`, where the
- * running add-on composes it. §9.1 lets `ui` depend on `core` and on `libs`, and
- * names no direction from `ui` to `game`; a type import is still a direction, and
- * it is the one that would make the panel unusable without an engine.
- *
- * `FightReading` satisfies this structurally, so the entry point — the one file
- * that may know both — keeps passing the same value through untouched.
- */
-export type PanelReading = {
-  statistics: FightStatistics;
-  roster: CombatantRoster;
-  /** Which side is the watcher's own, when the game said. Never guessed. */
-  ourSide: number | null;
-  isFromFightStart: boolean;
-  /**
-   * What the game handed over that never became part of the fight.
-   *
-   * Declared here rather than imported, the same way `ourSide` and
-   * `isFromFightStart` are: the shape is `game`'s to produce and this file must
-   * not learn that a game engine exists (§9.1). Structural typing is what lets
-   * both be true.
-   *
-   * **Optional here and required there.** A caller with no engine — the offline
-   * tools, every test in this file — truthfully has nothing to say about it, and
-   * saying nothing is not the same as saying zero. The producer cannot leave it
-   * out, which is where forgetting it would matter.
-   */
-  engineReading?:
-    | {
-        /** Keyed by what was wrong; the keys are `game`'s vocabulary, not ours. */
-        unreadablePayloadsByFault: ReadonlyMap<string, number>;
-        lostMessages: number;
-        unreadableCombatants: number;
-      }
-    | undefined;
-};
-
-export const PANEL_METRICS = ["dealt", "taken", "healingGiven", "healed"] as const;
-export type PanelMetric = (typeof PANEL_METRICS)[number];
-
-export const PANEL_TEAMS = ["all", "mine", "enemy"] as const;
-export type PanelTeam = (typeof PANEL_TEAMS)[number];
-
-/**
- * The two axes a metric sits on, and the reason they are not the state.
- *
- * `Zadane` and `Otrzymane` are two *directions* of one noun; `Leczenie` was a
- * noun with no direction, which is why healing given had nowhere to go. Naming
- * the axes separates them — but they stay **derived**, and the metric stays the
- * one field the state holds.
- *
- * Two fields would make `healing` × `given` expressible before there is a figure
- * behind it, and §9.5 puts an invariant like that in the type instead of in a
- * check five call sites have to remember. So the table below is the whole
- * vocabulary: a pair with no row is a screen that does not exist, and the
- * compiler counts the rows.
- */
-const PANEL_NOUNS = ["damage", "healing"] as const;
-export type PanelNoun = (typeof PANEL_NOUNS)[number];
-
-const PANEL_DIRECTIONS = ["given", "received"] as const;
-export type PanelDirection = (typeof PANEL_DIRECTIONS)[number];
-
-const METRIC_AXES: Record<PanelMetric, { noun: PanelNoun; direction: PanelDirection }> = {
-  dealt: { noun: "damage", direction: "given" },
-  taken: { noun: "damage", direction: "received" },
-  healingGiven: { noun: "healing", direction: "given" },
-  healed: { noun: "healing", direction: "received" },
-};
-
-/**
- * Everything the reader has chosen, and nothing they have not.
- *
- * Held by the caller rather than inside this module: a view composed from state
- * is a function, and a function is what a test can drive through every screen the
- * panel has without a browser.
- */
-export type PanelState = {
-  metric: PanelMetric;
-  team: PanelTeam;
-  /** Whose breakdown is open, and how far into it. */
-  focusCombatantId: number | null;
-  focusTargetId: number | null;
-  /**
-   * Which skill is open, and **whose**.
-   *
-   * The owner travels with the key because a key alone does not identify one:
-   * two combatants announcing the same skill share it, and under `Leczenie` the
-   * section is built from everybody else's skills, so the row that was clicked
-   * belongs to somebody other than the combatant in focus. Measured on the group
-   * capture — two combatants announce the same skill and both heal the same
-   * target, 11 733 and 10 204 — and picking the first match opened the wrong one.
-   *
-   * One pair rather than two loose fields: two optionals that must be set and
-   * cleared together are an invariant five call sites have to remember, and §9.5
-   * puts an assumption like that in the type instead.
-   */
-  focusSkill: { ownerId: number; key: string } | null;
-  isCollapsed: boolean;
-};
-
-export function composeDefaultState(): PanelState {
-  return {
-    metric: "dealt",
-    team: "all",
-    focusCombatantId: null,
-    focusTargetId: null,
-    focusSkill: null,
-    isCollapsed: false,
-  };
-}
-
-const METRIC_LABELS: Record<PanelMetric, string> = {
-  dealt: "Zadane",
-  taken: "Otrzymane",
-  healingGiven: "Leczenie dane",
-  healed: "Leczenie",
-};
-
-const TEAM_LABELS: Record<PanelTeam, string> = {
-  all: "Wszyscy",
-  mine: "My",
-  enemy: "Oni",
-};
-
-const NOUN_LABELS: Record<PanelNoun, string> = {
-  damage: "Obrażenia",
-  healing: "Leczenie",
-};
-
-/**
- * The direction, worded per noun — because Polish does not use one word for both.
- *
- * Damage is *zadane*, healing is *dane*, and a single label covering both would
- * have to be ours rather than the language's. Lower case against the nouns' upper:
- * two strips of equal weight read as two lists of the same kind of thing, and
- * these are not — one picks the figure, the other turns it round.
- */
-const DIRECTION_LABELS: Record<PanelNoun, Record<PanelDirection, string>> = {
-  damage: { given: "zadane", received: "otrzymane" },
-  healing: { given: "dane", received: "otrzymane" },
-};
-
-/**
- * The two questions every branch below used to ask by naming a metric.
- *
- * *Which quantity* and *which way round* are independent, and spelling them as
- * one name meant a fourth screen could not be added without revisiting twenty
- * conditions that each looked like they were about `dealt`. Most were about
- * **given**.
- */
-function isHealingMetric(metric: PanelMetric): boolean {
-  return METRIC_AXES[metric].noun === "healing";
-}
-
-function isGivenMetric(metric: PanelMetric): boolean {
-  return METRIC_AXES[metric].direction === "given";
-}
-
-function getMetricsByNoun(noun: PanelNoun): PanelMetric[] {
-  return PANEL_METRICS.filter((metric) => METRIC_AXES[metric].noun === noun);
-}
-
-/**
- * The metric a noun tab switches to, keeping the direction the reader is already
- * reading in — so moving between nouns does not silently turn the figure round.
- * Where the new noun has no such direction there is nothing to keep, and the
- * first it does have is the honest answer rather than a tab that does nothing.
- */
-function composeMetricAfterNoun(noun: PanelNoun, current: PanelMetric): PanelMetric {
-  const wanted = METRIC_AXES[current].direction;
-  const metrics = getMetricsByNoun(noun);
-  const kept = metrics.find((metric) => METRIC_AXES[metric].direction === wanted);
-  // A noun with no metric at all cannot be built: PANEL_NOUNS is derived from the
-  // same table, so `metrics[0]` exists. Narrowing it costs one fallback and no
-  // assertion — §9.5 prefers the exact type to an assert covering a loose one.
-  return kept ?? metrics[0] ?? current;
-}
-
-function composeDirectionTabs(
-  current: PanelMetric,
-): Array<{ metric: PanelMetric; label: string; isSelected: boolean }> {
-  const noun = METRIC_AXES[current].noun;
-  const metrics = getMetricsByNoun(noun);
-  if (metrics.length < 2) return [];
-  return metrics.map((metric) => ({
-    metric,
-    label: DIRECTION_LABELS[noun][METRIC_AXES[metric].direction],
-    isSelected: metric === current,
-  }));
-}
-
-/** Thousands spaced, as the game itself writes them. */
-export function composeFigureText(value: number): string {
-  return composeSpacedThousands(composeIntegerText(Math.round(value)));
-}
-
-/**
- * A run of digits, spaced every three from the right.
- *
- * One function because two kinds of number need it and only one had it: a rate
- * read `39362,0/t` beside a total reading `354 258`, which is the same figure
- * written two ways on one row.
- */
-function composeSpacedThousands(digits: string): string {
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-}
-
-function composeShareText(share: number): string {
-  return `${composeDecimalText(share * 100, 0)}%`;
-}
-
-/**
- * One line of what a row says on demand.
- *
- * A shape rather than a paragraph, because the panel draws these differently: a
- * heading opens a section, a pair lines its figure up in a column, a note runs
- * to the width of the tooltip. Handing the drawing one string and a newline
- * would put that decision in the renderer, where it cannot be checked.
- */
-export type PanelDetailLine =
-  | { kind: "title"; text: string }
-  | { kind: "heading"; text: string }
-  | { kind: "stat"; label: string; value: string; isStrong: boolean }
-  | { kind: "note"; text: string };
-
-export type PanelRow = {
-  /**
-   * What this row *is*, for a click to act on. Prefixed so the same combatant id
-   * cannot be mistaken for a skill's, and so a leaf can be told from a way in.
-   */
-  key: string;
-  /** 1-based in the ranking, null in a breakdown — position there is not a rank. */
-  rank: number | null;
-  label: string;
-  profession: string | null;
-  /** Bar colour. Says what somebody is; the name says who. */
-  colour: string;
-  /** 0–1, against the largest row of the same list. */
-  fill: number;
-  valueText: string;
-  /**
-   * The share, and the other measure, in one bracket beside the figure.
-   *
-   * **Null where the figure has no share to state**, which is not the same as a
-   * share of nothing: the pinned row is fight-wide, so under a side filter its
-   * figure is not inside the denominator the rest of the screen divides by, and
-   * a percentage of the wrong whole came out at 320%. Nullable rather than
-   * empty, so the compiler asks the question at every row that is built.
-   */
-  bracketText: string | null;
-  /** Whether a click goes anywhere. A leaf that offered one would be a lie. */
-  canDrill: boolean;
-  /** Detail on demand (§9.6). Empty means there is nothing more to say. */
-  detail: PanelDetailLine[];
-};
-
-export type PanelList = {
-  /** Null in the ranking: one continuous list needs no heading. */
-  heading: string | null;
-  totalText: string | null;
-  rows: PanelRow[];
-};
-
-export type PanelCrumb = {
-  /** Where the right button goes back to, by name. */
-  backLabel: string;
-  hereLabel: string;
-  profession: string | null;
-};
-
-export type PanelSides = {
-  mineText: string;
-  enemyText: string;
-  /** Whose the two figures are. Colour alone never carries a meaning (§9.7). */
-  label: string;
-  /**
-   * What belongs to neither side, named and counted — absent where every point
-   * has one. Under a given direction this is the pinned row's own figure seen
-   * from the other question: a blow with no actor has no side to be put on.
-   */
-  nobody: { label: string; text: string } | null;
-  /**
-   * The three parts of one whole, from raw sums. **Null where there is nothing
-   * to divide** — a bar drawn from zero is a measurement of nothing, and this
-   * used to draw a half-and-half split of it (§9.6).
-   */
-  shares: { mine: number; enemy: number; nobody: number } | null;
-};
-
-export type PanelView = {
-  title: string;
-  outcomeText: string | null;
-  /**
-   * The two control strips, and both speak in metrics.
-   *
-   * A tab carries the metric it would switch *to*, so the drawing reports one
-   * kind of choice however many axes the panel grows: which figure. The rule that
-   * a noun keeps the reader's direction lives here, where it is checkable without
-   * a browser, rather than in the file that draws buttons.
-   */
-  nounTabs: Array<{ metric: PanelMetric; label: string; isSelected: boolean }>;
-  /**
-   * Empty where the noun has only one direction — `Leczenie` until healing given
-   * has a figure behind it. A control that is drawn and does nothing is worse
-   * than one that is absent (§9.6), so it is not drawn.
-   */
-  directionTabs: Array<{ metric: PanelMetric; label: string; isSelected: boolean }>;
-  teamTabs: Array<{ team: PanelTeam; label: string; isSelected: boolean }>;
-  crumb: PanelCrumb | null;
-  /**
-   * How many bars the list asks for before it scrolls.
-   *
-   * Eleven under `Wszyscy`, ten under a side filter — ten is the most a side
-   * fields. A number rather than a stylesheet rule so the height is computed from
-   * the row token and cannot drift when the type size changes.
-   *
-   * ⚠️ **A breakdown gets as many as it needs, and never fewer than the ranking**,
-   * and neither half of that is an inconsistency. The ranking is a list somebody
-   * watches during a fight, so a height that changed as combatants joined would
-   * move the window under their hand — a bigger fight scrolls instead. A breakdown
-   * is opened deliberately, and it has three sections whose whole point is to be
-   * compared with each other: at eleven the last two sat under the fold and the
-   * panel looked like it had lost them, and at its own size it used to *shrink* on
-   * the way in.
-   *
-   * ⚠️ **There is no ceiling here, and that is not an omission.** What a breakdown
-   * may have is a question about the screen, and this file knows nothing about
-   * screens — the stylesheet caps the panel against the window and against the
-   * share of it we are willing to cover.
-   */
-  visibleRows: number;
-  /**
-   * What screen this is, so a redraw of it can be told from a move to another.
-   *
-   * The one field nothing draws. The drawing half keeps the reader's scroll
-   * position across a redraw of the same screen and drops it when they navigated;
-   * it cannot work that out for itself, because a redraw builds every node again.
-   */
-  levelKey: string;
-  lists: PanelList[];
-  /** What a combatant with nothing in this metric gets instead of empty lists. */
-  emptyText: string | null;
-  /** And, only where it is true, what cannot be checked about them. */
-  emptyLimitText: string | null;
-  /**
-   * The figure nobody can be charged with, pinned below the list.
-   *
-   * Outside `lists` because it is outside the scrolling: it is the one row that
-   * says *something here is missing*, and it must not be able to leave the screen.
-   *
-   * **On all four screens of the ranking, and on none of the breakdowns.** Every
-   * tab has something here to say — two of them that the figure stands apart, two
-   * that it is already inside the rows — and for a whole release one of the four
-   * said nothing at all. A breakdown gets none of it: there the shortfall is that
-   * combatant's, and it closes their own section rather than standing over it.
-   */
-  pinnedRow: PanelRow | null;
-  /** The fight, on every screen. Null only where the game never said which side is ours. */
-  sides: PanelSides | null;
-  /** One sentence each, in the player's words. Empty when the reading was clean. */
-  warnings: string[];
-};
-
-const EMPTY_ROW: CombatantStatistics = {
-  dealtRaw: 0,
-  dealtApplied: 0,
-  dealtAppliedByElement: new Map(),
-  taken: 0,
-  takenByElement: new Map(),
-  healed: 0,
-  healthLost: 0,
-  prevented: new Map(),
-  destroyed: new Map(),
-  procsOnBlowsStruck: new Map(),
-  skillsUsed: 0,
-  blowsStruck: 0,
-  largestBlow: 0,
-  blowsWithoutSkill: 0,
-  dealtByTargetId: new Map(),
-  takenByActorId: new Map(),
-  healthLostBySource: new Map(),
-  healedBySource: new Map(),
-  healedByHealerId: new Map(),
-  healingGiven: 0,
-  healingGivenByCombatantId: new Map(),
-  skills: new Map(),
-};
-
-function getRow(reading: PanelReading, combatantId: number): CombatantStatistics {
-  return reading.statistics.byCombatantId.get(combatantId) ?? EMPTY_ROW;
-}
-
-function getName(reading: PanelReading, combatantId: number): string {
-  return reading.roster.byId.get(combatantId)?.name ?? `#${composeIntegerText(combatantId)}`;
-}
-
-/**
- * What a combatant's figure is for this metric.
- *
- * **Taken is a blow plus health that fell on its own**, and the two are separate
- * in the aggregate for a reason that does not apply here: they differ by whether
- * anyone can be charged with them, and to the combatant losing the health that is
- * no difference at all. Measured on
- * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`:
- * leaving the second out would show the boss 49 318 short, 13% of everything
- * that hit it.
- */
-function getMetricValue(row: CombatantStatistics, metric: PanelMetric): number {
-  if (metric === "dealt") return row.dealtApplied;
-  if (metric === "taken") return row.taken + row.healthLost;
-  if (metric === "healingGiven") return row.healingGiven;
-  return row.healed;
-}
 
 /** The share of a bar this figure fills, and never a `NaN` that would blank the rest. */
 function getFill(value: number, largest: number): number {
@@ -558,6 +175,19 @@ function composeCounters(row: CombatantStatistics): string[] {
 
 function composeStat(label: string, value: string, isStrong = false): PanelDetailLine {
   return { kind: "stat", label, value, isStrong };
+}
+
+/**
+ * A destroyed statistic, with its unit — because the members do not share one.
+ *
+ * `+resdmg` is stated in **percentage points** while `+acdmg` and the two
+ * absorption keys are in points, despite what `_per` in their names suggests
+ * (`docs/protocol-keys.md`). Carrying the unit in the value is what keeps the
+ * block honest without a total: four bare figures under one heading read as four
+ * of the same thing, and adding them would be the mistake §10 names.
+ */
+function composeDestructionText(token: string, amount: number): string {
+  return token === "resdmg" ? `${composeFigureText(amount)}%` : composeFigureText(amount);
 }
 
 /**
@@ -665,7 +295,7 @@ function composeRankedRow(
     fill: getFill(raw, largest),
     valueText: composeFigureText(raw),
     bracketText: composeBracket(whole > 0 ? raw / whole : 0),
-    canDrill: true,
+    isDrillable: true,
     detail: composeCombatantDetail(reading, combatantId, state, translate),
   };
 }
@@ -692,25 +322,6 @@ function getUnattributedDamageBySource(reading: PanelReading): Map<string, numbe
     }
   }
   return sources;
-}
-
-/**
- * A destroyed statistic, with its unit — because the members do not share one.
- *
- * `+resdmg` is stated in **percentage points** while `+acdmg` and the two
- * absorption keys are in points, despite what `_per` in their names suggests
- * (`docs/protocol-keys.md`). Carrying the unit in the value is what keeps the
- * block honest without a total: four bare figures under one heading read as four
- * of the same thing, and adding them would be the mistake §10 names.
- */
-function composeDestructionText(token: string, amount: number): string {
-  return token === "resdmg" ? `${composeFigureText(amount)}%` : composeFigureText(amount);
-}
-
-/** Healing that arrived with no announcement over it, and so with no healer. */
-function getHealingWithoutHealer(row: CombatantStatistics): number {
-  const named = [...row.healedByHealerId.values()].reduce((sum, one) => sum + one, 0);
-  return Math.max(0, row.healed - named);
 }
 
 /**
@@ -789,45 +400,6 @@ function getWholeOnScreen(reading: PanelReading, state: PanelState, total: numbe
   return total + getFigureOutsideRows(reading, state);
 }
 
-/**
- * The two sentences both tables below need, written once.
- *
- * ⚠️ **They used to be written twice, byte for byte.** The tables are two
- * exhaustive records — one per noun, one per metric — and each is defended in
- * prose as having exactly the entries it has, so the compiler asks about a fifth
- * screen rather than letting one inherit whichever wording came first. That
- * argument is right and it is about the *tables*. What was not right is that the
- * **sentences** were duplicated: rewording one would leave the panel saying two
- * different things about one limit, on two screens, and neither test would
- * notice because each records its own screen's phrases against itself
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F18).
- */
-const NOBODY_DEALT_NOTE = "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.";
-const NOBODY_HEALED_NOTE = "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.";
-
-/** What the game did not say, per noun. The limit, never our reason for it. */
-const PINNED_LIMIT_NOTES: Record<PanelNoun, string> = {
-  damage: NOBODY_DEALT_NOTE,
-  healing: NOBODY_HEALED_NOTE,
-};
-
-/**
- * Where the figure stands against the list above it — the sentence that decides
- * whether a reader may add it to what they have just read.
- *
- * Under a given direction the rows are the actors and nobody claims this, so the
- * shares really do come to a hundred with it included. Under a received one the
- * rows are the people it reached, so it is already among them and the shares on
- * that screen overlap. Four sentences and not two: the compiler counts the rows,
- * and the screen that had neither of them said nothing at all.
- */
-const PINNED_STANDING_NOTES: Record<PanelMetric, string> = {
-  dealt: "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno.",
-  taken: "Te obrażenia są już policzone wyżej, u tych, którym ubyło życia.",
-  healingGiven: "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno.",
-  healed: "To leczenie jest już policzone wyżej, u tych, którzy je dostali.",
-};
-
 function composePinnedRow(
   reading: PanelReading,
   state: PanelState,
@@ -841,9 +413,9 @@ function composePinnedRow(
   if (value <= 0) return null;
 
   const lines: PanelDetailLine[] = [
-    { kind: "title", text: "Bez sprawcy" },
-    { kind: "note", text: PINNED_LIMIT_NOTES[METRIC_AXES[state.metric].noun] },
-    { kind: "note", text: PINNED_STANDING_NOTES[state.metric] },
+    { kind: "title", text: NOBODY_LABEL },
+    { kind: "note", text: getPinnedLimitNote(state.metric) },
+    { kind: "note", text: getPinnedStandingNote(state.metric) },
   ];
   if (isHealing) {
     lines.push({ kind: "heading", text: "Komu" });
@@ -864,17 +436,12 @@ function composePinnedRow(
       lines.push(composeStat(getPhrase(HEALTH_SOURCE_NAMES, token, translate), composeFigureText(amount)));
     }
   }
-  if (state.team !== "all") {
-    lines.push({
-      kind: "note",
-      text: "Z całej walki — bez sprawcy nie ma czego przypisać do strony.",
-    });
-  }
+  if (state.team !== "all") lines.push({ kind: "note", text: NOBODY_SCOPE_NOTE });
 
   return {
     key: NOBODY_ROW_KEY,
     rank: null,
-    label: "Bez sprawcy",
+    label: NOBODY_LABEL,
     profession: null,
     colour: UNKNOWN_COLOUR,
     // Measured against the same figure every other bar is, or the row that says
@@ -882,509 +449,9 @@ function composePinnedRow(
     fill: getFill(value, largest),
     valueText: composeFigureText(value),
     bracketText: hasShareOnScreen(state) ? composeBracket(whole > 0 ? value / whole : 0) : null,
-    canDrill: false,
+    isDrillable: false,
     detail: lines,
   };
-}
-
-type BreakdownEntry = {
-  key: string;
-  label: string;
-  profession: string | null;
-  colour: string;
-  amount: number;
-  canDrill: boolean;
-  /** Announced skills carry theirs; nothing else has one. */
-  uses: number | null;
-  detail: PanelDetailLine[];
-};
-
-/** One section of a breakdown. Its total equals the figure it was entered from. */
-function composeBreakdownList(
-  heading: string,
-  entries: readonly BreakdownEntry[],
-): PanelList | null {
-  if (entries.length === 0) return null;
-
-  const total = entries.reduce((sum, entry) => sum + entry.amount, 0);
-  const largest = entries.reduce((most, entry) => Math.max(most, entry.amount), 0);
-
-  return {
-    heading,
-    totalText: composeFigureText(total),
-    rows: entries.map((entry) => ({
-      key: entry.key,
-      rank: null,
-      label: entry.label,
-      profession: entry.profession,
-      colour: entry.colour,
-      fill: largest > 0 ? entry.amount / largest : 0,
-      valueText: composeFigureText(entry.amount),
-      bracketText: `(${composeShareText(total > 0 ? entry.amount / total : 0)}${entry.uses === null ? "" : ` · ×${composeFigureText(entry.uses)}`})`,
-      canDrill: entry.canDrill,
-      detail: entry.detail,
-    })),
-  };
-}
-
-/**
- * What the row holds that no pair does, and which end of the pair is missing.
- *
- * The two directions are short for **different reasons** and a shared sentence
- * would be wrong on two screens: under a received direction nobody swung or
- * healed, under a given one somebody did and the game named a target this fight
- * has nobody to match. Four entries, so the compiler asks about a fifth screen
- * rather than letting it inherit whichever wording came first.
- */
-const MISSING_COUNTERPARTS: Record<PanelMetric, { label: string; note: string }> = {
-  dealt: {
-    label: "Nie wiadomo, w kogo",
-    note: "Gra nie mówi, w kogo — wiadomo tylko, że cios wszedł.",
-  },
-  taken: {
-    label: "Bez sprawcy",
-    note: NOBODY_DEALT_NOTE,
-  },
-  healingGiven: {
-    label: "Nie wiadomo, komu",
-    note: "Gra nie mówi, komu — wiadomo tylko, że leczenie weszło.",
-  },
-  healed: {
-    label: "Bez sprawcy",
-    note: NOBODY_HEALED_NOTE,
-  },
-};
-
-/** Who this combatant hit, or who hit them, or who healed them. */
-function composeOpponentEntries(
-  reading: PanelReading,
-  state: PanelState,
-  combatantId: number,
-): BreakdownEntry[] {
-  const row = getRow(reading, combatantId);
-  const pairs: Array<readonly [number, number]> =
-    state.metric === "dealt"
-      ? [...row.dealtByTargetId].map(
-          ([id, byElement]) => [id, [...byElement.values()].reduce((sum, one) => sum + one, 0)] as const,
-        )
-      : state.metric === "taken"
-        ? [...row.takenByActorId].map(
-            ([id, byElement]) => [id, [...byElement.values()].reduce((sum, one) => sum + one, 0)] as const,
-          )
-        : state.metric === "healingGiven"
-          ? [...row.healingGivenByCombatantId]
-          : [...row.healedByHealerId];
-
-  const entries: BreakdownEntry[] = pairs
-    .filter(([, amount]) => amount > 0)
-    .sort(([, one], [, other]) => other - one)
-    .map(([id, amount]) => ({
-      key: composeTargetRowKey(id),
-      label: getName(reading, id),
-      profession: reading.roster.byId.get(id)?.profession ?? null,
-      colour: getProfessionColour(reading.roster.byId.get(id)?.profession ?? null),
-      amount,
-      canDrill: true,
-      uses: null,
-      detail: [],
-    }));
-
-  // The part with no counterpart stands in the same section, or the section would
-  // total less than the row it was entered from with nothing saying why.
-  //
-  // ⚠️ Taken as the row's own figure minus what the pairs hold, rather than named
-  // per metric. Spelled out, two of the four cases were simply missing: the pairs
-  // are only written where the other end **resolved**, while the row's figure is
-  // added whatever happened, so a target the roster cannot place left the section
-  // short. Measured on a fight whose target name is not in the roster — the shape
-  // a fight joined in progress gives, since names then resolve to nobody — a
-  // combatant ranked at 400 opened onto no sections at all.
-  const orphan = getMetricValue(row, state.metric) - pairs.reduce((sum, [, amount]) => sum + amount, 0);
-  if (orphan > 0) {
-    const missing = MISSING_COUNTERPARTS[state.metric];
-    entries.push({
-      key: NOBODY_ROW_KEY,
-      label: missing.label,
-      profession: null,
-      colour: UNKNOWN_COLOUR,
-      amount: orphan,
-      canDrill: false,
-      uses: null,
-      detail: [{ kind: "note", text: missing.note }],
-    });
-  }
-
-  return entries;
-}
-
-/**
- * The row that closes a section against the row above it.
- *
- * Keyed by the two metrics that reach it rather than by all three, so the
- * compiler refuses a metric nobody decided about — the previous spelling was a
- * ternary defaulting `taken` into the wording for `dealt`, which was only right
- * because of an early return forty lines above it.
- */
-const CLOSING_LABELS: Record<PanelMetric, string> = {
-  dealt: "Zwykły cios",
-  taken: "Zwykły cios",
-  // Never reached: healing given is by definition what an announcement carried,
-  // so the section already closes against the row. Decided rather than defaulted,
-  // because a table that guesses is the thing this table exists to prevent.
-  healingGiven: "Nie wiadomo, czym",
-  healed: "Nie wiadomo, czym",
-};
-
-const CLOSING_NOTES: Record<PanelMetric, string> = {
-  dealt:
-    "Cios, przed którym nie stała żadna umiejętność. Gra nie odróżnia go od dodatkowego zamachu, który sama jej dała.",
-  taken:
-    "Cios, przed którym nie stała żadna umiejętność. Gra nie odróżnia go od dodatkowego zamachu, który sama jej dała.",
-  healingGiven: "Nic nie zapowiedziało tego leczenia, więc gra nie mówi, co je dało.",
-  healed: "Nic nie zapowiedziało tego leczenia, więc gra nie mówi, co je dało.",
-};
-
-/**
- * What this combatant did it with, or what was done to them.
- *
- * Under `Leczenie` the section counts what the row counts — healing **received**,
- * so it is built from everybody else's skills aimed here, not from this
- * combatant's own. Their own skills answer how much they *gave*, which is a
- * different quantity and does not add up to the same total (`SkillStatistics`).
- */
-function composeSkillEntries(
-  reading: PanelReading,
-  state: PanelState,
-  combatantId: number,
-): BreakdownEntry[] {
-  // Nothing announces a blow you take: the protocol names what hit you, never
-  // what the other side chose. So `Otrzymane` has no skills section at all, and
-  // the three metrics below are the only ones the labels have to answer for.
-  if (state.metric === "taken") return [];
-
-  const entries: BreakdownEntry[] = [];
-  /**
-   * The owner rides in the key, in every metric that reaches here.
-   *
-   * Under `Zadane` it is always the combatant in focus and looks redundant; one
-   * shape of key is still worth more than two, because the entry point parses it
-   * and a second shape is a second parser to keep honest.
-   */
-  const setEntry = (
-    ownerId: number,
-    key: string,
-    skill: SkillStatistics,
-    amount: number,
-  ): void => {
-    if (amount <= 0) return;
-    entries.push({
-      key: composeSkillRowKey(ownerId, key),
-      label: skill.skillName,
-      profession: null,
-      colour: UNKNOWN_COLOUR,
-      amount,
-      canDrill: true,
-      uses: skill.uses,
-      detail: [],
-    });
-  };
-
-  if (state.metric === "dealt") {
-    for (const [key, skill] of getRow(reading, combatantId).skills) {
-      setEntry(combatantId, key, skill, skill.dealtApplied);
-    }
-  } else if (state.metric === "healingGiven") {
-    // Their own skills, and the figure a skill restored to somebody else — the
-    // one `SkillStatistics` warns must not be read as the row's own healing.
-    for (const [key, skill] of getRow(reading, combatantId).skills) {
-      setEntry(combatantId, key, skill, skill.healed);
-    }
-  } else {
-    for (const [ownerId, row] of reading.statistics.byCombatantId) {
-      for (const [key, skill] of row.skills) {
-        setEntry(ownerId, key, skill, skill.healedByCombatantId.get(combatantId) ?? 0);
-      }
-    }
-  }
-
-  entries.sort((one, other) => other.amount - one.amount);
-
-  /**
-   * What no announcement covered closes the section against the row above it —
-   * and under `Zadane` it says **how many times**, because that is the question
-   * a plain attack raises: a combatant who never announces anything otherwise
-   * appears only as a figure with no shape.
-   *
-   * It is drawn even when it landed nothing, and that is the point: three blows
-   * that were all blocked are three blows, and a section that skipped them would
-   * say the combatant did not swing.
-   */
-  const row = getRow(reading, combatantId);
-  const total = getMetricValue(row, state.metric);
-  const named = entries.reduce((sum, entry) => sum + entry.amount, 0);
-  const rest = total - named;
-  const plainBlows = state.metric === "dealt" ? row.blowsWithoutSkill : 0;
-  if (rest > 0 || plainBlows > 0) {
-    entries.push({
-      key: UNANNOUNCED_ROW_KEY,
-      label: CLOSING_LABELS[state.metric],
-      profession: null,
-      colour: UNKNOWN_COLOUR,
-      amount: Math.max(rest, 0),
-      canDrill: false,
-      uses: plainBlows > 0 ? plainBlows : null,
-      detail: [{ kind: "note", text: CLOSING_NOTES[state.metric] }],
-    });
-  }
-
-  return entries;
-}
-
-/** What the figures were made of, by the name the game gave each. */
-function composeSourceEntries(
-  reading: PanelReading,
-  state: PanelState,
-  combatantId: number,
-  translate: TranslateLabel | null,
-): BreakdownEntry[] {
-  const row = getRow(reading, combatantId);
-  const compose = (
-    names: Record<string, TokenName>,
-    tokens: ReadonlyMap<string, number>,
-    colour: string,
-  ): BreakdownEntry[] =>
-    [...tokens].map(([token, amount]) => ({
-      key: `source:${token}`,
-      label: getPhrase(names, token, translate),
-      profession: null,
-      colour,
-      amount,
-      canDrill: false,
-      uses: null,
-      detail: [],
-    }));
-
-  // The source keys the game states belong to whoever received the health, so a
-  // giver has none. An empty list here is a section that is not drawn, which is
-  // the honest answer rather than repeating the recipients under a second name.
-  if (state.metric === "healingGiven") return [];
-  if (state.metric === "healed") return compose(HEALTH_SOURCE_NAMES, row.healedBySource, UNKNOWN_COLOUR);
-
-  const entries = compose(
-    ELEMENT_NAMES,
-    state.metric === "dealt" ? row.dealtAppliedByElement : row.takenByElement,
-    UNKNOWN_COLOUR,
-  );
-  if (state.metric === "taken") {
-    entries.push(...compose(HEALTH_SOURCE_NAMES, row.healthLostBySource, UNKNOWN_COLOUR));
-  }
-  return entries.sort((one, other) => other.amount - one.amount);
-}
-
-const OPPONENT_HEADINGS: Record<PanelMetric, string> = {
-  dealt: "KOMU",
-  taken: "OD KOGO",
-  healingGiven: "KOMU",
-  healed: "OD KOGO",
-};
-
-const SOURCE_HEADINGS: Record<PanelMetric, string> = {
-  dealt: "TYP OBRAŻEŃ",
-  taken: "TYP OBRAŻEŃ",
-  // Healing given has no source cut: the keys the game names belong to whoever
-  // received the health, and there is no second map stating them for the giver.
-  healingGiven: "OD CZEGO",
-  healed: "OD CZEGO",
-};
-
-/**
- * The deepest level: one opponent, or one skill, of the combatant in focus.
- *
- * A cross-section of a single row repeats the total standing over it, so it is
- * not drawn at all.
- *
- * "bez żywiołu 100%" under a figure that already says the same number is not a
- * second reading of anything — and three such sections in a row, which is what
- * `Leczenie` produced, read as a panel that has run out of things to say. The
- * list a level is *about* is always drawn; only the cross-sections beside it
- * answer to this.
- */
-function composeCrossSection(
-  heading: string,
-  entries: readonly BreakdownEntry[],
-): PanelList | null {
-  return entries.length > 1 ? composeBreakdownList(heading, entries) : null;
-}
-
-/**
- * The skills behind one pair's figure — what this combatant used *on that one
- * opponent*, rather than across the fight.
- *
- * The section closes against the pair's own total the way the fight-wide one
- * closes against the combatant's: what no announcement covered is a row, not a
- * silence, or the parts would sum to less than the figure they were entered from
- * and nothing would say why.
- */
-function composePairSkillEntries(
-  reading: PanelReading,
-  state: PanelState,
-  combatantId: number,
-  otherId: number,
-  pairTotal: number,
-): BreakdownEntry[] {
-  const entries: BreakdownEntry[] = [];
-  // Whose skills answer for this pair, and it turns on the **direction** rather
-  // than on the figure: mine when I gave it, theirs when I received it. Written
-  // as `=== "dealt"` it read as a fact about damage and was a fact about giving,
-  // which is why healing given could not be added without rewriting the line.
-  const ownerId = isGivenMetric(state.metric) ? combatantId : otherId;
-  const subjectId = isGivenMetric(state.metric) ? otherId : combatantId;
-
-  for (const [, skill] of getRow(reading, ownerId).skills) {
-    const amount = isHealingMetric(state.metric)
-      ? (skill.healedByCombatantId.get(subjectId) ?? 0)
-      : (skill.dealtByTargetId.get(subjectId) ?? 0);
-    if (amount <= 0) continue;
-    entries.push({
-      key: composeLeafRowKey(`skill:${skill.skillName}`),
-      label: skill.skillName,
-      profession: null,
-      colour: UNKNOWN_COLOUR,
-      amount,
-      canDrill: false,
-      uses: skill.uses,
-      detail: [],
-    });
-  }
-
-  entries.sort((one, other) => other.amount - one.amount);
-
-  const named = entries.reduce((sum, entry) => sum + entry.amount, 0);
-  const rest = pairTotal - named;
-  if (rest > 0) {
-    entries.push({
-      key: composeLeafRowKey(UNANNOUNCED_ROW_KEY),
-      label: CLOSING_LABELS[state.metric],
-      profession: null,
-      colour: UNKNOWN_COLOUR,
-      amount: rest,
-      canDrill: false,
-      uses: null,
-      detail: [{ kind: "note", text: CLOSING_NOTES[state.metric] }],
-    });
-  }
-  return entries;
-}
-
-/**
- * The deepest level: one opponent, or one skill, of the combatant in focus.
- *
- * Entering through an opponent asks *with what* — so the level lists skills, and
- * the elements stand beside them as a second cut of the same figure. Entering
- * through a skill asks the mirror question, *on whom*.
- */
-function composeDeepLists(
-  reading: PanelReading,
-  state: PanelState,
-  combatantId: number,
-  translate: TranslateLabel | null,
-): PanelList[] {
-  if (state.focusSkill !== null) {
-    // The owner is stated rather than searched for. Looking the key up across
-    // every row and taking the first match was a coin toss whenever two
-    // combatants announce the same skill, which every group capture does.
-    const skill = getRow(reading, state.focusSkill.ownerId).skills.get(state.focusSkill.key);
-    if (skill === undefined) return [];
-
-    // Under `otrzymane` the skill belongs to somebody else and the row was
-    // entered from what it gave *this* combatant, so the level narrows to that
-    // one pair. Under `dane` the skill is their own and the question is who all
-    // of it reached, so nothing is filtered away.
-    const pairs = !isHealingMetric(state.metric)
-      ? [...skill.dealtByTargetId]
-      : isGivenMetric(state.metric)
-        ? [...skill.healedByCombatantId]
-        : [...skill.healedByCombatantId].filter(([id]) => id === combatantId);
-
-    const entries: BreakdownEntry[] = pairs
-      .sort(([, one], [, other]) => other - one)
-      .map(([id, amount]) => ({
-        key: composeLeafRowKey(composeIntegerText(id)),
-        label: getName(reading, id),
-        profession: reading.roster.byId.get(id)?.profession ?? null,
-        colour: getProfessionColour(reading.roster.byId.get(id)?.profession ?? null),
-        amount,
-        canDrill: false,
-        uses: null,
-        detail: [],
-      }));
-
-    // ⚠️ **The one level in the panel that closed against nothing.** A skill's
-    // figure is added whatever the other end did, its pairs only where that end
-    // resolved, so this list could total less than the entry it was opened from
-    // and say nothing about the difference. Not under `Leczenie`: there the pairs
-    // are narrowed to the one the level was entered through, so the rest of the
-    // skill is deliberately absent and there is nothing to be short of.
-    const closeAgainst = state.metric === "healed" ? null : isHealingMetric(state.metric) ? skill.healed : skill.dealtApplied;
-    const orphan =
-      closeAgainst === null ? 0 : closeAgainst - entries.reduce((sum, entry) => sum + entry.amount, 0);
-    if (orphan > 0) {
-      const missing = MISSING_COUNTERPARTS[state.metric];
-      entries.push({
-        key: NOBODY_ROW_KEY,
-        label: missing.label,
-        profession: null,
-        colour: UNKNOWN_COLOUR,
-        amount: orphan,
-        canDrill: false,
-        uses: null,
-        detail: [{ kind: "note", text: missing.note }],
-      });
-    }
-
-    const list = composeBreakdownList(`KOMU — ${skill.skillName}`, entries);
-    return list === null ? [] : [list];
-  }
-
-  const otherId = state.focusTargetId;
-  if (otherId === null) return [];
-
-  // Which end of the pair the figures are read from turns on the direction, not
-  // on the quantity — the same correction as in `composePairSkillEntries`.
-  const from = isGivenMetric(state.metric) ? getRow(reading, combatantId) : getRow(reading, otherId);
-  const to = isGivenMetric(state.metric) ? otherId : combatantId;
-  const byElement = isHealingMetric(state.metric)
-    ? new Map<string, number>()
-    : (from.dealtByTargetId.get(to) ?? new Map<string, number>());
-  const pairTotal = isHealingMetric(state.metric)
-    ? [...from.skills.values()].reduce(
-        (sum, skill) => sum + (skill.healedByCombatantId.get(to) ?? 0),
-        0,
-      )
-    : [...byElement.values()].reduce((sum, one) => sum + one, 0);
-
-  const heading = `CZYM — ${getName(reading, otherId)}`;
-  const skills = composeBreakdownList(
-    heading,
-    composePairSkillEntries(reading, state, combatantId, otherId, pairTotal),
-  );
-  const elements = composeCrossSection(
-    SOURCE_HEADINGS[state.metric],
-    [...byElement]
-      .sort(([, one], [, other]) => other - one)
-      .map(([token, amount]): BreakdownEntry => ({
-        key: composeLeafRowKey(token),
-        label: getPhrase(ELEMENT_NAMES, token, translate),
-        profession: null,
-        colour: UNKNOWN_COLOUR,
-        amount,
-        canDrill: false,
-        uses: null,
-        detail: [],
-      })),
-  );
-
-  return [skills, elements].filter((list): list is PanelList => list !== null);
 }
 
 /**
@@ -1629,17 +696,9 @@ export function composePanelView(
   const shell = {
     title: composeTitle(reading),
     outcomeText: getOutcomeText(reading),
-    nounTabs: PANEL_NOUNS.map((noun) => ({
-      metric: composeMetricAfterNoun(noun, state.metric),
-      label: NOUN_LABELS[noun],
-      isSelected: noun === METRIC_AXES[state.metric].noun,
-    })),
+    nounTabs: composeNounTabs(state.metric),
     directionTabs: composeDirectionTabs(state.metric),
-    teamTabs: PANEL_TEAMS.map((team) => ({
-      team,
-      label: TEAM_LABELS[team],
-      isSelected: team === state.team,
-    })),
+    teamTabs: composeTeamTabs(state.team),
     // Ten under a filter because that is the most a side fields; eleven when the
     // list can hold both. A breakdown raises this below, and never lowers it.
     visibleRows: getFloorRows(state.team),
@@ -1740,11 +799,7 @@ export function composePanelView(
     };
   }
 
-  const lists = [
-    composeBreakdownList(OPPONENT_HEADINGS[state.metric], composeOpponentEntries(reading, state, focusId)),
-    composeCrossSection("CZYM (UMIEJĘTNOŚCI)", composeSkillEntries(reading, state, focusId)),
-    composeCrossSection(SOURCE_HEADINGS[state.metric], composeSourceEntries(reading, state, focusId, translate)),
-  ].filter((list): list is PanelList => list !== null);
+  const lists = composeBreakdownLists(reading, state, focusId, translate);
 
   return {
     ...shell,

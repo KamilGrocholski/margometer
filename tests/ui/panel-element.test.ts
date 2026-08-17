@@ -36,13 +36,10 @@ import {
   SERIES_COLOURS,
   UNKNOWN_COLOUR,
 } from "@/src/ui/panel-tokens.ts";
-import {
-  composeDefaultState,
-  composePanelView,
-  type PanelDetailLine,
-  type PanelReading,
-  type PanelState,
-} from "@/src/ui/panel-view.ts";
+import type { PanelReading } from "@/src/ui/panel-reading.ts";
+import type { PanelDetailLine } from "@/src/ui/panel-shape.ts";
+import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
+import { composePanelView } from "@/src/ui/panel-view.ts";
 
 type FakeListener = { type: string; listener: (event: PanelEvent) => void };
 

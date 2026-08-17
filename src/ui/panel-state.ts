@@ -1,5 +1,5 @@
 /**
- * What a click does to the panel's state.
+ * The panel's state, and what a click does to it.
  *
  * Four pure functions: a state and a control in, the part of a state that
  * changes out. No page, no global, no layer — which is why they left
@@ -15,7 +15,50 @@
  */
 
 import { getRowKeyMeaning } from "@/src/ui/panel-row-key.ts";
-import type { PanelMetric, PanelState, PanelTeam } from "@/src/ui/panel-view.ts";
+import type { PanelMetric, PanelTeam } from "@/src/ui/panel-metric.ts";
+
+/**
+ * Everything the reader has chosen, and nothing they have not.
+ *
+ * Held by the caller rather than inside the composing: a view composed from state
+ * is a function, and a function is what a test can drive through every screen the
+ * panel has without a browser. It is declared here, beside the four functions that
+ * produce one, rather than in `panel-view.ts` which only ever reads it.
+ */
+export type PanelState = {
+  metric: PanelMetric;
+  team: PanelTeam;
+  /** Whose breakdown is open, and how far into it. */
+  focusCombatantId: number | null;
+  focusTargetId: number | null;
+  /**
+   * Which skill is open, and **whose**.
+   *
+   * The owner travels with the key because a key alone does not identify one:
+   * two combatants announcing the same skill share it, and under `Leczenie` the
+   * section is built from everybody else's skills, so the row that was clicked
+   * belongs to somebody other than the combatant in focus. Measured on the group
+   * capture — two combatants announce the same skill and both heal the same
+   * target, 11 733 and 10 204 — and picking the first match opened the wrong one.
+   *
+   * One pair rather than two loose fields: two optionals that must be set and
+   * cleared together are an invariant five call sites have to remember, and §9.5
+   * puts an assumption like that in the type instead.
+   */
+  focusSkill: { ownerId: number; key: string } | null;
+  isCollapsed: boolean;
+};
+
+export function composeDefaultState(): PanelState {
+  return {
+    metric: "dealt",
+    team: "all",
+    focusCombatantId: null,
+    focusTargetId: null,
+    focusSkill: null,
+    isCollapsed: false,
+  };
+}
 
 /**
  * What a clicked row does to the state.

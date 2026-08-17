@@ -21,16 +21,14 @@ import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
 import { EFFECT_NAMES } from "@/src/ui/panel-names.ts";
 import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
+import { PANEL_METRICS } from "@/src/ui/panel-metric.ts";
 import {
+  composeDefaultState,
   composeStateAfterMetric,
   composeStateAfterTeam,
   composeStateFromRow,
 } from "@/src/ui/panel-state.ts";
-import {
-  composeDefaultState,
-  composePanelView,
-  PANEL_METRICS,
-} from "@/src/ui/panel-view.ts";
+import { composePanelView } from "@/src/ui/panel-view.ts";
 import {
   composeFailureSink,
   composeMeterOptions,
@@ -1172,7 +1170,7 @@ describe("what a click does to the drill", () => {
 
         for (const list of view.lists) {
           for (const row of list.rows) {
-            if (!row.canDrill) continue;
+            if (!row.isDrillable) continue;
             drilled += 1;
             const deep = composePanelView(reading, {
               ...state,

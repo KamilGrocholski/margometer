@@ -905,11 +905,14 @@ src/
                          opens is decided once. A skill's own key can carry a
                          colon, because it is the game's identifier where there
                          was one and the skill's name where there was not.
-    panel-state.ts       What a click does to the panel's state: four pure
-                         functions, a state and a control in, the part that
+    panel-state.ts       The panel's state, and what a click does to it: four
+                         pure functions, a state and a control in, the part that
                          changes out. They lived among the wiring in the entry
                          point, which is `[any]` so that it may do the wiring —
                          not so that it may keep code knowing no layer at all.
+                         The state's own type sits here too, beside the four
+                         functions that produce one, rather than in the file that
+                         only ever reads it.
     panel-stylesheet.ts  The panel's stylesheet, as one string. Out of
                          `panel-element.ts` because it was 330 lines of CSS
                          beside a renderer, a drag and a tooltip, and because it
@@ -930,56 +933,88 @@ src/
                          subtract: the ceiling that keeps the panel above the
                          bottom of the screen is measured from it, and CSS cannot
                          read an inline `top` back out.
-    panel-view.ts        What the panel shows, as data — and, with the tooltips
-                         and region names in `panel-element.ts` and the phrases
-                         in `panel-names.ts`, one of the four files that ship
-                         whose strings are Polish (§3), which is a claim
-                         `tests/tools/source-layout.test.ts` now re-measures
-                         rather than a sentence beside a filename. One ranking on
-                         two axes — a noun and a direction — with a side filter,
-                         totals only, the drill and its breadcrumb, what a
-                         combatant with nothing gets instead of empty sections,
-                         and the row for what nobody can be charged with — on all
-                         four screens, because every one of them has something to
-                         say about it and one of them used to say nothing. The
-                         direction decides what: on two the figure stands apart, on
-                         two it is already inside the rows, and that one fact fixes
-                         the sentence, the screen's denominator and whether the
-                         summary needs a third part. Holds that summary too — the
-                         fight in two figures and what belongs to neither side,
-                         which is the same whole every bracket divides by, on every
-                         screen and not only the ranking. The axes
-                         are derived and the metric stays the one field the state
-                         holds, so a pair with no figure behind it is a screen
-                         that cannot be expressed. Entering an opponent asks
-                         *with what*, so that level lists the skills used on them
-                         and closes them against that pair's own figure, with the
-                         damage types beside it as a second cut of the same
-                         number; a cut of one row is not drawn, because it repeats
-                         the total standing over it. Every token of the game's
-                         is named before it reaches a label — by the running
-                         client where it has a name for it, otherwise by
-                         `panel-names.ts` — and one nobody has named travels as
-                         the game wrote it rather than as a guess, with the
-                         captures swept so that last rung is never what a player
-                         actually meets. Takes its own input type and its own
-                         function type for that naming, so `ui` names no
-                         direction to `game` — including what the engine layer
-                         could not read, declared structurally here and optional,
-                         because a caller with no engine truthfully has nothing to
-                         say about it and nothing to say is not zero. That gap is
-                         said **above** everything the decoder qualifies: those
-                         lines suspect a total, these state that the material
-                         never arrived, and where nothing counted how much the
-                         sentence loses its figure rather than gaining a nought.
-                         Says how
-                         many bars the list asks for and which screen it is —
-                         a floor the ranking keeps and a breakdown only grows past,
-                         and an identity nothing draws, so a redraw can be told
-                         from a move and the reader keeps their place. No ceiling
-                         here: what a list may have is a question about a screen,
-                         and this file knows nothing about screens. No DOM, so
-                         all of it is checkable.
+    panel-figure-text.ts A number as the panel writes it, and the only place
+                         either spelling is decided — spaced every three digits,
+                         and a share as a whole percentage that is neither clamped
+                         nor rounded into a zero. Three of the files below write
+                         figures, which is §7.1's second consumer three times over;
+                         when two of them decided it separately, one row carried
+                         `39362,0/t` beside `354 258`.
+    panel-metric.ts      What a screen can show, what each is called, and the
+                         strips that switch between them. The axes are derived —
+                         a noun and a direction — and the metric stays the one
+                         field the state holds, so a pair with no figure behind it
+                         is a screen that cannot be expressed. The table is private
+                         and the strips are what leave, because a tab exists exactly
+                         where a metric does and a caller composing one of its own
+                         could offer a control that does nothing (§9.6). Moving
+                         between nouns keeps the direction the reader is in.
+    panel-shape.ts       What the panel shows, as a shape: the contract between
+                         the composing and the drawing, types only. Its own file so
+                         `panel-element.ts` depends on the shape rather than on the
+                         module that fills it — it took six names out of the
+                         composing and so could not be read or tested without all
+                         of it in the graph.
+    panel-reading.ts     What the panel is handed, and the three questions every
+                         part of it asks of a combatant: which row, what are they
+                         called, how much for this metric. Takes its own input type
+                         and not `game`'s, so `ui` names no direction to `game` —
+                         including what the engine layer could not read, declared
+                         structurally and optional, because a caller with no engine
+                         truthfully has nothing to say about it and nothing to say
+                         is not zero. Somebody the aggregate never counted reads as
+                         a measured zero in every metric rather than as an absence,
+                         and taken is a blow **plus** health that fell on its own.
+                         Below both the ranking and the drill, because both ask all
+                         three: left in the composing, the two would import each
+                         other.
+    panel-nobody.ts      What the panel says where the game names nobody — §10's
+                         unattributed, in the player's words. One limit sentence
+                         per noun, one standing sentence per direction, and the row
+                         that closes a breakdown section says what the pinned row
+                         says by reading the same constant rather than repeating it.
+                         Readers rather than tables, so a screen's sentence is
+                         looked up in one place while the tables stay exhaustive per
+                         metric — the compiler asks about a fifth screen instead of
+                         letting it inherit whichever wording came first.
+    panel-drill.ts       What a row opens onto: the two levels below the ranking.
+                         Entering an opponent asks *with what*, so that level lists
+                         the skills used on them and closes them against that pair's
+                         own figure, with the damage types beside it as a second cut
+                         of the same number; a cut of one row is not drawn, because
+                         it repeats the total standing over it. Every section closes
+                         against the figure it was entered from — what no
+                         announcement covered and what has no counterpart are rows,
+                         not silences. Two functions leave, one per level: a caller
+                         able to compose one section of its own is a caller able to
+                         draw one closing against nothing.
+    panel-view.ts        One screen, as data: the ranking, the figure pinned under
+                         it, what every share divides by, and the summary and
+                         warnings standing over the lot. Held together because the
+                         arithmetic has to agree with itself — the rows and the
+                         pinned row once divided by different things, and the summary
+                         drew a part of the fight as the whole of it. The row for
+                         what nobody can be charged with is on all four screens,
+                         because every one of them has something to say about it and
+                         one of them used to say nothing; the direction decides what,
+                         and that one fact fixes the sentence, the screen's
+                         denominator and whether the summary needs a third part.
+                         Every token of the game's is named before it reaches a
+                         label — by the running client where it has a name for it,
+                         otherwise by `panel-names.ts` — and one nobody has named
+                         travels as the game wrote it rather than as a guess, with
+                         the captures swept so that last rung is never what a player
+                         actually meets. The engine's gap is said **above**
+                         everything the decoder qualifies: those lines suspect a
+                         total, these state that the material never arrived, and
+                         where nothing counted how much the sentence loses its figure
+                         rather than gaining a nought. Says how many bars the list
+                         asks for and which screen it is — a floor the ranking keeps
+                         and a breakdown only grows past, and an identity nothing
+                         draws, so a redraw can be told from a move and the reader
+                         keeps their place. No ceiling here: what a list may have is
+                         a question about a screen, and this file knows nothing about
+                         screens. No DOM, so all of it is checkable.
     panel-element.ts     The same, drawn. Takes a document as an argument, opens
                          one shadow root, listens at that root for every control
                          it draws, and renders region by region so that one
@@ -998,6 +1033,13 @@ src/
                          draws a segment per part that has a figure and no bar at
                          all where there is nothing to divide, because a split of
                          zero is a measurement of nothing.
+
+  ⚠️ Six of those files were one file, and the split is the third audit's F26
+  closed rather than recorded a fourth time. What stayed together is one screen's
+  arithmetic; what left is a vocabulary, a shape, an input, a sentence and a level
+  — each with one subject, and none of them importing the composing back.
+  `tests/tools/source-layout.test.ts` names which of them may ship Polish, and the
+  count going up is what that list exists to make somebody notice.
 
 tools/
   margometer-tool-error.ts
@@ -1243,6 +1285,35 @@ tests/
                              that stops `78` opening combatant `7`. Driven only
                              through the view until an audit asked what one of
                              them returns.
+    panel-figure-text.test.ts
+                             Both spellings of a number, at the boundaries the
+                             view cannot reach: three digits against four, a
+                             rounded half, a zero that stays a zero and a share
+                             above one that is written as it is, so a wrong
+                             denominator shows instead of being clamped away.
+    panel-metric.test.ts     The rule behind a tab rather than the word on it:
+                             every screen is one pair of axes and no two share it,
+                             every strip has exactly one tab selected, and moving
+                             between nouns keeps the direction the reader is in —
+                             which the view's own tests cannot tell from a tab that
+                             merely says the right thing.
+    panel-reading.test.ts    The three questions asked of a combatant, and the two
+                             answers no screen can reach: somebody the aggregate
+                             never counted, and healing whose named healers come to
+                             more than the whole. Both are §9.6's line — zero is a
+                             measurement, so nothing measured must not read as one.
+    panel-nobody.test.ts     Which screens share a sentence and which must differ,
+                             held instead of recording the sentences a third time —
+                             the limit belongs to the noun, where it stands belongs
+                             to the direction, and the row closing a breakdown says
+                             what the pinned row says rather than a copy of it.
+    panel-drill.test.ts      The two levels swept over every combatant of every
+                             capture, which the hand-written fight cannot do: every
+                             section closes against the figure it was entered from,
+                             no cut of a single row is drawn, no bar passes the end
+                             of its track, and a skill's level closes against what
+                             that skill did. Structural only — no label of the
+                             game's is read or written down (§5).
     panel-names.test.ts      The vocabulary held to saying each thing differently
                              from every other thing — and, since a sweep put a
                              sentinel through every entry with nothing going
@@ -1549,8 +1620,31 @@ numbers belong in code, where they can be regenerated.
   measurement, a constraint imposed by the game, a trap someone will otherwise
   fall into twice. `[NEVER]` comment the obvious — no `// increment counter`, no
   restating a signature in prose above it.
-- **Keep comments short.** A few lines. If a comment needs paragraphs, the
-  reasoning belongs in the commit message and the comment points at it.
+- **Length is not the axis; what it carries is.** A comment may be as long as the
+  decision inside it, and no longer. What may never be long — or exist at all — is
+  a comment that only describes: a restatement, a summary of the lines below it, a
+  paragraph about what the code does.
+
+  ⚠️ **This rule used to read "keep comments short, a few lines", and the tree had
+  disagreed with it for the whole life of this incarnation.** Measured at the third
+  audit: five shipped files ran 65–79% comment by line, most of the rest were over
+  half, and every one of those comments was prose of the kind the clause above
+  **asks for** — a measurement with its material, a rejected alternative, a trap, a
+  constraint the game imposes
+  (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26). One of the
+  two had to be wrong, and it was the rule: the tree is dense with prose because
+  every dense docblock in it is answering *why this and not something else*, and
+  shortening those would delete the answers rather than tighten them.
+
+  Where the commit message keeps its job: the reasoning of a **change** — what was
+  measured, what was rejected, what stays open (§7.2). A comment records what is
+  true of the code as it stands, and it has to be readable by somebody who will
+  never run `git log` on the line they are looking at. "It is in the commit
+  message" is not an answer to a trap that will be fallen into twice.
+
+  Unguarded on purpose, and it is the one clause here a machine cannot hold: a
+  ratio has no right answer, and a guard that demanded one would fail the files
+  this rule is written to protect.
 - **Unknown is loud, never zero.** A parse that fails returns `null` or an
   explicit unknown; it does not substitute `0` and it does not copy a neighbour.
 

@@ -5,7 +5,7 @@ import {
   composeStateAfterTeam,
   composeStateFromRow,
 } from "@/src/ui/panel-state.ts";
-import { composeDefaultState, type PanelState } from "@/src/ui/panel-view.ts";
+import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
 
 /**
  * The four reducers, on their own.

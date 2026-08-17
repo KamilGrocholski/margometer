@@ -595,7 +595,7 @@ alternatives, traps. The rule and the tree disagree, and only one of them can be
 right. That is a finding about §9.3, not about those five files.
 
 *Where:* `src/ui/panel-view.ts:1`
-*Closes:* open
+*Closes:* commit
 
 ## Looked at and clean
 

@@ -710,6 +710,18 @@ describe("the language of the strings", () => {
     { file: "src/ui/panel-element.ts" },
     { file: "src/ui/panel-names.ts" },
     { file: "src/ui/panel-view.ts" },
+    /**
+     * Three of them arrived at once when `panel-view.ts` was split along its
+     * seams (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26).
+     * Nothing new is said: the labels of the control strips, the sentences about a
+     * figure with no actor and the headings of a breakdown are the same words,
+     * moved to the file that owns the decision they belong to. Listed one by one
+     * rather than admitted as `src/ui/*`, because the count going up is exactly
+     * what this list exists to make somebody notice.
+     */
+    { file: "src/ui/panel-metric.ts" },
+    { file: "src/ui/panel-nobody.ts" },
+    { file: "src/ui/panel-drill.ts" },
     { file: "src/userscript-version.ts", phrase: '"z drzewa"' },
     { file: "tools/changelog.ts" },
     /**

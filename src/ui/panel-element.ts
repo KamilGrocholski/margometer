@@ -38,14 +38,13 @@ import {
 } from "@/src/ui/panel-tokens.ts";
 import { composePanelStyleText } from "@/src/ui/panel-stylesheet.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
+import type { PanelMetric, PanelTeam } from "@/src/ui/panel-metric.ts";
 import type {
   PanelDetailLine,
   PanelList,
-  PanelMetric,
   PanelRow,
-  PanelTeam,
   PanelView,
-} from "@/src/ui/panel-view.ts";
+} from "@/src/ui/panel-shape.ts";
 
 /**
  * What an event hands us. The target is what a click needs, and that is the whole
@@ -179,7 +178,7 @@ function renderRow(
   details: Map<unknown, PanelDetailLine[]>,
 ): PanelNode {
   const line = document.createElement("div");
-  line.className = row.canDrill ? "row can-drill" : row.detail.length === 0 ? "row" : "row leaf";
+  line.className = row.isDrillable ? "row drillable" : row.detail.length === 0 ? "row" : "row leaf";
 
   const bar = document.createElement("div");
   bar.className = "bar";
@@ -246,7 +245,7 @@ function renderRow(
    * the two bugs had one cause.
    */
   for (const part of [line, ...parts]) {
-    if (row.canDrill) rows.set(part, row.key);
+    if (row.isDrillable) rows.set(part, row.key);
     if (row.detail.length > 0) details.set(part, row.detail);
   }
   return line;
@@ -699,9 +698,9 @@ export function setPanelRoot(
  * whole design here is that the tooltip outlives every redraw — the same reason
  * the title bar is built with the root.
  */
-function setTipHidden(tip: PanelNode, hidden: boolean): void {
-  tip.className = hidden ? "tip hidden" : "tip";
-  tip.style.setProperty("display", hidden ? "none" : "block");
+function setTipHidden(tip: PanelNode, isHidden: boolean): void {
+  tip.className = isHidden ? "tip hidden" : "tip";
+  tip.style.setProperty("display", isHidden ? "none" : "block");
 }
 
 /**
@@ -878,10 +877,10 @@ function setPanelDrag(
    * nothing narrower that would catch them all. It is still reported — a drag
    * that stops following a fast hand is worth knowing about (§9.6).
    */
-  const setPointerHeld = (held: boolean, pointerId: number | undefined): void => {
+  const setPointerHeld = (isHeld: boolean, pointerId: number | undefined): void => {
     if (pointerId === undefined) return;
     try {
-      if (held) titleBar.setPointerCapture?.(pointerId);
+      if (isHeld) titleBar.setPointerCapture?.(pointerId);
       else titleBar.releasePointerCapture?.(pointerId);
     } catch (error) {
       placement.onSectionFailure?.(error);
