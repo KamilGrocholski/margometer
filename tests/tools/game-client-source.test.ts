@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   GameSourceError,
   getBuildFromPage,
+  getCachedBundle,
+  getCachedClientSource,
   getChannelFromArgument,
 } from "@/tools/game-client-source.ts";
 
@@ -92,4 +94,42 @@ describe("the channel named on the command line", () => {
       expect(() => getChannelFromArgument(value)).toThrow(GameSourceError);
     },
   );
+});
+
+/**
+ * What the cache answers when there is nothing in it, which is the state every
+ * machine that has not fetched is in — including the one running CI.
+ *
+ * ⚠️ **Neither reader was named anywhere under `tests/` for the life of this
+ * file**, so the difference between them had never been asked
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F11). They
+ * answer an empty cache in two deliberately different ways, and that split is the
+ * only thing here a test can hold without a network: `.cache/` is outside git
+ * (§7.6), so what it holds is a property of the machine and not of the tree.
+ */
+describe("reading a cache that may not be there", () => {
+  const NEVER_FETCHED = "development";
+
+  test("the two readers disagree about an empty cache on purpose", () => {
+    const cached = getCachedClientSource(NEVER_FETCHED);
+
+    if (cached === null) {
+      // Nothing fetched: the manifest reader reports it and the bundle reader
+      // refuses, because a caller asking for source has nothing to be handed and
+      // a caller asking whether anything is cached has its answer.
+      expect(() => getCachedBundle(NEVER_FETCHED)).toThrow(GameSourceError);
+      return;
+    }
+
+    // Fetched on this machine: then the manifest says which build, and the
+    // bundle reader hands back something to read rather than throwing.
+    expect(cached.build.length).toBeGreaterThan(0);
+    expect(getCachedBundle(NEVER_FETCHED).length).toBeGreaterThan(0);
+  });
+
+  // A channel that is not one is refused before any path is composed, so a
+  // typo cannot read a directory nobody meant.
+  test("refuses to read a cache for something that is not a channel", () => {
+    expect(() => getChannelFromArgument("productio")).toThrow(GameSourceError);
+  });
 });

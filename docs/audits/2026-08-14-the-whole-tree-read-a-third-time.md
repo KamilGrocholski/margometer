@@ -295,7 +295,7 @@ Both of those are still here. Twice was the point at which §7.7 says the questi
 becomes how many there are; the answer, measured rather than sampled, is eleven.
 
 *Where:* `src/ui/panel-tokens.ts:57`
-*Closes:* open
+*Closes:* guard `tests/tools/named-exports.test.ts`
 
 ### F11 — the module written to close the last audit's F21 is executed by no test
 
@@ -318,7 +318,7 @@ export named anywhere under `tests/`; both are reached only through
 `libs/source-regions.ts`.
 
 *Where:* `libs/text-order.ts:28`
-*Closes:* open
+*Closes:* guard `tests/libs/text-order.test.ts`
 
 ### F12 — three of §9.1's directions are held by denylist, not by the rule as written
 

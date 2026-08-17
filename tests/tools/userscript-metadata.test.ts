@@ -1,3 +1,4 @@
+import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import { describe, expect, test } from "bun:test";
 import manifest from "@/package.json";
 import {
@@ -120,5 +121,37 @@ describe("userscript metadata", () => {
   // MIT travels with the copy, and the pasted file is the copy a user gets.
   test("carries the licence the repository is under", () => {
     expect(getDirective("license")).toEqual(["MIT"]);
+  });
+});
+
+/**
+ * The constant every layer is allowed to read (§9.1), and the one this file is
+ * about from the other end.
+ *
+ * ⚠️ **It was named nowhere under `tests/`** — `tests/tools/source-layout.test.ts`
+ * names the *phrase* it falls back to, as the one Polish string no diacritic can
+ * find, which is a claim about the language of a literal and not about what the
+ * constant answers
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F11).
+ */
+describe("the version the add-on says it is", () => {
+  test("falls back to something that is not a release, when nobody built it", () => {
+    // Under the test runner nothing substitutes the constant, so this is the
+    // fallback path and the only one reachable without a build.
+    expect(USERSCRIPT_VERSION.length).toBeGreaterThan(0);
+    expect(USERSCRIPT_VERSION).not.toBe(manifest.version);
+  });
+
+  /**
+   * A version nobody built must not read as one somebody did. The report a
+   * player pastes carries this string, and a figure that cannot be tied to a
+   * release is worse than one that says so.
+   */
+  test("does not look like a version number", () => {
+    expect(USERSCRIPT_VERSION).not.toMatch(/^\d+\.\d+\.\d+/);
+  });
+
+  test("is what the built userscript replaces, so the banner never carries it", () => {
+    expect(BANNER).not.toContain(USERSCRIPT_VERSION);
   });
 });

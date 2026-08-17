@@ -70,7 +70,7 @@ export function requireArticleId(text: string): string {
   return text;
 }
 
-export function getArticleUrl(article: string): string {
+function getArticleUrl(article: string): string {
   return `${HELP_HOST}/index/view,${article}`;
 }
 
@@ -195,7 +195,7 @@ export function requireCachedHelpArticle(value: unknown, article: string): Cache
 }
 
 /** What is cached for this article, or null. Absence is an answer, not a failure. */
-export function getCachedHelpArticle(article: string): CachedHelpArticle | null {
+function getCachedHelpArticle(article: string): CachedHelpArticle | null {
   const manifest = getManifestPath(article);
   if (!existsSync(manifest)) return null;
 
@@ -208,7 +208,7 @@ export function getCachedHelpArticle(article: string): CachedHelpArticle | null 
   return requireCachedHelpArticle(value, article);
 }
 
-export async function getServedArticleText(article: string): Promise<string> {
+async function getServedArticleText(article: string): Promise<string> {
   const url = getArticleUrl(article);
   const response = await fetch(url);
   if (!response.ok) {
@@ -217,7 +217,7 @@ export async function getServedArticleText(article: string): Promise<string> {
   return getTextFromHtml(await response.text());
 }
 
-export async function writeHelpArticleCache(article: string): Promise<CachedHelpArticle> {
+async function writeHelpArticleCache(article: string): Promise<CachedHelpArticle> {
   const text = await getServedArticleText(article);
 
   const directory = getCacheDirectory(article);

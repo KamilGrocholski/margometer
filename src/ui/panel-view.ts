@@ -108,10 +108,10 @@ export type PanelTeam = (typeof PANEL_TEAMS)[number];
  * vocabulary: a pair with no row is a screen that does not exist, and the
  * compiler counts the rows.
  */
-export const PANEL_NOUNS = ["damage", "healing"] as const;
+const PANEL_NOUNS = ["damage", "healing"] as const;
 export type PanelNoun = (typeof PANEL_NOUNS)[number];
 
-export const PANEL_DIRECTIONS = ["given", "received"] as const;
+const PANEL_DIRECTIONS = ["given", "received"] as const;
 export type PanelDirection = (typeof PANEL_DIRECTIONS)[number];
 
 const METRIC_AXES: Record<PanelMetric, { noun: PanelNoun; direction: PanelDirection }> = {

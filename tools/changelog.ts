@@ -51,7 +51,7 @@ export function getChangelogSection(changelog: string, version: string): string 
  * second script to install, and whoever installs it gets a metadata block with
  * no code: the add-on appears to install and does nothing at all.
  */
-export const RELEASE_INSTALL_NOTE = [
+const RELEASE_INSTALL_NOTE = [
   "---",
   "",
   `**Instalacja:** kliknij **\`${USERSCRIPT_FILENAME}\`** poniżej — Tampermonkey`,

@@ -143,7 +143,7 @@ export type MargoMeter = {
  * asked, and this is where it is answered from a console. One property,
  * namespaced, read-only in spirit: the page belongs to the game.
  */
-export const PAGE_HANDLE = "margometer";
+const PAGE_HANDLE = "margometer";
 
 /**
  * Whether a MargoMeter is already running on this page.

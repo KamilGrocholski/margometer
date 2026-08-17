@@ -82,7 +82,7 @@ export function getChannelFromArgument(value: string): GameChannel {
   return value as GameChannel;
 }
 
-export async function getServedBuild(channel: GameChannel): Promise<string> {
+async function getServedBuild(channel: GameChannel): Promise<string> {
   const host = CHANNEL_HOSTS[channel];
   const response = await fetch(host);
   if (!response.ok) {
@@ -151,7 +151,7 @@ export function getCachedClientSource(channel: GameChannel): CachedClientSource 
   return requireCachedClientSource(value, channel);
 }
 
-export async function writeClientSourceCache(channel: GameChannel): Promise<CachedClientSource> {
+async function writeClientSourceCache(channel: GameChannel): Promise<CachedClientSource> {
   const host = CHANNEL_HOSTS[channel];
   const build = await getServedBuild(channel);
 

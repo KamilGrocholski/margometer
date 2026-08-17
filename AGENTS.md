@@ -173,7 +173,6 @@ absent: a test is bound by the scope of the thing it tests.
 - `[NEVER] [any]` **Leave a number in prose that a machine could compute.**
   Test counts, coverage, line counts and file counts go stale silently. If it
   can be measured, measure it at read time instead of writing it down.
-
 ---
 
 ## 6. Commands
@@ -604,7 +603,6 @@ CHANGELOG.md       For players, and the only *document* here written in Polish
                    has that version.
 LICENSE            MIT — covers what was written here, and nothing else.
 NOTICE.md          What of the game's is in this repository, and on what basis.
-
 build.ts                 Bundles src/ into dist/ and prepends the userscript
                          banner. Writes the banner a second time on its own, as
                          `margometer.meta.js`, because 0.5.0 polls for that name
@@ -1084,7 +1082,7 @@ tests/
 
   libs/
     assert.test.ts  json.test.ts  number.test.ts  record.test.ts
-    running-total.test.ts  timestamp.test.ts
+    running-total.test.ts  text-order.test.ts  timestamp.test.ts
 
   core/                  The decoder and the aggregate, and every claim about the
                          game held to the captures — those rules guard what the
@@ -1177,8 +1175,9 @@ tests/
                              person listed twice is still that person — which it
                              was not, for as long as ambiguity counted entries
                              rather than combatants.
-    battle-event.test.ts  fight-decoder.test.ts  margometer-error.test.ts
-    protocol-key-register.test.ts  protocol-message.test.ts
+    battle-event.test.ts  fight-decoder.test.ts  game-build.test.ts
+    margometer-error.test.ts  protocol-key-register.test.ts
+    protocol-message.test.ts
 
   game/
     fight-capture.test.ts    The recording as a file, and the round trip that
@@ -1405,6 +1404,19 @@ tests/
                              captures are left out on purpose: they are evidence,
                              and a guard whose only remedy is editing evidence is
                              one that gets turned off.
+    named-exports.test.ts    Every exported value named by some test — a name and
+                             not a percentage, which is the shape all three audits
+                             asked the question in and the only one a machine can
+                             answer. Three audits counted, each by hand and each a
+                             different number, and the class never closed; this is
+                             it kept at zero instead of measured a fourth time.
+                             Naming is not testing, and it is not meant to be: what
+                             it catches is an export nothing under `tests/` has
+                             ever mentioned, which is usually one nobody needed —
+                             half of what it found the round it was written lost
+                             its `export` rather than gaining a test. Walks the
+                             tree and not the index, so it can see the file
+                             somebody is writing.
     captured-fight-intake.test.ts
                              The gate a recording passes to enter the repository:
                              every nickname substituted, the game's own ability
