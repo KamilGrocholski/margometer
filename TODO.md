@@ -16,9 +16,11 @@
 > Keep entries short: try to make tasks one line.
 
 ## In Progress
+- [ ] "Bez sprawcy" dealt, and taken tabs show healing but it SHOULD NOT - it SHOULD show relevant data depending 
+on the current selected panel view(healing taken - healing taken "bez sprawcy", healing done - healing done "bez sprawcy", damage taken - damage taken 
+"bez sprawcy", damage dealt - damage dealt "bez sprawcy")
 
 ## Up Next
-- [ ] Keep tip panel withing the window - when the main panel is close enough to the edge of the window and there is no place for a tip, it cannot be fully seen
 - [ ] Make the main panel visible when there is no data - only title bar is visible, when no battle data has been recorded
 - [ ] Show all combatants in a battle - currently we need a combatant's turn to see him on the list. 
 I want every combatant to be visible at the beginning of a battle
@@ -29,6 +31,8 @@ I want every combatant to be visible at the beginning of a battle
 - [x] Make sure there are no conflicts with Margonem names, CSS classes, and HTML ids - carefully create new names to assert no conflicts with 
 existing names, classes, and ids from the game. Add prefix `MargoMeter-` or `margometer` for each relevant element and entity.
 - [x] Create preview tool server with hotreloading
+- [x] Keep tip panel withing the visible window - when the main panel is close enough to the edge of the window and there is no place for a tip, it cannot be fully seen.
+Tip should stay at the y-axis level of the cursor.
 
 ## Later
 - [ ] Tab changing, go back, go into are slow
