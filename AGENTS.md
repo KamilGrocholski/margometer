@@ -178,7 +178,8 @@ absent: a test is bound by the scope of the thing it tests.
   reports into. No edit, no reformat, no tick, no reordering, no deletion and no
   tidying, by any tool: not an editor call, not a script, not a formatter, not
   `sed`. Reading it is fine, and so is git — the file is tracked so its history
-  is kept, and tracking it is the whole of what git and GitHub do with it. What
+  is kept, and tracking it is the whole of what git and GitHub do with it, under
+  its own commit and its own type (§7.2). What
   a round learns still goes where §7.5 puts it — a guard, a rule, a commit — and
   never into somebody else's notebook. The half a machine can hold is the tool
   call itself, which `.claude/settings.json` denies; the rest is this sentence.
@@ -259,7 +260,31 @@ change is big enough to deserve one written down before the code.
 
 Conventional Commits, English: `type(scope): effect`.
 
-Types in use: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `chore`.
+Types in use: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `chore`,
+and `todo`, which is this repository's own and belongs to one file.
+
+- `[ALWAYS] [any]` **`TODO.md` is committed on its own, as `todo: …`.** No scope —
+  there is one file and nothing a scope would narrow — and nothing else in the
+  commit. It is the only type here that names a *file* rather than a kind of
+  change, and that is the point: it exists so the maintainer's own notes never
+  arrive inside somebody's work.
+
+  The cost it prevents is a diff nobody can read apart. A round that finished a
+  task and ticked its box in one commit produces a change in which the note and
+  the work are the same change, and there is then no reading of it that says which
+  half was the maintainer's. §5 keeps every tool out of the file; this keeps every
+  *other change* out of the commit. Neither is the other's job, and both are about
+  the same thing: the file is somebody's, and it stays legibly somebody's.
+
+  Read the type the other way round too. A `todo:` commit carrying a source file
+  is worse than a mistyped one, because it is a change filed under a word nobody
+  greps for when they are looking for changes.
+
+  Guarded by `tests/tools/todo-commits.test.ts`, which reads the history forward
+  from the last commit that predates this rule. ⚠️ **A history guard cannot be
+  retrofitted** — the commits behind it are beyond fixing, so one that judged them
+  would be permanently red and off within the week. It is dated for the same
+  reason an audit is (§7.7).
 
 **The header names the effect, not the activity** — "blocked hits reach the
 panel", not "add block handling".
@@ -1534,6 +1559,16 @@ tests/
                              half §7.5 puts first, and it guards the way that
                              half goes quiet: a deny list emptied, renamed or
                              cut down to a subset of the tools that can write.
+    todo-commits.test.ts     The other half of that wall, and a different
+                             question: not who may edit the file but what may
+                             ride along with it. §7.2's `todo:` commits, held
+                             both ways — one touching the list carries nothing
+                             else, one typed for the list carries only the list.
+                             Reads the history forward from the last commit that
+                             predates the rule, because the ones behind it are
+                             beyond fixing and a guard that judged them would be
+                             red for good. Skips where the clone is too shallow
+                             to look, which CI's is.
     captured-fight-intake.test.ts
                              The gate a recording passes to enter the repository:
                              every nickname substituted, the game's own ability
