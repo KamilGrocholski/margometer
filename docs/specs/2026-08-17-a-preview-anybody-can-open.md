@@ -116,6 +116,14 @@ now names the page, what does travel, and on what basis.
   first is the oldest, and it is a short solo hunt that fills two rows. The
   landing page is the newest instead — still a rule over the discovered directory
   rather than a filename somebody typed (§9.2).
+- **Leaving Pages to be switched on by hand,** which is how this shipped and how
+  it failed on its first run. The workflow carried a ⚠️ saying Settings → Pages →
+  Source → GitHub Actions had to be done once and that no file could do it. The
+  second half was wrong — `actions/configure-pages` takes `enablement`, and the
+  cost of not passing it is a run that fails with
+  `Not Found - .../pages#get-a-apiname-pages-site`, an error naming an API route
+  rather than the setting behind it. A note telling a person to remember
+  something is the shape §7.5 refuses when a machine can hold it instead.
 - **`<meta name="robots" content="noindex">`.** Whether an unauthorised add-on's
   demo should be a search result is a real question, and the answer taken is that
   the repository is already public and README.md already links the page. One line

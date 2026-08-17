@@ -7,10 +7,15 @@
 # tree that cannot pass `bun run check` must not become the page this repository
 # points people at.
 #
-# ⚠️ **Pages has to be switched to Actions once, by hand** — Settings → Pages →
-# Source → GitHub Actions. Nothing in this file can do it, and until it is done
-# `deploy-pages` fails with "Pages site not found", which reads like a bug in the
-# workflow and is not one.
+# ⚠️ **Pages has to be turned on before anything can be deployed to it**, and the
+# first run of this workflow proved it does not fail in a way anybody can read:
+# `configure-pages` came back `Not Found - .../pages#get-a-apiname-pages-site`,
+# which names an API route rather than the setting behind it. `enablement: true`
+# below is that setting, asked for by the workflow instead of remembered by a
+# person — it creates the site with `build_type: workflow` when there is none,
+# and does nothing when there is. If the API refuses (an account that may not
+# have Pages at all), the fallback is the manual switch: Settings → Pages →
+# Source → GitHub Actions.
 #
 # ⚠️ **What gets published is the captures' own engine payloads**, inlined one
 # fight per page. NOTICE.md says what that carries and on what basis. Nothing
@@ -64,6 +69,8 @@ jobs:
       # GitHub's own actions, so the only third-party one here is setup-bun,
       # which both other workflows already use at the same pin.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/preview
