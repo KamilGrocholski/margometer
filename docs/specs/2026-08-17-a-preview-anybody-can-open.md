@@ -116,22 +116,20 @@ now names the page, what does travel, and on what basis.
   first is the oldest, and it is a short solo hunt that fills two rows. The
   landing page is the newest instead — still a rule over the discovered directory
   rather than a filename somebody typed (§9.2).
-- **Enabling Pages from the workflow** with `configure-pages`'s `enablement`,
-  which is documented to create the site and is what the first failure's own error
-  message recommends. It does not work here, and the way that was established is
-  the point: the run then warns rather than errors on the missing site and fails
-  on the create call instead — `No server is currently available to service your
-  request` — on a public repository with `pages: write`, which is every condition
-  the reference names. Resubmitting, which that message asks for, changes nothing.
+- **Nothing about enabling Pages, which is still open**, and is the one part of
+  this that has been asserted twice and been wrong twice. First the workflow said
+  the switch had to be thrown by hand and that no file could do it — written
+  without checking, since `configure-pages` takes `enablement`. Then it said the
+  API could do it, on the strength of the reference. Then, when the create call
+  failed, it said the API *cannot* do it here — from a single run, during an
+  incident affecting Pages that was open on githubstatus.com the same day and
+  that nobody had looked at.
 
-  ⚠️ **Written down because it was got wrong in the other direction first.** The
-  workflow shipped with a note saying the switch had to be thrown by hand and that
-  no file could do it; the second half read like an untested excuse, so it was
-  replaced by `enablement: true` on the strength of the documentation, and the
-  documentation was not the thing that had to be true. Both halves are now dated
-  to what a run printed. §7.5's order applies to somebody else's API too: what a
-  machine can hold, it should — and what it demonstrably cannot is a sentence,
-  carrying the evidence.
+  Three claims, one observation each, and the observation never supported the
+  claim. What the workflow carries now is the two error texts and the incident,
+  and the question left in the open state it is in. §7.5 puts a guard first and a
+  rule second; this is neither, because the thing to be known is somebody else's
+  API on a day it was degraded, and the only instrument is a run.
 - **`<meta name="robots" content="noindex">`.** Whether an unauthorised add-on's
   demo should be a search result is a real question, and the answer taken is that
   the repository is already public and README.md already links the page. One line

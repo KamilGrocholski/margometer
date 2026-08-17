@@ -7,21 +7,24 @@
 # tree that cannot pass `bun run check` must not become the page this repository
 # points people at.
 #
-# ⚠️ **Pages has to be turned on once, in Settings → Pages → Source → GitHub
-# Actions, and this file cannot do it for you.** That was written here, then
-# removed on the strength of `enablement: true`, then paid for a second time — so
-# it is written down with what each attempt actually said:
+# ⚠️ **Pages has to exist before anything can be deployed to it**, and this is
+# the part of the workflow that has been wrong twice. What is observed, and
+# nothing beyond it:
 #
-# 1. Without `enablement`, `configure-pages` fails with
-#    `Error: Get Pages site failed. ... Not Found - .../pages#get-a-apiname-pages-site`.
-# 2. With it, that becomes a warning and the create call fails instead:
-#    `Error: Create Pages site failed. Error: No server is currently available to
-#    service your request.` — on a public repository, with `pages: write`, which
-#    is every condition the documentation names. It is not a plan restriction and
-#    resubmitting does not help.
+# 1. Without `enablement`, `configure-pages` fails outright —
+#    `Error: Get Pages site failed. ... Not Found - .../pages#get-a-apiname-pages-site`,
+#    naming an API route rather than the setting behind it.
+# 2. With `enablement: true` the missing site becomes a warning and the create
+#    call fails instead — `Error: Create Pages site failed. Error: No server is
+#    currently available to service your request.`
 #
-# `enablement: true` stays because it costs nothing and is right for a fork whose
-# owner GitHub does let create a site by API. It is not the switch.
+# Both were on 2026-08-17, **while an incident affecting Pages was open on
+# githubstatus.com**, so neither says whether the API can create a site for this
+# repository. If a run still fails on step 2 outside an incident, the answer is
+# the manual switch: Settings → Pages → Source → GitHub Actions.
+#
+# `enablement: true` stays: it costs nothing, does nothing once a site exists, and
+# is right for a fork whose owner has no settings page open.
 #
 # ⚠️ **What gets published is the captures' own engine payloads**, inlined one
 # fight per page. NOTICE.md says what that carries and on what basis. Nothing
