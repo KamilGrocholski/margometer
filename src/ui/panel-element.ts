@@ -30,12 +30,8 @@ import {
   composeDraggedPosition,
   composePositionDeclarations,
 } from "@/src/ui/panel-placement.ts";
-import {
-  getProfessionInk,
-  PANEL_PIXELS,
-  PANEL_TOKENS,
-  UNKNOWN_COLOUR,
-} from "@/src/ui/panel-tokens.ts";
+import { composeTipDeclarations } from "@/src/ui/panel-tip-placement.ts";
+import { getProfessionInk, PANEL_TOKENS, UNKNOWN_COLOUR } from "@/src/ui/panel-tokens.ts";
 import { composePanelStyleText } from "@/src/ui/panel-stylesheet.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import type { PanelMetric, PanelTeam } from "@/src/ui/panel-metric.ts";
@@ -88,19 +84,41 @@ export type PanelNode = {
   setPointerCapture?: ((pointerId: number) => void) | undefined;
   releasePointerCapture?: ((pointerId: number) => void) | undefined;
   /**
-   * Where the reader scrolled to, and the one number this file reads back out of
-   * the document.
+   * Where the reader scrolled to.
    *
-   * ⚠️ **Not the measurement §9.6 refuses.** That one is layout read in order to
-   * decide layout — what the tooltip's own docblock turns down, and why the panel's
-   * ceiling is a stylesheet rule. This is a value the *reader* put there with their
-   * own hand, read back so it can be handed to them again after a redraw.
+   * ⚠️ **Not a layout read at all**, which is what separates it from the one
+   * below: this is a value the *reader* put there with their own hand, read back
+   * so it can be handed to them again after a redraw. Nothing about the shape of
+   * anything is being asked.
    *
    * Optional like the pointer capture above: a fake document has no layout and
    * nothing to scroll, and giving a position back to a node that never had one
    * costs nothing.
    */
   scrollTop?: number | undefined;
+  /**
+   * How big a node came out, and the one place this file reads layout on purpose.
+   *
+   * ⚠️ **It is asked of exactly one node — the detail window, of its own size,
+   * immediately after being filled — and the answer is used before anything can
+   * change it.** That is a different thing from measuring the *panel* to decide
+   * the panel, which `docs/specs/2026-08-12-the-height-a-fight-needs.md` turned
+   * down and which stands: the panel's height changes with every payload, so a
+   * figure taken from it is stale before the next one. The detail is rebuilt on
+   * every hover and placed in the same breath, so there is no interval in which
+   * its height can go stale.
+   *
+   * It is here because the alternative was tried and shipped and did not work. A
+   * window placed without its own height can be kept inside the screen only by
+   * capping it, and a capped window is one whose bottom rows are simply not
+   * there — which is the same complaint as a window off the edge, in a place
+   * nobody can scroll to.
+   *
+   * Optional, like the two above, and a node that cannot answer reads as a size
+   * of nothing — which leaves the detail where the stylesheet already puts it
+   * rather than somewhere computed from a zero.
+   */
+  getBoundingClientRect?: (() => { width: number; height: number }) | undefined;
 };
 
 export type PanelHost = PanelNode & {
@@ -660,19 +678,6 @@ export function setPanelRoot(
     );
   }
 
-  /**
-   * Where the panel's top edge is right now.
-   *
-   * Read from the same position the drag keeps, and from the default corner
-   * before anything was dragged — the two places that already decide it. Asking
-   * the document instead would be the measurement this file refuses to take.
-   */
-  const getPanelTop = (): number => {
-    const dragged = placement?.position ?? null;
-    if (dragged !== null) return dragged.top;
-    return composeDefaultPosition(placement?.getViewport() ?? null)?.top ?? PANEL_PIXELS.space;
-  };
-
   const container = document.createElement("div");
   // Named so the stylesheet can reach it: it is a link in the chain the panel's
   // ceiling travels down to the list, and a node with no class is one it cannot
@@ -685,11 +690,32 @@ export function setPanelRoot(
   setTipHidden(tip, true);
 
   root.append(style, titleBar, container, tip);
-  if (placement !== undefined) setPanelDrag(root, host, titleBar, placement);
-  // The viewport is the placement is, and without it the tooltip has nothing to
-  // flip against: it ran off the right edge of the page, which is exactly where
-  // the panel lives.
-  setPanelTip(document, root, tip, details, getPanelTop);
+  const getDraggedPosition =
+    placement === undefined ? () => null : setPanelDrag(root, host, titleBar, placement);
+
+  /**
+   * Where the panel's corner is right now, and null where nothing says.
+   *
+   * ⚠️ **From the drag, and never from what the caller handed in.** The two agree
+   * exactly until somebody moves the panel, and then the field is the corner the
+   * page opened at while the drag holds the corner the panel is drawn in — so a
+   * panel dragged to the left edge went on having its detail placed against the
+   * right-hand corner, 254px off the screen, which is the one thing this
+   * arithmetic exists to prevent. It is also why the drag hands its position back
+   * rather than being asked for it: one owner, and the position the host was
+   * written with is the position everything reads.
+   *
+   * The default corner covers the page where nothing has been dragged yet, and
+   * null travels on rather than becoming a corner nobody chose — it is what the
+   * detail's placement reads as *place nothing*.
+   */
+  const getPanelPosition = (): PanelPosition | null =>
+    getDraggedPosition() ?? composeDefaultPosition(placement?.getViewport() ?? null);
+
+  // The viewport is the placement's, and without it the detail has nothing to fit
+  // into: it ran off the left edge of the page whenever the panel was dragged
+  // there, and off the bottom of it on every row near the floor.
+  setPanelTip(document, root, tip, details, getPanelPosition, () => placement?.getViewport() ?? null);
   return container;
 }
 
@@ -708,24 +734,23 @@ function setTipHidden(tip: PanelNode, isHidden: boolean): void {
 /**
  * The detail, shown where the pointer is and taken away when it leaves.
  *
- * ⚠️ **Everything here is driven by the event's own coordinates.** The panel
- * reads no layout — no rectangle, no offset — because the one measurement it
- * ever wanted was rejected for the same reason (the panel's height changes with
- * every payload, so anything measured is stale before the next move). A pointer
- * that arrives without coordinates leaves the tooltip where it was rather than
- * putting it somewhere nobody asked for.
+ * ⚠️ **The order of these three steps is the whole of what makes the placement
+ * possible.** Fill, show, *then* measure: a node still carrying `display: none`
+ * measures as nothing, and a node measured before it is filled measures as the
+ * last row's detail rather than this one's. What comes back is handed straight to
+ * `panel-tip-placement.ts`, which decides, and this writes what it decided.
  *
- * It flips to the other side of the pointer near the right edge, which is the
- * one case where a fixed offset would push it off screen. The width it flips by
- * is the token the stylesheet uses, so the two cannot disagree.
+ * A pointer that arrives without coordinates leaves the detail where it was
+ * rather than putting it somewhere nobody asked for.
  */
 function setPanelTip(
   document: PanelDocument,
   root: PanelNode,
   tip: PanelNode,
   details: Map<unknown, PanelDetailLine[]>,
-  /** Where the panel's own top edge is, so a row can be found without measuring. */
-  getPanelTop: () => number = () => 0,
+  /** Where the panel's own corner is, which is what the detail is placed against. */
+  getPanelPosition: () => PanelPosition | null = () => null,
+  getViewport: () => PanelViewport | null = () => null,
 ): void {
   root.addEventListener("pointerover", (event) => {
     const lines = details.get(event.target);
@@ -737,21 +762,11 @@ function setPanelTip(
     tip.replaceChildren(...lines.map((line) => renderDetailLine(document, line)));
     setTipHidden(tip, false);
 
-    /**
-     * The side is the stylesheet's; only the height is decided here, and it is
-     * the row's own — the pointer's distance below the panel's top edge. Both
-     * numbers come from the event and from what placement already knows, so the
-     * panel still reads no layout.
-     */
-    const top = getFiniteNumberFromValue(event.clientY);
-    if (top === null) return;
-    tip.style.setProperty(
-      "top",
-      // Whole pixels: `clientY` is fractional on a scaled display, and a
-      // tooltip half a pixel higher is not a thing anybody can see — a
-      // declaration reading `292.33333333333px` is (F17).
-      `${composeDecimalText(Math.max(top - getPanelTop(), 0), 0)}px`,
-    );
+    const pointerTop = getFiniteNumberFromValue(event.clientY);
+    if (pointerTop === null) return;
+    const box = tip.getBoundingClientRect?.() ?? { width: 0, height: 0 };
+    const placed = composeTipDeclarations(pointerTop, box, getPanelPosition(), getViewport());
+    for (const [property, value] of placed) tip.style.setProperty(property, value);
   });
 
   /**
@@ -832,7 +847,7 @@ function setPanelDrag(
   host: PanelHost,
   titleBar: PanelNode,
   placement: PanelPlacement,
-): void {
+): () => PanelPosition | null {
   let position = placement.position;
   let grab: PanelGrab | null = null;
 
@@ -934,6 +949,11 @@ function setPanelDrag(
 
   setGuarded("pointerup", handleDragEnd);
   setGuarded("pointercancel", handleDragEnd);
+
+  // The position this wrote onto the host, for whoever has to draw beside it. A
+  // getter rather than the value, because a drag outlives this call — and the
+  // caller reading the field it handed in is the bug that made this a return.
+  return () => position;
 }
 
 /**

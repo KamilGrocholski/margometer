@@ -27,6 +27,7 @@ import {
   type PanelEvent,
   type PanelHost,
   type PanelNode,
+  type PanelPlacement,
   type PanelScroll,
 } from "@/src/ui/panel-element.ts";
 import {
@@ -50,6 +51,16 @@ type FakeNode = PanelNode & {
   properties: Record<string, string>;
   captured: number[];
   released: number[];
+  /**
+   * What the node measures as, which a fake has to be *told* — there is no layout
+   * here and inventing one would be a test agreeing with itself.
+   *
+   * Nothing has a size until a test gives it one, and that zero is a real answer
+   * rather than a stand-in: it is what a document with no layout engine reports,
+   * and the placement is written to leave the detail where the stylesheet put it
+   * when it hears one.
+   */
+  size: { width: number; height: number };
 };
 
 /**
@@ -119,6 +130,8 @@ function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & 
         scrollTop: 0,
         captured: [],
         released: [],
+        size: { width: 0, height: 0 },
+        getBoundingClientRect: (): { width: number; height: number } => node.size,
         style: {
           setProperty(name: string, value: string): void {
             node.properties[name] = value;
@@ -202,8 +215,11 @@ function composeReading(): PanelReading {
   };
 }
 
+/** A window to be clamped against, where a test needs the panel to know of one. */
+const SCREEN = { width: 1200, height: 800 };
+
 /** The whole window: shadow root, title bar, tooltip and the container to draw into. */
-function composeMountedPanel(actions = {}) {
+function composeMountedPanel(actions = {}, placement?: PanelPlacement) {
   const document = composeFakeDocument();
   const host = document.createElement("div") as FakeNode & PanelHost;
   host.attachShadow = (): PanelNode => {
@@ -212,7 +228,7 @@ function composeMountedPanel(actions = {}) {
     return root;
   };
   const details = new Map<unknown, PanelDetailLine[]>();
-  const container = setPanelRoot(document, host, undefined, actions, details) as FakeNode;
+  const container = setPanelRoot(document, host, placement, actions, details) as FakeNode;
   const root = assertDefined(host.children[0], "the shadow root was opened") as FakeNode;
   return { document, host, root, container, details };
 }
@@ -286,9 +302,9 @@ describe("what reaches the screen", () => {
     setEventOn(root, "pointerover", { target: row, clientX: 400, clientY: 300 });
 
     expect(tip.properties["display"]).toBe("block");
-    // Which side it opens on is the stylesheet’s; the height is the row’s own
-    // distance below the panel’s top edge, which placement already knows.
-    expect(tip.properties["top"]).toBe("292px");
+    // A document with no layout measures the detail as nothing, and nothing is
+    // not a size to place a window by: it stays where the stylesheet put it.
+    expect(tip.properties["top"]).toBe("");
     const text = getEveryNode(tip).map((node) => node.textContent);
     expect(text).toContain("Zadane");
     expect(text.some((line) => line.startsWith("ciosy"))).toBe(true);
@@ -306,6 +322,127 @@ describe("what reaches the screen", () => {
     // Leaving the row for something that is not one takes it away.
     setEventOn(root, "pointerout", { target: container });
     expect(tip.properties["display"]).toBe("none");
+  });
+
+  /**
+   * ⚠️ **The measurement is only right in one order**, and this is the loop no
+   * other file can close: the detail is filled, shown and *then* measured, so what
+   * the placement is handed is this row's detail at the size it will be drawn at.
+   * Measured before the fill it is the previous row's, and measured while hidden
+   * it is nothing at all — and nothing reads here as a document with no layout,
+   * which leaves the window in the corner for every hover of a real session.
+   *
+   * The arithmetic is `tests/ui/panel-tip-placement.test.ts`'s. What this holds is
+   * that the panel hands it a real size, the position it keeps and the window the
+   * page stated.
+   */
+  test("the detail is measured after it is filled and shown, and placed from that", () => {
+    const { document, root, container, details } = composeMountedPanel(
+      {},
+      { position: { left: 0, top: 8 }, getViewport: () => SCREEN },
+    );
+    renderPanelInto(document, container, composePanelView(composeReading(), composeDefaultState()), {}, false, details);
+    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
+    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
+    let measuredWhileHidden: string | undefined;
+    let measuredChildren = 0;
+    tip.getBoundingClientRect = (): { width: number; height: number } => {
+      measuredWhileHidden = tip.properties["display"];
+      measuredChildren = tip.children.length;
+      return { width: 250, height: 200 };
+    };
+
+    setEventOn(root, "pointerover", { target: row, clientY: 300 });
+
+    expect(measuredWhileHidden).toBe("block");
+    expect(measuredChildren).toBeGreaterThan(0);
+    // The panel is at the left edge, so the detail opens on its other side: 260
+    // of panel and the gap, in the panel's own coordinates.
+    expect(tip.properties["left"]).toBe("264px");
+    expect(tip.properties["top"]).toBe("292px");
+    expect(tip.properties["right"]).toBe("auto");
+  });
+
+  /**
+   * The promise, at the surface a reader meets rather than in the arithmetic: a
+   * detail near the bottom of the window turns over and **ends** at the pointer
+   * instead of beginning there, so all of it is on the screen and the cursor is
+   * still on one of its edges.
+   */
+  test("a row at the bottom of the window opens a detail that ends at the pointer", () => {
+    const { document, root, container, details } = composeMountedPanel(
+      {},
+      { position: { left: 900, top: 600 }, getViewport: () => SCREEN },
+    );
+    renderPanelInto(document, container, composePanelView(composeReading(), composeDefaultState()), {}, false, details);
+    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
+    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
+    tip.getBoundingClientRect = (): { width: number; height: number } => ({ width: 250, height: 300 });
+
+    setEventOn(root, "pointerover", { target: row, clientY: 780 });
+
+    // The pointer at 780, less 300 of detail, less the panel's own top of 600 —
+    // above the panel's corner, which is a negative offset from it.
+    expect(tip.properties["top"]).toBe("-120px");
+  });
+
+  /**
+   * ⚠️ **The panel the detail is placed against is the panel that is on the
+   * screen, not the one that was there when the page loaded.** The drag keeps the
+   * position it writes onto the host; the placement was reading the one the
+   * caller handed in at mount, which stops being true the first time anybody
+   * moves the panel — so a panel dragged to the left edge went on being placed
+   * against the right-hand corner, and the detail went off the screen exactly
+   * where it was asked not to.
+   *
+   * Two sources for one position, which is the fault
+   * `src/ui/panel-element.ts` says out loud it will not have.
+   */
+  test("the detail follows the panel that was dragged, not the one it was mounted at", () => {
+    const { document, host, root, container, details } = composeMountedPanel(
+      {},
+      { position: { left: 900, top: 100 }, getViewport: () => SCREEN },
+    );
+    renderPanelInto(document, container, composePanelView(composeReading(), composeDefaultState()), {}, false, details);
+    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
+    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
+    const titleBar = assertDefined(getByClass(root, "MargoMeter-titlebar")[0], "the title bar was built");
+    tip.getBoundingClientRect = (): { width: number; height: number } => ({ width: 250, height: 200 });
+
+    // All the way to the left edge, where the detail has to change sides.
+    setEventOn(root, "pointerdown", { target: titleBar, clientX: 950, clientY: 150, pointerId: 1 });
+    setEventOn(root, "pointermove", { target: titleBar, clientX: 50, clientY: 150, pointerId: 1 });
+    setEventOn(root, "pointerup", { target: titleBar, clientX: 50, clientY: 150, pointerId: 1 });
+    setEventOn(root, "pointerover", { target: row, clientY: 300 });
+
+    // The panel is at 0 now, so the detail is on its other side: 260 of panel and
+    // the gap, in the panel's own coordinates.
+    expect(host.properties["left"]).toBe("0px");
+    expect(tip.properties["left"]).toBe("264px");
+  });
+
+  /**
+   * A pointer that arrives without coordinates leaves the detail where it was.
+   * Nothing is recomputed, because there is nothing to recompute it from — and a
+   * position written from a missing coordinate is a window somewhere nobody
+   * pointed at.
+   */
+  test("a pointer with no coordinates leaves the detail where the last one put it", () => {
+    const { document, root, container, details } = composeMountedPanel(
+      {},
+      { position: { left: 0, top: 8 }, getViewport: () => SCREEN },
+    );
+    renderPanelInto(document, container, composePanelView(composeReading(), composeDefaultState()), {}, false, details);
+    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
+    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
+    const name = assertDefined(getByClass(container, "row-name")[0], "the name was drawn");
+    tip.getBoundingClientRect = (): { width: number; height: number } => ({ width: 250, height: 200 });
+
+    setEventOn(root, "pointerover", { target: row, clientY: 300 });
+    setEventOn(root, "pointerover", { target: name });
+
+    expect(tip.properties["display"]).toBe("block");
+    expect(tip.properties["top"]).toBe("292px");
   });
 
   /**

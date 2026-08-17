@@ -963,11 +963,12 @@ src/
                          fewest edges rather than merely the biggest.
     panel-tokens.ts      Every colour, space and radius, named once, plus the
                          contrast arithmetic a test needs to hold them to §9.7.
-                         The bar tint is a measured value, not a taste. Two of the
+                         The bar tint is a measured value, not a taste. Four of the
                          lengths are numbers first and CSS second, because the
                          first drag has to work out where the stylesheet already
-                         put a corner-anchored panel. The share of the window the
-                         panel may cover is a taste, and says so.
+                         put a corner-anchored panel, and the side the detail opens
+                         on is arithmetic on that same edge. The share of the window
+                         the panel may cover is a taste, and says so.
     panel-placement.ts   Where the panel sits, as a value: the corner it starts
                          in, where a drag lands, and what a remembered position
                          has to prove before it is believed. No DOM, so the clamp
@@ -976,6 +977,24 @@ src/
                          subtract: the ceiling that keeps the panel above the
                          bottom of the screen is measured from it, and CSS cannot
                          read an inline `top` back out.
+    panel-tip-placement.ts
+                         Where the detail window opens, as a value, so that the
+                         whole of it is on the screen. One rule on both axes and
+                         one function serving both: the side that has room — the
+                         panel's left or its right, beginning at the pointer or
+                         **ending** at it — and a clamp behind them for where
+                         neither side has it. The pointer stays on one edge of the
+                         window, which is what ties it to the row it was opened
+                         from. Its own file because that one owns a position
+                         outliving the fight and this owns one hover.
+                         ⚠️ **The detail's measured size is an argument, and it has
+                         to be a measured one.** Built once without it — flipped
+                         above the pointer and capped instead — it shipped and was
+                         wrong, because a cap does not move a window, it cuts it,
+                         and rows nothing draws are no more readable than rows off
+                         the edge. Written against the panel rather than the
+                         screen, because the panel is what the detail hangs off and
+                         what placement already knows the position of.
     panel-figure-text.ts A number as the panel writes it, and the only place
                          either spelling is decided — spaced every three digits,
                          and a share as a whole percentage that is neither clamped
@@ -1068,9 +1087,18 @@ src/
                          is built with the shadow root and not with the render,
                          because a redraw replaces everything the render made,
                          and a fight redraws every few seconds. That redraw is also
-                         why the one number this file reads back out of a document
-                         is read at all: where the reader had scrolled to, taken
-                         off the old list and handed to the new one. Holds the
+                         why one of the two numbers this file reads back out of a
+                         document is read at all: where the reader had scrolled to,
+                         taken off the old list and handed to the new one. The
+                         other is the detail window's own size, measured on the
+                         hover that fills it and spent in the same breath — the one
+                         layout read here, and the file says at length why it is
+                         not the one the panel's ceiling was written to avoid. The
+                         drag hands its position back rather than being asked for
+                         it: the field the caller passed in stops being where the
+                         panel is the moment anybody moves it, and a detail placed
+                         against the corner the page opened at lands 254px off the
+                         screen. Holds the
                          ceiling too — the panel against the window, and the list
                          as the only region that gives way to it. The summary's bar
                          draws a segment per part that has a figure and no bar at
@@ -1449,6 +1477,15 @@ tests/
     panel-placement.test.ts  The arithmetic that decides whether the panel can be
                              dragged somewhere it cannot be dragged back from, and
                              what a stored position has to prove on read.
+    panel-tip-placement.test.ts
+                             The other placement, held to one sentence — the whole
+                             of the detail is on the screen — swept over every
+                             corner a panel can be dragged to, both ends of the
+                             window for the pointer and four detail heights. A
+                             sweep because that promise has four edges and the case
+                             that breaks it is the one nobody thought to name; the
+                             named tests beside it are the boundaries §7.5 asks for
+                             from both sides.
     panel-row-key.test.ts    The grammar itself, which nothing held before: the
                              round trip, so what one end writes the other reads
                              back as the same thing. `panel-state.test.ts` guards

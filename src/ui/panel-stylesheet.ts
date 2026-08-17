@@ -62,9 +62,10 @@ export function composePanelStyleText(): string {
    * ⚠️ **The panel never reaches past the bottom of the screen, and never covers
    * more of it than the token allows.** In CSS rather than measured: the panel's
    * height changes with every payload, so anything read out of the document is
-   * stale before the next one — the same reason the tooltip is placed from the
-   * pointer's own coordinates. The gap left at the bottom is the margin the panel
-   * starts with at the top.
+   * stale before the next one. That the detail window below *is* measured is not
+   * the same case and does not reopen this one — it is rebuilt and placed in one
+   * breath, while the panel is measured once and drawn against for minutes. The
+   * gap left at the bottom is the margin the panel starts with at the top.
    */
   max-height: min(calc(100vh - var(--MargoMeter-panel-top) - ${t.space}), ${t.maxHeightShare});
   z-index: ${t.layer};
@@ -321,21 +322,36 @@ export function composePanelStyleText(): string {
 /*
  * The detail, as a window of ours rather than the browser's own tooltip.
  *
- * Positioned against the viewport and placed from the pointer own coordinates,
- * which arrive with the event: measuring the row would mean reading layout back
- * out of a document this file knows almost nothing about. It never takes the
- * pointer, so it cannot cover the row that summoned it and flicker.
+ * It never takes the pointer, so it cannot cover the row that summoned it and
+ * flicker — and so nothing in it can be scrolled, which is why what it says has
+ * to be *placed* onto the screen rather than trimmed to it.
+ *
+ * Everything below the width is a starting point rather than the last word:
+ * src/ui/panel-tip-placement.ts writes a left and a top over it on every hover
+ * that has a window to fit into. What is here is where the detail sits when
+ * nothing does — a page that would not say how big it is, or a document with no
+ * layout to measure.
  */
 .MargoMeter-tip {
   /*
-   * Absolute against the host, which is itself fixed — so the panel's own left
-   * edge is the anchor and no layout has to be read to find it. Docked rather
-   * than following the pointer: the panel lives in the right-hand corner, so a
-   * tooltip trailing the cursor lands on the rows it is describing.
+   * Absolute against the host, which is itself fixed, so the panel's own corner
+   * is the anchor — and the placement writes in that same frame rather than
+   * converting to the screen and back. Docked to the left of the panel: it lives
+   * in the right-hand corner, so a detail trailing the cursor lands on the rows
+   * it is describing.
    */
   position: absolute;
   right: calc(100% + ${t.spaceSmall});
   width: ${t.tipWidth};
+  /*
+   * ⚠️ **The width is arithmetic, so the box has to be the one that was
+   * measured.** \`all: initial\` leaves this at \`content-box\`, under which the
+   * padding and the border sit *outside* the token: the detail was drawn 268px
+   * wide while its placement worked in 250, and a window whose width nobody can
+   * state is one that gets put down a border's worth off the screen. Measured in
+   * Firefox, on the four corners of a 1280x900 window.
+   */
+  box-sizing: border-box;
   padding: ${t.spaceSmall} ${t.space};
   font: 11px/1.4 system-ui, sans-serif;
   color: ${t.text};
@@ -344,9 +360,19 @@ export function composePanelStyleText(): string {
   border-radius: ${t.radius};
   box-shadow: ${t.windowShadow};
   pointer-events: none;
+  /*
+   * ⚠️ **The one limit that cannot be placed around, so it is placed against.**
+   * A detail longer than the screen has no position that shows all of it, and
+   * src/ui/panel-tip-placement.ts keeps the top edge in preference to the
+   * bottom — so this bounds the height to the window itself, which is the one
+   * ceiling that leaves the arithmetic a position it can satisfy. In CSS because
+   * 100vh re-evaluates itself, including on a resize nothing here listens for:
+   * the same reasoning as the panel's own ceiling above.
+   */
+  max-height: calc(100vh - ${t.space} - ${t.space});
+  overflow: hidden;
   z-index: ${t.layer};
 }
-.MargoMeter-tip[hidden] { display: none; }
 .tip-title { font-weight: 600; margin-bottom: 2px; }
 .tip-heading {
   margin-top: ${t.spaceSmall};

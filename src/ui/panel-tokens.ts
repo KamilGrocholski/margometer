@@ -70,7 +70,7 @@ export function getProfessionColour(profession: string | null): string {
 }
 
 /**
- * The two lengths placement needs as numbers rather than as CSS.
+ * The lengths placement needs as numbers rather than as CSS.
  *
  * ⚠️ **The numbers are the source and the tokens are composed from them**, not
  * the other way round. A panel anchored to the top-right corner by the
@@ -78,8 +78,12 @@ export function getProfessionColour(profession: string | null): string {
  * out where it already was — and it can only do that from the same margin and
  * width the stylesheet used. Two copies of `310` would drift, and the drift
  * would show as the panel jumping under the hand on the first grab.
+ *
+ * `spaceSmall` is the gap between the panel and the detail window, and it is
+ * here for the same reason `tipWidth` is: the side the detail opens on is
+ * arithmetic on the panel's own left edge, and the gap is one of its terms.
  */
-export const PANEL_PIXELS = { space: 8, width: 260, tipWidth: 250 } as const;
+export const PANEL_PIXELS = { space: 8, width: 260, tipWidth: 250, spaceSmall: 4 } as const;
 
 /**
  * How far down the panel a region is inset, named because two rules need it and
@@ -186,7 +190,8 @@ export const PANEL_TOKENS = {
    * tokens would let two of them be changed without the third.
    */
   windowShadow: "0 6px 20px rgb(0 0 0 / 55%)",
-  spaceSmall: "4px",
+  /** Composed from the number, for the reason `tipWidth` is: the flip needs both. */
+  spaceSmall: `${composeIntegerText(PANEL_PIXELS.spaceSmall)}px`,
   /** Half a step. The design puts a row's own text this far from its edge. */
   spaceHalf: "2px",
   /** The step every region is inset by: 5px down the panel, 7px across it. */
