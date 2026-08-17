@@ -24,7 +24,7 @@ import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
  */
 const LOOKS_LIKE_A_PROC = "+legbon_holytouch";
 
-type Landed = { proc: string; keys: { key: string; value: string | null }[]; onBlow: boolean };
+type Landed = { proc: string; keys: { key: string; value: string | null }[]; isOnBlow: boolean };
 
 const LANDED: Landed[] = CAPTURED_FIGHTS.flatMap((fight) =>
   fight.dump.calls.flatMap((call) =>
@@ -36,7 +36,7 @@ const LANDED: Landed[] = CAPTURED_FIGHTS.flatMap((fight) =>
       return procs.map((proc) => ({
         proc,
         keys: parameters,
-        onBlow: parameters.some((parameter) => isDamageKey(parameter.key)),
+        isOnBlow: parameters.some((parameter) => isDamageKey(parameter.key)),
       }));
     }),
   ),
@@ -64,7 +64,7 @@ describe("what lands in `procs`", () => {
   // A proc annotates a blow. One arriving on a message with no damage at all
   // would mean the family has drifted into something else.
   test("every one arrived on a message that also carries damage", () => {
-    expect(LANDED.filter(({ onBlow }) => !onBlow)).toEqual([]);
+    expect(LANDED.filter(({ isOnBlow }) => !isOnBlow)).toEqual([]);
   });
 });
 

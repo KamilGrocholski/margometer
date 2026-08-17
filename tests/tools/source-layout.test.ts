@@ -554,6 +554,56 @@ describe("function names", () => {
 });
 
 /**
+ * AGENTS.md §9.4's other half: **a boolean carries a prefix.**
+ *
+ * The guard above reads the action verb on a declaration and nothing else, so
+ * the rule bound functions and left every flag and every `boolean` field
+ * unwatched. The names outside the vocabulary when this was written sat in six
+ * files, and a whole family of them — `said`, `refusalSaid`, `dragFailureSaid`,
+ * `captureFailureSaid`, `engineGapsSaid` — spelled one idea, *this has been
+ * reported once already*, in a word §9.4 does not offer
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F21). The worst
+ * of them was `read`, a verb, a noun and a past participle at once, in the file
+ * whose subject is reading.
+ *
+ * The full row here, `min`/`max`/`prev`/`next` included, because that is how the
+ * rule is written — the function guard's shorter list is a subset for a different
+ * reason: those four are not actions and cannot name a call.
+ *
+ * ⚠️ **Two shapes, and the third was measured and dropped.** A `boolean` in a
+ * type and a `let x = false` both name a boolean and nothing else. A property
+ * assigned a literal — `{ collapsed: false }` — does not: on the tree as it
+ * stands that pattern matched a key whose *value* is the boolean and whose name
+ * is a metric (`{ dealt: false, taken: true }`), an option bag belonging to
+ * somebody else (`{ recursive: true }` is Node's word, not ours), the captured
+ * material's own Polish field names, which §9.2 keeps as they are, and the
+ * identifier on the left of a ternary's colon (`condition ? name : true`). Every
+ * name it added was one of those, so it was left out rather than exempted
+ * case by case — a guard whose exception list is longer than its findings is one
+ * somebody turns off.
+ */
+describe("boolean names", () => {
+  const BOOLEAN_VALUE_PREFIXES = [...BOOLEAN_PREFIXES, "min", "max", "prev", "next"];
+  const allowed = new RegExp(`^(${BOOLEAN_VALUE_PREFIXES.join("|")})([A-Z0-9]|$)`);
+
+  test.each(SOURCE_FILES)("%s prefixes every boolean it names", (file) => {
+    const source = getSourceWithoutComments(file);
+    const flags = [
+      ...source.matchAll(
+        /\b(?:let|const|var)\s+([A-Za-z][A-Za-z0-9]*)\s*(?::\s*boolean\s*)?=\s*(?:true|false)\b/g,
+      ),
+    ].map((match) => match[1]!);
+    const typed = [...source.matchAll(/\b([A-Za-z][A-Za-z0-9]*)\??\s*:\s*boolean\b/g)].map(
+      (match) => match[1]!,
+    );
+
+    for (const name of [...flags, ...typed]) {
+      expect(name, `${file}: ${name}`).toMatch(allowed);
+    }
+  });
+});
+
+/**
  * AGENTS.md §9.7's first line: **a raw hex in a rule is a bug.**
  *
  * It was prose only, and `src/ui/panel-stylesheet.ts` broke it in the docblock

@@ -132,7 +132,7 @@ export function setEngineAttachment(
 
   let removeWrap: (() => void) | null = null;
   let handle: number | null = null;
-  let refusalSaid = false;
+  let hasReportedRefusal = false;
   let looksLeft = GIVE_UP_AFTER_MS / LOOK_AGAIN_EVERY_MS;
 
   function removeSearchTimer(): void {
@@ -188,8 +188,8 @@ export function setEngineAttachment(
       });
     } catch (error) {
       if (!(error instanceof EngineBattleWrapError)) throw error;
-      if (!refusalSaid) {
-        refusalSaid = true;
+      if (!hasReportedRefusal) {
+        hasReportedRefusal = true;
         options.onAttachmentRefused?.(error);
       }
       handleEmptyLook();

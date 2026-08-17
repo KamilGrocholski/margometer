@@ -1,6 +1,6 @@
 # The whole tree, read a third time
 
-Status: open
+Status: closed
 Read at: 760dffc
 
 The third audit, one commit after the second one closed. The gate was green at
@@ -507,7 +507,7 @@ has been reported once already — and none of them says so in the vocabulary §
 fixed for exactly that.
 
 *Where:* `src/userscript-entry.ts:174`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F22 — two counts of our own artefacts, one of them in the code that computes it
 

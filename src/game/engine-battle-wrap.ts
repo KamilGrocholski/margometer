@@ -244,7 +244,7 @@ export function setBattleWrap(
   // Reached through the prototype in every build seen so far. Restoring by
   // assignment would leave an own property shadowing the class for the life of
   // the page, on an object belonging to the game.
-  const wasOwnProperty = Object.prototype.hasOwnProperty.call(battle, WRAPPED_METHOD);
+  const prevOwnProperty = Object.prototype.hasOwnProperty.call(battle, WRAPPED_METHOD);
 
   /**
    * The catches below are deliberately broad — the only two in this repository
@@ -281,7 +281,7 @@ export function setBattleWrap(
   wrapper[WRAP_MARKER] = WRAP_VERSION;
 
   battle[WRAPPED_METHOD] = wrapper;
-  ORIGINALS.set(battle, { original, wasOwnProperty, wrapper });
+  ORIGINALS.set(battle, { original, prevOwnProperty, wrapper });
   return { remove: () => removeBattleWrap(battle), hasAnotherReader: false };
 }
 
@@ -293,7 +293,7 @@ export function setBattleWrap(
  */
 const ORIGINALS = new WeakMap<
   EngineBattle,
-  { original: unknown; wasOwnProperty: boolean; wrapper: Wrapper }
+  { original: unknown; prevOwnProperty: boolean; wrapper: Wrapper }
 >();
 
 /**
@@ -317,7 +317,7 @@ export function removeBattleWrap(battle: EngineBattle): boolean {
   if (replaced === undefined) return false;
   if (battle[WRAPPED_METHOD] !== replaced.wrapper) return false;
 
-  if (replaced.wasOwnProperty) battle[WRAPPED_METHOD] = replaced.original;
+  if (replaced.prevOwnProperty) battle[WRAPPED_METHOD] = replaced.original;
   else delete battle[WRAPPED_METHOD];
 
   ORIGINALS.delete(battle);
