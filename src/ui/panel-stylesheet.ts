@@ -55,8 +55,8 @@ export function composePanelStyleText(): string {
    * dragged needs no script — and \`all\` does not reset custom properties, which
    * is what makes a default in this rule survive the line above.
    */
-  --panel-top: ${t.space};
-  top: var(--panel-top);
+  --MargoMeter-panel-top: ${t.space};
+  top: var(--MargoMeter-panel-top);
   right: ${t.space};
   /*
    * ⚠️ **The panel never reaches past the bottom of the screen, and never covers
@@ -66,10 +66,10 @@ export function composePanelStyleText(): string {
    * pointer's own coordinates. The gap left at the bottom is the margin the panel
    * starts with at the top.
    */
-  max-height: min(calc(100vh - var(--panel-top) - ${t.space}), ${t.maxHeightShare});
+  max-height: min(calc(100vh - var(--MargoMeter-panel-top) - ${t.space}), ${t.maxHeightShare});
   z-index: ${t.layer};
 }
-.titlebar {
+.MargoMeter-titlebar {
   /* Never the region that shrinks: it is the thing you grab. */
   flex: none;
   display: flex;
@@ -112,7 +112,7 @@ export function composePanelStyleText(): string {
  * \`min-height: 0\` here the ceiling on the host would stop at this node and never
  * reach the list.
  */
-.body { display: flex; flex-direction: column; min-height: 0; }
+.MargoMeter-body { display: flex; flex-direction: column; min-height: 0; }
 /*
  * No padding of its own: every region below is inset by the same step instead,
  * which is what lets the list run the full width of the panel and the rules
@@ -127,7 +127,7 @@ export function composePanelStyleText(): string {
   /* Square at the top: the title bar above it carries those two corners. */
   border-radius: 0 0 ${t.radius} ${t.radius};
   box-sizing: border-box;
-  /* The other half of the chain the ceiling travels down — see .body. */
+  /* The other half of the chain the ceiling travels down — see .MargoMeter-body. */
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -184,7 +184,7 @@ export function composePanelStyleText(): string {
 .list {
   padding: ${t.spaceRegion};
   padding-bottom: ${t.spaceRegionAcross};
-  height: calc(var(--rows, 11) * (${t.rowHeight} + ${t.spaceHalf}) + ${t.spaceLarge});
+  height: calc(var(--MargoMeter-rows, 11) * (${t.rowHeight} + ${t.spaceHalf}) + ${t.spaceLarge});
   overflow-y: auto;
   overflow-x: hidden;
   /* Reserved whether or not a scrollbar is showing: it appears and disappears
@@ -326,7 +326,7 @@ export function composePanelStyleText(): string {
  * out of a document this file knows almost nothing about. It never takes the
  * pointer, so it cannot cover the row that summoned it and flicker.
  */
-.tip {
+.MargoMeter-tip {
   /*
    * Absolute against the host, which is itself fixed — so the panel's own left
    * edge is the anchor and no layout has to be read to find it. Docked rather
@@ -346,7 +346,7 @@ export function composePanelStyleText(): string {
   pointer-events: none;
   z-index: ${t.layer};
 }
-.tip[hidden] { display: none; }
+.MargoMeter-tip[hidden] { display: none; }
 .tip-title { font-weight: 600; margin-bottom: 2px; }
 .tip-heading {
   margin-top: ${t.spaceSmall};

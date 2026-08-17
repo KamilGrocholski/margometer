@@ -496,6 +496,40 @@ describe("interruption", () => {
   );
 });
 
+/**
+ * AGENTS.md §9.6. Everything of ours in front of the shadow root carries our
+ * name, and a custom property is the one of those that is easy to forget: it is
+ * declared in a stylesheet string and read back three files away, so nothing
+ * about writing one puts the page in mind.
+ *
+ * ⚠️ **A custom property is not shielded by the shadow root the way a class is.**
+ * `all: initial` does not reset custom properties — the panel's own stylesheet
+ * says so in the rule that depends on it — so one the game declares on `:root`
+ * inherits straight through the host and into every rule of ours reading a bare
+ * name. `--rows` was exactly that shape, and `--MargoMeter-panel-top` is written
+ * onto a node in the game's own document besides.
+ *
+ * Which files: everything that ships. A `--name` in `tools/` styles nothing.
+ */
+describe("the names in front of the shadow root", () => {
+  const CUSTOM_PROPERTY = /--[A-Za-z][\w-]*/g;
+  const SHIPPED_FILES = SOURCE_FILES.filter((file) => file.startsWith("src/"));
+
+  test("there are custom properties to check", () => {
+    const found = SHIPPED_FILES.flatMap((file) => [
+      ...getSourceWithoutComments(file).matchAll(CUSTOM_PROPERTY),
+    ]);
+    expect(found.length).toBeGreaterThan(0);
+  });
+
+  test.each(SHIPPED_FILES)("%s names every custom property as ours", (file) => {
+    const unnamed = [...getSourceWithoutComments(file).matchAll(CUSTOM_PROPERTY)]
+      .map((match) => match[0])
+      .filter((name) => !name.startsWith("--MargoMeter-"));
+    expect(unnamed, file).toEqual([]);
+  });
+});
+
 describe("errors", () => {
   // AGENTS.md §9.5. The add-on shares a console with the game and with other
   // add-ons; an error that does not say whose it is costs whoever reports it.

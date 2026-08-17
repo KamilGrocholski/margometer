@@ -39,6 +39,7 @@ import {
   shouldStartHere,
   writeCaptureToPage,
 } from "@/src/userscript-entry.ts";
+import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
 import { parseFightDump, type CombatantSnapshot } from "@/tools/fight-dump-parser.ts";
 import {
@@ -510,6 +511,8 @@ describe("what a failing panel puts on the console", () => {
     const composeNode = (): Record<string, unknown> => {
       const node: Record<string, unknown> = {
         className: "",
+        id: "",
+        setAttribute: (): void => {},
         textContent: "",
         title: "",
         style: { setProperty: (): void => {} },
@@ -599,6 +602,8 @@ describe("what a failing panel puts on the console", () => {
     const said: unknown[][] = [];
     const composeNode = (): Record<string, unknown> => ({
       className: "",
+      id: "",
+      setAttribute: (): void => {},
       textContent: "",
       title: "",
       style: { setProperty: (): void => {} },
@@ -630,6 +635,8 @@ describe("what a failing panel puts on the console", () => {
     const composePage = () => {
       const composeNode = (): Record<string, unknown> => ({
         className: "",
+        id: "",
+        setAttribute: (): void => {},
         textContent: "",
         title: "",
         style: { setProperty: (): void => {} },
@@ -726,6 +733,8 @@ describe("the panel asking the running client for a name", () => {
   ): Parameters<typeof composePanelMount>[0] {
     const composeNode = (): Record<string, unknown> => ({
       className: "",
+      id: "",
+      setAttribute: (): void => {},
       textContent: "",
       title: "",
       style: { setProperty: (): void => {} },
@@ -812,6 +821,7 @@ describe("remembering where the panel was put", () => {
 
   type StorageNode = Record<string, unknown> & {
     className: string;
+    id: string;
     properties: Record<string, string>;
     listeners: Array<{ type: string; listener: (event: Record<string, unknown>) => void }>;
   };
@@ -844,6 +854,8 @@ describe("remembering where the panel was put", () => {
       }
       const node: StorageNode = {
         className: "",
+        id: "",
+        setAttribute: (): void => {},
         textContent: "",
         title: "",
         properties,
@@ -891,7 +903,7 @@ describe("remembering where the panel was put", () => {
       ...(node["children"] as StorageNode[]).flatMap(getEveryNode),
     ];
     const titleBar = assertDefined(
-      getEveryNode(root).filter((node) => node.className === "titlebar")[0],
+      getEveryNode(root).filter((node) => node.className === "MargoMeter-titlebar")[0],
       "mounting the panel draws a title bar",
     );
 
@@ -965,6 +977,8 @@ describe("remembering where the panel was put", () => {
   test("a page with no storage at all still gets a panel", () => {
     const composeNode = (): Record<string, unknown> => ({
       className: "",
+      id: "",
+      setAttribute: (): void => {},
       textContent: "",
       title: "",
       style: { setProperty: (): void => {} },
@@ -1039,6 +1053,136 @@ describe("remembering where the panel was put", () => {
 
     composePanelMount(page);
     expect(asked).toEqual([POSITION_KEY]);
+  });
+});
+
+/**
+ * What the add-on leaves in the game's own document, and whether it says whose.
+ *
+ * §9.6: everything of ours in front of the shadow root carries our name. The
+ * ~40 class names *behind* it are exempt and deliberately unprefixed — the
+ * shadow root is what isolates those, and a prefix there would buy noise.
+ *
+ * ⚠️ **The assertion is over everything appended, not over the two nodes we know
+ * about.** Naming the host and the anchor individually would pass forever while a
+ * third node arrived unnamed beside them, and arriving unnamed is exactly what
+ * both of these did for the whole life of the project: a bare `<div>` and a bare
+ * `<a>` at the end of `document.body`, indistinguishable in an inspector from the
+ * game's own furniture. The guard is written against the next one.
+ *
+ * This is the only file that can ask: the host is created by the entry point and
+ * `tests/ui/` never sees a page to append it to.
+ */
+describe("what the add-on leaves in the game's page", () => {
+  /** Keeps whatever reached the body, rather than dropping it like the fakes above. */
+  function composeRecordingPage(): {
+    page: Record<string, unknown>;
+    getPageNodes: () => Array<Record<string, unknown>>;
+  } {
+    const pageNodes: Array<Record<string, unknown>> = [];
+    const composeNode = (): Record<string, unknown> => {
+      const attributes: Record<string, string> = {};
+      const node: Record<string, unknown> = {
+        className: "",
+        id: "",
+        href: "",
+        download: "",
+        textContent: "",
+        title: "",
+        attributes,
+        setAttribute: (name: string, value: string): void => void (attributes[name] = value),
+        style: { setProperty: (): void => {} },
+        append: (): void => {},
+        replaceChildren: (): void => {},
+        addEventListener: (): void => {},
+        click: (): void => {},
+        remove: (): void => {},
+        attachShadow: (): unknown => composeNode(),
+      };
+      return node;
+    };
+    return {
+      page: {
+        location: { hostname: "tempest.margonem.pl" },
+        document: {
+          createElement: (): unknown => composeNode(),
+          body: {
+            append: (...nodes: Array<Record<string, unknown>>): void =>
+              void pageNodes.push(...nodes),
+          },
+        },
+      },
+      getPageNodes: () => pageNodes,
+    };
+  }
+
+  /**
+   * Every way a node here can be said to be ours, in the order an eye finds them.
+   *
+   * `data-` comes off the front of an attribute name because it is HTML's word
+   * and not ours — what has to be ours is what follows it.
+   */
+  function getMarksOf(node: Record<string, unknown>): string[] {
+    const attributes = node["attributes"] as Record<string, string>;
+    return [node["id"] as string, node["className"] as string, ...Object.keys(attributes)]
+      .filter((mark) => mark !== "")
+      .map((mark) => mark.replace(/^data-/, ""));
+  }
+
+  test("the panel's host says whose it is, and carries the version a screenshot needs", () => {
+    const { page, getPageNodes } = composeRecordingPage();
+
+    composePanelMount(page as Parameters<typeof composePanelMount>[0]);
+
+    const host = getPageNodes()[0];
+    expect(host?.["id"]).toBe("MargoMeter-Panel");
+    expect(host?.["className"]).toBe("MargoMeter-Panel");
+    // Lower-case because HTML has no other option for an attribute *name* — see
+    // the constants in `src/userscript-entry.ts`. The version is the value.
+    expect((host?.["attributes"] as Record<string, string>)["data-margometer-version"]).toBe(
+      USERSCRIPT_VERSION,
+    );
+  });
+
+  test("the anchor a saved recording rides on says whose it is too", () => {
+    const { page, getPageNodes } = composeRecordingPage();
+
+    writeCaptureToPage(page as Parameters<typeof writeCaptureToPage>[0], {
+      getReading: () => null,
+      getCapture: () => composeEmptyCapture(),
+      stop: (): void => {},
+    });
+
+    expect(getPageNodes()[0]?.["className"]).toBe("MargoMeter-Download");
+  });
+
+  /**
+   * The one that catches the next node rather than these two.
+   *
+   * Both paths are driven into one page so the assertion is over everything the
+   * add-on put there in a session, not over one path at a time.
+   */
+  test("nothing of ours reaches the page without a name that is ours", () => {
+    const { page, getPageNodes } = composeRecordingPage();
+
+    composePanelMount(page as Parameters<typeof composePanelMount>[0]);
+    writeCaptureToPage(page as Parameters<typeof writeCaptureToPage>[0], {
+      getReading: () => null,
+      getCapture: () => composeEmptyCapture(),
+      stop: (): void => {},
+    });
+
+    // A loop over nothing is green and proves nothing (§9.2, and the same trap).
+    expect(getPageNodes().length).toBe(2);
+    for (const node of getPageNodes()) {
+      const marks = getMarksOf(node);
+      expect(marks.length, "a node of ours in the page with no mark at all").toBeGreaterThan(0);
+      for (const mark of marks) {
+        expect(mark.toLowerCase(), `an unnamed mark on a node of ours: ${mark}`).toStartWith(
+          "margometer-",
+        );
+      }
+    }
   });
 });
 

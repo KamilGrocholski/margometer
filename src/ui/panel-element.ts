@@ -465,7 +465,7 @@ export function renderPanel(
     // `composeIntegerText` asserts on the two values that would make this
     // declaration invalid without a mark: `1e21` interpolates as `"1e+21"` and
     // `NaN` as `"NaN"`, and either leaves the list the wrong height (F17).
-    list.style.setProperty("--rows", composeIntegerText(view.visibleRows));
+    list.style.setProperty("--MargoMeter-rows", composeIntegerText(view.visibleRows));
     if (scroll !== undefined) scroll.list = list;
 
     if (view.emptyText !== null) {
@@ -598,7 +598,7 @@ export function setPanelRoot(
   style.textContent = composePanelStyleText();
 
   const titleBar = document.createElement("div");
-  titleBar.className = "titlebar";
+  titleBar.className = "MargoMeter-titlebar";
   // Set before the buttons are appended, not after: `textContent` replaces every
   // child, so the other order would wipe them. The text stays a bare text node,
   // which is not an event target — so the drag's identity check on the bar keeps
@@ -677,9 +677,11 @@ export function setPanelRoot(
   // Named so the stylesheet can reach it: it is a link in the chain the panel's
   // ceiling travels down to the list, and a node with no class is one it cannot
   // pass through.
-  container.className = "body";
+  container.className = "MargoMeter-body";
   const tip = document.createElement("div");
-  tip.className = "tip";
+  // Named by `setTipHidden` and not here: it writes the class on every call, so an
+  // assignment on this line is one nothing can read — found by a mutation that
+  // changed it and lit nothing (§7.5).
   setTipHidden(tip, true);
 
   root.append(style, titleBar, container, tip);
@@ -699,7 +701,7 @@ export function setPanelRoot(
  * the title bar is built with the root.
  */
 function setTipHidden(tip: PanelNode, isHidden: boolean): void {
-  tip.className = isHidden ? "tip hidden" : "tip";
+  tip.className = isHidden ? "MargoMeter-tip hidden" : "MargoMeter-tip";
   tip.style.setProperty("display", isHidden ? "none" : "block");
 }
 

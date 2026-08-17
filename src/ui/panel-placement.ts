@@ -132,20 +132,24 @@ export function composeStoredTextFromPosition(position: PanelPosition): string {
  * host top-right, and a `left` alone would leave both edges pinned and stretch
  * the host across the page.
  *
- * ⚠️ **`--panel-top` is the same number as `top`, written twice on purpose.** The
- * ceiling that keeps the panel above the bottom of the screen is the window's
- * height less where the panel's top edge is, and CSS cannot read a `top` back out
- * of an inline style. Composed here from one variable so the two cannot drift,
- * and `top` stays a declaration of its own because an inline style is the one
- * thing the game's stylesheet cannot outrank — a custom property alone would put
- * the panel's own position within reach of the page.
+ * ⚠️ **`--MargoMeter-panel-top` is the same number as `top`, written twice on
+ * purpose.** The ceiling that keeps the panel above the bottom of the screen is
+ * the window's height less where the panel's top edge is, and CSS cannot read a
+ * `top` back out of an inline style. Composed here from one variable so the two
+ * cannot drift, and `top` stays a declaration of its own because an inline style
+ * is the one thing the game's stylesheet cannot outrank — a custom property alone
+ * would put the panel's own position within reach of the page.
+ *
+ * The prefix is not decoration: this is the one custom property of ours written
+ * onto a node in the game's own document, so it is the one that has to say whose
+ * it is (§9.6).
  */
 export function composePositionDeclarations(position: PanelPosition): Array<[string, string]> {
   const top = `${composeIntegerText(position.top)}px`;
   return [
     ["left", `${composeIntegerText(position.left)}px`],
     ["top", top],
-    ["--panel-top", top],
+    ["--MargoMeter-panel-top", top],
     ["right", "auto"],
   ];
 }

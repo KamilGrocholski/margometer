@@ -59,7 +59,8 @@ being a guest.
 Written in CSS rather than measured, for the reason the tooltip's placement is:
 the panel's height changes with every payload, so anything read out of the document
 is stale before the next one. `100vh` re-evaluates itself, including on a resize
-nothing here listens for. The panel's top edge reaches CSS as `--panel-top`,
+nothing here listens for. The panel's top edge reaches CSS as
+`--MargoMeter-panel-top`,
 written by placement beside `top`, because CSS cannot read an inline `top` back
 out.
 

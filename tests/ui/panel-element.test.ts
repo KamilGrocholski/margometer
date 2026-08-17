@@ -278,7 +278,7 @@ describe("what reaches the screen", () => {
   test("hovering a row opens the detail beside the panel, at that row", () => {
     const { document, root, container, details } = composeMountedPanel();
     renderPanelInto(document, container, composePanelView(composeReading(), composeDefaultState()), {}, false, details);
-    const tip = assertDefined(getByClass(root, "tip")[0], "the tooltip was built");
+    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
     const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
 
     expect(tip.properties["display"]).toBe("none");
@@ -320,7 +320,7 @@ describe("what reaches the screen", () => {
       renderPanelInto(document, container, view, {}, false, details);
     }
 
-    const tip = assertDefined(getByClass(root, "tip")[0], "the tooltip was built");
+    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
     const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
     setEventOn(root, "pointerover", { target: row, clientX: 100, clientY: 100 });
 
@@ -417,10 +417,10 @@ describe("what reaches the screen", () => {
     const list = assertDefined(getByClass(panel, "list")[0], "the list was drawn");
     const filtered = renderInto({ ...composeDefaultState(), team: "mine" }).panel;
 
-    expect(list.properties["--rows"]).toBe("11");
+    expect(list.properties["--MargoMeter-rows"]).toBe("11");
     expect(
       assertDefined(getByClass(filtered, "list")[0], "the filtered list was drawn").properties[
-        "--rows"
+        "--MargoMeter-rows"
       ],
     ).toBe("10");
   });
@@ -599,13 +599,45 @@ describe("the window itself", () => {
     expect(getByClass(root, "titlebar-button").length).toBe(0);
   });
 
+  /**
+   * §9.6, at the one level of the shadow tree an inspector opens onto.
+   *
+   * The host says whose it is — `tests/game/engine-attachment.test.ts` holds that,
+   * because `ui` has no page to append it to. What this file can reach is the rung
+   * below: expand the shadow root and the three nodes under it say the same thing.
+   * Everything deeper stays unprefixed on purpose, and the rule says why — the
+   * shadow root is the isolation, so a prefix on `.row` would buy noise.
+   *
+   * ⚠️ **Over every child rather than over the three we know about.** Naming them
+   * individually is a test that passes forever while a fourth arrives unnamed
+   * beside them, which is how the host itself went anonymous for the life of the
+   * project. `<style>` is exempt because it draws nothing and carries no class.
+   */
+  test("everything at the top of the shadow tree says whose it is", () => {
+    const { root } = composeMountedPanel({
+      onCopyRequested: () => undefined,
+      onCaptureRequested: () => undefined,
+      onCollapseToggled: () => undefined,
+    });
+
+    const drawn = root.children.filter((child) => child.tag !== "style");
+    // A loop over nothing is green and proves nothing.
+    expect(drawn.length).toBeGreaterThan(0);
+    for (const child of drawn) {
+      const [first] = child.className.split(" ");
+      expect(first, `a node at the top of the shadow tree with no name of ours`).toStartWith(
+        "MargoMeter-",
+      );
+    }
+  });
+
   test("a collapsed panel draws nothing, and the bar it is collapsed by survives", () => {
     const { document, root, container } = composeMountedPanel({ onCollapseToggled: () => undefined });
     const view = composePanelView(composeReading(), composeDefaultState());
 
     renderPanelInto(document, container, view, {}, true);
     expect(container.children.length).toBe(0);
-    expect(getByClass(root, "titlebar").length).toBe(1);
+    expect(getByClass(root, "MargoMeter-titlebar").length).toBe(1);
 
     renderPanelInto(document, container, view, {}, false);
     expect(container.children.length).toBe(1);
@@ -623,7 +655,7 @@ describe("the window itself", () => {
     const { container, renderScreen } = composeRedrawnPanel();
     const state = composeDefaultState();
 
-    expect(container.className).toBe("body");
+    expect(container.className).toBe("MargoMeter-body");
 
     renderScreen(state).scrollTop = 60;
     expect(renderScreen(state).scrollTop).toBe(60);
@@ -660,7 +692,7 @@ describe("the window itself", () => {
       onMoved: (position) => moved.push(position),
     }) as FakeNode;
     const root = assertDefined(host.children[0], "the shadow root was opened") as FakeNode;
-    const titleBar = assertDefined(getByClass(root, "titlebar")[0], "the title bar was built");
+    const titleBar = assertDefined(getByClass(root, "MargoMeter-titlebar")[0], "the title bar was built");
 
     const view = composePanelView(composeReading(), composeDefaultState());
     for (let redraws = 0; redraws < 20; redraws += 1) {
@@ -738,10 +770,10 @@ describe("what the panel never does", () => {
     const style = composePanelStyleText();
 
     expect(style).toContain(
-      `max-height: min(calc(100vh - var(--panel-top) - ${PANEL_TOKENS.space}), ${PANEL_TOKENS.maxHeightShare})`,
+      `max-height: min(calc(100vh - var(--MargoMeter-panel-top) - ${PANEL_TOKENS.space}), ${PANEL_TOKENS.maxHeightShare})`,
     );
     // The chain the cap travels down, and the one region told to absorb it.
-    expect(style).toContain(".body { display: flex; flex-direction: column; min-height: 0; }");
+    expect(style).toContain(".MargoMeter-body { display: flex; flex-direction: column; min-height: 0; }");
     expect(style).toContain(".panel > * { flex: none; }");
     expect(style).toContain(".panel > .list { flex: 0 1 auto; }");
   });

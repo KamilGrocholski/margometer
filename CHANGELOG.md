@@ -63,6 +63,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   To jeden wiersz, tak jak w grze.
 - **Poprawka** — Trzeci cios ma wreszcie nazwę; wcześniej stał w panelu jako
   surowe słowo z protokołu.
+- **Zmiana** — Okno dodatku ma wreszcie własną nazwę na stronie. Wcześniej było
+  na niej zwykłym kawałkiem bez nazwy, nie do odróżnienia od reszty strony —
+  teraz widać, że należy do dodatku, i widać przy nim numer wersji. Żadna z tych
+  nazw nie może się już zderzyć z niczym, co gra nazywa po swojemu. Tego, co
+  pokazuje samo okno, to nie zmienia.
 
 ## [0.6.0] — 2026-08-12
 

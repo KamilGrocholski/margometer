@@ -47,8 +47,13 @@ Order matters: the game, then the bundle, then the driver.
    100 of 102 entries carry `ladunek.m`, so the payload alone reproduces what
    the live wrap reads.
 
-Find the panel with `[...document.body.querySelectorAll("*")].find(e => e.shadowRoot)`
-— the shadow root is `mode: "open"`. Useful selectors: `.titlebar`,
+Find the panel with `document.getElementById("MargoMeter-Panel")` — every element
+the add-on puts in the page is named that way, and its `data-margometer-version`
+says which build you are looking at. Everything below is *inside* it: the shadow
+root is `mode: "open"`, so `.shadowRoot.querySelector(…)` reaches it. Its three
+children are prefixed too — `.MargoMeter-titlebar`, `.MargoMeter-body`,
+`.MargoMeter-tip` — and everything below them is not, because nothing outside the
+shadow root can see those. Useful selectors:
 `.titlebar-save`, `.tab`, `.section`, `.row-name`, `.row-value`, `.mark`
 (its `title` is the detail).
 

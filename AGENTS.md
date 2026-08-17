@@ -749,7 +749,12 @@ src/
                          Polish string that ships, and the one no diacritic can
                          find — so the guard names the phrase instead (§3).
   userscript-entry.ts    Bundle entry point, and the only file that reads the
-                         game off the page and writes a name back onto it. Wires the game to the reading, holds the session,
+                         game off the page and writes a name back onto it —
+                         every name, which is why the four of them are decided
+                         here together: the handle the running add-on answers to,
+                         the key the panel's position is kept under, and the marks
+                         on the two elements this file puts in the game's own
+                         document (§9.6). Both used to go in anonymous. Wires the game to the reading, holds the session,
                          and mounts the panel — including the rule that the
                          console hears about a failing section once per fight and
                          not once per render, and its page-scoped twin: a reading
@@ -1259,7 +1264,13 @@ tests/
                              with — and the other one, the panel asking the
                              running client for a name: the two halves of that
                              live on opposite sides of §9.1 and this is the file
-                             allowed to hold both.
+                             allowed to hold both. And the third loop of that
+                             kind: what the add-on leaves in the game's document
+                             and whether it says whose (§9.6) — asked of
+                             everything appended rather than of the host and the
+                             anchor by name, because the two of them arriving
+                             anonymous is what the question is for, and `ui`
+                             never sees a page to append anything to.
     game-dictionary.test.ts  What counts as a label and what does not — the sign
                              dropped, a hole refused — and every way a page can
                              fail to answer: no lookup, no entry, the wrong kind
@@ -1360,7 +1371,11 @@ tests/
                              closing against that same whole — it used to sum the
                              rows alone and draw up to 88% of a fight as nothing.
     panel-element.test.ts    The panel drawn, against §9.6 and §9.7, on a fake
-                             document: what survives a region failing, that the
+                             document: what survives a region failing, that every
+                             child of the shadow root but the stylesheet says whose
+                             it is — the rung an inspector opens onto, and the one
+                             `tests/game/` cannot reach because it holds the host
+                             and this holds what is under it — that the
                              root serves every control, that a handler cannot
                              escape into the page, that the right button goes back
                              from anywhere, that the row saying something is
@@ -1403,7 +1418,10 @@ tests/
                          holds itself to.
     source-layout.test.ts    Guards §9.3 imports-from-root plus §9.4 file and
                              function naming, §9.5 errors, assumptions and the
-                             register of value readers, §9.6 no blocking dialogs,
+                             register of value readers, §9.6 no blocking dialogs
+                             and every custom property named as ours — the one
+                             name the shadow root does not shield, because
+                             `all: initial` does not reset custom properties,
                              §9.1 layering and §5 no network, §7.6 nothing
                              fetched enters git. Discovers files, never lists
                              them — which is why it keeps working after a move
@@ -1913,6 +1931,43 @@ documents that each claim to be the register
 
 - The panel lives in a Shadow DOM and is cut off from the game's stylesheet
   (`all: initial` on the host). We are a guest on someone else's page.
+- `[ALWAYS] [any]` **Every name of ours a reader meets before the panel's
+  contents carries the prefix `MargoMeter-`.** Two things at once: nothing of
+  ours can collide with a name the game chose, and whoever opens the inspector
+  can see which node is the add-on's — which matters because every report starts
+  with somebody looking at a page and asking what is on it.
+
+  Three rungs, and the prefix stops after the third:
+
+  | Rung | Names | Prefixed |
+  |---|---|---|
+  | In the game's document | the panel's host, the anchor a download rides on | yes |
+  | At the top of the shadow tree | the title bar, the body, the tooltip | yes |
+  | Inside the panel | `.row`, `.tab`, `.tip-stat-value`, the state words | **no** |
+  | Anywhere | every CSS custom property | yes |
+
+  **The third rung is exempt on purpose, and it is not an oversight to be tidied
+  later.** Those names sit behind the shadow root, where the game's CSS cannot
+  reach them and `querySelector` cannot find them; prefixing them buys noise
+  instead of isolation, and there are some forty of them. What the second rung
+  buys is different and is the reason it is in: expanding the shadow root in an
+  inspector lands on it, so three names carry the whole subtree's provenance.
+
+  ⚠️ **A custom property gets no protection from the shadow root at all.** `all:
+  initial` does not reset custom properties — which is the whole reason the
+  panel's default `--MargoMeter-panel-top` survives that line — so one the game
+  declares on `:root` inherits straight through the host into any rule of ours
+  reading a bare name. `--rows` was that shape for the life of the project.
+
+  Guarded three times, and each is written over *what is there* rather than over
+  the nodes we know about — naming those would pass forever while the next one
+  arrived unnamed beside them, which is exactly how the host itself stayed
+  anonymous this long. `tests/game/engine-attachment.test.ts` holds everything
+  appended to the page; `tests/ui/panel-element.test.ts` holds every child of the
+  shadow root but the stylesheet; `tests/tools/source-layout.test.ts` holds every
+  custom property in `src/`. The headroom was measured rather than assumed:
+  `margometer`, in any case, occurs nowhere in either cached client bundle —
+  production build `1786514810315`, development build `1781609507010`.
 - Event handling is delegated at the root, not bound per row, so re-rendering
   never loses handlers.
 - Panel state that survives a reload is validated on read — never trusted raw

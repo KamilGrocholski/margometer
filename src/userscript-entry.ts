@@ -144,6 +144,46 @@ export type MargoMeter = {
 const PAGE_HANDLE = "margometer";
 
 /**
+ * What every element of ours wears in the game's own document (§9.6).
+ *
+ * Two of them, because the add-on puts exactly two nodes into the page: the
+ * panel's host, which stays for the session, and the anchor a download rides on,
+ * which lasts a click. Both used to go in anonymous — a bare `<div>` and a bare
+ * `<a>` at the end of `document.body`, indistinguishable in the inspector from
+ * the game's own furniture and from every other add-on's.
+ *
+ * ⚠️ **The prefix is not what stops the game's stylesheet reaching the panel.**
+ * The shadow root is, which is why the ~40 class names behind it are unprefixed
+ * and stay that way. These two are in front of it, so they are the ones that need
+ * a name nothing else on the page will have chosen. Measured rather than assumed:
+ * `margometer`, in any case, occurs nowhere in either cached client bundle —
+ * production build `1786514810315`, development build `1781609507010`.
+ *
+ * ⚠️ **The version rides an attribute whose name cannot carry the prefix's
+ * casing.** HTML matches and serialises attribute names case-insensitively, so
+ * `data-MargoMeter-version` arrives in the DOM as `data-margometer-version`
+ * whatever is typed here. Case survives in an `id` and a `class` *value* and in a
+ * custom property, and nowhere else — so the mixed-case names below are values
+ * and the lower-case one is a name. Do not "correct" either of them.
+ */
+const PANEL_HOST_ID = "MargoMeter-Panel";
+const PANEL_HOST_CLASS = "MargoMeter-Panel";
+const PANEL_HOST_VERSION_ATTRIBUTE = "data-margometer-version";
+const DOWNLOAD_ANCHOR_CLASS = "MargoMeter-Download";
+
+/**
+ * The host, plus the two things naming it needs.
+ *
+ * Widened here rather than on `PanelHost`, which is `ui`'s slice of the DOM: the
+ * panel draws inside a shadow root and has no business knowing that the element
+ * holding it sits in somebody else's document under an id.
+ */
+type MarkedPanelHost = PanelHost & {
+  id: string;
+  setAttribute(name: string, value: string): void;
+};
+
+/**
  * Whether a MargoMeter is already running on this page.
  *
  * The outermost of the three guards against two copies counting one fight, and
@@ -386,6 +426,8 @@ function composeCaptureEnvironment(page: HostPage): CaptureEnvironment {
 type DownloadAnchor = {
   href: string;
   download: string;
+  /** So the one tick it spends in the page is still a tick it spends named. */
+  className: string;
   click: () => void;
   remove: () => void;
 };
@@ -414,6 +456,7 @@ function writeTextToFile(page: HostPage, name: string, text: string): void {
   const anchor = document.createElement("a") as DownloadAnchor;
   anchor.href = url;
   anchor.download = name;
+  anchor.className = DOWNLOAD_ANCHOR_CLASS;
   document.body?.append(anchor);
   try {
     anchor.click();
@@ -469,7 +512,15 @@ export function composePanelMount(
 
   // Where it sits is the stylesheet's, not this file's — all that is decided here
   // is where it was left last time, which is the one part `src/ui/` cannot know.
-  const host = document.createElement("div") as PanelHost;
+  const host = document.createElement("div") as MarkedPanelHost;
+  /*
+   * Named before it is appended, not after: between the two there is a tick in
+   * which the page holds an anonymous `<div>` of ours, and a page script reading
+   * `body.children` in that tick is exactly the reader this naming is for.
+   */
+  host.id = PANEL_HOST_ID;
+  host.className = PANEL_HOST_CLASS;
+  host.setAttribute(PANEL_HOST_VERSION_ATTRIBUTE, USERSCRIPT_VERSION);
   page.document?.body?.append(host);
 
   /**
