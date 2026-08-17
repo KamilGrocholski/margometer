@@ -101,7 +101,16 @@ const AUTHORED_FILES = [
   // where a stale citation costs the most. Counted by the line below rather than
   // stated here — the sentence said "the four" while there were five
   // (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F22).
-  ...readdirSync(REPOSITORY_ROOT).filter((file) => file.endsWith(".md")),
+  //
+  // `TODO.md` is the one exception, and it is a scope rather than a hole: it is
+  // the maintainer's hand-kept list and no tool may write to it (§5), so a task
+  // naming a file that does not exist yet — which is what a to-do list is made
+  // of — would be a red gate whose only remedy is an edit nobody here is allowed
+  // to make. Left out for the reason `tests/tools/tracked-text.test.ts` leaves
+  // the captures out.
+  ...readdirSync(REPOSITORY_ROOT).filter(
+    (file) => file.endsWith(".md") && file !== "TODO.md",
+  ),
 ];
 
 type Citation = { path: string; citedIn: string };

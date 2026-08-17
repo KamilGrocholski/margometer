@@ -173,6 +173,16 @@ absent: a test is bound by the scope of the thing it tests.
 - `[NEVER] [any]` **Leave a number in prose that a machine could compute.**
   Test counts, coverage, line counts and file counts go stale silently. If it
   can be measured, measure it at read time instead of writing it down.
+- `[NEVER] [any]` **Write to `TODO.md`.** It is the maintainer's own task list,
+  kept by hand — not a document of this repository's, and not a place a round
+  reports into. No edit, no reformat, no tick, no reordering, no deletion and no
+  tidying, by any tool: not an editor call, not a script, not a formatter, not
+  `sed`. Reading it is fine, and so is git — the file is tracked so its history
+  is kept, and tracking it is the whole of what git and GitHub do with it. What
+  a round learns still goes where §7.5 puts it — a guard, a rule, a commit — and
+  never into somebody else's notebook. The half a machine can hold is the tool
+  call itself, which `.claude/settings.json` denies; the rest is this sentence.
+
 ---
 
 ## 6. Commands
@@ -603,6 +613,12 @@ CHANGELOG.md       For players, and the only *document* here written in Polish
                    has that version.
 LICENSE            MIT — covers what was written here, and nothing else.
 NOTICE.md          What of the game's is in this repository, and on what basis.
+TODO.md            The maintainer's own task list, by hand. Tracked so its
+                   history is kept, and `[NEVER]` written to by any tool (§5).
+                   Held to nothing else here: `tests/tools/cited-paths.test.ts`
+                   skips it, because a stale citation in somebody's own notes is
+                   a failure whose only remedy is an edit nobody here may make.
+
 build.ts                 Bundles src/ into dist/ and prepends the userscript
                          banner. Writes the banner a second time on its own, as
                          `margometer.meta.js`, because 0.5.0 polls for that name
@@ -632,7 +648,10 @@ tsconfig.json            Strict flags standing in for a linter, and the `@/*`
                          captured fight. Not a rule and not a gate — the gate is
                          §6.1 and cannot see a panel. `.claude/settings.local.json`
                          sits a directory above it and stays out of git, per
-                         machine.
+                         machine; `settings.json` beside it is tracked and holds
+                         the one thing a rule alone cannot — the tool calls that
+                         would write to `TODO.md`, denied rather than discouraged
+                         (§5).
 
 .cache/                  Game client sources, fetched on demand. NOT tracked and
                          never published — §7.6. Absent until first fetched.
@@ -1417,6 +1436,15 @@ tests/
                              its `export` rather than gaining a test. Walks the
                              tree and not the index, so it can see the file
                              somebody is writing.
+    agent-permissions.test.ts
+                             The wall in front of `TODO.md`, held to still being
+                             there. A machine cannot hold *who* edited a file —
+                             a diff records the change and never the hand — so
+                             what it holds instead is the tool call, denied in
+                             `.claude/settings.json` before it runs. This is the
+                             half §7.5 puts first, and it guards the way that
+                             half goes quiet: a deny list emptied, renamed or
+                             cut down to a subset of the tools that can write.
     captured-fight-intake.test.ts
                              The gate a recording passes to enter the repository:
                              every nickname substituted, the game's own ability
