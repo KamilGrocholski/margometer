@@ -16,17 +16,19 @@
 > Keep entries short: try to make tasks one line.
 
 ## In Progress
+- [ ] Create preview tool server with hotreloading
 
 ## Up Next
-- [ ] Make sure there are no conflicts with Margonem CSS names, and HTML ids - carefully create new names to assert no conflicts with 
-existing classes and ids from the game, add prefix `MargoMeter_` for each element; use `_` as a divider
 - [ ] Keep tip panel withing the window - when the main panel is close enough to the edge of the window and there is no place for a tip, it cannot be fully seen
 - [ ] Make the main panel visible when there is no data - only title bar is visible, when no battle data has been recorded
 - [ ] Show all combatants in a battle - currently we need a combatant's turn to see him on the list. 
 I want every combatant to be visible at the beginning of a battle
 - [ ] Create and update screenshots after each release, use `screenshots` dir to store it
+- [ ] Add draw as an outcome
 
 ## Done
+- [x] Make sure there are no conflicts with Margonem names, CSS classes, and HTML ids - carefully create new names to assert no conflicts with 
+existing names, classes, and ids from the game. Add prefix `MargoMeter-` or `margometer` for each relevant element and entity.
 
 ## Later
 - [ ] Tab changing, go back, go into are slow
