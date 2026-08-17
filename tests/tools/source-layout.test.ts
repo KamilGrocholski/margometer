@@ -839,6 +839,21 @@ describe("the language of the strings", () => {
      * forbids. The string is admitted because deleting it would be the fault.
      */
     { file: "tools/captured-fight-intake.ts" },
+    /**
+     * The tenth, and the first here whose Polish is a **player's** rather than a
+     * marker or a release's notes. `tools/preview-site.ts` writes the published
+     * preview, which is a page a player opens without installing anything, so §3
+     * puts its words in Polish for the same reason the panel's are in Polish.
+     *
+     * ⚠️ **Its twin, `tools/preview-server.ts`, must stay off this list**, and
+     * the page they share must stay off it too. The two draw the same template
+     * with different vocabularies — one read by a player, one by whoever is
+     * editing `src/` — and the only thing keeping the shared module free of both
+     * is that every word arrives as an option (`tools/preview-page.ts`). A Polish
+     * string appearing in either of those two files is that design coming apart,
+     * which is what this list is for.
+     */
+    { file: "tools/preview-site.ts" },
   ];
 
   function getPolishStrings(file: string): string[] {

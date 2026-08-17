@@ -231,7 +231,9 @@ base every tool below throws from (§9.5).
 | `tools/help-article.ts` | *What does the game's own documentation say about this mechanic?* `fetch` caches an article, `search` prints raw context around a phrase and exits non-zero when there is none, `freeze` writes `tests/frozen-help-phrases.ts` so the register's help claims are re-counted on every gate. §7.6. |
 | `tools/captured-fight-intake.ts` | *This recording is worth keeping — put it in the repository.* Substitutes player nicknames, removes the game's ability descriptions, and writes the result into `tests/captured-fights/`. Refuses anything it cannot redact with certainty, and names the step that stays a person's. §9.2. |
 | `tools/mutation-sweep.ts` | *Does this test light up when the thing it covers breaks?* Changes one character of meaning at a time, runs the gate, and reports what nothing noticed — §3's question, asked of code already here rather than only of a test being written. Writes mutants into the working tree, so it refuses to start against a dirty one. |
-| `tools/preview-server.ts` | *What does the panel look like right now?* Serves the built userscript over a captured fight, steps the replay so a fight can be watched part-way through, and reloads the page when `src/` or `libs/` changes. `bun run preview`. The gate cannot see a panel (§6.1); this is what can. |
+| `tools/preview-page.ts` | *What does the harness put in front of the panel?* The whole page as one string — the engine stub, the bundle's tag, the inlined fight and the stepping strip — with the words, the addresses and the reload half as holes, so neither consumer's language or routing is spelled inside it. Library, not a CLI. |
+| `tools/preview-server.ts` | *What does the panel look like right now?* Serves that page over a captured fight, steps the replay so a fight can be watched part-way through, and reloads it when `src/` or `libs/` changes. `bun run preview`. The gate cannot see a panel (§6.1); this is what can. |
+| `tools/preview-site.ts` | *What does the panel look like, to somebody who has installed nothing?* Writes the same page as a directory of files — one per capture, in Polish, opening on the finished fight, plus the bundle they load — for `.github/workflows/pages.yml` to publish. `bun run preview:site`. Nothing it writes is ever committed: §9.2's material is inlined in it. |
 | `tools/changelog.ts` | *What does this release say for itself?* Cuts one version's section out of `CHANGELOG.md` and adds the note saying which attached file to click. `notes <version>` prints it; a version with no section refuses rather than publishing silence. |
 
 ---
@@ -659,8 +661,10 @@ build.ts                 Bundles src/ into dist/ and prepends the userscript
                          `Bun.build` rejects with somebody else's error class and
                          the `success` check beside it is dead for the failure it
                          was written for.
-package.json             Version, scripts. `bun run check` is the gate, and
-                         `bun run preview` is the panel in a browser.
+package.json             Version, scripts. `bun run check` is the gate,
+                         `bun run preview` is the panel in a browser, and
+                         `bun run preview:site` is that page written down for
+                         somebody else's browser.
 bun.lock                 What the gate is actually run against. Listed here
                          because §6.1 turns on it: a package `node_modules` holds
                          and this file does not name is ambient type information
@@ -676,7 +680,13 @@ tsconfig.json            Strict flags standing in for a linter, and the `@/*`
                          attached to a GitHub release, because the banner's
                          `@updateURL` points at that asset and a release without
                          it breaks updates silently. Also the one place the tag
-                         and `package.json` are compared.
+                         and `package.json` are compared. pages.yml: the gate a
+                         third time, then `tools/preview-site.ts` published to
+                         GitHub Pages on every push to `main` — so what the page
+                         shows is what `main` draws, and a tree that cannot pass
+                         the gate never becomes the page this repository points
+                         people at. ⚠️ Pages has to be switched to Actions once by
+                         hand; no file here can do it.
 .claude/skills/verify/   How to run the add-on rather than test it: driving
                          `bun run preview` in a real browser and reading what the
                          panel drew. Not a rule and not a gate — the gate is
@@ -1255,21 +1265,59 @@ tools/
                          every run and it refuses to start against a dirty tree.
                          A kill by a guard that reads source as text is counted
                          apart: it says the spelling changed, not the behaviour.
-  preview-server.ts      The panel in a browser, changing while you edit it. Serves
+  preview-page.ts        The harness page itself, as one string: the engine stub
+                         under both names the add-on reads, the decoy naming a
+                         build, the bundle's tag, the fight inlined so the replay
+                         finishes before `load` does, and the stepping strip. The
+                         replay is **stepped**, which is what makes the empty panel
+                         and a fight in progress reachable at all; backward
+                         re-feeds from the first payload rather than reloading,
+                         because that payload is the one carrying `init` and `init`
+                         is what resets the session. It left the server at its
+                         second consumer (§7.1), and what it kept is holes: the
+                         words, the address each capture is reached at, the
+                         directory both script tags sit in, and the reload half.
+                         Every one of those is a thing the two consumers must NOT
+                         agree on — an absolute `src` is invisible until a host
+                         serves the site under a path of its own, and a reload
+                         stream on a page nobody rebuilds reconnects twice a second
+                         for as long as the tab is open. Holding the words out
+                         there too is what keeps this file speaking neither
+                         language, which is the whole of why it is not on the list
+                         in `tests/tools/source-layout.test.ts` naming what may
+                         ship Polish.
+  preview-server.ts      That page in a browser, changing while you edit it. Serves
                          the built userscript over a captured fight, watches `src/`
                          and `libs/`, and reloads on a rebuild — keeping the place
                          in the fight, so an edit to `src/ui/` redraws the screen
-                         you were looking at. The replay is **stepped**, which is
-                         what makes the empty panel and a fight in progress
-                         reachable at all; backward re-feeds from the first payload
-                         rather than reloading, because that payload is the one
-                         carrying `init` and `init` is what resets the session. A
+                         you were looking at. A
                          rebuild that FAILS does not reload — it says so and leaves
                          the last good panel up, since a page blanked by a
-                         half-typed line is worse than a stale one. It is the
+                         half-typed line is worse than a stale one. The build label
+                         and the log belong to the reload half and travel with it,
+                         because a page with nothing rebuilding it saying `build
+                         ok` in green is asserting something about a build nobody
+                         ran. It is the
                          recipe in `.claude/skills/verify/SKILL.md` turned into
                          something that exists; that document had described a page
                          to build by hand, and two audits record nobody ever did.
+  preview-site.ts        The same page written down instead of served, so the panel
+                         can be looked at by somebody who has checked nothing out —
+                         which matters for an add-on whose install page opens with
+                         the terms of service (README.md). One page per capture and
+                         one to land on, addressed by filename because there is no
+                         process to answer a query, and opening on the FINISHED
+                         fight where the server opens on nothing: a visitor asking
+                         what this looks like is answered by populated rows, and
+                         `od początku` walks back to the empty panel. Its words are
+                         Polish and the server's are English, which is §3 rather
+                         than a preference — a published page is read by players.
+                         The decoy is a real file here: only its name is ever read,
+                         but a host that answers a miss with its own HTML puts a
+                         syntax error in every visitor's console. ⚠️ **Nothing it
+                         writes may be committed** — the pages carry §9.2's
+                         material inlined, and `source-layout.test.ts` refuses a
+                         name the game gave an ability outside the recordings.
   changelog.ts           One version's section of CHANGELOG.md, which is what a
                          release says, plus the note telling a reader which of
                          the two attached files to click. A pure function with a
@@ -1790,15 +1838,34 @@ tests/
                              every nickname substituted, the game's own ability
                              descriptions gone, and a refusal where either cannot
                              be done with certainty rather than a guess.
-    preview-server.test.ts   The page the preview draws, held where it can fail
+    preview-page.test.ts     The page the harness draws, held where it can fail
                              quietly: the engine stub folding into both names the
                              add-on reads, the order the three scripts run in, and
                              a recorded message that spells a closing tag being
-                             unable to end one. Plus the routes over a real socket
-                             on an ephemeral port, and the fact the rewind rests on
-                             — that every recording starts its fight on its first
+                             unable to end one. Plus the fact the rewind rests on —
+                             that every recording starts its fight on its first
                              payload and nowhere else, re-measured per capture
-                             rather than written down as a count (§3).
+                             rather than written down as a count (§3). And the four
+                             holes the second consumer opened, each of which is a
+                             page that loads and is wrong rather than a page that
+                             errors: an address the page composed instead of being
+                             handed, a reload stream on a page nobody rebuilds, a
+                             word the markup spelled itself, and a script asked of
+                             the domain root — the last two invisible everywhere
+                             except a deployment.
+    preview-server.test.ts   What is left when the page has its own file: the
+                             routes over a real socket on an ephemeral port, the
+                             entry clamped past the end of a fight, and the bundle
+                             served being the file a person installs.
+    preview-site.test.ts     The published preview, held to the faults that only
+                             appear once it is published — every one of them passes
+                             on a page opened from disk and served from localhost.
+                             That every address the picker offers is a file the
+                             site writes, which is one broken control on every page
+                             at once rather than one dead link; that nothing is
+                             asked of the domain root; that no page opens a stream;
+                             that the strip and the introduction are Polish; and
+                             that a published page opens on the finished fight.
     captured-fight-catalog.test.ts  decoding-status.test.ts  help-article.test.ts
     protocol-key-table.test.ts  spec-status.test.ts  userscript-metadata.test.ts
 ```

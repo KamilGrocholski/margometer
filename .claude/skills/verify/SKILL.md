@@ -129,8 +129,15 @@ the file back with `tools/fight-dump-parser.ts` · save before any fight · make
 game's own `updateData` throw · load with no `Engine` at all.
 
 For the last two, edit the stub in `composePreviewPage` — it is one string in
-`tools/preview-server.ts`, and a change there needs the server restarted, because
+`tools/preview-page.ts`, and a change there needs the server restarted, because
 the watcher deliberately does not watch itself.
+
+The same page is published by `tools/preview-site.ts`, in Polish and opening on
+the finished fight. What is worth driving there and nowhere else: that the panel
+appears at all under a path of its own (`python3 -m http.server` from `dist/`,
+opened at `/preview/` — an absolute `src` works everywhere except a deployment),
+and that the console is empty, which is where a reload stream reconnecting to
+nothing and a decoy answered with HTML would show.
 
 ## Reading a saved recording back
 

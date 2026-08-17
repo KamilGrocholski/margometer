@@ -21,6 +21,12 @@ affect how a fight plays out. It counts what already happened.
 > earlier: this is the same add-on by name and a different one by construction,
 > and none of the older versions' behaviour should be assumed.
 
+**[See it before you install it][preview]** — a recorded fight replayed in your
+own browser, by the same file a release ships. Nothing there is connected to the
+game, and the picker holds every fight this repository has kept.
+
+[preview]: https://kamilgrocholski.github.io/margometer/
+
 ---
 
 ## MargoMeter and the game's terms of service

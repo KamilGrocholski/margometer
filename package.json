@@ -13,6 +13,7 @@
   "scripts": {
     "build": "bun run build.ts",
     "preview": "bun run tools/preview-server.ts",
+    "preview:site": "bun run tools/preview-site.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "check": "bun run typecheck && bun test && bun run build"

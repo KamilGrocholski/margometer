@@ -1,0 +1,71 @@
+# The preview, published. `bun run preview` serves that page from a machine that
+# has this repository checked out; this writes it as files and puts them on the
+# web, so the panel can be looked at by somebody who has installed nothing — into
+# a game that has not authorised the add-on (README.md).
+#
+# The gate runs first and the deploy is gated on it, for release.yml's reason: a
+# tree that cannot pass `bun run check` must not become the page this repository
+# points people at.
+#
+# ⚠️ **Pages has to be switched to Actions once, by hand** — Settings → Pages →
+# Source → GitHub Actions. Nothing in this file can do it, and until it is done
+# `deploy-pages` fails with "Pages site not found", which reads like a bug in the
+# workflow and is not one.
+#
+# ⚠️ **What gets published is the captures' own engine payloads**, inlined one
+# fight per page. NOTICE.md says what that carries and on what basis. Nothing
+# generated here is ever committed: the output goes under `dist/`, which git
+# ignores, and a tracked page carrying a capture would fail the gate on its own
+# (`tests/tools/source-layout.test.ts` refuses a name the game gave an ability
+# outside the recordings).
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# What a Pages deployment needs and nothing more. `id-token` is how deploy-pages
+# proves to Pages that this run is the one that uploaded the artifact.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and a running one is left to finish: cancelling
+# mid-deploy leaves the site serving whichever half of the upload arrived.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # One job rather than the two-job template GitHub documents: the build and the
+  # deploy share a checkout and a `bun install`, and splitting them buys an
+  # artifact hand-off between two steps that would run back to back anyway.
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same pin as check.yml and release.yml, and for the same reason: "latest"
+      # means the published page changes one day with no change in the code.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+
+      - run: bun run preview:site
+
+      # GitHub's own actions, so the only third-party one here is setup-bun,
+      # which both other workflows already use at the same pin.
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/preview
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -82,6 +82,30 @@ the files to it rather than trusting the tooling that did the substitution.
 Monster names are left as they are: they are not people, and they are what the
 recording is evidence about.
 
+### The published preview — <https://kamilgrocholski.github.io/margometer/>
+
+Those recordings are also what the published preview replays: one page per
+capture, carrying that fight's engine payloads inlined so the panel can be
+watched without installing anything. It is the same material as the section
+above, on the same basis and from the same files — the page is written from
+`tests/captured-fights/` by `tools/preview-site.ts` and never committed.
+
+Three things about it are worth stating rather than leaving to be discovered:
+
+- **The sentences the client composed are not on it.** The `render` field named
+  above sits beside the engine payload in a recording, not inside it, and only
+  the payload travels to the page. Nothing there was written by the game to be
+  read by a person.
+- **What does travel is what the server sent**: the `tspell=` and `txt=` values
+  named above, which the panel shows the way it shows them in the game — read
+  from the material and written down nowhere else.
+- **No nickname is on it**, for the reason no nickname is in the repository:
+  everyone with a player id was substituted before the material entered it.
+
+The page also has no game beside it, so the client's own translation table is not
+there to be asked; every name the panel draws for a protocol token is this
+repository's own phrase (`src/ui/panel-names.ts`).
+
 ### Client source — `.cache/`, never committed
 
 `tools/game-client-source.ts` downloads the game client so that questions about

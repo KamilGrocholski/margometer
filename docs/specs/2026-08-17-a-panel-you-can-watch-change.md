@@ -67,7 +67,7 @@ because a stale panel and a fresh one look identical.
 `src/game/battle-session.ts` accumulates and has no rewind. But it *resets* on a
 payload carrying `init`, and every recording in `tests/captured-fights/` carries
 `init` exactly once and on its first payload — measured, and re-measured per
-capture on every run by `tests/tools/preview-server.test.ts`, because a recording
+capture on every run by `tests/tools/preview-page.test.ts`, because a recording
 arriving without it would send the button somewhere nobody asked for and no figure
 on screen would look wrong.
 

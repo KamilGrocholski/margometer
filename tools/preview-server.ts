@@ -19,18 +19,23 @@
  * rewind, but it *resets* on a payload carrying `init`, and every capture in
  * `tests/captured-fights/` carries that exactly once and on its first payload.
  * That is measured on every recording rather than assumed, and re-measured on
- * every run by `tests/tools/preview-server.test.ts` — a capture arriving without
- * it would make the rewind silently wrong. So a rewind costs a replay and not a
+ * every run by `tests/tools/preview-page.test.ts` — a capture arriving without it
+ * would make the rewind silently wrong. So a rewind costs a replay and not a
  * reload, and the panel keeps the screen and the drill level the reader opened.
+ *
+ * **The page itself is `tools/preview-page.ts`.** It left here when it got a
+ * second consumer (§7.1) — `tools/preview-site.ts` writes the same page down
+ * rather than serving it — and what is left in this file is the half only a
+ * server can answer: the routes, the watcher, and the reload stream below.
  */
 
 import { watch, type FSWatcher } from "node:fs";
 
-import { composeUserscriptFiles, BundleError } from "@/build.ts";
+import { composeUserscriptFiles, BundleError, USERSCRIPT_FILENAME } from "@/build.ts";
 import { assertDefined } from "@/libs/assert.ts";
-import { composeJsonText } from "@/libs/json.ts";
 import { getIntegerFromText } from "@/libs/number.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
+import { composePreviewPage, type PreviewWords } from "@/tools/preview-page.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
 export class PreviewServerError extends MargoMeterToolError {
@@ -80,171 +85,39 @@ const REBUILD_AFTER_QUIET_MS = 60;
 const KEEP_ALIVE_EVERY_MS = 15_000;
 
 /**
- * A build id in the shape `src/core/game-build.ts` recognises.
+ * What the strip says here, in the language the rest of this repository is
+ * written in.
  *
- * The page carries a script tag naming it so a recording saved from the preview
- * says which build it came from. It is served as a 404 on purpose: only the `src`
- * attribute is ever read.
+ * The reader of this page is whoever is editing `src/`, which is why these are
+ * English while `tools/preview-site.ts` draws Polish over the same template: §3's
+ * rule is about the text a **player** reads, and nobody plays the game through a
+ * development server.
  */
-const PREVIEW_GAME_BUILD = "1785244275300";
-
-export type PreviewPageOptions = {
-  /** Which capture the page replays. */
-  fightName: string;
-  /** How many of its payloads to feed before handing over to the controls. */
-  entryIndex: number;
-  /**
-   * Every payload of the fight, carried in the page rather than fetched.
-   *
-   * ⚠️ **The replay has to finish before `load` does.** Firefox's `--screenshot`
-   * waits for `load` and nothing after it, so a page that fetched its capture
-   * photographed itself empty with the strip still saying `loading` — which looks
-   * exactly like a panel that failed to draw. Embedding them makes the whole
-   * replay synchronous, which is what the recipe in `.claude/skills/verify/SKILL.md`
-   * had been doing all along and for this reason.
-   */
-  payloads: readonly unknown[];
-  /** Every capture, so the picker is the directory rather than a list somebody typed. */
-  fightNames: readonly string[];
+const PREVIEW_WORDS: PreviewWords = {
+  language: "en",
+  title: "MargoMeter preview",
+  start: "to start",
+  backHint: "Replays the fight up to the previous entry",
+  end: "to end",
+  play: "play",
+  pause: "pause",
+  entry: "entry",
 };
 
 /**
- * The harness page, whole, as one string.
+ * The half of the driver only a server can answer.
  *
- * ⚠️ **Everything below is read by `tests/tools/source-layout.test.ts` as
- * source.** The guards strip comments and leave string literals alone, so the
- * browser JavaScript in here is held to the same rules as the TypeScript around
- * it — verbs on function names, prefixes on booleans, and none of the value
- * readers `libs/` owns. That last one is why **the server does the converting**:
- * the entry index arrives already a number, and nothing in the page turns text
- * into one.
+ * ⚠️ **Read as source like everything around it** — `tests/tools/source-layout.test.ts`
+ * strips comments from this file and searches the rest, and a template literal is
+ * not a hiding place: verbs on the function names, no block comment inside it.
  *
- * ⚠️ **Nothing of the harness is named `MargoMeter-`.** Two tests read a page and
- * ask whether everything named that way says whose it is; a preview page has to
- * keep that question answerable, so the harness calls its own things `preview-`
- * and every `MargoMeter-` node in the document is still the add-on's.
- *
- * ⚠️ **No block comment goes inside the template.** The guards strip comments
- * from the whole file before reading it, so a `/* … *` + `/` in here blinds them
- * to whatever it spans — and an unclosed one would pair with the next docblock's
- * end and blank the code between. The strip's own layer is the one thing that
- * would have wanted a note: it sits bottom-left below `z-index: 9999`, because
- * the panel starts in the top-right corner and may be dragged anywhere, and
- * harness chrome that covered the thing under test would be worse than useless.
+ * The build label and the log live here rather than in the page, and that is the
+ * point of the split: a published page that says `build ok` in green is asserting
+ * something about a build nobody ran.
  */
-export function composePreviewPage(options: PreviewPageOptions): string {
-  /**
-   * ⚠️ **`</` is escaped, or the payloads end the script tag.** An HTML parser
-   * looks for the closing tag as text and knows nothing about the JavaScript
-   * string it is inside, so one `</` in a recorded message would end the block
-   * early and leave the rest of the fight on the page as markup.
-   */
-  const settings = composeJsonText({
-    fightName: options.fightName,
-    entryIndex: options.entryIndex,
-    entryCount: options.payloads.length,
-    fightNames: options.fightNames,
-    payloads: options.payloads,
-  }).replaceAll("</", "<\\/");
-
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>MargoMeter preview — ${options.fightName}</title>
-<style>
-  html, body { margin: 0; height: 100%; background: #14171c; color: #c8cdd6;
-    font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
-  .preview-strip { position: fixed; left: 12px; bottom: 12px; z-index: 9000;
-    display: flex; flex-direction: column; gap: 6px; padding: 10px 12px;
-    background: #1c2027; border: 1px solid #2c323c; border-radius: 8px;
-    box-shadow: 0 6px 24px rgba(0,0,0,.5); max-width: min(560px, calc(100vw - 24px)); }
-  .preview-line { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .preview-strip button, .preview-strip select {
-    font: inherit; color: inherit; background: #262c35; border: 1px solid #39404b;
-    border-radius: 5px; padding: 3px 9px; cursor: pointer; }
-  .preview-strip button:hover { background: #2f3742; }
-  .preview-title { font-weight: 600; color: #8f9bb0; letter-spacing: .04em; }
-  .preview-count { font-variant-numeric: tabular-nums; color: #8f9bb0; }
-  .preview-build { margin-left: auto; }
-  .preview-ok { color: #7fd18a; }
-  .preview-bad { color: #e8836f; }
-  .preview-log { display: none; margin: 0; padding: 8px; overflow: auto;
-    max-height: 30vh; white-space: pre-wrap; background: #12151a;
-    border: 1px solid #43301f; border-radius: 5px; color: #e8b48b;
-    font: 12px/1.45 ui-monospace, monospace; }
-  .preview-log[data-shown="yes"] { display: block; }
-</style>
-</head>
-<body>
-
-<div class="preview-strip">
-  <div class="preview-line">
-    <span class="preview-title">MargoMeter preview</span>
-    <select id="preview-fight"></select>
-    <span class="preview-build" id="preview-build"></span>
-  </div>
-  <div class="preview-line">
-    <button id="preview-back" title="Replays the fight up to the previous entry">&#9664;</button>
-    <button id="preview-next">&#9654;</button>
-    <button id="preview-play">play</button>
-    <button id="preview-end">to end</button>
-    <span class="preview-count" id="preview-count"></span>
-  </div>
-  <pre class="preview-log" id="preview-log"></pre>
-</div>
-
-<script>
-  // The game, as much of it as the add-on touches. Both names are needed:
-  // src/game/engine-roster.ts reads "w", src/game/fight-capture.ts reads
-  // "warriorsList", and with only the first every combatant snapshot in a saved
-  // recording comes out empty with nothing saying why.
-  window.Engine = {
-    battle: {
-      w: {},
-      warriorsList: {},
-      myteam: null,
-      updateData: function handlePayload(payload) {
-        var roster = payload && payload.w;
-        if (roster) {
-          for (var id in roster) {
-            window.Engine.battle.w[id] = roster[id];
-            window.Engine.battle.warriorsList[id] = roster[id];
-          }
-        }
-        return "preview-engine";
-      },
-    },
-  };
-</script>
-
-<script src="/main.min${PREVIEW_GAME_BUILD}.js"></script>
-<script src="/margometer.user.js"></script>
-
-<script>
-  var PREVIEW = ${settings};
-
-  function getElement(id) {
-    var found = document.getElementById(id);
-    if (found === null) throw new ReferenceError("preview is missing " + id);
-    return found;
-  }
-
-  var countLabel = getElement("preview-count");
+const RELOAD_SCRIPT = `
   var buildLabel = getElement("preview-build");
   var buildLog = getElement("preview-log");
-  var picker = getElement("preview-fight");
-
-  var fedCount = 0;
-  var isPlaying = false;
-
-  function composeAddress(fightName, entryIndex) {
-    return "/?fight=" + encodeURIComponent(fightName) + "&entry=" + entryIndex;
-  }
-
-  function renderCount() {
-    countLabel.textContent = "entry " + fedCount + " / " + PREVIEW.entryCount;
-  }
 
   function renderBuild(text, isGood) {
     buildLabel.textContent = text;
@@ -256,71 +129,11 @@ export function composePreviewPage(options: PreviewPageOptions): string {
     buildLog.setAttribute("data-shown", text === "" ? "no" : "yes");
   }
 
-  function renderPicker() {
-    for (var i = 0; i < PREVIEW.fightNames.length; i += 1) {
-      var option = document.createElement("option");
-      option.value = PREVIEW.fightNames[i];
-      option.textContent = PREVIEW.fightNames[i];
-      option.selected = PREVIEW.fightNames[i] === PREVIEW.fightName;
-      picker.append(option);
-    }
+  function composeAddress(fightName, entryIndex) {
+    return "/?fight=" + encodeURIComponent(fightName) + "&entry=" + entryIndex;
   }
 
-  // One payload into the game's own method, which the add-on has already wrapped:
-  // the wrap goes on synchronously while the bundle's script tag runs, so by the
-  // time this file executes there is nothing to wait for.
-  function setNextFed() {
-    if (fedCount >= PREVIEW.payloads.length) return false;
-    window.Engine.battle.updateData(PREVIEW.payloads[fedCount]);
-    fedCount += 1;
-    renderCount();
-    return true;
-  }
-
-  function handlePlay() {
-    isPlaying = !isPlaying;
-    getElement("preview-play").textContent = isPlaying ? "pause" : "play";
-    function handleTick() {
-      if (!isPlaying) return;
-      if (!setNextFed()) {
-        isPlaying = false;
-        getElement("preview-play").textContent = "play";
-        return;
-      }
-      window.setTimeout(handleTick, 220);
-    }
-    handleTick();
-  }
-
-  // Rewinding is replaying. The first payload of every capture carries "init",
-  // which resets the session, so feeding the fight again from zero lands on any
-  // earlier entry — and the panel keeps the screen and drill level it was on,
-  // which a reload would throw away.
-  function setFedTo(target) {
-    if (target < fedCount) fedCount = 0;
-    while (fedCount < target && setNextFed()) { /* forward to where we were asked */ }
-    renderCount();
-  }
-
-  getElement("preview-next").addEventListener("click", function handleNext() {
-    setNextFed();
-  });
-  getElement("preview-end").addEventListener("click", function handleEnd() {
-    setFedTo(PREVIEW.payloads.length);
-  });
-  getElement("preview-play").addEventListener("click", handlePlay);
-  getElement("preview-back").addEventListener("click", function handleBack() {
-    setFedTo(fedCount - 1 < 0 ? 0 : fedCount - 1);
-  });
-  picker.addEventListener("change", function handlePick() {
-    window.location.href = composeAddress(picker.value, 0);
-  });
-
-  renderPicker();
   renderBuild("build ok", true);
-  // Synchronously, before load fires: a screenshot is taken at load and nothing
-  // after it, so a replay that waited would photograph an empty panel.
-  setFedTo(PREVIEW.entryIndex);
 
   // A rebuild that FAILS must not reload: the page would go blank over a syntax
   // error mid-keystroke, and the panel you were looking at is the thing you were
@@ -333,12 +146,7 @@ export function composePreviewPage(options: PreviewPageOptions): string {
     renderBuild("build failed", false);
     renderBuildLog(event.data);
   });
-</script>
-
-</body>
-</html>
 `;
-}
 
 export type PreviewServerOptions = {
   port?: number | undefined;
@@ -385,6 +193,18 @@ function setListenersTold(
       listeners.delete(listener);
     }
   }
+}
+
+/**
+ * Where the picker goes, which is this server's own answer and not the page's.
+ *
+ * A capture is chosen here with a query on one path, because there is a process
+ * to answer it. `tools/preview-site.ts` has no such thing and addresses a
+ * filename instead, which is why the page is handed the address rather than
+ * composing one (`tools/preview-page.ts`).
+ */
+function composeFightAddress(name: string): string {
+  return `/?fight=${encodeURIComponent(name)}&entry=0`;
 }
 
 function getFightByName(name: string | null): (typeof CAPTURED_FIGHTS)[number] | null {
@@ -485,7 +305,7 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
 
       if (path === "/reload") return composeReloadResponse();
 
-      if (path === "/margometer.user.js") {
+      if (path === `/${USERSCRIPT_FILENAME}`) {
         try {
           return new Response(await getScript(), {
             headers: { "content-type": "text/javascript; charset=utf-8" },
@@ -507,7 +327,17 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
             fightName: fight.name,
             entryIndex: Math.max(0, Math.min(asked, entryCount)),
             payloads: fight.dump.calls.map((call) => call.payload),
-            fightNames: CAPTURED_FIGHTS.map((candidate) => candidate.name),
+            fights: CAPTURED_FIGHTS.map((candidate) => ({
+              name: candidate.name,
+              address: composeFightAddress(candidate.name),
+            })),
+            // Everything is answered from the root here, which is the one thing a
+            // published copy of this page cannot say (`tools/preview-site.ts`).
+            scriptDirectory: "/",
+            words: PREVIEW_WORDS,
+            // Nothing to introduce: whoever opened this started the server.
+            introduction: null,
+            reloadScript: RELOAD_SCRIPT,
           }),
           { headers: { "content-type": "text/html; charset=utf-8" } },
         );

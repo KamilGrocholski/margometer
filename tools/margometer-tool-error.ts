@@ -20,7 +20,8 @@ export type MargoMeterToolErrorCode =
   | "CapturedFightIntake"
   | "Changelog"
   | "MutationSweep"
-  | "PreviewServer";
+  | "PreviewServer"
+  | "PreviewSite";
 
 export abstract class MargoMeterToolError extends Error {
   readonly code: MargoMeterToolErrorCode;
