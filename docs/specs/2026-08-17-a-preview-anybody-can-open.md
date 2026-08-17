@@ -116,14 +116,22 @@ now names the page, what does travel, and on what basis.
   first is the oldest, and it is a short solo hunt that fills two rows. The
   landing page is the newest instead — still a rule over the discovered directory
   rather than a filename somebody typed (§9.2).
-- **Leaving Pages to be switched on by hand,** which is how this shipped and how
-  it failed on its first run. The workflow carried a ⚠️ saying Settings → Pages →
-  Source → GitHub Actions had to be done once and that no file could do it. The
-  second half was wrong — `actions/configure-pages` takes `enablement`, and the
-  cost of not passing it is a run that fails with
-  `Not Found - .../pages#get-a-apiname-pages-site`, an error naming an API route
-  rather than the setting behind it. A note telling a person to remember
-  something is the shape §7.5 refuses when a machine can hold it instead.
+- **Enabling Pages from the workflow** with `configure-pages`'s `enablement`,
+  which is documented to create the site and is what the first failure's own error
+  message recommends. It does not work here, and the way that was established is
+  the point: the run then warns rather than errors on the missing site and fails
+  on the create call instead — `No server is currently available to service your
+  request` — on a public repository with `pages: write`, which is every condition
+  the reference names. Resubmitting, which that message asks for, changes nothing.
+
+  ⚠️ **Written down because it was got wrong in the other direction first.** The
+  workflow shipped with a note saying the switch had to be thrown by hand and that
+  no file could do it; the second half read like an untested excuse, so it was
+  replaced by `enablement: true` on the strength of the documentation, and the
+  documentation was not the thing that had to be true. Both halves are now dated
+  to what a run printed. §7.5's order applies to somebody else's API too: what a
+  machine can hold, it should — and what it demonstrably cannot is a sentence,
+  carrying the evidence.
 - **`<meta name="robots" content="noindex">`.** Whether an unauthorised add-on's
   demo should be a search result is a real question, and the answer taken is that
   the repository is already public and README.md already links the page. One line

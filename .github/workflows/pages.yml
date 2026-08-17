@@ -7,15 +7,21 @@
 # tree that cannot pass `bun run check` must not become the page this repository
 # points people at.
 #
-# ⚠️ **Pages has to be turned on before anything can be deployed to it**, and the
-# first run of this workflow proved it does not fail in a way anybody can read:
-# `configure-pages` came back `Not Found - .../pages#get-a-apiname-pages-site`,
-# which names an API route rather than the setting behind it. `enablement: true`
-# below is that setting, asked for by the workflow instead of remembered by a
-# person — it creates the site with `build_type: workflow` when there is none,
-# and does nothing when there is. If the API refuses (an account that may not
-# have Pages at all), the fallback is the manual switch: Settings → Pages →
-# Source → GitHub Actions.
+# ⚠️ **Pages has to be turned on once, in Settings → Pages → Source → GitHub
+# Actions, and this file cannot do it for you.** That was written here, then
+# removed on the strength of `enablement: true`, then paid for a second time — so
+# it is written down with what each attempt actually said:
+#
+# 1. Without `enablement`, `configure-pages` fails with
+#    `Error: Get Pages site failed. ... Not Found - .../pages#get-a-apiname-pages-site`.
+# 2. With it, that becomes a warning and the create call fails instead:
+#    `Error: Create Pages site failed. Error: No server is currently available to
+#    service your request.` — on a public repository, with `pages: write`, which
+#    is every condition the documentation names. It is not a plan restriction and
+#    resubmitting does not help.
+#
+# `enablement: true` stays because it costs nothing and is right for a fork whose
+# owner GitHub does let create a site by API. It is not the switch.
 #
 # ⚠️ **What gets published is the captures' own engine payloads**, inlined one
 # fight per page. NOTICE.md says what that carries and on what basis. Nothing

@@ -685,10 +685,11 @@ tsconfig.json            Strict flags standing in for a linter, and the `@/*`
                          GitHub Pages on every push to `main` — so what the page
                          shows is what `main` draws, and a tree that cannot pass
                          the gate never becomes the page this repository points
-                         people at. It turns Pages on itself rather than naming a
-                         setting somebody has to remember — the first run failed
-                         on a repository where nobody had, and said so as a
-                         `Not Found` on an API route.
+                         people at. ⚠️ Pages itself is switched on once by hand and
+                         no file here can do it — asserted twice, wrongly the
+                         second time, and the workflow now carries what each
+                         attempt actually printed rather than what the API
+                         reference promises.
 .claude/skills/verify/   How to run the add-on rather than test it: driving
                          `bun run preview` in a real browser and reading what the
                          panel drew. Not a rule and not a gate — the gate is
