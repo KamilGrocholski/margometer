@@ -741,14 +741,19 @@ libs/
                          return type saying `string`. §9.5.
   timestamp.ts           Date.parse without the NaN, and without the shapes it
                          accepts by surprise.
-  text-order.ts          Putting two pieces of text in order, and saying which
-                         question is being asked. `localeCompare` with no locale
-                         reads the runtime's default, so the order belongs to the
-                         machine rather than to the data — two tools sorted their
-                         output that way. Two readers: deterministic code-unit
-                         order for anything a machine diffs, and collated order
-                         for anything a person reads, with the locale required
-                         rather than defaulted.
+  text-order.ts          Putting two pieces of text in order, deterministically.
+                         `localeCompare` with no locale reads the runtime's
+                         default, so the order belongs to the machine rather than
+                         to the data — two tools sorted their output that way.
+                         One reader: code-unit order, the same everywhere. The
+                         collated one went with its only caller, the panel's
+                         tie-break, which is the fight's own roster order now —
+                         so `localeCompare` is spelled NOWHERE and
+                         `tests/tools/source-layout.test.ts` holds that instead
+                         of holding an owner. An owner that owns nothing is a
+                         call kept alive to satisfy a register, and the guard
+                         proving an owner by finding the construct in it would
+                         have gone quiet with it.
   record.ts              Narrowing an unknown value to something with keys, which
                          `typeof` alone answers `"object"` for `null`. Two
                          readers because there were two questions: thirteen sites
@@ -804,7 +809,12 @@ src/
                          nothing could see it — the guard reads the names off the
                          type. Says once per fight, in our own vocabulary and with
                          the fault names, what the panel says to the player in
-                         theirs — the pair somebody needs to report it. Also the
+                         theirs — the pair somebody needs to report it. The report
+                         it copies holds everyone the panel DREW and not everyone
+                         the aggregate counted, because a report is read beside the
+                         screenshot it arrived with and eleven rows above a report
+                         of two is a discrepancy the reader has to resolve first.
+                         Also the
                          only file that reaches
                          storage, which it does for one thing: where the panel was
                          last dragged to. A browser that refuses storage costs the
@@ -868,6 +878,22 @@ src/
                          — a difference no arithmetic afterwards recovers. Written
                          exactly where the credited map is not, so the two
                          partition what was received.
+                         Answers TWO questions about membership and keeps them
+                         apart: `byCombatantId` is who the protocol has NAMED —
+                         a record of what was measured — and
+                         `getCombatantIdsInFight` is who is in the fight, the
+                         roster in its own order followed by anyone counted the
+                         roster cannot place. The panel draws the second, because
+                         a combatant who has not acted yet has no row in the first
+                         and a missing row reads as "there is no such person": on
+                         the opening call of
+                         `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`
+                         the roster holds 11 and the aggregate 2. Seeding the
+                         first from the roster was refused rather than skipped —
+                         it would make a measurement out of a roster and change
+                         what `bySide` counts. The row of zeros that reading needs
+                         is here too, because three layers wanted one and the
+                         shape grows a field at a time (§4).
   game/
     engine-battle-wrap.ts
                          The only code here that changes a running game: it
@@ -1053,8 +1079,11 @@ src/
                          structurally and optional, because a caller with no engine
                          truthfully has nothing to say about it and nothing to say
                          is not zero. Somebody the aggregate never counted reads as
-                         a measured zero in every metric rather than as an absence,
-                         and taken is a blow **plus** health that fell on its own.
+                         a measured zero in every metric rather than as an absence
+                         — the row of zeros that answers them comes from the
+                         aggregate, which owns the shape, rather than being spelled
+                         a second time here — and taken is a blow **plus** health
+                         that fell on its own.
                          Below both the ranking and the drill, because both ask all
                          three: left in the composing, the two would import each
                          other. Holds the two "with nobody to credit" readings as
@@ -1094,7 +1123,18 @@ src/
                          warnings standing over the lot. Held together because the
                          arithmetic has to agree with itself — the rows and the
                          pinned row once divided by different things, and the summary
-                         drew a part of the fight as the whole of it. The row for
+                         drew a part of the fight as the whole of it. The list is
+                         everyone IN the fight and not everyone the aggregate
+                         counted, so a combatant who has not acted yet is a row on
+                         zero rather than nobody, and the header over it counts the
+                         same set — read off `bySide`, it said `2 vs 1` above eleven
+                         rows for the opening of every group fight. What breaks a tie
+                         is the game's own roster order, because at the start of a
+                         fight every figure is zero and the whole list is one tie:
+                         an order of ours would put the two sides through each other
+                         at the moment somebody is looking for their own team, and
+                         a second key of some kind is what stops a list redrawn every
+                         few seconds reshuffling under the eye. The row for
                          what nobody can be charged with is on all four screens,
                          because every one of them has something to say about it and
                          one of them used to say nothing; the direction decides what,
@@ -1189,6 +1229,9 @@ tools/
   fight-report.ts        What a captured fight adds up to, per combatant — the
                          aggregate printed against real material, side by side
                          with what it could not read and who the game said won.
+                         Lists everyone in the fight, the way the panel does, so
+                         a dump that stops part-way reports the people it was
+                         missing rather than leaving them out.
   help-article.ts        Fetches an article of the game's published help into
                          .cache/ and prints raw context around a phrase. Prints
                          the age of the dump, and says NOT FOUND out loud —
@@ -1373,7 +1416,11 @@ tests/
                              what was received, on every capture and on both kinds
                              of healing event — and the captures are held to
                              carrying some of each, since one kind alone would let
-                             a map that copied `healedBySource` pass.
+                             a map that copied `healedBySource` pass. And the two
+                             membership questions held apart: who was named, and
+                             who is in the fight — the second in the roster's own
+                             order, keeping somebody no roster can place, and never
+                             naming anybody twice.
     declaration-rule.test.ts
                              What the protocol states that no total counts, and
                              the test a key passes to be read that way: every
@@ -1544,6 +1591,17 @@ tests/
                              them resolves and both cuts of that figure are
                              therefore empty: a blow whose striker did not resolve
                              but whose target did, and one where neither did.
+                             ⚠️ And the one sweep driven by a SINGLE engine call
+                             rather than a whole fight, because that is the only
+                             material where the ranking's set is in question: over
+                             a finished capture the roster and the aggregate are
+                             the same list on every one of them, so a claim about
+                             who is drawn is a claim nothing here could have
+                             falsified. It holds that everyone is listed from the
+                             first payload, on zero where nothing has been measured,
+                             with the header counting what the list drew — and that
+                             the captures still contain fights whose aggregate lags
+                             their roster, so the sweep cannot go quiet.
     panel-element.test.ts    The panel drawn, against §9.6 and §9.7, on a fake
                              document: what survives a region failing, that every
                              child of the shadow root but the stylesheet says whose
@@ -2093,7 +2151,7 @@ The register, and the file that owns each:
 |---|---|---|
 | `libs/number.ts` | `Number()`, `parseInt`, `parseFloat`, `BigInt`, `toFixed`, `.toString(radix)`, `String()` on a number, unary `+`, `typeof … === "number"` | reading: `getIntegerFromText`, `getDecimalFromText`, `getNumberFromText`, `getIntegerFromHexadecimalText`, `getIntegerFromValue`, `getFiniteNumberFromValue` → `number \| null`. Writing asserts instead: `composeIntegerText`, `composeDecimalText`, `composeHexadecimalByteText` |
 | `libs/json.ts` | `JSON.parse` and its `try`/`catch`, `JSON.stringify` | reading: `getValueFromJsonText` → a reading carrying the value **or** the `SyntaxError`, so the caller still has something to put in `cause`. Writing asserts: `composeJsonText` refuses a value with no JSON rather than handing back `undefined` under a type saying `string` |
-| `libs/text-order.ts` | `localeCompare` | `getTextOrder` → deterministic, by code unit, for anything a machine compares. `getCollatedTextOrder` → collated, with the locale required, for anything a person reads |
+| `libs/text-order.ts` | nothing — see below | `getTextOrder` → deterministic, by code unit, for anything a machine compares |
 | `libs/timestamp.ts` | `Date.parse` | `getMillisecondsFromIsoText` → `number \| null` |
 | `libs/record.ts` | `typeof … === "object"`, which is `true` for `null` | `getRecordFromValue`, `getRecordOrArrayFromValue` → `Record<string, unknown> \| null`. Two readers because a list arriving where an object belongs is a fault in one caller and a legitimate shape in another |
 
@@ -2119,6 +2177,17 @@ no non-null assertions outside tests, **every construct in the register spelled
 only by its owner — in tests too**, each owner still spelling what it owns, and
 no cast off `JSON.parse`. The guards read source with its comments stripped — a
 rule has to be explainable in the file it binds.
+
+One construct has **no owner, and that is the register entry**: `localeCompare`
+is spelled nowhere. It was owned by `libs/text-order.ts`, whose collated reader
+had one caller — the panel's tie-break between two combatants on equal figures,
+which is the fight's own roster order now. ⚠️ **An owner that owns nothing stops
+guarding**, because the rule above proves an owner by finding the construct
+inside it, so a `libs/` function kept alive to satisfy this table would be a call
+nobody makes standing in for a rule. Spelled-nowhere is the honest form and the
+stricter one: it binds `libs/` too, which "owned by `libs/text-order.ts`" never
+did. Bringing a collated order back means a caller, a reader in `libs/`, and this
+paragraph becoming a row again — in that order.
 
 One exception, and it is the guard's rather than a licence: **a construct with no
 name to search for is held to `libs/`, `src/` and `tools/` only.** `String(`,

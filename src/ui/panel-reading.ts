@@ -10,7 +10,11 @@
 
 import { composeIntegerText } from "@/libs/number.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
-import type { CombatantStatistics, FightStatistics } from "@/src/core/fight-statistics.ts";
+import {
+  composeEmptyCombatantStatistics,
+  type CombatantStatistics,
+  type FightStatistics,
+} from "@/src/core/fight-statistics.ts";
 import type { PanelMetric } from "@/src/ui/panel-metric.ts";
 
 /**
@@ -53,31 +57,15 @@ export type PanelReading = {
     | undefined;
 };
 
-const EMPTY_ROW: CombatantStatistics = {
-  dealtRaw: 0,
-  dealtApplied: 0,
-  dealtAppliedByElement: new Map(),
-  taken: 0,
-  takenByElement: new Map(),
-  healed: 0,
-  healthLost: 0,
-  prevented: new Map(),
-  destroyed: new Map(),
-  procsOnBlowsStruck: new Map(),
-  skillsUsed: 0,
-  blowsStruck: 0,
-  largestBlow: 0,
-  blowsWithoutSkill: 0,
-  dealtByTargetId: new Map(),
-  takenByActorId: new Map(),
-  healthLostBySource: new Map(),
-  healedBySource: new Map(),
-  healedWithoutHealerBySource: new Map(),
-  healedByHealerId: new Map(),
-  healingGiven: 0,
-  healingGivenByCombatantId: new Map(),
-  skills: new Map(),
-};
+/**
+ * Built once rather than per call: `getRow` is asked three questions a row and
+ * every ranking row asks them, and nothing here writes to a row.
+ *
+ * The twenty-three fields used to be spelled out here as well as in the two
+ * places `src/core/fight-statistics.ts` spells them, which is one copy per layer
+ * of a shape that grows a field at a time (§4). The aggregate owns it.
+ */
+const EMPTY_ROW: CombatantStatistics = composeEmptyCombatantStatistics();
 
 export function getRow(reading: PanelReading, combatantId: number): CombatantStatistics {
   return reading.statistics.byCombatantId.get(combatantId) ?? EMPTY_ROW;

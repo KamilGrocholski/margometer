@@ -299,6 +299,57 @@ type MutableSkill = {
   healedByCombatantId: Map<number, number>;
 };
 
+/**
+ * A row of zeros, for somebody the aggregate never counted.
+ *
+ * The public face of `composeRow` below, and it exists because the same
+ * twenty-three fields were being written out a third time: once as `Row`, once
+ * here, and once as `EMPTY_ROW` in `src/ui/panel-reading.ts`, where a combatant
+ * the protocol has not yet named is read from. §7.1's second consumer arrived
+ * with the copied report, which needs the same thing for the same reason.
+ *
+ * ⚠️ **Zero is a measurement and this is one** (§9.6): it says the fight has
+ * mentioned nobody's figure, not that the figure is unknown. What the caller
+ * must not do is put it in `byCombatantId` — the aggregate is keyed on what the
+ * protocol named, and `getCombatantIdsInFight` is how the other question is
+ * asked without erasing the difference.
+ */
+export function composeEmptyCombatantStatistics(): CombatantStatistics {
+  return composeRow();
+}
+
+/**
+ * Everyone this fight holds, which is not the same list as everyone it counted.
+ *
+ * `byCombatantId` is keyed on the protocol: a row appears when somebody is
+ * named. That is the right contract for a measurement and the wrong one for a
+ * *roster*, and the panel wants both — a combatant who has not acted yet, and
+ * whom nothing has hit, is still in the fight, and a missing row reads as
+ * "there is no such person" rather than "they have not started". Measured on
+ * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`: after the
+ * first engine call the roster holds 11 and the aggregate 2, and somebody is
+ * missing for the first 21 of its 102 calls.
+ *
+ * **The roster first, in its own order, then anyone counted the roster cannot
+ * place.** Not the roster alone: a fight joined in progress states damage
+ * against ids no roster fragment has arrived for, and dropping them would trade
+ * one silence for another. The order is the game's own — `composeMergedCombatants`
+ * keeps first-seen order — so the opening screen, where every figure is zero
+ * and the whole list is one tie, reads in the order the client listed the
+ * warriors.
+ */
+export function getCombatantIdsInFight(
+  statistics: FightStatistics,
+  roster: CombatantRoster | null,
+): number[] {
+  const ids = [...(roster?.byId.keys() ?? [])];
+  const rostered = new Set(ids);
+  for (const id of statistics.byCombatantId.keys()) {
+    if (!rostered.has(id)) ids.push(id);
+  }
+  return ids;
+}
+
 function composeRow(): Row {
   return {
     dealtRaw: 0,

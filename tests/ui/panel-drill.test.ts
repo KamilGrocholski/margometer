@@ -15,7 +15,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { composeFightStatistics, getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
 import { composeBreakdownLists, composeDeepLists } from "@/src/ui/panel-drill.ts";
 import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
 import { PANEL_METRICS, type PanelMetric } from "@/src/ui/panel-metric.ts";
@@ -40,7 +40,15 @@ function composeState(over: Partial<PanelState> = {}): PanelState {
   return { ...composeDefaultState(), ...over };
 }
 
-/** Every combatant of every capture, on every screen. */
+/**
+ * Every combatant of every capture, on every screen.
+ *
+ * Everyone **in the fight** rather than everyone the aggregate counted, which is
+ * the set the ranking draws — a sweep over the smaller one would stop covering
+ * rows the panel offers the moment the two differ. Over a whole capture they do
+ * not differ, so this changes nothing here today and keeps the sweep pointed at
+ * what a reader can actually click.
+ */
 function* getScreens(): Generator<{
   name: string;
   reading: PanelReading;
@@ -49,7 +57,7 @@ function* getScreens(): Generator<{
 }> {
   for (const { name, reading } of FIGHTS) {
     for (const metric of PANEL_METRICS) {
-      for (const combatantId of reading.statistics.byCombatantId.keys()) {
+      for (const combatantId of getCombatantIdsInFight(reading.statistics, reading.roster)) {
         yield { name, reading, metric, combatantId };
       }
     }

@@ -35,6 +35,10 @@ import {
   type FightCapture,
 } from "@/src/game/fight-capture.ts";
 import { getFiniteNumberFromValue } from "@/libs/number.ts";
+import {
+  composeEmptyCombatantStatistics,
+  getCombatantIdsInFight,
+} from "@/src/core/fight-statistics.ts";
 import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
 import {
   renderPanelInto,
@@ -775,10 +779,18 @@ export function composeReportText(
             outcome: reading.statistics.outcome,
             ourSide: reading.ourSide,
             roster: [...reading.roster.byId.values()],
+            // Everyone the panel drew, not everyone the aggregate counted: a
+            // report is read beside the screenshot it arrived with, and a list
+            // of eleven rows above a report holding two is a discrepancy
+            // whoever reads it has to work out before they can start. A
+            // combatant nothing has named yet reports zeros, which is what the
+            // row beside them says.
             combatants: Object.fromEntries(
-              [...reading.statistics.byCombatantId].map(([id, row]) => [
+              getCombatantIdsInFight(reading.statistics, reading.roster).map((id) => [
                 id,
-                composeReportRow(row),
+                composeReportRow(
+                  reading.statistics.byCombatantId.get(id) ?? composeEmptyCombatantStatistics(),
+                ),
               ]),
             ),
             unattributed: composeReportRow(reading.statistics.unattributed),

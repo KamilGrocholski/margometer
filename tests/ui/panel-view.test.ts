@@ -12,11 +12,12 @@
 
 import { describe, expect, test } from "bun:test";
 import { composeJsonText } from "@/libs/json.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { composeFightStatistics, getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
 import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
 import {
   PANEL_METRICS,
@@ -32,7 +33,12 @@ import type { PanelReading } from "@/src/ui/panel-reading.ts";
 import type { PanelRow, PanelView } from "@/src/ui/panel-shape.ts";
 import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
 import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
-import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
+import {
+  CAPTURED_FIGHTS,
+  composeRosterFromSnapshots,
+  composeRosterOfFight,
+  getMessagesOfFight,
+} from "@/tests/captured-fight-catalog.ts";
 
 /**
  * A fight with two sides, a healer, a tick of poison and one unreadable message.
@@ -160,11 +166,89 @@ describe("the ranking", () => {
    * A combatant who has not done anything yet is still in the fight, and a row
    * missing reads as "there is no such person" rather than "they have not
    * started".
+   *
+   * `tarcza` deals nothing all fight and is healed, so the protocol names her
+   * and the aggregate holds a row. The stronger case — somebody no message
+   * mentions at all — is below, and it needs its own fixture.
    */
   test("keeps a combatant who has done nothing", () => {
     const view = composePanelView(composeReading(), composeState());
 
     expect(view.lists[0]!.rows.map((row) => row.label)).toContain("tarcza");
+  });
+
+  /**
+   * The other half of that, and the half the panel did not do: somebody the
+   * **protocol has not mentioned**, so the aggregate has no row for them at all.
+   *
+   * Its own fixture rather than a fifth member of the shared one, whose rank and
+   * side-filter assertions are about four named combatants and should stay that
+   * way. Every metric, because a row that appeared under one figure and vanished
+   * under another would be worse than one that was never there.
+   */
+  test("keeps a combatant no message has named", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 2, name: "cichy", side: 1, profession: "w", level: 90 },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    ]);
+    const reading: PanelReading = {
+      statistics: composeFightStatistics(
+        decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+        roster,
+      ),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+    };
+
+    expect(reading.statistics.byCombatantId.has(2)).toBe(false);
+    for (const metric of PANEL_METRICS) {
+      const rows = composePanelView(reading, composeState({ metric })).lists[0]!.rows;
+      const silent = rows.find((row) => row.label === "cichy");
+
+      expect(silent?.valueText, metric).toBe(composeFigureText(0));
+      // Drilling in says the fact rather than opening onto nothing, which is the
+      // sentence the panel already had for a combatant on zero.
+      expect(
+        composePanelView(reading, composeState({ metric, focusCombatantId: 2 })).emptyText,
+        metric,
+      ).toBeTruthy();
+    }
+  });
+
+  /**
+   * ⚠️ **At the start of a fight every figure is zero, so the whole list is one
+   * tie** — and what breaks it has to be a property of the fight rather than of
+   * the figures, or the list reshuffles under the eye of somebody reading it
+   * while the panel redraws every few seconds.
+   *
+   * It is the game's own order: the roster keeps first-seen order
+   * (`src/game/engine-roster.ts`), so the opening screen reads the way the client
+   * listed the warriors. `pierwsza` is written second by id on purpose — an
+   * id-sorted or name-sorted answer gets this wrong.
+   */
+  test("ties keep the order the game listed the fight in", () => {
+    const roster = composeCombatantRoster([
+      { id: 9, name: "pierwsza", side: 1, profession: "m", level: 100 },
+      { id: 2, name: "druga", side: 1, profession: "w", level: 100 },
+      { id: 5, name: "trzecia", side: 2, profession: "h", level: 100 },
+    ]);
+    const reading: PanelReading = {
+      statistics: composeFightStatistics([], roster),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+    };
+
+    const drawn = composePanelView(reading, composeState()).lists[0]!.rows.map((row) => row.label);
+
+    expect(drawn).toEqual(["pierwsza", "druga", "trzecia"]);
+    // And the same order on the next redraw, which is the property this exists
+    // for: two composings of one reading cannot disagree.
+    expect(composePanelView(reading, composeState()).lists[0]!.rows.map((row) => row.label)).toEqual(
+      drawn,
+    );
   });
 
   test("the bracket carries the share of the whole", () => {
@@ -633,6 +717,13 @@ describe("the title says how big the fight is", () => {
     expect(getTitle(reading)).toBe("brak składu");
   });
 
+  /**
+   * ⚠️ **Two on the left, and `łowca` is why.** Nothing in this fight names her,
+   * so the aggregate has no row for her — and the header counts the people the
+   * *list* draws, which is everyone in the fight. Counting the aggregate instead
+   * is what put `2 vs 1` over eleven rows for the opening payloads of every
+   * group capture.
+   */
   test("a combatant the roster cannot place is added on, not folded in", () => {
     const roster = composeCombatantRoster([
       { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
@@ -647,7 +738,12 @@ describe("the title says how big the fight is", () => {
       ),
     });
 
-    expect(getTitle(reading)).toBe("1 +1");
+    expect(getTitle(reading)).toBe("2 +1");
+    // The header and the list are one count, said twice: the row nobody named
+    // is drawn, and the one nobody could place is drawn beside it.
+    expect(composePanelView(reading, composeState()).lists[0]?.rows.map((row) => row.label)).toEqual(
+      ["mag", "łowca", "#3"],
+    );
   });
 });
 
@@ -928,22 +1024,25 @@ describe("against the captured fights", () => {
   });
 
   /**
-   * Everyone the aggregate counted is on the screen, in every metric and every
-   * filter that should hold them.
+   * Everyone in the fight is on the screen, in every metric and every filter
+   * that should hold them.
    *
    * ⚠️ **Written because the shape it guards was once false.** A combatant the
-   * roster could not place was counted and then dropped from the panel. Counting
-   * rows against the aggregate rather than naming the bucket keeps that from
-   * coming back through a bucket nobody has added yet.
+   * roster could not place was counted and then dropped from the panel. Naming
+   * the set rather than the bucket keeps that from coming back through a bucket
+   * nobody has added yet — and the set is now the fight's, not the aggregate's,
+   * so it also holds the combatant nothing has named. Over a whole capture the
+   * two are the same list on all of them, which is exactly why this claim cannot
+   * be the only one and `the panel before anybody has acted` below exists.
    */
-  test.each(fights)("$name draws everyone it counted", ({ reading }) => {
+  test.each(fights)("$name draws everyone in the fight", ({ reading }) => {
     const drawn = composePanelView(reading, composeState()).lists[0]!.rows.map((row) => row.label);
-    const counted = [...reading.statistics.byCombatantId.keys()].map(
+    const inFight = getCombatantIdsInFight(reading.statistics, reading.roster).map(
       (id) => reading.roster.byId.get(id)?.name ?? `#${id}`,
     );
 
-    expect(drawn.length).toBe(counted.length);
-    for (const name of counted) expect(drawn).toContain(name);
+    expect(drawn.length).toBe(inFight.length);
+    for (const name of inFight) expect(drawn).toContain(name);
   });
 
   /**
@@ -1496,6 +1595,110 @@ describe("against the captured fights", () => {
         expect(drawn.some((row) => row.fill === 1), `${metric} ${team}`).toBe(true);
       }
     }
+  });
+});
+
+/**
+ * The panel part-way through a fight, which is the only place the difference
+ * shows.
+ *
+ * ⚠️ **Every test above this one runs on a whole capture, where the roster and
+ * the aggregate are the same list** — measured on all of them: each rostered
+ * combatant is eventually named, so a ranking built from either set draws the
+ * same rows and nothing here could tell the two apart. The gap lives at the
+ * start of a fight, which is exactly when somebody is watching: on the first
+ * engine call of `2026-08-06-tempest-grupa-vs-hildur` the roster holds 11 and
+ * the aggregate 2, and somebody is missing for its first 21 calls of 102.
+ *
+ * So the material is one call rather than a fight: the roster the game had
+ * stated by then, and only the messages that arrived with it.
+ */
+describe("the panel before anybody has acted", () => {
+  const OPENINGS = CAPTURED_FIGHTS.map((fight) => {
+    const [first] = fight.dump.calls;
+    const roster = composeRosterFromSnapshots([
+      ...(first?.combatantsBefore ?? []),
+      ...(first?.combatantsAfter ?? []),
+    ]);
+    return {
+      name: fight.name,
+      roster,
+      reading: {
+        statistics: composeFightStatistics(decodeFight(first?.protocolMessages ?? [], roster), roster),
+        roster,
+        ourSide: 1,
+        isFromFightStart: true,
+      } satisfies PanelReading,
+    };
+  });
+
+  /**
+   * Without this the sweep below could go quiet — a capture set whose first call
+   * always names everybody would pass it by drawing the rows it was already
+   * drawing (§9.2: a loop over nothing is green).
+   */
+  test("the material still has fights the aggregate lags behind", () => {
+    const lagging = OPENINGS.filter(
+      ({ roster, reading }) => roster.byId.size > reading.statistics.byCombatantId.size,
+    );
+
+    expect(lagging.length).toBeGreaterThan(0);
+    // And the gap is a list of people, not a row or two.
+    expect(
+      Math.max(
+        ...lagging.map(({ roster, reading }) => roster.byId.size - reading.statistics.byCombatantId.size),
+      ),
+    ).toBeGreaterThan(1);
+  });
+
+  test.each(OPENINGS)("$name lists everyone from its first payload", ({ roster, reading }) => {
+    for (const metric of PANEL_METRICS) {
+      const drawn = composePanelView(reading, composeState({ metric })).lists[0]!.rows;
+
+      expect(drawn.length, metric).toBe(roster.byId.size);
+      for (const combatant of roster.byId.values()) {
+        expect(drawn.map((row) => row.label), metric).toContain(combatant.name);
+      }
+    }
+  });
+
+  /**
+   * A combatant nothing has named is drawn on zero rather than left out, and
+   * zero is a reading — §9.6's line, at the one moment a player meets it. What
+   * they must not get is a row that is missing, which says there is no such
+   * person.
+   */
+  test.each(OPENINGS)("$name draws a nought where it has measured nothing", ({ roster, reading }) => {
+    for (const id of roster.byId.keys()) {
+      if (reading.statistics.byCombatantId.has(id)) continue;
+      const drawn = composePanelView(reading, composeState()).lists[0]!.rows;
+      const row = drawn.find((one) => one.label === roster.byId.get(id)?.name);
+
+      expect(row?.valueText).toBe(composeFigureText(0));
+      expect(row?.fill).toBe(0);
+      expect(row?.isDrillable).toBe(true);
+    }
+  });
+
+  /**
+   * The header counts the people the list draws, and it is the one line a reader
+   * checks the list against. It used to count what the aggregate had grouped, so
+   * the opening of every group fight said `2 vs 1` above eleven rows.
+   */
+  test.each(OPENINGS)("$name counts in its header what it drew", ({ reading }) => {
+    const view = composePanelView(reading, composeState());
+    const bySide = new Map<number, number>();
+    for (const row of view.lists[0]!.rows) {
+      const side = [...reading.roster.byId.values()].find((one) => one.name === row.label)?.side;
+      if (side !== undefined) setRunningTotal(bySide, side, 1);
+    }
+    const ourFirst = [...bySide].sort(([one], [other]) => {
+      if (reading.ourSide === one) return -1;
+      if (reading.ourSide === other) return 1;
+      return one - other;
+    });
+
+    expect(view.title).toBe(ourFirst.map(([, count]) => composeFigureText(count)).join(" vs "));
   });
 });
 

@@ -38,7 +38,9 @@ import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import {
+  composeEmptyCombatantStatistics,
   composeFightStatistics,
+  getCombatantIdsInFight,
   type CombatantStatistics,
   type SideStatistics,
 } from "@/src/core/fight-statistics.ts";
@@ -285,6 +287,113 @@ describe("rows grouped by side", () => {
     expect([...statistics.bySide.keys()]).toEqual([1]);
     expect(statistics.bySide.get(1)?.combatantIds).toEqual([7]);
     expect(statistics.combatantIdsWithoutSide).toEqual([8]);
+  });
+});
+
+/**
+ * Who is in the fight, which is a different question from who was measured.
+ *
+ * `byCombatantId` is keyed on the protocol — a row appears when somebody is
+ * named — and that stays exactly as it is, because it is a record of what was
+ * measured. The panel needs the other list, and the difference between the two
+ * is the whole of what a reader mid-fight was missing: a combatant who has not
+ * acted yet was not on screen at all, and a missing row reads as "there is no
+ * such person".
+ */
+describe("everyone in the fight", () => {
+  const ROSTER = composeCombatantRoster([
+    { id: 4, name: "later", side: 1, profession: "w", level: 100 },
+    { id: 7, name: "known", side: 1, profession: "m", level: 100 },
+  ]);
+
+  test("holds somebody the protocol has not named yet", () => {
+    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 7 }], ROSTER);
+
+    expect(statistics.byCombatantId.has(4)).toBe(false);
+    expect(getCombatantIdsInFight(statistics, ROSTER)).toEqual([4, 7]);
+  });
+
+  /**
+   * The roster's own order, which is the order the game first listed each
+   * warrior (`src/game/engine-roster.ts`). It is the panel's tie-break, so a
+   * list where every figure is still zero reads the way the client showed it —
+   * and `later` is written first here precisely so an id-sorted answer fails.
+   */
+  test("is in the order the game listed them, not in id order", () => {
+    const statistics = composeFightStatistics([], ROSTER);
+
+    expect(getCombatantIdsInFight(statistics, ROSTER)).toEqual([4, 7]);
+  });
+
+  /**
+   * ⚠️ **The roster is not the whole answer, and this is why it is a union.** A
+   * fight joined in progress states figures against ids no roster fragment has
+   * arrived for; keying the list on the roster alone would drop them, which is
+   * the bug `getRankedIds` avoided by keying on the aggregate in the first
+   * place. They come last, because the roster is what has an order.
+   */
+  test("keeps somebody the roster cannot place, after the ones it can", () => {
+    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 8, targetId: 7 }], ROSTER);
+
+    expect(getCombatantIdsInFight(statistics, ROSTER)).toEqual([4, 7, 8]);
+  });
+
+  test("names nobody twice", () => {
+    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 4 }], ROSTER);
+    const ids = getCombatantIdsInFight(statistics, ROSTER);
+
+    expect(ids).toEqual([...new Set(ids)]);
+  });
+
+  // No roster at all is a real state — a fight joined before the game described
+  // it — and the answer is then everyone the protocol named, which is what the
+  // panel drew before any of this.
+  test("without a roster is everyone the protocol named", () => {
+    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 8 }]);
+
+    expect(getCombatantIdsInFight(statistics, null)).toEqual([7, 8]);
+  });
+
+  test("is nobody where nothing has happened and nobody is rostered", () => {
+    expect(getCombatantIdsInFight(composeFightStatistics([]), null)).toEqual([]);
+  });
+});
+
+/**
+ * The row a combatant nobody has named yet is read through.
+ *
+ * Every field is a zero or an empty map, and that is a measurement rather than
+ * an absence (§9.6): the fight has stated nothing about them. It lives here
+ * because the aggregate owns the shape — three consumers wanted one and the
+ * fields grow one at a time (§4).
+ */
+describe("a row of zeros", () => {
+  test("measures nothing in every figure the panel reads", () => {
+    const empty = composeEmptyCombatantStatistics();
+
+    expect(empty.dealtApplied).toBe(0);
+    expect(empty.dealtRaw).toBe(0);
+    expect(empty.taken).toBe(0);
+    expect(empty.healed).toBe(0);
+    expect(empty.healingGiven).toBe(0);
+    expect(empty.healthLost).toBe(0);
+    expect(empty.blowsStruck).toBe(0);
+    expect(empty.skills.size).toBe(0);
+    expect(empty.dealtAppliedByElement.size).toBe(0);
+  });
+
+  /**
+   * A fresh one each time, and it is not a detail. A shared literal hands every
+   * uncounted combatant the same maps, so anything that wrote to one would be
+   * writing to all of them at once — a figure appearing on a row nobody
+   * measured is the failure this project exists to prevent, arriving by
+   * aliasing.
+   */
+  test("is a fresh row rather than one shared object", () => {
+    expect(composeEmptyCombatantStatistics()).not.toBe(composeEmptyCombatantStatistics());
+    expect(composeEmptyCombatantStatistics().skills).not.toBe(
+      composeEmptyCombatantStatistics().skills,
+    );
   });
 });
 

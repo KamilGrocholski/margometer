@@ -32,9 +32,11 @@
 
 import { composeIntegerText } from "@/libs/number.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
-import { getCollatedTextOrder } from "@/libs/text-order.ts";
 import { getCombatantIdByName } from "@/src/core/combatant-roster.ts";
-import type { CombatantStatistics } from "@/src/core/fight-statistics.ts";
+import {
+  getCombatantIdsInFight,
+  type CombatantStatistics,
+} from "@/src/core/fight-statistics.ts";
 import { composeBreakdownLists, composeDeepLists } from "@/src/ui/panel-drill.ts";
 import { composeFigureText, composeShareText } from "@/src/ui/panel-figure-text.ts";
 import {
@@ -126,26 +128,42 @@ function hasShareOnScreen(state: PanelState): boolean {
   return state.team === "all" || isGivenMetric(state.metric);
 }
 
-/** Everyone the current filter admits, biggest first. */
+/**
+ * Everyone the current filter admits, biggest first.
+ *
+ * **Everyone in the fight, not everyone the aggregate counted** — a combatant
+ * who has not acted yet is on the list, on zero
+ * (`getCombatantIdsInFight`). Where they stand is the game's own roster order,
+ * which is also the second sort key: at the start of a fight every figure is
+ * zero, so the whole list is one tie and reads in the order the client listed
+ * the warriors.
+ *
+ * ⚠️ **A second key is what stops the list reshuffling under the eye** — the
+ * panel redraws every few seconds — so it has to be a property of the fight
+ * rather than of the figures. Position was chosen over the collated name it
+ * replaced because a name orders strangers alphabetically and a roster orders
+ * them the way the game already showed them.
+ *
+ * Sorted on a decorated copy: the position has to survive the filter, and
+ * looking it back up would be an index that has to prove itself for no reason
+ * (§9.5 — the fix belongs in the shape, not in an assertion).
+ */
 function getRankedIds(reading: PanelReading, state: PanelState): number[] {
-  const ids = [...reading.statistics.byCombatantId.keys()].filter((id) => {
-    const side = reading.roster.byId.get(id)?.side ?? null;
-    if (state.team === "all") return true;
-    if (side === null || reading.ourSide === null) return false;
-    return state.team === "mine" ? side === reading.ourSide : side !== reading.ourSide;
-  });
+  const inFight = getCombatantIdsInFight(reading.statistics, reading.roster)
+    .filter((id) => {
+      const side = reading.roster.byId.get(id)?.side ?? null;
+      if (state.team === "all") return true;
+      if (side === null || reading.ourSide === null) return false;
+      return state.team === "mine" ? side === reading.ourSide : side !== reading.ourSide;
+    })
+    .map((id, position) => ({
+      id,
+      position,
+      value: getMetricValue(getRow(reading, id), state.metric),
+    }));
 
-  return ids.sort((one, other) => {
-    const byValue =
-      getMetricValue(getRow(reading, other), state.metric) -
-      getMetricValue(getRow(reading, one), state.metric);
-    // A stable second key, so two combatants on zero do not swap places between
-    // renders — the panel redraws every few seconds and a list that reshuffles
-    // under the eye is unreadable.
-    return byValue !== 0
-      ? byValue
-      : getCollatedTextOrder(getName(reading, one), getName(reading, other), "pl");
-  });
+  inFight.sort((one, other) => other.value - one.value || one.position - other.position);
+  return inFight.map(({ id }) => id);
 }
 
 /**
@@ -657,16 +675,36 @@ function getOutcomeText(reading: PanelReading): string | null {
   return null;
 }
 
+/**
+ * The fight as a headcount, and it counts the people the list draws.
+ *
+ * ⚠️ **Not `statistics.bySide`, which counts the people the aggregate
+ * *measured*.** The two were the same list for as long as the ranking was built
+ * from the aggregate too; once the list holds everyone in the fight, a header
+ * reading off the other set says `2 vs 1` over eleven rows for the opening
+ * payloads of every group fight. One source for both, and the disagreement
+ * cannot be written.
+ *
+ * Sides in the same order the panel puts them in everywhere else — the
+ * watcher's own first, then by the number the game states.
+ */
 function composeTitle(reading: PanelReading): string {
-  const sizes = [...reading.statistics.bySide]
+  const countBySide = new Map<number, number>();
+  let unplaced = 0;
+  for (const id of getCombatantIdsInFight(reading.statistics, reading.roster)) {
+    const side = reading.roster.byId.get(id)?.side;
+    if (side === undefined) unplaced += 1;
+    else setRunningTotal(countBySide, side, 1);
+  }
+
+  const sizes = [...countBySide]
     .sort(([one], [other]) => {
       if (reading.ourSide === one) return -1;
       if (reading.ourSide === other) return 1;
       return one - other;
     })
-    .map(([, group]) => composeIntegerText(group.combatantIds.length));
+    .map(([, count]) => composeIntegerText(count));
 
-  const unplaced = reading.statistics.combatantIdsWithoutSide.length;
   if (sizes.length === 0) return "brak składu";
   return `${sizes.join(" vs ")}${unplaced > 0 ? ` +${composeIntegerText(unplaced)}` : ""}`;
 }

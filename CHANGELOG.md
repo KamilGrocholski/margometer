@@ -36,6 +36,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — Na liście stoją wszyscy, którzy biorą udział w walce, od pierwszej
+  chwili. Wcześniej postać pojawiała się dopiero wtedy, gdy coś zrobiła albo coś
+  ją spotkało, więc na początku dużej walki lista potrafiła mieć dwa wiersze
+  zamiast jedenastu — a brak wiersza wygląda tak, jakby kogoś w ogóle w tej walce
+  nie było. Teraz każdy stoi na zerze i wychodzi w górę, kiedy zacznie. Na starcie
+  kolejność jest ta, w której gra wypisuje walczących. Liczba nad listą liczy
+  dokładnie tych, których widać, i to samo widać w skopiowanym zgłoszeniu.
 - **Poprawka** — Panel mówi teraz, kiedy część walki do niego nie dotarła,
   zamiast pokazywać resztę tak, jakby to była całość. Gdy gra przyśle coś w
   postaci, której dodatek już nie rozpoznaje, na górze pojawia się zdanie o tym,

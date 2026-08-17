@@ -14,7 +14,12 @@
 import { composeIntegerText } from "@/libs/number.ts";
 import { getTextOrder } from "@/libs/text-order.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fight-statistics.ts";
+import {
+  composeEmptyCombatantStatistics,
+  composeFightStatistics,
+  getCombatantIdsInFight,
+  type CombatantStatistics,
+} from "@/src/core/fight-statistics.ts";
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
@@ -89,23 +94,40 @@ function writeFightReport(fight: CapturedFight): void {
   // Sides in their own order, each with its members under it. Neither side is
   // called "ours": which one that is takes the game layer, so the bare team
   // number is what gets printed.
-  const sides = [...statistics.bySide].sort((a, b) => a[0] - b[0]);
-  for (const [side, group] of sides) {
-    console.log(`  —— side ${side} (${group.combatantIds.length}) ——`);
-    const members = group.combatantIds
-      .map((combatantId) => [combatantId, statistics.byCombatantId.get(combatantId)] as const)
-      .sort((a, b) => (b[1]?.dealtApplied ?? 0) - (a[1]?.dealtApplied ?? 0));
-    for (const [combatantId, row] of members) {
-      if (row !== undefined) writeRow(names.get(combatantId) ?? `id ${combatantId}`, row);
-    }
-    writeRow(`side ${side} together`, group.totals);
+  //
+  // Members come from the roster and not from what was measured, the same way
+  // the panel's list does: a combatant nothing has named yet is in the fight on
+  // zero. ⚠️ Over a whole capture the two are the same list — every rostered
+  // combatant is eventually named, on all of them — so this changes no output
+  // here and is about a dump that stops part-way.
+  const membersBySide = new Map<number, number[]>();
+  const withoutSide: number[] = [];
+  for (const combatantId of getCombatantIdsInFight(statistics, roster)) {
+    const side = roster.byId.get(combatantId)?.side;
+    if (side === undefined) withoutSide.push(combatantId);
+    else membersBySide.set(side, [...(membersBySide.get(side) ?? []), combatantId]);
   }
 
-  if (statistics.combatantIdsWithoutSide.length > 0) {
+  const getRow = (combatantId: number): CombatantStatistics =>
+    statistics.byCombatantId.get(combatantId) ?? composeEmptyCombatantStatistics();
+
+  for (const [side, members] of [...membersBySide].sort((a, b) => a[0] - b[0])) {
+    console.log(`  —— side ${side} (${members.length}) ——`);
+    for (const combatantId of [...members].sort(
+      (one, other) => getRow(other).dealtApplied - getRow(one).dealtApplied,
+    )) {
+      writeRow(names.get(combatantId) ?? `id ${combatantId}`, getRow(combatantId));
+    }
+    // The side's own totals, which are the measured ones: a row of zeros adds
+    // nothing to them, so this still closes against the figures above it.
+    const totals = statistics.bySide.get(side)?.totals;
+    if (totals !== undefined) writeRow(`side ${side} together`, totals);
+  }
+
+  if (withoutSide.length > 0) {
     console.log("  —— no side the roster could give ——");
-    for (const combatantId of statistics.combatantIdsWithoutSide) {
-      const row = statistics.byCombatantId.get(combatantId);
-      if (row !== undefined) writeRow(names.get(combatantId) ?? `id ${combatantId}`, row);
+    for (const combatantId of withoutSide) {
+      writeRow(names.get(combatantId) ?? `id ${combatantId}`, getRow(combatantId));
     }
   }
 

@@ -289,7 +289,6 @@ describe("value parsing", () => {
   const JSON_TEXT = "libs/json.ts";
   const TIMESTAMP = "libs/timestamp.ts";
   const RECORD = "libs/record.ts";
-  const TEXT_ORDER = "libs/text-order.ts";
   const RUNNING_TOTAL = "libs/running-total.ts";
   const DECODER = "src/core/fight-decoder.ts";
   const CATALOG = "tests/captured-fight-catalog.ts";
@@ -316,11 +315,6 @@ describe("value parsing", () => {
     // `(-1).toString(16)` is `"-1"` — and it was the one conversion in `src/`
     // that `libs/` did not own, under the contrast arithmetic §9.7 makes a floor.
     { pattern: /\.toString\s*\(\s*\d+\s*\)/g, owner: NUMBER },
-    // `localeCompare` with no locale reads the runtime's default, so the order
-    // it gives belongs to the machine rather than to the data — and two tools
-    // sorted their output with it (F21). The owner splits the deterministic
-    // question from the one a person reads, and requires the locale.
-    { pattern: /\.localeCompare\s*\(/g, owner: TEXT_ORDER },
     /**
      * Not a value reader, and the register holds it for the other reason §7.1
      * gives: the second consumer arrived long ago and kept arriving. The same
@@ -421,6 +415,33 @@ describe("value parsing", () => {
       expect(spelled.length, owner).toBeGreaterThan(0);
     },
   );
+
+  /**
+   * The one construct with no owner, and it is deliberate.
+   *
+   * `localeCompare` reads the **runtime's** locale where none is passed, so the
+   * order it gives belongs to the machine that ran the program rather than to
+   * the data — two tools sorted their output that way
+   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F21). It was held by
+   * an owner, `libs/text-order.ts`, whose collated reader had exactly one
+   * caller: the panel's tie-break between two combatants on equal figures. That
+   * is the fight's own roster order now, so the reader went with its caller.
+   *
+   * ⚠️ **An owner that owns nothing stops guarding.** The test above proves an
+   * owner by finding its construct in it, so a `libs/` function kept alive only
+   * to satisfy a register would be a call nobody makes standing in for a rule.
+   * Spelled-nowhere is the honest form of the same rule and a stricter one — it
+   * binds `libs/` too, which "owned by `libs/text-order.ts`" never did.
+   *
+   * Bringing a collated order back means a caller, a reader in `libs/` and this
+   * row moving back into `OWNED_CONSTRUCTS`, in that order.
+   */
+  test.each(SOURCE_FILES)("%s leaves the order to the data, not to the machine", (file) => {
+    const source = getSourceWithoutComments(file);
+    expect([...source.matchAll(/\.localeCompare\s*\(/g)].map((match) => match[0]), file).toEqual(
+      [],
+    );
+  });
 
 
   test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
