@@ -78,6 +78,12 @@ gone is the first sign the rules have drifted.
   is told what cannot be known, not why our reader cannot know it.
 - `[ALWAYS] [process]` **Leave the gate green** — every commit on its own,
   including when one change is split across several.
+- `[ALWAYS] [process]` **Work lands on `develop`; `main` is the latest release.**
+  `main` is advanced only at a release and only by fast-forward, so its head is
+  always exactly the newest `v*` tag. That is what lets the published preview and
+  the file somebody installs be one build — README.md offers the page as what a
+  release ships, and the offer is only true while this holds
+  (`docs/specs/2026-08-18-main-is-what-you-can-install.md`).
 
 ---
 
@@ -344,7 +350,8 @@ bun.lock           What the gate is actually run against — §6.1.
 tsconfig.json      Strict flags standing in for a linter, and the `@/*` alias.
 .gitignore         What never enters git, including the cache.
 .github/workflows/ The gate on push; a `v*` tag into a release with the built
-                   userscript attached; the preview site published on main.
+                   userscript attached, refused unless the tag sits on `main`;
+                   the preview site published from `main`, which is the release.
 .claude/skills/verify/
                    How to drive the add-on in a browser and read what the panel
                    drew. Not a gate. `settings.json` beside it denies the tool

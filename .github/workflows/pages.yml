@@ -7,6 +7,16 @@
 # tree that cannot pass `bun run check` must not become the page this repository
 # points people at.
 #
+# ⚠️ **The trigger is still `main`, and `main` no longer means what it did.** It
+# is the latest release now, advanced only when a version is tagged, with the
+# work on `develop` (docs/specs/2026-08-18-main-is-what-you-can-install.md). So
+# what this publishes is the panel a visitor can actually install, which is what
+# README.md's "See it before you install it" offers them. It used to publish the
+# tip of development, and the offer was true only if you did not read the next
+# paragraph. Nothing in this file had to change for that — the same three words
+# say something else now, which is the kind of edit that goes unnoticed unless it
+# is written down.
+#
 # ⚠️ **Pages has to exist before anything can be deployed to it, and it is
 # created once by hand: Settings → Pages → Build and deployment → Source →
 # GitHub Actions.** Not "Deploy from a branch" — every page here is generated

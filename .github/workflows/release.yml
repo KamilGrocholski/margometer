@@ -23,6 +23,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The step below asks an ancestry question, and a shallow clone
+          # answers one wrongly rather than loudly: with no history behind the
+          # tag, `merge-base --is-ancestor` reports "not contained" for a commit
+          # that is. Full history is the only depth at which the guard means
+          # what it says.
+          fetch-depth: 0
+
+      # `main` is the latest release and nothing else
+      # (docs/specs/2026-08-18-main-is-what-you-can-install.md): it moves only
+      # when a version is tagged, and work happens on `develop`. A tag pushed
+      # from `develop` is the one mistake that model creates — before it there
+      # was a single branch to tag from — and it would publish a release built
+      # from a tree `main` does not hold, with nothing about the result looking
+      # wrong. Nothing else can catch it: branch protection guards pushes to a
+      # branch, and this is a push of a tag.
+      #
+      # An exit status decides; the text only names what failed (§7.5). The ref
+      # is fetched by name rather than assumed, because what a checkout leaves
+      # in `refs/remotes/` is that action's business and not this file's.
+      - name: the tag sits on main
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+            echo "${GITHUB_REF_NAME} is not on main — push main first, then the tag" >&2
+            exit 1
+          fi
 
       # Same pin as check.yml, and for the same reason: "latest" means the build
       # changes one day with no change in the code.

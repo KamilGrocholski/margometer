@@ -113,10 +113,11 @@ bun run build:dev    # the same add-on with a cost overlay, installed beside a r
 The page behind [the preview link][preview] is what `bun run preview:site` writes:
 one harness page per capture under `tests/captured-fights/`, plus the bundle those
 pages load. `.github/workflows/pages.yml` runs the gate and then publishes it on
-every push to `main`, so the link always shows the panel `main` builds rather than
-the last release. Nothing it writes is committed — the output goes under `dist/`,
-which git ignores, because a published page carries a capture's engine payloads
-inlined and those carry the game's own names ([`NOTICE.md`](NOTICE.md)).
+every push to `main` — and `main` is the latest release, so the link shows the
+panel the file on the releases page draws, not work nobody can install yet.
+Nothing it writes is committed — the output goes under `dist/`, which git
+ignores, because a published page carries a capture's engine payloads inlined and
+those carry the game's own names ([`NOTICE.md`](NOTICE.md)).
 
 `bun run build:dev` writes `dist/margometer.dev.user.js`. It carries a name of its
 own and no update URL, so it sits alongside an installed release instead of
@@ -124,6 +125,13 @@ replacing it, and it draws what each phase of a payload cost in the corner of th
 page. `bun run preview --dev` serves that build instead of the ordinary one.
 Nothing measured leaves the machine — there is no telemetry here and the add-on
 sends nothing anywhere.
+
+Work happens on `develop`. `main` is advanced only by a release, by
+fast-forward, so its head is always exactly the newest `v*` tag — which is what
+makes the preview link and the file you can download one build. The reasoning is
+in [the spec that decided it][branches].
+
+[branches]: docs/specs/2026-08-18-main-is-what-you-can-install.md
 
 Conventions, workflow and the rules this repository is held to live in
 [`AGENTS.md`](AGENTS.md). That file is the single source of them; AI coding
