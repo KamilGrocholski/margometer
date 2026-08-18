@@ -16,10 +16,10 @@
 > Keep entries short: try to make tasks one line.
 
 ## In Progress
+- [ ] Add a tip window in sub panels for each player, just like in the main ones
 
 ## Up Next
-- [ ] Verify the amount of resources this add-on needs in a browser (maybe there is a need to check execution time for each function, and to create a heatmap)
-- [ ] Panel does not respond immediately to user actions - dragging/moving the panel, changing tabs, navigating into a section, and going back.
+- [ ] Add support to all of the browsers
 
 ## Done
 - [x] Make sure there are no conflicts with Margonem names, CSS classes, and HTML ids - carefully create new names to assert no conflicts with 
@@ -35,8 +35,13 @@ on the current selected panel view(healing taken - healing taken "bez sprawcy", 
 I want every combatant to be visible at the beginning of a battle
 - [x] Create a live preview on github pages
 - [x] AGENTS.md is too large, and the information it has is not that relevant
+- [x] Verify the amount of resources this add-on needs in a browser (maybe there is a need to check 
+execution time for each function, and to create a heatmap, build a tool)
+- [x] Row's background of "Bez sprawcy" is too tall, it does not match the height of the accent - each row SHOULD have the same height
+- [x] "Bez sprawcy" still DOES NOT show data relevant to the selected tab, team, and direction
 
 ## Later
 - [ ] Add draw as an outcome (there is a problem with the protocol key - do it later)
 - [ ] Use constants instead of literals for the protocol keys (maybe everything except the ui text, not only the protocol keys)
 - [ ] Create and update screenshots after each release, use `screenshots` dir to store it
+- [ ] Sometimes panel does not respond immediately to user actions - dragging/moving the panel, changing tabs, navigating into a section, and going back.
