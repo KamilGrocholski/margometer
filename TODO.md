@@ -15,19 +15,25 @@
 > Manually maintained task list. Add, move, and check off items by hand.
 > Keep entries short: try to make tasks one line.
 
+
 ## In Progress
 
 ## Up Next
-- [ ] Add support to all of the browsers
+- [ ] Fix the Safari user-select defect
 
 ## Done
+- [x] Split "Bez sprawcy" into "Nieznany sprawca" and "Nieznany cel", scope both to the shown team, and leave in "Bez strony" only what has no team at either end
+- [x] Check whether all of the browsers support MargoMeter
+- [x] Update README.md to be more concise and less content - add screenshots (maybe a few is enough)
+- [x] Add PL and ENG readmes linking each other
+- [x] Create and update screenshots after each release, use `screenshots` dir to store it (probably a tool is needed)
 - [x] Fix the codebase where there is a name we did not choose, spelled twice, where nothing catches a disagreement (src, libs, tools, tests)
 - [x] Add draw as an outcome
 - [x] Fix user actions on click while the add-on is redrawing - I have to click multiple times on any 
 tab, and button, to see the action, when the add-on is in the middle of drawing
 
 ## Later
-- [ ] Create and update screenshots after each release, use `screenshots` dir to store it
+- [ ] Regenerate screenshots at the next release - row labels and brackets changed
 
 ---
 ## History
