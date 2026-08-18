@@ -52,6 +52,23 @@ export function composeLeafRowKey(token: string): string {
 }
 
 /**
+ * A leaf naming a skill.
+ *
+ * The namespace is what keeps it apart from the other two kinds of leaf token —
+ * a combatant id and a damage type — which share the level with it. A skill is
+ * called whatever the game called it, so nothing rules out one named for a
+ * number.
+ *
+ * Here rather than at the call site, which composed `skill:` by hand: this
+ * module exists so that the divider and the word either side of it are decided
+ * in one place, and a caller reproducing them is that design coming apart
+ * (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`).
+ */
+export function composeSkillLeafRowKey(skillName: string): string {
+  return composeLeafRowKey(`${SKILL}${DIVIDER}${skillName}`);
+}
+
+/**
  * What a key means, as a value rather than as a prefix somebody compares.
  *
  * `nothing` covers every key that opens no level — the bare words, a leaf, and

@@ -36,6 +36,7 @@ import { getMissingCounterpart } from "@/src/ui/panel-nobody.ts";
 import { getMetricValue, getName, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
 import {
   composeLeafRowKey,
+  composeSkillLeafRowKey,
   composeSkillRowKey,
   composeTargetRowKey,
   NOBODY_ROW_KEY,
@@ -411,7 +412,7 @@ function composePairSkillEntries(
       : (skill.dealtByTargetId.get(subjectId) ?? 0);
     if (amount <= 0) continue;
     entries.push({
-      key: composeLeafRowKey(`skill:${skill.skillName}`),
+      key: composeSkillLeafRowKey(skill.skillName),
       label: skill.skillName,
       profession: null,
       colour: UNKNOWN_COLOUR,

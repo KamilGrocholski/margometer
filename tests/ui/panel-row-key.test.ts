@@ -19,6 +19,7 @@ import {
   BACK_ROW_KEY,
   composeCombatantRowKey,
   composeLeafRowKey,
+  composeSkillLeafRowKey,
   composeSkillRowKey,
   composeTargetRowKey,
   getRowKeyMeaning,
@@ -101,6 +102,22 @@ describe("a row key that opens nothing", () => {
     for (const token of ["dmgf", "skill:Name", UNANNOUNCED_ROW_KEY, "7"]) {
       expect(getRowKeyMeaning(composeLeafRowKey(token)), token).toEqual({ opens: "nothing" });
     }
+  });
+
+  /**
+   * The skill leaf, which is the one token that needs a namespace: a skill is
+   * called whatever the game called it, and the two other kinds of leaf on that
+   * level are a combatant id and a damage type.
+   *
+   * The collision is what is checked, not the spelling. Both sides of it are
+   * here — a skill named for a number, and the bare number beside it — because a
+   * composer that dropped the namespace would still open nothing and still look
+   * right, and only two rows carrying the same key would say otherwise.
+   */
+  test("a skill leaf, which cannot collide with the leaves beside it", () => {
+    expect(getRowKeyMeaning(composeSkillLeafRowKey("Name"))).toEqual({ opens: "nothing" });
+    expect(composeSkillLeafRowKey("7")).not.toBe(composeLeafRowKey("7"));
+    expect(composeSkillLeafRowKey("Name")).toBe(composeLeafRowKey("skill:Name"));
   });
 
   // A key this module did not compose. Deciding what an unknown prefix means is
