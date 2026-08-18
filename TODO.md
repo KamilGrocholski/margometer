@@ -16,12 +16,24 @@
 > Keep entries short: try to make tasks one line.
 
 ## In Progress
-- [ ] Add a tip window in sub panels for each player, just like in the main ones
 
 ## Up Next
-- [ ] Add support to all of the browsers
 
 ## Done
+- [x] Fix user actions on click while the add-on is redrawing - I have to click multiple times on any 
+tab, and button, to see the action, when the add-on is in the middle of drawing
+
+## Later
+- [ ] Add support to all of the browsers
+- [ ] Add draw as an outcome (there is a problem with the protocol key - do it later)
+- [ ] Use constants instead of literals for the protocol keys (maybe everything except the ui text, not only the protocol keys)
+- [ ] Create and update screenshots after each release, use `screenshots` dir to store it
+
+---
+## History
+
+### Done v0.7.0
+- [x] Release the next version v0.7.0
 - [x] Make sure there are no conflicts with Margonem names, CSS classes, and HTML ids - carefully create new names to assert no conflicts with 
 existing names, classes, and ids from the game. Add prefix `MargoMeter-` or `margometer` for each relevant element and entity.
 - [x] Create preview tool server with hotreloading
@@ -39,9 +51,7 @@ I want every combatant to be visible at the beginning of a battle
 execution time for each function, and to create a heatmap, build a tool)
 - [x] Row's background of "Bez sprawcy" is too tall, it does not match the height of the accent - each row SHOULD have the same height
 - [x] "Bez sprawcy" still DOES NOT show data relevant to the selected tab, team, and direction
-
-## Later
-- [ ] Add draw as an outcome (there is a problem with the protocol key - do it later)
-- [ ] Use constants instead of literals for the protocol keys (maybe everything except the ui text, not only the protocol keys)
-- [ ] Create and update screenshots after each release, use `screenshots` dir to store it
-- [ ] Sometimes panel does not respond immediately to user actions - dragging/moving the panel, changing tabs, navigating into a section, and going back.
+- [x] Add a tip window in sub panels for each player, just like in the main ones
+- [x] Add an information about the preview link on github pages in README.md
+- [x] Create a SPEC for considering using dev branch and main - which is always the latest release
+- [x] Apply the SPEC for develop and main branch split
