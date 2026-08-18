@@ -130,7 +130,10 @@ now names the page, what does travel, and on what basis.
   claim. What answered it was the fourth run, on 2026-08-18, 3 h 29 min after
   that incident resolved: `Create Pages site failed. Error: Resource not
   accessible by integration`, a refusal rather than a busy service, and the
-  repository still reporting no Pages site afterwards. §7.5 puts a guard first
+  repository still reporting no Pages site afterwards. The switch was thrown ten
+  minutes later and the next run deployed on every step, which is the other half
+  of the answer: the refusal was the whole of what stood in the way. §7.5 puts a
+  guard first
   and a rule second; this is neither, because the subject is somebody else's API
   and the only instrument is a run — so the workflow carries the three error
   texts, the incident window that dates two of them, and a conclusion no wider

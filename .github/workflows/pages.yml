@@ -10,7 +10,7 @@
 # ⚠️ **Pages has to exist before anything can be deployed to it, and it is
 # created once by hand: Settings → Pages → Build and deployment → Source →
 # GitHub Actions.** Not "Deploy from a branch" — every page here is generated
-# into `dist/`, which git ignores. Three runs say so, and they are written down
+# into `dist/`, which git ignores. Four runs say so, and they are written down
 # because the sentence above was got wrong three times before them:
 #
 # 1. Without `enablement`, `configure-pages` fails outright —
@@ -23,15 +23,25 @@
 #    `Create Pages site failed. Error: Resource not accessible by integration -
 #    .../pages#create-a-apiname-pages-site`, and `has_pages` still false after
 #    it.
+# 4. The switch thrown by hand, and the next run — 2026-08-18T00:55Z, ten minutes
+#    after 3 — green on every step. `upload-pages-artifact` and `deploy-pages`
+#    ran for the first time, `has_pages` reads true, and the site answers.
 #
 # 1 and 2 were inside an incident covering Pages, open on githubstatus.com from
 # 13:40Z to 21:16Z on 2026-08-17, so neither said anything about this repository.
 # 3 was 3 h 29 min after that incident resolved, with none open, and it is a
 # refusal rather than a service saying it is busy: the token a workflow run is
 # given cannot create the site here, on a public repository, with `pages: write`.
-# Whether some other repository's run can is not something one run can say — the
-# three corrections before this one were each a claim of that size from one
-# observation.
+# 4 changed one thing and the workflow then deployed, so the refusal was the
+# whole of what stood in the way. Whether some other repository's run can create a
+# site is still not something these can say — the three corrections before them
+# were each a claim of that size from one observation.
+#
+# ⚠️ **`has_pages` on the repository is what to read, not `GET /repos/…/pages`,**
+# which answers 404 to a request carrying no token whether or not a site exists.
+# The commit that recorded 3 cited that 404 beside `has_pages: false` as though it
+# were a second witness; it was not one, and 4 answered 404 to the same request
+# with the site live.
 #
 # `enablement: true` stays, and it is not the switch: once a site exists it does
 # nothing, and where none exists it changes only which sentence prints. It is
