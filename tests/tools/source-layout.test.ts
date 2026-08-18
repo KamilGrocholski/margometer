@@ -292,6 +292,7 @@ describe("value parsing", () => {
   const RUNNING_TOTAL = "libs/running-total.ts";
   const DECODER = "src/core/fight-decoder.ts";
   const CATALOG = "tests/captured-fight-catalog.ts";
+  const ELAPSED_SPANS = "libs/elapsed-spans.ts";
 
   const OWNED_CONSTRUCTS = [
     // `\bNumber\s*\(` and not `Number` alone: `Number.isInteger` and its
@@ -310,6 +311,17 @@ describe("value parsing", () => {
     // and none of them said so (F16).
     { pattern: /\bJSON\.stringify\s*\(/g, owner: JSON_TEXT },
     { pattern: /\bDate\.parse\s*\(/g, owner: TIMESTAMP },
+    /**
+     * The clock a duration is measured on, and the reason it is owned is that
+     * "now" has three spellings that are not the same question. `Date.now()` is
+     * a wall clock — it moves when the machine's does, so a duration taken
+     * across an adjustment is a value nobody wrote — and it is whole
+     * milliseconds where a payload's own cost is fractions of one.
+     * `performance.now()` is monotonic and fractional. `Date.now(` stays
+     * unowned, as it was before this row: it has one spelling, it cannot
+     * surprise a caller, and `tools/help-article.ts` reads it for an age in days.
+     */
+    { pattern: /\bperformance\.now\s*\(/g, owner: ELAPSED_SPANS },
     // A radix, not `.toString()` alone: writing a number in another base has the
     // same way of answering with something nobody wrote as reading one does —
     // `(-1).toString(16)` is `"-1"` — and it was the one conversion in `src/`

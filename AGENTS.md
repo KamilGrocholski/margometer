@@ -148,6 +148,7 @@ from (§9.5).
 | `tools/protocol-key-table.ts` | *Which protocol keys does the client know?* `freeze` writes the frozen table. |
 | `tools/decoding-status.ts` | *How much of the protocol do we read?* On demand — never quoted in prose (§5). |
 | `tools/fight-report.ts` | *What would the panel show for this fight?* The per-combatant table over each capture. |
+| `tools/payload-cost.ts` | *What does one payload cost, and where does the time go?* `bun run cost [runs]`. No DOM — the arithmetic under the panel, not the drawing of it. |
 | `tools/help-article.ts` | *What does the game's documentation say?* `fetch`, `search` (non-zero on silence), `freeze`. §7.6. |
 | `tools/captured-fight-intake.ts` | *Put this recording in the repository.* Substitutes nicknames, strips ability descriptions, refuses what it cannot redact. §9.2. |
 | `tools/mutation-sweep.ts` | *Does this test light up when its subject breaks?* Refuses to start against a dirty tree. |
@@ -371,6 +372,8 @@ libs/              The bottom layer: true in any project — §9.1.
   source-regions.ts
                    Where comments, text literals and patterns sit in a source
                    file. Patterns, not a parser.
+  elapsed-spans.ts How long named pieces of work took. A count, a total and the
+                   worst one per name — never a list of samples. Owns the clock.
 
 src/
   userscript-version.ts  The version, substituted at build time. Any layer — §9.1.
@@ -434,6 +437,7 @@ tools/                   Never ships. §6.2 says what each answers.
   protocol-key-table.ts      The client's key list, lifted out of that bundle.
   decoding-status.ts         How much of the protocol we read.
   fight-report.ts            What a captured fight adds up to, per combatant.
+  payload-cost.ts            What a payload costs, replayed off the recordings.
   help-article.ts            The published help, fetched and searched.
   captured-fight-intake.ts   The gate a recording passes to become material.
   mutation-sweep.ts          §3's question asked of the tests already here.
@@ -649,6 +653,7 @@ than one spelling in JavaScript, or can answer with a value nobody wrote.**
 | `libs/json.ts` | `JSON.parse` and its `try`/`catch`, `JSON.stringify` | `getValueFromJsonText` → the value **or** the `SyntaxError`; `composeJsonText` refuses a value with no JSON |
 | `libs/text-order.ts` | nothing — see below | `getTextOrder`, by code unit |
 | `libs/timestamp.ts` | `Date.parse` | `getMillisecondsFromIsoText` |
+| `libs/elapsed-spans.ts` | `performance.now()` | `getTimedResult`, and the tallies `composeSpanReport` reads back. `Date.now(` stays unowned — one spelling, no surprise |
 | `libs/record.ts` | `typeof … === "object"`, which is `true` for `null` | `getRecordFromValue`, `getRecordOrArrayFromValue` — two readers, because a list arriving where an object belongs is a fault in one caller and legitimate in another |
 
 Look in `libs/` first; if it is not there and meets the criterion, add it there

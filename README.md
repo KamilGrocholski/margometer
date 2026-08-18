@@ -104,6 +104,8 @@ it installed from a URL.
 ```bash
 bun run check     # typecheck + tests + build — the gate
 bun test          # tests only
+bun run preview   # the panel in a browser, over a recorded fight, rebuilt as you edit
+bun run cost      # what a payload costs, replayed off every recording
 ```
 
 Conventions, workflow and the rules this repository is held to live in
