@@ -19,9 +19,10 @@
 ## In Progress
 
 ## Up Next
-- [ ] Fix the Safari user-select defect
+- [ ]
 
 ## Done
+- [x] Fix the Safari user-select defect
 - [x] Split "Bez sprawcy" into "Nieznany sprawca" and "Nieznany cel", scope both to the shown team, and leave in "Bez strony" only what has no team at either end
 - [x] Check whether all of the browsers support MargoMeter
 - [x] Update README.md to be more concise and less content - add screenshots (maybe a few is enough)
@@ -34,6 +35,8 @@ tab, and button, to see the action, when the add-on is in the middle of drawing
 
 ## Later
 - [ ] Regenerate screenshots at the next release - row labels and brackets changed
+- [ ] Reduce the number of files in the project - /ui has too many files, split it into modules (per panel view) and create 
+files only for what is reusable by them; other directories dunno
 
 ---
 ## History
