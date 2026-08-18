@@ -17,9 +17,11 @@ import { describe, expect, test } from "bun:test";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
 import { composeBreakdownLists, composeDeepLists } from "@/src/ui/panel-drill.ts";
+import type { PanelRow } from "@/src/ui/panel-shape.ts";
 import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
 import { PANEL_METRICS, type PanelMetric } from "@/src/ui/panel-metric.ts";
 import { getMetricValue, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
+import { NOBODY_ROW_KEY } from "@/src/ui/panel-row-key.ts";
 import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
 import {
   CAPTURED_FIGHTS,
@@ -62,6 +64,11 @@ function* getScreens(): Generator<{
       }
     }
   }
+}
+
+/** Whether the row opens the card, rather than a note or nothing at all. */
+function getIsCard(row: PanelRow): boolean {
+  return row.detail.some((line) => line.kind === "title");
 }
 
 test("there is material to drill into", () => {
@@ -107,6 +114,38 @@ describe("a breakdown", () => {
       }
     }
     expect(cuts).toBeGreaterThan(0);
+  });
+
+  /**
+   * The section the level is about lists people, so every row of it opens the card
+   * the ranking's rows open — the reader used to have to go back out to the list to
+   * ask who they were looking at. The card names the row it stands over, which is
+   * how the two are held together without writing a name of the game's down (§5).
+   */
+  test("opens a card over each person, and over nobody else", () => {
+    let people = 0;
+    let others = 0;
+    for (const { name, reading, metric, combatantId } of getScreens()) {
+      const lists = composeBreakdownLists(reading, composeState({ metric }), combatantId, null);
+      const [about, ...cuts] = lists;
+      for (const row of about?.rows ?? []) {
+        // The row for what has no counterpart is not a person and says so instead.
+        if (row.key === NOBODY_ROW_KEY) continue;
+        expect(row.detail[0], `${name} ${metric} #${combatantId} ${row.key}`).toEqual({
+          kind: "title",
+          text: row.label,
+        });
+        people += 1;
+      }
+      // A skill and a damage type are not people, and a card over one would be a
+      // card about whoever is in focus, standing where it says it is not.
+      for (const row of cuts.flatMap((cut) => cut.rows)) {
+        expect(getIsCard(row), `${name} ${metric} #${combatantId} ${row.key}`).toBe(false);
+        others += 1;
+      }
+    }
+    expect(people).toBeGreaterThan(0);
+    expect(others).toBeGreaterThan(0);
   });
 
   // Every row of every section is a share of that section, so no bar is drawn past
@@ -161,6 +200,51 @@ describe("the deepest level", () => {
       }
     }
     expect(closed).toBeGreaterThan(0);
+  });
+
+  /**
+   * A skill's own level lists people again, and it is the last rung: the card
+   * stands over them the way it does one level up, and closes with the one gesture
+   * that still does something there.
+   */
+  test("opens a card over each person, and closes it with the way back", () => {
+    let seen = 0;
+    for (const { name, reading, combatantId } of getScreens()) {
+      const state = composeState({ metric: "dealt", focusCombatantId: combatantId });
+      for (const [key] of getRow(reading, combatantId).skills) {
+        const lists = composeDeepLists(
+          reading,
+          { ...state, focusSkill: { ownerId: combatantId, key } },
+          combatantId,
+          null,
+        );
+        for (const row of lists.flatMap((list) => list.rows)) {
+          if (row.key === NOBODY_ROW_KEY) continue;
+          const where = `${name} #${combatantId} ${key} ${row.key}`;
+          expect(row.detail[0], where).toEqual({ kind: "title", text: row.label });
+          expect(row.detail.at(-1), where).toEqual({ kind: "note", text: "PPM — powrót" });
+          seen += 1;
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+
+  // Entering through an opponent asks *with what*, so that level lists skills and
+  // damage types — neither is a person, and neither opens a card.
+  test("opens no card where the level is not about people", () => {
+    let seen = 0;
+    for (const { name, reading, metric, combatantId } of getScreens()) {
+      const state = composeState({ metric, focusCombatantId: combatantId });
+      for (const focusTargetId of getRow(reading, combatantId).dealtByTargetId.keys()) {
+        const lists = composeDeepLists(reading, { ...state, focusTargetId }, combatantId, null);
+        for (const row of lists.flatMap((list) => list.rows)) {
+          expect(getIsCard(row), `${name} ${metric} #${combatantId} ${row.key}`).toBe(false);
+          seen += 1;
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(0);
   });
 
   // A skill nobody announced is not a level: the state can name a key the row does

@@ -36,6 +36,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Okienko z opisem postaci otwiera się teraz wszędzie tam, gdzie
+  postać stoi na liście, a nie tylko na głównym rankingu. Wejdź w kogoś i najedź
+  na wiersz w „KOMU" albo „OD KOGO" — zobaczysz to samo, co na liście głównej:
+  kto to jest, ile zadał i dostał, jak bił, co mu weszło. Liczby w okienku
+  dotyczą całej walki, nie tylko tego jednego wiersza, i okienko mówi to wprost.
+
 - **Zmiana** — Na liście stoją wszyscy, którzy biorą udział w walce, od pierwszej
   chwili. Wcześniej postać pojawiała się dopiero wtedy, gdy coś zrobiła albo coś
   ją spotkało, więc na początku dużej walki lista potrafiła mieć dwa wiersze

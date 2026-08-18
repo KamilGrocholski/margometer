@@ -15,11 +15,13 @@
  * vocabulary and the control strips (`panel-metric.ts`), the shape the drawing
  * consumes (`panel-shape.ts`), the reading and the three questions everything asks
  * of a combatant (`panel-reading.ts`), the levels a row opens onto
- * (`panel-drill.ts`), the sentences said where the game names nobody
- * (`panel-nobody.ts`) and a figure as text (`panel-figure-text.ts`). What stayed
- * is one screen: the list, the figure pinned under it, what every share divides by,
- * and the summary and warnings standing over the lot — the arithmetic that has to
- * agree with itself, kept where a disagreement is visible in one file.
+ * (`panel-drill.ts`), the card a combatant's row opens on hover
+ * (`panel-combatant-detail.ts`, once the drill became its second reader), the
+ * sentences said where the game names nobody (`panel-nobody.ts`) and a figure as
+ * text (`panel-figure-text.ts`). What stayed is one screen: the list, the figure
+ * pinned under it, what every share divides by, and the summary and warnings
+ * standing over the lot — the arithmetic that has to agree with itself, kept where
+ * a disagreement is visible in one file.
  *
  * **The strings are Polish and nothing else here is** (§3). A sentence a player
  * reads never carries our vocabulary: it says what cannot be known, not why our
@@ -33,10 +35,11 @@
 import { composeIntegerText } from "@/libs/number.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
 import { getCombatantIdByName } from "@/src/core/combatant-roster.ts";
+import { getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
 import {
-  getCombatantIdsInFight,
-  type CombatantStatistics,
-} from "@/src/core/fight-statistics.ts";
+  composeCombatantDetail,
+  composeStat,
+} from "@/src/ui/panel-combatant-detail.ts";
 import { composeBreakdownLists, composeDeepLists } from "@/src/ui/panel-drill.ts";
 import { composeFigureText, composeShareText } from "@/src/ui/panel-figure-text.ts";
 import {
@@ -45,21 +48,15 @@ import {
   composeTeamTabs,
   isGivenMetric,
   isHealingMetric,
-  METRIC_LABELS,
-  PANEL_METRICS,
   TEAM_LABELS,
   type PanelMetric,
   type PanelTeam,
 } from "@/src/ui/panel-metric.ts";
 import {
-  DEFENCE_NAMES,
-  DESTRUCTION_NAMES,
-  EFFECT_NAMES,
   ELEMENT_NAMES,
   getPhrase,
   HEALTH_GAIN_SOURCE_NAMES,
   HEALTH_LOSS_SOURCE_NAMES,
-  PROFESSION_NAMES,
   type TokenName,
   type TranslateLabel,
 } from "@/src/ui/panel-names.ts";
@@ -157,140 +154,6 @@ function getRankedIds(reading: PanelReading, state: PanelState): number[] {
   return inFight.map(({ id }) => id);
 }
 
-/**
- * The counters line: how somebody fought, in one sentence.
- *
- * ⚠️ **Still no dodges, and the reason has changed.** It used to be that the
- * decoder had no entry for `-evade`; it has one now, and the captures carry three.
- * What stops it becoming `uniki 3` here is whose it would be: every flag is
- * counted against **whoever swung**, so on a row it means blows that combatant
- * threw and somebody dodged — not times they dodged. Under that label it would be
- * read as the second, so it stays among the effects, where the heading says the
- * figures belong to the blow (`CombatantStatistics.procsOnBlowsStruck`).
- */
-function composeCounters(row: CombatantStatistics): string[] {
-  // The bracket belongs to the number it breaks down: blows nobody announced are
-  // part of the blows, not a second kind of thing standing beside them.
-  const counters = [
-    `ciosy ${composeFigureText(row.blowsStruck)}${
-      row.blowsWithoutSkill > 0 ? ` (w tym ${composeFigureText(row.blowsWithoutSkill)} zwykłe)` : ""
-    }`,
-  ];
-
-  const critical = row.procsOnBlowsStruck.get("crit") ?? 0;
-  const veryCritical = row.procsOnBlowsStruck.get("legbon_verycrit") ?? 0;
-  // The bracket belongs to the number it breaks down: very critical hits are part
-  // of critical ones, and standing beside them as their own member would invite
-  // adding the two.
-  counters.push(
-    `kryt. ${composeFigureText(critical)}${veryCritical > 0 ? ` (w tym ${composeFigureText(veryCritical)} bardzo)` : ""}`,
-  );
-  if (row.largestBlow > 0) counters.push(`maks. cios ${composeFigureText(row.largestBlow)}`);
-  return counters;
-}
-
-function composeStat(label: string, value: string, isStrong = false): PanelDetailLine {
-  return { kind: "stat", label, value, isStrong };
-}
-
-/**
- * A destroyed statistic, with its unit — because the members do not share one.
- *
- * `+resdmg` is stated in **percentage points** while `+acdmg` and the two
- * absorption keys are in points, despite what `_per` in their names suggests
- * (`docs/protocol-keys.md`). Carrying the unit in the value is what keeps the
- * block honest without a total: four bare figures under one heading read as four
- * of the same thing, and adding them would be the mistake §10 names.
- */
-function composeDestructionText(token: string, amount: number): string {
-  return token === "resdmg" ? `${composeFigureText(amount)}%` : composeFigureText(amount);
-}
-
-/**
- * Everything a combatant's row says on demand.
- *
- * The order answers the question a person actually has, in the order they have
- * it: who is this, how much of each, over how many turns, how they fought, what
- * fired, what was stopped. The metric on screen is the one in bold — the others
- * are there so that "he dealt a lot, but how much did he take" needs no click.
- */
-function composeCombatantDetail(
-  reading: PanelReading,
-  combatantId: number,
-  state: PanelState,
-  translate: TranslateLabel | null,
-): PanelDetailLine[] {
-  const row = getRow(reading, combatantId);
-  const combatant = reading.roster.byId.get(combatantId);
-  const lines: PanelDetailLine[] = [{ kind: "title", text: getName(reading, combatantId) }];
-
-  const profession = combatant?.profession ?? null;
-  const level = combatant?.level ?? null;
-  if (profession !== null || level !== null) {
-    const named = profession === null ? "nieznana profesja" : getPhrase(PROFESSION_NAMES, profession, translate);
-    lines.push({
-      kind: "heading",
-      text: level === null ? named : `${named} (${composeIntegerText(level)})`,
-    });
-  }
-
-  for (const metric of PANEL_METRICS) {
-    const value = getMetricValue(row, metric);
-    lines.push(
-      composeStat(METRIC_LABELS[metric], composeFigureText(value), metric === state.metric),
-    );
-    // Taken is the one figure made of two readings, so it says so where it
-    // stands rather than leaving the difference to be discovered.
-    if (metric === "taken" && row.healthLost > 0) {
-      lines.push(composeStat("  z ciosów", composeFigureText(row.taken)));
-      lines.push(composeStat("  bez sprawcy", composeFigureText(row.healthLost)));
-    }
-  }
-
-  if (row.skillsUsed > 0) {
-    lines.push(composeStat("Użycia umiejętności", composeFigureText(row.skillsUsed)));
-  }
-  lines.push({ kind: "note", text: composeCounters(row).join(" · ") });
-
-  const effects = [...row.procsOnBlowsStruck]
-    .filter(([token]) => token !== "crit" && token !== "legbon_verycrit")
-    .map(([token, count]) => `${getPhrase(EFFECT_NAMES, token, translate)} ×${composeFigureText(count)}`);
-  if (effects.length > 0) {
-    lines.push({ kind: "heading", text: "Efekty w ciosach" });
-    lines.push({ kind: "note", text: effects.join(" · ") });
-  }
-
-  // Two blocks rather than one `·`-joined line, and they are separated because the
-  // figures are not the same kind of thing: one is damage that did not arrive, the
-  // other is a statistic of this combatant that an attacker reduced. Strung
-  // together they read as one list of "defence stuff" and invited an addition
-  // across units that §10 forbids.
-  const stopped = [...row.prevented].filter(([, amount]) => amount > 0);
-  if (stopped.length > 0) {
-    lines.push({ kind: "heading", text: "Zatrzymane" });
-    for (const [token, amount] of stopped) {
-      lines.push(composeStat(getPhrase(DEFENCE_NAMES, token, translate), composeFigureText(amount)));
-    }
-    // Said once, where the figures are: a defence is one part of the reduction and
-    // the protocol reports neither armour nor resistance, so these do not add up to
-    // what a blow lost on the way in (§10).
-    lines.push({ kind: "note", text: "To część tego, co nie doszło — reszty gra nie podaje." });
-  }
-
-  const destroyed = [...row.destroyed].filter(([, amount]) => amount > 0);
-  if (destroyed.length > 0) {
-    lines.push({ kind: "heading", text: "Zniszczone" });
-    for (const [token, amount] of destroyed) {
-      lines.push(composeStat(getPhrase(DESTRUCTION_NAMES, token, translate), composeDestructionText(token, amount)));
-    }
-  }
-
-  // The only instruction the panel gives, and it is true at every level: there is
-  // always somewhere to go back to once there is somewhere to go into.
-  lines.push({ kind: "note", text: "LPM — rozbicie · PPM — powrót" });
-  return lines;
-}
-
 /** One ranking row. The bar is measured against the biggest figure on screen. */
 function composeRankedRow(
   reading: PanelReading,
@@ -312,7 +175,7 @@ function composeRankedRow(
     valueText: composeFigureText(raw),
     bracketText: composeBracket(whole > 0 ? raw / whole : 0),
     isDrillable: true,
-    detail: composeCombatantDetail(reading, combatantId, state, translate),
+    detail: composeCombatantDetail(reading, combatantId, state, translate, "ranking"),
   };
 }
 

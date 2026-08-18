@@ -435,6 +435,9 @@ src/
     panel-reading.ts     What the panel is handed, and the three questions asked
                          of a combatant.
     panel-nobody.ts      What the panel says where the game names nobody.
+    panel-combatant-detail.ts
+                         The card a person's row opens on hover, the same at every
+                         level. Says whose figures they are, and what a click does.
     panel-drill.ts       What a row opens onto: the two levels below the ranking.
     panel-view.ts        One screen as data: ranking, pinned figure, denominator,
                          summary, warnings. No DOM.

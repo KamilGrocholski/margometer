@@ -17,6 +17,7 @@
 
 import { composeIntegerText } from "@/libs/number.ts";
 import type { SkillStatistics } from "@/src/core/fight-statistics.ts";
+import { composeCombatantDetail } from "@/src/ui/panel-combatant-detail.ts";
 import { composeFigureText, composeShareText } from "@/src/ui/panel-figure-text.ts";
 import {
   isGivenMetric,
@@ -101,11 +102,18 @@ function composeCrossSection(
   return entries.length > 1 ? composeBreakdownList(heading, entries) : null;
 }
 
-/** Who this combatant hit, or who hit them, or who healed them. */
+/**
+ * Who this combatant hit, or who hit them, or who healed them.
+ *
+ * Every entry here is a person, so every entry carries the card the ranking's rows
+ * carry — the reader had to go back out to the list to ask who they were looking
+ * at. `translate` travels this far for that and for nothing else.
+ */
 function composeOpponentEntries(
   reading: PanelReading,
   state: PanelState,
   combatantId: number,
+  translate: TranslateLabel | null,
 ): BreakdownEntry[] {
   const row = getRow(reading, combatantId);
   const pairs: Array<readonly [number, number]> =
@@ -132,7 +140,7 @@ function composeOpponentEntries(
       amount,
       isDrillable: true,
       uses: null,
-      detail: [],
+      detail: composeCombatantDetail(reading, id, state, translate, "breakdown"),
     }));
 
   // The part with no counterpart stands in the same section, or the section would
@@ -363,7 +371,7 @@ export function composeBreakdownLists(
   return [
     composeBreakdownList(
       OPPONENT_HEADINGS[state.metric],
-      composeOpponentEntries(reading, state, combatantId),
+      composeOpponentEntries(reading, state, combatantId, translate),
     ),
     composeCrossSection("CZYM (UMIEJĘTNOŚCI)", composeSkillEntries(reading, state, combatantId)),
     composeCrossSection(
@@ -473,7 +481,10 @@ export function composeDeepLists(
         amount,
         isDrillable: false,
         uses: null,
-        detail: [],
+        // A person again, and the last rung: the card says so, because this row
+        // opens nothing and a card promising otherwise would be untrue where it
+        // stands.
+        detail: composeCombatantDetail(reading, id, state, translate, "leaf"),
       }));
 
     // ⚠️ **The one level in the panel that closed against nothing.** A skill's
