@@ -34,7 +34,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
-## [Niewydane]
+## [0.7.0] — 2026-08-18
 
 - **Nowość** — Okienko z opisem postaci otwiera się teraz wszędzie tam, gdzie
   postać stoi na liście, a nie tylko na głównym rankingu. Wejdź w kogoś i najedź
@@ -60,6 +60,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Poprawka** — To samo dla składu: jeśli którejś postaci nie da się odczytać,
   panel to napisze. Wcześniej taka postać znikała po cichu, a obrażenia zadane
   jej z imienia lądowały w wierszu „bez sprawcy".
+- **Poprawka** — Wiersz „Bez sprawcy" pokazuje wreszcie to, co masz wybrane:
+  liczy ten zespół — „Wszyscy", „My" albo „Oni" — i tę zakładkę, na której
+  stoisz. Wcześniej stała w nim jedna liczba z całej walki, ta sama wszędzie,
+  więc przy przełączaniu zespołu zmieniała się cała lista, a ona nie — a procent
+  obok niej potrafił wyjść większy niż sto. Podpis pod liczbą mówi teraz wprost,
+  czyjego życia dotyczy: komu ubyło albo komu przybyło.
 - **Zmiana** — Efekty w ciosach nazywają się tak, jak nazywa je Twoja własna
   gra. Dodatek pyta o nazwę klienta, w którym grasz, więc pojawia się dokładnie
   to słowo, które widzisz w oknie walki — i w tym języku, w którym grasz. Tam,
