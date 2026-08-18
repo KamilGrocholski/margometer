@@ -35,6 +35,8 @@ import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight } from "@/tests/captured-fight-catalog.ts";
 
+// Restated rather than imported: this file asserts what the decoder reads, and a
+// test that reads the decoder's own list agrees with it by construction (§9.3).
 const LAST_HEAL_KEY = "legbon_lastheal";
 
 /**

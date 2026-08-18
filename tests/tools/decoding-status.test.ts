@@ -59,6 +59,9 @@ describe("decoding status", () => {
   // the first passed no value and reported damage keys as unread, the second
   // handed the key over alone and reported `skillId` as unread — a key read
   // only in the company of `tspell`. Both times the counters looked plausible.
+  // Spelled here rather than imported, for the reason `tests/core/` spells them:
+  // the claim is that the tool finds these read, and a list taken from the
+  // decoder would be a list of what the decoder says it reads (§9.3).
   test("reports no key as unread that the decoder demonstrably reads", () => {
     const unread = STATUS.unreadKeysByFrequency.map((entry) => entry.key);
     for (const key of ["+dmgc", "-dmgc", DAMAGE_TO_NAMED_KEY, "winner", "tspell", "-absorb", "+crit"]) {

@@ -16,6 +16,8 @@ import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
+// Restated rather than imported: this file asserts what the decoder reads, and a
+// test that reads the decoder's own list agrees with it by construction (§9.3).
 const DESTRUCTION_KEYS = ["+abdest_per", "+abmdest_per"];
 const DECLARATION_KEY = "active_absorbdest_per";
 const SKILL_NAME_KEY = "tspell";

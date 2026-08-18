@@ -546,6 +546,21 @@ Computed numbers do not belong in data files — only raw material does.
 - **Unknown is loud, never zero.** A failed parse returns `null` or an explicit
   unknown; it never substitutes `0` and never copies a neighbour.
 
+**`[ALWAYS] [any]` A name this repository did not choose is spelled once, by the
+file that reads it — and where two files must spell it, a guard holds them to one
+vocabulary.** A field of the game's, a class our own stylesheet and our own
+renderer both name, the brand a console line carries. The failure is never loud:
+an unstyled row, a field reading `undefined`, a line that looks like the game's.
+The panel still draws and the gate still passes.
+
+**`[ASK] [any]` before collapsing a duplicate spelling in a test.** Some are
+deliberate and are the whole of what the test proves: `tests/core/` restates the
+protocol keys on purpose, because a test asserting *what the decoder reads* must
+not read the decoder's own list. Two of those say so in a comment and the rest do
+not, which is why an audit filed them as duplication and closed one
+(`docs/specs/2026-08-18-a-name-we-did-not-choose.md`). A deliberate duplication
+that does not say it is deliberate is an invitation to collapse it — so say it.
+
 **`[ALWAYS] [any]` Imports are written from the repository root.**
 
 ```ts

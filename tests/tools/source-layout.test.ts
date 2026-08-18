@@ -561,6 +561,39 @@ describe("the names in front of the shadow root", () => {
       .filter((name) => !name.startsWith("--MargoMeter-"));
     expect(unnamed, file).toEqual([]);
   });
+
+  /**
+   * The other place a reader meets a name of ours before the panel: the console
+   * we share with the game and with every other add-on. §9.5 puts the brand in an
+   * error's `name`, where `src/core/margometer-error.ts` composes it once — and
+   * the labels the entry point prints alongside are typed out one by one, with
+   * nothing holding them to the same shape.
+   *
+   * A guard rather than a shared prefix, for the reason the class names got one
+   * (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`): each label is its own
+   * word and only the stem is shared, so `${BRAND}/Reading` would buy one
+   * spelling of the stem and cost this test the literal it matches on. What is
+   * worth catching is not a misspelled stem — it is a label added with no stem at
+   * all, which reads in somebody else's console as though the game printed it.
+   *
+   * Both spellings of the call, because the entry point injects its own `warn`
+   * and `info` so the once-per-fight rule can be tested without a console.
+   */
+  const BRANDED_LABEL = /\b(?:console\.)?(?:warn|info)\(\s*"([^"]*)"/g;
+
+  test("there are console labels to check", () => {
+    const found = SHIPPED_FILES.flatMap((file) => [
+      ...getSourceWithoutComments(file).matchAll(BRANDED_LABEL),
+    ]);
+    expect(found.length).toBeGreaterThan(0);
+  });
+
+  test.each(SHIPPED_FILES)("%s says whose every console line is", (file) => {
+    const unbranded = [...getSourceWithoutComments(file).matchAll(BRANDED_LABEL)]
+      .map((match) => match[1]!)
+      .filter((label) => !label.startsWith("MargoMeter/"));
+    expect(unbranded, file).toEqual([]);
+  });
 });
 
 describe("errors", () => {

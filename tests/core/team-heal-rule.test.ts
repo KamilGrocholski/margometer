@@ -26,6 +26,8 @@ import {
 } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 
+// Restated rather than imported: this file asserts what the decoder reads, and a
+// test that reads the decoder's own list agrees with it by construction (§9.3).
 const TEAM_HEAL_KEY = "healall_per";
 
 /** Each use of a skill carrying the effect is weaker by this much of its first. */

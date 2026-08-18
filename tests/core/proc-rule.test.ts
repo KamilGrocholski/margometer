@@ -21,6 +21,10 @@ import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
  * The key the client composes with a `%val%` hole while our own material carries
  * no value for it — production build `1785244275300`. It looks exactly like a
  * proc here and is not one, which is why it is named rather than described.
+ *
+ * Restated rather than imported from the decoder: the tests below assert that it
+ * comes back as an unread key, and a test spelling that key out of the decoder's
+ * own list would agree with it by construction (§9.3).
  */
 const LOOKS_LIKE_A_PROC = "+legbon_holytouch";
 

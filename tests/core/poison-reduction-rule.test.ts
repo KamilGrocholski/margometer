@@ -23,6 +23,8 @@ import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 
+// Restated rather than imported: this file asserts what the decoder reads, and a
+// test that reads the decoder's own list agrees with it by construction (§9.3).
 const REDUCTION_KEY = "-poison_lowdmg_per";
 
 
