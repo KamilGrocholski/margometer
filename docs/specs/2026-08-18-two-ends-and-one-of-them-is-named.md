@@ -148,7 +148,7 @@ refuses:
 | `abdest_per` against the blows that follow (`docs/protocol-keys.md`) | **refused** |
 | a name matching two combatants (`src/core/combatant-roster.ts`) | **refused** — resolves to nobody, never to the first match |
 | `team` arriving as text (`src/game/engine-roster.ts`) | **refused, and counted** |
-| a heal reaching a whole side (§10, `unaccounted`) | **refused** — read, never sized |
+| a heal reaching a whole side | **the game's own** — the help states the arithmetic and every input is read, or the cast stays unsized (`docs/specs/2026-08-18-the-side-is-named-and-the-share-is-stated.md`, which superseded this row) |
 | **`getPartCharged`** | **ours** — the team of the end the game did not name |
 
 It holds while there are two sides and nobody harms their own. The protocol

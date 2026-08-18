@@ -79,6 +79,9 @@ function writeFightReport(fight: CapturedFight): void {
       roster,
     ),
     roster,
+    // The same reading the panel is handed, so this report and the panel cannot
+    // disagree about a fight (`src/game/battle-session.ts`).
+    fight.entryHealthByCombatantId,
   );
 
   console.log(`\n=== ${fight.name} ===`);

@@ -201,6 +201,7 @@ describe("the panel's own vocabulary, as decided", () => {
     ["heal_target", null, "leczenie na wskazanego"],
     ["legbon_holytouch_heal", "msg_+legbon_holytouch", "dotyk anioła"],
     ["legbon_lastheal", null, "ostatni ratunek"],
+    ["healall_per", null, "leczenie całej drużyny"],
   ],
   };
 

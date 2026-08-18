@@ -14,6 +14,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import { composeSizedTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
@@ -93,6 +94,9 @@ describe("a message that is one key and no outcome", () => {
     expect(event).toEqual({
       kind: "declaration",
       combatantId: 445202,
+      // `step` names its actor and states where they stand — the earliest thing
+      // many fights say about somebody (`src/core/combatant-health.ts`).
+      healthPercent: 100,
       declared: [{ effect: "step", amount: null, text: null }],
     });
   });
@@ -218,20 +222,33 @@ describe("health that moved where nobody can be credited", () => {
     expect(statistics.unattributed.healed).toBe(0);
   });
 
-  // Every capture, so the claim is about the material rather than an example.
-  test.each(CAPTURED_FIGHTS)("$name: every team heal is counted as missing", (fight) => {
+  /**
+   * Every capture, so the claim is about the material rather than an example.
+   *
+   * ⚠️ **This asserted `casts === stated` until a cast could be sized**, and the
+   * equality was the whole point: nothing could be placed, so everything was
+   * missing. What replaces it is the partition, which is a stronger claim than
+   * either half — a cast is sized whole or it is still counted as missing, and
+   * never both and never neither. Read against the reading the panel is actually
+   * handed, entry health included, or it measures a state that no longer ships.
+   */
+  test.each(CAPTURED_FIGHTS)("$name: every team heal is sized or counted as missing", (fight) => {
     const roster = composeRosterOfFight(fight);
-    const statistics = composeFightStatistics(
-      decodeFight(
-        getMessagesOfFight(fight),
-        roster,
-      ),
-      roster,
-    );
-    const casts = statistics.reading.unaccountedHealthBySource.get("healall_per") ?? 0;
-    const stated = getMessagesOfFight(fight)
-      .filter((message) => message.includes("healall_per")).length;
+    const events = decodeFight(getMessagesOfFight(fight), roster);
+    const statistics = composeFightStatistics(events, roster, fight.entryHealthByCombatantId);
 
-    expect(casts).toBe(stated);
+    const stated = getMessagesOfFight(fight).filter((message) =>
+      message.includes("healall_per"),
+    ).length;
+    const missing = statistics.reading.unaccountedHealthBySource.get("healall_per") ?? 0;
+    const sized = composeSizedTeamHeals(events, roster, fight.entryHealthByCombatantId).filter(
+      (event) => event.kind === "team-heal",
+    ).length;
+
+    // A partly sized cast is in both, so the two cannot simply be added: what is
+    // held is that nothing is lost between them and nothing is invented.
+    expect(missing, fight.name).toBeLessThanOrEqual(stated);
+    expect(sized, fight.name).toBeLessThanOrEqual(stated);
+    expect(stated - missing, fight.name).toBeLessThanOrEqual(sized);
   });
 });

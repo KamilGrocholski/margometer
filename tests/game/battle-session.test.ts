@@ -75,7 +75,7 @@ describe("where one fight ends and the next begins", () => {
     );
 
     expect(fresh.messages).toEqual(["the new fight's first message"]);
-    expect(fresh.combatants).toEqual([{ id: 7, name: "a", side: 1, profession: "m", level: null }]);
+    expect(fresh.combatants).toEqual([{ id: 7, name: "a", side: 1, profession: "m", level: null, maximumHealth: null }]);
     expect(fresh.ourSide).toBe(1);
     expect(fresh.isFromFightStart).toBe(true);
   });
@@ -526,5 +526,96 @@ describe("what this fight could not be read out of", () => {
 
     expect(session.fightsStarted).toBe(1);
     expect(session.lostMessages).toBe(1);
+  });
+});
+
+/**
+ * The one figure the session takes once and never revisits.
+ *
+ * Everything else it holds is accumulated — messages, the roster, the counters —
+ * and this is a photograph of a moment that has already passed by the time the
+ * second payload arrives. Reading it again later would quietly replace "what they
+ * entered with" by "what they had left", and the cap every team heal is sized
+ * against would move down with the fight.
+ */
+describe("the health a fight was entered with", () => {
+  const warriors = {
+    1: { id: 1, name: "healer", team: 1, prof: "m", lvl: 100, hp: { max: 1000, cur: 1000 } },
+    2: { id: 2, name: "mate", team: 1, prof: "w", lvl: 100, hp: { max: 800, cur: 600 } },
+  };
+
+  test("is taken from the payload that opens the fight", () => {
+    const session = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1", w: warriors }),
+    );
+    expect([...session.entryHealthByCombatantId].sort()).toEqual([
+      [1, 1000],
+      [2, 600],
+    ]);
+  });
+
+  /**
+   * ⚠️ **Unwound, not read off the snapshot.** The opening payload carries its own
+   * messages and the warriors it states are the state *after* them, so a combatant
+   * the opening blow already hit is stated low. Reading that as their entry health
+   * caps every later heal against a figure they never held.
+   */
+  test("and unwound back through the messages that payload carried", () => {
+    const session = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1", w: warriors }, ["1=100.00;2=75.00;+dmg=200;-dmg=200"]),
+    );
+    expect(session.entryHealthByCombatantId.get(2)).toBe(800);
+  });
+
+  test("is not moved by anything that arrives afterwards", () => {
+    const opening = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1", w: warriors }),
+    );
+    const later = composeNextSession(
+      opening,
+      composeCleanReading({
+        w: { 2: { id: 2, name: "mate", team: 1, prof: "w", lvl: 100, hp: { max: 800, cur: 40 } } },
+      }, ["1=100.00;2=5.00;+dmg=560;-dmg=560"]),
+    );
+    expect(later.entryHealthByCombatantId.get(2)).toBe(600);
+  });
+
+  /**
+   * A fight joined in progress states none, and that is the whole of the degrade
+   * path: no entry health means no cast can be sized, which means the panel goes
+   * on counting the healing it cannot place instead of drawing a figure that would
+   * be capped against nothing.
+   */
+  test("is empty for a fight the session did not see open", () => {
+    const joined = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ w: warriors }, ["1=100.00;2=75.00;+dmg=200;-dmg=200"]),
+    );
+    expect([...joined.entryHealthByCombatantId]).toEqual([]);
+    expect(joined.isFromFightStart).toBe(false);
+  });
+
+  test("and is cleared when the next fight opens", () => {
+    const first = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1", w: warriors }),
+    );
+    const second = composeNextSession(first, composeCleanReading({ init: "1", w: {} }));
+    expect([...second.entryHealthByCombatantId]).toEqual([]);
+  });
+
+  /** Over the material, and every capture that opens a fight states one. */
+  test("is read for every capture whose opening payload carries warriors", () => {
+    const withEntryHealth = CAPTURED_FIGHTS.filter((fight) => {
+      let session = composeEmptySession();
+      for (const payload of getPayloads(fight)) {
+        session = composeNextSession(session, composeCleanReading(payload));
+      }
+      return session.entryHealthByCombatantId.size > 0;
+    });
+    expect(withEntryHealth.length).toBeGreaterThan(0);
   });
 });

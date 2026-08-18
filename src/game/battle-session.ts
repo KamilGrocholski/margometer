@@ -30,8 +30,14 @@ import {
   composeBattleRoster,
   composeMergedCombatants,
   composeRosterFragmentFromBattle,
+  composeStatedHealthByCombatantId,
   getOurSideFromBattle,
 } from "@/src/game/engine-roster.ts";
+import {
+  composeEntryHealthByCombatantId,
+  NO_ENTRY_HEALTH,
+  type FightEntryHealth,
+} from "@/src/core/combatant-health.ts";
 
 export type BattleSession = {
   /** Every message of this fight, in arrival order. */
@@ -122,6 +128,22 @@ export type BattleSession = {
    * thrown away, because they are already here.
    */
   lastMessage: string | null;
+  /**
+   * What each combatant entered this fight holding.
+   *
+   * ⚠️ **Taken once, on the payload that opens the fight, and never touched
+   * again.** The warriors that payload states are the state *after* its own
+   * messages, so the figure is unwound back through them
+   * (`src/core/combatant-health.ts`) rather than read off the snapshot — reading
+   * it off the snapshot is wrong for every combatant in a fight that opens with
+   * an attack, which is most group fights.
+   *
+   * Empty where the fight was joined in progress, and that needs no separate
+   * check: `composeEmptySession` is what a fight start resets to, so a session
+   * that never saw one never fills this in. Everything downstream then degrades to
+   * counting the healing it cannot size, which is what it did before this existed.
+   */
+  entryHealthByCombatantId: FightEntryHealth;
 };
 
 export function composeEmptySession(): BattleSession {
@@ -137,6 +159,7 @@ export function composeEmptySession(): BattleSession {
     lostMessages: 0,
     unreadableCombatants: 0,
     lastMessage: null,
+    entryHealthByCombatantId: NO_ENTRY_HEALTH,
   };
 }
 
@@ -252,11 +275,33 @@ export function composeNextSession(
     (stated ?? previous.ourSide) === previous.ourSide;
   if (changedNothing) return previous;
 
+  const events = composeNextEvents(previous, messages, combatants);
+
   return {
     messages: [...previous.messages, ...messages],
     combatants,
-    events: composeNextEvents(previous, messages, combatants),
+    events,
     decodedCombatants: combatants,
+    /**
+     * Read on the opening payload and carried untouched from then on, the way
+     * `ourSide` is — and for a sharper reason: this is a fact about one moment,
+     * and every later payload states a health that moment has already passed.
+     *
+     * It needs `events`, which is why it sits here rather than beside the roster
+     * above: the unwind subtracts this payload's own messages back off the health
+     * it states, and those messages are exactly what was just decoded.
+     */
+    entryHealthByCombatantId: starting
+      ? composeEntryHealthByCombatantId(
+          composeStatedHealthByCombatantId(payload),
+          new Map(
+            combatants.flatMap((combatant) =>
+              combatant.maximumHealth === null ? [] : [[combatant.id, combatant.maximumHealth]],
+            ),
+          ),
+          events,
+        )
+      : previous.entryHealthByCombatantId,
     ...composeNextFaults(previous, reading),
     unreadableCombatants: previous.unreadableCombatants + fragment.unreadableEntries,
     lastMessage: messages[messages.length - 1] ?? previous.lastMessage,
@@ -326,7 +371,7 @@ export type EngineReadingGaps = {
 export function composeFightReading(session: BattleSession): FightReading {
   const { roster } = composeBattleRoster(session.combatants, session.ourSide);
   return {
-    statistics: composeFightStatistics(session.events, roster),
+    statistics: composeFightStatistics(session.events, roster, session.entryHealthByCombatantId),
     roster,
     ourSide: session.ourSide,
     isFromFightStart: session.isFromFightStart,

@@ -37,7 +37,11 @@ const BACK_NOTE = "PPM — powrót";
 
 const FIGHTS = CAPTURED_FIGHTS.map((fight) => {
   const roster = composeRosterOfFight(fight);
-  const statistics = composeFightStatistics(decodeFight(getMessagesOfFight(fight), roster), roster);
+  const statistics = composeFightStatistics(
+    decodeFight(getMessagesOfFight(fight), roster),
+    roster,
+    fight.entryHealthByCombatantId,
+  );
   return {
     name: fight.name,
     reading: { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading,

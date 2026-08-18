@@ -9,6 +9,7 @@ import type {
   HealingToNamedCombatantEvent,
   HealthChangeEvent,
   PreventedDamage,
+  UnaccountedHealthEvent,
   DeclaredEffect,
   StatisticDestruction,
 } from "@/src/core/battle-event.ts";
@@ -486,23 +487,23 @@ const BLOW_DECLARATION_KEYS = [
 const VALUELESS_BLOW_DECLARATION_KEYS = ["+legbon_holytouch"];
 
 /**
- * Keys the decoder **reads and cannot account for**: the protocol says health
- * moved and states no figure any row could take.
+ * Keys stating a **share of a whole side's** health rather than a figure.
  *
- * Exported because the health witness needs it. "Understood" and "the replay can
- * add it" are different properties, and conflating them would make the witness
- * stop skipping these calls the moment the key was read — every one of them would
- * then disagree, for the good reason that the health really did move.
+ * The decoder reads them into `unaccounted-health` and stops there: sizing one
+ * needs each combatant's maximum, what they entered the fight with, and what they
+ * hold at the moment, and a decoder that walked messages one at a time could know
+ * none of the three. `src/core/combatant-health.ts` does that, later in the
+ * pipeline, and this is the list it works from — spelled here because the decoder
+ * is what turns the key into an event, and spelled **once** because a name we did
+ * not choose, spelled twice, fails silently (§9.3).
  *
- * `healall_per` restores a floored share of maximum to everyone on the caster's
- * side, capped at the health each began the fight with. The share is stated; the
- * recipients are not, and the cap has one reading in the material that refuses it
- * — so a figure drawn from it would be too high wherever the cap binds, which is
- * most of the side-mates it reaches, and too high is the direction the panel
- * cannot mark
- * (`docs/protocol-keys.md`).
+ * ⚠️ **This used to be called `UNATTRIBUTABLE_HEALTH_KEYS`, and the health
+ * witness read it to decide which calls it could not judge.** That is over: every
+ * key here is a figure the witness now adds and agrees on. What survives the
+ * rename is the reason the list exists at all — a share is not a figure, and the
+ * gap between them is three readings this layer does not have.
  */
-export const UNATTRIBUTABLE_HEALTH_KEYS: readonly string[] = ["healall_per"];
+export const SIDE_SHARE_HEALTH_KEYS: readonly string[] = ["healall_per"];
 
 /**
  * Keys that are the whole of their message and report nothing that happened to
@@ -565,7 +566,7 @@ export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   ...VALUELESS_BLOW_DECLARATION_KEYS,
   ...VALUELESS_SKILL_DECLARATION_KEYS,
   ...DAMAGE_KEYS_BY_NAME,
-  ...UNATTRIBUTABLE_HEALTH_KEYS,
+  ...SIDE_SHARE_HEALTH_KEYS,
   SKILL_SHOUT_KEY,
   SKILL_NAME_KEY,
   SKILL_ID_KEY,
@@ -646,6 +647,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
         announced: null,
         combatantId: subject?.combatantId ?? null,
         amount: amount * healthChange.sign,
+        healthPercent: subject?.healthPercent ?? null,
         source: key,
         declared: declaredBeside,
       });
@@ -728,9 +730,10 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
       continue;
     }
 
-    if (UNATTRIBUTABLE_HEALTH_KEYS.includes(key)) {
+    if (SIDE_SHARE_HEALTH_KEYS.includes(key)) {
       events.push({
         kind: "unaccounted-health",
+        announced: null,
         source: key,
         combatantId: parsed.actor?.combatantId ?? null,
         // Either spelling: the protocol states `30` and `22.5` for this key in
@@ -805,6 +808,8 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
       announced: null,
       actorId: parsed.actor?.combatantId ?? null,
       targetId: parsed.target?.combatantId ?? null,
+      actorHealthPercent: parsed.actor?.healthPercent ?? null,
+      targetHealthPercent: parsed.target?.healthPercent ?? null,
       dealt,
       taken,
       prevented,
@@ -819,6 +824,8 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
       kind: "skill-used",
       actorId: parsed.actor?.combatantId ?? null,
       targetId: parsed.target?.combatantId ?? null,
+      actorHealthPercent: parsed.actor?.healthPercent ?? null,
+      targetHealthPercent: parsed.target?.healthPercent ?? null,
       skillName,
       skillId,
       declared,
@@ -840,6 +847,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
     events.push({
       kind: "declaration",
       combatantId: parsed.actor?.combatantId ?? null,
+      healthPercent: parsed.actor?.healthPercent ?? null,
       declared: standalone,
     });
   }
@@ -877,11 +885,16 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
 /** The figures a skill can be glued to. Nothing else carries `announced`. */
 function isGluable(
   event: BattleEvent,
-): event is AttackEvent | DamageToNamedCombatantEvent | HealthChangeEvent {
+): event is
+  | AttackEvent
+  | DamageToNamedCombatantEvent
+  | HealthChangeEvent
+  | UnaccountedHealthEvent {
   return (
     event.kind === "attack" ||
     event.kind === "damage-to-named-combatant" ||
-    event.kind === "health-change"
+    event.kind === "health-change" ||
+    event.kind === "unaccounted-health"
   );
 }
 
@@ -895,10 +908,19 @@ function isGluable(
  * arrived on belongs to the announcer.
  */
 function getGlueActor(
-  event: AttackEvent | DamageToNamedCombatantEvent | HealthChangeEvent,
+  event:
+    | AttackEvent
+    | DamageToNamedCombatantEvent
+    | HealthChangeEvent
+    | UnaccountedHealthEvent,
   announcer: number | null,
 ): number | null {
-  return event.kind === "health-change" ? announcer : event.actorId;
+  if (event.kind === "health-change") return announcer;
+  // A cast names its caster in the actor slot, and that combatant is who the
+  // announcement belongs to — the same reading as an attack's, under a different
+  // field name because the event carries no `actorId` to call it.
+  if (event.kind === "unaccounted-health") return event.combatantId;
+  return event.actorId;
 }
 
 /**

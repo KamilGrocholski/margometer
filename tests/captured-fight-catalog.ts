@@ -4,8 +4,12 @@ import {
   type CombatantRoster,
 } from "@/src/core/combatant-roster.ts";
 import {
+  composeEntryHealthByCombatantId,
+  type FightEntryHealth,
+} from "@/src/core/combatant-health.ts";
+import { decodeFight } from "@/src/core/fight-decoder.ts";
+import {
   getMaximumHealthByCombatantId,
-  getStartingHealthByCombatantId,
   parseFightDump,
   type CombatantSnapshot,
   type FightDump,
@@ -17,8 +21,15 @@ export type CapturedFight = {
   name: string;
   dump: FightDump;
   maximumHealthByCombatantId: Map<number, number>;
-  /** What each combatant entered the fight holding — the ceiling a team heal caps against. */
-  startingHealthByCombatantId: Map<number, number>;
+  /**
+   * The same question answered by unwinding rather than by first sight, and the
+   * two disagree on every capture whose opening payload carries messages.
+   *
+   * This is what the add-on itself computes at run time, through the very same
+   * `core` reader — so the offline path and the live one cannot drift apart about
+   * what "the health it entered with" means (§9.1).
+   */
+  entryHealthByCombatantId: FightEntryHealth;
 };
 
 /**
@@ -35,12 +46,16 @@ export function composeRosterFromSnapshots(
   snapshots: readonly CombatantSnapshot[],
 ): CombatantRoster {
   return composeCombatantRoster(
-    snapshots.map(({ id, name, team, profession, level }) => ({
+    snapshots.map(({ id, name, team, profession, level, health }) => ({
       id,
       name,
       side: team,
       profession: profession === "" ? null : profession,
       level,
+      // The same figure the live roster reads off `hp.max`, from the recording's
+      // own copy of it — so the offline path and the live one size a share against
+      // the same pool (`src/core/combatant-health.ts`).
+      maximumHealth: health.maximum,
     })),
   );
 }
@@ -94,6 +109,48 @@ export function getMessagesOfDump(dump: FightDump): string[] {
 }
 
 /**
+ * What each combatant entered the fight holding, unwound from the first snapshot
+ * the recording actually took.
+ *
+ * ⚠️ **The first snapshot is not the start of the fight.** A capture's opening
+ * calls routinely carry messages with no snapshot beside them, so the first
+ * `combatantsBefore` that exists is the state *after* those messages — which is
+ * why this decodes them and hands them to the core reader to subtract back off,
+ * rather than reading a health off the snapshot and calling it the entry.
+ *
+ * The roster is built from the dump's own snapshots, because resolving a name is
+ * what turns `+oth_dmg` into a health movement, and the opening of the group
+ * fights is made of exactly those.
+ */
+function composeEntryHealthOfDump(
+  dump: FightDump,
+  maximumHealthByCombatantId: ReadonlyMap<number, number>,
+): Map<number, number> {
+  const opening: string[] = [];
+  const snapshots = new Map<number, CombatantSnapshot>();
+  let stated: readonly CombatantSnapshot[] | null = null;
+
+  for (const call of dump.calls) {
+    for (const combatant of [...call.combatantsBefore, ...call.combatantsAfter]) {
+      snapshots.set(combatant.id, combatant);
+    }
+    if (call.combatantsBefore.length > 0) {
+      stated = call.combatantsBefore;
+      break;
+    }
+    opening.push(...call.protocolMessages);
+  }
+  if (stated === null) return new Map();
+
+  const roster = composeRosterFromSnapshots([...snapshots.values()]);
+  return composeEntryHealthByCombatantId(
+    new Map(stated.map((combatant) => [combatant.id, combatant.health.current])),
+    maximumHealthByCombatantId,
+    decodeFight(opening, roster),
+  );
+}
+
+/**
  * Every capture in `tests/captured-fights/`, read with the same reader the
  * tooling uses.
  *
@@ -108,10 +165,11 @@ export const CAPTURED_FIGHTS: CapturedFight[] = readdirSync(CAPTURED_FIGHTS_DIRE
   .sort()
   .map((file) => {
     const dump = parseFightDump(readFileSync(CAPTURED_FIGHTS_DIRECTORY + file, "utf8"));
+    const maximumHealthByCombatantId = getMaximumHealthByCombatantId(dump);
     return {
       name: file.replace(/\.json$/, ""),
       dump,
-      maximumHealthByCombatantId: getMaximumHealthByCombatantId(dump),
-      startingHealthByCombatantId: getStartingHealthByCombatantId(dump),
+      maximumHealthByCombatantId,
+      entryHealthByCombatantId: composeEntryHealthOfDump(dump, maximumHealthByCombatantId),
     };
   });

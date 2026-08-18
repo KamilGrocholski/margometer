@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { CAPTURED_FIGHTS, type CapturedFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 import { getDecodingStatus } from "@/tools/decoding-status.ts";
+import { NO_ENTRY_HEALTH } from "@/src/core/combatant-health.ts";
 import { DAMAGE_TO_NAMED_KEY } from "@/src/core/fight-decoder.ts";
 
 /**
@@ -31,7 +32,9 @@ function composeFightOf(message: string): CapturedFight {
       ],
     },
     maximumHealthByCombatantId: new Map(),
-    startingHealthByCombatantId: new Map(),
+    // No snapshot, so no health can be read for it — which is the honest answer
+    // for an invented fight and the one that keeps this probe about decoding.
+    entryHealthByCombatantId: NO_ENTRY_HEALTH,
   };
 }
 

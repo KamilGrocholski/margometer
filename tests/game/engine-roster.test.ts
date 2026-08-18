@@ -6,6 +6,7 @@ import {
   composeRosterFragmentFromBattle,
   composeMergedCombatants,
   composeRosteredCombatant,
+  composeStatedHealthByCombatantId,
   getOurSideFromBattle,
 } from "@/src/game/engine-roster.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
@@ -27,13 +28,13 @@ import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
  */
 
 function composeCombatant(over: Partial<RosteredCombatant> = {}): RosteredCombatant {
-  return { id: 1, name: "one", side: 1, profession: "m", level: 100, ...over };
+  return { id: 1, name: "one", side: 1, profession: "m", level: 100, maximumHealth: null, ...over };
 }
 
 describe("one warrior off the live object", () => {
   test("reads what a row needs", () => {
     expect(composeRosteredCombatant({ id: 7, team: 2, name: "seven", prof: "w", lvl: 120 })).toEqual(
-      { id: 7, name: "seven", side: 2, profession: "w", level: 120 },
+      { id: 7, name: "seven", side: 2, profession: "w", level: 120, maximumHealth: null },
     );
   });
 
@@ -306,5 +307,81 @@ describe("the captured roster fragments, read as the session reads them", () => 
     expect(naming).toBeGreaterThan(0);
     // The reason a counter of every refusal would be noise rather than a warning.
     expect(silent).toBeGreaterThan(naming);
+  });
+});
+
+/**
+ * The health a combatant's entry carries, which is what a share of a pool has to
+ * be taken against (`src/core/combatant-health.ts`).
+ */
+describe("the health an entry states", () => {
+  const warrior = { id: 7, name: "seven", team: 2, prof: "w", lvl: 120, hp: { max: 900, cur: 300 } };
+
+  test("a maximum reaches the roster", () => {
+    expect(composeRosteredCombatant(warrior)?.maximumHealth).toBe(900);
+  });
+
+  /**
+   * ⚠️ **A missing `hp` must never refuse the entry.** Doing so would shrink the
+   * roster to whoever the game happened to state health for, and a roster short a
+   * combatant sends that person's damage to nobody.
+   */
+  test("and an entry without one is still a combatant", () => {
+    const withoutHealth = { id: 7, name: "seven", team: 2, prof: "w", lvl: 120 };
+    const combatant = composeRosteredCombatant(withoutHealth);
+    expect(combatant?.id).toBe(7);
+    expect(combatant?.maximumHealth).toBeNull();
+  });
+
+  test("a health object stating no maximum leaves it unread rather than zero", () => {
+    expect(composeRosteredCombatant({ ...warrior, hp: { cur: 300 } })?.maximumHealth).toBeNull();
+  });
+
+  test("current health is read on its own, keyed by combatant", () => {
+    expect([...composeStatedHealthByCombatantId({ w: { 7: warrior } })]).toEqual([[7, 300]]);
+  });
+
+  test("and a battle stating no warriors states no health", () => {
+    expect([...composeStatedHealthByCombatantId({})]).toEqual([]);
+    expect([...composeStatedHealthByCombatantId(null)]).toEqual([]);
+  });
+
+  /**
+   * ⚠️ **Current health must not become a property of the roster**, and this is
+   * the consequence that would bite: the session decides a fight needs reading
+   * again by comparing the merged list against what it held, so a figure that
+   * moves every payload would re-decode the whole fight several times a turn.
+   * A maximum does not move, so including it in the comparison costs nothing —
+   * and leaving it out would let a corrected pool pass as "nothing happened".
+   */
+  test("a fragment correcting only the maximum is a change the session can see", () => {
+    const before = [composeRosteredCombatant(warrior)].filter((c) => c !== null);
+    const after = [composeRosteredCombatant({ ...warrior, hp: { max: 1200, cur: 300 } })].filter(
+      (c) => c !== null,
+    );
+    expect(composeMergedCombatants(before, after)).not.toBe(before);
+  });
+
+  test("and one correcting only current health is not", () => {
+    const before = [composeRosteredCombatant(warrior)].filter((c) => c !== null);
+    const after = [composeRosteredCombatant({ ...warrior, hp: { max: 900, cur: 12 } })].filter(
+      (c) => c !== null,
+    );
+    expect(composeMergedCombatants(before, after)).toBe(before);
+  });
+
+  /**
+   * The `IDENTITY_FIELDS` trap, held against the material. Nearly every delta
+   * entry under `w` carries an id and an `hp` and nothing else, so admitting `hp`
+   * as a field that describes a person would turn most of a fight into entries the
+   * roster reports it could not read.
+   */
+  test("an entry stating only health is not an entry the roster failed to read", () => {
+    for (const fight of CAPTURED_FIGHTS) {
+      for (const call of fight.dump.calls) {
+        const fragment = composeRosterFragmentFromBattle(call.payload);
+        expect(fragment.unreadableEntries, fight.name).toBe(0);
+      }
+    }
   });
 });

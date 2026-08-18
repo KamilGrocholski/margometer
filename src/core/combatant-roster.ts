@@ -12,10 +12,12 @@
  * match, because attributing real damage to the wrong combatant is the failure
  * this project exists to prevent, and it is worse than attributing it to no one.
  *
- * The roster carries what something reads. Maximum health sits in the same
- * material and is deliberately absent: it joins when a consumer arrives, not
- * before (AGENTS.md §7.1). `side` joined when the aggregate needed to group
- * rows, and `level` when the panel's own detail line did.
+ * The roster carries what something reads. `side` joined when the aggregate
+ * needed to group rows, `level` when the panel's own detail line did, and
+ * `maximumHealth` when a share of it had to become a figure
+ * (`src/core/combatant-health.ts`). Current health has **not** joined and should
+ * not: it is a fact about a moment rather than about the fight, and this list's
+ * identity is what tells the session a fight needs reading again.
  */
 
 /** Ids the roster could not tell apart by name. */
@@ -55,6 +57,15 @@ export type RosteredCombatant = {
    * of it. Nothing divides by it and nothing ranks by it.
    */
   level: number | null;
+  /**
+   * The most health this combatant can hold, or null where nothing stated it.
+   *
+   * Null is a real answer and the reason this is not defaulted: a share taken of
+   * a maximum we guessed is a healing figure that is too high, and too high is the
+   * direction the panel cannot mark (§9.6). A combatant without one is left out of
+   * the cast rather than given somebody else's pool.
+   */
+  maximumHealth: number | null;
 };
 
 export type CombatantRoster = {

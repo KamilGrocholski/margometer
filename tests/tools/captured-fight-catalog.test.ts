@@ -61,39 +61,28 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
     });
 
     /**
-     * Not every combatant, and the missing ones are the point: a capture whose
-     * first snapshot follows the whole fight witnesses the loser at zero, and a
-     * zero is refused rather than reported as the health they entered with
-     * (`tools/fight-dump-parser.ts`). What is held is that whoever is in the map
-     * is in it with a figure a combatant could actually have started on.
+     * ⚠️ **This used to hold the health each combatant was *first seen* with, and
+     * that is a different figure.** The opening payload of a fight carries its own
+     * messages, so the first snapshot is the state after them — first-seen is too
+     * low for everyone in a fight that opens with an attack, which is most group
+     * fights. The catalog now unwinds those messages back off
+     * (`src/core/combatant-health.ts`), through the very reader the add-on uses, so
+     * the offline path and the live one cannot mean different things by it.
+     *
+     * Empty is a real answer and two captures give it: their whole fight arrives
+     * in one call, so there is no snapshot to unwind back to. What is held is that
+     * whoever is in the map is in it with a health a combatant could have entered
+     * on.
      */
-    test("carries the health each combatant started the fight with", () => {
-      expect(fight.startingHealthByCombatantId.size).toBeGreaterThan(0);
-      expect(fight.startingHealthByCombatantId.size).toBeLessThanOrEqual(
+    test("carries the health each combatant entered the fight with", () => {
+      expect(fight.entryHealthByCombatantId.size).toBeLessThanOrEqual(
         fight.maximumHealthByCombatantId.size,
       );
-      for (const [id, starting] of fight.startingHealthByCombatantId) {
-        expect(starting, `combatant ${id}`).toBeGreaterThan(0);
-        expect(starting, `combatant ${id}`).toBeLessThanOrEqual(
+      for (const [id, entry] of fight.entryHealthByCombatantId) {
+        expect(entry, `combatant ${id}`).toBeGreaterThan(0);
+        expect(entry, `combatant ${id}`).toBeLessThanOrEqual(
           fight.maximumHealthByCombatantId.get(id) ?? 0,
         );
-      }
-    });
-
-    // And nobody is left out for any other reason: the withheld ones are exactly
-    // those this capture never saw alive, which is checkable against the
-    // snapshots rather than against a count somebody keeps up to date.
-    test("withholds it only for a combatant it never saw alive", () => {
-      const withheld = [...fight.maximumHealthByCombatantId.keys()].filter(
-        (id) => !fight.startingHealthByCombatantId.has(id),
-      );
-      for (const id of withheld) {
-        const alive = fight.dump.calls.flatMap((call) =>
-          [...call.combatantsBefore, ...call.combatantsAfter].filter(
-            (combatant) => combatant.id === id && combatant.health.current > 0,
-          ),
-        );
-        expect(alive, `combatant ${id}`).toEqual([]);
       }
     });
 
@@ -122,17 +111,27 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
   },
 );
 
-// Without this the new reader could return the maximum health map and every
-// per-fight check above would still pass. Four of the eleven in the group
-// capture entered below their maximum, and that gap is the whole reason the two
-// are separate numbers.
-test("starting health is not simply maximum health under another name", () => {
+// Without this the reader could return the maximum health map and every per-fight
+// check above would still pass. Some combatants enter a fight below their
+// maximum, and that gap is the whole reason the two are separate numbers.
+test("entry health is not simply maximum health under another name", () => {
   const belowMaximum = CAPTURED_FIGHTS.flatMap((fight) =>
-    [...fight.startingHealthByCombatantId].filter(
-      ([id, starting]) => starting < (fight.maximumHealthByCombatantId.get(id) ?? 0),
+    [...fight.entryHealthByCombatantId].filter(
+      ([id, entry]) => entry < (fight.maximumHealthByCombatantId.get(id) ?? 0),
     ),
   );
   expect(belowMaximum.length).toBeGreaterThan(0);
+});
+
+// ⚠️ **Every capture states one now, and this used to assert the opposite.** Two
+// of them open with a payload carrying the whole fight and no snapshot beside it;
+// their entry health is unwound from the first health percentage the messages
+// state instead, so the map is full rather than empty. Kept pointing at the same
+// place from the other side: a capture that fell back to nothing would be a
+// recording this reader cannot open, and that is worth failing over.
+test("every capture states an entry health for somebody", () => {
+  const empty = CAPTURED_FIGHTS.filter((fight) => fight.entryHealthByCombatantId.size === 0);
+  expect(empty.map((fight) => fight.name)).toEqual([]);
 });
 
 describe("fight dump parser", () => {

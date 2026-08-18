@@ -22,6 +22,11 @@
 import { composeIntegerText } from "@/libs/number.ts";
 import type { AnnouncedSkill, BattleEvent } from "@/src/core/battle-event.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
+import {
+  composeSizedTeamHeals,
+  NO_ENTRY_HEALTH,
+  type FightEntryHealth,
+} from "@/src/core/combatant-health.ts";
 import { setPairRunningTotal, setRunningTotal } from "@/libs/running-total.ts";
 
 /**
@@ -421,9 +426,22 @@ function setTotalsFrom(into: Row, member: CombatantStatistics): void {
  * `combatantIdsWithoutSide`.
  */
 export function composeFightStatistics(
-  events: readonly BattleEvent[],
+  unsizedEvents: readonly BattleEvent[],
   roster: CombatantRoster | null = null,
+  entryHealthByCombatantId: FightEntryHealth = NO_ENTRY_HEALTH,
 ): FightStatistics {
+  /**
+   * Sizing happens here rather than in the decoder, and that is a decision.
+   *
+   * `src/game/battle-session.ts` decodes **incrementally** — it appends the events
+   * of new messages and freezes them — so a decoder carrying running health would
+   * answer differently depending on how the game happened to split its payloads,
+   * permanently. This fold is rebuilt from every event on every payload, so it is
+   * the one place where the health a cast is capped against is both complete and
+   * the same every time it is computed.
+   */
+  const events = composeSizedTeamHeals(unsizedEvents, roster, entryHealthByCombatantId);
+
   const rows = new Map<number, Row>();
   const unattributed = composeRow();
   const messagesByReason = new Map<string, number>();
@@ -482,6 +500,49 @@ export function composeFightStatistics(
     const fresh = composeRow();
     rows.set(combatantId, fresh);
     return fresh;
+  }
+
+  /**
+   * One heal written into every total it belongs to, from one reading of it.
+   *
+   * Extracted when the sized team heal arrived as a second caller: seven maps and
+   * two directions have to move together, and the failure mode of writing them
+   * twice is not a crash but a panel where the giving side and the receiving side
+   * quietly disagree. The one thing that differs between the callers is where the
+   * healer comes from — an announcement for a stated heal, the caster for a cast —
+   * so the healer is an argument and nothing else is.
+   */
+  function setHealingTotals(
+    recipientId: number | null,
+    amount: number,
+    source: string,
+    healerId: number | null,
+    announced: AnnouncedSkill | null,
+  ): void {
+    const subject = getRow(recipientId);
+    subject.healed += amount;
+    setRunningTotal(subject.healedBySource, source, amount);
+
+    if (healerId === null) {
+      setRunningTotal(subject.healedWithoutHealerBySource, source, amount);
+    } else {
+      setRunningTotal(subject.healedByHealerId, healerId, amount);
+      // Written here rather than derived later, so the two directions come from
+      // one reading of one event and cannot drift apart.
+      const giver = getRow(healerId);
+      giver.healingGiven += amount;
+      // Keyed by the recipient, so only where there is one to key it by. The
+      // giver's own breakdown is short by the rest, and the panel names the
+      // shortfall rather than hiding it (`src/ui/panel-drill.ts`).
+      if (recipientId !== null) {
+        setRunningTotal(giver.healingGivenByCombatantId, recipientId, amount);
+      }
+    }
+
+    setSkillTotals(announced, (skill) => {
+      skill.healed += amount;
+      if (recipientId !== null) setRunningTotal(skill.healedByCombatantId, recipientId, amount);
+    });
   }
 
   for (const event of events) {
@@ -568,74 +629,37 @@ export function composeFightStatistics(
         // Received and nothing else: the event carries no healer, so the giving
         // direction stays empty rather than being credited to whoever swung.
         // An unresolved name lands on nobody, exactly as the damage one does.
-        const subject = getRow(event.targetId);
-        subject.healed += event.amount;
-        setRunningTotal(subject.healedBySource, event.source, event.amount);
-        // No healer to be had on this shape at all, so every point of it is the
-        // pinned row's — stated here rather than left to be inferred from the
-        // absence of an entry in `healedByHealerId`.
-        setRunningTotal(subject.healedWithoutHealerBySource, event.source, event.amount);
+        // The null healer is what puts every point of it on the pinned row —
+        // stated by passing it rather than left to be inferred from an absence.
+        setHealingTotals(event.targetId, event.amount, event.source, null, null);
         break;
       }
 
       case "health-change": {
-        const subject = getRow(event.combatantId);
         if (event.amount >= 0) {
-          subject.healed += event.amount;
-          setRunningTotal(subject.healedBySource, event.source, event.amount);
-          // The healer comes from the announcement and from nowhere else — the
-          // key itself names only who was healed.
-          const healer = event.announced?.actorId ?? null;
           /**
            * ⚠️ **The healer is credited whether or not the recipient resolved, and
            * for one release neither was.**
            *
-           * The condition here used to demand both ends, so an announced heal
-           * reaching a name this fight could not place was filed under
-           * `healedWithoutHealerBySource` — healing *nobody gave*. The
-           * announcement had named the giver, so that was a claim about the game
-           * that is false (§3): the panel said "nic nie zapowiedziało tego
+           * The condition used to demand both ends, so an announced heal reaching
+           * a name this fight could not place was filed as healing *nobody gave*.
+           * The announcement had named the giver, so that was a claim about the
+           * game that is false (§3): the panel said "nic nie zapowiedziało tego
            * leczenia" about points something had announced, and the giver's own
            * total was short by them with nothing on their row saying so.
            *
-           * The two maps still partition `healed`, and the split is now the one
-           * thing they are about: whether a healer was named. Where the recipient
-           * did not resolve, `subject` is the row nobody owns — so the points are
-           * on the giving side and outside every combatant's `healed`, which is
-           * what the panel's row for a target the game did not name reads
-           * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+           * The healer comes from the announcement and from nowhere else — the
+           * key itself names only who was healed.
            */
-          if (healer === null) {
-            setRunningTotal(subject.healedWithoutHealerBySource, event.source, event.amount);
-          } else {
-            subject.healedByHealerId.set(
-              healer,
-              (subject.healedByHealerId.get(healer) ?? 0) + event.amount,
-            );
-            // Written here rather than derived later, so the two directions come
-            // from one reading of one event and cannot drift apart.
-            const giver = getRow(healer);
-            giver.healingGiven += event.amount;
-            // Keyed by the recipient, so only where there is one to key it by. The
-            // giver's own breakdown is short by the rest, and the panel names the
-            // shortfall rather than hiding it (`src/ui/panel-drill.ts`).
-            if (event.combatantId !== null) {
-              giver.healingGivenByCombatantId.set(
-                event.combatantId,
-                (giver.healingGivenByCombatantId.get(event.combatantId) ?? 0) + event.amount,
-              );
-            }
-          }
-          setSkillTotals(event.announced, (skill) => {
-            skill.healed += event.amount;
-            if (event.combatantId !== null) {
-              skill.healedByCombatantId.set(
-                event.combatantId,
-                (skill.healedByCombatantId.get(event.combatantId) ?? 0) + event.amount,
-              );
-            }
-          });
+          setHealingTotals(
+            event.combatantId,
+            event.amount,
+            event.source,
+            event.announced?.actorId ?? null,
+            event.announced,
+          );
         } else {
+          const subject = getRow(event.combatantId);
           subject.healthLost += -event.amount;
           setRunningTotal(subject.healthLostBySource, event.source, -event.amount);
         }
@@ -671,6 +695,25 @@ export function composeFightStatistics(
         unreadableMessages += 1;
         setRunningTotal(messagesByReason, event.reason, 1);
         for (const key of event.unreadKeys) setRunningTotal(occurrencesByUnreadKey, key, 1);
+        break;
+      }
+
+      case "team-heal": {
+        /**
+         * The caster is credited because the protocol named them as the message's
+         * actor, not because anything was inferred — this is the one healing shape
+         * where the *giver* is the end the game states and the recipients are the
+         * end it leaves to the arithmetic (§9.6).
+         */
+        for (const [combatantId, restored] of event.restoredByCombatantId) {
+          setHealingTotals(
+            combatantId,
+            restored,
+            event.source,
+            event.casterId,
+            event.announced,
+          );
+        }
         break;
       }
 

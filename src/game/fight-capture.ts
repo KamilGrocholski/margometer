@@ -26,6 +26,7 @@ import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 import { isFightStart } from "@/src/game/battle-session.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
 import {
+  WARRIOR_HEALTH_FIELD,
   WARRIOR_ID_FIELD,
   WARRIOR_LEVEL_FIELD,
   WARRIOR_NAME_FIELD,
@@ -141,7 +142,7 @@ export function composeSnapshotFromBattle(battle: EngineBattle): CapturedCombata
       team: combatant[WARRIOR_SIDE_FIELD] ?? null,
       prof: combatant[WARRIOR_PROFESSION_FIELD] ?? null,
       lvl: combatant[WARRIOR_LEVEL_FIELD] ?? null,
-      hp: composeShallowCopy(combatant["hp"]),
+      hp: composeShallowCopy(combatant[WARRIOR_HEALTH_FIELD]),
       mana: combatant["mana"] ?? null,
       energy: combatant["energy"] ?? null,
       ac: composeShallowCopy(combatant["ac"]),

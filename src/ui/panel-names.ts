@@ -186,6 +186,10 @@ export const HEALTH_GAIN_SOURCE_NAMES: Record<string, TokenName> = {
   // keys already, so this is a reading rather than a guess.
   legbon_holytouch_heal: { id: "msg_+legbon_holytouch", fallback: "dotyk anioła" },
   legbon_lastheal: { id: null, fallback: "ostatni ratunek" },
+  // The client's own entry is `msg_healall_per %name% %val%` — a sentence with two
+  // holes rather than a name, so there is nothing to ask the dictionary for
+  // (production build `1786514810315`).
+  healall_per: { id: null, fallback: "leczenie całej drużyny" },
 };
 
 /**

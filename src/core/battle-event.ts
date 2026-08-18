@@ -88,6 +88,23 @@ export type AttackEvent = {
   /** Combatant ids, or null where the protocol named nobody on that side. */
   actorId: number | null;
   targetId: number | null;
+  /**
+   * The health the protocol states for each of them, as a share of their maximum,
+   * once this blow is in.
+   *
+   * Carried rather than dropped because it is the only thing in a fight that can
+   * *contradict* a running health total: everything else here is a movement we
+   * read, and a movement we failed to read leaves no trace at all. The protocol
+   * restates where a combatant actually stands every time it names them, which is
+   * how `src/core/combatant-health.ts` can tell a total that drifted from one that
+   * did not (`docs/protocol-keys.md`, on the client applying these before it looks
+   * at a single key).
+   *
+   * Null where the protocol stated a bare id, which it does for one side of a
+   * message routinely.
+   */
+  actorHealthPercent: number | null;
+  targetHealthPercent: number | null;
   /** Before reduction — what the attacker put out. */
   dealt: DamageAmount[];
   /**
@@ -203,6 +220,13 @@ export type HealthChangeEvent = {
   combatantId: number | null;
   /** Signed: positive is health restored, negative is health lost. */
   amount: number;
+  /**
+   * The health the protocol states for that combatant once this movement is in,
+   * as a share of their maximum. Null where it stated a bare id.
+   *
+   * The same reading as `AttackEvent`'s, and here for the same reason.
+   */
+  healthPercent: number | null;
   /** The protocol key as written. Who caused it is not in the log (§5). */
   source: string;
   /**
@@ -322,6 +346,18 @@ export type SkillUsedEvent = {
    */
   targetId: number | null;
   /**
+   * The health the protocol states for each of them, as a share of their maximum.
+   *
+   * An announcement carries no figure of its own, so this looks like the last
+   * place worth reading one — and it is the **first** thing a fight says about
+   * most combatants. `src/core/combatant-health.ts` unwinds what somebody entered
+   * a fight with from the earliest statement about them, and in a capture whose
+   * opening carries the whole fight, five of eleven combatants are first named by
+   * an announcement and nothing else.
+   */
+  actorHealthPercent: number | null;
+  targetHealthPercent: number | null;
+  /**
    * As the protocol states it, which is the name the player's own client shows
    * — so it arrives in their language and is never stored here (NOTICE.md).
    */
@@ -359,6 +395,13 @@ export type DeclarationEvent = {
    * always name their actor; `txt` and `+exp` name nobody at all.
    */
   combatantId: number | null;
+  /**
+   * The health the protocol states for that combatant, as a share of their
+   * maximum. Read for the same reason an announcement's is: `step` names somebody
+   * and states where they stand, and that is often the earliest thing a fight says
+   * about them (`src/core/combatant-health.ts`).
+   */
+  healthPercent: number | null;
   declared: DeclaredEffect[];
 };
 
@@ -388,6 +431,52 @@ export type UnaccountedHealthEvent = {
   combatantId: number | null;
   /** The share the protocol states, where it states one. Never health. */
   declaredShare: number | null;
+  /**
+   * The skill the game glued this cast to.
+   *
+   * Every occurrence in the captures carries one — the key only ever arrives on a
+   * `tspell` announcement — so this is what puts a sized cast on its skill's row
+   * rather than on no skill at all.
+   */
+  announced: AnnouncedSkill | null;
+};
+
+/**
+ * Healing the protocol stated about a whole **side**, sized onto its members.
+ *
+ * ⚠️ **Derived, and the only event here that is.** Everything else in this union
+ * is a reading of something the protocol wrote down; this is the game's own
+ * published arithmetic applied to three figures the protocol does not state —
+ * maximum health, the health the fight was entered with, and the health each
+ * member held at the moment. That is why it is a kind of its own rather than a
+ * handful of `health-change`s: a `health-change` promises a figure the game
+ * stated, and folding these in would put a derivation behind that promise with
+ * nothing able to tell them apart again.
+ *
+ * It is produced by `src/core/combatant-health.ts` and by nothing else — never by
+ * the decoder, which sees only messages and would have to be told the three
+ * figures it cannot know.
+ *
+ * ⚠️ **It does not replace `unaccounted-health` unless every member was sized.**
+ * A cast that reached eight side-mates and could be sized for six emits this
+ * carrying the six *and* leaves the unaccounted event standing, so a partial
+ * answer can never be read as a whole one (§9.6).
+ */
+export type TeamHealEvent = {
+  kind: "team-heal";
+  /** The caster, read from the message's actor slot — never from its target. */
+  casterId: number;
+  /** The protocol key the share was stated on. */
+  source: string;
+  /** The share the protocol stated, already weakened by the game. */
+  declaredShare: number;
+  /**
+   * What was restored, per combatant. Never empty: a cast this meter could size
+   * for nobody produces no event of this kind at all, because a map of nothing is
+   * indistinguishable from a heal that healed nothing.
+   */
+  restoredByCombatantId: ReadonlyMap<number, number>;
+  announced: AnnouncedSkill | null;
 };
 
 export type FightOutcomeEvent = {
@@ -439,6 +528,7 @@ export type BattleEvent =
   | SkillUsedEvent
   | DeclarationEvent
   | UnaccountedHealthEvent
+  | TeamHealEvent
   | FightOutcomeEvent
   | UnknownMessageEvent;
 
@@ -455,6 +545,7 @@ export const BATTLE_EVENT_KINDS = [
   "skill-used",
   "declaration",
   "unaccounted-health",
+  "team-heal",
   "fight-outcome",
   "unknown-message",
 ] as const satisfies

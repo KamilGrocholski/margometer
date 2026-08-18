@@ -392,6 +392,198 @@ declined them all. Once they were read, the residue was exact: after
 arithmetic, and reading it as damage turned that disagreement, and eighty-odd
 others, into agreements.
 
+### `healall_per` — decoded
+
+Healing by a share of **maximum** health, floored, reaching every combatant on
+the caster's side and nobody on the other, and capped. The caster is the actor,
+and usually the target as well — but four of the 85 messages state a different id
+there, so reading the caster from the target slot would credit the wrong
+combatant. Read the actor slot, and read it always: the four are the whole reason
+this sentence names a slot rather than a habit.
+
+This is the one that decided the witness's shape. Dropping only the combatants a
+message names is not enough here, because the health moved somewhere the message
+never mentions, and the next comparison against such a combatant was out by more
+than twenty percentage points. A key like this costs the whole call.
+
+The share needs no arithmetic of ours. The help says each successive use of a
+skill carrying the effect is weaker by a quarter of the base, and the protocol
+states the **result**: grouped by caster, the shares run 30 → 22.5 → 15 and
+22 → 16.5 → 11 → 5.5, every one of them the first times `1 − 0.25n`. Grouped by
+skill they would not, because two casters used the same skill from different
+bases — which is the reading to avoid, not a contradiction in the material.
+
+**Not read, and the reason has changed.** The old one was that nothing knew who
+stood on the caster's side. That is settled: the roster carries `side`, reaches
+the decoder, and the live payload's warriors carry `hp.max` beside it, so the
+share and its recipients are both available now.
+
+**The cap is settled, and the reading that refused it was the measurement's own
+fault.** The help says the effect cannot restore a combatant past the health it
+began the fight with. This entry used to record one reading refusing that, and
+`2026-08-14-tempest-grupa-vs-hildur` arrived with sixteen more — every side-mate
+in it, twice over. All seventeen have one cause: they were measured against
+`startingHealthByCombatantId`, which reads the health a combatant was **first
+seen** holding, and in those cases something had already reached them before the
+first snapshot existed. That fight opens with the boss casting one message
+carrying ten `+oth_dmg` figures, one per side-mate, before any snapshot; the older
+refusal was hit the same way. Excluding a combatant whose health had already moved
+— decided from the messages alone, so it is a fact about the recording and not
+about the heals — the cap holds without exception.
+
+Reading the key **without** the cap would put a healing figure on screen that is
+too **high** wherever the cap binds, and it binds on 78 of 109 side-mates. Too
+high is the one direction the panel cannot mark, because nothing would know it had
+happened (§9.6). The cap is what makes the arithmetic safe, and it is why the
+inputs below are refused rather than defaulted: a cap taken against a figure we do
+not hold is not a cap.
+
+**`unaccounted-health` is now the degrade path rather than the verdict.** The
+decoder still reads the key into it — the third answer between "read" and "no
+meaning yet" — and where a cast cannot be sized that is still what the panel is
+told: healing happened, it reached a whole side, and this meter cannot say whose.
+What changed is that most casts no longer end there.
+
+⚠️ **A partly sized cast keeps both events.** Where six of eight side-mates could
+be sized, the figures for the six are drawn *and* the cast goes on being counted
+as missing, so a partial answer can never be read as a whole one (§9.6). No
+capture produces one any more; the shape is held by hand-built fights instead.
+
+The list the decoder keeps for this shape is `SIDE_SHARE_HEALTH_KEYS` — keys
+stating a share of a whole side rather than a figure. It was called
+`UNATTRIBUTABLE_HEALTH_KEYS` while the witness read it to decide which calls it
+could not judge; that reason is gone, and what survives the rename is the one that
+was always underneath it. A share is not a figure, and the gap between them is
+three readings the decoder cannot make.
+
+**The two clauses that no capture could test are settled, and neither of them is
+tested on a capture.** Both were read off the help and the client instead, which
+is what §7.6 is for: they are claims about somebody else's system, and the
+material here was never going to answer them.
+
+*Halved with no allies.* The help states it of this key directly (read
+2026-08-18). It is not a clause a recording can settle — every capture carrying
+the key is a group fight — but it is one the **roster** settles at run time, and
+that is enough: whether the caster has a side-mate at all is a question we can
+always answer. Where they do, the clause cannot apply. Where they do not, the
+answer is not a halved figure but no figure, because nothing here has ever seen
+that fight and a share we have never watched being applied is not a share we can
+apply.
+
+*Reducible by `lowheal_per-enemies`.* Two findings, and the first removes half the
+clause. The reducer's own help entry names exactly what it reduces — `healall_per`,
+`heal_per`, `combo_heal_per` — and `heal_per-enemies` is in none of those lists;
+it modifies the healing that comes off equipment, which is a different bullet of
+the help's own account of where health comes from. So there is one reducer here,
+not two.
+
+And that one is **announced in the protocol**, which is what makes its absence
+readable rather than merely unobserved. Production build `1786514810315` composes
+it in the battle log as `_t("msg_lowheal_per-enemies val", {"%val%": …})` — a
+message with a figure in it, the same shape its sibling `poison_lowdmg_per-enemies`
+arrives in and this decoder already reads. A fight whose messages never carry the
+key is therefore a fight where the effect was not in play, and *not carried* stops
+being *not noticed*.
+
+⚠️ **The key itself stays unread, deliberately.** No capture carries it, and
+reading a shape this repository has never seen would be describing a message we
+have never met (§5). What its absence buys is the right to size the casts around
+it; what its presence would buy is the right to refuse them. Both are answers, and
+neither needs the key decoded.
+
+⚠️ **One shape of this key's own value is unmet and would be misread.** The same
+production build splits the value on a comma and composes a different sentence
+when there are two members — `msg_healall_per_multi %name% %val% %val2%` against
+`msg_healall_per %name% %val%` — the way `heal`, `injure` and `poison` do. No
+occurrence in the captures carries a comma, so the second member has never been
+seen and is not read. The reader takes the value whole, which answers `null` on a
+two-member value and refuses to size the cast — the safe direction, and stated
+here because it is the one that would otherwise be found by a wrong figure rather
+than by a missing one.
+
+**The cap gained a second, independent statement on 2026-08-11, and the verdict
+did not move.** Reading the help by stem for the `legbon` family turned up
+`holytouch`, an unrelated bonus, capped by the help in the same words: restored
+health may not pass what the combatant began the fight with. So the bound is the
+game's general rule for restored health rather than a clause peculiar to this key,
+which is worth more than one article's sentence about one skill.
+
+That second statement is now the one carrying the cap, since the readings that
+looked like refusals turned out to be readings of a figure the capture did not
+hold.
+
+**A figure is drawn from this key.** The three readings that were missing all
+arrived: the roster carries each combatant's maximum, the session unwinds what
+each entered the fight with, and `src/core/combatant-health.ts` carries a running
+health forward from there. Where all three are held and the caster has a standing
+ally, the cast is **sized** — the caster credited with the healing given, each
+standing side-mate with the healing received — and where any of them is missing it
+is not, and the cast goes on being counted as healing that is missing.
+
+Measured over the corpus at the commit that did it: **all 85 casts sized**, 850
+recipients between them, **1 604 444 points of healing that reached no row
+before** — the total healing this meter reports goes 1 145 411 → 2 749 855. No
+capture is left warning about healing it could not place.
+
+⚠️ **Two captures took a second reading to reach**, and they are the interesting
+ones: `2026-08-15-tempest-grupa-vs-draugr-1` and
+`2026-08-15-tempest-grupa-vs-hildur-1` open with a payload carrying 297 and 354
+messages and no snapshot beside it, so the first snapshot sits *after* eight casts
+nothing could size. Unwinding the snapshot alone refused both outright. The
+messages in that opening state health percentages of their own, and in both
+captures every one of the eleven combatants is stated before the first cast — so
+the entry health is unwound from the first statement about each combatant, and the
+snapshot is the fallback rather than the anchor. Five of those eleven are stated by
+a `step` or a skill announcement, which is why those two events now carry a health
+percentage they have no figure of their own to go beside.
+
+**What makes that a reading rather than an estimate**: on every cast that stood
+alone in its engine call — 110 readings — the sized figure equals the health the
+snapshots on either side of that call actually record, exactly, with no tolerance.
+The reader that produces it never sees a snapshot; it seeds once from an unwound
+entry health and carries a running total the length of the fight. Two independent
+routes to the same number.
+
+⚠️ **The health witness stopped skipping these calls, and agrees.** It used to
+decline every engine call carrying this key, because health moved by an amount
+nothing could size. It now judges them and the arithmetic closes: coverage rose in
+thirteen of the fourteen fights carrying the key — 790 → 945 comparisons on
+`2026-08-06-tempest-grupa-vs-hildur`, 392 → 624 on
+`2026-08-12-tempest-grupa-vs-draugr-1` — with no disagreement anywhere. The
+fourteenth carries all of its casts in an opening call with no snapshot in front
+of it, which the replay could never judge whatever the call contained. That is
+the protocol's own stated percentages confirming a figure derived from something
+else entirely, which is the only evidence this repository accepts for a key that
+moves health.
+
+*Health:* moves health
+
+*Shape:* 85 occurrences; on a skill announcement; a number
+
+*Help:* names `healall_per`, `lowheal_per-enemies`, `heal_per-enemies`
+
+*Evidence:* article view,372 at the engine name `healall_per` (read 2026-08-18,
+first read 2026-08-09) for the four clauses, none of which the protocol states.
+The reducer at its own engine name `lowheal_per-enemies` (read 2026-08-18) lists
+the three effects it reduces and this key is one of them; `heal_per-enemies` (read
+2026-08-18) appears only among the modifiers of the health that comes off
+equipment and reduces nothing here. All three are on the `*Help:*` line rather
+than in this prose, because a help claim stated in prose is a help claim nobody
+re-runs. Production build `1786514810315` for the battle-log composition of
+`lowheal_per-enemies` and for the two-member split of this key's own value.
+Measured on every group fight that carries the key; the
+casts standing alone in their engine call are the ones read, so their health
+deltas are attributable to nothing else. The share is of the maximum — 7162
+restored on a maximum of 23874 at 30%, where 30% of that combatant's remaining
+8749 would be 2624. It floors: a share landing on
+5629.5 moved 5629. Capping at the entry health reproduces every reading whose
+entry health the capture holds, and the readings that separate the two caps sat
+exactly at their entry health while short of maximum and gained nothing.
+Dropping the cap entirely reports 81% more healing than happened. Held by
+`tests/core/team-heal-rule.test.ts`, which also holds the exclusion: something
+has to be excluded for a missing entry health and something has to survive it,
+or the cap is confirmed against nothing.
+
 ---
 
 ## Families the decoder reads by shape
@@ -1001,111 +1193,6 @@ the captures: present on 182 of the 197 announcements, absent from 15, and never
 once on a message that does not also carry `tspell`. That last figure is why a
 lone id is reported unread instead of decoded — the protocol has not yet shown
 one, so reading it would be describing a message we have never seen.
-
----
-
-## Keys that move health and are not read yet
-
-Each of these makes its engine call uncomparable. They are the queue the decoder
-works through next, and until it does, the witness declines to judge the calls
-they appear in rather than reporting our ignorance as the game's error.
-
-### `healall_per` — decoded
-
-Healing by a share of **maximum** health, floored, reaching every combatant on
-the caster's side and nobody on the other, and capped. The caster is the actor,
-and in all but two messages the target as well — those two state different ids,
-so reading the caster from the target slot would credit the wrong combatant.
-
-This is the one that decided the witness's shape. Dropping only the combatants a
-message names is not enough here, because the health moved somewhere the message
-never mentions, and the next comparison against such a combatant was out by more
-than twenty percentage points. A key like this costs the whole call.
-
-The share needs no arithmetic of ours. The help says each successive use of a
-skill carrying the effect is weaker by a quarter of the base, and the protocol
-states the **result**: grouped by caster, the shares run 30 → 22.5 → 15 and
-22 → 16.5 → 11 → 5.5, every one of them the first times `1 − 0.25n`. Grouped by
-skill they would not, because two casters used the same skill from different
-bases — which is the reading to avoid, not a contradiction in the material.
-
-**Not read, and the reason has changed.** The old one was that nothing knew who
-stood on the caster's side. That is settled: the roster carries `side`, reaches
-the decoder, and the live payload's warriors carry `hp.max` beside it, so the
-share and its recipients are both available now.
-
-**The cap is settled, and the reading that refused it was the measurement's own
-fault.** The help says the effect cannot restore a combatant past the health it
-began the fight with. This entry used to record one reading refusing that, and
-`2026-08-14-tempest-grupa-vs-hildur` arrived with sixteen more — every side-mate
-in it, twice over. All seventeen have one cause: they were measured against
-`startingHealthByCombatantId`, which reads the health a combatant was **first
-seen** holding, and in those cases something had already reached them before the
-first snapshot existed. That fight opens with the boss casting one message
-carrying ten `+oth_dmg` figures, one per side-mate, before any snapshot; the older
-refusal was hit the same way. Excluding a combatant whose health had already moved
-— decided from the messages alone, so it is a fact about the recording and not
-about the heals — the cap holds without exception.
-
-Reading the key would still put a healing figure on screen that is too **high**
-wherever the cap actually binds, and it binds on 78 of 109 side-mates. Too high is
-the one direction the panel cannot mark, because nothing would know it had
-happened (§9.6). So the calls stay uncomparable and **no figure is drawn from this
-key** — but what stands in the way is now the two untested clauses below, not the
-cap.
-
-**What changed on 2026-08-11 is that refusing the figure stopped meaning refusing
-the key.** The decoder reads it into `unaccounted-health` — the third answer
-between "read" and "no meaning yet" — which states what the old verdict could
-not: healing happened, it reached a whole side, and this meter cannot say whose.
-The panel says exactly that, ahead of anything it merely suspects, because it is
-the only line there that is certain rather than a maybe.
-
-The witness still skips these twelve calls, and now does so because the decoder
-says to: `UNATTRIBUTABLE_HEALTH_KEYS` is the list of keys it reads without being
-able to place them. Understanding a key and being able to add its figure are
-different properties, and the day they were conflated all twelve calls would have
-disagreed — correctly, since the health really did move.
-
-Two further clauses the help states and this material cannot test: the effect is
-halved when the caster has no allies in the fight — every capture here is a group
-— and it is reducible by `lowheal_per-enemies`, which no capture carries. Whether
-the protocol pre-applies those the way it pre-applies the weakening is unknown,
-and it has to be known before a figure is drawn from this key.
-
-**The cap gained a second, independent statement on 2026-08-11, and the verdict
-did not move.** Reading the help by stem for the `legbon` family turned up
-`holytouch`, an unrelated bonus, capped by the help in the same words: restored
-health may not pass what the combatant began the fight with. So the bound is the
-game's general rule for restored health rather than a clause peculiar to this key,
-which is worth more than one article's sentence about one skill.
-
-That second statement is now the one carrying the cap, since the readings that
-looked like refusals turned out to be readings of a figure the capture did not
-hold. What still keeps a figure off the screen is the pair of clauses above that
-no capture can test — and both of them would make the healing **smaller** than
-the share, which is the direction the panel cannot mark (§9.6). No figure is
-drawn.
-
-*Health:* moves health
-
-*Shape:* 85 occurrences; on a skill announcement; a number
-
-*Help:* names `healall_per`
-
-*Evidence:* article view,372 at the engine name `healall_per` (read 2026-08-09)
-for the four clauses above, none of which the protocol states. Measured on every
-group fight that carries the key; the casts standing alone in their engine call
-are the ones read, so their health deltas are attributable to nothing else. The
-share is of the maximum — 7162 restored on a maximum of 23874 at 30%, where 30%
-of that combatant's remaining 8749 would be 2624. It floors: a share landing on
-5629.5 moved 5629. Capping at the entry health reproduces every reading whose
-entry health the capture holds, and the readings that separate the two caps sat
-exactly at their entry health while short of maximum and gained nothing.
-Dropping the cap entirely reports 81% more healing than happened. Held by
-`tests/core/team-heal-rule.test.ts`, which also holds the exclusion: something
-has to be excluded for a missing entry health and something has to survive it,
-or the cap is confirmed against nothing.
 
 ---
 

@@ -536,8 +536,8 @@ describe("what a failing panel puts on the console", () => {
 
   function composeReadingOfFight(fightsStarted: number): FightReading {
     const roster = composeCombatantRoster([
-      { id: 1, name: "a mage", side: 1, profession: "m", level: null },
-      { id: 3, name: "something large", side: 2, profession: null, level: null },
+      { id: 1, name: "a mage", side: 1, profession: "m", level: null, maximumHealth: null },
+      { id: 3, name: "something large", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     return {
       statistics: composeFightStatistics(
@@ -751,8 +751,8 @@ describe("the panel asking the running client for a name", () => {
 
   function composeReadingWithAStun(): FightReading {
     const roster = composeCombatantRoster([
-      { id: 1, name: "a mage", side: 1, profession: "m", level: null },
-      { id: 3, name: "something large", side: 2, profession: null, level: null },
+      { id: 1, name: "a mage", side: 1, profession: "m", level: null, maximumHealth: null },
+      { id: 3, name: "something large", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     return {
       statistics: composeFightStatistics(
@@ -1263,8 +1263,8 @@ describe("the panel before the first payload", () => {
   test("gives way to the ranking on the first reading", () => {
     const { page, getBody } = composePageWithABody();
     const roster = composeCombatantRoster([
-      { id: 1, name: "a mage", side: 1, profession: "m", level: null },
-      { id: 3, name: "something large", side: 2, profession: null, level: null },
+      { id: 1, name: "a mage", side: 1, profession: "m", level: null, maximumHealth: null },
+      { id: 3, name: "something large", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const render = assertDefined(composePanelMount(page), "the page can hold a panel");
 

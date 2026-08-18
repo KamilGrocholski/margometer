@@ -34,7 +34,7 @@ import { setRunningTotal } from "@/libs/running-total.ts";
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
-import type { BattleEvent } from "@/src/core/battle-event.ts";
+import type { AttackEvent, BattleEvent } from "@/src/core/battle-event.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import {
@@ -51,6 +51,14 @@ import {
   getMessagesOfFight,
 } from "@/tests/captured-fight-catalog.ts";
 
+/**
+ * A capture read the way the panel reads a live fight — entry health included.
+ *
+ * ⚠️ **Without the third argument this whole file measures a reading nothing
+ * ships.** The add-on hands the aggregate what each combatant entered the fight
+ * with, and every team heal in the corpus is sized because of it; a test that
+ * left it out would go on asserting the totals from before that was true.
+ */
 function getStatisticsOf(fight: CapturedFight) {
   const roster = composeRosterOfFight(fight);
   return composeFightStatistics(
@@ -59,6 +67,7 @@ function getStatisticsOf(fight: CapturedFight) {
       roster,
     ),
     roster,
+    fight.entryHealthByCombatantId,
   );
 }
 
@@ -79,11 +88,13 @@ function getEveryRow(statistics: ReturnType<typeof composeFightStatistics>): Com
   return [...statistics.byCombatantId.values(), statistics.unattributed];
 }
 
-const ATTACK_ON_NOBODY: BattleEvent = {
+const ATTACK_ON_NOBODY: AttackEvent = {
   kind: "attack",
   announced: null,
   actorId: null,
   targetId: null,
+  actorHealthPercent: null,
+  targetHealthPercent: null,
   dealt: [{ damageType: "dmg", amount: 100 }],
   taken: [{ damageType: "dmg", amount: 60 }],
   prevented: [{ prevention: "absorb", amount: 40 }],
@@ -185,20 +196,29 @@ describe("the aggregate over captured fights", () => {
   });
 
   /**
-   * What the captures do still carry, and it is the stronger claim: healing that
-   * reached a whole side, which the protocol reports without naming anyone it
-   * healed. One fight has it and one does not, so both branches are real.
+   * ⚠️ **This asserted the opposite until the healing could be sized.** Healing
+   * that reached a whole side was reported without naming anyone it healed, and
+   * every capture carrying it counted the casts as health nobody could place. All
+   * 85 of them are placed now, so the count is zero everywhere — and a zero here
+   * is the claim, not an absence: it says the panel has nothing left to warn
+   * about on this material.
+   *
+   * The counter itself is still live, and `tests/core/combatant-health.test.ts`
+   * holds the fights that fill it — one joined in progress, one whose caster has
+   * no standing ally.
    */
-  test("and health that moved where nobody can be credited is carried too", () => {
+  test("and no capture is left with healing nobody can be credited for", () => {
     const withTeamHeal = FROM_CAPTURES.filter(
       ({ statistics }) => statistics.reading.unaccountedHealthBySource.size > 0,
+    ).map(({ name }) => name);
+    expect(withTeamHeal).toEqual([]);
+
+    // And the casts really are there to have been placed, or the zero above is
+    // about a corpus that never carried one.
+    const casts = FROM_CAPTURES.flatMap(({ events }) =>
+      events.filter((event) => event.kind === "unaccounted-health"),
     );
-    expect(withTeamHeal.length).toBeGreaterThan(0);
-    for (const { name, statistics } of withTeamHeal) {
-      expect(statistics.reading.unaccountedHealthBySource.get("healall_per"), name).toBeGreaterThan(
-        0,
-      );
-    }
+    expect(casts.length).toBeGreaterThan(0);
   });
 
   // Zero is a measurement; unknown is the absence of one. They are different
@@ -278,7 +298,7 @@ describe("rows grouped by side", () => {
   // A roster that knows one combatant and not the other must not quietly file
   // the stranger anywhere.
   test("a combatant the roster never heard of is placed on no side", () => {
-    const roster = composeCombatantRoster([{ id: 7, name: "known", side: 1, profession: null, level: null }]);
+    const roster = composeCombatantRoster([{ id: 7, name: "known", side: 1, profession: null, level: null, maximumHealth: null }]);
     const statistics = composeFightStatistics(
       [{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 8 }],
       roster,
@@ -302,8 +322,8 @@ describe("rows grouped by side", () => {
  */
 describe("everyone in the fight", () => {
   const ROSTER = composeCombatantRoster([
-    { id: 4, name: "later", side: 1, profession: "w", level: 100 },
-    { id: 7, name: "known", side: 1, profession: "m", level: 100 },
+    { id: 4, name: "later", side: 1, profession: "w", level: 100, maximumHealth: null },
+    { id: 7, name: "known", side: 1, profession: "m", level: 100, maximumHealth: null },
   ]);
 
   test("holds somebody the protocol has not named yet", () => {
@@ -505,7 +525,7 @@ describe("healing with a healer and healing without one", () => {
    */
   test("credits a healer the announcement named, even where the healed did not resolve", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
     ]);
     const statistics = composeFightStatistics(
       decodeFight(
@@ -561,6 +581,7 @@ describe("healing with a healer and healing without one", () => {
         kind: "health-change",
         combatantId: 4,
         amount: 50,
+        healthPercent: null,
         source: "heal",
         announced: null,
         declared: [],
@@ -569,6 +590,7 @@ describe("healing with a healer and healing without one", () => {
         kind: "health-change",
         combatantId: 4,
         amount: 30,
+        healthPercent: null,
         source: "heal",
         announced: { actorId: 9, skillName: "coś", skillId: null },
         declared: [],
@@ -657,8 +679,8 @@ describe("figures the log ties to nobody", () => {
 
   test("health moving for nobody is kept rather than discarded", () => {
     const statistics = composeFightStatistics([
-      { kind: "health-change", announced: null, combatantId: null, amount: -300, source: "poison", declared: [] },
-      { kind: "health-change", announced: null, combatantId: null, amount: 120, source: "heal", declared: [] },
+      { kind: "health-change", announced: null, combatantId: null, amount: -300, healthPercent: null, source: "poison", declared: [] },
+      { kind: "health-change", announced: null, combatantId: null, amount: 120, healthPercent: null, source: "heal", declared: [] },
     ]);
 
     expect(statistics.unattributed.healthLost).toBe(300);
@@ -668,7 +690,16 @@ describe("figures the log ties to nobody", () => {
 
   test("a skill nobody is named for is counted, not attributed", () => {
     const statistics = composeFightStatistics([
-      { kind: "skill-used", actorId: null, targetId: null, skillName: "x", skillId: null, declared: [] },
+      {
+        kind: "skill-used",
+        actorId: null,
+        targetId: null,
+        actorHealthPercent: null,
+        targetHealthPercent: null,
+        skillName: "x",
+        skillId: null,
+        declared: [],
+      },
     ]);
 
     expect(statistics.unattributed.skillsUsed).toBe(1);
@@ -853,8 +884,8 @@ describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
  */
 describe("the edges of the aggregate", () => {
   const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 100 },
-    { id: 2, name: "coś dużego", side: 2, profession: null, level: null },
+    { id: 1, name: "mag", side: 1, profession: "m", level: 100, maximumHealth: null },
+    { id: 2, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
   ]);
 
   /**

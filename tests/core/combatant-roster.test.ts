@@ -15,7 +15,7 @@ import {
  */
 
 function composeCombatant(id: number, name: string): RosteredCombatant {
-  return { id, name, side: 1, profession: null, level: null };
+  return { id, name, side: 1, profession: null, level: null, maximumHealth: null };
 }
 
 describe("matching a name the protocol states to the combatant it means", () => {

@@ -40,6 +40,8 @@ describe("a health figure with a second figure beside it", () => {
         announced: null,
         combatantId: 1,
         amount: -140,
+        // Stated by the message itself (`1=50.00`), and carried through as read.
+        healthPercent: 50,
         source: "poison",
         declared: [{ effect: "poison", amount: 14, text: null }],
       },
@@ -69,8 +71,8 @@ describe("damage stated against a name, with a roster to resolve it", () => {
 
   test("resolves to the combatant that name belongs to", () => {
     const roster = composeCombatantRoster([
-      { id: 2, name: "Odyniec", side: 2, profession: null, level: null },
-      { id: 3, name: "Locha", side: 2, profession: null, level: null },
+      { id: 2, name: "Odyniec", side: 2, profession: null, level: null, maximumHealth: null },
+      { id: 3, name: "Locha", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const [event] = decodeFight([message], roster);
     expect(event).toMatchObject({ targetName: "Odyniec", targetId: 2 });
@@ -81,15 +83,15 @@ describe("damage stated against a name, with a roster to resolve it", () => {
   // putting it on nobody.
   test("resolves to nobody when two combatants answer to the name", () => {
     const roster = composeCombatantRoster([
-      { id: 2, name: "Odyniec", side: 2, profession: null, level: null },
-      { id: 3, name: "Odyniec", side: 2, profession: null, level: null },
+      { id: 2, name: "Odyniec", side: 2, profession: null, level: null, maximumHealth: null },
+      { id: 3, name: "Odyniec", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const [event] = decodeFight([message], roster);
     expect(event).toMatchObject({ targetName: "Odyniec", targetId: null });
   });
 
   test("resolves to nobody when the roster has never heard the name", () => {
-    const roster = composeCombatantRoster([{ id: 3, name: "Locha", side: 2, profession: null, level: null }]);
+    const roster = composeCombatantRoster([{ id: 3, name: "Locha", side: 2, profession: null, level: null, maximumHealth: null }]);
     const [event] = decodeFight([message], roster);
     expect(event).toMatchObject({ targetId: null });
   });

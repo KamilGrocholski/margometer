@@ -27,8 +27,8 @@ import {
 /** Two blows and a tick of poison: one row with both a blow and health lost. */
 function composeReading(): PanelReading {
   const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-    { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
   ]);
   const statistics = composeFightStatistics(
     decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400", "3=40.00;0;poison=60"], roster),

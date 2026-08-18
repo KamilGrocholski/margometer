@@ -432,6 +432,9 @@ src/
     combatant-roster.ts  Who is in the fight, and on which side. An ambiguous
                          name resolves to nobody, never to the first match.
     fight-decoder.ts     Messages → events. Drops nothing, invents nothing.
+    combatant-health.ts  What a fight was entered with, what is held now, and what
+                         a share stated about a whole side restores to each of it.
+                         Every input refused rather than defaulted — §9.6.
     fight-statistics.ts  Events → the numbers a panel draws. Raw and applied kept
                          apart, units never totalled across, what could not be
                          read or attributed carried rather than dropped.
@@ -782,6 +785,22 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   `docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). Charging a
   *name* is still §5's flat no — a side has members, and a guess about which one
   would be ours.
+- `[ALWAYS] [core]` **A figure the protocol states about a whole side may be sized
+  onto its members only where the game states the arithmetic and this meter holds
+  every input to it.** This is not the guess the clause above forbids: nothing is
+  apportioned, and no member's share is inferred from another's. Each member's
+  figure is computed from the game's own published formula, and having the formula
+  is what makes the answer a reading rather than a share-out. Every input is
+  refused rather than defaulted — maximum health, the health the fight was entered
+  with, the health held at the moment, the caster having an ally at all, and no
+  effect in play the documentation says reduces the result. A member missing one is
+  left out **and the figure stays counted as unaccounted**, so a partial answer can
+  never read as a whole one. `[ASK]` to widen to a second key, and held by a
+  measurement rather than by a comment: the sized figures equal the health the
+  snapshots record on every cast that stands alone in its engine call, and
+  `tests/core/health-witness.test.ts` stopped skipping those calls and still agrees
+  (`src/core/combatant-health.ts`,
+  `docs/specs/2026-08-18-the-side-is-named-and-the-share-is-stated.md`).
 - `[ALWAYS] [ui]` **A message naming neither end has no side, and the panel says
   so where no row can.** It rides the one pinned row standing apart from the
   ranking under `Wszyscy`, and under a side tab it is on no row at all and the
@@ -908,4 +927,4 @@ case rather than asserting it.
 | **dot** | Damage over time, ticking outside a direct attack. |
 | **unattributed** | A number the log does not tie to any actor. Shown, never guessed — though the panel may put it on a **side** by the end the game did name (§9.6). |
 | **half-named** | A message stating one end of what happened and calling the other nobody. Two shapes, two rows, and they are different claims: *nieznany sprawca* is a figure whose actor the game left out, *nieznany cel* one whose target it did. A message naming neither end is neither of them and has no side. |
-| **unaccounted** | Health the protocol says moved in an amount nobody can size — a heal reaching a whole side while the message names only the caster. A figure we do not have, where **unattributed** is one we have and cannot place. |
+| **unaccounted** | Health the protocol says moved in an amount nobody can size — a figure whose inputs this meter does not hold. A figure we do not have, where **unattributed** is one we have and cannot place. A heal reaching a whole side was the example until the inputs arrived (§9.6); what is left here is the fight nobody watched the start of. |

@@ -36,6 +36,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Leczenie całej drużyny trafia teraz do liczb. Wcześniej panel tylko
+  ostrzegał, że takie leczenie się wydarzyło i że liczby są przez to zaniżone —
+  teraz pokazuje, ile życia wróciło każdej postaci i komu to zawdzięcza. Ostrzeżenie
+  zostaje tylko dla walk, w których nie da się tego policzyć: gdy panel wpiął się
+  w trakcie walki i nie wie, z jakim życiem ktoś do niej wszedł.
+
 - **Nowość** — Nagłówek panelu mówi teraz „remis", gdy walka skończyła się bez
   zwycięzcy — tak kończy się walka, która dobiła do limitu tur. Wcześniej w takiej
   walce nagłówek nie mówił nic. Remis widać niezależnie od tego, po której stronie

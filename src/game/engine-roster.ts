@@ -21,6 +21,9 @@ import {
   type RosteredCombatant,
 } from "@/src/core/combatant-roster.ts";
 import {
+  HEALTH_CURRENT_FIELD,
+  HEALTH_MAXIMUM_FIELD,
+  WARRIOR_HEALTH_FIELD,
   WARRIOR_ID_FIELD,
   WARRIOR_LEVEL_FIELD,
   WARRIOR_NAME_FIELD,
@@ -40,6 +43,13 @@ export type BattleRoster = {
    */
   ourSide: number | null;
 };
+
+/**
+ * Where a battle payload keeps its warriors. Spelled once because two readers
+ * want it now — the roster fragment and the health a fight opens with — and a
+ * name we did not choose, spelled twice, fails silently (§9.3).
+ */
+const BATTLE_WARRIORS_FIELD = "w";
 
 /**
  * One warrior, or null if the entry does not carry what a row needs.
@@ -75,7 +85,50 @@ export function composeRosteredCombatant(value: unknown): RosteredCombatant | nu
   const stated = warrior[WARRIOR_PROFESSION_FIELD];
   const profession = typeof stated === "string" && stated !== "" ? stated : null;
 
-  return { id, name, side, profession, level: getIntegerFromValue(warrior[WARRIOR_LEVEL_FIELD]) };
+  return {
+    id,
+    name,
+    side,
+    profession,
+    level: getIntegerFromValue(warrior[WARRIOR_LEVEL_FIELD]),
+    // Absent rather than defaulted, for the reason the profession is: a share
+    // taken of a maximum nobody stated is a figure nobody can check (§9.6).
+    maximumHealth: getStatedHealth(warrior, HEALTH_MAXIMUM_FIELD),
+  };
+}
+
+/** One member of a combatant's health object, where the game states one. */
+function getStatedHealth(warrior: Record<string, unknown>, member: string): number | null {
+  const health = getRecordOrArrayFromValue(warrior[WARRIOR_HEALTH_FIELD]);
+  if (health === null) return null;
+  return getIntegerFromValue(health[member]);
+}
+
+/**
+ * What each combatant currently holds, as the game states it right now.
+ *
+ * Read on its own rather than through the roster, and the docblock in
+ * `src/game/engine-warrior.ts` says why: a figure that changes every payload
+ * inside a list whose identity means "the fight needs reading again" would re-read
+ * the whole fight several times a turn. One caller wants it once — at the fight's
+ * start, where it is the snapshot an entry health is unwound from.
+ */
+export function composeStatedHealthByCombatantId(battle: unknown): Map<number, number> {
+  const stated = new Map<number, number>();
+  const warriors = getRecordOrArrayFromValue(
+    getRecordOrArrayFromValue(battle)?.[BATTLE_WARRIORS_FIELD],
+  );
+  if (warriors === null) return stated;
+
+  for (const value of Object.values(warriors)) {
+    const warrior = getRecordOrArrayFromValue(value);
+    if (warrior === null) continue;
+    const id = getIntegerFromValue(warrior[WARRIOR_ID_FIELD]);
+    const current = getStatedHealth(warrior, HEALTH_CURRENT_FIELD);
+    if (id === null || current === null) continue;
+    stated.set(id, current);
+  }
+  return stated;
 }
 
 /**
@@ -131,7 +184,7 @@ export type RosterFragment = {
  */
 export function composeRosterFragmentFromBattle(battle: unknown): RosterFragment {
   const record = getRecordOrArrayFromValue(battle);
-  const warriors = getRecordOrArrayFromValue(record?.["w"]);
+  const warriors = getRecordOrArrayFromValue(record?.[BATTLE_WARRIORS_FIELD]);
   if (warriors === null) return { combatants: [], unreadableEntries: 0 };
 
   const combatants: RosteredCombatant[] = [];
@@ -190,7 +243,12 @@ export function composeMergedCombatants(
         before.name === combatant.name &&
         before.side === combatant.side &&
         before.profession === combatant.profession &&
-        before.level === combatant.level
+        before.level === combatant.level &&
+        // Cheap, because a maximum does not move during a fight — but leaving it
+        // out is the exact fault this docblock records for `name`: a fragment
+        // correcting only this would read as "nothing happened", and every figure
+        // already sized would keep the pool it was sized against.
+        before.maximumHealth === combatant.maximumHealth
       );
     });
   return unchanged ? known : merged;

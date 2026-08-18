@@ -40,6 +40,30 @@ theirs.
 Healing stays on one side, so every row of this table reads `My` where the damage
 table crosses.
 
+## A side named, and no member of it
+
+The team heal is a shape neither table above describes: the message names one end
+— the caster — and a whole **side** at the other. It is not half-named, because
+nothing about the recipients is missing; what was missing was three figures the
+protocol does not state, and where those are held the cast is sized onto its
+members by the game's own published arithmetic
+(`docs/specs/2026-08-18-the-side-is-named-and-the-share-is-stated.md`).
+
+| the fight | what the panel does |
+|---|---|
+| a cast (`1=…;1=…;tspell=…;healall_per=30`) with every input read | the caster in the ranking under `Leczenie dane · My`; each side-mate in the ranking under `Leczenie · My` with `leczenie całej drużyny` in their breakdown, and a **0** where the cap gave them nothing; no warning |
+| the same, with one side-mate's entry health unknown | the same, short by that member, and the warning about healing without a stated figure still stands |
+| the same, in a fight the panel joined in progress | every row drawn and every figure `0`; the warning stands and says how many casts |
+| the same, where the caster has no standing side-mate | the same — the help halves the effect there and nothing here has watched it happen |
+
+⚠️ **A row of zeros is not an absence.** Everyone in the fight has a row from the
+first payload, so the difference between *nobody was healed* and *this meter could
+not size the healing* is the warning and nothing else on the screen. That is why
+the warning is the thing the guards assert, rather than the rows.
+
+The last two are the degrade path and they are the same sentence to a player:
+healing is short, by an amount the game never stated.
+
 ## Where nothing can be derived
 
 | the fight | what the panel does |

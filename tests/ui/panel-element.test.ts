@@ -203,9 +203,9 @@ function getTabByLabel(node: FakeNode, label: string): FakeNode {
 /** A fight with two sides, damage on both, and something unreadable in it. */
 function composeReading(): PanelReading {
   const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-    { id: 2, name: "łowca", side: 1, profession: "h", level: 93 },
-    { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+    { id: 2, name: "łowca", side: 1, profession: "h", level: 93, maximumHealth: null },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
   ]);
   const statistics = composeFightStatistics(
     decodeFight(
@@ -290,8 +290,8 @@ function renderInto(
  */
 function composeReadingWithNeitherEnd(): PanelReading {
   const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-    { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
   ]);
   const statistics = composeFightStatistics(
     decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400", "0;0;+dmg=90;-dmg=70"], roster),

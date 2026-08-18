@@ -51,10 +51,10 @@ import {
  */
 function composeReading(overrides: Partial<PanelReading> = {}): PanelReading {
   const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-    { id: 2, name: "łowca", side: 1, profession: "h", level: 93 },
-    { id: 4, name: "tarcza", side: 1, profession: "w", level: 120 },
-    { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+    { id: 2, name: "łowca", side: 1, profession: "h", level: 93, maximumHealth: null },
+    { id: 4, name: "tarcza", side: 1, profession: "w", level: 120, maximumHealth: null },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
   ]);
   const statistics = composeFightStatistics(
     decodeFight(
@@ -99,8 +99,8 @@ function composeReading(overrides: Partial<PanelReading> = {}): PanelReading {
  */
 function composeReadingWithUnnamedEnds(): PanelReading {
   const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-    { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
   ]);
   const statistics = composeFightStatistics(
     decodeFight(
@@ -249,9 +249,9 @@ describe("the ranking", () => {
    */
   test("keeps a combatant no message has named", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 2, name: "cichy", side: 1, profession: "w", level: 90 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 2, name: "cichy", side: 1, profession: "w", level: 90, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const reading: PanelReading = {
       statistics: composeFightStatistics(
@@ -291,9 +291,9 @@ describe("the ranking", () => {
    */
   test("ties keep the order the game listed the fight in", () => {
     const roster = composeCombatantRoster([
-      { id: 9, name: "pierwsza", side: 1, profession: "m", level: 100 },
-      { id: 2, name: "druga", side: 1, profession: "w", level: 100 },
-      { id: 5, name: "trzecia", side: 2, profession: "h", level: 100 },
+      { id: 9, name: "pierwsza", side: 1, profession: "m", level: 100, maximumHealth: null },
+      { id: 2, name: "druga", side: 1, profession: "w", level: 100, maximumHealth: null },
+      { id: 5, name: "trzecia", side: 2, profession: "h", level: 100, maximumHealth: null },
     ]);
     const reading: PanelReading = {
       statistics: composeFightStatistics([], roster),
@@ -350,8 +350,8 @@ describe("the ranking", () => {
    */
   test("the counters break the blows down by what nobody announced", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const reading: PanelReading = {
       statistics: composeFightStatistics(
@@ -555,9 +555,9 @@ describe("drilling", () => {
    */
   function composeDrillReading(): PanelReading {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
-      { id: 5, name: "coś mniejszego", side: 2, profession: null, level: null },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
+      { id: 5, name: "coś mniejszego", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const statistics = composeFightStatistics(
       decodeFight(
@@ -659,8 +659,8 @@ describe("drilling", () => {
    */
   test("draws the row even when those blows landed nothing", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const reading: PanelReading = {
       statistics: composeFightStatistics(
@@ -686,8 +686,8 @@ describe("drilling", () => {
    */
   test("says one swing and several swings differently", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const blocked = "1=90.00;3=100.00;+dmg=500;-absorb=500";
     const compose = (blows: number): string | null =>
@@ -800,8 +800,8 @@ describe("which screen this is", () => {
 describe("the header says how the fight ended", () => {
   function getOutcomeText(message: string, overrides: Partial<PanelReading> = {}): string | null {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const reading: PanelReading = {
       statistics: composeFightStatistics(decodeFight([message], roster), roster),
@@ -856,8 +856,8 @@ describe("the title says how big the fight is", () => {
 
   test("one side is a roster, not the absence of one", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 2, name: "łowca", side: 1, profession: "h", level: 93 },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 2, name: "łowca", side: 1, profession: "h", level: 93, maximumHealth: null },
     ]);
     const reading = composeReading({
       roster,
@@ -896,8 +896,8 @@ describe("the title says how big the fight is", () => {
    */
   test("a combatant the roster cannot place is added on, not folded in", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 2, name: "łowca", side: 1, profession: "h", level: 93 },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 2, name: "łowca", side: 1, profession: "h", level: 93, maximumHealth: null },
     ]);
     // Id 3 fights and is in no roster, so it has no side to be counted under.
     const reading = composeReading({
@@ -932,8 +932,8 @@ describe("zero and unknown are different sentences", () => {
     // Same fight without the tick of poison: nothing is unattributed, so there is
     // nothing to be uncertain about and the second sentence would be noise.
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 4, name: "tarcza", side: 1, profession: "w", level: 120 },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 4, name: "tarcza", side: 1, profession: "w", level: 120, maximumHealth: null },
     ]);
     const clean: PanelReading = {
       statistics: composeFightStatistics(decodeFight(["1=90.00;4=50.00;+dmg=500;-dmg=400"], roster), roster),
@@ -1181,6 +1181,9 @@ describe("against the captured fights", () => {
         roster,
       ),
       roster,
+      // Read the way the panel is fed, or the mirror below is measured on a fight
+      // missing every point of team healing in it.
+      fight.entryHealthByCombatantId,
     );
     return {
       name: fight.name,
@@ -1677,8 +1680,8 @@ describe("against the captured fights", () => {
    */
   test("keeps a blow that names neither end outside both sides", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const statistics = composeFightStatistics(
       decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400", "0;0;+dmg=90;-dmg=70"], roster),
@@ -1755,8 +1758,8 @@ describe("against the captured fights", () => {
    */
   test("puts an announced heal with no recipient on the giver and on the row for it", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const statistics = composeFightStatistics(
       decodeFight(
@@ -1816,8 +1819,8 @@ describe("against the captured fights", () => {
    */
   test("cuts what nobody can be charged with by the team it is charged to", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const statistics = composeFightStatistics(
       decodeFight(
@@ -1887,8 +1890,8 @@ describe("against the captured fights", () => {
    */
   test("keeps what no team can hold to the screen that shows the whole fight", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
     ]);
     const statistics = composeFightStatistics(
       decodeFight(
@@ -1934,7 +1937,7 @@ describe("against the captured fights", () => {
    */
   test("names the part no row can hold, where a blow reached nobody either", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
     ]);
     const statistics = composeFightStatistics(
       decodeFight(["0;0;+dmg=500;-dmg=400"], roster),
@@ -2436,8 +2439,8 @@ describe("what a bar's length says", () => {
  */
 function composeReadingWithUnnamedTarget(): PanelReading {
   const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-    { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
   ]);
   const statistics = composeFightStatistics(
     decodeFight(
@@ -2527,9 +2530,9 @@ describe("a target the fight cannot name", () => {
  * The roster is two of ours, one of theirs, and an id it does not carry at all.
  */
 const CASE_ROSTER = composeCombatantRoster([
-  { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-  { id: 2, name: "tarcza", side: 1, profession: "w", level: 100 },
-  { id: 3, name: "boss", side: 2, profession: null, level: null },
+  { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+  { id: 2, name: "tarcza", side: 1, profession: "w", level: 100, maximumHealth: null },
+  { id: 3, name: "boss", side: 2, profession: null, level: null, maximumHealth: null },
 ]);
 
 /** What the pinned rows say, per tab, in the order the panel draws them. */
@@ -2691,6 +2694,116 @@ describe("every shape the protocol can send", () => {
       const view = composePanelView(reading, composeState({ metric: "dealt", team }));
       expect(view.sides?.nobody, team).toEqual({ label: "Bez strony", text: figure });
     }
+  });
+
+  /**
+   * The team heal's own section of `docs/half-named-figures.md`, read off the
+   * panel the way every table in that file is.
+   *
+   * It is not a half-named figure — the message names one end and a whole *side*
+   * at the other — so it gets a walk of its own rather than a row in the table
+   * above: what varies here is not which end the game named but whether this meter
+   * holds the three figures a share has to be sized against.
+   */
+  describe("a share stated about a whole side", () => {
+    const ROSTER = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: 1000 },
+      { id: 2, name: "tarcza", side: 1, profession: "w", level: 100, maximumHealth: 1000 },
+      { id: 3, name: "boss", side: 2, profession: null, level: null, maximumHealth: 5000 },
+    ]);
+    // `tarcza` is 400 down when the cast lands, so the cap binds on one member and
+    // not on the other — with both at full the figures would be zero and the walk
+    // would assert nothing.
+    const MESSAGES = [
+      "3=100.00;2=60.00;+dmg=400;-dmg=400",
+      "1=100.00;1=100.00;tspell=Fala;skillId=9;healall_per=30",
+    ];
+
+    /** The ranking, as the panel draws it: one continuous list, no headings. */
+    function getRanking(view: PanelView): string[] {
+      return view.lists.flatMap((list) => list.rows).map((row) => `${row.label} ${row.valueText}`);
+    }
+
+    function composeCastReading(entry: ReadonlyMap<number, number>): PanelReading {
+      return {
+        statistics: composeFightStatistics(decodeFight(MESSAGES, ROSTER), ROSTER, entry),
+        roster: ROSTER,
+        ourSide: 1,
+        isFromFightStart: entry.size > 0,
+      };
+    }
+
+    const READ = new Map([
+      [1, 1000],
+      [2, 1000],
+      [3, 5000],
+    ]);
+
+    test("puts the caster in the ranking and the healed on their own rows", () => {
+      const reading = composeCastReading(READ);
+      const given = composePanelView(reading, composeState({ metric: "healingGiven", team: "mine" }));
+      const received = composePanelView(reading, composeState({ metric: "healed", team: "mine" }));
+
+      // `tarcza` was 400 down and 30% of 1000 is 300, so the share binds rather
+      // than the cap; `mag` was at full, so the cap gives them nothing. Everyone in
+      // the fight has a row, which is why the zero is drawn rather than absent.
+      expect(getRanking(given)).toEqual(["mag 300", "tarcza 0"]);
+      expect(getRanking(received)).toEqual(["tarcza 300", "mag 0"]);
+      // Nothing is left over: the caster is named, so no row for a missing end.
+      expect(given.pinnedRows).toEqual([]);
+      expect(received.pinnedRows).toEqual([]);
+    });
+
+    test("and says nothing about healing being short", () => {
+      const view = composePanelView(
+        composeCastReading(READ),
+        composeState({ metric: "healed", team: "mine" }),
+      );
+      expect(view.warnings.filter((line) => line.includes("Leczenie całej drużyny"))).toEqual([]);
+    });
+
+    /**
+     * The degrade path, and the two ways into it read identically to a player:
+     * healing is short by an amount the game never stated.
+     */
+    test("draws no figure at all where the fight was joined in progress", () => {
+      const reading = composeCastReading(new Map());
+      const given = composePanelView(reading, composeState({ metric: "healingGiven", team: "mine" }));
+      const received = composePanelView(reading, composeState({ metric: "healed", team: "mine" }));
+
+      // Rows for everybody, figures for nobody — the difference between a fight
+      // that healed nothing and one this meter could not size is the warning.
+      expect(getRanking(given)).toEqual(["mag 0", "tarcza 0"]);
+      expect(getRanking(received)).toEqual(["mag 0", "tarcza 0"]);
+      expect(
+        received.warnings.filter((line) => line.includes("Leczenie całej drużyny")).length,
+      ).toBe(1);
+    });
+
+    test("and none where the caster has no side-mate to heal", () => {
+      const alone = composeCombatantRoster([
+        { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: 1000 },
+        { id: 3, name: "boss", side: 2, profession: null, level: null, maximumHealth: 5000 },
+      ]);
+      const view = composePanelView(
+        {
+          statistics: composeFightStatistics(
+            decodeFight(MESSAGES, alone),
+            alone,
+            new Map([
+              [1, 1000],
+              [3, 5000],
+            ]),
+          ),
+          roster: alone,
+          ourSide: 1,
+          isFromFightStart: true,
+        },
+        composeState({ metric: "healed", team: "mine" }),
+      );
+      expect(getRanking(view)).toEqual(["mag 0"]);
+      expect(view.warnings.filter((line) => line.includes("Leczenie całej drużyny")).length).toBe(1);
+    });
   });
 
   /** No seat, no bar: the two figures are `My` and `Oni`, and neither exists yet. */

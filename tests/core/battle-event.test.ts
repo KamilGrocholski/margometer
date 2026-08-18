@@ -1,13 +1,50 @@
 import { describe, expect, test } from "bun:test";
 import { BATTLE_EVENT_KINDS } from "@/src/core/battle-event.ts";
+import { composeSizedTeamHeals } from "@/src/core/combatant-health.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { CAPTURED_FIGHTS, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
+import {
+  CAPTURED_FIGHTS,
+  composeRosterOfFight,
+  getMessagesOfFight,
+} from "@/tests/captured-fight-catalog.ts";
 
 const DECODED_FIGHTS = CAPTURED_FIGHTS.map((fight) => ({
   name: fight.name,
   messages: getMessagesOfFight(fight),
   events: decodeFight(getMessagesOfFight(fight)),
 }));
+
+/**
+ * The same fights read the whole way through, which is what the kinds below are
+ * counted against.
+ *
+ * ⚠️ **"Produced by the decoder" stopped being the question on the day one kind
+ * was derived rather than decoded.** `team-heal` is computed from a share the
+ * protocol states and three figures it does not, so no amount of decoding will
+ * ever yield one — but it is still produced, on real material, by the pipeline a
+ * panel is actually fed from. Narrowing this to the decoder would have quietly
+ * exempted exactly the kind most worth counting.
+ *
+ * ⚠️ **And neither half alone will do.** `team-heal` is produced only by the
+ * sizing, and `unaccounted-health` only by the decoder — the sizing now consumes
+ * every one of them on this corpus, so a count taken after it would report the
+ * degrade path as a variant nothing produces and invite its deletion. It is
+ * produced, every time the key arrives; what happens next is that something reads
+ * it. `EVERY_EVENT` below is both halves for exactly that reason.
+ */
+const READ_FIGHTS = CAPTURED_FIGHTS.map((fight) => ({
+  name: fight.name,
+  events: composeSizedTeamHeals(
+    decodeFight(getMessagesOfFight(fight), composeRosterOfFight(fight)),
+    composeRosterOfFight(fight),
+    fight.entryHealthByCombatantId,
+  ),
+}));
+
+const EVERY_EVENT = [
+  ...DECODED_FIGHTS.flatMap((fight) => fight.events),
+  ...READ_FIGHTS.flatMap((fight) => fight.events),
+];
 
 describe("the event contract", () => {
   // The rule this project keeps relearning: a variant nothing produces stays
@@ -24,11 +61,9 @@ describe("the event contract", () => {
   const FROM_A_LIVE_PROTOCOL = "unknown-message";
 
   test.each([...BATTLE_EVENT_KINDS].filter((kind) => kind !== FROM_A_LIVE_PROTOCOL))(
-    "%s is produced by the decoder on real material",
+    "%s is produced on real material",
     (kind) => {
-      const produced = DECODED_FIGHTS.flatMap((fight) => fight.events).filter(
-        (event) => event.kind === kind,
-      );
+      const produced = EVERY_EVENT.filter((event) => event.kind === kind);
       expect(produced.length).toBeGreaterThan(0);
     },
   );
@@ -37,12 +72,12 @@ describe("the event contract", () => {
     const [event] = decodeFight(["0;0;no_such_key=1"]);
     expect(event?.kind).toBe(FROM_A_LIVE_PROTOCOL);
 
-    const fromMaterial = new Set(DECODED_FIGHTS.flatMap((fight) => fight.events).map((e) => e.kind));
+    const fromMaterial = new Set(EVERY_EVENT.map((event) => event.kind));
     expect(fromMaterial.has(FROM_A_LIVE_PROTOCOL)).toBe(false);
   });
 
-  test("the decoder produces no kind the contract does not declare", () => {
-    const kinds = new Set(DECODED_FIGHTS.flatMap((fight) => fight.events).map((e) => e.kind));
+  test("reading a fight produces no kind the contract does not declare", () => {
+    const kinds = new Set(EVERY_EVENT.map((event) => event.kind));
     for (const kind of kinds) expect([...BATTLE_EVENT_KINDS]).toContain(kind);
     expect([...kinds].sort()).toEqual(
       [...BATTLE_EVENT_KINDS].filter((kind) => kind !== FROM_A_LIVE_PROTOCOL).sort(),
@@ -233,6 +268,11 @@ describe("decoding a single message", () => {
         announced: null,
         actorId: 482845,
         targetId: -161518,
+        // The health the protocol states for each side, carried through as read —
+        // this is the reading `src/core/combatant-health.ts` checks a running
+        // total against, so a decoder that dropped it would be silent here.
+        actorHealthPercent: 100,
+        targetHealthPercent: 70.07,
         dealt: [{ damageType: "dmgd", amount: 466 }],
         taken: [{ damageType: "dmgd", amount: 223 }],
         prevented: [],
@@ -354,6 +394,10 @@ describe("decoding a single message", () => {
         kind: "skill-used",
         actorId: 467968,
         targetId: -10000249,
+        // Stated by the message itself, and the earliest thing many fights say
+        // about a combatant (`src/core/combatant-health.ts`).
+        actorHealthPercent: 100,
+        targetHealthPercent: 100,
         skillName: "Skill One",
         skillId: 23,
         declared: [],

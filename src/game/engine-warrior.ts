@@ -17,9 +17,12 @@
  * capture would still say `prof` — so importing from here would make the parser
  * change its mind about material it must not reinterpret (§9.2).
  *
- * Five, and not the ten a combatant carries. `originalId`, `hp`, `mana`, `energy`
- * and `ac` have one reader each and §7.1 keeps them there; a name here is a name
- * two files had to agree on.
+ * Six, and not the ten a combatant carries. `originalId`, `mana`, `energy` and
+ * `ac` have one reader each and §7.1 keeps them there; a name here is a name two
+ * files had to agree on. `hp` joined when the second reader arrived: the roster
+ * needs a combatant's maximum before a share of it can become a figure
+ * (`src/core/combatant-health.ts`), and the capture has always needed the whole
+ * object.
  */
 
 export const WARRIOR_ID_FIELD = "id";
@@ -28,3 +31,15 @@ export const WARRIOR_NAME_FIELD = "name";
 export const WARRIOR_SIDE_FIELD = "team";
 export const WARRIOR_PROFESSION_FIELD = "prof";
 export const WARRIOR_LEVEL_FIELD = "lvl";
+/**
+ * The health object, and the two members inside it anything here reads.
+ *
+ * ⚠️ **`cur` is not a property of the roster and must not become one.** It changes
+ * on every payload, and the roster's identity is what the session uses to decide
+ * whether a fight needs reading again — so a current health inside a combatant
+ * would re-decode the whole fight several times a turn. It is read on its own,
+ * once, at the fight's start (`src/game/engine-roster.ts`).
+ */
+export const WARRIOR_HEALTH_FIELD = "hp";
+export const HEALTH_MAXIMUM_FIELD = "max";
+export const HEALTH_CURRENT_FIELD = "cur";
