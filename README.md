@@ -102,12 +102,21 @@ it installed from a URL.
 ## For developers
 
 ```bash
-bun run check     # typecheck + tests + build — the gate
-bun test          # tests only
-bun run preview   # the panel in a browser, over a recorded fight, rebuilt as you edit
-bun run cost      # what a payload costs, replayed off every recording
-bun run build:dev # the same add-on with a cost overlay, installed beside a release
+bun run check        # typecheck + tests + build — the gate
+bun test             # tests only
+bun run preview      # the panel in a browser, over a recorded fight, rebuilt as you edit
+bun run preview:site # the same page written to dist/preview, which is what Pages serves
+bun run cost         # what a payload costs, replayed off every recording
+bun run build:dev    # the same add-on with a cost overlay, installed beside a release
 ```
+
+The page behind [the preview link][preview] is what `bun run preview:site` writes:
+one harness page per capture under `tests/captured-fights/`, plus the bundle those
+pages load. `.github/workflows/pages.yml` runs the gate and then publishes it on
+every push to `main`, so the link always shows the panel `main` builds rather than
+the last release. Nothing it writes is committed — the output goes under `dist/`,
+which git ignores, because a published page carries a capture's engine payloads
+inlined and those carry the game's own names ([`NOTICE.md`](NOTICE.md)).
 
 `bun run build:dev` writes `dist/margometer.dev.user.js`. It carries a name of its
 own and no update URL, so it sits alongside an installed release instead of
