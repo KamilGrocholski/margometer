@@ -18,10 +18,10 @@
 ## In Progress
 
 ## Up Next
-- [ ] Use constants instead of literals for the protocol keys (maybe everything except the ui text, not only the protocol keys)
 - [ ] Add support to all of the browsers
 
 ## Done
+- [x] Fix the codebase where there is a name we did not choose, spelled twice, where nothing catches a disagreement (src, libs, tools, tests)
 - [x] Add draw as an outcome
 - [x] Fix user actions on click while the add-on is redrawing - I have to click multiple times on any 
 tab, and button, to see the action, when the add-on is in the middle of drawing
