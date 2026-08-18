@@ -196,6 +196,24 @@ describe("decoding a single message", () => {
     ]);
   });
 
+  // The value the client reads as "this fight produced no winner", where every
+  // other value of the key is a list of names. Read as a name it was a win by a
+  // side called `?`.
+  test("reads a fight that produced no winner", () => {
+    expect(decodeFight(["0;0;winner=?"])).toEqual([
+      { kind: "fight-outcome", result: "drawn", combatantNames: [] },
+    ]);
+  });
+
+  // The other side of the same claim: the sentinel is the winners' key's, and the
+  // client's `loser` case has no branch for it. Somewhere to put it would be an
+  // invention, so it goes back as a key we could not read.
+  test("refuses the no-winner value on the losers' key", () => {
+    const events = decodeFight(["0;0;loser=?"]);
+    expect(events.map((event) => event.kind)).toEqual(["unknown-message"]);
+    expect((events[0] as { unreadKeys: readonly string[] }).unreadKeys).toEqual(["loser"]);
+  });
+
   test("reports a key it has no meaning for, naming the key", () => {
     // Invented on purpose. Every key the captured material carries is read now,
     // so the only honest example of an unread one is a key the game never sent.

@@ -34,10 +34,31 @@ import {
 /** Names arrive as one string. The game has no escaping for a name containing this. */
 const NAME_SEPARATOR = ", ";
 
+const WINNER_KEY = "winner";
+
 const OUTCOME_KEYS: Record<string, "won" | "lost"> = {
-  winner: "won",
+  [WINNER_KEY]: "won",
   loser: "lost",
 };
+
+/**
+ * A fight that produced no winner, and the protocol spends no key on saying so:
+ * it writes this in place of the winners' names.
+ *
+ * The client branches on exactly that — `case "winner": if ("?" == …)`, where it
+ * composes its no-winner line and its turn-limit notice instead of naming
+ * anybody (production build `1786514810315`, the same in development build
+ * `1781609507010`). Its `loser` case has no such branch, so the sentinel is the
+ * winners' key's alone and `loser=?` stays unread rather than becoming a side
+ * called `?`.
+ *
+ * ⚠️ **Read as a name it was a win.** Every fight in the captures ends with a
+ * winner, so nothing here ever met the value; it split into the one-element list
+ * `["?"]`, which is a side the roster can never match and a `wygrana` the panel
+ * would have withheld for want of a name — the outcome stated plainest of all
+ * arriving as the one nobody could read.
+ */
+const NO_WINNER_VALUE = "?";
 
 /**
  * The client does not spell out damage keys. Its default branch recognises them
@@ -747,12 +768,22 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
 
     const result = OUTCOME_KEYS[key];
     if (result !== undefined && value !== null) {
-      const combatantNames = value.split(NAME_SEPARATOR);
-      // `"".split(", ")` is `[""]`, so an empty value reads as a side holding one
-      // nameless combatant. A side we cannot match against anyone is unread.
-      if (combatantNames.every((name) => name !== "")) {
-        events.push({ kind: "fight-outcome", result, combatantNames });
-        continue;
+      if (value === NO_WINNER_VALUE) {
+        // The sentinel belongs to the winners' key alone. On the losers' it is a
+        // value with no meaning here, and reading it as text would file a side
+        // called `?` — which is the invention §5 refuses, not a shorter fight.
+        if (key === WINNER_KEY) {
+          events.push({ kind: "fight-outcome", result: "drawn", combatantNames: [] });
+          continue;
+        }
+      } else {
+        const combatantNames = value.split(NAME_SEPARATOR);
+        // `"".split(", ")` is `[""]`, so an empty value reads as a side holding one
+        // nameless combatant. A side we cannot match against anyone is unread.
+        if (combatantNames.every((name) => name !== "")) {
+          events.push({ kind: "fight-outcome", result, combatantNames });
+          continue;
+        }
       }
     }
     unreadKeys.push(key);

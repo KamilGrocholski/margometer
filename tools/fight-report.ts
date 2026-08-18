@@ -146,6 +146,10 @@ function writeFightReport(fight: CapturedFight): void {
   // Both sides by name, and no verdict: a capture does not record who recorded
   // it (§10, *side*), so this tool is in no position to say who won *for us*.
   if (statistics.outcome !== null) {
+    // A draw states no side at all, so the two lines below would print the same
+    // "(nobody stated)" a fight whose outcome went missing prints. It is said
+    // once, on its own line, because it is the answer rather than the absence.
+    if (statistics.outcome.isDrawn) console.log("  drawn: nobody won this fight");
     console.log(`  won:  ${statistics.outcome.wonNames.join(", ") || "(nobody stated)"}`);
     console.log(`  lost: ${statistics.outcome.lostNames.join(", ") || "(nobody stated)"}`);
   }

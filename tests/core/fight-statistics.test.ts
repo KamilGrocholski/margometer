@@ -869,7 +869,24 @@ describe("the edges of the aggregate", () => {
       roster,
     );
 
-    expect(statistics.outcome).toEqual({ wonNames: ["mag"], lostNames: ["coś dużego"] });
+    expect(statistics.outcome).toEqual({
+      wonNames: ["mag"],
+      lostNames: ["coś dużego"],
+      isDrawn: false,
+    });
+  });
+
+  /**
+   * Kills `event.result === "drawn"` → `!==`, which turns every stated winner
+   * into a draw, and kills the `true` it sets.
+   *
+   * The one outcome that arrives without a name, so the two lists stay empty and
+   * the flag is the whole of what the fight said about how it ended.
+   */
+  test("a fight nobody won is drawn, and puts no one on either side", () => {
+    const statistics = composeFightStatistics(decodeFight(["0;0;winner=?"], roster), roster);
+
+    expect(statistics.outcome).toEqual({ wonNames: [], lostNames: [], isDrawn: true });
   });
 
   /**

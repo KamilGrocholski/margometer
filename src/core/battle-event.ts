@@ -392,10 +392,19 @@ export type UnaccountedHealthEvent = {
 
 export type FightOutcomeEvent = {
   kind: "fight-outcome";
-  result: "won" | "lost";
+  /**
+   * `"drawn"` is the fight ending with no winner at all, which the protocol
+   * states on the winners' own key rather than a key of its own — see the
+   * decoder. It is not a third side; it is the absence of the other two.
+   */
+  result: "won" | "lost" | "drawn";
   /**
    * Named by the protocol as text, not by id. Which of these is "us" is not
    * knowable from the message alone.
+   *
+   * **Empty for `"drawn"`**, where the protocol names nobody — and empty is the
+   * whole of what it says there, so a reader must not take an empty list for a
+   * side it failed to read.
    */
   combatantNames: string[];
 };

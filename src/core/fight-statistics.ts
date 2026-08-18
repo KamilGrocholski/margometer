@@ -259,7 +259,17 @@ export type FightStatistics = {
    * that they had lost. Which of these two lists is the watcher's own is not
    * decided here — that is the game layer's to say (§10, *side*).
    */
-  outcome: { wonNames: readonly string[]; lostNames: readonly string[] } | null;
+  outcome: {
+    wonNames: readonly string[];
+    lostNames: readonly string[];
+    /**
+     * The fight ended with nobody winning it. Stated on the winners' key and
+     * naming no one (`fight-decoder.ts`), so it arrives beside two empty lists
+     * rather than in them — and a reader asking who won gets the true answer,
+     * which is nobody, instead of the answer a missing message would give.
+     */
+    isDrawn: boolean;
+  } | null;
 };
 
 /** Mutable twin of the public type, so the public one can stay read-only. */
@@ -629,11 +639,12 @@ export function composeFightStatistics(
         const stated: NonNullable<FightStatistics["outcome"]> = outcome ?? {
           wonNames: [],
           lostNames: [],
+          isDrawn: false,
         };
-        outcome =
-          event.result === "won"
-            ? { ...stated, wonNames: [...stated.wonNames, ...event.combatantNames] }
-            : { ...stated, lostNames: [...stated.lostNames, ...event.combatantNames] };
+        if (event.result === "drawn") outcome = { ...stated, isDrawn: true };
+        else if (event.result === "won") {
+          outcome = { ...stated, wonNames: [...stated.wonNames, ...event.combatantNames] };
+        } else outcome = { ...stated, lostNames: [...stated.lostNames, ...event.combatantNames] };
         break;
       }
 

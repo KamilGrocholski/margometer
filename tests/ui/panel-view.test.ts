@@ -697,6 +697,51 @@ describe("which screen this is", () => {
 });
 
 /**
+ * The one line on screen that is a verdict rather than a figure, and the panel
+ * says it about a fight it can place — or says nothing.
+ */
+describe("the header says how the fight ended", () => {
+  function getOutcomeText(message: string, overrides: Partial<PanelReading> = {}): string | null {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    ]);
+    const reading: PanelReading = {
+      statistics: composeFightStatistics(decodeFight([message], roster), roster),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+      ...overrides,
+    };
+
+    return composePanelView(reading, composeState()).outcomeText;
+  }
+
+  test("a side of ours among the winners is a win, and among the losers a loss", () => {
+    expect(getOutcomeText("0;0;winner=mag")).toBe("wygrana");
+    expect(getOutcomeText("0;0;loser=mag")).toBe("przegrana");
+  });
+
+  /**
+   * Kills the `isDrawn` branch, and kills its place above the `ourSide` guard:
+   * ordered the other way, a draw in a fight the game never placed us in reads as
+   * a fight whose ending was never stated.
+   *
+   * A draw is the same word from every seat — the protocol states it by naming
+   * nobody — so it is the one verdict that does not wait for `myteam`.
+   */
+  test("a fight nobody won is a draw, whether or not the panel knows our side", () => {
+    expect(getOutcomeText("0;0;winner=?")).toBe("remis");
+    expect(getOutcomeText("0;0;winner=?", { ourSide: null })).toBe("remis");
+  });
+
+  test("a fight whose winners we cannot place says nothing", () => {
+    expect(getOutcomeText("0;0;winner=ktoś inny")).toBeNull();
+    expect(getOutcomeText("0;0;winner=mag", { ourSide: null })).toBeNull();
+  });
+});
+
+/**
  * ⚠️ **The title was swept for its language and never for its meaning.** It sits
  * in `getEveryString`, so every word of it was held to §3 — and no test ever
  * asked what it said. `bun tools/mutation-sweep.ts` found it: turning the

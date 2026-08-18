@@ -36,6 +36,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Nagłówek panelu mówi teraz „remis", gdy walka skończyła się bez
+  zwycięzcy — tak kończy się walka, która dobiła do limitu tur. Wcześniej w takiej
+  walce nagłówek nie mówił nic. Remis widać niezależnie od tego, po której stronie
+  się stało.
+
 - **Poprawka** — Panel odpowiada teraz za pierwszym razem, także w środku walki.
   Wcześniej kliknięcie w zakładkę albo w wiersz często przepadało, jeśli akurat
   w tej samej chwili z walki przychodziły nowe informacje — trzeba było klikać

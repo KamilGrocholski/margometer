@@ -621,16 +621,23 @@ function hasOurSide(reading: PanelReading, names: readonly string[]): boolean {
 }
 
 /**
- * "wygrana" or "przegrana" **from the watcher's seat**, or nothing at all.
+ * "wygrana" or "przegrana" **from the watcher's seat**, "remis" from any seat, or
+ * nothing at all.
  *
  * The protocol names both sides and says nothing about which is the reader's, so
  * the answer is composed here, where `ourSide` is. Where the game never said
  * `myteam`, or where no name resolves, the header says nothing — a fight the
  * panel cannot place is not a fight it may call a loss.
+ *
+ * A draw is the one answer that needs no seat: the game states it by naming
+ * nobody, so it is the same word for everyone in the fight and reaches the
+ * header even where `ourSide` never arrived.
  */
 function getOutcomeText(reading: PanelReading): string | null {
   const outcome = reading.statistics.outcome;
-  if (outcome === null || reading.ourSide === null) return null;
+  if (outcome === null) return null;
+  if (outcome.isDrawn) return "remis";
+  if (reading.ourSide === null) return null;
   if (hasOurSide(reading, outcome.wonNames)) return "wygrana";
   if (hasOurSide(reading, outcome.lostNames)) return "przegrana";
   return null;

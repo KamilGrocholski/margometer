@@ -138,14 +138,39 @@ The combatants on the winning side, as a single string, names separated by a
 comma and a space. Appears in a message that names no combatant at all: it is
 about the fight, not about anyone in it.
 
+**One value is not a name.** Where the fight ended with nobody winning it, this
+key carries `?` in place of the names, and there is no key of the protocol's for
+saying so — which is why it is filed here and not under an entry of its own. The
+client branches on that value alone, composing its no-winner line and a
+turn-limit notice instead of naming anybody; its `loser` case has no such branch,
+so the sentinel belongs to this key. `src/core/fight-decoder.ts` reads it as the `drawn`
+outcome, naming nobody, and leaves `loser=?` unread rather than filing a side
+called `?`.
+
+The help settles what puts a fight there, under the name `max_moves`: a cap of 75
+turns per player, at which the fight is stopped. Nothing here counts turns
+(§10) — the cap is cited for the meaning of the value, not as a figure to
+reproduce.
+
+The captures settle nothing about it: no recording carries the value, every
+capture in `tests/captured-fights/` as of 2026-08-18 ending with a winner named.
+So this is a claim of the client's and the help's, and the first recording of a
+fight nobody wins is what would measure it.
+
 *Shape:* 17 occurrences; alone in its message; text
 
+*Help:* names `max_moves`
+
 *Evidence:* every occurrence in every captured fight has that shape, and each
-fight ends with exactly one `winner` and one `loser`.
+fight ends with exactly one `winner` and one `loser`. For `?`: production build
+`1786514810315`, the same branch in development build `1781609507010`, and the
+published help view,372 (read 2026-08-18) for the cap that produces it.
 
 ### `loser` — decoded
 
-The same, for the losing side.
+The same, for the losing side — with the one exception the entry above states:
+the `?` that key spends on a fight nobody won is not a value this one carries,
+and it is left unread here rather than read as a side of that name.
 
 *Shape:* 17 occurrences; alone in its message; text
 
