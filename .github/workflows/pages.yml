@@ -7,9 +7,11 @@
 # tree that cannot pass `bun run check` must not become the page this repository
 # points people at.
 #
-# ⚠️ **Pages has to exist before anything can be deployed to it**, and this is
-# the part of the workflow that has been wrong twice. What is observed, and
-# nothing beyond it:
+# ⚠️ **Pages has to exist before anything can be deployed to it, and it is
+# created once by hand: Settings → Pages → Build and deployment → Source →
+# GitHub Actions.** Not "Deploy from a branch" — every page here is generated
+# into `dist/`, which git ignores. Three runs say so, and they are written down
+# because the sentence above was got wrong three times before them:
 #
 # 1. Without `enablement`, `configure-pages` fails outright —
 #    `Error: Get Pages site failed. ... Not Found - .../pages#get-a-apiname-pages-site`,
@@ -17,14 +19,23 @@
 # 2. With `enablement: true` the missing site becomes a warning and the create
 #    call fails instead — `Error: Create Pages site failed. Error: No server is
 #    currently available to service your request.`
+# 3. The same step, the same `enablement: true`, on 2026-08-18T00:45Z —
+#    `Create Pages site failed. Error: Resource not accessible by integration -
+#    .../pages#create-a-apiname-pages-site`, and `has_pages` still false after
+#    it.
 #
-# Both were on 2026-08-17, **while an incident affecting Pages was open on
-# githubstatus.com**, so neither says whether the API can create a site for this
-# repository. If a run still fails on step 2 outside an incident, the answer is
-# the manual switch: Settings → Pages → Source → GitHub Actions.
+# 1 and 2 were inside an incident covering Pages, open on githubstatus.com from
+# 13:40Z to 21:16Z on 2026-08-17, so neither said anything about this repository.
+# 3 was 3 h 29 min after that incident resolved, with none open, and it is a
+# refusal rather than a service saying it is busy: the token a workflow run is
+# given cannot create the site here, on a public repository, with `pages: write`.
+# Whether some other repository's run can is not something one run can say — the
+# three corrections before this one were each a claim of that size from one
+# observation.
 #
-# `enablement: true` stays: it costs nothing, does nothing once a site exists, and
-# is right for a fork whose owner has no settings page open.
+# `enablement: true` stays, and it is not the switch: once a site exists it does
+# nothing, and where none exists it changes only which sentence prints. It is
+# kept for the fork whose owner GitHub does let create a site by API.
 #
 # ⚠️ **What gets published is the captures' own engine payloads**, inlined one
 # fight per page. NOTICE.md says what that carries and on what basis. Nothing

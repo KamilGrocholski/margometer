@@ -116,20 +116,25 @@ now names the page, what does travel, and on what basis.
   first is the oldest, and it is a short solo hunt that fills two rows. The
   landing page is the newest instead — still a rule over the discovered directory
   rather than a filename somebody typed (§9.2).
-- **Nothing about enabling Pages, which is still open**, and is the one part of
-  this that has been asserted twice and been wrong twice. First the workflow said
-  the switch had to be thrown by hand and that no file could do it — written
-  without checking, since `configure-pages` takes `enablement`. Then it said the
-  API could do it, on the strength of the reference. Then, when the create call
-  failed, it said the API *cannot* do it here — from a single run, during an
-  incident affecting Pages that was open on githubstatus.com the same day and
-  that nobody had looked at.
+- **Enabling Pages from the workflow.** The site is created once by hand,
+  Settings → Pages → Source → GitHub Actions, and this is the one part of the
+  spec that was asserted three times and wrong three times before a run settled
+  it. First the workflow said the switch had to be thrown by hand and that no
+  file could do it — written without checking, since `configure-pages` takes
+  `enablement`. Then it said the API could do it, on the strength of the
+  reference. Then, when the create call failed, it said the API *cannot* do it
+  here — from a single run, during an incident affecting Pages that was open on
+  githubstatus.com the same day and that nobody had looked at.
 
   Three claims, one observation each, and the observation never supported the
-  claim. What the workflow carries now is the two error texts and the incident,
-  and the question left in the open state it is in. §7.5 puts a guard first and a
-  rule second; this is neither, because the thing to be known is somebody else's
-  API on a day it was degraded, and the only instrument is a run.
+  claim. What answered it was the fourth run, on 2026-08-18, 3 h 29 min after
+  that incident resolved: `Create Pages site failed. Error: Resource not
+  accessible by integration`, a refusal rather than a busy service, and the
+  repository still reporting no Pages site afterwards. §7.5 puts a guard first
+  and a rule second; this is neither, because the subject is somebody else's API
+  and the only instrument is a run — so the workflow carries the three error
+  texts, the incident window that dates two of them, and a conclusion no wider
+  than this repository.
 - **`<meta name="robots" content="noindex">`.** Whether an unauthorised add-on's
   demo should be a search result is a real question, and the answer taken is that
   the repository is already public and README.md already links the page. One line
