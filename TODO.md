@@ -18,15 +18,15 @@
 ## In Progress
 
 ## Up Next
+- [ ] Use constants instead of literals for the protocol keys (maybe everything except the ui text, not only the protocol keys)
+- [ ] Add support to all of the browsers
 
 ## Done
+- [x] Add draw as an outcome
 - [x] Fix user actions on click while the add-on is redrawing - I have to click multiple times on any 
 tab, and button, to see the action, when the add-on is in the middle of drawing
 
 ## Later
-- [ ] Add support to all of the browsers
-- [ ] Add draw as an outcome (there is a problem with the protocol key - do it later)
-- [ ] Use constants instead of literals for the protocol keys (maybe everything except the ui text, not only the protocol keys)
 - [ ] Create and update screenshots after each release, use `screenshots` dir to store it
 
 ---
