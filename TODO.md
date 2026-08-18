@@ -34,6 +34,7 @@ on the current selected panel view(healing taken - healing taken "bez sprawcy", 
 - [x] Show all combatants in a battle - currently we need a combatant's turn to see him on the list. 
 I want every combatant to be visible at the beginning of a battle
 - [x] Create a live preview on github pages
+- [x] AGENTS.md is too large, and the information it has is not that relevant
 
 ## Later
 - [ ] Add draw as an outcome (there is a problem with the protocol key, to make it work - do it later)
