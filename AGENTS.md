@@ -415,6 +415,8 @@ src/
                          The only code that changes a running game. Original
                          first, its value untouched, one layer, and a detach that
                          removes only ours.
+    engine-warrior.ts    The client's own names for a combatant's fields. The
+                         five two readers had to agree on, and no more.
     engine-roster.ts     Who is fighting, and which side is the player's — the
                          one thing core cannot know.
     engine-attachment.ts Finds the battle object, wraps it once, stops looking.

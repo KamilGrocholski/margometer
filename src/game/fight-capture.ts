@@ -25,6 +25,13 @@ import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 import { isFightStart } from "@/src/game/battle-session.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
+import {
+  WARRIOR_ID_FIELD,
+  WARRIOR_LEVEL_FIELD,
+  WARRIOR_NAME_FIELD,
+  WARRIOR_PROFESSION_FIELD,
+  WARRIOR_SIDE_FIELD,
+} from "@/src/game/engine-warrior.ts";
 
 /** The format `tools/fight-dump-parser.ts` reads. Every capture on disk carries 1. */
 const CAPTURE_FORMAT_VERSION = 1;
@@ -122,18 +129,18 @@ export function composeSnapshotFromBattle(battle: EngineBattle): CapturedCombata
 
     const named = Object.values(collection).filter(
       (combatant): combatant is Record<string, unknown> => {
-        const named = getRecordOrArrayFromValue(combatant)?.["name"];
+        const named = getRecordOrArrayFromValue(combatant)?.[WARRIOR_NAME_FIELD];
         return typeof named === "string" && named !== "";
       },
     );
     if (named.length === 0) continue;
 
     return named.map((combatant) => ({
-      id: getIntegerFromValue(combatant["id"] ?? combatant["originalId"]),
-      name: combatant["name"] ?? null,
-      team: combatant["team"] ?? null,
-      prof: combatant["prof"] ?? null,
-      lvl: combatant["lvl"] ?? null,
+      id: getIntegerFromValue(combatant[WARRIOR_ID_FIELD] ?? combatant["originalId"]),
+      name: combatant[WARRIOR_NAME_FIELD] ?? null,
+      team: combatant[WARRIOR_SIDE_FIELD] ?? null,
+      prof: combatant[WARRIOR_PROFESSION_FIELD] ?? null,
+      lvl: combatant[WARRIOR_LEVEL_FIELD] ?? null,
       hp: composeShallowCopy(combatant["hp"]),
       mana: combatant["mana"] ?? null,
       energy: combatant["energy"] ?? null,

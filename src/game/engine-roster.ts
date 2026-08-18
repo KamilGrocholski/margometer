@@ -20,6 +20,13 @@ import {
   type CombatantRoster,
   type RosteredCombatant,
 } from "@/src/core/combatant-roster.ts";
+import {
+  WARRIOR_ID_FIELD,
+  WARRIOR_LEVEL_FIELD,
+  WARRIOR_NAME_FIELD,
+  WARRIOR_PROFESSION_FIELD,
+  WARRIOR_SIDE_FIELD,
+} from "@/src/game/engine-warrior.ts";
 
 /** What a fight's roster is, plus the one thing only the game can tell us. */
 export type BattleRoster = {
@@ -58,17 +65,17 @@ export function composeRosteredCombatant(value: unknown): RosteredCombatant | nu
   const warrior = getRecordOrArrayFromValue(value);
   if (warrior === null) return null;
 
-  const id = getIntegerFromValue(warrior["id"]);
-  const side = getIntegerFromValue(warrior["team"]);
-  const name = warrior["name"];
+  const id = getIntegerFromValue(warrior[WARRIOR_ID_FIELD]);
+  const side = getIntegerFromValue(warrior[WARRIOR_SIDE_FIELD]);
+  const name = warrior[WARRIOR_NAME_FIELD];
   if (id === null || side === null || typeof name !== "string" || name === "") return null;
 
   // Absent rather than defaulted: a combatant whose profession the game did not
   // state must not be drawn as though it had one.
-  const stated = warrior["prof"];
+  const stated = warrior[WARRIOR_PROFESSION_FIELD];
   const profession = typeof stated === "string" && stated !== "" ? stated : null;
 
-  return { id, name, side, profession, level: getIntegerFromValue(warrior["lvl"]) };
+  return { id, name, side, profession, level: getIntegerFromValue(warrior[WARRIOR_LEVEL_FIELD]) };
 }
 
 /**
@@ -86,7 +93,12 @@ export function composeRosteredCombatant(value: unknown): RosteredCombatant | nu
  * majority of entries in every fight, and a warning that is wrong far more often
  * than it is right is one nobody will read twice.
  */
-const IDENTITY_FIELDS = ["name", "team", "prof", "lvl"] as const;
+const IDENTITY_FIELDS = [
+  WARRIOR_NAME_FIELD,
+  WARRIOR_SIDE_FIELD,
+  WARRIOR_PROFESSION_FIELD,
+  WARRIOR_LEVEL_FIELD,
+] as const;
 
 /** Whether the entry is describing somebody, and so ought to be readable. */
 function hasStatedCombatant(value: unknown): boolean {
