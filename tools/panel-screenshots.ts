@@ -3,8 +3,8 @@
  *
  * The add-on's surface is a drawn panel, and `README.md` could describe it or
  * link to the published preview but could not show it. A visitor who will not
- * install an unauthorised userscript into a game — the default this repository
- * argues for on the reader's behalf — had nothing to look at.
+ * install a userscript into a game that has not authorised it (`NOTICE.md`) had
+ * nothing to look at.
  *
  * **It photographs one release and no more.** The set is overwritten, never
  * accumulated: `screenshots/taken-at.json` names the version it was taken at and

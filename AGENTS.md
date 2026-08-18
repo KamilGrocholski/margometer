@@ -73,7 +73,8 @@ gone is the first sign the rules have drifted.
   becomes an explicit unknown event and surfaces in the panel.
 - `[ALWAYS] [any]` **Write English** — code, comments, tests, docs, commits. Two
   exceptions: field names inside captured material (§9.2), and the text a player
-  reads, which is Polish. Identifiers around a Polish string stay English, and a
+  reads, which is Polish — the panel, `CHANGELOG.md`, and `README.md`, whose
+  English is `README.en.md` beside it. Identifiers around a Polish string stay English, and a
   Polish sentence never carries our vocabulary or a key of the game's: a player
   is told what cannot be known, not why our reader cannot know it.
 - `[ALWAYS] [process]` **Leave the gate green** — every commit on its own,
@@ -338,7 +339,12 @@ is belongs in its own docblock, not here.
 ```
 AGENTS.md          These rules. The only place they live.
 CLAUDE.md          One line importing AGENTS.md.
-README.md          What this is, how to install and build it, terms of service.
+README.md          For players, in Polish: what this is, how to install it, the live
+                   preview, pictures of the panel. No terms, no licence, no notes
+                   for developers.
+README.en.md       The same in English. The two are held to one skeleton by
+                   tests/tools/readme-translations.test.ts — headings, pictures,
+                   links — and never to one wording.
 CHANGELOG.md       For players, in Polish. A release's notes are its section.
 LICENSE            MIT — covers what was written here, and nothing else.
 NOTICE.md          What of the game's is here, and on what basis.

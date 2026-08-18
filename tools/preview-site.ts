@@ -6,7 +6,7 @@
  * once per capture, plus the bundle those pages load, and
  * `.github/workflows/pages.yml` publishes the result — so the panel can be looked
  * at without installing a userscript into a game that has not authorised it
- * (README.md).
+ * (`NOTICE.md`).
  *
  * **Nothing written here is ever committed.** The pages carry a capture's engine
  * payloads inlined, which is how the replay stays synchronous

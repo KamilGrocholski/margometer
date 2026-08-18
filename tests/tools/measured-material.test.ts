@@ -72,7 +72,7 @@ const DIGIT_COUNT = /(?<![\w.%§-])\d{2,}(?:[   ]\d{3})*(?![\w.%])|\b\d[  
 const DATED = /\d{4}-\d\d-\d\d|`[0-9a-f]{7,40}`/;
 
 const SOURCE_ROOTS = ["libs", "src", "tools", "tests", "build.ts"];
-const DOCUMENTS = ["AGENTS.md", "README.md", "NOTICE.md"];
+const DOCUMENTS = ["AGENTS.md", "README.md", "README.en.md", "NOTICE.md"];
 
 function getTrackedSourceFiles(): string[] {
   return execFileSync("git", ["ls-files", ...SOURCE_ROOTS], {
