@@ -34,8 +34,8 @@ Every current desktop release clears both. The gap that lasted longest is
 Safari's: `scrollbar-color` reached it in 26.2, and before that the panel's list
 carries the platform scrollbar instead of the thin tinted one.
 
-⚠️ **One thing is below neither tier and is a defect, not a degradation** — see
-`user-select` under `### A finding` below.
+⚠️ **One property is spelled twice, once with a `-webkit-` prefix**, because
+Safari answers it under no other name — see `### Prefixed` below.
 
 ## CSS
 
@@ -71,8 +71,10 @@ cosmetic floor and the reason the tier column is not enough on its own:
   distinction is worth stating: the hatch is a second channel on a row that is
   **already labelled in words**, so colour is not left carrying the meaning
   alone. Chrome's number is high because it is the **unprefixed** property;
-  Chrome had `-webkit-mask-image` from 1 and Safari from 4. This repository
-  spells no `-webkit-` anywhere, deliberately.
+  Chrome had `-webkit-mask-image` from 1 and Safari from 4, and the prefix is
+  deliberately not spelled. That is where the line sits: below its floor this
+  property degrades and the row still reads, so a prefix would buy back a
+  hatch — while the one property that is prefixed buys back a defect.
 - **`scrollbar-gutter: stable`** (on `.list`). The gutter is no longer reserved,
   so rows shift sideways when the scrollbar appears and disappears between two
   payloads — the exact jump the comment above that declaration was written to
@@ -80,22 +82,29 @@ cosmetic floor and the reason the tier column is not enough on its own:
 - **`scrollbar-width` / `scrollbar-color`**. The platform scrollbar, at platform
   width and platform colour, instead of the thin tinted one.
 
-### A finding
+### Prefixed
 
 | Construct | Chrome / Edge | Firefox | Safari |
 |---|---|---|---|
+| `-webkit-user-select` | 1 | 49 | 3 |
 | `user-select` | 54 | 69 | never |
 
 **Safari has never supported `user-select` unprefixed** — only
-`-webkit-user-select`, since Safari 3. `src/ui/panel-stylesheet.ts` spells the
-unprefixed property twice and no `-webkit-` fallback exists anywhere in `src/`,
-so on Safari the declaration does nothing: dragging the panel by its title bar
-selects the text under the cursor, and so does a drag that starts on a row.
+`-webkit-user-select`, since Safari 3. `src/ui/panel-stylesheet.ts` spells both,
+in both of the rules that need them: the title bar the panel is dragged by, and
+the tabs. While it spelled only the standard property, the declaration did
+nothing on Safari — dragging the panel selected the text under the cursor, and
+so did a drag that started on a row. That was neither a floor nor a degradation
+but a defect, filed by the round that read this register and fixed by the round
+after it.
 
-This is not a floor — no Safari version fixes it — so it is not in the tiers
-above. It is a one-line fix (`-webkit-user-select` beside the existing
-declarations) and it is deliberately **not** made in the round that found it:
-reading and fixing are separate commits (§7.7).
+Neither row is a floor on its own, and neither is in the tier arithmetic above.
+Between them they cover every engine in scope; separately they cannot, and one
+of them says `never`. That `never` is why the two sit here rather than in
+**Settled**: `tests/tools/browser-support.test.ts` requires a row carrying one
+to have a prefixed counterpart spelled by the stylesheet as many times as the
+bare property is, so a third rule reaching for `user-select` cannot quietly
+leave Safari out again.
 
 ### Settled
 
@@ -115,8 +124,9 @@ Properties: `align-items` · `all` · `background` · `border` · `border-bottom
 `text-overflow` · `text-transform` · `top` · `touch-action` · `white-space` ·
 `width` · `z-index`
 
-Pairs: `align-items: baseline` · `align-items: center` · `all: initial` ·
-`background: transparent` · `border: solid` · `border-bottom: none` ·
+Pairs: `-webkit-user-select: none` · `align-items: baseline` ·
+`align-items: center` · `all: initial` · `background: transparent` ·
+`border: solid` · `border-bottom: none` ·
 `border-top: dashed` · `border-top: solid` · `box-sizing: border-box` ·
 `color: inherit` · `cursor: help` · `cursor: move` · `cursor: pointer` ·
 `display: block` · `display: flex` · `flex: auto` · `flex: none` ·

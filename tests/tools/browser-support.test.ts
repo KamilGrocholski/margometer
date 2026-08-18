@@ -120,8 +120,25 @@ function getStyleSurface(): Record<"properties" | "pairs" | "functions" | "selec
 
 const SURFACE = getStyleSurface();
 
+/**
+ * How many times the stylesheet declares one property.
+ *
+ * A count rather than a presence, because presence is what the defect below
+ * slipped past: two rules spelled `user-select` and nothing spelled a prefix, and
+ * a third rule spelling the bare property tomorrow would leave Safari out again
+ * while a search for `-webkit-user-select` still found the other two.
+ *
+ * ⚠️ **The lookbehind is what stops the bare name counting its own fallback.**
+ * `-webkit-user-select:` contains `user-select:`, so without it the two counts
+ * are equal by construction and the check can never fail.
+ */
+function getDeclarationCount(property: string): number {
+  const pattern = new RegExp(String.raw`(?<![\w-])${property}\s*:`, "g");
+  return [...STYLE_TEXT.matchAll(pattern)].length;
+}
+
 const CSS_FLOOR_ROWS = getTableRows(getSection("### What sets the floor"));
-const FINDING_ROWS = getTableRows(getSection("### A finding"));
+const PREFIXED_ROWS = getTableRows(getSection("### Prefixed"));
 const DOM_ROWS = getTableRows(getSection("## The DOM"));
 const JAVASCRIPT_ROWS = getTableRows(getSection("## JavaScript"));
 const TIER_ROWS = getTableRows(getSection("## The floor"));
@@ -142,7 +159,7 @@ const SETTLED = new Set(
 const CLASSIFIED = new Set([
   ...SETTLED,
   ...CSS_FLOOR_ROWS.map((cells) => getNames(cells[0]!)[0]!),
-  ...FINDING_ROWS.map((cells) => getNames(cells[0]!)[0]!),
+  ...PREFIXED_ROWS.map((cells) => getNames(cells[0]!)[0]!),
 ]);
 
 describe("the register was read", () => {
@@ -152,7 +169,7 @@ describe("the register was read", () => {
   test.each([
     ["the tier table", TIER_ROWS.length],
     ["the CSS floor table", CSS_FLOOR_ROWS.length],
-    ["the finding table", FINDING_ROWS.length],
+    ["the prefixed table", PREFIXED_ROWS.length],
     ["the DOM table", DOM_ROWS.length],
     ["the JavaScript table", JAVASCRIPT_ROWS.length],
     ["the settled list", SETTLED.size],
@@ -196,6 +213,48 @@ describe("the CSS the panel spells is classified", () => {
   });
 });
 
+/**
+ * What a `never` in a version cell is allowed to mean.
+ *
+ * It is the one cell whose value the arithmetic below cannot use: `getVersion`
+ * reads it as no version and the tier maximum turns it into a `0`, which is
+ * support nobody has. What makes such a row harmless is a prefixed spelling
+ * beside every unprefixed one, and that is a claim about the stylesheet rather
+ * than about the register — so it is checked against the stylesheet.
+ *
+ * This is the guard the `user-select` defect closed into
+ * (`docs/browser-support.md`, `### Prefixed`): the register named the engine that
+ * never had the property, the stylesheet spelled it twice with no fallback, and
+ * every test here stayed green.
+ */
+describe("a construct an engine never had is spelled with a fallback", () => {
+  /**
+   * The property, not the construct: a pair row is `property: value`, and the
+   * fallback question is about the property. The engine cells are the last three
+   * of a row whether or not it carries a tier column.
+   */
+  const NEVER = [...CSS_FLOOR_ROWS, ...PREFIXED_ROWS]
+    .map((cells) => ({
+      property: getNames(cells[0]!)[0]!.split(":")[0]!.trim(),
+      engines: cells.slice(-ENGINES.length),
+    }))
+    .filter(({ engines }) => engines.some((cell) => getVersion(cell) === null));
+
+  test("there is a row saying never", () => {
+    expect(NEVER.length).toBeGreaterThan(0);
+  });
+
+  test.each(NEVER)("$property is spelled beside a fallback, as often", ({ property }) => {
+    const bare = getDeclarationCount(property);
+    const found = [...SURFACE.properties].filter(
+      (name) => name !== property && name.endsWith(`-${property}`),
+    );
+    expect(found, `nothing in the stylesheet falls back for ${property}`).not.toEqual([]);
+    const counted = found.map((name) => `${name} x${getDeclarationCount(name)}`);
+    expect(counted, REGISTER_PATH).toEqual(found.map((name) => `${name} x${bare}`));
+  });
+});
+
 describe("the floor is what the tables add up to", () => {
   /**
    * The number a reader takes away is the one at the top, and it is the one
@@ -206,6 +265,12 @@ describe("the floor is what the tables add up to", () => {
    * `looks` is the maximum over **every** row rather than over the rows marked
    * `looks`: a browser that draws the panel as designed is also running it, so
    * the second tier can never sit below the first.
+   *
+   * ⚠️ **`### Prefixed` is deliberately not among the rows.** Those constructs
+   * are two spellings of one thing and only the pair covers every engine; a
+   * maximum over either row alone would be a floor nobody has to clear, and the
+   * `?? 0` below would read the `never` cell as support. What holds them instead
+   * is the fallback check above.
    */
   const RUNS = CSS_FLOOR_ROWS.filter((cells) => cells[1] === "runs").map((cells) => cells.slice(2));
   const LOOKS = CSS_FLOOR_ROWS.map((cells) => cells.slice(2));

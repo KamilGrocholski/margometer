@@ -48,6 +48,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   w postać i cofnięcie się łapią się od razu, niezależnie od tego, co dzieje się
   w walce.
 
+- **Poprawka** — W Safari przeciąganie panelu nie zaznacza już tekstu pod
+  kursorem. Wcześniej złapanie panelu za belkę tytułową albo pociągnięcie myszką
+  po zakładkach zaznaczało napisy zamiast przesunąć panel. W pozostałych
+  przeglądarkach tego problemu nie było.
+
 ## [0.7.0] — 2026-08-18
 
 - **Nowość** — Okienko z opisem postaci otwiera się teraz wszędzie tam, gdzie

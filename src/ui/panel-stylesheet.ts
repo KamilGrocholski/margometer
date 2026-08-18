@@ -88,6 +88,14 @@ export function composePanelStyleText(): string {
   width: ${t.width};
   /* The affordance is the cursor and the grip; nothing animates to advertise it. */
   cursor: move;
+  /*
+   * The one \`-webkit-\` in this repository, and it is not a fallback that ages
+   * out: Safari has never shipped \`user-select\` unprefixed (browser-compat-data,
+   * read 2026-08-18), so without this line a drag by the bar selects the text
+   * under the cursor there. Spelled beside every unprefixed one, which is a
+   * count docs/browser-support.md holds rather than a habit.
+   */
+  -webkit-user-select: none;
   user-select: none;
   touch-action: none;
 }
@@ -159,6 +167,8 @@ export function composePanelStyleText(): string {
   color: ${t.textQuiet};
   background: transparent;
   cursor: pointer;
+  /* Prefixed beside the standard property, for the reason the title bar states. */
+  -webkit-user-select: none;
   user-select: none;
 }
 .tab.selected { color: ${t.text}; background: ${t.surfaceRaised}; }
