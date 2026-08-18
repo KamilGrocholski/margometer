@@ -39,10 +39,22 @@ export class HelpArticleError extends MargoMeterToolError {
 
 const HELP_HOST = "https://pomoc.margonem.pl";
 
-/** "Mechanika walk" — the only article that carries combat mechanics. */
-const MECHANICS_ARTICLE = "372";
+/**
+ * "Mechanika walk" — the only article that carries combat mechanics.
+ *
+ * Exported so `tests/frozen-help-phrases.ts` can be held to it. That table is
+ * generated from whatever article this names, and it records which one under
+ * `article:` — a field that existed to make the mismatch visible and that nothing
+ * compared, so pointing the tool at another article left every frozen count
+ * describing a document the tool no longer reads
+ * (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`).
+ */
+export const MECHANICS_ARTICLE = "372";
 
-const CACHE_ROOT = new URL("../.cache/help/", import.meta.url).pathname;
+/** Exported for the same reason `tools/game-client-source.ts` exports its own: a
+ * test asks git whether this path is ignored, because §7.6's promise about
+ * somebody else's prose rests on it. */
+export const CACHE_ROOT = new URL("../.cache/help/", import.meta.url).pathname;
 
 const MILLISECONDS_PER_DAY = 86_400_000;
 

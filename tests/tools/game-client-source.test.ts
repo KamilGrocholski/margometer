@@ -1,5 +1,7 @@
+import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "bun:test";
 import {
+  CACHE_ROOT,
   GameSourceError,
   getBuildFromPage,
   getCachedBundle,
@@ -131,5 +133,33 @@ describe("reading a cache that may not be there", () => {
   // typo cannot read a directory nobody meant.
   test("refuses to read a cache for something that is not a channel", () => {
     expect(() => getChannelFromArgument("productio")).toThrow(GameSourceError);
+  });
+});
+
+/**
+ * The cache this tool writes into, and git's own opinion of it.
+ *
+ * §7.6 keeps fetched sources out of the repository by copyright requirement, and
+ * until this the whole promise was one path here agreeing with one line in
+ * `.gitignore`. Nothing compared them, so a root moved out from under the ignore
+ * rule would leave somebody else's material sitting in `git status`
+ * (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`).
+ *
+ * Asked of `git check-ignore` rather than by reading `.gitignore`: git is what
+ * decides, and a pattern read by hand is a second implementation of matching
+ * rules this repository has no reason to own. `-q` so the status carries the
+ * answer and nothing is parsed (§7.5).
+ */
+function isIgnoredByGit(path: string): boolean {
+  const done = spawnSync("git", ["check-ignore", "-q", path], {
+    cwd: new URL("../../", import.meta.url).pathname,
+  });
+  return done.status === 0;
+}
+
+describe("what the tool writes outside git", () => {
+  test("caches under a path git is told to ignore", () => {
+    expect(CACHE_ROOT).toContain("/.cache/");
+    expect(isIgnoredByGit(CACHE_ROOT), CACHE_ROOT).toBe(true);
   });
 });

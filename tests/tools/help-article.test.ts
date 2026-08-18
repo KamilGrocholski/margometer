@@ -1,6 +1,8 @@
+import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "bun:test";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import {
+  CACHE_ROOT,
   composeAgeText,
   getFragments,
   getOccurrenceCount,
@@ -8,8 +10,10 @@ import {
   getTextFromHtml,
   HelpArticleError,
   requireArticleId,
+  MECHANICS_ARTICLE,
   requireCachedHelpArticle,
 } from "@/tools/help-article.ts";
+import { FROZEN_HELP_PHRASES } from "@/tests/frozen-help-phrases.ts";
 
 const MILLISECONDS_PER_DAY = 86_400_000;
 const READ_AT = "2026-08-09T12:00:00.000Z";
@@ -180,5 +184,48 @@ describe("the counts a freeze is made of", () => {
 
   test("asking nothing answers nothing", () => {
     expect(getPhraseCounts(TEXT, [])).toEqual([]);
+  });
+});
+
+/**
+ * The frozen counts and the article they were taken from.
+ *
+ * `docs/protocol-keys.md` re-earns every claim about what the help documents
+ * against `tests/frozen-help-phrases.ts`, so the counts are only evidence while
+ * they describe the article the tool still reads. The table records which one it
+ * came from and nothing compared the two: changing `MECHANICS_ARTICLE` left the
+ * whole gate green with every count describing a different document.
+ */
+describe("the frozen counts and the article they came from", () => {
+  test("were taken from the article the tool reads", () => {
+    expect(FROZEN_HELP_PHRASES.article).toBe(MECHANICS_ARTICLE);
+  });
+});
+
+/**
+ * The cache this tool writes into, and git's own opinion of it.
+ *
+ * §7.6 keeps fetched sources out of the repository by copyright requirement, and
+ * until this the whole promise was one path here agreeing with one line in
+ * `.gitignore`. Nothing compared them, so a root moved out from under the ignore
+ * rule would leave somebody else's material sitting in `git status`
+ * (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`).
+ *
+ * Asked of `git check-ignore` rather than by reading `.gitignore`: git is what
+ * decides, and a pattern read by hand is a second implementation of matching
+ * rules this repository has no reason to own. `-q` so the status carries the
+ * answer and nothing is parsed (§7.5).
+ */
+function isIgnoredByGit(path: string): boolean {
+  const done = spawnSync("git", ["check-ignore", "-q", path], {
+    cwd: new URL("../../", import.meta.url).pathname,
+  });
+  return done.status === 0;
+}
+
+describe("what the tool writes outside git", () => {
+  test("caches under a path git is told to ignore", () => {
+    expect(CACHE_ROOT).toContain("/.cache/");
+    expect(isIgnoredByGit(CACHE_ROOT), CACHE_ROOT).toBe(true);
   });
 });

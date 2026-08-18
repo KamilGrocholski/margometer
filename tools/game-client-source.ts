@@ -39,7 +39,17 @@ const CHANNEL_HOSTS: Record<GameChannel, string> = {
   development: "https://experimental.margonem.pl",
 };
 
-const CACHE_ROOT = new URL("../.cache/game-client/", import.meta.url).pathname;
+/**
+ * Exported so a test can ask **git** whether this path is ignored.
+ *
+ * §7.6 keeps fetched client sources out of the repository by copyright
+ * requirement, and the whole of that promise was this path agreeing with a line
+ * in `.gitignore` — two spellings, in two files, with nothing between them. A
+ * root moved out from under the ignore rule would put somebody else's minified
+ * bundle in `git status` looking like work
+ * (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`).
+ */
+export const CACHE_ROOT = new URL("../.cache/game-client/", import.meta.url).pathname;
 
 export type CachedClientSource = {
   channel: GameChannel;
