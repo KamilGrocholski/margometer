@@ -8,14 +8,13 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { getPayloadCost, PayloadCostError } from "@/tools/payload-cost.ts";
 import {
-  getPayloadCost,
-  PayloadCostError,
   PAYLOAD_PHASE,
   READING_PHASE,
   SESSION_PHASE,
   VIEW_PHASE,
-} from "@/tools/payload-cost.ts";
+} from "@/src/cost-phases.ts";
 import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
 import { composeEmptySession, composeNextSession } from "@/src/game/battle-session.ts";
 import { getPayloadReading } from "@/src/game/engine-battle-wrap.ts";

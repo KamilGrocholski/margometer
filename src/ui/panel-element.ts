@@ -187,6 +187,20 @@ export type PanelPlacement = {
   /** Told when the drag ends, not while it runs — a caller may be writing to storage. */
   onMoved?: ((position: PanelPosition) => void) | undefined;
   onSectionFailure?: ((error: unknown) => void) | undefined;
+  /**
+   * Wraps one move of a drag, so a development build can say what it cost.
+   *
+   * Injected rather than imported, which is the whole reason it can be here at
+   * all: `src/ui/` may not reach for the entry point's seam or for the names it
+   * measures under (§9.1), and a parameter is not a dependency. It takes no name
+   * either — the caller arrives with one already bound, so this file knows
+   * neither what a phase is called nor that a clock exists. Absent, and in the
+   * file people install, it is the identity.
+   *
+   * The drag and not the render: a move draws no panel, it moves the one already
+   * drawn, and it is the phase that runs tens of times a second.
+   */
+  getTimedResult?: (<Result>(work: () => Result) => Result) | undefined;
 };
 
 /** One row, bar and all. The bar is behind the text rather than beside it. */
@@ -974,9 +988,11 @@ function setPanelDrag(
 
   setGuarded("pointermove", (event) => {
     if (grab === null) return;
+    const held = grab;
     const pointer = getPointerFromEvent(event);
     if (pointer === null) return;
-    setHostPosition(composeDraggedPosition(grab, pointer, placement.getViewport()));
+    const timed = placement.getTimedResult ?? (<Result>(work: () => Result) => work());
+    timed(() => setHostPosition(composeDraggedPosition(held, pointer, placement.getViewport())));
   });
 
   /**

@@ -28,6 +28,12 @@ import {
   type SpanRecorder,
 } from "@/libs/elapsed-spans.ts";
 import { getTextOrder } from "@/libs/text-order.ts";
+import {
+  PAYLOAD_PHASE,
+  READING_PHASE,
+  SESSION_PHASE,
+  VIEW_PHASE,
+} from "@/src/cost-phases.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import {
@@ -58,19 +64,6 @@ const NUMBER_COLUMN = 10;
 const BAR_COLUMN = 20;
 const DEFAULT_RUNS = 5;
 
-/**
- * The names a phase goes by.
- *
- * ⚠️ **A whole and its parts, and they may not be added together.**
- * `PAYLOAD_PHASE` is one engine call end to end and the other three happen
- * inside it, which is why they print as two readings rather than four rows of
- * one table: a share computed across both would put every payload past a
- * hundred per cent of itself.
- */
-export const PAYLOAD_PHASE = "payload";
-export const SESSION_PHASE = "session";
-export const READING_PHASE = "reading";
-export const VIEW_PHASE = "view";
 const DECODE_PASS = "decode, whole fight";
 const AGGREGATE_PASS = "aggregate, whole fight";
 

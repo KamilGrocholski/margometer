@@ -106,7 +106,15 @@ bun run check     # typecheck + tests + build — the gate
 bun test          # tests only
 bun run preview   # the panel in a browser, over a recorded fight, rebuilt as you edit
 bun run cost      # what a payload costs, replayed off every recording
+bun run build:dev # the same add-on with a cost overlay, installed beside a release
 ```
+
+`bun run build:dev` writes `dist/margometer.dev.user.js`. It carries a name of its
+own and no update URL, so it sits alongside an installed release instead of
+replacing it, and it draws what each phase of a payload cost in the corner of the
+page. `bun run preview --dev` serves that build instead of the ordinary one.
+Nothing measured leaves the machine — there is no telemetry here and the add-on
+sends nothing anywhere.
 
 Conventions, workflow and the rules this repository is held to live in
 [`AGENTS.md`](AGENTS.md). That file is the single source of them; AI coding

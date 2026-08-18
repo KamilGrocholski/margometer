@@ -64,6 +64,17 @@ import {
 } from "@/src/ui/panel-placement.ts";
 import type { PanelDetailLine } from "@/src/ui/panel-shape.ts";
 import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
+import {
+  CAPTURE_PHASE,
+  DOM_PHASE,
+  DRAG_PHASE,
+  GESTURE_PHASE,
+  PAYLOAD_PHASE,
+  READING_PHASE,
+  SESSION_PHASE,
+  VIEW_PHASE,
+} from "@/src/cost-phases.ts";
+import { getTimedResult, setCostDrawn } from "@/src/userscript-instrument.ts";
 
 export type MargoMeterOptions = {
   /** Told after every payload, with the fight as it now stands. */
@@ -232,33 +243,47 @@ export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {})
 
   const stop = setEngineAttachment(
     page,
-    (reading) => {
-      const { payload, messages } = reading;
-      const before = session;
-      session = composeNextSession(session, reading);
-      hasReading = true;
-      /**
-       * Guarded on its own, and ahead of nothing: keeping material is a
-       * developer's convenience, and it must never be the reason a fight stops
-       * being counted or the panel stops being drawn. The same argument the wrap
-       * makes with two `try`s instead of one, one layer up.
-       */
-      try {
-        capture = composeNextCapture(
-          capture,
-          payload,
-          messages,
-          combatantsBefore,
-          battleBeingCalled === null ? [] : composeSnapshotFromBattle(battleBeingCalled),
-        );
-      } catch (error) {
-        options.onCaptureFailure?.(error);
-      }
-      combatantsBefore = [];
-      // Nothing the panel draws can have changed, so nothing is drawn: the same
-      // session object back means the payload carried no fight (`composeNextSession`).
-      if (session !== before) options.onReading?.(composeFightReading(session));
-    },
+    /**
+     * ⚠️ **The phases wrap this whole callback, not the panel alone.** What a
+     * player waits for is the engine call returning, and everything below runs
+     * inside it — so `payload` is the honest figure and `session`, `capture`,
+     * `reading` are its parts. In the file people install every one of those is
+     * a pass-through that runs the work and hands it back
+     * (`src/userscript-instrument.ts`).
+     */
+    (reading) =>
+      getTimedResult(PAYLOAD_PHASE, () => {
+        const { payload, messages } = reading;
+        const before = session;
+        session = getTimedResult(SESSION_PHASE, () => composeNextSession(before, reading));
+        hasReading = true;
+        /**
+         * Guarded on its own, and ahead of nothing: keeping material is a
+         * developer's convenience, and it must never be the reason a fight stops
+         * being counted or the panel stops being drawn. The same argument the wrap
+         * makes with two `try`s instead of one, one layer up.
+         */
+        try {
+          capture = getTimedResult(CAPTURE_PHASE, () =>
+            composeNextCapture(
+              capture,
+              payload,
+              messages,
+              combatantsBefore,
+              battleBeingCalled === null ? [] : composeSnapshotFromBattle(battleBeingCalled),
+            ),
+          );
+        } catch (error) {
+          options.onCaptureFailure?.(error);
+        }
+        combatantsBefore = [];
+        // Nothing the panel draws can have changed, so nothing is drawn: the same
+        // session object back means the payload carried no fight (`composeNextSession`).
+        if (session !== before) {
+          const next = session;
+          options.onReading?.(getTimedResult(READING_PHASE, () => composeFightReading(next)));
+        }
+      }),
     {
       onBeforeOriginal: (battle) => {
         battleBeingCalled = battle;
@@ -580,6 +605,9 @@ export function composePanelMount(
       position: getStoredPosition(page),
       getViewport: () => getViewportFromPage(page),
       onMoved: (position) => setStoredPosition(page, position),
+      // The name is bound here because `src/ui/` may not read the list it comes
+      // from (§9.1). The panel is handed a function, not a vocabulary.
+      getTimedResult: (work) => getTimedResult(DRAG_PHASE, work),
       onSectionFailure: (error) => {
         if (hasReportedDragFailure) return;
         hasReportedDragFailure = true;
@@ -617,10 +645,17 @@ export function composePanelMount(
    * for what is on screen is decided outside it. Changing the metric drops the
    * drill with it, because the level below belongs to the metric it was opened
    * in — kept, it would draw one list under another list's heading.
+   *
+   * Every gesture goes through here — a tab, a side, a row, a step back, the
+   * collapse — which is also why it is the one place the `gesture` phase wraps.
+   * It contains the render it triggers, so what it measures is the question the
+   * panel is actually asked: how long between the click and the new screen.
    */
   const setState = (next: Partial<PanelState>): void => {
-    state = { ...state, ...next };
-    renderLatest();
+    getTimedResult(GESTURE_PHASE, () => {
+      state = { ...state, ...next };
+      renderLatest();
+    });
   };
 
   const renderLatest = (): void => {
@@ -644,7 +679,10 @@ export function composePanelMount(
       }, state.isCollapsed);
       return;
     }
-    renderPanelInto(document, container, composePanelView(latest, state, translate), {
+    const shown = latest;
+    const view = getTimedResult(VIEW_PHASE, () => composePanelView(shown, state, translate));
+    getTimedResult(DOM_PHASE, () =>
+      renderPanelInto(document, container, view, {
       onMetricChosen: (chosen) => setState(composeStateAfterMetric(chosen)),
       onTeamChosen: (chosen) => setState(composeStateAfterTeam(chosen)),
       onRowChosen: (key) => setState(composeStateFromRow(state, key)),
@@ -659,7 +697,11 @@ export function composePanelMount(
         failuresThisFight += 1;
         if (failuresThisFight === 1) warn("MargoMeter/PanelSection", error);
       },
-    }, state.isCollapsed, details, scroll);
+      }, state.isCollapsed, details, scroll),
+    );
+    // Last, so what it draws includes the render it is drawn after. Nothing at
+    // all in the file people install (`src/userscript-instrument.ts`).
+    setCostDrawn(page);
   };
 
   /*

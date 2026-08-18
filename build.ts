@@ -25,7 +25,34 @@ export const USERSCRIPT_FILENAME = "margometer.user.js";
  * something to install.
  */
 export const METADATA_FILENAME = "margometer.meta.js";
+/**
+ * The development build, which is a **different file with a different name** and
+ * not a variant of the one above.
+ *
+ * Tampermonkey tells scripts apart by `@name`, so a development copy sharing the
+ * release's would replace it on install and be replaced back by the next update
+ * check — while the person running it watched their instrumented build turn into
+ * the ordinary one for no reason they could see. It carries no `@updateURL` and
+ * no `@downloadURL` for the same reason: nothing on a release page is this file,
+ * and a poll for its next version would find somebody else's.
+ */
+export const DEVELOPMENT_USERSCRIPT_FILENAME = "margometer.dev.user.js";
+export const DEVELOPMENT_NAME = "MargoMeter (dev)";
 const BUNDLE_ENTRY_POINT = "./src/userscript-entry.ts";
+/**
+ * The seam the development build swaps, and where it swaps it to.
+ *
+ * ⚠️ **A `define` was tried first and does not work.** Bun substitutes the
+ * constant and leaves the branch: measured on `1.3.14` with `minify: false`, a
+ * flag defined as `false` arrives as `var flag = false`, the `if (flag)` under it
+ * survives, and so does every module the branch imports. The recorder, the
+ * overlay and `performance.now` would all have shipped inside the file people
+ * install, switched off. Resolving one specifier elsewhere means the production
+ * bundle never reaches them at all — which is a claim
+ * `tests/tools/userscript-development.test.ts` checks against the built text.
+ */
+const INSTRUMENT_SPECIFIER = "@/src/userscript-instrument.ts";
+const DEVELOPMENT_INSTRUMENT_PATH = "./src/userscript-instrument-development.ts";
 
 /** Game worlds live on per-world subdomains; these are the site, not a world. */
 const NON_GAME_HOSTS = ["www", "forum", "commons", "pomoc"];
@@ -49,9 +76,14 @@ const NON_GAME_HOST_PREFIXES = [...NON_GAME_HOSTS.map((host) => `${host}.`), ""]
 /** A metadata directive: the key Tampermonkey reads, and its value. */
 type UserscriptDirective = readonly [key: string, value: string];
 
-export function composeUserscriptBanner(version: string, description: string, homepage: string): string {
+export function composeUserscriptBanner(
+  version: string,
+  description: string,
+  homepage: string,
+  isDevelopment = false,
+): string {
   const directives: UserscriptDirective[] = [
-    ["name", "MargoMeter"],
+    ["name", isDevelopment ? DEVELOPMENT_NAME : "MargoMeter"],
     ["namespace", homepage],
     ["version", version],
     ["description", description],
@@ -78,8 +110,12 @@ export function composeUserscriptBanner(version: string, description: string, ho
      * also the pair 0.5.0 was published with — so a copy installed from that
      * release keeps updating rather than stopping where it is.
      */
-    ["downloadURL", `${homepage}/releases/latest/download/${USERSCRIPT_FILENAME}`],
-    ["updateURL", `${homepage}/releases/latest/download/${METADATA_FILENAME}`],
+    ...(isDevelopment
+      ? []
+      : ([
+          ["downloadURL", `${homepage}/releases/latest/download/${USERSCRIPT_FILENAME}`],
+          ["updateURL", `${homepage}/releases/latest/download/${METADATA_FILENAME}`],
+        ] as UserscriptDirective[])),
     // The trailing `/*` matters: @match compares the whole path, so a pattern
     // without it never fires on a world that carries a query string.
     ...GAME_TOP_LEVEL_DOMAINS.map(
@@ -126,9 +162,31 @@ export type UserscriptFiles = {
  * give: two compositions of the banner can disagree, and then an update check
  * compares against a version nobody shipped.
  */
-export async function composeUserscriptFiles(): Promise<UserscriptFiles> {
+export async function composeUserscriptFiles(isDevelopment = false): Promise<UserscriptFiles> {
   const result = await Bun.build({
     entrypoints: [BUNDLE_ENTRY_POINT],
+    /**
+     * One specifier resolved elsewhere, and only for the development build.
+     *
+     * The importer is checked so the swap cannot reach the file it swaps to: the
+     * seam's own module graph is off limits to it. Nothing else about the two
+     * builds differs, which is the point — a development build measuring a
+     * bundle assembled under other settings would be measuring something nobody
+     * runs.
+     */
+    plugins: isDevelopment
+      ? [
+          {
+            name: "margometer-development-instrument",
+            setup(builder) {
+              builder.onResolve({ filter: /userscript-instrument\.ts$/ }, (arrival) => {
+                if (arrival.path !== INSTRUMENT_SPECIFIER) return null;
+                return { path: Bun.fileURLToPath(new URL(DEVELOPMENT_INSTRUMENT_PATH, import.meta.url)) };
+              });
+            },
+          },
+        ]
+      : [],
     target: "browser",
     // Tampermonkey does not load ES modules, and the file is meant to stay
     // readable for whoever installs it — so IIFE, and no minification.
@@ -175,6 +233,7 @@ export async function composeUserscriptFiles(): Promise<UserscriptFiles> {
     manifest.version,
     manifest.description,
     manifest.homepage,
+    isDevelopment,
   );
   return { script: metadata + (await artifact.text()), metadata };
 }
@@ -192,4 +251,22 @@ async function writeUserscriptFiles(): Promise<void> {
   console.log(`built ${metadataPath}`);
 }
 
-if (import.meta.main) await writeUserscriptFiles();
+/**
+ * The development build: one file, and deliberately no metadata beside it.
+ *
+ * Nothing polls this copy — it has no `@updateURL` — so a metadata file for it
+ * would be a file with no reader, which is the thing §7.1 says does not get to
+ * exist.
+ */
+async function writeDevelopmentUserscript(): Promise<void> {
+  const files = await composeUserscriptFiles(true);
+
+  const outputPath = `${OUTPUT_DIRECTORY}/${DEVELOPMENT_USERSCRIPT_FILENAME}`;
+  await Bun.write(outputPath, files.script);
+  console.log(`built ${outputPath}`);
+}
+
+if (import.meta.main) {
+  if (process.argv.includes("--dev")) await writeDevelopmentUserscript();
+  else await writeUserscriptFiles();
+}

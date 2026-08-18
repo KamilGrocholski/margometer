@@ -159,6 +159,17 @@ export type PreviewServerOptions = {
    * server that does not reload is the feature missing.
    */
   shouldWatch?: boolean | undefined;
+  /**
+   * Serve the development build instead, so the cost overlay is over the panel.
+   *
+   * ⚠️ **Off by default, and that default is the whole point of the flag.** A
+   * preview built on settings nobody installs is a preview of something nobody
+   * runs, which is the argument `build.ts` makes for `iife` and `minify: false`;
+   * this is the one setting a person may deliberately step outside it for, and
+   * they have to ask. `tools/preview-site.ts` never asks — what it publishes is
+   * the installed file, and `tests/tools/preview-site.test.ts` holds that.
+   */
+  isDevelopment?: boolean | undefined;
 };
 
 export type PreviewServer = {
@@ -236,15 +247,17 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
   /** The last bundle that built. Kept so a failed rebuild costs nothing on screen. */
   let script: string | null = null;
 
+  const isDevelopment = options.isDevelopment ?? false;
+
   async function getScript(): Promise<string> {
     if (script !== null) return script;
-    const files = await composeUserscriptFiles();
+    const files = await composeUserscriptFiles(isDevelopment);
     script = files.script;
     return script;
   }
 
   function setRebuilt(): void {
-    void composeUserscriptFiles().then(
+    void composeUserscriptFiles(isDevelopment).then(
       (files) => {
         script = files.script;
         setListenersTold(listeners, "rebuilt", "ok");
@@ -400,10 +413,13 @@ if (import.meta.main) {
   const port = portAt === -1 ? DEFAULT_PORT : (getIntegerFromText(argv[portAt + 1] ?? "") ?? DEFAULT_PORT);
   const fight = fightAt === -1 ? null : (argv[fightAt + 1] ?? null);
 
-  const preview = setPreviewServer({ port });
+  const isDevelopment = argv.includes("--dev");
+
+  const preview = setPreviewServer({ port, isDevelopment });
   const opening = fight === null ? preview.url : `${preview.url}/?fight=${encodeURIComponent(fight)}`;
   console.log(`preview  ${opening}`);
   console.log(`captures ${CAPTURED_FIGHTS.length}, watching ${WATCHED_PATHS.join(", ")}`);
+  console.log(isDevelopment ? "serving the development build — the cost overlay is on" : "serving the build people install; --dev adds the cost overlay");
   console.log("a change under those rebuilds and reloads the page; a change here does not — restart");
 
   for (const signal of ["SIGINT", "SIGTERM"]) {

@@ -48,10 +48,11 @@ git history before that point does not describe how things are done here.
 | `[docs]` | The register, the specs and the audits | `docs/` |
 | `[process]` | Commits, validation, workflow | `.github/workflows/`, `.claude/skills/verify/` |
 
-Untagged prose is context and does not bind. The two files directly in `src/`
-are `[any]`: the entry point may know every layer, the version constant knows
-none. A test is bound by the scope of the thing it tests. Keep this table true —
-a scope whose path is gone is the first sign the rules have drifted.
+Untagged prose is context and does not bind. The files directly in `src/` are
+`[any]`: the entry point may know every layer, while the version constant, the
+phase names and the two halves of the measuring seam know none. A test is bound
+by the scope of the thing it tests. Keep this table true — a scope whose path is
+gone is the first sign the rules have drifted.
 
 ---
 
@@ -336,8 +337,9 @@ LICENSE            MIT — covers what was written here, and nothing else.
 NOTICE.md          What of the game's is here, and on what basis.
 TODO.md            The maintainer's list, by hand. `[NEVER]` written to (§5).
 build.ts           Bundles src/, prepends the banner, writes the banner again on
-                   its own so update polling keeps working.
-package.json       Version and scripts: the gate, the preview, the site.
+                   its own so update polling keeps working. `--dev` swaps one
+                   module and writes a second userscript that measures itself.
+package.json       Version and scripts: the gate, the preview, the site, the cost.
 bun.lock           What the gate is actually run against — §6.1.
 tsconfig.json      Strict flags standing in for a linter, and the `@/*` alias.
 .gitignore         What never enters git, including the cache.
@@ -377,6 +379,15 @@ libs/              The bottom layer: true in any project — §9.1.
 
 src/
   userscript-version.ts  The version, substituted at build time. Any layer — §9.1.
+  cost-phases.ts         What a measured phase is called. Three readers, one
+                         spelling; a whole and its parts never added together.
+  userscript-instrument.ts
+                         The seam a cost measurement goes through, and what it
+                         costs when nobody is measuring: nothing. Swapped by
+                         `build.ts --dev`, never branched at run time.
+  userscript-instrument-development.ts
+                         The same seam with a clock behind it. Nothing imports it
+                         by name — the build resolves the one above to here.
   userscript-entry.ts    Reads the game off the page, decides every name we put
                          on it, holds the session, mounts the panel, and reaches
                          storage — for the panel's position and nothing else.
@@ -429,6 +440,8 @@ src/
                          summary, warnings. No DOM.
     panel-element.ts     The same, drawn. One shadow root, delegated events,
                          region by region so one failure is its own size.
+    cost-overlay.ts      What the add-on cost, drawn beside the panel and never
+                         inside it. Development builds only.
 
 tools/                   Never ships. §6.2 says what each answers.
   margometer-tool-error.ts   Base for everything the tooling throws — §9.5.

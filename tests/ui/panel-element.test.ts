@@ -912,6 +912,65 @@ describe("the window itself", () => {
 
     expect(moved).toEqual([{ left: 110, top: 120 }]);
   });
+
+  /**
+   * A host whose shadow root can be opened, which is what a drag needs and what
+   * `composeFakeDocument` alone does not give.
+   */
+  const composeDraggableHost = (): { document: PanelDocument; host: FakeNode & PanelHost } => {
+    const document = composeFakeDocument();
+    const host = document.createElement("div") as FakeNode & PanelHost;
+    host.attachShadow = (): PanelNode => {
+      const root = document.createElement("root") as FakeNode;
+      host.children.push(root);
+      return root;
+    };
+    return { document, host };
+  };
+
+  /**
+   * The one phase of the cost measurement that runs inside `ui`, and it arrives
+   * as a function with its name already bound — this layer may read neither the
+   * seam nor the vocabulary it measures under (§9.1). Wrapping the move rather
+   * than the drag: a move is what happens tens of times a second.
+   */
+  test("lets the caller time a move, and moves the panel exactly once either way", () => {
+    const { document, host } = composeDraggableHost();
+    const timed: number[] = [];
+    setPanelRoot(document, host, {
+      position: { left: 100, top: 100 },
+      getViewport: () => ({ width: 1200, height: 800 }),
+      getTimedResult: (work) => {
+        timed.push(1);
+        return work();
+      },
+    });
+    const root = assertDefined(host.children[0], "the shadow root was opened") as FakeNode;
+    const titleBar = assertDefined(getByClass(root, "MargoMeter-titlebar")[0], "the title bar was built");
+
+    setEventOn(root, "pointerdown", { target: titleBar, clientX: 150, clientY: 150, pointerId: 1 });
+    setEventOn(root, "pointermove", { target: titleBar, clientX: 160, clientY: 170, pointerId: 1 });
+
+    expect(timed).toHaveLength(1);
+    expect(host.properties["left"]).toBe("110px");
+  });
+
+  // Absent, which is what the file people install passes, the drag is the same
+  // drag: the seam defaults to running the work and nothing else.
+  test("drags the same with nobody timing it", () => {
+    const { document, host } = composeDraggableHost();
+    setPanelRoot(document, host, {
+      position: { left: 100, top: 100 },
+      getViewport: () => ({ width: 1200, height: 800 }),
+    });
+    const root = assertDefined(host.children[0], "the shadow root was opened") as FakeNode;
+    const titleBar = assertDefined(getByClass(root, "MargoMeter-titlebar")[0], "the title bar was built");
+
+    setEventOn(root, "pointerdown", { target: titleBar, clientX: 150, clientY: 150, pointerId: 1 });
+    setEventOn(root, "pointermove", { target: titleBar, clientX: 160, clientY: 170, pointerId: 1 });
+
+    expect(host.properties["left"]).toBe("110px");
+  });
 });
 
 describe("what the panel never does", () => {

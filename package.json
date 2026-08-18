@@ -12,6 +12,7 @@
   "type": "module",
   "scripts": {
     "build": "bun run build.ts",
+    "build:dev": "bun run build.ts --dev",
     "preview": "bun run tools/preview-server.ts",
     "preview:site": "bun run tools/preview-site.ts",
     "cost": "bun run tools/payload-cost.ts",
