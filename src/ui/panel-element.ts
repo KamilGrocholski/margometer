@@ -12,7 +12,8 @@
  *   - a region that throws takes only itself down;
  *   - a handler that throws does not escape into the page;
  *   - every control on the panel is served by listeners at one root, keyed by
- *     node identity, so a redraw cannot lose one;
+ *     node identity, so a redraw cannot lose one — and every control the render
+ *     draws answers to a *press*, so a redraw cannot lose the gesture either;
  *   - nothing here can interrupt — no dialog, no focus taken, nothing that moves
  *     unless a hand is moving it.
  */
@@ -44,16 +45,26 @@ import type {
 } from "@/src/ui/panel-shape.ts";
 
 /**
- * What an event hands us. The target is what a click needs, and that is the whole
- * point: listeners at one root can serve every control on the panel if they can
- * tell which one was hit (§9.6).
+ * What an event hands us. The target is what a gesture needs, and that is the
+ * whole point: listeners at one root can serve every control on the panel if they
+ * can tell which one was hit (§9.6).
  *
- * The rest is what a drag needs, and all of it is optional because a click
+ * The rest is what a drag needs, and all of it is optional because a press
  * carries none of it — a pointer event that arrives without coordinates moves
  * nothing rather than moving somewhere nobody asked for.
  */
 export type PanelEvent = {
   target: unknown;
+  /**
+   * Which button is down, where `0` is the primary one.
+   *
+   * Optional for the reason the coordinates are: an event that does not say is
+   * not a reason to refuse the gesture, so a missing button reads as the primary
+   * one. It is here because the controls answer to a press (see the listener in
+   * `renderPanel`), and a press arrives for the right button too — which is the
+   * one this panel already spends on going back.
+   */
+  button?: number | undefined;
   clientX?: number | undefined;
   clientY?: number | undefined;
   pointerId?: number | undefined;
@@ -363,7 +374,7 @@ export function renderPanel(
    * One listener for however many controls the view holds, keyed by identity.
    *
    * §9.6 asks for delegation rather than a binding per element. Four maps rather
-   * than one because what a click *means* differs, and a single map of thunks
+   * than one because what a press *means* differs, and a single map of thunks
    * would put the four handlers' error handling in four places again.
    */
   const metricByTab = new Map<unknown, PanelMetric>();
@@ -380,7 +391,35 @@ export function renderPanel(
     }
   };
 
-  panel.addEventListener("click", (event) => {
+  /**
+   * ⚠️ **The press, and never the click — that is the whole of the defect this
+   * replaces.** A browser assembles `click` out of two moments and dispatches it
+   * only if both resolve to a node still in the tree. Every node below is built
+   * by this function, and `renderPanelInto` replaces the lot on every payload —
+   * so a payload landing between the press and the release detached what was
+   * pressed and **no click was dispatched at all**. The panel looked like it had
+   * ignored the reader, who pressed again, during a fight, repeatedly.
+   *
+   * The listeners were never the thing at risk: they are delegated and keyed by
+   * identity, so a redraw cannot lose one. What a redraw could lose is the
+   * *gesture*, and a `pointerdown` is one event with nothing inside it for a
+   * redraw to land in the middle of. That holds whatever the payload rate and
+   * whatever a render costs — which is why it was preferred to holding the redraw
+   * back while a hand is down (`docs/specs/2026-08-18-a-gesture-a-redraw-cannot-split.md`).
+   *
+   * The title bar's buttons stay on `click` and are not an inconsistency: they
+   * are built once with the shadow root and outlive every render, so nothing can
+   * take them out from under a hand.
+   */
+  panel.addEventListener("pointerdown", (event) => {
+    /*
+     * The primary button alone. Without this a right-press would open the row and
+     * the `contextmenu` listener below would then step straight back out of it,
+     * which is worse than either half. A missing button is the primary one — see
+     * `PanelEvent`.
+     */
+    if ((event.button ?? 0) !== 0) return;
+
     const metric = metricByTab.get(event.target);
     if (metric !== undefined) return handleGuarded(() => handlers.onMetricChosen?.(metric));
 

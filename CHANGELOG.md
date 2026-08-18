@@ -34,6 +34,15 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Panel odpowiada teraz za pierwszym razem, także w środku walki.
+  Wcześniej kliknięcie w zakładkę albo w wiersz często przepadało, jeśli akurat
+  w tej samej chwili z walki przychodziły nowe informacje — trzeba było klikać
+  po kilka razy, żeby cokolwiek się przełączyło. Teraz zmiana zakładki, wejście
+  w postać i cofnięcie się łapią się od razu, niezależnie od tego, co dzieje się
+  w walce.
+
 ## [0.7.0] — 2026-08-18
 
 - **Nowość** — Okienko z opisem postaci otwiera się teraz wszędzie tam, gdzie

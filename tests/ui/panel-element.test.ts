@@ -89,6 +89,19 @@ function setClickOn(root: FakeNode, target: FakeNode): void {
   setEventOn(root, "click", { target });
 }
 
+/**
+ * The gesture every control the render draws answers to.
+ *
+ * Beside `setClickOn` rather than in place of it: the title bar's buttons are
+ * built once with the shadow root and outlive every render, so nothing can take
+ * them out from under a hand and they stay on a click. Everything below the bar
+ * is rebuilt on every payload, and a press is the one gesture a rebuild cannot
+ * land in the middle of.
+ */
+function setPressOn(root: FakeNode, target: FakeNode, button?: number): void {
+  setEventOn(root, "pointerdown", { target, button });
+}
+
 function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & {
   getCreatedCount: () => number;
 } {
@@ -565,12 +578,12 @@ describe("what reaches the screen", () => {
 });
 
 describe("one gesture in, one gesture out", () => {
-  test("a click on a row asks for that row and nothing else", () => {
+  test("a press on a row asks for that row and nothing else", () => {
     const chosen: string[] = [];
     const { panel } = renderInto(composeDefaultState(), { onRowChosen: (key: string) => chosen.push(key) });
     const row = assertDefined(getByClass(panel, "row")[0], "a row was drawn");
 
-    setClickOn(panel, row);
+    setPressOn(panel, row);
     expect(chosen).toEqual(["combatant:1"]);
   });
 
@@ -579,13 +592,13 @@ describe("one gesture in, one gesture out", () => {
    * `Leczenie` is healing **given** — turning the figure round under the hand of
    * somebody who only asked to change the subject is the thing this prevents.
    */
-  test("a click on a noun keeps the direction it was read in", () => {
+  test("a press on a noun keeps the direction it was read in", () => {
     const metrics: string[] = [];
     const { panel } = renderInto(composeDefaultState(), {
       onMetricChosen: (metric: string) => metrics.push(metric),
     });
 
-    setClickOn(panel, getTabByLabel(panel, "Leczenie"));
+    setPressOn(panel, getTabByLabel(panel, "Leczenie"));
 
     expect(metrics).toEqual(["healingGiven"]);
   });
@@ -597,7 +610,7 @@ describe("one gesture in, one gesture out", () => {
       { onMetricChosen: (metric: string) => metrics.push(metric) },
     );
 
-    setClickOn(panel, getTabByLabel(panel, "Leczenie"));
+    setPressOn(panel, getTabByLabel(panel, "Leczenie"));
 
     expect(metrics).toEqual(["healed"]);
   });
@@ -606,13 +619,13 @@ describe("one gesture in, one gesture out", () => {
    * Both strips report the same kind of choice — which figure — so the drawing
    * needs no second handler and no second map, however many axes the panel grows.
    */
-  test("a click on a direction asks for that metric", () => {
+  test("a press on a direction asks for that metric", () => {
     const metrics: string[] = [];
     const { panel } = renderInto(composeDefaultState(), {
       onMetricChosen: (metric: string) => metrics.push(metric),
     });
 
-    setClickOn(panel, getTabByLabel(panel, "otrzymane"));
+    setPressOn(panel, getTabByLabel(panel, "otrzymane"));
 
     expect(metrics).toEqual(["taken"]);
   });
@@ -632,8 +645,69 @@ describe("one gesture in, one gesture out", () => {
     const { panel } = renderInto(composeDefaultState(), { onTeamChosen: (team: string) => teams.push(team) });
     const sides = assertDefined(getByClass(panel, "sides-of")[0], "the side strip");
 
-    setClickOn(panel, getTabByLabel(sides, "My"));
+    setPressOn(panel, getTabByLabel(sides, "My"));
     expect(teams).toEqual(["mine"]);
+  });
+
+  /**
+   * ⚠️ **The defect this replaces cannot be dispatched into a fake; the property
+   * that closes it can.** A browser assembles `click` out of a press and a
+   * release and drops it when what sat between them has left the tree — and every
+   * node here leaves the tree on every payload, because `renderPanelInto`
+   * replaces the lot. So the reader pressed a tab during a fight, a payload
+   * landed, and nothing happened.
+   *
+   * What is checkable without a browser is that no control needs two events:
+   * a press alone drives every one of them, and nothing the render draws is
+   * waiting for a click. The second half is what would go red if a click path
+   * were ever added back beside this one.
+   */
+  test("every control answers to a press alone, and nothing waits for a click", () => {
+    const chosen: string[] = [];
+    const metrics: string[] = [];
+    const teams: string[] = [];
+    const { panel } = renderInto(composeDefaultState(), {
+      onRowChosen: (key: string) => chosen.push(key),
+      onMetricChosen: (metric: string) => metrics.push(metric),
+      onTeamChosen: (team: string) => teams.push(team),
+    });
+    const row = assertDefined(getByClass(panel, "row")[0], "a row was drawn");
+    const sides = assertDefined(getByClass(panel, "sides-of")[0], "the side strip");
+
+    setPressOn(panel, row);
+    setPressOn(panel, getTabByLabel(panel, "Leczenie"));
+    setPressOn(panel, getTabByLabel(sides, "My"));
+
+    expect([chosen.length, metrics.length, teams.length]).toEqual([1, 1, 1]);
+    expect(
+      getEveryNode(panel)
+        .flatMap((node) => node.listeners)
+        .filter((bound) => bound.type === "click"),
+    ).toEqual([]);
+  });
+
+  /**
+   * The other half of the gesture below, and it has to be tested with it: a
+   * right-press arrives as a `pointerdown` *before* the menu event, so a panel
+   * acting on every press would open the row and then step straight back out of
+   * it — one gesture spending itself twice.
+   */
+  test("a press that is not the primary button opens nothing, and going back still works", () => {
+    const chosen: string[] = [];
+    let back = 0;
+    const { panel } = renderInto(composeDefaultState(), {
+      onRowChosen: (key: string) => chosen.push(key),
+      onBack: () => {
+        back += 1;
+      },
+    });
+    const row = assertDefined(getByClass(panel, "row")[0], "a row was drawn");
+
+    setPressOn(panel, row, 2);
+    setEventOn(panel, "contextmenu", { target: row, preventDefault: (): void => {} });
+
+    expect(chosen).toEqual([]);
+    expect(back).toBe(1);
   });
 
   /**
@@ -678,7 +752,7 @@ describe("one gesture in, one gesture out", () => {
     });
     const row = assertDefined(getByClass(panel, "row")[0], "a row was drawn");
 
-    expect(() => setClickOn(panel, row)).not.toThrow();
+    expect(() => setPressOn(panel, row)).not.toThrow();
     expect(failures.length).toBe(1);
   });
 });
@@ -1113,7 +1187,7 @@ function getStyleRules(style: string): { selector: string; body: string }[] {
     });
 }
 
-describe("clicking the part of a row somebody actually aims at", () => {
+describe("pressing the part of a row somebody actually aims at", () => {
   /**
    * ⚠️ **The bug this exists for.** An event names the deepest node under the
    * pointer, so a click lands on the bar, the name or the figure — never on the
@@ -1128,7 +1202,7 @@ describe("clicking the part of a row somebody actually aims at", () => {
     });
     const row = assertDefined(getByClass(panel, "row")[0], "a row was drawn");
 
-    for (const part of getEveryNode(row)) setClickOn(panel, part);
+    for (const part of getEveryNode(row)) setPressOn(panel, part);
 
     // Every node of the row, the row included, and all of them the same row.
     expect(chosen.length).toBe(getEveryNode(row).length);
