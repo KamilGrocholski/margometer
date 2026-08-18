@@ -309,12 +309,19 @@ export type EngineReadingGaps = {
 };
 
 /**
- * The whole fight decoded again from its messages, not an increment.
+ * The fight's numbers built again from all of its events, not an increment.
  *
- * Deliberately not incremental. Decoding is cheap against a fight's worth of
- * messages, and an incremental aggregate would have to be right about every
- * partial state rather than about the finished one — which is a much larger
- * claim for a saving nobody has measured a need for.
+ * ⚠️ **The decoding beside it is incremental and this is not**, which reads like
+ * an oversight and is a decision. Appending events earned itself: reading every
+ * message again was measured, and it grew with the fight (`events` above). The
+ * fold over those events has never been measured, so the saving here is
+ * hypothetical while the price is not — an incremental aggregate has to be right
+ * about every partial state of a fight rather than about the finished one, and
+ * every statistic added to `fight-statistics.ts` afterwards inherits that
+ * obligation.
+ *
+ * So measure before changing it. Every payload that changes anything pays for
+ * this fold, and what it comes to is the one number this file does not have.
  */
 export function composeFightReading(session: BattleSession): FightReading {
   const { roster } = composeBattleRoster(session.combatants, session.ourSide);
