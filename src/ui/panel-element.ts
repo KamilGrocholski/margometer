@@ -811,14 +811,21 @@ export function setPanelRoot(
 }
 
 /**
- * Hidden by an attribute the stylesheet reads, rather than by leaving the tree.
+ * Hidden where it stands, rather than by leaving the tree.
  *
  * A node that comes and goes cannot be the one the listeners were given, and the
  * whole design here is that the tooltip outlives every redraw — the same reason
  * the title bar is built with the root.
+ *
+ * ⚠️ **`display` is the whole mechanism.** This also hung a `hidden` class on the
+ * node and this docblock called it "an attribute the stylesheet reads". It was a
+ * class, not an attribute, and no rule in `src/ui/panel-stylesheet.ts` ever
+ * matched it — so it hid nothing, and the sentence sent whoever read it next
+ * looking for a rule that was never there
+ * (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`).
  */
 function setTipHidden(tip: PanelNode, isHidden: boolean): void {
-  tip.className = isHidden ? "MargoMeter-tip hidden" : "MargoMeter-tip";
+  tip.className = "MargoMeter-tip";
   tip.style.setProperty("display", isHidden ? "none" : "block");
 }
 

@@ -482,6 +482,8 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
                               the published help. Counts only.
   dated-document.ts           What specs and audits share: a filename that is a
                               date, and a date that has happened.
+  class-names.ts              What a stylesheet styles and what a source assigns.
+                              Shared by the panel's guard and the preview's.
   protocol-key-register.ts    Reads the register into entries — verdict, health
                               line, evidence, shape, help phrases.
 ```
