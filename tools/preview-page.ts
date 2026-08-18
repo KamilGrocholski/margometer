@@ -44,7 +44,12 @@ export type PreviewWords = {
   language: string;
   /** The strip's heading, and the document title beside the capture's name. */
   title: string;
-  /** The ⏮ button: back to before the first payload, which is the empty panel. */
+  /**
+   * The ⏮ button: back to before the first payload, which is the empty panel.
+   *
+   * It opens the page again rather than replaying, because before the first
+   * payload is the one state a replay cannot reach — see `setStartOpened` below.
+   */
   start: string;
   /** The ◀ button's tooltip, since the arrow says nothing about the replay behind it. */
   backHint: string;
@@ -300,6 +305,26 @@ ${introduction}
     renderCount();
   }
 
+  // The address of this page, before its first payload.
+  var START_HASH = "#start";
+
+  // ⚠️ Replaying reaches entry 1 at the lowest, so entry 0 is a reload and not a
+  // rewind, and this button did neither until it was driven: feeding no payloads
+  // leaves the add-on holding the whole fight it had already accumulated, and the
+  // stub engine holding the whole roster. Measured on the published page, at the
+  // finished fight — the counter went to "0 / 52" and all 12 rows kept the totals
+  // they had, which is exactly what §9.6 forbids: a number that may be wrong
+  // looking like a number that is right. Only a page that has fed nothing is the
+  // empty panel. The hash is what carries the ask across the reload, because it is
+  // the one part of an address both callers have — a served page keeps its query
+  // and a published page is a file with none.
+  function setStartOpened() {
+    window.location.hash = START_HASH;
+    // Assigning a hash the address already carries navigates nowhere, so the
+    // reload is what answers the click either way.
+    window.location.reload();
+  }
+
   getElement("preview-next").addEventListener("click", function handleNext() {
     setNextFed();
   });
@@ -307,15 +332,16 @@ ${introduction}
     setFedTo(PREVIEW.payloads.length);
   });
   getElement("preview-play").addEventListener("click", handlePlay);
+  // One step back off the first payload is the same ask as the button beside it,
+  // and it was the same silent no-op.
   getElement("preview-back").addEventListener("click", function handleBack() {
-    setFedTo(fedCount - 1 < 0 ? 0 : fedCount - 1);
+    if (fedCount <= 1) {
+      setStartOpened();
+      return;
+    }
+    setFedTo(fedCount - 1);
   });
-  // The empty panel is a state worth looking at and the only way back to it used
-  // to be the address bar — which a published page does not have, because its
-  // entry is not in the address at all.
-  getElement("preview-start").addEventListener("click", function handleStart() {
-    setFedTo(0);
-  });
+  getElement("preview-start").addEventListener("click", setStartOpened);
   picker.addEventListener("change", function handlePick() {
     window.location.href = picker.value;
   });
@@ -323,7 +349,10 @@ ${introduction}
   renderPicker();
   // Synchronously, before load fires: a screenshot is taken at load and nothing
   // after it, so a replay that waited would photograph an empty panel.
-  setFedTo(PREVIEW.entryIndex);
+  //
+  // The hash wins over the entry the caller baked in, which is what makes the
+  // empty panel reachable on a page whose entry is not in its address at all.
+  setFedTo(window.location.hash === START_HASH ? 0 : PREVIEW.entryIndex);
 ${options.reloadScript ?? ""}
 </script>
 

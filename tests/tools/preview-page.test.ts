@@ -53,6 +53,124 @@ function composePageOfFight(overrides: Partial<PreviewPageOptions> = {}): string
   });
 }
 
+/** What the driver builds, asks for and is clicked on, with no browser under it. */
+type FakeElement = {
+  textContent: string;
+  value: string;
+  children: FakeElement[];
+  handlers: Map<string, () => void>;
+  addEventListener: (type: string, handler: () => void) => void;
+  append: (child: FakeElement) => void;
+  setAttribute: (name: string, value: string) => void;
+};
+
+function composeFakeElement(): FakeElement {
+  const element: FakeElement = {
+    textContent: "",
+    value: "",
+    children: [],
+    handlers: new Map(),
+    addEventListener: (type, handler) => void element.handlers.set(type, handler),
+    append: (child) => void element.children.push(child),
+    setAttribute: () => undefined,
+  };
+  return element;
+}
+
+/** One run of the page's own driver: what it fed, what it drew, what it asked for. */
+type DriverRun = {
+  /** Payloads the stub engine received — the replay, as the add-on would see it. */
+  fedCount: number;
+  reloadCount: number;
+  hash: string;
+  getCountText: () => string;
+  setClicked: (id: string) => void;
+};
+
+/**
+ * The page's browser JavaScript, run.
+ *
+ * ⚠️ **The driver is the half of this harness no compiler reads**, so every test
+ * above this one asks whether a string contains something. That is enough for a
+ * hole the caller has to fill and not enough for behaviour: `od początku` moved
+ * the counter to `0 / 52` and left the panel showing the finished fight, and a
+ * page containing the words `preview-start` passes either way. This runs the
+ * script blocks the page carries — the engine stub and the driver, in the order
+ * the page has them — over a document small enough to be checkable, the way
+ * `tests/ui/panel-element.test.ts` does for the panel.
+ */
+function composeDriverRun(page: string, hash = ""): DriverRun {
+  const blocks = [...page.matchAll(/<script>\n([\s\S]*?)<\/script>/g)].map(
+    (block) => block[1] ?? "",
+  );
+  expect(blocks.length).toBe(2);
+
+  const elements = new Map<string, FakeElement>();
+  function getFakeElement(id: string): FakeElement {
+    const known = elements.get(id);
+    if (known !== undefined) return known;
+    const fresh = composeFakeElement();
+    elements.set(id, fresh);
+    return fresh;
+  }
+
+  let fedCount = 0;
+  let reloadCount = 0;
+  const location = {
+    hash,
+    href: "",
+    reload: () => {
+      reloadCount += 1;
+    },
+  };
+  const window = {
+    Engine: null as unknown,
+    location,
+    setTimeout: () => 0,
+  };
+  const document = {
+    getElementById: (id: string) => getFakeElement(id),
+    createElement: () => composeFakeElement(),
+  };
+
+  // The two blocks are run apart and the count goes on between them, which is
+  // where the add-on itself sits: the bundle's tag is after the stub and before
+  // the driver, and `src/game/engine-battle-wrap.ts` wraps exactly this method. So
+  // what is counted is what the panel would have been handed.
+  const defineEngine = new Function("window", blocks[0] ?? "") as (page: unknown) => void;
+  defineEngine(window);
+
+  const engine = window.Engine as { battle: { updateData: (payload: unknown) => unknown } };
+  const original = engine.battle.updateData;
+  engine.battle.updateData = (payload: unknown) => {
+    fedCount += 1;
+    return original(payload);
+  };
+
+  const driveReplay = new Function("window", "document", blocks[1] ?? "") as (
+    page: unknown,
+    documentGiven: unknown,
+  ) => void;
+  driveReplay(window, document);
+
+  return {
+    get fedCount() {
+      return fedCount;
+    },
+    get reloadCount() {
+      return reloadCount;
+    },
+    get hash() {
+      return location.hash;
+    },
+    getCountText: () => getFakeElement("preview-count").textContent,
+    setClicked: (id) => {
+      const handler = getFakeElement(id).handlers.get("click");
+      assertDefined(handler, `${id} listens for a click`)();
+    },
+  };
+}
+
 describe("there is something to look at", () => {
   test("the catalog carries captures to preview", () => {
     expect(CAPTURED_FIGHTS.length).toBeGreaterThan(0);
@@ -202,6 +320,67 @@ describe("what the caller decides and the page does not", () => {
   test("an introduction is drawn where there is one and nothing where there is not", () => {
     expect(composePageOfFight({ introduction: "INTRO-MARK" })).toContain("INTRO-MARK");
     expect(composePageOfFight()).not.toContain("preview-intro\"");
+  });
+});
+
+/**
+ * The one state the replay cannot reach, and what it cost to find out.
+ *
+ * Before the first payload is not entry 1 with something subtracted: replaying
+ * from zero lands on entry 1 at the lowest, and feeding nothing at all leaves the
+ * add-on holding whatever it had already accumulated. So `od początku` used to
+ * move the counter to `0 / 52` under a panel still showing every row of the
+ * finished fight — measured on the published page in Firefox, all 12 rows and the
+ * same totals — which is the failure §9.6 names first: a number that may be wrong
+ * looking exactly like one that is right.
+ */
+describe("the panel before any payload", () => {
+  const payloads = FIGHT.dump.calls.map((call) => call.payload);
+
+  test("a page opened plainly replays to the entry the caller baked in", () => {
+    const run = composeDriverRun(composePageOfFight({ entryIndex: 4 }));
+    expect(run.fedCount).toBe(4);
+    expect(run.reloadCount).toBe(0);
+    expect(run.getCountText()).toBe(`entry 4 / ${payloads.length}`);
+  });
+
+  /**
+   * The hash beats the entry the page was composed with, and that is the whole
+   * mechanism: a published page carries its entry in the file rather than in the
+   * address, so there is nothing else a reload could say.
+   */
+  test("a page opened at the start hash feeds nothing at all", () => {
+    const run = composeDriverRun(composePageOfFight({ entryIndex: payloads.length }), "#start");
+    expect(run.fedCount).toBe(0);
+    expect(run.getCountText()).toBe(`entry 0 / ${payloads.length}`);
+  });
+
+  test("the start button asks for the page again instead of moving the counter alone", () => {
+    const run = composeDriverRun(composePageOfFight({ entryIndex: payloads.length }));
+    run.setClicked("preview-start");
+    expect(run.reloadCount).toBe(1);
+    expect(run.hash).toBe("#start");
+    // The failure this replaces, from the other side: the counter said 0 while the
+    // add-on still held the whole fight.
+    expect(run.fedCount).toBe(payloads.length);
+    expect(run.getCountText()).toBe(`entry ${payloads.length} / ${payloads.length}`);
+  });
+
+  test("one step back off the first payload is the same ask, and answered the same", () => {
+    const run = composeDriverRun(composePageOfFight({ entryIndex: 1 }));
+    run.setClicked("preview-back");
+    expect(run.reloadCount).toBe(1);
+    expect(run.hash).toBe("#start");
+  });
+
+  test("a step back anywhere else stays a replay, with no reload", () => {
+    const run = composeDriverRun(composePageOfFight({ entryIndex: 3 }));
+    run.setClicked("preview-back");
+    expect(run.reloadCount).toBe(0);
+    expect(run.getCountText()).toBe(`entry 2 / ${payloads.length}`);
+    // Replayed rather than rewound: three fed on the way in, two more on the way
+    // back, because `src/game/battle-session.ts` resets on the first payload.
+    expect(run.fedCount).toBe(5);
   });
 });
 

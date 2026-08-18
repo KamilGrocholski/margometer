@@ -22,6 +22,10 @@
  * every run by `tests/tools/preview-page.test.ts` — a capture arriving without it
  * would make the rewind silently wrong. So a rewind costs a replay and not a
  * reload, and the panel keeps the screen and the drill level the reader opened.
+ * ⚠️ **With one exception, and it is the boundary rather than a case:** replaying
+ * reaches entry 1 at the lowest, so the panel before any payload is a page that
+ * has never been fed. That step reloads, and `tools/preview-page.ts` says how the
+ * ask survives it.
  *
  * **The page itself is `tools/preview-page.ts`.** It left here when it got a
  * second consumer (§7.1) — `tools/preview-site.ts` writes the same page down

@@ -38,6 +38,14 @@ http://localhost:4173/?fight=<capture-name>&entry=<n>
 the panel before anything has arrived; the last entry is the finished fight.
 Both matter — most of what a screenshot needs to show is at one end or the other.
 
+⚠️ **`#start` beats `entry`, and the `od początku` button reaches it by opening
+the page again.** Before the first payload is the one state a replay cannot
+reach — feeding nothing leaves the add-on holding the fight it already has — so
+the button reloads and the hash carries the ask across, which is also the only
+way the published page can say it. A screenshot of a page that clicks that
+button gets nothing: Firefox exits on a navigation during `load`. Photograph
+`…#start` directly, or watch the two requests in a server log.
+
 **Hot reloading.** A change under `src/`, `libs/` or `package.json` rebuilds and
 reloads the page at the entry you were on. A rebuild that **fails** does not
 reload: the strip turns red and prints the build log, and the last good panel

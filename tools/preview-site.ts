@@ -127,8 +127,9 @@ export function composePreviewSitePages(): PreviewSiteFile[] {
        *
        * A visitor's first sight should be the thing the add-on is for — every row
        * populated, the totals a fight came to. The panel before any data has
-       * arrived is a state worth looking at and `od początku` walks back to it,
-       * which is why that button exists; it is a poor answer to "what is this".
+       * arrived is a state worth looking at and `od początku` opens the page again
+       * to reach it, which is why that button exists; it is a poor answer to "what
+       * is this".
        */
       entryIndex: payloads.length,
       payloads,
