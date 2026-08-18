@@ -27,6 +27,20 @@ game, and the picker holds every fight this repository has kept.
 
 [preview]: https://kamilgrocholski.github.io/margometer/
 
+## What it looks like
+
+Damage taken in a ten-against-one fight, and the two levels a row opens onto.
+Taken from a recording in this repository, by the release this branch is at.
+
+| The ranking | A row opened | Opened again |
+|---|---|---|
+| ![The panel ranking combatants by damage taken](screenshots/panel-taken.png) | ![One combatant's damage broken down by opponent and by damage type](screenshots/panel-breakdown.png) | ![The deepest level: one opponent, by skill and by damage type](screenshots/panel-deep.png) |
+
+Every row says more on hover, at every level — the person's whole-fight figures,
+what a defence stopped, and what the attack destroyed:
+
+![The detail card open beside the panel](screenshots/panel-tip.png)
+
 ---
 
 ## MargoMeter and the game's terms of service
@@ -106,6 +120,7 @@ bun run check        # typecheck + tests + build — the gate
 bun test             # tests only
 bun run preview      # the panel in a browser, over a recorded fight, rebuilt as you edit
 bun run preview:site # the same page written to dist/preview, which is what Pages serves
+bun run screenshots  # the four pictures above, retaken for the version in package.json
 bun run cost         # what a payload costs, replayed off every recording
 bun run build:dev    # the same add-on with a cost overlay, installed beside a release
 ```

@@ -170,6 +170,16 @@ export type PreviewServerOptions = {
    * the installed file, and `tests/tools/preview-site.test.ts` holds that.
    */
   isDevelopment?: boolean | undefined;
+  /**
+   * What the page runs after its own driver, in place of hot reloading.
+   *
+   * `tools/panel-screenshots.ts` needs the same server — the bundle, the inlined
+   * fight, the synchronous replay — and a different second half: clicks that put
+   * the panel in the state being photographed. Handing it the hole keeps this
+   * file ignorant of screenshots; passing `null` turns reloading off for a caller
+   * that has no browser to reload.
+   */
+  appendedScript?: string | null | undefined;
 };
 
 export type PreviewServer = {
@@ -248,6 +258,9 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
   let script: string | null = null;
 
   const isDevelopment = options.isDevelopment ?? false;
+  const appendedScript = options.appendedScript === undefined
+    ? RELOAD_SCRIPT
+    : options.appendedScript;
 
   async function getScript(): Promise<string> {
     if (script !== null) return script;
@@ -354,7 +367,7 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
             words: PREVIEW_WORDS,
             // Nothing to introduce: whoever opened this started the server.
             introduction: null,
-            reloadScript: RELOAD_SCRIPT,
+            appendedScript,
           }),
           { headers: { "content-type": "text/html; charset=utf-8" } },
         );

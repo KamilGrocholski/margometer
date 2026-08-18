@@ -54,6 +54,14 @@ broke.
 
 ## The screenshot
 
+**Four of them are a command now.** `bun run screenshots` retakes the set in
+`screenshots/` that `README.md` shows — the ranking on damage taken, the two
+levels below it and the detail card — and `tools/panel-screenshots.ts` holds the
+whole recipe below, plus the two traps it does not: the panel listens for
+`pointerdown` rather than `click`, and `spawnSync` deadlocks against a server in
+the same process. Reach for that when the four states it covers are the ones you
+want, and for the rest of this page when they are not.
+
 Firefox is at `/usr/bin/firefox` and takes one without Playwright:
 
 ```bash

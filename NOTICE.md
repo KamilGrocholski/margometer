@@ -106,6 +106,31 @@ The page also has no game beside it, so the client's own translation table is no
 there to be asked; every name the panel draws for a protocol token is this
 repository's own phrase (`src/ui/panel-names.ts`).
 
+### The screenshots — `screenshots/`, committed
+
+`README.md` shows four pictures of the panel, taken by
+`tools/panel-screenshots.ts` off the same recordings and replaced whenever a
+version is. They are pictures of our own panel, and two things in them came from
+the game:
+
+- **The names the server sent.** The `tspell=` and `txt=` values named above are
+  drawn where the panel draws them, so an ability's name and a monster's name are
+  legible in the breakdown and in the card. That is the same material as the
+  published preview, on the same basis, and it is stated here because the section
+  above says such a name is written down nowhere else — which is true of every
+  `.ts` and `.md` in this repository and is re-earned on every run by
+  `tests/tools/source-layout.test.ts`. A picture is neither, so nothing would have
+  gone red had this gone unsaid.
+- **No nickname**, for the reason no nickname is anywhere here: everyone with a
+  player id was substituted before the material entered the repository, so the
+  rows read `Gracz 1`, `Gracz 2`, and so on.
+
+Nothing else of the game's is in them. There is no game beside the harness page,
+so the client's translation table is not there to be asked and every name the
+panel draws for a protocol token is this repository's own phrase
+(`src/ui/panel-names.ts`); no sentence the client composed appears, for the reason
+none appears on the preview.
+
 ### Client source — `.cache/`, never committed
 
 `tools/game-client-source.ts` downloads the game client so that questions about
@@ -128,9 +153,14 @@ which git ignores, and a test asserts nothing under that path is ever tracked.
 
 Two of those are held by a test rather than by this paragraph: no entry of the
 client's dictionary is quoted anywhere, and no name the game gave an ability is
-written down outside the recordings
+**written down as text** outside the recordings
 (`tests/tools/source-layout.test.ts`). Both were promises here before they were
 checks, and both were false while they were only promises.
+
+Those two words are load-bearing, and they were added when the screenshots were.
+That test reads `.ts` and `.md`; a picture is neither, and the section above says
+what is legible in one rather than leaving the promise to be read wider than the
+check behind it.
 
 ---
 

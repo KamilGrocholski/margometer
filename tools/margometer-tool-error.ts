@@ -22,7 +22,8 @@ export type MargoMeterToolErrorCode =
   | "MutationSweep"
   | "PreviewServer"
   | "PreviewSite"
-  | "PayloadCost";
+  | "PayloadCost"
+  | "PanelScreenshot";
 
 export abstract class MargoMeterToolError extends Error {
   readonly code: MargoMeterToolErrorCode;

@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { composeHexadecimalByteText } from "@/libs/number.ts";
+import { composeShotFileName, PANEL_SHOTS } from "@/tools/panel-screenshots.ts";
 
 /**
  * Every file this repository writes is text a text tool can read.
@@ -44,15 +45,36 @@ function isControlByte(byte: number): boolean {
 }
 
 /**
- * `tests/captured-fights/` is left out, and not for convenience: it is evidence,
- * and §9.2 forbids editing it at all. A guard whose only remedy is a rule this
- * repository refuses to break is a guard that would have to be turned off the
- * first time it fired. What this holds is what we write.
+ * Two directories are left out, and neither for convenience.
+ *
+ * `tests/captured-fights/` is evidence, and §9.2 forbids editing it at all. A
+ * guard whose only remedy is a rule this repository refuses to break is a guard
+ * that would have to be turned off the first time it fired.
+ *
+ * `screenshots/` is images by intent, and that is the whole of the argument.
+ * What this guard is about is a byte nobody can see **in a file a person reads as
+ * text** — a NUL in a test that made `grep -r` skip it in silence, an ESC in a
+ * document that went into git as a blob. A PNG is not read that way: there is no
+ * editor view, no diff and no `grep` result for an exemption to hide something
+ * from.
+ *
+ * ⚠️ **The sidecar in that directory stays inside this guard**, which is why the
+ * exemption is written against the image names rather than against the directory.
+ * `screenshots/taken-at.json` is the file that says which release the pictures are
+ * of, it is read by a person and by `tests/tools/panel-screenshots.test.ts`, and a
+ * JSON document parses perfectly well with a NUL inside it — exactly the failure
+ * with no symptom this exists for.
  */
+const UNREADABLE_BY_DESIGN = [
+  (file: string) => file.startsWith("tests/captured-fights/"),
+  (file: string) =>
+    file.startsWith("screenshots/") && PANEL_SHOTS.some((shot) => file.endsWith(composeShotFileName(shot))),
+];
+
 function getWrittenFiles(): string[] {
   return execFileSync("git", ["ls-files"], { cwd: REPOSITORY_ROOT, encoding: "utf8" })
     .split("\n")
-    .filter((file) => file !== "" && !file.startsWith("tests/captured-fights/"));
+    .filter((file) => file !== "" && !UNREADABLE_BY_DESIGN.some((isExempt) => isExempt(file)));
 }
 
 const WRITTEN_FILES = getWrittenFiles();

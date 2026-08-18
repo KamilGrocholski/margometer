@@ -48,7 +48,7 @@ function composePageOfFight(overrides: Partial<PreviewPageOptions> = {}): string
     scriptDirectory: "/",
     words: WORDS,
     introduction: null,
-    reloadScript: null,
+    appendedScript: null,
     ...overrides,
   });
 }
@@ -275,7 +275,7 @@ describe("what the caller decides and the page does not", () => {
    */
   test("a page with no reload script opens no stream, and one with it does", () => {
     expect(composePageOfFight()).not.toContain("EventSource");
-    expect(composePageOfFight({ reloadScript: `new EventSource("/reload");` })).toContain(
+    expect(composePageOfFight({ appendedScript: `new EventSource("/reload");` })).toContain(
       `new EventSource("/reload")`,
     );
   });

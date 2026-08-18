@@ -42,7 +42,7 @@ const WORDS: PreviewWords = {
  * in both and worn in one, so asking either alone would report the other's
  * markup as a rule nothing wears.
  */
-function composePage(reloadScript: string | null, introduction: string | null): string {
+function composePage(appendedScript: string | null, introduction: string | null): string {
   return composePreviewPage({
     fightName: FIGHT.name,
     entryIndex: 0,
@@ -51,7 +51,7 @@ function composePage(reloadScript: string | null, introduction: string | null): 
     scriptDirectory: "/",
     words: WORDS,
     introduction,
-    reloadScript,
+    appendedScript,
   });
 }
 

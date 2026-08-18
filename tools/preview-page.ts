@@ -105,14 +105,23 @@ export type PreviewPageOptions = {
   /** A sentence for a reader who did not start the page, or null where the reader is the one editing it. */
   introduction: string | null;
   /**
-   * The hot-reload half of the driver, appended to the page's own, or null.
+   * A second half of the driver, appended after the page's own, or null.
+   *
+   * It runs where it does on purpose: after `setFedTo`, so the fight has already
+   * been replayed and the panel is mounted and drawn, and still synchronously,
+   * so a screenshot taken at `load` sees whatever it did. Two callers use it and
+   * neither is this file's business — `tools/preview-server.ts` appends hot
+   * reloading, `tools/panel-screenshots.ts` appends the clicks that put the panel
+   * in the state being photographed.
    *
    * ⚠️ **A page nobody rebuilds must open no stream.** The reload response opens
    * with `retry: 500`, and that is also what a browser falls back to on its own —
    * so a published copy of the server's driver would reconnect to a route that is
-   * not there, twice a second, for as long as the tab is open.
+   * not there, twice a second, for as long as the tab is open. That is a
+   * constraint on what the server passes, which is why this is a hole rather than
+   * a stream this file opens.
    */
-  reloadScript: string | null;
+  appendedScript: string | null;
 };
 
 /**
@@ -353,7 +362,7 @@ ${introduction}
   // The hash wins over the entry the caller baked in, which is what makes the
   // empty panel reachable on a page whose entry is not in its address at all.
   setFedTo(window.location.hash === START_HASH ? 0 : PREVIEW.entryIndex);
-${options.reloadScript ?? ""}
+${options.appendedScript ?? ""}
 </script>
 
 </body>

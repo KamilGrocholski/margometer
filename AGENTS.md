@@ -162,6 +162,7 @@ from (§9.5).
 | `tools/preview-page.ts` | *What does the harness put in front of the panel?* The page as one string. Library, not a CLI. |
 | `tools/preview-server.ts` | *What does the panel look like right now?* `bun run preview`. The gate cannot see a panel; this can. |
 | `tools/preview-site.ts` | *What does it look like to somebody who installed nothing?* `bun run preview:site`. Nothing it writes is committed. |
+| `tools/panel-screenshots.ts` | *What does the panel look like, as pictures for a README?* `bun run screenshots`. Four, for the current release only. §9.8. |
 | `tools/changelog.ts` | *What does this release say for itself?* `notes <version>`; a version with no section refuses. |
 
 ---
@@ -357,6 +358,8 @@ tsconfig.json      Strict flags standing in for a linter, and the `@/*` alias.
                    drew. Not a gate. `settings.json` beside it denies the tool
                    calls that would write to the maintainer's list (§5).
 .cache/            Game client sources, fetched on demand. NOT tracked — §7.6.
+screenshots/       The panel as pictures, for the version in package.json and no
+                   other. Written only by `tools/panel-screenshots.ts` — §9.8.
 
 docs/              A guarded register, a dated spec, a design a spec names, or a
                    dated and guarded audit. No status, no chronicle of rounds.
@@ -469,6 +472,7 @@ tools/                   Never ships. §6.2 says what each answers.
   preview-page.ts            The harness page as one string, with its holes.
   preview-server.ts          That page in a browser, changing while you edit it.
   preview-site.ts            The same page written down, in Polish, for Pages.
+  panel-screenshots.ts       The panel photographed, four screens, one release.
   changelog.ts               One version's section, plus which file to click.
 
 tests/                     A test sits where its subject sits: `libs/`, `core/`,
@@ -784,6 +788,30 @@ Two severities are enough, and a third is `[ASK]`:
 - **Colour never carries meaning alone** — it accompanies a label or a number.
 
 ---
+
+### 9.8 Screenshots
+
+`screenshots/` holds the panel as pictures, for the version in `package.json` and
+no other. Written by `tools/panel-screenshots.ts` and by nothing else — a set is
+replaced, never added to
+(`docs/specs/2026-08-18-a-picture-of-the-panel.md`).
+
+Most of it is held by machines: `tests/tools/panel-screenshots.test.ts` puts the
+sidecar's version against `package.json` and the directory against the sidecar,
+so a release cannot ship a set from the release before it, and
+`tests/tools/tracked-text.test.ts` exempts the images by name so the sidecar
+beside them stays text anyone can read.
+
+One thing no machine here can check, and it is the one that was got wrong:
+
+- `[ALWAYS] [any]` **Open every picture before it is committed.** The guards prove
+  the set is current, complete and named — never that a panel is in the frame. A
+  driver that clicked nothing produced four green shots of the same screen, and
+  the only symptom was three files of identical size.
+- `[NEVER] [any]` **Photograph a state the panel cannot be in.** The frame is a
+  crop of a screen, not a screen: the 66vh cap is lifted for the picture because
+  at 1080p it does not bind on any of these, and that is the whole licence. A
+  screen assembled for the photograph is not a screenshot.
 
 ## 10. Glossary
 

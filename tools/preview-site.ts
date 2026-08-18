@@ -138,7 +138,7 @@ export function composePreviewSitePages(): PreviewSiteFile[] {
       words: PREVIEW_SITE_WORDS,
       introduction: PREVIEW_SITE_INTRODUCTION,
       // No process behind these pages, so nothing to listen to.
-      reloadScript: null,
+      appendedScript: null,
     });
   }
 

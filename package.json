@@ -15,6 +15,7 @@
     "build:dev": "bun run build.ts --dev",
     "preview": "bun run tools/preview-server.ts",
     "preview:site": "bun run tools/preview-site.ts",
+    "screenshots": "bun run tools/panel-screenshots.ts",
     "cost": "bun run tools/payload-cost.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
