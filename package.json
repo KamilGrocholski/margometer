@@ -18,7 +18,7 @@
     "screenshots": "bun run tools/panel-screenshots.ts",
     "cost": "bun run tools/payload-cost.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.userscript.json",
     "check": "bun run typecheck && bun test && bun run build"
   },
   "devDependencies": {

@@ -65,6 +65,11 @@ gone is the first sign the rules have drifted.
 - `[ALWAYS] [any]` **Cite the source for any claim about the game** — its
   documentation, a client asset, or a measurement on the captures. Negative
   claims included. A quotation from the client carries its build. §7.6.
+- `[ALWAYS] [any]` **A claim about a browser names the engine, the version and
+  the date it was read** — §9.9. Somebody else's system, so the same shape §7.6
+  gives the published help. The version is the **first** release with support,
+  never the one that completes a partial implementation: the two differ by
+  years, and the second is the number a compatibility table shows first.
 - `[ALWAYS] [any]` **A measurement over the captures names the material it was
   taken on** — the file, or the set and its date. A figure scoped to "the
   captures" goes stale on the next recording. Where the claim is about every
@@ -355,6 +360,10 @@ build.ts           Bundles src/, prepends the banner, writes the banner again on
 package.json       Version and scripts: the gate, the preview, the site, the cost.
 bun.lock           What the gate is actually run against — §6.1.
 tsconfig.json      Strict flags standing in for a linter, and the `@/*` alias.
+tsconfig.userscript.json
+                   The same, narrowed to what a browser has to have: `src/` and
+                   `libs/` at the floor `docs/browser-support.md` states. Nothing
+                   downlevels, so this is the floor — §9.9.
 .gitignore         What never enters git, including the cache.
 .github/workflows/ The gate on push; a `v*` tag into a release with the built
                    userscript attached, refused unless the tag sits on `main`;
@@ -369,6 +378,9 @@ screenshots/       The panel as pictures, for the version in package.json and no
 
 docs/              A guarded register, a dated spec, a design a spec names, or a
                    dated and guarded audit. No status, no chronicle of rounds.
+  browser-support.md
+                   What the shipped file asks of a browser, and which browsers
+                   answer. Held to the panel's own stylesheet — §9.9.
   protocol-keys.md What has been looked into, key by key: verdict, evidence,
                    state. Guarded against the decoder and the frozen table.
   half-named-figures.md
@@ -776,7 +788,6 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   summary bar names it. Zero in every recording, which is exactly why it is
   written down rather than left to be noticed.
 
-
 **Failure in the UI.** Two obligations bind at once: the user must be able to
 tell something is wrong, and nothing we do may stand between them and the game.
 The rule that resolves every case — **a number that might be wrong must never
@@ -841,6 +852,39 @@ One thing no machine here can check, and it is the one that was got wrong:
   crop of a screen, not a screen: the 66vh cap is lifted for the picture because
   at 1080p it does not bind on any of these, and that is the whole licence. A
   screen assembled for the photograph is not a screenshot.
+
+### 9.9 Browsers
+
+`docs/browser-support.md` says what the shipped file asks of a browser and which
+browsers answer. It exists because nothing else could notice: `build.ts` bundles
+with `minify: false` and no `target`, so the ES level of the source **is** the ES
+level a player's browser must have, and a round that reaches one construct
+further moves the floor under everybody while every test stays green.
+
+Three halves, held by three different things, and only one of them closes by
+enumeration:
+
+| Half | Held by | Complete |
+|---|---|---|
+| JavaScript | `tsconfig.userscript.json` — `src/` and `libs/` at the stated `lib` | yes, by the compiler |
+| CSS | `tests/tools/browser-support.test.ts`, over `composePanelStyleText()` | yes — the stylesheet is one string |
+| The DOM | the same guard, weakly: every entry is still spelled | **no**, and the register says so |
+
+- `[ALWAYS] [ui]` **The panel is handed its document; it never reaches for one.**
+  `src/ui/` declares the slice of the DOM it uses and takes it as an argument,
+  which is what keeps that surface readable at all — a register of what the
+  add-on asks of a browser is only true while the asking is declared rather than
+  reached for. Guarded by `tests/tools/source-layout.test.ts`.
+- `[ALWAYS] [ui]` **A feature above the floor degrades, and what it looks like
+  below is part of its entry.** That is the whole content of a cosmetic floor;
+  without it the register says a version and not a consequence.
+- `[ASK] [ui]` **Before adding a construct that raises the floor.** Not
+  forbidden — the floor is allowed to move — but it moves for every player at
+  once, and that is a decision rather than a detail.
+
+⚠️ **A degradation that leaves colour carrying a meaning alone is not cosmetic**,
+whatever tier it sits in — §9.7 decides that one, and the register argues the
+case rather than asserting it.
 
 ## 10. Glossary
 

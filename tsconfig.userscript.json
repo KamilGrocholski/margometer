@@ -1,0 +1,45 @@
+// The floor the shipped userscript is held to, and the only half of
+// `docs/browser-support.md` a compiler can hold by itself.
+//
+// `tsconfig.json` is `lib: ["ESNext", "DOM"]`, which is right for `tools/` and
+// `tests/` — they run in Bun, on this machine, at whatever version is
+// installed. It is wrong for `src/` and `libs/`, which run in somebody else's
+// browser: `build.ts` bundles with `minify: false` and no `target: "esNN"`, so
+// nothing is downlevelled and nothing is polyfilled. The ES level of the source
+// is the ES level a player's browser has to have.
+//
+// So the narrowing is the guard. Reach for `toSorted`, `Object.hasOwn` or
+// `structuredClone` in shipped code and this refuses it by name, which is §9.3's
+// compiler-instead-of-a-linter applied to the one axis a compiler can see. The
+// DOM and CSS halves it cannot see are held by
+// `tests/tools/browser-support.test.ts` instead.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // ES2022 rather than ES2021, and exactly one thing decides it: `ErrorOptions`
+    // in `src/core/margometer-error.ts`. Under ES2021 the two errors are
+    // `Cannot find name 'ErrorOptions'` and `Expected 0-1 arguments, but got 2`.
+    // No shipped caller passes a `cause` — it is the declaration that needs the
+    // lib, not the traffic — but a floor is about what has to be there, not
+    // about what is currently used.
+    "lib": ["ES2022", "DOM"],
+
+    // ⚠️ **Load-bearing, and measured rather than assumed.** With this line
+    // removed, `lib: ["ES2021", "DOM"]` typechecks clean: `@types/bun` is
+    // ambient, it carries its own lib references, and it puts back everything
+    // this file exists to take away. The narrowing would then pass while proving
+    // nothing — the exact shape §6.1 already records, where type information
+    // `bun.lock` does not name makes the local gate disagree with CI.
+    //
+    // Nothing under `src/` or `libs/` needs Bun's globals: `performance.now()`
+    // in `libs/elapsed-spans.ts` is `DOM`. If something ever does, narrow
+    // `include` — do not put `types` back.
+    "types": []
+  },
+
+  // `libs/` whole, not just the files that ship today. Anything there is
+  // importable by `src/` tomorrow — that is what the bottom layer is for — so
+  // holding the browser floor over all of it is the answer that does not depend
+  // on who happens to import what this week.
+  "include": ["src/**/*.ts", "libs/**/*.ts"]
+}

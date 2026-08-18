@@ -149,6 +149,39 @@ describe("layers", () => {
   );
 
   /**
+   * The same rule for `src/ui/`, which had been claiming it without a guard.
+   *
+   * `src/ui/panel-element.ts` declares `PanelNode`, `PanelHost` and
+   * `PanelDocument` — "the slice of the DOM this file uses" — and takes the
+   * document as an argument so the panel can be drawn into a fake one. That is
+   * what bounds the DOM surface `docs/browser-support.md` describes: a register
+   * of what the add-on asks of a browser is only readable while the asking is
+   * declared rather than reached for.
+   *
+   * ⚠️ **`document` is checked differently from the rest, and weakly.** Every
+   * `document` in `src/ui/` is a *parameter* of that name, so the pattern the
+   * test above uses would fail on the discipline it exists to protect. What is
+   * checked instead is that a file spelling it also declares it — telling a
+   * parameter from the global needs scope, which a pattern does not have. The
+   * global is still unreachable by the other spellings (`window.document`,
+   * `globalThis.document`), and those are in the list below.
+   */
+  const BROWSER_GLOBALS =
+    /\b(window|localStorage|sessionStorage|setTimeout|setInterval|clearTimeout|clearInterval|navigator|location|globalThis|performance|Blob|URL|fetch|XMLHttpRequest|WebSocket)\b/g;
+
+  test.each(SOURCE_FILES.filter((file) => file.startsWith("src/ui/")))(
+    "%s draws into a document it was handed",
+    (file) => {
+      const source = getSourceWithoutComments(file);
+      const reachingOut = [...source.matchAll(BROWSER_GLOBALS)].map((match) => match[1]);
+      expect(reachingOut, file).toEqual([]);
+      if (source.includes("document")) {
+        expect(source, `${file} spells document without declaring it`).toMatch(/document\??:/);
+      }
+    },
+  );
+
+  /**
    * §9.1 as an **allowlist**, which is how the rule is written and was not how it
    * was held.
    *
@@ -999,6 +1032,7 @@ describe("the language of the strings", () => {
     "AGENTS.md",
     "NOTICE.md",
     "README.md",
+    "README.en.md",
     "CHANGELOG.md",
   ];
 
