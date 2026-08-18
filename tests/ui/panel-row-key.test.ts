@@ -23,7 +23,8 @@ import {
   composeSkillRowKey,
   composeTargetRowKey,
   getRowKeyMeaning,
-  NOBODY_ROW_KEY,
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
   UNANNOUNCED_ROW_KEY,
 } from "@/src/ui/panel-row-key.ts";
 
@@ -93,9 +94,12 @@ describe("a row key, written and read back", () => {
 describe("a row key that opens nothing", () => {
   test("the bare words, and each says something different", () => {
     expect(getRowKeyMeaning(BACK_ROW_KEY)).toEqual({ opens: "back" });
-    expect(getRowKeyMeaning(NOBODY_ROW_KEY)).toEqual({ opens: "nothing" });
+    expect(getRowKeyMeaning(NO_ACTOR_ROW_KEY)).toEqual({ opens: "nothing" });
+    expect(getRowKeyMeaning(NO_TARGET_ROW_KEY)).toEqual({ opens: "nothing" });
     expect(getRowKeyMeaning(UNANNOUNCED_ROW_KEY)).toEqual({ opens: "nothing" });
-    expect(new Set([BACK_ROW_KEY, NOBODY_ROW_KEY, UNANNOUNCED_ROW_KEY]).size).toBe(3);
+    expect(
+      new Set([BACK_ROW_KEY, NO_ACTOR_ROW_KEY, NO_TARGET_ROW_KEY, UNANNOUNCED_ROW_KEY]).size,
+    ).toBe(4);
   });
 
   test("a leaf, whatever names it", () => {

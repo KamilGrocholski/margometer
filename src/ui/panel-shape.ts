@@ -45,14 +45,22 @@ export type PanelRow = {
   fill: number;
   valueText: string;
   /**
-   * The share, and the other measure, in one bracket beside the figure.
+   * The share, and the other measure, in one bracket beside the figure — **null
+   * where this row is not part of the whole the screen divides by.**
    *
-   * It was nullable for one reason and the reason has gone: the pinned row was
-   * fight-wide, so under a side filter its figure was not inside the denominator
-   * the rest of the screen divides by and a percentage of the wrong whole came out
-   * at 320%. The figure narrows with the list now, numerator and denominator
-   * together, so every row on every screen has a share to state and a row built
-   * without one would be a row nobody decided about.
+   * ⚠️ **It has been nullable twice and is not now, and the third answer is the
+   * one that closed it.** It was nullable because the pinned row was fight-wide
+   * under a side filter and a percentage of the wrong whole came out at 320%; it
+   * stopped being nullable when both scopes were made to narrow together; it went
+   * back to nullable when a figure with no actor was held to have no side, so that
+   * on `Zadane · Oni` no denominator on the screen contained it
+   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`).
+   *
+   * Every one of those was the same fault seen from a different side: the figure
+   * and the whole were scoped differently. They are not any more — the team is
+   * derived from the end the game named, so the row narrows exactly as the list
+   * does (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). Every row
+   * on every screen is inside a whole and states its share of it.
    */
   bracketText: string;
   /** Whether a click goes anywhere. A leaf that offered one would be a lie. */
@@ -82,8 +90,13 @@ export type PanelSides = {
   label: string;
   /**
    * What belongs to neither side, named and counted — absent where every point
-   * has one. Under a given direction this is the pinned row's own figure seen
-   * from the other question: a blow with no actor has no side to be put on.
+   * has one, which is every capture in the repository.
+   *
+   * ⚠️ **Not the pinned row's figure any more.** A blow with no actor still has
+   * the side the game named at the other end, and the bar charges it there
+   * (`docs/specs/2026-08-18-a-tick-nobody-swung-still-has-a-side.md`). What is
+   * left here is what has no side at *either* end: a figure naming neither, and a
+   * combatant the roster cannot place.
    */
   nobody: { label: string; text: string } | null;
   /**
@@ -143,18 +156,24 @@ export type PanelView = {
   /** And, only where it is true, what cannot be checked about them. */
   emptyLimitText: string | null;
   /**
-   * The figure nobody can be charged with, pinned below the list.
+   * The figures the protocol left half-named, pinned below the list — none, one,
+   * or two of them.
    *
-   * Outside `lists` because it is outside the scrolling: it is the one row that
-   * says *something here is missing*, and it must not be able to leave the screen.
+   * Outside `lists` because they are outside the scrolling: these are the rows
+   * that say *something here is missing*, and they must not be able to leave the
+   * screen.
+   *
+   * **Two, because the hole comes at one end or the other** — an actor with no
+   * target, a target with no actor — and they are different things to be told
+   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). A list rather
+   * than a pair of fields, so the drawing need not know how many there are.
    *
    * **On all four screens of the ranking, and on none of the breakdowns.** Every
-   * tab has something here to say — two of them that the figure stands apart, two
-   * that it is already inside the rows — and for a whole release one of the four
-   * said nothing at all. A breakdown gets none of it: there the shortfall is that
+   * tab has something here to say, and for a whole release one of the four said
+   * nothing at all. A breakdown gets none of it: there the shortfall is that
    * combatant's, and it closes their own section rather than standing over it.
    */
-  pinnedRow: PanelRow | null;
+  pinnedRows: PanelRow[];
   /** The fight, on every screen. Null only where the game never said which side is ours. */
   sides: PanelSides | null;
   /** One sentence each, in the player's words. Empty when the reading was clean. */

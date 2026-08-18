@@ -20,6 +20,7 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
 import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
 import {
+  isGivenMetric,
   PANEL_METRICS,
   PANEL_TEAMS,
   type PanelMetric,
@@ -28,9 +29,10 @@ import {
   HEALTH_GAIN_SOURCE_NAMES,
   HEALTH_LOSS_SOURCE_NAMES,
 } from "@/src/ui/panel-names.ts";
-import { getPinnedLeftover } from "@/src/ui/panel-nobody.ts";
+import { getNeitherEndLeftover } from "@/src/ui/panel-nobody.ts";
 import type { PanelReading } from "@/src/ui/panel-reading.ts";
 import type { PanelDetailLine, PanelRow, PanelView } from "@/src/ui/panel-shape.ts";
+import { NO_ACTOR_ROW_KEY, NO_TARGET_ROW_KEY } from "@/src/ui/panel-row-key.ts";
 import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
 import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
 import {
@@ -86,19 +88,65 @@ function composeReading(overrides: Partial<PanelReading> = {}): PanelReading {
   };
 }
 
+/**
+ * A fight where one end of a blow goes unnamed — both ends, in one of them.
+ *
+ * Hand-written because no capture reaches it: every name in all seventeen
+ * resolves, so `unattributed` is zero throughout and the terms this fight is for
+ * would be invisible. Three readers now — the closure below, the sweep of every
+ * sentence, and the summary's third part, which stands for exactly this shape
+ * (`docs/specs/2026-08-18-a-tick-nobody-swung-still-has-a-side.md`).
+ */
+function composeReadingWithUnnamedEnds(): PanelReading {
+  const roster = composeCombatantRoster([
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+  ]);
+  const statistics = composeFightStatistics(
+    decodeFight(
+      [
+        // Nobody swung it, and it landed on somebody named.
+        "0;3=50.00;+dmg=500;-dmg=400",
+        // Somebody named swung it, and it landed on nobody the roster holds.
+        "1=90.00;0;+dmg=300;-dmg=200",
+      ],
+      roster,
+    ),
+    roster,
+  );
+  return { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading;
+}
+
 function composeState(overrides: Partial<PanelState> = {}): PanelState {
   return { ...composeDefaultState(), ...overrides };
 }
 
+/**
+ * The row for the figure with no actor, off a view that now draws up to two.
+ *
+ * Almost everything here asks about that one: it is the hole all seventeen
+ * captures carry, and the one the fixture is built around. The row for a missing
+ * **target** is asked about by name where it is the subject
+ * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+ */
+function getNoActorRow(view: PanelView): PanelRow | null {
+  return view.pinnedRows.find((row) => row.key === NO_ACTOR_ROW_KEY) ?? null;
+}
+
+function getNoTargetRow(view: PanelView): PanelRow | null {
+  return view.pinnedRows.find((row) => row.key === NO_TARGET_ROW_KEY) ?? null;
+}
+
 function getEveryRow(view: PanelView): PanelRow[] {
-  return [...view.lists.flatMap((list) => list.rows), ...(view.pinnedRow === null ? [] : [view.pinnedRow])];
+  return [...view.lists.flatMap((list) => list.rows), ...view.pinnedRows];
 }
 
 /**
  * What this screen divides by, as a number, read back off the summary.
  *
  * The view states the whole in exactly one place — `My + Oni + Bez strony`, the
- * three parts every bracket on the screen is a share of. Reading it here rather
+ * three parts every bracket on the screen is a share of, the third of them absent
+ * on any fight where every point has a side at one end. Reading it here rather
  * than exporting the function keeps the test on what the panel *says*, which is
  * the thing a wrong total would be wrong in.
  */
@@ -110,6 +158,19 @@ function getWholeFromSummary(view: PanelView): number | null {
   );
   if (parts.some((part) => part === null)) return null;
   return parts.reduce<number>((total, part) => total + (part ?? 0), 0);
+}
+
+/** The bar's three figures as numbers, in the order it draws them. */
+function getSideFigures(view: PanelView): { mine: number; enemy: number; nobody: number } {
+  const { sides } = view;
+  const getFigure = (text: string): number =>
+    assertDefined(getIntegerFromText(text.replace(/\s/gu, "")), `figure in ${text}`);
+  if (sides === null) return { mine: 0, enemy: 0, nobody: 0 };
+  return {
+    mine: getFigure(sides.mineText),
+    enemy: getFigure(sides.enemyText),
+    nobody: sides.nobody === null ? 0 : getFigure(sides.nobody.text),
+  };
 }
 
 /**
@@ -324,20 +385,22 @@ describe("the ranking", () => {
 });
 
 /**
- * Where the figure with no actor already sits among the rows — written out here
- * rather than imported, so the guard states the claim instead of agreeing with
- * whatever the view currently believes (§7.5).
+ * Which pinned rows **add** to the screen's whole rather than cutting into it —
+ * written out here rather than imported, so the guard states the claim instead of
+ * agreeing with whatever the view currently believes (§7.5).
  *
- * A blow with no actor is on nobody's *given* row, so under `Zadane` and
- * `Leczenie dane` it is a figure of its own. The health it moved landed on
- * somebody, so under `Otrzymane` and `Leczenie` it is already counted there and
- * adding it again would double it.
+ * A figure with no actor is on nobody's *given* row, so under `Zadane` and
+ * `Leczenie dane` it is one of its own; the health it moved landed on somebody, so
+ * under `Otrzymane` and `Leczenie` it is already counted there and adding it again
+ * would double it. A figure with no *target* is on nobody's row anywhere — except
+ * under `Zadane`, where the striker is named and their own total holds it, and
+ * where the panel therefore draws no such row at all.
  */
-const IS_PINNED_INSIDE_ROWS: Record<PanelMetric, boolean> = {
-  dealt: false,
-  taken: true,
-  healingGiven: false,
-  healed: true,
+const ROWS_ADDING_TO_THE_WHOLE: Record<PanelMetric, readonly string[]> = {
+  dealt: [NO_ACTOR_ROW_KEY],
+  taken: [NO_TARGET_ROW_KEY],
+  healingGiven: [NO_ACTOR_ROW_KEY],
+  healed: [NO_TARGET_ROW_KEY],
 };
 
 /**
@@ -363,8 +426,8 @@ describe("what nobody can be charged with", () => {
     (metric) => {
       const view = composePanelView(composeReading(), composeState({ metric }));
 
-      expect(view.pinnedRow?.label).toBe("Bez sprawcy");
-      expect(view.pinnedRow?.isDrillable).toBe(false);
+      expect(getNoActorRow(view)?.label).toBe("Nieznany sprawca");
+      expect(getNoActorRow(view)?.isDrillable).toBe(false);
     },
   );
 
@@ -383,7 +446,7 @@ describe("what nobody can be charged with", () => {
     const view = composePanelView(composeReading(), composeState({ metric }));
 
     expect(
-      view.pinnedRow?.detail.map((line) => (line.kind === "stat" ? "" : line.text)).join(" "),
+      getNoActorRow(view)?.detail.map((line) => (line.kind === "stat" ? "" : line.text)).join(" "),
     ).toContain(phrase);
   });
 
@@ -397,28 +460,35 @@ describe("what nobody can be charged with", () => {
 
     // 400 + 100 from the blows, and 60 that fell on its own.
     expect(victim?.valueText).toBe("560");
-    expect(view.pinnedRow?.valueText).toBe("60");
+    expect(getNoActorRow(view)?.valueText).toBe("60");
     expect(victim?.detail.map((line) => (line.kind === "stat" ? line.label : ""))).toContain(
       "  bez sprawcy",
     );
   });
 
   /**
-   * ⚠️ **The side tab moves the figure on every screen** — the fault this round was
-   * opened for, and reopened for after a first pass moved it on two of the four.
-   * There is no actor to split by, so the cut is by the combatant the health moved
-   * on, whom the game does name; a screen that stood still while everything under
-   * it changed was read as the row being broken.
+   * ⚠️ **Every tab narrows it, and the charge says which way.** The team comes
+   * from the end the game *did* name: health that fell is charged to the side
+   * facing the victim, health that rose to the side that received it
+   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
    *
-   * The hand-written fight puts one of each on a different side: 60 points of
-   * poison tick off `coś dużego` on side two, and 50 points of regeneration reach
-   * `tarcza` on side one. So every screen has a side with everything and a side
-   * with nothing, and a filter that did nothing would show one figure three times.
+   * It narrowed on no given screen for one round, because a figure with no actor
+   * was held to have no side — and before that it narrowed on all four by the
+   * **victim**, which put a received-end figure over a given-end list and inside
+   * its denominator: 38.7% of `Zadane · Oni` on the Hildur capture
+   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`).
+   *
+   * ⚠️ **The two directions of one noun land on opposite tabs, and that is the
+   * whole of what a mutation here breaks.** The hand-written fight ticks 60 points
+   * of poison off `coś dużego` on side two, so `Zadane` charges them to side one —
+   * our side dealt them — while `Otrzymane` leaves them on side two, which took
+   * them. Healing crosses nothing: 50 points of regeneration reach `tarcza` on
+   * side one and belong to side one read either way.
    */
   test.each([
     ["dealt", "all", "60"],
-    ["dealt", "mine", null],
-    ["dealt", "enemy", "60"],
+    ["dealt", "mine", "60"],
+    ["dealt", "enemy", null],
     ["taken", "all", "60"],
     ["taken", "mine", null],
     ["taken", "enemy", "60"],
@@ -431,7 +501,34 @@ describe("what nobody can be charged with", () => {
   ] as const)("narrows to the side on screen on %s · %s", (metric, team, expected) => {
     const view = composePanelView(composeReading(), composeState({ metric, team }));
 
-    expect(view.pinnedRow?.valueText ?? null).toBe(expected);
+    expect(getNoActorRow(view)?.valueText ?? null).toBe(expected);
+  });
+
+  /**
+   * ⚠️ **A share on every one of the twelve screens, and four of them went a
+   * release without one.**
+   *
+   * A bracket needs a whole containing the figure, and twice there was none: once
+   * because a fight-wide numerator sat over one side's denominator — 320% under
+   * `Leczenie · Oni` on
+   * `tests/captured-fights/2026-08-11-tempest-tancerz-vs-wermont.json` — and once
+   * because the figure was held to belong to no side at all, so `Zadane · Oni`
+   * printed none (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`).
+   *
+   * Both are gone for one reason: the figure and the list are scoped alike now.
+   * Stated as an equality over every screen rather than as a list of the ones that
+   * have a bracket, so an exception cannot widen unnoticed — a bracket that came
+   * back as `(0%)` beside a five-figure number is the other half of what §9.6
+   * forbids, and `toMatch` on a leading paren catches a blank one.
+   */
+  test.each(
+    PANEL_METRICS.flatMap((metric) => PANEL_TEAMS.map((team) => [metric, team] as const)),
+  )("states its share on %s · %s", (metric, team) => {
+    const pinned = getNoActorRow(composePanelView(composeReading(), composeState({ metric, team })));
+    if (pinned === null) return;
+
+    expect(pinned.bracketText, `${metric} ${team}`).toMatch(/^\(\d|^\(<1%/);
+    expect(pinned.fill, `${metric} ${team}`).toBeGreaterThan(0);
   });
 
   /**
@@ -441,11 +538,11 @@ describe("what nobody can be charged with", () => {
    */
   test("names only the side on screen in its own breakdown", () => {
     const view = composePanelView(composeReading(), composeState({ metric: "taken", team: "enemy" }));
-    const stats = view.pinnedRow?.detail.filter((line) => line.kind === "stat") ?? [];
+    const stats = getNoActorRow(view)?.detail.filter((line) => line.kind === "stat") ?? [];
 
     expect(stats).toEqual([{ kind: "stat", label: "coś dużego", value: "60", isStrong: false }]);
     expect(
-      view.pinnedRow?.detail.map((line) => (line.kind === "stat" ? "" : line.text)).join(" "),
+      getNoActorRow(view)?.detail.map((line) => (line.kind === "stat" ? "" : line.text)).join(" "),
     ).toContain("Tylko z pokazanej drużyny");
   });
 });
@@ -1211,8 +1308,8 @@ describe("against the captured fights", () => {
       ).map(([noun, given, received]) => ({ ...fight, noun, given, received })),
     ),
   )("$name reports one figure for the $noun nobody can be charged with", ({ reading, given, received }) => {
-    const inGiven = composePanelView(reading, composeState({ metric: given })).pinnedRow;
-    const inReceived = composePanelView(reading, composeState({ metric: received })).pinnedRow;
+    const inGiven = getNoActorRow(composePanelView(reading, composeState({ metric: given })));
+    const inReceived = getNoActorRow(composePanelView(reading, composeState({ metric: received })));
 
     // Both or neither, checked before the figures: a direction that simply stops
     // drawing the row would otherwise pass this by having nothing to disagree
@@ -1231,66 +1328,100 @@ describe("against the captured fights", () => {
   });
 
   /**
-   * **The two sides and what neither holds come back to the fight**, on the screens
-   * where the figure has a side at all.
+   * **The two teams and what neither holds come back to the fight**, on every one
+   * of the four screens.
    *
    * The closure is what makes the narrowing readable rather than merely different:
-   * a filter that dropped points would show two sides summing to less than the
+   * a filter that dropped points would show two teams summing to less than the
    * fight with nothing saying so, and a filter that did nothing would show each
-   * side holding all of it. Both are one assertion away, in opposite directions.
+   * team holding all of it. Both are one assertion away, in opposite directions.
    *
-   * The leftover is read off the `Wszyscy` screen's own breakdown rather than
-   * computed here — that is the one place the view states it as a number, and on
-   * these captures it is zero, because every name in them resolves. The fight
-   * built by hand below is where it is not.
+   * ⚠️ **The given screens did not narrow at all for one round**, because a figure
+   * with no actor was held to have no side; the round before that they narrowed by
+   * the victim, which is the other side's question
+   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`). Both are
+   * caught here: the first would make each tab equal the fight's, the second would
+   * put the halves on the wrong tabs, and the mirror below is what tells those two
+   * apart.
+   *
+   * What no name reaches is read off the `Wszyscy` screen's own breakdown rather
+   * than computed here — that is the one place the view states it as a number, and
+   * on these captures it is zero, because every name in them resolves.
    */
   test.each(
     fights.flatMap((fight) =>
-      (
-        [
-          ["obrażenia", "dealt", "taken"],
-          ["leczenie", "healingGiven", "healed"],
-        ] as const
-      ).map(([noun, given, received]) => ({ ...fight, noun, given, received })),
+      PANEL_METRICS.map((metric) => ({ ...fight, metric })),
     ),
-  )("$name closes the two sides against the whole fight for the $noun", ({ reading, given, received }) => {
-    const getFigure = (metric: PanelMetric, team: (typeof PANEL_TEAMS)[number]): number => {
-      const pinned = composePanelView(reading, composeState({ metric, team })).pinnedRow;
+  )("$name closes the two teams against the fight on $metric", ({ reading, metric }) => {
+    const getFigure = (team: (typeof PANEL_TEAMS)[number]): number => {
+      const pinned = getNoActorRow(composePanelView(reading, composeState({ metric, team })));
       if (pinned === null) return 0;
-      return getIntegerFromText(pinned.valueText.replace(/\s/g, "")) ?? Number.NaN;
+      return getIntegerFromText(pinned.valueText.replace(/\s/gu, "")) ?? Number.NaN;
     };
 
-    // Off the received screen's own breakdown, which is the one place the view
-    // states it as a number — the given cut folds it in among the sources, where it
-    // is a token like any other. On these captures it is zero, because every name
-    // in them resolves; the fight built by hand below is where it is not.
-    const unplaced = assertDefined(getPinnedLeftover(received), `${received} has a leftover row`);
-    const wholeFight = composePanelView(reading, composeState({ metric: received, team: "all" })).pinnedRow;
+    // Off the `Wszyscy` screen's own breakdown, which is the one place the view
+    // states it as a number.
+    const unplaced = getNeitherEndLeftover();
+    const wholeFight = getNoActorRow(
+      composePanelView(reading, composeState({ metric, team: "all" })),
+    );
     const leftoverLine = wholeFight?.detail.find(
       (line) => line.kind === "stat" && line.label === unplaced.label,
     );
     const leftover =
       leftoverLine?.kind === "stat"
-        ? (getIntegerFromText(leftoverLine.value.replace(/\s/g, "")) ?? Number.NaN)
+        ? (getIntegerFromText(leftoverLine.value.replace(/\s/gu, "")) ?? Number.NaN)
         : 0;
 
-    for (const metric of [given, received]) {
-      expect(getFigure(metric, "mine") + getFigure(metric, "enemy") + leftover, metric).toBe(
-        getFigure(metric, "all"),
-      );
-    }
+    expect(getFigure("mine") + getFigure("enemy") + leftover, metric).toBe(getFigure("all"));
+  });
 
-    /**
-     * ⚠️ **And the two directions of a noun agree on every tab, not only on
-     * `Wszyscy`.** The figure is the same points read from either end, so it has to
-     * narrow to the same side either way — `Σ zadane + bez sprawcy = Σ otrzymane`
-     * holding per side as well as per fight. The two reach it by different arms of
-     * the cut, so their agreement is a measurement.
-     */
-    for (const team of PANEL_TEAMS) {
-      expect(getFigure(given, team), `${given} vs ${received} on ${team}`).toBe(
-        getFigure(received, team),
-      );
+  /**
+   * ⚠️ **The one inference this panel draws, held to a measurement.**
+   *
+   * The team comes from the end the game *did* name, and the derivation is the
+   * noun's: damage crosses, healing does not
+   * (`getPartCharged`, `docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+   * The protocol states neither — it holds while there are two sides and nobody
+   * harms their own.
+   *
+   * That assumption is what this asserts, and it asserts it as a measurement
+   * rather than as a construction: the two directions reach their figures through
+   * different fields of the aggregate — `dealtApplied` against `taken`,
+   * `healingGiven` against `healed` — so a blow between two of ours, or an end
+   * that stops resolving, breaks the equality here instead of moving a figure
+   * where nobody would look. Both the row and the bar are read, because they are
+   * two regions that must not disagree and they reach the charge separately.
+   */
+  test.each(fights)("$name reads a team's figure the same from either end", ({ reading }) => {
+    const getRowFigure = (metric: PanelMetric, team: (typeof PANEL_TEAMS)[number]): number => {
+      const pinned = getNoActorRow(composePanelView(reading, composeState({ metric, team })));
+      return pinned === null
+        ? 0
+        : (getIntegerFromText(pinned.valueText.replace(/\s/gu, "")) ?? Number.NaN);
+    };
+    const getBarFigures = (metric: PanelMetric): ReturnType<typeof getSideFigures> =>
+      getSideFigures(composePanelView(reading, composeState({ metric })));
+
+    // There is something to compare: an equality between two zeroes would hold for
+    // a panel that had stopped drawing any of it.
+    expect(getRowFigure("dealt", "mine")).toBeGreaterThan(0);
+    expect(getBarFigures("dealt").mine).toBeGreaterThan(0);
+
+    // Damage crosses: what our side dealt with no name on it is what theirs took.
+    expect(getRowFigure("dealt", "mine"), "wiersz zadane · My").toBe(getRowFigure("taken", "enemy"));
+    expect(getRowFigure("dealt", "enemy"), "wiersz zadane · Oni").toBe(getRowFigure("taken", "mine"));
+    expect(getBarFigures("dealt").mine, "pasek zadane · My").toBe(getBarFigures("taken").enemy);
+
+    // Healing does not: the healer and the healed are on one side.
+    expect(getRowFigure("healingGiven", "mine")).toBe(getRowFigure("healed", "mine"));
+    expect(getRowFigure("healingGiven", "enemy")).toBe(getRowFigure("healed", "enemy"));
+    expect(getBarFigures("healingGiven").mine).toBe(getBarFigures("healed").mine);
+
+    // And nothing in this material is left without a team at either end, which is
+    // what made the old third part's label false on these very screens.
+    for (const metric of PANEL_METRICS) {
+      expect(getBarFigures(metric).nobody, metric).toBe(0);
     }
   });
 
@@ -1334,7 +1465,7 @@ describe("against the captured fights", () => {
     const split = fights.flatMap(({ reading }) =>
       PANEL_METRICS.filter((metric) =>
         (["mine", "enemy"] as const).every(
-          (team) => composePanelView(reading, composeState({ metric, team })).pinnedRow !== null,
+          (team) => getNoActorRow(composePanelView(reading, composeState({ metric, team }))) !== null,
         ),
       ),
     );
@@ -1368,7 +1499,7 @@ describe("against the captured fights", () => {
        */
       for (const team of PANEL_TEAMS) {
         const view = composePanelView(reading, composeState({ metric, team }));
-        const pinned = view.pinnedRow;
+        const pinned = getNoActorRow(view);
         // A side with none of it draws no row, which the figures above measure.
         if (pinned === null) continue;
 
@@ -1384,7 +1515,7 @@ describe("against the captured fights", () => {
 
       // And it is drawn at all under no filter, which the loop above would let a
       // vanished row pass on every tab.
-      expect(composePanelView(reading, composeState({ metric })).pinnedRow).not.toBeNull();
+      expect(getNoActorRow(composePanelView(reading, composeState({ metric })))).not.toBeNull();
     },
   );
 
@@ -1405,7 +1536,7 @@ describe("against the captured fights", () => {
     expect(gainOnly.length).toBeGreaterThan(0);
 
     for (const metric of ["dealt", "taken"] as const) {
-      const pinned = composePanelView(reading, composeState({ metric })).pinnedRow;
+      const pinned = getNoActorRow(composePanelView(reading, composeState({ metric })));
       const labels = [...(pinned?.detail ?? [])].map((line) =>
         line.kind === "stat" ? line.label : "",
       );
@@ -1425,9 +1556,11 @@ describe("against the captured fights", () => {
    *
    * The whole is read off the summary, because that is the one place the view
    * states it as a number: `My + Oni + Bez strony` is the rows the screen admits
-   * plus whatever no row holds, which is `getWholeOnScreen` under no filter. The
-   * two directions reach it by different arms of `getMetricValue` and different
-   * arms of `getFigureOutsideRows`, so their agreement is a measurement.
+   * plus whatever no row holds, which is `getWholeOnScreen` under no filter — how
+   * the bar divides that total between the three is a different question, and the
+   * one this does not ask. The two directions reach it by different arms of
+   * `getMetricValue` and different arms of `getFigureOutsideRows`, so their
+   * agreement is a measurement.
    */
   test.each(
     fights.flatMap((fight) =>
@@ -1457,23 +1590,8 @@ describe("against the captured fights", () => {
    * (`src/core/fight-decoder.ts`), so this is the live shape, not a contrivance.
    */
   test("closes the damage from either direction when the figures have no actor", () => {
-    const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
-      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
-    ]);
-    const statistics = composeFightStatistics(
-      decodeFight(
-        [
-          // Nobody swung it, and it landed on somebody named.
-          "0;3=50.00;+dmg=500;-dmg=400",
-          // Somebody named swung it, and it landed on nobody the roster holds.
-          "1=90.00;0;+dmg=300;-dmg=200",
-        ],
-        roster,
-      ),
-      roster,
-    );
-    const reading = { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading;
+    const reading = composeReadingWithUnnamedEnds();
+    const { statistics } = reading;
 
     // Read, not assumed: if a later round makes these resolve, the fight stops
     // being the one this test is for and says so here rather than passing.
@@ -1491,13 +1609,13 @@ describe("against the captured fights", () => {
      * element it arrived as, and `Otrzymane` has to name the combatant it landed
      * on rather than filing 400 points as unplaceable while row 3 holds them.
      */
-    const bySource = composePanelView(reading, composeState({ metric: "dealt" })).pinnedRow;
+    const bySource = getNoActorRow(composePanelView(reading, composeState({ metric: "dealt" })));
     expect(bySource?.valueText).toBe("400");
     expect(bySource?.detail.filter((line) => line.kind === "stat")).toEqual([
       { kind: "stat", label: "fizyczne", value: "400", isStrong: false },
     ]);
 
-    const byCombatant = composePanelView(reading, composeState({ metric: "taken" })).pinnedRow;
+    const byCombatant = getNoActorRow(composePanelView(reading, composeState({ metric: "taken" })));
     expect(byCombatant?.valueText).toBe("400");
     expect(byCombatant?.detail.filter((line) => line.kind === "stat")).toEqual([
       { kind: "stat", label: "coś dużego", value: "400", isStrong: false },
@@ -1514,40 +1632,189 @@ describe("against the captured fights", () => {
       ["mine", null],
       ["enemy", "400"],
     ] as const) {
-      const sided = composePanelView(reading, composeState({ metric: "taken", team })).pinnedRow;
+      const sided = getNoActorRow(composePanelView(reading, composeState({ metric: "taken", team })));
       expect(sided?.valueText ?? null, team).toBe(expected);
     }
 
-    // And the given direction narrows to the same side, by the same end — the blow
-    // landed on side two, so `Zadane · My` has nothing to pin however our side
-    // fought. The cut there is by source, so it has to name the element rather than
-    // the victim, and still close against the figure.
-    const givenBySide = composePanelView(reading, composeState({ metric: "dealt", team: "enemy" })).pinnedRow;
-    expect(givenBySide?.valueText).toBe("400");
-    expect(givenBySide?.detail.filter((line) => line.kind === "stat")).toEqual([
-      { kind: "stat", label: "fizyczne", value: "400", isStrong: false },
-    ]);
-    expect(
-      composePanelView(reading, composeState({ metric: "dealt", team: "mine" })).pinnedRow,
-    ).toBeNull();
+    /**
+     * ⚠️ **And the given direction narrows the other way, which is what makes the
+     * two tabs differ.** The blow landed on side two, so `Otrzymane · My` pins
+     * nothing — and by the same token our side is the one credited with dealing
+     * it, so `Zadane · My` pins all 400 and `Zadane · Oni` pins none. That is the
+     * mirror on the smallest fight that can show it, and it is the pair a mutation
+     * inverting the charge breaks.
+     *
+     * The cut travels with the figure: by source on a given screen, narrowed to
+     * the team charged with it, closing against it on both tabs.
+     */
+    for (const [team, expected] of [
+      ["mine", "400"],
+      ["enemy", null],
+    ] as const) {
+      const givenBySide = getNoActorRow(composePanelView(reading, composeState({ metric: "dealt", team })));
+      expect(givenBySide?.valueText ?? null, team).toBe(expected);
+      if (expected === null) continue;
+      expect(givenBySide?.detail.filter((line) => line.kind === "stat"), team).toEqual([
+        { kind: "stat", label: "fizyczne", value: "400", isStrong: false },
+      ]);
+      // The whole on that screen contains it, so it states its share of one.
+      expect(givenBySide?.bracketText, team).toMatch(/^\(/);
+    }
   });
 
   /**
-   * **The `Z czego` cut narrows with the figure standing over it**, on the one
-   * shape that can tell: a blow whose striker did not resolve, landing on a placed
-   * combatant on each side.
+   * **What has no side at *either* end stays outside the two figures.**
    *
-   * ⚠️ **A mutation that stopped the cut narrowing lit nothing at all.** Every
-   * recording resolves every striker, so the element half of that cut is empty in
-   * all of them and the sources half is per victim already — the sweep over the
-   * captures could not see the difference, and the fight above admits the one row
-   * it has under `Oni` either way. Two sides and two elements is the smallest thing
-   * that can.
+   * The summary charges a figure with no actor to the side the game named at the
+   * other end (`docs/specs/2026-08-18-a-tick-nobody-swung-still-has-a-side.md`).
+   * A blow naming neither end has no such side, so it is the part that survives —
+   * and it is the whole reason the part survives at all, since it is zero in every
+   * recording and a bar that had dropped it would draw identically on all of them.
    *
-   * The elements are the victim's own (`getDamageWithoutActorByElement`), not the
-   * fight-wide bucket's, which knows no combatant and so no side.
+   * Read from both directions, because the two reach it through different terms:
+   * `Zadane` through what no row holds of the fight's own figure, `Otrzymane`
+   * through what the aggregate could not place at all.
    */
-  test("cuts what nobody can be charged with by the side on screen, element by element", () => {
+  test("keeps a blow that names neither end outside both sides", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400", "0;0;+dmg=90;-dmg=70"], roster),
+      roster,
+    );
+    const reading = { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading;
+
+    // Read, not assumed: the fight stops being the one this test is for if a later
+    // round makes either end resolve.
+    expect(statistics.unattributed.dealtApplied).toBe(70);
+    expect(statistics.unattributed.taken).toBe(70);
+
+    expect(getSideFigures(composePanelView(reading, composeState({ metric: "dealt" })))).toEqual({
+      mine: 400,
+      enemy: 0,
+      nobody: 70,
+    });
+    expect(getSideFigures(composePanelView(reading, composeState({ metric: "taken" })))).toEqual({
+      mine: 0,
+      enemy: 400,
+      nobody: 70,
+    });
+  });
+
+  /**
+   * ⚠️ **The row for a missing target is charged by the striker, to the team
+   * facing them — and nothing lit up when that was made to charge the striker's
+   * own team.**
+   *
+   * The captures cannot show it: all seventeen resolve every name, so
+   * `unattributed.takenByActorId` is empty in every one and the row never draws.
+   * The hand-built fights that do reach the row reach it through a blow naming
+   * *neither* end, whose figure is not charged at all. So the one screen where the
+   * charge on this row can be read is this one, and until it was written the
+   * direction was free to be either.
+   *
+   * The mage is on our side and swung at a name the roster has nobody for. The
+   * blow landed on somebody — it is `Otrzymane`, so the question is who *took* it
+   * — and by the rule that damage crosses, that is the other team.
+   */
+  test("charges a blow with no target to the team facing whoever swung it", () => {
+    const reading = composeReadingWithUnnamedEnds();
+
+    // Read, not assumed: the striker resolved and the target did not.
+    expect([...reading.statistics.unattributed.takenByActorId.keys()]).toEqual([1]);
+    expect(reading.roster.byId.get(1)?.side).toBe(reading.ourSide ?? undefined);
+
+    for (const [team, expected] of [
+      ["all", "200"],
+      ["mine", null],
+      ["enemy", "200"],
+    ] as const) {
+      const row = getNoTargetRow(composePanelView(reading, composeState({ metric: "taken", team })));
+      expect(row?.valueText ?? null, team).toBe(expected);
+    }
+
+    // And the cut under it names the one end the game did state.
+    const row = getNoTargetRow(composePanelView(reading, composeState({ metric: "taken" })));
+    expect(row?.detail.filter((line) => line.kind === "stat")).toEqual([
+      { kind: "stat", label: "mag", value: "200", isStrong: false },
+    ]);
+  });
+
+  /**
+   * **An announced heal whose recipient nobody could place reaches both screens**
+   * — the giver's own row on one, and the row for a target the game did not name
+   * on the other.
+   *
+   * ⚠️ **It reached neither for a release.** The aggregate credited a healer only
+   * where both ends resolved, so these points were on no row, in no total, and
+   * filed as healing nobody announced (`src/core/fight-statistics.ts`). The panel
+   * could not have shown them however it composed itself, which is why the fix is
+   * one layer down and this test is here to say what it bought.
+   */
+  test("puts an announced heal with no recipient on the giver and on the row for it", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(
+        ["1=90.00;0;tspell=Uzdrowienie;skillId=7", "1=90.00;0;heal_target=300"],
+        roster,
+      ),
+      roster,
+    );
+    const reading = { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading;
+
+    // Given: the healer holds it, so no row stands apart from the ranking.
+    const given = composePanelView(reading, composeState({ metric: "healingGiven" }));
+    expect(given.lists[0]?.rows.find((row) => row.label === "mag")?.valueText).toBe("300");
+    expect(given.pinnedRows).toEqual([]);
+
+    // And their own breakdown names the end that is missing rather than coming up
+    // short of the row above it.
+    const drill = composePanelView(
+      reading,
+      composeState({ metric: "healingGiven", focusCombatantId: 1 }),
+    );
+    expect(drill.lists.flatMap((list) => list.rows).map((row) => [row.label, row.valueText])).toEqual(
+      [["Nieznany cel", "300"]],
+    );
+
+    // Received: nobody's row holds it, so the row for a missing target does — on
+    // the healer's own team, because healing does not cross.
+    for (const [team, expected] of [
+      ["all", "300"],
+      ["mine", "300"],
+      ["enemy", null],
+    ] as const) {
+      const row = getNoTargetRow(composePanelView(reading, composeState({ metric: "healed", team })));
+      expect(row?.valueText ?? null, team).toBe(expected);
+    }
+  });
+
+  /**
+   * **The `Z czego` cut narrows with the figure over it, and the charge decides
+   * which way** — on the one shape that can tell: a blow whose striker did not
+   * resolve, landing on a placed combatant on each side.
+   *
+   * ⚠️ **This has been asserted three ways in three rounds, and each assertion was
+   * that round's understanding written down.** It narrowed by the victim, which
+   * put a received-end figure over a given-end list; then it stopped narrowing at
+   * all, because the figure was held to have no side
+   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`); now it
+   * narrows by the charge, which is the victim's *opposite* under `Zadane`
+   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). The three are
+   * told apart by which tab each element lands on, which is why the fight is built
+   * with one of each on a different side.
+   *
+   * ⚠️ **A mutation here lights nothing over the captures.** Every recording
+   * resolves every striker, so the element half of this cut is empty in all of
+   * them and the sources half is per victim already. Two sides and two elements is
+   * the smallest fight that can tell, which is why it is built by hand.
+   */
+  test("cuts what nobody can be charged with by the team it is charged to", () => {
     const roster = composeCombatantRoster([
       { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
       { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
@@ -1564,38 +1831,61 @@ describe("against the captured fights", () => {
     );
     const reading = { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading;
 
-    // Read, not assumed: both blows are in the bucket, so a cut reading it would
-    // show all 550 on whichever side is picked.
+    // Read, not assumed: both blows have a striker nobody could name, and they
+    // land on opposite sides.
     expect(statistics.unattributed.dealtApplied).toBe(550);
 
     const getCut = (team: (typeof PANEL_TEAMS)[number]): PanelDetailLine[] =>
-      composePanelView(reading, composeState({ metric: "dealt", team })).pinnedRow?.detail.filter(
+      getNoActorRow(composePanelView(reading, composeState({ metric: "dealt", team })))?.detail.filter(
         (line) => line.kind === "stat",
       ) ?? [];
 
-    expect(getCut("mine")).toEqual([{ kind: "stat", label: "ogień", value: "150", isStrong: false }]);
-    expect(getCut("enemy")).toEqual([{ kind: "stat", label: "fizyczne", value: "400", isStrong: false }]);
-    // Biggest first, the way every cut on the panel is ordered.
-    expect(getCut("all")).toEqual([
+    // Biggest first, the way every cut on the panel is ordered. 400 of physical
+    // fell on side two, so our side dealt it; 150 of fire fell on ours, so theirs
+    // did — the opposite tab from the one the victim is on.
+    expect(getCut("all"), "all").toEqual([
       { kind: "stat", label: "fizyczne", value: "400", isStrong: false },
       { kind: "stat", label: "ogień", value: "150", isStrong: false },
     ]);
+    expect(getCut("mine"), "mine").toEqual([
+      { kind: "stat", label: "fizyczne", value: "400", isStrong: false },
+    ]);
+    expect(getCut("enemy"), "enemy").toEqual([
+      { kind: "stat", label: "ogień", value: "150", isStrong: false },
+    ]);
+
+    // And each cut closes against the figure standing over it.
+    for (const [team, figure] of [
+      ["all", "550"],
+      ["mine", "400"],
+      ["enemy", "150"],
+    ] as const) {
+      const pinned = getNoActorRow(composePanelView(reading, composeState({ metric: "dealt", team })));
+      expect(pinned?.valueText, team).toBe(figure);
+    }
   });
 
   /**
-   * **What no row holds joins the figure under `Wszyscy` and nowhere else.**
+   * **What names neither end rides one row, under `Wszyscy`, and nowhere else.**
    *
-   * A blow naming neither end is the one part of this row that no side can claim:
-   * it did not leave anybody and it did not reach anybody the roster places. Under
-   * `Wszyscy` it is inside the figure and the breakdown names it; under a side tab
-   * it is outside both, or the two sides would each be handed the other's
-   * unplaceable points and the closure over the captures would still pass.
+   * A blow naming neither end is the one part of this screen no team can claim: it
+   * left nobody and it reached nobody the roster places, so no end is left to
+   * derive a team from. Under `Wszyscy` it is inside the row that stands apart
+   * from the ranking and the breakdown names it; under a side tab it is on no row
+   * at all, or the two teams would each be handed the other's unplaceable points
+   * and the closure over the captures would still pass.
+   *
+   * ⚠️ **It rides the row for a missing *target* here, and it used to ride the one
+   * for a missing actor.** Under `Otrzymane` the actor row is a cut of the ranking
+   * — every point of it is already on a victim's row — so a figure no row holds
+   * could not sit inside it without making the cut total more than the ranking it
+   * cuts into (`getHoleCarryingNeitherEnd`).
    *
    * The captures cannot reach this — every name in them resolves — and the fight
-   * above cannot either: its unnamed blow still names a target. A third message is
-   * what makes the leftover non-zero.
+   * above cannot either: its unnamed blow still names a target. A second message
+   * is what makes the leftover non-zero.
    */
-  test("keeps what no side can hold to the screen that shows the whole fight", () => {
+  test("keeps what no team can hold to the screen that shows the whole fight", () => {
     const roster = composeCombatantRoster([
       { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
       { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
@@ -1605,7 +1895,7 @@ describe("against the captured fights", () => {
         [
           // Nobody swung it, and it landed on somebody named.
           "0;3=50.00;+dmg=500;-dmg=400",
-          // Nobody swung it and it landed on nobody: neither side can hold this.
+          // Nobody swung it and it landed on nobody: neither team can hold this.
           "0;0;+dmg=100;-dmg=90",
         ],
         roster,
@@ -1617,25 +1907,30 @@ describe("against the captured fights", () => {
     // Read, not assumed, the way the fight above is.
     expect(statistics.unattributed.dealtApplied).toBe(490);
 
-    const whole = composePanelView(reading, composeState({ metric: "taken" })).pinnedRow;
-    expect(whole?.valueText).toBe("490");
-    expect(whole?.detail.filter((line) => line.kind === "stat")).toEqual([
+    const view = composePanelView(reading, composeState({ metric: "taken" }));
+    const noActor = getNoActorRow(view);
+    expect(noActor?.valueText).toBe("400");
+    expect(noActor?.detail.filter((line) => line.kind === "stat")).toEqual([
       { kind: "stat", label: "coś dużego", value: "400", isStrong: false },
-      { kind: "stat", label: assertDefined(getPinnedLeftover("taken"), "taken").label, value: "90", isStrong: false },
     ]);
 
-    const sided = composePanelView(reading, composeState({ metric: "taken", team: "enemy" })).pinnedRow;
-    expect(sided?.valueText).toBe("400");
-    expect(sided?.detail.filter((line) => line.kind === "stat")).toEqual([
-      { kind: "stat", label: "coś dużego", value: "400", isStrong: false },
+    const noTarget = getNoTargetRow(view);
+    expect(noTarget?.valueText).toBe("90");
+    expect(noTarget?.detail.filter((line) => line.kind === "stat")).toEqual([
+      { kind: "stat", label: getNeitherEndLeftover().label, value: "90", isStrong: false },
     ]);
+
+    // A side tab takes the part with a team and leaves the part without one.
+    const sided = composePanelView(reading, composeState({ metric: "taken", team: "enemy" }));
+    expect(getNoActorRow(sided)?.valueText).toBe("400");
+    expect(getNoTargetRow(sided)).toBeNull();
   });
 
   /**
    * The other half of the same shape: a blow with no striker that also landed on
-   * nobody. Then there really is no row to put it on, and the cut says so in the
-   * one sentence in `panel-nobody.ts` that names a limit of **ours** rather than
-   * of the game's — the game did state a name, and this fight has nobody it fits.
+   * nobody, and nothing else in the fight. Then no row can hold any of it, and the
+   * screen says so on the one row that stands apart — with the one sentence in
+   * `panel-nobody.ts` that names a limit of **ours** as well as of the game's.
    */
   test("names the part no row can hold, where a blow reached nobody either", () => {
     const roster = composeCombatantRoster([
@@ -1650,12 +1945,15 @@ describe("against the captured fights", () => {
     expect(statistics.unattributed.dealtApplied).toBe(400);
     expect(statistics.unattributed.taken).toBe(400);
 
-    const pinned = composePanelView(reading, composeState({ metric: "taken" })).pinnedRow;
+    const view = composePanelView(reading, composeState({ metric: "taken" }));
+    expect(getNoActorRow(view)).toBeNull();
+
+    const pinned = getNoTargetRow(view);
     expect(pinned?.valueText).toBe("400");
     const stats = [...(pinned?.detail ?? [])].filter((line) => line.kind === "stat");
     expect(stats.length).toBe(1);
     expect(stats[0]?.value).toBe("400");
-    expect(stats[0]?.label).toBe(getPinnedLeftover("taken")?.label);
+    expect(stats[0]?.label).toBe(getNeitherEndLeftover().label);
   });
 
   /**
@@ -1685,7 +1983,9 @@ describe("against the captured fights", () => {
         assertDefined(getIntegerFromText(text.replace(/\s/gu, "")), `figure in ${text}`),
       );
       const rows = view.lists.flatMap((list) => list.rows);
-      const pinned = IS_PINNED_INSIDE_ROWS[metric] ? [] : [view.pinnedRow ?? []].flat();
+      const pinned = view.pinnedRows.filter((row) =>
+        ROWS_ADDING_TO_THE_WHOLE[metric].includes(row.key),
+      );
       const onScreen = [...rows, ...pinned]
         .reduce(
           (sum, row) =>
@@ -1808,12 +2108,16 @@ describe("against the captured fights", () => {
         const view = composePanelView(reading, composeState({ metric, team }));
         const drawn = [
           ...view.lists.flatMap((list) => list.rows),
-          ...(view.pinnedRow === null ? [] : [view.pinnedRow]),
+          ...view.pinnedRows,
         ];
 
         let low = 0;
         let high = Number.POSITIVE_INFINITY;
         for (const row of drawn) {
+          // A row that states no share is outside this whole by decision, so it
+          // bounds nothing — and it is checked for being outside where that is
+          // decided, not read as a bracket that went missing.
+          if (row.bracketText === null) continue;
           // A share the panel refuses to round to zero bounds the whole from one
           // side only, so it is no use working backwards — read as its own case
           // rather than as a parse that failed, which is a defect and not this.
@@ -1855,10 +2159,13 @@ describe("against the captured fights", () => {
         const view = composePanelView(reading, composeState({ metric, team }));
         const drawn = [
           ...view.lists.flatMap((list) => list.rows),
-          ...(view.pinnedRow === null ? [] : [view.pinnedRow]),
+          ...view.pinnedRows,
         ];
 
         for (const row of drawn) {
+          // A row outside this screen's whole states no share, and a share it does
+          // not state cannot be above anything.
+          if (row.bracketText === null) continue;
           // Under a point is under a hundred, and says nothing else this can read.
           if (row.bracketText.includes(BELOW_A_POINT)) continue;
           const percent = getIntegerFromText(row.bracketText.replace(/[()%]/g, "").split("·")[0]!.trim());
@@ -1878,7 +2185,7 @@ describe("against the captured fights", () => {
   test.each(fights)("$name never marks the pinned figure as none of the screen", ({ reading }) => {
     for (const metric of PANEL_METRICS) {
       for (const team of PANEL_TEAMS) {
-        const pinned = composePanelView(reading, composeState({ metric, team })).pinnedRow;
+        const pinned = getNoActorRow(composePanelView(reading, composeState({ metric, team })));
         if (pinned === null || pinned.bracketText === null) continue;
         const value = getIntegerFromText(pinned.valueText.replace(/\s/g, ""));
         if (value === null || value <= 0) continue;
@@ -1888,20 +2195,28 @@ describe("against the captured fights", () => {
   });
 
   /**
-   * ⚠️ **Every screen states a share now, and for a whole release two of them did
-   * not.** The bracket used to be dropped on a received direction under a side
-   * filter, because a fight-wide numerator over one side's denominator printed
-   * 320% and, where that side received nothing, `(0%)` beside a five-figure
-   * number. Both scopes narrow together since, so the exception has nothing left
-   * to except and a screen that silently dropped the bracket would be hiding the
-   * mismatch rather than the symptom.
+   * ⚠️ **A share on every screen, and the two ways it went missing are both
+   * closed.**
+   *
+   * The bracket was dropped on a received direction under a side filter for a
+   * whole release, because a fight-wide numerator over one side's denominator
+   * printed 320% and, where that side received nothing, `(0%)` beside a
+   * five-figure number. Then it was dropped on the given directions instead, when
+   * the figure was held to have no side at all. Both were the same fault seen from
+   * different ends — figure and whole scoped differently — and the charge closes
+   * it: the row narrows exactly as the list does
+   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+   *
+   * Stated over every screen rather than as an enumerated exception, because an
+   * exception is the thing that widens unnoticed.
    */
-  test.each(fights)("$name states a share on every screen", ({ reading }) => {
+  test.each(fights)("$name states a share on every screen it draws a row", ({ reading }) => {
     for (const metric of PANEL_METRICS) {
       for (const team of PANEL_TEAMS) {
-        const pinned = composePanelView(reading, composeState({ metric, team })).pinnedRow;
-        if (pinned === null) continue;
-        expect(pinned.bracketText, `${metric} ${team}`).toMatch(/^\(/);
+        const view = composePanelView(reading, composeState({ metric, team }));
+        for (const pinned of view.pinnedRows) {
+          expect(pinned.bracketText, `${metric} ${team} ${pinned.key}`).toMatch(/^\(/);
+        }
       }
     }
   });
@@ -1912,24 +2227,34 @@ describe("against the captured fights", () => {
         const view = composePanelView(reading, composeState({ metric, team }));
         const drawn = [
           ...view.lists.flatMap((list) => list.rows),
-          ...(view.pinnedRow === null ? [] : [view.pinnedRow]),
+          ...view.pinnedRows,
         ];
         if (drawn.length === 0) continue;
 
         for (const row of drawn) {
           expect(row.fill, `${metric} ${team} ${row.label}`).toBeLessThanOrEqual(1);
         }
+
+        // The scale is the list's, so the row that is not on the list's arithmetic
+        // is not on it either: under a given direction with a side picked the
+        // pinned figure is the fight's, it draws no bar, and seeding the scale with
+        // it would shrink every bar that is measured against it.
+        const onScale = drawn.filter(
+          (row) => !(row.key === "nobody" && isGivenMetric(metric) && team !== "all"),
+        );
+        if (onScale.length === 0) continue;
+
         // And the scale is still tight: something on screen reaches the end, or
         // clamping every bar would pass this while measuring against nothing.
         //
-        // ⚠️ **Unless nothing on screen happened**, which is a screen the panel
+        // ⚠️ **Unless nothing on the scale happened**, which is a screen the panel
         // reached only once the pinned figure started answering the side tab:
         // `Leczenie · Oni` on the group captures is a side that received no
         // healing at all, and a full bar over a column of zeroes would draw
         // nothing as everything. Read off the figures rather than assumed, so a
         // screen that lost its numbers cannot excuse itself here.
-        if (drawn.every((row) => getIntegerFromText(row.valueText.replace(/\s/g, "")) === 0)) continue;
-        expect(drawn.some((row) => row.fill === 1), `${metric} ${team}`).toBe(true);
+        if (onScale.every((row) => getIntegerFromText(row.valueText.replace(/\s/g, "")) === 0)) continue;
+        expect(onScale.some((row) => row.fill === 1), `${metric} ${team}`).toBe(true);
       }
     }
   });
@@ -2060,7 +2385,7 @@ describe("what a bar's length says", () => {
   test("the row for what nobody can be charged with is measured the same way", () => {
     const view = composePanelView(composeReading(), composeState());
     const largest = view.lists[0]!.rows[0]!;
-    const pinned = assertDefined(view.pinnedRow, "the pinned row is drawn");
+    const pinned = assertDefined(getNoActorRow(view), "the pinned row is drawn");
 
     expect(pinned.fill).toBeLessThan(1);
     // 60 points of poison against the 400 the mage landed.
@@ -2154,7 +2479,7 @@ describe("a target the fight cannot name", () => {
     expect(opponents?.totalText).toBe("700");
     expect(opponents?.rows.map((row) => [row.label, row.valueText])).toEqual([
       ["coś dużego", "300"],
-      ["Nie wiadomo, w kogo", "400"],
+      ["Nieznany cel", "400"],
     ]);
   });
 
@@ -2165,7 +2490,7 @@ describe("a target the fight cannot name", () => {
     );
 
     expect(view.lists[0]?.totalText).toBe("700");
-    expect(view.lists[0]?.rows.at(-1)?.label).toBe("Nie wiadomo, w kogo");
+    expect(view.lists[0]?.rows.at(-1)?.label).toBe("Nieznany cel");
   });
 
   /**
@@ -2175,7 +2500,7 @@ describe("a target the fight cannot name", () => {
    */
   test("says what is missing without naming anything of ours", () => {
     const view = composePanelView(reading, composeState({ metric: "dealt", focusCombatantId: 1 }));
-    const missing = view.lists.flatMap((list) => list.rows).find((row) => row.key === "nobody");
+    const missing = view.lists.flatMap((list) => list.rows).find((row) => row.key === NO_TARGET_ROW_KEY);
 
     expect(missing?.detail).toEqual([
       { kind: "note", text: "Gra nie mówi, w kogo — wiadomo tylko, że cios wszedł." },
@@ -2186,12 +2511,207 @@ describe("a target the fight cannot name", () => {
   });
 });
 
+/**
+ * **Every shape the protocol can send, and what the panel draws for it.**
+ *
+ * The table this walks is written out in `docs/half-named-figures.md`, and this
+ * is the half a machine can check. What it asks about is the two pinned rows: which of
+ * them appears, with what figure, on which tab. The ranked rows are the closures
+ * above, and the bar is the mirror.
+ *
+ * ⚠️ **Written out rather than derived.** A test that computed the expected row
+ * from the same rule the panel uses would agree with it whatever the rule became
+ * (§7.5). These are the twelve fights the protocol can produce, each with the
+ * answer somebody decided.
+ *
+ * The roster is two of ours, one of theirs, and an id it does not carry at all.
+ */
+const CASE_ROSTER = composeCombatantRoster([
+  { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+  { id: 2, name: "tarcza", side: 1, profession: "w", level: 100 },
+  { id: 3, name: "boss", side: 2, profession: null, level: null },
+]);
+
+/** What the pinned rows say, per tab, in the order the panel draws them. */
+type PinnedByTeam = { all: string[]; mine: string[]; enemy: string[] };
+
+const EVERY_CASE: Array<{
+  name: string;
+  messages: string[];
+  ourSide: number | null;
+  drawn: Partial<Record<PanelMetric, PinnedByTeam>>;
+}> = [
+  {
+    name: "both ends named",
+    messages: ["1=90.00;3=50.00;+dmg=500;-dmg=400"],
+    ourSide: 1,
+    drawn: {
+      dealt: { all: [], mine: [], enemy: [] },
+      taken: { all: [], mine: [], enemy: [] },
+    },
+  },
+  {
+    name: "the actor named and no target",
+    messages: ["1=90.00;0;+dmg=300;-dmg=200"],
+    ourSide: 1,
+    drawn: {
+      dealt: { all: [], mine: [], enemy: [] },
+      taken: { all: ["Nieznany cel 200"], mine: [], enemy: ["Nieznany cel 200"] },
+    },
+  },
+  {
+    name: "no actor, and the subject is theirs",
+    messages: ["3=50.00;0;poison=60"],
+    ourSide: 1,
+    drawn: {
+      dealt: { all: ["Nieznany sprawca 60"], mine: ["Nieznany sprawca 60"], enemy: [] },
+      taken: { all: ["Nieznany sprawca 60"], mine: [], enemy: ["Nieznany sprawca 60"] },
+    },
+  },
+  {
+    name: "no actor, and the subject is ours",
+    messages: ["2=90.00;0;poison=60"],
+    ourSide: 1,
+    drawn: {
+      dealt: { all: ["Nieznany sprawca 60"], mine: [], enemy: ["Nieznany sprawca 60"] },
+      taken: { all: ["Nieznany sprawca 60"], mine: ["Nieznany sprawca 60"], enemy: [] },
+    },
+  },
+  {
+    name: "neither end named",
+    messages: ["0;0;+dmg=90;-dmg=70"],
+    ourSide: 1,
+    drawn: {
+      dealt: { all: ["Nieznany sprawca 70"], mine: [], enemy: [] },
+      taken: { all: ["Nieznany cel 70"], mine: [], enemy: [] },
+    },
+  },
+  {
+    name: "a healer and the healed",
+    messages: ["1=90.00;0;tspell=Skill One;skillId=7", "1=90.00;2=50.00;heal_target=100"],
+    ourSide: 1,
+    drawn: {
+      healingGiven: { all: [], mine: [], enemy: [] },
+      healed: { all: [], mine: [], enemy: [] },
+    },
+  },
+  {
+    name: "a healer named and no recipient",
+    messages: ["1=90.00;0;tspell=Skill One;skillId=7", "1=90.00;0;heal_target=300"],
+    ourSide: 1,
+    drawn: {
+      healingGiven: { all: [], mine: [], enemy: [] },
+      healed: { all: ["Nieznany cel 300"], mine: ["Nieznany cel 300"], enemy: [] },
+    },
+  },
+  {
+    name: "the healed named and no healer",
+    messages: ["2=90.00;0;heal=50"],
+    ourSide: 1,
+    drawn: {
+      healingGiven: { all: ["Nieznany sprawca 50"], mine: ["Nieznany sprawca 50"], enemy: [] },
+      healed: { all: ["Nieznany sprawca 50"], mine: ["Nieznany sprawca 50"], enemy: [] },
+    },
+  },
+  {
+    name: "neither end of a heal",
+    messages: ["0;0;heal=40"],
+    ourSide: 1,
+    drawn: {
+      healingGiven: { all: ["Nieznany sprawca 40"], mine: [], enemy: [] },
+      healed: { all: ["Nieznany cel 40"], mine: [], enemy: [] },
+    },
+  },
+  {
+    name: "a combatant the roster cannot place swings",
+    messages: ["9=90.00;3=50.00;+dmg=500;-dmg=400"],
+    ourSide: 1,
+    drawn: {
+      dealt: { all: [], mine: [], enemy: [] },
+      taken: { all: [], mine: [], enemy: [] },
+    },
+  },
+  {
+    name: "a combatant the roster cannot place is poisoned",
+    messages: ["9=90.00;0;poison=60"],
+    ourSide: 1,
+    drawn: {
+      dealt: { all: ["Nieznany sprawca 60"], mine: [], enemy: [] },
+      taken: { all: ["Nieznany sprawca 60"], mine: [], enemy: [] },
+    },
+  },
+  {
+    name: "the game never said which side is ours",
+    messages: ["3=50.00;0;poison=60"],
+    ourSide: null,
+    drawn: {
+      dealt: { all: ["Nieznany sprawca 60"], mine: [], enemy: [] },
+      taken: { all: ["Nieznany sprawca 60"], mine: [], enemy: [] },
+    },
+  },
+];
+
+describe("every shape the protocol can send", () => {
+  test.each(EVERY_CASE)("$name", ({ messages, ourSide, drawn }) => {
+    const statistics = composeFightStatistics(decodeFight(messages, CASE_ROSTER), CASE_ROSTER);
+    const reading = {
+      statistics,
+      roster: CASE_ROSTER,
+      ourSide,
+      isFromFightStart: true,
+    } satisfies PanelReading;
+
+    for (const [metric, byTeam] of Object.entries(drawn) as Array<[PanelMetric, PinnedByTeam]>) {
+      for (const team of PANEL_TEAMS) {
+        const view = composePanelView(reading, composeState({ metric, team }));
+        const said = view.pinnedRows.map((row) => `${row.label} ${row.valueText}`);
+        expect(said, `${metric} · ${team}`).toEqual(byTeam[team]);
+      }
+    }
+  });
+
+  /**
+   * ⚠️ **And the bar names what no row could take.** Three of those fights leave a
+   * figure with no end to derive a side from; under a side tab it is on no row at
+   * all, so the summary is the only thing that can say it is there (§9.6).
+   */
+  test.each([
+    ["neither end named", ["0;0;+dmg=90;-dmg=70"], "70"],
+    ["a combatant the roster cannot place is poisoned", ["9=90.00;0;poison=60"], "60"],
+  ] as const)("says on the bar what %s leaves unplaceable", (_name, messages, figure) => {
+    const statistics = composeFightStatistics(decodeFight([...messages], CASE_ROSTER), CASE_ROSTER);
+    const reading = {
+      statistics,
+      roster: CASE_ROSTER,
+      ourSide: 1,
+      isFromFightStart: true,
+    } satisfies PanelReading;
+
+    for (const team of PANEL_TEAMS) {
+      const view = composePanelView(reading, composeState({ metric: "dealt", team }));
+      expect(view.sides?.nobody, team).toEqual({ label: "Bez strony", text: figure });
+    }
+  });
+
+  /** No seat, no bar: the two figures are `My` and `Oni`, and neither exists yet. */
+  test("draws no summary where the game never said which side is ours", () => {
+    const statistics = composeFightStatistics(
+      decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], CASE_ROSTER),
+      CASE_ROSTER,
+    );
+    const view = composePanelView(
+      { statistics, roster: CASE_ROSTER, ourSide: null, isFromFightStart: true },
+      composeState(),
+    );
+
+    expect(view.sides).toBeNull();
+  });
+});
+
 describe("every sentence the panel says", () => {
   const OURS = [
     "  bez sprawcy",
     "  z ciosów",
-    "Bez sprawcy",
-    "Bez strony",
     "CZYM (UMIEJĘTNOŚCI)",
     "Cała walka · My / Oni",
     "Cios, przed którym nie stała żadna umiejętność. Gra nie odróżnia go od dodatkowego zamachu, który sama jej dała.",
@@ -2200,6 +2720,7 @@ describe("every sentence the panel says", () => {
     "Część obrażeń w tej walce jest bez sprawcy — nie da się sprawdzić, czy któreś z nich są jej.",
     "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
     "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.",
+    "Gra nie mówi, w kogo — wiadomo tylko, że cios wszedł.",
     "KOMU",
     "Komu",
     "LPM — rozbicie · PPM — powrót",
@@ -2212,6 +2733,9 @@ describe("every sentence the panel says", () => {
     "Nic nie zapowiedziało tego leczenia, więc gra nie mówi, co je dało.",
     "Nie ma czego pokazać.",
     "Nie wiadomo, czym",
+    "Kto",
+    "Nieznany cel",
+    "Nieznany sprawca",
     "Nie zadała nikomu obrażeń.",
     "Nikogo nie leczyła.",
     "Nikt jej nie leczył.",
@@ -2228,6 +2752,9 @@ describe("every sentence the panel says", () => {
     "To leczenie jest już policzone wyżej, u tych, którzy je dostali.",
     "Tylko z pokazanej drużyny — liczone po tym, komu przybyło życia.",
     "Tylko z pokazanej drużyny — liczone po tym, komu ubyło życia.",
+    "Tylko z pokazanej drużyny — gra nie mówi, kogo z niej.",
+    "Tylko z pokazanej drużyny — to ona to wyleczyła, choć gra nie mówi kto.",
+    "Tylko z pokazanej drużyny — to ona to zadała, choć gra nie mówi kto.",
     "Użycia umiejętności",
     "Wszyscy",
     "Z czego",
@@ -2297,6 +2824,12 @@ describe("every sentence the panel says", () => {
         unreadableCombatants: 0,
       },
     }),
+    // ⚠️ **A fourth, and the summary's third part is why.** Every name in the
+    // fixture resolves and every point of it therefore has a side, so `Bez strony`
+    // stopped being said the moment the bar began charging a figure with no actor
+    // to the side facing it — and the walk would have reported the sentence
+    // retired rather than unreachable.
+    composeReadingWithUnnamedEnds(),
   ];
 
   const said = new Set<string>();

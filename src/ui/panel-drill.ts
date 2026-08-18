@@ -39,7 +39,8 @@ import {
   composeSkillLeafRowKey,
   composeSkillRowKey,
   composeTargetRowKey,
-  NOBODY_ROW_KEY,
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
   UNANNOUNCED_ROW_KEY,
 } from "@/src/ui/panel-row-key.ts";
 import type { PanelDetailLine, PanelList } from "@/src/ui/panel-shape.ts";
@@ -160,11 +161,17 @@ function composeOpponentEntries(
   return entries;
 }
 
-/** The end of a pair the game did not name, as a row rather than as a silence. */
+/**
+ * The end of a pair the game did not name, as a row rather than as a silence.
+ *
+ * The key names **which** end, the same way the two rows under the ranking do: a
+ * given direction is missing the target, a received one the actor. One key for
+ * both said the row was "the unknown one", which is two different things.
+ */
 function composeMissingEntry(metric: PanelMetric, amount: number): BreakdownEntry {
   const missing = getMissingCounterpart(metric);
   return {
-    key: NOBODY_ROW_KEY,
+    key: isGivenMetric(metric) ? NO_TARGET_ROW_KEY : NO_ACTOR_ROW_KEY,
     label: missing.label,
     profession: null,
     colour: UNKNOWN_COLOUR,

@@ -253,6 +253,10 @@ function renderRow(
   value.className = "row-value";
   value.textContent = row.valueText;
 
+  // Unconditional, because every row is now inside a whole and states its share
+  // of it. It was conditional for as long as a figure could be scoped differently
+  // from the list it stood under, and an empty bracket would have read as a share
+  // of zero (§9.6).
   const share = document.createElement("span");
   share.className = "row-share";
   share.textContent = row.bracketText;
@@ -551,9 +555,10 @@ export function renderPanel(
     return list;
   });
 
-  if (view.pinnedRow !== null) {
-    const pinned = view.pinnedRow;
-    renderRegionInto(document, panel, handlers, "bez sprawcy", () => {
+  // A region per row rather than one holding both: §9.6 asks that a failure be
+  // its own size, and these two say different things about different figures.
+  for (const pinned of view.pinnedRows) {
+    renderRegionInto(document, panel, handlers, `wiersz ${pinned.key}`, () => {
       const block = document.createElement("div");
       block.className = "pinned";
       block.append(renderRow(document, pinned, rowsByNode, details));

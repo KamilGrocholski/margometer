@@ -586,14 +586,28 @@ export function composeFightStatistics(
           // The healer comes from the announcement and from nowhere else — the
           // key itself names only who was healed.
           const healer = event.announced?.actorId ?? null;
-          // The condition is the one below, negated on purpose rather than
-          // written afresh: the two maps partition `healed`, so a reader asking
-          // what the un-credited part was made of must be answered on exactly the
-          // points the credited one turned away.
-          if (healer === null || event.combatantId === null) {
+          /**
+           * ⚠️ **The healer is credited whether or not the recipient resolved, and
+           * for one release neither was.**
+           *
+           * The condition here used to demand both ends, so an announced heal
+           * reaching a name this fight could not place was filed under
+           * `healedWithoutHealerBySource` — healing *nobody gave*. The
+           * announcement had named the giver, so that was a claim about the game
+           * that is false (§3): the panel said "nic nie zapowiedziało tego
+           * leczenia" about points something had announced, and the giver's own
+           * total was short by them with nothing on their row saying so.
+           *
+           * The two maps still partition `healed`, and the split is now the one
+           * thing they are about: whether a healer was named. Where the recipient
+           * did not resolve, `subject` is the row nobody owns — so the points are
+           * on the giving side and outside every combatant's `healed`, which is
+           * what the panel's row for a target the game did not name reads
+           * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+           */
+          if (healer === null) {
             setRunningTotal(subject.healedWithoutHealerBySource, event.source, event.amount);
-          }
-          if (healer !== null && event.combatantId !== null) {
+          } else {
             subject.healedByHealerId.set(
               healer,
               (subject.healedByHealerId.get(healer) ?? 0) + event.amount,
@@ -602,10 +616,15 @@ export function composeFightStatistics(
             // from one reading of one event and cannot drift apart.
             const giver = getRow(healer);
             giver.healingGiven += event.amount;
-            giver.healingGivenByCombatantId.set(
-              event.combatantId,
-              (giver.healingGivenByCombatantId.get(event.combatantId) ?? 0) + event.amount,
-            );
+            // Keyed by the recipient, so only where there is one to key it by. The
+            // giver's own breakdown is short by the rest, and the panel names the
+            // shortfall rather than hiding it (`src/ui/panel-drill.ts`).
+            if (event.combatantId !== null) {
+              giver.healingGivenByCombatantId.set(
+                event.combatantId,
+                (giver.healingGivenByCombatantId.get(event.combatantId) ?? 0) + event.amount,
+              );
+            }
           }
           setSkillTotals(event.announced, (skill) => {
             skill.healed += event.amount;

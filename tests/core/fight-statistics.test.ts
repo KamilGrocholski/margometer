@@ -421,6 +421,12 @@ describe.each(FROM_CAPTURES)("$name healing in both directions", ({ statistics }
     expect([...givenPerPair].sort()).toEqual([...receivedPerPair].sort());
   });
 
+  /**
+   * ⚠️ **An equality on this material and an inequality in general.** The map is
+   * keyed by the recipient, so a heal whose recipient did not resolve is in the
+   * total and in no entry — every name in the captures resolves, which is why it
+   * is an equality here. The fight built by hand below is where the two part.
+   */
   test("a healer's total is the sum of what they gave each person", () => {
     for (const [id, row] of statistics.byCombatantId) {
       const perPerson = [...row.healingGivenByCombatantId.values()].reduce((sum, one) => sum + one, 0);
@@ -479,6 +485,50 @@ describe("healing with a healer and healing without one", () => {
       );
       expect(credited + uncredited).toBe(row.healed);
     }
+  });
+
+  /**
+   * ⚠️ **A healer named over a recipient nobody could place, which the captures
+   * cannot reach and the aggregate used to get wrong.**
+   *
+   * The credit demanded both ends, so an announced heal landing on a name this
+   * fight has nobody for was filed under `healedWithoutHealerBySource` — healing
+   * *nobody gave*. The announcement had named the giver, so the panel then said
+   * "nic nie zapowiedziało tego leczenia" about points something had announced,
+   * and the giver's own total was short by them with nothing saying so. That is a
+   * claim about the game that is false (§3), not merely a figure left out
+   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+   *
+   * Every name in all seventeen captures resolves, so nothing here is measurable
+   * over them: the shape is the live one, where a fight is joined on a name the
+   * roster cannot tell apart.
+   */
+  test("credits a healer the announcement named, even where the healed did not resolve", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+    ]);
+    const statistics = composeFightStatistics(
+      decodeFight(
+        [
+          "1=90.00;0;tspell=Uzdrowienie;skillId=7",
+          // The heal rides the announcement, and its subject is the target slot,
+          // which the protocol wrote as nobody.
+          "1=90.00;0;heal_target=300",
+        ],
+        roster,
+      ),
+      roster,
+    );
+
+    const giver = assertDefined(statistics.byCombatantId.get(1), "the healer has a row");
+    expect(giver.healingGiven).toBe(300);
+    // Keyed by the recipient, and there is none to key it by.
+    expect([...giver.healingGivenByCombatantId]).toEqual([]);
+
+    // The points landed on the row nobody owns, with the healer named on them.
+    expect(statistics.unattributed.healed).toBe(300);
+    expect([...statistics.unattributed.healedByHealerId]).toEqual([[1, 300]]);
+    expect([...statistics.unattributed.healedWithoutHealerBySource]).toEqual([]);
   });
 
   /**

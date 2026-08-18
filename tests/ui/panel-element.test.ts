@@ -269,10 +269,35 @@ function composeRedrawnPanel() {
   return { container, renderScreen };
 }
 
-function renderInto(state: PanelState = composeDefaultState(), handlers = {}) {
+function renderInto(
+  state: PanelState = composeDefaultState(),
+  handlers = {},
+  reading: PanelReading = composeReading(),
+) {
   const document = composeFakeDocument();
-  const panel = renderPanel(document, composePanelView(composeReading(), state), handlers) as FakeNode;
+  const panel = renderPanel(document, composePanelView(reading, state), handlers) as FakeNode;
   return { document, panel };
+}
+
+/**
+ * A fight where a blow names **neither** end: nobody swung it and it landed on a
+ * name this roster has nobody to match.
+ *
+ * Beside the fixture rather than inside it, because it is the one shape the
+ * summary's third part still stands for and no capture contains it — every name
+ * in all seventeen resolves, so a bar that had simply dropped the part would draw
+ * identically on every one of them.
+ */
+function composeReadingWithNeitherEnd(): PanelReading {
+  const roster = composeCombatantRoster([
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105 },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null },
+  ]);
+  const statistics = composeFightStatistics(
+    decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400", "0;0;+dmg=90;-dmg=70"], roster),
+    roster,
+  );
+  return { statistics, roster, ourSide: 1, isFromFightStart: true };
 }
 
 describe("what reaches the screen", () => {
@@ -297,6 +322,32 @@ describe("what reaches the screen", () => {
     for (const share of getByClass(panel, "row-share")) {
       expect(share.textContent).toMatch(/^\(\d+%/);
     }
+  });
+
+  /**
+   * ⚠️ **Every row states a share, and for one release four screens had one that
+   * did not.**
+   *
+   * `Zadane · Oni` is the screen it was worst on: the pinned figure was the whole
+   * fight's while the rows were one side's, so no whole on that screen contained
+   * it and the composing handed over a null bracket
+   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`). The figure is
+   * the shown team's now — derived from the end the game did name — so it is
+   * inside the whole and says so
+   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+   *
+   * Counted rather than sampled: one `.row-share` per `.row`, and none of them
+   * empty. An empty one would read as a share of zero, which §9.6 keeps apart
+   * from a share that was not stated.
+   */
+  test("draws a share beside every row it draws", () => {
+    const { panel } = renderInto({ ...composeDefaultState(), metric: "dealt", team: "enemy" });
+    const rows = getByClass(panel, "row");
+    const shares = getByClass(panel, "row-share");
+
+    expect(rows.length).toBeGreaterThan(0);
+    expect(shares.length).toBe(rows.length);
+    for (const share of shares) expect(share.textContent).not.toBe("");
   });
 
   /**
@@ -503,32 +554,58 @@ describe("what reaches the screen", () => {
    * ⚠️ **This region was drawn in every test in this file and asserted in none.**
    *
    * It divided the fight in two while a third of it belonged to neither side, and
-   * nothing here could see that, because nothing here looked. The bar closes now:
-   * as many segments as there are parts with a figure, and the third one named
-   * beneath rather than squeezed between the two that face each other.
+   * nothing here could see that, because nothing here looked. The bar closes: as
+   * many segments as there are parts with a figure, and every point of the fight
+   * inside one of them.
+   *
+   * The fixture is 500 applied by our two and 60 of poison ticking on the enemy.
+   * That 60 is the whole test — nobody swung it, so it used to stand beneath the
+   * bar labelled `Bez strony`, and the roster gives the combatant it ticked on a
+   * side (`docs/specs/2026-08-18-a-tick-nobody-swung-still-has-a-side.md`). It is
+   * inside `My` now, which is why the figure is read here rather than the segment
+   * count alone: a bar of one full-width segment says nothing about what went
+   * into it.
    */
   test("the summary under the list divides the whole fight, not part of it", () => {
     const { panel } = renderInto();
     const region = assertDefined(getByClass(panel, "sides-region")[0], "the summary");
     const track = assertDefined(getByClass(region, "sides-track")[0], "the split bar");
-    const spare = assertDefined(getByClass(region, "sides-spare")[0], "what has no side");
 
-    // 500 applied by our two, nothing back, and 60 of poison charged to nobody.
-    // Two segments and not three: a part with no figure is not drawn at all.
     const widths = track.children.map((part) =>
       assertDefined(
         getDecimalFromText((part.properties["width"] ?? "").replace("%", "")),
         "a segment carries a width",
       ),
     );
-    expect(widths.length).toBe(2);
+    expect(widths.length).toBe(1);
     expect(widths.reduce((sum, width) => sum + width, 0)).toBeCloseTo(100, 6);
-    expect(assertDefined(track.children[1], "the segment with no side").properties["background"]).toBe(
-      UNKNOWN_COLOUR,
-    );
+    expect(getEveryNode(region).map((node) => node.textContent)).toContain("560");
+    // Nothing is left over to name, so nothing is named: the line is absent
+    // rather than drawn at zero.
+    expect(getByClass(region, "sides-spare").length).toBe(0);
+  });
+
+  /**
+   * And the part that survives, on the one fight shape it stands for.
+   *
+   * A blow naming neither end has no side to be charged to at either end, so it
+   * is beneath the bar rather than inside it — named, counted, and in the colour
+   * that carries no side. Without this the part could be deleted and every test
+   * here would still pass, because no capture reaches the shape.
+   */
+  test("what has no side at either end is named beneath the bar", () => {
+    const { panel } = renderInto(composeDefaultState(), {}, composeReadingWithNeitherEnd());
+    const region = assertDefined(getByClass(panel, "sides-region")[0], "the summary");
+    const track = assertDefined(getByClass(region, "sides-track")[0], "the split bar");
+    const spare = assertDefined(getByClass(region, "sides-spare")[0], "what has no side");
+
     expect(getEveryNode(spare).map((node) => node.textContent)).toEqual(
-      expect.arrayContaining(["Bez strony", "60"]),
+      expect.arrayContaining(["Bez strony", "70"]),
     );
+    expect(spare.properties["color"]).toBe(UNKNOWN_COLOUR);
+    expect(
+      assertDefined(track.children.at(-1), "the segment with no side").properties["background"],
+    ).toBe(UNKNOWN_COLOUR);
   });
 
   /**

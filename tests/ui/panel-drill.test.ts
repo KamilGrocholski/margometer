@@ -21,7 +21,7 @@ import type { PanelRow } from "@/src/ui/panel-shape.ts";
 import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
 import { PANEL_METRICS, type PanelMetric } from "@/src/ui/panel-metric.ts";
 import { getMetricValue, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
-import { NOBODY_ROW_KEY } from "@/src/ui/panel-row-key.ts";
+import { NO_ACTOR_ROW_KEY, NO_TARGET_ROW_KEY } from "@/src/ui/panel-row-key.ts";
 import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
 import {
   CAPTURED_FIGHTS,
@@ -130,7 +130,7 @@ describe("a breakdown", () => {
       const [about, ...cuts] = lists;
       for (const row of about?.rows ?? []) {
         // The row for what has no counterpart is not a person and says so instead.
-        if (row.key === NOBODY_ROW_KEY) continue;
+        if (row.key === NO_ACTOR_ROW_KEY || row.key === NO_TARGET_ROW_KEY) continue;
         expect(row.detail[0], `${name} ${metric} #${combatantId} ${row.key}`).toEqual({
           kind: "title",
           text: row.label,
@@ -219,7 +219,7 @@ describe("the deepest level", () => {
           null,
         );
         for (const row of lists.flatMap((list) => list.rows)) {
-          if (row.key === NOBODY_ROW_KEY) continue;
+          if (row.key === NO_ACTOR_ROW_KEY || row.key === NO_TARGET_ROW_KEY) continue;
           const where = `${name} #${combatantId} ${key} ${row.key}`;
           expect(row.detail[0], where).toEqual({ kind: "title", text: row.label });
           expect(row.detail.at(-1), where).toEqual({ kind: "note", text: "PPM — powrót" });

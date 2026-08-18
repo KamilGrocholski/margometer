@@ -365,6 +365,10 @@ docs/              A guarded register, a dated spec, a design a spec names, or a
                    dated and guarded audit. No status, no chronicle of rounds.
   protocol-keys.md What has been looked into, key by key: verdict, evidence,
                    state. Guarded against the decoder and the frozen table.
+  half-named-figures.md
+                   Every shape the protocol can send where it names one end and
+                   not the other, and what the panel draws for it. Read off the
+                   panel and guarded by tests/ui/panel-view.test.ts.
   specs/           Dated design records. No index — the directory is one.
   audits/          This repository measured against its own rules — §7.7.
   design/panel.html
@@ -746,7 +750,26 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   cannot lose handlers.
 - Panel state that survives a reload is validated on read.
 - **The panel says what it does not know.** A number the log cannot attribute is
-  shown as unattributed, never folded into someone's total.
+  shown as unattributed, never folded into a **combatant's** total.
+- `[ALWAYS] [ui]` **A figure may be charged to a side by the end the game did
+  name; a figure may never be charged to a person that way.** The protocol leaves
+  a hole at one end or the other — an actor with no target, a target with no
+  actor — and the other end places it: damage crosses sides, healing stays on
+  one. One inference, in one function (`getPartCharged`), read by the rows and by
+  the summary bar so the two cannot disagree. It rests on there being two sides
+  and nobody harming their own, which the protocol states nowhere, so it is
+  `[ASK]` to widen and it is held by a measurement rather than by a comment: over
+  every capture it makes `Zadane · My` equal `Otrzymane · Oni` through different
+  fields of the aggregate (`tests/ui/panel-view.test.ts`,
+  `docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). Charging a
+  *name* is still §5's flat no — a side has members, and a guess about which one
+  would be ours.
+- `[ALWAYS] [ui]` **A message naming neither end has no side, and the panel says
+  so where no row can.** It rides the one pinned row standing apart from the
+  ranking under `Wszyscy`, and under a side tab it is on no row at all and the
+  summary bar names it. Zero in every recording, which is exactly why it is
+  written down rather than left to be noticed.
+
 
 **Failure in the UI.** Two obligations bind at once: the user must be able to
 tell something is wrong, and nothing we do may stand between them and the game.
@@ -833,5 +856,6 @@ One thing no machine here can check, and it is the one that was got wrong:
 | **skill** | A named ability a combatant used. Its announcement carries no key of the damage family, but damage aimed at a name and healing ride the announcement itself. |
 | **element** | Damage type (fire, cold, physical, …), taken from the key. |
 | **dot** | Damage over time, ticking outside a direct attack. |
-| **unattributed** | A number the log does not tie to any actor. Shown, never guessed. |
+| **unattributed** | A number the log does not tie to any actor. Shown, never guessed — though the panel may put it on a **side** by the end the game did name (§9.6). |
+| **half-named** | A message stating one end of what happened and calling the other nobody. Two shapes, two rows, and they are different claims: *nieznany sprawca* is a figure whose actor the game left out, *nieznany cel* one whose target it did. A message naming neither end is neither of them and has no side. |
 | **unaccounted** | Health the protocol says moved in an amount nobody can size — a heal reaching a whole side while the message names only the caster. A figure we do not have, where **unattributed** is one we have and cannot place. |

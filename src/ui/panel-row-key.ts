@@ -24,7 +24,12 @@ import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
 
 /** The rows that are one word, because they open nothing and identify nothing. */
 export const BACK_ROW_KEY = "back";
-export const NOBODY_ROW_KEY = "nobody";
+/**
+ * The two rows for what the protocol left half-named. Two keys because they are
+ * two rows on one screen, and a key is what tells a redraw which is which.
+ */
+export const NO_ACTOR_ROW_KEY = "no-actor";
+export const NO_TARGET_ROW_KEY = "no-target";
 export const UNANNOUNCED_ROW_KEY = "unannounced";
 
 const COMBATANT = "combatant";

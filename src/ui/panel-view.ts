@@ -61,12 +61,17 @@ import {
   type TranslateLabel,
 } from "@/src/ui/panel-names.ts";
 import {
-  getPinnedBreakdownHeading,
-  getPinnedLeftover,
-  getPinnedLimitNote,
-  getPinnedScopeNote,
-  getPinnedStandingNote,
-  NOBODY_LABEL,
+  getNoActorBreakdownHeading,
+  getNeitherEndLeftover,
+  getNoActorLimitNote,
+  getNoActorScopeNote,
+  getNoActorStandingNote,
+  getNoTargetBreakdownHeading,
+  getNoTargetLimitNote,
+  getNoTargetScopeNote,
+  getNoTargetStandingNote,
+  NO_ACTOR_LABEL,
+  NO_TARGET_LABEL,
 } from "@/src/ui/panel-nobody.ts";
 import {
   getDamageWithoutActor,
@@ -77,7 +82,11 @@ import {
   getRow,
   type PanelReading,
 } from "@/src/ui/panel-reading.ts";
-import { composeCombatantRowKey, NOBODY_ROW_KEY } from "@/src/ui/panel-row-key.ts";
+import {
+  composeCombatantRowKey,
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
+} from "@/src/ui/panel-row-key.ts";
 import type {
   PanelCrumb,
   PanelDetailLine,
@@ -180,67 +189,123 @@ function composeRankedRow(
 }
 
 /**
- * Damage nobody can be charged with — ticking poison, a wound delivered later.
+ * Which of the bar's two figures a combatant's own total belongs to.
  *
- * Fight-wide even under a side filter, because there is no actor to split it by.
- * Splitting it by *victim* would be a different axis than the list uses and would
- * read as if that side had dealt it, so the detail says the scope out loud
- * instead.
+ * `nobody` where the roster cannot place them, and `nobody` where the game never
+ * said which side is the watcher's: both are refusals rather than a guess (§5),
+ * and a combatant with no side was dropped here silently once while
+ * `composeTitle` was counting them in its `+N`.
  */
-function getUnattributedDamage(reading: PanelReading): number {
-  let total = reading.statistics.unattributed.dealtApplied;
-  for (const row of reading.statistics.byCombatantId.values()) total += row.healthLost;
-  return total;
+type PanelSidePart = "mine" | "enemy" | "nobody";
+
+function getPartOfSide(reading: PanelReading, side: number | null): PanelSidePart {
+  if (side === null || reading.ourSide === null) return "nobody";
+  return side === reading.ourSide ? "mine" : "enemy";
 }
 
 /**
- * What the pinned figure was made of, by the key the game stated it under.
+ * Which end of a blow or a heal the protocol left standing, where it named only
+ * one. The message names an actor and calls the target nobody, or the other way
+ * about (`src/core/protocol-message.ts` — `0` in a side segment is the protocol
+ * naming nobody).
+ */
+type PanelNamedEnd = "actor" | "receiver";
+
+/**
+ * Which side is charged with a figure the protocol left half-named — **the one
+ * inference this panel draws, and the only place it draws one.**
  *
- * ⚠️ **The bucket for a blow nobody can be charged with is part of it.** Summing
- * the rows' `healthLostBySource` alone left out `unattributed.dealtApplied`, which
- * `getUnattributedDamage` adds — so the cut totalled less than the figure above it
- * with nothing saying why, which is the failure this panel exists to prevent, in
- * miniature (`docs/specs/2026-08-11-the-panel-that-drills.md`). Zero on every
- * capture and therefore invisible, but a fight joined in progress resolves no name
- * at all (`src/core/fight-decoder.ts`) and that is where the whole figure goes.
+ * The known end is a side: the roster places the id the message did name. The
+ * unknown end is derived from it, and the derivation is the noun's:
+ *
+ * - **Damage crosses.** What one side lost, the other dealt. So a tick of poison
+ *   on the enemy is ours, and a blow our striker landed on nobody nameable is
+ *   theirs to have taken.
+ * - **Healing does not.** It reaches its own side, so the healer and the healed
+ *   are charged alike.
+ *
+ * That is a claim about how a fight works rather than about what was logged: it
+ * holds while there are two sides and nobody harms their own, and the protocol
+ * states neither. What is never derived is a **name** (§5) — the pinned rows go
+ * on saying which end the game left out, on every tab.
+ *
+ * ⚠️ **What pays for it is the mirror, and it is measured rather than
+ * constructed.** Over every capture, read 2026-08-18, this makes `Zadane · My`
+ * equal `Otrzymane · Oni` to the point, and `Leczenie dane · My` equal
+ * `Leczenie · My` — because the two arms reach the figure through different
+ * fields of the aggregate (`dealtApplied` against `taken`, `healingGiven` against
+ * `healed`). A blow between two of ours, or an end that stops resolving, breaks
+ * that equality and lights up `tests/ui/panel-view.test.ts` rather than quietly
+ * moving a figure (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+ *
+ * The charge is a **part** and not a side, which is what keeps a third side from
+ * being a question: the bar is `My` against everyone else everywhere in this
+ * file, so the opposite of `mine` is `enemy` whatever number the game wrote.
+ */
+function getPartCharged(
+  reading: PanelReading,
+  metric: PanelMetric,
+  side: number | null,
+  named: PanelNamedEnd,
+): PanelSidePart {
+  const part = getPartOfSide(reading, side);
+  if (part === "nobody" || isHealingMetric(metric)) return part;
+  const asked: PanelNamedEnd = isGivenMetric(metric) ? "actor" : "receiver";
+  if (named === asked) return part;
+  return part === "mine" ? "enemy" : "mine";
+}
+
+/**
+ * What the figure with no actor was made of, by the key the game stated it under.
  *
  * Two vocabularies, because the two halves are keyed differently: the bucket holds
  * damage **elements**, the rows hold the keys health fell under. The same pair
  * `composeSourceEntries` already draws on `Otrzymane`.
+ *
+ * ⚠️ **It narrows with the figure over it, and it did not always.** The cut was
+ * fight-wide for as long as the figure was, and the figure is the shown team's
+ * now — a cut totalling the fight beneath a row totalling one team is the failure
+ * this panel exists to prevent, in miniature
+ * (`docs/specs/2026-08-11-the-panel-that-drills.md`). What decides admission is
+ * the charge and not the tab, because a victim's own side is not the side the
+ * figure is charged to under `Zadane`.
+ *
+ * ⚠️ **What the rows could not place is added only where the row above carries
+ * it.** `getDamageWithoutActorByElement` is the same points on the victim's own
+ * row, and what is left in the fight's bucket once every row has taken its part is
+ * the blow that named **neither** end — which has no team, so it appears under
+ * `Wszyscy` and nowhere else. Zero on every capture, and read rather than written
+ * as zero.
  */
-function getUnattributedDamageBySource(
+function getNoActorDamageBySource(
   reading: PanelReading,
-  state: PanelState,
+  isCharged: (combatantId: number) => boolean,
+  shouldListNeitherEnd: boolean,
 ): Array<{ names: Record<string, TokenName>; token: string; amount: number }> {
   const elements = new Map<string, number>();
   const sources = new Map<string, number>();
-
-  /**
-   * ⚠️ **Read off the rows, and the fight-wide bucket only for what the rows
-   * cannot hold.** The elements used to come from the bucket entire, which knows
-   * no combatant and therefore no side — so once the figure narrowed to the side
-   * on screen, the cut stood under it totalling the whole fight.
-   *
-   * `getDamageWithoutActorByElement` is the same points on the victim's own row,
-   * where the roster can place them, and it sums to the victim's share of the
-   * figure. What is left in the bucket after every row has taken its part is the
-   * blow that named **neither** end — on no side, so it joins only where the
-   * leftover does.
-   */
+  // Every row places its part, admitted or not: the leftover below is what the
+  // fight states less what **any** row holds, which is a fact about the fight.
   const placed = new Map<string, number>();
+
   for (const [id, row] of reading.statistics.byCombatantId) {
     for (const [token, amount] of getDamageWithoutActorByElement(row)) {
       setRunningTotal(placed, token, amount);
-      if (isAdmittedByTeam(reading, state, id)) setRunningTotal(elements, token, amount);
+      if (isCharged(id)) setRunningTotal(elements, token, amount);
     }
-    if (!isAdmittedByTeam(reading, state, id)) continue;
+    if (!isCharged(id)) continue;
     for (const [token, amount] of row.healthLostBySource) setRunningTotal(sources, token, amount);
   }
 
-  if (state.team === "all") {
+  if (shouldListNeitherEnd) {
     for (const [token, amount] of reading.statistics.unattributed.dealtAppliedByElement) {
       const rest = amount - (placed.get(token) ?? 0);
       if (rest > 0) setRunningTotal(elements, token, rest);
+    }
+    // Health that fell on nobody: the protocol can call a subject nobody as
+    // readily as it calls a target nobody, and then no row holds these either.
+    for (const [token, amount] of reading.statistics.unattributed.healthLostBySource) {
+      setRunningTotal(sources, token, amount);
     }
   }
 
@@ -259,24 +324,22 @@ function getUnattributedDamageBySource(
  * `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`: 109 113 with
  * no healer against 123 506 summed over `healedBySource`.
  *
- * The bucket is read alongside the rows rather than left out: healing that reached
- * a name nobody could place carries its key just the same.
+ * Narrowed by the charge and carrying what no row holds only where the row above
+ * carries it, for the reasons the damage cut gives.
  */
-function getUnattributedHealingBySource(
+function getNoActorHealingBySource(
   reading: PanelReading,
-  state: PanelState,
+  isCharged: (combatantId: number) => boolean,
+  shouldListNeitherEnd: boolean,
 ): Array<{ names: Record<string, TokenName>; token: string; amount: number }> {
   const sources = new Map<string, number>();
   for (const [id, row] of reading.statistics.byCombatantId) {
-    if (!isAdmittedByTeam(reading, state, id)) continue;
+    if (!isCharged(id)) continue;
     for (const [token, amount] of row.healedWithoutHealerBySource) {
       setRunningTotal(sources, token, amount);
     }
   }
-  // Healing that reached a name nobody could place carries its key just the same,
-  // and belongs to no side — so it joins the cut exactly where the figure carries
-  // it, which is the screen showing the whole fight.
-  if (state.team === "all") {
+  if (shouldListNeitherEnd) {
     for (const [token, amount] of reading.statistics.unattributed.healedWithoutHealerBySource) {
       setRunningTotal(sources, token, amount);
     }
@@ -285,140 +348,204 @@ function getUnattributedHealingBySource(
 }
 
 /**
- * The other cut of the same figure: whom the health it moved reached.
+ * **The hole the protocol left**, and the two shapes it comes in.
  *
- * Read off the rows, so what is left over is what no row holds — handed back
- * beside the pairs rather than folded into them, because the two are different
- * claims and `panel-nobody.ts` words the second one carefully.
+ * A message names an actor and calls the target nobody, or names the target and
+ * calls the actor nobody (`src/core/protocol-message.ts`). The two are different
+ * claims and they are counted apart, because the end that *is* named is what puts
+ * the figure on a side (`getPartCharged`) and the end that is not is what the
+ * player has to be told about.
+ *
+ * A third shape exists — a message naming neither — and it is deliberately not a
+ * member here: nothing places it, so it reaches no row at all
+ * (`getFigureWithNeitherEnd`).
  */
-function getUnattributedByCombatant(
+type PanelHole = "actor" | "target";
+
+/** Which end the game did name, per hole. The one the charge is derived from. */
+const NAMED_END: Record<PanelHole, PanelNamedEnd> = {
+  actor: "receiver",
+  target: "actor",
+};
+
+/**
+ * Where a hole stands against the ranking above it — **three answers, and the
+ * screen decides which.**
+ *
+ * - `named` — the ranked rows hold these points already *and say whose they are*,
+ *   so a row of its own would show the same figure twice. Only `Zadane` against a
+ *   missing target: the striker is named, and the aggregate credits their
+ *   `dealtApplied` whether or not the blow found a name to land on.
+ * - `cut` — the rows hold the points but cannot say this about them. The figure is
+ *   a slice of what is already on screen, so it states a share and adds nothing to
+ *   the whole.
+ * - `apart` — no ranked row holds them, so the figure joins the whole the screen
+ *   divides by.
+ *
+ * ⚠️ **The two given screens read `named` for a missing target, and one of them
+ * had to be fixed a layer down to say so.** `healingGiven` was credited only
+ * where **both** ends resolved, so an announced heal reaching a name this fight
+ * could not place was on nobody's row at all — and filed as healing nobody
+ * announced, which is a claim about the game that is false (§3). The aggregate
+ * credits the healer now (`src/core/fight-statistics.ts`), so both given screens
+ * hold these points on the actor's own row, exactly as they hold every other
+ * figure whose actor the game named.
+ *
+ * Four screens times two holes, spelled out, so a fifth screen is a question the
+ * compiler asks rather than one it inherits.
+ */
+type PanelHoleStanding = "named" | "cut" | "apart";
+
+const HOLE_STANDING: Record<PanelMetric, Record<PanelHole, PanelHoleStanding>> = {
+  dealt: { actor: "apart", target: "named" },
+  taken: { actor: "cut", target: "apart" },
+  healingGiven: { actor: "apart", target: "named" },
+  healed: { actor: "cut", target: "apart" },
+};
+
+/**
+ * The figure with **no actor**, by the combatant the game did name: whom the
+ * health moved on.
+ *
+ * Read off the rows, which is what lets it be placed at all — the roster puts that
+ * combatant on a side, and the charge derives the missing end from it.
+ */
+function getFigureWithNoActorByCombatant(
   reading: PanelReading,
-  state: PanelState,
-): { pairs: Array<[number, number]>; leftover: number } {
+  metric: PanelMetric,
+): Array<[number, number]> {
   const pairs: Array<[number, number]> = [];
-  let placed = 0;
   for (const [id, row] of reading.statistics.byCombatantId) {
-    const amount = isHealingMetric(state.metric)
+    const amount = isHealingMetric(metric)
       ? getHealingWithoutHealer(row)
       : row.healthLost + getDamageWithoutActor(row);
-    if (amount <= 0) continue;
-    // Counted before the filter and kept out of the pairs after it: the leftover
-    // is what **no row** holds, which is a fact about the fight rather than about
-    // the side on screen. Summing only the admitted rows would hand every side
-    // the other side's figures as unplaceable.
-    placed += amount;
-    if (isAdmittedByTeam(reading, state, id)) pairs.push([id, amount]);
+    if (amount > 0) pairs.push([id, amount]);
   }
-  pairs.sort(([, one], [, other]) => other - one);
-  return { pairs, leftover: getUnattributedWholeFight(reading, state) - placed };
+  return pairs;
 }
 
 /**
- * The whole fight's worth of it, whichever end the reader is reading from.
+ * The figure with **no target**, by the combatant the game did name: who swung or
+ * who healed.
  *
- * ⚠️ **It depends on the noun and not on the direction, and that is the whole
- * point of it.** The same points read from either end: given plus this is
- * everything received, so the row is what makes the two directions balance
- * instead of disagree. Measured on every capture, both nouns — the figure
- * and its share come out identical under `Zadane` and `Otrzymane` (on
- * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 49 318 and
- * 6.7% against Hildur), which is `Σ dealt + unattributed = Σ taken` said in the
- * panel's own arithmetic.
+ * It lives on the row nobody owns, because the end that decides which row a figure
+ * lands on is the one that did not resolve. What names the side is therefore the
+ * *other* end, and the aggregate keeps it: `takenByActorId` is written only where
+ * the striker resolved, `healedByHealerId` only where an announcement named a
+ * healer (`src/core/fight-statistics.ts`).
  *
- * It is what the row shows under `Wszyscy`, and what a side's share is a share
- * of — never what a side tab draws, which is `getPinnedValue` below.
+ * ⚠️ **Zero on every capture, and that is the reason it is here.** All seventeen
+ * resolve every name, so this hole is invisible in the material — and under
+ * `Leczenie dane` the points it stands for were on no row and in no total at all
+ * before it existed. A fight joined on a name the roster cannot tell apart is
+ * where it is not zero.
  */
-function getUnattributedWholeFight(reading: PanelReading, state: PanelState): number {
-  if (!isHealingMetric(state.metric)) return getUnattributedDamage(reading);
-  return (
-    [...reading.statistics.byCombatantId.values()].reduce(
-      (sum, row) => sum + getHealingWithoutHealer(row),
-      0,
-    ) + reading.statistics.unattributed.healed
-  );
+function getFigureWithNoTargetByCombatant(
+  reading: PanelReading,
+  metric: PanelMetric,
+): Array<[number, number]> {
+  const { unattributed } = reading.statistics;
+  if (isHealingMetric(metric)) {
+    return [...unattributed.healedByHealerId].filter(([, amount]) => amount > 0);
+  }
+  const pairs: Array<[number, number]> = [];
+  for (const [actorId, byElement] of unattributed.takenByActorId) {
+    let amount = 0;
+    for (const part of byElement.values()) amount += part;
+    if (amount > 0) pairs.push([actorId, amount]);
+  }
+  return pairs;
 }
 
 /**
- * What the pinned row will say, before there is a row to say it.
+ * What names **neither** end, and therefore has no side and no row.
  *
- * Its own function because the bar's scale has to know it: the row is measured
- * against the largest figure **on screen**, and it is itself on screen. Measured
- * on the captures — under `Leczenie` this figure beats every ranked row in most
- * of them, by more than half again at the widest — and a fill over one is
- * clipped by
- * `.row { overflow: hidden }` into a bar that looks exactly like a full one.
+ * The two readers are the ones every other cut here uses, pointed at the row
+ * nobody owns: what it holds, less what it can put a name to. Health that fell on
+ * nobody joins it — a health change states its subject in a side segment, so the
+ * protocol can call that nobody as readily as it calls a target nobody.
  *
- * ⚠️ **The side tab narrows it on every screen, and the one end the game named is
- * what it narrows by.** There is no actor to split by — that is what the row is —
- * so the cut is by the combatant the health *moved on*, whom the protocol does
- * name, and whom the roster puts on a side. The row already carries their share of
- * it and `getUnattributedByCombatant` reads it back out; summing the admitted ones
- * is a cut of what the protocol states, not a guess about who did it.
- *
- * ⚠️ **Under a given direction that is a different end than the list above uses,
- * and the sentence has to say so** (`panel-nobody.ts`). `Zadane · My` ranks what
- * our side dealt and pins what our side *lost* with nobody to charge it to — read
- * as our side's doing, it would be exactly the lie this panel exists to prevent.
- * It was left fight-wide for that reason and said so, and a figure that never
- * moved while the whole screen under it did was read as the row being broken.
- *
- * The direction still decides the **breakdown**, and the figure is the same from
- * either end of a noun on every tab — which is `Σ zadane + bez sprawcy = Σ
- * otrzymane` holding per side as well as per fight.
- *
- * The part that landed on **nobody the roster places** has no side, so it joins
- * the figure only under `Wszyscy` — where the pairs and the leftover come back to
- * the fight's own figure, which is measured rather than assumed
- * (`tests/ui/panel-view.test.ts`).
+ * Zero on every capture. It is the one figure the panel still cannot place, and it
+ * is named on the summary bar rather than on a row, because a row belongs to a
+ * team and this belongs to none.
  */
-function getPinnedValue(reading: PanelReading, state: PanelState): number {
-  if (state.team === "all") return getUnattributedWholeFight(reading, state);
-  const { pairs } = getUnattributedByCombatant(reading, state);
-  return pairs.reduce((sum, [, amount]) => sum + amount, 0);
+function getFigureWithNeitherEnd(reading: PanelReading, metric: PanelMetric): number {
+  const { unattributed } = reading.statistics;
+  if (isHealingMetric(metric)) return getHealingWithoutHealer(unattributed);
+  return getDamageWithoutActor(unattributed) + unattributed.healthLost;
 }
 
 /**
- * The part of this screen's quantity that **no row holds** — what the rows are
- * short of the fight by, and the one thing three decisions now share.
+ * Which of the two rows carries what names **neither** end, under `Wszyscy`.
  *
- * **The direction settles it.** A figure with no actor is on nobody's *given* row
- * by definition, so under `Zadane` and `Leczenie dane` it is the pinned figure
- * entire. Under a received direction the health it moved landed on somebody and is
- * counted there, and what is left over is only what the aggregate could not place
- * at all: a target or a recipient that did not resolve. Zero on every capture,
- * and read rather than written as zero — a figure that happens to be
- * zero because nothing has broken yet is exactly the kind this panel exists not
- * to miss.
+ * The one whose own hole it also is: a figure naming neither end has no target,
+ * so it belongs with the row for a missing target — except under `Zadane`, where
+ * that row does not exist because the striker is named, and there it belongs with
+ * the row for a missing actor, which is what `Zadane` puts everything unnamed on.
  *
- * ⚠️ **Two callers, two scopes, and they are not the same question.** The screen's
- * denominator has to contain the numerator standing over it, so it takes the side
- * tab's figure; the summary answers how the *fight* is going and does not narrow
- * when the list does, so it takes the fight's. They agree under `Wszyscy`, which
- * is where every closure over the captures is measured — spelling them as one
- * function was what let a filtered screen divide by a whole it was not part of.
+ * Under a side tab it rides nothing at all: it has no team, so a row that took it
+ * would total more than the team's own figure. The summary bar is where it is
+ * named there, and that is the one thing on screen those two regions do not
+ * agree about by construction (`composeSides`).
  */
-function getFigureOutsideRows(reading: PanelReading, state: PanelState): number {
-  if (isGivenMetric(state.metric)) return getPinnedValue(reading, state);
-  return getFigureNoRowHolds(reading, state);
+function getHoleCarryingNeitherEnd(metric: PanelMetric): PanelHole {
+  return HOLE_STANDING[metric].target === "named" ? "actor" : "target";
 }
 
-/** The same, for the summary: fight-wide, so a side tab does not move it. */
-function getFigureOutsideRowsOfFight(reading: PanelReading, state: PanelState): number {
-  if (isGivenMetric(state.metric)) return getUnattributedWholeFight(reading, state);
-  return getFigureNoRowHolds(reading, state);
+function getHolePairs(
+  reading: PanelReading,
+  metric: PanelMetric,
+  hole: PanelHole,
+): Array<[number, number]> {
+  return hole === "actor"
+    ? getFigureWithNoActorByCombatant(reading, metric)
+    : getFigureWithNoTargetByCombatant(reading, metric);
 }
 
 /**
- * What the aggregate could not place at all: a target or a recipient that did not
- * resolve. On no side and on no row, so it is outside both readings above and is
- * the one term they share. Zero on every capture, and read rather than written as
- * zero — a figure that happens to be zero because nothing has broken yet is
- * exactly the kind this panel exists not to miss.
+ * What a hole is worth on the screen as it stands — **the team's, on every one of
+ * the twelve.**
+ *
+ * ⚠️ **It used to be the fight's under a given direction, on all three tabs.** A
+ * figure with no actor was held to have no side at all, so `Zadane · My` pinned
+ * 45 430 over a ranking summing to 355 900 while the bar under it put 44 464 of
+ * that same figure inside `My` — the same points twice on one screen, one of the
+ * two saying they were nobody's
+ * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). The charge is
+ * what changed: the named end gives the side, so the row narrows exactly as the
+ * list does and every screen closes — ranking plus the pinned rows is the bar's
+ * figure for that tab, which is measured over every capture.
+ *
+ * Under `Wszyscy` every pair counts, including a combatant the roster cannot
+ * place: that tab shows their row too, so leaving them out would open a gap
+ * between the list and the figures under it.
  */
-function getFigureNoRowHolds(reading: PanelReading, state: PanelState): number {
-  return isHealingMetric(state.metric)
-    ? reading.statistics.unattributed.healed
-    : reading.statistics.unattributed.taken;
+function getHoleFigure(reading: PanelReading, state: PanelState, hole: PanelHole): number {
+  let total = 0;
+  for (const [id, amount] of getHolePairs(reading, state.metric, hole)) {
+    if (isChargedTo(reading, state, hole, id)) total += amount;
+  }
+  if (state.team === "all" && getHoleCarryingNeitherEnd(state.metric) === hole) {
+    total += getFigureWithNeitherEnd(reading, state.metric);
+  }
+  return total;
+}
+
+/** Whether this hole's share of one combatant's figure belongs on the screen as it stands. */
+function isChargedTo(
+  reading: PanelReading,
+  state: PanelState,
+  hole: PanelHole,
+  combatantId: number,
+): boolean {
+  if (state.team === "all") return true;
+  const side = reading.roster.byId.get(combatantId)?.side ?? null;
+  return getPartCharged(reading, state.metric, side, NAMED_END[hole]) === state.team;
+}
+
+/** The holes that get a row on this screen, in the order they are drawn. */
+function getHolesOnScreen(metric: PanelMetric): PanelHole[] {
+  return (["actor", "target"] as const).filter((hole) => HOLE_STANDING[metric][hole] !== "named");
 }
 
 /**
@@ -432,76 +559,100 @@ function getFigureNoRowHolds(reading: PanelReading, state: PanelState): number {
  * beside a row saying 79%, which is two answers to two questions printed as
  * though they answered one.
  *
- * The whole is what is **on screen**: the rows the filter admits, plus whatever
- * no row holds — counted once. Under a received direction the pinned figure is
- * already inside the rows, because health nobody can be charged with still landed
- * on somebody; only the part belonging to nobody at all is outside. So the two
- * brackets there answer one question about one whole and still overlap, which is
- * the truth about them: they are two cuts of the same quantity, and the pinned row
- * says so in its own words rather than by arithmetic.
+ * The whole is what is **on screen**: the rows the filter admits, plus every hole
+ * standing `apart` from them, plus — under `Wszyscy` alone — what names neither
+ * end. A hole standing `cut` adds nothing: its points are already inside a row,
+ * so the two brackets overlap on purpose and the row says so in words.
+ *
+ * ⚠️ **What names neither end joins the whole only under `Wszyscy`,** and it
+ * arrives inside a row rather than beside one: `getHoleCarryingNeitherEnd` says
+ * which of the two takes it. It belongs to no team, so under a side tab it is on
+ * no row and in no whole, and the summary bar is where it is named — the one
+ * figure those two regions state differently, on purpose.
  */
 function getWholeOnScreen(reading: PanelReading, state: PanelState, total: number): number {
-  return total + getFigureOutsideRows(reading, state);
+  let whole = total;
+  for (const hole of getHolesOnScreen(state.metric)) {
+    if (HOLE_STANDING[state.metric][hole] === "apart") whole += getHoleFigure(reading, state, hole);
+  }
+  return whole;
 }
 
-function composePinnedRow(
+/**
+ * One row for one hole — **at most two on a screen, and each says which end the
+ * game left out.**
+ *
+ * ⚠️ **It was one row saying `Bez sprawcy` about both.** A blow with no striker
+ * and a blow that found nobody are different things to be told, and saying one
+ * sentence about both is how the second went unnoticed long enough for the
+ * aggregate to be quietly wrong about it
+ * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+ *
+ * The figure is the shown team's on every one of the twelve screens, so the
+ * bracket is there on every one of them too — a share of the whole this screen
+ * divides by, which the row is now part of.
+ */
+function composePinnedRows(
   reading: PanelReading,
   state: PanelState,
   whole: number,
   largest: number,
   translate: TranslateLabel | null,
+): PanelRow[] {
+  const rows: PanelRow[] = [];
+  for (const hole of getHolesOnScreen(state.metric)) {
+    const row = composeHoleRow(reading, state, hole, whole, largest, translate);
+    if (row !== null) rows.push(row);
+  }
+  return rows;
+}
+
+function composeHoleRow(
+  reading: PanelReading,
+  state: PanelState,
+  hole: PanelHole,
+  whole: number,
+  largest: number,
+  translate: TranslateLabel | null,
 ): PanelRow | null {
-  const value = getPinnedValue(reading, state);
+  const value = getHoleFigure(reading, state, hole);
   if (value <= 0) return null;
 
+  const label = hole === "actor" ? NO_ACTOR_LABEL : NO_TARGET_LABEL;
   const lines: PanelDetailLine[] = [
-    { kind: "title", text: NOBODY_LABEL },
-    { kind: "note", text: getPinnedLimitNote(state.metric) },
-    { kind: "note", text: getPinnedStandingNote(state.metric) },
-    { kind: "heading", text: getPinnedBreakdownHeading(state.metric) },
+    { kind: "title", text: label },
+    {
+      kind: "note",
+      text: hole === "actor" ? getNoActorLimitNote(state.metric) : getNoTargetLimitNote(state.metric),
+    },
+    {
+      kind: "note",
+      text:
+        hole === "actor" ? getNoActorStandingNote(state.metric) : getNoTargetStandingNote(),
+    },
+    {
+      kind: "heading",
+      text:
+        hole === "actor"
+          ? getNoActorBreakdownHeading(state.metric)
+          : getNoTargetBreakdownHeading(),
+    },
   ];
 
-  /**
-   * ⚠️ **The cut follows the direction, and the figure does not.** The same points
-   * read from either end, so the row counts one thing per noun — that identity is
-   * what makes the two directions balance rather than disagree, and it is measured
-   * (`tests/ui/panel-view.test.ts`). What the reader is asking is a different
-   * question: under a given direction, *what did this*; under a received one,
-   * *whom did it happen to*. Both used to answer the first, so `Otrzymane` never
-   * named a victim and `Leczenie dane` listed the recipients of healing nobody
-   * gave.
-   */
-  if (isGivenMetric(state.metric)) {
-    const parts = isHealingMetric(state.metric)
-      ? getUnattributedHealingBySource(reading, state)
-      : getUnattributedDamageBySource(reading, state);
-    for (const part of [...parts].sort((one, other) => other.amount - one.amount)) {
-      lines.push(
-        composeStat(getPhrase(part.names, part.token, translate), composeFigureText(part.amount)),
-      );
-    }
-  } else {
-    const { pairs, leftover } = getUnattributedByCombatant(reading, state);
-    for (const [id, amount] of pairs) {
-      lines.push(composeStat(getName(reading, id), composeFigureText(amount)));
-    }
-    const unplaced = getPinnedLeftover(state.metric);
-    // Only where the figure carries it. A side tab leaves it out — it belongs to
-    // nobody the roster places, so it is on neither side — and a cut that listed
-    // it anyway would total more than the row standing over it, which is the
-    // failure this panel exists to prevent, in miniature.
-    if (leftover > 0 && unplaced !== null && state.team === "all") {
-      lines.push(composeStat(unplaced.label, composeFigureText(leftover)));
-      lines.push({ kind: "note", text: unplaced.note });
-    }
+  for (const line of composeHoleCut(reading, state, hole, translate)) lines.push(line);
+
+  if (state.team !== "all") {
+    lines.push({
+      kind: "note",
+      text:
+        hole === "actor" ? getNoActorScopeNote(state.metric) : getNoTargetScopeNote(),
+    });
   }
 
-  if (state.team !== "all") lines.push({ kind: "note", text: getPinnedScopeNote(state.metric) });
-
   return {
-    key: NOBODY_ROW_KEY,
+    key: hole === "actor" ? NO_ACTOR_ROW_KEY : NO_TARGET_ROW_KEY,
     rank: null,
-    label: NOBODY_LABEL,
+    label,
     profession: null,
     colour: UNKNOWN_COLOUR,
     // Measured against the same figure every other bar is, or the row that says
@@ -509,23 +660,71 @@ function composePinnedRow(
     fill: getFill(value, largest),
     valueText: composeFigureText(value),
     /**
-     * ⚠️ **This used to be dropped under a side filter, and the reason was the
-     * figure rather than the share.** A fight-wide numerator over one side's
-     * denominator printed 320% under `Leczenie · Oni` on
+     * ⚠️ **A share on every screen now, and for one round there was none on four
+     * of them.** The bracket went when the figure was held to have no side: a
+     * fight-wide numerator over one side's denominator printed 320% under
+     * `Leczenie · Oni` on
      * `tests/captured-fights/2026-08-11-tempest-tancerz-vs-wermont.json` and
-     * `(0%)` beside a five-figure number where the other side received no healing
-     * — one fault from two ends, and §9.6 forbids the second twice over.
-     *
-     * Both scopes now narrow together, so the numerator cannot exceed the
-     * denominator and cannot survive it going to zero: under a received filter
-     * every point of this figure is on an admitted row and inside that row's own
-     * total, and under a given one the figure is added to the denominator by
-     * `getFigureOutsideRows`. Held by the sweeps rather than by this note.
+     * `(0%)` beside a five-figure number where the other side received no healing.
+     * Both ends of that are gone — the numerator is the team's and the whole
+     * contains it — so the share is a share of something again.
      */
     bracketText: composeBracket(whole > 0 ? value / whole : 0),
     isDrillable: false,
     detail: lines,
   };
+}
+
+/**
+ * What the row is made of, cut by the end the game **did** name.
+ *
+ * ⚠️ **The cut follows the question, not the noun.** Under a given direction the
+ * reader is asking *what did this*; under a received one, *whom did it happen
+ * to*. Both branched on the noun once, so `Otrzymane` never named a victim and
+ * `Leczenie dane` listed the recipients of healing nobody gave. The row for a
+ * missing target has only one question to answer — *who did it* — because that is
+ * the end that resolved.
+ */
+function composeHoleCut(
+  reading: PanelReading,
+  state: PanelState,
+  hole: PanelHole,
+  translate: TranslateLabel | null,
+): PanelDetailLine[] {
+  const lines: PanelDetailLine[] = [];
+  const isCharged = (combatantId: number): boolean =>
+    isChargedTo(reading, state, hole, combatantId);
+  const shouldListNeitherEnd =
+    state.team === "all" && getHoleCarryingNeitherEnd(state.metric) === hole;
+
+  if (hole === "actor" && isGivenMetric(state.metric)) {
+    const parts = isHealingMetric(state.metric)
+      ? getNoActorHealingBySource(reading, isCharged, shouldListNeitherEnd)
+      : getNoActorDamageBySource(reading, isCharged, shouldListNeitherEnd);
+    for (const part of [...parts].sort((one, other) => other.amount - one.amount)) {
+      lines.push(
+        composeStat(getPhrase(part.names, part.token, translate), composeFigureText(part.amount)),
+      );
+    }
+    return lines;
+  }
+
+  const pairs = getHolePairs(reading, state.metric, hole)
+    .filter(([combatantId]) => isCharged(combatantId))
+    .sort(([, one], [, other]) => other - one);
+  for (const [id, amount] of pairs) {
+    lines.push(composeStat(getName(reading, id), composeFigureText(amount)));
+  }
+
+  // What no name reaches, on the row that carries it and nowhere else — a cut
+  // listing it anywhere else would total more than the row standing over it.
+  const leftover = getFigureWithNeitherEnd(reading, state.metric);
+  if (shouldListNeitherEnd && leftover > 0) {
+    const unplaced = getNeitherEndLeftover();
+    lines.push(composeStat(unplaced.label, composeFigureText(leftover)));
+    lines.push({ kind: "note", text: unplaced.note });
+  }
+  return lines;
 }
 
 /**
@@ -678,7 +877,7 @@ function composeTitle(reading: PanelReading): string {
 }
 
 /**
- * The fight in two figures, and what belongs to neither.
+ * The fight in two figures, and what belongs to neither end at all.
  *
  * ⚠️ **It used to draw a part of the fight as the whole of it.** The two sides
  * were summed off the rows and nothing else, so under `Zadane` the bar was short
@@ -686,41 +885,57 @@ function composeTitle(reading: PanelReading): string {
  * captures as they stood — and under `Leczenie dane` by well over half, while
  * the pinned row **directly above it**
  * stated that very figure. Two regions of one screen answering with two different
- * wholes, which is the defect the brackets were fixed for one region up. The third
- * part closes it: mine plus enemy plus nobody is the figure every bracket on the
- * screen divides by.
+ * wholes, which is the defect the brackets were fixed for one region up. Every
+ * point is inside the bar now: mine plus enemy plus nobody is still the figure
+ * every bracket on the screen divides by, so nothing above this line moves.
+ *
+ * ⚠️ **The third part said `Bez strony` about points that had one.** Measured
+ * over every capture on 2026-08-18, all of it sat on combatants the roster
+ * places — 45 430 on `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-2.json`,
+ * of which 44 464 ticked on the enemy and 966 on one of ours — while the truly
+ * unplaceable terms were zero in all seventeen. So the parts with a side are
+ * charged to one by `getPartCharged`, and the third part keeps exactly what has
+ * no side at either end: a blow naming neither, and a combatant outside the
+ * roster. That is what a live fight joined on an ambiguous name still produces,
+ * which is why the part stays rather than being deleted (§9.6).
  *
  * **Fight-scope even under a side filter, and even inside a breakdown.** What it
  * answers is how the fight is going, and that question does not change when the
- * list narrows — only the label does, because two figures of a different scale
- * standing under one combatant's breakdown would be read as that combatant's.
+ * list narrows — only the label does, and it now does so for a side tab as well:
+ * `Zadane · My` puts a figure here that the ranking above it does not sum to, and
+ * a scale left unsaid is the one thing §9.6 forbids outright.
  */
 function composeSides(reading: PanelReading, state: PanelState): PanelSides | null {
   if (reading.ourSide === null) return null;
 
-  let mine = 0;
-  let enemy = 0;
-  let nobody = getFigureOutsideRowsOfFight(reading, state);
+  const totals: Record<PanelSidePart, number> = { mine: 0, enemy: 0, nobody: 0 };
   for (const [id, row] of reading.statistics.byCombatantId) {
     const side = reading.roster.byId.get(id)?.side ?? null;
-    const value = getMetricValue(row, state.metric);
-    // A combatant the roster cannot place was dropped here silently, while
-    // `composeTitle` was counting them in its `+N`. They have no side, and no
-    // side is what the third part is for.
-    if (side === null) nobody += value;
-    else if (side === reading.ourSide) mine += value;
-    else enemy += value;
+    totals[getPartOfSide(reading, side)] += getMetricValue(row, state.metric);
   }
 
+  // Only a hole standing `apart`: one standing `cut` is already inside a row
+  // above, and one standing `named` is inside a ranked row, so charging either a
+  // second time would count it twice.
+  for (const hole of ["actor", "target"] as const) {
+    if (HOLE_STANDING[state.metric][hole] !== "apart") continue;
+    for (const [id, amount] of getHolePairs(reading, state.metric, hole)) {
+      const side = reading.roster.byId.get(id)?.side ?? null;
+      totals[getPartCharged(reading, state.metric, side, NAMED_END[hole])] += amount;
+    }
+  }
+  totals.nobody += getFigureWithNeitherEnd(reading, state.metric);
+
+  const { mine, enemy, nobody } = totals;
   const whole = mine + enemy + nobody;
   const sides = `${TEAM_LABELS.mine} / ${TEAM_LABELS.enemy}`;
   return {
     mineText: composeFigureText(mine),
     enemyText: composeFigureText(enemy),
-    label: state.focusCombatantId === null ? sides : `Cała walka · ${sides}`,
-    // Not `Bez sprawcy`, though on the screens where it is large it is the same
-    // points: a combatant with no side lands here too, and they have an actor.
-    // The chain is the pinned row's own — no actor, so nothing to put on a side.
+    label:
+      state.team === "all" && state.focusCombatantId === null ? sides : `Cała walka · ${sides}`,
+    // Not `Bez sprawcy`, which is the row above and a different claim: that one is
+    // a figure with no actor, this is one with no side at either end.
     nobody: nobody > 0 ? { label: "Bez strony", text: composeFigureText(nobody) } : null,
     // From raw sums: the bar shows the share of the fight, and a share of two
     // rates with different divisors is not a share of anything.
@@ -832,7 +1047,14 @@ export function composePanelView(
     // first row: a pinned row below can exceed it.
     const largestShown = ranked.reduce(
       (most, id) => Math.max(most, getMetricValue(getRow(reading, id), state.metric)),
-      getPinnedValue(reading, state),
+      // Seeded with the pinned figures, which are on this scale and can exceed
+      // every ranked row: under `Leczenie` the one with no healer beats them all
+      // in most captures, and a fill over one is clipped by `.row { overflow:
+      // hidden }` into a bar that looks exactly like a full one.
+      getHolesOnScreen(state.metric).reduce(
+        (most, hole) => Math.max(most, getHoleFigure(reading, state, hole)),
+        0,
+      ),
     );
 
     return {
@@ -849,7 +1071,7 @@ export function composePanelView(
       ],
       emptyText: ranked.length === 0 ? "Nikogo tu jeszcze nie ma." : null,
       emptyLimitText: null,
-      pinnedRow: composePinnedRow(reading, state, whole, largestShown, translate),
+      pinnedRows: composePinnedRows(reading, state, whole, largestShown, translate),
       sides: composeSides(reading, state),
     };
   }
@@ -883,7 +1105,7 @@ export function composePanelView(
       lists,
       emptyText: lists.length === 0 ? "Nie ma czego pokazać." : null,
       emptyLimitText: null,
-      pinnedRow: null,
+      pinnedRows: [],
       sides: composeSides(reading, state),
     };
   }
@@ -913,8 +1135,10 @@ export function composePanelView(
       // Against the figure this metric actually pins, not against damage: under
       // `Leczenie dane` the thing that cannot be checked is unannounced healing.
       emptyLimitText:
-        getPinnedValue(reading, state) > 0 ? (NOTHING_LIMIT_TEXTS[state.metric] ?? null) : null,
-      pinnedRow: null,
+        getHoleFigure(reading, state, "actor") > 0
+          ? (NOTHING_LIMIT_TEXTS[state.metric] ?? null)
+          : null,
+      pinnedRows: [],
       sides: composeSides(reading, state),
     };
   }
@@ -928,7 +1152,7 @@ export function composePanelView(
     lists,
     emptyText: lists.length === 0 ? NOTHING_TEXTS[state.metric] : null,
     emptyLimitText: null,
-    pinnedRow: null,
+    pinnedRows: [],
     sides: composeSides(reading, state),
   };
 }
