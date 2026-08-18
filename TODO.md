@@ -37,7 +37,6 @@ I want every combatant to be visible at the beginning of a battle
 - [x] AGENTS.md is too large, and the information it has is not that relevant
 
 ## Later
-- [ ] Add draw as an outcome (there is a problem with the protocol key, to make it work - do it later)
-- [ ] Read a battle messages incrementaly (just do a SPEC for now, nothing else)
+- [ ] Add draw as an outcome (there is a problem with the protocol key - do it later)
 - [ ] Use constants instead of literals for the protocol keys (maybe everything except the ui text, not only the protocol keys)
 - [ ] Create and update screenshots after each release, use `screenshots` dir to store it
