@@ -436,7 +436,7 @@
           <li class="flag new"><strong>Obrażenia bez sprawcy są widoczne.</strong> Tykające i rany — 49 318 punktów w walce z Hildur, 13% wszystkiego, co ją trafiło. W <em>Zadanych</em> stoją w odciętym wierszu <em>Bez sprawcy</em> (dymek mówi, z czego: <code>poison</code>, <code>injure</code>), w <em>Otrzymanych</em> wchodzą do wiersza poszkodowanego, bo jemu naprawdę ubyło życia.</li>
           <li class="flag new"><strong>Leczenie ma OD KOGO, CZYM i OD CZEGO</strong> — z tym samym LPM/PPM. Sprawcę daje zapowiedź stojąca nad wyleczeniem; czego nic nie ogłosiło, stoi jako <em>Bez sprawcy</em>. Zmierzone: 25 178 ze 122 648 punktów leczenia ma rzucającego, reszta to regeneracja i samoleczenie.</li>
           <li class="flag new"><strong>Wysokość listy jest stała:</strong> jedenaście pasków przy <em>Wszyscy</em>, dziesięć przy <em>My</em> i <em>Oni</em> — bo tyle liczy najliczniejsza drużyna. Reszta przewija się w środku; nagłówek, zakładki i stopka zostają, a wysokość jest ta sama w drążeniu, więc wejście w postać nie rusza oknem.</li>
-          <li class="flag new"><strong>Wiersz <em>Bez sprawcy</em> stoi POD listą i się nie przewija</strong> — w <em>Zadanych</em> i w <em>Leczeniu</em>, zawsze gdy jest co pokazać. To jedyna pozycja mówiąca wprost, że czegoś w liczbach brakuje; zniknąć pod krawędzią nie może. Zakres ma z całej walki także pod filtrem drużyny, bo bez sprawcy nie ma czego przypisać do strony — i dymek mówi to wprost.</li>
+          <li class="flag new"><strong>Wiersz <em>Bez sprawcy</em> stoi POD listą i się nie przewija</strong> — w <em>Zadanych</em> i w <em>Leczeniu</em>, zawsze gdy jest co pokazać. To jedyna pozycja mówiąca wprost, że czegoś w liczbach brakuje; zniknąć pod krawędzią nie może. Pod filtrem drużyny schodzi do pokazanej drużyny na każdej zakładce: sprawcy nie ma, więc liczy się po drugim końcu — po tym, komu życia ubyło albo przybyło — i dymek mówi to wprost, bo w <em>Zadanych</em> jest to inny koniec niż ten, po którym idzie lista nad nim.</li>
           <li class="flag new"><strong>Rozbicie po umiejętnościach</strong> stoi w widoku postaci pod listą celów; klik w umiejętność pokazuje, w kogo poszła.</li>
           <li class="flag new"><strong>Dymek</strong> otwiera się od <code>profesja (poziom)</code>, dalej sumy, tury, użycia i linia liczników <code>ciosy · kryt. · maks. cios</code>, potem TOP‑3, umiejętności i efekty — te ostatnie nazwane po ludzku, nie zapisem z gry.</li>
           <li class="flag new"><strong>Zero nie zostawia pustej sekcji.</strong> Panel pisze, czego nie było — <em>„Nie zadała nikomu obrażeń”</em>, <em>„Nikt jej nie leczył”</em> — a osobno, ciszej, czego nie da się sprawdzić: <em>„Część obrażeń w tej walce jest bez sprawcy — nie da się sprawdzić, czy któreś z nich są jej”</em>. Drugie zdanie dochodzi tylko wtedy, gdy w walce naprawdę jest coś bez sprawcy.</li>
@@ -550,7 +550,8 @@
       nobodyDetail: "Gra nie mówi, kto to zadał — dlatego stoi osobno, a nie na czyimś wierszu.",
       nobodyHealDetail: "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
       toWhom: "Komu",
-      wholeFight: "Z całej walki — bez sprawcy nie ma czego przypisać do strony.",
+      shownTeamLost: "Tylko z pokazanej drużyny — liczone po tym, komu ubyło życia.",
+      shownTeamHealed: "Tylko z pokazanej drużyny — liczone po tym, komu przybyło życia.",
       noAnnouncement: "Nie wiadomo, czym",
       into: (name) => "CZYM — " + name,
       skillInto: (name) => "KOMU — " + name,

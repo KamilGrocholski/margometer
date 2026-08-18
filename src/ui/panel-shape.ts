@@ -47,13 +47,14 @@ export type PanelRow = {
   /**
    * The share, and the other measure, in one bracket beside the figure.
    *
-   * **Null where the figure has no share to state**, which is not the same as a
-   * share of nothing: the pinned row is fight-wide, so under a side filter its
-   * figure is not inside the denominator the rest of the screen divides by, and
-   * a percentage of the wrong whole came out at 320%. Nullable rather than
-   * empty, so the compiler asks the question at every row that is built.
+   * It was nullable for one reason and the reason has gone: the pinned row was
+   * fight-wide, so under a side filter its figure was not inside the denominator
+   * the rest of the screen divides by and a percentage of the wrong whole came out
+   * at 320%. The figure narrows with the list now, numerator and denominator
+   * together, so every row on every screen has a share to state and a row built
+   * without one would be a row nobody decided about.
    */
-  bracketText: string | null;
+  bracketText: string;
   /** Whether a click goes anywhere. A leaf that offered one would be a lie. */
   isDrillable: boolean;
   /** Detail on demand (§9.6). Empty means there is nothing more to say. */

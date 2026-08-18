@@ -58,8 +58,38 @@ export function getPinnedStandingNote(metric: PanelMetric): string {
   return PINNED_STANDING_NOTES[metric];
 }
 
-/** Said where the pinned figure is fight-wide and the list on screen is not. */
-export const NOBODY_SCOPE_NOTE = "Z całej walki — bez sprawcy nie ma czego przypisać do strony.";
+/**
+ * What the figure covers once the reader has picked a side — **and which end of
+ * the number it was counted by, which is the part that can be misread.**
+ *
+ * There is no actor here; that is what the row is. So the side comes from the one
+ * end the game does name, the combatant the health moved on, and the sentence says
+ * that rather than leaving it to be assumed. On a *given* screen it is the end the
+ * list above is **not** using: `Zadane · My` ranks what our side dealt and pins
+ * what our side lost with nobody to charge it to, and a reader who took that for
+ * our side's doing would have been handed exactly the lie this panel exists to
+ * prevent.
+ *
+ * ⚠️ **The row was left fight-wide for that reason once, and saying so was not
+ * enough.** A figure that never moved while the whole screen under it did was read
+ * as the row being broken — twice, in the same words. Moving it and naming the end
+ * it moves by is the answer that is both true and legible.
+ *
+ * Four entries rather than one per noun, for the reason every table in this file
+ * has four: the compiler asks about a fifth screen instead of letting it inherit
+ * whichever wording came first.
+ */
+const PINNED_SCOPE_NOTES: Record<PanelMetric, string> = {
+  dealt: "Tylko z pokazanej drużyny — liczone po tym, komu ubyło życia.",
+  taken: "Tylko z pokazanej drużyny — liczone po tym, komu ubyło życia.",
+  healingGiven: "Tylko z pokazanej drużyny — liczone po tym, komu przybyło życia.",
+  healed: "Tylko z pokazanej drużyny — liczone po tym, komu przybyło życia.",
+};
+
+/** Asked only where a side is picked: under `Wszyscy` there is no scope to state. */
+export function getPinnedScopeNote(metric: PanelMetric): string {
+  return PINNED_SCOPE_NOTES[metric];
+}
 
 /**
  * What the row holds that no pair does, and which end of the pair is missing.

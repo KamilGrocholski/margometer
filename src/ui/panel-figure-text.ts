@@ -14,7 +14,25 @@ export function composeFigureText(value: number): string {
   return composeSpacedThousands(composeIntegerText(Math.round(value)));
 }
 
+/**
+ * A share, and the one case where rounding it would print a lie.
+ *
+ * ⚠️ **A figure that is there must not read as a figure that is not** (§9.6). A
+ * share under half a point rounds to `0%`, which on a panel that keeps *zero* and
+ * *could not be read* apart is the third thing neither of them means: something
+ * happened, and it was too small to round to. Measured over the captures as they
+ * stand: eleven ranked rows printed `0%` beside a figure — 1 741 dealt on
+ * `tests/captured-fights/2026-08-15-tempest-grupa-vs-draugr-1.json`, 966 taken on
+ * `2026-08-15-tempest-grupa-vs-hildur-2.json` — and the pinned row joined them
+ * the moment its figure narrowed to one side.
+ *
+ * A floor rather than a second decimal place: the reader is being told the figure
+ * is small, and `0,2%` down a column of whole numbers is a precision the rest of
+ * the panel does not claim. Zero itself still prints `0%`, because there it is the
+ * measurement.
+ */
 export function composeShareText(share: number): string {
+  if (share > 0 && share * 100 < 0.5) return "<1%";
   return `${composeDecimalText(share * 100, 0)}%`;
 }
 

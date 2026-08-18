@@ -18,9 +18,9 @@ import {
   getPinnedBreakdownHeading,
   getPinnedLeftover,
   getPinnedLimitNote,
+  getPinnedScopeNote,
   getPinnedStandingNote,
   NOBODY_LABEL,
-  NOBODY_SCOPE_NOTE,
 } from "@/src/ui/panel-nobody.ts";
 
 describe("every screen has something to say", () => {
@@ -141,15 +141,43 @@ describe("what is shared and what is not", () => {
     }
   });
 
-  // The scope sentence is a fifth thing and not a rewording of any of them: it says
-  // the figure is fight-wide while the list on screen is not.
-  test("the scope sentence is its own", () => {
+  /**
+   * The scope sentence is a fifth thing and not a rewording of any of them: it says
+   * which end of the number the figure was counted by, once a side is picked.
+   */
+  test("the scope sentence is its own on every screen", () => {
     const others = PANEL_METRICS.flatMap((metric) => [
       getPinnedLimitNote(metric),
       getPinnedStandingNote(metric),
       getMissingCounterpart(metric).note,
     ]);
-    expect(others).not.toContain(NOBODY_SCOPE_NOTE);
-    expect(NOBODY_SCOPE_NOTE.length).toBeGreaterThan(0);
+    for (const metric of PANEL_METRICS) {
+      const note = getPinnedScopeNote(metric);
+      expect(note.length, metric).toBeGreaterThan(0);
+      expect(others, metric).not.toContain(note);
+    }
+  });
+
+  /**
+   * And it names the end the health moved on, which is the **noun's** to decide and
+   * not the direction's.
+   *
+   * ⚠️ **The two directions of a noun share it on purpose.** The figure is the
+   * same points read from either end, so it narrows to the same side either way;
+   * wording it per screen would leave two sentences free to drift over one fact. The
+   * nouns must differ, because one is health leaving and the other is health
+   * arriving, and a sentence covering both would have to be ours rather than the
+   * language’s.
+   */
+  test("says which end it was counted by, one wording per noun", () => {
+    const nouns = new Map<string, Set<string>>();
+    for (const metric of PANEL_METRICS) {
+      const noun = getMetricNoun(metric);
+      nouns.set(noun, (nouns.get(noun) ?? new Set()).add(getPinnedScopeNote(metric)));
+    }
+
+    expect(nouns.size).toBe(2);
+    for (const [noun, wordings] of nouns) expect(wordings.size, noun).toBe(1);
+    expect(new Set([...nouns.values()].flatMap((wordings) => [...wordings])).size).toBe(2);
   });
 });

@@ -16,6 +16,7 @@ import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { PANEL_METRICS } from "@/src/ui/panel-metric.ts";
 import {
   getDamageWithoutActor,
+  getDamageWithoutActorByElement,
   getHealingWithoutHealer,
   getMetricValue,
   getName,
@@ -166,5 +167,48 @@ describe("a blow with nobody to charge it to", () => {
     const row = getRow(composeReading(), 3);
     expect(row.healthLost).toBeGreaterThan(0);
     expect(getDamageWithoutActor(row)).toBe(0);
+  });
+
+  /**
+   * And the same figure kept apart by element, which is what lets the pinned row's
+   * `Z czego` cut narrow with it: the elements used to be read off a fight-wide
+   * bucket that holds no combatant, so it could not be put on a side at all.
+   *
+   * ⚠️ **It has to sum to the figure above**, or the cut would stand under the row
+   * totalling something else. Held here rather than left to the view, which is
+   * where the two were allowed to disagree.
+   */
+  test("the same, kept apart by the element the game named", () => {
+    const row = composeRow(100, [
+      [1, [["dmg", 30]]],
+      [2, [["dmgf", 10]]],
+    ]);
+    row.takenByElement = new Map([
+      ["dmg", 70],
+      ["dmgf", 30],
+    ]);
+
+    const byElement = getDamageWithoutActorByElement(row);
+    expect([...byElement]).toEqual([
+      ["dmg", 40],
+      ["dmgf", 20],
+    ]);
+    expect([...byElement.values()].reduce((sum, one) => sum + one, 0)).toBe(getDamageWithoutActor(row));
+  });
+
+  /**
+   * Both sides of the boundary, and zero is the boundary (§7.5). An element every
+   * point of which has a striker is not an element of nothing — it is absent, or a
+   * cut would draw a row reading `0` beside a figure nobody is missing.
+   */
+  test("leaves out an element no blow is short a striker for", () => {
+    const row = composeRow(100, [[1, [["dmg", 70]]]]);
+    row.takenByElement = new Map([
+      ["dmg", 70],
+      ["dmgf", 30],
+    ]);
+
+    expect([...getDamageWithoutActorByElement(row)]).toEqual([["dmgf", 30]]);
+    expect(getDamageWithoutActorByElement({ ...row, takenByElement: new Map() }).size).toBe(0);
   });
 });

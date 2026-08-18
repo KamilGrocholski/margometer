@@ -242,16 +242,10 @@ function renderRow(
   value.className = "row-value";
   value.textContent = row.valueText;
 
-  // No element at all where there is no share, rather than an empty one: the
-  // span carries a left margin, so an empty node leaves a gap that reads as a
-  // bracket that failed to draw.
-  let share: PanelNode | null = null;
-  if (row.bracketText !== null) {
-    share = document.createElement("span");
-    share.className = "row-share";
-    share.textContent = row.bracketText;
-    value.append(share);
-  }
+  const share = document.createElement("span");
+  share.className = "row-share";
+  share.textContent = row.bracketText;
+  value.append(share);
 
   const parts = [bar, cap];
   if (row.rank !== null) {
@@ -265,7 +259,7 @@ function renderRow(
   line.append(...parts);
   // Appended to the figure rather than to the line, but it still answers for the
   // row, so it joins `parts` only after the line has been assembled.
-  if (share !== null) parts.push(share);
+  parts.push(share);
 
   /**
    * ⚠️ **Every piece of the row answers for the row, not just the row itself.**

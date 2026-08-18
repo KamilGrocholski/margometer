@@ -67,12 +67,13 @@ import {
   getPinnedBreakdownHeading,
   getPinnedLeftover,
   getPinnedLimitNote,
+  getPinnedScopeNote,
   getPinnedStandingNote,
   NOBODY_LABEL,
-  NOBODY_SCOPE_NOTE,
 } from "@/src/ui/panel-nobody.ts";
 import {
   getDamageWithoutActor,
+  getDamageWithoutActorByElement,
   getHealingWithoutHealer,
   getMetricValue,
   getName,
@@ -104,28 +105,23 @@ function composeBracket(share: number): string {
 }
 
 /**
- * Whether the pinned figure is inside the denominator this screen divides by.
+ * Whether the side tab lets this combatant onto the screen.
  *
- * The pinned row is fight-wide and says so, but `getWholeOnScreen` under a side
- * filter is the rows that filter admits. Under a *given* direction that is still
- * one whole containing the figure — `getFigureOutsideRows` adds it. Under a
- * *received* one it does not: the health landed on somebody, so what is added is
- * only the part no row holds at all, which is zero on every capture. A fight-wide
- * numerator over one side's denominator then reads as a share of something that
- * does not exist.
+ * Lifted out of `getRankedIds` when the pinned row gained a second reading of the
+ * same question: under a received direction the figure with no actor is cut by
+ * whom the health moved on, and a cut that admitted anyone the ranking above it
+ * does not would report one side's total against another side's list. One rule,
+ * two callers, and neither can drift.
  *
- * ⚠️ **Measured, not feared.** Over the material as it stood when this was
- * decided, a fifth of the filtered received screens printed a share above a
- * hundred — 320% under `Leczenie · Oni` on
- * `tests/captured-fights/2026-08-11-tempest-tancerz-vs-wermont.json`, 248% under
- * `Leczenie · My` on
- * `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json` — and two
- * printed `(0%)` beside a five-figure number, because the opposing side received
- * no healing and the denominator was zero. Both are the same fault from opposite
- * ends, and §9.6 forbids the second twice over: a real figure drawn as nothing.
+ * A combatant the roster cannot place is on no side, so no side tab shows them —
+ * and neither does a fight where the game never said which side is the watcher's.
+ * Both are refusals rather than a guess (§5); `Wszyscy` is where they are read.
  */
-function hasShareOnScreen(state: PanelState): boolean {
-  return state.team === "all" || isGivenMetric(state.metric);
+function isAdmittedByTeam(reading: PanelReading, state: PanelState, combatantId: number): boolean {
+  if (state.team === "all") return true;
+  const side = reading.roster.byId.get(combatantId)?.side ?? null;
+  if (side === null || reading.ourSide === null) return false;
+  return state.team === "mine" ? side === reading.ourSide : side !== reading.ourSide;
 }
 
 /**
@@ -150,12 +146,7 @@ function hasShareOnScreen(state: PanelState): boolean {
  */
 function getRankedIds(reading: PanelReading, state: PanelState): number[] {
   const inFight = getCombatantIdsInFight(reading.statistics, reading.roster)
-    .filter((id) => {
-      const side = reading.roster.byId.get(id)?.side ?? null;
-      if (state.team === "all") return true;
-      if (side === null || reading.ourSide === null) return false;
-      return state.team === "mine" ? side === reading.ourSide : side !== reading.ourSide;
-    })
+    .filter((id) => isAdmittedByTeam(reading, state, id))
     .map((id, position) => ({
       id,
       position,
@@ -356,16 +347,37 @@ function getUnattributedDamage(reading: PanelReading): number {
  */
 function getUnattributedDamageBySource(
   reading: PanelReading,
+  state: PanelState,
 ): Array<{ names: Record<string, TokenName>; token: string; amount: number }> {
   const elements = new Map<string, number>();
-  for (const [token, amount] of reading.statistics.unattributed.dealtAppliedByElement) {
-    setRunningTotal(elements, token, amount);
+  const sources = new Map<string, number>();
+
+  /**
+   * ⚠️ **Read off the rows, and the fight-wide bucket only for what the rows
+   * cannot hold.** The elements used to come from the bucket entire, which knows
+   * no combatant and therefore no side — so once the figure narrowed to the side
+   * on screen, the cut stood under it totalling the whole fight.
+   *
+   * `getDamageWithoutActorByElement` is the same points on the victim's own row,
+   * where the roster can place them, and it sums to the victim's share of the
+   * figure. What is left in the bucket after every row has taken its part is the
+   * blow that named **neither** end — on no side, so it joins only where the
+   * leftover does.
+   */
+  const placed = new Map<string, number>();
+  for (const [id, row] of reading.statistics.byCombatantId) {
+    for (const [token, amount] of getDamageWithoutActorByElement(row)) {
+      setRunningTotal(placed, token, amount);
+      if (isAdmittedByTeam(reading, state, id)) setRunningTotal(elements, token, amount);
+    }
+    if (!isAdmittedByTeam(reading, state, id)) continue;
+    for (const [token, amount] of row.healthLostBySource) setRunningTotal(sources, token, amount);
   }
 
-  const sources = new Map<string, number>();
-  for (const row of reading.statistics.byCombatantId.values()) {
-    for (const [token, amount] of row.healthLostBySource) {
-      setRunningTotal(sources, token, amount);
+  if (state.team === "all") {
+    for (const [token, amount] of reading.statistics.unattributed.dealtAppliedByElement) {
+      const rest = amount - (placed.get(token) ?? 0);
+      if (rest > 0) setRunningTotal(elements, token, rest);
     }
   }
 
@@ -389,10 +401,20 @@ function getUnattributedDamageBySource(
  */
 function getUnattributedHealingBySource(
   reading: PanelReading,
+  state: PanelState,
 ): Array<{ names: Record<string, TokenName>; token: string; amount: number }> {
   const sources = new Map<string, number>();
-  for (const row of [...reading.statistics.byCombatantId.values(), reading.statistics.unattributed]) {
+  for (const [id, row] of reading.statistics.byCombatantId) {
+    if (!isAdmittedByTeam(reading, state, id)) continue;
     for (const [token, amount] of row.healedWithoutHealerBySource) {
+      setRunningTotal(sources, token, amount);
+    }
+  }
+  // Healing that reached a name nobody could place carries its key just the same,
+  // and belongs to no side — so it joins the cut exactly where the figure carries
+  // it, which is the screen showing the whole fight.
+  if (state.team === "all") {
+    for (const [token, amount] of reading.statistics.unattributed.healedWithoutHealerBySource) {
       setRunningTotal(sources, token, amount);
     }
   }
@@ -409,20 +431,48 @@ function getUnattributedHealingBySource(
 function getUnattributedByCombatant(
   reading: PanelReading,
   state: PanelState,
-  whole: number,
 ): { pairs: Array<[number, number]>; leftover: number } {
   const pairs: Array<[number, number]> = [];
+  let placed = 0;
   for (const [id, row] of reading.statistics.byCombatantId) {
     const amount = isHealingMetric(state.metric)
       ? getHealingWithoutHealer(row)
       : row.healthLost + getDamageWithoutActor(row);
-    if (amount > 0) pairs.push([id, amount]);
+    if (amount <= 0) continue;
+    // Counted before the filter and kept out of the pairs after it: the leftover
+    // is what **no row** holds, which is a fact about the fight rather than about
+    // the side on screen. Summing only the admitted rows would hand every side
+    // the other side's figures as unplaceable.
+    placed += amount;
+    if (isAdmittedByTeam(reading, state, id)) pairs.push([id, amount]);
   }
   pairs.sort(([, one], [, other]) => other - one);
-  return {
-    pairs,
-    leftover: whole - pairs.reduce((sum, [, amount]) => sum + amount, 0),
-  };
+  return { pairs, leftover: getUnattributedWholeFight(reading, state) - placed };
+}
+
+/**
+ * The whole fight's worth of it, whichever end the reader is reading from.
+ *
+ * ⚠️ **It depends on the noun and not on the direction, and that is the whole
+ * point of it.** The same points read from either end: given plus this is
+ * everything received, so the row is what makes the two directions balance
+ * instead of disagree. Measured on every capture, both nouns — the figure
+ * and its share come out identical under `Zadane` and `Otrzymane` (on
+ * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 49 318 and
+ * 6.7% against Hildur), which is `Σ dealt + unattributed = Σ taken` said in the
+ * panel's own arithmetic.
+ *
+ * It is what the row shows under `Wszyscy`, and what a side's share is a share
+ * of — never what a side tab draws, which is `getPinnedValue` below.
+ */
+function getUnattributedWholeFight(reading: PanelReading, state: PanelState): number {
+  if (!isHealingMetric(state.metric)) return getUnattributedDamage(reading);
+  return (
+    [...reading.statistics.byCombatantId.values()].reduce(
+      (sum, row) => sum + getHealingWithoutHealer(row),
+      0,
+    ) + reading.statistics.unattributed.healed
+  );
 }
 
 /**
@@ -435,23 +485,33 @@ function getUnattributedByCombatant(
  * clipped by
  * `.row { overflow: hidden }` into a bar that looks exactly like a full one.
  *
- * ⚠️ **It depends on the noun and not on the direction, and that is the whole
- * point of it.** The same points read from either end: given plus this is
- * everything received, so the row is what makes the two directions balance
- * instead of disagree. Measured on every capture, both nouns — the figure
- * and its share come out identical under `Zadane` and `Otrzymane` (on
- * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 49 318 and
- * 6.7% against Hildur), which is `Σ dealt + unattributed = Σ taken` said in the
- * panel's own arithmetic.
+ * ⚠️ **The side tab narrows it on every screen, and the one end the game named is
+ * what it narrows by.** There is no actor to split by — that is what the row is —
+ * so the cut is by the combatant the health *moved on*, whom the protocol does
+ * name, and whom the roster puts on a side. The row already carries their share of
+ * it and `getUnattributedByCombatant` reads it back out; summing the admitted ones
+ * is a cut of what the protocol states, not a guess about who did it.
+ *
+ * ⚠️ **Under a given direction that is a different end than the list above uses,
+ * and the sentence has to say so** (`panel-nobody.ts`). `Zadane · My` ranks what
+ * our side dealt and pins what our side *lost* with nobody to charge it to — read
+ * as our side's doing, it would be exactly the lie this panel exists to prevent.
+ * It was left fight-wide for that reason and said so, and a figure that never
+ * moved while the whole screen under it did was read as the row being broken.
+ *
+ * The direction still decides the **breakdown**, and the figure is the same from
+ * either end of a noun on every tab — which is `Σ zadane + bez sprawcy = Σ
+ * otrzymane` holding per side as well as per fight.
+ *
+ * The part that landed on **nobody the roster places** has no side, so it joins
+ * the figure only under `Wszyscy` — where the pairs and the leftover come back to
+ * the fight's own figure, which is measured rather than assumed
+ * (`tests/ui/panel-view.test.ts`).
  */
 function getPinnedValue(reading: PanelReading, state: PanelState): number {
-  if (!isHealingMetric(state.metric)) return getUnattributedDamage(reading);
-  return (
-    [...reading.statistics.byCombatantId.values()].reduce(
-      (sum, row) => sum + getHealingWithoutHealer(row),
-      0,
-    ) + reading.statistics.unattributed.healed
-  );
+  if (state.team === "all") return getUnattributedWholeFight(reading, state);
+  const { pairs } = getUnattributedByCombatant(reading, state);
+  return pairs.reduce((sum, [, amount]) => sum + amount, 0);
 }
 
 /**
@@ -467,12 +527,32 @@ function getPinnedValue(reading: PanelReading, state: PanelState): number {
  * zero because nothing has broken yet is exactly the kind this panel exists not
  * to miss.
  *
- * Three callers and one fact, which is why it is a function: the screen's whole
- * grows by this, the summary's third part is this, and the sentence the pinned row
- * says about itself turns on whether it is the whole figure or the remainder.
+ * ⚠️ **Two callers, two scopes, and they are not the same question.** The screen's
+ * denominator has to contain the numerator standing over it, so it takes the side
+ * tab's figure; the summary answers how the *fight* is going and does not narrow
+ * when the list does, so it takes the fight's. They agree under `Wszyscy`, which
+ * is where every closure over the captures is measured — spelling them as one
+ * function was what let a filtered screen divide by a whole it was not part of.
  */
 function getFigureOutsideRows(reading: PanelReading, state: PanelState): number {
   if (isGivenMetric(state.metric)) return getPinnedValue(reading, state);
+  return getFigureNoRowHolds(reading, state);
+}
+
+/** The same, for the summary: fight-wide, so a side tab does not move it. */
+function getFigureOutsideRowsOfFight(reading: PanelReading, state: PanelState): number {
+  if (isGivenMetric(state.metric)) return getUnattributedWholeFight(reading, state);
+  return getFigureNoRowHolds(reading, state);
+}
+
+/**
+ * What the aggregate could not place at all: a target or a recipient that did not
+ * resolve. On no side and on no row, so it is outside both readings above and is
+ * the one term they share. Zero on every capture, and read rather than written as
+ * zero — a figure that happens to be zero because nothing has broken yet is
+ * exactly the kind this panel exists not to miss.
+ */
+function getFigureNoRowHolds(reading: PanelReading, state: PanelState): number {
   return isHealingMetric(state.metric)
     ? reading.statistics.unattributed.healed
     : reading.statistics.unattributed.taken;
@@ -530,26 +610,30 @@ function composePinnedRow(
    */
   if (isGivenMetric(state.metric)) {
     const parts = isHealingMetric(state.metric)
-      ? getUnattributedHealingBySource(reading)
-      : getUnattributedDamageBySource(reading);
+      ? getUnattributedHealingBySource(reading, state)
+      : getUnattributedDamageBySource(reading, state);
     for (const part of [...parts].sort((one, other) => other.amount - one.amount)) {
       lines.push(
         composeStat(getPhrase(part.names, part.token, translate), composeFigureText(part.amount)),
       );
     }
   } else {
-    const { pairs, leftover } = getUnattributedByCombatant(reading, state, value);
+    const { pairs, leftover } = getUnattributedByCombatant(reading, state);
     for (const [id, amount] of pairs) {
       lines.push(composeStat(getName(reading, id), composeFigureText(amount)));
     }
     const unplaced = getPinnedLeftover(state.metric);
-    if (leftover > 0 && unplaced !== null) {
+    // Only where the figure carries it. A side tab leaves it out — it belongs to
+    // nobody the roster places, so it is on neither side — and a cut that listed
+    // it anyway would total more than the row standing over it, which is the
+    // failure this panel exists to prevent, in miniature.
+    if (leftover > 0 && unplaced !== null && state.team === "all") {
       lines.push(composeStat(unplaced.label, composeFigureText(leftover)));
       lines.push({ kind: "note", text: unplaced.note });
     }
   }
 
-  if (state.team !== "all") lines.push({ kind: "note", text: NOBODY_SCOPE_NOTE });
+  if (state.team !== "all") lines.push({ kind: "note", text: getPinnedScopeNote(state.metric) });
 
   return {
     key: NOBODY_ROW_KEY,
@@ -561,7 +645,21 @@ function composePinnedRow(
     // something is missing would look like the largest thing in the fight.
     fill: getFill(value, largest),
     valueText: composeFigureText(value),
-    bracketText: hasShareOnScreen(state) ? composeBracket(whole > 0 ? value / whole : 0) : null,
+    /**
+     * ⚠️ **This used to be dropped under a side filter, and the reason was the
+     * figure rather than the share.** A fight-wide numerator over one side's
+     * denominator printed 320% under `Leczenie · Oni` on
+     * `tests/captured-fights/2026-08-11-tempest-tancerz-vs-wermont.json` and
+     * `(0%)` beside a five-figure number where the other side received no healing
+     * — one fault from two ends, and §9.6 forbids the second twice over.
+     *
+     * Both scopes now narrow together, so the numerator cannot exceed the
+     * denominator and cannot survive it going to zero: under a received filter
+     * every point of this figure is on an admitted row and inside that row's own
+     * total, and under a given one the figure is added to the denominator by
+     * `getFigureOutsideRows`. Held by the sweeps rather than by this note.
+     */
+    bracketText: composeBracket(whole > 0 ? value / whole : 0),
     isDrillable: false,
     detail: lines,
   };
@@ -732,7 +830,7 @@ function composeSides(reading: PanelReading, state: PanelState): PanelSides | nu
 
   let mine = 0;
   let enemy = 0;
-  let nobody = getFigureOutsideRows(reading, state);
+  let nobody = getFigureOutsideRowsOfFight(reading, state);
   for (const [id, row] of reading.statistics.byCombatantId) {
     const side = reading.roster.byId.get(id)?.side ?? null;
     const value = getMetricValue(row, state.metric);

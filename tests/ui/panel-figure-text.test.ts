@@ -50,6 +50,23 @@ describe("a share", () => {
     expect(composeShareText(0)).toBe("0%");
   });
 
+  /**
+   * And says *small* where the share is small, which is neither of the two.
+   *
+   * ⚠️ **Both sides of the boundary, and zero is the boundary** (§7.5). A share
+   * that rounds down to nothing printed `0%` beside a real figure — eleven ranked
+   * rows over the captures as they stand, 1 741 dealt on
+   * `tests/captured-fights/2026-08-15-tempest-grupa-vs-draugr-1.json` among them.
+   * The first assertion below is what zero must keep saying, the last is where
+   * rounding takes over again.
+   */
+  test("says below a point where the share rounds to nothing but is not nothing", () => {
+    expect(composeShareText(0)).toBe("0%");
+    expect(composeShareText(0.000001)).toBe("<1%");
+    expect(composeShareText(0.004)).toBe("<1%");
+    expect(composeShareText(0.005)).toBe("1%");
+  });
+
   // Above one is possible arithmetic and was once printed: 320% under a filtered
   // received screen. It is written as it is, so a wrong denominator shows.
   test("is not clamped", () => {

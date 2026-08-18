@@ -9,6 +9,7 @@
  */
 
 import { composeIntegerText } from "@/libs/number.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
   composeEmptyCombatantStatistics,
@@ -121,4 +122,32 @@ export function getDamageWithoutActor(row: CombatantStatistics): number {
     for (const amount of byElement.values()) named += amount;
   }
   return Math.max(0, row.taken - named);
+}
+
+/**
+ * The same figure, kept apart by the element the game stated it under.
+ *
+ * The pinned row's `Z czego` cut used to read its elements off the fight-wide
+ * bucket, which holds no combatant and therefore no side. Once the figure narrowed
+ * to the side on screen the cut had to narrow with it, and this is the only place
+ * the two ends meet: `takenByElement` is what a combatant took, `takenByActorId` is
+ * the part of it somebody was named for, and the difference is what they took with
+ * nobody to charge it to — per element, on their own row, where the roster can
+ * place them.
+ *
+ * Read the same way `getDamageWithoutActor` is, and it sums to it, which is what
+ * lets the cut close against the figure standing over it.
+ */
+export function getDamageWithoutActorByElement(row: CombatantStatistics): Map<string, number> {
+  const named = new Map<string, number>();
+  for (const byElement of row.takenByActorId.values()) {
+    for (const [element, amount] of byElement) setRunningTotal(named, element, amount);
+  }
+
+  const without = new Map<string, number>();
+  for (const [element, amount] of row.takenByElement) {
+    const rest = amount - (named.get(element) ?? 0);
+    if (rest > 0) without.set(element, rest);
+  }
+  return without;
 }
