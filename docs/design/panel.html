@@ -260,7 +260,9 @@
   .rows.pinned {
     height: auto;
     overflow: visible;
-    padding-top: 0;
+    margin: 4px 7px 0;
+    padding: 4px 0 7px;
+    border-top: 1px dashed var(--border);
   }
   .rows .row {
     position: relative;
@@ -275,14 +277,10 @@
   .rows .row[data-source][data-leaf] { cursor: help; }
   .bar { position: absolute; inset: 0 auto 0 0; min-width: 2px; opacity: 0.55; }
   .bar-cap { position: absolute; inset: 0 auto 0 0; width: 3px; border-radius: 3px 0 0 3px; }
-  .rows .row[data-unattributed] {
-    margin-top: 5px;
-    border-top: 1px dashed var(--border);
-    height: calc(var(--panel-row, 18px) + 5px);
-  }
-  .rows .row[data-unattributed] .bar,
-  .rows .row[data-unattributed] .bar-cap,
-  .rows .row[data-unattributed] .row-text { top: 4px; }
+  /* Zbiorczy wiersz jest wierszem: wysokość ma tę samą co każdy inny, a pasek
+     wypełnia dokładnie to tło, na którym leży. Kreska i powietrze pod nią należą
+     do bloku powyżej — na wierszu kosztowały 5px wzrostu i 4px odsunięcia
+     paska, czyli szary pasek tła nad oznaczeniem. */
   .rows .row[data-unattributed] .bar {
     opacity: 0.4;
     mask-image: repeating-linear-gradient(-45deg, #000 0 4px, transparent 4px 8px);

@@ -1056,7 +1056,62 @@ describe("what the panel never does", () => {
     expect(composePanelStyleText()).toContain(`top: -${PANEL_TOKENS.spaceRegionDown};`);
     expect(PANEL_TOKENS.spaceRegion.startsWith(`${PANEL_TOKENS.spaceRegionDown} `)).toBe(true);
   });
+
+  /**
+   * ⚠️ **Seen in the panel: the one row that says something is missing was the
+   * one row whose marking did not fill it.** The dashed rule sat on the row and
+   * bought the air under itself by making that row 5px taller and pushing
+   * `.bar` and `.bar-cap` down 4px — a 19px marking inside a 23px track, so a
+   * strip of bare background showed above the hatch and the cap, and the bar
+   * stood at a height no ranked row has.
+   *
+   * The rule moved to the block. What holds it there is stated as the property
+   * rather than as the fix: `.pinned` may say how the row is *coloured* — the
+   * hatch, the two opacities — and may say nothing about where its box begins
+   * or how tall it is. `.row` is the only thing that decides that, for every
+   * row, and a bar inset to `top: 0; bottom: 0` then fills exactly what it sits
+   * on. Checked as text, because the gate cannot see a panel (§8).
+   */
+  test("the pinned row states no geometry of its own, so its bar fills it", () => {
+    const rules = getStyleRules(composePanelStyleText()).filter((rule) => rule.selector.startsWith(".pinned"));
+
+    expect(rules.length).toBeGreaterThan(0);
+    for (const rule of rules) {
+      const properties = rule.body.split(";").map((one) => one.split(":")[0]!.trim());
+
+      expect(properties, rule.selector).not.toContain("height");
+      expect(properties, rule.selector).not.toContain("top");
+      expect(properties, rule.selector).not.toContain("bottom");
+    }
+
+    // The separation the row gave up, on the block that took it over: the rule
+    // is the block's top edge, and the air under it is the block's padding.
+    const block = assertDefined(
+      rules.find((rule) => rule.selector === ".pinned"),
+      "the pinned block has a rule of its own",
+    );
+
+    expect(block.body).toContain(`border-top: 1px dashed ${PANEL_TOKENS.border}`);
+    expect(block.body).toContain(`padding: ${PANEL_TOKENS.spaceSmall} 0 ${PANEL_TOKENS.spaceRegionAcross}`);
+  });
 });
+
+/**
+ * The stylesheet cut into selector and declarations, which is all a claim about
+ * one rule needs. Comments go first: they ship inside the sheet, so a selector
+ * read without dropping them is the prose above it.
+ */
+function getStyleRules(style: string): { selector: string; body: string }[] {
+  return style
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("}")
+    .filter((chunk) => chunk.includes("{"))
+    .map((chunk) => {
+      const cut = chunk.indexOf("{");
+
+      return { selector: chunk.slice(0, cut).trim(), body: chunk.slice(cut + 1) };
+    });
+}
 
 describe("clicking the part of a row somebody actually aims at", () => {
   /**

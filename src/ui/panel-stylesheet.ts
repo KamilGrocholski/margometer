@@ -289,10 +289,19 @@ export function composePanelStyleText(): string {
  * than solid — it is not a combatant, so it must not look like one at a glance.
  * The colour is the one for "we cannot say", which is the same thing the hatch
  * says in another channel (§9.7: never colour alone).
+ *
+ * ⚠️ **The rule belongs to the block, not to the row.** It sat on the row once,
+ * which bought the air under it by making that one row 5px taller and pushing its
+ * bar and cap down 4px — so the marking was 19px inside a 23px track and the row
+ * wore a strip of bare background no other row has. A row that says something is
+ * missing is still a row, and rows are one height. The inset is a margin so the
+ * rule is still drawn the width of the row and not the width of the panel.
  */
-.pinned { padding: 0 ${t.spaceRegionAcross} ${t.spaceRegionAcross}; }
-.pinned .row { margin-top: ${t.spaceSmall}; border-top: 1px dashed ${t.border}; height: calc(${t.rowHeight} + 5px); }
-.pinned .bar, .pinned .bar-cap { top: 4px; }
+.pinned {
+  margin: ${t.spaceSmall} ${t.spaceRegionAcross} 0;
+  padding: ${t.spaceSmall} 0 ${t.spaceRegionAcross};
+  border-top: 1px dashed ${t.border};
+}
 .pinned .bar {
   opacity: 0.4;
   mask-image: repeating-linear-gradient(-45deg, ${t.maskInk} 0 4px, transparent 4px 8px);
