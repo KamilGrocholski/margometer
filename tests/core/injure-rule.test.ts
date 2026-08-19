@@ -116,3 +116,118 @@ describe("what `+injure` announces", () => {
     expect(statistics.reading.unreadableMessages).toBe(0);
   });
 });
+
+/**
+ * Which application a tick belongs to — the join the announcement makes possible.
+ *
+ * The entry above settles what `+injure` states; this settles that the wound
+ * arriving later can be traced back to it. The help supplies the rule and it is
+ * the overwrite that makes the join a reading rather than a search: article
+ * `view,372` at the engine name `injure` (read 2026-08-18) says the damage effect
+ * does not accumulate and is overwritten by the freshest value applied **to that
+ * given opponent**, so at any moment a victim carries exactly one wound and the
+ * freshest application is whose it is.
+ *
+ * Nothing reads this yet. It is measured first because the conclusion — that a
+ * figure the panel draws as `Nieznany sprawca` has an attacker the protocol
+ * already named — is one that has to be checked before anything depends on it.
+ */
+type Wound = { attackerId: number; amount: number };
+
+/** A tick, with the wound its victim was carrying when it arrived. */
+type TickAgainstWound = { amount: number; wound: Wound | null; victimId: number };
+
+/**
+ * Per fight rather than per capture: a dump can hold more than one, and a wound
+ * cannot survive the fight it was applied in. Folded in arrival order, which is
+ * the only order the overwrite rule can be read in.
+ */
+const TICKS_AGAINST_WOUNDS: TickAgainstWound[] = CAPTURED_FIGHTS.flatMap((fight) => {
+  const ticks: TickAgainstWound[] = [];
+  const woundByVictimId = new Map<number, Wound>();
+  let fightNumber: number | null = null;
+
+  for (const call of fight.dump.calls) {
+    if (call.fightNumber !== fightNumber) {
+      woundByVictimId.clear();
+      fightNumber = call.fightNumber;
+    }
+
+    for (const message of call.protocolMessages) {
+      const { actor, target, parameters } = parseProtocolMessage(message);
+
+      for (const parameter of parameters) {
+        if (parameter.value === null) continue;
+        const amount = getIntegerFromText(parameter.value);
+        if (amount === null) continue;
+
+        // The announcement names both ends; the tick names the victim in the
+        // actor slot and nobody at the other, which is why the two are read from
+        // different sides of the same message shape.
+        if (parameter.key === ANNOUNCEMENT_KEY && actor !== null && target !== null) {
+          woundByVictimId.set(target.combatantId, {
+            attackerId: actor.combatantId,
+            amount,
+          });
+        }
+        if (parameter.key === TICK_KEY && actor !== null) {
+          ticks.push({
+            amount,
+            wound: woundByVictimId.get(actor.combatantId) ?? null,
+            victimId: actor.combatantId,
+          });
+        }
+      }
+    }
+  }
+
+  return ticks;
+});
+
+describe("which wound a tick belongs to", () => {
+  test("the captures carry ticks to check", () => {
+    expect(TICKS_AGAINST_WOUNDS.length).toBeGreaterThan(0);
+  });
+
+  test("every tick lands on a victim already carrying a wound", () => {
+    expect(TICKS_AGAINST_WOUNDS.filter(({ wound }) => wound === null)).toEqual([]);
+  });
+
+  /**
+   * The identity that would have to break before the freshest application stopped
+   * being the right one. A tick states the same figure its announcement did, so a
+   * wound the fold got wrong shows up as a figure that does not match rather than
+   * as an attribution nobody can see.
+   */
+  test("a tick states exactly what the wound it carries announced", () => {
+    const disagreeing = TICKS_AGAINST_WOUNDS.filter(
+      ({ amount, wound }) => wound !== null && wound.amount !== amount,
+    );
+    expect(disagreeing).toEqual([]);
+  });
+
+  /**
+   * ⚠️ **Without this the two tests above prove nothing about *freshest*.** On a
+   * corpus where every victim is wounded by one attacker who never varies the
+   * figure, keeping the first application, the last, or any of them agrees — and
+   * the rule would read as settled while never having been asked the only question
+   * it exists to answer.
+   */
+  test("some victim was wounded by more than one attacker", () => {
+    const attackerIdsByVictimId = new Map<number, Set<number>>();
+    for (const fight of CAPTURED_FIGHTS) {
+      for (const call of fight.dump.calls) {
+        for (const message of call.protocolMessages) {
+          const { actor, target, parameters } = parseProtocolMessage(message);
+          if (actor === null || target === null) continue;
+          if (!parameters.some((parameter) => parameter.key === ANNOUNCEMENT_KEY)) continue;
+          const attackerIds = attackerIdsByVictimId.get(target.combatantId) ?? new Set<number>();
+          attackerIds.add(actor.combatantId);
+          attackerIdsByVictimId.set(target.combatantId, attackerIds);
+        }
+      }
+    }
+    const contested = [...attackerIdsByVictimId.values()].filter((ids) => ids.size > 1);
+    expect(contested.length).toBeGreaterThan(0);
+  });
+});

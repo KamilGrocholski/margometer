@@ -499,6 +499,19 @@ declined them all. Once they were read, the residue was exact: after
 arithmetic, and reading it as damage turned that disagreement, and eighty-odd
 others, into agreements.
 
+⚠️ **Every tick has an attacker the protocol named, and the line above does not
+read it yet.** The wound arrives carrying the figure its own announcement stated,
+and the help says a victim carries one at a time: article `view,372` at the
+engine name `injure` (read 2026-08-18) states that the damage does not
+accumulate and is overwritten by the freshest value applied to that opponent. So
+the freshest `+injure` against a victim is whose wound is ticking, and the figure
+says which one it is. Measured over `tests/captured-fights/` as the set stood
+2026-08-19: every tick lands on a victim already carrying a wound, and every one
+states exactly what that wound announced — on material where a victim was wounded
+by three different attackers, which is what makes *freshest* a claim rather than
+a coincidence. Re-earned by `tests/core/injure-rule.test.ts`. `*Cause:*` says
+`nobody` because nothing here reads the join, not because there is none.
+
 ### `healall_per` — decoded
 
 Healing by a share of **maximum** health, floored, reaching every combatant on
@@ -1330,6 +1343,12 @@ The rest stay unread, and each says for itself why.
 The deep wound an attack has just applied, announced inside that attack's own
 message. It moves no health where it appears: the wound arrives on later calls
 as its own `injure` message, which is the entry above.
+
+**It is also the only place the wound's attacker is stated.** The tick names the
+victim and nobody else; this message names both ends. That the two can be joined
+is measured in the entry above and here — a tick states the figure the freshest
+announcement against its victim stated — and it is why a key counted as nothing
+is still worth reading.
 
 **It is read as a declaration and counted as nothing**, for that reason and not
 for want of understanding it: counting the announcement as damage would add the
