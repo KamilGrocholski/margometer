@@ -34,7 +34,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
-## [Niewydane]
+## [0.8.0] — 2026-08-19
 
 - **Nowość** — Leczenie całej drużyny trafia teraz do liczb. Wcześniej panel tylko
   ostrzegał, że takie leczenie się wydarzyło i że liczby są przez to zaniżone —
@@ -47,6 +47,30 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   walce nagłówek nie mówił nic. Remis widać niezależnie od tego, po której stronie
   się stało.
 
+- **Zmiana** — Wiersz „Bez sprawcy" rozdzielił się na dwa, bo mówił naraz o dwóch
+  różnych rzeczach. „Nieznany sprawca" to punkty, przy których gra nie podaje, kto
+  je zadał albo kto leczył; „Nieznany cel" — takie, przy których nie podaje, kogo
+  spotkały. Oba liczą teraz wybrany zespół i oba stoją z procentem mówiącym, jaka
+  to część tego, co widać nad nimi.
+
+- **Zmiana** — Pasek pod listą nie wrzuca już do „Bez strony" punktów, które
+  stronę mają. Trucizna, ogień czy ubytek życia bez podanego sprawcy liczą się
+  teraz tej drużynie, której dotyczą — obrażenia w poprzek stron, leczenie po
+  swojej. „Bez strony" zostaje wyłącznie na to, przy czym gra nie nazywa żadnego
+  z końców, więc w praktyce nie widać go wcale.
+
+- **Zmiana** — Okienko postaci dzieli teraz „Zadane" i „Otrzymane" na „z ciosów"
+  i „poza ciosem" — to drugie to trucizna, ogień i zranienie, czyli życie, które
+  ubywa bez ciosu. Wcześniej ta druga linijka nazywała się „bez sprawcy", a to
+  już nieprawda: sprawca części z tych punktów jest znany. Zranienie ma też
+  własny wiersz w rozbiciu na umiejętności, pod nazwą, którą daje mu gra.
+
+- **Zmiana** — Nowa walka wraca na główną listę tej zakładki, w której akurat
+  stoisz. Wcześniej, jeśli panel był wtedy wejściem w postać albo w umiejętność,
+  następna walka rysowała się od razu w tym rozbiciu — na poziomie, o który nikt
+  nie prosił. Wybrana zakładka, zespół i zwinięcie panelu zostają takie, jak je
+  ustawisz.
+
 - **Poprawka** — Panel odpowiada teraz za pierwszym razem, także w środku walki.
   Wcześniej kliknięcie w zakładkę albo w wiersz często przepadało, jeśli akurat
   w tej samej chwili z walki przychodziły nowe informacje — trzeba było klikać
@@ -58,6 +82,27 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   kursorem. Wcześniej złapanie panelu za belkę tytułową albo pociągnięcie myszką
   po zakładkach zaznaczało napisy zamiast przesunąć panel. W pozostałych
   przeglądarkach tego problemu nie było.
+
+- **Poprawka** — Regeneracja, „Dotyk anioła" i „Ostatni ratunek" trafiają wreszcie
+  do postaci, którą leczą. Gra nie podaje przy nich, kto leczy, bo leczą tego, na
+  kim stoją — a panel zostawiał te punkty w wierszu „Nieznany sprawca", choć nie
+  było tu czego zgadywać. W każdej walce, na której to sprawdzono, takie leczenie
+  się pojawiało.
+
+- **Poprawka** — Zranienie, które sączy się przez kolejne tury, trafia teraz do
+  tego, kto je zadał, i liczy się do jego „Zadane". Gra przy samym ubywaniu życia
+  nie podaje napastnika, ale podaje go cios, który to zranienie założył — panel
+  łączy jedno z drugim. Tam, gdzie nie da się tego rozstrzygnąć, punkty zostają
+  w wierszu „Nieznany sprawca".
+
+- **Poprawka** — Leczenie zapowiedziane z imienia trafia do tego, kto leczył,
+  nawet jeśli panel nie potrafi rozpoznać leczonej postaci. Wcześniej takie punkty
+  nie stały w żadnym wierszu ani w żadnej sumie, a panel pisał przy nich, że nic
+  ich nie zapowiedziało — chociaż gra zapowiedziała.
+
+- **Poprawka** — Wiersz, pod którym nie ma nic nowego, nie otwiera się już wcale.
+  Wcześniej wejście w niektóre wiersze — najczęściej w zakładkach z leczeniem —
+  pokazywało jeden wiersz powtarzający dokładnie tę liczbę, w którą się kliknęło.
 
 ## [0.7.0] — 2026-08-18
 
