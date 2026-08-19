@@ -459,8 +459,8 @@ src/
   ui/                    Renders state handed to it — §9.1.
     panel-names.ts       What the panel calls each name of the game's own.
     panel-row-key.ts     The key a drawn row carries, written and read here.
-    panel-state.ts       The state, and what a click does to it. Four pure
-                         functions.
+    panel-state.ts       The state, and what a click — or a fight opening —
+                         does to it. Five pure functions.
     panel-stylesheet.ts  The panel's stylesheet, as one string.
     panel-tokens.ts      Every colour, space and radius, and §9.7's arithmetic.
     panel-placement.ts   Where the panel sits, as a value. No DOM.

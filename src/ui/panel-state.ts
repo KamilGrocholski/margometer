@@ -1,7 +1,7 @@
 /**
- * The panel's state, and what a click does to it.
+ * The panel's state, and what a click — or a fight opening — does to it.
  *
- * Four pure functions: a state and a control in, the part of a state that
+ * Five pure functions: a state and a control in, the part of a state that
  * changes out. No page, no global, no layer — which is why they left
  * `src/userscript-entry.ts`, where they had been sitting among the wiring
  * (`docs/audits/2026-08-13-the-whole-tree-read-once.md`, F14). That file is
@@ -133,4 +133,28 @@ export function composeStateAfterBack(state: PanelState): Partial<PanelState> {
     return { focusTargetId: null, focusSkill: null };
   }
   return { focusCombatantId: null };
+}
+
+/**
+ * A new fight puts the reader back at the top of the tab they chose.
+ *
+ * The one reducer here that no gesture produces: what changed is the fight, and
+ * the levels below the ranking are the part of the state that belonged to the
+ * one that is over. A breakdown left open across the boundary is not wrong — the
+ * rows under it are the new fight's — it is somewhere nobody asked to be, and
+ * the way out of it is a right-press the reader has to already know about.
+ *
+ * ⚠️ **What is *not* returned is the decision.** `metric` and `team` stay,
+ * because a tab is a standing choice about which figure is being read rather
+ * than a level that was opened; `isCollapsed` stays because it is the window and
+ * not the view. It is the asymmetry `composeStateAfterTeam` above argues from
+ * the other end: a side filter drops the drill because it decides who is on the
+ * list, and nothing here decides that.
+ *
+ * Takes no state, which is what says it is not a step: every other reducer here
+ * has to read where the reader is, and this one goes to the same place from
+ * everywhere.
+ */
+export function composeStateAfterFightStart(): Partial<PanelState> {
+  return { focusCombatantId: null, focusTargetId: null, focusSkill: null };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   composeStateAfterBack,
+  composeStateAfterFightStart,
   composeStateAfterMetric,
   composeStateAfterTeam,
   composeStateFromRow,
@@ -8,7 +9,7 @@ import {
 import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
 
 /**
- * The four reducers, on their own.
+ * The five reducers, on their own.
  *
  * They were driven only through `composePanelView` over a captured fight in
  * `tests/game/engine-attachment.test.ts`, which is the right place to prove the
@@ -137,5 +138,42 @@ describe("going back", () => {
 
   test("from the ranking, asks for the ranking again rather than throwing", () => {
     expect(composeStateAfterBack(composeState())).toEqual({ focusCombatantId: null });
+  });
+});
+
+describe("a fight opening", () => {
+  /**
+   * Every level goes, from wherever the reader was — the levels belonged to the
+   * fight that is over. What stays is the tab and the window: neither is a level
+   * somebody opened, and a fight ending does not un-choose either.
+   */
+  test("drops every level, whatever depth the reader was at", () => {
+    expect(composeStateAfterFightStart()).toEqual({
+      focusCombatantId: null,
+      focusTargetId: null,
+      focusSkill: null,
+    });
+  });
+
+  test.each(["metric", "team", "isCollapsed"] as const)("leaves %s alone", (field) => {
+    expect(composeStateAfterFightStart()).not.toHaveProperty(field);
+  });
+
+  /**
+   * Said over a state rather than over the returned part, because the part is
+   * what the mount spreads and the state is what the panel is then drawn from.
+   */
+  test("a reader deep in a drill comes back to the tab they chose", () => {
+    const deep = composeState({
+      metric: "healed",
+      team: "enemy",
+      focusCombatantId: 1,
+      focusTargetId: 2,
+      focusSkill: { ownerId: 1, key: "x" },
+      isCollapsed: true,
+    });
+    expect({ ...deep, ...composeStateAfterFightStart() }).toEqual(
+      composeState({ metric: "healed", team: "enemy", isCollapsed: true }),
+    );
   });
 });

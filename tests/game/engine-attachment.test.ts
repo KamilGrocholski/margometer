@@ -21,7 +21,7 @@ import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
 import { EFFECT_NAMES } from "@/src/ui/panel-names.ts";
 import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
-import { PANEL_METRICS } from "@/src/ui/panel-metric.ts";
+import { PANEL_METRICS, TEAM_LABELS } from "@/src/ui/panel-metric.ts";
 import {
   composeDefaultState,
   composeStateAfterMetric,
@@ -1516,6 +1516,172 @@ describe("what a click does to the drill", () => {
     // And the screen that comes out is the combatant's breakdown, not a deep level.
     const view = composePanelView(base, next);
     expect(view.crumb?.backLabel).toBe("‹ skład");
+  });
+});
+
+/**
+ * A fight opening, and the level the reader was standing on when it did.
+ *
+ * `tests/ui/panel-state.test.ts` says what `composeStateAfterFightStart` returns;
+ * this says that a fight boundary is where it is called. That half cannot be
+ * proved from the reducer — an unused export typechecks — and it is the half a
+ * mutation removes without a single other test noticing, because every screen in
+ * this file is composed from a state built by hand rather than from the one the
+ * mount is holding.
+ *
+ * So the panel is driven the way a hand drives it: a row is pressed, the drill
+ * that opens is read off the drawn tree, and the next fight is handed in. The
+ * fake document is the poorest one that can answer — it replaces children the way
+ * a real one does, which the other fakes in this file do not, because a level
+ * that is gone is exactly what has to be visible.
+ */
+describe("a new fight and the level the reader was on", () => {
+  type TreeNode = {
+    className: string;
+    children: TreeNode[];
+    listeners: Array<{ type: string; listener: (event: Record<string, unknown>) => void }>;
+    textContent: string;
+  };
+
+  function composePageWithTree(): {
+    page: Parameters<typeof composePanelMount>[0];
+    getRoot: () => TreeNode;
+  } {
+    let root: TreeNode | null = null;
+    const composeNode = (): TreeNode => {
+      let text = "";
+      const node = {
+        className: "",
+        id: "",
+        setAttribute: (): void => {},
+        // Assigning it drops every child, which is what a browser does and what a
+        // plain property would not: the title bar sets its text after building
+        // its buttons, and a fake holding a string would keep nodes a real
+        // document has already thrown away.
+        get textContent(): string {
+          return text;
+        },
+        set textContent(next: string) {
+          text = next;
+          node.children = [];
+        },
+        title: "",
+        children: [] as TreeNode[],
+        listeners: [] as TreeNode["listeners"],
+        scrollTop: 0,
+        style: { setProperty: (): void => {} },
+        append: (...nodes: TreeNode[]): void => void node.children.push(...nodes),
+        replaceChildren: (...nodes: TreeNode[]): void => void (node.children = nodes),
+        addEventListener: (
+          type: string,
+          listener: (event: Record<string, unknown>) => void,
+        ): void => void node.listeners.push({ type, listener }),
+        setPointerCapture: (): void => {},
+        releasePointerCapture: (): void => {},
+        attachShadow: (): unknown => {
+          root = composeNode();
+          return root;
+        },
+      };
+      return node as TreeNode;
+    };
+    return {
+      page: {
+        document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
+      },
+      getRoot: () => assertDefined(root, "mounting the panel opens a shadow root"),
+    };
+  }
+
+  function getEveryNode(node: TreeNode): TreeNode[] {
+    return [node, ...node.children.flatMap(getEveryNode)];
+  }
+
+  /** By class list rather than by the whole string: a row carries three of them. */
+  function getByClass(node: TreeNode, className: string): TreeNode[] {
+    return getEveryNode(node).filter((each) => each.className.split(" ").includes(className));
+  }
+
+  /**
+   * The press the panel listens for, delegated at the node the render built.
+   *
+   * A press and not a click, for the reason `src/ui/panel-element.ts` gives: a
+   * payload landing between a press and a release detaches what was pressed, so
+   * the panel reads the first of the two.
+   */
+  function setPressOn(root: TreeNode, target: TreeNode): void {
+    const panel = assertDefined(getByClass(root, "panel")[0], "the render drew a panel");
+    for (const bound of panel.listeners) {
+      if (bound.type === "pointerdown") bound.listener({ target, button: 0 });
+    }
+  }
+
+  /**
+   * A side is named, because the tab pressed below is a side.
+   *
+   * With `ourSide` null the panel still draws `My` and `Oni` — they are what a
+   * reader asks with, not what the fight answers — but neither holds a row that
+   * opens, so a test pressing one would have nothing to drill into. The capture
+   * has sides 1 and 2, and 1 is the one the recording was taken from.
+   */
+  function composeReadingOfCapture(fightsStarted: number): FightReading {
+    const fight = assertDefined(CAPTURED_FIGHTS[0], "there is a capture to read");
+    const roster = composeRosterOfFight(fight);
+    return {
+      statistics: composeFightStatistics(decodeFight(getMessagesOfFight(fight), roster), roster),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+      fightsStarted,
+      engineReading: NOTHING_LOST,
+    };
+  }
+
+  test("puts the reader back at the top of the tab they chose", () => {
+    const { page, getRoot } = composePageWithTree();
+    const render = assertDefined(composePanelMount(page), "the panel mounts");
+
+    render(composeReadingOfCapture(1));
+    const root = getRoot();
+    expect(getByClass(root, "crumb")).toHaveLength(0);
+
+    // A tab first, so what survives the fight is something the reader chose and
+    // not the state the panel opens in.
+    const sideTab = assertDefined(
+      getByClass(root, "tab").filter((tab) => tab.textContent === TEAM_LABELS.enemy)[0],
+      "the panel draws a side tab",
+    );
+    setPressOn(root, sideTab);
+    const row = assertDefined(getByClass(root, "drillable")[0], "the ranking has a row to open");
+    setPressOn(root, row);
+    expect(getByClass(root, "crumb")).toHaveLength(1);
+
+    render(composeReadingOfCapture(2));
+
+    expect(getByClass(root, "crumb")).toHaveLength(0);
+    const chosen = getByClass(root, "tab").filter((tab) =>
+      tab.className.split(" ").includes("selected"),
+    );
+    expect(chosen.map((tab) => tab.textContent)).toContain(TEAM_LABELS.enemy);
+  });
+
+  /**
+   * The other half of the boundary, and the one a reset written without it would
+   * break: a fight redraws every few seconds, and a level that closed on every
+   * payload would be a panel nobody could read a breakdown in.
+   */
+  test("a payload of the same fight leaves the level alone", () => {
+    const { page, getRoot } = composePageWithTree();
+    const render = assertDefined(composePanelMount(page), "the panel mounts");
+
+    render(composeReadingOfCapture(1));
+    const root = getRoot();
+    setPressOn(root, assertDefined(getByClass(root, "drillable")[0], "the ranking has a row"));
+    expect(getByClass(root, "crumb")).toHaveLength(1);
+
+    render(composeReadingOfCapture(1));
+
+    expect(getByClass(root, "crumb")).toHaveLength(1);
   });
 });
 

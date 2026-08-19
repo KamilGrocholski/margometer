@@ -51,6 +51,7 @@ import {
 import {
   composeDefaultState,
   composeStateAfterBack,
+  composeStateAfterFightStart,
   composeStateAfterMetric,
   composeStateAfterTeam,
   composeStateFromRow,
@@ -723,6 +724,20 @@ export function composePanelMount(
       failuresThisFight = 0;
       fightBeingCounted = reading.fightsStarted;
       hasReportedEngineGaps = false;
+      /*
+       * The reader goes back to the top of the tab they chose, for the reason
+       * `composeStateAfterFightStart` states. Assigned rather than pushed through
+       * `setState`: that path renders, and what it measures is the `gesture`
+       * phase — how long between a click and the new screen — while this is a
+       * payload arriving. The render at the end of this callback is the one that
+       * draws it, so the reset costs no second pass.
+       *
+       * ⚠️ **It sees the fights the game announces and no others.** A fight
+       * joined in progress carries no `init`, so `fightsStarted` does not move
+       * (`src/game/battle-session.ts`) and the panel stays where it was — the
+       * same limit the accumulated figures already have.
+       */
+      state = { ...state, ...composeStateAfterFightStart() };
     }
 
     /**

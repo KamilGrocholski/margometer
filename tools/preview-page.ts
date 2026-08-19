@@ -306,8 +306,15 @@ ${introduction}
 
   // Rewinding is replaying. The first payload of every capture carries "init",
   // which resets the session, so feeding the fight again from zero lands on any
-  // earlier entry — and the panel keeps the screen and drill level it was on,
-  // which a reload would throw away.
+  // earlier entry — and the panel keeps the tab the reader chose, which a reload
+  // would throw away.
+  //
+  // ⚠️ It does not keep the drill level, and that is the add-on being right
+  // rather than the rewind being wrong: "init" is what a fight opening looks
+  // like, and a fight opening puts the reader back at the top of their tab
+  // (composeStateAfterFightStart, src/ui/panel-state.ts). Nothing in a game
+  // rewinds; here it means a step back off entry 2 closes a breakdown that was
+  // open.
   function setFedTo(target) {
     if (target < fedCount) fedCount = 0;
     while (fedCount < target && setNextFed()) { /* forward to where we were asked */ }
