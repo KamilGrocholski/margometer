@@ -11,6 +11,17 @@
  * the file `build.ts` swaps: a development build resolving its own import of the
  * production one would resolve straight back to itself.
  *
+ * ⚠️ **Nothing holds these words to anything, and one document repeats them.**
+ * Every reader imports the constant, so the compiler holds all three to the *same*
+ * name and nothing holds any of them to being *right*: a sweep renames all eight
+ * with the gate green
+ * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F13). That is
+ * accepted — the words reach a terminal and a development overlay and nothing
+ * else, so a test pinning them would have no consumer but itself. The one place
+ * they are spelled again is
+ * `docs/specs/2026-08-18-what-a-payload-costs.md`, which names all eight in prose;
+ * a rename here has to go there too, and nothing will say so.
+ *
  * ⚠️ **Two groups, and they may not be added together.** A whole contains its
  * parts — `payload` is `session` plus `capture` plus `reading` plus the drawing
  * that follows it — so a table mixing the two would put a payload past a hundred

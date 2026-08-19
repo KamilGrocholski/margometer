@@ -852,7 +852,10 @@ Damage physical absorption stopped before it reached the target.
 character is taking at that moment, capped at a share of the blow and drawn from
 a pool that runs out — which is why the figure is sometimes far below that cap.
 Production build `1785244275300`: the branch appends to a log slot and assigns
-nothing. 45 occurrences, every one with a value that reads as an integer.
+nothing. 45 occurrences on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, every one with
+a value that reads as an integer — which the `*Shape:*` line above re-earns over
+every recording since.
 
 ### `-absorbm` — decoded
 
@@ -864,7 +867,8 @@ lightning rather than physical damage, with a higher cap.
 *Help:* names `absorbm`
 
 *Evidence:* article view,372 at the engine name `absorbm` (read 2026-08-09), and
-the same branch shape in production build `1785244275300`. 27 occurrences.
+the same branch shape in production build `1785244275300`. 27 occurrences on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`.
 
 ### `-blok` — decoded
 
@@ -877,8 +881,9 @@ shield, so unlike the two above it can be absent from a combatant entirely.
 
 *Evidence:* article view,372 at the engine name `blok` (read 2026-08-09), and
 production build `1785244275300`, where the branch has the same shape as the
-absorption pair. 9 occurrences — the rarest of the seven, and the reason it is
-grouped with them rather than measured alone.
+absorption pair. 9 occurrences on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json` — too few to
+measure alone, which is why it is grouped with them.
 
 ### `+crit` — decoded
 
@@ -1024,7 +1029,8 @@ not the sentence, is what identifies it.
 *Help:* names `stun`
 
 *Evidence:* article view,372 at the engine name `stun` (read 2026-08-09), the
-shared measurement above, and production build `1785244275300`. 9 occurrences.
+shared measurement above, and production build `1785244275300`. 9 occurrences
+on `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`.
 
 ### `+freeze` — decoded
 
@@ -1036,7 +1042,8 @@ a chance to freeze, which blocks the target's turn.
 *Help:* names `freeze`
 
 *Evidence:* article view,372 at the engine name `freeze` (read 2026-08-09), and
-the shared measurement. 3 occurrences.
+the shared measurement. 3 occurrences on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`.
 
 ### `+legbon_verycrit` — decoded
 
@@ -1053,7 +1060,8 @@ either.
 
 *Evidence:* article view,372 at the engine name `verycrit` (read 2026-08-09) for
 the effect and for whose it is; the shared measurement, and production build
-`1785244275300`. 3 occurrences.
+`1785244275300`. 3 occurrences on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`.
 
 ### `+legbon_curse` — decoded
 
@@ -1098,7 +1106,8 @@ section shows the sign settling nothing in general.
 
 *Evidence:* article view,372 at the engine name `cleanse` (read 2026-08-09) for
 the effect and for its trigger, which is what places it on the struck combatant;
-the shared measurement. 5 occurrences.
+the shared measurement. 5 occurrences on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`.
 
 ### `-legbon_glare` — decoded
 
@@ -1207,9 +1216,10 @@ differ, and a reason not to identify a key by the sentence it produces.
 *Help:* names nothing of `superspell-dispel`, `dispel`, `superspell`
 
 *Evidence:* the shared measurement, and production build `1785244275300`, where
-the branch reads `msg_+dispel`. 3 occurrences. The stem that worked for the four
-above was tried here too: `dispel` is the name the client's own sentence uses,
-and the article carries neither it nor `superspell`.
+the branch reads `msg_+dispel`. 3 occurrences on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`. The stem that
+worked for the four above was tried here too: `dispel` is the name the client's
+own sentence uses, and the article carries neither it nor `superspell`.
 
 ### `+acdmg_destroyed` — decoded
 
@@ -1221,10 +1231,11 @@ armour is gone and no amount.
 
 *Help:* names nothing of `acdmg_destroyed`, `destroyed`
 
-*Evidence:* the shared measurement. 2 occurrences, both on a message that also
-carries `+acdmg`. The stem rule does not rescue this one and is worth saying so:
-stripping to `acdmg` lands on the article for the *figure* key below, which is a
-different key and would document the wrong thing.
+*Evidence:* the shared measurement. 2 occurrences on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, both on a
+message that also carries `+acdmg`. The stem rule does not rescue this one and
+is worth saying so: stripping to `acdmg` lands on the article for the *figure*
+key below, which is a different key and would document the wrong thing.
 
 ### `+acdmg` — decoded
 
@@ -1241,7 +1252,10 @@ Summed together with `dealt` it would be a total of two different things.
 is also what puts the figure on the target: the key carries `+`, and the help
 still describes it as lowering the *attacked* combatant's armour. Production
 build `1785244275300`: the branch interpolates the value into a log slot and
-assigns nothing. 41 occurrences. The shape rule for damage does not reach it —
+assigns nothing. 41 occurrences across the two recordings held when it was read,
+`tests/captured-fights/2026-08-04-tempest-lowca-vs-odyncze.json` and
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`. The shape rule
+for damage does not reach it —
 characters 1 to 3 are `acd`, not `dmg` — so nothing was reading it as a figure
 before.
 
@@ -1257,8 +1271,8 @@ figure means is the entry's job, not the type's.
 *Help:* names `resdmg`
 
 *Evidence:* article view,372 at the engine name `resdmg` (read 2026-08-09), and
-production build `1785244275300`. 61 occurrences — the most frequent of the
-nine.
+production build `1785244275300`. 61 occurrences on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`.
 
 ### `+abdest_per` — decoded
 
@@ -1275,13 +1289,15 @@ identically; nothing separates them but which pool they empty.
 
 *Shape:* 186 occurrences; on a blow; a whole number
 
-*Evidence:* both entries, measured on the group fight, the only capture carrying
-them. 18 occurrences each, every one on a blow, never apart from the other, and
-values from 6017 down to 0 — which is what rules out a percentage and is why the
-suffix is not trusted. The help documents the *effect* rather than these keys, at
-the engine name `active_absorbdest_per` (read 2026-08-09): a passive destroying a
-share of the opponent's current absorption and magical absorption, applied before
-the attack is reduced by any form of damage reduction, and unable to take
+*Evidence:* both entries, measured on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`: 18 occurrences
+each, every one on a blow, never apart from the other — which holds across every
+recording since, 186 each and not one apart (read 2026-08-19) — and values from
+6017 down to 0 — which is what rules out a percentage and is why the suffix is
+not trusted. The help documents the *effect* rather than these keys, at the
+engine name `active_absorbdest_per` (read 2026-08-09): a passive destroying a
+share of the opponent's current absorption and magical absorption, applied
+before the attack is reduced by any form of damage reduction, and unable to take
 absorption below zero. That floor is visible here — `+abmdest_per` reaches 0 and
 the protocol still reports it rather than falling silent.
 
@@ -1307,7 +1323,8 @@ is what places them outside the health arithmetic.
 ### `tspell` — decoded
 
 The skill a combatant used, by name. The announcement carries no key of the
-**damage family** — measured, none of the 197 in the captures does — but that is
+**damage family** — measured over every recording on 2026-08-19, not one
+announcement of the 2 108 carries one — but that is
 narrower than it sounds, and an earlier version of this entry said "no damage at
 all" and was wrong.
 
@@ -1410,8 +1427,9 @@ fight, which carries nine applications: the floor of that share reproduces all
 nine announced figures, among them 1638 taken → 245 announced and 658 → 98,
 where rounding instead of flooring would miss the second. Seven of the nine are
 followed by exactly three ticks of their own amount; the two that are not are
-the ones the material cuts short — call 82 announces 178, one tick follows, and
-call 91 replaces it with the smaller 157, which is the overwrite showing itself;
+the ones `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json` cuts
+short — call 82 announces 178, one tick follows, and call 91 replaces it with the
+smaller 157, which is the overwrite showing itself;
 the last application lands with the target at 0.94% and the fight ends.
 
 An earlier reading of this entry had only the negative half of it, measured on
@@ -1461,13 +1479,15 @@ in the battle switch, appending to a log slot and assigning nothing, next to the
 `poison_lowdmg_per-enemies` case; the readable development build `1781609507010`
 is where the pair was found. Both keys are in the frozen table.
 
-Measured on the group fight, the only capture carrying either: 68 occurrences
-across 26 messages, every value `10`, and the aura declared once — in a message
+Measured on `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`: 68
+occurrences across 26 messages, every value `10` **in that recording** — each
+recording states one value and the recordings since state `13` and `20` as well,
+which is as far as the material settles whose the share is (read 2026-08-19) —
+and the aura declared once, in a message
 naming a single combatant in the actor slot, carrying no damage, with the same
-value `10`, which is what joins the log report to the documented effect. All 26
-messages report damage, and in all 26 the number of occurrences equals the
-number of combatants damaged. Counting damage **elements** instead holds for
-only 19 of the 26: seven blows carry two elements and still report one
+value `10`, which is what joins the log report to the documented effect. All 26 messages report damage, and in all 26 the number of occurrences
+equals the number of combatants damaged. Counting damage **elements** instead
+holds for only 19 of the 26: seven blows carry two elements and still report one
 reduction, which is what rules that reading out. 16 of the 23 calls carrying the
 key are judged by `tests/core/health-witness.test.ts` — the other 7 are skipped
 over unrelated keys — and they agree, which is the measurement behind "already
@@ -1483,9 +1503,9 @@ removes, and they arrive in later messages.
 
 **It is read on its own announcement, and joined to no blow, because the protocol
 never joins the two.** A skill announcement carries no damage and no target
-statistic — measured, every one of
-its 43 occurrences rides a message whose only other keys are `tspell` and
-`skillId`. Attaching the share to the blows that follow is exactly the inference
+statistic — measured on `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
+every one of its 43 occurrences rides a message whose only other keys are `tspell`
+and `skillId`. Attaching the share to the blows that follow is exactly the inference
 §5 forbids: the reports already state what was destroyed, so nothing is lost by
 declining it, and crediting a later blow to this announcement would be a join we
 invented.
@@ -1506,11 +1526,16 @@ trap §7.5 records, met again here.
 *Help:* names `active_absorbdest_per`
 
 *Evidence:* the help, article view,372, at that engine name (read 2026-08-09) —
-the description quoted under `+abdest_per` above. Measured on the group fight,
-the only capture carrying it: 43 occurrences, every value `5`, every one on a
-skill announcement. Held by `tests/core/absorption-destruction-rule.test.ts`,
-which also refuses a second distinct value — the entry's claim is that the fight
-declares one share, not that the key is a constant.
+the description quoted under `+abdest_per` above. Measured on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`: 43 occurrences,
+every value `5`, every one on a skill announcement. **The share is the caster's,
+not the key's and not the fight's** — three group fights field one combatant
+declaring `8` while everybody else declares `5`
+(`2026-08-12-tempest-grupa-vs-draugr-1`, `2026-08-14-tempest-grupa-vs-draugr-2`
+and `2026-08-15-tempest-grupa-vs-draugr-2`, read 2026-08-19), which is what a
+reading off one recording would have missed. Held by
+`tests/core/absorption-destruction-rule.test.ts`, which groups by caster for that
+reason and refuses a second distinct value inside one caster's own reports.
 
 ### `combo-max` — decoded
 
@@ -1530,12 +1555,13 @@ would add a number that measures nothing that was done to anybody.
 *Evidence:* the help never documents the key on its own — article view,372 (read
 2026-08-09) mentions it only inside six other effects, each saying it spends
 accumulated combination points up to the number this parameter sets, which is
-where the reading comes from. Measured on the group fight, the only capture
-carrying it: 31 occurrences, values `1` (15), `2` (15) and `3` (1), and **every
-one on a skill announcement** — none anywhere else. Held by
-`tests/core/skill-announcement-rule.test.ts`, which also refuses a figure in the
-range the protocol's quantities occupy, so a cap and a count of points cannot be
-confused with one.
+where the reading comes from. Measured on
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`: 31 occurrences,
+values `1` (15), `2` (15) and `3` (1), and **every one on a skill announcement**
+— none anywhere else, which holds across every recording since (read
+2026-08-19). Held by `tests/core/skill-announcement-rule.test.ts`, which also
+refuses a figure in the range the protocol's quantities occupy, so a cap and a
+count of points cannot be confused with one.
 
 ### `+engback` — decoded
 
@@ -1544,11 +1570,13 @@ number, and — measured — **never arrives without a critical hit**: every
 occurrence sits beside `+crit` or beside `+of_crit`.
 
 ⚠️ **This entry said `+crit` alone, and the material had already refuted it.**
-That was true of the 13 occurrences the first capture carried and of nothing
-since: `+of_crit` without `+crit` accounts for 13 of the 78 occurrences now, and
-10 of those were sitting in the repository before the duel added 3. A count in
-prose goes stale silently (AGENTS.md §5) — but so does a universal beside it, and
-nothing here re-measures a claim about which keys a key arrives *with*.
+That was true of the 13 occurrences
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json` carried and of
+nothing since: read 2026-08-19, `+of_crit` without `+crit` accounts for 29
+occurrences, and no occurrence anywhere arrives beside neither. A count in prose
+goes stale silently (AGENTS.md §5) — this entry's own two did, twice over, which
+is why they now name what they were taken on — but so does a universal beside
+it, and nothing here re-measures a claim about which keys a key arrives *with*.
 
 **Read as a declaration and counted as nothing**, because it is not a figure
 about anybody's health: energy is a unit no total here keeps, so this cannot
@@ -1593,8 +1621,8 @@ about the key, so this is recorded as a disagreement and not resolved either way
 
 ### `+critslow_per` — decoded
 
-An attack-speed reduction applied by a critical hit. States a whole number; all
-7 occurrences ride a blow carrying `+crit`.
+An attack-speed reduction applied by a critical hit. States a whole number, and
+every occurrence rides a blow carrying `+crit` (read 2026-08-19).
 
 *Shape:* 9 occurrences; on a blow; a whole number
 
@@ -1629,7 +1657,7 @@ and it runs on every gate.
 *Help:* names `critpoison_per`
 
 *Evidence:* article view,372 (read 2026-08-09) at the engine name
-`critpoison_per`. 2 occurrences, both beside `+crit`.
+`critpoison_per`. Every occurrence sits beside `+crit` (read 2026-08-19).
 
 ### `-legbon_facade` — decoded
 
@@ -1673,8 +1701,8 @@ than skipping it (measured 2026-08-11).
 
 *Evidence:* article view,372 (read 2026-08-09) at the engine name `facade`, for
 the effect and for the value it carries; the client composes its log line with a
-`%val%` hole, production build `1786441768914`. 2 occurrences in the captures,
-values 13 and 20, on blows that carry damage.
+`%val%` hole, production build `1786441768914`. Every occurrence states `13` or
+`20` and rides a blow that carries damage (read 2026-08-19).
 
 ### `+legbon_holytouch` — decoded
 
@@ -1740,13 +1768,15 @@ carry. The help documents the effect under this name — article view,372 (read
 
 ### `+taken_dmg` — decoded
 
-⚠️ **The key that looks like damage and is not.** It rides every blow carrying
-`-dmga`, all 199 of them, and the tempting reading is that it is the raw half of
-that applied figure — the help documents `taken_dmg_per` as damage added to what
+⚠️ **The key that looks like damage and is not.** It rides nearly every blow
+carrying `-dmga` — 733 of the 742, read 2026-08-19, with nine carrying `-dmga`
+alone — and the tempting reading is that it is the raw half of that applied
+figure — the help documents `taken_dmg_per` as damage added to what
 the target takes, reduced by armour, which is exactly a raw/applied pair.
 
 The material refuses it. A raw figure cannot be smaller than its own applied
-counterpart, and this one is smaller in **31 of the 199** and never once larger.
+counterpart, and this one is smaller in **92 of the 733** and never once larger
+(read 2026-08-19).
 So it states a component of the added damage rather than the whole of it, and the
 whole is already reported as `-dmga`, which the `?dmg*` family reads. Counting it
 would land the same damage twice.
@@ -1759,8 +1789,8 @@ would land the same damage twice.
 `taken_dmg_per-all` and `taken_dmg_per-row` as effects that raise the damage
 aimed at the target by a share, computed against the attacker's damage before any
 reduction, and states that the added damage is itself reduced by armour. That is
-what makes a raw/applied split expected — and what makes the 31 readings where
-this figure is the *smaller* of the two decisive against it being the raw side.
+what makes a raw/applied split expected — and what makes the readings where this
+figure is the *smaller* of the two decisive against it being the raw side.
 
 Production build `1786514810315` agrees: `case"+taken_dmg"` shares its branch with
 `+crush`, `+critpierce` and the `critval-*` family, all composed as
@@ -1768,7 +1798,7 @@ Production build `1786514810315` agrees: `case"+taken_dmg"` shares its branch wi
 while `-dmga` carries no case at all and falls to the default branch that
 recognises damage by shape.
 
-⚠️ **What the 31 differences measure is not settled.** They are consistent with a
+⚠️ **What the differences measure is not settled.** They are consistent with a
 second source of added damage on the same blow, and the material does not say
 which. What is settled is the direction, and the direction is what decides whether
 the figure may be totalled.
@@ -1859,9 +1889,9 @@ ignores. An input to the damage on the same message, not an outcome.
 *Evidence:* article view,372 at the engine name `puncture` (read 2026-08-09) —
 `Przeszywająca skuteczność ( puncture )`, stated as ignoring armour, magic
 resistances, absorption, magic absorption, evade and block points, with the
-variable being the ignored share and the **initial value 12%**. The one occurrence
-in the material states 12, which is that initial value. Production build
-`1786514810315` composes `msg_+legbon_puncture %val%`.
+variable being the ignored share and the **initial value 12%**. Every occurrence
+in every recording states 12, which is that initial value (read 2026-08-19).
+Production build `1786514810315` composes `msg_+legbon_puncture %val%`.
 
 ⚠️ **One occurrence.** The join to the figures it affects is not stated and is not
 inferred: the entry claims the meaning, not an arithmetic.
@@ -1887,9 +1917,9 @@ granted on 2026-08-11, and `SkillUsedEvent.declared` is where they now land.
 
 What decided it was the cost of leaving them unread. An unread key means *this
 total may be low*, and the panel says so beside the figure; these eleven marked
-111 occurrences that way, none of which could lower any total. A warning that
-fires when nothing is wrong is a warning nobody reads, which would cost exactly
-the keys that do mean something.
+every occurrence they have that way, and not one of them could lower any total.
+A warning that fires when nothing is wrong is a warning nobody reads, which
+would cost exactly the keys that do mean something.
 
 Their shape is checked rather than assumed: a value that will not read as a whole
 number sends the key back to unread, so a day when one of these starts carrying
@@ -1909,7 +1939,8 @@ A reduction of the target's chance to block, granted by the announced skill.
 *Help:* names `active_decblock_per`
 
 *Evidence:* article view,372 (read 2026-08-09) names it among the effects that
-lower block chance. 26 occurrences, values 1, 2, 4 and 11. The client hides the
+lower block chance. On `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
+26 occurrences with values 1, 2, 4 and 11. The client hides the
 key: production build `1785244275300` gives it an empty `break` in the battle
 switch, beside `active_absorbdest_per`.
 
@@ -1923,7 +1954,10 @@ The same reduction, aimed at the opposing side rather than at one target — the
 *Help:* names `active_decblock_per-enemies`
 
 *Evidence:* article view,372 (read 2026-08-09), which lists it beside
-`decblock_per` and `active_decblock_per`. 11 occurrences, every value `10`.
+`decblock_per` and `active_decblock_per`. On
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 11 occurrences,
+every value `10` — and `10` is the only value any recording states (read
+2026-08-19).
 
 ### `active_block_per` — decoded
 
@@ -1935,7 +1969,9 @@ An increase to the announcer's own chance to block.
 
 *Evidence:* article view,372 (read 2026-08-09) at the engine name
 `active_block_per`, described as raising block chance and applied at the
-initiation layer. 10 occurrences, every value `15`.
+initiation layer. On `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
+10 occurrences, every value `15`. The recordings since state `11` and `20` as well,
+one value per fight (read 2026-08-19).
 
 ### `alllowdmg` — decoded
 
@@ -1947,7 +1983,10 @@ A reduction to the damage dealt by everyone on the opposing side.
 
 *Evidence:* article view,372 (read 2026-08-09) at the engine name `alllowdmg`,
 described as lowering the damage of all characters in the opposing team by the
-share the parameter sets. 11 occurrences, every value `5`.
+share the parameter sets. On
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 11 occurrences,
+every value `5` — and `5` is the only value any recording states (read
+2026-08-19).
 
 ### `allslow_per` — decoded
 
@@ -1958,7 +1997,9 @@ An attack-speed reduction applied across the opposing side.
 *Help:* names `allslow_per`
 
 *Evidence:* article view,372 (read 2026-08-09), which lists it among the effects
-combining additively to change attack speed. 5 occurrences, every value `14`.
+combining additively to change attack speed. On
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 5 occurrences,
+every value `14`. Three recordings since state `12` as well (read 2026-08-19).
 
 ### `aura-ac_per` — decoded
 
@@ -1969,7 +2010,9 @@ An aura raising armour, granted to the announcer's team.
 *Help:* names `aura-ac_per`
 
 *Evidence:* article view,372 (read 2026-08-09), which lists it among the effects
-that raise armour. 4 occurrences, every value `20`.
+that raise armour. On `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
+4 occurrences, every value `20` — and `20` is the only value any recording states
+(read 2026-08-19).
 
 ### `aura-resall` — decoded
 
@@ -1981,7 +2024,9 @@ percentage points.
 *Help:* names `aura-resall`
 
 *Evidence:* article view,372 (read 2026-08-09) at the engine name `aura-resall`.
-4 occurrences, every value `15`.
+On `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 4
+occurrences, every value `15` — and `15` is the only value any recording states
+(read 2026-08-19).
 
 ### `aura-sa_per` — decoded
 
@@ -1992,7 +2037,10 @@ An aura raising the team's attack speed.
 *Help:* names `aura-sa_per`
 
 *Evidence:* article view,372 (read 2026-08-09), which lists it among the
-attack-speed effects. 4 occurrences, every value `20`.
+attack-speed effects. On
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 4 occurrences,
+every value `20` — and `20` is the only value any recording states (read
+2026-08-19).
 
 ### `mana` — decoded
 
@@ -2004,7 +2052,9 @@ the protocol states the change, not the price as a positive number.
 *Help:* names `mana`
 
 *Evidence:* article view,372 (read 2026-08-09) documents mana as a resource some
-skills consume. 15 occurrences, all negative, 10 of them beside `energy`.
+skills consume. On `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 15
+occurrences, all negative, 10 of them beside `energy`. Every occurrence in every
+recording is negative; 22 of them sit beside `energy` (read 2026-08-19).
 
 ### `energy` — decoded
 
@@ -2016,7 +2066,11 @@ the captures states `0`, which is why nothing here claims it is ever otherwise.
 *Help:* names `energy`
 
 *Evidence:* article view,372 (read 2026-08-09) documents energy as a resource
-some skills consume. 10 occurrences, every one beside `mana`.
+some skills consume. On
+`tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 10 occurrences,
+every one beside `mana` and every one stating `0`. The recordings since carry
+negative figures too, and 22 of the 46 occurrences sit beside `mana` (read
+2026-08-19).
 
 ### `shout` — decoded
 
@@ -2044,11 +2098,11 @@ arrives later as ordinary damage, already raised.
 *Help:* names `adddmg2`
 
 *Evidence:* article view,372 at the engine name `aura-adddmg2_per-meele` (read
-2026-08-09) — the help prints this key in full, unusually — stated as raising the
-damage of every team member who begins the fight in the first position, with the
-variable being the share of physical damage raised. All 4 occurrences state 5 and
-ride an announcement carrying `shout`. Production build `1786514810315` composes
-it through the shared `skill_<key> %val%` branch.
+2026-08-09) — the help prints this key in full, unusually — stated as raising
+the damage of every team member who begins the fight in the first position, with
+the variable being the share of physical damage raised. Every occurrence states
+`5` and rides an announcement carrying `shout` (read 2026-08-19). Production
+build `1786514810315` composes it through the shared `skill_<key> %val%` branch.
 
 ### `+spell-taken_dmg-all` — decoded
 
@@ -2105,7 +2159,8 @@ what is read is that the message stated `step` about a combatant, which is all
 the protocol says.
 
 ⚠️ **A turn is not found in any key of these, or of any other** — measured over
-every capture, against the 236 keys the client branches on. Nothing here counts
+every recording on 2026-08-19, against every key the client branches on
+(`tests/frozen-protocol-keys.ts`). Nothing here counts
 turns, and the panel no longer divides by them.
 
 ### `step` — decoded

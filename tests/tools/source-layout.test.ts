@@ -268,6 +268,53 @@ describe("layers", () => {
       .filter((specifier) => !TOOLS_A_TEST_MAY_READ.includes(specifier));
     expect(reachingOut, file).toEqual([]);
   });
+
+  /**
+   * ⚠️ **The other half of the same clause, which stopped at this directory's
+   * door.** §9.1 says `tests/tools/` "names whichever tool it is about", and the
+   * check above excludes the directory outright — so inside it any test could read
+   * any tool, and one did: `tracked-text.test.ts` reads `panel-screenshots.ts`,
+   * which is neither its subject nor the reader of the material
+   * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F8).
+   *
+   * The import is the right call on §9.3's terms — the image names would otherwise
+   * be spelled twice — so what moved is the rule, and this is where the rule now
+   * has to be earned. An exception is listed **with its reason**, because a list
+   * of pairs with no reasons is a list nobody can refuse an addition to.
+   */
+  const TOOLS_A_TOOL_TEST_MAY_ALSO_READ: Record<string, readonly string[]> = {
+    // The page is the subject; the two servers only carry it.
+    "tests/tools/preview-class-names.test.ts": ["@/tools/preview-page.ts"],
+    "tests/tools/preview-server.test.ts": ["@/tools/preview-page.ts"],
+    "tests/tools/preview-site.test.ts": ["@/tools/preview-page.ts"],
+    // The image names, spelled where they are written rather than a second time.
+    "tests/tools/tracked-text.test.ts": ["@/tools/panel-screenshots.ts"],
+  };
+
+  test.each(SOURCE_FILES.filter((file) => file.startsWith("tests/tools/")))(
+    "%s reads the tool it is about, and any it names a reason for",
+    (file) => {
+      const subject = `@/tools/${file.slice("tests/tools/".length, -".test.ts".length)}.ts`;
+      const allowed = [
+        subject,
+        ...TOOLS_A_TEST_MAY_READ,
+        ...(TOOLS_A_TOOL_TEST_MAY_ALSO_READ[file] ?? []),
+      ];
+      const source = getSourceWithoutComments(file);
+      const reachingOut = [...source.matchAll(/\bfrom\s+"(@\/tools\/[^"]+)"/g)]
+        .map((match) => match[1] ?? "")
+        .filter((specifier) => !allowed.includes(specifier));
+      expect(reachingOut, file).toEqual([]);
+    },
+  );
+
+  // A pair listed for a test that has stopped reading it is an exception nobody
+  // can tell from one still needed — the direction `cited-paths.test.ts` exists
+  // for, applied to a list rather than to a path.
+  test.each(Object.entries(TOOLS_A_TOOL_TEST_MAY_ALSO_READ))("%s still reads what it lists", (file, tools) => {
+    const source = getSourceWithoutComments(file);
+    for (const tool of tools) expect(source, `${file} → ${tool}`).toContain(`from "${tool}"`);
+  });
 });
 
 /**

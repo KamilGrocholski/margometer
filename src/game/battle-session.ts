@@ -7,7 +7,8 @@
  *   - **`init` marks the start, exactly once.** Every capture carries it on call
  *     0 and never again, so it is the fight boundary.
  *   - **The roster arrives in fragments.** `w` is on nearly every call but holds
- *     between 1 and 11 of 11 warriors — a delta, not a snapshot. It merges, and
+ *     between 1 and 11 of the 11 a group fight fields — measured over every
+ *     recording on 2026-08-19 — so it is a delta, not a snapshot. It merges, and
  *     a fragment that mentions nobody takes nobody away.
  *   - **`myteam` arrives once, on that same first call.** So the side the player
  *     is on is knowable only if we were there when the fight began. Attach in the

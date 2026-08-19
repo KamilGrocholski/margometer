@@ -7,7 +7,9 @@
  * stopped being "always yes" — a row is drillable only where the level below it
  * adds a name the reader did not already have
  * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`), and a rule
- * with 556 breakdowns behind it is not one anybody can check by clicking.
+ * with every breakdown in every recording behind it is not one anybody can check
+ * by clicking — the count is what `--cases` prints, never a figure in this
+ * sentence (§5).
  *
  * Two zooms on one question. `<fight> [metric]` prints the screens of one
  * recording, marking each row; `--cases` folds every recording into the table
@@ -29,6 +31,13 @@ import {
   type PanelMetric,
 } from "@/src/ui/panel-metric.ts";
 import type { PanelReading } from "@/src/ui/panel-reading.ts";
+import {
+  composeLeafRowKey,
+  getRowKeyKind,
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
+  UNANNOUNCED_ROW_KEY,
+} from "@/src/ui/panel-row-key.ts";
 import { composeDefaultState, composeStateFromRow } from "@/src/ui/panel-state.ts";
 import { composePanelView } from "@/src/ui/panel-view.ts";
 import {
@@ -64,13 +73,27 @@ export const ROW_KINDS = [
 ] as const;
 export type RowKind = (typeof ROW_KINDS)[number];
 
+/**
+ * ⚠️ **This took the keys apart with a grammar of its own, and nothing caught
+ * the disagreement.** `src/ui/panel-row-key.ts` exists so that the divider and the
+ * word either side of it are decided in one place; this file read them back with
+ * four prefixes and two whole keys spelled here — a fourth reader of a grammar
+ * three files had already been made to share. A mutation renaming
+ * `NO_TARGET_ROW_KEY` survived the whole gate, and `docs/drill-levels.md` is
+ * written from this classification and guarded against it, so the register would
+ * have followed the drift rather than caught it
+ * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F5).
+ */
 export function getRowKind(key: string): RowKind {
-  if (key.startsWith("target:")) return "person";
-  if (key.startsWith("skill:")) return "skill";
-  if (key === "unannounced" || key === "leaf:unannounced") return "closing row";
-  if (key === "no-actor" || key === "no-target") return "missing end";
-  if (key.startsWith("source:")) return "source";
-  if (key.startsWith("leaf:")) return "leaf";
+  if (key === UNANNOUNCED_ROW_KEY || key === composeLeafRowKey(UNANNOUNCED_ROW_KEY)) {
+    return "closing row";
+  }
+  if (key === NO_ACTOR_ROW_KEY || key === NO_TARGET_ROW_KEY) return "missing end";
+  const kind = getRowKeyKind(key);
+  if (kind === "target") return "person";
+  if (kind === "skill") return "skill";
+  if (kind === "source") return "source";
+  if (kind === "leaf") return "leaf";
   return "unknown";
 }
 

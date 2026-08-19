@@ -43,6 +43,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { composeJsonText } from "@/libs/json.ts";
 import { composeIntegerText } from "@/libs/number.ts";
@@ -60,6 +61,7 @@ export class PanelScreenshotError extends MargoMeterToolError {
 }
 
 export const SCREENSHOTS_DIRECTORY = new URL("../screenshots/", import.meta.url).pathname;
+const REPOSITORY_ROOT = new URL("../", import.meta.url).pathname;
 
 /** The sidecar, and the only text in that directory — everything else is an image. */
 export const TAKEN_AT_NAME = "taken-at.json";
@@ -320,14 +322,64 @@ async function writeShot(
 /** What the directory says about itself, so a guard can ask which release it is of. */
 export type TakenAt = {
   version: string;
+  commit: string;
   fight: string;
   takenAt: string;
   images: string[];
 };
 
-export function composeTakenAt(fightName: string, takenAt: string): TakenAt {
+/**
+ * The commit the panel was photographed at.
+ *
+ * ⚠️ **The version was the only thing recorded and it is not enough.** A set was
+ * taken eleven commits past `v0.7.0`, six of them touching the panel, and every
+ * guard stayed green because `package.json` still read `0.7.0` — so the pictures
+ * in `README.md` showed a pinned row named `Bez sprawcy` for a day after the panel
+ * stopped drawing one, and a figure the wound rule had since moved
+ * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F1). A version
+ * says which release a set belongs to; a commit says which panel is in the frame,
+ * and between two releases only the second question has an answer.
+ */
+function getPanelCommit(): string {
+  const head = spawnSync("git", ["rev-parse", "--short", "HEAD"], {
+    cwd: REPOSITORY_ROOT,
+    encoding: "utf8",
+  });
+  if (head.status !== 0) {
+    throw new PanelScreenshotError("git could not say which commit this is");
+  }
+  return (head.stdout ?? "").trim();
+}
+
+/**
+ * What the shots are of has to be a commit, so the tree that draws them is one.
+ *
+ * Scoped to what the panel is made of rather than to the whole tree: a set is
+ * routinely taken in a round that is also editing `docs/` or this file, and
+ * refusing that would make the tool unusable in the round that uses it. An
+ * uncommitted `src/` or `libs/` is different — the recorded commit would then name
+ * a panel nobody else can check out.
+ */
+function assertPanelCommitted(): void {
+  const status = spawnSync("git", ["status", "--porcelain", "--", "src", "libs"], {
+    cwd: REPOSITORY_ROOT,
+    encoding: "utf8",
+  });
+  if (status.status !== 0) {
+    throw new PanelScreenshotError("git could not say whether the panel is committed");
+  }
+  if ((status.stdout ?? "").trim() !== "") {
+    throw new PanelScreenshotError(
+      "`src/` or `libs/` carries uncommitted changes; the sidecar would name a commit that " +
+        "draws a different panel from the one being photographed",
+    );
+  }
+}
+
+export function composeTakenAt(fightName: string, takenAt: string, commit: string): TakenAt {
   return {
     version: manifest.version,
+    commit,
     fight: fightName,
     takenAt,
     images: PANEL_SHOTS.map(composeShotFileName),
@@ -364,6 +416,8 @@ export async function writePanelScreenshots(options: {
 }): Promise<string[]> {
   const fight = getFightByName(options.fightName ?? null);
   const browser = getBrowserCommand(options.browser ?? null);
+  assertPanelCommitted();
+  const commit = getPanelCommit();
 
   const staging = mkdtempSync(`${tmpdir()}/margometer-shots-`);
   const server = setPreviewServer({ shouldWatch: false, appendedScript: SHOT_SCRIPT });
@@ -381,7 +435,7 @@ export async function writePanelScreenshots(options: {
     for (const name of written) {
       copyFileSync(`${staging}/${name}`, SCREENSHOTS_DIRECTORY + name);
     }
-    const takenAt = composeTakenAt(fight.name, new Date().toISOString());
+    const takenAt = composeTakenAt(fight.name, new Date().toISOString(), commit);
     writeFileSync(SCREENSHOTS_DIRECTORY + TAKEN_AT_NAME, `${composeJsonText(takenAt, 2)}\n`);
   } finally {
     server.stop();

@@ -45,6 +45,7 @@ import {
   composeLeafRowKey,
   composeSkillLeafRowKey,
   composeSkillRowKey,
+  composeSourceRowKey,
   composeTargetRowKey,
   NO_ACTOR_ROW_KEY,
   NO_TARGET_ROW_KEY,
@@ -447,7 +448,7 @@ function composeSourceEntries(
     colour: string,
   ): BreakdownEntry[] =>
     [...tokens].map(([token, amount]) => ({
-      key: `source:${token}`,
+      key: composeSourceRowKey(token),
       label: getPhrase(names, token, translate),
       profession: null,
       colour,

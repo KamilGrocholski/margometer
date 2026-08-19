@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
@@ -40,6 +41,33 @@ import {
  */
 
 const TAKEN_AT_PATH = SCREENSHOTS_DIRECTORY + TAKEN_AT_NAME;
+const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
+
+function isShallowRepository(): boolean {
+  return (
+    execFileSync("git", ["rev-parse", "--is-shallow-repository"], {
+      cwd: REPOSITORY_ROOT,
+      encoding: "utf8",
+    }).trim() === "true"
+  );
+}
+
+/**
+ * An exit status decides and the text only names what failed (§7.5): a commit
+ * this repository has never heard of and one that sits on an abandoned branch
+ * both answer the same way, which is the answer this asks for.
+ */
+function isAncestorOfHead(revision: string): boolean {
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", revision, "HEAD"], {
+      cwd: REPOSITORY_ROOT,
+      stdio: "ignore",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * The sidecar, read the way anything from outside is read.
@@ -79,6 +107,39 @@ describe("the set in screenshots/", () => {
    */
   test("the set says which release it is of, and it is this one", () => {
     expect(getTakenAtRecord()["version"]).toBe(manifest.version);
+  });
+
+  /**
+   * The other half of "for one release", and the half a version string cannot
+   * carry: **which panel is in the frame.**
+   *
+   * A version says which release a set belongs to. Between two releases the
+   * version does not move and the panel does — a set taken eleven commits past
+   * `v0.7.0` showed a row the panel had stopped drawing, with every guard green
+   * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F1). So the
+   * sidecar names a commit, the tool refuses to write one while `src/` or `libs/`
+   * is uncommitted, and this asks the repository whether that commit is really in
+   * this history.
+   *
+   * ⚠️ **Deliberately an ancestry check and not a currency one.** The strict
+   * version — the sidecar's commit against the newest commit touching `src/ui/`
+   * or `src/core/` — is the one that would have gone red the day F1 was created,
+   * and it turns every round that touches the panel into a round that must drive
+   * a browser. That is a decision about how this repository is worked in rather
+   * than a defect a guard can settle on its own, so §9.8 carries it as an
+   * obligation on the person and this carries the part a machine can hold: the
+   * set names a tree, and the tree is one somebody else can check out.
+   *
+   * `actions/checkout@v4` clones at depth 1, so the object is asked for only
+   * where history exists — `tests/tools/audit-status.test.ts`'s arrangement, for
+   * its reason.
+   */
+  test("the set says which panel is in the frame, and it is one this history has", () => {
+    const stated = getTakenAtRecord()["commit"];
+    expect(typeof stated).toBe("string");
+    expect(stated).toMatch(/^[0-9a-f]{7,40}$/);
+    if (isShallowRepository()) return;
+    expect(isAncestorOfHead(String(stated))).toBe(true);
   });
 
   test("the set names the capture it was taken on", () => {
@@ -198,12 +259,15 @@ describe("what it refuses", () => {
 
 describe("what the sidecar is composed of", () => {
   test("the version it is written at, not the one it was written from", () => {
-    expect(composeTakenAt("a-fight", "2026-08-18T00:00:00.000Z").version).toBe(manifest.version);
+    expect(composeTakenAt("a-fight", "2026-08-18T00:00:00.000Z", "abc1234").version).toBe(
+      manifest.version,
+    );
   });
 
-  test("and the capture and moment it was handed", () => {
-    const takenAt = composeTakenAt("a-fight", "2026-08-18T00:00:00.000Z");
+  test("and the capture, the moment and the commit it was handed", () => {
+    const takenAt = composeTakenAt("a-fight", "2026-08-18T00:00:00.000Z", "abc1234");
     expect(takenAt.fight).toBe("a-fight");
     expect(takenAt.takenAt).toBe("2026-08-18T00:00:00.000Z");
+    expect(takenAt.commit).toBe("abc1234");
   });
 });

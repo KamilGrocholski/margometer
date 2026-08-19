@@ -1,13 +1,88 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
+import { getValueFromJsonText } from "@/libs/json.ts";
+import { getRecordFromValue } from "@/libs/record.ts";
 import { composeJsonText } from "@/libs/json.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
-import { FightDumpFormatError, parseFightDump } from "@/tools/fight-dump-parser.ts";
+import { DUMP_FIELDS, FightDumpFormatError, parseFightDump } from "@/tools/fight-dump-parser.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 // Not an assertion inside the loop below: a loop over an empty directory is
 // green and proves nothing. This is the test that notices the material is gone.
 test("the capture directory holds material", () => {
   expect(CAPTURED_FIGHTS.length).toBeGreaterThan(0);
+});
+
+/**
+ * The field names the parser owns, against the files themselves.
+ *
+ * They are the recordings' own Polish names (§9.2) and they are now spelled in
+ * one place because a second speller had drifted into existence
+ * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F6). Spelling
+ * them once is only safe while they are the names on disk, and nothing else asks
+ * the disk — the parser refuses a file that lacks them, but a name changed on
+ * *both* sides of a rename would make it refuse every recording rather than
+ * quietly read none, and this says which of the two happened.
+ *
+ * ⚠️ **The names are written out here on purpose.** Reading them from the same
+ * constant would agree with any rename, which is the shape §9.3 asks about before
+ * a duplicate spelling in a test is collapsed.
+ */
+const CAPTURED_FIGHTS_DIRECTORY = new URL("../captured-fights/", import.meta.url).pathname;
+
+describe("the names a recording carries", () => {
+  const ON_DISK = {
+    formatVersion: "wersja",
+    capturedAt: "przy",
+    world: "swiat",
+    gameBuild: "build",
+    calls: "wpisy",
+    callIndex: "nr",
+    fightNumber: "walka",
+    protocolMessages: "komunikaty",
+    combatantsBefore: "wojownicyPrzed",
+    combatantsAfter: "wojownicyPo",
+    payload: "ladunek",
+  } as const;
+
+  test("are what the parser spells", () => {
+    expect(DUMP_FIELDS).toEqual(ON_DISK);
+  });
+
+  // The parsed shape carries our names and not the file's, so the file is read as
+  // text and asked directly — which is the boundary this is about.
+  test.each(CAPTURED_FIGHTS.map((fight) => [fight.name] as const))(
+    "%s states them at its top level, and every call states the rest",
+    (name) => {
+      const text = readFileSync(`${CAPTURED_FIGHTS_DIRECTORY}${name}.json`, "utf8");
+      const { value } = getValueFromJsonText(text);
+      const dump = getRecordFromValue(value);
+      expect(dump).not.toBeNull();
+      for (const field of [
+        ON_DISK.formatVersion,
+        ON_DISK.capturedAt,
+        ON_DISK.world,
+        ON_DISK.gameBuild,
+        ON_DISK.calls,
+      ]) {
+        expect(Object.keys(dump ?? {}), field).toContain(field);
+      }
+
+      const calls = dump?.[ON_DISK.calls];
+      expect(Array.isArray(calls)).toBe(true);
+      const [first] = Array.isArray(calls) ? calls : [];
+      const call = getRecordFromValue(first);
+      expect(call).not.toBeNull();
+      for (const field of [
+        ON_DISK.callIndex,
+        ON_DISK.protocolMessages,
+        ON_DISK.combatantsBefore,
+        ON_DISK.combatantsAfter,
+      ]) {
+        expect(Object.keys(call ?? {}), field).toContain(field);
+      }
+    },
+  );
 });
 
 describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(

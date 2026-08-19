@@ -161,6 +161,38 @@ describe("what a stated share restores", () => {
   });
 
   /**
+   * Zero is the boundary and one is beside it (§7.5). A combatant on their last
+   * point is standing: the cast reaches them, and the room below where they
+   * started is nearly the whole pool.
+   */
+  test("a side-mate on one point is reached like any other", () => {
+    const [teamHeal] = getTeamHeals(
+      ["3=100.00;2=0.01;+dmg=9999;-dmg=9999", `1=100.00;1=100.00;tspell=Fala;${TEAM_HEAL_KEY}=50`],
+      roster,
+      health,
+    );
+    expect(teamHeal?.restoredByCombatantId.get(2)).toBe(5_000);
+  });
+
+  /**
+   * The same boundary read by the other clause it decides: whether the caster has
+   * an ally at all, which is what the help's halving turns on. One point is an
+   * ally, so the cast is sized rather than refused.
+   */
+  test("and one point is enough to be the ally the cast needs", () => {
+    const teamHeals = getTeamHeals(
+      [
+        "3=100.00;4=0.00;+dmg=10000;-dmg=10000",
+        "3=100.00;2=0.01;+dmg=9999;-dmg=9999",
+        `1=100.00;1=100.00;tspell=Fala;${TEAM_HEAL_KEY}=50`,
+      ],
+      roster,
+      health,
+    );
+    expect(teamHeals.length).toBe(1);
+  });
+
+  /**
    * The help's clause no recording can reach: the effect is halved where the
    * caster has no allies. Nothing here has ever watched that happen, so the answer
    * is no figure rather than a halved one — and this is the only place that can be
@@ -244,6 +276,85 @@ describe("the health the protocol restates", () => {
     const sized = getSized(["3=100.00;2=0.00;+dmg=99999;-dmg=10000"], roster, health);
     expect(sized.filter((event) => event.kind === "unknown-message")).toEqual([]);
   });
+
+  /**
+   * ⚠️ **The test above asserts the wrong thing and was the only one here.** It
+   * reads the event list for an unknown message, which the clamp has nothing to do
+   * with, so removing the clamp guard entirely left it green — found by
+   * `bun tools/mutation-sweep.ts src/core/combatant-health.ts`
+   * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F2). What the
+   * guard is for is the **running total**, so that is what this reads.
+   *
+   * 2 loses 1 000 and the protocol then states them at nothing. Kept, the total
+   * says 9 000 and the cast fills the 1 000 of room below their entry health.
+   * Resynced to zero, the same cast restores nothing at all — the figure is short
+   * by everything the clamp hid.
+   */
+  test("and the total it keeps at zero is the one the cast is capped against", () => {
+    const [teamHeal] = getTeamHeals(
+      ["3=100.00;2=0.00;+dmg=1000;-dmg=1000", cast],
+      roster,
+      health,
+    );
+    expect(teamHeal?.restoredByCombatantId.get(2)).toBe(1000);
+  });
+
+  /**
+   * The boundary on the other side of it, and zero is the boundary (§7.5): one
+   * hundredth of a point is a health the game is stating rather than a clamp it is
+   * hiding, so it resyncs like any other.
+   */
+  test("and a statement just above nothing is a statement, not a clamp", () => {
+    const [teamHeal] = getTeamHeals(["3=100.00;2=1.00;+dmg=0;-dmg=0", cast], roster, health);
+    expect(teamHeal?.restoredByCombatantId.get(2)).toBe(5_000);
+  });
+});
+
+/**
+ * The tolerance the resync is judged against, at both of its edges.
+ *
+ * ⚠️ **Every bound here survived a mutation sweep.** The width, the arithmetic
+ * that builds it and both comparisons could each be changed with the whole gate
+ * green (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F2) — and
+ * the width is the load-bearing half of the argument that a stated percentage is a
+ * **bound** rather than a value: two decimal places of a pool in the tens of
+ * thousands quantise to about a point and a half, and overwriting the exact
+ * running total with the rounded figure every time one is stated puts readings a
+ * point wrong.
+ *
+ * A pool of 20 000 read at 75% is what makes both edges land on whole health —
+ * 14 999 and 15 001 exactly — so a combatant can stand on one. At 90% the upper
+ * edge computes to 18 000.999999999996 and no integer reaches it, which is a real
+ * asymmetry of the arithmetic and the reason these numbers are not the round ones.
+ *
+ * What the cast reveals is the running total itself: the share is far above the
+ * cap, so what a member is restored is exactly `entry − current`.
+ */
+describe("the width of the tolerance", () => {
+  const POOL = 20_000;
+  const roster = composeCombatantRoster([
+    { id: 1, name: "healer", side: 1, profession: null, level: null, maximumHealth: POOL },
+    { id: 2, name: "mate", side: 1, profession: null, level: null, maximumHealth: POOL },
+    { id: 4, name: "other", side: 1, profession: null, level: null, maximumHealth: POOL },
+    { id: 3, name: "enemy", side: 2, profession: null, level: null, maximumHealth: POOL },
+  ]);
+  const health = composeHealthOf([[1, POOL], [2, POOL], [3, POOL], [4, POOL]]);
+  const cast = `1=100.00;1=100.00;tspell=Fala;${TEAM_HEAL_KEY}=50`;
+
+  const getRestored = (blow: string): number | undefined =>
+    getTeamHeals([blow, cast], roster, health)[0]?.restoredByCombatantId.get(2);
+
+  test("a total sitting exactly on the lower edge is left alone", () => {
+    expect(getRestored("3=100.00;2=75.00;+dmg=5001;-dmg=5001")).toBe(5_001);
+  });
+
+  test("and one sitting exactly on the upper edge is left alone too", () => {
+    expect(getRestored("3=100.00;2=75.00;+dmg=4999;-dmg=4999")).toBe(4_999);
+  });
+
+  test("a total one point outside it is replaced by what the protocol states", () => {
+    expect(getRestored("3=100.00;2=75.00;+dmg=5002;-dmg=5002")).toBe(5_000);
+  });
 });
 
 describe("what a fight was entered with", () => {
@@ -266,6 +377,41 @@ describe("what a fight was entered with", () => {
     const opening = decodeFight(["2=100.00;1=80.00;+dmg=2000;-dmg=2000"], null);
     const entry = composeEntryHealthByCombatantId(new Map([[1, 8_000]]), maxima, opening);
     expect(entry.get(1)).toBe(MAXIMUM);
+  });
+
+  /**
+   * ⚠️ **The unwind above reads a snapshot; this one reads a message, and only the
+   * first had a test.** Where the opening payload carries no snapshot — which is
+   * what two of the recordings do — the anchor is the first health percentage the
+   * messages themselves state, unwound the same way. Nothing exercised that
+   * arithmetic, so its sign could be flipped with the whole gate green and two
+   * recordings' healing figures off by 98%
+   * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F2).
+   *
+   * 1 is struck for 2 000 and the same message states them at 80%, which is where
+   * they stand *after* it. Entering at 8 000 + 2 000 is the whole of the reading;
+   * entering at 8 000 − 2 000 is what the flipped sign says.
+   */
+  test("is unwound from the first statement in the messages where no snapshot names anybody", () => {
+    const opening = decodeFight(["2=100.00;1=80.00;+dmg=2000;-dmg=2000"], null);
+    const entry = composeEntryHealthByCombatantId(new Map(), maxima, opening);
+    expect(entry.get(1)).toBe(MAXIMUM);
+    // The striker is stated too, and nothing had moved for them.
+    expect(entry.get(2)).toBe(MAXIMUM);
+  });
+
+  /**
+   * A combatant the game has clamped to zero says where they are and not how much
+   * reached them, so an unwind cannot start from one — the same reading the
+   * running total is held to above, at the other end of the fight.
+   */
+  test("skips a first statement of nothing and anchors on the next one", () => {
+    const opening = decodeFight([
+      "2=100.00;1=0.00;+dmg=99999;-dmg=1000",
+      "2=100.00;1=50.00;+dmg=0;-dmg=0",
+    ], null);
+    const entry = composeEntryHealthByCombatantId(new Map(), maxima, opening);
+    expect(entry.get(1)).toBe(6_000);
   });
 
   test("refuses a combatant whose maximum nothing states", () => {

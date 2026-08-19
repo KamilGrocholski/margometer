@@ -74,6 +74,37 @@ const DATED = /\d{4}-\d\d-\d\d|`[0-9a-f]{7,40}`/;
 const SOURCE_ROOTS = ["libs", "src", "tools", "tests", "build.ts"];
 const DOCUMENTS = ["AGENTS.md", "README.md", "README.en.md", "NOTICE.md"];
 
+/**
+ * ⚠️ **The registers were outside this walk, and they are what it is for.**
+ * `docs/protocol-keys.md` is two thousand lines of measurements over the captured
+ * fights and was the one file in the repository this guard could not see — so
+ * thirty of its entries came to state a count in prose that its own machine-re-earned
+ * `*Shape:*` line contradicted, one of them inside a paragraph warning that a count
+ * in prose goes stale silently
+ * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F3).
+ *
+ * Named by the directory rather than one by one: every guarded register sits
+ * directly under `docs/`, and the two kinds of document that must **not** be swept
+ * — specs and audits — sit in subdirectories of it. That is not a coincidence to
+ * lean on quietly, it is §8's own arrangement, and it is why this is a
+ * non-recursive listing rather than a list of four names somebody has to remember
+ * to extend.
+ *
+ * A spec and an audit are **dated records**: a spec's filename carries the day the
+ * decision was taken and an audit states the commit it read, so a figure inside
+ * one is true of the tree it names and stays true. A register makes claims about
+ * the material as it stands now, which is exactly the claim that rots. Both prior
+ * audits ruled the same way on the same sentences.
+ */
+function getTrackedRegisters(): string[] {
+  return execFileSync("git", ["ls-files", "--", ":(glob)docs/*.md"], {
+    cwd: REPOSITORY_ROOT,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter((file) => file !== "");
+}
+
 function getTrackedSourceFiles(): string[] {
   return execFileSync("git", ["ls-files", ...SOURCE_ROOTS], {
     cwd: REPOSITORY_ROOT,
@@ -113,13 +144,17 @@ function getUndatedCounts(file: string): string[] {
   });
 }
 
-const FILES = [...getTrackedSourceFiles(), ...DOCUMENTS];
+const REGISTERS = getTrackedRegisters();
+const FILES = [...getTrackedSourceFiles(), ...DOCUMENTS, ...REGISTERS];
 
 describe("a measurement over the captured fights names its material", () => {
   // Either half going to zero turns the check below green without it checking
   // anything, which is what a walker that stopped walking looks like.
   test("there is prose to read, and it says something about the material", () => {
     expect(FILES.length).toBeGreaterThan(0);
+    // The registers are found by a directory listing, so an empty one would take
+    // the file this guard exists for back out of the walk without a word.
+    expect(REGISTERS.length).toBeGreaterThan(0);
     const scoped = FILES.flatMap((file) =>
       getProseSentences(file).filter((sentence) => WHOLE_MATERIAL.test(sentence)),
     );

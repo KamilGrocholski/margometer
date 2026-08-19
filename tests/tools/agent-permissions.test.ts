@@ -11,6 +11,14 @@
  * emptied, renamed or reduced to a subset of the tools that can write. Nothing
  * else in the tree reads that file, and a rule whose enforcement disappeared is
  * indistinguishable from a rule being obeyed.
+ *
+ * ⚠️ **What it holds is three tools, and a shell is not one of them.** A
+ * permission rule matches the text of a tool call; a write through a terminal is
+ * a redirect, a heredoc or `sed -i`, and a rule wide enough to catch those would
+ * also refuse `cat TODO.md`, which §5 explicitly allows. The gap is real, it is
+ * named in §5 rather than papered over here, and this file holds the half a
+ * machine can — including the sentence in §5 that says so
+ * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F7).
  */
 
 import { readFileSync } from "node:fs";
@@ -67,5 +75,16 @@ describe("the permissions this repository ships", () => {
   test("and the rules say so in words", () => {
     const rules = readFileSync(`${REPOSITORY_ROOT}AGENTS.md`, "utf8");
     expect(rules).toContain(`**Write to \`${HAND_KEPT_FILE}\`.**`);
+  });
+
+  /**
+   * The gap, held to being written down. A wall that stops short and a rule that
+   * does not say where is the pair that lets somebody read the deny list as the
+   * whole of the promise — which is how this was found in the first place, by a
+   * round doing its work through a shell.
+   */
+  test("and they say where the wall stops", () => {
+    const rules = readFileSync(`${REPOSITORY_ROOT}AGENTS.md`, "utf8");
+    expect(rules).toContain("**The wall is narrower than the rule, and the rule is what binds.**");
   });
 });

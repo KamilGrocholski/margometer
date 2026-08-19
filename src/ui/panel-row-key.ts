@@ -37,6 +37,8 @@ const TARGET = "target";
 const SKILL = "skill";
 /** The deepest rows, which are read for nothing: a leaf opens no further level. */
 const LEAF = "leaf";
+/** A row naming what a figure came *from* — a damage element, a health-loss key. */
+const SOURCE = "source";
 const DIVIDER = ":";
 
 export function composeCombatantRowKey(combatantId: number): string {
@@ -54,6 +56,43 @@ export function composeSkillRowKey(ownerId: number, key: string): string {
 /** A row at the bottom of the drill, keyed by whatever names it. */
 export function composeLeafRowKey(token: string): string {
   return `${LEAF}${DIVIDER}${token}`;
+}
+
+/**
+ * A row naming what a figure came from rather than who it reached.
+ *
+ * Here for the reason every other composer is here, and it arrived late: the
+ * breakdown wrote `` `source:${token}` `` by hand — one caller reproducing the
+ * divider and the word either side of it, which is this module's design coming
+ * apart — and `tools/drill-report.ts` read the prefix back with a third spelling
+ * of its own (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F5).
+ */
+export function composeSourceRowKey(token: string): string {
+  return `${SOURCE}${DIVIDER}${token}`;
+}
+
+/**
+ * Which of the five kinds a drawn row's key is, for a reader that classifies rows
+ * rather than acting on one.
+ *
+ * `getRowKeyMeaning` below answers what a *click* does and folds everything that
+ * opens nothing into one answer, which is right for the panel and useless to
+ * anything counting what the panel drew. Two readers rather than one, because a
+ * reader that needed both would otherwise take the keys apart itself — which is
+ * exactly what the offline report was doing.
+ */
+export type RowKeyKind = "combatant" | "target" | "skill" | "source" | "leaf" | "other";
+
+export function getRowKeyKind(key: string): RowKeyKind {
+  const divider = key.indexOf(DIVIDER);
+  if (divider < 0) return "other";
+  const kind = key.slice(0, divider);
+  if (kind === COMBATANT) return "combatant";
+  if (kind === TARGET) return "target";
+  if (kind === SKILL) return "skill";
+  if (kind === SOURCE) return "source";
+  if (kind === LEAF) return "leaf";
+  return "other";
 }
 
 /**

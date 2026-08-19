@@ -25,6 +25,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { composeIntegerText, getIntegerFromValue } from "@/libs/number.ts";
 import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
+import { DUMP_FIELDS } from "@/tools/fight-dump-parser.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
 
@@ -135,7 +136,7 @@ export function composePseudonymisedDump(dump: unknown): Pseudonymisation {
   };
 
   for (const call of getCalls(dump)) {
-    const combatants = getRecordFromValue(call["ladunek"])?.["w"];
+    const combatants = getRecordFromValue(call[DUMP_FIELDS.payload])?.["w"];
     for (const [key, raw] of Object.entries(getRecordFromValue(combatants) ?? {})) {
       const combatant = getRecordFromValue(raw);
       if (combatant === null) continue;
@@ -146,7 +147,10 @@ export function composePseudonymisedDump(dump: unknown): Pseudonymisation {
       setName(id, combatant["name"]);
     }
 
-    for (const raw of [...getArray(call["wojownicyPrzed"]), ...getArray(call["wojownicyPo"])]) {
+    for (const raw of [
+      ...getArray(call[DUMP_FIELDS.combatantsBefore]),
+      ...getArray(call[DUMP_FIELDS.combatantsAfter]),
+    ]) {
       const combatant = getRecordFromValue(raw);
       const id = combatant === null ? null : getIntegerFromValue(combatant["id"]);
       if (combatant === null || id === null) continue;
@@ -238,7 +242,7 @@ export function removeSkillDescriptions(dump: unknown): DescriptionRemoval {
   let removed = 0;
 
   for (const call of getCalls(dump)) {
-    const payload = getRecordFromValue(call["ladunek"]);
+    const payload = getRecordFromValue(call[DUMP_FIELDS.payload]);
     const abilities = payload === null ? null : payload["skills"];
     if (!Array.isArray(abilities)) continue;
 
@@ -335,13 +339,17 @@ function getCarriedCount(header: Record<string, unknown>, field: string): number
  */
 export function composeIntakePath(dump: unknown, slug: string): string {
   const header = getRecordFromValue(dump);
-  const recordedAt = header === null ? null : header["przy"];
+  const recordedAt = header === null ? null : header[DUMP_FIELDS.capturedAt];
   if (typeof recordedAt !== "string" || getMillisecondsFromIsoText(recordedAt) === null) {
-    throw new CapturedFightIntakeError("`przy` is not a timestamp — the recording says nothing about when");
+    throw new CapturedFightIntakeError(
+      `\`${DUMP_FIELDS.capturedAt}\` is not a timestamp — the recording says nothing about when`,
+    );
   }
-  const world = header?.["swiat"];
+  const world = header?.[DUMP_FIELDS.world];
   if (typeof world !== "string" || world === "") {
-    throw new CapturedFightIntakeError("`swiat` is missing — the recording says nothing about where");
+    throw new CapturedFightIntakeError(
+      `\`${DUMP_FIELDS.world}\` is missing — the recording says nothing about where`,
+    );
   }
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
     throw new CapturedFightIntakeError(`\`--name ${slug}\` is not a kebab-case slug`);
@@ -354,7 +362,7 @@ function getArray(value: unknown): unknown[] {
 }
 
 function getCalls(dump: unknown): Record<string, unknown>[] {
-  const calls = getRecordFromValue(dump)?.["wpisy"];
+  const calls = getRecordFromValue(dump)?.[DUMP_FIELDS.calls];
   return getArray(calls)
     .map(getRecordFromValue)
     .filter((call): call is Record<string, unknown> => call !== null);

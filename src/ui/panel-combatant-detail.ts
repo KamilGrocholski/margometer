@@ -70,7 +70,8 @@ const GESTURE_NOTES: Record<PanelDetailPlace, string> = {
  * The counters line: how somebody fought, in one sentence.
  *
  * ⚠️ **Still no dodges, and the reason has changed.** It used to be that the
- * decoder had no entry for `-evade`; it has one now, and the captures carry three.
+ * decoder had no entry for `-evade`; it has one now, and eight occurrences ride
+ * the recordings (read 2026-08-19).
  * What stops it becoming `uniki 3` here is whose it would be: every flag is
  * counted against **whoever swung**, so on a row it means blows that combatant
  * threw and somebody dodged — not times they dodged. Under that label it would be

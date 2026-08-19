@@ -2581,8 +2581,10 @@ describe("a target the fight cannot name", () => {
  *
  * ⚠️ **Written out rather than derived.** A test that computed the expected row
  * from the same rule the panel uses would agree with it whatever the rule became
- * (§7.5). These are the twelve fights the protocol can produce, each with the
- * answer somebody decided.
+ * (§7.5). These are the fights the protocol can produce, each with the answer
+ * somebody decided — and the count is the list below, never a number in this
+ * sentence: it read `twelve` over sixteen of them for three rounds
+ * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F4).
  *
  * The roster is two of ours, one of theirs, and an id it does not carry at all.
  */

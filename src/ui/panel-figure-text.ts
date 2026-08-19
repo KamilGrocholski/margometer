@@ -20,8 +20,10 @@ export function composeFigureText(value: number): string {
  * ⚠️ **A figure that is there must not read as a figure that is not** (§9.6). A
  * share under half a point rounds to `0%`, which on a panel that keeps *zero* and
  * *could not be read* apart is the third thing neither of them means: something
- * happened, and it was too small to round to. Measured over the captures as they
- * stand: eleven ranked rows printed `0%` beside a figure — 1 741 dealt on
+ * happened, and it was too small to round to. Measured over every recording on
+ * 2026-08-19, across the four metrics and the three side tabs: 45 ranked rows
+ * print this floor, and without it every one of them would read `0%` beside a
+ * figure — 1 741 dealt on
  * `tests/captured-fights/2026-08-15-tempest-grupa-vs-draugr-1.json`, 966 taken on
  * `2026-08-15-tempest-grupa-vs-hildur-2.json` — and the pinned row joined them
  * the moment its figure narrowed to one side.

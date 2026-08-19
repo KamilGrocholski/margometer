@@ -21,7 +21,9 @@ import {
   composeLeafRowKey,
   composeSkillLeafRowKey,
   composeSkillRowKey,
+  composeSourceRowKey,
   composeTargetRowKey,
+  getRowKeyKind,
   getRowKeyMeaning,
   NO_ACTOR_ROW_KEY,
   NO_TARGET_ROW_KEY,
@@ -131,5 +133,50 @@ describe("a row key that opens nothing", () => {
     for (const key of ["", ":", "combatant:", "combatant:x", "target:x", "skill:x:y", "what"]) {
       expect(getRowKeyMeaning(key), key).toEqual({ opens: "nothing" });
     }
+  });
+
+  /**
+   * The row naming what a figure came *from*, which the breakdown used to compose
+   * by hand — one caller reproducing the divider and the word either side of it
+   * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F5).
+   *
+   * It opens nothing, like every other leaf of that level, and that is the half
+   * worth checking here: a caller reading the prefix would have had to decide what
+   * an unknown one meant, and this module is where that is decided once.
+   */
+  test("a row named for what a figure came from", () => {
+    expect(getRowKeyMeaning(composeSourceRowKey("dmgf"))).toEqual({ opens: "nothing" });
+    expect(composeSourceRowKey("dmgf")).not.toBe(composeLeafRowKey("dmgf"));
+  });
+});
+
+/**
+ * The other question a key can be asked, and the reason there are two readers.
+ *
+ * `getRowKeyMeaning` answers what a *click* does, so everything that opens
+ * nothing is one answer — right for the panel, useless to anything counting what
+ * the panel drew. `tools/drill-report.ts` needed the second question and was
+ * answering it with prefixes of its own until this existed.
+ */
+describe("which kind of row a key names", () => {
+  test.each([
+    [composeCombatantRowKey(7), "combatant"],
+    [composeTargetRowKey(7), "target"],
+    [composeSkillRowKey(7, "78"), "skill"],
+    [composeSourceRowKey("dmgf"), "source"],
+    [composeLeafRowKey("7"), "leaf"],
+    [composeSkillLeafRowKey("Name"), "leaf"],
+    [BACK_ROW_KEY, "other"],
+    [NO_ACTOR_ROW_KEY, "other"],
+    [NO_TARGET_ROW_KEY, "other"],
+    [UNANNOUNCED_ROW_KEY, "other"],
+    ["what", "other"],
+    ["", "other"],
+    // A key that *has* a divider and a word nobody here wrote, which is the only
+    // way to reach the answer past the one for a key with no divider at all —
+    // and the case the sweep found nothing standing on.
+    ["wat:1", "other"],
+  ] as const)("%s is %s", (key, kind) => {
+    expect(getRowKeyKind(key)).toBe(kind);
   });
 });

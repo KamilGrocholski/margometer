@@ -19,6 +19,16 @@
  * uncommitted work was in the file. On top of that the sweep refuses to start
  * against a dirty tree, so the only thing it can ever be holding is a commit.
  *
+ * ⚠️ **A mutation inside a type can never be killed here, and the report does not
+ * say so.** What runs per mutant is `bun test`, not the gate: `tsc` is not in it,
+ * because a typecheck per mutant would cost more than the run and a mutant that
+ * fails to compile is not a behaviour anybody could have tested. The consequence
+ * is that every string inside a type alias survives by construction — eleven of
+ * `src/ui/panel-row-key.ts`'s eighteen survivors are its two unions, read
+ * 2026-08-19 — so a survivor list is read with the file open, and a `(text)`
+ * mutation on a `type` line is nothing to act on
+ * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F13).
+ *
  * ⚠️ **A mutant killed only by a guard of shape is barely killed.**
  * `tests/tools/source-layout.test.ts` and its neighbours read source as text, so
  * they fail on changes no behaviour depends on. Reported apart from the rest,

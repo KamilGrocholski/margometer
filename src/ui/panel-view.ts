@@ -438,8 +438,9 @@ function getFigureWithNoActorByCombatant(
  * the striker resolved, `healedByHealerId` only where an announcement named a
  * healer (`src/core/fight-statistics.ts`).
  *
- * ⚠️ **Zero on every capture, and that is the reason it is here.** All seventeen
- * resolve every name, so this hole is invisible in the material — and under
+ * ⚠️ **Zero on every capture, and that is the reason it is here.** Every
+ * recording resolves every name (read 2026-08-19), so this hole is invisible in
+ * the material — and under
  * `Leczenie dane` the points it stands for were on no row and in no total at all
  * before it existed. A fight joined on a name the roster cannot tell apart is
  * where it is not zero.

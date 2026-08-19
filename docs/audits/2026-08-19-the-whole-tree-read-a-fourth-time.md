@@ -1,6 +1,6 @@
 # The whole tree, read a fourth time
 
-Status: open
+Status: closed
 Read at: fee5870
 
 The fourth audit, and the first since the tree roughly doubled. The third one
@@ -139,7 +139,7 @@ true and is why nothing is red. A reader on `develop` is looking at a panel that
 cannot be produced.
 
 *Where:* `screenshots/taken-at.json:2`
-*Closes:* open
+*Closes:* guard `tests/tools/panel-screenshots.test.ts`
 
 ### F2 — the unwind's sign can be flipped and the whole gate stays green
 
@@ -170,8 +170,19 @@ restraint and not the correction, and points at
 `tests/core/combatant-health.test.ts` for the rest; that is the half this
 measures, and the answer is that the hand-built fights do not reach it.
 
+⚠️ **What the close reached, and what it left.** Six tests went in — the unwind
+from a statement rather than a snapshot, the clamp at both ends of the fight, the
+tolerance on both of its edges, and a combatant on one point read as standing —
+and each was watched failing against the line it covers. The sweep run again puts
+the file at 21 survivors from 116, down from 36. What is left is one cluster: the
+`===` and `||` branches of `getHealthReadingOfEvent`, where each event kind states
+which slot moved health and which stated it. Nothing there is unread — every one
+is exercised through some fight — but nothing distinguishes the kinds from each
+other, which is a round of its own and is written here rather than left for a
+fifth audit to rediscover.
+
 *Where:* `src/core/combatant-health.ts:277`
-*Closes:* open
+*Closes:* guard `tests/core/combatant-health.test.ts`
 
 ### F3 — the register of measurements is the one file the measurement guard does not read
 
@@ -216,8 +227,21 @@ reading 233. Three generations of this class have now been filed
 written for it, and the file most made of the figures it guards was left outside
 its walk.
 
+⚠️ **What the close found, which the reading had not.** Naming the recording each
+figure was taken on made every one of them true again — every count above is
+exactly what `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`
+carries, so nothing had to be re-measured to be corrected. What did have to be
+corrected is four **universals** the widening exposed, and those are claims rather
+than counts: `active_absorbdest_per` reads `every value 5` where three later
+recordings state `8` beside it, `active_block_per` reads `every value 15` against
+`11` and `20`, `allslow_per` reads `every value 14` against `12`, and `energy`
+reads `every one beside mana` where 22 of its 46 occurrences are. `+taken_dmg`
+carried a fifth: `it rides every blow carrying -dmga, all 199 of them`, where nine
+blows carry `-dmga` alone. Each is now stated against the recording it was
+measured on, with what the wider material shows beside it.
+
 *Where:* `docs/protocol-keys.md:855`
-*Closes:* open
+*Closes:* guard `tests/tools/measured-material.test.ts`
 
 ### F4 — a count written in words is a count the guard cannot see, and one of them is false
 
@@ -250,7 +274,7 @@ can produce" above a list of **sixteen**, and that list is the machine-checkable
 half of `docs/half-named-figures.md`.
 
 *Where:* `src/ui/panel-combatant-detail.ts:73`
-*Closes:* open
+*Closes:* commit
 
 ### F5 — the row-key grammar is spelled again in a tool, and a mutant proves nothing notices
 
@@ -275,7 +299,7 @@ This is §9.3's rule about a name spelled twice, with the failure it names: the
 panel still draws, and the gate still passes.
 
 *Where:* `tools/drill-report.ts:71`
-*Closes:* open
+*Closes:* commit
 
 ### F6 — the captures' own field names are spelled in a second tool, and the quietest drift makes the redaction gate a no-op
 
@@ -302,7 +326,7 @@ capture format's own names are ours, they are shared by exactly two files, and
 guard holds them to one vocabulary.
 
 *Where:* `tools/captured-fight-intake.ts:357`
-*Closes:* open
+*Closes:* commit
 
 ### F7 — the wall in front of `TODO.md` does not stand in front of the tool the work is done with
 
@@ -323,7 +347,7 @@ enforcement is narrower than the rule by exactly the tool most likely to be
 reached for, and that the guard re-earns the narrow version.
 
 *Where:* `.claude/settings.json:3`
-*Closes:* open
+*Closes:* rule §5
 
 ### F8 — §9.1's clause about which tools a test may read stops at the door of `tests/tools/`
 
@@ -344,7 +368,7 @@ Rule and guard disagree, in the direction that lets the tree do more than the
 rule permits. Which of the two moves is the closing round's call.
 
 *Where:* `tests/tools/tracked-text.test.ts:5`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F9 — §2 says the measuring seam knows no layer; half of it imports the panel
 
@@ -365,7 +389,7 @@ Nothing guards §2's prose — `tests/tools/source-layout.test.ts` holds four
 layers by allowlist and the root of `src/` is in none of them.
 
 *Where:* `src/userscript-instrument-development.ts:25`
-*Closes:* open
+*Closes:* rule §2
 
 ### F10 — §9.1 says the panel never computes a statistic, and six of them live in `src/ui/`
 
@@ -386,7 +410,7 @@ comparing the two has to decide which is binding — which is the same fault as 
 guard that holds less than its rule, told from the other end.
 
 *Where:* `src/ui/panel-reading.ts:125`
-*Closes:* open
+*Closes:* rule §9.1
 
 ### F11 — §3 names three places English may be dropped, and ten files drop it
 
@@ -410,7 +434,7 @@ on a technicality (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`,
 F4) without widening §3 itself.
 
 *Where:* `AGENTS.md:81`
-*Closes:* open
+*Closes:* rule §3
 
 ### F12 — §8 puts `settings.json` beside the verify skill, and it is two directories away
 
@@ -432,7 +456,7 @@ described as sitting beside the verify skill, and the round that closed it moved
 the sentence to a file that also does not sit there.
 
 *Where:* `AGENTS.md:376`
-*Closes:* open
+*Closes:* commit
 
 ### F13 — two modules whose whole purpose is one spelling have nothing pinning the spelling
 
@@ -454,7 +478,16 @@ were never asked it: a constant imported by everything that reads it is held by
 the compiler to be *the same*, and by nothing at all to be *right*.
 
 *Where:* `src/cost-phases.ts:21`
-*Closes:* open
+⚠️ **Two of the eighteen were real and are closed; the rest are the tool.** Read
+again on 2026-08-19, eleven of `src/ui/panel-row-key.ts`'s survivors are strings
+inside its two **type** unions, which no mutation sweep here can kill — it runs
+`bun test` and not the gate, so nothing typechecks a mutant. Three more are the
+`< 0` boundaries, where a divider at position 0 answers `nothing` either way. What
+was left is one uncovered branch — the answer for a key that *has* a divider and a
+word nobody here wrote — and `tools/mutation-sweep.ts` now says in its own
+docblock what a `(text)` survivor on a `type` line means.
+
+*Closes:* declined — a constant every reader imports is one the compiler already holds to be the same, and the words reach a terminal and a development overlay and nothing else, so a test pinning them would have no consumer but itself; the survivors that something outside could read were the row keys, which F5 closes. The one place the phase names are spelled again is `docs/specs/2026-08-18-what-a-payload-costs.md`, and `src/cost-phases.ts` now says so.
 
 ## Looked at and clean
 

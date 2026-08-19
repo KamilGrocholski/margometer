@@ -49,10 +49,14 @@ git history before that point does not describe how things are done here.
 | `[process]` | Commits, validation, workflow | `.github/workflows/`, `.claude/skills/verify/` |
 
 Untagged prose is context and does not bind. The files directly in `src/` are
-`[any]`: the entry point may know every layer, while the version constant, the
-phase names and the two halves of the measuring seam know none. A test is bound
-by the scope of the thing it tests. Keep this table true — a scope whose path is
-gone is the first sign the rules have drifted.
+`[any]`: the entry point may know every layer, and the version constant, the
+phase names and the **production** half of the measuring seam know none. The
+development half knows one — it imports `src/ui/cost-overlay.ts`, because the
+overlay is where a development build draws what it measured, and the swap is what
+keeps that module out of the file people install
+(`src/userscript-instrument.ts`). A test is bound by the scope of the thing it
+tests. Keep this table true — a scope whose path is gone is the first sign the
+rules have drifted.
 
 ---
 
@@ -77,11 +81,17 @@ gone is the first sign the rules have drifted.
 - `[ALWAYS] [core]` **Make unknown input loud.** An unrecognised protocol key
   becomes an explicit unknown event and surfaces in the panel.
 - `[ALWAYS] [any]` **Write English** — code, comments, tests, docs, commits. Two
-  exceptions: field names inside captured material (§9.2), and the text a player
-  reads, which is Polish — the panel, `CHANGELOG.md`, and `README.md`, whose
-  English is `README.en.md` beside it. Identifiers around a Polish string stay English, and a
-  Polish sentence never carries our vocabulary or a key of the game's: a player
-  is told what cannot be known, not why our reader cannot know it.
+  exceptions: field names inside captured material (§9.2), and **the text a
+  person who plays the game reads**, which is Polish wherever it is composed —
+  the panel, `CHANGELOG.md`, `README.md` (whose English is `README.en.md` beside
+  it), the release notes in `tools/changelog.ts` and the published preview in
+  `tools/preview-site.ts`. The list of files is not this rule's to keep: it is
+  `tests/tools/source-layout.test.ts`'s, which admits one at a time and argues
+  each. This sentence named three places while the guard admitted ten
+  (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F11).
+  Identifiers around a Polish string stay English, and a Polish sentence never
+  carries our vocabulary or a key of the game's: a player is told what cannot be
+  known, not why our reader cannot know it.
 - `[ALWAYS] [process]` **Leave the gate green** — every commit on its own,
   including when one change is split across several.
 - `[ALWAYS] [process]` **Work lands on `develop`; `main` is the latest release.**
@@ -126,8 +136,18 @@ gone is the first sign the rules have drifted.
   test counts, coverage, line counts. Measure at read time instead.
 - `[NEVER] [any]` **Write to `TODO.md`.** The maintainer's hand-kept list: no
   edit, no reformat, no tick, no reordering, by any tool. Reading it is fine and
-  git tracks it. What a round learns goes where §7.5 puts it. The tool calls are
-  denied in `.claude/settings.json`; its commit type is §7.2's.
+  git tracks it. What a round learns goes where §7.5 puts it. Its commit type is
+  §7.2's.
+
+  ⚠️ **The wall is narrower than the rule, and the rule is what binds.**
+  `.claude/settings.json` denies `Edit`, `Write` and `NotebookEdit` against the
+  file, and `tests/tools/agent-permissions.test.ts` re-earns those three. A
+  permission list matches a **tool call**, and a shell writes with a redirect, a
+  heredoc or `sed -i` — text no list of that shape can recognise without also
+  refusing every command that merely mentions the file, `cat` included. So the
+  shell is forbidden here and nowhere else
+  (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F7). A round
+  working through a terminal is the case this sentence exists for.
 
 ---
 
@@ -371,10 +391,12 @@ tsconfig.userscript.json
 .github/workflows/ The gate on push; a `v*` tag into a release with the built
                    userscript attached, refused unless the tag sits on `main`;
                    the preview site published from `main`, which is the release.
+.claude/settings.json
+                   Denies the tool calls that would write to the maintainer's
+                   list — the three that edit a file, never the shell (§5).
 .claude/skills/verify/
                    How to drive the add-on in a browser and read what the panel
-                   drew. Not a gate. `settings.json` beside it denies the tool
-                   calls that would write to the maintainer's list (§5).
+                   drew. Not a gate.
 .cache/            Game client sources, fetched on demand. NOT tracked — §7.6.
 screenshots/       The panel as pictures, for the version in package.json and no
                    other. Written only by `tools/panel-screenshots.ts` — §9.8.
@@ -541,14 +563,26 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
   `localStorage`, timers, or knowledge that a game engine exists.
 - `[ALWAYS] [game]` **All contact with the game client lives in `game/`.**
 - `[ALWAYS] [tools]` **A tool may read `tests/`; a test may read a tool only as
-  its subject or as the reader of the material.** `tests/tools/` names whichever
-  tool it is about; everywhere else under `tests/` exactly two may be read —
-  `tools/fight-dump-parser.ts`, so the live and offline paths cannot disagree
-  about what a capture says, and `tools/margometer-tool-error.ts`, where the two
-  hierarchies are proved disjoint (§9.5).
+  its subject or as the reader of the material.** Everywhere under `tests/`
+  exactly two may be read — `tools/fight-dump-parser.ts`, so the live and offline
+  paths cannot disagree about what a capture says, and
+  `tools/margometer-tool-error.ts`, where the two hierarchies are proved disjoint
+  (§9.5). Under `tests/tools/` a test also reads **the tool it is named for**, and
+  any other only as a listed pair carrying its reason — the list is in
+  `tests/tools/source-layout.test.ts` and each entry says why that test may not
+  spell that tool's names a second time. The clause used to end at "names
+  whichever tool it is about", which the guard held by not looking at the
+  directory at all
+  (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F8).
 - `[ALWAYS] [any]` **`src/userscript-version.ts` is readable from any layer.**
 - `[ALWAYS] [ui]` **The panel renders state handed to it.** It never computes a
-  statistic itself.
+  statistic **across combatants** — no re-aggregating the fight, no deriving one
+  row's figure from another's. Folding a row's own maps into the cut a screen
+  shows is the panel's work and lives in `src/ui/panel-reading.ts`: what a
+  combatant took less what could be charged to somebody, per element. The clause
+  read as an absolute while six such folds sat in `src/ui/`, and the qualification
+  lived in one docblock rather than here
+  (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F10).
 - Prefer a narrow module. A file needing a table of contents needs splitting.
 
 ### 9.2 Data
@@ -914,17 +948,31 @@ replaced, never added to
 (`docs/specs/2026-08-18-a-picture-of-the-panel.md`).
 
 Most of it is held by machines: `tests/tools/panel-screenshots.test.ts` puts the
-sidecar's version against `package.json` and the directory against the sidecar,
-so a release cannot ship a set from the release before it, and
+sidecar's version against `package.json`, its **commit** against this history and
+the directory against the sidecar, so a release cannot ship a set from the release
+before it and a set cannot name a tree nobody can check out; the tool refuses to
+shoot while `src/` or `libs/` carries uncommitted changes, so the commit it
+records is one that draws the panel in the frame.
 `tests/tools/tracked-text.test.ts` exempts the images by name so the sidecar
 beside them stays text anyone can read.
 
-One thing no machine here can check, and it is the one that was got wrong:
+Two things no machine here checks, and both were got wrong:
 
 - `[ALWAYS] [any]` **Open every picture before it is committed.** The guards prove
   the set is current, complete and named — never that a panel is in the frame. A
   driver that clicked nothing produced four green shots of the same screen, and
   the only symptom was three files of identical size.
+- `[ALWAYS] [any]` **Retake the set when the panel changes, not only when the
+  version does.** A version says which release a set belongs to and moves once per
+  release; the panel moves between them. A set taken eleven commits past `v0.7.0`
+  showed a pinned row named `Bez sprawcy`, a figure the wound rule had since moved
+  and a warning the sizing had since stopped — all four pictures, in `README.md`,
+  with every guard green because `package.json` still read `0.7.0`
+  (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F1). The
+  sidecar's commit is what makes that readable rather than invisible; it is
+  deliberately **not** guarded as currency, because a gate demanding a browser run
+  from every round that touches `src/ui/` is a decision about how this repository
+  is worked in, and `[ASK]` rather than a detail.
 - `[NEVER] [any]` **Photograph a state the panel cannot be in.** The frame is a
   crop of a screen, not a screen: the 66vh cap is lifted for the picture because
   at 1080p it does not bind on any of these, and that is the whole licence. A
