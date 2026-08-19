@@ -42,6 +42,14 @@ anybody can point at for that except a tag.
    which fail the release rather than publishing something that lies about
    itself.
 
+   ⚠️ **Three pushes, and the wait is between the second and the third.**
+   `develop`, then `main` once the run that first push started is green, then
+   the tag. And `main` is fast-forwarded to the **release commit**, not to
+   whatever `develop` has grown since — which is what keeps point 1's identity
+   true when work carries on while a release is being cut. Both halves of that
+   sentence were paid for at `v0.8.0` and are written out under *What the first
+   release after this cost*.
+
 3. **The preview publishes from `main`, which now means the release.** The
    trigger does not change; its meaning does. That is the point of the whole
    arrangement: the link in README.md stops being a demo of unreleased work and
@@ -59,6 +67,12 @@ anybody can point at for that except a tag.
    That last one costs nothing to arrange: `check.yml` runs on every branch, so
    a commit on `develop` already carries a green run by the time `main` is
    fast-forwarded onto it, and a commit that never passed cannot arrive.
+
+   ⚠️ **"Already carries a green run" is true of the commit and not of the
+   clock.** The run has to have *finished*, and at `v0.8.0` the two pushes were
+   one command apart, so `check` was still going and the protection refused
+   `main` — correctly, and with a message that says so. The refusal costs
+   nothing by itself. What it costs is the step after it.
 
    Requiring a pull request instead is the shape this was expected to take, and
    it is rejected below for a mechanical reason — it forbids the fast-forward
@@ -96,6 +110,38 @@ for as long as the next version took. The round that applied it therefore cut
 the tag, then `develop` branched off the tagged commit — which is the moment the
 invariant costs nothing, because at a release `main` already is what this asks it
 to be.
+
+## What the first release after this cost
+
+`v0.8.0`, 2026-08-19. `develop` was pushed and `main` straight after it, while
+the `check` run that first push had started was still going, so branch
+protection refused `main`: `Required status check "check" is in progress`. The
+tag went out anyway. `release.yml` fetched `origin/main` — still the commit
+`v0.7.0` names — found the tag outside it and stopped on its own first step,
+`v0.8.0 is not on main — push main first, then the tag`. Point 6 doing exactly
+what it is for.
+
+What point 6 does not do is recover. `release.yml` triggers on a tag push and on
+nothing else, so pushing `main` a minute later re-ran nothing: the version was
+tagged, `main` contained it, `package.json` agreed with it, the gate was green —
+and the releases page still had 0.7.0 at the top with no run left to notice.
+**A release that never happened looks exactly like one nobody asked for**, which
+is why this is written down rather than remembered.
+
+Two recoveries, and they are not equivalent here. Re-running the failed workflow
+run is the smaller one and it works, because the guard re-fetches `origin/main`.
+Making the tag arrive again — deleting it on the remote and pushing it once
+more, safe precisely while no release was ever published from it — is the one
+this model asks for when the fast-forward has also carried commits that landed
+after the release commit. That is what happened: a `todo:` commit sat on top, so
+`main`'s head was no longer the tagged commit and point 1 was quietly false.
+Moving the tag onto the head repairs the release and the invariant in one push,
+and rewinding `main` instead is not available — point 5's protection refuses a
+force-push, as it should.
+
+AGENTS.md §3 carries the two sentences that survive this: push in three takts
+with the wait in the middle, and fast-forward `main` to the release commit
+rather than to the tip of `develop`.
 
 ## Rejected alternatives
 

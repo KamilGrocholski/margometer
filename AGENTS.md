@@ -100,6 +100,20 @@ rules have drifted.
   the file somebody installs be one build — README.md offers the page as what a
   release ships, and the offer is only true while this holds
   (`docs/specs/2026-08-18-main-is-what-you-can-install.md`).
+- `[ALWAYS] [process]` **A release is pushed in three takts, and the wait is
+  between the second and the third:** `develop`, then `main` once the `check` run
+  that push started is **green**, then the tag. `main` is fast-forwarded to the
+  **release commit** and not to whatever `develop` has grown since, which is what
+  keeps the rule above true. The wait is not politeness: branch protection refuses
+  `main` while the run is going, and that refusal is cheap — the tag going out
+  first is not. `release.yml` fires on a tag push and on nothing else, so a tag
+  arriving before `main` is refused by its own first step, and the later `main`
+  push re-runs nothing: the version is tagged, the tree is right, and there is no
+  release, which looks exactly like a release nobody asked for. Recover by making
+  the tag arrive again — delete it on the remote and push it once more, onto the
+  head of `main` where `main` has moved past it — safe exactly while no release
+  was published from it. Paid for at `v0.8.0` on 2026-08-19
+  (`docs/specs/2026-08-18-main-is-what-you-can-install.md`).
 
 ---
 
