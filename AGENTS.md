@@ -163,6 +163,7 @@ from (§9.5).
 | `tools/protocol-key-table.ts` | *Which protocol keys does the client know?* `freeze` writes the frozen table. |
 | `tools/decoding-status.ts` | *How much of the protocol do we read?* On demand — never quoted in prose (§5). |
 | `tools/fight-report.ts` | *What would the panel show for this fight?* The per-combatant table over each capture. |
+| `tools/drill-report.ts` | *What does a row open onto, and which rows open nothing?* `--cases` folds every capture into `docs/drill-levels.md`'s table. |
 | `tools/payload-cost.ts` | *What does one payload cost, and where does the time go?* `bun run cost [runs]`. No DOM — the arithmetic under the panel, not the drawing of it. |
 | `tools/help-article.ts` | *What does the game's documentation say?* `fetch`, `search` (non-zero on silence), `freeze`. §7.6. |
 | `tools/captured-fight-intake.ts` | *Put this recording in the repository.* Substitutes nicknames, strips ability descriptions, refuses what it cannot redact. §9.2. |
@@ -389,6 +390,10 @@ docs/              A guarded register, a dated spec, a design a spec names, or a
                    Every shape the protocol can send where it names one end and
                    not the other, and what the panel draws for it. Read off the
                    panel and guarded by tests/ui/panel-view.test.ts.
+  drill-levels.md  Every kind of row below the ranking and whether pressing it
+                   opens anything. Verdicts, never counts — the counts are what
+                   tools/drill-report.ts prints. Guarded both ways by
+                   tests/tools/drill-report.test.ts.
   specs/           Dated design records. No index — the directory is one.
   audits/          This repository measured against its own rules — §7.7.
   design/panel.html
@@ -492,6 +497,7 @@ tools/                   Never ships. §6.2 says what each answers.
   protocol-key-table.ts      The client's key list, lifted out of that bundle.
   decoding-status.ts         How much of the protocol we read.
   fight-report.ts            What a captured fight adds up to, per combatant.
+  drill-report.ts            What is under each row, and which rows open nothing.
   payload-cost.ts            What a payload costs, replayed off the recordings.
   help-article.ts            The published help, fetched and searched.
   captured-fight-intake.ts   The gate a recording passes to become material.
