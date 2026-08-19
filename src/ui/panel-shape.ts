@@ -113,9 +113,11 @@ export type PanelView = {
   /** The two control strips, and both speak in metrics (`panel-metric.ts`). */
   nounTabs: PanelMetricTab[];
   /**
-   * Empty where the noun has only one direction — `Leczenie` until healing given
-   * has a figure behind it. A control that is drawn and does nothing is worse
-   * than one that is absent (§9.6), so it is not drawn.
+   * The noun above turned round: two tabs, always. It read "empty where the noun
+   * has only one direction" for as long as `Leczenie` was such a noun, which
+   * stopped being true when healing given got a figure behind it — and stayed
+   * written for two rounds after
+   * (`docs/specs/2026-08-12-two-axes-and-the-other-direction.md`).
    */
   directionTabs: PanelMetricTab[];
   teamTabs: PanelTeamTab[];

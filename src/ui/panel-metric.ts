@@ -143,12 +143,22 @@ export function composeNounTabs(current: PanelMetric): PanelMetricTab[] {
   }));
 }
 
-/** The lower strip, and empty where the noun has only one direction to offer. */
+/**
+ * The lower strip: the noun the reader is on, turned round.
+ *
+ * ⚠️ **It used to return nothing where a noun offered one direction, and that
+ * branch never fired.** `Leczenie` was such a noun until healing given had a
+ * figure behind it; since then every noun in `METRIC_AXES` has both, so the line
+ * was inert — mutating the bound to `< 1` reddened nothing, which is §7.5's
+ * finding rather than a spare safety net. What it was protecting against is worth
+ * keeping, so it is a checked claim now instead of an unreachable line:
+ * `tests/ui/panel-metric.test.ts` refuses a noun with one direction, and whoever
+ * adds one decides then what a strip of one tab should do (§9.6 — a control that
+ * is drawn and does nothing is worse than one that is absent).
+ */
 export function composeDirectionTabs(current: PanelMetric): PanelMetricTab[] {
   const noun = METRIC_AXES[current].noun;
-  const metrics = getMetricsByNoun(noun);
-  if (metrics.length < 2) return [];
-  return metrics.map((metric) => ({
+  return getMetricsByNoun(noun).map((metric) => ({
     metric,
     label: DIRECTION_LABELS[noun][METRIC_AXES[metric].direction],
     isSelected: metric === current,

@@ -102,6 +102,22 @@ describe("the direction strip", () => {
   });
 
   /**
+   * ⚠️ **Every noun offers two, and the strip no longer has an answer for a noun
+   * that offers one.**
+   *
+   * `composeDirectionTabs` used to return nothing in that case, and the line never
+   * ran — mutating its bound reddened nothing. The protection is real and the
+   * unreachable line was not, so it is asserted here instead: a third noun with a
+   * single direction fails this, and whoever adds one decides then what a strip of
+   * one tab should do, rather than getting a silently empty strip (§9.6).
+   */
+  test("every noun offers exactly two directions", () => {
+    for (const metric of PANEL_METRICS) {
+      expect(composeDirectionTabs(metric).map((tab) => tab.metric), metric).toHaveLength(2);
+    }
+  });
+
+  /**
    * The direction is worded per noun because Polish does not use one word for
    * both, so the two strips must not read as two lists of the same kind of thing.
    * Recorded rather than described: changing what a direction is called is one
