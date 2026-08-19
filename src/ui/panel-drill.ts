@@ -96,12 +96,68 @@ function composeBreakdownList(
  * `Leczenie` produced, read as a panel that has run out of things to say. The
  * list a level is *about* is always drawn; only the cross-sections beside it
  * answer to this.
+ *
+ * ⚠️ **Unless the one row is the closing row and it counts something.**
+ * `Zwykły cios 2 644 (100% · ×8)` says eight blows where the figure above says
+ * none, and the number of times is the whole question a plain attack raises.
+ * Measured over the captures as they stood 2026-08-19: **none** of those 27 counts
+ * can be reached anywhere else, because the closing row one level down states no
+ * count at all — while a lone *announced* skill is reachable on all 31 of its
+ * occurrences, by opening any person it was used on. So the exemption is the
+ * closing row's alone; widening it to every row carrying a count drew 31 sections
+ * repeating what a click already showed
+ * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
  */
 function composeCrossSection(
   heading: string,
   entries: readonly BreakdownEntry[],
 ): PanelList | null {
-  return entries.length > 1 ? composeBreakdownList(heading, entries) : null;
+  const [only] = entries;
+  const isCountOnlyHere =
+    entries.length === 1 && only !== undefined && only.key === UNANNOUNCED_ROW_KEY && only.uses !== null;
+  return entries.length > 1 || isCountOnlyHere ? composeBreakdownList(heading, entries) : null;
+}
+
+/**
+ * Whether a row opens onto anything it has not already said.
+ *
+ * `composeCrossSection` above refuses to *draw* a section that repeats the total
+ * standing over it. These two are the same rule one rung earlier, on the
+ * affordance: a row drawn drillable whose level can only name the figure again
+ * costs a gesture and answers nothing. Measured over the seventeen captures as
+ * they stood 2026-08-19, **250 of the 250** skill rows under `Leczenie` were
+ * exactly that, and 86 of 330 healing pairs
+ * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
+ *
+ * ⚠️ **Answered by composing what the level would hold, never by a second rule
+ * about it.** A predicate written alongside `composeDeepLists` is two spellings of
+ * one question and the disagreement is silent — an arrow leading nowhere, or none
+ * where there was something to see (§9.3). So both call the level's own readers.
+ */
+function shouldOpenPair(
+  reading: PanelReading,
+  state: PanelState,
+  combatantId: number,
+  otherId: number,
+): boolean {
+  return (
+    composeNamedPairSkillEntries(reading, state, combatantId, otherId).length > 0 ||
+    getPairReading(reading, state, combatantId, otherId).byElement.size > 1
+  );
+}
+
+/**
+ * The narrowing is the whole of it: under `otrzymane` the level lists the one
+ * combatant already in focus, so there is never a name to add and the row is a
+ * leaf. `docs/specs/2026-08-11-the-panel-that-drills.md` drew that section without
+ * an arrow from the day it was specified; the code had said otherwise since.
+ */
+function shouldOpenSkill(
+  state: PanelState,
+  skill: SkillStatistics,
+  combatantId: number,
+): boolean {
+  return getSkillPairs(state, skill, combatantId).some(([id]) => id !== combatantId);
 }
 
 /**
@@ -140,7 +196,7 @@ function composeOpponentEntries(
       profession: reading.roster.byId.get(id)?.profession ?? null,
       colour: getProfessionColour(reading.roster.byId.get(id)?.profession ?? null),
       amount,
-      isDrillable: true,
+      isDrillable: shouldOpenPair(reading, state, combatantId, id),
       uses: null,
       detail: composeCombatantDetail(reading, id, state, translate, "breakdown"),
     }));
@@ -248,7 +304,7 @@ function composeSkillEntries(
       profession: null,
       colour: UNKNOWN_COLOUR,
       amount,
-      isDrillable: true,
+      isDrillable: shouldOpenSkill(state, skill, combatantId),
       uses: skill.uses,
       detail: [],
     });
@@ -390,20 +446,19 @@ export function composeBreakdownLists(
 }
 
 /**
- * The skills behind one pair's figure — what this combatant used *on that one
- * opponent*, rather than across the fight.
+ * The skills an announcement put behind one pair's figure — what this combatant
+ * used *on that one opponent*, rather than across the fight.
  *
- * The section closes against the pair's own total the way the fight-wide one
- * closes against the combatant's: what no announcement covered is a row, not a
- * silence, or the parts would sum to less than the figure they were entered from
- * and nothing would say why.
+ * Split from the section it makes up because whether there is one of these is the
+ * question `shouldOpenPair` asks: a pair no announcement covered opens onto the
+ * closing row and nothing else, which is the figure above it written a second
+ * time.
  */
-function composePairSkillEntries(
+function composeNamedPairSkillEntries(
   reading: PanelReading,
   state: PanelState,
   combatantId: number,
   otherId: number,
-  pairTotal: number,
 ): BreakdownEntry[] {
   const entries: BreakdownEntry[] = [];
   // Whose skills answer for this pair, and it turns on the **direction** rather
@@ -431,6 +486,25 @@ function composePairSkillEntries(
   }
 
   entries.sort((one, other) => other.amount - one.amount);
+  return entries;
+}
+
+/**
+ * The same, as a section.
+ *
+ * It closes against the pair's own total the way the fight-wide one closes against
+ * the combatant's: what no announcement covered is a row, not a silence, or the
+ * parts would sum to less than the figure they were entered from and nothing would
+ * say why.
+ */
+function composePairSkillEntries(
+  reading: PanelReading,
+  state: PanelState,
+  combatantId: number,
+  otherId: number,
+  pairTotal: number,
+): BreakdownEntry[] {
+  const entries = composeNamedPairSkillEntries(reading, state, combatantId, otherId);
 
   const named = entries.reduce((sum, entry) => sum + entry.amount, 0);
   const rest = pairTotal - named;
@@ -447,6 +521,66 @@ function composePairSkillEntries(
     });
   }
   return entries;
+}
+
+/**
+ * Whom the level under a skill row lists.
+ *
+ * Under `otrzymane` the skill belongs to somebody else and the row was entered
+ * from what it gave *this* combatant, so the level narrows to that one pair. Under
+ * `dane` the skill is their own and the question is who all of it reached, so
+ * nothing is filtered away.
+ *
+ * ⚠️ **The narrowing is load-bearing twice.** It is what keeps the level honest
+ * about which figure it was entered from, and — read by `shouldOpenSkill` — what
+ * makes a healing-received skill row a leaf: a list of the one combatant already
+ * in focus has no name to add.
+ */
+function getSkillPairs(
+  state: PanelState,
+  skill: SkillStatistics,
+  combatantId: number,
+): Array<[number, number]> {
+  if (!isHealingMetric(state.metric)) return [...skill.dealtByTargetId];
+  if (isGivenMetric(state.metric)) return [...skill.healedByCombatantId];
+  return [...skill.healedByCombatantId].filter(([id]) => id === combatantId);
+}
+
+/**
+ * One pair's own figure, and the element cut behind it.
+ *
+ * Which end of the pair each is read from turns on the **direction** rather than
+ * on the quantity — the same correction as in `composeNamedPairSkillEntries`.
+ *
+ * ⚠️ **The figure is the pair's own, not the sum of the skills under it.** This
+ * used to add up `healedByCombatantId` across the giver's skills, which is the
+ * same arithmetic the section below performs — so a pair no skill announced closed
+ * against zero, produced no rows and no closing row either, and the level opened
+ * **empty** under a row that had just promised a figure. Every self-sourced heal
+ * is exactly that pair (`heal`, `legbon_holytouch_heal`, `legbon_lastheal` —
+ * `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`), and the drill could
+ * not open one at all.
+ *
+ * `healingGivenByCombatantId` is what the level above read the row's figure from,
+ * in both directions — the recipient's `healedByHealerId` is its transpose, written
+ * in the same breath — so closing against it is closing against the number the
+ * reader clicked on.
+ */
+function getPairReading(
+  reading: PanelReading,
+  state: PanelState,
+  combatantId: number,
+  otherId: number,
+): { byElement: ReadonlyMap<string, number>; total: number } {
+  const from = isGivenMetric(state.metric) ? getRow(reading, combatantId) : getRow(reading, otherId);
+  const to = isGivenMetric(state.metric) ? otherId : combatantId;
+  const byElement = isHealingMetric(state.metric)
+    ? new Map<string, number>()
+    : (from.dealtByTargetId.get(to) ?? new Map<string, number>());
+  const total = isHealingMetric(state.metric)
+    ? (from.healingGivenByCombatantId.get(to) ?? 0)
+    : [...byElement.values()].reduce((sum, one) => sum + one, 0);
+  return { byElement, total };
 }
 
 /**
@@ -469,17 +603,7 @@ export function composeDeepLists(
     const skill = getRow(reading, state.focusSkill.ownerId).skills.get(state.focusSkill.key);
     if (skill === undefined) return [];
 
-    // Under `otrzymane` the skill belongs to somebody else and the row was
-    // entered from what it gave *this* combatant, so the level narrows to that
-    // one pair. Under `dane` the skill is their own and the question is who all
-    // of it reached, so nothing is filtered away.
-    const pairs = !isHealingMetric(state.metric)
-      ? [...skill.dealtByTargetId]
-      : isGivenMetric(state.metric)
-        ? [...skill.healedByCombatantId]
-        : [...skill.healedByCombatantId].filter(([id]) => id === combatantId);
-
-    const entries: BreakdownEntry[] = pairs
+    const entries: BreakdownEntry[] = getSkillPairs(state, skill, combatantId)
       .sort(([, one], [, other]) => other - one)
       .map(([id, amount]) => ({
         key: composeLeafRowKey(composeIntegerText(id)),
@@ -498,12 +622,14 @@ export function composeDeepLists(
     // ⚠️ **The one level in the panel that closed against nothing.** A skill's
     // figure is added whatever the other end did, its pairs only where that end
     // resolved, so this list could total less than the entry it was opened from
-    // and say nothing about the difference. Not under `Leczenie`: there the pairs
-    // are narrowed to the one the level was entered through, so the rest of the
-    // skill is deliberately absent and there is nothing to be short of.
-    const closeAgainst = state.metric === "healed" ? null : isHealingMetric(state.metric) ? skill.healed : skill.dealtApplied;
-    const orphan =
-      closeAgainst === null ? 0 : closeAgainst - entries.reduce((sum, entry) => sum + entry.amount, 0);
+    // and say nothing about the difference.
+    //
+    // `Leczenie` used to need an exception here, because its pairs are narrowed to
+    // the one the level was entered through and the rest of the skill is
+    // deliberately absent. It no longer reaches this line at all: that narrowing is
+    // what `shouldOpenSkill` reads to make the row a leaf, so nothing can open it.
+    const closeAgainst = isHealingMetric(state.metric) ? skill.healed : skill.dealtApplied;
+    const orphan = closeAgainst - entries.reduce((sum, entry) => sum + entry.amount, 0);
     if (orphan > 0) entries.push(composeMissingEntry(state.metric, orphan));
 
     const list = composeBreakdownList(`KOMU — ${skill.skillName}`, entries);
@@ -513,31 +639,7 @@ export function composeDeepLists(
   const otherId = state.focusTargetId;
   if (otherId === null) return [];
 
-  // Which end of the pair the figures are read from turns on the direction, not
-  // on the quantity — the same correction as in `composePairSkillEntries`.
-  const from = isGivenMetric(state.metric) ? getRow(reading, combatantId) : getRow(reading, otherId);
-  const to = isGivenMetric(state.metric) ? otherId : combatantId;
-  const byElement = isHealingMetric(state.metric)
-    ? new Map<string, number>()
-    : (from.dealtByTargetId.get(to) ?? new Map<string, number>());
-  /**
-   * ⚠️ **The pair's own figure, not the sum of the skills under it.** This used to
-   * add up `healedByCombatantId` across the giver's skills, which is the same
-   * arithmetic the section below performs — so a pair no skill announced closed
-   * against zero, produced no rows and no closing row either, and the level opened
-   * **empty** under a row that had just promised a figure. Every self-sourced heal
-   * is exactly that pair (`heal`, `legbon_holytouch_heal`, `legbon_lastheal` —
-   * `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`), and the drill
-   * could not open one at all.
-   *
-   * `healingGivenByCombatantId` is what the level above read this row's figure
-   * from, in both directions — the recipient's `healedByHealerId` is its transpose,
-   * written in the same breath — so closing against it is closing against the
-   * number the reader clicked on.
-   */
-  const pairTotal = isHealingMetric(state.metric)
-    ? (from.healingGivenByCombatantId.get(to) ?? 0)
-    : [...byElement.values()].reduce((sum, one) => sum + one, 0);
+  const { byElement, total: pairTotal } = getPairReading(reading, state, combatantId, otherId);
 
   const heading = `CZYM — ${getName(reading, otherId)}`;
   const skills = composeBreakdownList(

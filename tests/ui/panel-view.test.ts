@@ -620,11 +620,23 @@ describe("drilling", () => {
    * A cut of one row says the same thing as the figure above it. Three of them in
    * a row is what `Leczenie` drew before this: the same number, three times, under
    * three headings.
+   *
+   * ⚠️ **Unless it is the row nothing announced, counting the blows.** The damage
+   * type is the same number under another word and stays hidden; `Zwykły cios`
+   * says how many times, and that count is reachable nowhere else — the closing
+   * row one level down states none
+   * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`). A lone
+   * *announced* skill is not exempt: opening any person it was used on shows it,
+   * with its count.
    */
-  test("a cross-section of one row is not drawn at all", () => {
+  test("a cut of one row is drawn only where nothing announced it", () => {
     const view = composePanelView(composeReading(), composeState({ focusCombatantId: 1 }));
 
-    expect(view.lists.map((list) => list.heading)).toEqual(["KOMU"]);
+    expect(view.lists.map((list) => list.heading)).toEqual(["KOMU", "CZYM (UMIEJĘTNOŚCI)"]);
+    expect(view.lists[1]!.rows).toHaveLength(1);
+    expect(view.lists[1]!.rows[0]!.label).toBe("Zwykły cios");
+    // The bracket is where a count shows, and the only place it does.
+    expect(view.lists[1]!.rows[0]!.bracketText).toContain("×");
   });
 
   /**
@@ -1815,7 +1827,9 @@ describe("against the captured fights", () => {
     expect(given.pinnedRows).toEqual([]);
 
     // And their own breakdown names the end that is missing rather than coming up
-    // short of the row above it.
+    // short of the row above it. The announcement is a cut of one row and stays
+    // hidden: it is not the closing row, and a reader who wants it opens the row
+    // above.
     const drill = composePanelView(
       reading,
       composeState({ metric: "healingGiven", focusCombatantId: 1 }),

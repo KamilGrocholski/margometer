@@ -10,6 +10,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
 import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
@@ -22,6 +23,13 @@ import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-captur
 import { EFFECT_NAMES } from "@/src/ui/panel-names.ts";
 import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
 import { PANEL_METRICS, TEAM_LABELS } from "@/src/ui/panel-metric.ts";
+import { getName } from "@/src/ui/panel-reading.ts";
+import {
+  composeLeafRowKey,
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
+  UNANNOUNCED_ROW_KEY,
+} from "@/src/ui/panel-row-key.ts";
 import {
   composeDefaultState,
   composeStateAfterMetric,
@@ -1377,6 +1385,19 @@ describe("the world a saved recording names", () => {
 });
 
 /**
+ * The rows that carry a figure and no name: what closed a section against nothing
+ * announced, and the end the protocol did not state. Taken from the module that
+ * composes them — a key restated in a test is a second spelling of the grammar,
+ * which is the defect `panel-row-key.ts` exists to have ended.
+ */
+const RESTATING_ROW_KEYS: ReadonlySet<string> = new Set([
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
+  UNANNOUNCED_ROW_KEY,
+  composeLeafRowKey(UNANNOUNCED_ROW_KEY),
+]);
+
+/**
  * The property the drill exists for: a row opens the figures it showed, under
  * the name it showed.
  *
@@ -1387,17 +1408,49 @@ describe("the world a saved recording names", () => {
  * agree.
  */
 describe("what a click does to the drill", () => {
+  /**
+   * ⚠️ **The entry health is not optional here, whatever its default says.**
+   * `composeFightStatistics` sizes the team heals against it, and without it this
+   * walk read a corpus 1 604 444 points of healing short — which is most of the
+   * drill under both healing tabs. Feeding it took the healing pairs this test
+   * opens from 140 to 330, and that is why the level below them went unread for
+   * two rounds after `healall_per` started reaching rows.
+   */
   function composeReadingOfCapture(fight: (typeof CAPTURED_FIGHTS)[number]): FightReading {
     const roster = composeRosterOfFight(fight);
     const messages = getMessagesOfFight(fight);
     return {
-      statistics: composeFightStatistics(decodeFight(messages, roster), roster),
+      statistics: composeFightStatistics(
+        decodeFight(messages, roster),
+        roster,
+        fight.entryHealthByCombatantId,
+      ),
       roster,
       ourSide: null,
       isFromFightStart: true,
       fightsStarted: 1,
       engineReading: NOTHING_LOST,
     };
+  }
+
+  /**
+   * Whether this fight holds a pairing a level could be built from, read off the
+   * aggregate rather than off the panel.
+   *
+   * ⚠️ **The floor below has to be earned from the data, not from the rule it
+   * guards.** Asking "did some row open" re-derives `shouldOpenPair`; asking
+   * "did anybody announce a skill that reached a named counterpart" is a fact
+   * about the recording, and it is exactly the condition under which a pair's
+   * level has something to hold. A capture where nobody announced anything has no
+   * third level and must not be required to have one.
+   */
+  function hasAnnouncedPairing(reading: FightReading): boolean {
+    for (const row of reading.statistics.byCombatantId.values()) {
+      for (const [, skill] of row.skills) {
+        if (skill.dealtByTargetId.size > 0 || skill.healedByCombatantId.size > 0) return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -1408,6 +1461,7 @@ describe("what a click does to the drill", () => {
    */
   test.each(CAPTURED_FIGHTS)("$name opens what each row promised", (fight) => {
     const reading = composeReadingOfCapture(fight);
+    let rowsSeen = 0;
     let drilled = 0;
 
     for (const metric of PANEL_METRICS) {
@@ -1417,6 +1471,7 @@ describe("what a click does to the drill", () => {
 
         for (const list of view.lists) {
           for (const row of list.rows) {
+            rowsSeen += 1;
             if (!row.isDrillable) continue;
             drilled += 1;
             const deep = composePanelView(reading, {
@@ -1427,12 +1482,91 @@ describe("what a click does to the drill", () => {
             const where = `${metric} ${composeIntegerText(focusCombatantId)} ${row.key}`;
             expect(deep.lists[0]?.totalText, where).toBe(row.valueText);
             expect(deep.crumb?.hereLabel, where).toBe(row.label);
+
+            /**
+             * ⚠️ **And it opens something it had not already said.** A level whose
+             * every row is the figure restated — under the reader's own name, or
+             * under the row's, or as the row that closes a section against nothing
+             * named — costs a gesture and answers nothing. The panel refuses that
+             * one rung up in `composeCrossSection`; this is the same rule on the
+             * affordance
+             * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
+             *
+             * Asserted over what was drawn rather than over the metric, because the
+             * shape arrives from three directions: a healing-received skill row
+             * narrows to the combatant in focus, a self-sourced heal has no
+             * announcement to name, and a blow nothing announced has neither.
+             */
+            const opened = deep.lists.flatMap((each) => each.rows);
+            const named = opened.filter(
+              (each) =>
+                !RESTATING_ROW_KEYS.has(each.key) &&
+                each.label !== row.label &&
+                each.label !== getName(reading, focusCombatantId),
+            );
+            expect(named.length, `${where} opens only itself again`).toBeGreaterThan(0);
           }
         }
       }
     }
 
-    expect(drilled).toBeGreaterThan(0);
+    /**
+     * ⚠️ **`drilled > 0` stopped being true of every capture, and the fix is a
+     * condition rather than a weaker floor.**
+     *
+     * `2026-08-04-tempest-lowca-vs-odyncze` has no third level at all the moment a
+     * row stops opening what it had already said: a solo hunter announces nothing
+     * all fight and every pair it fought carries one element, so every level below
+     * that fight's breakdown would be the figure restated. Dropping the floor to
+     * "rows were met" would have let the rule quietly swallow the drill in *every*
+     * capture and stayed green.
+     *
+     * So the floor is asked where the data supports it: a fight in which somebody
+     * announced a skill that reached a named counterpart **must** open at least one
+     * level, because that pair's own section has a row to hold. The condition comes
+     * off the aggregate, so this cannot pass by agreeing with the rule it guards.
+     */
+    expect(rowsSeen).toBeGreaterThan(0);
+    if (hasAnnouncedPairing(reading)) expect(drilled, "an announced pairing opens").toBeGreaterThan(0);
+  });
+
+  /**
+   * That the rule above did not take the drill with it.
+   *
+   * Asked per metric rather than of the corpus as a whole, because that is the
+   * shape over-reach would arrive in: `Leczenie` lost every one of its skill drills
+   * to this rule by construction, and a bare count over four metrics would have
+   * read the same whether that was one screen or all four.
+   *
+   * The walk is the one above with the assertions taken out. Written twice on
+   * purpose: the sweep answers *does each level say what it promised*, this
+   * answers *is there a level at all*, and folding them would make the second
+   * depend on the first having run.
+   */
+  test("every metric still opens a level somewhere in the corpus", () => {
+    const drilledByMetric = new Map<string, number>(PANEL_METRICS.map((metric) => [metric, 0]));
+
+    for (const fight of CAPTURED_FIGHTS) {
+      const reading = composeReadingOfCapture(fight);
+      for (const metric of PANEL_METRICS) {
+        for (const focusCombatantId of reading.statistics.byCombatantId.keys()) {
+          const view = composePanelView(reading, {
+            ...composeDefaultState(),
+            metric,
+            focusCombatantId,
+          });
+          for (const list of view.lists) {
+            for (const row of list.rows) {
+              if (row.isDrillable) setRunningTotal(drilledByMetric, metric, 1);
+            }
+          }
+        }
+      }
+    }
+
+    for (const [metric, drilled] of drilledByMetric) {
+      expect(drilled, metric).toBeGreaterThan(0);
+    }
   });
 
   /**
@@ -1628,7 +1762,11 @@ describe("a new fight and the level the reader was on", () => {
     const fight = assertDefined(CAPTURED_FIGHTS[0], "there is a capture to read");
     const roster = composeRosterOfFight(fight);
     return {
-      statistics: composeFightStatistics(decodeFight(getMessagesOfFight(fight), roster), roster),
+      statistics: composeFightStatistics(
+        decodeFight(getMessagesOfFight(fight), roster),
+        roster,
+        fight.entryHealthByCombatantId,
+      ),
       roster,
       ourSide: 1,
       isFromFightStart: true,

@@ -21,7 +21,11 @@ import type { PanelRow } from "@/src/ui/panel-shape.ts";
 import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
 import { PANEL_METRICS, type PanelMetric } from "@/src/ui/panel-metric.ts";
 import { getMetricValue, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
-import { NO_ACTOR_ROW_KEY, NO_TARGET_ROW_KEY } from "@/src/ui/panel-row-key.ts";
+import {
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
+  UNANNOUNCED_ROW_KEY,
+} from "@/src/ui/panel-row-key.ts";
 import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
 import {
   CAPTURED_FIGHTS,
@@ -103,17 +107,36 @@ describe("a breakdown", () => {
    * A cross-section of a single row repeats the total standing over it, so it is
    * not drawn — three of them in a row read as a panel that has run out of things
    * to say. The list the level is *about* is exempt: one opponent is a real answer.
+   *
+   * ⚠️ **And so is the closing row where it counts something.**
+   * `Zwykły cios 2 644 (100% · ×8)` says eight blows where the figure above says
+   * none, and that count is reachable nowhere else — the closing row one level
+   * down states none. A lone *announced* skill is not exempt: measured over the
+   * captures, all 31 of its occurrences are reachable by opening a person it was
+   * used on
+   * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`). Both
+   * branches are counted, so neither can go quiet and leave the other passing
+   * alone.
    */
-  test("draws no cut of a single row", () => {
+  test("draws a cut of a single row only where nothing announced it", () => {
     let cuts = 0;
+    let counted = 0;
     for (const { name, reading, metric, combatantId } of getScreens()) {
       const lists = composeBreakdownLists(reading, composeState({ metric }), combatantId, null);
       for (const list of lists.slice(1)) {
-        expect(list.rows.length, `${name} ${metric} #${combatantId} ${list.heading}`).toBeGreaterThan(1);
-        cuts += 1;
+        const where = `${name} ${metric} #${combatantId} ${list.heading}`;
+        if (list.rows.length > 1) {
+          cuts += 1;
+          continue;
+        }
+        expect(list.rows[0]!.key, where).toBe(UNANNOUNCED_ROW_KEY);
+        // The bracket is where a count shows, and the only place it does.
+        expect(list.rows[0]!.bracketText, where).toContain("×");
+        counted += 1;
       }
     }
     expect(cuts).toBeGreaterThan(0);
+    expect(counted).toBeGreaterThan(0);
   });
 
   /**
