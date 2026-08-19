@@ -19,9 +19,13 @@
 ## In Progress
 
 ## Up Next
-- [ ]
+- [ ] After the healing changes for `actor` and `target` prove, that the view and the logic is correct - probably a useless drill exists in the healing tabs
+- [ ] When a new fight starts, while there is an already existing one, reset panel view to the highest (go back to the root of a selected tab)
 
 ## Done
+- [x] Fix "Dotyk anioła", "Ostatni ratunek", "Przywrócono [raw_value] punktów życia [name](%percentage_health)" or "Regeneracja" - actor/source and target are the same character
+- [x] Add information about `actor` and `target` in `docs/protocol-keys.md` - in which cases they are the same, and similar things
+- [x] Fix understated healing data - healed n times the whole team without a given amount
 - [x] Fix the Safari user-select defect
 - [x] Split "Bez sprawcy" into "Nieznany sprawca" and "Nieznany cel", scope both to the shown team, and leave in "Bez strony" only what has no team at either end
 - [x] Check whether all of the browsers support MargoMeter
