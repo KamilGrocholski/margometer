@@ -12,6 +12,15 @@ in a panel over the game. SKADA or Details!, for Margonem.
 - Totals only, no rate. What the log credits to nobody gets its own row.
 - Reads only: no network, no automation, no effect on how a fight plays out.
 
+## Screenshots
+
+Damage taken in a ten-against-one fight.
+
+| | |
+|---|---|
+| ![The panel ranking combatants by damage taken](screenshots/panel-taken.png) | ![One combatant's damage broken down by opponent and by damage type](screenshots/panel-breakdown.png) |
+| ![The deepest level: one opponent, by skill and by damage type](screenshots/panel-deep.png) | ![The detail card open beside the panel](screenshots/panel-tip.png) |
+
 ## Install
 
 Open [the latest release][latest] and click `margometer.user.js` — Tampermonkey
@@ -30,12 +39,3 @@ your browser, drawn by the file the newest release ships. Nothing there is
 connected to the game.
 
 [preview]: https://kamilgrocholski.github.io/margometer/
-
-## Screenshots
-
-Damage taken in a ten-against-one fight.
-
-| | |
-|---|---|
-| ![The panel ranking combatants by damage taken](screenshots/panel-taken.png) | ![One combatant's damage broken down by opponent and by damage type](screenshots/panel-breakdown.png) |
-| ![The deepest level: one opponent, by skill and by damage type](screenshots/panel-deep.png) | ![The detail card open beside the panel](screenshots/panel-tip.png) |

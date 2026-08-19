@@ -356,6 +356,41 @@ and there is deliberately no severity word.
 Open one without being asked: before a release tag; when the same class of fault
 turns up in two rounds; when a round touches a layer no audit has read.
 
+### 7.8 Before a commit
+
+**This adds no rule.** Every line is one that is already above, in the order a
+round actually meets it — because the rules are grouped by what they are about
+and a commit meets them by when they bite. Run it top to bottom; most of it is
+nothing on most commits.
+
+1. **`bun run check`, green.** Not `bun test` (§6.1). If local and CI disagree,
+   reproduce with `bun install --frozen-lockfile` before touching code.
+2. **Every new test watched failing.** Break what it covers from a copy, watch it
+   go red, restore from the copy (§3, §7.5). The commit says what you broke and
+   what lit up.
+3. **Every figure over the captured fights names its recording or its date**
+   (§3). The guard sees a count written in digits and misses one written in
+   words, and it reads `libs/`, `src/`, `tools/`, `tests/`, the four root
+   documents and the registers directly under `docs/` — nothing else.
+4. **A name spelled twice has an owner** (§9.3). A field of the game's, a class
+   the stylesheet and the renderer both name, a key one file composes and another
+   reads back.
+5. **Prose moved with the tree, in this commit.** §8's block when a file arrived
+   or left; the register when a key's verdict moved; the rule itself when the
+   tree stopped matching what it says — a rule narrowed in a docblock is a rule
+   nobody else will read that way (§7.5).
+6. **The panel changed → the pictures are retaken and opened** (§9.8), and the
+   version in the title bar is not what says they are current.
+7. **`TODO.md` is not in this commit and was not written by anything** (§5,
+   §7.2).
+8. **Ask before committing** (§4), and report what changed, what was validated
+   and what was not done (§7.4).
+
+⚠️ **What is not on it.** Nothing a machine already refuses — a bare `new
+Error(`, a `!` outside a test, an import that reaches up a layer, a `../` path.
+The gate says all of that in one line, and a checklist repeating it is one people
+stop reading.
+
 ---
 
 ## 8. Structure
@@ -367,9 +402,10 @@ is belongs in its own docblock, not here.
 ```
 AGENTS.md          These rules. The only place they live.
 CLAUDE.md          One line importing AGENTS.md.
-README.md          For players, in Polish: what this is, how to install it, the live
-                   preview, pictures of the panel. No terms, no licence, no notes
-                   for developers.
+README.md          For players, in Polish: what this is, pictures of the panel, how
+                   to install it, the live preview — the pictures first, because
+                   they are what somebody who has installed nothing came to see.
+                   No terms, no licence, no notes for developers.
 README.en.md       The same in English. The two are held to one skeleton by
                    tests/tools/readme-translations.test.ts — headings, pictures,
                    links — and never to one wording.

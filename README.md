@@ -16,6 +16,15 @@ Miernik obrażeń do [Margonem](https://www.margonem.pl/) — statystyki walki n
 - Tylko odczyt: żadnej sieci, żadnej automatyzacji, żadnego wpływu na przebieg
   walki.
 
+## Zrzuty ekranu
+
+Obrażenia otrzymane w walce dziesięciu na jednego.
+
+| | |
+|---|---|
+| ![Panel z listą walczących według otrzymanych obrażeń](screenshots/panel-taken.png) | ![Obrażenia jednego walczącego w rozbiciu na przeciwników i rodzaje obrażeń](screenshots/panel-breakdown.png) |
+| ![Najgłębszy poziom: jeden przeciwnik, po umiejętnościach i rodzajach obrażeń](screenshots/panel-deep.png) | ![Karta ze szczegółami otwarta obok panelu](screenshots/panel-tip.png) |
+
 ## Instalacja
 
 Otwórz [najnowsze wydanie][latest] i kliknij `margometer.user.js` — Tampermonkey
@@ -35,12 +44,3 @@ Twojej przeglądarce, rysowaną przez plik z najnowszego wydania. Nic tam nie
 łączy się z grą.
 
 [preview]: https://kamilgrocholski.github.io/margometer/
-
-## Zrzuty ekranu
-
-Obrażenia otrzymane w walce dziesięciu na jednego.
-
-| | |
-|---|---|
-| ![Panel z listą walczących według otrzymanych obrażeń](screenshots/panel-taken.png) | ![Obrażenia jednego walczącego w rozbiciu na przeciwników i rodzaje obrażeń](screenshots/panel-breakdown.png) |
-| ![Najgłębszy poziom: jeden przeciwnik, po umiejętnościach i rodzajach obrażeń](screenshots/panel-deep.png) | ![Karta ze szczegółami otwarta obok panelu](screenshots/panel-tip.png) |
