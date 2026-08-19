@@ -373,6 +373,16 @@ Damage over time, same shape and same slot as `heal`, read as a negative health
 change. **Unattributed by construction:** the protocol does not say who applied
 it, so nothing downstream may credit it to anyone (§5).
 
+⚠️ **And no earlier message names it either — the `injure` join fails here on both
+halves.** §9.6's fourth clause fills a missing end from an announcement an earlier
+message of the same fight carried, which takes three things: a key announcing the
+effect, a figure on that key, and a documented rule making one application the
+owner of what is ticking. This key has neither the announcement nor the rule — see
+*Evidence:* — and the missing announcement is re-earned every gate by
+`tests/core/protocol-key-register.test.ts`
+(`docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`, which asks the same
+of every tick the client composes).
+
 *Health:* moves health
 
 *Cause:* nobody
@@ -386,8 +396,19 @@ protocol nor the bundle names.
 
 *Shape:* 496 occurrences; alone in its message; text
 
+*Help:* names `poison`
+
 *Evidence:* as above. Before it was read, the first disagreement it caused was
-`-10000249=76.05;0;poison=563`.
+`-10000249=76.05;0;poison=563`. That nobody can be named for it rests on two
+sources rather than on the message: the client's key list carries no `+poison`
+beside `poison` the way it carries `+injure` beside `injure` (production build
+`1786514810315`, `tests/frozen-protocol-keys.ts`), and the help's table of damage
+over time — article `view,372` (read 2026-08-19) — puts poison among the types a
+fresh application does **not** overwrite, deep wound being the other: a later hit
+extends what is already ticking and only the highest figure counts, so even an
+announcement would not say whose tick this is. Its source is given there as
+weapons and skills that apply poison, and a weapon doing it is stated nowhere in
+the protocol.
 
 ### `fire` — decoded
 
@@ -395,6 +416,17 @@ Elemental damage over time — `poison`'s twin, and the client writes it as one.
 Same slot, same sign, same optional second member, so it needed no rule of its
 own. **Unattributed by construction**, for `poison`'s reason: nothing in the
 message says who set the target alight.
+
+⚠️ **Overwritten, and still nobody's — the half of the `injure` join `poison`
+lacks, without the other half.** The help's table of damage over time puts fire
+among the types a fresh application **does** overwrite, which is the rule §9.6's
+fourth clause runs a wound on. What is missing here is the announcement: the
+client's key list carries no `+fire`, so nothing states that an application
+happened, let alone with what figure. The captures show what reading the
+neighbouring message instead would come to — all 12 ticks fall on one victim, the
+figure changes across the fight (96, then 97, then 117 twice, then 124 for the
+last eight), and the blow standing before them belongs to eight different
+combatants (`docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`).
 
 *Health:* moves health
 
@@ -418,7 +450,10 @@ by weapons and set on a monster by its profession, which settles what it is and
 not what the key reports. The captures settle that: all 12 occurrences sit on one
 combatant in `2026-08-15-tempest-grupa-vs-draugr-1`, against a pool of 184 680,
 and before it was read the witness disagreed on every one of them and on nothing
-else. Reading it closed all 12 first try.
+else. Reading it closed all 12 first try. That the type is overwritten rather than
+extended is the same article's table of damage over time (read 2026-08-19), and
+the absence of `+fire` from the client's list is `tests/frozen-protocol-keys.ts`,
+re-earned by `tests/core/protocol-key-register.test.ts`.
 
 ⚠️ **`light` and `frost` share that branch in the client and are not read.** The
 captures carry neither, so an entry for either would be a verdict with nothing
@@ -500,8 +535,8 @@ declined them all. Once they were read, the residue was exact: after
 arithmetic, and reading it as damage turned that disagreement, and eighty-odd
 others, into agreements.
 
-⚠️ **Every tick has an attacker the protocol named, and the line above does not
-read it yet.** The wound arrives carrying the figure its own announcement stated,
+⚠️ **Every tick has an attacker the protocol named, and `*Cause:*` above is where
+that is read.** The wound arrives carrying the figure its own announcement stated,
 and the help says a victim carries one at a time: article `view,372` at the
 engine name `injure` (read 2026-08-18) states that the damage does not
 accumulate and is overwritten by the freshest value applied to that opponent. So
@@ -510,8 +545,9 @@ says which one it is. Measured over `tests/captured-fights/` as the set stood
 2026-08-19: every tick lands on a victim already carrying a wound, and every one
 states exactly what that wound announced — on material where a victim was wounded
 by three different attackers, which is what makes *freshest* a claim rather than
-a coincidence. Re-earned by `tests/core/injure-rule.test.ts`. `*Cause:*` says
-`nobody` because nothing here reads the join, not because there is none.
+a coincidence. Re-earned by `tests/core/injure-rule.test.ts`, and the join is made
+in `src/core/fight-statistics.ts` rather than in the decoder
+(`docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`).
 
 ### `healall_per` — decoded
 
@@ -2225,10 +2261,13 @@ reads the value as the number of health points restored.
 
 ## Keys the captures have never carried
 
-Two keys the client knows and the help documents, and no recording has produced.
-They are here because a reader meeting them will otherwise ask the question this
-round already answered — *is this the wound we read, arriving under another
-name?* — and because the answer turns on a difference the analogy hides.
+Four keys the client knows and the help documents, and no recording has produced:
+two that would tick with one end named, and the two events that announce them.
+They are here because a reader meeting them will otherwise ask the question two
+rounds have already answered — *is this the wound we read, arriving under another
+name?* — and because the answer turns on a difference the analogy hides. What each
+would need to be read like `injure` is
+`docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`.
 
 An entry here states no `*Shape:*` line: that line is a measurement over the
 captures, and there is nothing to measure. It states no `*Health:*` line either,
@@ -2294,6 +2333,58 @@ composes `+injure` with one. The published help documents the effect under the
 engine name `critwound` — article `view,372` (read 2026-08-19) — and prints no
 separate entry for the announcing form, which is how `+injure` stands as well.
 Absent from `tests/captured-fights/` as the set stood 2026-08-19.
+
+### `wound` — investigated
+
+**Głęboka rana** — the deep-wound damage a weapon applies, ticking afterwards, and
+the third key of this family. The client composes it as it composes `injure`,
+`critwound` and `poison`: one combatant's name and one figure, with a second-member
+variant when the value carries a comma. So a tick would arrive in the shape this
+register knows — the subject in the actor slot and nobody at the other end.
+
+⚠️ **Of the three ticks that are announced at all, this is the one furthest from
+the join.** Two events announce it — `+wound` and `+of_wound`, the main weapon's
+and the auxiliary's — and neither states a figure. The help's table of damage over
+time then removes the rule as well: this is the type a fresh application does
+**not** overwrite and **does** accumulate, an event setting a ceiling of twice the
+engine figure and each further one extending the duration. So several attackers'
+wounds are one ticking figure rather than the freshest attacker's, and there is
+nothing an earlier message could be read for (§9.6).
+
+**Not read**, and the material is what is missing rather than the meaning: no
+capture carries it (§7.1).
+
+*Help:* names `wound`, `wound1`
+
+*Evidence:* production build `1786514810315` composes `msg_wound %name% %val%`, and
+`msg_wound_multi %name% %val0% %val1%` where the value splits on a comma — the two
+branches `injure`, `critwound` and `poison` take as well. The published help
+documents the damage at article `view,372` (read 2026-08-19): the weapon attribute
+under the engine names `wound1, of_wound1`, applied for five turns after a hit
+doing non-zero damage, and the type's behaviour in the table of damage over time. Absent from
+`tests/captured-fights/` as the set stood 2026-08-19: the string occurs in none of
+the seventeen recordings.
+
+### `+wound` — investigated
+
+The event a blow announces when a weapon's deep wound is applied. `+of_wound` is
+the auxiliary weapon's own, and the two are one entry because they are one case:
+the client composes both with **no `%val%`**, where `+injure` on the same switch
+carries one.
+
+That is the same difference `+critwound` has, and here it is the smaller half of
+why the entry above cannot be joined — the type's own arithmetic already rules the
+reading out, whatever these announced.
+
+*Help:* names `wound`, `wound1`, `of_wound1`
+
+*Evidence:* production build `1786514810315` composes `msg_+wound` and
+`msg_+of_wound`, both without a value, on the switch that composes `+injure` with
+one. The published help documents the effect under the weapon attribute
+`wound1, of_wound1` and the event in its table of damage over time — article
+`view,372` (read 2026-08-19) — and prints no separate entry for either announcing
+form, as it prints none for `+injure` or `+critwound`. Absent from
+`tests/captured-fights/` as the set stood 2026-08-19.
 
 ## Investigated and found not to be battle keys
 

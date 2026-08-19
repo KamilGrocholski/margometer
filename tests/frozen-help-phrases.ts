@@ -66,8 +66,10 @@ export const FROZEN_HELP_PHRASES = {
     "lowheal_per-enemies": 8,
     "mana": 43,
     "max_moves": 2,
+    "of_wound1": 1,
     "pierce": 10,
     "pierceb": 2,
+    "poison": 30,
     "poison_lowdmg_per-enemies": 14,
     "prepare": 0,
     "puncture": 1,
@@ -85,5 +87,7 @@ export const FROZEN_HELP_PHRASES = {
     "tspell": 0,
     "txt": 0,
     "verycrit": 2,
+    "wound": 17,
+    "wound1": 2,
   },
 } as const;

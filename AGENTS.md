@@ -850,8 +850,14 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   `src/core/fight-statistics.ts` and cannot live in the decoder — that one decodes
   incrementally, so a carry inside it would reach only the ticks sharing an engine
   call with their application and would answer differently depending on how the
-  game split its payloads. `[ASK]` before a second pair joins it — `critwound`
-  arrives in the same shape and is deliberately unread
+  game split its payloads. `[ASK]` before a second pair joins it, and the asking is
+  about three things a key either has or has not: an announcement in the protocol,
+  a figure on that announcement, and a documented rule making one application the
+  owner of what is ticking. Every tick the client composes has been put to that
+  test and only this one has all three — `poison` and `fire` are what the captures
+  still leave half-named, and neither has an announcing key at all
+  (`docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`). `critwound`
+  arrives in the same shape, announces no figure, and is deliberately unread
   (`docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`).
 - `[ALWAYS] [ui]` **A message naming neither end has no side, and the panel says
   so where no row can.** It rides the one pinned row standing apart from the

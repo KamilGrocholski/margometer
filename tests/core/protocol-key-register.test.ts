@@ -516,6 +516,35 @@ describe("who a health figure is charged to", () => {
     expect(poison?.cause).toBe("nobody");
   });
 
+  /**
+   * ⚠️ **`nobody` is a claim about the client's own key list, and this is where it
+   * stops being prose.** A tick charged to nobody is one no earlier message can
+   * name, and what would make it namable is an announcing key — which the client
+   * spells as the tick's name behind its dealt sign, `+injure` beside `injure`.
+   * Every gate re-earns that neither `poison` nor `fire` has one: the day the game
+   * ships `+poison`, §9.6's fourth clause has a second candidate and this entry
+   * would otherwise go on saying nothing announces it
+   * (`docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`).
+   */
+  test("a tick charged to nobody has no announcing twin the client knows", () => {
+    const announced = getKeysWithCause("nobody").filter((key) =>
+      NAMED_KEYS.has(`${FROZEN_PROTOCOL_KEYS.computedFamily.dealtSign}${key}`),
+    );
+    expect(announced).toEqual([]);
+  });
+
+  /**
+   * And the composition above finds the one announcement there is, so the check
+   * cannot pass by looking for a name the client never uses.
+   */
+  test("the joined tick's announcement is that same composition of its name", () => {
+    const { dealtSign } = FROZEN_PROTOCOL_KEYS.computedFamily;
+    for (const [tick, announcement] of Object.entries(WOUND_ANNOUNCEMENT_BY_TICK_KEY)) {
+      expect(`${dealtSign}${tick}`).toBe(announcement);
+      expect(NAMED_KEYS.has(announcement), announcement).toBe(true);
+    }
+  });
+
   /** Every entry that moves health answers, and no other entry does. */
   test("the line sits exactly where a health figure does", () => {
     for (const entry of PROTOCOL_KEY_REGISTER) {
