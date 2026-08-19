@@ -19,9 +19,15 @@
 ## In Progress
 
 ## Up Next
-- [ ] After the healing changes for `actor` and `target` prove, that the view and the logic is correct - probably a useless drill exists in the healing tabs
 
 ## Done
+- [x] (NOT NEADED, other things have been done) Create a checklist of things that MUST be done before each commit, other than TODO. AGENTS.md rules are not enough
+- [x] Screenshots in README.md SHOULD be placed first
+- [x] Do the first audit after 0.7.0
+- [x] Check which keys can be parsed using a previous message - just like `injure` ("Zranienie")
+- [x] Check whether "Zaranienie" can be assigned to `actor` - change, if possible
+- [x] Decide whether the drill sweep can get a true per-capture floor back - "every capture opens something" stopped being true when a solo fight lost its third level
+- [x] After the healing changes for `actor` and `target` prove, that the view and the logic is correct - probably a useless drill exists in the healing tabs
 - [x] When a new fight starts, while there is an already existing one, reset panel view to the highest (go back to the root of a selected tab)
 - [x] Fix "Dotyk anioła", "Ostatni ratunek", "Przywrócono [raw_value] punktów życia [name](%percentage_health)" or "Regeneracja" - actor/source and target are the same character
 - [x] Add information about `actor` and `target` in `docs/protocol-keys.md` - in which cases they are the same, and similar things
@@ -38,7 +44,11 @@
 tab, and button, to see the action, when the add-on is in the middle of drawing
 
 ## Later
-- [ ] Regenerate screenshots at the next release - row labels and brackets changed
+- [ ] Consider adding a `Colossus`/`Titan` helper (based on MargoMeter) that shows which 
+      characters are missing an active `abilities loop`, and which ones are 
+      not casting their abilities at all — not just whether they're being 
+      cast correctly, but whether they're being cast in the first place. 
+      `Tropiciel` -> aura; `Lowca` -> damage reduction with poison, etc.
 - [ ] Reduce the number of files in the project - /ui has too many files, split it into modules (per panel view) and create 
 files only for what is reusable by them; other directories dunno
 
