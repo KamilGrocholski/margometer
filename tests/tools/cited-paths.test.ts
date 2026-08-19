@@ -20,7 +20,8 @@
  * document does.
  */
 
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readFileSync, existsSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
@@ -37,7 +38,6 @@ const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
  */
 const AUTHORED_ROOTS = ["libs", "src", "tools", "tests", "docs"];
 
-const UNREADABLE_DIRECTORIES = ["node_modules", ".git", ".cache", "dist"];
 
 /**
  * A path in prose or in a comment. Deliberately not limited to backticked spans:
@@ -82,36 +82,68 @@ const DIRECTORY_CITATION = new RegExp(
   "g",
 );
 
-function getAuthoredFiles(directory: string): string[] {
-  const entries = readdirSync(REPOSITORY_ROOT + directory, { withFileTypes: true });
-  return entries.flatMap((entry) => {
-    const path = `${directory}/${entry.name}`;
-    if (entry.isDirectory()) {
-      return UNREADABLE_DIRECTORIES.includes(entry.name) ? [] : getAuthoredFiles(path);
-    }
-    return /\.(ts|md)$/.test(entry.name) ? [path] : [];
-  });
+/**
+ * What the walk reads, which is a different list from the one above and goes
+ * stale in the opposite direction.
+ *
+ * ⚠️ **The list above says what may be cited; this one says what gets read**, and
+ * a file outside it is a file whose citations nobody follows. The walk was five
+ * directories plus `*.md` at the repository root, so every tracked file that
+ * cites and is not Markdown sat outside it. Measured at `a8b8204`, three did:
+ * `build.ts` (§7.1 twice, §9.6, eight paths), `tsconfig.userscript.json` (§9.3,
+ * §6.1, four paths) and `.github/workflows/release.yml` (§7.5, three paths) —
+ * the bundler, the floor the shipped file asks of a browser, and the pipeline
+ * that cuts a release. Every one of them still resolved, so nothing was broken;
+ * what was missing was anyone who would notice when one stopped.
+ *
+ * The listing is `git ls-files`, as in `tests/tools/measured-material.test.ts`.
+ * That is what retires the list of directories to skip: `node_modules/`,
+ * `.cache/` and `dist/` are outside git, so they are absent by the same fact
+ * that makes them absent from a fresh checkout, rather than by being remembered.
+ */
+const READ_EXTENSIONS = [".ts", ".md", ".json", ".yml"];
+
+/**
+ * Two files the listing reaches and this guard must not read, each for its own
+ * reason.
+ *
+ * `TODO.md` is a scope rather than a hole: it is the maintainer's hand-kept list
+ * and no tool may write to it (§5), so a task naming a file that does not exist
+ * yet — which is what a to-do list is made of — would be a red gate whose only
+ * remedy is an edit nobody here is allowed to make.
+ *
+ * `tests/captured-fights/` is raw protocol, not prose (§9.2): a path-shaped run
+ * of characters inside a recording is the game's own writing, and editing a
+ * capture to satisfy a guard is the one thing that directory forbids outright.
+ * It stayed out by accident while the walk took only `.ts` and `.md`, and says
+ * so here now that the walk takes `.json`.
+ *
+ * Both are left out for the reason `tests/tools/tracked-text.test.ts` leaves the
+ * images out.
+ */
+function isReadable(file: string): boolean {
+  if (file === "TODO.md") return false;
+  if (file.startsWith("tests/captured-fights/")) return false;
+  return READ_EXTENSIONS.some((extension) => file.endsWith(extension));
 }
 
-const FILES_BY_ROOT = new Map(AUTHORED_ROOTS.map((root) => [root, getAuthoredFiles(root)]));
+function getAuthoredFiles(): string[] {
+  return execFileSync("git", ["ls-files"], {
+    cwd: REPOSITORY_ROOT,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter(isReadable);
+}
 
-const AUTHORED_FILES = [
-  ...[...FILES_BY_ROOT.values()].flat(),
-  // The documents at the root are where the rules themselves live, so they are
-  // where a stale citation costs the most. Counted by the line below rather than
-  // stated here — the sentence said "the four" while there were five
-  // (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F22).
-  //
-  // `TODO.md` is the one exception, and it is a scope rather than a hole: it is
-  // the maintainer's hand-kept list and no tool may write to it (§5), so a task
-  // naming a file that does not exist yet — which is what a to-do list is made
-  // of — would be a red gate whose only remedy is an edit nobody here is allowed
-  // to make. Left out for the reason `tests/tools/tracked-text.test.ts` leaves
-  // the captures out.
-  ...readdirSync(REPOSITORY_ROOT).filter(
-    (file) => file.endsWith(".md") && file !== "TODO.md",
-  ),
-];
+const AUTHORED_FILES = getAuthoredFiles();
+
+const FILES_BY_ROOT = new Map(
+  AUTHORED_ROOTS.map((root) => [
+    root,
+    AUTHORED_FILES.filter((file) => file.startsWith(`${root}/`)),
+  ]),
+);
 
 type Citation = { path: string; citedIn: string };
 
