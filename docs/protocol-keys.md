@@ -2223,6 +2223,78 @@ reads the value as the number of health points restored.
 
 ---
 
+## Keys the captures have never carried
+
+Two keys the client knows and the help documents, and no recording has produced.
+They are here because a reader meeting them will otherwise ask the question this
+round already answered — *is this the wound we read, arriving under another
+name?* — and because the answer turns on a difference the analogy hides.
+
+An entry here states no `*Shape:*` line: that line is a measurement over the
+captures, and there is nothing to measure. It states no `*Health:*` line either,
+for the same reason — that verdict is a measurement or it is absent, and the help
+cannot supply it (§7.6).
+
+### `critwound` — investigated
+
+**Ciężka rana** — deep-wound damage over time, the same family as `injure` and a
+different key. The help says it fires on a critical hit, or an auxiliary one,
+whose damage into the Player was above zero; a chance then applies deep-wound
+damage to the target **as a separate instance**, worth 10% of the damage dealt,
+over three turns. The damage type is deep wound and is reduced by `woundred`. It
+does not accumulate, and it is overwritten by the freshest value applied to that
+opponent — word for word the rule `injure` carries, at 10% where that one is 15%,
+and off a critical hit where that one is off a monster's attack.
+
+The client composes it exactly as it composes `injure` and `poison`: one
+combatant's name and one figure, with a second-member variant when the value
+carries a comma. So a tick of it would arrive in the shape this register already
+knows — the subject in the actor slot and nobody at the other end.
+
+**Not read, and not for want of understanding.** No capture carries it, so there
+is nothing to measure a reading against and nothing for the health witness to
+agree with. What the help settles is the meaning; what is missing is the material
+(§7.1).
+
+⚠️ **It is not `injure` under another name, and the join is where they part.**
+§9.6's fourth clause charges a wound to the attacker its announcement named,
+because the announcement states the figure and the figure identifies which
+application is ticking. `+critwound` states **no figure at all** — see the entry
+below — so the same reading is not available here, and adopting it by analogy
+would be charging damage to somebody on the strength of a resemblance. `[ASK]`,
+and material first.
+
+*Help:* names `critwound`
+
+*Evidence:* the game's published help, article `view,372`, at the engine name
+`critwound` (read 2026-08-19), states the rule above in its own words. Production
+build `1786514810315` composes the key as `msg_critwound %name% %val%`, and as
+`msg_critwound %name% %val0% %val1%` where the value splits on a comma — the same
+two branches `injure` and `poison` take. Absent from `tests/captured-fights/` as
+the set stood 2026-08-19: the string occurs in none of the seventeen recordings,
+under either form.
+
+### `+critwound` — investigated
+
+The event the blow announces when a critical hit applies a heavy wound. The
+client composes it as `msg_+critwound`, **with no `%val%`** — production build
+`1786514810315`, where `+injure` on the same switch is `msg_+injure %val%`.
+
+That difference is the whole of why this entry exists. Whether the announced
+wound's figure appears anywhere else on the blow is not settled here and cannot
+be until a recording carries one: the client's own line states no figure, and a
+reading that assumed the `+injure` arrangement would be a claim about the game
+with a resemblance behind it rather than a measurement (§3).
+
+*Help:* names `critwound`
+
+*Evidence:* production build `1786514810315` composes it as `msg_+critwound`,
+alongside `+wound` and `+of_wound`, which take no value either; the same switch
+composes `+injure` with one. The published help documents the effect under the
+engine name `critwound` — article `view,372` (read 2026-08-19) — and prints no
+separate entry for the announcing form, which is how `+injure` stands as well.
+Absent from `tests/captured-fights/` as the set stood 2026-08-19.
+
 ## Investigated and found not to be battle keys
 
 ### `attack` — not a battle key

@@ -43,6 +43,7 @@ export const FROZEN_HELP_PHRASES = {
     "critred": 1,
     "critsa": 7,
     "critslow_per": 9,
+    "critwound": 2,
     "crush": 5,
     "curse": 5,
     "destroyed": 0,
