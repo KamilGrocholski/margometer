@@ -27,7 +27,10 @@ import {
   NO_ENTRY_HEALTH,
   type FightEntryHealth,
 } from "@/src/core/combatant-health.ts";
-import { SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
+import {
+  SELF_SOURCED_HEALING_KEYS,
+  WOUND_ANNOUNCEMENT_BY_TICK_KEY,
+} from "@/src/core/fight-decoder.ts";
 import { setPairRunningTotal, setRunningTotal } from "@/libs/running-total.ts";
 
 /**
@@ -143,6 +146,34 @@ export type CombatantStatistics = {
    * panel shows them in different places.
    */
   healthLostBySource: ReadonlyMap<string, number>;
+  /**
+   * The part of `healthLostBySource` somebody **is** charged with, by whom and
+   * under which key — the health-loss twin of `takenByActorId`, and read the same
+   * way: what the row holds, less what it can put a name to, is what nobody is
+   * charged with.
+   *
+   * Written only for a wound whose announcement is unambiguous (§9.6, and
+   * `WOUND_ANNOUNCEMENT_BY_TICK_KEY`). Every other loss — poison, fire, a wound
+   * whose figure disagrees with the one announced — leaves it empty, which is
+   * what keeps `Nieznany sprawca` an honest row rather than a residue.
+   */
+  healthLostByActorId: ReadonlyMap<number, ReadonlyMap<string, number>>;
+  /**
+   * Health this combatant took off somebody outside a blow, and off whom.
+   *
+   * The other end of `healthLostByActorId`, held rather than derived for the
+   * reason `takenByActorId` gives: a derivation across every other row is a
+   * statistic, and §9.1 says the panel computes none.
+   *
+   * ⚠️ **Kept apart from `dealtApplied`, which is blows.** The panel adds the two
+   * for the figure it ranks by — the mirror of `taken + healthLost`, which it has
+   * always added — but the aggregate keeps them apart, because a wound tick is a
+   * separate instance of damage rather than a swing: it lands on no `blowsStruck`,
+   * carries no damage element, and totalling it into a blow figure would make
+   * `dealtApplied` stop meaning what its own line says.
+   */
+  healthLostCaused: number;
+  healthLostCausedByTargetId: ReadonlyMap<number, ReadonlyMap<string, number>>;
   healedBySource: ReadonlyMap<string, number>;
   /**
    * The part of `healedBySource` that no announcement gave a healer to.
@@ -312,6 +343,9 @@ type Row = {
   dealtByTargetId: Map<number, Map<string, number>>;
   takenByActorId: Map<number, Map<string, number>>;
   healthLostBySource: Map<string, number>;
+  healthLostByActorId: Map<number, Map<string, number>>;
+  healthLostCaused: number;
+  healthLostCausedByTargetId: Map<number, Map<string, number>>;
   healedBySource: Map<string, number>;
   healedWithoutHealerBySource: Map<string, number>;
   healedByHealerId: Map<number, number>;
@@ -400,6 +434,9 @@ function composeRow(): Row {
     dealtByTargetId: new Map(),
     takenByActorId: new Map(),
     healthLostBySource: new Map(),
+    healthLostByActorId: new Map(),
+    healthLostCaused: 0,
+    healthLostCausedByTargetId: new Map(),
     healedBySource: new Map(),
     healedWithoutHealerBySource: new Map(),
     healedByHealerId: new Map(),
@@ -421,6 +458,7 @@ function setTotalsFrom(into: Row, member: CombatantStatistics): void {
   into.healed += member.healed;
   into.healingGiven += member.healingGiven;
   into.healthLost += member.healthLost;
+  into.healthLostCaused += member.healthLostCaused;
   into.skillsUsed += member.skillsUsed;
 
   const keyed: Array<[Map<string, number>, ReadonlyMap<string, number>]> = [
@@ -434,6 +472,31 @@ function setTotalsFrom(into: Row, member: CombatantStatistics): void {
     for (const [token, amount] of from) setRunningTotal(totals, token, amount);
   }
 }
+
+/**
+ * The wound a victim is carrying: which key will tick, what it will state, and who
+ * applied it.
+ *
+ * `attackerId` is nullable and the wound is still kept, which is the half that is
+ * easy to leave out: the game overwrites a wound whoever landed it, so an
+ * application whose actor did not resolve has to displace the one before it. Drop
+ * it instead and a stale wound goes on claiming ticks that are somebody else's.
+ */
+type RunningWound = { attackerId: number | null; amount: number; source: string };
+
+/**
+ * The announcement keys, pointing back at the tick they announce.
+ *
+ * Derived rather than written down a second time — the pairing is
+ * `WOUND_ANNOUNCEMENT_BY_TICK_KEY`'s and this is only the direction a blow needs
+ * to read it in.
+ */
+const TICK_KEY_BY_WOUND_ANNOUNCEMENT = new Map(
+  Object.entries(WOUND_ANNOUNCEMENT_BY_TICK_KEY).map(([tick, announcement]) => [
+    announcement,
+    tick,
+  ]),
+);
 
 /**
  * Who gave a heal that nothing announced — the healed combatant, or nobody.
@@ -475,6 +538,18 @@ export function composeFightStatistics(
 
   const rows = new Map<number, Row>();
   const unattributed = composeRow();
+  /**
+   * The wound each victim is carrying, replaced by the freshest application.
+   *
+   * ⚠️ **This is why the reading is here and not in the decoder.**
+   * `src/game/battle-session.ts` decodes incrementally, carrying exactly one
+   * message forward, so a wound held inside `decodeFight` would reach only the
+   * ticks that happen to share an engine call with their announcement — measured
+   * over the captures as the set stood 2026-08-19, 36 of 151 — and would answer
+   * differently depending on how the game split its payloads. This fold is rebuilt
+   * from every event on every payload, which is the same reason sizing lives here.
+   */
+  const woundByVictimId = new Map<number, RunningWound>();
   const messagesByReason = new Map<string, number>();
   const occurrencesByUnreadKey = new Map<string, number>();
   const unaccountedHealthBySource = new Map<string, number>();
@@ -628,6 +703,21 @@ export function composeFightStatistics(
         }
 
         for (const proc of event.procs) setRunningTotal(actor.procsOnBlowsStruck, proc, 1);
+
+        // A blow may state that it applied a wound. Nothing is counted here — the
+        // announcement is a declaration and stays one (`docs/protocol-keys.md`) —
+        // and what is kept is only the name the tick will need.
+        if (event.targetId !== null) {
+          for (const declared of event.declared) {
+            const source = TICK_KEY_BY_WOUND_ANNOUNCEMENT.get(declared.effect);
+            if (source === undefined || declared.amount === null) continue;
+            woundByVictimId.set(event.targetId, {
+              attackerId: event.actorId,
+              amount: declared.amount,
+              source,
+            });
+          }
+        }
         break;
       }
 
@@ -713,9 +803,46 @@ export function composeFightStatistics(
             event.announced,
           );
         } else {
+          const lost = -event.amount;
           const subject = getRow(event.combatantId);
-          subject.healthLost += -event.amount;
-          setRunningTotal(subject.healthLostBySource, event.source, -event.amount);
+          subject.healthLost += lost;
+          setRunningTotal(subject.healthLostBySource, event.source, lost);
+
+          /**
+           * §9.6's fourth clause, in the one expression that exercises it: an end
+           * the protocol left out, filled from an **earlier message of the same
+           * fight** where the help states the link and the figure says which
+           * application it is.
+           *
+           * ⚠️ **Three declines, and each is a figure staying on the pinned row
+           * rather than reaching somebody's.** No wound on this victim — a fight
+           * joined after the blow that applied it. A figure that is not the one
+           * announced — then this is not the wound we are holding, and a tick we
+           * cannot identify is one we cannot place. An announcement whose own
+           * attacker did not resolve — there is no name to fill the end with, and
+           * inventing one is §5's flat no.
+           */
+          const wound = event.combatantId === null ? undefined : woundByVictimId.get(event.combatantId);
+          if (
+            wound !== undefined &&
+            wound.attackerId !== null &&
+            wound.source === event.source &&
+            wound.amount === lost
+          ) {
+            const attacker = getRow(wound.attackerId);
+            attacker.healthLostCaused += lost;
+            // Both directions from one reading of one event, for the reason
+            // `setHealingTotals` gives: written twice, they drift.
+            setPairRunningTotal(subject.healthLostByActorId, wound.attackerId, event.source, lost);
+            if (event.combatantId !== null) {
+              setPairRunningTotal(
+                attacker.healthLostCausedByTargetId,
+                event.combatantId,
+                event.source,
+                lost,
+              );
+            }
+          }
         }
         break;
       }

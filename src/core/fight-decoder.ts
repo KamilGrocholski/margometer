@@ -548,6 +548,45 @@ export const SELF_SOURCED_HEALING_KEYS: readonly string[] = [
 ];
 
 /**
+ * A damage key that ticks with nobody in the other slot, and the key that
+ * announced who applied it — §9.6's fourth clause, and the only pair on it.
+ *
+ * The tick names its victim and nobody else. The announcement, one or more
+ * messages earlier, names both ends. What lets the two be joined is the help's
+ * own overwrite rule rather than proximity: article `view,372` at the engine name
+ * `injure` (read 2026-08-18) says the deep-wound damage does not accumulate and is
+ * overwritten by the freshest value applied **to that given opponent**, so a
+ * victim carries exactly one wound at a time and the freshest announcement against
+ * them is whose it is. The figure is what identifies which one — a tick states
+ * what its announcement stated.
+ *
+ * Measured over `tests/captured-fights/` as the set stood 2026-08-19: every tick
+ * lands on a victim already carrying a wound and states exactly what that wound
+ * announced, on material where a victim was wounded by three different attackers.
+ * Re-earned by `tests/core/injure-rule.test.ts`.
+ *
+ * ⚠️ **`poison` and `fire` are written identically and are not here.** They tick
+ * the same way, with the subject in the actor slot and a literal `0` at the other,
+ * and no key announces them at all — so there is no earlier message to read a name
+ * off, and they keep their `Nieznany sprawca` row. That asymmetry is the content
+ * of the clause: what supplies the missing end is a stated announcement, never the
+ * shape of the message.
+ *
+ * ⚠️ **`critwound` is the near miss.** The help names it beside this one as the
+ * other source of deep-wound damage, and the client knows both `+critwound` and
+ * `critwound` (`tests/frozen-protocol-keys.ts`) — a separate tick key, so it
+ * cannot arrive under this one and be mistaken for it. Neither is in the captures
+ * and neither is read; a pair for them is `[ASK]` like any other (§9.6).
+ *
+ * Spelled here rather than in the aggregate that reads it, for the reason the
+ * list above gives: the decoder is what turns a key into an event, and a name we
+ * did not choose is spelled once (§9.3).
+ */
+export const WOUND_ANNOUNCEMENT_BY_TICK_KEY: Readonly<Record<string, string>> = {
+  injure: "+injure",
+};
+
+/**
  * Keys that are the whole of their message and report nothing that happened to
  * anybody: a turn marker, a skill being prepared, a line for the client's own
  * log, the experience at the end, an aura declared once for the fight.

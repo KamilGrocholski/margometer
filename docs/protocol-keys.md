@@ -143,6 +143,7 @@ answers it on one line, from a closed list:
 | `the subject's own` | the published help says the effect belongs to the combatant it moved health on, so the two ends are one person (§9.6) | `SELF_SOURCED_HEALING_KEYS` |
 | `the announcement's actor` | the figure sits on the message **target** and a skill announcement over it names the giver | `HEALTH_CHANGE_KEYS`, the entries reading the target slot |
 | `the message actor` | the protocol states the cause in the actor slot of the message itself | `SIDE_SHARE_HEALTH_KEYS`, and the attack family |
+| `the wound's attacker` | an **earlier** message announced the effect and named who applied it, and the figure says which application is ticking (§9.6) | `WOUND_ANNOUNCEMENT_BY_TICK_KEY` |
 | `nobody` | the protocol states no cause, and nothing else supplies one | the rest of `HEALTH_CHANGE_KEYS` |
 
 **Required exactly where `*Health:*` is, and refused everywhere else.** A key that
@@ -488,7 +489,7 @@ using `+injure`'s evidence, and the split is what let the two be measured apart.
 
 *Health:* moves health
 
-*Cause:* nobody
+*Cause:* the wound's attacker
 
 *Shape:* 151 occurrences; alone in its message; a whole number
 

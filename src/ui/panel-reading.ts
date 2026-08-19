@@ -88,7 +88,13 @@ export function getName(reading: PanelReading, combatantId: number): string {
  * that hit it.
  */
 export function getMetricValue(row: CombatantStatistics, metric: PanelMetric): number {
-  if (metric === "dealt") return row.dealtApplied;
+  // And **dealt is a blow plus health taken off outside one**, which is the same
+  // addition read from the other end: a wound charged to its attacker (§9.6) is
+  // damage they did, and the aggregate keeps it apart from `dealtApplied` because
+  // it is not a swing. Leaving it out would put the two ends of one figure on
+  // different screens — the victim's `Otrzymane` counting it and the attacker's
+  // `Zadane` not.
+  if (metric === "dealt") return row.dealtApplied + row.healthLostCaused;
   if (metric === "taken") return row.taken + row.healthLost;
   if (metric === "healingGiven") return row.healingGiven;
   return row.healed;
@@ -150,4 +156,56 @@ export function getDamageWithoutActorByElement(row: CombatantStatistics): Map<st
     if (rest > 0) without.set(element, rest);
   }
   return without;
+}
+
+/**
+ * Health this combatant lost that nobody is charged with — the health-loss twin of
+ * `getDamageWithoutActor`, and read the same way: what the row holds, less what it
+ * can put a name to.
+ *
+ * ⚠️ **It was `row.healthLost` at four call sites until a wound acquired an
+ * attacker.** Poison and fire still make up almost all of it — measured over
+ * `tests/captured-fights/` as the set stood 2026-08-19, the charged part is 25 062
+ * of it — so the pinned row goes on standing for something, and the difference is
+ * exactly the part that now has a row of its own.
+ */
+export function getHealthLostWithoutActor(row: CombatantStatistics): number {
+  let named = 0;
+  for (const bySource of row.healthLostByActorId.values()) {
+    for (const amount of bySource.values()) named += amount;
+  }
+  return Math.max(0, row.healthLost - named);
+}
+
+/** The same figure, kept apart by the key the game stated it under. */
+export function getHealthLostWithoutActorBySource(
+  row: CombatantStatistics,
+): Map<string, number> {
+  const named = new Map<string, number>();
+  for (const bySource of row.healthLostByActorId.values()) {
+    for (const [source, amount] of bySource) setRunningTotal(named, source, amount);
+  }
+
+  const without = new Map<string, number>();
+  for (const [source, amount] of row.healthLostBySource) {
+    const rest = amount - (named.get(source) ?? 0);
+    if (rest > 0) without.set(source, rest);
+  }
+  return without;
+}
+
+/**
+ * What this combatant took off others outside a blow, by the key that did it.
+ *
+ * A fold of their own row's map rather than a figure the aggregate keeps: the
+ * total is already there as `healthLostCaused`, and this is the cut a breakdown
+ * needs beside it. §9.1's line is about a statistic derived across *other* rows,
+ * which this is not.
+ */
+export function getHealthLostCausedBySource(row: CombatantStatistics): Map<string, number> {
+  const bySource = new Map<string, number>();
+  for (const byTarget of row.healthLostCausedByTargetId.values()) {
+    for (const [source, amount] of byTarget) setRunningTotal(bySource, source, amount);
+  }
+  return bySource;
 }

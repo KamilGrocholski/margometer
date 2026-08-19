@@ -46,6 +46,7 @@ A verdict outside that list is refused rather than read as silence.
 |---|---|---|---|
 | `Zadane` | `KOMU` | person | `sometimes` |
 | `Zadane` | `CZYM (UMIEJĘTNOŚCI)` | skill | `always` |
+| `Zadane` | `CZYM (UMIEJĘTNOŚCI)` | leaf | `never` |
 | `Zadane` | `CZYM (UMIEJĘTNOŚCI)` | closing row | `never` |
 | `Zadane` | `TYP OBRAŻEŃ` | source | `never` |
 | `Otrzymane` | `OD KOGO` | person | `sometimes` |
@@ -63,6 +64,13 @@ Two absences are the design rather than a gap. **`Otrzymane` has no skills
 section at all** — the protocol names what hit you and never what the other side
 chose — and **`Leczenie dane` has no source section**, because the keys the game
 states belong to whoever received the health, so a giver has none.
+
+**And one row in `Zadane`'s skills section is not a skill.** Damage charged to a
+combatant that no blow of theirs carried — a wound ticking turns after the blow
+that applied it (§9.6) — stands there as a `leaf`, under the game's own word for
+the key. It is a row rather than part of the closing row below it because that
+row says *a blow nothing announced* and counts how many, and a wound is neither.
+It opens nothing: the protocol states no count for it and no second cut of it.
 
 ## The deep level
 

@@ -18,6 +18,9 @@ import {
   getDamageWithoutActor,
   getDamageWithoutActorByElement,
   getHealingWithoutHealer,
+  getHealthLostCausedBySource,
+  getHealthLostWithoutActor,
+  getHealthLostWithoutActorBySource,
   getMetricValue,
   getName,
   getRow,
@@ -210,5 +213,80 @@ describe("a blow with nobody to charge it to", () => {
 
     expect([...getDamageWithoutActorByElement(row)]).toEqual([["dmgf", 30]]);
     expect(getDamageWithoutActorByElement({ ...row, takenByElement: new Map() }).size).toBe(0);
+  });
+});
+
+/**
+ * Health lost with nobody charged for it — the same reading again, on the map that
+ * arrived when a wound acquired an attacker (§9.6).
+ *
+ * The row's own figure less the part somebody is charged with, so poison keeps the
+ * pinned row and the wound leaves it. Held here rather than through the view for
+ * the reason the two above are: the shapes that matter — more charged than lost,
+ * a key charged in full — are ones the corpus does not produce.
+ */
+describe("health lost with nobody to charge", () => {
+  const composeLossRow = (
+    bySource: Array<[string, number]>,
+    byActorId: Array<[number, Array<[string, number]>]>,
+  ) => ({
+    ...getRow(composeReading(), 404),
+    healthLost: bySource.reduce((sum, [, amount]) => sum + amount, 0),
+    healthLostBySource: new Map(bySource),
+    healthLostByActorId: new Map(byActorId.map(([id, bySourceOfActor]) => [id, new Map(bySourceOfActor)])),
+  });
+
+  test("what is left after the named attackers", () => {
+    const row = composeLossRow(
+      [
+        ["poison", 60],
+        ["injure", 40],
+      ],
+      [[1, [["injure", 40]]]],
+    );
+    expect(getHealthLostWithoutActor(row)).toBe(60);
+    expect([...getHealthLostWithoutActorBySource(row)]).toEqual([["poison", 60]]);
+  });
+
+  /**
+   * Both sides of zero (§7.5). A key every point of which has an attacker is
+   * absent from the cut rather than a row reading `0`, and more charged than lost
+   * cannot happen — it must not come out negative, because the figure is
+   * subtracted from a pinned row somewhere as though it were measured.
+   */
+  test("nothing left where every point has an attacker", () => {
+    expect(getHealthLostWithoutActor(composeLossRow([["injure", 40]], [[1, [["injure", 40]]]]))).toBe(0);
+    expect(getHealthLostWithoutActor(composeLossRow([["injure", 40]], [[1, [["injure", 90]]]]))).toBe(0);
+    expect(getHealthLostWithoutActor(composeLossRow([["poison", 1]], []))).toBe(1);
+    expect(getHealthLostWithoutActor(composeLossRow([], []))).toBe(0);
+    expect(getHealthLostWithoutActorBySource(composeLossRow([["injure", 40]], [[1, [["injure", 40]]]])).size).toBe(0);
+  });
+
+  /** The other end of the same figure, folded off the row that caused it. */
+  test("what one combatant took off others outside a blow, by key", () => {
+    const row = {
+      ...getRow(composeReading(), 404),
+      healthLostCaused: 70,
+      healthLostCausedByTargetId: new Map([
+        [3, new Map([["injure", 40]])],
+        [4, new Map([["injure", 30]])],
+      ]),
+    };
+    expect([...getHealthLostCausedBySource(row)]).toEqual([["injure", 70]]);
+    expect(getHealthLostCausedBySource(getRow(composeReading(), 404)).size).toBe(0);
+  });
+
+  /**
+   * And the panel ranks by the two added together, which is the whole visible
+   * consequence: a wound charged to an attacker is damage they did, on the same
+   * screen as their blows.
+   */
+  test("dealt is blows plus what was taken off outside one", () => {
+    const row = {
+      ...getRow(composeReading(), 404),
+      dealtApplied: 500,
+      healthLostCaused: 70,
+    };
+    expect(getMetricValue(row, "dealt")).toBe(570);
   });
 });

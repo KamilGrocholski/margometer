@@ -12,6 +12,7 @@
  */
 
 import { composeIntegerText } from "@/libs/number.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 import { getTextOrder } from "@/libs/text-order.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import {
@@ -49,8 +50,30 @@ function composeTokenText(totals: ReadonlyMap<string, number>): string {
     .join("  ");
 }
 
+/**
+ * What this combatant took off others outside a blow, by key.
+ *
+ * A column of its own rather than folded into `landed`, and for the panel's own
+ * reason: the two are added for the figure a screen ranks by and kept apart
+ * everywhere else, because a wound is not a swing (§9.6).
+ */
+function getCausedBySource(row: CombatantStatistics): Map<string, number> {
+  const bySource = new Map<string, number>();
+  for (const byTarget of row.healthLostCausedByTargetId.values()) {
+    for (const [source, amount] of byTarget) setRunningTotal(bySource, source, amount);
+  }
+  return bySource;
+}
+
 function writeRow(label: string, row: CombatantStatistics): void {
-  const figures = [row.dealtRaw, row.dealtApplied, row.taken, row.healed, row.healthLost]
+  const figures = [
+    row.dealtRaw,
+    row.dealtApplied,
+    row.healthLostCaused,
+    row.taken,
+    row.healed,
+    row.healthLost,
+  ]
     .map((amount) => composeIntegerText(amount).padStart(NUMBER_COLUMN))
     .join("");
   console.log(`  ${label.slice(0, NAME_COLUMN).padEnd(NAME_COLUMN)}${figures}`);
@@ -59,6 +82,7 @@ function writeRow(label: string, row: CombatantStatistics): void {
   // them up under a column heading would invite reading them as if they were.
   const details: Array<[string, string]> = [
     ["by element dealt", composeTokenText(row.dealtAppliedByElement)],
+    ["by key taken off outside a blow", composeTokenText(getCausedBySource(row))],
     ["by element taken", composeTokenText(row.takenByElement)],
     ["prevented", composeTokenText(row.prevented)],
     ["destroyed", composeTokenText(row.destroyed)],
@@ -89,7 +113,7 @@ function writeFightReport(fight: CapturedFight): void {
     // "raw(blow)" rather than "raw": damage stated against a name carries no raw
     // figure, so a boss working through `+oth_dmg` lands more than its raw column
     // shows. Two headings that looked comparable would read as an error.
-    `  ${"combatant".padEnd(NAME_COLUMN)}${["raw(blow)", "landed", "taken", "healed", "lost"]
+    `  ${"combatant".padEnd(NAME_COLUMN)}${["raw(blow)", "landed", "caused", "taken", "healed", "lost"]
       .map((heading) => heading.padStart(NUMBER_COLUMN))
       .join("")}`,
   );

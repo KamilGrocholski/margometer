@@ -1846,6 +1846,7 @@ describe("the report a reader copies", () => {
     "dealtApplied",
     "taken",
     "healthLost",
+    "healthLostCaused",
     "healed",
     "healingGiven",
     "blowsStruck",

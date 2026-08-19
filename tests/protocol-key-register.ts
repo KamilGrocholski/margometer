@@ -61,6 +61,12 @@ export const PROTOCOL_KEY_CAUSES = [
   "the subject's own",
   "the announcement's actor",
   "the message actor",
+  /**
+   * The one token whose cause is stated by a **different message**: a wound ticks
+   * with nobody in the other slot, and the blow that applied it named both ends
+   * (§9.6, `WOUND_ANNOUNCEMENT_BY_TICK_KEY`).
+   */
+  "the wound's attacker",
   "nobody",
 ] as const;
 

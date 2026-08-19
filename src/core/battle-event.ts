@@ -237,7 +237,16 @@ export type HealthChangeEvent = {
    * The same reading as `AttackEvent`'s, and here for the same reason.
    */
   healthPercent: number | null;
-  /** The protocol key as written. Who caused it is not in the log (§5). */
+  /**
+   * The protocol key as written.
+   *
+   * ⚠️ **Who caused it is not in this message, and for one key it is in an earlier
+   * one.** A wound ticks with nobody in the other slot and the blow that applied it
+   * named both ends, so `src/core/fight-statistics.ts` charges the tick to that
+   * attacker where the figure identifies the application (§9.6). Nothing is added
+   * to this event for it: the key and the figure are all the join needs, and a
+   * field here would put the same reading in two places.
+   */
   source: string;
   /**
    * What the key stated **beside** the health figure, where it stated anything.

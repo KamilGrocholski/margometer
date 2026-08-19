@@ -4,6 +4,7 @@ import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import {
   DAMAGE_TO_NAMED_KEY,
   SELF_SOURCED_HEALING_KEYS,
+  WOUND_ANNOUNCEMENT_BY_TICK_KEY,
   SIDE_SHARE_HEALTH_KEYS,
   UNDERSTOOD_PROTOCOL_KEYS,
 } from "@/src/core/fight-decoder.ts";
@@ -438,6 +439,31 @@ describe("who a health figure is charged to", () => {
     expect(getKeysWithCause("the subject's own").sort()).toEqual(
       [...SELF_SOURCED_HEALING_KEYS].sort(),
     );
+  });
+
+  /**
+   * The second token that closes both ways, and it has to: a key charged to
+   * somebody an **earlier** message named is the widest reading in this file, so
+   * the list the aggregate works from and the entries claiming it are held equal
+   * rather than compared by eye (§9.6).
+   */
+  test("the register and the decoder name the same wound ticks", () => {
+    expect(getKeysWithCause("the wound's attacker").sort()).toEqual(
+      Object.keys(WOUND_ANNOUNCEMENT_BY_TICK_KEY).sort(),
+    );
+  });
+
+  /**
+   * And the announcement it is read off is a key this file has an entry for.
+   * Without this the pairing could name a key nobody has looked into, and the
+   * cause line would rest on a string.
+   */
+  test("every wound tick is announced by a key the register knows", () => {
+    const known = new Set(PROTOCOL_KEY_REGISTER.map((entry) => entry.key));
+    const missing = Object.values(WOUND_ANNOUNCEMENT_BY_TICK_KEY).filter(
+      (announcement) => !known.has(announcement),
+    );
+    expect(missing).toEqual([]);
   });
 
   /**

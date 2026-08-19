@@ -8,11 +8,11 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { getIntegerFromText } from "@/libs/number.ts";
+import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
 import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, getMessagesOfFight } from "@/tests/captured-fight-catalog.ts";
 
 // Restated rather than imported: this file asserts what the decoder reads, and a
 // test that reads the decoder's own list agrees with it by construction (§9.3).
@@ -229,5 +229,105 @@ describe("which wound a tick belongs to", () => {
     }
     const contested = [...attackerIdsByVictimId.values()].filter((ids) => ids.size > 1);
     expect(contested.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * What the aggregate does with the join — §9.6's fourth clause, in the three
+ * shapes the captures cannot show and the one they can.
+ *
+ * The corpus has no fight joined mid-wound, no figure that disagrees and no
+ * announcement whose attacker fails to resolve, because every name in all
+ * seventeen resolves and every tick has its announcement. Those are exactly the
+ * shapes where a wrong reading would charge somebody with damage they did not do,
+ * so they are built by hand.
+ */
+describe("who a wound is charged to", () => {
+  const composeWound = (attacker: string, victim: number, amount: number) =>
+    `${attacker};${victim}=50.00;+dmg=500;-dmg=400;+injure=${composeIntegerText(amount)}`;
+  const composeTick = (victim: number, amount: number) =>
+    `${composeIntegerText(victim)}=40.00;0;injure=${composeIntegerText(amount)}`;
+  const composeStatistics = (messages: string[]) => composeFightStatistics(decodeFight(messages));
+
+  test("the attacker who announced it is charged, and the victim still lost it", () => {
+    const statistics = composeStatistics([composeWound("1=90.00", 3, 60), composeTick(3, 60)]);
+    expect(statistics.byCombatantId.get(1)?.healthLostCaused).toBe(60);
+    expect(statistics.byCombatantId.get(3)?.healthLost).toBe(60);
+    expect([...(statistics.byCombatantId.get(3)?.healthLostByActorId.get(1) ?? [])]).toEqual([
+      [TICK_KEY, 60],
+    ]);
+    // The blow it rode is untouched: the announcement is counted as nothing, and
+    // the wound is not a swing.
+    expect(statistics.byCombatantId.get(1)?.dealtApplied).toBe(400);
+    expect(statistics.byCombatantId.get(1)?.blowsStruck).toBe(1);
+  });
+
+  test("a tick nothing announced is charged to nobody", () => {
+    const statistics = composeStatistics([composeTick(3, 60)]);
+    expect(statistics.byCombatantId.get(3)?.healthLost).toBe(60);
+    expect(statistics.byCombatantId.get(3)?.healthLostByActorId.size).toBe(0);
+  });
+
+  /**
+   * The figure is what identifies the application, so a figure that is not the one
+   * announced is not the wound being held — and a tick we cannot identify is one we
+   * cannot place.
+   */
+  test("a tick stating anything else is charged to nobody", () => {
+    const statistics = composeStatistics([composeWound("1=90.00", 3, 60), composeTick(3, 50)]);
+    expect(statistics.byCombatantId.get(3)?.healthLost).toBe(50);
+    expect(statistics.byCombatantId.get(3)?.healthLostByActorId.size).toBe(0);
+    expect(statistics.byCombatantId.get(1)?.healthLostCaused).toBe(0);
+  });
+
+  /** The help's overwrite rule, which is what makes *freshest* the right one. */
+  test("the freshest application is whose it is, and the one it replaced is nobody's", () => {
+    const statistics = composeStatistics([
+      composeWound("1=90.00", 3, 60),
+      composeWound("2=90.00", 3, 40),
+      composeTick(3, 40),
+      composeTick(3, 60),
+    ]);
+    expect(statistics.byCombatantId.get(2)?.healthLostCaused).toBe(40);
+    expect(statistics.byCombatantId.get(1)?.healthLostCaused).toBe(0);
+    // 100 lost, 40 of it charged: the tick stating the replaced figure is on
+    // nobody, which is the honest answer rather than the previous attacker's.
+    expect(statistics.byCombatantId.get(3)?.healthLost).toBe(100);
+  });
+
+  /**
+   * ⚠️ **The wound is replaced even where the fresh one cannot be charged.** The
+   * game overwrites it whoever landed it, so an application whose actor did not
+   * resolve has to displace the one before it — dropping it instead would let a
+   * stale wound go on claiming ticks that are somebody else's.
+   */
+  test("an application nobody is named for still replaces the one before it", () => {
+    const statistics = composeStatistics([composeWound("1=90.00", 3, 60), composeWound("0", 3, 60), composeTick(3, 60)]);
+    expect(statistics.byCombatantId.get(1)?.healthLostCaused).toBe(0);
+    expect(statistics.byCombatantId.get(3)?.healthLost).toBe(60);
+    expect(statistics.byCombatantId.get(3)?.healthLostByActorId.size).toBe(0);
+  });
+
+  /**
+   * And over the material: every point the key states reaches the attacker who
+   * announced it. Asserted as an equality between two different fields of the
+   * aggregate rather than as a figure, so a recording that broke it — a tick
+   * arriving with no announcement, a figure that disagrees — fails here rather
+   * than quietly moving damage onto the pinned row.
+   */
+  test("every point of it reaches an attacker, on every capture", () => {
+    let lost = 0;
+    let charged = 0;
+    for (const fight of CAPTURED_FIGHTS) {
+      const statistics = composeFightStatistics(decodeFight(getMessagesOfFight(fight)));
+      for (const row of statistics.byCombatantId.values()) {
+        lost += row.healthLostBySource.get(TICK_KEY) ?? 0;
+        for (const byTarget of row.healthLostCausedByTargetId.values()) {
+          charged += byTarget.get(TICK_KEY) ?? 0;
+        }
+      }
+    }
+    expect(lost).toBeGreaterThan(0);
+    expect(charged).toBe(lost);
   });
 });

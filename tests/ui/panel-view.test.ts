@@ -475,7 +475,7 @@ describe("what nobody can be charged with", () => {
     expect(victim?.valueText).toBe("560");
     expect(getNoActorRow(view)?.valueText).toBe("60");
     expect(victim?.detail.map((line) => (line.kind === "stat" ? line.label : ""))).toContain(
-      "  bez sprawcy",
+      "  poza ciosem",
     );
   });
 
@@ -1506,12 +1506,16 @@ describe("against the captured fights", () => {
    * written out rather than derived, so the guard states the claim instead of
    * agreeing with whatever the corpus currently produces (§7.5).
    *
-   * ⚠️ **Both halves are load-bearing, and the healing half is new.** Damage keeps
-   * its hole: `poison`, `fire` and `injure` arrive with the subject in the actor
-   * slot and a literal `0` at the other end, and nothing documents who caused them.
-   * Healing has none left — every point in all seventeen recordings reaches a
-   * healer since the three keys the help calls the healed combatant's own started
-   * saying so (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
+   * ⚠️ **Both halves are load-bearing.** Damage keeps its hole: `poison` and
+   * `fire` arrive with the subject in the actor slot and a literal `0` at the other
+   * end, and nothing announces them or documents who caused them. `injure` arrives
+   * in the identical shape and no longer leaves one — the blow before it announced
+   * the wound and named who applied it
+   * (`docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`), which is why this
+   * cell still says `true` on the strength of two keys rather than three. Healing
+   * has none left — every point in all seventeen recordings reaches a healer since
+   * the three keys the help calls the healed combatant's own started saying so
+   * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
    *
    * A `false` that turned `true` again would be a healing key nobody has read, and
    * a `true` that turned `false` would be damage quietly acquiring an attacker.
@@ -2643,6 +2647,41 @@ const EVERY_CASE: Array<{
     },
   },
   {
+    // ⚠️ **Written exactly like the two `poison` cases above, and read
+    // differently.** The blow before it announced the wound and named who applied
+    // it, and the tick states what that announcement stated — so both ends are
+    // known and no row is pinned. The figure is the attacker's, beside their blow
+    // and not inside it (§9.6,
+    // `docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`).
+    name: "a wound the blow before it announced",
+    messages: ["1=90.00;3=50.00;+dmg=500;-dmg=400;+injure=60", "3=50.00;0;injure=60"],
+    ourSide: 1,
+    drawn: {
+      dealt: { all: [], mine: [], enemy: [] },
+      taken: { all: [], mine: [], enemy: [] },
+    },
+    ranked: {
+      dealt: { all: ["mag 460"], mine: ["mag 460"], enemy: [] },
+      taken: { all: ["boss 460"], mine: [], enemy: ["boss 460"] },
+    },
+  },
+  {
+    // The other half of the same reading: a tick nothing announced has nobody to
+    // charge, and is the `poison` case again. This is what a fight joined after the
+    // blow that applied the wound sends.
+    name: "a wound nothing announced",
+    messages: ["3=50.00;0;injure=60"],
+    ourSide: 1,
+    drawn: {
+      dealt: { all: ["Nieznany sprawca 60"], mine: ["Nieznany sprawca 60"], enemy: [] },
+      taken: { all: ["Nieznany sprawca 60"], mine: [], enemy: ["Nieznany sprawca 60"] },
+    },
+    ranked: {
+      dealt: { all: [], mine: [], enemy: [] },
+      taken: { all: ["boss 60"], mine: [], enemy: ["boss 60"] },
+    },
+  },
+  {
     name: "neither end named",
     messages: ["0;0;+dmg=90;-dmg=70"],
     ourSide: 1,
@@ -2944,7 +2983,7 @@ describe("every shape the protocol can send", () => {
 
 describe("every sentence the panel says", () => {
   const OURS = [
-    "  bez sprawcy",
+    "  poza ciosem",
     "  z ciosów",
     "CZYM (UMIEJĘTNOŚCI)",
     "Cała walka · My / Oni",

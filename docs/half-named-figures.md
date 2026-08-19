@@ -22,11 +22,14 @@ everything else is one of the two rows pinned under it.
 | `1=90.00;0;+dmg=300;-dmg=200` | the actor | `mag 200` in the ranking · `My` | **`Nieznany cel 200`** · `Oni` |
 | `3=50.00;0;poison=60` | the subject, on their side | **`Nieznany sprawca 60`** · `My` | `boss 60` in the ranking, and `Nieznany sprawca 60` as a cut of it · `Oni` |
 | `2=90.00;0;poison=60` | the subject, on ours | **`Nieznany sprawca 60`** · `Oni` | `tarcza 60` in the ranking, and `Nieznany sprawca 60` as a cut of it · `My` |
+| `3=50.00;0;injure=60` | the subject, and nothing announced the wound | **`Nieznany sprawca 60`** · `My` | `boss 60` in the ranking, and `Nieznany sprawca 60` as a cut of it · `Oni` |
 | `0;0;+dmg=90;-dmg=70` | neither | `Nieznany sprawca 70`, `Wszyscy` only · bar says `Bez strony 70` | `Nieznany cel 70`, `Wszyscy` only · bar says `Bez strony 70` |
 
 The third and fourth rows are the inference, and they are the pair that says which
 way it runs: a tick on **their** side is ours to have dealt, a tick on **ours** is
-theirs.
+theirs. The fifth is the same tick under a key that *can* be announced, arriving in
+a fight nobody watched the blow in — the section below is what it looks like when
+somebody did.
 
 ## Healing
 
@@ -72,6 +75,30 @@ protocol writes identically are read differently, on the strength of what the
 documentation says about one of them and not the other. That asymmetry is the
 content of this section, and `docs/protocol-keys.md` carries it per key on the
 `*Cause:*` line.
+
+## An end an earlier message named
+
+One shape more, and the only one whose missing end comes from **another message**:
+a wound ticks with nobody in the other slot, and the blow that applied it named
+both. The help says the wound does not accumulate and is overwritten by the
+freshest application against that opponent, so a victim carries one at a time; the
+figure says which one is ticking (§9.6,
+`docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`).
+
+| the fight | `Zadane` | `Otrzymane` |
+|---|---|---|
+| `1=90.00;3=50.00;+dmg=500;-dmg=400;+injure=60`, then `3=50.00;0;injure=60` | `mag 460` in the ranking · `My`, no pinned row | `boss 460` in the ranking · `Oni`, no pinned row |
+| the tick alone, nothing having announced it | `Nieznany sprawca 60` · `My` | `boss 60` in the ranking, and `Nieznany sprawca 60` as a cut of it · `Oni` |
+
+The 460 is 400 from the blow and 60 from the wound, added for the figure the
+screen ranks by and kept apart everywhere else: the wound is on no `Zwykły cios`
+row and in no damage element, because it is not a swing.
+
+⚠️ **Three things make the fill decline**, and each leaves the figure on the pinned
+row of the second table row: nothing announced a wound on this victim, the tick
+states a figure that is not the one announced, or the announcement's own attacker
+did not resolve. A fresh application replaces the one before it **even then**,
+because the game overwrites it whoever landed it.
 
 ## A side named, and no member of it
 

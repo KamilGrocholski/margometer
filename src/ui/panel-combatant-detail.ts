@@ -154,11 +154,23 @@ export function composeCombatantDetail(
     lines.push(
       composeStat(METRIC_LABELS[metric], composeFigureText(value), metric === state.metric),
     );
-    // Taken is the one figure made of two readings, so it says so where it
-    // stands rather than leaving the difference to be discovered.
+    // Taken and dealt are each made of two readings — a blow, and health moved
+    // outside one — so they say so where they stand rather than leaving the
+    // difference to be discovered.
+    //
+    // ⚠️ **The second line used to read `bez sprawcy`, and that stopped being
+    // true.** Part of what a combatant loses outside a blow now reaches the
+    // attacker who applied it (§9.6), so a label naming the missing actor would
+    // claim it of points that have one. What both lines say instead is where the
+    // figure came from, which is true of every point in them and closes against
+    // the figure above.
     if (metric === "taken" && row.healthLost > 0) {
       lines.push(composeStat("  z ciosów", composeFigureText(row.taken)));
-      lines.push(composeStat("  bez sprawcy", composeFigureText(row.healthLost)));
+      lines.push(composeStat("  poza ciosem", composeFigureText(row.healthLost)));
+    }
+    if (metric === "dealt" && row.healthLostCaused > 0) {
+      lines.push(composeStat("  z ciosów", composeFigureText(row.dealtApplied)));
+      lines.push(composeStat("  poza ciosem", composeFigureText(row.healthLostCaused)));
     }
   }
 

@@ -902,6 +902,16 @@ function composeReportRow(
     takenByElement: Object.fromEntries(row.takenByElement),
     healthLost: row.healthLost,
     healthLostBySource: Object.fromEntries(row.healthLostBySource),
+    healthLostByActorId: Object.fromEntries(
+      [...row.healthLostByActorId].map(([id, bySource]) => [id, Object.fromEntries(bySource)]),
+    ),
+    healthLostCaused: row.healthLostCaused,
+    healthLostCausedByTargetId: Object.fromEntries(
+      [...row.healthLostCausedByTargetId].map(([id, bySource]) => [
+        id,
+        Object.fromEntries(bySource),
+      ]),
+    ),
     healed: row.healed,
     healedBySource: Object.fromEntries(row.healedBySource),
     healedWithoutHealerBySource: Object.fromEntries(row.healedWithoutHealerBySource),

@@ -16,7 +16,8 @@
  */
 
 import { composeIntegerText } from "@/libs/number.ts";
-import type { SkillStatistics } from "@/src/core/fight-statistics.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
+import type { CombatantStatistics, SkillStatistics } from "@/src/core/fight-statistics.ts";
 import { composeCombatantDetail } from "@/src/ui/panel-combatant-detail.ts";
 import { composeFigureText, composeShareText } from "@/src/ui/panel-figure-text.ts";
 import {
@@ -33,7 +34,13 @@ import {
   type TranslateLabel,
 } from "@/src/ui/panel-names.ts";
 import { getMissingCounterpart } from "@/src/ui/panel-nobody.ts";
-import { getMetricValue, getName, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
+import {
+  getHealthLostCausedBySource,
+  getMetricValue,
+  getName,
+  getRow,
+  type PanelReading,
+} from "@/src/ui/panel-reading.ts";
 import {
   composeLeafRowKey,
   composeSkillLeafRowKey,
@@ -142,8 +149,23 @@ function shouldOpenPair(
 ): boolean {
   return (
     composeNamedPairSkillEntries(reading, state, combatantId, otherId).length > 0 ||
-    getPairReading(reading, state, combatantId, otherId).byElement.size > 1
+    getPairCutSize(reading, state, combatantId, otherId) > 1
   );
+}
+
+/**
+ * How many rows the pair's second cut would hold — elements and keys together,
+ * because they are drawn as one section and a rule counting half of it would call
+ * a level empty that is not.
+ */
+function getPairCutSize(
+  reading: PanelReading,
+  state: PanelState,
+  combatantId: number,
+  otherId: number,
+): number {
+  const { byElement, bySource } = getPairReading(reading, state, combatantId, otherId);
+  return byElement.size + bySource.size;
 }
 
 /**
@@ -158,6 +180,28 @@ function shouldOpenSkill(
   combatantId: number,
 ): boolean {
   return getSkillPairs(state, skill, combatantId).some(([id]) => id !== combatantId);
+}
+
+/**
+ * Two maps of the same shape read as one total per combatant.
+ *
+ * **Two of them, because damage reaches a person by two routes.** A blow is in
+ * `dealtByTargetId`; a wound charged to whoever applied it is in
+ * `healthLostCausedByTargetId`, kept apart in the aggregate because it is not a
+ * swing (§9.6). To the question this level asks — *whom did they damage* — the
+ * distinction is none, and a section reading only the first would leave the wound
+ * in the closing row for an end the game **did** name.
+ */
+function composePairTotals(
+  sources: ReadonlyArray<ReadonlyMap<number, ReadonlyMap<string, number>>>,
+): Array<readonly [number, number]> {
+  const totals = new Map<number, number>();
+  for (const byCombatantId of sources) {
+    for (const [id, byToken] of byCombatantId) {
+      for (const amount of byToken.values()) setRunningTotal(totals, id, amount);
+    }
+  }
+  return [...totals];
 }
 
 /**
@@ -176,13 +220,9 @@ function composeOpponentEntries(
   const row = getRow(reading, combatantId);
   const pairs: Array<readonly [number, number]> =
     state.metric === "dealt"
-      ? [...row.dealtByTargetId].map(
-          ([id, byElement]) => [id, [...byElement.values()].reduce((sum, one) => sum + one, 0)] as const,
-        )
+      ? composePairTotals([row.dealtByTargetId, row.healthLostCausedByTargetId])
       : state.metric === "taken"
-        ? [...row.takenByActorId].map(
-            ([id, byElement]) => [id, [...byElement.values()].reduce((sum, one) => sum + one, 0)] as const,
-          )
+        ? composePairTotals([row.takenByActorId, row.healthLostByActorId])
         : state.metric === "healingGiven"
           ? [...row.healingGivenByCombatantId]
           : [...row.healedByHealerId];
@@ -266,6 +306,36 @@ const CLOSING_NOTES: Record<PanelMetric, string> = {
 };
 
 /**
+ * Damage this combatant did outside a blow, as rows of its own in the section
+ * about what they did it with.
+ *
+ * ⚠️ **The alternative was to let it close into `Zwykły cios`, and that row is a
+ * claim.** It says a blow nothing announced, and counts how many — a wound ticking
+ * three turns after the blow that applied it is neither. So the section names it
+ * by the game's own word for the key and goes on closing against the row above,
+ * which is the rule every level here keeps.
+ *
+ * It carries no count: the protocol states no number of applications, and the
+ * announcement that would state one is counted as nothing (`docs/protocol-keys.md`,
+ * `+injure`).
+ */
+function composeWoundEntries(
+  row: CombatantStatistics,
+  translate: TranslateLabel | null,
+): BreakdownEntry[] {
+  return [...getHealthLostCausedBySource(row)].map(([token, amount]) => ({
+    key: composeLeafRowKey(token),
+    label: getPhrase(HEALTH_LOSS_SOURCE_NAMES, token, translate),
+    profession: null,
+    colour: UNKNOWN_COLOUR,
+    amount,
+    isDrillable: false,
+    uses: null,
+    detail: [],
+  }));
+}
+
+/**
  * What this combatant did it with, or what was done to them.
  *
  * Under `Leczenie` the section counts what the row counts — healing **received**,
@@ -277,6 +347,7 @@ function composeSkillEntries(
   reading: PanelReading,
   state: PanelState,
   combatantId: number,
+  translate: TranslateLabel | null,
 ): BreakdownEntry[] {
   // Nothing announces a blow you take: the protocol names what hit you, never
   // what the other side chose. So `Otrzymane` has no skills section at all, and
@@ -314,6 +385,7 @@ function composeSkillEntries(
     for (const [key, skill] of getRow(reading, combatantId).skills) {
       setEntry(combatantId, key, skill, skill.dealtApplied);
     }
+    entries.push(...composeWoundEntries(getRow(reading, combatantId), translate));
   } else if (state.metric === "healingGiven") {
     // Their own skills, and the figure a skill restored to somebody else — the
     // one `SkillStatistics` warns must not be read as the row's own healing.
@@ -397,9 +469,20 @@ function composeSourceEntries(
     state.metric === "dealt" ? row.dealtAppliedByElement : row.takenByElement,
     UNKNOWN_COLOUR,
   );
-  if (state.metric === "taken") {
-    entries.push(...compose(HEALTH_LOSS_SOURCE_NAMES, row.healthLostBySource, UNKNOWN_COLOUR));
-  }
+  // The same pair of vocabularies on both screens, from the two ends of one
+  // figure: what a combatant lost outside a blow, and what they took off somebody
+  // else outside one.
+  entries.push(
+    ...compose(
+      HEALTH_LOSS_SOURCE_NAMES,
+      state.metric === "dealt"
+        ? getHealthLostCausedBySource(row)
+        : state.metric === "taken"
+          ? row.healthLostBySource
+          : new Map<string, number>(),
+      UNKNOWN_COLOUR,
+    ),
+  );
   return entries.sort((one, other) => other.amount - one.amount);
 }
 
@@ -437,7 +520,10 @@ export function composeBreakdownLists(
       OPPONENT_HEADINGS[state.metric],
       composeOpponentEntries(reading, state, combatantId, translate),
     ),
-    composeCrossSection("CZYM (UMIEJĘTNOŚCI)", composeSkillEntries(reading, state, combatantId)),
+    composeCrossSection(
+      "CZYM (UMIEJĘTNOŚCI)",
+      composeSkillEntries(reading, state, combatantId, translate),
+    ),
     composeCrossSection(
       SOURCE_HEADINGS[state.metric],
       composeSourceEntries(reading, state, combatantId, translate),
@@ -503,8 +589,25 @@ function composePairSkillEntries(
   combatantId: number,
   otherId: number,
   pairTotal: number,
+  bySource: ReadonlyMap<string, number>,
+  translate: TranslateLabel | null,
 ): BreakdownEntry[] {
   const entries = composeNamedPairSkillEntries(reading, state, combatantId, otherId);
+
+  // The wound stands in this section for the reason it stands in the fight-wide
+  // one: `Zwykły cios` below would otherwise absorb it and call it a blow.
+  for (const [token, amount] of bySource) {
+    entries.push({
+      key: composeSkillLeafRowKey(token),
+      label: getPhrase(HEALTH_LOSS_SOURCE_NAMES, token, translate),
+      profession: null,
+      colour: UNKNOWN_COLOUR,
+      amount,
+      isDrillable: false,
+      uses: null,
+      detail: [],
+    });
+  }
 
   const named = entries.reduce((sum, entry) => sum + entry.amount, 0);
   const rest = pairTotal - named;
@@ -571,16 +674,28 @@ function getPairReading(
   state: PanelState,
   combatantId: number,
   otherId: number,
-): { byElement: ReadonlyMap<string, number>; total: number } {
+): {
+  byElement: ReadonlyMap<string, number>;
+  /** What one did to the other outside a blow, by the key that did it. */
+  bySource: ReadonlyMap<string, number>;
+  total: number;
+} {
   const from = isGivenMetric(state.metric) ? getRow(reading, combatantId) : getRow(reading, otherId);
   const to = isGivenMetric(state.metric) ? otherId : combatantId;
+  const nothing = new Map<string, number>();
   const byElement = isHealingMetric(state.metric)
-    ? new Map<string, number>()
-    : (from.dealtByTargetId.get(to) ?? new Map<string, number>());
+    ? nothing
+    : (from.dealtByTargetId.get(to) ?? nothing);
+  // Read off the same row as the elements, and off the giving end for the same
+  // reason: the pair's figure is what one combatant did to the other, whichever
+  // direction the screen is asking from.
+  const bySource = isHealingMetric(state.metric)
+    ? nothing
+    : (from.healthLostCausedByTargetId.get(to) ?? nothing);
   const total = isHealingMetric(state.metric)
     ? (from.healingGivenByCombatantId.get(to) ?? 0)
-    : [...byElement.values()].reduce((sum, one) => sum + one, 0);
-  return { byElement, total };
+    : [...byElement.values(), ...bySource.values()].reduce((sum, one) => sum + one, 0);
+  return { byElement, bySource, total };
 }
 
 /**
@@ -639,27 +754,34 @@ export function composeDeepLists(
   const otherId = state.focusTargetId;
   if (otherId === null) return [];
 
-  const { byElement, total: pairTotal } = getPairReading(reading, state, combatantId, otherId);
+  const { byElement, bySource, total: pairTotal } = getPairReading(reading, state, combatantId, otherId);
 
   const heading = `CZYM — ${getName(reading, otherId)}`;
   const skills = composeBreakdownList(
     heading,
-    composePairSkillEntries(reading, state, combatantId, otherId, pairTotal),
+    composePairSkillEntries(reading, state, combatantId, otherId, pairTotal, bySource, translate),
   );
+  const composeLeaf = (
+    names: Record<string, TokenName>,
+    tokens: ReadonlyMap<string, number>,
+  ): BreakdownEntry[] =>
+    [...tokens].map(([token, amount]) => ({
+      key: composeLeafRowKey(token),
+      label: getPhrase(names, token, translate),
+      profession: null,
+      colour: UNKNOWN_COLOUR,
+      amount,
+      isDrillable: false,
+      uses: null,
+      detail: [],
+    }));
+
   const elements = composeCrossSection(
     SOURCE_HEADINGS[state.metric],
-    [...byElement]
-      .sort(([, one], [, other]) => other - one)
-      .map(([token, amount]): BreakdownEntry => ({
-        key: composeLeafRowKey(token),
-        label: getPhrase(ELEMENT_NAMES, token, translate),
-        profession: null,
-        colour: UNKNOWN_COLOUR,
-        amount,
-        isDrillable: false,
-        uses: null,
-        detail: [],
-      })),
+    [
+      ...composeLeaf(ELEMENT_NAMES, byElement),
+      ...composeLeaf(HEALTH_LOSS_SOURCE_NAMES, bySource),
+    ].sort((one, other) => other.amount - one.amount),
   );
 
   return [skills, elements].filter((list): list is PanelList => list !== null);

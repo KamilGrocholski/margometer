@@ -77,6 +77,8 @@ import {
   getDamageWithoutActor,
   getDamageWithoutActorByElement,
   getHealingWithoutHealer,
+  getHealthLostWithoutActor,
+  getHealthLostWithoutActorBySource,
   getMetricValue,
   getName,
   getRow,
@@ -294,7 +296,9 @@ function getNoActorDamageBySource(
       if (isCharged(id)) setRunningTotal(elements, token, amount);
     }
     if (!isCharged(id)) continue;
-    for (const [token, amount] of row.healthLostBySource) setRunningTotal(sources, token, amount);
+    for (const [token, amount] of getHealthLostWithoutActorBySource(row)) {
+      setRunningTotal(sources, token, amount);
+    }
   }
 
   if (shouldListNeitherEnd) {
@@ -304,7 +308,7 @@ function getNoActorDamageBySource(
     }
     // Health that fell on nobody: the protocol can call a subject nobody as
     // readily as it calls a target nobody, and then no row holds these either.
-    for (const [token, amount] of reading.statistics.unattributed.healthLostBySource) {
+    for (const [token, amount] of getHealthLostWithoutActorBySource(reading.statistics.unattributed)) {
       setRunningTotal(sources, token, amount);
     }
   }
@@ -418,7 +422,7 @@ function getFigureWithNoActorByCombatant(
   for (const [id, row] of reading.statistics.byCombatantId) {
     const amount = isHealingMetric(metric)
       ? getHealingWithoutHealer(row)
-      : row.healthLost + getDamageWithoutActor(row);
+      : getHealthLostWithoutActor(row) + getDamageWithoutActor(row);
     if (amount > 0) pairs.push([id, amount]);
   }
   return pairs;
@@ -472,7 +476,7 @@ function getFigureWithNoTargetByCombatant(
 function getFigureWithNeitherEnd(reading: PanelReading, metric: PanelMetric): number {
   const { unattributed } = reading.statistics;
   if (isHealingMetric(metric)) return getHealingWithoutHealer(unattributed);
-  return getDamageWithoutActor(unattributed) + unattributed.healthLost;
+  return getDamageWithoutActor(unattributed) + getHealthLostWithoutActor(unattributed);
 }
 
 /**
