@@ -520,11 +520,23 @@ export function composeDeepLists(
   const byElement = isHealingMetric(state.metric)
     ? new Map<string, number>()
     : (from.dealtByTargetId.get(to) ?? new Map<string, number>());
+  /**
+   * ⚠️ **The pair's own figure, not the sum of the skills under it.** This used to
+   * add up `healedByCombatantId` across the giver's skills, which is the same
+   * arithmetic the section below performs — so a pair no skill announced closed
+   * against zero, produced no rows and no closing row either, and the level opened
+   * **empty** under a row that had just promised a figure. Every self-sourced heal
+   * is exactly that pair (`heal`, `legbon_holytouch_heal`, `legbon_lastheal` —
+   * `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`), and the drill
+   * could not open one at all.
+   *
+   * `healingGivenByCombatantId` is what the level above read this row's figure
+   * from, in both directions — the recipient's `healedByHealerId` is its transpose,
+   * written in the same breath — so closing against it is closing against the
+   * number the reader clicked on.
+   */
   const pairTotal = isHealingMetric(state.metric)
-    ? [...from.skills.values()].reduce(
-        (sum, skill) => sum + (skill.healedByCombatantId.get(to) ?? 0),
-        0,
-      )
+    ? (from.healingGivenByCombatantId.get(to) ?? 0)
     : [...byElement.values()].reduce((sum, one) => sum + one, 0);
 
   const heading = `CZYM — ${getName(reading, otherId)}`;

@@ -39,6 +39,34 @@ export const PROTOCOL_KEY_HEALTH_EFFECTS = ["moves health"] as const;
 export type ProtocolKeyHealthEffect = (typeof PROTOCOL_KEY_HEALTH_EFFECTS)[number];
 
 /**
+ * Who a health figure is charged to, as distinct from whose slot it sits in.
+ *
+ * The question `*Health:*` leaves open. A key that reports a figure the arithmetic
+ * has to account for also has to be charged to somebody or to nobody, and the
+ * panel draws a different row for each answer — so the register states it rather
+ * than letting the decoder be the only place it is written down.
+ *
+ * ⚠️ **`the subject's own` is the one value backed by a citation.** The other three
+ * are readings of the protocol; that one is a reading of the published help, which
+ * says the effect belongs to the combatant it heals (§9.6). It is listed here
+ * because a guard can still re-earn it — against
+ * `SELF_SOURCED_HEALING_KEYS` — and an unheld claim is what this file exists to
+ * refuse.
+ *
+ * Unlike `PROTOCOL_KEY_HEALTH_EFFECTS` this has an opposite, and `nobody` is it:
+ * a health figure always has a cause or provably has none, so silence would be an
+ * entry that never answered a question every entry has to.
+ */
+export const PROTOCOL_KEY_CAUSES = [
+  "the subject's own",
+  "the announcement's actor",
+  "the message actor",
+  "nobody",
+] as const;
+
+export type ProtocolKeyCause = (typeof PROTOCOL_KEY_CAUSES)[number];
+
+/**
  * Where every occurrence of a key sits. One phrase has to hold for **all** of
  * them, so the weakest true one is the right one — "on a blow" is a stronger
  * claim than "on a message reporting damage" and a key that does both takes the
@@ -128,10 +156,16 @@ export type ProtocolKeyEntry = {
   shape: ProtocolKeyShape | null;
   /** Null where the entry makes no claim about the help at all. */
   help: ProtocolKeyHelpClaim | null;
+  /**
+   * Null on every entry that states no health effect, where the guard refuses a
+   * line rather than admitting one — a key moving no health charges nobody.
+   */
+  cause: ProtocolKeyCause | null;
 };
 
 const ENTRY_HEADING = /^### `([^`]+)` — (.+)$/gm;
 const HEALTH_LINE = /^\*Health:\* (.+)$/m;
+const CAUSE_LINE = /^\*Cause:\* (.+)$/m;
 const SHAPE_LINE = /^\*Shape:\* (\d+) occurrences; ([^;]+); (.+)$/m;
 /**
  * Matched first and on purpose: a `*Help:*` line the two forms below do not
@@ -150,6 +184,10 @@ const EVIDENCE_PARAGRAPH = /^\*Evidence:\* ((?:.+\n?)+)/m;
 
 function isHealthEffect(value: string): value is ProtocolKeyHealthEffect {
   return (PROTOCOL_KEY_HEALTH_EFFECTS as readonly string[]).includes(value);
+}
+
+function isCause(value: string): value is ProtocolKeyCause {
+  return (PROTOCOL_KEY_CAUSES as readonly string[]).includes(value);
 }
 
 function isPlacement(value: string): value is ProtocolKeyPlacement {
@@ -273,7 +311,28 @@ export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
     const shape = parseShape(body, key);
     const help = parseHelp(body, key);
 
-    if (health === null) return { key, state, healthEffect: null, evidence, shape, help };
+    const charged = CAUSE_LINE.exec(body);
+
+    if (health === null) {
+      // A cause with no health figure to charge is a claim about a key that
+      // reports nothing — refused, rather than parsed and never read.
+      if (charged !== null) {
+        throw new ProtocolKeyRegisterError(
+          `\`${key}\` states a cause without stating that it moves health`,
+        );
+      }
+      return { key, state, healthEffect: null, evidence, shape, help, cause: null };
+    }
+
+    if (charged === null) {
+      throw new ProtocolKeyRegisterError(`\`${key}\` moves health and states no cause`);
+    }
+    const cause = charged[1]!;
+    if (!isCause(cause)) {
+      throw new ProtocolKeyRegisterError(
+        `\`${key}\` states a cause nothing knows how to check: "${cause}"`,
+      );
+    }
 
     // A typo cannot be left to fall through as "no claim". It would read as
     // silence, the witness would stop excluding the key, coverage would shrink,
@@ -286,7 +345,7 @@ export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
       );
     }
 
-    return { key, state, healthEffect, evidence, shape, help };
+    return { key, state, healthEffect, evidence, shape, help, cause };
   });
 }
 
@@ -300,6 +359,10 @@ export function getKeysWithHealthEffect(effect: ProtocolKeyHealthEffect): string
   return PROTOCOL_KEY_REGISTER.filter((entry) => entry.healthEffect === effect).map(
     (entry) => entry.key,
   );
+}
+
+export function getKeysWithCause(cause: ProtocolKeyCause): string[] {
+  return PROTOCOL_KEY_REGISTER.filter((entry) => entry.cause === cause).map((entry) => entry.key);
 }
 
 export function getKeysInState(state: string): string[] {

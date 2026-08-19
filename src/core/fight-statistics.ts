@@ -27,6 +27,7 @@ import {
   NO_ENTRY_HEALTH,
   type FightEntryHealth,
 } from "@/src/core/combatant-health.ts";
+import { SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
 import { setPairRunningTotal, setRunningTotal } from "@/libs/running-total.ts";
 
 /**
@@ -148,12 +149,20 @@ export type CombatantStatistics = {
    *
    * ⚠️ **Not a narrowing of `healedBySource` anybody can perform afterwards.**
    * That map holds every point restored, whoever was credited with it; the panel's
-   * `Bez sprawcy` row holds only the points nobody was. A reader wanting to say
-   * *what* that row is made of therefore has nothing to read: measured on
-   * `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`, healing with
-   * no healer comes to 109 113 while `healedBySource` sums to 123 506, so the
-   * second overstates the first by more than a tenth and there is no arithmetic
-   * that recovers the split.
+   * pinned row holds only the points nobody was. A reader wanting to say *what*
+   * that row is made of therefore has nothing to read, and no arithmetic recovers
+   * the split.
+   *
+   * ⚠️ **Empty on every recording, and kept anyway.** It held 109 113 points on
+   * `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json` until the
+   * three keys the help calls the healed combatant's own started saying so
+   * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). What can still
+   * land here is an unannounced `heal_target` — the protocol can send one and the
+   * corpus has never carried one — and, more to the point, any healing key nobody
+   * has read yet. A field that goes quiet because the readings improved is not a
+   * field that stopped being the honest answer, and emptying it into `healed`
+   * would make the panel unable to say *nobody gave this* the next time that is
+   * true.
    *
    * Written in the same breath as `healedByHealerId` and exactly where that map is
    * **not** — one reading of one event, the reasoning `healingGiven` already
@@ -161,13 +170,19 @@ export type CombatantStatistics = {
    */
   healedWithoutHealerBySource: ReadonlyMap<string, number>;
   /**
-   * Who healed this combatant, where the game glued the heal to an announcement.
+   * Who healed this combatant — the announcer, or the combatant themselves where
+   * the key is one the help calls their own effect (§9.6).
    *
-   * Most healing has no entry here, and that is the reading rather than a gap:
-   * measured on
-   * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
-   * 25 178 of 122 648 points restored carry an announcement. The rest is regeneration and self-healing that nothing
-   * announces, and the panel says so rather than guessing a healer.
+   * ⚠️ **It used to hold a minority of the healing and now holds all of it.**
+   * Measured on `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`:
+   * 248 814 of 346 284 points restored are announced by a skill, and the other
+   * 97 470 are regeneration and the two legendary bonuses — which nothing
+   * announces and which the help says belong to the combatant they heal
+   * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). Both reach a
+   * healer, by different routes, so this map now sums to `healed` on every
+   * recording. That equality is asserted rather than assumed
+   * (`tests/core/fight-statistics.test.ts`): a capture that broke it would be a
+   * healing key nobody has read.
    */
   healedByHealerId: ReadonlyMap<number, number>;
   /**
@@ -179,11 +194,12 @@ export type CombatantStatistics = {
    * only one of them was ever kept.
    *
    * ⚠️ **Not the row's own `healed`, which is what it received.** The two are
-   * different quantities that a shared word would merge: measured on
-   * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
-   * 25 178 points carry a healer against 122 648 restored. The gap is
-   * healing nothing announced, and it belongs to nobody rather than to the
-   * combatant it reached.
+   * different quantities that a shared word would merge, and they part hardest on
+   * a combatant who heals only themselves: measured on
+   * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 97 470 of the
+   * 346 284 points restored are a combatant's own effect, so they sit in both
+   * fields of one row and in nobody else's. A reader taking either for the other
+   * would double that combatant and lose every heal that crossed between two.
    */
   healingGiven: number;
   healingGivenByCombatantId: ReadonlyMap<number, number>;
@@ -420,6 +436,21 @@ function setTotalsFrom(into: Row, member: CombatantStatistics): void {
 }
 
 /**
+ * Who gave a heal that nothing announced — the healed combatant, or nobody.
+ *
+ * The whole of §9.6's third clause in one expression: an end the protocol omits is
+ * filled **only** with a combatant the message already names, and only for a key
+ * the published help says is that combatant's own effect
+ * (`SELF_SOURCED_HEALING_KEYS`). Where the message named nobody — `0;0;heal=40`,
+ * or a name this fight's roster cannot place — `combatantId` is null and null is
+ * what comes back: there is no name to fill either end with, and inventing one is
+ * still §5's flat no.
+ */
+function getSelfSourcedHealerId(source: string, combatantId: number | null): number | null {
+  return SELF_SOURCED_HEALING_KEYS.includes(source) ? combatantId : null;
+}
+
+/**
  * The roster is optional and its absence is not an error: a fight can be joined
  * in progress, and rows must still be produced. What is lost is the grouping,
  * and that loss is stated rather than hidden — every combatant turns up in
@@ -626,12 +657,32 @@ export function composeFightStatistics(
       }
 
       case "healing-to-named-combatant": {
-        // Received and nothing else: the event carries no healer, so the giving
-        // direction stays empty rather than being credited to whoever swung.
-        // An unresolved name lands on nobody, exactly as the damage one does.
-        // The null healer is what puts every point of it on the pinned row —
-        // stated by passing it rather than left to be inferred from an absence.
-        setHealingTotals(event.targetId, event.amount, event.source, null, null);
+        /**
+         * The healer is the healed, and the message actor is nobody's healer.
+         *
+         * `legbon_lastheal` is the holder's own legendary bonus (§9.6, article
+         * view,372 at engine name `lastheal`, read 2026-08-19), so the combatant
+         * the value names is both ends of it. The message's **actor** is whoever
+         * struck the blow that triggered it, and four of the five occurrences ride
+         * a group blow where the message's target is a third party — so the slot
+         * is never read here, and passing it would credit an attacker with healing
+         * their own victim.
+         *
+         * An unresolved name still lands on nobody, exactly as the damage one
+         * does: `targetId` is null and there is no name to fill either end with.
+         *
+         * Asked of `SELF_SOURCED_HEALING_KEYS` rather than filled in here, even
+         * though `legbon_lastheal` is the only key that reaches this branch: the
+         * list is what `docs/protocol-keys.md` is held against, and a second
+         * spelling of the same fact is what §9.3 says fails silently.
+         */
+        setHealingTotals(
+          event.targetId,
+          event.amount,
+          event.source,
+          getSelfSourcedHealerId(event.source, event.targetId),
+          null,
+        );
         break;
       }
 
@@ -648,14 +699,17 @@ export function composeFightStatistics(
            * leczenia" about points something had announced, and the giver's own
            * total was short by them with nothing on their row saying so.
            *
-           * The healer comes from the announcement and from nowhere else — the
-           * key itself names only who was healed.
+           * **The announcement wins where there is one, and the key answers where
+           * there is not.** An announcement names a giver the protocol actually
+           * stated, which beats anything derived; where nothing announced the
+           * heal, a key on `SELF_SOURCED_HEALING_KEYS` says the giver is the one
+           * healed, on the help's word and not on a guess (§9.6).
            */
           setHealingTotals(
             event.combatantId,
             event.amount,
             event.source,
-            event.announced?.actorId ?? null,
+            event.announced?.actorId ?? getSelfSourcedHealerId(event.source, event.combatantId),
             event.announced,
           );
         } else {

@@ -36,7 +36,7 @@ import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
 import type { AttackEvent, BattleEvent } from "@/src/core/battle-event.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { decodeFight, SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
 import {
   composeEmptyCombatantStatistics,
   composeFightStatistics,
@@ -552,11 +552,20 @@ describe("healing with a healer and healing without one", () => {
   });
 
   /**
-   * And it is a partition of something, not of nothing: a capture where every
-   * point happened to be uncredited would let a map that simply copied
-   * `healedBySource` pass the sweep above.
+   * And it is a partition of something, not of nothing: a fight where every point
+   * happened to be uncredited would let a map that simply copied `healedBySource`
+   * pass the sweep above.
+   *
+   * ⚠️ **The captures used to carry both kinds and now carry only one.** Every
+   * point of healing in every recording reaches a healer since the three keys the
+   * help calls the healed combatant's own started saying so
+   * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). So the second
+   * half of the partition is held by the hand-built fights above — a heal whose
+   * announcer this fight cannot place — and this test states the corpus reading
+   * that replaced it rather than being deleted for having gone quiet. A capture
+   * that ever carries uncredited healing again is a key nobody has read.
    */
-  test("the captures carry healing of both kinds", () => {
+  test("every point of healing in the captures reaches a healer", () => {
     const credited = FROM_CAPTURES.flatMap(({ statistics }) => getEveryRow(statistics)).reduce(
       (sum, row) => sum + [...row.healedByHealerId.values()].reduce((one, other) => one + other, 0),
       0,
@@ -566,8 +575,16 @@ describe("healing with a healer and healing without one", () => {
         sum + [...row.healedWithoutHealerBySource.values()].reduce((one, other) => one + other, 0),
       0,
     );
+    const received = FROM_CAPTURES.flatMap(({ statistics }) => getEveryRow(statistics)).reduce(
+      (sum, row) => sum + row.healed,
+      0,
+    );
+
     expect(credited).toBeGreaterThan(0);
-    expect(uncredited).toBeGreaterThan(0);
+    expect(uncredited).toBe(0);
+    // The two halves partition `healed`, so with one of them empty the other is
+    // the whole of it — which is the same claim read a second way.
+    expect(credited).toBe(received);
   });
 
   /**
@@ -576,13 +593,18 @@ describe("healing with a healer and healing without one", () => {
    * a source, and only the second is the pinned row's.
    */
   test("keeps the key the game stated, on the points nobody was credited with", () => {
+    // ⚠️ **`heal_target` and not `heal`, and the swap is the point.** `heal` is on
+    // `SELF_SOURCED_HEALING_KEYS`, so an unannounced one has a healer now and
+    // there would be no uncredited half left to key. This test is about a source
+    // the help says nothing about, which is the only kind that can still arrive
+    // with nobody on the giving end.
     const statistics = composeFightStatistics([
       {
         kind: "health-change",
         combatantId: 4,
         amount: 50,
         healthPercent: null,
-        source: "heal",
+        source: "heal_target",
         announced: null,
         declared: [],
       },
@@ -591,7 +613,7 @@ describe("healing with a healer and healing without one", () => {
         combatantId: 4,
         amount: 30,
         healthPercent: null,
-        source: "heal",
+        source: "heal_target",
         announced: { actorId: 9, skillName: "coś", skillId: null },
         declared: [],
       },
@@ -599,18 +621,17 @@ describe("healing with a healer and healing without one", () => {
 
     const row = assertDefined(statistics.byCombatantId.get(4), "the healed combatant has a row");
     expect(row.healed).toBe(80);
-    expect(row.healedBySource.get("heal")).toBe(80);
-    expect(row.healedWithoutHealerBySource.get("heal")).toBe(50);
+    expect(row.healedBySource.get("heal_target")).toBe(80);
+    expect(row.healedWithoutHealerBySource.get("heal_target")).toBe(50);
     expect(row.healedByHealerId.get(9)).toBe(30);
   });
 
   /**
-   * Healing stated against a **name** carries no healer at all, so all of it is
-   * the pinned row's — written where the event is read rather than inferred from
-   * an empty `healedByHealerId`, which is the same absence a heal whose announcer
-   * did not resolve produces.
+   * Healing stated against a **name** is the holder's own legendary bonus, so the
+   * combatant the value names is both ends of it — never the message's actor, who
+   * is whoever struck the blow that triggered it (§9.6).
    */
-  test("counts healing stated against a name as nobody's, by its own key", () => {
+  test("counts healing stated against a name as the named combatant's own", () => {
     const statistics = composeFightStatistics([
       {
         kind: "healing-to-named-combatant",
@@ -618,13 +639,154 @@ describe("healing with a healer and healing without one", () => {
         targetId: 2,
         targetHealthPercent: null,
         amount: 70,
-        source: "heal_target",
+        source: "legbon_lastheal",
       },
     ]);
 
     const row = assertDefined(statistics.byCombatantId.get(2), "the healed combatant has a row");
-    expect(row.healedWithoutHealerBySource.get("heal_target")).toBe(70);
+    expect(row.healedBySource.get("legbon_lastheal")).toBe(70);
+    expect([...row.healedWithoutHealerBySource]).toEqual([]);
+    expect(row.healedByHealerId.get(2)).toBe(70);
+    expect(row.healingGiven).toBe(70);
+    expect(row.healingGivenByCombatantId.get(2)).toBe(70);
+    // One row, and only one: nobody else is credited with a point of it.
+    expect(statistics.byCombatantId.size).toBe(1);
+  });
+
+  /**
+   * The three keys the published help calls the healed combatant's **own** effect,
+   * and what the aggregate does with them (§9.6,
+   * `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
+   *
+   * One combatant on both ends, which is the shape a self-cast `heal_target` and a
+   * team heal's caster share have always had here — so this is three keys joining
+   * a reading rather than a new one being invented for them.
+   */
+  test.each([...SELF_SOURCED_HEALING_KEYS])("credits %s to the combatant it healed", (source) => {
+    const statistics = composeFightStatistics([
+      {
+        kind: "health-change",
+        combatantId: 7,
+        amount: 120,
+        healthPercent: null,
+        source,
+        announced: null,
+        declared: [],
+      },
+    ]);
+
+    const row = assertDefined(statistics.byCombatantId.get(7), "the healed combatant has a row");
+    expect(row.healed).toBe(120);
+    expect(row.healingGiven).toBe(120);
+    expect(row.healedByHealerId.get(7)).toBe(120);
+    expect(row.healingGivenByCombatantId.get(7)).toBe(120);
+    // Nothing is left for the panel's pinned row to draw.
+    expect([...row.healedWithoutHealerBySource]).toEqual([]);
+    expect(statistics.byCombatantId.size).toBe(1);
+  });
+
+  /**
+   * ⚠️ **An announcement still wins.** A giver the protocol actually stated beats
+   * one derived from the help, so a self-sourced key arriving under an
+   * announcement is credited to whoever announced it and not to the combatant it
+   * reached. No capture carries the shape — every `heal` in all seventeen is
+   * unannounced — so it is a hand-built fight, and it is what keeps the fill from
+   * quietly overwriting a reading the game made itself.
+   */
+  test("prefers an announcer over the key, where a self-sourced heal has one", () => {
+    const statistics = composeFightStatistics([
+      {
+        kind: "health-change",
+        combatantId: 7,
+        amount: 120,
+        healthPercent: null,
+        source: "heal",
+        announced: { actorId: 3, skillName: "coś", skillId: null },
+        declared: [],
+      },
+    ]);
+
+    const healed = assertDefined(statistics.byCombatantId.get(7), "the healed combatant has a row");
+    const healer = assertDefined(statistics.byCombatantId.get(3), "the announcer has a row");
+    expect(healed.healed).toBe(120);
+    expect(healed.healingGiven).toBe(0);
+    expect(healed.healedByHealerId.get(3)).toBe(120);
+    expect(healer.healingGiven).toBe(120);
+  });
+
+  /**
+   * ⚠️ **Only the restoring direction.** `heal` states a loss as readily as a
+   * gain, and nothing documents a self-damage reading — so a negative one is
+   * health lost with nobody charged for it, exactly as before.
+   */
+  test("charges nobody for a self-sourced key stating a loss", () => {
+    const statistics = composeFightStatistics([
+      {
+        kind: "health-change",
+        combatantId: 7,
+        amount: -120,
+        healthPercent: null,
+        source: "heal",
+        announced: null,
+        declared: [],
+      },
+    ]);
+
+    const row = assertDefined(statistics.byCombatantId.get(7), "the combatant has a row");
+    expect(row.healthLost).toBe(120);
+    expect(row.healthLostBySource.get("heal")).toBe(120);
+    expect(row.healed).toBe(0);
+    expect(row.healingGiven).toBe(0);
+    expect(row.dealtApplied).toBe(0);
+  });
+
+  /**
+   * A key the help says nothing about keeps its hole. `poison` and `fire` arrive
+   * in the very shape `heal` does — the subject in the actor slot, the target a
+   * literal `0` — and stay on the panel's pinned row, which is what makes the
+   * asymmetry a reading of the documentation rather than of the message.
+   */
+  test("leaves a key the help does not name without a healer", () => {
+    const statistics = composeFightStatistics([
+      {
+        kind: "health-change",
+        combatantId: 7,
+        amount: 120,
+        healthPercent: null,
+        source: "heal_target",
+        announced: null,
+        declared: [],
+      },
+    ]);
+
+    const row = assertDefined(statistics.byCombatantId.get(7), "the healed combatant has a row");
+    expect(row.healed).toBe(120);
+    expect(row.healingGiven).toBe(0);
+    expect(row.healedWithoutHealerBySource.get("heal_target")).toBe(120);
     expect(row.healedByHealerId.size).toBe(0);
+  });
+
+  /**
+   * And a name this fight cannot place still reaches nobody. The fill names a
+   * combatant the message already named; where it named none there is nothing to
+   * fill with, which is the limit of §9.6's clause rather than a gap in it.
+   */
+  test("counts healing stated against a name nobody matches as nobody's", () => {
+    const statistics = composeFightStatistics([
+      {
+        kind: "healing-to-named-combatant",
+        targetName: "ktoś",
+        targetId: null,
+        targetHealthPercent: null,
+        amount: 70,
+        source: "legbon_lastheal",
+      },
+    ]);
+
+    expect(statistics.byCombatantId.size).toBe(0);
+    expect(statistics.unattributed.healed).toBe(70);
+    expect(statistics.unattributed.healedWithoutHealerBySource.get("legbon_lastheal")).toBe(70);
+    expect(statistics.unattributed.healingGiven).toBe(0);
   });
 });
 

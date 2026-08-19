@@ -1,15 +1,22 @@
 import { describe, expect, test } from "bun:test";
 import { getIntegerFromText, getNumberFromText } from "@/libs/number.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
-import { DAMAGE_TO_NAMED_KEY, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
+import {
+  DAMAGE_TO_NAMED_KEY,
+  SELF_SOURCED_HEALING_KEYS,
+  SIDE_SHARE_HEALTH_KEYS,
+  UNDERSTOOD_PROTOCOL_KEYS,
+} from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 import { FROZEN_HELP_PHRASES } from "@/tests/frozen-help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/tests/frozen-protocol-keys.ts";
 import {
   getKeysInState,
+  getKeysWithCause,
   getRequiredHelpPhrases,
   parseProtocolKeyRegister,
+  PROTOCOL_KEY_CAUSES,
   PROTOCOL_KEY_HEALTH_EFFECTS,
   PROTOCOL_KEY_REGISTER,
   ProtocolKeyRegisterError,
@@ -409,5 +416,85 @@ describe("the register against the captured material", () => {
       (entry) => entry.shape === null && OCCURRENCES_BY_KEY.has(entry.key),
     ).map((entry) => entry.key);
     expect(silent).toEqual([]);
+  });
+});
+
+
+/**
+ * The `*Cause:*` line, re-earned rather than read back.
+ *
+ * ⚠️ **Only one of the four tokens closes in both directions, and the file says
+ * so rather than implying four guards where there is one.** `the subject's own`
+ * is a list the decoder keeps, so the register and the code can be held equal.
+ * The other three are held one way each, against something that is itself
+ * measured — which is weaker, and is the honest amount of holding available: the
+ * decoder's remaining slot table is private, and exporting it to be compared with
+ * prose would make the prose a copy of it rather than a claim about the game.
+ */
+describe("who a health figure is charged to", () => {
+  const CHARGED = PROTOCOL_KEY_REGISTER.filter((entry) => entry.cause !== null);
+
+  test("the register and the decoder name the same self-sourced keys", () => {
+    expect(getKeysWithCause("the subject's own").sort()).toEqual(
+      [...SELF_SOURCED_HEALING_KEYS].sort(),
+    );
+  });
+
+  /**
+   * A key charged to the announcement has to arrive **on** one, and the placement
+   * it is compared against is re-measured from the captures a few tests above —
+   * so this closes against the material rather than against another sentence.
+   */
+  test("a key charged to an announcement is one the captures find on an announcement", () => {
+    const wrong = getKeysWithCause("the announcement's actor").filter((key) => {
+      const entry = PROTOCOL_KEY_REGISTER.find((one) => one.key === key);
+      return entry?.shape?.placement !== "on a skill announcement";
+    });
+    expect(wrong).toEqual([]);
+  });
+
+  /** Every key stating a share of a whole side reads its caster from the actor slot. */
+  test("the keys stating a side's share are charged to the message actor", () => {
+    const missing = SIDE_SHARE_HEALTH_KEYS.filter(
+      (key) => !getKeysWithCause("the message actor").includes(key),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  /**
+   * And the split is real on both sides of it. A vocabulary where every entry
+   * chose the same token would pass every test above while saying nothing, and
+   * `nobody` is the token that has to keep existing: `poison` and `heal` are
+   * written identically and part here (§9.6).
+   */
+  test("more than one token is in use, and nobody is one of them", () => {
+    const used = new Set(CHARGED.map((entry) => entry.cause));
+    expect(used.size).toBeGreaterThan(1);
+    expect(getKeysWithCause("nobody").length).toBeGreaterThan(0);
+    for (const cause of used) {
+      expect(PROTOCOL_KEY_CAUSES as readonly (string | null)[]).toContain(cause);
+    }
+  });
+
+  /**
+   * ⚠️ **`poison` and `heal` are the pair this line exists for.** They arrive in
+   * one shape and are charged differently, so a round that read the grammar
+   * instead of the documentation would collapse them — and every other test here
+   * would still pass.
+   */
+  test("two keys of one shape are charged differently", () => {
+    const heal = PROTOCOL_KEY_REGISTER.find((entry) => entry.key === "heal");
+    const poison = PROTOCOL_KEY_REGISTER.find((entry) => entry.key === "poison");
+    expect(heal?.shape?.placement).toBe(poison?.shape?.placement);
+    expect(heal?.cause).toBe("the subject's own");
+    expect(poison?.cause).toBe("nobody");
+  });
+
+  /** Every entry that moves health answers, and no other entry does. */
+  test("the line sits exactly where a health figure does", () => {
+    for (const entry of PROTOCOL_KEY_REGISTER) {
+      expect(entry.cause === null, entry.key).toBe(entry.healthEffect === null);
+    }
+    expect(CHARGED.length).toBeGreaterThan(0);
   });
 });

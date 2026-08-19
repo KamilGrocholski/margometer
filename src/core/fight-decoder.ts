@@ -506,6 +506,48 @@ const VALUELESS_BLOW_DECLARATION_KEYS = ["+legbon_holytouch"];
 export const SIDE_SHARE_HEALTH_KEYS: readonly string[] = ["healall_per"];
 
 /**
+ * Keys whose healing the game's own documentation says is the healed combatant's
+ * **own** effect — so the end the protocol leaves out is filled with the end it
+ * names, and never with anybody else.
+ *
+ * This is the one place §9.6's third clause is exercised, and it is a **citation**
+ * rather than a guess. Article `view,372`, read 2026-08-19, by engine name:
+ *
+ *   - `heal` — *Przywracanie życia*: an effect laid on the Character, restoring
+ *     the Character's health, firing only before the action of the Player it is
+ *     assigned to and only while they hold less than they entered the fight with.
+ *   - `holytouch` — the Character applies the effect to itself, and each firing
+ *     heals the Character 6% of their pool.
+ *   - `lastheal` — the holder's own legendary bonus, healing the holder once when
+ *     damage takes them below 18% of their pool.
+ *
+ * Corroborated rather than proved, and the difference is written down because it
+ * is the honest one. Measured over the captures as the set stood 2026-08-19: 838
+ * of 1099 figures `heal` states as a gain sit exactly on
+ * `round(first × (1 − 0.05n))` — the help's own decay, anchored on that
+ * **combatant's** first figure and on nobody else's. The residue is a boss whose
+ * value grows mid-fight, and tails the cap shortened; the same set carries
+ * `heal_per-allies` and `heal_per-enemies`, which move the value the decay runs
+ * from, so that is a floor on the fit rather than a ceiling.
+ *
+ * ⚠️ **The restoring direction only.** `heal` states a loss as readily as a gain,
+ * and nothing documents a self-damage reading — a loss stays health lost with
+ * nobody charged for it.
+ *
+ * ⚠️ **`legbon_lastheal`'s combatant is the name inside its value, never the
+ * message actor**, who is whoever struck the blow. Four of its five occurrences
+ * ride a group blow where the message's own target is a third party, so reading
+ * the slot would credit the attacker with healing their victim.
+ *
+ * `[ASK]` before a fourth key joins this list (§9.6).
+ */
+export const SELF_SOURCED_HEALING_KEYS: readonly string[] = [
+  "heal",
+  "legbon_holytouch_heal",
+  "legbon_lastheal",
+];
+
+/**
  * Keys that are the whole of their message and report nothing that happened to
  * anybody: a turn marker, a skill being prepared, a line for the client's own
  * log, the experience at the end, an aura declared once for the fight.

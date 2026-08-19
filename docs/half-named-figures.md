@@ -34,11 +34,44 @@ theirs.
 |---|---|---|---|
 | announcement, then `1=90.00;2=50.00;heal_target=100` | both ends | `mag 100` in the ranking · `My` | `tarcza 100` in the ranking · `My` |
 | announcement, then `1=90.00;0;heal_target=300` | the healer | `mag 300` in the ranking · `My` | **`Nieznany cel 300`** · `My` |
-| `2=90.00;0;heal=50` | the healed | **`Nieznany sprawca 50`** · `My` | `tarcza 50` in the ranking, and `Nieznany sprawca 50` as a cut of it · `My` |
+| `1=90.00;2=50.00;heal_target=50`, nothing announced | the healed | **`Nieznany sprawca 50`** · `My` | `tarcza 50` in the ranking, and `Nieznany sprawca 50` as a cut of it · `My` |
 | `0;0;heal=40` | neither | `Nieznany sprawca 40`, `Wszyscy` only · bar says `Bez strony 40` | `Nieznany cel 40`, `Wszyscy` only · bar says `Bez strony 40` |
 
 Healing stays on one side, so every row of this table reads `My` where the damage
 table crosses.
+
+⚠️ **The middle row used to be `2=90.00;0;heal=50` and is no longer half-named.**
+`heal` is one of the three keys the help calls the healed combatant's own, so it
+has both ends now and moved to the section below. What is left standing here is an
+*unannounced* `heal_target` — the same hole, under a key the help says nothing
+about, which is the only way that hole can still arrive.
+
+## An end the help supplies
+
+The protocol writes these exactly as it writes the half-named ones — the subject in
+the actor slot, a literal `0` at the other end — and they are not half-named,
+because the game's own documentation says the effect belongs to the combatant it
+moved health on. One person at both ends, so there is no hole
+(§9.6, `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
+
+| the message | what the game named | `Leczenie dane` | `Leczenie` |
+|---|---|---|---|
+| `2=90.00;0;heal=50` | the healed, and the help the rest | `tarcza 50` in the ranking · `My` | `tarcza 50` in the ranking · `My` |
+| `9=90.00;0;heal=50`, id the roster never carried | the same | `#9 50`, `Wszyscy` only · bar says `Bez strony 50` | `#9 50`, `Wszyscy` only · bar says `Bez strony 50` |
+| `0;0;heal=40` | neither end, so nothing to fill with | as the healing table above — still half-named | as above |
+
+⚠️ **What the fill needs is the id, not the roster.** The second row is drawn
+because the message states combatant 9; that this fight can put neither a name nor
+a side on them costs the row its side, not its ends. The third row is the real
+limit: no id at either end, nothing to fill with, and §5's flat no still standing.
+
+⚠️ **And the damage keys written the same way keep their hole.** `3=50.00;0;poison=60`
+is the second row of the damage table and stays there. Nothing documents who
+applied it, and `poison` is unattributed by construction — so two messages the
+protocol writes identically are read differently, on the strength of what the
+documentation says about one of them and not the other. That asymmetry is the
+content of this section, and `docs/protocol-keys.md` carries it per key on the
+`*Cause:*` line.
 
 ## A side named, and no member of it
 

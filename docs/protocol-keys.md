@@ -128,6 +128,45 @@ it does report health, its comparisons stop matching. That is the design, not a
 caveat — the alternative is an entry per key with nothing behind it, which is the
 kind of bulk this directory exists to refuse.
 
+### And who the figure is charged to
+
+A key that reports a health figure raises a second question the panel cannot
+avoid answering: **who did it**. Every entry stating `*Health:* moves health`
+answers it on one line, from a closed list:
+
+```
+*Cause:* the subject's own
+```
+
+| `*Cause:*` | means | held against |
+|---|---|---|
+| `the subject's own` | the published help says the effect belongs to the combatant it moved health on, so the two ends are one person (§9.6) | `SELF_SOURCED_HEALING_KEYS` |
+| `the announcement's actor` | the figure sits on the message **target** and a skill announcement over it names the giver | `HEALTH_CHANGE_KEYS`, the entries reading the target slot |
+| `the message actor` | the protocol states the cause in the actor slot of the message itself | `SIDE_SHARE_HEALTH_KEYS`, and the attack family |
+| `nobody` | the protocol states no cause, and nothing else supplies one | the rest of `HEALTH_CHANGE_KEYS` |
+
+**Required exactly where `*Health:*` is, and refused everywhere else.** A key that
+reports no health figure charges nobody with anything, so a line on it would be a
+claim with no consumer — §7.1's rule applied to a document.
+
+`tests/core/protocol-key-register.test.ts` re-earns every token from
+`src/core/fight-decoder.ts` **in both directions**, so a key cannot be listed as
+the subject's own here and read some other way there, nor read that way and left
+saying `nobody`. A phrase outside the list is **refused** rather than read as
+silence, for the reason the health line gives: it would look more settled than
+silence while checking nothing.
+
+⚠️ **`the subject's own` is the one token backed by a citation rather than by a
+measurement**, and the three keys carrying it say where the citation is in their
+own `*Evidence:*`. It is `[ASK]` to give it to a fourth key (§9.6).
+
+⚠️ **Two keys can be written identically and answer differently.** `heal` and
+`poison` arrive in the same shape — the subject in the actor slot, a literal `0`
+at the other end — and this line is where they part: the help documents one of
+them as the Character's own effect and says nothing about who applied the other.
+That is a reading of the documentation, not of the message, which is exactly why
+it is written down per key instead of derived from the grammar.
+
 ---
 
 ## Keys the decoder reads
@@ -183,6 +222,8 @@ has already been reduced — unlike `+dmg`/`-dmg` there is no second figure.
 
 *Health:* moves health
 
+*Cause:* the message actor
+
 Accounted for rather than skipped: the witness resolves the name against the
 combatants the engine call started with and subtracts the figure there. A name
 matching none of them, or more than one, makes the call uncomparable instead —
@@ -213,6 +254,8 @@ order from `+oth_dmg`, which is why the two cannot share a reader.
 
 *Health:* moves health
 
+*Cause:* the subject's own
+
 *Shape:* 5 occurrences; on a message reporting damage; text
 
 *Help:* names `lastheal`
@@ -237,10 +280,23 @@ is the segment naming the healed combatant and not the message's own figures. A
 reader that took the whole message's damage would attribute nine people's losses
 to one.
 
-⚠️ **No healer, and that is the entry's other claim.** The message's actor is
-whoever struck the blow, and the help says the bonus is the *holder's* — but the
-protocol states neither, so the healing reaches the named combatant's row and
-nobody is credited with giving it.
+⚠️ **The healer is the healed, and the message's actor is neither.** The actor is
+whoever struck the blow; the help says the bonus is the **holder's** own and that
+the holder is the one it heals, so the combatant named inside the value is both
+ends of it and is credited with giving it (§9.6, engine name `lastheal`, read
+2026-08-19).
+
+This entry read *nobody is credited with giving it* for a release, on the ground
+that the help describes a mechanic and the protocol states nothing. That ground
+did not hold: the panel was not silent about the giver, it drew `Nieznany
+sprawca` — **the game does not say who healed** — which is a claim about the game
+and a false one (§3). The choice was never between a reading and no reading
+(`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
+
+⚠️ **Read the value, never a slot.** Four of the five occurrences ride a group
+blow whose target is a third party, so both slots are the wrong combatant — the
+actor would credit an attacker with healing their own victim, and the target
+would credit whoever that blow happened to land on.
 
 ⚠️ **The witness cannot see this one.** The capture that carried it first has no
 snapshot taken before its messages — the whole fight arrives in one engine call —
@@ -259,6 +315,24 @@ anyone else. Read as a positive health change; the client will state a loss with
 a negative amount, which needs no special case because the figure is signed.
 
 *Health:* moves health
+
+*Cause:* the subject's own
+
+**Whose effect it is, and why that is not a guess.** The help documents this key
+as a **statistic of the Character** rather than as something anybody does to
+anybody: an effect laid on the Character, restoring the Character's own health,
+firing only before the action of the Player it is **assigned to** and only while
+they hold less than they entered the fight with. So the end the message leaves out
+was never a second person, and the panel credits the combatant it names with both
+(§9.6, `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). An
+announcement over the message still wins, because a giver the protocol states
+beats one read off documentation.
+
+⚠️ **The restoring direction only.** The figure is signed and a loss is not this
+effect; nothing documents a self-damage reading, so a negative one stays health
+lost with nobody charged for it.
+
+*Help:* names `( heal )`
 
 **A second value member, and what the client says about it.** The value may carry
 a second comma-separated figure — `heal=3065,-45` in the group fight, one
@@ -300,6 +374,8 @@ it, so nothing downstream may credit it to anyone (§5).
 
 *Health:* moves health
 
+*Cause:* nobody
+
 Carries a second value member in one occurrence — `poison=140,14` in the boar
 fight — read the same way as `heal`'s above and for the same measured reason: the
 call is judged and agrees on that message, so the member moves no health. The
@@ -320,6 +396,8 @@ own. **Unattributed by construction**, for `poison`'s reason: nothing in the
 message says who set the target alight.
 
 *Health:* moves health
+
+*Cause:* nobody
 
 Carries a second member in four of its occurrences — `fire=96,23`, `fire=97,22`
 and `fire=117,6` twice — read as `poison`'s is, and for the same measured reason:
@@ -353,7 +431,22 @@ Healing directed at the message **target**, which is what separates it from
 does not put its subject in the actor slot, and the reason the decoder carries a
 slot per key rather than assuming one.
 
+**The actor slot holds the caster, and nothing here reads it.** Every occurrence
+arrives under a skill announcement, and the announcement is what the giver is
+taken from — so the two slots are the recipient and the caster, and 52 of the 78
+are the same combatant, a self-cast. That is the shape `heal`,
+`legbon_holytouch_heal` and `legbon_lastheal` joined: one person at both ends, and
+this key had it first (§9.6).
+
+⚠️ **Being a self-cast is not what makes those three self-sourced.** This key is
+charged to whoever announced it, whether or not that is the combatant it healed;
+the other three are charged to the healed because the **help** says the effect is
+theirs. A round reading "actor equals target" off this entry and applying it to
+those would be reading the grammar where the difference is in the documentation.
+
 *Health:* moves health
+
+*Cause:* the announcement's actor
 
 *Shape:* 78 occurrences; on a skill announcement; a whole number
 
@@ -364,16 +457,28 @@ calls disagree.
 ### `legbon_holytouch_heal` — decoded
 
 Healing, same shape and slot as `heal`, from a legendary bonus rather than a
-spell. Read identically; nothing about it needed a separate rule.
+spell. Read identically; nothing about its **figure** needed a separate rule, and
+what it does need is a line saying whose the healing is — the help settles that
+and the protocol does not.
 
 *Health:* moves health
 
+*Cause:* the subject's own
+
 *Shape:* 133 occurrences; alone in its message; a whole number
+
+*Help:* names `holytouch`
 
 *Evidence:* found by the witness rather than looked for. With `heal`, `poison`
 and `injure` read, three comparisons still disagreed, all for one combatant and
 all by the same six percentage points — `legbon_holytouch_heal=976` against a
 maximum of 16278. Reading it closed them.
+
+The **cause** is the help's, not the witness's: article view,372 at the engine
+name `holytouch` (read 2026-08-19) says the Character applies the effect to
+itself and that each firing heals the Character a share of their own pool. Both
+halves of that sentence put one combatant at both ends, so the message naming one
+is naming the only one there is (§9.6).
 
 ### `injure` — decoded
 
@@ -382,6 +487,8 @@ from `+injure`, which is not damage; this file previously described `injure`
 using `+injure`'s evidence, and the split is what let the two be measured apart.
 
 *Health:* moves health
+
+*Cause:* nobody
 
 *Shape:* 151 occurrences; alone in its message; a whole number
 
@@ -558,6 +665,8 @@ moves health.
 
 *Health:* moves health
 
+*Cause:* the message actor
+
 *Shape:* 85 occurrences; on a skill announcement; a number
 
 *Help:* names `healall_per`, `lowheal_per-enemies`, `heal_per-enemies`
@@ -598,6 +707,8 @@ decodes.
 
 *Health:* moves health
 
+*Cause:* the message actor
+
 Accounted for — this is the figure the witness's arithmetic is built on. `?dmg*`
 is a shape rather than a key the protocol ever sends, so the entry never matches
 a message of its own.
@@ -631,6 +742,8 @@ default damage branch writes to.
 The same blow, applied. This is the half that moves health.
 
 *Health:* moves health
+
+*Cause:* the message actor
 
 *Shape:* 6 occurrences; on a blow; a whole number
 

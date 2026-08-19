@@ -174,12 +174,22 @@ export type DamageToNamedCombatantEvent = {
  * variant follows the protocol — the two arrive under keys with nothing in
  * common, and the client reads their values differently.
  *
- * **No actor, and that is a claim.** The message's actor is whoever struck the
- * blow this rode in on, and crediting them with the healing would be inventing a
- * healer the log does not name (§5). The help says the effect is the *holder's*
- * own and the holder is the one healed, which would make it a self-heal — but
- * that is documentation about a mechanic, not something the protocol states, and
- * `docs/protocol-keys.md` keeps the two apart.
+ * **No actor in the message, and the giver is not read from one.** The actor is
+ * whoever struck the blow this rode in on, so crediting them would be inventing a
+ * healer the log does not name (§5) — and four of the five occurrences ride a
+ * group blow whose target is a third party, so the other slot is wrong too.
+ *
+ * ⚠️ **The giver is the combatant this event names, and that took a rule change.**
+ * The help says the bonus is the *holder's* own and that the holder is the one
+ * healed, so both ends are one person. This comment used to argue the opposite —
+ * that documentation about a mechanic is not something the protocol states, so
+ * nobody may be credited — and the argument had a hole in it: the panel was not
+ * silent about the giver, it drew `Nieznany sprawca`, *the game does not say who
+ * healed*. That is a claim about the game and a false one (§3). §9.6's third
+ * clause is what the choice actually was
+ * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`); the fill happens
+ * in `fight-statistics.ts`, off `SELF_SOURCED_HEALING_KEYS`, so this event keeps
+ * stating only what the message did.
  *
  * **No announcement either.** This fires on damage taken, not on a skill used,
  * so gluing it to the announcement standing over the message would credit the
@@ -253,11 +263,17 @@ export type HealthChangeEvent = {
   /**
    * The skill this movement was glued to.
    *
-   * This is the only place a **healer** can come from: the key states who was
-   * healed and never who did it, so where nothing was announced, nothing is
-   * claimed — and that is most of the healing in a fight. Measured on
-   * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`:
-   * 25 178 of 122 648 points restored carry an announcement.
+   * The only place in this **event** a healer can come from: the key states who was
+   * healed and never who did it. Measured on
+   * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`, 248 814 of the
+   * 346 284 points restored carry an announcement.
+   *
+   * ⚠️ **Where nothing announced it, the key can still answer, and this field is
+   * asked first.** Three keys are the healed combatant's own effect on the help's
+   * word, so `fight-statistics.ts` falls back to `SELF_SOURCED_HEALING_KEYS`
+   * (§9.6). An announcement wins over that fallback, because a giver the protocol
+   * stated beats one read off documentation — which is why the order is stated
+   * here rather than left to whichever branch is written first.
    */
   announced: AnnouncedSkill | null;
 };

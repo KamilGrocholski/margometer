@@ -15,6 +15,7 @@ export const FROZEN_HELP_PHRASES = {
   fetchedAt: "2026-08-18T05:09:40.752Z",
   counts: {
     "( fire )": 2,
+    "( heal )": 3,
     "( rage )": 1,
     "( skillId )": 0,
     "( tspell )": 0,

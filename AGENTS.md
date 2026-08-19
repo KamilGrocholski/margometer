@@ -118,7 +118,9 @@ gone is the first sign the rules have drifted.
   identifiers are functional and may be stored; displayed sentences are somebody
   else's work. Player nicknames never enter the repo.
 - `[NEVER] [core]` **Invent data the log does not carry.** Unknown is allowed, a
-  guessed name is not.
+  guessed name is not. The one thing that is not a guess is an end the game's own
+  documentation names — §9.6's third clause, which is narrow, listed and `[ASK]`
+  to widen.
 - `[NEVER] [any]` **Comment the obvious.** §9.3.
 - `[NEVER] [any]` **Leave a number in prose that a machine could compute** —
   test counts, coverage, line counts. Measure at read time instead.
@@ -801,6 +803,26 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   `tests/core/health-witness.test.ts` stopped skipping those calls and still agrees
   (`src/core/combatant-health.ts`,
   `docs/specs/2026-08-18-the-side-is-named-and-the-share-is-stated.md`).
+- `[ALWAYS] [core]` **An end the protocol leaves out may be filled with a
+  combatant the message already names, and only where the published help says the
+  effect is that combatant's own.** The third and last of these clauses, and the
+  narrowest: nothing is derived from a neighbour, from a slot or from what usually
+  happens — the help says the effect belongs to the one it heals, so the giving end
+  is the receiving end and there was never a second name to get wrong. The keys are
+  listed in one place (`SELF_SOURCED_HEALING_KEYS`, `src/core/fight-decoder.ts`),
+  each carries its engine name and read date, and each is stated in
+  `docs/protocol-keys.md` on a `*Cause:*` line a guard re-earns from that list.
+  Three limits, all of them load-bearing: **an announcement wins**, because a giver
+  the protocol stated beats one read off documentation; **the restoring direction
+  only**, since `heal` states a loss as readily as a gain and nothing documents a
+  self-damage reading; and **a message naming nobody is untouched**, because the
+  fill needs a name the message already carries. ⚠️ Held by a **citation** where
+  the two clauses above are held by a measurement — the protocol states the figure
+  already, so there is no arithmetic to close and nothing in the captures would
+  differ if the help were wrong about whose effect it is. That is why it is `[ASK]`
+  to add a fourth key, and why the damage keys arriving in the identical shape
+  (`poison`, `fire`, `injure`) are deliberately left with no cause at all
+  (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
 - `[ALWAYS] [ui]` **A message naming neither end has no side, and the panel says
   so where no row can.** It rides the one pinned row standing apart from the
   ranking under `Wszyscy`, and under a side tab it is on no row at all and the
@@ -926,5 +948,6 @@ case rather than asserting it.
 | **element** | Damage type (fire, cold, physical, …), taken from the key. |
 | **dot** | Damage over time, ticking outside a direct attack. |
 | **unattributed** | A number the log does not tie to any actor. Shown, never guessed — though the panel may put it on a **side** by the end the game did name (§9.6). |
-| **half-named** | A message stating one end of what happened and calling the other nobody. Two shapes, two rows, and they are different claims: *nieznany sprawca* is a figure whose actor the game left out, *nieznany cel* one whose target it did. A message naming neither end is neither of them and has no side. |
+| **half-named** | A message stating one end of what happened and calling the other nobody. Two shapes, two rows, and they are different claims: *nieznany sprawca* is a figure whose actor the game left out, *nieznany cel* one whose target it did. A message naming neither end is neither of them and has no side. A **self-sourced** message is written this way and is not half-named — the missing end is one the documentation supplies. |
+| **self-sourced** | A figure the protocol states at one end where the published help says the effect is that combatant's **own**, so both ends are the same person: regeneration and the two legendary bonuses that heal their holder (§9.6). Not a guess and not half-named — the giving end was never a second name. The damage keys arriving in the identical shape have no such entry and stay half-named, which is the difference the term exists to keep visible. |
 | **unaccounted** | Health the protocol says moved in an amount nobody can size — a figure whose inputs this meter does not hold. A figure we do not have, where **unattributed** is one we have and cannot place. A heal reaching a whole side was the example until the inputs arrived (§9.6); what is left here is the fight nobody watched the start of. |

@@ -232,7 +232,7 @@ describe("healing stated against a name", () => {
    * answer, that the bonus is the holder's own, is not something the protocol
    * states (`docs/protocol-keys.md`).
    */
-  test("reaches the healed combatant's row, and no giver's", () => {
+  test("reaches the healed combatant's row, at both ends of it", () => {
     for (const fight of CAPTURED_FIGHTS) {
       const carried = OCCURRENCES.filter((one) => one.fight === fight.name);
       if (carried.length === 0) continue;
@@ -259,19 +259,39 @@ describe("healing stated against a name", () => {
         ).toBe(row?.healed ?? -1);
       }
 
-      const given = [...statistics.byCombatantId.values()].reduce(
-        (total, row) => total + row.healingGiven,
-        0,
-      );
-      const received = [...statistics.byCombatantId.values()].reduce(
-        (total, row) => total + row.healed,
-        0,
-      );
-      // The healing this key carries is received by somebody and given by
-      // nobody, so it is exactly the gap between the two directions.
-      expect(received - given, fight.name).toBeGreaterThanOrEqual(
-        carried.reduce((total, one) => total + one.healing, 0),
-      );
+      // The bonus is the holder's own, so the combatant the value names is both
+      // ends of it: the healing is theirs to have received *and* theirs to have
+      // given (§9.6, article view,372 at engine name `lastheal`, read
+      // 2026-08-19). Read from both directions, because the two are written in
+      // different places and a reading that filed one would leave the panel
+      // showing a giver its receiver's breakdown does not know about.
+      for (const one of carried) {
+        const own = carried
+          .filter((other) => other.combatantId === one.combatantId)
+          .reduce((total, other) => total + other.healing, 0);
+        const row = statistics.byCombatantId.get(one.combatantId);
+        expect(row?.healedByHealerId.get(one.combatantId), fight.name).toBeGreaterThanOrEqual(own);
+        expect(
+          row?.healingGivenByCombatantId.get(one.combatantId),
+          fight.name,
+        ).toBeGreaterThanOrEqual(own);
+      }
+
+      // ⚠️ **The attacker is never the giver, and a combatant the value never
+      // names carries none of it.** The message's actor is whoever struck the
+      // blow, and four of the five occurrences ride a group blow whose target is a
+      // third party — so a reader that took either slot would credit an attacker
+      // with healing their own victim. Walked over every row rather than over the
+      // occurrences, because what is being asserted is an absence.
+      for (const [combatantId, row] of statistics.byCombatantId) {
+        const owed = carried
+          .filter((one) => one.combatantId === combatantId)
+          .reduce((total, one) => total + one.healing, 0);
+        expect(row.healedWithoutHealerBySource.get(LAST_HEAL_KEY), fight.name).toBeUndefined();
+        expect(row.healedBySource.get(LAST_HEAL_KEY) ?? 0, `${fight.name}: ${combatantId}`).toBe(
+          owed,
+        );
+      }
     }
   });
 });

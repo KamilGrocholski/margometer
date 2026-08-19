@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { decodeFight, SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
@@ -228,10 +228,30 @@ describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
      * §7.5's rule, in the layer it had not yet been paid for in: a comparison
      * against `0` needs a test standing either side of it, and here zero is the
      * neutral element of the sum, so nothing moved and only the key sets parted.
+     *
+     * ⚠️ **And less the healing no skill announced, which is the other end of the
+     * same figure.** The three keys the help calls the healed combatant's own are
+     * credited to that combatant as a healer without any skill having said so
+     * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`), so the two
+     * sides part by exactly that much and by nothing else.
+     *
+     * Subtracted rather than filtered out: an equality with a term on both sides
+     * still breaks if either derivation drifts, where dropping the rows carrying
+     * self-sourced healing would stop checking the very combatants who heal most.
+     * It also states a second thing — **no self-sourced heal in these recordings
+     * is announced.** One that was would take its credit from the announcer, the
+     * subtraction would overshoot, and this would go red rather than quiet.
      */
     const casters = new Set([...givenByCaster.keys(), ...creditedByCaster.keys()]);
     for (const id of casters) {
-      expect(givenByCaster.get(id) ?? 0, String(id)).toBe(creditedByCaster.get(id) ?? 0);
+      const healedBySource = statistics.byCombatantId.get(id)?.healedBySource;
+      const selfSourced = SELF_SOURCED_HEALING_KEYS.reduce(
+        (sum, key) => sum + (healedBySource?.get(key) ?? 0),
+        0,
+      );
+      expect(givenByCaster.get(id) ?? 0, String(id)).toBe(
+        (creditedByCaster.get(id) ?? 0) - selfSourced,
+      );
     }
   });
 
@@ -260,20 +280,40 @@ describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
  * at all.
  */
 describe("a heal that restored nothing", () => {
-  const creditedEverywhere = CAPTURED_FIGHTS.flatMap((fight) => {
-    const statistics = composeFightStatistics(
+  const everyFight = CAPTURED_FIGHTS.map((fight) =>
+    composeFightStatistics(
       fight.dump.calls.flatMap((call) =>
         decodeFight(call.protocolMessages, composeRosterOfFight(fight)),
       ),
-    );
-    return [...statistics.byCombatantId.values()].flatMap((row) => [
-      ...row.healedByHealerId.values(),
-    ]);
+    ),
+  );
+
+  const restoredBySource = everyFight.flatMap((statistics) =>
+    [...statistics.byCombatantId.values()].flatMap((row) => [...row.healedBySource.values()]),
+  );
+  const creditedEverywhere = everyFight.flatMap((statistics) =>
+    [...statistics.byCombatantId.values()].flatMap((row) => [...row.healedByHealerId.values()]),
+  );
+
+  /**
+   * ⚠️ **Read off the source map, because the healer-keyed one stopped being able
+   * to show it.** A combatant's self-sourced healing is credited to that
+   * combatant, so their own `heal` and their own zero-restoring `heal_target` now
+   * share one key in `healedByHealerId` and sum to something positive — the zero
+   * is still there, it is just no longer alone under that key
+   * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). `healedBySource`
+   * keeps them apart because the protocol keys differ, which is what this test
+   * needs and the reason it moved rather than being weakened.
+   */
+  test("is kept as zero under its own key, and is not the only kind there is", () => {
+    expect(restoredBySource.filter((amount) => amount === 0).length).toBeGreaterThan(0);
+    expect(restoredBySource.filter((amount) => amount > 0).length).toBeGreaterThan(0);
+    expect(restoredBySource.filter((amount) => amount < 0)).toEqual([]);
   });
 
-  test("is credited to its healer as zero, and is not the only kind there is", () => {
-    expect(creditedEverywhere.filter((amount) => amount === 0)).toHaveLength(1);
-    expect(creditedEverywhere.filter((amount) => amount > 0).length).toBeGreaterThan(0);
+  /** And nothing anywhere is credited to a healer as a negative. */
+  test("is never credited to a healer as a loss", () => {
     expect(creditedEverywhere.filter((amount) => amount < 0)).toEqual([]);
+    expect(creditedEverywhere.filter((amount) => amount > 0).length).toBeGreaterThan(0);
   });
 });

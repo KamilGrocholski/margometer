@@ -70,7 +70,20 @@ function composeReading(overrides: Partial<PanelReading> = {}): PanelReading {
         // about, arriving from a direction the finding did not name.
         "1=90.00;4=80.00;tspell=Skill One;skillId=7",
         "1=90.00;4=95.00;heal_target=300",
-        // Regeneration: nothing announced it, so nobody can be credited with it.
+        // ⚠️ **A heal nothing announced, under a key the help says nothing about.**
+        // It was `4=95.00;0;heal=50` — regeneration — until the help settled that
+        // `heal` is the healed combatant's own effect and it stopped being
+        // healer-less (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
+        // The figure is the same 50 on the same combatant, so every total in this
+        // file is untouched; what the key change preserves is the one thing this
+        // fixture needs and `heal` can no longer provide — healing the panel has
+        // nobody to put on the giving end of.
+        "1=90.00;4=95.00;heal_target=50",
+        // And a heal that does have one: regeneration, which the help calls the
+        // healed combatant's own effect, so `tarcza` is both ends of it. The two
+        // lines together are what keep this fixture drawing both healing shapes —
+        // and on one combatant, so `łowca` stays the row with no healing at all,
+        // which is what "zero and unknown are different sentences" reads.
         "4=95.00;0;heal=50",
         "0;0;nonsense_key=1",
       ],
@@ -1477,6 +1490,30 @@ describe("against the captured fights", () => {
   });
 
   /**
+   * Which screens the **recordings** still leave a figure with no actor on —
+   * written out rather than derived, so the guard states the claim instead of
+   * agreeing with whatever the corpus currently produces (§7.5).
+   *
+   * ⚠️ **Both halves are load-bearing, and the healing half is new.** Damage keeps
+   * its hole: `poison`, `fire` and `injure` arrive with the subject in the actor
+   * slot and a literal `0` at the other end, and nothing documents who caused them.
+   * Healing has none left — every point in all seventeen recordings reaches a
+   * healer since the three keys the help calls the healed combatant's own started
+   * saying so (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
+   *
+   * A `false` that turned `true` again would be a healing key nobody has read, and
+   * a `true` that turned `false` would be damage quietly acquiring an attacker.
+   * Neither is something the corpus should be allowed to decide on its own, which
+   * is why this is a table and not a `?? `.
+   */
+  const CAPTURES_LEAVE_NO_ACTOR: Record<PanelMetric, boolean> = {
+    dealt: true,
+    taken: true,
+    healingGiven: false,
+    healed: false,
+  };
+
+  /**
    * **The pinned row's own breakdown closes against the pinned row.**
    *
    * The property that makes all four cuts worth reading, and the one the panel
@@ -1516,9 +1553,11 @@ describe("against the captured fights", () => {
         expect(composeFigureText(total), `${metric} ${team}`).toBe(pinned.valueText);
       }
 
-      // And it is drawn at all under no filter, which the loop above would let a
-      // vanished row pass on every tab.
-      expect(getNoActorRow(composePanelView(reading, composeState({ metric })))).not.toBeNull();
+      // And whether it is drawn at all under no filter, which the loop above would
+      // let a vanished row pass on every tab.
+      const drawn = getNoActorRow(composePanelView(reading, composeState({ metric })));
+      if (CAPTURES_LEAVE_NO_ACTOR[metric]) expect(drawn, metric).not.toBeNull();
+      else expect(drawn, metric).toBeNull();
     },
   );
 
@@ -2543,6 +2582,15 @@ const EVERY_CASE: Array<{
   messages: string[];
   ourSide: number | null;
   drawn: Partial<Record<PanelMetric, PinnedByTeam>>;
+  /**
+   * What the **ranking** holds, where the answer is the point of the case.
+   *
+   * Optional, and stated only where a figure is supposed to reach a combatant's
+   * own row: the pinned rows above say where a figure did *not* land, and a shape
+   * whose whole claim is that it landed on somebody needs the other half read too.
+   * A case that omits it is one the pinned rows already settle.
+   */
+  ranked?: Partial<Record<PanelMetric, PinnedByTeam>>;
 }> = [
   {
     name: "both ends named",
@@ -2608,12 +2656,56 @@ const EVERY_CASE: Array<{
     },
   },
   {
+    // ⚠️ **The hole that is left, and the only way it still arrives.** `heal_target`
+    // takes its giver from the announcement over it and the help says nothing about
+    // whose effect it is, so one with no announcement has a healed combatant and
+    // nobody on the giving end. This row used to be `2=90.00;0;heal=50`.
     name: "the healed named and no healer",
-    messages: ["2=90.00;0;heal=50"],
+    messages: ["1=90.00;2=50.00;heal_target=50"],
     ourSide: 1,
     drawn: {
       healingGiven: { all: ["Nieznany sprawca 50"], mine: ["Nieznany sprawca 50"], enemy: [] },
       healed: { all: ["Nieznany sprawca 50"], mine: ["Nieznany sprawca 50"], enemy: [] },
+    },
+    ranked: {
+      healingGiven: { all: [], mine: [], enemy: [] },
+      healed: { all: ["tarcza 50"], mine: ["tarcza 50"], enemy: [] },
+    },
+  },
+  {
+    // The help calls `heal` the healed combatant's own effect, so this names both
+    // ends and no row is pinned on either screen (§9.6,
+    // `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). The `poison`
+    // case above arrives in the identical shape and keeps its pinned row, which is
+    // what makes this a reading of the documentation and not of the message.
+    name: "the healed named, and the help says whose effect it was",
+    messages: ["2=90.00;0;heal=50"],
+    ourSide: 1,
+    drawn: {
+      healingGiven: { all: [], mine: [], enemy: [] },
+      healed: { all: [], mine: [], enemy: [] },
+    },
+    ranked: {
+      healingGiven: { all: ["tarcza 50"], mine: ["tarcza 50"], enemy: [] },
+      healed: { all: ["tarcza 50"], mine: ["tarcza 50"], enemy: [] },
+    },
+  },
+  {
+    // ⚠️ **What the fill needs is the id, and the roster is not what supplies it.**
+    // The message names combatant 9 whether or not this fight can put a name or a
+    // side on them, so both ends resolve and no row is pinned — the figure is on
+    // their own row under `Wszyscy`, on no side tab, and the bar says `Bez strony`.
+    // The shape with genuinely nothing to fill with is `0;0;heal=40` below.
+    name: "a combatant the roster cannot place is healed by their own effect",
+    messages: ["9=90.00;0;heal=50"],
+    ourSide: 1,
+    drawn: {
+      healingGiven: { all: [], mine: [], enemy: [] },
+      healed: { all: [], mine: [], enemy: [] },
+    },
+    ranked: {
+      healingGiven: { all: ["#9 50"], mine: [], enemy: [] },
+      healed: { all: ["#9 50"], mine: [], enemy: [] },
     },
   },
   {
@@ -2655,7 +2747,7 @@ const EVERY_CASE: Array<{
 ];
 
 describe("every shape the protocol can send", () => {
-  test.each(EVERY_CASE)("$name", ({ messages, ourSide, drawn }) => {
+  test.each(EVERY_CASE)("$name", ({ messages, ourSide, drawn, ranked }) => {
     const statistics = composeFightStatistics(decodeFight(messages, CASE_ROSTER), CASE_ROSTER);
     const reading = {
       statistics,
@@ -2669,6 +2761,21 @@ describe("every shape the protocol can send", () => {
         const view = composePanelView(reading, composeState({ metric, team }));
         const said = view.pinnedRows.map((row) => `${row.label} ${row.valueText}`);
         expect(said, `${metric} · ${team}`).toEqual(byTeam[team]);
+      }
+    }
+
+    // Rows carrying nothing are left out: everyone in a fight has a row from the
+    // first payload, so listing them all would make every case's expectation a
+    // copy of the roster rather than a statement about the figure.
+    for (const [metric, byTeam] of Object.entries(ranked ?? {}) as Array<
+      [PanelMetric, PinnedByTeam]
+    >) {
+      for (const team of PANEL_TEAMS) {
+        const view = composePanelView(reading, composeState({ metric, team }));
+        const said = (view.lists[0]?.rows ?? [])
+          .filter((row) => row.valueText !== "0")
+          .map((row) => `${row.label} ${row.valueText}`);
+        expect(said, `ranking ${metric} · ${team}`).toEqual(byTeam[team]);
       }
     }
   });
