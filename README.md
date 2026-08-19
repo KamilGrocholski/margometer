@@ -5,6 +5,13 @@
 Miernik obrażeń do [Margonem](https://www.margonem.pl/) — statystyki walki na
 żywo, w panelu nad grą. SKADA albo Details!, dla Margonem.
 
+| | |
+|---|---|
+| ![Panel z listą walczących według otrzymanych obrażeń](screenshots/panel-taken.png) | ![Obrażenia jednego walczącego w rozbiciu na przeciwników i rodzaje obrażeń](screenshots/panel-breakdown.png) |
+| ![Najgłębszy poziom: jeden przeciwnik, po umiejętnościach i rodzajach obrażeń](screenshots/panel-deep.png) | ![Karta ze szczegółami otwarta obok panelu](screenshots/panel-tip.png) |
+
+Obrażenia otrzymane w walce dziesięciu na jednego.
+
 - Obrażenia i leczenie, zadane i otrzymane, dla każdego walczącego, w każdej
   walce.
 - Każdy wiersz się rozwija: po przeciwniku, dalej po umiejętności i po rodzaju
@@ -15,15 +22,6 @@ Miernik obrażeń do [Margonem](https://www.margonem.pl/) — statystyki walki n
   własny wiersz.
 - Tylko odczyt: żadnej sieci, żadnej automatyzacji, żadnego wpływu na przebieg
   walki.
-
-## Zrzuty ekranu
-
-Obrażenia otrzymane w walce dziesięciu na jednego.
-
-| | |
-|---|---|
-| ![Panel z listą walczących według otrzymanych obrażeń](screenshots/panel-taken.png) | ![Obrażenia jednego walczącego w rozbiciu na przeciwników i rodzaje obrażeń](screenshots/panel-breakdown.png) |
-| ![Najgłębszy poziom: jeden przeciwnik, po umiejętnościach i rodzajach obrażeń](screenshots/panel-deep.png) | ![Karta ze szczegółami otwarta obok panelu](screenshots/panel-tip.png) |
 
 ## Instalacja
 

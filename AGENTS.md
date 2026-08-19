@@ -402,10 +402,12 @@ is belongs in its own docblock, not here.
 ```
 AGENTS.md          These rules. The only place they live.
 CLAUDE.md          One line importing AGENTS.md.
-README.md          For players, in Polish: what this is, pictures of the panel, how
-                   to install it, the live preview — the pictures first, because
-                   they are what somebody who has installed nothing came to see.
-                   No terms, no licence, no notes for developers.
+README.md          For players, in Polish: one sentence saying what this is,
+                   pictures of the panel, what it does, how to install it, the live
+                   preview — the pictures above the feature list and under no
+                   heading of their own, because they are what somebody who has
+                   installed nothing came to see and a heading is one more thing to
+                   scroll past. No terms, no licence, no notes for developers.
 README.en.md       The same in English. The two are held to one skeleton by
                    tests/tools/readme-translations.test.ts — headings, pictures,
                    links — and never to one wording.

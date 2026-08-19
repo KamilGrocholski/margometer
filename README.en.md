@@ -5,21 +5,19 @@
 A damage meter for [Margonem](https://www.margonem.pl/) — live fight statistics
 in a panel over the game. SKADA or Details!, for Margonem.
 
+| | |
+|---|---|
+| ![The panel ranking combatants by damage taken](screenshots/panel-taken.png) | ![One combatant's damage broken down by opponent and by damage type](screenshots/panel-breakdown.png) |
+| ![The deepest level: one opponent, by skill and by damage type](screenshots/panel-deep.png) | ![The detail card open beside the panel](screenshots/panel-tip.png) |
+
+Damage taken in a ten-against-one fight.
+
 - Damage and healing, dealt and taken, per combatant, per fight.
 - Every row opens: by opponent, then by skill and by damage type.
 - Hover a row for the whole-fight card — what a defence stopped, what an attack
   destroyed.
 - Totals only, no rate. What the log credits to nobody gets its own row.
 - Reads only: no network, no automation, no effect on how a fight plays out.
-
-## Screenshots
-
-Damage taken in a ten-against-one fight.
-
-| | |
-|---|---|
-| ![The panel ranking combatants by damage taken](screenshots/panel-taken.png) | ![One combatant's damage broken down by opponent and by damage type](screenshots/panel-breakdown.png) |
-| ![The deepest level: one opponent, by skill and by damage type](screenshots/panel-deep.png) | ![The detail card open beside the panel](screenshots/panel-tip.png) |
 
 ## Install
 
