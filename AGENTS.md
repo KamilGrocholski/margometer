@@ -283,6 +283,16 @@ Rules that arrived this way, each paid for at least once:
 - `[ALWAYS] [any]` **What decides is the status; what parses is description.**
   Where an exit code, a length or a type can carry the answer, parsed text may
   name and never judge.
+- `[ALWAYS] [any]` **A rule narrowed in a docblock is a rule nobody else will
+  read that way.** Where a round finds that the tree has stopped matching what a
+  rule says, the rule moves — here — in the same commit. Qualifying it where only
+  its one caller will see it leaves everybody else reading the absolute.
+- `[ALWAYS] [process]` **`git add` before `bun run check`.** Half the gate lists
+  what it reads with `git ls-files`, so a file written straight to disk is
+  invisible to it: `cited-paths.test.ts` and `source-layout.test.ts` never see a
+  new module, and the run is green because the file with the fault is not in the
+  walk. Paid for twice — `tests/tools/measured-material.test.ts` records the same
+  trap from the inside, having been unable to read its own prose for a commit.
 
 ### 7.6 Working from the game's own sources
 
@@ -375,41 +385,6 @@ and there is deliberately no severity word.
 Open one without being asked: before a release tag; when the same class of fault
 turns up in two rounds; when a round touches a layer no audit has read.
 
-### 7.8 Before a commit
-
-**This adds no rule.** Every line is one that is already above, in the order a
-round actually meets it — because the rules are grouped by what they are about
-and a commit meets them by when they bite. Run it top to bottom; most of it is
-nothing on most commits.
-
-1. **`bun run check`, green.** Not `bun test` (§6.1). If local and CI disagree,
-   reproduce with `bun install --frozen-lockfile` before touching code.
-2. **Every new test watched failing.** Break what it covers from a copy, watch it
-   go red, restore from the copy (§3, §7.5). The commit says what you broke and
-   what lit up.
-3. **Every figure over the captured fights names its recording or its date**
-   (§3). The guard sees a count written in digits and misses one written in
-   words, and it reads `libs/`, `src/`, `tools/`, `tests/`, the four root
-   documents and the registers directly under `docs/` — nothing else.
-4. **A name spelled twice has an owner** (§9.3). A field of the game's, a class
-   the stylesheet and the renderer both name, a key one file composes and another
-   reads back.
-5. **Prose moved with the tree, in this commit.** §8's block when a file arrived
-   or left; the register when a key's verdict moved; the rule itself when the
-   tree stopped matching what it says — a rule narrowed in a docblock is a rule
-   nobody else will read that way (§7.5).
-6. **The panel changed → the pictures are retaken and opened** (§9.8), and the
-   version in the title bar is not what says they are current.
-7. **`TODO.md` is not in this commit and was not written by anything** (§5,
-   §7.2).
-8. **Ask before committing** (§4), and report what changed, what was validated
-   and what was not done (§7.4).
-
-⚠️ **What is not on it.** Nothing a machine already refuses — a bare `new
-Error(`, a `!` outside a test, an import that reaches up a layer, a `../` path.
-The gate says all of that in one line, and a checklist repeating it is one people
-stop reading.
-
 ---
 
 ## 8. Structure
@@ -421,12 +396,9 @@ is belongs in its own docblock, not here.
 ```
 AGENTS.md          These rules. The only place they live.
 CLAUDE.md          One line importing AGENTS.md.
-README.md          For players, in Polish: one sentence saying what this is,
-                   pictures of the panel, what it does, how to install it, the live
-                   preview — the pictures above the feature list and under no
-                   heading of their own, because they are what somebody who has
-                   installed nothing came to see and a heading is one more thing to
-                   scroll past. No terms, no licence, no notes for developers.
+README.md          For players, in Polish: what this is, pictures of the panel,
+                   what it does, how to install it, the live preview. No terms, no
+                   licence, no notes for developers.
 README.en.md       The same in English. The two are held to one skeleton by
                    tests/tools/readme-translations.test.ts — headings, pictures,
                    links — and never to one wording.
@@ -455,14 +427,12 @@ tsconfig.userscript.json
                    How to drive the add-on in a browser and read what the panel
                    drew. Not a gate.
 .cache/            Game client sources, fetched on demand. NOT tracked — §7.6.
-screenshots/       The panel as pictures, for the version in package.json and no
-                   other. Written only by `tools/panel-screenshots.ts` — §9.8.
+screenshots/       The panel as pictures — §9.8.
 
 docs/              A guarded register, a dated spec, a design a spec names, or a
                    dated and guarded audit. No status, no chronicle of rounds.
   browser-support.md
-                   What the shipped file asks of a browser, and which browsers
-                   answer. Held to the panel's own stylesheet — §9.9.
+                   What the shipped file asks of a browser — §9.9.
   protocol-keys.md What has been looked into, key by key: verdict, evidence,
                    state. Guarded against the decoder and the frozen table.
   half-named-figures.md
@@ -1093,8 +1063,8 @@ case rather than asserting it.
 | **skill** | A named ability a combatant used. Its announcement carries no key of the damage family, but damage aimed at a name and healing ride the announcement itself. |
 | **element** | Damage type (fire, cold, physical, …), taken from the key. |
 | **dot** | Damage over time, ticking outside a direct attack. |
-| **unattributed** | A number the log does not tie to any actor. Shown, never guessed — though the panel may put it on a **side** by the end the game did name (§9.6). |
+| **unattributed** | A number the log does not tie to any actor. Shown, never guessed. §9.6 says when it may still be charged to a **side**. |
 | **half-named** | A message stating one end of what happened and calling the other nobody. Two shapes, two rows, and they are different claims: *nieznany sprawca* is a figure whose actor the game left out, *nieznany cel* one whose target it did. A message naming neither end is neither of them and has no side. A **self-sourced** message is written this way and is not half-named — the missing end is one the documentation supplies — and an **earlier-named** one is not half-named either, because a message before it named the end this one leaves out. |
-| **self-sourced** | A figure the protocol states at one end where the published help says the effect is that combatant's **own**, so both ends are the same person: regeneration and the two legendary bonuses that heal their holder (§9.6). Not a guess and not half-named — the giving end was never a second name. `poison` and `fire` arrive in the identical shape, have no such entry and nothing announcing them, and stay half-named — which is the difference the term exists to keep visible. |
-| **earlier-named** | A figure stating one end where an **earlier message of the same fight** named the other: the wound a blow applies and that ticks afterwards, where the help says a victim carries one at a time and the figure says which application is ticking (§9.6). Not half-named and not self-sourced — the two ends are two people, and both were stated, one message apart. Where the figure disagrees with the one announced, or nothing announced it, it is half-named again. |
-| **unaccounted** | Health the protocol says moved in an amount nobody can size — a figure whose inputs this meter does not hold. A figure we do not have, where **unattributed** is one we have and cannot place. A heal reaching a whole side was the example until the inputs arrived (§9.6); what is left here is the fight nobody watched the start of. |
+| **self-sourced** | A figure stated at one end where the help says the effect is that combatant's **own**, so both ends are the same person. Not half-named: there was never a second name. §9.6 lists the keys and why `poison` and `fire` are not among them. |
+| **earlier-named** | A figure stating one end where an **earlier message of the same fight** named the other. Two people, both stated, one message apart — so neither half-named nor self-sourced. §9.6 carries the rule and its four limits. |
+| **unaccounted** | Health the protocol says moved in an amount nobody can size — a figure whose inputs this meter does not hold. A figure we do not have, where **unattributed** is one we have and cannot place. What is left in it is the fight nobody watched the start of. |
