@@ -37,7 +37,6 @@
  * stays that way.
  */
 
-/** How the page exposes its dictionary. */
 export type DictionaryWindow = {
   _t?: unknown;
 };

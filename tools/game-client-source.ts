@@ -56,7 +56,6 @@ export type CachedClientSource = {
   build: string;
   host: string;
   fetchedAt: string;
-  /** Absolute path of the cached bundle. */
   bundlePath: string;
 };
 

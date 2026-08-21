@@ -52,7 +52,6 @@ const SWITCH_ANCHOR = "manageBattleEffects(";
 const SWITCH_SUBJECT = /[A-Za-z_$]+\[0\]\)\{/;
 const CASE_LABEL = /case"([^"]*)":/g;
 
-/** The body of the first block that opens at or after `from`, brace-balanced. */
 function getBlockBody(source: string, from: number): string {
   const start = source.indexOf("{", from);
   if (start === -1) throw new ProtocolKeyTableError("no block after the switch subject");

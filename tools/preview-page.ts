@@ -76,9 +76,7 @@ export type PreviewFightLink = {
 };
 
 export type PreviewPageOptions = {
-  /** Which capture the page replays. */
   fightName: string;
-  /** How many of its payloads to feed before handing over to the controls. */
   entryIndex: number;
   /**
    * Every payload of the fight, carried in the page rather than fetched.

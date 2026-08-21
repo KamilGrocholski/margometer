@@ -9,7 +9,6 @@
  * it loudly rather than read half of it and carry on.
  */
 
-/** Every failure the tooling can raise. One entry per subclass. */
 export type MargoMeterToolErrorCode =
   | "FightDumpFormat"
   | "Bundle"

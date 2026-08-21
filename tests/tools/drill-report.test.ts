@@ -44,7 +44,6 @@ type RegisterEntry = {
   verdict: Verdict;
 };
 
-/** The heading each table sits under, and the level it is about. */
 const LEVEL_BY_HEADING: Record<string, DrillCase["level"]> = {
   "## The breakdown": "II",
   "## The deep level": "III",

@@ -58,7 +58,6 @@ function getSection(heading: string): string {
   return end < 0 ? rest : rest.slice(0, end);
 }
 
-/** Data rows of every table in a section: the header and the rule are dropped. */
 function getTableRows(section: string): string[][] {
   return section
     .split("\n")

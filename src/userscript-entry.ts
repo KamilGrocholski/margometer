@@ -80,9 +80,7 @@ import { getTimedResult, setCostDrawn } from "@/src/userscript-instrument.ts";
 export type MargoMeterOptions = {
   /** Told after every payload, with the fight as it now stands. */
   onReading?: ((reading: FightReading) => void) | undefined;
-  /** Told once, when the wrap is on the game. */
   onAttached?: (() => void) | undefined;
-  /** Told once, when the search gives up without ever finding the game. */
   onSearchAbandoned?: (() => void) | undefined;
   /** Told once when another MargoMeter was already reading, so this one does not. */
   onAnotherReaderFound?: (() => void) | undefined;

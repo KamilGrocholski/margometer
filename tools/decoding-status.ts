@@ -30,7 +30,6 @@ export type DecodingStatus = {
   /** Messages producing at least one unknown event — fully or partly unread. */
   messagesWithUnread: number;
   eventsByKind: Record<string, number>;
-  /** Keys the decoder has no meaning for, most frequent first. */
   unreadKeysByFrequency: Array<{ key: string; occurrences: number }>;
 };
 

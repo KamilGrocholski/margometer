@@ -38,7 +38,6 @@ export type AttachmentOptions = {
   /** Injected so a test can drive the clock instead of waiting on one. */
   schedule?: ((step: () => void, everyMs: number) => number) | undefined;
   cancel?: ((handle: number) => void) | undefined;
-  /** Told once, when the wrap is on. */
   onAttached?: (() => void) | undefined;
   /**
    * Told once instead of `onAttached` when a MargoMeter was already reading.
@@ -56,7 +55,6 @@ export type AttachmentOptions = {
    * renamed the method (§9.6).
    */
   onAttachmentRefused?: ((error: unknown) => void) | undefined;
-  /** Told once, when the search stops without ever finding the game. */
   onSearchAbandoned?: (() => void) | undefined;
   onReadingFailure?: ((error: unknown) => void) | undefined;
   /** Passed straight to the wrap: read before the original runs. See it there. */

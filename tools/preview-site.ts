@@ -76,7 +76,6 @@ const PREVIEW_SITE_INTRODUCTION = [
   `<a href="https://github.com/KamilGrocholski/margometer/releases/latest">instalacja</a>`,
 ].join(" ");
 
-/** Where a capture's own page sits, relative to every other page of the site. */
 function composeFightPageName(fightName: string): string {
   return `${fightName}.html`;
 }

@@ -223,7 +223,6 @@ export function composeSkillRowKey(ownerId: number, key: string): string {
   return `${SKILL}${DIVIDER}${composeIntegerText(ownerId)}${DIVIDER}${key}`;
 }
 
-/** A row at the bottom of the drill, keyed by whatever names it. */
 export function composeLeafRowKey(token: string): string {
   return `${LEAF}${DIVIDER}${token}`;
 }

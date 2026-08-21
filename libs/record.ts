@@ -29,7 +29,6 @@ export function getRecordOrArrayFromValue(value: unknown): Record<string, unknow
   return value as Record<string, unknown>;
 }
 
-/** The same, refusing a list. */
 export function getRecordFromValue(value: unknown): Record<string, unknown> | null {
   if (Array.isArray(value)) return null;
   return getRecordOrArrayFromValue(value);

@@ -69,7 +69,6 @@ const AGGREGATE_PASS = "aggregate, whole fight";
 
 export type FightCost = {
   name: string;
-  /** Engine calls replayed — every call the recording holds. */
   payloads: number;
   /** Of those, the ones that changed the session and so cost a reading and a view. */
   redraws: number;

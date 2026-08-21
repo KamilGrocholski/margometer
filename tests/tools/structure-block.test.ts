@@ -34,7 +34,6 @@ const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
  */
 const MAXIMUM_ENTRY_INDENT = 8;
 
-/** The extensions the block actually uses. A token carrying one is a filename. */
 const FILE_EXTENSION = /\.(ts|md|json|js|yml)$/;
 
 /**

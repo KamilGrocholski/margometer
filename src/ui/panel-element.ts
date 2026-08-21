@@ -122,7 +122,6 @@ export function composeDefaultPosition(viewport: PanelViewport | null): PanelPos
   );
 }
 
-/** Where the panel lands, given where it was grabbed and where the pointer is now. */
 export function composeDraggedPosition(
   grab: PanelGrab,
   pointer: { left: number; top: number },

@@ -209,7 +209,6 @@ function getHealthReadingOfEvent(event: BattleEvent): {
   }
 }
 
-/** Whether an event moved health by an amount nothing here can size. */
 function hasUnsizedHealth(event: BattleEvent): boolean {
   return event.kind === "unaccounted-health";
 }

@@ -69,7 +69,6 @@ export type CachedHelpArticle = {
   article: string;
   url: string;
   fetchedAt: string;
-  /** Absolute path of the cached text. */
   textPath: string;
   textLength: number;
 };

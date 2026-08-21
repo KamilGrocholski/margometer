@@ -11,7 +11,6 @@ import { DAMAGE_TO_NAMED_KEY } from "@/src/core/fight-decoder.ts";
  */
 const STATUS = getDecodingStatus(CAPTURED_FIGHTS);
 
-/** One message, wrapped in the least material the probe will accept. */
 function composeFightOf(message: string): CapturedFight {
   return {
     name: "invented",

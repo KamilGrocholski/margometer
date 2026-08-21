@@ -23,7 +23,6 @@
 
 import { getTextOrder } from "@/libs/text-order.ts";
 
-/** One name's tally: how often it ran, how long in total, and its worst single run. */
 export type ElapsedSpan = {
   name: string;
   calls: number;

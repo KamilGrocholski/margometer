@@ -21,7 +21,6 @@
  * have been written differently.
  */
 
-/** Adds to the running total this key already carries, starting one at zero. */
 export function setRunningTotal<Key>(totals: Map<Key, number>, key: Key, amount: number): void {
   totals.set(key, (totals.get(key) ?? 0) + amount);
 }

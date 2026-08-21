@@ -97,7 +97,6 @@ export function composeCombatantRoster(
   return { byId, idByName };
 }
 
-/** The id that name belongs to, or null when the roster cannot say which. */
 export function getCombatantIdByName(roster: CombatantRoster, name: string): number | null {
   return roster.idByName.get(name) ?? null;
 }
