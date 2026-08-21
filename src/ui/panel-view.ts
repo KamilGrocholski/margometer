@@ -28,10 +28,11 @@ import { setRunningTotal } from "@/libs/running-total.ts";
 import { getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import { getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
 import {
+  composeBreakdownLists,
   composeCombatantDetail,
+  composeDeepLists,
   composeStat,
-} from "@/src/ui/panel-combatant-detail.ts";
-import { composeBreakdownLists, composeDeepLists } from "@/src/ui/panel-drill.ts";
+} from "@/src/ui/panel-drill.ts";
 import {
   composeFigureText,
   composeShareText,

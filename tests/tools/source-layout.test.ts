@@ -955,16 +955,13 @@ describe("the language of the strings", () => {
      * count is a thing to look at, in either direction.
      */
     { file: "src/ui/panel-screen.ts" },
-    { file: "src/ui/panel-drill.ts" },
     /**
-     * A fourth, out of the same file and for the same reason: the card a
-     * combatant's row opens moved when the drill became its second reader (§7.1).
-     * It says two sentences the split did not just carry across — the card's
-     * figures are the fight's, and what a gesture does where the card is standing
-     * — and both are decided in `panel-view.test.ts`'s roll of everything the
-     * panel says, which is where a new one has to be admitted.
+     * The card a combatant's row opens is in here too, and says two sentences the
+     * levels do not — that its figures are the fight's, and what a gesture does
+     * where it is standing. Both are decided in `panel-view.test.ts`'s roll of
+     * everything the panel says, which is where a new one has to be admitted.
      */
-    { file: "src/ui/panel-combatant-detail.ts" },
+    { file: "src/ui/panel-drill.ts" },
     { file: "src/userscript-version.ts", phrase: '"z drzewa"' },
     { file: "tools/changelog.ts" },
     /**

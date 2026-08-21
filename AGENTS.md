@@ -555,10 +555,9 @@ src/
                          screen. Takes the measured size as an argument.
     panel-reading.ts     What the panel is handed, and the three questions asked
                          of a combatant.
-    panel-combatant-detail.ts
-                         The card a person's row opens on hover, the same at every
-                         level. Says whose figures they are, and what a click does.
-    panel-drill.ts       What a row opens onto: the two levels below the ranking.
+    panel-drill.ts       What a row opens onto: the two levels below the ranking,
+                         and the card either shows on hover — the same card at
+                         every level, saying whose figures they are.
     panel-view.ts        One screen as data: ranking, pinned figure, denominator,
                          summary, warnings. No DOM.
     panel-element.ts     The same, drawn. One shadow root, delegated events,

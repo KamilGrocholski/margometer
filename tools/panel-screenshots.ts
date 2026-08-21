@@ -88,7 +88,7 @@ export type PanelShot = {
  * answer *what that figure is made of* — which is the thing prose cannot show and
  * the reason a reader is being shown a picture at all. The card is photographed
  * once because it is the same card at every level
- * (`src/ui/panel-combatant-detail.ts`), and it is the shot that needs a wide
+ * (`src/ui/panel-drill.ts`), and it is the shot that needs a wide
  * window: it opens beside the panel, and `src/ui/panel-tip-placement.ts` keeps all
  * of it on screen, so too narrow a window moves it rather than clipping it and the
  * picture would be honest and useless.
