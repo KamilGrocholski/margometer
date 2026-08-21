@@ -635,7 +635,16 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
   read as an absolute while six such folds sat in `src/ui/`, and the qualification
   lived in one docblock rather than here
   (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F10).
-- Prefer a narrow module. A file needing a table of contents needs splitting.
+- `[ALWAYS] [any]` **A file holds one subject, however long that subject runs.**
+  What forces a split is a **second** subject — never a line count, and never a
+  docblock that got long. The clause this replaces read *"prefer a narrow module;
+  a file needing a table of contents needs splitting"*, and
+  `docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md` (F26) applied it to
+  `src/ui/panel-view.ts` by reading a table of contents off its **docblock**. The
+  eight modules that came out of it each had to open by arguing why they were a
+  file, and the cost of that was never counted against the cost it saved: 40+
+  named imports at one file's head, a name spelled in nine places, and a `src/ui/`
+  that reached 48% comment. A long file is not evidence; two subjects are.
 
 ### 9.2 Data
 
