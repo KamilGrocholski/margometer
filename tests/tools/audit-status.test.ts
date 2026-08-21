@@ -1,5 +1,5 @@
 import { expectDatedName } from "@/tests/dated-document.ts";
-import { execFileSync } from "node:child_process";
+import { hasCommit, isShallowRepository } from "@/tests/git-history.ts";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 
@@ -33,7 +33,6 @@ import { describe, expect, test } from "bun:test";
  * objection.
  */
 
-const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 const AUDITS_DIRECTORY = new URL("../../docs/audits/", import.meta.url).pathname;
 const AUDIT_FILES = readdirSync(AUDITS_DIRECTORY).filter((file) => file.endsWith(".md"));
 
@@ -100,27 +99,6 @@ function getFindings(text: string): Finding[] {
  * `tests/captured-fights/` — on every run of the gate, to re-earn one line of
  * one document.
  */
-function isShallowRepository(): boolean {
-  return (
-    execFileSync("git", ["rev-parse", "--is-shallow-repository"], {
-      cwd: REPOSITORY_ROOT,
-      encoding: "utf8",
-    }).trim() === "true"
-  );
-}
-
-function hasCommit(revision: string): boolean {
-  try {
-    execFileSync("git", ["cat-file", "-e", `${revision}^{commit}`], {
-      cwd: REPOSITORY_ROOT,
-      stdio: "ignore",
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // An empty directory passes every loop below without running one, which reads
 // exactly like a directory of clean audits — §9.2's rule for the captures, and
 // it holds here for the same reason.

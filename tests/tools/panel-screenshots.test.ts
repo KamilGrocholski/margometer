@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
@@ -7,6 +6,7 @@ import { getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
 import { getAssignedClassNames } from "@/tests/class-names.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { isAncestorOfHead, isShallowRepository } from "@/tests/git-history.ts";
 import {
   composeShotAddress,
   composeShotFileName,
@@ -41,33 +41,6 @@ import {
  */
 
 const TAKEN_AT_PATH = SCREENSHOTS_DIRECTORY + TAKEN_AT_NAME;
-const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
-
-function isShallowRepository(): boolean {
-  return (
-    execFileSync("git", ["rev-parse", "--is-shallow-repository"], {
-      cwd: REPOSITORY_ROOT,
-      encoding: "utf8",
-    }).trim() === "true"
-  );
-}
-
-/**
- * An exit status decides and the text only names what failed (§7.5): a commit
- * this repository has never heard of and one that sits on an abandoned branch
- * both answer the same way, which is the answer this asks for.
- */
-function isAncestorOfHead(revision: string): boolean {
-  try {
-    execFileSync("git", ["merge-base", "--is-ancestor", revision, "HEAD"], {
-      cwd: REPOSITORY_ROOT,
-      stdio: "ignore",
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 /**
  * The sidecar, read the way anything from outside is read.

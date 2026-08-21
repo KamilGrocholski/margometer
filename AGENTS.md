@@ -353,9 +353,14 @@ split responsibility, which is judgment; and what it did not read.
 - `[NEVER] [process]` **Fix while auditing** — reading and fixing are separate
   commits.
 - `[NEVER] [docs]` **Append to a closed audit.** The next one is a new file.
-- `[ALWAYS] [docs]` **Citations are held to the tree** by
-  `tests/tools/cited-paths.test.ts`, which knows nothing of history — write a
-  finding whose close leaves its citation true.
+- `[ALWAYS] [docs]` **Citations are held to the tree an audit read** by
+  `tests/tools/cited-paths.test.ts` — the commit on its `Read at:` line, or the
+  tree as it stands now, since a finding legitimately names both what it read and
+  the guard its close created. That allowance is `docs/audits/` alone: every other
+  document is a claim about now and is held to now. Write a finding whose close
+  leaves its citation true; what the allowance buys is that a **later** rename
+  cannot turn a dated record red and make editing one the only remedy, which the
+  rule above forbids outright.
 - `[ASK] [docs]` **Deleting an audit**, closed ones included.
 
 The shape, held by `tests/tools/audit-status.test.ts`: `Status:` (`open` or
@@ -593,6 +598,8 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
                               the published help. Counts only.
   dated-document.ts           What specs and audits share: a filename that is a
                               date, and a date that has happened.
+  git-history.ts              What this history can be asked, and when it cannot
+                              be asked at all. Every answer is an exit status.
   class-names.ts              What a stylesheet styles and what a source assigns.
                               Shared by the panel's guard and the preview's.
   protocol-key-register.ts    Reads the register into entries — verdict, health
