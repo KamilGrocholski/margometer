@@ -19,6 +19,27 @@ describe("userscript metadata", () => {
 
   // The version Tampermonkey sees has to be the version the repo claims;
   // a banner carrying a stale number offers updates that are not updates.
+  /**
+   * ⚠️ **Every directive a manager reads by name, named here.** Each key was one
+   * word in a list nothing checked: `@namespace` decides which script an update
+   * belongs to, `@homepageURL` is where a player is sent to report anything, and
+   * `@description` is the one line they see before installing. A mutation
+   * renaming any of them left a block that still parses, still installs, and
+   * quietly loses whatever the manager did with that line.
+   */
+  test("names every directive a manager reads, and fills each from the manifest", () => {
+    for (const [key, value] of [
+      ["name", "MargoMeter"],
+      ["namespace", manifest.homepage],
+      ["description", manifest.description],
+      ["author", manifest.author],
+      ["homepageURL", manifest.homepage],
+    ] as const) {
+      expect(BANNER, key).toContain(`// @${key}`);
+      expect(BANNER, key).toContain(value);
+    }
+  });
+
   test("version comes from package.json", () => {
     expect(getDirective("version")).toEqual([manifest.version]);
   });

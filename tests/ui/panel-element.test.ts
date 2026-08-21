@@ -45,7 +45,7 @@ import {
 import { getNumberFromText } from "@/libs/number.ts";
 
 import { assertDefined } from "@/libs/assert.ts";
-import { getDecimalFromText } from "@/libs/number.ts";
+import { composeDecimalText, getDecimalFromText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
@@ -849,6 +849,30 @@ describe("one gesture in, one gesture out", () => {
 
 describe("failure is the size of the thing that failed", () => {
   /**
+   * The bar behind a row, and the two declarations that make it one.
+   *
+   * ⚠️ **The property names were unheld**, so `width` or `background` could be
+   * written under another name and every bar would be an invisible strip of
+   * nothing while the figures beside them stayed right — the panel's own shape of
+   * a wrong number that looks right (the closing round's sweep of
+   * `src/ui/panel-element.ts`). The values are read as the view composed them,
+   * never restated here.
+   */
+  test("a row's bar is as long as its share and carries its colour", () => {
+    const document = composeFakeDocument();
+    const view = composePanelView(composeReading(), composeDefaultState());
+    const panel = renderPanel(document, view) as FakeNode;
+
+    const first = assertDefined(view.lists[0]?.rows[0], "the ranking drew a row");
+    const bar = assertDefined(getByClass(panel, "bar")[0], "the row drew a bar");
+
+    // One place after the point, which is what the writer in `libs/number.ts` puts
+    // there and what keeps `10.000000000000002%` out of a declaration.
+    expect(bar.properties["width"]).toBe(`${composeDecimalText(first.fill * 100, 1)}%`);
+    expect(bar.properties["background"]).toBe(first.colour);
+  });
+
+  /**
    * §9.6 forbids vanishing: whatever can still be drawn is drawn, and only the
    * part that failed is replaced in place.
    */
@@ -874,6 +898,31 @@ describe("failure is the size of the thing that failed", () => {
     // The header and the tabs were drawn before it and survive it.
     expect(getByClass(panel, "tab").length).toBeGreaterThan(0);
   });
+
+  /**
+   * ⚠️ **What the marker says is the only thing a player gets, and nothing held
+   * it.** Every region is named in Polish where it is drawn — `nagłówek`,
+   * `zakładki`, `kierunek i strony`, `ścieżka`, `lista` — and each of those words
+   * could be replaced with anything at all, including one of ours, with the gate
+   * green (the closing round's sweep of `src/ui/panel-element.ts`). The sentence
+   * beside the name is what tells a reader the figure is missing rather than
+   * zero (§9.6), so it is read here in words.
+   */
+  test("and says which region it was, in the player's own words", () => {
+    const document = composeFakeDocument();
+    const view = composePanelView(composeReading(), composeDefaultState());
+    Object.defineProperty(view, "lists", {
+      get() {
+        const broken = undefined as unknown as { read: () => void };
+        broken.read();
+      },
+    });
+
+    const panel = renderPanel(document, view, { onSectionFailure: (): void => {} }) as FakeNode;
+    const marker = assertDefined(getByClass(panel, "undrawn")[0], "the region left a marker");
+
+    expect(marker.textContent).toBe("lista — nie dało się narysować");
+  });
 });
 
 describe("the window itself", () => {
@@ -889,6 +938,20 @@ describe("the window itself", () => {
     expect(buttons.length).toBe(3);
     for (const button of buttons) setClickOn(root, button);
     expect(asked).toEqual(["copy", "raw", "collapse"]);
+
+    /**
+     * ⚠️ **What each one says, in words.** The label is what a reader aims at and
+     * the title is the only explanation any of them gets — three glyphs and three
+     * Polish sentences, every one of which could have been replaced with anything
+     * at all (the closing round's sweep of `src/ui/panel-element.ts`). A button
+     * whose title says nothing about what it does is §9.6's control that is worse
+     * than absent, in a slower way.
+     */
+    expect(buttons.map((button) => [button.textContent, button.title])).toEqual([
+      ["⧉", "Kopiuj pełny raport z tej walki"],
+      ["{ }", "Do zgłoszeń: zapisz surowe dane walki prosto z gry"],
+      ["—", "Zwiń albo rozwiń okno"],
+    ]);
   });
 
   /**

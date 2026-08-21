@@ -512,8 +512,11 @@ function renderRow(
   name.className = "row-name";
   name.textContent = row.label;
 
-  const badge = document.createElement("span");
-  if (row.profession !== null) {
+  // Built only where there is one to build: this runs per row per payload, and a
+  // node created to be thrown away is the kind of cost `bun run cost` cannot see
+  // one of and can see a fight's worth of.
+  const badge = row.profession === null ? null : document.createElement("span");
+  if (badge !== null && row.profession !== null) {
     badge.className = "row-badge";
     badge.textContent = row.profession.toUpperCase();
     badge.style.setProperty("background", row.colour);
@@ -540,7 +543,7 @@ function renderRow(
     rank.textContent = `${row.rank}.`;
     parts.push(rank);
   }
-  if (row.profession !== null) parts.push(badge);
+  if (badge !== null) parts.push(badge);
   parts.push(name, value);
   line.append(...parts);
   // Appended to the figure rather than to the line, but it still answers for the
@@ -1111,8 +1114,10 @@ function setTipHidden(tip: PanelNode, isHidden: boolean): void {
  * ⚠️ **The order of these three steps is the whole of what makes the placement
  * possible.** Fill, show, *then* measure: a node still carrying `display: none`
  * measures as nothing, and a node measured before it is filled measures as the
- * last row's detail rather than this one's. What comes back is handed straight to
- * `panel-element.ts`, which decides, and this writes what it decided.
+ * last row's detail rather than this one's. The measurement goes to
+ * `composeTipDeclarations` at the top of this file, which decides against a
+ * document it never touches, and this writes down what it decided — a split that
+ * used to be a module boundary and is now the first section of one file.
  *
  * A pointer that arrives without coordinates leaves the detail where it was
  * rather than putting it somewhere nobody asked for.

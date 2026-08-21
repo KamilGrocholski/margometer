@@ -9,7 +9,21 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { getValueFromJsonText } from "@/libs/json.ts";
+import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
+
+describe("writing a value as JSON", () => {
+  /**
+   * ⚠️ **Which branch runs is what an indent decides, and nothing said so.**
+   * `indent === undefined` chooses between the one-argument `JSON.stringify` and
+   * the three-argument one; inverted, a value asked for two spaces came back on
+   * one line, and the only reader that asks is the report a player pastes into an
+   * issue (`src/userscript-entry.ts`).
+   */
+  test("indents where an indent was asked for, and not where it was not", () => {
+    expect(composeJsonText({ a: 1 }, 2)).toBe('{\n  "a": 1\n}');
+    expect(composeJsonText({ a: 1 })).toBe('{"a":1}');
+  });
+});
 
 describe("reading JSON text", () => {
   test("a reading carries the value and no error", () => {

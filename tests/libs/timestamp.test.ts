@@ -10,6 +10,21 @@
 import { describe, expect, test } from "bun:test";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 
+describe("the shape it accepts", () => {
+  /**
+   * ⚠️ **The fractional part is one to three digits, and the bound was untested.**
+   * Widening or narrowing it changes which timestamps this repository can read
+   * back — `tests/frozen-help-phrases.ts` writes three, a browser's own
+   * `toISOString` writes three, and a hand-written one often writes one.
+   */
+  test("takes one to three digits of a second, and no more", () => {
+    expect(getMillisecondsFromIsoText("2026-08-21T10:00:00.5Z")).not.toBeNull();
+    expect(getMillisecondsFromIsoText("2026-08-21T10:00:00.123Z")).not.toBeNull();
+    expect(getMillisecondsFromIsoText("2026-08-21T10:00:00.1234Z")).toBeNull();
+    expect(getMillisecondsFromIsoText("2026-08-21T10:00:00.Z")).toBeNull();
+  });
+});
+
 describe("reading a moment from text", () => {
   test.each([
     ["1970-01-01", 0],

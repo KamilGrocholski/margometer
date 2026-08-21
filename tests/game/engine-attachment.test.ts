@@ -17,6 +17,7 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fight-statistics.ts";
 import type { EngineReadingGaps, FightReading } from "@/src/game/battle-session.ts";
+import type { PayloadFault } from "@/src/game/engine-battle-wrap.ts";
 import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-attachment.ts";
 import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
@@ -687,6 +688,34 @@ describe("what a failing panel puts on the console", () => {
         "MargoMeter/EngineReading",
         "MargoMeter/EngineReading",
       ]);
+    });
+
+    /**
+     * ⚠️ **Each of the three on its own, because each is a different sentence.**
+     * The test above carries all three at once, so every boundary and both `||`s
+     * in `hasEngineGaps` could be moved with the gate green — a fight that lost
+     * messages and nothing else, or one whose roster alone would not read, would
+     * simply have gone unsaid
+     * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, the
+     * closing round's sweep of `src/userscript-entry.ts`).
+     */
+    test.each([
+      [
+        "a payload nobody could read",
+        { unreadablePayloadsByFault: new Map<PayloadFault, number>([["messages-lost", 1]]) },
+      ],
+      ["a message that never arrived", { lostMessages: 1 }],
+      ["a combatant the roster could not read", { unreadableCombatants: 1 }],
+    ] as const)("%s is enough on its own", (_what, gap) => {
+      const said: unknown[][] = [];
+      const render = composePanelMount(composePage(), (brand, detail) => said.push([brand, detail]));
+
+      render?.({
+        ...composeReadingOfFight(1),
+        engineReading: { ...NOTHING_LOST, ...gap },
+      });
+
+      expect(said.map(([brand]) => brand)).toEqual(["MargoMeter/EngineReading"]);
     });
 
     test("a fight that arrived whole says nothing", () => {
@@ -1414,17 +1443,16 @@ describe("what a click does to the drill", () => {
    * drill under both healing tabs. Feeding it took the healing pairs this test
    * opens from 140 to 330, and that is why the level below them went unread for
    * two rounds after `healall_per` started reaching rows.
+   *
+   * That is now `composeStatisticsOfFight`'s promise rather than this function's:
+   * ten call sites decided the three arguments for themselves and four of them
+   * decided differently
+   * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F2).
    */
   function composeReadingOfCapture(fight: (typeof CAPTURED_FIGHTS)[number]): FightReading {
-    const roster = composeRosterOfFight(fight);
-    const messages = getMessagesOfFight(fight);
     return {
-      statistics: composeFightStatistics(
-        decodeFight(messages, roster),
-        roster,
-        fight.entryHealthByCombatantId,
-      ),
-      roster,
+      statistics: composeStatisticsOfFight(fight),
+      roster: composeRosterOfFight(fight),
       ourSide: null,
       isFromFightStart: true,
       fightsStarted: 1,
@@ -1818,6 +1846,46 @@ describe("a new fight and the level the reader was on", () => {
 });
 
 /**
+ * Which script on the page the build id is read from.
+ *
+ * ⚠️ **The loop returns the first build it finds, and the check could be
+ * inverted.** `if (build !== null) return build` became `=== null` with the whole
+ * gate green, which returns nothing for every page — a report with no build id at
+ * all, which §7.6 says is material nobody can compare
+ * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, the
+ * closing round's sweep of `src/userscript-entry.ts`). A page carries several
+ * scripts and only one of them is the client's bundle, so the case that matters
+ * is a page where the first one is not it.
+ */
+describe("the build id a report carries", () => {
+  const BUILD = "1786514810315";
+
+  function composePageWithScripts(sources: readonly string[]): Parameters<typeof composeReportText>[0] {
+    return {
+      document: {
+        querySelectorAll: (): unknown[] => sources.map((src) => ({ src })),
+      },
+    } as unknown as Parameters<typeof composeReportText>[0];
+  }
+
+  function getBuildOf(sources: readonly string[]): unknown {
+    const report = getValueFromJsonText(composeReportText(composePageWithScripts(sources), null));
+    const game = (report.value as Record<string, Record<string, unknown>> | null)?.["game"];
+    return game?.["build"];
+  }
+
+  test("is taken from the client's bundle, whichever script that is", () => {
+    expect(getBuildOf([`https://tempest.margonem.pl/main.min${BUILD}.js`])).toBe(BUILD);
+    expect(getBuildOf(["/vendor/analytics.js", `/main.min${BUILD}.js`])).toBe(BUILD);
+  });
+
+  test("is null where no script on the page is one", () => {
+    expect(getBuildOf(["/vendor/analytics.js"])).toBeNull();
+    expect(getBuildOf([])).toBeNull();
+  });
+});
+
+/**
  * The copied report, against the figures it claims to carry.
  *
  * A report is what a person attaches to a bug they are reporting, so a figure
@@ -1991,6 +2059,116 @@ describe("what the meter is actually told", () => {
     options.onReadingFailure?.(new TypeError("reading again"));
 
     expect(said).toEqual(["MargoMeter/Reading", "MargoMeter/Capture"]);
+  });
+});
+
+/**
+ * The one control on the title bar that changes what is drawn.
+ *
+ * ⚠️ **`isCollapsed: !state.isCollapsed` — and the `!` could be dropped with the
+ * whole gate green.** `tests/ui/panel-element.test.ts` holds that the button is
+ * built and that pressing it calls back; what nobody held is what the mount does
+ * with the callback, which is the half a reader sees. Without the negation the
+ * button is drawn, is pressed, reports nothing wrong and does nothing at all —
+ * §9.6's own line about a control that is worse than absent
+ * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, the
+ * closing round's sweep of `src/userscript-entry.ts`).
+ */
+describe("collapsing the panel from the title bar", () => {
+  type DrawnNode = Record<string, unknown> & {
+    className: string;
+    textContent: string;
+    children: DrawnNode[];
+    listeners: Array<{ type: string; listener: (event: Record<string, unknown>) => void }>;
+  };
+
+  function composeDrawnPage(): {
+    page: Parameters<typeof composePanelMount>[0];
+    getRoot: () => DrawnNode | null;
+  } {
+    let root: DrawnNode | null = null;
+    const composeNode = (): DrawnNode => {
+      const node: DrawnNode = {
+        className: "",
+        id: "",
+        textContent: "",
+        title: "",
+        children: [],
+        listeners: [],
+        setAttribute: (): void => {},
+        style: { setProperty: (): void => {} },
+        append: (...nodes: DrawnNode[]): void => void node.children.push(...nodes),
+        // Recorded rather than ignored: what a collapse does is replace the body
+        // with nothing, so the count of what is in there is the whole assertion.
+        replaceChildren: (...nodes: DrawnNode[]): void => void (node.children = [...nodes]),
+        addEventListener: (
+          type: string,
+          listener: (event: Record<string, unknown>) => void,
+        ): void => void node.listeners.push({ type, listener }),
+        attachShadow: (): unknown => {
+          root = composeNode();
+          return root;
+        },
+      };
+      return node;
+    };
+    return {
+      page: {
+        document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
+        innerWidth: 1600,
+        innerHeight: 900,
+      },
+      getRoot: () => root,
+    };
+  }
+
+  function getEveryNode(node: DrawnNode): DrawnNode[] {
+    return [node, ...node.children.flatMap(getEveryNode)];
+  }
+
+  test("presses down to nothing and back up to a panel", () => {
+    const { page, getRoot } = composeDrawnPage();
+    const render = composePanelMount(page, () => {});
+    const root = assertDefined(getRoot(), "mounting the panel opens a shadow root");
+
+    const body = assertDefined(
+      getEveryNode(root).find((node) => node.className === "MargoMeter-body"),
+      "mounting the panel draws a body",
+    );
+    const collapse = assertDefined(
+      getEveryNode(root).find((node) => node.className === "titlebar-button"),
+      "the title bar carries a collapse button",
+    );
+    const setPressOnCollapse = (): void => {
+      for (const bound of root.listeners) {
+        if (bound.type === "click") bound.listener({ target: collapse });
+      }
+    };
+
+    // A fight first, so what the collapse takes away is a drawn panel rather than
+    // the waiting body.
+    const roster = composeCombatantRoster([
+      { id: 1, name: "a mage", side: 1, profession: "m", level: null, maximumHealth: null },
+      { id: 3, name: "something large", side: 2, profession: null, level: null, maximumHealth: null },
+    ]);
+    render?.({
+      statistics: composeFightStatistics(
+        decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+        roster,
+      ),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+      fightsStarted: 1,
+      engineReading: NOTHING_LOST,
+    });
+    expect(body.children.length).toBe(1);
+
+    setPressOnCollapse();
+    expect(body.children.length).toBe(0);
+
+    setPressOnCollapse();
+    expect(body.children.length).toBe(1);
   });
 });
 

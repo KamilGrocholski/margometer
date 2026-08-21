@@ -484,8 +484,9 @@ libs/              The bottom layer: true in any project — §9.1.
 
 src/
   userscript-version.ts  The version, substituted at build time. Any layer — §9.1.
-  cost-phases.ts         What a measured phase is called. Three readers, one
-                         spelling; a whole and its parts never added together.
+  cost-phases.ts         What a measured phase is called, and what the table of
+                         them heads its columns. Three readers, one spelling; a
+                         whole and its parts never added together.
   userscript-instrument.ts
                          The seam a cost measurement goes through, and what it
                          costs when nobody is measuring: nothing. Swapped by
