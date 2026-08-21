@@ -21,7 +21,7 @@ import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-atta
 import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
 import { EFFECT_NAMES } from "@/src/ui/panel-names.ts";
-import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
+import { PANEL_PIXELS } from "@/src/ui/panel-look.ts";
 import { PANEL_METRICS, TEAM_LABELS } from "@/src/ui/panel-metric.ts";
 import { getName } from "@/src/ui/panel-reading.ts";
 import {

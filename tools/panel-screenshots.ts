@@ -70,7 +70,7 @@ export const TAKEN_AT_NAME = "taken-at.json";
  * One picture: what the driver does to reach it, and how big a window it needs.
  *
  * ⚠️ **The sizes were set by eye, not measured.** The panel is 260px wide
- * (`src/ui/panel-tokens.ts`) and as tall as the fight makes it, capped at 66vh —
+ * (`src/ui/panel-look.ts`) and as tall as the fight makes it, capped at 66vh —
  * so a window is snug for one capture and loose for the next, and there is no
  * number to compute from. They were chosen by looking at the output on the
  * capture named in the sidecar, and they are flags because the next recording

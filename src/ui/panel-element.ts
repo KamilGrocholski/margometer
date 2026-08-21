@@ -32,8 +32,12 @@ import {
   composePositionDeclarations,
 } from "@/src/ui/panel-placement.ts";
 import { composeTipDeclarations } from "@/src/ui/panel-tip-placement.ts";
-import { getProfessionInk, PANEL_TOKENS, UNKNOWN_COLOUR } from "@/src/ui/panel-tokens.ts";
-import { composePanelStyleText } from "@/src/ui/panel-stylesheet.ts";
+import {
+  composePanelStyleText,
+  getProfessionInk,
+  PANEL_TOKENS,
+  UNKNOWN_COLOUR,
+} from "@/src/ui/panel-look.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import type { PanelMetric, PanelTeam } from "@/src/ui/panel-metric.ts";
 import type {
@@ -824,7 +828,7 @@ export function setPanelRoot(
  *
  * ⚠️ **`display` is the whole mechanism.** This also hung a `hidden` class on the
  * node and this docblock called it "an attribute the stylesheet reads". It was a
- * class, not an attribute, and no rule in `src/ui/panel-stylesheet.ts` ever
+ * class, not an attribute, and no rule in `src/ui/panel-look.ts` ever
  * matched it — so it hid nothing, and the sentence sent whoever read it next
  * looking for a rule that was never there
  * (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`).

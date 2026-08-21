@@ -15,8 +15,7 @@
 import { describe, expect, test } from "bun:test";
 import { getNumberFromText } from "@/libs/number.ts";
 import { composeTipDeclarations, type PanelTipBox } from "@/src/ui/panel-tip-placement.ts";
-import { composePanelStyleText } from "@/src/ui/panel-stylesheet.ts";
-import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
+import { composePanelStyleText, PANEL_PIXELS } from "@/src/ui/panel-look.ts";
 
 const SCREEN = { width: 1200, height: 800 };
 const TIP: PanelTipBox = { width: PANEL_PIXELS.tipWidth, height: 200 };

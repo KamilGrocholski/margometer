@@ -99,7 +99,7 @@ import type {
   PanelWaiting,
 } from "@/src/ui/panel-shape.ts";
 import type { PanelState } from "@/src/ui/panel-state.ts";
-import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-tokens.ts";
+import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-look.ts";
 
 /** The share of a bar this figure fills, and never a `NaN` that would blank the rest. */
 function getFill(value: number, largest: number): number {

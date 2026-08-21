@@ -40,7 +40,7 @@ Safari answers it under no other name — see `### Prefixed` below.
 ## CSS
 
 The stylesheet is one string, `composePanelStyleText()` in
-`src/ui/panel-stylesheet.ts`, so what it spells is enumerable: every property,
+`src/ui/panel-look.ts`, so what it spells is enumerable: every property,
 every `property: value` pair, every function and every selector. The guard reads
 that enumeration and requires each one to appear below, in the table or in the
 settled list. A property added with no entry here fails the gate.
@@ -59,7 +59,7 @@ settled list. A property added with no entry here fails the gate.
 What each one looks like below its floor, which is the whole content of a
 cosmetic floor and the reason the tier column is not enough on its own:
 
-- **`overscroll-behavior: contain`** (`src/ui/panel-stylesheet.ts`, on `.list`).
+- **`overscroll-behavior: contain`** (`src/ui/panel-look.ts`, on `.list`).
   A wheel that runs out of the list turns into a scroll of the game underneath.
   That is the one degradation here that reaches outside the panel, which is why
   it is `runs` and not `looks`: we are a guest on someone else's page. The
@@ -90,7 +90,7 @@ cosmetic floor and the reason the tier column is not enough on its own:
 | `user-select` | 54 | 69 | never |
 
 **Safari has never supported `user-select` unprefixed** — only
-`-webkit-user-select`, since Safari 3. `src/ui/panel-stylesheet.ts` spells both,
+`-webkit-user-select`, since Safari 3. `src/ui/panel-look.ts` spells both,
 in both of the rules that need them: the title bar the panel is dragged by, and
 the tabs. While it spelled only the standard property, the declaration did
 nothing on Safari — dragging the panel selected the text under the cursor, and
@@ -216,8 +216,8 @@ and *a finding* (§7.7).
   `tools/panel-screenshots.ts`. Chrome and Safari are **not looked at**, and
   neither is on the machine that wrote this.
 - **Two CSS decisions were measured in Firefox specifically** and have no
-  counterpart anywhere else: the shadow offsets in `src/ui/panel-stylesheet.ts`
-  and the tinted-bar contrast in `src/ui/panel-tokens.ts`. Both say so where
+  counterpart anywhere else: the shadow offsets in `src/ui/panel-look.ts`
+  and the tinted-bar contrast in `src/ui/panel-look.ts`. Both say so where
   they are written. Whether either holds in another engine is **not looked at**.
 - **Mobile is out of scope, and not only because of a browser.** The detail card
   opens on `pointerover` and the panel is moved by dragging its title bar; a

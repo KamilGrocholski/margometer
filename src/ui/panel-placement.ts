@@ -1,7 +1,7 @@
 import { getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
 import { composeIntegerText, getIntegerFromValue } from "@/libs/number.ts";
-import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
+import { PANEL_PIXELS } from "@/src/ui/panel-look.ts";
 
 /**
  * Where the panel sits, as a value.

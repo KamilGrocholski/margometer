@@ -62,7 +62,7 @@ collapse it.** The remedy is a sentence in the file, not a guard.
 
 ### CSS class names — two spellings, and two of them already disagree
 
-Every class in the panel is written as a selector in `src/ui/panel-stylesheet.ts`
+Every class in the panel is written as a selector in `src/ui/panel-look.ts`
 and as a `className` in `src/ui/panel-element.ts`, held by nothing. Measured at
 `444bead`, the two agree on 46 names and disagree on two — and both disagreements
 are live:
@@ -160,7 +160,7 @@ restating what the artefact says.
 
 **Lifting the CSS class names into a constants module.** The obvious symmetry with
 the warrior fields, and it was rejected on what it would do to the one readable
-CSS file in the tree. `panel-stylesheet.ts` is a template literal of real
+CSS file in the tree. `panel-look.ts` is a template literal of real
 selectors — `.row.drillable > .bar`, `.tabs + .tabs`, `.tip-stat.strong` — and
 interpolating forty constants into them turns every rule into a line nobody can
 read as CSS. The fault is not "two spellings"; it is "two spellings that can

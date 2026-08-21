@@ -18,7 +18,6 @@ import { getDecimalFromText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import { composePanelStyleText } from "@/src/ui/panel-stylesheet.ts";
 import {
   renderPanel,
   renderPanelInto,
@@ -33,11 +32,12 @@ import {
 } from "@/src/ui/panel-element.ts";
 import {
   composeColourOver,
+  composePanelStyleText,
   getContrastRatio,
   PANEL_TOKENS,
   SERIES_COLOURS,
   UNKNOWN_COLOUR,
-} from "@/src/ui/panel-tokens.ts";
+} from "@/src/ui/panel-look.ts";
 import type { PanelReading } from "@/src/ui/panel-reading.ts";
 import type { PanelDetailLine } from "@/src/ui/panel-shape.ts";
 import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";

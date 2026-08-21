@@ -1,6 +1,6 @@
 import { composeDecimalText } from "@/libs/number.ts";
 import type { PanelPosition, PanelViewport } from "@/src/ui/panel-placement.ts";
-import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
+import { PANEL_PIXELS } from "@/src/ui/panel-look.ts";
 
 /**
  * Where the detail window opens, as a value.

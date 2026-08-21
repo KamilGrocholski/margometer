@@ -53,7 +53,7 @@ import {
 } from "@/src/ui/panel-row-key.ts";
 import type { PanelDetailLine, PanelList } from "@/src/ui/panel-shape.ts";
 import type { PanelState } from "@/src/ui/panel-state.ts";
-import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-tokens.ts";
+import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-look.ts";
 
 type BreakdownEntry = {
   key: string;

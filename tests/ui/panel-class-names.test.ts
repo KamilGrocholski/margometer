@@ -1,14 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
-import { composePanelStyleText } from "@/src/ui/panel-stylesheet.ts";
+import { composePanelStyleText } from "@/src/ui/panel-look.ts";
 import { getAssignedClassNames, getStyledClassNames } from "@/tests/class-names.ts";
 
 /**
  * The panel's class names, held to one vocabulary across the two files that spell
  * them.
  *
- * Every class is written twice — as a selector in `src/ui/panel-stylesheet.ts`,
+ * Every class is written twice — as a selector in `src/ui/panel-look.ts`,
  * as a `className` in `src/ui/panel-element.ts` — and until this guard nothing
  * held the two together. Neither file is the owner, which is why this is a
  * cross-check rather than a shared constant: the selectors are the one readable

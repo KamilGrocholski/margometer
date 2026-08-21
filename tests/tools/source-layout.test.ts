@@ -786,7 +786,7 @@ describe("boolean names", () => {
 /**
  * AGENTS.md §9.7's first line: **a raw hex in a rule is a bug.**
  *
- * It was prose only, and `src/ui/panel-stylesheet.ts` broke it in the docblock
+ * It was prose only, and `src/ui/panel-look.ts` broke it in the docblock
  * that states it — pure black in a hatch mask and a shadow colour, neither a
  * token, beside a sentence reading "everything it draws with is a token"
  * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F25). The contrast half
@@ -804,7 +804,7 @@ describe("the colours", () => {
   const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/g;
 
   /** Where a colour is decided, and the only place one may be written down. */
-  const PALETTE = "src/ui/panel-tokens.ts";
+  const PALETTE = "src/ui/panel-look.ts";
 
   const DRAWING = SOURCE_FILES.filter(
     (file) => file.startsWith("src/ui/") && file !== PALETTE,

@@ -15,7 +15,7 @@
  * row names the substitution as the failure this project exists to prevent. It
  * was in the one function that decides whether a label can be read.
  *
- * This file is also the first test `src/ui/panel-tokens.ts` has had of its own,
+ * This file is also the first test `src/ui/panel-look.ts` has had of its own,
  * which the same audit raises separately as F11. That finding names five modules
  * and this closes none of it: what is here is the surface F5 turns on.
  */
@@ -30,7 +30,7 @@ import {
   PANEL_TOKENS,
   PROFESSION_COLOURS,
   UNKNOWN_COLOUR,
-} from "@/src/ui/panel-tokens.ts";
+} from "@/src/ui/panel-look.ts";
 
 /** Every colour the panel can actually hand the ink chooser. */
 const DRAWN_COLOURS = [...Object.values(PROFESSION_COLOURS), UNKNOWN_COLOUR];

@@ -15,7 +15,7 @@ import {
   composeStoredTextFromPosition,
   getPositionFromStoredText,
 } from "@/src/ui/panel-placement.ts";
-import { PANEL_PIXELS } from "@/src/ui/panel-tokens.ts";
+import { PANEL_PIXELS } from "@/src/ui/panel-look.ts";
 
 const SCREEN = { width: 1920, height: 1080 };
 

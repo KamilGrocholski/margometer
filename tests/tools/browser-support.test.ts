@@ -34,7 +34,7 @@ import { readFileSync } from "node:fs";
 
 import { getNumberFromText } from "@/libs/number.ts";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
-import { composePanelStyleText } from "@/src/ui/panel-stylesheet.ts";
+import { composePanelStyleText } from "@/src/ui/panel-look.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 const REGISTER_PATH = "docs/browser-support.md";

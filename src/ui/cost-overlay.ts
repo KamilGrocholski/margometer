@@ -24,7 +24,7 @@
 
 import { composeDecimalText, composeIntegerText } from "@/libs/number.ts";
 import type { ElapsedSpan } from "@/libs/elapsed-spans.ts";
-import { PANEL_TOKENS } from "@/src/ui/panel-tokens.ts";
+import { PANEL_TOKENS } from "@/src/ui/panel-look.ts";
 
 /** §9.6, rung one: a name of ours in the game's own document carries the prefix. */
 export const COST_OVERLAY_ID = "MargoMeter-Cost";

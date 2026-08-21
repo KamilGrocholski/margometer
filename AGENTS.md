@@ -545,8 +545,8 @@ src/
     panel-row-key.ts     The key a drawn row carries, written and read here.
     panel-state.ts       The state, and what a click — or a fight opening —
                          does to it. Five pure functions.
-    panel-stylesheet.ts  The panel's stylesheet, as one string.
-    panel-tokens.ts      Every colour, space and radius, and §9.7's arithmetic.
+    panel-look.ts        Every colour, space and radius, §9.7's arithmetic, and
+                         the stylesheet spending them — as one string.
     panel-placement.ts   Where the panel sits, as a value. No DOM.
     panel-tip-placement.ts
                          Where the detail window opens, so all of it is on the
