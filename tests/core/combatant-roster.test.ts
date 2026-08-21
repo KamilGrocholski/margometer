@@ -1,10 +1,3 @@
-import { describe, expect, test } from "bun:test";
-import {
-  composeCombatantRoster,
-  getCombatantIdByName,
-  type RosteredCombatant,
-} from "@/src/core/combatant-roster.ts";
-
 /**
  * The rule the module's own docblock calls "the failure this project exists to
  * prevent", held directly for the first time.
@@ -13,6 +6,13 @@ import {
  * `fight-statistics.test.ts`, which use it and cannot say which half broke
  * (`docs/audits/2026-08-13-the-whole-tree-read-once.md`, F5).
  */
+
+import { describe, expect, test } from "bun:test";
+import {
+  composeCombatantRoster,
+  getCombatantIdByName,
+  type RosteredCombatant,
+} from "@/src/core/combatant-roster.ts";
 
 function composeCombatant(id: number, name: string): RosteredCombatant {
   return { id, name, side: 1, profession: null, level: null, maximumHealth: null };

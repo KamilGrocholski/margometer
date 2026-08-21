@@ -12,7 +12,7 @@ import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
 import { decodeFight, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS, getMessagesOfFight } from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, composeStatisticsOfFight } from "@/tests/captured-fight-catalog.ts";
 
 // Restated rather than imported: this file asserts what the decoder reads, and a
 // test that reads the decoder's own list agrees with it by construction (§9.3).
@@ -319,7 +319,7 @@ describe("who a wound is charged to", () => {
     let lost = 0;
     let charged = 0;
     for (const fight of CAPTURED_FIGHTS) {
-      const statistics = composeFightStatistics(decodeFight(getMessagesOfFight(fight)));
+      const statistics = composeStatisticsOfFight(fight);
       for (const row of statistics.byCombatantId.values()) {
         lost += row.healthLostBySource.get(TICK_KEY) ?? 0;
         for (const byTarget of row.healthLostCausedByTargetId.values()) {

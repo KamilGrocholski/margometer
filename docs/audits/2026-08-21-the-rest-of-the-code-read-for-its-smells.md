@@ -1,6 +1,6 @@
 # The rest of the code, read for its smells
 
-Status: open
+Status: closed
 Read at: af3f1ec
 
 The sixth audit, and the second of the same day. The fifth read the code at
@@ -117,8 +117,16 @@ reachable again through the half nothing holds.
 The two functions are the twins §9.3 warns about, one line apart in the file, and
 the tests grew on one of them.
 
+⚠️ **Held by the screen that draws it, which took two tries to find.** The cut
+`getNoActorHealingBySource` builds is drawn under `Leczenie dane` and not under
+`Leczenie` — the second is cut by recipient and never reaches the function at all,
+so the first test written for this passed with the negation dropped. What holds it
+now is a fight where **both sides** are healed by nobody: each side tab shows its
+own figure and the whole-fight tab shows both. Dropping the negation reddens it;
+the damage twin one function above still reddens seventeen.
+
 *Where:* `src/ui/panel-view.ts:336`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-view.test.ts`
 
 ### F2 — four of the ten fixtures compose a fight the panel would not draw
 
@@ -157,8 +165,27 @@ is true either way. What is missing is anybody having decided it.
 the material, the roster and the messages, and it is the one file every one of
 these ten reads.
 
+⚠️ **One reader, and it found a second thing.** `composeStatisticsOfFight` lives
+in `tests/captured-fight-catalog.ts`, beside the material and the two readings that
+were already shared, and all ten call sites now use it — the four that left the
+entry health off, the one that left the roster off as well, and the six that were
+right, so the pipeline is spelled once.
+
+Pointing `tests/ui/panel-drill.test.ts` at the panel's own fight turned one of its
+tests red, and the test was the thing that was wrong: it read `lists[0]` as *the*
+list of people, and a screen with no named counterpart drops that list, so the
+first list is a cut. It now finds the people list by what its rows open onto. The
+richer fixture is what produced such a screen for the first time.
+
+It also collapsed a second corpus. The same file carried
+`FIGHTS_WITH_ENTRY_HEALTH`, whose docblock argued it had to be separate because
+the drill's own fixture *"deliberately withholds"* the entry health — a
+deliberateness nothing else in the file records and which the finding says was
+simply an omission. With the one reading, the two corpora are the same corpus, and
+the file has one.
+
 *Where:* `tests/ui/panel-drill.test.ts:59`
-*Closes:* open
+*Closes:* guard `tests/captured-fight-catalog.ts`
 
 ### F3 — the sweep reports what it cannot be asked about, and the figure its silence rests on is wrong
 
@@ -187,8 +214,20 @@ cannot reproduce the mutant without re-running the tool over the file. The
 `Mutation` the tool builds carries the offset that would settle it; the line it
 prints does not.
 
+⚠️ **The typecheck runs on survivors only, which is what makes it nearly free.**
+A mutant that dies in the tests costs exactly what it cost before; one that lives
+pays 2.1 s to be asked whether the compiler would have refused it. What it refuses
+is reported apart — *refused by the compiler, so killed by the gate* — and counted
+with the kills, because `tsc` is half of `bun run check`.
+
+Measured on `src/core/battle-event.ts` immediately afterwards: **24 mutants, 0
+survived, 14 refused by the compiler**, where the same file had reported 14
+survivors an hour earlier. The report also names the column now, so `:514:11`,
+`:514:19` and `:514:28` are three occurrences rather than one line read three
+times.
+
 *Where:* `tools/mutation-sweep.ts:24`
-*Closes:* open
+*Closes:* commit
 
 ### F4 — the fifth audit's boundary finding closed less than its own note claims
 
@@ -208,8 +247,16 @@ That is worth its own finding rather than a correction, because the shape recurs
 a close that ends with *what is left is named* is trusted, and the naming was done
 by reading the finding rather than by sweeping again.
 
+⚠️ **Closed by asking a hand-built row for a figure of exactly one**, which is
+the only way to reach these: what a single point decides is whether a skill is a
+row, whether a pair is a row, whether what no pair covers is a row, whether a use
+is counted, and which figure the card puts in bold. Each is asserted at one point
+and at none, and one of them turned up a shape worth writing down — at nothing the
+skill leaves a section of a single row, which the panel then does not draw at all
+(`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
+
 *Where:* `src/ui/panel-drill.ts:437`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-drill.test.ts`
 
 ### F5 — one table, two files, and the module that exists to stop exactly this
 
@@ -230,8 +277,19 @@ hand: `"8px"` three times where `PANEL_PIXELS.space` is `8`. §9.7's rule is tha
 raw hex in a rule is a bug; the spacing is the same argument one step down, and
 the overlay is where the two conventions meet in one declaration list.
 
+⚠️ **The headings moved to `src/cost-phases.ts`, one row above the phase names
+that were already there for this reason**, and both readers spell them from it.
+The widths stayed where they were: a terminal has room a corner of a game window
+does not, and that difference is why there are two readings at all. The overlay's
+spacing now comes from `PANEL_PIXELS.space`, so it keeps the panel's rhythm rather
+than yesterday's.
+
+`tests/tools/source-layout.test.ts` gained a line for it: `src/ui/` may read
+`src/cost-phases.ts`, which §2 already put in `[any]` and the layer guard had not
+been told.
+
 *Where:* `src/ui/cost-overlay.ts:32`
-*Closes:* open
+*Closes:* guard `tests/ui/cost-overlay.test.ts`
 
 ### F6 — the decoder spreads both ends of a message by hand, nine times
 
@@ -249,8 +307,13 @@ Nothing is wrong today. What the fifth audit paid for is that a fold repeated pe
 branch is a fold nothing distinguishes, and this is the larger instance of it in
 the file that decides what every event means.
 
+⚠️ **Two readers, `getActorOfMessage` and `getEndsOfMessage`**, and the four
+fields are now spelled once each inside them. Every event kind spreads what it
+needs, so what each kind decides is the only thing each kind writes down — the
+same shape the fifth audit's F6 gave `getHealthReadingOfEvent` one module away.
+
 *Where:* `src/core/fight-decoder.ts:911`
-*Closes:* open
+*Closes:* commit
 
 ### F7 — a heading that cannot be drawn
 
@@ -265,8 +328,14 @@ for that reason and no other — nothing can read it. The comment explaining why
 list is empty sits in the function; the table entry that outlives the explanation
 sits where a reader looking for the four headings finds four.
 
+⚠️ **The entry stays and the emptiness is now held.** Removing it would trade a
+dead word for a table the compiler stops asking about, which is the argument every
+exhaustive table in `src/ui/panel-words.ts` makes; what was missing was anybody
+saying the heading cannot be drawn. It says so, and `tests/ui/panel-drill.test.ts`
+asserts across every recording that `healingGiven` never yields that section.
+
 *Where:* `src/ui/panel-drill.ts:711`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-drill.test.ts`
 
 ### F8 — a third of the tree puts its own argument below its imports
 
@@ -281,8 +350,17 @@ wins in a file is whichever the last round used — which makes the first thing 
 reader sees a list of names in a repository whose whole discipline is that a file
 argues for itself before it does anything.
 
+⚠️ **Twenty-seven files moved, and the rule is the narrow one.** Every docblock
+that had nothing but imports above it went to the top of its file — four in
+`src/ui/`, the decoder, and twenty-one under `tests/`. A file whose first docblock
+sits under a declaration is documenting that declaration and is left alone.
+
+`tests/tools/source-layout.test.ts` holds it from here: where a docblock has only
+imports above it, it is the module's and it goes first. Proved by putting
+`src/ui/panel-look.ts`'s back under its imports — one file named, one test red.
+
 *Where:* `src/ui/panel-drill.ts:50`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F9 — five test files say nothing about why they exist
 
@@ -297,8 +375,13 @@ widening them into something else. The five above are the four smallest subjects
 in the tree and its error hierarchy; the hierarchy one is the file that proves the
 two error bases are disjoint (§9.5), which is a claim worth a sentence.
 
+⚠️ **Seven written, not five.** The five the audit named, plus `build.ts` — the
+bundler, which had no argument for itself at all and is where the browser floor is
+decided (§9.9) — and `tests/captured-fight-catalog.ts`, which is the one file in
+`tests/` that §9.1 lets read a tool and had never said why.
+
 *Where:* `tests/core/margometer-error.test.ts:1`
-*Closes:* open
+*Closes:* commit
 
 ## Looked at and clean
 

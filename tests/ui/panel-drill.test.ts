@@ -1,35 +1,3 @@
-import { describe, expect, test } from "bun:test";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import {
-  composeEmptyCombatantStatistics,
-  composeFightStatistics,
-  getCombatantIdsInFight,
-} from "@/src/core/fight-statistics.ts";
-import {
-  composeBreakdownLists,
-  composeCombatantDetail,
-  composeDeepLists,
-  composeStat,
-  type PanelDetailPlace,
-} from "@/src/ui/panel-drill.ts";
-import {
-  composeDefaultState,
-  getRowKeyMeaning,
-  NO_ACTOR_ROW_KEY,
-  NO_TARGET_ROW_KEY,
-  PANEL_METRICS,
-  type PanelMetric,
-  type PanelRow,
-  type PanelState,
-  UNANNOUNCED_ROW_KEY,
-} from "@/src/ui/panel-screen.ts";
-import { getMetricValue, getName, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
-import {
-  CAPTURED_FIGHTS,
-  composeRosterOfFight,
-  getMessagesOfFight,
-} from "@/tests/captured-fight-catalog.ts";
 /**
  * The two levels a row opens onto, held directly and over real material.
  *
@@ -45,6 +13,42 @@ import {
  * Structural only — no label of the game's is read, written down or asserted on.
  */
 
+import { describe, expect, test } from "bun:test";
+import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import {
+  composeEmptyCombatantStatistics,
+  composeFightStatistics,
+  getCombatantIdsInFight,
+} from "@/src/core/fight-statistics.ts";
+import {
+  composeBreakdownLists,
+  composeCombatantDetail,
+  composeDeepLists,
+  composeStat,
+  type PanelDetailPlace,
+} from "@/src/ui/panel-drill.ts";
+import type { SkillStatistics } from "@/src/core/fight-statistics.ts";
+import {
+  composeDefaultState,
+  getRowKeyMeaning,
+  METRIC_LABELS,
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
+  PANEL_METRICS,
+  type PanelMetric,
+  type PanelList,
+  type PanelRow,
+  type PanelState,
+  UNANNOUNCED_ROW_KEY,
+} from "@/src/ui/panel-screen.ts";
+import { getMetricValue, getName, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
+import {
+  CAPTURED_FIGHTS,
+  composeRosterOfFight,
+  composeStatisticsOfFight,
+} from "@/tests/captured-fight-catalog.ts";
+
 import {
   composeFigureText,
   CRITICAL_EFFECT_TOKENS,
@@ -54,14 +58,24 @@ import {
   PERCENT_DESTRUCTION_TOKEN,
 } from "@/src/ui/panel-words.ts";
 
-const FIGHTS = CAPTURED_FIGHTS.map((fight) => {
-  const roster = composeRosterOfFight(fight);
-  const statistics = composeFightStatistics(decodeFight(getMessagesOfFight(fight), roster), roster);
-  return {
-    name: fight.name,
-    reading: { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading,
-  };
-});
+/**
+ * ⚠️ **Composed the way the panel composes it, which it was not.** The entry
+ * health was left off here, and it is what sizes a share the game states about a
+ * whole side — so every assertion in this file ran over a fight whose healing was
+ * less than half of what the panel draws, on fourteen of the seventeen recordings
+ * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F2).
+ * Nothing here was wrong: a section closing against the row it was entered from
+ * closes either way. It was simply not this fight.
+ */
+const FIGHTS = CAPTURED_FIGHTS.map((fight) => ({
+  name: fight.name,
+  reading: {
+    statistics: composeStatisticsOfFight(fight),
+    roster: composeRosterOfFight(fight),
+    ourSide: 1,
+    isFromFightStart: true,
+  } satisfies PanelReading,
+}));
 
 function composeState(over: Partial<PanelState> = {}): PanelState {
   return { ...composeDefaultState(), ...over };
@@ -171,7 +185,15 @@ describe("a breakdown", () => {
     let others = 0;
     for (const { name, reading, metric, combatantId } of getScreens()) {
       const lists = composeBreakdownLists(reading, composeState({ metric }), combatantId, null);
-      const [about, ...cuts] = lists;
+      // ⚠️ **By what the rows are, not by where the list sits.** The people list is
+      // dropped where it would be empty, so on a screen with no named counterpart
+      // the first list is a cut — and reading `lists[0]` as *the* people list held
+      // only while the fixture never produced that screen
+      // (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F2).
+      const about = lists.find((list) =>
+        list.rows.some((row) => getRowKeyMeaning(row.key).opens === "target"),
+      );
+      const cuts = lists.filter((list) => list !== about);
       for (const row of about?.rows ?? []) {
         // The row for what has no counterpart is not a person and says so instead.
         if (row.key === NO_ACTOR_ROW_KEY || row.key === NO_TARGET_ROW_KEY) continue;
@@ -320,32 +342,10 @@ describe("the deepest level", () => {
  * here.
  */
 
-
 const SCOPE_NOTE = "Liczby z całej walki.";
 const DRILL_NOTE = "LPM — rozbicie · PPM — powrót";
 const BACK_NOTE = "PPM — powrót";
 
-/**
- * The same recordings as `FIGHTS` above, decoded **with** the health each fight
- * was entered with.
- *
- * ⚠️ **Deliberately a second corpus and not the one above** (§9.3). The card
- * states what a combatant came in with, so it needs the input the drill's own
- * suite deliberately withholds; folding the two would silently give every drill
- * assertion a third argument it was never written against.
- */
-const FIGHTS_WITH_ENTRY_HEALTH = CAPTURED_FIGHTS.map((fight) => {
-  const roster = composeRosterOfFight(fight);
-  const statistics = composeFightStatistics(
-    decodeFight(getMessagesOfFight(fight), roster),
-    roster,
-    fight.entryHealthByCombatantId,
-  );
-  return {
-    name: fight.name,
-    reading: { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading,
-  };
-});
 
 /** Every combatant of every capture, on every metric — the sweep the drill uses. */
 function* getCards(place: PanelDetailPlace): Generator<{
@@ -354,7 +354,7 @@ function* getCards(place: PanelDetailPlace): Generator<{
   combatantId: number;
   lines: ReturnType<typeof composeCombatantDetail>;
 }> {
-  for (const { name, reading } of FIGHTS_WITH_ENTRY_HEALTH) {
+  for (const { name, reading } of FIGHTS) {
     for (const metric of PANEL_METRICS) {
       for (const combatantId of getCombatantIdsInFight(reading.statistics, reading.roster)) {
         yield {
@@ -369,7 +369,7 @@ function* getCards(place: PanelDetailPlace): Generator<{
 }
 
 test("there is material to open a card over", () => {
-  expect([...getCards("ranking")].length).toBeGreaterThan(FIGHTS_WITH_ENTRY_HEALTH.length);
+  expect([...getCards("ranking")].length).toBeGreaterThan(FIGHTS.length);
 });
 
 test("a stat line is a label, a figure, and whether it is the one on screen", () => {
@@ -879,6 +879,31 @@ describe("what a section is called", () => {
     expect(headings).toContain("OD CZEGO");
   });
 
+  /**
+   * ⚠️ **And healing *given* has no such section at all.** The keys the game
+   * states belong to whoever received the health, so a giver has none — the
+   * heading for that screen is vocabulary nothing can read, and this is what says
+   * so rather than a comment
+   * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F7).
+   */
+  test("healing given is broken down by nothing, on every recording", () => {
+    let screens = 0;
+    for (const { name, reading } of FIGHTS) {
+      for (const combatantId of reading.statistics.byCombatantId.keys()) {
+        const headings = composeBreakdownLists(
+          reading,
+          composeState({ metric: "healingGiven" }),
+          combatantId,
+          null,
+        ).map((list) => list.heading);
+
+        expect(headings, `${name} #${combatantId}`).not.toContain("OD CZEGO");
+        screens += 1;
+      }
+    }
+    expect(screens).toBeGreaterThan(0);
+  });
+
   test("damage is broken down by its type", () => {
     const reading = composeCraftedReading([
       [
@@ -900,5 +925,155 @@ describe("what a section is called", () => {
     ).map((list) => list.heading);
 
     expect(headings).toContain("TYP OBRAŻEŃ");
+  });
+});
+
+/**
+ * The edges the fifth audit's F2 left, swept again and asked for one at a time.
+ *
+ * ⚠️ **Its close named three and there were twenty** — every one of them a `> 0`
+ * or a `<= 0` deciding whether a row, a section or a count exists at all
+ * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F4).
+ * They are asked of a hand-built row for the reason the rest of this file's
+ * crafted cases are: a recording cannot be asked for a figure of exactly one.
+ */
+describe("what a single point decides", () => {
+  const OPPONENT = 2;
+
+  function composeSkill(over: Partial<SkillStatistics> = {}): SkillStatistics {
+    return {
+      skillName: "coś",
+      uses: 1,
+      dealtApplied: 0,
+      dealtByTargetId: new Map(),
+      healed: 0,
+      healedByCombatantId: new Map(),
+      ...over,
+    };
+  }
+
+  function getLists(row: CraftedRow, metric: PanelMetric = "dealt"): PanelList[] {
+    return composeBreakdownLists(
+      composeCraftedReading([[1, row]]),
+      composeState({ metric }),
+      1,
+      null,
+    );
+  }
+
+  test("a use of a skill is counted where there is one, and said nowhere where there is none", () => {
+    const getStatLabels = (uses: number): string[] =>
+      composeCombatantDetail(
+        composeCraftedReading([[1, { dealtApplied: 10, skillsUsed: uses }]]),
+        1,
+        composeState(),
+        null,
+        "ranking",
+      ).map((line) => (line.kind === "stat" ? line.label : ""));
+
+    expect(getStatLabels(1)).toContain("Użycia umiejętności");
+    expect(getStatLabels(0)).not.toContain("Użycia umiejętności");
+  });
+
+  /** The screen's own figure is the bold one, and it is the only bold one. */
+  test("the card marks the metric the screen is on, and no other", () => {
+    for (const metric of PANEL_METRICS) {
+      const strong = composeCombatantDetail(
+        composeCraftedReading([[1, { dealtApplied: 4, taken: 3, healingGiven: 2, healed: 1 }]]),
+        1,
+        composeState({ metric }),
+        null,
+        "ranking",
+      ).filter((line) => line.kind === "stat" && line.isStrong);
+
+      expect(strong.length, metric).toBe(1);
+      expect(strong[0]?.kind === "stat" ? strong[0].label : "", metric).toBe(METRIC_LABELS[metric]);
+    }
+  });
+
+  test("a pair holding one point is a row, and a pair holding none is not", () => {
+    const getPairRows = (amount: number): string[] =>
+      getLists({
+        dealtApplied: amount,
+        dealtByTargetId: new Map([[OPPONENT, new Map([["dmg", amount]])]]),
+      })[0]?.rows.map((row) => row.valueText) ?? [];
+
+    expect(getPairRows(1)).toEqual(["1"]);
+    expect(getPairRows(0)).toEqual([]);
+  });
+
+  /**
+   * The bar's own arithmetic: every row is drawn against the largest of its list,
+   * and a list whose largest is nothing must not divide by it.
+   */
+  test("a list of nothing draws no bar, and the largest row fills its own", () => {
+    const lists = getLists({
+      dealtApplied: 3,
+      dealtByTargetId: new Map([
+        [OPPONENT, new Map([["dmg", 2]])],
+        [3, new Map([["dmg", 1]])],
+      ]),
+    });
+
+    expect(lists[0]?.rows.map((row) => row.fill)).toEqual([1, 0.5]);
+  });
+
+  /**
+   * What the pairs do not cover is a row of its own, or the section would total
+   * less than the figure it was entered from with nothing saying why — and one
+   * point is a difference as much as a thousand are.
+   */
+  test("a single point no pair covers is a row, and none is not", () => {
+    const getRowKeys = (figure: number): string[] =>
+      getLists({
+        dealtApplied: figure,
+        dealtByTargetId: new Map([[OPPONENT, new Map([["dmg", 5]])]]),
+      })[0]?.rows.map((row) => row.key) ?? [];
+
+    expect(getRowKeys(6)).toContain(NO_TARGET_ROW_KEY);
+    expect(getRowKeys(5)).not.toContain(NO_TARGET_ROW_KEY);
+  });
+
+  test("a skill that landed one point is a row, and one that landed none is not", () => {
+    // Two skills, because a cut of one row repeats the figure above it and is not
+    // drawn at all (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
+    const getSkillFigures = (amount: number): string[] =>
+      getLists({
+        dealtApplied: amount + 5,
+        skills: new Map([
+          ["small", composeSkill({ skillName: "mały", dealtApplied: amount })],
+          ["big", composeSkill({ skillName: "duży", dealtApplied: 5 })],
+        ]),
+      })
+        .find((list) => list.heading === "CZYM (UMIEJĘTNOŚCI)")
+        ?.rows.map((row) => row.valueText) ?? [];
+
+    expect(getSkillFigures(1)).toEqual(["5", "1"]);
+    // At nothing the skill is not a row, which leaves the section a single row
+    // repeating the figure above it — so the section is not drawn at all.
+    expect(getSkillFigures(0)).toEqual([]);
+  });
+
+  /**
+   * The closing row is what nothing announced, and it says two different things:
+   * a figure, and how many blows carried no skill at all. Either one alone is
+   * enough to draw it, and neither is enough to draw it wrong — a figure of
+   * nothing beside a count is the shape a plain blow that dealt nothing takes.
+   */
+  test("what nothing announced is a row for a point, for a blow, and for neither", () => {
+    const getClosingRow = (rest: number, plainBlows: number): PanelRow | undefined =>
+      getLists({
+        dealtApplied: 10 + rest,
+        blowsStruck: plainBlows,
+        blowsWithoutSkill: plainBlows,
+        skills: new Map([["k", composeSkill({ dealtApplied: 10 })]]),
+      })
+        .find((list) => list.heading === "CZYM (UMIEJĘTNOŚCI)")
+        ?.rows.find((row) => row.key.includes(UNANNOUNCED_ROW_KEY));
+
+    expect(getClosingRow(1, 0)?.valueText).toBe("1");
+    expect(getClosingRow(0, 1)?.valueText).toBe("0");
+    expect(getClosingRow(0, 1)?.bracketText).toContain("×1");
+    expect(getClosingRow(0, 0)).toBeUndefined();
   });
 });

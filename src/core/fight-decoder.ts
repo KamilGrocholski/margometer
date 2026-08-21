@@ -1,3 +1,15 @@
+/**
+ * Turns the protocol of one fight into events.
+ *
+ * Two rules hold for every message, and everything else is detail:
+ *
+ *   1. No message is dropped. A message the decoder cannot read still produces
+ *      an event, and that event says so. A number that is quietly too low looks
+ *      exactly like a number that is right.
+ *   2. Nothing is invented. A key with no meaning yet is reported as unread,
+ *      never guessed at from a neighbouring key.
+ */
+
 import { assert } from "@/libs/assert.ts";
 import { getDecimalFromText, getIntegerFromText, getNumberFromText } from "@/libs/number.ts";
 import type {
@@ -19,18 +31,6 @@ import {
   ProtocolMessageFormatError,
   type ProtocolMessage,
 } from "@/src/core/protocol-message.ts";
-
-/**
- * Turns the protocol of one fight into events.
- *
- * Two rules hold for every message, and everything else is detail:
- *
- *   1. No message is dropped. A message the decoder cannot read still produces
- *      an event, and that event says so. A number that is quietly too low looks
- *      exactly like a number that is right.
- *   2. Nothing is invented. A key with no meaning yet is reported as unread,
- *      never guessed at from a neighbouring key.
- */
 
 /** Names arrive as one string. The game has no escaping for a name containing this. */
 const NAME_SEPARATOR = ", ";
@@ -117,6 +117,44 @@ export function isDealtDamageKey(key: string): boolean {
  * rather than being folded into a weapon element it is not.
  */
 const DAMAGE_KEYS_BY_NAME = ["+thirdatt", "-thirdatt"];
+
+/**
+ * What a message says about the combatant on a side, where it says anything.
+ *
+ * `parsed.actor?.combatantId ?? null` and its three siblings were written out
+ * nine times in this file, once per event kind that needs them
+ * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F6) —
+ * the same shape the fifth audit collapsed one module away, where two branches
+ * sharing one body meant no test could tell them apart. Here the four fields are
+ * read once and each kind spreads what it needs.
+ *
+ * `null` for a side the protocol wrote as `0`, which is the protocol saying
+ * *nobody*, and `null` again where the side is named and states no health.
+ */
+function getActorOfMessage(parsed: ProtocolMessage): {
+  combatantId: number | null;
+  healthPercent: number | null;
+} {
+  return {
+    combatantId: parsed.actor?.combatantId ?? null,
+    healthPercent: parsed.actor?.healthPercent ?? null,
+  };
+}
+
+/** Both ends at once, named as the events that carry both name them. */
+function getEndsOfMessage(parsed: ProtocolMessage): {
+  actorId: number | null;
+  targetId: number | null;
+  actorHealthPercent: number | null;
+  targetHealthPercent: number | null;
+} {
+  return {
+    actorId: parsed.actor?.combatantId ?? null,
+    targetId: parsed.target?.combatantId ?? null,
+    actorHealthPercent: parsed.actor?.healthPercent ?? null,
+    targetHealthPercent: parsed.target?.healthPercent ?? null,
+  };
+}
 
 /**
  * `amount,kind,name(percent%)` — the recipient arrives as a name here, not as an
@@ -719,7 +757,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
     if (key === DAMAGE_TO_NAMED_KEY) {
       const damage = decodeDamageToNamedCombatant(
         value,
-        parsed.actor?.combatantId ?? null,
+        getActorOfMessage(parsed).combatantId,
         roster,
       );
       if (damage === null) unreadKeys.push(key);
@@ -837,7 +875,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
         kind: "unaccounted-health",
         announced: null,
         source: key,
-        combatantId: parsed.actor?.combatantId ?? null,
+        combatantId: getActorOfMessage(parsed).combatantId,
         // Either spelling: the protocol states `30` and `22.5` for this key in
         // the same fight.
         declaredShare: value === null ? null : getNumberFromText(value),
@@ -908,10 +946,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
     events.push({
       kind: "attack",
       announced: null,
-      actorId: parsed.actor?.combatantId ?? null,
-      targetId: parsed.target?.combatantId ?? null,
-      actorHealthPercent: parsed.actor?.healthPercent ?? null,
-      targetHealthPercent: parsed.target?.healthPercent ?? null,
+      ...getEndsOfMessage(parsed),
       dealt,
       taken,
       prevented,
@@ -924,10 +959,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
   if (skillName !== null) {
     events.push({
       kind: "skill-used",
-      actorId: parsed.actor?.combatantId ?? null,
-      targetId: parsed.target?.combatantId ?? null,
-      actorHealthPercent: parsed.actor?.healthPercent ?? null,
-      targetHealthPercent: parsed.target?.healthPercent ?? null,
+      ...getEndsOfMessage(parsed),
       skillName,
       skillId,
       declared,
@@ -948,8 +980,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
   if (standalone.length > 0) {
     events.push({
       kind: "declaration",
-      combatantId: parsed.actor?.combatantId ?? null,
-      healthPercent: parsed.actor?.healthPercent ?? null,
+      ...getActorOfMessage(parsed),
       declared: standalone,
     });
   }
@@ -981,7 +1012,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
   // Rule 1, now held by construction. This can only fire if a future edit
   // breaks that — which is exactly when silence would be most expensive.
   assert(events.length > 0, "every message produces at least one event");
-  return { actorId: parsed.actor?.combatantId ?? null, events };
+  return { actorId: getActorOfMessage(parsed).combatantId, events };
 }
 
 /** The figures a skill can be glued to. Nothing else carries `announced`. */

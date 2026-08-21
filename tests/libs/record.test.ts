@@ -1,6 +1,3 @@
-import { describe, expect, test } from "bun:test";
-import { getRecordFromValue, getRecordOrArrayFromValue } from "@/libs/record.ts";
-
 /**
  * The two readers, and the one question that separates them.
  *
@@ -10,6 +7,9 @@ import { getRecordFromValue, getRecordOrArrayFromValue } from "@/libs/record.ts"
  * matter, so the difference the whole two-reader split is for was held by
  * nothing — the same shape as the finding that produced the primitive.
  */
+
+import { describe, expect, test } from "bun:test";
+import { getRecordFromValue, getRecordOrArrayFromValue } from "@/libs/record.ts";
 
 describe("admitting anything with keys", () => {
   test.each([

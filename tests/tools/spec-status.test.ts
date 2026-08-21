@@ -1,7 +1,3 @@
-import { expectDatedName } from "@/tests/dated-document.ts";
-import { readdirSync, readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-
 /**
  * Holds `docs/specs/` to a shape.
  *
@@ -9,6 +5,10 @@ import { describe, expect, test } from "bun:test";
  * hand and it listed nine specs while the directory held eleven — the directory
  * is the index, and cannot disagree with itself.
  */
+
+import { expectDatedName } from "@/tests/dated-document.ts";
+import { readdirSync, readFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
 
 const SPECS_DIRECTORY = new URL("../../docs/specs/", import.meta.url).pathname;
 const SPEC_FILES = readdirSync(SPECS_DIRECTORY).filter((file) => file.endsWith(".md"));

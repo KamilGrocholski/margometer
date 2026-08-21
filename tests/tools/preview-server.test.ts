@@ -1,11 +1,3 @@
-import { describe, expect, test } from "bun:test";
-
-import { BundleError, composeUserscriptFiles } from "@/build.ts";
-import { assertDefined } from "@/libs/assert.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
-import { PREVIEW_GAME_SCRIPT_NAME } from "@/tools/preview-page.ts";
-import { setPreviewServer, PreviewServerError } from "@/tools/preview-server.ts";
-
 /**
  * The half of the preview only a running process can answer.
  *
@@ -17,6 +9,14 @@ import { setPreviewServer, PreviewServerError } from "@/tools/preview-server.ts"
  * stream keeps `stop()` from resolving and an unclosed `fs.watch` handle keeps
  * the process alive, so a leak does not fail this file — it hangs the suite.
  */
+
+import { describe, expect, test } from "bun:test";
+
+import { BundleError, composeUserscriptFiles } from "@/build.ts";
+import { assertDefined } from "@/libs/assert.ts";
+import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { PREVIEW_GAME_SCRIPT_NAME } from "@/tools/preview-page.ts";
+import { setPreviewServer, PreviewServerError } from "@/tools/preview-server.ts";
 
 const FIGHT = assertDefined(CAPTURED_FIGHTS[0], "the catalog carries a capture to preview");
 

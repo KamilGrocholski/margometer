@@ -1,3 +1,13 @@
+/**
+ * The two assertions, and the failure they raise.
+ *
+ * §9.5 puts `libs/assert.ts` outside both error hierarchies on purpose: an error
+ * class and a `code` exist so a caller can recognise a failure and act on it, and
+ * a broken invariant is precisely the thing nobody can act on. What this file
+ * holds is that distinction — the failure carries no `code`, answers to neither
+ * base, and says the invariant rather than the condition.
+ */
+
 import { describe, expect, test } from "bun:test";
 import { assert, assertDefined, AssertionFailure } from "@/libs/assert.ts";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";

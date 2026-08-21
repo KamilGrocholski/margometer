@@ -1,3 +1,13 @@
+/**
+ * The grammar of one message, both ways.
+ *
+ * Structure only, and that is the split §9.4 names: this file knows where the
+ * sides and the parameters are and nothing about what a key **means** — that is
+ * `tests/core/fight-decoder.test.ts`'s. Reversible, because a message composed
+ * from what was parsed has to be the message that was parsed, which is what makes
+ * the captures usable as material rather than as text.
+ */
+
 import { describe, expect, test } from "bun:test";
 import {
   composeProtocolMessage,

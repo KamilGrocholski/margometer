@@ -43,7 +43,7 @@ import {
   CAPTURED_FIGHTS,
   composeRosterFromSnapshots,
   composeRosterOfFight,
-  getMessagesOfFight,
+  composeStatisticsOfFight,
 } from "@/tests/captured-fight-catalog.ts";
 
 /**
@@ -1204,16 +1204,9 @@ describe("a fight that did not all arrive", () => {
 describe("against the captured fights", () => {
   const fights = CAPTURED_FIGHTS.map((fight) => {
     const roster = composeRosterOfFight(fight);
-    const statistics = composeFightStatistics(
-      decodeFight(
-        getMessagesOfFight(fight),
-        roster,
-      ),
-      roster,
-      // Read the way the panel is fed, or the mirror below is measured on a fight
-      // missing every point of team healing in it.
-      fight.entryHealthByCombatantId,
-    );
+    // Read the way the panel is fed, or the mirror below is measured on a fight
+    // missing every point of team healing in it.
+    const statistics = composeStatisticsOfFight(fight);
     return {
       name: fight.name,
       reading: {
@@ -1927,6 +1920,49 @@ describe("against the captured fights", () => {
       const pinned = getNoActorRow(composePanelView(reading, composeState({ metric: "dealt", team })));
       expect(pinned?.valueText, team).toBe(figure);
     }
+  });
+
+  /**
+   * ⚠️ **The healing cut is narrowed to the side on screen, and one line does it.**
+   * `getNoActorHealingBySource` opens with `if (!isCharged(id)) continue;` — the
+   * same line, character for character, that `getNoActorDamageBySource` opens
+   * with one function above. Dropping the negation on the damage side reddens
+   * seventeen tests; dropping it on the healing side reddened nothing, so the
+   * pinned row under `Leczenie · My` could have listed exactly the points that are
+   * **not** ours with the label and the bracket unchanged
+   * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F1).
+   *
+   * Two sides, both healed by nobody, and each tab has to show its own — which is
+   * what makes the inversion visible rather than merely wrong.
+   */
+  test("narrows healing nobody gave to the side the tab is showing", () => {
+    const roster = composeCombatantRoster([
+      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+      { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
+    ]);
+    // `heal_target` and no announcement over it: healing that arrived with nobody
+    // on the giving end, which is what the pinned row under `Leczenie` stands for.
+    const statistics = composeFightStatistics(
+      decodeFight(["0;1=50.00;heal_target=100", "0;3=40.00;heal_target=70"], roster),
+      roster,
+    );
+    const reading = { statistics, roster, ourSide: 1, isFromFightStart: true } satisfies PanelReading;
+
+    // `Leczenie dane`, because that is the screen whose cut is by **what the
+    // healing came from** — the one `getNoActorHealingBySource` builds. Under
+    // `Leczenie` the same row is cut by recipient and never reaches it.
+    const getCut = (team: (typeof PANEL_TEAMS)[number]): string[] =>
+      (
+        getNoActorRow(
+          composePanelView(reading, composeState({ metric: "healingGiven", team })),
+        )?.detail ?? []
+      )
+        .filter((line) => line.kind === "stat")
+        .map((line) => (line.kind === "stat" ? line.value : ""));
+
+    expect(getCut("mine")).toEqual(["100"]);
+    expect(getCut("enemy")).toEqual(["70"]);
+    expect(getCut("all")).toEqual(["170"]);
   });
 
   /**

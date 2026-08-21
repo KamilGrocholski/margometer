@@ -1,10 +1,3 @@
-import { assertDefined } from "@/libs/assert.ts";
-import {
-  composeHexadecimalByteText,
-  composeIntegerText,
-  getIntegerFromHexadecimalText,
-} from "@/libs/number.ts";
-
 /**
  * How the panel looks: every colour, space and radius it uses, and the
  * stylesheet built out of them.
@@ -20,6 +13,13 @@ import {
  * Dark-first, because the panel sits over a dark game and is never asked to be
  * anything else.
  */
+
+import { assertDefined } from "@/libs/assert.ts";
+import {
+  composeHexadecimalByteText,
+  composeIntegerText,
+  getIntegerFromHexadecimalText,
+} from "@/libs/number.ts";
 
 /**
  * Bar colours, in a fixed order that is never cycled.
@@ -735,4 +735,3 @@ export function composePanelStyleText(): string {
 .undrawn { color: ${t.textQuiet}; font-style: italic; }
 `.trim();
 }
-

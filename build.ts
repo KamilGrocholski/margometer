@@ -1,3 +1,21 @@
+/**
+ * The bundler: `src/` into the one file somebody installs, and the banner that
+ * makes it a userscript.
+ *
+ * Three artefacts, and each exists for a stated reason. `margometer.user.js` is
+ * the script; `margometer.meta.js` is the metadata block written a second time on
+ * its own, because 0.5.0 polls for it and a release without it leaves every copy
+ * installed from that version checking a 404; `--dev` writes a third that
+ * measures itself, by swapping one module rather than by branching at run time
+ * (`src/userscript-instrument.ts`).
+ *
+ * ⚠️ **Nothing is minified and no target is set**, which is not an oversight:
+ * the ES level of the source is then the ES level a player's browser must have,
+ * and `docs/browser-support.md` is what says which browsers that is (§9.9). A
+ * round that reaches one construct further moves the floor under everybody, and
+ * `tsconfig.userscript.json` is what refuses it.
+ */
+
 import manifest from "@/package.json";
 import { composeJsonText } from "@/libs/json.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";

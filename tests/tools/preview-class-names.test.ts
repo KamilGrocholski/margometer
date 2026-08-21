@@ -1,11 +1,3 @@
-import { readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-import { assertDefined } from "@/libs/assert.ts";
-import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
-import { getAssignedClassNames, getStyledClassNames } from "@/tests/class-names.ts";
-import { composePreviewPage, type PreviewWords } from "@/tools/preview-page.ts";
-
 /**
  * The preview harness's class names, held to one vocabulary.
  *
@@ -21,6 +13,14 @@ import { composePreviewPage, type PreviewWords } from "@/tools/preview-page.ts";
  * whole gate green — so the strip would have gone on printing a failed build in
  * the same colour as a good one, which is the one thing it exists to distinguish.
  */
+
+import { readFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
+import { assertDefined } from "@/libs/assert.ts";
+import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { getAssignedClassNames, getStyledClassNames } from "@/tests/class-names.ts";
+import { composePreviewPage, type PreviewWords } from "@/tools/preview-page.ts";
 
 const FIGHT = assertDefined(CAPTURED_FIGHTS[0], "the catalog carries a capture to preview");
 

@@ -201,7 +201,7 @@ from (§9.5).
 | `tools/payload-cost.ts` | *What does one payload cost, and where does the time go?* `bun run cost [runs]`. No DOM — the arithmetic under the panel, not the drawing of it. |
 | `tools/help-article.ts` | *What does the game's documentation say?* `fetch`, `search` (non-zero on silence), `freeze`. §7.6. |
 | `tools/captured-fight-intake.ts` | *Put this recording in the repository.* Substitutes nicknames, strips ability descriptions, refuses what it cannot redact. §9.2. |
-| `tools/mutation-sweep.ts` | *Does this test light up when its subject breaks?* Refuses to start against a dirty tree, or against one whose gate is already red — where every mutant would be reported killed. |
+| `tools/mutation-sweep.ts` | *Does this test light up when its subject breaks?* Refuses to start against a dirty tree, or against one whose gate is already red — where every mutant would be reported killed. A survivor is put to `tsc` before it is called one, so what the compiler refuses is reported apart from what nothing noticed. |
 | `tools/preview-page.ts` | *What does the harness put in front of the panel?* The page as one string. Library, not a CLI. |
 | `tools/preview-server.ts` | *What does the panel look like right now?* `bun run preview`. The gate cannot see a panel; this can. |
 | `tools/preview-site.ts` | *What does it look like to somebody who installed nothing?* `bun run preview:site`. Nothing it writes is committed. |
@@ -573,7 +573,8 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
                            the root: material and shared readers.
   captured-fights/         Raw protocol from real fights. Evidence — §9.2.
   captured-fight-catalog.ts   Discovers it: each capture, health per combatant,
-                              the rosters per call and per fight.
+                              the rosters per call and per fight, and the fight as
+                              the panel composes it — one reading, not ten.
   frozen-protocol-keys.ts     GENERATED. Every key the client knows, with build.
   frozen-help-phrases.ts      GENERATED. How often each cited phrase occurs in
                               the published help. Counts only.

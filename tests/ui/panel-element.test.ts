@@ -1,3 +1,17 @@
+/**
+ * The panel, drawn, held to the promises §9.6 made before it was written.
+ *
+ * There is no DOM in the test runner, so the document is a small fake. That is
+ * not a compromise: the properties worth checking here are about *structure and
+ * restraint* — what survives a failure, what never happens at all, what still
+ * works after twenty redraws — and a fake that records what it was asked to
+ * build answers those exactly.
+ *
+ * What it cannot answer is whether the result looks right. Nothing here can;
+ * that needs the game and a person. What the panel *decides* is checked without
+ * a document at all, in `tests/ui/panel-view.test.ts`.
+ */
+
 import { describe, expect, test } from "bun:test";
 import {
   composeClampedPosition,
@@ -29,19 +43,6 @@ import {
   UNKNOWN_COLOUR,
 } from "@/src/ui/panel-look.ts";
 import { getNumberFromText } from "@/libs/number.ts";
-/**
- * The panel, drawn, held to the promises §9.6 made before it was written.
- *
- * There is no DOM in the test runner, so the document is a small fake. That is
- * not a compromise: the properties worth checking here are about *structure and
- * restraint* — what survives a failure, what never happens at all, what still
- * works after twenty redraws — and a fake that records what it was asked to
- * build answers those exactly.
- *
- * What it cannot answer is whether the result looks right. Nothing here can;
- * that needs the game and a person. What the panel *decides* is checked without
- * a document at all, in `tests/ui/panel-view.test.ts`.
- */
 
 import { assertDefined } from "@/libs/assert.ts";
 import { getDecimalFromText } from "@/libs/number.ts";
@@ -729,7 +730,6 @@ describe("one gesture in, one gesture out", () => {
    * a different button, and the assertion went green against the wrong one.
    */
 
-
   test("a side tab asks for that side", () => {
     const teams: string[] = [];
     const { panel } = renderInto(composeDefaultState(), { onTeamChosen: (team: string) => teams.push(team) });
@@ -1308,7 +1308,6 @@ describe("pressing the part of a row somebody actually aims at", () => {
  * wrong answer, and it is checkable on its own.
  */
 
-
 const PLACEMENT_SCREEN = { width: 1920, height: 1080 };
 
 describe("moving the panel", () => {
@@ -1449,7 +1448,6 @@ describe("what a stored position has to be", () => {
  * until somebody drags the panel to a corner and loses the thing they hovered
  * for.
  */
-
 
 const TIP_SCREEN = { width: 1200, height: 800 };
 const TIP: PanelTipBox = { width: PANEL_PIXELS.tipWidth, height: 200 };

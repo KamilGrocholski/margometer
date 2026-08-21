@@ -206,12 +206,23 @@ describe("layers", () => {
    *
    * `src/userscript-version.ts` is on every list: §9.1 names it readable from any
    * layer, because it is a build-time constant that knows no layer at all.
+   *
+   * `src/cost-phases.ts` is on `src/ui/`'s for the same reason and no wider one:
+   * §2 puts the files at the root of `src/` in `[any]` because they know no layer,
+   * and this one is the vocabulary of the cost table — the phase names and, since
+   * the sixth audit, the column headings the overlay and the terminal report both
+   * print (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`,
+   * F5). A development overlay that spelled them itself is what that finding was.
    */
   const VERSION = "@/src/userscript-version.ts";
+  const COST_PHASES = "@/src/cost-phases.ts";
   const LAYERS = [
     { directory: "libs/", mayImport: ["@/libs/"] },
     { directory: "src/core/", mayImport: ["@/libs/", "@/src/core/", VERSION] },
-    { directory: "src/ui/", mayImport: ["@/libs/", "@/src/core/", "@/src/ui/", VERSION] },
+    {
+      directory: "src/ui/",
+      mayImport: ["@/libs/", "@/src/core/", "@/src/ui/", VERSION, COST_PHASES],
+    },
     { directory: "src/game/", mayImport: ["@/libs/", "@/src/core/", "@/src/game/", VERSION] },
   ];
 
@@ -232,7 +243,6 @@ describe("layers", () => {
       .filter((specifier) => !mayImport.some((allowed) => specifier.startsWith(allowed)));
     expect(reachingOut, file).toEqual([]);
   });
-
 
   /**
    * §9.1's last direction, and the only one that had no guard at all.
@@ -547,7 +557,6 @@ describe("value parsing", () => {
     );
   });
 
-
   test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
     "%s asks the primitives instead of coercing by hand",
     (file) => {
@@ -837,6 +846,61 @@ describe("the colours", () => {
   test("and the palette still holds some", () => {
     const source = getSourceWithoutComments(PALETTE);
     expect([...source.matchAll(COLOUR_LITERAL)].length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * Where a file's argument for itself sits.
+ *
+ * ⚠️ **A third of the tree put it under the imports**, and in the largest files
+ * under fifty lines of them — so the first thing a reader met, in a repository
+ * whose whole discipline is that a file says what it is before it does anything,
+ * was a list of names
+ * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F8).
+ * Nothing decided it: the convention that won in a file was whichever the last
+ * round used.
+ *
+ * The rule is the narrow one that can be held: **where a docblock has nothing but
+ * imports above it, it is the module's, and it goes first.** A file whose first
+ * docblock sits under a declaration is documenting that declaration and is none
+ * of this test's business.
+ */
+describe("a file says what it is before it does anything", () => {
+  function getPrefixBeforeFirstDocblock(file: string): string | null {
+    const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
+    const at = source.indexOf("/**");
+    return at <= 0 ? null : source.slice(0, at);
+  }
+
+  /** Only imports and blank lines, brace by brace, so a multi-line one counts. */
+  function getIsOnlyImports(prefix: string): boolean {
+    let depth = 0;
+    let isInsideImport = false;
+    for (const raw of prefix.split("\n")) {
+      const line = raw.trim();
+      if (line === "" || line.startsWith("//")) continue;
+      if (!isInsideImport) {
+        if (!line.startsWith("import")) return false;
+        isInsideImport = true;
+      }
+      depth += [...line].filter((one) => one === "{").length;
+      depth -= [...line].filter((one) => one === "}").length;
+      if (depth === 0 && (line.endsWith(";") || line.endsWith('"'))) isInsideImport = false;
+    }
+    return !isInsideImport;
+  }
+
+  test("there are files to check", () => {
+    expect(SOURCE_FILES.length).toBeGreaterThan(0);
+  });
+
+  test("no module docblock sits below the imports it belongs above", () => {
+    const below = SOURCE_FILES.filter((file) => {
+      const prefix = getPrefixBeforeFirstDocblock(file);
+      return prefix !== null && getIsOnlyImports(prefix);
+    });
+
+    expect(below).toEqual([]);
   });
 });
 

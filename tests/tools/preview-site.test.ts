@@ -1,15 +1,3 @@
-import { describe, expect, test } from "bun:test";
-
-import { USERSCRIPT_FILENAME } from "@/build.ts";
-import { assertDefined } from "@/libs/assert.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
-import { PREVIEW_GAME_SCRIPT_NAME } from "@/tools/preview-page.ts";
-import {
-  composePreviewSiteFiles,
-  composePreviewSitePages,
-  PreviewSiteError,
-} from "@/tools/preview-site.ts";
-
 /**
  * The published preview, held to the faults that only appear once it is
  * published.
@@ -22,6 +10,18 @@ import {
  * Nothing here writes a file — `composePreviewSitePages` is pure and needs no
  * bundle, so the pages are read as text (`tools/preview-site.ts`).
  */
+
+import { describe, expect, test } from "bun:test";
+
+import { USERSCRIPT_FILENAME } from "@/build.ts";
+import { assertDefined } from "@/libs/assert.ts";
+import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { PREVIEW_GAME_SCRIPT_NAME } from "@/tools/preview-page.ts";
+import {
+  composePreviewSiteFiles,
+  composePreviewSitePages,
+  PreviewSiteError,
+} from "@/tools/preview-site.ts";
 
 const PAGES = composePreviewSitePages();
 

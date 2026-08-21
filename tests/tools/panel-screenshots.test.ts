@@ -1,3 +1,19 @@
+/**
+ * The pictures in `screenshots/`, and the two things about them a machine can
+ * hold.
+ *
+ * ⚠️ **No browser runs here.** The gate has to pass on a machine that has none
+ * and in CI, which is promised none — so what a screenshot *contains* is checked
+ * by a person opening it, once, in the round that takes it. That is stated rather
+ * than left implied: this file proves the set is current and reachable, never that
+ * a panel is in the frame.
+ *
+ * What is left for the gate is the half that rots on its own. A set taken two
+ * releases ago looks exactly like one taken this morning, and a selector renamed
+ * in `src/ui/panel-element.ts` turns every future run into four pictures of a
+ * marker — both silent, and both caught below.
+ */
+
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
@@ -23,22 +39,6 @@ import {
   writePanelScreenshots,
   type PanelShot,
 } from "@/tools/panel-screenshots.ts";
-
-/**
- * The pictures in `screenshots/`, and the two things about them a machine can
- * hold.
- *
- * ⚠️ **No browser runs here.** The gate has to pass on a machine that has none
- * and in CI, which is promised none — so what a screenshot *contains* is checked
- * by a person opening it, once, in the round that takes it. That is stated rather
- * than left implied: this file proves the set is current and reachable, never that
- * a panel is in the frame.
- *
- * What is left for the gate is the half that rots on its own. A set taken two
- * releases ago looks exactly like one taken this morning, and a selector renamed
- * in `src/ui/panel-element.ts` turns every future run into four pictures of a
- * marker — both silent, and both caught below.
- */
 
 const TAKEN_AT_PATH = SCREENSHOTS_DIRECTORY + TAKEN_AT_NAME;
 

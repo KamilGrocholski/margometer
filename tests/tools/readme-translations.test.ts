@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-
 /**
  * `README.md` and `README.en.md` held to one skeleton.
  *
@@ -23,6 +20,9 @@ import { describe, expect, test } from "bun:test";
  * and a switcher pointing at a file that does not link back is the same
  * dead end as no switcher at all.
  */
+
+import { readFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 

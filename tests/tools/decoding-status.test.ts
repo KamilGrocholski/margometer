@@ -1,14 +1,15 @@
+/**
+ * The counters this project reports progress with. They are computed rather
+ * than written down, so what needs guarding is not a value but the arithmetic:
+ * a miscount here would be quoted in a commit message as fact.
+ */
+
 import { describe, expect, test } from "bun:test";
 import { CAPTURED_FIGHTS, type CapturedFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 import { getDecodingStatus } from "@/tools/decoding-status.ts";
 import { NO_ENTRY_HEALTH } from "@/src/core/combatant-health.ts";
 import { DAMAGE_TO_NAMED_KEY } from "@/src/core/fight-decoder.ts";
 
-/**
- * The counters this project reports progress with. They are computed rather
- * than written down, so what needs guarding is not a value but the arithmetic:
- * a miscount here would be quoted in a commit message as fact.
- */
 const STATUS = getDecodingStatus(CAPTURED_FIGHTS);
 
 function composeFightOf(message: string): CapturedFight {

@@ -1,6 +1,3 @@
-import { describe, expect, test } from "bun:test";
-import { getDictionaryReader, getLabelFromEntry } from "@/src/game/game-dictionary.ts";
-
 /**
  * ⚠️ **Every string below is ours, and that is the point of them.**
  *
@@ -25,6 +22,10 @@ import { getDictionaryReader, getLabelFromEntry } from "@/src/game/game-dictiona
  * transcribed. Inventing the *hole* would be the fault that rule names; keeping
  * the sentence around it is the fault §5 names.
  */
+
+import { describe, expect, test } from "bun:test";
+import { getDictionaryReader, getLabelFromEntry } from "@/src/game/game-dictionary.ts";
+
 describe("the label inside one of the client's strings", () => {
   test("drops the sign that says which way the effect went", () => {
     expect(getLabelFromEntry("+Critical hit")).toBe("Critical hit");

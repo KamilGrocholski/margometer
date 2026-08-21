@@ -52,6 +52,7 @@ import { parseFightDump, type CombatantSnapshot } from "@/tools/fight-dump-parse
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
+  composeStatisticsOfFight,
   getMessagesOfDump,
   getMessagesOfFight,
 } from "@/tests/captured-fight-catalog.ts";
@@ -397,7 +398,6 @@ describe("the add-on driven by a captured fight", () => {
       const carrying = fight.dump.calls.filter((call) => call.protocolMessages.length > 0).length;
       expect(readings.length).toBeGreaterThanOrEqual(carrying);
       expect(readings.length).toBeLessThan(fight.dump.calls.length);
-
 
       meter.stop();
       expect(Object.prototype.hasOwnProperty.call(battle, "updateData")).toBe(false);
@@ -1759,14 +1759,9 @@ describe("a new fight and the level the reader was on", () => {
    */
   function composeReadingOfCapture(fightsStarted: number): FightReading {
     const fight = assertDefined(CAPTURED_FIGHTS[0], "there is a capture to read");
-    const roster = composeRosterOfFight(fight);
     return {
-      statistics: composeFightStatistics(
-        decodeFight(getMessagesOfFight(fight), roster),
-        roster,
-        fight.entryHealthByCombatantId,
-      ),
-      roster,
+      statistics: composeStatisticsOfFight(fight),
+      roster: composeRosterOfFight(fight),
       ourSide: 1,
       isFromFightStart: true,
       fightsStarted,

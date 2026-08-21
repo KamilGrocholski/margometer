@@ -14,17 +14,15 @@
 import { composeIntegerText } from "@/libs/number.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
 import { getTextOrder } from "@/libs/text-order.ts";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
 import {
   composeEmptyCombatantStatistics,
-  composeFightStatistics,
   getCombatantIdsInFight,
   type CombatantStatistics,
 } from "@/src/core/fight-statistics.ts";
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
-  getMessagesOfFight,
+  composeStatisticsOfFight,
   type CapturedFight,
 } from "@/tests/captured-fight-catalog.ts";
 
@@ -97,16 +95,9 @@ function writeRow(label: string, row: CombatantStatistics): void {
 function writeFightReport(fight: CapturedFight): void {
   const names = getNameByCombatantId(fight);
   const roster = composeRosterOfFight(fight);
-  const statistics = composeFightStatistics(
-    decodeFight(
-      getMessagesOfFight(fight),
-      roster,
-    ),
-    roster,
-    // The same reading the panel is handed, so this report and the panel cannot
-    // disagree about a fight (`src/game/battle-session.ts`).
-    fight.entryHealthByCombatantId,
-  );
+  // The same reading the panel is handed, so this report and the panel cannot
+  // disagree about a fight (`src/game/battle-session.ts`).
+  const statistics = composeStatisticsOfFight(fight);
 
   console.log(`\n=== ${fight.name} ===`);
   console.log(

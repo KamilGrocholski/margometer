@@ -1,10 +1,3 @@
-import { describe, expect, test } from "bun:test";
-import { decodeFight, SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
-import { setRunningTotal } from "@/libs/running-total.ts";
-
 /**
  * The rule that lets a figure name the skill it came from.
  *
@@ -18,6 +11,13 @@ import { setRunningTotal } from "@/libs/running-total.ts";
  * shape tests: the material has no example of an announcement followed by
  * another combatant's *damage*, and the whole point is what happens then.
  */
+
+import { describe, expect, test } from "bun:test";
+import { decodeFight, SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
+import { setRunningTotal } from "@/libs/running-total.ts";
 
 const ANNOUNCEMENT = "7=100.00;8=100.00;tspell=Skill;skillId=42";
 

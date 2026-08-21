@@ -23,8 +23,6 @@
 
 import { composeIntegerText } from "@/libs/number.ts";
 import { getTextOrder } from "@/libs/text-order.ts";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import {
   composeDefaultState,
   composeLeafRowKey,
@@ -42,7 +40,7 @@ import { composePanelView } from "@/src/ui/panel-view.ts";
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
-  getMessagesOfFight,
+  composeStatisticsOfFight,
   type CapturedFight,
 } from "@/tests/captured-fight-catalog.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
@@ -126,13 +124,9 @@ export type DrillCase = {
 function composeReadingOfFight(fight: CapturedFight): PanelReading {
   const roster = composeRosterOfFight(fight);
   return {
-    statistics: composeFightStatistics(
-      decodeFight(getMessagesOfFight(fight), roster),
-      roster,
-      // The same reading the panel is handed, or the team heals go unsized and
-      // most of the healing drill is simply absent (`src/game/battle-session.ts`).
-      fight.entryHealthByCombatantId,
-    ),
+    // The same reading the panel is handed, or the team heals go unsized and most
+    // of the healing drill is simply absent (`src/game/battle-session.ts`).
+    statistics: composeStatisticsOfFight(fight),
     roster,
     ourSide: null,
     isFromFightStart: true,

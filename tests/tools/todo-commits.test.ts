@@ -1,6 +1,3 @@
-import { execFileSync } from "node:child_process";
-import { describe, expect, test } from "bun:test";
-
 /**
  * Holds §7.2's rule that `TODO.md` travels alone, and under its own type.
  *
@@ -19,6 +16,10 @@ import { describe, expect, test } from "bun:test";
  * commit that predates the rule and reads forward from there, the way an audit
  * names the commit it read (§7.7).
  */
+
+import { execFileSync } from "node:child_process";
+import { describe, expect, test } from "bun:test";
+
 const RULE_BEGAN_AFTER = "b7ae4ab";
 
 const TASK_LIST = "TODO.md";

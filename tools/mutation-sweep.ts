@@ -19,15 +19,22 @@
  * uncommitted work was in the file. On top of that the sweep refuses to start
  * against a dirty tree, so the only thing it can ever be holding is a commit.
  *
- * ⚠️ **A mutation inside a type can never be killed here, and the report does not
- * say so.** What runs per mutant is `bun test`, not the gate: `tsc` is not in it,
- * because a typecheck per mutant would cost more than the run and a mutant that
- * fails to compile is not a behaviour anybody could have tested. The consequence
- * is that every string inside a type alias survives by construction — eleven of
- * `src/ui/panel-screen.ts`'s eighteen survivors are its two unions, read
- * 2026-08-19 — so a survivor list is read with the file open, and a `(text)`
- * mutation on a `type` line is nothing to act on
- * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F13).
+ * ⚠️ **A mutant the compiler refuses is not a survivor, and this used to report
+ * it as one.** What runs per mutant is `bun test`, and a string inside a type
+ * union or a `kind` in a typed literal changes no behaviour a test could see — so
+ * every one of them came back alive. The old reason for leaving `tsc` out was
+ * that "a typecheck per mutant would cost more than the run", which is measured
+ * and false: 2.1 s against 5.4 s at `af3f1ec`
+ * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F3).
+ *
+ * So the typecheck runs, and it runs **only on a mutant that survived the tests**
+ * — a minority of any sweep — which is what makes it nearly free: the kills stay
+ * exactly as fast as they were. What the compiler refuses is reported apart from
+ * the survivors and counted with the kills, because the gate is what refused it.
+ * Reading a survivor list is then reading a list of gaps, which is what it always
+ * claimed to be: 14 of `src/core/battle-event.ts`'s 24 and every one of
+ * `src/core/fight-decoder.ts`'s 15 were the compiler's, and both files are
+ * otherwise held.
  *
  * ⚠️ **A mutant killed only by a guard of shape is barely killed.**
  * `tests/tools/source-layout.test.ts` and its neighbours read source as text, so
@@ -105,6 +112,15 @@ export type MutationOutcome = {
   killedBy: string[];
   /** Killed, but only by a guard reading source as text. */
   isShapeOnly: boolean;
+  /**
+   * Survived the tests, and the compiler refuses it.
+   *
+   * Counted with the kills rather than the survivors: `bun run check` is the gate
+   * and `tsc` is half of it, so a mutant it will not compile is one the gate
+   * catches. Asked only of a survivor, which is why the sweep did not get slower
+   * for it.
+   */
+  isRefusedByCompiler: boolean;
 };
 
 type Rule = {
@@ -314,6 +330,33 @@ function getGateOutcome(isBailing: boolean): GateOutcome {
 }
 
 /**
+ * Whether the compiler refuses the tree as it stands.
+ *
+ * `bun run typecheck` rather than `tsc` directly: the second config —
+ * `tsconfig.userscript.json`, the browser floor §9.9 states — is half of what the
+ * gate checks, and a mutant that only that one refuses is refused just the same.
+ *
+ * A runner that cannot start throws, for `getGateOutcome`'s reason: it is true of
+ * every mutant that follows, and a report of a thousand unclassified survivors
+ * says nothing anybody can act on. In a detached worktree that means
+ * `bun install` before sweeping.
+ */
+function getIsRefusedByCompiler(): boolean {
+  const result = spawnSync("bun", ["run", "typecheck"], {
+    cwd: REPOSITORY_ROOT,
+    encoding: "utf8",
+    timeout: RUN_TIMEOUT_MILLISECONDS,
+  });
+  if (result.error !== undefined) {
+    throw new MutationSweepError("the typecheck could not be run", { cause: result.error });
+  }
+  if (result.status === null) {
+    throw new MutationSweepError("the typecheck did not finish");
+  }
+  return result.status !== 0;
+}
+
+/**
  * Whether the only thing that went red reads source as text.
  *
  * One function because the run loop asked it twice, once to decide on a second
@@ -402,12 +445,15 @@ function getMutationOutcomesOfFile(file: string): MutationOutcome[] {
       // any behaviour noticed, and under `--bail` the first failure is the only
       // one anybody saw.
       if (isShapeOnlyKill(run)) run = getGateOutcome(false);
+      // Only a survivor is worth a typecheck, and only a survivor pays for one.
+      const isRefusedByCompiler = run.isRed === false && getIsRefusedByCompiler();
       writeFileSync(path, original);
       outcomes.push({
         mutation,
         isKilled: run.isRed,
         killedBy: run.isRed === true ? run.failing : [],
         isShapeOnly: isShapeOnlyKill(run),
+        isRefusedByCompiler,
       });
       process.stderr.write(
         `\r${file}  ${composeIntegerText(index + 1)}/${composeIntegerText(mutations.length)}   `,
@@ -422,8 +468,33 @@ function getMutationOutcomesOfFile(file: string): MutationOutcome[] {
   return outcomes;
 }
 
+/**
+ * Where a mutant sits on its line, one-based.
+ *
+ * A survivor used to name a line and an operator, and `src/ui/panel-view.ts`
+ * carries `if (!isCharged(id)) continue;` twice — one held, one not — so the
+ * report named a place a reader could not find
+ * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F3). The
+ * offset was there all along; only the printing stopped short of it.
+ */
+function getColumnOfMutation(mutation: Mutation): number {
+  const source = readFileSync(REPOSITORY_ROOT + mutation.file, "utf8");
+  return mutation.offset - (source.lastIndexOf("\n", mutation.offset - 1) + 1) + 1;
+}
+
+function composeMutationLine(mutation: Mutation, trailing: string): string {
+  return (
+    `  ${mutation.file}:${composeIntegerText(mutation.line)}` +
+    `:${composeIntegerText(getColumnOfMutation(mutation))}  ` +
+    `${mutation.before} → ${mutation.after}  (${trailing})`
+  );
+}
+
 function writeSweepReport(outcomes: MutationOutcome[]): void {
-  const survived = outcomes.filter((outcome) => outcome.isKilled === false);
+  const survived = outcomes.filter(
+    (outcome) => outcome.isKilled === false && !outcome.isRefusedByCompiler,
+  );
+  const refused = outcomes.filter((outcome) => outcome.isRefusedByCompiler);
   const unfinished = outcomes.filter((outcome) => outcome.isKilled === null);
   const shapeOnly = outcomes.filter((outcome) => outcome.isShapeOnly);
 
@@ -440,7 +511,9 @@ function writeSweepReport(outcomes: MutationOutcome[]): void {
     // line to read — was a kill in one half of the report and a survivor in the
     // other. The file's own docblock records paying for exactly this once
     // already (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F13).
-    const alive = forFile.filter((outcome) => outcome.isKilled === false).length;
+    const alive = forFile.filter(
+      (outcome) => outcome.isKilled === false && !outcome.isRefusedByCompiler,
+    ).length;
     console.log(
       `${composeIntegerText(forFile.length).padStart(5)} mutants  ` +
         `${composeIntegerText(alive).padStart(4)} survived   ${file}`,
@@ -449,30 +522,23 @@ function writeSweepReport(outcomes: MutationOutcome[]): void {
 
   console.log();
   console.log("survivors");
-  for (const { mutation } of survived) {
-    console.log(
-      `  ${mutation.file}:${composeIntegerText(mutation.line)}  ` +
-        `${mutation.before} → ${mutation.after}  (${mutation.operator})`,
-    );
-  }
+  for (const { mutation } of survived) console.log(composeMutationLine(mutation, mutation.operator));
+
+  console.log();
+  console.log("refused by the compiler, so killed by the gate");
+  for (const { mutation } of refused) console.log(composeMutationLine(mutation, mutation.operator));
 
   console.log();
   console.log("killed only by a guard reading source as text");
   for (const { mutation, killedBy } of shapeOnly) {
-    console.log(
-      `  ${mutation.file}:${composeIntegerText(mutation.line)}  ` +
-        `${mutation.before} → ${mutation.after}  (${killedBy.join(", ")})`,
-    );
+    console.log(composeMutationLine(mutation, killedBy.join(", ")));
   }
 
   if (unfinished.length > 0) {
     console.log();
     console.log("the gate never finished, so these are neither");
     for (const { mutation } of unfinished) {
-      console.log(
-        `  ${mutation.file}:${composeIntegerText(mutation.line)}  ` +
-          `${mutation.before} → ${mutation.after}  (${mutation.operator})`,
-      );
+      console.log(composeMutationLine(mutation, mutation.operator));
     }
   }
 
@@ -481,6 +547,7 @@ function writeSweepReport(outcomes: MutationOutcome[]): void {
     `${composeIntegerText(outcomes.length)} mutants, ` +
       `${composeIntegerText(outcomes.length - survived.length - unfinished.length)} killed, ` +
       `${composeIntegerText(survived.length)} survived, ` +
+      `${composeIntegerText(refused.length)} refused by the compiler, ` +
       `${composeIntegerText(unfinished.length)} unfinished, ` +
       `${composeIntegerText(shapeOnly.length)} of the kills by shape alone`,
   );

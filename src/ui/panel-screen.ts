@@ -1,5 +1,3 @@
-import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
-
 /**
  * Which screen the panel is on: what a screen can show, what it is called, what a
  * row on it is keyed by, the shape it takes, and what a click does to it.
@@ -29,6 +27,8 @@ import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
  * table private and exporting the strips is what stops a caller composing a tab
  * of its own from the pieces — the tabs are the vocabulary as the reader meets it.
  */
+
+import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
 
 export const PANEL_METRICS = ["dealt", "taken", "healingGiven", "healed"] as const;
 export type PanelMetric = (typeof PANEL_METRICS)[number];

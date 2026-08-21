@@ -29,6 +29,7 @@ import {
 } from "@/libs/elapsed-spans.ts";
 import { getTextOrder } from "@/libs/text-order.ts";
 import {
+  COST_COLUMNS,
   PAYLOAD_PHASE,
   READING_PHASE,
   SESSION_PHASE,
@@ -242,10 +243,10 @@ function writeSpanRow(span: ElapsedSpan, wholeMs: number): void {
 
 function writeHeadingRow(): void {
   console.log(
-    `  ${"phase".padEnd(NAME_COLUMN)}` +
-      `${"calls".padStart(NUMBER_COLUMN)}` +
-      `${"total ms".padStart(NUMBER_COLUMN)}` +
-      `${"worst ms".padStart(NUMBER_COLUMN)}` +
+    `  ${COST_COLUMNS.name.padEnd(NAME_COLUMN)}` +
+      `${COST_COLUMNS.calls.padStart(NUMBER_COLUMN)}` +
+      `${COST_COLUMNS.total.padStart(NUMBER_COLUMN)}` +
+      `${COST_COLUMNS.worst.padStart(NUMBER_COLUMN)}` +
       `  share of a payload`,
   );
 }

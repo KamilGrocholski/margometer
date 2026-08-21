@@ -1,3 +1,9 @@
+/**
+ * Every rejection here is a value `Number()` would have accepted, and each one
+ * would have arrived downstream as a figure nobody wrote. They are listed as
+ * cases rather than described, because the point is the exact input.
+ */
+
 import { describe, expect, test } from "bun:test";
 import { AssertionFailure } from "@/libs/assert.ts";
 import {
@@ -11,12 +17,6 @@ import {
   getIntegerFromValue,
   getNumberFromText,
 } from "@/libs/number.ts";
-
-/**
- * Every rejection here is a value `Number()` would have accepted, and each one
- * would have arrived downstream as a figure nobody wrote. They are listed as
- * cases rather than described, because the point is the exact input.
- */
 
 describe("reading an integer from text", () => {
   test.each([

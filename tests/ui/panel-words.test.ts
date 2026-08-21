@@ -30,13 +30,7 @@ import {
   type TokenName,
 } from "@/src/ui/panel-words.ts";
 import { getMetricNoun, isGivenMetric, PANEL_METRICS } from "@/src/ui/panel-screen.ts";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import {
-  CAPTURED_FIGHTS,
-  composeRosterOfFight,
-  getMessagesOfFight,
-} from "@/tests/captured-fight-catalog.ts";
+import { CAPTURED_FIGHTS, composeStatisticsOfFight } from "@/tests/captured-fight-catalog.ts";
 
 const VOCABULARY: Array<[string, Record<string, TokenName>]> = [
   ["professions", PROFESSION_NAMES],
@@ -294,11 +288,7 @@ describe("the tokens the panel singles out", () => {
   test("the critical the counters line counts is one the recordings fire", () => {
     const fired = new Set<string>();
     for (const fight of CAPTURED_FIGHTS) {
-      const roster = composeRosterOfFight(fight);
-      const statistics = composeFightStatistics(
-        decodeFight(getMessagesOfFight(fight), roster),
-        roster,
-      );
+      const statistics = composeStatisticsOfFight(fight);
       for (const row of [...statistics.byCombatantId.values(), statistics.unattributed]) {
         for (const token of row.procsOnBlowsStruck.keys()) fired.add(token);
       }
@@ -310,8 +300,7 @@ describe("the tokens the panel singles out", () => {
 
 describe("the two health vocabularies, against the captures", () => {
   const SOURCES = CAPTURED_FIGHTS.map((fight) => {
-    const roster = composeRosterOfFight(fight);
-    const statistics = composeFightStatistics(decodeFight(getMessagesOfFight(fight), roster), roster);
+    const statistics = composeStatisticsOfFight(fight);
     const lost = new Set<string>();
     const gained = new Set<string>();
     for (const row of [...statistics.byCombatantId.values(), statistics.unattributed]) {
@@ -371,7 +360,6 @@ describe("the two health vocabularies, against the captures", () => {
  * the sentences again here would be the same mistake a third time, so what is held
  * is which screens share one and which must differ.
  */
-
 
 describe("every screen has something to say", () => {
   // For a whole release one of the four said nothing at all, which is why the
@@ -635,7 +623,6 @@ describe("what is shared and what is not", () => {
  * two used to be spelled differently in two places and printed `39362,0/t` beside
  * `354 258` on one row.
  */
-
 
 describe("a figure", () => {
   test("is spaced every three digits from the right", () => {

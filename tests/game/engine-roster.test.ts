@@ -1,16 +1,3 @@
-import { describe, expect, test } from "bun:test";
-import { getRecordOrArrayFromValue } from "@/libs/record.ts";
-import type { RosteredCombatant } from "@/src/core/combatant-roster.ts";
-import {
-  composeBattleRoster,
-  composeRosterFragmentFromBattle,
-  composeMergedCombatants,
-  composeRosteredCombatant,
-  composeStatedHealthByCombatantId,
-  getOurSideFromBattle,
-} from "@/src/game/engine-roster.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
-
 /**
  * The layer that decides which side is ours, held directly.
  *
@@ -26,6 +13,19 @@ import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
  * know (§10, *side*): null is a real answer, and a wrong one puts every row
  * under the wrong heading.
  */
+
+import { describe, expect, test } from "bun:test";
+import { getRecordOrArrayFromValue } from "@/libs/record.ts";
+import type { RosteredCombatant } from "@/src/core/combatant-roster.ts";
+import {
+  composeBattleRoster,
+  composeRosterFragmentFromBattle,
+  composeMergedCombatants,
+  composeRosteredCombatant,
+  composeStatedHealthByCombatantId,
+  getOurSideFromBattle,
+} from "@/src/game/engine-roster.ts";
+import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
 function composeCombatant(over: Partial<RosteredCombatant> = {}): RosteredCombatant {
   return { id: 1, name: "one", side: 1, profession: "m", level: 100, maximumHealth: null, ...over };

@@ -46,6 +46,28 @@ export const VIEW_PHASE = "view";
 /** Building the nodes. The one phase no offline measurement can take. */
 export const DOM_PHASE = "dom";
 
+/**
+ * What the two readings call the columns they print.
+ *
+ * ⚠️ **The same table is drawn twice, and its headings were decided twice.**
+ * `src/ui/cost-overlay.ts` draws it beside the panel in a development build and
+ * `tools/payload-cost.ts` prints it in a terminal; both spelled `phase`, `calls`,
+ * `total ms` and `worst ms` themselves
+ * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F5). That
+ * is the same argument this file already makes for the phase names, one row up
+ * from them, and the same failure: two tables that drift and both go on printing.
+ *
+ * The widths stay with each reader. They are not vocabulary — a terminal has room
+ * a corner of a game window does not — and that difference is the reason the two
+ * readings exist at all.
+ */
+export const COST_COLUMNS = {
+  name: "phase",
+  calls: "calls",
+  total: "total ms",
+  worst: "worst ms",
+} as const;
+
 export const WHOLE_PHASES: readonly string[] = [PAYLOAD_PHASE, GESTURE_PHASE, DRAG_PHASE];
 export const PART_PHASES: readonly string[] = [
   SESSION_PHASE,

@@ -1,3 +1,18 @@
+/**
+ * The captured fights, and the readings every test needs of them.
+ *
+ * The material is evidence (§9.2), so nothing here edits or reformats it: the
+ * directory is read as it stands, a fixture list is never written by hand, and an
+ * empty directory fails rather than passing quietly. What this file adds is the
+ * three readings a test would otherwise spell for itself — the roster of a whole
+ * fight, its messages in arrival order, and the statistics as the panel composes
+ * them — each of which had been written out in file after file until it was.
+ *
+ * It reads `tools/fight-dump-parser.ts`, which §9.1 permits by name and for one
+ * reason: the live path and the offline one must not disagree about what a
+ * capture says.
+ */
+
 import { readdirSync, readFileSync } from "node:fs";
 import {
   composeCombatantRoster,
@@ -8,6 +23,7 @@ import {
   type FightEntryHealth,
 } from "@/src/core/combatant-health.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import {
   getMaximumHealthByCombatantId,
   parseFightDump,
@@ -77,6 +93,31 @@ export function composeRosterOfFight(fight: CapturedFight): CombatantRoster {
     }
   }
   return composeRosterFromSnapshots([...byId.values()]);
+}
+
+/**
+ * A recording read the way the panel reads it: roster, messages, entry health.
+ *
+ * ⚠️ **The three arguments were spelled out at ten call sites and four of them
+ * left one off**, which is not a small difference — composing the seventeen
+ * recordings both ways, healing on fourteen of them more than doubles once the
+ * entry health is passed, because that is what sizes a share stated about a whole
+ * side (§9.6). The tools carried a comment saying they read *the same reading the
+ * panel is held to*; the tests carried nothing, and one of the four was the
+ * fixture the whole of `tests/ui/panel-drill.test.ts` runs on
+ * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F2).
+ *
+ * So the reading is decided here, once, where the material already is. A caller
+ * that wants a fight sized differently — with no roster, to watch names resolve
+ * to nobody — composes it itself and says why.
+ */
+export function composeStatisticsOfFight(fight: CapturedFight): FightStatistics {
+  const roster = composeRosterOfFight(fight);
+  return composeFightStatistics(
+    decodeFight(getMessagesOfFight(fight), roster),
+    roster,
+    fight.entryHealthByCombatantId,
+  );
 }
 
 /**

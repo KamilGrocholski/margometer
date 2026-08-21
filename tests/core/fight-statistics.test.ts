@@ -47,8 +47,9 @@ import {
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
-  type CapturedFight,
+  composeStatisticsOfFight,
   getMessagesOfFight,
+  type CapturedFight,
 } from "@/tests/captured-fight-catalog.ts";
 
 /**
@@ -60,15 +61,7 @@ import {
  * left it out would go on asserting the totals from before that was true.
  */
 function getStatisticsOf(fight: CapturedFight) {
-  const roster = composeRosterOfFight(fight);
-  return composeFightStatistics(
-    decodeFight(
-      getMessagesOfFight(fight),
-      roster,
-    ),
-    roster,
-    fight.entryHealthByCombatantId,
-  );
+  return composeStatisticsOfFight(fight);
 }
 
 function getEventsOf(fight: CapturedFight): BattleEvent[] {

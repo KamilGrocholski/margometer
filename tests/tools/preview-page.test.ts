@@ -1,3 +1,15 @@
+/**
+ * The page, held to the things it can get wrong quietly.
+ *
+ * None of this needs a socket, because `composePreviewPage` is pure and the page
+ * is where every past failure of this harness lived — the recipe it replaces
+ * (`.claude/skills/verify/SKILL.md`) records two of them, and both were a page
+ * that loaded and drew nothing rather than a page that errored. Now that it has
+ * two consumers, the same is true of every hole in it: a published page carries
+ * different words, different addresses and no reload stream, and each of those is
+ * invisible until somebody opens the deployed URL.
+ */
+
 import { describe, expect, test } from "bun:test";
 
 import { assertDefined } from "@/libs/assert.ts";
@@ -10,18 +22,6 @@ import {
   type PreviewPageOptions,
   type PreviewWords,
 } from "@/tools/preview-page.ts";
-
-/**
- * The page, held to the things it can get wrong quietly.
- *
- * None of this needs a socket, because `composePreviewPage` is pure and the page
- * is where every past failure of this harness lived — the recipe it replaces
- * (`.claude/skills/verify/SKILL.md`) records two of them, and both were a page
- * that loaded and drew nothing rather than a page that errored. Now that it has
- * two consumers, the same is true of every hole in it: a published page carries
- * different words, different addresses and no reload stream, and each of those is
- * invisible until somebody opens the deployed URL.
- */
 
 const FIGHT = assertDefined(CAPTURED_FIGHTS[0], "the catalog carries a capture to preview");
 

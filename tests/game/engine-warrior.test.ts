@@ -1,17 +1,3 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
-import {
-  HEALTH_CURRENT_FIELD,
-  HEALTH_MAXIMUM_FIELD,
-  WARRIOR_HEALTH_FIELD,
-  WARRIOR_ID_FIELD,
-  WARRIOR_LEVEL_FIELD,
-  WARRIOR_NAME_FIELD,
-  WARRIOR_PROFESSION_FIELD,
-  WARRIOR_SIDE_FIELD,
-} from "@/src/game/engine-warrior.ts";
-
 /**
  * `src/game/engine-warrior.ts` is the only place in `src/game/` that spells a
  * field of the game's combatant object.
@@ -31,6 +17,20 @@ import {
  * name. Holding the parser to this owner would make it reinterpret evidence
  * (§9.2), so it is out of scope on purpose rather than by oversight.
  */
+
+import { readdirSync, readFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
+import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import {
+  HEALTH_CURRENT_FIELD,
+  HEALTH_MAXIMUM_FIELD,
+  WARRIOR_HEALTH_FIELD,
+  WARRIOR_ID_FIELD,
+  WARRIOR_LEVEL_FIELD,
+  WARRIOR_NAME_FIELD,
+  WARRIOR_PROFESSION_FIELD,
+  WARRIOR_SIDE_FIELD,
+} from "@/src/game/engine-warrior.ts";
 
 const GAME_DIRECTORY = new URL("../../src/game/", import.meta.url).pathname;
 const OWNER = "engine-warrior.ts";

@@ -1,3 +1,12 @@
+/**
+ * Holds `docs/protocol-keys.md` to the code and to the game.
+ *
+ * A register nobody checks is the artefact this project deleted 14,000 lines of.
+ * These are the properties that keep it honest: it cannot claim to read a key
+ * the decoder ignores, cannot omit one the decoder reads, and cannot describe a
+ * key the game has never heard of.
+ */
+
 import { describe, expect, test } from "bun:test";
 import { getIntegerFromText, getNumberFromText } from "@/libs/number.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
@@ -22,15 +31,6 @@ import {
   PROTOCOL_KEY_REGISTER,
   ProtocolKeyRegisterError,
 } from "@/tests/protocol-key-register.ts";
-
-/**
- * Holds `docs/protocol-keys.md` to the code and to the game.
- *
- * A register nobody checks is the artefact this project deleted 14,000 lines of.
- * These are the properties that keep it honest: it cannot claim to read a key
- * the decoder ignores, cannot omit one the decoder reads, and cannot describe a
- * key the game has never heard of.
- */
 
 const NAMED_KEYS = new Set<string>(FROZEN_PROTOCOL_KEYS.keys);
 const ENTRIES = PROTOCOL_KEY_REGISTER;
@@ -419,7 +419,6 @@ describe("the register against the captured material", () => {
     expect(silent).toEqual([]);
   });
 });
-
 
 /**
  * The `*Cause:*` line, re-earned rather than read back.

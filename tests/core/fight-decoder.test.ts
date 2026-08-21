@@ -1,8 +1,3 @@
-import { describe, expect, test } from "bun:test";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
-
 /**
  * Decoder rules that the captured material cannot pin down on its own, because
  * it happens to contain only one or two examples of them.
@@ -10,6 +5,11 @@ import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/te
  * The health witness proves the numbers; this proves the parts of the reading
  * that produce no number and would otherwise be inert.
  */
+
+import { describe, expect, test } from "bun:test";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 /**
  * ⚠️ **This block used to say "half understood is not understood", and reported

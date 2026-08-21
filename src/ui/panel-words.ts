@@ -1,6 +1,3 @@
-import { composeDecimalText, composeIntegerText } from "@/libs/number.ts";
-import { getMetricNoun, type PanelMetric, type PanelNoun } from "@/src/ui/panel-screen.ts";
-
 /**
  * Everything the panel puts in front of a reader: a name of the game's own turned
  * into a label, the sentences said where the game named nobody, and a number as
@@ -18,6 +15,9 @@ import { getMetricNoun, type PanelMetric, type PanelNoun } from "@/src/ui/panel-
  * token nobody has named travels as the game wrote it rather than as a guess
  * (§5 — unknown is allowed, a guessed name is not).
  */
+
+import { composeDecimalText, composeIntegerText } from "@/libs/number.ts";
+import { getMetricNoun, type PanelMetric, type PanelNoun } from "@/src/ui/panel-screen.ts";
 
 /** How a token is named, in the two places a name can come from. */
 export type TokenName = {

@@ -1,3 +1,13 @@
+/**
+ * JSON both ways, and the two answers a bare `JSON.parse` cannot give.
+ *
+ * Reading hands back the value **or** the `SyntaxError`, never a bare `null` — a
+ * document that says `null` and a document that will not parse are different
+ * things, and every caller here has to tell them apart (§9.5). Writing refuses a
+ * value JSON cannot hold rather than dropping it silently, which is what
+ * `JSON.stringify` does to a function and to `undefined`.
+ */
+
 import { describe, expect, test } from "bun:test";
 import { getValueFromJsonText } from "@/libs/json.ts";
 

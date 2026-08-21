@@ -1,9 +1,3 @@
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-import { composeHexadecimalByteText } from "@/libs/number.ts";
-import { composeShotFileName, PANEL_SHOTS } from "@/tools/panel-screenshots.ts";
-
 /**
  * Every file this repository writes is text a text tool can read.
  *
@@ -31,6 +25,12 @@ import { composeShotFileName, PANEL_SHOTS } from "@/tools/panel-screenshots.ts";
  * verdict derived from somebody else's heuristic is the shape §7.5 refuses:
  * where a byte can carry the answer, nothing else may judge.
  */
+
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
+import { composeHexadecimalByteText } from "@/libs/number.ts";
+import { composeShotFileName, PANEL_SHOTS } from "@/tools/panel-screenshots.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 

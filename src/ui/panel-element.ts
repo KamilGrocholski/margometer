@@ -1,18 +1,3 @@
-import { getValueFromJsonText } from "@/libs/json.ts";
-import { getRecordFromValue } from "@/libs/record.ts";
-import {
-  composeDecimalText,
-  composeIntegerText,
-  getFiniteNumberFromValue,
-  getIntegerFromValue,
-} from "@/libs/number.ts";
-import {
-  composePanelStyleText,
-  getProfessionInk,
-  PANEL_PIXELS,
-  PANEL_TOKENS,
-  UNKNOWN_COLOUR,
-} from "@/src/ui/panel-look.ts";
 /**
  * The panel, drawn.
  *
@@ -41,6 +26,22 @@ import {
  * as an argument (§9.9). What the split cost was a reader having to hold three
  * files to answer where the panel is.
  */
+
+import { getValueFromJsonText } from "@/libs/json.ts";
+import { getRecordFromValue } from "@/libs/record.ts";
+import {
+  composeDecimalText,
+  composeIntegerText,
+  getFiniteNumberFromValue,
+  getIntegerFromValue,
+} from "@/libs/number.ts";
+import {
+  composePanelStyleText,
+  getProfessionInk,
+  PANEL_PIXELS,
+  PANEL_TOKENS,
+  UNKNOWN_COLOUR,
+} from "@/src/ui/panel-look.ts";
 
 import {
   BACK_ROW_KEY,

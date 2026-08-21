@@ -1,3 +1,14 @@
+/**
+ * The two error hierarchies, held apart.
+ *
+ * §9.5 makes them deliberately disjoint so that a `catch` in the add-on cannot
+ * swallow a tool's error believing it caught its own, and this is the file that
+ * proves it: neither base answers to the other, both are abstract, and every
+ * subclass carries a `code` and a branded `name` so nothing has to match on
+ * message text. It is also the one place in `tests/` that reads both bases, which
+ * §9.1 permits for exactly this reason.
+ */
+
 import { describe, expect, test } from "bun:test";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 import { ProtocolMessageFormatError } from "@/src/core/protocol-message.ts";

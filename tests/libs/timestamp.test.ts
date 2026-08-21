@@ -1,3 +1,12 @@
+/**
+ * `Date.parse` without the `NaN`.
+ *
+ * The one thing worth holding: `NaN` compares false against every bound, so a
+ * timestamp read straight from `Date.parse` and then compared is a check that
+ * quietly passes on text that is not a date at all (§9.5). Reading returns null
+ * instead, and the round trip is what catches a date the calendar does not have.
+ */
+
 import { describe, expect, test } from "bun:test";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 

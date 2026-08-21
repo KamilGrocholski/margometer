@@ -1,3 +1,24 @@
+/**
+ * What a row opens onto: the two levels below the ranking, and the card either of
+ * them shows on hover.
+ *
+ * The levels first became a file when they were carved out of `panel-view.ts`
+ * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26); the card
+ * followed them here the moment the drill became its second reader. It is the
+ * same card at every level and says whose figures they are, so it belongs beside
+ * the thing that decides what a level holds rather than beside the ranking that
+ * shows the same card one rung up.
+ *
+ * ⚠️ **A row that opens nothing is not a row that says nothing.** What no
+ * announcement covered still stands in its section so the parts add up to the
+ * figure above them, and under `Zadane` that row carries how many blows — which
+ * is the question a plain attack raises. `docs/drill-levels.md` is the register
+ * of which rows open and which do not, held both ways by
+ * `tests/tools/drill-report.test.ts`.
+ *
+ * **The strings are Polish and nothing else here is** (§3).
+ */
+
 import { composeIntegerText } from "@/libs/number.ts";
 import { getTotalOfValues, setRunningTotal } from "@/libs/running-total.ts";
 import { type CombatantStatistics, type SkillStatistics } from "@/src/core/fight-statistics.ts";
@@ -46,27 +67,6 @@ import {
   type PanelReading,
 } from "@/src/ui/panel-reading.ts";
 import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-look.ts";
-
-/**
- * What a row opens onto: the two levels below the ranking, and the card either of
- * them shows on hover.
- *
- * The levels first became a file when they were carved out of `panel-view.ts`
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26); the card
- * followed them here the moment the drill became its second reader. It is the
- * same card at every level and says whose figures they are, so it belongs beside
- * the thing that decides what a level holds rather than beside the ranking that
- * shows the same card one rung up.
- *
- * ⚠️ **A row that opens nothing is not a row that says nothing.** What no
- * announcement covered still stands in its section so the parts add up to the
- * figure above them, and under `Zadane` that row carries how many blows — which
- * is the question a plain attack raises. `docs/drill-levels.md` is the register
- * of which rows open and which do not, held both ways by
- * `tests/tools/drill-report.test.ts`.
- *
- * **The strings are Polish and nothing else here is** (§3).
- */
 
 /**
  * Which screen the card was opened on — one discriminant rather than two flags
@@ -703,11 +703,20 @@ const OPPONENT_HEADINGS: Record<PanelMetric, string> = {
   healed: "OD KOGO",
 };
 
+/**
+ * ⚠️ **One of these four cannot be drawn, and it stays anyway.** Healing given has
+ * no source cut at all — the keys the game names belong to whoever received the
+ * health — so `composeSourceEntries` returns an empty list for it and the heading
+ * is never read (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`,
+ * F7). The entry is here for the reason every table in `src/ui/panel-words.ts` is
+ * exhaustive: the compiler asks about a fifth screen instead of letting it inherit
+ * whichever wording came first. What the audit found missing was anybody saying
+ * so — and `tests/ui/panel-drill.test.ts` now holds the emptiness rather than
+ * leaving it to be rediscovered as a dead word.
+ */
 const SOURCE_HEADINGS: Record<PanelMetric, string> = {
   dealt: "TYP OBRAŻEŃ",
   taken: "TYP OBRAŻEŃ",
-  // Healing given has no source cut: the keys the game names belong to whoever
-  // received the health, and there is no second map stating them for the giver.
   healingGiven: "OD CZEGO",
   healed: "OD CZEGO",
 };

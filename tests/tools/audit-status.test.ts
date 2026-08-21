@@ -1,8 +1,3 @@
-import { expectDatedName } from "@/tests/dated-document.ts";
-import { hasCommit, isShallowRepository } from "@/tests/git-history.ts";
-import { readdirSync, readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-
 /**
  * Holds `docs/audits/` to §7.7's shape.
  *
@@ -32,6 +27,11 @@ import { describe, expect, test } from "bun:test";
  * needs the other open to be read, which was the whole of the original
  * objection.
  */
+
+import { expectDatedName } from "@/tests/dated-document.ts";
+import { hasCommit, isShallowRepository } from "@/tests/git-history.ts";
+import { readdirSync, readFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
 
 const AUDITS_DIRECTORY = new URL("../../docs/audits/", import.meta.url).pathname;
 const AUDIT_FILES = readdirSync(AUDITS_DIRECTORY).filter((file) => file.endsWith(".md"));

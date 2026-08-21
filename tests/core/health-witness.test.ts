@@ -1,3 +1,16 @@
+/**
+ * The decoder checked against something that is not the decoder.
+ *
+ * Two numbers meet here that nothing in this project reconciles: maximum and
+ * current health, taken from the combatant snapshots around each engine call,
+ * and the health percentage the protocol states inside each message. If the
+ * damage we decode is right, the second follows from the first.
+ *
+ * Which keys make a call unjudgeable is not decided here any more — it is read
+ * from `docs/protocol-keys.md`, where each verdict carries its evidence and a
+ * guard below re-earns it on every run.
+ */
+
 import { describe, expect, test } from "bun:test";
 import { composeDecimalText, getNumberFromText } from "@/libs/number.ts";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
@@ -11,19 +24,6 @@ import {
 } from "@/tests/captured-fight-catalog.ts";
 import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
-
-/**
- * The decoder checked against something that is not the decoder.
- *
- * Two numbers meet here that nothing in this project reconciles: maximum and
- * current health, taken from the combatant snapshots around each engine call,
- * and the health percentage the protocol states inside each message. If the
- * damage we decode is right, the second follows from the first.
- *
- * Which keys make a call unjudgeable is not decided here any more — it is read
- * from `docs/protocol-keys.md`, where each verdict carries its evidence and a
- * guard below re-earns it on every run.
- */
 
 /** The protocol states percentages rounded to two places, so the comparison is too. */
 const TOLERANCE_IN_PERCENTAGE_POINTS = 0.02;

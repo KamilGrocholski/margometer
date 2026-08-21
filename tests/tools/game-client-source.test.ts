@@ -1,14 +1,3 @@
-import { spawnSync } from "node:child_process";
-import { describe, expect, test } from "bun:test";
-import {
-  CACHE_ROOT,
-  GameSourceError,
-  getBuildFromPage,
-  getCachedBundle,
-  getCachedClientSource,
-  getChannelFromArgument,
-} from "@/tools/game-client-source.ts";
-
 /**
  * The tool that decides whether the cached client is stale.
  *
@@ -21,6 +10,17 @@ import {
  * one. The fetching and the writing are the halves that need a live host, and
  * they are named in this file as what it does not cover.
  */
+
+import { spawnSync } from "node:child_process";
+import { describe, expect, test } from "bun:test";
+import {
+  CACHE_ROOT,
+  GameSourceError,
+  getBuildFromPage,
+  getCachedBundle,
+  getCachedClientSource,
+  getChannelFromArgument,
+} from "@/tools/game-client-source.ts";
 
 describe("the build id on a world page", () => {
   test("is read from the inline build object", () => {

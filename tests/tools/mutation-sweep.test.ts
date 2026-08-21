@@ -1,19 +1,3 @@
-import { readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-import {
-  composeSourceWithBlankedComments,
-  getRegularExpressionRangesFromSource,
-  getTextRangesFromSource,
-} from "@/libs/source-regions.ts";
-import {
-  composeMutatedSource,
-  composeMutations,
-  getFailingTestFiles,
-  getSweptFiles,
-  MutationSweepError,
-  type Mutation,
-} from "@/tools/mutation-sweep.ts";
-
 /**
  * The half of the sweep that decides what to break, held without breaking
  * anything.
@@ -29,6 +13,22 @@ import {
  * loses a byte of somebody's source has done more damage than every finding it
  * could ever report.
  */
+
+import { readFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
+import {
+  composeSourceWithBlankedComments,
+  getRegularExpressionRangesFromSource,
+  getTextRangesFromSource,
+} from "@/libs/source-regions.ts";
+import {
+  composeMutatedSource,
+  composeMutations,
+  getFailingTestFiles,
+  getSweptFiles,
+  MutationSweepError,
+  type Mutation,
+} from "@/tools/mutation-sweep.ts";
 
 const SAMPLE = [
   'import { getIntegerFromText } from "@/libs/number.ts";',

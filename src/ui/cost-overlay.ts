@@ -24,7 +24,10 @@
 
 import { composeDecimalText, composeIntegerText } from "@/libs/number.ts";
 import type { ElapsedSpan } from "@/libs/elapsed-spans.ts";
-import { PANEL_TOKENS } from "@/src/ui/panel-look.ts";
+import { COST_COLUMNS } from "@/src/cost-phases.ts";
+import { PANEL_PIXELS, PANEL_TOKENS } from "@/src/ui/panel-look.ts";
+
+const PANEL_SPACE = `${composeIntegerText(PANEL_PIXELS.space)}px`;
 
 /** §9.6, rung one: a name of ours in the game's own document carries the prefix. */
 export const COST_OVERLAY_ID = "MargoMeter-Cost";
@@ -42,13 +45,16 @@ const NUMBER_COLUMN = 10;
  */
 const OVERLAY_DECLARATIONS: readonly (readonly [name: string, value: string])[] = [
   ["position", "fixed"],
-  ["right", "8px"],
-  ["bottom", "8px"],
+  // The panel's own margin, from the numbers its stylesheet is built from: an
+  // overlay that kept its own `8px` would sit at yesterday's rhythm the day the
+  // panel moved (§9.7).
+  ["right", PANEL_SPACE],
+  ["bottom", PANEL_SPACE],
   // Under the maximum a page can ask for, so anything the game deliberately puts
   // on top stays on top.
   ["z-index", "2147483646"],
   ["margin", "0"],
-  ["padding", "8px"],
+  ["padding", PANEL_SPACE],
   ["font", "11px/1.4 ui-monospace, monospace"],
   ["white-space", "pre"],
   ["pointer-events", "none"],
@@ -106,7 +112,8 @@ function composeSpanLine(span: ElapsedSpan): string {
 export function composeCostLines(reading: CostReading): readonly string[] {
   return [
     "MargoMeter cost — since this page loaded",
-    `  ${"phase".padEnd(NAME_COLUMN)}${"calls".padStart(6)}${"total ms".padStart(NUMBER_COLUMN)}${"worst ms".padStart(NUMBER_COLUMN)}`,
+    `  ${COST_COLUMNS.name.padEnd(NAME_COLUMN)}${COST_COLUMNS.calls.padStart(6)}` +
+      `${COST_COLUMNS.total.padStart(NUMBER_COLUMN)}${COST_COLUMNS.worst.padStart(NUMBER_COLUMN)}`,
     "whole",
     ...reading.wholes.map(composeSpanLine),
     "parts of it",
