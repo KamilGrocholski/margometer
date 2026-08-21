@@ -123,10 +123,17 @@ export type CombatantStatistics = {
    * 21 of 31 for one hunter — so this is most of what happens, not a corner.
    *
    * ⚠️ **Not the same claim as "used a plain attack".** A blow with nothing
-   * announced over it is a plain attack *or* an extra swing the game granted and
-   * does not mark as one; the protocol does not tell the two apart, so the count
-   * is of blows nothing announced, and the panel says that rather than the other
-   * thing.
+   * announced over it is a plain attack *or* an attack the game handed out, and
+   * the two do not come apart. Asked of the source rather than assumed: the
+   * published help grants an unbidden attack under `contra` and `pcontra` — a
+   * riposte, arriving as an ordinary blow message with nothing on it — and under
+   * `of-thirdatt`, which the protocol *does* mark and marks on the message of the
+   * blow it came with, so it was never counted here either (article `view,372`,
+   * read 2026-08-21;
+   * `docs/specs/2026-08-21-an-extra-blow-the-game-grants.md`).
+   *
+   * So the count is of blows nothing announced, and the panel says that rather
+   * than the other thing.
    */
   blowsWithoutSkill: number;
   /** Who this combatant hit, and with what. The other end of `takenByActorId`. */

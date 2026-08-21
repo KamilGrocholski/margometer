@@ -775,6 +775,13 @@ one, stated raw. Damage the shape above cannot reach, because the key carries no
 `dmg` marker — `fight-decoder.ts` names this pair instead, which is the one
 exception the family rule has.
 
+**Alongside, and that word is the whole of its value here.** Of the attacks the
+game grants a combatant without being asked, this is the only one the protocol
+marks — and it marks it *on the message of the blow it came with*, not as a message
+of its own. So it never reaches the count of blows nobody announced, and it is not
+the thing a player is asking about when they ask which of their swings were plain
+(`docs/specs/2026-08-21-an-extra-blow-the-game-grants.md`).
+
 *Shape:* 6 occurrences; on a blow; a whole number
 
 *Help:* names `thirdatt`
@@ -1187,6 +1194,14 @@ build `1786514810315`: `case"-contra"` composes `_t("msg_-contra")` with no
 riposte fires arrives as its own message like any other, and nothing in the
 protocol says which one it was. Reading the flag claims only that the event
 happened.
+
+**And a critical hit is not the only way in.** The help documents `pcontra`
+separately — a chance that the same automatic attack follows a **Parowanie**, which
+reaches the protocol as `-parry` and has never been recorded here either (article
+`view,372`, read 2026-08-21). So a fight can put an unannounced riposte on the board
+with no critical hit in it, which matters to nothing this decoder does and to one
+thing it says: the blow that riposte throws is counted as a plain swing, and
+`docs/specs/2026-08-21-an-extra-blow-the-game-grants.md` is where that stands.
 
 ### `-tenacity` — decoded
 
@@ -2316,13 +2331,19 @@ reads the value as the number of health points restored.
 
 ## Keys the captures have never carried
 
-Four keys the client knows and the help documents, and no recording has produced:
-two that would tick with one end named, and the two events that announce them.
-They are here because a reader meeting them will otherwise ask the question two
-rounds have already answered — *is this the wound we read, arriving under another
-name?* — and because the answer turns on a difference the analogy hides. What each
-would need to be read like `injure` is
+Keys the client knows and the help documents, and no recording has produced. Two
+families sit here, and each is here because a reader meeting one of its keys will
+otherwise ask a question a round has already answered.
+
+The ticks and the events that announce them — *is this the wound we read, arriving
+under another name?* The answer turns on a difference the analogy hides, and what
+each would need to be read like `injure` is
 `docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`.
+
+The two below them — *is this the extra swing the panel tells a player it cannot
+tell apart?* The answer is that the game grants an attack nobody asked for in the
+places its own help names, and marks none of them where a meter could see it:
+`docs/specs/2026-08-21-an-extra-blow-the-game-grants.md`.
 
 An entry here states no `*Shape:*` line: that line is a measurement over the
 captures, and there is nothing to measure. It states no `*Health:*` line either,
@@ -2440,6 +2461,60 @@ one. The published help documents the effect under the weapon attribute
 `view,372` (read 2026-08-19) — and prints no separate entry for either announcing
 form, as it prints none for `+injure` or `+critwound`. Absent from
 `tests/captured-fights/` as the set stood 2026-08-19.
+
+### `+swing` — investigated
+
+**Szeroki zamach** — the key whose name suggests a second blow, and the reason this
+family is in the register at all. It is not a second blow. The help gives it as a
+chance event on a **landed attack**, whose effect reaches further opponents inside
+that same attack: two more targets in the form written for a monster's statistic,
+at most three in the form written for the active effect, each drawn at random
+without repeating and each one the attacker could already reach without moving. The
+additional damage is rolled from the main weapon's own damage range.
+
+So the striker swings once, and what the event changes is how many people that one
+swing lands on.
+
+⚠️ **Whether those further targets arrive as messages of their own is precisely
+what no recording can be asked.** A blow is one message here, and an event putting
+damage into two more opponents either rides the message it fired on or produces two
+beside it — the difference between one swing and three in `blowsStruck`, and one the
+client cannot settle either: its branch composes the announcement and never the
+damage. Meaning first, material second, and the material is what is missing (§7.1).
+
+*Help:* names `swing`
+
+*Evidence:* production build `1786514810315` composes `msg_+swing` with **no
+`%val%`**, on the switch where `+injure` carries one — so the key announces its
+event and states no figure, as `+fastarrow` and `-contra` do. The published help
+documents the effect twice, both times under the engine name `swing` — article
+`view,372` (read 2026-08-21) — once as a monster's statistic and once as an active
+effect, and the two forms differ in how many further targets each names. Absent
+from `tests/captured-fights/` as the set stood 2026-08-21.
+
+### `-parry` — investigated
+
+**Parowanie** — a defence event, and the second of the two doors a riposte comes
+through. The help gives it as a chance, on taking damage from a weapon held in the
+hand, that the damage is reduced to zero and the blow becomes a miss.
+
+It is here for what stands behind it rather than for itself. `pcontra` is a chance
+that a Parowanie is followed by the automatic attack `contra` describes — so the
+riposte this register already records under `-contra` has a second trigger, and a
+fight can produce one without a critical hit anywhere near it. `pcontra` is not a
+protocol key: the client knows the name in the switch that renders a bonus and
+nowhere in the switch that reads a battle message, so what a recording would carry
+is this key and then, unjoined, the blow.
+
+*Help:* names `parry`
+
+*Evidence:* production build `1786514810315` composes `msg_-parry` with **no
+`%val%`**, on the switch that composes `-evade` and `-contra` the same way and
+`-blok` with a value. The published help documents the event under the engine name
+`parry` — article `view,372` (read 2026-08-21) — as a chance to reduce melee damage
+to zero and turn the blow into a miss, and documents `pcontra` separately as the
+chance of a Kontra following it. Absent from `tests/captured-fights/` as the set
+stood 2026-08-21.
 
 ## Investigated and found not to be battle keys
 
