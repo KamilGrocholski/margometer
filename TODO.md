@@ -17,16 +17,16 @@
 
 
 ## In Progress
+- [ ] Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
 
 ## Up Next
 
 ## Done
+- [x] SPEC: Distinguish "Zwykly cios", "Zamaszczysty cios", and similar
 - [x] Reduce the number of files in the project, and bloat in comments/code/docs - /ui has too many files, split it into modules (per panel view) and create 
       files only for what is reusable by them; other directories dunno
 
 ## Later
-- [ ] Distinguish "Zwykly cios", "Zamaszczysty cios", and similar
-- [ ] Get more fight data - higher levels, more enemies, players vs players
 - [ ] Add a `Colossus`/`Titan` helper (based on MargoMeter) that shows:
       - which characters are not casting their abilities at all (presence check)
       - which characters are casting abilities incorrectly (correctness check)
