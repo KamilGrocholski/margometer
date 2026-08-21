@@ -63,7 +63,7 @@ import {
   getPositionFromStoredText,
   type PanelPosition,
   type PanelViewport,
-} from "@/src/ui/panel-placement.ts";
+} from "@/src/ui/panel-element.ts";
 import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
 import {
   CAPTURE_PHASE,

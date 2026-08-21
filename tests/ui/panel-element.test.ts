@@ -1,3 +1,34 @@
+import { describe, expect, test } from "bun:test";
+import {
+  composeClampedPosition,
+  composeDefaultPosition,
+  composeDraggedPosition,
+  composePositionDeclarations,
+  composeStoredTextFromPosition,
+  composeTipDeclarations,
+  getPositionFromStoredText,
+  type PanelDocument,
+  type PanelEvent,
+  type PanelHost,
+  type PanelNode,
+  type PanelPlacement,
+  type PanelScroll,
+  type PanelTipBox,
+  renderPanel,
+  renderPanelInto,
+  renderWaitingInto,
+  setPanelRoot,
+} from "@/src/ui/panel-element.ts";
+import {
+  composeColourOver,
+  composePanelStyleText,
+  getContrastRatio,
+  PANEL_PIXELS,
+  PANEL_TOKENS,
+  SERIES_COLOURS,
+  UNKNOWN_COLOUR,
+} from "@/src/ui/panel-look.ts";
+import { getNumberFromText } from "@/libs/number.ts";
 /**
  * The panel, drawn, held to the promises §9.6 made before it was written.
  *
@@ -12,32 +43,11 @@
  * a document at all, in `tests/ui/panel-view.test.ts`.
  */
 
-import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
 import { getDecimalFromText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import {
-  renderPanel,
-  renderPanelInto,
-  renderWaitingInto,
-  setPanelRoot,
-  type PanelDocument,
-  type PanelEvent,
-  type PanelHost,
-  type PanelNode,
-  type PanelPlacement,
-  type PanelScroll,
-} from "@/src/ui/panel-element.ts";
-import {
-  composeColourOver,
-  composePanelStyleText,
-  getContrastRatio,
-  PANEL_TOKENS,
-  SERIES_COLOURS,
-  UNKNOWN_COLOUR,
-} from "@/src/ui/panel-look.ts";
 import type { PanelReading } from "@/src/ui/panel-reading.ts";
 import {
   composeDefaultState,
@@ -400,7 +410,7 @@ describe("what reaches the screen", () => {
    * it is nothing at all — and nothing reads here as a document with no layout,
    * which leaves the window in the corner for every hover of a real session.
    *
-   * The arithmetic is `tests/ui/panel-tip-placement.test.ts`'s. What this holds is
+   * The arithmetic is the tip-placement suite's. What this holds is
    * that the panel hands it a real size, the position it keeps and the window the
    * page stated.
    */
@@ -1288,4 +1298,402 @@ describe("pressing the part of a row somebody actually aims at", () => {
     expect(chosen.length).toBe(getEveryNode(row).length);
     expect(new Set(chosen)).toEqual(new Set(["combatant:1"]));
   });
+});
+
+/**
+ * Where the panel is allowed to be, and what a stored position has to prove.
+ *
+ * No document here at all — that is the point of the split. The arithmetic that
+ * decides whether the panel can be dragged off the screen is the part with a
+ * wrong answer, and it is checkable on its own.
+ */
+
+
+const PLACEMENT_SCREEN = { width: 1920, height: 1080 };
+
+describe("moving the panel", () => {
+  test("a drag translates the panel by what the pointer travelled", () => {
+    const grab = { pointerLeft: 500, pointerTop: 300, panelLeft: 1602, panelTop: 8 };
+    const moved = composeDraggedPosition(grab, { left: 520, top: 340 }, PLACEMENT_SCREEN);
+
+    expect(moved).toEqual({ left: 1622, top: 48 });
+  });
+
+  test("a drag backwards past the top left stops at the corner", () => {
+    const grab = { pointerLeft: 100, pointerTop: 100, panelLeft: 40, panelTop: 20 };
+    const moved = composeDraggedPosition(grab, { left: 0, top: 0 }, PLACEMENT_SCREEN);
+
+    expect(moved).toEqual({ left: 0, top: 0 });
+  });
+
+  /**
+   * ⚠️ The reason the clamp exists. A panel dragged off the right edge takes its
+   * own grab area with it, and the only way back is knowing that this add-on
+   * stores a position at all.
+   */
+  test("a drag off the edge leaves enough panel to grab it back by", () => {
+    const grab = { pointerLeft: 900, pointerTop: 500, panelLeft: 900, panelTop: 500 };
+    const moved = composeDraggedPosition(grab, { left: 9000, top: 9000 }, PLACEMENT_SCREEN);
+
+    expect(moved.left).toBeLessThan(PLACEMENT_SCREEN.width);
+    expect(moved.top).toBeLessThan(PLACEMENT_SCREEN.height);
+    expect(PLACEMENT_SCREEN.width - moved.left).toBeGreaterThanOrEqual(64);
+    expect(PLACEMENT_SCREEN.height - moved.top).toBeGreaterThanOrEqual(64);
+  });
+
+  // §9.3: unknown is loud, never zero. A viewport read as 0 would pin the panel
+  // to the corner and look exactly like a panel that works.
+  test("a page that did not say how big it is clamps nothing", () => {
+    const grab = { pointerLeft: 0, pointerTop: 0, panelLeft: 0, panelTop: 0 };
+    const moved = composeDraggedPosition(grab, { left: 9000, top: 9000 }, null);
+
+    expect(moved).toEqual({ left: 9000, top: 9000 });
+  });
+
+  // Browser zoom hands out fractional coordinates, and a fraction cannot be
+  // written back: `composeIntegerText` asserts rather than rounding quietly.
+  test("a fractional pointer still yields a position that can be stored", () => {
+    const grab = { pointerLeft: 10.5, pointerTop: 10.5, panelLeft: 100, panelTop: 100 };
+    const moved = composeDraggedPosition(grab, { left: 20.25, top: 30.75 }, PLACEMENT_SCREEN);
+
+    expect(Number.isSafeInteger(moved.left)).toBe(true);
+    expect(Number.isSafeInteger(moved.top)).toBe(true);
+    expect(() => composeStoredTextFromPosition(moved)).not.toThrow();
+  });
+
+  test("a viewport narrower than the margin puts the panel at the corner rather than off it", () => {
+    expect(composeClampedPosition({ left: 500, top: 500 }, { width: 30, height: 20 })).toEqual({
+      left: 0,
+      top: 0,
+    });
+  });
+
+  test("the corner the stylesheet draws is the corner the first drag starts from", () => {
+    expect(composeDefaultPosition(PLACEMENT_SCREEN)).toEqual({
+      left: PLACEMENT_SCREEN.width - PANEL_PIXELS.width - PANEL_PIXELS.space,
+      top: PANEL_PIXELS.space,
+    });
+  });
+
+  test("without a viewport there is no telling where a right-anchored panel is", () => {
+    expect(composeDefaultPosition(null)).toBeNull();
+  });
+
+  /**
+   * The fourth pair is what keeps the panel above the bottom of the screen: the
+   * ceiling in the stylesheet is the window's height less the top edge, and CSS
+   * cannot read a `top` back out of an inline style. So the same number is written
+   * twice, and the test holds the two to being the same number — a `--MargoMeter-panel-top`
+   * that drifted from `top` would cap the panel against a place it is not.
+   */
+  test("a position releases the corner it was anchored to, and carries the ceiling with it", () => {
+    expect(composePositionDeclarations({ left: 12, top: 34 })).toEqual([
+      ["left", "12px"],
+      ["top", "34px"],
+      ["--MargoMeter-panel-top", "34px"],
+      ["right", "auto"],
+    ]);
+  });
+});
+
+/**
+ * §9.6: state that survives a reload is validated on read, never trusted raw.
+ * Everything below is text a person can edit and a browser can truncate.
+ */
+describe("what a stored position has to be", () => {
+  test("what was written reads back", () => {
+    const position = { left: 640, top: 12 };
+    const text = composeStoredTextFromPosition(position);
+
+    expect(getPositionFromStoredText(text)).toEqual(position);
+  });
+
+  test.each([
+    ["not JSON at all", "left=10"],
+    ["truncated", '{"left":10,"to'],
+    ["a fraction", '{"left":10.5,"top":10}'],
+    ["a number as text", '{"left":"10","top":10}'],
+    ["missing a field", '{"left":10}'],
+    ["null", "null"],
+    ["an array", "[10,20]"],
+    ["a bare number", "12"],
+    ["past what a number holds exactly", '{"left":90071992547409911,"top":10}'],
+  ])("%s is no position at all", (_reason, text) => {
+    expect(getPositionFromStoredText(text)).toBeNull();
+  });
+
+  // A field nobody asked for is not a reason to throw away a position that is
+  // otherwise readable — the two we need are both there and both integers.
+  test("a field we do not know is ignored rather than fatal", () => {
+    expect(getPositionFromStoredText('{"left":10,"top":20,"width":999}')).toEqual({
+      left: 10,
+      top: 20,
+    });
+  });
+
+  test("a number that cannot be written back is refused rather than mangled", () => {
+    expect(() => composeStoredTextFromPosition({ left: 0.5, top: 0 })).toThrow();
+  });
+});
+
+/**
+ * Where the detail window opens, held without a document.
+ *
+ * The promise every test here is about: **the whole of it is on the screen**.
+ * That is one sentence and four ways to break it, because a window has four
+ * edges — and the arithmetic sees none of them, only numbers that have to come
+ * out inside the pair it was handed.
+ *
+ * §7.5's rule about boundaries is why each edge is asked from both sides: the
+ * detail is the same detail wherever it opens, so an edge off by one is invisible
+ * until somebody drags the panel to a corner and loses the thing they hovered
+ * for.
+ */
+
+
+const TIP_SCREEN = { width: 1200, height: 800 };
+const TIP: PanelTipBox = { width: PANEL_PIXELS.tipWidth, height: 200 };
+/** The right-hand corner the panel starts in, where every default hover happens. */
+const CORNER = { left: TIP_SCREEN.width - PANEL_PIXELS.width - PANEL_PIXELS.space, top: 8 };
+
+/**
+ * Back to the screen, which is where the promise is made. The declarations are
+ * written against the panel because that is what the detail hangs off, so every
+ * test here undoes that the way a browser does.
+ */
+function getScreenBox(
+  declarations: Array<[string, string]>,
+  panel: { left: number; top: number },
+  tip: PanelTipBox,
+) {
+  const getLength = (property: string): number => {
+    const written = declarations.find(([name]) => name === property)?.[1] ?? "";
+    // NaN rather than a zero where nothing was written: a length this test cannot
+    // read must fail the comparison rather than pass it as the top left corner.
+    return getNumberFromText(written.replace("px", "")) ?? Number.NaN;
+  };
+  const left = panel.left + getLength("left");
+  const top = panel.top + getLength("top");
+  return { left, top, right: left + tip.width, bottom: top + tip.height };
+}
+
+function expectOnScreen(box: { left: number; top: number; right: number; bottom: number }): void {
+  expect(box.left).toBeGreaterThanOrEqual(0);
+  expect(box.top).toBeGreaterThanOrEqual(0);
+  expect(box.right).toBeLessThanOrEqual(TIP_SCREEN.width);
+  expect(box.bottom).toBeLessThanOrEqual(TIP_SCREEN.height);
+}
+
+describe("the whole of the detail is on the screen", () => {
+  /**
+   * The four corners a panel can be dragged into, and both ends of the window for
+   * the pointer — swept rather than reasoned about, because the promise is one
+   * sentence and the cases that break it are the ones nobody thought to name.
+   *
+   * The panel positions include what the drag clamp allows at its most extreme:
+   * `src/ui/panel-element.ts` keeps 64px of panel on screen and no more, so a
+   * panel whose own right edge is off the window is a real position and not a
+   * contrived one.
+   */
+  const PANELS = [
+    { left: 0, top: 0 },
+    { left: 0, top: TIP_SCREEN.height - 64 },
+    { left: CORNER.left, top: CORNER.top },
+    { left: TIP_SCREEN.width - 64, top: TIP_SCREEN.height - 64 },
+    { left: 300, top: 300 },
+  ];
+  const POINTERS = [0, 1, 8, 400, TIP_SCREEN.height - 1, TIP_SCREEN.height];
+  const TIPS: PanelTipBox[] = [
+    { width: 250, height: 1 },
+    { width: 250, height: 200 },
+    { width: 250, height: 700 },
+    { width: 250, height: TIP_SCREEN.height - 2 * PANEL_PIXELS.space },
+  ];
+
+  for (const panel of PANELS) {
+    for (const pointerTop of POINTERS) {
+      for (const tip of TIPS) {
+        test(`panel ${panel.left},${panel.top} · pointer ${pointerTop} · tip ${tip.height} tall`, () => {
+          expectOnScreen(
+            getScreenBox(composeTipDeclarations(pointerTop, tip, panel, TIP_SCREEN), panel, tip),
+          );
+        });
+      }
+    }
+  }
+});
+
+describe("which side the detail opens on", () => {
+  /**
+   * The corner the panel starts in, and the same rule read from the other end:
+   * there is no room on the panel's right at all — it is against the edge — so
+   * the detail is on its left, which is where the whole window is.
+   */
+  test("the panel's own left, which is where the room is", () => {
+    const box = getScreenBox(composeTipDeclarations(400, TIP, CORNER, TIP_SCREEN), CORNER, TIP);
+
+    expect(box.right).toBe(CORNER.left - PANEL_PIXELS.spaceSmall);
+    expect(CORNER.left + PANEL_PIXELS.width + PANEL_PIXELS.spaceSmall + TIP.width).toBeGreaterThan(
+      TIP_SCREEN.width,
+    );
+  });
+
+  /**
+   * One pixel short of the margin is a detail hard against the edge of the
+   * screen, which is where the flip belongs: the left slot has run out.
+   */
+  test("the panel's right, where its left has run out", () => {
+    const panel = { left: PANEL_PIXELS.tipWidth + PANEL_PIXELS.spaceSmall - 1, top: 8 };
+    const box = getScreenBox(composeTipDeclarations(400, TIP, panel, TIP_SCREEN), panel, TIP);
+
+    expect(box.left).toBe(panel.left + PANEL_PIXELS.width + PANEL_PIXELS.spaceSmall);
+  });
+
+  test("and its left again as soon as the margin fits", () => {
+    const panel = { left: PANEL_PIXELS.tipWidth + PANEL_PIXELS.spaceSmall + PANEL_PIXELS.space, top: 8 };
+    const box = getScreenBox(composeTipDeclarations(400, TIP, panel, TIP_SCREEN), panel, TIP);
+
+    expect(box.right).toBe(panel.left - PANEL_PIXELS.spaceSmall);
+  });
+
+  /**
+   * ⚠️ The case the first attempt at this got wrong. Near the right-hand edge
+   * both candidates are off the screen — and the answer is not to pick the less
+   * bad one and leave it there, it is to put the detail where it fits. It
+   * overlaps the panel, which is the thing the docked side exists to avoid, and
+   * that is the right trade: a window over the row it describes can still be
+   * read.
+   */
+  test("wherever it fits, when neither side of the panel does", () => {
+    // Narrow on purpose: a window has to be under about 520px before the panel
+    // has room for the detail on neither side of it. It then overlaps the panel,
+    // which is the thing the docked side exists to avoid — and the right trade,
+    // because a window over the row it describes can still be read.
+    const narrow = { width: 500, height: 800 };
+    const panel = { left: 100, top: 300 };
+    const box = getScreenBox(composeTipDeclarations(400, TIP, panel, narrow), panel, TIP);
+
+    expect(box.left).toBe(PANEL_PIXELS.space);
+    expect(box.right).toBeLessThanOrEqual(narrow.width);
+  });
+
+  test("a window narrower than the detail leaves it at the near edge", () => {
+    const narrow = { width: 100, height: 800 };
+    const declarations = composeTipDeclarations(400, TIP, { left: 0, top: 0 }, narrow);
+
+    expect(declarations).toContainEqual(["left", `${PANEL_PIXELS.space}px`]);
+  });
+});
+
+describe("how far down the detail sits", () => {
+  test("it begins at the pointer, which is what ties it to the row it opened from", () => {
+    const box = getScreenBox(composeTipDeclarations(300, TIP, CORNER, TIP_SCREEN), CORNER, TIP);
+
+    expect(box.top).toBe(300);
+  });
+
+  /**
+   * ⚠️ **The pointer stays on an edge of the window, and the window turns over.**
+   * Sliding it up until it fits would also be on the screen, and it would leave
+   * the pointer somewhere in the middle of a detail — against a row it is not
+   * describing. This is the same rule as the side above, on the other axis.
+   */
+  test("and ends at it instead, where there is not room below", () => {
+    const box = getScreenBox(composeTipDeclarations(780, TIP, CORNER, TIP_SCREEN), CORNER, TIP);
+
+    expect(box.bottom).toBe(780);
+    expect(box.top).toBe(780 - TIP.height);
+  });
+
+  test("the last height that still opens downward, and the first that turns over", () => {
+    const fits = TIP_SCREEN.height - PANEL_PIXELS.space - TIP.height;
+    expect(getScreenBox(composeTipDeclarations(fits, TIP, CORNER, TIP_SCREEN), CORNER, TIP).top).toBe(fits);
+    expect(getScreenBox(composeTipDeclarations(fits + 1, TIP, CORNER, TIP_SCREEN), CORNER, TIP).bottom).toBe(
+      fits + 1,
+    );
+  });
+
+  test("pushed down where the pointer is above the margin", () => {
+    const box = getScreenBox(composeTipDeclarations(0, TIP, CORNER, TIP_SCREEN), CORNER, TIP);
+
+    expect(box.top).toBe(PANEL_PIXELS.space);
+  });
+
+  /**
+   * Neither side of the pointer has room, so the rule that applies is the last
+   * one: on the screen, from the edge the design keeps.
+   */
+  test("neither above nor below, where the detail is nearly the whole window", () => {
+    const tall = { width: 250, height: TIP_SCREEN.height - 2 * PANEL_PIXELS.space };
+    const box = getScreenBox(composeTipDeclarations(400, tall, CORNER, TIP_SCREEN), CORNER, tall);
+
+    expect(box.top).toBe(PANEL_PIXELS.space);
+    expect(box.bottom).toBe(TIP_SCREEN.height - PANEL_PIXELS.space);
+  });
+
+  /**
+   * ⚠️ **A detail taller than the room has no top that satisfies both edges**, and
+   * the one to keep is the top: a window hanging off the bottom still shows what
+   * it says first, while one pushed off the top shows nothing but its last line.
+   * The stylesheet's own ceiling is what keeps this to the pathological case.
+   */
+  test("a detail taller than the window keeps its top rather than its bottom", () => {
+    const tall = { width: 250, height: 2000 };
+    const box = getScreenBox(composeTipDeclarations(400, tall, CORNER, TIP_SCREEN), CORNER, tall);
+
+    expect(box.top).toBe(PANEL_PIXELS.space);
+  });
+});
+
+describe("what is not placed at all", () => {
+  /**
+   * §9.3: unknown is loud, never zero. Each of these is a page that would not say
+   * something, and the answer is the stylesheet's own corner rather than a
+   * position computed from a nought — which is what a detail pinned to the top
+   * left of the game would be.
+   */
+  const NOTHING: Array<[string, string]> = [
+    ["left", ""],
+    ["right", ""],
+    ["top", ""],
+  ];
+
+  test("a window that never said how big it is", () => {
+    expect(composeTipDeclarations(400, TIP, CORNER, null)).toEqual(NOTHING);
+  });
+
+  test("a panel whose own corner nothing states", () => {
+    expect(composeTipDeclarations(400, TIP, null, TIP_SCREEN)).toEqual(NOTHING);
+  });
+
+  test("a detail that measured as nothing, which is a document with no layout", () => {
+    expect(composeTipDeclarations(400, { width: 0, height: 0 }, CORNER, TIP_SCREEN)).toEqual(NOTHING);
+  });
+
+  test("and one that measured as nothing on one axis only", () => {
+    expect(composeTipDeclarations(400, { width: 250, height: 0 }, CORNER, TIP_SCREEN)).toEqual(NOTHING);
+    expect(composeTipDeclarations(400, { width: 0, height: 200 }, CORNER, TIP_SCREEN)).toEqual(NOTHING);
+  });
+});
+
+/**
+ * ⚠️ **The width is arithmetic, so the drawn box has to be the measured one.**
+ * `all: initial` leaves the detail at `content-box`, under which its padding and
+ * border sit outside the stated width: it was drawn 268px wide while its
+ * placement worked in 250. Measured in Firefox, on the four corners of a 1280x900
+ * window.
+ *
+ * The ceiling is here for the reason above it: without one, a detail longer than
+ * the screen is a position the clamp cannot satisfy, and what it gives up is the
+ * bottom of the window.
+ */
+test("the detail is drawn as the box its placement measures", () => {
+  const style = composePanelStyleText();
+  const start = style.indexOf(".MargoMeter-tip {");
+  const rule = style.slice(start, style.indexOf("}", start));
+
+  expect(start).toBeGreaterThanOrEqual(0);
+  expect(rule).toContain("box-sizing: border-box");
+  expect(rule).toContain(`width: ${PANEL_PIXELS.tipWidth}px`);
+  expect(rule).toContain(`max-height: calc(100vh - ${PANEL_PIXELS.space}px - ${PANEL_PIXELS.space}px)`);
 });

@@ -1,3 +1,18 @@
+import { getValueFromJsonText } from "@/libs/json.ts";
+import { getRecordFromValue } from "@/libs/record.ts";
+import {
+  composeDecimalText,
+  composeIntegerText,
+  getFiniteNumberFromValue,
+  getIntegerFromValue,
+} from "@/libs/number.ts";
+import {
+  composePanelStyleText,
+  getProfessionInk,
+  PANEL_PIXELS,
+  PANEL_TOKENS,
+  UNKNOWN_COLOUR,
+} from "@/src/ui/panel-look.ts";
 /**
  * The panel, drawn.
  *
@@ -16,6 +31,15 @@
  *     draws answers to a *press*, so a redraw cannot lose the gesture either;
  *   - nothing here can interrupt — no dialog, no focus taken, nothing that moves
  *     unless a hand is moving it.
+ *
+ * ⚠️ **The first section below touches no document at all, and that is not an
+ * accident of layout.** Where the panel sits and where a detail window opens are
+ * values — a corner, a clamp, a drag, a remembered position that has to prove
+ * itself, a tip kept inside a screen it is handed the size of. They were their
+ * own two files so they could be checked without a DOM; they still can be, since
+ * nothing here reaches for a document and every function that needs one takes it
+ * as an argument (§9.9). What the split cost was a reader having to hold three
+ * files to answer where the panel is.
  */
 
 import {
@@ -28,26 +52,268 @@ import {
   type PanelView,
   type PanelWaiting,
 } from "@/src/ui/panel-screen.ts";
-import {
-  composeDecimalText,
-  composeIntegerText,
-  getFiniteNumberFromValue,
-} from "@/libs/number.ts";
-import type { PanelGrab, PanelPosition, PanelViewport } from "@/src/ui/panel-placement.ts";
-import {
-  composeClampedPosition,
-  composeDefaultPosition,
-  composeDraggedPosition,
-  composePositionDeclarations,
-} from "@/src/ui/panel-placement.ts";
-import { composeTipDeclarations } from "@/src/ui/panel-tip-placement.ts";
-import {
-  composePanelStyleText,
-  getProfessionInk,
-  PANEL_TOKENS,
-  UNKNOWN_COLOUR,
-} from "@/src/ui/panel-look.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
+
+export type PanelPosition = { left: number; top: number };
+
+/** What the panel is being clamped against. Null where the page did not say. */
+export type PanelViewport = { width: number; height: number };
+
+/** Where the pointer and the panel each were when the drag began. */
+export type PanelGrab = {
+  pointerLeft: number;
+  pointerTop: number;
+  panelLeft: number;
+  panelTop: number;
+};
+
+/**
+ * How much of the panel stays on screen, whatever the drag asks for.
+ *
+ * ⚠️ **A panel dragged off the edge cannot be dragged back.** The grab area goes
+ * with it, so the only remedy left is clearing storage — which means knowing this
+ * add-on stores anything. The number is a title bar's worth of width and a title
+ * bar's worth of height, so what remains reachable is the thing you grab.
+ */
+const MINIMUM_VISIBLE = 64;
+
+/**
+ * A position the viewport can actually show.
+ *
+ * A null viewport clamps nothing. §9.3: unknown is loud, never zero — a missing
+ * `innerWidth` read as `0` would pin the panel to the corner and look exactly
+ * like a panel that works.
+ */
+export function composeClampedPosition(
+  position: PanelPosition,
+  viewport: PanelViewport | null,
+): PanelPosition {
+  if (viewport === null) {
+    return { left: Math.round(position.left), top: Math.round(position.top) };
+  }
+  return {
+    left: getValueWithin(position.left, viewport.width - MINIMUM_VISIBLE),
+    top: getValueWithin(position.top, viewport.height - MINIMUM_VISIBLE),
+  };
+}
+
+/**
+ * Zero and `limit` both included, and zero wins a viewport smaller than the
+ * margin — a limit below zero would otherwise put the panel off the top left.
+ */
+function getValueWithin(value: number, limit: number): number {
+  return Math.round(Math.max(0, Math.min(value, Math.max(0, limit))));
+}
+
+/**
+ * Where the stylesheet has already put the panel, as a position.
+ *
+ * The corner is expressed as `top` and `right`, so nothing can read a `left` off
+ * the host until something writes one — the first grab has to derive it, from the
+ * same two numbers the stylesheet was built from (`PANEL_PIXELS`). Null where the
+ * page did not say how wide it is: a drag that started from a guess would snatch
+ * the panel out from under the hand, and not moving is the better of the two.
+ */
+export function composeDefaultPosition(viewport: PanelViewport | null): PanelPosition | null {
+  if (viewport === null) return null;
+  return composeClampedPosition(
+    { left: viewport.width - PANEL_PIXELS.width - PANEL_PIXELS.space, top: PANEL_PIXELS.space },
+    viewport,
+  );
+}
+
+/** Where the panel lands, given where it was grabbed and where the pointer is now. */
+export function composeDraggedPosition(
+  grab: PanelGrab,
+  pointer: { left: number; top: number },
+  viewport: PanelViewport | null,
+): PanelPosition {
+  return composeClampedPosition(
+    {
+      left: grab.panelLeft + (pointer.left - grab.pointerLeft),
+      top: grab.panelTop + (pointer.top - grab.pointerTop),
+    },
+    viewport,
+  );
+}
+
+/**
+ * A stored position, or null for anything that is not one.
+ *
+ * §9.6: state that survives a reload is validated on read. Everything here comes
+ * back from text a person can edit and a browser can truncate, so nothing is
+ * trusted — an absent field, a fraction, a number as a string and a whole other
+ * shape all read the same, which is *no position*, which is the default corner.
+ */
+export function getPositionFromStoredText(text: string): PanelPosition | null {
+  const reading = getValueFromJsonText(text);
+  if (reading.syntaxError !== null) return null;
+
+  const fields = getRecordFromValue(reading.value);
+  if (fields === null) return null;
+
+  const left = getIntegerFromValue(fields["left"]);
+  const top = getIntegerFromValue(fields["top"]);
+  if (left === null || top === null) return null;
+  return { left, top };
+}
+
+/**
+ * Written by hand rather than with `JSON.stringify`, which turns a `NaN` into
+ * `null` without saying so — and a position that quietly stops round-tripping is
+ * the silent failure this project is built against. `composeIntegerText` asserts
+ * instead (§9.5: reading returns null, writing asserts).
+ */
+export function composeStoredTextFromPosition(position: PanelPosition): string {
+  return `{"left":${composeIntegerText(position.left)},"top":${composeIntegerText(position.top)}}`;
+}
+
+/**
+ * The style declarations that put the panel there.
+ *
+ * `right: auto` is what releases the default corner: the stylesheet anchors the
+ * host top-right, and a `left` alone would leave both edges pinned and stretch
+ * the host across the page.
+ *
+ * ⚠️ **`--MargoMeter-panel-top` is the same number as `top`, written twice on
+ * purpose.** The ceiling that keeps the panel above the bottom of the screen is
+ * the window's height less where the panel's top edge is, and CSS cannot read a
+ * `top` back out of an inline style. Composed here from one variable so the two
+ * cannot drift, and `top` stays a declaration of its own because an inline style
+ * is the one thing the game's stylesheet cannot outrank — a custom property alone
+ * would put the panel's own position within reach of the page.
+ *
+ * The prefix is not decoration: this is the one custom property of ours written
+ * onto a node in the game's own document, so it is the one that has to say whose
+ * it is (§9.6).
+ */
+export function composePositionDeclarations(position: PanelPosition): Array<[string, string]> {
+  const top = `${composeIntegerText(position.top)}px`;
+  return [
+    ["left", `${composeIntegerText(position.left)}px`],
+    ["top", top],
+    ["--MargoMeter-panel-top", top],
+    ["right", "auto"],
+  ];
+}
+
+/** What the detail came out as, measured after it was filled. */
+export type PanelTipBox = { width: number; height: number };
+
+/**
+ * The style declarations that put the detail there, in the host's own
+ * coordinates — the detail is positioned against the panel, and the panel is
+ * what placement already knows the screen position of.
+ *
+ * **A null viewport or an unmeasurable detail places nothing**: both declarations
+ * come back empty, which returns the window to where the stylesheet puts it. That
+ * is §9.3's rule and `composeClampedPosition`'s — a page that would not say how
+ * big it is must not be read as a page with no room in it.
+ */
+export function composeTipDeclarations(
+  pointerTop: number,
+  tip: PanelTipBox,
+  panel: PanelPosition | null,
+  viewport: PanelViewport | null,
+): Array<[string, string]> {
+  if (panel === null || viewport === null || tip.height <= 0 || tip.width <= 0) {
+    return [
+      ["left", ""],
+      ["right", ""],
+      ["top", ""],
+    ];
+  }
+
+  const gap = PANEL_PIXELS.spaceSmall;
+  const margin = PANEL_PIXELS.space;
+
+  /**
+   * Across: the panel's left while it fits there, its right when it does not.
+   *
+   * The left is the side the design chose and the side the room is on — the panel
+   * starts in the right-hand corner. The rule is symmetric all the same, because
+   * the panel is draggable and either side can be the one that has run out.
+   */
+  const left = getValueBetween(
+    getStart(panel.left - tip.width - gap, panel.left + PANEL_PIXELS.width + gap, tip.width, viewport.width, margin),
+    margin,
+    viewport.width - tip.width - margin,
+  );
+
+  /**
+   * Down: the detail begins at the pointer while there is room below it, and
+   * **ends** at the pointer when there is not. The cursor is on one edge of the
+   * window either way, which is what ties it to the row it was opened from —
+   * sliding it up until it fits instead would leave the pointer somewhere in its
+   * middle, against a row it is not describing.
+   */
+  const top = getValueBetween(
+    getStart(pointerTop, pointerTop - tip.height, tip.height, viewport.height, margin),
+    margin,
+    viewport.height - tip.height - margin,
+  );
+
+  return [
+    // Written against the panel, because that is what the detail is a child of.
+    // Both edges would otherwise be pinned — the stylesheet anchors it by `right`,
+    // and a `left` beside that one is a box stretched between the two.
+    ["left", composePixelText(left - panel.left)],
+    ["right", "auto"],
+    ["top", composePixelText(top - panel.top)],
+  ];
+}
+
+/**
+ * One edge of the detail, on whichever side of the pointer or the panel it fits.
+ *
+ * The same function on both axes, because it is the same rule: the side the
+ * design prefers while there is room for it there, the opposite side when there
+ * is not. Where **neither** fits — a window narrower than panel and detail
+ * together, a detail longer than the screen — it hands back the preferred side
+ * and leaves the clamp to decide, which is the one answer that is still on the
+ * screen.
+ */
+function getStart(
+  preferred: number,
+  opposite: number,
+  size: number,
+  limit: number,
+  margin: number,
+): number {
+  if (getIsWithin(preferred, size, limit, margin)) return preferred;
+  if (getIsWithin(opposite, size, limit, margin)) return opposite;
+  return preferred;
+}
+
+function getIsWithin(start: number, size: number, limit: number, margin: number): boolean {
+  return start >= margin && start + size <= limit - margin;
+}
+
+/**
+ * ⚠️ **The low edge wins where the two cross.** A detail taller than the room can
+ * be given no top that satisfies both, and the one to keep is the top: a window
+ * hanging off the bottom of the screen still shows what it says first, while one
+ * pushed off the top shows nothing but its last line.
+ *
+ * ⚠️ **Not `getValueWithin` above, and the two were one name until they met in
+ * one file.** That one clamps a panel corner into `[0, limit]` and rounds; this
+ * one clamps a tip edge into `[low, high]` and does not. Both were private to
+ * their own module and both were right there; folding the modules made the
+ * collision visible, and the compiler refused it rather than picking one.
+ */
+function getValueBetween(value: number, low: number, high: number): number {
+  return Math.min(Math.max(value, low), Math.max(low, high));
+}
+
+/**
+ * Whole pixels: `clientY` is fractional on a scaled display, and a detail half a
+ * pixel higher is not a thing anybody can see — a declaration reading
+ * `292.33333333333px` is
+ * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F17).
+ */
+function composePixelText(value: number): string {
+  return `${composeDecimalText(value, 0)}px`;
+}
 
 /**
  * What an event hands us. The target is what a gesture needs, and that is the
@@ -846,7 +1112,7 @@ function setTipHidden(tip: PanelNode, isHidden: boolean): void {
  * possible.** Fill, show, *then* measure: a node still carrying `display: none`
  * measures as nothing, and a node measured before it is filled measures as the
  * last row's detail rather than this one's. What comes back is handed straight to
- * `panel-tip-placement.ts`, which decides, and this writes what it decided.
+ * `panel-element.ts`, which decides, and this writes what it decided.
  *
  * A pointer that arrives without coordinates leaves the detail where it was
  * rather than putting it somewhere nobody asked for.

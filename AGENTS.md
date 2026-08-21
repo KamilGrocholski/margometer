@@ -549,10 +549,6 @@ src/
                          shape handed to the drawing, and what a click does to it.
     panel-look.ts        Every colour, space and radius, §9.7's arithmetic, and
                          the stylesheet spending them — as one string.
-    panel-placement.ts   Where the panel sits, as a value. No DOM.
-    panel-tip-placement.ts
-                         Where the detail window opens, so all of it is on the
-                         screen. Takes the measured size as an argument.
     panel-reading.ts     What the panel is handed, and the three questions asked
                          of a combatant.
     panel-drill.ts       What a row opens onto: the two levels below the ranking,
@@ -560,8 +556,10 @@ src/
                          every level, saying whose figures they are.
     panel-view.ts        One screen as data: ranking, pinned figure, denominator,
                          summary, warnings. No DOM.
-    panel-element.ts     The same, drawn. One shadow root, delegated events,
-                         region by region so one failure is its own size.
+    panel-element.ts     The same, drawn, and where it is drawn. One shadow root,
+                         delegated events, region by region so one failure is its
+                         own size — over a first section that touches no document
+                         at all: where the panel sits and where a detail opens.
     cost-overlay.ts      What the add-on cost, drawn beside the panel and never
                          inside it. Development builds only.
 

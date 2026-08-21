@@ -820,7 +820,7 @@ describe("the panel asking the running client for a name", () => {
  * This is the only thing the add-on remembers, and it is remembered here rather
  * than in `src/ui/` because reaching a global is this file's job alone (§8). What
  * a stored value has to prove to be believed is checked next door in
- * `tests/ui/panel-placement.test.ts`; what is checked here is that the mount asks
+ * `tests/ui/panel-element.test.ts`; what is checked here is that the mount asks
  * at all, and that a page which refuses storage still gets a panel.
  */
 describe("remembering where the panel was put", () => {

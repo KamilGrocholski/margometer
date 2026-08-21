@@ -672,7 +672,7 @@ export function composePanelStyleText(): string {
  * to be *placed* onto the screen rather than trimmed to it.
  *
  * Everything below the width is a starting point rather than the last word:
- * src/ui/panel-tip-placement.ts writes a left and a top over it on every hover
+ * src/ui/panel-element.ts writes a left and a top over it on every hover
  * that has a window to fit into. What is here is where the detail sits when
  * nothing does — a page that would not say how big it is, or a document with no
  * layout to measure.
@@ -708,7 +708,7 @@ export function composePanelStyleText(): string {
   /*
    * ⚠️ **The one limit that cannot be placed around, so it is placed against.**
    * A detail longer than the screen has no position that shows all of it, and
-   * src/ui/panel-tip-placement.ts keeps the top edge in preference to the
+   * src/ui/panel-element.ts keeps the top edge in preference to the
    * bottom — so this bounds the height to the window itself, which is the one
    * ceiling that leaves the arithmetic a position it can satisfy. In CSS because
    * 100vh re-evaluates itself, including on a resize nothing here listens for:
