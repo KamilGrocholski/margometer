@@ -68,7 +68,7 @@ for that and for nothing else.
 
 `src/ui/panel-element.ts` already registers a row's key only where the row is
 drillable, so a leaf press is inert with nothing added there and nothing added in
-`src/ui/panel-state.ts`.
+`src/ui/panel-screen.ts`.
 
 **Every degenerate bucket goes to zero and every other count is unchanged** —
 223, 256, 244, 46, 244, 256 before and after. Nothing that had something to say

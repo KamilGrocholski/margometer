@@ -21,10 +21,21 @@ import type { CombatantStatistics, SkillStatistics } from "@/src/core/fight-stat
 import { composeCombatantDetail } from "@/src/ui/panel-combatant-detail.ts";
 import { composeFigureText, composeShareText } from "@/src/ui/panel-figure-text.ts";
 import {
+  composeLeafRowKey,
+  composeSkillLeafRowKey,
+  composeSkillRowKey,
+  composeSourceRowKey,
+  composeTargetRowKey,
   isGivenMetric,
   isHealingMetric,
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
+  type PanelDetailLine,
+  type PanelList,
   type PanelMetric,
-} from "@/src/ui/panel-metric.ts";
+  type PanelState,
+  UNANNOUNCED_ROW_KEY,
+} from "@/src/ui/panel-screen.ts";
 import {
   ELEMENT_NAMES,
   getPhrase,
@@ -41,18 +52,6 @@ import {
   getRow,
   type PanelReading,
 } from "@/src/ui/panel-reading.ts";
-import {
-  composeLeafRowKey,
-  composeSkillLeafRowKey,
-  composeSkillRowKey,
-  composeSourceRowKey,
-  composeTargetRowKey,
-  NO_ACTOR_ROW_KEY,
-  NO_TARGET_ROW_KEY,
-  UNANNOUNCED_ROW_KEY,
-} from "@/src/ui/panel-row-key.ts";
-import type { PanelDetailLine, PanelList } from "@/src/ui/panel-shape.ts";
-import type { PanelState } from "@/src/ui/panel-state.ts";
 import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-look.ts";
 
 type BreakdownEntry = {

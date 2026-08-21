@@ -24,7 +24,7 @@
  * because a typecheck per mutant would cost more than the run and a mutant that
  * fails to compile is not a behaviour anybody could have tested. The consequence
  * is that every string inside a type alias survives by construction — eleven of
- * `src/ui/panel-row-key.ts`'s eighteen survivors are its two unions, read
+ * `src/ui/panel-screen.ts`'s eighteen survivors are its two unions, read
  * 2026-08-19 — so a survivor list is read with the file open, and a `(text)`
  * mutation on a `type` line is nothing to act on
  * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F13).

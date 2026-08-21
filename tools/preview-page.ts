@@ -312,7 +312,7 @@ ${introduction}
   // ⚠️ It does not keep the drill level, and that is the add-on being right
   // rather than the rewind being wrong: "init" is what a fight opening looks
   // like, and a fight opening puts the reader back at the top of their tab
-  // (composeStateAfterFightStart, src/ui/panel-state.ts). Nothing in a game
+  // (composeStateAfterFightStart, src/ui/panel-screen.ts). Nothing in a game
   // rewinds; here it means a step back off entry 2 closes a breakdown that was
   // open.
   function setFedTo(target) {

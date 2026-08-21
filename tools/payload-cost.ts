@@ -44,7 +44,7 @@ import {
 } from "@/src/game/battle-session.ts";
 import { getPayloadReading } from "@/src/game/engine-battle-wrap.ts";
 import { composeBattleRoster } from "@/src/game/engine-roster.ts";
-import { composeDefaultState } from "@/src/ui/panel-state.ts";
+import { composeDefaultState } from "@/src/ui/panel-screen.ts";
 import { composePanelView } from "@/src/ui/panel-view.ts";
 import {
   CAPTURED_FIGHTS,

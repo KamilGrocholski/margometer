@@ -949,7 +949,7 @@ describe("the language of the strings", () => {
      * rather than admitted as `src/ui/*`, because the count going up is exactly
      * what this list exists to make somebody notice.
      */
-    { file: "src/ui/panel-metric.ts" },
+    { file: "src/ui/panel-screen.ts" },
     { file: "src/ui/panel-nobody.ts" },
     { file: "src/ui/panel-drill.ts" },
     /**

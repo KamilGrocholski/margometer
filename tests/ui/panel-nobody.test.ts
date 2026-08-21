@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { getMetricNoun, isGivenMetric, PANEL_METRICS } from "@/src/ui/panel-metric.ts";
+import { getMetricNoun, isGivenMetric, PANEL_METRICS } from "@/src/ui/panel-screen.ts";
 import {
   getMissingCounterpart,
   getNoActorBreakdownHeading,

@@ -19,7 +19,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { getTextOrder } from "@/libs/text-order.ts";
-import { METRIC_LABELS, PANEL_METRICS, type PanelMetric } from "@/src/ui/panel-metric.ts";
+import { METRIC_LABELS, PANEL_METRICS, type PanelMetric } from "@/src/ui/panel-screen.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 import {
   composeDrillCases,
@@ -141,7 +141,7 @@ describe("the drill-levels register", () => {
 describe("what the register is read with", () => {
   /**
    * ⚠️ **The keys are written out here on purpose, and that is now the check.**
-   * `getRowKind` reads them through `src/ui/panel-row-key.ts` rather than through
+   * `getRowKind` reads them through `src/ui/panel-screen.ts` rather than through
    * prefixes of its own, so these literals are the one place the tool's answer is
    * held to the panel's actual spelling: rename `NO_TARGET_ROW_KEY` and this goes
    * red, where before the whole gate stayed green

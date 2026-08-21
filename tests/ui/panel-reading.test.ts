@@ -13,7 +13,7 @@ import { describe, expect, test } from "bun:test";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import { PANEL_METRICS } from "@/src/ui/panel-metric.ts";
+import { PANEL_METRICS } from "@/src/ui/panel-screen.ts";
 import {
   getDamageWithoutActor,
   getDamageWithoutActorByElement,

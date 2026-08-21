@@ -55,15 +55,15 @@ import {
   composeStateAfterMetric,
   composeStateAfterTeam,
   composeStateFromRow,
+  type PanelDetailLine,
   type PanelState,
-} from "@/src/ui/panel-state.ts";
+} from "@/src/ui/panel-screen.ts";
 import {
   composeStoredTextFromPosition,
   getPositionFromStoredText,
   type PanelPosition,
   type PanelViewport,
 } from "@/src/ui/panel-placement.ts";
-import type { PanelDetailLine } from "@/src/ui/panel-shape.ts";
 import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
 import {
   CAPTURE_PHASE,

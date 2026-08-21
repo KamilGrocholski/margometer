@@ -18,7 +18,16 @@
  *     unless a hand is moving it.
  */
 
-import { BACK_ROW_KEY } from "@/src/ui/panel-row-key.ts";
+import {
+  BACK_ROW_KEY,
+  type PanelDetailLine,
+  type PanelList,
+  type PanelMetric,
+  type PanelRow,
+  type PanelTeam,
+  type PanelView,
+  type PanelWaiting,
+} from "@/src/ui/panel-screen.ts";
 import {
   composeDecimalText,
   composeIntegerText,
@@ -39,14 +48,6 @@ import {
   UNKNOWN_COLOUR,
 } from "@/src/ui/panel-look.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
-import type { PanelMetric, PanelTeam } from "@/src/ui/panel-metric.ts";
-import type {
-  PanelDetailLine,
-  PanelList,
-  PanelRow,
-  PanelView,
-  PanelWaiting,
-} from "@/src/ui/panel-shape.ts";
 
 /**
  * What an event hands us. The target is what a gesture needs, and that is the

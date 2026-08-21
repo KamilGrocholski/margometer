@@ -88,7 +88,7 @@ hildur-2, `Zadane · My` is 355 900 + 44 464 = 400 364.
 **So every row states a share again.** The bracket had gone from four screens
 because the figure was scoped differently from the list under it; it is not any
 more, and `bracketText` stopped being nullable — nothing produces a row without
-one (`src/ui/panel-shape.ts`).
+one (`src/ui/panel-screen.ts`).
 
 ⚠️ **44 464 comes back to a side tab, and this is not the fix before it being
 undone.** That round took the number off `Zadane · Oni`, where it stood for what

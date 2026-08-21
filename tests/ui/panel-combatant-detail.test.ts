@@ -22,9 +22,8 @@ import {
   composeStat,
   type PanelDetailPlace,
 } from "@/src/ui/panel-combatant-detail.ts";
-import { PANEL_METRICS } from "@/src/ui/panel-metric.ts";
+import { composeDefaultState, PANEL_METRICS, type PanelState } from "@/src/ui/panel-screen.ts";
 import { getName, type PanelReading } from "@/src/ui/panel-reading.ts";
-import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,

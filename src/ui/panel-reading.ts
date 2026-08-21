@@ -16,7 +16,7 @@ import {
   type CombatantStatistics,
   type FightStatistics,
 } from "@/src/core/fight-statistics.ts";
-import type { PanelMetric } from "@/src/ui/panel-metric.ts";
+import type { PanelMetric } from "@/src/ui/panel-screen.ts";
 
 /**
  * What the panel is handed.

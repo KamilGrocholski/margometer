@@ -27,7 +27,7 @@
  * be known, never why our reader cannot know it.
  */
 
-import { getMetricNoun, type PanelMetric, type PanelNoun } from "@/src/ui/panel-metric.ts";
+import { getMetricNoun, type PanelMetric, type PanelNoun } from "@/src/ui/panel-screen.ts";
 
 /**
  * The two rows' names, wherever they stand.

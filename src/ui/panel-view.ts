@@ -9,19 +9,10 @@
  * §9.1 holds even inside `ui/`: nothing here computes a statistic. It takes what
  * the aggregate produced and decides how to present it.
  *
- * **What is no longer here**, because this file had grown into four subjects and
- * its own docblocks into a table of contents
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26): the
- * vocabulary and the control strips (`panel-metric.ts`), the shape the drawing
- * consumes (`panel-shape.ts`), the reading and the three questions everything asks
- * of a combatant (`panel-reading.ts`), the levels a row opens onto
- * (`panel-drill.ts`), the card a combatant's row opens on hover
- * (`panel-combatant-detail.ts`, once the drill became its second reader), the
- * sentences said where the game names nobody (`panel-nobody.ts`) and a figure as
- * text (`panel-figure-text.ts`). What stayed is one screen: the list, the figure
+ * What stayed here when this file was split is one screen: the list, the figure
  * pinned under it, what every share divides by, and the summary and warnings
- * standing over the lot — the arithmetic that has to agree with itself, kept where
- * a disagreement is visible in one file.
+ * standing over the lot — the arithmetic that has to agree with itself, kept
+ * where a disagreement is visible in one file.
  *
  * **The strings are Polish and nothing else here is** (§3). A sentence a player
  * reads never carries our vocabulary: it says what cannot be known, not why our
@@ -43,15 +34,26 @@ import {
 import { composeBreakdownLists, composeDeepLists } from "@/src/ui/panel-drill.ts";
 import { composeFigureText, composeShareText } from "@/src/ui/panel-figure-text.ts";
 import {
+  composeCombatantRowKey,
   composeDirectionTabs,
   composeNounTabs,
   composeTeamTabs,
   isGivenMetric,
   isHealingMetric,
-  TEAM_LABELS,
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
+  type PanelCrumb,
+  type PanelDetailLine,
+  type PanelList,
   type PanelMetric,
+  type PanelRow,
+  type PanelSides,
+  type PanelState,
   type PanelTeam,
-} from "@/src/ui/panel-metric.ts";
+  type PanelView,
+  type PanelWaiting,
+  TEAM_LABELS,
+} from "@/src/ui/panel-screen.ts";
 import {
   ELEMENT_NAMES,
   getPhrase,
@@ -84,21 +86,6 @@ import {
   getRow,
   type PanelReading,
 } from "@/src/ui/panel-reading.ts";
-import {
-  composeCombatantRowKey,
-  NO_ACTOR_ROW_KEY,
-  NO_TARGET_ROW_KEY,
-} from "@/src/ui/panel-row-key.ts";
-import type {
-  PanelCrumb,
-  PanelDetailLine,
-  PanelList,
-  PanelRow,
-  PanelSides,
-  PanelView,
-  PanelWaiting,
-} from "@/src/ui/panel-shape.ts";
-import type { PanelState } from "@/src/ui/panel-state.ts";
 import { getProfessionColour, UNKNOWN_COLOUR } from "@/src/ui/panel-look.ts";
 
 /** The share of a bar this figure fills, and never a `NaN` that would blank the rest. */

@@ -26,19 +26,18 @@ import { getTextOrder } from "@/libs/text-order.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import {
-  METRIC_LABELS,
-  PANEL_METRICS,
-  type PanelMetric,
-} from "@/src/ui/panel-metric.ts";
-import type { PanelReading } from "@/src/ui/panel-reading.ts";
-import {
+  composeDefaultState,
   composeLeafRowKey,
+  composeStateFromRow,
   getRowKeyKind,
+  METRIC_LABELS,
   NO_ACTOR_ROW_KEY,
   NO_TARGET_ROW_KEY,
+  PANEL_METRICS,
+  type PanelMetric,
   UNANNOUNCED_ROW_KEY,
-} from "@/src/ui/panel-row-key.ts";
-import { composeDefaultState, composeStateFromRow } from "@/src/ui/panel-state.ts";
+} from "@/src/ui/panel-screen.ts";
+import type { PanelReading } from "@/src/ui/panel-reading.ts";
 import { composePanelView } from "@/src/ui/panel-view.ts";
 import {
   CAPTURED_FIGHTS,
@@ -57,7 +56,7 @@ export class DrillReportError extends MargoMeterToolError {
 /**
  * What a row is, by the key it carries.
  *
- * The key is composed in `src/ui/panel-row-key.ts` and read there; this reads it
+ * The key is composed in `src/ui/panel-screen.ts` and read there; this reads it
  * for a third purpose — describing a row rather than opening one. A key nobody
  * has met answers `unknown`, which is louder than guessing, and `docs/drill-levels.md`
  * is written in these words so the register and this tool cannot drift.
@@ -75,7 +74,7 @@ export type RowKind = (typeof ROW_KINDS)[number];
 
 /**
  * ⚠️ **This took the keys apart with a grammar of its own, and nothing caught
- * the disagreement.** `src/ui/panel-row-key.ts` exists so that the divider and the
+ * the disagreement.** `src/ui/panel-screen.ts` exists so that the divider and the
  * word either side of it are decided in one place; this file read them back with
  * four prefixes and two whole keys spelled here — a fourth reader of a grammar
  * three files had already been made to share. A mutation renaming

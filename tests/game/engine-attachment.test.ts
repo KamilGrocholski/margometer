@@ -22,20 +22,19 @@ import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
 import { EFFECT_NAMES } from "@/src/ui/panel-names.ts";
 import { PANEL_PIXELS } from "@/src/ui/panel-look.ts";
-import { PANEL_METRICS, TEAM_LABELS } from "@/src/ui/panel-metric.ts";
-import { getName } from "@/src/ui/panel-reading.ts";
-import {
-  composeLeafRowKey,
-  NO_ACTOR_ROW_KEY,
-  NO_TARGET_ROW_KEY,
-  UNANNOUNCED_ROW_KEY,
-} from "@/src/ui/panel-row-key.ts";
 import {
   composeDefaultState,
+  composeLeafRowKey,
   composeStateAfterMetric,
   composeStateAfterTeam,
   composeStateFromRow,
-} from "@/src/ui/panel-state.ts";
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
+  PANEL_METRICS,
+  TEAM_LABELS,
+  UNANNOUNCED_ROW_KEY,
+} from "@/src/ui/panel-screen.ts";
+import { getName } from "@/src/ui/panel-reading.ts";
 import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
 import {
   composeFailureSink,
@@ -1388,7 +1387,7 @@ describe("the world a saved recording names", () => {
  * The rows that carry a figure and no name: what closed a section against nothing
  * announced, and the end the protocol did not state. Taken from the module that
  * composes them — a key restated in a test is a second spelling of the grammar,
- * which is the defect `panel-row-key.ts` exists to have ended.
+ * which is the defect `panel-screen.ts` exists to have ended.
  */
 const RESTATING_ROW_KEYS: ReadonlySet<string> = new Set([
   NO_ACTOR_ROW_KEY,
@@ -1656,7 +1655,7 @@ describe("what a click does to the drill", () => {
 /**
  * A fight opening, and the level the reader was standing on when it did.
  *
- * `tests/ui/panel-state.test.ts` says what `composeStateAfterFightStart` returns;
+ * `tests/ui/panel-screen.test.ts` says what `composeStateAfterFightStart` returns;
  * this says that a fight boundary is where it is called. That half cannot be
  * proved from the reducer — an unused export typechecks — and it is the half a
  * mutation removes without a single other test noticing, because every screen in

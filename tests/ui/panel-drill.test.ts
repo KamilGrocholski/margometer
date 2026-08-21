@@ -17,16 +17,18 @@ import { describe, expect, test } from "bun:test";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
 import { composeBreakdownLists, composeDeepLists } from "@/src/ui/panel-drill.ts";
-import type { PanelRow } from "@/src/ui/panel-shape.ts";
-import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
-import { PANEL_METRICS, type PanelMetric } from "@/src/ui/panel-metric.ts";
-import { getMetricValue, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
 import {
+  composeDefaultState,
   NO_ACTOR_ROW_KEY,
   NO_TARGET_ROW_KEY,
+  PANEL_METRICS,
+  type PanelMetric,
+  type PanelRow,
+  type PanelState,
   UNANNOUNCED_ROW_KEY,
-} from "@/src/ui/panel-row-key.ts";
-import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
+} from "@/src/ui/panel-screen.ts";
+import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
+import { getMetricValue, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,

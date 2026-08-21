@@ -20,20 +20,24 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
 import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
 import {
+  composeDefaultState,
   isGivenMetric,
+  NO_ACTOR_ROW_KEY,
+  NO_TARGET_ROW_KEY,
   PANEL_METRICS,
   PANEL_TEAMS,
+  type PanelDetailLine,
   type PanelMetric,
-} from "@/src/ui/panel-metric.ts";
+  type PanelRow,
+  type PanelState,
+  type PanelView,
+} from "@/src/ui/panel-screen.ts";
 import {
   HEALTH_GAIN_SOURCE_NAMES,
   HEALTH_LOSS_SOURCE_NAMES,
 } from "@/src/ui/panel-names.ts";
 import { getNeitherEndLeftover } from "@/src/ui/panel-nobody.ts";
 import type { PanelReading } from "@/src/ui/panel-reading.ts";
-import type { PanelDetailLine, PanelRow, PanelView } from "@/src/ui/panel-shape.ts";
-import { NO_ACTOR_ROW_KEY, NO_TARGET_ROW_KEY } from "@/src/ui/panel-row-key.ts";
-import { composeDefaultState, type PanelState } from "@/src/ui/panel-state.ts";
 import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
 import {
   CAPTURED_FIGHTS,

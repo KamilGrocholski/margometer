@@ -20,7 +20,12 @@
 import { composeIntegerText } from "@/libs/number.ts";
 import type { CombatantStatistics } from "@/src/core/fight-statistics.ts";
 import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
-import { METRIC_LABELS, PANEL_METRICS } from "@/src/ui/panel-metric.ts";
+import {
+  METRIC_LABELS,
+  PANEL_METRICS,
+  type PanelDetailLine,
+  type PanelState,
+} from "@/src/ui/panel-screen.ts";
 import {
   DEFENCE_NAMES,
   DESTRUCTION_NAMES,
@@ -30,8 +35,6 @@ import {
   type TranslateLabel,
 } from "@/src/ui/panel-names.ts";
 import { getMetricValue, getName, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
-import type { PanelDetailLine } from "@/src/ui/panel-shape.ts";
-import type { PanelState } from "@/src/ui/panel-state.ts";
 
 /**
  * Which screen the card was opened on — one discriminant rather than two flags

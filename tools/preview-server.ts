@@ -24,7 +24,7 @@
  * reload, and the panel keeps the tab the reader chose. It does not keep the
  * drill level: the payload it replays from carries `init`, which is a fight
  * opening, and the panel goes back to the top of the tab for one
- * (`src/ui/panel-state.ts`).
+ * (`src/ui/panel-screen.ts`).
  * ⚠️ **With one exception, and it is the boundary rather than a case:** replaying
  * reaches entry 1 at the lowest, so the panel before any payload is a page that
  * has never been fed. That step reloads, and `tools/preview-page.ts` says how the
