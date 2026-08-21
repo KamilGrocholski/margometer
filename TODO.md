@@ -21,6 +21,20 @@
 ## Up Next
 
 ## Done
+- [x] Reduce the number of files in the project, and bloat in comments/code/docs - /ui has too many files, split it into modules (per panel view) and create 
+      files only for what is reusable by them; other directories dunno
+
+## Later
+- [ ] Distinguish "Zwykly cios", "Zamaszczysty cios", and similar
+- [ ] Get more fight data - higher levels, more enemies, players vs players
+- [ ] Add a `Colossus`/`Titan` helper (based on MargoMeter) that shows:
+      - which characters are not casting their abilities at all (presence check)
+      - which characters are casting abilities incorrectly (correctness check)
+
+---
+## History
+
+### Done v0.8.0
 - [x] (NOT NEADED, other things have been done) Create a checklist of things that MUST be done before each commit, other than TODO. AGENTS.md rules are not enough
 - [x] Screenshots in README.md SHOULD be placed first
 - [x] Do the first audit after 0.7.0
@@ -42,18 +56,6 @@
 - [x] Add draw as an outcome
 - [x] Fix user actions on click while the add-on is redrawing - I have to click multiple times on any 
 tab, and button, to see the action, when the add-on is in the middle of drawing
-
-## Later
-- [ ] Consider adding a `Colossus`/`Titan` helper (based on MargoMeter) that shows which 
-      characters are missing an active `abilities loop`, and which ones are 
-      not casting their abilities at all — not just whether they're being 
-      cast correctly, but whether they're being cast in the first place. 
-      `Tropiciel` -> aura; `Lowca` -> damage reduction with poison, etc.
-- [ ] Reduce the number of files in the project - /ui has too many files, split it into modules (per panel view) and create 
-files only for what is reusable by them; other directories dunno
-
----
-## History
 
 ### Done v0.7.0
 - [x] Release the next version v0.7.0
