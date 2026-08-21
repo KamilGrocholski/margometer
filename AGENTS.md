@@ -541,7 +541,9 @@ src/
     fight-capture.ts     The same fight, kept so it can be written to a file.
                          Redacts nothing — that is the intake tool's job.
   ui/                    Renders state handed to it — §9.1.
-    panel-names.ts       What the panel calls each name of the game's own.
+    panel-words.ts       Everything the panel puts in front of a reader: what it
+                         calls each name of the game's own, what it says where the
+                         game names nobody, and a number as it writes it.
     panel-screen.ts      Which screen the panel is on: what a screen can show and
                          the strips that switch, the key a drawn row carries, the
                          shape handed to the drawing, and what a click does to it.
@@ -551,10 +553,8 @@ src/
     panel-tip-placement.ts
                          Where the detail window opens, so all of it is on the
                          screen. Takes the measured size as an argument.
-    panel-figure-text.ts A number as the panel writes it — both spellings.
     panel-reading.ts     What the panel is handed, and the three questions asked
                          of a combatant.
-    panel-nobody.ts      What the panel says where the game names nobody.
     panel-combatant-detail.ts
                          The card a person's row opens on hover, the same at every
                          level. Says whose figures they are, and what a click does.

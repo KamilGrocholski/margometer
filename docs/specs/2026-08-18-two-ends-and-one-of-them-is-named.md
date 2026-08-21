@@ -101,7 +101,7 @@ whichever row stands apart under `Wszyscy` (`getHoleCarryingNeitherEnd`) and is
 on no row at all under a side tab, where the summary bar names it as
 `Bez strony`. Zero in every recording.
 
-**The sentences follow the split.** `src/ui/panel-nobody.ts` gains a second set,
+**The sentences follow the split.** `src/ui/panel-words.ts` gains a second set,
 shorter than the first because less of it varies: what the game left out is two
 sentences by noun, where the row stands is one, the heading is one word. The
 leftover line collapsed from a four-entry table with two nulls to a single

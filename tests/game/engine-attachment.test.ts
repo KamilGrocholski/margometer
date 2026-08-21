@@ -20,7 +20,7 @@ import type { EngineReadingGaps, FightReading } from "@/src/game/battle-session.
 import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-attachment.ts";
 import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
-import { EFFECT_NAMES } from "@/src/ui/panel-names.ts";
+import { EFFECT_NAMES } from "@/src/ui/panel-words.ts";
 import { PANEL_PIXELS } from "@/src/ui/panel-look.ts";
 import {
   composeDefaultState,
@@ -717,7 +717,7 @@ describe("what a failing panel puts on the console", () => {
  * The other loop no other file can close: the panel asking the client what it
  * calls something.
  *
- * `src/ui/panel-names.ts` holds the identifiers and is checked against a fake
+ * `src/ui/panel-words.ts` holds the identifiers and is checked against a fake
  * translator; `src/game/game-dictionary.ts` reads `_t` and is checked against a
  * fake page. Neither notices if the mount never joins them — and the join is
  * one argument, in one file, with a default that quietly means "nobody asked".

@@ -915,7 +915,7 @@ describe("the language of the strings", () => {
 
   /**
    * `panel-view.ts` and `panel-element.ts` are the panel's own words — its rows,
-   * its tooltips, its region names. `panel-names.ts` is what the add-on calls a
+   * its tooltips, its region names. `panel-words.ts` is what the add-on calls a
    * thing the running client has no name for: a phrase of ours, written by us,
    * never a quotation of the game's (`NOTICE.md`). `userscript-version.ts` says
    * what a build nobody made is called, in the title bar beside the number.
@@ -938,19 +938,23 @@ describe("the language of the strings", () => {
    */
   const SPEAKS_POLISH: Array<{ file: string; phrase?: string }> = [
     { file: "src/ui/panel-element.ts" },
-    { file: "src/ui/panel-names.ts" },
+    { file: "src/ui/panel-words.ts" },
     { file: "src/ui/panel-view.ts" },
     /**
-     * Three of them arrived at once when `panel-view.ts` was split along its
-     * seams (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26).
-     * Nothing new is said: the labels of the control strips, the sentences about a
-     * figure with no actor and the headings of a breakdown are the same words,
-     * moved to the file that owns the decision they belong to. Listed one by one
-     * rather than admitted as `src/ui/*`, because the count going up is exactly
-     * what this list exists to make somebody notice.
+     * These arrived when `panel-view.ts` was split along its seams
+     * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26) and are
+     * fewer than they were, because the split is being undone where it produced a
+     * file rather than a subject. Nothing new is said either way: the labels of
+     * the control strips, the sentences about a figure with no actor and the
+     * headings of a breakdown are the same words, in the file that owns the
+     * decision they belong to.
+     *
+     * ⚠️ **Still listed one by one rather than admitted as `src/ui/*`.** A
+     * consolidation makes the count fall, and a list that only ever grows is one
+     * nobody rereads — the reason to enumerate is that **any** movement in the
+     * count is a thing to look at, in either direction.
      */
     { file: "src/ui/panel-screen.ts" },
-    { file: "src/ui/panel-nobody.ts" },
     { file: "src/ui/panel-drill.ts" },
     /**
      * A fourth, out of the same file and for the same reason: the card a

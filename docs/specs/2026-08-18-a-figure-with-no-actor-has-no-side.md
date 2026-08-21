@@ -85,7 +85,7 @@ totalling one side beneath a figure stating the fight is the same failure in
 miniature.
 
 **The sentence carries what the bracket no longer does.** `PINNED_SCOPE_NOTES` in
-`src/ui/panel-nobody.ts` was two wordings, one per noun, because the figure was
+`src/ui/panel-words.ts` was two wordings, one per noun, because the figure was
 narrowed the same way on all four screens. It is four now, parted by direction: a
 received screen names the end it was counted by, a given one says the figure is
 the whole fight's and belongs to no team. The missing bracket and that sentence
@@ -142,7 +142,7 @@ printed under this one. It fixes the arithmetic and leaves the reading wrong.
 
 **Wording the sentence per noun again, with the direction in the label.** Two
 sentences and a label that changes is three places one fact lives. The tables in
-`src/ui/panel-nobody.ts` are four entries so the compiler asks about a fifth
+`src/ui/panel-words.ts` are four entries so the compiler asks about a fifth
 screen; making one of them two would be the drift they exist to prevent.
 
 **Following this in `docs/design/panel.html`.** Unchanged, for the reason

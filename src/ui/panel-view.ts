@@ -17,7 +17,7 @@
  * **The strings are Polish and nothing else here is** (§3). A sentence a player
  * reads never carries our vocabulary: it says what cannot be known, not why our
  * reader cannot know it. Every name of the game's own — a key, an effect token —
- * is named before it reaches a label, and `src/ui/panel-names.ts` decides by
+ * is named before it reaches a label, and `src/ui/panel-words.ts` decides by
  * whom: the running client where it has a name for the thing, and this
  * repository where it has not. A token nobody has named travels as the game
  * wrote it rather than as a guess.
@@ -32,7 +32,27 @@ import {
   composeStat,
 } from "@/src/ui/panel-combatant-detail.ts";
 import { composeBreakdownLists, composeDeepLists } from "@/src/ui/panel-drill.ts";
-import { composeFigureText, composeShareText } from "@/src/ui/panel-figure-text.ts";
+import {
+  composeFigureText,
+  composeShareText,
+  ELEMENT_NAMES,
+  getNeitherEndLeftover,
+  getNoActorBreakdownHeading,
+  getNoActorLimitNote,
+  getNoActorScopeNote,
+  getNoActorStandingNote,
+  getNoTargetBreakdownHeading,
+  getNoTargetLimitNote,
+  getNoTargetScopeNote,
+  getNoTargetStandingNote,
+  getPhrase,
+  HEALTH_GAIN_SOURCE_NAMES,
+  HEALTH_LOSS_SOURCE_NAMES,
+  NO_ACTOR_LABEL,
+  NO_TARGET_LABEL,
+  type TokenName,
+  type TranslateLabel,
+} from "@/src/ui/panel-words.ts";
 import {
   composeCombatantRowKey,
   composeDirectionTabs,
@@ -54,27 +74,6 @@ import {
   type PanelWaiting,
   TEAM_LABELS,
 } from "@/src/ui/panel-screen.ts";
-import {
-  ELEMENT_NAMES,
-  getPhrase,
-  HEALTH_GAIN_SOURCE_NAMES,
-  HEALTH_LOSS_SOURCE_NAMES,
-  type TokenName,
-  type TranslateLabel,
-} from "@/src/ui/panel-names.ts";
-import {
-  getNoActorBreakdownHeading,
-  getNeitherEndLeftover,
-  getNoActorLimitNote,
-  getNoActorScopeNote,
-  getNoActorStandingNote,
-  getNoTargetBreakdownHeading,
-  getNoTargetLimitNote,
-  getNoTargetScopeNote,
-  getNoTargetStandingNote,
-  NO_ACTOR_LABEL,
-  NO_TARGET_LABEL,
-} from "@/src/ui/panel-nobody.ts";
 import {
   getDamageWithoutActor,
   getDamageWithoutActorByElement,
@@ -1005,7 +1004,7 @@ function composeLevelKey(state: PanelState): string {
 
 /**
  * `translate` is how the panel asks the running client what it calls something
- * (`src/ui/panel-names.ts`). It defaults to nobody having asked, which is a real
+ * (`src/ui/panel-words.ts`). It defaults to nobody having asked, which is a real
  * state and not a convenience: the fallbacks are what a player sees wherever the
  * game is not on the page — and every test in this repository runs there.
  */

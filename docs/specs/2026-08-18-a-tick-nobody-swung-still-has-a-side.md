@@ -83,7 +83,7 @@ wherever the list is narrower than the fight. It used to say that only under a
 combatant's breakdown, because until now the two agreed by accident of scope.
 
 **Two sentences were rewritten.** `PINNED_SCOPE_NOTES.dealt` and
-`.healingGiven` in `src/ui/panel-nobody.ts` ended "nie należy do żadnej drużyny",
+`.healingGiven` in `src/ui/panel-words.ts` ended "nie należy do żadnej drużyny",
 which the bar under them now contradicts. They say where the figure went instead;
 the received pair is untouched.
 

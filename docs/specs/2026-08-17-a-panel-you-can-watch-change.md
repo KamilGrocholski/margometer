@@ -52,7 +52,7 @@ a preview of something nobody installs.
 with an `AggregateError` rather than returning `success: false`**, so `build.ts`'s
 own check was dead for the failure it was written for, and a build error came out
 under somebody else's error class. Measured by appending a syntax error to
-`src/ui/panel-figure-text.ts`. `throw: false` is what makes the check real, and it
+`src/ui/panel-words.ts`. `throw: false` is what makes the check real, and it
 is what lets the server catch `BundleError` narrowly (§9.5).
 
 ### A failed rebuild does not reload

@@ -18,7 +18,12 @@ import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
-import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
+import {
+  composeFigureText,
+  getNeitherEndLeftover,
+  HEALTH_GAIN_SOURCE_NAMES,
+  HEALTH_LOSS_SOURCE_NAMES,
+} from "@/src/ui/panel-words.ts";
 import {
   composeDefaultState,
   isGivenMetric,
@@ -32,11 +37,6 @@ import {
   type PanelState,
   type PanelView,
 } from "@/src/ui/panel-screen.ts";
-import {
-  HEALTH_GAIN_SOURCE_NAMES,
-  HEALTH_LOSS_SOURCE_NAMES,
-} from "@/src/ui/panel-names.ts";
-import { getNeitherEndLeftover } from "@/src/ui/panel-nobody.ts";
 import type { PanelReading } from "@/src/ui/panel-reading.ts";
 import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
 import {
@@ -422,7 +422,7 @@ const ROWS_ADDING_TO_THE_WHOLE: Record<PanelMetric, readonly string[]> = {
 
 /**
  * How the panel spells a share it refuses to round down to nothing
- * (`src/ui/panel-figure-text.ts`). Named once here, because three sweeps below
+ * (`src/ui/panel-words.ts`). Named once here, because three sweeps below
  * have to tell it apart from a bracket they simply could not read.
  */
 const BELOW_A_POINT = "<1%";
@@ -1994,7 +1994,7 @@ describe("against the captured fights", () => {
    * The other half of the same shape: a blow with no striker that also landed on
    * nobody, and nothing else in the fight. Then no row can hold any of it, and the
    * screen says so on the one row that stands apart — with the one sentence in
-   * `panel-nobody.ts` that names a limit of **ours** as well as of the game's.
+   * `panel-words.ts` that names a limit of **ours** as well as of the game's.
    */
   test("names the part no row can hold, where a blow reached nobody either", () => {
     const roster = composeCombatantRoster([

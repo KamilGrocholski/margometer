@@ -4,7 +4,7 @@
  * The game ships a dictionary keyed by identifiers — `msg_+crit`, `msg_-contra`
  * — and composes its own battle log out of it through a global, `_t`. The panel
  * names the tokens it draws with the same identifiers
- * (`src/ui/panel-names.ts`), so it can be told what the player's own client
+ * (`src/ui/panel-words.ts`), so it can be told what the player's own client
  * calls each one, in the player's own language, without a word of the game's
  * being written down here (NOTICE.md).
  *
@@ -19,7 +19,7 @@
  * The entries are described rather than quoted, here and everywhere below: they
  * are sentences the operator wrote, and §5 keeps those out of this repository in
  * any form (NOTICE.md). Their **shape** is ours to state, and it is what this
- * file actually reads. The two files agree on the rule from both ends: `panel-names.ts` only
+ * file actually reads. The two files agree on the rule from both ends: `panel-words.ts` only
  * names an id it has read as a name, and this refuses to return a sentence in
  * case the game turns one into the other.
  *

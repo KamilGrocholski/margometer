@@ -31,7 +31,7 @@ anything, and they are deliberately absent. The add-on reads them from the
 running game at run time instead, which also means it shows them in whatever
 language the player's client uses.
 
-### Dictionary identifiers — `src/ui/panel-names.ts`
+### Dictionary identifiers — `src/ui/panel-words.ts`
 
 The sentence above is done by that file and by `src/game/game-dictionary.ts`,
 and they are named here because it is fair to ask what "reads them at run time"
@@ -104,7 +104,7 @@ Three things about it are worth stating rather than leaving to be discovered:
 
 The page also has no game beside it, so the client's own translation table is not
 there to be asked; every name the panel draws for a protocol token is this
-repository's own phrase (`src/ui/panel-names.ts`).
+repository's own phrase (`src/ui/panel-words.ts`).
 
 ### The screenshots — `screenshots/`, committed
 
@@ -128,7 +128,7 @@ the game:
 Nothing else of the game's is in them. There is no game beside the harness page,
 so the client's translation table is not there to be asked and every name the
 panel draws for a protocol token is this repository's own phrase
-(`src/ui/panel-names.ts`); no sentence the client composed appears, for the reason
+(`src/ui/panel-words.ts`); no sentence the client composed appears, for the reason
 none appears on the preview.
 
 ### Client source — `.cache/`, never committed

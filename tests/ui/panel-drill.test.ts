@@ -27,7 +27,7 @@ import {
   type PanelState,
   UNANNOUNCED_ROW_KEY,
 } from "@/src/ui/panel-screen.ts";
-import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
+import { composeFigureText } from "@/src/ui/panel-words.ts";
 import { getMetricValue, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
 import {
   CAPTURED_FIGHTS,

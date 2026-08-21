@@ -195,9 +195,10 @@ export async function composeUserscriptFiles(isDevelopment = false): Promise<Use
     /**
      * ⚠️ **Without this `Bun.build` throws an `AggregateError` and never returns
      * a failed result**, so the check below was dead for the failure it was
-     * written for: measured by appending a syntax error to `src/ui/panel-figure-text.ts`,
-     * the default rejects with `Bundle failed` while `throw: false` comes back
-     * with `success: false` and four logs naming the line.
+     * written for: measured by appending a syntax error to a module under
+     * `src/ui/`, where the default rejects with `Bundle failed` while
+     * `throw: false` comes back with `success: false` and four logs naming the
+     * line.
      *
      * It matters twice. A build here reported somebody else's error class instead
      * of ours, and `tools/preview-server.ts` catches `BundleError` narrowly to

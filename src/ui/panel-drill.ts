@@ -19,7 +19,17 @@ import { composeIntegerText } from "@/libs/number.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
 import type { CombatantStatistics, SkillStatistics } from "@/src/core/fight-statistics.ts";
 import { composeCombatantDetail } from "@/src/ui/panel-combatant-detail.ts";
-import { composeFigureText, composeShareText } from "@/src/ui/panel-figure-text.ts";
+import {
+  composeFigureText,
+  composeShareText,
+  ELEMENT_NAMES,
+  getMissingCounterpart,
+  getPhrase,
+  HEALTH_GAIN_SOURCE_NAMES,
+  HEALTH_LOSS_SOURCE_NAMES,
+  type TokenName,
+  type TranslateLabel,
+} from "@/src/ui/panel-words.ts";
 import {
   composeLeafRowKey,
   composeSkillLeafRowKey,
@@ -36,15 +46,6 @@ import {
   type PanelState,
   UNANNOUNCED_ROW_KEY,
 } from "@/src/ui/panel-screen.ts";
-import {
-  ELEMENT_NAMES,
-  getPhrase,
-  HEALTH_GAIN_SOURCE_NAMES,
-  HEALTH_LOSS_SOURCE_NAMES,
-  type TokenName,
-  type TranslateLabel,
-} from "@/src/ui/panel-names.ts";
-import { getMissingCounterpart } from "@/src/ui/panel-nobody.ts";
 import {
   getHealthLostCausedBySource,
   getMetricValue,

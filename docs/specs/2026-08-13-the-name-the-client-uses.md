@@ -101,7 +101,7 @@ names into a sentence the panel falls back instead of drawing a fragment.
 
 - `tests/ui/panel-view.test.ts`'s material-driven sweep, now over the element maps
   too. Red on `thirdatt` and `"dmg "` before this round.
-- `tests/ui/panel-names.test.ts` — no two tokens say the same thing, no two ask
+- `tests/ui/panel-words.test.ts` — no two tokens say the same thing, no two ask
   the same question, the client's answer wins, a token with no id is never asked
   about.
 - `tests/game/game-dictionary.test.ts` — what a label is, and every way the page

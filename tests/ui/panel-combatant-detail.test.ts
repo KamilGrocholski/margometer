@@ -10,7 +10,7 @@
  *
  * Structural, with one exception: the two sentences `place` decides are written
  * down, because deciding them is what this file is about. Every other word is
- * `src/ui/panel-names.ts`'s and is asserted through `getPhrase`'s callers, never
+ * `src/ui/panel-words.ts`'s and is asserted through `getPhrase`'s callers, never
  * here.
  */
 

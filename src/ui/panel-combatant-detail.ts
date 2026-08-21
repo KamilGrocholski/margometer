@@ -19,21 +19,21 @@
 
 import { composeIntegerText } from "@/libs/number.ts";
 import type { CombatantStatistics } from "@/src/core/fight-statistics.ts";
-import { composeFigureText } from "@/src/ui/panel-figure-text.ts";
 import {
-  METRIC_LABELS,
-  PANEL_METRICS,
-  type PanelDetailLine,
-  type PanelState,
-} from "@/src/ui/panel-screen.ts";
-import {
+  composeFigureText,
   DEFENCE_NAMES,
   DESTRUCTION_NAMES,
   EFFECT_NAMES,
   getPhrase,
   PROFESSION_NAMES,
   type TranslateLabel,
-} from "@/src/ui/panel-names.ts";
+} from "@/src/ui/panel-words.ts";
+import {
+  METRIC_LABELS,
+  PANEL_METRICS,
+  type PanelDetailLine,
+  type PanelState,
+} from "@/src/ui/panel-screen.ts";
 import { getMetricValue, getName, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
 
 /**

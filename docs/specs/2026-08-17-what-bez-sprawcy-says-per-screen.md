@@ -29,7 +29,7 @@ What was wrong is that one table named `heal` once. Measured over
 printed as `leczenie 966` beneath a row of damage — healing on a damage screen,
 which is exactly what was reported.
 
-This is the fault `src/ui/panel-names.ts` already names for `fire` against `dmgf`,
+This is the fault `src/ui/panel-words.ts` already names for `fire` against `dmgf`,
 one entry above: **two quantities under one label is a wrong number that looks
 right.**
 
@@ -70,7 +70,7 @@ Every one of the four cuts closes against the figure it hangs under, and where t
 
 ### One sentence that names a limit of ours
 
-`src/ui/panel-nobody.ts` says what the game does not say. The row closing a `Komu`
+`src/ui/panel-words.ts` says what the game does not say. The row closing a `Komu`
 cut is the one thing in it that says what **we** cannot: the game did state a name
 there, and no combatant in this fight answered to it
 (`src/core/combatant-roster.ts`). Wording it as *gra nie mówi, komu* would be a
