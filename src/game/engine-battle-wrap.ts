@@ -247,10 +247,19 @@ export function setBattleWrap(
   const prevOwnProperty = Object.prototype.hasOwnProperty.call(battle, WRAPPED_METHOD);
 
   /**
-   * The catches below are deliberately broad — the only two in this repository
-   * that are. Narrowing them would let some class of our own bugs escape into
-   * the game's call stack, and an add-on that breaks the game is worse than one
-   * that counts nothing (§9.6).
+   * The catches below are deliberately broad, and this is the boundary §9.5's
+   * exception is written for: everything under here runs **inside the game's own
+   * call stack**, between the engine calling its update and getting its value
+   * back. Narrowing them would let some class of our own bugs escape into that
+   * stack, and an add-on that breaks the game is worse than one that counts
+   * nothing (§9.6).
+   *
+   * ⚠️ **This block used to call itself "the only two in this repository", and it
+   * was neither two nor the only one.** Three of them are here, and every other
+   * boundary of the same kind has its own — reading the page, asking the game's
+   * dictionary, drawing into a document the game also writes to
+   * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F8). What is
+   * particular to this one is the call stack, not the breadth.
    */
   const handleFailure = (error: unknown): void => {
     try {

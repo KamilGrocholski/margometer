@@ -122,6 +122,29 @@ function getRestoredHealth(
 }
 
 /**
+ * What one combatant stated, or nothing where either half is missing.
+ *
+ * A reader rather than the expression written out per branch: the same eight
+ * lines stood in `attack` and in `skill-used`, and the one-end form of them in
+ * four branches more — so two of them shared a body no test could tell apart
+ * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F6). What each kind
+ * decides is now the only thing each kind writes down: **which slots** it states
+ * health for.
+ *
+ * Both halves are checked because the pair is typed `[number, number]` and not
+ * because a caller could act on the difference: a combatant the roster could not
+ * place is refused downstream anyway, for having no maximum. So this is the type
+ * being honest rather than a branch anything observes — mutating the `||` to `&&`
+ * changes no answer this module gives.
+ */
+function composeStatement(
+  combatantId: number | null,
+  percent: number | null,
+): readonly (readonly [number, number])[] {
+  return combatantId === null || percent === null ? [] : [[combatantId, percent]];
+}
+
+/**
  * How one event moves health, and what health it states.
  *
  * One reader for both, because both walks below need both and they must agree
@@ -141,12 +164,8 @@ function getHealthReadingOfEvent(event: BattleEvent): {
       return {
         movements: event.targetId === null ? [] : [[event.targetId, -taken]],
         statements: [
-          ...(event.actorId === null || event.actorHealthPercent === null
-            ? []
-            : [[event.actorId, event.actorHealthPercent] as const]),
-          ...(event.targetId === null || event.targetHealthPercent === null
-            ? []
-            : [[event.targetId, event.targetHealthPercent] as const]),
+          ...composeStatement(event.actorId, event.actorHealthPercent),
+          ...composeStatement(event.targetId, event.targetHealthPercent),
         ],
       };
     }
@@ -154,23 +173,21 @@ function getHealthReadingOfEvent(event: BattleEvent): {
       if (event.targetId === null) return { movements: [], statements: [] };
       return {
         movements: [[event.targetId, -event.damage.amount]],
-        statements:
-          event.targetHealthPercent === null ? [] : [[event.targetId, event.targetHealthPercent]],
+        statements: composeStatement(event.targetId, event.targetHealthPercent),
       };
     }
     case "healing-to-named-combatant": {
       if (event.targetId === null) return { movements: [], statements: [] };
       return {
         movements: [[event.targetId, event.amount]],
-        statements:
-          event.targetHealthPercent === null ? [] : [[event.targetId, event.targetHealthPercent]],
+        statements: composeStatement(event.targetId, event.targetHealthPercent),
       };
     }
     case "health-change": {
       if (event.combatantId === null) return { movements: [], statements: [] };
       return {
         movements: [[event.combatantId, event.amount]],
-        statements: event.healthPercent === null ? [] : [[event.combatantId, event.healthPercent]],
+        statements: composeStatement(event.combatantId, event.healthPercent),
       };
     }
     case "team-heal": {
@@ -186,22 +203,15 @@ function getHealthReadingOfEvent(event: BattleEvent): {
       return {
         movements: [],
         statements: [
-          ...(event.actorId === null || event.actorHealthPercent === null
-            ? []
-            : [[event.actorId, event.actorHealthPercent] as const]),
-          ...(event.targetId === null || event.targetHealthPercent === null
-            ? []
-            : [[event.targetId, event.targetHealthPercent] as const]),
+          ...composeStatement(event.actorId, event.actorHealthPercent),
+          ...composeStatement(event.targetId, event.targetHealthPercent),
         ],
       };
     }
     case "declaration": {
       return {
         movements: [],
-        statements:
-          event.combatantId === null || event.healthPercent === null
-            ? []
-            : [[event.combatantId, event.healthPercent]],
+        statements: composeStatement(event.combatantId, event.healthPercent),
       };
     }
     default:

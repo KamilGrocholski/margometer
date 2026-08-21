@@ -42,3 +42,41 @@ export function setPairRunningTotal<Outer, Inner>(
   setRunningTotal(row, inner, amount);
   pairs.set(outer, row);
 }
+
+/**
+ * What a map of totals comes to.
+ *
+ * The reading half of the same idea, and it is here for the same reason the
+ * writing half is: `[...map.values()].reduce((sum, one) => sum + one, 0)`,
+ * `for (const one of map.values()) total += one` and a `for…of` over the entries
+ * are three spellings of one question, and all three were in `src/ui/`
+ * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F12).
+ *
+ * Empty comes to zero, which is a measurement rather than a figure nobody wrote:
+ * a map holding nothing has counted nothing. That is the same argument the `?? 0`
+ * above rests on, and it is the reason this reader belongs beside it.
+ */
+export function getTotalOfValues<Key>(totals: ReadonlyMap<Key, number>): number {
+  let total = 0;
+  for (const one of totals.values()) total += one;
+  return total;
+}
+
+/**
+ * A total per **inner** key, out of a map keyed by pairs — the outer key summed
+ * away.
+ *
+ * The one fold `setRunningTotal` cannot be composed into in a line, and the one
+ * `src/ui/` wrote out three times over three different pairs. Its opposite —
+ * a total per outer key — is `setRunningTotal(totals, outer, getTotalOfValues(inner))`
+ * over the entries, which is two readers already here and no third one.
+ */
+export function getTotalsByInnerKey<Outer, Inner>(
+  pairs: ReadonlyMap<Outer, ReadonlyMap<Inner, number>>,
+): Map<Inner, number> {
+  const totals = new Map<Inner, number>();
+  for (const inner of pairs.values()) {
+    for (const [key, amount] of inner) setRunningTotal(totals, key, amount);
+  }
+  return totals;
+}

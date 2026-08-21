@@ -34,6 +34,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — W rozbiciu „Leczenie" sekcja „OD CZEGO" jest teraz ułożona od
+  największej liczby do najmniejszej, tak jak każda inna lista w panelu.
+  Wcześniej pozycje stały w kolejności przypadkowej i mniejsza liczba potrafiła
+  stać nad większą.
+
 ## [0.8.0] — 2026-08-19
 
 - **Nowość** — Leczenie całej drużyny trafia teraz do liczb. Wcześniej panel tylko

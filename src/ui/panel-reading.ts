@@ -9,7 +9,7 @@
  */
 
 import { composeIntegerText } from "@/libs/number.ts";
-import { setRunningTotal } from "@/libs/running-total.ts";
+import { getTotalOfValues, getTotalsByInnerKey } from "@/libs/running-total.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
   composeEmptyCombatantStatistics,
@@ -102,8 +102,7 @@ export function getMetricValue(row: CombatantStatistics, metric: PanelMetric): n
 
 /** Healing that arrived with no announcement over it, and so with no healer. */
 export function getHealingWithoutHealer(row: CombatantStatistics): number {
-  const named = [...row.healedByHealerId.values()].reduce((sum, one) => sum + one, 0);
-  return Math.max(0, row.healed - named);
+  return Math.max(0, row.healed - getTotalOfValues(row.healedByHealerId));
 }
 
 /**
@@ -123,10 +122,11 @@ export function getHealingWithoutHealer(row: CombatantStatistics): number {
  * in progress is where it is the whole figure.
  */
 export function getDamageWithoutActor(row: CombatantStatistics): number {
+  // Summed a map at a time rather than through `getTotalsByInnerKey`: this is
+  // asked of every ranked row on every redraw, and the totals per element are not
+  // wanted here — only what they come to.
   let named = 0;
-  for (const byElement of row.takenByActorId.values()) {
-    for (const amount of byElement.values()) named += amount;
-  }
+  for (const byElement of row.takenByActorId.values()) named += getTotalOfValues(byElement);
   return Math.max(0, row.taken - named);
 }
 
@@ -145,10 +145,7 @@ export function getDamageWithoutActor(row: CombatantStatistics): number {
  * lets the cut close against the figure standing over it.
  */
 export function getDamageWithoutActorByElement(row: CombatantStatistics): Map<string, number> {
-  const named = new Map<string, number>();
-  for (const byElement of row.takenByActorId.values()) {
-    for (const [element, amount] of byElement) setRunningTotal(named, element, amount);
-  }
+  const named = getTotalsByInnerKey(row.takenByActorId);
 
   const without = new Map<string, number>();
   for (const [element, amount] of row.takenByElement) {
@@ -171,9 +168,7 @@ export function getDamageWithoutActorByElement(row: CombatantStatistics): Map<st
  */
 export function getHealthLostWithoutActor(row: CombatantStatistics): number {
   let named = 0;
-  for (const bySource of row.healthLostByActorId.values()) {
-    for (const amount of bySource.values()) named += amount;
-  }
+  for (const bySource of row.healthLostByActorId.values()) named += getTotalOfValues(bySource);
   return Math.max(0, row.healthLost - named);
 }
 
@@ -181,10 +176,7 @@ export function getHealthLostWithoutActor(row: CombatantStatistics): number {
 export function getHealthLostWithoutActorBySource(
   row: CombatantStatistics,
 ): Map<string, number> {
-  const named = new Map<string, number>();
-  for (const bySource of row.healthLostByActorId.values()) {
-    for (const [source, amount] of bySource) setRunningTotal(named, source, amount);
-  }
+  const named = getTotalsByInnerKey(row.healthLostByActorId);
 
   const without = new Map<string, number>();
   for (const [source, amount] of row.healthLostBySource) {
@@ -203,9 +195,5 @@ export function getHealthLostWithoutActorBySource(
  * which this is not.
  */
 export function getHealthLostCausedBySource(row: CombatantStatistics): Map<string, number> {
-  const bySource = new Map<string, number>();
-  for (const byTarget of row.healthLostCausedByTargetId.values()) {
-    for (const [source, amount] of byTarget) setRunningTotal(bySource, source, amount);
-  }
-  return bySource;
+  return getTotalsByInnerKey(row.healthLostCausedByTargetId);
 }

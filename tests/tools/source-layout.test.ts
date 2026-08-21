@@ -416,8 +416,20 @@ describe("value parsing", () => {
      * three layers, and five is where one of them eventually gets written
      * differently
      * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F16).
+     *
+     * ⚠️ **The map is matched as an expression, not as a name, and that is what
+     * the pattern was missing.** It read `\w+\.get`, which is a map called by a
+     * bare identifier — so `skill.dealtByTargetId.set(id, (skill.dealtByTargetId
+     * .get(id) ?? 0) + landed)` went unseen, and two of the five copies this row
+     * was written for were still in `src/core/fight-statistics.ts` two audits
+     * later (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F5). A map
+     * reached through a field is the common case in this repository, where every
+     * total hangs off a row.
      */
-    { pattern: /\.set\(\s*([\w.[\]]+)\s*,\s*\(\s*\w+\.get\(\s*\1\s*\)\s*\?\?\s*0\s*\)/g, owner: RUNNING_TOTAL },
+    {
+      pattern: /\.set\(\s*([\w.[\]]+)\s*,\s*\(\s*[\w.[\]]+\.get\(\s*\1\s*\)\s*\?\?\s*0\s*\)/g,
+      owner: RUNNING_TOTAL,
+    },
     /**
      * The decoder's own shape rule for a damage key, and the key it names a
      * combatant with. Four test files had the offsets written out by hand and

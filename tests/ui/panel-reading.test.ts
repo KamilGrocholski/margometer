@@ -214,6 +214,21 @@ describe("a blow with nobody to charge it to", () => {
     expect([...getDamageWithoutActorByElement(row)]).toEqual([["dmgf", 30]]);
     expect(getDamageWithoutActorByElement({ ...row, takenByElement: new Map() }).size).toBe(0);
   });
+
+  /**
+   * ⚠️ **And the point above zero, which is the side of the edge nothing stood
+   * on.** A single point nobody can be charged with is a point the cut has to
+   * carry, or the cut stops summing to the figure over it and says nothing about
+   * where the difference went — `> 0` moved one step became a silent drop
+   * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F2).
+   */
+  test("carries an element short by a single point", () => {
+    const row = composeRow(70, [[1, [["dmg", 69]]]]);
+    row.takenByElement = new Map([["dmg", 70]]);
+
+    expect([...getDamageWithoutActorByElement(row)]).toEqual([["dmg", 1]]);
+    expect(getDamageWithoutActor(row)).toBe(1);
+  });
 });
 
 /**
@@ -260,6 +275,14 @@ describe("health lost with nobody to charge", () => {
     expect(getHealthLostWithoutActor(composeLossRow([["poison", 1]], []))).toBe(1);
     expect(getHealthLostWithoutActor(composeLossRow([], []))).toBe(0);
     expect(getHealthLostWithoutActorBySource(composeLossRow([["injure", 40]], [[1, [["injure", 40]]]])).size).toBe(0);
+  });
+
+  /** The point above zero, for the reason its damage twin has one (F2). */
+  test("carries a key short by a single point", () => {
+    const row = composeLossRow([["injure", 40]], [[1, [["injure", 39]]]]);
+
+    expect([...getHealthLostWithoutActorBySource(row)]).toEqual([["injure", 1]]);
+    expect(getHealthLostWithoutActor(row)).toBe(1);
   });
 
   /** The other end of the same figure, folded off the row that caused it. */

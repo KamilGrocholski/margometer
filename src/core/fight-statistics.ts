@@ -693,10 +693,7 @@ export function composeFightStatistics(
         setSkillTotals(event.announced, (skill) => {
           skill.dealtApplied += landed;
           if (event.targetId !== null && landed > 0) {
-            skill.dealtByTargetId.set(
-              event.targetId,
-              (skill.dealtByTargetId.get(event.targetId) ?? 0) + landed,
-            );
+            setRunningTotal(skill.dealtByTargetId, event.targetId, landed);
           }
         });
 
@@ -744,10 +741,7 @@ export function composeFightStatistics(
         setSkillTotals(event.announced, (skill) => {
           skill.dealtApplied += amount;
           if (event.targetId !== null) {
-            skill.dealtByTargetId.set(
-              event.targetId,
-              (skill.dealtByTargetId.get(event.targetId) ?? 0) + amount,
-            );
+            setRunningTotal(skill.dealtByTargetId, event.targetId, amount);
           }
         });
         break;

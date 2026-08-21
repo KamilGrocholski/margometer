@@ -1,9 +1,11 @@
 import { composeIntegerText } from "@/libs/number.ts";
-import { setRunningTotal } from "@/libs/running-total.ts";
+import { getTotalOfValues, setRunningTotal } from "@/libs/running-total.ts";
 import { type CombatantStatistics, type SkillStatistics } from "@/src/core/fight-statistics.ts";
 import {
   composeFigureText,
   composeShareText,
+  CRITICAL_EFFECT_TOKENS,
+  CRITICAL_TOKEN,
   DEFENCE_NAMES,
   DESTRUCTION_NAMES,
   EFFECT_NAMES,
@@ -12,7 +14,9 @@ import {
   getPhrase,
   HEALTH_GAIN_SOURCE_NAMES,
   HEALTH_LOSS_SOURCE_NAMES,
+  PERCENT_DESTRUCTION_TOKEN,
   PROFESSION_NAMES,
+  VERY_CRITICAL_TOKEN,
   type TokenName,
   type TranslateLabel,
 } from "@/src/ui/panel-words.ts";
@@ -118,8 +122,8 @@ function composeCounters(row: CombatantStatistics): string[] {
     }`,
   ];
 
-  const critical = row.procsOnBlowsStruck.get("crit") ?? 0;
-  const veryCritical = row.procsOnBlowsStruck.get("legbon_verycrit") ?? 0;
+  const critical = row.procsOnBlowsStruck.get(CRITICAL_TOKEN) ?? 0;
+  const veryCritical = row.procsOnBlowsStruck.get(VERY_CRITICAL_TOKEN) ?? 0;
   // The bracket belongs to the number it breaks down: very critical hits are part
   // of critical ones, and standing beside them as their own member would invite
   // adding the two.
@@ -149,7 +153,9 @@ export function composeStat(label: string, value: string, isStrong = false): Pan
  * of the same thing, and adding them would be the mistake §10 names.
  */
 function composeDestructionText(token: string, amount: number): string {
-  return token === "resdmg" ? `${composeFigureText(amount)}%` : composeFigureText(amount);
+  return token === PERCENT_DESTRUCTION_TOKEN
+    ? `${composeFigureText(amount)}%`
+    : composeFigureText(amount);
 }
 
 /**
@@ -212,7 +218,7 @@ export function composeCombatantDetail(
   lines.push({ kind: "note", text: composeCounters(row).join(" · ") });
 
   const effects = [...row.procsOnBlowsStruck]
-    .filter(([token]) => token !== "crit" && token !== "legbon_verycrit")
+    .filter(([token]) => !CRITICAL_EFFECT_TOKENS.includes(token))
     .map(([token, count]) => `${getPhrase(EFFECT_NAMES, token, translate)} ×${composeFigureText(count)}`);
   if (effects.length > 0) {
     lines.push({ kind: "heading", text: "Efekty w ciosach" });
@@ -398,7 +404,7 @@ function composePairTotals(
   const totals = new Map<number, number>();
   for (const byCombatantId of sources) {
     for (const [id, byToken] of byCombatantId) {
-      for (const amount of byToken.values()) setRunningTotal(totals, id, amount);
+      setRunningTotal(totals, id, getTotalOfValues(byToken));
     }
   }
   return [...totals];
@@ -661,28 +667,32 @@ function composeSourceEntries(
   // giver has none. An empty list here is a section that is not drawn, which is
   // the honest answer rather than repeating the recipients under a second name.
   if (state.metric === "healingGiven") return [];
-  if (state.metric === "healed")
-    return compose(HEALTH_GAIN_SOURCE_NAMES, row.healedBySource, UNKNOWN_COLOUR);
 
-  const entries = compose(
-    ELEMENT_NAMES,
-    state.metric === "dealt" ? row.dealtAppliedByElement : row.takenByElement,
-    UNKNOWN_COLOUR,
-  );
-  // The same pair of vocabularies on both screens, from the two ends of one
-  // figure: what a combatant lost outside a blow, and what they took off somebody
-  // else outside one.
-  entries.push(
-    ...compose(
-      HEALTH_LOSS_SOURCE_NAMES,
-      state.metric === "dealt"
-        ? getHealthLostCausedBySource(row)
-        : state.metric === "taken"
-          ? row.healthLostBySource
-          : new Map<string, number>(),
-      UNKNOWN_COLOUR,
-    ),
-  );
+  const entries =
+    state.metric === "healed"
+      ? compose(HEALTH_GAIN_SOURCE_NAMES, row.healedBySource, UNKNOWN_COLOUR)
+      : // The same pair of vocabularies on both damage screens, from the two ends
+        // of one figure: what a combatant lost outside a blow, and what they took
+        // off somebody else outside one.
+        [
+          ...compose(
+            ELEMENT_NAMES,
+            state.metric === "dealt" ? row.dealtAppliedByElement : row.takenByElement,
+            UNKNOWN_COLOUR,
+          ),
+          ...compose(
+            HEALTH_LOSS_SOURCE_NAMES,
+            state.metric === "dealt" ? getHealthLostCausedBySource(row) : row.healthLostBySource,
+            UNKNOWN_COLOUR,
+          ),
+        ];
+
+  // ⚠️ **Sorted once, for every screen.** The healing branch used to return before
+  // this line, so `OD CZEGO` under `Leczenie` came out in whatever order the
+  // aggregate happened to write its keys — 27 sections across the recordings held
+  // on 2026-08-21 listed a smaller figure above a larger one, which is the one
+  // thing a list of bars says without being read
+  // (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F3).
   return entries.sort((one, other) => other.amount - one.amount);
 }
 
@@ -894,7 +904,7 @@ function getPairReading(
     : (from.healthLostCausedByTargetId.get(to) ?? nothing);
   const total = isHealingMetric(state.metric)
     ? (from.healingGivenByCombatantId.get(to) ?? 0)
-    : [...byElement.values(), ...bySource.values()].reduce((sum, one) => sum + one, 0);
+    : getTotalOfValues(byElement) + getTotalOfValues(bySource);
   return { byElement, bySource, total };
 }
 

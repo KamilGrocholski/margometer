@@ -1,10 +1,18 @@
 /**
  * What the panel shows, as data: the ranking, and the arithmetic one screen is.
  *
- * The drawing is a separate file and a thin one, because everything worth
- * getting right is here: which rows exist, in what order, how long each bar is,
- * what each figure is divided by, and which of them cannot be trusted. None of
- * that needs a browser to check, and there is no browser in the test runner.
+ * The drawing is a separate file, because everything worth getting right is
+ * here: which rows exist, in what order, how long each bar is, what each figure
+ * is divided by, and which of them cannot be trusted. None of that needs a
+ * browser to check, and there is no browser in the test runner.
+ *
+ * ⚠️ **It is not the thin file this used to call it.** `src/ui/panel-element.ts`
+ * is the largest source file in the repository — it holds the drawing, where the
+ * panel sits, and the card a row opens — and a reader deciding which of the two a
+ * new decision belongs in was being told the other one was nearly empty
+ * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F11). The split is
+ * by **kind** and not by size: a decision about a figure is here, a decision
+ * about a node is there.
  *
  * §9.1 holds even inside `ui/`: nothing here computes a statistic. It takes what
  * the aggregate produced and decides how to present it.
@@ -24,7 +32,7 @@
  */
 
 import { composeIntegerText } from "@/libs/number.ts";
-import { setRunningTotal } from "@/libs/running-total.ts";
+import { getTotalOfValues, setRunningTotal } from "@/libs/running-total.ts";
 import { getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import { getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
 import {
@@ -442,8 +450,7 @@ function getFigureWithNoTargetByCombatant(
   }
   const pairs: Array<[number, number]> = [];
   for (const [actorId, byElement] of unattributed.takenByActorId) {
-    let amount = 0;
-    for (const part of byElement.values()) amount += part;
+    const amount = getTotalOfValues(byElement);
     if (amount > 0) pairs.push([actorId, amount]);
   }
   return pairs;
@@ -764,10 +771,7 @@ function composeWarnings(reading: PanelReading): string[] {
    */
   const engine = reading.engineReading;
   if (engine !== undefined) {
-    const unreadablePayloads = [...engine.unreadablePayloadsByFault.values()].reduce(
-      (sum, count) => sum + count,
-      0,
-    );
+    const unreadablePayloads = getTotalOfValues(engine.unreadablePayloadsByFault);
     if (engine.lostMessages > 0) {
       warnings.push(
         `Nie dotarło ${composeFigureText(engine.lostMessages)} ${engine.lostMessages === 1 ? "zdarzenie" : "zdarzeń"} z tej walki — liczby są zaniżone.`,
@@ -787,7 +791,7 @@ function composeWarnings(reading: PanelReading): string[] {
   // The certain one before the maybe: this says healing *is* short, by an amount
   // the game never states. Ranking it under "something was unreadable" would bury
   // the only line here that is not a suspicion.
-  const unaccounted = [...unaccountedHealthBySource.values()].reduce((sum, count) => sum + count, 0);
+  const unaccounted = getTotalOfValues(unaccountedHealthBySource);
   if (unaccounted > 0) {
     warnings.push(
       `Leczenie całej drużyny ${composeFigureText(unaccounted)} ${unaccounted === 1 ? "raz" : "razy"} bez podanej liczby — leczenie jest zaniżone.`,

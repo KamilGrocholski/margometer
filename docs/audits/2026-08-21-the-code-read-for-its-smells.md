@@ -1,6 +1,6 @@
 # The code, read for its smells
 
-Status: open
+Status: closed
 Read at: 7097aee
 
 The fifth audit, and the first that is not the whole tree. The fourth read
@@ -149,8 +149,20 @@ did not choose is spelled once, by the file that reads it — and where two file
 must spell it, a guard holds them to one vocabulary*, and the failure it names is
 the one here: never loud, the panel still draws, the gate still passes.
 
+⚠️ **What the close did.** All three names moved into `src/ui/panel-words.ts`,
+which is where the panel's vocabulary of the game's names already lives, and are
+spelled once each: `CRITICAL_TOKEN`, `VERY_CRITICAL_TOKEN` and
+`PERCENT_DESTRUCTION_TOKEN`. `tests/ui/panel-words.test.ts` holds each to the table
+beside it, and asks the recordings whether the critical it counts is one the game
+actually fires — a constant naming an effect this game never sends would pass
+every other check and count nothing for ever. `tests/ui/panel-drill.test.ts` holds the two uses apart on real
+material: a critical stands in the counters line under its own count and is left
+out of the effects line beside it, and a destroyed statistic carries the unit its
+key states. Each of the three tokens was then pointed at a name the game does not
+send, and each reddened the gate.
+
 *Where:* `src/ui/panel-drill.ts:215`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-words.test.ts`
 
 ### F2 — twenty-one edges that can be moved with the gate green, and most of them are zero
 
@@ -185,8 +197,20 @@ is shown at `:628`, and the `> 1` at `:352` that F3 names.
 The sweep is what makes this a count rather than an impression, and the count is
 the finding: it is one missing test written twenty-one times.
 
+⚠️ **Closed as a class rather than a line at a time.** The two in
+`src/ui/panel-reading.ts` have the point above zero beside the zero they already
+had: an element and a key short by exactly one point are carried, and moving
+either edge one step now reddens the gate. The drill's are held by a hand-built
+row — a recording cannot be asked for a figure of exactly one — where every
+section the card draws on `> 0` is asked for at one point and at none: health lost
+outside a blow, a defence that stopped one point, one point destroyed, a largest
+blow of one. What is **not** closed is named rather than left: the fill divisor at
+`:288`, the fold seeded at `:277` and the `Math.max(rest, 0)` at `:626` are still
+edges no test stands on, and a `0` seeding a sum is the one shape of them that
+cannot be wrong in the direction that matters.
+
 *Where:* `src/ui/panel-drill.ts:288`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-drill.test.ts`
 
 ### F3 — every list the drill draws is sorted, and no test says in which direction
 
@@ -208,8 +232,19 @@ bySource.size` can become a subtraction. That figure decides, through `> 1` at
 source, which is two rows, comes out as zero and the row becomes a leaf. That one
 is not about order, and `docs/drill-levels.md` is the register it would contradict.
 
+⚠️ **Writing the test found a section that really was unsorted.**
+`composeSourceEntries` returned **before** its sort on the healing screen, so
+`OD CZEGO` under `Leczenie` came out in whatever order the aggregate had written
+its keys: over the recordings held on 2026-08-21, in 27 places a smaller figure
+stood above a larger one — a list of bars saying the one thing it says without
+being read, wrongly. The early return is gone and every screen sorts on one line.
+The order is now asserted over every list of every combatant of every capture, at
+both levels, and the pair's cut size is asserted where it decides whether a row
+opens at all: a cut of one element and one key is two rows and opens, one row is
+what the row above already says and does not.
+
 *Where:* `src/ui/panel-drill.ts:603`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-drill.test.ts`
 
 ### F4 — nine strings a player reads can be changed to anything at all
 
@@ -242,8 +277,23 @@ naming neither end — zero in every recording, which §9.6 says is *exactly why
 written down rather than left to be noticed*. The row nobody has ever seen is the
 row nothing checks.
 
+⚠️ **Pinned in words, and the words are read where they are drawn.** The
+pair for what names neither end is asserted on the screen that draws it
+(`tests/ui/panel-view.test.ts`), the four limit sentences are asserted as sentences
+rather than fetched from the functions that write them, and the drill's own labels
+— the two section labels, the effects heading, the counters line whole with its
+separators, the note about what a defence stopped, the profession nobody stated,
+and both section headings — are read off a composed card.
+
+What this does not do is hold a **different** wrong sentence in Polish, and it is
+worth saying which half of §3 was already held: `tests/ui/panel-view.test.ts` walks
+every screen refusing a key of the game's or a term of ours in anything a player
+reads, and it passes just as happily when a phrase becomes another phrase — which
+is the hole `tests/ui/panel-words.test.ts`'s recorded table was written for, and
+which stopped at the tables. These nine sat outside them.
+
 *Where:* `src/ui/panel-words.ts:437`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-words.test.ts`
 
 ### F5 — the owner of a running total has no row in the register, and two copies it replaced are still there
 
@@ -277,8 +327,24 @@ One site is not the same case and belongs in the decision rather than in the
 guard: `tools/decoding-status.ts:100` counts into a plain object, which
 `setRunningTotal`'s `Map` signature does not take.
 
+⚠️ **The finding named the wrong mechanism, and the real one is worse.**
+`§9.5`'s register in `AGENTS.md` has no row for this module — that half is right —
+but `tests/tools/source-layout.test.ts` has held one all along. Its pattern read
+`\w+\.get`, a map called by a bare identifier, and every map in this repository
+hangs off a row: `skill.dealtByTargetId.get(id)` was invisible to it. So the guard
+was not missing, it was **narrower than the thing it guards**, which is the same
+fault this audit filed twice elsewhere and the harder one to notice — a green row
+in a register of owned constructs reads as a construct that is owned.
+
+The pattern now matches the map as an expression, both sites call
+`setRunningTotal`, and the widened pattern was run against the committed file
+first: two hits where the old one had none. §9.5's table has the row it was
+missing, and it claims the writing half only — a test that totals a map by hand is
+checking the subject's arithmetic against its own and must not borrow the
+subject's reader (§9.3).
+
 *Where:* `src/core/fight-statistics.ts:696`
-*Closes:* open
+*Closes:* guard `tests/tools/source-layout.test.ts`
 
 ### F6 — the reading that decides which end states health is written twice, and nothing tells its branches apart
 
@@ -301,8 +367,22 @@ test can distinguish, because there is nothing to distinguish.
 The file is where §9.6's clause about sizing a share onto a side rests, and that
 clause's whole argument is that every input is refused rather than defaulted.
 
+⚠️ **The duplication went; one branch of what replaced it cannot be killed,
+and that is written down rather than papered over.** The eight lines are now
+`composeStatement`, and each event kind writes down only what it decides — which
+slots it states health for. Five tests ask that of the kinds separately: an
+announcement states both ends and moves nothing, a blow moves health for the one
+struck and not for the one swinging, health that fell outside a blow is read
+against the one it fell on. Both were watched failing against the branch they
+cover.
+
+The `||` inside `composeStatement` is the exception and its docblock now says so:
+a combatant the roster could not place is refused downstream for having no
+maximum, so mutating it changes no answer this module gives. It is the pair type
+being honest, not a branch anything observes.
+
 *Where:* `src/core/combatant-health.ts:188`
-*Closes:* open
+*Closes:* guard `tests/core/combatant-health.test.ts`
 
 ### F7 — the decoder reads `name(percent%)` twice, and only one of the two copies carries the traps
 
@@ -324,8 +404,18 @@ Nothing holds the two together. This is the shape §9.3 names: the panel still
 draws and the gate still passes while one copy learns something the other does
 not.
 
+⚠️ **One reader, `getStatedNameFromText`, and it carries three notes where the
+two copies between them carried two.** The third is the refusal neither copy
+explained: an unreadable percentage refuses the whole message, and what makes that
+the right answer is that the health it states is the anchor an entry health is
+unwound from (`src/core/combatant-health.ts`), so a message quietly missing one is
+a fight that sizes differently. What the two decoders genuinely do not share is the
+**splitting** above it — `+oth_dmg` writes the figure last and `legbon_lastheal`
+writes it first — and the healing decoder's docblock, which used to end at "this
+cannot share that reader", now says which half is its own and which is shared.
+
 *Where:* `src/core/fight-decoder.ts:215`
-*Closes:* open
+*Closes:* commit
 
 ### F8 — "the only two in this repository" names two of sixteen
 
@@ -348,8 +438,17 @@ and names no exception; §9.6 requires the isolation that makes sixteen of them
 necessary; and the only place the tension is written down is one comment that
 claims to be the whole of it.
 
+⚠️ **The rule moved and the comment stopped claiming to be it.** §9.5 now
+carries the exception in the only shape that is true of the tree: at the boundary
+with somebody else's program a `catch` takes everything, and away from such a
+boundary a broad catch is a bug. The block in `engine-battle-wrap.ts` says what is
+particular to *it* — everything under it runs inside the game's own call stack,
+between the engine calling its update and getting its value back — and no longer
+claims to be the only one. Nothing mechanical tells the two kinds apart, which the
+rule says out loud rather than implying a guard exists.
+
 *Where:* `src/game/engine-battle-wrap.ts:250`
-*Closes:* open
+*Closes:* rule §9.5
 
 ### F9 — a `libs/` primitive whose only caller is the test that keeps it alive
 
@@ -370,8 +469,15 @@ more common thing: an export nothing under `tests/` has ever mentioned."* This i
 the case one rung below that — an export one test mentions and nothing needs —
 and §7.1's rule is that nothing exists before it is needed.
 
+⚠️ **Deleted, with its test, and the docblock that leaned on it rewritten.**
+The wrapper around the map keeps a plainer argument — what a caller passes around
+is a recorder rather than somebody's totals, and a second tally can be added
+without every holder's type changing. A caller that needs to start again composes
+a recorder, which is what `tools/payload-cost.ts` does per recording; one that
+needs to empty this one in place will bring the reader back with its caller (§7.1).
+
 *Where:* `libs/elapsed-spans.ts:93`
-*Closes:* open
+*Closes:* commit
 
 ### F10 — a function that is one function because two callers needed it, and the second caller is gone
 
@@ -389,8 +495,13 @@ The function is right and the sentence is the reason somebody would keep it
 separate. What the reader is told is that a second caller is out there, when what
 is true is that the second caller was removed and its argument stayed.
 
+⚠️ **The sentence now argues from what is there.** The function stays and its
+reason is the plain one — `composeFigureText` rounds and this spaces, so a caller
+holding a run of digits has no rounding to ask for — with the vanished rate
+recorded as what the old sentence was pointing at.
+
 *Where:* `src/ui/panel-words.ts:478`
-*Closes:* open
+*Closes:* commit
 
 ### F11 — "the drawing is a separate file and a thin one" stands over the largest file in the repository
 
@@ -410,8 +521,13 @@ The sentence matters because of what it is for: it is what a reader consults
 before deciding which of the two files a new decision belongs in, and it tells
 them the other one is thin.
 
+⚠️ **The split is by kind, and the docblock says that instead.** A decision
+about a figure is in `panel-view.ts`, a decision about a node is in
+`panel-element.ts`, and the word "thin" is gone — with a note of what it was
+describing before the placement and the card were folded in.
+
 *Where:* `src/ui/panel-view.ts:4`
-*Closes:* open
+*Closes:* commit
 
 ### F12 — one fold, seven spellings, in the layer that has a module for exactly this
 
@@ -440,8 +556,26 @@ Whether the answer is a reader in `libs/`, a parameter where two twins stand, or
 nothing at all is a judgment this audit does not make — it is filed because
 §7.1's second consumer arrived five times inside one file and nobody noticed.
 
+⚠️ **Two readers, not four, because the two compose.** `libs/running-total.ts`
+gains `getTotalOfValues` and `getTotalsByInnerKey`; the whole of a two-level map is
+the first read over the second, and a total per **outer** key is
+`setRunningTotal(totals, outer, getTotalOfValues(inner))` — the writing half this
+module already owned. All seven sites now spell one of those, and three more
+`reduce`s over a map's values in `panel-view.ts` and `panel-drill.ts` went the same
+way. Two of the seven sum a map at a time rather than composing the pair, and say
+why: they are asked of every ranked row on every redraw and want no totals per
+element, only what they come to. The pair has its own tests rather than coverage through callers, both edges
+included: empty comes to zero, a negative stays negative, and the map handed back
+is the caller's own.
+
+The **twins** in `src/ui/panel-reading.ts` were left as twins. Parameterising them
+would put the choice of map at the call site, where the two figures they answer for
+— what a blow left unattributed and what fell outside one — are different questions
+that happen to be computed alike (§9.3's `[ASK]` on collapsing a deliberate
+duplicate).
+
 *Where:* `src/ui/panel-reading.ts:127`
-*Closes:* open
+*Closes:* guard `tests/libs/running-total.test.ts`
 
 ## Looked at and clean
 

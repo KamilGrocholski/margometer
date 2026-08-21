@@ -1983,6 +1983,19 @@ describe("against the captured fights", () => {
     expect(noTarget?.detail.filter((line) => line.kind === "stat")).toEqual([
       { kind: "stat", label: getNeitherEndLeftover().label, value: "90", isStrong: false },
     ]);
+    /**
+     * ⚠️ **The words themselves, and this is the one screen that draws them.**
+     * Everywhere else this pair is read back from the module that writes it, which
+     * holds the two sides to be the same and neither to be right — so both halves
+     * could have been replaced by anything at all, including a key of the game's
+     * or a word of ours, with the gate green (§3,
+     * `docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F4). It is the row
+     * for what names neither end, which no recording has ever produced.
+     */
+    expect(getNeitherEndLeftover()).toEqual({
+      label: "Nie do przypisania",
+      note: "Ta część nie trafiła na żaden wiersz — nie wiadomo ani kto, ani komu.",
+    });
 
     // A side tab takes the part with a team and leaves the part without one.
     const sided = composePanelView(reading, composeState({ metric: "taken", team: "enemy" }));

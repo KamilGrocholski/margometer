@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics, getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import {
+  composeEmptyCombatantStatistics,
+  composeFightStatistics,
+  getCombatantIdsInFight,
+} from "@/src/core/fight-statistics.ts";
 import {
   composeBreakdownLists,
   composeCombatantDetail,
@@ -10,6 +15,7 @@ import {
 } from "@/src/ui/panel-drill.ts";
 import {
   composeDefaultState,
+  getRowKeyMeaning,
   NO_ACTOR_ROW_KEY,
   NO_TARGET_ROW_KEY,
   PANEL_METRICS,
@@ -39,7 +45,14 @@ import {
  * Structural only — no label of the game's is read, written down or asserted on.
  */
 
-import { composeFigureText } from "@/src/ui/panel-words.ts";
+import {
+  composeFigureText,
+  CRITICAL_EFFECT_TOKENS,
+  CRITICAL_TOKEN,
+  DESTRUCTION_NAMES,
+  getPhrase,
+  PERCENT_DESTRUCTION_TOKEN,
+} from "@/src/ui/panel-words.ts";
 
 const FIGHTS = CAPTURED_FIGHTS.map((fight) => {
   const roster = composeRosterOfFight(fight);
@@ -435,5 +448,457 @@ describe("the card", () => {
       }
       expect(seen, place).toBeGreaterThan(0);
     }
+  });
+});
+
+/**
+ * The one place the card counts a token of the game's by name, and the one place
+ * it has to leave the same token out.
+ *
+ * ⚠️ **Four spellings of two names, and none of them stood on anything.** The
+ * counters line asked the row for `crit` and `legbon_verycrit`; the effects line
+ * beside it filtered the same two out, because a critical already counted must not
+ * be counted again. Every one of the four could be pointed at a token the game
+ * never sends with the whole gate green — the counter reading nothing, or the
+ * effects line growing a row that is already above it
+ * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F1).
+ */
+describe("a critical, counted once", () => {
+  const WITH_EFFECTS = FIGHTS.flatMap(({ name, reading }) =>
+    [...reading.statistics.byCombatantId]
+      .filter(([, row]) => row.procsOnBlowsStruck.size > 0)
+      .map(([combatantId, row]) => ({ name, reading, combatantId, row })),
+  );
+
+  test("the recordings carry a critical to count", () => {
+    expect(WITH_EFFECTS.length).toBeGreaterThan(0);
+    expect(
+      WITH_EFFECTS.some(({ row }) => (row.procsOnBlowsStruck.get(CRITICAL_TOKEN) ?? 0) > 0),
+    ).toBe(true);
+  });
+
+  test("stands in the counters line under its own count", () => {
+    let counted = 0;
+    for (const { name, reading, combatantId, row } of WITH_EFFECTS) {
+      const critical = row.procsOnBlowsStruck.get(CRITICAL_TOKEN) ?? 0;
+      if (critical <= 0) continue;
+      const lines = composeCombatantDetail(reading, combatantId, composeState(), null, "ranking");
+      const counters = lines.filter((line) => line.kind === "note" && line.text.includes("kryt."));
+
+      expect(counters.length, `${name} #${combatantId}`).toBe(1);
+      expect(counters[0]?.kind === "note" ? counters[0].text : "", `${name} #${combatantId}`)
+        .toContain(`kryt. ${composeFigureText(critical)}`);
+      counted += 1;
+    }
+    expect(counted).toBeGreaterThan(0);
+  });
+
+  test("and is left out of the effects line, which lists what is not counted above", () => {
+    let listed = 0;
+    let withheld = 0;
+    for (const { name, reading, combatantId, row } of WITH_EFFECTS) {
+      const lines = composeCombatantDetail(reading, combatantId, composeState(), null, "ranking");
+      const at = lines.findIndex(
+        (line) => line.kind === "heading" && line.text === "Efekty w ciosach",
+      );
+      const rest = [...row.procsOnBlowsStruck.keys()].filter(
+        (token) => !CRITICAL_EFFECT_TOKENS.includes(token),
+      );
+      const where = `${name} #${combatantId}`;
+
+      if (rest.length === 0) {
+        // Everything this combatant fired is already in the counters line, so the
+        // section is absent rather than empty.
+        expect(at, where).toBe(-1);
+        withheld += 1;
+        continue;
+      }
+      expect(at, where).toBeGreaterThan(-1);
+      const note = lines[at + 1];
+      expect(note?.kind, where).toBe("note");
+      expect((note?.kind === "note" ? note.text : "").split(" · ").length, where).toBe(rest.length);
+      listed += 1;
+    }
+    expect(listed).toBeGreaterThan(0);
+    expect(withheld).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The destroyed block's members are not in one unit, and only one of them says so.
+ *
+ * `+resdmg` is percentage points and the other three are points
+ * (`docs/protocol-keys.md`), so the `%` is the whole of what keeps four figures
+ * under one heading from reading as four of the same thing (§10). The token that
+ * decides it was spelled at the conditional and nothing held it
+ * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F1).
+ */
+describe("a destroyed statistic carries its unit", () => {
+  const DESTROYED = FIGHTS.flatMap(({ name, reading }) =>
+    [...reading.statistics.byCombatantId]
+      .filter(([, row]) => [...row.destroyed.values()].some((amount) => amount > 0))
+      .map(([combatantId, row]) => ({ name, reading, combatantId, row })),
+  );
+
+  function getStatValue(
+    reading: PanelReading,
+    combatantId: number,
+    label: string,
+  ): string | null {
+    for (const line of composeCombatantDetail(reading, combatantId, composeState(), null, "ranking")) {
+      if (line.kind === "stat" && line.label === label) return line.value;
+    }
+    return null;
+  }
+
+  test("the recordings carry both units", () => {
+    expect(DESTROYED.some(({ row }) => row.destroyed.has(PERCENT_DESTRUCTION_TOKEN))).toBe(true);
+    expect(
+      DESTROYED.some(({ row }) =>
+        [...row.destroyed.keys()].some((token) => token !== PERCENT_DESTRUCTION_TOKEN),
+      ),
+    ).toBe(true);
+  });
+
+  test("percentage points are drawn as percentage points, and points are not", () => {
+    let inPercent = 0;
+    let inPoints = 0;
+    for (const { name, reading, combatantId, row } of DESTROYED) {
+      for (const [token, amount] of row.destroyed) {
+        if (amount <= 0) continue;
+        const value = getStatValue(reading, combatantId, getPhrase(DESTRUCTION_NAMES, token, null));
+        const where = `${name} #${combatantId} ${token}`;
+        expect(value, where).not.toBeNull();
+        if (token === PERCENT_DESTRUCTION_TOKEN) {
+          expect(value, where).toBe(`${composeFigureText(amount)}%`);
+          inPercent += 1;
+        } else {
+          expect(value, where).toBe(composeFigureText(amount));
+          inPoints += 1;
+        }
+      }
+    }
+    expect(inPercent).toBeGreaterThan(0);
+    expect(inPoints).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * One combatant with figures put there by hand.
+ *
+ * A capture cannot be asked for a figure of exactly one point, or for a pair whose
+ * cut holds exactly two rows, and both are edges the drill decides something on.
+ */
+const CRAFTED_ROSTER = composeCombatantRoster([
+  { id: 1, name: "a", side: 1, profession: "m", level: 100, maximumHealth: null },
+  { id: 2, name: "b", side: 2, profession: null, level: null, maximumHealth: null },
+  { id: 3, name: "c", side: 2, profession: null, level: 40, maximumHealth: null },
+]);
+
+type CraftedRow = Partial<ReturnType<typeof composeEmptyCombatantStatistics>>;
+
+/** Pairs rather than an object: an object's keys are text, and turning them back
+ * into numbers would put a reader here that `libs/number.ts` owns (§9.5). */
+function composeCraftedReading(rows: ReadonlyArray<readonly [number, CraftedRow]>): PanelReading {
+  const statistics = composeFightStatistics(decodeFight([], CRAFTED_ROSTER), CRAFTED_ROSTER);
+  return {
+    statistics: {
+      ...statistics,
+      byCombatantId: new Map(
+        rows.map(([id, row]) => [id, { ...composeEmptyCombatantStatistics(), ...row }]),
+      ),
+    },
+    roster: CRAFTED_ROSTER,
+    ourSide: 1,
+    isFromFightStart: true,
+  };
+}
+
+/**
+ * Whether a row opens onto anything is decided by how many rows the level below
+ * would hold — elements and keys **together**, because they are drawn as one
+ * section. That addition could be turned into a subtraction with the gate green,
+ * which turns a pair holding one of each into a leaf
+ * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F3).
+ */
+describe("a pair opens on what its cut would hold", () => {
+  const OPPONENT = 2;
+
+  function getOpponentRow(opponent: CraftedRow): PanelRow | undefined {
+    const reading = composeCraftedReading([
+      [
+        1,
+        {
+          taken: 5,
+          takenByElement: new Map([["dmg", 5]]),
+          takenByActorId: new Map([[OPPONENT, new Map([["dmg", 5]])]]),
+        },
+      ],
+      [OPPONENT, opponent],
+    ]);
+    for (const list of composeBreakdownLists(reading, composeState({ metric: "taken" }), 1, null)) {
+      for (const row of list.rows) {
+        const meaning = getRowKeyMeaning(row.key);
+        if (meaning.opens === "target" && meaning.combatantId === OPPONENT) return row;
+      }
+    }
+    return undefined;
+  }
+
+  test("one element and one key together are two rows, so it opens", () => {
+    const row = getOpponentRow({
+      dealtApplied: 5,
+      dealtByTargetId: new Map([[1, new Map([["dmg", 5]])]]),
+      healthLostCaused: 3,
+      healthLostCausedByTargetId: new Map([[1, new Map([["poison", 3]])]]),
+    });
+
+    expect(row?.isDrillable).toBe(true);
+  });
+
+  test("one row is what the row above already says, so it does not", () => {
+    const row = getOpponentRow({
+      dealtApplied: 5,
+      dealtByTargetId: new Map([[1, new Map([["dmg", 5]])]]),
+    });
+
+    expect(row?.isDrillable).toBe(false);
+  });
+});
+
+/**
+ * Every figure on the card, at one point and at none.
+ *
+ * ⚠️ **Zero is the boundary and one is the side of it nothing stood on** (§7.5).
+ * Each section here is drawn on `> 0`, and every one of those edges could be moved
+ * a step with the whole gate green: a combatant who blocked one point, took one
+ * outside a blow or destroyed one point of somebody's resistance simply lost the
+ * line saying so (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F2).
+ * A hand-built row rather than a capture, because a fight where a figure is
+ * exactly one is not something the recordings can be asked for.
+ */
+describe("a figure of one point, and of none", () => {
+  function composeCardOf(over: CraftedRow) {
+    return composeCombatantDetail(
+      composeCraftedReading([[1, over]]),
+      1,
+      composeState(),
+      null,
+      "ranking",
+    );
+  }
+
+  const ONE = {
+    taken: 1,
+    healthLost: 1,
+    dealtApplied: 1,
+    healthLostCaused: 1,
+    largestBlow: 1,
+    blowsStruck: 1,
+    prevented: new Map([["blok", 1]]),
+    destroyed: new Map([["resdmg", 1]]),
+  };
+
+  function getLabels(lines: ReturnType<typeof composeCombatantDetail>): string[] {
+    return lines.map((line) => (line.kind === "stat" ? line.label : line.text));
+  }
+
+  test("one point of health lost outside a blow is said, and none is not", () => {
+    // Both directions: the split reads `healthLost` under what was received and
+    // `healthLostCaused` under what was dealt, and one point of either draws it.
+    // The two labels are the words a player reads, so they are read here rather
+    // than fetched from the module that writes them
+    // (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F4).
+    const said = getLabels(composeCardOf(ONE));
+    expect(said.filter((label) => label === "  z ciosów").length).toBe(2);
+    expect(said.filter((label) => label === "  poza ciosem").length).toBe(2);
+    expect(getLabels(composeCardOf({ taken: 1, dealtApplied: 1 }))).not.toContain("  poza ciosem");
+  });
+
+  /**
+   * The counters line, whole — the words, their order, and the ` · ` between them.
+   * Everything in it is drawn from one string, so a separator nothing asserts is a
+   * line that can run together with the gate green (F4).
+   */
+  test("the counters line reads as one sentence of counts", () => {
+    const said = composeCardOf({
+      ...ONE,
+      blowsStruck: 3,
+      blowsWithoutSkill: 2,
+      procsOnBlowsStruck: new Map([[CRITICAL_TOKEN, 1]]),
+    }).find((line) => line.kind === "note" && line.text.startsWith("ciosy"));
+
+    expect(said?.kind === "note" ? said.text : "").toBe(
+      "ciosy 3 (w tym 2 zwykłe) · kryt. 1 · maks. cios 1",
+    );
+  });
+
+  /** What a defence stopped is part of what never arrived, and the note says so. */
+  test("the stopped block carries the limit of what the game states", () => {
+    expect(getLabels(composeCardOf(ONE))).toContain(
+      "To część tego, co nie doszło — reszty gra nie podaje.",
+    );
+    expect(
+      getLabels(composeCardOf({ ...ONE, prevented: new Map([["blok", 0]]) })),
+    ).not.toContain("To część tego, co nie doszło — reszty gra nie podaje.");
+  });
+
+  /** A combatant the roster cannot describe is said to be one, never left blank. */
+  test("a profession nobody stated is named as one", () => {
+    // The roster states this one's level and not their profession, which is the
+    // shape a monster arrives in: the heading has something to say and half of it
+    // is missing.
+    const lines = composeCombatantDetail(
+      composeCraftedReading([[3, { taken: 1 }]]),
+      3,
+      composeState(),
+      null,
+      "ranking",
+    );
+
+    expect(getLabels(lines)).toContain("nieznana profesja (40)");
+  });
+
+  test("one point stopped by a defence is said, and none is not", () => {
+    expect(getLabels(composeCardOf(ONE))).toContain("Zatrzymane");
+    expect(getLabels(composeCardOf({ ...ONE, prevented: new Map([["blok", 0]]) }))).not.toContain(
+      "Zatrzymane",
+    );
+  });
+
+  test("one point destroyed is said, and none is not", () => {
+    expect(getLabels(composeCardOf(ONE))).toContain("Zniszczone");
+    expect(getLabels(composeCardOf({ ...ONE, destroyed: new Map([["resdmg", 0]]) }))).not.toContain(
+      "Zniszczone",
+    );
+  });
+
+  test("a largest blow of one point is said, and none is not", () => {
+    const getCounters = (row: Partial<typeof ONE>) =>
+      composeCardOf(row).find((line) => line.kind === "note" && line.text.startsWith("ciosy"));
+
+    const said = getCounters(ONE);
+    expect(said?.kind === "note" ? said.text : "").toContain("maks. cios 1");
+    const silent = getCounters({ ...ONE, largestBlow: 0 });
+    expect(silent?.kind === "note" ? silent.text : "").not.toContain("maks. cios");
+  });
+});
+
+/**
+ * Every list the drill draws reads downwards, and until this existed nothing said
+ * so.
+ *
+ * ⚠️ **Six comparators, every one of which could be turned into a sum with the
+ * gate green** (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F3). A
+ * breakdown answers *what is this figure made of*, and the answer is read off the
+ * top of the list — the largest contributor first, the way the ranking above it
+ * reads. Writing the closing round of this test is what found the healing screen's
+ * `OD CZEGO` returning before the sort.
+ *
+ * The rows that close a list are exempt and stand last whatever they hold: what
+ * nobody is named for is not a contributor to be ranked among the ones who are.
+ */
+describe("a breakdown reads downwards", () => {
+  test("every list is ordered by its figure, largest first", () => {
+    let compared = 0;
+    for (const { name, reading, metric, combatantId } of getScreens()) {
+      for (const list of composeBreakdownLists(reading, composeState({ metric }), combatantId, null)) {
+        const ranked = list.rows.filter(
+          (row) =>
+            row.key !== NO_ACTOR_ROW_KEY &&
+            row.key !== NO_TARGET_ROW_KEY &&
+            !row.key.includes(UNANNOUNCED_ROW_KEY),
+        );
+        for (let at = 1; at < ranked.length; at += 1) {
+          const where = `${name} ${metric} #${combatantId} ${list.heading} ${at}`;
+          expect(ranked[at]!.fill, where).toBeLessThanOrEqual(ranked[at - 1]!.fill);
+        }
+        if (ranked.length > 1) compared += 1;
+      }
+    }
+    // A sweep over lists of one row proves nothing about an order (§9.2).
+    expect(compared).toBeGreaterThan(0);
+  });
+
+  /**
+   * The section of a pair, one level further in, where the same comparator is
+   * written again. Reached only where a row opens onto a pair, so it is counted
+   * rather than assumed.
+   */
+  test("and so does the list under one opponent", () => {
+    let compared = 0;
+    for (const { name, reading, metric, combatantId } of getScreens()) {
+      for (const list of composeBreakdownLists(reading, composeState({ metric }), combatantId, null)) {
+        for (const row of list.rows) {
+          if (!row.isDrillable) continue;
+          const meaning = getRowKeyMeaning(row.key);
+          if (meaning.opens !== "target") continue;
+          const state = composeState({ metric, focusCombatantId: combatantId, focusTargetId: meaning.combatantId });
+          for (const deep of composeDeepLists(reading, state, combatantId, null)) {
+            const ranked = deep.rows.filter((one) => !one.key.includes(UNANNOUNCED_ROW_KEY));
+            for (let at = 1; at < ranked.length; at += 1) {
+              const where = `${name} ${metric} #${combatantId} → ${deep.heading} ${at}`;
+              expect(ranked[at]!.fill, where).toBeLessThanOrEqual(ranked[at - 1]!.fill);
+            }
+            if (ranked.length > 1) compared += 1;
+          }
+        }
+      }
+    }
+    expect(compared).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The headings the sections are drawn under, read off the screen rather than
+ * fetched from the table that writes them (F4).
+ */
+describe("what a section is called", () => {
+  test("healing received is broken down by what it came from", () => {
+    // Two rows, because a cut of one repeats the figure above it and is not drawn
+    // (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
+    const reading = composeCraftedReading([
+      [
+        1,
+        {
+          healed: 12,
+          healedBySource: new Map([
+            ["heal", 10],
+            ["heal_target", 2],
+          ]),
+        },
+      ],
+    ]);
+    const headings = composeBreakdownLists(
+      reading,
+      composeState({ metric: "healed" }),
+      1,
+      null,
+    ).map((list) => list.heading);
+
+    expect(headings).toContain("OD CZEGO");
+  });
+
+  test("damage is broken down by its type", () => {
+    const reading = composeCraftedReading([
+      [
+        1,
+        {
+          taken: 12,
+          takenByElement: new Map([
+            ["dmg", 10],
+            ["dmgf", 2],
+          ]),
+        },
+      ],
+    ]);
+    const headings = composeBreakdownLists(
+      reading,
+      composeState({ metric: "taken" }),
+      1,
+      null,
+    ).map((list) => list.heading);
+
+    expect(headings).toContain("TYP OBRAŻEŃ");
   });
 });

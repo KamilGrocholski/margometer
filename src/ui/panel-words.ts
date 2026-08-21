@@ -108,6 +108,25 @@ export const EFFECT_NAMES: Record<string, TokenName> = {
 };
 
 /**
+ * The two tokens the panel counts on their own, spelled here and read there.
+ *
+ * A critical hit is counted in the counters line and **must not** be repeated in
+ * the effects line beside it, so two places have to agree about what a critical
+ * hit is called. Both were spelled where they were used — twice each, two of them
+ * having to match the other two — and every spelling could be changed with the
+ * gate green: the counter reads nothing while the effect list grows a row, or the
+ * same hits are counted twice
+ * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F1). The game chose
+ * these names, so §9.3 puts them in one place and a guard holds that place to
+ * `EFFECT_NAMES` above (`tests/ui/panel-words.test.ts`).
+ */
+export const CRITICAL_TOKEN = "crit";
+export const VERY_CRITICAL_TOKEN = "legbon_verycrit";
+
+/** Both, for a reader that wants them out of a list rather than counted. */
+export const CRITICAL_EFFECT_TOKENS: readonly string[] = [CRITICAL_TOKEN, VERY_CRITICAL_TOKEN];
+
+/**
  * All sentences in the dictionary: each names the defence, then the figure it
  * took off and the damage it took it off. A name with the figure cut out of it
  * is not a label, so these keep a short noun of ours.
@@ -117,6 +136,13 @@ export const DEFENCE_NAMES: Record<string, TokenName> = {
   absorbm: { id: null, fallback: "pochłonięte magicznie" },
   blok: { id: null, fallback: "zablokowane" },
 };
+
+/**
+ * The one destroyed statistic stated in **percentage points** rather than in
+ * points, which is what decides whether the figure is drawn with a `%`. Spelled
+ * here for `EFFECT_NAMES`'s reason and held to the table below the same way.
+ */
+export const PERCENT_DESTRUCTION_TOKEN = "resdmg";
 
 /**
  * Sentences too. Worth naming what changed anyway: the `_per` pair is announced
@@ -472,11 +498,15 @@ export function composeShareText(share: number): string {
 }
 
 /**
- * A run of digits, spaced every three from the right.
+ * A run of digits, spaced every three from the right — as the game writes them.
  *
- * One function because two kinds of number need it and only one had it: a rate
- * read `39362,0/t` beside a total reading `354 258`, which is the same figure
- * written two ways on one row.
+ * ⚠️ **It argued for itself by naming a second caller that no longer exists.**
+ * The sentence read "one function because two kinds of number need it", the
+ * second being a per-turn rate — and §10 says nothing here counts turns, so the
+ * rate went and the argument stayed
+ * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F10). It is separate
+ * for a plainer reason: `composeFigureText` above rounds and this spaces, and a
+ * caller that has a run of digits already has no rounding to ask for.
  */
 function composeSpacedThousands(digits: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");

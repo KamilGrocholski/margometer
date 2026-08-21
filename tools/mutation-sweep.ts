@@ -328,6 +328,34 @@ function isShapeOnlyKill(run: GateOutcome): boolean {
   );
 }
 
+/**
+ * ⚠️ **A sweep against a tree that is already red reports every mutant killed.**
+ * A kill here is "the suite went red with the mutant in", and a suite that was
+ * red without it goes red with it too — so a single unrelated failure turns the
+ * whole run into a green report saying every test can fail. Paid for on a
+ * detached worktree whose scratch commit tripped `todo-commits.test.ts`: every
+ * mutant of three files came back killed, one of them a mutation that had just
+ * been watched surviving by hand
+ * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, the closing round's
+ * re-measurement).
+ *
+ * One run before the first mutant, which is nothing beside the hundreds that
+ * follow. The clean-tree check above cannot see this: a tree with no changes in
+ * it can still be one whose suite does not pass.
+ */
+function assertGateIsGreen(): void {
+  const outcome = getGateOutcome(false);
+  if (outcome.isRed === null) {
+    throw new MutationSweepError("the gate did not finish before the first mutant was written");
+  }
+  if (outcome.isRed) {
+    throw new MutationSweepError(
+      "the gate is already red without a mutant in it, so every mutant would be reported " +
+        `killed; red: ${outcome.failing.join(", ")}`,
+    );
+  }
+}
+
 function assertCleanWorkingTree(): void {
   const result = spawnSync("git", ["status", "--porcelain"], {
     cwd: REPOSITORY_ROOT,
@@ -462,5 +490,6 @@ if (import.meta.main) {
   const asked = process.argv.slice(2);
   const files = asked.length > 0 ? asked : getSweptFiles();
   assertCleanWorkingTree();
+  assertGateIsGreen();
   writeSweepReport(files.flatMap((file) => getMutationOutcomesOfFile(file)));
 }

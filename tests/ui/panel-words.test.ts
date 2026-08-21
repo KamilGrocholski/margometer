@@ -3,6 +3,8 @@ import { assertDefined } from "@/libs/assert.ts";
 import {
   composeFigureText,
   composeShareText,
+  CRITICAL_EFFECT_TOKENS,
+  CRITICAL_TOKEN,
   DEFENCE_NAMES,
   DESTRUCTION_NAMES,
   EFFECT_NAMES,
@@ -22,7 +24,9 @@ import {
   HEALTH_LOSS_SOURCE_NAMES,
   NO_ACTOR_LABEL,
   NO_TARGET_LABEL,
+  PERCENT_DESTRUCTION_TOKEN,
   PROFESSION_NAMES,
+  VERY_CRITICAL_TOKEN,
   type TokenName,
 } from "@/src/ui/panel-words.ts";
 import { getMetricNoun, isGivenMetric, PANEL_METRICS } from "@/src/ui/panel-screen.ts";
@@ -262,6 +266,48 @@ describe("the panel's own vocabulary, as decided", () => {
  * a player reading the game's own key where a word belongs. `getPhrase` still
  * falls back to the token, so this fails a test rather than a fight.
  */
+describe("the tokens the panel singles out", () => {
+  /**
+   * §9.3's guard, and the whole reason these are constants: a critical hit is
+   * counted in the counters line and kept out of the effects line beside it, so
+   * two readers have to agree about what the game calls one. Every spelling of
+   * both used to sit where it was used and none of them was held to anything
+   * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F1).
+   */
+  test.each([...CRITICAL_EFFECT_TOKENS])("%s is a token this file already names", (token) => {
+    expect(Object.keys(EFFECT_NAMES)).toContain(token);
+  });
+
+  test("both criticals are in the list the effects line filters by", () => {
+    expect([...CRITICAL_EFFECT_TOKENS]).toEqual([CRITICAL_TOKEN, VERY_CRITICAL_TOKEN]);
+  });
+
+  test("the destruction stated in percentage points is one of the destroyed statistics", () => {
+    expect(Object.keys(DESTRUCTION_NAMES)).toContain(PERCENT_DESTRUCTION_TOKEN);
+  });
+
+  /**
+   * The tokens are the game's, so the captures are what says they are real: a
+   * constant naming an effect this game never fires would pass every check above
+   * and count nothing for ever.
+   */
+  test("the critical the counters line counts is one the recordings fire", () => {
+    const fired = new Set<string>();
+    for (const fight of CAPTURED_FIGHTS) {
+      const roster = composeRosterOfFight(fight);
+      const statistics = composeFightStatistics(
+        decodeFight(getMessagesOfFight(fight), roster),
+        roster,
+      );
+      for (const row of [...statistics.byCombatantId.values(), statistics.unattributed]) {
+        for (const token of row.procsOnBlowsStruck.keys()) fired.add(token);
+      }
+    }
+
+    expect([...fired]).toContain(CRITICAL_TOKEN);
+  });
+});
+
 describe("the two health vocabularies, against the captures", () => {
   const SOURCES = CAPTURED_FIGHTS.map((fight) => {
     const roster = composeRosterOfFight(fight);
@@ -462,6 +508,33 @@ describe("what is shared and what is not", () => {
     // the same blow read from either end.
     const wordings = new Set(PANEL_METRICS.map((metric) => getNoTargetLimitNote(metric)));
     expect(wordings.size).toBe(2);
+  });
+
+  /**
+   * ⚠️ **The sentences themselves, in words, and this is the only place they are.**
+   * Every other test here reads a note back from the function that writes it,
+   * which holds the two sides to be the same and neither to be right: the healing
+   * half of this pair could have been replaced by anything at all — a key of the
+   * game's, a word of ours, English — with the whole gate green (§3,
+   * `docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F4).
+   *
+   * Both halves are here rather than one, because what makes either right is that
+   * it says what the game did not state and nothing about why this reader cannot
+   * know it. Read them side by side or that is not checkable.
+   */
+  test("says, in the player's own words, which end the game left out", () => {
+    expect(getNoTargetLimitNote("dealt")).toBe(
+      "Gra nie mówi, w kogo — wiadomo tylko, że cios wszedł.",
+    );
+    expect(getNoTargetLimitNote("healingGiven")).toBe(
+      "Gra nie mówi, komu — wiadomo tylko, że leczenie weszło.",
+    );
+    expect(getNoActorLimitNote("taken")).toBe(
+      "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.",
+    );
+    expect(getNoActorLimitNote("healed")).toBe(
+      "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
+    );
   });
 
   /**

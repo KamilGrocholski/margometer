@@ -444,6 +444,56 @@ describe("what a fight was entered with", () => {
     const entry = composeEntryHealthByCombatantId(new Map([[1, 9_000]]), maxima, opening);
     expect([...entry]).toEqual([]);
   });
+
+  /**
+   * ⚠️ **Which slot each kind states health for, asked per kind.** Every one of
+   * these passes through one reader, and until this block existed nothing
+   * distinguished the kinds from each other: `attack` and `skill-used` carried the
+   * same eight lines, so either could have been reading the other's slots with the
+   * whole gate green (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`,
+   * F2, and `docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F6).
+   *
+   * The health each entry states is the health *after* the message, so a kind that
+   * moved health for the wrong combatant shows up as an entry that is too high —
+   * or, above the maximum, as no entry at all.
+   */
+  test("reads both ends of an announcement, and moves nothing for either", () => {
+    const opening = decodeFight(["2=90.00;1=70.00;tspell=Fala"], null);
+    const entry = composeEntryHealthByCombatantId(new Map(), maxima, opening);
+
+    expect(entry.get(2)).toBe(9_000);
+    expect(entry.get(1)).toBe(7_000);
+  });
+
+  test("moves a blow's health for the one struck and not for the one swinging", () => {
+    const opening = decodeFight(["2=90.00;1=70.00;+dmg=2000;-dmg=2000"], null);
+    const entry = composeEntryHealthByCombatantId(new Map(), maxima, opening);
+
+    // The struck one is unwound through the blow; the striker is not, and would
+    // land at 11 000 of a possible 10 000 and be refused if they were.
+    expect(entry.get(1)).toBe(9_000);
+    expect(entry.get(2)).toBe(9_000);
+  });
+
+  test("reads health that fell outside a blow against the one it fell on", () => {
+    const opening = decodeFight(["1=50.00;0;poison=100"], null);
+    const entry = composeEntryHealthByCombatantId(new Map(), maxima, opening);
+
+    expect([...entry]).toEqual([[1, 5_100]]);
+  });
+
+  /**
+   * A name this fight's roster cannot place states a health belonging to nobody.
+   * Two refusals stand in the way and this asks for the answer rather than for
+   * which of them gave it: the statement needs both halves, and a combatant with
+   * no maximum is refused in any case.
+   */
+  test("states nothing for a health whose combatant did not resolve", () => {
+    const opening = decodeFight(["2=100.00;1=80.00;+oth_dmg=440, ,Gracz 5(66.95%)"], null);
+    const entry = composeEntryHealthByCombatantId(new Map(), maxima, opening);
+
+    expect([...entry]).toEqual([]);
+  });
 });
 
 /** Every capture, and what this reader makes of the casts in it. */

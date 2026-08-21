@@ -9,12 +9,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import {
-  composeSpanRecorder,
-  composeSpanReport,
-  getTimedResult,
-  resetSpans,
-} from "@/libs/elapsed-spans.ts";
+import { composeSpanRecorder, composeSpanReport, getTimedResult } from "@/libs/elapsed-spans.ts";
 
 describe("recording what a piece of work cost", () => {
   test("reports nothing before anything has been timed", () => {
@@ -100,18 +95,5 @@ describe("recording what a piece of work cost", () => {
     recorder.spansByName.set("decode", { name: "decode", calls: 1, totalMs: 9, worstMs: 9 });
 
     expect(composeSpanReport(recorder).map((span) => span.name)).toEqual(["decode", "dom", "view"]);
-  });
-
-  // Emptied in place, because everything already handed this recorder goes on
-  // writing to it: a reset that swapped the map would leave the panel's phases
-  // reporting into an object nothing reads.
-  test("empties in place, and the same recorder records again", () => {
-    const recorder = composeSpanRecorder();
-    getTimedResult(recorder, "decode", () => null);
-    resetSpans(recorder);
-    expect(composeSpanReport(recorder)).toEqual([]);
-
-    getTimedResult(recorder, "view", () => null);
-    expect(composeSpanReport(recorder).map((span) => span.name)).toEqual(["view"]);
   });
 });

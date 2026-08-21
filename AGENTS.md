@@ -201,7 +201,7 @@ from (§9.5).
 | `tools/payload-cost.ts` | *What does one payload cost, and where does the time go?* `bun run cost [runs]`. No DOM — the arithmetic under the panel, not the drawing of it. |
 | `tools/help-article.ts` | *What does the game's documentation say?* `fetch`, `search` (non-zero on silence), `freeze`. §7.6. |
 | `tools/captured-fight-intake.ts` | *Put this recording in the repository.* Substitutes nicknames, strips ability descriptions, refuses what it cannot redact. §9.2. |
-| `tools/mutation-sweep.ts` | *Does this test light up when its subject breaks?* Refuses to start against a dirty tree. |
+| `tools/mutation-sweep.ts` | *Does this test light up when its subject breaks?* Refuses to start against a dirty tree, or against one whose gate is already red — where every mutant would be reported killed. |
 | `tools/preview-page.ts` | *What does the harness put in front of the panel?* The page as one string. Library, not a CLI. |
 | `tools/preview-server.ts` | *What does the panel look like right now?* `bun run preview`. The gate cannot see a panel; this can. |
 | `tools/preview-site.ts` | *What does it look like to somebody who installed nothing?* `bun run preview:site`. Nothing it writes is committed. |
@@ -293,6 +293,22 @@ Rules that arrived this way, each paid for at least once:
   new module, and the run is green because the file with the fault is not in the
   walk. Paid for twice — `tests/tools/measured-material.test.ts` records the same
   trap from the inside, having been unable to read its own prose for a commit.
+- `[ALWAYS] [any]` **A guard narrower than the construct it owns reads exactly
+  like a construct that is owned.** A register row is a claim that something is
+  held in one place, and a green row is the whole of what anybody checks — so a
+  pattern that misses the common spelling is worse than no row at all. Match the
+  shape the tree actually writes: `libs/running-total.ts`'s row read `\w+\.get`,
+  a map called by a bare name, while every map here hangs off a row — so two of
+  the five copies the module was extracted to remove stayed in the file that
+  imports it, in plain sight, under a green row
+  (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F5).
+- `[ALWAYS] [any]` **A test that reads a string back from the module that writes
+  it holds the two to be the same, and neither to be right.** For anything a
+  player reads, that is not a test — the sentence can be replaced by our
+  vocabulary, by a key of the game's or by nothing at all, and every assertion
+  still passes. Read the words, in words, at the point they are drawn. Paid for
+  on nine of them at once, one being the row for what names neither end, which no
+  recording has ever produced (F1, F4 of the same audit).
 
 ### 7.6 Working from the game's own sources
 
@@ -458,7 +474,8 @@ libs/              The bottom layer: true in any project — §9.1.
   text-order.ts    Two pieces of text in order, by code unit, deterministic.
   record.ts        Narrowing to something with keys. Two readers: one admits an
                    array, one refuses it.
-  running-total.ts Adding to a total a map already carries. Two readers.
+  running-total.ts A total a map carries, both ways: adding to one, and what one
+                   comes to. Four readers, one and two levels deep.
   source-regions.ts
                    Where comments, text literals and patterns sit in a source
                    file. Patterns, not a parser.
@@ -753,7 +770,21 @@ Deliberately disjoint, so a `catch` in the add-on cannot swallow a tool error
 believing it caught its own. Both bases are **abstract**: every kind of failure
 gets a named subclass and a `code`, so callers never match on message text.
 
-- `[ALWAYS]` **Catch narrowly — exactly the error you expect.**
+- `[ALWAYS]` **Catch narrowly — exactly the error you expect.** One exception,
+  and it is a place: **at the boundary with somebody else's program**, a `catch`
+  takes everything. A call into the game, a read of the page — `localStorage`
+  throws for being *read* where the browser forbids it — a document the game also
+  writes to, and each region §9.6 isolates so its failure is its own size.
+  Narrowing there would let a bug of ours escape into the game's call stack, which
+  is the one promise this add-on makes. **Away from such a boundary a broad catch
+  is a bug**, and most of the `catch` clauses in shipped code are at one. Written
+  here because it was written nowhere: the rule above read as an absolute while
+  one file's comment claimed to be the whole of the exception, naming "the only
+  two in this repository"
+  (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F8). Nothing tells
+  the two kinds apart mechanically — a `catch` is not where the boundary is
+  visible — so it is read rather than checked, and §7.5's rule is why it is here:
+  a qualification that lives in one file's docblock is one nobody else reads.
 - `[ALWAYS]` **Pass the original in `cause` when wrapping.**
 - **An expected failure in shipped code is DATA**, not an exception that
   propagates: it becomes an unknown event the panel can show. In `tools/`,
@@ -800,6 +831,7 @@ than one spelling in JavaScript, or can answer with a value nobody wrote.**
 | `libs/timestamp.ts` | `Date.parse` | `getMillisecondsFromIsoText` |
 | `libs/elapsed-spans.ts` | `performance.now()` | `getTimedResult`, and the tallies `composeSpanReport` reads back. `Date.now(` stays unowned — one spelling, no surprise |
 | `libs/record.ts` | `typeof … === "object"`, which is `true` for `null` | `getRecordFromValue`, `getRecordOrArrayFromValue` — two readers, because a list arriving where an object belongs is a fault in one caller and legitimate in another |
+| `libs/running-total.ts` | `map.set(key, (map.get(key) ?? 0) + amount)`, the map reached by a name **or** by a field | `setRunningTotal`, `setPairRunningTotal`, and the reading half `getTotalOfValues`, `getTotalsByInnerKey`. Here for §7.1's reason rather than §9.5's — not a value nobody wrote, but a spelling five copies proved would drift. The reading half is offered and **not** owned: a test that totals a map by hand is checking the subject's arithmetic against its own and must not borrow it (§9.3) |
 
 Look in `libs/` first; if it is not there and meets the criterion, add it there
 rather than at the call site, even for one caller. **Reading returns `null` and

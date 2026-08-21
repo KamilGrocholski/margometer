@@ -136,6 +136,41 @@ const DAMAGE_KEYS_BY_NAME = ["+thirdatt", "-thirdatt"];
 export const DAMAGE_TO_NAMED_KEY = "+oth_dmg";
 const NAMED_WITH_PERCENT = /^(.*)\((\d+\.\d\d)%\)$/;
 
+/** A combatant a message named, and the health that name stated, where it did. */
+type StatedName = { name: string; healthPercent: number | null };
+
+/**
+ * `name` or `name(percent%)`, as far as the grammar goes — the two keys that
+ * state a combatant by name both write it this way.
+ *
+ * One reader because both decoders below need every refusal in it, and it was
+ * written out twice with all three of the notes below on the first copy and none
+ * on the second (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F7).
+ * What the two do **not** share is the splitting above this: `+oth_dmg` writes
+ * the figure last and `legbon_lastheal` writes it first, which is the difference
+ * their own docblocks argue. This sits below that split and knows nothing of it.
+ */
+function getStatedNameFromText(raw: string): StatedName | null {
+  const named = NAMED_WITH_PERCENT.exec(raw);
+  // The `??` closes a gap in the type, not a real branch — `(.*)` always
+  // captures once the pattern matched. It falls into the check below rather than
+  // asserting, because an assertion here would travel into the game engine.
+  const name = named === null ? raw : (named[1] ?? "");
+  // A figure against nobody is a figure we cannot attribute, and a blank name
+  // would travel on looking like one.
+  if (name === "") return null;
+
+  const rawPercent = named?.[2];
+  const healthPercent = rawPercent === undefined ? null : getDecimalFromText(rawPercent);
+  // A percentage that will not read refuses the whole message rather than
+  // nulling the field: the health it states is the anchor an entry health is
+  // unwound from, and a message quietly missing one is a fight that sizes
+  // differently.
+  if (rawPercent !== undefined && healthPercent === null) return null;
+
+  return { name, healthPercent };
+}
+
 function decodeDamageToNamedCombatant(
   value: string | null,
   actorId: number | null,
@@ -149,26 +184,16 @@ function decodeDamageToNamedCombatant(
   const amount = getIntegerFromText(rawAmount);
   if (amount === null) return null;
 
-  const named = NAMED_WITH_PERCENT.exec(rawName);
-  // The `??` closes a gap in the type, not a real branch — `(.*)` always
-  // captures once the pattern matched. It falls into the check below rather than
-  // asserting, because an assertion here would travel into the game engine.
-  const targetName = named === null ? rawName : (named[1] ?? "");
-  // Damage against nobody is not damage we can attribute, and a blank name would
-  // travel on looking like one.
-  if (targetName === "") return null;
-
-  const rawPercent = named?.[2];
-  const targetHealthPercent = rawPercent === undefined ? null : getDecimalFromText(rawPercent);
-  if (rawPercent !== undefined && targetHealthPercent === null) return null;
+  const named = getStatedNameFromText(rawName);
+  if (named === null) return null;
 
   return {
     kind: "damage-to-named-combatant",
     announced: null,
     actorId,
-    targetName,
-    targetId: roster === null ? null : getCombatantIdByName(roster, targetName),
-    targetHealthPercent,
+    targetName: named.name,
+    targetId: roster === null ? null : getCombatantIdByName(roster, named.name),
+    targetHealthPercent: named.healthPercent,
     damage: { damageType: `${DAMAGE_MARKER}${kind.trim()}`, amount },
   };
 }
@@ -179,8 +204,9 @@ function decodeDamageToNamedCombatant(
  * **Two members, in the order the client reads them**: production build
  * `1786514810315` splits this value on the comma and renders `%val%` from the
  * second member and `%val2%` from the first — so the figure comes first and the
- * name second, the opposite way round from `+oth_dmg`, which is why this cannot
- * share that reader.
+ * name second, the opposite way round from `+oth_dmg`, which is why the
+ * **splitting** is its own. What either side produces is a name, and both keys
+ * read that through `getStatedNameFromText`.
  *
  * The percentage the name carries is the combatant's health with this healing
  * already in. Measured on
@@ -212,19 +238,14 @@ function decodeHealingToNamedCombatant(
   // key, not the game reporting a loss — the loss keys are elsewhere.
   if (amount === null || amount < 0) return null;
 
-  const named = NAMED_WITH_PERCENT.exec(rawName);
-  const targetName = named === null ? rawName : (named[1] ?? "");
-  if (targetName === "") return null;
-
-  const rawPercent = named?.[2];
-  const targetHealthPercent = rawPercent === undefined ? null : getDecimalFromText(rawPercent);
-  if (rawPercent !== undefined && targetHealthPercent === null) return null;
+  const named = getStatedNameFromText(rawName);
+  if (named === null) return null;
 
   return {
     kind: "healing-to-named-combatant",
-    targetName,
-    targetId: roster === null ? null : getCombatantIdByName(roster, targetName),
-    targetHealthPercent,
+    targetName: named.name,
+    targetId: roster === null ? null : getCombatantIdByName(roster, named.name),
+    targetHealthPercent: named.healthPercent,
     amount,
     source: key,
   };
