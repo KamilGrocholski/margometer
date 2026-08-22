@@ -34,7 +34,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
-## [Niewydane]
+## [0.8.1] — 2026-08-22
 
 - **Poprawka** — Procenty w nawiasach sumują się teraz do 100. Wcześniej każdy
   z nich zaokrąglał się osobno i cała kolumna potrafiła wyjść 97 albo 102 —
