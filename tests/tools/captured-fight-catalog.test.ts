@@ -4,7 +4,12 @@ import { getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
 import { composeJsonText } from "@/libs/json.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
-import { DUMP_FIELDS, FightDumpFormatError, parseFightDump } from "@/tools/fight-dump-parser.ts";
+import {
+  DUMP_FIELDS,
+  FightDumpFormatError,
+  PAYLOAD_FIELDS,
+  parseFightDump,
+} from "@/tools/fight-dump-parser.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 // Not an assertion inside the loop below: a loop over an empty directory is
@@ -47,6 +52,23 @@ describe("the names a recording carries", () => {
 
   test("are what the parser spells", () => {
     expect(DUMP_FIELDS).toEqual(ON_DISK);
+  });
+
+  /**
+   * The other list, and it is a different kind of name: these are the game's own,
+   * recorded verbatim inside `ladunek`, where the ones above are the envelope this
+   * repository writes and freezes. `npc` is the one that matters — it is the only
+   * thing that tells a player from a monster, which is what
+   * `tools/captured-fight-intake.ts` refuses to write a file without.
+   */
+  const IN_THE_PAYLOAD = {
+    combatants: "w",
+    combatantId: "id",
+    nonPlayerFlag: "npc",
+  } as const;
+
+  test("include the payload's own, which the game chose and we did not", () => {
+    expect(PAYLOAD_FIELDS).toEqual(IN_THE_PAYLOAD);
   });
 
   // The parsed shape carries our names and not the file's, so the file is read as

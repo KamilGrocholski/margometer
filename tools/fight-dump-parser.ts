@@ -239,3 +239,53 @@ export function getMaximumHealthByCombatantId(dump: FightDump): Map<number, numb
   }
   return maximum;
 }
+
+/**
+ * The battle payload's own field names, spelled once.
+ *
+ * Not `DUMP_FIELDS`, and the difference is what each list is a claim about:
+ * those are the names the **recording** was written in and are frozen with the
+ * file, these are the game's own, recorded verbatim inside `ladunek` and true
+ * only of the builds the material carries.
+ *
+ * They are here rather than in `src/game/` because the add-on reads none of
+ * them: `npc` is what tells a player from a monster, and the live path has never
+ * needed to ask (`src/game/fight-capture.ts`). Two readers offline do —
+ * `tools/captured-fight-intake.ts`, which refuses to redact a recording it cannot
+ * tell players from monsters in, and the register over the material — so §9.3
+ * puts the spelling in one place before there is a second one to disagree with.
+ */
+export const PAYLOAD_FIELDS = {
+  combatants: "w",
+  combatantId: "id",
+  nonPlayerFlag: "npc",
+} as const;
+
+/**
+ * Which combatants a recording states are players, by id.
+ *
+ * `npc` rides only in `ladunek.w`, which is why this reads the payload rather
+ * than the snapshots — and why an answer is missing rather than guessed: the
+ * tempting rule "a negative id is a monster" is a claim about the game nobody
+ * measured, and `tools/captured-fight-intake.ts` refuses to write a file on it.
+ * A combatant the payload never carried is absent from the map, which is a third
+ * state and not a `false`.
+ */
+export function getPlayerFlagByCombatantId(dump: FightDump): Map<number, boolean> {
+  const isPlayerById = new Map<number, boolean>();
+  for (const call of dump.calls) {
+    const payload = getRecordFromValue(call.payload);
+    const combatants = payload === null ? null : getRecordFromValue(payload[PAYLOAD_FIELDS.combatants]);
+    for (const [key, value] of Object.entries(combatants ?? {})) {
+      const combatant = getRecordFromValue(value);
+      if (combatant === null) continue;
+      // The entry's own id first, the key second: the key is text the game chose,
+      // and `tools/captured-fight-intake.ts` reads them in that order too.
+      const id = getIntegerFromValue(combatant[PAYLOAD_FIELDS.combatantId]) ?? getIntegerFromValue(key);
+      const flag = getIntegerFromValue(combatant[PAYLOAD_FIELDS.nonPlayerFlag]);
+      if (id === null || flag === null) continue;
+      isPlayerById.set(id, flag === 0);
+    }
+  }
+  return isPlayerById;
+}

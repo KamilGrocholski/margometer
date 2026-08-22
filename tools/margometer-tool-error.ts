@@ -23,7 +23,8 @@ export type MargoMeterToolErrorCode =
   | "PreviewSite"
   | "PayloadCost"
   | "PanelScreenshot"
-  | "DrillReport";
+  | "DrillReport"
+  | "CapturedFightRegister";
 
 export abstract class MargoMeterToolError extends Error {
   readonly code: MargoMeterToolErrorCode;

@@ -449,6 +449,11 @@ docs/              A guarded register, a dated spec, a design a spec names, or a
                    dated and guarded audit. No status, no chronicle of rounds.
   browser-support.md
                    What the shipped file asks of a browser — §9.9.
+  captured-fights.md
+                   What each recording holds — who fought, at what levels, in
+                   what professions, against whom, and how it ended — and how
+                   much protocol the file carries. Re-earned from the material
+                   both ways by tests/tools/captured-fight-register.test.ts.
   protocol-keys.md What has been looked into, key by key: verdict, evidence,
                    state. Guarded against the decoder and the frozen table.
   half-named-figures.md

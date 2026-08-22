@@ -25,7 +25,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { composeIntegerText, getIntegerFromValue } from "@/libs/number.ts";
 import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
-import { DUMP_FIELDS } from "@/tools/fight-dump-parser.ts";
+import { DUMP_FIELDS, PAYLOAD_FIELDS } from "@/tools/fight-dump-parser.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
 
@@ -136,13 +136,14 @@ export function composePseudonymisedDump(dump: unknown): Pseudonymisation {
   };
 
   for (const call of getCalls(dump)) {
-    const combatants = getRecordFromValue(call[DUMP_FIELDS.payload])?.["w"];
+    const combatants = getRecordFromValue(call[DUMP_FIELDS.payload])?.[PAYLOAD_FIELDS.combatants];
     for (const [key, raw] of Object.entries(getRecordFromValue(combatants) ?? {})) {
       const combatant = getRecordFromValue(raw);
       if (combatant === null) continue;
-      const id = getIntegerFromValue(combatant["id"]) ?? getIntegerFromValue(key);
+      const id =
+        getIntegerFromValue(combatant[PAYLOAD_FIELDS.combatantId]) ?? getIntegerFromValue(key);
       if (id === null) continue;
-      const npc = getIntegerFromValue(combatant["npc"]);
+      const npc = getIntegerFromValue(combatant[PAYLOAD_FIELDS.nonPlayerFlag]);
       if (npc !== null) isPlayerById.set(id, npc === 0);
       setName(id, combatant["name"]);
     }
