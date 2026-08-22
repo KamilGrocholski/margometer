@@ -36,6 +36,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Procenty w nawiasach sumują się teraz do 100. Wcześniej każdy
+  z nich zaokrąglał się osobno i cała kolumna potrafiła wyjść 97 albo 102 —
+  liczby obok były poprawne, mylił tylko sam procent. Dotyczy zarówno listy
+  postaci, jak i sekcji, które otwierają się po kliknięciu w wiersz.
+
 - **Poprawka** — W rozbiciu „Leczenie" sekcja „OD CZEGO" jest teraz ułożona od
   największej liczby do najmniejszej, tak jak każda inna lista w panelu.
   Wcześniej pozycje stały w kolejności przypadkowej i mniejsza liczba potrafiła

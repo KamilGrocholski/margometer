@@ -19,12 +19,13 @@
  * **The strings are Polish and nothing else here is** (§3).
  */
 
+import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText } from "@/libs/number.ts";
 import { getTotalOfValues, setRunningTotal } from "@/libs/running-total.ts";
 import { type CombatantStatistics, type SkillStatistics } from "@/src/core/fight-statistics.ts";
 import {
   composeFigureText,
-  composeShareText,
+  composeShareTexts,
   CRITICAL_EFFECT_TOKENS,
   CRITICAL_TOKEN,
   DEFENCE_NAMES,
@@ -281,11 +282,15 @@ function composeBreakdownList(
 
   const total = entries.reduce((sum, entry) => sum + entry.amount, 0);
   const largest = entries.reduce((most, entry) => Math.max(most, entry.amount), 0);
+  // The section states its own total above the rows, so its shares are a set that
+  // has to add to it — apportioned together rather than rounded a row at a time
+  // (`composeShareTexts`), which is the same fault the ranking had.
+  const shareTexts = composeShareTexts(entries.map((entry) => entry.amount), total);
 
   return {
     heading,
     totalText: composeFigureText(total),
-    rows: entries.map((entry) => ({
+    rows: entries.map((entry, index) => ({
       key: entry.key,
       rank: null,
       label: entry.label,
@@ -293,7 +298,7 @@ function composeBreakdownList(
       colour: entry.colour,
       fill: largest > 0 ? entry.amount / largest : 0,
       valueText: composeFigureText(entry.amount),
-      bracketText: `(${composeShareText(total > 0 ? entry.amount / total : 0)}${entry.uses === null ? "" : ` · ×${composeFigureText(entry.uses)}`})`,
+      bracketText: `(${assertDefined(shareTexts[index], "every row of a section is written as a share")}${entry.uses === null ? "" : ` · ×${composeFigureText(entry.uses)}`})`,
       isDrillable: entry.isDrillable,
       detail: entry.detail,
     })),

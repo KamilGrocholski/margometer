@@ -14,6 +14,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { getIntegerFromText } from "@/libs/number.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
@@ -105,6 +106,13 @@ function* getScreens(): Generator<{
   }
 }
 
+/**
+ * How the panel spells a share it refuses to round down to nothing
+ * (`src/ui/panel-words.ts`). Written out rather than imported: a sweep that read
+ * the spelling off the module it is checking would agree with it whatever it said.
+ */
+const BELOW_A_POINT = "<1%";
+
 /** Whether the row opens the card, rather than a note or nothing at all. */
 function getIsCard(row: PanelRow): boolean {
   return row.detail.some((line) => line.kind === "title");
@@ -136,6 +144,42 @@ describe("a breakdown", () => {
     }
     // A loop over nothing is green and proves nothing (§9.2).
     expect(closed).toBeGreaterThan(0);
+  });
+
+  /**
+   * ⚠️ **A section states its own total and then a set of shares that does not come
+   * to it.** Rounded a row at a time, 446 of the 5 612 sections the captures open
+   * printed a column adding to 99, 101 or worse (measured 2026-08-22) — under a
+   * heading stating the figure they are shares of, which is where a reader is most
+   * likely to add them up. Apportioned together, they come to a hundred
+   * (`composeShareTexts`).
+   *
+   * A share too small to round to a point states none and takes none, so it is
+   * counted here as the nothing it prints.
+   */
+  test("prints shares that add up to the section total", () => {
+    let sections = 0;
+    for (const { name, reading, metric, combatantId } of getScreens()) {
+      for (const list of composeBreakdownLists(reading, composeState({ metric }), combatantId, null)) {
+        const where = `${name} ${metric} #${combatantId} ${list.heading}`;
+        // A section of nothing divides by nothing, and every bracket in it says so.
+        if (list.rows.every((row) => row.valueText === composeFigureText(0))) continue;
+        let points = 0;
+        for (const row of list.rows) {
+          const bracket = row.bracketText;
+          expect(bracket, where).not.toBeNull();
+          if (bracket === null) continue;
+          if (bracket.includes(BELOW_A_POINT)) continue;
+          const percent = getIntegerFromText(bracket.replace(/[()%]/g, "").split("·")[0]!.trim());
+          expect(percent, `${where} ${bracket}`).not.toBeNull();
+          points += percent ?? 0;
+        }
+        expect(points, `${where}: the shares add up to ${points}`).toBe(100);
+        sections += 1;
+      }
+    }
+    // A loop over nothing is green and proves nothing (§9.2).
+    expect(sections).toBeGreaterThan(0);
   });
 
   /**

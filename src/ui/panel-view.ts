@@ -31,6 +31,7 @@
  * wrote it rather than as a guess.
  */
 
+import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText } from "@/libs/number.ts";
 import { getTotalOfValues, setRunningTotal } from "@/libs/running-total.ts";
 import { getCombatantIdByName } from "@/src/core/combatant-roster.ts";
@@ -44,6 +45,7 @@ import {
 import {
   composeFigureText,
   composeShareText,
+  composeShareTexts,
   ELEMENT_NAMES,
   getNeitherEndLeftover,
   getNoActorBreakdownHeading,
@@ -103,8 +105,8 @@ function getFill(value: number, largest: number): number {
 }
 
 /** The bracket beside the figure: what share of the whole it is. */
-function composeBracket(share: number): string {
-  return `(${composeShareText(share)})`;
+function composeBracket(shareText: string): string {
+  return `(${shareText})`;
 }
 
 /**
@@ -166,7 +168,7 @@ function composeRankedRow(
   state: PanelState,
   combatantId: number,
   rank: number,
-  whole: number,
+  shareText: string,
   largest: number,
   translate: TranslateLabel | null,
 ): PanelRow {
@@ -179,7 +181,7 @@ function composeRankedRow(
     colour: getProfessionColour(reading.roster.byId.get(combatantId)?.profession ?? null),
     fill: getFill(raw, largest),
     valueText: composeFigureText(raw),
-    bracketText: composeBracket(whole > 0 ? raw / whole : 0),
+    bracketText: composeBracket(shareText),
     isDrillable: true,
     detail: composeCombatantDetail(reading, combatantId, state, translate, "ranking"),
   };
@@ -578,6 +580,51 @@ function getWholeOnScreen(reading: PanelReading, state: PanelState, total: numbe
 }
 
 /**
+ * Every share this screen prints, apportioned once — by whose figure it is.
+ *
+ * ⚠️ **A set of shares rounded a row at a time does not add up to the whole it
+ * divides by** (`composeShareTexts`), and the only place that can be fixed is
+ * where the whole set is in hand. That is here, beside `getWholeOnScreen`, for
+ * the same reason the denominator is computed once: a second site deciding its
+ * own is how the two came to disagree.
+ *
+ * A hole standing `cut` is left out of the apportionment and rounded on its own.
+ * Its points are already inside the ranked rows, so it is not a part of the whole
+ * competing for the hundred — taking a point off a row that owns one to pay an
+ * overlap would be the arithmetic this function exists to stop.
+ *
+ * Keyed by the combatant or by the hole, which cannot collide: one is a number
+ * and the other is one of two words.
+ */
+function composeShareTextByFigure(
+  reading: PanelReading,
+  state: PanelState,
+  ranked: readonly number[],
+  whole: number,
+): ReadonlyMap<number | PanelHole, string> {
+  const holes = getHolesOnScreen(state.metric);
+  const holesApart = holes.filter((hole) => HOLE_STANDING[state.metric][hole] === "apart");
+  const texts = composeShareTexts(
+    [
+      ...ranked.map((id) => getMetricValue(getRow(reading, id), state.metric)),
+      ...holesApart.map((hole) => getHoleFigure(reading, state, hole)),
+    ],
+    whole,
+  );
+
+  const byFigure = new Map<number | PanelHole, string>();
+  [...ranked, ...holesApart].forEach((figure, index) => {
+    byFigure.set(figure, assertDefined(texts[index], "every figure on screen is written as a share"));
+  });
+  for (const hole of holes) {
+    if (HOLE_STANDING[state.metric][hole] === "cut") {
+      byFigure.set(hole, composeShareText(whole > 0 ? getHoleFigure(reading, state, hole) / whole : 0));
+    }
+  }
+  return byFigure;
+}
+
+/**
  * One row for one hole — **at most two on a screen, and each says which end the
  * game left out.**
  *
@@ -594,13 +641,13 @@ function getWholeOnScreen(reading: PanelReading, state: PanelState, total: numbe
 function composePinnedRows(
   reading: PanelReading,
   state: PanelState,
-  whole: number,
+  shareTextByFigure: ReadonlyMap<number | PanelHole, string>,
   largest: number,
   translate: TranslateLabel | null,
 ): PanelRow[] {
   const rows: PanelRow[] = [];
   for (const hole of getHolesOnScreen(state.metric)) {
-    const row = composeHoleRow(reading, state, hole, whole, largest, translate);
+    const row = composeHoleRow(reading, state, hole, shareTextByFigure, largest, translate);
     if (row !== null) rows.push(row);
   }
   return rows;
@@ -610,7 +657,7 @@ function composeHoleRow(
   reading: PanelReading,
   state: PanelState,
   hole: PanelHole,
-  whole: number,
+  shareTextByFigure: ReadonlyMap<number | PanelHole, string>,
   largest: number,
   translate: TranslateLabel | null,
 ): PanelRow | null {
@@ -668,7 +715,9 @@ function composeHoleRow(
      * Both ends of that are gone — the numerator is the team's and the whole
      * contains it — so the share is a share of something again.
      */
-    bracketText: composeBracket(whole > 0 ? value / whole : 0),
+    bracketText: composeBracket(
+      assertDefined(shareTextByFigure.get(hole), "every hole drawn on screen is written as a share"),
+    ),
     isDrillable: false,
     detail: lines,
   };
@@ -1023,6 +1072,7 @@ export function composePanelView(
   // Computed once, here, and handed to both kinds of row — a second call site
   // deciding its own denominator is how the two came to disagree.
   const whole = getWholeOnScreen(reading, state, total);
+  const shareTextByFigure = composeShareTextByFigure(reading, state, ranked, whole);
 
   const shell = {
     title: composeTitle(reading),
@@ -1061,13 +1111,21 @@ export function composePanelView(
           heading: null,
           totalText: null,
           rows: ranked.map((id, index) =>
-            composeRankedRow(reading, state, id, index + 1, whole, largestShown, translate),
+            composeRankedRow(
+              reading,
+              state,
+              id,
+              index + 1,
+              assertDefined(shareTextByFigure.get(id), "every ranked row is written as a share"),
+              largestShown,
+              translate,
+            ),
           ),
         },
       ],
       emptyText: ranked.length === 0 ? "Nikogo tu jeszcze nie ma." : null,
       emptyLimitText: null,
-      pinnedRows: composePinnedRows(reading, state, whole, largestShown, translate),
+      pinnedRows: composePinnedRows(reading, state, shareTextByFigure, largestShown, translate),
       sides: composeSides(reading, state),
     };
   }

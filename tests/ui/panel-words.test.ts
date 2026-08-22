@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
+import { getIntegerFromText } from "@/libs/number.ts";
 import {
   composeFigureText,
   composeShareText,
+  composeShareTexts,
   CRITICAL_EFFECT_TOKENS,
   CRITICAL_TOKEN,
   DEFENCE_NAMES,
@@ -685,5 +687,90 @@ describe("a share", () => {
   // received screen. It is written as it is, so a wrong denominator shows.
   test("is not clamped", () => {
     expect(composeShareText(3.2)).toBe("320%");
+  });
+});
+
+describe("a set of shares", () => {
+  /** What a reader does with a column of brackets: adds them up. */
+  function getPointsAdded(texts: readonly string[]): number {
+    return texts.reduce((sum, text) => sum + (text === "<1%" ? 0 : (getIntegerFromText(text.replace("%", "")) ?? Number.NaN)), 0);
+  }
+
+  /**
+   * ⚠️ **Three equal thirds print 33% three times and the column reads 99.** That
+   * is the whole fault: every share rounded on its own loses up to half a point in
+   * the same direction, and the reader adds up a fight that is not the one they
+   * are looking at.
+   */
+  test("adds up to the whole it divides by", () => {
+    expect(composeShareTexts([1, 1, 1], 3)).toEqual(["34%", "33%", "33%"]);
+    expect(composeShareTexts([1, 1, 1, 1, 1, 1], 6)).toEqual(["17%", "17%", "17%", "17%", "16%", "16%"]);
+    expect(getPointsAdded(composeShareTexts([5, 3, 1], 9))).toBe(100);
+  });
+
+  /**
+   * The extra point goes where the most was discarded, which is the method; what
+   * happens where two rows discarded the same is the pair of tests below.
+   */
+  test("hands the points left over to the largest remainders", () => {
+    // 45.45, 27.27, 27.27: the hundredth point goes to the biggest fraction thrown
+    // away, which is the first row's.
+    expect(composeShareTexts([5, 3, 3], 11)).toEqual(["46%", "27%", "27%"]);
+  });
+
+  /**
+   * ⚠️ **Two rows holding the same figure print the same share.** The point that
+   * closes the column used to go to one row of a tie, and on the group captures a
+   * tie is six combatants on one number: `3%` beside one of them and `2%` beside
+   * the other five reads as a panel that cannot add up, which is worse than the
+   * column being a point out. A tie is paid whole or passed over, and a smaller
+   * remainder is paid instead.
+   */
+  test("pays a tie whole or passes it over", () => {
+    // 33.33, 33.33, 22.22, 11.11 — the pair discarded the most and cannot be paid
+    // with one point, so the point goes to the row behind them.
+    expect(composeShareTexts([3, 3, 2, 1], 9)).toEqual(["33%", "33%", "23%", "11%"]);
+  });
+
+  /**
+   * And where nothing but the tie is left to pay, the column adding up is the
+   * promise that wins: the tie is split, earliest row first.
+   */
+  test("splits a tie rather than leave the column short", () => {
+    // 37.5, 37.5, 25 — two rows owed half a point each and one point to hand out.
+    expect(composeShareTexts([3, 3, 2], 8)).toEqual(["38%", "37%", "25%"]);
+  });
+
+  /**
+   * A share too small to round to a point still says something happened (§9.6),
+   * and it takes no point of the hundred — so the floor and the sum do not fight.
+   */
+  test("keeps the floor under a share that is there", () => {
+    const texts = composeShareTexts([9_999, 1], 10_000);
+    expect(texts).toEqual(["100%", "<1%"]);
+    expect(getPointsAdded(texts)).toBe(100);
+  });
+
+  /** Zero measured nothing, and nothing measured is not a share too small to see. */
+  test("says zero where a figure is zero", () => {
+    expect(composeShareTexts([1, 0], 1)).toEqual(["100%", "0%"]);
+  });
+
+  /**
+   * A screen may divide by a whole holding a figure it does not draw, and then the
+   * shares are right to add to less than a hundred — the hundred is what the whole
+   * comes to, not what the drawn rows are owed.
+   */
+  test("adds up to what is drawn where the whole holds more", () => {
+    expect(getPointsAdded(composeShareTexts([1, 1], 4))).toBe(50);
+  });
+
+  /** Nothing to divide by is not a division: it is a screen with no figures on it. */
+  test("says nothing of a whole of zero", () => {
+    expect(composeShareTexts([0, 0], 0)).toEqual(["0%", "0%"]);
+  });
+
+  test("writes nothing for nothing", () => {
+    expect(composeShareTexts([], 10)).toEqual([]);
   });
 });

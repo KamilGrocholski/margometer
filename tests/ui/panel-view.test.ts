@@ -1349,7 +1349,20 @@ describe("against the captured fights", () => {
     // this is a measurement under `Wszyscy`, and the arm that ends the round short
     // by whatever the roster could not place lights up here rather than nowhere.
     expect(inGiven.valueText).toBe(inReceived.valueText);
-    expect(inGiven.bracketText).toBe(inReceived.bracketText);
+
+    // ⚠️ **The share is the same reading and not always the same word.** The row
+    // is part of the whole under a given direction and an overlap under a received
+    // one (`HOLE_STANDING`), so only the first competes for the points the
+    // apportionment has left to hand out (`composeShareTexts`). One figure, one
+    // denominator, and at most a point between how the two screens write it — the
+    // alternative is a column that does not add up, which is what the reader
+    // checks.
+    const shares = [inGiven, inReceived].map((row) =>
+      getIntegerFromText((row.bracketText ?? "").replace(/[()%]/g, "")),
+    );
+    expect(shares[0], inGiven.bracketText ?? "").not.toBeNull();
+    expect(shares[1], inReceived.bracketText ?? "").not.toBeNull();
+    expect(Math.abs((shares[0] ?? 0) - (shares[1] ?? 0))).toBeLessThanOrEqual(1);
   });
 
   /**
@@ -2203,6 +2216,50 @@ describe("against the captured fights", () => {
   });
 
   /**
+   * ⚠️ **A column of shares that does not add up to what it divides by.**
+   *
+   * Every share used to be rounded on its own, and eleven of them rounded apart
+   * from one another lose up to half a point each in the same direction. Measured
+   * over every recording on 2026-08-22: of the 188 screens drawing a figure, 78
+   * printed a set that did not come to a hundred — 30 a point over, 18 a point
+   * under, three points out at the worst. The figures beside them were right the
+   * whole time; a reader adding up the column was told a fight that was not the
+   * one in front of them.
+   *
+   * The set is the ranking plus the pinned rows that **add** to the whole rather
+   * than cutting into it, which is `ROWS_ADDING_TO_THE_WHOLE` above — written out
+   * here so this states the claim rather than agreeing with the view. A share the
+   * panel refuses to round down to nothing takes no point and counts as none,
+   * which is how the floor and the sum stay out of each other's way.
+   */
+  test.each(fights)("$name prints shares that add up to the whole", ({ reading }) => {
+    for (const metric of PANEL_METRICS) {
+      for (const team of PANEL_TEAMS) {
+        const view = composePanelView(reading, composeState({ metric, team }));
+        const drawn = [
+          ...view.lists.flatMap((list) => list.rows),
+          ...view.pinnedRows.filter((row) => ROWS_ADDING_TO_THE_WHOLE[metric].includes(row.key)),
+        ];
+        // Nothing to divide by is not a division: every bracket on such a screen
+        // says zero, and zero is what it measured.
+        const figures = drawn.map((row) => getIntegerFromText(row.valueText.replace(/\s/g, "")) ?? 0);
+        if (figures.reduce((sum, figure) => sum + figure, 0) <= 0) continue;
+
+        let points = 0;
+        for (const row of drawn) {
+          expect(row.bracketText, `${metric} ${team} ${row.key}`).not.toBeNull();
+          if (row.bracketText === null) continue;
+          if (row.bracketText.includes(BELOW_A_POINT)) continue;
+          const percent = getIntegerFromText(row.bracketText.replace(/[()%]/g, ""));
+          expect(percent, `${metric} ${team} ${row.bracketText}`).not.toBeNull();
+          points += percent ?? 0;
+        }
+        expect(points, `${metric} ${team}: the shares on screen add up to ${points}`).toBe(100);
+      }
+    }
+  });
+
+  /**
    * ⚠️ **Every bracket on a screen divides by the same figure.**
    *
    * The ranking used to divide by the ranking and the pinned row by the ranking
@@ -2210,10 +2267,17 @@ describe("against the captured fights", () => {
    * as rows adding to 107% and nobody noticed; under `Leczenie dane` as a ranking
    * summing to 100% beside a row saying 79%.
    *
-   * Checked by working backwards: a figure and its rounded share imply a range the
+   * Checked by working backwards: a figure and its printed share imply a range the
    * denominator must lie in, and every row's range has to overlap every other's.
    * That way the test never needs to know what the whole *is* — only that there is
    * one of it, which is the property that broke.
+   *
+   * ⚠️ **A point either way, not half a point.** A share is no longer rounded on
+   * its own: the set is apportioned so the column adds to the whole
+   * (`composeShareTexts`), and that moves a row's last point up or down by one.
+   * So the range a printed share implies is `(percent - 1, percent + 1)`, and this
+   * is the weaker half of the claim — the sum below is the sharp one, and it is
+   * the sum that is stated forwards.
    */
   test.each(fights)("$name divides every share by one and the same whole", ({ reading }) => {
     for (const metric of PANEL_METRICS) {
@@ -2243,8 +2307,8 @@ describe("against the captured fights", () => {
           // A share that rounded to zero bounds nothing, and a figure of zero
           // divides by anything — neither says which whole was used.
           if (value <= 0 || percent <= 0) continue;
-          low = Math.max(low, (value * 100) / (percent + 0.5));
-          high = Math.min(high, (value * 100) / (percent - 0.5));
+          low = Math.max(low, (value * 100) / (percent + 1));
+          high = Math.min(high, (value * 100) / (percent - 1));
         }
 
         if (low > 0 && Number.isFinite(high)) {

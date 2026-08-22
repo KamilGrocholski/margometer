@@ -16,7 +16,7 @@
  * (§5 — unknown is allowed, a guessed name is not).
  */
 
-import { composeDecimalText, composeIntegerText } from "@/libs/number.ts";
+import { composeIntegerText } from "@/libs/number.ts";
 import { getMetricNoun, type PanelMetric, type PanelNoun } from "@/src/ui/panel-screen.ts";
 
 /** How a token is named, in the two places a name can come from. */
@@ -493,8 +493,121 @@ export function composeFigureText(value: number): string {
  * measurement.
  */
 export function composeShareText(share: number): string {
-  if (share > 0 && share * 100 < 0.5) return "<1%";
-  return `${composeDecimalText(share * 100, 0)}%`;
+  return composeSharePointsText(Math.round(share * 100), share > 0);
+}
+
+/** A share already reduced to whole points, with the floor above spent where it is owed. */
+function composeSharePointsText(points: number, isPresent: boolean): string {
+  if (points === 0 && isPresent) return "<1%";
+  return `${composeIntegerText(points)}%`;
+}
+
+/**
+ * Every share of one whole, written so **what the reader adds up comes to what
+ * the panel says it is a share of.**
+ *
+ * ⚠️ **Rounding each share on its own is what broke it.** Eleven rows rounded
+ * apart from one another lose up to half a point each in the same direction, and
+ * the column then states a fight that is not the one it is a column of. Measured
+ * over every recording on 2026-08-22, across the four metrics and the three side
+ * tabs: of the 188 screens drawing a figure, 78 printed a set of shares that did
+ * not add to 100 — 30 of them a point over, 18 a point under, and the worst three
+ * points out on
+ * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json` under
+ * `Zadane · Wszyscy`. The figures beside them were right the whole time: only the
+ * text was wrong, which is the kind of wrong a reader checks the panel against.
+ *
+ * The largest remainder decides who gets the points that are left: every row
+ * takes its whole points, and the ones whose discarded fraction was biggest take
+ * one more each until the hundred is spent. That is the method, and it is chosen
+ * over a second decimal place because a decimal place does not close it —
+ * `33,3%` three times adds to `99,9%` and the column still does not sum.
+ *
+ * ⚠️ **Equal figures take the point together or not at all, and that is worth a
+ * point of precision.** The plain method hands the last point to one row of a
+ * tie, and on a group fight a tie is not two rows but seven: under
+ * `Otrzymane · Wszyscy` on
+ * `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-4.json` seven
+ * combatants stand on 11 178 apiece, and it printed `3%` beside one of them and
+ * `2%` beside the other six (read 2026-08-22). Two identical numbers with
+ * different shares beside them read as a panel that cannot add up, which is worse
+ * than either fault this function exists to fix.
+ *
+ * So a group of equal figures is one candidate costing as many points as it has
+ * members: where the points left will not cover the group, it is passed over and
+ * a smaller remainder is paid instead. The seven now read `2%` and the point goes
+ * to a row three hundredths of a point behind them. Over every recording, on all
+ * 204 screens, no two equal figures print different shares.
+ *
+ * The fallback is the sum: where nothing but a tie is left to pay, the tie is
+ * split, earliest row first, because the column adding up is the promise and the
+ * evenness is the courtesy. Position is what decides inside a split — stable
+ * rather than accidental, since the panel redraws every few seconds and a bracket
+ * flickering between two rows would be worse than either — and in the ranking
+ * position is the figure, so the point goes to the higher row. Nothing subtler
+ * breaks a tie, because nothing subtler survives the arithmetic: `1/6` and `4/6`
+ * discard the same third in mathematics and not in floating point, where the two
+ * differ in the last bits and any comparison fine enough to see it is deciding on
+ * noise.
+ *
+ * A share the panel refuses to round to zero (`<1%` above) takes no point and
+ * states none, so it neither breaks the sum nor reads as nothing.
+ */
+export function composeShareTexts(amounts: readonly number[], whole: number): string[] {
+  if (whole <= 0) return amounts.map(() => composeSharePointsText(0, false));
+
+  const shares = amounts.map((amount, index) => {
+    const exact = (amount / whole) * 100;
+    const points = Math.floor(exact);
+    return { index, amount, points, remainder: exact - points };
+  });
+
+  // What the whole itself rounds to, which is a hundred only where the amounts
+  // fill it: a screen may divide by a whole holding a figure it does not draw, and
+  // then the shares are right to add to less.
+  const spent = shares.reduce((sum, share) => sum + share.points, 0);
+  let left = Math.round(shares.reduce((sum, share) => sum + share.points + share.remainder, 0)) - spent;
+
+  const groups = new Map<number, { remainder: number; index: number; members: typeof shares }>();
+  for (const share of shares) {
+    // A share with nothing discarded is a whole number of points already, and
+    // handing it one more would print a share it does not have.
+    if (share.remainder <= 0) continue;
+    const group = groups.get(share.amount);
+    if (group === undefined) {
+      groups.set(share.amount, { remainder: share.remainder, index: share.index, members: [share] });
+    } else {
+      group.members.push(share);
+    }
+  }
+  const byRemainder = [...groups.values()].sort(
+    (one, other) => other.remainder - one.remainder || one.index - other.index,
+  );
+
+  // Left over once every group that fits has been paid whole. A group passed over
+  // here is passed over for good: what is left only ever falls.
+  const unpaid: Array<typeof shares> = [];
+  for (const group of byRemainder) {
+    if (group.members.length > left) {
+      unpaid.push(group.members);
+      continue;
+    }
+    for (const share of group.members) share.points += 1;
+    left -= group.members.length;
+  }
+
+  // Where nothing but a group too big to pay for is left, the column adding up
+  // wins and the group is split, earliest row first.
+  for (const members of unpaid) {
+    for (const share of members) {
+      if (left <= 0) break;
+      share.points += 1;
+      left -= 1;
+    }
+    if (left <= 0) break;
+  }
+
+  return shares.map((share) => composeSharePointsText(share.points, share.amount > 0));
 }
 
 /**
