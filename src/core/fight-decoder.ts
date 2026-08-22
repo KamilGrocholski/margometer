@@ -511,6 +511,30 @@ const BLOW_DECLARATION_KEYS = [
   // beside it already report, and in a unit no total here keeps.
   "+rage",
   /**
+   * ⚠️ **The one that shares a name with a figure this meter does total.**
+   * `-absorbm` beside it is damage a defence stopped and goes to `prevented`;
+   * this one is the absorption **pool being refilled**, which is not damage, not
+   * a prevention and not a statistic destroyed. Adding it to the key it looks
+   * like would count points of absorption as points of damage.
+   *
+   * The two builds say different amounts and both are cited, because only one of
+   * them names it. Production build `1786514810315` — the one that decides —
+   * gives the branch the same shape as its neighbours: appends to a log slot,
+   * assigns nothing, interpolates one figure. Development build `1781609507010`
+   * carries a comment beside that branch naming the effect as a renewal of
+   * magical absorption, which is where the reading above comes from and is why
+   * this line says which build it came off (§7.6).
+   *
+   * The help documents no such renewal. Article view,372, read 2026-08-22: every
+   * absorption name it prints — `absorb`, `absorbd`, `absorbm`, and the passives
+   * `absorb_per`, `absorbm_per`, `active_absorbdest_per`, `redabdest_per` — is a
+   * statistic or an effect on one, and the only movement of a pool it describes
+   * is downward, by what the pool just stopped. So whose pool refilled is not
+   * settled, and a declaration is exactly the verdict for a figure that is
+   * understood, in a unit no total here keeps, and attributable to nobody (§10).
+   */
+  "+absorbm",
+  /**
    * ⚠️ **The one that looks like damage and is not.** `+taken_dmg` rides every
    * blow that carries `-dmga`, without exception, and the tempting reading is
    * that it is the raw half of that applied figure — the help documents

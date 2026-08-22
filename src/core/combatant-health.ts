@@ -98,6 +98,43 @@ function isWithinStatedHealth(
 }
 
 /**
+ * The unwound figure held to the maximum, or null where it sits above it by more
+ * than the reading it came from could have hidden.
+ *
+ * ⚠️ **The ceiling was exact and its input is not.** A statement is a percentage
+ * to two places, so reading it back into health is worth half a hundredth of the
+ * pool either way — the same width `isWithinStatedHealth` is built on, and about
+ * one point on a pool of 24 000.
+ *
+ * ⚠️ **Measured on a recording this repository does not hold**, and said so
+ * rather than left as an assertion: `margometer-tempest-2026-08-17T17-01-49-635Z`,
+ * a Hildur group fight, where one combatant is stated at 85.87% having taken
+ * 3 374 — which reads back as 20 501 where they held 20 500, and unwinds to
+ * 23 875 of a possible 23 874. Refused by one point, and a refusal is final, so
+ * the two later statements that both unwind to exactly 23 874 were never read:
+ * the combatant had no entry health, no cast of that fight was whole, and all six
+ * of them stayed counted as healing nobody could size. The shape is held by a
+ * hand-built fight in `tests/core/combatant-health.test.ts`, because the material
+ * carries a protocol key nothing here reads yet and intake is its own round.
+ *
+ * ⚠️ **A snapshot has no such slack and passes through it anyway.** It states
+ * whole health, so an overshoot there is a real disagreement rather than a
+ * rounding — but one check is worth more than two that differ by a point, and a
+ * snapshot contradicting the messages by a single point is not a contradiction
+ * worth refusing a combatant over. The reading that overshoots by more than this
+ * is refused whichever end it came from, which is the case the check exists for:
+ * 1 241 above the maximum on
+ * `tests/captured-fights/2026-08-12-experimental-tancerz-vs-wojownik.json`.
+ */
+function getEnteredHealth(unwound: number, maximumHealth: number): number | null {
+  if (unwound <= 0) return null;
+  if (unwound <= maximumHealth) return unwound;
+  return unwound - maximumHealth <= (STATED_PERCENT_TOLERANCE / 100) * maximumHealth
+    ? maximumHealth
+    : null;
+}
+
+/**
  * What one side-mate gets: the floored share of their maximum, capped by the room
  * between where they stand and where they started.
  *
@@ -246,11 +283,15 @@ function hasUnsizedHealth(event: BattleEvent): boolean {
  *   - a combatant whose first statement comes **after** a figure we cannot size —
  *     an unwind cannot pass through health it does not have, and a team heal in
  *     the opening is exactly that;
- *   - a combatant with no maximum, or one unwound above it, or to nothing at all.
+ *   - a combatant with no maximum, or one unwound to nothing at all, or one
+ *     unwound further above the maximum than the reading it came from could have
+ *     hidden — `getEnteredHealth`, which is where the width of that comes from.
  *
  * A refusal is per combatant and final: a reading that contradicts itself is not
  * retried against the next statement, because the contradiction says the unwind is
- * wrong rather than that the statement was.
+ * wrong rather than that the statement was. That finality is what made the width
+ * above load-bearing rather than a nicety — a first statement refused by one point
+ * takes every later statement about that combatant with it.
  */
 export function composeEntryHealthByCombatantId(
   statedHealthByCombatantId: ReadonlyMap<number, number>,
@@ -299,18 +340,31 @@ export function composeEntryHealthByCombatantId(
      * error lands on the cap, exactly as it does in the resync. The statement is a
      * rescue for the case the snapshot cannot answer, never an improvement on it.
      */
-    const fromSnapshot = hasPassedUnsizedHealth
+    const stated = hasPassedUnsizedHealth
       ? undefined
       : statedHealthByCombatantId.get(combatantId);
-    const entryHealth =
+    /**
+     * ⚠️ **A snapshot at nothing is the game's clamp, and the clamp is not a
+     * figure.** It says where they stand and not how much reached them, so the
+     * overkill that went past it is missing from the unwind and the reading comes
+     * out above the maximum. The statement loop above and `setStatedHealth` below
+     * are both held to exactly this; the snapshot was the third place and the one
+     * it never reached. Measured on
+     * `tests/captured-fights/2026-08-12-experimental-tancerz-vs-wojownik.json`:
+     * combatant 114881's clamped zero unwinds to 20 288 of a possible 19 047,
+     * while their own first statement gives 19 047 exactly.
+     */
+    const fromSnapshot = stated !== undefined && stated > 0 ? stated : undefined;
+    const unwound =
       fromSnapshot === undefined
         ? fromFirstStatement.get(combatantId)
         : fromSnapshot - (movedSoFar.get(combatantId) ?? 0);
-    if (entryHealth === undefined) continue;
+    if (unwound === undefined) continue;
 
     const maximumHealth = maximumHealthByCombatantId.get(combatantId);
     if (maximumHealth === undefined) continue;
-    if (entryHealth <= 0 || entryHealth > maximumHealth) continue;
+    const entryHealth = getEnteredHealth(unwound, maximumHealth);
+    if (entryHealth === null) continue;
     entry.set(combatantId, entryHealth);
   }
   return entry;

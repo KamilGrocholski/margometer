@@ -91,7 +91,9 @@ const OCCURRENCES: Occurrence[] = CAPTURED_FIGHTS.flatMap((fight) => {
     const found: Occurrence[] = [];
     // Seeded from the snapshot the call opened with, which is the same source
     // the health witness replays from. Without it the first heal in a call has
-    // no independent "before" at all, and two of the five did not.
+    // no independent "before" at all, and two occurrences did not — a count of
+    // the corpus is deliberately not written beside it, because that one moves
+    // with the next recording and this one does not (§5).
     const statedPercent = new Map(
       call.combatantsBefore.map((combatant) => [combatant.id, combatant.health.percent]),
     );
@@ -210,7 +212,7 @@ describe("healing stated against a name", () => {
     const measurable = OCCURRENCES.filter(
       (one) => one.healthBefore !== null && !one.isCloudedByUnsizedHealing,
     );
-    expect(measurable.length).toBe(4);
+    expect(measurable.length).toBe(6);
     expect(OCCURRENCES.length - measurable.length).toBe(1);
   });
 

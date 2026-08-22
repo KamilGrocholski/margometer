@@ -174,9 +174,10 @@ describe("what the absorption-destruction family reports", () => {
    * the docblock above records from the other side. Written as a pair, the claim
    * in this test's own name was false the moment the same person turned up in
    * another capture: three group fights of 2026-08-15 met `440859` twice more and
-   * the recorded list grew to three entries while the number of readers stayed
-   * one. A silent reader met in four fights is the same finding four times over,
-   * and only the count of people is the claim worth holding.
+   * the recorded list grew while the number of readers stayed one. A silent
+   * reader met in one fight more is the same finding once more over, and only the
+   * count of people is the claim worth holding — which is why the list below is
+   * allowed to grow with the corpus and the assertion above it is not.
    */
   test("exactly one reader reports without ever announcing a share", () => {
     const silentReports = DESTRUCTION_KEYS.flatMap(getReports).filter(
@@ -189,6 +190,7 @@ describe("what the absorption-destruction family reports", () => {
       "2026-08-12-tempest-grupa-vs-hildur-2",
       "2026-08-15-tempest-grupa-vs-hildur-3",
       "2026-08-15-tempest-grupa-vs-hildur-4",
+      "2026-08-17-tempest-grupa-vs-hildur",
     ]);
 
     const values = new Set(

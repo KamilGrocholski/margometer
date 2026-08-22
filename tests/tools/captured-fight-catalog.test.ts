@@ -144,10 +144,15 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
      * (`src/core/combatant-health.ts`), through the very reader the add-on uses, so
      * the offline path and the live one cannot mean different things by it.
      *
-     * Empty is a real answer and two captures give it: their whole fight arrives
-     * in one call, so there is no snapshot to unwind back to. What is held is that
-     * whoever is in the map is in it with a health a combatant could have entered
-     * on.
+     * ⚠️ **The sentence here said two captures give an empty map, and none does.**
+     * Every capture states an entry health for every combatant it knows a maximum
+     * for — measured on the seventeen held on 2026-08-22, after a clamped snapshot
+     * and a rounded percentage stopped refusing a combatant outright
+     * (`src/core/combatant-health.ts`). The test below is still written as *less
+     * than or equal*, on purpose: a recording that could answer for nobody is a
+     * recording this reader cannot open, and the test two screens down is the one
+     * that fails over it. What is held here is that whoever is in the map is in it
+     * with a health a combatant could have entered on.
      */
     test("carries the health each combatant entered the fight with", () => {
       expect(fight.entryHealthByCombatantId.size).toBeLessThanOrEqual(

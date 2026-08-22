@@ -414,6 +414,61 @@ describe("what a fight was entered with", () => {
     expect(entry.get(1)).toBe(6_000);
   });
 
+  /**
+   * The same clamp read at the other end, and the end the rule had never reached.
+   * A snapshot of nothing is missing whatever overkill went past it, so unwinding
+   * from one lands above the maximum and refuses the combatant outright — while
+   * their own statements say the right figure and are never consulted, because the
+   * snapshot wins wherever it can be used.
+   *
+   * 1 is struck for 12 000 of a possible 10 000 and the snapshot has them at
+   * nothing. Reading the snapshot gives 12 000 entered; reading the statement
+   * gives the 10 000 they had.
+   */
+  test("skips a snapshot of nothing and unwinds from the messages instead", () => {
+    const opening = decodeFight([
+      "2=100.00;1=50.00;+dmg=5000;-dmg=5000",
+      "2=100.00;1=0.00;+dmg=12000;-dmg=7000",
+    ], null);
+    const entry = composeEntryHealthByCombatantId(new Map([[1, 0]]), maxima, opening);
+    expect(entry.get(1)).toBe(MAXIMUM);
+  });
+
+  /**
+   * ⚠️ **A refusal one point wide, on a pool wide enough to hide it.**
+   *
+   * The figures are the recording's own: a pool of 23 874, a blow of 3 374, and
+   * the game stating 85.87% — which is what 20 500 of 23 874 rounds to, and which
+   * reads back as 20 501. The unwind then lands on 23 875 of a possible 23 874,
+   * and a refusal is final, so every later statement about that combatant goes
+   * with it. Their side's casts are then never whole and the panel calls the whole
+   * fight's healing understated (`src/core/combatant-health.ts`).
+   *
+   * A pool of its own rather than `MAXIMUM`, and that is the measurement rather
+   * than a convenience: the slack a two-place percentage carries is half a
+   * hundredth of the pool, which is 0.5 on 10 000 and 1.19 on 23 874. The same one
+   * point is a contradiction on the small pool and a rounding on the large one, so
+   * a hand-built fight at `MAXIMUM` could not have shown this at all.
+   */
+  test("reads an unwinding a rounded percentage puts one point over the maximum", () => {
+    const pool = new Map([[1, 23_874]]);
+    const opening = decodeFight(["2=100.00;1=85.87;+dmg=3374;-dmg=3374"], null);
+    const entry = composeEntryHealthByCombatantId(new Map(), pool, opening);
+    expect(entry.get(1)).toBe(23_874);
+  });
+
+  /**
+   * And the width is a width rather than an opening. Twice the slack is still a
+   * disagreement, and the reading that produced it is refused whichever end it
+   * came from — which is the case the ceiling has always existed for.
+   */
+  test("refuses one the same reading puts further over than that", () => {
+    const pool = new Map([[1, 23_874]]);
+    const opening = decodeFight(["2=100.00;1=85.87;+dmg=3377;-dmg=3377"], null);
+    const entry = composeEntryHealthByCombatantId(new Map(), pool, opening);
+    expect(entry.has(1)).toBe(false);
+  });
+
   test("refuses a combatant whose maximum nothing states", () => {
     const entry = composeEntryHealthByCombatantId(new Map([[9, 100]]), maxima, []);
     expect(entry.has(9)).toBe(false);
