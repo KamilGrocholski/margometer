@@ -60,12 +60,26 @@ export const PROFESSION_NAMES: Record<string, TokenName> = {
  * `a` for damage nothing reduces. So a figure keyed `dmgg` has no element we
  * know — the label says what the game said, not what we wish it had.
  *
- * All ours, and not for want of asking: the client names no element anywhere.
- * It composes a damage line out of the figure and the recipient and spends the
- * kind on a CSS class. `thirdatt` is ours for a second reason — its own entry
- * resolves to `+%val%`, a hole and no name — so its name comes from the help,
- * which calls it the Third Blow under the engine name `of-thirdatt` (article
- * view,372, read 2026-08-09).
+ * All ours, and the sentence that used to earn that was wider than the reading
+ * behind it: it said the client names no element **anywhere**. What is true is
+ * narrower and is the half that matters here — the **battle log** names none. It
+ * composes a damage line out of the figure and the recipient and spends the kind
+ * on a CSS class.
+ *
+ * ⚠️ **Elsewhere the client does label damage kinds, and they are still not
+ * these.** A character's statistics panel carries a row per kind, each labelled
+ * from the `stat-damage-…` family (production build `1786514810315`). Six of the
+ * nine tokens below have a counterpart there and three have none; the family also
+ * carries a row for poison, which in this protocol is a health-loss key and no
+ * element at all. And the six are worded for that panel rather than for a row of
+ * ours: they agree with the noun *attack*, or say which source the damage comes
+ * *from*, where every entry below is a quantity of *obrażenia*. A table half
+ * filled from it would put two grammars in one column, which is the fault the
+ * paragraph above is about in a different guise.
+ *
+ * `thirdatt` is ours for a second reason — its own entry resolves to `+%val%`, a
+ * hole and no name — so its name comes from the help, which calls it the Third
+ * Blow under the engine name `of-thirdatt` (article view,372, read 2026-08-09).
  */
 export const ELEMENT_NAMES: Record<string, TokenName> = {
   dmg: { id: null, fallback: "fizyczne" },
@@ -127,9 +141,18 @@ export const VERY_CRITICAL_TOKEN = "legbon_verycrit";
 export const CRITICAL_EFFECT_TOKENS: readonly string[] = [CRITICAL_TOKEN, VERY_CRITICAL_TOKEN];
 
 /**
- * All sentences in the dictionary: each names the defence, then the figure it
- * took off and the damage it took it off. A name with the figure cut out of it
- * is not a label, so these keep a short noun of ours.
+ * The log entry for each is a sentence: it names the defence, then the figure it
+ * took off and the damage it took it off. A name with the figure cut out of it is
+ * not a label, so there is nothing in it to ask for.
+ *
+ * ⚠️ **The client does hold a bare label for each of these, and it names the
+ * other thing.** A combatant's defence rows are labelled from the `def-…`
+ * family — the one `heal` is asked through further down (production build
+ * `1786514810315`). Those name the **statistic**: how much this combatant
+ * absorbs, that they have a block at all. A row here is the damage one of them
+ * stopped on a particular blow, which is a figure and not a stat, and that is why
+ * every word below is a participle. Asking for the label would put the name of a
+ * capacity over a measurement of what it did.
  */
 export const DEFENCE_NAMES: Record<string, TokenName> = {
   absorb: { id: null, fallback: "pochłonięte" },
@@ -149,6 +172,17 @@ export const PERCENT_DESTRUCTION_TOKEN = "resdmg";
  * as destroying **absorption**, not the "osłona" this table used to invent for
  * it, and `acdmg` is the figure whose floor `acdmg_destroyed` announces — two
  * quantities that used to share one label.
+ *
+ * ⚠️ **One of the four has a bare label in the client after all**, in the
+ * statistics family rather than in the log: `stat-acdmg`, which says what this
+ * table's `acdmg` says already (production build `1786514810315`). Its neighbour
+ * `stat-acmdmg` is not this table's `resdmg` — it is keyed on a statistic the
+ * battle protocol never sends, and `tests/frozen-protocol-keys.ts` is where that
+ * can be checked rather than assumed from the spelling. The `_per` pair has no
+ * counterpart at all. So there is exactly one row here that could be handed to
+ * the client, it would draw the same word in Polish and the player's own in any
+ * other language, and whether to hand it over is a decision about what a player
+ * reads rather than a fault to close quietly.
  */
 export const DESTRUCTION_NAMES: Record<string, TokenName> = {
   acdmg: { id: null, fallback: "niszczenie pancerza" },
