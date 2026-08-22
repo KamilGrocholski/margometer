@@ -22,11 +22,13 @@ import {
   type CaptureEnvironment,
   type FightCapture,
 } from "@/src/game/fight-capture.ts";
+import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 
 const ENVIRONMENT: CaptureEnvironment = {
   getWorld: () => "tempest",
   getGameBuild: () => "1786441768914",
   getCapturedAt: () => "2026-08-11T12:00:00.000Z",
+  getUserAgent: () => "Mozilla/5.0 (a browser that said)",
 };
 
 /** One call through the collector, with nothing in it worth arguing about. */
@@ -214,9 +216,13 @@ describe("the recording as a file", () => {
 
     expect(getValueFromJsonText(written).value).toEqual({
       wersja: 1,
+      // Read from the constant rather than written out: a literal would go on
+      // passing while the file wrote the version of some release ago.
+      dodatek: USERSCRIPT_VERSION,
       przy: "2026-08-11T12:00:00.000Z",
       swiat: "tempest",
       build: "1786441768914",
+      przegladarka: "Mozilla/5.0 (a browser that said)",
       pominietych: 0,
       urwany: false,
       wpisy: [
@@ -253,6 +259,23 @@ describe("the recording as a file", () => {
 
     const read = getValueFromJsonText(written).value as { build: unknown };
     expect(read.build).toBe(null);
+  });
+
+  /**
+   * §9.3: unknown is loud. An omitted key and a key holding null read the same
+   * way to `toEqual`, so the key is asserted present before its value is read —
+   * a recording that quietly dropped the field would otherwise pass as one
+   * saying the browser did not answer.
+   */
+  test("states a browser that did not say as nothing, and still states it", () => {
+    const written = composeCaptureText(composeEmptyCapture(), {
+      ...ENVIRONMENT,
+      getUserAgent: () => null,
+    });
+
+    const read = getValueFromJsonText(written).value as Record<string, unknown>;
+    expect("przegladarka" in read).toBe(true);
+    expect(read["przegladarka"]).toBe(null);
   });
 
   test("is named so that two recordings never collide", () => {

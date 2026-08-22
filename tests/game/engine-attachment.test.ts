@@ -425,6 +425,7 @@ describe("a recording the add-on makes, read back as material", () => {
     getWorld: (): string => "tempest",
     getGameBuild: (): string => "1786441768914",
     getCapturedAt: (): string => "2026-08-11T12:00:00.000Z",
+    getUserAgent: (): string | null => "Mozilla/5.0 (a browser that said)",
   };
 
   /**
@@ -1882,6 +1883,36 @@ describe("the build id a report carries", () => {
   test("is null where no script on the page is one", () => {
     expect(getBuildOf(["/vendor/analytics.js"])).toBeNull();
     expect(getBuildOf([])).toBeNull();
+  });
+});
+
+/**
+ * The browser a report names.
+ *
+ * It is in a report for the same reason the build is: a defect that only one
+ * browser has costs a round of asking otherwise, and the Safari selection one
+ * did. Read straight off the page and never acted on — nothing branches on it,
+ * and §5 keeps it from going anywhere.
+ */
+describe("the browser a report names", () => {
+  function getBrowserOf(navigator: unknown): unknown {
+    const page = { navigator } as unknown as Parameters<typeof composeReportText>[0];
+    return (getValueFromJsonText(composeReportText(page, null)).value as Record<string, unknown>)[
+      "browser"
+    ];
+  }
+
+  test("is what the page says", () => {
+    expect(getBrowserOf({ userAgent: "Mozilla/5.0 (a browser that said)" })).toBe(
+      "Mozilla/5.0 (a browser that said)",
+    );
+  });
+
+  // Null and not "", which is the value nobody wrote that §9.3 exists to keep
+  // out — a report claiming an empty browser reads like an answer.
+  test("is nothing where the page did not say, and is still there", () => {
+    expect(getBrowserOf({})).toBeNull();
+    expect(getBrowserOf(undefined)).toBeNull();
   });
 });
 

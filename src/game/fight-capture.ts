@@ -33,6 +33,7 @@ import {
   WARRIOR_PROFESSION_FIELD,
   WARRIOR_SIDE_FIELD,
 } from "@/src/game/engine-warrior.ts";
+import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 
 /** The format `tools/fight-dump-parser.ts` reads. Every capture on disk carries 1. */
 const CAPTURE_FORMAT_VERSION = 1;
@@ -100,6 +101,8 @@ export type CaptureEnvironment = {
   /** Null where the page did not say. A recording without it is not comparable. */
   getGameBuild: () => string | null;
   getCapturedAt: () => string;
+  /** The same shape, and for the same reason: a browser that did not say is null. */
+  getUserAgent: () => string | null;
 };
 
 /**
@@ -260,6 +263,17 @@ function composeCopiedValue(value: unknown): unknown {
  * the key at all. Stated as "no recording since" rather than as a count: this
  * sentence has been rewritten twice to correct that figure and invalidated by the
  * next commit both times (§3).
+ *
+ * **Two fields are about the reader rather than the fight**, and they are here
+ * because the file arrives in a report: the button offering it says so, and a
+ * recording that turns up on its own could otherwise name neither the add-on that
+ * wrote it nor the browser it was written in. `dodatek` is ours and comes from
+ * the constant — on an unbuilt tree that is the word `USERSCRIPT_VERSION` states
+ * rather than a number that would read like a release. `przegladarka` is the
+ * page's and is null where it did not say, never `""`: §9.3 keeps unknown apart
+ * from a value nobody wrote. Neither is a figure, and nothing here is derived
+ * from the fight — a computed number belongs in the report the copy button
+ * writes, not in material (§9.2).
  */
 export function composeCaptureText(
   capture: FightCapture,
@@ -268,12 +282,16 @@ export function composeCaptureText(
   return composeJsonText(
     {
       wersja: CAPTURE_FORMAT_VERSION,
+      // Not `wersja`, which is the format's: this is the add-on's own, and the
+      // two are different numbers that move for different reasons.
+      dodatek: USERSCRIPT_VERSION,
       przy: environment.getCapturedAt(),
       swiat: environment.getWorld(),
       // Null where the page did not say, rather than a stand-in that reads like a
       // build. The intake tool refuses it by name, which is the right outcome:
       // material from the game without the client's version is not comparable.
       build: environment.getGameBuild(),
+      przegladarka: environment.getUserAgent(),
       pominietych: capture.droppedCalls,
       urwany: capture.isFull,
       wpisy: capture.calls.map((call) => ({

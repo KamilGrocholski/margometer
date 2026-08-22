@@ -343,15 +343,31 @@ type HostPage = GameWindow & DictionaryWindow & {
   };
   /** The world a recording came from. Absent means the page did not say. */
   location?: { hostname?: string | undefined } | undefined;
-  /**
-   * Where a report goes when the reader asks for one.
-   *
-   * Optional throughout, because a browser may refuse it and a test has none —
-   * and refusing costs the copy and nothing else, the same shape as the stored
-   * position. Not a network call: §5 forbids sending anything anywhere, and
-   * handing a person their own numbers is not sending them.
-   */
-  navigator?: { clipboard?: { writeText?: ((text: string) => unknown) | undefined } | undefined } | undefined;
+  /** The two things a reader's own browser is asked for, and neither is required. */
+  navigator?:
+    | {
+        /**
+         * Where a report goes when the reader asks for one.
+         *
+         * Optional throughout, because a browser may refuse it and a test has
+         * none — and refusing costs the copy and nothing else, the same shape as
+         * the stored position. Not a network call: §5 forbids sending anything
+         * anywhere, and handing a person their own numbers is not sending them.
+         */
+        clipboard?: { writeText?: ((text: string) => unknown) | undefined } | undefined;
+        /**
+         * Which browser a recording and a report were written in.
+         *
+         * Read and never acted on: nothing here branches on it, and §5 keeps it
+         * from leaving the machine. It is in both artefacts because a defect can
+         * belong to one browser — `docs/browser-support.md` carries a whole tier
+         * for what degrades where, and the selection defect this repository fixed
+         * for `v0.8.0` was Safari's alone — and the artefacts are what somebody
+         * sends when they report one.
+         */
+        userAgent?: string | undefined;
+      }
+    | undefined;
   /** For keeping the panel on screen. Absent means the page did not say. */
   innerWidth?: number | undefined;
   innerHeight?: number | undefined;
@@ -448,6 +464,7 @@ function composeCaptureEnvironment(page: HostPage): CaptureEnvironment {
     getWorld: () => getWorldFromPage(page),
     getGameBuild: () => getGameBuildFromPage(page),
     getCapturedAt: () => new Date().toISOString(),
+    getUserAgent: () => page.navigator?.userAgent ?? null,
   };
 }
 
@@ -821,6 +838,10 @@ export function composeReportText(
   const report = {
     addon: { name: "MargoMeter", version: USERSCRIPT_VERSION },
     game: { world: environment.getWorld(), build: environment.getGameBuild() },
+    // The same fact the recording carries as `przegladarka`, so the two artefacts
+    // a reader can send cannot disagree about what was known. English here and
+    // Polish there for the reason the block above states: this one is read by us.
+    browser: environment.getUserAgent(),
     capturedAt: environment.getCapturedAt(),
     // One line printed per channel per page, and this is the rest of them —
     // §9.6 says a repeat is counted rather than reprinted, and a count nobody
