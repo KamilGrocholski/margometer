@@ -17,22 +17,31 @@
 
 
 ## In Progress
-- [ ] Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
 
 ## Up Next
+- [ ] More info SHOULD be visible in raw logs download - MargoStat version is a must have
 
 ## Done
-- [x] SPEC: Distinguish "Zwykly cios", "Zamaszczysty cios", and similar
-- [x] Reduce the number of files in the project, and bloat in comments/code/docs - /ui has too many files, split it into modules (per panel view) and create 
-      files only for what is reusable by them; other directories dunno
+- [x] `Leczenie` calls regeneration "Nie wiadomo, czym" - it is `heal`/`legbon_holytouch_heal`/`legbon_lastheal`, the game announces no skill, so name the row by the key
+- [x] Read `+absorbm`, add it to the register, then intake the 2026-08-17 Hildur recording as material
+- [x] Fix understated healing in Hildur fights - one member was refused an entry health, so every team heal cast in the fight was counted as unknown
 
 ## Later
+- [ ] Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
+- [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
 - [ ] Add a `Colossus`/`Titan` helper (based on MargoMeter) that shows:
       - which characters are not casting their abilities at all (presence check)
       - which characters are casting abilities incorrectly (correctness check)
 
 ---
 ## History
+
+### Done v0.8.1
+- [x] Fix the percentage text to sum up correctly - the numbers are ok, only the text displayed is invalid
+- [x] Code smell audit
+- [x] SPEC: Distinguish "Zwykly cios", "Zamaszczysty cios", and similar
+- [x] Reduce the number of files in the project, and bloat in comments/code/docs - /ui has too many files, split it into modules (per panel view) and create 
+      files only for what is reusable by them; other directories dunno
 
 ### Done v0.8.0
 - [x] (NOT NEADED, other things have been done) Create a checklist of things that MUST be done before each commit, other than TODO. AGENTS.md rules are not enough
