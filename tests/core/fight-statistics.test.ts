@@ -652,7 +652,7 @@ describe("healing with a healer and healing without one", () => {
    * claim about the game that is false (§3), not merely a figure left out
    * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
    *
-   * Every name in all seventeen captures resolves, so nothing here is measurable
+   * Every name in every capture resolves, so nothing here is measurable
    * over them: the shape is the live one, where a fight is joined on a name the
    * roster cannot tell apart.
    */
@@ -822,7 +822,7 @@ describe("healing with a healer and healing without one", () => {
    * ⚠️ **An announcement still wins.** A giver the protocol actually stated beats
    * one derived from the help, so a self-sourced key arriving under an
    * announcement is credited to whoever announced it and not to the combatant it
-   * reached. No capture carries the shape — every `heal` in all seventeen is
+   * reached. No capture carries the shape — every `heal` in all of them is
    * unannounced — so it is a hand-built fight, and it is what keeps the fill from
    * quietly overwriting a reading the game made itself.
    */

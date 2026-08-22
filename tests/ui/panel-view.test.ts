@@ -108,7 +108,7 @@ function composeReading(overrides: Partial<PanelReading> = {}): PanelReading {
 /**
  * A fight where one end of a blow goes unnamed — both ends, in one of them.
  *
- * Hand-written because no capture reaches it: every name in all seventeen
+ * Hand-written because no capture reaches it: every name in every recording
  * resolves, so `unattributed` is zero throughout and the terms this fight is for
  * would be invisible. Three readers now — the closure below, the sweep of every
  * sentence, and the summary's third part, which stands for exactly this shape
@@ -141,8 +141,8 @@ function composeState(overrides: Partial<PanelState> = {}): PanelState {
 /**
  * The row for the figure with no actor, off a view that now draws up to two.
  *
- * Almost everything here asks about that one: it is the hole all seventeen
- * captures carry, and the one the fixture is built around. The row for a missing
+ * Almost everything here asks about that one: it is the hole every capture
+ * carries, and the one the fixture is built around. The row for a missing
  * **target** is asked about by name where it is the subject
  * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
  */
@@ -1523,7 +1523,7 @@ describe("against the captured fights", () => {
    * the wound and named who applied it
    * (`docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`), which is why this
    * cell still says `true` on the strength of two keys rather than three. Healing
-   * has none left — every point in all seventeen recordings reaches a healer since
+   * has none left — every point in every recording reaches a healer since
    * the three keys the help calls the healed combatant's own started saying so
    * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
    *
@@ -1776,7 +1776,7 @@ describe("against the captured fights", () => {
    * facing them — and nothing lit up when that was made to charge the striker's
    * own team.**
    *
-   * The captures cannot show it: all seventeen resolve every name, so
+   * The captures cannot show it: every one of them resolves every name, so
    * `unattributed.takenByActorId` is empty in every one and the row never draws.
    * The hand-built fights that do reach the row reach it through a blow naming
    * *neither* end, whose figure is not charged at all. So the one screen where the

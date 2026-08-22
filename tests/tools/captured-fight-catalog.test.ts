@@ -168,7 +168,7 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
      *
      * ⚠️ **The sentence here said two captures give an empty map, and none does.**
      * Every capture states an entry health for every combatant it knows a maximum
-     * for — measured on the seventeen held on 2026-08-22, after a clamped snapshot
+     * for — measured on the eighteen held on 2026-08-22, after a clamped snapshot
      * and a rounded percentage stopped refusing a combatant outright
      * (`src/core/combatant-health.ts`). The test below is still written as *less
      * than or equal*, on purpose: a recording that could answer for nobody is a

@@ -138,7 +138,7 @@ game had — the panel was printing the same keys one section lower under
 
 ## Shapes the recordings do not carry
 
-The tables state what the seventeen captures produce. Three shapes the protocol
+The tables state what every recording in `tests/captured-fights/` produces. Three shapes the protocol
 allows are absent from all of them, so no verdict is claimed:
 
 | shape | where it would sit |

@@ -100,7 +100,7 @@ export function composeRosterOfFight(fight: CapturedFight): CombatantRoster {
  *
  * ⚠️ **The three arguments were spelled out at ten call sites and four of them
  * left one off**, which is not a small difference — composing the seventeen
- * recordings both ways, healing on fourteen of them more than doubles once the
+ * recordings held on 2026-08-21 both ways, healing on fourteen of them more than doubles once the
  * entry health is passed, because that is what sizes a share stated about a whole
  * side (§9.6). The tools carried a comment saying they read *the same reading the
  * panel is held to*; the tests carried nothing, and one of the four was the

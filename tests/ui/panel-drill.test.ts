@@ -71,7 +71,8 @@ import {
  * health was left off here, and it is what sizes a share the game states about a
  * whole side — so every assertion in this file ran over a fight whose healing was
  * less than half of what the panel draws, on fourteen of the seventeen recordings
- * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F2).
+ * that audit read (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`,
+ * F2).
  * Nothing here was wrong: a section closing against the row it was entered from
  * closes either way. It was simply not this fight.
  */

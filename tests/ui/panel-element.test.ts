@@ -299,7 +299,7 @@ function renderInto(
  *
  * Beside the fixture rather than inside it, because it is the one shape the
  * summary's third part still stands for and no capture contains it — every name
- * in all seventeen resolves, so a bar that had simply dropped the part would draw
+ * in every one of them resolves, so a bar that had simply dropped the part would draw
  * identically on every one of them.
  */
 function composeReadingWithNeitherEnd(): PanelReading {

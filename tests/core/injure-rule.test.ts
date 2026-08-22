@@ -237,8 +237,8 @@ describe("which wound a tick belongs to", () => {
  * shapes the captures cannot show and the one they can.
  *
  * The corpus has no fight joined mid-wound, no figure that disagrees and no
- * announcement whose attacker fails to resolve, because every name in all
- * seventeen resolves and every tick has its announcement. Those are exactly the
+ * announcement whose attacker fails to resolve, because every name in every
+ * recording resolves and every tick has its announcement. Those are exactly the
  * shapes where a wrong reading would charge somebody with damage they did not do,
  * so they are built by hand.
  */
