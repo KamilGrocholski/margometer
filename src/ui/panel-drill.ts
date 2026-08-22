@@ -61,6 +61,8 @@ import {
   UNANNOUNCED_ROW_KEY,
 } from "@/src/ui/panel-screen.ts";
 import {
+  getHealingGivenWithoutSkillBySource,
+  getHealingReceivedWithoutSkillBySource,
   getHealthLostCausedBySource,
   getMetricValue,
   getName,
@@ -490,30 +492,37 @@ function composeMissingEntry(metric: PanelMetric, amount: number): BreakdownEntr
 }
 
 /**
- * The row that closes a section against the row above it.
+ * The row that closes a section against the row above it — **on the damage
+ * screens, which are now the only ones that reach it.**
  *
- * Keyed by the two metrics that reach it rather than by all three, so the
- * compiler refuses a metric nobody decided about — the previous spelling was a
- * ternary defaulting `taken` into the wording for `dealt`, which was only right
- * because of an early return forty lines above it.
+ * ⚠️ **It used to be keyed by all four metrics, and the two healing wordings said
+ * something false.** `Nie wiadomo, czym` stood over health `heal`,
+ * `legbon_holytouch_heal` and `legbon_lastheal` had named, which the panel was
+ * printing in the very next section — 16 527 of one row's 32 057 points on
+ * `tests/captured-fights/2026-08-17-tempest-grupa-vs-hildur.json`. Under healing
+ * the section now names the key instead, so nothing is left over to close against
+ * and there is no wording to decide (`composeHealingSourceEntries`).
+ *
+ * The type is the narrowing: a metric that is not one of these two cannot be
+ * looked up here, so the day a healing residual comes back the compiler asks for
+ * it rather than a ternary answering `Zwykły cios` on its behalf.
  */
-const CLOSING_LABELS: Record<PanelMetric, string> = {
+type ClosingMetric = Extract<PanelMetric, "dealt" | "taken">;
+
+function isClosingMetric(metric: PanelMetric): metric is ClosingMetric {
+  return metric === "dealt" || metric === "taken";
+}
+
+const CLOSING_LABELS: Record<ClosingMetric, string> = {
   dealt: "Zwykły cios",
   taken: "Zwykły cios",
-  // Never reached: healing given is by definition what an announcement carried,
-  // so the section already closes against the row. Decided rather than defaulted,
-  // because a table that guesses is the thing this table exists to prevent.
-  healingGiven: "Nie wiadomo, czym",
-  healed: "Nie wiadomo, czym",
 };
 
-const CLOSING_NOTES: Record<PanelMetric, string> = {
+const CLOSING_NOTES: Record<ClosingMetric, string> = {
   dealt:
     "Cios, przed którym nie stała żadna umiejętność. Gra nie odróżnia go od dodatkowego zamachu, który sama jej dała.",
   taken:
     "Cios, przed którym nie stała żadna umiejętność. Gra nie odróżnia go od dodatkowego zamachu, który sama jej dała.",
-  healingGiven: "Nic nie zapowiedziało tego leczenia, więc gra nie mówi, co je dało.",
-  healed: "Nic nie zapowiedziało tego leczenia, więc gra nie mówi, co je dało.",
 };
 
 /**
@@ -537,6 +546,51 @@ function composeWoundEntries(
   return [...getHealthLostCausedBySource(row)].map(([token, amount]) => ({
     key: composeLeafRowKey(token),
     label: getPhrase(HEALTH_LOSS_SOURCE_NAMES, token, translate),
+    profession: null,
+    colour: UNKNOWN_COLOUR,
+    amount,
+    isDrillable: false,
+    uses: null,
+    detail: [],
+  }));
+}
+
+/**
+ * Healing nothing announced, as rows of its own in the section about what it was
+ * done with — the twin of the wound rows above, and it exists for their argument.
+ *
+ * ⚠️ **The alternative was the closing row, and that row was a claim.**
+ * `Nie wiadomo, czym` said the game had not told us; the game had, under `heal`,
+ * `legbon_holytouch_heal` and `legbon_lastheal`, and the panel was printing those
+ * very words one section lower under `OD CZEGO`. What is missing over them is an
+ * *announcement*, which is not the same thing and is not what a player reads that
+ * sentence as. Measured on
+ * `tests/captured-fights/2026-08-17-tempest-grupa-vs-hildur.json`, one row's
+ * 16 527 unnamed points were `ostatni ratunek` 11 077 and `leczenie` 5 450,
+ * exactly.
+ *
+ * It carries no count for the reason the wound rows carry none: the protocol
+ * states no number of applications, and a heal is not a swing.
+ *
+ * A key nobody has named still arrives — `getPhrase` falls back to the token — so
+ * this can never be short, which is what lets the closing row retire from healing
+ * altogether.
+ *
+ * ⚠️ **A zero is kept, where the skill rows beside it are dropped at zero, and the
+ * difference is what a zero means in each.** `legbon_holytouch_heal=0` is a heal
+ * the game reported and that restored nothing — it happened (§9.6) — and
+ * `OD CZEGO` one section down has always drawn it, so dropping it here would leave
+ * two cuts of one figure disagreeing about which keys were in play. A skill at zero
+ * is the other claim: under `Leczenie` that loop reaches every combatant's skills,
+ * so zero there means the skill never touched this row at all.
+ */
+function composeHealingSourceEntries(
+  bySource: ReadonlyMap<string, number>,
+  translate: TranslateLabel | null,
+): BreakdownEntry[] {
+  return [...bySource].map(([token, amount]) => ({
+    key: composeLeafRowKey(token),
+    label: getPhrase(HEALTH_GAIN_SOURCE_NAMES, token, translate),
     profession: null,
     colour: UNKNOWN_COLOUR,
     amount,
@@ -603,12 +657,24 @@ function composeSkillEntries(
     for (const [key, skill] of getRow(reading, combatantId).skills) {
       setEntry(combatantId, key, skill, skill.healed);
     }
+    entries.push(
+      ...composeHealingSourceEntries(
+        getHealingGivenWithoutSkillBySource(getRow(reading, combatantId)),
+        translate,
+      ),
+    );
   } else {
     for (const [ownerId, row] of reading.statistics.byCombatantId) {
       for (const [key, skill] of row.skills) {
         setEntry(ownerId, key, skill, skill.healedByCombatantId.get(combatantId) ?? 0);
       }
     }
+    entries.push(
+      ...composeHealingSourceEntries(
+        getHealingReceivedWithoutSkillBySource(getRow(reading, combatantId)),
+        translate,
+      ),
+    );
   }
 
   entries.sort((one, other) => other.amount - one.amount);
@@ -624,6 +690,8 @@ function composeSkillEntries(
    * say the combatant did not swing.
    */
   const row = getRow(reading, combatantId);
+  if (!isClosingMetric(state.metric)) return entries;
+
   const total = getMetricValue(row, state.metric);
   const named = entries.reduce((sum, entry) => sum + entry.amount, 0);
   const rest = total - named;
@@ -803,9 +871,9 @@ function composeNamedPairSkillEntries(
  * The same, as a section.
  *
  * It closes against the pair's own total the way the fight-wide one closes against
- * the combatant's: what no announcement covered is a row, not a silence, or the
- * parts would sum to less than the figure they were entered from and nothing would
- * say why.
+ * the combatant's — on the damage screens. Under healing there is nothing left to
+ * close against: what no announcement covered is named by its key here as it is
+ * one level up, so the parts already sum to the figure they were entered from.
  */
 function composePairSkillEntries(
   reading: PanelReading,
@@ -818,12 +886,24 @@ function composePairSkillEntries(
 ): BreakdownEntry[] {
   const entries = composeNamedPairSkillEntries(reading, state, combatantId, otherId);
 
-  // The wound stands in this section for the reason it stands in the fight-wide
-  // one: `Zwykły cios` below would otherwise absorb it and call it a blow.
+  /**
+   * What the game named and no announcement did, in this pair.
+   *
+   * The wound stands here for the reason it stands in the fight-wide section:
+   * `Zwykły cios` below would otherwise absorb it and call it a blow. The heal
+   * stands here for the same reason with a different row — `Nie wiadomo, czym`
+   * would have absorbed it and called it unknown.
+   *
+   * ⚠️ **Two vocabularies, and picking the wrong one is silent.** `heal` is a key
+   * of both tables and means opposite things in them, which is why
+   * `src/ui/panel-words.ts` splits them at all: named from the loss table, a heal
+   * would print as *ujemne leczenie*.
+   */
+  const names = isHealingMetric(state.metric) ? HEALTH_GAIN_SOURCE_NAMES : HEALTH_LOSS_SOURCE_NAMES;
   for (const [token, amount] of bySource) {
     entries.push({
       key: composeSkillLeafRowKey(token),
-      label: getPhrase(HEALTH_LOSS_SOURCE_NAMES, token, translate),
+      label: getPhrase(names, token, translate),
       profession: null,
       colour: UNKNOWN_COLOUR,
       amount,
@@ -832,6 +912,19 @@ function composePairSkillEntries(
       detail: [],
     });
   }
+
+  /**
+   * ⚠️ **Sorted here rather than where the skills were.** The named skills arrive
+   * ordered and the rows above are appended after them, so a key larger than every
+   * skill in the pair sat at the bottom of the list — which is the one thing a
+   * column of bars says without being read. Measured the moment healing gained
+   * such rows: on `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
+   * `CZYM — <name>` under `Leczenie dane` put a full-length bar under a third-length
+   * one. The same fault was reachable through a wound and no recording had one.
+   */
+  entries.sort((one, other) => other.amount - one.amount);
+
+  if (!isClosingMetric(state.metric)) return entries;
 
   const named = entries.reduce((sum, entry) => sum + entry.amount, 0);
   const rest = pairTotal - named;
@@ -910,11 +1003,19 @@ function getPairReading(
   const byElement = isHealingMetric(state.metric)
     ? nothing
     : (from.dealtByTargetId.get(to) ?? nothing);
-  // Read off the same row as the elements, and off the giving end for the same
-  // reason: the pair's figure is what one combatant did to the other, whichever
-  // direction the screen is asking from.
+  /**
+   * Read off the same row as the elements, and off the giving end for the same
+   * reason: the pair's figure is what one combatant did to the other, whichever
+   * direction the screen is asking from.
+   *
+   * ⚠️ **The healing map holds only what no announcement covered, and the damage
+   * one holds a quantity that is disjoint from the blows by construction.** Both
+   * are therefore addable to the named skills without counting anything twice —
+   * the whole of `healedBySource` would not be, since an announced heal is in it
+   * as well.
+   */
   const bySource = isHealingMetric(state.metric)
-    ? nothing
+    ? (from.healingGivenWithoutSkillByCombatantId.get(to) ?? nothing)
     : (from.healthLostCausedByTargetId.get(to) ?? nothing);
   const total = isHealingMetric(state.metric)
     ? (from.healingGivenByCombatantId.get(to) ?? 0)
@@ -1000,13 +1101,28 @@ export function composeDeepLists(
       detail: [],
     }));
 
-  const elements = composeCrossSection(
-    SOURCE_HEADINGS[state.metric],
-    [
-      ...composeLeaf(ELEMENT_NAMES, byElement),
-      ...composeLeaf(HEALTH_LOSS_SOURCE_NAMES, bySource),
-    ].sort((one, other) => other.amount - one.amount),
-  );
+  /**
+   * ⚠️ **A pair on a healing screen has no second section, and that is a decision
+   * rather than an omission.** `byElement` is empty there — healing has no element
+   * — so this section would hold exactly the key rows `CZYM — <name>` above it
+   * already lists, under a second heading and in the same order. The damage screens
+   * keep theirs because the elements really are a cut the section above does not
+   * show.
+   *
+   * It became reachable the day the healing pair gained a source map at all, and
+   * would have drawn those rows out of `HEALTH_LOSS_SOURCE_NAMES` — where `heal` is
+   * a health *loss* and reads *ujemne leczenie*. Two quantities under one label is
+   * a wrong number that looks right (`src/ui/panel-words.ts`).
+   */
+  const elements = isHealingMetric(state.metric)
+    ? null
+    : composeCrossSection(
+        SOURCE_HEADINGS[state.metric],
+        [
+          ...composeLeaf(ELEMENT_NAMES, byElement),
+          ...composeLeaf(HEALTH_LOSS_SOURCE_NAMES, bySource),
+        ].sort((one, other) => other.amount - one.amount),
+      );
 
   return [skills, elements].filter((list): list is PanelList => list !== null);
 }

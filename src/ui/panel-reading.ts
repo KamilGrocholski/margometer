@@ -9,7 +9,7 @@
  */
 
 import { composeIntegerText } from "@/libs/number.ts";
-import { getTotalOfValues, getTotalsByInnerKey } from "@/libs/running-total.ts";
+import { getTotalOfValues, getTotalsByInnerKey, setRunningTotal } from "@/libs/running-total.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
   composeEmptyCombatantStatistics,
@@ -196,4 +196,39 @@ export function getHealthLostWithoutActorBySource(
  */
 export function getHealthLostCausedBySource(row: CombatantStatistics): Map<string, number> {
   return getTotalsByInnerKey(row.healthLostCausedByTargetId);
+}
+
+/**
+ * Health restored to this combatant that no announcement covered, by the key that
+ * restored it — the makeup of what the skills section cannot name.
+ *
+ * **Two maps, because a heal can lack an announcement in two ways.** One is filed
+ * under its healer, which is the combatant themselves for every key the help calls
+ * their own effect (§9.6); the other had no healer to file it under at all and is
+ * already flat. They partition the unannounced half between them, so this is their
+ * sum and never their overlap.
+ *
+ * A fold of the row's own maps, which is the panel's work (§9.1) — the aggregate
+ * holds the split because nothing here could compute it.
+ */
+export function getHealingReceivedWithoutSkillBySource(
+  row: CombatantStatistics,
+): Map<string, number> {
+  const bySource = getTotalsByInnerKey(row.healedWithoutSkillByHealerId);
+  for (const [source, amount] of row.healedWithoutHealerBySource) {
+    setRunningTotal(bySource, source, amount);
+  }
+  return bySource;
+}
+
+/**
+ * The same on the giving side, and it needs only the one map: a heal nothing
+ * announced reaches a giver only through a key the help calls that combatant's
+ * own, and such a key names the healed at both ends — so where there is a giver
+ * there is a recipient to file it under.
+ */
+export function getHealingGivenWithoutSkillBySource(
+  row: CombatantStatistics,
+): Map<string, number> {
+  return getTotalsByInnerKey(row.healingGivenWithoutSkillByCombatantId);
 }

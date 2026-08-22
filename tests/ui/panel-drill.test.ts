@@ -43,7 +43,14 @@ import {
   type PanelState,
   UNANNOUNCED_ROW_KEY,
 } from "@/src/ui/panel-screen.ts";
-import { getMetricValue, getName, getRow, type PanelReading } from "@/src/ui/panel-reading.ts";
+import {
+  getHealingGivenWithoutSkillBySource,
+  getHealingReceivedWithoutSkillBySource,
+  getMetricValue,
+  getName,
+  getRow,
+  type PanelReading,
+} from "@/src/ui/panel-reading.ts";
 import {
   CAPTURED_FIGHTS,
   composeRosterOfFight,
@@ -113,6 +120,13 @@ function* getScreens(): Generator<{
  */
 const BELOW_A_POINT = "<1%";
 
+/**
+ * The heading the skills section is drawn under, written out for `BELOW_A_POINT`'s
+ * reason: a sweep that read it off the module it is checking would find the section
+ * whatever the module called it, and find nothing the day it called it nothing.
+ */
+const SKILL_HEADING = "CZYM (UMIEJĘTNOŚCI)";
+
 /** Whether the row opens the card, rather than a note or nothing at all. */
 function getIsCard(row: PanelRow): boolean {
   return row.detail.some((line) => line.kind === "title");
@@ -144,6 +158,121 @@ describe("a breakdown", () => {
     }
     // A loop over nothing is green and proves nothing (§9.2).
     expect(closed).toBeGreaterThan(0);
+  });
+
+  /**
+   * **The measurement that lets the closing row retire from healing.**
+   *
+   * `Nie wiadomo, czym` used to stand for every point no announcement covered, and
+   * it was a claim about the game rather than about the announcement: the game had
+   * named the effect, under `heal`, `legbon_holytouch_heal` or `legbon_lastheal`,
+   * and the panel was printing those very keys one section lower. The section now
+   * names them, and what makes that safe rather than lossy is here — a skill or a
+   * key accounts for every point, exactly, so nothing is left for a row to close
+   * against (`src/ui/panel-drill.ts`, `CLOSING_LABELS`).
+   *
+   * Totalled by hand rather than through the reader that composes the section: a
+   * test borrowing the subject's own arithmetic agrees with it whatever it says
+   * (§9.5's note on `libs/running-total.ts`).
+   */
+  test("accounts for every point of healing by a skill or by a key", () => {
+    let rows = 0;
+    let drawn = 0;
+    for (const { name, reading, metric, combatantId } of getScreens()) {
+      if (metric !== "healed" && metric !== "healingGiven") continue;
+      const row = getRow(reading, combatantId);
+      const figure = getMetricValue(row, metric);
+      if (figure <= 0) continue;
+
+      let byKey = 0;
+      const bySource =
+        metric === "healed"
+          ? getHealingReceivedWithoutSkillBySource(row)
+          : getHealingGivenWithoutSkillBySource(row);
+      for (const amount of bySource.values()) byKey += amount;
+
+      let bySkill = 0;
+      if (metric === "healingGiven") {
+        for (const skill of row.skills.values()) bySkill += skill.healed;
+      } else {
+        // Healing received is announced on somebody else's row, so the sweep is
+        // over every row's skills and not over this one's.
+        for (const other of reading.statistics.byCombatantId.values()) {
+          for (const skill of other.skills.values()) {
+            bySkill += skill.healedByCombatantId.get(combatantId) ?? 0;
+          }
+        }
+      }
+
+      const where = `${name} ${metric} #${combatantId}`;
+      expect(byKey + bySkill, where).toBe(figure);
+
+      /**
+       * And the section drawn from those two says the same figure. Both halves are
+       * needed: the arithmetic above holds the aggregate, this holds the reader that
+       * composes the rows out of it, and a section that stopped listing the keys
+       * would pass the first while stating a total short by every one of them.
+       *
+       * Only where it is drawn — a cut of a single row repeats the figure above it
+       * and is suppressed, which is `composeCrossSection`'s rule and not this test's
+       * to restate.
+       */
+      const section = composeBreakdownLists(reading, composeState({ metric }), combatantId, null)
+        .find((list) => list.heading === SKILL_HEADING);
+      if (section !== undefined) {
+        expect(section.totalText, where).toBe(composeFigureText(figure));
+        drawn += 1;
+      }
+      rows += 1;
+    }
+    // A loop over nothing is green and proves nothing (§9.2).
+    expect(rows).toBeGreaterThan(0);
+    expect(drawn).toBeGreaterThan(0);
+  });
+
+  /**
+   * The same claim read off what is drawn, which the one above cannot see: a
+   * section short by a point is suppressed rather than shown wrong where it holds
+   * one row, so the arithmetic and the rows are checked separately.
+   *
+   * Under damage the closing row is expected and counted, so neither half of this
+   * can pass by finding nothing.
+   */
+  test("draws no row saying a heal cannot be named, at either level", () => {
+    let healingRows = 0;
+    let damageClosings = 0;
+    for (const { name, reading, metric, combatantId } of getScreens()) {
+      const state = composeState({ metric });
+      const lists = composeBreakdownLists(reading, state, combatantId, null);
+      const deep = lists
+        .flatMap((list) => list.rows)
+        .filter((row) => row.isDrillable && getRowKeyMeaning(row.key).opens === "target")
+        .flatMap((row) => {
+          const meaning = getRowKeyMeaning(row.key);
+          if (meaning.opens !== "target") return [];
+          return composeDeepLists(
+            reading,
+            { ...state, focusCombatantId: combatantId, focusTargetId: meaning.combatantId },
+            combatantId,
+            null,
+          );
+        });
+
+      for (const list of [...lists, ...deep]) {
+        for (const row of list.rows) {
+          const where = `${name} ${metric} #${combatantId} ${list.heading}`;
+          if (!row.key.includes(UNANNOUNCED_ROW_KEY)) {
+            if (metric === "healed" || metric === "healingGiven") healingRows += 1;
+            continue;
+          }
+          expect(metric, where).not.toBe("healed");
+          expect(metric, where).not.toBe("healingGiven");
+          damageClosings += 1;
+        }
+      }
+    }
+    expect(healingRows).toBeGreaterThan(0);
+    expect(damageClosings).toBeGreaterThan(0);
   });
 
   /**

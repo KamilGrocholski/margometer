@@ -914,8 +914,20 @@ function composeReportRow(
     healedBySource: Object.fromEntries(row.healedBySource),
     healedWithoutHealerBySource: Object.fromEntries(row.healedWithoutHealerBySource),
     healedByHealerId: Object.fromEntries(row.healedByHealerId),
+    healedWithoutSkillByHealerId: Object.fromEntries(
+      [...row.healedWithoutSkillByHealerId].map(([id, bySource]) => [
+        id,
+        Object.fromEntries(bySource),
+      ]),
+    ),
     healingGiven: row.healingGiven,
     healingGivenByCombatantId: Object.fromEntries(row.healingGivenByCombatantId),
+    healingGivenWithoutSkillByCombatantId: Object.fromEntries(
+      [...row.healingGivenWithoutSkillByCombatantId].map(([id, bySource]) => [
+        id,
+        Object.fromEntries(bySource),
+      ]),
+    ),
     prevented: Object.fromEntries(row.prevented),
     destroyed: Object.fromEntries(row.destroyed),
     procsOnBlowsStruck: Object.fromEntries(row.procsOnBlowsStruck),

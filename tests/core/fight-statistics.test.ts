@@ -30,7 +30,7 @@
  * taken.
  */
 
-import { setRunningTotal } from "@/libs/running-total.ts";
+import { getTotalOfValues, getTotalsByInnerKey, setRunningTotal } from "@/libs/running-total.ts";
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
@@ -471,6 +471,146 @@ describe.each(FROM_CAPTURES)("$name healing in both directions", ({ statistics }
   // already lights "a side's totals are its members' totals, figure by figure",
   // which is generic over every plain number a row holds. A second test for one
   // claim is a test that has to be kept in step with the first.
+});
+
+/**
+ * Healing split by whether an **announcement** covered it — the second of the two
+ * splits this aggregate keeps, and the one the panel's skills section rests on.
+ *
+ * ⚠️ **Not the same split as the one below, and the difference is a whole screen.**
+ * That one asks whether anybody was *credited*; this one asks whether anything was
+ * *announced*, and since `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`
+ * the three keys the help calls the healed combatant's own have a healer without
+ * having an announcement. So the first split is empty on every recording while this
+ * one holds 97 470 of the 346 284 points restored on
+ * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`.
+ *
+ * No arithmetic over the other maps recovers it: `healedByHealerId` drops the key,
+ * `healedBySource` drops the announcement, and a `SkillStatistics` carries no key at
+ * all. That is why these are fields and this describe is what holds them honest.
+ */
+describe("healing an announcement covered and healing it did not", () => {
+  /**
+   * The two maps are one reading transposed, held apart only so that neither
+   * direction has to be derived across every other row (§9.1). Written twice, they
+   * drift — so this is the same claim "what a healer gave is what the healed say
+   * they got" makes, with the key on it.
+   */
+  test.each(FROM_CAPTURES)("$name reads the same from either end", ({ statistics }) => {
+    const given = new Map<string, number>();
+    const received = new Map<string, number>();
+    for (const [id, row] of statistics.byCombatantId) {
+      for (const [to, bySource] of row.healingGivenWithoutSkillByCombatantId) {
+        for (const [source, amount] of bySource) {
+          given.set(`${composeIntegerText(id)}->${composeIntegerText(to)} ${source}`, amount);
+        }
+      }
+      for (const [from, bySource] of row.healedWithoutSkillByHealerId) {
+        for (const [source, amount] of bySource) {
+          received.set(`${composeIntegerText(from)}->${composeIntegerText(id)} ${source}`, amount);
+        }
+      }
+    }
+
+    expect([...given].sort()).toEqual([...received].sort());
+    // Without this the equality above would pass by comparing two empty maps the
+    // day nothing was filed in either.
+    expect(given.size).toBeGreaterThan(0);
+  });
+
+  /**
+   * A narrowing is a narrowing: no key may hold more points than the map it is a
+   * part of, in either direction. An inequality rather than an equality because the
+   * rest of each figure is what an announcement did cover, and that is counted on
+   * the skill rather than here.
+   */
+  test.each(FROM_CAPTURES)("$name never exceeds the healing it is part of", ({ statistics }) => {
+    for (const [id, row] of statistics.byCombatantId) {
+      const where = composeIntegerText(id);
+      for (const [source, amount] of getTotalsByInnerKey(row.healedWithoutSkillByHealerId)) {
+        expect(amount, `${where} ${source}`).toBeLessThanOrEqual(row.healedBySource.get(source) ?? 0);
+      }
+      for (const [to, bySource] of row.healingGivenWithoutSkillByCombatantId) {
+        const pair = `${where}->${composeIntegerText(to)}`;
+        expect(getTotalOfValues(bySource), pair).toBeLessThanOrEqual(
+          row.healingGivenByCombatantId.get(to) ?? 0,
+        );
+      }
+    }
+  });
+
+  /**
+   * The two heals differ in one field and land in opposite halves — which is the
+   * whole of what the maps are for, on material where nothing else varies.
+   *
+   * `heal` on both, because a key that changed as well would let the split pass by
+   * reading the source and never looking at the announcement (§7.5: a mutation that
+   * lights nothing is a finding, and so is a test that cannot tell two things
+   * apart).
+   */
+  test("files a heal by its key exactly where no announcement covered it", () => {
+    const statistics = composeFightStatistics([
+      {
+        kind: "health-change",
+        combatantId: 4,
+        amount: 50,
+        healthPercent: null,
+        source: "heal",
+        announced: null,
+        declared: [],
+      },
+      {
+        kind: "health-change",
+        combatantId: 4,
+        amount: 30,
+        healthPercent: null,
+        source: "heal",
+        announced: { actorId: 9, skillName: "coś", skillId: null },
+        declared: [],
+      },
+    ]);
+
+    const healed = assertDefined(statistics.byCombatantId.get(4), "the healed combatant has a row");
+    expect(healed.healed).toBe(80);
+    // The unannounced half is the self-sourced one, so both ends of it are 4.
+    expect([...assertDefined(healed.healedWithoutSkillByHealerId.get(4), "self-healed")]).toEqual([
+      ["heal", 50],
+    ]);
+    expect([...assertDefined(healed.healingGivenWithoutSkillByCombatantId.get(4), "self-gave")]).toEqual([
+      ["heal", 50],
+    ]);
+    // The announced half is on the announcer and in neither map.
+    const announcer = assertDefined(statistics.byCombatantId.get(9), "the announcer has a row");
+    expect(announcer.healingGiven).toBe(30);
+    expect([...announcer.healingGivenWithoutSkillByCombatantId]).toEqual([]);
+    expect(healed.healedWithoutSkillByHealerId.get(9)).toBeUndefined();
+  });
+
+  /**
+   * ⚠️ **An announcement with no actor is not an announcement**, and the aggregate
+   * has one condition deciding that for both halves (`hasAnnouncer`). Two spellings
+   * of it would put this heal on a skill and out of the maps at the same time, or in
+   * neither, and the panel's section would silently stop adding up.
+   */
+  test("treats an announcement whose actor did not resolve as no announcement", () => {
+    const statistics = composeFightStatistics([
+      {
+        kind: "health-change",
+        combatantId: 4,
+        amount: 50,
+        healthPercent: null,
+        source: "heal",
+        announced: { actorId: null, skillName: "coś", skillId: null },
+        declared: [],
+      },
+    ]);
+
+    const healed = assertDefined(statistics.byCombatantId.get(4), "the healed combatant has a row");
+    expect([...assertDefined(healed.healedWithoutSkillByHealerId.get(4), "self-healed")]).toEqual([
+      ["heal", 50],
+    ]);
+    expect(healed.skills.size).toBe(0);
+  });
 });
 
 /**

@@ -224,6 +224,26 @@ export type CombatantStatistics = {
    */
   healedByHealerId: ReadonlyMap<number, number>;
   /**
+   * The part of the same healing that **no announcement covered**, by healer and
+   * by the key the game stated it under.
+   *
+   * ⚠️ **No arithmetic over the maps beside it recovers this**, which is the whole
+   * of why it is a field. `healedByHealerId` drops the key, `healedBySource` drops
+   * the announcement, and a `SkillStatistics` carries no key at all — so the split
+   * between health a skill announced and health only a key names exists nowhere
+   * the panel could fold it out of. Without it the breakdown under `Leczenie`
+   * closed against a row reading *nie wiadomo, czym* over 16 527 points on
+   * `tests/captured-fights/2026-08-17-tempest-grupa-vs-hildur.json` that
+   * `legbon_lastheal` and `heal` had already named.
+   *
+   * Keyed by the healer as well as by the key, so the pair level can be asked the
+   * same question as the fight-wide one and answer from one map rather than two.
+   *
+   * Written in the same breath as `healedByHealerId`, for that field's reason:
+   * one reading of one event, so the two directions cannot drift apart.
+   */
+  healedWithoutSkillByHealerId: ReadonlyMap<number, ReadonlyMap<string, number>>;
+  /**
    * Health this combatant restored to somebody, and to whom.
    *
    * The transpose of `healedByHealerId`, and held for the same reason it is —
@@ -241,6 +261,27 @@ export type CombatantStatistics = {
    */
   healingGiven: number;
   healingGivenByCombatantId: ReadonlyMap<number, number>;
+  /**
+   * The transpose of `healedWithoutSkillByHealerId`, held rather than derived for
+   * the reason the field above it is held: a derivation across every other row is
+   * a statistic, and §9.1 says the panel computes none.
+   *
+   * ⚠️ **The only place the giving side carries a key at all.** Every other
+   * healing map on this row is keyed by a person, so what a combatant restored to
+   * themselves reached `Leczenie dane` as a figure with no shape — 16 527 points of
+   * one row on the recording named above, under a heading saying nothing was known
+   * about them.
+   *
+   * ⚠️ **And "what they restored to themselves" is not one thing, which is the
+   * whole point of keying it.** Of those 16 527, 5 450 are `heal` and 11 077 are
+   * `legbon_lastheal` — a statistic of the character and a legendary bonus, two
+   * different mechanics the register describes separately (`docs/protocol-keys.md`).
+   * `SELF_SOURCED_HEALING_KEYS` groups them on the help's word that each is the
+   * healed combatant's **own** effect, and that grouping answers *who* and never
+   * *what*: a reader taking it for a kind would call the larger half regeneration,
+   * which it is not.
+   */
+  healingGivenWithoutSkillByCombatantId: ReadonlyMap<number, ReadonlyMap<string, number>>;
   /** What this combatant announced, keyed by the game's own identifier. */
   skills: ReadonlyMap<string, SkillStatistics>;
 };
@@ -356,8 +397,10 @@ type Row = {
   healedBySource: Map<string, number>;
   healedWithoutHealerBySource: Map<string, number>;
   healedByHealerId: Map<number, number>;
+  healedWithoutSkillByHealerId: Map<number, Map<string, number>>;
   healingGiven: number;
   healingGivenByCombatantId: Map<number, number>;
+  healingGivenWithoutSkillByCombatantId: Map<number, Map<string, number>>;
   skills: Map<string, MutableSkill>;
 };
 
@@ -447,8 +490,10 @@ function composeRow(): Row {
     healedBySource: new Map(),
     healedWithoutHealerBySource: new Map(),
     healedByHealerId: new Map(),
+    healedWithoutSkillByHealerId: new Map(),
     healingGiven: 0,
     healingGivenByCombatantId: new Map(),
+    healingGivenWithoutSkillByCombatantId: new Map(),
     skills: new Map(),
   };
 }
@@ -518,6 +563,19 @@ const TICK_KEY_BY_WOUND_ANNOUNCEMENT = new Map(
  */
 function getSelfSourcedHealerId(source: string, combatantId: number | null): number | null {
   return SELF_SOURCED_HEALING_KEYS.includes(source) ? combatantId : null;
+}
+
+/**
+ * Whether an announcement can carry a figure: there is one, and its actor resolved.
+ *
+ * One spelling for two readers, and they are complements — `setSkillTotals` writes
+ * the skill's own totals under it, `setHealingTotals` files what it does **not**
+ * cover by the key that does. Asked twice, the two answers would drift and a heal
+ * would land in both halves or in neither, which is a figure that looks right
+ * (§9.3).
+ */
+function hasAnnouncer(announced: AnnouncedSkill | null): announced is AnnouncedSkill {
+  return announced !== null && announced.actorId !== null;
 }
 
 /**
@@ -599,7 +657,7 @@ export function composeFightStatistics(
    * one healed.
    */
   function setSkillTotals(announced: AnnouncedSkill | null, add: (skill: MutableSkill) => void): void {
-    if (announced === null || announced.actorId === null) return;
+    if (!hasAnnouncer(announced)) return;
     add(getSkill(getRow(announced.actorId), announced));
   }
 
@@ -636,10 +694,26 @@ export function composeFightStatistics(
     subject.healed += amount;
     setRunningTotal(subject.healedBySource, source, amount);
 
+    /**
+     * What the announcement does not cover, the key does — and the panel needs to
+     * be told which is which before it can name the second half.
+     *
+     * ⚠️ **A null healer is already an unannounced heal, and is filed elsewhere.**
+     * `healerId` is the announcement's actor where there is one, so where it is
+     * null nothing announced this — which is why the two `WithoutSkill` maps below
+     * live in the other branch and `healedWithoutHealerBySource` needs no such
+     * condition. A reader folding the three together gets every point back exactly
+     * once.
+     */
+    const isAnnounced = hasAnnouncer(announced);
+
     if (healerId === null) {
       setRunningTotal(subject.healedWithoutHealerBySource, source, amount);
     } else {
       setRunningTotal(subject.healedByHealerId, healerId, amount);
+      if (!isAnnounced) {
+        setPairRunningTotal(subject.healedWithoutSkillByHealerId, healerId, source, amount);
+      }
       // Written here rather than derived later, so the two directions come from
       // one reading of one event and cannot drift apart.
       const giver = getRow(healerId);
@@ -649,6 +723,14 @@ export function composeFightStatistics(
       // shortfall rather than hiding it (`src/ui/panel-drill.ts`).
       if (recipientId !== null) {
         setRunningTotal(giver.healingGivenByCombatantId, recipientId, amount);
+        if (!isAnnounced) {
+          setPairRunningTotal(
+            giver.healingGivenWithoutSkillByCombatantId,
+            recipientId,
+            source,
+            amount,
+          );
+        }
       }
     }
 

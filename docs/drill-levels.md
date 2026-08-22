@@ -54,10 +54,10 @@ A verdict outside that list is refused rather than read as silence.
 | `Otrzymane` | `TYP OBRAŻEŃ` | source | `never` |
 | `Leczenie dane` | `KOMU` | person | `sometimes` |
 | `Leczenie dane` | `CZYM (UMIEJĘTNOŚCI)` | skill | `sometimes` |
-| `Leczenie dane` | `CZYM (UMIEJĘTNOŚCI)` | closing row | `never` |
+| `Leczenie dane` | `CZYM (UMIEJĘTNOŚCI)` | leaf | `never` |
 | `Leczenie` | `OD KOGO` | person | `sometimes` |
 | `Leczenie` | `CZYM (UMIEJĘTNOŚCI)` | skill | **`never`** |
-| `Leczenie` | `CZYM (UMIEJĘTNOŚCI)` | closing row | `never` |
+| `Leczenie` | `CZYM (UMIEJĘTNOŚCI)` | leaf | `never` |
 | `Leczenie` | `OD CZEGO` | source | `never` |
 
 Two absences are the design rather than a gap. **`Otrzymane` has no skills
@@ -65,12 +65,19 @@ section at all** — the protocol names what hit you and never what the other si
 chose — and **`Leczenie dane` has no source section**, because the keys the game
 states belong to whoever received the health, so a giver has none.
 
-**And one row in `Zadane`'s skills section is not a skill.** Damage charged to a
-combatant that no blow of theirs carried — a wound ticking turns after the blow
-that applied it (§9.6) — stands there as a `leaf`, under the game's own word for
-the key. It is a row rather than part of the closing row below it because that
-row says *a blow nothing announced* and counts how many, and a wound is neither.
-It opens nothing: the protocol states no count for it and no second cut of it.
+**And some rows in a skills section are not skills.** Under `Zadane`, damage
+charged to a combatant that no blow of theirs carried — a wound ticking turns
+after the blow that applied it (§9.6) — stands there as a `leaf`, under the game's
+own word for the key. It is a row rather than part of the closing row below it
+because that row says *a blow nothing announced* and counts how many, and a wound
+is neither.
+
+Under both healing metrics the whole of what no announcement covered is such
+rows. `heal`, `legbon_holytouch_heal` and `legbon_lastheal` are named by the game
+and announced by nothing, so the section lists them by the key and there is no
+closing row on either healing screen at either level — which is why neither table
+above has one. None of these rows opens: the protocol states no count for them and
+no second cut of them.
 
 ## The deep level
 
@@ -85,9 +92,7 @@ It opens nothing: the protocol states no count for it and no second cut of it.
 | `Otrzymane` | `TYP OBRAŻEŃ` | leaf | `never` |
 | `Leczenie dane` | `KOMU — …` | leaf | `never` |
 | `Leczenie dane` | `CZYM — …` | leaf | `never` |
-| `Leczenie dane` | `CZYM — …` | closing row | `never` |
 | `Leczenie` | `CZYM — …` | leaf | `never` |
-| `Leczenie` | `CZYM — …` | closing row | `never` |
 
 `Otrzymane` and `Leczenie` have no `KOMU — …` because their skill rows do not
 open: under `Otrzymane` there are none, and under `Leczenie` they are the row the
@@ -96,12 +101,12 @@ next section is about.
 ## The three cells that say `sometimes`
 
 **A person, in any metric.** The level under a person is *what the two of you did
-to each other* — the skills one announced against the other, plus the damage types
-where the metric has them. It opens where an announcement named at least one
-skill for that pair, or where the pair carries more than one damage type. It does
-not where every blow between them was unannounced and of one type: the level would
-be a single `Zwykły cios` or `Nie wiadomo, czym` row, repeating the figure just
-pressed.
+to each other* — the skills one announced against the other, plus what the game
+named without announcing: damage types and wounds under damage, healing keys under
+healing. It opens where an announcement named at least one skill for that pair, or
+where that second cut holds more than one row. It does not where the level would be
+a single row repeating the figure just pressed — every blow between them
+unannounced and of one type, or a pair whose whole healing is one key.
 
 **A skill under `Leczenie dane`.** The level under it is *who this skill reached*.
 It opens where the skill reached somebody other than the combatant in focus, and
@@ -118,11 +123,18 @@ specified, without an arrow.
 ## Where a closing row goes instead
 
 A row that opens nothing is not a row that says nothing. What no announcement
-covered still stands in its section — `Zwykły cios` under damage, `Nie wiadomo,
-czym` under healing — so the parts add up to the figure above them, and under
-`Zadane` that row carries **how many blows**, which is the question a plain attack
-raises. That count is why a section of one such row is drawn rather than
-suppressed as a repetition: it says something the figure above it does not.
+covered still stands in its section, so the parts add up to the figure above them.
+
+**On the damage screens that row is `Zwykły cios`**, and under `Zadane` it carries
+**how many blows** — the question a plain attack raises. That count is why a
+section of one such row is drawn rather than suppressed as a repetition: it says
+something the figure above it does not.
+
+**On the healing screens there is no such row.** What no announcement covered is
+named by the key the game stated it under, so nothing is left over to close
+against. The row that used to stand there said the game had not told us, and the
+game had — the panel was printing the same keys one section lower under
+`OD CZEGO`.
 
 ## Shapes the recordings do not carry
 
