@@ -111,7 +111,7 @@ members by the game's own published arithmetic
 
 | the fight | what the panel does |
 |---|---|
-| a cast (`1=…;1=…;tspell=…;healall_per=30`) with every input read | the caster in the ranking under `Leczenie dane · My`; each side-mate in the ranking under `Leczenie · My` with `leczenie całej drużyny` in their breakdown, and a **0** where the cap gave them nothing; no warning |
+| a cast (`1=…;1=…;tspell=…;healall_per=30`) with every input read | the caster in the ranking under `Leczenie dane · My`; each side-mate in the ranking under `Leczenie · My` with `uleczenie sojuszników` in their breakdown, and a **0** where the cap gave them nothing; no warning |
 | the same, with one side-mate's entry health unknown | the same, short by that member, and the warning about healing without a stated figure still stands |
 | the same, in a fight the panel joined in progress | every row drawn and every figure `0`; the warning stands and says how many casts |
 | the same, where the caster has no standing side-mate | the same — the help halves the effect there and nothing here has watched it happen |

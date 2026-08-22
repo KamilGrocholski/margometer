@@ -8,6 +8,12 @@
  * calls each one, in the player's own language, without a word of the game's
  * being written down here (NOTICE.md).
  *
+ * The log is not the only place the client keeps a name. `def-heal` labels the
+ * `heal` row of a warrior's statistics, and a label is what a row of ours wants —
+ * so an id the panel asks for is any dictionary identifier whose entry is a name,
+ * and not only a `msg_…` one (production build `1786514810315`;
+ * `tests/ui/panel-words.test.ts` holds the families to a short list).
+ *
  * ⚠️ **Only a name is a label.** Most of that dictionary is sentences with
  * `%val%` holes in them, and a sentence with the figure cut out of it is not a
  * label. Two shapes make the point: a defence entry runs `<verb> %val% <noun>`

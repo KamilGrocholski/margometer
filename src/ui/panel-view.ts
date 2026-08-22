@@ -843,7 +843,7 @@ function composeWarnings(reading: PanelReading): string[] {
   const unaccounted = getTotalOfValues(unaccountedHealthBySource);
   if (unaccounted > 0) {
     warnings.push(
-      `Leczenie całej drużyny ${composeFigureText(unaccounted)} ${unaccounted === 1 ? "raz" : "razy"} bez podanej liczby — leczenie jest zaniżone.`,
+      `Uleczenie sojuszników ${composeFigureText(unaccounted)} ${unaccounted === 1 ? "raz" : "razy"} bez podanej liczby — leczenie jest zaniżone.`,
     );
   }
 

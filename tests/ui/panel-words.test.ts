@@ -80,10 +80,27 @@ describe("the panel's vocabulary", () => {
     }
   });
 
+  /**
+   * ⚠️ **The rule is *identifier, not sentence*, and `msg_` was standing in for
+   * it.** Every id here came from one family until `def-heal` did, so the pattern
+   * spelled that family and read like the rule — a guard narrower than the
+   * construct it owns (§7.5). What decides is whether the client answers with a
+   * label: the `msg_…` family is mostly prose with holes in it and a few bare
+   * names, while `def-…` is what the client labels a row of a warrior's statistics
+   * with and has no hole by construction (production build `1786514810315`).
+   *
+   * So the families the panel reads are named rather than the shape widened to
+   * anything: a third one is a decision, and this is where it gets made. A single
+   * trailing hole stays admitted — the client keys some entries with one — and an
+   * interior space is refused, which is what a sentence has and an identifier
+   * does not.
+   */
+  const DICTIONARY_FAMILIES = /^(?:msg_|def-)[^%\s]+( %[a-z0-9]+%)?$/;
+
   test("asks it by an identifier and never by a sentence", () => {
     for (const [family, token, name] of EVERY_NAME) {
       if (name.id === null) continue;
-      expect(name.id, `${family}/${token}`).toMatch(/^msg_[^%]*(%[a-z0-9]+%)?$/);
+      expect(name.id, `${family}/${token}`).toMatch(DICTIONARY_FAMILIES);
     }
   });
 
@@ -209,14 +226,14 @@ describe("the panel's own vocabulary, as decided", () => {
     ["poison", null, "trucizna"],
     ["fire", null, "podpalenie"],
     ["injure", null, "zranienie"],
-    ["heal", null, "ujemne leczenie"],
+    ["heal", null, "ujemne przywracanie życia"],
   ],
   HEALTH_GAIN_SOURCE_NAMES: [
-    ["heal", null, "leczenie"],
-    ["heal_target", null, "leczenie na wskazanego"],
+    ["heal", "def-heal", "przywracanie życia"],
+    ["heal_target", null, "uleczenie wskazanego"],
     ["legbon_holytouch_heal", "msg_+legbon_holytouch", "dotyk anioła"],
     ["legbon_lastheal", null, "ostatni ratunek"],
-    ["healall_per", null, "leczenie całej drużyny"],
+    ["healall_per", null, "uleczenie sojuszników"],
   ],
   };
 

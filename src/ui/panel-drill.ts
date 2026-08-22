@@ -895,9 +895,9 @@ function composePairSkillEntries(
    * would have absorbed it and called it unknown.
    *
    * ⚠️ **Two vocabularies, and picking the wrong one is silent.** `heal` is a key
-   * of both tables and means opposite things in them, which is why
+   * of both tables and runs the opposite way in each, which is why
    * `src/ui/panel-words.ts` splits them at all: named from the loss table, a heal
-   * would print as *ujemne leczenie*.
+   * would print as *ujemne przywracanie życia*.
    */
   const names = isHealingMetric(state.metric) ? HEALTH_GAIN_SOURCE_NAMES : HEALTH_LOSS_SOURCE_NAMES;
   for (const [token, amount] of bySource) {
@@ -1111,8 +1111,8 @@ export function composeDeepLists(
    *
    * It became reachable the day the healing pair gained a source map at all, and
    * would have drawn those rows out of `HEALTH_LOSS_SOURCE_NAMES` — where `heal` is
-   * a health *loss* and reads *ujemne leczenie*. Two quantities under one label is
-   * a wrong number that looks right (`src/ui/panel-words.ts`).
+   * a health *loss* and reads *ujemne przywracanie życia*. Two quantities under
+   * one label is a wrong number that looks right (`src/ui/panel-words.ts`).
    */
   const elements = isHealingMetric(state.metric)
     ? null

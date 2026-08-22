@@ -329,9 +329,31 @@ was never a second person, and the panel credits the combatant it names with bot
 announcement over the message still wins, because a giver the protocol states
 beats one read off documentation.
 
-⚠️ **The restoring direction only.** The figure is signed and a loss is not this
-effect; nothing documents a self-damage reading, so a negative one stays health
-lost with nobody charged for it.
+⚠️ **The restoring direction only — and the negative turned out to be the same
+effect.** The figure is signed, and a negative one used to be filed here as
+something no documentation accounted for. It does account for it: the help states
+the accumulated value of this statistic as the sum of `heal` and `adest` over
+equipment and blessings, and `adest` as an item bonus that lowers the owner's
+share of it (article view,372, engine names `heal` and `adest`, read 2026-08-22).
+Below zero the effect drains instead of restoring.
+
+The material agrees. Measured over the recordings held on 2026-08-22, a negative
+`heal` is in the eight Hildur fights and in no other, on one combatant apiece, at
+a magnitude that does not move across that combatant's own fights, falling toward
+zero by 5% of its initial value per trigger — the decay the help states for
+`heal`, and it reaches zero in the twenty triggers each recording holds. One of
+those combatants carries none of it in an earlier fight, so it follows the
+equipment rather than the character or the opponent.
+
+⚠️ The help and the material disagree on one point, and §7.6 keeps the
+disagreement rather than settling it: that same section states the accumulated
+value cannot fall below zero.
+
+**None of that moves the `*Cause:*` line above**, which stays on the restoring
+direction. That line names who *gave* the health, and a drain has no giver to
+name — so a negative figure is still health lost with nobody charged for it,
+placed on a side by §9.6 and on no person. Widening it is `[ASK]` under §9.6 and
+has not been asked.
 
 *Help:* names `( heal )`
 

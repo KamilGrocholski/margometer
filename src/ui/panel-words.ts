@@ -165,10 +165,11 @@ export const DESTRUCTION_NAMES: Record<string, TokenName> = {
  * `heal` with a negative figure, and the captures carry it: measured over
  * `tests/captured-fights/`, the loss side holds `poison`, `fire`, `injure` and
  * `heal`, the gain side holds `heal`, `heal_target`, `legbon_holytouch_heal` and
- * `legbon_lastheal` — `heal` alone on both. Named once for both, it printed as
- * `leczenie` under `Bez sprawcy` on the damage screens, which is the fault the
- * comment on `fire` below already names: **two quantities under one label is a
- * wrong number that looks right.**
+ * `legbon_lastheal` — `heal` alone on both. Named once for both, one word stood
+ * over health that rose and health that fell on the damage screens, which is the
+ * fault the comment on `fire` below already names: **two quantities under one
+ * label is a wrong number that looks right.** They are the same effect, so what
+ * the two tables keep apart is the direction and never the mechanism.
  *
  * Neither table is a list of what the game may send: `getPhrase` falls back to the
  * token itself, so an unnamed key still reaches the panel as the game wrote it.
@@ -186,19 +187,57 @@ export const HEALTH_LOSS_SOURCE_NAMES: Record<string, TokenName> = {
   // different key, and one this meter also reads.
   injure: { id: null, fallback: "zranienie" },
   /**
-   * The healing key with a figure below zero — health that fell.
+   * The gain side's `heal` below zero — the same effect, draining.
    *
-   * The word says what the protocol stated and no more. The published help
-   * documents `heal` as restoration only (`pomoc.margonem.pl`, article `view,372`,
-   * `heal`, read 2026-08-09) and nothing there accounts for a negative, so a name
-   * explaining *why* the health fell would be ours rather than the game's (§5).
+   * ⚠️ **It read `ujemne leczenie` because nothing accounted for the minus, and
+   * something does.** The help states this statistic's accumulated value as the sum
+   * of `heal` and `adest` over equipment and blessings, and `adest` as an item
+   * bonus that lowers the owner's share of it (`pomoc.margonem.pl`, article
+   * `view,372`, engine names `heal` and `adest`, read 2026-08-22). Past zero the
+   * effect runs the other way, so the word may name the mechanism instead of
+   * standing off from it — the earlier phrase was right to refuse a reason nobody
+   * had, and there is one now.
+   *
+   * Measured over `tests/captured-fights/` on 2026-08-22: a negative `heal` is in
+   * the eight Hildur recordings and in no other, on one combatant per fight, at a
+   * magnitude that does not vary across the fights that combatant appears in — 92
+   * and 101. It falls toward zero by 5% of that initial value per trigger, which is
+   * the decay the help states for `heal`, and reaches it in the twenty triggers
+   * each recording holds. One of the two carries none of it in an earlier fight, so
+   * it follows the equipment rather than the character or the opponent.
+   *
+   * ⚠️ **The help and the material disagree on one point, and §7.6 keeps the
+   * disagreement rather than settling it:** that same section states the
+   * accumulated value cannot fall below zero, and the recordings held on 2026-08-22
+   * carry it at −92 and −101 for twenty triggers apiece.
    */
-  heal: { id: null, fallback: "ujemne leczenie" },
+  heal: { id: null, fallback: "ujemne przywracanie życia" },
 };
 
 export const HEALTH_GAIN_SOURCE_NAMES: Record<string, TokenName> = {
-  heal: { id: null, fallback: "leczenie" },
-  heal_target: { id: null, fallback: "leczenie na wskazanego" },
+  /**
+   * ⚠️ **Not somebody healing somebody — a statistic of the combatant it names.**
+   * The help documents `heal` as an effect over time laid on the Character, firing
+   * before the action of the Player it is assigned to and restoring that
+   * Character's own health, and heads its section with the game's own name for the
+   * mechanic (`pomoc.margonem.pl`, article `view,372`, engine name `heal`, read
+   * 2026-08-22). Under `leczenie` it stood beside the two keys below, which really
+   * are one combatant healing another, and nothing on the row said the difference.
+   *
+   * **The one entry of this family the client states as a name.** `def-heal` is
+   * what it labels the `heal` row of a warrior's statistics with, so it carries no
+   * hole and comes back as a label rather than as a sentence (production build
+   * `1786514810315`). That is what makes an id possible here at all: the phrase
+   * beside it is ours, and a player reads their own client's wording in their own
+   * language (NOTICE.md).
+   */
+  heal: { id: "def-heal", fallback: "przywracanie życia" },
+  // `msg_heal_target %target% %val%` — a sentence about a named combatant being
+  // healed, so there is no label to ask for and the word is ours (production build
+  // `1786514810315`). It follows the verb that sentence is built on, which is not
+  // the one the row above wants: this key is a heal somebody cast, and that one is
+  // the caster's own statistic (dictionary read on production `1785244275300`).
+  heal_target: { id: null, fallback: "uleczenie wskazanego" },
   // Its own id resolves to a sentence; the proc that causes it resolves to the
   // effect's name, and the name is what a row wants. The register ties the two
   // keys already, so this is a reading rather than a guess.
@@ -206,8 +245,11 @@ export const HEALTH_GAIN_SOURCE_NAMES: Record<string, TokenName> = {
   legbon_lastheal: { id: null, fallback: "ostatni ratunek" },
   // The client's own entry is `msg_healall_per %name% %val%` — a sentence with two
   // holes rather than a name, so there is nothing to ask the dictionary for
-  // (production build `1786514810315`).
-  healall_per: { id: null, fallback: "leczenie całej drużyny" },
+  // (production build `1786514810315`). It is worded about the caster's **allies**
+  // rather than about a whole team, and the phrase follows it: a side in this
+  // protocol is a bare number and its members are who the effect reached
+  // (dictionary read on production `1785244275300`).
+  healall_per: { id: null, fallback: "uleczenie sojuszników" },
 };
 
 /**

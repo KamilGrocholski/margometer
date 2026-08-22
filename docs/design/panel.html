@@ -605,17 +605,17 @@
       /* Skąd życia ubyło albo przybyło, gdy nie zrobił tego cios. */
       healthSources: {
         poison: "trucizna",
-        injure: "rana",
-        heal: "leczenie",
-        heal_target: "leczenie na wskazanego",
-        legbon_holytouch_heal: "leczenie z efektu",
+        injure: "zranienie",
+        heal: "przywracanie życia",
+        heal_target: "uleczenie wskazanego",
+        legbon_holytouch_heal: "dotyk anioła",
       },
       /* Nazwę podaje gra i to ją widzi gracz w swoim oknie walki — panel pokazuje
          ją, a nie nasz opis. Gdy gra nazwy nie podała, mówimy to wprost. */
       skillName: (id, name) => name ?? "Nieznana umiejętność",
       plainAttack: "Zwykły cios",
       uses: (n) => "×" + n,
-      unaccounted: (n) => "Leczenie całej drużyny " + n + (n === 1 ? " raz" : " razy") + " bez podanej liczby — leczenie jest zaniżone.",
+      unaccounted: (n) => "Uleczenie sojuszników " + n + (n === 1 ? " raz" : " razy") + " bez podanej liczby — leczenie jest zaniżone.",
       unreadable: (n) => "Nie dało się odczytać " + n + (n === 1 ? " zdarzenia" : " zdarzeń") + " walki — liczby mogą być zaniżone.",
       clean: "raport walki",
       copiedRaw: "✓ dane", copiedParsed: "✓ raport", copiedWarning: "✓",

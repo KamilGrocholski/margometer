@@ -34,6 +34,18 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Zmiana** — Panel nazywa teraz leczenie tak, jak nazywa je gra, i rozdziela
+  dwie rzeczy, które wcześniej stały pod jednym słowem. „Przywracanie życia" to
+  własna statystyka postaci — leczy co turę wyłącznie ją samą i słabnie z każdym
+  wyzwoleniem. „Uleczenie wskazanego" i „uleczenie sojuszników" to ktoś, kto
+  uleczył kogoś innego. Wcześniej wszystkie trzy były „leczeniem".
+
+- **Zmiana** — Wiersz „ujemne leczenie" nazywa się teraz „ujemne przywracanie
+  życia". To ta sama statystyka, tylko zeszła poniżej zera — wtedy zamiast
+  dodawać życie, zabiera je co turę.
+
 ## [0.8.1] — 2026-08-22
 
 - **Poprawka** — Procenty w nawiasach sumują się teraz do 100. Wcześniej każdy

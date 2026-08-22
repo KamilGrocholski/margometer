@@ -3038,7 +3038,7 @@ describe("every shape the protocol can send", () => {
         composeCastReading(READ),
         composeState({ metric: "healed", team: "mine" }),
       );
-      expect(view.warnings.filter((line) => line.includes("Leczenie całej drużyny"))).toEqual([]);
+      expect(view.warnings.filter((line) => line.includes("Uleczenie sojuszników"))).toEqual([]);
     });
 
     /**
@@ -3055,7 +3055,7 @@ describe("every shape the protocol can send", () => {
       expect(getRanking(given)).toEqual(["mag 0", "tarcza 0"]);
       expect(getRanking(received)).toEqual(["mag 0", "tarcza 0"]);
       expect(
-        received.warnings.filter((line) => line.includes("Leczenie całej drużyny")).length,
+        received.warnings.filter((line) => line.includes("Uleczenie sojuszników")).length,
       ).toBe(1);
     });
 
@@ -3081,7 +3081,7 @@ describe("every shape the protocol can send", () => {
         composeState({ metric: "healed", team: "mine" }),
       );
       expect(getRanking(view)).toEqual(["mag 0"]);
-      expect(view.warnings.filter((line) => line.includes("Leczenie całej drużyny")).length).toBe(1);
+      expect(view.warnings.filter((line) => line.includes("Uleczenie sojuszników")).length).toBe(1);
     });
   });
 
@@ -3152,8 +3152,8 @@ describe("every sentence the panel says", () => {
     "Zwykły cios",
     "dane",
     "fizyczne",
-    "leczenie",
-    "leczenie na wskazanego",
+    "przywracanie życia",
+    "uleczenie wskazanego",
     "otrzymane",
     "trucizna",
     "umiejętność",
