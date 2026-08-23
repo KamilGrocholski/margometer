@@ -19,14 +19,21 @@
 ## In Progress
 
 ## Up Next
-- [ ] More info SHOULD be visible in raw logs download - MargoStat version is a must have
+- [ ] `tools/fight-report.ts` does not print the unaccounted-healing warning - it prints `unreadable messages` and stops, so a reading the panel shows is invisible to the
+report
 
 ## Done
+- [x] More info SHOULD be visible in raw logs download - MargoStat version is a must have
+- [x] Create a doc file, which contains info about current captured fights: prof and level, type of enemies, number of enemies, how many 10vs10, how many 1vs1, and so on
+- [x] Rename "leczenie" to "przywrócenie życia" or smth else, if more appropriate
 - [x] `Leczenie` calls regeneration "Nie wiadomo, czym" - it is `heal`/`legbon_holytouch_heal`/`legbon_lastheal`, the game announces no skill, so name the row by the key
 - [x] Read `+absorbm`, add it to the register, then intake the 2026-08-17 Hildur recording as material
 - [x] Fix understated healing in Hildur fights - one member was refused an entry health, so every team heal cast in the fight was counted as unknown
 
 ## Later
+- [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
+- [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
+- [ ] Install the current build before the next capture session - the two 2026-08-23 recordings carry no `dodatek`/`przegladarka`
 - [ ] Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
 - [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
 - [ ] Add a `Colossus`/`Titan` helper (based on MargoMeter) that shows:
