@@ -19,10 +19,10 @@
 ## In Progress
 
 ## Up Next
-- [ ] `tools/fight-report.ts` does not print the unaccounted-healing warning - it prints `unreadable messages` and stops, so a reading the panel shows is invisible to the
-report
 
 ## Done
+- [x] `tools/fight-report.ts` does not print the unaccounted-healing warning - it prints `unreadable messages` and stops, so a 
+      reading the panel shows is invisible to the report
 - [x] More info SHOULD be visible in raw logs download - MargoStat version is a must have
 - [x] Create a doc file, which contains info about current captured fights: prof and level, type of enemies, number of enemies, how many 10vs10, how many 1vs1, and so on
 - [x] Rename "leczenie" to "przywrócenie życia" or smth else, if more appropriate
