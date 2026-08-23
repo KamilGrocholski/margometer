@@ -12,12 +12,13 @@
  */
 
 import { composeIntegerText } from "@/libs/number.ts";
-import { setRunningTotal } from "@/libs/running-total.ts";
+import { getTotalOfValues, setRunningTotal } from "@/libs/running-total.ts";
 import { getTextOrder } from "@/libs/text-order.ts";
 import {
   composeEmptyCombatantStatistics,
   getCombatantIdsInFight,
   type CombatantStatistics,
+  type ReadingGaps,
 } from "@/src/core/fight-statistics.ts";
 import {
   CAPTURED_FIGHTS,
@@ -92,6 +93,40 @@ function writeRow(label: string, row: CombatantStatistics): void {
   if (row.skillsUsed > 0) console.log(`      skills announced: ${row.skillsUsed}`);
 }
 
+/** The reasons list and the per-key breakdown, indented under their caption. */
+function composeTalliedLines(tallies: ReadonlyMap<string, number>, limit: number): string[] {
+  return [...tallies]
+    .sort((a, b) => b[1] - a[1] || getTextOrder(a[0], b[0]))
+    .slice(0, limit)
+    .map(([label, count]) => `    ${composeIntegerText(count).padStart(4)}  ${label.slice(0, 90)}`);
+}
+
+/**
+ * What the reading could not do, in the order the panel warns about it.
+ *
+ * Both counts print at zero, and that is the point of the block rather than a
+ * detail of it: a report silent about a reading looks exactly like a report that
+ * never learned to state it, which is the fault this exists to have fixed. The
+ * whole corpus reads at zero on both as of 2026-08-23, so a suppressed line here
+ * would be a suppressed line everywhere.
+ *
+ * The certain claim first, the same way `src/ui/panel-view.ts` orders its
+ * sentences: unaccounted healing says a total *is* short by an amount the game
+ * never stated, where an unreadable message says only that one *may* be.
+ */
+export function composeReadingLines(reading: ReadingGaps): string[] {
+  const unaccounted = getTotalOfValues(reading.unaccountedHealthBySource);
+  return [
+    // "casts" rather than a bare figure: the tally counts the times a key moved
+    // health nobody could size, never the health itself, and a number under a
+    // heading of healing would be read as points (§10, *unaccounted*).
+    `\n  unaccounted healing: ${composeIntegerText(unaccounted)} casts`,
+    ...composeTalliedLines(reading.unaccountedHealthBySource, Number.POSITIVE_INFINITY),
+    `  unreadable messages: ${composeIntegerText(reading.unreadableMessages)}`,
+    ...composeTalliedLines(reading.messagesByReason, 5),
+  ];
+}
+
 function writeFightReport(fight: CapturedFight): void {
   const names = getNameByCombatantId(fight);
   const roster = composeRosterOfFight(fight);
@@ -152,15 +187,7 @@ function writeFightReport(fight: CapturedFight): void {
   console.log("  —— not tied to anyone ——");
   writeRow("unattributed", statistics.unattributed);
 
-  console.log(
-    `\n  unreadable messages: ${composeIntegerText(statistics.reading.unreadableMessages)}`,
-  );
-  const worst = [...statistics.reading.messagesByReason]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
-  for (const [reason, count] of worst) {
-    console.log(`    ${composeIntegerText(count).padStart(4)}  ${reason.slice(0, 90)}`);
-  }
+  for (const line of composeReadingLines(statistics.reading)) console.log(line);
   // Both sides by name, and no verdict: a capture does not record who recorded
   // it (§10, *side*), so this tool is in no position to say who won *for us*.
   if (statistics.outcome !== null) {
