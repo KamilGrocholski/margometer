@@ -932,7 +932,7 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   already, so there is no arithmetic to close and nothing in the captures would
   differ if the help were wrong about whose effect it is. That is why it is `[ASK]`
   to add a fourth key, and why the damage keys arriving in the identical shape
-  (`poison`, `fire`) are deliberately left with no cause at all
+  (`poison`, `fire`, `light`) are deliberately left with no cause at all
   (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
 - `[ALWAYS] [core]` **An end the protocol leaves out may be filled from an earlier
   message of the same fight, where the published help states the link and the
@@ -959,8 +959,8 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   about three things a key either has or has not: an announcement in the protocol,
   a figure on that announcement, and a documented rule making one application the
   owner of what is ticking. Every tick the client composes has been put to that
-  test and only this one has all three — `poison` and `fire` are what the captures
-  still leave half-named, and neither has an announcing key at all
+  test and only this one has all three — `poison`, `fire` and `light` are what the
+  captures still leave half-named, and none of them has an announcing key at all
   (`docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`). `critwound`
   arrives in the same shape, announces no figure, and is deliberately unread
   (`docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`).
@@ -1104,6 +1104,6 @@ case rather than asserting it.
 | **dot** | Damage over time, ticking outside a direct attack. |
 | **unattributed** | A number the log does not tie to any actor. Shown, never guessed. §9.6 says when it may still be charged to a **side**. |
 | **half-named** | A message stating one end of what happened and calling the other nobody. Two shapes, two rows, and they are different claims: *nieznany sprawca* is a figure whose actor the game left out, *nieznany cel* one whose target it did. A message naming neither end is neither of them and has no side. A **self-sourced** message is written this way and is not half-named — the missing end is one the documentation supplies — and an **earlier-named** one is not half-named either, because a message before it named the end this one leaves out. |
-| **self-sourced** | A figure stated at one end where the help says the effect is that combatant's **own**, so both ends are the same person. Not half-named: there was never a second name. §9.6 lists the keys and why `poison` and `fire` are not among them. |
+| **self-sourced** | A figure stated at one end where the help says the effect is that combatant's **own**, so both ends are the same person. Not half-named: there was never a second name. §9.6 lists the keys and why `poison`, `fire` and `light` are not among them. |
 | **earlier-named** | A figure stating one end where an **earlier message of the same fight** named the other. Two people, both stated, one message apart — so neither half-named nor self-sourced. §9.6 carries the rule and its four limits. |
 | **unaccounted** | Health the protocol says moved in an amount nobody can size — a figure whose inputs this meter does not hold. A figure we do not have, where **unattributed** is one we have and cannot place. What is left in it is the fight nobody watched the start of. |

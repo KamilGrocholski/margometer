@@ -29,7 +29,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 |---|---|
 | `1 vs 1` | `2` |
 | `1 vs 3` | `1` |
-| `10 vs 1` | `15` |
+| `10 vs 1` | `17` |
 
 ## The fights
 
@@ -53,6 +53,8 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-3.json` | `10 vs 1` | `ours won` | `10 players · b 1, h 3, m 2, w 4 · levels 93–120` | `1 NPC · m 1 · level 100` | `279072` |
 | `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-4.json` | `10 vs 1` | `ours won` | `10 players · b 1, h 3, m 2, w 4 · levels 93–120` | `1 NPC · m 1 · level 100` | `279072` |
 | `tests/captured-fights/2026-08-17-tempest-grupa-vs-hildur.json` | `10 vs 1` | `theirs won` | `10 players · h 2, m 1, p 1, t 1, w 5 · levels 93–120` | `1 NPC · m 1 · level 100` | `325584` |
+| `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur.json` | `10 vs 1` | `ours won` | `10 players · b 1, h 3, m 2, w 4 · levels 93–120` | `1 NPC · m 1 · level 100` | `279072` |
+| `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur-auto.json` | `10 vs 1` | `theirs won` | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–114` | `1 NPC · m 1 · level 100` | `325584` |
 
 ## The recordings
 
@@ -76,6 +78,8 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-3.json` | `tempest` | `1786514810315` | `51` | `479` |
 | `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-4.json` | `tempest` | `1786514810315` | `52` | `479` |
 | `tests/captured-fights/2026-08-17-tempest-grupa-vs-hildur.json` | `tempest` | `1786514810315` | `34` | `439` |
+| `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur.json` | `tempest` | `1786514810315` | `23` | `546` |
+| `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur-auto.json` | `tempest` | `1786514810315` | `3` | `358` |
 
 ## What the material does not hold
 
@@ -111,6 +115,23 @@ is used as evidence.
   only fight between two players, and the only recording from `experimental`,
   whose build lags production (§7.6). The keys it brought were read the day it
   arrived (`05d712f`).
+- `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur-auto.json` — the only
+  fight the game settled by itself. Every payload carries `auto`, the whole
+  battle arrives in one engine call with no snapshot before it, and the two calls
+  after it carry snapshots and no messages at all. So it contributes nothing to
+  the health witness, for the same reason the duel does not
+  (`tests/core/health-witness.test.ts`), and it is the only recording whose
+  opening call has to be unwound in full to say what anybody entered with.
+
+  Because of that it is the only recording whose entry health comes entirely from
+  stated percentages rather than from a snapshot — the first snapshot after the
+  battle has every player clamped to zero, which says where they stand and not how
+  much reached them. A percentage is worth about a point and a half on these pools,
+  so five of the eleven land within one of their maximum. That is what caught a
+  defect in the reader: one of the five landed a point *over*, and the allowance
+  meant to absorb exactly that was smaller than a health point on their pool
+  (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`).
+
 - `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`,
   `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-3.json` and
   `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-4.json` state a

@@ -189,16 +189,25 @@ describe("the aggregate over captured fights", () => {
   });
 
   /**
-   * ⚠️ **This asserted the opposite until the healing could be sized.** Healing
-   * that reached a whole side was reported without naming anyone it healed, and
-   * every capture carrying it counted the casts as health nobody could place. All
-   * 85 of them are placed now, so the count is zero everywhere — and a zero here
-   * is the claim, not an absence: it says the panel has nothing left to warn
-   * about on this material.
+   * ⚠️ **This has asserted three different things, and the third is the second
+   * again.** Healing that reached a whole side was once reported without naming
+   * anyone it healed, and every capture carrying it counted the casts as health
+   * nobody could place. Then all of them were placed and this read `toEqual([])`.
+   * Then `2026-08-23-tempest-grupa-vs-hildur-auto` arrived and it named that
+   * recording as an exception for one commit.
    *
-   * The counter itself is still live, and `tests/core/combatant-health.test.ts`
-   * holds the fights that fill it — one joined in progress, one whose caster has
-   * no standing ally.
+   * The exception was ours, not the material's: one combatant's entry health was
+   * refused over a single point, because the allowance meant to absorb that
+   * rounding was smaller than a health point on their pool
+   * (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`). No
+   * figure was wrong — the six casts it cost size to exactly the same numbers —
+   * so what the panel had been showing was *unknown* where the answer was *zero*,
+   * which is the one distinction §9.6 makes about this screen.
+   *
+   * A zero here is the claim, not an absence: it says the panel has nothing left
+   * to warn about on this material. The counter itself is still live, and
+   * `tests/core/combatant-health.test.ts` holds the fights that fill it — one
+   * joined in progress, one whose caster has no standing ally.
    */
   test("and no capture is left with healing nobody can be credited for", () => {
     const withTeamHeal = FROM_CAPTURES.filter(
@@ -206,7 +215,7 @@ describe("the aggregate over captured fights", () => {
     ).map(({ name }) => name);
     expect(withTeamHeal).toEqual([]);
 
-    // And the casts really are there to have been placed, or the zero above is
+    // And the casts really are there to have been placed, or the sentence above is
     // about a corpus that never carried one.
     const casts = FROM_CAPTURES.flatMap(({ events }) =>
       events.filter((event) => event.kind === "unaccounted-health"),

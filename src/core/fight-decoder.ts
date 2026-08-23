@@ -310,9 +310,17 @@ const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> 
   // Elemental damage over time, and the client writes it as `poison`'s twin:
   // production build 1786514810315 composes both from the actor slot, both split
   // on the separator below, and the same bundle counts `fire` into its own damage
-  // sum (`updateStat("damage-fire", …)`). `light` and `frost` sit in that branch
-  // beside it and the captures carry neither, so they stay unread and loud (§3).
+  // sum (`updateStat("damage-fire", …)`).
   fire: { sign: -1, isOnTarget: false },
+  // The third of that branch, and it waited here as a comment until material
+  // arrived. Read on the same evidence `fire` was: the witness disagreed on the
+  // engine calls carrying it and on nothing else, and reading it closed every one
+  // of them with no disagreement introduced anywhere
+  // (`tests/core/health-witness.test.ts`, on
+  // `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur.json`, which brought
+  // 27 of them). `frost` is the fourth of the branch and no recording carries one,
+  // so it stays unread and loud rather than read on the symmetry (§3).
+  light: { sign: -1, isOnTarget: false },
 };
 
 /**

@@ -642,18 +642,25 @@ describe("over every captured fight", () => {
   });
 
   /**
-   * ⚠️ **Every cast in the corpus is sized, and this test used to assert that some
-   * were not.** It held both halves — something sized, something refused — because
-   * fourteen casts across two captures could not be reached. Both captures are
-   * reached now: their opening payload carries the whole fight with no snapshot
-   * beside it, but the messages in it state health percentages of their own, and
-   * an entry health unwinds from the first statement about each combatant rather
-   * than from the snapshot alone.
+   * ⚠️ **Every cast in the corpus is sized, and this test has twice asserted
+   * otherwise.** It once held both halves — something sized, something refused —
+   * because fourteen casts across two captures could not be reached; both are
+   * reached now, their entry health unwound from the first statement about each
+   * combatant rather than from the snapshot alone.
    *
-   * So the refusal is no longer confirmed against this corpus at all. It is held
-   * by the hand-built fights above — a fight joined in progress, a caster with no
-   * standing ally, a member whose entry health is missing — and that is stated
-   * here so the absence reads as a measurement rather than as a gap.
+   * Then it named `2026-08-23-tempest-grupa-vs-hildur-auto` as an exception for
+   * one commit. That was a defect of ours written down as a property of the
+   * material: one combatant's unwind landed a single point over their maximum,
+   * and the allowance meant to absorb exactly that was smaller than a health
+   * point on their pool, so it absorbed nothing
+   * (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`). With
+   * the floor in place the corpus is wholly sized again and the exception is
+   * gone.
+   *
+   * So the refusal is once more not confirmed against this corpus at all. It is
+   * held by the hand-built fights above — a fight joined in progress, a caster
+   * with no standing ally, a member whose entry health is missing — and that is
+   * stated here so the absence reads as a measurement rather than as a gap.
    */
   test("every cast in the corpus is sized whole", () => {
     const refused = SIZED_FIGHTS.flatMap((of) =>
@@ -661,6 +668,26 @@ describe("over every captured fight", () => {
     );
     expect(refused).toEqual([]);
     expect(SIZED_FIGHTS.reduce((total, of) => total + of.castsStated, 0)).toBeGreaterThan(0);
+  });
+
+  /**
+   * And every member of every casting side is sized, which is the half the test
+   * above cannot see: it counts casts left over, and a cast short by one member
+   * still produces a `team-heal`. The recording that forced the floor is exactly
+   * that shape, so the claim is worth its own line.
+   */
+  test("and every member of the caster's side gets a figure, on every cast", () => {
+    for (const of of SIZED_FIGHTS) {
+      const roster = composeRosterOfFight(of.fight);
+      for (const heal of of.sized) {
+        if (heal.kind !== "team-heal") continue;
+        const side = roster.byId.get(heal.casterId)?.side;
+        const missing = [...roster.byId.values()]
+          .filter((one) => one.side === side && !heal.restoredByCombatantId.has(one.id))
+          .map((one) => one.id);
+        expect(missing, `${of.name} cast by ${heal.casterId}`).toEqual([]);
+      }
+    }
   });
 
   /**

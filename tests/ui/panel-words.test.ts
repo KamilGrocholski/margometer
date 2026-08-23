@@ -225,6 +225,7 @@ describe("the panel's own vocabulary, as decided", () => {
   HEALTH_LOSS_SOURCE_NAMES: [
     ["poison", null, "trucizna"],
     ["fire", null, "podpalenie"],
+    ["light", null, "porażenie"],
     ["injure", null, "zranienie"],
     ["heal", null, "ujemne przywracanie życia"],
   ],

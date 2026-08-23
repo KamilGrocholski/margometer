@@ -104,7 +104,9 @@ function isWithinStatedHealth(
  * ⚠️ **The ceiling was exact and its input is not.** A statement is a percentage
  * to two places, so reading it back into health is worth half a hundredth of the
  * pool either way — the same width `isWithinStatedHealth` is built on, and about
- * one point on a pool of 24 000.
+ * one point on a pool of 24 000. Floored at one point below that, for the reason
+ * the body gives: this comparison has a whole number on both sides and the
+ * sibling does not, which is why only this one needed it.
  *
  * ⚠️ **Measured on a recording this repository does not hold**, and said so
  * rather than left as an assertion: `margometer-tempest-2026-08-17T17-01-49-635Z`,
@@ -129,9 +131,28 @@ function isWithinStatedHealth(
 function getEnteredHealth(unwound: number, maximumHealth: number): number | null {
   if (unwound <= 0) return null;
   if (unwound <= maximumHealth) return unwound;
-  return unwound - maximumHealth <= (STATED_PERCENT_TOLERANCE / 100) * maximumHealth
-    ? maximumHealth
-    : null;
+  /**
+   * ⚠️ **Never less than one health point, and that floor is the whole reading.**
+   * Past the line above this difference is a positive *integer* — maximum health
+   * is whole and every movement decoded here is whole — so an allowance under a
+   * point admits nothing at all, and `(0.005 / 100) × pool` is under a point for
+   * every pool below 20 000: 43 of the 66 in the corpus on 2026-08-23. Without the
+   * floor this branch was exactly `return null` for all of them
+   * (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`).
+   *
+   * ⚠️ **The corpus exercises the floor and not the share beside it.** Replacing
+   * the whole expression with a flat `1` reddens nothing on the twenty recordings
+   * held on 2026-08-23, and neither does raising the floor to `2`. The share is
+   * kept because it is the derivation rather than a fitted number — a percentage
+   * to two places is worth that much of the pool — and it can only matter to a
+   * combatant unwound from percentages on a pool past 40 000, which here is the
+   * bosses alone, and every boss in this material states a snapshot instead. Said
+   * out loud because a surviving mutant is a finding (§7.5): this one is untested
+   * rather than inert, and the next recording of a boss with no opening snapshot
+   * is what would test it.
+   */
+  const allowance = Math.max(1, (STATED_PERCENT_TOLERANCE / 100) * maximumHealth);
+  return unwound - maximumHealth <= allowance ? maximumHealth : null;
 }
 
 /**

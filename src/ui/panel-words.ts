@@ -217,6 +217,11 @@ export const HEALTH_LOSS_SOURCE_NAMES: Record<string, TokenName> = {
   // that looks right. The client's own entry for it is a sentence with two holes,
   // so there is no name to ask it for.
   fire: { id: null, fallback: "podpalenie" },
+  // The same split one element over: `dmgl` above is "błyskawica", the damage a
+  // blow of that element lands, and this is what goes on crackling afterwards.
+  // The client's entry for it is a sentence with two holes, like `fire`'s, so
+  // there is no name to ask it for either.
+  light: { id: null, fallback: "porażenie" },
   // The old phrase was "rana", which is the game's word for `wound` — a
   // different key, and one this meter also reads.
   injure: { id: null, fallback: "zranienie" },

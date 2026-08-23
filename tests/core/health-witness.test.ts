@@ -284,11 +284,14 @@ const COMPARISONS = CAPTURED_FIGHTS.flatMap((fight) => getComparisons(fight, KEY
  * much of the material the arithmetic actually closes over is a fact about the
  * project, not a detail.
  *
- * `2026-08-12-experimental-tancerz-vs-wojownik` is **0 on purpose** and is
- * listed rather than omitted: its whole fight arrives in one call with no
- * opening snapshot, so the replay cannot seed a running total. Written down so
- * that a fight falling to zero reads as a change and not as a fight that was
- * never there.
+ * Two are **0 on purpose** and are listed rather than omitted: their whole fight
+ * arrives in one call with no opening snapshot, so the replay cannot seed a
+ * running total. Written down so that a fight falling to zero reads as a change
+ * and not as a fight that was never there.
+ * `2026-08-12-experimental-tancerz-vs-wojownik` is the duel;
+ * `2026-08-23-tempest-grupa-vs-hildur-auto` is the auto-resolved group fight,
+ * where the game settles the whole battle before it sends anything and the two
+ * calls that follow carry snapshots and no messages at all.
  *
  * ⚠️ **Thirteen of these rose when the team heal became a figure**, and that rise
  * is the point rather than a side effect: those calls used to be declined outright
@@ -299,6 +302,14 @@ const COMPARISONS = CAPTURED_FIGHTS.flatMap((fight) => getComparisons(fight, KEY
  * reason is not the key: all three of its casts sit in an opening call of 297
  * messages with no snapshot beside it, so the replay could never seed a running
  * total there and produced no comparison for that call either way.
+ *
+ * ⚠️ **`2026-08-23-tempest-grupa-vs-hildur` is where `light` was read, and this
+ * file is the evidence.** With the key unread the replay disagreed 195 times, all
+ * of them on the one combatant carrying the ticks and none anywhere else in the
+ * corpus; reading it as the health change `fire` and `poison` already are closed
+ * every one and introduced no disagreement (`src/core/fight-decoder.ts`). That is
+ * the only evidence this repository takes for a key that moves health, and it is
+ * the same route `fire` came in by.
  */
 const COMPARISONS_BY_FIGHT: Record<string, number> = {
   "2026-08-04-tempest-lowca-vs-odyncze": 20,
@@ -319,6 +330,8 @@ const COMPARISONS_BY_FIGHT: Record<string, number> = {
   "2026-08-15-tempest-grupa-vs-hildur-3": 758,
   "2026-08-15-tempest-grupa-vs-hildur-4": 758,
   "2026-08-17-tempest-grupa-vs-hildur": 414,
+  "2026-08-23-tempest-grupa-vs-hildur": 831,
+  "2026-08-23-tempest-grupa-vs-hildur-auto": 0,
 };
 
 describe("decoded damage against the health the protocol states", () => {
@@ -473,7 +486,7 @@ describe("health stated against a name", () => {
    * not the same promise as "every time" over all of them.
    */
   test("occurs as often as it is recorded to", () => {
-    expect(replayed.length).toBe(592);
+    expect(replayed.length).toBe(648);
   });
 
   test("names a combatant the replay's own roster can identify, every time", () => {

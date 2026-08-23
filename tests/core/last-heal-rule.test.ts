@@ -30,6 +30,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
@@ -83,6 +84,55 @@ type Occurrence = {
   isCloudedByUnsizedHealing: boolean;
 };
 
+/**
+ * What this message took off **this** combatant before the heal fired, and
+ * nobody else.
+ *
+ * ⚠️ **The heal's own percentage is the anchor, and it is stated by more than one
+ * segment.** The game emits the bonus *before* the blow that triggered it and
+ * gives both the resulting percentage, so a segment carrying the heal's own
+ * figure belongs to the same instant however far down the message it sits. What
+ * comes after states a different one and happened later.
+ *
+ * ⚠️ **This read the whole message's damage and closed on every occurrence for
+ * three releases.** It could only ever be wrong where a group blow struck the
+ * healed combatant *again* after the bonus fired, and no recording carried one
+ * until `2026-08-23-tempest-grupa-vs-hildur-auto`: there combatant 466747 takes
+ * 2 798, is healed 7 987 alongside a 2 416 hit stating the same 40.00%, and is
+ * then struck for 2 971 more. Charging that last hit to the gap put the reading
+ * 2 971 out on a pool of 29 823, where the whole tolerance is under three points.
+ */
+function getDamageUpToTheHeal(
+  events: readonly BattleEvent[],
+  combatantId: number,
+  healedPercent: number,
+): number {
+  const about = events.flatMap((event, at) => {
+    if (event.kind === "damage-to-named-combatant" && event.targetId === combatantId) {
+      return [{ at, percent: event.targetHealthPercent, amount: event.damage.amount }];
+    }
+    if (event.kind === "attack" && event.targetId === combatantId) {
+      const taken = event.taken.reduce((sum, hit) => sum + hit.amount, 0);
+      return [{ at, percent: event.targetHealthPercent, amount: taken }];
+    }
+    // The heal itself, at nothing: it takes no health off, and it is here so its
+    // own segment can be what anchors the group below.
+    if (event.kind === "healing-to-named-combatant" && event.targetId === combatantId) {
+      return [{ at, percent: event.targetHealthPercent, amount: 0 }];
+    }
+    return [];
+  });
+
+  // The last segment about this combatant that still states the heal's own
+  // figure. Everything past it is a later moment; tests keep `!` (§9.5).
+  const sharing = about.filter((one) => one.percent === healedPercent);
+  const last = sharing.length === 0 ? null : sharing[sharing.length - 1]!.at;
+  if (last === null) return 0;
+  return about
+    .filter((one) => one.at <= last)
+    .reduce((total, one) => total + one.amount, 0);
+}
+
 const OCCURRENCES: Occurrence[] = CAPTURED_FIGHTS.flatMap((fight) => {
   const roster = composeRosterOfFight(fight);
   const maximumHealth = fight.maximumHealthByCombatantId;
@@ -121,15 +171,7 @@ const OCCURRENCES: Occurrence[] = CAPTURED_FIGHTS.flatMap((fight) => {
           healthAfter: (event.targetHealthPercent / 100) * maximum,
           healing: event.amount,
           healthBefore: before === undefined ? null : (before / 100) * maximum,
-          damage: events.reduce((total, one) => {
-            if (one.kind === "damage-to-named-combatant" && one.targetId === combatantId) {
-              return total + one.damage.amount;
-            }
-            if (one.kind === "attack" && one.targetId === combatantId) {
-              return total + one.taken.reduce((sum, hit) => sum + hit.amount, 0);
-            }
-            return total;
-          }, 0),
+          damage: getDamageUpToTheHeal(events, combatantId, event.targetHealthPercent),
           isCloudedByUnsizedHealing: clouded.has(combatantId),
         });
       }
@@ -160,10 +202,21 @@ const OCCURRENCES: Occurrence[] = CAPTURED_FIGHTS.flatMap((fight) => {
   });
 });
 
-const CARRYING_MESSAGES = CAPTURED_FIGHTS.flatMap((fight) =>
+/**
+ * Every segment stating the key, not every message carrying one.
+ *
+ * ⚠️ **One message can state it twice, and this counted messages until one did.**
+ * A group blow drops two holders below the threshold at once and the client puts
+ * both bonuses in the same message — `2026-08-23-tempest-grupa-vs-hildur-auto`
+ * carries the first, healing 466476 and 447544 together. Counting messages made
+ * the completeness test below read "one occurrence per message", which is a
+ * different and false claim, and the second heal would have gone missing while
+ * the test said everything was read.
+ */
+const CARRYING_SEGMENTS = CAPTURED_FIGHTS.flatMap((fight) =>
   fight.dump.calls.flatMap((call) =>
-    call.protocolMessages.filter((message) =>
-      parseProtocolMessage(message).parameters.some(
+    call.protocolMessages.flatMap((message) =>
+      parseProtocolMessage(message).parameters.filter(
         (parameter) => parameter.key === LAST_HEAL_KEY,
       ),
     ),
@@ -172,13 +225,13 @@ const CARRYING_MESSAGES = CAPTURED_FIGHTS.flatMap((fight) =>
 
 describe("healing stated against a name", () => {
   test("the captures carry it", () => {
-    expect(CARRYING_MESSAGES.length).toBeGreaterThan(0);
+    expect(CARRYING_SEGMENTS.length).toBeGreaterThan(0);
   });
 
   // Every one of them, not merely the ones that happened to be measurable —
   // otherwise a reading that silently stopped resolving names would pass here.
   test("every occurrence is read, and every one resolves to a combatant", () => {
-    expect(OCCURRENCES.length).toBe(CARRYING_MESSAGES.length);
+    expect(OCCURRENCES.length).toBe(CARRYING_SEGMENTS.length);
   });
 
   /**
@@ -212,7 +265,7 @@ describe("healing stated against a name", () => {
     const measurable = OCCURRENCES.filter(
       (one) => one.healthBefore !== null && !one.isCloudedByUnsizedHealing,
     );
-    expect(measurable.length).toBe(6);
+    expect(measurable.length).toBe(11);
     expect(OCCURRENCES.length - measurable.length).toBe(1);
   });
 

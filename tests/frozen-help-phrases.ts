@@ -16,6 +16,7 @@ export const FROZEN_HELP_PHRASES = {
   counts: {
     "( fire )": 2,
     "( heal )": 3,
+    "( light )": 2,
     "( rage )": 1,
     "( skillId )": 0,
     "( tspell )": 0,

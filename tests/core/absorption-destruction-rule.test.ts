@@ -184,13 +184,14 @@ describe("what the absorption-destruction family reports", () => {
       ({ fight, actorId }) => !DECLARING_CASTERS.has(`${fight}/${actorId}`),
     );
     expect([...new Set(silentReports.map(({ actorId }) => actorId))]).toEqual([440859]);
-    // And where it was met, so a reader disappearing from three captures is a
-    // change rather than a list that quietly shortens.
+    // And where it was met, so a reader disappearing from a capture it was met in
+    // is a change rather than a list that quietly shortens.
     expect([...new Set(silentReports.map(({ fight }) => fight))].sort()).toEqual([
       "2026-08-12-tempest-grupa-vs-hildur-2",
       "2026-08-15-tempest-grupa-vs-hildur-3",
       "2026-08-15-tempest-grupa-vs-hildur-4",
       "2026-08-17-tempest-grupa-vs-hildur",
+      "2026-08-23-tempest-grupa-vs-hildur",
     ]);
 
     const values = new Set(
