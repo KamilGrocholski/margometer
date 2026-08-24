@@ -314,6 +314,27 @@ function composeReadingWithNeitherEnd(): PanelReading {
   return { statistics, roster, ourSide: 1, isFromFightStart: true };
 }
 
+/**
+ * A fight whose one unread message names `mag` and the boss.
+ *
+ * The fixture above has an unreadable message too and it names nobody, so no row
+ * in it is ever marked — which is what makes it the right fixture for everything
+ * else and the wrong one for this. Built here for the same reason
+ * `composeReadingWithNeitherEnd` is: no recording carries the shape at all
+ * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ */
+function composeReadingWithAMarkedRow(): PanelReading {
+  const roster = composeCombatantRoster([
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
+  ]);
+  const statistics = composeFightStatistics(
+    decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400", "1=90.00;3=50.00;no_such_key=13"], roster),
+    roster,
+  );
+  return { statistics, roster, ourSide: 1, isFromFightStart: true };
+}
+
 describe("what reaches the screen", () => {
   test("draws a row for everyone, numbered, with a bar and a figure", () => {
     const { panel } = renderInto();
@@ -324,6 +345,56 @@ describe("what reaches the screen", () => {
     expect(rows.length).toBe(4);
     expect(getByClass(panel, "row-rank").map((node) => node.textContent)).toEqual(["1.", "2.", "3."]);
     expect(getByClass(panel, "bar").length).toBe(4);
+  });
+
+  /**
+   * The mark §9.6 asks for, drawn where the figure is rather than under the panel.
+   *
+   * Two claims, and the second is the one a test can lose. It has to be **there**
+   * when the view says the row is suspect — and it has to be **absent** otherwise,
+   * or a mark on every row says nothing at all and the strip below it is still the
+   * only thing telling anybody anything.
+   */
+  test("marks the row the view says may be short, and no other", () => {
+    const { panel } = renderInto(composeDefaultState(), {}, composeReadingWithAMarkedRow());
+    const marks = getByClass(panel, "row-warning");
+
+    expect(marks.length).toBe(2);
+    // A glyph and not a colour: §9.7 forbids colour carrying a meaning alone, and
+    // an empty span styled amber would pass every other assertion in this file.
+    for (const mark of marks) expect(mark.textContent.length).toBeGreaterThan(0);
+  });
+
+  test("marks nothing where the reading is clean", () => {
+    const { panel } = renderInto();
+
+    expect(getByClass(panel, "row").length).toBeGreaterThan(0);
+    expect(getByClass(panel, "row-warning")).toEqual([]);
+  });
+
+  /**
+   * The mark answers for the row like every other piece of it. It sits inside the
+   * line, so a pointer crossing onto it is a pointer on a row — and a detail that
+   * vanished exactly when the reader aimed at the thing telling them to look is the
+   * bug this file's own note about `parts` describes, arriving on a new node.
+   */
+  test("opens the row's detail like the rest of the row does", () => {
+    const document = composeFakeDocument();
+    const details = new Map<unknown, PanelDetailLine[]>();
+    renderPanelInto(
+      document,
+      document.createElement("div") as FakeNode,
+      composePanelView(composeReadingWithAMarkedRow(), composeDefaultState()),
+      {},
+      false,
+      details,
+      { list: null, levelKey: null },
+    );
+
+    const marks = [...details.keys()].filter(
+      (node) => (node as FakeNode).className === "row-warning",
+    );
+    expect(marks.length).toBe(2);
   });
 
   /**

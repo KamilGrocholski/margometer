@@ -91,6 +91,29 @@ function writeRow(label: string, row: CombatantStatistics): void {
     if (text !== "—") console.log(`  ${" ".repeat(4)}${caption}: ${text}`);
   }
   if (row.skillsUsed > 0) console.log(`      skills announced: ${row.skillsUsed}`);
+  for (const line of composeRowReadingLines(row)) console.log(line);
+}
+
+/**
+ * What the panel would mark this row for, said where the row is
+ * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ *
+ * ⚠️ **Printed only where there is something to print, which is the opposite of
+ * the block below.** That one states both counts at zero, because a report silent
+ * about the reading reads exactly like a report that never learned to state it.
+ * Here the row *is* the reading: a line saying nothing was missed, on every row of
+ * every capture, would bury the table it is meant to qualify — and the fight-wide
+ * zero already says it for all of them at once.
+ */
+export function composeRowReadingLines(row: CombatantStatistics): string[] {
+  const lines: string[] = [];
+  if (row.unreadableMessages > 0) {
+    lines.push(`      unreadable messages naming them: ${composeIntegerText(row.unreadableMessages)}`);
+  }
+  if (row.unaccountedHealingCasts > 0) {
+    lines.push(`      casts nobody could size: ${composeIntegerText(row.unaccountedHealingCasts)}`);
+  }
+  return lines;
 }
 
 /** The reasons list and the per-key breakdown, indented under their caption. */

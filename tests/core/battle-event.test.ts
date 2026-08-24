@@ -258,6 +258,9 @@ describe("decoding a single message", () => {
       message: "0;0;no_such_key=13",
       reason: "no meaning yet for no_such_key",
       unreadKeys: ["no_such_key"],
+      // Nobody at either end, so nobody's row can be told their figures are
+      // short — the fight-wide reading is the whole of what this one says.
+      combatantIds: [],
     });
   });
 
@@ -429,7 +432,30 @@ describe("decoding a single message", () => {
       message: "1=100.00;2=50.00;skillId=23",
       reason: "no meaning yet for skillId",
       unreadKeys: ["skillId"],
+      // Both slots, in protocol order. This is the field a mark on a row rests
+      // on: the message was given up on for its key and still says whom it was
+      // about.
+      combatantIds: [1, 2],
     });
+  });
+
+  /**
+   * One combatant, one entry — and the reason is what the field is counted for.
+   *
+   * A message stating the same id in both segments is one message about one
+   * person, so a row raising its unread count twice for it would report a
+   * shortfall that happened once as though it had happened twice. The captures
+   * carry the shape on readable messages routinely (a self-cast heal names its
+   * caster at both ends); this is the same shape arriving unread.
+   */
+  test("names a combatant once where the message states them at both ends", () => {
+    const [event] = decodeFight(["1=100.00;1=100.00;no_such_key=13"]);
+    expect(event).toMatchObject({ kind: "unknown-message", combatantIds: [1] });
+  });
+
+  test("names nobody where the protocol wrote nobody at either end", () => {
+    const [event] = decodeFight(["0;0;no_such_key=13"]);
+    expect(event).toMatchObject({ kind: "unknown-message", combatantIds: [] });
   });
 
   test("reports a blank name rather than announcing a skill nobody can name", () => {
@@ -468,6 +494,10 @@ describe("decoding a single message", () => {
     const [event] = decodeFight(["9007199254740993=100.00;0;+dmgf=5"]);
     expect(event?.kind).toBe("unknown-message");
     expect((event as { reason: string }).reason).toMatch(/unusable id/);
+    // And it names nobody, because the grammar failed before there were side
+    // segments to read. The id is right there in the text and is exactly the one
+    // thing that must not be lifted out of it: it did not parse.
+    expect((event as { combatantIds: readonly number[] }).combatantIds).toEqual([]);
   });
 
   // The protocol names the recipient here instead of giving an id, and states
@@ -505,7 +535,13 @@ describe("decoding a single message", () => {
     expect(decodeFight(["0;0"])).toEqual([
       // No key to name — the message had none, which is not the same claim as
       // a key nobody has read yet.
-      { kind: "unknown-message", message: "0;0", reason: "carries no parameters", unreadKeys: [] },
+      {
+        kind: "unknown-message",
+        message: "0;0",
+        reason: "carries no parameters",
+        unreadKeys: [],
+        combatantIds: [],
+      },
     ]);
   });
 

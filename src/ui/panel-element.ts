@@ -53,6 +53,7 @@ import {
   type PanelView,
   type PanelWaiting,
 } from "@/src/ui/panel-screen.ts";
+import { ROW_WARNING_MARK } from "@/src/ui/panel-words.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 
 export type PanelPosition = { left: number; top: number };
@@ -536,6 +537,13 @@ function renderRow(
   share.textContent = row.bracketText;
   value.append(share);
 
+  // Built only where there is one, like the badge above and for the same reason.
+  const mark = row.warnings.length === 0 ? null : document.createElement("span");
+  if (mark !== null) {
+    mark.className = "row-warning";
+    mark.textContent = ROW_WARNING_MARK;
+  }
+
   const parts = [bar, cap];
   if (row.rank !== null) {
     const rank = document.createElement("span");
@@ -544,6 +552,7 @@ function renderRow(
     parts.push(rank);
   }
   if (badge !== null) parts.push(badge);
+  if (mark !== null) parts.push(mark);
   parts.push(name, value);
   line.append(...parts);
   // Appended to the figure rather than to the line, but it still answers for the

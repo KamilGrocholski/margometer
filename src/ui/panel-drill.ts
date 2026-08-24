@@ -38,6 +38,7 @@ import {
   HEALTH_LOSS_SOURCE_NAMES,
   PERCENT_DESTRUCTION_TOKEN,
   PROFESSION_NAMES,
+  ROW_WARNING_HEADING,
   VERY_CRITICAL_TOKEN,
   type TokenName,
   type TranslateLabel,
@@ -61,6 +62,7 @@ import {
   UNANNOUNCED_ROW_KEY,
 } from "@/src/ui/panel-screen.ts";
 import {
+  composeRowWarnings,
   getHealingGivenWithoutSkillBySource,
   getHealingReceivedWithoutSkillBySource,
   getHealthLostCausedBySource,
@@ -253,6 +255,15 @@ export function composeCombatantDetail(
     }
   }
 
+  // Last of the blocks and first of the two closing notes, because it answers for
+  // every figure above it rather than for one of them — and because a reader who
+  // opened the card did so after seeing the mark, so this is what they came for.
+  const warnings = composeRowWarnings(row, state.metric);
+  if (warnings.length > 0) {
+    lines.push({ kind: "heading", text: ROW_WARNING_HEADING });
+    for (const warning of warnings) lines.push({ kind: "note", text: warning });
+  }
+
   // The card is about the person, so its figures are the fight's — and one level
   // in, the row it stands over states a narrower one. Said at the foot rather than
   // beside the stats: it answers for every number above it, not for one block.
@@ -303,6 +314,15 @@ function composeBreakdownList(
       bracketText: `(${assertDefined(shareTexts[index], "every row of a section is written as a share")}${entry.uses === null ? "" : ` · ×${composeFigureText(entry.uses)}`})`,
       isDrillable: entry.isDrillable,
       detail: entry.detail,
+      /**
+       * Never a mark, at any level. A section row is a **cut** of a figure — an
+       * opponent, a key, a skill — and a shortfall cannot be placed onto one cut:
+       * an unread message says nothing about which part of somebody's total it
+       * would have moved. The combatant's own row carries it, and it carries it at
+       * every level, so the reader is told once and in the place the claim is true
+       * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+       */
+      warnings: [],
     })),
   };
 }

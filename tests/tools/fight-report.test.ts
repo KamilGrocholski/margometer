@@ -20,8 +20,11 @@
 
 import { describe, expect, test } from "bun:test";
 import { CAPTURED_FIGHTS, composeStatisticsOfFight } from "@/tests/captured-fight-catalog.ts";
-import type { ReadingGaps } from "@/src/core/fight-statistics.ts";
-import { composeReadingLines } from "@/tools/fight-report.ts";
+import {
+  composeEmptyCombatantStatistics,
+  type ReadingGaps,
+} from "@/src/core/fight-statistics.ts";
+import { composeReadingLines, composeRowReadingLines } from "@/tools/fight-report.ts";
 
 function composeReading(overrides: Partial<ReadingGaps> = {}): ReadingGaps {
   return {
@@ -100,5 +103,46 @@ describe("fight report reading block", () => {
     const lines = composeReadingLines(composeReading({ unaccountedHealthBySource: tallies }));
     expect(lines[1]).toContain("aaa");
     expect(lines[2]).toContain("zzz");
+  });
+});
+
+/**
+ * The same two readings, on the row rather than on the fight.
+ *
+ * The panel marks a combatant's row when something naming them could not be read
+ * or a cast of theirs could not be sized, and this is where an offline reading
+ * says the same thing — so a mark somebody reports can be found in the report they
+ * are asked for (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ *
+ * ⚠️ **Silent at zero, and deliberately unlike the block above.** The fight-wide
+ * counts print at zero because a missing line there is indistinguishable from a
+ * tool that never stated them; a row line at zero would repeat itself under every
+ * combatant of every capture and bury the table. The corpus assertion is that
+ * nothing prints at all.
+ */
+describe("fight report row readings", () => {
+  const clean = composeEmptyCombatantStatistics();
+
+  test("says nothing about a row nothing was missed on", () => {
+    expect(composeRowReadingLines(clean)).toEqual([]);
+  });
+
+  test("counts the messages naming them that nothing could read", () => {
+    const lines = composeRowReadingLines({ ...clean, unreadableMessages: 3 }).join("\n");
+    expect(lines).toContain("unreadable messages naming them: 3");
+  });
+
+  test("counts the casts of theirs nobody could size", () => {
+    const lines = composeRowReadingLines({ ...clean, unaccountedHealingCasts: 2 }).join("\n");
+    expect(lines).toContain("casts nobody could size: 2");
+  });
+
+  test("every capture's rows print nothing, on material that misses neither", () => {
+    expect(CAPTURED_FIGHTS.length).toBeGreaterThan(0);
+    for (const fight of CAPTURED_FIGHTS) {
+      for (const row of composeStatisticsOfFight(fight).byCombatantId.values()) {
+        expect(composeRowReadingLines(row), fight.name).toEqual([]);
+      }
+    }
   });
 });

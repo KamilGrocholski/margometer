@@ -536,14 +536,17 @@ src/
   ui/                    Renders state handed to it — §9.1.
     panel-words.ts       Everything the panel puts in front of a reader: what it
                          calls each name of the game's own, what it says where the
-                         game names nobody, and a number as it writes it.
+                         game names nobody, what it says where a figure may be
+                         short, and a number as it writes it — a count included,
+                         which Polish spells three ways.
     panel-screen.ts      Which screen the panel is on: what a screen can show and
                          the strips that switch, the key a drawn row carries, the
                          shape handed to the drawing, and what a click does to it.
     panel-look.ts        Every colour, space and radius, §9.7's arithmetic, and
                          the stylesheet spending them — as one string.
-    panel-reading.ts     What the panel is handed, and the three questions asked
-                         of a combatant.
+    panel-reading.ts     What the panel is handed, and the four questions asked
+                         of a combatant — the fourth being what could not be read
+                         about them, which is what marks a row.
     panel-drill.ts       What a row opens onto: the two levels below the ranking,
                          and the card either shows on hover — the same card at
                          every level, saying whose figures they are.
@@ -982,7 +985,22 @@ look like a number that is right.**
 - `[ALWAYS] [ui]` **Render section by section, each isolated** — a structural
   requirement on the renderer, not a habit.
 - `[ALWAYS] [ui]` **Put the warning where the consequence is**, next to the
-  figure it concerns and not in a global banner.
+  figure it concerns and not in a global banner. ⚠️ **This had no consumer for
+  three releases** — every warning the panel drew was a strip under the whole
+  screen — and what it needs is the clause below, which says when a consequence
+  has somewhere to go.
+- `[ALWAYS] [ui]` **A gap reaches a row only where the protocol named whom it was
+  about, and it says a figure is short without ever saying by how much.** Two do:
+  a message nothing could read, which names its two ends before it names a key, and
+  a side cast this meter could not size, which names its caster. A gap naming
+  nobody stays in the fight's own strip, which is not a banner — it is the reading's
+  summary, and the only place a message naming neither end can be said at all.
+  **A cut of a figure never carries one**: a shortfall cannot be placed onto one
+  opponent or one skill, so the mark rides the combatant's own row at every level.
+  `[ASK]` before a third gap joins the two, and the asking is whether the protocol
+  states a name for it — a gap placed on a row it was not named for is §5's guess
+  wearing a warning's clothes
+  (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
 - `[ALWAYS] [ui]` **Quiet by default, detail on demand.** Nothing animates,
   flashes or moves.
 - `[NEVER] [ui]` **Swallow silently.** Every caught failure produces a visible

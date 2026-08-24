@@ -376,6 +376,22 @@ export type PanelRow = {
   isDrillable: boolean;
   /** Detail on demand (§9.6). Empty means there is nothing more to say. */
   detail: PanelDetailLine[];
+  /**
+   * Why this row's figures might not be what happened. Empty is a clean reading.
+   *
+   * §9.6 puts a warning next to the figure it concerns, and until this existed the
+   * panel could only say *something in this fight was unreadable* under everything
+   * else, leaving the reader to work out whose totals that cost
+   * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+   *
+   * **A list rather than a flag**, because a row can be short for two reasons at
+   * once and they are not the same claim — one says a figure *may* be low, the
+   * other that one *is*. A boolean would draw one mark over both with nothing able
+   * to tell them apart again. The sentences are also in `detail`, which is where a
+   * reader meets them; they are here as well so the drawing can mark the row
+   * without reading a card to find out whether it should.
+   */
+  warnings: string[];
 };
 
 export type PanelList = {

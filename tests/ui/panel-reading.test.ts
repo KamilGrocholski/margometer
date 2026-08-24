@@ -15,6 +15,7 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { PANEL_METRICS } from "@/src/ui/panel-screen.ts";
 import {
+  composeRowWarnings,
   getDamageWithoutActor,
   getDamageWithoutActorByElement,
   getHealingWithoutHealer,
@@ -311,5 +312,64 @@ describe("health lost with nobody to charge", () => {
       healthLostCaused: 70,
     };
     expect(getMetricValue(row, "dealt")).toBe(570);
+  });
+});
+
+/**
+ * The fourth question, and the one whose answer differs by screen.
+ *
+ * Driven here rather than only through the view because that is where the two
+ * counters part company: an unread message qualifies every metric and a cast
+ * nobody could size qualifies exactly one, and a reading that got the second wrong
+ * would still mark the row on the screen a test happened to open
+ * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ */
+describe("what could not be read about a combatant", () => {
+  const clean = getRow(composeReading(), 1);
+
+  test("says nothing about a row nothing was missed on", () => {
+    for (const metric of PANEL_METRICS) {
+      expect(composeRowWarnings(clean, metric), metric).toEqual([]);
+    }
+  });
+
+  test("qualifies every screen where a message naming them could not be read", () => {
+    const row = { ...clean, unreadableMessages: 2 };
+    for (const metric of PANEL_METRICS) {
+      expect(composeRowWarnings(row, metric).length, metric).toBe(1);
+    }
+  });
+
+  /**
+   * And exactly one screen for the other. The protocol says what the unsized cast
+   * cost — healing this combatant gave — so their three other figures are what
+   * happened and must not be qualified.
+   */
+  test("qualifies only the giving screen where a cast could not be sized", () => {
+    const row = { ...clean, unaccountedHealingCasts: 1 };
+
+    expect(composeRowWarnings(row, "healingGiven").length).toBe(1);
+    for (const metric of ["dealt", "taken", "healed"] as const) {
+      expect(composeRowWarnings(row, metric), metric).toEqual([]);
+    }
+  });
+
+  // Both at once, in the order §9.6 puts them: certain above suspected.
+  test("says what is missing before what might be", () => {
+    const warnings = composeRowWarnings(
+      { ...clean, unreadableMessages: 1, unaccountedHealingCasts: 1 },
+      "healingGiven",
+    );
+
+    expect(warnings.length).toBe(2);
+    expect(warnings[0]).toContain("jest zaniżone");
+    expect(warnings[1]).toContain("mogą być zaniżone");
+  });
+
+  // Zero from below as well as at it (§7.5): a count that cannot happen must not
+  // produce a sentence claiming it did.
+  test("says nothing at a count of zero or below", () => {
+    expect(composeRowWarnings({ ...clean, unreadableMessages: 0 }, "dealt")).toEqual([]);
+    expect(composeRowWarnings({ ...clean, unaccountedHealingCasts: -1 }, "healingGiven")).toEqual([]);
   });
 });

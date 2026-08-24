@@ -543,6 +543,21 @@ export type UnknownMessageEvent = {
    * and reported to us verbatim.
    */
   unreadKeys: readonly string[];
+  /**
+   * The ends the message itself named — its actor slot, its target slot, in
+   * protocol order and without a repeat where both segments state one combatant.
+   *
+   * Read off `ProtocolMessage`'s two side segments and nowhere else. That is what
+   * makes a mark on somebody's row a reading rather than a guess: the grammar
+   * states the ends before it states a single key, so a message given up on for a
+   * key it does not know still knows exactly whom it was about.
+   *
+   * **Empty is a claim, and it is the same claim twice**: the grammar failed
+   * before there were slots to read, or the message wrote `0` at both ends. It
+   * never means nothing was unread — like `unreadKeys` above, this event exists
+   * only where something was.
+   */
+  combatantIds: readonly number[];
 };
 
 export type BattleEvent =

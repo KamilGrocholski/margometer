@@ -1966,6 +1966,12 @@ describe("the report a reader copies", () => {
     "blowsWithoutSkill",
     "largestBlow",
     "skillsUsed",
+    // Not figures of the fight but counts of what could not be read about this
+    // combatant — and in the report for exactly the reason the block above is: the
+    // panel marks the row and says a number may be low, and this is where somebody
+    // reporting it can say how often, beside the keys the fight-wide reading names.
+    "unreadableMessages",
+    "unaccountedHealingCasts",
   ];
 
   function composeReadingOf(fight: (typeof CAPTURED_FIGHTS)[number]): FightReading {

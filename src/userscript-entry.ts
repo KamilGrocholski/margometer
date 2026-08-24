@@ -956,6 +956,11 @@ function composeReportRow(
     blowsWithoutSkill: row.blowsWithoutSkill,
     largestBlow: row.largestBlow,
     skillsUsed: row.skillsUsed,
+    // What the panel puts a mark on this row for. In the report because the mark
+    // says a figure may be low and says nothing a reader can chase — these say
+    // how often, and the fight-wide `reading` below says what the keys were.
+    unreadableMessages: row.unreadableMessages,
+    unaccountedHealingCasts: row.unaccountedHealingCasts,
     dealtByTargetId: Object.fromEntries(
       [...row.dealtByTargetId].map(([id, byElement]) => [id, Object.fromEntries(byElement)]),
     ),

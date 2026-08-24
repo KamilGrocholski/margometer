@@ -157,6 +157,28 @@ function getEndsOfMessage(parsed: ProtocolMessage): {
 }
 
 /**
+ * Whom this message names at all, as ids: the actor slot, then the target slot,
+ * and one entry where both segments state the same combatant.
+ *
+ * The reading a mark on somebody's row rests on. It is deliberately **not**
+ * `getEndsOfMessage` with the nulls dropped: that one answers *which end is
+ * which*, and every caller of it cares, while this one answers *who is this
+ * message about* and a message that names one combatant twice must not raise
+ * their count twice.
+ *
+ * Empty where the protocol wrote `0` at both ends, which is the protocol naming
+ * nobody (`src/core/protocol-message.ts`) — and nobody is who the shortfall then
+ * belongs to.
+ */
+function getCombatantIdsOfMessage(parsed: ProtocolMessage): number[] {
+  const named: number[] = [];
+  for (const side of [parsed.actor, parsed.target]) {
+    if (side !== null && !named.includes(side.combatantId)) named.push(side.combatantId);
+  }
+  return named;
+}
+
+/**
  * `amount,kind,name(percent%)` — the recipient arrives as a name here, not as an
  * id, and the health it states is that combatant's, not the message target's.
  *
@@ -792,7 +814,17 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
     // No key to name: the grammar failed before there were parameters to read.
     return {
       actorId: null,
-      events: [{ kind: "unknown-message", message, reason: error.message, unreadKeys: [] }],
+      events: [
+        {
+          kind: "unknown-message",
+          message,
+          reason: error.message,
+          unreadKeys: [],
+          // Nothing to name: the grammar failed before there were side segments
+          // to read, so there is no end to put this message's shortfall on.
+          combatantIds: [],
+        },
+      ],
     };
   }
 
@@ -1069,6 +1101,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
       message,
       reason: `no meaning yet for ${unreadKeys.join(", ")}`,
       unreadKeys,
+      combatantIds: getCombatantIdsOfMessage(parsed),
     });
   }
 
@@ -1082,6 +1115,7 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
       message,
       reason: "carries no parameters",
       unreadKeys: [],
+      combatantIds: getCombatantIdsOfMessage(parsed),
     });
   }
 

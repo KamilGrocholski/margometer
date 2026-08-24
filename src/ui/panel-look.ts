@@ -608,6 +608,16 @@ export function composePanelStyleText(): string {
 .row-value { font-variant-numeric: tabular-nums; padding-left: ${t.space}; font-weight: 600; }
 .row-share { color: ${t.textQuiet}; padding-left: ${t.spaceSmall}; font-weight: 400; }
 /*
+ * The mark that says a figure on this row might not be what happened.
+ *
+ * Before the name and not after the number, because it qualifies the row rather
+ * than the figure the eye lands on last — and because putting it at the end of the
+ * line would move under the share on a long name. Nothing animates and nothing
+ * flashes (§9.6): it is a glyph the same size as the text, in the colour the
+ * fight's own warnings wear, and what it means is in the card the row opens.
+ */
+.row-warning { color: ${t.suspect}; padding-right: ${t.spaceSmall}; font-weight: 700; }
+/*
  * The one row that says something is missing, and so the one row that never
  * scrolls away: it sits outside the list, above the side summary.
  */

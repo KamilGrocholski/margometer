@@ -16,7 +16,11 @@ import {
   type CombatantStatistics,
   type FightStatistics,
 } from "@/src/core/fight-statistics.ts";
-import type { PanelMetric } from "@/src/ui/panel-screen.ts";
+import { isGivenMetric, isHealingMetric, type PanelMetric } from "@/src/ui/panel-screen.ts";
+import {
+  composeUnaccountedHealingRowNote,
+  composeUnreadableRowNote,
+} from "@/src/ui/panel-words.ts";
 
 /**
  * What the panel is handed.
@@ -231,4 +235,31 @@ export function getHealingGivenWithoutSkillBySource(
   row: CombatantStatistics,
 ): Map<string, number> {
   return getTotalsByInnerKey(row.healingGivenWithoutSkillByCombatantId);
+}
+
+/**
+ * The fourth question a row is asked: what could not be read about this person.
+ *
+ * Beside the other three because every part of the panel asks it — the ranking
+ * marks the row, the card says the sentence — and one reading is what stops the
+ * mark and the card disagreeing about whether there is anything to say.
+ *
+ * **Two counters, two scopes, and the difference is what each one knows.** A
+ * message naming this combatant that nothing could read might have moved any of
+ * their four figures, and nothing says which, so it qualifies every screen. A cast
+ * this meter could not size is healing they gave, and the protocol says so — so it
+ * qualifies the one screen that draws healing given and stays quiet on the other
+ * three, where their numbers are exactly what happened.
+ *
+ * The certain one first (§9.6): what **is** missing stands above what **might** be.
+ */
+export function composeRowWarnings(row: CombatantStatistics, metric: PanelMetric): string[] {
+  const warnings: string[] = [];
+  if (row.unaccountedHealingCasts > 0 && isHealingMetric(metric) && isGivenMetric(metric)) {
+    warnings.push(composeUnaccountedHealingRowNote(row.unaccountedHealingCasts));
+  }
+  if (row.unreadableMessages > 0) {
+    warnings.push(composeUnreadableRowNote(row.unreadableMessages));
+  }
+  return warnings;
 }

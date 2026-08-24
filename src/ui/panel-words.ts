@@ -572,6 +572,74 @@ export function composeFigureText(value: number): string {
 }
 
 /**
+ * A count and its noun, in the three forms Polish asks for.
+ *
+ * The rule is the language's and not ours: one takes one form; a count whose last
+ * digit is 2, 3 or 4 takes a second, unless it is one of the teens, which do not;
+ * everything else takes a third. Nothing about the fight decides it, which is why
+ * it lives beside the words rather than beside the figures.
+ *
+ * ⚠️ **Three forms because two is a trap that looks like it works.** The panel
+ * wrote every counted sentence as `count === 1 ? a : b`, and three of the four
+ * were right — not because two forms are enough, but because the case governed by
+ * each of those sentences happens to spell the second and third form alike.
+ * `Nie dotarło …` is the one that does not, and it read *3 zdarzeń* for the whole
+ * of its life. A caller still passes the same word twice where the grammar really
+ * does repeat it, and that is the point: it says so, where a ternary said nothing.
+ *
+ * ⚠️ **The forms are the caller's, because the sentence around them decides
+ * which.** The same noun takes different ones under different verbs — *odczytać*
+ * negated governs the genitive throughout, *dotrzeć* does not — so a table keyed by
+ * noun would be wrong for half the sentences that used it.
+ */
+export function composeCountedText(count: number, forms: [string, string, string]): string {
+  const figure = composeFigureText(count);
+  const [one, few, many] = forms;
+  if (count === 1) return `${figure} ${one}`;
+  const last = Math.abs(count) % 10;
+  const teens = Math.abs(count) % 100;
+  const isFew = last >= 2 && last <= 4 && !(teens >= 12 && teens <= 14);
+  return `${figure} ${isFew ? few : many}`;
+}
+
+/**
+ * What a row says about its own figures being short, and it is two different
+ * claims (§9.6's two severities, arriving on one row).
+ *
+ * The first is a suspicion: something naming this combatant could not be read, and
+ * nothing says which of their figures it would have moved — so it says *may be*,
+ * about all of them. The second is not a suspicion at all: healing they gave went
+ * out in an amount the game never states, so that one figure **is** low. The
+ * certain one is said first, for the reason the fight's own strip says it first —
+ * ranking what is missing under what might be missing buries the only line that is
+ * not a guess.
+ *
+ * Neither carries a key of the game's or a word of ours (§3). A player is being
+ * told a number may be low; why this reader could not read it is a question for
+ * the report they can download, not for the row.
+ */
+export function composeUnreadableRowNote(count: number): string {
+  return `Nie dało się odczytać ${composeCountedText(count, ["zdarzenia", "zdarzeń", "zdarzeń"])} z jej udziałem — jej liczby mogą być zaniżone.`;
+}
+
+export function composeUnaccountedHealingRowNote(count: number): string {
+  return `Uleczyła sojuszników ${composeCountedText(count, ["raz", "razy", "razy"])} bez podanej liczby — jej leczenie jest zaniżone.`;
+}
+
+/** What the card calls the block those two sentences sit in. */
+export const ROW_WARNING_HEADING = "Czego nie wiadomo";
+
+/**
+ * The mark itself, and it is a glyph rather than a colour.
+ *
+ * §9.7 forbids colour carrying a meaning alone, and this is the one place on the
+ * panel where the meaning is *do not trust this number yet* — the reading nobody
+ * can recover from a hue. The colour is the same one the fight's own warnings
+ * wear; the glyph is what survives it being invisible.
+ */
+export const ROW_WARNING_MARK = "⚠";
+
+/**
  * A share, and the one case where rounding it would print a lie.
  *
  * ⚠️ **A figure that is there must not read as a figure that is not** (§9.6). A

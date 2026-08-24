@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
 import { getIntegerFromText } from "@/libs/number.ts";
 import {
+  composeCountedText,
   composeFigureText,
   composeShareText,
   composeShareTexts,
@@ -27,7 +28,11 @@ import {
   NO_ACTOR_LABEL,
   NO_TARGET_LABEL,
   PERCENT_DESTRUCTION_TOKEN,
+  composeUnaccountedHealingRowNote,
+  composeUnreadableRowNote,
   PROFESSION_NAMES,
+  ROW_WARNING_HEADING,
+  ROW_WARNING_MARK,
   VERY_CRITICAL_TOKEN,
   type TokenName,
 } from "@/src/ui/panel-words.ts";
@@ -668,6 +673,102 @@ describe("a figure", () => {
     expect(composeFigureText(1.4)).toBe("1");
     expect(composeFigureText(1.5)).toBe("2");
     expect(composeFigureText(999.6)).toBe("1 000");
+  });
+});
+
+/**
+ * Polish counts three ways and the panel used to count two.
+ *
+ * Written out in words rather than checked against the module that writes them
+ * (§7.5): the whole content of this is which word a number takes, and a test
+ * asking the composer what it thinks would agree with it whatever it said.
+ */
+describe("a count and its noun", () => {
+  const forms: [string, string, string] = ["zdarzenie", "zdarzenia", "zdarzeń"];
+
+  test("takes the first form at one and nowhere else", () => {
+    expect(composeCountedText(1, forms)).toBe("1 zdarzenie");
+    // Twenty-one ends in one and is not one, which is where a rule reading only
+    // the last digit would go wrong in the other direction.
+    expect(composeCountedText(21, forms)).toBe("21 zdarzeń");
+  });
+
+  /**
+   * ⚠️ **The case two forms get wrong, and the reason this exists.** A count
+   * ending in 2, 3 or 4 takes its own word — `3 zdarzenia`, never `3 zdarzeń` —
+   * and it goes on doing so past twenty.
+   */
+  test("takes the second form at two, three and four, however high", () => {
+    expect(composeCountedText(2, forms)).toBe("2 zdarzenia");
+    expect(composeCountedText(3, forms)).toBe("3 zdarzenia");
+    expect(composeCountedText(4, forms)).toBe("4 zdarzenia");
+    expect(composeCountedText(22, forms)).toBe("22 zdarzenia");
+    expect(composeCountedText(104, forms)).toBe("104 zdarzenia");
+  });
+
+  /** And the teens, which look like the case above and are not it. */
+  test("takes the third form at five and up, and through the teens", () => {
+    expect(composeCountedText(5, forms)).toBe("5 zdarzeń");
+    expect(composeCountedText(12, forms)).toBe("12 zdarzeń");
+    expect(composeCountedText(13, forms)).toBe("13 zdarzeń");
+    expect(composeCountedText(14, forms)).toBe("14 zdarzeń");
+    expect(composeCountedText(112, forms)).toBe("112 zdarzeń");
+  });
+
+  test("writes the figure the way every other figure on the panel is written", () => {
+    expect(composeCountedText(1234, forms)).toBe("1 234 zdarzenia");
+    expect(composeCountedText(1235, forms)).toBe("1 235 zdarzeń");
+  });
+});
+
+/**
+ * The two sentences a marked row opens onto, read as a player reads them.
+ *
+ * Spelled out here for §7.5's reason: these are words somebody is meant to act on,
+ * and a test comparing them with the module would pass on our own vocabulary, on a
+ * key of the game's, or on nothing at all.
+ */
+describe("what a marked row says", () => {
+  test("says a figure may be low, without saying what could not be read", () => {
+    expect(composeUnreadableRowNote(1)).toBe(
+      "Nie dało się odczytać 1 zdarzenia z jej udziałem — jej liczby mogą być zaniżone.",
+    );
+    expect(composeUnreadableRowNote(6)).toBe(
+      "Nie dało się odczytać 6 zdarzeń z jej udziałem — jej liczby mogą być zaniżone.",
+    );
+  });
+
+  /**
+   * ⚠️ **The two are different claims and have to read differently.** This one is
+   * not a suspicion: the healing went out and the game never said how much, so the
+   * sentence says *jest*, where the one above says *mogą być*.
+   */
+  test("says healing given is low, rather than that it might be", () => {
+    expect(composeUnaccountedHealingRowNote(1)).toBe(
+      "Uleczyła sojuszników 1 raz bez podanej liczby — jej leczenie jest zaniżone.",
+    );
+    expect(composeUnaccountedHealingRowNote(3)).toBe(
+      "Uleczyła sojuszników 3 razy bez podanej liczby — jej leczenie jest zaniżone.",
+    );
+  });
+
+  test("heads the block in the card in Polish, and marks the row with a glyph", () => {
+    expect(ROW_WARNING_HEADING).toBe("Czego nie wiadomo");
+    // A glyph rather than a letter or a word: the row has no space for a sentence,
+    // and a colour on its own would carry the meaning alone (§9.7).
+    expect(ROW_WARNING_MARK).toBe("⚠");
+  });
+
+  test("carries no key of the game's and no word of ours", () => {
+    const said = [
+      composeUnreadableRowNote(2),
+      composeUnaccountedHealingRowNote(2),
+      ROW_WARNING_HEADING,
+    ].join(" ");
+
+    for (const forbidden of ["protok", "klucz", "komunikat", "payload", "heal", "dmg"]) {
+      expect(said.toLowerCase(), forbidden).not.toContain(forbidden);
+    }
   });
 });
 

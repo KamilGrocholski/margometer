@@ -43,6 +43,7 @@ import {
   composeStat,
 } from "@/src/ui/panel-drill.ts";
 import {
+  composeCountedText,
   composeFigureText,
   composeShareText,
   composeShareTexts,
@@ -86,6 +87,7 @@ import {
   TEAM_LABELS,
 } from "@/src/ui/panel-screen.ts";
 import {
+  composeRowWarnings,
   getDamageWithoutActor,
   getDamageWithoutActorByElement,
   getHealingWithoutHealer,
@@ -172,7 +174,8 @@ function composeRankedRow(
   largest: number,
   translate: TranslateLabel | null,
 ): PanelRow {
-  const raw = getMetricValue(getRow(reading, combatantId), state.metric);
+  const row = getRow(reading, combatantId);
+  const raw = getMetricValue(row, state.metric);
   return {
     key: composeCombatantRowKey(combatantId),
     rank,
@@ -184,6 +187,7 @@ function composeRankedRow(
     bracketText: composeBracket(shareText),
     isDrillable: true,
     detail: composeCombatantDetail(reading, combatantId, state, translate, "ranking"),
+    warnings: composeRowWarnings(row, state.metric),
   };
 }
 
@@ -720,6 +724,10 @@ function composeHoleRow(
     ),
     isDrillable: false,
     detail: lines,
+    // The row that already says something is missing does not also get a mark
+    // saying so. What it stands for is a figure with a hole in it, and the hole is
+    // its whole subject — the notes above are what the mark would have opened onto.
+    warnings: [],
   };
 }
 
@@ -823,7 +831,7 @@ function composeWarnings(reading: PanelReading): string[] {
     const unreadablePayloads = getTotalOfValues(engine.unreadablePayloadsByFault);
     if (engine.lostMessages > 0) {
       warnings.push(
-        `Nie dotarło ${composeFigureText(engine.lostMessages)} ${engine.lostMessages === 1 ? "zdarzenie" : "zdarzeń"} z tej walki — liczby są zaniżone.`,
+        `Nie dotarło ${composeCountedText(engine.lostMessages, ["zdarzenie", "zdarzenia", "zdarzeń"])} z tej walki — liczby są zaniżone.`,
       );
     } else if (unreadablePayloads > 0) {
       // Something was lost and nothing said how much, so the sentence carries no
@@ -832,7 +840,7 @@ function composeWarnings(reading: PanelReading): string[] {
     }
     if (engine.unreadableCombatants > 0) {
       warnings.push(
-        `Nie dało się odczytać ${composeFigureText(engine.unreadableCombatants)} ${engine.unreadableCombatants === 1 ? "postaci" : "postaci"} ze składu — część liczb może trafić nie do tej osoby.`,
+        `Nie dało się odczytać ${composeCountedText(engine.unreadableCombatants, ["postaci", "postaci", "postaci"])} ze składu — część liczb może trafić nie do tej osoby.`,
       );
     }
   }
@@ -843,13 +851,13 @@ function composeWarnings(reading: PanelReading): string[] {
   const unaccounted = getTotalOfValues(unaccountedHealthBySource);
   if (unaccounted > 0) {
     warnings.push(
-      `Uleczenie sojuszników ${composeFigureText(unaccounted)} ${unaccounted === 1 ? "raz" : "razy"} bez podanej liczby — leczenie jest zaniżone.`,
+      `Uleczenie sojuszników ${composeCountedText(unaccounted, ["raz", "razy", "razy"])} bez podanej liczby — leczenie jest zaniżone.`,
     );
   }
 
   if (unreadableMessages > 0) {
     warnings.push(
-      `Nie dało się odczytać ${composeFigureText(unreadableMessages)} ${unreadableMessages === 1 ? "zdarzenia" : "zdarzeń"} walki — liczby mogą być zaniżone.`,
+      `Nie dało się odczytać ${composeCountedText(unreadableMessages, ["zdarzenia", "zdarzeń", "zdarzeń"])} walki — liczby mogą być zaniżone.`,
     );
   }
 

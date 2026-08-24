@@ -1176,6 +1176,117 @@ describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
 });
 
 /**
+ * What could not be read, counted where the consequence is.
+ *
+ * Zero on every recording — `bun run tools/fight-report.ts` prints
+ * `unreadable messages: 0` and `unaccounted healing: 0 casts` for all of
+ * `tests/captured-fights/` as the set stands 2026-08-24 — so these are the two
+ * counters the corpus can say nothing about at all, and they are built by hand for
+ * the same reason `unattributed` is
+ * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ *
+ * The claim each holds is *whose figure may be short*. Getting it wrong is silent
+ * in both directions: a count that never lands leaves a total marked clean while it
+ * is low, and one that lands on the wrong row tells somebody their numbers are
+ * suspect when they are not.
+ */
+describe("what could not be read, per row", () => {
+  const roster = composeCombatantRoster([
+    { id: 1, name: "mag", side: 1, profession: "m", level: 100, maximumHealth: null },
+    { id: 2, name: "tarcza", side: 1, profession: "w", level: 100, maximumHealth: null },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
+  ]);
+
+  /** The counters of everyone the fight mentions, so a stray one cannot hide. */
+  function getUnreadableByCombatantId(messages: readonly string[]): Map<number, number> {
+    const statistics = composeFightStatistics(decodeFight(messages, roster), roster);
+    return new Map([...statistics.byCombatantId].map(([id, row]) => [id, row.unreadableMessages]));
+  }
+
+  test("raises the count of both ends the unread message named, and nobody else's", () => {
+    const counts = getUnreadableByCombatantId(["1=90.00;3=50.00;no_such_key=13"]);
+
+    expect(counts.get(1)).toBe(1);
+    expect(counts.get(3)).toBe(1);
+    expect(counts.get(2) ?? 0).toBe(0);
+  });
+
+  /**
+   * The boundary from the other side (§7.5): a message the decoder read in full
+   * leaves every row at zero. Without this the counter could be raised on every
+   * message and the test above would still pass.
+   */
+  test("leaves every row alone where the message was read in full", () => {
+    const counts = getUnreadableByCombatantId(["1=90.00;3=50.00;+dmg=500;-dmg=400"]);
+
+    expect(counts.size).toBeGreaterThan(0);
+    expect([...counts.values()].every((count) => count === 0)).toBe(true);
+  });
+
+  /**
+   * A message naming nobody is still unreadable and still has to be said — by the
+   * fight-wide figure, which is the only thing that can carry it. It must not land
+   * on `unattributed`: that bucket holds figures this meter has and cannot place,
+   * and there is no figure here at all.
+   */
+  test("keeps a message naming nobody in the fight's own count and off every row", () => {
+    const statistics = composeFightStatistics(decodeFight(["0;0;no_such_key=13"], roster), roster);
+
+    expect(statistics.reading.unreadableMessages).toBe(1);
+    expect(statistics.unattributed.unreadableMessages).toBe(0);
+    expect(
+      [...statistics.byCombatantId.values()].every((row) => row.unreadableMessages === 0),
+    ).toBe(true);
+  });
+
+  /**
+   * A cast this meter could not size lands on the caster and on nobody else — the
+   * one end the protocol names. The recipients are the whole difficulty
+   * (`src/core/battle-event.ts`), so their rows stay clean and the shortfall stays
+   * in the fight's own reading.
+   */
+  test("charges a cast nobody could size to the caster the protocol named", () => {
+    const statistics = composeFightStatistics(
+      [
+        {
+          kind: "unaccounted-health",
+          source: "healall_per",
+          combatantId: 1,
+          declaredShare: 12,
+          announced: null,
+        },
+      ],
+      roster,
+    );
+
+    expect(statistics.byCombatantId.get(1)?.unaccountedHealingCasts).toBe(1);
+    expect(statistics.byCombatantId.get(2)?.unaccountedHealingCasts ?? 0).toBe(0);
+    // And no health moved anywhere, which is the whole reason the cast is counted
+    // rather than added: the figure is what is missing.
+    expect(statistics.byCombatantId.get(1)?.healingGiven).toBe(0);
+  });
+
+  test("counts a cast with no caster in the fight's reading and on no row", () => {
+    const statistics = composeFightStatistics(
+      [
+        {
+          kind: "unaccounted-health",
+          source: "healall_per",
+          combatantId: null,
+          declaredShare: 12,
+          announced: null,
+        },
+      ],
+      roster,
+    );
+
+    expect(getTotalOfValues(statistics.reading.unaccountedHealthBySource)).toBe(1);
+    expect(statistics.unattributed.unaccountedHealingCasts).toBe(0);
+    expect(statistics.byCombatantId.size).toBe(0);
+  });
+});
+
+/**
  * The four edges `bun tools/mutation-sweep.ts` found nothing holding.
  *
  * ⚠️ **Three of the four are the number zero**, which is the third round running

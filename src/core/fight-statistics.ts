@@ -284,6 +284,24 @@ export type CombatantStatistics = {
   healingGivenWithoutSkillByCombatantId: ReadonlyMap<number, ReadonlyMap<string, number>>;
   /** What this combatant announced, keyed by the game's own identifier. */
   skills: ReadonlyMap<string, SkillStatistics>;
+  /**
+   * What could not be read **about this combatant** — the two gaps `ReadingGaps`
+   * counts for the whole fight, counted again where the consequence is.
+   *
+   * §9.6 puts a warning next to the figure it concerns, and for a whole release
+   * the panel could only say *something in this fight was unreadable* and leave
+   * the reader to guess whose totals that cost. These are what let a row say it
+   * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+   *
+   * ⚠️ **Counts of events, never of health, and that is the point of them.** The
+   * first is a message this combatant was named in and nothing here could read —
+   * so any of their four figures may be short, and which one is unknowable. The
+   * second is a cast they made over their own side that this meter holds no
+   * arithmetic for — so their giving *is* short, by an amount the protocol states
+   * nowhere. Giving either a figure would be inventing the thing that is missing.
+   */
+  unreadableMessages: number;
+  unaccountedHealingCasts: number;
 };
 
 /**
@@ -402,6 +420,8 @@ type Row = {
   healingGivenByCombatantId: Map<number, number>;
   healingGivenWithoutSkillByCombatantId: Map<number, Map<string, number>>;
   skills: Map<string, MutableSkill>;
+  unreadableMessages: number;
+  unaccountedHealingCasts: number;
 };
 
 /** Mutable twin of `SkillStatistics`, for the same reason as `Row`. */
@@ -495,6 +515,8 @@ function composeRow(): Row {
     healingGivenByCombatantId: new Map(),
     healingGivenWithoutSkillByCombatantId: new Map(),
     skills: new Map(),
+    unreadableMessages: 0,
+    unaccountedHealingCasts: 0,
   };
 }
 
@@ -512,6 +534,11 @@ function setTotalsFrom(into: Row, member: CombatantStatistics): void {
   into.healthLost += member.healthLost;
   into.healthLostCaused += member.healthLostCaused;
   into.skillsUsed += member.skillsUsed;
+  // A side's share of what could not be read. One message naming two members of
+  // the same side raises it twice, which is right for a count of consequences and
+  // would be wrong for a count of messages — nothing reads this as the latter.
+  into.unreadableMessages += member.unreadableMessages;
+  into.unaccountedHealingCasts += member.unaccountedHealingCasts;
 
   const keyed: Array<[Map<string, number>, ReadonlyMap<string, number>]> = [
     [into.dealtAppliedByElement, member.dealtAppliedByElement],
@@ -959,6 +986,12 @@ export function composeFightStatistics(
         unreadableMessages += 1;
         setRunningTotal(messagesByReason, event.reason, 1);
         for (const key of event.unreadKeys) setRunningTotal(occurrencesByUnreadKey, key, 1);
+        // And once more on each row the message named, so the panel can put the
+        // warning next to the figures it might have shortened rather than over
+        // the whole screen (§9.6). A message naming nobody raises nobody's count
+        // and stays in the fight-wide figure above — including for `unattributed`,
+        // which holds figures we have and cannot place, not the absence of one.
+        for (const combatantId of event.combatantIds) getRow(combatantId).unreadableMessages += 1;
         break;
       }
 
@@ -985,6 +1018,12 @@ export function composeFightStatistics(
         // Counted, never placed. The protocol names the caster and not the
         // healed, so a figure on any row would be a guess about whose (§5).
         setRunningTotal(unaccountedHealthBySource, event.source, 1);
+        // The **cast** does land on the caster, and that is not the figure this
+        // case refuses to place: it says their giving is short, without saying by
+        // how much or to whom. Only where the protocol named them — a cast with no
+        // caster is one no row can answer for, and `unattributed` is for figures we
+        // hold, not for one we never had.
+        if (event.combatantId !== null) getRow(event.combatantId).unaccountedHealingCasts += 1;
         break;
       }
 

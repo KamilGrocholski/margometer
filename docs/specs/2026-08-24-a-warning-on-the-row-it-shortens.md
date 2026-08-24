@@ -1,6 +1,6 @@
 # A warning on the row it shortens
 
-Status: draft
+Status: implemented
 
 Every warning this panel draws is about the whole fight. §9.6 says the opposite —
 *put the warning where the consequence is, next to the figure it concerns and not

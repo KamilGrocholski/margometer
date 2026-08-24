@@ -226,6 +226,11 @@ function getEveryString(view: PanelView): string[] {
       // Every line of the detail, whatever shape it is: a heading going technical
       // would be as bad as a label doing it, and only one of the two is obvious.
       ...row.detail.map((line) => (line.kind === "stat" ? `${line.label} ${line.value}` : line.text)),
+      // ⚠️ **The row's own warnings, which arrived with nothing reading them.**
+      // They are also in `detail`, so a sweep reading only that would pass while
+      // the sentence the mark opens onto said something else entirely — the two
+      // are one string by construction and this is what holds them to it.
+      ...row.warnings,
     ]),
     ...view.warnings,
   ];
@@ -1198,6 +1203,195 @@ describe("a fight that did not all arrive", () => {
     // The fault names are `game`'s vocabulary and must not reach a player.
     for (const forbidden of ["messages-lost", "payload", "fault", "protok", "klucz"]) {
       expect(warnings, forbidden).not.toContain(forbidden);
+    }
+  });
+});
+
+/**
+ * The warning that stands beside the figure it shortens, rather than under the
+ * whole panel.
+ *
+ * §9.6 has asked for this since it was written and nothing had ever done it: the
+ * strip at the foot says *something in this fight could not be read* and leaves the
+ * reader to work out whose totals that cost
+ * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ *
+ * ⚠️ **Built by hand because no recording carries either state.**
+ * `bun run tools/fight-report.ts` prints `unreadable messages: 0` and
+ * `unaccounted healing: 0 casts` for every file in `tests/captured-fights/` as the
+ * set stands 2026-08-24, so the corpus can only say that nothing here fires — which
+ * is the last test in this block, and the claim that this round moved no number
+ * anybody has already read.
+ */
+describe("a warning on the row it shortens", () => {
+  const roster = composeCombatantRoster([
+    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+    { id: 2, name: "łowca", side: 1, profession: "h", level: 93, maximumHealth: null },
+    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
+  ]);
+
+  /** A fight whose one unread message names `mag` and the boss, and not `łowca`. */
+  function composeUnreadReading(): PanelReading {
+    return {
+      statistics: composeFightStatistics(
+        decodeFight(
+          [
+            "1=90.00;3=50.00;+dmg=500;-dmg=400",
+            "2=90.00;3=40.00;+dmg=200;-dmg=100",
+            // Invented on purpose: every key the material carries is read.
+            "1=90.00;3=50.00;no_such_key=13",
+          ],
+          roster,
+        ),
+        roster,
+      ),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+    } satisfies PanelReading;
+  }
+
+  /** A fight where `mag` cast over the side and nothing here could size it. */
+  function composeUnsizedReading(): PanelReading {
+    return {
+      statistics: composeFightStatistics(
+        [
+          ...decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+          {
+            kind: "unaccounted-health",
+            source: "healall_per",
+            combatantId: 1,
+            declaredShare: 12,
+            announced: null,
+          },
+        ],
+        roster,
+      ),
+      roster,
+      ourSide: 1,
+      isFromFightStart: true,
+    } satisfies PanelReading;
+  }
+
+  const getRankedRow = (view: PanelView, label: string): PanelRow | null =>
+    view.lists.flatMap((list) => list.rows).find((row) => row.label === label) ?? null;
+
+  for (const metric of PANEL_METRICS) {
+    test(`marks whoever an unread message named, on the ${metric} screen`, () => {
+      const view = composePanelView(composeUnreadReading(), composeState({ metric }));
+
+      expect(getRankedRow(view, "mag")?.warnings.length).toBe(1);
+      expect(getRankedRow(view, "coś dużego")?.warnings.length).toBe(1);
+      // The boundary from the other side (§7.5). `łowca` fought in the same fight
+      // and no unread message names them, so their figures are what happened.
+      expect(getRankedRow(view, "łowca")?.warnings).toEqual([]);
+    });
+  }
+
+  /**
+   * The other counter is not metric-blind, and that is the difference between the
+   * two claims. An unread key could have moved any figure; a cast nobody could size
+   * is healing this combatant gave, and the protocol says so — so it qualifies the
+   * one screen that draws it and stays quiet on the three where their numbers are
+   * exactly what happened.
+   */
+  test("marks a cast nobody could size on the screen that draws it, and only there", () => {
+    const reading = composeUnsizedReading();
+    const given = composePanelView(reading, composeState({ metric: "healingGiven" }));
+
+    expect(getRankedRow(given, "mag")?.warnings.length).toBe(1);
+    for (const metric of ["dealt", "taken", "healed"] as const) {
+      const view = composePanelView(reading, composeState({ metric }));
+      expect(getRankedRow(view, "mag")?.warnings, metric).toEqual([]);
+    }
+  });
+
+  /**
+   * ⚠️ **The certain one above the suspicion**, which is the order the fight's own
+   * strip already keeps. One of these says a figure *is* low by an amount the game
+   * never states; the other says one *may* be. Ranking them the other way round
+   * buries the only line here that is not a guess.
+   */
+  test("says what is missing before what might be", () => {
+    const reading = composeUnsizedReading();
+    const withBoth: PanelReading = {
+      ...reading,
+      statistics: composeFightStatistics(
+        [
+          ...decodeFight(["1=90.00;3=50.00;no_such_key=13"], roster),
+          {
+            kind: "unaccounted-health",
+            source: "healall_per",
+            combatantId: 1,
+            declaredShare: 12,
+            announced: null,
+          },
+        ],
+        roster,
+      ),
+    };
+    const view = composePanelView(withBoth, composeState({ metric: "healingGiven" }));
+    const warnings = getRankedRow(view, "mag")?.warnings ?? [];
+
+    expect(warnings.length).toBe(2);
+    expect(warnings[0]).toContain("jest zaniżone");
+    expect(warnings[1]).toContain("mogą być zaniżone");
+  });
+
+  /**
+   * The mark and what it opens onto are one string, and this is what holds them to
+   * it. A row marked with a sentence its card does not carry is a mark that leads
+   * nowhere, and nothing else in this file would notice.
+   */
+  test("puts the same sentence in the card the row opens", () => {
+    const view = composePanelView(composeUnreadReading(), composeState());
+    const row = assertDefined(getRankedRow(view, "mag"), "mag is on the screen");
+    const notes = row.detail.filter((line) => line.kind === "note").map((line) => line.text);
+
+    expect(row.warnings.length).toBe(1);
+    for (const warning of row.warnings) expect(notes).toContain(warning);
+  });
+
+  /**
+   * A cut of a figure carries none of it, at any level. A shortfall cannot be
+   * placed onto one opponent or one skill — the combatant's own row is where the
+   * claim is true, and it is on that row at every level.
+   */
+  test("marks no row inside a breakdown, however far in", () => {
+    const reading = composeUnreadReading();
+    const view = composePanelView(reading, composeState({ focusCombatantId: 1 }));
+    const rows = view.lists.flatMap((list) => list.rows);
+
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.warnings.length === 0)).toBe(true);
+  });
+
+  test("says it without naming what we could not read", () => {
+    const view = composePanelView(composeUnreadReading(), composeState());
+    const said = getRankedRow(view, "mag")?.warnings.join(" ") ?? "";
+
+    expect(said.length).toBeGreaterThan(0);
+    for (const forbidden of ["no_such_key", "klucz", "protok", "komunikat", "payload"]) {
+      expect(said, forbidden).not.toContain(forbidden);
+    }
+  });
+
+  /**
+   * The corpus half, and the only thing it can say: **no capture grows a mark.**
+   * Every recording reads clean, so a row wearing one here would mean this round
+   * had started qualifying figures somebody has already read.
+   */
+  test.each(CAPTURED_FIGHTS)("$name marks no row at all", (fight) => {
+    const reading: PanelReading = {
+      statistics: composeStatisticsOfFight(fight),
+      roster: composeRosterOfFight(fight),
+      ourSide: 1,
+      isFromFightStart: true,
+    };
+    for (const metric of PANEL_METRICS) {
+      const view = composePanelView(reading, composeState({ metric }));
+      const rows = [...view.lists.flatMap((list) => list.rows), ...view.pinnedRows];
+      expect(rows.every((row) => row.warnings.length === 0), metric).toBe(true);
     }
   });
 });
