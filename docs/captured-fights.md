@@ -27,7 +27,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 
 | shape | recordings |
 |---|---|
-| `1 vs 1` | `2` |
+| `1 vs 1` | `3` |
 | `1 vs 3` | `1` |
 | `10 vs 1` | `17` |
 
@@ -55,6 +55,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-17-tempest-grupa-vs-hildur.json` | `10 vs 1` | `theirs won` | `10 players · h 2, m 1, p 1, t 1, w 5 · levels 93–120` | `1 NPC · m 1 · level 100` | `325584` |
 | `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur.json` | `10 vs 1` | `ours won` | `10 players · b 1, h 3, m 2, w 4 · levels 93–120` | `1 NPC · m 1 · level 100` | `279072` |
 | `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur-auto.json` | `10 vs 1` | `theirs won` | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–114` | `1 NPC · m 1 · level 100` | `325584` |
+| `tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaur.json` | `1 vs 1` | `theirs won` | `1 player · t 1 · level 91` | `1 NPC · h 1 · level 99` | `30698` |
 
 ## The recordings
 
@@ -80,6 +81,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-17-tempest-grupa-vs-hildur.json` | `tempest` | `1786514810315` | `34` | `439` |
 | `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur.json` | `tempest` | `1786514810315` | `23` | `546` |
 | `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur-auto.json` | `tempest` | `1786514810315` | `3` | `358` |
+| `tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaur.json` | `tempest` | `1786514810315` | `3` | `112` |
 
 ## What the material does not hold
 

@@ -81,6 +81,7 @@ export const FROZEN_HELP_PHRASES = {
     "skillId": 0,
     "step": 4,
     "stun": 18,
+    "stun2": 3,
     "superspell": 0,
     "superspell-dispel": 0,
     "swing": 3,

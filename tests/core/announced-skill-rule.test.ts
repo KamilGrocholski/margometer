@@ -152,14 +152,17 @@ describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
      * four, for the one reason a test must not: they announce a different number
      * of times, which is not a fault.
      *
-     * What the narrowing actually needs is that the case it exists for is really
-     * in the material, fight by fight — an announcement whose very next message
-     * belongs to somebody else. Measured, every fight that announces at all
-     * carries some, so this is a property of the material rather than a total
-     * somebody has to re-measure.
+     * ⚠️ **And then `otherActor` was asserted here too, which was the same mistake
+     * one level down.** It read `toBeGreaterThan(0)` per fight on the strength of
+     * "every fight that announces at all carries some", measured over a corpus of
+     * group fights where somebody else always acts next.
+     * `2026-08-24-tempest-tropiciel-vs-centaur` is a duel: two combatants, strictly
+     * alternating, and every one of its announcements is followed by its own
+     * announcer's blow. Nought is the right answer there, and the narrowing is
+     * still needed — what has to hold is that the case exists in the **material**,
+     * which is asserted once below rather than fight by fight.
      */
     expect(sameActor + otherActor).toBeLessThanOrEqual(announcements);
-    expect(otherActor).toBeGreaterThan(0);
     expect(sameActor).toBeGreaterThan(0);
   });
 
@@ -315,5 +318,42 @@ describe("a heal that restored nothing", () => {
   test("is never credited to a healer as a loss", () => {
     expect(creditedEverywhere.filter((amount) => amount < 0)).toEqual([]);
     expect(creditedEverywhere.filter((amount) => amount > 0).length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The case the narrowing exists for, asserted over the corpus and not over each
+ * fight in it.
+ *
+ * An announcement whose very next message belongs to somebody else is what makes
+ * "glue only to the same actor" a rule rather than a decoration: without one in
+ * the material, the branch that refuses the glue is never taken and could be
+ * deleted with everything still green. A duel carries none of them — the two
+ * combatants alternate and each announcement is followed by its own blow — so the
+ * property is about the material as a whole.
+ */
+describe("the material the narrowing rests on", () => {
+  test("carries an announcement whose next message changes hands", () => {
+    let handsChanged = 0;
+    let announcements = 0;
+
+    for (const fight of CAPTURED_FIGHTS) {
+      for (const call of fight.dump.calls) {
+        const parsed = call.protocolMessages.map((message) => parseProtocolMessage(message));
+        parsed.forEach((message, index) => {
+          if (!message.parameters.some((one) => one.key === "tspell")) return;
+          announcements += 1;
+          const next = parsed[index + 1];
+          if (next === undefined) return;
+          if (next.parameters.some((one) => one.key === "tspell")) return;
+          if ((next.actor?.combatantId ?? null) !== (message.actor?.combatantId ?? null)) {
+            handsChanged += 1;
+          }
+        });
+      }
+    }
+
+    expect(announcements).toBeGreaterThan(0);
+    expect(handsChanged).toBeGreaterThan(0);
   });
 });

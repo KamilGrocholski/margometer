@@ -284,14 +284,24 @@ const COMPARISONS = CAPTURED_FIGHTS.flatMap((fight) => getComparisons(fight, KEY
  * much of the material the arithmetic actually closes over is a fact about the
  * project, not a detail.
  *
- * Two are **0 on purpose** and are listed rather than omitted: their whole fight
+ * Three are **0 on purpose** and are listed rather than omitted: their whole fight
  * arrives in one call with no opening snapshot, so the replay cannot seed a
  * running total. Written down so that a fight falling to zero reads as a change
  * and not as a fight that was never there.
  * `2026-08-12-experimental-tancerz-vs-wojownik` is the duel;
  * `2026-08-23-tempest-grupa-vs-hildur-auto` is the auto-resolved group fight,
  * where the game settles the whole battle before it sends anything and the two
- * calls that follow carry snapshots and no messages at all.
+ * calls that follow carry snapshots and no messages at all;
+ * `2026-08-24-tempest-tropiciel-vs-centaur` is a duel the player lost, whose 112
+ * messages all arrive in the call that opens it.
+ *
+ * ⚠️ **The third one cost something, and the cost is why it is spelled out here.**
+ * It is the only recording carrying `wound`, so the key this repository would
+ * normally admit through this file had to be admitted somewhere else
+ * (`tests/core/wound-rule.test.ts`) — the replay reports the same `0` whether the
+ * key is read or not. Teaching this to seed from the first percentage a call
+ * states, where the snapshot is empty, would judge all three and is the open
+ * alternative that round did not take.
  *
  * ⚠️ **Thirteen of these rose when the team heal became a figure**, and that rise
  * is the point rather than a side effect: those calls used to be declined outright
@@ -332,6 +342,7 @@ const COMPARISONS_BY_FIGHT: Record<string, number> = {
   "2026-08-17-tempest-grupa-vs-hildur": 414,
   "2026-08-23-tempest-grupa-vs-hildur": 831,
   "2026-08-23-tempest-grupa-vs-hildur-auto": 0,
+  "2026-08-24-tempest-tropiciel-vs-centaur": 0,
 };
 
 describe("decoded damage against the health the protocol states", () => {

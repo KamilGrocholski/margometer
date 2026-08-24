@@ -108,6 +108,17 @@ export const EFFECT_NAMES: Record<string, TokenName> = {
   pierce: { id: "msg_+pierce", fallback: "przebicie" },
   pierceb: { id: "msg_-pierceb", fallback: "zablokowane przebicie" },
   stun: { id: "msg_+stun", fallback: "ogłuszenie" },
+  // The monster's own stun, in the arrow-shaped one of the five variants the
+  // client spells. A separate entry rather than a second name for the one above:
+  // `docs/protocol-keys.md` records them as different keys off different
+  // statistics, and folding them would count one effect under the other's label.
+  "stun2-d": { id: "msg_+stun2-d", fallback: "potężne ogłuszenie strzałą" },
+  // What a blow announces when it applies the wound whose ticks the loss table
+  // below carries. Two words for one effect on purpose: this counts blows that
+  // applied it and that one counts the health it took, so a shared label would
+  // stand over two quantities — the fault the whole of this file's guard exists
+  // for.
+  wound: { id: "msg_+wound", fallback: "nałożona głęboka rana" },
   freeze: { id: "msg_+freeze", fallback: "zamrożenie" },
   legbon_curse: { id: "msg_+legbon_curse", fallback: "klątwa" },
   legbon_cleanse: { id: "msg_-legbon_cleanse", fallback: "płomienne oczyszczenie" },
@@ -223,8 +234,14 @@ export const HEALTH_LOSS_SOURCE_NAMES: Record<string, TokenName> = {
   // there is no name to ask it for either.
   light: { id: null, fallback: "porażenie" },
   // The old phrase was "rana", which is the game's word for `wound` — a
-  // different key, and one this meter also reads.
+  // different key, and one this meter also reads. That key is the entry below,
+  // and the two words have to stay apart: they are separate damage types with
+  // separate rules, and one label over both is a wrong number that looks right.
   injure: { id: null, fallback: "zranienie" },
+  // The deep wound a weapon applies, ticking after the blow that announced it.
+  // No id, because the client's entry for the tick is a sentence with holes in it
+  // — the announcement above is the one with a name to ask for.
+  wound: { id: null, fallback: "głęboka rana" },
   /**
    * The gain side's `heal` below zero — the same effect, draining.
    *

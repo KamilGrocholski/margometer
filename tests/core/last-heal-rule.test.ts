@@ -265,7 +265,7 @@ describe("healing stated against a name", () => {
     const measurable = OCCURRENCES.filter(
       (one) => one.healthBefore !== null && !one.isCloudedByUnsizedHealing,
     );
-    expect(measurable.length).toBe(11);
+    expect(measurable.length).toBe(12);
     expect(OCCURRENCES.length - measurable.length).toBe(1);
   });
 

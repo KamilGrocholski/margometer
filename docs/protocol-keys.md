@@ -197,7 +197,7 @@ capture in `tests/captured-fights/` as of 2026-08-18 ending with a winner named.
 So this is a claim of the client's and the help's, and the first recording of a
 fight nobody wins is what would measure it.
 
-*Shape:* 20 occurrences; alone in its message; text
+*Shape:* 21 occurrences; alone in its message; text
 
 *Help:* names `max_moves`
 
@@ -212,7 +212,7 @@ The same, for the losing side — with the one exception the entry above states:
 the `?` that key spends on a fight nobody won is not a value this one carries,
 and it is left unread here rather than read as a side of that name.
 
-*Shape:* 20 occurrences; alone in its message; text
+*Shape:* 21 occurrences; alone in its message; text
 
 ### `+oth_dmg` — decoded
 
@@ -239,7 +239,7 @@ there. Read literally it made `dmg ` a second element beside `dmg`, splitting
 107 952 points of physical damage into two rows nothing on screen could tell
 apart. Held by `tests/core/fight-decoder.test.ts`.
 
-*Shape:* 834 occurrences; on a message reporting damage; text
+*Shape:* 836 occurrences; on a message reporting damage; text
 
 *Evidence:* in every call where a target lost more health than the attack
 accounted for, the shortfall equalled this amount exactly — 110, 247 and 123 in
@@ -257,7 +257,7 @@ order from `+oth_dmg`, which is why the two cannot share a reader.
 
 *Cause:* the subject's own
 
-*Shape:* 12 occurrences; on a message reporting damage; text
+*Shape:* 13 occurrences; on a message reporting damage; text
 
 *Help:* names `lastheal`
 
@@ -399,7 +399,7 @@ message that carries it, so the first member accounts for all the health movemen
 and the second moves none. *Not understood* and *unaccounted* are different
 claims, and only the first is true here.
 
-*Shape:* 1515 occurrences; alone in its message; text
+*Shape:* 1535 occurrences; alone in its message; text
 
 *Evidence:* of the four ways to sign `heal` and `poison`, only healing added and
 poison subtracted closes the stated percentages — the other three leave hundreds
@@ -476,7 +476,7 @@ and `fire=117,6` twice — read as `poison`'s is, and for the same measured reas
 the calls are judged and agree on the very messages carrying it, so the member
 moves no health.
 
-*Shape:* 12 occurrences; alone in its message; text
+*Shape:* 20 occurrences; alone in its message; text
 
 *Help:* names `( fire )`
 
@@ -935,7 +935,7 @@ carries damage and names a combatant on both sides.
 
 Damage physical absorption stopped before it reached the target.
 
-*Shape:* 599 occurrences; on a blow; a whole number
+*Shape:* 611 occurrences; on a blow; a whole number
 
 *Help:* names `absorb`
 
@@ -983,7 +983,7 @@ A critical hit fired on this blow. **Carries no figure at all**: the protocol
 states the key and stops, and the client's branch composes its sentence without
 reading a value.
 
-*Shape:* 675 occurrences; on a blow; no value
+*Shape:* 678 occurrences; on a blow; no value
 
 *Help:* names `crit`
 
@@ -1023,7 +1023,7 @@ silence: *documented effect, undocumented name* is a different finding from
 Armour piercing fired on this blow — the help states that within such a blow the
 target's armour does not reduce the damage. No figure, like `+crit`.
 
-*Shape:* 244 occurrences; on a blow; no value
+*Shape:* 263 occurrences; on a blow; no value
 
 *Help:* names `pierce`
 
@@ -1123,6 +1123,31 @@ not the sentence, is what identifies it.
 *Evidence:* article view,372 at the engine name `stun` (read 2026-08-09), the
 shared measurement above, and production build `1785244275300`. 9 occurrences
 on `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`.
+
+### `+stun2-d` — decoded
+
+**Ogłuszenie** — the same event as `+stun`, from the statistic a monster carries
+for it, and in the arrow-shaped one of the five variants the client spells
+(`+stun2`, `-c`, `-d`, `-f`, `-l`). A proc: it states no figure and the blow it
+rides already reports its damage.
+
+The captures agree with the help about whose event it is. All four occurrences sit
+on a blow of the monster's into the player, and each is followed by a message
+saying that player lost a turn.
+
+*Shape:* 4 occurrences; on a blow; no value
+
+*Help:* names `stun2`
+
+*Evidence:* article `view,372` at the engine name `stun2` (read 2026-08-24) gives
+it as a monster's statistic deciding the chance of the Ogłuszenie event, fired
+while the monster attacks and costing the Player two turns, during which no block,
+evade, parry or arrow-block can occur. Production build `1786514810315` composes
+`msg_+stun2-d` with no `%val%`, on the same switch as `msg_+stun` and
+`msg_+acdmg_destroyed`. 4 occurrences on
+`tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaur.json`, and none
+elsewhere as the set stood 2026-08-24; the other four variants are absent from
+every recording.
 
 ### `+freeze` — decoded
 
@@ -1229,7 +1254,7 @@ flag family rather than to the declarations.
 The target evaded this blow. Carries no figure, and sits on the defending side:
 every occurrence arrives beside `-dmg=0`, which is the blow landing nothing.
 
-*Shape:* 8 occurrences; on a blow; no value
+*Shape:* 12 occurrences; on a blow; no value
 
 *Help:* names `evade`
 
@@ -1249,7 +1274,7 @@ The Fast Arrow fired on this blow: a chance event that shortens the attack's
 duration. Carries no figure, and says nothing about how hard the blow landed —
 what it changes is time, which no total here keeps.
 
-*Shape:* 32 occurrences; on a blow; no value
+*Shape:* 33 occurrences; on a blow; no value
 
 *Help:* names `fastarrow`
 
@@ -1327,7 +1352,7 @@ The target's armour was destroyed outright by this blow — the floor `+acdmg`
 counts down to. **Not a figure**, unlike `+acdmg`: this key states that the
 armour is gone and no amount.
 
-*Shape:* 29 occurrences; on a blow; no value
+*Shape:* 30 occurrences; on a blow; no value
 
 *Help:* names nothing of `acdmg_destroyed`, `destroyed`
 
@@ -1344,7 +1369,7 @@ distinction is not pedantic: the help describes it as lowering a statistic
 before the blow's reduction is computed, with a floor below which it cannot go.
 Summed together with `dealt` it would be a total of two different things.
 
-*Shape:* 577 occurrences; on a blow; a whole number
+*Shape:* 598 occurrences; on a blow; a whole number
 
 *Help:* names `acdmg`
 
@@ -1366,7 +1391,7 @@ in **percentage points** rather than in the points `+acdmg` uses. The two are
 kept in one shape here because the protocol gives no unit either way; what the
 figure means is the entry's job, not the type's.
 
-*Shape:* 845 occurrences; on a blow; a whole number
+*Shape:* 860 occurrences; on a blow; a whole number
 
 *Help:* names `resdmg`
 
@@ -1442,7 +1467,7 @@ and shown, never stored here — the same footing as the sentences the client
 composes from keys, and for the same reason (NOTICE.md). No example of one
 appears in this file or in any test.
 
-*Shape:* 2493 occurrences; on a skill announcement; text
+*Shape:* 2521 occurrences; on a skill announcement; text
 
 *Help:* names nothing of `tspell`, `( tspell )`, `skillId`, `( skillId )`
 
@@ -1466,7 +1491,7 @@ can put on screen.
 unknown-parameter notice, which is what makes it a pass-through identifier
 rather than something the log is composed from.
 
-*Shape:* 2276 occurrences; on a skill announcement; a whole number
+*Shape:* 2289 occurrences; on a skill announcement; a whole number
 
 *Evidence:* production build `1785244275300` for the empty branch. Measured on
 the captures: present on 182 of the 197 announcements, absent from 15, and never
@@ -1650,7 +1675,7 @@ input, not an outcome.** Whatever the points are then worth arrives as ordinary
 figures in the message or in later ones, already computed; totalling the cap
 would add a number that measures nothing that was done to anybody.
 
-*Shape:* 368 occurrences; on a skill announcement; a whole number
+*Shape:* 370 occurrences; on a skill announcement; a whole number
 
 *Help:* names `combo-max`
 
@@ -2351,7 +2376,7 @@ Free text the client shows in the battle log. **Nothing of it is stored here**,
 in this file or in any test: it carries the game's own sentences and player
 names, which NOTICE.md keeps out of the repository entirely.
 
-*Shape:* 205 occurrences; alone in its message; text
+*Shape:* 212 occurrences; alone in its message; text
 
 *Help:* names nothing of `txt`
 
@@ -2547,47 +2572,70 @@ engine name `critwound` — article `view,372` (read 2026-08-19) — and prints 
 separate entry for the announcing form, which is how `+injure` stands as well.
 Absent from `tests/captured-fights/` as the set stood 2026-08-19.
 
-### `wound` — investigated
+### `wound` — decoded
 
 **Głęboka rana** — the deep-wound damage a weapon applies, ticking afterwards, and
-the third key of this family. The client composes it as it composes `injure`,
-`critwound` and `poison`: one combatant's name and one figure, with a second-member
-variant when the value carries a comma. So a tick would arrive in the shape this
-register knows — the subject in the actor slot and nobody at the other end.
+the third key of this family. It arrives as `heal`, `poison` and `injure` do: the
+subject in the actor slot of a message naming nobody at the other end, one figure,
+read as a negative health change.
 
-⚠️ **Of the three ticks that are announced at all, this is the one furthest from
-the join.** Two events announce it — `+wound` and `+of_wound`, the main weapon's
-and the auxiliary's — and neither states a figure. The help's table of damage over
-time then removes the rule as well: this is the type a fresh application does
-**not** overwrite and **does** accumulate, an event setting a ceiling of twice the
-engine figure and each further one extending the duration. So several attackers'
-wounds are one ticking figure rather than the freshest attacker's, and there is
-nothing an earlier message could be read for (§9.6).
+**Unattributed by construction, and here that is a conclusion rather than a
+default.** Two events announce it — `+wound` and `+of_wound`, the main weapon's and
+the auxiliary's — so unlike `poison` this key does have an announcing twin, which is
+the first of the three things §9.6's fourth clause needs. It has neither of the
+other two. The announcement states **no figure**, so nothing identifies which
+application is ticking; and the help's table of damage over time removes the rule as
+well, this being the type a fresh application does **not** overwrite and **does**
+accumulate — an event setting a ceiling of twice the engine figure and each further
+one extending the duration. Several attackers' wounds are one ticking figure rather
+than the freshest attacker's. So the tick is charged to nobody, and the panel draws
+it half-named.
 
-**Not read**, and the material is what is missing rather than the meaning: no
-capture carries it (§7.1).
+*Health:* moves health
+
+*Cause:* nobody
+
+⚠️ **The health witness cannot judge the one fight that carries this key, and the
+reading does not rest on it.** `2026-08-24-tempest-tropiciel-vs-centaur` arrives as
+a single engine call with no opening snapshot, so the replay in
+`tests/core/health-witness.test.ts` seeds no running total and produces no
+comparison for it either way — the route `fire` and `light` came in by is simply not
+available here. What stands in its place is the same body of evidence chained from a
+percentage the protocol states rather than from a snapshot, measured by
+`tests/core/wound-rule.test.ts`: every tick's stated percentage is the one stated
+immediately before it for that combatant, less the tick's own figure over the
+combatant's maximum health. Fourteen of the fifteen close inside 0.007 percentage
+points; the fifteenth is the killing tick, where the figure would take the player
+past zero and the game states zero.
+
+*Shape:* 15 occurrences; alone in its message; a whole number
 
 *Help:* names `wound`, `wound1`
 
-*Evidence:* production build `1786514810315` composes `msg_wound %name% %val%`, and
-`msg_wound_multi %name% %val0% %val1%` where the value splits on a comma — the two
-branches `injure`, `critwound` and `poison` take as well. The published help
-documents the damage at article `view,372` (read 2026-08-19): the weapon attribute
-under the engine names `wound1, of_wound1`, applied for five turns after a hit
-doing non-zero damage, and the type's behaviour in the table of damage over time. Absent from
-`tests/captured-fights/` as the set stood 2026-08-19: the string occurs in none of
-the seventeen recordings.
+*Evidence:* as above, and production build `1786514810315` composes
+`msg_wound %val%` and `msg_wound_multi` where the value splits on a comma — the two
+branches `injure`, `critwound` and `poison` take as well; no occurrence here carries
+the second member. The published help documents the damage at article `view,372`
+(read 2026-08-19): the weapon attribute under the engine names `wound1, of_wound1`,
+applied for five turns after a hit doing non-zero damage, and the type's behaviour in
+the table of damage over time. Carried by one recording,
+`tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaur.json`, and by no
+other as the set stood 2026-08-24.
 
-### `+wound` — investigated
+### `+wound` — decoded
 
-The event a blow announces when a weapon's deep wound is applied. `+of_wound` is
-the auxiliary weapon's own, and the two are one entry because they are one case:
-the client composes both with **no `%val%`**, where `+injure` on the same switch
-carries one.
+The event a blow announces when a weapon's deep wound is applied, read as a proc:
+an effect that fired with the attack and states no figure. `+of_wound` is the
+auxiliary weapon's own and no capture carries one, so it is not read.
 
-That is the same difference `+critwound` has, and here it is the smaller half of
-why the entry above cannot be joined — the type's own arithmetic already rules the
-reading out, whatever these announced.
+**Read as a flag because the client composes it as one**, and the difference from
+`+injure` is the whole reason the two announcements sit in different lists in
+`src/core/fight-decoder.ts`. That one carries the figure that says which wound is
+ticking, and is held back from every total for it; this one carries nothing to
+hold back. A value arriving on it sends the key straight back to unread rather
+than being dropped beside a flag.
+
+*Shape:* 7 occurrences; on a blow; no value
 
 *Help:* names `wound`, `wound1`, `of_wound1`
 
@@ -2596,8 +2644,10 @@ reading out, whatever these announced.
 one. The published help documents the effect under the weapon attribute
 `wound1, of_wound1` and the event in its table of damage over time — article
 `view,372` (read 2026-08-19) — and prints no separate entry for either announcing
-form, as it prints none for `+injure` or `+critwound`. Absent from
-`tests/captured-fights/` as the set stood 2026-08-19.
+form, as it prints none for `+injure` or `+critwound`. Every occurrence rides a
+blow of the monster's in
+`tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaur.json`, the one
+recording carrying either half of this pair as the set stood 2026-08-24.
 
 ### `+swing` — investigated
 

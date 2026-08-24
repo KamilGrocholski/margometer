@@ -524,12 +524,32 @@ describe("who a health figure is charged to", () => {
    * ships `+poison`, §9.6's fourth clause has a second candidate and this entry
    * would otherwise go on saying nothing announces it
    * (`docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`).
+   *
+   * ⚠️ **`wound` is why this asks for a figure and not merely for a name.** It read
+   * `toEqual([])` while every tick in the corpus was announced by nothing, and
+   * `2026-08-24-tempest-tropiciel-vs-centaur` brought a key the client announces as
+   * `+wound` — which would have made this fail on an entry that is right. §9.6's
+   * clause wants three things and the announcement is only the first: a figure on
+   * it, so a tick can be told from another, and a documented rule making one
+   * application the owner. The figure is the half a machine can hold, and it is
+   * held over the captures rather than over the client, because a `%val%` hole is
+   * not in the frozen key list and the material states what actually arrives.
    */
-  test("a tick charged to nobody has no announcing twin the client knows", () => {
-    const announced = getKeysWithCause("nobody").filter((key) =>
-      NAMED_KEYS.has(`${FROZEN_PROTOCOL_KEYS.computedFamily.dealtSign}${key}`),
-    );
-    expect(announced).toEqual([]);
+  test("a tick charged to nobody is announced by nothing carrying a figure", () => {
+    const twins = getKeysWithCause("nobody")
+      .map((key) => ({ key, twin: `${FROZEN_PROTOCOL_KEYS.computedFamily.dealtSign}${key}` }))
+      .filter(({ twin }) => NAMED_KEYS.has(twin));
+
+    for (const { key, twin } of twins) {
+      const entry = PROTOCOL_KEY_REGISTER.find((one) => one.key === twin);
+      // A twin the captures never carry states no shape, and then nothing here
+      // knows whether it announces a figure — which is the case this must fail on
+      // rather than wave through.
+      expect(entry?.shape?.valueShape, `${key} is announced by ${twin}`).toBe("no value");
+    }
+    // The narrowing is exercised: were the corpus to lose every announced tick,
+    // the loop above would pass by being empty and this would say so.
+    expect(twins.map(({ key }) => key)).toEqual(["wound"]);
   });
 
   /**

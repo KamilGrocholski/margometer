@@ -85,6 +85,13 @@ freshest application against that opponent, so a victim carries one at a time; t
 figure says which one is ticking (§9.6,
 `docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`).
 
+⚠️ **One key, `injure`, and not the family.** `wound` ticks in the identical shape
+and gets none of this: its announcement `+wound` states no figure, and the help has
+that damage type accumulate rather than be overwritten, so nothing says which
+application is ticking. It stays in the damage table above, on the row
+`3=50.00;0;poison=60` holds — a figure whose actor the game left out and nobody can
+fill (`docs/protocol-keys.md`).
+
 | the fight | `Zadane` | `Otrzymane` |
 |---|---|---|
 | `1=90.00;3=50.00;+dmg=500;-dmg=400;+injure=60`, then `3=50.00;0;injure=60` | `mag 460` in the ranking · `My`, no pinned row | `boss 460` in the ranking · `Oni`, no pinned row |

@@ -203,6 +203,8 @@ describe("the panel's own vocabulary, as decided", () => {
     ["pierce", "msg_+pierce", "przebicie"],
     ["pierceb", "msg_-pierceb", "zablokowane przebicie"],
     ["stun", "msg_+stun", "ogłuszenie"],
+    ["stun2-d", "msg_+stun2-d", "potężne ogłuszenie strzałą"],
+    ["wound", "msg_+wound", "nałożona głęboka rana"],
     ["freeze", "msg_+freeze", "zamrożenie"],
     ["legbon_curse", "msg_+legbon_curse", "klątwa"],
     ["legbon_cleanse", "msg_-legbon_cleanse", "płomienne oczyszczenie"],
@@ -227,6 +229,7 @@ describe("the panel's own vocabulary, as decided", () => {
     ["fire", null, "podpalenie"],
     ["light", null, "porażenie"],
     ["injure", null, "zranienie"],
+    ["wound", null, "głęboka rana"],
     ["heal", null, "ujemne przywracanie życia"],
   ],
   HEALTH_GAIN_SOURCE_NAMES: [

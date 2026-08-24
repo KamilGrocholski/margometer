@@ -307,6 +307,18 @@ const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> 
   heal_target: { sign: 1, isOnTarget: true },
   poison: { sign: -1, isOnTarget: false },
   injure: { sign: -1, isOnTarget: false },
+  // The third of the deep-wound family, and the one key here that `fire` and
+  // `light`'s route could not admit. Its only material
+  // (`tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaur.json`) arrives
+  // as one engine call with no opening snapshot, so the health witness seeds
+  // nothing and judges none of it — the reading rests on the same body of
+  // evidence chained from a stated percentage instead of a snapshot, and
+  // `tests/core/wound-rule.test.ts` is where that is measured.
+  //
+  // It is **not** joined to its announcement the way `injure` is: `+wound` states
+  // no figure, and the help has this type accumulate rather than be overwritten,
+  // so no earlier message owns a tick (§9.6, `docs/protocol-keys.md`).
+  wound: { sign: -1, isOnTarget: false },
   // Elemental damage over time, and the client writes it as `poison`'s twin:
   // production build 1786514810315 composes both from the actor slot, both split
   // on the separator below, and the same bundle counts `fire` into its own damage
@@ -399,6 +411,22 @@ const PROC_KEYS = [
   // (article view,372, engine name `pierceb`, read 2026-08-09). All three
   // occurrences carry `+pierce` in the same message.
   "-pierceb",
+  // The announcement of the deep wound whose ticks `HEALTH_CHANGE_KEYS` now
+  // reads, and a proc rather than a declaration because it states nothing:
+  // production build 1786514810315 composes `msg_+wound` with no `%val%` hole, on
+  // the switch that composes `msg_+injure` with one. That is why the two announcements
+  // sit in different lists — `+injure` carries the figure that identifies which
+  // wound is ticking, and this one has none to carry.
+  "+wound",
+  // The monster's stun, in the arrow-shaped one of the five variants the client
+  // knows (`+stun2`, `-c`, `-d`, `-f`, `-l`). Composed as `msg_+stun2-d` with no
+  // `%val%`, on the same switch as `+stun` and `+acdmg_destroyed`, production
+  // build 1786514810315. The help documents the effect under the engine name
+  // `stun2` — a monster's statistic deciding the chance of the event, fired while
+  // the monster attacks, costing the Player two turns (article view,372, read
+  // 2026-08-24). The captures agree: all four ride a blow of the monster's, and a
+  // message saying the player lost a turn follows each.
+  "+stun2-d",
 ];
 
 /**
