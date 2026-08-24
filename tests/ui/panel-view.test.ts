@@ -15,6 +15,7 @@ import { composeJsonText } from "@/libs/json.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
+import { composeCombatantsOfPayload } from "@/tools/fight-dump-parser.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
@@ -2455,7 +2456,13 @@ describe("against the captured fights", () => {
 describe("the panel before anybody has acted", () => {
   const OPENINGS = CAPTURED_FIGHTS.map((fight) => {
     const [first] = fight.dump.calls;
+    // The payload as well as the snapshots, because that is what the session has
+    // to work with at this moment: a fight fought on auto opens with no battle
+    // object to snapshot, and its roster rides in `ladunek.w` alone. Read off the
+    // snapshots only, that opening was a fight of nobody with three rows drawn
+    // over it (`composeCombatantsOfPayload`).
     const roster = composeRosterFromSnapshots([
+      ...(first === undefined ? [] : composeCombatantsOfPayload(first)),
       ...(first?.combatantsBefore ?? []),
       ...(first?.combatantsAfter ?? []),
     ]);

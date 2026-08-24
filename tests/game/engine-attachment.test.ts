@@ -392,13 +392,22 @@ describe("the add-on driven by a captured fight", () => {
        * decision rather than a fix.** The game calls the engine far more often
        * than a fight has turns, and a payload that brings no message, no roster
        * fragment and no turn cannot change a single figure on screen — redrawing
-       * for it is work done in front of somebody who is playing. Every capture
-       * carries at least two such payloads — between two and five across the
-       * eight — which is why the count is short rather than equal.
+       * for it is work done in front of somebody who is playing. Nearly every capture
+       * carries such payloads, which is why the count is short rather than equal.
+       *
+       * ⚠️ **Short of what, though — a recording can have nothing to be short
+       * of.** A fight fought on auto arrives in a single engine call carrying the
+       * whole protocol, so there is no second payload to skip and the count is
+       * necessarily equal. Asserting the strict inequality on it would be
+       * demanding that the panel refuse to draw the only fight it was handed.
        */
       const carrying = fight.dump.calls.filter((call) => call.protocolMessages.length > 0).length;
       expect(readings.length).toBeGreaterThanOrEqual(carrying);
-      expect(readings.length).toBeLessThan(fight.dump.calls.length);
+      if (fight.dump.calls.length > carrying) {
+        expect(readings.length).toBeLessThan(fight.dump.calls.length);
+      } else {
+        expect(readings.length).toBe(fight.dump.calls.length);
+      }
 
       meter.stop();
       expect(Object.prototype.hasOwnProperty.call(battle, "updateData")).toBe(false);
@@ -487,9 +496,20 @@ describe("a recording the add-on makes, read back as material", () => {
         decodeFight(getMessagesOfDump(fight.dump), roster),
       );
 
-      // The health the witness stands on survived the round trip on both sides.
+      /**
+       * The health the witness stands on survived the round trip on both sides.
+       *
+       * ⚠️ **Both directions, because a recording can legitimately hold none.**
+       * A snapshot is read off the game's battle object either side of the engine
+       * call, and a fight fought on auto arrives in one call with no battle object
+       * on either side of it — so the recording carries its roster in `ladunek.w`
+       * and no snapshot at all. Asserting non-empty would refuse that material;
+       * asserting nothing would let a round trip that quietly dropped every
+       * snapshot pass. The equality asks the one question that holds for both.
+       */
+      const snapshotted = fight.dump.calls.some((call) => call.combatantsAfter.length > 0);
       const withCombatants = read.calls.filter((call) => call.combatantsAfter.length > 0);
-      expect(withCombatants.length).toBeGreaterThan(0);
+      expect(withCombatants.length > 0).toBe(snapshotted);
       for (const call of read.calls) {
         const original = assertDefined(
           fight.dump.calls.find((one) => one.index === call.index),

@@ -284,7 +284,7 @@ const COMPARISONS = CAPTURED_FIGHTS.flatMap((fight) => getComparisons(fight, KEY
  * much of the material the arithmetic actually closes over is a fact about the
  * project, not a detail.
  *
- * Three are **0 on purpose** and are listed rather than omitted: their whole fight
+ * Four are **0 on purpose** and are listed rather than omitted: their whole fight
  * arrives in one call with no opening snapshot, so the replay cannot seed a
  * running total. Written down so that a fight falling to zero reads as a change
  * and not as a fight that was never there.
@@ -293,7 +293,14 @@ const COMPARISONS = CAPTURED_FIGHTS.flatMap((fight) => getComparisons(fight, KEY
  * where the game settles the whole battle before it sends anything and the two
  * calls that follow carry snapshots and no messages at all;
  * `2026-08-24-tempest-tropiciel-vs-centaur` is a duel the player lost, whose 112
- * messages all arrive in the call that opens it.
+ * messages all arrive in the call that opens it;
+ * `2026-08-24-tempest-tropiciel-vs-centaury-auto` is the sharpest case of the
+ * four and the one that says what the shape really is — it has **no snapshot
+ * anywhere**, not merely none at the opening. Its single call carries `init`,
+ * `endBattle` and `close` together, so neither side of it has a battle object to
+ * read, and the fight is stated entirely in `ladunek.w` and the messages. A
+ * recording can therefore be complete, decodable and drawn by the panel while
+ * offering this file nothing to judge.
  *
  * ⚠️ **The third one cost something, and the cost is why it is spelled out here.**
  * It is the only recording carrying `wound`, so the key this repository would
@@ -343,6 +350,7 @@ const COMPARISONS_BY_FIGHT: Record<string, number> = {
   "2026-08-23-tempest-grupa-vs-hildur": 831,
   "2026-08-23-tempest-grupa-vs-hildur-auto": 0,
   "2026-08-24-tempest-tropiciel-vs-centaur": 0,
+  "2026-08-24-tempest-tropiciel-vs-centaury-auto": 0,
 };
 
 describe("decoded damage against the health the protocol states", () => {

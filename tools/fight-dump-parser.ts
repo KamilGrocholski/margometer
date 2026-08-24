@@ -23,7 +23,11 @@
  */
 
 import { getValueFromJsonText } from "@/libs/json.ts";
-import { getFiniteNumberFromValue, getIntegerFromValue } from "@/libs/number.ts";
+import {
+  composeIntegerText,
+  getFiniteNumberFromValue,
+  getIntegerFromValue,
+} from "@/libs/number.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
 
@@ -155,19 +159,66 @@ function parseCombatantHealth(raw: unknown, path: string): CombatantHealth {
   };
 }
 
+/**
+ * The combatant's own fields, spelled once for the two places a recording states
+ * one: the snapshot arrays this file was written for, and `ladunek.w`.
+ *
+ * ⚠️ **Still not `src/game/engine-warrior.ts`'s, and the reason is that file's
+ * own.** These are the names the recordings on disk were written in; those are
+ * the names the client uses today, and a client rename must not reach material
+ * that froze the old spelling (§9.2). What changed is only that this file had
+ * *two* copies of them once `ladunek.w` had to be read — the second spelling is
+ * what §9.3 refuses, not the independence from the live path.
+ */
+const COMBATANT_FIELDS = {
+  id: "id",
+  name: "name",
+  side: "team",
+  profession: "prof",
+  level: "lvl",
+  health: "hp",
+} as const;
+
+/**
+ * The four fields that say an entry is describing somebody rather than changing
+ * them.
+ *
+ * `hp` is deliberately not among them: it is exactly what a delta carries.
+ * Measured over every recording held on 2026-08-24 — 4142 entries under
+ * `ladunek.w` state none of these four, 200 state all four, and **none states
+ * some**. That perfect split is the whole licence for reading the absent case as
+ * a delta and the partial case as a fault, and it is the same shape
+ * `src/game/engine-roster.ts` measured for the live path.
+ */
+const IDENTITY_FIELDS = [
+  COMBATANT_FIELDS.name,
+  COMBATANT_FIELDS.side,
+  COMBATANT_FIELDS.profession,
+  COMBATANT_FIELDS.level,
+] as const;
+
+function parseCombatantSnapshot(raw: unknown, at: string): CombatantSnapshot {
+  const combatant = requireObject(raw, at);
+  return {
+    id: requireInteger(combatant[COMBATANT_FIELDS.id], `${at}.${COMBATANT_FIELDS.id}`),
+    name: requireString(combatant[COMBATANT_FIELDS.name], `${at}.${COMBATANT_FIELDS.name}`),
+    team: requireInteger(combatant[COMBATANT_FIELDS.side], `${at}.${COMBATANT_FIELDS.side}`),
+    profession: requireString(
+      combatant[COMBATANT_FIELDS.profession],
+      `${at}.${COMBATANT_FIELDS.profession}`,
+    ),
+    level: requireInteger(combatant[COMBATANT_FIELDS.level], `${at}.${COMBATANT_FIELDS.level}`),
+    health: parseCombatantHealth(
+      combatant[COMBATANT_FIELDS.health],
+      `${at}.${COMBATANT_FIELDS.health}`,
+    ),
+  };
+}
+
 function parseCombatantSnapshots(raw: unknown, path: string): CombatantSnapshot[] {
-  return requireArray(raw, path).map((entry, index) => {
-    const at = `${path}[${index}]`;
-    const combatant = requireObject(entry, at);
-    return {
-      id: requireInteger(combatant["id"], `${at}.id`),
-      name: requireString(combatant["name"], `${at}.name`),
-      team: requireInteger(combatant["team"], `${at}.team`),
-      profession: requireString(combatant["prof"], `${at}.prof`),
-      level: requireInteger(combatant["lvl"], `${at}.lvl`),
-      health: parseCombatantHealth(combatant["hp"], `${at}.hp`),
-    };
-  });
+  return requireArray(raw, path).map((entry, index) =>
+    parseCombatantSnapshot(entry, `${path}[${index}]`),
+  );
 }
 
 function parseEngineCall(raw: unknown, path: string): EngineCall {
@@ -226,7 +277,7 @@ export function parseFightDump(source: string): FightDump {
   };
 }
 
-/** Highest known maximum health per combatant, gathered from every snapshot in the dump. */
+/** Highest known maximum health per combatant, gathered everywhere the dump states one. */
 export function getMaximumHealthByCombatantId(dump: FightDump): Map<number, number> {
   const maximum = new Map<number, number>();
   for (const call of dump.calls) {
@@ -236,6 +287,9 @@ export function getMaximumHealthByCombatantId(dump: FightDump): Map<number, numb
         Math.max(maximum.get(combatant.id) ?? 0, combatant.health.maximum),
       );
     }
+  }
+  for (const combatant of composeCombatantsOfPayloads(dump)) {
+    maximum.set(combatant.id, Math.max(maximum.get(combatant.id) ?? 0, combatant.health.maximum));
   }
   return maximum;
 }
@@ -257,9 +311,67 @@ export function getMaximumHealthByCombatantId(dump: FightDump): Map<number, numb
  */
 export const PAYLOAD_FIELDS = {
   combatants: "w",
-  combatantId: "id",
+  combatantId: COMBATANT_FIELDS.id,
   nonPlayerFlag: "npc",
 } as const;
+
+/**
+ * Every combatant the payloads describe, deduplicated by id, latest statement
+ * winning.
+ *
+ * ⚠️ **A recording can state its roster here and nowhere else, and one does.**
+ * The snapshots come off the game's battle object, read either side of the engine
+ * call (`src/userscript-entry.ts`). A fight fought on auto arrives whole in a
+ * single call — `init`, `endBattle` and `close` in one payload — so before it
+ * there is no battle object yet and after it the game has already torn one down:
+ * both snapshots are empty and `ladunek.w` carries the only roster there is.
+ * `tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaury-auto.json` is
+ * that recording, and until this function existed it read as a fight of nobody
+ * while the panel that recorded it had drawn three combatants.
+ *
+ * Measured over every recording held on 2026-08-24: where both sources state a
+ * combatant they agree on **every** field — id, name, side, profession, level and
+ * maximum health, across all 21 recordings that carry snapshots at all. So this is
+ * a widening and not a second opinion.
+ *
+ * An entry stating none of `IDENTITY_FIELDS` is the delta the game sends
+ * constantly and is skipped; one stating some of them is a shape this reader was
+ * not measured against, and `parseCombatantSnapshot` refuses it loudly (§9.5).
+ */
+export function composeCombatantsOfPayloads(dump: FightDump): CombatantSnapshot[] {
+  const byId = new Map<number, CombatantSnapshot>();
+  for (const call of dump.calls) {
+    for (const combatant of composeCombatantsOfPayload(call)) byId.set(combatant.id, combatant);
+  }
+  return [...byId.values()];
+}
+
+/**
+ * The same reading of a single call, for the callers that are asking what one
+ * payload said rather than what a fight held.
+ *
+ * Two of them, which is why it is a name: the fold above, and the panel's guard
+ * for the moment before anybody has acted — which composes a roster out of the
+ * opening call alone and would otherwise draw a fight of nobody on exactly the
+ * recording that has no snapshot to open with (`tests/ui/panel-view.test.ts`).
+ */
+export function composeCombatantsOfPayload(call: EngineCall): CombatantSnapshot[] {
+  const payload = getRecordFromValue(call.payload);
+  const combatants =
+    payload === null ? null : getRecordFromValue(payload[PAYLOAD_FIELDS.combatants]);
+
+  const stated: CombatantSnapshot[] = [];
+  for (const [key, value] of Object.entries(combatants ?? {})) {
+    const entry = getRecordFromValue(value);
+    if (entry === null) continue;
+    if (!IDENTITY_FIELDS.some((field) => entry[field] !== undefined)) continue;
+    const at =
+      `${DUMP_FIELDS.calls}[${composeIntegerText(call.index)}]` +
+      `.${DUMP_FIELDS.payload}.${PAYLOAD_FIELDS.combatants}.${key}`;
+    stated.push(parseCombatantSnapshot(entry, at));
+  }
+  return stated;
+}
 
 /**
  * Which combatants a recording states are players, by id.

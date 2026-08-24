@@ -197,7 +197,7 @@ capture in `tests/captured-fights/` as of 2026-08-18 ending with a winner named.
 So this is a claim of the client's and the help's, and the first recording of a
 fight nobody wins is what would measure it.
 
-*Shape:* 21 occurrences; alone in its message; text
+*Shape:* 22 occurrences; alone in its message; text
 
 *Help:* names `max_moves`
 
@@ -212,7 +212,7 @@ The same, for the losing side — with the one exception the entry above states:
 the `?` that key spends on a fight nobody won is not a value this one carries,
 and it is left unread here rather than read as a side of that name.
 
-*Shape:* 21 occurrences; alone in its message; text
+*Shape:* 22 occurrences; alone in its message; text
 
 ### `+oth_dmg` — decoded
 
@@ -239,7 +239,7 @@ there. Read literally it made `dmg ` a second element beside `dmg`, splitting
 107 952 points of physical damage into two rows nothing on screen could tell
 apart. Held by `tests/core/fight-decoder.test.ts`.
 
-*Shape:* 836 occurrences; on a message reporting damage; text
+*Shape:* 837 occurrences; on a message reporting damage; text
 
 *Evidence:* in every call where a target lost more health than the attack
 accounted for, the shortfall equalled this amount exactly — 110, 247 and 123 in
@@ -399,7 +399,7 @@ message that carries it, so the first member accounts for all the health movemen
 and the second moves none. *Not understood* and *unaccounted* are different
 claims, and only the first is true here.
 
-*Shape:* 1535 occurrences; alone in its message; text
+*Shape:* 1538 occurrences; alone in its message; text
 
 *Evidence:* of the four ways to sign `heal` and `poison`, only healing added and
 poison subtracted closes the stated percentages — the other three leave hundreds
@@ -433,7 +433,7 @@ sign is the client's direction marker rather than noise: `14` here and `-45` on
 the heal render as *increased* and *decreased* of some quantity neither the
 protocol nor the bundle names.
 
-*Shape:* 566 occurrences; alone in its message; text
+*Shape:* 569 occurrences; alone in its message; text
 
 *Help:* names `poison`
 
@@ -476,7 +476,7 @@ and `fire=117,6` twice — read as `poison`'s is, and for the same measured reas
 the calls are judged and agree on the very messages carrying it, so the member
 moves no health.
 
-*Shape:* 20 occurrences; alone in its message; text
+*Shape:* 21 occurrences; alone in its message; text
 
 *Help:* names `( fire )`
 
@@ -935,7 +935,7 @@ carries damage and names a combatant on both sides.
 
 Damage physical absorption stopped before it reached the target.
 
-*Shape:* 611 occurrences; on a blow; a whole number
+*Shape:* 612 occurrences; on a blow; a whole number
 
 *Help:* names `absorb`
 
@@ -983,7 +983,7 @@ A critical hit fired on this blow. **Carries no figure at all**: the protocol
 states the key and stops, and the client's branch composes its sentence without
 reading a value.
 
-*Shape:* 678 occurrences; on a blow; no value
+*Shape:* 679 occurrences; on a blow; no value
 
 *Help:* names `crit`
 
@@ -1023,7 +1023,7 @@ silence: *documented effect, undocumented name* is a different finding from
 Armour piercing fired on this blow — the help states that within such a blow the
 target's armour does not reduce the damage. No figure, like `+crit`.
 
-*Shape:* 263 occurrences; on a blow; no value
+*Shape:* 265 occurrences; on a blow; no value
 
 *Help:* names `pierce`
 
@@ -1254,7 +1254,7 @@ flag family rather than to the declarations.
 The target evaded this blow. Carries no figure, and sits on the defending side:
 every occurrence arrives beside `-dmg=0`, which is the blow landing nothing.
 
-*Shape:* 12 occurrences; on a blow; no value
+*Shape:* 13 occurrences; on a blow; no value
 
 *Help:* names `evade`
 
@@ -1274,7 +1274,7 @@ The Fast Arrow fired on this blow: a chance event that shortens the attack's
 duration. Carries no figure, and says nothing about how hard the blow landed —
 what it changes is time, which no total here keeps.
 
-*Shape:* 33 occurrences; on a blow; no value
+*Shape:* 34 occurrences; on a blow; no value
 
 *Help:* names `fastarrow`
 
@@ -1369,7 +1369,7 @@ distinction is not pedantic: the help describes it as lowering a statistic
 before the blow's reduction is computed, with a floor below which it cannot go.
 Summed together with `dealt` it would be a total of two different things.
 
-*Shape:* 598 occurrences; on a blow; a whole number
+*Shape:* 603 occurrences; on a blow; a whole number
 
 *Help:* names `acdmg`
 
@@ -1467,7 +1467,7 @@ and shown, never stored here — the same footing as the sentences the client
 composes from keys, and for the same reason (NOTICE.md). No example of one
 appears in this file or in any test.
 
-*Shape:* 2521 occurrences; on a skill announcement; text
+*Shape:* 2525 occurrences; on a skill announcement; text
 
 *Help:* names nothing of `tspell`, `( tspell )`, `skillId`, `( skillId )`
 
@@ -1491,7 +1491,7 @@ can put on screen.
 unknown-parameter notice, which is what makes it a pass-through identifier
 rather than something the log is composed from.
 
-*Shape:* 2289 occurrences; on a skill announcement; a whole number
+*Shape:* 2293 occurrences; on a skill announcement; a whole number
 
 *Evidence:* production build `1785244275300` for the empty branch. Measured on
 the captures: present on 182 of the 197 announcements, absent from 15, and never
@@ -1675,7 +1675,7 @@ input, not an outcome.** Whatever the points are then worth arrives as ordinary
 figures in the message or in later ones, already computed; totalling the cap
 would add a number that measures nothing that was done to anybody.
 
-*Shape:* 370 occurrences; on a skill announcement; a whole number
+*Shape:* 371 occurrences; on a skill announcement; a whole number
 
 *Help:* names `combo-max`
 
@@ -1973,15 +1973,23 @@ do not have it, so it has no entry.
 Attack speed granted on a critical hit. A unit no total here keeps, which is the
 same reason `+critslow_per` above is read and never added to anything.
 
-*Shape:* 16 occurrences; on a blow; a whole number
+*Shape:* 17 occurrences; on a blow; a number
 
 *Help:* names `critsa`
 
 *Evidence:* article view,372 (read 2026-08-09) names `critsa_per` among the
 attack-speed effects that combine additively with `sa_per`, `aura-sa_per`,
-`allslow_per` and `critslow_per`. Every occurrence states 11 and rides a message
-that also carries `+of_crit`. Production build `1786514810315` composes
+`allslow_per` and `critslow_per`. Production build `1786514810315` composes
 `msg_+critsa %val%`.
+
+⚠️ **The figure is not whole, and the entry said it was.** Every occurrence
+stated `11` or `20` beside `+of_crit` until
+`tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaury-auto.json`
+recorded `5.5` beside `+crit` — so the shape line above reads *a number*, and the
+decoder reads a declaration with either spelling rather than refusing the blow it
+rides (`src/core/fight-decoder.ts`). What it cost while the reader was narrower is
+worth stating: the message carried five damage figures and none of them was
+counted, because one input beside them had a decimal point.
 
 ### `-legbon_critred` — decoded
 
@@ -2348,7 +2356,7 @@ boundary would look like — but the protocol does not say that, and this entry
 does not either. The arithmetic agrees: the occurrences counted below stand
 against 1228 turns in the same material, and one capture contains none at all.
 
-*Shape:* 156 occurrences; alone in its message; no value
+*Shape:* 157 occurrences; alone in its message; no value
 
 *Help:* names `step`
 
@@ -2376,7 +2384,7 @@ Free text the client shows in the battle log. **Nothing of it is stored here**,
 in this file or in any test: it carries the game's own sentences and player
 names, which NOTICE.md keeps out of the repository entirely.
 
-*Shape:* 212 occurrences; alone in its message; text
+*Shape:* 213 occurrences; alone in its message; text
 
 *Help:* names nothing of `txt`
 
@@ -2395,7 +2403,7 @@ damage and the panel counts what combatants did to each other. Nothing about it
 is uncertain; it is simply out of scope — which is a reading, and a different
 claim from a key nobody has looked at.
 
-*Shape:* 2 occurrences; alone in its message; a whole number
+*Shape:* 3 occurrences; alone in its message; a whole number
 
 *Help:* names `exp`
 

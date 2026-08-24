@@ -944,7 +944,23 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
     }
 
     if (BLOW_DECLARATION_KEYS.includes(key)) {
-      const amount = value === null ? null : getIntegerFromText(value);
+      /**
+       * ⚠️ **Either spelling, the way `SIDE_SHARE_HEALTH_KEYS` above reads its
+       * own.** A declaration is read and never totalled (§10), so nothing here
+       * needs the figure whole — and requiring it whole was never a claim about
+       * the game, only about the material. `+critsa` states `5.5` in
+       * `tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaury-auto.json`
+       * and `11` or `20` everywhere else, and `getIntegerFromText` turned the
+       * whole blow into an unknown message over the halves — a message carrying
+       * five damage figures, none of them counted, because one input beside them
+       * had a decimal point.
+       *
+       * Measured over every recording held on 2026-08-24: of the twelve keys in
+       * this list only `+critsa` ever states a fraction, so this widens what is
+       * accepted and moves no existing reading. Which of them the game states
+       * whole is the register's business, key by key (`docs/protocol-keys.md`).
+       */
+      const amount = value === null ? null : getNumberFromText(value);
       if (amount === null) unreadKeys.push(key);
       else blowDeclared.push({ effect: key, amount, text: null });
       continue;

@@ -25,6 +25,7 @@ import {
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import {
+  composeCombatantsOfPayloads,
   getMaximumHealthByCombatantId,
   parseFightDump,
   type CombatantSnapshot,
@@ -87,6 +88,13 @@ export function composeRosterFromSnapshots(
  */
 export function composeRosterOfFight(fight: CapturedFight): CombatantRoster {
   const byId = new Map<number, CombatantSnapshot>();
+  // The payloads first, so a snapshot of the same combatant still has the last
+  // word. They agree on every field of every combatant they both state, measured
+  // over every recording — what the payloads add is the fight nothing snapshotted
+  // (`composeCombatantsOfPayloads`).
+  for (const combatant of composeCombatantsOfPayloads(fight.dump)) {
+    byId.set(combatant.id, combatant);
+  }
   for (const call of fight.dump.calls) {
     for (const combatant of [...call.combatantsBefore, ...call.combatantsAfter]) {
       byId.set(combatant.id, combatant);
@@ -168,7 +176,13 @@ function composeEntryHealthOfDump(
   maximumHealthByCombatantId: ReadonlyMap<number, number>,
 ): Map<number, number> {
   const opening: string[] = [];
-  const snapshots = new Map<number, CombatantSnapshot>();
+  // Seeded from the payloads, so a name resolves even where nothing was
+  // snapshotted at all — the opening messages are exactly where `+oth_dmg` states
+  // damage by name, and a roster that cannot place the name loses the movement
+  // this unwind is made of (`composeCombatantsOfPayloads`).
+  const snapshots = new Map<number, CombatantSnapshot>(
+    composeCombatantsOfPayloads(dump).map((combatant) => [combatant.id, combatant]),
+  );
   let stated: readonly CombatantSnapshot[] | null = null;
 
   for (const call of dump.calls) {
@@ -181,11 +195,23 @@ function composeEntryHealthOfDump(
     }
     opening.push(...call.protocolMessages);
   }
-  if (stated === null) return new Map();
 
   const roster = composeRosterFromSnapshots([...snapshots.values()]);
   return composeEntryHealthByCombatantId(
-    new Map(stated.map((combatant) => [combatant.id, combatant.health.current])),
+    /**
+     * ⚠️ **No snapshot anywhere is a state, not a defect, and it is the one the
+     * rescue below was written for.** A fight fought on auto arrives in a single
+     * engine call, so neither side of that call has a battle object to snapshot
+     * and `stated` stays null for the whole recording. Handing an empty map is
+     * exactly what the core reader wants then: it unwinds each combatant from the
+     * first health percentage the messages state, which is what it already does
+     * for the combatants a snapshot happens to miss (`src/core/combatant-health.ts`).
+     *
+     * Returning an early empty map here was the same mistake in reverse — it read
+     * "the recording took no snapshot" as "the recording says nothing about the
+     * health anybody entered with", and the messages say it plainly.
+     */
+    new Map((stated ?? []).map((combatant) => [combatant.id, combatant.health.current])),
     maximumHealthByCombatantId,
     decodeFight(opening, roster),
   );

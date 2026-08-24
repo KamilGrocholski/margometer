@@ -10,6 +10,7 @@ import {
   PAYLOAD_FIELDS,
   parseFightDump,
 } from "@/tools/fight-dump-parser.ts";
+import { composeRosterFragmentFromBattle } from "@/src/game/engine-roster.ts";
 import { CAPTURED_FIGHTS, composeRosterOfFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
 
 // Not an assertion inside the loop below: a loop over an empty directory is
@@ -225,15 +226,69 @@ test("entry health is not simply maximum health under another name", () => {
   expect(belowMaximum.length).toBeGreaterThan(0);
 });
 
-// ⚠️ **Every capture states one now, and this used to assert the opposite.** Two
-// of them open with a payload carrying the whole fight and no snapshot beside it;
-// their entry health is unwound from the first health percentage the messages
-// state instead, so the map is full rather than empty. Kept pointing at the same
-// place from the other side: a capture that fell back to nothing would be a
-// recording this reader cannot open, and that is worth failing over.
+// ⚠️ **Every capture states one now, and this used to assert the opposite.**
+// Some open with a payload carrying the whole fight and no snapshot beside it,
+// and one carries no snapshot at all; their entry health is unwound from the
+// first health percentage the messages state instead, so the map is full rather
+// than empty. Kept pointing at the same place from the other side: a capture that
+// fell back to nothing would be a recording this reader cannot open, and that is
+// worth failing over.
 test("every capture states an entry health for somebody", () => {
   const empty = CAPTURED_FIGHTS.filter((fight) => fight.entryHealthByCombatantId.size === 0);
   expect(empty.map((fight) => fight.name)).toEqual([]);
+});
+
+/**
+ * The offline reading of a recording, against the live one.
+ *
+ * ⚠️ **The guard this round was missing, and the round is what it costs to not
+ * have it.** The panel reads its roster from `ladunek.w`
+ * (`src/game/battle-session.ts`); everything under `tests/` read it from the
+ * snapshots the capture takes either side of the engine call. That held for as
+ * long as every recorded fight ran over several calls — and it stopped the day a
+ * fight fought on auto arrived in one, with `init`, `endBattle` and `close`
+ * together and no battle object on either side of the call to snapshot. The
+ * recording was complete and the panel that made it had drawn three combatants;
+ * offline it was a fight of nobody, and what said so was a register refusing to
+ * state a shape for it rather than anything pointed at the reading itself.
+ *
+ * ⚠️ **The live reader is the other side on purpose, and the first draft of this
+ * had no other side at all.** Comparing the roster against
+ * `composeCombatantsOfPayloads` — the reader the roster is now built from — is
+ * §7.5's rule about a test reading a string back from the module that writes it,
+ * in structural form: the two agree by construction. Mutating the level that
+ * reader takes was reported killed by four tests and by neither of these. So the
+ * fields are checked against `src/game/engine-roster.ts`, which parses the same
+ * payload independently and is what the panel is actually handed.
+ */
+describe("the roster a recording is read with", () => {
+  test.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
+    "%s names everyone the panel would be handed, as the panel has them",
+    (_name, fight) => {
+      // What the live session holds once every payload of the recording has gone
+      // through it — the reading the panel draws, read by the game layer's own
+      // parser rather than by the one the offline roster uses.
+      const live = new Map(
+        fight.dump.calls.flatMap((call) =>
+          composeRosterFragmentFromBattle(call.payload).combatants.map(
+            (combatant) => [combatant.id, combatant] as const,
+          ),
+        ),
+      );
+      // Not an assertion inside the loop: a recording whose payloads named nobody
+      // would pass that by drawing no comparison at all.
+      expect(live.size).toBeGreaterThan(0);
+
+      const roster = composeRosterOfFight(fight);
+      for (const [id, combatant] of live) {
+        const offline = roster.byId.get(id);
+        expect(offline?.name, combatant.name).toBe(combatant.name);
+        expect(offline?.side, combatant.name).toBe(combatant.side);
+        expect(offline?.level, combatant.name).toBe(combatant.level);
+        expect(offline?.maximumHealth, combatant.name).toBe(combatant.maximumHealth);
+      }
+    },
+  );
 });
 
 describe("fight dump parser", () => {

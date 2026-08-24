@@ -85,7 +85,15 @@ describe("what a payload costs", () => {
       expect(getCalls(READING_PHASE)).toBe(changing);
       expect(getCalls(VIEW_PHASE)).toBe(changing);
       expect(fight.redraws).toBe(changing);
-      expect(changing).toBeLessThan(fight.payloads);
+      /**
+       * ⚠️ **Strictly fewer only where there is a payload to skip.** A fight
+       * fought on auto arrives in one engine call carrying the whole protocol, so
+       * every payload it has changes the session and the gate has nothing to
+       * close over. The claim above is about the payloads that carry no fight,
+       * and a recording can have none of them.
+       */
+      expect(changing).toBeLessThanOrEqual(fight.payloads);
+      if (fight.payloads > 1) expect(changing).toBeLessThan(fight.payloads);
     },
   );
 
