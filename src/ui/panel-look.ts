@@ -519,7 +519,8 @@ export function composePanelStyleText(): string {
   overflow-x: hidden;
   /* Reserved whether or not a scrollbar is showing: it appears and disappears
      between two payloads, and a panel whose rows jump sideways every few seconds
-     while somebody is reading them is worse than eleven pixels of margin. */
+     while somebody is reading them is worse than eleven pixels of margin. The
+     two regions that draw a bar outside this one reserve it too — see \`.pinned\`. */
   scrollbar-gutter: stable;
   /* A wheel that has run out of list stops here rather than turning into a scroll
      of the game we are a guest on. */
@@ -636,10 +637,36 @@ export function composePanelStyleText(): string {
  * missing is still a row, and rows are one height. The inset is a margin so the
  * rule is still drawn the width of the row and not the width of the panel.
  */
+/*
+ * ⚠️ **It reserves a scrollbar gutter with nothing to scroll, and so does
+ * \`.sides-region\`.** A bar is drawn in three containers, and a bar means a length:
+ * the same \`fill\` has to come out the same width in all three or the eye compares
+ * figures that were never on one scale. The list pays a gutter whether or not its
+ * scrollbar is showing (see \`.list\`), and these two sit outside the list, so the
+ * row for what nobody can be charged with and the summary track were drawn a
+ * gutter wider than every ranked row — 8px of it, read off the panel in
+ * \`screenshots/panel-taken.png\` at \`v0.8.1\`, on a 260px panel.
+ *
+ * The width is asked for rather than written down, because only the browser knows
+ * what a gutter costs: \`thin\` measures 6px in Firefox 140.13.0esr (2026-08-26) and
+ * a platform width elsewhere, so a token holding a number would be one engine's
+ * measurement wearing the costume of a constant. \`overflow: hidden\` is a scroll
+ * container that never scrolls, which is the whole of what is wanted here —
+ * measured in the same Firefox against \`overflow-y: auto\` and against a list that
+ * really does scroll: 254px of 260 in all three.
+ *
+ * Below \`scrollbar-gutter\`'s floor nobody reserves anything and the three stay
+ * equal; below \`scrollbar-width\`'s they all reserve a platform gutter and stay
+ * equal again (\`docs/browser-support.md\`). Held by
+ * \`tests/ui/panel-element.test.ts\`.
+ */
 .pinned {
   margin: ${t.spaceSmall} ${t.spaceRegionAcross} 0;
   padding: ${t.spaceSmall} 0 ${t.spaceRegionAcross};
   border-top: 1px dashed ${t.border};
+  overflow: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 }
 .pinned .bar {
   opacity: 0.4;
@@ -658,7 +685,16 @@ export function composePanelStyleText(): string {
 .list-waiting { display: flex; align-items: center; justify-content: center; text-align: center; }
 /* The limit on what can be known reads quieter than the fact above it. */
 .empty-limit { display: block; margin-top: ${t.spaceSmall}; font-size: 10px; opacity: 0.85; }
-.sides-region { padding: ${t.spaceRegion}; padding-bottom: ${t.spaceRegionAcross}; border-top: 1px solid ${t.border}; }
+/* The gutter is the one \`.pinned\` argues for: the track below is a bar like any
+   other, and it is inset like one. */
+.sides-region {
+  padding: ${t.spaceRegion};
+  padding-bottom: ${t.spaceRegionAcross};
+  border-top: 1px solid ${t.border};
+  overflow: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
 .sides {
   display: flex;
   justify-content: space-between;

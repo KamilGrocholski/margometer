@@ -75,12 +75,18 @@ cosmetic floor and the reason the tier column is not enough on its own:
   deliberately not spelled. That is where the line sits: below its floor this
   property degrades and the row still reads, so a prefix would buy back a
   hatch — while the one property that is prefixed buys back a defect.
-- **`scrollbar-gutter: stable`** (on `.list`). The gutter is no longer reserved,
-  so rows shift sideways when the scrollbar appears and disappears between two
-  payloads — the exact jump the comment above that declaration was written to
-  prevent.
+- **`scrollbar-gutter: stable`** (on `.list`, `.pinned` and `.sides-region`). The
+  gutter is no longer reserved, so rows shift sideways when the scrollbar appears
+  and disappears between two payloads — the exact jump the comment above that
+  declaration was written to prevent. The three regions still agree with each
+  other, which is the other thing the declaration is for: only `.list` can ever
+  show a scrollbar, and the two below it reserve the same gutter so that a bar is
+  one length wherever it is drawn. Below the floor none of them reserves anything,
+  so the bars stay equal and what is lost is the list's jump alone.
 - **`scrollbar-width` / `scrollbar-color`**. The platform scrollbar, at platform
-  width and platform colour, instead of the thin tinted one.
+  width and platform colour, instead of the thin tinted one. The width is the
+  gutter's as well, and all three regions ask for it in the same words, so a
+  platform gutter widens their insets together rather than one of them.
 
 ### Prefixed
 

@@ -45,7 +45,7 @@ import {
 import { getNumberFromText } from "@/libs/number.ts";
 
 import { assertDefined } from "@/libs/assert.ts";
-import { composeDecimalText, getDecimalFromText } from "@/libs/number.ts";
+import { composeDecimalText, getDecimalFromText, getIntegerFromText } from "@/libs/number.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
@@ -1392,6 +1392,41 @@ describe("what the panel never does", () => {
     expect(block.body).toContain(`border-top: 1px dashed ${PANEL_TOKENS.border}`);
     expect(block.body).toContain(`padding: ${PANEL_TOKENS.spaceSmall} 0 ${PANEL_TOKENS.spaceRegionAcross}`);
   });
+
+  /**
+   * ⚠️ **Seen in the panel: a bar means a length, and three containers draw
+   * one.** The list reserves a scrollbar gutter whether or not a scrollbar is
+   * showing, and the two regions under it — the row for what nobody can be charged
+   * with, and the summary track — sat outside the list and reserved nothing. So
+   * the same `fill` came out a gutter longer on those two, and the eye compared
+   * figures that were never on one scale: 8px of it on a 260px panel, read off
+   * `screenshots/panel-taken.png` at `v0.8.1`.
+   *
+   * Both halves of a bar's width are held here, because either one alone would let
+   * the fault back in: what the browser reserves, which is asked for and never
+   * written down, and what the rule holds off the panel's edges itself.
+   * Checked as text, for the reason the test above states.
+   */
+  test("every container that draws a bar is inset the same", () => {
+    const rules = getStyleRules(composePanelStyleText());
+    const drawn = [".list", ".pinned", ".sides-region"].map((selector) =>
+      assertDefined(
+        rules.find((rule) => rule.selector === selector),
+        `${selector} has a rule of its own`,
+      ),
+    );
+
+    for (const rule of drawn) {
+      expect(rule.body, rule.selector).toContain("scrollbar-gutter: stable");
+      expect(rule.body, rule.selector).toContain("scrollbar-width: thin");
+    }
+
+    const insets = drawn.map((rule) =>
+      assertDefined(getHorizontalInset(rule.body), `${rule.selector} states its inset in pixels`),
+    );
+
+    expect(new Set(insets), insets.join(" / ")).toEqual(new Set([insets[0]!]));
+  });
 });
 
 /**
@@ -1409,6 +1444,40 @@ function getStyleRules(style: string): { selector: string; body: string }[] {
 
       return { selector: chunk.slice(0, cut).trim(), body: chunk.slice(cut + 1) };
     });
+}
+
+/**
+ * How far a rule holds its contents off the panel's two edges, in pixels.
+ *
+ * Shorthands only, because that is what these rules write: one value is every
+ * side, and two or more put the horizontal one second. Anything else — a
+ * `padding-left`, a `margin-right`, a length in another unit — answers `null`
+ * rather than a number nobody wrote, so a rule this cannot read fails the claim
+ * instead of passing it by (§9.5).
+ */
+function getHorizontalInset(body: string): number | null {
+  const written = body
+    .split(";")
+    .map((one) => one.split(":"))
+    .filter((one) => one.length === 2);
+
+  if (written.some(([name]) => /^(margin|padding)-(left|right)$/.test(name!.trim()))) return null;
+
+  let total = 0;
+  for (const property of ["margin", "padding"]) {
+    const declaration = written.find(([name]) => name!.trim() === property);
+
+    if (declaration === undefined) continue;
+
+    const values = declaration[1]!.trim().split(/\s+/);
+    const across = values.length === 1 ? values[0]! : values[1]!;
+    const pixels = getIntegerFromText(across.replace("px", ""));
+
+    if (pixels === null) return null;
+    total += pixels;
+  }
+
+  return total;
 }
 
 describe("pressing the part of a row somebody actually aims at", () => {
