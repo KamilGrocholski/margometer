@@ -19,6 +19,7 @@ import { getRecordFromValue } from "@/libs/record.ts";
 import {
   getGameBuildFromInlineObject,
   getGameBuildFromScriptName,
+  getGameBundleNameFromScriptName,
 } from "@/src/core/game-build.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
@@ -60,19 +61,51 @@ export type CachedClientSource = {
 };
 
 /**
- * The build id appears twice on a world page — in the script filenames and in
- * an inline `build = { version: … }`. Reading it costs one small request rather
- * than the megabytes the bundle itself weighs.
+ * The build id appears twice on a world page — in the script filenames and in an
+ * inline object the page states beside them. Reading it costs one small request
+ * rather than the megabytes the bundle itself weighs.
+ *
+ * ⚠️ **The filename decides, and it used not to.** Until 2026-08-25 the two were
+ * one number and the inline object went first, on the reasoning that a page can
+ * be served while a cached script tag lags. Read on 2026-08-25, they are two
+ * different ids and no ordering can make them one: `tempest.margonem.pl` and
+ * `luvia.margonem.pl` both state `__build = { … version: "f616dbf3a3249" … }`,
+ * which is also the `?v=` stamped on the scripts they share from
+ * `commons.margonem.pl`, while each serves its own client as
+ * `/js/main.min.53XkBRxF.js`. So the inline one names what every world has in
+ * common and the filename names the bundle this tool downloads and reads keys out
+ * of — which is the thing a citation dates (§7.6).
+ *
+ * The other half of the reason is that the two ends must agree: the add-on stamps
+ * a recording from a script filename and can see no inline object at all
+ * (`src/userscript-entry.ts`), so preferring the inline value here would make a
+ * recording's build and the cache's build stop meaning the same thing — the fault
+ * `src/core/game-build.ts` was made to end (F18).
  */
 export function getBuildFromPage(html: string): string {
   // Both readers live in `src/core/game-build.ts`, because the add-on stamps the
-  // same number onto a recording and the two only compare if they are read the
-  // same way (F18). The inline object first: a page can carry a stale script tag.
-  const build = getGameBuildFromInlineObject(html) ?? getGameBuildFromScriptName(html);
+  // same id onto a recording and the two only compare if they are read the same
+  // way (F18).
+  const build = getGameBuildFromScriptName(html) ?? getGameBuildFromInlineObject(html);
   if (build === null) {
     throw new GameSourceError("no build id on the page — the client's layout changed");
   }
   return build;
+}
+
+/**
+ * The URL the bundle is actually served under, off the page rather than composed.
+ *
+ * `${host}/js/main.min${build}.js` was the composition until 2026-08-25, and the
+ * name the client serves today has a dot the id does not carry — so composing it
+ * asks for a file that is not there. The page states the name; this reads it.
+ */
+export function getBundleUrlFromPage(html: string, host: string): string {
+  const name = getGameBundleNameFromScriptName(html);
+  if (name === null) {
+    throw new GameSourceError(`no client bundle named on ${host} — the client's layout changed`);
+  }
+  return `${host}/js/${name}`;
 }
 
 /**
@@ -91,13 +124,17 @@ export function getChannelFromArgument(value: string): GameChannel {
   return value as GameChannel;
 }
 
-async function getServedBuild(channel: GameChannel): Promise<string> {
+async function getPageOfWorld(channel: GameChannel): Promise<string> {
   const host = CHANNEL_HOSTS[channel];
   const response = await fetch(host);
   if (!response.ok) {
     throw new GameSourceError(`${host} answered ${response.status}`);
   }
-  return getBuildFromPage(await response.text());
+  return await response.text();
+}
+
+async function getServedBuild(channel: GameChannel): Promise<string> {
+  return getBuildFromPage(await getPageOfWorld(channel));
 }
 
 function getCacheDirectory(channel: GameChannel): string {
@@ -162,9 +199,13 @@ export function getCachedClientSource(channel: GameChannel): CachedClientSource 
 
 async function writeClientSourceCache(channel: GameChannel): Promise<CachedClientSource> {
   const host = CHANNEL_HOSTS[channel];
-  const build = await getServedBuild(channel);
+  // One request for the page, read twice: the id the cache is dated by and the
+  // name the bundle is served under come from the same markup, so they cannot be
+  // a build and a file that do not belong together.
+  const page = await getPageOfWorld(channel);
+  const build = getBuildFromPage(page);
 
-  const bundleUrl = `${host}/js/main.min${build}.js`;
+  const bundleUrl = getBundleUrlFromPage(page, host);
   const response = await fetch(bundleUrl);
   if (!response.ok) {
     throw new GameSourceError(`${bundleUrl} answered ${response.status}`);

@@ -17,6 +17,7 @@ import {
   CACHE_ROOT,
   GameSourceError,
   getBuildFromPage,
+  getBundleUrlFromPage,
   getCachedBundle,
   getCachedClientSource,
   getChannelFromArgument,
@@ -34,14 +35,41 @@ describe("the build id on a world page", () => {
   });
 
   /**
-   * The inline object wins where a page carries both, and the two disagreeing is
-   * not hypothetical — a page can be served while a cached script tag lags.
-   * Reading the filename first would date a claim to a build the page is no
-   * longer running.
+   * ⚠️ **The filename wins where a page carries both, and it used to lose.** The
+   * old ordering read the inline object first, because a page can be served while
+   * a cached script tag lags — sound while the two were one number, which they
+   * stopped being on 2026-08-25. The page now states one id for what every world
+   * shares from `commons.margonem.pl` and another in the name of the bundle it
+   * serves itself; this tool downloads the second, and a citation dates the file
+   * it was read out of (`tools/game-client-source.ts`, §7.6).
    */
-  test("prefers the inline object to the filename", () => {
+  test("prefers the filename to the inline object", () => {
     const page = 'version: 1785244275300 <script src="/js/main.min1781609507010.js">';
-    expect(getBuildFromPage(page)).toBe("1785244275300");
+    expect(getBuildFromPage(page)).toBe("1781609507010");
+  });
+
+  test("reads the id the client serves today, letters and all", () => {
+    expect(getBuildFromPage('<script src="/js/main.min.53XkBRxF.js"></script>')).toBe("53XkBRxF");
+  });
+
+  /**
+   * And the name beside it, because the id no longer rebuilds it: `main.min` +
+   * id + `.js` composes a file the server does not have. What is asked for is
+   * what the page named.
+   */
+  test("asks for the bundle under the name the page states", () => {
+    expect(
+      getBundleUrlFromPage(
+        '<script src="/js/main.min.53XkBRxF.js"></script>',
+        "https://tempest.margonem.pl",
+      ),
+    ).toBe("https://tempest.margonem.pl/js/main.min.53XkBRxF.js");
+  });
+
+  test("refuses to compose a URL for a page naming no bundle", () => {
+    expect(() => getBundleUrlFromPage("version: 1785244275300", "https://tempest.margonem.pl")).toThrow(
+      GameSourceError,
+    );
   });
 
   test("reads a build stated with the spacing the client actually uses", () => {

@@ -14,6 +14,17 @@
  * Only the keys are lifted out. They are functional names, like a field name in
  * a wire format; the sentences the game composes from them stay in the cache
  * and never enter this repository (§5).
+ *
+ * ⚠️ **This does not read the build now served, and the patterns below say why.**
+ * `CASE_LABEL` and `DEFAULT_BRANCH` both spell a string literal as double quotes,
+ * which was every literal the client shipped until 2026-08-25. Build `53XkBRxF`
+ * is bundled by a different tool: literals are backticks, the bundle imports two
+ * sibling chunks, and the default branch compares the other way round
+ * (`j[0].substr(1,3)==`dmg`` where it was ``"dmg"==x[0].substr(1,3)``). So a
+ * freeze against that build throws `the switch has no case labels` rather than
+ * quietly shortening the table — which is the right failure, and it is where this
+ * tool stops until the patterns are made to match either shape. The frozen table
+ * is therefore still the one lifted from `1786514810315`, and says so.
  */
 
 import { writeFileSync } from "node:fs";

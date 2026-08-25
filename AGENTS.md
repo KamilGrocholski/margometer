@@ -314,8 +314,15 @@ Rules that arrived this way, each paid for at least once:
 
 What a key means, which keys we do not read, how a message is assembled: that is
 knowledge about someone else's system, so it comes from the source and is dated
-by build. The build id is in the script filename and in the page as
-`build = { version: … }`, readable with one light request.
+by build. **The build id is the one in the client bundle's filename**, readable
+with one light request — `main.min.53XkBRxF.js` as of 2026-08-25, and
+`main.min1786514810315.js` before that day, so it is not always a number and a
+reader that assumed one reported pages as stating no build at all
+(`src/core/game-build.ts`). The page states a second id inline, in an object
+beside the scripts; on 2026-08-25 that one stamps what every world shares from
+`commons.margonem.pl` rather than the bundle we read, so it is the fallback and
+never the answer where a filename is there to be read. The add-on can see only
+the filename, which is the other half of why that one decides.
 
 | Channel | Host | What it gives |
 |---|---|---|

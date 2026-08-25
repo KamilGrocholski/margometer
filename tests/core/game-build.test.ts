@@ -17,14 +17,27 @@ import { describe, expect, test } from "bun:test";
 import {
   getGameBuildFromInlineObject,
   getGameBuildFromScriptName,
+  getGameBundleNameFromScriptName,
 } from "@/src/core/game-build.ts";
 
-/** A build id as the client actually writes one — thirteen digits, milliseconds. */
+/** A build id as the client wrote one until 2026-08-25 — thirteen digits, milliseconds. */
 const BUILD = "1786514810315";
+
+/**
+ * And as it writes one since: eight characters of letters and digits, behind a
+ * separating dot. Read off `tempest.margonem.pl` and `luvia.margonem.pl` on
+ * 2026-08-25, which served `/js/main.min.53XkBRxF.js` — the shape that made three
+ * recordings of that day carry no build at all (`src/core/game-build.ts`).
+ */
+const LETTERED_BUILD = "53XkBRxF";
 
 describe("a build id in a script filename", () => {
   test("is read out of the name the client serves", () => {
     expect(getGameBuildFromScriptName(`main.min${BUILD}.js`)).toBe(BUILD);
+  });
+
+  test("is read where the id has letters in it and a dot before it", () => {
+    expect(getGameBuildFromScriptName(`main.min.${LETTERED_BUILD}.js`)).toBe(LETTERED_BUILD);
   });
 
   test("is found inside the markup around it", () => {
@@ -33,11 +46,57 @@ describe("a build id in a script filename", () => {
     ).toBe(BUILD);
   });
 
+  test("is found in the markup the client serves today", () => {
+    expect(
+      getGameBuildFromScriptName(`<script src="/js/main.min.${LETTERED_BUILD}.js"></script>`),
+    ).toBe(LETTERED_BUILD);
+  });
+
   // Null and never a guess: a page that does not state a build is a page whose
   // build is unknown, and §9.3 keeps that apart from any particular number.
   test("is null where the name states none", () => {
-    for (const text of ["", "main.min.js", "main.js", "<script src=\"/app.js\">"]) {
+    // The last two are what the looser token has to keep refusing: a bundle named
+    // without any id, served with the id as a query parameter — which is a name
+    // the client also wrote, and a build this reader deliberately does not take
+    // from a place §7.6 never named.
+    for (const text of [
+      "",
+      "main.min.js",
+      "main.js",
+      "<script src=\"/app.js\">",
+      `<script src="js/main.min.js?v=${BUILD}">`,
+      `<script src="main.min.js?v=${LETTERED_BUILD}">`,
+    ]) {
       expect(getGameBuildFromScriptName(text), text).toBeNull();
+    }
+  });
+});
+
+/**
+ * The name beside the id, and why it is a second export rather than something a
+ * caller rebuilds: `main.min` + id + `.js` was every name the client served until
+ * 2026-08-25, and composing that today asks for a file the server does not have.
+ */
+describe("the bundle's own filename", () => {
+  test("is read whole, in both shapes the client has served", () => {
+    expect(getGameBundleNameFromScriptName(`<script src="js/main.min${BUILD}.js">`)).toBe(
+      `main.min${BUILD}.js`,
+    );
+    expect(
+      getGameBundleNameFromScriptName(`<script src="/js/main.min.${LETTERED_BUILD}.js">`),
+    ).toBe(`main.min.${LETTERED_BUILD}.js`);
+  });
+
+  test("carries the id the other reader answers with", () => {
+    const markup = `<script src="/js/main.min.${LETTERED_BUILD}.js">`;
+    const name = getGameBundleNameFromScriptName(markup) ?? "";
+
+    expect(name).toContain(getGameBuildFromScriptName(markup) ?? "");
+  });
+
+  test("is null where the page names no bundle", () => {
+    for (const text of ["", "main.min.js", `build = { version: ${BUILD} }`]) {
+      expect(getGameBundleNameFromScriptName(text), text).toBeNull();
     }
   });
 });
@@ -45,6 +104,15 @@ describe("a build id in a script filename", () => {
 describe("a build id in the inline object", () => {
   test("is read out of the object a world page carries", () => {
     expect(getGameBuildFromInlineObject(`build = { version: ${BUILD} }`)).toBe(BUILD);
+  });
+
+  test("is read where the id has letters, quoted or not", () => {
+    expect(getGameBuildFromInlineObject(`build = { version: ${LETTERED_BUILD} }`)).toBe(
+      LETTERED_BUILD,
+    );
+    expect(getGameBuildFromInlineObject(`build = { version: "${LETTERED_BUILD}" }`)).toBe(
+      LETTERED_BUILD,
+    );
   });
 
   test("is null where the page states none", () => {
