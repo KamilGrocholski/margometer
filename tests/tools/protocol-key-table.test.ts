@@ -31,9 +31,15 @@ const KEYS_IN_CAPTURED_FIGHTS = [
 ].sort();
 
 describe("the frozen key table", () => {
+  /**
+   * The build's shape is the same claim `src/core/game-build.ts` makes, restated
+   * here because this file holds the generated table rather than the reader: ten
+   * digits or more was true until 2026-08-25 and refuses `53XkBRxF`, the build
+   * this table is now lifted from.
+   */
   test("is not empty and says which build it came from", () => {
     expect(keys.length).toBeGreaterThan(0);
-    expect(FROZEN_PROTOCOL_KEYS.gameBuild).toMatch(/^\d{10,}$/);
+    expect(FROZEN_PROTOCOL_KEYS.gameBuild).toMatch(/^[0-9A-Za-z]{8,}$/);
   });
 
   test("carries the family the client recognises by shape rather than by name", () => {
@@ -126,6 +132,57 @@ describe("extracting the table", () => {
       expect(getProtocolKeys(bundle)).toEqual(["alpha", "beta"]);
     },
   );
+
+  /**
+   * ⚠️ **The second dated fuse, and the same lesson as the one above.** The
+   * patterns spelled a string literal as double quotes, which was every literal
+   * the client shipped until 2026-08-25. Build `53XkBRxF` is bundled by a
+   * different tool and writes backticks, so the extraction found the switch,
+   * matched no case label in it and refused the bundle — reporting a client that
+   * had changed how it routes keys, when what had changed was how a string is
+   * quoted. Which quoting a build uses is the bundler's taste, so all three are
+   * read and none is matched on purpose.
+   */
+  test.each([
+    ["double quotes", '"'],
+    ["single quotes", "'"],
+    ["backticks", "`"],
+  ])("reads case labels a bundler wrote with %s", (_what, quote) => {
+    const bundle = `x.manageBattleEffects(a,b);switch(q,j[0]){case${quote}beta${quote}:x();case${quote}alpha${quote}:y()}`;
+    expect(getProtocolKeys(bundle)).toEqual(["alpha", "beta"]);
+  });
+
+  /**
+   * The family rule in both orders the client has written it. `1786514810315`
+   * put the literal first and `53XkBRxF` puts it second; the two say the same
+   * thing, and a reader that knew one of them called the other a client that had
+   * been restructured.
+   */
+  test.each([
+    ["the literal first", 'default:"dmg"==j[0].substr(1,3)?"+"==j[0].charAt(0)'],
+    ["the literal second", "default:j[0].substr(1,3)==`dmg`?j[0].charAt(0)==`+`"],
+  ])("reads the family with %s", (_what, branch) => {
+    expect(getComputedKeyFamily(branch)).toEqual({
+      marker: "dmg",
+      markerAt: 1,
+      markerLength: 3,
+      dealtSign: "+",
+    });
+  });
+
+  /**
+   * A template placeholder inside a branch, which the build now served carries a
+   * dozen of — including one template nested in another. The block is walked by
+   * counting braces outside strings, and a `${` and its `}` balance whichever
+   * side of that line they are read on, which is why the walk survives them.
+   * Written down because the reasoning is not obvious from the walker, and
+   * because a bundler that splits the pair would take the whole table with it.
+   */
+  test("reads a switch whose branches carry template placeholders", () => {
+    const bundle =
+      "x.manageBattleEffects(a,b);switch(q,j[0]){case`beta`:x(`${t(`msg_${j[0]}`)}`);case`alpha`:y(`${z}`)}";
+    expect(getProtocolKeys(bundle)).toEqual(["alpha", "beta"]);
+  });
 
   /**
    * And the reason the search starts at the anchor rather than at the bundle:

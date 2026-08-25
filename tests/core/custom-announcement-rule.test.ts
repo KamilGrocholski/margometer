@@ -4,7 +4,7 @@
  * `tcustom` names what a combatant used, the way `tspell` does, and the decoder
  * puts both into the same event. What makes it a different key rather than a
  * synonym is which slot the client reads the name against: production build
- * `1786514810315` composes `tspell` with the **actor** interpolated and this one
+ * `53XkBRxF` composes `tspell` with the **actor** interpolated and this one
  * with the **target** (`msg_tcustom_target %target% %val%`). So on a message
  * naming two different combatants the protocol would not say whose use it was,
  * and taking the actor — which is what the event's ranking would do with it —

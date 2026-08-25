@@ -5,7 +5,7 @@
 // composes from them are its own work and stay out of this repository.
 
 export const FROZEN_PROTOCOL_KEYS = {
-  gameBuild: "1786514810315",
+  gameBuild: "53XkBRxF",
   /** Keys the client recognises by shape rather than by name — see the tool. */
   computedFamily: {"marker":"dmg","markerAt":1,"markerLength":3,"dealtSign":"+"},
   keys: [

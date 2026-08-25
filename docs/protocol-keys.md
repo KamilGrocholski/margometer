@@ -447,8 +447,9 @@ protocol nor the bundle names.
 *Evidence:* as above. Before it was read, the first disagreement it caused was
 `-10000249=76.05;0;poison=563`. That nobody can be named for it rests on two
 sources rather than on the message: the client's key list carries no `+poison`
-beside `poison` the way it carries `+injure` beside `injure` (production build
-`1786514810315`, `tests/frozen-protocol-keys.ts`), and the help's table of damage
+beside `poison` the way it carries `+injure` beside `injure` (production builds
+`1786514810315` and `53XkBRxF`, whose lists are identical key for key;
+`tests/frozen-protocol-keys.ts` holds the later one), and the help's table of damage
 over time — article `view,372` (read 2026-08-19) — puts poison among the types a
 fresh application does **not** overwrite, deep wound being the other: a later hit
 extends what is already ticking and only the highest figure counts, so even an

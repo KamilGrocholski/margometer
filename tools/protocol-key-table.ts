@@ -15,16 +15,17 @@
  * a wire format; the sentences the game composes from them stay in the cache
  * and never enter this repository (§5).
  *
- * ⚠️ **This does not read the build now served, and the patterns below say why.**
- * `CASE_LABEL` and `DEFAULT_BRANCH` both spell a string literal as double quotes,
- * which was every literal the client shipped until 2026-08-25. Build `53XkBRxF`
- * is bundled by a different tool: literals are backticks, the bundle imports two
- * sibling chunks, and the default branch compares the other way round
- * (`j[0].substr(1,3)==`dmg`` where it was ``"dmg"==x[0].substr(1,3)``). So a
- * freeze against that build throws `the switch has no case labels` rather than
- * quietly shortening the table — which is the right failure, and it is where this
- * tool stops until the patterns are made to match either shape. The frozen table
- * is therefore still the one lifted from `1786514810315`, and says so.
+ * ⚠️ **Two builds' worth of spelling, and neither is the thing being matched.**
+ * Build `53XkBRxF` is bundled by a different tool than `1786514810315` was:
+ * string literals are backticks, the bundle imports two sibling chunks, and the
+ * default branch compares the other way round — `j[0].substr(1,3)==`dmg`` where
+ * it read ``"dmg"==x[0].substr(1,3)``. Neither difference is structural, and the
+ * key list came out of the two builds identical, key for key. What that cost was
+ * a freeze that threw `the switch has no case labels`, which is the right
+ * failure and is why the table was never quietly shortened. The patterns below
+ * accept either quoting and either order for that reason, and go no further:
+ * a bundler is free to write `["+"].includes(…)` tomorrow, and this should stop
+ * again rather than guess.
  */
 
 import { writeFileSync } from "node:fs";
@@ -61,7 +62,19 @@ export class ProtocolKeyTableError extends MargoMeterToolError {
  */
 const SWITCH_ANCHOR = "manageBattleEffects(";
 const SWITCH_SUBJECT = /[A-Za-z_$]+\[0\]\)\{/;
-const CASE_LABEL = /case"([^"]*)":/g;
+
+/**
+ * A string literal in any of the three quotings JavaScript has, because which one
+ * a build uses is the bundler's taste and not the client's meaning.
+ *
+ * The class admits a mismatched pair — `"dmg\`` reads as one — which no valid
+ * source can contain, and every use of this sits inside a longer shape that
+ * decides what it is reading. A backreference would refuse the mismatch and cost
+ * a capture group in every pattern that spells a literal twice.
+ */
+const QUOTED_LITERAL = String.raw`["'\`]([^"'\`]*)["'\`]`;
+
+const CASE_LABEL = new RegExp(String.raw`case${QUOTED_LITERAL}:`, "g");
 
 function getBlockBody(source: string, from: number): string {
   const start = source.indexOf("{", from);
@@ -103,11 +116,44 @@ export type ComputedKeyFamily = {
   dealtSign: string;
 };
 
-const DEFAULT_BRANCH =
-  /default:"([^"]+)"==\w+\[0\]\.substr\((\d+),(\d+)\)\?"([^"]+)"==\w+\[0\]\.charAt\(0\)/;
+/**
+ * The default branch, in the two orders the client has written it.
+ *
+ * Both say the same thing — *is the marker at this offset, and is the sign the
+ * dealt one* — and they differ in which side of `==` each operand sits on, which
+ * is a bundler's output style. Build `1786514810315` wrote the literal first;
+ * `53XkBRxF` writes it second. So the shape is spelled twice rather than
+ * loosened into something that would match any comparison of anything, and each
+ * spelling carries which of its captures holds what, since the order of the
+ * groups is exactly what differs.
+ */
+type DefaultBranchShape = {
+  pattern: RegExp;
+  groups: { marker: number; markerAt: number; markerLength: number; dealtSign: number };
+};
+
+const SEGMENT_KEY = String.raw`\w+\[0\]`;
+
+const DEFAULT_BRANCH_SHAPES: readonly DefaultBranchShape[] = [
+  {
+    pattern: new RegExp(
+      String.raw`default:${SEGMENT_KEY}\.substr\((\d+),(\d+)\)==${QUOTED_LITERAL}\?${SEGMENT_KEY}\.charAt\(0\)==${QUOTED_LITERAL}`,
+    ),
+    groups: { markerAt: 1, markerLength: 2, marker: 3, dealtSign: 4 },
+  },
+  {
+    pattern: new RegExp(
+      String.raw`default:${QUOTED_LITERAL}==${SEGMENT_KEY}\.substr\((\d+),(\d+)\)\?${QUOTED_LITERAL}==${SEGMENT_KEY}\.charAt\(0\)`,
+    ),
+    groups: { marker: 1, markerAt: 2, markerLength: 3, dealtSign: 4 },
+  },
+];
 
 export function getComputedKeyFamily(bundle: string): ComputedKeyFamily {
-  const match = DEFAULT_BRANCH.exec(bundle);
+  const shape = DEFAULT_BRANCH_SHAPES.map((one) => ({ one, match: one.pattern.exec(bundle) })).find(
+    (tried): tried is { one: DefaultBranchShape; match: RegExpExecArray } => tried.match !== null,
+  );
+  const match = shape?.match ?? null;
   if (match === null) {
     throw new ProtocolKeyTableError(
       "no computed key family in the default branch — the client changed how it routes keys",
@@ -116,12 +162,16 @@ export function getComputedKeyFamily(bundle: string): ComputedKeyFamily {
   // That the groups exist is ours to guarantee — the pattern captured them. What
   // the client wrote inside them is not, so the offsets are refused rather than
   // coerced: `Number()` on a mangled group would hand back a plausible index.
-  const marker = assertDefined(match[1], "DEFAULT_BRANCH captures the marker");
-  const markerAt = getIntegerFromText(assertDefined(match[2], "DEFAULT_BRANCH captures the offset"));
-  const markerLength = getIntegerFromText(
-    assertDefined(match[3], "DEFAULT_BRANCH captures the marker length"),
+  const groups = assertDefined(shape, "a shape matched, so it says where its captures are").one
+    .groups;
+  const marker = assertDefined(match[groups.marker], "the shape captures the marker");
+  const markerAt = getIntegerFromText(
+    assertDefined(match[groups.markerAt], "the shape captures the offset"),
   );
-  const dealtSign = assertDefined(match[4], "DEFAULT_BRANCH captures the dealt sign");
+  const markerLength = getIntegerFromText(
+    assertDefined(match[groups.markerLength], "the shape captures the marker length"),
+  );
+  const dealtSign = assertDefined(match[groups.dealtSign], "the shape captures the dealt sign");
 
   if (markerAt === null || markerLength === null) {
     throw new ProtocolKeyTableError(
