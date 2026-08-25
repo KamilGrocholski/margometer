@@ -502,6 +502,31 @@ const SKILL_NAME_KEY = "tspell";
 const SKILL_ID_KEY = "skillId";
 
 /**
+ * The other spelling of the same announcement: a name the game did not take from
+ * the skill table.
+ *
+ * The message has the shape `tspell`'s has — a name, and beside it the effects
+ * the thing being used performs — and the panel means by *skill* a named thing a
+ * combatant used (§10), so it is read into the same event rather than into a new
+ * one.
+ *
+ * ⚠️ **Read only where the message names exactly one combatant, and that is not
+ * caution about the material — it is the one difference between this key and
+ * `tspell`.** Production build `53XkBRxF` composes `tspell` with the name in
+ * the **actor** slot and this one with the name in the **target** slot
+ * (`msg_tcustom_target %target% %val%`, interpolating the second combatant), so a
+ * message stating two different combatants would not say whose use it was, and
+ * picking the actor would be the guess §5 refuses. Where one combatant is all the
+ * message names — both ends the same, or one end unstated — there was never a
+ * second name to get wrong, and every occurrence the captures carry is of that
+ * shape. A message naming two goes back to unread, loudly.
+ *
+ * The value is a name the player's client displays, read at run time and never
+ * stored here, exactly as `tspell`'s is (NOTICE.md).
+ */
+const CUSTOM_SKILL_NAME_KEY = "tcustom";
+
+/**
  * What an announcement declares about the skill it announces.
  *
  * Every one of these rides a message carrying `tspell` and none rides a blow —
@@ -553,7 +578,29 @@ const SKILL_DECLARATION_KEYS = [
  * interpolates two combatant names and no figure, and `+spell-taken_dmg-all`
  * interpolates nothing at all.
  */
-const VALUELESS_SKILL_DECLARATION_KEYS = ["+spell-taken_dmg-all", "en-regen-cast"];
+const VALUELESS_SKILL_DECLARATION_KEYS = [
+  "+spell-taken_dmg-all",
+  "en-regen-cast",
+  /**
+   * Three cleanses an announced ability performs on its own side, and the help
+   * states of each that it carries no figure: `removeslow-allies` takes the
+   * slow-over-time effects off every member of the party, `removestun-allies` the
+   * stuns, and both are published with *no variable* (article view,372 at the
+   * engine names, read 2026-08-25). `removedot-allies` the article does not
+   * mention at all — searched for the stem `removedot`, which counts zero — so
+   * what places it here is the client alone: production build `53XkBRxF`
+   * composes all three with no `%val%` hole, the first two through their own
+   * branches and the third through one it shares with `removedot` and
+   * `removestun`, passing no parameters at all.
+   *
+   * What they undo is an effect, never a figure. Nothing they remove was ever
+   * counted here — a slow and a stun are turns, which nothing here counts (§10),
+   * and the damage a cleansed tick would have done is damage that never arrives.
+   */
+  "removeslow-allies",
+  "removestun-allies",
+  "removedot-allies",
+];
 
 /**
  * What a blow declares about itself.
@@ -630,6 +677,27 @@ const BLOW_DECLARATION_KEYS = [
    */
   "+absorbm",
   /**
+   * ⚠️ **The physical twin of the key above, and the same trap.** `-absorb` two
+   * segments away is damage absorption stopped and reaches `prevented`; this one
+   * is the pool being restored, so adding it to the key it looks like would count
+   * points of absorption as points of damage.
+   *
+   * Production build `53XkBRxF` composes it as `msg_+absorb %val%`, in the
+   * attacker's log slot, immediately beside `+absorbm` and with the identical
+   * shape, as `1786514810315` did before it. Development build `1781609507010` names the effect on that branch as a
+   * renewal of absorption, which is where the reading comes from (§7.6).
+   *
+   * The help documents the effect the two report, which the entry for `+absorbm`
+   * had recorded as undocumented: `absagain_per` restores a share of absorption,
+   * physical and magical, after a landed attack, capped at the pool the fight was
+   * entered with (article view,372 at the engine name `absagain_per`, read
+   * 2026-08-25). What that leaves undecided is the same thing as before — the
+   * message names an attacker and an absorbing combatant and states which of them
+   * gained nowhere — so the verdict rests where `+absorbm`'s does, on the unit:
+   * points of absorption are a unit no total here keeps.
+   */
+  "+absorb",
+  /**
    * ⚠️ **The one that looks like damage and is not.** `+taken_dmg` rides every
    * blow that carries `-dmga`, without exception, and the tempting reading is
    * that it is the raw half of that applied figure — the help documents
@@ -663,12 +731,13 @@ const BLOW_DECLARATION_KEYS = [
  * unread, which is where that disagreement belongs.
  *
  * `+legbon_anguish` is the second, in the identical disagreement: production
- * build `1786514810315` composes `msg_+legbon_anguish %val%`, and all three
- * occurrences state nothing
- * (`tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json`). It
- * announces the bleed whose ticks `HEALTH_CHANGE_KEYS` reads under `anguish`,
- * and it announces it without the figure that would say which tick is whose —
- * which is why the two are not joined the way `+injure` and `injure` are (§9.6).
+ * build `1786514810315` composes `msg_+legbon_anguish %val%`, and every
+ * occurrence in the material states nothing — three recordings carry it as the
+ * set stood 2026-08-25, and the absence is asserted over the material rather
+ * than counted here (`tests/core/anguish-rule.test.ts`). It announces the bleed
+ * whose ticks `HEALTH_CHANGE_KEYS` reads under `anguish`, and it announces it
+ * without the figure that would say which tick is whose — which is why the two
+ * are not joined the way `+injure` and `injure` are (§9.6).
  */
 const VALUELESS_BLOW_DECLARATION_KEYS = ["+legbon_holytouch", "+legbon_anguish"];
 
@@ -836,6 +905,7 @@ export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
   ...SIDE_SHARE_HEALTH_KEYS,
   SKILL_SHOUT_KEY,
   SKILL_NAME_KEY,
+  CUSTOM_SKILL_NAME_KEY,
   SKILL_ID_KEY,
   DAMAGE_TO_NAMED_KEY,
   HEALING_TO_NAMED_KEY,
@@ -943,6 +1013,16 @@ function decodeMessage(message: string, roster: CombatantRoster | null): Message
       // A blank name would travel on looking like a skill nobody can name.
       if (value === null || value === "") unreadKeys.push(key);
       else skillName = value;
+      continue;
+    }
+
+    if (key === CUSTOM_SKILL_NAME_KEY) {
+      // Same blank-name refusal as above, and the second condition is the one
+      // this key needs: exactly one combatant named is what makes the use
+      // somebody's without an inference.
+      if (value === null || value === "" || getCombatantIdsOfMessage(parsed).length !== 1) {
+        unreadKeys.push(key);
+      } else skillName = value;
       continue;
     }
 

@@ -76,6 +76,13 @@ prints in parentheses, and for a compound key that name is routinely the tail
 alone — `legbon_facade` is published as `facade`. So `names nothing of` has to
 list the key without its sign, and the tail after the first separator.
 
+One tail is not a name, and asking for it makes a true silence unstateable:
+`-allies` says *whom* an effect reaches, so the engine name of `removedot-allies`
+is its **head**, and `allies` — which the article carries on every documented
+sibling — is what the claim would have had to call absent. Where the tail is one
+of those suffixes the head is what has to have been searched
+(`tests/protocol-key-register.ts`).
+
 Re-counting alone would not have caught anything. The entry that got
 `+legbon_holytouch` wrong recorded the phrases it searched, exactly as §7.6 asks —
 `legbon_holytouch` and `legbon` — and both count zero. A guard re-measuring only
@@ -197,7 +204,7 @@ capture in `tests/captured-fights/` as of 2026-08-18 ending with a winner named.
 So this is a claim of the client's and the help's, and the first recording of a
 fight nobody wins is what would measure it.
 
-*Shape:* 23 occurrences; alone in its message; text
+*Shape:* 25 occurrences; alone in its message; text
 
 *Help:* names `max_moves`
 
@@ -212,7 +219,7 @@ The same, for the losing side — with the one exception the entry above states:
 the `?` that key spends on a fight nobody won is not a value this one carries,
 and it is left unread here rather than read as a side of that name.
 
-*Shape:* 23 occurrences; alone in its message; text
+*Shape:* 25 occurrences; alone in its message; text
 
 ### `+oth_dmg` — decoded
 
@@ -239,7 +246,7 @@ there. Read literally it made `dmg ` a second element beside `dmg`, splitting
 107 952 points of physical damage into two rows nothing on screen could tell
 apart. Held by `tests/core/fight-decoder.test.ts`.
 
-*Shape:* 850 occurrences; on a message reporting damage; text
+*Shape:* 951 occurrences; on a message reporting damage; text
 
 *Evidence:* in every call where a target lost more health than the attack
 accounted for, the shortfall equalled this amount exactly — 110, 247 and 123 in
@@ -399,7 +406,7 @@ message that carries it, so the first member accounts for all the health movemen
 and the second moves none. *Not understood* and *unaccounted* are different
 claims, and only the first is true here.
 
-*Shape:* 1610 occurrences; alone in its message; text
+*Shape:* 1826 occurrences; alone in its message; text
 
 *Evidence:* of the four ways to sign `heal` and `poison`, only healing added and
 poison subtracted closes the stated percentages — the other three leave hundreds
@@ -433,7 +440,7 @@ sign is the client's direction marker rather than noise: `14` here and `-45` on
 the heal render as *increased* and *decreased* of some quantity neither the
 protocol nor the bundle names.
 
-*Shape:* 590 occurrences; alone in its message; text
+*Shape:* 637 occurrences; alone in its message; text
 
 *Help:* names `poison`
 
@@ -476,7 +483,7 @@ and `fire=117,6` twice — read as `poison`'s is, and for the same measured reas
 the calls are judged and agree on the very messages carrying it, so the member
 moves no health.
 
-*Shape:* 23 occurrences; alone in its message; text
+*Shape:* 25 occurrences; alone in its message; text
 
 *Help:* names `( fire )`
 
@@ -566,7 +573,7 @@ charged to nobody and the panel draws it half-named.
 
 *Cause:* nobody
 
-*Shape:* 11 occurrences; alone in its message; a whole number
+*Shape:* 58 occurrences; alone in its message; a whole number
 
 *Help:* names `anguish`
 
@@ -574,9 +581,9 @@ charged to nobody and the panel draws it half-named.
 comparisons in `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json`,
 all agreeing, and flipping either the sign or the slot breaks them
 (`tests/core/health-witness.test.ts`). The figure is legible without that too:
-every one of the eleven ticks states 184 against a pool of 43 092 and moves the
-stated percentage down by 0.42 to 0.43 points, which is what 184 of that pool comes
-to. The published help documents the effect at article `view,372` under the engine
+in that recording every one of the eleven ticks states 184 against a pool of
+43 092 and moves the stated percentage down by 0.42 to 0.43 points, which is what
+184 of that pool comes to. The published help documents the effect at article `view,372` under the engine
 name `anguish` (read 2026-08-25) — a legendary bonus applying bleeding damage to
 the target of a blow, spread over five turns, occurring only where the blow met no
 evade, `arrowblock` or `parry`, with the damage given by a formula over the item's
@@ -585,8 +592,12 @@ apparent level and the character's base attributes. Production build
 on the same comma `poison` and `fire` split on; no occurrence here carries a second
 member. What this reading rests on beyond the arithmetic —
 that a tick is charged to its victim and never to whoever applied it — is measured
-by `tests/core/anguish-rule.test.ts`. Carried by one recording as the set stood
-2026-08-25.
+by `tests/core/anguish-rule.test.ts`. Three recordings carry it as the set stood
+2026-08-25, and the two against a Draugr are what make the refusal legible rather
+than theoretical: in
+`tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json` two combatants apply
+the bleed to the same victim and 25 ticks come back off it, each stating one of
+several figures and none of them announced.
 
 ### `heal_target` — decoded
 
@@ -612,7 +623,7 @@ those would be reading the grammar where the difference is in the documentation.
 
 *Cause:* the announcement's actor
 
-*Shape:* 85 occurrences; on a skill announcement; a whole number
+*Shape:* 94 occurrences; on a skill announcement; a whole number
 
 *Evidence:* reading it on the target closed every comparison in the calls that
 carry it, first try and with no adjustment. Read on the actor instead, the same
@@ -887,7 +898,7 @@ moves health.
 
 *Cause:* the message actor
 
-*Shape:* 99 occurrences; on a skill announcement; a number
+*Shape:* 109 occurrences; on a skill announcement; a number
 
 *Help:* names `healall_per`, `lowheal_per-enemies`, `heal_per-enemies`
 
@@ -1020,7 +1031,7 @@ carries damage and names a combatant on both sides.
 
 Damage physical absorption stopped before it reached the target.
 
-*Shape:* 612 occurrences; on a blow; a whole number
+*Shape:* 620 occurrences; on a blow; a whole number
 
 *Help:* names `absorb`
 
@@ -1052,7 +1063,7 @@ the same branch shape in production build `1785244275300`. 27 occurrences on
 Damage a block stopped. The help ties the event to defending and to carrying a
 shield, so unlike the two above it can be absent from a combatant entirely.
 
-*Shape:* 85 occurrences; on a blow; a whole number
+*Shape:* 95 occurrences; on a blow; a whole number
 
 *Help:* names `blok`
 
@@ -1068,7 +1079,7 @@ A critical hit fired on this blow. **Carries no figure at all**: the protocol
 states the key and stops, and the client's branch composes its sentence without
 reading a value.
 
-*Shape:* 691 occurrences; on a blow; no value
+*Shape:* 740 occurrences; on a blow; no value
 
 *Help:* names `crit`
 
@@ -1108,7 +1119,7 @@ silence: *documented effect, undocumented name* is a different finding from
 Armour piercing fired on this blow — the help states that within such a blow the
 target's armour does not reduce the damage. No figure, like `+crit`.
 
-*Shape:* 271 occurrences; on a blow; no value
+*Shape:* 329 occurrences; on a blow; no value
 
 *Help:* names `pierce`
 
@@ -1128,7 +1139,7 @@ groups all three the way it does.
 The material agrees from both sides: every occurrence states no value, and every
 occurrence carries `+pierce` in the same message.
 
-*Shape:* 4 occurrences; on a blow; no value
+*Shape:* 5 occurrences; on a blow; no value
 
 *Help:* names `pierceb`
 
@@ -1263,7 +1274,7 @@ elsewhere as the set stood 2026-08-25; of the five variants only this one and
 The same stun, from the effect the help documents separately as its own passive:
 a chance to freeze, which blocks the target's turn.
 
-*Shape:* 55 occurrences; on a blow; no value
+*Shape:* 61 occurrences; on a blow; no value
 
 *Help:* names `freeze`
 
@@ -1303,7 +1314,7 @@ None of that is in the protocol, which states the name and stops. It is recorded
 because it says whose the event is, and because the sibling keys are what a later
 capture would arrive carrying.
 
-*Shape:* 10 occurrences; on a blow; no value
+*Shape:* 12 occurrences; on a blow; no value
 
 *Help:* names `curse`
 
@@ -1372,7 +1383,7 @@ every recording as the set stood 2026-08-25: ten arrive beside `-dmg=0` and
 thirteen beside `-dmgd=0`, none beside a non-zero one, and none beside no applied
 figure at all.
 
-*Shape:* 23 occurrences; on a blow; no value
+*Shape:* 31 occurrences; on a blow; no value
 
 *Help:* names `evade`
 
@@ -1392,7 +1403,7 @@ The Fast Arrow fired on this blow: a chance event that shortens the attack's
 duration. Carries no figure, and says nothing about how hard the blow landed —
 what it changes is time, which no total here keeps.
 
-*Shape:* 34 occurrences; on a blow; no value
+*Shape:* 44 occurrences; on a blow; no value
 
 *Help:* names `fastarrow`
 
@@ -1408,7 +1419,7 @@ The Riposte the defender fired back: an event that occurs on **taking** a
 critical hit and triggers an automatic counterattack inside the same turn. On the
 defending side, like `-evade` and `-blok`, and carrying no figure.
 
-*Shape:* 2 occurrences; on a blow; no value
+*Shape:* 3 occurrences; on a blow; no value
 
 *Help:* names `contra`
 
@@ -1442,7 +1453,7 @@ help does not document it; what was measured is one article. The help has no bui
 id and no index this file reads, so there is no reading of it that supports the
 wider claim — and the four keys corrected above are what the wider claim costs.
 
-*Shape:* 13 occurrences; on a blow; no value
+*Shape:* 16 occurrences; on a blow; no value
 
 *Help:* names nothing of `tenacity`
 
@@ -1470,7 +1481,7 @@ The target's armour was destroyed outright by this blow — the floor `+acdmg`
 counts down to. **Not a figure**, unlike `+acdmg`: this key states that the
 armour is gone and no amount.
 
-*Shape:* 31 occurrences; on a blow; no value
+*Shape:* 38 occurrences; on a blow; no value
 
 *Help:* names nothing of `acdmg_destroyed`, `destroyed`
 
@@ -1487,7 +1498,7 @@ distinction is not pedantic: the help describes it as lowering a statistic
 before the blow's reduction is computed, with a floor below which it cannot go.
 Summed together with `dealt` it would be a total of two different things.
 
-*Shape:* 632 occurrences; on a blow; a whole number
+*Shape:* 745 occurrences; on a blow; a whole number
 
 *Help:* names `acdmg`
 
@@ -1509,7 +1520,7 @@ in **percentage points** rather than in the points `+acdmg` uses. The two are
 kept in one shape here because the protocol gives no unit either way; what the
 figure means is the entry's job, not the type's.
 
-*Shape:* 867 occurrences; on a blow; a whole number
+*Shape:* 936 occurrences; on a blow; a whole number
 
 *Help:* names `resdmg`
 
@@ -1585,7 +1596,7 @@ and shown, never stored here — the same footing as the sentences the client
 composes from keys, and for the same reason (NOTICE.md). No example of one
 appears in this file or in any test.
 
-*Shape:* 2580 occurrences; on a skill announcement; text
+*Shape:* 2844 occurrences; on a skill announcement; text
 
 *Help:* names nothing of `tspell`, `( tspell )`, `skillId`, `( skillId )`
 
@@ -1609,13 +1620,53 @@ can put on screen.
 unknown-parameter notice, which is what makes it a pass-through identifier
 rather than something the log is composed from.
 
-*Shape:* 2341 occurrences; on a skill announcement; a whole number
+*Shape:* 2563 occurrences; on a skill announcement; a whole number
 
 *Evidence:* production build `1785244275300` for the empty branch. Measured on
 the captures: present on 182 of the 197 announcements, absent from 15, and never
 once on a message that does not also carry `tspell`. That last figure is why a
 lone id is reported unread instead of decoded — the protocol has not yet shown
 one, so reading it would be describing a message we have never seen.
+
+### `tcustom` — decoded
+
+The other way an announcement names what a combatant used: a name the game did
+not take from its skill table. The message has `tspell`'s shape — a name, and
+beside it the effects the named thing performs — so it is read into the same
+event, and the panel shows it the way it shows any other named thing somebody
+used (§10).
+
+⚠️ **Read only where the message names exactly one combatant, and that is the one
+difference from `tspell`.** The client composes `tspell` with the name in the
+**actor** slot and this one with the name in the **target** slot, so a message
+stating two different combatants would not say whose use it was, and taking the
+actor would be the guess §5 refuses. Where one combatant is all the message names
+— both ends the same, or one end unstated — there was never a second name to get
+wrong. A message naming two goes back to unread
+(`tests/core/custom-announcement-rule.test.ts`).
+
+The value is a name the player's own client displays. It is read at run time and
+shown, never stored here — the same footing as `tspell`'s, and for the same
+reason (NOTICE.md). No example of one appears in this file or in any test.
+
+*Shape:* 5 occurrences; on a skill announcement; text
+
+*Help:* names nothing of `tcustom`, `( tcustom )`
+
+*Evidence:* production build `53XkBRxF` composes it as
+`msg_tcustom_target %target% %val%`, interpolating the message's second combatant
+and the value, and files the line under the log's text slot rather than the
+automatic one `tspell` takes — as `1786514810315` did before it, the two builds
+differing in how they quote a string and not in this. Development build `1781609507010` carries a comment
+on that branch naming the thing used as a special potion — what the readable
+channel adds, and the weaker of the two claims (§7.6). Article view,372 (read
+2026-08-25) documents neither the key nor its parenthesised form, which is
+expected rather than surprising: the help describes mechanics, and this is how a
+message is assembled. Measured over every recording as the set stood 2026-08-25:
+five occurrences, all in
+`tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json`, each naming one
+combatant in both slots, and every key beside them one this register already
+holds.
 
 ---
 
@@ -1709,7 +1760,7 @@ No health line, which is the register making no claim rather than an omission:
 what the captures settle is that the damage reported beside it needs no
 adjustment, and that is a different statement from the key moving health itself.
 
-*Shape:* 747 occurrences; on a message reporting damage; a whole number
+*Shape:* 814 occurrences; on a message reporting damage; a whole number
 
 *Help:* names `poison_lowdmg_per-enemies`
 
@@ -1766,7 +1817,7 @@ composing skill descriptions. That switch is not about battle messages, and the
 frozen table is bounded by brace balance so it holds only the battle one — the
 trap §7.5 records, met again here.
 
-*Shape:* 400 occurrences; on a skill announcement; a whole number
+*Shape:* 421 occurrences; on a skill announcement; a whole number
 
 *Help:* names `active_absorbdest_per`
 
@@ -1793,7 +1844,7 @@ input, not an outcome.** Whatever the points are then worth arrives as ordinary
 figures in the message or in later ones, already computed; totalling the cap
 would add a number that measures nothing that was done to anybody.
 
-*Shape:* 374 occurrences; on a skill announcement; a whole number
+*Shape:* 385 occurrences; on a skill announcement; a whole number
 
 *Help:* names `combo-max`
 
@@ -1909,7 +1960,7 @@ and it runs on every gate.
 A legendary bonus riding the blow, stating a whole number. Nothing establishes
 what the number counts.
 
-*Shape:* 14 occurrences; on a blow; a whole number
+*Shape:* 15 occurrences; on a blow; a whole number
 
 A legendary bonus that **reduces the damage its bearer takes**, stated on the
 blow it reduced. The help describes it under the human name with the engine name
@@ -2002,7 +2053,7 @@ The aura that grants the reduction `-poison_lowdmg_per` reports, declared once
 per fight rather than per blow. Described in full in that entry above; it has a
 heading of its own because it is a distinct key.
 
-*Shape:* 29 occurrences; alone in its message; a whole number
+*Shape:* 31 occurrences; alone in its message; a whole number
 
 *Help:* names `poison_lowdmg_per-enemies`
 
@@ -2026,7 +2077,7 @@ So it states a component of the added damage rather than the whole of it, and th
 whole is already reported as `-dmga`, which the `?dmg*` family reads. Counting it
 would land the same damage twice.
 
-*Shape:* 931 occurrences; on a blow; a whole number
+*Shape:* 1042 occurrences; on a blow; a whole number
 
 *Help:* names `taken_dmg`
 
@@ -2053,7 +2104,7 @@ the figure may be totalled.
 The share by which this blow's output was raised by the Crush effect, stated per
 damage element. An input: the damage keys beside it already carry it.
 
-*Shape:* 9 occurrences; on a blow; a whole number
+*Shape:* 22 occurrences; on a blow; a whole number
 
 *Help:* names `crush`
 
@@ -2091,7 +2142,7 @@ do not have it, so it has no entry.
 Attack speed granted on a critical hit. A unit no total here keeps, which is the
 same reason `+critslow_per` above is read and never added to anything.
 
-*Shape:* 17 occurrences; on a blow; a number
+*Shape:* 20 occurrences; on a blow; a number
 
 *Help:* names `critsa`
 
@@ -2135,7 +2186,7 @@ full key `legbon_critred` counts zero, as `legbon_facade` did.
 Piercing Efficiency: the share of the target's defensive statistics this attack
 ignores. An input to the damage on the same message, not an outcome.
 
-*Shape:* 4 occurrences; on a blow; a whole number
+*Shape:* 5 occurrences; on a blow; a whole number
 
 *Help:* names `puncture`
 
@@ -2169,23 +2220,34 @@ so a figure in one can shorten none of them. Adding it to the key it resembles
 would count points of absorption as points of damage.
 
 ⚠️ **Whose pool refilled is not settled, and the entry says so rather than
-reading the slot.** Both occurrences ride a blow where the attacker is named on
+reading the slot.** Every occurrence rides a blow where the attacker is named on
 one side and the absorbing combatant on the other, and nothing states which of
-them gained. The help would be the source that answers it (this section's own
+them gained. The help is the source that would answer it (this section's own
 preamble: which combatant a figure belongs to comes from the help, never from the
-sign) and the help does not describe the event at all — which is what keeps this a
-declaration rather than something a row could carry.
+sign), and it goes half way: `absagain_per` documents the renewal both this key
+and `+absorb` report, without saying whether the attack that triggers it is one
+the character landed or one they took. So the question the verdict turns on is
+still open, and this stays a declaration rather than something a row could carry.
 
 *Shape:* 3 occurrences; on a blow; a whole number
 
-*Help:* names `absorbm`
+*Help:* names `absorbm`, `absagain_per`
 
 *Evidence:* article view,372 at the engine name `absorbm` (read 2026-08-22)
 documents the statistic and one movement of the pool, downward, by what the pool
-has just stopped. Every absorption name the article prints was tried — `absorb`,
-`absorbd`, `absorbm`, and the passives `absorb_per`, `absorbm_per`,
-`active_absorbdest_per`, `redabdest_per` — and none of them is a renewal, so the
-silence is a searched one and not an unread page (§7.6).
+has just stopped.
+
+⚠️ **This entry recorded that the renewal was undocumented, and it was wrong.**
+The search behind that was by absorption name — `absorb`, `absorbd`, `absorbm`,
+and the passives `absorb_per`, `absorbm_per`, `active_absorbdest_per`,
+`redabdest_per` — and the article files the renewal under none of them: it is
+`absagain_per`, restoring a share of absorption and magical absorption after an
+attack that landed, capped at the pool the fight was entered with (read
+2026-08-25). A searched silence is still a silence over the names that were
+searched, and an effect the article names something else entirely walks through
+it. The verdict does not move — nothing in the article says whose pool gained —
+but the reason it does not is now the article's own words rather than its
+absence.
 
 The reading comes from the client, and the two builds are cited separately
 because only one of them names it. Production build `1786514810315` — the one
@@ -2196,14 +2258,46 @@ that branch naming the effect as a renewal of magical absorption. So what
 production confirms is the shape, and what the readable channel adds is the name
 — which is the weaker of the two claims and the one this entry rests on.
 
-⚠️ **Two occurrences, one recording, one attacker, and the same value on both.**
-Both sit on the same announced ability, cast by the same combatant, in
-`tests/captured-fights/2026-08-17-tempest-grupa-vs-hildur.json` — the ability
-goes unnamed here because its name is the game's own (§5) — and each states 15
-while `-absorbm` beside them states 2 247 and 1 774. That is far too little
-material to read a rule off, and none is read: the verdict rests on the unit, the
-way `-endest`'s does, and the unit is what makes the figure safe to show and
-impossible to total.
+⚠️ **Three occurrences, two recordings, and the same value on every one of
+them.** Two sit on the same announced ability, cast by the same combatant, in
+`tests/captured-fights/2026-08-17-tempest-grupa-vs-hildur.json` — the ability goes
+unnamed here because its name is the game's own (§5) — where each states 15 while
+`-absorbm` beside them states 2 247 and 1 774; the third states 15 as well, in
+`tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur-auto.json`. That is far
+too little material to read a rule off, and none is read: the verdict rests on the
+unit, the way `-endest`'s does, and the unit is what makes the figure safe to show
+and impossible to total.
+
+### `+absorb` — decoded
+
+Absorption **returned to the pool** by this blow: the physical twin of the key
+above, trap included. `-absorb` is damage absorption stopped and reaches
+`prevented`; this one is the pool being refilled, so adding it to the key it
+resembles would count points of absorption as points of damage.
+
+**Read as a declaration and counted as nothing**, on the same ground: points of
+absorption are a unit no total here keeps, so a figure in one can shorten none of
+them.
+
+⚠️ **The help does document the effect these two report, and the entry above says
+it does not.** `absagain_per` restores a share of absorption, physical and
+magical, after an attack that landed, and cannot take either pool past what the
+fight was entered with. The article does not say whether the attack is one the
+character landed or one they took, and the message does not either — so what kept
+both keys declarations is untouched: they name an attacker and the combatant whose
+absorption stopped damage, and state nowhere which of the two gained.
+
+*Shape:* 2 occurrences; on a blow; a whole number
+
+*Help:* names `absorb`, `absagain_per`
+
+*Evidence:* article view,372 at the engine names `absorb` and `absagain_per`
+(read 2026-08-25). Production build `53XkBRxF` composes it as
+`msg_+absorb %val%` in the attacker's log slot, immediately beside `+absorbm` and
+with the identical shape, as `1786514810315` did before it; development build `1781609507010` names the effect on
+that branch as a renewal of absorption. Both occurrences ride a blow whose actor
+deals magical damage, one in each of the two recordings of 2026-08-25 against a
+Draugr — far too little material to read a rule off, and none is read.
 
 ## Keys the protocol states on a skill announcement
 
@@ -2241,7 +2335,7 @@ in group fights. Held by `tests/core/skill-announcement-rule.test.ts` for
 
 A reduction of the target's chance to block, granted by the announced skill.
 
-*Shape:* 278 occurrences; on a skill announcement; a whole number
+*Shape:* 281 occurrences; on a skill announcement; a whole number
 
 *Help:* names `active_decblock_per`
 
@@ -2270,7 +2364,7 @@ every value `10` — and `10` is the only value any recording states (read
 
 An increase to the announcer's own chance to block.
 
-*Shape:* 88 occurrences; on a skill announcement; a whole number
+*Shape:* 91 occurrences; on a skill announcement; a whole number
 
 *Help:* names `active_block_per`
 
@@ -2299,7 +2393,7 @@ every value `5` — and `5` is the only value any recording states (read
 
 An attack-speed reduction applied across the opposing side.
 
-*Shape:* 79 occurrences; on a skill announcement; a whole number
+*Shape:* 86 occurrences; on a skill announcement; a whole number
 
 *Help:* names `allslow_per`
 
@@ -2312,7 +2406,7 @@ every value `14`. Three recordings since state `12` as well (read 2026-08-19).
 
 An aura raising armour, granted to the announcer's team.
 
-*Shape:* 24 occurrences; on a skill announcement; a whole number
+*Shape:* 36 occurrences; on a skill announcement; a whole number
 
 *Help:* names `aura-ac_per`
 
@@ -2326,7 +2420,7 @@ that raise armour. On `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.
 An aura raising the team's resistances to fire, cold and lightning, in
 percentage points.
 
-*Shape:* 24 occurrences; on a skill announcement; a whole number
+*Shape:* 36 occurrences; on a skill announcement; a whole number
 
 *Help:* names `aura-resall`
 
@@ -2339,7 +2433,7 @@ occurrences, every value `15` — and `15` is the only value any recording state
 
 An aura raising the team's attack speed.
 
-*Shape:* 34 occurrences; on a skill announcement; a whole number
+*Shape:* 58 occurrences; on a skill announcement; a whole number
 
 *Help:* names `aura-sa_per`
 
@@ -2354,7 +2448,7 @@ every value `20` — and `20` is the only value any recording states (read
 Mana the announced skill costs. **Signed, and negative in every occurrence** —
 the protocol states the change, not the price as a positive number.
 
-*Shape:* 107 occurrences; on a skill announcement; a whole number
+*Shape:* 120 occurrences; on a skill announcement; a whole number
 
 *Help:* names `mana`
 
@@ -2368,7 +2462,7 @@ recording is negative; 22 of them sit beside `energy` (read 2026-08-19).
 Energy the announced skill costs, the same shape as `mana`. Every occurrence in
 the captures states `0`, which is why nothing here claims it is ever otherwise.
 
-*Shape:* 55 occurrences; on a skill announcement; a whole number
+*Shape:* 61 occurrences; on a skill announcement; a whole number
 
 *Help:* names `energy`
 
@@ -2385,7 +2479,7 @@ A provocation: the announced skill forces those it covers to attack a named
 combatant. The value is that combatant's **name**, so it is read at run time and
 never stored here — the same footing as `tspell` (NOTICE.md).
 
-*Shape:* 104 occurrences; on a skill announcement; text
+*Shape:* 123 occurrences; on a skill announcement; text
 
 *Help:* names `shout`
 
@@ -2400,7 +2494,7 @@ The share by which an aura raises the melee damage of the team members standing
 in the front position. Stated on the announcement as an input; what it comes to
 arrives later as ordinary damage, already raised.
 
-*Shape:* 24 occurrences; on a skill announcement; a whole number
+*Shape:* 43 occurrences; on a skill announcement; a whole number
 
 *Help:* names `adddmg2`
 
@@ -2417,7 +2511,7 @@ That the announced skill applies the added-damage effect to **everyone**, rather
 than to one target. Carries no figure: it names which variant of the effect the
 skill is, and the share it applies is not on this message at all.
 
-*Shape:* 42 occurrences; on a skill announcement; no value
+*Shape:* 49 occurrences; on a skill announcement; no value
 
 *Help:* names `taken_dmg`
 
@@ -2451,6 +2545,63 @@ substituted and no `%val%`.
 that a damage total may be low, and reaches no figure. The one occurrence rides an
 announcement that also carries `heal_target` and `combo-max`.
 
+### `removeslow-allies` — decoded
+
+That the announced ability takes the slow-over-time effects off every member of
+the caster's own side. Carries no figure, and the help says as much itself: the
+effect is published with **no variable**.
+
+What it undoes is an effect and never a figure. Nothing it removes was ever
+counted here — a slow is turns, and nothing here counts turns (§10).
+
+*Shape:* 1 occurrences; on a skill announcement; no value
+
+*Help:* names `removeslow-allies`
+
+*Evidence:* article view,372 at the engine name `removeslow-allies` (read
+2026-08-25) documents it as a passive removing the slow-over-time effects an
+opponent's skills and the character's own equipment laid on the party, and states
+its variable as none. Production build `53XkBRxF` composes it through a
+branch of its own, `msg_removeslow-allies`, interpolating nothing. The one
+occurrence rides an announcement carrying `removestun-allies` beside it, in
+`tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json`.
+
+### `removestun-allies` — decoded
+
+The same, for stuns: the announced ability takes them off every member of the
+caster's own side, and states no figure.
+
+*Shape:* 1 occurrences; on a skill announcement; no value
+
+*Help:* names `removestun-allies`
+
+*Evidence:* article view,372 at the engine name `removestun-allies` (read
+2026-08-25) documents it as an active removing `stun`, `freeze` and `stun2` from
+the party, with its variable stated as none. Production build `53XkBRxF`
+composes it through `msg_removestun-allies`, interpolating nothing. The one
+occurrence shares its announcement with `removeslow-allies`.
+
+### `removedot-allies` — decoded
+
+The third of the cleanses, for damage over time. **The only one of the three the
+help does not carry at all**, so what places it here is the client alone — and
+the client is enough for the one thing the verdict needs, which is that no figure
+arrives.
+
+*Shape:* 2 occurrences; on a skill announcement; no value
+
+*Help:* names nothing of `removedot-allies`, `removedot`
+
+*Evidence:* production build `53XkBRxF` composes it through the branch it
+shares with `removedot` and `removestun`, passing no parameters at all — no
+`%val%` hole anywhere in it — and the captures agree that no value ever arrives.
+Article view,372 (read 2026-08-25) prints `removeslow`, `removeslow-allies` and
+`removestun-allies` and no `removedot` of any spelling; the stem is what was
+searched, since `allies` says whom the effect reaches rather than what it is
+(`tests/protocol-key-register.ts`). Both occurrences are in
+`tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json`, each alone with its
+announcement.
+
 ---
 
 ## Keys that are a message by themselves
@@ -2478,7 +2629,7 @@ boundary would look like — but the protocol does not say that, and this entry
 does not either. The arithmetic agrees: the occurrences counted below stand
 against 1228 turns in the same material, and one capture contains none at all.
 
-*Shape:* 161 occurrences; alone in its message; no value
+*Shape:* 168 occurrences; alone in its message; no value
 
 *Help:* names `step`
 
@@ -2492,7 +2643,7 @@ always with an actor and never a target.
 A skill being prepared rather than used, stated as `name(percent%)`. The name is
 the client's display text, so no example of one appears here.
 
-*Shape:* 201 occurrences; alone in its message; text
+*Shape:* 244 occurrences; alone in its message; text
 
 *Help:* names nothing of `prepare`
 
@@ -2506,7 +2657,7 @@ Free text the client shows in the battle log. **Nothing of it is stored here**,
 in this file or in any test: it carries the game's own sentences and player
 names, which NOTICE.md keeps out of the repository entirely.
 
-*Shape:* 238 occurrences; alone in its message; text
+*Shape:* 274 occurrences; alone in its message; text
 
 *Help:* names nothing of `txt`
 
@@ -2788,9 +2939,9 @@ carrying no value, and read **only** while it carries none.
 **The same disagreement `+legbon_holytouch` sits in, and the same handling.**
 Production build `1786514810315` composes `msg_+legbon_anguish %val%` — so the
 client expects a figure — and every occurrence in the material states nothing.
-Reading it as a flag outright would settle from three messages what the game
-settles; a value arriving on it sends the key back to unread, which is where the
-disagreement belongs (`src/core/fight-decoder.ts`).
+Reading it as a flag outright would settle from a handful of messages what the
+game settles; a value arriving on it sends the key back to unread, which is where
+the disagreement belongs (`src/core/fight-decoder.ts`).
 
 ⚠️ **That absent figure is what keeps `anguish` charged to nobody**, and it is the
 whole of the difference from `+injure`. That announcement carries the figure that
@@ -2801,7 +2952,7 @@ absence is asserted over the material rather than described here
 (`tests/core/anguish-rule.test.ts`), so a recording that brings a figure fails
 rather than passing under a reading it invalidates.
 
-*Shape:* 3 occurrences; on a blow; no value
+*Shape:* 14 occurrences; on a blow; no value
 
 *Help:* names `anguish`
 
@@ -2809,9 +2960,11 @@ rather than passing under a reading it invalidates.
 `+injure` or `+wound`; what it documents is the bonus itself, at article `view,372`
 under the engine name `anguish` (read 2026-08-25) — the stem this prefixed key was
 searched by, the full key occurring nowhere. Every occurrence rides a blow naming
-both ends, dealt by the one combatant in the fight carrying the bonus, in
-`tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` — the only
-recording carrying either half of this pair as the set stood 2026-08-25.
+both ends, and three recordings carry this pair as the set stood 2026-08-25 — all
+three of that day. Two of them hold one applier each;
+`tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json` holds two, applying
+to the same victim, which is the material the absent figure is worst in: it is
+what a tick would have to be matched by, and every announcement states nothing.
 
 ### `+swing` — investigated
 

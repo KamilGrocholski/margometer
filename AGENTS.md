@@ -349,7 +349,12 @@ source that says what an effect *does*. No build id, so it has its own rules.
 - `[ALWAYS]` **Search by the engine name**, which the help prints in parentheses
   beside the human one, **and search a prefixed key by its stem as well.** *Not
   found* and *not documented* are different claims; a claim of silence is
-  refused unless it tried the stem.
+  refused unless it tried the stem. The stem is the tail — `legbon_facade` is
+  published as `facade` — **except where the tail says whom an effect reaches
+  rather than what it is**, and then it is the head: `removedot-allies` is
+  searched by `removedot`, because `allies` occurs in the article on every
+  documented sibling and a silence claim obliged to list it would be refused for
+  saying something false (`tests/protocol-key-register.ts`).
 - `[ALWAYS]` **A claim from the help carries the date it was read.**
 - `[ALWAYS]` **Documentation settles a meaning; the captures settle a number.**
   Where they disagree, the disagreement is the finding.

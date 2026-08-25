@@ -284,7 +284,7 @@ const COMPARISONS = CAPTURED_FIGHTS.flatMap((fight) => getComparisons(fight, KEY
  * much of the material the arithmetic actually closes over is a fact about the
  * project, not a detail.
  *
- * Four are **0 on purpose** and are listed rather than omitted: their whole fight
+ * Five are **0 on purpose** and are listed rather than omitted: their whole fight
  * arrives in one call with no opening snapshot, so the replay cannot seed a
  * running total. Written down so that a fight falling to zero reads as a change
  * and not as a fight that was never there.
@@ -294,8 +294,11 @@ const COMPARISONS = CAPTURED_FIGHTS.flatMap((fight) => getComparisons(fight, KEY
  * calls that follow carry snapshots and no messages at all;
  * `2026-08-24-tempest-tropiciel-vs-centaur` is a duel the player lost, whose 112
  * messages all arrive in the call that opens it;
+ * `2026-08-25-luvia-grupa-vs-draugr-auto` is a second auto-resolved group fight,
+ * arriving in the same shape as the first — 462 messages in the opening call and
+ * the two after it carrying snapshots and nothing else;
  * `2026-08-24-tempest-tropiciel-vs-centaury-auto` is the sharpest case of the
- * four and the one that says what the shape really is — it has **no snapshot
+ * five and the one that says what the shape really is — it has **no snapshot
  * anywhere**, not merely none at the opening. Its single call carries `init`,
  * `endBattle` and `close` together, so neither side of it has a battle object to
  * read, and the fight is stated entirely in `ladunek.w` and the messages. A
@@ -352,6 +355,8 @@ const COMPARISONS_BY_FIGHT: Record<string, number> = {
   "2026-08-24-tempest-tropiciel-vs-centaur": 0,
   "2026-08-24-tempest-tropiciel-vs-centaury-auto": 0,
   "2026-08-25-luvia-grupa-vs-mamlambo-auto": 421,
+  "2026-08-25-luvia-grupa-vs-draugr-auto": 0,
+  "2026-08-25-luvia-grupa-vs-draugr": 164,
 };
 
 describe("decoded damage against the health the protocol states", () => {
@@ -506,7 +511,7 @@ describe("health stated against a name", () => {
    * not the same promise as "every time" over all of them.
    */
   test("occurs as often as it is recorded to", () => {
-    expect(replayed.length).toBe(661);
+    expect(replayed.length).toBe(669);
   });
 
   test("names a combatant the replay's own roster can identify, every time", () => {

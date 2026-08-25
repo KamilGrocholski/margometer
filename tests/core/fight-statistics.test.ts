@@ -1312,7 +1312,7 @@ describe("the edges of the aggregate", () => {
   test("a blow that landed nothing opens no entry under the skill that threw it", () => {
     const statistics = composeFightStatistics(
       decodeFight(
-        ["1=90.00;2=50.00;tspell=Kula ognia;skillId=7", "1=90.00;2=50.00;+dmg=0;-dmg=0"],
+        ["1=90.00;2=50.00;tspell=Czar testowy;skillId=7", "1=90.00;2=50.00;+dmg=0;-dmg=0"],
         roster,
       ),
       roster,
@@ -1332,7 +1332,7 @@ describe("the edges of the aggregate", () => {
   test("while the smallest blow there is does", () => {
     const statistics = composeFightStatistics(
       decodeFight(
-        ["1=90.00;2=50.00;tspell=Kula ognia;skillId=7", "1=90.00;2=50.00;+dmg=1;-dmg=1"],
+        ["1=90.00;2=50.00;tspell=Czar testowy;skillId=7", "1=90.00;2=50.00;+dmg=1;-dmg=1"],
         roster,
       ),
       roster,

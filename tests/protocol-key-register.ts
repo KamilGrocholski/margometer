@@ -238,6 +238,13 @@ function parseShape(body: string, key: string): ProtocolKeyShape | null {
  * `legbon_facade` as `facade`. Searching the compound finds nothing and reads
  * exactly like an article that does not cover the key.
  *
+ * ⚠️ **One tail is not a name, and asking for it makes a true silence
+ * unstateable.** `-allies` says *whom* an effect reaches, not what it is, so the
+ * engine name of `removedot-allies` is its head — and `allies` occurs in the
+ * article on every sibling key that is documented, so a claim of silence obliged
+ * to list it would be refused for saying something false. Where the tail is one
+ * of those suffixes the head is what has to have been searched.
+ *
  * Deliberately **not** derived any further than this. `( freeze )` counts zero
  * where bare `freeze` counts four, so a rule that parenthesised the name would
  * bless a false silence for a key this register cites the help for. The phrases
@@ -247,8 +254,19 @@ export function getRequiredHelpPhrases(key: string): string[] {
   const bare = key.replace(/^[+-]/, "");
   const separator = bare.search(/[_-]/);
   if (separator === -1) return [bare];
-  return [bare, bare.slice(separator + 1)];
+  const tail = bare.slice(separator + 1);
+  if (SCOPE_SUFFIXES.includes(tail)) return [bare, bare.slice(0, separator)];
+  return [bare, tail];
 }
+
+/**
+ * Tails that say whom an effect reaches rather than what it is.
+ *
+ * One entry, because one key needs it (§7.1): every other suffixed key in the
+ * register is documented under its full name, so no claim of silence has ever had
+ * to be made about one. `-enemies` and `-all` join it the day one does.
+ */
+const SCOPE_SUFFIXES = ["allies"];
 
 function isHelpDirection(value: string): value is ProtocolKeyHelpDirection {
   return (PROTOCOL_KEY_HELP_DIRECTIONS as readonly string[]).includes(value);

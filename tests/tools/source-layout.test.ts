@@ -1199,8 +1199,10 @@ describe("the language of the strings", () => {
    * ⚠️ **The list comes from the material, never from a hand-written one.** A
    * denylist somebody types is a denylist that falls behind the next recording,
    * which is §9.2's rule for the captures pointed at prose: read the directory,
-   * do not name the files. Every `tspell=` value the captures carry is a name the
-   * operator wrote, so the captures are the list.
+   * do not name the files. Every value the captures carry under an announcement
+   * key is a name the operator wrote, so the captures are the list — **both**
+   * keys, since `tcustom` names what was used exactly as `tspell` does and a list
+   * that knew only the older spelling would let the newer one's names in.
    *
    * Short names are left out. A name of four letters or fewer is as likely to be
    * an ordinary Polish word the panel legitimately uses, and the four files
@@ -1209,14 +1211,18 @@ describe("the language of the strings", () => {
    */
   const SHORTEST_ABILITY_NAME = 5;
 
+  // Restated rather than imported, as everything about the protocol's own names
+  // is here: a guard reading the decoder's list agrees with it by construction.
+  const ANNOUNCEMENT_PREFIXES = ["tspell=", "tcustom="];
+
   const ABILITY_NAMES = [
     ...new Set(
       CAPTURED_FIGHTS.flatMap((fight) =>
         getMessagesOfFight(fight).flatMap((message) =>
-          message
-            .split(";")
-            .filter((segment) => segment.startsWith("tspell="))
-            .map((segment) => segment.slice("tspell=".length)),
+          message.split(";").flatMap((segment) => {
+            const prefix = ANNOUNCEMENT_PREFIXES.find((one) => segment.startsWith(one));
+            return prefix === undefined ? [] : [segment.slice(prefix.length)];
+          }),
         ),
       ),
     ),

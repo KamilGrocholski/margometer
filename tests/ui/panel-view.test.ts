@@ -380,7 +380,7 @@ describe("the ranking", () => {
       statistics: composeFightStatistics(
         decodeFight(
           [
-            "1=90.00;3=50.00;tspell=Kula ognia;skillId=7",
+            "1=90.00;3=50.00;tspell=Czar testowy;skillId=7",
             // Glued to the announcement above it, so a skill covers this one.
             "1=90.00;3=40.00;+dmg=300;-dmg=200",
             "1=90.00;3=30.00;+dmg=500;-dmg=400",
@@ -585,7 +585,7 @@ describe("drilling", () => {
     const statistics = composeFightStatistics(
       decodeFight(
         [
-          "1=90.00;3=50.00;tspell=Kula ognia;skillId=7",
+          "1=90.00;3=50.00;tspell=Czar testowy;skillId=7",
           "1=90.00;3=40.00;+dmgf=300;-dmgf=200",
           "1=90.00;3=30.00;+dmg=500;-dmg=400",
           "1=90.00;5=30.00;+dmgc=100;-dmgc=80",
@@ -662,7 +662,7 @@ describe("drilling", () => {
     );
 
     expect(view.lists.map((list) => list.heading)).toEqual(["CZYM — coś dużego", "TYP OBRAŻEŃ"]);
-    expect(view.lists[0]!.rows.map((row) => row.label)).toEqual(["Kula ognia", "Zwykły cios"]);
+    expect(view.lists[0]!.rows.map((row) => row.label)).toEqual(["Czar testowy", "Zwykły cios"]);
     // The section adds up to the figure it was entered from, which is what makes
     // a breakdown safe to read.
     expect(view.lists[0]!.totalText).toBe(view.lists[1]!.totalText);

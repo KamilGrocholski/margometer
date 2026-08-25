@@ -237,6 +237,18 @@ describe("what a *Help:* line is allowed to say", () => {
     ]);
     expect(getRequiredHelpPhrases("-tenacity")).toEqual(["tenacity"]);
   });
+
+  /**
+   * The suffix that says whom rather than what. `allies` occurs in the article on
+   * every documented sibling, so obliging a silence claim to list it would refuse
+   * the one true thing there is to say about `removedot-allies`.
+   */
+  test("asks for the head where the tail only says whom the effect reaches", () => {
+    expect(getRequiredHelpPhrases("removedot-allies")).toEqual([
+      "removedot-allies",
+      "removedot",
+    ]);
+  });
 });
 
 describe("the register against the decoder", () => {
@@ -330,6 +342,13 @@ describe("the register against the captured material", () => {
    */
   type Occurrence = { keys: string[]; value: string | null };
 
+  /**
+   * The two keys an announcement can be named by. `tcustom` is the second, and a
+   * message carrying it is an announcement in the same sense: a name, and beside
+   * it the effects the named thing performs.
+   */
+  const ANNOUNCEMENT_NAME_KEYS = ["tspell", "tcustom"];
+
   const OCCURRENCES_BY_KEY = new Map<string, Occurrence[]>();
   for (const fight of CAPTURED_FIGHTS) {
     for (const call of fight.dump.calls) {
@@ -347,7 +366,12 @@ describe("the register against the captured material", () => {
 
   function getPlacement(occurrences: Occurrence[]): string {
     if (occurrences.every((of) => of.keys.length === 1)) return "alone in its message";
-    if (occurrences.every((of) => of.keys.includes("tspell"))) return "on a skill announcement";
+    // Both spellings of the announcement, restated here rather than imported:
+    // §9.3 keeps `tests/core/` spelling the protocol's keys itself, so that a
+    // test asserting what the decoder reads never reads the decoder's own list.
+    if (occurrences.every((of) => ANNOUNCEMENT_NAME_KEYS.some((key) => of.keys.includes(key)))) {
+      return "on a skill announcement";
+    }
     if (occurrences.every((of) => of.keys.some(isComputedKey))) return "on a blow";
     if (
       occurrences.every(
