@@ -12,7 +12,7 @@
 export const FROZEN_HELP_PHRASES = {
   article: "372",
   /** When the dump these counts were taken from was fetched, not when it was read. */
-  fetchedAt: "2026-08-18T05:09:40.752Z",
+  fetchedAt: "2026-08-25T14:38:34.686Z",
   counts: {
     "( fire )": 2,
     "( heal )": 3,
@@ -32,6 +32,7 @@ export const FROZEN_HELP_PHRASES = {
     "afterheal": 3,
     "alllowdmg": 1,
     "allslow_per": 8,
+    "anguish": 3,
     "aura-ac_per": 2,
     "aura-resall": 1,
     "aura-sa_per": 8,

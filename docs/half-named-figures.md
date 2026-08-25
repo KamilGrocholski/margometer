@@ -85,12 +85,16 @@ freshest application against that opponent, so a victim carries one at a time; t
 figure says which one is ticking (§9.6,
 `docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`).
 
-⚠️ **One key, `injure`, and not the family.** `wound` ticks in the identical shape
-and gets none of this: its announcement `+wound` states no figure, and the help has
-that damage type accumulate rather than be overwritten, so nothing says which
-application is ticking. It stays in the damage table above, on the row
-`3=50.00;0;poison=60` holds — a figure whose actor the game left out and nobody can
-fill (`docs/protocol-keys.md`).
+⚠️ **One key, `injure`, and not the family.** Two others tick in the identical
+shape and get none of this, both for the same missing half. `wound`'s announcement
+`+wound` states no figure, and the help has that damage type accumulate rather than
+be overwritten, so nothing says which application is ticking. `anguish`'s
+announcement `+legbon_anguish` states no figure either, and the help gives that
+bonus its duration and its damage formula without saying what a second application
+does to a first — so there is neither a figure to match nor a rule to match it by.
+Both stay in the damage table above, on the row `3=50.00;0;poison=60` holds — a
+figure whose actor the game left out and nobody can fill
+(`docs/protocol-keys.md`).
 
 | the fight | `Zadane` | `Otrzymane` |
 |---|---|---|

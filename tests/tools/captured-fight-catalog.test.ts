@@ -113,7 +113,11 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
   (_name, fight) => {
     test("states where it came from", () => {
       expect(fight.dump.world).not.toBe("");
-      expect(fight.dump.gameBuild).not.toBe("");
+      // A build a recording could not read is `null` and says so; a build spelled
+      // as nothing is a recording claiming to know one it does not. `not.toBe("")`
+      // alone stopped separating the two the day the parser started admitting the
+      // first (`docs/specs/2026-08-25-a-recording-that-names-no-build.md`).
+      expect(fight.dump.gameBuild === null || fight.dump.gameBuild.length > 0).toBe(true);
       expect(getMillisecondsFromIsoText(fight.dump.capturedAt)).not.toBeNull();
     });
 
@@ -338,5 +342,42 @@ describe("fight dump parser", () => {
       wpisy: [{ nr: 0, komunikaty: ["a"], wojownicyPrzed: [], wojownicyPo: [] }],
     };
     expect(parseFightDump(composeJsonText(dump)).calls[0]!.fightNumber).toBeNull();
+  });
+
+  /**
+   * The build, whose three answers are three different things.
+   *
+   * `null` is the add-on saying the page did not state one, and reading it is
+   * what lets a fight from a client we cannot identify still be material. The
+   * other two are not that: a recording with no such field is a format nothing
+   * here has seen, and a build that is not text is a field this parser cannot
+   * read — both stop the read rather than becoming the first answer, which is the
+   * separation `docs/specs/2026-08-25-a-recording-that-names-no-build.md` turns
+   * on.
+   */
+  const composeDumpWithBuild = (build: unknown): string =>
+    composeJsonText({
+      wersja: 1,
+      przy: "2026-08-04T12:28:13.631Z",
+      swiat: "tempest",
+      ...(build === undefined ? {} : { build }),
+      wpisy: [{ nr: 0, komunikaty: ["a"], wojownicyPrzed: [], wojownicyPo: [] }],
+    });
+
+  test("reads a capture that names no build", () => {
+    expect(parseFightDump(composeDumpWithBuild(null)).gameBuild).toBeNull();
+  });
+
+  test("refuses a capture with no build field at all", () => {
+    expect(() => parseFightDump(composeDumpWithBuild(undefined))).toThrow(
+      /build: expected a string, got undefined/,
+    );
+  });
+
+  // Wrapped one deep because `test.each` spreads an array case into arguments,
+  // and the empty one then arrives as no argument at all — which bun reads as a
+  // callback asking for `done` and times out rather than failing.
+  test.each([[1786514810315], [[]], [{}]])("refuses %p as a build", (build) => {
+    expect(() => parseFightDump(composeDumpWithBuild(build))).toThrow(/build: expected a string/);
   });
 });

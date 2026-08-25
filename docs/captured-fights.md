@@ -30,7 +30,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `1 vs 1` | `3` |
 | `1 vs 2` | `1` |
 | `1 vs 3` | `1` |
-| `10 vs 1` | `17` |
+| `10 vs 1` | `18` |
 
 ## The fights
 
@@ -58,6 +58,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur-auto.json` | `10 vs 1` | `theirs won` | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–114` | `1 NPC · m 1 · level 100` | `325584` |
 | `tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaur.json` | `1 vs 1` | `theirs won` | `1 player · t 1 · level 91` | `1 NPC · h 1 · level 99` | `30698` |
 | `tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaury-auto.json` | `1 vs 2` | `ours won` | `1 player · t 1 · level 92` | `2 NPCs · h 1, w 1 · levels 97–99` | `4477` |
+| `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` | `10 vs 1` | `ours won` | `10 players · b 1, h 1, m 1, p 1, t 3, w 3 · levels 36–52` | `1 NPC · b 1 · level 36` | `43092` |
 
 ## The recordings
 
@@ -85,6 +86,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur-auto.json` | `tempest` | `1786514810315` | `3` | `358` |
 | `tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaur.json` | `tempest` | `1786514810315` | `3` | `112` |
 | `tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaury-auto.json` | `tempest` | `1786514810315` | `1` | `23` |
+| `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` | `luvia` | `none stated` | `4` | `308` |
 
 ## What the material does not hold
 
@@ -98,7 +100,8 @@ something rather than a defect.
   stood on the other one. A wide enemy side is untested on real protocol.
 - **No drawn fight.** The panel draws one, and every fight it draws it from is
   hand-built (`tests/ui/panel-view.test.ts`).
-- **Two worlds only.** Everything but the duel comes from `tempest`.
+- **Three worlds, and one of them once.** Everything but the duel and the Mamlambo
+  fight comes from `tempest`.
 
 A loss **is** held, in more than one recording — which is what the outcome column
 is for, since nothing else in the tables would say so.
@@ -136,6 +139,22 @@ is used as evidence.
   defect in the reader: one of the five landed a point *over*, and the allowance
   meant to absorb exactly that was smaller than a health point on their pool
   (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`).
+
+- `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` — **the
+  only recording naming no build**, which is what its build column says. The
+  add-on writes `null` where the page did not state one, and until this file
+  arrived `tools/fight-dump-parser.ts` refused to read such a recording at all
+  (`docs/specs/2026-08-25-a-recording-that-names-no-build.md`). So nothing dates
+  it against the client, and a claim about how the game composed a message is not
+  one this recording can settle — the messages, the snapshots and the percentages
+  in it are unaffected.
+
+  It is also the only fight **entered by hand and finished on auto**: the opening
+  call states `auto` as `0`, the third states `1`, and 304 of the 308 messages
+  arrive in the closing call. Unlike the other auto recording it still has an
+  opening snapshot, so the health witness judges it in full rather than declining
+  it. The four keys it brought — `anguish`, `+legbon_anguish`, `+stun2` and
+  `npc_heal` — are in no other recording (`docs/protocol-keys.md`).
 
 - `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`,
   `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-3.json` and

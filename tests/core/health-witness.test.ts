@@ -351,6 +351,7 @@ const COMPARISONS_BY_FIGHT: Record<string, number> = {
   "2026-08-23-tempest-grupa-vs-hildur-auto": 0,
   "2026-08-24-tempest-tropiciel-vs-centaur": 0,
   "2026-08-24-tempest-tropiciel-vs-centaury-auto": 0,
+  "2026-08-25-luvia-grupa-vs-mamlambo-auto": 421,
 };
 
 describe("decoded damage against the health the protocol states", () => {
@@ -505,7 +506,7 @@ describe("health stated against a name", () => {
    * not the same promise as "every time" over all of them.
    */
   test("occurs as often as it is recorded to", () => {
-    expect(replayed.length).toBe(648);
+    expect(replayed.length).toBe(661);
   });
 
   test("names a combatant the replay's own roster can identify, every time", () => {

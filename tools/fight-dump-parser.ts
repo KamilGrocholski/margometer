@@ -145,8 +145,22 @@ export type FightDump = {
   formatVersion: number;
   capturedAt: string;
   world: string;
-  /** Client build the capture came from. Dumps from different builds are not comparable. */
-  gameBuild: string;
+  /**
+   * Client build the capture came from, or null where the page did not say.
+   *
+   * Dumps from different builds are not comparable, and one that names no build
+   * is comparable with nothing — which is a fact about that recording and not a
+   * reason to refuse to read it. §7.6 is what that fact comes from, so the
+   * refusal it used to produce here has moved to where somebody sees it: the
+   * build column of `docs/captured-fights.md` states the absence in words.
+   *
+   * ⚠️ **Absent and unreadable stay different, and only one of them is null.**
+   * `src/game/fight-capture.ts` writes an explicit `null` when the page said
+   * nothing; a recording missing the field entirely, or stating a number, an
+   * empty string or an object, is one this parser does not understand and still
+   * stops the read.
+   */
+  gameBuild: string | null;
   calls: EngineCall[];
 };
 
@@ -270,7 +284,13 @@ export function parseFightDump(source: string): FightDump {
     formatVersion: requireInteger(dump[DUMP_FIELDS.formatVersion], DUMP_FIELDS.formatVersion),
     capturedAt: requireString(dump[DUMP_FIELDS.capturedAt], DUMP_FIELDS.capturedAt),
     world: requireString(dump[DUMP_FIELDS.world], DUMP_FIELDS.world),
-    gameBuild: requireString(dump[DUMP_FIELDS.gameBuild], DUMP_FIELDS.gameBuild),
+    // Only an explicit `null` passes — the value the add-on writes for "the page
+    // did not say". `undefined` is a recording with no such field at all, which
+    // is a format this parser has never seen, so it falls through and throws.
+    gameBuild:
+      dump[DUMP_FIELDS.gameBuild] === null
+        ? null
+        : requireString(dump[DUMP_FIELDS.gameBuild], DUMP_FIELDS.gameBuild),
     calls: requireArray(dump[DUMP_FIELDS.calls], DUMP_FIELDS.calls).map((call, i) =>
       parseEngineCall(call, `${DUMP_FIELDS.calls}[${i}]`),
     ),

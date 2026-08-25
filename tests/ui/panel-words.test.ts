@@ -209,6 +209,7 @@ describe("the panel's own vocabulary, as decided", () => {
     ["pierceb", "msg_-pierceb", "zablokowane przebicie"],
     ["stun", "msg_+stun", "ogłuszenie"],
     ["stun2-d", "msg_+stun2-d", "potężne ogłuszenie strzałą"],
+    ["stun2", "msg_+stun2", "potężne ogłuszenie"],
     ["wound", "msg_+wound", "nałożona głęboka rana"],
     ["freeze", "msg_+freeze", "zamrożenie"],
     ["legbon_curse", "msg_+legbon_curse", "klątwa"],
@@ -236,6 +237,7 @@ describe("the panel's own vocabulary, as decided", () => {
     ["injure", null, "zranienie"],
     ["wound", null, "głęboka rana"],
     ["heal", null, "ujemne przywracanie życia"],
+    ["anguish", null, "krwawienie"],
   ],
   HEALTH_GAIN_SOURCE_NAMES: [
     ["heal", "def-heal", "przywracanie życia"],
@@ -243,6 +245,7 @@ describe("the panel's own vocabulary, as decided", () => {
     ["legbon_holytouch_heal", "msg_+legbon_holytouch", "dotyk anioła"],
     ["legbon_lastheal", null, "ostatni ratunek"],
     ["healall_per", null, "uleczenie sojuszników"],
+    ["npc_heal", null, "regeneracja potwora"],
   ],
   };
 

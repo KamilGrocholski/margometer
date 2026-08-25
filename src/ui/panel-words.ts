@@ -113,6 +113,11 @@ export const EFFECT_NAMES: Record<string, TokenName> = {
   // `docs/protocol-keys.md` records them as different keys off different
   // statistics, and folding them would count one effect under the other's label.
   "stun2-d": { id: "msg_+stun2-d", fallback: "potężne ogłuszenie strzałą" },
+  // The bare member of that same family, off the same statistic. The word drops
+  // only the shape: the help gives `stun2` as costing the Player two turns where
+  // `stun` above costs one, which is what "potężne" carries in the entry beside
+  // it (article `view,372`, engine name `stun2`, read 2026-08-25).
+  stun2: { id: "msg_+stun2", fallback: "potężne ogłuszenie" },
   // What a blow announces when it applies the wound whose ticks the loss table
   // below carries. Two words for one effect on purpose: this counts blows that
   // applied it and that one counts the health it took, so a shared label would
@@ -268,6 +273,13 @@ export const HEALTH_LOSS_SOURCE_NAMES: Record<string, TokenName> = {
    * carry it at −92 and −101 for twenty triggers apiece.
    */
   heal: { id: null, fallback: "ujemne przywracanie życia" },
+  // The bleed a legendary bonus lays on the target of a blow, ticking for five
+  // turns afterwards. The word names the bleeding and not the bonus: the bonus
+  // has a name of the game's, and the row is about the health going out of the
+  // combatant, the way `fire` above is about the burning rather than about the
+  // fire element. No id — the client's entry for the tick is a sentence with
+  // holes in it, and the announcement carries no figure worth naming a row for.
+  anguish: { id: null, fallback: "krwawienie" },
 };
 
 export const HEALTH_GAIN_SOURCE_NAMES: Record<string, TokenName> = {
@@ -306,6 +318,13 @@ export const HEALTH_GAIN_SOURCE_NAMES: Record<string, TokenName> = {
   // protocol is a bare number and its members are who the effect reached
   // (dictionary read on production `1785244275300`).
   healall_per: { id: null, fallback: "uleczenie sojuszników" },
+  // The client composes this one with `msg_heal_target`, the same sentence
+  // `heal_target` above gets, so its own entry is a sentence with holes and there
+  // is nothing to ask the dictionary for (production build `1786514810315`).
+  // The word is ours and it has to differ from that row's: this is a monster
+  // restoring its own health, not somebody healing somebody, and one label over
+  // both would put a monster's own recovery under a heal that was cast.
+  npc_heal: { id: null, fallback: "regeneracja potwora" },
 };
 
 /**

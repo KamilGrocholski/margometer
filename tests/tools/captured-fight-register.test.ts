@@ -55,6 +55,9 @@ export class CapturedFightRegisterError extends MargoMeterToolError {
 const REGISTER_PATH = new URL("../../docs/captured-fights.md", import.meta.url).pathname;
 const CAPTURED_FIGHTS_DIRECTORY = "tests/captured-fights/";
 
+/** What the build column says where the recording names none. */
+const NO_BUILD_STATED = "none stated";
+
 /**
  * The headings whose tables are read, and nothing else in the document is.
  *
@@ -294,7 +297,12 @@ function composeCensusOfFight(fight: CapturedFight): FightCensus {
     recordings: [
       recording,
       fight.dump.world,
-      fight.dump.gameBuild,
+      // The absence stated in words, because the column has to say something and
+      // an empty cell reads as a column nobody filled in. §7.6 makes a recording
+      // with no build comparable with nothing, and this is where that is said now
+      // that `tools/fight-dump-parser.ts` no longer refuses to read one
+      // (`docs/specs/2026-08-25-a-recording-that-names-no-build.md`).
+      fight.dump.gameBuild ?? NO_BUILD_STATED,
       composeIntegerText(fight.dump.calls.length),
       composeIntegerText(getMessagesOfFight(fight).length),
     ],

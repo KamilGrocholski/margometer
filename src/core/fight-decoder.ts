@@ -355,6 +355,36 @@ const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> 
   // 27 of them). `frost` is the fourth of the branch and no recording carries one,
   // so it stays unread and loud rather than read on the symmetry (§3).
   light: { sign: -1, isOnTarget: false },
+  // The legendary bonus **Krwawa udręka**, which the help gives as bleeding
+  // damage laid on the target of a blow and spread over five turns, firing only
+  // where the blow met no evade, `arrowblock` or `parry` (article `view,372`,
+  // engine name `anguish`, read 2026-08-25). Written as `poison`'s twin —
+  // production build `1786514810315` composes it from the actor slot off
+  // `c.tmpHpp` and splits the value on the same separator.
+  //
+  // Measured rather than taken on the symmetry: on
+  // `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` all
+  // eleven ticks state 184 against a pool of 43 092, and each moves the stated
+  // percentage down by 0.42 to 0.43 points — which is what 184 of that pool
+  // comes to. `tests/core/anguish-rule.test.ts` re-earns it.
+  //
+  // It is **not** joined to its announcement the way `injure` is, and for
+  // `+wound`'s reason: `+legbon_anguish` states no figure, so nothing identifies
+  // which application a tick belongs to (§9.6, `docs/protocol-keys.md`).
+  anguish: { sign: -1, isOnTarget: false },
+  // A monster restoring its own health, and the one key in this table whose slot
+  // was settled by the client before the captures confirmed it. Production build
+  // `1786514810315` composes `msg_heal_target %target% %val%` from `c.name`,
+  // where `heal_target` one branch above composes the same sentence from
+  // `d.name` — and `heal` above uses `c.name` too, which is the actor slot this
+  // table already reads it in. The help is silent on the key and on the mechanic.
+  //
+  // The captures agree through the arithmetic: on
+  // `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` the two
+  // occurrences stating 1724 each raise the actor's stated percentage by exactly
+  // 4.00 points of a 43 092 pool, and the third states 0 and moves nothing
+  // (`tests/core/npc-heal-rule.test.ts`).
+  npc_heal: { sign: 1, isOnTarget: false },
 };
 
 /**
@@ -449,6 +479,13 @@ const PROC_KEYS = [
   // 2026-08-24). The captures agree: all four ride a blow of the monster's, and a
   // message saying the player lost a turn follows each.
   "+stun2-d",
+  // The bare member of that same family of five, and read on the entry above's
+  // evidence plus its own: production build `1786514810315` composes `msg_+stun2`
+  // with no `%val%`, on the identical switch. All four occurrences
+  // (`tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json`) ride a
+  // blow the monster deals into a player, and each is followed by a message
+  // saying that player lost a turn — the same agreement `+stun2-d` was read on.
+  "+stun2",
 ];
 
 /**
@@ -624,8 +661,16 @@ const BLOW_DECLARATION_KEYS = [
  * flag outright would settle from one message what the game settles, and the
  * figure would vanish the first time one arrived. A value sends it back to
  * unread, which is where that disagreement belongs.
+ *
+ * `+legbon_anguish` is the second, in the identical disagreement: production
+ * build `1786514810315` composes `msg_+legbon_anguish %val%`, and all three
+ * occurrences state nothing
+ * (`tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json`). It
+ * announces the bleed whose ticks `HEALTH_CHANGE_KEYS` reads under `anguish`,
+ * and it announces it without the figure that would say which tick is whose —
+ * which is why the two are not joined the way `+injure` and `injure` are (§9.6).
  */
-const VALUELESS_BLOW_DECLARATION_KEYS = ["+legbon_holytouch"];
+const VALUELESS_BLOW_DECLARATION_KEYS = ["+legbon_holytouch", "+legbon_anguish"];
 
 /**
  * Keys stating a **share of a whole side's** health rather than a figure.

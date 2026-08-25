@@ -966,7 +966,14 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   captures still leave half-named, and none of them has an announcing key at all
   (`docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`). `critwound`
   arrives in the same shape, announces no figure, and is deliberately unread
-  (`docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`).
+  (`docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`). `anguish` is the
+  first tick to arrive with an announcement and still fail the test: 2026-08-25
+  brought material where `+legbon_anguish` rides the blow that applied the bleed
+  and names both ends, and states **no figure** — which is the second of the three
+  and the one that cannot be worked around, since without it a tick and an
+  application cannot be matched at all. It stays half-named, like `wound` before
+  it, and the shape of the refusal is the point: an announcement is not enough
+  (`docs/protocol-keys.md`, `tests/core/anguish-rule.test.ts`).
 - `[ALWAYS] [ui]` **A message naming neither end has no side, and the panel says
   so where no row can.** It rides the one pinned row standing apart from the
   ranking under `Wszyscy`, and under a side tab it is on no row at all and the

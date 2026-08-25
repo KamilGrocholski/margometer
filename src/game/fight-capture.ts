@@ -288,8 +288,14 @@ export function composeCaptureText(
       przy: environment.getCapturedAt(),
       swiat: environment.getWorld(),
       // Null where the page did not say, rather than a stand-in that reads like a
-      // build. The intake tool refuses it by name, which is the right outcome:
-      // material from the game without the client's version is not comparable.
+      // build. Nothing downstream refuses it: material from the game without the
+      // client's version is not comparable with other material, which is a fact
+      // about the recording that `docs/captured-fights.md` states in words rather
+      // than one `tools/fight-dump-parser.ts` acts on. This comment claimed the
+      // intake tool refused it by name for three releases — `composeIntakePath`
+      // never looked at the field, and what actually refused was the parser, one
+      // step later and everywhere at once
+      // (`docs/specs/2026-08-25-a-recording-that-names-no-build.md`).
       build: environment.getGameBuild(),
       przegladarka: environment.getUserAgent(),
       pominietych: capture.droppedCalls,
