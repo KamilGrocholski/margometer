@@ -19,8 +19,10 @@
 ## In Progress
 
 ## Up Next
+- [ ] Bars "Nieznany sprawca", and "Total" are too wide
 
 ## Done
+- [x] Add warnings on a row for unread messages, and invalid calculations.
 - [x] `tools/fight-report.ts` does not print the unaccounted-healing warning - it prints `unreadable messages` and stops, so a 
       reading the panel shows is invisible to the report
 - [x] More info SHOULD be visible in raw logs download - MargoStat version is a must have
