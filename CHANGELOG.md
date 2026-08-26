@@ -65,6 +65,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   opisywał samą walkę, więc zgłoszenie przysłane bez słowa komentarza nie mówiło
   nic o tym, u kogo się to zdarzyło.
 
+- **Nowość** — Zwinięty panel zostaje zwinięty. Jeśli schowasz go przyciskiem `—`
+  na belce, następne wejście do gry zastanie go schowanym — dotąd wracał rozwinięty
+  po każdym odświeżeniu strony. Rozwinięcie zapamiętuje się tak samo.
+
 - **Zmiana** — Panel nazywa teraz leczenie tak, jak nazywa je gra, i rozdziela
   dwie rzeczy, które wcześniej stały pod jednym słowem. „Przywracanie życia" to
   własna statystyka postaci — leczy co turę wyłącznie ją samą i słabnie z każdym

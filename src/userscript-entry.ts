@@ -475,14 +475,15 @@ type HostPage = GameWindow & DictionaryWindow & {
 
 /**
  * Namespaced, because the page belongs to the game and to every other add-on on
- * it — and all three are kept where a browser keeps things for good.
+ * it — and all four are kept where a browser keeps things for good.
  *
  * The **settings** are there rather than wherever they say fights go, and that is
  * not circular reasoning avoided by accident: an answer kept in the place it
  * names would be unreadable the moment somebody chose the place that forgets.
- * They are tens of bytes, like the position beside them.
+ * They are tens of bytes, like the position and the collapse beside them.
  */
 const POSITION_KEY = "margometer.panel-position";
+const COLLAPSE_KEY = "margometer.panel-collapse";
 const SETTINGS_KEY = "margometer.fight-settings";
 const FIGHTS_KEY = "margometer.kept-fights";
 
@@ -504,6 +505,33 @@ function getStoredPosition(store: ValueStore): PanelPosition | null {
 /** The same the other way, and a failure to write is a panel that forgets — not a broken panel. */
 function setStoredPosition(store: ValueStore, position: PanelPosition): void {
   store.setText(POSITION_KEY, composeStoredTextFromPosition(position));
+}
+
+/**
+ * The two words a window is left in, and nothing else is one of them.
+ *
+ * Two words rather than a JSON `true`: the value has exactly two states, so
+ * writing it as a document is a shape to be parsed where a comparison will do,
+ * and a comparison is what makes anything else — an empty string, a `0`, a key
+ * another add-on left under our name — unreadable rather than falsy. §9.6 asks
+ * that state surviving a reload be validated, and a boolean is where that is
+ * easiest to skip: `text === "true"` reads every wrong value as *open*, which is
+ * a default wearing the reader's own answer.
+ */
+const COLLAPSED_TEXT = "collapsed";
+const OPEN_TEXT = "open";
+
+/** How the window was left, or null where nothing readable says. */
+function getStoredCollapse(store: ValueStore): boolean | null {
+  const stored = store.getText(COLLAPSE_KEY);
+  if (stored === COLLAPSED_TEXT) return true;
+  if (stored === OPEN_TEXT) return false;
+  return null;
+}
+
+/** The same the other way, and a refusal is a window that forgets — §9.6's quiet, never a mark. */
+function setStoredCollapse(store: ValueStore, isCollapsed: boolean): void {
+  store.setText(COLLAPSE_KEY, isCollapsed ? COLLAPSED_TEXT : OPEN_TEXT);
 }
 
 /**
@@ -1072,8 +1100,9 @@ export function composePanelMount(
       onFightsRequested:
         shelf === undefined ? undefined : () => setState(composeStateAfterFightsOpened()),
       onCollapseToggled: () => {
-        state = { ...state, isCollapsed: !state.isCollapsed };
-        renderLatest();
+        const isCollapsed = !state.isCollapsed;
+        setStoredCollapse(store, isCollapsed);
+        setState({ isCollapsed });
       },
       onSectionFailure: (error) => {
         if (hasReportedCaptureFailure) return;
@@ -1084,7 +1113,17 @@ export function composePanelMount(
     details,
   );
 
-  let state: PanelState = composeDefaultState();
+  /*
+   * The window is the one part of the state a reload restores, and the default
+   * is spread rather than restated: a reader who left the panel collapsed opens
+   * the next page collapsed, and a page with nothing stored opens where
+   * `composeDefaultState` says — one place, not two that can drift apart.
+   */
+  const defaults = composeDefaultState();
+  let state: PanelState = {
+    ...defaults,
+    isCollapsed: getStoredCollapse(store) ?? defaults.isCollapsed,
+  };
   let latest: FightReading | null = null;
   /**
    * Whether what is drawn is the fight the payloads are about.

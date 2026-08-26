@@ -122,10 +122,11 @@ nothing outside the shadow root can see those.
   That is correct behaviour, not a fault to chase — and it is *not* the empty
   string that a `file://` page used to produce, which was a real bug and is fixed.
 - **One origin, so storage is shared.** Every preview page is the same origin, so
-  `margometer.panel-position` persists across reloads and between captures —
-  which is what makes "the position survived a reload" testable as one page
-  reloaded. It also means **a panel you dragged somewhere awkward stays there**;
-  clear that key to get the corner back.
+  `margometer.panel-position` and `margometer.panel-collapse` persist across
+  reloads and between captures — which is what makes "the position survived a
+  reload" testable as one page reloaded. It also means **a panel you dragged
+  somewhere awkward stays there, and one you collapsed opens collapsed**; clear
+  those keys to get the corner and the body back.
 - **Downloads work under `--screenshot`** — the file lands before Firefox exits.
   Prefs in `$PROFILE/user.js`: `browser.download.folderList=2`,
   `browser.download.dir`, `browser.download.useDownloadDir=true`,

@@ -865,16 +865,19 @@ describe("the panel asking the running client for a name", () => {
 });
 
 /**
- * Where the panel was left, across a reload.
+ * Where the panel was left, across a reload — the corner it sits in and whether
+ * its body is drawn at all.
  *
- * This is the only thing the add-on remembers, and it is remembered here rather
- * than in `src/ui/` because reaching a global is this file's job alone (§8). What
- * a stored value has to prove to be believed is checked next door in
- * `tests/ui/panel-element.test.ts`; what is checked here is that the mount asks
- * at all, and that a page which refuses storage still gets a panel.
+ * Two answers, remembered here rather than in `src/ui/` because reaching a global
+ * is this file's job alone (§8). What a stored *position* has to prove to be
+ * believed is checked next door in `tests/ui/panel-element.test.ts`; the collapse
+ * is two words and is read where it is written, so both halves of that one are
+ * here. What is checked in this file is that the mount asks at all, and that a
+ * page which refuses storage still gets a panel.
  */
 describe("remembering where the panel was put", () => {
   const POSITION_KEY = "margometer.panel-position";
+  const COLLAPSE_KEY = "margometer.panel-collapse";
 
   type StorageNode = Record<string, unknown> & {
     className: string;
@@ -924,7 +927,12 @@ describe("remembering where the panel was put", () => {
         },
         append: (...nodes: StorageNode[]): void =>
           void (node["children"] as StorageNode[]).push(...nodes),
-        replaceChildren: (): void => {},
+        // Recorded rather than dropped: a collapsed panel is one whose body was
+        // replaced by nothing, and a fake that forgets the call cannot tell that
+        // from a body full of rows.
+        replaceChildren: (...nodes: StorageNode[]): void => {
+          node["children"] = [...nodes];
+        },
         addEventListener: (
           type: string,
           listener: (event: Record<string, unknown>) => void,
@@ -950,20 +958,24 @@ describe("remembering where the panel was put", () => {
     };
   }
 
+  const getEveryNode = (node: StorageNode): StorageNode[] => [
+    node,
+    ...(node["children"] as StorageNode[]).flatMap(getEveryNode),
+  ];
+
+  const getNodeByClassName = (root: StorageNode, className: string, drawn: string): StorageNode =>
+    assertDefined(
+      getEveryNode(root).filter((node) => node.className === className)[0],
+      `mounting the panel draws ${drawn}`,
+    );
+
   /** Grabs the title bar at the root and drags it, the way the panel's own tests do. */
   function setDragThrough(
     root: StorageNode,
     from: { left: number; top: number },
     to: { left: number; top: number },
   ): void {
-    const getEveryNode = (node: StorageNode): StorageNode[] => [
-      node,
-      ...(node["children"] as StorageNode[]).flatMap(getEveryNode),
-    ];
-    const titleBar = assertDefined(
-      getEveryNode(root).filter((node) => node.className === "MargoMeter-titlebar")[0],
-      "mounting the panel draws a title bar",
-    );
+    const titleBar = getNodeByClassName(root, "MargoMeter-titlebar", "a title bar");
 
     const setEventAt = (type: string, event: Record<string, unknown>): void => {
       for (const bound of root.listeners) if (bound.type === type) bound.listener(event);
@@ -976,6 +988,29 @@ describe("remembering where the panel was put", () => {
     });
     setEventAt("pointermove", { target: titleBar, clientX: to.left, clientY: to.top });
     setEventAt("pointerup", { target: titleBar, pointerId: 3 });
+  }
+
+  /**
+   * Presses the title bar's collapse button, found by the class it does not
+   * share.
+   *
+   * The other three buttons carry a second class naming what they do
+   * (`titlebar-fights`, `titlebar-copy`, `titlebar-raw`) and this one carries
+   * none, so the bare class is what identifies it. Not its label: the button says
+   * `Zwiń albo rozwiń okno` to a player, and a test that finds a node by reading
+   * that sentence back would go on passing if the sentence became one of ours or
+   * a key of the game's (§7.5).
+   */
+  function setCollapsePressed(root: StorageNode): void {
+    const button = getNodeByClassName(root, "titlebar-button", "a collapse button");
+    for (const bound of root.listeners) {
+      if (bound.type === "click") bound.listener({ target: button });
+    }
+  }
+
+  /** What the panel drew below its title bar, which a collapsed window leaves empty. */
+  function getBodyChildren(root: StorageNode): StorageNode[] {
+    return getNodeByClassName(root, "MargoMeter-body", "a body")["children"] as StorageNode[];
   }
 
   test("a position that was stored is where the panel opens", () => {
@@ -1099,7 +1134,7 @@ describe("remembering where the panel was put", () => {
     );
   });
 
-  test("the key the position is stored under is namespaced to this add-on", () => {
+  test("every key the mount reads is namespaced to this add-on", () => {
     const asked: string[] = [];
     const { page } = composePageWithStorage({
       getItem: (key) => {
@@ -1110,7 +1145,93 @@ describe("remembering where the panel was put", () => {
     });
 
     composePanelMount(page);
-    expect(asked).toEqual([POSITION_KEY]);
+    expect(asked).toEqual([POSITION_KEY, COLLAPSE_KEY]);
+  });
+
+  /**
+   * A window somebody minimised stays minimised, which is the whole feature —
+   * and the panel is redrawn on every payload, so a window that forgot came back
+   * open in the middle of the next fight rather than at the next page.
+   */
+  test("a window left collapsed opens with no body", () => {
+    const { page, getRoot } = composePageWithStorage({
+      getItem: (key) => (key === COLLAPSE_KEY ? "collapsed" : null),
+      setItem: () => {},
+    });
+
+    composePanelMount(page);
+    expect(getBodyChildren(assertDefined(getRoot(), "the mount opens a shadow root"))).toEqual([]);
+  });
+
+  /**
+   * §9.6: state that survives a reload is validated on read, and the two words
+   * are the whole of what is valid. `"true"` is the shape somebody arrives at by
+   * storing a boolean, and reading it as *open* rather than as unreadable would
+   * be the same answer for the wrong reason — so it is checked beside the empty
+   * store it has to be indistinguishable from.
+   */
+  test.each([
+    ["nothing stored", null],
+    ["a word that is neither of the two", "true"],
+    ["the word the other way round", "open"],
+  ])("%s opens the window", (_reason, stored) => {
+    const { page, getRoot } = composePageWithStorage({
+      getItem: (key) => (key === COLLAPSE_KEY ? stored : null),
+      setItem: () => {},
+    });
+
+    composePanelMount(page);
+    expect(
+      getBodyChildren(assertDefined(getRoot(), "the mount opens a shadow root")).length,
+    ).toBe(1);
+  });
+
+  /** The whole loop again: press it, and the next page opens the way it was left. */
+  test("what the collapse button settles on is what the next page reads back", () => {
+    const written: Array<[string, string]> = [];
+    const { page, getRoot } = composePageWithStorage({
+      getItem: () => null,
+      setItem: (key, value) => void written.push([key, value]),
+    });
+
+    composePanelMount(page);
+    const root = assertDefined(getRoot(), "the mount opens a shadow root");
+    setCollapsePressed(root);
+    expect(written).toEqual([[COLLAPSE_KEY, "collapsed"]]);
+    expect(getBodyChildren(root)).toEqual([]);
+
+    // And back, because the button is the same button — a window that could only
+    // be remembered shut is a window nobody would press twice.
+    setCollapsePressed(root);
+    expect(written[1]).toEqual([COLLAPSE_KEY, "open"]);
+
+    const reopened = composePageWithStorage({
+      getItem: (key) => (key === COLLAPSE_KEY ? (written[0]?.[1] ?? null) : null),
+      setItem: () => {},
+    });
+    composePanelMount(reopened.page);
+    expect(
+      getBodyChildren(assertDefined(reopened.getRoot(), "the mount opens a shadow root")),
+    ).toEqual([]);
+  });
+
+  /**
+   * The panel still collapses where nothing can be kept: the refusal is a value
+   * in the store (`src/userscript-storage.ts`) and never an exception, so the
+   * gesture that could not be remembered is still a gesture that happened.
+   */
+  test("a storage that refuses the write loses the collapse and nothing else", () => {
+    const { page, getRoot } = composePageWithStorage({
+      getItem: () => null,
+      setItem: () => {
+        throw new TypeError("quota");
+      },
+    });
+
+    composePanelMount(page);
+    const root = assertDefined(getRoot(), "the mount opens a shadow root");
+    expect(() => setCollapsePressed(root)).not.toThrow();
+    expect(getBodyChildren(root)).toEqual([]);
   });
 });
 
