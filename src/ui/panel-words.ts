@@ -938,6 +938,17 @@ export const EVERY_SLOT_PINNED_WARNING =
   "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.";
 
 /**
+ * What the shelf says when the browser would not keep the reader's own answer.
+ *
+ * Its own sentence again, and the shortest of the three, because the consequence
+ * is the smallest: nothing was lost and nothing moved. It says the control did
+ * nothing rather than that a write failed — a reader who clicked *na stałe* and
+ * was quietly left on *tylko teraz* would find out by closing the tab.
+ */
+export const CHOICE_REFUSED_WARNING =
+  "Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było.";
+
+/**
  * A run of digits, spaced every three from the right — as the game writes them.
  *
  * ⚠️ **It argued for itself by naming a second caller that no longer exists.**

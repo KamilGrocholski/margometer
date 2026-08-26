@@ -47,6 +47,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
+import { getRecordFromValue } from "@/libs/record.ts";
 import { getCommentRangesFromSource, getTextRangesFromSource } from "@/libs/source-regions.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
@@ -304,6 +305,36 @@ export function getFailingTestFiles(output: string): string[] {
 /** `isRed` is null where the gate never finished — see `MutationOutcome`. */
 type GateOutcome = { isRed: boolean | null; failing: string[] };
 
+/**
+ * What a runner killed for running too long answers with, as this one spells it.
+ *
+ * Read off Bun 1.3.14 on 2026-08-26 rather than assumed: a timed-out `spawnSync`
+ * comes back `status: null`, `signal: "SIGTERM"` and an error whose `code` is
+ * this, and a runner that is not on the path comes back `code: "ENOENT"`. The
+ * `code` is what tells them apart, and `tests/tools/mutation-sweep.test.ts` asks
+ * the runner itself rather than holding a sample somebody typed (§7.5).
+ */
+const TIMEOUT_CODE = "ETIMEDOUT";
+
+/**
+ * Whether a spawn that failed is one mutant's doing or the machine's.
+ *
+ * ⚠️ **`spawnSync` puts both in one field, and the two are opposites.** A runner
+ * that cannot be started is true of every run that follows; a runner that ran too
+ * long is true of the one mutant that hung it, and the next would have run.
+ * Reading the second as the first cost a whole sweep of
+ * `src/game/kept-fights.ts`: its 180th mutant flips the filter in the one
+ * unbounded loop in the file, the suite ran to the two-minute limit, and the
+ * throw unwound past the point where the report is written — so 179 finished
+ * mutants, roughly 28 minutes of `bun test`, reached nothing. `composeMutations`
+ * is deterministic and that mutant is last, so every future run reached 179/180
+ * and threw again
+ * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F4).
+ */
+export function isTimeoutFailure(error: unknown): boolean {
+  return getRecordFromValue(error)?.["code"] === TIMEOUT_CODE;
+}
+
 function getGateOutcome(isBailing: boolean): GateOutcome {
   const result = spawnSync("bun", isBailing ? ["test", "--bail=1"] : ["test"], {
     cwd: REPOSITORY_ROOT,
@@ -317,8 +348,14 @@ function getGateOutcome(isBailing: boolean): GateOutcome {
   // finding tests that cannot fail, answering that none of them can. Thrown
   // rather than counted, because it is true of every run that follows and a
   // report of five thousand unfinished runs says nothing anybody can act on.
+  //
+  // A timeout is the other half of that field and the opposite claim, so it is an
+  // unfinished mutant and the sweep goes on — `isTimeoutFailure` says why.
   if (result.error !== undefined) {
-    throw new MutationSweepError("the gate could not be run", { cause: result.error });
+    if (!isTimeoutFailure(result.error)) {
+      throw new MutationSweepError("the gate could not be run", { cause: result.error });
+    }
+    return { isRed: null, failing: [] };
   }
 
   // A mutant that stops the suite from loading at all produces no failure line
@@ -340,6 +377,13 @@ function getGateOutcome(isBailing: boolean): GateOutcome {
  * every mutant that follows, and a report of a thousand unclassified survivors
  * says nothing anybody can act on. In a detached worktree that means
  * `bun install` before sweeping.
+ *
+ * ⚠️ **A timeout throws here and does not there, and the asymmetry is the point.**
+ * A mutant can make the test suite loop for ever — that is F4's whole case — and
+ * no mutant can make `tsc` loop, so a typecheck that does not finish is the
+ * machine and not the mutation. This is also reached only for a survivor, so
+ * swallowing it would turn one unclassified answer into a survivor reported as
+ * one the compiler accepts.
  */
 function getIsRefusedByCompiler(): boolean {
   const result = spawnSync("bun", ["run", "typecheck"], {

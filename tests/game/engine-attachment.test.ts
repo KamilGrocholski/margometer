@@ -46,6 +46,7 @@ import {
   setMargoMeter,
   shouldStartHere,
   writeCaptureToPage,
+  type PanelShelf,
 } from "@/src/userscript-entry.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
@@ -1921,6 +1922,48 @@ describe("a new fight and the level the reader was on", () => {
   }
 
   /**
+   * The title bar's own gesture, and it is the other one.
+   *
+   * Its buttons are built once, outside every render, so no payload can take one
+   * out from under a press — which is why they listen for `click` and why a press
+   * on the button onto the shelf does nothing at all (`src/ui/panel-element.ts`).
+   */
+  function setClickOn(root: TreeNode, target: TreeNode): void {
+    for (const bound of root.listeners) {
+      if (bound.type === "click") bound.listener({ target });
+    }
+  }
+
+  /** A shelf holding one finished fight, which is the fewest that can be read. */
+  function composeShelfOf(reading: FightReading): PanelShelf {
+    return {
+      getFights: () => [
+        {
+          id: "kept",
+          isLive: false,
+          isPinnable: true,
+          isPinned: false,
+          isSelected: false,
+          at: { hour: 21, minute: 4 },
+          sideCounts: [4, 4],
+          outcome: "won",
+        },
+      ],
+      getReading: () => ({
+        storage: "local",
+        keepLimit: 5,
+        hasStoreRefused: false,
+        isEverySlotPinned: false,
+        hasChoiceRefused: false,
+      }),
+      onFightChosen: () => ({ reading, isLive: false }),
+      onPinToggled: (): void => {},
+      onStorageChosen: (): void => {},
+      onKeepLimitChosen: (): void => {},
+    };
+  }
+
+  /**
    * A side is named, because the tab pressed below is a side.
    *
    * With `ourSide` null the panel still draws `My` and `Oni` — they are what a
@@ -1983,6 +2026,41 @@ describe("a new fight and the level the reader was on", () => {
     expect(getByClass(root, "crumb")).toHaveLength(1);
 
     render(composeReadingOfCapture(1));
+
+    expect(getByClass(root, "crumb")).toHaveLength(1);
+  });
+
+  /**
+   * The third case, and the one the shelf created: a reader who is not watching
+   * the fight that is starting.
+   *
+   * Every clause of `composeStateAfterFightStart`'s argument is about somebody
+   * whose screen the new fight is about to fill. Two levels into a fight from an
+   * hour ago each one is false — the rows under them are the kept fight's, and
+   * that is where somebody asked to be
+   * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F2). Driven
+   * through the panel rather than through the reducer, because what is wrong here
+   * is where the reducer is called and an unused export typechecks.
+   */
+  test("leaves the level alone for a reader on a fight off the shelf", () => {
+    const { page, getRoot } = composePageWithTree();
+    const shelf = composeShelfOf(composeReadingOfCapture(1));
+    const render = assertDefined(
+      composePanelMount(page, (): void => {}, undefined, undefined, shelf),
+      "the panel mounts",
+    );
+
+    render(composeReadingOfCapture(1));
+    const root = getRoot();
+
+    // Onto the shelf, then off it onto the kept fight, which is what stops the
+    // panel following the payloads.
+    setClickOn(root, assertDefined(getByClass(root, "titlebar-fights")[0], "the shelf has a way in"));
+    setPressOn(root, assertDefined(getByClass(root, "drillable")[0], "the shelf has a fight"));
+    setPressOn(root, assertDefined(getByClass(root, "drillable")[0], "the ranking has a row"));
+    expect(getByClass(root, "crumb")).toHaveLength(1);
+
+    render(composeReadingOfCapture(2));
 
     expect(getByClass(root, "crumb")).toHaveLength(1);
   });

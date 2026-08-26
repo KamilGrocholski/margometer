@@ -66,11 +66,17 @@ const PREVIEW_SITE_WORDS: PreviewWords = {
  * add-on itself is. A visitor who does not know the first would read the panel as
  * a live connection to somebody's account, which is the one misunderstanding this
  * page could cause.
+ *
+ * The second gained a third clause rather than a fourth sentence: the page takes
+ * its own store away before the add-on loads (`tools/preview-page.ts`), so *nic
+ * tu nie zostaje* is a fact about the visitor's browser and the shortest true
+ * thing that can be said about it.
  */
 const PREVIEW_SITE_INTRODUCTION = [
   "<strong>MargoMeter</strong> to licznik obrażeń do Margonem.",
   "Poniżej odtwarzana jest nagrana walka — panel liczy ją w tej przeglądarce,",
-  "tak samo jak liczyłby ją w grze. Nic nie łączy się tu z grą i nic nie jest wysyłane.",
+  "tak samo jak liczyłby ją w grze. Nic nie łączy się tu z grą, nic nie jest wysyłane",
+  "i nic tu nie zostaje.",
   `<a href="https://github.com/KamilGrocholski/margometer">kod źródłowy</a>`,
   "·",
   `<a href="https://github.com/KamilGrocholski/margometer/releases/latest">instalacja</a>`,

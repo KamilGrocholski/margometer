@@ -653,6 +653,89 @@ function renderRegionInto(
   }
 }
 
+/**
+ * The node every screen is built on, with both of its listeners already bound.
+ *
+ * §9.6 makes delegation structural — one listener at the root, never a binding
+ * per row, so re-rendering cannot lose a handler — and the shelf gave that root a
+ * second consumer. Two screens each declared their own `handleGuarded`, their own
+ * `pointerdown` with the same primary-button guard and their own `contextmenu`
+ * with the same `preventDefault`, while the decision behind all six lived in one
+ * of the two. §7.5 already carries the receipt for leaving that alone:
+ * `libs/running-total.ts` was extracted because one spelling in five places had
+ * drifted, and two copies then survived under a green guard
+ * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F5).
+ *
+ * ⚠️ **The press, and never the click — that is the whole of the defect this
+ * replaces.** A browser assembles `click` out of two moments and dispatches it
+ * only if both resolve to a node still in the tree. Every node a screen builds is
+ * built by the render, and `renderPanelInto` replaces the lot on every payload —
+ * so a payload landing between the press and the release detached what was
+ * pressed and **no click was dispatched at all**. The panel looked like it had
+ * ignored the reader, who pressed again, during a fight, repeatedly.
+ *
+ * The listeners were never the thing at risk: they are delegated and keyed by
+ * identity, so a redraw cannot lose one. What a redraw could lose is the
+ * *gesture*, and a `pointerdown` is one event with nothing inside it for a redraw
+ * to land in the middle of. That holds whatever the payload rate and whatever a
+ * render costs — which is why it was preferred to holding the redraw back while a
+ * hand is down (`docs/specs/2026-08-18-a-gesture-a-redraw-cannot-split.md`).
+ *
+ * The title bar's buttons stay on `click` and are not an inconsistency: they are
+ * built once with the shadow root and outlive every render, so nothing can take
+ * them out from under a hand.
+ *
+ * One gesture in, one gesture out — and the way out works from anywhere on the
+ * panel, including the empty space below a short list. A back button alone would
+ * make the cheapest gesture the one that needs aiming.
+ */
+function composeEventRoot(
+  document: PanelDocument,
+  handlers: {
+    onBack?: (() => void) | undefined;
+    onSectionFailure?: ((error: unknown) => void) | undefined;
+  },
+  /**
+   * What a primary press on a node means, which is the only part that differs.
+   *
+   * Handed the guard rather than closing over it, so a screen cannot reach the
+   * root's node map or bind a second listener of its own — and so nothing here
+   * has to be read before it is assigned.
+   */
+  onPressed: (target: unknown, handleGuarded: (run: () => void) => void) => void,
+): PanelNode {
+  const panel = document.createElement("div");
+  panel.className = "panel";
+
+  // The handler catches its own. An add-on that breaks the game's scripts has
+  // done more damage than one that shows a wrong number (§9.6).
+  const handleGuarded = (run: () => void): void => {
+    try {
+      run();
+    } catch (error) {
+      handlers.onSectionFailure?.(error);
+    }
+  };
+
+  panel.addEventListener("pointerdown", (event) => {
+    /*
+     * The primary button alone. Without this a right-press would open the row and
+     * the `contextmenu` listener below would then step straight back out of it,
+     * which is worse than either half. A missing button is the primary one — see
+     * `PanelEvent`.
+     */
+    if ((event.button ?? 0) !== 0) return;
+    onPressed(event.target, handleGuarded);
+  });
+
+  panel.addEventListener("contextmenu", (event) => {
+    event.preventDefault?.();
+    handleGuarded(() => handlers.onBack?.());
+  });
+
+  return panel;
+}
+
 export function renderPanel(
   document: PanelDocument,
   view: PanelView,
@@ -672,81 +755,31 @@ export function renderPanel(
    */
   scroll?: PanelScroll,
 ): PanelNode {
-  const panel = document.createElement("div");
-  panel.className = "panel";
   details.clear();
 
   /**
    * One listener for however many controls the view holds, keyed by identity.
    *
-   * §9.6 asks for delegation rather than a binding per element. Four maps rather
+   * §9.6 asks for delegation rather than a binding per element. Three maps rather
    * than one because what a press *means* differs, and a single map of thunks
-   * would put the four handlers' error handling in four places again.
+   * would put the three handlers' error handling in three places again.
    */
   const metricByTab = new Map<unknown, PanelMetric>();
   const teamByTab = new Map<unknown, PanelTeam>();
   const rowsByNode = new Map<unknown, string>();
 
-  // The handler catches its own. An add-on that breaks the game's scripts has
-  // done more damage than one that shows a wrong number (§9.6).
-  const handleGuarded = (run: () => void): void => {
-    try {
-      run();
-    } catch (error) {
-      handlers.onSectionFailure?.(error);
-    }
-  };
-
-  /**
-   * ⚠️ **The press, and never the click — that is the whole of the defect this
-   * replaces.** A browser assembles `click` out of two moments and dispatches it
-   * only if both resolve to a node still in the tree. Every node below is built
-   * by this function, and `renderPanelInto` replaces the lot on every payload —
-   * so a payload landing between the press and the release detached what was
-   * pressed and **no click was dispatched at all**. The panel looked like it had
-   * ignored the reader, who pressed again, during a fight, repeatedly.
-   *
-   * The listeners were never the thing at risk: they are delegated and keyed by
-   * identity, so a redraw cannot lose one. What a redraw could lose is the
-   * *gesture*, and a `pointerdown` is one event with nothing inside it for a
-   * redraw to land in the middle of. That holds whatever the payload rate and
-   * whatever a render costs — which is why it was preferred to holding the redraw
-   * back while a hand is down (`docs/specs/2026-08-18-a-gesture-a-redraw-cannot-split.md`).
-   *
-   * The title bar's buttons stay on `click` and are not an inconsistency: they
-   * are built once with the shadow root and outlive every render, so nothing can
-   * take them out from under a hand.
-   */
-  panel.addEventListener("pointerdown", (event) => {
-    /*
-     * The primary button alone. Without this a right-press would open the row and
-     * the `contextmenu` listener below would then step straight back out of it,
-     * which is worse than either half. A missing button is the primary one — see
-     * `PanelEvent`.
-     */
-    if ((event.button ?? 0) !== 0) return;
-
-    const metric = metricByTab.get(event.target);
+  const panel = composeEventRoot(document, handlers, (target, handleGuarded) => {
+    const metric = metricByTab.get(target);
     if (metric !== undefined) return handleGuarded(() => handlers.onMetricChosen?.(metric));
 
-    const team = teamByTab.get(event.target);
+    const team = teamByTab.get(target);
     if (team !== undefined) return handleGuarded(() => handlers.onTeamChosen?.(team));
 
     // A tab the view disabled was never put in the map, so it falls through to
     // the rows and fires nothing — no branch here, and nothing to forget.
 
-    const key = rowsByNode.get(event.target);
+    const key = rowsByNode.get(target);
     if (key !== undefined) return handleGuarded(() => handlers.onRowChosen?.(key));
-  });
-
-  /**
-   * One gesture in, one gesture out — and the way out works from anywhere in the
-   * panel, including the empty space below a short list. A back button alone
-   * would make the cheapest gesture the one that needs aiming.
-   */
-  panel.addEventListener("contextmenu", (event) => {
-    event.preventDefault?.();
-    handleGuarded(() => handlers.onBack?.());
   });
 
   renderRegionInto(document, panel, handlers, "nagłówek", () => {
@@ -1022,9 +1055,6 @@ function renderFights(
   handlers: PanelFightsHandlers,
   scroll?: PanelScroll,
 ): PanelNode {
-  const panel = document.createElement("div");
-  panel.className = "panel";
-
   const fightByNode = new Map<unknown, string>();
   const pinByNode = new Map<unknown, string>();
   /**
@@ -1040,40 +1070,20 @@ function renderFights(
   const storageByNode = new Map<unknown, PanelStorageChoice>();
   const limitByNode = new Map<unknown, number>();
 
-  const handleGuarded = (run: () => void): void => {
-    try {
-      run();
-    } catch (error) {
-      handlers.onSectionFailure?.(error);
-    }
-  };
+  const panel = composeEventRoot(document, handlers, (target, handleGuarded) => {
+    if (backNodes.has(target)) return handleGuarded(() => handlers.onBack?.());
 
-  // `pointerdown` and not `click`, for `renderPanel`'s reason: a redraw landing
-  // between the press and the release would take the pressed node out of the tree
-  // and no click would be dispatched at all.
-  panel.addEventListener("pointerdown", (event) => {
-    if ((event.button ?? 0) !== 0) return;
-
-    if (backNodes.has(event.target)) return handleGuarded(() => handlers.onBack?.());
-
-    const pinned = pinByNode.get(event.target);
+    const pinned = pinByNode.get(target);
     if (pinned !== undefined) return handleGuarded(() => handlers.onPinToggled?.(pinned));
 
-    const storage = storageByNode.get(event.target);
+    const storage = storageByNode.get(target);
     if (storage !== undefined) return handleGuarded(() => handlers.onStorageChosen?.(storage));
 
-    const limit = limitByNode.get(event.target);
+    const limit = limitByNode.get(target);
     if (limit !== undefined) return handleGuarded(() => handlers.onKeepLimitChosen?.(limit));
 
-    const fight = fightByNode.get(event.target);
+    const fight = fightByNode.get(target);
     if (fight !== undefined) return handleGuarded(() => handlers.onFightChosen?.(fight));
-  });
-
-  // The way out from anywhere on the shelf, exactly as it is from anywhere in the
-  // ranking — the cheapest gesture is the one that needs no aiming.
-  panel.addEventListener("contextmenu", (event) => {
-    event.preventDefault?.();
-    handleGuarded(() => handlers.onBack?.());
   });
 
   renderRegionInto(document, panel, handlers, "ścieżka", () => {

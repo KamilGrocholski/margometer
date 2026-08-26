@@ -761,6 +761,7 @@ export function composeFightKeeper(
   let chosenId: string | null = null;
   let hasStoreRefused = false;
   let isEverySlotPinned = false;
+  let hasChoiceRefused = false;
 
   /**
    * Fights already folded, so opening one twice costs once.
@@ -785,6 +786,26 @@ export function composeFightKeeper(
   const getFightKeptAndLive = (live: FightReading | null): KeptFight | undefined => {
     if (live === null || live.fightsStarted !== fightBeingKept) return undefined;
     return fights.find((held) => held.id === idBeingKept);
+  };
+
+  /**
+   * The reader's answer, written down before anything is done about it.
+   *
+   * ⚠️ **A choice the browser refused must not be acted on.** Both answers move
+   * fights — one to another store, one out of the rotation — and the *only* thing
+   * that tells the next page where to look is this write. So acting on a refused
+   * one leaves the reader's fights, pinned ones included, in a place the add-on
+   * will never open again, under a panel drawing the choice as taken. Nothing
+   * moves unless it landed. §9.6 reaches this exactly: a number that might be
+   * wrong must never look like a number that is right, and here it is a choice
+   * rather than a number
+   * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F1).
+   */
+  const setSettings = (next: FightSettings): boolean => {
+    const isWritten = settingsStore.setText(SETTINGS_KEY, composeStoredTextFromSettings(next));
+    hasChoiceRefused = !isWritten;
+    if (isWritten) settings = next;
+    return isWritten;
   };
 
   const setFights = (next: readonly KeptFight[], dropped: readonly string[]): void => {
@@ -823,6 +844,7 @@ export function composeFightKeeper(
         keepLimit: settings.keepLimit,
         hasStoreRefused,
         isEverySlotPinned,
+        hasChoiceRefused,
       }),
 
       getFights: () => {
@@ -893,6 +915,7 @@ export function composeFightKeeper(
 
       onStorageChosen: (choice) => {
         if (choice === settings.storage) return;
+        if (!setSettings({ ...settings, storage: choice })) return;
         /*
          * ⚠️ **What was kept moves, and the place it came from is emptied.** A
          * reader choosing *tylko teraz* is saying they want nothing left behind,
@@ -902,16 +925,13 @@ export function composeFightKeeper(
          * never said it would.
          */
         store.removeText(FIGHTS_KEY);
-        settings = { ...settings, storage: choice };
-        settingsStore.setText(SETTINGS_KEY, composeStoredTextFromSettings(settings));
         store = getStoreFromPage(page, choice);
         setFights(fights, []);
       },
 
       onKeepLimitChosen: (limit) => {
         if (limit === settings.keepLimit) return;
-        settings = { ...settings, keepLimit: limit };
-        settingsStore.setText(SETTINGS_KEY, composeStoredTextFromSettings(settings));
+        if (!setSettings({ ...settings, keepLimit: limit })) return;
         const trimmed = composeKeptFightsWithinLimit(fights, limit);
         isEverySlotPinned = trimmed.isRefused;
         setFights(trimmed.fights, trimmed.dropped);
@@ -1282,8 +1302,17 @@ export function composePanelMount(
        * joined in progress carries no `init`, so `fightsStarted` does not move
        * (`src/game/battle-session.ts`) and the panel stays where it was — the
        * same limit the accumulated figures already have.
+       *
+       * ⚠️ **And it is only for a reader watching the live fight.** Every clause
+       * of `composeStateAfterFightStart`'s argument is about somebody whose screen
+       * the new fight is about to fill. Applied to a reader two levels into a
+       * fight from an hour ago each one is false: the rows under them are not the
+       * new fight's, they are the kept fight's, and that is exactly where somebody
+       * asked to be. Nothing is lost by waiting — coming back to the live row goes
+       * through `composeStateAfterFightChosen`, which drops the levels anyway
+       * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F2).
        */
-      state = { ...state, ...composeStateAfterFightStart() };
+      if (isShowingLive) state = { ...state, ...composeStateAfterFightStart() };
     }
 
     /**

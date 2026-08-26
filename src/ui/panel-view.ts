@@ -75,6 +75,7 @@ import {
   NO_ACTOR_LABEL,
   NO_TARGET_LABEL,
   STORAGE_LABEL,
+  CHOICE_REFUSED_WARNING,
   STORE_REFUSED_WARNING,
   type TokenName,
   type TranslateLabel,
@@ -1266,10 +1267,10 @@ export function composePanelView(
 /**
  * What the shelf of kept fights is told about, beyond the fights themselves.
  *
- * The two controls' current answers and the two things that can have gone wrong
- * — and both of those are states rather than events: they are true of the shelf
+ * The two controls' current answers and the three things that can have gone
+ * wrong — and all three are states rather than events: they are true of the shelf
  * as it stands, so a redraw that happens for another reason still says them, and
- * a fight that lands cleanly afterwards clears them (§9.6).
+ * a fight or a choice that lands cleanly afterwards clears them (§9.6).
  */
 export type PanelFightsReading = {
   storage: PanelStorageChoice;
@@ -1278,6 +1279,8 @@ export type PanelFightsReading = {
   hasStoreRefused: boolean;
   /** Every slot the reader allows is holding a fight they pinned. */
   isEverySlotPinned: boolean;
+  /** The browser would not keep the last answer either control was given. */
+  hasChoiceRefused: boolean;
 };
 
 /**
@@ -1297,10 +1300,13 @@ export function composeFightsView(
   reading: PanelFightsReading,
 ): PanelFightsView {
   const warnings: string[] = [];
-  // The reader's own doing first, and the browser's after it: one of the two has
-  // a remedy two controls up the same screen, and the other does not.
+  // The reader's own doing first, and the browser's after it: the first of the
+  // three has a remedy two controls up the same screen, and the other two have
+  // none. The last is about those controls rather than about a fight, and it is
+  // last because it is the one where nothing was lost.
   if (reading.isEverySlotPinned) warnings.push(EVERY_SLOT_PINNED_WARNING);
   if (reading.hasStoreRefused) warnings.push(STORE_REFUSED_WARNING);
+  if (reading.hasChoiceRefused) warnings.push(CHOICE_REFUSED_WARNING);
 
   return {
     title: FIGHTS_TITLE,

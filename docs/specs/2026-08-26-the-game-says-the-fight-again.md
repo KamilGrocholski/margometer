@@ -26,10 +26,21 @@ good?
 Gone. A fight is accumulated in closure variables inside `setMargoMeter`
 (`src/userscript-entry.ts`) and folded again on every payload that moves it; the
 panel's own screen, drill and scroll live in `composePanelMount`'s closure beside
-it. Nothing is written down. The one thing this add-on remembers across a page is
-where the panel was dragged to — `margometer.panel-position`, tens of bytes,
-validated on read (§9.6) — and the type it reaches storage through has exactly two
-methods on purpose.
+it. **The fight that is running is written down nowhere.**
+
+⚠️ **That sentence used to be *nothing is written down*, and it stopped being
+true on the day this was filed.** Two commits later `75096ad` gave the panel a
+shelf of fights that are **over** (`src/game/kept-fights.ts`, under
+`margometer.kept-fights`), and `b5a82fb` added the window's collapsed state — so
+across a page the add-on now remembers four things: where the panel was dragged
+to, how the window was left, the reader's two answers about keeping fights, and
+the fights themselves. Each is validated on read and none is repaired (§9.6), and
+the type it reaches storage through has three methods on purpose, the third being
+the one a reader choosing *tylko teraz* needs (`src/userscript-storage.ts`).
+
+None of it buys this anything, which is why the section still reads *gone*: a
+fight goes on the shelf when it **ends**, and a reload mid-fight arrives while
+there is nothing yet to put there. The two are opposite ends of the same page.
 
 A reload therefore drops the fight, the add-on attaches again, and the panel says
 so: `Panel wpiął się w trakcie tej walki — to nie są jej pełne liczby.`
@@ -222,6 +233,16 @@ recording of the set on 2026-08-26, its payloads come to about 248 kB — and
 changed nothing, so the tape's keep-rule would come free. Rejected because it buys
 back only what the game gives back anyway, and charges a stored copy of somebody's
 fight, a freshness rule, a validator, and a replay on every page load for it.
+
+⚠️ **Three of those four have since been paid for by something else.** `75096ad`
+stores fights, validates them on read and drops rather than repairs what will not
+read, and the reader already chooses where and how many. What is not paid for is
+the **replay**, and it is the one that costs here: the shelf decodes a fight when
+somebody opens it and never before, because ten folded on page load is 20–70 ms of
+somebody else's game, while a tape would have to be folded every load whether or
+not anybody was going to look. So the rejection stands on one item rather than
+four — narrower, and worth more than it looked the morning it was written.
+
 Written down rather than dropped: it is the answer the day the game stops
 restating, and `sessionStorage` is the place — per tab, dying with the tab, so no
 fight from yesterday and no two tabs of one world writing over each other.

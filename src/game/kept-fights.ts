@@ -270,6 +270,17 @@ export type KeptFightsAfterKeeping = {
  * answer to *how much of my browser may this have* and a pin is not a licence to
  * spend more of it. What a pin buys is order: the oldest **unpinned** fight is
  * what goes, however new it is relative to a pinned one.
+ *
+ * ⚠️ **Zero is not a case.** It had a branch of its own that emptied the list,
+ * and that branch was the one limit in either rotation where a pinned fight was
+ * given up — while trimming to the same zero kept it, and keeping at *one* kept
+ * it: one stated rule, two functions, opposite answers
+ * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F3). The loop
+ * below reaches zero on its own and reaches it correctly, so the rule now holds
+ * at every limit with nothing arguing an exception. What it costs is that a
+ * refusal at zero hands back an unpinned list unchanged rather than emptied —
+ * which is what a refusal means everywhere else in this file, and what the one
+ * caller does with it either way is nothing (`src/userscript-entry.ts`).
  */
 export function composeKeptFightsAfterKeeping(
   kept: readonly KeptFight[],
@@ -277,7 +288,6 @@ export function composeKeptFightsAfterKeeping(
   limit: number,
 ): KeptFightsAfterKeeping {
   assert(Number.isInteger(limit) && limit >= 0, "a keep limit is a whole number of fights");
-  if (limit === 0) return { fights: [], dropped: kept.map((held) => held.id), isRefused: true };
 
   let held = [fight, ...kept.filter((other) => other.id !== fight.id)];
   const dropped: string[] = [];
@@ -322,7 +332,12 @@ export function composeKeptFightsWithinLimit(
   const dropped: string[] = [];
   while (held.length > limit) {
     const oldestUnpinned = getOldestUnpinned(held);
-    if (oldestUnpinned === null) return { fights: held, dropped, isRefused: true };
+    // The same list, and not a copy of it, where nothing has gone: identity is a
+    // signal these functions hand back on purpose, and a fresh array on the path
+    // that changed nothing tells a caller reading it the opposite (same audit).
+    if (oldestUnpinned === null) {
+      return { fights: dropped.length === 0 ? kept : held, dropped, isRefused: true };
+    }
     dropped.push(oldestUnpinned.id);
     held = held.filter((other) => other !== oldestUnpinned);
   }

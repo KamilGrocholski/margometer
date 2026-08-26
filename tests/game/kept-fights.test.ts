@@ -122,11 +122,32 @@ describe("keeping one more fight", () => {
   });
 
   /** Zero is the boundary, and a limit of zero is a reader who wants none kept (§7.5). */
-  test("keeps nothing at a limit of zero", () => {
-    const kept = composeKeptFightsAfterKeeping([composeBareFight("1")], composeBareFight("2"), 0);
+  test("keeps nothing new at a limit of zero", () => {
+    const kept = composeKeptFightsAfterKeeping([], composeBareFight("2"), 0);
     expect(kept.fights).toEqual([]);
-    expect(kept.dropped).toEqual(["1"]);
+    expect(kept.dropped).toEqual([]);
     expect(kept.isRefused).toBe(true);
+  });
+
+  /**
+   * The other side of that boundary, and the one that used to answer differently
+   * from every limit above it: zero had a branch that emptied the list, pins and
+   * all, while trimming to zero kept them and keeping at one kept them.
+   */
+  test("still refuses rather than dropping a pinned one at a limit of zero", () => {
+    const held = [composeBareFight("1", true)];
+    const kept = composeKeptFightsAfterKeeping(held, composeBareFight("2"), 0);
+    expect(kept.fights).toBe(held);
+    expect(kept.dropped).toEqual([]);
+    expect(kept.isRefused).toBe(true);
+  });
+
+  /** The two rotations, put to the same list at the same limit, on the pin. */
+  test("agrees with trimming about a pin at a limit of zero", () => {
+    const held = [composeBareFight("1", true)];
+    expect(composeKeptFightsAfterKeeping(held, composeBareFight("2"), 0).fights).toEqual(
+      composeKeptFightsWithinLimit(held, 0).fights,
+    );
   });
 
   test("keeps exactly one at a limit of one", () => {
@@ -168,6 +189,15 @@ describe("trimming to a smaller limit", () => {
   test("hands back the same list where nothing has to go", () => {
     const held = [composeBareFight("1")];
     expect(composeKeptFightsWithinLimit(held, 5).fights).toBe(held);
+  });
+
+  /** Identity is the signal, and the refusing path had been handing back a copy. */
+  test("hands back the same list where every fight is pinned", () => {
+    const held = [composeBareFight("2", true), composeBareFight("1", true)];
+    const trimmed = composeKeptFightsWithinLimit(held, 1);
+    expect(trimmed.fights).toBe(held);
+    expect(trimmed.dropped).toEqual([]);
+    expect(trimmed.isRefused).toBe(true);
   });
 
   test("refuses a limit that is not a whole number of fights", () => {

@@ -5,6 +5,7 @@ import {
   composeCountedText,
   composeKeepLimitLabel,
   composeSideCountsText,
+  CHOICE_REFUSED_WARNING,
   EVERY_SLOT_PINNED_WARNING,
   FIGHTS_BACK_LABEL,
   FIGHTS_EMPTY,
@@ -987,17 +988,27 @@ describe("what the shelf of kept fights says", () => {
   });
 
   /**
-   * Two sentences and not one, because the remedies differ — and neither names a
-   * quota, a store or an exception, which are ours (§3).
+   * Three sentences and not one, because the remedies differ — and none of them
+   * names a quota, a store or an exception, which are ours (§3). The third is
+   * about the controls rather than about a fight: nothing was lost, and what it
+   * has to say is that the control did nothing
+   * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F1).
    */
-  test("tells the reader a fight was not kept, and which of the two reasons", () => {
+  test("tells the reader what was not kept, and which of the three reasons", () => {
     expect(STORE_REFUSED_WARNING).toBe(
       "Przeglądarka nie przyjęła tej walki — nie została zapisana. Spróbuj trzymać mniej walk albo odepnij którąś.",
     );
     expect(EVERY_SLOT_PINNED_WARNING).toBe(
       "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.",
     );
-    for (const sentence of [STORE_REFUSED_WARNING, EVERY_SLOT_PINNED_WARNING]) {
+    expect(CHOICE_REFUSED_WARNING).toBe(
+      "Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było.",
+    );
+    for (const sentence of [
+      STORE_REFUSED_WARNING,
+      EVERY_SLOT_PINNED_WARNING,
+      CHOICE_REFUSED_WARNING,
+    ]) {
       for (const ours of ["localStorage", "sessionStorage", "quota", "store", "budget"]) {
         expect(sentence).not.toContain(ours);
       }

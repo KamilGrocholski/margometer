@@ -203,6 +203,29 @@ describe("the page the harness draws", () => {
     expect(bundleAt).toBeLessThan(driverAt);
   });
 
+  /**
+   * ⚠️ **This page loads the real add-on, so once fights could be kept it wrote
+   * one into a stranger's browser.** The published preview runs whole against
+   * `kamilgrocholski.github.io`, and a visitor who let the recording play to its
+   * end had that fight under `margometer.kept-fights` — up to five of them, plus
+   * the settings and the position — waiting for them on a second visit
+   * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F7).
+   *
+   * Order and not presence, for the reason the test above gives twice over: the
+   * add-on reads the page's stores as it starts, so a stand-in defined after the
+   * bundle's tag would be a page that keeps everything and says it keeps nothing.
+   */
+  test("both stores are taken away before the bundle can reach them", () => {
+    const page = composePageOfFight();
+    const storeAt = page.indexOf("setNothingKept");
+    const bundleAt = page.indexOf("margometer.user.js");
+    expect(storeAt).toBeGreaterThan(-1);
+    expect(storeAt).toBeLessThan(bundleAt);
+    for (const name of ["localStorage", "sessionStorage"]) {
+      expect(page).toContain(`"${name}"`);
+    }
+  });
+
   test("the decoy script names a build the add-on can read", () => {
     const named = /main\.min\d+\.js/.exec(composePageOfFight());
     expect(named).not.toBeNull();

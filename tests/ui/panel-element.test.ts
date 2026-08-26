@@ -12,7 +12,9 @@
  * a document at all, in `tests/ui/panel-view.test.ts`.
  */
 
+import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
+import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
 import {
   composeClampedPosition,
   composeDefaultPosition,
@@ -1950,6 +1952,7 @@ describe("the shelf of kept fights", () => {
     keepLimit: 5,
     hasStoreRefused: false,
     isEverySlotPinned: false,
+    hasChoiceRefused: false,
   };
 
   function composeShelfFight(over: Partial<PanelKeptFight> = {}): PanelKeptFight {
@@ -2085,4 +2088,35 @@ describe("the shelf of kept fights", () => {
     renderFightsInto(document, container, composeFightsView([composeShelfFight()], READING), {}, true);
     expect(container.children).toEqual([]);
   });
+});
+
+/**
+ * §9.6 makes delegation structural: one listener at the root, never a binding per
+ * row, so re-rendering cannot lose a handler. This says there is one root.
+ *
+ * ⚠️ **The rule survived a second consumer and the code did not.** The shelf gave
+ * the panel a second screen, and each screen then declared its own
+ * `handleGuarded`, its own `pointerdown` with the same primary-button guard and
+ * its own `contextmenu` with the same `preventDefault` — while the argument
+ * behind all six sat in one of the two, with a two-line note in the other. Nothing
+ * had drifted; the finding was that nothing would say so
+ * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F5).
+ *
+ * Read as the literal both roots are written with, and not as any
+ * `addEventListener`: the drag binds its four through a variable type on purpose
+ * (`setGuarded`), and a guard that counted those too would go red for the shape it
+ * exists to allow — which is §7.5's *a guard narrower than the construct it owns*
+ * read from the other end.
+ */
+describe("where a screen listens for a gesture", () => {
+  const SOURCE = composeSourceWithoutComments(
+    readFileSync(new URL("../../src/ui/panel-element.ts", import.meta.url), "utf8"),
+  );
+
+  test.each(["pointerdown", "contextmenu"])(
+    "binds %s once, however many screens the panel draws",
+    (type) => {
+      expect(SOURCE.split(`addEventListener("${type}"`).length - 1).toBe(1);
+    },
+  );
 });

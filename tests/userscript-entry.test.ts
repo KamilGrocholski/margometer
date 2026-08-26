@@ -93,11 +93,17 @@ function composeClock(): () => string {
   };
 }
 
-function composeKeeper(over: { keepLimit?: number } = {}) {
+function composeKeeper(over: { keepLimit?: number; isRefusingSettings?: boolean } = {}) {
   const { localStorage, sessionStorage, page } = composePage();
   const settingsStore = {
     getText: (key: string) => localStorage.getItem(key),
+    /**
+     * The answer this hands back is the whole of F1: a browser that will not keep
+     * the reader's choice, which is the ordinary case on the origin the game
+     * already fills (`src/userscript-storage.ts`).
+     */
     setText: (key: string, text: string) => {
+      if (over.isRefusingSettings === true) return false;
       localStorage.setItem(key, text);
       return true;
     },
@@ -441,5 +447,43 @@ describe("moving the fights to another place", () => {
     const before = localStorage.held.get(FIGHTS_KEY);
     keeper.shelf.onStorageChosen("local");
     expect(localStorage.held.get(FIGHTS_KEY)).toBe(before);
+  });
+});
+
+/**
+ * The answer is what tells the next page where to look, so a refused one may not
+ * be acted on: the fights would go somewhere nothing ever opens again, under a
+ * panel drawing the choice as taken
+ * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F1).
+ */
+describe("when the browser will not keep the reader's choice", () => {
+  test("the fights stay where they are and the panel says the place did not change", () => {
+    const { keeper, localStorage, sessionStorage } = composeKeeper({ isRefusingSettings: true });
+    setKept(keeper, DUEL, 1);
+    keeper.shelf.onStorageChosen("session");
+
+    expect(localStorage.held.has(FIGHTS_KEY)).toBe(true);
+    expect(sessionStorage.held.has(FIGHTS_KEY)).toBe(false);
+    expect(keeper.shelf.getReading().storage).toBe("local");
+    expect(keeper.shelf.getReading().hasChoiceRefused).toBe(true);
+  });
+
+  /** The trim is the destructive half: fights given up for a limit nothing keeps. */
+  test("nothing is trimmed for a limit that did not save", () => {
+    const { keeper } = composeKeeper({ keepLimit: 5, isRefusingSettings: true });
+    for (let fight = 1; fight <= 4; fight += 1) setKept(keeper, DUEL, fight);
+    keeper.shelf.onKeepLimitChosen(2);
+
+    expect(keeper.shelf.getFights()).toHaveLength(4);
+    expect(keeper.shelf.getReading().keepLimit).toBe(5);
+    expect(keeper.shelf.getReading().hasChoiceRefused).toBe(true);
+  });
+
+  /** §9.6: a failure is state, and a later answer that lands clears it. */
+  test("a choice that lands afterwards clears it", () => {
+    const { keeper } = composeKeeper();
+    expect(keeper.shelf.getReading().hasChoiceRefused).toBe(false);
+    keeper.shelf.onStorageChosen("session");
+    expect(keeper.shelf.getReading().hasChoiceRefused).toBe(false);
   });
 });

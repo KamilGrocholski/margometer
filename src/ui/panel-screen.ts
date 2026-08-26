@@ -823,6 +823,13 @@ export function composeStateAfterFightChosen(): Partial<PanelState> {
  * Takes no state, which is what says it is not a step: every other reducer here
  * has to read where the reader is, and this one goes to the same place from
  * everywhere.
+ *
+ * ⚠️ **Every sentence above is about a reader watching the fight that is
+ * starting**, so the entry point applies it to that reader and to no other: a
+ * reader on a fight off the shelf keeps their levels, because the rows under them
+ * belong to the fight they chose and not to the one the game has just begun
+ * (`src/userscript-entry.ts`). Said here as well as there, because a reader of
+ * this file would otherwise read the paragraph above as an absolute (§7.5).
  */
 export function composeStateAfterFightStart(): Partial<PanelState> {
   return { focusCombatantId: null, focusTargetId: null, focusSkill: null };

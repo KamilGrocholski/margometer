@@ -218,6 +218,55 @@ ${introduction}
 </div>
 
 <script>
+  /*
+   * The page keeps nothing, and it has to take the store away before the bundle
+   * runs. This harness loads the real add-on rather than a mock of it, so once
+   * fights could be kept, a visitor to the published preview had a demo fight
+   * written into their own browser — around 34 kB of it, up to five, plus the
+   * settings and the panel position — and a second visit opened onto a shelf
+   * holding what the first one left. Nobody chose that; it followed from the
+   * shelf. See docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md, F7.
+   *
+   * A stand-in rather than a flag the add-on reads: getStoreFromPage already
+   * falls back to a store that outlives nothing where a browser offers none
+   * (src/userscript-storage.ts), so the preview stays the add-on exactly as
+   * shipped and the shelf still works for the length of a visit. What is bought
+   * is that it stops at the tab.
+   *
+   * An engine that will not give the property up leaves its own store in place,
+   * which is this page as it was before — no worse, and never a reason to stop
+   * drawing. Measured working on Firefox 140.13.0esr, 2026-08-26.
+   */
+  (function setNothingKept() {
+    function composeForgettingStore() {
+      var held = {};
+      return {
+        getItem: function (key) {
+          return Object.prototype.hasOwnProperty.call(held, key) ? held[key] : null;
+        },
+        // What the add-on hands this is already text, so there is nothing to
+        // coerce — and a coercion here would be libs/number.ts's to spell (§9.5).
+        setItem: function (key, value) {
+          held[key] = value;
+        },
+        removeItem: function (key) {
+          delete held[key];
+        },
+      };
+    }
+    var names = ["localStorage", "sessionStorage"];
+    for (var at = 0; at < names.length; at += 1) {
+      try {
+        Object.defineProperty(window, names[at], {
+          value: composeForgettingStore(),
+          configurable: true,
+        });
+      } catch (refusal) {
+        void refusal;
+      }
+    }
+  })();
+
   // The game, as much of it as the add-on touches. Both names are needed:
   // src/game/engine-roster.ts reads "w", src/game/fight-capture.ts reads
   // "warriorsList", and with only the first every combatant snapshot in a saved

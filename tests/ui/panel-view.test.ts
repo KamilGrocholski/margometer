@@ -3505,6 +3505,7 @@ describe("the shelf, as data", () => {
     keepLimit: 5,
     hasStoreRefused: false,
     isEverySlotPinned: false,
+    hasChoiceRefused: false,
   };
 
   function composeShelfFight(over: Partial<PanelKeptFight> = {}): PanelKeptFight {
@@ -3580,16 +3581,30 @@ describe("the shelf, as data", () => {
     }
   });
 
-  /** The reader's own doing first: one of the two has a remedy on this screen. */
-  test("says both things that can have gone wrong, the fixable one first", () => {
+  /** The reader's own doing first: one of the three has a remedy on this screen. */
+  test("says all three things that can have gone wrong, the fixable one first", () => {
     const view = composeFightsView([], {
       ...READING,
       hasStoreRefused: true,
       isEverySlotPinned: true,
+      hasChoiceRefused: true,
     });
-    expect(view.warnings).toHaveLength(2);
+    expect(view.warnings).toHaveLength(3);
     expect(view.warnings[0]).toContain("przypięte");
     expect(composeFightsView([], READING).warnings).toEqual([]);
+  });
+
+  /**
+   * Read in words at the point it is drawn, and never back off the module that
+   * composes it (§7.5): a sentence naming a quota, a store or an exception would
+   * be ours rather than the reader's, and one saying nothing at all would pass a
+   * test that compared the module with itself.
+   */
+  test("tells the reader a refused choice changed nothing, in their own words", () => {
+    const view = composeFightsView([], { ...READING, hasChoiceRefused: true });
+    expect(view.warnings).toEqual([
+      "Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było.",
+    ]);
   });
 });
 

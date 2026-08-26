@@ -14,6 +14,7 @@
  * could ever report.
  */
 
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import {
@@ -26,6 +27,7 @@ import {
   composeMutations,
   getFailingTestFiles,
   getSweptFiles,
+  isTimeoutFailure,
   MutationSweepError,
   type Mutation,
 } from "@/tools/mutation-sweep.ts";
@@ -227,6 +229,43 @@ describe("reading what the gate said", () => {
 
   test("a green run names nobody", () => {
     expect(getFailingTestFiles("bun test v1.3.14\n\n 2000 pass\n 0 fail\n")).toEqual([]);
+  });
+});
+
+/**
+ * A mutant that hung the suite, and a runner that was never there.
+ *
+ * `spawnSync` reports both in one field and they are opposite claims: the first
+ * is true of one mutation and the next would have run, the second is true of
+ * every run that follows. Read as the same thing, one hanging mutant threw away a
+ * whole sweep of `src/game/kept-fights.ts` — 179 of 180 finished and none of them
+ * reached the report
+ * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F4).
+ *
+ * ⚠️ **The runner is asked rather than imitated.** What `code` a timed-out spawn
+ * carries is a claim about Bun, so a sample typed here would be a guess wearing a
+ * transcript's clothes (§7.5) — and the one that costs is the *second* assertion,
+ * which is the machine's own failure staying fatal.
+ */
+describe("telling a hung mutant from a runner that is not there", () => {
+  test("a runner killed for running too long is one mutant's doing", () => {
+    const slow = spawnSync("bun", ["-e", "Bun.sleepSync(30000)"], {
+      encoding: "utf8",
+      timeout: 300,
+    });
+    expect(slow.error).toBeDefined();
+    expect(isTimeoutFailure(slow.error)).toBe(true);
+  });
+
+  test("a runner that is not on the path is the machine's, and stays fatal", () => {
+    const missing = spawnSync("margometer-no-such-runner", [], { encoding: "utf8", timeout: 300 });
+    expect(missing.error).toBeDefined();
+    expect(isTimeoutFailure(missing.error)).toBe(false);
+  });
+
+  test("and nothing at all is not a failure to classify", () => {
+    expect(isTimeoutFailure(undefined)).toBe(false);
+    expect(isTimeoutFailure(null)).toBe(false);
   });
 });
 
