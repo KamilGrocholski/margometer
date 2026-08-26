@@ -3,7 +3,6 @@ import { assertDefined } from "@/libs/assert.ts";
 import { getIntegerFromText } from "@/libs/number.ts";
 import {
   composeCountedText,
-  composeKeepLimitLabel,
   composeSideCountsText,
   CHOICE_REFUSED_WARNING,
   EVERY_SLOT_PINNED_WARNING,
@@ -15,7 +14,6 @@ import {
   getOutcomeLabel,
   getPinTitle,
   getStorageLabel,
-  KEEP_LIMIT_LABEL,
   PIN_MARK,
   STORAGE_LABEL,
   STORE_REFUSED_WARNING,
@@ -978,25 +976,28 @@ describe("what the shelf of kept fights says", () => {
     expect(getPinTitle(true)).toBe("Odepnij — będzie mogła zniknąć");
   });
 
-  test("names the two controls and the three places", () => {
+  test("names the one control and the three places", () => {
     expect(STORAGE_LABEL).toBe("Trzymaj");
     expect(getStorageLabel("local")).toBe("na stałe");
     expect(getStorageLabel("session")).toBe("do zamknięcia karty");
     expect(getStorageLabel("memory")).toBe("tylko teraz");
-    expect(KEEP_LIMIT_LABEL).toBe("Ile");
-    expect(composeKeepLimitLabel(10)).toBe("10");
   });
 
   /**
    * Three sentences and not one, because the remedies differ — and none of them
    * names a quota, a store or an exception, which are ours (§3). The third is
-   * about the controls rather than about a fight: nothing was lost, and what it
+   * about the control rather than about a fight: nothing was lost, and what it
    * has to say is that the control did nothing
    * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F1).
+   *
+   * ⚠️ **The first names one remedy and used to name two.** *Trzymaj mniej walk*
+   * was the other, and the strip it pointed at is gone — a sentence sending a
+   * reader to a control that is not on the screen is worse than one that sends
+   * them nowhere.
    */
   test("tells the reader what was not kept, and which of the three reasons", () => {
     expect(STORE_REFUSED_WARNING).toBe(
-      "Przeglądarka nie przyjęła tej walki — nie została zapisana. Spróbuj trzymać mniej walk albo odepnij którąś.",
+      "Przeglądarka nie przyjęła tej walki — nie została zapisana. Odepnij którąś, żeby zrobić miejsce.",
     );
     expect(EVERY_SLOT_PINNED_WARNING).toBe(
       "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.",

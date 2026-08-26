@@ -24,6 +24,26 @@ put to the maintainer on 2026-08-26 and answered:
 | How a kept fight is reached | **A screen of its own**, `Walki`, opened from the title bar. Picking a row leaves the list and shows that fight in the panel's ordinary screens. |
 | What "saving selected" means | **A pin the rotation respects.** Every finished fight is kept up to the limit; pinning one exempts it from being evicted. Nothing is lost by forgetting to press anything. |
 | Where it is kept | **The player's choice of three**, defaulting to `localStorage`. |
+| How many are kept | **A strip of four numbers** — 3, 5, 10, 20 — defaulting to five. ⚠️ *Reversed by the maintainer later the same day: the limit is fixed at twenty and the strip is gone. See below.* |
+
+### The limit stopped being a dial — 2026-08-26
+
+The strip was asked for and then taken back before any of this shipped, and the
+reason is worth keeping: **the choice had no consequence a reader could see.**
+Every one of the four numbers fits the byte budget with room to spare, so what
+the strip changed was how soon a fight nobody pinned disappeared — a thing
+somebody finds out by losing one. Against that it cost a row of the shelf's own
+height, on a panel 260px wide where every strip is height the list does not get.
+
+Twenty is now a constant in `src/userscript-entry.ts`, and the ceiling that
+actually binds is the one below it: the megabyte budget, which turns a fight away
+one at a time and **says so on the screen**. That is the difference — a limit the
+reader sets is silent, and a budget refusing a write is not.
+
+What the removal changed elsewhere: the warning for a refused write named two
+remedies and now names one, because *keep fewer fights* is no longer something a
+reader can do; and `composeKeptFightsWithinLimit` — the trim to a **smaller**
+limit — went with it, having had exactly one caller (§7.1).
 
 ## Where the add-on stands today
 
@@ -186,8 +206,10 @@ Three things follow, and all three are requirements rather than preferences:
    the consequence is, in the reader's own words. Silence here would be a `Walki`
    screen that quietly stopped growing (§9.6).
 3. **A budget below the ceiling**, so the eviction above is a safety net rather
-   than the normal path — the limit `N` is what a reader sets, and the byte
-   budget is what stops a pathological fight from spending the origin.
+   than the normal path — the limit is how many fights the shelf holds, and the
+   byte budget is what stops a pathological fight from spending the origin. (The
+   limit was the reader's when this was written; it is fixed at twenty now, and
+   the budget is the ceiling that reports.)
 
 The maintainer chose `localStorage` as the default on 2026-08-26 with the above
 stated. The concern is not that the mechanism is unsafe — it is caught, evicted

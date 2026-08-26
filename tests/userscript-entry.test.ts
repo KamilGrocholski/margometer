@@ -93,7 +93,7 @@ function composeClock(): () => string {
   };
 }
 
-function composeKeeper(over: { keepLimit?: number; isRefusingSettings?: boolean } = {}) {
+function composeKeeper(over: { isRefusingSettings?: boolean } = {}) {
   const { localStorage, sessionStorage, page } = composePage();
   const settingsStore = {
     getText: (key: string) => localStorage.getItem(key),
@@ -109,12 +109,6 @@ function composeKeeper(over: { keepLimit?: number; isRefusingSettings?: boolean 
     },
     removeText: (key: string) => localStorage.removeItem(key),
   };
-  if (over.keepLimit !== undefined) {
-    localStorage.setItem(
-      SETTINGS_KEY,
-      composeStoredTextFromSettings({ storage: "local", keepLimit: over.keepLimit }),
-    );
-  }
   let live: FightReading | null = null;
   const keeper = composeFightKeeper(page, settingsStore, () => live, composeClock());
   return {
@@ -127,37 +121,32 @@ function composeKeeper(over: { keepLimit?: number; isRefusingSettings?: boolean 
 
 describe("what the reader has chosen about keeping fights", () => {
   test("comes back as it was written", () => {
-    const settings = { storage: "session", keepLimit: 10 } as const;
+    const settings = { storage: "session" } as const;
     expect(getSettingsFromStoredText(composeStoredTextFromSettings(settings))).toEqual(settings);
   });
 
   test("defaults where nothing has been written", () => {
-    expect(getSettingsFromStoredText("")).toEqual({ storage: "local", keepLimit: 5 });
+    expect(getSettingsFromStoredText("")).toEqual({ storage: "local" });
   });
 
-  /** §9.6: validated on read, and neither half repaired into something near it. */
-  test("refuses a place and a limit it cannot read, one at a time", () => {
-    expect(getSettingsFromStoredText('{"storage":"cookie","keepLimit":10}')).toEqual({
-      storage: "local",
-      keepLimit: 10,
-    });
-    expect(getSettingsFromStoredText('{"storage":"session","keepLimit":"ten"}')).toEqual({
-      storage: "session",
-      keepLimit: 5,
-    });
-    expect(getSettingsFromStoredText('{"storage":"session","keepLimit":0}').keepLimit).toBe(5);
-    expect(getSettingsFromStoredText('{"storage":"session","keepLimit":1.5}').keepLimit).toBe(5);
-    expect(getSettingsFromStoredText("[]")).toEqual({ storage: "local", keepLimit: 5 });
-    expect(getSettingsFromStoredText("{")).toEqual({ storage: "local", keepLimit: 5 });
+  /** §9.6: validated on read, and never repaired into something near it. */
+  test("refuses a place it cannot read", () => {
+    expect(getSettingsFromStoredText('{"storage":"cookie"}')).toEqual({ storage: "local" });
+    expect(getSettingsFromStoredText('{"storage":42}')).toEqual({ storage: "local" });
+    expect(getSettingsFromStoredText("[]")).toEqual({ storage: "local" });
+    expect(getSettingsFromStoredText("{")).toEqual({ storage: "local" });
   });
 
   /**
-   * The one bound that only text somebody edited can reach — the strip offers
-   * nothing near it — and without it a stored limit of a million turns the
-   * rotation into an unbounded store.
+   * A limit is no longer the reader's to set, so an answer stored by a build that
+   * still had the strip is not carried forward — obeying it would be the add-on
+   * acting on a control that is not on the screen. Neither is it written back.
    */
-  test("refuses a limit past what any strip offers", () => {
-    expect(getSettingsFromStoredText('{"storage":"local","keepLimit":1000000}').keepLimit).toBe(5);
+  test("neither reads nor writes a limit an older build stored", () => {
+    expect(getSettingsFromStoredText('{"storage":"session","keepLimit":3}')).toEqual({
+      storage: "session",
+    });
+    expect(composeStoredTextFromSettings({ storage: "local" })).not.toContain("keepLimit");
   });
 });
 
@@ -325,23 +314,31 @@ describe("a fight read back off the shelf", () => {
   });
 });
 
-describe("the rotation, as the reader set it", () => {
-  test("keeps no more than the limit", () => {
-    const { keeper } = composeKeeper({ keepLimit: 3 });
-    for (let fight = 1; fight <= 5; fight += 1) {
+/**
+ * ⚠️ **Twenty is spelled here, not imported.** The entry point holds the limit as
+ * a constant of its own, and a test that read it back would hold the rotation and
+ * the number to be the same thing and neither to be right (§7.5). So this file
+ * states what the shelf is supposed to hold and the fights are counted against it.
+ */
+const KEPT_FIGHTS_LIMIT = 20;
+
+describe("the rotation, which the reader no longer sets", () => {
+  test("keeps no more than twenty", () => {
+    const { keeper } = composeKeeper();
+    for (let fight = 1; fight <= KEPT_FIGHTS_LIMIT + 2; fight += 1) {
       setKept(keeper, DUEL, fight);
     }
-    expect(keeper.shelf.getFights()).toHaveLength(3);
+    expect(keeper.shelf.getFights()).toHaveLength(KEPT_FIGHTS_LIMIT);
   });
 
   test("never drops what the reader pinned", () => {
-    const { keeper } = composeKeeper({ keepLimit: 2 });
+    const { keeper } = composeKeeper();
     setKept(keeper, DUEL, 1);
     const first = keeper.shelf.getFights()[0]!.id;
     keeper.shelf.onPinToggled(first);
     expect(keeper.shelf.getFights()[0]?.isPinned).toBe(true);
 
-    for (let fight = 2; fight <= 4; fight += 1) {
+    for (let fight = 2; fight <= KEPT_FIGHTS_LIMIT + 2; fight += 1) {
       setKept(keeper, DUEL, fight);
     }
     expect(keeper.shelf.getFights().map((one) => one.id)).toContain(first);
@@ -349,12 +346,12 @@ describe("the rotation, as the reader set it", () => {
 
   /** The reader's explicit choice beats the automatic one, and the panel says so. */
   test("refuses a new fight rather than dropping a pinned one, and says which", () => {
-    const { keeper } = composeKeeper({ keepLimit: 1 });
-    setKept(keeper, DUEL, 1);
-    keeper.shelf.onPinToggled(keeper.shelf.getFights()[0]!.id);
-    setKept(keeper, DUEL, 2);
+    const { keeper } = composeKeeper();
+    for (let fight = 1; fight <= KEPT_FIGHTS_LIMIT; fight += 1) setKept(keeper, DUEL, fight);
+    for (const held of keeper.shelf.getFights()) keeper.shelf.onPinToggled(held.id);
+    setKept(keeper, DUEL, KEPT_FIGHTS_LIMIT + 1);
 
-    expect(keeper.shelf.getFights()).toHaveLength(1);
+    expect(keeper.shelf.getFights()).toHaveLength(KEPT_FIGHTS_LIMIT);
     expect(keeper.shelf.getReading().isEverySlotPinned).toBe(true);
     expect(keeper.shelf.getReading().hasStoreRefused).toBe(false);
   });
@@ -366,18 +363,6 @@ describe("the rotation, as the reader set it", () => {
     keeper.shelf.onPinToggled(keeper.shelf.getFights()[0]!.id);
     keeper.setFightKept({ ...session, messages: [...session.messages, "0;0;txt=x"] }, outcome);
     expect(keeper.shelf.getFights()[0]?.isPinned).toBe(true);
-  });
-
-  test("a smaller limit trims what is already there, oldest first", () => {
-    const { keeper } = composeKeeper({ keepLimit: 5 });
-    for (let fight = 1; fight <= 4; fight += 1) {
-      setKept(keeper, DUEL, fight);
-    }
-    const newest = keeper.shelf.getFights()[0]!.id;
-    keeper.shelf.onKeepLimitChosen(2);
-    expect(keeper.shelf.getFights()).toHaveLength(2);
-    expect(keeper.shelf.getFights()[0]?.id).toBe(newest);
-    expect(keeper.shelf.getReading().keepLimit).toBe(2);
   });
 });
 
@@ -465,17 +450,6 @@ describe("when the browser will not keep the reader's choice", () => {
     expect(localStorage.held.has(FIGHTS_KEY)).toBe(true);
     expect(sessionStorage.held.has(FIGHTS_KEY)).toBe(false);
     expect(keeper.shelf.getReading().storage).toBe("local");
-    expect(keeper.shelf.getReading().hasChoiceRefused).toBe(true);
-  });
-
-  /** The trim is the destructive half: fights given up for a limit nothing keeps. */
-  test("nothing is trimmed for a limit that did not save", () => {
-    const { keeper } = composeKeeper({ keepLimit: 5, isRefusingSettings: true });
-    for (let fight = 1; fight <= 4; fight += 1) setKept(keeper, DUEL, fight);
-    keeper.shelf.onKeepLimitChosen(2);
-
-    expect(keeper.shelf.getFights()).toHaveLength(4);
-    expect(keeper.shelf.getReading().keepLimit).toBe(5);
     expect(keeper.shelf.getReading().hasChoiceRefused).toBe(true);
   });
 

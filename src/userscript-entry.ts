@@ -37,7 +37,6 @@ import {
 import {
   composeIntegerText,
   getFiniteNumberFromValue,
-  getIntegerFromValue,
 } from "@/libs/number.ts";
 import { getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
@@ -45,7 +44,6 @@ import {
   composeKeptFight,
   composeKeptFightsAfterKeeping,
   composeKeptFightsAfterPin,
-  composeKeptFightsWithinLimit,
   composeSessionFromKeptFight,
   getKeptFightsFromStoredText,
   setKeptFightsThatFit,
@@ -537,22 +535,22 @@ function setStoredCollapse(store: ValueStore, isCollapsed: boolean): void {
 /**
  * What the reader has chosen about keeping fights.
  *
- * The limit defaults to five, and it is a guess: nothing measures how many fights
- * somebody wants to compare, and the spec says so rather than pretending
- * otherwise (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`). Five is one
- * evening's worth at the size the recordings run to, and the reader can move it
- * on the same screen it governs.
+ * One thing, and it used to be two: the reader also picked how many fights to
+ * keep, off a strip of four numbers beside this one. That control is gone and the
+ * number below is fixed, so what is left here is the one choice with a
+ * consequence a reader can feel — where their fights live, and what closing the
+ * tab does to them.
  */
-export type FightSettings = { storage: StorageChoice; keepLimit: number };
+export type FightSettings = { storage: StorageChoice };
 
-const DEFAULT_SETTINGS: FightSettings = { storage: "local", keepLimit: 5 };
+const DEFAULT_SETTINGS: FightSettings = { storage: "local" };
 
 /**
- * ⚠️ **Both halves are validated and neither is repaired** (§9.6). A limit that
- * will not read is not clamped to something near it — a number nobody wrote is
- * how much of somebody's browser this add-on would then spend — and a place that
- * will not read is not guessed at, because guessing wrong writes their fights
- * somewhere they did not choose.
+ * ⚠️ **Validated and never repaired** (§9.6). A place that will not read is not
+ * guessed at, because guessing wrong writes somebody's fights somewhere they did
+ * not choose. A stored `keepLimit` from a build that still had the strip is
+ * simply not read: the limit is no longer the reader's to set, so honouring an
+ * old answer would be the add-on obeying a control that is not on the screen.
  */
 export function getSettingsFromStoredText(text: string): FightSettings {
   const reading = getValueFromJsonText(text);
@@ -561,29 +559,31 @@ export function getSettingsFromStoredText(text: string): FightSettings {
   if (fields === null) return DEFAULT_SETTINGS;
 
   const storage = getStorageChoiceFromValue(fields["storage"]);
-  const keepLimit = getIntegerFromValue(fields["keepLimit"]);
-  return {
-    storage: storage ?? DEFAULT_SETTINGS.storage,
-    keepLimit:
-      keepLimit === null || keepLimit < 1 || keepLimit > MOST_FIGHTS_KEPT
-        ? DEFAULT_SETTINGS.keepLimit
-        : keepLimit,
-  };
+  return { storage: storage ?? DEFAULT_SETTINGS.storage };
 }
 
 /**
- * The ceiling on the reader's own ceiling.
+ * How many finished fights the shelf holds.
  *
- * Not a taste: the strip offers four numbers and this is above the largest of
- * them, so it can only ever be reached by text somebody edited. What it stops is
- * a stored `keepLimit` of a million turning the rotation into an unbounded store
- * — and the byte budget below would catch that too, one write later and after the
- * browser had already been asked.
+ * ⚠️ **Fixed, and it is not the ceiling that binds.** The byte budget below is:
+ * over the 25 recordings held on 2026-08-26 the heaviest fight comes to 44 397
+ * characters and the median to 33 842, so twenty of the ordinary is 677 kB inside
+ * a megabyte, and twenty of the worst would be turned away by the budget one
+ * fight at a time — visibly, on the row where the consequence is. This number is
+ * what stops the shelf growing without end; the budget is what stops it spending
+ * somebody's browser, and only one of the two can be right about a number nobody
+ * has measured yet.
+ *
+ * It was a strip of four numbers the reader picked from, removed on 2026-08-26 at
+ * the maintainer's ask: the shelf spent a row of its own height offering a choice
+ * whose consequence nobody could see — every answer fits the budget, so what the
+ * strip actually changed was how soon a fight nobody pinned disappeared
+ * (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`).
  */
-const MOST_FIGHTS_KEPT = 50;
+const KEPT_FIGHTS_LIMIT = 20;
 
 export function composeStoredTextFromSettings(settings: FightSettings): string {
-  return composeJsonText({ storage: settings.storage, keepLimit: settings.keepLimit });
+  return composeJsonText({ storage: settings.storage });
 }
 
 /**
@@ -832,7 +832,7 @@ export function composeFightKeeper(
         ...composeKeptFight(session, outcome, idBeingKept, getNow()),
         isPinned,
       };
-      const after = composeKeptFightsAfterKeeping(fights, fight, settings.keepLimit);
+      const after = composeKeptFightsAfterKeeping(fights, fight, KEPT_FIGHTS_LIMIT);
       isEverySlotPinned = after.isRefused;
       if (after.isRefused) return;
       setFights(after.fights, after.dropped);
@@ -841,7 +841,6 @@ export function composeFightKeeper(
     shelf: {
       getReading: () => ({
         storage: settings.storage,
-        keepLimit: settings.keepLimit,
         hasStoreRefused,
         isEverySlotPinned,
         hasChoiceRefused,
@@ -929,13 +928,6 @@ export function composeFightKeeper(
         setFights(fights, []);
       },
 
-      onKeepLimitChosen: (limit) => {
-        if (limit === settings.keepLimit) return;
-        if (!setSettings({ ...settings, keepLimit: limit })) return;
-        const trimmed = composeKeptFightsWithinLimit(fights, limit);
-        isEverySlotPinned = trimmed.isRefused;
-        setFights(trimmed.fights, trimmed.dropped);
-      },
     },
   };
 }
@@ -997,7 +989,6 @@ export type PanelShelf = {
   onFightChosen: (id: string) => { reading: FightReading | null; isLive: boolean };
   onPinToggled: (id: string) => void;
   onStorageChosen: (choice: PanelStorageChoice) => void;
-  onKeepLimitChosen: (limit: number) => void;
 };
 
 /**
@@ -1206,10 +1197,6 @@ export function composePanelMount(
           },
           onStorageChosen: (choice) => {
             drawn.onStorageChosen(choice);
-            renderLatest();
-          },
-          onKeepLimitChosen: (limit) => {
-            drawn.onKeepLimitChosen(limit);
             renderLatest();
           },
           onBack: () => setState(composeStateAfterBack(state)),

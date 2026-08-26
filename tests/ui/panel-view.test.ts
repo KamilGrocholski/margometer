@@ -37,7 +37,6 @@ import {
   type PanelRow,
   type PanelState,
   type PanelView,
-  PANEL_KEEP_LIMITS,
   PANEL_STORAGE_CHOICES,
   type PanelKeptFight,
 } from "@/src/ui/panel-screen.ts";
@@ -3502,7 +3501,6 @@ describe("how a figure is written", () => {
 describe("the shelf, as data", () => {
   const READING: PanelFightsReading = {
     storage: "local",
-    keepLimit: 5,
     hasStoreRefused: false,
     isEverySlotPinned: false,
     hasChoiceRefused: false,
@@ -3550,34 +3548,17 @@ describe("the shelf, as data", () => {
     expect(view.rows[0]?.outcomeText).toBe("trwa");
   });
 
-  test("shows which of the two controls the reader is on", () => {
-    const view = composeFightsView([], { ...READING, storage: "session", keepLimit: 10 });
+  test("shows which of the three places the reader is on", () => {
+    const view = composeFightsView([], { ...READING, storage: "session" });
     expect(view.storageTabs.filter((tab) => tab.isSelected).map((tab) => tab.choice)).toEqual([
       "session",
     ]);
-    expect(view.keepLimitTabs.filter((tab) => tab.isSelected).map((tab) => tab.limit)).toEqual([10]);
   });
 
-  /**
-   * A limit off the strip is one an older build stored. Drawing four tabs with
-   * none of them selected would say the panel had lost the reader's answer.
-   */
-  test("keeps a limit the strip does not offer, rather than moving the reader", () => {
-    const view = composeFightsView([], { ...READING, keepLimit: 7 });
-    expect(view.keepLimitTabs.map((tab) => tab.limit)).toContain(7);
-    expect(view.keepLimitTabs.filter((tab) => tab.isSelected)).toHaveLength(1);
-    expect([...view.keepLimitTabs].map((tab) => tab.limit)).toEqual(
-      [...view.keepLimitTabs].map((tab) => tab.limit).sort((one, other) => one - other),
-    );
-  });
-
-  test("exactly one tab is chosen on each strip, whatever the reader picked", () => {
+  test("exactly one tab is chosen, whatever the reader picked", () => {
     for (const storage of PANEL_STORAGE_CHOICES) {
-      for (const keepLimit of PANEL_KEEP_LIMITS) {
-        const view = composeFightsView([], { ...READING, storage, keepLimit });
-        expect(view.storageTabs.filter((tab) => tab.isSelected)).toHaveLength(1);
-        expect(view.keepLimitTabs.filter((tab) => tab.isSelected)).toHaveLength(1);
-      }
+      const view = composeFightsView([], { ...READING, storage });
+      expect(view.storageTabs.filter((tab) => tab.isSelected)).toHaveLength(1);
     }
   });
 

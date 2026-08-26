@@ -36,16 +36,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
-- **Nowość** — Skończone walki zostają. Przycisk `☰` na belce otwiera listę walk:
-  ta, która trwa, i te, które już się skończyły — z godziną, wielkością i tym, jak
-  się skończyły. Kliknięcie wiersza pokazuje tamtą walkę w panelu tak samo, jak
-  pokazuje bieżącą; prawy przycisk myszy wraca. Gwiazdką przypniesz walkę, żeby
-  nie zniknęła, kiedy zrobi się miejsce dla nowych.
+- **Nowość** — Skończone walki zostają. Przycisk `☰` na belce otwiera listę
+  ostatnich dwudziestu walk: ta, która trwa, i te, które już się skończyły — z
+  godziną, wielkością i tym, jak się skończyły. Kliknięcie wiersza pokazuje tamtą
+  walkę w panelu tak samo, jak pokazuje bieżącą; prawy przycisk myszy wraca.
+  Gwiazdką przypniesz walkę, żeby nie zniknęła, kiedy zrobi się miejsce dla
+  nowych.
 
 - **Nowość** — Na tej samej liście wybierasz, gdzie walki mają być trzymane —
-  na stałe, do zamknięcia karty, albo tylko teraz — i ile ich pamiętać. Zmiana
-  miejsca przenosi to, co już masz, i czyści poprzednie. Jeśli przeglądarka nie
-  przyjmie walki, panel to napisze zamiast po cichu jej nie zapisać.
+  na stałe, do zamknięcia karty, albo tylko teraz. Zmiana miejsca przenosi to, co
+  już masz, i czyści poprzednie. Jeśli przeglądarka nie przyjmie walki, panel to
+  napisze zamiast po cichu jej nie zapisać.
 
 - **Nowość** — Panel liczy teraz obrażenia i leczenie, które wcześniej mu
   umykały: porażenie, głęboką ranę, krwawienie i regenerację potwora — życie,
@@ -114,10 +115,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   i pasek podsumowania na dole rysowały się szersze od pasków postaci nad nimi,
   więc ta sama liczba wychodziła na nich dłuższa, niż powinna.
 
-- **Poprawka** — Wybór miejsca i liczby trzymanych walk nie przepada już po cichu.
-  Jeśli przeglądarka nie przyjmie takiego ustawienia, panel zostawia wszystko tak,
-  jak było, i napisze o tym. Wcześniej zaznaczał nowy wybór jako przyjęty, a po
-  wejściu do gry następnym razem walki potrafiły zniknąć z listy.
+- **Poprawka** — Wybór miejsca, w którym trzymane są walki, nie przepada już po
+  cichu. Jeśli przeglądarka nie przyjmie takiego ustawienia, panel zostawia
+  wszystko tak, jak było, i napisze o tym. Wcześniej zaznaczał nowy wybór jako
+  przyjęty, a po wejściu do gry następnym razem walki potrafiły zniknąć z listy.
 
 - **Poprawka** — Rozbicie otwarte na skończonej walce zostaje otwarte, kiedy
   zaczyna się nowa. Panel wracał na górę listy również komuś, kto oglądał walkę

@@ -44,7 +44,6 @@ import {
   type PanelState,
   TEAM_LABELS,
   UNANNOUNCED_ROW_KEY,
-  PANEL_KEEP_LIMITS,
   PANEL_SCREENS,
   PANEL_STORAGE_CHOICES,
   composeStateAfterFightChosen,
@@ -562,11 +561,5 @@ describe("the shelf of kept fights is a screen and not a level", () => {
    */
   test("the three places the panel offers are the three that exist", () => {
     expect([...PANEL_STORAGE_CHOICES]).toEqual([...STORAGE_CHOICES]);
-  });
-
-  test("the limits offered are whole, rising, and start above nothing", () => {
-    expect(PANEL_KEEP_LIMITS.length).toBeGreaterThan(1);
-    for (const limit of PANEL_KEEP_LIMITS) expect(Number.isInteger(limit) && limit > 0).toBe(true);
-    expect([...PANEL_KEEP_LIMITS]).toEqual([...PANEL_KEEP_LIMITS].sort((a, b) => a - b));
   });
 });

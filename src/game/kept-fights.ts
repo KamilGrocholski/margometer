@@ -309,41 +309,6 @@ export function composeKeptFightsAfterKeeping(
   return { fights: held, dropped, isRefused: false };
 }
 
-/**
- * The list trimmed to a smaller limit, oldest unpinned first.
- *
- * Its own function rather than `composeKeptFightsAfterKeeping` with nothing to
- * keep, because the two differ exactly where it matters: that one protects the
- * fight arriving, and here nothing is arriving — every fight in the list is one
- * the reader already has, so the newest has no more claim than the rest beyond
- * being newest.
- *
- * Stops where only pinned fights are left, which can leave the list longer than
- * the limit. That is the pin doing what it promises, and the caller says so on
- * screen rather than this quietly overriding one.
- */
-export function composeKeptFightsWithinLimit(
-  kept: readonly KeptFight[],
-  limit: number,
-): KeptFightsAfterKeeping {
-  assert(Number.isInteger(limit) && limit >= 0, "a keep limit is a whole number of fights");
-
-  let held = [...kept];
-  const dropped: string[] = [];
-  while (held.length > limit) {
-    const oldestUnpinned = getOldestUnpinned(held);
-    // The same list, and not a copy of it, where nothing has gone: identity is a
-    // signal these functions hand back on purpose, and a fresh array on the path
-    // that changed nothing tells a caller reading it the opposite (same audit).
-    if (oldestUnpinned === null) {
-      return { fights: dropped.length === 0 ? kept : held, dropped, isRefused: true };
-    }
-    dropped.push(oldestUnpinned.id);
-    held = held.filter((other) => other !== oldestUnpinned);
-  }
-  return { fights: dropped.length === 0 ? kept : held, dropped, isRefused: false };
-}
-
 /** The same list with one fight pinned or released, and the same list where no id matches. */
 export function composeKeptFightsAfterPin(
   kept: readonly KeptFight[],

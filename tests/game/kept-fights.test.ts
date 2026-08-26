@@ -19,7 +19,6 @@ import {
   composeKeptFightsAfterKeeping,
   composeKeptFightsAfterPin,
   composeKeptFightsAfterRemoval,
-  composeKeptFightsWithinLimit,
   composeSessionFromKeptFight,
   composeStoredTextFromKeptFights,
   setKeptFightsThatFit,
@@ -142,14 +141,6 @@ describe("keeping one more fight", () => {
     expect(kept.isRefused).toBe(true);
   });
 
-  /** The two rotations, put to the same list at the same limit, on the pin. */
-  test("agrees with trimming about a pin at a limit of zero", () => {
-    const held = [composeBareFight("1", true)];
-    expect(composeKeptFightsAfterKeeping(held, composeBareFight("2"), 0).fights).toEqual(
-      composeKeptFightsWithinLimit(held, 0).fights,
-    );
-  });
-
   test("keeps exactly one at a limit of one", () => {
     const kept = composeKeptFightsAfterKeeping([composeBareFight("1")], composeBareFight("2"), 1);
     expect(kept.fights.map((fight) => fight.id)).toEqual(["2"]);
@@ -158,50 +149,6 @@ describe("keeping one more fight", () => {
   test("refuses a limit that is not a whole number of fights", () => {
     expect(() => composeKeptFightsAfterKeeping([], composeBareFight("1"), -1)).toThrow();
     expect(() => composeKeptFightsAfterKeeping([], composeBareFight("1"), 1.5)).toThrow();
-  });
-});
-
-describe("trimming to a smaller limit", () => {
-  /**
-   * The difference from keeping: nothing is arriving, so the newest has no more
-   * claim than the rest beyond being newest.
-   */
-  test("drops the oldest unpinned until the list fits", () => {
-    const trimmed = composeKeptFightsWithinLimit(
-      [composeBareFight("3"), composeBareFight("2"), composeBareFight("1")],
-      1,
-    );
-    expect(trimmed.fights.map((fight) => fight.id)).toEqual(["3"]);
-    expect(trimmed.dropped).toEqual(["1", "2"]);
-    expect(trimmed.isRefused).toBe(false);
-  });
-
-  test("stops where only pinned fights are left, and says so", () => {
-    const trimmed = composeKeptFightsWithinLimit(
-      [composeBareFight("3", true), composeBareFight("2"), composeBareFight("1", true)],
-      1,
-    );
-    expect(trimmed.fights.map((fight) => fight.id)).toEqual(["3", "1"]);
-    expect(trimmed.dropped).toEqual(["2"]);
-    expect(trimmed.isRefused).toBe(true);
-  });
-
-  test("hands back the same list where nothing has to go", () => {
-    const held = [composeBareFight("1")];
-    expect(composeKeptFightsWithinLimit(held, 5).fights).toBe(held);
-  });
-
-  /** Identity is the signal, and the refusing path had been handing back a copy. */
-  test("hands back the same list where every fight is pinned", () => {
-    const held = [composeBareFight("2", true), composeBareFight("1", true)];
-    const trimmed = composeKeptFightsWithinLimit(held, 1);
-    expect(trimmed.fights).toBe(held);
-    expect(trimmed.dropped).toEqual([]);
-    expect(trimmed.isRefused).toBe(true);
-  });
-
-  test("refuses a limit that is not a whole number of fights", () => {
-    expect(() => composeKeptFightsWithinLimit([], -1)).toThrow();
   });
 });
 

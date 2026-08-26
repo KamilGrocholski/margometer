@@ -910,29 +910,27 @@ export function getStorageLabel(choice: PanelStorageChoice): string {
   return STORAGE_LABELS[choice];
 }
 
-export const KEEP_LIMIT_LABEL = "Ile";
-
-export function composeKeepLimitLabel(limit: number): string {
-  return composeIntegerText(limit);
-}
-
 /**
  * What the shelf says when the browser would not take a fight.
  *
  * It says the fight is gone rather than that a write failed, because that is the
  * consequence the reader has: a fight they can no longer open. Nothing here names
- * a quota, a store or an exception — those are ours (§3), and the reader's own
- * remedy is on the same screen, two controls up.
+ * a quota, a store or an exception — those are ours (§3).
+ *
+ * ⚠️ **One remedy, because only one is still the reader's.** It offered two while
+ * the shelf had a strip for how many fights to keep — *trzymaj mniej walk* was
+ * the first of them — and a sentence pointing at a control that is not on the
+ * screen is worse than one that points at nothing.
  */
 export const STORE_REFUSED_WARNING =
-  "Przeglądarka nie przyjęła tej walki — nie została zapisana. Spróbuj trzymać mniej walk albo odepnij którąś.";
+  "Przeglądarka nie przyjęła tej walki — nie została zapisana. Odepnij którąś, żeby zrobić miejsce.";
 
 /**
  * The other way a fight fails to arrive, and it is the reader's own doing.
  *
  * Its own sentence rather than the one above, because the remedy is different and
  * naming the wrong one is worse than saying nothing: nothing about the browser is
- * wrong here, every slot the reader allowed is holding something they pinned.
+ * wrong here, every slot the shelf has is holding something the reader pinned.
  */
 export const EVERY_SLOT_PINNED_WARNING =
   "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.";

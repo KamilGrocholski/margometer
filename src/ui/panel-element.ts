@@ -1052,7 +1052,6 @@ export type PanelFightsHandlers = {
   onFightChosen?: ((id: string) => void) | undefined;
   onPinToggled?: ((id: string) => void) | undefined;
   onStorageChosen?: ((choice: PanelStorageChoice) => void) | undefined;
-  onKeepLimitChosen?: ((limit: number) => void) | undefined;
   onBack?: (() => void) | undefined;
   onSectionFailure?: ((error: unknown) => void) | undefined;
 };
@@ -1064,7 +1063,7 @@ export type PanelFightsHandlers = {
  * purpose: `.row`, `.list` and `.tabs` are the panel's furniture, so a shelf
  * built out of them is the same panel showing something else rather than a second
  * design inside one window. What has no counterpart in the ranking is the pin and
- * the two labelled strips, and those are the only classes this adds.
+ * the one labelled strip, and those are the only classes this adds.
  *
  * ⚠️ **The pin is inside the row and is not one of the row's press targets.** A
  * press lands on the innermost node, so a pin registered as the row too would
@@ -1091,7 +1090,6 @@ function renderFights(
    */
   const backNodes = new Set<unknown>();
   const storageByNode = new Map<unknown, PanelStorageChoice>();
-  const limitByNode = new Map<unknown, number>();
 
   const panel = composeEventRoot(document, handlers, (target, handleGuarded) => {
     if (backNodes.has(target)) return handleGuarded(() => handlers.onBack?.());
@@ -1101,9 +1099,6 @@ function renderFights(
 
     const storage = storageByNode.get(target);
     if (storage !== undefined) return handleGuarded(() => handlers.onStorageChosen?.(storage));
-
-    const limit = limitByNode.get(target);
-    if (limit !== undefined) return handleGuarded(() => handlers.onKeepLimitChosen?.(limit));
 
     const fight = fightByNode.get(target);
     if (fight !== undefined) return handleGuarded(() => handlers.onFightChosen?.(fight));
@@ -1135,23 +1130,6 @@ function renderFights(
       button.className = tab.isSelected ? "tab selected" : "tab";
       button.textContent = tab.label;
       storageByNode.set(button, tab.choice);
-      tabs.append(button);
-    }
-    return tabs;
-  });
-
-  renderRegionInto(document, panel, handlers, "ile walk", () => {
-    const tabs = document.createElement("div");
-    tabs.className = "tabs";
-    const label = document.createElement("span");
-    label.className = "tabs-label";
-    label.textContent = view.keepLimitLabel;
-    tabs.append(label);
-    for (const tab of view.keepLimitTabs) {
-      const button = document.createElement("div");
-      button.className = tab.isSelected ? "tab selected" : "tab";
-      button.textContent = tab.label;
-      limitByNode.set(button, tab.limit);
       tabs.append(button);
     }
     return tabs;

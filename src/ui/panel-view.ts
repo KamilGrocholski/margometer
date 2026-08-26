@@ -45,7 +45,6 @@ import {
 import {
   composeCountedText,
   composeFigureText,
-  composeKeepLimitLabel,
   composeSideCountsText,
   composeShareText,
   composeShareTexts,
@@ -71,7 +70,6 @@ import {
   FIGHTS_BACK_LABEL,
   FIGHTS_EMPTY,
   FIGHTS_TITLE,
-  KEEP_LIMIT_LABEL,
   NO_ACTOR_LABEL,
   NO_TARGET_LABEL,
   STORAGE_LABEL,
@@ -89,14 +87,12 @@ import {
   isHealingMetric,
   NO_ACTOR_ROW_KEY,
   NO_TARGET_ROW_KEY,
-  PANEL_KEEP_LIMITS,
   PANEL_STORAGE_CHOICES,
   type PanelCrumb,
   type PanelDetailLine,
   type PanelFightOutcome,
   type PanelFightRow,
   type PanelFightsView,
-  type PanelKeepLimitTab,
   type PanelKeptFight,
   type PanelList,
   type PanelMetric,
@@ -1267,17 +1263,16 @@ export function composePanelView(
 /**
  * What the shelf of kept fights is told about, beyond the fights themselves.
  *
- * The two controls' current answers and the three things that can have gone
+ * The one control's current answer and the three things that can have gone
  * wrong — and all three are states rather than events: they are true of the shelf
  * as it stands, so a redraw that happens for another reason still says them, and
  * a fight or a choice that lands cleanly afterwards clears them (§9.6).
  */
 export type PanelFightsReading = {
   storage: PanelStorageChoice;
-  keepLimit: number;
   /** The browser would not take the last fight offered to it. */
   hasStoreRefused: boolean;
-  /** Every slot the reader allows is holding a fight they pinned. */
+  /** Every slot the shelf has is holding a fight the reader pinned. */
   isEverySlotPinned: boolean;
   /** The browser would not keep the last answer either control was given. */
   hasChoiceRefused: boolean;
@@ -1300,10 +1295,10 @@ export function composeFightsView(
   reading: PanelFightsReading,
 ): PanelFightsView {
   const warnings: string[] = [];
-  // The reader's own doing first, and the browser's after it: the first of the
-  // three has a remedy two controls up the same screen, and the other two have
-  // none. The last is about those controls rather than about a fight, and it is
-  // last because it is the one where nothing was lost.
+  // The reader's own doing first, and the browser's after it: the first two name
+  // a remedy the reader still has — a pin they can release — and the last has
+  // none. The last is about the control rather than about a fight, and it is last
+  // because it is the one where nothing was lost.
   if (reading.isEverySlotPinned) warnings.push(EVERY_SLOT_PINNED_WARNING);
   if (reading.hasStoreRefused) warnings.push(STORE_REFUSED_WARNING);
   if (reading.hasChoiceRefused) warnings.push(CHOICE_REFUSED_WARNING);
@@ -1317,8 +1312,6 @@ export function composeFightsView(
     emptyText: fights.length === 0 ? FIGHTS_EMPTY : null,
     storageLabel: STORAGE_LABEL,
     storageTabs: composeStorageTabs(reading.storage),
-    keepLimitLabel: KEEP_LIMIT_LABEL,
-    keepLimitTabs: composeKeepLimitTabs(reading.keepLimit),
     warnings,
     visibleRows: RANKING_ROWS,
   };
@@ -1346,22 +1339,3 @@ function composeStorageTabs(current: PanelStorageChoice): PanelStorageTab[] {
   }));
 }
 
-/**
- * The four the strip offers, and the reader's own where it is not one of them.
- *
- * A limit that is not on the strip is a limit somebody's stored settings carry
- * from another build, and drawing four tabs with none of them selected would say
- * the panel had lost their answer. It is added rather than replaced — silently
- * moving somebody to the nearest offered number is a change to what they asked
- * for, made without telling them.
- */
-function composeKeepLimitTabs(current: number): PanelKeepLimitTab[] {
-  const offered = PANEL_KEEP_LIMITS.some((limit) => limit === current)
-    ? [...PANEL_KEEP_LIMITS]
-    : [...PANEL_KEEP_LIMITS, current].sort((one, other) => one - other);
-  return offered.map((limit) => ({
-    limit,
-    label: composeKeepLimitLabel(limit),
-    isSelected: limit === current,
-  }));
-}

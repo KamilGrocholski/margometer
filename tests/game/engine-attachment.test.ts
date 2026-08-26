@@ -1951,7 +1951,6 @@ describe("a new fight and the level the reader was on", () => {
       ],
       getReading: () => ({
         storage: "local",
-        keepLimit: 5,
         hasStoreRefused: false,
         isEverySlotPinned: false,
         hasChoiceRefused: false,
@@ -1959,7 +1958,6 @@ describe("a new fight and the level the reader was on", () => {
       onFightChosen: () => ({ reading, isLive: false }),
       onPinToggled: (): void => {},
       onStorageChosen: (): void => {},
-      onKeepLimitChosen: (): void => {},
     };
   }
 

@@ -1949,7 +1949,6 @@ test("the detail is drawn as the box its placement measures", () => {
 describe("the shelf of kept fights", () => {
   const READING: PanelFightsReading = {
     storage: "local",
-    keepLimit: 5,
     hasStoreRefused: false,
     isEverySlotPinned: false,
     hasChoiceRefused: false,
@@ -2058,17 +2057,13 @@ describe("the shelf of kept fights", () => {
     expect(new Set(chosen)).toEqual(new Set(["two"]));
   });
 
-  test("the two strips report the choice they carry", () => {
+  test("the strip reports the choice it carries", () => {
     const storage: string[] = [];
-    const limits: number[] = [];
     const { container, panel } = renderShelf([], {
       onStorageChosen: (choice) => void storage.push(choice),
-      onKeepLimitChosen: (limit) => void limits.push(limit),
     });
     setPressOn(panel, getTabByLabel(container, "tylko teraz"));
-    setPressOn(panel, getTabByLabel(container, "10"));
     expect(storage).toEqual(["memory"]);
-    expect(limits).toEqual([10]);
   });
 
   test("the way back works from the crumb and from the right button", () => {
@@ -2100,9 +2095,9 @@ describe("the shelf of kept fights", () => {
       { onSectionFailure: (error) => void failures.push(error) },
     );
     expect(failures).toHaveLength(1);
-    // Everything above the list still drew: the crumb and both control strips.
+    // Everything above the list still drew: the crumb and the control strip.
     expect(getByClass(container, "crumb")).toHaveLength(1);
-    expect(getByClass(container, "tabs")).toHaveLength(2);
+    expect(getByClass(container, "tabs")).toHaveLength(1);
   });
 
   test("a collapsed panel draws nothing at all", () => {

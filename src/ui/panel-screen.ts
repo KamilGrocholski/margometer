@@ -565,15 +565,6 @@ export const PANEL_STORAGE_CHOICES = ["local", "session", "memory"] as const;
 export type PanelStorageChoice = (typeof PANEL_STORAGE_CHOICES)[number];
 
 /**
- * How many fights the reader is offered a choice between.
- *
- * The panel's own vocabulary rather than the caller's, because it is a control:
- * four values a strip has room for, and a number the reader picks off it. Nothing
- * downstream cares which four — the limit travels as the number it is.
- */
-export const PANEL_KEEP_LIMITS = [3, 5, 10, 20] as const;
-
-/**
  * One fight as the panel is handed it, before it is worded.
  *
  * ⚠️ **The clock is `{ hour, minute }` and not a timestamp**, because reading a
@@ -609,7 +600,6 @@ export type PanelFightOutcome = "won" | "lost" | "drawn";
 
 /** One control on the fights screen, and the choice it carries. */
 export type PanelStorageTab = { choice: PanelStorageChoice; label: string; isSelected: boolean };
-export type PanelKeepLimitTab = { limit: number; label: string; isSelected: boolean };
 
 /** One kept fight as a row, worded. */
 export type PanelFightRow = {
@@ -642,8 +632,6 @@ export type PanelFightsView = {
   emptyText: string | null;
   storageLabel: string;
   storageTabs: PanelStorageTab[];
-  keepLimitLabel: string;
-  keepLimitTabs: PanelKeepLimitTab[];
   /** One sentence each, in the reader's words. Empty when nothing is wrong. */
   warnings: string[];
   visibleRows: number;
