@@ -17,12 +17,26 @@
 
 
 ## In Progress
-- [ ] Audit before v0.9.0 release
 
 ## Up Next
-- [ ] Make saved fights easier to click - right now I have to click very precisely, which is too difficult (likely a bug)
 
 ## Done
+
+## Later
+- [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
+- [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
+- [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
+- [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
+- [ ] Add a `Colossus`/`Titan` helper (based on MargoMeter) that shows:
+      - which characters are not casting their abilities at all (presence check)
+      - which characters are casting abilities incorrectly (correctness check)
+
+---
+## History
+
+### Done v0.9.0
+- [x] Audit before v0.9.0 release
+- [x] Make saved fights easier to click - right now I have to click very precisely, which is too difficult (likely a bug)
 - [x] Persist the window's minimized state
 - [x] Add captured fight with "no meaning yet for critval-allies, critmval-allies" from 2026-08-26 luvia lvl 60 event
 - [x] Create options for: saving selected fights; keeping the last N fights; use localStorage/sessionStorage/memory
@@ -38,18 +52,6 @@
 - [x] `Leczenie` calls regeneration "Nie wiadomo, czym" - it is `heal`/`legbon_holytouch_heal`/`legbon_lastheal`, the game announces no skill, so name the row by the key
 - [x] Read `+absorbm`, add it to the register, then intake the 2026-08-17 Hildur recording as material
 - [x] Fix understated healing in Hildur fights - one member was refused an entry health, so every team heal cast in the fight was counted as unknown
-
-## Later
-- [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
-- [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
-- [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
-- [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
-- [ ] Add a `Colossus`/`Titan` helper (based on MargoMeter) that shows:
-      - which characters are not casting their abilities at all (presence check)
-      - which characters are casting abilities incorrectly (correctness check)
-
----
-## History
 
 ### Done v0.8.1
 - [x] Fix the percentage text to sum up correctly - the numbers are ok, only the text displayed is invalid
