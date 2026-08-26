@@ -9,6 +9,7 @@ in a panel over the game. SKADA or Details!, for Margonem.
 |---|---|
 | ![The panel ranking combatants by damage taken](screenshots/panel-taken.png) | ![One combatant's damage broken down by opponent and by damage type](screenshots/panel-breakdown.png) |
 | ![The deepest level: one opponent, by skill and by damage type](screenshots/panel-deep.png) | ![The detail card open beside the panel](screenshots/panel-tip.png) |
+| ![The shelf of fights that are still kept](screenshots/panel-fights.png) | |
 
 Damage taken in a ten-against-one fight.
 

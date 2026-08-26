@@ -9,6 +9,7 @@ Miernik obrażeń do [Margonem](https://www.margonem.pl/) — statystyki walki n
 |---|---|
 | ![Panel z listą walczących według otrzymanych obrażeń](screenshots/panel-taken.png) | ![Obrażenia jednego walczącego w rozbiciu na przeciwników i rodzaje obrażeń](screenshots/panel-breakdown.png) |
 | ![Najgłębszy poziom: jeden przeciwnik, po umiejętnościach i rodzajach obrażeń](screenshots/panel-deep.png) | ![Karta ze szczegółami otwarta obok panelu](screenshots/panel-tip.png) |
+| ![Półka z walkami, które są jeszcze zapisane](screenshots/panel-fights.png) | |
 
 Obrażenia otrzymane w walce dziesięciu na jednego.
 

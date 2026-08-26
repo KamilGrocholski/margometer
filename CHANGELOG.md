@@ -114,6 +114,15 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   i pasek podsumowania na dole rysowały się szersze od pasków postaci nad nimi,
   więc ta sama liczba wychodziła na nich dłuższa, niż powinna.
 
+- **Poprawka** — Wybór miejsca i liczby trzymanych walk nie przepada już po cichu.
+  Jeśli przeglądarka nie przyjmie takiego ustawienia, panel zostawia wszystko tak,
+  jak było, i napisze o tym. Wcześniej zaznaczał nowy wybór jako przyjęty, a po
+  wejściu do gry następnym razem walki potrafiły zniknąć z listy.
+
+- **Poprawka** — Rozbicie otwarte na skończonej walce zostaje otwarte, kiedy
+  zaczyna się nowa. Panel wracał na górę listy również komuś, kto oglądał walkę
+  sprzed godziny — a wiersze pod spodem i tak należały do tamtej walki.
+
 ## [0.8.1] — 2026-08-22
 
 - **Poprawka** — Procenty w nawiasach sumują się teraz do 100. Wcześniej każdy

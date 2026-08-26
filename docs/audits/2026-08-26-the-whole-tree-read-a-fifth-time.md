@@ -1,6 +1,6 @@
 # The whole tree, read a fifth time
 
-Status: open
+Status: closed
 Read at: 75096ad
 
 The seventh audit, and the fifth that reads the whole tree. The fourth read
@@ -142,7 +142,7 @@ No test drives a refusing settings store. `tests/userscript-entry.test.ts:430`
 tests the write landing and nothing tests it not landing.
 
 *Where:* `src/userscript-entry.ts:878`
-*Closes:* open
+*Closes:* guard `tests/userscript-entry.test.ts`
 
 ### F2 — A new fight closes the levels of an old fight somebody is reading
 
@@ -166,7 +166,7 @@ be. The reducer's own reason for existing is false in the one case the shelf
 created.
 
 *Where:* `src/userscript-entry.ts:1247`
-*Closes:* open
+*Closes:* guard `tests/game/engine-attachment.test.ts`
 
 ### F3 — At a limit of zero one rotation honours a pin and the other drops it
 
@@ -201,7 +201,7 @@ but its all-pinned return hands back a copy with `dropped` empty, so a caller
 reading identity is told something changed when nothing did.
 
 *Where:* `src/game/kept-fights.ts:280`
-*Closes:* open
+*Closes:* guard `tests/game/kept-fights.test.ts`
 
 ### F4 — One hanging mutant throws away the whole sweep, and it is the last one every time
 
@@ -252,7 +252,7 @@ came back clean even on the throwing path, so §7.5's rule about never restoring
 with `git checkout` was not tested by this.
 
 *Where:* `tools/mutation-sweep.ts:320`
-*Closes:* open
+*Closes:* guard `tests/tools/mutation-sweep.test.ts`
 
 ### F5 — The panel's delegated-event root is spelled twice, and only a comment holds the two together
 
@@ -279,7 +279,7 @@ a green guard.
 Nothing has drifted yet. The finding is that nothing would say so.
 
 *Where:* `src/ui/panel-element.ts:1043`
-*Closes:* open
+*Closes:* guard `tests/ui/panel-element.test.ts`
 
 ### F6 — A spec still in draft says the add-on writes nothing down
 
@@ -310,7 +310,7 @@ The `draft` status itself is right: the three commits the spec proposes are not
 written, and its own *What stays open* is honest.
 
 *Where:* `docs/specs/2026-08-26-the-game-says-the-fight-again.md:29`
-*Closes:* open
+*Closes:* commit
 
 ### F7 — The published preview keeps a stranger's demo fight in their browser
 
@@ -341,9 +341,9 @@ profile per shot (`:296`) for a reason already written down, so the pictures can
 never be of a panel carrying the last run's shelf.
 
 *Where:* `tools/preview-site.ts:70`
-*Closes:* open
+*Closes:* guard `tests/tools/preview-page.test.ts`
 
-### F8 — Four pictures of a panel that has moved fifteen commits, in both READMEs
+### F8 — Pictures of a panel that has moved fifteen commits, in both READMEs
 
 The second audit in a row to file this, which is §7.7's own trigger for opening
 one. `docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md` F1 was a set
@@ -383,7 +383,7 @@ last: it should be the round immediately before the tag, after F1, F2, F3 and F4
 have finished moving the panel.
 
 *Where:* `screenshots/taken-at.json:3`
-*Closes:* open
+*Closes:* guard `tests/tools/panel-screenshots.test.ts`
 
 ## Looked at and clean
 

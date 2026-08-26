@@ -205,7 +205,7 @@ from (§9.5).
 | `tools/preview-page.ts` | *What does the harness put in front of the panel?* The page as one string. Library, not a CLI. |
 | `tools/preview-server.ts` | *What does the panel look like right now?* `bun run preview`. The gate cannot see a panel; this can. |
 | `tools/preview-site.ts` | *What does it look like to somebody who installed nothing?* `bun run preview:site`. Nothing it writes is committed. |
-| `tools/panel-screenshots.ts` | *What does the panel look like, as pictures for a README?* `bun run screenshots`. Four, for the current release only. §9.8. |
+| `tools/panel-screenshots.ts` | *What does the panel look like, as pictures for a README?* `bun run screenshots`. One set, for the current release only. §9.8. |
 | `tools/changelog.ts` | *What does this release say for itself?* `notes <version>`; a version with no section refuses. |
 
 ---
@@ -592,7 +592,7 @@ tools/                   Never ships. §6.2 says what each answers.
   preview-page.ts            The harness page as one string, with its holes.
   preview-server.ts          That page in a browser, changing while you edit it.
   preview-site.ts            The same page written down, in Polish, for Pages.
-  panel-screenshots.ts       The panel photographed, four screens, one release.
+  panel-screenshots.ts       The panel photographed, screen by screen, one release.
   changelog.ts               One version's section, plus which file to click.
 
 tests/                     A test sits where its subject sits: `libs/`, `core/`,

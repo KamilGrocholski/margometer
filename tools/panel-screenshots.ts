@@ -82,7 +82,7 @@ export type PanelShot = {
 };
 
 /**
- * Damage taken, drilled to the bottom, plus the card.
+ * Damage taken, drilled to the bottom, plus the card — and the shelf beside them.
  *
  * The chain is deliberate: the ranking answers *who*, and the two levels under it
  * answer *what that figure is made of* — which is the thing prose cannot show and
@@ -92,12 +92,19 @@ export type PanelShot = {
  * window: it opens beside the panel, and `src/ui/panel-element.ts` keeps all
  * of it on screen, so too narrow a window moves it rather than clipping it and the
  * picture would be honest and useless.
+ *
+ * The shelf is not on that chain and is here for the opposite reason: it is the
+ * one screen a reader cannot guess at from the ranking. Every other picture shows
+ * a figure being taken apart, and this one shows that a fight survives the fight
+ * after it — which is the whole of what a reader would otherwise have to install
+ * the add-on to find out (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`).
  */
 export const PANEL_SHOTS: PanelShot[] = [
   { name: "taken", width: 292, height: 480 },
   { name: "breakdown", width: 292, height: 656 },
   { name: "deep", width: 292, height: 448 },
   { name: "tip", width: 560, height: 488 },
+  { name: "fights", width: 292, height: 400 },
 ];
 
 export function composeShotFileName(shot: PanelShot): string {
@@ -117,7 +124,7 @@ export const TAKEN_TAB_INDEX = composeDirectionTabs(composeDefaultState().metric
 /**
  * The classes the driver reaches through, spelled once.
  *
- * The panel names its own nodes and this file has to name three of them to click
+ * The panel names its own nodes and this file has to name some of them to click
  * them — the §9.3 case exactly, a name two files spell with nothing catching a
  * disagreement. Nothing here would fail loudly: a renamed class means
  * `querySelector` answers `null`, the marker draws, and the only cost is a set of
@@ -131,6 +138,7 @@ export const SHOT_CLASSES = {
   tab: "tab",
   sidesOf: "sides-of",
   tabs: "tabs",
+  titlebarFights: "titlebar-fights",
 } as const;
 
 /**
@@ -152,6 +160,12 @@ export const SHOT_CLASSES = {
  * three identical pictures of the ranking, one per drill level, and the only sign
  * was that all three files were the same size. The card is the exception and
  * genuinely wants `pointerover`.
+ *
+ * ⚠️ **And the title bar is the other exception, for the same reason turned
+ * round.** Its buttons are built once, outside every render
+ * (`src/ui/panel-element.ts`), so no payload can take one out from under a press
+ * — which is why they listen for `click` and why a `pointerdown` on the one that
+ * opens the shelf does nothing at all.
  *
  * ⚠️ **A shot that cannot reach its state must not come back looking like a
  * panel.** A missing row is the failure with no symptom: the click does nothing,
@@ -193,6 +207,10 @@ const SHOT_SCRIPT = `
     node.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
   }
 
+  function setClicked(node) {
+    node.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0 }));
+  }
+
   function setOpened(what) {
     var row = root.querySelector(".${SHOT_CLASSES.row}.${SHOT_CLASSES.drillable}");
     if (row === null) {
@@ -226,6 +244,14 @@ const SHOT_SCRIPT = `
       return;
     }
     hovered.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+  }
+  if (shot === "fights") {
+    var shelf = root.querySelector(".${SHOT_CLASSES.titlebarFights}");
+    if (shelf === null) {
+      setMarked("the title bar has no button onto the shelf of kept fights");
+      return;
+    }
+    setClicked(shelf);
   }
 })();
 `;
@@ -401,8 +427,8 @@ export function getFightByName(name: string | null): (typeof CAPTURED_FIGHTS)[nu
  * ⚠️ **The pictures are taken somewhere else and moved in at the end.** Removing
  * the directory first and shooting into it is the obvious order and it is wrong:
  * a browser that will not start — a wrong `--browser`, a machine with none —
- * leaves the repository with no screenshots at all and a README pointing at four
- * files that are gone. Paid for by the test that names a browser nothing can
+ * leaves the repository with no screenshots at all and a README pointing at files
+ * that are gone. Paid for by the test that names a browser nothing can
  * find, which deleted the committed set on its way to failing.
  *
  * The set is still replaced rather than merged. A file left over from a set that

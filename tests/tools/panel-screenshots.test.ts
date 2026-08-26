@@ -10,7 +10,7 @@
  *
  * What is left for the gate is the half that rots on its own. A set taken two
  * releases ago looks exactly like one taken this morning, and a selector renamed
- * in `src/ui/panel-element.ts` turns every future run into four pictures of a
+ * in `src/ui/panel-element.ts` turns every future run into a set of pictures of a
  * marker — both silent, and both caught below.
  */
 

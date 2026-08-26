@@ -1,12 +1,13 @@
 {
   "version": "0.8.1",
-  "commit": "bf3f4c8",
-  "fight": "2026-08-15-tempest-grupa-vs-hildur-4",
-  "takenAt": "2026-08-22T06:14:22.589Z",
+  "commit": "f2fb2ad",
+  "fight": "2026-08-26-luvia-grupa-vs-draugr",
+  "takenAt": "2026-08-26T10:41:57.436Z",
   "images": [
     "panel-taken.png",
     "panel-breakdown.png",
     "panel-deep.png",
-    "panel-tip.png"
+    "panel-tip.png",
+    "panel-fights.png"
   ]
 }
