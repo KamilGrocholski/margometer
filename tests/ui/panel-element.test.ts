@@ -465,13 +465,43 @@ describe("what reaches the screen", () => {
      * broken — it vanished the moment the pointer crossed onto a word.
      */
     const name = assertDefined(getByClass(container, "row-name")[0], "the name was drawn");
-    setEventOn(root, "pointerout", { target: row });
+    setEventOn(root, "pointerout", { target: row, relatedTarget: name });
     setEventOn(root, "pointerover", { target: name, clientY: 300 });
     expect(tip.properties["display"]).toBe("block");
 
     // Leaving the row for something that is not one takes it away.
-    setEventOn(root, "pointerout", { target: container });
+    setEventOn(root, "pointerout", { target: name, relatedTarget: container });
     expect(tip.properties["display"]).toBe("none");
+  });
+
+  /**
+   * ⚠️ **The way out of the panel is a `pointerout` that names a row**, and it is
+   * the case the test above cannot reach: every piece of a row carries the
+   * detail, so a rule reading the node being *left* holds the detail open over
+   * the game and lets go only when the reader hovers something else. It looked
+   * intermittent because a redraw clears the map — the detail closed during a
+   * fight and stayed on an idle panel (`TODO.md`, and the listener's own
+   * docblock).
+   *
+   * Both ways out, because they arrive differently: a node of the game's, which
+   * this fake stands in for by never appending what it built, and nothing at all,
+   * which is what a pointer leaving the window names.
+   */
+  test("the detail closes when the pointer leaves the panel from a row", () => {
+    for (const relatedTarget of [composeFakeDocument().createElement("div"), undefined]) {
+      const { document, root, container, details } = composeMountedPanel();
+      const view = composePanelView(composeReading(), composeDefaultState());
+      renderPanelInto(document, container, view, {}, false, details);
+      const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
+      const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
+
+      setEventOn(root, "pointerover", { target: row, clientY: 300 });
+      expect(tip.properties["display"]).toBe("block");
+
+      setEventOn(root, "pointerout", { target: row, relatedTarget });
+
+      expect(tip.properties["display"]).toBe("none");
+    }
   });
 
   /**

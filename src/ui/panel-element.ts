@@ -328,6 +328,18 @@ function composePixelText(value: number): string {
 export type PanelEvent = {
   target: unknown;
   /**
+   * What the pointer is arriving at, where `target` is what it is leaving.
+   *
+   * `unknown` for the reason `target` is: this file compares node identity and
+   * never reaches into a node it was handed by an event.
+   *
+   * Optional like the rest, and the one that is absent says something — a pointer
+   * leaving the window names nothing it went to, and neither does an event a
+   * browser composes without it. Both read as a node no map holds, which is the
+   * safe direction here: the detail closes.
+   */
+  relatedTarget?: unknown;
+  /**
    * Which button is down, where `0` is the primary one.
    *
    * Optional for the reason the coordinates are: an event that does not say is
@@ -1158,15 +1170,24 @@ function setPanelTip(
   });
 
   /**
-   * Leaving the panel takes it away; moving between rows replaces it on the way
-   * in, so nothing has to be undone between two rows.
+   * The detail belongs to whatever is under the pointer, so it goes the moment
+   * the pointer arrives somewhere that has none — the game underneath, the
+   * panel's own chrome, or nothing at all.
    *
-   * The node being left has to be **outside** every row for this to fire, which
-   * is why the whole row is registered: a `pointerout` naming a piece of the row
-   * the pointer is still inside would put the detail out from under the reader.
+   * ⚠️ **What decides is the node being entered, and asking about the node being
+   * left is the bug this replaces.** `pointerout` names what the pointer is
+   * leaving; every piece of a row is registered, so a pointer going from a row
+   * straight out of the panel named a node the map holds and the detail was left
+   * standing over the game. It looked intermittent because a redraw clears the
+   * map — during a fight the hovered node stops being a key and the detail closes
+   * correctly, and on an idle panel it stays.
+   *
+   * Moving between two pieces of one row is answered by the same question rather
+   * than in spite of it: the whole row is registered, so the piece being entered
+   * carries the same detail and nothing is taken out from under the reader.
    */
   root.addEventListener("pointerout", (event) => {
-    if (!details.has(event.target)) setTipHidden(tip, true);
+    if (!details.has(event.relatedTarget)) setTipHidden(tip, true);
   });
 }
 
