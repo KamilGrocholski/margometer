@@ -103,7 +103,9 @@ The claim to check offline is narrower than the one above and is the one the pan
 depends on: **does a fight arriving as one restated payload read the same as the
 same fight arriving call by call?**
 
-Method, over the recordings held on 2026-08-26. For each, a cut is taken halfway
+Method, over the recordings held when this was written — every one but
+`tests/captured-fights/2026-08-26-luvia-grupa-vs-draugr.json`, which arrived later
+the same day and is what the next section is about. For each, a cut is taken halfway
 through — a reload happens mid-fight, not at the end — and two runs are compared:
 
 - **live**: every call up to the cut through `getPayloadReading` and
@@ -129,9 +131,11 @@ only figures that move with it are the ones sized off it, which is healing state
 as a share of a side (§9.6's sizing clause). Damage is untouched, because damage
 is stated as a figure and never sized.
 
-⚠️ **Where the model is not the game.** No recording holds a real post-reload
-payload, so the health the restated payload states is taken from the recorder's
-own snapshots. That stand-in is exact rather than assumed: over the recordings
+⚠️ **Where the model was not the game.** When this measurement was taken no
+recording held a real post-reload payload, so the health the restated payload
+states is taken from the recorder's own snapshots. One does now — see below — and
+the model is not re-run against it: a model and the thing it models are worth
+comparing, and the comparison is what the section below is. That stand-in is exact rather than assumed: over the recordings
 held on 2026-08-26, every one of the 4 470 statements where a snapshot and the
 payload's own `w` both name a combatant's health agrees on both the current figure
 and the maximum. What it cannot stand in for is a recording that carries no
@@ -144,7 +148,7 @@ substitution above replaces nothing, changes no health, and reports a fight that
 agrees with itself — which is what the first run of this measurement did, in
 silence. §7.5: read back the result of a scripted edit.
 
-## What is still to be measured, and it needs the game
+## What only the game could answer, and how it was asked
 
 One reload, with the built userscript installed:
 
@@ -157,8 +161,37 @@ capture button afterwards puts the payload on disk either way, and
 `tools/fight-dump-parser.ts` reads it — a recording whose call 0 carries hundreds
 of messages is the restatement, in hand.
 
-Per §9.2 and the maintainer's decision on 2026-08-26, that recording is read
-locally and does not enter `tests/captured-fights/`.
+### What came back
+
+Done on 2026-08-26, world `luvia`, build `53XkBRxF`, Firefox 154: a fight of ten
+against a level-60 Draugr, reloaded mid-battle. The recording is
+`tests/captured-fights/2026-08-26-luvia-grupa-vs-draugr.json`, and the maintainer
+reversed the sentence that stood here — that such a recording would be read
+locally and stay out of `tests/captured-fights/` — on the same day, so it is
+material like the rest (§9.2, §4).
+
+What it settles:
+
+- **The restatement is real and it is whole.** Call 0 carries `init`, the roster,
+  `myteam` and 212 messages beginning at the opponent's full health, while
+  `ladunek.w` states the health as it stood at the reload. The fight's remaining
+  275 messages arrive in the call that ends it.
+- **The race was won here.** The payload came through our wrap, so `isFightStart`
+  is true, the session rebuilt from the whole log, and the panel had no
+  `Panel wpiął się w trakcie tej walki` to draw. One observation is not a rule
+  about every reload — what it refutes is the assumption that the window is
+  always lost.
+- **The reading closes.** `tools/fight-report.ts` reads it with no unreadable
+  message and no unaccounted healing, and the health witness judges 411
+  comparisons in it.
+
+What it does not settle, and this is the one thing the model did not predict:
+**the restated payload and the state beside it can disagree.** For one combatant
+of the eleven the log runs one `heal_target=222` further than `ladunek.w` does.
+The model above substituted a health under `w` that agreed with the log by
+construction, so it could not have shown this — and it is what the health witness
+now measures rather than skips
+(`tests/core/health-witness.test.ts`, `docs/captured-fights.md`).
 
 ## What changes if the race is lost
 

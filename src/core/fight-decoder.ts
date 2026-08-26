@@ -529,9 +529,12 @@ const CUSTOM_SKILL_NAME_KEY = "tcustom";
 /**
  * What an announcement declares about the skill it announces.
  *
- * Every one of these rides a message carrying `tspell` and none rides a blow —
- * measured across every capture, and the reason they are read here rather than
- * anywhere near a figure. Each states an **input**: a cost, a grant, a share the
+ * Every one of these rides an announcement — `tspell` or `tcustom`, the two
+ * spellings of one — and none rides a blow, measured across every capture, and
+ * that is the reason they are read here rather than anywhere near a figure. The
+ * clause named `tspell` alone until `2026-08-26-luvia-grupa-vs-draugr` arrived
+ * with `aura-ac_per` and `aura-resall` on a `tcustom` message
+ * (`tests/core/skill-announcement-rule.test.ts`). Each states an **input**: a cost, a grant, a share the
  * skill will apply. What it comes to arrives later as ordinary damage, already
  * computed, so nothing downstream may add one to a statistic
  * (`docs/protocol-keys.md`, and `battle-event.ts` on `DeclaredEffect`).
@@ -563,6 +566,12 @@ const SKILL_DECLARATION_KEYS = [
   // A share the aura will add to melee damage. Same argument as the rest: what
   // it comes to arrives later as ordinary damage, already applied.
   "aura-adddmg2_per-meele",
+  // The force of a critical hit, raised for the whole party — physical by the
+  // first and magical by the second. Points added to a multiplier, not damage:
+  // what they come to arrives inside the damage figures of later blows, already
+  // multiplied, which is the same argument the auras above are read under.
+  "critval-allies",
+  "critmval-allies",
 ];
 
 /**

@@ -25,6 +25,9 @@ import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 // Restated rather than imported: this file asserts what the decoder reads, and a
 // test that reads the decoder's own list agrees with it by construction (§9.3).
 const SKILL_NAME_KEY = "tspell";
+/** The other spelling of the same announcement — a name the game did not take
+ * from its skill table (`docs/protocol-keys.md`). */
+const CUSTOM_NAME_KEY = "tcustom";
 const COMBO_LIMIT_KEY = "combo-max";
 
 
@@ -68,6 +71,8 @@ const DECLARATION_KEYS = [
   "mana",
   "energy",
   "shout",
+  "critval-allies",
+  "critmval-allies",
 ];
 
 describe("what a skill announcement carries", () => {
@@ -144,7 +149,7 @@ describe("`combo-max` on that announcement", () => {
 });
 
 /**
- * The eleven keys an announcement states about the skill itself.
+ * The keys an announcement states about the skill itself.
  *
  * They are read — `SkillUsedEvent.declared` — and they are still not figures.
  * Both halves are held here, because the first without the second is how a
@@ -166,15 +171,36 @@ describe("what an announcement declares about its skill", () => {
    * Every occurrence rides an announcement, which is the measurement the whole
    * reading rests on: a declaration on a blow would be a declaration next to a
    * figure, and that is the join the protocol never states.
+   *
+   * ⚠️ **An announcement is named by either key, and this asserted `tspell`
+   * alone until it was refuted.** `2026-08-26-luvia-grupa-vs-draugr` carries two
+   * `tcustom` messages of exactly the shape the rest have — one name, and beside
+   * it what the named thing grants — the first with `aura-ac_per` and
+   * `aura-resall`, the second with `critval-allies` and `critmval-allies`. The
+   * claim that survives is about the blow, which is the half that matters: none
+   * of these ever rides one.
    */
-  test("every one of them arrived on a skill announcement", () => {
+  test("every one of them arrived on an announcement", () => {
     const onAnnouncements = MESSAGES.filter(({ keys }) =>
       keys.some((key) => DECLARATION_KEYS.includes(key)),
     );
     expect(onAnnouncements.length).toBeGreaterThan(0);
     for (const message of onAnnouncements) {
-      expect(message.keys, message.keys.join(";")).toContain(SKILL_NAME_KEY);
+      const named = message.keys.includes(SKILL_NAME_KEY) || message.keys.includes(CUSTOM_NAME_KEY);
+      expect(named, message.keys.join(";")).toBe(true);
     }
+  });
+
+  /**
+   * And the half that did not need widening, stated on its own so the widening
+   * above cannot be read as a retreat: what the declarations never share a
+   * message with is a figure.
+   */
+  test("and none of them arrived on a blow", () => {
+    const onBlows = MESSAGES.filter(
+      ({ keys }) => keys.some((key) => DECLARATION_KEYS.includes(key)) && keys.some(isDamageKey),
+    );
+    expect(onBlows).toEqual([]);
   });
 
   // The cost the game states is a fall, and it states it as one.

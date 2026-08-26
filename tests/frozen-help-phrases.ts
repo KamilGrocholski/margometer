@@ -12,7 +12,7 @@
 export const FROZEN_HELP_PHRASES = {
   article: "372",
   /** When the dump these counts were taken from was fetched, not when it was read. */
-  fetchedAt: "2026-08-25T14:38:34.686Z",
+  fetchedAt: "2026-08-26T09:52:04.996Z",
   counts: {
     "( fire )": 2,
     "( heal )": 3,
@@ -43,10 +43,14 @@ export const FROZEN_HELP_PHRASES = {
     "combo-max": 6,
     "contra": 7,
     "crit": 98,
+    "critmval": 14,
+    "critmval-allies": 2,
     "critpoison_per": 8,
     "critred": 1,
     "critsa": 7,
     "critslow_per": 9,
+    "critval": 16,
+    "critval-allies": 2,
     "critwound": 2,
     "crush": 5,
     "curse": 5,

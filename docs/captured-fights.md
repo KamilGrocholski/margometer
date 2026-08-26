@@ -31,7 +31,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `1 vs 2` | `1` |
 | `1 vs 3` | `1` |
 | `9 vs 1` | `1` |
-| `10 vs 1` | `19` |
+| `10 vs 1` | `20` |
 
 ## The fights
 
@@ -62,6 +62,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` | `10 vs 1` | `ours won` | `10 players · b 1, h 1, m 1, p 1, t 3, w 3 · levels 36–52` | `1 NPC · b 1 · level 36` | `43092` |
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr-auto.json` | `10 vs 1` | `theirs won` | `10 players · h 3, m 1, p 2, t 3, w 1 · levels 48–85` | `1 NPC · w 1 · level 60` | `184680` |
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json` | `9 vs 1` | `theirs won` | `9 players · m 1, p 3, t 5 · levels 48–83` | `1 NPC · w 1 · level 60` | `184680` |
+| `tests/captured-fights/2026-08-26-luvia-grupa-vs-draugr.json` | `10 vs 1` | `ours won` | `10 players · h 2, m 1, t 4, w 3 · levels 57–85` | `1 NPC · w 1 · level 60` | `184680` |
 
 ## The recordings
 
@@ -92,6 +93,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` | `luvia` | `none stated` | `4` | `308` |
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr-auto.json` | `luvia` | `none stated` | `3` | `462` |
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json` | `luvia` | `none stated` | `38` | `619` |
+| `tests/captured-fights/2026-08-26-luvia-grupa-vs-draugr.json` | `luvia` | `53XkBRxF` | `3` | `487` |
 
 ## What the material does not hold
 
@@ -105,8 +107,8 @@ something rather than a defect.
   stood on the other one. A wide enemy side is untested on real protocol.
 - **No drawn fight.** The panel draws one, and every fight it draws it from is
   hand-built (`tests/ui/panel-view.test.ts`).
-- **Three worlds, and one of them once.** Everything but the duel and the three
-  recordings of 2026-08-25 comes from `tempest`; the duel is the one that happened
+- **Three worlds, and one of them once.** Everything but the duel and the four
+  recordings from `luvia` comes from `tempest`; the duel is the one that happened
   once.
 
 A loss **is** held, in more than one recording — which is what the outcome column
@@ -184,8 +186,33 @@ is used as evidence.
 
   It is also where a tick's missing figure is worst: two combatants apply the
   bleed `+legbon_anguish` announces to the same victim, and 25 `anguish` ticks
-  come back off it naming nobody. And it is the only recording carrying `tcustom`,
-  the second spelling of an announcement (`docs/protocol-keys.md`).
+  come back off it naming nobody. And it is where `tcustom`, the second spelling
+  of an announcement, arrived — five of the seven occurrences the material holds
+  (`docs/protocol-keys.md`).
+
+- `tests/captured-fights/2026-08-26-luvia-grupa-vs-draugr.json` — **the only
+  recording of a fight joined in the middle**, and it is the game that restates
+  it: the player reloaded the page mid-battle, so the opening call carries `init`
+  together with the whole log from the fight's start, while `ladunek.w` states the
+  health as it stands at the reload. 212 of its 487 messages arrive in that call,
+  the rest in the one that ends the fight. It is also the first recording to carry
+  a build again after the three of 2026-08-25 that name none — `53XkBRxF`, read
+  off a bundle filename that is not a number (`src/core/game-build.ts`).
+
+  ⚠️ **It is the one recording where the game contradicts itself about a
+  combatant's health.** For ten of the eleven, the last percentage the opening
+  call states is the percentage the snapshot after it reports. For the eleventh it
+  is 53.61% against 52.21% — exactly the `heal_target=222` their own last
+  announcement carries, so the log runs one heal further than the state the
+  reload's `w` states. Nothing here decides which of the two is right; what the
+  health witness does about it, and why it measures the gap rather than skipping
+  it, is written where the skip would have been
+  (`tests/core/health-witness.test.ts`).
+
+  It is also where the declarations stopped riding `tspell` only: both its
+  `tcustom` messages state effects — `aura-ac_per` with `aura-resall`, and
+  `critval-allies` with `critmval-allies` — and the second pair is what the
+  recording brought in that no other holds (`docs/protocol-keys.md`).
 
 - `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`,
   `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-3.json` and
