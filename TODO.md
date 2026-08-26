@@ -19,9 +19,13 @@
 ## In Progress
 
 ## Up Next
-- [ ] Bars "Nieznany sprawca", and "Total" are too wide
+- [ ] Prevent loosing data after a refresh of the game/page
+- [ ] Create options for: saving selected fights; keeping the last N fights; use localStorage/sessionStorage/memory
+- [ ] Audit before v0.9.0 release
 
 ## Done
+- [x] Fix a problem with the tip; sometimes it does not close itself, when the cursor moves out of the main panel
+- [x] Bars "Nieznany sprawca", and "Total" are too wide
 - [x] Add warnings on a row for unread messages, and invalid calculations.
 - [x] `tools/fight-report.ts` does not print the unaccounted-healing warning - it prints `unreadable messages` and stops, so a 
       reading the panel shows is invisible to the report
