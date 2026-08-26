@@ -131,7 +131,8 @@ Properties: `align-items` · `align-self` · `all` · `background` · `border` �
 `width` · `z-index`
 
 Pairs: `-webkit-user-select: none` · `align-items: baseline` ·
-`align-items: center` · `align-self: center` · `all: initial` · `background: transparent` ·
+`align-items: center` · `align-self: center` · `align-self: stretch` ·
+`all: initial` · `background: transparent` ·
 `border: solid` · `border-bottom: none` ·
 `border-top: dashed` · `border-top: solid` · `box-shadow: inset` ·
 `box-sizing: border-box` ·

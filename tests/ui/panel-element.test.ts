@@ -668,7 +668,7 @@ describe("what reaches the screen", () => {
    */
   test("the figure nobody can be charged with is pinned outside the list", () => {
     const { panel } = renderInto();
-    const pinned = getByClass(panel, "pinned");
+    const pinned = getByClass(panel, "pinned-region");
     const list = assertDefined(getByClass(panel, "list")[0], "the list was drawn");
 
     expect(pinned.length).toBe(1);
@@ -1411,7 +1411,7 @@ describe("what the panel never does", () => {
    * on. Checked as text, because the gate cannot see a panel (§8).
    */
   test("the pinned row states no geometry of its own, so its bar fills it", () => {
-    const rules = getStyleRules(composePanelStyleText()).filter((rule) => rule.selector.startsWith(".pinned"));
+    const rules = getStyleRules(composePanelStyleText()).filter((rule) => rule.selector.startsWith(".pinned-region"));
 
     expect(rules.length).toBeGreaterThan(0);
     for (const rule of rules) {
@@ -1425,7 +1425,7 @@ describe("what the panel never does", () => {
     // The separation the row gave up, on the block that took it over: the rule
     // is the block's top edge, and the air under it is the block's padding.
     const block = assertDefined(
-      rules.find((rule) => rule.selector === ".pinned"),
+      rules.find((rule) => rule.selector === ".pinned-region"),
       "the pinned block has a rule of its own",
     );
 
@@ -1449,7 +1449,7 @@ describe("what the panel never does", () => {
    */
   test("every container that draws a bar is inset the same", () => {
     const rules = getStyleRules(composePanelStyleText());
-    const drawn = [".list", ".pinned", ".sides-region"].map((selector) =>
+    const drawn = [".list", ".pinned-region", ".sides-region"].map((selector) =>
       assertDefined(
         rules.find((rule) => rule.selector === selector),
         `${selector} has a rule of its own`,

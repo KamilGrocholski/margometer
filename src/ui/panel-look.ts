@@ -667,7 +667,7 @@ export function composePanelStyleText(): string {
  * equal again (\`docs/browser-support.md\`). Held by
  * \`tests/ui/panel-element.test.ts\`.
  */
-.pinned {
+.pinned-region {
   margin: ${t.spaceSmall} ${t.spaceRegionAcross} 0;
   padding: ${t.spaceSmall} 0 ${t.spaceRegionAcross};
   border-top: 1px dashed ${t.border};
@@ -675,11 +675,11 @@ export function composePanelStyleText(): string {
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
-.pinned .bar {
+.pinned-region .bar {
   opacity: 0.4;
   mask-image: repeating-linear-gradient(-45deg, ${t.maskInk} 0 4px, transparent 4px 8px);
 }
-.pinned .bar-cap { opacity: 0.7; }
+.pinned-region .bar-cap { opacity: 0.7; }
 .header { display: flex; justify-content: space-between; align-items: baseline; padding: ${t.spaceRegion}; padding-bottom: 0; }
 .header-outcome { color: ${t.textQuiet}; text-transform: uppercase; font-size: 10px; }
 .empty { color: ${t.textQuiet}; padding: ${t.space} ${t.spaceHalf}; }
@@ -696,13 +696,40 @@ export function composePanelStyleText(): string {
    furniture — the row, the list and the tab strips — so only what has no
    counterpart there is here. */
 .tabs-label { color: ${t.textQuiet}; align-self: center; padding-right: ${t.spaceSmall}; }
+/*
+ * ⚠️ **A box of its own size, because the glyph is not a fixed size.** The mark
+ * is ★ when pinned and ☆ when not, and \`system-ui\` is whatever the platform
+ * says it is: the two resolve through one fallback on some and two on others, so
+ * an advance width that matches here matches nowhere by promise. Measured in
+ * Firefox on 2026-08-26, both came out at 13.87px — and the row still walked
+ * sideways under the hand that had just pressed it, on the machine the report
+ * came from. A box sized here is the only version of this that does not depend on
+ * a font: whatever the glyph does, it does it inside.
+ *
+ * Square, and the row's own height rather than a number of its own, so it is a
+ * target rather than a mark somebody has to aim at — it was 14.85px of an
+ * 18px row and about ten wide, a third of the area it has now. \`align-self\` is
+ * what buys the height: every other item on a row is centred inside its own line
+ * box, which is what made this the shortest thing on it. That the area comes off
+ * the left edge of the row is deliberate: those pixels used to open the fight,
+ * and the reader reaching for a pin is not reaching for the fight.
+ */
 .row-pin {
   position: relative;
   cursor: pointer;
   color: ${t.textQuiet};
-  padding-right: ${t.spaceSmall};
+  width: ${t.rowHeight};
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: ${t.spaceSmall};
 }
 .row-pin:hover { color: ${t.text}; }
+/* ⚠️ **Colour, and nothing that takes up room.** The state is drawn by the glyph
+   and said again by the ink; a rule here that moved an edge would put the box
+   back to being two sizes, which is the thing above exists to stop. */
 .row-pin.pinned { color: ${t.text}; }
 /* Which fight is on screen. A left edge and not a colour alone (§9.7): the
    outcome word beside it is what the colour would otherwise be carrying. */

@@ -24,6 +24,7 @@ import { describe, expect, test } from "bun:test";
 import { AssertionFailure } from "@/libs/assert.ts";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 import {
+  composePanelStyleText,
   getContrastRatio,
   getProfessionColour,
   getProfessionInk,
@@ -106,5 +107,84 @@ describe("choosing the ink for a badge", () => {
     for (const profession of [...Object.keys(PROFESSION_COLOURS), null, "no such profession"]) {
       expect(() => getProfessionInk(getProfessionColour(profession)), String(profession)).not.toThrow();
     }
+  });
+});
+
+/**
+ * The pin's box, held apart from the glyph inside it.
+ *
+ * ⚠️ **The bug this exists for is a row that moves when you press it.** The mark
+ * is ★ pinned and ☆ not, and how wide either comes out is the platform's answer
+ * rather than ours — `system-ui` is a different font on every one of them. So the
+ * box states its own size and the pinned rule is allowed to change ink and
+ * nothing else. Neither half is visible to a fake document, which has no layout
+ * at all; what a machine can hold is the stylesheet, and this holds it.
+ */
+describe("the pin on a kept fight's row", () => {
+  /** One rule's declarations, by its selector, off the one string the panel styles with. */
+  function getDeclarations(selector: string): string[] {
+    const rule = new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`).exec(composePanelStyleText());
+    expect(rule, selector).not.toBeNull();
+    return (rule?.[1] ?? "")
+      .split(";")
+      .map((one) => one.trim())
+      .filter((one) => one.length > 0);
+  }
+
+  test("states a size of its own rather than taking the glyph's", () => {
+    const declarations = getDeclarations(".row-pin");
+    expect(declarations).toContain(`width: ${PANEL_TOKENS.rowHeight}`);
+    expect(declarations).toContain("flex: none");
+    expect(declarations).toContain("align-self: stretch");
+  });
+
+  test("says it is pinned in ink, and moves no edge doing it", () => {
+    expect(getDeclarations(".row-pin.pinned")).toEqual([`color: ${PANEL_TOKENS.text}`]);
+  });
+});
+
+/**
+ * ⚠️ **What the rule above could not see, and what actually moved the row.**
+ *
+ * The pin's state class was `pinned`, and so was the class on the block a pinned
+ * row stands in under the ranking. Two constructs, one word: `.row-pin.pinned`
+ * declared a colour and nothing else, and the pin still jumped seven pixels right
+ * and lost four of its height the moment it was pressed, because `.pinned`
+ * carried `margin: 4px 7px 0` and `padding: 4px 0 7px` for somebody else. Measured
+ * in Firefox on 2026-08-26: `left=604 w=18 h=18` unpinned, `left=611 w=18 h=14`
+ * pinned, on a row that never moved.
+ *
+ * Neither a reader of the stylesheet nor `tests/class-names.ts` could see it —
+ * that one asks whether every class styled is assigned and every class assigned
+ * is styled, and both were, twice over. What tells the two apart is the *shape*
+ * of the selector: a word that modifies something (`.row.chosen`, `.tab.selected`)
+ * is a state, and a word that stands alone (`.list`, `.sides-region`) is a thing.
+ * A word doing both is one construct silently inheriting another's box.
+ *
+ * The region was renamed rather than the state, because `sides-region` sits
+ * directly beside it and was already spelling the convention.
+ */
+describe("a word the stylesheet uses for a state", () => {
+  test("is never also a thing with a box of its own", () => {
+    const style = composePanelStyleText();
+    const lone = new Set<string>();
+    const modifiers = new Map<string, string>();
+
+    for (const [, selector] of style.matchAll(/^([.:][^\n{]*?)\s*\{/gm)) {
+      for (const one of (selector ?? "").split(",")) {
+        for (const part of one.trim().split(/\s+/)) {
+          const classes = [...part.matchAll(/\.([a-zA-Z0-9_-]+)/g)].map(([, name]) => name ?? "");
+          if (classes.length === 1) lone.add(classes[0] ?? "");
+          // The tail is the modifier: `.row.chosen` styles a row that is chosen.
+          if (classes.length > 1) modifiers.set(classes[classes.length - 1] ?? "", part);
+        }
+      }
+    }
+
+    // Both halves are worth stating: a run that found no compound selector at all
+    // would pass this saying nothing, which is the shape of a guard that has
+    // stopped guarding (§7.5).
+    expect(modifiers.size).toBeGreaterThan(1);
+    expect([...modifiers].filter(([name]) => lone.has(name))).toEqual([]);
   });
 });

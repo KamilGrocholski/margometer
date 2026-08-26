@@ -917,7 +917,13 @@ export function renderPanel(
   for (const pinned of view.pinnedRows) {
     renderRegionInto(document, panel, handlers, `wiersz ${pinned.key}`, () => {
       const block = document.createElement("div");
-      block.className = "pinned";
+      // ⚠️ **`-region`, and the suffix is load-bearing.** This is the block a
+      // pinned row stands in; `pinned` on its own is the shelf's pin saying it is
+      // set. While they were one word the shelf's pin picked up this rule's
+      // `margin: 4px 7px 0` and moved seven pixels sideways the moment it was
+      // pressed — with `.row-pin.pinned` declaring nothing but a colour. The
+      // neighbour below is `sides-region` for the same reason.
+      block.className = "pinned-region";
       block.append(renderRow(document, pinned, rowsByNode, details));
       return block;
     });
