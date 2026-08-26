@@ -34,7 +34,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
-## [Niewydane]
+## [0.9.0] — 2026-08-26
 
 - **Nowość** — Skończone walki zostają. Przycisk `☰` na belce otwiera listę
   ostatnich dwudziestu walk: ta, która trwa, i te, które już się skończyły — z
@@ -100,9 +100,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   z tego samego ciosu nie trafiło do żadnej sumy.
 
 - **Poprawka** — Kilka zdarzeń, których panel nie rozumiał, jest już czytanych:
-  umiejętności nazwane przez grę po swojemu, zdejmowanie efektów z sojuszników
-  i odnowiona absorpcja. Każde z nich stawiało wcześniej ostrzeżenie, że liczby
-  mogą być zaniżone, choć żadne z nich niczego nie zaniżało.
+  umiejętności nazwane przez grę po swojemu, zdejmowanie efektów z sojuszników,
+  drużynowe wzmocnienia ciosów krytycznych i odnowiona absorpcja. Każde z nich
+  stawiało wcześniej ostrzeżenie, że liczby mogą być zaniżone, choć żadne z nich
+  niczego nie zaniżało.
 
 - **Poprawka** — Liczebniki w zdaniach panelu odmieniają się poprawnie:
   „3 zdarzenia" zamiast „3 zdarzeń".
