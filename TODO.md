@@ -17,13 +17,16 @@
 
 
 ## In Progress
-
-## Up Next
-- [ ] Prevent loosing data after a refresh of the game/page
-- [ ] Create options for: saving selected fights; keeping the last N fights; use localStorage/sessionStorage/memory
 - [ ] Audit before v0.9.0 release
 
+## Up Next
+- [ ] Make saved fights easier to click - right now I have to click very precisely, which is too difficult (likely a bug)
+
 ## Done
+- [x] Persist the window's minimized state
+- [x] Add captured fight with "no meaning yet for critval-allies, critmval-allies" from 2026-08-26 luvia lvl 60 event
+- [x] Create options for: saving selected fights; keeping the last N fights; use localStorage/sessionStorage/memory
+- [x] Prevent loosing data during a fight after a refresh of the game/page
 - [x] Fix a problem with the tip; sometimes it does not close itself, when the cursor moves out of the main panel
 - [x] Bars "Nieznany sprawca", and "Total" are too wide
 - [x] Add warnings on a row for unread messages, and invalid calculations.
@@ -37,11 +40,10 @@
 - [x] Fix understated healing in Hildur fights - one member was refused an entry health, so every team heal cast in the fight was counted as unknown
 
 ## Later
+- [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
+- [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
 - [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
 - [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
-- [ ] Install the current build before the next capture session - the two 2026-08-23 recordings carry no `dodatek`/`przegladarka`
-- [ ] Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
-- [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
 - [ ] Add a `Colossus`/`Titan` helper (based on MargoMeter) that shows:
       - which characters are not casting their abilities at all (presence check)
       - which characters are casting abilities incorrectly (correctness check)
