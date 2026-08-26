@@ -28,10 +28,12 @@ import {
   type PanelPlacement,
   type PanelScroll,
   type PanelTipBox,
+  renderFightsInto,
   renderPanel,
   renderPanelInto,
   renderWaitingInto,
   setPanelRoot,
+  type PanelFightsHandlers,
 } from "@/src/ui/panel-element.ts";
 import {
   composeColourOver,
@@ -53,9 +55,15 @@ import type { PanelReading } from "@/src/ui/panel-reading.ts";
 import {
   composeDefaultState,
   type PanelDetailLine,
+  type PanelKeptFight,
   type PanelState,
 } from "@/src/ui/panel-screen.ts";
-import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
+import {
+  composeFightsView,
+  composePanelView,
+  PANEL_WAITING,
+  type PanelFightsReading,
+} from "@/src/ui/panel-view.ts";
 
 type FakeListener = { type: string; listener: (event: PanelEvent) => void };
 
@@ -1927,4 +1935,154 @@ test("the detail is drawn as the box its placement measures", () => {
   expect(rule).toContain("box-sizing: border-box");
   expect(rule).toContain(`width: ${PANEL_PIXELS.tipWidth}px`);
   expect(rule).toContain(`max-height: calc(100vh - ${PANEL_PIXELS.space}px - ${PANEL_PIXELS.space}px)`);
+});
+
+/**
+ * The shelf of kept fights, drawn.
+ *
+ * It borrows the panel's own furniture, so most of what is checked here is what
+ * it does **not** do: no pin on the fight that is still running, no press that
+ * means two things at once, and nothing lost when one region throws.
+ */
+describe("the shelf of kept fights", () => {
+  const READING: PanelFightsReading = {
+    storage: "local",
+    keepLimit: 5,
+    hasStoreRefused: false,
+    isEverySlotPinned: false,
+  };
+
+  function composeShelfFight(over: Partial<PanelKeptFight> = {}): PanelKeptFight {
+    return {
+      id: "one",
+      isLive: false,
+      isPinnable: true,
+      isPinned: false,
+      isSelected: false,
+      at: { hour: 21, minute: 4 },
+      sideCounts: [4, 4],
+      outcome: "won",
+      ...over,
+    };
+  }
+
+  function renderShelf(
+    fights: PanelKeptFight[],
+    handlers: PanelFightsHandlers = {},
+    reading: PanelFightsReading = READING,
+  ) {
+    const document = composeFakeDocument();
+    const container = document.createElement("div") as FakeNode;
+    renderFightsInto(document, container, composeFightsView(fights, reading), handlers);
+    // The listeners are on the panel the render built, not on the box it was put
+    // in — which is the same shape `renderPanelInto` has.
+    return { document, container, panel: container.children[0]! };
+  }
+
+  test("draws a row for every fight, with the words a reader reads", () => {
+    const { container } = renderShelf([composeShelfFight(), composeShelfFight({ id: "two" })]);
+    const rows = getByClass(container, "row");
+    expect(rows).toHaveLength(2);
+    const text = getEveryNode(container)
+      .map((node) => node.textContent)
+      .join(" ");
+    expect(text).toContain("Walki");
+    expect(text).toContain("21:04");
+    expect(text).toContain("4×4");
+    expect(text).toContain("wygrana");
+  });
+
+  /** §9.6: a control that is drawn and does nothing is worse than one that is absent. */
+  test("draws no pin on the fight that is still running", () => {
+    const { container } = renderShelf([
+      composeShelfFight({ id: "live", isLive: true, isPinnable: false, at: null, outcome: null }),
+      composeShelfFight(),
+    ]);
+    expect(getByClass(container, "row-pin")).toHaveLength(1);
+  });
+
+  test("marks which fight is on screen", () => {
+    const { container } = renderShelf([composeShelfFight({ isSelected: true })]);
+    expect(getByClass(container, "chosen")).toHaveLength(1);
+  });
+
+  /**
+   * ⚠️ The press lands on the innermost node, so the pin has to be read before the
+   * row. Without it, pinning a fight also opens it — and the reader is suddenly
+   * reading a fight they only meant to keep.
+   */
+  test("pinning a fight does not also open it", () => {
+    const chosen: string[] = [];
+    const pinned: string[] = [];
+    const { container, panel } = renderShelf([composeShelfFight()], {
+      onFightChosen: (id) => void chosen.push(id),
+      onPinToggled: (id) => void pinned.push(id),
+    });
+    setPressOn(panel, getByClass(container, "row-pin")[0]!);
+    expect(pinned).toEqual(["one"]);
+    expect(chosen).toEqual([]);
+  });
+
+  test("pressing a row opens that fight", () => {
+    const chosen: string[] = [];
+    const { container, panel } = renderShelf([composeShelfFight({ id: "two" })], {
+      onFightChosen: (id) => void chosen.push(id),
+    });
+    setPressOn(panel, getByClass(container, "row")[0]!);
+    expect(chosen).toEqual(["two"]);
+  });
+
+  test("the two strips report the choice they carry", () => {
+    const storage: string[] = [];
+    const limits: number[] = [];
+    const { container, panel } = renderShelf([], {
+      onStorageChosen: (choice) => void storage.push(choice),
+      onKeepLimitChosen: (limit) => void limits.push(limit),
+    });
+    setPressOn(panel, getTabByLabel(container, "tylko teraz"));
+    setPressOn(panel, getTabByLabel(container, "10"));
+    expect(storage).toEqual(["memory"]);
+    expect(limits).toEqual([10]);
+  });
+
+  test("the way back works from the crumb and from the right button", () => {
+    let back = 0;
+    const { container, panel } = renderShelf([composeShelfFight()], { onBack: () => (back += 1) });
+    setPressOn(panel, getByClass(container, "crumb-back")[0]!);
+    setEventOn(panel, "contextmenu", { target: panel, preventDefault: () => {} });
+    expect(back).toBe(2);
+  });
+
+  /** The right button is the only gesture the shelf shares with the ranking. */
+  test("a press that is not the primary button does nothing", () => {
+    const chosen: string[] = [];
+    const { container, panel } = renderShelf([composeShelfFight()], {
+      onFightChosen: (id) => void chosen.push(id),
+    });
+    setPressOn(panel, getByClass(container, "row")[0]!, 2);
+    expect(chosen).toEqual([]);
+  });
+
+  test("a region that throws is replaced by its own size and nothing else", () => {
+    const failures: unknown[] = [];
+    const document = composeFakeDocument();
+    const container = document.createElement("div") as FakeNode;
+    renderFightsInto(
+      document,
+      container,
+      { ...composeFightsView([composeShelfFight()], READING), rows: null as never },
+      { onSectionFailure: (error) => void failures.push(error) },
+    );
+    expect(failures).toHaveLength(1);
+    // Everything above the list still drew: the crumb and both control strips.
+    expect(getByClass(container, "crumb")).toHaveLength(1);
+    expect(getByClass(container, "tabs")).toHaveLength(2);
+  });
+
+  test("a collapsed panel draws nothing at all", () => {
+    const document = composeFakeDocument();
+    const container = document.createElement("div") as FakeNode;
+    renderFightsInto(document, container, composeFightsView([composeShelfFight()], READING), {}, true);
+    expect(container.children).toEqual([]);
+  });
 });

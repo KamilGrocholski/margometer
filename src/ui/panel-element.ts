@@ -46,14 +46,16 @@ import {
 import {
   BACK_ROW_KEY,
   type PanelDetailLine,
+  type PanelFightsView,
   type PanelList,
   type PanelMetric,
   type PanelRow,
+  type PanelStorageChoice,
   type PanelTeam,
   type PanelView,
   type PanelWaiting,
 } from "@/src/ui/panel-screen.ts";
-import { ROW_WARNING_MARK } from "@/src/ui/panel-words.ts";
+import { PIN_MARK, ROW_WARNING_MARK, UNPINNED_MARK } from "@/src/ui/panel-words.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 
 export type PanelPosition = { left: number; top: number };
@@ -461,6 +463,11 @@ export type PanelTitleBarActions = {
   onCopyRequested?: (() => void) | undefined;
   /** The same for the raw material, which is for us rather than for the player. */
   onCaptureRequested?: (() => void) | undefined;
+  /**
+   * What opens the shelf of kept fights. Absent draws no button, like the two
+   * above: a panel mounted where nothing keeps a fight has no shelf to open.
+   */
+  onFightsRequested?: (() => void) | undefined;
   onCollapseToggled?: (() => void) | undefined;
   onSectionFailure?: ((error: unknown) => void) | undefined;
 };
@@ -979,6 +986,207 @@ function renderWaiting(
 }
 
 /**
+ * What a press on the shelf of kept fights can mean.
+ *
+ * Its own set rather than more optional fields on `PanelHandlers`, for the reason
+ * the view has its own shape: not one of these questions can be asked of the
+ * ranking, and an optional callback that no screen ever calls is the shape three
+ * silences in this repository already had.
+ */
+export type PanelFightsHandlers = {
+  onFightChosen?: ((id: string) => void) | undefined;
+  onPinToggled?: ((id: string) => void) | undefined;
+  onStorageChosen?: ((choice: PanelStorageChoice) => void) | undefined;
+  onKeepLimitChosen?: ((limit: number) => void) | undefined;
+  onBack?: (() => void) | undefined;
+  onSectionFailure?: ((error: unknown) => void) | undefined;
+};
+
+/**
+ * The shelf, drawn.
+ *
+ * A sibling of `renderPanel` and `renderWaiting`, and it borrows their nodes on
+ * purpose: `.row`, `.list` and `.tabs` are the panel's furniture, so a shelf
+ * built out of them is the same panel showing something else rather than a second
+ * design inside one window. What has no counterpart in the ranking is the pin and
+ * the two labelled strips, and those are the only classes this adds.
+ *
+ * ⚠️ **The pin is inside the row and must be read before it.** A press lands on
+ * the innermost node, so the pin is looked up first — without that, pinning a
+ * fight would also open it, and the reader would find themselves reading a fight
+ * they only meant to keep.
+ */
+function renderFights(
+  document: PanelDocument,
+  view: PanelFightsView,
+  handlers: PanelFightsHandlers,
+  scroll?: PanelScroll,
+): PanelNode {
+  const panel = document.createElement("div");
+  panel.className = "panel";
+
+  const fightByNode = new Map<unknown, string>();
+  const pinByNode = new Map<unknown, string>();
+  /**
+   * The one node that means *leave*, held by identity rather than by a token in
+   * the map beside it.
+   *
+   * ⚠️ **It was a token there, and the crumb then opened a fight instead of
+   * closing the shelf.** A map from node to id answers one question — which fight
+   * — and the way back is not one, so it had to be smuggled through as an id no
+   * fight could carry. It reached the handler as an id all the same.
+   */
+  const backNodes = new Set<unknown>();
+  const storageByNode = new Map<unknown, PanelStorageChoice>();
+  const limitByNode = new Map<unknown, number>();
+
+  const handleGuarded = (run: () => void): void => {
+    try {
+      run();
+    } catch (error) {
+      handlers.onSectionFailure?.(error);
+    }
+  };
+
+  // `pointerdown` and not `click`, for `renderPanel`'s reason: a redraw landing
+  // between the press and the release would take the pressed node out of the tree
+  // and no click would be dispatched at all.
+  panel.addEventListener("pointerdown", (event) => {
+    if ((event.button ?? 0) !== 0) return;
+
+    if (backNodes.has(event.target)) return handleGuarded(() => handlers.onBack?.());
+
+    const pinned = pinByNode.get(event.target);
+    if (pinned !== undefined) return handleGuarded(() => handlers.onPinToggled?.(pinned));
+
+    const storage = storageByNode.get(event.target);
+    if (storage !== undefined) return handleGuarded(() => handlers.onStorageChosen?.(storage));
+
+    const limit = limitByNode.get(event.target);
+    if (limit !== undefined) return handleGuarded(() => handlers.onKeepLimitChosen?.(limit));
+
+    const fight = fightByNode.get(event.target);
+    if (fight !== undefined) return handleGuarded(() => handlers.onFightChosen?.(fight));
+  });
+
+  // The way out from anywhere on the shelf, exactly as it is from anywhere in the
+  // ranking — the cheapest gesture is the one that needs no aiming.
+  panel.addEventListener("contextmenu", (event) => {
+    event.preventDefault?.();
+    handleGuarded(() => handlers.onBack?.());
+  });
+
+  renderRegionInto(document, panel, handlers, "ścieżka", () => {
+    const block = document.createElement("div");
+    block.className = "crumb";
+    const back = document.createElement("span");
+    back.className = "crumb-back";
+    back.textContent = view.backLabel;
+    backNodes.add(back);
+    const here = document.createElement("span");
+    here.className = "crumb-here";
+    here.textContent = view.title;
+    block.append(back, here);
+    return block;
+  });
+
+  renderRegionInto(document, panel, handlers, "gdzie trzymać", () => {
+    const tabs = document.createElement("div");
+    tabs.className = "tabs";
+    const label = document.createElement("span");
+    label.className = "tabs-label";
+    label.textContent = view.storageLabel;
+    tabs.append(label);
+    for (const tab of view.storageTabs) {
+      const button = document.createElement("div");
+      button.className = tab.isSelected ? "tab selected" : "tab";
+      button.textContent = tab.label;
+      storageByNode.set(button, tab.choice);
+      tabs.append(button);
+    }
+    return tabs;
+  });
+
+  renderRegionInto(document, panel, handlers, "ile walk", () => {
+    const tabs = document.createElement("div");
+    tabs.className = "tabs";
+    const label = document.createElement("span");
+    label.className = "tabs-label";
+    label.textContent = view.keepLimitLabel;
+    tabs.append(label);
+    for (const tab of view.keepLimitTabs) {
+      const button = document.createElement("div");
+      button.className = tab.isSelected ? "tab selected" : "tab";
+      button.textContent = tab.label;
+      limitByNode.set(button, tab.limit);
+      tabs.append(button);
+    }
+    return tabs;
+  });
+
+  renderRegionInto(document, panel, handlers, "lista", () => {
+    const list = document.createElement("div");
+    list.className = "list";
+    list.style.setProperty("--MargoMeter-rows", composeIntegerText(view.visibleRows));
+    if (scroll !== undefined) scroll.list = list;
+
+    if (view.emptyText !== null) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = view.emptyText;
+      list.append(empty);
+    }
+
+    for (const row of view.rows) {
+      const node = document.createElement("div");
+      node.className = row.isSelected ? "row drillable chosen" : "row drillable";
+      fightByNode.set(node, row.id);
+
+      /*
+       * A pin only where there is something to pin. A fight nothing has written
+       * down yet is not in the store and the rotation has never seen it, so a pin
+       * there would be a control that does nothing — which §9.6 holds to be worse
+       * than one that is not there. That is **not** the same as *not live*: a
+       * fight is both for as long as the gap between it ending and the next one
+       * starting.
+       */
+      if (row.isPinnable) {
+        const pin = document.createElement("span");
+        pin.className = row.isPinned ? "row-pin pinned" : "row-pin";
+        pin.textContent = row.isPinned ? PIN_MARK : UNPINNED_MARK;
+        pin.title = row.pinTitle;
+        pinByNode.set(pin, row.id);
+        node.append(pin);
+      }
+
+      const time = document.createElement("span");
+      time.className = "row-rank";
+      time.textContent = row.timeText;
+      const sizes = document.createElement("span");
+      sizes.className = "row-name";
+      sizes.textContent = row.sizesText;
+      const outcome = document.createElement("span");
+      outcome.className = "row-value";
+      outcome.textContent = row.outcomeText;
+      node.append(time, sizes, outcome);
+      list.append(node);
+    }
+    return list;
+  });
+
+  for (const warning of view.warnings) {
+    renderRegionInto(document, panel, handlers, "ostrzeżenie", () => {
+      const line = document.createElement("div");
+      line.className = "warning";
+      line.textContent = `⚠ ${warning}`;
+      return line;
+    });
+  }
+
+  return panel;
+}
+
+/**
  * Opens the shadow root once and returns what to draw into.
  *
  * ⚠️ **Once is not a preference.** `attachShadow` throws on an element that
@@ -1038,6 +1246,18 @@ export function setPanelRoot(
     actions?.onSectionFailure?.(error);
   }
 
+  if (actions?.onFightsRequested !== undefined) {
+    titleBar.append(
+      setTitleBarButton(document, root, actions, {
+        // The left-most of the buttons, and `titlebar-copy` below is what pushes
+        // the rest to the right — so this one rides the gap the name leaves.
+        className: "titlebar-button titlebar-fights",
+        text: "☰",
+        title: "Walki, które są jeszcze zapisane",
+        run: actions.onFightsRequested,
+      }),
+    );
+  }
   if (actions?.onCopyRequested !== undefined) {
     titleBar.append(
       setTitleBarButton(document, root, actions, {
@@ -1461,3 +1681,38 @@ export function renderWaitingInto(
   }
   container.replaceChildren(renderWaiting(document, waiting, handlers));
 }
+
+/**
+ * Draws the shelf into the container, replacing whatever was there.
+ *
+ * The third sibling of `renderPanelInto`, and it keeps the reader's place in the
+ * list the same way the other two do — under a level key of its own, so stepping
+ * onto the shelf and back does not restore the shelf's scroll to the ranking.
+ */
+export function renderFightsInto(
+  document: PanelDocument,
+  container: PanelNode,
+  view: PanelFightsView,
+  handlers: PanelFightsHandlers = {},
+  isCollapsed = false,
+  scroll: PanelScroll = { list: null, levelKey: null },
+): void {
+  const kept = scroll.levelKey === FIGHTS_LEVEL_KEY ? (scroll.list?.scrollTop ?? 0) : 0;
+  scroll.levelKey = FIGHTS_LEVEL_KEY;
+
+  if (isCollapsed) {
+    container.replaceChildren();
+    return;
+  }
+  container.replaceChildren(renderFights(document, view, handlers, scroll));
+  if (kept > 0 && scroll.list !== null) scroll.list.scrollTop = kept;
+}
+
+/**
+ * The shelf's own level key.
+ *
+ * A `PanelView`'s key is composed from the metric, the side and how far into a
+ * breakdown the reader is (`src/ui/panel-view.ts`), and none of those describes
+ * this screen — so it carries a name no screen of the ranking can produce.
+ */
+const FIGHTS_LEVEL_KEY = "fights";

@@ -17,7 +17,13 @@
  */
 
 import { composeIntegerText } from "@/libs/number.ts";
-import { getMetricNoun, type PanelMetric, type PanelNoun } from "@/src/ui/panel-screen.ts";
+import {
+  getMetricNoun,
+  type PanelFightOutcome,
+  type PanelMetric,
+  type PanelNoun,
+  type PanelStorageChoice,
+} from "@/src/ui/panel-screen.ts";
 
 /** How a token is named, in the two places a name can come from. */
 export type TokenName = {
@@ -794,6 +800,142 @@ export function composeShareTexts(amounts: readonly number[], whole: number): st
 
   return shares.map((share) => composeSharePointsText(share.points, share.amount > 0));
 }
+
+/**
+ * How a fight ended, from the reader's seat, in one word each.
+ *
+ * Here rather than beside the header that first drew them: the shelf of kept
+ * fights says the same three words a row at a time, and two modules composing
+ * `wygrana` themselves is the drift §9.3 is about. A draw is the one that needs
+ * no seat — the game states it by naming nobody, so it is the same word for
+ * everyone in the fight.
+ */
+const OUTCOME_LABELS: Record<PanelFightOutcome, string> = {
+  won: "wygrana",
+  lost: "przegrana",
+  drawn: "remis",
+};
+
+export function getOutcomeLabel(outcome: PanelFightOutcome): string {
+  return OUTCOME_LABELS[outcome];
+}
+
+/** What the shelf of kept fights is called, and the way off it. */
+export const FIGHTS_TITLE = "Walki";
+export const FIGHTS_BACK_LABEL = "‹ wróć";
+
+/**
+ * The shelf before anything is on it.
+ *
+ * It says what will happen rather than only what has not, because an empty shelf
+ * is indistinguishable from a broken one: a reader who has fought and sees
+ * nothing needs to know the add-on keeps a fight when it **ends**.
+ */
+export const FIGHTS_EMPTY = "Nic tu jeszcze nie ma — walka trafia tutaj, kiedy się skończy.";
+
+/** The fight happening now, which is on the shelf and is not kept anywhere. */
+const LIVE_FIGHT_TIME = "teraz";
+const LIVE_FIGHT_OUTCOME = "trwa";
+
+/**
+ * When a fight was put on the shelf, on the reader's own clock.
+ *
+ * Two digits either side, because a column of times that jumps between four and
+ * five characters reads as a column of different things. Nothing at all where the
+ * fight carries no readable time: §9.3's unknown is loud, and `00:00` is a
+ * measurement of nothing wearing the shape of one.
+ */
+export function getFightTimeText(
+  at: { hour: number; minute: number } | null,
+  isLive: boolean,
+): string {
+  if (isLive) return LIVE_FIGHT_TIME;
+  if (at === null) return "";
+  return `${composeTwoDigitText(at.hour)}:${composeTwoDigitText(at.minute)}`;
+}
+
+function composeTwoDigitText(value: number): string {
+  const digits = composeIntegerText(value);
+  return digits.length >= 2 ? digits : `0${digits}`;
+}
+
+/**
+ * How big the fight was, side against side — the reader's own first, the way
+ * every other pairing on the panel is ordered.
+ *
+ * The multiplication sign and not the letter `v`: `4v4` is English shorthand, and
+ * a Polish panel that borrowed it would be the one place a reader met a word that
+ * is not theirs (§3). Empty where the fight names nobody, which the shelf then
+ * draws as a row with a time and an outcome and no size — true, and not a zero.
+ */
+export function composeSideCountsText(counts: readonly number[]): string {
+  if (counts.length === 0) return "";
+  return counts.map((count) => composeIntegerText(count)).join("×");
+}
+
+/**
+ * How a fight on the shelf ended, or that it has not.
+ *
+ * ⚠️ **The outcome comes first, and the live fight is the reason.** A fight that
+ * has stated a winner is over whether or not the next one has begun — driven in
+ * Firefox on 2026-08-26, where the row for a fight the reader had just won read
+ * *trwa* until they started another.
+ */
+export function getFightOutcomeText(
+  outcome: PanelFightOutcome | null,
+  isLive: boolean,
+): string {
+  if (outcome !== null) return OUTCOME_LABELS[outcome];
+  return isLive ? LIVE_FIGHT_OUTCOME : "";
+}
+
+/** What a pin does, said in words — the mark alone does not say (§9.7). */
+export function getPinTitle(isPinned: boolean): string {
+  return isPinned ? "Odepnij — będzie mogła zniknąć" : "Przypnij, żeby nie zniknęła";
+}
+
+export const PIN_MARK = "★";
+export const UNPINNED_MARK = "☆";
+
+/** Where the fights are kept, and the three places they can be. */
+export const STORAGE_LABEL = "Trzymaj";
+
+const STORAGE_LABELS: Record<PanelStorageChoice, string> = {
+  local: "na stałe",
+  session: "do zamknięcia karty",
+  memory: "tylko teraz",
+};
+
+export function getStorageLabel(choice: PanelStorageChoice): string {
+  return STORAGE_LABELS[choice];
+}
+
+export const KEEP_LIMIT_LABEL = "Ile";
+
+export function composeKeepLimitLabel(limit: number): string {
+  return composeIntegerText(limit);
+}
+
+/**
+ * What the shelf says when the browser would not take a fight.
+ *
+ * It says the fight is gone rather than that a write failed, because that is the
+ * consequence the reader has: a fight they can no longer open. Nothing here names
+ * a quota, a store or an exception — those are ours (§3), and the reader's own
+ * remedy is on the same screen, two controls up.
+ */
+export const STORE_REFUSED_WARNING =
+  "Przeglądarka nie przyjęła tej walki — nie została zapisana. Spróbuj trzymać mniej walk albo odepnij którąś.";
+
+/**
+ * The other way a fight fails to arrive, and it is the reader's own doing.
+ *
+ * Its own sentence rather than the one above, because the remedy is different and
+ * naming the wrong one is worse than saying nothing: nothing about the browser is
+ * wrong here, every slot the reader allowed is holding something they pinned.
+ */
+export const EVERY_SLOT_PINNED_WARNING =
+  "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.";
 
 /**
  * A run of digits, spaced every three from the right — as the game writes them.

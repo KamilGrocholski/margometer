@@ -44,7 +44,13 @@ import {
   type PanelState,
   TEAM_LABELS,
   UNANNOUNCED_ROW_KEY,
+  PANEL_KEEP_LIMITS,
+  PANEL_SCREENS,
+  PANEL_STORAGE_CHOICES,
+  composeStateAfterFightChosen,
+  composeStateAfterFightsOpened,
 } from "@/src/ui/panel-screen.ts";
+import { STORAGE_CHOICES } from "@/src/userscript-storage.ts";
 
 describe("the axes", () => {
   /**
@@ -501,5 +507,66 @@ describe("a fight opening", () => {
     expect({ ...deep, ...composeStateAfterFightStart() }).toEqual(
       composeState({ metric: "healed", team: "enemy", isCollapsed: true }),
     );
+  });
+});
+
+describe("the shelf of kept fights is a screen and not a level", () => {
+  test("the panel opens on the fight, not on the shelf", () => {
+    expect(composeDefaultState().screen).toBe("fight");
+    expect([...PANEL_SCREENS]).toEqual(["fight", "fights"]);
+  });
+
+  test("opening the shelf moves nothing underneath it", () => {
+    const opened = composeStateAfterFightsOpened();
+    expect(opened).toEqual({ screen: "fights" });
+  });
+
+  /**
+   * The asymmetry the reducer argues for: a drill belongs to the fight it was
+   * opened in, and the fight has changed.
+   */
+  test("choosing a fight drops the drill and keeps the tabs", () => {
+    const chosen = composeStateAfterFightChosen();
+    expect(chosen).toEqual({
+      screen: "fight",
+      focusCombatantId: null,
+      focusTargetId: null,
+      focusSkill: null,
+    });
+    expect(chosen).not.toHaveProperty("metric");
+    expect(chosen).not.toHaveProperty("team");
+  });
+
+  /**
+   * ⚠️ The order is the whole of it: the shelf covers the panel, so a drill left
+   * open underneath is not something the reader can see themselves leaving.
+   */
+  test("stepping back leaves the shelf before it closes a drill", () => {
+    const deep: PanelState = {
+      ...composeDefaultState(),
+      screen: "fights",
+      focusCombatantId: 7,
+      focusTargetId: 9,
+    };
+    expect(composeStateAfterBack(deep)).toEqual({ screen: "fight" });
+    expect(composeStateAfterBack({ ...deep, screen: "fight" })).toEqual({
+      focusTargetId: null,
+      focusSkill: null,
+    });
+  });
+
+  /**
+   * §9.3: the panel spells these three itself because `src/ui/` may not import the
+   * module that owns the stores, and two spellings with nothing holding them
+   * together is exactly what that rule refuses.
+   */
+  test("the three places the panel offers are the three that exist", () => {
+    expect([...PANEL_STORAGE_CHOICES]).toEqual([...STORAGE_CHOICES]);
+  });
+
+  test("the limits offered are whole, rising, and start above nothing", () => {
+    expect(PANEL_KEEP_LIMITS.length).toBeGreaterThan(1);
+    for (const limit of PANEL_KEEP_LIMITS) expect(Number.isInteger(limit) && limit > 0).toBe(true);
+    expect([...PANEL_KEEP_LIMITS]).toEqual([...PANEL_KEEP_LIMITS].sort((a, b) => a - b));
   });
 });

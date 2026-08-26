@@ -1,6 +1,6 @@
 # A fight you can go back to
 
-Status: draft
+Status: implemented
 
 The panel holds one fight: the one happening now. When the next one opens, the
 session resets (`src/game/battle-session.ts`) and everything the previous fight
@@ -217,10 +217,13 @@ fight. Nothing here is sent anywhere (§5). Said out loud because the two are
 easily confused, and because a reader choosing `localStorage` is choosing to leave
 other players' names on disk until the rotation drops them.
 
-## What lands, and in what order
+## What it is made of
 
-Each is its own commit, each leaves the gate green (§3), and the first three ship
-something a reader can see:
+Five parts, in the order they were built. They landed as **one** commit rather
+than five: the panel's screen axis, the shelf's composing, its drawing and the
+entry's wiring cannot be separated without an intermediate tree where a screen
+exists and nothing reaches it, and §3 asks every commit to leave the gate green
+rather than merely to be small.
 
 1. The kept-fight shape and the rotation, pure, in `src/core/` — the keep rule
    (last N, pinned exempt), the stored text both ways, validation on read. No DOM,

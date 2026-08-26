@@ -538,6 +538,118 @@ export type PanelWaiting = {
 };
 
 /**
+ * Which of the two screens the panel is on.
+ *
+ * A screen rather than a level: `fights` is not below the ranking and does not
+ * open out of a row, so nothing in the drill grammar above can express it. It
+ * lists **fights** where every other screen lists people, which is why it is a
+ * second shape handed to a second drawing rather than a `PanelView` with the
+ * combatants swapped out — the same argument `PanelWaiting` makes above.
+ */
+export const PANEL_SCREENS = ["fight", "fights"] as const;
+
+export type PanelScreen = (typeof PANEL_SCREENS)[number];
+
+/**
+ * The three places a reader may keep their fights, as the panel spells them.
+ *
+ * ⚠️ **Spelled twice on purpose, and held to one vocabulary by a guard** (§9.3).
+ * `src/userscript-storage.ts` owns the stores themselves and sits at the root of
+ * `src/`, which `src/ui/` may not import — the panel is handed its document and
+ * reaches for nothing, and a module carrying `localStorage` inside it is exactly
+ * what that rule keeps out of here. So the names are here as vocabulary and
+ * `tests/ui/panel-screen.test.ts` refuses the day the two lists stop agreeing.
+ */
+export const PANEL_STORAGE_CHOICES = ["local", "session", "memory"] as const;
+
+export type PanelStorageChoice = (typeof PANEL_STORAGE_CHOICES)[number];
+
+/**
+ * How many fights the reader is offered a choice between.
+ *
+ * The panel's own vocabulary rather than the caller's, because it is a control:
+ * four values a strip has room for, and a number the reader picks off it. Nothing
+ * downstream cares which four — the limit travels as the number it is.
+ */
+export const PANEL_KEEP_LIMITS = [3, 5, 10, 20] as const;
+
+/**
+ * One fight as the panel is handed it, before it is worded.
+ *
+ * ⚠️ **The clock is `{ hour, minute }` and not a timestamp**, because reading a
+ * local wall clock off one means constructing a date, and §9.1 keeps `src/ui/`
+ * to what it was handed. Null where the fight carries no readable time — which
+ * is the honest answer and not midnight (§9.3).
+ */
+export type PanelKeptFight = {
+  id: string;
+  /** The fight the payloads are about, which is called *teraz* rather than a time. */
+  isLive: boolean;
+  /**
+   * Whether there is anything to pin, which is not the same question as `isLive`
+   * and was written as though it were.
+   *
+   * ⚠️ **A fight is live and kept at the same time, for as long as the gap between
+   * it ending and the next one starting.** Driven in Firefox on 2026-08-26: the
+   * shelf drew the finished fight twice — once as *teraz · trwa* and once as its
+   * own kept row — because the two questions had one field between them. They are
+   * one row now, and this is what still lets it be pinned.
+   */
+  isPinnable: boolean;
+  isPinned: boolean;
+  isSelected: boolean;
+  at: { hour: number; minute: number } | null;
+  /** How many fought on each side, the reader's own first. */
+  sideCounts: readonly number[];
+  /** From the reader's seat, and null where nothing places them in it. */
+  outcome: PanelFightOutcome | null;
+};
+
+export type PanelFightOutcome = "won" | "lost" | "drawn";
+
+/** One control on the fights screen, and the choice it carries. */
+export type PanelStorageTab = { choice: PanelStorageChoice; label: string; isSelected: boolean };
+export type PanelKeepLimitTab = { limit: number; label: string; isSelected: boolean };
+
+/** One kept fight as a row, worded. */
+export type PanelFightRow = {
+  id: string;
+  isLive: boolean;
+  isPinnable: boolean;
+  isPinned: boolean;
+  isSelected: boolean;
+  /** What the pin says it will do, since the mark alone does not say (§9.7). */
+  pinTitle: string;
+  timeText: string;
+  sizesText: string;
+  outcomeText: string;
+};
+
+/**
+ * The fights screen as data.
+ *
+ * Its own shape rather than a `PanelView` with the fields emptied, for
+ * `PanelWaiting`'s reason: a view states a fight, and this states a shelf of
+ * them. Every field a `PanelView` has would be answering a question nobody asked
+ * here — which metric, whose breakdown, what share of what.
+ */
+export type PanelFightsView = {
+  title: string;
+  /** The way back to the fight, for a hand that would rather click than gesture. */
+  backLabel: string;
+  rows: PanelFightRow[];
+  /** What stands where the rows would be. Null once there is one. */
+  emptyText: string | null;
+  storageLabel: string;
+  storageTabs: PanelStorageTab[];
+  keepLimitLabel: string;
+  keepLimitTabs: PanelKeepLimitTab[];
+  /** One sentence each, in the reader's words. Empty when nothing is wrong. */
+  warnings: string[];
+  visibleRows: number;
+};
+
+/**
  * Everything the reader has chosen, and nothing they have not.
  *
  * Held by the caller rather than inside the composing: a view composed from state
@@ -546,6 +658,15 @@ export type PanelWaiting = {
  * produce one, rather than in `panel-view.ts` which only ever reads it.
  */
 export type PanelState = {
+  /**
+   * Which screen, and it is deliberately not a level.
+   *
+   * `composeStateAfterBack` steps out of it before it steps out of a drill,
+   * because the fights screen stands over the drill rather than under it: a
+   * reader who opened the shelf while a breakdown was up is asking to leave the
+   * shelf, not to close the breakdown they cannot see.
+   */
+  screen: PanelScreen;
   metric: PanelMetric;
   team: PanelTeam;
   /** Whose breakdown is open, and how far into it. */
@@ -571,6 +692,7 @@ export type PanelState = {
 
 export function composeDefaultState(): PanelState {
   return {
+    screen: "fight",
     metric: "dealt",
     team: "all",
     focusCombatantId: null,
@@ -647,12 +769,39 @@ export function composeStateAfterMetric(metric: PanelMetric): Partial<PanelState
   return { metric, focusTargetId: null, focusSkill: null };
 }
 
-/** One level out, and only one: the way back is as small a step as the way in. */
+/**
+ * One level out, and only one: the way back is as small a step as the way in.
+ *
+ * The shelf comes first because it is not a level. It covers the whole panel, so
+ * a drill left open underneath is not something the reader can see to be leaving
+ * — closing that first would spend their gesture on a screen nobody is looking
+ * at, and they would press again.
+ */
 export function composeStateAfterBack(state: PanelState): Partial<PanelState> {
+  if (state.screen === "fights") return { screen: "fight" };
   if (state.focusTargetId !== null || state.focusSkill !== null) {
     return { focusTargetId: null, focusSkill: null };
   }
   return { focusCombatantId: null };
+}
+
+/** The shelf, over whatever the reader was reading — nothing below it moves. */
+export function composeStateAfterFightsOpened(): Partial<PanelState> {
+  return { screen: "fights" };
+}
+
+/**
+ * A fight picked off the shelf, which is a different fight and so a different
+ * ranking.
+ *
+ * The drill goes for `composeStateAfterFightStart`'s reason and not a weaker one:
+ * a breakdown is opened on somebody, and the somebody belongs to the fight it was
+ * opened in. The metric and the side stay, because those are standing choices
+ * about which figure is being read — which is the same asymmetry the whole file
+ * keeps.
+ */
+export function composeStateAfterFightChosen(): Partial<PanelState> {
+  return { screen: "fight", focusCombatantId: null, focusTargetId: null, focusSkill: null };
 }
 
 /**

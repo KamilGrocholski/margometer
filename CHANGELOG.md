@@ -36,6 +36,35 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Skończone walki zostają. Przycisk `☰` na belce otwiera listę walk:
+  ta, która trwa, i te, które już się skończyły — z godziną, wielkością i tym, jak
+  się skończyły. Kliknięcie wiersza pokazuje tamtą walkę w panelu tak samo, jak
+  pokazuje bieżącą; prawy przycisk myszy wraca. Gwiazdką przypniesz walkę, żeby
+  nie zniknęła, kiedy zrobi się miejsce dla nowych.
+
+- **Nowość** — Na tej samej liście wybierasz, gdzie walki mają być trzymane —
+  na stałe, do zamknięcia karty, albo tylko teraz — i ile ich pamiętać. Zmiana
+  miejsca przenosi to, co już masz, i czyści poprzednie. Jeśli przeglądarka nie
+  przyjmie walki, panel to napisze zamiast po cichu jej nie zapisać.
+
+- **Nowość** — Panel liczy teraz obrażenia i leczenie, które wcześniej mu
+  umykały: porażenie, głęboką ranę, krwawienie i regenerację potwora — życie,
+  które przeciwnik przywraca sam sobie. Te punkty nie trafiały dotąd do żadnej
+  liczby, więc sumy potrafiły być zaniżone, a panel jedynie ostrzegał, że czegoś
+  nie umie odczytać. Rozpoznaje też potężne ogłuszenie, które potrafi paść przy
+  ciosie przeciwnika.
+
+- **Nowość** — Ostrzeżenie stoi teraz przy tym, kogo dotyczy. Jeśli przy
+  konkretnej postaci czegoś nie dało się odczytać, obok jej nazwy pojawia się ⚠,
+  a szczegóły są w okienku, które otwiera ten wiersz. Wcześniej takie ostrzeżenie
+  wisiało pod całą listą i nie było wiadomo, czyich liczb dotyczy. Pod listą
+  zostaje to, czego nie da się przypisać nikomu.
+
+- **Nowość** — Plik zapisywany przyciskiem `{ }` — ten do zgłoszeń — mówi teraz,
+  która wersja MargoMeter go zapisała i w jakiej przeglądarce działała. Wcześniej
+  opisywał samą walkę, więc zgłoszenie przysłane bez słowa komentarza nie mówiło
+  nic o tym, u kogo się to zdarzyło.
+
 - **Zmiana** — Panel nazywa teraz leczenie tak, jak nazywa je gra, i rozdziela
   dwie rzeczy, które wcześniej stały pod jednym słowem. „Przywracanie życia" to
   własna statystyka postaci — leczy co turę wyłącznie ją samą i słabnie z każdym
@@ -45,6 +74,41 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Wiersz „ujemne leczenie" nazywa się teraz „ujemne przywracanie
   życia". To ta sama statystyka, tylko zeszła poniżej zera — wtedy zamiast
   dodawać życie, zabiera je co turę.
+
+- **Poprawka** — Leczenie całej drużyny nie przepada już przez ułamek punktu
+  życia. Gra podaje życie w procentach, więc odtworzona liczba potrafi wypaść
+  o pół punktu ponad maksimum postaci — panel uznawał wtedy, że nie wie, z jakim
+  życiem ta postać weszła do walki, i razem z nią przestawał liczyć każde
+  drużynowe leczenie po tej stronie. Teraz mieści się w tej niedokładności
+  i liczy dalej.
+
+- **Poprawka** — W rozbiciu „Leczenie" zniknął wiersz „Nie wiadomo, czym".
+  Leczenie, którego nic nie zapowiedziało, stoi teraz pod własnymi nazwami — gra
+  je nazywa, tylko panel tego nie pokazywał i wrzucał wszystko do jednego worka.
+
+- **Poprawka** — Panel nie ostrzega już, że nie umie policzyć drużynowego
+  leczenia, w walkach, w których policzył je i wyszło zero. Ostrzeżenie zostaje
+  tam, gdzie odpowiedzi naprawdę nie ma.
+
+- **Poprawka** — Cios, przy którym gra podała liczbę z przecinkiem, nie gubi już
+  wszystkich swoich obrażeń. Wystarczyła jedna taka wartość obok, żeby pięć liczb
+  z tego samego ciosu nie trafiło do żadnej sumy.
+
+- **Poprawka** — Kilka zdarzeń, których panel nie rozumiał, jest już czytanych:
+  umiejętności nazwane przez grę po swojemu, zdejmowanie efektów z sojuszników
+  i odnowiona absorpcja. Każde z nich stawiało wcześniej ostrzeżenie, że liczby
+  mogą być zaniżone, choć żadne z nich niczego nie zaniżało.
+
+- **Poprawka** — Liczebniki w zdaniach panelu odmieniają się poprawnie:
+  „3 zdarzenia" zamiast „3 zdarzeń".
+
+- **Poprawka** — Okienko ze szczegółami zamyka się, kiedy kursor zjedzie
+  z panelu. Potrafiło zostać nad grą i czekało, aż najedziesz na coś innego —
+  najczęściej wtedy, gdy walka już się skończyła i panel nic nie przerysowywał.
+
+- **Poprawka** — Wszystkie paski mają jedną szerokość. Pasek „Nieznany sprawca"
+  i pasek podsumowania na dole rysowały się szersze od pasków postaci nad nimi,
+  więc ta sama liczba wychodziła na nich dłuższa, niż powinna.
 
 ## [0.8.1] — 2026-08-22
 

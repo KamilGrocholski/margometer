@@ -96,8 +96,21 @@ const MESSAGE_COUNT_FIELD = "mi";
  * `m`, every payload yields no messages and the old reader said exactly what it
  * says for a payload that opened a fight — so every fight read as zero and the
  * panel drew zeroes as though they were the count.
+ *
+ * **A list, and the type derived from it.** A union spelled once is enough for
+ * everything that *produces* a fault; it is not enough for the one reader that
+ * has to take a fault back **out** of text, which is a fight read from a browser
+ * store (`src/game/kept-fights.ts`) — §9.5 refuses a cast off `JSON.parse`, so
+ * there has to be something to compare against at run time. The compiler still
+ * counts the members.
  */
-export type PayloadFault = "payload-not-a-record" | "messages-not-a-list" | "messages-lost";
+export const PAYLOAD_FAULTS = [
+  "payload-not-a-record",
+  "messages-not-a-list",
+  "messages-lost",
+] as const;
+
+export type PayloadFault = (typeof PAYLOAD_FAULTS)[number];
 
 export type PayloadReading = {
   /** Carried through untouched: deciding its shape is this layer's job alone. */

@@ -118,9 +118,9 @@ Everything else `composePanelStyleText()` spells. Each predates both tiers in
 every engine in scope by years, so no version is quoted: the claim is only that
 it is below the floor, and the floor is set above.
 
-Properties: `align-items` · `all` · `background` · `border` · `border-bottom` ·
+Properties: `align-items` · `align-self` · `all` · `background` · `border` · `border-bottom` ·
 `border-radius` · `border-top` · `bottom` · `box-shadow` · `box-sizing` ·
-`color` · `cursor` · `display` · `flex` · `flex-direction` · `font` ·
+`color` · `cursor` · `display` · `flex` · `flex-direction` · `flex-wrap` · `font` ·
 `font-size` · `font-style` · `font-variant-numeric` · `font-weight` · `gap` ·
 `height` · `justify-content` · `left` · `letter-spacing` · `line-height` ·
 `margin` · `margin-bottom` · `margin-left` · `margin-right` · `margin-top` ·
@@ -131,12 +131,14 @@ Properties: `align-items` · `all` · `background` · `border` · `border-bottom
 `width` · `z-index`
 
 Pairs: `-webkit-user-select: none` · `align-items: baseline` ·
-`align-items: center` · `all: initial` · `background: transparent` ·
+`align-items: center` · `align-self: center` · `all: initial` · `background: transparent` ·
 `border: solid` · `border-bottom: none` ·
-`border-top: dashed` · `border-top: solid` · `box-sizing: border-box` ·
+`border-top: dashed` · `border-top: solid` · `box-shadow: inset` ·
+`box-sizing: border-box` ·
 `color: inherit` · `cursor: help` · `cursor: move` · `cursor: pointer` ·
 `display: block` · `display: flex` · `flex: auto` · `flex: none` ·
-`flex-direction: column` · `font: sans-serif` · `font: system-ui` ·
+`flex-direction: column` · `flex-wrap: wrap` · `font: sans-serif` ·
+`font: system-ui` ·
 `font-style: italic` · `font-variant-numeric: tabular-nums` ·
 `justify-content: center` · `justify-content: space-between` ·
 `margin-left: auto` · `mask-image: transparent` · `overflow: hidden` ·
@@ -161,6 +163,27 @@ Selectors: `first-of-type` · `host` · `hover`
 | `getBoundingClientRect` | `src/ui/panel-element.ts` | 2 | 3 | 4 |
 | `Blob` | `src/userscript-entry.ts` | 5 | 4 | 6 |
 | `createObjectURL` | `src/userscript-entry.ts` | 19 | 19 | 6 |
+| `localStorage` | `src/userscript-storage.ts` | 4 | 3.5 | 4 |
+| `sessionStorage` | `src/userscript-storage.ts` | 4 | 2 | 4 |
+| `getItem` | `src/userscript-storage.ts` | 4 | 3.5 | 4 |
+| `setItem` | `src/userscript-storage.ts` | 4 | 3.5 | 4 |
+| `removeItem` | `src/userscript-storage.ts` | 4 | 3.5 | 4 |
+
+The five storage rows were read on **2026-08-26**, from the same source as the
+rest; every other row carries the date at the top of this document. All five sit
+so far below both tiers that they cannot move the floor, and they are listed for
+the opposite reason — this is the one part of the add-on that can fail on a
+browser that supports it perfectly.
+
+⚠️ **The quota is not in this register, and its absence is the entry.** How much
+an origin may keep differs by engine, by profile and by how much that origin
+already holds, and none of it is readable from a page. The add-on therefore never
+predicts one: it writes, catches the refusal, gives up its oldest unpinned fight
+and writes again (`src/userscript-storage.ts`, `src/game/kept-fights.ts`). That
+matters more here than anywhere else in this table, because the origin is shared
+with the game — which keeps everything under one key, rewrites it whole on every
+change, and catches nothing
+(`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`).
 
 ⚠️ **This is the half that is not complete, and saying so is the point.** The
 CSS above is enumerable and the JavaScript below is held by a compiler; the DOM

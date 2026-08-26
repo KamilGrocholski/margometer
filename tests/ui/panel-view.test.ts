@@ -37,9 +37,18 @@ import {
   type PanelRow,
   type PanelState,
   type PanelView,
+  PANEL_KEEP_LIMITS,
+  PANEL_STORAGE_CHOICES,
+  type PanelKeptFight,
 } from "@/src/ui/panel-screen.ts";
 import type { PanelReading } from "@/src/ui/panel-reading.ts";
-import { composePanelView, PANEL_WAITING } from "@/src/ui/panel-view.ts";
+import {
+  composeFightsView,
+  composePanelView,
+  getFightOutcome,
+  PANEL_WAITING,
+  type PanelFightsReading,
+} from "@/src/ui/panel-view.ts";
 import {
   CAPTURED_FIGHTS,
   composeRosterFromSnapshots,
@@ -3487,5 +3496,128 @@ describe("how a figure is written", () => {
   // that looks right.
   test("a negative figure keeps its sign and its grouping", () => {
     expect(composeFigureText(-354258)).toBe("-354 258");
+  });
+});
+
+describe("the shelf, as data", () => {
+  const READING: PanelFightsReading = {
+    storage: "local",
+    keepLimit: 5,
+    hasStoreRefused: false,
+    isEverySlotPinned: false,
+  };
+
+  function composeShelfFight(over: Partial<PanelKeptFight> = {}): PanelKeptFight {
+    return {
+      id: "one",
+      isLive: false,
+      isPinnable: true,
+      isPinned: false,
+      isSelected: false,
+      at: { hour: 21, minute: 4 },
+      sideCounts: [4, 4],
+      outcome: "won",
+      ...over,
+    };
+  }
+
+  test("says what each fight was, without anything decoding one", () => {
+    const view = composeFightsView([composeShelfFight()], READING);
+    expect(view.rows).toHaveLength(1);
+    expect(view.rows[0]).toMatchObject({
+      id: "one",
+      timeText: "21:04",
+      sizesText: "4×4",
+      outcomeText: "wygrana",
+    });
+    expect(view.emptyText).toBeNull();
+  });
+
+  test("says what will be here where nothing is", () => {
+    const view = composeFightsView([], READING);
+    expect(view.emptyText).not.toBeNull();
+    expect(view.rows).toEqual([]);
+  });
+
+  test("marks the live fight as one nothing can pin", () => {
+    const view = composeFightsView(
+      [composeShelfFight({ id: "live", isLive: true, isPinnable: false, at: null, outcome: null })],
+      READING,
+    );
+    expect(view.rows[0]?.isLive).toBe(true);
+    expect(view.rows[0]?.timeText).toBe("teraz");
+    expect(view.rows[0]?.outcomeText).toBe("trwa");
+  });
+
+  test("shows which of the two controls the reader is on", () => {
+    const view = composeFightsView([], { ...READING, storage: "session", keepLimit: 10 });
+    expect(view.storageTabs.filter((tab) => tab.isSelected).map((tab) => tab.choice)).toEqual([
+      "session",
+    ]);
+    expect(view.keepLimitTabs.filter((tab) => tab.isSelected).map((tab) => tab.limit)).toEqual([10]);
+  });
+
+  /**
+   * A limit off the strip is one an older build stored. Drawing four tabs with
+   * none of them selected would say the panel had lost the reader's answer.
+   */
+  test("keeps a limit the strip does not offer, rather than moving the reader", () => {
+    const view = composeFightsView([], { ...READING, keepLimit: 7 });
+    expect(view.keepLimitTabs.map((tab) => tab.limit)).toContain(7);
+    expect(view.keepLimitTabs.filter((tab) => tab.isSelected)).toHaveLength(1);
+    expect([...view.keepLimitTabs].map((tab) => tab.limit)).toEqual(
+      [...view.keepLimitTabs].map((tab) => tab.limit).sort((one, other) => one - other),
+    );
+  });
+
+  test("exactly one tab is chosen on each strip, whatever the reader picked", () => {
+    for (const storage of PANEL_STORAGE_CHOICES) {
+      for (const keepLimit of PANEL_KEEP_LIMITS) {
+        const view = composeFightsView([], { ...READING, storage, keepLimit });
+        expect(view.storageTabs.filter((tab) => tab.isSelected)).toHaveLength(1);
+        expect(view.keepLimitTabs.filter((tab) => tab.isSelected)).toHaveLength(1);
+      }
+    }
+  });
+
+  /** The reader's own doing first: one of the two has a remedy on this screen. */
+  test("says both things that can have gone wrong, the fixable one first", () => {
+    const view = composeFightsView([], {
+      ...READING,
+      hasStoreRefused: true,
+      isEverySlotPinned: true,
+    });
+    expect(view.warnings).toHaveLength(2);
+    expect(view.warnings[0]).toContain("przypięte");
+    expect(composeFightsView([], READING).warnings).toEqual([]);
+  });
+});
+
+describe("which way a fight went, from the reader's seat", () => {
+  const roster = composeCombatantRoster([
+    { id: 1, name: "A", side: 1, profession: null, level: null, maximumHealth: null },
+    { id: 2, name: "B", side: 2, profession: null, level: null, maximumHealth: null },
+  ]);
+
+  test("is won where our side is named among the winners", () => {
+    expect(getFightOutcome(roster, 1, { wonNames: ["A"], lostNames: ["B"], isDrawn: false })).toBe(
+      "won",
+    );
+    expect(getFightOutcome(roster, 2, { wonNames: ["A"], lostNames: ["B"], isDrawn: false })).toBe(
+      "lost",
+    );
+  });
+
+  /** The one answer that needs no seat: the game states it by naming nobody. */
+  test("is a draw for everybody, even where nothing says which side is ours", () => {
+    expect(getFightOutcome(roster, null, { wonNames: [], lostNames: [], isDrawn: true })).toBe(
+      "drawn",
+    );
+  });
+
+  test("is nothing where nothing places the reader in the fight", () => {
+    expect(getFightOutcome(roster, null, { wonNames: ["A"], lostNames: ["B"], isDrawn: false })).toBeNull();
+    expect(getFightOutcome(roster, 3, { wonNames: ["A"], lostNames: ["B"], isDrawn: false })).toBeNull();
+    expect(getFightOutcome(roster, 1, null)).toBeNull();
   });
 });

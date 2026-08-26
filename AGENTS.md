@@ -511,9 +511,12 @@ src/
   userscript-instrument-development.ts
                          The same seam with a clock behind it. Nothing imports it
                          by name — the build resolves the one above to here.
+  userscript-storage.ts  Where a choice is kept between pages, and the three
+                         places it can be kept. A refusal is an answer, and no
+                         quota is ever assumed — the origin belongs to the game.
   userscript-entry.ts    Reads the game off the page, decides every name we put
-                         on it, holds the session, mounts the panel, and reaches
-                         storage — for the panel's position and nothing else.
+                         on it, holds the session, keeps the fights that are over,
+                         mounts the panel, and reaches storage.
   core/                  Pure logic: no DOM, no timers, no engine — §9.1.
     margometer-error.ts  Base for everything the add-on throws — §9.5.
     game-build.ts        What a build id looks like, and where the client states
@@ -545,6 +548,9 @@ src/
     battle-session.ts    One fight accumulated payload by payload. Pure.
     fight-capture.ts     The same fight, kept so it can be written to a file.
                          Redacts nothing — that is the intake tool's job.
+    kept-fights.ts       A finished fight written down and read back: the inputs
+                         and never the numbers, the rotation a pin outranks, and
+                         a write that gives up the oldest until it fits.
   ui/                    Renders state handed to it — §9.1.
     panel-words.ts       Everything the panel puts in front of a reader: what it
                          calls each name of the game's own, what it says where the
@@ -590,8 +596,16 @@ tools/                   Never ships. §6.2 says what each answers.
   changelog.ts               One version's section, plus which file to click.
 
 tests/                     A test sits where its subject sits: `libs/`, `core/`,
-                           `game/`, `ui/`, `tools/`. The entries below stay at
-                           the root: material and shared readers.
+                           `game/`, `ui/`, `tools/` — and at the root where its
+                           subject sits at the root of `src/`, which belongs to no
+                           layer. The other entries below stay at the root too:
+                           material and shared readers.
+  userscript-storage.test.ts
+                           The three places, and a browser refusing every one of
+                           the three calls.
+  userscript-entry.test.ts Where a finished fight goes, what the reader is told
+                           when it does not go anywhere, and what a reader
+                           reading an old one sees while a new one is counted.
   captured-fights/         Raw protocol from real fights. Evidence — §9.2.
   captured-fight-catalog.ts   Discovers it: each capture, health per combatant,
                               the rosters per call and per fight, and the fight as

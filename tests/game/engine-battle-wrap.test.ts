@@ -17,6 +17,7 @@ import { decodeFight } from "@/src/core/fight-decoder.ts";
 import {
   EngineBattleWrapError,
   getPayloadReading,
+  PAYLOAD_FAULTS,
   removeBattleWrap,
   setBattleWrap,
   type EngineBattle,
@@ -369,6 +370,26 @@ describe("a second copy of the add-on", () => {
  * the only way to be wrong about somebody else's data; agreeing with yourself
  * about it is the other.
  */
+describe("the faults a payload can carry", () => {
+  /**
+   * The list exists for a reader that has to take a fault back **out** of text —
+   * a fight kept in a browser store (`src/game/kept-fights.ts`) — so what it is
+   * held to is that it stays the set this reader can actually produce. A fourth
+   * fault added to the reader and forgotten here comes back from a store as an
+   * unreadable heading, and a fight is dropped for it.
+   */
+  test("is every fault this reader produces, and no more", () => {
+    const produced = new Set(
+      [
+        getPayloadReading(3).fault,
+        getPayloadReading({ m: "not a list" }).fault,
+        getPayloadReading({ mi: [1, 2, 3] }).fault,
+      ].filter((fault) => fault !== null),
+    );
+    expect([...produced].sort()).toEqual([...PAYLOAD_FAULTS].sort());
+  });
+});
+
 describe("what is read out of a payload", () => {
   test("a payload that mentions no messages is not a payload we failed to read", () => {
     // 20 of the 400 captured engine calls look like this, every one of them a

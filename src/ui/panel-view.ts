@@ -34,7 +34,7 @@
 import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText } from "@/libs/number.ts";
 import { getTotalOfValues, setRunningTotal } from "@/libs/running-total.ts";
-import { getCombatantIdByName } from "@/src/core/combatant-roster.ts";
+import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
 import { getCombatantIdsInFight } from "@/src/core/fight-statistics.ts";
 import {
   composeBreakdownLists,
@@ -45,6 +45,8 @@ import {
 import {
   composeCountedText,
   composeFigureText,
+  composeKeepLimitLabel,
+  composeSideCountsText,
   composeShareText,
   composeShareTexts,
   ELEMENT_NAMES,
@@ -57,11 +59,23 @@ import {
   getNoTargetLimitNote,
   getNoTargetScopeNote,
   getNoTargetStandingNote,
+  getFightOutcomeText,
+  getFightTimeText,
+  getOutcomeLabel,
+  getPinTitle,
+  getStorageLabel,
   getPhrase,
   HEALTH_GAIN_SOURCE_NAMES,
   HEALTH_LOSS_SOURCE_NAMES,
+  EVERY_SLOT_PINNED_WARNING,
+  FIGHTS_BACK_LABEL,
+  FIGHTS_EMPTY,
+  FIGHTS_TITLE,
+  KEEP_LIMIT_LABEL,
   NO_ACTOR_LABEL,
   NO_TARGET_LABEL,
+  STORAGE_LABEL,
+  STORE_REFUSED_WARNING,
   type TokenName,
   type TranslateLabel,
 } from "@/src/ui/panel-words.ts";
@@ -74,13 +88,22 @@ import {
   isHealingMetric,
   NO_ACTOR_ROW_KEY,
   NO_TARGET_ROW_KEY,
+  PANEL_KEEP_LIMITS,
+  PANEL_STORAGE_CHOICES,
   type PanelCrumb,
   type PanelDetailLine,
+  type PanelFightOutcome,
+  type PanelFightRow,
+  type PanelFightsView,
+  type PanelKeepLimitTab,
+  type PanelKeptFight,
   type PanelList,
   type PanelMetric,
   type PanelRow,
   type PanelSides,
   type PanelState,
+  type PanelStorageChoice,
+  type PanelStorageTab,
   type PanelTeam,
   type PanelView,
   type PanelWaiting,
@@ -865,11 +888,37 @@ function composeWarnings(reading: PanelReading): string[] {
 }
 
 /** Whether any of those names belongs to somebody on the watcher's own side. */
-function hasOurSide(reading: PanelReading, names: readonly string[]): boolean {
+function hasOurSide(
+  roster: CombatantRoster,
+  ourSide: number | null,
+  names: readonly string[],
+): boolean {
   return names.some((name) => {
-    const id = getCombatantIdByName(reading.roster, name);
-    return id !== null && reading.roster.byId.get(id)?.side === reading.ourSide;
+    const id = getCombatantIdByName(roster, name);
+    return id !== null && roster.byId.get(id)?.side === ourSide;
   });
+}
+
+/**
+ * Which way a fight went **from the watcher's seat**, or nothing.
+ *
+ * Split off the wording below because the shelf of kept fights asks the same
+ * question of a fight nobody is reading — it holds the two lists of names and the
+ * roster they resolve against, and needs the answer without composing a whole
+ * view for it. One inference, one place: a second reader deciding who won would
+ * be a second place able to decide it differently.
+ */
+export function getFightOutcome(
+  roster: CombatantRoster,
+  ourSide: number | null,
+  outcome: { wonNames: readonly string[]; lostNames: readonly string[]; isDrawn: boolean } | null,
+): PanelFightOutcome | null {
+  if (outcome === null) return null;
+  if (outcome.isDrawn) return "drawn";
+  if (ourSide === null) return null;
+  if (hasOurSide(roster, ourSide, outcome.wonNames)) return "won";
+  if (hasOurSide(roster, ourSide, outcome.lostNames)) return "lost";
+  return null;
 }
 
 /**
@@ -886,13 +935,8 @@ function hasOurSide(reading: PanelReading, names: readonly string[]): boolean {
  * header even where `ourSide` never arrived.
  */
 function getOutcomeText(reading: PanelReading): string | null {
-  const outcome = reading.statistics.outcome;
-  if (outcome === null) return null;
-  if (outcome.isDrawn) return "remis";
-  if (reading.ourSide === null) return null;
-  if (hasOurSide(reading, outcome.wonNames)) return "wygrana";
-  if (hasOurSide(reading, outcome.lostNames)) return "przegrana";
-  return null;
+  const outcome = getFightOutcome(reading.roster, reading.ourSide, reading.statistics.outcome);
+  return outcome === null ? null : getOutcomeLabel(outcome);
 }
 
 /**
@@ -1217,4 +1261,101 @@ export function composePanelView(
     pinnedRows: [],
     sides: composeSides(reading, state),
   };
+}
+
+/**
+ * What the shelf of kept fights is told about, beyond the fights themselves.
+ *
+ * The two controls' current answers and the two things that can have gone wrong
+ * — and both of those are states rather than events: they are true of the shelf
+ * as it stands, so a redraw that happens for another reason still says them, and
+ * a fight that lands cleanly afterwards clears them (§9.6).
+ */
+export type PanelFightsReading = {
+  storage: PanelStorageChoice;
+  keepLimit: number;
+  /** The browser would not take the last fight offered to it. */
+  hasStoreRefused: boolean;
+  /** Every slot the reader allows is holding a fight they pinned. */
+  isEverySlotPinned: boolean;
+};
+
+/**
+ * The shelf, as data.
+ *
+ * Nothing here decodes a fight, and that is the whole reason the shape it is
+ * handed carries a side count and an outcome rather than a reading: ten fights
+ * decoded to draw ten rows is a page load spent recovering what was already known
+ * when each of them was written down
+ * (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`).
+ *
+ * The height is the ranking's own floor, so stepping onto the shelf and back does
+ * not resize the window under the reader's hand.
+ */
+export function composeFightsView(
+  fights: readonly PanelKeptFight[],
+  reading: PanelFightsReading,
+): PanelFightsView {
+  const warnings: string[] = [];
+  // The reader's own doing first, and the browser's after it: one of the two has
+  // a remedy two controls up the same screen, and the other does not.
+  if (reading.isEverySlotPinned) warnings.push(EVERY_SLOT_PINNED_WARNING);
+  if (reading.hasStoreRefused) warnings.push(STORE_REFUSED_WARNING);
+
+  return {
+    title: FIGHTS_TITLE,
+    backLabel: FIGHTS_BACK_LABEL,
+    rows: fights.map(composeFightRow),
+    // The live fight is always a row, so an empty shelf is a panel that has not
+    // seen a payload — which `PanelWaiting` is already drawing.
+    emptyText: fights.length === 0 ? FIGHTS_EMPTY : null,
+    storageLabel: STORAGE_LABEL,
+    storageTabs: composeStorageTabs(reading.storage),
+    keepLimitLabel: KEEP_LIMIT_LABEL,
+    keepLimitTabs: composeKeepLimitTabs(reading.keepLimit),
+    warnings,
+    visibleRows: RANKING_ROWS,
+  };
+}
+
+function composeFightRow(fight: PanelKeptFight): PanelFightRow {
+  return {
+    id: fight.id,
+    isLive: fight.isLive,
+    isPinnable: fight.isPinnable,
+    isPinned: fight.isPinned,
+    isSelected: fight.isSelected,
+    pinTitle: getPinTitle(fight.isPinned),
+    timeText: getFightTimeText(fight.at, fight.isLive),
+    sizesText: composeSideCountsText(fight.sideCounts),
+    outcomeText: getFightOutcomeText(fight.outcome, fight.isLive),
+  };
+}
+
+function composeStorageTabs(current: PanelStorageChoice): PanelStorageTab[] {
+  return PANEL_STORAGE_CHOICES.map((choice) => ({
+    choice,
+    label: getStorageLabel(choice),
+    isSelected: choice === current,
+  }));
+}
+
+/**
+ * The four the strip offers, and the reader's own where it is not one of them.
+ *
+ * A limit that is not on the strip is a limit somebody's stored settings carry
+ * from another build, and drawing four tabs with none of them selected would say
+ * the panel had lost their answer. It is added rather than replaced — silently
+ * moving somebody to the nearest offered number is a change to what they asked
+ * for, made without telling them.
+ */
+function composeKeepLimitTabs(current: number): PanelKeepLimitTab[] {
+  const offered = PANEL_KEEP_LIMITS.some((limit) => limit === current)
+    ? [...PANEL_KEEP_LIMITS]
+    : [...PANEL_KEEP_LIMITS, current].sort((one, other) => one - other);
+  return offered.map((limit) => ({
+    limit,
+    label: composeKeepLimitLabel(limit),
+    isSelected: limit === current,
+  }));
 }

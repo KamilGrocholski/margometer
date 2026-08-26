@@ -431,6 +431,9 @@ export function composePanelStyleText(): string {
 .titlebar-button:hover { color: ${t.text}; }
 .titlebar-version { color: ${t.textQuiet}; opacity: 0.7; font-size: 10px; }
 .titlebar-copy { margin-left: auto; }
+/* First of the buttons and left of the gap, so the shelf sits beside the name
+   rather than among the three controls that act on what is drawn. */
+.titlebar-fights { margin-left: ${t.space}; }
 /* Dimmed because it is not for the player: it hands over the raw material. */
 .titlebar-raw { opacity: 0.55; }
 .titlebar-raw:hover { opacity: 1; }
@@ -475,12 +478,16 @@ export function composePanelStyleText(): string {
  */
 .panel > * { flex: none; }
 .panel > .list { flex: 0 1 auto; }
-.tabs { display: flex; gap: ${t.spaceHalf}; padding: ${t.spaceRegion}; padding-bottom: 0; }
+/* Wrapping between tabs and never inside one: the shelf's three places are
+   phrases, and at 260px a broken phrase reads as two controls. Driven in Firefox
+   on 2026-08-26, where the middle one of the three sat on two lines. */
+.tabs { display: flex; flex-wrap: wrap; gap: ${t.spaceHalf}; padding: ${t.spaceRegion}; padding-bottom: 0; }
 /* Every strip after the first sits closer to it: they are one control, in rows.
    A sibling selector rather than a class, so a third strip needed no new rule and
    sides-of did not have to become a name for something it is not. */
 .tabs + .tabs { padding-top: ${t.radiusSmall}; }
 .tab {
+  white-space: nowrap;
   padding: 1px ${t.spaceSmall};
   border-radius: ${t.radiusSmall};
   color: ${t.textQuiet};
@@ -685,6 +692,21 @@ export function composePanelStyleText(): string {
 .list-waiting { display: flex; align-items: center; justify-content: center; text-align: center; }
 /* The limit on what can be known reads quieter than the fact above it. */
 .empty-limit { display: block; margin-top: ${t.spaceSmall}; font-size: 10px; opacity: 0.85; }
+/* The shelf of kept fights. Everything else it draws is the ranking's own
+   furniture — the row, the list and the tab strips — so only what has no
+   counterpart there is here. */
+.tabs-label { color: ${t.textQuiet}; align-self: center; padding-right: ${t.spaceSmall}; }
+.row-pin {
+  position: relative;
+  cursor: pointer;
+  color: ${t.textQuiet};
+  padding-right: ${t.spaceSmall};
+}
+.row-pin:hover { color: ${t.text}; }
+.row-pin.pinned { color: ${t.text}; }
+/* Which fight is on screen. A left edge and not a colour alone (§9.7): the
+   outcome word beside it is what the colour would otherwise be carrying. */
+.row.chosen { box-shadow: inset 3px 0 0 ${t.text}; }
 /* The gutter is the one \`.pinned\` argues for: the track below is a bar like any
    other, and it is inset like one. */
 .sides-region {

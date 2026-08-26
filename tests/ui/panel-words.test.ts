@@ -3,6 +3,22 @@ import { assertDefined } from "@/libs/assert.ts";
 import { getIntegerFromText } from "@/libs/number.ts";
 import {
   composeCountedText,
+  composeKeepLimitLabel,
+  composeSideCountsText,
+  EVERY_SLOT_PINNED_WARNING,
+  FIGHTS_BACK_LABEL,
+  FIGHTS_EMPTY,
+  FIGHTS_TITLE,
+  getFightOutcomeText,
+  getFightTimeText,
+  getOutcomeLabel,
+  getPinTitle,
+  getStorageLabel,
+  KEEP_LIMIT_LABEL,
+  PIN_MARK,
+  STORAGE_LABEL,
+  STORE_REFUSED_WARNING,
+  UNPINNED_MARK,
   composeFigureText,
   composeShareText,
   composeShareTexts,
@@ -897,5 +913,94 @@ describe("a set of shares", () => {
 
   test("writes nothing for nothing", () => {
     expect(composeShareTexts([], 10)).toEqual([]);
+  });
+});
+
+/**
+ * The shelf's words, read in words.
+ *
+ * §7.5: a test that reads a string back from the module that writes it holds the
+ * two to be the same and neither to be right. So every sentence below is spelled
+ * out here — a Polish reader can check it, and replacing one with our vocabulary
+ * or with a key of the game's turns this red.
+ */
+describe("what the shelf of kept fights says", () => {
+  test("names itself and the way off it", () => {
+    expect(FIGHTS_TITLE).toBe("Walki");
+    expect(FIGHTS_BACK_LABEL).toBe("‹ wróć");
+  });
+
+  test("says what an empty shelf will hold, not only that it is empty", () => {
+    expect(FIGHTS_EMPTY).toBe("Nic tu jeszcze nie ma — walka trafia tutaj, kiedy się skończy.");
+  });
+
+  test("calls the fight happening now by the time it is", () => {
+    expect(getFightTimeText(null, true)).toBe("teraz");
+    expect(getFightOutcomeText(null, true)).toBe("trwa");
+  });
+
+  test("writes a clock two digits either side", () => {
+    expect(getFightTimeText({ hour: 21, minute: 4 }, false)).toBe("21:04");
+    expect(getFightTimeText({ hour: 9, minute: 30 }, false)).toBe("09:30");
+    expect(getFightTimeText({ hour: 0, minute: 0 }, false)).toBe("00:00");
+  });
+
+  /** §9.3: a moment that will not read is not midnight. */
+  test("says nothing at all where there is no time to say", () => {
+    expect(getFightTimeText(null, false)).toBe("");
+  });
+
+  test("writes how big the fight was, the reader's side first", () => {
+    expect(composeSideCountsText([4, 4])).toBe("4×4");
+    expect(composeSideCountsText([11, 1])).toBe("11×1");
+    expect(composeSideCountsText([])).toBe("");
+  });
+
+  /** §3: a Polish panel never borrows English shorthand for a thing it can name. */
+  test("does not write a fight's size the English way", () => {
+    expect(composeSideCountsText([4, 4])).not.toContain("v");
+  });
+
+  test("says how a fight ended in the reader's own words", () => {
+    expect(getOutcomeLabel("won")).toBe("wygrana");
+    expect(getOutcomeLabel("lost")).toBe("przegrana");
+    expect(getOutcomeLabel("drawn")).toBe("remis");
+    expect(getFightOutcomeText("won", false)).toBe("wygrana");
+    expect(getFightOutcomeText(null, false)).toBe("");
+  });
+
+  /** §9.7: the mark is a glyph, and what it does is said in words beside it. */
+  test("says what the pin will do rather than only marking it", () => {
+    expect(PIN_MARK).toBe("★");
+    expect(UNPINNED_MARK).toBe("☆");
+    expect(getPinTitle(false)).toBe("Przypnij, żeby nie zniknęła");
+    expect(getPinTitle(true)).toBe("Odepnij — będzie mogła zniknąć");
+  });
+
+  test("names the two controls and the three places", () => {
+    expect(STORAGE_LABEL).toBe("Trzymaj");
+    expect(getStorageLabel("local")).toBe("na stałe");
+    expect(getStorageLabel("session")).toBe("do zamknięcia karty");
+    expect(getStorageLabel("memory")).toBe("tylko teraz");
+    expect(KEEP_LIMIT_LABEL).toBe("Ile");
+    expect(composeKeepLimitLabel(10)).toBe("10");
+  });
+
+  /**
+   * Two sentences and not one, because the remedies differ — and neither names a
+   * quota, a store or an exception, which are ours (§3).
+   */
+  test("tells the reader a fight was not kept, and which of the two reasons", () => {
+    expect(STORE_REFUSED_WARNING).toBe(
+      "Przeglądarka nie przyjęła tej walki — nie została zapisana. Spróbuj trzymać mniej walk albo odepnij którąś.",
+    );
+    expect(EVERY_SLOT_PINNED_WARNING).toBe(
+      "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.",
+    );
+    for (const sentence of [STORE_REFUSED_WARNING, EVERY_SLOT_PINNED_WARNING]) {
+      for (const ours of ["localStorage", "sessionStorage", "quota", "store", "budget"]) {
+        expect(sentence).not.toContain(ours);
+      }
+    }
   });
 });

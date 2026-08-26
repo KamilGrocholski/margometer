@@ -893,6 +893,7 @@ describe("remembering where the panel was put", () => {
   function composePageWithStorage(storage: {
     getItem(key: string): string | null;
     setItem(key: string, value: string): void;
+    removeItem?: (key: string) => void;
   }): {
     page: Parameters<typeof composePanelMount>[0];
     getHostProperties: () => Record<string, string>;
@@ -942,7 +943,7 @@ describe("remembering where the panel was put", () => {
         document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
         innerWidth: 1600,
         innerHeight: 900,
-        localStorage: storage,
+        localStorage: { removeItem: () => {}, ...storage },
       },
       getHostProperties: () => hostProperties,
       getRoot: () => root,
