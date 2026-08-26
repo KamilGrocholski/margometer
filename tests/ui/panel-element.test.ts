@@ -2035,6 +2035,29 @@ describe("the shelf of kept fights", () => {
     expect(chosen).toEqual(["two"]);
   });
 
+  /**
+   * ⚠️ **The bug this exists for, made twice.** The ranking has the same test and
+   * the same reason (*every piece of a row leads where the row leads*), and the
+   * shelf was written without it: only the row was in the map, while the three
+   * spans on it covered everything but four pixels of padding at each end. The
+   * test above passes on a row nobody can hit, because it presses the row.
+   *
+   * No pin here, so the sweep is the row's own pieces. What holds the pin out of
+   * this map is the test above it, which asserts nothing opens.
+   */
+  test("every piece of a kept fight's row opens that fight", () => {
+    const chosen: string[] = [];
+    const { container, panel } = renderShelf([composeShelfFight({ id: "two", isPinnable: false })], {
+      onFightChosen: (id) => void chosen.push(id),
+    });
+    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
+
+    for (const part of getEveryNode(row)) setPressOn(panel, part);
+
+    expect(chosen.length).toBe(getEveryNode(row).length);
+    expect(new Set(chosen)).toEqual(new Set(["two"]));
+  });
+
   test("the two strips report the choice they carry", () => {
     const storage: string[] = [];
     const limits: number[] = [];

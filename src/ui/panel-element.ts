@@ -505,6 +505,34 @@ export type PanelPlacement = {
   getTimedResult?: (<Result>(work: () => Result) => Result) | undefined;
 };
 
+/**
+ * ⚠️ **Every piece of a row answers for the row, not just the row itself.**
+ *
+ * Identity is what the listeners are keyed by — a `data-` value would mean this
+ * file deciding twice what a row is, once drawing it and once reading it back —
+ * and an event names the *deepest* node under the pointer, which is the name,
+ * the figure or the bar. Registering only the line meant a click on a bar did
+ * nothing and the detail vanished the moment the pointer crossed onto a word:
+ * the two bugs had one cause.
+ *
+ * Here rather than inside the function that first paid for it, because the shelf
+ * of kept fights went on to make the same mistake in its own words — and a
+ * warning read only by the function it sits in is one the second screen never
+ * reads (§7.5). What it cost there: a shelf row holds three spans and one of
+ * them is `flex: 1`, so the only part of it that still answered a press was the
+ * four pixels of padding at each end and the sliver of an eighteen-pixel row
+ * above and below the text. The ranking hides this — its bar is stretched across
+ * the whole row and is registered — so the screen with no bar is the one where
+ * it bites.
+ */
+function setRowPressTargets(
+  rows: Map<unknown, string>,
+  key: string,
+  parts: readonly PanelNode[],
+): void {
+  for (const part of parts) rows.set(part, key);
+}
+
 /** One row, bar and all. The bar is behind the text rather than beside it. */
 function renderRow(
   document: PanelDocument,
@@ -578,19 +606,13 @@ function renderRow(
   // row, so it joins `parts` only after the line has been assembled.
   parts.push(share);
 
-  /**
-   * ⚠️ **Every piece of the row answers for the row, not just the row itself.**
-   *
-   * Identity is what the listeners are keyed by — a `data-` value would mean this
-   * file deciding twice what a row is, once drawing it and once reading it back —
-   * and an event names the *deepest* node under the pointer, which is the name,
-   * the figure or the bar. Registering only the line meant a click on a bar did
-   * nothing and the detail vanished the moment the pointer crossed onto a word:
-   * the two bugs had one cause.
-   */
-  for (const part of [line, ...parts]) {
-    if (row.isDrillable) rows.set(part, row.key);
-    if (row.detail.length > 0) details.set(part, row.detail);
+  const targets = [line, ...parts];
+  if (row.isDrillable) setRowPressTargets(rows, row.key, targets);
+  // The detail rides the same pieces, and it is the other half of the one bug
+  // `setRowPressTargets` argues: it vanished the moment the pointer crossed from
+  // the row onto a word standing on it.
+  if (row.detail.length > 0) {
+    for (const part of targets) details.set(part, row.detail);
   }
   return line;
 }
@@ -1044,10 +1066,11 @@ export type PanelFightsHandlers = {
  * design inside one window. What has no counterpart in the ranking is the pin and
  * the two labelled strips, and those are the only classes this adds.
  *
- * ⚠️ **The pin is inside the row and must be read before it.** A press lands on
- * the innermost node, so the pin is looked up first — without that, pinning a
- * fight would also open it, and the reader would find themselves reading a fight
- * they only meant to keep.
+ * ⚠️ **The pin is inside the row and is not one of the row's press targets.** A
+ * press lands on the innermost node, so a pin registered as the row too would
+ * open the fight somebody only meant to keep. It is left out of `fightByNode`
+ * rather than merely being looked up first, so that the order the handler asks
+ * its questions in is a convenience and not the thing holding this up.
  */
 function renderFights(
   document: PanelDocument,
@@ -1150,7 +1173,6 @@ function renderFights(
     for (const row of view.rows) {
       const node = document.createElement("div");
       node.className = row.isSelected ? "row drillable chosen" : "row drillable";
-      fightByNode.set(node, row.id);
 
       /*
        * A pin only where there is something to pin. A fight nothing has written
@@ -1179,6 +1201,11 @@ function renderFights(
       outcome.className = "row-value";
       outcome.textContent = row.outcomeText;
       node.append(time, sizes, outcome);
+      // The pin is deliberately not among them, though it is inside the row: it
+      // is a control of its own, and keeping it out of this map is what makes it
+      // outrank the row structurally rather than by the order the handler above
+      // happens to ask its questions in.
+      setRowPressTargets(fightByNode, row.id, [node, time, sizes, outcome]);
       list.append(node);
     }
     return list;
