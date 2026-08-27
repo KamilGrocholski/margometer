@@ -21,6 +21,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import { getEndOfWhitespace, isWhitespaceAt } from "@/libs/text-runs.ts";
 import {
   HEALTH_CURRENT_FIELD,
   HEALTH_MAXIMUM_FIELD,
@@ -69,7 +70,20 @@ function getSourceWithoutComments(file: string): string {
  * `src/game/fight-capture.ts` writes these same words as the keys of a snapshot,
  * and those belong to the file format rather than to the engine.
  */
-const READ_OF_A_FIELD = new RegExp(`\\[\\s*"(${FIELDS.join("|")})"\\s*\\]`, "g");
+function getBracketedReads(source: string, names: readonly string[]): string[] {
+  return names.filter((name) => hasBracketedRead(source, name));
+}
+
+function hasBracketedRead(source: string, name: string): boolean {
+  const quoted = `"${name}"`;
+  for (let at = source.indexOf(quoted); at !== -1; at = source.indexOf(quoted, at + 1)) {
+    let opening = at;
+    while (opening > 0 && isWhitespaceAt(source, opening - 1)) opening -= 1;
+    if (source[opening - 1] !== "[") continue;
+    if (source[getEndOfWhitespace(source, at + quoted.length)] === "]") return true;
+  }
+  return false;
+}
 
 describe("the game's own field names", () => {
   test("there are fields, and files to check them against", () => {
@@ -97,9 +111,7 @@ describe("the game's own field names", () => {
   });
 
   test.each(OTHER_FILES)("%s reads a combatant through the owner", (file) => {
-    const spelled = [...getSourceWithoutComments(file).matchAll(READ_OF_A_FIELD)].map(
-      (match) => match[0],
-    );
+    const spelled = getBracketedReads(getSourceWithoutComments(file), FIELDS);
     expect(spelled, file).toEqual([]);
   });
 
@@ -117,9 +129,7 @@ describe("the game's own field names", () => {
    */
   test.each(OTHER_FILES)("%s reads a health member through the owner", (file) => {
     const source = getSourceWithoutComments(file);
-    const spelled = HEALTH_MEMBERS.filter((member) =>
-      new RegExp(`\\[\\s*"${member}"\\s*\\]`).test(source),
-    );
+    const spelled = getBracketedReads(source, HEALTH_MEMBERS);
     expect(spelled, file).toEqual([]);
   });
 });

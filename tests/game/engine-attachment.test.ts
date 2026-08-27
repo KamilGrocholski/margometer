@@ -10,6 +10,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
+import { getEndOfWordCharacters } from "@/libs/text-runs.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
 import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
@@ -1352,11 +1353,13 @@ describe("what the add-on leaves in the game's page", () => {
    * `data-` comes off the front of an attribute name because it is HTML's word
    * and not ours — what has to be ours is what follows it.
    */
+  const HTML_ATTRIBUTE_PREFIX = "data-";
+
   function getMarksOf(node: Record<string, unknown>): string[] {
     const attributes = node["attributes"] as Record<string, string>;
     return [node["id"] as string, node["className"] as string, ...Object.keys(attributes)]
       .filter((mark) => mark !== "")
-      .map((mark) => mark.replace(/^data-/, ""));
+      .map((mark) => (mark.startsWith(HTML_ATTRIBUTE_PREFIX) ? mark.slice(HTML_ATTRIBUTE_PREFIX.length) : mark));
   }
 
   test("the panel's host says whose it is, and carries the version a screenshot needs", () => {
@@ -1600,8 +1603,8 @@ describe("the world a saved recording names", () => {
       // `?? null` because one of the three cases *is* `undefined`, which has no
       // JSON — the exact answer `composeJsonText` asserts on rather than handing
       // back the value `undefined` under a type saying `string`.
-      expect(getNames()[0], composeJsonText(location ?? null)).toMatch(
-        /^margometer-unknown-/,
+      expect(getNames()[0] ?? "", composeJsonText(location ?? null)).toStartWith(
+        "margometer-unknown-",
       );
     }
   });
@@ -2366,6 +2369,8 @@ describe("what the meter is actually told", () => {
    * is how two keys once entered a table from a switch that had nothing to do
    * with them (§7.5).
    */
+  const MEMBER_INDENT = "  ";
+
   function getDeclaredOptionNames(): string[] {
     const opening = "export type MargoMeterOptions = {";
     const start = SOURCE.indexOf(opening);
@@ -2374,7 +2379,20 @@ describe("what the meter is actually told", () => {
     expect(end, "the options type is closed").toBeGreaterThan(start);
 
     const block = composeSourceWithoutComments(SOURCE.slice(start + opening.length, end));
-    return [...block.matchAll(/^\s{2}(\w+)\??:/gm)].map(([, name]) => assertDefined(name, "a member name"));
+    return block.split("\n").flatMap((line) => getDeclaredMemberName(line) ?? []);
+  }
+
+  /**
+   * A member of the type, which is a name at one level of indentation: two
+   * spaces, the name, an optional mark, and the colon. Anything deeper belongs
+   * to a member's own shape rather than to the type.
+   */
+  function getDeclaredMemberName(line: string): string | null {
+    if (!line.startsWith(MEMBER_INDENT) || line[MEMBER_INDENT.length] === " ") return null;
+    const end = getEndOfWordCharacters(line, MEMBER_INDENT.length);
+    if (end === MEMBER_INDENT.length) return null;
+    const after = line[end] === "?" ? end + 1 : end;
+    return line[after] === ":" ? line.slice(MEMBER_INDENT.length, end) : null;
   }
 
   test("the type declares the members this test is about to hold", () => {

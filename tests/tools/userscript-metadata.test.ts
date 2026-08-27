@@ -1,5 +1,6 @@
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import { describe, expect, test } from "bun:test";
+import { getEndOfDigits, isWhitespaceAt } from "@/libs/text-runs.ts";
 import manifest from "@/package.json";
 import {
   composeUserscriptBanner,
@@ -8,8 +9,69 @@ import {
 } from "@/build.ts";
 
 const BANNER = composeUserscriptBanner(manifest.version, manifest.description, manifest.homepage);
-const getDirective = (key: string): string[] =>
-  [...BANNER.matchAll(new RegExp(`^// @${key}\\s+(.*)$`, "gm"))].map((match) => match[1]!.trim());
+/** What a directive line opens with, before the key. */
+const DIRECTIVE_OPENING = "// @";
+
+/**
+ * What every line naming `key` states after it.
+ *
+ * The whitespace after the key is what tells one directive from another whose
+ * name it begins — `@match` and `@matchless` are two keys, and only the space
+ * says so.
+ */
+const getDirective = (key: string): string[] => {
+  const opening = `${DIRECTIVE_OPENING}${key}`;
+  return BANNER.split("\n")
+    .filter((line) => line.startsWith(opening) && isWhitespaceAt(line, opening.length))
+    .map((line) => line.slice(opening.length).trim());
+};
+
+const SCHEME = "https://";
+
+const SUBDOMAIN_MARK = "*.";
+
+/** The authority of an address: what stands between the scheme and the first slash. */
+function getHostOf(address: string): string {
+  const rest = address.slice(SCHEME.length);
+  const slash = rest.indexOf("/");
+  return slash === -1 ? rest : rest.slice(0, slash);
+}
+
+/**
+ * Whether a manager reading `pattern` would run the add-on on `address`.
+ *
+ * ⚠️ **The bare-host rule is here on purpose and is looser than a host name.**
+ * A pattern with no `*.` in front of it is modelled the way a manager models it,
+ * as anything up to the first slash — so the guard cannot call the exclude for a
+ * bare domain dead code while a manager still honours it.
+ */
+function isAddressMatchedBy(address: string, pattern: string): boolean {
+  if (!address.startsWith(SCHEME) || !pattern.startsWith(SCHEME)) return false;
+  const host = getHostOf(pattern);
+  const authority = getHostOf(address);
+  if (address.length <= SCHEME.length + authority.length) return false;
+
+  const bare = host.startsWith(SUBDOMAIN_MARK) ? host.slice(SUBDOMAIN_MARK.length) : host;
+  if (!authority.endsWith(bare)) return false;
+  const before = authority.slice(0, authority.length - bare.length);
+  if (!host.startsWith(SUBDOMAIN_MARK)) return true;
+  // Whole labels, each with something in it: a name is either the host itself or
+  // something with a full stop between it and the host.
+  return before === "" || (before.endsWith(".") && before.length > 1);
+}
+
+/** Whether text opens the way a release number does: digits, point, digits, point, digits. */
+function hasVersionOpening(text: string): boolean {
+  let index = 0;
+  for (let part = 0; part < 3; part += 1) {
+    const end = getEndOfDigits(text, index);
+    if (end === index) return false;
+    if (part === 2) return true;
+    if (text[end] !== ".") return false;
+    index = end + 1;
+  }
+  return true;
+}
 
 describe("userscript metadata", () => {
   test("is a closed metadata block", () => {
@@ -123,14 +185,7 @@ describe("userscript metadata", () => {
    */
   test("every exclude is covered by a match — an exclude for an unmatched host is dead", () => {
     const isMatchedByAnyPattern = (url: string): boolean =>
-      getDirective("match").some((pattern) => {
-        const host = pattern.replace(/^https:\/\//, "").replace(/\/.*$/, "");
-        const subdomains = host.startsWith("*.") ? String.raw`([^/]+\.)*` : "[^/]*";
-        const asRegExp = new RegExp(
-          `^https://${subdomains}${host.replace(/^\*\./, "").replace(/\./g, String.raw`\.`)}/.*$`,
-        );
-        return asRegExp.test(url);
-      });
+      getDirective("match").some((pattern) => isAddressMatchedBy(url, pattern));
 
     for (const exclude of getDirective("exclude")) {
       expect(isMatchedByAnyPattern(exclude), exclude).toBe(true);
@@ -169,7 +224,7 @@ describe("the version the add-on says it is", () => {
    * release is worse than one that says so.
    */
   test("does not look like a version number", () => {
-    expect(USERSCRIPT_VERSION).not.toMatch(/^\d+\.\d+\.\d+/);
+    expect(hasVersionOpening(USERSCRIPT_VERSION), USERSCRIPT_VERSION).toBe(false);
   });
 
   test("is what the built userscript replaces, so the banner never carries it", () => {

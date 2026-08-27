@@ -5,9 +5,20 @@ import {
   composeSourceWithBlankedComments,
   composeSourceWithoutComments,
   getCommentRangesFromSource,
+  getRegularExpressionRangesFromSource,
   getTextRangesFromSource,
 } from "@/libs/source-regions.ts";
+import {
+  getEndOfWhitespace,
+  getWordOccurrences,
+  hasAnyCharacterIn,
+  isKebabCaseText,
+  isWhitespaceAt,
+  isWordCharacterAt,
+} from "@/libs/text-runs.ts";
 import { CAPTURED_FIGHTS, getMessagesOfFight } from "@/tests/captured-fight-catalog.ts";
+import { composeUnwrappedProse } from "@/tests/document-lines.ts";
+import { getCallSites, getImportSpecifiers, hasCall } from "@/tests/source-search.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 const SOURCE_DIRECTORIES = ["libs", "src", "tools", "tests"];
@@ -70,6 +81,29 @@ const ACTION_VERBS = [
 /** Booleans read as a statement rather than an action. */
 const BOOLEAN_PREFIXES = ["is", "has", "should"];
 
+const TEST_SUFFIX = ".test";
+
+const SOURCE_EXTENSION = ".ts";
+
+/** Kebab-case, optionally saying it is a test, and the extension. */
+function isSourceFileName(basename: string): boolean {
+  if (!basename.endsWith(SOURCE_EXTENSION)) return false;
+  const name = basename.slice(0, basename.length - SOURCE_EXTENSION.length);
+  const stem = name.endsWith(TEST_SUFFIX) ? name.slice(0, name.length - TEST_SUFFIX.length) : name;
+  return isKebabCaseText(stem);
+}
+
+/**
+ * Which of `words` the source spells as a word of its own, in the order they are
+ * listed.
+ *
+ * The order is the list's rather than the source's, which is what a caller
+ * comparing the answer to an empty list needs and all of them do.
+ */
+function getSpelledWords(source: string, words: readonly string[]): string[] {
+  return words.filter((word) => getWordOccurrences(source, word).length > 0);
+}
+
 // Discovered rather than listed, so a new directory cannot quietly opt out of
 // the conventions below.
 test("there are source files to check", () => {
@@ -82,8 +116,7 @@ describe("import paths", () => {
   // you are — and moving a file rewrites its neighbours' imports.
   test.each(SOURCE_FILES)("%s imports from the repository root", (file) => {
     const source = getSourceWithoutComments(file);
-    const specifiers = [...source.matchAll(/\bfrom\s+"([^"]+)"/g)].map((match) => match[1]!);
-    const relative = specifiers.filter((specifier) => specifier.startsWith("."));
+    const relative = getImportSpecifiers(source).filter((specifier) => specifier.startsWith("."));
     expect(relative).toEqual([]);
   });
 });
@@ -92,7 +125,7 @@ describe("file names", () => {
   // A file called `utils.ts` is a file nobody can predict the contents of.
   test.each(SOURCE_FILES)("%s is kebab-case and names its contents", (file) => {
     const basename = file.split("/").pop()!;
-    expect(basename).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*(\.test)?\.ts$/);
+    expect(isSourceFileName(basename), basename).toBe(true);
     expect(["utils.ts", "helpers.ts", "misc.ts", "common.ts", "index.ts"]).not.toContain(basename);
   });
 });
@@ -105,8 +138,8 @@ describe("layers", () => {
     "%s depends on nothing above it",
     (file) => {
       const source = getSourceWithoutComments(file);
-      const reachingUp = [...source.matchAll(/\bfrom\s+"@\/(src|tools|tests)\//g)].map(
-        (match) => match[0],
+      const reachingUp = getImportSpecifiers(source).filter((specifier) =>
+        ["@/src/", "@/tools/", "@/tests/"].some((above) => specifier.startsWith(above)),
       );
       expect(reachingUp).toEqual([]);
     },
@@ -126,8 +159,8 @@ describe("layers", () => {
     "%s keeps core independent of the game and the panel",
     (file) => {
       const source = getSourceWithoutComments(file);
-      const reachingOut = [...source.matchAll(/\bfrom\s+"@\/src\/(game|ui)\//g)].map(
-        (match) => match[0],
+      const reachingOut = getImportSpecifiers(source).filter((specifier) =>
+        ["@/src/game/", "@/src/ui/"].some((sibling) => specifier.startsWith(sibling)),
       );
       expect(reachingOut, file).toEqual([]);
     },
@@ -139,11 +172,14 @@ describe("layers", () => {
     "%s reaches for nothing the browser owns",
     (file) => {
       const source = getSourceWithoutComments(file);
-      const reachingOut = [
-        ...source.matchAll(
-          /\b(document|window|localStorage|sessionStorage|setTimeout|setInterval)\b/g,
-        ),
-      ].map((match) => match[1]);
+      const reachingOut = getSpelledWords(source, [
+        "document",
+        "window",
+        "localStorage",
+        "sessionStorage",
+        "setTimeout",
+        "setInterval",
+      ]);
       expect(reachingOut, file).toEqual([]);
     },
   );
@@ -166,17 +202,34 @@ describe("layers", () => {
    * global is still unreachable by the other spellings (`window.document`,
    * `globalThis.document`), and those are in the list below.
    */
-  const BROWSER_GLOBALS =
-    /\b(window|localStorage|sessionStorage|setTimeout|setInterval|clearTimeout|clearInterval|navigator|location|globalThis|performance|Blob|URL|fetch|XMLHttpRequest|WebSocket)\b/g;
+  const BROWSER_GLOBALS = [
+    "window",
+    "localStorage",
+    "sessionStorage",
+    "setTimeout",
+    "setInterval",
+    "clearTimeout",
+    "clearInterval",
+    "navigator",
+    "location",
+    "globalThis",
+    "performance",
+    "Blob",
+    "URL",
+    "fetch",
+    "XMLHttpRequest",
+    "WebSocket",
+  ];
 
   test.each(SOURCE_FILES.filter((file) => file.startsWith("src/ui/")))(
     "%s draws into a document it was handed",
     (file) => {
       const source = getSourceWithoutComments(file);
-      const reachingOut = [...source.matchAll(BROWSER_GLOBALS)].map((match) => match[1]);
+      const reachingOut = getSpelledWords(source, BROWSER_GLOBALS);
       expect(reachingOut, file).toEqual([]);
       if (source.includes("document")) {
-        expect(source, `${file} spells document without declaring it`).toMatch(/document\??:/);
+        const declared = source.includes("document:") || source.includes("document?:");
+        expect(declared, `${file} spells document without declaring it`).toBe(true);
       }
     },
   );
@@ -238,8 +291,8 @@ describe("layers", () => {
     ),
   )("%s imports only from the layers §9.1 lets it", (file, mayImport) => {
     const source = getSourceWithoutComments(file);
-    const reachingOut = [...source.matchAll(/\bfrom\s+"(@\/[^"]+)"/g)]
-      .map((match) => match[1] ?? "")
+    const reachingOut = getImportSpecifiers(source)
+      .filter((specifier) => specifier.startsWith("@/"))
       .filter((specifier) => !mayImport.some((allowed) => specifier.startsWith(allowed)));
     expect(reachingOut, file).toEqual([]);
   });
@@ -262,6 +315,12 @@ describe("layers", () => {
    * base, which is named as a subject when the two hierarchies are proved
    * disjoint.
    */
+  const TOOLS_PREFIX = "@/tools/";
+
+  function getToolImports(source: string): string[] {
+    return getImportSpecifiers(source).filter((specifier) => specifier.startsWith(TOOLS_PREFIX));
+  }
+
   const TOOLS_A_TEST_MAY_READ = [
     "@/tools/fight-dump-parser.ts",
     "@/tools/margometer-tool-error.ts",
@@ -273,9 +332,9 @@ describe("layers", () => {
     ),
   )("%s reads a tool for the material or not at all", (file) => {
     const source = getSourceWithoutComments(file);
-    const reachingOut = [...source.matchAll(/\bfrom\s+"(@\/tools\/[^"]+)"/g)]
-      .map((match) => match[1] ?? "")
-      .filter((specifier) => !TOOLS_A_TEST_MAY_READ.includes(specifier));
+    const reachingOut = getToolImports(source).filter(
+      (specifier) => !TOOLS_A_TEST_MAY_READ.includes(specifier),
+    );
     expect(reachingOut, file).toEqual([]);
   });
 
@@ -311,9 +370,9 @@ describe("layers", () => {
         ...(TOOLS_A_TOOL_TEST_MAY_ALSO_READ[file] ?? []),
       ];
       const source = getSourceWithoutComments(file);
-      const reachingOut = [...source.matchAll(/\bfrom\s+"(@\/tools\/[^"]+)"/g)]
-        .map((match) => match[1] ?? "")
-        .filter((specifier) => !allowed.includes(specifier));
+      const reachingOut = getToolImports(source).filter(
+        (specifier) => !allowed.includes(specifier),
+      );
       expect(reachingOut, file).toEqual([]);
     },
   );
@@ -340,13 +399,44 @@ describe("the promise not to talk to the network", () => {
     "%s sends nothing anywhere",
     (file) => {
       const source = getSourceWithoutComments(file);
-      const sending = [
-        ...source.matchAll(/\b(fetch|XMLHttpRequest|WebSocket|sendBeacon|EventSource)\b/g),
-      ].map((match) => match[1]);
+      const sending = getSpelledWords(source, [
+        "fetch",
+        "XMLHttpRequest",
+        "WebSocket",
+        "sendBeacon",
+        "EventSource",
+      ]);
       expect(sending, file).toEqual([]);
     },
   );
 });
+
+/** What a value ends with, in front of the mark. */
+const BEFORE_NON_NULL = "]\"')";
+
+/** And what may follow the mark, beside whitespace and the end of the file. */
+const AFTER_NON_NULL = ".,;)";
+
+/**
+ * Every `!` asserting non-null, as the character it follows and the mark.
+ *
+ * A value on the left and punctuation or nothing on the right is what tells the
+ * assertion from a negation and from `!==`: those have an operator on one side
+ * or a name on the other.
+ */
+function getNonNullAssertions(source: string): string[] {
+  const found: string[] = [];
+  for (let at = source.indexOf("!"); at !== -1; at = source.indexOf("!", at + 1)) {
+    const before = source[at - 1];
+    if (before === undefined) continue;
+    if (!isWordCharacterAt(source, at - 1) && !BEFORE_NON_NULL.includes(before)) continue;
+    const after = source[at + 1];
+    const isClosed =
+      after === undefined || AFTER_NON_NULL.includes(after) || isWhitespaceAt(source, at + 1);
+    if (isClosed) found.push(source.slice(at - 1, at + 1));
+  }
+  return found;
+}
 
 describe("assumptions", () => {
   // AGENTS.md §9.5. `!` is an assumption that says nothing when it turns out
@@ -356,13 +446,468 @@ describe("assumptions", () => {
     "%s states its assumptions instead of asserting non-null",
     (file) => {
       const source = getSourceWithoutComments(file);
-      const nonNull = [...source.matchAll(/[\w\]"')]!(?=[.,;)\s]|$)/gm)]
-        .map((match) => match[0])
-        .filter((match) => !match.startsWith("!"));
-      expect(nonNull, file).toEqual([]);
+      expect(getNonNullAssertions(source), file).toEqual([]);
     },
   );
 });
+
+/** What an operand of a `typeof` comparison is written with. */
+const OPERAND_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_$.[]\"'";
+
+const EQUALITIES = ["===", "=="];
+
+const COMPARISONS = ["!==", "!=", "===", "=="];
+
+const DIGITS = "0123456789";
+
+function getEndOfRun(source: string, start: number, characters: string): number {
+  let end = start;
+  while (end < source.length && characters.includes(source[end] ?? "")) end += 1;
+  return end;
+}
+
+/** Every call of `name`, reported as the name and its bracket. */
+function composeCallFinder(name: string): (source: string) => string[] {
+  return (source) => getCallSites(source, name).map(() => `${name}(`);
+}
+
+/**
+ * A finder for a shape whose whitespace does not matter.
+ *
+ * The needle is written the way the source would be with every space taken out,
+ * which is what makes one string stand in for a pattern full of `\s*`. Held to
+ * shapes short enough to read at a glance — a long one stops saying what it
+ * looks for.
+ */
+function composeUnspacedFinder(needle: string): (source: string) => string[] {
+  return (source) => (composeWithoutWhitespace(source).includes(needle) ? [needle] : []);
+}
+
+function composeWithoutWhitespace(source: string): string {
+  let kept = "";
+  for (let index = 0; index < source.length; index += 1) {
+    if (!isWhitespaceAt(source, index)) kept += source[index];
+  }
+  return kept;
+}
+
+/** `.toString(16)` and its neighbours — a radix, never the bare call. */
+function getWritesInAnotherBase(source: string): string[] {
+  const found: string[] = [];
+  for (const at of getCallSites(source, ".toString")) {
+    const opening = source.indexOf("(", at) + 1;
+    const start = getEndOfWhitespace(source, opening);
+    const end = getEndOfRun(source, start, DIGITS);
+    if (end === start) continue;
+    if (source[getEndOfWhitespace(source, end)] === ")") found.push(source.slice(at, end + 1));
+  }
+  return found;
+}
+
+/**
+ * A total a map carries, added to by hand.
+ *
+ * The map is read as an **expression** rather than as a name, which is what the
+ * pattern this replaces was missing: every total in this repository hangs off a
+ * row, so the common spelling reaches its map through a field.
+ */
+function getRunningTotals(source: string): string[] {
+  const found: string[] = [];
+  for (const at of getCallSites(source, ".set")) {
+    let index = getEndOfWhitespace(source, source.indexOf("(", at) + 1);
+    const key = source.slice(index, getEndOfRun(source, index, OPERAND_CHARACTERS));
+    if (key === "") continue;
+    index = getEndOfWhitespace(source, index + key.length);
+    if (source[index] !== ",") continue;
+    index = getEndOfWhitespace(source, index + 1);
+    if (source[index] !== "(") continue;
+    index = getEndOfWhitespace(source, index + 1);
+
+    const reader = source.slice(index, getEndOfRun(source, index, OPERAND_CHARACTERS));
+    if (!reader.endsWith(READ_OF_A_MAP)) continue;
+    index = getEndOfWhitespace(source, index + reader.length);
+    if (source[index] !== "(") continue;
+    index = getEndOfWhitespace(source, index + 1);
+    if (!source.startsWith(key, index)) continue;
+    index = getEndOfWhitespace(source, index + key.length);
+    if (source[index] !== ")") continue;
+    index = getEndOfWhitespace(source, index + 1);
+    if (!source.startsWith(FALLING_BACK_TO_ZERO, index)) continue;
+    index = getEndOfWhitespace(source, index + FALLING_BACK_TO_ZERO.length);
+    if (source[index] !== "0") continue;
+    index = getEndOfWhitespace(source, index + 1);
+    if (source[index] === ")") found.push(source.slice(at, index + 1));
+  }
+  return found;
+}
+
+const READ_OF_A_MAP = ".get";
+
+const FALLING_BACK_TO_ZERO = "??";
+
+/**
+ * The messages of a whole fight, flattened by hand.
+ *
+ * Reading a call's messages *per call* is a different question and most of
+ * `tests/core/` legitimately asks it, so what is looked for is the flattening
+ * and its terminator.
+ */
+function getFlattenedMessages(source: string): string[] {
+  const unspaced = composeWithoutWhitespace(source);
+  const found: string[] = [];
+  const opening = ".flatMap((call)=>";
+  for (let at = unspaced.indexOf(opening); at !== -1; at = unspaced.indexOf(opening, at + 1)) {
+    let index = at + opening.length;
+    const isWrapped = unspaced[index] === "[";
+    if (isWrapped) index += 1;
+    while (unspaced[index] === "." && index - at < opening.length + 5) index += 1;
+    if (!unspaced.startsWith(MESSAGES_OF_A_CALL, index)) continue;
+    index += MESSAGES_OF_A_CALL.length;
+    if (isWrapped && unspaced[index] === "]") index += 1;
+    if (unspaced[index] === ")" || unspaced[index] === ",") found.push(unspaced.slice(at, index + 1));
+  }
+  return found;
+}
+
+const MESSAGES_OF_A_CALL = "call.protocolMessages";
+
+/** What may stand in front of a unary `+`, and what may follow it. */
+const BEFORE_UNARY_PLUS = "=(,[:";
+
+const AFTER_UNARY_PLUS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$\"'(";
+
+/**
+ * A number read by putting a `+` in front of it.
+ *
+ * Deliberately narrow — it catches `= +text` and `(+text` and misses `a + b`. A
+ * guard that cried wolf on every addition would be turned off within a week, and
+ * a missed spelling is cheaper than that.
+ */
+function getUnaryPluses(source: string): string[] {
+  const found: string[] = [];
+  for (let at = source.indexOf("+"); at !== -1; at = source.indexOf("+", at + 1)) {
+    const after = source[at + 1];
+    if (after === undefined || !AFTER_UNARY_PLUS.includes(after)) continue;
+    let before = at;
+    while (before > 0 && isWhitespaceAt(source, before - 1)) before -= 1;
+    const opening = source[before - 1];
+    if (opening !== undefined && BEFORE_UNARY_PLUS.includes(opening)) {
+      found.push(source.slice(before - 1, at + 2));
+    }
+  }
+  return found;
+}
+
+/** The other coercion with no name: a number multiplied by one. */
+function getMultipliesByOne(source: string): string[] {
+  const found: string[] = [];
+  for (let at = source.indexOf("*"); at !== -1; at = source.indexOf("*", at + 1)) {
+    const one = getEndOfWhitespace(source, at + 1);
+    if (source[one] !== "1" || isWordCharacterAt(source, one + 1)) continue;
+    found.push(source.slice(at, one + 1));
+  }
+  return found;
+}
+
+/** `typeof x === "number"` and its kind, with the operators the caller admits. */
+function getTypeofComparisons(
+  source: string,
+  type: string,
+  operators: readonly string[],
+): string[] {
+  const found: string[] = [];
+  for (const at of getWordOccurrences(source, "typeof")) {
+    const operand = getEndOfWhitespace(source, at + "typeof".length);
+    if (operand === at + "typeof".length) continue;
+    const end = getEndOfRun(source, operand, OPERAND_CHARACTERS);
+    if (end === operand) continue;
+    const index = getEndOfWhitespace(source, end);
+    // Longest first, or `==` would be read where `===` is written.
+    const operator = operators.find((one) => source.startsWith(one, index));
+    if (operator === undefined) continue;
+    const stated = getEndOfWhitespace(source, index + operator.length);
+    if (source.startsWith(`"${type}"`, stated)) found.push(source.slice(at, stated + type.length + 2));
+  }
+  return found;
+}
+
+/**
+ * A cast off parsed JSON — the parse, and the word `as` close enough after it to
+ * be about what came back.
+ *
+ * Bounded rather than to the end of the line: the first version stopped at the
+ * line break, so a cast written one line below its parse was invisible; an
+ * unbounded reach would join a parse at the top of a file to an unrelated `as`
+ * at the bottom.
+ */
+const REACH_OF_A_CAST = 200;
+
+function getCastsOffParsedJson(source: string): string[] {
+  const found: string[] = [];
+  const parse = "JSON.parse";
+  // One finding per span: a second parse inside the reach of the first belongs
+  // to the same report, and reporting it again would count one fault twice.
+  let readTo = 0;
+  for (const at of getWordOccurrences(source, parse)) {
+    if (at < readTo) continue;
+    const reach = source.slice(at, at + REACH_OF_A_CAST + parse.length);
+    const cast = getWordOccurrences(reach, "as")[0];
+    if (cast === undefined) continue;
+    const line = reach.indexOf("\n", cast);
+    const end = line === -1 ? reach.length : line;
+    found.push(reach.slice(0, end));
+    readTo = at + end;
+  }
+  return found;
+}
+
+/** Every `--name` a source writes, which is a custom property wherever it stands. */
+function getCustomProperties(source: string): string[] {
+  const found: string[] = [];
+  const opening = "--";
+  for (let at = source.indexOf(opening); at !== -1; at = source.indexOf(opening, at + 1)) {
+    const start = at + opening.length;
+    if (!isLetterAt(source, start)) continue;
+    const end = getEndOfRun(source, start, `${NAME_CHARACTERS}-`);
+    found.push(source.slice(at, end));
+    at = end - 1;
+  }
+  return found;
+}
+
+const NAME_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
+
+function isLetterAt(source: string, index: number): boolean {
+  const character = source[index];
+  if (character === undefined) return false;
+  return (character >= "a" && character <= "z") || (character >= "A" && character <= "Z");
+}
+
+/**
+ * What each console line is labelled with.
+ *
+ * The bare names reach both spellings of the call — a full stop is not a word
+ * character, so `console.warn` carries `warn` standing alone — and both
+ * spellings are here because the entry point injects its own `warn` and `info`
+ * so the once-per-fight rule can be tested without a console.
+ */
+const CONSOLE_CALLS = ["warn", "info"];
+
+function getConsoleLabels(source: string): string[] {
+  const labels: string[] = [];
+  for (const name of CONSOLE_CALLS) {
+    for (const at of getCallSites(source, name)) {
+      const opening = getEndOfWhitespace(source, source.indexOf("(", at) + 1);
+      if (source[opening] !== `"`) continue;
+      const closing = source.indexOf(`"`, opening + 1);
+      if (closing === -1) continue;
+      labels.push(source.slice(opening + 1, closing));
+    }
+  }
+  return labels;
+}
+
+/** Every base a class extends, by the name after the keyword. */
+function getExtendedBases(source: string): string[] {
+  const bases: string[] = [];
+  for (const at of getWordOccurrences(source, "extends")) {
+    const start = getEndOfWhitespace(source, at + "extends".length);
+    if (start === at + "extends".length) continue;
+    const end = getEndOfRun(source, start, NAME_CHARACTERS);
+    if (end > start) bases.push(source.slice(start, end));
+  }
+  return bases;
+}
+
+const UPPER_CASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+const ALPHANUMERIC =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+/**
+ * Whether a name opens with one of `openings` and then starts a new word.
+ *
+ * The follower is what keeps `setting` from reading as `set`: a verb the rest of
+ * the name continues in lower case is a longer word, not a prefix. A name that
+ * is the opening and nothing else is allowed — `assert(condition)` needs no noun
+ * after it.
+ */
+function hasNamedOpening(
+  name: string,
+  openings: readonly string[],
+  followers: string,
+): boolean {
+  return openings.some((opening) => {
+    if (!name.startsWith(opening)) return false;
+    const after = name[opening.length];
+    return after === undefined || followers.includes(after);
+  });
+}
+
+/** Every `function name(` in the source, by the name it declares. */
+function getDeclaredFunctionNames(source: string): string[] {
+  const names: string[] = [];
+  for (const at of getWordOccurrences(source, "function")) {
+    const start = getEndOfWhitespace(source, at + "function".length);
+    if (start === at + "function".length || !isLetterAt(source, start)) continue;
+    const end = getEndOfRun(source, start, ALPHANUMERIC);
+    if (source[getEndOfWhitespace(source, end)] !== "(") continue;
+    names.push(source.slice(start, end));
+  }
+  return names;
+}
+
+/** Every `const name = (…) => …`, by the name it declares. */
+function getArrowNames(source: string): string[] {
+  const names: string[] = [];
+  for (const at of getWordOccurrences(source, "const")) {
+    let index = getEndOfWhitespace(source, at + "const".length);
+    if (index === at + "const".length || !isLetterAt(source, index)) continue;
+    const end = getEndOfRun(source, index, ALPHANUMERIC);
+    const name = source.slice(index, end);
+    index = getEndOfWhitespace(source, end);
+    if (source[index] !== "=") continue;
+    index = getEndOfWhitespace(source, index + 1);
+    if (source.startsWith("async", index)) index = getEndOfWhitespace(source, index + "async".length);
+    if (source[index] !== "(") continue;
+    const closing = source.indexOf(")", index + 1);
+    if (closing === -1) continue;
+    let tail = closing + 1;
+    while (tail < source.length && !ENDS_A_RETURN_TYPE.includes(source[tail] ?? "")) tail += 1;
+    if (source.startsWith("=>", tail)) names.push(name);
+  }
+  return names;
+}
+
+/** What stops the reading between a parameter list and its arrow. */
+const ENDS_A_RETURN_TYPE = "=;\n";
+
+const BOOLEAN_LITERALS = ["true", "false"];
+
+/** Every `let`, `const` or `var` given a boolean literal, by the name it binds. */
+function getFlagNames(source: string): string[] {
+  const names: string[] = [];
+  for (const keyword of ["let", "const", "var"]) {
+    for (const at of getWordOccurrences(source, keyword)) {
+      let index = getEndOfWhitespace(source, at + keyword.length);
+      if (index === at + keyword.length || !isLetterAt(source, index)) continue;
+      const end = getEndOfRun(source, index, ALPHANUMERIC);
+      const name = source.slice(index, end);
+      index = getEndOfWhitespace(source, end);
+      if (source[index] === ":") {
+        index = getEndOfWhitespace(source, index + 1);
+        if (!source.startsWith("boolean", index)) continue;
+        index = getEndOfWhitespace(source, index + "boolean".length);
+      }
+      if (source[index] !== "=") continue;
+      index = getEndOfWhitespace(source, index + 1);
+      const literal = BOOLEAN_LITERALS.find((one) => source.startsWith(one, index));
+      if (literal === undefined || isWordCharacterAt(source, index + literal.length)) continue;
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+/** Every name typed `boolean`, read backwards off the type. */
+function getTypedBooleanNames(source: string): string[] {
+  const names: string[] = [];
+  for (const at of getWordOccurrences(source, "boolean")) {
+    let index = at;
+    while (index > 0 && isWhitespaceAt(source, index - 1)) index -= 1;
+    if (source[index - 1] !== ":") continue;
+    index -= 1;
+    while (index > 0 && isWhitespaceAt(source, index - 1)) index -= 1;
+    if (source[index - 1] === "?") index -= 1;
+    let start = index;
+    while (start > 0 && ALPHANUMERIC.includes(source[start - 1] ?? "")) start -= 1;
+    if (start === index || !isLetterAt(source, start)) continue;
+    if (isWordCharacterAt(source, start - 1)) continue;
+    names.push(source.slice(start, index));
+  }
+  return names;
+}
+
+const HEXADECIMAL_DIGITS = "0123456789abcdefABCDEF";
+
+const SHORTEST_COLOUR = 3;
+
+const LONGEST_COLOUR = 8;
+
+const COLOUR_FUNCTIONS = ["rgb", "rgba", "hsl", "hsla"];
+
+/** A colour written out: a hexadecimal one, or one of the four functions. */
+function getColourLiterals(source: string): string[] {
+  const found: string[] = [];
+  for (let at = source.indexOf("#"); at !== -1; at = source.indexOf("#", at + 1)) {
+    const end = getEndOfRun(source, at + 1, HEXADECIMAL_DIGITS);
+    const digits = end - at - 1;
+    if (digits < SHORTEST_COLOUR || digits > LONGEST_COLOUR) continue;
+    if (isWordCharacterAt(source, end)) continue;
+    found.push(source.slice(at, end));
+  }
+  for (const name of COLOUR_FUNCTIONS) {
+    for (const at of getWordOccurrences(source, name)) {
+      if (source[at + name.length] === "(") found.push(`${name}(`);
+    }
+  }
+  return found;
+}
+
+/**
+ * The imports taken out, so what is left is what a file says before its own
+ * docblock.
+ */
+function composeWithoutImports(source: string): string {
+  let kept = "";
+  let index = 0;
+  for (;;) {
+    const at = getWordOccurrences(source.slice(index), "import")[0];
+    if (at === undefined) return kept + source.slice(index);
+    const end = source.indexOf(";", index + at);
+    if (end === -1) return kept + source.slice(index);
+    kept += source.slice(index, index + at);
+    index = end + 1;
+  }
+}
+
+/** A hole in one of the client's sentences: `%name%`, either case. */
+function hasClientHole(text: string): boolean {
+  for (let at = text.indexOf("%"); at !== -1; at = text.indexOf("%", at + 1)) {
+    const start = at + 1;
+    if (!isLetterAt(text, start)) continue;
+    const end = getEndOfRun(text, start, `${ALPHANUMERIC}_`);
+    if (text[end] === "%") return true;
+  }
+  return false;
+}
+
+/**
+ * Every quoted span, by the fences this repository quotes with.
+ *
+ * A span stops at the end of its line: a fence nothing closes on the same line
+ * is an apostrophe or a stray tick, not a quotation.
+ */
+function getQuotedSpans(text: string, fences: readonly string[]): string[] {
+  const spans: string[] = [];
+  let index = 0;
+  while (index < text.length) {
+    const character = text[index] ?? "";
+    if (!fences.includes(character)) {
+      index += 1;
+      continue;
+    }
+    let end = index + 1;
+    while (end < text.length && text[end] !== character && text[end] !== "\n") end += 1;
+    if (text[end] !== character) {
+      index += 1;
+      continue;
+    }
+    spans.push(text.slice(index, end + 1));
+    index = end + 1;
+  }
+  return spans;
+}
 
 describe("value parsing", () => {
   /**
@@ -387,20 +932,20 @@ describe("value parsing", () => {
   const OWNED_CONSTRUCTS = [
     // `\bNumber\s*\(` and not `Number` alone: `Number.isInteger` and its
     // neighbours are checks, and banning the namespace would ban the checks too.
-    { pattern: /\bNumber\s*\(/g, owner: NUMBER },
+    { find: composeCallFinder("Number"), owner: NUMBER },
     // The `\b` also catches `Number.parseInt`, which is the same function.
-    { pattern: /\bparseInt\s*\(/g, owner: NUMBER },
-    { pattern: /\bparseFloat\s*\(/g, owner: NUMBER },
-    { pattern: /\bBigInt\s*\(/g, owner: NUMBER },
-    { pattern: /\.toFixed\s*\(/g, owner: NUMBER },
-    { pattern: /\bJSON\.parse\s*\(/g, owner: JSON_TEXT },
+    { find: composeCallFinder("parseInt"), owner: NUMBER },
+    { find: composeCallFinder("parseFloat"), owner: NUMBER },
+    { find: composeCallFinder("BigInt"), owner: NUMBER },
+    { find: composeCallFinder(".toFixed"), owner: NUMBER },
+    { find: composeCallFinder("JSON.parse"), owner: JSON_TEXT },
     // The write side, and it belongs here for the same reason the read side
     // does: `JSON.stringify` answers `undefined` — the value, not the text —
     // for `undefined`, a function or a symbol, while its return type says
     // `string`. Three call sites had made three different decisions about that
     // and none of them said so (F16).
-    { pattern: /\bJSON\.stringify\s*\(/g, owner: JSON_TEXT },
-    { pattern: /\bDate\.parse\s*\(/g, owner: TIMESTAMP },
+    { find: composeCallFinder("JSON.stringify"), owner: JSON_TEXT },
+    { find: composeCallFinder("Date.parse"), owner: TIMESTAMP },
     /**
      * The clock a duration is measured on, and the reason it is owned is that
      * "now" has three spellings that are not the same question. `Date.now()` is
@@ -411,12 +956,12 @@ describe("value parsing", () => {
      * unowned, as it was before this row: it has one spelling, it cannot
      * surprise a caller, and `tools/help-article.ts` reads it for an age in days.
      */
-    { pattern: /\bperformance\.now\s*\(/g, owner: ELAPSED_SPANS },
+    { find: composeCallFinder("performance.now"), owner: ELAPSED_SPANS },
     // A radix, not `.toString()` alone: writing a number in another base has the
     // same way of answering with something nobody wrote as reading one does —
     // `(-1).toString(16)` is `"-1"` — and it was the one conversion in `src/`
     // that `libs/` did not own, under the contrast arithmetic §9.7 makes a floor.
-    { pattern: /\.toString\s*\(\s*\d+\s*\)/g, owner: NUMBER },
+    { find: getWritesInAnotherBase, owner: NUMBER },
     /**
      * Not a value reader, and the register holds it for the other reason §7.1
      * gives: the second consumer arrived long ago and kept arriving. The same
@@ -436,10 +981,7 @@ describe("value parsing", () => {
      * reached through a field is the common case in this repository, where every
      * total hangs off a row.
      */
-    {
-      pattern: /\.set\(\s*([\w.[\]]+)\s*,\s*\(\s*[\w.[\]]+\.get\(\s*\1\s*\)\s*\?\?\s*0\s*\)/g,
-      owner: RUNNING_TOTAL,
-    },
+    { find: getRunningTotals, owner: RUNNING_TOTAL },
     /**
      * The decoder's own shape rule for a damage key, and the key it names a
      * combatant with. Four test files had the offsets written out by hand and
@@ -449,11 +991,14 @@ describe("value parsing", () => {
      * merely asserts (F13, F14). §7.5 has paid twice for the general version:
      * a rule about the shape of somebody else's name, copied by hand, is a fuse.
      */
-    { pattern: /slice\(\s*1\s*,\s*4\s*\)\s*===\s*"dmg"/g, owner: DECODER },
+    // ⚠️ Assembled rather than written, for the reason `tests/tools/cited-paths.test.ts`
+    // assembles a path that is gone: a needle spelled whole in this file is one
+    // the guard finds in itself, and every run reports the guard as the offender.
+    { find: composeUnspacedFinder(["slice(1,4)", "===", `"dmg"`].join("")), owner: DECODER },
     // A **declaration** of it and not a mention: `tests/frozen-protocol-keys.ts`
     // is generated and lists every key the client knows, which is a table rather
     // than a second decision about what this one is called.
-    { pattern: /=\s*"\+oth_dmg"/g, owner: DECODER },
+    { find: composeUnspacedFinder(["=", `"+oth_dmg"`].join("")), owner: DECODER },
     /**
      * The messages of a recording, which had been spelled seventeen times before
      * a shared reader existed and still had three callers outside it afterwards —
@@ -464,16 +1009,13 @@ describe("value parsing", () => {
     // question and most of `tests/core/` legitimately asks it. What this catches
     // is the flattening — the whole fight as one list, which is what the shared
     // reader is.
-    {
-      pattern: /\.flatMap\(\s*\(\s*call\s*\)\s*=>\s*\[?\.{0,3}\s*call\.protocolMessages\]?\s*[),]/g,
-      owner: CATALOG,
-    },
+    { find: getFlattenedMessages, owner: CATALOG },
   ];
 
   test.each(SOURCE_FILES)("%s reads values through the primitives", (file) => {
     const source = getSourceWithoutComments(file);
     const trespassing = OWNED_CONSTRUCTS.filter(({ owner }) => owner !== file).flatMap(
-      ({ pattern }) => [...source.matchAll(pattern)].map((match) => match[0]),
+      ({ find }) => find(source),
     );
     expect(trespassing, file).toEqual([]);
   });
@@ -497,15 +1039,18 @@ describe("value parsing", () => {
    * be turned off within a week, and a missed spelling is cheaper than that.
    */
   const UNNAMED_COERCIONS = [
-    { pattern: /\bString\s*\(/g, owner: NUMBER },
-    { pattern: /[=(,[:]\s*\+[A-Za-z_$"'(]/g, owner: NUMBER },
-    { pattern: /\*\s*1\b/g, owner: NUMBER },
-    { pattern: /typeof\s+[\w.[\]"']+\s*===?\s*"number"/g, owner: NUMBER },
+    { find: composeCallFinder("String"), owner: NUMBER },
+    { find: getUnaryPluses, owner: NUMBER },
+    { find: getMultipliesByOne, owner: NUMBER },
+    { find: (source: string) => getTypeofComparisons(source, "number", EQUALITIES), owner: NUMBER },
     // `typeof x === "object"` is true for `null`, so every site pairs it with a
     // null check by hand — thirteen of them across ten files, of which eight
     // admitted an array as a record and five refused one. Two answers to one
     // question, and no file saying which it meant.
-    { pattern: /typeof\s+[\w.[\]"']+\s*[!=]==?\s*"object"/g, owner: RECORD },
+    {
+      find: (source: string) => getTypeofComparisons(source, "object", COMPARISONS),
+      owner: RECORD,
+    },
   ];
 
   /**
@@ -525,7 +1070,7 @@ describe("value parsing", () => {
       const source = getSourceWithoutComments(owner);
       const spelled = EVERY_OWNED_CONSTRUCT.filter(
         (construct) => construct.owner === owner,
-      ).flatMap(({ pattern }) => [...source.matchAll(pattern)].map((match) => match[0]));
+      ).flatMap(({ find }) => find(source));
       expect(spelled.length, owner).toBeGreaterThan(0);
     },
   );
@@ -552,9 +1097,7 @@ describe("value parsing", () => {
    */
   test.each(SOURCE_FILES)("%s leaves the order to the data, not to the machine", (file) => {
     const source = getSourceWithoutComments(file);
-    expect([...source.matchAll(/\.localeCompare\s*\(/g)].map((match) => match[0]), file).toEqual(
-      [],
-    );
+    expect(composeCallFinder(".localeCompare")(source), file).toEqual([]);
   });
 
   test.each(SOURCE_FILES.filter((file) => NON_TEST_DIRECTORIES.some((d) => file.startsWith(d))))(
@@ -562,9 +1105,7 @@ describe("value parsing", () => {
     (file) => {
       if (file === NUMBER || file === RECORD) return;
       const source = getSourceWithoutComments(file);
-      const coerced = UNNAMED_COERCIONS.flatMap(({ pattern }) =>
-        [...source.matchAll(pattern)].map((match) => match[0]),
-      );
+      const coerced = UNNAMED_COERCIONS.flatMap(({ find }) => find(source));
       expect(coerced, file).toEqual([]);
     },
   );
@@ -580,10 +1121,7 @@ describe("value parsing", () => {
       // the end of the line, so a cast written one line below its parse was
       // invisible to it. Bounded because an unbounded reach would join a parse
       // at the top of a file to an unrelated `as` at the bottom.
-      const asserted = [...source.matchAll(/JSON\.parse\b[\s\S]{0,200}?\bas\b.*/g)].map(
-        (match) => match[0],
-      );
-      expect(asserted, file).toEqual([]);
+      expect(getCastsOffParsedJson(source), file).toEqual([]);
     },
   );
 });
@@ -615,6 +1153,8 @@ describe("fetched game sources", () => {
 });
 
 describe("interruption", () => {
+  const BLOCKING_DIALOGS = ["alert", "confirm", "prompt"];
+
   // AGENTS.md §9.6. The panel is drawn over a game someone is actually playing.
   // There is no failure in a damage meter worth a click from someone mid-fight,
   // so the blocking dialogs are banned outright rather than discouraged.
@@ -622,8 +1162,8 @@ describe("interruption", () => {
     "%s never blocks the page with a dialog",
     (file) => {
       const source = getSourceWithoutComments(file);
-      const blocking = [...source.matchAll(/\b(?:window\.)?(alert|confirm|prompt)\s*\(/g)].map(
-        (match) => match[1],
+      const blocking = BLOCKING_DIALOGS.filter(
+        (name) => hasCall(source, name) || hasCall(source, `window.${name}`),
       );
       expect(blocking, file).toEqual([]);
     },
@@ -646,20 +1186,19 @@ describe("interruption", () => {
  * Which files: everything that ships. A `--name` in `tools/` styles nothing.
  */
 describe("the names in front of the shadow root", () => {
-  const CUSTOM_PROPERTY = /--[A-Za-z][\w-]*/g;
   const SHIPPED_FILES = SOURCE_FILES.filter((file) => file.startsWith("src/"));
 
   test("there are custom properties to check", () => {
-    const found = SHIPPED_FILES.flatMap((file) => [
-      ...getSourceWithoutComments(file).matchAll(CUSTOM_PROPERTY),
-    ]);
+    const found = SHIPPED_FILES.flatMap((file) =>
+      getCustomProperties(getSourceWithoutComments(file)),
+    );
     expect(found.length).toBeGreaterThan(0);
   });
 
   test.each(SHIPPED_FILES)("%s names every custom property as ours", (file) => {
-    const unnamed = [...getSourceWithoutComments(file).matchAll(CUSTOM_PROPERTY)]
-      .map((match) => match[0])
-      .filter((name) => !name.startsWith("--MargoMeter-"));
+    const unnamed = getCustomProperties(getSourceWithoutComments(file)).filter(
+      (name) => !name.startsWith("--MargoMeter-"),
+    );
     expect(unnamed, file).toEqual([]);
   });
 
@@ -680,19 +1219,17 @@ describe("the names in front of the shadow root", () => {
    * Both spellings of the call, because the entry point injects its own `warn`
    * and `info` so the once-per-fight rule can be tested without a console.
    */
-  const BRANDED_LABEL = /\b(?:console\.)?(?:warn|info)\(\s*"([^"]*)"/g;
-
   test("there are console labels to check", () => {
-    const found = SHIPPED_FILES.flatMap((file) => [
-      ...getSourceWithoutComments(file).matchAll(BRANDED_LABEL),
-    ]);
+    const found = SHIPPED_FILES.flatMap((file) =>
+      getConsoleLabels(getSourceWithoutComments(file)),
+    );
     expect(found.length).toBeGreaterThan(0);
   });
 
   test.each(SHIPPED_FILES)("%s says whose every console line is", (file) => {
-    const unbranded = [...getSourceWithoutComments(file).matchAll(BRANDED_LABEL)]
-      .map((match) => match[1]!)
-      .filter((label) => !label.startsWith("MargoMeter/"));
+    const unbranded = getConsoleLabels(getSourceWithoutComments(file)).filter(
+      (label) => !label.startsWith("MargoMeter/"),
+    );
     expect(unbranded, file).toEqual([]);
   });
 });
@@ -710,13 +1247,13 @@ describe("errors", () => {
 
   test.each(SOURCE_FILES)("%s throws no unbranded error", (file) => {
     const source = getSourceWithoutComments(file);
-    expect([...source.matchAll(/\bnew Error\s*\(/g)].length, file).toBe(0);
+    expect(getCallSites(source, "new Error").length, file).toBe(0);
   });
 
   test.each(SOURCE_FILES)("%s declares no error class outside the two bases", (file) => {
     if (BASE_FILES.includes(file)) return;
     const source = getSourceWithoutComments(file);
-    expect([...source.matchAll(/\bextends\s+Error\b/g)].length, file).toBe(0);
+    expect(getExtendedBases(source).filter((base) => base === "Error").length, file).toBe(0);
   });
 
   // Two hierarchies, one per world: the add-on runs inside the game's page, the
@@ -725,7 +1262,9 @@ describe("errors", () => {
   test.each(SOURCE_FILES)("%s extends the base belonging to its side", (file) => {
     if (BASE_FILES.includes(file)) return;
     const source = getSourceWithoutComments(file);
-    const bases = [...source.matchAll(/\bextends\s+(MargoMeter\w*Error)\b/g)].map((m) => m[1]!);
+    const bases = getExtendedBases(source).filter(
+      (base) => base.startsWith("MargoMeter") && base.endsWith("Error"),
+    );
     const expected = file.startsWith("src/") ? ADD_ON_BASE : TOOLING_BASE;
     for (const base of bases) expect(base, file).toBe(expected);
   });
@@ -733,23 +1272,16 @@ describe("errors", () => {
 
 describe("function names", () => {
   // The verb may be the whole name — `assert(condition)` needs no noun after it.
-  const allowed = new RegExp(`^(${[...ACTION_VERBS, ...BOOLEAN_PREFIXES].join("|")})([A-Z]|$)`);
+  const OPENINGS = [...ACTION_VERBS, ...BOOLEAN_PREFIXES];
 
   // A name without an action tells you what a function is about but not what
   // calling it does — whether it reads, writes or creates.
   test.each(SOURCE_FILES)("%s names functions by the action they perform", (file) => {
     const source = getSourceWithoutComments(file);
-    const declared = [...source.matchAll(/\bfunction\s+([A-Za-z][A-Za-z0-9]*)\s*\(/g)].map(
-      (match) => match[1]!,
-    );
     // The `=>` is required: without it `const x = (a ?? b) as T` reads as a
     // parameter list and the guard fires on a plain value.
-    const arrows = [
-      ...source.matchAll(/\bconst\s+([A-Za-z][A-Za-z0-9]*)\s*=\s*(?:async\s*)?\([^)]*\)[^=;\n]*=>/g),
-    ].map((match) => match[1]!);
-
-    for (const name of [...declared, ...arrows]) {
-      expect(name, `${file}: ${name}`).toMatch(allowed);
+    for (const name of [...getDeclaredFunctionNames(source), ...getArrowNames(source)]) {
+      expect(hasNamedOpening(name, OPENINGS, UPPER_CASE), `${file}: ${name}`).toBe(true);
     }
   });
 });
@@ -785,21 +1317,15 @@ describe("function names", () => {
  */
 describe("boolean names", () => {
   const BOOLEAN_VALUE_PREFIXES = [...BOOLEAN_PREFIXES, "min", "max", "prev", "next"];
-  const allowed = new RegExp(`^(${BOOLEAN_VALUE_PREFIXES.join("|")})([A-Z0-9]|$)`);
+
 
   test.each(SOURCE_FILES)("%s prefixes every boolean it names", (file) => {
     const source = getSourceWithoutComments(file);
-    const flags = [
-      ...source.matchAll(
-        /\b(?:let|const|var)\s+([A-Za-z][A-Za-z0-9]*)\s*(?::\s*boolean\s*)?=\s*(?:true|false)\b/g,
-      ),
-    ].map((match) => match[1]!);
-    const typed = [...source.matchAll(/\b([A-Za-z][A-Za-z0-9]*)\??\s*:\s*boolean\b/g)].map(
-      (match) => match[1]!,
-    );
-
-    for (const name of [...flags, ...typed]) {
-      expect(name, `${file}: ${name}`).toMatch(allowed);
+    for (const name of [...getFlagNames(source), ...getTypedBooleanNames(source)]) {
+      expect(
+        hasNamedOpening(name, BOOLEAN_VALUE_PREFIXES, `${UPPER_CASE}${DIGITS}`),
+        `${file}: ${name}`,
+      ).toBe(true);
     }
   });
 });
@@ -822,8 +1348,6 @@ describe("boolean names", () => {
  * was validated for contrast, or it is a value nobody checked.
  */
 describe("the colours", () => {
-  const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/g;
-
   /** Where a colour is decided, and the only place one may be written down. */
   const PALETTE = "src/ui/panel-look.ts";
 
@@ -837,7 +1361,7 @@ describe("the colours", () => {
 
   test.each(DRAWING)("%s draws with tokens rather than with colours", (file) => {
     const source = getSourceWithoutComments(file);
-    const written = [...source.matchAll(COLOUR_LITERAL)].map((match) => match[0]);
+    const written = getColourLiterals(source);
     expect(written, file).toEqual([]);
   });
 
@@ -845,7 +1369,7 @@ describe("the colours", () => {
   // forbids passes perfectly once the palette is empty.
   test("and the palette still holds some", () => {
     const source = getSourceWithoutComments(PALETTE);
-    expect([...source.matchAll(COLOUR_LITERAL)].length).toBeGreaterThan(0);
+    expect(getColourLiterals(source).length).toBeGreaterThan(0);
   });
 });
 
@@ -940,7 +1464,7 @@ describe("a docblock and the declaration under it", () => {
     // the file" has to mean "nothing but imports has happened yet".
     const blanked = composeSourceWithBlankedComments(source);
     const isModuleBlock = (at: number): boolean =>
-      blanked.slice(0, at).replace(/import[\s\S]*?;/g, "").trim() === "";
+      composeWithoutImports(blanked.slice(0, at)).trim() === "";
 
     return docblocks.flatMap((range, index) => {
       const next = docblocks[index + 1];
@@ -987,7 +1511,7 @@ describe("a docblock and the declaration under it", () => {
  * what gets re-measured instead of the letter.
  */
 describe("the language of the strings", () => {
-  const POLISH_LETTER = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
+  const POLISH_LETTERS = "ąćęłńóśźżĄĆĘŁŃÓŚŹŻ";
 
   /**
    * `panel-view.ts` and `panel-element.ts` are the panel's own words — its rows,
@@ -1071,7 +1595,7 @@ describe("the language of the strings", () => {
     const source = getSourceWithoutComments(file);
     return getTextRangesFromSource(source)
       .map((range) => source.slice(range.start, range.end))
-      .filter((text) => POLISH_LETTER.test(text));
+      .filter((text) => hasAnyCharacterIn(text, POLISH_LETTERS));
   }
 
   /**
@@ -1138,14 +1662,10 @@ describe("the language of the strings", () => {
    * this holds the half that recurs, because a hole is what makes an entry worth
    * quoting in an argument about holes.
    */
-  const CLIENT_HOLE = /%[a-z][a-z0-9_]*%/i;
-  /**
-   * No single-quoted form on purpose: an apostrophe in prose opens one and
-   * swallows the paragraph after it, which turned four files into false hits the
-   * first time this was run. This repository quotes with double quotes and
-   * backticks.
-   */
-  const QUOTED_SPAN = /`[^`\n]*`|"[^"\n]*"/g;
+  // The two fences a quotation carries here, and no single-quoted form on
+  // purpose: an apostrophe in prose opens one and swallows the paragraph after
+  // it, which turned four files into false hits the first time this was run.
+  const QUOTE_FENCES = ["`", `"`];
 
   /** Documents included: a spec is where two of these had been sitting unread. */
   const QUOTING_FILES = [
@@ -1164,16 +1684,16 @@ describe("the language of the strings", () => {
     const source = readFileSync(REPOSITORY_ROOT + file, "utf8");
     // Wrapped first: a comment or a paragraph puts one quotation on two lines,
     // and a line-at-a-time reader saw neither half whole.
-    const flat = source.replace(/\n\s*\*?\s?/g, " ");
-    return [...flat.matchAll(QUOTED_SPAN)]
-      .map((match) => match[0])
-      .filter((span) => CLIENT_HOLE.test(span) && POLISH_LETTER.test(span));
+    const flat = composeUnwrappedProse(source);
+    return getQuotedSpans(flat, QUOTE_FENCES).filter(
+      (span) => hasClientHole(span) && hasAnyCharacterIn(span, POLISH_LETTERS),
+    );
   }
 
   test("there are files to read, and the client's holes are quoted in them", () => {
     expect(QUOTING_FILES.length).toBeGreaterThan(0);
     const quoting = QUOTING_FILES.filter((file) =>
-      CLIENT_HOLE.test(readFileSync(REPOSITORY_ROOT + file, "utf8")),
+      hasClientHole(readFileSync(REPOSITORY_ROOT + file, "utf8")),
     );
     expect(quoting.length).toBeGreaterThan(0);
   });
@@ -1240,5 +1760,65 @@ describe("the language of the strings", () => {
       );
     });
     expect(written).toEqual([]);
+  });
+});
+
+/**
+ * AGENTS.md §9.3: **no pattern is written here.**
+ *
+ * The rule was carried out before it was held, so this arrives with nothing to
+ * find — which is why the positive control below matters more than usual. What
+ * it is for is the next round: a pattern is the one construct whose cost lands
+ * on a player rather than on a test. Its syntax is checked against `target` and
+ * against nothing else, that check misses two of the constructs above the floor
+ * (`docs/browser-support.md`), and one the engine cannot parse is an early
+ * SyntaxError — the bundle never loads, so the reader sees no panel and no
+ * console line of ours.
+ *
+ * ⚠️ **Neither reader in `libs/source-regions.ts` can answer this alone, and the
+ * order of the two decides which way the mistake goes.** The pattern reader knows
+ * nothing about text literals, so a path inside a string reads as a pattern; the
+ * text reader knows nothing about patterns, so a backtick inside one opens a
+ * template and hides everything after it. Composed the way this repository's own
+ * census composed them — blank the text, then look for patterns — a pattern
+ * carrying a quote hides every pattern after it in the file, which is how the
+ * count in three commit messages of this round came to be low. What settles a
+ * candidate is **where the text literal opens**: one that opened before the
+ * candidate is a string with a slash in it, and one that opens inside it is the
+ * pattern's own backtick.
+ */
+describe("patterns", () => {
+  /** Bun's plugin interface takes a `RegExp` and nothing else. §9.3's one exception. */
+  const MAY_SPELL_A_PATTERN = ["build.ts"];
+
+  function getPatterns(file: string): string[] {
+    const blanked = composeSourceWithBlankedComments(readFileSync(REPOSITORY_ROOT + file, "utf8"));
+    const texts = getTextRangesFromSource(blanked);
+    return getRegularExpressionRangesFromSource(blanked)
+      .filter(
+        (pattern) =>
+          !texts.some((text) => text.start < pattern.start && pattern.start < text.end),
+      )
+      .map((range) => blanked.slice(range.start, range.end));
+  }
+
+  // The control the rest of this depends on: a reader that had stopped finding
+  // patterns would pass every file below while checking nothing, and there is
+  // exactly one pattern left in the repository to find.
+  test.each(MAY_SPELL_A_PATTERN)("%s spells the one pattern its API requires", (file) => {
+    expect(getPatterns(file).length).toBe(1);
+  });
+
+  test.each(SOURCE_FILES.filter((file) => !MAY_SPELL_A_PATTERN.includes(file)))(
+    "%s spells no pattern",
+    (file) => {
+      expect(getPatterns(file), file).toEqual([]);
+    },
+  );
+
+  // The other spelling, which no reader of source regions can see: a pattern
+  // composed at run time out of a string.
+  test.each(SOURCE_FILES)("%s builds no pattern at run time", (file) => {
+    expect(getCallSites(getSourceWithoutComments(file), "RegExp"), file).toEqual([]);
   });
 });

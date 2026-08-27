@@ -29,11 +29,30 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
+import { getEndOfWordCharacters, getWordOccurrences } from "@/libs/text-runs.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 
 /** A runtime export: something a test could call, hold or compare. */
-const EXPORTED_VALUE = /^export (?:const|function|async function|class) (\w+)/gm;
+const EXPORTED_KINDS = ["const ", "function ", "async function ", "class "];
+
+const EXPORT_OPENING = "export ";
+
+/**
+ * The name an `export` line declares, or null where the line declares no value.
+ *
+ * A type is deliberately not one of the kinds: `tsc` already refuses a type
+ * nobody can satisfy, and a rule about naming one would be a rule about import
+ * style rather than about what is checked.
+ */
+function getExportedName(line: string): string | null {
+  if (!line.startsWith(EXPORT_OPENING)) return null;
+  const declared = line.slice(EXPORT_OPENING.length);
+  const kind = EXPORTED_KINDS.find((one) => declared.startsWith(one));
+  if (kind === undefined) return null;
+  const name = declared.slice(kind.length, getEndOfWordCharacters(declared, kind.length));
+  return name === "" ? null : name;
+}
 
 /**
  * ⚠️ **The tree, not the index.** `git ls-files` cannot see a file that has not
@@ -62,9 +81,9 @@ const EVERYTHING_TESTS_SAY = TEST_FILES.map((file) =>
 ).join("\n");
 
 function getExportedValues(file: string): string[] {
-  return [...readFileSync(REPOSITORY_ROOT + file, "utf8").matchAll(EXPORTED_VALUE)].map(
-    (match) => match[1] ?? "",
-  );
+  return readFileSync(REPOSITORY_ROOT + file, "utf8")
+    .split("\n")
+    .flatMap((line) => getExportedName(line) ?? []);
 }
 
 describe("every exported value is named by a test", () => {
@@ -79,7 +98,7 @@ describe("every exported value is named by a test", () => {
   test("none of them is named nowhere", () => {
     const unnamed = SOURCE_FILES.flatMap((file) =>
       getExportedValues(file)
-        .filter((name) => !new RegExp(`\\b${name}\\b`).test(EVERYTHING_TESTS_SAY))
+        .filter((name) => getWordOccurrences(EVERYTHING_TESTS_SAY, name).length === 0)
         .map((name) => `${file}: ${name}`),
     );
     expect(unnamed).toEqual([]);

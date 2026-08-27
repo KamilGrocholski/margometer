@@ -641,6 +641,7 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
                               classes it names, and what each rule declares.
   markup-parts.ts             A page taken apart: an element's attributes and what
                               is inside it, and one attribute wherever it is worn.
+  source-search.ts            What a source imports, and where it calls a name.
   protocol-key-register.ts    Reads the register into entries — verdict, health
                               line, evidence, shape, help phrases.
 ```
@@ -738,6 +739,33 @@ not read the decoder's own list. Two of those say so in a comment and the rest d
 not, which is why an audit filed them as duplication and closed one
 (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`). A deliberate duplication
 that does not say it is deliberate is an invitation to collapse it — so say it.
+
+**`[NEVER] [any]` A regular expression.** Text is read by walking it: a class or
+a shape that runs more than once belongs to `libs/text-runs.ts`, and a search for
+structure is a reader beside the guard that needs it. Two reasons, and only the
+second is about taste. A pattern's syntax is checked against `target` and against
+nothing else, that check misses two of the constructs above the floor, and one an
+engine cannot parse is an **early SyntaxError** — the bundle never loads, so a
+player sees no panel and no console line of ours (§9.9,
+`docs/browser-support.md`). And a pattern states a second time, more densely,
+a grammar the file already documents — which is where the two come to disagree.
+
+One exception, and it is somebody else's API: `build.ts` hands
+`builder.onResolve({ filter })` a `RegExp` because Bun's plugin interface takes
+nothing else. `[ASK]` before a second. Held by
+`tests/tools/source-layout.test.ts`, which refuses a pattern anywhere else and a
+`RegExp` built at run time, and which carries the one thing the reading depends
+on: a positive control over the exception, because a reader that stopped finding
+patterns would pass every file while checking nothing.
+
+⚠️ **The cost was measured before it was paid.**
+`docs/specs/2026-08-27-a-pattern-the-floor-never-covered.md` put the hand-written
+scan against the pattern in the hot path and the pattern won — 3.2 ms against
+5.0 ms over every side segment of the captures, on JavaScriptCore, 2026-08-27 —
+and the spec's verdict was that the patterns stay. The maintainer overruled it.
+What that bought is above; what it cost is roughly a millisecond on a decode of
+a whole fight, which no reader can see, and the register in §9.5 gaining a walk
+per construct.
 
 **`[ALWAYS] [any]` Imports are written from the repository root.**
 
