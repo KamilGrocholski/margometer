@@ -17,14 +17,17 @@
 
 
 ## In Progress
+- [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
+- [ ] Show the latest saved battle after a reload
 
 ## Up Next
+- [ ] Click on the fights tab toggles the state - open fights view; go to the prev view
 
 ## Done
+- [x] Store and show the exact battle location (e.g., coordinates, area, or map position)
 - [x] Preview panel resets its state, whenever I change the current caputred fight
 
 ## Later
-- [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
 - [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
 - [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
 - [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
