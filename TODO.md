@@ -18,6 +18,7 @@
 
 ## In Progress
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
+- [ ] SPEC: Consider removing REGEX from this repo
 
 ## Up Next
 
