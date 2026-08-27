@@ -24,6 +24,7 @@ import { getIntegerFromValue } from "@/libs/number.ts";
 import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 import { isFightStart } from "@/src/game/battle-session.ts";
+import type { FightPlace } from "@/src/game/engine-place.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
 import {
   WARRIOR_HEALTH_FIELD,
@@ -101,6 +102,18 @@ export type CaptureEnvironment = {
   /** Null where the page did not say. A recording without it is not comparable. */
   getGameBuild: () => string | null;
   getCapturedAt: () => string;
+  /**
+   * Where the fight was fought, or null where the page did not say.
+   *
+   * ⚠️ **The moment matters and it is not this one.** The three getters around it
+   * answer the same thing whenever they are asked; this one would not. It is
+   * called when somebody presses download, which is after the fight — so the
+   * caller hands over the place the *session* recorded when the fight opened
+   * (`src/game/battle-session.ts`), never a fresh read of the client. A recording
+   * naming the map its player happened to be standing on afterwards would be
+   * material stating something false, which §9.2 cares about more than most.
+   */
+  getPlace: () => FightPlace | null;
   /** The same shape, and for the same reason: a browser that did not say is null. */
   getUserAgent: () => string | null;
 };
@@ -279,6 +292,7 @@ export function composeCaptureText(
   capture: FightCapture,
   environment: CaptureEnvironment,
 ): string {
+  const place = environment.getPlace();
   return composeJsonText(
     {
       wersja: CAPTURE_FORMAT_VERSION,
@@ -297,6 +311,12 @@ export function composeCaptureText(
       // step later and everywhere at once
       // (`docs/specs/2026-08-25-a-recording-that-names-no-build.md`).
       build: environment.getGameBuild(),
+      // Beside the world, because it is the same kind of fact and the same kind
+      // of absence: where this was, as much of it as the client would say. The
+      // battle protocol carries none of it — `battleground` is the picture behind
+      // the fight and names two different worlds' bosses alike — so a recording
+      // that does not carry this one cannot be given it afterwards.
+      mapa: place === null ? null : { nazwa: place.mapName, x: place.x, y: place.y },
       przegladarka: environment.getUserAgent(),
       pominietych: capture.droppedCalls,
       urwany: capture.isFull,

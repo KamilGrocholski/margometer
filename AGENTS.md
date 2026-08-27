@@ -543,6 +543,9 @@ src/
                          one thing core cannot know.
     engine-attachment.ts Finds the battle object, wraps it once, stops looking.
                          Stands down where another MargoMeter already has it.
+    engine-place.ts      Where a fight is happening — the map's own name and the
+                         standing position. The protocol says none of it, so it is
+                         read off the client's state and never wrapped.
     game-dictionary.ts   The client's own name for a thing, asked of the page. A
                          sentence with a hole in it is refused.
     battle-session.ts    One fight accumulated payload by payload. Pure.

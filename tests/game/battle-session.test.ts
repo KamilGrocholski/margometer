@@ -115,6 +115,95 @@ describe("where one fight ends and the next begins", () => {
   });
 });
 
+/**
+ * Where a fight is, and — more to the point — *when* the session asks.
+ *
+ * The place is a fact about one moment, exactly like the entry health, and the
+ * two failures it can have are opposite: asked too late it names the map the
+ * player wandered onto afterwards, asked too often it makes every payload a new
+ * session and the panel redraws on every step somebody takes.
+ */
+describe("where a fight was fought", () => {
+  test("is asked for once, on the payload that opens the fight", () => {
+    let asked = 0;
+    const getPlace = (): { mapName: string; x: number; y: number } => {
+      asked += 1;
+      return { mapName: "a clearing", x: 34, y: 12 };
+    };
+
+    let session = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1" }, ["a"]),
+      getPlace,
+    );
+    expect(asked).toBe(1);
+    expect(session.place).toEqual({ mapName: "a clearing", x: 34, y: 12 });
+
+    session = composeNextSession(session, composeCleanReading({}, ["b"]), getPlace);
+    expect(asked).toBe(1);
+    expect(session.place).toEqual({ mapName: "a clearing", x: 34, y: 12 });
+  });
+
+  test("is asked again where the next fight opens", () => {
+    const places = [
+      { mapName: "a clearing", x: 34, y: 12 },
+      { mapName: "a cellar", x: 2, y: 90 },
+    ];
+    const getPlace = (): { mapName: string; x: number; y: number } | null => places.shift() ?? null;
+
+    const first = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1" }, ["a"]),
+      getPlace,
+    );
+    const second = composeNextSession(first, composeCleanReading({ init: "1" }, ["b"]), getPlace);
+    expect(first.place).toEqual({ mapName: "a clearing", x: 34, y: 12 });
+    expect(second.place).toEqual({ mapName: "a cellar", x: 2, y: 90 });
+  });
+
+  /**
+   * ⚠️ **The identity clause is what this could quietly break.** A place read on
+   * every payload would make every payload a new session, and the panel redraws
+   * on identity — so a player walking around would be rebuilding a panel that
+   * says exactly what it said before.
+   */
+  test("does not make a payload that changed nothing into a change", () => {
+    const getPlace = (): { mapName: string; x: number; y: number } => ({
+      mapName: "a clearing",
+      x: 34,
+      y: 12,
+    });
+    const opened = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1" }, ["a"]),
+      getPlace,
+    );
+    expect(composeNextSession(opened, composeCleanReading({}), getPlace)).toBe(opened);
+  });
+
+  /**
+   * Every caller replaying a recording is in this position, and so is every test
+   * above: nothing to ask, which is not the same as a fight that happened nowhere.
+   */
+  test("is nothing where the caller had nowhere to ask", () => {
+    const session = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1" }, ["a"]),
+    );
+    expect(session.place).toBe(null);
+    expect(composeFightReading(session).place).toBe(null);
+  });
+
+  test("travels to the panel as it was read", () => {
+    const session = composeNextSession(
+      composeEmptySession(),
+      composeCleanReading({ init: "1" }, ["a"]),
+      () => ({ mapName: "a clearing", x: 34, y: 12 }),
+    );
+    expect(composeFightReading(session).place).toEqual({ mapName: "a clearing", x: 34, y: 12 });
+  });
+});
+
 describe("the roster as it arrives in pieces", () => {
   /**
    * Measured: `w` rides nearly every call but holds between 1 and 11 of 11

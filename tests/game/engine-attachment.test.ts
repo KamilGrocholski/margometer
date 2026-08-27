@@ -19,6 +19,7 @@ import { composeFightStatistics, type CombatantStatistics } from "@/src/core/fig
 import type { EngineReadingGaps, FightReading } from "@/src/game/battle-session.ts";
 import type { PayloadFault } from "@/src/game/engine-battle-wrap.ts";
 import { getBattleFromWindow, setEngineAttachment } from "@/src/game/engine-attachment.ts";
+import type { FightPlace } from "@/src/game/engine-place.ts";
 import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import { composeCaptureText, composeEmptyCapture } from "@/src/game/fight-capture.ts";
 import { EFFECT_NAMES } from "@/src/ui/panel-words.ts";
@@ -436,6 +437,7 @@ describe("a recording the add-on makes, read back as material", () => {
     getGameBuild: (): string => "1786441768914",
     getCapturedAt: (): string => "2026-08-11T12:00:00.000Z",
     getUserAgent: (): string | null => "Mozilla/5.0 (a browser that said)",
+    getPlace: (): FightPlace | null => ({ mapName: "a clearing", x: 34, y: 12 }),
   };
 
   /**
@@ -460,6 +462,52 @@ describe("a recording the add-on makes, read back as material", () => {
       ]),
     );
   }
+
+  /**
+   * ⚠️ **Where a fight was is read from the page, at the moment the fight opens.**
+   * The whole path in one test, because every part of it is somewhere else: the
+   * client's state is read in `src/game/engine-place.ts`, the moment is chosen in
+   * `src/game/battle-session.ts`, and what a reader ends up seeing is the panel's.
+   * What this holds is that the add-on asks at all — the wiring is the one thing
+   * no unit of the three can prove on its own.
+   *
+   * The page states the second fight's map, and the recording still names the
+   * first: a download happens after a fight, and a recording naming the map its
+   * player wandered onto afterwards would be material stating something false.
+   */
+  test("a fight is recorded where it was fought, not where the player ended up", () => {
+    const fight = CAPTURED_FIGHTS[0]!;
+    const battle = Object.create({
+      updateData(): string {
+        return "the original's answer";
+      },
+    }) as Record<string, unknown>;
+
+    const engine = {
+      battle,
+      map: { d: { name: "a clearing" } },
+      hero: { d: { x: 34, y: 12 } },
+    };
+    const meter = setMargoMeter({ Engine: engine });
+    const updateData = battle["updateData"] as (payload: unknown) => unknown;
+    for (const call of fight.dump.calls) {
+      setWarriorsList(battle, call.combatantsBefore);
+      updateData(call.payload);
+    }
+
+    expect(meter.getReading()?.place).toEqual({ mapName: "a clearing", x: 34, y: 12 });
+
+    // The player walks off. Nothing about the fight that is over changes.
+    engine.map = { d: { name: "a cellar" } };
+    engine.hero = { d: { x: 2, y: 90 } };
+    expect(meter.getReading()?.place).toEqual({ mapName: "a clearing", x: 34, y: 12 });
+
+    const written = composeCaptureText(meter.getCapture(), {
+      ...ENVIRONMENT,
+      getPlace: () => meter.getReading()?.place ?? null,
+    });
+    expect(parseFightDump(written).place).toEqual({ mapName: "a clearing", x: 34, y: 12 });
+  });
 
   test.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
     "%s comes back out of the parser as the same fight",
@@ -579,6 +627,7 @@ describe("what a failing panel puts on the console", () => {
       isFromFightStart: true,
       fightsStarted,
       engineReading: NOTHING_LOST,
+      place: null,
     };
   }
 
@@ -822,6 +871,7 @@ describe("the panel asking the running client for a name", () => {
       isFromFightStart: true,
       fightsStarted: 1,
       engineReading: NOTHING_LOST,
+      place: null,
     };
   }
 
@@ -1458,6 +1508,7 @@ describe("the panel before the first payload", () => {
       isFromFightStart: true,
       fightsStarted: 1,
       engineReading: NOTHING_LOST,
+      place: null,
     });
 
     const said = getEveryText(getBody());
@@ -1601,6 +1652,7 @@ describe("what a click does to the drill", () => {
       isFromFightStart: true,
       fightsStarted: 1,
       engineReading: NOTHING_LOST,
+      place: null,
     };
   }
 
@@ -1946,6 +1998,7 @@ describe("a new fight and the level the reader was on", () => {
           isSelected: false,
           at: { hour: 21, minute: 4 },
           sideCounts: [4, 4],
+          place: null,
           outcome: "won",
         },
       ],
@@ -1978,6 +2031,7 @@ describe("a new fight and the level the reader was on", () => {
       isFromFightStart: true,
       fightsStarted,
       engineReading: NOTHING_LOST,
+      place: null,
     };
   }
 
@@ -2182,6 +2236,7 @@ describe("the report a reader copies", () => {
       isFromFightStart: true,
       fightsStarted: 1,
       engineReading: NOTHING_LOST,
+      place: null,
     };
   }
 
@@ -2416,6 +2471,7 @@ describe("collapsing the panel from the title bar", () => {
       isFromFightStart: true,
       fightsStarted: 1,
       engineReading: NOTHING_LOST,
+      place: null,
     });
     expect(body.children.length).toBe(1);
 

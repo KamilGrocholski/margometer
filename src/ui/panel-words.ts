@@ -901,6 +901,65 @@ export function composeSideCountsText(counts: readonly number[]): string {
 }
 
 /**
+ * Where the fight was fought, in the shape the game itself writes it.
+ *
+ * The client's own *copy location with coordinates* composes the map's name and
+ * the standing position in brackets beside it (production build `53XkBRxF`,
+ * cached 2026-08-25, read 2026-08-27), so a player already knows how to read
+ * `Torneg (34,12)` before the panel shows them one. Borrowing the game's own
+ * layout costs nothing and saves a reader learning ours.
+ *
+ * ⚠️ **A name here is the game's, not a sentence of ours.** It arrives from the
+ * live client and is drawn as it came — a name, never a key and never a token
+ * the panel would have to explain (§3, NOTICE.md).
+ *
+ * Three halves rather than two, because the client answers them separately and a
+ * map part-way through loading answers neither. Empty where it said nothing at
+ * all: §9.3's unknown is loud in a figure, and a place is not a figure — there is
+ * nothing here that could read as a measurement, so silence is the honest answer
+ * and a word for *nowhere* would be a claim.
+ */
+export function composeFightPlaceText(place: {
+  mapName: string | null;
+  x: number | null;
+  y: number | null;
+} | null): string {
+  if (place === null) return "";
+  const at =
+    place.x === null || place.y === null
+      ? ""
+      : `(${composeIntegerText(place.x)},${composeIntegerText(place.y)})`;
+  return [place.mapName ?? "", at].filter((part) => part !== "").join(" ");
+}
+
+/**
+ * The same place, as much of it as a shelf row can carry.
+ *
+ * ⚠️ **The tile is dropped rather than cut, and that is the whole rule here: a
+ * truncated word is visibly truncated and a truncated number is a wrong number.**
+ * The shelf is 260px wide with a clock, a size and an outcome already on the row,
+ * so a long name leaves the cell overflowing — and the cell ends in an ellipsis,
+ * which turns `(128,214)` into `(128,2…`. That reads as a coordinate and is not
+ * one, which is §9.6's failure exactly. A name losing its tail is obviously a
+ * name losing its tail, and its head is the half that tells two maps apart.
+ *
+ * Nothing is lost from the panel by it: the header of the fight being read
+ * carries the whole place on a line of its own.
+ *
+ * The tile alone where there is no name, because it is nine characters at the
+ * most and cannot overflow — a client that answered one and not the other still
+ * said something, and half an answer beats a blank cell.
+ */
+export function composeFightRowPlaceText(place: {
+  mapName: string | null;
+  x: number | null;
+  y: number | null;
+} | null): string {
+  if (place === null) return "";
+  return place.mapName ?? composeFightPlaceText({ ...place, mapName: null });
+}
+
+/**
  * How a fight on the shelf ended, or that it has not.
  *
  * ⚠️ **The outcome comes first, and the live fight is the reason.** A fight that

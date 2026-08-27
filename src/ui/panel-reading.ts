@@ -16,7 +16,12 @@ import {
   type CombatantStatistics,
   type FightStatistics,
 } from "@/src/core/fight-statistics.ts";
-import { isGivenMetric, isHealingMetric, type PanelMetric } from "@/src/ui/panel-screen.ts";
+import {
+  isGivenMetric,
+  isHealingMetric,
+  type PanelMetric,
+  type PanelPlace,
+} from "@/src/ui/panel-screen.ts";
 import {
   composeUnaccountedHealingRowNote,
   composeUnreadableRowNote,
@@ -39,6 +44,16 @@ export type PanelReading = {
   /** Which side is the watcher's own, when the game said. Never guessed. */
   ourSide: number | null;
   isFromFightStart: boolean;
+  /**
+   * Where it was fought, when the client said — declared here rather than
+   * imported, for the reason `ourSide` and `isFromFightStart` are.
+   *
+   * Optional for `engineReading`'s reason: a caller with no game beside it — the
+   * offline tools, every test of the panel, the published preview — truthfully
+   * has nothing to say about where a recording was taken, and saying nothing is
+   * not the same as saying nowhere.
+   */
+  place?: PanelPlace | null | undefined;
   /**
    * What the game handed over that never became part of the fight.
    *

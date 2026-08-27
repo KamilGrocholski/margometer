@@ -346,6 +346,76 @@ function composeReadingWithAMarkedRow(): PanelReading {
 }
 
 describe("what reaches the screen", () => {
+  /**
+   * ⚠️ **Read in words, at the point it is drawn.** A place is the game's own
+   * name arriving from the live client, so the only thing that proves it reached
+   * a reader is finding it on the node — asking the view what it composed would
+   * be holding the panel to itself (§7.5).
+   */
+  test("draws where the fight was, between how big it was and how it ended", () => {
+    const { panel } = renderInto(composeDefaultState(), {}, {
+      ...composeReading(),
+      place: { mapName: "a clearing", x: 34, y: 12 },
+    });
+    const place = assertDefined(getByClass(panel, "header-place")[0], "the place line was drawn");
+    expect(place.textContent).toBe("a clearing (34,12)");
+    // The line has the whole panel and a long enough name still overruns it.
+    expect(place.title).toBe("a clearing (34,12)");
+  });
+
+  /**
+   * ⚠️ **No line at all, rather than an empty one.** A reserved gap would cost
+   * every panel with no game beside it — the published preview, the pictures in
+   * `README.md` — a band of nothing under the header, for a fight nobody could
+   * ever name.
+   */
+  test("draws no line for a place where nothing said where the fight was", () => {
+    const { panel } = renderInto();
+    expect(getByClass(panel, "header-place")).toEqual([]);
+    expect(getByClass(panel, "header-line")).toHaveLength(1);
+  });
+
+  /**
+   * ⚠️ **Two tooltips, and never on the same node.** Every `.row-name` ends in an
+   * ellipsis and every name in one is the game's, so a cut label has to be
+   * askable — but a row that opens the panel's own card already answers with the
+   * name as the card's first line, and a browser tooltip firing there would open
+   * over it. So the browser's is for the rows that open nothing, which is every
+   * leaf of the drill.
+   */
+  test("gives a row that opens no card the browser's tooltip for its label", () => {
+    const state = { ...composeDefaultState(), metric: "taken" as const, focusCombatantId: 3 };
+    const view = composePanelView(composeReading(), state);
+    const panel = renderPanel(composeFakeDocument(), view, {}) as FakeNode;
+
+    const rows = view.lists.flatMap((list) => list.rows);
+    // Both kinds have to be on this screen or the rule below is only half read.
+    expect(rows.some((row) => row.detail.length === 0)).toBe(true);
+    expect(rows.some((row) => row.detail.length > 0)).toBe(true);
+
+    const titleByLabel = new Map(
+      getByClass(panel, "row-name").map((label) => [label.textContent, label.title]),
+    );
+    for (const row of rows) {
+      expect(titleByLabel.get(row.label), row.label).toBe(row.detail.length === 0 ? row.label : "");
+    }
+  });
+
+  test("leaves the tooltip to the card on a row that has one", () => {
+    const { panel } = renderInto();
+    const labels = getByClass(panel, "row-name");
+    expect(labels.length).toBeGreaterThan(0);
+    expect(labels.map((label) => label.title)).toEqual(labels.map(() => ""));
+  });
+
+  /** The one place a reader can no longer see what they opened. */
+  test("says what was drilled into, where the crumb had to cut it", () => {
+    const { panel } = renderInto({ ...composeDefaultState(), focusCombatantId: 1 });
+    const here = assertDefined(getByClass(panel, "crumb-here")[0], "the crumb was drawn");
+    expect(here.title).toBe(here.textContent);
+    expect(here.title).not.toBe("");
+  });
+
   test("draws a row for everyone, numbered, with a bar and a figure", () => {
     const { panel } = renderInto();
     const rows = getByClass(panel, "row");
@@ -1963,6 +2033,7 @@ describe("the shelf of kept fights", () => {
       isSelected: false,
       at: { hour: 21, minute: 4 },
       sideCounts: [4, 4],
+      place: null,
       outcome: "won",
       ...over,
     };
@@ -2006,6 +2077,62 @@ describe("the shelf of kept fights", () => {
   test("marks which fight is on screen", () => {
     const { container } = renderShelf([composeShelfFight({ isSelected: true })]);
     expect(getByClass(container, "chosen")).toHaveLength(1);
+  });
+
+  /**
+   * ⚠️ **The size is in a cell of its own, ahead of the place.** Behind it, a long
+   * map name pushed it off the end of a 260px row — the ellipsis was eating the
+   * one thing every row had before there were maps on them.
+   */
+  test("draws where a kept fight was without spending the cell its size sits in", () => {
+    const { container } = renderShelf([
+      composeShelfFight({ place: { mapName: "a clearing", x: 34, y: 12 } }),
+    ]);
+    expect(getByClass(container, "row-size")[0]?.textContent).toBe("4×4");
+    expect(getByClass(container, "row-name")[0]?.textContent).toBe("a clearing");
+  });
+
+  /**
+   * ⚠️ **The order is the fix, and nothing else was holding it.** Written because
+   * the mutation that put the size back behind the place killed no test: both
+   * cells were still on the row, both still said the right thing, and the row was
+   * back to losing its size to a long map name — a defect no assertion about
+   * contents can see. The elastic cell has to be the last one before the outcome.
+   */
+  test("puts the one cell that can shorten last, after everything of a fixed width", () => {
+    const { container } = renderShelf([
+      composeShelfFight({ place: { mapName: "a clearing", x: 34, y: 12 } }),
+    ]);
+    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
+    expect(row.children.map((cell) => cell.className)).toEqual([
+      "row-pin",
+      "row-rank",
+      "row-size",
+      "row-name",
+      "row-value",
+    ]);
+  });
+
+  /**
+   * ⚠️ **The tile comes back here and nowhere else on this row.** The cell draws
+   * the map's name alone because an ellipsis through `(128,214)` leaves a number
+   * nobody wrote — so what makes the missing half askable rather than gone is the
+   * tooltip.
+   */
+  test("gives the whole place back, tile and all, on asking", () => {
+    const { container } = renderShelf([
+      composeShelfFight({ place: { mapName: "a clearing", x: 34, y: 12 } }),
+    ]);
+    const where = assertDefined(getByClass(container, "row-name")[0], "the place cell was drawn");
+    expect(where.textContent).toBe("a clearing");
+    expect(where.title).toBe("a clearing (34,12)");
+  });
+
+  /** The row every fight on somebody's shelf today still draws. */
+  test("draws the row it always drew where nothing said where the fight was", () => {
+    const { container } = renderShelf([composeShelfFight()]);
+    expect(getByClass(container, "row-size")[0]?.textContent).toBe("4×4");
+    expect(getByClass(container, "row-name")[0]?.textContent).toBe("");
   });
 
   /**
@@ -2064,6 +2191,14 @@ describe("the shelf of kept fights", () => {
     });
     setPressOn(panel, getTabByLabel(container, "tylko teraz"));
     expect(storage).toEqual(["memory"]);
+  });
+
+  /** The shelf's own crumb cuts the same way the fight screen's does. */
+  test("says what screen the shelf is, where its crumb had to cut it", () => {
+    const { container } = renderShelf([composeShelfFight()]);
+    const here = assertDefined(getByClass(container, "crumb-here")[0], "the crumb was drawn");
+    expect(here.title).toBe(here.textContent);
+    expect(here.title).not.toBe("");
   });
 
   test("the way back works from the crumb and from the right button", () => {

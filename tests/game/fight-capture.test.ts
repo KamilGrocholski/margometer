@@ -29,6 +29,7 @@ const ENVIRONMENT: CaptureEnvironment = {
   getGameBuild: () => "1786441768914",
   getCapturedAt: () => "2026-08-11T12:00:00.000Z",
   getUserAgent: () => "Mozilla/5.0 (a browser that said)",
+  getPlace: () => ({ mapName: "a clearing", x: 34, y: 12 }),
 };
 
 /** One call through the collector, with nothing in it worth arguing about. */
@@ -222,6 +223,7 @@ describe("the recording as a file", () => {
       przy: "2026-08-11T12:00:00.000Z",
       swiat: "tempest",
       build: "1786441768914",
+      mapa: { nazwa: "a clearing", x: 34, y: 12 },
       przegladarka: "Mozilla/5.0 (a browser that said)",
       pominietych: 0,
       urwany: false,
@@ -276,6 +278,42 @@ describe("the recording as a file", () => {
     const read = getValueFromJsonText(written).value as Record<string, unknown>;
     expect("przegladarka" in read).toBe(true);
     expect(read["przegladarka"]).toBe(null);
+  });
+
+  /**
+   * The same shape as the browser above, and for the same reason — but this one
+   * has a second cause worth keeping apart in the head: a page that would not say
+   * where it was, and a fight this add-on never saw open. Both write the key.
+   *
+   * ⚠️ **The place is never recovered afterwards.** The battle protocol states
+   * none of it, so a recording that went without it cannot be given it later the
+   * way a build could be looked up — which is why the field is asserted present
+   * rather than merely null.
+   */
+  test("states a page that did not say where as nothing, and still states it", () => {
+    const written = composeCaptureText(composeEmptyCapture(), {
+      ...ENVIRONMENT,
+      getPlace: () => null,
+    });
+
+    const read = getValueFromJsonText(written).value as Record<string, unknown>;
+    expect("mapa" in read).toBe(true);
+    expect(read["mapa"]).toBe(null);
+  });
+
+  /**
+   * Each member on its own, because the client answers them from two different
+   * objects: a map part-way through loading has no name, and nothing guarantees a
+   * client that gives one gives a position (`src/game/engine-place.ts`).
+   */
+  test("states the half of a place it had, rather than dropping the whole", () => {
+    const written = composeCaptureText(composeEmptyCapture(), {
+      ...ENVIRONMENT,
+      getPlace: () => ({ mapName: "a clearing", x: null, y: null }),
+    });
+
+    const read = getValueFromJsonText(written).value as Record<string, unknown>;
+    expect(read["mapa"]).toEqual({ nazwa: "a clearing", x: null, y: null });
   });
 
   test("is named so that two recordings never collide", () => {

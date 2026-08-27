@@ -63,6 +63,7 @@ function composeBareFight(id: string, isPinned = false): KeptFight {
     ourSide: null,
     isFromFightStart: true,
     entryHealthByCombatantId: new Map(),
+    place: null,
     unreadablePayloadsByFault: new Map(),
     lostMessages: 0,
     unreadableCombatants: 0,
@@ -186,6 +187,43 @@ describe("a fight kept and read back", () => {
   });
 
   /**
+   * ⚠️ **The session is where the place comes from, and nothing else could hold
+   * it.** Written because the mutation that made `composeKeptFight` forget the
+   * field lit nothing: every other test here builds a kept fight by hand, so the
+   * one step that takes a fact off the session was covered by none of them (§7.5).
+   */
+  test("takes where it was fought off the session, like everything else it keeps", () => {
+    const session = composeSessionOfCapture(GROUP_FIGHT);
+    const somewhere: BattleSession = {
+      ...session,
+      place: { mapName: "a clearing", x: 34, y: 12 },
+    };
+    expect(composeKeptFight(somewhere, null, "one", kept.keptAt).place).toEqual({
+      mapName: "a clearing",
+      x: 34,
+      y: 12,
+    });
+    expect(composeKeptFight(session, null, "one", kept.keptAt).place).toBe(null);
+  });
+
+  /**
+   * ⚠️ **Where the fight was cannot be recovered from anything else here.** The
+   * messages say nothing about a map and the client has moved on, so this is the
+   * one field whose loss in the store is permanent — which is why it is asserted
+   * through the tape and again through the session the panel is given.
+   */
+  test("carries where it was fought, there and back and into the panel", () => {
+    const somewhere = { ...kept, place: { mapName: "a clearing", x: 34, y: 12 } };
+    const read = getKeptFightsFromStoredText(composeStoredTextFromKeptFights([somewhere]))[0]!;
+    expect(read.place).toEqual({ mapName: "a clearing", x: 34, y: 12 });
+    expect(composeSessionFromKeptFight(read).place).toEqual({
+      mapName: "a clearing",
+      x: 34,
+      y: 12,
+    });
+  });
+
+  /**
    * The claim the whole shape exists for: what the panel is handed after a
    * restore is what it was handed live. Compared through the aggregate rather
    * than through the tape, because agreeing about the tape is agreeing about a
@@ -291,12 +329,43 @@ describe("what a store hands back is not trusted", () => {
     ["lostMessages", 1.5],
     ["lostMessages", -1],
     ["unreadableCombatants", null],
+    ["place", 7],
+    ["place", []],
+    ["place", { mapName: 7 }],
+    ["place", { x: "34" }],
+    ["place", { x: 34.5 }],
+    ["place", { y: {} }],
   ];
 
   test.each(brokenFields)("drops a fight whose %s reads as %p", (field, value) => {
     const held = getRecordFromValue(getValueFromJsonText(text).value)!;
     const fights = held["fights"] as Array<Record<string, unknown>>;
     expect(getKeptFightsFromStoredText(composeJsonText({ ...held, fights: [{ ...fights[0]!, [field]: value }] }))).toEqual([]);
+  });
+
+  /**
+   * ⚠️ **Every fight on somebody's shelf today is in this position.** The field
+   * arrived after the shelf did, so a stored fight predating it has no such key —
+   * and dropping those would empty the shelf of everybody who had one, which is
+   * the opposite of what a convenience is for. Absent reads as *nowhere was
+   * said*, and the format number stays where it is (§9.6).
+   */
+  test("keeps a fight kept before there was anywhere to write a place", () => {
+    const held = getRecordFromValue(getValueFromJsonText(text).value)!;
+    const fights = held["fights"] as Array<Record<string, unknown>>;
+    const { place: _dropped, ...withoutPlace } = fights[0]!;
+    const read = getKeptFightsFromStoredText(composeJsonText({ ...held, fights: [withoutPlace] }));
+    expect(read).toHaveLength(1);
+    expect(read[0]?.place).toBe(null);
+  });
+
+  /** A place the client only half answered is not a fight that will not read. */
+  test("keeps a fight whose page named a map and no tile", () => {
+    const held = getRecordFromValue(getValueFromJsonText(text).value)!;
+    const fights = held["fights"] as Array<Record<string, unknown>>;
+    const half = { ...fights[0]!, place: { mapName: "a clearing", x: null, y: null } };
+    const read = getKeptFightsFromStoredText(composeJsonText({ ...held, fights: [half] }));
+    expect(read[0]?.place).toEqual({ mapName: "a clearing", x: null, y: null });
   });
 
   /** A combatant the game said little about is not a fight that will not read. */

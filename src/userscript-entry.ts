@@ -21,6 +21,7 @@ import {
 } from "@/src/game/battle-session.ts";
 import { composeJsonText } from "@/libs/json.ts";
 import { setEngineAttachment, type GameWindow } from "@/src/game/engine-attachment.ts";
+import { getPlaceFromWindow, type FightPlace } from "@/src/game/engine-place.ts";
 import { getDictionaryReader, type DictionaryWindow } from "@/src/game/game-dictionary.ts";
 import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
@@ -338,7 +339,16 @@ export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {})
       getTimedResult(PAYLOAD_PHASE, () => {
         const { payload, messages } = reading;
         const before = session;
-        session = getTimedResult(SESSION_PHASE, () => composeNextSession(before, reading));
+        session = getTimedResult(SESSION_PHASE, () =>
+          /*
+           * The one place the client is asked where it is, and it is asked from
+           * inside the engine's own call — which is exactly the moment the answer
+           * is about. The session calls this only on a payload that opens a
+           * fight, so a player walking around pays nothing for it
+           * (`src/game/battle-session.ts`).
+           */
+          composeNextSession(before, reading, () => getPlaceFromWindow(page)),
+        );
         hasReading = true;
         /**
          * Guarded on its own, and ahead of nothing: keeping material is a
@@ -647,12 +657,25 @@ function getWorldFromPage(page: HostPage): string {
  * What a recording needs from the page, gathered in the one file allowed to read
  * it — so `src/game/fight-capture.ts` stays checkable without a browser.
  */
-function composeCaptureEnvironment(page: HostPage): CaptureEnvironment {
+function composeCaptureEnvironment(
+  page: HostPage,
+  /**
+   * Where the fight was, as the session recorded it when the fight opened.
+   *
+   * ⚠️ **Handed in rather than read here, and that is the whole point.** Every
+   * other getter above answers the same thing whenever it is asked; this one
+   * would not — a download happens after the fight, by which time the player may
+   * be somewhere else entirely. The caller holds the reading, so the caller is
+   * the one that can answer for the right moment (`src/game/battle-session.ts`).
+   */
+  getPlace: () => FightPlace | null,
+): CaptureEnvironment {
   return {
     getWorld: () => getWorldFromPage(page),
     getGameBuild: () => getGameBuildFromPage(page),
     getCapturedAt: () => new Date().toISOString(),
     getUserAgent: () => page.navigator?.userAgent ?? null,
+    getPlace,
   };
 }
 
@@ -865,6 +888,7 @@ export function composeFightKeeper(
             isPinned: alsoKept?.isPinned ?? false,
             isSelected: chosenId === null || chosenId === alsoKept?.id,
             at: null,
+            place: live.place,
             sideCounts: composeSideCounts([...live.roster.byId.values()], live.ourSide),
             outcome: getFightOutcome(live.roster, live.ourSide, live.statistics.outcome),
           });
@@ -879,6 +903,7 @@ export function composeFightKeeper(
             isPinned: fight.isPinned,
             isSelected: chosenId === fight.id,
             at: getClockFromIsoText(fight.keptAt),
+            place: fight.place,
             sideCounts: composeSideCounts(fight.combatants, fight.ourSide),
             outcome: getFightOutcome(roster, fight.ourSide, fight.outcome),
           });
@@ -1347,7 +1372,7 @@ function hasEngineGaps(gaps: FightReading["engineReading"]): boolean {
  * Doing nothing instead would be the silence §9.6 spends its whole length on.
  */
 export function writeCaptureToPage(page: HostPage, meter: MargoMeter): void {
-  const environment = composeCaptureEnvironment(page);
+  const environment = composeCaptureEnvironment(page, () => meter.getReading()?.place ?? null);
   writeTextToFile(
     page,
     composeCaptureFileName(environment),
@@ -1384,7 +1409,7 @@ export function composeReportText(
    */
   silenced?: { reading: number; capture: number },
 ): string {
-  const environment = composeCaptureEnvironment(page);
+  const environment = composeCaptureEnvironment(page, () => reading?.place ?? null);
   const report = {
     addon: { name: "MargoMeter", version: USERSCRIPT_VERSION },
     game: { world: environment.getWorld(), build: environment.getGameBuild() },

@@ -220,6 +220,7 @@ function getEveryString(view: PanelView): string[] {
           view.sides.nobody?.text ?? "",
         ]),
     view.outcomeText ?? "",
+    view.placeText ?? "",
     view.emptyText ?? "",
     view.emptyLimitText ?? "",
     ...view.nounTabs.map((tab) => tab.label),
@@ -243,6 +244,39 @@ function getEveryString(view: PanelView): string[] {
     ...view.warnings,
   ];
 }
+
+/**
+ * The header names where the fight was, beside how big it was and how it ended.
+ *
+ * ⚠️ **What goes in it is the game's own name, not a sentence of ours**, so the
+ * §3 sweeps over this file's own writing must not read it — which is why nothing
+ * below hands a place to `composeReading` except these tests, and why the name
+ * they use is invented rather than lifted from the game (NOTICE.md).
+ */
+describe("where the fight was", () => {
+  test("is on the header when the client said", () => {
+    const view = composePanelView(
+      composeReading({ place: { mapName: "a clearing", x: 34, y: 12 } }),
+      composeState(),
+    );
+    expect(view.placeText).toBe("a clearing (34,12)");
+  });
+
+  /**
+   * Null and not `""`: the header draws three things beside each other and a
+   * missing one is missing. Every caller with no game beside it is here — the
+   * published preview, the offline tools, every other test in this file.
+   */
+  test("is nothing where nothing said, and nothing is not empty text", () => {
+    expect(composePanelView(composeReading(), composeState()).placeText).toBe(null);
+    expect(
+      composePanelView(
+        composeReading({ place: { mapName: null, x: null, y: null } }),
+        composeState(),
+      ).placeText,
+    ).toBe(null);
+  });
+});
 
 describe("the ranking", () => {
   test("numbers the rows from one, biggest first", () => {
@@ -3595,10 +3629,28 @@ describe("the shelf, as data", () => {
       isSelected: false,
       at: { hour: 21, minute: 4 },
       sideCounts: [4, 4],
+      place: null,
       outcome: "won",
       ...over,
     };
   }
+
+  /**
+   * ⚠️ **The size and the place are separate cells, and only the place may be
+   * cut.** Written as one cell the size sat behind the map name and a long name
+   * pushed it off the end of a 260px row — the row lost the thing every row had
+   * before there were maps on them.
+   */
+  test("says where a fight was without spending the cell its size sits in", () => {
+    const view = composeFightsView(
+      [composeShelfFight({ place: { mapName: "a clearing", x: 34, y: 12 } })],
+      READING,
+    );
+    expect(view.rows[0]?.sizesText).toBe("4×4");
+    expect(view.rows[0]?.placeText).toBe("a clearing");
+    // And the half the cell cannot draw is still composed, for the row to be asked.
+    expect(view.rows[0]?.placeTitle).toBe("a clearing (34,12)");
+  });
 
   test("says what each fight was, without anything decoding one", () => {
     const view = composeFightsView([composeShelfFight()], READING);
@@ -3607,6 +3659,8 @@ describe("the shelf, as data", () => {
       id: "one",
       timeText: "21:04",
       sizesText: "4×4",
+      placeText: "",
+      placeTitle: "",
       outcomeText: "wygrana",
     });
     expect(view.emptyText).toBeNull();

@@ -559,6 +559,19 @@ function renderRow(
   const name = document.createElement("span");
   name.className = "row-name";
   name.textContent = row.label;
+  /*
+   * ⚠️ **A label this row cuts, given back — but only where nothing else gives it
+   * back.** `.row-name` ends in an ellipsis, and the names in it are the game's:
+   * a combatant, a skill, an element. Where the row opens the panel's own card
+   * the name is the card's first line already, and a second tooltip firing on the
+   * same node would open over it. Where it opens nothing — every leaf of the
+   * drill — the browser's own is the whole of what a reader has.
+   *
+   * Set from the label rather than from whether it overflowed: the panel is
+   * handed its document and measures nothing (§9.9), and a tooltip repeating a
+   * name that happens to fit costs a reader nothing.
+   */
+  if (row.detail.length === 0) name.title = row.label;
 
   // Built only where there is one to build: this runs per row per payload, and a
   // node created to be thrown away is the kind of cost `bun run cost` cannot see
@@ -807,12 +820,34 @@ export function renderPanel(
   renderRegionInto(document, panel, handlers, "nagłówek", () => {
     const block = document.createElement("div");
     block.className = "header";
+    const line = document.createElement("div");
+    line.className = "header-line";
     const who = document.createElement("span");
     who.textContent = view.title;
     const outcome = document.createElement("span");
     outcome.className = "header-outcome";
     outcome.textContent = view.outcomeText ?? "";
-    block.append(who, outcome);
+    line.append(who, outcome);
+    block.append(line);
+    /*
+     * ⚠️ **A line of its own, and only where there is something to put on it.**
+     * Beside the size and the outcome the place had about thirty characters, and a
+     * map's name plus a tile can be half again that — so the one thing that
+     * answers *where* was the one thing being cut. On its own line it has the
+     * whole panel and is not cut at all.
+     *
+     * Absent rather than empty, so a fight the client said nothing about draws the
+     * header it has always drawn: no reserved gap, and nothing moves for a panel
+     * with no game beside it.
+     */
+    if (view.placeText !== null) {
+      const place = document.createElement("div");
+      place.className = "header-place";
+      place.textContent = view.placeText;
+      // The line has the whole panel and still cuts a long enough name.
+      place.title = view.placeText;
+      block.append(place);
+    }
     return block;
   });
 
@@ -881,6 +916,9 @@ export function renderPanel(
       const here = document.createElement("span");
       here.className = "crumb-here";
       here.textContent = crumb.hereLabel;
+      // It cuts the same way a row does, and it names whatever was drilled into —
+      // so it is the one place a reader can no longer see what they opened.
+      here.title = crumb.hereLabel;
       block.append(back, here);
       return block;
     });
@@ -1120,6 +1158,7 @@ function renderFights(
     const here = document.createElement("span");
     here.className = "crumb-here";
     here.textContent = view.title;
+    here.title = view.title;
     block.append(back, here);
     return block;
   });
@@ -1178,18 +1217,35 @@ function renderFights(
       const time = document.createElement("span");
       time.className = "row-rank";
       time.textContent = row.timeText;
-      const sizes = document.createElement("span");
-      sizes.className = "row-name";
-      sizes.textContent = row.sizesText;
+      /*
+       * The size before the place and not after it, so the one cell that can be
+       * cut is the last one. Written the other way round the size sat in the
+       * elastic cell and a long map name pushed it off the end — the row lost the
+       * thing every row had before there were maps on them.
+       */
+      const size = document.createElement("span");
+      size.className = "row-size";
+      size.textContent = row.sizesText;
+      const where = document.createElement("span");
+      where.className = "row-name";
+      where.textContent = row.placeText;
+      /*
+       * ⚠️ **The tile comes back here, and this is the only place it can.** The
+       * cell draws the map's name alone, because a tile cut by an ellipsis reads
+       * as a coordinate and is not one — so the tooltip is what makes the row's
+       * missing half askable rather than gone. Quiet by default, detail on demand
+       * (§9.6).
+       */
+      where.title = row.placeTitle;
       const outcome = document.createElement("span");
       outcome.className = "row-value";
       outcome.textContent = row.outcomeText;
-      node.append(time, sizes, outcome);
+      node.append(time, size, where, outcome);
       // The pin is deliberately not among them, though it is inside the row: it
       // is a control of its own, and keeping it out of this map is what makes it
       // outrank the row structurally rather than by the order the handler above
       // happens to ask its questions in.
-      setRowPressTargets(fightByNode, row.id, [node, time, sizes, outcome]);
+      setRowPressTargets(fightByNode, row.id, [node, time, size, where, outcome]);
       list.append(node);
     }
     return list;

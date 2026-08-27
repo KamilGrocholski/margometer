@@ -34,6 +34,7 @@ import {
   type BattleSession,
 } from "@/src/game/battle-session.ts";
 import { PAYLOAD_FAULTS, type PayloadFault } from "@/src/game/engine-battle-wrap.ts";
+import type { FightPlace } from "@/src/game/engine-place.ts";
 import { composeBattleRoster } from "@/src/game/engine-roster.ts";
 
 /**
@@ -104,6 +105,15 @@ export type KeptFight = {
    * same reason.
    */
   entryHealthByCombatantId: FightEntryHealth;
+  /**
+   * Where it was fought, read when the fight opened and copied like everything
+   * else here — never re-derived, because there is nothing to derive it from: the
+   * messages say nothing about a map and the page has moved on.
+   *
+   * Null on every fight kept before this field existed, which is the reader
+   * below's job to say rather than a reason to drop them.
+   */
+  place: FightPlace | null;
   unreadablePayloadsByFault: ReadonlyMap<PayloadFault, number>;
   lostMessages: number;
   unreadableCombatants: number;
@@ -150,6 +160,10 @@ const STORED_FIELDS = {
   ourSide: "ourSide",
   isFromFightStart: "isFromFightStart",
   entryHealth: "entryHealthByCombatantId",
+  place: "place",
+  placeMapName: "mapName",
+  placeX: "x",
+  placeY: "y",
   faults: "unreadablePayloadsByFault",
   lostMessages: "lostMessages",
   unreadableCombatants: "unreadableCombatants",
@@ -188,6 +202,7 @@ export function composeKeptFight(
     ourSide: session.ourSide,
     isFromFightStart: session.isFromFightStart,
     entryHealthByCombatantId: session.entryHealthByCombatantId,
+    place: session.place,
     unreadablePayloadsByFault: session.unreadablePayloadsByFault,
     lostMessages: session.lostMessages,
     unreadableCombatants: session.unreadableCombatants,
@@ -219,6 +234,7 @@ export function composeSessionFromKeptFight(fight: KeptFight): BattleSession {
     ourSide: fight.ourSide,
     isFromFightStart: fight.isFromFightStart,
     entryHealthByCombatantId: fight.entryHealthByCombatantId,
+    place: fight.place,
     unreadablePayloadsByFault: fight.unreadablePayloadsByFault,
     lostMessages: fight.lostMessages,
     unreadableCombatants: fight.unreadableCombatants,
@@ -351,6 +367,14 @@ export function composeStoredTextFromKeptFights(kept: readonly KeptFight[]): str
       [STORED_FIELDS.ourSide]: fight.ourSide,
       [STORED_FIELDS.isFromFightStart]: fight.isFromFightStart,
       [STORED_FIELDS.entryHealth]: [...fight.entryHealthByCombatantId],
+      [STORED_FIELDS.place]:
+        fight.place === null
+          ? null
+          : {
+              [STORED_FIELDS.placeMapName]: fight.place.mapName,
+              [STORED_FIELDS.placeX]: fight.place.x,
+              [STORED_FIELDS.placeY]: fight.place.y,
+            },
       [STORED_FIELDS.faults]: [...fight.unreadablePayloadsByFault],
       [STORED_FIELDS.lostMessages]: fight.lostMessages,
       [STORED_FIELDS.unreadableCombatants]: fight.unreadableCombatants,
@@ -425,6 +449,15 @@ function getKeptFightFromValue(value: unknown): KeptFight | null {
   const outcome = stated === null || stated === undefined ? null : getOutcomeFromValue(stated);
   if (outcome === null && stated !== null && stated !== undefined) return null;
 
+  // Absent and unreadable stay apart here too, and absent has two causes worth
+  // keeping distinct in the head even though they read the same: a fight kept
+  // before this field existed, and one whose page would not say where it was.
+  // Neither is a reason to drop a fight; a value of the wrong shape is.
+  const statedPlace = fields[STORED_FIELDS.place];
+  const place =
+    statedPlace === null || statedPlace === undefined ? null : getPlaceFromValue(statedPlace);
+  if (place === null && statedPlace !== null && statedPlace !== undefined) return null;
+
   const statedSide = fields[STORED_FIELDS.ourSide];
   const ourSide = statedSide === null ? null : getIntegerFromValue(statedSide);
   if (ourSide === null && statedSide !== null) return null;
@@ -439,6 +472,7 @@ function getKeptFightFromValue(value: unknown): KeptFight | null {
     ourSide,
     isFromFightStart,
     entryHealthByCombatantId: new Map(entryHealth),
+    place,
     unreadablePayloadsByFault: new Map(faults),
     lostMessages,
     unreadableCombatants,
@@ -455,6 +489,37 @@ function getTextListFromValue(value: unknown): readonly string[] | null {
 function getCountFromValue(value: unknown): number | null {
   const count = getIntegerFromValue(value);
   return count === null || count < 0 ? null : count;
+}
+
+/**
+ * A place, or null where the record is not one.
+ *
+ * Every member may be absent — the page answers each of them separately and a
+ * map mid-load answers none (`src/game/engine-place.ts`) — so what makes this a
+ * place at all is that it is a record. What it may not be is a record stating a
+ * member of the wrong kind: that is text somebody edited, and §9.6 would rather
+ * lose the fight than draw a map name nobody wrote.
+ */
+function getPlaceFromValue(value: unknown): FightPlace | null {
+  const fields = getRecordFromValue(value);
+  if (fields === null) return null;
+
+  const statedName = fields[STORED_FIELDS.placeMapName];
+  const statedX = fields[STORED_FIELDS.placeX];
+  const statedY = fields[STORED_FIELDS.placeY];
+  if (statedName !== undefined && statedName !== null && typeof statedName !== "string") return null;
+
+  const x = isNothingStated(statedX) ? null : getIntegerFromValue(statedX);
+  const y = isNothingStated(statedY) ? null : getIntegerFromValue(statedY);
+  if (x === null && !isNothingStated(statedX)) return null;
+  if (y === null && !isNothingStated(statedY)) return null;
+
+  return { mapName: statedName ?? null, x, y };
+}
+
+/** The two ways a stored field says nothing, told apart from a bad value. */
+function isNothingStated(value: unknown): boolean {
+  return value === null || value === undefined;
 }
 
 function getOutcomeFromValue(value: unknown): KeptFightOutcome | null {

@@ -45,6 +45,8 @@ import {
 import {
   composeCountedText,
   composeFigureText,
+  composeFightPlaceText,
+  composeFightRowPlaceText,
   composeSideCountsText,
   composeShareText,
   composeShareTexts,
@@ -1126,6 +1128,9 @@ export function composePanelView(
   const shell = {
     title: composeTitle(reading),
     outcomeText: getOutcomeText(reading),
+    // Empty is the same answer as absent here — the page said nothing about where
+    // this was — and the header draws one gap rather than an empty one.
+    placeText: composeFightPlaceText(reading.place ?? null) || null,
     nounTabs: composeNounTabs(state.metric),
     directionTabs: composeDirectionTabs(state.metric),
     teamTabs: composeTeamTabs(state.team),
@@ -1327,6 +1332,8 @@ function composeFightRow(fight: PanelKeptFight): PanelFightRow {
     pinTitle: getPinTitle(fight.isPinned),
     timeText: getFightTimeText(fight.at, fight.isLive),
     sizesText: composeSideCountsText(fight.sideCounts),
+    placeText: composeFightRowPlaceText(fight.place),
+    placeTitle: composeFightPlaceText(fight.place),
     outcomeText: getFightOutcomeText(fight.outcome, fight.isLive),
   };
 }

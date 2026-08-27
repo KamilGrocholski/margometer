@@ -435,6 +435,13 @@ export type PanelSides = {
 export type PanelView = {
   title: string;
   outcomeText: string | null;
+  /**
+   * Where the fight was fought, worded — or null where nothing said.
+   *
+   * Null rather than `""` for `outcomeText`'s reason one line up: the header is
+   * three things beside each other and a missing one is missing, not blank.
+   */
+  placeText: string | null;
   /** The two control strips, and both speak in the metrics named above. */
   nounTabs: PanelMetricTab[];
   /**
@@ -592,11 +599,30 @@ export type PanelKeptFight = {
   at: { hour: number; minute: number } | null;
   /** How many fought on each side, the reader's own first. */
   sideCounts: readonly number[];
+  /** Where it was fought, when the game said. Null on every fight kept before it did. */
+  place: PanelPlace | null;
   /** From the reader's seat, and null where nothing places them in it. */
   outcome: PanelFightOutcome | null;
 };
 
 export type PanelFightOutcome = "won" | "lost" | "drawn";
+
+/**
+ * Where a fight happened, as the panel is handed it.
+ *
+ * Declared here and not imported from `src/game/`, the way `PanelReading` is and
+ * for the same reason: §9.1 names no direction from `ui` to `game`, and a type
+ * import is still a direction. `FightPlace` satisfies this structurally, so the
+ * entry point passes the same value through untouched.
+ *
+ * Each member falls out on its own, because the client answers each of them
+ * separately — a map part-way through loading answers none of the three.
+ */
+export type PanelPlace = {
+  mapName: string | null;
+  x: number | null;
+  y: number | null;
+};
 
 /** One control on the fights screen, and the choice it carries. */
 export type PanelStorageTab = { choice: PanelStorageChoice; label: string; isSelected: boolean };
@@ -612,6 +638,25 @@ export type PanelFightRow = {
   pinTitle: string;
   timeText: string;
   sizesText: string;
+  /**
+   * Where it was, in the one cell on the row that can grow.
+   *
+   * ⚠️ **Last of the four, because it is the only one that may be cut.** The clock,
+   * the size and the outcome are each as wide as they need to be and no wider, and
+   * the place takes what is left — so a fight kept before there was a map to read
+   * draws exactly the row it always drew, and a long name shortens instead of
+   * pushing the size off the end.
+   */
+  placeText: string;
+  /**
+   * The whole place, for the tooltip the cell above carries.
+   *
+   * Two fields and not one, because they are two different answers: the cell
+   * shows as much as it can draw without lying, and this is what a reader gets by
+   * asking. The tile is here and not there — an ellipsis through `(128,214)`
+   * leaves a number nobody wrote (§9.6).
+   */
+  placeTitle: string;
   outcomeText: string;
 };
 

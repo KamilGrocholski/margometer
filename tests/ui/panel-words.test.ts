@@ -3,6 +3,8 @@ import { assertDefined } from "@/libs/assert.ts";
 import { getIntegerFromText } from "@/libs/number.ts";
 import {
   composeCountedText,
+  composeFightPlaceText,
+  composeFightRowPlaceText,
   composeSideCountsText,
   CHOICE_REFUSED_WARNING,
   EVERY_SLOT_PINNED_WARNING,
@@ -956,6 +958,61 @@ describe("what the shelf of kept fights says", () => {
     expect(composeSideCountsText([4, 4])).toBe("4×4");
     expect(composeSideCountsText([11, 1])).toBe("11×1");
     expect(composeSideCountsText([])).toBe("");
+  });
+
+  /**
+   * The layout is the game's own — the client's *copy location with coordinates*
+   * composes the name and the tile in brackets beside it — so a reader who has
+   * used that menu already knows how to read this.
+   */
+  test("writes where the fight was the way the game itself writes it", () => {
+    expect(composeFightPlaceText({ mapName: "a clearing", x: 34, y: 12 })).toBe("a clearing (34,12)");
+  });
+
+  test("writes whichever half of a place it was given", () => {
+    expect(composeFightPlaceText({ mapName: "a clearing", x: null, y: null })).toBe("a clearing");
+    expect(composeFightPlaceText({ mapName: null, x: 34, y: 12 })).toBe("(34,12)");
+    expect(composeFightPlaceText({ mapName: "a clearing", x: 34, y: null })).toBe("a clearing");
+  });
+
+  /** Zero is a tile, and a place is not a figure — so it is written, not dropped. */
+  test("writes the tile at the origin like any other", () => {
+    expect(composeFightPlaceText({ mapName: null, x: 0, y: 0 })).toBe("(0,0)");
+  });
+
+  /**
+   * §9.3's unknown is loud in a figure and a place is not one: there is nothing
+   * here that could be mistaken for a measurement, so silence is the honest
+   * answer and a word for *nowhere* would be a claim about the game.
+   */
+  test("says nothing at all where there is no place to say", () => {
+    expect(composeFightPlaceText(null)).toBe("");
+    expect(composeFightPlaceText({ mapName: null, x: null, y: null })).toBe("");
+  });
+
+  /**
+   * ⚠️ **The rule the shelf row exists under: a truncated word is visibly
+   * truncated, a truncated number is a wrong number.** The row's cell ends in an
+   * ellipsis, so a tile carried into it would eventually draw `(128,2…` — which
+   * reads as a coordinate and is not one (§9.6). The header carries the whole
+   * place on a line of its own, so nothing is lost from the panel.
+   */
+  test("gives a shelf row the map's name and never the tile", () => {
+    expect(composeFightRowPlaceText({ mapName: "a clearing", x: 34, y: 12 })).toBe("a clearing");
+  });
+
+  /**
+   * Nine characters at the most, so it cannot overflow and cannot be cut — and
+   * half an answer beats a blank cell where the client gave one and not the other.
+   */
+  test("gives a shelf row the tile where there was no name to give", () => {
+    expect(composeFightRowPlaceText({ mapName: null, x: 34, y: 12 })).toBe("(34,12)");
+  });
+
+  /** Every fight on somebody's shelf today, and the row it has always drawn. */
+  test("gives a shelf row nothing where nothing was said", () => {
+    expect(composeFightRowPlaceText(null)).toBe("");
+    expect(composeFightRowPlaceText({ mapName: null, x: null, y: null })).toBe("");
   });
 
   /** §3: a Polish panel never borrows English shorthand for a thing it can name. */

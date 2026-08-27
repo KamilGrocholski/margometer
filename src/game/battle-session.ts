@@ -27,6 +27,7 @@ import type { CombatantRoster, RosteredCombatant } from "@/src/core/combatant-ro
 import { decodeFight } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import type { PayloadFault, PayloadReading } from "@/src/game/engine-battle-wrap.ts";
+import type { FightPlace } from "@/src/game/engine-place.ts";
 import {
   composeBattleRoster,
   composeMergedCombatants,
@@ -145,6 +146,18 @@ export type BattleSession = {
    * counting the healing it cannot size, which is what it did before this existed.
    */
   entryHealthByCombatantId: FightEntryHealth;
+  /**
+   * Where the fight was fought, read on the payload that opened it.
+   *
+   * ⚠️ **A fact about one moment, exactly like the entry health above.** The
+   * client states where somebody is *now*, and a fight is written down when it
+   * is over — by which time the player may be two maps away. Read at the start
+   * and carried untouched, so a kept fight names the map it happened on rather
+   * than the map its row was written on.
+   *
+   * Null on a fight joined in progress, and on every caller with no page to ask.
+   */
+  place: FightPlace | null;
 };
 
 export function composeEmptySession(): BattleSession {
@@ -161,6 +174,7 @@ export function composeEmptySession(): BattleSession {
     unreadableCombatants: 0,
     lastMessage: null,
     entryHealthByCombatantId: NO_ENTRY_HEALTH,
+    place: null,
   };
 }
 
@@ -237,6 +251,21 @@ export function isFightStart(payload: unknown): boolean {
 export function composeNextSession(
   session: BattleSession,
   reading: PayloadReading,
+  /**
+   * Where the fight is, asked only on the payload that opens one.
+   *
+   * A getter rather than a value, and optional, for two separate reasons. Asked
+   * lazily because the answer is a read of the live client and every other
+   * payload would pay for one it throws away — and because a place that changed
+   * between payloads would defeat the identity clause below, which is what stops
+   * the panel redrawing on every step the player takes.
+   *
+   * Optional because a caller with no page truthfully has nothing to ask: the
+   * offline tools and every test replaying a recording are in that position, and
+   * saying nothing is not the same as saying nowhere (§9.3). This file stays
+   * pure — it calls what it was handed and reaches for no client of its own.
+   */
+  getPlace?: () => FightPlace | null,
 ): BattleSession {
   const { payload, messages } = reading;
   const starting = isFightStart(payload);
@@ -303,6 +332,9 @@ export function composeNextSession(
           events,
         )
       : previous.entryHealthByCombatantId,
+    // Only where a fight opens, which is the one moment the answer is about. On
+    // every other payload the getter is not called at all.
+    place: starting ? (getPlace?.() ?? null) : previous.place,
     ...composeNextFaults(previous, reading),
     unreadableCombatants: previous.unreadableCombatants + fragment.unreadableEntries,
     lastMessage: messages[messages.length - 1] ?? previous.lastMessage,
@@ -345,6 +377,8 @@ export type FightReading = {
    * passed, and indistinguishable from something deliberately left out.
    */
   engineReading: EngineReadingGaps;
+  /** Where it was fought, when the page said. Never guessed, never stale. */
+  place: FightPlace | null;
 };
 
 /** What the game handed over that this layer could not turn into a fight. */
@@ -382,5 +416,6 @@ export function composeFightReading(session: BattleSession): FightReading {
       lostMessages: session.lostMessages,
       unreadableCombatants: session.unreadableCombatants,
     },
+    place: session.place,
   };
 }

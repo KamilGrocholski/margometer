@@ -93,6 +93,10 @@ export const DUMP_FIELDS = {
   capturedAt: "przy",
   world: "swiat",
   gameBuild: "build",
+  place: "mapa",
+  placeMapName: "nazwa",
+  placeX: "x",
+  placeY: "y",
   calls: "wpisy",
   callIndex: "nr",
   fightNumber: "walka",
@@ -161,8 +165,45 @@ export type FightDump = {
    * stops the read.
    */
   gameBuild: string | null;
+  /**
+   * Where the fight was fought, or null where the recording does not say.
+   *
+   * ⚠️ **Absent is a recording written before the add-on read a map, and it is
+   * not a fault.** Every capture held on 2026-08-27 predates the field, so
+   * refusing one that lacks it would refuse the whole corpus. That makes this the
+   * `fightNumber` shape and not `gameBuild`'s: missing reads as null, an explicit
+   * null reads as *the page would not say*, and a value of the wrong shape is
+   * still a file this parser does not understand.
+   *
+   * The battle protocol states none of it, so it can never be recovered for a
+   * recording that went without it — the only field here of which that is true.
+   */
+  place: DumpPlace | null;
   calls: EngineCall[];
 };
+
+/** Where a recording says it was taken. Each member absent on its own. */
+export type DumpPlace = {
+  mapName: string | null;
+  x: number | null;
+  y: number | null;
+};
+
+function parseDumpPlace(raw: unknown): DumpPlace {
+  const place = requireObject(raw, DUMP_FIELDS.place);
+  const at = DUMP_FIELDS.place;
+  const name = place[DUMP_FIELDS.placeMapName];
+  const x = place[DUMP_FIELDS.placeX];
+  const y = place[DUMP_FIELDS.placeY];
+  return {
+    // A member's own null is the client having refused that one — the map's name
+    // arrives from one object and the position from another, and a map part-way
+    // through loading gives neither (`src/game/engine-place.ts`).
+    mapName: name === null ? null : requireString(name, `${at}.${DUMP_FIELDS.placeMapName}`),
+    x: x === null ? null : requireInteger(x, `${at}.${DUMP_FIELDS.placeX}`),
+    y: y === null ? null : requireInteger(y, `${at}.${DUMP_FIELDS.placeY}`),
+  };
+}
 
 function parseCombatantHealth(raw: unknown, path: string): CombatantHealth {
   const health = requireObject(raw, path);
@@ -291,6 +332,13 @@ export function parseFightDump(source: string): FightDump {
       dump[DUMP_FIELDS.gameBuild] === null
         ? null
         : requireString(dump[DUMP_FIELDS.gameBuild], DUMP_FIELDS.gameBuild),
+    // Absent is every recording written before the add-on read a map, so it
+    // falls to null rather than through — the `fightNumber` rule, one level up.
+    // An explicit null is the page having refused to say.
+    place:
+      dump[DUMP_FIELDS.place] === undefined || dump[DUMP_FIELDS.place] === null
+        ? null
+        : parseDumpPlace(dump[DUMP_FIELDS.place]),
     calls: requireArray(dump[DUMP_FIELDS.calls], DUMP_FIELDS.calls).map((call, i) =>
       parseEngineCall(call, `${DUMP_FIELDS.calls}[${i}]`),
     ),

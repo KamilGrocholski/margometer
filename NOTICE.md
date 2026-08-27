@@ -50,6 +50,28 @@ panel draws where the client has no name for something, or is not on the page at
 all. Those phrases are this repository's own writing. Where the game's wording
 informed one, the entry says so in its own words; none of them is a quotation.
 
+### The map a fight was on — `src/game/engine-place.ts`
+
+The panel names where a fight happened, and the name is the operator's: it is
+what they called that place. Like the sentences above it is **read from the
+running game and not stored** — the add-on asks the client's own state for it at
+the moment a fight opens, shows it, and writes down no name of its own. No map of
+the game's is named in a `.ts`, an `.md`, a test or a comment here; the fixtures
+that exercise the reading invent their own.
+
+Two things follow that are worth stating rather than leaving to be found:
+
+- **A recording carries it.** From 2026-08-27 a downloaded fight states, in its
+  header beside `swiat` and `build`, the map its player was on and the tile they
+  stood on. That is a name of the operator's entering a file, so it is on the
+  footing the monster names below are on rather than the footing the dictionary is
+  on: a record of one player's own session, kept because a fight nobody can place
+  is material nobody can compare. Every recording in this repository today
+  predates the field and carries none.
+- **The panel is where it is drawn, and nowhere else.** It is a name, never a key
+  and never a sentence, so nothing about it is translated, explained or stored
+  between fights except inside the reader's own browser.
+
 ### Recorded fights — `tests/captured-fights/*.json`
 
 Recordings of the author's own fights, kept as the server sent them. They are

@@ -613,6 +613,18 @@ export function composePanelStyleText(): string {
   text-align: center;
 }
 .row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+/*
+ * The size on a shelf row, as wide as the figure it holds and no wider.
+ *
+ * ⚠️ **\`flex: none\` is what keeps the ellipsis off it.** The cell after this one
+ * is \`.row-name\`, which holds the map's name and is the only thing on the row
+ * allowed to shorten; without this the two would give way together and a long
+ * name would take \`10×1\` with it. \`tests/ui/panel-element.test.ts\` holds the
+ * order of the cells and nothing holds this declaration — a stylesheet asserted
+ * against itself proves only that two files agree (§7.5), and what would catch
+ * this is a browser, not a test.
+ */
+.row-size { flex: none; padding-right: ${t.spaceSmall}; }
 .row-value { font-variant-numeric: tabular-nums; padding-left: ${t.space}; font-weight: 600; }
 .row-share { color: ${t.textQuiet}; padding-left: ${t.spaceSmall}; font-weight: 400; }
 /*
@@ -680,7 +692,23 @@ export function composePanelStyleText(): string {
   mask-image: repeating-linear-gradient(-45deg, ${t.maskInk} 0 4px, transparent 4px 8px);
 }
 .pinned-region .bar-cap { opacity: 0.7; }
-.header { display: flex; justify-content: space-between; align-items: baseline; padding: ${t.spaceRegion}; padding-bottom: 0; }
+/*
+ * Two rows in one region: the size against the outcome, and the place under
+ * both. A block rather than a column flex because the line below is the only
+ * thing that needs to be one, and \`display: block\` was already in this sheet.
+ */
+.header { display: block; padding: ${t.spaceRegion}; padding-bottom: 0; }
+.header-line { display: flex; justify-content: space-between; align-items: baseline; }
+/*
+ * The whole width, because it is the one thing on the header that can be long.
+ *
+ * ⚠️ **This is why it is a line and not a third item on the one above.** Beside
+ * \`10 vs 1\` and \`WYGRANA\` it had about thirty characters of a 260px panel, and a
+ * map's name plus a tile runs half again that — so the one thing answering
+ * *where* was the one thing being cut. Nothing here is measured, so putting it
+ * back on that line would go unnoticed by every test in this repository.
+ */
+.header-place { color: ${t.textQuiet}; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .header-outcome { color: ${t.textQuiet}; text-transform: uppercase; font-size: 10px; }
 .empty { color: ${t.textQuiet}; padding: ${t.space} ${t.spaceHalf}; }
 /*

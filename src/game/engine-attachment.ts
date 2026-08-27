@@ -28,11 +28,39 @@ import {
 } from "@/src/game/engine-battle-wrap.ts";
 import { getRecordOrArrayFromValue } from "@/libs/record.ts";
 
+/**
+ * The game object itself, as much of it as anything here reaches for.
+ *
+ * Three fields and no more: the battle this file wraps, and the map and hero
+ * `src/game/engine-place.ts` reads a location off. Everything below the first
+ * level stays `unknown` — it is the client's, and whoever reads it is the one
+ * that says what shape it must be.
+ */
+type GameEngine = { battle?: unknown; map?: unknown; hero?: unknown };
+
 /** How the page exposes the game. Both spellings, because both are in the wild. */
 export type GameWindow = {
-  Engine?: { battle?: unknown } | undefined;
-  getEngine?: (() => { battle?: unknown } | undefined) | undefined;
+  Engine?: GameEngine | undefined;
+  getEngine?: (() => GameEngine | undefined) | undefined;
 };
+
+/**
+ * Both spellings, in the order they are tried.
+ *
+ * Here rather than inline because there is a second reader now — the place —
+ * and §7.1 puts a shared module at the second consumer. What it buys is that
+ * `Engine` and `getEngine` are names this repository did not choose and are
+ * spelled once (§9.3): a client that renamed either would break both readers at
+ * one point rather than one reader silently.
+ *
+ * ⚠️ **Calling `getEngine` is a call into somebody else's program.** It can
+ * throw, and this does not catch it: both callers already sit inside the `try`
+ * that §9.5 puts at this boundary, and a `try` here would turn a page tearing
+ * down into an empty list, which reads like a page with no game on it.
+ */
+export function getEnginesFromPage(page: GameWindow): readonly (GameEngine | undefined)[] {
+  return [page.Engine, page.getEngine?.()];
+}
 
 export type AttachmentOptions = {
   /** Injected so a test can drive the clock instead of waiting on one. */
@@ -101,7 +129,7 @@ export function getBattleFromWindow(page: GameWindow): EngineBattle | null {
     // exposing a truthy `Engine` without a battle never tried the other
     // spelling, ran the whole search out and reported no game on a page where
     // the game was reachable.
-    const battle = [page.Engine, page.getEngine?.()].map((engine) => engine?.battle).find(
+    const battle = getEnginesFromPage(page).map((engine) => engine?.battle).find(
       (candidate) => getRecordOrArrayFromValue(candidate) !== null,
     );
     if (getRecordOrArrayFromValue(battle) === null) return null;
