@@ -11,7 +11,12 @@
  */
 
 import { assert } from "@/libs/assert.ts";
-import { getDecimalFromText, getIntegerFromText, getNumberFromText } from "@/libs/number.ts";
+import {
+  getDecimalFromText,
+  getIntegerFromText,
+  getNumberFromText,
+  isFixedDecimalText,
+} from "@/libs/number.ts";
 import type {
   AnnouncedSkill,
   AttackEvent,
@@ -194,7 +199,10 @@ function getCombatantIdsOfMessage(parsed: ProtocolMessage): number[] {
  * never made the distinction we were making.
  */
 export const DAMAGE_TO_NAMED_KEY = "+oth_dmg";
-const NAMED_WITH_PERCENT = /^(.*)\((\d+\.\d\d)%\)$/;
+const HEALTH_PERCENT_TAIL_START = "(";
+const HEALTH_PERCENT_TAIL_END = "%)";
+/** The protocol writes a health percentage to two places, always. */
+const HEALTH_PERCENT_PLACES = 2;
 
 /** A combatant a message named, and the health that name stated, where it did. */
 type StatedName = { name: string; healthPercent: number | null };
@@ -211,22 +219,35 @@ type StatedName = { name: string; healthPercent: number | null };
  * their own docblocks argue. This sits below that split and knows nothing of it.
  */
 function getStatedNameFromText(raw: string): StatedName | null {
-  const named = NAMED_WITH_PERCENT.exec(raw);
-  // The `??` closes a gap in the type, not a real branch — `(.*)` always
-  // captures once the pattern matched. It falls into the check below rather than
-  // asserting, because an assertion here would travel into the game engine.
-  const name = named === null ? raw : (named[1] ?? "");
+  let name = raw;
+  let healthPercent: number | null = null;
+
+  // ⚠️ **The last bracket, not the first.** The pattern this replaces was
+  // `^(.*)\((\d+\.\d\d)%\)$` with a greedy head, so it took the last `(` that
+  // still left a percentage behind it — which is what keeps a name carrying
+  // brackets of its own intact. `lastIndexOf` is that rule written forwards.
+  if (raw.endsWith(HEALTH_PERCENT_TAIL_END)) {
+    const open = raw.lastIndexOf(HEALTH_PERCENT_TAIL_START);
+    const stated =
+      open === -1 ? null : raw.slice(open + 1, raw.length - HEALTH_PERCENT_TAIL_END.length);
+
+    // A tail that is not the shape is not a percentage at all, and then the
+    // whole text is the name. That is why the shape is asked separately from the
+    // value: a bracket in a nickname must not cost the reader a row.
+    if (stated !== null && isFixedDecimalText(stated, HEALTH_PERCENT_PLACES)) {
+      name = raw.slice(0, open);
+      healthPercent = getDecimalFromText(stated);
+      // Shape held and the value will not read: that refuses the whole message
+      // rather than nulling the field, because the health it states is the
+      // anchor an entry health is unwound from, and a message quietly missing
+      // one is a fight that sizes differently.
+      if (healthPercent === null) return null;
+    }
+  }
+
   // A figure against nobody is a figure we cannot attribute, and a blank name
   // would travel on looking like one.
   if (name === "") return null;
-
-  const rawPercent = named?.[2];
-  const healthPercent = rawPercent === undefined ? null : getDecimalFromText(rawPercent);
-  // A percentage that will not read refuses the whole message rather than
-  // nulling the field: the health it states is the anchor an entry health is
-  // unwound from, and a message quietly missing one is a fight that sizes
-  // differently.
-  if (rawPercent !== undefined && healthPercent === null) return null;
 
   return { name, healthPercent };
 }

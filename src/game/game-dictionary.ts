@@ -47,11 +47,21 @@ export type DictionaryWindow = {
   _t?: unknown;
 };
 
-/** The sign the client prefixes to say which way an effect went. */
-const DIRECTION_SIGNS = /^[+-]/;
+/** The signs the client prefixes to say which way an effect went. */
+const DIRECTION_SIGNS = "+-";
+/** What opens and closes a hole the client fills: `%val%`, `%name%`, `%val2%`. */
+const HOLE_MARK = "%";
+const FULL_STOP = ".";
 
-/** A hole the client fills with a figure or a name: `%val%`, `%name%`, `%val2%`. */
-const HOLE = /%[^%]*%/;
+/**
+ * Two marks with nothing between them is a hole, and any two marks are that:
+ * the second occurrence found from the first is by definition the next one, so
+ * there is nothing between them to look at.
+ */
+function hasHole(entry: string): boolean {
+  const open = entry.indexOf(HOLE_MARK);
+  return open !== -1 && entry.indexOf(HOLE_MARK, open + 1) !== -1;
+}
 
 /**
  * The label inside one of the client's strings, or null if there is no label in
@@ -62,18 +72,16 @@ const HOLE = /%[^%]*%/;
  * repository and never will be.
  */
 export function getLabelFromEntry(entry: string): string | null {
-  if (HOLE.test(entry)) return null;
-  const label = entry.replace(DIRECTION_SIGNS, "").trim().replace(/\.$/, "").trim();
+  if (hasHole(entry)) return null;
+
+  const first = entry[0];
+  const signed = first !== undefined && DIRECTION_SIGNS.includes(first);
+  const trimmed = (signed ? entry.slice(1) : entry).trim();
+  const label = (trimmed.endsWith(FULL_STOP) ? trimmed.slice(0, -1) : trimmed).trim();
+
   return label === "" ? null : label;
 }
 
-/**
- * A reader for the panel, or null where this page has no dictionary.
- *
- * Null rather than a reader that always answers null, so the panel can tell
- * "the game is not here" from "the game has no name for this" — and so the
- * fallback path is one branch rather than a lookup per token.
- */
 export function getDictionaryReader(page: DictionaryWindow): ((id: string) => string | null) | null {
   const translate = page._t;
   if (typeof translate !== "function") return null;

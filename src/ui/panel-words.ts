@@ -1032,6 +1032,9 @@ export const EVERY_SLOT_PINNED_WARNING =
 export const CHOICE_REFUSED_WARNING =
   "Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było.";
 
+const MINUS_SIGN = "-";
+const THOUSAND_DIGITS = 3;
+
 /**
  * A run of digits, spaced every three from the right — as the game writes them.
  *
@@ -1044,5 +1047,19 @@ export const CHOICE_REFUSED_WARNING =
  * caller that has a run of digits already has no rounding to ask for.
  */
 function composeSpacedThousands(digits: string): string {
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  // The sign is taken off first and put back last. The pattern this replaces
+  // spaced from the right and relied on `\B` to leave the leading character
+  // alone, which meant a lone `-` before three digits was never separated from
+  // them; grouping the body on its own says that outright instead of leaning on
+  // where a word boundary happens to fall.
+  const sign = digits.startsWith(MINUS_SIGN) ? MINUS_SIGN : "";
+  const body = digits.slice(sign.length);
+
+  let spaced = "";
+  let start = body.length;
+  while (start > THOUSAND_DIGITS) {
+    spaced = ` ${body.slice(start - THOUSAND_DIGITS, start)}${spaced}`;
+    start -= THOUSAND_DIGITS;
+  }
+  return `${sign}${body.slice(0, start)}${spaced}`;
 }

@@ -233,6 +233,10 @@ function getLinearChannel(channel: number): number {
     : Math.pow((proportion + 0.055) / 1.055, 2.4);
 }
 
+const COLOUR_MARK = "#";
+const COLOUR_TEXT_LENGTH = 7;
+const CHANNEL_TEXT_LENGTH = 2;
+
 /**
  * The three channels of a `#rrggbb` colour, or null if it is not one.
  *
@@ -242,13 +246,19 @@ function getLinearChannel(channel: number): number {
  * ratio computed against something nobody drew.
  */
 function getChannelsFromColour(colour: string): number[] | null {
-  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(colour);
-  if (match === null) return null;
+  if (colour.length !== COLOUR_TEXT_LENGTH || colour[0] !== COLOUR_MARK) return null;
 
-  const channels = [match[1], match[2], match[3]].map((channel) =>
-    getIntegerFromHexadecimalText(channel ?? ""),
-  );
-  return channels.every((channel) => channel !== null) ? channels : null;
+  // The length and the mark leave exactly three pairs, so the loop cannot run
+  // short or long; `getIntegerFromHexadecimalText` refuses anything in them that
+  // is not a hexadecimal digit, which is the whole of what the pattern here
+  // used to say.
+  const channels: number[] = [];
+  for (let start = 1; start < COLOUR_TEXT_LENGTH; start += CHANNEL_TEXT_LENGTH) {
+    const channel = getIntegerFromHexadecimalText(colour.slice(start, start + CHANNEL_TEXT_LENGTH));
+    if (channel === null) return null;
+    channels.push(channel);
+  }
+  return channels;
 }
 
 /**

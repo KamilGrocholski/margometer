@@ -16,6 +16,8 @@ import {
   getIntegerFromText,
   getIntegerFromValue,
   getNumberFromText,
+  isFixedDecimalText,
+  isIntegerText,
 } from "@/libs/number.ts";
 
 describe("reading an integer from text", () => {
@@ -244,4 +246,54 @@ describe("writing a byte back as hexadecimal", () => {
       expect(() => composeHexadecimalByteText(value)).toThrow(AssertionFailure);
     },
   );
+});
+
+/**
+ * The two shape readers, which answer about the text and say nothing about the
+ * value. They exist because a caller sometimes has to tell a malformed field
+ * from an out-of-range one, and one answer cannot carry both.
+ */
+describe("the shape of an integer, without its magnitude", () => {
+  test.each(["0", "7", "-140", "007", "9007199254740993"])("%p is the shape", (text) => {
+    expect(isIntegerText(text)).toBe(true);
+  });
+
+  // The last of those is past 2^53 and still the right shape — which is the
+  // whole reason this is separate from `getIntegerFromText`.
+  test("a shape it holds is not a number it can read", () => {
+    expect(isIntegerText("9007199254740993")).toBe(true);
+    expect(getIntegerFromText("9007199254740993")).toBeNull();
+  });
+
+  test.each(["", "-", " 5", "5 ", "1.0", "1e3", "0x10", "+5", "--5", "५"])(
+    "%p is not",
+    (text) => {
+      expect(isIntegerText(text)).toBe(false);
+    },
+  );
+});
+
+describe("the shape of a decimal written to a stated number of places", () => {
+  test.each(["0.00", "66.95", "100.00", "007.50"])("%p is two places", (text) => {
+    expect(isFixedDecimalText(text, 2)).toBe(true);
+  });
+
+  // Both sides of the boundary, and the sign: the protocol writes a health
+  // percentage unsigned, so a minus is a different field arriving here.
+  test.each(["66.9", "66.955", "66.", ".95", "66", "", "-66.95", "66.9a", "6 6.95"])(
+    "%p is not",
+    (text) => {
+      expect(isFixedDecimalText(text, 2)).toBe(false);
+    },
+  );
+
+  test("the number of places is the caller's, not this reader's", () => {
+    expect(isFixedDecimalText("1.5", 1)).toBe(true);
+    expect(isFixedDecimalText("1.5", 2)).toBe(false);
+    expect(isFixedDecimalText("1.500", 3)).toBe(true);
+  });
+
+  test("no places at all is a broken invariant, not an answer", () => {
+    expect(() => isFixedDecimalText("1.5", 0)).toThrow(AssertionFailure);
+  });
 });

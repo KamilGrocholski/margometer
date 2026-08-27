@@ -12,7 +12,38 @@
  * optionally with a time in UTC.
  */
 
-const ISO_TEXT = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z)?$/;
+import { getEndOfDigits, hasDigitsAt } from "@/libs/text-runs.ts";
+
+const CALENDAR_DATE_END = 10;
+const SECONDS_END = 19;
+const MOST_FRACTION_DIGITS = 3;
+
+/**
+ * `YYYY-MM-DD`, optionally `THH:MM:SS` with up to three fractional digits and a
+ * `Z`. Walked rather than matched, and the walk is total the way a pattern
+ * anchored at both ends was: every field states the separator that follows it,
+ * and the last check is against the length, so nothing trails unread.
+ */
+function isIsoText(text: string): boolean {
+  if (!hasDigitsAt(text, 0, 4) || text[4] !== "-") return false;
+  if (!hasDigitsAt(text, 5, 2) || text[7] !== "-") return false;
+  if (!hasDigitsAt(text, 8, 2)) return false;
+  if (text.length === CALENDAR_DATE_END) return true;
+
+  if (text[CALENDAR_DATE_END] !== "T") return false;
+  if (!hasDigitsAt(text, 11, 2) || text[13] !== ":") return false;
+  if (!hasDigitsAt(text, 14, 2) || text[16] !== ":") return false;
+  if (!hasDigitsAt(text, 17, 2)) return false;
+
+  let index = SECONDS_END;
+  if (text[index] === ".") {
+    const start = index + 1;
+    const end = getEndOfDigits(text, start);
+    if (end === start || end - start > MOST_FRACTION_DIGITS) return false;
+    index = end;
+  }
+  return text[index] === "Z" && index + 1 === text.length;
+}
 
 /**
  * Milliseconds since the epoch, or null. Null covers both a shape we do not
@@ -20,7 +51,7 @@ const ISO_TEXT = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z)?$/;
  * is still refused.
  */
 export function getMillisecondsFromIsoText(text: string): number | null {
-  if (!ISO_TEXT.test(text)) return null;
+  if (!isIsoText(text)) return null;
   const milliseconds = Date.parse(text);
   if (Number.isNaN(milliseconds)) return null;
   // `Date.parse` rolls a day past the end of its month over into the next one,

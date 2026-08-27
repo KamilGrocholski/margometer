@@ -15,6 +15,12 @@
  * expressed as pure text, needing no DOM, no engine and no panel.
  */
 
+import {
+  getEndOfAlphanumerics,
+  getEndOfWhitespace,
+  isWordStart,
+} from "@/libs/text-runs.ts";
+
 /**
  * Eight characters or more of letters and digits — which is both shapes the
  * client has served, named once so the two readers below cannot come to disagree
@@ -27,28 +33,57 @@
  * `luvia.margonem.pl` both serve `/js/main.min.53XkBRxF.js`: a separating dot,
  * and eight characters of mixed case. So the three recordings made that day carry
  * `build: null` and are undated for good (§9.2) — not because the client stated
- * nothing, but because this pattern refused what it stated
+ * nothing, but because this floor refused what it stated
  * (`docs/specs/2026-08-25-a-recording-that-names-no-build.md`, which left fixing
  * the reader to a later round).
  *
  * The floor is what the two observed forms have in common and nothing more: the
- * new id is eight characters and the old ones are thirteen. What keeps the
- * pattern from matching some neighbouring word is the shape around it — a name
- * that is `main.min` … `.js`, or a `version:` key — rather than the token
+ * new id is eight characters and the old ones are thirteen. What keeps a run of
+ * letters and digits from being some neighbouring word is the shape around it —
+ * a name that is `main.min` … `.js`, or a `version:` key — rather than the token
  * itself, which is why the token may be this loose.
  */
-const BUILD_TOKEN = String.raw`[0-9A-Za-z]{8,}`;
+const LEAST_BUILD_CHARACTERS = 8;
+
+const SCRIPT_NAME_HEAD = "main.min";
+const SCRIPT_NAME_TAIL = ".js";
+const OPTIONAL_SEPARATOR = ".";
+const INLINE_KEY = "version:";
+const OPTIONAL_QUOTE = '"';
+
+/** Where a bundle name sits in a page, and where the id sits inside it. */
+type ScriptNameSpan = { start: number; end: number; buildStart: number; buildEnd: number };
 
 /**
  * `main.min<build>.js` or `main.min.<build>.js`, the name every bundle the client
  * loads is served under. The separator is optional because the client added one
  * when the id stopped being a number, and both names are still in this
  * repository: the cache holds a bundle fetched under the older one.
+ *
+ * Walked rather than matched, like everything else that reads text here. Two
+ * details are the pattern's own rules written forwards. The separator is taken
+ * whenever it is there and never weighed against leaving it — a build id is
+ * letters and digits, so a run beginning at the dot could not be one. And a
+ * `main.min` whose tail does not hold is not the end of the search: the scan
+ * resumes past it, because a page states this name more than once and only one
+ * of them need be the bundle.
  */
-const IN_SCRIPT_NAME = new RegExp(String.raw`main\.min\.?(${BUILD_TOKEN})\.js`);
+function getScriptNameSpan(text: string): ScriptNameSpan | null {
+  for (let from = 0; ; ) {
+    const head = text.indexOf(SCRIPT_NAME_HEAD, from);
+    if (head === -1) return null;
+    from = head + 1;
 
-/** `build = { version: … }`, which the page states inline beside the scripts. */
-const IN_INLINE_OBJECT = new RegExp(String.raw`\bversion:\s*"?(${BUILD_TOKEN})`);
+    let buildStart = head + SCRIPT_NAME_HEAD.length;
+    if (text[buildStart] === OPTIONAL_SEPARATOR) buildStart += 1;
+
+    const buildEnd = getEndOfAlphanumerics(text, buildStart);
+    if (buildEnd - buildStart < LEAST_BUILD_CHARACTERS) continue;
+    if (!text.startsWith(SCRIPT_NAME_TAIL, buildEnd)) continue;
+
+    return { start: head, end: buildEnd + SCRIPT_NAME_TAIL.length, buildStart, buildEnd };
+  }
+}
 
 /**
  * The build id from a script filename, or null.
@@ -58,23 +93,44 @@ const IN_INLINE_OBJECT = new RegExp(String.raw`\bversion:\s*"?(${BUILD_TOKEN})`)
  * that quietly claimed a build would be worse than one admitting it has none.
  */
 export function getGameBuildFromScriptName(text: string): string | null {
-  return IN_SCRIPT_NAME.exec(text)?.[1] ?? null;
+  const span = getScriptNameSpan(text);
+  return span === null ? null : text.slice(span.buildStart, span.buildEnd);
 }
 
 /**
  * The bundle's whole filename, for whoever has to ask the server for it.
  *
- * The same match as above, one group wider, because the id is no longer enough to
+ * The same span as above, one field wider, because the id is no longer enough to
  * rebuild the name from: `main.min` + id + `.js` was true of every name the
  * client served until 2026-08-25 and is not true of `main.min.53XkBRxF.js`. A
  * tool that composed the name from the id would ask for a file that is not there,
  * and composing it is a guess where the page states the answer.
  */
 export function getGameBundleNameFromScriptName(text: string): string | null {
-  return IN_SCRIPT_NAME.exec(text)?.[0] ?? null;
+  const span = getScriptNameSpan(text);
+  return span === null ? null : text.slice(span.start, span.end);
 }
 
-/** The same, from the inline object a world page carries. */
+/**
+ * The same, from the `build = { version: … }` object a world page states inline
+ * beside its scripts.
+ *
+ * `version` has to begin a word, or `apiversion:` would answer for it — that is
+ * the `\b` the pattern here carried. The quote is optional and taken the way the
+ * separator above is, and for the same reason.
+ */
 export function getGameBuildFromInlineObject(text: string): string | null {
-  return IN_INLINE_OBJECT.exec(text)?.[1] ?? null;
+  for (let from = 0; ; ) {
+    const key = text.indexOf(INLINE_KEY, from);
+    if (key === -1) return null;
+    from = key + 1;
+    if (!isWordStart(text, key)) continue;
+
+    let start = getEndOfWhitespace(text, key + INLINE_KEY.length);
+    if (text[start] === OPTIONAL_QUOTE) start += 1;
+
+    const end = getEndOfAlphanumerics(text, start);
+    if (end - start < LEAST_BUILD_CHARACTERS) continue;
+    return text.slice(start, end);
+  }
 }

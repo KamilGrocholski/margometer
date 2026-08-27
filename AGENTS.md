@@ -489,6 +489,9 @@ libs/              The bottom layer: true in any project — §9.1.
                    null; writing refuses a value with no JSON.
   timestamp.ts     Date.parse without the NaN.
   text-order.ts    Two pieces of text in order, by code unit, deterministic.
+  text-runs.ts     Where a run of characters of one kind stops — digits, letters
+                   and digits, whitespace — and where a word begins. What reads a
+                   fixed shape now that nothing shipped matches one.
   record.ts        Narrowing to something with keys. Two readers: one admits an
                    array, one refuses it.
   running-total.ts A total a map carries, both ways: adding to one, and what one

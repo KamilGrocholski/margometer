@@ -20,6 +20,8 @@ import {
   composeIntegerText,
   getDecimalFromText,
   getIntegerFromText,
+  isFixedDecimalText,
+  isIntegerText,
 } from "@/libs/number.ts";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 
@@ -55,33 +57,44 @@ export type ProtocolMessage = {
   parameters: MessageParameter[];
 };
 
-const SIDE_PATTERN = /^(-?\d+)(?:=(\d+\.\d{2}))?$/;
 const SEGMENT_SEPARATOR = ";";
 const NO_COMBATANT = "0";
+const HEALTH_SEPARATOR = "=";
+/** The protocol writes a health percentage to two places, always. */
+const HEALTH_PERCENT_PLACES = 2;
 
 function parseMessageSide(segment: string, whole: string): MessageSide | null {
   if (segment === NO_COMBATANT) return null;
 
-  const match = SIDE_PATTERN.exec(segment);
-  if (!match) throw new ProtocolMessageFormatError(`side segment "${segment}" is not an id`, whole);
+  // Split before either half is read, so "which half is wrong" is a fact rather
+  // than a guess: the id is everything before the first `=`, and a segment with
+  // no `=` is an id and nothing else.
+  const separator = segment.indexOf(HEALTH_SEPARATOR);
+  const idText = separator === -1 ? segment : segment.slice(0, separator);
+  const percentText = separator === -1 ? null : segment.slice(separator + 1);
 
-  // The pattern proves the shape — digits, and a two-place percentage — so that
-  // the groups exist is an invariant of ours. That the digits fit in a number is
-  // not: the protocol could state an id longer than 2^53, and reading it as its
-  // nearest neighbour would attribute damage to a combatant who does not exist.
-  // Magnitude is therefore the game's business and refused like any other
-  // format problem, which the decoder turns into a loud unknown.
-  const id = assertDefined(match[1], "SIDE_PATTERN captures the id");
-  const percent = match[2];
+  // Shape and magnitude are two refusals and the split between them is
+  // load-bearing. That the digits are digits is the grammar's business; that
+  // they fit in a number is not — the protocol could state an id longer than
+  // 2^53, and reading it as its nearest neighbour would attribute damage to a
+  // combatant who does not exist. Both are refused, and the decoder turns either
+  // into a loud unknown; they are told apart so a reader of the message knows
+  // which happened.
+  if (!isIntegerText(idText)) {
+    throw new ProtocolMessageFormatError(`side segment "${segment}" is not an id`, whole);
+  }
+  if (percentText !== null && !isFixedDecimalText(percentText, HEALTH_PERCENT_PLACES)) {
+    throw new ProtocolMessageFormatError(`side segment "${segment}" is not an id`, whole);
+  }
 
-  const combatantId = getIntegerFromText(id);
+  const combatantId = getIntegerFromText(idText);
   if (combatantId === null) {
     throw new ProtocolMessageFormatError(`side segment "${segment}" states an unusable id`, whole);
   }
 
-  if (percent === undefined) return { combatantId, healthPercent: null };
+  if (percentText === null) return { combatantId, healthPercent: null };
 
-  const healthPercent = getDecimalFromText(percent);
+  const healthPercent = getDecimalFromText(percentText);
   if (healthPercent === null) {
     throw new ProtocolMessageFormatError(
       `side segment "${segment}" states an unusable percentage`,

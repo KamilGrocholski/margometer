@@ -29,10 +29,63 @@
  */
 
 import { assert } from "@/libs/assert.ts";
+import {
+  getEndOfDigits,
+  isHexadecimalDigitAt,
+} from "@/libs/text-runs.ts";
 
-const INTEGER_TEXT = /^-?\d+$/;
-const DECIMAL_TEXT = /^-?\d+\.\d+$/;
-const HEXADECIMAL_TEXT = /^[0-9a-f]+$/i;
+const MINUS = "-";
+const POINT = ".";
+
+/**
+ * `-?digits`, whole — the shape alone, with nothing said about magnitude.
+ *
+ * Exported because a caller that has to tell a malformed field from an
+ * out-of-range one needs the two answers apart: `src/core/protocol-message.ts`
+ * refuses a side segment that is not an id differently from one stating an id
+ * past 2^53, and the decoder turns only the second into a loud unknown.
+ */
+export function isIntegerText(text: string): boolean {
+  const start = text[0] === MINUS ? 1 : 0;
+  const end = getEndOfDigits(text, start);
+  return end > start && end === text.length;
+}
+
+/**
+ * Unsigned digits, a point, and exactly `places` digits — the shape alone.
+ *
+ * Its own reader because two callers need the shape without the value, and both
+ * of them read the same field: the health percentage the protocol writes to two
+ * places, in a side segment (`src/core/protocol-message.ts`) and in the tail of
+ * a name (`src/core/fight-decoder.ts`). A tail that is not this shape is not a
+ * percentage at all and the text is a name; a tail that is this shape and still
+ * will not read is a fault. One answer cannot carry both.
+ */
+export function isFixedDecimalText(text: string, places: number): boolean {
+  assert(Number.isSafeInteger(places) && places > 0, "a fixed decimal has a whole number of places");
+  const whole = getEndOfDigits(text, 0);
+  if (whole === 0 || text[whole] !== POINT) return false;
+  const fraction = getEndOfDigits(text, whole + 1);
+  return fraction - whole - 1 === places && fraction === text.length;
+}
+
+/** `-?digits.digits`, whole. No exponent, no bare `.5`, no trailing point. */
+function isDecimalText(text: string): boolean {
+  const start = text[0] === MINUS ? 1 : 0;
+  const whole = getEndOfDigits(text, start);
+  if (whole === start || text[whole] !== POINT) return false;
+  const fraction = getEndOfDigits(text, whole + 1);
+  return fraction > whole + 1 && fraction === text.length;
+}
+
+/** Hexadecimal digits in either case, whole. */
+function isHexadecimalText(text: string): boolean {
+  if (text.length === 0) return false;
+  for (let index = 0; index < text.length; index += 1) {
+    if (!isHexadecimalDigitAt(text, index)) return false;
+  }
+  return true;
+}
 
 /**
  * Null unless the text is a plain decimal integer that survives the round trip.
@@ -40,7 +93,7 @@ const HEXADECIMAL_TEXT = /^[0-9a-f]+$/i;
  * number would silently come back as a neighbour of itself.
  */
 export function getIntegerFromText(text: string): number | null {
-  if (!INTEGER_TEXT.test(text)) return null;
+  if (!isIntegerText(text)) return null;
   const value = Number(text);
   return Number.isSafeInteger(value) ? value : null;
 }
@@ -54,14 +107,14 @@ export function getIntegerFromText(text: string): number | null {
  * colour channel read half-way is a colour nobody chose.
  */
 export function getIntegerFromHexadecimalText(text: string): number | null {
-  if (!HEXADECIMAL_TEXT.test(text)) return null;
+  if (!isHexadecimalText(text)) return null;
   const value = parseInt(text, 16);
   return Number.isSafeInteger(value) ? value : null;
 }
 
 /** Null unless the text is digits, a point, and digits. No exponent, no bare `.5`. */
 export function getDecimalFromText(text: string): number | null {
-  if (!DECIMAL_TEXT.test(text)) return null;
+  if (!isDecimalText(text)) return null;
   const value = Number(text);
   return Number.isFinite(value) ? value : null;
 }
