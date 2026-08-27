@@ -13,10 +13,15 @@
  * consumer to stop.
  */
 
-import { isWhitespaceAt } from "@/libs/text-runs.ts";
+import { isEveryCharacterIn, isWhitespaceAt } from "@/libs/text-runs.ts";
 
 /** What a bracketed share is wrapped in. */
 const BRACKETS = "()%";
+
+const DIGITS = "0123456789";
+
+/** What the panel puts before the number where a share is too small to state. */
+const SMALL_SHARE_MARK = "<";
 
 /** Every whitespace character out. The panel spaces its thousands. */
 export function composeWithoutWhitespace(text: string): string {
@@ -34,6 +39,21 @@ export function composeWithoutBrackets(text: string): string {
     if (!BRACKETS.includes(character)) kept += character;
   }
   return kept;
+}
+
+/**
+ * Whether `text` is a share the way the panel draws one: a bracket, a number,
+ * the per-cent sign, a bracket.
+ *
+ * The mark on a share too small to state as a whole number is part of the shape
+ * rather than an exception to it — a row that has one is still a row stating its
+ * share, which is what every caller here is asking about.
+ */
+export function isDrawnShare(text: string): boolean {
+  if (!text.startsWith("(") || !text.endsWith("%)")) return false;
+  const inside = text.slice(1, text.length - "%)".length);
+  const number = inside.startsWith(SMALL_SHARE_MARK) ? inside.slice(1) : inside;
+  return isEveryCharacterIn(number, DIGITS);
 }
 
 /**

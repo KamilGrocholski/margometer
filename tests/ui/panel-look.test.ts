@@ -22,6 +22,8 @@
 
 import { describe, expect, test } from "bun:test";
 import { AssertionFailure } from "@/libs/assert.ts";
+import { getPartsSeparatedByWhitespace } from "@/libs/text-runs.ts";
+import { getClassNamesFromSelector, getDeclarations, getStyleRules } from "@/tests/style-rules.ts";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 import {
   composePanelStyleText,
@@ -121,25 +123,32 @@ describe("choosing the ink for a badge", () => {
  * at all; what a machine can hold is the stylesheet, and this holds it.
  */
 describe("the pin on a kept fight's row", () => {
-  /** One rule's declarations, by its selector, off the one string the panel styles with. */
-  function getDeclarations(selector: string): string[] {
-    const rule = new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`).exec(composePanelStyleText());
-    expect(rule, selector).not.toBeNull();
-    return (rule?.[1] ?? "")
-      .split(";")
-      .map((one) => one.trim())
-      .filter((one) => one.length > 0);
+  /**
+   * One rule's declarations, by its selector, off the one string the panel styles
+   * with.
+   *
+   * The first rule whose selector **ends** with what was asked: a rule may be
+   * reached through an ancestor, and `.row-pin` is not `.row-pin.pinned`.
+   */
+  function getDeclarationsOf(selector: string): string[] {
+    const rule = getStyleRules(composePanelStyleText()).find((one) =>
+      one.selector.endsWith(selector),
+    );
+    expect(rule, selector).toBeDefined();
+    return getDeclarations(rule?.body ?? "").map(
+      (declaration) => `${declaration.property}: ${declaration.value}`,
+    );
   }
 
   test("states a size of its own rather than taking the glyph's", () => {
-    const declarations = getDeclarations(".row-pin");
+    const declarations = getDeclarationsOf(".row-pin");
     expect(declarations).toContain(`width: ${PANEL_TOKENS.rowHeight}`);
     expect(declarations).toContain("flex: none");
     expect(declarations).toContain("align-self: stretch");
   });
 
   test("says it is pinned in ink, and moves no edge doing it", () => {
-    expect(getDeclarations(".row-pin.pinned")).toEqual([`color: ${PANEL_TOKENS.text}`]);
+    expect(getDeclarationsOf(".row-pin.pinned")).toEqual([`color: ${PANEL_TOKENS.text}`]);
   });
 });
 
@@ -170,10 +179,10 @@ describe("a word the stylesheet uses for a state", () => {
     const lone = new Set<string>();
     const modifiers = new Map<string, string>();
 
-    for (const [, selector] of style.matchAll(/^([.:][^\n{]*?)\s*\{/gm)) {
-      for (const one of (selector ?? "").split(",")) {
-        for (const part of one.trim().split(/\s+/)) {
-          const classes = [...part.matchAll(/\.([a-zA-Z0-9_-]+)/g)].map(([, name]) => name ?? "");
+    for (const rule of getStyleRules(style)) {
+      for (const one of rule.selector.split(",")) {
+        for (const part of getPartsSeparatedByWhitespace(one)) {
+          const classes = getClassNamesFromSelector(part);
           if (classes.length === 1) lone.add(classes[0] ?? "");
           // The tail is the modifier: `.row.chosen` styles a row that is chosen.
           if (classes.length > 1) modifiers.set(classes[classes.length - 1] ?? "", part);

@@ -636,6 +636,8 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
   document-lines.ts           A line out of a document this repository writes:
                               whether one is there exactly, and what the line
                               behind a label says.
+  style-rules.ts              A stylesheet cut into rules: the selector, the
+                              classes it names, and what each rule declares.
   protocol-key-register.ts    Reads the register into entries — verdict, health
                               line, evidence, shape, help phrases.
 ```

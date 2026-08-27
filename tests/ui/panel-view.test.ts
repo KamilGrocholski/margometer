@@ -15,6 +15,7 @@ import { composeJsonText } from "@/libs/json.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
+import { isDigitAt, isEveryCharacterIn } from "@/libs/text-runs.ts";
 import { composeCombatantsOfPayload } from "@/tools/fight-dump-parser.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
@@ -58,7 +59,10 @@ import {
   composeWithoutBrackets,
   composeWithoutWhitespace,
   hasTokenAsWord,
+  isDrawnShare,
 } from "@/tests/drawn-text.ts";
+
+const DIGITS = "0123456789";
 
 /**
  * A fight with two sides, a healer, a tick of poison and one unreadable message.
@@ -385,7 +389,11 @@ describe("the ranking", () => {
   test("the bracket carries the share of the whole", () => {
     const view = composePanelView(composeReading(), composeState());
 
-    expect(view.lists[0]!.rows[0]!.bracketText).toMatch(/^\(\d+%\)$/);
+    const bracket = view.lists[0]!.rows[0]!.bracketText ?? "";
+    expect(isDrawnShare(bracket), bracket).toBe(true);
+    // The top row of this reading holds enough of the whole to be stated as a
+    // number, so the mark a smaller share carries has no business here.
+    expect(isEveryCharacterIn(composeWithoutBrackets(bracket), DIGITS), bracket).toBe(true);
   });
 
   /**
@@ -597,7 +605,7 @@ describe("what nobody can be charged with", () => {
     const pinned = getNoActorRow(composePanelView(composeReading(), composeState({ metric, team })));
     if (pinned === null) return;
 
-    expect(pinned.bracketText, `${metric} ${team}`).toMatch(/^\(\d|^\(<1%/);
+    expect(isDrawnShare(pinned.bracketText ?? ""), `${metric} ${team}`).toBe(true);
     expect(pinned.fill, `${metric} ${team}`).toBeGreaterThan(0);
   });
 
@@ -2048,7 +2056,7 @@ describe("against the captured fights", () => {
         { kind: "stat", label: "fizyczne", value: "400", isStrong: false },
       ]);
       // The whole on that screen contains it, so it states its share of one.
-      expect(givenBySide?.bracketText, team).toMatch(/^\(/);
+      expect(isDrawnShare(givenBySide?.bracketText ?? ""), team).toBe(true);
     }
   });
 
@@ -2708,7 +2716,10 @@ describe("against the captured fights", () => {
       for (const team of PANEL_TEAMS) {
         const view = composePanelView(reading, composeState({ metric, team }));
         for (const pinned of view.pinnedRows) {
-          expect(pinned.bracketText, `${metric} ${team} ${pinned.key}`).toMatch(/^\(/);
+          expect(
+            isDrawnShare(pinned.bracketText ?? ""),
+            `${metric} ${team} ${pinned.key}: ${pinned.bracketText ?? ""}`,
+          ).toBe(true);
         }
       }
     }
@@ -3483,6 +3494,14 @@ describe("every sentence the panel says", () => {
     "‹ skład",
   ];
 
+  /** Anywhere in the text, which is what tells a figure from a phrase. */
+  function hasDigit(text: string): boolean {
+    for (let index = 0; index < text.length; index += 1) {
+      if (isDigitAt(text, index)) return true;
+    }
+    return false;
+  }
+
   /**
    * A figure or a name is data; everything else on the screen is our writing.
    *
@@ -3516,7 +3535,7 @@ describe("every sentence the panel says", () => {
 
     return said.filter(
       (text) =>
-        text !== "" && !/\d/.test(text) && !fromTheFight.some((name) => text.includes(name)),
+        text !== "" && !hasDigit(text) && !fromTheFight.some((name) => text.includes(name)),
     );
   }
 

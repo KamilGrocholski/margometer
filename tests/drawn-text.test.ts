@@ -14,6 +14,7 @@ import {
   composeWithoutBrackets,
   composeWithoutWhitespace,
   hasTokenAsWord,
+  isDrawnShare,
 } from "@/tests/drawn-text.ts";
 
 describe("the spacing off a number", () => {
@@ -76,4 +77,40 @@ describe("a token standing alone", () => {
     expect(hasTokenAsWord("bloką", "blok")).toBe(false);
     expect(hasTokenAsWord("1blok2", "blok")).toBe(true);
   });
+});
+
+/**
+ * ⚠️ **Its callers cannot hold it.** Every one of them asserts a share *is*
+ * drawn, so a reader that answered true to anything would leave the whole gate
+ * green. The cases that kill that mutant are the ones where the answer is no.
+ */
+describe("a share the panel drew", () => {
+  test.each(["(0%)", "(7%)", "(100%)", "(<1%)"])("%p is one", (text) => {
+    expect(isDrawnShare(text)).toBe(true);
+  });
+
+  // A figure with no brackets, brackets with no figure, a share whose number is
+  // missing on either side of the mark, and a bracket that never closes. `(77)`
+  // is the one that holds the closing half: without it a bracketed number with
+  // no per-cent sign reads as a share, and a share is a share because of the
+  // unit.
+  test.each([
+    "7%",
+    "(7)",
+    "(77)",
+    "(%)",
+    "()",
+    "(<%)",
+    "(<1%",
+    "7%)",
+    "(-1%)",
+    "(7 %)",
+    "",
+    "(a%)",
+  ])(
+    "%p is not",
+    (text) => {
+      expect(isDrawnShare(text)).toBe(false);
+    },
+  );
 });

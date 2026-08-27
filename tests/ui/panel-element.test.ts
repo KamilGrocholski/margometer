@@ -15,6 +15,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import { getPartsSeparatedByWhitespace } from "@/libs/text-runs.ts";
+import { isDrawnShare } from "@/tests/drawn-text.ts";
+import { getStyleRules } from "@/tests/style-rules.ts";
 import {
   composeClampedPosition,
   composeDefaultPosition,
@@ -485,7 +488,7 @@ describe("what reaches the screen", () => {
     const { panel } = renderInto();
 
     for (const share of getByClass(panel, "row-share")) {
-      expect(share.textContent).toMatch(/^\(\d+%/);
+      expect(isDrawnShare(share.textContent), share.textContent).toBe(true);
     }
   });
 
@@ -1546,22 +1549,8 @@ describe("what the panel never does", () => {
   });
 });
 
-/**
- * The stylesheet cut into selector and declarations, which is all a claim about
- * one rule needs. Comments go first: they ship inside the sheet, so a selector
- * read without dropping them is the prose above it.
- */
-function getStyleRules(style: string): { selector: string; body: string }[] {
-  return style
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .split("}")
-    .filter((chunk) => chunk.includes("{"))
-    .map((chunk) => {
-      const cut = chunk.indexOf("{");
-
-      return { selector: chunk.slice(0, cut).trim(), body: chunk.slice(cut + 1) };
-    });
-}
+/** The one-sided spellings, which say nothing about the other side. */
+const SIDE_PROPERTIES = ["margin-left", "margin-right", "padding-left", "padding-right"];
 
 /**
  * How far a rule holds its contents off the panel's two edges, in pixels.
@@ -1578,7 +1567,7 @@ function getHorizontalInset(body: string): number | null {
     .map((one) => one.split(":"))
     .filter((one) => one.length === 2);
 
-  if (written.some(([name]) => /^(margin|padding)-(left|right)$/.test(name!.trim()))) return null;
+  if (written.some(([name]) => SIDE_PROPERTIES.includes(name!.trim()))) return null;
 
   let total = 0;
   for (const property of ["margin", "padding"]) {
@@ -1586,7 +1575,7 @@ function getHorizontalInset(body: string): number | null {
 
     if (declaration === undefined) continue;
 
-    const values = declaration[1]!.trim().split(/\s+/);
+    const values = getPartsSeparatedByWhitespace(declaration[1]!);
     const across = values.length === 1 ? values[0]! : values[1]!;
     const pixels = getIntegerFromText(across.replace("px", ""));
 

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
 import { getIntegerFromText } from "@/libs/number.ts";
+import { isEveryCharacterIn, isWhitespaceAt } from "@/libs/text-runs.ts";
 import {
   composeCountedText,
   composeFightPlaceText,
@@ -117,12 +118,32 @@ describe("the panel's vocabulary", () => {
    * interior space is refused, which is what a sentence has and an identifier
    * does not.
    */
-  const DICTIONARY_FAMILIES = /^(?:msg_|def-)[^%\s]+( %[a-z0-9]+%)?$/;
+  const DICTIONARY_FAMILIES = ["msg_", "def-"];
+
+  /** What a hole in one of the client's sentences is fenced with. */
+  const HOLE = "%";
+
+  const HOLE_NAME_CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+  function isDictionaryIdentifier(id: string): boolean {
+    const family = DICTIONARY_FAMILIES.find((one) => id.startsWith(one));
+    if (family === undefined) return false;
+
+    let index = family.length;
+    const nameStart = index;
+    while (index < id.length && !isWhitespaceAt(id, index) && id[index] !== HOLE) index += 1;
+    if (index === nameStart) return false;
+    if (index === id.length) return true;
+
+    // The one thing that may follow the name, and only at the very end.
+    if (id[index] !== " " || id[index + 1] !== HOLE || !id.endsWith(HOLE)) return false;
+    return isEveryCharacterIn(id.slice(index + 2, id.length - 1), HOLE_NAME_CHARACTERS);
+  }
 
   test("asks it by an identifier and never by a sentence", () => {
     for (const [family, token, name] of EVERY_NAME) {
       if (name.id === null) continue;
-      expect(name.id, `${family}/${token}`).toMatch(DICTIONARY_FAMILIES);
+      expect(isDictionaryIdentifier(name.id), `${family}/${token}: ${name.id}`).toBe(true);
     }
   });
 

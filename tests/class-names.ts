@@ -17,6 +17,14 @@
  * open to be read.
  */
 
+import { getEndOfWhitespace, getPartsSeparatedByWhitespace, isWordStart } from "@/libs/text-runs.ts";
+import { getClassNamesFromSelector, getStyleRules } from "@/tests/style-rules.ts";
+
+/** The property a class is written to, in either shape. */
+const CLASS_PROPERTY = "className";
+
+const QUOTE = '"';
+
 /**
  * The classes a stylesheet styles.
  *
@@ -28,8 +36,8 @@
  */
 export function getStyledClassNames(css: string): Set<string> {
   const styled = new Set<string>();
-  for (const rule of css.replaceAll(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^{}]*\}/g)) {
-    for (const name of rule[1]!.matchAll(/\.([A-Za-z][\w-]*)/g)) styled.add(name[1]!);
+  for (const rule of getStyleRules(css)) {
+    for (const name of getClassNamesFromSelector(rule.selector)) styled.add(name);
   }
   return styled;
 }
@@ -46,14 +54,78 @@ export function getStyledClassNames(css: string): Set<string> {
  */
 export function getAssignedClassNames(sourceWithoutComments: string): Set<string> {
   const assigned = new Set<string>();
-  // `[=:]` because a class can arrive as an object property rather than an
-  // assignment — the panel's title-bar buttons carry theirs that way.
-  for (const site of sourceWithoutComments
-    .replaceAll(/[!=]==?\s*"[^"]*"/g, "")
-    .matchAll(/\bclassName\s*[=:]\s*([^;,]+)/g)) {
-    for (const text of site[1]!.matchAll(/"([^"]*)"/g)) {
-      for (const name of text[1]!.split(/\s+/).filter(Boolean)) assigned.add(name);
+  for (const value of getAssignedValues(sourceWithoutComments)) {
+    for (const text of getQuotedTextsOutsideComparisons(value)) {
+      for (const name of getPartsSeparatedByWhitespace(text)) assigned.add(name);
     }
   }
   return assigned;
+}
+
+/**
+ * What each `className` is handed, as far as the end of the expression.
+ *
+ * A class can arrive as an object property rather than an assignment — the
+ * panel's title-bar buttons carry theirs that way — so both `=` and `:` open a
+ * value. A doubled `=` opens nothing: `className === "title"` is a comparison,
+ * and reading it as an assignment would call the word being compared a class.
+ * The value ends at the `;` or `,` that ends the expression, which is where the
+ * pattern's `[^;,]+` ended it.
+ */
+function getAssignedValues(source: string): string[] {
+  const values: string[] = [];
+  for (let at = source.indexOf(CLASS_PROPERTY); at !== -1; at = source.indexOf(CLASS_PROPERTY, at + 1)) {
+    if (!isWordStart(source, at)) continue;
+    let index = getEndOfWhitespace(source, at + CLASS_PROPERTY.length);
+    const opening = source[index];
+    if (opening === "=" ? source[index + 1] === "=" : opening !== ":") continue;
+    index = getEndOfWhitespace(source, index + 1);
+    let end = index;
+    while (end < source.length && source[end] !== ";" && source[end] !== ",") end += 1;
+    if (end > index) values.push(source.slice(index, end));
+  }
+  return values;
+}
+
+/**
+ * Every quoted text in an expression, minus the ones being compared against.
+ *
+ * `className` is assigned out of a ternary on `line.kind === "title"` and the
+ * like, and without this the words on the right of a comparison arrive as though
+ * they were class names.
+ */
+function getQuotedTextsOutsideComparisons(value: string): string[] {
+  const texts: string[] = [];
+  let index = 0;
+  while (index < value.length) {
+    const character = value[index];
+    if (character === "!" || character === "=") {
+      let after = index + 1;
+      while (value[after] === "=") after += 1;
+      const isComparison = after > index + 1;
+      index = isComparison ? getEndOfWhitespace(value, after) : after;
+      if (isComparison && value[index] === QUOTE) index = getEndOfQuotedText(value, index);
+      continue;
+    }
+    if (character === QUOTE) {
+      const end = getEndOfQuotedText(value, index);
+      texts.push(value.slice(index + 1, end - 1));
+      index = end;
+      continue;
+    }
+    index += 1;
+  }
+  return texts;
+}
+
+/**
+ * One past the closing quote of the text opening at `start`.
+ *
+ * An unterminated one ends at the end of the value, which is the only answer
+ * that terminates: a caller advancing by what this returns cannot then read the
+ * same quote again.
+ */
+function getEndOfQuotedText(value: string, start: number): number {
+  const closing = value.indexOf(QUOTE, start + 1);
+  return closing === -1 ? value.length : closing + 1;
 }
