@@ -638,6 +638,8 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
                               behind a label says.
   style-rules.ts              A stylesheet cut into rules: the selector, the
                               classes it names, and what each rule declares.
+  markup-parts.ts             A page taken apart: an element's attributes and what
+                              is inside it, and one attribute wherever it is worn.
   protocol-key-register.ts    Reads the register into entries — verdict, health
                               line, evidence, shape, help phrases.
 ```

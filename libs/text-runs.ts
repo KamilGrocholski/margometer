@@ -147,6 +147,22 @@ export function isEveryCharacterIn(text: string, characters: string): boolean {
 }
 
 /**
+ * Whether any character of `text` comes from `characters`.
+ *
+ * The other half of the pair above, and a different question rather than its
+ * negation: "every character is a digit" and "there is a digit in here" are both
+ * asked around this repository, and neither answer implies the other. Empty is
+ * false for the same reason it is there — no characters, none of them from the
+ * set.
+ */
+export function hasAnyCharacterIn(text: string, characters: string): boolean {
+  for (const character of text) {
+    if (characters.includes(character)) return true;
+  }
+  return false;
+}
+
+/**
  * The pieces of `text` that are not whitespace, in order, with none of them
  * empty.
  *

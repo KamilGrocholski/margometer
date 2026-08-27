@@ -20,6 +20,7 @@ import {
   getEndOfWhitespace,
   getEndOfWordCharacters,
   getPartsSeparatedByWhitespace,
+  hasAnyCharacterIn,
   hasDigitsAt,
   isAlphanumericAt,
   isDigitAt,
@@ -197,3 +198,18 @@ describe("kebab case", () => {
   );
 });
 
+describe("a character from a set", () => {
+  test("is found wherever it stands", () => {
+    expect(hasAnyCharacterIn("abc", "c")).toBe(true);
+    expect(hasAnyCharacterIn("abc", "a")).toBe(true);
+  });
+
+  test.each(["", "abc"])("%p carries none of them", (text) => {
+    expect(hasAnyCharacterIn(text, "xyz")).toBe(false);
+  });
+
+  // The pair is not each other's negation, and this is the case that says so.
+  test("is not the same question as every character", () => {
+    expect(hasAnyCharacterIn("a1", "0123456789")).toBe(true);
+  });
+});

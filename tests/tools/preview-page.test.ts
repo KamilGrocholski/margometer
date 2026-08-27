@@ -17,6 +17,7 @@ import { getRecordFromValue } from "@/libs/record.ts";
 import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
 import { isFightStart } from "@/src/game/battle-session.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { getAttributeValues, getElements } from "@/tests/markup-parts.ts";
 import {
   composePreviewPage,
   PREVIEW_GAME_SCRIPT_NAME,
@@ -127,9 +128,11 @@ function composeDriverRun(
    */
   payloadsByAddress: ReadonlyMap<string, readonly unknown[]> = new Map(),
 ): DriverRun {
-  const blocks = [...page.matchAll(/<script>\n([\s\S]*?)<\/script>/g)].map(
-    (block) => block[1] ?? "",
-  );
+  // The two the page writes itself. A script with a `src` carries no text and
+  // is somebody else's file — the decoy and the add-on both arrive that way.
+  const blocks = getElements(page, "script")
+    .filter((one) => one.attributes === "")
+    .map((one) => one.text);
   expect(blocks.length).toBe(2);
 
   const elements = new Map<string, FakeElement>();
@@ -286,11 +289,18 @@ describe("the page the harness draws", () => {
     }
   });
 
+  /**
+   * Asked as "which of the page's scripts states a build" rather than by looking
+   * for the game's own filename: the shape of that name is
+   * `src/core/game-build.ts`'s to know (§9.3), and a guard spelling it here would
+   * be the second place it lives.
+   */
   test("the decoy script names a build the add-on can read", () => {
-    const named = /main\.min\d+\.js/.exec(composePageOfFight());
-    expect(named).not.toBeNull();
-    expect(getGameBuildFromScriptName(named?.[0] ?? "")).not.toBeNull();
-    expect(PREVIEW_GAME_SCRIPT_NAME).toBe(named?.[0] ?? "");
+    const named = getAttributeValues(composePageOfFight(), "src")
+      .map((address) => address.slice(address.lastIndexOf("/") + 1))
+      .filter((name) => getGameBuildFromScriptName(name) !== null);
+
+    expect(named).toEqual([PREVIEW_GAME_SCRIPT_NAME]);
   });
 
   test("the page replays the fight it was asked for, from where it was asked", () => {

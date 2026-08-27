@@ -15,6 +15,8 @@ import { describe, expect, test } from "bun:test";
 
 import { USERSCRIPT_FILENAME } from "@/build.ts";
 import { assertDefined } from "@/libs/assert.ts";
+import { hasAnyCharacterIn } from "@/libs/text-runs.ts";
+import { getElements } from "@/tests/markup-parts.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 import { PREVIEW_GAME_SCRIPT_NAME } from "@/tools/preview-page.ts";
 import {
@@ -24,6 +26,29 @@ import {
 } from "@/tools/preview-site.ts";
 
 const PAGES = composePreviewSitePages();
+
+/** The letters Polish has and English does not — one of them is enough. */
+const POLISH_LETTERS = "ąćęłńóśźż";
+
+const INTRODUCTION_CLASS = "preview-intro";
+
+/**
+ * Every capture the picker offers, as the address it would open.
+ *
+ * Read out of the settings the page carries rather than off a control, because
+ * the picker is built from them in the browser and there is no markup to read
+ * here.
+ */
+function getOfferedAddresses(page: string): string[] {
+  const opening = `"address":"./`;
+  const addresses: string[] = [];
+  for (let at = page.indexOf(opening); at !== -1; at = page.indexOf(opening, at + 1)) {
+    const start = at + opening.length;
+    const end = page.indexOf(`"`, start);
+    if (end !== -1) addresses.push(page.slice(start, end));
+  }
+  return addresses;
+}
 
 function getPageByName(name: string): string {
   const page = PAGES.find((file) => file.name === name);
@@ -83,8 +108,8 @@ describe("what a published page may not do", () => {
     const written = new Set(PAGES.map((file) => file.name));
     const offered = new Set<string>();
     for (const page of PAGES) {
-      for (const [, address] of page.text.matchAll(/"address":"\.\/([^"]+)"/g)) {
-        offered.add(decodeURIComponent(address ?? ""));
+      for (const address of getOfferedAddresses(page.text)) {
+        offered.add(decodeURIComponent(address));
       }
     }
     expect(offered.size).toBe(CAPTURED_FIGHTS.length);
@@ -151,17 +176,17 @@ describe("what a published page says", () => {
   test("the strip and the introduction speak Polish", () => {
     const markup = getPageByName("index.html").split("<script")[0] ?? "";
     expect(markup).toContain(`lang="pl"`);
-    const introduction = /<p class="preview-intro">(.*?)<\/p>/s.exec(markup);
-    expect(introduction).not.toBeNull();
-    expect(introduction?.[1] ?? "").toMatch(/[ąćęłńóśźż]/);
+    const introduction = getElements(markup, "p").filter((one) =>
+      one.attributes.includes(`class="${INTRODUCTION_CLASS}"`),
+    );
+    expect(introduction.length).toBe(1);
+    expect(hasAnyCharacterIn(introduction[0]?.text ?? "", POLISH_LETTERS)).toBe(true);
     // The strip's own words, which are a separate table from the sentence above.
     // Read off the buttons rather than "everything after the strip", because the
     // stylesheet names it first and that slice is a CSS rule body.
-    const labels = [...markup.matchAll(/<button [^>]*>([^<]*)<\/button>/g)].map(
-      (found) => found[1] ?? "",
-    );
+    const labels = getElements(markup, "button").map((one) => one.text);
     expect(labels.length).toBeGreaterThan(0);
-    expect(labels.join(" ")).toMatch(/[ąćęłńóśźż]/);
+    expect(hasAnyCharacterIn(labels.join(" "), POLISH_LETTERS)).toBe(true);
   });
 
   // Where the server opens on nothing, because whoever started it is usually

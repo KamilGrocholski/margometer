@@ -18,7 +18,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import { getPartsSeparatedByWhitespace } from "@/libs/text-runs.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { getAttributeValues } from "@/tests/markup-parts.ts";
 import { getAssignedClassNames, getStyledClassNames } from "@/tests/class-names.ts";
 import { composePreviewPage, type PreviewWords } from "@/tools/preview-page.ts";
 
@@ -71,9 +73,11 @@ const STYLED = getStyledClassNames(
  * it is not — and only one of the two would ever be photographed.
  */
 const WORN = new Set([
-  ...PAGES.flatMap((page) => [
-    ...page.slice(page.indexOf("</style>")).matchAll(/class="([^"]*)"/g),
-  ]).flatMap((match) => match[1]!.split(/\s+/).filter(Boolean)),
+  ...PAGES.flatMap((page) =>
+    getAttributeValues(page.slice(page.indexOf("</style>")), "class").flatMap((value) =>
+      getPartsSeparatedByWhitespace(value),
+    ),
+  ),
   ...getAssignedClassNames(
     composeSourceWithoutComments(
       readFileSync(new URL("../../tools/preview-server.ts", import.meta.url).pathname, "utf8"),
