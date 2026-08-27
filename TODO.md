@@ -18,11 +18,11 @@
 
 ## In Progress
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
-- [ ] SPEC: Consider removing REGEX from this repo
 
 ## Up Next
 
 ## Done
+- [x] Remove REGEX (partly) from this repo - replace with my own parsing
 - [x] Click on the fights tab toggles the state - open fights view; go to the prev view
 - [x] Show the last read battle after a reload - walking into a fight still puts you on the live one
 - [x] Store and show the exact battle location (e.g., coordinates, area, or map position)
