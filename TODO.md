@@ -21,6 +21,7 @@
 ## Up Next
 
 ## Done
+- [x] Preview panel resets its state, whenever I change the current caputred fight
 
 ## Later
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
