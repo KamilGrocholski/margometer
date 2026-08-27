@@ -291,8 +291,15 @@ function composeAfter(rule: Rule, before: string): string | null {
   // The character in front of the negation, written back unchanged.
   if (rule.kind === "negation") return before.slice(0, 1);
 
+  // ⚠️ **Both ends of the safe range, and the top one is a real file.** A run
+  // past 2^53 does not read; a run that reads and whose successor does not is
+  // `2 ** 53 - 1` itself, which `tests/libs/number.test.ts` carries as a bare
+  // literal because that bound is what the file is about. Composing it threw an
+  // assertion and killed the sweep mid-file — a tool refusing the one number it
+  // cannot add to is right, dying over it is not.
   const value = getIntegerFromText(before);
-  return value === null ? null : composeIntegerText(value + 1);
+  if (value === null) return null;
+  return Number.isSafeInteger(value + 1) ? composeIntegerText(value + 1) : null;
 }
 
 const MODULE_KEYWORDS = ["from", "import", "require"];

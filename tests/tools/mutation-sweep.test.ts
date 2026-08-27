@@ -116,6 +116,31 @@ describe("what gets mutated", () => {
     expect(numbers.map((mutation) => `${mutation.before}→${mutation.after}`)).toEqual(["41→42"]);
   });
 
+  /**
+   * ⚠️ **Both ends of the safe range, and the sweep used to die at the top
+   * one.** A run past 2^53 never read; a run that reads and whose successor does
+   * not is `2 ** 53 - 1` itself, and composing that threw an assertion in the
+   * middle of the file. `tests/libs/number.test.ts` carries it as a bare
+   * literal — the bound is what that file is about — so the sweep could not be
+   * run over it at all, silently, until 2026-08-27.
+   */
+  test.each([
+    ["9007199254740991", "the largest number there is"],
+    ["9007199254740993", "one past what reads at all"],
+  ])("%p is left alone — %s", (number) => {
+    const numbers = getMutationsOf(`const bound = ${number};`).filter(
+      (mutation) => mutation.operator === "number",
+    );
+    expect(numbers).toEqual([]);
+  });
+
+  test("the number below the bound still moves", () => {
+    const numbers = getMutationsOf("const bound = 9007199254740990;").filter(
+      (mutation) => mutation.operator === "number",
+    );
+    expect(numbers.map((mutation) => mutation.after)).toEqual(["9007199254740991"]);
+  });
+
   // `!==` is an equality operator with a negation inside it, and dropping that
   // `!` leaves `==`, which is a different rule about a different thing.
   test("a negation is dropped, but not out of an inequality", () => {
