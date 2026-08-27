@@ -189,6 +189,13 @@ build".
   over. Scoped to a file list it is a tool worth reaching for; unasked at the end
   of a round it is a way to spend an afternoon.
 
+  Held by `tests/tools/named-commands.test.ts`: no script in `package.json` and
+  no `run:` step of a tracked workflow names the sweep, and `check` chains the
+  three links this section opens with and nothing else. It reads commands rather
+  than the file's text, so a comment may still say the sweep is deliberately
+  absent, and it reads block scalars because `.github/workflows/release.yml`
+  writes most of its commands inside one.
+
   §3's obligation is untouched and is the cheap half of the same question: break
   what a **new** test covers, watch it go red, restore from a copy, and say in the
   commit what lit up. That is a minute per test and it is what the commits here
