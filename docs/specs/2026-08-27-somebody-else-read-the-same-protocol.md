@@ -181,16 +181,25 @@ says about their key list, arriving from the other side.
 Of the fields they do name, `myteam`, `mi`, `auto`, `init`, `current`
 and `move` are read here, and `endBattle` is spelled only by
 `tools/fight-dump-parser.ts`. `battleground` is in every recording and is read
-nowhere, correctly: it is the picture behind the fight. `match_summary` appears
-in no recording here at all, which is what a corpus with no arena fight in it
-would look like.
+nowhere, correctly: it is the picture behind the fight.
+
+⚠️ **`match_summary` is not merely absent — it is out of reach at this seam,
+and an arena recording would not carry it either.** It is a sibling of `f`
+inside the whole server event, and the seam here is `Engine.battle.updateData`,
+whose first argument is `f` itself: every field `ladunek` holds is one of `f`'s,
+and a sibling of `f` is not among them. Their reader sits a layer up, on the
+game's own inbound dispatcher, so the whole event is what it is handed. Whether
+the method's second argument carries anything is unknown and unread — the
+wrapper takes `args[0]` and nothing else.
 
 None of that is a defect, and saying why is the point of the section.
 `parseFightDump` reads the fields it names and passes the payload through whole,
 so an arena recording would not refuse at intake — the unread fields ride along
-and are there for a later round. And `match_summary` is a declaration by §10's
-test: whatever it reports happened outside the fight, in units no total here
-keeps. Read it one day, total it never.
+and are there for a later round. `match_summary` is the one that would not, and
+reaching it means moving the seam, which is a decision about the promise §5
+makes and not a detail. It would be worth little: by §10's test it is a
+declaration, reporting what happened outside the fight in units no total here
+keeps.
 
 ⚠️ **`turns_warriors` is not an invitation.** A turn is §10's one warned term
 and nothing here counts them; the field being in the material was already true
