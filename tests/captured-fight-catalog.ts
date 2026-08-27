@@ -228,6 +228,30 @@ function composeEntryHealthOfDump(
 }
 
 /**
+ * One recording read into the shape every reader of the material wants.
+ *
+ * Its own function since the second consumer arrived (§7.1): the catalog builds
+ * one of these per file in the directory, and `tools/fight-report.ts` builds one
+ * for a recording named on the command line. What must not diverge between them
+ * is the entry health — it is unwound from the opening messages, and a second
+ * spelling of that unwinding would report a recording differently depending on
+ * whether it had passed intake yet, which is the one comparison the argument
+ * exists to make.
+ *
+ * The name is the caller's: the catalog takes it off the filename, and so does
+ * the tool. Nothing here reads a path.
+ */
+export function composeCapturedFight(name: string, dump: FightDump): CapturedFight {
+  const maximumHealthByCombatantId = getMaximumHealthByCombatantId(dump);
+  return {
+    name,
+    dump,
+    maximumHealthByCombatantId,
+    entryHealthByCombatantId: composeEntryHealthOfDump(dump, maximumHealthByCombatantId),
+  };
+}
+
+/**
  * Every capture in `tests/captured-fights/`, read with the same reader the
  * tooling uses.
  *
@@ -240,13 +264,9 @@ function composeEntryHealthOfDump(
 export const CAPTURED_FIGHTS: CapturedFight[] = readdirSync(CAPTURED_FIGHTS_DIRECTORY)
   .filter((file) => file.endsWith(".json"))
   .sort()
-  .map((file) => {
-    const dump = parseFightDump(readFileSync(CAPTURED_FIGHTS_DIRECTORY + file, "utf8"));
-    const maximumHealthByCombatantId = getMaximumHealthByCombatantId(dump);
-    return {
-      name: file.replace(/\.json$/, ""),
-      dump,
-      maximumHealthByCombatantId,
-      entryHealthByCombatantId: composeEntryHealthOfDump(dump, maximumHealthByCombatantId),
-    };
-  });
+  .map((file) =>
+    composeCapturedFight(
+      file.replace(/\.json$/, ""),
+      parseFightDump(readFileSync(CAPTURED_FIGHTS_DIRECTORY + file, "utf8")),
+    ),
+  );

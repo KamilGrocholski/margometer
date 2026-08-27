@@ -9,6 +9,19 @@
  * Names come from the capture rather than from the aggregate: the aggregate
  * works in ids, because a name is a display concern and the protocol has more
  * than one combatant answering to some of them.
+ *
+ * **It prints the captured material by default and any recording you name
+ * instead**, for the reason `tools/decoding-status.ts` carries the same argument:
+ * a fresh dump has to pass intake before it becomes material, and what the
+ * printed table decides is whether that intake is worth starting. The two
+ * questions are asked of the same file in one sitting — *what could we not read*
+ * and *what do the totals come to* — and neither should have needed the
+ * redaction step first
+ * (`docs/specs/2026-08-27-somebody-else-read-the-same-protocol.md`).
+ *
+ * A named recording is not material. It is read into the same shape by the same
+ * reader (`composeCapturedFight`), printed, and forgotten; §9.2 still decides
+ * what enters the repository.
  */
 
 import { composeIntegerText } from "@/libs/number.ts";
@@ -22,10 +35,21 @@ import {
 } from "@/src/core/fight-statistics.ts";
 import {
   CAPTURED_FIGHTS,
+  composeCapturedFight,
   composeRosterOfFight,
   composeStatisticsOfFight,
   type CapturedFight,
 } from "@/tests/captured-fight-catalog.ts";
+import { parseFightDump } from "@/tools/fight-dump-parser.ts";
+import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
+import { basename } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+
+export class FightReportError extends MargoMeterToolError {
+  constructor(reason: string, options?: ErrorOptions) {
+    super("FightReport", reason, options);
+  }
+}
 
 const NUMBER_COLUMN = 9;
 const NAME_COLUMN = 28;
@@ -223,4 +247,29 @@ function writeFightReport(fight: CapturedFight): void {
   }
 }
 
-if (import.meta.main) for (const fight of CAPTURED_FIGHTS) writeFightReport(fight);
+/**
+ * One recording named by path, read into the same shape a capture has.
+ *
+ * Named for its file rather than for anything inside it, exactly as the catalog
+ * names a capture — so the heading over the table reads the same whether the
+ * fight came off the command line or out of the material.
+ *
+ * The missing-file refusal is this tool's own: a bare Node `ENOENT` names no
+ * program, and §9.5 asks a tool handed bad material to refuse under a name a
+ * reader can place. What is *not* a recording refuses through `parseFightDump`
+ * as `FightDumpFormat`, which is the point of reading it with the captures' own
+ * reader — a file this tool accepts is one intake would accept.
+ */
+export function getFightAt(path: string): CapturedFight {
+  if (!existsSync(path)) throw new FightReportError(`${path} is not there`);
+  return composeCapturedFight(
+    basename(path).replace(/\.json$/, ""),
+    parseFightDump(readFileSync(path, "utf8")),
+  );
+}
+
+if (import.meta.main) {
+  const paths = process.argv.slice(2);
+  const fights = paths.length === 0 ? CAPTURED_FIGHTS : paths.map((path) => getFightAt(path));
+  for (const fight of fights) writeFightReport(fight);
+}

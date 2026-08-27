@@ -19,12 +19,22 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { CAPTURED_FIGHTS, composeStatisticsOfFight } from "@/tests/captured-fight-catalog.ts";
+import {
+  CAPTURED_FIGHTS,
+  CAPTURED_FIGHTS_DIRECTORY,
+  composeStatisticsOfFight,
+} from "@/tests/captured-fight-catalog.ts";
+import { assertDefined } from "@/libs/assert.ts";
 import {
   composeEmptyCombatantStatistics,
   type ReadingGaps,
 } from "@/src/core/fight-statistics.ts";
-import { composeReadingLines, composeRowReadingLines } from "@/tools/fight-report.ts";
+import {
+  composeReadingLines,
+  composeRowReadingLines,
+  FightReportError,
+  getFightAt,
+} from "@/tools/fight-report.ts";
 
 function composeReading(overrides: Partial<ReadingGaps> = {}): ReadingGaps {
   return {
@@ -160,5 +170,60 @@ describe("fight report row readings", () => {
       ),
     );
     expect(printed.sort()).toEqual([]);
+  });
+});
+
+/**
+ * The route that lets a recording be read before it is material.
+ *
+ * The same argument `tools/decoding-status.ts` carries, and here it costs more
+ * than a list of messages: a report needs the roster and the entry health too,
+ * and the entry health is unwound rather than stated. So what is checked is that
+ * a fight read off a path is the **same fight** the catalog holds for that file,
+ * down to the health the unwinding produced — a second spelling of it would make
+ * the tool answer differently before and after intake, which is the one
+ * comparison the argument exists to serve.
+ *
+ * ⚠️ **Checked against a capture, because it is the one recording this test can
+ * name without writing a fixture of its own.** The file is reached through
+ * `CAPTURED_FIGHTS_DIRECTORY` and a name off the catalog, never a filename
+ * written down here (§9.2).
+ */
+describe("a recording named by path", () => {
+  /**
+   * ⚠️ **Every capture, not the first one.** Written against `CAPTURED_FIGHTS[0]`
+   * to begin with, beside a second test putting the statistics of both readings
+   * against each other — and emptying the entry health on this route killed the
+   * first test and left the second green. The reason is the material: entry
+   * health reaches a figure only through team-heal sizing, and the oldest
+   * recording declares no team heal, so the whole unwinding could be discarded
+   * without moving a number in the table (§7.5 — a mutation that lights nothing
+   * is a finding).
+   *
+   * The second test was the redundant one and is gone: `composeStatisticsOfFight`
+   * is a pure function of the fight, so a table that differed after a fight that
+   * did not is not a thing this tool can do. What is worth checking is the fight
+   * itself, and worth checking on material that actually exercises the unwinding
+   * — which is found by reading them all rather than by naming the one that does
+   * (§9.2).
+   */
+  test.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
+    "%s reads the same off a path as out of the catalog",
+    (name, fight) => {
+      const read = getFightAt(`${CAPTURED_FIGHTS_DIRECTORY}${name}.json`);
+      expect(read.name).toBe(name);
+      expect(read.dump).toEqual(fight.dump);
+      expect(read.maximumHealthByCombatantId).toEqual(fight.maximumHealthByCombatantId);
+      expect(read.entryHealthByCombatantId).toEqual(fight.entryHealthByCombatantId);
+    },
+  );
+
+  // Branded, because a bare Node `ENOENT` names no program and §9.5 asks a tool
+  // to refuse under a name a reader can place.
+  test("refuses a path that is not there, under this tool's own name", () => {
+    const fight = assertDefined(CAPTURED_FIGHTS[0], "the material is not empty");
+    expect(() =>
+      getFightAt(`${CAPTURED_FIGHTS_DIRECTORY}${fight.name}.json.no-such-file`),
+    ).toThrow(FightReportError);
   });
 });
