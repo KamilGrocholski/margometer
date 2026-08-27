@@ -47,7 +47,7 @@ import {
   PANEL_SCREENS,
   PANEL_STORAGE_CHOICES,
   composeStateAfterFightChosen,
-  composeStateAfterFightsOpened,
+  composeStateAfterFightsToggled,
 } from "@/src/ui/panel-screen.ts";
 import { STORAGE_CHOICES } from "@/src/userscript-storage.ts";
 
@@ -515,9 +515,30 @@ describe("the shelf of kept fights is a screen and not a level", () => {
     expect([...PANEL_SCREENS]).toEqual(["fight", "fights"]);
   });
 
-  test("opening the shelf moves nothing underneath it", () => {
-    const opened = composeStateAfterFightsOpened();
-    expect(opened).toEqual({ screen: "fights" });
+  /**
+   * One gesture, both ways — and the claim is what it does *not* return. Only the
+   * screen moves, so the level the shelf covered is the level the second press
+   * comes back to.
+   */
+  test("the shelf goes over the panel and comes off it again", () => {
+    expect(composeStateAfterFightsToggled(composeState())).toEqual({ screen: "fights" });
+    expect(composeStateAfterFightsToggled(composeState({ screen: "fights" }))).toEqual({
+      screen: "fight",
+    });
+  });
+
+  test("and a reader deep in a breakdown gets that breakdown back", () => {
+    const deep = composeState({
+      metric: "healed",
+      team: "enemy",
+      focusCombatantId: 7,
+      focusTargetId: 9,
+      focusSkill: { ownerId: 7, key: "x" },
+    });
+    const covered = { ...deep, ...composeStateAfterFightsToggled(deep) };
+
+    expect(covered.screen).toBe("fights");
+    expect({ ...covered, ...composeStateAfterFightsToggled(covered) }).toEqual(deep);
   });
 
   /**

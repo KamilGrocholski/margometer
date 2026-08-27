@@ -1891,8 +1891,12 @@ describe("what a click does to the drill", () => {
  * fake document is the poorest one that can answer — it replaces children the way
  * a real one does, which the other fakes in this file do not, because a level
  * that is gone is exactly what has to be visible.
+ *
+ * The shelf joined the same question from the other side and the tests are
+ * together for that reason: a fight boundary is one thing that takes a level
+ * away, and the button that covers the panel with the shelf is one that must not.
  */
-describe("a new fight and the level the reader was on", () => {
+describe("the level the reader was on, and what takes it away", () => {
   type TreeNode = {
     className: string;
     children: TreeNode[];
@@ -2118,6 +2122,51 @@ describe("a new fight and the level the reader was on", () => {
 
     render(composeReadingOfCapture(2));
 
+    expect(getByClass(root, "crumb")).toHaveLength(1);
+  });
+
+  /**
+   * The shelf covers a level rather than closing it, and the button that put it
+   * there is what takes it off again.
+   *
+   * `tests/ui/panel-screen.test.ts` says what `composeStateAfterFightsToggled`
+   * returns; this says the title bar reaches it twice. The half that cannot be
+   * proved from the reducer is the one the shelf shipped with — the button was
+   * bound to a reducer that only ever opened, so a second press re-set a screen
+   * the reader was already on and nothing moved.
+   *
+   * ⚠️ **The crumb is the assertion that does not catch it, and it is here
+   * anyway.** The shelf draws one of its own, so a panel stuck on the shelf ends
+   * with a crumb either way; what tells the two apart is the size cell. The crumb
+   * is what says the level came back rather than the ranking's top.
+   *
+   * The shelf is recognised by a cell of its own rather than by a word: its rows
+   * carry a size (`row-size`) and the ranking's do not, and both screens draw a
+   * crumb.
+   */
+  test("the shelf goes over the level and the same button gives it back", () => {
+    const { page, getRoot } = composePageWithTree();
+    const shelf = composeShelfOf(composeReadingOfCapture(1));
+    const render = assertDefined(
+      composePanelMount(page, (): void => {}, undefined, undefined, shelf),
+      "the panel mounts",
+    );
+
+    render(composeReadingOfCapture(1));
+    const root = getRoot();
+    setPressOn(root, assertDefined(getByClass(root, "drillable")[0], "the ranking has a row"));
+    expect(getByClass(root, "crumb")).toHaveLength(1);
+    expect(getByClass(root, "row-size")).toHaveLength(0);
+
+    // The one node the render cannot replace: the bar is built with the shadow
+    // root, so this is the same button on both presses.
+    const button = assertDefined(getByClass(root, "titlebar-fights")[0], "the shelf has a way in");
+
+    setClickOn(root, button);
+    expect(getByClass(root, "row-size")).not.toHaveLength(0);
+
+    setClickOn(root, button);
+    expect(getByClass(root, "row-size")).toHaveLength(0);
     expect(getByClass(root, "crumb")).toHaveLength(1);
   });
 });

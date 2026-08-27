@@ -46,6 +46,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   je gra: bandażowanie ran, potężne ogłuszenie mrozem oraz obrażenia od trucizny
   zadane komuś obok głównego celu. Liczby były i wcześniej — teraz mają nazwy.
 
+- **Zmiana** — Przycisk `☰` działa teraz w obie strony. Pierwsze kliknięcie
+  pokazuje listę zapisanych walk, drugie wraca dokładnie do tego, co miałeś na
+  ekranie — ta sama zakładka i ten sam wiersz, który miałeś otwarty. Napis
+  `‹ wróć` działa jak dotąd.
+
 - **Zmiana** — Tykająca trucizna nazywa się w panelu „zatrucie". Słowo
   „trucizna" należy teraz do rodzaju obrażeń, tak jak „ogień" należy do niego
   obok „podpalenia": to dwie różne liczby i nie mogą stać pod jedną nazwą.

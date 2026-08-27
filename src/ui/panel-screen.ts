@@ -698,6 +698,9 @@ export type PanelState = {
    * because the fights screen stands over the drill rather than under it: a
    * reader who opened the shelf while a breakdown was up is asking to leave the
    * shelf, not to close the breakdown they cannot see.
+   * `composeStateAfterFightsToggled` is the other way off it, and takes the same
+   * view from the other end — it moves this field and nothing under it, so the
+   * shelf covers a level rather than replacing it.
    */
   screen: PanelScreen;
   metric: PanelMetric;
@@ -818,9 +821,26 @@ export function composeStateAfterBack(state: PanelState): Partial<PanelState> {
   return { focusCombatantId: null };
 }
 
-/** The shelf, over whatever the reader was reading — nothing below it moves. */
-export function composeStateAfterFightsOpened(): Partial<PanelState> {
-  return { screen: "fights" };
+/**
+ * The shelf, on and off again — over whatever the reader was reading, and then
+ * back onto it.
+ *
+ * **Nothing below `screen` moves in either direction**, which is the whole of why
+ * one gesture can do both: the metric, the side and the open breakdown are still
+ * held while the shelf covers them, so the second press is a return to the level
+ * the first one hid rather than a trip to the top of the tab. It used to open
+ * only — a second press re-set a screen the reader was already on and the panel
+ * did not move, and leaving took a different gesture at the other end of the
+ * panel.
+ *
+ * ⚠️ **The closing half is written out rather than handed to
+ * `composeStateAfterBack`.** The two agree today, and only because the shelf is
+ * one step deep: this is the inverse of opening, that one is a step out, and a
+ * day when `back` grows a second step off the shelf is a day this would inherit
+ * it unasked.
+ */
+export function composeStateAfterFightsToggled(state: PanelState): Partial<PanelState> {
+  return { screen: state.screen === "fights" ? "fight" : "fights" };
 }
 
 /**

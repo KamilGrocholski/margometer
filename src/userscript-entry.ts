@@ -80,8 +80,8 @@ import {
   composeDefaultState,
   composeStateAfterBack,
   composeStateAfterFightChosen,
-  composeStateAfterFightsOpened,
   composeStateAfterFightStart,
+  composeStateAfterFightsToggled,
   composeStateAfterMetric,
   composeStateAfterTeam,
   composeStateFromRow,
@@ -1245,8 +1245,8 @@ export function composePanelMount(
     {
       onCopyRequested: onCopyRequested === undefined ? undefined : () => onCopyRequested(latest),
       onCaptureRequested,
-      onFightsRequested:
-        shelf === undefined ? undefined : () => setState(composeStateAfterFightsOpened()),
+      onFightsToggled:
+        shelf === undefined ? undefined : () => setState(composeStateAfterFightsToggled(state)),
       onCollapseToggled: () => {
         const isCollapsed = !state.isCollapsed;
         setStoredCollapse(store, isCollapsed);

@@ -1107,28 +1107,35 @@ describe("failure is the size of the thing that failed", () => {
 });
 
 describe("the window itself", () => {
-  test("the title bar carries one copy, one developer copy and one collapse", () => {
+  test("the title bar carries one shelf, one copy, one developer copy and one collapse", () => {
     const asked: string[] = [];
     const { root } = composeMountedPanel({
+      onFightsToggled: () => asked.push("fights"),
       onCopyRequested: () => asked.push("copy"),
       onCaptureRequested: () => asked.push("raw"),
       onCollapseToggled: () => asked.push("collapse"),
     });
     const buttons = getByClass(root, "titlebar-button");
 
-    expect(buttons.length).toBe(3);
+    expect(buttons.length).toBe(4);
     for (const button of buttons) setClickOn(root, button);
-    expect(asked).toEqual(["copy", "raw", "collapse"]);
+    expect(asked).toEqual(["fights", "copy", "raw", "collapse"]);
 
     /**
      * ⚠️ **What each one says, in words.** The label is what a reader aims at and
-     * the title is the only explanation any of them gets — three glyphs and three
+     * the title is the only explanation any of them gets — four glyphs and four
      * Polish sentences, every one of which could have been replaced with anything
      * at all (the closing round's sweep of `src/ui/panel-element.ts`). A button
      * whose title says nothing about what it does is §9.6's control that is worse
      * than absent, in a slower way.
+     *
+     * ⚠️ **Two of the four are toggles, and their titles say both directions.**
+     * The bar is built with the shadow root and outlives every render, so neither
+     * can be reworded when the screen changes — a title reading *open the shelf*
+     * would be untrue for exactly as long as the shelf was open.
      */
     expect(buttons.map((button) => [button.textContent, button.title])).toEqual([
+      ["☰", "Pokaż albo schowaj zapisane walki"],
       ["⧉", "Kopiuj pełny raport z tej walki"],
       ["{ }", "Do zgłoszeń: zapisz surowe dane walki prosto z gry"],
       ["—", "Zwiń albo rozwiń okno"],

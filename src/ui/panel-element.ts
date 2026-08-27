@@ -464,10 +464,12 @@ export type PanelTitleBarActions = {
   /** The same for the raw material, which is for us rather than for the player. */
   onCaptureRequested?: (() => void) | undefined;
   /**
-   * What opens the shelf of kept fights. Absent draws no button, like the two
-   * above: a panel mounted where nothing keeps a fight has no shelf to open.
+   * What puts the shelf of kept fights over the panel, and what takes it off
+   * again — one press, both ways, like the collapse below it. Absent draws no
+   * button, like the two above: a panel mounted where nothing keeps a fight has
+   * no shelf to open.
    */
-  onFightsRequested?: (() => void) | undefined;
+  onFightsToggled?: (() => void) | undefined;
   onCollapseToggled?: (() => void) | undefined;
   onSectionFailure?: ((error: unknown) => void) | undefined;
 };
@@ -1323,15 +1325,18 @@ export function setPanelRoot(
     actions?.onSectionFailure?.(error);
   }
 
-  if (actions?.onFightsRequested !== undefined) {
+  if (actions?.onFightsToggled !== undefined) {
     titleBar.append(
       setTitleBarButton(document, root, actions, {
         // The left-most of the buttons, and `titlebar-copy` below is what pushes
         // the rest to the right — so this one rides the gap the name leaves.
         className: "titlebar-button titlebar-fights",
         text: "☰",
-        title: "Walki, które są jeszcze zapisane",
-        run: actions.onFightsRequested,
+        // Both directions in one sentence, the way the collapse below says both
+        // of its own: the bar is built with the shadow root and outlives every
+        // render, so nothing here can be reworded when the screen changes.
+        title: "Pokaż albo schowaj zapisane walki",
+        run: actions.onFightsToggled,
       }),
     );
   }
