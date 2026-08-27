@@ -118,6 +118,24 @@ describe("where the literals are", () => {
       '"one"',
     ]);
   });
+
+  /**
+   * A template is closed by the first backtick and nothing else — no escape is
+   * honoured inside one, and an empty one closes on the very next character.
+   * That is what the reader has always done, and it is right for both callers:
+   * one excludes the span and wants all of it, the other reads the text back and
+   * would have read the same.
+   */
+  test("a template closes at the first backtick after it opens", () => {
+    // Kills: the search for the close starting one character further on.
+    expect(getTextRangesFromSource("const a = ``;")).toEqual([{ start: 10, end: 12 }]);
+  });
+
+  test("a backslash does not hold a template open", () => {
+    const source = "const a = `one\\`;const b = 2;";
+    const [range] = getTextRangesFromSource(source);
+    expect(source.slice(range?.start, range?.end)).toBe("`one\\`");
+  });
 });
 
 describe("where the patterns are", () => {
@@ -126,6 +144,45 @@ describe("where the patterns are", () => {
     expect(
       getRegularExpressionRangesFromSource(source).map(({ start, end }) => source.slice(start, end)),
     ).toEqual(["/ab+c/g"]);
+  });
+
+  /**
+   * ⚠️ **Three rules the module promises and nothing here asked for**, found by
+   * mutating the reader on 2026-08-27 and watching every test stay green: an
+   * empty pattern, the closing brackets in the value class, and the flags. Each
+   * mutant is named beside the case that now kills it. They were as untested
+   * while this was patterns as they are now that it is a walk — the rewrite is
+   * what put a mutation sweep on the file, not what opened the gap.
+   */
+  test("a slash pair opens nothing, wherever it survives blanking", () => {
+    // Kills: requiring one element becoming requiring none. The pair has to be
+    // one no comment swallows first — after a bracket it is neither a comment
+    // nor a division, which is the only place an empty pattern could be read.
+    expect(getRegularExpressionRangesFromSource("const a = (//);")).toEqual([]);
+    expect(getRegularExpressionRangesFromSource("const a = 1; // two")).toEqual([]);
+  });
+
+  test.each([
+    [")", "a call's result divides"],
+    ["]", "an index's result divides"],
+    ["_", "a name may begin with one"],
+    ["$", "and so may this"],
+  ])("a slash after %p opens nothing — %s", (before) => {
+    // Kills: any member dropped from the class of things a slash can divide.
+    expect(getRegularExpressionRangesFromSource(`const a = b${before} / c / d;`)).toEqual([]);
+  });
+
+  test("the flags belong to the pattern", () => {
+    // Kills: the flag run left unconsumed, which ends the range at the slash.
+    const source = "const a = /x/gimsuvy;";
+    const [range] = getRegularExpressionRangesFromSource(source);
+    expect(source.slice(range?.start, range?.end)).toBe("/x/gimsuvy");
+  });
+
+  test("a letter that is not a flag is not part of it", () => {
+    const source = "const a = /x/gz;";
+    const [range] = getRegularExpressionRangesFromSource(source);
+    expect(source.slice(range?.start, range?.end)).toBe("/x/g");
   });
 
   /** After a value a slash divides, and reading it as a pattern would swallow the line. */

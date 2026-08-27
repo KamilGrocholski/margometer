@@ -498,7 +498,8 @@ libs/              The bottom layer: true in any project — §9.1.
                    comes to. Four readers, one and two levels deep.
   source-regions.ts
                    Where comments, text literals and patterns sit in a source
-                   file. Patterns, not a parser.
+                   file. A scanner, and still not a parser — the rules are the
+                   ones the patterns here stated, and nothing backtracks.
   elapsed-spans.ts How long named pieces of work took. A count, a total and the
                    worst one per name — never a list of samples. Owns the clock.
 
