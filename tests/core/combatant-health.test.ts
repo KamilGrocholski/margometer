@@ -657,17 +657,41 @@ describe("over every captured fight", () => {
    * the floor in place the corpus is wholly sized again and the exception is
    * gone.
    *
-   * So the refusal is once more not confirmed against this corpus at all. It is
-   * held by the hand-built fights above — a fight joined in progress, a caster
-   * with no standing ally, a member whose entry health is missing — and that is
-   * stated here so the absence reads as a measurement rather than as a gap.
+   * ⚠️ **And on 2026-08-27 the corpus confirmed the refusal for the first time,
+   * through the one door nothing had ever come through.** Every exception above
+   * was a combatant this meter could not size; this one is a whole fight declining
+   * to be read, because it declares `lowheal_per-enemies` and a fight that
+   * declares the reducer has none of its casts sized
+   * (`src/core/combatant-health.ts`). It is the only recording carrying that key,
+   * and all three of its `healall_per` casts stay `unaccounted-health` — so the
+   * figures below are one fight, named, and the rest of the corpus is still sized
+   * whole. The hand-built fights above are what hold every other reason to refuse;
+   * this is the one the material now holds.
    */
-  test("every cast in the corpus is sized whole", () => {
+  const REDUCED_FIGHT = "2026-08-27-luvia-grupa-vs-amaimon-2";
+
+  test("every cast in the corpus is sized whole, but for the fight that declares the reducer", () => {
     const refused = SIZED_FIGHTS.flatMap((of) =>
       of.sized.filter((event) => event.kind === "unaccounted-health").map(() => of.name),
     );
-    expect(refused).toEqual([]);
+    expect(refused).toEqual([REDUCED_FIGHT, REDUCED_FIGHT, REDUCED_FIGHT]);
     expect(SIZED_FIGHTS.reduce((total, of) => total + of.castsStated, 0)).toBeGreaterThan(0);
+  });
+
+  /**
+   * The refusal is whole, and both halves are the claim: not one cast of that
+   * fight is sized, and every cast it states is still counted — as healing nobody
+   * could place rather than as healing that did not happen (§9.6). A gate that
+   * dropped the casts instead would pass the test above and lose three figures.
+   */
+  test("the fight that declares the reducer has every cast refused and none lost", () => {
+    const of = SIZED_FIGHTS.find((one) => one.name === REDUCED_FIGHT);
+    expect(of).toBeDefined();
+    expect(of!.castsStated).toBe(3);
+    expect(of!.sized.filter((event) => event.kind === "team-heal")).toEqual([]);
+    expect(
+      of!.sized.filter((event) => event.kind === "unaccounted-health").map((event) => event.source),
+    ).toEqual(["healall_per", "healall_per", "healall_per"]);
   });
 
   /**

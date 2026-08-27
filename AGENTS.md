@@ -1021,7 +1021,10 @@ look like a number that is right.**
   figure it concerns and not in a global banner. ⚠️ **This had no consumer for
   three releases** — every warning the panel drew was a strip under the whole
   screen — and what it needs is the clause below, which says when a consequence
-  has somewhere to go.
+  has somewhere to go. It was then held by hand-built fights alone until
+  2026-08-27, when a recording declaring `lowheal_per-enemies` refused every team
+  heal of its fight and marked the two casters' rows — the second of the two gaps
+  below, arriving in material for the first time.
 - `[ALWAYS] [ui]` **A gap reaches a row only where the protocol named whom it was
   about, and it says a figure is short without ever saying by how much.** Two do:
   a message nothing could read, which names its two ends before it names a key, and

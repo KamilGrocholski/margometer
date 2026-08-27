@@ -45,15 +45,33 @@ export type FightEntryHealth = ReadonlyMap<number, number>;
 export const NO_ENTRY_HEALTH: FightEntryHealth = new Map();
 
 /**
- * The effect the help says reduces this healing, by the name it would arrive
- * under.
+ * The effect the help says reduces this healing, by the name it arrives under.
  *
- * Never decoded — no recording carries it, and reading a shape this repository
- * has never met would be describing a message we have never seen (§5). It is
- * named here for its **absence**: the client composes it into the battle log with
- * a figure in it (production build `1786514810315`), so a fight that never
- * mentions it is a fight where the reduction was not applied. That is what turns
- * *not observed* into *not in play*, and without it no cast could be sized at all.
+ * It is named here for its **presence or its absence**: the client composes it
+ * into the battle log with a figure in it (production build `1786514810315`), so
+ * a fight that never mentions it is a fight where the reduction was not applied.
+ * That is what turns *not observed* into *not in play*, and without it no cast
+ * could be sized at all.
+ *
+ * ⚠️ **This docblock argued from the key never having been recorded, and that
+ * stopped being true on 2026-08-27.**
+ * `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon-2.json` carries four
+ * occurrences, and they cost that fight all three of its `healall_per` casts —
+ * the first material anywhere to reach this refusal.
+ *
+ * ⚠️ **The help says the reduction reaches the other side, and this still
+ * refuses the whole fight.** Article `view,372` at the engine name (read
+ * 2026-08-27) gives it as lowering the healing of every character on the
+ * *opposing* team, applied and fired on the initiation layer; in that recording
+ * one of ours casts it at the monster, so by the article our own `healall_per`
+ * was never reduced at all. Reading the scope off the caster's side is what would
+ * let those three casts be sized, and it is `[ASK]` under §9.6 because it widens
+ * what gets sized — the one direction the panel cannot mark. Left refused, and
+ * written down here rather than acted on. The evidence for the narrowing is
+ * already measured: the shares that fight states are 30, 30 and 22.5, and 22.5 is
+ * 30 less a quarter of it — the article's own rule that each further use of an
+ * ability carrying the effect gives back 25% of the base less. It is not
+ * `27` applied to anything, which is what the reduction would have looked like.
  */
 const HEALING_REDUCER_KEY = "lowheal_per-enemies";
 
@@ -475,9 +493,20 @@ export function composeSizedTeamHeals(
    * than the casts after it. The help does not say whether the protocol
    * pre-applies this reduction the way it demonstrably pre-applies the weakening,
    * so the shares stated in such a fight cannot be trusted in either direction.
+   *
+   * ⚠️ **Both shapes are read, and the second is not redundant.** Every one of the
+   * four occurrences in the material rides a skill announcement, so the key is
+   * decoded and arrives as a declaration. It reaches `unreadKeys` instead wherever
+   * the announcement is missing — `fight-decoder.ts` hands a declaration back to
+   * unread when the message it sat on named no skill — and a fight is refused
+   * either way. Reading only the declaration would make this gate depend on the
+   * key staying in `SKILL_DECLARATION_KEYS`, where removing it would switch the
+   * refusal off with every test still green.
    */
-  const isReduced = events.some(
-    (event) => event.kind === "unknown-message" && event.unreadKeys.includes(HEALING_REDUCER_KEY),
+  const isReduced = events.some((event) =>
+    event.kind === "skill-used"
+      ? event.declared.some((declaration) => declaration.effect === HEALING_REDUCER_KEY)
+      : event.kind === "unknown-message" && event.unreadKeys.includes(HEALING_REDUCER_KEY),
   );
   if (roster === null || isReduced) return [...events];
 

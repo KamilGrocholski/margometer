@@ -137,12 +137,25 @@ describe("fight report row readings", () => {
     expect(lines).toContain("casts nobody could size: 2");
   });
 
-  test("every capture's rows print nothing, on material that misses neither", () => {
+  /**
+   * ⚠️ **One capture prints, and it is the same two rows the panel marks.**
+   * `2026-08-27-luvia-grupa-vs-amaimon-2` declares `lowheal_per-enemies`, so none
+   * of its three `healall_per` casts is sized, and the two casters carry the count
+   * between them. Asserted as the whole list rather than as an exemption, so the
+   * tool and the panel are held to the same two rows: a line printing here for a
+   * combatant the panel does not mark would be the report and the screen
+   * disagreeing about what was missed.
+   */
+  test("only the capture with casts nobody could size prints a row reading", () => {
     expect(CAPTURED_FIGHTS.length).toBeGreaterThan(0);
-    for (const fight of CAPTURED_FIGHTS) {
-      for (const row of composeStatisticsOfFight(fight).byCombatantId.values()) {
-        expect(composeRowReadingLines(row), fight.name).toEqual([]);
-      }
-    }
+    const printed = CAPTURED_FIGHTS.flatMap((fight) =>
+      [...composeStatisticsOfFight(fight).byCombatantId.values()].flatMap((row) =>
+        composeRowReadingLines(row).map((line) => `${fight.name}: ${line.trim()}`),
+      ),
+    );
+    expect(printed.sort()).toEqual([
+      "2026-08-27-luvia-grupa-vs-amaimon-2: casts nobody could size: 1",
+      "2026-08-27-luvia-grupa-vs-amaimon-2: casts nobody could size: 2",
+    ]);
   });
 });

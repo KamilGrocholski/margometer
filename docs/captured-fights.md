@@ -31,7 +31,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `1 vs 2` | `1` |
 | `1 vs 3` | `1` |
 | `9 vs 1` | `1` |
-| `10 vs 1` | `21` |
+| `10 vs 1` | `22` |
 
 ## The fights
 
@@ -64,6 +64,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json` | `9 vs 1` | `theirs won` | `9 players · m 1, p 3, t 5 · levels 48–83` | `1 NPC · w 1 · level 60` | `184680` |
 | `tests/captured-fights/2026-08-26-luvia-grupa-vs-draugr.json` | `10 vs 1` | `ours won` | `10 players · h 2, m 1, t 4, w 3 · levels 57–85` | `1 NPC · w 1 · level 60` | `184680` |
 | `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json` | `10 vs 1` | `theirs won` | `10 players · b 1, h 1, p 2, t 3, w 3 · levels 83–100` | `1 NPC · p 1 · level 83` | `209110` |
+| `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon-2.json` | `10 vs 1` | `ours won` | `10 players · b 2, m 4, t 2, w 2 · levels 83–107` | `1 NPC · p 1 · level 83` | `209110` |
 
 ## The recordings
 
@@ -96,6 +97,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json` | `luvia` | `none stated` | `38` | `619` |
 | `tests/captured-fights/2026-08-26-luvia-grupa-vs-draugr.json` | `luvia` | `53XkBRxF` | `3` | `487` |
 | `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json` | `luvia` | `53XkBRxF` | `15` | `709` |
+| `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon-2.json` | `luvia` | `53XkBRxF` | `111` | `715` |
 
 ## What the material does not hold
 
@@ -109,7 +111,7 @@ something rather than a defect.
   stood on the other one. A wide enemy side is untested on real protocol.
 - **No drawn fight.** The panel draws one, and every fight it draws it from is
   hand-built (`tests/ui/panel-view.test.ts`).
-- **Three worlds, and one of them once.** Everything but the duel and the five
+- **Three worlds, and one of them once.** Everything but the duel and the six
   recordings from `luvia` comes from `tempest`; the duel is the one that happened
   once.
 
@@ -238,6 +240,33 @@ is used as evidence.
   also the first recording carrying `-poison_lowdmg_per` on something that is not
   a blow: seven poison ticks state their own reduction beside them, which is what
   moved that key and `poison` to the weakest placement the register has.
+
+- `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon-2.json` — the **largest
+  recording in the material** and the one against the entry above's opponent
+  thirteen minutes later, with a different party. 715 messages over 111 engine
+  calls, and 110 of those calls carry a snapshot: it is the first `luvia` recording
+  split turn by turn rather than arriving with most of its log in the opening call,
+  which is what makes it the widest health witness the corpus has — 1 083
+  comparisons against 107 for its sibling, and no disagreement anywhere.
+
+  ⚠️ **The only recording carrying `lowheal_per-enemies`, and therefore the only
+  one where a team heal is refused.** A fight declaring the reducer has none of its
+  casts sized (`src/core/combatant-health.ts`), so all three of its `healall_per`
+  casts stay counted as healing nobody could place, and its two casters are the
+  first rows any recording has marked. Read as evidence for the sizing this is a
+  fight that says nothing; read as evidence for the refusal it is the only fight
+  that says anything, and it is the first material to reach either the refusal or
+  §9.6's warning-on-a-row.
+
+  Two more things it settles, both by having a third of something. `+stun2-c` had
+  been read on four occurrences in one recording; its five here ride the same
+  monster's blows and are followed one-to-one by a turn-loss message, which its
+  sibling's four were not — and all 20 of that monster's blows carry `+dmgc` here
+  too, so a second recording still cannot say which variant it is. And
+  `active_absorbdest_per` gained a third declared share, `6`: three casters
+  announce in this one fight, each says one value and never another, which is the
+  clearest evidence yet that the share belongs to the caster and not to the skill
+  (`docs/protocol-keys.md`).
 
 - `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`,
   `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-3.json` and

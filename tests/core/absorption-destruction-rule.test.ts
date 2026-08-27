@@ -25,14 +25,20 @@ const SKILL_NAME_KEY = "tspell";
 /**
  * The shares the skill announces, as the captures state them.
  *
- * ⚠️ **Two, not one.** This was `5` alone while every caster in the corpus
+ * ⚠️ **Three, not one.** This was `5` alone while every caster in the corpus
  * declared 5, and the group fights of 2026-08-12 field one who declares 8. The
  * share is a property of the **caster**, not of the skill: `skillId=86` carries
- * both, and no caster in the material ever declares two — which is the same
+ * all of them, and no caster in the material ever declares two — which is the same
  * shape `healall_per` has, where grouping by skill would have read a
  * contradiction into figures that had none.
+ *
+ * `6` arrived with `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon-2.json`
+ * and is the sharpest test that claim has had: three casters announce in that one
+ * fight, one says 6 seventeen times and the other two say 5 fourteen times between
+ * them, and not one of the three ever says anything else. A third value is what
+ * would have shown the property to belong to the skill, and it did the opposite.
  */
-const DECLARED_SHARE_PERCENTS = [5, 8];
+const DECLARED_SHARE_PERCENTS = [5, 6, 8];
 
 /**
  * One unit of rounding slack. The protocol states whole points, so a destruction

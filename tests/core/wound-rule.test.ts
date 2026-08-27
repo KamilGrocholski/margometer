@@ -124,11 +124,24 @@ describe("the deep wound a weapon applies", () => {
    * the number then has to be restated — the friction is the point, because a
    * measurement that quietly stops covering anything reads exactly like one that
    * passes.
+   *
+   * ⚠️ **The two counts stopped being equal on 2026-08-27, and the gap is this
+   * reading's own narrowness rather than the material's.** `previousPercent` is
+   * taken from the message immediately before the tick, so it is found only where
+   * that message happens to name the same combatant. Every tick in the two
+   * recordings held before closed that way; of the 22 in
+   * `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon-2.json` only 14 do,
+   * because 111 small engine calls interleave combatants where 15 large ones did
+   * not. Measured rather than guessed: reaching back to the most recent earlier
+   * message of the same call that names the combatant at **either** end closes 7
+   * of the 8, each inside the tolerance below, and the eighth is a tick whose call
+   * states nothing about that combatant before it. Widening the reading is its own
+   * round — this one admits the material and says what the reading does not reach.
    */
   test("closes over as much of the material as it is recorded to", () => {
-    expect(TICKS.length).toBe(20);
-    expect(TICKS.filter((tick) => tick.previousPercent !== null).length).toBe(20);
-    expect(ANNOUNCEMENTS.length).toBe(8);
+    expect(TICKS.length).toBe(42);
+    expect(TICKS.filter((tick) => tick.previousPercent !== null).length).toBe(34);
+    expect(ANNOUNCEMENTS.length).toBe(14);
   });
 
   test("names its victim in the actor slot and nobody at the other end", () => {

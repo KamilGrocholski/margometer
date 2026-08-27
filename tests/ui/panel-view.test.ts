@@ -1224,12 +1224,16 @@ describe("a fight that did not all arrive", () => {
  * reader to work out whose totals that cost
  * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
  *
- * ⚠️ **Built by hand because no recording carries either state.**
- * `bun run tools/fight-report.ts` prints `unreadable messages: 0` and
- * `unaccounted healing: 0 casts` for every file in `tests/captured-fights/` as the
- * set stands 2026-08-24, so the corpus can only say that nothing here fires — which
- * is the last test in this block, and the claim that this round moved no number
- * anybody has already read.
+ * ⚠️ **Built by hand because no recording carried either state, and one now
+ * carries the second.** `bun tools/fight-report.ts` printed `unreadable messages:
+ * 0` and `unaccounted healing: 0 casts` for every file in
+ * `tests/captured-fights/` as the set stood 2026-08-24, so the corpus could only
+ * say that nothing here fires. On 2026-08-27
+ * `2026-08-27-luvia-grupa-vs-amaimon-2` arrived declaring `lowheal_per-enemies`,
+ * which refuses every team heal of its fight, and its two casters are the first
+ * rows any recording has marked — held by the last test in this block. The
+ * hand-built fixtures stay: the **unreadable message** half still has no material
+ * behind it, and neither has a row carrying both marks at once.
  */
 describe("a warning on the row it shortens", () => {
   const roster = composeCombatantRoster([
@@ -1385,21 +1389,61 @@ describe("a warning on the row it shortens", () => {
   });
 
   /**
-   * The corpus half, and the only thing it can say: **no capture grows a mark.**
-   * Every recording reads clean, so a row wearing one here would mean this round
-   * had started qualifying figures somebody has already read.
+   * The corpus half. It used to say **no capture grows a mark**, which was true of
+   * every recording and was also the reason §9.6's clause about putting a warning
+   * on the row it shortens had no consumer at all.
+   *
+   * ⚠️ **On 2026-08-27 one recording grew two.**
+   * `2026-08-27-luvia-grupa-vs-amaimon-2` declares `lowheal_per-enemies`, so none
+   * of its three `healall_per` casts is sized (`src/core/combatant-health.ts`), and
+   * each cast's warning rides its **caster's** row — two casters, one of whom cast
+   * twice. That is the second of the two gaps §9.6 lets reach a row: a side cast
+   * this meter could not size, which names its caster.
+   *
+   * The claim below is still two-sided and is now worth more than it was: every
+   * other recording marks nothing, this one marks exactly the rows the protocol
+   * named a caster for, and it marks them on the healing metric alone — a
+   * shortfall in healing given is not a claim about anybody's damage.
    */
-  test.each(CAPTURED_FIGHTS)("$name marks no row at all", (fight) => {
+  const MARKED_FIGHT = "2026-08-27-luvia-grupa-vs-amaimon-2";
+
+  test.each(CAPTURED_FIGHTS)("$name marks a row only where a cast could not be sized", (fight) => {
     const reading: PanelReading = {
       statistics: composeStatisticsOfFight(fight),
       roster: composeRosterOfFight(fight),
       ourSide: 1,
       isFromFightStart: true,
     };
-    for (const metric of PANEL_METRICS) {
+    const marked = PANEL_METRICS.flatMap((metric) => {
       const view = composePanelView(reading, composeState({ metric }));
       const rows = [...view.lists.flatMap((list) => list.rows), ...view.pinnedRows];
-      expect(rows.every((row) => row.warnings.length === 0), metric).toBe(true);
+      return rows.filter((row) => row.warnings.length > 0).map((row) => ({ metric, row }));
+    });
+
+    if (fight.name !== MARKED_FIGHT) {
+      expect(marked.map((one) => one.row.label)).toEqual([]);
+      return;
+    }
+
+    // Two casters, three casts, and the counts say which of them cast twice. The
+    // words are read here rather than fetched from the module that writes them
+    // (§7.5): a player is told a figure is low, in Polish, with no key of the
+    // game's and no vocabulary of ours.
+    expect(marked.map((one) => one.metric)).toEqual(["healingGiven", "healingGiven"]);
+    expect(new Set(marked.map((one) => one.row.key)).size).toBe(2);
+
+    const said = marked.flatMap((one) => one.row.warnings).sort();
+    expect(said.length).toBe(2);
+    expect(said[0]).toContain("1 raz");
+    expect(said[1]).toContain("2 razy");
+    for (const warning of said) {
+      expect(warning).toContain("Uleczyła sojuszników");
+      expect(warning).toContain("bez podanej liczby");
+      // The certain half of §9.6's pair: this figure *is* low, not *may be*.
+      expect(warning).toContain("jest zaniżone");
+      for (const forbidden of ["healall", "lowheal", "klucz", "protok"]) {
+        expect(warning, forbidden).not.toContain(forbidden);
+      }
     }
   });
 });

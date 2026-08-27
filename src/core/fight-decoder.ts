@@ -605,6 +605,19 @@ const SKILL_DECLARATION_KEYS = [
   // multiplied, which is the same argument the auras above are read under.
   "critval-allies",
   "critmval-allies",
+  /**
+   * The share by which the opposing side's active-skill healing is reduced. Read
+   * here for the same reason as the rest — it states an input, and what it comes
+   * to arrives inside the reduced healing figures the other side later reports.
+   *
+   * ⚠️ **Adding this key here is what `composeSizedTeamHeals` reads to refuse a
+   * fight, and moving it out of that list would switch the refusal off in
+   * silence.** The gate used to find the key among an `unknown-message`'s unread
+   * keys; that is exactly the state this line ends. It now reads the declaration,
+   * so the two are coupled: this entry is load-bearing for
+   * `src/core/combatant-health.ts` and not only for the panel's warning.
+   */
+  "lowheal_per-enemies",
 ];
 
 /**

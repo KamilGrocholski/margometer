@@ -444,6 +444,7 @@ const COMPARISONS_BY_FIGHT: Record<string, number> = {
   "2026-08-25-luvia-grupa-vs-draugr": 164,
   "2026-08-26-luvia-grupa-vs-draugr": 411,
   "2026-08-27-luvia-grupa-vs-amaimon": 107,
+  "2026-08-27-luvia-grupa-vs-amaimon-2": 1083,
 };
 
 describe("decoded damage against the health the protocol states", () => {
@@ -634,7 +635,7 @@ describe("health stated against a name", () => {
    * not the same promise as "every time" over all of them.
    */
   test("occurs as often as it is recorded to", () => {
-    expect(replayed.length).toBe(696);
+    expect(replayed.length).toBe(741);
   });
 
   test("names a combatant the replay's own roster can identify, every time", () => {

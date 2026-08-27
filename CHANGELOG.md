@@ -44,6 +44,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   „trucizna" należy teraz do rodzaju obrażeń, tak jak „ogień" należy do niego
   obok „podpalenia": to dwie różne liczby i nie mogą stać pod jedną nazwą.
 
+- **Poprawka** — Kiedy w walce pada umiejętność osłabiająca leczenie przeciwnej
+  drużyny, panel nie twierdzi już, że czegoś nie zdołał odczytać. Zostaje jedno
+  ostrzeżenie i jest prawdziwe: przy tym osłabieniu nie da się przeliczyć
+  leczenia rzuconego na całą drużynę, więc panel mówi to przy wierszu osoby,
+  która leczyła.
+
 ## [0.9.0] — 2026-08-26
 
 - **Nowość** — Skończone walki zostają. Przycisk `☰` na belce otwiera listę

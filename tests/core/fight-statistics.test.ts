@@ -204,16 +204,19 @@ describe("the aggregate over captured fights", () => {
    * so what the panel had been showing was *unknown* where the answer was *zero*,
    * which is the one distinction §9.6 makes about this screen.
    *
-   * A zero here is the claim, not an absence: it says the panel has nothing left
-   * to warn about on this material. The counter itself is still live, and
-   * `tests/core/combatant-health.test.ts` holds the fights that fill it — one
-   * joined in progress, one whose caster has no standing ally.
+   * ⚠️ **On 2026-08-27 the material filled it, and the counter stopped being held
+   * only by hand-built fights.** `2026-08-27-luvia-grupa-vs-amaimon-2` declares
+   * `lowheal_per-enemies`, and a fight declaring the reducer has none of its casts
+   * sized (`src/core/combatant-health.ts`) — so all three of its `healall_per`
+   * casts land here, and the panel warns about that fight and about no other. The
+   * list is the claim in both directions: one recording named, and every other one
+   * still with nothing to warn about.
    */
-  test("and no capture is left with healing nobody can be credited for", () => {
+  test("only the capture that declares the healing reducer is left with healing nobody can be credited for", () => {
     const withTeamHeal = FROM_CAPTURES.filter(
       ({ statistics }) => statistics.reading.unaccountedHealthBySource.size > 0,
     ).map(({ name }) => name);
-    expect(withTeamHeal).toEqual([]);
+    expect(withTeamHeal).toEqual(["2026-08-27-luvia-grupa-vs-amaimon-2"]);
 
     // And the casts really are there to have been placed, or the sentence above is
     // about a corpus that never carried one.
