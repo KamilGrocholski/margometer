@@ -122,7 +122,7 @@ describe("the cache manifest", () => {
   test("refuses a manifest missing a field", () => {
     const { fetchedAt: _removed, ...withoutDate } = manifest;
 
-    expect(() => requireCachedHelpArticle(withoutDate, "372")).toThrow(/fetchedAt/);
+    expect(() => requireCachedHelpArticle(withoutDate, "372")).toThrow("fetchedAt");
   });
 
   test("refuses a manifest describing a different article", () => {

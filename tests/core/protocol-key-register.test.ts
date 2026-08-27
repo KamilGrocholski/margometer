@@ -31,6 +31,7 @@ import {
   PROTOCOL_KEY_REGISTER,
   ProtocolKeyRegisterError,
 } from "@/tests/protocol-key-register.ts";
+import { isEveryCharacterIn } from "@/libs/text-runs.ts";
 
 const NAMED_KEYS = new Set<string>(FROZEN_PROTOCOL_KEYS.keys);
 const ENTRIES = PROTOCOL_KEY_REGISTER;
@@ -40,6 +41,8 @@ function isComputedKey(key: string): boolean {
   const { marker, markerAt, markerLength } = FROZEN_PROTOCOL_KEYS.computedFamily;
   return key.slice(markerAt, markerAt + markerLength) === marker;
 }
+
+const DIGITS = "0123456789";
 
 describe("the protocol key register", () => {
   test("has entries at all", () => {
@@ -167,7 +170,7 @@ describe("a citation of the game's published help", () => {
   });
 
   test("the frozen table says which article and which dump it counted", () => {
-    expect(FROZEN_HELP_PHRASES.article).toMatch(/^\d+$/);
+    expect(isEveryCharacterIn(FROZEN_HELP_PHRASES.article, DIGITS)).toBe(true);
     expect(getMillisecondsFromIsoText(FROZEN_HELP_PHRASES.fetchedAt)).not.toBeNull();
     expect(Object.keys(FROZEN_HELP_PHRASES.counts).length).toBeGreaterThan(0);
   });

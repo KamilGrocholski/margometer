@@ -632,6 +632,9 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
   drawn-text.ts               A figure the panel drew, taken apart: the spacing
                               off a number, the brackets off a share, and whether
                               a token stands alone in a sentence.
+  document-lines.ts           A line out of a document this repository writes:
+                              whether one is there exactly, and what the line
+                              behind a label says.
   protocol-key-register.ts    Reads the register into entries — verdict, health
                               line, evidence, shape, help phrases.
 ```

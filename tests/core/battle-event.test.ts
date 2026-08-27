@@ -493,7 +493,7 @@ describe("decoding a single message", () => {
   test("reports an id too large to read rather than attributing damage to its neighbour", () => {
     const [event] = decodeFight(["9007199254740993=100.00;0;+dmgf=5"]);
     expect(event?.kind).toBe("unknown-message");
-    expect((event as { reason: string }).reason).toMatch(/unusable id/);
+    expect((event as { reason: string }).reason).toContain("unusable id");
     // And it names nobody, because the grammar failed before there were side
     // segments to read. The id is right there in the text and is exactly the one
     // thing that must not be lifted out of it: it did not parse.
@@ -556,7 +556,7 @@ describe("decoding a single message", () => {
   test("reports a message it cannot even read as a message", () => {
     const [event] = decodeFight(["winner;0;step"]);
     expect(event?.kind).toBe("unknown-message");
-    expect((event as { reason: string }).reason).toMatch(/side segment/);
+    expect((event as { reason: string }).reason).toContain("side segment");
   });
 
   // Half understood is not understood. Without this, a message carrying one

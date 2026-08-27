@@ -21,10 +21,15 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { isEveryCharacterIn } from "@/libs/text-runs.ts";
 
 const REPOSITORY_ROOT = new URL("../", import.meta.url).pathname;
 
 /** Whether this checkout has history behind it, or only the commit it is on. */
+const COMMIT_CHARACTERS = "0123456789abcdef";
+const SHORTEST_COMMIT = 7;
+const LONGEST_COMMIT = 40;
+
 export function isShallowRepository(): boolean {
   return (
     execFileSync("git", ["rev-parse", "--is-shallow-repository"], {
@@ -81,4 +86,18 @@ export function hasPathInHistory(path: string): boolean {
       encoding: "utf8",
     }).trim() !== ""
   );
+}
+
+/**
+ * A commit as git prints it: lower-case hexadecimal, abbreviated or whole.
+ *
+ * Here because both callers are asking this history a question — one about an
+ * audit's `Read at:` line, one about the commit a set of screenshots names — and
+ * a shape the two spelled separately is a shape they could come to disagree
+ * about. git accepts both lengths and both documents are written by pasting what
+ * `git log` printed.
+ */
+export function isCommitText(text: string): boolean {
+  if (text.length < SHORTEST_COMMIT || text.length > LONGEST_COMMIT) return false;
+  return isEveryCharacterIn(text, COMMIT_CHARACTERS);
 }

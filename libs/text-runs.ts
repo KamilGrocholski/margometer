@@ -124,3 +124,24 @@ export function getEndOfWordCharacters(text: string, start: number): number {
 export function isWordStart(text: string, start: number): boolean {
   return start === 0 || !isWordCharacterAt(text, start - 1);
 }
+
+/**
+ * Whether every character of `text` comes from `characters`, and there is at
+ * least one.
+ *
+ * The whole-string half of what the classes above answer one character at a
+ * time, and it exists because a caller checking a shape usually wants a class
+ * this file does not name — lower-case hexadecimal, the letters of one alphabet,
+ * the digits of a version. Stating the set at the call site keeps that class
+ * where the reason for it is.
+ *
+ * Empty is false, not true: a caller asking whether text is made of digits is
+ * asking whether it is a number, and no digits is no number.
+ */
+export function isEveryCharacterIn(text: string, characters: string): boolean {
+  if (text.length === 0) return false;
+  for (const character of text) {
+    if (!characters.includes(character)) return false;
+  }
+  return true;
+}

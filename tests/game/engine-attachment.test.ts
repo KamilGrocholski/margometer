@@ -1584,7 +1584,7 @@ describe("the world a saved recording names", () => {
   test("a world page is named by its world", () => {
     const { page, getNames } = composePageAt({ hostname: "tempest.margonem.pl" });
     writeCaptureToPage(page, meter);
-    expect(getNames()[0]).toMatch(/^margometer-tempest-/);
+    expect(getNames()[0]).toStartWith("margometer-tempest-");
   });
 
   /**

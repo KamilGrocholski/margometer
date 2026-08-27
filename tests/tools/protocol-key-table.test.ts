@@ -8,6 +8,7 @@ import {
   getProtocolKeys,
   ProtocolKeyTableError,
 } from "@/tools/protocol-key-table.ts";
+import { isEveryCharacterIn } from "@/libs/text-runs.ts";
 
 const { keys, computedFamily } = FROZEN_PROTOCOL_KEYS;
 const NAMED_KEYS = new Set<string>(keys);
@@ -30,6 +31,10 @@ const KEYS_IN_CAPTURED_FIGHTS = [
   ),
 ].sort();
 
+/** What a build id is made of, and the shorter of the two forms the client has served. */
+const BUILD_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const SHORTEST_BUILD = 8;
+
 describe("the frozen key table", () => {
   /**
    * The build's shape is the same claim `src/core/game-build.ts` makes, restated
@@ -39,7 +44,8 @@ describe("the frozen key table", () => {
    */
   test("is not empty and says which build it came from", () => {
     expect(keys.length).toBeGreaterThan(0);
-    expect(FROZEN_PROTOCOL_KEYS.gameBuild).toMatch(/^[0-9A-Za-z]{8,}$/);
+    expect(FROZEN_PROTOCOL_KEYS.gameBuild.length).toBeGreaterThanOrEqual(SHORTEST_BUILD);
+    expect(isEveryCharacterIn(FROZEN_PROTOCOL_KEYS.gameBuild, BUILD_CHARACTERS)).toBe(true);
   });
 
   test("carries the family the client recognises by shape rather than by name", () => {

@@ -22,7 +22,7 @@ import { getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
 import { getAssignedClassNames } from "@/tests/class-names.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
-import { isAncestorOfHead, isShallowRepository } from "@/tests/git-history.ts";
+import { isAncestorOfHead, isCommitText, isShallowRepository } from "@/tests/git-history.ts";
 import {
   composeShotAddress,
   composeShotFileName,
@@ -110,7 +110,7 @@ describe("the set in screenshots/", () => {
   test("the set says which panel is in the frame, and it is one this history has", () => {
     const stated = getTakenAtRecord()["commit"];
     expect(typeof stated).toBe("string");
-    expect(stated).toMatch(/^[0-9a-f]{7,40}$/);
+    expect(isCommitText(String(stated))).toBe(true);
     if (isShallowRepository()) return;
     expect(isAncestorOfHead(String(stated))).toBe(true);
   });

@@ -83,7 +83,7 @@ describe("who is a person, and who only looks like one", () => {
     recording.wpisy[0]!.wojownicyPo = [{ id: 404, name: "AStranger" }];
 
     expect(() => composePseudonymisedDump(recording)).toThrow(CapturedFightIntakeError);
-    expect(() => composePseudonymisedDump(recording)).toThrow(/404/);
+    expect(() => composePseudonymisedDump(recording)).toThrow("404");
   });
 
   // `w` separates two players by id; a message carries only the text, so there is
@@ -94,7 +94,7 @@ describe("who is a person, and who only looks like one", () => {
       "6": { id: 6, npc: 0, name: "Twin" },
     });
 
-    expect(() => composePseudonymisedDump(recording)).toThrow(/share the name/);
+    expect(() => composePseudonymisedDump(recording)).toThrow("share the name");
   });
 
   /**
@@ -243,12 +243,12 @@ describe("the file that comes out", () => {
   });
 
   test("refuses a recording that says nothing about when or where", () => {
-    expect(() => composeIntakePath({ swiat: "tempest" }, "x")).toThrow(/przy/);
-    expect(() => composeIntakePath({ przy: "2026-08-11T12:00:00.000Z" }, "x")).toThrow(/swiat/);
+    expect(() => composeIntakePath({ swiat: "tempest" }, "x")).toThrow("przy");
+    expect(() => composeIntakePath({ przy: "2026-08-11T12:00:00.000Z" }, "x")).toThrow("swiat");
   });
 
   test("refuses a name that would not read as a file name", () => {
-    expect(() => composeIntakePath(composeRecording({}), "Not A Slug")).toThrow(/kebab-case/);
+    expect(() => composeIntakePath(composeRecording({}), "Not A Slug")).toThrow("kebab-case");
   });
 
   /**
@@ -260,7 +260,7 @@ describe("the file that comes out", () => {
   test.each(["-lowca", "lowca-", "lowca--vs", "-", "", "Lowca", "lowca_vs"])(
     "refuses %p",
     (slug) => {
-      expect(() => composeIntakePath(composeRecording({}), slug)).toThrow(/kebab-case/);
+      expect(() => composeIntakePath(composeRecording({}), slug)).toThrow("kebab-case");
     },
   );
 

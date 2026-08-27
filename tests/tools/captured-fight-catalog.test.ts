@@ -330,11 +330,11 @@ describe("fight dump parser", () => {
       build: "1",
       wpisy: [{ nr: 0, komunikaty: [], wojownicyPrzed: [], wojownicyPo: [{ id }] }],
     };
-    expect(() => parseFightDump(composeJsonText(dump))).toThrow(/\.id: expected a whole number/);
+    expect(() => parseFightDump(composeJsonText(dump))).toThrow(".id: expected a whole number");
   });
 
   test("refuses a missing top-level field instead of defaulting it", () => {
-    expect(() => parseFightDump(composeJsonText({ wersja: 1 }))).toThrow(/przy: expected a string/);
+    expect(() => parseFightDump(composeJsonText({ wersja: 1 }))).toThrow("przy: expected a string");
   });
 
   test("accepts a capture without fight numbers", () => {
@@ -382,6 +382,6 @@ describe("fight dump parser", () => {
   // and the empty one then arrives as no argument at all — which bun reads as a
   // callback asking for `done` and times out rather than failing.
   test.each([[1786514810315], [[]], [{}]])("refuses %p as a build", (build) => {
-    expect(() => parseFightDump(composeDumpWithBuild(build))).toThrow(/build: expected a string/);
+    expect(() => parseFightDump(composeDumpWithBuild(build))).toThrow("build: expected a string");
   });
 });

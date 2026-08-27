@@ -19,17 +19,22 @@ import {
 } from "@/tools/changelog.ts";
 
 const CHANGELOG = readFileSync(CHANGELOG_PATH, "utf8");
-const ENTRY_TYPES = /\*\*(Nowość|Zmiana|Poprawka)\*\*/;
+/** The three words a release's notes are written in, each drawn in bold. */
+const ENTRY_TYPES = ["Nowość", "Zmiana", "Poprawka"].map((word) => `**${word}**`);
+/** What opens a version's own heading, and so what its section must stop before. */
+const VERSION_HEADING = "## [";
 
 describe("the changelog against the version being released", () => {
   test("the version in package.json has a section, and it says something", () => {
     const section = getChangelogSection(CHANGELOG, manifest.version);
     expect(section, manifest.version).not.toBeNull();
-    expect(section).toMatch(ENTRY_TYPES);
+    expect(ENTRY_TYPES.some((entry) => (section ?? "").includes(entry))).toBe(true);
   });
 
   test("its section stops before the previous one", () => {
-    expect(getChangelogSection(CHANGELOG, manifest.version)).not.toMatch(/^## \[/m);
+    const section = getChangelogSection(CHANGELOG, manifest.version) ?? "";
+    const headings = section.split("\n").filter((line) => line.startsWith(VERSION_HEADING));
+    expect(headings).toEqual([]);
   });
 
   /**
@@ -83,7 +88,7 @@ describe("the changelog against the version being released", () => {
   test("every entry in the file opens with its kind", () => {
     const untyped = CHANGELOG.split("\n")
       .filter((line) => line.startsWith("- "))
-      .filter((line) => !ENTRY_TYPES.test(line));
+      .filter((line) => !ENTRY_TYPES.some((entry) => line.includes(entry)));
 
     expect(untyped).toEqual([]);
   });
