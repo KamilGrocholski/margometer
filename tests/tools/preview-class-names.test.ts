@@ -47,7 +47,9 @@ function composePage(appendedScript: string | null, introduction: string | null)
     fightName: FIGHT.name,
     entryIndex: 0,
     payloads: FIGHT.dump.calls.map((call) => call.payload),
-    fights: [{ name: FIGHT.name, address: `/?fight=${FIGHT.name}&entry=0` }],
+    fights: [
+      { name: FIGHT.name, address: `/?fight=${FIGHT.name}&entry=0`, payloadsAddress: null },
+    ],
     scriptDirectory: "/",
     words: WORDS,
     introduction,

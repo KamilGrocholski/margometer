@@ -54,6 +54,38 @@ describe("the routes, served", () => {
     }
   });
 
+  /**
+   * The route that lets a pick be a replay instead of a page.
+   *
+   * A name is required where the page route reads a missing one as *open on the
+   * first capture*: a page asking for payloads always knows whose, and answering
+   * somebody else's would draw one fight's rows under another's name.
+   */
+  test("a capture's payloads are answered on their own route, for a name and only a name", async () => {
+    const preview = setPreviewServer({ port: 0, shouldWatch: false });
+    try {
+      const response = await fetch(`${preview.url}/payloads?fight=${FIGHT.name}`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("application/json");
+      const payloads = await response.json();
+      expect(Array.isArray(payloads)).toBe(true);
+      expect((payloads as unknown[]).length).toBe(FIGHT.dump.calls.length);
+
+      const missing = await fetch(`${preview.url}/payloads?fight=no-such-fight`);
+      expect(missing.status).toBe(404);
+
+      const unnamed = await fetch(`${preview.url}/payloads`);
+      expect(unnamed.status).toBe(404);
+
+      // The page carries both addresses per capture, which is what tells its
+      // picker there is anything to fetch at all.
+      const markup = await (await fetch(`${preview.url}/?fight=${FIGHT.name}`)).text();
+      expect(markup).toContain(`"payloadsAddress":"/payloads?fight=`);
+    } finally {
+      preview.stop();
+    }
+  });
+
   test("an entry past the end of the fight is clamped rather than believed", async () => {
     const preview = setPreviewServer({ port: 0, shouldWatch: false });
     try {

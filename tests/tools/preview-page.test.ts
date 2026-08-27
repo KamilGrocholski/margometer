@@ -13,6 +13,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { assertDefined } from "@/libs/assert.ts";
+import { getRecordFromValue } from "@/libs/record.ts";
 import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
 import { isFightStart } from "@/src/game/battle-session.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
@@ -24,6 +25,8 @@ import {
 } from "@/tools/preview-page.ts";
 
 const FIGHT = assertDefined(CAPTURED_FIGHTS[0], "the catalog carries a capture to preview");
+/** A second one, because picking is the one thing that needs two. */
+const OTHER = assertDefined(CAPTURED_FIGHTS[1], "the catalog carries a second capture");
 
 const WORDS: PreviewWords = {
   language: "en",
@@ -44,6 +47,7 @@ function composePageOfFight(overrides: Partial<PreviewPageOptions> = {}): string
     fights: CAPTURED_FIGHTS.map((fight) => ({
       name: fight.name,
       address: `/?fight=${fight.name}&entry=0`,
+      payloadsAddress: `/payloads?fight=${fight.name}`,
     })),
     scriptDirectory: "/",
     words: WORDS,
@@ -58,8 +62,11 @@ type FakeElement = {
   textContent: string;
   value: string;
   children: FakeElement[];
-  handlers: Map<string, () => void>;
-  addEventListener: (type: string, handler: () => void) => void;
+  // What a handler answers is `unknown` rather than `void` because one of them
+  // answers something: the picker's hands back the fetch it started, which is the
+  // only handle a test has on a pick that replays instead of navigating.
+  handlers: Map<string, () => unknown>;
+  addEventListener: (type: string, handler: () => unknown) => void;
   append: (child: FakeElement) => void;
   setAttribute: (name: string, value: string) => void;
 };
@@ -83,8 +90,20 @@ type DriverRun = {
   fedCount: number;
   reloadCount: number;
   hash: string;
+  /** Where the page navigated, and the empty string while it has not. */
+  href: string;
+  /** What the page called itself last, which a pick that draws another fight renames. */
+  title: string;
+  /** Every address the page fetched, in order — empty on a page that asks for nothing. */
+  fetchedAddresses: string[];
+  /** Who the stub engine holds, which is what `src/game/engine-roster.ts` reads. */
+  getEngineWarriorIds: () => string[];
   getCountText: () => string;
+  /** What the play button says, which is the whole of whether a replay is running. */
+  getPlayText: () => string;
   setClicked: (id: string) => void;
+  /** Picks a capture in the strip, and answers when the page is done with it. */
+  setPicked: (address: string) => Promise<void>;
 };
 
 /**
@@ -99,7 +118,15 @@ type DriverRun = {
  * the page has them — over a document small enough to be checkable, the way
  * `tests/ui/panel-element.test.ts` does for the panel.
  */
-function composeDriverRun(page: string, hash = ""): DriverRun {
+function composeDriverRun(
+  page: string,
+  hash = "",
+  /**
+   * What a fetch answers, by address. A miss rejects, which is a server that has
+   * gone away — and the page has to stay usable through it.
+   */
+  payloadsByAddress: ReadonlyMap<string, readonly unknown[]> = new Map(),
+): DriverRun {
   const blocks = [...page.matchAll(/<script>\n([\s\S]*?)<\/script>/g)].map(
     (block) => block[1] ?? "",
   );
@@ -116,6 +143,7 @@ function composeDriverRun(page: string, hash = ""): DriverRun {
 
   let fedCount = 0;
   let reloadCount = 0;
+  const fetchedAddresses: string[] = [];
   const location = {
     hash,
     href: "",
@@ -127,8 +155,19 @@ function composeDriverRun(page: string, hash = ""): DriverRun {
     Engine: null as unknown,
     location,
     setTimeout: () => 0,
+    // A `TypeError` because that is what a browser rejects a fetch with, and the
+    // page's refusal path is written for what it will actually be handed.
+    fetch: (address: string) => {
+      fetchedAddresses.push(address);
+      const payloads = payloadsByAddress.get(address);
+      if (payloads === undefined) {
+        return Promise.reject(new TypeError(`nothing answers ${address}`));
+      }
+      return Promise.resolve({ json: () => Promise.resolve(payloads) });
+    },
   };
   const document = {
+    title: "",
     getElementById: (id: string) => getFakeElement(id),
     createElement: () => composeFakeElement(),
   };
@@ -153,6 +192,8 @@ function composeDriverRun(page: string, hash = ""): DriverRun {
   ) => void;
   driveReplay(window, document);
 
+  const battle = (window.Engine as { battle: { w: Record<string, unknown> } }).battle;
+
   return {
     get fedCount() {
       return fedCount;
@@ -163,10 +204,29 @@ function composeDriverRun(page: string, hash = ""): DriverRun {
     get hash() {
       return location.hash;
     },
+    get href() {
+      return location.href;
+    },
+    get title() {
+      return document.title;
+    },
+    fetchedAddresses,
+    // Read off the engine rather than off the page, because that is where the
+    // add-on reads it: `src/game/engine-roster.ts` takes the roster from `w`.
+    getEngineWarriorIds: () => Object.keys(battle.w),
     getCountText: () => getFakeElement("preview-count").textContent,
+    getPlayText: () => getFakeElement("preview-play").textContent,
     setClicked: (id) => {
       const handler = getFakeElement(id).handlers.get("click");
       assertDefined(handler, `${id} listens for a click`)();
+    },
+    // The strip's own value moves first, exactly as a browser would move it, and
+    // the handler hands back the fetch it started so a test can wait for it.
+    setPicked: async (address) => {
+      const picker = getFakeElement("preview-fight");
+      picker.value = address;
+      const handler = picker.handlers.get("change");
+      await assertDefined(handler, "the picker listens for a change")();
     },
   };
 }
@@ -281,8 +341,8 @@ describe("what the caller decides and the page does not", () => {
   test("the picker goes where the caller said, not where the page decided", () => {
     const page = composePageOfFight({
       fights: [
-        { name: "first", address: "./first.html" },
-        { name: "second", address: "./second.html" },
+        { name: "first", address: "./first.html", payloadsAddress: null },
+        { name: "second", address: "./second.html", payloadsAddress: null },
       ],
     });
     expect(page).toContain(`"address":"./first.html"`);
@@ -404,6 +464,115 @@ describe("the panel before any payload", () => {
     // Replayed rather than rewound: three fed on the way in, two more on the way
     // back, because `src/game/battle-session.ts` resets on the first payload.
     expect(run.fedCount).toBe(5);
+  });
+});
+
+/**
+ * Picking a capture, which is where everything the reader set used to go.
+ *
+ * A pick navigated, and a fresh document is a fresh add-on: the store this page
+ * installs outlives nothing on purpose (audit F7), so the panel came back at its
+ * default position, un-minimized, on the default tab, over an empty fight. None of
+ * that is visible in a page that contains the word `preview-fight`, which is why
+ * these run the driver.
+ */
+describe("picking another capture", () => {
+  const payloads = FIGHT.dump.calls.map((call) => call.payload);
+  const otherPayloads = OTHER.dump.calls.map((call) => call.payload);
+  const otherAddress = `/?fight=${OTHER.name}&entry=0`;
+  const otherPayloadsAddress = `/payloads?fight=${OTHER.name}`;
+  const answers = new Map([[otherPayloadsAddress, otherPayloads]]);
+
+  /** Who a capture names, read off the material rather than off the page. */
+  function getWarriorIdsOfFight(fight: typeof FIGHT): string[] {
+    const ids = new Set<string>();
+    for (const call of fight.dump.calls) {
+      const payload = getRecordFromValue(call.payload);
+      const roster = payload === null ? null : getRecordFromValue(payload["w"]);
+      if (roster !== null) for (const id of Object.keys(roster)) ids.add(id);
+    }
+    return [...ids].sort();
+  }
+
+  test("the capture arrives in the page already open, with nothing torn down", async () => {
+    const run = composeDriverRun(composePageOfFight({ entryIndex: 2 }), "", answers);
+    await run.setPicked(otherAddress);
+    expect(run.fetchedAddresses).toEqual([otherPayloadsAddress]);
+    // The two ways a page could have been thrown away, and the panel with it.
+    expect(run.href).toBe("");
+    expect(run.reloadCount).toBe(0);
+    expect(run.getCountText()).toBe(`entry ${otherPayloads.length} / ${otherPayloads.length}`);
+    // Two on the way in, then every payload of the capture picked: the finished
+    // fight, because a capture somebody chose is one they want counted.
+    expect(run.fedCount).toBe(2 + otherPayloads.length);
+    expect(run.title).toBe(`${WORDS.title} — ${OTHER.name}`);
+  });
+
+  /**
+   * ⚠️ **The failure nothing on screen would call a failure.** The stub merges
+   * every roster it is handed and never clears, and `src/game/engine-roster.ts`
+   * reads exactly that map — so a pick that left it alone would draw the fight
+   * being left behind as rows of the fight arriving, under their own names and
+   * with plausible figures.
+   */
+  test("the engine holds the capture picked and nobody from the one before it", async () => {
+    const run = composeDriverRun(composePageOfFight({ entryIndex: payloads.length }), "", answers);
+    expect(run.getEngineWarriorIds().sort()).toEqual(getWarriorIdsOfFight(FIGHT));
+    await run.setPicked(otherAddress);
+    expect(run.getEngineWarriorIds().sort()).toEqual(getWarriorIdsOfFight(OTHER));
+  });
+
+  test("a replay that was running stops, rather than feeding into the capture picked", async () => {
+    const run = composeDriverRun(composePageOfFight(), "", answers);
+    run.setClicked("preview-play");
+    expect(run.getPlayText()).toBe(WORDS.pause);
+    await run.setPicked(otherAddress);
+    expect(run.getPlayText()).toBe(WORDS.play);
+  });
+
+  /**
+   * The server it fetches from is a process, and a process can be stopped between
+   * two clicks. Falling back costs the state a pick exists to keep; a picker that
+   * moved and did nothing costs the reader's trust in what is on screen.
+   */
+  test("a fetch nothing answers opens that capture's own page instead", async () => {
+    const run = composeDriverRun(composePageOfFight({ entryIndex: 2 }));
+    await run.setPicked(otherAddress);
+    expect(run.fetchedAddresses).toEqual([otherPayloadsAddress]);
+    expect(run.href).toBe(otherAddress);
+    expect(run.getCountText()).toBe(`entry 2 / ${payloads.length}`);
+  });
+
+  /** A published site is files: there is nothing to fetch, so a pick is a page. */
+  test("a caller that named nowhere to fetch from navigates, and asks for nothing", async () => {
+    const run = composeDriverRun(
+      composePageOfFight({
+        fights: [
+          { name: FIGHT.name, address: "./first.html", payloadsAddress: null },
+          { name: OTHER.name, address: "./second.html", payloadsAddress: null },
+        ],
+      }),
+    );
+    await run.setPicked("./second.html");
+    expect(run.href).toBe("./second.html");
+    expect(run.fetchedAddresses).toEqual([]);
+  });
+
+  test("a page fetches nothing until somebody picks", () => {
+    expect(composeDriverRun(composePageOfFight({ entryIndex: 2 })).fetchedAddresses).toEqual([]);
+  });
+
+  /**
+   * ⚠️ **The address of the page stops naming what is on screen the moment a pick
+   * replays**, and ⏮ is the one thing that reads it: reloading here would open the
+   * empty panel of a capture nobody is looking at any more.
+   */
+  test("the start button after a pick opens the capture on screen", async () => {
+    const run = composeDriverRun(composePageOfFight({ entryIndex: 1 }), "", answers);
+    await run.setPicked(otherAddress);
+    run.setClicked("preview-start");
+    expect(run.href).toBe(`${otherAddress}#start`);
+    expect(run.reloadCount).toBe(0);
   });
 });
 

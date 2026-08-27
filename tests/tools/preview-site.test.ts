@@ -101,6 +101,19 @@ describe("what a published page may not do", () => {
   });
 
   /**
+   * The same claim about the same absence, one route further. Picking a capture
+   * on the development server fetches its payloads and replays them in place; a
+   * published page has no process to ask, so every link says so and a pick stays
+   * the navigation it always was.
+   */
+  test("no published page has anywhere to fetch a capture from", () => {
+    for (const page of PAGES) {
+      expect(page.text).toContain(`"payloadsAddress":null`);
+      expect(page.text).not.toContain("/payloads");
+    }
+  });
+
+  /**
    * GitHub Pages serves this project under a path of its own, so anything asked
    * of the domain root is asked of a project that is not this one — and the panel
    * simply never appears, while the same page is perfect on `file://` and on

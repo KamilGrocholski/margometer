@@ -121,6 +121,9 @@ export function composePreviewSitePages(): PreviewSiteFile[] {
   const fights = CAPTURED_FIGHTS.map((fight) => ({
     name: fight.name,
     address: composeFightAddress(fight.name),
+    // No process here, so there is nowhere to fetch a capture from and a pick
+    // stays a navigation. The payloads a page has are its own, inlined below.
+    payloadsAddress: null,
   }));
 
   function composePageOfFight(fight: (typeof CAPTURED_FIGHTS)[number]): string {

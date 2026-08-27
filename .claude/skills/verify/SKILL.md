@@ -28,6 +28,14 @@ touched. The page carries the whole fight, replays it synchronously, and offers 
 strip at the bottom left: capture picker, build status, and `◀ ▶ play to end`
 with an `entry N / total` counter.
 
+**Picking a capture replays it into the page that is open**, so the panel keeps
+the tab, wherever it was dragged to and whether it was minimized — none of which
+a reload keeps here, see the storage gotcha below. The page fetches
+`/payloads?fight=<name>` and feeds it; the fight left behind goes onto the shelf,
+exactly as it would in game
+(`docs/specs/2026-08-27-picking-a-capture-keeps-the-panel.md`). A published page
+has no process to ask and still navigates.
+
 The address is the whole of the state:
 
 ```
@@ -121,12 +129,14 @@ nothing outside the shadow root can see those.
   the hostname, so a preview says `localhost` where a real page says `tempest`.
   That is correct behaviour, not a fault to chase — and it is *not* the empty
   string that a `file://` page used to produce, which was a real bug and is fixed.
-- **One origin, so storage is shared.** Every preview page is the same origin, so
-  `margometer.panel-position` and `margometer.panel-collapse` persist across
-  reloads and between captures — which is what makes "the position survived a
-  reload" testable as one page reloaded. It also means **a panel you dragged
-  somewhere awkward stays there, and one you collapsed opens collapsed**; clear
-  those keys to get the corner and the body back.
+- **Nothing the add-on stores outlives the page.** The harness installs its own
+  store over `localStorage` and `sessionStorage` before the bundle runs, so a
+  visitor to the published preview is not left holding somebody's demo fight
+  (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F7) — and every
+  reload therefore starts at the default corner, expanded, with the shelf empty.
+  *"The position survived a reload"* is **not** testable on this page; drive
+  `getStoreFromPage` directly, or read the key back inside the one document. What
+  does survive is a pick, which no longer reloads.
 - **Downloads work under `--screenshot`** — the file lands before Firefox exits.
   Prefs in `$PROFILE/user.js`: `browser.download.folderList=2`,
   `browser.download.dir`, `browser.download.useDownloadDir=true`,

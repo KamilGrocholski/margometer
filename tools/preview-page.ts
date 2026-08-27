@@ -73,6 +73,19 @@ export type PreviewFightLink = {
    * number, which `libs/` owns and this page may not do (§9.5).
    */
   address: string;
+  /**
+   * Where that fight's payloads can be fetched, or null where nothing answers.
+   *
+   * The same argument one step further. A server has a process, so it can hand
+   * over a capture with no page in front of it — and then picking one is a replay
+   * rather than a navigation, which is the whole of what this field buys: a fresh
+   * document takes the tab, the panel's position and the settings with it, because
+   * the store installed above outlives nothing. A published site is files, and the
+   * only copy of a fight it holds is inlined in that fight's own page, so a pick
+   * there stays the navigation it always was
+   * (`docs/specs/2026-08-27-picking-a-capture-keeps-the-panel.md`).
+   */
+  payloadsAddress: string | null;
 };
 
 export type PreviewPageOptions = {
@@ -307,6 +320,10 @@ ${introduction}
 
   var fedCount = 0;
   var isPlaying = false;
+  // The link of the capture on screen once a pick has replayed one, and null while
+  // the page is still showing the fight its own address names. Read by
+  // setStartOpened, which is the one thing a replayed pick invalidates.
+  var shownFight = null;
 
   function renderCount() {
     countLabel.textContent = PREVIEW.words.entry + " " + fedCount + " / " + PREVIEW.entryCount;
@@ -323,6 +340,13 @@ ${introduction}
       option.selected = PREVIEW.fights[i].name === PREVIEW.fightName;
       picker.append(option);
     }
+  }
+
+  function getFightByAddress(address) {
+    for (var at = 0; at < PREVIEW.fights.length; at += 1) {
+      if (PREVIEW.fights[at].address === address) return PREVIEW.fights[at];
+    }
+    return null;
   }
 
   // One payload into the game's own method, which the add-on has already wrapped:
@@ -368,6 +392,56 @@ ${introduction}
     renderCount();
   }
 
+  // The capture that was picked, replayed into the page already open.
+  //
+  // ⚠️ The stub engine merges every roster it is handed and never clears, and
+  // src/game/engine-roster.ts reads that map — so without emptying it the fight
+  // being left behind stands in the roster of the one arriving, under its own
+  // combatants' names. Nothing in a game ever switches fights this way, which is
+  // why nobody would guess it from the panel.
+  function setFightShown(fight, payloads) {
+    window.Engine.battle.w = {};
+    window.Engine.battle.warriorsList = {};
+    shownFight = fight;
+    PREVIEW.fightName = fight.name;
+    PREVIEW.payloads = payloads;
+    PREVIEW.entryCount = payloads.length;
+    fedCount = 0;
+    document.title = PREVIEW.words.title + " — " + fight.name;
+    // The finished fight, where the page a server opens deliberately starts before
+    // the first payload: a capture somebody picked is one they want counted.
+    setFedTo(payloads.length);
+  }
+
+  // Picking a capture replays it here rather than opening another page, wherever
+  // the caller said its payloads are. Nothing is torn down, so the panel
+  // keeps the tab, the position and the settings the reader chose — a fresh
+  // document keeps none of the three, because the store installed above outlives
+  // nothing. A caller that gave no such address navigates, which is what this
+  // always did.
+  //
+  // The promise is returned for a test to wait on; nothing in a browser reads it.
+  function handlePick() {
+    var chosen = getFightByAddress(picker.value);
+    if (chosen === null || chosen.payloadsAddress === null) {
+      window.location.href = picker.value;
+      return null;
+    }
+    isPlaying = false;
+    getElement("preview-play").textContent = PREVIEW.words.play;
+    return window.fetch(chosen.payloadsAddress).then(function handleAnswer(answer) {
+      return answer.json();
+    }).then(function handleFightRead(payloads) {
+      setFightShown(chosen, payloads);
+    }, function handleFightRefused() {
+      // The fetch and the reading of it are the parts of a pick that can fail —
+      // a stopped server, and a 404 whose body is not JSON — and the page a pick
+      // would have opened is still there. Falling back to it costs the state this whole
+      // thing exists to keep, and a picker that silently does nothing costs more.
+      window.location.href = chosen.address;
+    });
+  }
+
   // The address of this page, before its first payload.
   var START_HASH = "#start";
 
@@ -382,6 +456,12 @@ ${introduction}
   // the one part of an address both callers have — a served page keeps its query
   // and a published page is a file with none.
   function setStartOpened() {
+    // A pick that replayed left this page's address naming a fight nobody is
+    // looking at any more, and the empty panel has to be the one on screen.
+    if (shownFight !== null) {
+      window.location.href = shownFight.address + START_HASH;
+      return;
+    }
     window.location.hash = START_HASH;
     // Assigning a hash the address already carries navigates nowhere, so the
     // reload is what answers the click either way.
@@ -405,9 +485,7 @@ ${introduction}
     setFedTo(fedCount - 1);
   });
   getElement("preview-start").addEventListener("click", setStartOpened);
-  picker.addEventListener("change", function handlePick() {
-    window.location.href = picker.value;
-  });
+  picker.addEventListener("change", handlePick);
 
   renderPicker();
   // Synchronously, before load fires: a screenshot is taken at load and nothing

@@ -21,7 +21,11 @@
  * That is measured on every recording rather than assumed, and re-measured on
  * every run by `tests/tools/preview-page.test.ts` — a capture arriving without it
  * would make the rewind silently wrong. So a rewind costs a replay and not a
- * reload, and the panel keeps the tab the reader chose. It does not keep the
+ * reload, and the panel keeps the tab the reader chose. **Picking another capture
+ * costs the same replay**, over payloads this server hands out on a route of their
+ * own, and buys the same thing plus what a fresh document takes with it: the
+ * panel's position, whether it was minimized, and the settings — all of them kept
+ * in a store that lives exactly as long as the page (`tools/preview-page.ts`). It does not keep the
  * drill level: the payload it replays from carries `init`, which is a fight
  * opening, and the panel goes back to the top of the tab for one
  * (`src/ui/panel-screen.ts`).
@@ -40,6 +44,7 @@ import { watch, type FSWatcher } from "node:fs";
 
 import { composeUserscriptFiles, BundleError, USERSCRIPT_FILENAME } from "@/build.ts";
 import { assertDefined } from "@/libs/assert.ts";
+import { composeJsonText } from "@/libs/json.ts";
 import { getIntegerFromText } from "@/libs/number.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 import { composePreviewPage, type PreviewWords } from "@/tools/preview-page.ts";
@@ -235,6 +240,18 @@ function composeFightAddress(name: string): string {
   return `/?fight=${encodeURIComponent(name)}&entry=0`;
 }
 
+/**
+ * Where a capture's payloads are, with no page in front of them.
+ *
+ * This is what lets picking a capture be a replay instead of a navigation
+ * (`tools/preview-page.ts`), and having a process is the whole of why only this
+ * caller offers one. The address above stays what it was: it is where a pick goes
+ * when the fetch refuses, and where ⏮ goes for a capture that was replayed in.
+ */
+function composeFightPayloadsAddress(name: string): string {
+  return `/payloads?fight=${encodeURIComponent(name)}`;
+}
+
 function getFightByName(name: string | null): (typeof CAPTURED_FIGHTS)[number] | null {
   if (name === null) return CAPTURED_FIGHTS[0] ?? null;
   return CAPTURED_FIGHTS.find((fight) => fight.name === name) ?? null;
@@ -350,6 +367,18 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
         }
       }
 
+      // A name is required here where the page route reads a missing one as *the
+      // capture to open on*: nothing asks for payloads without saying whose.
+      if (path === "/payloads") {
+        const asked = address.searchParams.get("fight");
+        const fight = asked === null ? null : getFightByName(asked);
+        if (fight === null) return new Response("no such capture", { status: 404 });
+        return new Response(
+          composeJsonText(fight.dump.calls.map((call) => call.payload)),
+          { headers: { "content-type": "application/json; charset=utf-8" } },
+        );
+      }
+
       if (path === "/") {
         const fight = getFightByName(address.searchParams.get("fight"));
         if (fight === null) return new Response("no such capture", { status: 404 });
@@ -363,6 +392,7 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
             fights: CAPTURED_FIGHTS.map((candidate) => ({
               name: candidate.name,
               address: composeFightAddress(candidate.name),
+              payloadsAddress: composeFightPayloadsAddress(candidate.name),
             })),
             // Everything is answered from the root here, which is the one thing a
             // published copy of this page cannot say (`tools/preview-site.ts`).
