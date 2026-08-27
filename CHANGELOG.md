@@ -34,6 +34,16 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [Niewydane]
+
+- **Nowość** — Panel czyta trzy rzeczy, które dotąd pokazywał tak, jak zapisała
+  je gra: bandażowanie ran, potężne ogłuszenie mrozem oraz obrażenia od trucizny
+  zadane komuś obok głównego celu. Liczby były i wcześniej — teraz mają nazwy.
+
+- **Zmiana** — Tykająca trucizna nazywa się w panelu „zatrucie". Słowo
+  „trucizna" należy teraz do rodzaju obrażeń, tak jak „ogień" należy do niego
+  obok „podpalenia": to dwie różne liczby i nie mogą stać pod jedną nazwą.
+
 ## [0.9.0] — 2026-08-26
 
 - **Nowość** — Skończone walki zostają. Przycisk `☰` na belce otwiera listę

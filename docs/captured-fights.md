@@ -31,7 +31,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `1 vs 2` | `1` |
 | `1 vs 3` | `1` |
 | `9 vs 1` | `1` |
-| `10 vs 1` | `20` |
+| `10 vs 1` | `21` |
 
 ## The fights
 
@@ -63,6 +63,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr-auto.json` | `10 vs 1` | `theirs won` | `10 players · h 3, m 1, p 2, t 3, w 1 · levels 48–85` | `1 NPC · w 1 · level 60` | `184680` |
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json` | `9 vs 1` | `theirs won` | `9 players · m 1, p 3, t 5 · levels 48–83` | `1 NPC · w 1 · level 60` | `184680` |
 | `tests/captured-fights/2026-08-26-luvia-grupa-vs-draugr.json` | `10 vs 1` | `ours won` | `10 players · h 2, m 1, t 4, w 3 · levels 57–85` | `1 NPC · w 1 · level 60` | `184680` |
+| `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json` | `10 vs 1` | `theirs won` | `10 players · b 1, h 1, p 2, t 3, w 3 · levels 83–100` | `1 NPC · p 1 · level 83` | `209110` |
 
 ## The recordings
 
@@ -94,6 +95,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr-auto.json` | `luvia` | `none stated` | `3` | `462` |
 | `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json` | `luvia` | `none stated` | `38` | `619` |
 | `tests/captured-fights/2026-08-26-luvia-grupa-vs-draugr.json` | `luvia` | `53XkBRxF` | `3` | `487` |
+| `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json` | `luvia` | `53XkBRxF` | `15` | `709` |
 
 ## What the material does not hold
 
@@ -107,7 +109,7 @@ something rather than a defect.
   stood on the other one. A wide enemy side is untested on real protocol.
 - **No drawn fight.** The panel draws one, and every fight it draws it from is
   hand-built (`tests/ui/panel-view.test.ts`).
-- **Three worlds, and one of them once.** Everything but the duel and the four
+- **Three worlds, and one of them once.** Everything but the duel and the five
   recordings from `luvia` comes from `tempest`; the duel is the one that happened
   once.
 
@@ -177,7 +179,7 @@ is used as evidence.
   nothing to the health witness for that reason.
 
 - `tests/captured-fights/2026-08-25-luvia-grupa-vs-draugr.json` — fought by hand
-  and **the only recording whose opening call carries most of the fight anyway**:
+  and **the first recording whose opening call carries most of the fight anyway**:
   506 of its 619 messages arrive in it, opening with the opponent at full health
   and closing with it at 25.21% and four of the nine players already at zero. The
   37 calls after it arrive a turn at a time, which is what the witness judges —
@@ -213,6 +215,29 @@ is used as evidence.
   `tcustom` messages state effects — `aura-ac_per` with `aura-resall`, and
   `critval-allies` with `critmval-allies` — and the second pair is what the
   recording brought in that no other holds (`docs/protocol-keys.md`).
+
+- `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json` — fought by hand
+  against the **only opponent of profession `p`** in the material, and the second
+  recording whose opening call carries most of the fight: 627 of its 709 messages
+  arrive there, opening with everybody at full health and ending with four of the
+  ten already at zero. The 14 calls after it arrive a turn at a time,
+  which is what the witness judges — 107 comparisons.
+
+  ⚠️ **The second recording where the game contradicts itself about a combatant's
+  health**, and the entry above is the first. For ten of the eleven, the last
+  percentage the opening call states is the percentage the snapshot after it
+  reports; for id 7926 it is 17.85% against 16.26%, 419 points apart, and the
+  call's own message then states exactly what the log's figure less its own damage
+  comes to. Measured rather than skipped, in the same place and for the same
+  reason as the first (`tests/core/health-witness.test.ts`).
+
+  It brought two keys no other recording carries — `bandage`, a combatant
+  restoring a share of their own pool, and `+stun2-c` — and the first `+oth_dmg`
+  whose element is `p`, which the help gives as damage from poison and which the
+  panel had no word for (`docs/protocol-keys.md`, `src/ui/panel-words.ts`). It is
+  also the first recording carrying `-poison_lowdmg_per` on something that is not
+  a blow: seven poison ticks state their own reduction beside them, which is what
+  moved that key and `poison` to the weakest placement the register has.
 
 - `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`,
   `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-3.json` and

@@ -38,6 +38,7 @@ export const FROZEN_HELP_PHRASES = {
     "aura-ac_per": 2,
     "aura-resall": 1,
     "aura-sa_per": 8,
+    "bandage": 2,
     "blok": 119,
     "cleanse": 1,
     "combo-max": 6,

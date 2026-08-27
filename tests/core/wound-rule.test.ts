@@ -126,9 +126,9 @@ describe("the deep wound a weapon applies", () => {
    * passes.
    */
   test("closes over as much of the material as it is recorded to", () => {
-    expect(TICKS.length).toBe(15);
-    expect(TICKS.filter((tick) => tick.previousPercent !== null).length).toBe(15);
-    expect(ANNOUNCEMENTS.length).toBe(7);
+    expect(TICKS.length).toBe(20);
+    expect(TICKS.filter((tick) => tick.previousPercent !== null).length).toBe(20);
+    expect(ANNOUNCEMENTS.length).toBe(8);
   });
 
   test("names its victim in the actor slot and nobody at the other end", () => {

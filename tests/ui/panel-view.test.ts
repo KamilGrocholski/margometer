@@ -3364,7 +3364,7 @@ describe("every sentence the panel says", () => {
     "przywracanie życia",
     "uleczenie wskazanego",
     "otrzymane",
-    "trucizna",
+    "zatrucie",
     "umiejętność",
     "zadane",
     "‹ skład",

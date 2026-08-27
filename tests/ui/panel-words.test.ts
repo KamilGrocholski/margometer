@@ -210,6 +210,7 @@ describe("the panel's own vocabulary, as decided", () => {
     ["dmgc", null, "zimno"],
     ["dmgl", null, "błyskawica"],
     ["dmga", null, "nieuchronne"],
+    ["dmgp", null, "trucizna"],
     ["dmgg", null, "globalne"],
     ["thirdatt", null, "trzeci cios"],
   ],
@@ -225,6 +226,7 @@ describe("the panel's own vocabulary, as decided", () => {
     ["stun", "msg_+stun", "ogłuszenie"],
     ["stun2-d", "msg_+stun2-d", "potężne ogłuszenie strzałą"],
     ["stun2", "msg_+stun2", "potężne ogłuszenie"],
+    ["stun2-c", "msg_+stun2-c", "potężne ogłuszenie mrozem"],
     ["wound", "msg_+wound", "nałożona głęboka rana"],
     ["freeze", "msg_+freeze", "zamrożenie"],
     ["legbon_curse", "msg_+legbon_curse", "klątwa"],
@@ -246,7 +248,7 @@ describe("the panel's own vocabulary, as decided", () => {
     ["abmdest_per", null, "zniszczona absorpcja magiczna"],
   ],
   HEALTH_LOSS_SOURCE_NAMES: [
-    ["poison", null, "trucizna"],
+    ["poison", null, "zatrucie"],
     ["fire", null, "podpalenie"],
     ["light", null, "porażenie"],
     ["injure", null, "zranienie"],
@@ -261,6 +263,7 @@ describe("the panel's own vocabulary, as decided", () => {
     ["legbon_lastheal", null, "ostatni ratunek"],
     ["healall_per", null, "uleczenie sojuszników"],
     ["npc_heal", null, "regeneracja potwora"],
+    ["bandage", null, "bandażowanie"],
   ],
   };
 

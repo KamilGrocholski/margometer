@@ -27,10 +27,28 @@ import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
 // test that reads the decoder's own list agrees with it by construction (§9.3).
 const REDUCTION_KEY = "-poison_lowdmg_per";
 
+/**
+ * The tick this key also rides, and the reason the count below is not simply
+ * "damage in this message".
+ *
+ * ⚠️ **The rule read "once per combatant the message reports damage against" and
+ * meant a blow.** Every occurrence in the material until
+ * `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json` sat on a blow or
+ * on damage aimed at names, so a message whose only damage is a poison tick was a
+ * shape nothing had seen — and seven of them arrive there, each carrying one
+ * reduction and one tick. It is the same rule, on the reading it always had:
+ * this key states the share taken off *poison* damage, and a tick is poison
+ * damage with one subject.
+ */
+const POISON_TICK_KEY = "poison";
+
 
 type Occurrence = {
   values: (string | null)[];
-  /** The message's own target if the blow damaged it, plus every combatant it names. */
+  /**
+   * Every combatant whose damage this message reports: the blow's target, each
+   * name it damages, and the subject of a poison tick it rides.
+   */
   combatantsDamaged: number;
   /** One per element, so a blow of cold and fire counts twice. */
   damageElements: number;
@@ -49,11 +67,12 @@ const OCCURRENCES: Occurrence[] = CAPTURED_FIGHTS.flatMap((fight) =>
       const keys = parameters.map((parameter) => parameter.key);
       const named = keys.filter((key) => key === DAMAGE_TO_NAMED_KEY).length;
       const elements = keys.filter(isDealtDamageKey).length;
+      const ticks = keys.filter((key) => key === POISON_TICK_KEY).length;
 
       return [
         {
           values,
-          combatantsDamaged: named + (elements > 0 ? 1 : 0),
+          combatantsDamaged: named + (elements > 0 ? 1 : 0) + (ticks > 0 ? 1 : 0),
           damageElements: named + elements,
         },
       ];

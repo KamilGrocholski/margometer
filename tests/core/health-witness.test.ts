@@ -249,8 +249,7 @@ function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[
 }
 
 /**
- * The one comparison the game itself refuses to settle, named rather than
- * silenced.
+ * The comparisons the game itself refuses to settle, named rather than silenced.
  *
  * The replay seeds every call from the snapshot taken before it, and on every
  * other call of every other recording that snapshot is the state the call's own
@@ -272,28 +271,66 @@ function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[
  * reading anything in that call differently, which is what a comparison is for.
  *
  * Neither of the game's two figures is this repository's to correct (§9.2), and
- * neither is preferred here. `[ASK]` before a second entry joins this one, and
- * the obvious generalisation is the one to argue against first: a rule declining
+ * neither is preferred here. `[ASK]` before another entry joins these, and the
+ * obvious generalisation is the one to argue against first: a rule declining
  * every comparison where the snapshot and the previous call's last word disagree
- * throws away 43 comparisons that agree, measured over the set as it stands
+ * throws away 43 comparisons that agree, measured over the set as it stood
  * 2026-08-26. Health moves between engine calls all over this material, and there
  * the snapshot is right and the log is merely old — the two cases look identical
- * from outside and only this one leaves the call's own arithmetic short.
+ * from outside and only these leave the call's own arithmetic short.
+ *
+ * ⚠️ **The second entry was asked for and admitted on 2026-08-27**, when
+ * `2026-08-27-luvia-grupa-vs-amaimon` arrived with a recording that opens the same
+ * way. Two is not yet the generalisation: both are recordings whose first call
+ * carries the whole log at once, both leave exactly one combatant of eleven
+ * contradicted, and both are measured below rather than skipped.
  */
-const CONTRADICTED_SEED = {
-  fight: "2026-08-26-luvia-grupa-vs-draugr",
-  call: 1,
-  combatantId: 25015,
-  /** What the announcement restored and the snapshot does not carry. */
-  healthTheSnapshotIsShort: 222,
-};
+const CONTRADICTED_SEEDS = [
+  {
+    fight: "2026-08-26-luvia-grupa-vs-draugr",
+    call: 1,
+    combatantId: 25015,
+    /** What the announcement restored and the snapshot does not carry. */
+    healthTheSnapshotIsShort: 222,
+    /** How many comparisons of this recording stand on that seed. */
+    comparisons: 18,
+  },
+  /**
+   * The second, admitted rather than generalised — and it is the same shape in a
+   * different fight, which is what the entry above asked for before a second one
+   * joined it. `2026-08-27-luvia-grupa-vs-amaimon` opens the same way: `init` with
+   * 627 of its 709 messages behind it. The log's last word on id 7926 is 17.85%
+   * and the snapshot handed to call 2 says 16.26%, 419 points lower; the call's
+   * own message then states 14.38%, which is exactly 17.85% less the 916 it
+   * reports. The reading is right and the seed it starts from is not the state the
+   * log ended in.
+   *
+   * The other ten combatants of that recording agree to the digit, and the shape
+   * is the one the entry above was measured on — short, by one constant, and the
+   * constant is the health the two figures differ by.
+   */
+  {
+    fight: "2026-08-27-luvia-grupa-vs-amaimon",
+    call: 2,
+    combatantId: 7926,
+    healthTheSnapshotIsShort: 419,
+    comparisons: 1,
+  },
+] as const;
+
+function getContradictedSeed(comparison: Comparison): (typeof CONTRADICTED_SEEDS)[number] | null {
+  return (
+    CONTRADICTED_SEEDS.find(
+      (seed) =>
+        comparison.fight === seed.fight &&
+        comparison.call === seed.call &&
+        comparison.combatantId === seed.combatantId,
+    ) ?? null
+  );
+}
 
 function isOnTheContradictedSeed(comparison: Comparison): boolean {
-  return (
-    comparison.fight === CONTRADICTED_SEED.fight &&
-    comparison.call === CONTRADICTED_SEED.call &&
-    comparison.combatantId === CONTRADICTED_SEED.combatantId
-  );
+  return getContradictedSeed(comparison) !== null;
 }
 
 function getDisagreements(comparisons: readonly Comparison[]): Comparison[] {
@@ -406,6 +443,7 @@ const COMPARISONS_BY_FIGHT: Record<string, number> = {
   "2026-08-25-luvia-grupa-vs-draugr-auto": 0,
   "2026-08-25-luvia-grupa-vs-draugr": 164,
   "2026-08-26-luvia-grupa-vs-draugr": 411,
+  "2026-08-27-luvia-grupa-vs-amaimon": 107,
 };
 
 describe("decoded damage against the health the protocol states", () => {
@@ -431,29 +469,31 @@ describe("decoded damage against the health the protocol states", () => {
  * or a tick in this call differently would break the constant, and the exception
  * would stop covering it.
  */
-describe("the one seed the game states twice", () => {
-  const onIt = COMPARISONS.filter(isOnTheContradictedSeed);
+for (const seed of CONTRADICTED_SEEDS) {
+describe(`the seed ${seed.fight} states twice`, () => {
+  const onIt = COMPARISONS.filter((comparison) => getContradictedSeed(comparison) === seed);
 
   test("the material still carries it", () => {
-    expect(onIt.length).toBe(18);
+    expect(onIt.length).toBe(seed.comparisons);
     expect(getDisagreements(onIt).length).toBe(onIt.length);
   });
 
-  test("every one of them is short by the same figure, and it is the heal the snapshot lacks", () => {
+  test("every one of them is short by the same figure, and it is the health the snapshot lacks", () => {
     const maximumHealth = CAPTURED_FIGHTS.find(
-      (fight) => fight.name === CONTRADICTED_SEED.fight,
-    )?.maximumHealthByCombatantId.get(CONTRADICTED_SEED.combatantId);
+      (fight) => fight.name === seed.fight,
+    )?.maximumHealthByCombatantId.get(seed.combatantId);
     expect(maximumHealth).toBeDefined();
 
     for (const comparison of onIt) {
       const short =
         ((comparison.statedPercent - comparison.percentFromDecodedDamage) / 100) * maximumHealth!;
-      expect(Math.abs(short - CONTRADICTED_SEED.healthTheSnapshotIsShort)).toBeLessThan(
+      expect(Math.abs(short - seed.healthTheSnapshotIsShort)).toBeLessThan(
         (TOLERANCE_IN_PERCENTAGE_POINTS / 100) * maximumHealth!,
       );
     }
   });
 });
+}
 
 /**
  * What this replay still declines, and the proof that it declines anything at all.
@@ -594,7 +634,7 @@ describe("health stated against a name", () => {
    * not the same promise as "every time" over all of them.
    */
   test("occurs as often as it is recorded to", () => {
-    expect(replayed.length).toBe(686);
+    expect(replayed.length).toBe(696);
   });
 
   test("names a combatant the replay's own roster can identify, every time", () => {

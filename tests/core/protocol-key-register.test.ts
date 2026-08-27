@@ -530,11 +530,34 @@ describe("who a health figure is charged to", () => {
    * one shape and are charged differently, so a round that read the grammar
    * instead of the documentation would collapse them — and every other test here
    * would still pass.
+   *
+   * ⚠️ **"One shape" used to be read off the two register lines, and the material
+   * moved out from under that.** The two placements were equal until
+   * `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json` brought a
+   * poison tick carrying `-poison_lowdmg_per` beside it, which is a message with
+   * two keys in it — `poison` is `anywhere` now and `heal` is still alone. The
+   * shape that makes the pair a pair was never the neighbour count: it is that
+   * both state a figure in the actor slot of a message naming nobody at the other
+   * end, and that is measured here rather than compared between two sentences.
    */
   test("two keys of one shape are charged differently", () => {
+    const isActorOnly = (key: string): boolean =>
+      CAPTURED_FIGHTS.every((fight) =>
+        fight.dump.calls.every((call) =>
+          call.protocolMessages.every((message) => {
+            const parsed = parseProtocolMessage(message);
+            return parsed.parameters.every(
+              (parameter) =>
+                parameter.key !== key || (parsed.actor !== null && parsed.target === null),
+            );
+          }),
+        ),
+      );
+
     const heal = PROTOCOL_KEY_REGISTER.find((entry) => entry.key === "heal");
     const poison = PROTOCOL_KEY_REGISTER.find((entry) => entry.key === "poison");
-    expect(heal?.shape?.placement).toBe(poison?.shape?.placement);
+    expect(isActorOnly("heal")).toBe(true);
+    expect(isActorOnly("poison")).toBe(true);
     expect(heal?.cause).toBe("the subject's own");
     expect(poison?.cause).toBe("nobody");
   });

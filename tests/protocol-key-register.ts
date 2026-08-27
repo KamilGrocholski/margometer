@@ -77,12 +77,22 @@ export type ProtocolKeyCause = (typeof PROTOCOL_KEY_CAUSES)[number];
  * them, so the weakest true one is the right one — "on a blow" is a stronger
  * claim than "on a message reporting damage" and a key that does both takes the
  * second.
+ *
+ * ⚠️ **The last one is the floor, and it was missing for as long as no key stood
+ * on it.** The measurement has always had a fallback for a key that fits none of
+ * the four; the register had no word for it, so the first key to reach it would
+ * have failed the gate with nothing true to write. Two did at once, when
+ * `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json` brought a
+ * poison tick carrying its own reduction: `poison` had been alone in its message
+ * everywhere and `-poison_lowdmg_per` had been on damage everywhere, and neither
+ * is any more.
  */
 export const PROTOCOL_KEY_PLACEMENTS = [
   "alone in its message",
   "on a skill announcement",
   "on a blow",
   "on a message reporting damage",
+  "anywhere",
 ] as const;
 
 export type ProtocolKeyPlacement = (typeof PROTOCOL_KEY_PLACEMENTS)[number];

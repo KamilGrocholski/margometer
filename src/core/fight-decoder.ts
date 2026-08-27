@@ -385,6 +385,24 @@ const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> 
   // 4.00 points of a 43 092 pool, and the third states 0 and moves nothing
   // (`tests/core/npc-heal-rule.test.ts`).
   npc_heal: { sign: 1, isOnTarget: false },
+  // A player restoring a share of their own pool, announced under the name of
+  // whichever ability carries the effect. The slot is the client's answer rather
+  // than a symmetry: production build `53XkBRxF` composes
+  // `msg_aura-bandage %val% %name%` from `_.name`, the variable `heal`'s branch
+  // in the same switch uses, and `heal` is read in the actor slot above. It
+  // splits its value on the same separator, with a
+  // `msg_aura-bandage-multi %val% %val2%` branch for two members.
+  //
+  // The help gives the effect behind it as the active `bandage_per`, restoring a
+  // part of the Character's own pool and reducible by `lowheal_per-enemies`
+  // (article `view,372`, engine name `bandage_per`, read 2026-08-26).
+  //
+  // Measured rather than taken on the family: the one occurrence
+  // (`tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json`) states 2488
+  // against a pool of 15 553 and raises its subject's stated percentage from
+  // 36.84 to 52.83 — 15.99 points, which is what 2488 of that pool comes to.
+  // `tests/core/bandage-rule.test.ts` re-earns it.
+  bandage: { sign: 1, isOnTarget: false },
 };
 
 /**
@@ -486,6 +504,21 @@ const PROC_KEYS = [
   // blow the monster deals into a player, and each is followed by a message
   // saying that player lost a turn — the same agreement `+stun2-d` was read on.
   "+stun2",
+  // The frost-shaped member of the same family of five, read on the two above's
+  // evidence and one of its own. Production build `53XkBRxF` composes
+  // `msg_+stun2-c` with no `%val%`, on the switch that composes `msg_+stun2` and
+  // `msg_+stun2-d` the same way. Which of the five it is comes from the
+  // development build `1781609507010`, which keeps the rendered sentence in a
+  // comment beside each branch: production cannot confirm that half, because the
+  // wording is not in the bundle at all — the client fetches it (§7.6).
+  //
+  // The captures agree about whose event it is and cannot speak to the element:
+  // all four occurrences ride a blow of the monster's into a player and a message
+  // saying that player lost a turn follows within the same call, but every one of
+  // that monster's 23 blows carries `+dmgc`
+  // (`tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json`), so the
+  // material cannot tell a frost-shaped stun from any other.
+  "+stun2-c",
 ];
 
 /**

@@ -95,6 +95,13 @@ export const ELEMENT_NAMES: Record<string, TokenName> = {
   dmgc: { id: null, fallback: "zimno" },
   dmgl: { id: null, fallback: "błyskawica" },
   dmga: { id: null, fallback: "nieuchronne" },
+  // The element the help gives as damage from poison: the blow puts physical
+  // damage in and applies poison behind it (article `view,372`, engine name
+  // `dmgp`, read 2026-08-26). The word this took is the one the tick below used
+  // to carry, and the tick moved rather than this one — the pattern the whole
+  // table follows: the element is the plain noun, the thing ticking afterwards is
+  // what it does.
+  dmgp: { id: null, fallback: "trucizna" },
   dmgg: { id: null, fallback: "globalne" },
   thirdatt: { id: null, fallback: "trzeci cios" },
 };
@@ -124,6 +131,14 @@ export const EFFECT_NAMES: Record<string, TokenName> = {
   // `stun` above costs one, which is what "potężne" carries in the entry beside
   // it (article `view,372`, engine name `stun2`, read 2026-08-25).
   stun2: { id: "msg_+stun2", fallback: "potężne ogłuszenie" },
+  // The frost-shaped member of that family, and the word has to differ from the
+  // bare one above for the reason every entry here differs: two variants under
+  // one label would stand over two counts. Which of the five it is comes from
+  // the development build `1781609507010`, which keeps the rendered sentence in
+  // a comment beside the branch; production `53XkBRxF` composes `msg_+stun2-c`
+  // and carries no wording to confirm it with, so the id is what a player
+  // actually reads and this phrase is ours (§7.6).
+  "stun2-c": { id: "msg_+stun2-c", fallback: "potężne ogłuszenie mrozem" },
   // What a blow announces when it applies the wound whose ticks the loss table
   // below carries. Two words for one effect on purpose: this counts blows that
   // applied it and that one counts the health it took, so a shared label would
@@ -233,7 +248,13 @@ export const DESTRUCTION_NAMES: Record<string, TokenName> = {
  * `tests/ui/panel-words.test.ts` re-measures off the captures rather than listing.
  */
 export const HEALTH_LOSS_SOURCE_NAMES: Record<string, TokenName> = {
-  poison: { id: null, fallback: "trucizna" },
+  // Not "trucizna", which is `dmgp`'s word above for the damage element: this is
+  // the poisoning ticking afterwards, and two quantities under one label is a
+  // wrong number that looks right — the same split `fire` and `light` carry a few
+  // lines down. It **was** "trucizna" for as long as no recording carried the
+  // element; `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json`
+  // brought one, and the pair had to part the way the other two already had.
+  poison: { id: null, fallback: "zatrucie" },
   // Not "ogień", which is `dmgf`'s word above for the damage element: this is the
   // burn ticking afterwards, and two quantities under one label is a wrong number
   // that looks right. The client's own entry for it is a sentence with two holes,
@@ -331,6 +352,12 @@ export const HEALTH_GAIN_SOURCE_NAMES: Record<string, TokenName> = {
   // restoring its own health, not somebody healing somebody, and one label over
   // both would put a monster's own recovery under a heal that was cast.
   npc_heal: { id: null, fallback: "regeneracja potwora" },
+  // The client's own entry is `msg_aura-bandage %val% %name%` — a sentence with
+  // two holes rather than a name, so there is nothing to ask the dictionary for
+  // (production build `53XkBRxF`). The word names what the player did and not
+  // the skill that did it: the row stands over every use of the effect, and the
+  // skill's own name rides the announcement beside it.
+  bandage: { id: null, fallback: "bandażowanie" },
 };
 
 /**
