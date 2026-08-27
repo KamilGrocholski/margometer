@@ -24,6 +24,7 @@ export type MargoMeterToolErrorCode =
   | "PayloadCost"
   | "PanelScreenshot"
   | "DrillReport"
+  | "DecodingStatus"
   | "CapturedFightRegister";
 
 export abstract class MargoMeterToolError extends Error {

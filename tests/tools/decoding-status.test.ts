@@ -5,38 +5,21 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { CAPTURED_FIGHTS, type CapturedFight, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
-import { getDecodingStatus } from "@/tools/decoding-status.ts";
-import { NO_ENTRY_HEALTH } from "@/src/core/combatant-health.ts";
+import {
+  CAPTURED_FIGHTS,
+  CAPTURED_FIGHTS_DIRECTORY,
+  getMessagesOfFight,
+} from "@/tests/captured-fight-catalog.ts";
+import {
+  DecodingStatusError,
+  getDecodingStatus,
+  getMessagesOfCapturedMaterial,
+  getMessagesOfDumpAt,
+} from "@/tools/decoding-status.ts";
+import { assertDefined } from "@/libs/assert.ts";
 import { DAMAGE_TO_NAMED_KEY } from "@/src/core/fight-decoder.ts";
 
-const STATUS = getDecodingStatus(CAPTURED_FIGHTS);
-
-function composeFightOf(message: string): CapturedFight {
-  return {
-    name: "invented",
-    dump: {
-      formatVersion: 1,
-      capturedAt: "2026-08-11T00:00:00.000Z",
-      world: "nowhere",
-      gameBuild: "0",
-      calls: [
-        {
-          index: 0,
-          fightNumber: null,
-          protocolMessages: [message],
-          combatantsBefore: [],
-          combatantsAfter: [],
-          payload: {},
-        },
-      ],
-    },
-    maximumHealthByCombatantId: new Map(),
-    // No snapshot, so no health can be read for it — which is the honest answer
-    // for an invented fight and the one that keeps this probe about decoding.
-    entryHealthByCombatantId: NO_ENTRY_HEALTH,
-  };
-}
+const STATUS = getDecodingStatus(getMessagesOfCapturedMaterial());
 
 describe("decoding status", () => {
   test("counts every captured message once", () => {
@@ -90,7 +73,7 @@ describe("decoding status", () => {
    * is checked here.
    */
   test("still reports a key the decoder genuinely has no meaning for", () => {
-    const invented = getDecodingStatus([composeFightOf("1=100.00;2=50.00;+dmg=5;no_such_key=1")]);
+    const invented = getDecodingStatus(["1=100.00;2=50.00;+dmg=5;no_such_key=1"]);
     expect(invented.unreadKeysByFrequency.map((entry) => entry.key)).toEqual(["no_such_key"]);
     expect(invented.messagesWithUnread).toBe(1);
   });
@@ -124,5 +107,42 @@ describe("decoding status", () => {
    */
   test("and no message left half-read either", () => {
     expect(STATUS.messagesWithUnread).toBe(0);
+  });
+});
+
+/**
+ * The route that lets a recording be measured before it is material.
+ *
+ * A fresh dump has to pass intake to become a capture, and intake is the
+ * expensive half — so the tool has to be able to read a file that is not in the
+ * material directory, or the answer that decides whether intake is worth
+ * starting arrives only after it is finished.
+ *
+ * ⚠️ **Checked against a capture, which is the one dump this test can name and
+ * still be reading the tool rather than a fixture it wrote itself.** Nothing
+ * here says the file is outside the directory — what is checked is that naming a
+ * path and going through the catalog produce the same reading, which is the
+ * claim the route rests on. The file is reached through
+ * `CAPTURED_FIGHTS_DIRECTORY` and a name off the catalog, never a name written
+ * down here (§9.2).
+ */
+describe("a recording named by path", () => {
+  const fight = assertDefined(CAPTURED_FIGHTS[0], "the material is not empty");
+  const path = `${CAPTURED_FIGHTS_DIRECTORY}${fight.name}.json`;
+
+  test("reads the same messages the catalog reads out of the same file", () => {
+    expect(getMessagesOfDumpAt(path)).toEqual(getMessagesOfFight(fight));
+  });
+
+  test("reports on it without the rest of the material coming with it", () => {
+    const status = getDecodingStatus(getMessagesOfDumpAt(path));
+    expect(status.messages).toBe(getMessagesOfFight(fight).length);
+    expect(status.messages).toBeLessThan(STATUS.messages);
+  });
+
+  // Branded, because a bare Node `ENOENT` names no program and §9.5 asks a tool
+  // to refuse under a name a reader can place.
+  test("refuses a path that is not there, under this tool's own name", () => {
+    expect(() => getMessagesOfDumpAt(`${path}.no-such-file`)).toThrow(DecodingStatusError);
   });
 });

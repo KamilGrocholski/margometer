@@ -32,7 +32,17 @@ import {
   type FightDump,
 } from "@/tools/fight-dump-parser.ts";
 
-const CAPTURED_FIGHTS_DIRECTORY = new URL("./captured-fights/", import.meta.url).pathname;
+/**
+ * Where the material sits, exported so a reader can name one file of it.
+ *
+ * `CapturedFight.name` is the filename without its extension, so the directory
+ * is the other half of a path — and one caller needs a path rather than a
+ * reading: `tests/tools/decoding-status.test.ts` puts the tool's own
+ * read-a-dump-at-a-path route against the catalog's, and it cannot do that
+ * without naming a file both of them can reach. Nothing here reads it by hand:
+ * the list is still `readdirSync` (§9.2).
+ */
+export const CAPTURED_FIGHTS_DIRECTORY = new URL("./captured-fights/", import.meta.url).pathname;
 
 export type CapturedFight = {
   name: string;

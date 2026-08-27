@@ -4,6 +4,20 @@
  * Every figure here changes with each batch of keys, which is exactly why none
  * of them belongs in prose (AGENTS.md §5). Run the tool instead of quoting a
  * number that was true last week.
+ *
+ * **It counts the captured material by default and any recording you name
+ * instead.** The second route is what makes the first one reachable: a fresh
+ * dump has to pass intake before it becomes a capture — redaction, a register
+ * entry, `docs/captured-fights.md` — and until this argument existed there was
+ * no way to ask what a recording carried before paying that. The order was
+ * backwards, since what the answer decides is whether the intake is worth
+ * starting: a session that met `flee` or a resource key is material, and one
+ * that met nothing new is a file to delete
+ * (`docs/specs/2026-08-27-somebody-else-read-the-same-protocol.md`).
+ *
+ * A named recording is **not** material and nothing here pretends otherwise. It
+ * is parsed by the same reader the captures are (§9.1), reported on, and
+ * forgotten; §9.2 still decides what enters the repository.
  */
 
 import { composeJsonText } from "@/libs/json.ts";
@@ -17,10 +31,19 @@ import {
 } from "@/src/core/protocol-message.ts";
 import {
   CAPTURED_FIGHTS,
+  getMessagesOfDump,
   getMessagesOfFight,
-  type CapturedFight,
 } from "@/tests/captured-fight-catalog.ts";
+import { parseFightDump } from "@/tools/fight-dump-parser.ts";
+import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
+import { existsSync, readFileSync } from "node:fs";
+
+export class DecodingStatusError extends MargoMeterToolError {
+  constructor(reason: string, options?: ErrorOptions) {
+    super("DecodingStatus", reason, options);
+  }
+}
 
 /** Wide enough for every count the captured material produces. */
 const COLUMN_WIDTH = 5;
@@ -84,27 +107,36 @@ function isKeyRead(key: string, sampleMessage: string): boolean {
   );
 }
 
-export function getDecodingStatus(fights: readonly CapturedFight[]): DecodingStatus {
+/**
+ * The status of a flat list of messages, whatever they were read out of.
+ *
+ * Messages rather than fights, and the argument narrowed when the path route
+ * arrived: this counts messages and has never looked at anything else a
+ * `CapturedFight` carries. Asking for one meant the probe over an invented
+ * message had to build a whole recording around it — a format version, a world,
+ * an empty roster, an entry health of nobody — none of which the answer
+ * depended on. A signature that asks for more than it reads is one the next
+ * caller has to satisfy with fiction.
+ */
+export function getDecodingStatus(messages: readonly string[]): DecodingStatus {
   const eventsByKind: Record<string, number> = {};
   const occurrences = new Map<string, number>();
   const sampleMessages = new Map<string, string>();
-  let messages = 0;
+  let messagesRead = 0;
   let messagesWithUnread = 0;
 
-  for (const fight of fights) {
-    for (const message of getMessagesOfFight(fight)) {
-      messages += 1;
+  for (const message of messages) {
+    messagesRead += 1;
 
-      const events = decodeFight([message]);
-      for (const event of events) {
-        eventsByKind[event.kind] = (eventsByKind[event.kind] ?? 0) + 1;
-      }
-      if (events.some((event) => event.kind === "unknown-message")) messagesWithUnread += 1;
+    const events = decodeFight([message]);
+    for (const event of events) {
+      eventsByKind[event.kind] = (eventsByKind[event.kind] ?? 0) + 1;
+    }
+    if (events.some((event) => event.kind === "unknown-message")) messagesWithUnread += 1;
 
-      for (const { key } of parseProtocolMessage(message).parameters) {
-        setRunningTotal(occurrences, key, 1);
-        if (!sampleMessages.has(key)) sampleMessages.set(key, message);
-      }
+    for (const { key } of parseProtocolMessage(message).parameters) {
+      setRunningTotal(occurrences, key, 1);
+      if (!sampleMessages.has(key)) sampleMessages.set(key, message);
     }
   }
 
@@ -121,7 +153,7 @@ export function getDecodingStatus(fights: readonly CapturedFight[]): DecodingSta
   );
 
   return {
-    messages,
+    messages: messagesRead,
     messagesWithUnread,
     eventsByKind,
     unreadKeysByFrequency: [...unreadOccurrences]
@@ -130,8 +162,38 @@ export function getDecodingStatus(fights: readonly CapturedFight[]): DecodingSta
   };
 }
 
-function writeStatusReport(status: DecodingStatus): void {
+/**
+ * Every message of the captured material, in the order the catalog holds it.
+ *
+ * The default, and the only reading that is a claim about this repository — a
+ * report over anything else names what it was taken on, which is §3's rule and
+ * the reason `writeStatusReport` prints the material before it prints a figure.
+ */
+export function getMessagesOfCapturedMaterial(): string[] {
+  return CAPTURED_FIGHTS.flatMap((fight) => getMessagesOfFight(fight));
+}
+
+/**
+ * Every message of one recording named by path, which need not be material.
+ *
+ * Read with `parseFightDump`, so a file this tool accepts is a file the captures
+ * directory would accept too — a recording that refuses here would have refused
+ * at intake, and finding that out before the redaction step is the point (§9.1
+ * permits the import, and the live and offline paths must not disagree about
+ * what a recording says).
+ *
+ * The missing-file refusal is its own, and it is worth having: `readFileSync`
+ * throws a Node error whose brand says nothing about this program, and §9.5
+ * asks a tool handed bad material to refuse it under a name a reader can place.
+ */
+export function getMessagesOfDumpAt(path: string): string[] {
+  if (!existsSync(path)) throw new DecodingStatusError(`${path} is not there`);
+  return getMessagesOfDump(parseFightDump(readFileSync(path, "utf8")));
+}
+
+function writeStatusReport(status: DecodingStatus, material: string): void {
   const read = status.messages - status.messagesWithUnread;
+  console.log(`material          ${material}`);
   console.log(`messages          ${status.messages}`);
   console.log(`fully read        ${read}`);
   console.log(`carrying unread   ${status.messagesWithUnread}`);
@@ -147,4 +209,14 @@ function writeStatusReport(status: DecodingStatus): void {
   }
 }
 
-if (import.meta.main) writeStatusReport(getDecodingStatus(CAPTURED_FIGHTS));
+if (import.meta.main) {
+  const paths = process.argv.slice(2);
+  writeStatusReport(
+    getDecodingStatus(
+      paths.length === 0
+        ? getMessagesOfCapturedMaterial()
+        : paths.flatMap((path) => getMessagesOfDumpAt(path)),
+    ),
+    paths.length === 0 ? "tests/captured-fights/" : paths.join(" "),
+  );
+}

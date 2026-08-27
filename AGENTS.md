@@ -195,7 +195,7 @@ from (§9.5).
 | `tools/fight-dump-parser.ts` | *What is inside a captured fight?* Refuses anything unexpected. Library, not a CLI. |
 | `tools/game-client-source.ts` | *What is the game serving?* `status` compares served against cached; `fetch` downloads into `.cache/`. §7.6. |
 | `tools/protocol-key-table.ts` | *Which protocol keys does the client know?* `freeze` writes the frozen table. |
-| `tools/decoding-status.ts` | *How much of the protocol do we read?* On demand — never quoted in prose (§5). |
+| `tools/decoding-status.ts` | *How much of the protocol do we read?* On demand — never quoted in prose (§5). Of the captured material by default, or of any recording named by path — which is how a fresh dump is measured **before** it is put to intake. |
 | `tools/fight-report.ts` | *What would the panel show for this fight?* The per-combatant table over each capture. |
 | `tools/drill-report.ts` | *What does a row open onto, and which rows open nothing?* `--cases` folds every capture into `docs/drill-levels.md`'s table. |
 | `tools/payload-cost.ts` | *What does one payload cost, and where does the time go?* `bun run cost [runs]`. No DOM — the arithmetic under the panel, not the drawing of it. |
@@ -582,7 +582,8 @@ tools/                   Never ships. §6.2 says what each answers.
   fight-dump-parser.ts       Where the captures' Polish field names stop — §9.2.
   game-client-source.ts      The client bundle into the cache, with provenance.
   protocol-key-table.ts      The client's key list, lifted out of that bundle.
-  decoding-status.ts         How much of the protocol we read.
+  decoding-status.ts         How much of the protocol we read, of the material or
+                             of a recording named by path.
   fight-report.ts            What a captured fight adds up to, per combatant.
   drill-report.ts            What is under each row, and which rows open nothing.
   payload-cost.ts            What a payload costs, replayed off the recordings.
