@@ -65,6 +65,7 @@ import {
   getPhrase,
   PERCENT_DESTRUCTION_TOKEN,
 } from "@/src/ui/panel-words.ts";
+import { composeWithoutBrackets } from "@/tests/drawn-text.ts";
 
 /**
  * ⚠️ **Composed the way the panel composes it, which it was not.** The entry
@@ -300,7 +301,7 @@ describe("a breakdown", () => {
           expect(bracket, where).not.toBeNull();
           if (bracket === null) continue;
           if (bracket.includes(BELOW_A_POINT)) continue;
-          const percent = getIntegerFromText(bracket.replace(/[()%]/g, "").split("·")[0]!.trim());
+          const percent = getIntegerFromText(composeWithoutBrackets(bracket).split("·")[0]!.trim());
           expect(percent, `${where} ${bracket}`).not.toBeNull();
           points += percent ?? 0;
         }

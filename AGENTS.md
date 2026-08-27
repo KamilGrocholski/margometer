@@ -629,6 +629,9 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
                               be asked at all. Every answer is an exit status.
   class-names.ts              What a stylesheet styles and what a source assigns.
                               Shared by the panel's guard and the preview's.
+  drawn-text.ts               A figure the panel drew, taken apart: the spacing
+                              off a number, the brackets off a share, and whether
+                              a token stands alone in a sentence.
   protocol-key-register.ts    Reads the register into entries — verdict, health
                               line, evidence, shape, help phrases.
 ```

@@ -54,6 +54,11 @@ import {
   composeRosterOfFight,
   composeStatisticsOfFight,
 } from "@/tests/captured-fight-catalog.ts";
+import {
+  composeWithoutBrackets,
+  composeWithoutWhitespace,
+  hasTokenAsWord,
+} from "@/tests/drawn-text.ts";
 
 /**
  * A fight with two sides, a healer, a tick of poison and one unreadable message.
@@ -180,7 +185,7 @@ function getWholeFromSummary(view: PanelView): number | null {
   const { sides } = view;
   if (sides === null) return null;
   const parts = [sides.mineText, sides.enemyText, sides.nobody?.text ?? "0"].map((text) =>
-    getIntegerFromText(text.replace(/\s/g, "")),
+    getIntegerFromText(composeWithoutWhitespace(text)),
   );
   if (parts.some((part) => part === null)) return null;
   return parts.reduce<number>((total, part) => total + (part ?? 0), 0);
@@ -190,7 +195,7 @@ function getWholeFromSummary(view: PanelView): number | null {
 function getSideFigures(view: PanelView): { mine: number; enemy: number; nobody: number } {
   const { sides } = view;
   const getFigure = (text: string): number =>
-    assertDefined(getIntegerFromText(text.replace(/\s/gu, "")), `figure in ${text}`);
+    assertDefined(getIntegerFromText(composeWithoutWhitespace(text)), `figure in ${text}`);
   if (sides === null) return { mine: 0, enemy: 0, nobody: 0 };
   return {
     mine: getFigure(sides.mineText),
@@ -1675,7 +1680,7 @@ describe("against the captured fights", () => {
     // alternative is a column that does not add up, which is what the reader
     // checks.
     const shares = [inGiven, inReceived].map((row) =>
-      getIntegerFromText((row.bracketText ?? "").replace(/[()%]/g, "")),
+      getIntegerFromText(composeWithoutBrackets(row.bracketText ?? "")),
     );
     expect(shares[0], inGiven.bracketText ?? "").not.toBeNull();
     expect(shares[1], inReceived.bracketText ?? "").not.toBeNull();
@@ -1711,7 +1716,7 @@ describe("against the captured fights", () => {
     const getFigure = (team: (typeof PANEL_TEAMS)[number]): number => {
       const pinned = getNoActorRow(composePanelView(reading, composeState({ metric, team })));
       if (pinned === null) return 0;
-      return getIntegerFromText(pinned.valueText.replace(/\s/gu, "")) ?? Number.NaN;
+      return getIntegerFromText(composeWithoutWhitespace(pinned.valueText)) ?? Number.NaN;
     };
 
     // Off the `Wszyscy` screen's own breakdown, which is the one place the view
@@ -1725,7 +1730,7 @@ describe("against the captured fights", () => {
     );
     const leftover =
       leftoverLine?.kind === "stat"
-        ? (getIntegerFromText(leftoverLine.value.replace(/\s/gu, "")) ?? Number.NaN)
+        ? (getIntegerFromText(composeWithoutWhitespace(leftoverLine.value)) ?? Number.NaN)
         : 0;
 
     expect(getFigure("mine") + getFigure("enemy") + leftover, metric).toBe(getFigure("all"));
@@ -1753,7 +1758,7 @@ describe("against the captured fights", () => {
       const pinned = getNoActorRow(composePanelView(reading, composeState({ metric, team })));
       return pinned === null
         ? 0
-        : (getIntegerFromText(pinned.valueText.replace(/\s/gu, "")) ?? Number.NaN);
+        : (getIntegerFromText(composeWithoutWhitespace(pinned.valueText)) ?? Number.NaN);
     };
     const getBarFigures = (metric: PanelMetric): ReturnType<typeof getSideFigures> =>
       getSideFigures(composePanelView(reading, composeState({ metric })));
@@ -1888,7 +1893,7 @@ describe("against the captured fights", () => {
 
         const parts = pinned.detail
           .filter((line) => line.kind === "stat")
-          .map((line) => getIntegerFromText(line.value.replace(/\s/g, "")));
+          .map((line) => getIntegerFromText(composeWithoutWhitespace(line.value)));
         expect(parts.length, `${metric} ${team}`).toBeGreaterThan(0);
         expect(parts.every((part) => part !== null), `${metric} ${team}`).toBe(true);
 
@@ -2423,7 +2428,7 @@ describe("against the captured fights", () => {
       // Off the drawn text, which is what a person adds up. The rows plus the
       // pinned row are the same whole read the other way round.
       const parts = [sides.mineText, sides.enemyText, sides.nobody?.text ?? "0"].map((text) =>
-        assertDefined(getIntegerFromText(text.replace(/\s/gu, "")), `figure in ${text}`),
+        assertDefined(getIntegerFromText(composeWithoutWhitespace(text)), `figure in ${text}`),
       );
       const rows = view.lists.flatMap((list) => list.rows);
       const pinned = view.pinnedRows.filter((row) =>
@@ -2432,7 +2437,7 @@ describe("against the captured fights", () => {
       const onScreen = [...rows, ...pinned]
         .reduce(
           (sum, row) =>
-            sum + assertDefined(getIntegerFromText(row.valueText.replace(/\s/gu, "")), row.key),
+            sum + assertDefined(getIntegerFromText(composeWithoutWhitespace(row.valueText)), row.key),
           0,
         );
       expect(parts.reduce((sum, part) => sum + part, 0), where).toBe(onScreen);
@@ -2478,17 +2483,11 @@ describe("against the captured fights", () => {
           composePanelView(reading, composeState({ metric, focusCombatantId })),
         );
         for (const token of tokens) {
-          // As a whole word, not as a substring: `blok` is the root of the Polish
-          // `zablokowane` and finding it there is the translation working, not
-          // failing. What must not appear is the token standing on its own.
-          const asWord = new RegExp(
-            `(^|[^\\p{L}])${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}]|$)`,
-            "u",
-          );
           for (const text of strings) {
-            expect(asWord.test(text), `${metric} ${focusCombatantId} ${token} in "${text}"`).toBe(
-              false,
-            );
+            expect(
+              hasTokenAsWord(text, token),
+              `${metric} ${focusCombatantId} ${token} in "${text}"`,
+            ).toBe(false);
           }
         }
       }
@@ -2559,7 +2558,7 @@ describe("against the captured fights", () => {
         ];
         // Nothing to divide by is not a division: every bracket on such a screen
         // says zero, and zero is what it measured.
-        const figures = drawn.map((row) => getIntegerFromText(row.valueText.replace(/\s/g, "")) ?? 0);
+        const figures = drawn.map((row) => getIntegerFromText(composeWithoutWhitespace(row.valueText)) ?? 0);
         if (figures.reduce((sum, figure) => sum + figure, 0) <= 0) continue;
 
         let points = 0;
@@ -2567,7 +2566,7 @@ describe("against the captured fights", () => {
           expect(row.bracketText, `${metric} ${team} ${row.key}`).not.toBeNull();
           if (row.bracketText === null) continue;
           if (row.bracketText.includes(BELOW_A_POINT)) continue;
-          const percent = getIntegerFromText(row.bracketText.replace(/[()%]/g, ""));
+          const percent = getIntegerFromText(composeWithoutBrackets(row.bracketText));
           expect(percent, `${metric} ${team} ${row.bracketText}`).not.toBeNull();
           points += percent ?? 0;
         }
@@ -2616,8 +2615,8 @@ describe("against the captured fights", () => {
           // side only, so it is no use working backwards — read as its own case
           // rather than as a parse that failed, which is a defect and not this.
           if (row.bracketText.includes(BELOW_A_POINT)) continue;
-          const value = getIntegerFromText(row.valueText.replace(/\s/g, ""));
-          const percent = getIntegerFromText(row.bracketText.replace(/[()%]/g, ""));
+          const value = getIntegerFromText(composeWithoutWhitespace(row.valueText));
+          const percent = getIntegerFromText(composeWithoutBrackets(row.bracketText));
           expect(value, row.valueText).not.toBeNull();
           expect(percent, row.bracketText).not.toBeNull();
           if (value === null || percent === null) continue;
@@ -2662,7 +2661,7 @@ describe("against the captured fights", () => {
           if (row.bracketText === null) continue;
           // Under a point is under a hundred, and says nothing else this can read.
           if (row.bracketText.includes(BELOW_A_POINT)) continue;
-          const percent = getIntegerFromText(row.bracketText.replace(/[()%]/g, "").split("·")[0]!.trim());
+          const percent = getIntegerFromText(composeWithoutBrackets(row.bracketText).split("·")[0]!.trim());
           expect(percent, `${metric} ${team} ${row.label} ${row.bracketText}`).not.toBeNull();
           expect(percent ?? 0, `${metric} ${team} ${row.label} ${row.bracketText}`).toBeLessThanOrEqual(100);
         }
@@ -2681,7 +2680,7 @@ describe("against the captured fights", () => {
       for (const team of PANEL_TEAMS) {
         const pinned = getNoActorRow(composePanelView(reading, composeState({ metric, team })));
         if (pinned === null || pinned.bracketText === null) continue;
-        const value = getIntegerFromText(pinned.valueText.replace(/\s/g, ""));
+        const value = getIntegerFromText(composeWithoutWhitespace(pinned.valueText));
         if (value === null || value <= 0) continue;
         expect(pinned.bracketText, `${metric} ${team}`).not.toBe("(0%)");
       }
@@ -2747,7 +2746,7 @@ describe("against the captured fights", () => {
         // healing at all, and a full bar over a column of zeroes would draw
         // nothing as everything. Read off the figures rather than assumed, so a
         // screen that lost its numbers cannot excuse itself here.
-        if (onScale.every((row) => getIntegerFromText(row.valueText.replace(/\s/g, "")) === 0)) continue;
+        if (onScale.every((row) => getIntegerFromText(composeWithoutWhitespace(row.valueText)) === 0)) continue;
         expect(onScale.some((row) => row.fill === 1), `${metric} ${team}`).toBe(true);
       }
     }
