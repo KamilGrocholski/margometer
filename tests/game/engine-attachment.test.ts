@@ -2012,6 +2012,7 @@ describe("a new fight and the level the reader was on", () => {
       // the one the reader would reach by pressing its row.
       getOpeningReading: () => reading,
       onFightChosen: () => ({ reading, isLive: false }),
+      setLiveShown: (): void => {},
       onPinToggled: (): void => {},
       onStorageChosen: (): void => {},
     };

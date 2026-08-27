@@ -118,6 +118,17 @@ function composeKeeper(over: { isRefusingSettings?: boolean } = {}) {
     localStorage,
     sessionStorage,
     setLive: (reading: FightReading | null) => void (live = reading),
+    /**
+     * The same browser one page later: a keeper built again over the stores the
+     * last one wrote to, holding no fight yet.
+     *
+     * Which is all a reload is from here — the page goes, the stores stay, and
+     * nothing is live until a payload arrives.
+     */
+    composeKeeperAfterReload: (): FightKeeper => {
+      live = null;
+      return composeFightKeeper(page, settingsStore, () => live, composeClock());
+    },
   };
 }
 
@@ -378,6 +389,69 @@ describe("what a page that has just loaded opens on", () => {
     expect(rows[1]?.isSelected).toBe(false);
   });
 
+  /**
+   * ⚠️ **What was on screen, and not what is newest.** A reader who picked a
+   * fight out of the shelf and reloaded is put back on it — the panel opening on
+   * something else would be answering a question they had already answered
+   * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`).
+   */
+  test("the fight the reader was reading, over the newest one kept", () => {
+    const { keeper, composeKeeperAfterReload } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    setKept(keeper, DUEL, 2);
+    const older = keeper.shelf.getFights()[1]!.id;
+    keeper.shelf.onFightChosen(older);
+
+    const afterReload = composeKeeperAfterReload();
+    const rows = afterReload.shelf.getFights();
+    expect(rows[1]?.id).toBe(older);
+    expect(rows[1]?.isSelected).toBe(true);
+    expect(rows[0]?.isSelected).toBe(false);
+    expect(afterReload.shelf.getOpeningReading()?.statistics).toEqual(
+      composeFightReading(composeFinished(GROUP_FIGHT, 1).session).statistics,
+    );
+  });
+
+  /** The rotation may have taken it since, and the newest is then the answer. */
+  test("the newest, where the fight they were reading is gone", () => {
+    const { keeper, composeKeeperAfterReload } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    keeper.shelf.onFightChosen(keeper.shelf.getFights()[0]!.id);
+    for (let fight = 2; fight <= KEPT_FIGHTS_LIMIT + 1; fight += 1) setKept(keeper, DUEL, fight);
+
+    const afterReload = composeKeeperAfterReload();
+    const rows = afterReload.shelf.getFights();
+    expect(rows).toHaveLength(KEPT_FIGHTS_LIMIT);
+    expect(rows[0]?.isSelected).toBe(true);
+    expect(afterReload.shelf.getOpeningReading()).not.toBeNull();
+  });
+
+  /**
+   * The other half of the same rule: a fight nobody is reading any more is not
+   * what the next page opens on, or the panel would answer one old gesture for
+   * ever.
+   */
+  test("forgets it once the live fight has taken the screen", () => {
+    const { keeper, composeKeeperAfterReload } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    setKept(keeper, DUEL, 2);
+    keeper.shelf.onFightChosen(keeper.shelf.getFights()[1]!.id);
+    keeper.shelf.setLiveShown();
+
+    expect(composeKeeperAfterReload().shelf.getFights()[0]?.isSelected).toBe(true);
+  });
+
+  test("forgets it when the reader goes back to the fight happening now", () => {
+    const { keeper, setLive, composeKeeperAfterReload } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    setKept(keeper, DUEL, 2);
+    setLive(composeFightReading({ ...composeSessionOfCapture(DUEL), fightsStarted: 3 }));
+    keeper.shelf.onFightChosen(keeper.shelf.getFights()[2]!.id);
+    keeper.shelf.onFightChosen("live");
+
+    expect(composeKeeperAfterReload().shelf.getFights()[0]?.isSelected).toBe(true);
+  });
+
   test("a fight the reader chose is what is marked instead", () => {
     const { keeper } = composeKeeper();
     setKept(keeper, GROUP_FIGHT, 1);
@@ -466,6 +540,46 @@ describe("the panel drawn on a page that has just loaded", () => {
    * meter drawing yesterday's numbers during a fight is the failure this whole
    * behaviour is bounded by.
    */
+  test("draws the fight the reader was reading before the reload", () => {
+    const { keeper, composeKeeperAfterReload } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    setKept(keeper, DUEL, 2);
+    keeper.shelf.onFightChosen(keeper.shelf.getFights()[1]!.id);
+    const { drawn, page } = composePageThatRecordsText();
+
+    composePanelMount(page, (): void => {}, undefined, undefined, composeKeeperAfterReload().shelf);
+
+    expect(drawn).toContain("10 vs 1");
+    expect(drawn).not.toContain("1 vs 1");
+  });
+
+  /**
+   * ⚠️ **The one line only the mount can reach.** The shelf is asked nothing
+   * while a fight is being watched, so the moment a payload takes the screen is
+   * visible where the payload is and nowhere else — and without it the panel
+   * would open on one old gesture for ever. Driven the way it happens: a fight
+   * chosen on the page before, a reload, and then a fight walked into.
+   */
+  test("a fight walked into is what the page after that opens on", () => {
+    const { keeper, composeKeeperAfterReload } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    setKept(keeper, DUEL, 2);
+    keeper.shelf.onFightChosen(keeper.shelf.getFights()[1]!.id);
+
+    const { drawn, page } = composePageThatRecordsText();
+    const render = composePanelMount(
+      page,
+      (): void => {},
+      undefined,
+      undefined,
+      composeKeeperAfterReload().shelf,
+    )!;
+    render(composeFightReading({ ...composeSessionOfCapture(DUEL), fightsStarted: 3 }));
+
+    expect(drawn).toContain("1 vs 1");
+    expect(composeKeeperAfterReload().shelf.getFights()[0]?.isSelected).toBe(true);
+  });
+
   test("the first payload of the next fight takes the screen", () => {
     const { keeper } = composeKeeper();
     setKept(keeper, GROUP_FIGHT, 1);

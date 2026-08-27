@@ -22,19 +22,30 @@ the maintainer on 2026-08-27 and answered:
 
 | Dial | Decided |
 |---|---|
+| Which fight it opens on | **The one that was on screen**, and the newest kept where nothing was. Answered second, when the first shape opened on the newest whatever the reader had been reading. |
 | What happens when the next fight starts | **The live fight takes the screen** on its first payload, and the levels below the ranking drop as they do at any fight start. |
 | How the reader can tell it is an old fight | **The `Walki` row is marked.** No new wording, no new state. |
 | When the fold is paid | **At the mount, always** — one fight, whatever state the panel was left in. |
 
 ## The rule, in one place
 
-The fight the panel opens on is the newest kept one, and only while **no payload
-has arrived and the reader has chosen nothing**:
+The fight the panel opens on is the one that was on screen when the last page
+went away, and only while **no payload has arrived and the reader has chosen
+nothing**:
 
 ```ts
-const getOpeningFight = (live: FightReading | null): KeptFight | undefined =>
-  live === null && chosenId === null ? fights[0] : undefined;
+const getOpeningFight = (live: FightReading | null): KeptFight | undefined => {
+  if (live !== null || chosenId !== null) return undefined;
+  return fights.find((held) => held.id === shownId) ?? fights[0];
+};
 ```
+
+`shownId` is an id under `margometer.shown-fight`, kept where the settings and
+the panel's position are kept rather than beside the fights — for the reason that
+block already gives: an answer stored in the place it names is unreadable the
+moment somebody chooses the place that forgets. A pointer at a fight the rotation
+has since dropped falls back to the newest, which is the answer a reader who
+picked nothing gets, rather than an empty panel over a shelf holding fights.
 
 Both halves of the feature read that one predicate (`src/userscript-entry.ts`):
 `getOpeningReading` is what the mount draws, and the row rule in `getFights` is
@@ -48,6 +59,31 @@ follows the payloads. The reader chooses a fight: `chosenId` names it, the
 predicate stops answering, and the mark is on their choice because their choice
 is what is on screen.
 
+## What was on screen, not what was chosen
+
+Three moments write the pointer, and the third is the one that is easy to leave
+out:
+
+| Moment | What is remembered |
+|---|---|
+| The reader picks a fight off the shelf | that fight |
+| The reader picks the live row | nothing |
+| **A payload takes the screen** | nothing |
+
+Without the third, a single pick would be answered for ever: the reader opens a
+fight once, fights all evening, and every page load puts that one fight back in
+front of them. It is the mount that says so (`setLiveShown`), because the shelf is
+asked nothing while somebody is watching a fight — the moment a payload takes the
+screen is visible where the payload is and nowhere else. It costs a comparison per
+payload and one write.
+
+A browser refusing that write costs a panel that opens on the newest fight
+instead of the one somebody was reading. Nothing is lost and nothing moves, so it
+is not acted on and not reported — §9.6's quiet, the same shape as the panel's
+position and its collapse. That is a different case from the storage choice
+beside it, where a refused write would leave the reader's fights somewhere the
+add-on never opens again.
+
 ## Drawn, and still not chosen
 
 The restored fight is drawn while the panel is **following the live fight**, and
@@ -56,9 +92,12 @@ that fight; they asked for the panel, and this is the most recent thing it can
 honestly put in it. So the next payload wins, and a damage meter never shows
 yesterday's numbers during a fight.
 
-A fight the reader picks off the shelf is the opposite case and is untouched:
-`onFightChosen` clears the following, and payloads accumulate behind their
-screen until they choose the live row again.
+A fight the reader picks off the shelf **on this page** is the opposite case and
+is untouched: `onFightChosen` clears the following, and payloads accumulate
+behind their screen until they choose the live row again. What does not survive a
+reload is that following — the fight comes back, the refusal to leave it does
+not, and walking into a fight puts the reader on it. Asked and answered on
+2026-08-27: *"only when they enter a fight should it give them the current one"*.
 
 The flag that decides this was called `isShowingLive` and is now
 `isFollowingLive`. The old name stopped being true the moment a kept fight could
@@ -76,6 +115,21 @@ need no folding at all — a row is a time, a headcount and an outcome, and all
 three are in the stored fight.
 
 ## Rejected alternatives
+
+**Always the newest kept fight, whatever was on screen.** The first shape of this,
+and it answers a question the reader had already answered: picking a fight and
+reloading put them back on a different one. Kept as the fallback, where the fight
+they were reading is no longer held.
+
+**Remembering that the fight was *chosen*, and not only which it was.** A reload
+would then leave the panel refusing to follow the live fight, and the reader
+would have to know about a gesture to get their meter back — the freezing this
+whole behaviour is bounded against, one page removed.
+
+**Clearing the pointer when a fight is kept**, rather than when one takes the
+screen. Cheaper — the keeper is already told — and wrong for the reader who picks
+a fight and keeps reading it while a fight goes by: their screen never changed,
+and the pointer would have.
 
 **Leaving the restored fight on screen until the reader picks the live row.**
 Consistent with what a fight chosen by hand does, and rejected on what it does to

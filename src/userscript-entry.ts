@@ -494,6 +494,16 @@ const POSITION_KEY = "margometer.panel-position";
 const COLLAPSE_KEY = "margometer.panel-collapse";
 const SETTINGS_KEY = "margometer.fight-settings";
 const FIGHTS_KEY = "margometer.kept-fights";
+/**
+ * Which fight the panel had on screen, so a reload puts the reader back on it.
+ *
+ * Up here with the settings rather than beside the fights, for the reason the
+ * block above gives: this has to be readable whatever the reader answered about
+ * where fights live. It is an id and nothing else — the fight itself is in the
+ * store the reader chose, and a pointer at one that is gone falls back to the
+ * newest rather than to nothing.
+ */
+const SHOWN_FIGHT_KEY = "margometer.shown-fight";
 
 /**
  * Where the panel was left, or null.
@@ -785,6 +795,18 @@ export function composeFightKeeper(
 
   /** Null is the live fight, which is the row the panel opens on. */
   let chosenId: string | null = null;
+  /**
+   * The fight the panel had on screen when the last page went away, or null for
+   * the live one.
+   *
+   * ⚠️ **What was on screen, and not what was chosen.** A reader who picked a
+   * fight an hour ago and has since watched three go by was not reading that
+   * fight when they reloaded — so the live fight taking the screen forgets this,
+   * exactly as choosing the live row does. Kept the other way round it would open
+   * on one fight for ever, and the only way out would be a gesture the reader has
+   * to know about.
+   */
+  let shownId = settingsStore.getText(SHOWN_FIGHT_KEY);
   let hasStoreRefused = false;
   let isEverySlotPinned = false;
   let hasChoiceRefused = false;
@@ -827,9 +849,17 @@ export function composeFightKeeper(
    * It stops answering the moment either half of the condition moves — a payload
    * arrives, so the live fight is what the panel follows, or the reader chooses
    * one, so their choice is what is on screen.
+   *
+   * ⚠️ **The fight that was on screen first, and the newest only where that one
+   * is gone.** A reader who picked a fight out of the shelf and then reloaded is
+   * put back on it; the rotation may have dropped it since, and the newest is
+   * then the same answer a reader who picked nothing gets, rather than an empty
+   * panel over a shelf that is holding fights.
    */
-  const getOpeningFight = (live: FightReading | null): KeptFight | undefined =>
-    live === null && chosenId === null ? fights[0] : undefined;
+  const getOpeningFight = (live: FightReading | null): KeptFight | undefined => {
+    if (live !== null || chosenId !== null) return undefined;
+    return fights.find((held) => held.id === shownId) ?? fights[0];
+  };
 
   /**
    * One kept fight folded, once however often it is asked for.
@@ -845,6 +875,22 @@ export function composeFightKeeper(
     const reading = composeFightReading(composeSessionFromKeptFight(fight));
     readingById.set(fight.id, reading);
     return reading;
+  };
+
+  /**
+   * Remembers which fight is on screen, or that the live one is.
+   *
+   * A refusal is not acted on here and not reported either, unlike the choice
+   * below: what a browser refusing this costs is a panel that opens on the newest
+   * fight instead of the one somebody was reading, which is §9.6's quiet — the
+   * same shape as the position and the collapse. Nothing moves and nothing is
+   * lost.
+   */
+  const setShownFight = (id: string | null): void => {
+    if (id === shownId) return;
+    shownId = id;
+    if (id === null) settingsStore.removeText(SHOWN_FIGHT_KEY);
+    else settingsStore.setText(SHOWN_FIGHT_KEY, id);
   };
 
   /**
@@ -961,6 +1007,7 @@ export function composeFightKeeper(
         // choosing it must leave the panel following the payloads.
         if (id === LIVE_FIGHT_ID || id === getFightKeptAndLive(getLiveReading())?.id) {
           chosenId = null;
+          setShownFight(null);
           return { reading: getLiveReading(), isLive: true };
         }
         const fight = fights.find((held) => held.id === id);
@@ -969,8 +1016,11 @@ export function composeFightKeeper(
         if (fight === undefined) return { reading: null, isLive: chosenId === null };
 
         chosenId = id;
+        setShownFight(id);
         return { reading: getReadingOfFight(fight), isLive: false };
       },
+
+      setLiveShown: () => setShownFight(null),
 
       onPinToggled: (id) => {
         const fight = fights.find((held) => held.id === id);
@@ -1064,6 +1114,16 @@ export type PanelShelf = {
   getReading: () => PanelFightsReading;
   /** Null where the fight will no longer read, which is a fight to stop showing. */
   onFightChosen: (id: string) => { reading: FightReading | null; isLive: boolean };
+  /**
+   * Told that the live fight is what is on screen now, so a later page does not
+   * open on the one that was.
+   *
+   * Called from the render rather than worked out here: the shelf is asked
+   * nothing while the reader is watching a fight, so the moment a payload takes
+   * the screen is only visible where the payload is. It costs a comparison per
+   * payload and a write once (`setShownFight`).
+   */
+  setLiveShown: () => void;
   onPinToggled: (id: string) => void;
   onStorageChosen: (choice: PanelStorageChoice) => void;
 };
@@ -1418,7 +1478,13 @@ export function composePanelMount(
     // Not drawn while somebody is reading a fight off the shelf. The shelf hands
     // the live reading back when they choose that row again — it asks the meter,
     // which has it, rather than this keeping a second copy of one.
-    if (isFollowingLive) latest = reading;
+    if (isFollowingLive) {
+      latest = reading;
+      // The fight a reload put on screen is not what is on it any more, and a
+      // page opening on it again would be reading somebody's oldest gesture over
+      // the fight they are in.
+      shelf?.setLiveShown();
+    }
     renderLatest();
   };
 }
