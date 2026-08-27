@@ -36,6 +36,13 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
 import { getNumberFromText } from "@/libs/number.ts";
+import {
+  getEndOfWhitespace,
+  isEveryCharacterIn,
+  isWordCharacterAt,
+} from "@/libs/text-runs.ts";
+import { getHeadingDepth, getTickedNames } from "@/tests/document-lines.ts";
+import { getDeclarations, getStyleRules } from "@/tests/style-rules.ts";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
 import { composePanelStyleText } from "@/src/ui/panel-look.ts";
 
@@ -57,27 +64,51 @@ function getSection(heading: string): string {
   const start = REGISTER.indexOf(`${heading}\n`);
   if (start < 0) return "";
   const rest = REGISTER.slice(start + heading.length);
-  const end = rest.search(/\n#{2,3} /);
-  return end < 0 ? rest : rest.slice(0, end);
+  return rest.slice(0, getNextSectionStart(rest));
 }
 
+/** Where the next `##` or `###` line begins, or the end of what was handed in. */
+function getNextSectionStart(text: string): number {
+  let at = 0;
+  for (const line of text.split("\n")) {
+    const depth = getHeadingDepth(line);
+    if (at > 0 && depth !== null && depth >= 2 && depth <= 3) return at - 1;
+    at += line.length + 1;
+  }
+  return text.length;
+}
+
+/** What a table row separates its cells with, and what its rule is drawn from. */
+const CELL_SEPARATOR = "|";
+
+const RULE_CHARACTERS = " \t:-";
+
 function getTableRows(section: string): string[][] {
-  return section
-    .split("\n")
-    .filter((line) => line.startsWith("|"))
-    .map((line) =>
-      line
-        .replace(/^\||\|$/g, "")
-        .split("|")
-        .map((cell) => cell.trim()),
-    )
-    .filter((cells) => !/^[\s:-]*$/.test(cells.join("")))
-    .filter((cells) => cells[0] !== "Construct" && cells[0] !== "");
+  const rows: string[][] = [];
+  for (const line of section.split("\n")) {
+    if (!line.startsWith(CELL_SEPARATOR)) continue;
+    const cells = getTableCells(line);
+    // The rule under the headings is punctuation rather than a row, and an empty
+    // first cell is a row continued from the one above it.
+    const written = cells.join("");
+    if (written === "" || isEveryCharacterIn(written, RULE_CHARACTERS)) continue;
+    if (cells[0] === "Construct" || cells[0] === "") continue;
+    rows.push(cells);
+  }
+  return rows;
+}
+
+function getTableCells(line: string): string[] {
+  const inside = line.slice(
+    CELL_SEPARATOR.length,
+    line.endsWith(CELL_SEPARATOR) ? line.length - CELL_SEPARATOR.length : line.length,
+  );
+  return inside.split(CELL_SEPARATOR).map((cell) => cell.trim());
 }
 
 /** What the register writes in code ticks, which is how it names a construct. */
 function getNames(text: string): string[] {
-  return [...text.matchAll(/`([^`]+)`/g)].map((match) => match[1]!);
+  return getTickedNames(text);
 }
 
 /** A version cell as a number, or `null` where the register says `never`. */
@@ -100,10 +131,10 @@ function getStyleSurface(): Record<"properties" | "pairs" | "functions" | "selec
   const pairs = new Set<string>();
   const functions = new Set<string>();
   const selectors = new Set<string>();
-  for (const rule of STYLE_TEXT.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    for (const found of rule[1]!.matchAll(/::?([\w-]+)/g)) selectors.add(found[1]!);
-    for (const declaration of rule[2]!.matchAll(/(?:^|;)\s*([\w-]+)\s*:([^;]*)/g)) {
-      const property = declaration[1]!;
+  for (const rule of getStyleRules(STYLE_TEXT)) {
+    for (const name of getPseudoNames(rule.selector)) selectors.add(name);
+    for (const declaration of getDeclarations(rule.body)) {
+      const property = declaration.property;
       // A custom property is a name this repository chose, not a platform
       // construct with a version — `--MargoMeter-panel-top` is ours. What the
       // browser has to support is `var()` and custom properties as a feature,
@@ -111,13 +142,83 @@ function getStyleSurface(): Record<"properties" | "pairs" | "functions" | "selec
       // `tests/tools/source-layout.test.ts`, which requires the prefix (§9.6).
       if (property.startsWith("--")) continue;
       properties.add(property);
-      for (const word of declaration[2]!.matchAll(/(?<![\w(#-])([a-zA-Z][\w-]*)(?![\w(-])/g)) {
-        pairs.add(`${property}: ${word[1]!}`);
-      }
+      for (const word of getValueWords(declaration.value)) pairs.add(`${property}: ${word}`);
     }
-    for (const found of rule[2]!.matchAll(/([a-zA-Z][\w-]*)\(/g)) functions.add(found[1]!);
+    for (const name of getCalledNames(rule.body)) functions.add(name);
   }
   return { properties, pairs, functions, selectors };
+}
+
+/**
+ * A name, and how far it runs — a letter, then the characters a CSS name is
+ * written with.
+ */
+const NAME_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
+
+function isLetterAt(text: string, index: number): boolean {
+  const character = text[index];
+  if (character === undefined) return false;
+  return (character >= "a" && character <= "z") || (character >= "A" && character <= "Z");
+}
+
+function getEndOfName(text: string, start: number): number {
+  let end = start;
+  while (end < text.length && NAME_CHARACTERS.includes(text[end] ?? "")) end += 1;
+  return end;
+}
+
+/** Every pseudo-class and pseudo-element a selector names, one colon or two. */
+function getPseudoNames(selector: string): string[] {
+  const names: string[] = [];
+  for (let index = 0; index < selector.length; index += 1) {
+    if (selector[index] !== ":") continue;
+    const start = selector[index + 1] === ":" ? index + 2 : index + 1;
+    const end = getEndOfName(selector, start);
+    if (end === start) continue;
+    names.push(selector.slice(start, end));
+    index = end - 1;
+  }
+  return names;
+}
+
+/**
+ * The bare keywords in a value.
+ *
+ * What is deliberately not one: a name a bracket follows, which is a function
+ * and is counted as one below; the tail of a hyphenated word or of a number,
+ * because `12px` and `sans-serif` are one name each; and anything after a `#`,
+ * which is a colour rather than a keyword.
+ */
+function getValueWords(value: string): string[] {
+  const words: string[] = [];
+  let index = 0;
+  while (index < value.length) {
+    const before = value[index - 1];
+    if (!isLetterAt(value, index) || before === "(" || before === "#" || before === "-") {
+      index += 1;
+      continue;
+    }
+    if (isWordCharacterAt(value, index - 1)) {
+      index += 1;
+      continue;
+    }
+    const end = getEndOfName(value, index);
+    if (value[end] !== "(") words.push(value.slice(index, end));
+    index = end;
+  }
+  return words;
+}
+
+/** Every function a rule body calls, by the name in front of its bracket. */
+function getCalledNames(body: string): string[] {
+  const names: string[] = [];
+  for (let index = 0; index < body.length; index += 1) {
+    if (!isLetterAt(body, index)) continue;
+    const end = getEndOfName(body, index);
+    if (body[end] === "(") names.push(body.slice(index, end));
+    index = end - 1;
+  }
+  return names;
 }
 
 const SURFACE = getStyleSurface();
@@ -135,8 +236,12 @@ const SURFACE = getStyleSurface();
  * are equal by construction and the check can never fail.
  */
 function getDeclarationCount(property: string): number {
-  const pattern = new RegExp(String.raw`(?<![\w-])${property}\s*:`, "g");
-  return [...STYLE_TEXT.matchAll(pattern)].length;
+  let count = 0;
+  for (let at = STYLE_TEXT.indexOf(property); at !== -1; at = STYLE_TEXT.indexOf(property, at + 1)) {
+    if (STYLE_TEXT[at - 1] === "-" || isWordCharacterAt(STYLE_TEXT, at - 1)) continue;
+    if (STYLE_TEXT[getEndOfWhitespace(STYLE_TEXT, at + property.length)] === ":") count += 1;
+  }
+  return count;
 }
 
 const CSS_FLOOR_ROWS = getTableRows(getSection("### What sets the floor"));
@@ -153,9 +258,13 @@ const TIER_ROWS = getTableRows(getSection("## The floor"));
  * whole classified `composePanelStyleText()` as a CSS construct and then failed
  * for it not being one.
  */
-const SETTLED = new Set(
-  getNames(getSection("### Settled").replace(/^[\s\S]*?\nProperties:/, "Properties:")),
-);
+const SETTLED = new Set(getNames(composeFromLabel(getSection("### Settled"), "\nProperties:")));
+
+/** `text` from where `label` first stands, or the whole of it where it does not. */
+function composeFromLabel(text: string, label: string): string {
+  const at = text.indexOf(label);
+  return at === -1 ? text : text.slice(at + 1);
+}
 
 /** Every construct the register classifies as CSS, however it classifies it. */
 const CLASSIFIED = new Set([

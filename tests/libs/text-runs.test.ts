@@ -20,6 +20,7 @@ import {
   getEndOfWhitespace,
   getEndOfWordCharacters,
   getPartsSeparatedByWhitespace,
+  getWordOccurrences,
   hasAnyCharacterIn,
   hasDigitsAt,
   isAlphanumericAt,
@@ -211,5 +212,27 @@ describe("a character from a set", () => {
   // The pair is not each other's negation, and this is the case that says so.
   test("is not the same question as every character", () => {
     expect(hasAnyCharacterIn("a1", "0123456789")).toBe(true);
+  });
+});
+
+describe("a word standing alone", () => {
+  test("is found wherever it stands and nowhere else", () => {
+    expect(getWordOccurrences("Total(x) + myTotal + Totals", "Total")).toEqual([0]);
+  });
+
+  test("is found more than once", () => {
+    expect(getWordOccurrences("get(); get()", "get")).toEqual([0, 7]);
+  });
+
+  // The half a boundary at both ends would get wrong: nothing can precede a full
+  // stop that would make a method's name part of a longer word, and every caller
+  // writes one after a value.
+  test("opening with something no word carries asks no boundary in front", () => {
+    expect(getWordOccurrences("x.slice(2)", ".slice")).toEqual([1]);
+    expect(getWordOccurrences("x.sliceLater(2)", ".slice")).toEqual([]);
+  });
+
+  test("an empty word is nowhere", () => {
+    expect(getWordOccurrences("anything", "")).toEqual([]);
   });
 });

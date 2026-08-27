@@ -44,12 +44,52 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { getCommentRangesFromSource } from "@/libs/source-regions.ts";
+import { composeUnwrappedProse } from "@/tests/document-lines.ts";
+import {
+  getEndOfDigits,
+  getEndOfWhitespace,
+  getWordOccurrences,
+  hasDigitsAt,
+  isDigitAt,
+  isWhitespaceAt,
+  isWordCharacterAt,
+} from "@/libs/text-runs.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 
 /** Phrases that scope a claim to all the material, which grows. */
-const WHOLE_MATERIAL =
-  /\b(the captures|captured (entries|calls|messages|fights)|the whole material|the material|every capture)\b|tests\/captured-fights\/(?!\d)/i;
+const WHOLE_MATERIAL_PHRASES = [
+  "the captures",
+  "captured entries",
+  "captured calls",
+  "captured messages",
+  "captured fights",
+  "the whole material",
+  "the material",
+  "every capture",
+];
+
+/**
+ * The directory itself, where what follows it is not a date — a path naming one
+ * recording scopes the claim to that recording, and the bare directory scopes it
+ * to everything in there.
+ */
+const MATERIAL_DIRECTORY = "tests/captured-fights/";
+
+function hasWholeMaterialScope(sentence: string): boolean {
+  const written = sentence.toLowerCase();
+  if (WHOLE_MATERIAL_PHRASES.some((phrase) => getWordOccurrences(written, phrase).length > 0)) {
+    return true;
+  }
+  for (
+    let at = written.indexOf(MATERIAL_DIRECTORY);
+    at !== -1;
+    at = written.indexOf(MATERIAL_DIRECTORY, at + 1)
+  ) {
+    if (!isDigitAt(written, at + MATERIAL_DIRECTORY.length)) return true;
+  }
+  return false;
+}
 
 /**
  * A count of two digits or more.
@@ -59,7 +99,49 @@ const WHOLE_MATERIAL =
  * thousands separator here is the narrow no-break space this repository writes
  * figures with, so `1 794` is one count and not two.
  */
-const DIGIT_COUNT = /(?<![\w.%§-])\d{2,}(?:[   ]\d{3})*(?![\w.%])|\b\d[   ]\d{3}\b/;
+const THOUSANDS_SEPARATORS = "\u00a0\u202f ";
+
+/** What in front of a figure makes it something other than a count. */
+const NOT_A_COUNT_BEFORE = ".%§-";
+
+/** And what after it does — a decimal point, a per-cent sign, a word. */
+const NOT_A_COUNT_AFTER = ".%";
+
+function isOneOf(character: string | undefined, characters: string): boolean {
+  return character !== undefined && characters.includes(character);
+}
+
+/**
+ * Whether the sentence states one.
+ *
+ * The groups of three are what the reading is careful about: `1 794` is one
+ * count, so a run of two digits or more counts wherever nothing continues it —
+ * and a lone digit counts only where a separator and exactly three digits follow
+ * it, which is the smallest figure this repository writes with a separator in it.
+ */
+function hasDigitCount(sentence: string): boolean {
+  let index = 0;
+  while (index < sentence.length) {
+    if (!isDigitAt(sentence, index)) {
+      index += 1;
+      continue;
+    }
+    const end = getEndOfDigits(sentence, index);
+    // A word cannot continue into a figure either way; what only the longer form
+    // refuses is a figure a decimal point, a per-cent sign or a section mark
+    // introduces, because those make it something other than a count.
+    const isWordOpen = !isWordCharacterAt(sentence, index - 1);
+    const isCountOpen = isWordOpen && !isOneOf(sentence[index - 1], NOT_A_COUNT_BEFORE);
+    const isClosed = !isWordCharacterAt(sentence, end) && !isOneOf(sentence[end], NOT_A_COUNT_AFTER);
+    if (isCountOpen && end - index >= 2 && isClosed) return true;
+    if (isWordOpen && end - index === 1 && isOneOf(sentence[end], THOUSANDS_SEPARATORS)) {
+      const group = getEndOfDigits(sentence, end + 1);
+      if (group === end + 4 && !isWordCharacterAt(sentence, group)) return true;
+    }
+    index = end;
+  }
+  return false;
+}
 
 /**
  * What gives a figure its referent: a recording named by its dated filename, or
@@ -69,7 +151,36 @@ const DIGIT_COUNT = /(?<![\w.%§-])\d{2,}(?:[   ]\d{3})*(?![\w.%])|\b\d[  
  * `tests/tools/cited-paths.test.ts` already holds the path itself to existing —
  * so this guard never has to know what a capture is called.
  */
-const DATED = /\d{4}-\d\d-\d\d|`[0-9a-f]{7,40}`/;
+const HEXADECIMAL = "0123456789abcdef";
+
+const SHORTEST_COMMIT = 7;
+
+const LONGEST_COMMIT = 40;
+
+const TICK = "`";
+
+function hasDatedReferent(sentence: string): boolean {
+  return hasCalendarDate(sentence) || hasTickedCommit(sentence);
+}
+
+function hasCalendarDate(sentence: string): boolean {
+  for (let at = 0; at < sentence.length; at += 1) {
+    if (!hasDigitsAt(sentence, at, 4) || sentence[at + 4] !== "-") continue;
+    if (!hasDigitsAt(sentence, at + 5, 2) || sentence[at + 7] !== "-") continue;
+    if (hasDigitsAt(sentence, at + 8, 2)) return true;
+  }
+  return false;
+}
+
+function hasTickedCommit(sentence: string): boolean {
+  for (let at = sentence.indexOf(TICK); at !== -1; at = sentence.indexOf(TICK, at + 1)) {
+    let end = at + 1;
+    while (end < sentence.length && HEXADECIMAL.includes(sentence[end] ?? "")) end += 1;
+    const length = end - at - 1;
+    if (length >= SHORTEST_COMMIT && length <= LONGEST_COMMIT && sentence[end] === TICK) return true;
+  }
+  return false;
+}
 
 const SOURCE_ROOTS = ["libs", "src", "tools", "tests", "build.ts"];
 const DOCUMENTS = ["AGENTS.md", "README.md", "README.en.md", "NOTICE.md"];
@@ -126,21 +237,56 @@ function getProseSentences(file: string): string[] {
   const comments = file.endsWith(".ts")
     ? getCommentRangesFromSource(source).map((range) => source.slice(range.start, range.end))
     : [source];
-  return comments.flatMap((comment) =>
-    comment.replace(/\n\s*\*?\s?/g, " ").split(/(?<=[.:;!?])\s+/),
-  );
+  return comments.flatMap((comment) => getSentences(composeUnwrappedProse(comment)));
+}
+
+/** What ends a sentence, where whitespace follows it. */
+const SENTENCE_ENDS = ".:;!?";
+
+function getSentences(text: string): string[] {
+  const sentences: string[] = [];
+  let start = 0;
+  let index = 0;
+  while (index < text.length) {
+    if (!isWhitespaceAt(text, index) || !isOneOf(text[index - 1], SENTENCE_ENDS)) {
+      index += 1;
+      continue;
+    }
+    sentences.push(text.slice(start, index));
+    index = getEndOfWhitespace(text, index);
+    start = index;
+  }
+  sentences.push(text.slice(start));
+  return sentences;
+}
+
+/**
+ * Every ticked span replaced by a space.
+ *
+ * A figure inside backticks is a protocol value, a path, a section number or an
+ * identifier — never a count of the material.
+ */
+function composeWithoutTicked(text: string): string {
+  let kept = "";
+  let index = 0;
+  for (;;) {
+    const opening = text.indexOf(TICK, index);
+    if (opening === -1) return kept + text.slice(index);
+    const closing = text.indexOf(TICK, opening + 1);
+    if (closing === -1) return kept + text.slice(index);
+    kept += `${text.slice(index, opening)} `;
+    index = closing + 1;
+  }
 }
 
 function getUndatedCounts(file: string): string[] {
   return getProseSentences(file).filter((sentence) => {
-    if (!WHOLE_MATERIAL.test(sentence)) return false;
-    if (DATED.test(sentence)) return false;
-    // A figure inside backticks is a protocol value, a path, a section number or
-    // an identifier — never a count of the material. Stripping them is what took
-    // this from noise to a guard: `+oth_dmg=4439, ,Gracz 5(66.95%)` and
-    // `skillId=86` are examples of the game's own writing, not measurements of
-    // ours.
-    return DIGIT_COUNT.test(sentence.replace(/`[^`]*`/g, " "));
+    if (!hasWholeMaterialScope(sentence)) return false;
+    if (hasDatedReferent(sentence)) return false;
+    // Stripping the ticked spans is what took this from noise to a guard:
+    // `+oth_dmg=4439, ,Gracz 5(66.95%)` and `skillId=86` are examples of the
+    // game's own writing, not measurements of ours.
+    return hasDigitCount(composeWithoutTicked(sentence));
   });
 }
 
@@ -156,7 +302,7 @@ describe("a measurement over the captured fights names its material", () => {
     // the file this guard exists for back out of the walk without a word.
     expect(REGISTERS.length).toBeGreaterThan(0);
     const scoped = FILES.flatMap((file) =>
-      getProseSentences(file).filter((sentence) => WHOLE_MATERIAL.test(sentence)),
+      getProseSentences(file).filter((sentence) => hasWholeMaterialScope(sentence)),
     );
     expect(scoped.length).toBeGreaterThan(0);
   });

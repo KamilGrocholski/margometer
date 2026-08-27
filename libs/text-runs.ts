@@ -147,6 +147,33 @@ export function isEveryCharacterIn(text: string, characters: string): boolean {
 }
 
 /**
+ * Every index at which `word` stands alone in `text` — a pattern's `\bword\b`.
+ *
+ * The boundary is asked only on the side the word could continue from: `Number`
+ * is a word at both ends, so neither `myNumber` nor `Numbers` is one of these,
+ * while `.toFixed` opens with a character no word carries and is therefore found
+ * wherever it is written. That is what `\b` meant at each end of the patterns
+ * this replaces — a boundary before a full stop asks about the character in
+ * front of it, and no caller here ever wanted that.
+ *
+ * An empty word is found at every position and stands alone at none, so it is
+ * refused rather than counted: a caller advancing by what this returns would
+ * otherwise never reach the end of the text.
+ */
+export function getWordOccurrences(text: string, word: string): number[] {
+  const found: number[] = [];
+  if (word === "") return found;
+  const hasWordStart = isWordCharacterAt(word, 0);
+  const hasWordEnd = isWordCharacterAt(word, word.length - 1);
+  for (let at = text.indexOf(word); at !== -1; at = text.indexOf(word, at + 1)) {
+    if (hasWordStart && !isWordStart(text, at)) continue;
+    if (hasWordEnd && isWordCharacterAt(text, at + word.length)) continue;
+    found.push(at);
+  }
+  return found;
+}
+
+/**
  * Whether any character of `text` comes from `characters`.
  *
  * The other half of the pair above, and a different question rather than its

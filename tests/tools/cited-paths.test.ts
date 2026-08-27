@@ -23,6 +23,13 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
+import {
+  getEndOfDigits,
+  isWhitespaceAt,
+  isWordCharacterAt,
+  isWordStart,
+} from "@/libs/text-runs.ts";
+import { getHeadingDepth } from "@/tests/document-lines.ts";
 import { hasPathInHistory, isShallowRepository } from "@/tests/git-history.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
@@ -57,13 +64,83 @@ const AUTHORED_ROOTS = ["libs", "src", "tools", "tests", "docs"];
  * condition was prose. A list of extensions is a list of what can go stale
  * without anybody hearing about it.
  */
-const CITATION = new RegExp(
-  String.raw`\b(${AUTHORED_ROOTS.join("|")})/[A-Za-z0-9._/-]*\.(ts|md|json|js|yml|html)\b`,
-  "g",
-);
+const CITED_EXTENSIONS = [".ts", ".md", ".json", ".js", ".yml", ".html"];
+
+/** What a path is written with, and nothing a sentence around it carries. */
+const PATH_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._/-";
 
 /**
- * A directory named in prose or in a comment, which the pattern above cannot see.
+ * Every path with an extension, from the longest run of path characters after
+ * each root.
+ *
+ * The longest is what settles a name carrying an extension inside another one —
+ * a backup or an archive written after the suffix. The run is read to its end
+ * and the citation is the **last** extension in it that no word continues from,
+ * which is what a greedy pattern backing off the end of its match answered.
+ *
+ * ⚠️ Written without an example, deliberately: a path spelled in this file is a
+ * citation like any other, and the guard below would ask whether the example
+ * exists.
+ */
+function getCitedPaths(text: string): string[] {
+  const cited: string[] = [];
+  let index = 0;
+  while (index < text.length) {
+    const root = getRootAt(text, index);
+    if (root === null) {
+      index += 1;
+      continue;
+    }
+    const end = getEndOfRun(text, index, PATH_CHARACTERS);
+    const cut = getLastExtensionEnd(text, index, end);
+    if (cut === null) {
+      index += 1;
+      continue;
+    }
+    cited.push(text.slice(index, cut));
+    index = cut;
+  }
+  return cited;
+}
+
+/**
+ * Which root is written at `index`, if one is.
+ *
+ * ⚠️ **A citation is read once and the reader moves past it.** One root sits
+ * inside another's path — the tooling's guards live under the tests — so a walk
+ * that started afresh at every root would read the inner one as a second
+ * citation, of a file nothing has under that name.
+ */
+function getRootAt(text: string, index: number): string | null {
+  if (!isWordStart(text, index)) return null;
+  return AUTHORED_ROOTS.find((root) => text.startsWith(`${root}/`, index)) ?? null;
+}
+
+function getLastExtensionEnd(text: string, start: number, end: number): number | null {
+  for (let cut = end; cut > start; cut -= 1) {
+    if (isWordCharacterAt(text, cut)) continue;
+    const run = text.slice(start, cut);
+    if (CITED_EXTENSIONS.some((extension) => run.endsWith(extension))) return cut;
+  }
+  return null;
+}
+
+function getEndOfRun(text: string, start: number, characters: string): number {
+  let end = start;
+  while (end < text.length && characters.includes(text[end] ?? "")) end += 1;
+  return end;
+}
+
+/** What a directory segment is written with — a path's characters, less the slash. */
+const SEGMENT_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-";
+
+/**
+ * A directory named in prose or in a comment, which the reader above cannot see:
+ * the root itself, and as many complete segments after it as are written.
+ *
+ * A segment counts only where the slash closing it is there — `src/ui/panel` is
+ * a citation of `src/ui/`, because a tail with no slash after it is a file's
+ * name or an ordinary word, and neither is a place.
  *
  * ⚠️ **Its absence was paid for.** `README.md` told every reader that the material
  * carried over from the previous incarnation lives in a `tests/fixtures`
@@ -78,10 +155,26 @@ const CITATION = new RegExp(
  * somebody to a place that is not there, and the reader who cannot find it does
  * not conclude the document is wrong.
  */
-const DIRECTORY_CITATION = new RegExp(
-  String.raw`\b(${AUTHORED_ROOTS.join("|")})/(?:[A-Za-z0-9._-]+/)*`,
-  "g",
-);
+function getCitedDirectories(text: string): string[] {
+  const cited: string[] = [];
+  let index = 0;
+  while (index < text.length) {
+    const root = getRootAt(text, index);
+    if (root === null) {
+      index += 1;
+      continue;
+    }
+    let end = index + root.length + 1;
+    for (;;) {
+      const segment = getEndOfRun(text, end, SEGMENT_CHARACTERS);
+      if (segment === end || text[segment] !== "/") break;
+      end = segment + 1;
+    }
+    cited.push(text.slice(index, end));
+    index = end;
+  }
+  return cited;
+}
 
 /**
  * What the walk reads, which is a different list from the one above and goes
@@ -148,26 +241,70 @@ const FILES_BY_ROOT = new Map(
 
 type Citation = { path: string; citedIn: string };
 
+const SCHEMES = ["https://", "http://"];
+
+const HOST_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-";
+
 /**
- * A web address, which is not a path into this repository however much it looks
- * like one.
+ * Every web address blanked, because an address is not a path into this
+ * repository however much it looks like one.
  *
  * Found immediately: a comment citing an MDN article, whose address carries a
  * `docs` segment of its own with `Mozilla` under it, read as a citation of a
- * directory here that has never existed. The scheme is optional because a
- * comment often drops it, and what identifies an address without one is the dot
- * in its host — which no directory in this repository has.
+ * directory here that has never existed. What identifies an address is the full
+ * stop in its host — which no directory in this repository has — followed by a
+ * slash; everything up to the next whitespace belongs to it. The scheme is taken
+ * with the address where one is written, and is optional because a comment often
+ * drops it.
  */
-const WEB_ADDRESS = /\b(?:https?:\/\/)?[a-z0-9-]+(?:\.[a-z0-9-]+)+\/\S*/gi;
+function composeWithoutWebAddresses(text: string): string {
+  let kept = "";
+  let index = 0;
+  while (index < text.length) {
+    const end = getEndOfWebAddress(text, index);
+    if (end === null) {
+      kept += text[index];
+      index += 1;
+      continue;
+    }
+    kept += " ";
+    index = end;
+  }
+  return kept;
+}
 
-function getCitationsOf(pattern: RegExp): Citation[] {
+function getEndOfWebAddress(text: string, start: number): number | null {
+  if (!isWordStart(text, start)) return null;
+  const scheme = SCHEMES.find((one) => text.startsWith(one, start));
+  let index = start + (scheme?.length ?? 0);
+
+  let stops = 0;
+  for (;;) {
+    const run = getEndOfRun(text, index, HOST_CHARACTERS);
+    if (run === index) return null;
+    index = run;
+    if (text[index] !== ".") break;
+    stops += 1;
+    index += 1;
+  }
+  if (stops === 0 || text[index] !== "/") return null;
+  return getEndOfAddressTail(text, index);
+}
+
+function getEndOfAddressTail(text: string, start: number): number {
+  let index = start;
+  while (index < text.length && !isWhitespaceAt(text, index)) index += 1;
+  return index;
+}
+
+function getCitationsOf(getPaths: (text: string) => string[]): Citation[] {
   return AUTHORED_FILES.flatMap((file) =>
-    [...readFileSync(REPOSITORY_ROOT + file, "utf8").replace(WEB_ADDRESS, " ").matchAll(pattern)]
+    getPaths(composeWithoutWebAddresses(readFileSync(REPOSITORY_ROOT + file, "utf8")))
       // A glob names a set, and a set is not somewhere `existsSync` can look.
       // `tests/captured-fights/*.json` is the only one, and §9.2 is where it is
       // held to being read by discovery rather than by name.
-      .filter((match) => !match[0].includes("*"))
-      .map((match) => ({ path: match[0], citedIn: file })),
+      .filter((path) => !path.includes("*"))
+      .map((path) => ({ path, citedIn: file })),
   );
 }
 
@@ -222,8 +359,8 @@ function isCitationResolved(citation: Citation): boolean {
   return hasPathEverExisted(citation.path);
 }
 
-const CITATIONS: Citation[] = getCitationsOf(CITATION);
-const DIRECTORY_CITATIONS: Citation[] = getCitationsOf(DIRECTORY_CITATION);
+const CITATIONS: Citation[] = getCitationsOf(getCitedPaths);
+const DIRECTORY_CITATIONS: Citation[] = getCitationsOf(getCitedDirectories);
 
 describe("paths the repository cites in its own text", () => {
   // Both counted, because either one going to zero turns the check below green
@@ -289,6 +426,54 @@ describe("paths the repository cites in its own text", () => {
 });
 
 /**
+ * The number a heading of the rules opens with — `## 9`, `### 9.6`, and the
+ * trailing full stop some of them carry.
+ *
+ * Depth two to four, because that is where the rules number themselves: the
+ * title above and anything deeper are prose with a number in them at most.
+ */
+function getNumberedHeadings(rules: string): string[] {
+  const numbered: string[] = [];
+  for (const line of rules.split("\n")) {
+    const depth = getHeadingDepth(line);
+    if (depth === null || depth < 2 || depth > 4) continue;
+    const stated = getSectionNumberAt(line, depth + 1);
+    if (stated === null) continue;
+    const after = line[depth + 1 + stated.length];
+    if (after === " " || (after === "." && line[depth + 2 + stated.length] === " ")) {
+      numbered.push(stated);
+    }
+  }
+  return numbered;
+}
+
+/** Every `§9.6` written anywhere, as the number alone. */
+function getCitedSections(text: string): string[] {
+  const cited: string[] = [];
+  for (let at = text.indexOf(SECTION_MARK); at !== -1; at = text.indexOf(SECTION_MARK, at + 1)) {
+    const stated = getSectionNumberAt(text, at + SECTION_MARK.length);
+    if (stated !== null) cited.push(stated);
+  }
+  return cited;
+}
+
+const SECTION_MARK = "§";
+
+/**
+ * A section number at `start`: digits, and one group of digits after a full stop
+ * where there is one. A second full stop ends it — `§9.6.1` is read as `9.6`,
+ * which is what the pattern this replaces answered and what keeps a sentence's
+ * own full stop out of the number.
+ */
+function getSectionNumberAt(text: string, start: number): string | null {
+  const chapter = getEndOfDigits(text, start);
+  if (chapter === start) return null;
+  if (text[chapter] !== ".") return text.slice(start, chapter);
+  const part = getEndOfDigits(text, chapter + 1);
+  return text.slice(start, part === chapter + 1 ? chapter : part);
+}
+
+/**
  * Every section of the rules this repository cites is a section it has.
  *
  * What this catches is renumbering: §9.6 becoming §9.7 orphans every `§9.6` in
@@ -300,15 +485,14 @@ describe("paths the repository cites in its own text", () => {
  */
 describe("sections of the rules the repository cites", () => {
   const RULES = readFileSync(REPOSITORY_ROOT + "AGENTS.md", "utf8");
-  const SECTIONS = new Set(
-    [...RULES.matchAll(/^#{2,4} (\d+(?:\.\d+)?)\.? /gm)].map((match) => match[1]),
-  );
-  const CITED = [...new Set([...RULES.matchAll(/§(\d+(?:\.\d+)?)/g)].map((match) => match[1]))];
+  const SECTIONS = new Set(getNumberedHeadings(RULES));
+  const CITED = [...new Set(getCitedSections(RULES))];
 
   const CITED_ELSEWHERE = AUTHORED_FILES.flatMap((file) =>
-    [...readFileSync(REPOSITORY_ROOT + file, "utf8").matchAll(/§(\d+(?:\.\d+)?)/g)].map(
-      (match) => ({ section: match[1] ?? "", citedIn: file }),
-    ),
+    getCitedSections(readFileSync(REPOSITORY_ROOT + file, "utf8")).map((section) => ({
+      section,
+      citedIn: file,
+    })),
   );
 
   test("the rules have numbered sections, and cite their own", () => {

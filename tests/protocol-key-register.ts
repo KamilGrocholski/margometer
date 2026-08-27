@@ -14,6 +14,8 @@
 
 import { readFileSync } from "node:fs";
 import { getIntegerFromText } from "@/libs/number.ts";
+import { getPartsSeparatedByWhitespace } from "@/libs/text-runs.ts";
+import { getHeadingDepth, getLabelledLine, getTickedNames } from "@/tests/document-lines.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
 export class ProtocolKeyRegisterError extends MargoMeterToolError {
@@ -179,24 +181,57 @@ export type ProtocolKeyEntry = {
   cause: ProtocolKeyCause | null;
 };
 
-const ENTRY_HEADING = /^### `([^`]+)` — (.+)$/gm;
-const HEALTH_LINE = /^\*Health:\* (.+)$/m;
-const CAUSE_LINE = /^\*Cause:\* (.+)$/m;
-const SHAPE_LINE = /^\*Shape:\* (\d+) occurrences; ([^;]+); (.+)$/m;
+const ENTRY_DEPTH = 3;
+
+const HEALTH_LABEL = "*Health:* ";
+const CAUSE_LABEL = "*Cause:* ";
+const SHAPE_LABEL = "*Shape:* ";
 /**
- * Matched first and on purpose: a `*Help:*` line the two forms below do not
- * recognise is **refused**, the way a misspelled health verdict is. Falling
- * through to null instead would let "probably documented somewhere" sit in the
- * register looking more settled than silence while checking nothing.
+ * Read first and on purpose: a `*Help:*` line stating neither direction below is
+ * **refused**, the way a misspelled health verdict is. Falling through to null
+ * instead would let "probably documented somewhere" sit in the register looking
+ * more settled than silence while checking nothing.
  */
-const HELP_LINE = /^\*Help:\* (names nothing of|names) (.+)$/m;
-const HELP_ANY_LINE = /^\*Help:\* (.+)$/m;
-const BACKTICKED = /`([^`]+)`/g;
+const HELP_LABEL = "*Help:* ";
+const EVIDENCE_LABEL = "*Evidence:* ";
+
+const OCCURRENCES_WORD = " occurrences";
+const FIELD_SEPARATOR = ";";
+
+/** One entry: the key in ticks, and the state after the dash. */
+type EntryHeading = { key: string; state: string; start: number; end: number };
+
 /**
- * To the next blank line, not to the end of the first one: evidence wraps, and
- * the citation's date routinely lands on a later line than the article it dates.
+ * Every `### \`key\` — state` heading, with where its line ends.
+ *
+ * A `###` line written any other way is not an entry and is passed over rather
+ * than refused: the register's own prose carries headings of that depth.
  */
-const EVIDENCE_PARAGRAPH = /^\*Evidence:\* ((?:.+\n?)+)/m;
+function getEntryHeadings(register: string): EntryHeading[] {
+  const headings: EntryHeading[] = [];
+  let start = 0;
+  for (const line of register.split("\n")) {
+    const end = start + line.length;
+    const stated = getEntryHeading(line);
+    if (stated !== null) headings.push({ ...stated, start, end });
+    start = end + 1;
+  }
+  return headings;
+}
+
+function getEntryHeading(line: string): { key: string; state: string } | null {
+  if (getHeadingDepth(line) !== ENTRY_DEPTH) return null;
+  const written = line.slice(ENTRY_DEPTH + 1);
+  if (!written.startsWith(TICK)) return null;
+  const closing = written.indexOf(TICK, 1);
+  if (closing <= 1) return null;
+  const dash = " — ";
+  if (!written.startsWith(dash, closing + 1)) return null;
+  const state = written.slice(closing + 1 + dash.length);
+  return state === "" ? null : { key: written.slice(1, closing), state };
+}
+
+const TICK = "`";
 
 function isHealthEffect(value: string): value is ProtocolKeyHealthEffect {
   return (PROTOCOL_KEY_HEALTH_EFFECTS as readonly string[]).includes(value);
@@ -220,18 +255,27 @@ function isValueShape(value: string): value is ProtocolKeyValueShape {
  * and it would look more settled than silence, not less.
  */
 function parseShape(body: string, key: string): ProtocolKeyShape | null {
-  const stated = SHAPE_LINE.exec(body);
+  const stated = getLabelledLine(body, SHAPE_LABEL);
   if (stated === null) return null;
 
-  const occurrences = getIntegerFromText(stated[1]!);
+  // Three fields: a count of occurrences, where the key sits, and what its value
+  // looks like. Only the first two separators divide them — a value shape is
+  // free to carry one of its own.
+  const counted = stated.indexOf(OCCURRENCES_WORD + FIELD_SEPARATOR);
+  const occurrences = counted === -1 ? null : getIntegerFromText(stated.slice(0, counted));
   if (occurrences === null) {
     throw new ProtocolKeyRegisterError(`\`${key}\` states an unreadable occurrence count`);
   }
-  const placement = stated[2]!;
+  const rest = stated.slice(counted + OCCURRENCES_WORD.length + FIELD_SEPARATOR.length);
+  const divide = rest.indexOf(FIELD_SEPARATOR);
+  if (divide === -1) {
+    throw new ProtocolKeyRegisterError(`\`${key}\` states a shape with no value shape in it`);
+  }
+  const placement = rest.slice(0, divide).trim();
   if (!isPlacement(placement)) {
     throw new ProtocolKeyRegisterError(`\`${key}\` states a placement nothing checks: "${placement}"`);
   }
-  const valueShape = stated[3]!;
+  const valueShape = rest.slice(divide + FIELD_SEPARATOR.length).trim();
   if (!isValueShape(valueShape)) {
     throw new ProtocolKeyRegisterError(`\`${key}\` states a value shape nothing checks: "${valueShape}"`);
   }
@@ -261,8 +305,8 @@ function parseShape(body: string, key: string): ProtocolKeyShape | null {
  * are stated by a person; this only refuses the ones that cannot have been enough.
  */
 export function getRequiredHelpPhrases(key: string): string[] {
-  const bare = key.replace(/^[+-]/, "");
-  const separator = bare.search(/[_-]/);
+  const bare = SIGNS.includes(key[0] ?? "") ? key.slice(1) : key;
+  const separator = getFirstSeparator(bare);
   if (separator === -1) return [bare];
   const tail = bare.slice(separator + 1);
   if (SCOPE_SUFFIXES.includes(tail)) return [bare, bare.slice(0, separator)];
@@ -278,30 +322,42 @@ export function getRequiredHelpPhrases(key: string): string[] {
  */
 const SCOPE_SUFFIXES = ["allies"];
 
+/** What the protocol writes in front of a key to say which way it points. */
+const SIGNS = ["+", "-"];
+
+/** What joins the halves of a compound key. */
+const SEPARATORS = "_-";
+
+function getFirstSeparator(key: string): number {
+  for (let index = 0; index < key.length; index += 1) {
+    if (SEPARATORS.includes(key[index] ?? "")) return index;
+  }
+  return -1;
+}
+
 function isHelpDirection(value: string): value is ProtocolKeyHelpDirection {
   return (PROTOCOL_KEY_HELP_DIRECTIONS as readonly string[]).includes(value);
 }
 
 function parseHelp(body: string, key: string): ProtocolKeyHelpClaim | null {
-  const line = HELP_LINE.exec(body);
-  if (line === null) {
-    // A line that exists and matches neither direction is refused rather than
-    // read as silence, the way a misspelled health verdict is.
-    const any = HELP_ANY_LINE.exec(body);
-    if (any !== null) {
-      throw new ProtocolKeyRegisterError(
-        `\`${key}\` states a help claim nothing checks: "${any[1]!}"`,
-      );
-    }
-    return null;
-  }
+  const stated = getLabelledLine(body, HELP_LABEL);
+  if (stated === null) return null;
 
-  const direction = line[1]!;
+  // Longest first: one direction begins with the other, and reading the shorter
+  // would call "names nothing of" a claim that the help names something.
+  const direction = [...PROTOCOL_KEY_HELP_DIRECTIONS]
+    .sort((one, other) => other.length - one.length)
+    .find((one) => stated.startsWith(`${one} `) && stated.length > one.length + 1);
+  // A line that exists and states neither direction is refused rather than read
+  // as silence, the way a misspelled health verdict is.
+  if (direction === undefined) {
+    throw new ProtocolKeyRegisterError(`\`${key}\` states a help claim nothing checks: "${stated}"`);
+  }
   if (!isHelpDirection(direction)) {
     throw new ProtocolKeyRegisterError(`\`${key}\` states a help direction nothing checks: "${direction}"`);
   }
 
-  const phrases = [...line[2]!.matchAll(BACKTICKED)].map((match) => match[1]!);
+  const phrases = getTickedNames(stated.slice(direction.length + 1));
   if (phrases.length === 0) {
     throw new ProtocolKeyRegisterError(`\`${key}\` states a help claim naming no phrase`);
   }
@@ -318,34 +374,48 @@ function parseHelp(body: string, key: string): ProtocolKeyHelpClaim | null {
   return { direction, phrases };
 }
 
+/**
+ * The evidence paragraph, joined into one line.
+ *
+ * To the next blank line, not to the end of the first one: evidence wraps, and
+ * the citation's date routinely lands on a later line than the article it dates.
+ * Joined so a reader of it does not have to know where the prose happened to
+ * wrap.
+ */
+function getEvidence(body: string): string | null {
+  const lines = body.split("\n");
+  const at = lines.findIndex((line) => line.startsWith(EVIDENCE_LABEL));
+  if (at === -1) return null;
+  const paragraph = [lines[at]?.slice(EVIDENCE_LABEL.length) ?? ""];
+  for (const line of lines.slice(at + 1)) {
+    if (line === "") break;
+    paragraph.push(line);
+  }
+  return getPartsSeparatedByWhitespace(paragraph.join(" ")).join(" ");
+}
+
 export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
-  const headings = [...register.matchAll(ENTRY_HEADING)];
+  const headings = getEntryHeadings(register);
   if (headings.length === 0) {
     throw new ProtocolKeyRegisterError("no entries — the heading grammar changed");
   }
 
   return headings.map((heading, at) => {
-    // Tests keep `!` (§9.5): the pattern captured both groups, and a wrong
-    // assumption here fails this file's own test rather than travelling on.
-    const key = heading[1]!;
-    const state = heading[2]!;
+    const key = heading.key;
+    const state = heading.state;
 
     // The body runs to the next entry, so one entry's health line can never be
     // read as another's.
-    const from = heading.index + heading[0].length;
-    const to = headings[at + 1]?.index ?? register.length;
-    const body = register.slice(from, to);
-    const health = HEALTH_LINE.exec(body);
+    const to = headings[at + 1]?.start ?? register.length;
+    const body = register.slice(heading.end, to);
+    const health = getLabelledLine(body, HEALTH_LABEL);
 
-    const cited = EVIDENCE_PARAGRAPH.exec(body);
-    // Joined into one line so a reader of it does not have to know where the
-    // prose happened to wrap.
-    const evidence = cited === null ? null : cited[1]!.replace(/\s+/g, " ").trim();
+    const evidence = getEvidence(body);
 
     const shape = parseShape(body, key);
     const help = parseHelp(body, key);
 
-    const charged = CAUSE_LINE.exec(body);
+    const charged = getLabelledLine(body, CAUSE_LABEL);
 
     if (health === null) {
       // A cause with no health figure to charge is a claim about a key that
@@ -361,7 +431,7 @@ export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
     if (charged === null) {
       throw new ProtocolKeyRegisterError(`\`${key}\` moves health and states no cause`);
     }
-    const cause = charged[1]!;
+    const cause = charged;
     if (!isCause(cause)) {
       throw new ProtocolKeyRegisterError(
         `\`${key}\` states a cause nothing knows how to check: "${cause}"`,
@@ -372,7 +442,7 @@ export function parseProtocolKeyRegister(register: string): ProtocolKeyEntry[] {
     // silence, the witness would stop excluding the key, coverage would shrink,
     // and every guard would still pass — a number quietly too low, arrived at by
     // a spelling mistake.
-    const healthEffect = health[1]!;
+    const healthEffect = health;
     if (!isHealthEffect(healthEffect)) {
       throw new ProtocolKeyRegisterError(
         `\`${key}\` states a health effect nothing knows how to check: "${healthEffect}"`,

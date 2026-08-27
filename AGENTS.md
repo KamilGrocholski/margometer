@@ -634,8 +634,9 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
                               off a number, the brackets off a share, and whether
                               a token stands alone in a sentence.
   document-lines.ts           A line out of a document this repository writes:
-                              whether one is there exactly, and what the line
-                              behind a label says.
+                              whether one is there exactly, what the line behind a
+                              label says, how deep a heading is, what a name in
+                              ticks is, and a wrapped paragraph flattened.
   style-rules.ts              A stylesheet cut into rules: the selector, the
                               classes it names, and what each rule declares.
   markup-parts.ts             A page taken apart: an element's attributes and what

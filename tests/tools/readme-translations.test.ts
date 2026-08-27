@@ -23,6 +23,8 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
+import { getPartsSeparatedByWhitespace } from "@/libs/text-runs.ts";
+import { getHeadingDepth } from "@/tests/document-lines.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 
@@ -42,22 +44,78 @@ function getSource(file: string): string {
  * sit and how deep they are.
  */
 function getHeadingLevels(source: string): number[] {
-  return [...source.matchAll(/^(#{1,6}) \S/gm)].map((match) => match[1]!.length);
+  const levels: number[] = [];
+  for (const line of source.split("\n")) {
+    const depth = getHeadingDepth(line);
+    if (depth !== null) levels.push(depth);
+  }
+  return levels;
 }
 
 function getImagePaths(source: string): string[] {
-  return [...source.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map((match) => match[1]!);
+  return getInlineLinks(source)
+    .filter((link) => link.isPicture)
+    .map((link) => link.target);
+}
+
+/**
+ * Every `[label](target)` in the source, and whether the `!` in front of it
+ * makes it a picture.
+ *
+ * A label runs to the first `]` and a target to the first `)`, which is the
+ * whole grammar these two files use — no nested brackets, no titles in quotes.
+ * A link either half of which never closes is not one.
+ */
+function getInlineLinks(source: string): { isPicture: boolean; target: string }[] {
+  const links: { isPicture: boolean; target: string }[] = [];
+  for (let index = 0; index < source.length; index += 1) {
+    if (source[index] !== "[") continue;
+    const labelEnd = source.indexOf("]", index + 1);
+    if (labelEnd === -1) break;
+    if (source[labelEnd + 1] !== "(") {
+      index = labelEnd;
+      continue;
+    }
+    const targetEnd = source.indexOf(")", labelEnd + 2);
+    if (targetEnd === -1) break;
+    if (targetEnd > labelEnd + 2) {
+      links.push({ isPicture: source[index - 1] === "!", target: source.slice(labelEnd + 2, targetEnd) });
+    }
+    index = targetEnd;
+  }
+  return links;
+}
+
+/**
+ * Where a reference definition at the foot of a section points.
+ *
+ * `[name]: target`, with the target the only thing on the rest of the line —
+ * two of them would be a line this cannot read rather than a link it may
+ * silently halve.
+ */
+function getDefinedLinkTarget(line: string): string | null {
+  if (!line.startsWith("[")) return null;
+  const labelEnd = line.indexOf("]");
+  if (labelEnd <= 1 || line[labelEnd + 1] !== ":") return null;
+  const stated = getPartsSeparatedByWhitespace(line.slice(labelEnd + 2));
+  return stated.length === 1 ? (stated[0] ?? null) : null;
 }
 
 /**
  * Where the links go, from both spellings Markdown offers: the inline target and
- * the reference definition at the foot of a section. The lookbehind is what
- * keeps the pictures out — an image is an inline link with a `!` in front of it,
- * and they are counted separately above.
+ * the reference definition at the foot of a section. The pictures are kept out
+ * by the mark in front of them — an image is an inline link with a `!` before
+ * the bracket — and they are counted separately above.
  */
 function getLinkTargets(source: string): string[] {
-  const inline = [...source.matchAll(/(?<!!)\[[^\]]*\]\(([^)]+)\)/g)].map((match) => match[1]!);
-  const defined = [...source.matchAll(/^\[[^\]]+\]:\s*(\S+)$/gm)].map((match) => match[1]!);
+  const inline = getInlineLinks(source)
+    .filter((link) => !link.isPicture)
+    .map((link) => link.target);
+  const defined: string[] = [];
+  for (const line of source.split("\n")) {
+    const target = getDefinedLinkTarget(line);
+    if (target !== null) defined.push(target);
+  }
   return [...inline, ...defined].filter((target) => !TRANSLATIONS.includes(target));
 }
 

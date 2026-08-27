@@ -31,7 +31,7 @@ import {
   PROTOCOL_KEY_REGISTER,
   ProtocolKeyRegisterError,
 } from "@/tests/protocol-key-register.ts";
-import { isEveryCharacterIn } from "@/libs/text-runs.ts";
+import { hasDigitsAt, isDigitAt, isEveryCharacterIn } from "@/libs/text-runs.ts";
 
 const NAMED_KEYS = new Set<string>(FROZEN_PROTOCOL_KEYS.keys);
 const ENTRIES = PROTOCOL_KEY_REGISTER;
@@ -43,6 +43,24 @@ function isComputedKey(key: string): boolean {
 }
 
 const DIGITS = "0123456789";
+
+/**
+ * An engine name as the frozen table may carry it: the name itself, and at most
+ * the brackets the help prints around one.
+ *
+ * What it refuses is a sentence — a space inside the name is what a phrase of the
+ * operator's own prose would have, and NOTICE.md's promise is that none is here.
+ */
+const ENGINE_NAME_CHARACTERS =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_+-";
+
+function isEngineName(phrase: string): boolean {
+  let name = phrase.startsWith("(") ? phrase.slice(1) : phrase;
+  if (name.startsWith(" ")) name = name.slice(1);
+  if (name.endsWith(")")) name = name.slice(0, -1);
+  if (name.endsWith(" ")) name = name.slice(0, -1);
+  return isEveryCharacterIn(name, ENGINE_NAME_CHARACTERS);
+}
 
 describe("the protocol key register", () => {
   test("has entries at all", () => {
@@ -92,10 +110,34 @@ describe("the protocol key register", () => {
 });
 
 describe("a citation of the game's published help", () => {
-  const HELP_CITATION = /view,\d+/;
-  const READ_DATE = /\(read (\d{4}-\d{2}-\d{2})\)/;
+  /** How the published help addresses an article, which is how an entry cites one. */
+  const HELP_CITATION = "view,";
 
-  const citing = ENTRIES.filter((entry) => entry.evidence !== null && HELP_CITATION.test(entry.evidence));
+  const READ_OPENING = "(read ";
+
+  const DATE_LENGTH = "yyyy-mm-dd".length;
+
+  function hasHelpCitation(evidence: string): boolean {
+    for (let at = evidence.indexOf(HELP_CITATION); at !== -1; at = evidence.indexOf(HELP_CITATION, at + 1)) {
+      if (isDigitAt(evidence, at + HELP_CITATION.length)) return true;
+    }
+    return false;
+  }
+
+  /** The date in `(read …)`, by its shape alone — whether it is a day is asked below. */
+  function getReadDate(evidence: string): string | null {
+    for (let at = evidence.indexOf(READ_OPENING); at !== -1; at = evidence.indexOf(READ_OPENING, at + 1)) {
+      const start = at + READ_OPENING.length;
+      if (evidence[start + DATE_LENGTH] !== ")") continue;
+      if (!hasDigitsAt(evidence, start, 4) || evidence[start + 4] !== "-") continue;
+      if (!hasDigitsAt(evidence, start + 5, 2) || evidence[start + 7] !== "-") continue;
+      if (!hasDigitsAt(evidence, start + 8, 2)) continue;
+      return evidence.slice(start, start + DATE_LENGTH);
+    }
+    return null;
+  }
+
+  const citing = ENTRIES.filter((entry) => entry.evidence !== null && hasHelpCitation(entry.evidence));
 
   // Without this the rule below passes on an empty set, which is what a guard
   // over a channel nobody uses looks like right up until someone uses it wrong.
@@ -108,11 +150,11 @@ describe("a citation of the game's published help", () => {
   // and the game rewrites its own documentation — §7.6.
   test("carries the date it was read, and a date that exists", () => {
     for (const entry of citing) {
-      const read = READ_DATE.exec(entry.evidence ?? "");
+      const read = getReadDate(entry.evidence ?? "");
       expect(read, entry.key).not.toBeNull();
       // Through the owner of `Date.parse` (§9.5): the shape above accepts
       // 2026-02-30, which is not a day anything was read on.
-      expect(getMillisecondsFromIsoText(read?.[1] ?? ""), entry.key).not.toBeNull();
+      expect(getMillisecondsFromIsoText(read ?? ""), entry.key).not.toBeNull();
     }
   });
 
@@ -182,7 +224,7 @@ describe("a citation of the game's published help", () => {
    */
   test("the frozen table holds engine names and no prose", () => {
     for (const phrase of Object.keys(FROZEN_HELP_PHRASES.counts)) {
-      expect(phrase, phrase).toMatch(/^\(? ?[A-Za-z0-9_+-]+ ?\)?$/);
+      expect(isEngineName(phrase), phrase).toBe(true);
     }
   });
 });
@@ -209,7 +251,7 @@ describe("what a *Help:* line is allowed to say", () => {
   test("refuses a claim of silence that never tried the stem", () => {
     const register =
       "### `-legbon_facade` — decoded\n\n*Help:* names nothing of `legbon_facade`, `legbon`\n";
-    expect(() => parseProtocolKeyRegister(register)).toThrow(/facade/);
+    expect(() => parseProtocolKeyRegister(register)).toThrow("facade");
   });
 
   // The positive control: without it the rule above is satisfied by a check that
