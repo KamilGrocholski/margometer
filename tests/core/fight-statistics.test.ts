@@ -189,7 +189,7 @@ describe("the aggregate over captured fights", () => {
   });
 
   /**
-   * ⚠️ **This has asserted three different things, and the third is the second
+   * ⚠️ **This has asserted four different things, and the fourth is the second
    * again.** Healing that reached a whole side was once reported without naming
    * anyone it healed, and every capture carrying it counted the casts as health
    * nobody could place. Then all of them were placed and this read `toEqual([])`.
@@ -204,19 +204,24 @@ describe("the aggregate over captured fights", () => {
    * so what the panel had been showing was *unknown* where the answer was *zero*,
    * which is the one distinction §9.6 makes about this screen.
    *
-   * ⚠️ **On 2026-08-27 the material filled it, and the counter stopped being held
-   * only by hand-built fights.** `2026-08-27-luvia-grupa-vs-amaimon-2` declares
-   * `lowheal_per-enemies`, and a fight declaring the reducer has none of its casts
-   * sized (`src/core/combatant-health.ts`) — so all three of its `healall_per`
-   * casts land here, and the panel warns about that fight and about no other. The
-   * list is the claim in both directions: one recording named, and every other one
-   * still with nothing to warn about.
+   * Then on 2026-08-27 `2026-08-27-luvia-grupa-vs-amaimon-2` named itself here,
+   * for declaring `lowheal_per-enemies` while a fight declaring the reducer
+   * anywhere had none of its casts sized. Reading the side the effect reaches
+   * emptied the list again in the same day: the reducer is declared by one of
+   * theirs at the monster, so nothing of theirs was reduced
+   * (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`).
+   *
+   * ⚠️ **So no recording exercises this counter, and the empty list is the
+   * claim.** What holds it is the hand-built fights in
+   * `tests/core/combatant-health.test.ts`, each carrying one reason a cast is
+   * refused. A capture appearing here is a fight the panel warns about, and there
+   * is none.
    */
-  test("only the capture that declares the healing reducer is left with healing nobody can be credited for", () => {
+  test("no capture is left with healing nobody can be credited for", () => {
     const withTeamHeal = FROM_CAPTURES.filter(
       ({ statistics }) => statistics.reading.unaccountedHealthBySource.size > 0,
     ).map(({ name }) => name);
-    expect(withTeamHeal).toEqual(["2026-08-27-luvia-grupa-vs-amaimon-2"]);
+    expect(withTeamHeal).toEqual([]);
 
     // And the casts really are there to have been placed, or the sentence above is
     // about a corpus that never carried one.

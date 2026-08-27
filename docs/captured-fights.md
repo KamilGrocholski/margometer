@@ -249,14 +249,16 @@ is used as evidence.
   which is what makes it the widest health witness the corpus has — 1 083
   comparisons against 107 for its sibling, and no disagreement anywhere.
 
-  ⚠️ **The only recording carrying `lowheal_per-enemies`, and therefore the only
-  one where a team heal is refused.** A fight declaring the reducer has none of its
-  casts sized (`src/core/combatant-health.ts`), so all three of its `healall_per`
-  casts stay counted as healing nobody could place, and its two casters are the
-  first rows any recording has marked. Read as evidence for the sizing this is a
-  fight that says nothing; read as evidence for the refusal it is the only fight
-  that says anything, and it is the first material to reach either the refusal or
-  §9.6's warning-on-a-row.
+  ⚠️ **The only recording carrying `lowheal_per-enemies`, and it is evidence for
+  the sizing rather than against it.** For one day it was read the other way: a
+  fight declaring the reducer anywhere had none of its casts sized, so all three of
+  its `healall_per` casts were counted as healing nobody could place and its two
+  casters were the first rows any recording had marked. The help scopes the effect
+  to the caster's opponents and all four occurrences here are declared by one of
+  ours at the monster — nothing of ours was reduced, and the three casts are sized
+  (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`). Two of them
+  stand alone in their engine call, which is where the twenty comparisons that
+  check them against the snapshots come from.
 
   Two more things it settles, both by having a third of something. `+stun2-c` had
   been read on four occurrences in one recording; its five here ride the same

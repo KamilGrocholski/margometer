@@ -138,24 +138,27 @@ describe("fight report row readings", () => {
   });
 
   /**
-   * ⚠️ **One capture prints, and it is the same two rows the panel marks.**
-   * `2026-08-27-luvia-grupa-vs-amaimon-2` declares `lowheal_per-enemies`, so none
-   * of its three `healall_per` casts is sized, and the two casters carry the count
-   * between them. Asserted as the whole list rather than as an exemption, so the
-   * tool and the panel are held to the same two rows: a line printing here for a
-   * combatant the panel does not mark would be the report and the screen
-   * disagreeing about what was missed.
+   * ⚠️ **No capture prints, and the empty list is the claim.** One did for a day:
+   * `2026-08-27-luvia-grupa-vs-amaimon-2` declares `lowheal_per-enemies`, and
+   * while a fight declaring the reducer anywhere had none of its casts sized, its
+   * two casters carried the count between them. The reducer is declared by one of
+   * theirs at the monster, so nothing of theirs was reduced and all three casts
+   * are sized now
+   * (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`).
+   *
+   * Asserted as the whole list rather than dropped, because it is the tool and the
+   * panel held to the same rows: a line printing here for a combatant the panel
+   * does not mark would be the report and the screen disagreeing about what was
+   * missed. The lines themselves are held by the three tests above, on rows built
+   * by hand.
    */
-  test("only the capture with casts nobody could size prints a row reading", () => {
+  test("no capture prints a row reading, because every cast in them is sized", () => {
     expect(CAPTURED_FIGHTS.length).toBeGreaterThan(0);
     const printed = CAPTURED_FIGHTS.flatMap((fight) =>
       [...composeStatisticsOfFight(fight).byCombatantId.values()].flatMap((row) =>
         composeRowReadingLines(row).map((line) => `${fight.name}: ${line.trim()}`),
       ),
     );
-    expect(printed.sort()).toEqual([
-      "2026-08-27-luvia-grupa-vs-amaimon-2: casts nobody could size: 1",
-      "2026-08-27-luvia-grupa-vs-amaimon-2: casts nobody could size: 2",
-    ]);
+    expect(printed.sort()).toEqual([]);
   });
 });

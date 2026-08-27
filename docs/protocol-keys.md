@@ -832,16 +832,20 @@ arrives in and this decoder already reads. A fight whose messages never carry th
 key is therefore a fight where the effect was not in play, and *not carried* stops
 being *not noticed*.
 
-⚠️ **The key is carried, and read, and what it buys is the refusal.** It was
-unread while no capture carried it — reading a shape this repository had never seen
-would have been describing a message we had never met (§5) — and
+⚠️ **The key is carried, and read, and what it buys is a refusal with a side on
+it.** It was unread while no capture carried it — reading a shape this repository
+had never seen would have been describing a message we had never met (§5) — and
 `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon-2.json` ended that on
-2026-08-27. It now has its own entry above and is decoded as the skill declaration
-it always was. What its absence buys is the right to size the casts around it; what
-its presence buys is the right to refuse them, and that fight is the first anywhere
-to spend it — all three of its casts refused. Both are answers; the reading of the
-key is what makes them the same answer read two ways rather than one answer and one
-silence.
+2026-08-27. It now has its own entry below and is decoded as the skill declaration
+it always was. What its absence buys is the right to size the casts around it;
+what its presence buys is the right to refuse **the casts on the sides its caster
+faced**, which the help scopes and the protocol names. In that recording the
+reducer is one of ours cast at the monster, so nothing of ours was reduced and all
+three of its casts are sized — and twenty of their figures are checked against the
+snapshots of the calls they stood alone in, exactly
+(`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`,
+`tests/core/combatant-health.test.ts`). A cast on the side a reduction *did* reach
+is refused, and no recording anywhere holds one.
 
 ⚠️ **One shape of this key's own value is unmet and would be misread.** The same
 production build splits the value on a comma and composes a different sentence
@@ -2565,20 +2569,28 @@ target, but everybody on the other side.
 
 **It is the one declaration in this section that another module reads.**
 `src/core/combatant-health.ts` sizes a team heal onto the members of the side it
-was cast on, and refuses to size **any** cast of a fight where this key occurs —
+was cast on, and refuses to size a cast on **a side this key's caster faced** —
 because the help does not say whether the protocol pre-applies the reduction the
-way it demonstrably pre-applies the weakening, so a share stated in such a fight
-cannot be trusted in either direction. Decoding the key does not relax that: the
-gate reads the declaration and the unread key both, so the refusal survives this
-entry being changed.
+way it demonstrably pre-applies the weakening, so a share stated for a reduced
+side cannot be trusted in either direction. Decoding the key does not relax that:
+the gate reads the declaration and the unread key both, so the refusal survives
+this entry being changed.
 
-⚠️ **The help scopes the effect to the other side, and this meter does not use
-that yet.** By the article the reduction lands on the casting side's opponents, so
-a cast of ours aimed at a monster cannot have reduced our own healing — and in the
-only recording carrying the key, that is exactly what happens. Reading the scope
-off the caster's side would let those three casts be sized, which widens what gets
-sized and is `[ASK]` under §9.6. Left refused and written down rather than acted
-on.
+⚠️ **The scope is the help's and the caster is the protocol's, and reading the
+two together is what narrows the refusal** (`[ASK]` under §9.6, asked and granted
+2026-08-27; `docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`). By
+the article the reduction lands on the casting side's opponents, and in the only
+recording carrying the key one of ours declares it at the monster — so our own
+healing was never reduced, and all three of that fight's `healall_per` casts are
+sized. Twenty of their figures are checked against the snapshots of the calls they
+stood alone in and every one agrees with the share applied unreduced, which is
+what makes the scope a reading rather than a citation.
+
+⚠️ **A reducer this meter cannot place a caster for still refuses the fight
+whole.** Two ways that happens: a declaration whose actor the roster cannot
+resolve, and one arriving with no announcement to ride, which reaches the events
+among an unread message's keys — that shape names the ends of its message without
+saying which slot each came from, so there is no caster to read a side off.
 
 *Shape:* 4 occurrences; on a skill announcement; a whole number
 
@@ -2597,8 +2609,9 @@ All 4 occurrences are on
 reduction is **not**: its three `healall_per` shares are 30, 30 and 22.5, and 22.5
 is 30 less a quarter of it — the article's own rule that each further use of an
 ability carrying such an effect gives back 25% of the base less, and not `27`
-applied to anything. Held by `tests/core/combatant-health.test.ts`, which pins the
-refusal on that fight, and by `tests/core/skill-announcement-rule.test.ts` for the
+applied to anything. Held by `tests/core/combatant-health.test.ts`, which reads
+the declaring side off that fight and pins each reason a cast is refused on a
+fight built by hand, and by `tests/core/skill-announcement-rule.test.ts` for the
 placement.
 
 ### `mana` — decoded

@@ -56,22 +56,26 @@ export const NO_ENTRY_HEALTH: FightEntryHealth = new Map();
  * ⚠️ **This docblock argued from the key never having been recorded, and that
  * stopped being true on 2026-08-27.**
  * `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon-2.json` carries four
- * occurrences, and they cost that fight all three of its `healall_per` casts —
- * the first material anywhere to reach this refusal.
+ * occurrences, and they are the first material anywhere to reach this refusal.
  *
- * ⚠️ **The help says the reduction reaches the other side, and this still
- * refuses the whole fight.** Article `view,372` at the engine name (read
- * 2026-08-27) gives it as lowering the healing of every character on the
- * *opposing* team, applied and fired on the initiation layer; in that recording
- * one of ours casts it at the monster, so by the article our own `healall_per`
- * was never reduced at all. Reading the scope off the caster's side is what would
- * let those three casts be sized, and it is `[ASK]` under §9.6 because it widens
- * what gets sized — the one direction the panel cannot mark. Left refused, and
- * written down here rather than acted on. The evidence for the narrowing is
- * already measured: the shares that fight states are 30, 30 and 22.5, and 22.5 is
- * 30 less a quarter of it — the article's own rule that each further use of an
- * ability carrying the effect gives back 25% of the base less. It is not
- * `27` applied to anything, which is what the reduction would have looked like.
+ * ⚠️ **Presence is read by the side the effect reaches, and that widening was
+ * asked for and granted on 2026-08-27 (§9.6).** Article `view,372` at the engine
+ * name (read 2026-08-27) gives it as lowering the healing that active-skill
+ * effects give every character on the **opposing** team, applied and fired on the
+ * initiation layer. So a cast is refused where the reducer was declared from the
+ * other side of it and sized where it was declared from its own. Nothing here is
+ * apportioned and no person is guessed at: the scope is the article's, and the
+ * side it is read off is the caster the protocol names on the announcement the
+ * declaration rides. What the fight-wide refusal cost is in
+ * `docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`.
+ *
+ * ⚠️ **The material agrees, and agreement is the check rather than the reason.**
+ * In the only recording carrying the key, all four occurrences are cast by one of
+ * ours at the monster, and the three shares that fight states are unreduced: 30,
+ * 30 and 22.5, where 22.5 is 30 less a quarter of it — the article's own rule
+ * that each further use of an ability carrying such an effect gives back 25% of
+ * the base less. It is not `27` applied to anything, which is what a reduction
+ * reaching our own side would have looked like.
  */
 const HEALING_REDUCER_KEY = "lowheal_per-enemies";
 
@@ -467,6 +471,55 @@ function composeCast(
 }
 
 /**
+ * The sides whose active-skill healing a reducer in this fight could have
+ * lowered.
+ *
+ * One occurrence disqualifies its sides for the whole fight rather than for the
+ * casts after it: the effect is declared once and applies from the initiation
+ * layer, so a cast earlier in the same fight is no safer than a later one.
+ *
+ * ⚠️ **A reducer this cannot place reaches every side**, which is the fight-wide
+ * refusal that stood here before the scope was read, kept for exactly the cases
+ * that earn it. Two of them: an occurrence whose caster the roster cannot
+ * resolve, and one arriving among an `unknown-message`'s unread keys. That event
+ * names the ends of its message and not which slot each came from
+ * (`battle-event.ts`), so reading the first of them as the caster would be right
+ * only while the actor slot is filled — and wrong in silence where it is not,
+ * which is the direction that oversizes.
+ *
+ * ⚠️ **Both shapes are read, and the second is not redundant.** Every one of the
+ * four occurrences in the material rides a skill announcement, so the key is
+ * decoded and arrives as a declaration. It reaches `unreadKeys` instead wherever
+ * the announcement is missing — `fight-decoder.ts` hands a declaration back to
+ * unread when the message it sat on named no skill. Reading only the declaration
+ * would make this gate depend on the key staying in `SKILL_DECLARATION_KEYS`,
+ * where removing it would switch the refusal off with every test still green.
+ *
+ * ⚠️ **Every other side, and not "the other one".** The help says the opposing
+ * team; the protocol states a side as a bare number and never how many there are
+ * (§10). Where a fight holds three, refusing all but the caster's own is the
+ * direction that refuses more, and healing refused is healing the panel marks.
+ */
+function getSidesWithReducedHealing(
+  events: readonly BattleEvent[],
+  roster: CombatantRoster,
+): ReadonlySet<number> {
+  const everySide = new Set([...roster.byId.values()].map((combatant) => combatant.side));
+  const reduced = new Set<number>();
+  for (const event of events) {
+    if (event.kind === "unknown-message" && event.unreadKeys.includes(HEALING_REDUCER_KEY)) {
+      return everySide;
+    }
+    if (event.kind !== "skill-used") continue;
+    if (!event.declared.some((declaration) => declaration.effect === HEALING_REDUCER_KEY)) continue;
+    const casterSide = event.actorId === null ? undefined : roster.byId.get(event.actorId)?.side;
+    if (casterSide === undefined) return everySide;
+    for (const side of everySide) if (side !== casterSide) reduced.add(side);
+  }
+  return reduced;
+}
+
+/**
  * The fight's events with every team heal this meter can size turned into a
  * figure, and every one it cannot left exactly as it was.
  *
@@ -488,27 +541,8 @@ export function composeSizedTeamHeals(
   roster: CombatantRoster | null,
   entryHealthByCombatantId: FightEntryHealth,
 ): BattleEvent[] {
-  /**
-   * One occurrence anywhere in the fight disqualifies every cast in it, rather
-   * than the casts after it. The help does not say whether the protocol
-   * pre-applies this reduction the way it demonstrably pre-applies the weakening,
-   * so the shares stated in such a fight cannot be trusted in either direction.
-   *
-   * ⚠️ **Both shapes are read, and the second is not redundant.** Every one of the
-   * four occurrences in the material rides a skill announcement, so the key is
-   * decoded and arrives as a declaration. It reaches `unreadKeys` instead wherever
-   * the announcement is missing — `fight-decoder.ts` hands a declaration back to
-   * unread when the message it sat on named no skill — and a fight is refused
-   * either way. Reading only the declaration would make this gate depend on the
-   * key staying in `SKILL_DECLARATION_KEYS`, where removing it would switch the
-   * refusal off with every test still green.
-   */
-  const isReduced = events.some((event) =>
-    event.kind === "skill-used"
-      ? event.declared.some((declaration) => declaration.effect === HEALING_REDUCER_KEY)
-      : event.kind === "unknown-message" && event.unreadKeys.includes(HEALING_REDUCER_KEY),
-  );
-  if (roster === null || isReduced) return [...events];
+  if (roster === null) return [...events];
+  const sidesWithReducedHealing = getSidesWithReducedHealing(events, roster);
 
   // Bound after the guard so the narrowing survives into the closure below.
   const known = roster;
@@ -539,6 +573,18 @@ export function composeSizedTeamHeals(
       casterId !== null &&
       declaredShare !== null
     ) {
+      /**
+       * Refused where a reducer of this fight reached the side it was cast on —
+       * the whole of what reading the scope buys, and the only place that set is
+       * spent. A caster the roster cannot place has no side to compare and
+       * is refused a few lines below for having no side at all.
+       */
+      const casterSide = known.byId.get(casterId)?.side;
+      if (casterSide !== undefined && sidesWithReducedHealing.has(casterSide)) {
+        sized.push(event);
+        continue;
+      }
+
       const cast = composeCast(
         casterId,
         declaredShare,

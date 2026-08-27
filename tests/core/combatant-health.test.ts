@@ -581,45 +581,110 @@ describe("the keys a share can be read from", () => {
    * The reducer the help names, and the whole reason its absence is readable.
    *
    * The client composes `lowheal_per-enemies` into its battle log with a figure in
-   * it (production build `1786514810315`), so it arrives as a protocol key — this
-   * decoder has no meaning for it, which puts it in an `unknown-message`'s unread
-   * keys, and that is what can be looked for. A fight that never mentions it is a
-   * fight where the reduction was not applied; one that does cannot have any of
-   * its casts sized, because the help does not say whether the protocol pre-applies
-   * the reduction the way it demonstrably pre-applies the weakening.
+   * it (production build `1786514810315`), so a fight that never mentions it is a
+   * fight where the reduction was not applied.
    *
-   * ⚠️ **One occurrence disqualifies the whole fight, not the casts after it.**
-   * The effect is declared once and applies from the initiation layer, so a cast
-   * earlier in the same fight is no safer than a later one.
+   * ⚠️ **Which casts a mention refuses is read off the side it was declared
+   * from.** The help gives the effect as lowering the healing of every character
+   * on the **opposing** team (article `view,372` at the engine name, read
+   * 2026-08-27), so a cast is refused where the reducer came from the other side
+   * of it and sized where it came from its own
+   * (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`).
+   *
+   * ⚠️ **One occurrence disqualifies its sides for the whole fight, not for the
+   * casts after it.** The effect is declared once and applies from the initiation
+   * layer, so a cast earlier in the same fight is no safer than a later one —
+   * which is why every fight below states the reducer *after* the cast it decides.
    */
-  test("a fight declaring the reducer has none of its casts sized", () => {
+  test("a cast is refused where the reducer was declared from the other side", () => {
     const roster = composeSmallRoster();
     const entry = composeHealthOf([[1, MAXIMUM], [2, MAXIMUM], [4, MAXIMUM]]);
     const cast = `1=100.00;1=100.00;tspell=Fala;${TEAM_HEAL_KEY}=30`;
     const wound = "3=100.00;2=80.00;+dmg=2000;-dmg=2000";
-    const declared = "3=100.00;0;lowheal_per-enemies=15";
+    const fromTheirs = "3=100.00;1=100.00;tspell=Aura;lowheal_per-enemies=27";
 
-    // Stated after the cast, so a reader that only looked backwards would size it.
-    const withReducer = getSized([wound, cast, declared], roster, entry);
-    expect(withReducer.filter((event) => event.kind === "team-heal")).toEqual([]);
-    expect(withReducer.filter((event) => event.kind === "unaccounted-health").length).toBe(1);
+    const refused = getSized([wound, cast, fromTheirs], roster, entry);
+    expect(refused.filter((event) => event.kind === "team-heal")).toEqual([]);
+    expect(refused.filter((event) => event.kind === "unaccounted-health").length).toBe(1);
 
     // And the same fight without it is sized, or the refusal above proves nothing.
     expect(getTeamHeals([wound, cast], roster, entry).length).toBe(1);
   });
 
   /**
+   * The half the refusal above is worth nothing without, and the shape the only
+   * recording carrying the key actually has: one of ours declares it at the
+   * monster, so our own healing was never reduced and the cast is sized exactly as
+   * it would have been in a fight that never mentioned the key at all.
+   */
+  test("and sized where the reducer was declared from the caster's own side", () => {
+    const roster = composeSmallRoster();
+    const entry = composeHealthOf([[1, MAXIMUM], [2, MAXIMUM], [4, MAXIMUM]]);
+    const cast = `1=100.00;1=100.00;tspell=Fala;${TEAM_HEAL_KEY}=30`;
+    const wound = "3=100.00;2=80.00;+dmg=2000;-dmg=2000";
+    const fromOurs = "2=100.00;3=100.00;tspell=Aura;lowheal_per-enemies=27";
+
+    expect(getTeamHeals([wound, cast, fromOurs], roster, entry)).toEqual(
+      getTeamHeals([wound, cast], roster, entry),
+    );
+    expect(getUnaccounted([wound, cast, fromOurs], roster, entry)).toEqual([]);
+  });
+
+  /**
+   * ⚠️ **A reducer this reader cannot place still refuses every cast**, which is
+   * the fight-wide refusal that stood before the scope was read. An occurrence
+   * with no announcement to belong to reaches the events among an
+   * `unknown-message`'s unread keys, and that event names the ends of its message
+   * without saying which slot each came from — so there is no caster to read a
+   * side off, and every side is refused.
+   */
+  test("a reducer with no announcement to belong to refuses every cast in the fight", () => {
+    const roster = composeSmallRoster();
+    const entry = composeHealthOf([[1, MAXIMUM], [2, MAXIMUM], [4, MAXIMUM]]);
+    const cast = `1=100.00;1=100.00;tspell=Fala;${TEAM_HEAL_KEY}=30`;
+    const wound = "3=100.00;2=80.00;+dmg=2000;-dmg=2000";
+
+    // Declared by the caster's own side, which would be sized if the slot could be
+    // read at all. It cannot, so this is refused where `fromOurs` above is not.
+    const unannounced = "2=100.00;0;lowheal_per-enemies=27";
+
+    const refused = getSized([wound, cast, unannounced], roster, entry);
+    expect(refused.filter((event) => event.kind === "team-heal")).toEqual([]);
+    expect(refused.filter((event) => event.kind === "unaccounted-health").length).toBe(1);
+  });
+
+  /** And the same where the announcement names somebody this roster never met. */
+  test("and so does one declared by a combatant the roster cannot place", () => {
+    const roster = composeSmallRoster();
+    const entry = composeHealthOf([[1, MAXIMUM], [2, MAXIMUM], [4, MAXIMUM]]);
+    const cast = `1=100.00;1=100.00;tspell=Fala;${TEAM_HEAL_KEY}=30`;
+    const wound = "3=100.00;2=80.00;+dmg=2000;-dmg=2000";
+    const fromNobody = "9=100.00;1=100.00;tspell=Aura;lowheal_per-enemies=27";
+
+    expect(getTeamHeals([wound, cast, fromNobody], roster, entry)).toEqual([]);
+    expect(getUnaccounted([wound, cast, fromNobody], roster, entry).length).toBe(1);
+  });
+
+  /**
    * The mechanism the refusal rests on, asserted rather than assumed: the key
-   * reaches the events at all. If the decoder ever started reading it, the check
-   * above would stop finding it and every cast in such a fight would be sized —
+   * reaches the events by both doors. If the decoder ever stopped producing
+   * either, a fight would be sized on a side the reduction had reached —
    * silently, and in the direction that overstates.
    */
-  test("and the reducer reaches the events as an unread key", () => {
-    const events = decodeFight(["3=100.00;0;lowheal_per-enemies=15"], composeSmallRoster());
-    const unread = events.flatMap((event) =>
-      event.kind === "unknown-message" ? event.unreadKeys : [],
-    );
-    expect(unread).toContain("lowheal_per-enemies");
+  test("and the reducer reaches the events as a declaration and as an unread key", () => {
+    const roster = composeSmallRoster();
+
+    const announced = decodeFight(["3=100.00;1=100.00;tspell=Aura;lowheal_per-enemies=27"], roster);
+    expect(
+      announced.flatMap((event) =>
+        event.kind === "skill-used" ? event.declared.map((one) => one.effect) : [],
+      ),
+    ).toContain("lowheal_per-enemies");
+
+    const alone = decodeFight(["3=100.00;0;lowheal_per-enemies=15"], roster);
+    expect(
+      alone.flatMap((event) => (event.kind === "unknown-message" ? event.unreadKeys : [])),
+    ).toContain("lowheal_per-enemies");
   });
 
   /** A key outside that list states a share this module refuses to act on. */
@@ -642,56 +707,70 @@ describe("over every captured fight", () => {
   });
 
   /**
-   * ⚠️ **Every cast in the corpus is sized, and this test has twice asserted
-   * otherwise.** It once held both halves — something sized, something refused —
-   * because fourteen casts across two captures could not be reached; both are
-   * reached now, their entry health unwound from the first statement about each
-   * combatant rather than from the snapshot alone.
+   * ⚠️ **Every cast in the corpus is sized, and this test has three times
+   * asserted otherwise.** It once held both halves — something sized, something
+   * refused — because fourteen casts across two captures could not be reached;
+   * both are reached now, their entry health unwound from the first statement
+   * about each combatant rather than from the snapshot alone.
    *
    * Then it named `2026-08-23-tempest-grupa-vs-hildur-auto` as an exception for
    * one commit. That was a defect of ours written down as a property of the
    * material: one combatant's unwind landed a single point over their maximum,
    * and the allowance meant to absorb exactly that was smaller than a health
    * point on their pool, so it absorbed nothing
-   * (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`). With
-   * the floor in place the corpus is wholly sized again and the exception is
-   * gone.
+   * (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`).
    *
-   * ⚠️ **And on 2026-08-27 the corpus confirmed the refusal for the first time,
-   * through the one door nothing had ever come through.** Every exception above
-   * was a combatant this meter could not size; this one is a whole fight declining
-   * to be read, because it declares `lowheal_per-enemies` and a fight that
-   * declares the reducer has none of its casts sized
-   * (`src/core/combatant-health.ts`). It is the only recording carrying that key,
-   * and all three of its `healall_per` casts stay `unaccounted-health` — so the
-   * figures below are one fight, named, and the rest of the corpus is still sized
-   * whole. The hand-built fights above are what hold every other reason to refuse;
-   * this is the one the material now holds.
+   * Then, on 2026-08-27, it named `2026-08-27-luvia-grupa-vs-amaimon-2` — the
+   * only recording carrying `lowheal_per-enemies`, when a fight declaring the
+   * reducer anywhere had none of its casts sized. Reading the side the effect
+   * reaches ended that in the same day: the reducer is declared by one of ours at
+   * the monster, so nothing of ours was reduced and all three casts are sized
+   * (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`).
+   *
+   * ⚠️ **So the corpus exercises the refusal nowhere, and says nothing about it.**
+   * Every reason to refuse a cast is held by a hand-built fight above, this one
+   * included. What the material holds instead is the measurement two tests below:
+   * the figures the reducer's own fight produces, against the health its snapshots
+   * record.
    */
-  const REDUCED_FIGHT = "2026-08-27-luvia-grupa-vs-amaimon-2";
-
-  test("every cast in the corpus is sized whole, but for the fight that declares the reducer", () => {
+  test("every cast in the corpus is sized whole", () => {
     const refused = SIZED_FIGHTS.flatMap((of) =>
       of.sized.filter((event) => event.kind === "unaccounted-health").map(() => of.name),
     );
-    expect(refused).toEqual([REDUCED_FIGHT, REDUCED_FIGHT, REDUCED_FIGHT]);
+    expect(refused).toEqual([]);
     expect(SIZED_FIGHTS.reduce((total, of) => total + of.castsStated, 0)).toBeGreaterThan(0);
   });
 
+  /** The one recording carrying the reducer, and the side it was declared from. */
+  const REDUCED_FIGHT = "2026-08-27-luvia-grupa-vs-amaimon-2";
+
   /**
-   * The refusal is whole, and both halves are the claim: not one cast of that
-   * fight is sized, and every cast it states is still counted — as healing nobody
-   * could place rather than as healing that did not happen (§9.6). A gate that
-   * dropped the casts instead would pass the test above and lose three figures.
+   * The material half of the scope, and the half no hand-built fight can carry:
+   * that this recording is the shape the reading claims it is. A reducer declared
+   * from the healers' own side is why its casts are sized, and a recording where
+   * that stopped being true would size three casts on a reduced side while every
+   * test above stayed green.
    */
-  test("the fight that declares the reducer has every cast refused and none lost", () => {
+  test("the fight that declares the reducer declares it from the healers' own side", () => {
     const of = SIZED_FIGHTS.find((one) => one.name === REDUCED_FIGHT);
     expect(of).toBeDefined();
-    expect(of!.castsStated).toBe(3);
-    expect(of!.sized.filter((event) => event.kind === "team-heal")).toEqual([]);
-    expect(
-      of!.sized.filter((event) => event.kind === "unaccounted-health").map((event) => event.source),
-    ).toEqual(["healall_per", "healall_per", "healall_per"]);
+
+    const events = decodeFight(getMessagesOfFight(of!.fight), of!.roster);
+    const declaringSides = events.flatMap((event) =>
+      event.kind === "skill-used" &&
+      event.actorId !== null &&
+      event.declared.some((one) => one.effect === "lowheal_per-enemies")
+        ? [of!.roster.byId.get(event.actorId)?.side]
+        : [],
+    );
+    const castingSides = of!.sized.flatMap((event) =>
+      event.kind === "team-heal" ? [of!.roster.byId.get(event.casterId)?.side] : [],
+    );
+
+    expect(declaringSides.length).toBe(4);
+    expect(castingSides.length).toBe(3);
+    expect(new Set(declaringSides)).toEqual(new Set(castingSides));
+    expect(of!.sized.filter((event) => event.kind === "unaccounted-health")).toEqual([]);
   });
 
   /**
@@ -744,6 +823,60 @@ describe("over every captured fight", () => {
   });
 
   /**
+   * One fight's sized casts against its own snapshots. A reader rather than a
+   * loop written twice: the whole-corpus claim below and the reducer's fight
+   * beside it are the same comparison asked over different material, and the one
+   * that matters is the one that could be lost by accident.
+   */
+  function getSnapshotComparisons(of: (typeof SIZED_FIGHTS)[number]): {
+    compared: number;
+    disagreeing: string[];
+  } {
+    const casts = of.sized.filter((event) => event.kind === "team-heal");
+    const disagreeing: string[] = [];
+    let compared = 0;
+    let seen = 0;
+    const castByCall = new Map<number, number>();
+
+    for (const call of of.fight.dump.calls) {
+      for (const message of call.protocolMessages) {
+        const carries = parseProtocolMessage(message).parameters.some(
+          (parameter) => parameter.key === TEAM_HEAL_KEY,
+        );
+        if (!carries) continue;
+        castByCall.set(call.index, seen);
+        seen += 1;
+      }
+    }
+
+    for (const call of of.fight.dump.calls) {
+      // Only a call that is one message, or the health that moved is the sum of
+      // everything in it and a comparison against it is a comparison against
+      // nothing.
+      if (call.protocolMessages.length !== 1) continue;
+      const at = castByCall.get(call.index);
+      if (at === undefined) continue;
+      const cast = casts[at];
+      if (cast === undefined) continue;
+
+      const after = new Map(call.combatantsAfter.map((c) => [c.id, c.health.current]));
+      for (const before of call.combatantsBefore) {
+        const now = after.get(before.id);
+        const ours = cast.restoredByCombatantId.get(before.id);
+        if (now === undefined || ours === undefined) continue;
+        compared += 1;
+        if (ours !== now - before.health.current) {
+          disagreeing.push(
+            `${of.name} call ${call.index} combatant ${before.id}: ${ours} against ${now - before.health.current}`,
+          );
+        }
+      }
+    }
+
+    return { compared, disagreeing };
+  }
+
+  /**
    * ⚠️ **The measurement this whole file is for.**
    *
    * Every cast that stood alone in its engine call, compared against the health
@@ -759,47 +892,38 @@ describe("over every captured fight", () => {
     const disagreeing: string[] = [];
     let compared = 0;
 
-    for (const { name, fight, sized } of SIZED_FIGHTS) {
-      const casts = sized.filter((event) => event.kind === "team-heal");
-      let seen = 0;
-      const castByCall = new Map<number, number>();
-      for (const call of fight.dump.calls) {
-        for (const message of call.protocolMessages) {
-          const carries = parseProtocolMessage(message).parameters.some(
-            (parameter) => parameter.key === TEAM_HEAL_KEY,
-          );
-          if (!carries) continue;
-          castByCall.set(call.index, seen);
-          seen += 1;
-        }
-      }
-
-      for (const call of fight.dump.calls) {
-        // Only a call that is one message, or the health that moved is the sum of
-        // everything in it and a comparison against it is a comparison against
-        // nothing.
-        if (call.protocolMessages.length !== 1) continue;
-        const at = castByCall.get(call.index);
-        if (at === undefined) continue;
-        const cast = casts[at];
-        if (cast === undefined) continue;
-
-        const after = new Map(call.combatantsAfter.map((c) => [c.id, c.health.current]));
-        for (const before of call.combatantsBefore) {
-          const now = after.get(before.id);
-          const ours = cast.restoredByCombatantId.get(before.id);
-          if (now === undefined || ours === undefined) continue;
-          compared += 1;
-          if (ours !== now - before.health.current) {
-            disagreeing.push(
-              `${name} call ${call.index} combatant ${before.id}: ${ours} against ${now - before.health.current}`,
-            );
-          }
-        }
-      }
+    for (const of of SIZED_FIGHTS) {
+      const readings = getSnapshotComparisons(of);
+      compared += readings.compared;
+      disagreeing.push(...readings.disagreeing);
     }
 
     expect(compared).toBeGreaterThan(0);
+    expect(disagreeing).toEqual([]);
+  });
+
+  /**
+   * ⚠️ **The measurement that earns the scope**, and the reason reading it was
+   * worth doing rather than a tidy-up. Two of that fight's three casts stand alone
+   * in their engine call, so twenty of its combatants' health movements can be
+   * compared against what the snapshots on either side of that call record — and
+   * every one of them agrees with a share applied **unreduced**.
+   *
+   * That is what turns the help's scope from a citation into a reading: the shares
+   * stated are 30, 30 and 22.5, and if the reduction had reached this side, either
+   * the protocol pre-applied it — in which case the figures still agree and
+   * nothing here changes — or it did not, in which case these twenty comparisons
+   * would be short by 27%. They are not short by anything.
+   *
+   * ⚠️ **It says nothing about a cast on the side the reduction did reach.** No
+   * recording anywhere holds one, which is exactly why that case is still refused.
+   */
+  test("and the fight declaring the reducer is checked against its own snapshots", () => {
+    const of = SIZED_FIGHTS.find((one) => one.name === REDUCED_FIGHT);
+    expect(of).toBeDefined();
+
+    const { compared, disagreeing } = getSnapshotComparisons(of!);
+    expect(compared).toBe(20);
     expect(disagreeing).toEqual([]);
   });
 });

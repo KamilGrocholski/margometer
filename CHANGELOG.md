@@ -45,10 +45,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   obok „podpalenia": to dwie różne liczby i nie mogą stać pod jedną nazwą.
 
 - **Poprawka** — Kiedy w walce pada umiejętność osłabiająca leczenie przeciwnej
-  drużyny, panel nie twierdzi już, że czegoś nie zdołał odczytać. Zostaje jedno
-  ostrzeżenie i jest prawdziwe: przy tym osłabieniu nie da się przeliczyć
-  leczenia rzuconego na całą drużynę, więc panel mówi to przy wierszu osoby,
-  która leczyła.
+  drużyny, panel nie twierdzi już, że czegoś nie zdołał odczytać, i nie zaniża
+  leczenia. Takie osłabienie działa na drugą drużynę, więc leczenie rzucone na
+  całą twoją drużynę jest liczone tak samo jak zwykle. Panel przestaje je liczyć
+  tylko wtedy, kiedy osłabienie poszło w twoją stronę — i mówi to przy wierszu
+  osoby, która leczyła.
 
 ## [0.9.0] — 2026-08-26
 

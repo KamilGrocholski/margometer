@@ -935,9 +935,19 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   is what makes the answer a reading rather than a share-out. Every input is
   refused rather than defaulted — maximum health, the health the fight was entered
   with, the health held at the moment, the caster having an ally at all, and no
-  effect in play the documentation says reduces the result. A member missing one is
+  effect the documentation says reduces the result in play **against the side it
+  was cast on**. A member missing one is
   left out **and the figure stays counted as unaccounted**, so a partial answer can
-  never read as a whole one. `[ASK]` to widen to a second key, and held by a
+  never read as a whole one. ⚠️ **Which side an effect is in play against is read
+  where the documentation states the scope and the protocol states the caster, and
+  nowhere else.** `lowheal_per-enemies` reaches the caster's opponents, so a fight
+  declaring it refuses the casts on the sides that caster faced and sizes the rest,
+  while a declaration no caster can be placed for reaches every side and refuses
+  the fight whole. That narrowing was `[ASK]` under this clause, asked and granted
+  on 2026-08-27, and it is held the way the rest of the clause is: twenty of that
+  fight's own snapshot comparisons agree with the share applied **unreduced**
+  (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`). `[ASK]` to
+  widen to a second key, and held by a
   measurement rather than by a comment: the sized figures equal the health the
   snapshots record on every cast that stands alone in its engine call, and
   `tests/core/health-witness.test.ts` stopped skipping those calls and still agrees
@@ -1021,10 +1031,15 @@ look like a number that is right.**
   figure it concerns and not in a global banner. ⚠️ **This had no consumer for
   three releases** — every warning the panel drew was a strip under the whole
   screen — and what it needs is the clause below, which says when a consequence
-  has somewhere to go. It was then held by hand-built fights alone until
-  2026-08-27, when a recording declaring `lowheal_per-enemies` refused every team
-  heal of its fight and marked the two casters' rows — the second of the two gaps
-  below, arriving in material for the first time.
+  has somewhere to go. ⚠️ **It is held by hand-built fights and by no recording,
+  and that has been true but for one day.** On 2026-08-27 a recording declaring
+  `lowheal_per-enemies` had every team heal of its fight refused and marked its
+  two casters' rows — the second of the two gaps below, in material for the first
+  time — and reading the side that effect reaches took it back the same day: the
+  reducer was one of ours, cast at the monster, so nothing of ours was reduced
+  (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`). The corpus
+  marks no row, and a capture that grows one is a fight the panel is warning
+  about (`tests/ui/panel-view.test.ts`).
 - `[ALWAYS] [ui]` **A gap reaches a row only where the protocol named whom it was
   about, and it says a figure is short without ever saying by how much.** Two do:
   a message nothing could read, which names its two ends before it names a key, and

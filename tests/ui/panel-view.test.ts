@@ -1389,50 +1389,52 @@ describe("a warning on the row it shortens", () => {
   });
 
   /**
-   * The corpus half. It used to say **no capture grows a mark**, which was true of
-   * every recording and was also the reason §9.6's clause about putting a warning
-   * on the row it shortens had no consumer at all.
+   * The words a player is told a figure is short with, read here in words rather
+   * than fetched from the module that writes them (§7.5) — and read at the level
+   * the mark rides, which is the combatant's own row.
    *
-   * ⚠️ **On 2026-08-27 one recording grew two.**
-   * `2026-08-27-luvia-grupa-vs-amaimon-2` declares `lowheal_per-enemies`, so none
-   * of its three `healall_per` casts is sized (`src/core/combatant-health.ts`), and
-   * each cast's warning rides its **caster's** row — two casters, one of whom cast
-   * twice. That is the second of the two gaps §9.6 lets reach a row: a side cast
-   * this meter could not size, which names its caster.
-   *
-   * The claim below is still two-sided and is now worth more than it was: every
-   * other recording marks nothing, this one marks exactly the rows the protocol
-   * named a caster for, and it marks them on the healing metric alone — a
-   * shortfall in healing given is not a claim about anybody's damage.
+   * The counts are the half a single cast cannot show: one caster who cast twice
+   * and one who cast once, so the sentence has to inflect. Polish spells a count
+   * three ways and this is the only place the panel's healing warning meets two of
+   * them.
    */
-  const MARKED_FIGHT = "2026-08-27-luvia-grupa-vs-amaimon-2";
-
-  test.each(CAPTURED_FIGHTS)("$name marks a row only where a cast could not be sized", (fight) => {
-    const reading: PanelReading = {
-      statistics: composeStatisticsOfFight(fight),
-      roster: composeRosterOfFight(fight),
-      ourSide: 1,
-      isFromFightStart: true,
+  test("says how many casts it could not size, in the words a player reads", () => {
+    const reading = composeUnsizedReading();
+    const twice: PanelReading = {
+      ...reading,
+      statistics: composeFightStatistics(
+        [
+          ...decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400"], roster),
+          {
+            kind: "unaccounted-health",
+            source: "healall_per",
+            combatantId: 1,
+            declaredShare: 12,
+            announced: null,
+          },
+          {
+            kind: "unaccounted-health",
+            source: "healall_per",
+            combatantId: 1,
+            declaredShare: 12,
+            announced: null,
+          },
+        ],
+        roster,
+      ),
     };
-    const marked = PANEL_METRICS.flatMap((metric) => {
-      const view = composePanelView(reading, composeState({ metric }));
-      const rows = [...view.lists.flatMap((list) => list.rows), ...view.pinnedRows];
-      return rows.filter((row) => row.warnings.length > 0).map((row) => ({ metric, row }));
-    });
 
-    if (fight.name !== MARKED_FIGHT) {
-      expect(marked.map((one) => one.row.label)).toEqual([]);
-      return;
-    }
+    const said = [
+      ...(getRankedRow(
+        composePanelView(reading, composeState({ metric: "healingGiven" })),
+        "mag",
+      )?.warnings ?? []),
+      ...(getRankedRow(
+        composePanelView(twice, composeState({ metric: "healingGiven" })),
+        "mag",
+      )?.warnings ?? []),
+    ];
 
-    // Two casters, three casts, and the counts say which of them cast twice. The
-    // words are read here rather than fetched from the module that writes them
-    // (§7.5): a player is told a figure is low, in Polish, with no key of the
-    // game's and no vocabulary of ours.
-    expect(marked.map((one) => one.metric)).toEqual(["healingGiven", "healingGiven"]);
-    expect(new Set(marked.map((one) => one.row.key)).size).toBe(2);
-
-    const said = marked.flatMap((one) => one.row.warnings).sort();
     expect(said.length).toBe(2);
     expect(said[0]).toContain("1 raz");
     expect(said[1]).toContain("2 razy");
@@ -1445,6 +1447,40 @@ describe("a warning on the row it shortens", () => {
         expect(warning, forbidden).not.toContain(forbidden);
       }
     }
+  });
+
+  /**
+   * The corpus half, and it has said two different things. It used to say **no
+   * capture grows a mark**, which was true of every recording and was also the
+   * reason §9.6's clause about putting a warning on the row it shortens had no
+   * consumer at all.
+   *
+   * ⚠️ **On 2026-08-27 one recording grew two, and lost them again the same day.**
+   * `2026-08-27-luvia-grupa-vs-amaimon-2` declares `lowheal_per-enemies`, and
+   * while a fight declaring the reducer anywhere had none of its casts sized, its
+   * two casters carried a mark each. The reducer is declared by one of theirs at
+   * the monster, so nothing of theirs was reduced and all three casts are sized
+   * (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`).
+   *
+   * So the marks the panel draws are held by the hand-built readings above, and
+   * this holds the other half: on real material, every row says what happened and
+   * nothing hedges. A capture growing a mark here is a capture the panel is
+   * warning about, and there is none.
+   */
+  test.each(CAPTURED_FIGHTS)("$name marks no row, because every cast in it is sized", (fight) => {
+    const reading: PanelReading = {
+      statistics: composeStatisticsOfFight(fight),
+      roster: composeRosterOfFight(fight),
+      ourSide: 1,
+      isFromFightStart: true,
+    };
+    const marked = PANEL_METRICS.flatMap((metric) => {
+      const view = composePanelView(reading, composeState({ metric }));
+      const rows = [...view.lists.flatMap((list) => list.rows), ...view.pinnedRows];
+      return rows.filter((row) => row.warnings.length > 0).map((row) => ({ metric, row }));
+    });
+
+    expect(marked.map((one) => one.row.label)).toEqual([]);
   });
 });
 
