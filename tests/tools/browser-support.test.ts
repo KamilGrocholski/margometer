@@ -13,8 +13,11 @@
  * here:
  *
  * - **JavaScript** is held by `tsconfig.userscript.json`, which typechecks
- *   `src/` and `libs/` at `lib: ["ES2022", "DOM"]`. A compiler is a better guard
- *   than a regex and needs no help from this file.
+ *   `src/` and `libs/` at `lib: ["ES2022", "DOM"]` and `target: "ES2022"` — the
+ *   first for library members, the second for syntax. A compiler is a better
+ *   guard than a regex and needs no help from this file, with one exception the
+ *   register states in its own words: the `target` check over pattern syntax is
+ *   partial, and what it misses is held by nothing.
  * - **CSS** is held below, and it is the half that actually closes. The panel's
  *   stylesheet is one string, so what it spells is enumerable — every property,
  *   every `property: value` pair, every function, every selector — and each one

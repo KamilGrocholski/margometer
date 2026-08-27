@@ -204,9 +204,11 @@ page's own context and the page's CSP has nothing of ours to refuse.
 
 ## JavaScript
 
-Held by `tsconfig.userscript.json`, not by this table: it typechecks `src/` and
-`libs/` at `lib: ["ES2022", "DOM"]`, so reaching past the floor fails the gate
-by name. The two constructs that decide where that floor is:
+Held by `tsconfig.userscript.json`, not by this table, and by two of its lines
+rather than one: `lib: ["ES2022", "DOM"]` decides which library **members**
+exist, `target: "ES2022"` decides which **syntax** is allowed. Reach past the
+floor for a member and the gate fails by name. The two constructs that decide
+where that floor is:
 
 | Construct | Where | Chrome / Edge | Firefox | Safari |
 |---|---|---|---|---|
@@ -219,6 +221,43 @@ dependency rather than a runtime one: the base class accepts and forwards
 throw on the two-argument `new Error(...)` — it ignores the second argument. The
 floor is stated at what has to be there rather than at what currently happens to
 work, because the first is a promise and the second is an accident.
+
+### Patterns, and the part no compiler holds
+
+⚠️ **A regular expression's syntax is checked against `target` and against
+nothing else, and the check is partial.** Measured on 2026-08-27 by putting a
+pattern into `src/game/game-dictionary.ts` and restoring the file from a copy:
+with `target` inherited as `ESNext`, which is how this config stood until that
+day, `/[\p{ASCII}--[a-z]]/v` in shipped code typechecked clean. Narrowing
+`target` refuses it — `error TS1501`. Dropped to `ES2017` for the same probe, the
+compiler refuses `/(?<name>x)/` by name and accepts both `/(?<=x)y/` and
+`/\p{L}/u` without a word.
+
+So of the pattern constructs above this floor the compiler catches the `v` flag
+and misses two. First release with support, from `browser-compat-data`, read
+2026-08-27:
+
+- **lookbehind**, `(?<=…)` — Chrome 62, Firefox 78, Safari 16.4. This is the
+  cheap mistake: a couple of characters, and the other two engines have had it
+  since long before the floor, so only Safari moves and only by a fraction.
+- **the `(?i:…)` modifier** — Chrome 125, Firefox 132, Safari 26.
+
+Neither is spelled under `src/` or `libs/`, which is why neither has a row in the
+table above: a row names a construct the file beside it still spells, and the
+floor at the top of this page is the maximum over the rows.
+`tools/mutation-sweep.ts` spells lookbehind throughout its rule table and never
+ships.
+
+⚠️ **A pattern above the floor does not degrade, and it does not even fail where
+it is written.** A library member the engine lacks fails at the call, which is a
+place: something reached for it, and the failure is that thing's size. A pattern
+whose syntax the engine cannot parse is an *early* SyntaxError — it is refused
+while the file is being read, before a line of it has run. The bundle never
+parses, so the reader sees no panel and no console line of ours. `new RegExp`
+differs only in when — `src/core/game-build.ts` builds two at module scope, so
+those throw while the add-on is starting. There is no degraded
+state to describe here, which is why §9.9's `[ASK]` binds with nothing to weigh
+(`docs/specs/2026-08-27-a-pattern-the-floor-never-covered.md`).
 
 ## Installing it
 
