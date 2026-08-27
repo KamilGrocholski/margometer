@@ -18,12 +18,12 @@
 
 ## In Progress
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
-- [ ] Show the latest saved battle after a reload
 
 ## Up Next
-- [ ] Click on the fights tab toggles the state - open fights view; go to the prev view
 
 ## Done
+- [x] Click on the fights tab toggles the state - open fights view; go to the prev view
+- [x] Show the last read battle after a reload - walking into a fight still puts you on the live one
 - [x] Store and show the exact battle location (e.g., coordinates, area, or map position)
 - [x] Preview panel resets its state, whenever I change the current caputred fight
 
