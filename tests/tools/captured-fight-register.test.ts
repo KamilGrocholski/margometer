@@ -34,6 +34,7 @@ import { describe, expect, test } from "bun:test";
 import { composeIntegerText } from "@/libs/number.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
 import { getTextOrder } from "@/libs/text-order.ts";
+import { isEveryCharacterIn } from "@/libs/text-runs.ts";
 import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
 import { getOurSideFromBattle } from "@/src/game/engine-roster.ts";
 import {
@@ -108,7 +109,7 @@ function composeTablesFromRegister(source: string): Tables {
       .split("|")
       .slice(1, -1)
       .map((cell) => cell.replaceAll("`", "").replaceAll("*", "").trim());
-    if (cells.every((cell) => /^-+$/.test(cell))) continue;
+    if (cells.every((cell) => isEveryCharacterIn(cell, "-"))) continue;
     if (cells[0] === "recording" || cells[0] === "shape") continue;
 
     if (cells.length !== COLUMNS[table]) {

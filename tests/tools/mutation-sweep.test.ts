@@ -17,6 +17,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
+import { isWhitespaceAt } from "@/libs/text-runs.ts";
 import {
   composeSourceWithBlankedComments,
   getRegularExpressionRangesFromSource,
@@ -370,9 +371,10 @@ describe("the spacing the sweep reads operators by", () => {
     for (const operator of UNMISTAKABLE_OPERATORS) {
       let at = code.indexOf(operator);
       while (at >= 0) {
-        const before = code[at - 1] ?? "";
-        const after = code[at + operator.length] ?? "";
-        const isSpaced = /^\s$/.test(before) && /^\s$/.test(after);
+        // Past either end is not whitespace, which is what a file beginning or
+        // ending in an operator has to answer.
+        const isSpaced =
+          isWhitespaceAt(code, at - 1) && isWhitespaceAt(code, at + operator.length);
         if (!isSpaced) unspaced.push(`${operator} at ${String(at)}`);
         at = code.indexOf(operator, at + operator.length);
       }

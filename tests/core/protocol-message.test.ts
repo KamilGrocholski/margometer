@@ -114,7 +114,7 @@ describe("sides", () => {
   });
 
   test("refuses a message with nowhere for the sides to be", () => {
-    expect(() => parseProtocolMessage("0")).toThrow(/fewer than two side segments/);
+    expect(() => parseProtocolMessage("0")).toThrow("fewer than two side segments");
   });
 });
 

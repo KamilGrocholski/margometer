@@ -23,10 +23,20 @@ import {
   removeSkillDescriptions,
   REMOVED_DESCRIPTION,
 } from "@/tools/captured-fight-intake.ts";
+import { isEveryCharacterIn } from "@/libs/text-runs.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 
 /** The directory the catalog discovers, named once for the reads below. */
 const CAPTURED_FIGHTS_DIRECTORY = new URL("../captured-fights/", import.meta.url).pathname;
+
+const DIGITS = "0123456789";
+
+/** What the tool writes in place of a nickname: the word, a space, a number. */
+function isSubstitutedLabel(label: string): boolean {
+  const SUBSTITUTED = "Gracz ";
+  if (!label.startsWith(SUBSTITUTED)) return false;
+  return isEveryCharacterIn(label.slice(SUBSTITUTED.length), DIGITS);
+}
 import { readFileSync } from "node:fs";
 
 /** A recording in the shape the add-on writes, with whoever is asked for in it. */
@@ -303,7 +313,9 @@ describe("the captures already in the repository", () => {
       const { substitutions } = composePseudonymisedDump(getValueFromJsonText(source).value);
 
       expect(substitutions.size).toBeGreaterThan(0);
-      for (const [, label] of substitutions) expect(label).toMatch(/^Gracz \d+$/);
+      for (const [, label] of substitutions) {
+        expect(isSubstitutedLabel(label), label).toBe(true);
+      }
     },
   );
 });

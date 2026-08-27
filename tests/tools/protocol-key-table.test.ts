@@ -110,7 +110,7 @@ describe("extracting the table", () => {
 
   test("refuses a bundle where the family rule is gone", () => {
     expect(() => getComputedKeyFamily("nothing resembling the game client")).toThrow(
-      /the client changed how it routes keys/,
+      "the client changed how it routes keys",
     );
   });
 

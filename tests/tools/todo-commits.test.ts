@@ -19,13 +19,20 @@
 
 import { execFileSync } from "node:child_process";
 import { describe, expect, test } from "bun:test";
+import { isWhitespaceAt } from "@/libs/text-runs.ts";
 
 const RULE_BEGAN_AFTER = "b7ae4ab";
 
 const TASK_LIST = "TODO.md";
 
 /** §7.2: the type is bare, because there is exactly one file and no scope to name. */
-const TODO_SUBJECT = /^todo: \S/;
+const TODO_PREFIX = "todo: ";
+
+/** The bare type, and something after it that is not more whitespace. */
+function hasTodoSubject(subject: string): boolean {
+  if (!subject.startsWith(TODO_PREFIX)) return false;
+  return subject.length > TODO_PREFIX.length && !isWhitespaceAt(subject, TODO_PREFIX.length);
+}
 
 const REPOSITORY_ROOT = new URL("../..", import.meta.url).pathname;
 
@@ -114,7 +121,7 @@ describe("the maintainer's task list travels alone", () => {
   test.each(touching.map((commit) => [`${commit.hash.slice(0, 7)} ${commit.subject}`, commit]))(
     "%s says so in its type",
     (_name, commit) => {
-      expect(commit.subject).toMatch(TODO_SUBJECT);
+      expect(hasTodoSubject(commit.subject), commit.subject).toBe(true);
     },
   );
 
@@ -126,7 +133,7 @@ describe("the maintainer's task list travels alone", () => {
   test.each(typed.map((commit) => [`${commit.hash.slice(0, 7)} ${commit.subject}`, commit]))(
     "%s is typed for the task list, so it carries only the task list",
     (_name, commit) => {
-      expect(commit.subject).toMatch(TODO_SUBJECT);
+      expect(hasTodoSubject(commit.subject), commit.subject).toBe(true);
       expect(commit.files).toEqual([TASK_LIST]);
     },
   );

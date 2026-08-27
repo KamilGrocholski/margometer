@@ -145,3 +145,53 @@ export function isEveryCharacterIn(text: string, characters: string): boolean {
   }
   return true;
 }
+
+/**
+ * The pieces of `text` that are not whitespace, in order, with none of them
+ * empty.
+ *
+ * A pattern's `trim().split(/\s+/)`, which every guard that needed it had
+ * spelled for itself — and the split is where two answers can drift: on text
+ * that is only whitespace, `"".split(/\s+/)` answers one empty string rather
+ * than nothing, and a caller counting the pieces then counts one that is not
+ * there.
+ */
+export function getPartsSeparatedByWhitespace(text: string): string[] {
+  const parts: string[] = [];
+  let index = 0;
+  while (index < text.length) {
+    index = getEndOfWhitespace(text, index);
+    if (index >= text.length) break;
+    let end = index;
+    while (end < text.length && !isWhitespaceAt(text, end)) end += 1;
+    parts.push(text.slice(index, end));
+    index = end;
+  }
+  return parts;
+}
+
+/**
+ * Lower-case letters and digits in runs of at least one, single hyphens between
+ * them, and nothing at either end.
+ *
+ * The shape a filename and a slug are both held to here. A trailing hyphen is
+ * the case worth naming: it composes a name with a double hyphen in it, which
+ * reads as a field that went missing rather than as a typo.
+ */
+export function isKebabCaseText(text: string): boolean {
+  let index = 0;
+  for (;;) {
+    const start = index;
+    while (index < text.length && isKebabCharacterAt(text, index)) index += 1;
+    if (index === start) return false;
+    if (index === text.length) return true;
+    if (text[index] !== "-") return false;
+    index += 1;
+  }
+}
+
+function isKebabCharacterAt(text: string, index: number): boolean {
+  const character = text[index];
+  if (character === undefined) return false;
+  return (character >= "a" && character <= "z") || (character >= "0" && character <= "9");
+}

@@ -24,6 +24,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { composeIntegerText, getIntegerFromValue } from "@/libs/number.ts";
 import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
+import { isKebabCaseText } from "@/libs/text-runs.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { DUMP_FIELDS, PAYLOAD_FIELDS } from "@/tools/fight-dump-parser.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
@@ -37,7 +38,6 @@ export class CapturedFightIntakeError extends MargoMeterToolError {
 
 /** Where material lives. The one directory §4 asks before touching. */
 const CAPTURED_FIGHTS_DIRECTORY = "tests/captured-fights/";
-const KEBAB_SEPARATOR = "-";
 
 /**
  * What replaces an ability description.
@@ -353,34 +353,10 @@ export function composeIntakePath(dump: unknown, slug: string): string {
       `\`${DUMP_FIELDS.world}\` is missing — the recording says nothing about where`,
     );
   }
-  if (!isKebabCase(slug)) {
+  if (!isKebabCaseText(slug)) {
     throw new CapturedFightIntakeError(`\`--name ${slug}\` is not a kebab-case slug`);
   }
   return `${CAPTURED_FIGHTS_DIRECTORY}${recordedAt.slice(0, 10)}-${world}-${slug}.json`;
-}
-
-/**
- * Lower-case letters and digits in runs of at least one, single hyphens between
- * them, and nothing at either end. A trailing hyphen is the case worth naming:
- * it would compose a filename with a double hyphen in it, which reads as a
- * missing field rather than as a typo.
- */
-function isKebabCase(slug: string): boolean {
-  let index = 0;
-  for (;;) {
-    const start = index;
-    while (index < slug.length && isKebabCharacterAt(slug, index)) index += 1;
-    if (index === start) return false;
-    if (index === slug.length) return true;
-    if (slug[index] !== KEBAB_SEPARATOR) return false;
-    index += 1;
-  }
-}
-
-function isKebabCharacterAt(slug: string, index: number): boolean {
-  const character = slug[index];
-  if (character === undefined) return false;
-  return (character >= "a" && character <= "z") || (character >= "0" && character <= "9");
 }
 
 function getArray(value: unknown): unknown[] {

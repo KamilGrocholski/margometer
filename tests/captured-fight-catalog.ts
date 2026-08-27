@@ -14,6 +14,7 @@
  */
 
 import { readdirSync, readFileSync } from "node:fs";
+import { basename } from "node:path";
 import {
   composeCombatantRoster,
   type CombatantRoster,
@@ -251,6 +252,8 @@ export function composeCapturedFight(name: string, dump: FightDump): CapturedFig
   };
 }
 
+const DUMP_EXTENSION = ".json";
+
 /**
  * Every capture in `tests/captured-fights/`, read with the same reader the
  * tooling uses.
@@ -262,11 +265,11 @@ export function composeCapturedFight(name: string, dump: FightDump): CapturedFig
  * Sorted, because test numbering must not depend on filesystem order.
  */
 export const CAPTURED_FIGHTS: CapturedFight[] = readdirSync(CAPTURED_FIGHTS_DIRECTORY)
-  .filter((file) => file.endsWith(".json"))
+  .filter((file) => file.endsWith(DUMP_EXTENSION))
   .sort()
   .map((file) =>
     composeCapturedFight(
-      file.replace(/\.json$/, ""),
+      basename(file, DUMP_EXTENSION),
       parseFightDump(readFileSync(CAPTURED_FIGHTS_DIRECTORY + file, "utf8")),
     ),
   );

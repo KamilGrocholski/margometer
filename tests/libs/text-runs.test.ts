@@ -19,10 +19,12 @@ import {
   getEndOfDigits,
   getEndOfWhitespace,
   getEndOfWordCharacters,
+  getPartsSeparatedByWhitespace,
   hasDigitsAt,
   isAlphanumericAt,
   isDigitAt,
   isHexadecimalDigitAt,
+  isKebabCaseText,
   isWhitespaceAt,
   isWordCharacterAt,
   isWordStart,
@@ -162,3 +164,36 @@ describe("where a word begins", () => {
     expect(isWordStart(`${before}version`, 1)).toBe(false);
   });
 });
+
+describe("the pieces between the whitespace", () => {
+  test("a run of separators is one separator", () => {
+    expect(getPartsSeparatedByWhitespace("a  b\tc\n\nd")).toEqual(["a", "b", "c", "d"]);
+  });
+
+  test("whitespace at either end is not a piece", () => {
+    expect(getPartsSeparatedByWhitespace("  a b  ")).toEqual(["a", "b"]);
+  });
+
+  // The case `split` answers differently: it hands back one empty string, so a
+  // caller reading the first piece reads `""` where there is no piece at all.
+  test.each(["", " ", "\n \t"])("%p has no pieces", (text) => {
+    expect(getPartsSeparatedByWhitespace(text)).toEqual([]);
+  });
+});
+
+describe("kebab case", () => {
+  test.each(["panel", "panel-view", "a-1", "2026-08-27-a-fight"])("%p is", (text) => {
+    expect(isKebabCaseText(text)).toBe(true);
+  });
+
+  // A hyphen at either end and a doubled one in the middle are the three that
+  // compose a name with a hole where a field should be; the rest are characters
+  // the class does not hold.
+  test.each(["", "-", "-panel", "panel-", "panel--view", "Panel", "panel_view", "panel view"])(
+    "%p is not",
+    (text) => {
+      expect(isKebabCaseText(text)).toBe(false);
+    },
+  );
+});
+

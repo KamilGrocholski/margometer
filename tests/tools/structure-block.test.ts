@@ -24,6 +24,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
+import { getPartsSeparatedByWhitespace } from "@/libs/text-runs.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 
@@ -34,7 +35,7 @@ const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
  */
 const MAXIMUM_ENTRY_INDENT = 8;
 
-const FILE_EXTENSION = /\.(ts|md|json|js|yml)$/;
+const FILE_EXTENSIONS = [".ts", ".md", ".json", ".js", ".yml"];
 
 /**
  * `.cache/` is in the block and absent from disk on purpose — §7.6 keeps fetched
@@ -82,8 +83,11 @@ function parseStructureBlock(block: string): StructureEntry[] {
     }
     if (isInsideNote) continue;
 
-    const [first, ...rest] = line.trim().split(/\s+/);
-    const names = [first ?? "", ...rest.filter((token) => FILE_EXTENSION.test(token))];
+    const [first, ...rest] = getPartsSeparatedByWhitespace(line);
+    const names = [
+      first ?? "",
+      ...rest.filter((token) => FILE_EXTENSIONS.some((extension) => token.endsWith(extension))),
+    ];
     for (const name of names) {
       directoryStack.length = indent / 2;
       entries.push({ name, indent, path: directoryStack.join("") + name });

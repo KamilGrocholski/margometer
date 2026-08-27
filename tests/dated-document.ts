@@ -18,7 +18,12 @@
  */
 
 import { expect } from "bun:test";
+import { isKebabCaseText } from "@/libs/text-runs.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
+
+const DOCUMENT_EXTENSION = ".md";
+
+const DATE_LENGTH = "yyyy-mm-dd".length;
 
 /**
  * `yyyy-mm-dd-` and then kebab-case.
@@ -27,10 +32,17 @@ import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
  * is what a person calls it. Both documents are named this way and neither has a
  * front matter field saying when — git holds that, and the filename is what a
  * reader sees in a listing.
+ *
+ * The date's own shape is not read here twice: `getMillisecondsFromIsoText`
+ * accepts a calendar date and nothing shorter or longer, so the assertion below
+ * refuses `20-26-08-a.md` as surely as an anchored pattern did.
  */
-const DATED_NAME = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(-[a-z0-9]+)*\.md$/;
-
-const DATE_LENGTH = "yyyy-mm-dd".length;
+function hasDatedName(file: string): boolean {
+  if (!file.endsWith(DOCUMENT_EXTENSION)) return false;
+  const name = file.slice(0, file.length - DOCUMENT_EXTENSION.length);
+  if (name[DATE_LENGTH] !== "-") return false;
+  return isKebabCaseText(name.slice(DATE_LENGTH + 1));
+}
 
 /**
  * Asserts the filename carries a date, that the date is a date, and that it is
@@ -40,7 +52,7 @@ const DATE_LENGTH = "yyyy-mm-dd".length;
  * document dated after today is one nobody can place against the tree.
  */
 export function expectDatedName(file: string): void {
-  expect(file).toMatch(DATED_NAME);
+  expect(hasDatedName(file), file).toBe(true);
   const written = getMillisecondsFromIsoText(file.slice(0, DATE_LENGTH));
   expect(written, file).not.toBeNull();
   expect(written, file).toBeLessThanOrEqual(Date.now());

@@ -4,6 +4,7 @@ import { getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
 import { composeJsonText } from "@/libs/json.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
+import { isEveryCharacterIn } from "@/libs/text-runs.ts";
 import {
   DUMP_FIELDS,
   FightDumpFormatError,
@@ -35,6 +36,23 @@ test("the capture directory holds material", () => {
  * a duplicate spelling in a test is collapsed.
  */
 const CAPTURED_FIGHTS_DIRECTORY = new URL("../captured-fights/", import.meta.url).pathname;
+
+const DIGITS = "0123456789";
+
+/**
+ * Both words a redaction has ever written into this material, and deliberately
+ * not the one word `tools/captured-fight-intake.ts` writes today: this reads the
+ * files as they are, where the older captures carry the older word, and a guard
+ * that borrowed the tool's spelling would refuse the material rather than the
+ * tool.
+ */
+const SUBSTITUTED_NAMES = ["Gracz ", "Player "];
+
+function isSubstitutedName(name: string): boolean {
+  return SUBSTITUTED_NAMES.some(
+    (label) => name.startsWith(label) && isEveryCharacterIn(name.slice(label.length), DIGITS),
+  );
+}
 
 describe("the names a recording carries", () => {
   const ON_DISK = {
@@ -210,12 +228,14 @@ describe.each(CAPTURED_FIGHTS.map((fight) => [fight.name, fight] as const))(
     // the repo. This is the check on the material itself — a rule guarded only
     // on the tooling side is a rule about code, not about the repository.
     test("no player nickname survived into the file", () => {
-      const substituted = /^(Gracz|Player) \d+$/;
       for (const call of fight.dump.calls) {
         for (const combatant of [...call.combatantsBefore, ...call.combatantsAfter]) {
           // Monsters keep their real names — they are not people.
           if (combatant.id < 0) continue;
-          expect(combatant.name, `call ${call.index}, id ${combatant.id}`).toMatch(substituted);
+          expect(
+            isSubstitutedName(combatant.name),
+            `call ${call.index}, id ${combatant.id}: ${combatant.name}`,
+          ).toBe(true);
         }
       }
     });
@@ -315,7 +335,7 @@ describe("fight dump parser", () => {
       wpisy: [{ nr: 0, komunikaty: [], wojownicyPrzed: [], wojownicyPo: [{ id: "x" }] }],
     };
     expect(() => parseFightDump(composeJsonText(dump))).toThrow(
-      /wpisy\[0\]\.wojownicyPo\[0\]\.id: expected a whole number, got string/,
+      "wpisy[0].wojownicyPo[0].id: expected a whole number, got string",
     );
   });
 
@@ -374,7 +394,7 @@ describe("fight dump parser", () => {
 
   test("refuses a capture with no build field at all", () => {
     expect(() => parseFightDump(composeDumpWithBuild(undefined))).toThrow(
-      /build: expected a string, got undefined/,
+      "build: expected a string, got undefined",
     );
   });
 

@@ -131,7 +131,7 @@ describe("the cache manifest", () => {
 
   test("refuses a length that is not a whole number", () => {
     expect(() => requireCachedHelpArticle({ ...manifest, textLength: "12" }, "372")).toThrow(
-      /textLength/,
+      "textLength",
     );
   });
 
