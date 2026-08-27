@@ -45,9 +45,15 @@
 
 import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { assertDefined } from "@/libs/assert.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
+import {
+  getEndOfDigits,
+  isDigitAt,
+  isWhitespaceAt,
+  isWordCharacterAt,
+  isWordStart,
+} from "@/libs/text-runs.ts";
 import { getCommentRangesFromSource, getTextRangesFromSource } from "@/libs/source-regions.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
@@ -124,63 +130,174 @@ export type MutationOutcome = {
   isRefusedByCompiler: boolean;
 };
 
-type Rule = {
-  operator: string;
-  pattern: RegExp;
-  composeAfter: (match: RegExpMatchArray) => string | null;
-};
+/**
+ * One kind of change, and how the tree has to be spelling something for it to
+ * apply.
+ *
+ * `spaced` is an operator with whitespace either side, `word` a phrase with a
+ * word boundary either side, and the other two carry their own reading because
+ * what they replace is not a fixed string.
+ */
+type Rule =
+  | { operator: string; kind: "spaced"; before: string; after: string }
+  | { operator: string; kind: "word"; before: string; after: string }
+  | { operator: string; kind: "negation" }
+  | { operator: string; kind: "number" };
+
+/**
+ * One place a rule applies, and what is there.
+ *
+ * ⚠️ **What it replaces that with is composed later, and that is not tidiness.**
+ * A number is mutated to one more than itself, and `2 ** 53 - 1` composed to its
+ * successor is a broken invariant rather than a mutant — `libs/number.ts` states
+ * that bound in its own docblock and `tests/libs/number.test.ts` in a case, both
+ * of which are prose and neither of which is mutated. Composing here would reach
+ * them before the ranges below throw them away, and the sweep would die reading
+ * a comment. Found by putting this reader against the pattern it replaced over
+ * every tracked file, which is the only reason it is written down rather than
+ * discovered by somebody running the tool.
+ */
+type Found = { offset: number; before: string };
 
 /**
  * Every operator is matched between whitespace, and that is the whole of how
  * this stays out of trouble: the tree is formatted, so a binary operator has
- * whitespace either side and `+=`, `++` and `a[-1]` do not. A pattern of the
- * bare character would mutate all three into something that does not parse, and
- * an unparseable mutant is killed by everything while proving nothing.
+ * whitespace either side and `+=`, `++` and `a[-1]` do not. Reading the bare
+ * character would mutate all three into something that does not parse, and an
+ * unparseable mutant is killed by everything while proving nothing.
  *
- * ⚠️ **`\s` and not a literal space, and that was worth seventeen mutants.** The
- * patterns used to be written as ` && ` — a space on each side — which is not
- * how a condition spanning several lines is spelled: the operator ends the line,
- * and the character after it is a newline. So every multi-line boolean in this
- * repository was invisible to the sweep, silently, and those are the most
- * logic-dense expressions there are. Found by the guard written to hold the
- * convention this comment claims
+ * ⚠️ **Whitespace and not a literal space, and that was worth seventeen
+ * mutants.** The rules used to be written as ` && ` — a space on each side —
+ * which is not how a condition spanning several lines is spelled: the operator
+ * ends the line, and the character after it is a newline. So every multi-line
+ * boolean in this repository was invisible to the sweep, silently, and those are
+ * the most logic-dense expressions there are. Found by the guard written to hold
+ * the convention this comment claims
  * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F15).
  *
- * The lookarounds are what keep the operator out of the match: replacing it with
- * the bare spelling leaves the whitespace the tree already had.
+ * The fences are read and never replaced: the operator alone goes, and the
+ * whitespace the tree already had stays where it was.
  */
 const RULES: Rule[] = [
-  { operator: "comparison", pattern: /(?<=\s)>(?=\s)/g, composeAfter: () => ">=" },
-  { operator: "comparison", pattern: /(?<=\s)>=(?=\s)/g, composeAfter: () => ">" },
-  { operator: "comparison", pattern: /(?<=\s)<(?=\s)/g, composeAfter: () => "<=" },
-  { operator: "comparison", pattern: /(?<=\s)<=(?=\s)/g, composeAfter: () => "<" },
-  { operator: "equality", pattern: /(?<=\s)===(?=\s)/g, composeAfter: () => "!==" },
-  { operator: "equality", pattern: /(?<=\s)!==(?=\s)/g, composeAfter: () => "===" },
-  { operator: "arithmetic", pattern: /(?<=\s)\+(?=\s)/g, composeAfter: () => "-" },
-  { operator: "arithmetic", pattern: /(?<=\s)-(?=\s)/g, composeAfter: () => "+" },
-  { operator: "arithmetic", pattern: /(?<=\s)\*(?=\s)/g, composeAfter: () => "/" },
-  { operator: "arithmetic", pattern: /(?<=\s)\/(?=\s)/g, composeAfter: () => "*" },
-  { operator: "logic", pattern: /(?<=\s)&&(?=\s)/g, composeAfter: () => "||" },
-  { operator: "logic", pattern: /(?<=\s)\|\|(?=\s)/g, composeAfter: () => "&&" },
-  {
-    // The lookahead keeps `!==` out of it, and the leading character is put back
-    // so the negation is the only thing that goes.
-    operator: "negation",
-    pattern: /([(\s=,[])!(?=[A-Za-z_$([])/g,
-    composeAfter: (match) => match[1] ?? "",
-  },
-  {
-    operator: "number",
-    pattern: /\b\d+\b/g,
-    composeAfter: (match) => {
-      const value = getIntegerFromText(match[0]);
-      return value === null ? null : composeIntegerText(value + 1);
-    },
-  },
-  { operator: "return", pattern: /\breturn true\b/g, composeAfter: () => "return false" },
-  { operator: "return", pattern: /\breturn false\b/g, composeAfter: () => "return true" },
-  { operator: "return", pattern: /\breturn null\b/g, composeAfter: () => "return undefined" },
+  { operator: "comparison", kind: "spaced", before: ">", after: ">=" },
+  { operator: "comparison", kind: "spaced", before: ">=", after: ">" },
+  { operator: "comparison", kind: "spaced", before: "<", after: "<=" },
+  { operator: "comparison", kind: "spaced", before: "<=", after: "<" },
+  { operator: "equality", kind: "spaced", before: "===", after: "!==" },
+  { operator: "equality", kind: "spaced", before: "!==", after: "===" },
+  { operator: "arithmetic", kind: "spaced", before: "+", after: "-" },
+  { operator: "arithmetic", kind: "spaced", before: "-", after: "+" },
+  { operator: "arithmetic", kind: "spaced", before: "*", after: "/" },
+  { operator: "arithmetic", kind: "spaced", before: "/", after: "*" },
+  { operator: "logic", kind: "spaced", before: "&&", after: "||" },
+  { operator: "logic", kind: "spaced", before: "||", after: "&&" },
+  { operator: "negation", kind: "negation" },
+  { operator: "number", kind: "number" },
+  { operator: "return", kind: "word", before: "return true", after: "return false" },
+  { operator: "return", kind: "word", before: "return false", after: "return true" },
+  { operator: "return", kind: "word", before: "return null", after: "return undefined" },
 ];
+
+/** What may sit before a `!` for it to be a negation rather than part of `!==`. */
+const BEFORE_NEGATION = "(=,[";
+/** What the negation has to be applied to. Letters as well, which are read as a class. */
+const AFTER_NEGATION = "([$_";
+
+function isLetterAt(source: string, index: number): boolean {
+  const character = source[index];
+  if (character === undefined) return false;
+  return (character >= "a" && character <= "z") || (character >= "A" && character <= "Z");
+}
+
+function getSpacedMatches(source: string, before: string): Found[] {
+  const found: Found[] = [];
+  for (let at = source.indexOf(before); at !== -1; at = source.indexOf(before, at + 1)) {
+    if (!isWhitespaceAt(source, at - 1)) continue;
+    if (!isWhitespaceAt(source, at + before.length)) continue;
+    found.push({ offset: at, before });
+  }
+  return found;
+}
+
+function getWordMatches(source: string, before: string): Found[] {
+  const found: Found[] = [];
+  for (let at = source.indexOf(before); at !== -1; at = source.indexOf(before, at + 1)) {
+    if (!isWordStart(source, at)) continue;
+    if (isWordCharacterAt(source, at + before.length)) continue;
+    found.push({ offset: at, before });
+  }
+  return found;
+}
+
+/**
+ * A `!` that negates something, taken with the character in front of it.
+ *
+ * The character in front is part of what is read and is written back unchanged,
+ * so the negation is the only thing that goes. What is in front is also what
+ * keeps `!==` out of this: an equality's `!` follows a value, and a value is in
+ * neither the class below nor whitespace.
+ */
+function getNegationMatches(source: string): Found[] {
+  const found: Found[] = [];
+  for (let at = source.indexOf("!"); at !== -1; at = source.indexOf("!", at + 1)) {
+    const lead = source[at - 1];
+    if (lead === undefined) continue;
+    if (!BEFORE_NEGATION.includes(lead) && !isWhitespaceAt(source, at - 1)) continue;
+
+    const next = source[at + 1];
+    if (next === undefined) continue;
+    if (!isLetterAt(source, at + 1) && !AFTER_NEGATION.includes(next)) continue;
+
+    found.push({ offset: at - 1, before: `${lead}!` });
+  }
+  return found;
+}
+
+/**
+ * A whole number, and one more than it.
+ *
+ * Fenced on both sides by a word boundary, which is what keeps a run of digits
+ * inside a name out: `a1` is a name and `x[0]` is a number. A run this cannot
+ * read is one past 2^53, and it declines rather than composing a neighbour of
+ * itself.
+ */
+function getNumberMatches(source: string): Found[] {
+  const found: Found[] = [];
+  let index = 0;
+  while (index < source.length) {
+    if (!isDigitAt(source, index)) {
+      index += 1;
+      continue;
+    }
+    const end = getEndOfDigits(source, index);
+    if (isWordStart(source, index) && !isWordCharacterAt(source, end)) {
+      found.push({ offset: index, before: source.slice(index, end) });
+    }
+    index = end;
+  }
+  return found;
+}
+
+function getRuleMatches(source: string, rule: Rule): Found[] {
+  if (rule.kind === "spaced") return getSpacedMatches(source, rule.before);
+  if (rule.kind === "word") return getWordMatches(source, rule.before);
+  if (rule.kind === "negation") return getNegationMatches(source);
+  return getNumberMatches(source);
+}
+
+/** What the rule puts there instead, or null where it looked and declined. */
+function composeAfter(rule: Rule, before: string): string | null {
+  if (rule.kind === "spaced" || rule.kind === "word") return rule.after;
+  // The character in front of the negation, written back unchanged.
+  if (rule.kind === "negation") return before.slice(0, 1);
+
+  const value = getIntegerFromText(before);
+  return value === null ? null : composeIntegerText(value + 1);
+}
+
+const MODULE_KEYWORDS = ["from", "import", "require"];
+const TEST_FILE_SUFFIX = ".test.ts";
+const HEADER_TERMINATOR = ":";
 
 /** What a mutated literal says instead. Nothing in the tree says it already. */
 const TEXT_SENTINEL = '"mutation-sweep"';
@@ -199,7 +316,19 @@ function isInsideRange(ranges: Array<{ start: number; end: number }>, from: numb
  * nothing about any test.
  */
 function isModuleSpecifier(source: string, start: number): boolean {
-  return /\b(from|import|require)\s*\(?\s*$/.test(source.slice(0, start));
+  // Read backwards from the literal, which is the same shape the other way
+  // round: whitespace, an optional opening bracket, whitespace, the keyword.
+  let index = start;
+  while (index > 0 && isWhitespaceAt(source, index - 1)) index -= 1;
+  if (source[index - 1] === "(") {
+    index -= 1;
+    while (index > 0 && isWhitespaceAt(source, index - 1)) index -= 1;
+  }
+
+  return MODULE_KEYWORDS.some((keyword) => {
+    const at = index - keyword.length;
+    return at >= 0 && source.startsWith(keyword, at) && isWordStart(source, at);
+  });
 }
 
 export function composeMutations(source: string, file: string): Mutation[] {
@@ -208,15 +337,13 @@ export function composeMutations(source: string, file: string): Mutation[] {
   const mutations: Mutation[] = [];
 
   for (const rule of RULES) {
-    for (const match of source.matchAll(rule.pattern)) {
-      const offset = assertDefined(match.index, "matchAll states where it matched");
-      const before = match[0];
+    for (const { offset, before } of getRuleMatches(source, rule)) {
       // Comments are not code, and a literal's contents are mutated whole below
       // rather than one operator at a time.
       if (isInsideRange(comments, offset, offset + before.length)) continue;
       if (isInsideRange(texts, offset, offset + before.length)) continue;
 
-      const after = rule.composeAfter(match);
+      const after = composeAfter(rule, before);
       if (after === null || after === before) continue;
       mutations.push({
         file,
@@ -282,16 +409,64 @@ export function composeMutatedSource(source: string, mutation: Mutation): string
 const FAILURE_MARKERS = ["✗", "(fail)"];
 
 /** Escape codes, which the runner writes even when nothing is a terminal. */
-const ANSI = /\x1b\[[0-9;]*m/g;
+const ESCAPE_OPEN = "\u001b[";
+const ESCAPE_CLOSE = "m";
+const ESCAPE_BODY = ";";
+
+/**
+ * The line with its colours off.
+ *
+ * A run that opens an escape and never closes it is left alone rather than cut
+ * to the end of the line: it is not an escape, and swallowing the rest would
+ * take a test name with it.
+ */
+function composeWithoutEscapes(line: string): string {
+  let kept = "";
+  let from = 0;
+  for (;;) {
+    const at = line.indexOf(ESCAPE_OPEN, from);
+    if (at === -1) return kept + line.slice(from);
+
+    let index = at + ESCAPE_OPEN.length;
+    while (isDigitAt(line, index) || line[index] === ESCAPE_BODY) index += 1;
+
+    if (line[index] !== ESCAPE_CLOSE) {
+      kept += line.slice(from, at + 1);
+      from = at + 1;
+      continue;
+    }
+    kept += line.slice(from, at);
+    from = index + 1;
+  }
+}
+
+/**
+ * The file a block of results belongs to, off a line that is nothing but its
+ * name and a colon.
+ *
+ * There has to be something in front of the suffix — a bare `.test.ts:` names no
+ * file — and nothing in the line may be whitespace, which is what keeps a
+ * sentence ending in a filename from reading as a header.
+ */
+function getTestFileHeader(line: string): string | null {
+  if (!line.endsWith(`${TEST_FILE_SUFFIX}${HEADER_TERMINATOR}`)) return null;
+
+  const name = line.slice(0, -HEADER_TERMINATOR.length);
+  if (name.length <= TEST_FILE_SUFFIX.length) return null;
+  for (let index = 0; index < name.length; index += 1) {
+    if (isWhitespaceAt(name, index)) return null;
+  }
+  return name;
+}
 
 export function getFailingTestFiles(output: string): string[] {
   const failing: string[] = [];
   let current: string | null = null;
   for (const raw of output.split("\n")) {
-    const line = raw.replace(ANSI, "").trim();
-    const header = /^(\S+\.test\.ts):$/.exec(line);
+    const line = composeWithoutEscapes(raw).trim();
+    const header = getTestFileHeader(line);
     if (header !== null) {
-      current = header[1] ?? null;
+      current = header;
       continue;
     }
     const isFailure = FAILURE_MARKERS.some((marker) => line.startsWith(marker));

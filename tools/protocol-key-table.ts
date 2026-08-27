@@ -32,6 +32,7 @@ import { writeFileSync } from "node:fs";
 import { composeJsonText } from "@/libs/json.ts";
 import { assertDefined } from "@/libs/assert.ts";
 import { getIntegerFromText } from "@/libs/number.ts";
+import { getEndOfDigits, getEndOfWordCharacters } from "@/libs/text-runs.ts";
 import { getCachedClientSource, getCachedBundle } from "@/tools/game-client-source.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
@@ -61,7 +62,13 @@ export class ProtocolKeyTableError extends MargoMeterToolError {
  * extract structure with structure.
  */
 const SWITCH_ANCHOR = "manageBattleEffects(";
-const SWITCH_SUBJECT = /[A-Za-z_$]+\[0\]\)\{/;
+/** What follows the subject: the segment's first character, then the block. */
+const SWITCH_SUBJECT_TAIL = "[0]){";
+const SEGMENT_INDEX = "[0]";
+const CASE_KEYWORD = "case";
+const LABEL_TERMINATOR = ":";
+/** A minified local name. Digits are absent because the client never starts one with a digit. */
+const NAME_CHARACTERS = "$_";
 
 /**
  * A string literal in any of the three quotings JavaScript has, because which one
@@ -72,9 +79,31 @@ const SWITCH_SUBJECT = /[A-Za-z_$]+\[0\]\)\{/;
  * decides what it is reading. A backreference would refuse the mismatch and cost
  * a capture group in every pattern that spells a literal twice.
  */
-const QUOTED_LITERAL = String.raw`["'\`]([^"'\`]*)["'\`]`;
+const QUOTES = "\"'`";
 
-const CASE_LABEL = new RegExp(String.raw`case${QUOTED_LITERAL}:`, "g");
+/** The text inside a quoted literal at `open`, and where it ends. */
+function getQuotedLiteral(source: string, open: number): { text: string; end: number } | null {
+  const opening = source[open];
+  if (opening === undefined || !QUOTES.includes(opening)) return null;
+
+  let index = open + 1;
+  for (;;) {
+    const character = source[index];
+    if (character === undefined) return null;
+    if (QUOTES.includes(character)) return { text: source.slice(open + 1, index), end: index + 1 };
+    index += 1;
+  }
+}
+
+function isNameCharacterAt(source: string, index: number): boolean {
+  const character = source[index];
+  if (character === undefined) return false;
+  return (
+    (character >= "a" && character <= "z") ||
+    (character >= "A" && character <= "Z") ||
+    NAME_CHARACTERS.includes(character)
+  );
+}
 
 function getBlockBody(source: string, from: number): string {
   const start = source.indexOf("{", from);
@@ -127,51 +156,139 @@ export type ComputedKeyFamily = {
  * spelling carries which of its captures holds what, since the order of the
  * groups is exactly what differs.
  */
-type DefaultBranchShape = {
-  pattern: RegExp;
-  groups: { marker: number; markerAt: number; markerLength: number; dealtSign: number };
-};
+type DefaultBranchField = "marker" | "markerAt" | "markerLength" | "dealtSign";
 
-const SEGMENT_KEY = String.raw`\w+\[0\]`;
+/**
+ * One piece of a shape, in the order it is read.
+ *
+ * This is the pattern spelled as a list, and it says outright what the pattern
+ * said by counting: a capture carries the name of the field it holds, so the two
+ * spellings below no longer have to be followed by a table of group numbers that
+ * only differ from each other. Nothing here backtracks and nothing needs to —
+ * every run is over a class the piece after it is not in.
+ */
+type ShapeStep =
+  | { kind: "text"; text: string }
+  /** `\w+[0]` — the segment, indexed at its first character. Not captured. */
+  | { kind: "segmentKey" }
+  | { kind: "quoted"; field: DefaultBranchField }
+  | { kind: "digits"; field: DefaultBranchField };
 
-const DEFAULT_BRANCH_SHAPES: readonly DefaultBranchShape[] = [
-  {
-    pattern: new RegExp(
-      String.raw`default:${SEGMENT_KEY}\.substr\((\d+),(\d+)\)==${QUOTED_LITERAL}\?${SEGMENT_KEY}\.charAt\(0\)==${QUOTED_LITERAL}`,
-    ),
-    groups: { markerAt: 1, markerLength: 2, marker: 3, dealtSign: 4 },
-  },
-  {
-    pattern: new RegExp(
-      String.raw`default:${QUOTED_LITERAL}==${SEGMENT_KEY}\.substr\((\d+),(\d+)\)\?${QUOTED_LITERAL}==${SEGMENT_KEY}\.charAt\(0\)`,
-    ),
-    groups: { marker: 1, markerAt: 2, markerLength: 3, dealtSign: 4 },
-  },
+const DEFAULT_BRANCH_SHAPES: readonly (readonly ShapeStep[])[] = [
+  [
+    { kind: "text", text: "default:" },
+    { kind: "segmentKey" },
+    { kind: "text", text: ".substr(" },
+    { kind: "digits", field: "markerAt" },
+    { kind: "text", text: "," },
+    { kind: "digits", field: "markerLength" },
+    { kind: "text", text: ")==" },
+    { kind: "quoted", field: "marker" },
+    { kind: "text", text: "?" },
+    { kind: "segmentKey" },
+    { kind: "text", text: ".charAt(0)==" },
+    { kind: "quoted", field: "dealtSign" },
+  ],
+  [
+    { kind: "text", text: "default:" },
+    { kind: "quoted", field: "marker" },
+    { kind: "text", text: "==" },
+    { kind: "segmentKey" },
+    { kind: "text", text: ".substr(" },
+    { kind: "digits", field: "markerAt" },
+    { kind: "text", text: "," },
+    { kind: "digits", field: "markerLength" },
+    { kind: "text", text: ")?" },
+    { kind: "quoted", field: "dealtSign" },
+    { kind: "text", text: "==" },
+    { kind: "segmentKey" },
+    { kind: "text", text: ".charAt(0)" },
+  ],
 ];
 
+/** The shape read straight through from `start`, or null at the first piece that does not hold. */
+function getFieldsAt(
+  bundle: string,
+  start: number,
+  steps: readonly ShapeStep[],
+): Map<DefaultBranchField, string> | null {
+  const fields = new Map<DefaultBranchField, string>();
+  let index = start;
+
+  for (const step of steps) {
+    if (step.kind === "text") {
+      if (!bundle.startsWith(step.text, index)) return null;
+      index += step.text.length;
+      continue;
+    }
+    if (step.kind === "segmentKey") {
+      const name = getEndOfWordCharacters(bundle, index);
+      if (name === index || !bundle.startsWith(SEGMENT_INDEX, name)) return null;
+      index = name + SEGMENT_INDEX.length;
+      continue;
+    }
+    if (step.kind === "digits") {
+      const digits = getEndOfDigits(bundle, index);
+      if (digits === index) return null;
+      fields.set(step.field, bundle.slice(index, digits));
+      index = digits;
+      continue;
+    }
+    const quoted = getQuotedLiteral(bundle, index);
+    if (quoted === null) return null;
+    fields.set(step.field, quoted.text);
+    index = quoted.end;
+  }
+
+  return fields;
+}
+
+/** The first place in the bundle where the shape holds, read whole. */
+function getFieldsFromShape(
+  bundle: string,
+  steps: readonly ShapeStep[],
+): Map<DefaultBranchField, string> | null {
+  const head = steps[0];
+  // Every shape opens with a literal, which is what the search hunts for. A
+  // shape that did not could still be read — at every position — and the cost of
+  // that over two megabytes is why this refuses instead.
+  if (head === undefined || head.kind !== "text") {
+    throw new ProtocolKeyTableError("a default-branch shape has to open with text");
+  }
+
+  for (
+    let at = bundle.indexOf(head.text);
+    at !== -1;
+    at = bundle.indexOf(head.text, at + 1)
+  ) {
+    const fields = getFieldsAt(bundle, at, steps);
+    if (fields !== null) return fields;
+  }
+  return null;
+}
+
 export function getComputedKeyFamily(bundle: string): ComputedKeyFamily {
-  const shape = DEFAULT_BRANCH_SHAPES.map((one) => ({ one, match: one.pattern.exec(bundle) })).find(
-    (tried): tried is { one: DefaultBranchShape; match: RegExpExecArray } => tried.match !== null,
+  const fields = DEFAULT_BRANCH_SHAPES.map((steps) => getFieldsFromShape(bundle, steps)).find(
+    (read): read is Map<DefaultBranchField, string> => read !== null,
   );
-  const match = shape?.match ?? null;
-  if (match === null) {
+  if (fields === undefined) {
     throw new ProtocolKeyTableError(
       "no computed key family in the default branch — the client changed how it routes keys",
     );
   }
-  // That the groups exist is ours to guarantee — the pattern captured them. What
-  // the client wrote inside them is not, so the offsets are refused rather than
-  // coerced: `Number()` on a mangled group would hand back a plausible index.
-  const groups = assertDefined(shape, "a shape matched, so it says where its captures are").one
-    .groups;
-  const marker = assertDefined(match[groups.marker], "the shape captures the marker");
+
+  // That the fields are there is ours to guarantee — the shape read them all or
+  // it read none. What the client wrote inside them is not, so the offsets are
+  // refused rather than coerced: `Number()` on a mangled field would hand back a
+  // plausible index.
+  const marker = assertDefined(fields.get("marker"), "the shape reads the marker");
+  const dealtSign = assertDefined(fields.get("dealtSign"), "the shape reads the dealt sign");
   const markerAt = getIntegerFromText(
-    assertDefined(match[groups.markerAt], "the shape captures the offset"),
+    assertDefined(fields.get("markerAt"), "the shape reads the offset"),
   );
   const markerLength = getIntegerFromText(
-    assertDefined(match[groups.markerLength], "the shape captures the marker length"),
+    assertDefined(fields.get("markerLength"), "the shape reads the marker length"),
   );
-  const dealtSign = assertDefined(match[groups.dealtSign], "the shape captures the dealt sign");
 
   if (markerAt === null || markerLength === null) {
     throw new ProtocolKeyTableError(
@@ -179,6 +296,46 @@ export function getComputedKeyFamily(bundle: string): ComputedKeyFamily {
     );
   }
   return { marker, markerAt, markerLength, dealtSign };
+}
+
+/**
+ * Where the switch subject's name begins, at or after `from`.
+ *
+ * Found by its tail and then walked back, because the name is what a minifier
+ * renames and the tail is what it cannot: the earliest `[0]){` with a name in
+ * front of it is the earliest place the shape holds, which is what the pattern
+ * here answered. The walk back stops at `from` — a name running in from before
+ * the anchor is not this switch's.
+ */
+function getSwitchSubjectStart(bundle: string, from: number): number | null {
+  for (
+    let at = bundle.indexOf(SWITCH_SUBJECT_TAIL, from);
+    at !== -1;
+    at = bundle.indexOf(SWITCH_SUBJECT_TAIL, at + 1)
+  ) {
+    let start = at;
+    while (start > from && isNameCharacterAt(bundle, start - 1)) start -= 1;
+    if (start < at) return start;
+  }
+  return null;
+}
+
+/** Every `case"key":` label in the switch body, in the order it states them. */
+function getCaseLabels(body: string): string[] {
+  const labels: string[] = [];
+  let from = 0;
+  for (;;) {
+    const at = body.indexOf(CASE_KEYWORD, from);
+    if (at === -1) return labels;
+
+    const quoted = getQuotedLiteral(body, at + CASE_KEYWORD.length);
+    if (quoted === null || body[quoted.end] !== LABEL_TERMINATOR) {
+      from = at + 1;
+      continue;
+    }
+    labels.push(quoted.text);
+    from = quoted.end + 1;
+  }
 }
 
 export function getProtocolKeys(bundle: string): string[] {
@@ -192,16 +349,14 @@ export function getProtocolKeys(bundle: string): string[] {
   // Searched from the anchor rather than over the whole bundle: `x[0]){` is an
   // ordinary shape, and the first one in a two-megabyte file belongs to whatever
   // happens to be earliest, not to this switch.
-  const found = SWITCH_SUBJECT.exec(bundle.slice(anchor));
-  if (found === null) {
+  const subject = getSwitchSubjectStart(bundle, anchor);
+  if (subject === null) {
     throw new ProtocolKeyTableError(
       `${SWITCH_ANCHOR} found but not the switch on the segment key`,
     );
   }
-  const subject = anchor + found.index;
 
-  const keys = [...getBlockBody(bundle, subject).matchAll(CASE_LABEL)].map((match) => match[1]);
-  const distinct = [...new Set(keys)].filter((key): key is string => key !== undefined);
+  const distinct = [...new Set(getCaseLabels(getBlockBody(bundle, subject)))];
   if (distinct.length === 0) throw new ProtocolKeyTableError("the switch has no case labels");
   return distinct.sort();
 }

@@ -18,11 +18,13 @@ import {
   getEndOfAlphanumerics,
   getEndOfDigits,
   getEndOfWhitespace,
+  getEndOfWordCharacters,
   hasDigitsAt,
   isAlphanumericAt,
   isDigitAt,
   isHexadecimalDigitAt,
   isWhitespaceAt,
+  isWordCharacterAt,
   isWordStart,
 } from "@/libs/text-runs.ts";
 
@@ -121,6 +123,27 @@ describe("a run of a stated length", () => {
   // what follows.
   test("one longer is not refused here", () => {
     expect(hasDigitsAt("20261", 0, 4)).toBe(true);
+  });
+});
+
+/**
+ * A word character is a letter, a digit or an underscore — the class a pattern
+ * spelled `\w`, and one wider than the letters and digits above it. The
+ * underscore is the whole of the difference and is why both classes exist.
+ */
+describe("a word character", () => {
+  test.each(["a", "Z", "0", "9", "_"])("%p is one", (character) => {
+    expect(isWordCharacterAt(character, 0)).toBe(true);
+  });
+
+  test.each(["$", "-", ".", " ", "["])("%p is not", (character) => {
+    expect(isWordCharacterAt(character, 0)).toBe(false);
+  });
+
+  test("a run stops where the class does", () => {
+    expect(getEndOfWordCharacters("a_1$", 0)).toBe(3);
+    expect(getEndOfWordCharacters("$a", 0)).toBe(0);
+    expect(getEndOfWordCharacters("", 0)).toBe(0);
   });
 });
 

@@ -260,10 +260,14 @@ function writeFightReport(fight: CapturedFight): void {
  * as `FightDumpFormat`, which is the point of reading it with the captures' own
  * reader — a file this tool accepts is one intake would accept.
  */
+const DUMP_EXTENSION = ".json";
+
 export function getFightAt(path: string): CapturedFight {
   if (!existsSync(path)) throw new FightReportError(`${path} is not there`);
   return composeCapturedFight(
-    basename(path).replace(/\.json$/, ""),
+    // `basename` takes the suffix off itself, which is the whole of what the
+    // pattern here did — and it takes it only when it is really the suffix.
+    basename(path, DUMP_EXTENSION),
     parseFightDump(readFileSync(path, "utf8")),
   );
 }

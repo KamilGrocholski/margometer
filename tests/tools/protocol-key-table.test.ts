@@ -108,6 +108,18 @@ describe("extracting the table", () => {
     );
   });
 
+  /**
+   * A `case` whose literal is not followed by a colon is not a label — a call
+   * like `f(case)` cannot occur, but `x.case"y"` can be composed by a bundler,
+   * and reading it would put a word that is not a key into the frozen table.
+   * Found by mutating the reader on 2026-08-27 and watching every test stay
+   * green.
+   */
+  test("a literal after `case` with no colon is not a label", () => {
+    const bundle = 'x.manageBattleEffects(a,b);switch(q,O[0]){case"beta" ;case"alpha":y()}';
+    expect(getProtocolKeys(bundle)).toEqual(["alpha"]);
+  });
+
   test("reads case labels out of a switch shaped like the client's", () => {
     const bundle = `x.manageBattleEffects(a,b);switch(q,O[0]){case"beta":x();case"alpha":y()}`;
     expect(getProtocolKeys(bundle)).toEqual(["alpha", "beta"]);

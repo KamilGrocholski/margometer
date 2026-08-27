@@ -104,12 +104,23 @@ export function getEndOfWhitespace(text: string, start: number): number {
   return index;
 }
 
+/** One letter, digit or underscore at `index` — a pattern's `\w`. */
+export function isWordCharacterAt(text: string, index: number): boolean {
+  return isAlphanumericAt(text, index) || text[index] === "_";
+}
+
+/** Where the word characters starting at `start` stop. */
+export function getEndOfWordCharacters(text: string, start: number): number {
+  let index = start;
+  while (isWordCharacterAt(text, index)) index += 1;
+  return index;
+}
+
 /**
  * Whether a word begins at `start` — nothing before it that a word could
- * continue from. JavaScript's `\b`, for the one caller that needs it.
+ * continue from. A pattern's `\b` before a word character, for the callers that
+ * need it.
  */
 export function isWordStart(text: string, start: number): boolean {
-  const before = text[start - 1];
-  if (before === undefined) return true;
-  return !isAlphanumericAt(text, start - 1) && before !== "_";
+  return start === 0 || !isWordCharacterAt(text, start - 1);
 }

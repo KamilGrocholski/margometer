@@ -28,6 +28,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
 import { composeIntegerText, getIntegerFromText, getIntegerFromValue } from "@/libs/number.ts";
+import { getEndOfWhitespace, isWhitespaceAt } from "@/libs/text-runs.ts";
 import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
 import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
 
@@ -85,22 +86,136 @@ function getArticleUrl(article: string): string {
   return `${HELP_HOST}/index/view,${article}`;
 }
 
+const TAG_OPEN = "<";
+const TAG_CLOSE = ">";
+const TAG_TERMINATOR = "/";
+const LOWER_CASE_OFFSET = 32;
+
+/** Elements whose body is text to a browser and machinery to a reader. */
+const RAW_TEXT_ELEMENTS = ["script", "style"];
+
 /**
- * HTML to text. Script and style bodies go first: strip the tags before their
- * contents and the code stays in the output, where a search hits page machinery
- * and reports it as documentation.
+ * The named entities this page uses, in the order they are substituted.
+ *
+ * ⚠️ **The order is the meaning, not a tidy list.** Each pass runs over what the
+ * one before it produced, so `&amp;lt;` becomes `&lt;` and then `<`. A single
+ * pass over the original would stop at `&lt;`, which is a different answer to
+ * the same input.
  */
+const ENTITIES: readonly [string, string][] = [
+  ["&nbsp;", " "],
+  ["&nbsp", " "],
+  ["&amp;", "&"],
+  ["&lt;", "<"],
+  ["&gt;", ">"],
+  ["&quot;", '"'],
+];
+
+/** ASCII case folding, and only ASCII — a tag name has nothing else in it. */
+function isSameAsciiTextAt(text: string, from: number, expected: string): boolean {
+  for (let index = 0; index < expected.length; index += 1) {
+    const character = text[from + index];
+    if (character === undefined) return false;
+    const folded =
+      character >= "A" && character <= "Z"
+        ? String.fromCharCode(character.charCodeAt(0) + LOWER_CASE_OFFSET)
+        : character;
+    if (folded !== expected[index]) return false;
+  }
+  return true;
+}
+
+/** Which raw-text element opens at `open`, and where its opening tag ends. */
+function getRawTextOpening(html: string, open: number): { name: string; end: number } | null {
+  for (const name of RAW_TEXT_ELEMENTS) {
+    if (!isSameAsciiTextAt(html, open + 1, name)) continue;
+    // Everything up to the first `>` belongs to the opening tag, attributes and
+    // all — and a name this run out of is still this element, which is what the
+    // pattern said by putting `[^>]*` behind the name rather than a boundary.
+    const close = html.indexOf(TAG_CLOSE, open + 1);
+    if (close === -1) return null;
+    return { name, end: close + 1 };
+  }
+  return null;
+}
+
+/** Where the matching `</name>` ends, or null where there is none. */
+function getRawTextClosing(html: string, from: number, name: string): number | null {
+  for (let index = from; index < html.length; index += 1) {
+    if (html[index] !== TAG_OPEN || html[index + 1] !== TAG_TERMINATOR) continue;
+    if (!isSameAsciiTextAt(html, index + 2, name)) continue;
+    if (html[index + 2 + name.length] !== TAG_CLOSE) continue;
+    return index + 2 + name.length + 1;
+  }
+  return null;
+}
+
+/**
+ * Script and style bodies out, tag and contents together.
+ *
+ * They go first because stripping the tags before their contents leaves the code
+ * in the output, where a search hits page machinery and reports it as
+ * documentation.
+ */
+function composeWithoutRawTextElements(html: string): string {
+  let kept = "";
+  let from = 0;
+  for (let open = html.indexOf(TAG_OPEN); open !== -1; open = html.indexOf(TAG_OPEN, from)) {
+    const opening = getRawTextOpening(html, open);
+    const end = opening === null ? null : getRawTextClosing(html, opening.end, opening.name);
+    // An opening with no closing is not an element. The search resumes one
+    // character in, which is where the pattern resumed after failing to match.
+    if (end === null) {
+      kept += html.slice(from, open + 1);
+      from = open + 1;
+      continue;
+    }
+    kept += `${html.slice(from, open)} `;
+    from = end;
+  }
+  return kept + html.slice(from);
+}
+
+/** Every remaining tag out. `<>` is not one — the pattern wanted a character in it. */
+function composeWithoutTags(html: string): string {
+  let kept = "";
+  let from = 0;
+  for (let open = html.indexOf(TAG_OPEN); open !== -1; open = html.indexOf(TAG_OPEN, from)) {
+    const close = html.indexOf(TAG_CLOSE, open + 1);
+    if (close === -1 || close === open + 1) {
+      kept += html.slice(from, open + 1);
+      from = open + 1;
+      continue;
+    }
+    kept += `${html.slice(from, open)} `;
+    from = close + 1;
+  }
+  return kept + html.slice(from);
+}
+
+/** Every run of whitespace down to one space, and none at either end. */
+function composeCollapsedWhitespace(text: string): string {
+  let collapsed = "";
+  let from = 0;
+  let index = 0;
+  while (index < text.length) {
+    if (!isWhitespaceAt(text, index)) {
+      index += 1;
+      continue;
+    }
+    const end = getEndOfWhitespace(text, index);
+    collapsed += `${text.slice(from, index)} `;
+    from = end;
+    index = end;
+  }
+  return `${collapsed}${text.slice(from)}`.trim();
+}
+
+/** HTML to text, in the order the steps have always run in. */
 export function getTextFromHtml(html: string): string {
-  return html
-    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;?/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, " ")
-    .trim();
+  let text = composeWithoutTags(composeWithoutRawTextElements(html));
+  for (const [entity, character] of ENTITIES) text = text.split(entity).join(character);
+  return composeCollapsedWhitespace(text);
 }
 
 export function getOccurrenceCount(text: string, phrase: string): number {

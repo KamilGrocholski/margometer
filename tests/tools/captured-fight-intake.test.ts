@@ -250,6 +250,23 @@ describe("the file that comes out", () => {
   test("refuses a name that would not read as a file name", () => {
     expect(() => composeIntakePath(composeRecording({}), "Not A Slug")).toThrow(/kebab-case/);
   });
+
+  /**
+   * Both ends of the hyphen rule, and the trailing one is why this is here: it
+   * composes a filename with a double hyphen in it, which reads as a field that
+   * went missing rather than as a name somebody typed wrong. Found by mutating
+   * the reader on 2026-08-27 and watching every test stay green.
+   */
+  test.each(["-lowca", "lowca-", "lowca--vs", "-", "", "Lowca", "lowca_vs"])(
+    "refuses %p",
+    (slug) => {
+      expect(() => composeIntakePath(composeRecording({}), slug)).toThrow(/kebab-case/);
+    },
+  );
+
+  test.each(["lowca", "lowca-vs-odyncze", "a1", "2026-08-27-x"])("accepts %p", (slug) => {
+    expect(composeIntakePath(composeRecording({}), slug)).toContain(slug);
+  });
 });
 
 /**
