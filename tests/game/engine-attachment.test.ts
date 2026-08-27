@@ -2008,6 +2008,9 @@ describe("a new fight and the level the reader was on", () => {
         isEverySlotPinned: false,
         hasChoiceRefused: false,
       }),
+      // The same fight either way: a shelf holding one opens on it, and this is
+      // the one the reader would reach by pressing its row.
+      getOpeningReading: () => reading,
       onFightChosen: () => ({ reading, isLive: false }),
       onPinToggled: (): void => {},
       onStorageChosen: (): void => {},

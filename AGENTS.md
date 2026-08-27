@@ -609,8 +609,9 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
                            The three places, and a browser refusing every one of
                            the three calls.
   userscript-entry.test.ts Where a finished fight goes, what the reader is told
-                           when it does not go anywhere, and what a reader
-                           reading an old one sees while a new one is counted.
+                           when it does not go anywhere, what a reader reading an
+                           old one sees while a new one is counted, and which
+                           fight a page that has just loaded opens on.
   captured-fights/         Raw protocol from real fights. Evidence — §9.2.
   captured-fight-catalog.ts   Discovers it: each capture, health per combatant,
                               the rosters per call and per fight, and the fight as

@@ -763,11 +763,14 @@ export type FightKeeper = {
  * it, and what the reader is told when a fight could not be kept. All of it is
  * checkable with a store that is a map and a clock that is a function.
  *
- * ⚠️ **A fight is decoded when it is opened and never before.** Ten kept fights
- * folded on page load is 20–70 ms of somebody else's game
+ * ⚠️ **One fight is folded on page load, and the rest when they are opened.**
+ * Ten kept fights folded at once is 20–70 ms of somebody else's game
  * (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`), spent on nine screens
- * nobody asked for. The shelf itself needs no decoding at all — a row is a time,
- * a headcount and an outcome, and all three are in the stored fight.
+ * nobody asked for. The one is `getOpeningReading`'s, and it is the screen the
+ * reader is looking at rather than nine they are not
+ * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`). The shelf
+ * itself needs no folding at all — a row is a time, a headcount and an outcome,
+ * and all three are in the stored fight.
  */
 export function composeFightKeeper(
   page: HostPage,
@@ -809,6 +812,39 @@ export function composeFightKeeper(
   const getFightKeptAndLive = (live: FightReading | null): KeptFight | undefined => {
     if (live === null || live.fightsStarted !== fightBeingKept) return undefined;
     return fights.find((held) => held.id === idBeingKept);
+  };
+
+  /**
+   * The fight the panel opens on where no payload has arrived: the newest kept
+   * one, or nothing.
+   *
+   * ⚠️ **Both halves of the answer read this, which is what keeps them
+   * agreeing.** `getOpeningReading` is what the panel draws after a reload and
+   * the row rule in `getFights` is what marks it on the shelf; written twice,
+   * they would be a shelf marking a row the panel is not showing
+   * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`).
+   *
+   * It stops answering the moment either half of the condition moves — a payload
+   * arrives, so the live fight is what the panel follows, or the reader chooses
+   * one, so their choice is what is on screen.
+   */
+  const getOpeningFight = (live: FightReading | null): KeptFight | undefined =>
+    live === null && chosenId === null ? fights[0] : undefined;
+
+  /**
+   * One kept fight folded, once however often it is asked for.
+   *
+   * A function rather than four lines at each caller: there are two of them now —
+   * the fight a reader chooses and the fight the panel opens on (§7.1) — and a
+   * second copy would be a second cache neither knows about, so a fight opened
+   * both ways would be folded twice and draw two objects the panel holds apart.
+   */
+  const getReadingOfFight = (fight: KeptFight): FightReading => {
+    const held = readingById.get(fight.id);
+    if (held !== undefined) return held;
+    const reading = composeFightReading(composeSessionFromKeptFight(fight));
+    readingById.set(fight.id, reading);
+    return reading;
   };
 
   /**
@@ -869,9 +905,15 @@ export function composeFightKeeper(
         hasChoiceRefused,
       }),
 
+      getOpeningReading: () => {
+        const opening = getOpeningFight(getLiveReading());
+        return opening === undefined ? null : getReadingOfFight(opening);
+      },
+
       getFights: () => {
         const live = getLiveReading();
         const alsoKept = getFightKeptAndLive(live);
+        const opening = getOpeningFight(live);
         const rows: PanelKeptFight[] = [];
         if (live !== null) {
           /*
@@ -901,7 +943,10 @@ export function composeFightKeeper(
             isLive: false,
             isPinnable: true,
             isPinned: fight.isPinned,
-            isSelected: chosenId === fight.id,
+            // Either the reader chose it, or it is the fight the panel opened
+            // on — and the second is why a reload does not mark nothing while a
+            // fight is on screen.
+            isSelected: chosenId === fight.id || fight.id === opening?.id,
             at: getClockFromIsoText(fight.keptAt),
             place: fight.place,
             sideCounts: composeSideCounts(fight.combatants, fight.ourSide),
@@ -924,11 +969,7 @@ export function composeFightKeeper(
         if (fight === undefined) return { reading: null, isLive: chosenId === null };
 
         chosenId = id;
-        const held = readingById.get(id);
-        if (held !== undefined) return { reading: held, isLive: false };
-        const reading = composeFightReading(composeSessionFromKeptFight(fight));
-        readingById.set(id, reading);
-        return { reading, isLive: false };
+        return { reading: getReadingOfFight(fight), isLive: false };
       },
 
       onPinToggled: (id) => {
@@ -1008,6 +1049,17 @@ function getClockFromIsoText(text: string): { hour: number; minute: number } | n
  * yesterday's heading.
  */
 export type PanelShelf = {
+  /**
+   * What the panel opens on, folded — the newest kept fight, or null where
+   * nothing is kept.
+   *
+   * Asked once, at the mount, and the only fold this add-on pays for on a page
+   * load. Before it the panel met a reader who had just reloaded with *nie było
+   * jeszcze walki*, while their last twenty fights sat in the store behind a
+   * screen and a click
+   * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`).
+   */
+  getOpeningReading: () => FightReading | null;
   getFights: () => PanelKeptFight[];
   getReading: () => PanelFightsReading;
   /** Null where the fight will no longer read, which is a fight to stop showing. */
@@ -1160,16 +1212,33 @@ export function composePanelMount(
     ...defaults,
     isCollapsed: getStoredCollapse(store) ?? defaults.isCollapsed,
   };
-  let latest: FightReading | null = null;
   /**
-   * Whether what is drawn is the fight the payloads are about.
+   * The fight on screen before a payload has arrived: the newest one kept, or
+   * nothing, which is the waiting body.
+   *
+   * ⚠️ **Drawn, and still not chosen** — which is why the flag below stays true
+   * over it. A reader who reloads did not ask for this fight; they asked for the
+   * panel, and this is the most recent thing it can honestly put in it. So the
+   * next payload takes the screen, and the shelf marks this fight only for as
+   * long as no payload has arrived
+   * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`).
+   */
+  let latest: FightReading | null = shelf?.getOpeningReading() ?? null;
+  /**
+   * Whether the next payload takes the screen.
    *
    * False the moment a fight is chosen off the shelf, and true again when the
    * live one is. Without it a payload arriving while somebody reads a finished
    * fight replaces their screen with numbers from a different fight, under the
    * heading of the one they asked for.
+   *
+   * ⚠️ **Not *whether the live fight is what is drawn*, which is what it was
+   * called and what it never quite meant.** It is true over the fight above,
+   * which is a kept one, because what the flag decides is whose fight the *next*
+   * payload belongs on screen — and a fight nobody chose does not outrank the one
+   * the reader is in.
    */
-  let isShowingLive = true;
+  let isFollowingLive = true;
   let failuresThisFight = 0;
   let fightBeingCounted = 0;
   /** Per fight, like the counter above and cleared on the same boundary. */
@@ -1209,7 +1278,7 @@ export function composePanelMount(
         {
           onFightChosen: (id) => {
             const chosen = drawn.onFightChosen(id);
-            isShowingLive = chosen.isLive;
+            isFollowingLive = chosen.isLive;
             // A fight that will no longer read leaves the panel on the one it was
             // showing rather than blanking it (§9.6: never vanish). The shelf is
             // what says so, by no longer listing it.
@@ -1324,7 +1393,7 @@ export function composePanelMount(
        * through `composeStateAfterFightChosen`, which drops the levels anyway
        * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F2).
        */
-      if (isShowingLive) state = { ...state, ...composeStateAfterFightStart() };
+      if (isFollowingLive) state = { ...state, ...composeStateAfterFightStart() };
     }
 
     /**
@@ -1349,7 +1418,7 @@ export function composePanelMount(
     // Not drawn while somebody is reading a fight off the shelf. The shelf hands
     // the live reading back when they choose that row again — it asks the meter,
     // which has it, rather than this keeping a second copy of one.
-    if (isShowingLive) latest = reading;
+    if (isFollowingLive) latest = reading;
     renderLatest();
   };
 }

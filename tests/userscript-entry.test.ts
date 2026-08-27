@@ -1,7 +1,8 @@
 /**
  * What happens to a fight once it is over: where it goes, what it costs, what the
- * reader is told when it does not go anywhere, and what a reader reading one is
- * shown while the next fight is being counted.
+ * reader is told when it does not go anywhere, what a reader reading one is shown
+ * while the next fight is being counted, and which of them a page that has just
+ * loaded opens on.
  *
  * All of it runs against a store that is a map and a clock that is a function, so
  * the rules are checkable without a browser — which is the whole reason the
@@ -15,6 +16,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   composeFightKeeper,
+  composePanelMount,
   composeStoredTextFromSettings,
   getSettingsFromStoredText,
   type FightKeeper,
@@ -311,6 +313,170 @@ describe("a fight read back off the shelf", () => {
     expect(outcome).not.toBeNull();
     keeper.setFightKept(session, outcome);
     expect(keeper.shelf.getFights()[0]?.outcome).not.toBeNull();
+  });
+});
+
+/**
+ * What the panel opens on before a payload has arrived, and what says so.
+ *
+ * Both halves are asked of the same keeper on purpose: the reading is what the
+ * panel draws and the mark is what the shelf says about it, and the failure this
+ * guards is the two disagreeing — a shelf marking a row the panel is not showing
+ * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`).
+ */
+describe("what a page that has just loaded opens on", () => {
+  test("the newest fight kept, folded to what that fight itself folded to", () => {
+    const { keeper } = composeKeeper();
+    const { session, outcome } = composeFinished(GROUP_FIGHT, 1);
+    keeper.setFightKept(session, outcome);
+
+    const opened = keeper.shelf.getOpeningReading();
+    expect(opened).not.toBeNull();
+    expect(opened?.statistics).toEqual(composeFightReading(session).statistics);
+  });
+
+  test("nothing at all, where nothing was kept", () => {
+    expect(composeKeeper().keeper.shelf.getOpeningReading()).toBeNull();
+  });
+
+  test("the newest, where several were kept", () => {
+    const { keeper } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    setKept(keeper, DUEL, 2);
+    const newest = keeper.shelf.getFights()[0]!.id;
+    expect(keeper.shelf.getOpeningReading()).toBe(keeper.shelf.onFightChosen(newest).reading);
+  });
+
+  /** One fold for a page load, whichever way the fight is reached afterwards. */
+  test("is folded once, however it is reached", () => {
+    const { keeper } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    const opened = keeper.shelf.getOpeningReading();
+    const id = keeper.shelf.getFights()[0]!.id;
+    expect(keeper.shelf.onFightChosen(id).reading).toBe(opened);
+  });
+
+  test("is the row the shelf marks", () => {
+    const { keeper } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    setKept(keeper, DUEL, 2);
+    const rows = keeper.shelf.getFights();
+    expect(rows[0]?.isSelected).toBe(true);
+    expect(rows[1]?.isSelected).toBe(false);
+  });
+
+  /** A payload arrives and the fight the reader is in is the one that is marked. */
+  test("stops being either the moment a payload arrives", () => {
+    const { keeper, setLive } = composeKeeper();
+    setKept(keeper, DUEL, 1);
+    setLive(composeFightReading({ ...composeSessionOfCapture(GROUP_FIGHT), fightsStarted: 2 }));
+
+    expect(keeper.shelf.getOpeningReading()).toBeNull();
+    const rows = keeper.shelf.getFights();
+    expect(rows[0]?.isLive).toBe(true);
+    expect(rows[0]?.isSelected).toBe(true);
+    expect(rows[1]?.isSelected).toBe(false);
+  });
+
+  test("a fight the reader chose is what is marked instead", () => {
+    const { keeper } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    setKept(keeper, DUEL, 2);
+    const older = keeper.shelf.getFights()[1]!.id;
+    keeper.shelf.onFightChosen(older);
+
+    const rows = keeper.shelf.getFights();
+    expect(rows[0]?.isSelected).toBe(false);
+    expect(rows[1]?.isSelected).toBe(true);
+    expect(keeper.shelf.getOpeningReading()).toBeNull();
+  });
+});
+
+/**
+ * The same rule from the other end: the panel itself, mounted over a shelf that
+ * holds a fight, and the words it puts on screen.
+ *
+ * ⚠️ **The sentences are spelled here rather than read back from
+ * `src/ui/panel-view.ts`.** A test that reads a string out of the module that
+ * writes it holds the two to be the same and neither to be right (§7.5), and
+ * what is being checked is precisely which of two screens a reader meets.
+ *
+ * `10 vs 1` and `1 vs 1` are the two recordings' own headcounts, as
+ * `docs/captured-fights.md` records them — so the assertion is about which fight
+ * is drawn and not about how a header is worded.
+ */
+describe("the panel drawn on a page that has just loaded", () => {
+  /** A document that keeps every word written into it, and nothing else. */
+  function composePageThatRecordsText(): {
+    drawn: string[];
+    page: Parameters<typeof composePanelMount>[0];
+  } {
+    const drawn: string[] = [];
+    const composeNode = (): Record<string, unknown> => {
+      const node: Record<string, unknown> = {
+        className: "",
+        id: "",
+        title: "",
+        setAttribute: (): void => {},
+        style: { setProperty: (): void => {} },
+        append: (): void => {},
+        replaceChildren: (): void => {},
+        addEventListener: (): void => {},
+        attachShadow: (): unknown => composeNode(),
+      };
+      Object.defineProperty(node, "textContent", {
+        get: () => "",
+        set: (text: string) => void drawn.push(text),
+      });
+      return node;
+    };
+    return {
+      drawn,
+      page: {
+        document: {
+          createElement: (): unknown => composeNode(),
+          body: { append: (): void => {} },
+        },
+      },
+    };
+  }
+
+  test("draws the last fight kept, where the panel would have said there was none", () => {
+    const { keeper } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    const { drawn, page } = composePageThatRecordsText();
+
+    composePanelMount(page, (): void => {}, undefined, undefined, keeper.shelf);
+
+    expect(drawn).toContain("10 vs 1");
+    expect(drawn).not.toContain("Nie było jeszcze walki.");
+  });
+
+  test("says there has been none, where nothing was kept", () => {
+    const { keeper } = composeKeeper();
+    const { drawn, page } = composePageThatRecordsText();
+
+    composePanelMount(page, (): void => {}, undefined, undefined, keeper.shelf);
+
+    expect(drawn).toContain("Nie było jeszcze walki.");
+  });
+
+  /**
+   * The fight nobody chose gives the screen up to the one the reader is in — a
+   * meter drawing yesterday's numbers during a fight is the failure this whole
+   * behaviour is bounded by.
+   */
+  test("the first payload of the next fight takes the screen", () => {
+    const { keeper } = composeKeeper();
+    setKept(keeper, GROUP_FIGHT, 1);
+    const { drawn, page } = composePageThatRecordsText();
+    const render = composePanelMount(page, (): void => {}, undefined, undefined, keeper.shelf)!;
+
+    drawn.length = 0;
+    render(composeFightReading({ ...composeSessionOfCapture(DUEL), fightsStarted: 2 }));
+
+    expect(drawn).toContain("1 vs 1");
+    expect(drawn).not.toContain("10 vs 1");
   });
 });
 

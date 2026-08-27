@@ -36,6 +36,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Po odświeżeniu strony panel pokazuje ostatnią zapisaną walkę
+  zamiast napisu, że walki jeszcze nie było. Na liście `☰` ta walka jest
+  zaznaczona, żeby było widać, którą masz na ekranie. Kiedy zaczniesz następną,
+  panel sam przechodzi na nią.
+
 - **Nowość** — Panel czyta trzy rzeczy, które dotąd pokazywał tak, jak zapisała
   je gra: bandażowanie ran, potężne ogłuszenie mrozem oraz obrażenia od trucizny
   zadane komuś obok głównego celu. Liczby były i wcześniej — teraz mają nazwy.
