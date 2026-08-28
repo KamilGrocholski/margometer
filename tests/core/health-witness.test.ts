@@ -9,6 +9,7 @@
 import { assert, assertEquals } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import {
+    composeTeamHeals,
     getHealthFromPercent,
     getHealthToleranceFromMaximum,
     getStatedHealthFromEvent,
@@ -98,10 +99,18 @@ function witnessRecording(path: string, reading: WitnessReading): void {
     );
     const percentById = new Map<number, number>();
     const pendingById = new Map<number, number>();
-    for (const payload of payloads) {
-        for (const message of payload) {
+    // Every message decoded once, kept in order, so a cast stated about a side can be sized over
+    // the whole fight and still applied at the message it landed on.
+    const byMessage = payloads.flatMap((one) => one.map((message) => [message, one] as const))
+        .map(([message]) => decodeFightMessages([message], roster));
+    const heals = composeTeamHeals(byMessage.flat(), roster);
+    for (const events of byMessage) {
+        {
             const statedHere = new Map<number, number>();
-            for (const event of decodeFightMessages([message], roster)) {
+            for (const event of events) {
+                for (const [id, amount] of heals.get(event)?.restoredByCombatantId ?? []) {
+                    pendingById.set(id, (pendingById.get(id) ?? 0) + amount);
+                }
                 for (const [id, amount] of getMovedHealth(event)) {
                     pendingById.set(id, (pendingById.get(id) ?? 0) + amount);
                 }
@@ -143,9 +152,11 @@ Deno.test("what was read agrees with the health the protocol states about itself
     for (const path of getRecordingPaths()) witnessRecording(path, reading);
     assert(reading.compared > 1000, "the recordings state health often enough to be checked");
     assertEquals(reading.unexplained, [], "a disagreement with no answer of the protocol's own");
-    assert(reading.agreed * 20 > reading.compared * 19, "and the great majority agree outright");
+    // 17,729 of 17,958 as the material stands, 2026-08-28. Stated as a share rather than a count
+    // so it survives a recording being admitted, which is what `V4` asks of a figure like this.
+    assert(reading.agreed * 50 > reading.compared * 49, "and all but a fiftieth agree outright");
     assert(reading.died > 0, "a killing blow lands more than the health that was left");
-    assert(reading.appeared > 0, "and a share nobody can size restores health nobody can place");
+    assert(reading.appeared > 0, "and health still appears where a cast could not be sized");
 });
 
 Deno.test("one payload moves health with no message saying so, and it is pinned here", () => {

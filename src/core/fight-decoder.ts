@@ -21,6 +21,7 @@ import type {
     HealthChangeEvent,
     PreventedDamage,
     SkillUsedEvent,
+    UnaccountedHealthEvent,
 } from "@/src/core/battle-event.ts";
 import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import {
@@ -28,7 +29,11 @@ import {
     type ProtocolMessage,
     ProtocolMessageFormatError,
 } from "@/src/core/protocol-message.ts";
-import { getHealthPercentFromText, getIntegerFromText } from "@/src/core/protocol-number.ts";
+import {
+    getHealthPercentFromText,
+    getIntegerFromText,
+    getShareFromText,
+} from "@/src/core/protocol-number.ts";
 
 /**
  * The client's default branch reads characters 1 to 3 of a key: `+` is raw, the rest applied.
@@ -111,6 +116,12 @@ const NAME_SEPARATOR = ", ";
  */
 const HEALING_TO_NAMED_KEY = "legbon_lastheal";
 const HEALING_TO_NAMED_MEMBERS = 2;
+/**
+ * A share of the maximum, restored to every combatant on the caster's side. What it restores is
+ * stated nowhere else, so reading it as a declaration would silence a total that really is short.
+ * The value has never carried a second member, and one that did would not be read.
+ */
+const UNACCOUNTED_HEALTH_KEY = "healall_per";
 const SKILL_NAME_KEY = "tspell";
 /**
  * The other way an announcement names what was used, and the name sits in the target slot. Read
@@ -194,6 +205,11 @@ interface HealthChangeReading {
     declared: DeclaredEffect[];
 }
 
+interface UnaccountedHealthReading {
+    source: string;
+    declaredShare: number;
+}
+
 interface NamedHealingReading {
     targetName: string;
     targetHealthPercent: number | null;
@@ -220,6 +236,7 @@ interface AttackReading {
     healthChanges: HealthChangeReading[];
     namedDamage: NamedDamageReading[];
     namedHealing: NamedHealingReading[];
+    unaccounted: UnaccountedHealthReading[];
     outcomes: FightOutcomeEvent[];
     declared: DeclaredEffect[];
     skill: SkillReading | null;
@@ -419,6 +436,16 @@ function addAttackFigure(reading: AttackReading, key: string, amount: number): v
     reading.unreadKeys.push(key);
 }
 
+/** True where the key was the share, read or refused. A share with a second member is not read. */
+function addUnaccountedHealth(reading: AttackReading, key: string, value: string): boolean {
+    if (key !== UNACCOUNTED_HEALTH_KEY) return false;
+    const declaredShare = getShareFromText(value);
+    assert(declaredShare === null || declaredShare >= 0, "a share read is never below nothing");
+    if (declaredShare === null) reading.unreadKeys.push(key);
+    else reading.unaccounted.push({ source: key, declaredShare });
+    return true;
+}
+
 function composeAttackReading(parsed: ProtocolMessage): AttackReading {
     const parameters = parsed.parameters;
     assert(parameters.length <= MAXIMUM_PARAMETERS, "a message stays inside its stated bound");
@@ -431,6 +458,7 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
         healthChanges: [],
         namedDamage: [],
         namedHealing: [],
+        unaccounted: [],
         outcomes: [],
         declared: [],
         skill: null,
@@ -455,6 +483,7 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
             reading.declared.push({ effect: parameter.key, amount, text: parameter.value });
             continue;
         }
+        if (addUnaccountedHealth(reading, parameter.key, parameter.value)) continue;
         const restored = readNamedHealing(parameter.key, parameter.value);
         if (restored !== null) {
             reading.namedHealing.push(restored);
@@ -480,8 +509,9 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
     closeSkillReading(reading);
     const read = reading.raw.length + reading.applied.length + reading.prevented.length +
         reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
-        reading.namedDamage.length + reading.namedHealing.length + reading.outcomes.length +
-        reading.declared.length + reading.skillKeys + reading.unreadKeys.length;
+        reading.namedDamage.length + reading.namedHealing.length + reading.unaccounted.length +
+        reading.outcomes.length + reading.declared.length + reading.skillKeys +
+        reading.unreadKeys.length;
     assert(read === parameters.length, "every parameter is read or named unread, and none twice");
     assert(reading.raw.length <= parameters.length, "a reading holds no more than it was handed");
     return reading;
@@ -521,6 +551,24 @@ function composeNamedDamageEvent(
         targetId: roster === null ? null : getCombatantIdByName(roster, named.targetName),
         targetHealthPercent: named.targetHealthPercent,
         damage: named.damage,
+        announced,
+    };
+}
+
+function composeUnaccountedHealthEvent(
+    parsed: ProtocolMessage,
+    unaccounted: UnaccountedHealthReading,
+    announced: AnnouncedSkill | null,
+): UnaccountedHealthEvent {
+    assert(unaccounted.declaredShare >= 0, "a share stated is never below nothing");
+    assert(unaccounted.source.length > 0, "and names the key it was stated on");
+    return {
+        kind: "unaccounted-health",
+        source: unaccounted.source,
+        // The actor, always: eight of the 115 in `captures/` name somebody else in the target,
+        // and reading that slot would credit the wrong combatant with the cast.
+        combatantId: parsed.actor?.combatantId ?? null,
+        declaredShare: unaccounted.declaredShare,
         announced,
     };
 }
@@ -658,6 +706,11 @@ function decodeOneMessage(
     }
     for (const named of reading.namedDamage) {
         events.push(composeNamedDamageEvent(parsed, named, roster, announced));
+    }
+    // Before the announcement it rides, because the percentages that announcement states are
+    // where the side stands **after** the cast, and sizing one needs where they stood before.
+    for (const unaccounted of reading.unaccounted) {
+        events.push(composeUnaccountedHealthEvent(parsed, unaccounted, announced));
     }
     if (reading.skill !== null) {
         events.push(composeSkillUsedEvent(parsed, reading.skill, isBlow ? [] : reading.declared));

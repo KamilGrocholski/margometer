@@ -58,6 +58,24 @@ export function getHealthPercentFromText(text: string): number | null {
     return value;
 }
 
+/**
+ * A share the protocol writes with or without a fraction — `30` and `22.5` are both in
+ * `captures/`. Null for anything else, so a value nobody wrote never becomes a figure.
+ */
+export function getShareFromText(text: string): number | null {
+    const point = text.indexOf(".");
+    if (point === -1) {
+        if (!isDigitRun(text)) return null;
+        return Number(text);
+    }
+    if (!isDigitRun(text.slice(0, point))) return null;
+    if (!isDigitRun(text.slice(point + 1))) return null;
+    const value = Number(text);
+    assert(Number.isFinite(value), "a share read from digits is a number");
+    assert(value >= 0, "and never below nothing");
+    return value;
+}
+
 export function composeIntegerText(value: number): string {
     assert(Number.isSafeInteger(value), "an integer written back is an integer that was read");
     const text = String(value);

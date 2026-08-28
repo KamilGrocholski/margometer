@@ -90,10 +90,20 @@ Deno.test("a figure nobody can be charged with stands apart from the rows", () =
 });
 
 Deno.test("a fight with an unread key says every figure on it may be short", () => {
-    const { roster, statistics } = readFight(HILDUR);
-    const reading = composePanelReading(statistics, roster, "damageDealtApplied");
-    assert(statistics.unreadMessages > 0, "this fight carries the one key still unread");
-    assert(reading.isSuspect, "so the screen says its figures may be short");
+    const whole = readFight(HILDUR);
+    const readable = composePanelReading(whole.statistics, whole.roster, "damageDealtApplied");
+    assertEquals(whole.statistics.unreadMessages, 0, "every key this fight carries is read");
+    assert(!readable.isSuspect, "so nothing on the screen is marked as short");
+
+    // A probe, because no recording carries an unread key any more: the next protocol change is
+    // what this mark exists for.
+    const events = decodeFightMessages(["1=100.00;0;whatever_per=30"], whole.roster);
+    const short = composePanelReading(
+        composeFightStatistics(events),
+        whole.roster,
+        "healthRestored",
+    );
+    assert(short.isSuspect, "a key nobody has read leaves every figure beside it suspect");
 });
 
 Deno.test("every recording composes every screen without inventing a row", () => {

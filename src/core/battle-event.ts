@@ -133,6 +133,16 @@ export interface FightOutcomeEvent {
     combatantNames: string[];
 }
 
+/** A share stated about a whole side, recipients unstated. Never a figure of health on its own. */
+export interface UnaccountedHealthEvent {
+    kind: "unaccounted-health";
+    source: string;
+    /** The caster, read off the actor slot. Eight of the 115 in `captures/` name another target. */
+    combatantId: number | null;
+    declaredShare: number | null;
+    announced: AnnouncedSkill | null;
+}
+
 /** A message this decoder did not read, so a panel can say which total may be short. */
 export interface UnknownMessageEvent {
     kind: "unknown-message";
@@ -152,6 +162,7 @@ export type BattleEvent =
     | HealingToNamedCombatantEvent
     | HealthChangeEvent
     | SkillUsedEvent
+    | UnaccountedHealthEvent
     | UnknownMessageEvent;
 
 /** Kept as a value because a guard iterates it; `satisfies` is what stops it drifting. */
@@ -163,5 +174,6 @@ export const BATTLE_EVENT_KINDS = [
     "healing-to-named-combatant",
     "health-change",
     "skill-used",
+    "unaccounted-health",
     "unknown-message",
 ] as const satisfies readonly BattleEvent["kind"][];

@@ -339,13 +339,9 @@ commit that opens or closes one.
     in `tests/repository/sources.test.ts` reads a declaration from one line, so a named arrow
     wrapped across two is invisible to S4 and S5. The limit is pinned by a test rather than left to
     be discovered, and closes when a file in this tree is written that way.
-11. **A share stated about a whole side is still unread.** `core/combatant-health.ts` now unwinds
-    the health a fight was entered with from the first statement about each combatant, which is what
-    `healall_per` needs to be sized and capped. Measured over `captures/`, 2026-08-28: every one of
-    the 262 combatants the snapshots hold is stated at some point, and **169 of the 265 first
-    statements come from a step or a skill announcement** — events carrying a health percentage and
-    no figure of their own, against 56 from a blow. What is left is the sizing itself, which is one
-    of the contracts above and arrives with its own ADR.
+11. **Every key in `captures/` is read.** `healall_per` was the last, and ADR 0010 carries how a
+    share stated about a whole side is sized onto its members. What remains open is what the panel
+    does with a partly sized cast: `isWhole` says one happened and nothing draws it yet.
 12. **A payload can move health with no message stating it.** Measured over `captures/`, 2026-08-28:
     of 17,958 comparisons between the health the protocol states about a combatant and the movement
     decoded from its own messages, 17,286 agree inside the reading's tolerance. Of the 672 that do

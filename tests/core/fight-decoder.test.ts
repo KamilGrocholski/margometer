@@ -18,8 +18,12 @@ import {
 /** `2026-08-06-tempest-grupa-vs-hildur.json`: a blow absorption stood in front of. */
 const ABSORBED =
     "467968=100.00;-10000249=99.69;+pierce;+dmgd=1557;+acdmg=16;-absorb=545;-dmgd=1012";
-/** `2026-08-06-tempest-grupa-vs-hildur.json`: the last key in the corpus with no meaning yet. */
-const UNREAD = "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;healall_per=30";
+/**
+ * A probe, and it has to be: no recording carries an unread key any more. The shape is a real
+ * announcement from `2026-08-06-tempest-grupa-vs-hildur.json` with a key the register has never
+ * seen put beside it, which is what the next protocol change will look like.
+ */
+const UNREAD = "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30";
 /** `2026-08-12-experimental-tancerz-vs-wojownik.json`: the pair the family rule cannot reach. */
 const THIRD_BLOW = "114881=80.80;195782=98.67;+dmg=1210;+dmgo=896;+thirdatt=1168;+acdmg=90;" +
     "-blok=363;-dmg=0;-thirdatt=59";
@@ -72,7 +76,7 @@ Deno.test("a key with no meaning yet leaves the rest of the message read", () =>
     assert(used?.kind === "skill-used", "the announcement is still an event");
     assertEquals(used.skillName, "Zdrowa atmosfera", "with the name the protocol stated");
     assert(unread?.kind === "unknown-message", "and the unread key is its own event");
-    assertEquals(unread.unreadKeys, ["healall_per"], "named, one entry per occurrence");
+    assertEquals(unread.unreadKeys, ["whatever_per"], "named, one entry per occurrence");
     assertEquals(unread.combatantIds, [469657], "with the end the grammar stated, once");
 });
 
@@ -309,6 +313,7 @@ interface CorpusTally {
     byName: number;
     resolved: number;
     restored: number;
+    unsized: number;
     declared: number;
     outcomes: number;
     glued: number;
@@ -352,6 +357,12 @@ function countEvent(tally: CorpusTally, event: BattleEvent, path: string): void 
         assert(event.declared.length > 0, `${path}: a declaration stating nothing`);
         return;
     }
+    if (event.kind === "unaccounted-health") {
+        tally.unsized += 1;
+        assert(event.declaredShare !== null, `${path}: a share stated as nothing`);
+        assert(event.combatantId !== null, `${path}: a cast nobody made`);
+        return;
+    }
     if (event.kind === "skill-used") {
         tally.announced += 1;
         assert(event.skillName.length > 0, `${path}: an announcement naming nothing`);
@@ -374,6 +385,7 @@ function getCorpusTally(): CorpusTally {
         byName: 0,
         resolved: 0,
         restored: 0,
+        unsized: 0,
         declared: 0,
         outcomes: 0,
         glued: 0,
@@ -425,9 +437,13 @@ Deno.test("every message in every recording decodes, and the pairs hold", () => 
     assert(tally.glued > 0, "and blows the game itself glued to a skill");
     assert(tally.byName > 0, "and damage stated against a name");
     assert(tally.restored > 0, "and healing stated the same way");
+    assert(tally.unsized > 0, "and a share stated about a whole side, which no row can carry");
     assert(tally.declared > 0, "and messages that state something and report nothing");
     assert(tally.resolved > tally.byName / 2, "most of which a roster can put on somebody");
-    assert(tally.unread > 0, "and keys still unread, which the panel would say about them");
+    // Every key `captures/` carries is read now, so the panel says nothing is missing — which is
+    // a claim about the material rather than about the decoder, and the probes above are what
+    // hold the other half.
+    assertEquals(tally.unread, 0, "and nothing in the recordings goes unread any more");
     assertEquals(
         tally.outcomes,
         getRecordingPaths().length * 2,

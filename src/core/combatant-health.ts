@@ -95,3 +95,117 @@ export function composeFightEntryHealth(
     assert([...entered.values()].every((one) => one >= 0), "nobody enters below nothing");
     return entered;
 }
+
+/** What a share stated about a whole side came to, per member, once it could be sized. */
+export interface TeamHeal {
+    casterId: number;
+    source: string;
+    declaredShare: number;
+    restoredByCombatantId: ReadonlyMap<number, number>;
+    /** False where a side-mate could not be sized, so the cast is still counted as missing. */
+    isWhole: boolean;
+}
+
+/** The key that reduces this healing, which the help scopes to the caster's opposing side. */
+const HEALING_REDUCER_KEY = "lowheal_per-enemies";
+const PERCENT_SHARE = 100;
+
+/** Sides a reducer reached: the ones its own caster faced, which is what the help states. */
+function getReducedSides(events: readonly BattleEvent[], roster: CombatantRoster): Set<number> {
+    assert(HEALING_REDUCER_KEY.length > 0, "the reducer is a key with a name");
+    const reduced = new Set<number>();
+    for (const event of events) {
+        if (event.kind !== "skill-used") continue;
+        if (!event.declared.some((one) => one.effect === HEALING_REDUCER_KEY)) continue;
+        const casterSide = roster.byId.get(event.actorId ?? Number.NaN)?.side;
+        for (const combatant of roster.byId.values()) {
+            if (combatant.side === casterSide) continue;
+            reduced.add(combatant.side);
+        }
+    }
+    assert(reduced.size <= roster.byId.size, "a side reduced is a side somebody is on");
+    return reduced;
+}
+
+/**
+ * One cast, sized onto the caster's own side: a share of each member's maximum, floored, and
+ * capped at what they entered the fight with. A member missing any of the three is not sized,
+ * and the cast keeps saying so.
+ */
+function composeTeamHeal(
+    event: BattleEvent,
+    roster: CombatantRoster,
+    entered: FightEntryHealth,
+    held: ReadonlyMap<number, number>,
+): TeamHeal | null {
+    if (event.kind !== "unaccounted-health") return null;
+    if (event.combatantId === null) return null;
+    if (event.declaredShare === null) return null;
+    const casterSide = roster.byId.get(event.combatantId)?.side;
+    if (casterSide === undefined) return null;
+    const restored = new Map<number, number>();
+    assert(event.declaredShare >= 0, "a share sized is never below nothing");
+    let isWhole = true;
+    for (const combatant of roster.byId.values()) {
+        if (combatant.side !== casterSide) continue;
+        const entry = entered.get(combatant.id);
+        const now = held.get(combatant.id);
+        if (combatant.healthMaximum === null || entry === undefined || now === undefined) {
+            isWhole = false;
+            continue;
+        }
+        const share = Math.floor((event.declaredShare * combatant.healthMaximum) / PERCENT_SHARE);
+        const amount = Math.max(0, Math.min(share, entry - now));
+        assert(amount <= share, "nobody is given more than the share the protocol stated");
+        restored.set(combatant.id, amount);
+    }
+    assert(restored.size <= roster.byId.size, "a cast reaches the people in the fight");
+    return {
+        casterId: event.combatantId,
+        source: event.source,
+        declaredShare: event.declaredShare,
+        restoredByCombatantId: restored,
+        isWhole,
+    };
+}
+
+/**
+ * Every cast in a fight, sized against where each member stood when it landed. Nothing is sized
+ * on a side a reducer reached: the help scopes that reduction and the protocol never states the
+ * figure it left, so a cast there is refused whole rather than reported short.
+ */
+export function composeTeamHeals(
+    events: readonly BattleEvent[],
+    roster: CombatantRoster,
+): ReadonlyMap<BattleEvent, TeamHeal> {
+    const entered = composeFightEntryHealth(events, roster);
+    const reduced = getReducedSides(events, roster);
+    const held = new Map<number, number>();
+    // Keyed by the event it was sized from, so a walker over the same fight can put the health
+    // back exactly where the cast landed rather than guessing at the order.
+    const heals = new Map<BattleEvent, TeamHeal>();
+    for (const event of events) {
+        const heal = composeTeamHeal(event, roster, entered, held);
+        if (heal !== null && !reduced.has(roster.byId.get(heal.casterId)?.side ?? Number.NaN)) {
+            heals.set(event, heal);
+            // What a cast put back is health the next one cannot put back again. Without this a
+            // second cast between two statements is sized against the health before the first,
+            // and the two together restore more than the protocol's own percentages allow.
+            for (const [combatantId, amount] of heal.restoredByCombatantId) {
+                held.set(combatantId, (held.get(combatantId) ?? 0) + amount);
+            }
+        }
+        for (const [combatantId, percent] of getStatedHealthFromEvent(event)) {
+            const health = getHealthFromPercent(
+                percent,
+                roster.byId.get(combatantId)?.healthMaximum ?? null,
+            );
+            if (health !== null) held.set(combatantId, health);
+        }
+    }
+    assert(
+        [...heals.values()].every((one) => one.declaredShare >= 0),
+        "a share sized is never below nothing",
+    );
+    return heals;
+}

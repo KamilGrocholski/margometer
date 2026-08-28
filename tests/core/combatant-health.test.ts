@@ -8,6 +8,7 @@
 import { assert, assertEquals } from "@std/assert";
 import {
     composeFightEntryHealth,
+    composeTeamHeals,
     getHealthFromPercent,
     getHealthToleranceFromMaximum,
     getStatedHealthFromEvent,
@@ -164,4 +165,120 @@ Deno.test("the first statement is the one that counts, whatever came after", () 
         "eight tenths, and not three",
     );
     assertEquals(getStatedHealthFromEvent(events[0] ?? events[1] ?? events[0]!)[0]?.[1], 80, "80");
+});
+
+/** A side of two and an opponent, so a cast has somebody to reach and somebody to miss. */
+function composeSideRoster() {
+    return composeCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 23874 },
+        { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 10000 },
+        { id: 3, name: "Potwór", side: 2, profession: "w", level: 40, healthMaximum: 50000 },
+    ]);
+}
+
+Deno.test("a share is of the maximum, floored, and reaches the caster's own side", () => {
+    const roster = composeSideRoster();
+    const events = decodeFightMessages([
+        "1=100.00;2=100.00;tspell=Coś;skillId=1",
+        "1=50.00;0;poison=11937",
+        "2=50.00;0;poison=5000",
+        "3=100.00;0;step",
+        "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+    ], roster);
+    const heals = [...composeTeamHeals(events, roster).values()];
+    assertEquals(heals.length, 1, "one cast");
+    assertEquals(
+        heals[0]?.restoredByCombatantId.get(1),
+        7162,
+        "thirty hundredths of 23874, floored",
+    );
+    assertEquals(heals[0]?.restoredByCombatantId.get(2), 3000, "and of 10000 for the other");
+    assertEquals(heals[0]?.restoredByCombatantId.has(3), false, "the other side is not reached");
+    assertEquals(heals[0]?.isWhole, true, "and every member of the side was sized");
+});
+
+Deno.test("a cast cannot put back more than a combatant walked in with", () => {
+    const roster = composeSideRoster();
+    const events = decodeFightMessages([
+        "1=100.00;2=100.00;tspell=Coś;skillId=1",
+        "1=95.00;0;poison=1194",
+        "2=50.00;0;poison=5000",
+        "1=95.00;1=95.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+    ], roster);
+    const heals = [...composeTeamHeals(events, roster).values()];
+    assertEquals(
+        heals[0]?.restoredByCombatantId.get(1),
+        1194,
+        "what was lost, not what a share is",
+    );
+    assertEquals(
+        heals[0]?.restoredByCombatantId.get(2),
+        3000,
+        "while the share still binds below it",
+    );
+});
+
+Deno.test("a member nobody can size leaves the cast saying so", () => {
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: null },
+    ]);
+    const events = decodeFightMessages([
+        "1=100.00;0;step",
+        "2=100.00;0;step",
+        "1=50.00;0;poison=500",
+        "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+    ], roster);
+    const heals = [...composeTeamHeals(events, roster).values()];
+    assertEquals(heals[0]?.restoredByCombatantId.get(1), 300, "the one that could be sized is");
+    assertEquals(heals[0]?.restoredByCombatantId.has(2), false, "the one that could not is not");
+    assertEquals(heals[0]?.isWhole, false, "and the cast goes on saying it is short");
+});
+
+Deno.test("a cast on a side a reducer reached is refused whole", () => {
+    const roster = composeSideRoster();
+    const reduced = decodeFightMessages([
+        "1=100.00;0;step",
+        "2=100.00;0;step",
+        "3=100.00;3=100.00;tspell=Jadowity podmuch;skillId=219;lowheal_per-enemies=27",
+        "1=50.00;0;poison=11937",
+        "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+    ], roster);
+    assertEquals(composeTeamHeals(reduced, roster).size, 0, "nothing is sized where it was cut");
+
+    const theirOwn = decodeFightMessages([
+        "1=100.00;0;step",
+        "2=100.00;0;step",
+        "1=100.00;3=100.00;tspell=Jadowity podmuch;skillId=219;lowheal_per-enemies=27",
+        "1=50.00;0;poison=11937",
+        "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+    ], roster);
+    assertEquals(
+        composeTeamHeals(theirOwn, roster).size,
+        1,
+        "a reducer of ours cuts theirs, not ours",
+    );
+});
+
+Deno.test("every cast in the recordings is sized, and the cap is what does the work", () => {
+    let casts = 0;
+    let whole = 0;
+    let capped = 0;
+    let atShare = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        for (const heal of composeTeamHeals(events, roster).values()) {
+            casts += 1;
+            if (heal.isWhole) whole += 1;
+            for (const [combatantId, amount] of heal.restoredByCombatantId) {
+                const maximum = roster.byId.get(combatantId)?.healthMaximum ?? 0;
+                if (amount < Math.floor(heal.declaredShare * maximum / 100)) capped += 1;
+                else atShare += 1;
+            }
+        }
+    }
+    assertEquals(casts, 115, "every occurrence the corpus holds is sized");
+    assertEquals(whole, casts, "and every one of them reaches its whole side");
+    assert(capped > atShare, "the cap binds more figures than the share does");
 });

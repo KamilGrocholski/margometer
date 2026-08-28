@@ -102,8 +102,17 @@ Deno.test("what nobody can be charged with is a row apart, and a doubt is said",
     assert(reading.withoutActor > 0, "this fight has damage tied to no attacker");
     const pinned = getElementsWithin(host).filter((one) => one.className === "pinned");
     assertEquals(pinned.length, 1, "which stands below the ranking as a row of its own");
-    assert(reading.isSuspect, "and this fight carries the key still unread");
-    assertEquals(getTextsByClass(host, "warning"), [PANEL_WORDS.suspect], "so the panel says so");
+    assertEquals(
+        getTextsByClass(host, "warning"),
+        [],
+        "and nothing here is short, so nothing says so",
+    );
+    const short = draw({ ...reading, isSuspect: true });
+    assertEquals(
+        getTextsByClass(short, "warning"),
+        [PANEL_WORDS.suspect],
+        "a doubt is said in words",
+    );
 });
 
 Deno.test("a press on a tab reaches the panel, and a press on anything else does not", () => {

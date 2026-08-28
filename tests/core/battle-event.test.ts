@@ -23,6 +23,12 @@ Deno.test("every variant the union holds is produced by the recordings", () => {
             for (const event of decodeFightMessages(payload, roster)) produced.add(event.kind);
         }
     }
+    // An unknown message is what the decoder makes of a key nobody has read, so no recording can
+    // be expected to carry one: every key `captures/` holds is read. The probe stands in for the
+    // protocol change this variant exists for.
+    for (const event of decodeFightMessages(["0;0;whatever_per=30"], null)) {
+        produced.add(event.kind);
+    }
     const listed: readonly string[] = BATTLE_EVENT_KINDS;
     assertEquals(listed.filter((kind) => !produced.has(kind)), [], "a variant nothing produces");
     assertEquals([...produced].filter((kind) => !listed.includes(kind)), [], "an unlisted kind");
