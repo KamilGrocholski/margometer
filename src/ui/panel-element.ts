@@ -9,7 +9,8 @@
  */
 
 import { assert } from "@std/assert";
-import type { PanelReading, PanelRow } from "@/src/ui/panel-reading.ts";
+import type { PanelMetric, PanelReading, PanelRow } from "@/src/ui/panel-reading.ts";
+import { getWordsForScreen, SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 
 /** The whole of the document this asks for. A browser's own satisfies it. */
@@ -34,10 +35,19 @@ export interface PanelRoot {
 const HOST_NAME = "MargoMeter-Panel";
 const TITLE_CLASS = "MargoMeter-titlebar";
 const BODY_CLASS = "MargoMeter-body";
-/** Inside the root, where the game's stylesheet cannot reach, so no prefix is needed. */
+/**
+ * The strip is one of the panel's own regions, so it is named as ours like the bar and the body.
+ * What sits inside a region is not: the game's stylesheet cannot reach behind the root.
+ */
 const ROW_CLASS = "row";
 const ROW_NAME_CLASS = "row-name";
 const ROW_FIGURE_CLASS = "row-figure";
+const TABS_CLASS = "MargoMeter-tabs";
+const TAB_CLASS = "tab";
+/** More than colour, because colour never carries meaning by itself. */
+const TAB_CURRENT_CLASS = "tab tab-current";
+const TAB_CURRENT_MARK = "• ";
+const SCREEN_ATTRIBUTE = "data-screen";
 const UNDRAWN_CLASS = "undrawn";
 const EMPTY_CLASS = "empty";
 const PINNED_CLASS = "pinned";
@@ -82,6 +92,22 @@ function composePinnedElement(
     assert(figure >= 0, "a figure nobody can be charged with is never below nothing");
     assert(label.length > 0, "and the row saying so is labelled");
     return element;
+}
+
+/** One tab per screen there is, and the current one marked as well as tinted. */
+function composeTabsElement(document: PanelDocument, current: PanelMetric): PanelElement {
+    const strip = composeElement(document, "div", TABS_CLASS);
+    assert(SCREEN_ORDER.length > 0, "there is a screen to reach for");
+    for (const screen of SCREEN_ORDER) {
+        const isCurrent = screen === current;
+        const tab = composeElement(document, "div", isCurrent ? TAB_CURRENT_CLASS : TAB_CLASS);
+        tab.setAttribute(SCREEN_ATTRIBUTE, screen);
+        tab.textContent = `${isCurrent ? TAB_CURRENT_MARK : ""}${getWordsForScreen(screen)}`;
+        assert(tab.textContent.length > 0, "a tab a reader could press says where it goes");
+        strip.append(tab);
+    }
+    assert(SCREEN_ORDER.includes(current), "the panel is on a screen the strip draws");
+    return strip;
 }
 
 function composeBodyElement(document: PanelDocument, reading: PanelReading): PanelElement {
@@ -136,6 +162,7 @@ function composeRegion(
 export function composePanelElement(
     document: PanelDocument,
     reading: PanelReading,
+    current: PanelMetric,
     handleFailure: (failure: unknown) => void,
 ): PanelElement {
     const host = document.createElement("div");
@@ -147,12 +174,18 @@ export function composePanelElement(
         bar.textContent = PANEL_WORDS.title;
         return bar;
     }, handleFailure);
+    const tabs = composeRegion(
+        document,
+        () => composeTabsElement(document, current),
+        handleFailure,
+    );
     const body = composeRegion(
         document,
         () => composeBodyElement(document, reading),
         handleFailure,
     );
     root.append(title);
+    root.append(tabs);
     root.append(body);
     assert(host.className === "", "the host wears no class of the game's making");
     return host;

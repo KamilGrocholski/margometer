@@ -22,10 +22,9 @@ import {
     type PanelDocument,
     type PanelElement,
 } from "@/src/ui/panel-element.ts";
-import { composePanelReading, type PanelMetric } from "@/src/ui/panel-reading.ts";
+import { composePanelReading } from "@/src/ui/panel-reading.ts";
+import { composeScreenState } from "@/src/ui/panel-screen.ts";
 
-/** The screen the panel opens on. Which screen it is on afterwards is the panel's own business. */
-const OPENING_METRIC: PanelMetric = "damageDealtApplied";
 /** Where a failure of ours is written, so the reader sees whose it is at a glance. */
 const FAILURE_LINE = "MargoMeter/Panel";
 
@@ -48,14 +47,15 @@ export interface UserscriptEnvironment {
  * zeroes over a game that has not started is a claim rather than a reading.
  */
 function showFight(environment: UserscriptEnvironment, session: BattleSession): void {
+    const screen = composeScreenState();
     const fight = getFightFromSession(session);
     if (fight === null) return;
     assert(fight.payloads > 0, "a fight that is drawn was built from something");
     const statistics = composeFightStatistics(fight.events);
     const roster = composeCombatantRoster([...fight.roster.byId.values()]);
-    const reading = composePanelReading(statistics, roster, OPENING_METRIC);
+    const reading = composePanelReading(statistics, roster, screen.current);
     assert(reading.rows.length >= 0, "a reading states its rows, however few");
-    const panel = composePanelElement(environment.document, reading, (failure) => {
+    const panel = composePanelElement(environment.document, reading, screen.current, (failure) => {
         environment.report(FAILURE_LINE, failure);
     });
     environment.mount.show(panel);

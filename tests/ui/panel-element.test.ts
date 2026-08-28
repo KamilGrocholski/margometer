@@ -11,6 +11,7 @@ import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { composePanelElement } from "@/src/ui/panel-element.ts";
 import { composePanelReading, type PanelReading } from "@/src/ui/panel-reading.ts";
+import { getScreenFromName, SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
@@ -30,7 +31,7 @@ function readFight(): PanelReading {
 
 function draw(reading: PanelReading): FakeElement {
     const document = composeFakeDocument();
-    const host = composePanelElement(document, reading, () => {});
+    const host = composePanelElement(document, reading, "damageDealtApplied", () => {});
     return host as FakeElement;
 }
 
@@ -39,7 +40,7 @@ Deno.test("the panel goes into a shadow root, under a name of ours", () => {
     assertEquals(host.attributes.get("id"), "MargoMeter-Panel", "the host is named as ours");
     assert(host.shadow !== null, "and everything else is behind a root of its own");
     assertEquals(host.children.length, 0, "nothing is put beside the root");
-    assertEquals(host.shadow.length, 2, "the title bar and the body, and nothing else");
+    assertEquals(host.shadow.length, 3, "the title bar, the strip of screens, and the body");
 });
 
 Deno.test("every name a reader meets before the panel's contents is ours", () => {
@@ -55,6 +56,20 @@ Deno.test("every name a reader meets before the panel's contents is ours", () =>
         inside.some((one) => !one.className.startsWith("MargoMeter-")),
         "which is exempt, because the game's stylesheet cannot reach behind the root",
     );
+});
+
+Deno.test("the strip says which screen the panel is on, and marks it as more than a colour", () => {
+    const host = draw(readFight());
+    const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
+    assertEquals(tabs.length, SCREEN_ORDER.length, "one tab for each screen there is");
+    const current = tabs.filter((one) => one.className.includes("tab-current"));
+    assertEquals(current.length, 1, "exactly one of them is where the panel is");
+    assert(current[0]?.textContent.startsWith("• "), "and it is marked, not only tinted");
+    for (const tab of tabs) {
+        const screen = tab.attributes.get("data-screen");
+        assert(screen !== undefined, "each tab says which screen it would reach");
+        assert(getScreenFromName(screen) !== null, "by a name a screen answers to");
+    }
 });
 
 Deno.test("a fight draws a row for everybody in it, named", () => {
@@ -102,10 +117,11 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
     const host = composePanelElement(
         document,
         broken,
+        "damageDealtApplied",
         (failure) => failures.push(failure),
     ) as FakeElement;
     assertEquals(failures.length, 1, "the failure is reported once");
     assertEquals(getTextsByClass(host, "undrawn"), [PANEL_WORDS.undrawn], "and marked in place");
-    assertEquals(host.shadow?.length, 2, "while the panel keeps its shape");
+    assertEquals(host.shadow?.length, 3, "while the panel keeps its shape");
     assertEquals(getTextsByClass(host, "MargoMeter-titlebar"), [PANEL_WORDS.title], "title stands");
 });

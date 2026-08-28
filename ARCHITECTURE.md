@@ -60,6 +60,7 @@ src/
     panel-element.ts     The panel drawn into a document it is handed, region by region.
     panel-look.ts        The panel's tokens, and the ink a figure over a bar takes.
     panel-reading.ts     One screen's worth of a fight: the rows, in the order drawn.
+    panel-screen.ts      Which screen the panel is on, and the strip that says so.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
 tools/             Never ships. Each arrives with the question it answers.
   build-userscript.ts  The file a reader installs, and the two checks over the built text.
@@ -98,6 +99,7 @@ tests/
     panel-element.test.ts     What the panel puts on a page, read back out of it.
     panel-look.test.ts        Contrast by arithmetic, over every pairing the panel draws.
     panel-reading.test.ts     A screen of a real fight, through every layer under it.
+    panel-screen.test.ts      The screens there are, against what a reading composes for.
     panel-words.test.ts       What the words must never say, and how Polish counts.
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
