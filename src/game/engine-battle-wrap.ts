@@ -27,6 +27,10 @@ export interface EngineBattleWrap {
 }
 
 /** By the marker's presence, whatever its value: any MargoMeter is a second count. */
+export function isEngineBattleWrapped(battle: EngineBattle): boolean {
+    return hasMargoMeterWrap(battle[WRAPPED_METHOD]);
+}
+
 function hasMargoMeterWrap(value: unknown): boolean {
     if (typeof value !== "function") return false;
     return WRAP_MARKER in value;
