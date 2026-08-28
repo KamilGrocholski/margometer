@@ -1,0 +1,107 @@
+/**
+ * One fight, accumulated payload by payload.
+ *
+ * This file spells three of the client's names and nothing else does: `init`, which opens a
+ * fight, `endBattle`, which ends one, and `m`, the messages a payload carries. A payload
+ * carrying `init` starts a fight over; a payload arriving before one has been seen is read all
+ * the same, because the reader may have joined a fight already in progress.
+ */
+
+import { assert } from "@std/assert";
+import type { BattleEvent } from "@/src/core/battle-event.ts";
+import {
+    type Combatant,
+    type CombatantRoster,
+    composeCombatantRoster,
+} from "@/src/core/combatant-roster.ts";
+import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { getTextFromUnknown, isRecord } from "@/src/core/unknown-reading.ts";
+import { getCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
+
+const FIGHT_OPENS_KEY = "init";
+const FIGHT_ENDS_KEY = "endBattle";
+const MESSAGES_KEY = "m";
+/** The longest fight in `captures/` decodes to 811 events, 2026-08-28. */
+const MAXIMUM_EVENTS = 65536;
+
+export interface FightReading {
+    roster: CombatantRoster;
+    events: readonly BattleEvent[];
+    /** The game has stated the fight is over. Payloads may still arrive after it. */
+    isOver: boolean;
+    payloads: number;
+}
+
+export interface BattleSession {
+    combatants: Combatant[];
+    events: BattleEvent[];
+    isOver: boolean;
+    payloads: number;
+    hasFight: boolean;
+}
+
+export function composeBattleSession(): BattleSession {
+    const session: BattleSession = {
+        combatants: [],
+        events: [],
+        isOver: false,
+        payloads: 0,
+        hasFight: false,
+    };
+    assert(session.events.length === 0, "a session starts holding no fight of its own");
+    assert(!session.hasFight, "and says so, rather than reading as a fight with no figures");
+    return session;
+}
+
+function getMessagesFromPayload(payload: Record<string, unknown>): string[] {
+    const carried = payload[MESSAGES_KEY];
+    if (!Array.isArray(carried)) return [];
+    const messages: string[] = [];
+    for (const message of carried) {
+        const text = getTextFromUnknown(message);
+        if (text === null) continue;
+        messages.push(text);
+    }
+    assert(messages.length <= carried.length, "a payload carries no more than it stated");
+    assert(messages.every((one) => one.length > 0), "a message that was read says something");
+    return messages;
+}
+
+/** A fight that opens replaces whatever stood before it, roster, events and all. */
+function resetSession(session: BattleSession): void {
+    session.combatants = [];
+    session.events = [];
+    session.isOver = false;
+    session.payloads = 0;
+    assert(session.events.length === 0, "a fight opens holding nothing");
+    assert(session.combatants.length === 0, "and knowing nobody until its payload states them");
+}
+
+export function addPayloadToSession(session: BattleSession, payload: unknown): void {
+    if (!isRecord(payload)) return;
+    if (FIGHT_OPENS_KEY in payload) resetSession(session);
+    session.hasFight = true;
+    session.payloads += 1;
+    for (const combatant of getCombatantsFromPayload(payload)) session.combatants.push(combatant);
+    const roster = composeCombatantRoster(session.combatants);
+    for (const event of decodeFightMessages(getMessagesFromPayload(payload), roster)) {
+        session.events.push(event);
+    }
+    if (FIGHT_ENDS_KEY in payload) session.isOver = true;
+    assert(session.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
+    assert(session.payloads > 0, "a payload that was read is counted");
+    assert(session.hasFight, "and leaves a fight behind it, however little it stated");
+}
+
+/** Null until a payload has arrived: a fight nobody has seen is not a fight with no figures. */
+export function getFightFromSession(session: BattleSession): FightReading | null {
+    if (!session.hasFight) return null;
+    assert(session.payloads > 0, "a fight that exists was built from something");
+    assert(session.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
+    return {
+        roster: composeCombatantRoster(session.combatants),
+        events: session.events,
+        isOver: session.isOver,
+        payloads: session.payloads,
+    };
+}

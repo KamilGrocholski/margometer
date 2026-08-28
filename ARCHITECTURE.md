@@ -48,6 +48,7 @@ src/
     protocol-number.ts   The numbers the protocol states, read out of its text.
     unknown-reading.ts   Reading a value nobody typed, answering null rather than throwing.
   game/
+    battle-session.ts    One fight, accumulated payload by payload, in the order they arrive.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
@@ -62,6 +63,7 @@ docs/
 tests/
   AGENTS.md                What is true of a test here and nowhere else.
   game/
+    battle-session.test.ts    Every recording replayed the way the game delivered it.
     engine-warrior.test.ts    A payload's warriors, against the snapshots beside them.
   core/                    A test sits where its subject sits.
     battle-event.test.ts      Every variant the union holds, against what arrives.
@@ -264,12 +266,12 @@ commit that opens or closes one.
 
 1. **`core/` is written as far as the protocol allows, and `game/` has begun.** The error base, the
    message grammar, the roster, the data contract, seven decoder steps, the health arithmetic, the
-   statistics and the reader for the client's own warrior fields exist. One key in `captures/` is
-   still unread and says so: `healall_per`, which cannot be sized onto a side without the health
-   each member entered the fight with — gap 11. **Who gave healing, and which attacker a tick
-   belongs to, are not read**; each is a rule that arrives with its own ADR. The engine wrap, the
-   session, where a fight happens, everything under `ui/`, the entry point and `tools/` are not
-   written at all.
+   statistics, the reader for the client's own warrior fields and the session that assembles a fight
+   from payloads exist. One key in `captures/` is still unread and says so: `healall_per`, which
+   cannot be sized onto a side without the health each member entered the fight with — gap 11. **Who
+   gave healing, and which attacker a tick belongs to, are not read**; each is a rule that arrives
+   with its own ADR. The engine wrap, where a fight happens, the fights a reader can go back to,
+   everything under `ui/`, the entry point and `tools/` are not written at all.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
