@@ -63,6 +63,7 @@ tests/
     combatant-health.test.ts  The arithmetic, against the client's own three figures.
     combatant-roster.test.ts  Two of a name, one of nobody, and every recording.
     fight-decoder.test.ts     The blows, and what is left unread beside them.
+    health-witness.test.ts    What was read, against what the protocol says of itself.
     fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
   repository/              Guards whose subject is this repository, not a layer of it.
@@ -311,5 +312,14 @@ commit that opens or closes one.
     disagrees in 98 of 254, because a recording's snapshot is taken after every message of its entry
     rather than before it. Neither is a fault in the arithmetic, and neither is a floor to unwind
     from: entry health waits for the opening payload's own state, which is `game/`'s to hand over.
-12. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
+12. **A payload can move health with no message stating it.** Measured over `captures/`, 2026-08-28:
+    of 17,958 comparisons between the health the protocol states about a combatant and the movement
+    decoded from its own messages, 17,286 agree inside the reading's tolerance. Of the 672 that do
+    not, 95 are a killing blow landing more than the health that was left, 576 are health restored
+    by `healall_per`, which is unread, and **one is a payload that moves health with nothing saying
+    so** — entry 83 of `2026-08-06-tempest-grupa-vs-hildur`, where the boss loses 8,062 of a 325,584
+    pool while both messages of that payload are about other people. Nothing in the protocol
+    accounts for it and only the snapshots show it, which is what the snapshots are for.
+    `tests/core/health-witness.test.ts` pins the count at one, so a second cannot arrive unnoticed.
+13. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
     screenshots are unwritten; the release contract above is inherited from v1 and unexercised here.

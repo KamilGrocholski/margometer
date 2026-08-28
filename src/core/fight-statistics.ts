@@ -9,8 +9,8 @@
 import { assert } from "@std/assert";
 import type { BattleEvent, DamageFigure } from "@/src/core/battle-event.ts";
 
-/** The largest fight in `captures/` fields 11 combatants, 2026-08-28. */
-const MAXIMUM_COMBATANTS = 64;
+/** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
+const MAXIMUM_COMBATANTS = 20;
 
 export interface CombatantFigures {
     damageDealtRaw: number;
