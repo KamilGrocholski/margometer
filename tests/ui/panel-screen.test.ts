@@ -17,7 +17,7 @@ import {
 } from "@/src/ui/panel-screen.ts";
 
 Deno.test("every screen names a figure a reading can be composed for", () => {
-    const statistics = composeFightStatistics([]);
+    const statistics = composeFightStatistics([], new Map());
     const roster = composeCombatantRoster([]);
     for (const screen of SCREEN_ORDER) {
         const reading = composePanelReading(statistics, roster, screen);

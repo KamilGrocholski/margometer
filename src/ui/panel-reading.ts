@@ -36,7 +36,7 @@ export interface PanelReading {
     /** Applied damage the log tied to nobody. A row cannot carry it, so it stands on its own. */
     withoutActor: number;
     withoutTarget: number;
-    /** Something feeding these figures could not be read, so any of them may be short. */
+    /** Something feeding these figures could not be read or placed, so any may be short. */
     isSuspect: boolean;
 }
 
@@ -92,6 +92,6 @@ export function composePanelReading(
         total,
         withoutActor: metric === "damageDealtApplied" ? statistics.dealtByNobody : 0,
         withoutTarget: metric === "damageTakenApplied" ? statistics.takenByNobody : 0,
-        isSuspect: statistics.unreadMessages > 0,
+        isSuspect: statistics.unreadMessages > 0 || statistics.castsUnplaced > 0,
     };
 }

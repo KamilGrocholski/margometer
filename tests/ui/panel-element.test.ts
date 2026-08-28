@@ -6,6 +6,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
+import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
@@ -27,7 +28,11 @@ const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
 function readFight(): PanelReading {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
     const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
-    return composePanelReading(composeFightStatistics(events), roster, "damageDealtApplied");
+    return composePanelReading(
+        composeFightStatistics(events, composeTeamHeals(events, roster)),
+        roster,
+        "damageDealtApplied",
+    );
 }
 
 function draw(reading: PanelReading): FakeElement {

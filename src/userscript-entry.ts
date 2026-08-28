@@ -9,6 +9,7 @@
 
 import { assert } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import {
     addPayloadToSession,
@@ -51,8 +52,8 @@ function showFight(session: BattleSession, screen: ScreenState, panel: PanelHand
     const fight = getFightFromSession(session);
     if (fight === null) return;
     assert(fight.payloads > 0, "a fight that is drawn was built from something");
-    const statistics = composeFightStatistics(fight.events);
     const roster = composeCombatantRoster([...fight.roster.byId.values()]);
+    const statistics = composeFightStatistics(fight.events, composeTeamHeals(fight.events, roster));
     const reading = composePanelReading(statistics, roster, screen.current);
     assert(reading.rows.length >= 0, "a reading states its rows, however few");
     panel.show(reading, screen.current);

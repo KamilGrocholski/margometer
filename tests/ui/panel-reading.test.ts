@@ -6,6 +6,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
+import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
@@ -22,7 +23,9 @@ function readFight(path: string) {
     const combatants = getRecordedCombatants(path);
     const roster = composeCombatantRoster(combatants);
     const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
-    return { roster, statistics: composeFightStatistics(events) };
+    // With the casts sized, as the add-on does it: without them the fight reads as suspect,
+    // because a share nobody placed is exactly what that mark is for.
+    return { roster, statistics: composeFightStatistics(events, composeTeamHeals(events, roster)) };
 }
 
 Deno.test("a screen shows every combatant, in the order the figures put them", () => {
@@ -54,9 +57,11 @@ Deno.test("a share is the row against the fight, and the shares come to one", ()
 
 Deno.test("a combatant who did nothing is drawn at nothing, not left out", () => {
     const { roster, statistics } = readFight(HILDUR);
-    const reading = composePanelReading(statistics, roster, "healthRestored");
+    // Not the healing screen: with the casts sized, every member of a side is healed by one, so
+    // the zero this test is about lives on a screen not everybody appears on.
+    const reading = composePanelReading(statistics, roster, "damagePrevented");
     const idle = reading.rows.filter((one) => one.figure === 0);
-    assert(idle.length > 0, "in this fight somebody restored no health at all");
+    assert(idle.length > 0, "in this fight somebody's defence stopped nothing at all");
     for (const row of idle) assertEquals(row.share, 0, "and their share is nothing, not unknown");
     assertEquals(
         reading.rows.length,
@@ -69,7 +74,11 @@ Deno.test("a fight that has just opened draws its whole cast at nothing", () => 
     // The state no recording exercises whole: the roster is known from the opening payload and
     // nobody has acted yet, so every row exists and every figure is a zero that happened.
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const reading = composePanelReading(composeFightStatistics([]), roster, "damageDealtApplied");
+    const reading = composePanelReading(
+        composeFightStatistics([], new Map()),
+        roster,
+        "damageDealtApplied",
+    );
     assertEquals(reading.rows.length, roster.byId.size, "everybody in the fight is on the screen");
     assertEquals(reading.total, 0, "and nothing has happened yet");
     for (const row of reading.rows) {
@@ -99,7 +108,7 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
     // what this mark exists for.
     const events = decodeFightMessages(["1=100.00;0;whatever_per=30"], whole.roster);
     const short = composePanelReading(
-        composeFightStatistics(events),
+        composeFightStatistics(events, new Map()),
         whole.roster,
         "healthRestored",
     );

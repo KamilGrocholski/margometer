@@ -8,6 +8,7 @@
 
 import { assert } from "@std/assert";
 import type { BattleEvent, DamageFigure } from "@/src/core/battle-event.ts";
+import type { TeamHeal } from "@/src/core/combatant-health.ts";
 
 /** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
 const MAXIMUM_COMBATANTS = 20;
@@ -34,6 +35,8 @@ export interface FightStatistics {
     takenByNobody: number;
     /** Messages the decoder could not read, which is what makes a total suspect. */
     unreadMessages: number;
+    /** Casts stated about a side that nobody could size onto its members, whole or in part. */
+    castsUnplaced: number;
 }
 
 function composeCombatantFigures(): CombatantFigures {
@@ -73,6 +76,7 @@ function getFiguresForCombatant(
 
 interface StatisticsBuild {
     byCombatantId: Map<number, CombatantFigures>;
+    castsUnplaced: number;
     dealtByNobody: number;
     takenByNobody: number;
     unreadMessages: number;
@@ -148,6 +152,23 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
     assert(figures.healthRestored >= event.amount, "a total only grows by what it was handed");
 }
 
+/**
+ * What a cast put back, per member. A cast nobody could size, or one sized for only part of its
+ * side, is counted as unplaced as well — a partial answer is never read as a whole one.
+ */
+function addTeamHeal(build: StatisticsBuild, heal: TeamHeal | undefined): void {
+    if (heal === undefined) {
+        build.castsUnplaced += 1;
+        return;
+    }
+    if (!heal.isWhole) build.castsUnplaced += 1;
+    for (const [combatantId, amount] of heal.restoredByCombatantId) {
+        assert(amount >= 0, "a cast puts back no less than nothing");
+        getFiguresForCombatant(build.byCombatantId, combatantId).healthRestored += amount;
+    }
+    assert(build.castsUnplaced >= 0, "a count of casts never falls below nothing");
+}
+
 function composeTotals(build: StatisticsBuild): CombatantFigures {
     const totals = composeCombatantFigures();
     for (const figures of build.byCombatantId.values()) {
@@ -179,16 +200,26 @@ function getAppliedBalance(build: StatisticsBuild): number {
     return dealt - taken;
 }
 
-export function composeFightStatistics(events: readonly BattleEvent[]): FightStatistics {
+/**
+ * The figures, and what a share stated about a side came to once it was sized. The sizing is
+ * `combatant-health.ts`'s, because it needs three figures the protocol never states; totalling it
+ * is this file's, because a total across combatants is never the panel's.
+ */
+export function composeFightStatistics(
+    events: readonly BattleEvent[],
+    heals: ReadonlyMap<BattleEvent, TeamHeal>,
+): FightStatistics {
     const build: StatisticsBuild = {
         byCombatantId: new Map(),
         dealtByNobody: 0,
         takenByNobody: 0,
         unreadMessages: 0,
+        castsUnplaced: 0,
     };
     assert(events.length >= 0, "a fight decodes to a list");
     for (const event of events) {
         if (event.kind === "unknown-message") build.unreadMessages += 1;
+        if (event.kind === "unaccounted-health") addTeamHeal(build, heals.get(event));
         addAttackEvent(build, event);
         addNamedDamageEvent(build, event);
         addHealthChangeEvent(build, event);
@@ -203,5 +234,6 @@ export function composeFightStatistics(events: readonly BattleEvent[]): FightSta
         dealtByNobody: build.dealtByNobody,
         takenByNobody: build.takenByNobody,
         unreadMessages: build.unreadMessages,
+        castsUnplaced: build.castsUnplaced,
     };
 }
