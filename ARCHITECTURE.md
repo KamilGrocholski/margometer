@@ -13,10 +13,10 @@ Three layers of claim live in this file and they are kept apart on purpose:
 
 **This is a rewrite in progress.** At this commit the repository holds documents, evidence,
 generated registers and the lower half of `core/`: the error base, the message grammar, the roster,
-the data contract and the decoder's first step, which reads the damage family. Nothing reads the
-game yet, nothing is aggregated and nothing is drawn. The v1 implementation remains readable in this
-repository's history on `develop` (`git show develop:src/core/fight-decoder.ts`), and is not the
-thing being described here.
+the data contract, the decoder's first step, which reads the damage family, and the health
+arithmetic. Nothing reads the game yet, nothing is aggregated and nothing is drawn. The v1
+implementation remains readable in this repository's history on `develop`
+(`git show develop:src/core/fight-decoder.ts`), and is not the thing being described here.
 
 ```
 AGENTS.md          Rules, authority order, guard register.
@@ -37,6 +37,7 @@ deno.lock          What the gate is actually run against. A package the lock doe
 src/
   core/
     battle-event.ts      The data contract: what the decoder produces, and nothing else.
+    combatant-health.ts  Health read from a stated share, and how far off it can be.
     combatant-roster.ts  Who is in the fight, and which names resolve to one of them.
     fight-decoder.ts     What a key means. Reads the damage family, names the rest unread.
     margometer-error.ts  The brand every failure that ships to the browser wears.
@@ -56,6 +57,7 @@ tests/
   AGENTS.md                What is true of a test here and nowhere else.
   core/                    A test sits where its subject sits.
     battle-event.test.ts      Every variant the union holds, against what arrives.
+    combatant-health.test.ts  The arithmetic, against the client's own three figures.
     combatant-roster.test.ts  Two of a name, one of nobody, and every recording.
     fight-decoder.test.ts     The blows, and what is left unread beside them.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
@@ -250,10 +252,10 @@ standard-library code whose ES level is not ours to set.
 Where the tree does not yet meet what this file states. Each is migration work, updated in the same
 commit that opens or closes one.
 
-1. **`core/` is half written.** The error base, the message grammar, the roster, the data contract
-   and the decoder's damage step exist. The decoder reads one family of keys and names every other
-   key unread; the health, the statistics, everything under `game/` and `ui/`, the entry point and
-   `tools/` are not written at all.
+1. **`core/` is half written.** The error base, the message grammar, the roster, the data contract,
+   the decoder's damage step and the health arithmetic exist. The decoder reads one family of keys
+   and names every other key unread; the statistics, everything under `game/` and `ui/`, the entry
+   point and `tools/` are not written at all.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
@@ -292,5 +294,15 @@ commit that opens or closes one.
     in `tests/repository/sources.test.ts` reads a declaration from one line, so a named arrow
     wrapped across two is invisible to S4 and S5. The limit is pinned by a test rather than left to
     be discovered, and closes when a file in this tree is written that way.
-11. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
+11. **Health entered a fight with is not read, and the obvious cross-check does not settle it.**
+    `core/combatant-health.ts` reads health from a stated share and states how far off that reading
+    can be; what somebody entered the fight holding is not derived from it. Measured over
+    `captures/`, 2026-08-28: the last percentage a message states about a combatant agrees with the
+    snapshot at that same entry, within tolerance, in 223 of 240 comparisons — of the 17 that
+    disagree, 7 sit at an entry carrying `endBattle` and 10 have a snapshot stating no health at all
+    for somebody the protocol had just stated above it. Comparing the **first** statement instead
+    disagrees in 98 of 254, because a recording's snapshot is taken after every message of its entry
+    rather than before it. Neither is a fault in the arithmetic, and neither is a floor to unwind
+    from: entry health waits for the opening payload's own state, which is `game/`'s to hand over.
+12. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
     screenshots are unwritten; the release contract above is inherited from v1 and unexercised here.

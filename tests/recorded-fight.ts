@@ -65,6 +65,34 @@ export function getRecordedMessages(path: string): string[] {
     return messages;
 }
 
+/** One combatant's health at one moment, as the client itself stated all three figures. */
+export interface RecordedHealth {
+    combatantId: number;
+    health: number;
+    healthMaximum: number;
+    healthPercent: number;
+}
+
+export function getRecordedHealthReadings(path: string): RecordedHealth[] {
+    const readings: RecordedHealth[] = [];
+    for (const entry of getRecordedEntries(path)) {
+        const after = entry.wojownicyPo;
+        assert(Array.isArray(after), `${path} states the combatants an entry left`);
+        for (const snapshot of after) {
+            assert(isRecord(snapshot), `${path} states a combatant as a record`);
+            const health = snapshot.hp;
+            assert(isRecord(health), `${path} states a combatant's health`);
+            readings.push({
+                combatantId: getNumberFromField(snapshot.id, `${path}: an id`),
+                health: getNumberFromField(health.cur, `${path}: health held`),
+                healthMaximum: getNumberFromField(health.max, `${path}: a health maximum`),
+                healthPercent: getNumberFromField(health.hpp, `${path}: a health percentage`),
+            });
+        }
+    }
+    return readings;
+}
+
 function getRecordedCombatant(snapshot: unknown, path: string): Combatant {
     assert(isRecord(snapshot), `${path} states a combatant as a record`);
     const health = snapshot.hp;
