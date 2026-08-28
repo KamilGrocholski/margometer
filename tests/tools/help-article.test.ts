@@ -153,10 +153,9 @@ describe("the article id", () => {
 /**
  * The numbers `tests/frozen-help-phrases.ts` is made of.
  *
- * ⚠️ **Nothing named this function.** Every register claim about what the
- * published help does or does not document is re-earned on each run against a
- * table this produces — so the guard was held to its input and the input was
- * held to nobody (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F24).
+ * ⚠️ **Nothing named this function.** Every register claim about what the published
+ * help does or does not document is re-earned on each run against a table this produces
+ * — so the guard was held to its input and the input was held to nobody.
  */
 describe("the counts a freeze is made of", () => {
   const TEXT = "unik and unik and evade";

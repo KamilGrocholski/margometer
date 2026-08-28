@@ -58,12 +58,11 @@ describe("what the add-on cost, drawn", () => {
   });
 
   /**
-   * ⚠️ **The same table is printed in a terminal, and the two used to name its
-   * columns separately.** `src/cost-phases.ts` holds the phase names for that
-   * reason and now holds the headings above them too, so a reader comparing the
-   * overlay with `bun run cost` is comparing one table
-   * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F5).
-   * The widths stay per reader — a terminal has room a game window does not.
+   * ⚠️ **The same table is printed in a terminal, and the two used to name its columns
+   * separately.** `src/cost-phases.ts` holds the phase names for that reason and now
+   * holds the headings above them too, so a reader comparing the overlay with `bun run
+   * cost` is comparing one table. The widths stay per reader — a terminal has room a
+   * game window does not.
    */
   test("heads its columns in the words the terminal report uses", () => {
     const heading = composeCostLines(READING).find((line) => line.includes(COST_COLUMNS.name));

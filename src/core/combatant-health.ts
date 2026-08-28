@@ -67,7 +67,7 @@ export const NO_ENTRY_HEALTH: FightEntryHealth = new Map();
  * apportioned and no person is guessed at: the scope is the article's, and the
  * side it is read off is the caster the protocol names on the announcement the
  * declaration rides. What the fight-wide refusal cost is in
- * `docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`.
+ * `docs/specs/sizing-a-share-onto-a-side.md`.
  *
  * ⚠️ **The material agrees, and agreement is the check rather than the reason.**
  * In the only recording carrying the key, all four occurrences are cast by one of
@@ -160,7 +160,7 @@ function getEnteredHealth(unwound: number, maximumHealth: number): number | null
    * point admits nothing at all, and `(0.005 / 100) × pool` is under a point for
    * every pool below 20 000: 43 of the 66 in the corpus on 2026-08-23. Without the
    * floor this branch was exactly `return null` for all of them
-   * (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`).
+   * (`docs/specs/sizing-a-share-onto-a-side.md`).
    *
    * ⚠️ **The corpus exercises the floor and not the share beside it.** Replacing
    * the whole expression with a flat `1` reddens nothing on the twenty recordings
@@ -204,18 +204,16 @@ function getRestoredHealth(
 /**
  * What one combatant stated, or nothing where either half is missing.
  *
- * A reader rather than the expression written out per branch: the same eight
- * lines stood in `attack` and in `skill-used`, and the one-end form of them in
- * four branches more — so two of them shared a body no test could tell apart
- * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F6). What each kind
- * decides is now the only thing each kind writes down: **which slots** it states
- * health for.
+ * A reader rather than the expression written out per branch: the same eight lines
+ * stood in `attack` and in `skill-used`, and the one-end form of them in four branches
+ * more — so two of them shared a body no test could tell apart. What each kind decides
+ * is now the only thing each kind writes down: **which slots** it states health for.
  *
- * Both halves are checked because the pair is typed `[number, number]` and not
- * because a caller could act on the difference: a combatant the roster could not
- * place is refused downstream anyway, for having no maximum. So this is the type
- * being honest rather than a branch anything observes — mutating the `||` to `&&`
- * changes no answer this module gives.
+ * Both halves are checked because the pair is typed `[number, number]` and not because
+ * a caller could act on the difference: a combatant the roster could not place is
+ * refused downstream anyway, for having no maximum. So this is the type being honest
+ * rather than a branch anything observes — mutating the `||` to `&&` changes no answer
+ * this module gives.
  */
 function composeStatement(
   combatantId: number | null,

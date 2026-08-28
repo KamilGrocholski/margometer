@@ -267,12 +267,6 @@ export function setBattleWrap(
    * stack, and an add-on that breaks the game is worse than one that counts
    * nothing (§9.6).
    *
-   * ⚠️ **This block used to call itself "the only two in this repository", and it
-   * was neither two nor the only one.** Three of them are here, and every other
-   * boundary of the same kind has its own — reading the page, asking the game's
-   * dictionary, drawing into a document the game also writes to
-   * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F8). What is
-   * particular to this one is the call stack, not the breadth.
    */
   const handleFailure = (error: unknown): void => {
     try {

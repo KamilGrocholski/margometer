@@ -84,18 +84,16 @@ function composeReading(overrides: Partial<PanelReading> = {}): PanelReading {
         "1=90.00;3=50.00;+dmg=500;-dmg=400",
         "2=90.00;3=40.00;+dmg=200;-dmg=100",
         "3=40.00;0;poison=60",
-        // The skill name is ours. This file is driven by a hand-written fight
-        // precisely because the drill names skills and combatants and those are
-        // the game's own prose (§5) — and it had one of the game's own ability
-        // names in it, which is the contradiction
-        // `docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md` F2 is
-        // about, arriving from a direction the finding did not name.
+        // The skill name is ours. This file is driven by a hand-written fight precisely
+        // because the drill names skills and combatants and those are the game's own
+        // prose (§5) — and it had one of the game's own ability names in it, which is
+        // the contradiction: the game's own prose reaching a place that refuses it.
         "1=90.00;4=80.00;tspell=Skill One;skillId=7",
         "1=90.00;4=95.00;heal_target=300",
         // ⚠️ **A heal nothing announced, under a key the help says nothing about.**
         // It was `4=95.00;0;heal=50` — regeneration — until the help settled that
         // `heal` is the healed combatant's own effect and it stopped being
-        // healer-less (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
+        // healer-less (`docs/specs/the-ends-a-figure-names.md`).
         // The figure is the same 50 on the same combatant, so every total in this
         // file is untouched; what the key change preserves is the one thing this
         // fixture needs and `heal` can no longer provide — healing the panel has
@@ -130,7 +128,7 @@ function composeReading(overrides: Partial<PanelReading> = {}): PanelReading {
  * resolves, so `unattributed` is zero throughout and the terms this fight is for
  * would be invisible. Three readers now — the closure below, the sweep of every
  * sentence, and the summary's third part, which stands for exactly this shape
- * (`docs/specs/2026-08-18-a-tick-nobody-swung-still-has-a-side.md`).
+ * (`docs/specs/the-ends-a-figure-names.md`).
  */
 function composeReadingWithUnnamedEnds(): PanelReading {
   const roster = composeCombatantRoster([
@@ -162,7 +160,7 @@ function composeState(overrides: Partial<PanelState> = {}): PanelState {
  * Almost everything here asks about that one: it is the hole every capture
  * carries, and the one the fixture is built around. The row for a missing
  * **target** is asked about by name where it is the subject
- * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+ * (`docs/specs/the-ends-a-figure-names.md`).
  */
 function getNoActorRow(view: PanelView): PanelRow | null {
   return view.pinnedRows.find((row) => row.key === NO_ACTOR_ROW_KEY) ?? null;
@@ -548,13 +546,13 @@ describe("what nobody can be charged with", () => {
    * ⚠️ **Every tab narrows it, and the charge says which way.** The team comes
    * from the end the game *did* name: health that fell is charged to the side
    * facing the victim, health that rose to the side that received it
-   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+   * (`docs/specs/the-ends-a-figure-names.md`).
    *
    * It narrowed on no given screen for one round, because a figure with no actor
    * was held to have no side — and before that it narrowed on all four by the
    * **victim**, which put a received-end figure over a given-end list and inside
    * its denominator: 38.7% of `Zadane · Oni` on the Hildur capture
-   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`).
+   * (`docs/specs/the-ends-a-figure-names.md`).
    *
    * ⚠️ **The two directions of one noun land on opposite tabs, and that is the
    * whole of what a mutation here breaks.** The hand-written fight ticks 60 points
@@ -591,7 +589,7 @@ describe("what nobody can be charged with", () => {
    * `Leczenie · Oni` on
    * `tests/captured-fights/2026-08-11-tempest-tancerz-vs-wermont.json` — and once
    * because the figure was held to belong to no side at all, so `Zadane · Oni`
-   * printed none (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`).
+   * printed none (`docs/specs/the-ends-a-figure-names.md`).
    *
    * Both are gone for one reason: the figure and the list are scoped alike now.
    * Stated as an equality over every screen rather than as a list of the ones that
@@ -690,7 +688,7 @@ describe("drilling", () => {
    * type is the same number under another word and stays hidden; `Zwykły cios`
    * says how many times, and that count is reachable nowhere else — the closing
    * row one level down states none
-   * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`). A lone
+   * (`docs/specs/the-panel-that-drills.md`). A lone
    * *announced* skill is not exempt: opening any person it was used on shows it,
    * with its count.
    */
@@ -931,7 +929,7 @@ describe("the header says how the fight ended", () => {
 /**
  * ⚠️ **The title was swept for its language and never for its meaning.** It sits
  * in `getEveryString`, so every word of it was held to §3 — and no test ever
- * asked what it said. `bun tools/mutation-sweep.ts` found it: turning the
+ * asked what it said. a mutation sweep found it: turning the
  * "nobody is placed" test from `=== 0` into `=== 1` left 2046 tests green while
  * a fight with one side on screen announced it had no roster at all.
  */
@@ -1269,7 +1267,7 @@ describe("a fight that did not all arrive", () => {
  * §9.6 has asked for this since it was written and nothing had ever done it: the
  * strip at the foot says *something in this fight could not be read* and leaves the
  * reader to work out whose totals that cost
- * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ * (`docs/specs/the-ends-a-figure-names.md`).
  *
  * ⚠️ **Built by hand because no recording carried either state, and one now
  * carries the second.** `bun tools/fight-report.ts` printed `unreadable messages:
@@ -1507,7 +1505,7 @@ describe("a warning on the row it shortens", () => {
    * while a fight declaring the reducer anywhere had none of its casts sized, its
    * two casters carried a mark each. The reducer is declared by one of theirs at
    * the monster, so nothing of theirs was reduced and all three casts are sized
-   * (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`).
+   * (`docs/specs/sizing-a-share-onto-a-side.md`).
    *
    * So the marks the panel draws are held by the hand-built readings above, and
    * this holds the other half: on real material, every row says what happened and
@@ -1707,7 +1705,7 @@ describe("against the captured fights", () => {
    * ⚠️ **The given screens did not narrow at all for one round**, because a figure
    * with no actor was held to have no side; the round before that they narrowed by
    * the victim, which is the other side's question
-   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`). Both are
+   * (`docs/specs/the-ends-a-figure-names.md`). Both are
    * caught here: the first would make each tab equal the fight's, the second would
    * put the halves on the wrong tabs, and the mirror below is what tells those two
    * apart.
@@ -1749,7 +1747,7 @@ describe("against the captured fights", () => {
    *
    * The team comes from the end the game *did* name, and the derivation is the
    * noun's: damage crosses, healing does not
-   * (`getPartCharged`, `docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+   * (`getPartCharged`, `docs/specs/the-ends-a-figure-names.md`).
    * The protocol states neither — it holds while there are two sides and nobody
    * harms their own.
    *
@@ -1851,11 +1849,11 @@ describe("against the captured fights", () => {
    * end, and nothing announces them or documents who caused them. `injure` arrives
    * in the identical shape and no longer leaves one — the blow before it announced
    * the wound and named who applied it
-   * (`docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`), which is why this
+   * (`docs/specs/the-ends-a-figure-names.md`), which is why this
    * cell still says `true` on the strength of two keys rather than three. Healing
    * has none left — every point in every recording reaches a healer since
    * the three keys the help calls the healed combatant's own started saying so
-   * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
+   * (`docs/specs/the-ends-a-figure-names.md`).
    *
    * A `false` that turned `true` again would be a healing key nobody has read, and
    * a `true` that turned `false` would be damage quietly acquiring an attacker.
@@ -1875,7 +1873,7 @@ describe("against the captured fights", () => {
    * The property that makes all four cuts worth reading, and the one the panel
    * demands of every other list it draws — a section that quietly totals less than
    * the row above it with nothing saying why is the failure this project exists to
-   * prevent, in miniature (`docs/specs/2026-08-11-the-panel-that-drills.md`).
+   * prevent, in miniature (`docs/specs/the-panel-that-drills.md`).
    *
    * ⚠️ **It did not hold on `Zadane` before this round**, and could not be seen: the
    * cut summed the rows' `healthLostBySource` while the figure also carried
@@ -2064,7 +2062,7 @@ describe("against the captured fights", () => {
    * **What has no side at *either* end stays outside the two figures.**
    *
    * The summary charges a figure with no actor to the side the game named at the
-   * other end (`docs/specs/2026-08-18-a-tick-nobody-swung-still-has-a-side.md`).
+   * other end (`docs/specs/the-ends-a-figure-names.md`).
    * A blow naming neither end has no such side, so it is the part that survives —
    * and it is the whole reason the part survives at all, since it is zero in every
    * recording and a bar that had dropped it would draw identically on all of them.
@@ -2203,9 +2201,9 @@ describe("against the captured fights", () => {
    * that round's understanding written down.** It narrowed by the victim, which
    * put a received-end figure over a given-end list; then it stopped narrowing at
    * all, because the figure was held to have no side
-   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`); now it
+   * (`docs/specs/the-ends-a-figure-names.md`); now it
    * narrows by the charge, which is the victim's *opposite* under `Zadane`
-   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). The three are
+   * (`docs/specs/the-ends-a-figure-names.md`). The three are
    * told apart by which tab each element lands on, which is why the fight is built
    * with one of each on a different side.
    *
@@ -2267,16 +2265,15 @@ describe("against the captured fights", () => {
 
   /**
    * ⚠️ **The healing cut is narrowed to the side on screen, and one line does it.**
-   * `getNoActorHealingBySource` opens with `if (!isCharged(id)) continue;` — the
-   * same line, character for character, that `getNoActorDamageBySource` opens
-   * with one function above. Dropping the negation on the damage side reddens
-   * seventeen tests; dropping it on the healing side reddened nothing, so the
-   * pinned row under `Leczenie · My` could have listed exactly the points that are
-   * **not** ours with the label and the bracket unchanged
-   * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F1).
+   * `getNoActorHealingBySource` opens with `if (!isCharged(id)) continue;` — the same
+   * line, character for character, that `getNoActorDamageBySource` opens with one
+   * function above. Dropping the negation on the damage side reddens seventeen tests;
+   * dropping it on the healing side reddened nothing, so the pinned row under `Leczenie
+   * · My` could have listed exactly the points that are **not** ours with the label and
+   * the bracket unchanged.
    *
-   * Two sides, both healed by nobody, and each tab has to show its own — which is
-   * what makes the inversion visible rather than merely wrong.
+   * Two sides, both healed by nobody, and each tab has to show its own — which is what
+   * makes the inversion visible rather than merely wrong.
    */
   test("narrows healing nobody gave to the side the tab is showing", () => {
     const roster = composeCombatantRoster([
@@ -2365,11 +2362,10 @@ describe("against the captured fights", () => {
     /**
      * ⚠️ **The words themselves, and this is the one screen that draws them.**
      * Everywhere else this pair is read back from the module that writes it, which
-     * holds the two sides to be the same and neither to be right — so both halves
-     * could have been replaced by anything at all, including a key of the game's
-     * or a word of ours, with the gate green (§3,
-     * `docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F4). It is the row
-     * for what names neither end, which no recording has ever produced.
+     * holds the two sides to be the same and neither to be right — so both halves could
+     * have been replaced by anything at all, including a key of the game's or a word of
+     * ours, with the gate green. It is the row for what names neither end, which no
+     * recording has ever produced.
      */
     expect(getNeitherEndLeftover()).toEqual({
       label: "Nie do przypisania",
@@ -2706,7 +2702,7 @@ describe("against the captured fights", () => {
    * the figure was held to have no side at all. Both were the same fault seen from
    * different ends — figure and whole scoped differently — and the charge closes
    * it: the row narrows exactly as the list does
-   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+   * (`docs/specs/the-ends-a-figure-names.md`).
    *
    * Stated over every screen rather than as an enumerated exception, because an
    * exception is the thing that widens unnoticed.
@@ -2917,7 +2913,7 @@ describe("what a bar's length says", () => {
  * ⚠️ **The words were swept for what they must not say and never for what they
  * do.** The block above walks every screen refusing a key of the game's or a
  * term of ours — a check on the *vocabulary*, and it passes just as happily when
- * one phrase is replaced by a different phrase. `bun tools/mutation-sweep.ts`
+ * one phrase is replaced by a different phrase. a mutation sweep
  * put a sentinel through 55 string literals in this file and nothing anywhere
  * went red. The panel's own title had already shown what that costs: it sat in
  * the sweep the whole time, and still announced `brak składu` over a roster.
@@ -3024,17 +3020,15 @@ describe("a target the fight cannot name", () => {
 /**
  * **Every shape the protocol can send, and what the panel draws for it.**
  *
- * The table this walks is written out in `docs/half-named-figures.md`, and this
- * is the half a machine can check. What it asks about is the two pinned rows: which of
- * them appears, with what figure, on which tab. The ranked rows are the closures
- * above, and the bar is the mirror.
+ * This is the half a machine can check, and it is the only place the table lives.
+ * What it asks about is the two pinned rows: which of them appears, with what figure,
+ * on which tab. The ranked rows are the closures above, and the bar is the mirror.
  *
- * ⚠️ **Written out rather than derived.** A test that computed the expected row
- * from the same rule the panel uses would agree with it whatever the rule became
- * (§7.5). These are the fights the protocol can produce, each with the answer
- * somebody decided — and the count is the list below, never a number in this
- * sentence: it read `twelve` over sixteen of them for three rounds
- * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F4).
+ * ⚠️ **Written out rather than derived.** A test that computed the expected row from
+ * the same rule the panel uses would agree with it whatever the rule became (§7.5).
+ * These are the fights the protocol can produce, each with the answer somebody decided
+ * — and the count is the list below, never a number in this sentence: it read `twelve`
+ * over sixteen of them for three rounds.
  *
  * The roster is two of ours, one of theirs, and an id it does not carry at all.
  */
@@ -3104,7 +3098,7 @@ const EVERY_CASE: Array<{
     // it, and the tick states what that announcement stated — so both ends are
     // known and no row is pinned. The figure is the attacker's, beside their blow
     // and not inside it (§9.6,
-    // `docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`).
+    // `docs/specs/the-ends-a-figure-names.md`).
     name: "a wound the blow before it announced",
     messages: ["1=90.00;3=50.00;+dmg=500;-dmg=400;+injure=60", "3=50.00;0;injure=60"],
     ourSide: 1,
@@ -3180,7 +3174,7 @@ const EVERY_CASE: Array<{
   {
     // The help calls `heal` the healed combatant's own effect, so this names both
     // ends and no row is pinned on either screen (§9.6,
-    // `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). The `poison`
+    // `docs/specs/the-ends-a-figure-names.md`). The `poison`
     // case above arrives in the identical shape and keeps its pinned row, which is
     // what makes this a reading of the documentation and not of the message.
     name: "the healed named, and the help says whose effect it was",
@@ -3309,7 +3303,7 @@ describe("every shape the protocol can send", () => {
   });
 
   /**
-   * The team heal's own section of `docs/half-named-figures.md`, read off the
+   * The team heal's own half-named shapes, read off the
    * panel the way every table in that file is.
    *
    * It is not a half-named figure — the message names one end and a whole *side*
@@ -3595,10 +3589,9 @@ describe("every sentence the panel says", () => {
 /**
  * The formatter every number on screen goes through.
  *
- * ⚠️ **No test named it.** It has twenty-seven callers inside its own file and
- * had none outside, so every figure a player reads was formatted by code the
- * gate could not have told you was there
- * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F24).
+ * ⚠️ **No test named it.** It has twenty-seven callers inside its own file and had none
+ * outside, so every figure a player reads was formatted by code the gate could not have
+ * told you was there.
  */
 describe("how a figure is written", () => {
   test("groups from the right, in threes", () => {

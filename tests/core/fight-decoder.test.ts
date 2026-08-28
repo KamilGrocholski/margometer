@@ -115,7 +115,7 @@ describe("damage stated against a name, with a roster to resolve it", () => {
 /**
  * Healing stated against a name, at the edges nothing had reached.
  *
- * ⚠️ **Every one of these came out of `bun tools/mutation-sweep.ts`.** The rules
+ * ⚠️ **Every one of these came out of a mutation sweep.** The rules
  * were right and untested, and two of them guard the boundary this project keeps
  * paying for: a figure of **zero** is a measurement, and refusing it turns "the
  * game said nothing happened" into "we could not read it".

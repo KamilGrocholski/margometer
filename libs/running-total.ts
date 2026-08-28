@@ -1,24 +1,20 @@
 /**
- * Adding to a total a map already carries, where a key nobody has seen starts at
- * zero.
+ * Adding to a total a map already carries, where a key nobody has seen starts at zero.
  *
- * **Why here rather than at a call site.** §9.5's rule for `libs/` is about
- * constructs JavaScript spells more than one way, and this has exactly one
- * spelling — `map.set(key, (map.get(key) ?? 0) + amount)`. What puts it here is
- * §7.1's second consumer, which arrived long ago and kept arriving: the same
- * three tokens were written out in `src/core/fight-statistics.ts` twice, in
- * `src/ui/panel-view.ts`, in `src/game/battle-session.ts` and twice in
- * `tools/decoding-status.ts` — five copies across four files and three layers
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F16). `libs/` is
- * the layer a counter over a map belongs to, because nothing about it knows the
- * game, the protocol or the panel.
+ * **Why here rather than at a call site.** §9.5's rule for `libs/` is about constructs
+ * JavaScript spells more than one way, and this has exactly one spelling —
+ * `map.set(key, (map.get(key) ?? 0) + amount)`. What puts it here is §7.1's second
+ * consumer, which arrived long ago and kept arriving: the same three tokens were
+ * written out in `src/core/fight-statistics.ts` twice, in `src/ui/panel-view.ts`, in
+ * `src/game/battle-session.ts` and twice in `tools/decoding-status.ts` — five copies
+ * across four files and three layers. `libs/` is the layer a counter over a map belongs
+ * to, because nothing about it knows the game, the protocol or the panel.
  *
- * ⚠️ **The `?? 0` is the point of it, and it is not the substitution §9.3
- * forbids.** A key with no entry yet has counted nothing, which is a measurement
- * of zero rather than a figure nobody wrote — the failure that rule names is
- * putting `0` where the answer is *unknown*, and here there is no unknown to
- * confuse it with. Writing it out five times is how one of them would eventually
- * have been written differently.
+ * ⚠️ **The `?? 0` is the point of it, and it is not the substitution §9.3 forbids.** A
+ * key with no entry yet has counted nothing, which is a measurement of zero rather than
+ * a figure nobody wrote — the failure that rule names is putting `0` where the answer
+ * is *unknown*, and here there is no unknown to confuse it with. Writing it out five
+ * times is how one of them would eventually have been written differently.
  */
 
 export function setRunningTotal<Key>(totals: Map<Key, number>, key: Key, amount: number): void {
@@ -46,15 +42,14 @@ export function setPairRunningTotal<Outer, Inner>(
 /**
  * What a map of totals comes to.
  *
- * The reading half of the same idea, and it is here for the same reason the
- * writing half is: `[...map.values()].reduce((sum, one) => sum + one, 0)`,
- * `for (const one of map.values()) total += one` and a `for…of` over the entries
- * are three spellings of one question, and all three were in `src/ui/`
- * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F12).
+ * The reading half of the same idea, and it is here for the same reason the writing
+ * half is: `[...map.values()].reduce((sum, one) => sum + one, 0)`, `for (const one of
+ * map.values()) total += one` and a `for…of` over the entries are three spellings of
+ * one question, and all three were in `src/ui/`.
  *
- * Empty comes to zero, which is a measurement rather than a figure nobody wrote:
- * a map holding nothing has counted nothing. That is the same argument the `?? 0`
- * above rests on, and it is the reason this reader belongs beside it.
+ * Empty comes to zero, which is a measurement rather than a figure nobody wrote: a map
+ * holding nothing has counted nothing. That is the same argument the `?? 0` above rests
+ * on, and it is the reason this reader belongs beside it.
  */
 export function getTotalOfValues<Key>(totals: ReadonlyMap<Key, number>): number {
   let total = 0;

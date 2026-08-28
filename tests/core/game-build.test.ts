@@ -3,14 +3,13 @@
  *
  * Both exports were reached only through `getBuildFromPage` in
  * `tests/tools/game-client-source.test.ts`, so neither was named anywhere under
- * `tests/` and what each of them *refuses* had never been asked
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F11).
+ * `tests/` and what each of them *refuses* had never been asked.
  *
- * ⚠️ **Why this module sits in `core` at all**, which is what makes covering it
- * worth a file: it is the one layer both an add-on file and a tool may read, and
- * both must read a build the same way. A recording states the build it was made
- * against and the cache states the build it holds; if the two were read by
- * different patterns those numbers would stop meaning the same thing (§7.6).
+ * ⚠️ **Why this module sits in `core` at all**, which is what makes covering it worth a
+ * file: it is the one layer both an add-on file and a tool may read, and both must read
+ * a build the same way. A recording states the build it was made against and the cache
+ * states the build it holds; if the two were read by different patterns those numbers
+ * would stop meaning the same thing (§7.6).
  */
 
 import { describe, expect, test } from "bun:test";

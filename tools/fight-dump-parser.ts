@@ -1,25 +1,23 @@
 /**
  * Parser for captured fight material.
  *
- * A dump is one recording session: every call the game engine made, with the
- * raw protocol it carried and a snapshot of every combatant taken before and
- * after. The snapshots are the reason this material is a file rather than a
- * code module — they carry maximum and current health, which the protocol
- * itself never states, and that is what lets the decoder be checked against
- * something other than itself.
+ * A dump is one recording session: every call the game engine made, with the raw
+ * protocol it carried and a snapshot of every combatant taken before and after. The
+ * snapshots are the reason this material is a file rather than a code module — they
+ * carry maximum and current health, which the protocol itself never states, and that is
+ * what lets the decoder be checked against something other than itself.
  *
- * Field names inside the files are Polish. This reader is the boundary where
- * that stops: nothing downstream sees them. See AGENTS.md §9.2 for why the
- * files are not simply renamed.
+ * Field names inside the files are Polish. This reader is the boundary where that
+ * stops: nothing downstream sees them. See AGENTS.md §9.2 for why the files are not
+ * simply renamed.
  *
  * ⚠️ **The boundary is one reader, and for a while it was two.**
  * `tools/captured-fight-intake.ts` spelled six of these names itself — it reads a
  * recording before this parser will accept one — and nothing held the two spellings
  * together. The quiet direction was `wpisy`: misspelled there, the intake finds no
- * calls, decides nobody needs substituting and admits the file with every nickname
- * in it, which is the one promise `NOTICE.md` makes about a person
- * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F6). So the names
- * are exported from here and the compiler holds the two files to them.
+ * calls, decides nobody needs substituting and admits the file with every nickname in
+ * it, which is the one promise `NOTICE.md` makes about a person. So the names are
+ * exported from here and the compiler holds the two files to them.
  */
 
 import { getValueFromJsonText } from "@/libs/json.ts";

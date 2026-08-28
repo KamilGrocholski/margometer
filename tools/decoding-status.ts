@@ -66,13 +66,12 @@ function composeReadingOf(message: string): string {
 /**
  * The same message with one key taken out of it.
  *
- * ⚠️ **Through the grammar's owner, not through `split(";")`.** This used to
- * spell the separator, the `=` split and the rule that the first two segments
- * are the sides — every one of them a fact `src/core/protocol-message.ts` owns,
- * in a file that already imports it. §9.4 makes the `parse`/`decode` split
- * load-bearing precisely so the grammar lives in one place, and a change to it
- * would have left this tool reporting against the old one
- * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F19).
+ * ⚠️ **Through the grammar's owner, not through `split(";")`.** This used to spell the
+ * separator, the `=` split and the rule that the first two segments are the sides —
+ * every one of them a fact `src/core/protocol-message.ts` owns, in a file that already
+ * imports it. §9.4 makes the `parse`/`decode` split load-bearing precisely so the
+ * grammar lives in one place, and a change to it would have left this tool reporting
+ * against the old one.
  */
 function composeMessageWithoutKey(message: string, key: string): string {
   const parsed = parseProtocolMessage(message);

@@ -11,16 +11,11 @@
  * the file `build.ts` swaps: a development build resolving its own import of the
  * production one would resolve straight back to itself.
  *
- * ⚠️ **Nothing holds these words to anything, and one document repeats them.**
- * Every reader imports the constant, so the compiler holds all three to the *same*
- * name and nothing holds any of them to being *right*: a sweep renames all eight
- * with the gate green
- * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F13). That is
- * accepted — the words reach a terminal and a development overlay and nothing
- * else, so a test pinning them would have no consumer but itself. The one place
- * they are spelled again is
- * `docs/specs/2026-08-18-what-a-payload-costs.md`, which names all eight in prose;
- * a rename here has to go there too, and nothing will say so.
+ * ⚠️ **Nothing holds these words to anything.** Every reader imports the
+ * constant, so the compiler holds all three to the *same* name and nothing holds
+ * any of them to being *right* — a sweep renames all eight with the gate green.
+ * Accepted: the words reach a terminal and a development overlay and nothing
+ * else, so a test pinning them would have no consumer but itself.
  *
  * ⚠️ **Two groups, and they may not be added together.** A whole contains its
  * parts — `payload` is `session` plus `capture` plus `reading` plus the drawing
@@ -52,14 +47,13 @@ export const DOM_PHASE = "dom";
  * ⚠️ **The same table is drawn twice, and its headings were decided twice.**
  * `src/ui/cost-overlay.ts` draws it beside the panel in a development build and
  * `tools/payload-cost.ts` prints it in a terminal; both spelled `phase`, `calls`,
- * `total ms` and `worst ms` themselves
- * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F5). That
- * is the same argument this file already makes for the phase names, one row up
- * from them, and the same failure: two tables that drift and both go on printing.
+ * `total ms` and `worst ms` themselves. That is the same argument this file already
+ * makes for the phase names, one row up from them, and the same failure: two tables
+ * that drift and both go on printing.
  *
- * The widths stay with each reader. They are not vocabulary — a terminal has room
- * a corner of a game window does not — and that difference is the reason the two
- * readings exist at all.
+ * The widths stay with each reader. They are not vocabulary — a terminal has room a
+ * corner of a game window does not — and that difference is the reason the two readings
+ * exist at all.
  */
 export const COST_COLUMNS = {
   name: "phase",

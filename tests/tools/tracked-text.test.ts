@@ -1,29 +1,28 @@
 /**
  * Every file this repository writes is text a text tool can read.
  *
- * ⚠️ **Paid for twice in one day.** `tests/game/engine-battle-wrap.test.ts`
- * joined two lists on a separator written as a literal NUL instead of an escape.
- * TypeScript accepts it and bun runs it, so the gate had nothing to say — and
- * `grep -r` skipped all 572 lines of it in silence, which is the file holding
- * the promises this add-on makes to the game. A coverage sweep then reported
- * four of the wrap's exports as named by no test; all four are imported at the
- * head of that file (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F1).
+ * ⚠️ **Paid for twice in one day.** `tests/game/engine-battle-wrap.test.ts` joined two
+ * lists on a separator written as a literal NUL instead of an escape. TypeScript
+ * accepts it and bun runs it, so the gate had nothing to say — and `grep -r` skipped
+ * all 572 lines of it in silence, which is the file holding the promises this add-on
+ * makes to the game. A coverage sweep then reported four of the wrap's exports as named
+ * by no test; all four are imported at the head of that file.
  *
- * The audit reporting it then did the same thing in the sentence describing it,
- * and went into git as a binary blob — `1 file changed, 0 insertions(+)` was the
- * only sign. That is the whole argument for a guard rather than for care: the
- * byte is invisible in the editor, in the diff and in the gate, so every place a
- * person would look is a place it cannot be seen.
+ * The audit reporting it then did the same thing in the sentence describing it, and
+ * went into git as a binary blob — `1 file changed, 0 insertions(+)` was the only sign.
+ * That is the whole argument for a guard rather than for care: the byte is invisible in
+ * the editor, in the diff and in the gate, so every place a person would look is a
+ * place it cannot be seen.
  *
- * ⚠️ **Rejected: binding this to `.ts` files.** The second instance was a
- * Markdown document under `docs/`, so a guard over source alone would have
- * agreed with the bug it was written to prevent — the failure §7.5 names.
+ * ⚠️ **Rejected: binding this to `.ts` files.** The second instance was a Markdown
+ * document under `docs/`, so a guard over source alone would have agreed with the bug
+ * it was written to prevent — the failure §7.5 names.
  *
- * ⚠️ **Rejected: asking `file(1)`, or git's own binary heuristic.** Both call a
- * file carrying an ESC byte text, and `tools/mutation-sweep.ts` was carrying one
- * — a raw escape character opening the pattern that strips escape codes. A
- * verdict derived from somebody else's heuristic is the shape §7.5 refuses:
- * where a byte can carry the answer, nothing else may judge.
+ * ⚠️ **Rejected: asking `file(1)`, or git's own binary heuristic.** Both call a file
+ * carrying an ESC byte text, and a tool here was carrying one — a raw
+ * escape character opening the pattern that strips escape codes. A verdict derived from
+ * somebody else's heuristic is the shape §7.5 refuses: where a byte can carry the
+ * answer, nothing else may judge.
  */
 
 import { execFileSync } from "node:child_process";

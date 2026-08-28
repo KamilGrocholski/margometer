@@ -10,11 +10,10 @@
  * unstyled node draws, and a rule nothing wears styles nothing
  * (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`).
  *
- * ⚠️ **Only the part that is genuinely one question is here**, which is the same
- * line `tests/dated-document.ts` draws. The two guards still disagree about what
- * counts as a consumer — the preview reads its own markup and a second source
- * file, the panel does not — and none of that moved, so neither needs the other
- * open to be read.
+ * ⚠️ **Only the part that is genuinely one question is here.** The two guards still
+ * disagree about what counts as a consumer — the preview reads its own markup and a
+ * second source file, the panel does not — and none of that moved, so neither needs the
+ * other open to be read.
  */
 
 import { getEndOfWhitespace, getPartsSeparatedByWhitespace, isWordStart } from "@/libs/text-runs.ts";

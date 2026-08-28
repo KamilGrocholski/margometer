@@ -1,24 +1,23 @@
 /**
  * The wall in front of `TODO.md`, held to still being there.
  *
- * §5 says no tool writes to that file: it is the maintainer's own task list,
- * kept by hand. §7.5 puts a guard first wherever a machine can hold a rule — and
- * what a machine here cannot hold is *who* edited a file, because a diff records
- * the change and never the hand. What it can hold is the tool call, denied in
- * `.claude/settings.json` before it runs.
+ * §5 says no tool writes to that file: it is the maintainer's own task list, kept by
+ * hand. §7.5 puts a guard first wherever a machine can hold a rule — and what a machine
+ * here cannot hold is *who* edited a file, because a diff records the change and never
+ * the hand. What it can hold is the tool call, denied in `.claude/settings.json` before
+ * it runs.
  *
- * So this guards the one thing that would otherwise go quiet: the deny list
- * emptied, renamed or reduced to a subset of the tools that can write. Nothing
- * else in the tree reads that file, and a rule whose enforcement disappeared is
- * indistinguishable from a rule being obeyed.
+ * So this guards the one thing that would otherwise go quiet: the deny list emptied,
+ * renamed or reduced to a subset of the tools that can write. Nothing else in the tree
+ * reads that file, and a rule whose enforcement disappeared is indistinguishable from a
+ * rule being obeyed.
  *
- * ⚠️ **What it holds is three tools, and a shell is not one of them.** A
- * permission rule matches the text of a tool call; a write through a terminal is
- * a redirect, a heredoc or `sed -i`, and a rule wide enough to catch those would
- * also refuse `cat TODO.md`, which §5 explicitly allows. The gap is real, it is
- * named in §5 rather than papered over here, and this file holds the half a
- * machine can — including the sentence in §5 that says so
- * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F7).
+ * ⚠️ **What it holds is three tools, and a shell is not one of them.** A permission
+ * rule matches the text of a tool call; a write through a terminal is a redirect, a
+ * heredoc or `sed -i`, and a rule wide enough to catch those would also refuse `cat
+ * TODO.md`, which §5 explicitly allows. The gap is real, it is named in §5 rather than
+ * papered over here, and this file holds the half a machine can — including the
+ * sentence in §5 that says so.
  */
 
 import { readFileSync } from "node:fs";

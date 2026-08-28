@@ -196,24 +196,21 @@ describe("naming one token", () => {
 /**
  * Every word this panel has of its own, recorded rather than described.
  *
- * ⚠️ **The words were swept for what they must not say and never for what they
- * do.** `tests/ui/panel-view.test.ts` walks every screen checking that no key of
- * the game's and no term of ours reaches a player — a vocabulary check, and it
- * passes just as happily when a phrase is replaced by a different phrase.
- * `bun tools/mutation-sweep.ts` put a sentinel through every one of these entries
- * and nothing anywhere went red. (Written as "all 43" until there were 44 —
- * `docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F8. The block
- * below counts them; a sentence beside it cannot.)
+ * ⚠️ **The words were swept for what they must not say and never for what they do.**
+ * `tests/ui/panel-view.test.ts` walks every screen checking that no key of the game's
+ * and no term of ours reaches a player — a vocabulary check, and it passes just as
+ * happily when a phrase is replaced by a different phrase. A mutation sweep put a
+ * sentinel through every one of these entries and nothing anywhere went red.
  *
- * That is not a small hole. A fallback is what a player reads when their client
- * has no name for a token, and two of them saying the same thing is a wrong
- * number that looks right — which is the failure the block below this one exists
- * to prevent, held only against itself and never against what was decided.
+ * That is not a small hole. A fallback is what a player reads when their client has no
+ * name for a token, and two of them saying the same thing is a wrong number that looks
+ * right — which is the failure the block below this one exists to prevent, held only
+ * against itself and never against what was decided.
  *
  * Recorded as a flat list because that is the shape a person can read a diff of:
- * changing what the panel calls something should be visible in a review as one
- * line, and should require saying so. The identifiers are the game's and may be
- * stored — they are functional names (NOTICE.md); the phrases are ours.
+ * changing what the panel calls something should be visible in a review as one line,
+ * and should require saying so. The identifiers are the game's and may be stored — they
+ * are functional names (NOTICE.md); the phrases are ours.
  */
 describe("the panel's own vocabulary, as decided", () => {
   const RECORDED: Record<string, Array<Array<string | null>>> = {
@@ -334,11 +331,10 @@ describe("the panel's own vocabulary, as decided", () => {
  */
 describe("the tokens the panel singles out", () => {
   /**
-   * §9.3's guard, and the whole reason these are constants: a critical hit is
-   * counted in the counters line and kept out of the effects line beside it, so
-   * two readers have to agree about what the game calls one. Every spelling of
-   * both used to sit where it was used and none of them was held to anything
-   * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F1).
+   * §9.3's guard, and the whole reason these are constants: a critical hit is counted
+   * in the counters line and kept out of the effects line beside it, so two readers
+   * have to agree about what the game calls one. Every spelling of both used to sit
+   * where it was used and none of them was held to anything.
    */
   test.each([...CRITICAL_EFFECT_TOKENS])("%s is a token this file already names", (token) => {
     expect(Object.keys(EFFECT_NAMES)).toContain(token);
@@ -421,16 +417,14 @@ describe("the two health vocabularies, against the captures", () => {
 });
 
 /**
- * The sentences the panel says where the game names nobody, and the one rule
- * counting them cannot supply: **a sentence said on two screens is written once.**
+ * The sentences the panel says where the game names nobody, and the one rule counting
+ * them cannot supply: **a sentence said on two screens is written once.**
  *
- * That rule was paid for by having the two limit sentences written out twice byte
- * for byte, where rewording one would have left the panel saying two different
- * things about one limit while both screens' tests stayed green — each records its
- * own screen's phrases against itself
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F18). Recording
- * the sentences again here would be the same mistake a third time, so what is held
- * is which screens share one and which must differ.
+ * That rule was paid for by having the two limit sentences written out twice byte for
+ * byte, where rewording one would have left the panel saying two different things about
+ * one limit while both screens' tests stayed green — each records its own screen's
+ * phrases against itself. Recording the sentences again here would be the same mistake
+ * a third time, so what is held is which screens share one and which must differ.
  */
 
 describe("every screen has something to say", () => {
@@ -546,7 +540,7 @@ describe("what is shared and what is not", () => {
    *
    * They were one row saying `Bez sprawcy` about a figure with no actor and about
    * one with no target alike, which is two different things told once
-   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). What this
+   * (`docs/specs/the-ends-a-figure-names.md`). What this
    * asks is that the split went all the way through: the label, what the game did
    * not say, and what the cut under it is headed.
    */
@@ -572,15 +566,14 @@ describe("what is shared and what is not", () => {
 
   /**
    * ⚠️ **The sentences themselves, in words, and this is the only place they are.**
-   * Every other test here reads a note back from the function that writes it,
-   * which holds the two sides to be the same and neither to be right: the healing
-   * half of this pair could have been replaced by anything at all — a key of the
-   * game's, a word of ours, English — with the whole gate green (§3,
-   * `docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F4).
+   * Every other test here reads a note back from the function that writes it, which
+   * holds the two sides to be the same and neither to be right: the healing half of
+   * this pair could have been replaced by anything at all — a key of the game's, a word
+   * of ours, English — with the whole gate green.
    *
-   * Both halves are here rather than one, because what makes either right is that
-   * it says what the game did not state and nothing about why this reader cannot
-   * know it. Read them side by side or that is not checkable.
+   * Both halves are here rather than one, because what makes either right is that it
+   * says what the game did not state and nothing about why this reader cannot know it.
+   * Read them side by side or that is not checkable.
    */
   test("says, in the player's own words, which end the game left out", () => {
     expect(getNoTargetLimitNote("dealt")).toBe(
@@ -659,13 +652,13 @@ describe("what is shared and what is not", () => {
    * narrowed by the victim on all four screens. Under a given direction that put a
    * received-end figure over a given-end list, so `Zadane · Oni` pinned what that
    * side *lost* and said the same sentence about it as `Otrzymane · Oni`
-   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`).
+   * (`docs/specs/the-ends-a-figure-names.md`).
    *
    * The figure narrows only on a received direction now, so the sentences have to
    * part along the same line: a received screen names the end it was counted by, a
    * given one says the figure is the whole fight's and that no combatant carries
    * it — the summary bar below does put it on a side
-   * (`docs/specs/2026-08-18-a-tick-nobody-swung-still-has-a-side.md`), which is
+   * (`docs/specs/the-ends-a-figure-names.md`), which is
    * why that half of the wording had to go. Four distinct wordings — the noun
    * still divides each pair, because one is health leaving and the other is health
    * arriving.
@@ -1065,16 +1058,14 @@ describe("what the shelf of kept fights says", () => {
   });
 
   /**
-   * Three sentences and not one, because the remedies differ — and none of them
-   * names a quota, a store or an exception, which are ours (§3). The third is
-   * about the control rather than about a fight: nothing was lost, and what it
-   * has to say is that the control did nothing
-   * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F1).
+   * Three sentences and not one, because the remedies differ — and none of them names a
+   * quota, a store or an exception, which are ours (§3). The third is about the control
+   * rather than about a fight: nothing was lost, and what it has to say is that the
+   * control did nothing.
    *
-   * ⚠️ **The first names one remedy and used to name two.** *Trzymaj mniej walk*
-   * was the other, and the strip it pointed at is gone — a sentence sending a
-   * reader to a control that is not on the screen is worse than one that sends
-   * them nowhere.
+   * ⚠️ **The first names one remedy and used to name two.** *Trzymaj mniej walk* was
+   * the other, and the strip it pointed at is gone — a sentence sending a reader to a
+   * control that is not on the screen is worse than one that sends them nowhere.
    */
   test("tells the reader what was not kept, and which of the three reasons", () => {
     expect(STORE_REFUSED_WARNING).toBe(

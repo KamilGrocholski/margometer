@@ -7,8 +7,7 @@ on:
   # Every branch, not a list. A named list is a claim about how this repository
   # is worked on, and the last one outlived the branch it named by a month —
   # `rewrite/2026-08` had been merged into `main` since 0.5.0 while this file
-  # still said that is where the work happens
-  # (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F25).
+  # still said that is where the work happens.
   # `pull_request` stays: it is the only thing that runs the gate on a fork.
   push:
   pull_request:

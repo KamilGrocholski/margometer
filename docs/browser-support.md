@@ -184,7 +184,7 @@ and writes again (`src/userscript-storage.ts`, `src/game/kept-fights.ts`). That
 matters more here than anywhere else in this table, because the origin is shared
 with the game — which keeps everything under one key, rewrites it whole on every
 change, and catches nothing
-(`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`).
+(`docs/specs/a-fight-you-can-go-back-to.md`).
 
 ⚠️ **This is the half that is not complete, and saying so is the point.** The
 CSS above is enumerable and the JavaScript below is held by a compiler; the DOM
@@ -244,9 +244,8 @@ and misses two. First release with support, from `browser-compat-data`, read
 
 Neither is spelled under `src/` or `libs/`, which is why neither has a row in the
 table above: a row names a construct the file beside it still spells, and the
-floor at the top of this page is the maximum over the rows.
-`tools/mutation-sweep.ts` spells lookbehind throughout its rule table and never
-ships.
+floor at the top of this page is the maximum over the rows. A tool may spell
+either harmlessly, because tools never ship.
 
 ⚠️ **A pattern above the floor does not degrade, and it does not even fail where
 it is written.** A library member the engine lacks fails at the call, which is a
@@ -277,7 +276,7 @@ excluded by what the script needs, only by whether it exists for that browser.
 ## Not checked
 
 Three answers, and they are different: *not looked at*, *looked at and clean*,
-and *a finding* (§7.7).
+and *a finding*.
 
 - **Only Firefox has ever been run.** Every version above is read from
   `browser-compat-data`, not observed. The one engine this repository actually

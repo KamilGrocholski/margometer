@@ -6,14 +6,6 @@
  * is divided by, and which of them cannot be trusted. None of that needs a
  * browser to check, and there is no browser in the test runner.
  *
- * ⚠️ **It is not the thin file this used to call it.** `src/ui/panel-element.ts`
- * is the largest source file in the repository — it holds the drawing, where the
- * panel sits, and the card a row opens — and a reader deciding which of the two a
- * new decision belongs in was being told the other one was nearly empty
- * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F11). The split is
- * by **kind** and not by size: a decision about a figure is here, a decision
- * about a node is there.
- *
  * §9.1 holds even inside `ui/`: nothing here computes a statistic. It takes what
  * the aggregate produced and decides how to present it.
  *
@@ -261,7 +253,7 @@ type PanelNamedEnd = "actor" | "receiver";
  * fields of the aggregate (`dealtApplied` against `taken`, `healingGiven` against
  * `healed`). A blow between two of ours, or an end that stops resolving, breaks
  * that equality and lights up `tests/ui/panel-view.test.ts` rather than quietly
- * moving a figure (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+ * moving a figure (`docs/specs/the-ends-a-figure-names.md`).
  *
  * The charge is a **part** and not a side, which is what keeps a third side from
  * being a question: the bar is `My` against everyone else everywhere in this
@@ -291,7 +283,7 @@ function getPartCharged(
  * fight-wide for as long as the figure was, and the figure is the shown team's
  * now — a cut totalling the fight beneath a row totalling one team is the failure
  * this panel exists to prevent, in miniature
- * (`docs/specs/2026-08-11-the-panel-that-drills.md`). What decides admission is
+ * (`docs/specs/the-panel-that-drills.md`). What decides admission is
  * the charge and not the tab, because a victim's own side is not the side the
  * figure is charged to under `Zadane`.
  *
@@ -533,16 +525,6 @@ function getHolePairs(
  * What a hole is worth on the screen as it stands — **the team's, on every one of
  * the twelve.**
  *
- * ⚠️ **It used to be the fight's under a given direction, on all three tabs.** A
- * figure with no actor was held to have no side at all, so `Zadane · My` pinned
- * 45 430 over a ranking summing to 355 900 while the bar under it put 44 464 of
- * that same figure inside `My` — the same points twice on one screen, one of the
- * two saying they were nobody's
- * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). The charge is
- * what changed: the named end gives the side, so the row narrows exactly as the
- * list does and every screen closes — ranking plus the pinned rows is the bar's
- * figure for that tab, which is measured over every capture.
- *
  * Under `Wszyscy` every pair counts, including a combatant the roster cannot
  * place: that tab shows their row too, so leaving them out would open a gap
  * between the list and the figures under it.
@@ -578,13 +560,6 @@ function getHolesOnScreen(metric: PanelMetric): PanelHole[] {
 /**
  * What every share on this screen is a share of — **one figure, used by every
  * bracket the screen draws.**
- *
- * ⚠️ **The ranking and the pinned row used to divide by different things.** The
- * rows divided by the ranking and summed to 100%; the pinned row divided by the
- * ranking plus itself. Under `Zadane` that showed as rows adding to 107% and
- * nobody noticed; under `Leczenie dane` it showed as a ranking summing to 100%
- * beside a row saying 79%, which is two answers to two questions printed as
- * though they answered one.
  *
  * The whole is what is **on screen**: the rows the filter admits, plus every hole
  * standing `apart` from them, plus — under `Wszyscy` alone — what names neither
@@ -658,7 +633,7 @@ function composeShareTextByFigure(
  * and a blow that found nobody are different things to be told, and saying one
  * sentence about both is how the second went unnoticed long enough for the
  * aggregate to be quietly wrong about it
- * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+ * (`docs/specs/the-ends-a-figure-names.md`).
  *
  * The figure is the shown team's on every one of the twelve screens, so the
  * bracket is there on every one of them too — a share of the whole this screen
@@ -975,16 +950,6 @@ function composeTitle(reading: PanelReading): string {
 /**
  * The fight in two figures, and what belongs to neither end at all.
  *
- * ⚠️ **It used to draw a part of the fight as the whole of it.** The two sides
- * were summed off the rows and nothing else, so under `Zadane` the bar was short
- * by everything with no actor — by a few per cent to a fifth, across the
- * captures as they stood — and under `Leczenie dane` by well over half, while
- * the pinned row **directly above it**
- * stated that very figure. Two regions of one screen answering with two different
- * wholes, which is the defect the brackets were fixed for one region up. Every
- * point is inside the bar now: mine plus enemy plus nobody is still the figure
- * every bracket on the screen divides by, so nothing above this line moves.
- *
  * ⚠️ **The third part said `Bez strony` about points that had one.** Measured
  * over every capture on 2026-08-18, all of it sat on combatants the roster
  * places — 45 430 on `tests/captured-fights/2026-08-15-tempest-grupa-vs-hildur-2.json`,
@@ -1290,7 +1255,7 @@ export type PanelFightsReading = {
  * handed carries a side count and an outcome rather than a reading: ten fights
  * decoded to draw ten rows is a page load spent recovering what was already known
  * when each of them was written down
- * (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`).
+ * (`docs/specs/a-fight-you-can-go-back-to.md`).
  *
  * The height is the ranking's own floor, so stepping onto the shelf and back does
  * not resize the window under the reader's hand.

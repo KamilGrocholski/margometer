@@ -83,29 +83,26 @@ describe("the set in screenshots/", () => {
   });
 
   /**
-   * The other half of "for one release", and the half a version string cannot
-   * carry: **which panel is in the frame.**
+   * The other half of "for one release", and the half a version string cannot carry:
+   * **which panel is in the frame.**
    *
-   * A version says which release a set belongs to. Between two releases the
-   * version does not move and the panel does — a set taken eleven commits past
-   * `v0.7.0` showed a row the panel had stopped drawing, with every guard green
-   * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F1). So the
-   * sidecar names a commit, the tool refuses to write one while `src/` or `libs/`
-   * is uncommitted, and this asks the repository whether that commit is really in
-   * this history.
+   * A version says which release a set belongs to. Between two releases the version
+   * does not move and the panel does — a set taken eleven commits past `v0.7.0` showed
+   * a row the panel had stopped drawing, with every guard green. So the sidecar names a
+   * commit, the tool refuses to write one while `src/` or `libs/` is uncommitted, and
+   * this asks the repository whether that commit is really in this history.
    *
-   * ⚠️ **Deliberately an ancestry check and not a currency one.** The strict
-   * version — the sidecar's commit against the newest commit touching `src/ui/`
-   * or `src/core/` — is the one that would have gone red the day F1 was created,
-   * and it turns every round that touches the panel into a round that must drive
-   * a browser. That is a decision about how this repository is worked in rather
-   * than a defect a guard can settle on its own, so §9.8 carries it as an
-   * obligation on the person and this carries the part a machine can hold: the
-   * set names a tree, and the tree is one somebody else can check out.
+   * ⚠️ **Deliberately an ancestry check and not a currency one.** The strict version —
+   * the sidecar's commit against the newest commit touching `src/ui/` or `src/core/` —
+   * is the one that would have gone red the day F1 was created, and it turns every
+   * round that touches the panel into a round that must drive a browser. That is a
+   * decision about how this repository is worked in rather than a defect a guard can
+   * settle on its own, so §9.8 carries it as an obligation on the person and this
+   * carries the part a machine can hold: the set names a tree, and the tree is one
+   * somebody else can check out.
    *
-   * `actions/checkout@v4` clones at depth 1, so the object is asked for only
-   * where history exists — `tests/tools/audit-status.test.ts`'s arrangement, for
-   * its reason.
+   * `actions/checkout@v4` clones at depth 1, so the object is asked for only where
+   * history exists.
    */
   test("the set says which panel is in the frame, and it is one this history has", () => {
     const stated = getTakenAtRecord()["commit"];
@@ -163,7 +160,7 @@ describe("the tab the driver presses", () => {
 
 /**
  * ⚠️ **A browser is looked for, never assumed at `/usr/bin/firefox`.** That is
- * the objection `docs/specs/2026-08-17-a-panel-you-can-watch-change.md` raised
+ * the objection `docs/specs/what-a-release-shows.md` raised
  * against folding a screenshot mode into the preview server, and the tool answers
  * it here rather than in prose.
  */

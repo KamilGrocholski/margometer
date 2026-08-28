@@ -1,19 +1,18 @@
 /**
- * The module written to stop the order belonging to the machine, held to
- * answering what it was written to answer.
+ * The module written to stop the order belonging to the machine, held to answering what
+ * it was written to answer.
  *
- * ⚠️ **It existed for two audits with nothing executing either function.** Its
- * only appearance under `tests/` was as a path string in
- * `tests/tools/source-layout.test.ts`, where it was named as the file allowed to
- * spell `localeCompare` — a claim about *where* the call may live, which says
- * nothing about what it answers. So the fix for "the order belongs to the machine
- * rather than to the data" was itself held by nothing
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F11).
+ * ⚠️ **It existed for two audits with nothing executing either function.** Its only
+ * appearance under `tests/` was as a path string in
+ * `tests/tools/source-layout.test.ts`, where it was named as the file allowed to spell
+ * `localeCompare` — a claim about *where* the call may live, which says nothing about
+ * what it answers. So the fix for "the order belongs to the machine rather than to the
+ * data" was itself held by nothing.
  *
- * The collated reader those tests covered is gone with its last caller — the
- * panel's tie-break, which is the fight's own roster order now. `localeCompare`
- * is spelled nowhere in the tree, and `tests/tools/source-layout.test.ts` holds
- * that rather than holding an owner for it.
+ * The collated reader those tests covered is gone with its last caller — the panel's
+ * tie-break, which is the fight's own roster order now. `localeCompare` is spelled
+ * nowhere in the tree, and `tests/tools/source-layout.test.ts` holds that rather than
+ * holding an owner for it.
  */
 
 import { describe, expect, test } from "bun:test";

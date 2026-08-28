@@ -39,24 +39,23 @@ export function getValueFromJsonText(text: string): JsonReading {
 /**
  * A value as JSON text, or a broken invariant.
  *
- * ⚠️ **`JSON.stringify` does not always answer with a string.** For `undefined`,
- * a function or a symbol it answers `undefined` — the value, not the text — and
- * the return type says `string` regardless. It also turns `NaN` and `±Infinity`
- * into `null` on the way through. Both are the criterion §9.5 admits a primitive
- * on, and the tree held three uncoordinated answers to it: one caller refusing
- * it and writing JSON by hand with the trap spelled out, one writing
- * `value ?? null` in defence without saying so, and two using it bare — one of
- * those composing the identity key that decides whether a combatant snapshot
- * changed (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F16).
+ * ⚠️ **`JSON.stringify` does not always answer with a string.** For `undefined`, a
+ * function or a symbol it answers `undefined` — the value, not the text — and the
+ * return type says `string` regardless. It also turns `NaN` and `±Infinity` into `null`
+ * on the way through. Both are the criterion §9.5 admits a primitive on, and the tree
+ * held three uncoordinated answers to it: one caller refusing it and writing JSON by
+ * hand with the trap spelled out, one writing `value ?? null` in defence without saying
+ * so, and two using it bare — one of those composing the identity key that decides
+ * whether a combatant snapshot changed.
  *
- * Writing asserts rather than returning null, which is §9.5's split: the value
- * being written is one we produced, so a value with no JSON is this program
- * being wrong rather than a failure a caller could handle.
+ * Writing asserts rather than returning null, which is §9.5's split: the value being
+ * written is one we produced, so a value with no JSON is this program being wrong
+ * rather than a failure a caller could handle.
  *
- * ⚠️ **It does not promise a round trip.** A `NaN` inside the value still writes
- * as `null` and still reads back as `null`; nothing here can see that without
- * walking the whole value. Where the round trip is what matters — a position
- * restored from storage — the writer is still hand-written, and says so.
+ * ⚠️ **It does not promise a round trip.** A `NaN` inside the value still writes as
+ * `null` and still reads back as `null`; nothing here can see that without walking the
+ * whole value. Where the round trip is what matters — a position restored from storage
+ * — the writer is still hand-written, and says so.
  */
 export function composeJsonText(value: unknown, indent?: number): string {
   const text = indent === undefined ? JSON.stringify(value) : JSON.stringify(value, null, indent);

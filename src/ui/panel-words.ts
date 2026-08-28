@@ -161,15 +161,13 @@ export const EFFECT_NAMES: Record<string, TokenName> = {
 /**
  * The two tokens the panel counts on their own, spelled here and read there.
  *
- * A critical hit is counted in the counters line and **must not** be repeated in
- * the effects line beside it, so two places have to agree about what a critical
- * hit is called. Both were spelled where they were used — twice each, two of them
- * having to match the other two — and every spelling could be changed with the
- * gate green: the counter reads nothing while the effect list grows a row, or the
- * same hits are counted twice
- * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F1). The game chose
- * these names, so §9.3 puts them in one place and a guard holds that place to
- * `EFFECT_NAMES` above (`tests/ui/panel-words.test.ts`).
+ * A critical hit is counted in the counters line and **must not** be repeated in the
+ * effects line beside it, so two places have to agree about what a critical hit is
+ * called. Both were spelled where they were used — twice each, two of them having to
+ * match the other two — and every spelling could be changed with the gate green: the
+ * counter reads nothing while the effect list grows a row, or the same hits are counted
+ * twice. The game chose these names, so §9.3 puts them in one place and a guard holds
+ * that place to `EFFECT_NAMES` above (`tests/ui/panel-words.test.ts`).
  */
 export const CRITICAL_TOKEN = "crit";
 export const VERY_CRITICAL_TOKEN = "legbon_verycrit";
@@ -382,13 +380,8 @@ export function getPhrase(
 /**
  * The two rows' names, wherever they stand.
  *
- * ⚠️ **They were one row called `Bez sprawcy`, and the name was the smaller half
- * of what was wrong.** The protocol leaves a hole at one end or the other — an
- * actor with no target, a target with no actor — and one row cannot say which,
- * so the figure that had no name for *who* stood beside a figure that had no name
- * for *whom* and both were called the same thing. Two rows, two names, and the
- * team derived from whichever end the game did state
- * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+ * Two rows and not one: the protocol leaves a hole at one end or the other — an
+ * actor with no target, a target with no actor — and one row cannot say which.
  *
  * Neither says "bez", because neither is a figure the panel failed to place: it
  * knows the team, it does not know the person.
@@ -450,27 +443,14 @@ export function getNoActorStandingNote(metric: PanelMetric): string {
  * tab narrows the figure and it stands outside the list's own arithmetic — no
  * bar, no bracket. **This sentence is what the missing bracket says in words**,
  * and it is the whole of what tells the reader the figure beside it is the
- * fight's rather than this team's.
- *
- * ⚠️ **Both given sentences used to end "nie należy do żadnej drużyny", and the
- * bar under them now says otherwise.** A figure with no actor still has the side
- * the game named at the *other* end, and `composeSides` charges it there
- * (`docs/specs/2026-08-18-a-tick-nobody-swung-still-has-a-side.md`). The limit
- * that is left is the one that was always the true half: no combatant carries it,
- * so no row above can be read as holding any of it. The sentence says where it
- * did go instead, because a reader who finds the same points inside `My` one
- * region down is owed that and not left to work it out.
- *
- * ⚠️ **The four used to be two, one per noun, and that is what broke.** A given
- * screen and a received one said the same thing about a figure that had been
- * narrowed by the victim on both — so `Zadane · Oni` pinned what that side *lost*
- * over a list of what it *dealt*, and put it in the denominator: 38.7% of one
- * screen, and 100% of `Leczenie dane · Oni`
- * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`).
+ * fight's rather than this team's. It says where the figure did go instead,
+ * because a reader who finds the same points inside `My` one region down is owed
+ * that and not left to work it out.
  *
  * Four entries rather than two, for the reason every table in this file has four:
  * the compiler asks about a fifth screen instead of letting it inherit whichever
- * wording came first.
+ * wording came first. Two — one per noun — is what put `Zadane · Oni`'s *lost*
+ * figure over a list of what that side *dealt*, and into the denominator.
  */
 const PINNED_SCOPE_NOTES: Record<PanelMetric, string> = {
   dealt: "Tylko z pokazanej drużyny — to ona to zadała, choć gra nie mówi kto.",
@@ -487,19 +467,16 @@ export function getNoActorScopeNote(metric: PanelMetric): string {
 /**
  * The second row's sentences: the figure whose **target** the game did not name.
  *
- * Fewer tables than the first row needs, and each one is as long as its answer
- * really varies. What the game left out depends on the noun and not on the
- * direction — a blow that found nobody is a blow that found nobody, read from
- * either end — so the limit is two sentences. Where the figure stands never
- * varies at all: no ranked row holds it on any screen that draws it, so it is one
- * sentence. The heading is one word, true wherever it is read.
+ * Fewer tables than the first row needs, and each is as long as its answer really
+ * varies. What the game left out depends on the noun and not on the direction — a
+ * blow that found nobody is a blow that found nobody, read from either end — so
+ * the limit is two sentences; where the figure stands never varies at all.
  *
  * ⚠️ **Exhaustive per metric anyway, including the screen that does not draw the
  * row.** Under `Zadane` these points sit on the striker's own row and the panel
  * shows no second row for them (`HOLE_STANDING` in `src/ui/panel-view.ts`) — but
- * that is arithmetic, not vocabulary, and a table with a hole in it would be a
- * table nobody could reuse the day the arithmetic moves. The sentence is written
- * and it is true.
+ * that is arithmetic, not vocabulary, and a table with a hole in it is one nobody
+ * could reuse the day the arithmetic moves.
  */
 const NO_TARGET_LIMIT_NOTES: Record<PanelNoun, string> = {
   damage: NOBODY_STRUCK_NOTE,
@@ -1038,13 +1015,6 @@ const THOUSAND_DIGITS = 3;
 /**
  * A run of digits, spaced every three from the right — as the game writes them.
  *
- * ⚠️ **It argued for itself by naming a second caller that no longer exists.**
- * The sentence read "one function because two kinds of number need it", the
- * second being a per-turn rate — and §10 says nothing here counts turns, so the
- * rate went and the argument stayed
- * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F10). It is separate
- * for a plainer reason: `composeFigureText` above rounds and this spaces, and a
- * caller that has a run of digits already has no rounding to ask for.
  */
 function composeSpacedThousands(digits: string): string {
   // The sign is taken off first and put back last. The pattern this replaces

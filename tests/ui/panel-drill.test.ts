@@ -1,14 +1,12 @@
 /**
  * The two levels a row opens onto, held directly and over real material.
  *
- * `panel-view.test.ts` reaches them through `composePanelView` on a hand-written
- * fight, because the drill names skills and combatants and those are the game's own
- * prose (§5). What it cannot do from there is sweep **every** combatant of every
- * capture through every screen, which is what the two claims below need: a section
- * that closes against the row it was entered from, and a cut of one row that is not
- * drawn at all. Both were the module's own docblocks and nothing measured them
- * across the material (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`,
- * F26).
+ * `panel-view.test.ts` reaches them through `composePanelView` on a hand-written fight,
+ * because the drill names skills and combatants and those are the game's own prose
+ * (§5). What it cannot do from there is sweep **every** combatant of every capture
+ * through every screen, which is what the two claims below need: a section that closes
+ * against the row it was entered from, and a cut of one row that is not drawn at all.
+ * Both were the module's own docblocks and nothing measured them across the material.
  *
  * Structural only — no label of the game's is read, written down or asserted on.
  */
@@ -68,14 +66,12 @@ import {
 import { composeWithoutBrackets } from "@/tests/drawn-text.ts";
 
 /**
- * ⚠️ **Composed the way the panel composes it, which it was not.** The entry
- * health was left off here, and it is what sizes a share the game states about a
- * whole side — so every assertion in this file ran over a fight whose healing was
- * less than half of what the panel draws, on fourteen of the seventeen recordings
- * that audit read (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`,
- * F2).
- * Nothing here was wrong: a section closing against the row it was entered from
- * closes either way. It was simply not this fight.
+ * ⚠️ **Composed the way the panel composes it, which it was not.** The entry health was
+ * left off here, and it is what sizes a share the game states about a whole side — so
+ * every assertion in this file ran over a fight whose healing was less than half of
+ * what the panel draws, on fourteen of the seventeen recordings that audit read.
+ * Nothing here was wrong: a section closing against the row it was entered from closes
+ * either way. It was simply not this fight.
  */
 const FIGHTS = CAPTURED_FIGHTS.map((fight) => ({
   name: fight.name,
@@ -322,9 +318,9 @@ describe("a breakdown", () => {
    * `Zwykły cios 2 644 (100% · ×8)` says eight blows where the figure above says
    * none, and that count is reachable nowhere else — the closing row one level
    * down states none. A lone *announced* skill is not exempt: measured over the
-   * captures, all 31 of its occurrences are reachable by opening a person it was
-   * used on
-   * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`). Both
+   * captures as the set stood 2026-08-19, all 31 of its occurrences are reachable
+   * by opening a person it was used on
+   * (`docs/specs/the-panel-that-drills.md`). Both
    * branches are counted, so neither can go quiet and leave the other passing
    * alone.
    */
@@ -361,10 +357,9 @@ describe("a breakdown", () => {
     for (const { name, reading, metric, combatantId } of getScreens()) {
       const lists = composeBreakdownLists(reading, composeState({ metric }), combatantId, null);
       // ⚠️ **By what the rows are, not by where the list sits.** The people list is
-      // dropped where it would be empty, so on a screen with no named counterpart
-      // the first list is a cut — and reading `lists[0]` as *the* people list held
-      // only while the fixture never produced that screen
-      // (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F2).
+      // dropped where it would be empty, so on a screen with no named counterpart the
+      // first list is a cut — and reading `lists[0]` as *the* people list held only
+      // while the fixture never produced that screen.
       const about = lists.find((list) =>
         list.rows.some((row) => getRowKeyMeaning(row.key).opens === "target"),
       );
@@ -627,16 +622,15 @@ describe("the card", () => {
 });
 
 /**
- * The one place the card counts a token of the game's by name, and the one place
- * it has to leave the same token out.
+ * The one place the card counts a token of the game's by name, and the one place it has
+ * to leave the same token out.
  *
- * ⚠️ **Four spellings of two names, and none of them stood on anything.** The
- * counters line asked the row for `crit` and `legbon_verycrit`; the effects line
- * beside it filtered the same two out, because a critical already counted must not
- * be counted again. Every one of the four could be pointed at a token the game
- * never sends with the whole gate green — the counter reading nothing, or the
- * effects line growing a row that is already above it
- * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F1).
+ * ⚠️ **Four spellings of two names, and none of them stood on anything.** The counters
+ * line asked the row for `crit` and `legbon_verycrit`; the effects line beside it
+ * filtered the same two out, because a critical already counted must not be counted
+ * again. Every one of the four could be pointed at a token the game never sends with
+ * the whole gate green — the counter reading nothing, or the effects line growing a row
+ * that is already above it.
  */
 describe("a critical, counted once", () => {
   const WITH_EFFECTS = FIGHTS.flatMap(({ name, reading }) =>
@@ -703,10 +697,9 @@ describe("a critical, counted once", () => {
  * The destroyed block's members are not in one unit, and only one of them says so.
  *
  * `+resdmg` is percentage points and the other three are points
- * (`docs/protocol-keys.md`), so the `%` is the whole of what keeps four figures
- * under one heading from reading as four of the same thing (§10). The token that
- * decides it was spelled at the conditional and nothing held it
- * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F1).
+ * (`docs/protocol-keys.md`), so the `%` is the whole of what keeps four figures under
+ * one heading from reading as four of the same thing (§10). The token that decides it
+ * was spelled at the conditional and nothing held it.
  */
 describe("a destroyed statistic carries its unit", () => {
   const DESTROYED = FIGHTS.flatMap(({ name, reading }) =>
@@ -790,11 +783,10 @@ function composeCraftedReading(rows: ReadonlyArray<readonly [number, CraftedRow]
 }
 
 /**
- * Whether a row opens onto anything is decided by how many rows the level below
- * would hold — elements and keys **together**, because they are drawn as one
- * section. That addition could be turned into a subtraction with the gate green,
- * which turns a pair holding one of each into a leaf
- * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F3).
+ * Whether a row opens onto anything is decided by how many rows the level below would
+ * hold — elements and keys **together**, because they are drawn as one section. That
+ * addition could be turned into a subtraction with the gate green, which turns a pair
+ * holding one of each into a leaf.
  */
 describe("a pair opens on what its cut would hold", () => {
   const OPPONENT = 2;
@@ -844,13 +836,12 @@ describe("a pair opens on what its cut would hold", () => {
 /**
  * Every figure on the card, at one point and at none.
  *
- * ⚠️ **Zero is the boundary and one is the side of it nothing stood on** (§7.5).
- * Each section here is drawn on `> 0`, and every one of those edges could be moved
- * a step with the whole gate green: a combatant who blocked one point, took one
- * outside a blow or destroyed one point of somebody's resistance simply lost the
- * line saying so (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F2).
- * A hand-built row rather than a capture, because a fight where a figure is
- * exactly one is not something the recordings can be asked for.
+ * ⚠️ **Zero is the boundary and one is the side of it nothing stood on** (§7.5). Each
+ * section here is drawn on `> 0`, and every one of those edges could be moved a step
+ * with the whole gate green: a combatant who blocked one point, took one outside a blow
+ * or destroyed one point of somebody's resistance simply lost the line saying so. A
+ * hand-built row rather than a capture, because a fight where a figure is exactly one
+ * is not something the recordings can be asked for.
  */
 describe("a figure of one point, and of none", () => {
   function composeCardOf(over: CraftedRow) {
@@ -880,10 +871,9 @@ describe("a figure of one point, and of none", () => {
 
   test("one point of health lost outside a blow is said, and none is not", () => {
     // Both directions: the split reads `healthLost` under what was received and
-    // `healthLostCaused` under what was dealt, and one point of either draws it.
-    // The two labels are the words a player reads, so they are read here rather
-    // than fetched from the module that writes them
-    // (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F4).
+    // `healthLostCaused` under what was dealt, and one point of either draws it. The
+    // two labels are the words a player reads, so they are read here rather than
+    // fetched from the module that writes them.
     const said = getLabels(composeCardOf(ONE));
     expect(said.filter((label) => label === "  z ciosów").length).toBe(2);
     expect(said.filter((label) => label === "  poza ciosem").length).toBe(2);
@@ -960,18 +950,16 @@ describe("a figure of one point, and of none", () => {
 });
 
 /**
- * Every list the drill draws reads downwards, and until this existed nothing said
- * so.
+ * Every list the drill draws reads downwards, and until this existed nothing said so.
  *
- * ⚠️ **Six comparators, every one of which could be turned into a sum with the
- * gate green** (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F3). A
- * breakdown answers *what is this figure made of*, and the answer is read off the
- * top of the list — the largest contributor first, the way the ranking above it
- * reads. Writing the closing round of this test is what found the healing screen's
- * `OD CZEGO` returning before the sort.
+ * ⚠️ **Six comparators, every one of which could be turned into a sum with the gate
+ * green**. A breakdown answers *what is this figure made of*, and the answer is read
+ * off the top of the list — the largest contributor first, the way the ranking above it
+ * reads. Writing the closing round of this test is what found the healing screen's `OD
+ * CZEGO` returning before the sort.
  *
- * The rows that close a list are exempt and stand last whatever they hold: what
- * nobody is named for is not a contributor to be ranked among the ones who are.
+ * The rows that close a list are exempt and stand last whatever they hold: what nobody
+ * is named for is not a contributor to be ranked among the ones who are.
  */
 describe("a breakdown reads downwards", () => {
   test("every list is ordered by its figure, largest first", () => {
@@ -1031,7 +1019,7 @@ describe("a breakdown reads downwards", () => {
 describe("what a section is called", () => {
   test("healing received is broken down by what it came from", () => {
     // Two rows, because a cut of one repeats the figure above it and is not drawn
-    // (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
+    // (`docs/specs/the-panel-that-drills.md`).
     const reading = composeCraftedReading([
       [
         1,
@@ -1055,11 +1043,10 @@ describe("what a section is called", () => {
   });
 
   /**
-   * ⚠️ **And healing *given* has no such section at all.** The keys the game
-   * states belong to whoever received the health, so a giver has none — the
-   * heading for that screen is vocabulary nothing can read, and this is what says
-   * so rather than a comment
-   * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F7).
+   * ⚠️ **And healing *given* has no such section at all.** The keys the game states
+   * belong to whoever received the health, so a giver has none — the heading for that
+   * screen is vocabulary nothing can read, and this is what says so rather than a
+   * comment.
    */
   test("healing given is broken down by nothing, on every recording", () => {
     let screens = 0;
@@ -1106,11 +1093,10 @@ describe("what a section is called", () => {
 /**
  * The edges the fifth audit's F2 left, swept again and asked for one at a time.
  *
- * ⚠️ **Its close named three and there were twenty** — every one of them a `> 0`
- * or a `<= 0` deciding whether a row, a section or a count exists at all
- * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F4).
- * They are asked of a hand-built row for the reason the rest of this file's
- * crafted cases are: a recording cannot be asked for a figure of exactly one.
+ * ⚠️ **Its close named three and there were twenty** — every one of them a `> 0` or a
+ * `<= 0` deciding whether a row, a section or a count exists at all. They are asked of
+ * a hand-built row for the reason the rest of this file's crafted cases are: a
+ * recording cannot be asked for a figure of exactly one.
  */
 describe("what a single point decides", () => {
   const OPPONENT = 2;
@@ -1211,7 +1197,7 @@ describe("what a single point decides", () => {
 
   test("a skill that landed one point is a row, and one that landed none is not", () => {
     // Two skills, because a cut of one row repeats the figure above it and is not
-    // drawn at all (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
+    // drawn at all (`docs/specs/the-panel-that-drills.md`).
     const getSkillFigures = (amount: number): string[] =>
       getLists({
         dealtApplied: amount + 5,

@@ -1,14 +1,14 @@
 /**
  * The tool that decides whether the cached client is stale.
  *
- * It had no test at all until `docs/audits/2026-08-13-the-whole-tree-read-once.md`
- * (F2, F4), while its structural twin `tools/help-article.ts` — same fetch, same
- * cache, same provenance manifest — has one.
+ * It had no test at all for a long while, though its structural twin
+ * `tools/help-article.ts` — same fetch, same cache, same provenance manifest — had
+ * one.
  *
- * Nothing here reaches the network. What is testable is the part §7.6 actually
- * rests on: reading a build id off a page, and refusing a channel that is not
- * one. The fetching and the writing are the halves that need a live host, and
- * they are named in this file as what it does not cover.
+ * Nothing here reaches the network. What is testable is the part §7.6 actually rests
+ * on: reading a build id off a page, and refusing a channel that is not one. The
+ * fetching and the writing are the halves that need a live host, and they are named in
+ * this file as what it does not cover.
  */
 
 import { spawnSync } from "node:child_process";
@@ -127,15 +127,14 @@ describe("the channel named on the command line", () => {
 });
 
 /**
- * What the cache answers when there is nothing in it, which is the state every
- * machine that has not fetched is in — including the one running CI.
+ * What the cache answers when there is nothing in it, which is the state every machine
+ * that has not fetched is in — including the one running CI.
  *
- * ⚠️ **Neither reader was named anywhere under `tests/` for the life of this
- * file**, so the difference between them had never been asked
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F11). They
- * answer an empty cache in two deliberately different ways, and that split is the
- * only thing here a test can hold without a network: `.cache/` is outside git
- * (§7.6), so what it holds is a property of the machine and not of the tree.
+ * ⚠️ **Neither reader was named anywhere under `tests/` for the life of this file**, so
+ * the difference between them had never been asked. They answer an empty cache in two
+ * deliberately different ways, and that split is the only thing here a test can hold
+ * without a network: `.cache/` is outside git (§7.6), so what it holds is a property of
+ * the machine and not of the tree.
  */
 describe("reading a cache that may not be there", () => {
   const NEVER_FETCHED = "development";

@@ -271,9 +271,9 @@ and unhandled tally so a page can show it. `tools/decoding-status.ts` answers
 that question here, on demand, and §5 is why the answer is never quoted into
 prose.
 
-**Writing this as an audit.** §7.7's audit measures *this* repository against
-its own rules and carries the commit it read. This reads somebody else's tree
-and decides what we do about it, which is a design record.
+**Writing this as an audit.** An audit measures *this* repository against its
+own rules. This reads somebody else's tree and decides what we do about it,
+which is a design record.
 
 **Putting the key list in `TODO.md`.** §5, and there is no version of it that is
 not writing to that file.

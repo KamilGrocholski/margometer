@@ -1,30 +1,27 @@
 /**
  * Every name this repository exports is named by some test.
  *
- * **Not a percentage — a name.** That is the shape all three audits asked the
- * question in, and it is the shape a machine can answer: coverage as a fraction
- * says a file is 80% read and cannot say *which* export nothing has ever called.
+ * **Not a percentage — a name.** That is the shape all three audits asked the question
+ * in, and it is the shape a machine can answer: coverage as a fraction says a file is
+ * 80% read and cannot say *which* export nothing has ever called.
  *
- * ⚠️ **Three audits, three counts, and the class never closed.** The first closed
- * by removing one `export`; the second found one that could not lose its export
- * because `noUnusedLocals` would then refuse the file, and named three more
- * "recorded without findings of their own"; the third measured rather than
- * sampled and got eleven, plus a module written to close the second audit's
- * duplication finding that no test executed at all
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F10 and F11).
- * Twice was where §7.7 says the question becomes how many there are; this is the
- * answer being kept at zero instead of re-measured a fourth time.
+ * ⚠️ **Three audits, three counts, and the class never closed.** The first closed by
+ * removing one `export`; the second found one that could not lose its export because
+ * `noUnusedLocals` would then refuse the file, and named three more "recorded without
+ * findings of their own"; the third measured rather than sampled and got eleven, plus a
+ * module written to close the second audit's duplication finding that no test executed
+ * at all. Twice is where the question becomes how many there are; this is the answer
+ * being kept at zero instead of re-measured a fourth time.
  *
  * **What it is not.** Naming an export is not testing it — a test that imports a
- * function and never asserts on its answer passes here. What this catches is the
- * weaker and more common thing: an export nothing under `tests/` has ever
- * mentioned, which is a surface nobody has looked at and, often, one nobody
- * needed. Half of what it found the round it was written lost its `export`
- * rather than gaining a test.
+ * function and never asserts on its answer passes here. What this catches is the weaker
+ * and more common thing: an export nothing under `tests/` has ever mentioned, which is
+ * a surface nobody has looked at and, often, one nobody needed. Half of what it found
+ * the round it was written lost its `export` rather than gaining a test.
  *
  * Types are left out. A type has no runtime behaviour to exercise, `tsc` already
- * refuses one nobody can satisfy, and requiring every exported type to be named
- * would be a rule about import style rather than about what is checked.
+ * refuses one nobody can satisfy, and requiring every exported type to be named would
+ * be a rule about import style rather than about what is checked.
  */
 
 import { readdirSync, readFileSync } from "node:fs";

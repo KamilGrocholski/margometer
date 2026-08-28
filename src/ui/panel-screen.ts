@@ -2,16 +2,12 @@
  * Which screen the panel is on: what a screen can show, what it is called, what a
  * row on it is keyed by, the shape it takes, and what a click does to it.
  *
- * One subject with four parts, and they were four files. A tab exists exactly
- * where a metric does; a row key is how a click on one screen names the next; the
- * shape is what that screen hands to the drawing; the reducer is the same nesting
- * read from the other end. None of them can be changed without the others being
- * right, and each of the four opened by arguing why it was a file (§9.1).
+ * One subject with four parts. A tab exists exactly where a metric does; a row
+ * key is how a click on one screen names the next; the shape is what that screen
+ * hands to the drawing; the reducer is the same nesting read from the other end.
+ * None of them can be changed without the others being right.
  *
- * ⚠️ **Nothing here reaches the composing.** That was the shape's reason for
- * being its own file, and it survives the merge — better than survives it:
- * `src/ui/panel-element.ts` now depends on this one module instead of three, and
- * still on nothing that fills a screen. Types, vocabulary and pure functions
+ * ⚠️ **Nothing here reaches the composing.** Types, vocabulary and pure functions
  * only; where a figure comes from is `src/ui/panel-view.ts`'s business and what it
  * looks like is `src/ui/panel-look.ts`'s.
  *
@@ -20,8 +16,7 @@
  * the skill's **name** where it did not, so it carries whatever the game wrote.
  * The owner is split off the front and everything after the first divider is
  * taken whole. Without that, `78` slices to the owner id `7` — a row that quietly
- * opens somebody else's figures, which is the defect this shape exists to end
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F17).
+ * opens somebody else's figures, which is the defect this shape exists to end.
  *
  * **The strings are Polish and nothing else here is** (§3). Keeping the metric
  * table private and exporting the strips is what stops a caller composing a tab
@@ -165,15 +160,6 @@ export function composeNounTabs(current: PanelMetric): PanelMetricTab[] {
 /**
  * The lower strip: the noun the reader is on, turned round.
  *
- * ⚠️ **It used to return nothing where a noun offered one direction, and that
- * branch never fired.** `Leczenie` was such a noun until healing given had a
- * figure behind it; since then every noun in `METRIC_AXES` has both, so the line
- * was inert — mutating the bound to `< 1` reddened nothing, which is §7.5's
- * finding rather than a spare safety net. What it was protecting against is worth
- * keeping, so it is a checked claim now instead of an unreachable line:
- * `tests/ui/panel-screen.test.ts` refuses a noun with one direction, and whoever
- * adds one decides then what a strip of one tab should do (§9.6 — a control that
- * is drawn and does nothing is worse than one that is absent).
  */
 export function composeDirectionTabs(current: PanelMetric): PanelMetricTab[] {
   const noun = METRIC_AXES[current].noun;
@@ -230,11 +216,10 @@ export function composeLeafRowKey(token: string): string {
 /**
  * A row naming what a figure came from rather than who it reached.
  *
- * Here for the reason every other composer is here, and it arrived late: the
- * breakdown wrote `` `source:${token}` `` by hand — one caller reproducing the
- * divider and the word either side of it, which is this module's design coming
- * apart — and `tools/drill-report.ts` read the prefix back with a third spelling
- * of its own (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F5).
+ * Here for the reason every other composer is here, and it arrived late: the breakdown
+ * wrote `` `source:${token}` `` by hand — one caller reproducing the divider and the
+ * word either side of it, which is this module's design coming apart — and
+ * `tools/drill-report.ts` read the prefix back with a third spelling of its own.
  */
 export function composeSourceRowKey(token: string): string {
   return `${SOURCE}${DIVIDER}${token}`;
@@ -357,18 +342,10 @@ export type PanelRow = {
    * The share, and the other measure, in one bracket beside the figure — **null
    * where this row is not part of the whole the screen divides by.**
    *
-   * ⚠️ **It has been nullable twice and is not now, and the third answer is the
-   * one that closed it.** It was nullable because the pinned row was fight-wide
-   * under a side filter and a percentage of the wrong whole came out at 320%; it
-   * stopped being nullable when both scopes were made to narrow together; it went
-   * back to nullable when a figure with no actor was held to have no side, so that
-   * on `Zadane · Oni` no denominator on the screen contained it
-   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`).
-   *
    * Every one of those was the same fault seen from a different side: the figure
    * and the whole were scoped differently. They are not any more — the team is
    * derived from the end the game named, so the row narrows exactly as the list
-   * does (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). Every row
+   * does (`docs/specs/the-ends-a-figure-names.md`). Every row
    * on every screen is inside a whole and states its share of it.
    */
   bracketText: string;
@@ -382,7 +359,7 @@ export type PanelRow = {
    * §9.6 puts a warning next to the figure it concerns, and until this existed the
    * panel could only say *something in this fight was unreadable* under everything
    * else, leaving the reader to work out whose totals that cost
-   * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+   * (`docs/specs/the-ends-a-figure-names.md`).
    *
    * **A list rather than a flag**, because a row can be short for two reasons at
    * once and they are not the same claim — one says a figure *may* be low, the
@@ -419,7 +396,7 @@ export type PanelSides = {
    *
    * ⚠️ **Not the pinned row's figure any more.** A blow with no actor still has
    * the side the game named at the other end, and the bar charges it there
-   * (`docs/specs/2026-08-18-a-tick-nobody-swung-still-has-a-side.md`). What is
+   * (`docs/specs/the-ends-a-figure-names.md`). What is
    * left here is what has no side at *either* end: a figure naming neither, and a
    * combatant the roster cannot place.
    */
@@ -449,7 +426,7 @@ export type PanelView = {
    * has only one direction" for as long as `Leczenie` was such a noun, which
    * stopped being true when healing given got a figure behind it — and stayed
    * written for two rounds after
-   * (`docs/specs/2026-08-12-two-axes-and-the-other-direction.md`).
+   * (`docs/specs/the-panel-that-drills.md`).
    */
   directionTabs: PanelMetricTab[];
   teamTabs: PanelTeamTab[];
@@ -499,7 +476,7 @@ export type PanelView = {
    *
    * **Two, because the hole comes at one end or the other** — an actor with no
    * target, a target with no actor — and they are different things to be told
-   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). A list rather
+   * (`docs/specs/the-ends-a-figure-names.md`). A list rather
    * than a pair of fields, so the drawing need not know how many there are.
    *
    * **On all four screens of the ranking, and on none of the breakdowns.** Every

@@ -1,16 +1,14 @@
 /**
- * Which screen the panel is on, held in the four parts the subject has: the
- * vocabulary and its strips, the grammar of a row key, the shape, and the
- * reducer.
+ * Which screen the panel is on, held in the four parts the subject has: the vocabulary
+ * and its strips, the grammar of a row key, the shape, and the reducer.
  *
- * All four were driven only through `composePanelView` until the composing was
- * split along its seams (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`,
- * F26). That is why they are still held apart from the view's own tests, which
- * record what a tab *says* — a claim about the panel's words, and one that passes
- * just as happily when the rule behind the tab changes. What is held here is the
- * rule: that every screen is one pair of axes and no two share it, that moving
- * between nouns keeps the direction the reader is in, that a key composed here
- * reads back to the same screen, and that a click lands on the screen it names.
+ * All four were driven only through `composePanelView` until the composing was split
+ * along its seams. That is why they are still held apart from the view's own tests,
+ * which record what a tab *says* — a claim about the panel's words, and one that passes
+ * just as happily when the rule behind the tab changes. What is held here is the rule:
+ * that every screen is one pair of axes and no two share it, that moving between nouns
+ * keeps the direction the reader is in, that a key composed here reads back to the same
+ * screen, and that a click lands on the screen it names.
  */
 
 import { describe, expect, test } from "bun:test";
@@ -174,17 +172,15 @@ describe("the side strip", () => {
 /**
  * The grammar three files used to agree on by convention.
  *
- * ⚠️ **What was guarded before was one parser, never the grammar.**
- * The state tests below hold `composeStateFromRow` against the
- * mis-slicing bug that turns `78` into the owner id `7` — a real test of a real
- * defect, and it says nothing about whether the keys it is handed are the keys
- * the view composes. They were composed in `panel-view.ts`, invented a third
- * time in `panel-element.ts`, and taken apart by prefix comparison in the
- * reducer — three files agreeing on a grammar nothing stated
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F17).
+ * ⚠️ **What was guarded before was one parser, never the grammar.** The state tests
+ * below hold `composeStateFromRow` against the mis-slicing bug that turns `78` into the
+ * owner id `7` — a real test of a real defect, and it says nothing about whether the
+ * keys it is handed are the keys the view composes. They were composed in
+ * `panel-view.ts`, invented a third time in `panel-element.ts`, and taken apart by
+ * prefix comparison in the reducer — three files agreeing on a grammar nothing stated.
  *
- * So the test that matters here is the round trip: what one end writes, the
- * other end reads back as the same thing.
+ * So the test that matters here is the round trip: what one end writes, the other end
+ * reads back as the same thing.
  */
 
 
@@ -294,13 +290,12 @@ describe("a row key that opens nothing", () => {
   });
 
   /**
-   * The row naming what a figure came *from*, which the breakdown used to compose
-   * by hand — one caller reproducing the divider and the word either side of it
-   * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F5).
+   * The row naming what a figure came *from*, which the breakdown used to compose by
+   * hand — one caller reproducing the divider and the word either side of it.
    *
-   * It opens nothing, like every other leaf of that level, and that is the half
-   * worth checking here: a caller reading the prefix would have had to decide what
-   * an unknown one meant, and this module is where that is decided once.
+   * It opens nothing, like every other leaf of that level, and that is the half worth
+   * checking here: a caller reading the prefix would have had to decide what an unknown
+   * one meant, and this module is where that is decided once.
    */
   test("a row named for what a figure came from", () => {
     expect(getRowKeyMeaning(composeSourceRowKey("dmgf"))).toEqual({ opens: "nothing" });

@@ -261,17 +261,15 @@ describe("reading what the gate said", () => {
 /**
  * A mutant that hung the suite, and a runner that was never there.
  *
- * `spawnSync` reports both in one field and they are opposite claims: the first
- * is true of one mutation and the next would have run, the second is true of
- * every run that follows. Read as the same thing, one hanging mutant threw away a
- * whole sweep of `src/game/kept-fights.ts` — 179 of 180 finished and none of them
- * reached the report
- * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F4).
+ * `spawnSync` reports both in one field and they are opposite claims: the first is true
+ * of one mutation and the next would have run, the second is true of every run that
+ * follows. Read as the same thing, one hanging mutant threw away a whole sweep of
+ * `src/game/kept-fights.ts` — 179 of 180 finished and none of them reached the report.
  *
  * ⚠️ **The runner is asked rather than imitated.** What `code` a timed-out spawn
  * carries is a claim about Bun, so a sample typed here would be a guess wearing a
- * transcript's clothes (§7.5) — and the one that costs is the *second* assertion,
- * which is the machine's own failure staying fatal.
+ * transcript's clothes (§7.5) — and the one that costs is the *second* assertion, which
+ * is the machine's own failure staying fatal.
  */
 describe("telling a hung mutant from a runner that is not there", () => {
   test("a runner killed for running too long is one mutant's doing", () => {
@@ -319,25 +317,22 @@ describe("what gets swept", () => {
 /**
  * The convention the sweep's whole operator list rests on.
  *
- * Every rule is written with the spaces around it — ` === `, ` && ` — and the
- * file says why: the tree is formatted, so a binary operator has them and `+=`,
- * `++` and `-->` do not. A pattern of the bare character would mutate all three
- * into something that does not parse, and an unparseable mutant is killed by
- * everything while proving nothing.
+ * Every rule is written with the spaces around it — ` === `, ` && ` — and the file says
+ * why: the tree is formatted, so a binary operator has them and `+=`, `++` and `-->` do
+ * not. A pattern of the bare character would mutate all three into something that does
+ * not parse, and an unparseable mutant is killed by everything while proving nothing.
  *
- * ⚠️ **Nothing formats the tree.** There is no prettier, biome, dprint or
- * editorconfig here, no `format` script and no step in either workflow — §9.3
- * takes the linter out on purpose and the compiler does not care about spaces.
- * So `a+b` generates no mutant, and the report says there was nothing there to
- * find: silent, and in the direction that costs, because the value of that
- * report is its survivors
- * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F15).
+ * ⚠️ **Nothing formats the tree.** There is no prettier, biome, dprint or editorconfig
+ * here, no `format` script and no step in either workflow — §9.3 takes the linter out
+ * on purpose and the compiler does not care about spaces. So `a+b` generates no mutant,
+ * and the report says there was nothing there to find: silent, and in the direction
+ * that costs, because the value of that report is its survivors.
  *
- * ⚠️ **Only the four that cannot mean anything else.** `<` and `>` are generics
- * as often as they are comparisons, and a guard that cried wolf on
- * `Map<string, number>` would be turned off in a week — the same trade the
- * unary-`+` pattern in `tests/tools/source-layout.test.ts` makes. A missed
- * spelling is cheaper than a guard nobody keeps.
+ * ⚠️ **Only the four that cannot mean anything else.** `<` and `>` are generics as
+ * often as they are comparisons, and a guard that cried wolf on `Map<string, number>`
+ * would be turned off in a week — the same trade the unary-`+` pattern in
+ * `tests/tools/source-layout.test.ts` makes. A missed spelling is cheaper than a guard
+ * nobody keeps.
  */
 describe("the spacing the sweep reads operators by", () => {
   const UNMISTAKABLE_OPERATORS = ["===", "!==", "&&", "||"];

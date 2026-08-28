@@ -45,7 +45,7 @@ git history before that point does not describe how things are done here.
 | `[ui]` | The panel and everything it draws | `src/ui/` |
 | `[data]` | Material captured from the game | `tests/captured-fights/` |
 | `[tools]` | Runs in a terminal, never ships | `tools/`, `build.ts` |
-| `[docs]` | The register, the specs and the audits | `docs/` |
+| `[docs]` | The registers and the specs | `docs/` |
 | `[process]` | Commits, validation, workflow | `.github/workflows/`, `.claude/skills/verify/` |
 
 Untagged prose is context and does not bind. The files directly in `src/` are
@@ -80,15 +80,14 @@ rules have drifted.
   recording, say that and drop the figure.
 - `[ALWAYS] [core]` **Make unknown input loud.** An unrecognised protocol key
   becomes an explicit unknown event and surfaces in the panel.
-- `[ALWAYS] [any]` **Write English** — code, comments, tests, docs, commits. Two
-  exceptions: field names inside captured material (§9.2), and **the text a
+- `[ALWAYS] [any]` **Write English** — code, comments, tests, docs, commits.
+  Two exceptions: field names inside captured material (§9.2), and **the text a
   person who plays the game reads**, which is Polish wherever it is composed —
   the panel, `CHANGELOG.md`, `README.md` (whose English is `README.en.md` beside
   it), the release notes in `tools/changelog.ts` and the published preview in
   `tools/preview-site.ts`. The list of files is not this rule's to keep: it is
   `tests/tools/source-layout.test.ts`'s, which admits one at a time and argues
-  each. This sentence named three places while the guard admitted ten
-  (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F11).
+  each. This sentence named three places while the guard admitted ten.
   Identifiers around a Polish string stay English, and a Polish sentence never
   carries our vocabulary or a key of the game's: a player is told what cannot be
   known, not why our reader cannot know it.
@@ -99,7 +98,7 @@ rules have drifted.
   always exactly the newest `v*` tag. That is what lets the published preview and
   the file somebody installs be one build — README.md offers the page as what a
   release ships, and the offer is only true while this holds
-  (`docs/specs/2026-08-18-main-is-what-you-can-install.md`).
+  (`docs/specs/what-a-release-shows.md`).
 - `[ALWAYS] [process]` **A release is pushed in three takts, and the wait is
   between the second and the third:** `develop`, then `main` once the `check` run
   that push started is **green**, then the tag. `main` is fast-forwarded to the
@@ -107,13 +106,10 @@ rules have drifted.
   keeps the rule above true. The wait is not politeness: branch protection refuses
   `main` while the run is going, and that refusal is cheap — the tag going out
   first is not. `release.yml` fires on a tag push and on nothing else, so a tag
-  arriving before `main` is refused by its own first step, and the later `main`
-  push re-runs nothing: the version is tagged, the tree is right, and there is no
-  release, which looks exactly like a release nobody asked for. Recover by making
-  the tag arrive again — delete it on the remote and push it once more, onto the
-  head of `main` where `main` has moved past it — safe exactly while no release
-  was published from it. Paid for at `v0.8.0` on 2026-08-19
-  (`docs/specs/2026-08-18-main-is-what-you-can-install.md`).
+  arriving before `main` is refused by its own first step and the later `main`
+  push re-runs nothing — which looks exactly like a release nobody asked for.
+  Recovery, and the release that paid for this, are in
+  `docs/specs/what-a-release-shows.md`.
 
 ---
 
@@ -157,11 +153,9 @@ rules have drifted.
   `.claude/settings.json` denies `Edit`, `Write` and `NotebookEdit` against the
   file, and `tests/tools/agent-permissions.test.ts` re-earns those three. A
   permission list matches a **tool call**, and a shell writes with a redirect, a
-  heredoc or `sed -i` — text no list of that shape can recognise without also
-  refusing every command that merely mentions the file, `cat` included. So the
-  shell is forbidden here and nowhere else
-  (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F7). A round
-  working through a terminal is the case this sentence exists for.
+  heredoc or `sed -i` — which no list of that shape can recognise without also
+  refusing every command that merely mentions the file. So the shell is forbidden
+  here and nowhere else.
 
 ---
 
@@ -299,6 +293,10 @@ Rules that arrived this way, each paid for at least once:
   boundary.** Zero is the neutral element of every sum here, so a wrong edge
   moves no figure and changes what a figure means. A test at `0` needs one at
   `1` beside it, and one below where the type allows.
+- `[ALWAYS] [process]` **`git add` before `bun run check`.** Half the gate lists
+  what it reads with `git ls-files`, so a file written straight to disk is
+  invisible to it and the run is green because the file with the fault is not in
+  the walk.
 - `[ALWAYS] [any]` **A test that parses somebody else's output holds a
   transcript, never a typed sample.** A guess about another program's output is
   a claim about that program (§3).
@@ -309,28 +307,16 @@ Rules that arrived this way, each paid for at least once:
   read that way.** Where a round finds that the tree has stopped matching what a
   rule says, the rule moves — here — in the same commit. Qualifying it where only
   its one caller will see it leaves everybody else reading the absolute.
-- `[ALWAYS] [process]` **`git add` before `bun run check`.** Half the gate lists
-  what it reads with `git ls-files`, so a file written straight to disk is
-  invisible to it: `cited-paths.test.ts` and `source-layout.test.ts` never see a
-  new module, and the run is green because the file with the fault is not in the
-  walk. Paid for twice — `tests/tools/measured-material.test.ts` records the same
-  trap from the inside, having been unable to read its own prose for a commit.
 - `[ALWAYS] [any]` **A guard narrower than the construct it owns reads exactly
   like a construct that is owned.** A register row is a claim that something is
   held in one place, and a green row is the whole of what anybody checks — so a
   pattern that misses the common spelling is worse than no row at all. Match the
-  shape the tree actually writes: `libs/running-total.ts`'s row read `\w+\.get`,
-  a map called by a bare name, while every map here hangs off a row — so two of
-  the five copies the module was extracted to remove stayed in the file that
-  imports it, in plain sight, under a green row
-  (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F5).
+  shape the tree actually writes.
 - `[ALWAYS] [any]` **A test that reads a string back from the module that writes
   it holds the two to be the same, and neither to be right.** For anything a
   player reads, that is not a test — the sentence can be replaced by our
   vocabulary, by a key of the game's or by nothing at all, and every assertion
-  still passes. Read the words, in words, at the point they are drawn. Paid for
-  on nine of them at once, one being the row for what names neither end, which no
-  recording has ever produced (F1, F4 of the same audit).
+  still passes. Read the words, in words, at the point they are drawn.
 
 ### 7.6 Working from the game's own sources
 
@@ -388,53 +374,6 @@ Reach for it without being asked: before filing or changing a verdict in
 a key at the top of the unread list (unread key → help → measurement → guard →
 entry); and when the tool reports its dump is a week old or more.
 
-### 7.7 Reading the whole tree at once
-
-An **audit** is one round that reads the whole repository and writes down what it
-found, dated by the commit it read. It measures the half the gate cannot report,
-since a guarded rule passes by construction: prose drifted from the tree,
-duplication past §7.1's second consumer, an exported name no test names, a rule
-written and never guarded. It is commissioned work, not a record — it ships
-`open` and the round after it closes it.
-
-What it covers, saying which it did: the gate, run, with numbers; the rules no
-machine holds (§3, §5, §9, minus what `tests/tools/source-layout.test.ts`
-re-earns); prose against the tree (§8's block, §2's table, `README.md`,
-`NOTICE.md`); layering (§9.1) and the register of value readers (§9.5);
-duplication against §7.1; coverage as a name and never a percentage; size and
-split responsibility, which is judgment; and what it did not read.
-
-- `[ALWAYS] [process]` **Say what was not read.** *Not looked at*, *looked at and
-  clean* and *a finding* are three answers.
-- `[ALWAYS] [process]` **An audit carries the commit it read.**
-- `[ALWAYS] [process]` **A finding names a file, and a line where there is one.**
-- `[ALWAYS] [process]` **Every finding closes into one of §7.5's three places, or
-  is declined with a reason.** Leaving it open is not an answer.
-- `[NEVER] [process]` **Fix while auditing** — reading and fixing are separate
-  commits.
-- `[NEVER] [docs]` **Append to a closed audit.** The next one is a new file.
-- `[ALWAYS] [docs]` **Citations are held to the tree an audit read** by
-  `tests/tools/cited-paths.test.ts` — the commit on its `Read at:` line, or the
-  tree as it stands now, since a finding legitimately names both what it read and
-  the guard its close created. That allowance is `docs/audits/` alone: every other
-  document is a claim about now and is held to now. Write a finding whose close
-  leaves its citation true; what the allowance buys is that a **later** rename
-  cannot turn a dated record red and make editing one the only remedy, which the
-  rule above forbids outright.
-- `[ASK] [docs]` **Deleting an audit**, closed ones included.
-
-The shape, held by `tests/tools/audit-status.test.ts`: `Status:` (`open` or
-`closed`) and `Read at:` (a commit) under the title, then `## What was
-measured`, `## Findings`, `## Looked at and clean`, `## What was not read`. A
-finding is `### F1 — a title naming the effect`, its prose, then `*Where:*` a
-path with a line and `*Closes:*` one of `open`, ``guard `tests/…` ``,
-`rule §N.M`, `commit`, `declined — <reason>`. A `closed` audit has no finding
-still saying `open`. Findings are ordered by the order they are to be closed,
-and there is deliberately no severity word.
-
-Open one without being asked: before a release tag; when the same class of fault
-turns up in two rounds; when a round touches a layer no audit has read.
-
 ---
 
 ## 8. Structure
@@ -479,8 +418,8 @@ tsconfig.userscript.json
 .cache/            Game client sources, fetched on demand. NOT tracked — §7.6.
 screenshots/       The panel as pictures — §9.8.
 
-docs/              A guarded register, a dated spec, a design a spec names, or a
-                   dated and guarded audit. No status, no chronicle of rounds.
+docs/              A guarded register, a dated spec, or a design a spec names.
+                   No status, no chronicle of rounds.
   browser-support.md
                    What the shipped file asks of a browser — §9.9.
   captured-fights.md
@@ -490,16 +429,11 @@ docs/              A guarded register, a dated spec, a design a spec names, or a
                    both ways by tests/tools/captured-fight-register.test.ts.
   protocol-keys.md What has been looked into, key by key: verdict, evidence,
                    state. Guarded against the decoder and the frozen table.
-  half-named-figures.md
-                   Every shape the protocol can send where it names one end and
-                   not the other, and what the panel draws for it. Read off the
-                   panel and guarded by tests/ui/panel-view.test.ts.
   drill-levels.md  Every kind of row below the ranking and whether pressing it
                    opens anything. Verdicts, never counts — the counts are what
                    tools/drill-report.ts prints. Guarded both ways by
                    tests/tools/drill-report.test.ts.
   specs/           Dated design records. No index — the directory is one.
-  audits/          This repository measured against its own rules — §7.7.
   design/panel.html
                    The panel as a page you can click. A drawing, not a source.
 
@@ -646,8 +580,6 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
   frozen-protocol-keys.ts     GENERATED. Every key the client knows, with build.
   frozen-help-phrases.ts      GENERATED. How often each cited phrase occurs in
                               the published help. Counts only.
-  dated-document.ts           What specs and audits share: a filename that is a
-                              date, and a date that has happened.
   git-history.ts              What this history can be asked, and when it cannot
                               be asked at all. Every answer is an exit status.
   class-names.ts              What a stylesheet styles and what a source assigns.
@@ -688,31 +620,26 @@ tests/                     A test sits where its subject sits: `libs/`, `core/`,
   exactly two may be read — `tools/fight-dump-parser.ts`, so the live and offline
   paths cannot disagree about what a capture says, and
   `tools/margometer-tool-error.ts`, where the two hierarchies are proved disjoint
-  (§9.5). Under `tests/tools/` a test also reads **the tool it is named for**, and
-  any other only as a listed pair carrying its reason — the list is in
+  (§9.5). Under `tests/tools/` a test also reads **the tool it is named for**,
+  and any other only as a listed pair carrying its reason — the list is in
   `tests/tools/source-layout.test.ts` and each entry says why that test may not
   spell that tool's names a second time. The clause used to end at "names
   whichever tool it is about", which the guard held by not looking at the
-  directory at all
-  (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F8).
+  directory at all.
 - `[ALWAYS] [any]` **`src/userscript-version.ts` is readable from any layer.**
 - `[ALWAYS] [ui]` **The panel renders state handed to it.** It never computes a
   statistic **across combatants** — no re-aggregating the fight, no deriving one
   row's figure from another's. Folding a row's own maps into the cut a screen
   shows is the panel's work and lives in `src/ui/panel-reading.ts`: what a
   combatant took less what could be charged to somebody, per element. The clause
-  read as an absolute while six such folds sat in `src/ui/`, and the qualification
-  lived in one docblock rather than here
-  (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F10).
-- `[ALWAYS] [any]` **A file holds one subject, however long that subject runs.**
-  What forces a split is a **second** subject — never a line count, and never a
-  docblock that got long. The clause this replaces read *"prefer a narrow module;
-  a file needing a table of contents needs splitting"*, and
-  `docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md` (F26) applied it to
-  `src/ui/panel-view.ts` by reading a table of contents off its **docblock**. The
-  eight modules that came out of it each had to open by arguing why they were a
-  file, and the cost of that was never counted against the cost it saved: 40+
-  named imports at one file's head, a name spelled in nine places, and a `src/ui/`
+  read as an absolute while six such folds sat in `src/ui/`, and the
+  qualification lived in one docblock rather than here.
+- `[ALWAYS] [any]` **A file holds one subject, however long that subject
+  runs.** What forces a split is a **second** subject — never a line count, and
+  never a docblock that got long. A rule reading *"a file needing a table of
+  contents needs splitting"* once broke `src/ui/panel-view.ts` into eight
+  modules, each of which had to open by arguing why it was a file: 40+ named
+  imports at one file's head, a name spelled in nine places, and a `src/ui/`
   that reached 48% comment. A long file is not evidence; two subjects are.
 
 ### 9.2 Data
@@ -758,7 +685,7 @@ The panel still draws and the gate still passes.
 deliberate and are the whole of what the test proves: `tests/core/` restates the
 protocol keys on purpose, because a test asserting *what the decoder reads* must
 not read the decoder's own list. Two of those say so in a comment and the rest do
-not, which is why an audit filed them as duplication and closed one
+not, which is why one was once filed as duplication and collapsed
 (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`). A deliberate duplication
 that does not say it is deliberate is an invitation to collapse it — so say it.
 
@@ -883,16 +810,15 @@ gets a named subclass and a `code`, so callers never match on message text.
   takes everything. A call into the game, a read of the page — `localStorage`
   throws for being *read* where the browser forbids it — a document the game also
   writes to, and each region §9.6 isolates so its failure is its own size.
-  Narrowing there would let a bug of ours escape into the game's call stack, which
-  is the one promise this add-on makes. **Away from such a boundary a broad catch
-  is a bug**, and most of the `catch` clauses in shipped code are at one. Written
-  here because it was written nowhere: the rule above read as an absolute while
-  one file's comment claimed to be the whole of the exception, naming "the only
-  two in this repository"
-  (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F8). Nothing tells
-  the two kinds apart mechanically — a `catch` is not where the boundary is
-  visible — so it is read rather than checked, and §7.5's rule is why it is here:
-  a qualification that lives in one file's docblock is one nobody else reads.
+  Narrowing there would let a bug of ours escape into the game's call stack,
+  which is the one promise this add-on makes. **Away from such a boundary a broad
+  catch is a bug**, and most of the `catch` clauses in shipped code are at one.
+  Written here because it was written nowhere: the rule above read as an absolute
+  while one file's comment claimed to be the whole of the exception, naming "the
+  only two in this repository". Nothing tells the two kinds apart mechanically —
+  a `catch` is not where the boundary is visible — so it is read rather than
+  checked, and §7.5's rule is why it is here: a qualification that lives in one
+  file's docblock is one nobody else reads.
 - `[ALWAYS]` **Pass the original in `cause` when wrapping.**
 - **An expected failure in shipped code is DATA**, not an exception that
   propagates: it becomes an unknown event the panel can show. In `tools/`,
@@ -996,7 +922,7 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   `[ASK]` to widen and it is held by a measurement rather than by a comment: over
   every capture it makes `Zadane · My` equal `Otrzymane · Oni` through different
   fields of the aggregate (`tests/ui/panel-view.test.ts`,
-  `docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`). Charging a
+  `docs/specs/the-ends-a-figure-names.md`). Charging a
   *name* is still §5's flat no — a side has members, and a guess about which one
   would be ours.
 - `[ALWAYS] [core]` **A figure the protocol states about a whole side may be sized
@@ -1008,80 +934,63 @@ comparisons — **is held to `libs/`, `src/` and `tools/` only.**
   refused rather than defaulted — maximum health, the health the fight was entered
   with, the health held at the moment, the caster having an ally at all, and no
   effect the documentation says reduces the result in play **against the side it
-  was cast on**. A member missing one is
-  left out **and the figure stays counted as unaccounted**, so a partial answer can
-  never read as a whole one. ⚠️ **Which side an effect is in play against is read
-  where the documentation states the scope and the protocol states the caster, and
-  nowhere else.** `lowheal_per-enemies` reaches the caster's opponents, so a fight
-  declaring it refuses the casts on the sides that caster faced and sizes the rest,
-  while a declaration no caster can be placed for reaches every side and refuses
-  the fight whole. That narrowing was `[ASK]` under this clause, asked and granted
-  on 2026-08-27, and it is held the way the rest of the clause is: twenty of that
-  fight's own snapshot comparisons agree with the share applied **unreduced**
-  (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`). `[ASK]` to
-  widen to a second key, and held by a
-  measurement rather than by a comment: the sized figures equal the health the
-  snapshots record on every cast that stands alone in its engine call, and
-  `tests/core/health-witness.test.ts` stopped skipping those calls and still agrees
-  (`src/core/combatant-health.ts`,
-  `docs/specs/2026-08-18-the-side-is-named-and-the-share-is-stated.md`).
+  was cast on**. A member missing one is left out **and the figure stays counted as
+  unaccounted**, so a partial answer can never read as a whole one.
+
+  ⚠️ **Which side an effect is in play against is read where the documentation
+  states the scope and the protocol states the caster, and nowhere else.** A
+  declaration no caster can be placed for reaches every side and refuses the fight
+  whole. `[ASK]` to widen to a second reducer key. Held by a measurement rather
+  than by a comment: the sized figures equal the health the snapshots record on
+  every cast that stands alone in its engine call
+  (`src/core/combatant-health.ts`, `tests/core/health-witness.test.ts`,
+  `docs/specs/sizing-a-share-onto-a-side.md`).
 - `[ALWAYS] [core]` **An end the protocol leaves out may be filled with a
   combatant the message already names, and only where the published help says the
   effect is that combatant's own.** The narrowest of these clauses: nothing is
-  derived from a neighbour, from a slot or from what usually
-  happens — the help says the effect belongs to the one it heals, so the giving end
-  is the receiving end and there was never a second name to get wrong. The keys are
-  listed in one place (`SELF_SOURCED_HEALING_KEYS`, `src/core/fight-decoder.ts`),
-  each carries its engine name and read date, and each is stated in
-  `docs/protocol-keys.md` on a `*Cause:*` line a guard re-earns from that list.
-  Three limits, all of them load-bearing: **an announcement wins**, because a giver
-  the protocol stated beats one read off documentation; **the restoring direction
-  only**, since `heal` states a loss as readily as a gain and nothing documents a
-  self-damage reading; and **a message naming nobody is untouched**, because the
-  fill needs a name the message already carries. ⚠️ Held by a **citation** where
-  the two clauses above are held by a measurement — the protocol states the figure
-  already, so there is no arithmetic to close and nothing in the captures would
-  differ if the help were wrong about whose effect it is. That is why it is `[ASK]`
-  to add a fourth key, and why the damage keys arriving in the identical shape
-  (`poison`, `fire`, `light`) are deliberately left with no cause at all
-  (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
+  derived from a neighbour, from a slot or from what usually happens — the help
+  says the effect belongs to the one it heals, so the giving end is the receiving
+  end and there was never a second name to get wrong. The keys are listed in one
+  place (`SELF_SOURCED_HEALING_KEYS`, `src/core/fight-decoder.ts`), each carrying
+  its engine name and read date, and each is stated in `docs/protocol-keys.md` on
+  a `*Cause:*` line a guard re-earns from that list.
+
+  Three limits, all load-bearing: **an announcement wins**, because a giver the
+  protocol stated beats one read off documentation; **the restoring direction
+  only**, since `heal` states a loss as readily as a gain; and **a message naming
+  nobody is untouched**, because the fill needs a name the message already
+  carries.
+
+  ⚠️ Held by a **citation** where the clauses around it are held by a measurement,
+  so it is `[ASK]` to add a fourth key — and why the damage keys arriving in the
+  identical shape (`poison`, `fire`, `light`) are deliberately left with no cause
+  at all (`docs/specs/the-ends-a-figure-names.md`).
 - `[ALWAYS] [core]` **An end the protocol leaves out may be filled from an earlier
   message of the same fight, where the published help states the link and the
-  figure says which one.** The fourth and widest of these clauses, and the only one
-  reaching past the message it reads. One pair exercises it
-  (`WOUND_ANNOUNCEMENT_BY_TICK_KEY`, `src/core/fight-decoder.ts`): a wound ticks
-  naming its victim and nobody else, and the blow that applied it named both ends.
-  What makes it a reading rather than a search is the help's own arithmetic — the
-  wound does not accumulate and is overwritten by the freshest application against
-  that opponent, so a victim carries one at a time and the figure says which one is
-  ticking. Held by a **measurement**: over every capture, each tick lands on a
-  victim already wounded and states exactly what that wound announced, on material
-  where three attackers wound one victim
-  (`tests/core/injure-rule.test.ts`). Four limits, all load-bearing: **the freshest
-  application only**, which is the help's rule and not a habit; **the figure must
-  agree**, so a tick that cannot be identified is charged to nobody; **an
-  application nobody is named for still replaces the one before it**, because the
-  game overwrites it whoever landed it; and **no cap on ticks**, since the help
-  counts turns and nothing here does (§10). The reading lives in
-  `src/core/fight-statistics.ts` and cannot live in the decoder — that one decodes
-  incrementally, so a carry inside it would reach only the ticks sharing an engine
-  call with their application and would answer differently depending on how the
-  game split its payloads. `[ASK]` before a second pair joins it, and the asking is
-  about three things a key either has or has not: an announcement in the protocol,
-  a figure on that announcement, and a documented rule making one application the
-  owner of what is ticking. Every tick the client composes has been put to that
-  test and only this one has all three — `poison`, `fire` and `light` are what the
-  captures still leave half-named, and none of them has an announcing key at all
-  (`docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`). `critwound`
-  arrives in the same shape, announces no figure, and is deliberately unread
-  (`docs/specs/2026-08-19-a-wound-remembers-who-dealt-it.md`). `anguish` is the
-  first tick to arrive with an announcement and still fail the test: 2026-08-25
-  brought material where `+legbon_anguish` rides the blow that applied the bleed
-  and names both ends, and states **no figure** — which is the second of the three
-  and the one that cannot be worked around, since without it a tick and an
-  application cannot be matched at all. It stays half-named, like `wound` before
-  it, and the shape of the refusal is the point: an announcement is not enough
-  (`docs/protocol-keys.md`, `tests/core/anguish-rule.test.ts`).
+  figure says which one.** The widest of these clauses, and the only one reaching
+  past the message it reads. One pair exercises it
+  (`WOUND_ANNOUNCEMENT_BY_TICK_KEY`, `src/core/fight-decoder.ts`). What makes it a
+  reading rather than a search is the help's own arithmetic: the wound does not
+  accumulate and is overwritten by the freshest application against that opponent,
+  so a victim carries one at a time and the figure says which one is ticking. Held
+  by a **measurement** (`tests/core/injure-rule.test.ts`).
+
+  Four limits, all load-bearing: **the freshest application only**, which is the
+  help's rule and not a habit; **the figure must agree**, so a tick that cannot be
+  identified is charged to nobody; **an application nobody is named for still
+  replaces the one before it**, because the game overwrites it whoever landed it;
+  and **no cap on ticks**, since the help counts turns and nothing here does
+  (§10). The reading lives in `src/core/fight-statistics.ts` and cannot live in
+  the decoder — that one decodes incrementally, so a carry inside it would answer
+  differently depending on how the game split its payloads.
+
+  `[ASK]` before a second pair joins it, and the asking is about three things a
+  key either has or has not: an announcement in the protocol, a figure on that
+  announcement, and a documented rule making one application the owner of what is
+  ticking. Every tick the client composes has been put to that test and only this
+  one has all three; `anguish` is the instructive failure, announcing both ends
+  and no figure (`docs/specs/the-ends-a-figure-names.md`,
+  `tests/core/anguish-rule.test.ts`).
 - `[ALWAYS] [ui]` **A message naming neither end has no side, and the panel says
   so where no row can.** It rides the one pinned row standing apart from the
   ranking under `Wszyscy`, and under a side tab it is on no row at all and the
@@ -1109,7 +1018,7 @@ look like a number that is right.**
   two casters' rows — the second of the two gaps below, in material for the first
   time — and reading the side that effect reaches took it back the same day: the
   reducer was one of ours, cast at the monster, so nothing of ours was reduced
-  (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`). The corpus
+  (`docs/specs/sizing-a-share-onto-a-side.md`). The corpus
   marks no row, and a capture that grows one is a fight the panel is warning
   about (`tests/ui/panel-view.test.ts`).
 - `[ALWAYS] [ui]` **A gap reaches a row only where the protocol named whom it was
@@ -1123,7 +1032,7 @@ look like a number that is right.**
   `[ASK]` before a third gap joins the two, and the asking is whether the protocol
   states a name for it — a gap placed on a row it was not named for is §5's guess
   wearing a warning's clothes
-  (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+  (`docs/specs/the-ends-a-figure-names.md`).
 - `[ALWAYS] [ui]` **Quiet by default, detail on demand.** Nothing animates,
   flashes or moves.
 - `[NEVER] [ui]` **Swallow silently.** Every caught failure produces a visible
@@ -1157,7 +1066,7 @@ Two severities are enough, and a third is `[ASK]`:
 `screenshots/` holds the panel as pictures, for the version in `package.json` and
 no other. Written by `tools/panel-screenshots.ts` and by nothing else — a set is
 replaced, never added to
-(`docs/specs/2026-08-18-a-picture-of-the-panel.md`).
+(`docs/specs/what-a-release-shows.md`).
 
 Most of it is held by machines: `tests/tools/panel-screenshots.test.ts` puts the
 sidecar's version against `package.json`, its **commit** against this history and
@@ -1175,16 +1084,15 @@ Two things no machine here checks, and both were got wrong:
   driver that clicked nothing produced four green shots of the same screen, and
   the only symptom was three files of identical size.
 - `[ALWAYS] [any]` **Retake the set when the panel changes, not only when the
-  version does.** A version says which release a set belongs to and moves once per
-  release; the panel moves between them. A set taken eleven commits past `v0.7.0`
-  showed a pinned row named `Bez sprawcy`, a figure the wound rule had since moved
-  and a warning the sizing had since stopped — all four pictures, in `README.md`,
-  with every guard green because `package.json` still read `0.7.0`
-  (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F1). The
-  sidecar's commit is what makes that readable rather than invisible; it is
-  deliberately **not** guarded as currency, because a gate demanding a browser run
-  from every round that touches `src/ui/` is a decision about how this repository
-  is worked in, and `[ASK]` rather than a detail.
+  version does.** A version says which release a set belongs to and moves once
+  per release; the panel moves between them. A set taken eleven commits past
+  `v0.7.0` showed a pinned row named `Bez sprawcy`, a figure the wound rule had
+  since moved and a warning the sizing had since stopped — all four pictures, in
+  `README.md`, with every guard green because `package.json` still read `0.7.0`.
+  The sidecar's commit is what makes that readable rather than invisible; it is
+  deliberately **not** guarded as currency, because a gate demanding a browser
+  run from every round that touches `src/ui/` is a decision about how this
+  repository is worked in, and `[ASK]` rather than a detail.
 - `[NEVER] [any]` **Photograph a state the panel cannot be in.** The frame is a
   crop of a screen, not a screen: the 66vh cap is lifted for the picture because
   at 1080p it does not bind on any of these, and that is the whole licence. A

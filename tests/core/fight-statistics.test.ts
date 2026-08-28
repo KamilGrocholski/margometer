@@ -199,7 +199,7 @@ describe("the aggregate over captured fights", () => {
    * The exception was ours, not the material's: one combatant's entry health was
    * refused over a single point, because the allowance meant to absorb that
    * rounding was smaller than a health point on their pool
-   * (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`). No
+   * (`docs/specs/sizing-a-share-onto-a-side.md`). No
    * figure was wrong — the six casts it cost size to exactly the same numbers —
    * so what the panel had been showing was *unknown* where the answer was *zero*,
    * which is the one distinction §9.6 makes about this screen.
@@ -209,7 +209,7 @@ describe("the aggregate over captured fights", () => {
    * anywhere had none of its casts sized. Reading the side the effect reaches
    * emptied the list again in the same day: the reducer is declared by one of
    * theirs at the monster, so nothing of theirs was reduced
-   * (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`).
+   * (`docs/specs/sizing-a-share-onto-a-side.md`).
    *
    * ⚠️ **So no recording exercises this counter, and the empty list is the
    * claim.** What holds it is the hand-built fights in
@@ -496,7 +496,7 @@ describe.each(FROM_CAPTURES)("$name healing in both directions", ({ statistics }
  *
  * ⚠️ **Not the same split as the one below, and the difference is a whole screen.**
  * That one asks whether anybody was *credited*; this one asks whether anything was
- * *announced*, and since `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`
+ * *announced*, and since `docs/specs/the-ends-a-figure-names.md`
  * the three keys the help calls the healed combatant's own have a healer without
  * having an announcement. So the first split is empty on every recording while this
  * one holds 97 470 of the 346 284 points restored on
@@ -667,7 +667,7 @@ describe("healing with a healer and healing without one", () => {
    * "nic nie zapowiedziało tego leczenia" about points something had announced,
    * and the giver's own total was short by them with nothing saying so. That is a
    * claim about the game that is false (§3), not merely a figure left out
-   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+   * (`docs/specs/the-ends-a-figure-names.md`).
    *
    * Every name in every capture resolves, so nothing here is measurable
    * over them: the shape is the live one, where a fight is joined on a name the
@@ -709,7 +709,7 @@ describe("healing with a healer and healing without one", () => {
    * ⚠️ **The captures used to carry both kinds and now carry only one.** Every
    * point of healing in every recording reaches a healer since the three keys the
    * help calls the healed combatant's own started saying so
-   * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). So the second
+   * (`docs/specs/the-ends-a-figure-names.md`). So the second
    * half of the partition is held by the hand-built fights above — a heal whose
    * announcer this fight cannot place — and this test states the corpus reading
    * that replaced it rather than being deleted for having gone quiet. A capture
@@ -806,7 +806,7 @@ describe("healing with a healer and healing without one", () => {
   /**
    * The three keys the published help calls the healed combatant's **own** effect,
    * and what the aggregate does with them (§9.6,
-   * `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`).
+   * `docs/specs/the-ends-a-figure-names.md`).
    *
    * One combatant on both ends, which is the shape a self-cast `heal_target` and a
    * team heal's caster share have always had here — so this is three keys joining
@@ -1191,7 +1191,7 @@ describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
  * `tests/captured-fights/` as the set stands 2026-08-24 — so these are the two
  * counters the corpus can say nothing about at all, and they are built by hand for
  * the same reason `unattributed` is
- * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ * (`docs/specs/the-ends-a-figure-names.md`).
  *
  * The claim each holds is *whose figure may be short*. Getting it wrong is silent
  * in both directions: a count that never lands leaves a total marked clean while it
@@ -1295,7 +1295,7 @@ describe("what could not be read, per row", () => {
 });
 
 /**
- * The four edges `bun tools/mutation-sweep.ts` found nothing holding.
+ * The four edges a mutation sweep found nothing holding.
  *
  * ⚠️ **Three of the four are the number zero**, which is the third round running
  * that this boundary has turned out to be the untested one. It is not an

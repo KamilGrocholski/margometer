@@ -33,17 +33,16 @@ export type ElapsedSpan = {
 /**
  * Where the tallies accumulate.
  *
- * A wrapper around the map rather than the map itself, so that what a caller
- * passes around is a recorder rather than somebody's totals — and so a second
- * tally can be added here without every holder's type changing.
+ * A wrapper around the map rather than the map itself, so that what a caller passes
+ * around is a recorder rather than somebody's totals — and so a second tally can be
+ * added here without every holder's type changing.
  *
- * ⚠️ **It used to argue for itself by naming `resetSpans`, which nothing called.**
- * The reader was written against a `reset` no caller ever wanted, kept alive by
- * the one test that named it, and the wrapper's whole justification pointed at it
- * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F9). Both are gone.
- * A caller that needs to start again composes a recorder — which is what
- * `tools/payload-cost.ts` does per recording — and one that needs to empty this
- * one in place will bring the reader back with its caller.
+ * ⚠️ **It used to argue for itself by naming `resetSpans`, which nothing called.** The
+ * reader was written against a `reset` no caller ever wanted, kept alive by the one
+ * test that named it, and the wrapper's whole justification pointed at it. Both are
+ * gone. A caller that needs to start again composes a recorder — which is what
+ * `tools/payload-cost.ts` does per recording — and one that needs to empty this one in
+ * place will bring the reader back with its caller.
  */
 export type SpanRecorder = {
   spansByName: Map<string, ElapsedSpan>;

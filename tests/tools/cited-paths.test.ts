@@ -30,7 +30,6 @@ import {
   isWordStart,
 } from "@/libs/text-runs.ts";
 import { getHeadingDepth } from "@/tests/document-lines.ts";
-import { hasPathInHistory, isShallowRepository } from "@/tests/git-history.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 
@@ -308,57 +307,6 @@ function getCitationsOf(getPaths: (text: string) => string[]): Citation[] {
   );
 }
 
-/**
- * An audit is held to what was true when it was written, not to what is true now.
- *
- * ⚠️ **The one thing this guard knows about history, and it is `docs/audits/`
- * alone.** An audit carries `Read at:` and is never appended to once closed
- * (§7.7), so a path it names is a claim about the tree of that day — true when it
- * was written, and still true. Every other document is a claim about now and is
- * held to now, which is why the allowance is keyed on the **citing file** and
- * never on the cited path.
- *
- * Without it, renaming one file makes a dated record go red and the only remedy
- * is editing it, which §7.7 forbids outright. Measured before the first rename:
- * ~87 of the ~236 citations of `src/ui/` paths outside `src/` sit in audits.
- *
- * ⚠️ **The question is whether the path was ever real — not whether it is in the
- * tree the audit read.** That narrower version was written first and was red
- * inside the hour. The third audit names `panel-tokens.test.ts`, a guard
- * its own finding created *after* the commit it read, which a later round then
- * renamed; it was in neither tree and had been a true citation every day in
- * between. Ten citations across three audits name a guard their `*Closes:*`
- * created afterwards, so an audit legitimately names both what it read and what
- * closed it, and only history covers both.
- *
- * What it still refuses is a path that never existed under that name — the
- * typo an audit is as capable of as anything else.
- */
-const AUDITS_PREFIX = "docs/audits/";
-
-// Asked once per distinct path: `git log` is a subprocess, and only the
-// citations HEAD cannot resolve ever reach it.
-const HISTORY_ANSWERS = new Map<string, boolean>();
-
-function hasPathEverExisted(path: string): boolean {
-  const remembered = HISTORY_ANSWERS.get(path);
-  if (remembered !== undefined) return remembered;
-  const answer = hasPathInHistory(path);
-  HISTORY_ANSWERS.set(path, answer);
-  return answer;
-}
-
-// `actions/checkout@v4` gives the gate no history to ask, and `fetch-depth: 0`
-// is the alternative `tests/tools/audit-status.test.ts` rejected. Standing down
-// costs the gate one thing: a path an audit invented and that never existed goes
-// unnoticed there, though not on any working tree.
-function isCitationResolved(citation: Citation): boolean {
-  if (existsSync(REPOSITORY_ROOT + citation.path)) return true;
-  if (!citation.citedIn.startsWith(AUDITS_PREFIX)) return false;
-  if (isShallowRepository()) return true;
-  return hasPathEverExisted(citation.path);
-}
-
 const CITATIONS: Citation[] = getCitationsOf(getCitedPaths);
 const DIRECTORY_CITATIONS: Citation[] = getCitationsOf(getCitedDirectories);
 
@@ -387,33 +335,10 @@ describe("paths the repository cites in its own text", () => {
   });
 
   test("every one of them names a file that exists", () => {
-    const missing = CITATIONS.filter((citation) => !isCitationResolved(citation)).map(
-      (citation) => `${citation.citedIn} cites ${citation.path}`,
-    );
+    const missing = CITATIONS.filter(
+      (citation) => !existsSync(REPOSITORY_ROOT + citation.path),
+    ).map((citation) => `${citation.citedIn} cites ${citation.path}`);
     expect([...new Set(missing)].sort()).toEqual([]);
-  });
-
-  /**
-   * The allowance has to be exercised, or it is a branch nobody runs and the day
-   * it is needed it will be wrong.
-   *
-   * Both sides, because only the first one is what the allowance is *for* and only
-   * the second one keeps it from being a blanket exemption. Deliberately not "some
-   * audit currently cites a gone path": whether the tree happens to hold a stale
-   * citation is a fact about this week, and a guard resting on it passes for the
-   * wrong reason the week nobody renames anything.
-   */
-  test("history answers for a path that is gone, and refuses one that never was", () => {
-    if (isShallowRepository()) return;
-    // ⚠️ Assembled rather than written, and that is the point rather than a
-    // trick: a gone path spelled as one string in this file would be a dead
-    // citation, and the guard reading this very line would refuse it. The
-    // register of what this repository once had cannot itself be written in the
-    // vocabulary the register forbids.
-    const gone = ["docs", "ROADMAP.md"].join("/");
-    const invented = ["src", "ui", "panel-that-never-was.ts"].join("/");
-    expect(hasPathEverExisted(gone)).toBe(true);
-    expect(hasPathEverExisted(invented)).toBe(false);
   });
 
   test("and every directory named is a directory that is there", () => {

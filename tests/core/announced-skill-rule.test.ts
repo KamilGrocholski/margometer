@@ -235,7 +235,7 @@ describe.each(CAPTURED_FIGHTS)("$name", (fight) => {
      * ⚠️ **And less the healing no skill announced, which is the other end of the
      * same figure.** The three keys the help calls the healed combatant's own are
      * credited to that combatant as a healer without any skill having said so
-     * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`), so the two
+     * (`docs/specs/the-ends-a-figure-names.md`), so the two
      * sides part by exactly that much and by nothing else.
      *
      * Subtracted rather than filtered out: an equality with a term on both sides
@@ -304,7 +304,7 @@ describe("a heal that restored nothing", () => {
    * combatant, so their own `heal` and their own zero-restoring `heal_target` now
    * share one key in `healedByHealerId` and sum to something positive — the zero
    * is still there, it is just no longer alone under that key
-   * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). `healedBySource`
+   * (`docs/specs/the-ends-a-figure-names.md`). `healedBySource`
    * keeps them apart because the protocol keys differ, which is what this test
    * needs and the reason it moved rather than being weakened.
    */

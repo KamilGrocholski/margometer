@@ -117,18 +117,17 @@ export function composeRosterOfFight(fight: CapturedFight): CombatantRoster {
 /**
  * A recording read the way the panel reads it: roster, messages, entry health.
  *
- * ⚠️ **The three arguments were spelled out at ten call sites and four of them
- * left one off**, which is not a small difference — composing the seventeen
- * recordings held on 2026-08-21 both ways, healing on fourteen of them more than doubles once the
- * entry health is passed, because that is what sizes a share stated about a whole
- * side (§9.6). The tools carried a comment saying they read *the same reading the
- * panel is held to*; the tests carried nothing, and one of the four was the
- * fixture the whole of `tests/ui/panel-drill.test.ts` runs on
- * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F2).
+ * ⚠️ **The three arguments were spelled out at ten call sites and four of them left one
+ * off**, which is not a small difference — composing the seventeen recordings held on
+ * 2026-08-21 both ways, healing on fourteen of them more than doubles once the entry
+ * health is passed, because that is what sizes a share stated about a whole side
+ * (§9.6). The tools carried a comment saying they read *the same reading the panel is
+ * held to*; the tests carried nothing, and one of the four was the fixture the whole of
+ * `tests/ui/panel-drill.test.ts` runs on.
  *
- * So the reading is decided here, once, where the material already is. A caller
- * that wants a fight sized differently — with no roster, to watch names resolve
- * to nobody — composes it itself and says why.
+ * So the reading is decided here, once, where the material already is. A caller that
+ * wants a fight sized differently — with no roster, to watch names resolve to nobody —
+ * composes it itself and says why.
  */
 export function composeStatisticsOfFight(fight: CapturedFight): FightStatistics {
   const roster = composeRosterOfFight(fight);
@@ -142,12 +141,11 @@ export function composeStatisticsOfFight(fight: CapturedFight): FightStatistics 
 /**
  * Every protocol message a capture carries, in arrival order.
  *
- * One function rather than seventeen copies: `fight.dump.calls.flatMap(…)` was
- * spelled by hand in eleven test files, which is §7.1's threshold passed eight
- * times over, and it is the same reading in all of them — the whole fight as the
- * decoder would see it offline (`docs/audits/2026-08-14-the-whole-tree-read-again.md`,
- * F20). It belongs beside `composeRosterOfFight` for the reason that one gives:
- * the material and the two readings every test needs of it live together.
+ * One function rather than seventeen copies: `fight.dump.calls.flatMap(…)` was spelled
+ * by hand in eleven test files, which is §7.1's threshold passed eight times over, and
+ * it is the same reading in all of them — the whole fight as the decoder would see it
+ * offline. It belongs beside `composeRosterOfFight` for the reason that one gives: the
+ * material and the two readings every test needs of it live together.
  */
 export function getMessagesOfFight(fight: CapturedFight): string[] {
   return getMessagesOfDump(fight.dump);
@@ -157,12 +155,11 @@ export function getMessagesOfFight(fight: CapturedFight): string[] {
  * The same reading, of a dump that is not a capture in this directory.
  *
  * One caller and it is the reason this exists rather than a third spelling:
- * `tests/game/engine-attachment.test.ts` writes a recording and reads it back,
- * so it holds two `FightDump`s and no `CapturedFight` at all. It had a local
- * `getMessagesOf` for exactly that, which is a shared reader with a caller
- * outside it — worse than no shared reader, because the next person reads this
- * module and believes it is the only spelling
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F15).
+ * `tests/game/engine-attachment.test.ts` writes a recording and reads it back, so it
+ * holds two `FightDump`s and no `CapturedFight` at all. It had a local `getMessagesOf`
+ * for exactly that, which is a shared reader with a caller outside it — worse than no
+ * shared reader, because the next person reads this module and believes it is the only
+ * spelling.
  */
 export function getMessagesOfDump(dump: FightDump): string[] {
   return dump.calls.flatMap((call) => call.protocolMessages);

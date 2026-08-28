@@ -1,11 +1,10 @@
 /**
  * The counter five files had written out by hand.
  *
- * A test of its own rather than coverage through its callers, which is the
- * lesson `libs/text-order.ts` is still an open finding for: a module written to
- * remove a duplication and then held by nothing would stay green if it returned
- * something else entirely
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F11).
+ * A test of its own rather than coverage through its callers, which is the lesson
+ * `libs/text-order.ts` is still an open finding for: a module written to remove a
+ * duplication and then held by nothing would stay green if it returned something else
+ * entirely.
  */
 
 import { describe, expect, test } from "bun:test";
@@ -155,11 +154,9 @@ describe("a total per inner key", () => {
   });
 
   /**
-   * The whole of what this reader is for: the outer key is summed **away**, so
-   * two combatants who both dealt `dmg` come back as one entry holding both.
-   * Written out at the call site, that is a nested walk somebody eventually
-   * writes as a single level
-   * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F12).
+   * The whole of what this reader is for: the outer key is summed **away**, so two
+   * combatants who both dealt `dmg` come back as one entry holding both. Written out at
+   * the call site, that is a nested walk somebody eventually writes as a single level.
    */
   test("adds an inner key across every outer one", () => {
     const pairs = new Map<number, Map<string, number>>([

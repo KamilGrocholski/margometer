@@ -187,7 +187,7 @@ export type DamageToNamedCombatantEvent = {
  * silent about the giver, it drew `Nieznany sprawca`, *the game does not say who
  * healed*. That is a claim about the game and a false one (§3). §9.6's third
  * clause is what the choice actually was
- * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`); the fill happens
+ * (`docs/specs/the-ends-a-figure-names.md`); the fill happens
  * in `fight-statistics.ts`, off `SELF_SOURCED_HEALING_KEYS`, so this event keeps
  * stating only what the message did.
  *

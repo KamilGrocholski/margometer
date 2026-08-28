@@ -474,7 +474,7 @@ describe("what is read out of a payload", () => {
   });
 
   /**
-   * The three that `bun tools/mutation-sweep.ts` found nothing holding, all of
+   * The three that a mutation sweep found nothing holding, all of
    * them a count that is present and says **nothing was lost**.
    *
    * Zero is the awkward number here: it is a real answer from the companion list
@@ -557,11 +557,10 @@ describe("the captured payloads, read as the wrap reads them", () => {
 
   test("and gives back exactly the messages the capture recorded", () => {
     const wrong = READINGS.filter(
-      // The escape and not the byte. Written literally, a NUL makes this whole
-      // file binary to `file` and to `grep -r`, which skip it in silence — 572
-      // lines of the promises this add-on makes to the game, invisible to every
-      // search over the tree
-      // (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F1).
+      // The escape and not the byte. Written literally, a NUL makes this whole file
+      // binary to `file` and to `grep -r`, which skip it in silence — 572 lines of the
+      // promises this add-on makes to the game, invisible to every search over the
+      // tree.
       ({ stated, reading }) =>
         reading.messages.join("\u0000") !== stated.join("\u0000"),
     ).map(({ fight, call }) => `${fight} call ${call}`);

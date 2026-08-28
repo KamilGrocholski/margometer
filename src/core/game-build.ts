@@ -2,17 +2,15 @@
  * What a game build id looks like, and the two places the client states one.
  *
  * The add-on stamps it onto a recording so the material can be dated (§7.6), and
- * `tools/game-client-source.ts` reads it off a world page to decide whether the
- * cached bundle is the one players are running. **Those two numbers only mean
- * the same thing if they are read the same way**, and until this file existed
- * they were two copies of one pattern on opposite sides of §9.1's boundary —
- * with a comment in the entry point naming the other copy and leaving the
- * agreement to a sentence (`docs/audits/2026-08-14-the-whole-tree-read-again.md`,
- * F18).
+ * `tools/game-client-source.ts` reads it off a world page to decide whether the cached
+ * bundle is the one players are running. **Those two numbers only mean the same thing
+ * if they are read the same way**, and until this file existed they were two copies of
+ * one pattern on opposite sides of §9.1's boundary — with a comment in the entry point
+ * naming the other copy and leaving the agreement to a sentence.
  *
- * In `core` because it is the only layer both an add-on file and a tool may
- * read, and because it qualifies: a contract with the client's own naming,
- * expressed as pure text, needing no DOM, no engine and no panel.
+ * In `core` because it is the only layer both an add-on file and a tool may read, and
+ * because it qualifies: a contract with the client's own naming, expressed as pure
+ * text, needing no DOM, no engine and no panel.
  */
 
 import {

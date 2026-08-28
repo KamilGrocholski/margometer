@@ -42,7 +42,7 @@ const SOURCE_FILES = [...SOURCE_DIRECTORIES.flatMap(getTypeScriptFiles), "build.
  * the trap permanent — the rules would be unexplainable in the files they bind.
  *
  * The patterns themselves moved to `libs/source-regions.ts` when
- * `tools/mutation-sweep.ts` became their second consumer (§7.1): it wants the
+ * a mutation sweep became their second consumer (§7.1): it wanted the
  * spans rather than the stripped text, and two spellings of "where the comments
  * are" is exactly the drift §7.5 keeps paying for.
  */
@@ -235,37 +235,34 @@ describe("layers", () => {
   );
 
   /**
-   * §9.1 as an **allowlist**, which is how the rule is written and was not how it
-   * was held.
+   * §9.1 as an **allowlist**, which is how the rule is written and was not how it was
+   * held.
    *
-   * The three clauses read "imports from nothing but itself and `libs`", and the
-   * guards read "does not import these two siblings" — so `src/core/**` importing
-   * `@/tools/…`, `@/tests/…` or `@/build.ts` landed green, and the same for `ui`
-   * and `game`. `libs/` was the only layer guarded in the general form, which is
-   * why it was the only one where the rule and the guard said the same thing
-   * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F12).
+   * The three clauses read "imports from nothing but itself and `libs`", and the guards
+   * read "does not import these two siblings" — so `src/core/**` importing `@/tools/…`,
+   * `@/tests/…` or `@/build.ts` landed green, and the same for `ui` and `game`. `libs/`
+   * was the only layer guarded in the general form, which is why it was the only one
+   * where the rule and the guard said the same thing.
    *
-   * No violation existed when this was rewritten. The finding is the asymmetry,
-   * and it is the shape §9.1 was already amended for once: an undrawn edge is one
-   * nobody can be held to.
+   * No violation existed when this was rewritten. The finding is the asymmetry, and it
+   * is the shape §9.1 was already amended for once: an undrawn edge is one nobody can
+   * be held to.
    *
-   * ⚠️ **Two of the directions were paid for, and a denylist is what let both
-   * happen.** `panel-view.ts` took a type from `src/game/battle-session.ts` and
-   * nothing failed, because a type import compiles away — the panel could no
-   * longer be read or tested without the engine module in the graph. And
-   * `game → the entry point` sat unforbidden while `ui → game` was forbidden,
-   * leaving the same cycle open on the other side
-   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F10).
+   * ⚠️ **Two of the directions were paid for, and a denylist is what let both happen.**
+   * `panel-view.ts` took a type from `src/game/battle-session.ts` and nothing failed,
+   * because a type import compiles away — the panel could no longer be read or tested
+   * without the engine module in the graph. And `game → the entry point` sat
+   * unforbidden while `ui → game` was forbidden, leaving the same cycle open on the
+   * other side.
    *
    * `src/userscript-version.ts` is on every list: §9.1 names it readable from any
    * layer, because it is a build-time constant that knows no layer at all.
    *
-   * `src/cost-phases.ts` is on `src/ui/`'s for the same reason and no wider one:
-   * §2 puts the files at the root of `src/` in `[any]` because they know no layer,
-   * and this one is the vocabulary of the cost table — the phase names and, since
-   * the sixth audit, the column headings the overlay and the terminal report both
-   * print (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`,
-   * F5). A development overlay that spelled them itself is what that finding was.
+   * `src/cost-phases.ts` is on `src/ui/`'s for the same reason and no wider one: §2
+   * puts the files at the root of `src/` in `[any]` because they know no layer, and
+   * this one is the vocabulary of the cost table — the phase names and, since the sixth
+   * audit, the column headings the overlay and the terminal report both print. A
+   * development overlay that spelled them itself is what that finding was.
    */
   const VERSION = "@/src/userscript-version.ts";
   const COST_PHASES = "@/src/cost-phases.ts";
@@ -300,20 +297,18 @@ describe("layers", () => {
   /**
    * §9.1's last direction, and the only one that had no guard at all.
    *
-   * ⚠️ **The rule it holds was false the day it was written.** It first read
-   * "nothing in `tests/` reads a tool for its material", added to close an audit
-   * finding about an undrawn edge — while `tests/captured-fight-catalog.ts` had
-   * been reading `tools/fight-dump-parser.ts` for exactly that all along. Nothing
-   * went red, because this side of the graph was the one side no test looked at
-   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F9).
+   * ⚠️ **The rule it holds was false the day it was written.** It first read "nothing
+   * in `tests/` reads a tool for its material", added to close an audit finding about
+   * an undrawn edge — while `tests/captured-fight-catalog.ts` had been reading
+   * `tools/fight-dump-parser.ts` for exactly that all along. Nothing went red, because
+   * this side of the graph was the one side no test looked at.
    *
-   * What the rule now says is what the tree does, and the split is subject
-   * against answer. `tests/tools/` is where the tools are tested, so it names
-   * whichever one it is about. Everywhere else, two files are readable and no
-   * others: the reader of the captured material, so that the live path and the
-   * offline path cannot disagree about what a capture says, and the tool error
-   * base, which is named as a subject when the two hierarchies are proved
-   * disjoint.
+   * What the rule now says is what the tree does, and the split is subject against
+   * answer. `tests/tools/` is where the tools are tested, so it names whichever one it
+   * is about. Everywhere else, two files are readable and no others: the reader of the
+   * captured material, so that the live path and the offline path cannot disagree about
+   * what a capture says, and the tool error base, which is named as a subject when the
+   * two hierarchies are proved disjoint.
    */
   const TOOLS_PREFIX = "@/tools/";
 
@@ -339,17 +334,16 @@ describe("layers", () => {
   });
 
   /**
-   * ⚠️ **The other half of the same clause, which stopped at this directory's
-   * door.** §9.1 says `tests/tools/` "names whichever tool it is about", and the
-   * check above excludes the directory outright — so inside it any test could read
-   * any tool, and one did: `tracked-text.test.ts` reads `panel-screenshots.ts`,
-   * which is neither its subject nor the reader of the material
-   * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F8).
+   * ⚠️ **The other half of the same clause, which stopped at this directory's door.**
+   * §9.1 says `tests/tools/` "names whichever tool it is about", and the check above
+   * excludes the directory outright — so inside it any test could read any tool, and
+   * one did: `tracked-text.test.ts` reads `panel-screenshots.ts`, which is neither its
+   * subject nor the reader of the material.
    *
-   * The import is the right call on §9.3's terms — the image names would otherwise
-   * be spelled twice — so what moved is the rule, and this is where the rule now
-   * has to be earned. An exception is listed **with its reason**, because a list
-   * of pairs with no reasons is a list nobody can refuse an addition to.
+   * The import is the right call on §9.3's terms — the image names would otherwise be
+   * spelled twice — so what moved is the rule, and this is where the rule now has to be
+   * earned. An exception is listed **with its reason**, because a list of pairs with no
+   * reasons is a list nobody can refuse an addition to.
    */
   const TOOLS_A_TOOL_TEST_MAY_ALSO_READ: Record<string, readonly string[]> = {
     // The page is the subject; the two servers only carry it.
@@ -963,23 +957,20 @@ describe("value parsing", () => {
     // that `libs/` did not own, under the contrast arithmetic §9.7 makes a floor.
     { find: getWritesInAnotherBase, owner: NUMBER },
     /**
-     * Not a value reader, and the register holds it for the other reason §7.1
-     * gives: the second consumer arrived long ago and kept arriving. The same
-     * three tokens were written out twice in `src/core/fight-statistics.ts`,
-     * once in `src/ui/panel-view.ts`, once in `src/game/battle-session.ts` and
-     * twice in `tools/decoding-status.ts` — five copies over four files and
-     * three layers, and five is where one of them eventually gets written
-     * differently
-     * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F16).
+     * Not a value reader, and the register holds it for the other reason §7.1 gives:
+     * the second consumer arrived long ago and kept arriving. The same three tokens
+     * were written out twice in `src/core/fight-statistics.ts`, once in
+     * `src/ui/panel-view.ts`, once in `src/game/battle-session.ts` and twice in
+     * `tools/decoding-status.ts` — five copies over four files and three layers, and
+     * five is where one of them eventually gets written differently.
      *
-     * ⚠️ **The map is matched as an expression, not as a name, and that is what
-     * the pattern was missing.** It read `\w+\.get`, which is a map called by a
-     * bare identifier — so `skill.dealtByTargetId.set(id, (skill.dealtByTargetId
-     * .get(id) ?? 0) + landed)` went unseen, and two of the five copies this row
-     * was written for were still in `src/core/fight-statistics.ts` two audits
-     * later (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F5). A map
-     * reached through a field is the common case in this repository, where every
-     * total hangs off a row.
+     * ⚠️ **The map is matched as an expression, not as a name, and that is what the
+     * pattern was missing.** It read `\w+\.get`, which is a map called by a bare
+     * identifier — so `skill.dealtByTargetId.set(id, (skill.dealtByTargetId.get(id) ??
+     * 0) + landed)` went unseen, and two of the five copies this row was written for
+     * were still in `src/core/fight-statistics.ts` two audits later. A map reached
+     * through a field is the common case in this repository, where every total hangs
+     * off a row.
      */
     { find: getRunningTotals, owner: RUNNING_TOTAL },
     /**
@@ -1054,13 +1045,12 @@ describe("value parsing", () => {
   ];
 
   /**
-   * ⚠️ **Both lists, and `libs/record.ts` is why.** This iterated
-   * `OWNED_CONSTRUCTS` alone, which has no row for the record narrowing — that
-   * construct lives in `UNNAMED_COERCIONS` below. So the one owner this test was
-   * written for could have stopped doing its `null` check and every file here,
-   * `record.ts` included, would still have passed: the guard agreeing with the
-   * bug it exists to prevent, in the shape §7.5 keeps paying for
-   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F12).
+   * ⚠️ **Both lists, and `libs/record.ts` is why.** This iterated `OWNED_CONSTRUCTS`
+   * alone, which has no row for the record narrowing — that construct lives in
+   * `UNNAMED_COERCIONS` below. So the one owner this test was written for could have
+   * stopped doing its `null` check and every file here, `record.ts` included, would
+   * still have passed: the guard agreeing with the bug it exists to prevent, in the
+   * shape §7.5 keeps paying for.
    */
   const EVERY_OWNED_CONSTRUCT = [...OWNED_CONSTRUCTS, ...UNNAMED_COERCIONS];
 
@@ -1078,22 +1068,21 @@ describe("value parsing", () => {
   /**
    * The one construct with no owner, and it is deliberate.
    *
-   * `localeCompare` reads the **runtime's** locale where none is passed, so the
-   * order it gives belongs to the machine that ran the program rather than to
-   * the data — two tools sorted their output that way
-   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F21). It was held by
-   * an owner, `libs/text-order.ts`, whose collated reader had exactly one
-   * caller: the panel's tie-break between two combatants on equal figures. That
-   * is the fight's own roster order now, so the reader went with its caller.
+   * `localeCompare` reads the **runtime's** locale where none is passed, so the order
+   * it gives belongs to the machine that ran the program rather than to the data — two
+   * tools sorted their output that way. It was held by an owner, `libs/text-order.ts`,
+   * whose collated reader had exactly one caller: the panel's tie-break between two
+   * combatants on equal figures. That is the fight's own roster order now, so the
+   * reader went with its caller.
    *
-   * ⚠️ **An owner that owns nothing stops guarding.** The test above proves an
-   * owner by finding its construct in it, so a `libs/` function kept alive only
-   * to satisfy a register would be a call nobody makes standing in for a rule.
-   * Spelled-nowhere is the honest form of the same rule and a stricter one — it
-   * binds `libs/` too, which "owned by `libs/text-order.ts`" never did.
+   * ⚠️ **An owner that owns nothing stops guarding.** The test above proves an owner by
+   * finding its construct in it, so a `libs/` function kept alive only to satisfy a
+   * register would be a call nobody makes standing in for a rule. Spelled-nowhere is
+   * the honest form of the same rule and a stricter one — it binds `libs/` too, which
+   * "owned by `libs/text-order.ts`" never did.
    *
-   * Bringing a collated order back means a caller, a reader in `libs/` and this
-   * row moving back into `OWNED_CONSTRUCTS`, in that order.
+   * Bringing a collated order back means a caller, a reader in `libs/` and this row
+   * moving back into `OWNED_CONSTRUCTS`, in that order.
    */
   test.each(SOURCE_FILES)("%s leaves the order to the data, not to the machine", (file) => {
     const source = getSourceWithoutComments(file);
@@ -1289,29 +1278,26 @@ describe("function names", () => {
 /**
  * AGENTS.md §9.4's other half: **a boolean carries a prefix.**
  *
- * The guard above reads the action verb on a declaration and nothing else, so
- * the rule bound functions and left every flag and every `boolean` field
- * unwatched. The names outside the vocabulary when this was written sat in six
- * files, and a whole family of them — `said`, `refusalSaid`, `dragFailureSaid`,
- * `captureFailureSaid`, `engineGapsSaid` — spelled one idea, *this has been
- * reported once already*, in a word §9.4 does not offer
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F21). The worst
- * of them was `read`, a verb, a noun and a past participle at once, in the file
- * whose subject is reading.
+ * The guard above reads the action verb on a declaration and nothing else, so the rule
+ * bound functions and left every flag and every `boolean` field unwatched. The names
+ * outside the vocabulary when this was written sat in six files, and a whole family of
+ * them — `said`, `refusalSaid`, `dragFailureSaid`, `captureFailureSaid`,
+ * `engineGapsSaid` — spelled one idea, *this has been reported once already*, in a word
+ * §9.4 does not offer. The worst of them was `read`, a verb, a noun and a past
+ * participle at once, in the file whose subject is reading.
  *
- * The full row here, `min`/`max`/`prev`/`next` included, because that is how the
- * rule is written — the function guard's shorter list is a subset for a different
- * reason: those four are not actions and cannot name a call.
+ * The full row here, `min`/`max`/`prev`/`next` included, because that is how the rule
+ * is written — the function guard's shorter list is a subset for a different reason:
+ * those four are not actions and cannot name a call.
  *
- * ⚠️ **Two shapes, and the third was measured and dropped.** A `boolean` in a
- * type and a `let x = false` both name a boolean and nothing else. A property
- * assigned a literal — `{ collapsed: false }` — does not: on the tree as it
- * stands that pattern matched a key whose *value* is the boolean and whose name
- * is a metric (`{ dealt: false, taken: true }`), an option bag belonging to
- * somebody else (`{ recursive: true }` is Node's word, not ours), the captured
- * material's own Polish field names, which §9.2 keeps as they are, and the
- * identifier on the left of a ternary's colon (`condition ? name : true`). Every
- * name it added was one of those, so it was left out rather than exempted
+ * ⚠️ **Two shapes, and the third was measured and dropped.** A `boolean` in a type and
+ * a `let x = false` both name a boolean and nothing else. A property assigned a literal
+ * — `{ collapsed: false }` — does not: on the tree as it stands that pattern matched a
+ * key whose *value* is the boolean and whose name is a metric (`{ dealt: false, taken:
+ * true }`), an option bag belonging to somebody else (`{ recursive: true }` is Node's
+ * word, not ours), the captured material's own Polish field names, which §9.2 keeps as
+ * they are, and the identifier on the left of a ternary's colon (`condition ? name :
+ * true`). Every name it added was one of those, so it was left out rather than exempted
  * case by case — a guard whose exception list is longer than its findings is one
  * somebody turns off.
  */
@@ -1333,19 +1319,17 @@ describe("boolean names", () => {
 /**
  * AGENTS.md §9.7's first line: **a raw hex in a rule is a bug.**
  *
- * It was prose only, and `src/ui/panel-look.ts` broke it in the docblock
- * that states it — pure black in a hatch mask and a shadow colour, neither a
- * token, beside a sentence reading "everything it draws with is a token"
- * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F25). The contrast half
- * of §9.7 has been measured since the first UI file landed; this is the half
- * nothing was watching.
+ * It was prose only, and `src/ui/panel-look.ts` broke it in the docblock that states it
+ * — pure black in a hatch mask and a shadow colour, neither a token, beside a sentence
+ * reading "everything it draws with is a token". The contrast half of §9.7 has been
+ * measured since the first UI file landed; this is the half nothing was watching.
  *
- * ⚠️ **Colours only, and that is a boundary rather than an oversight.** §9.7
- * names spacing and radii too, and those are named where two rules share one —
- * but a font size, a badge's width and a hatch's pitch are one rule each, and a
- * guard demanding a token per number would be a guard demanding a token nobody
- * reads twice. A colour has no such case: it either belongs to the palette that
- * was validated for contrast, or it is a value nobody checked.
+ * ⚠️ **Colours only, and that is a boundary rather than an oversight.** §9.7 names
+ * spacing and radii too, and those are named where two rules share one — but a font
+ * size, a badge's width and a hatch's pitch are one rule each, and a guard demanding a
+ * token per number would be a guard demanding a token nobody reads twice. A colour has
+ * no such case: it either belongs to the palette that was validated for contrast, or it
+ * is a value nobody checked.
  */
 describe("the colours", () => {
   /** Where a colour is decided, and the only place one may be written down. */
@@ -1376,18 +1360,16 @@ describe("the colours", () => {
 /**
  * Where a file's argument for itself sits.
  *
- * ⚠️ **A third of the tree put it under the imports**, and in the largest files
- * under fifty lines of them — so the first thing a reader met, in a repository
- * whose whole discipline is that a file says what it is before it does anything,
- * was a list of names
- * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F8).
- * Nothing decided it: the convention that won in a file was whichever the last
+ * ⚠️ **A third of the tree put it under the imports**, and in the largest files under
+ * fifty lines of them — so the first thing a reader met, in a repository whose whole
+ * discipline is that a file says what it is before it does anything, was a list of
+ * names. Nothing decided it: the convention that won in a file was whichever the last
  * round used.
  *
  * The rule is the narrow one that can be held: **where a docblock has nothing but
  * imports above it, it is the module's, and it goes first.** A file whose first
- * docblock sits under a declaration is documenting that declaration and is none
- * of this test's business.
+ * docblock sits under a declaration is documenting that declaration and is none of this
+ * test's business.
  */
 describe("a file says what it is before it does anything", () => {
   function getPrefixBeforeFirstDocblock(file: string): string | null {
@@ -1429,21 +1411,19 @@ describe("a file says what it is before it does anything", () => {
 });
 
 /**
- * A docblock describes the declaration under it, and nothing else can be under
- * it.
+ * A docblock describes the declaration under it, and nothing else can be under it.
  *
  * ⚠️ **Two `/** *\/` blocks back to back is an orphan**, and the first one is the
  * orphan: whatever it describes, the reader will attach it to the declaration the
- * second block already claims. Five of them were found in shipped source by one
- * audit; the commit that closed a *different* finding of the next audit created
- * another, in `tests/captured-fight-catalog.ts`, where a full docblock for
- * `CAPTURED_FIGHTS` sat above `getMessagesOfFight`'s own and the constant it
- * described was declared 25 lines later
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F6).
+ * second block already claims. Five of them were found in shipped source by one audit;
+ * the commit that closed a *different* finding of the next audit created another, in
+ * `tests/captured-fight-catalog.ts`, where a full docblock for `CAPTURED_FIGHTS` sat
+ * above `getMessagesOfFight`'s own and the constant it described was declared 25 lines
+ * later.
  *
- * That is why this is a guard and not a third careful reading: the last round
- * proved by example that reading is not enough, and this is the one shape of the
- * fault a machine can see without knowing what any of the prose means.
+ * That is why this is a guard and not a third careful reading: the last round proved by
+ * example that reading is not enough, and this is the one shape of the fault a machine
+ * can see without knowing what any of the prose means.
  */
 describe("a docblock and the declaration under it", () => {
   /**
@@ -1490,69 +1470,63 @@ describe("a docblock and the declaration under it", () => {
 /**
  * AGENTS.md §3. Which files speak Polish, and it is a short list on purpose.
  *
- * §3 admits exactly one kind of exception in shipped code — **the text a player
- * reads** — and everything around it stays English. That was prose until
- * `docs/audits/2026-08-13-the-whole-tree-read-once.md` (F10) checked it: §8's
- * structure block claimed two files carried Polish strings and four did, because
- * nothing re-measured the sentence beside a filename.
+ * §3 admits exactly one kind of exception in shipped code — **the text a player reads**
+ * — and everything around it stays English. That was prose until
+ * An audit (F10) checked it: §8's structure
+ * block claimed two files carried Polish strings and four did, because nothing
+ * re-measured the sentence beside a filename.
  *
- * ⚠️ **Frozen as a list rather than a rule, and the list is the point.** No
- * pattern can tell a label a player reads from a Polish identifier that slipped
- * in, so what a machine can hold is *which files are allowed to*. A further one
- * appearing is a decision somebody should have to make on purpose.
+ * ⚠️ **Frozen as a list rather than a rule, and the list is the point.** No pattern can
+ * tell a label a player reads from a Polish identifier that slipped in, so what a
+ * machine can hold is *which files are allowed to*. A further one appearing is a
+ * decision somebody should have to make on purpose.
  *
  * ⚠️ **Paid for again: a Polish phrase can carry no diacritic.**
  * `src/userscript-version.ts` has shipped `"z drzewa"` to the title bar since the
- * version was substituted at build time, and this guard could not see it — the
- * detector below looks for a letter that phrase does not contain. So the count
- * was wrong in four documents while the guard that exists to re-measure it stayed
- * green (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F4). An entry may
- * now carry the phrase that makes it Polish, and where it does, the phrase is
- * what gets re-measured instead of the letter.
+ * version was substituted at build time, and this guard could not see it — the detector
+ * below looks for a letter that phrase does not contain. So the count was wrong in four
+ * documents while the guard that exists to re-measure it stayed green. An entry may now
+ * carry the phrase that makes it Polish, and where it does, the phrase is what gets
+ * re-measured instead of the letter.
  */
 describe("the language of the strings", () => {
   const POLISH_LETTERS = "ąćęłńóśźżĄĆĘŁŃÓŚŹŻ";
 
   /**
-   * `panel-view.ts` and `panel-element.ts` are the panel's own words — its rows,
-   * its tooltips, its region names. `panel-words.ts` is what the add-on calls a
-   * thing the running client has no name for: a phrase of ours, written by us,
-   * never a quotation of the game's (`NOTICE.md`). `userscript-version.ts` says
-   * what a build nobody made is called, in the title bar beside the number.
+   * `panel-view.ts` and `panel-element.ts` are the panel's own words — its rows, its
+   * tooltips, its region names. `panel-words.ts` is what the add-on calls a thing the
+   * running client has no name for: a phrase of ours, written by us, never a quotation
+   * of the game's (`NOTICE.md`). `userscript-version.ts` says what a build nobody made
+   * is called, in the title bar beside the number.
    *
-   * `src/userscript-entry.ts` was one of these until F11 of the first audit turned
-   * the copied report's keys into the aggregate's own names, and
-   * `src/game/game-dictionary.ts` is deliberately absent — its Polish is a
-   * quotation inside a comment, which the stripper above removes and which no
-   * player ever reads.
+   * `src/userscript-entry.ts` was one of these until F11 of the first audit turned the
+   * copied report's keys into the aggregate's own names, and
+   * `src/game/game-dictionary.ts` is deliberately absent — its Polish is a quotation
+   * inside a comment, which the stripper above removes and which no player ever reads.
    *
-   * ⚠️ **`tools/changelog.ts` is the fifth, and it was invisible for the same
-   * reason F4 of the last audit found a fourth.** The walk below read `src/` and
-   * `libs/` only, so six lines of Polish a player reads on every release sat
-   * outside it — and two sentences in §8 stayed true on a technicality nobody had
-   * written down, one calling `CHANGELOG.md` the only *document* here in Polish
-   * and one calling the panel trio plus the version file the files that *ship*
-   * Polish. This file is neither a document nor shipped in the userscript, and
-   * "neither" is not a reason to be unwatched
-   * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F4).
+   * ⚠️ **`tools/changelog.ts` is the fifth, and it was invisible for the same reason F4
+   * of the last audit found a fourth.** The walk below read `src/` and `libs/` only, so
+   * six lines of Polish a player reads on every release sat outside it — and two
+   * sentences in §8 stayed true on a technicality nobody had written down, one calling
+   * `CHANGELOG.md` the only *document* here in Polish and one calling the panel trio
+   * plus the version file the files that *ship* Polish. This file is neither a document
+   * nor shipped in the userscript, and "neither" is not a reason to be unwatched.
    */
   const SPEAKS_POLISH: Array<{ file: string; phrase?: string }> = [
     { file: "src/ui/panel-element.ts" },
     { file: "src/ui/panel-words.ts" },
     { file: "src/ui/panel-view.ts" },
     /**
-     * These arrived when `panel-view.ts` was split along its seams
-     * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26) and are
-     * fewer than they were, because the split is being undone where it produced a
-     * file rather than a subject. Nothing new is said either way: the labels of
-     * the control strips, the sentences about a figure with no actor and the
-     * headings of a breakdown are the same words, in the file that owns the
-     * decision they belong to.
+     * These arrived when `panel-view.ts` was split along its seams and are fewer than
+     * they were, because the split is being undone where it produced a file rather than
+     * a subject. Nothing new is said either way: the labels of the control strips, the
+     * sentences about a figure with no actor and the headings of a breakdown are the
+     * same words, in the file that owns the decision they belong to.
      *
      * ⚠️ **Still listed one by one rather than admitted as `src/ui/*`.** A
-     * consolidation makes the count fall, and a list that only ever grows is one
-     * nobody rereads — the reason to enumerate is that **any** movement in the
-     * count is a thing to look at, in either direction.
+     * consolidation makes the count fall, and a list that only ever grows is one nobody
+     * rereads — the reason to enumerate is that **any** movement in the count is a
+     * thing to look at, in either direction.
      */
     { file: "src/ui/panel-screen.ts" },
     /**
@@ -1633,34 +1607,33 @@ describe("the language of the strings", () => {
   });
 
   /**
-   * §5's other half, and the one nothing here could see: the game's own
-   * **sentences**, quoted rather than shipped.
+   * §5's other half, and the one nothing here could see: the game's own **sentences**,
+   * quoted rather than shipped.
    *
-   * Three of them were written out verbatim in four files — twice in a docblock
-   * arguing why a sentence with its figure cut out is not a label, once above
-   * `DEFENCE_NAMES`, and four times as test data, one a whole sentence with its
-   * full stop. A fifth site in `docs/specs/` carried two of them again and no
-   * audit had found it. `NOTICE.md` promises a reader the game's prose is absent
-   * here in any form, which is checkable in thirty seconds with `grep`
-   * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F1).
+   * Three of them were written out verbatim in four files — twice in a docblock arguing
+   * why a sentence with its figure cut out is not a label, once above `DEFENCE_NAMES`,
+   * and four times as test data, one a whole sentence with its full stop. A fifth site
+   * in `docs/specs/` carried two of them again and no audit had found it. `NOTICE.md`
+   * promises a reader the game's prose is absent here in any form, which is checkable
+   * in thirty seconds with `grep`.
    *
-   * The guard above cannot reach any of it. It reads **shipped strings** with
-   * the comments stripped, and every occurrence was a comment or a test.
+   * The guard above cannot reach any of it. It reads **shipped strings** with the
+   * comments stripped, and every occurrence was a comment or a test.
    *
    * **What is recognisable.** A dictionary entry is prose with the client's own
    * template holes in it. Those holes are functional tokens of the same kind as a
-   * protocol key, so quoting one beside the identifier that composes it is a
-   * citation this repository makes everywhere and must keep making. What is a
-   * quotation is a hole with **the game's words around it**, and the detector for
-   * "the game's words" is the one already sitting above this test.
+   * protocol key, so quoting one beside the identifier that composes it is a citation
+   * this repository makes everywhere and must keep making. What is a quotation is a
+   * hole with **the game's words around it**, and the detector for "the game's words"
+   * is the one already sitting above this test.
    *
-   * ⚠️ **It misses an entry whose Polish carries no diacritic**, which is the
-   * same weakness `SPEAKS_POLISH` was amended for and it is not fixable here: two
-   * of the nine spans removed in the round that wrote this had none, and a reader
-   * took them out by hand. It also cannot see a dictionary *name*, which is a
-   * bare word indistinguishable from one of ours. That half stays §5's to enforce;
-   * this holds the half that recurs, because a hole is what makes an entry worth
-   * quoting in an argument about holes.
+   * ⚠️ **It misses an entry whose Polish carries no diacritic**, which is the same
+   * weakness `SPEAKS_POLISH` was amended for and it is not fixable here: two of the
+   * nine spans removed in the round that wrote this had none, and a reader took them
+   * out by hand. It also cannot see a dictionary *name*, which is a bare word
+   * indistinguishable from one of ours. That half stays §5's to enforce; this holds the
+   * half that recurs, because a hole is what makes an entry worth quoting in an
+   * argument about holes.
    */
   // The two fences a quotation carries here, and no single-quoted form on
   // purpose: an apostrophe in prose opens one and swallows the paragraph after
@@ -1706,28 +1679,27 @@ describe("the language of the strings", () => {
   });
 
   /**
-   * And the game's own names for its abilities, which `NOTICE.md` promises
-   * appear nowhere here but the recordings.
+   * And the game's own names for its abilities, which `NOTICE.md` promises appear
+   * nowhere here but the recordings.
    *
-   * That promise was false in five files, and the audit that raised it found two
-   * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F2). One of
-   * the three it missed is the sharpest: `tests/ui/panel-view.test.ts` is driven
-   * by a hand-written fight rather than by the captures **because** the drill
-   * names skills and those are the game's prose — and its hand-written fight
-   * announced one of the game's own abilities.
+   * That promise was false in five files, and the audit that raised it found two. One
+   * of the three it missed is the sharpest: `tests/ui/panel-view.test.ts` is driven by
+   * a hand-written fight rather than by the captures **because** the drill names skills
+   * and those are the game's prose — and its hand-written fight announced one of the
+   * game's own abilities.
    *
-   * ⚠️ **The list comes from the material, never from a hand-written one.** A
-   * denylist somebody types is a denylist that falls behind the next recording,
-   * which is §9.2's rule for the captures pointed at prose: read the directory,
-   * do not name the files. Every value the captures carry under an announcement
-   * key is a name the operator wrote, so the captures are the list — **both**
-   * keys, since `tcustom` names what was used exactly as `tspell` does and a list
-   * that knew only the older spelling would let the newer one's names in.
+   * ⚠️ **The list comes from the material, never from a hand-written one.** A denylist
+   * somebody types is a denylist that falls behind the next recording, which is §9.2's
+   * rule for the captures pointed at prose: read the directory, do not name the files.
+   * Every value the captures carry under an announcement key is a name the operator
+   * wrote, so the captures are the list — **both** keys, since `tcustom` names what was
+   * used exactly as `tspell` does and a list that knew only the older spelling would
+   * let the newer one's names in.
    *
-   * Short names are left out. A name of four letters or fewer is as likely to be
-   * an ordinary Polish word the panel legitimately uses, and the four files
-   * allowed to speak Polish would start failing on their own vocabulary — which
-   * is the false positive that gets a guard turned off.
+   * Short names are left out. A name of four letters or fewer is as likely to be an
+   * ordinary Polish word the panel legitimately uses, and the four files allowed to
+   * speak Polish would start failing on their own vocabulary — which is the false
+   * positive that gets a guard turned off.
    */
   const SHORTEST_ABILITY_NAME = 5;
 

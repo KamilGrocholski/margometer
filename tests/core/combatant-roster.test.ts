@@ -3,8 +3,7 @@
  * prevent", held directly for the first time.
  *
  * It had no test of its own — covered through `fight-decoder.test.ts` and
- * `fight-statistics.test.ts`, which use it and cannot say which half broke
- * (`docs/audits/2026-08-13-the-whole-tree-read-once.md`, F5).
+ * `fight-statistics.test.ts`, which use it and cannot say which half broke.
  */
 
 import { describe, expect, test } from "bun:test";

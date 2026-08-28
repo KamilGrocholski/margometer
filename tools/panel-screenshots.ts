@@ -14,13 +14,13 @@
  * onto a machine.
  *
  * ⚠️ **A spec rejected this once**, and the objection was specific:
- * `docs/specs/2026-08-17-a-panel-you-can-watch-change.md` refused a `--screenshot`
+ * `docs/specs/what-a-release-shows.md` refused a `--screenshot`
  * mode inside `tools/preview-server.ts` because it would hard-wire
  * `/usr/bin/firefox` and a profile's download preferences into a server whose job
  * is to print a URL. Neither is true here — the browser is discovered and refused
  * loudly when absent, this tool downloads nothing, and the server learned one
  * option rather than a second purpose. The rejection stands for what it rejected;
- * `docs/specs/2026-08-18-a-picture-of-the-panel.md` records the difference.
+ * `docs/specs/what-a-release-shows.md` records the difference.
  *
  * ⚠️ **Everything the browser runs is in `SHOT_SCRIPT` below, and the guards read
  * it as source.** `tests/tools/source-layout.test.ts` strips comments and leaves
@@ -97,7 +97,7 @@ export type PanelShot = {
  * one screen a reader cannot guess at from the ranking. Every other picture shows
  * a figure being taken apart, and this one shows that a fight survives the fight
  * after it — which is the whole of what a reader would otherwise have to install
- * the add-on to find out (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`).
+ * the add-on to find out (`docs/specs/a-fight-you-can-go-back-to.md`).
  */
 export const PANEL_SHOTS: PanelShot[] = [
   { name: "taken", width: 292, height: 480 },
@@ -155,7 +155,7 @@ export const SHOT_CLASSES = {
  * ⚠️ **`pointerdown`, never `click`.** The panel moved its tabs and rows off
  * `click` because a payload landing between a press and its release detaches the
  * pressed node and the browser then dispatches no click at all
- * (`docs/specs/2026-08-18-a-gesture-a-redraw-cannot-split.md`). `node.click()`
+ * (`docs/specs/the-panel-that-drills.md`). `node.click()`
  * here fired nothing and cost a full set of screenshots that looked right —
  * three identical pictures of the ranking, one per drill level, and the only sign
  * was that all three files were the same size. The card is the exception and
@@ -356,14 +356,13 @@ export type TakenAt = {
 /**
  * The commit the panel was photographed at.
  *
- * ⚠️ **The version was the only thing recorded and it is not enough.** A set was
- * taken eleven commits past `v0.7.0`, six of them touching the panel, and every
- * guard stayed green because `package.json` still read `0.7.0` — so the pictures
- * in `README.md` showed a pinned row named `Bez sprawcy` for a day after the panel
- * stopped drawing one, and a figure the wound rule had since moved
- * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F1). A version
- * says which release a set belongs to; a commit says which panel is in the frame,
- * and between two releases only the second question has an answer.
+ * ⚠️ **The version was the only thing recorded and it is not enough.** A set was taken
+ * eleven commits past `v0.7.0`, six of them touching the panel, and every guard stayed
+ * green because `package.json` still read `0.7.0` — so the pictures in `README.md`
+ * showed a pinned row named `Bez sprawcy` for a day after the panel stopped drawing
+ * one, and a figure the wound rule had since moved. A version says which release a set
+ * belongs to; a commit says which panel is in the frame, and between two releases only
+ * the second question has an answer.
  */
 function getPanelCommit(): string {
   const head = spawnSync("git", ["rev-parse", "--short", "HEAD"], {

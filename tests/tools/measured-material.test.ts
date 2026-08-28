@@ -1,43 +1,39 @@
 /**
- * §3's rule that a measurement over the captured fights names the material it was
- * taken on, re-earned over every comment this repository writes.
+ * §3's rule that a measurement over the captured fights names the material it was taken
+ * on, re-earned over every comment this repository writes.
  *
- * **The fault it exists for, spelled three times a commit apart.** `1 794 of
- * 1 794 captured entries`, `20 of 400 engine calls`, `22 of 26 comparisons` —
- * every one of them exactly right when typed, every one silently wrong the next
- * time a recording arrived, and nothing anywhere went red. The third audit filed
- * nine of them and declined to correct them a fourth time, because correcting
- * them was never the missing part: it had already been done twice, and the
- * replacement sentence written to close the second audit's finding was
- * invalidated by the very next commit
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F3).
+ * **The fault it exists for, spelled three times a commit apart.** `1 794 of 1 794
+ * captured entries`, `20 of 400 engine calls`, `22 of 26 comparisons` — every one of
+ * them exactly right when typed, every one silently wrong the next time a recording
+ * arrived, and nothing anywhere went red. The third audit filed nine of them and
+ * declined to correct them a fourth time, because correcting them was never the missing
+ * part: it had already been done twice, and the replacement sentence written to close
+ * the second audit's finding was invalidated by the very next commit.
  *
- * A recording never changes — it is evidence (§9.2) — so a figure scoped to one
- * by name is true for good, and a figure scoped to *the captures* has a date on
- * it that nobody wrote down. That is the same fix §7.6 applies to a quotation
- * from the client and §7.7 to a finding about the tree: give the claim its
- * referent.
+ * A recording never changes — it is evidence (§9.2) — so a figure scoped to one by name
+ * is true for good, and a figure scoped to *the captures* has a date on it that nobody
+ * wrote down. That is the same fix §7.6 applies to a quotation from the client: give
+ * the claim its referent.
  *
- * ⚠️ **This is a pattern, and it is deliberately the narrow one.** It catches a
- * count written in digits and misses one written in words — "Two occurrences in
- * the whole material" was false for rounds and this would not have flagged it.
- * The wide version was built and thrown away: admitting `two`…`twenty` took the
- * sweep from 5 sentences to 38, of which 2 were real. A guard that is wrong nine
- * times out of ten is one somebody turns off, which is the argument
- * `tracked-text.test.ts` makes for leaving evidence out of its own sweep.
- * Narrow and quiet beats wide and ignored; the words are what §3 is for.
+ * ⚠️ **This is a pattern, and it is deliberately the narrow one.** It catches a count
+ * written in digits and misses one written in words — "Two occurrences in the whole
+ * material" was false for rounds and this would not have flagged it. The wide version
+ * was built and thrown away: admitting `two`…`twenty` took the sweep from 5 sentences
+ * to 38, of which 2 were real. A guard that is wrong nine times out of ten is one
+ * somebody turns off, which is the argument `tracked-text.test.ts` makes for leaving
+ * evidence out of its own sweep. Narrow and quiet beats wide and ignored; the words are
+ * what §3 is for.
  *
- * The remedy for a false positive is the same as for a true one — name the
- * recording — so being flagged wrongly costs a citation the sentence is better
- * for having. It cost exactly that twice on this file's own prose, one sentence
- * quoting the bad examples without backticks and one counting something else
- * beside the word `captures`.
+ * The remedy for a false positive is the same as for a true one — name the recording —
+ * so being flagged wrongly costs a citation the sentence is better for having. It cost
+ * exactly that twice on this file's own prose, one sentence quoting the bad examples
+ * without backticks and one counting something else beside the word `captures`.
  *
- * ⚠️ **It reads itself only once it is tracked.** The walk is `git ls-files`, so
- * for the whole of the commit that introduced it this file was invisible to it —
- * which is why those two sentences went in green and came out red one commit
- * later. A guard that cannot see its own prose is one that has never been run
- * against the hardest text in the repository to get right, which is its own.
+ * ⚠️ **It reads itself only once it is tracked.** The walk is `git ls-files`, so for
+ * the whole of the commit that introduced it this file was invisible to it — which is
+ * why those two sentences went in green and came out red one commit later. A guard that
+ * cannot see its own prose is one that has never been run against the hardest text in
+ * the repository to get right, which is its own.
  */
 
 import { execFileSync } from "node:child_process";
@@ -188,24 +184,22 @@ const DOCUMENTS = ["AGENTS.md", "README.md", "README.en.md", "NOTICE.md"];
 /**
  * ⚠️ **The registers were outside this walk, and they are what it is for.**
  * `docs/protocol-keys.md` is two thousand lines of measurements over the captured
- * fights and was the one file in the repository this guard could not see — so
- * thirty of its entries came to state a count in prose that its own machine-re-earned
- * `*Shape:*` line contradicted, one of them inside a paragraph warning that a count
- * in prose goes stale silently
- * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F3).
+ * fights and was the one file in the repository this guard could not see — so thirty of
+ * its entries came to state a count in prose that its own machine-re-earned `*Shape:*`
+ * line contradicted, one of them inside a paragraph warning that a count in prose goes
+ * stale silently.
  *
- * Named by the directory rather than one by one: every guarded register sits
- * directly under `docs/`, and the two kinds of document that must **not** be swept
- * — specs and audits — sit in subdirectories of it. That is not a coincidence to
- * lean on quietly, it is §8's own arrangement, and it is why this is a
- * non-recursive listing rather than a list of four names somebody has to remember
- * to extend.
+ * Named by the directory rather than one by one: every guarded register sits directly
+ * under `docs/`, and the two kinds of document that must **not** be swept — specs and
+ * audits — sit in subdirectories of it. That is not a coincidence to lean on quietly,
+ * it is §8's own arrangement, and it is why this is a non-recursive listing rather than
+ * a list of four names somebody has to remember to extend.
  *
  * A spec and an audit are **dated records**: a spec's filename carries the day the
- * decision was taken and an audit states the commit it read, so a figure inside
- * one is true of the tree it names and stays true. A register makes claims about
- * the material as it stands now, which is exactly the claim that rots. Both prior
- * audits ruled the same way on the same sentences.
+ * decision was taken and an audit states the commit it read, so a figure inside one is
+ * true of the tree it names and stays true. A register makes claims about the material
+ * as it stands now, which is exactly the claim that rots. Both prior audits ruled the
+ * same way on the same sentences.
  */
 function getTrackedRegisters(): string[] {
   return execFileSync("git", ["ls-files", "--", ":(glob)docs/*.md"], {

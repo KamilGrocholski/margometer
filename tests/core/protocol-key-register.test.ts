@@ -615,7 +615,7 @@ describe("who a health figure is charged to", () => {
    * Every gate re-earns that neither `poison` nor `fire` has one: the day the game
    * ships `+poison`, §9.6's fourth clause has a second candidate and this entry
    * would otherwise go on saying nothing announces it
-   * (`docs/specs/2026-08-19-what-lets-a-tick-name-its-source.md`).
+   * (`docs/specs/the-ends-a-figure-names.md`).
    *
    * ⚠️ **`wound` is why this asks for a figure and not merely for a name.** It read
    * `toEqual([])` while every tick in the corpus was announced by nothing, and

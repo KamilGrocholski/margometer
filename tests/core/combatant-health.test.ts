@@ -278,17 +278,16 @@ describe("the health the protocol restates", () => {
   });
 
   /**
-   * ⚠️ **The test above asserts the wrong thing and was the only one here.** It
-   * reads the event list for an unknown message, which the clamp has nothing to do
-   * with, so removing the clamp guard entirely left it green — found by
-   * `bun tools/mutation-sweep.ts src/core/combatant-health.ts`
-   * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F2). What the
-   * guard is for is the **running total**, so that is what this reads.
+   * ⚠️ **The test above asserts the wrong thing and was the only one here.** It reads
+   * the event list for an unknown message, which the clamp has nothing to do with, so
+   * removing the clamp guard entirely left it green — found by a mutation sweep over
+   * this file. What the guard is for is the
+   * **running total**, so that is what this reads.
    *
-   * 2 loses 1 000 and the protocol then states them at nothing. Kept, the total
-   * says 9 000 and the cast fills the 1 000 of room below their entry health.
-   * Resynced to zero, the same cast restores nothing at all — the figure is short
-   * by everything the clamp hid.
+   * 2 loses 1 000 and the protocol then states them at nothing. Kept, the total says 9
+   * 000 and the cast fills the 1 000 of room below their entry health. Resynced to
+   * zero, the same cast restores nothing at all — the figure is short by everything the
+   * clamp hid.
    */
   test("and the total it keeps at zero is the one the cast is capped against", () => {
     const [teamHeal] = getTeamHeals(
@@ -313,22 +312,20 @@ describe("the health the protocol restates", () => {
 /**
  * The tolerance the resync is judged against, at both of its edges.
  *
- * ⚠️ **Every bound here survived a mutation sweep.** The width, the arithmetic
- * that builds it and both comparisons could each be changed with the whole gate
- * green (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F2) — and
+ * ⚠️ **Every bound here survived a mutation sweep.** The width, the arithmetic that
+ * builds it and both comparisons could each be changed with the whole gate green — and
  * the width is the load-bearing half of the argument that a stated percentage is a
- * **bound** rather than a value: two decimal places of a pool in the tens of
- * thousands quantise to about a point and a half, and overwriting the exact
- * running total with the rounded figure every time one is stated puts readings a
- * point wrong.
+ * **bound** rather than a value: two decimal places of a pool in the tens of thousands
+ * quantise to about a point and a half, and overwriting the exact running total with
+ * the rounded figure every time one is stated puts readings a point wrong.
  *
- * A pool of 20 000 read at 75% is what makes both edges land on whole health —
- * 14 999 and 15 001 exactly — so a combatant can stand on one. At 90% the upper
- * edge computes to 18 000.999999999996 and no integer reaches it, which is a real
- * asymmetry of the arithmetic and the reason these numbers are not the round ones.
+ * A pool of 20 000 read at 75% is what makes both edges land on whole health — 14 999
+ * and 15 001 exactly — so a combatant can stand on one. At 90% the upper edge computes
+ * to 18 000.999999999996 and no integer reaches it, which is a real asymmetry of the
+ * arithmetic and the reason these numbers are not the round ones.
  *
- * What the cast reveals is the running total itself: the share is far above the
- * cap, so what a member is restored is exactly `entry − current`.
+ * What the cast reveals is the running total itself: the share is far above the cap, so
+ * what a member is restored is exactly `entry − current`.
  */
 describe("the width of the tolerance", () => {
   const POOL = 20_000;
@@ -381,16 +378,15 @@ describe("what a fight was entered with", () => {
 
   /**
    * ⚠️ **The unwind above reads a snapshot; this one reads a message, and only the
-   * first had a test.** Where the opening payload carries no snapshot — which is
-   * what two of the recordings do — the anchor is the first health percentage the
-   * messages themselves state, unwound the same way. Nothing exercised that
-   * arithmetic, so its sign could be flipped with the whole gate green and two
-   * recordings' healing figures off by 98%
-   * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F2).
+   * first had a test.** Where the opening payload carries no snapshot — which is what
+   * two of the recordings do — the anchor is the first health percentage the messages
+   * themselves state, unwound the same way. Nothing exercised that arithmetic, so its
+   * sign could be flipped with the whole gate green and two recordings' healing figures
+   * off by 98%.
    *
-   * 1 is struck for 2 000 and the same message states them at 80%, which is where
-   * they stand *after* it. Entering at 8 000 + 2 000 is the whole of the reading;
-   * entering at 8 000 − 2 000 is what the flipped sign says.
+   * 1 is struck for 2 000 and the same message states them at 80%, which is where they
+   * stand *after* it. Entering at 8 000 + 2 000 is the whole of the reading; entering
+   * at 8 000 − 2 000 is what the flipped sign says.
    */
   test("is unwound from the first statement in the messages where no snapshot names anybody", () => {
     const opening = decodeFight(["2=100.00;1=80.00;+dmg=2000;-dmg=2000"], null);
@@ -501,16 +497,14 @@ describe("what a fight was entered with", () => {
   });
 
   /**
-   * ⚠️ **Which slot each kind states health for, asked per kind.** Every one of
-   * these passes through one reader, and until this block existed nothing
-   * distinguished the kinds from each other: `attack` and `skill-used` carried the
-   * same eight lines, so either could have been reading the other's slots with the
-   * whole gate green (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`,
-   * F2, and `docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F6).
+   * ⚠️ **Which slot each kind states health for, asked per kind.** Every one of these
+   * passes through one reader, and until this block existed nothing distinguished the
+   * kinds from each other: `attack` and `skill-used` carried the same eight lines, so
+   * either could have been reading the other's slots with the whole gate green.
    *
    * The health each entry states is the health *after* the message, so a kind that
-   * moved health for the wrong combatant shows up as an entry that is too high —
-   * or, above the maximum, as no entry at all.
+   * moved health for the wrong combatant shows up as an entry that is too high — or,
+   * above the maximum, as no entry at all.
    */
   test("reads both ends of an announcement, and moves nothing for either", () => {
     const opening = decodeFight(["2=90.00;1=70.00;tspell=Fala"], null);
@@ -589,7 +583,7 @@ describe("the keys a share can be read from", () => {
    * on the **opposing** team (article `view,372` at the engine name, read
    * 2026-08-27), so a cast is refused where the reducer came from the other side
    * of it and sized where it came from its own
-   * (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`).
+   * (`docs/specs/sizing-a-share-onto-a-side.md`).
    *
    * ⚠️ **One occurrence disqualifies its sides for the whole fight, not for the
    * casts after it.** The effect is declared once and applies from the initiation
@@ -718,14 +712,14 @@ describe("over every captured fight", () => {
    * material: one combatant's unwind landed a single point over their maximum,
    * and the allowance meant to absorb exactly that was smaller than a health
    * point on their pool, so it absorbed nothing
-   * (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`).
+   * (`docs/specs/sizing-a-share-onto-a-side.md`).
    *
    * Then, on 2026-08-27, it named `2026-08-27-luvia-grupa-vs-amaimon-2` — the
    * only recording carrying `lowheal_per-enemies`, when a fight declaring the
    * reducer anywhere had none of its casts sized. Reading the side the effect
    * reaches ended that in the same day: the reducer is declared by one of ours at
    * the monster, so nothing of ours was reduced and all three casts are sized
-   * (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`).
+   * (`docs/specs/sizing-a-share-onto-a-side.md`).
    *
    * ⚠️ **So the corpus exercises the refusal nowhere, and says nothing about it.**
    * Every reason to refuse a cast is held by a hand-built fight above, this one

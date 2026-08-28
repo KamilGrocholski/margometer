@@ -81,9 +81,6 @@ export type PanelReading = {
  * Built once rather than per call: `getRow` is asked three questions a row and
  * every ranking row asks them, and nothing here writes to a row.
  *
- * The twenty-three fields used to be spelled out here as well as in the two
- * places `src/core/fight-statistics.ts` spells them, which is one copy per layer
- * of a shape that grows a field at a time (§4). The aggregate owns it.
  */
 const EMPTY_ROW: CombatantStatistics = composeEmptyCombatantStatistics();
 
@@ -151,14 +148,6 @@ export function getDamageWithoutActor(row: CombatantStatistics): number {
 
 /**
  * The same figure, kept apart by the element the game stated it under.
- *
- * The pinned row's `Z czego` cut used to read its elements off the fight-wide
- * bucket, which holds no combatant and therefore no side. Once the figure narrowed
- * to the side on screen the cut had to narrow with it, and this is the only place
- * the two ends meet: `takenByElement` is what a combatant took, `takenByActorId` is
- * the part of it somebody was named for, and the difference is what they took with
- * nobody to charge it to — per element, on their own row, where the roster can
- * place them.
  *
  * Read the same way `getDamageWithoutActor` is, and it sums to it, which is what
  * lets the cut close against the figure standing over it.

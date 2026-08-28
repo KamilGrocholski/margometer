@@ -47,12 +47,12 @@ restatement *is* the test.
 Nor is the copy at risk of going stale unnoticed: a typo in one of these fails
 immediately, because the decoder does not read the misspelling.
 
-This is worth writing down because the mistake has already been made once in the
-other direction. `docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`
-filed F13 and F14 against exactly these declarations and closed them by exporting.
-That was right for the two it touched — `DAMAGE_TO_NAMED_KEY` and the damage-key
-shape rule are used to *select* messages, never to assert what the decoder reads —
-and it would have been wrong for the ten left standing. Eight of the ten carry no
+This is worth writing down because the mistake has already been made once in
+the other direction. An audit filed two findings against exactly these
+declarations and closed them by exporting. That was right
+for the two it touched — `DAMAGE_TO_NAMED_KEY` and the damage-key shape rule
+are used to *select* messages, never to assert what the decoder reads — and it
+would have been wrong for the ten left standing. Eight of the ten carry no
 comment saying so, which is why the next reader will file it again.
 
 **A deliberate duplication that does not say it is deliberate is an invitation to
@@ -181,9 +181,8 @@ a bare literal is the strongest thing you can write.
 
 **Sharing more of the two class-name guards than the two readers.** They differ
 in what counts as a consumer — the preview reads its own markup and a second
-source file, the panel does not — and `tests/dated-document.ts` already draws this
-line: share the part that is one question, and leave the guards readable without
-each other open.
+source file, the panel does not. The line to draw is: share the part that is one
+question, and leave the guards readable without each other open.
 
 **Holding the help's host to a second spelling.** `pomoc.margonem.pl` is a name
 we did not choose and it appears in a test fixture as well as in the tool — but

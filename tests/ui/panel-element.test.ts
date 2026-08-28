@@ -334,7 +334,7 @@ function composeReadingWithNeitherEnd(): PanelReading {
  * in it is ever marked — which is what makes it the right fixture for everything
  * else and the wrong one for this. Built here for the same reason
  * `composeReadingWithNeitherEnd` is: no recording carries the shape at all
- * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ * (`docs/specs/the-ends-a-figure-names.md`).
  */
 function composeReadingWithAMarkedRow(): PanelReading {
   const roster = composeCombatantRoster([
@@ -499,10 +499,10 @@ describe("what reaches the screen", () => {
    * `Zadane · Oni` is the screen it was worst on: the pinned figure was the whole
    * fight's while the rows were one side's, so no whole on that screen contained
    * it and the composing handed over a null bracket
-   * (`docs/specs/2026-08-18-a-figure-with-no-actor-has-no-side.md`). The figure is
+   * (`docs/specs/the-ends-a-figure-names.md`). The figure is
    * the shown team's now — derived from the end the game did name — so it is
    * inside the whole and says so
-   * (`docs/specs/2026-08-18-two-ends-and-one-of-them-is-named.md`).
+   * (`docs/specs/the-ends-a-figure-names.md`).
    *
    * Counted rather than sampled: one `.row-share` per `.row`, and none of them
    * empty. An empty one would read as a share of zero, which §9.6 keeps apart
@@ -759,7 +759,7 @@ describe("what reaches the screen", () => {
    * The fixture is 500 applied by our two and 60 of poison ticking on the enemy.
    * That 60 is the whole test — nobody swung it, so it used to stand beneath the
    * bar labelled `Bez strony`, and the roster gives the combatant it ticked on a
-   * side (`docs/specs/2026-08-18-a-tick-nobody-swung-still-has-a-side.md`). It is
+   * side (`docs/specs/the-ends-a-figure-names.md`). It is
    * inside `My` now, which is why the figure is read here rather than the segment
    * count alone: a bar of one full-width segment says nothing about what went
    * into it.
@@ -2240,22 +2240,20 @@ describe("the shelf of kept fights", () => {
 });
 
 /**
- * §9.6 makes delegation structural: one listener at the root, never a binding per
- * row, so re-rendering cannot lose a handler. This says there is one root.
+ * §9.6 makes delegation structural: one listener at the root, never a binding per row,
+ * so re-rendering cannot lose a handler. This says there is one root.
  *
- * ⚠️ **The rule survived a second consumer and the code did not.** The shelf gave
- * the panel a second screen, and each screen then declared its own
- * `handleGuarded`, its own `pointerdown` with the same primary-button guard and
- * its own `contextmenu` with the same `preventDefault` — while the argument
- * behind all six sat in one of the two, with a two-line note in the other. Nothing
- * had drifted; the finding was that nothing would say so
- * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F5).
+ * ⚠️ **The rule survived a second consumer and the code did not.** The shelf gave the
+ * panel a second screen, and each screen then declared its own `handleGuarded`, its own
+ * `pointerdown` with the same primary-button guard and its own `contextmenu` with the
+ * same `preventDefault` — while the argument behind all six sat in one of the two, with
+ * a two-line note in the other. Nothing had drifted; the finding was that nothing would
+ * say so.
  *
- * Read as the literal both roots are written with, and not as any
- * `addEventListener`: the drag binds its four through a variable type on purpose
- * (`setGuarded`), and a guard that counted those too would go red for the shape it
- * exists to allow — which is §7.5's *a guard narrower than the construct it owns*
- * read from the other end.
+ * Read as the literal both roots are written with, and not as any `addEventListener`:
+ * the drag binds its four through a variable type on purpose (`setGuarded`), and a
+ * guard that counted those too would go red for the shape it exists to allow — which is
+ * §7.5's *a guard narrower than the construct it owns* read from the other end.
  */
 describe("where a screen listens for a gesture", () => {
   const SOURCE = composeSourceWithoutComments(

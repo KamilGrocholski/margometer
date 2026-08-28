@@ -1,12 +1,11 @@
 /**
  * The three questions every part of the panel asks of a combatant, held directly.
  *
- * They were driven only through `composePanelView` until the composing was split
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26), and two of
- * the four claims below cannot be reached from there at all: what a combatant with
- * no row at all reads as, and what healing with no named healer comes to when the
- * named part is larger than the whole. Both are §9.6's line — a figure nobody
- * measured must not read as a measurement of zero.
+ * They were driven only through `composePanelView` until the composing was split, and
+ * two of the four claims below cannot be reached from there at all: what a combatant
+ * with no row at all reads as, and what healing with no named healer comes to when the
+ * named part is larger than the whole. Both are §9.6's line — a figure nobody measured
+ * must not read as a measurement of zero.
  */
 
 import { describe, expect, test } from "bun:test";
@@ -217,11 +216,10 @@ describe("a blow with nobody to charge it to", () => {
   });
 
   /**
-   * ⚠️ **And the point above zero, which is the side of the edge nothing stood
-   * on.** A single point nobody can be charged with is a point the cut has to
-   * carry, or the cut stops summing to the figure over it and says nothing about
-   * where the difference went — `> 0` moved one step became a silent drop
-   * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F2).
+   * ⚠️ **And the point above zero, which is the side of the edge nothing stood on.** A
+   * single point nobody can be charged with is a point the cut has to carry, or the cut
+   * stops summing to the figure over it and says nothing about where the difference
+   * went — `> 0` moved one step became a silent drop.
    */
   test("carries an element short by a single point", () => {
     const row = composeRow(70, [[1, [["dmg", 69]]]]);
@@ -322,7 +320,7 @@ describe("health lost with nobody to charge", () => {
  * counters part company: an unread message qualifies every metric and a cast
  * nobody could size qualifies exactly one, and a reading that got the second wrong
  * would still mark the row on the screen a test happened to open
- * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ * (`docs/specs/the-ends-a-figure-names.md`).
  */
 describe("what could not be read about a combatant", () => {
   const clean = getRow(composeReading(), 1);

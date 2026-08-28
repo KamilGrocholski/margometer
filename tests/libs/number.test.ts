@@ -153,10 +153,9 @@ describe("writing a number back to text", () => {
 });
 
 /**
- * The two readers this file had never been asked a question of, found by
- * `docs/audits/2026-08-13-the-whole-tree-read-once.md` (F3). Hexadecimal had
- * **zero references anywhere** under `tests/` while being the reader the panel's
- * contrast arithmetic rests on, and §9.7 makes that an accessibility floor.
+ * The two readers this file had never been asked a question of. Hexadecimal had **zero
+ * references anywhere** under `tests/` while being the reader the panel's contrast
+ * arithmetic rests on, and §9.7 makes that an accessibility floor.
  *
  * Every case below is a value one of the spellings its docblock names would have
  * accepted, which is the whole argument for the reader existing.

@@ -157,22 +157,20 @@ export type MargoMeterOptions = {
 /**
  * A failure channel that speaks the first time and counts after that.
  *
- * §9.6 asks for exactly one branded console entry per caught failure — "a repeat
- * is counted, not reprinted" — and both of this file's failure channels fire from
- * inside the wrap, which runs on **every payload**. A fight redraws every few
- * seconds, so a channel that printed each time would put our own entry in front
- * of whatever the person was reading, which is the disturbance §9.6 spends its
- * length refusing.
+ * §9.6 asks for exactly one branded console entry per caught failure — "a repeat is
+ * counted, not reprinted" — and both of this file's failure channels fire from inside
+ * the wrap, which runs on **every payload**. A fight redraws every few seconds, so a
+ * channel that printed each time would put our own entry in front of whatever the
+ * person was reading, which is the disturbance §9.6 spends its length refusing.
  *
- * Once for the page rather than once per fight, like the drag and the capture
- * button in `composePanelMount`: a throw out of the reading is a bug of ours, not
- * a state of a fight, and the fight boundary is not visible from here — the
- * session lives inside `setMargoMeter`. The repeats are counted, and the count
- * reaches the copied report through `composeMeterOptions`, which hands the sinks
- * back to whoever wired them. Nothing prints it on its own: there is no moment in
- * a page's life that is the right one to print a tally at, and for a while there
- * was no moment at which anything read it either
- * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F23).
+ * Once for the page rather than once per fight, like the drag and the capture button in
+ * `composePanelMount`: a throw out of the reading is a bug of ours, not a state of a
+ * fight, and the fight boundary is not visible from here — the session lives inside
+ * `setMargoMeter`. The repeats are counted, and the count reaches the copied report
+ * through `composeMeterOptions`, which hands the sinks back to whoever wired them.
+ * Nothing prints it on its own: there is no moment in a page's life that is the right
+ * one to print a tally at, and for a while there was no moment at which anything read
+ * it either.
  */
 export type FailureSink = { report: (error: unknown) => void; getSilenced: () => number };
 
@@ -217,12 +215,6 @@ const PAGE_HANDLE = "margometer";
 
 /**
  * What every element of ours wears in the game's own document (§9.6).
- *
- * Two of them, because the add-on puts exactly two nodes into the page: the
- * panel's host, which stays for the session, and the anchor a download rides on,
- * which lasts a click. Both used to go in anonymous — a bare `<div>` and a bare
- * `<a>` at the end of `document.body`, indistinguishable in the inspector from
- * the game's own furniture and from every other add-on's.
  *
  * ⚠️ **The prefix is not what stops the game's stylesheet reaching the panel.**
  * The shadow root is, which is why the ~40 class names behind it are unprefixed
@@ -555,11 +547,6 @@ function setStoredCollapse(store: ValueStore, isCollapsed: boolean): void {
 /**
  * What the reader has chosen about keeping fights.
  *
- * One thing, and it used to be two: the reader also picked how many fights to
- * keep, off a strip of four numbers beside this one. That control is gone and the
- * number below is fixed, so what is left here is the one choice with a
- * consequence a reader can feel — where their fights live, and what closing the
- * tab does to them.
  */
 export type FightSettings = { storage: StorageChoice };
 
@@ -598,7 +585,7 @@ export function getSettingsFromStoredText(text: string): FightSettings {
  * the maintainer's ask: the shelf spent a row of its own height offering a choice
  * whose consequence nobody could see — every answer fits the budget, so what the
  * strip actually changed was how soon a fight nobody pinned disappeared
- * (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`).
+ * (`docs/specs/a-fight-you-can-go-back-to.md`).
  */
 const KEPT_FIGHTS_LIMIT = 20;
 
@@ -625,13 +612,6 @@ const FIGHTS_BUDGET = 1_000_000;
 
 /**
  * The client build a recording came from, or null.
- *
- * Read from a script's filename by `src/core/game-build.ts`, which is also what
- * `tools/game-client-source.ts` asks when it decides which bundle to download —
- * so the number in a recording and the number in the cache mean the same thing.
- * They were two copies of one pattern until the coupling this sentence describes
- * was made into a module rather than left to the sentence
- * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F18).
  *
  * Null, never a stand-in, where the page does not say. §7.6: material from the
  * game without the client's version is not comparable material, and a recording
@@ -775,10 +755,10 @@ export type FightKeeper = {
  *
  * ⚠️ **One fight is folded on page load, and the rest when they are opened.**
  * Ten kept fights folded at once is 20–70 ms of somebody else's game
- * (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`), spent on nine screens
+ * (`docs/specs/a-fight-you-can-go-back-to.md`), spent on nine screens
  * nobody asked for. The one is `getOpeningReading`'s, and it is the screen the
  * reader is looking at rather than nine they are not
- * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`). The shelf
+ * (`docs/specs/a-fight-you-can-go-back-to.md`). The shelf
  * itself needs no folding at all — a row is a time, a headcount and an outcome,
  * and all three are in the stored fight.
  */
@@ -844,7 +824,7 @@ export function composeFightKeeper(
    * agreeing.** `getOpeningReading` is what the panel draws after a reload and
    * the row rule in `getFights` is what marks it on the shelf; written twice,
    * they would be a shelf marking a row the panel is not showing
-   * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`).
+   * (`docs/specs/a-fight-you-can-go-back-to.md`).
    *
    * It stops answering the moment either half of the condition moves — a payload
    * arrives, so the live fight is what the panel follows, or the reader chooses
@@ -896,15 +876,13 @@ export function composeFightKeeper(
   /**
    * The reader's answer, written down before anything is done about it.
    *
-   * ⚠️ **A choice the browser refused must not be acted on.** Both answers move
-   * fights — one to another store, one out of the rotation — and the *only* thing
-   * that tells the next page where to look is this write. So acting on a refused
-   * one leaves the reader's fights, pinned ones included, in a place the add-on
-   * will never open again, under a panel drawing the choice as taken. Nothing
-   * moves unless it landed. §9.6 reaches this exactly: a number that might be
-   * wrong must never look like a number that is right, and here it is a choice
-   * rather than a number
-   * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F1).
+   * ⚠️ **A choice the browser refused must not be acted on.** Both answers move fights
+   * — one to another store, one out of the rotation — and the *only* thing that tells
+   * the next page where to look is this write. So acting on a refused one leaves the
+   * reader's fights, pinned ones included, in a place the add-on will never open again,
+   * under a panel drawing the choice as taken. Nothing moves unless it landed. §9.6
+   * reaches this exactly: a number that might be wrong must never look like a number
+   * that is right, and here it is a choice rather than a number.
    */
   const setSettings = (next: FightSettings): boolean => {
     const isWritten = settingsStore.setText(SETTINGS_KEY, composeStoredTextFromSettings(next));
@@ -1107,7 +1085,7 @@ export type PanelShelf = {
    * load. Before it the panel met a reader who had just reloaded with *nie było
    * jeszcze walki*, while their last twenty fights sat in the store behind a
    * screen and a click
-   * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`).
+   * (`docs/specs/a-fight-you-can-go-back-to.md`).
    */
   getOpeningReading: () => FightReading | null;
   getFights: () => PanelKeptFight[];
@@ -1281,7 +1259,7 @@ export function composePanelMount(
    * panel, and this is the most recent thing it can honestly put in it. So the
    * next payload takes the screen, and the shelf marks this fight only for as
    * long as no payload has arrived
-   * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`).
+   * (`docs/specs/a-fight-you-can-go-back-to.md`).
    */
   let latest: FightReading | null = shelf?.getOpeningReading() ?? null;
   /**
@@ -1432,26 +1410,25 @@ export function composePanelMount(
       fightBeingCounted = reading.fightsStarted;
       hasReportedEngineGaps = false;
       /*
-       * The reader goes back to the top of the tab they chose, for the reason
-       * `composeStateAfterFightStart` states. Assigned rather than pushed through
-       * `setState`: that path renders, and what it measures is the `gesture`
-       * phase — how long between a click and the new screen — while this is a
-       * payload arriving. The render at the end of this callback is the one that
-       * draws it, so the reset costs no second pass.
-       *
-       * ⚠️ **It sees the fights the game announces and no others.** A fight
-       * joined in progress carries no `init`, so `fightsStarted` does not move
-       * (`src/game/battle-session.ts`) and the panel stays where it was — the
-       * same limit the accumulated figures already have.
-       *
-       * ⚠️ **And it is only for a reader watching the live fight.** Every clause
-       * of `composeStateAfterFightStart`'s argument is about somebody whose screen
-       * the new fight is about to fill. Applied to a reader two levels into a
-       * fight from an hour ago each one is false: the rows under them are not the
-       * new fight's, they are the kept fight's, and that is exactly where somebody
-       * asked to be. Nothing is lost by waiting — coming back to the live row goes
-       * through `composeStateAfterFightChosen`, which drops the levels anyway
-       * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F2).
+        * The reader goes back to the top of the tab they chose, for the reason
+        * `composeStateAfterFightStart` states. Assigned rather than pushed through
+        * `setState`: that path renders, and what it measures is the `gesture` phase —
+        * how long between a click and the new screen — while this is a payload
+        * arriving. The render at the end of this callback is the one that draws it, so
+        * the reset costs no second pass.
+        *
+        * ⚠️ **It sees the fights the game announces and no others.** A fight joined in
+        * progress carries no `init`, so `fightsStarted` does not move
+        * (`src/game/battle-session.ts`) and the panel stays where it was — the same
+        * limit the accumulated figures already have.
+        *
+        * ⚠️ **And it is only for a reader watching the live fight.** Every clause of
+        * `composeStateAfterFightStart`'s argument is about somebody whose screen the
+        * new fight is about to fill. Applied to a reader two levels into a fight from
+        * an hour ago each one is false: the rows under them are not the new fight's,
+        * they are the kept fight's, and that is exactly where somebody asked to be.
+        * Nothing is lost by waiting — coming back to the live row goes through
+        * `composeStateAfterFightChosen`, which drops the levels anyway.
        */
       if (isFollowingLive) state = { ...state, ...composeStateAfterFightStart() };
     }
@@ -1518,21 +1495,19 @@ export function writeCaptureToPage(page: HostPage, meter: MargoMeter): void {
 /**
  * The fight, as something a person can paste into a report.
  *
- * Everything that qualifies the numbers travels with them, because a figure
- * without its build, its world and its warnings is a figure nobody can act on:
- * the add-on's version, the game's, where it was, when it was taken, who was
- * watching, the whole roster, and every warning as an entry with a token beside
- * it. **The tokens live here and nowhere the player reads** — the panel says
- * what cannot be known, this says what we could not read (§3).
+ * Everything that qualifies the numbers travels with them, because a figure without its
+ * build, its world and its warnings is a figure nobody can act on: the add-on's
+ * version, the game's, where it was, when it was taken, who was watching, the whole
+ * roster, and every warning as an entry with a token beside it. **The tokens live here
+ * and nowhere the player reads** — the panel says what cannot be known, this says what
+ * we could not read (§3).
  *
  * Ids and tokens rather than sentences, on purpose: a report is read by us.
  *
- * ⚠️ **English keys, and the comment above is why.** They were Polish until
- * `docs/audits/2026-08-13-the-whole-tree-read-once.md` (F11) put the two
- * sentences side by side: §3 makes Polish the exception for the text a *player*
- * reads, and this file says its reader is us. The names are the aggregate's own,
- * so a key in a pasted report can be grepped for in `src/core/fight-statistics.ts`
- * — which the translations could not be.
+ * ⚠️ **English keys, and the comment above is why.** §3 makes Polish the exception for
+ * the text a *player* reads, and this file says its reader is us. The names are the
+ * aggregate's own, so a key in a pasted report can be grepped for in
+ * `src/core/fight-statistics.ts` — which translations could not be.
  */
 export function composeReportText(
   page: HostPage,
@@ -1607,18 +1582,17 @@ export function composeReportText(
 /**
  * One combatant's figures, with every map turned into something JSON can hold.
  *
- * ⚠️ **The return type is what holds this complete, and it used to be
- * `Record<string, unknown>` — a type any subset satisfies.** §4 makes the data
- * contract an `[ASK]` for one stated reason: a field added to a type and
- * forgotten downstream produces numbers that quietly shrink. This is that
- * downstream, and the consequence is specific — the report is what a player
- * pastes when something looks wrong, so a field added to the aggregate and
- * missed here is invisible in exactly the situation the report exists for
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F9).
+ * ⚠️ **The return type is what holds this complete, and it used to be `Record<string,
+ * unknown>` — a type any subset satisfies.** §4 makes the data contract an `[ASK]` for
+ * one stated reason: a field added to a type and forgotten downstream produces numbers
+ * that quietly shrink. This is that downstream, and the consequence is specific — the
+ * report is what a player pastes when something looks wrong, so a field added to the
+ * aggregate and missed here is invisible in exactly the situation the report exists
+ * for.
  *
- * Keyed to the row's own type, so adding a figure to `CombatantStatistics`
- * stops the build here until somebody decides how it is written down. §9.3's
- * bargain: no linter, because the compiler is the one holding the rule.
+ * Keyed to the row's own type, so adding a figure to `CombatantStatistics` stops the
+ * build here until somebody decides how it is written down. §9.3's bargain: no linter,
+ * because the compiler is the one holding the rule.
  */
 function composeReportRow(
   row: FightReading["statistics"]["unattributed"],
@@ -1716,16 +1690,14 @@ export function composeMeterOptions(
   /**
    * Where the silenced counts go, so somebody can read them.
    *
-   * ⚠️ **They had nowhere to go, and the docblock said otherwise.** Both sinks
-   * were built here and only `.report` was kept, so `getSilenced` could never be
-   * called by anything that ships — while §9.6 requires the repeats to be
-   * *counted* and not merely dropped, and the sink's own comment said the count
-   * existed "so a report can say how many followed the one that printed". The
-   * report carried no such field
-   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F23).
+   * ⚠️ **They had nowhere to go, and the docblock said otherwise.** Both sinks were
+   * built here and only `.report` was kept, so `getSilenced` could never be called by
+   * anything that ships — while §9.6 requires the repeats to be *counted* and not
+   * merely dropped, and the sink's own comment said the count existed "so a report can
+   * say how many followed the one that printed". The report carried no such field.
    *
-   * Optional, because a caller that never copies a report has nothing to do with
-   * them and should not have to invent a place to put them.
+   * Optional, because a caller that never copies a report has nothing to do with them
+   * and should not have to invent a place to put them.
    */
   onSinks?: (sinks: FailureSinks) => void,
   /**
@@ -1769,13 +1741,6 @@ export function composeMeterOptions(
  * this file is loaded — and in a test runner there is no `document`, so
  * importing this module attaches to nothing.
  *
- * ⚠️ **This block used to sit six hundred lines up, above a type, where it
- * documented nothing** and said "the one global read in the add-on", which is
- * also not true: `src/game/engine-attachment.ts` reaches for `setInterval` and
- * `clearInterval` when no clock is injected
- * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F7). What is true is
- * narrower and is the part that matters — this is the only file that reads the
- * game off the page and the only one that writes a name back onto it.
  */
 const page = globalThis as HostPage;
 if (hasOtherMargoMeter(page)) {

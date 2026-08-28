@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0
 
       # `main` is the latest release and nothing else
-      # (docs/specs/2026-08-18-main-is-what-you-can-install.md): it moves only
+      # (docs/specs/what-a-release-shows.md): it moves only
       # when a version is tagged, and work happens on `develop`. A tag pushed
       # from `develop` is the one mistake that model creates — before it there
       # was a single branch to tag from — and it would publish a release built
@@ -78,9 +78,7 @@ jobs:
       # The notes are this version's section of CHANGELOG.md, which is the one
       # document here written for players. Not a generated commit list: a release
       # here is hundreds of commits and a dump of their subjects tells a player
-      # nothing they can act on. (The count used to be written out and was wrong
-      # by two — `docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`,
-      # F22.) A version with no section fails here, loudly, rather than
+      # nothing they can act on. A version with no section fails here, loudly, rather than
       # publishing a release that says nothing about itself.
       - name: compose the release notes
         run: bun tools/changelog.ts notes "${GITHUB_REF_NAME#v}" > release-notes.md

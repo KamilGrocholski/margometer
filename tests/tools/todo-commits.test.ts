@@ -14,7 +14,7 @@
  * that failed on `cb256d0` for not obeying a rule written afterwards would be
  * permanently red and therefore turned off within the week. So it names the last
  * commit that predates the rule and reads forward from there, the way an audit
- * names the commit it read (§7.7).
+ * names the commit it read.
  */
 
 import { execFileSync } from "node:child_process";
@@ -42,9 +42,9 @@ const REPOSITORY_ROOT = new URL("../..", import.meta.url).pathname;
  * §6.1 names, manufactured by a guard. The rule binds whoever is making the
  * commit, and that happens in a working tree with history in it.
  *
- * Rejected: `fetch-depth: 0` in `.github/workflows/check.yml`, for the reason
- * `audit-status.test.ts` gives — it clones `tests/captured-fights/` in full on
- * every run of the gate to re-earn something the committer already had.
+ * Rejected: `fetch-depth: 0` in `.github/workflows/check.yml` — it clones
+ * `tests/captured-fights/` in full on every run of the gate to re-earn something the
+ * committer already had.
  */
 function hasHistory(): boolean {
   try {

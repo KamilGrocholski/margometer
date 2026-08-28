@@ -20,11 +20,9 @@
  * ⚠️ **The first section below touches no document at all, and that is not an
  * accident of layout.** Where the panel sits and where a detail window opens are
  * values — a corner, a clamp, a drag, a remembered position that has to prove
- * itself, a tip kept inside a screen it is handed the size of. They were their
- * own two files so they could be checked without a DOM; they still can be, since
- * nothing here reaches for a document and every function that needs one takes it
- * as an argument (§9.9). What the split cost was a reader having to hold three
- * files to answer where the panel is.
+ * itself, a tip kept inside a screen it is handed the size of. All of it is
+ * checkable without a DOM, because nothing here reaches for a document and every
+ * function that needs one takes it as an argument (§9.9).
  */
 
 import { getValueFromJsonText } from "@/libs/json.ts";
@@ -309,10 +307,8 @@ function getValueBetween(value: number, low: number, high: number): number {
 }
 
 /**
- * Whole pixels: `clientY` is fractional on a scaled display, and a detail half a
- * pixel higher is not a thing anybody can see — a declaration reading
- * `292.33333333333px` is
- * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F17).
+ * Whole pixels: `clientY` is fractional on a scaled display, and a detail half a pixel
+ * higher is not a thing anybody can see — a declaration reading `292.33333333333px` is.
  */
 function composePixelText(value: number): string {
   return `${composeDecimalText(value, 0)}px`;
@@ -400,7 +396,7 @@ export type PanelNode = {
    * ⚠️ **It is asked of exactly one node — the detail window, of its own size,
    * immediately after being filled — and the answer is used before anything can
    * change it.** That is a different thing from measuring the *panel* to decide
-   * the panel, which `docs/specs/2026-08-12-the-height-a-fight-needs.md` turned
+   * the panel, which `docs/specs/the-panel-that-drills.md` turned
    * down and which stands: the panel's height changes with every payload, so a
    * figure taken from it is stale before the next one. The detail is rebuilt on
    * every hover and placed in the same breath, so there is no interval in which
@@ -549,8 +545,7 @@ function renderRow(
   bar.className = "bar";
   // Through the writer, not through `${}`: a fill of one tenth interpolates as
   // `10.000000000000002%`, and a value that is not a number at all reaches the
-  // declaration as `NaN` with nothing marked
-  // (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F17).
+  // declaration as `NaN` with nothing marked.
   bar.style.setProperty("width", `${composeDecimalText(row.fill * 100, 1)}%`);
   bar.style.setProperty("background", row.colour);
 
@@ -693,38 +688,37 @@ function renderRegionInto(
 /**
  * The node every screen is built on, with both of its listeners already bound.
  *
- * §9.6 makes delegation structural — one listener at the root, never a binding
- * per row, so re-rendering cannot lose a handler — and the shelf gave that root a
- * second consumer. Two screens each declared their own `handleGuarded`, their own
- * `pointerdown` with the same primary-button guard and their own `contextmenu`
- * with the same `preventDefault`, while the decision behind all six lived in one
- * of the two. §7.5 already carries the receipt for leaving that alone:
- * `libs/running-total.ts` was extracted because one spelling in five places had
- * drifted, and two copies then survived under a green guard
- * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F5).
+ * §9.6 makes delegation structural — one listener at the root, never a binding per row,
+ * so re-rendering cannot lose a handler — and the shelf gave that root a second
+ * consumer. Two screens each declared their own `handleGuarded`, their own
+ * `pointerdown` with the same primary-button guard and their own `contextmenu` with the
+ * same `preventDefault`, while the decision behind all six lived in one of the two.
+ * §7.5 already carries the receipt for leaving that alone: `libs/running-total.ts` was
+ * extracted because one spelling in five places had drifted, and two copies then
+ * survived under a green guard.
  *
  * ⚠️ **The press, and never the click — that is the whole of the defect this
- * replaces.** A browser assembles `click` out of two moments and dispatches it
- * only if both resolve to a node still in the tree. Every node a screen builds is
- * built by the render, and `renderPanelInto` replaces the lot on every payload —
- * so a payload landing between the press and the release detached what was
- * pressed and **no click was dispatched at all**. The panel looked like it had
- * ignored the reader, who pressed again, during a fight, repeatedly.
+ * replaces.** A browser assembles `click` out of two moments and dispatches it only if
+ * both resolve to a node still in the tree. Every node a screen builds is built by the
+ * render, and `renderPanelInto` replaces the lot on every payload — so a payload
+ * landing between the press and the release detached what was pressed and **no click
+ * was dispatched at all**. The panel looked like it had ignored the reader, who pressed
+ * again, during a fight, repeatedly.
  *
- * The listeners were never the thing at risk: they are delegated and keyed by
- * identity, so a redraw cannot lose one. What a redraw could lose is the
- * *gesture*, and a `pointerdown` is one event with nothing inside it for a redraw
- * to land in the middle of. That holds whatever the payload rate and whatever a
- * render costs — which is why it was preferred to holding the redraw back while a
- * hand is down (`docs/specs/2026-08-18-a-gesture-a-redraw-cannot-split.md`).
+ * The listeners were never the thing at risk: they are delegated and keyed by identity,
+ * so a redraw cannot lose one. What a redraw could lose is the *gesture*, and a
+ * `pointerdown` is one event with nothing inside it for a redraw to land in the middle
+ * of. That holds whatever the payload rate and whatever a render costs — which is why
+ * it was preferred to holding the redraw back while a hand is down
+ * (`docs/specs/the-panel-that-drills.md`).
  *
- * The title bar's buttons stay on `click` and are not an inconsistency: they are
- * built once with the shadow root and outlive every render, so nothing can take
- * them out from under a hand.
+ * The title bar's buttons stay on `click` and are not an inconsistency: they are built
+ * once with the shadow root and outlive every render, so nothing can take them out from
+ * under a hand.
  *
- * One gesture in, one gesture out — and the way out works from anywhere on the
- * panel, including the empty space below a short list. A back button alone would
- * make the cheapest gesture the one that needs aiming.
+ * One gesture in, one gesture out — and the way out works from anywhere on the panel,
+ * including the empty space below a short list. A back button alone would make the
+ * cheapest gesture the one that needs aiming.
  */
 function composeEventRoot(
   document: PanelDocument,

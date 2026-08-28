@@ -56,10 +56,9 @@ machine can see.
 
 ### A pattern that searches for structure
 
-`libs/source-regions.ts` over TypeScript, `tools/mutation-sweep.ts` over the
-same, `tools/protocol-key-table.ts` over a minified bundle,
-`tools/help-article.ts` over fetched HTML, and the Markdown guards under
-`tests/tools/`.
+`libs/source-regions.ts` over TypeScript, `tools/protocol-key-table.ts` over a
+minified bundle, `tools/help-article.ts` over fetched HTML, and the Markdown
+guards under `tests/tools/`.
 
 §7.5's rule bites hardest here and the answer is still no, for a reason that is
 about what exists rather than about what is nice: the alternative to a pattern
@@ -129,11 +128,10 @@ answer with a value nobody wrote. `RegExp` looks like both from a distance:
 `lastIndex` between calls.
 
 None of the three survives contact with the tree. Every `exec` result here is
-null-checked or `assertDefined`-ed before it is indexed —
-`docs/audits/2026-08-14-the-whole-tree-read-again.md` put that on its clean list
-and it is still true. No `/g` pattern is used with `.test` anywhere, which is
-the one spelling where `lastIndex` turns a predicate into a coin toss. And the
-groups are already handed to `libs/number.ts` rather than read as numbers.
+null-checked or `assertDefined`-ed before it is indexed, and that was checked
+and still holds. No `/g` pattern is used with `.test` anywhere, which
+is the one spelling where `lastIndex` turns a predicate into a coin toss. And
+the groups are already handed to `libs/number.ts` rather than read as numbers.
 
 An owner would therefore be a wrapper with no decision inside it, which is the
 one thing §7.1 refuses: it would exist before it was needed, and it would make
@@ -181,8 +179,8 @@ both of the others. The one it misses most cheaply is lookbehind: a handful of
 characters of syntax, which Chrome and Firefox have had since before the floor
 and which moves Safari from 16 to 16.4 — a gap small enough that nobody would
 think to check.
-`tools/mutation-sweep.ts` already spells them throughout its rule table,
-harmlessly, because tools run in Bun on this machine and never ship.
+A tool may spell them harmlessly, because tools run in Bun on this machine and
+never ship.
 
 ⚠️ **A pattern above the floor does not degrade — it stops the add-on
 loading.** §9.9 says a feature above the floor degrades and that what it looks

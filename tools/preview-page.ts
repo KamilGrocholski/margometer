@@ -83,7 +83,7 @@ export type PreviewFightLink = {
    * the store installed above outlives nothing. A published site is files, and the
    * only copy of a fight it holds is inlined in that fight's own page, so a pick
    * there stays the navigation it always was
-   * (`docs/specs/2026-08-27-picking-a-capture-keeps-the-panel.md`).
+   * (`docs/specs/a-fight-you-can-go-back-to.md`).
    */
   payloadsAddress: string | null;
 };
@@ -238,7 +238,7 @@ ${introduction}
    * written into their own browser — around 34 kB of it, up to five, plus the
    * settings and the panel position — and a second visit opened onto a shelf
    * holding what the first one left. Nobody chose that; it followed from the
-   * shelf. See docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md, F7.
+   * shelf.
    *
    * A stand-in rather than a flag the add-on reads: getStoreFromPage already
    * falls back to a store that outlives nothing where a browser offers none

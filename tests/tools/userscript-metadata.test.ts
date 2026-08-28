@@ -201,14 +201,13 @@ describe("userscript metadata", () => {
 });
 
 /**
- * The constant every layer is allowed to read (§9.1), and the one this file is
- * about from the other end.
+ * The constant every layer is allowed to read (§9.1), and the one this file is about
+ * from the other end.
  *
  * ⚠️ **It was named nowhere under `tests/`** — `tests/tools/source-layout.test.ts`
- * names the *phrase* it falls back to, as the one Polish string no diacritic can
- * find, which is a claim about the language of a literal and not about what the
- * constant answers
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F11).
+ * names the *phrase* it falls back to, as the one Polish string no diacritic can find,
+ * which is a claim about the language of a literal and not about what the constant
+ * answers.
  */
 describe("the version the add-on says it is", () => {
   test("falls back to something that is not a release, when nobody built it", () => {

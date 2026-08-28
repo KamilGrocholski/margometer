@@ -333,7 +333,7 @@ describe("a fight read back off the shelf", () => {
  * Both halves are asked of the same keeper on purpose: the reading is what the
  * panel draws and the mark is what the shelf says about it, and the failure this
  * guards is the two disagreeing — a shelf marking a row the panel is not showing
- * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`).
+ * (`docs/specs/a-fight-you-can-go-back-to.md`).
  */
 describe("what a page that has just loaded opens on", () => {
   test("the newest fight kept, folded to what that fight itself folded to", () => {
@@ -393,7 +393,7 @@ describe("what a page that has just loaded opens on", () => {
    * ⚠️ **What was on screen, and not what is newest.** A reader who picked a
    * fight out of the shelf and reloaded is put back on it — the panel opening on
    * something else would be answering a question they had already answered
-   * (`docs/specs/2026-08-27-the-panel-opens-on-the-last-fight.md`).
+   * (`docs/specs/a-fight-you-can-go-back-to.md`).
    */
   test("the fight the reader was reading, over the newest one kept", () => {
     const { keeper, composeKeeperAfterReload } = composeKeeper();
@@ -716,10 +716,9 @@ describe("moving the fights to another place", () => {
 });
 
 /**
- * The answer is what tells the next page where to look, so a refused one may not
- * be acted on: the fights would go somewhere nothing ever opens again, under a
- * panel drawing the choice as taken
- * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F1).
+ * The answer is what tells the next page where to look, so a refused one may not be
+ * acted on: the fights would go somewhere nothing ever opens again, under a panel
+ * drawing the choice as taken.
  */
 describe("when the browser will not keep the reader's choice", () => {
   test("the fights stay where they are and the panel says the place did not change", () => {

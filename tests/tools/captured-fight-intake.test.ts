@@ -199,15 +199,13 @@ describe("the file that comes out", () => {
   });
 
   /**
-   * Absent and unreadable, which are not the same reading and one of them is not
-   * zero.
+   * Absent and unreadable, which are not the same reading and one of them is not zero.
    *
-   * A first intake has no such count and zero is right. A count the reader
-   * refuses means an earlier redaction did something this tool cannot size — and
-   * it used to read as zero and be written back into the file, stating that
-   * nothing had been substituted. §9.2 makes this the one place a wrong number is
-   * written **onto the evidence**
-   * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F19).
+   * A first intake has no such count and zero is right. A count the reader refuses
+   * means an earlier redaction did something this tool cannot size — and it used to
+   * read as zero and be written back into the file, stating that nothing had been
+   * substituted. §9.2 makes this the one place a wrong number is written **onto the
+   * evidence**.
    */
   test("counts from nothing where a recording has never been redacted", () => {
     const intake = composeIntakeText(

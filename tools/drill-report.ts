@@ -6,7 +6,7 @@
  * **is there anything under this row, and what**. It exists because the answer
  * stopped being "always yes" — a row is drillable only where the level below it
  * adds a name the reader did not already have
- * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`), and a rule
+ * (`docs/specs/the-panel-that-drills.md`), and a rule
  * with every breakdown in every recording behind it is not one anybody can check
  * by clicking — the count is what `--cases` prints, never a figure in this
  * sentence (§5).
@@ -71,15 +71,14 @@ export const ROW_KINDS = [
 export type RowKind = (typeof ROW_KINDS)[number];
 
 /**
- * ⚠️ **This took the keys apart with a grammar of its own, and nothing caught
- * the disagreement.** `src/ui/panel-screen.ts` exists so that the divider and the
- * word either side of it are decided in one place; this file read them back with
- * four prefixes and two whole keys spelled here — a fourth reader of a grammar
- * three files had already been made to share. A mutation renaming
- * `NO_TARGET_ROW_KEY` survived the whole gate, and `docs/drill-levels.md` is
- * written from this classification and guarded against it, so the register would
- * have followed the drift rather than caught it
- * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F5).
+ * ⚠️ **This took the keys apart with a grammar of its own, and nothing caught the
+ * disagreement.** `src/ui/panel-screen.ts` exists so that the divider and the word
+ * either side of it are decided in one place; this file read them back with four
+ * prefixes and two whole keys spelled here — a fourth reader of a grammar three files
+ * had already been made to share. A mutation renaming `NO_TARGET_ROW_KEY` survived the
+ * whole gate, and `docs/drill-levels.md` is written from this classification and
+ * guarded against it, so the register would have followed the drift rather than caught
+ * it.
  */
 export function getRowKind(key: string): RowKind {
   if (key === UNANNOUNCED_ROW_KEY || key === composeLeafRowKey(UNANNOUNCED_ROW_KEY)) {

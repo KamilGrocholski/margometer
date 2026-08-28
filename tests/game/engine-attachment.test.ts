@@ -13,6 +13,7 @@ import { assertDefined } from "@/libs/assert.ts";
 import { getEndOfWordCharacters } from "@/libs/text-runs.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
 import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import { type InertPage, composeInertNode, composeInertPage } from "@/tests/fake-document.ts";
 import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFight } from "@/src/core/fight-decoder.ts";
@@ -584,33 +585,11 @@ describe("a recording the add-on makes, read back as material", () => {
  */
 describe("what a failing panel puts on the console", () => {
   /** A page whose every `span` refuses to be created, so sections cannot draw. */
-  function composePageThatCannotDrawSpans(): {
-    document: { createElement: (tag: string) => unknown; body: { append: () => void } };
-  } {
-    const composeNode = (): Record<string, unknown> => {
-      const node: Record<string, unknown> = {
-        className: "",
-        id: "",
-        setAttribute: (): void => {},
-        textContent: "",
-        title: "",
-        style: { setProperty: (): void => {} },
-        append: (): void => {},
-        replaceChildren: (): void => {},
-        addEventListener: (): void => {},
-        attachShadow: (): unknown => composeNode(),
-      };
-      return node;
-    };
-    return {
-      document: {
-        createElement: (tag: string): unknown => {
-          if (tag === "span") throw new TypeError("no spans today");
-          return composeNode();
-        },
-        body: { append: (): void => {} },
-      },
-    };
+  function composePageThatCannotDrawSpans(): InertPage {
+    return composeInertPage((tag: string): unknown => {
+      if (tag === "span") throw new TypeError("no spans today");
+      return composeInertNode();
+    });
   }
 
   function composeReadingOfFight(fightsStarted: number): FightReading {
@@ -680,20 +659,8 @@ describe("what a failing panel puts on the console", () => {
 
   test("a fight that draws cleanly says nothing at all", () => {
     const said: unknown[][] = [];
-    const composeNode = (): Record<string, unknown> => ({
-      className: "",
-      id: "",
-      setAttribute: (): void => {},
-      textContent: "",
-      title: "",
-      style: { setProperty: (): void => {} },
-      append: (): void => {},
-      replaceChildren: (): void => {},
-      addEventListener: (): void => {},
-      attachShadow: (): unknown => composeNode(),
-    });
     const render = composePanelMount(
-      { document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } } },
+      composeInertPage(),
       (brand, detail) => said.push([brand, detail]),
     );
 
@@ -713,21 +680,7 @@ describe("what a failing panel puts on the console", () => {
    */
   describe("a fight that did not all arrive", () => {
     const composePage = () => {
-      const composeNode = (): Record<string, unknown> => ({
-        className: "",
-        id: "",
-        setAttribute: (): void => {},
-        textContent: "",
-        title: "",
-        style: { setProperty: (): void => {} },
-        append: (): void => {},
-        replaceChildren: (): void => {},
-        addEventListener: (): void => {},
-        attachShadow: (): unknown => composeNode(),
-      });
-      return {
-        document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
-      };
+      return composeInertPage();
     };
 
     const composeReadingWithGaps = (fightsStarted: number, lostMessages: number): FightReading => ({
@@ -763,13 +716,11 @@ describe("what a failing panel puts on the console", () => {
     });
 
     /**
-     * ⚠️ **Each of the three on its own, because each is a different sentence.**
-     * The test above carries all three at once, so every boundary and both `||`s
-     * in `hasEngineGaps` could be moved with the gate green — a fight that lost
-     * messages and nothing else, or one whose roster alone would not read, would
-     * simply have gone unsaid
-     * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, the
-     * closing round's sweep of `src/userscript-entry.ts`).
+     * ⚠️ **Each of the three on its own, because each is a different sentence.** The
+     * test above carries all three at once, so every boundary and both `||`s in
+     * `hasEngineGaps` could be moved with the gate green — a fight that lost messages
+     * and nothing else, or one whose roster alone would not read, would simply have
+     * gone unsaid.
      */
     test.each([
       [
@@ -839,21 +790,9 @@ describe("the panel asking the running client for a name", () => {
   function composePageWithDictionary(
     translate: ((id: string) => string | undefined) | undefined,
   ): Parameters<typeof composePanelMount>[0] {
-    const composeNode = (): Record<string, unknown> => ({
-      className: "",
-      id: "",
-      setAttribute: (): void => {},
-      textContent: "",
-      title: "",
-      style: { setProperty: (): void => {} },
-      append: (): void => {},
-      replaceChildren: (): void => {},
-      addEventListener: (): void => {},
-      attachShadow: (): unknown => composeNode(),
-    });
     return {
       ...(translate === undefined ? {} : { _t: translate }),
-      document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
+      ...composeInertPage(),
     };
   }
 
@@ -1120,24 +1059,7 @@ describe("remembering where the panel was put", () => {
   });
 
   test("a page with no storage at all still gets a panel", () => {
-    const composeNode = (): Record<string, unknown> => ({
-      className: "",
-      id: "",
-      setAttribute: (): void => {},
-      textContent: "",
-      title: "",
-      style: { setProperty: (): void => {} },
-      append: (): void => {},
-      replaceChildren: (): void => {},
-      addEventListener: (): void => {},
-      attachShadow: (): unknown => composeNode(),
-    });
-
-    expect(
-      composePanelMount({
-        document: { createElement: (): unknown => composeNode(), body: { append: (): void => {} } },
-      }),
-    ).not.toBeNull();
+    expect(composePanelMount(composeInertPage())).not.toBeNull();
   });
 
   /** The whole loop the feature is: drag it, and the next page finds it there. */
@@ -1636,16 +1558,15 @@ const RESTATING_ROW_KEYS: ReadonlySet<string> = new Set([
 describe("what a click does to the drill", () => {
   /**
    * ⚠️ **The entry health is not optional here, whatever its default says.**
-   * `composeFightStatistics` sizes the team heals against it, and without it this
-   * walk read a corpus 1 604 444 points of healing short — which is most of the
-   * drill under both healing tabs. Feeding it took the healing pairs this test
-   * opens from 140 to 330, and that is why the level below them went unread for
-   * two rounds after `healall_per` started reaching rows.
+   * `composeFightStatistics` sizes the team heals against it, and without it this walk
+   * read a corpus 1 604 444 points of healing short — which is most of the drill under
+   * both healing tabs. Feeding it took the healing pairs this test opens from 140 to
+   * 330, and that is why the level below them went unread for two rounds after
+   * `healall_per` started reaching rows.
    *
-   * That is now `composeStatisticsOfFight`'s promise rather than this function's:
-   * ten call sites decided the three arguments for themselves and four of them
-   * decided differently
-   * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F2).
+   * That is now `composeStatisticsOfFight`'s promise rather than this function's: ten
+   * call sites decided the three arguments for themselves and four of them decided
+   * differently.
    */
   function composeReadingOfCapture(fight: (typeof CAPTURED_FIGHTS)[number]): FightReading {
     return {
@@ -1716,7 +1637,7 @@ describe("what a click does to the drill", () => {
              * named — costs a gesture and answers nothing. The panel refuses that
              * one rung up in `composeCrossSection`; this is the same rule on the
              * affordance
-             * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
+             * (`docs/specs/the-panel-that-drills.md`).
              *
              * Asserted over what was drawn rather than over the metric, because the
              * shape arrives from three directions: a healing-received skill row
@@ -2094,16 +2015,15 @@ describe("the level the reader was on, and what takes it away", () => {
   });
 
   /**
-   * The third case, and the one the shelf created: a reader who is not watching
-   * the fight that is starting.
+   * The third case, and the one the shelf created: a reader who is not watching the
+   * fight that is starting.
    *
-   * Every clause of `composeStateAfterFightStart`'s argument is about somebody
-   * whose screen the new fight is about to fill. Two levels into a fight from an
-   * hour ago each one is false — the rows under them are the kept fight's, and
-   * that is where somebody asked to be
-   * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F2). Driven
-   * through the panel rather than through the reducer, because what is wrong here
-   * is where the reducer is called and an unused export typechecks.
+   * Every clause of `composeStateAfterFightStart`'s argument is about somebody whose
+   * screen the new fight is about to fill. Two levels into a fight from an hour ago
+   * each one is false — the rows under them are the kept fight's, and that is where
+   * somebody asked to be. Driven through the panel rather than through the reducer,
+   * because what is wrong here is where the reducer is called and an unused export
+   * typechecks.
    */
   test("leaves the level alone for a reader on a fight off the shelf", () => {
     const { page, getRoot } = composePageWithTree();
@@ -2177,14 +2097,12 @@ describe("the level the reader was on, and what takes it away", () => {
 /**
  * Which script on the page the build id is read from.
  *
- * ⚠️ **The loop returns the first build it finds, and the check could be
- * inverted.** `if (build !== null) return build` became `=== null` with the whole
- * gate green, which returns nothing for every page — a report with no build id at
- * all, which §7.6 says is material nobody can compare
- * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, the
- * closing round's sweep of `src/userscript-entry.ts`). A page carries several
- * scripts and only one of them is the client's bundle, so the case that matters
- * is a page where the first one is not it.
+ * ⚠️ **The loop returns the first build it finds, and the check could be inverted.**
+ * `if (build !== null) return build` became `=== null` with the whole gate green, which
+ * returns nothing for every page — a report with no build id at all, which §7.6 says is
+ * material nobody can compare. A page carries several scripts and only one of them is
+ * the client's bundle, so the case that matters is a page where the first one is not
+ * it.
  */
 describe("the build id a report carries", () => {
   const BUILD = "1786514810315";
@@ -2247,18 +2165,16 @@ describe("the browser a report names", () => {
 /**
  * The copied report, against the figures it claims to carry.
  *
- * A report is what a person attaches to a bug they are reporting, so a figure
- * missing from it is a question nobody can answer afterwards. The list below is
- * checked *both* ways: every name carries its field's number, and the fields it
- * covers are exactly the row's own — so a counter added to `CombatantStatistics`
- * and forgotten here fails the gate rather than showing up as a hole in
- * somebody's report months later.
+ * A report is what a person attaches to a bug they are reporting, so a figure missing
+ * from it is a question nobody can answer afterwards. The list below is checked *both*
+ * ways: every name carries its field's number, and the fields it covers are exactly the
+ * row's own — so a counter added to `CombatantStatistics` and forgotten here fails the
+ * gate rather than showing up as a hole in somebody's report months later.
  *
  * The names used to be Polish and are the row's own since
- * `docs/audits/2026-08-13-the-whole-tree-read-once.md` (F11), which is why the
- * map that joined them is now a list: a report key and a field name being the
- * same string is itself the thing worth holding, and it is asserted below rather
- * than assumed.
+ * an audit (F11), which is why the map that
+ * joined them is now a list: a report key and a field name being the same string is
+ * itself the thing worth holding, and it is asserted below rather than assumed.
  */
 describe("the report a reader copies", () => {
   /** Every plain number a row holds, under the name the report gives it — its own. */
@@ -2446,14 +2362,12 @@ describe("what the meter is actually told", () => {
 /**
  * The one control on the title bar that changes what is drawn.
  *
- * ⚠️ **`isCollapsed: !state.isCollapsed` — and the `!` could be dropped with the
- * whole gate green.** `tests/ui/panel-element.test.ts` holds that the button is
- * built and that pressing it calls back; what nobody held is what the mount does
- * with the callback, which is the half a reader sees. Without the negation the
- * button is drawn, is pressed, reports nothing wrong and does nothing at all —
- * §9.6's own line about a control that is worse than absent
- * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, the
- * closing round's sweep of `src/userscript-entry.ts`).
+ * ⚠️ **`isCollapsed: !state.isCollapsed` — and the `!` could be dropped with the whole
+ * gate green.** `tests/ui/panel-element.test.ts` holds that the button is built and
+ * that pressing it calls back; what nobody held is what the mount does with the
+ * callback, which is the half a reader sees. Without the negation the button is drawn,
+ * is pressed, reports nothing wrong and does nothing at all — §9.6's own line about a
+ * control that is worse than absent.
  */
 describe("collapsing the panel from the title bar", () => {
   type DrawnNode = Record<string, unknown> & {

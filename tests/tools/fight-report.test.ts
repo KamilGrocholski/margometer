@@ -122,7 +122,7 @@ describe("fight report reading block", () => {
  * The panel marks a combatant's row when something naming them could not be read
  * or a cast of theirs could not be sized, and this is where an offline reading
  * says the same thing — so a mark somebody reports can be found in the report they
- * are asked for (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ * are asked for (`docs/specs/the-ends-a-figure-names.md`).
  *
  * ⚠️ **Silent at zero, and deliberately unlike the block above.** The fight-wide
  * counts print at zero because a missing line there is indistinguishable from a
@@ -154,7 +154,7 @@ describe("fight report row readings", () => {
    * two casters carried the count between them. The reducer is declared by one of
    * theirs at the monster, so nothing of theirs was reduced and all three casts
    * are sized now
-   * (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`).
+   * (`docs/specs/sizing-a-share-onto-a-side.md`).
    *
    * Asserted as the whole list rather than dropped, because it is the tool and the
    * panel held to the same rows: a line printing here for a combatant the panel

@@ -120,16 +120,13 @@ function getTrackedSourceFiles(): string[] {
 const TRACKED_SOURCE_FILES = getTrackedSourceFiles();
 
 /**
- * The root, which the walk above skips because it asks for three directories by
- * name.
+ * The root, which the walk above skips because it asks for three directories by name.
  *
- * Asked for separately rather than by widening that call, because the root is
- * the one place the block enumerates file by file with no summarising: every
- * root file has its own entry and its own sentence, so demanding one per file is
- * holding the block to a shape it does claim. `bun.lock` had been tracked
- * without an entry for the life of this tree, and it is the file §6.1's rule
- * about the gate turns on
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F7).
+ * Asked for separately rather than by widening that call, because the root is the one
+ * place the block enumerates file by file with no summarising: every root file has its
+ * own entry and its own sentence, so demanding one per file is holding the block to a
+ * shape it does claim. `bun.lock` had been tracked without an entry for the life of
+ * this tree, and it is the file §6.1's rule about the gate turns on.
  */
 function getTrackedRootFiles(): string[] {
   return execFileSync("git", ["ls-files"], { cwd: REPOSITORY_ROOT, encoding: "utf8" })

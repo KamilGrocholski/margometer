@@ -1,20 +1,18 @@
 /**
- * What a row opens onto: the two levels below the ranking, and the card either of
- * them shows on hover.
+ * What a row opens onto: the two levels below the ranking, and the card either of them
+ * shows on hover.
  *
- * The levels first became a file when they were carved out of `panel-view.ts`
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F26); the card
- * followed them here the moment the drill became its second reader. It is the
- * same card at every level and says whose figures they are, so it belongs beside
- * the thing that decides what a level holds rather than beside the ranking that
- * shows the same card one rung up.
+ * The levels first became a file when they were carved out of `panel-view.ts`; the card
+ * followed them here the moment the drill became its second reader. It is the same card
+ * at every level and says whose figures they are, so it belongs beside the thing that
+ * decides what a level holds rather than beside the ranking that shows the same card
+ * one rung up.
  *
- * ⚠️ **A row that opens nothing is not a row that says nothing.** What no
- * announcement covered still stands in its section so the parts add up to the
- * figure above them, and under `Zadane` that row carries how many blows — which
- * is the question a plain attack raises. `docs/drill-levels.md` is the register
- * of which rows open and which do not, held both ways by
- * `tests/tools/drill-report.test.ts`.
+ * ⚠️ **A row that opens nothing is not a row that says nothing.** What no announcement
+ * covered still stands in its section so the parts add up to the figure above them, and
+ * under `Zadane` that row carries how many blows — which is the question a plain attack
+ * raises. `docs/drill-levels.md` is the register of which rows open and which do not,
+ * held both ways by `tests/tools/drill-report.test.ts`.
  *
  * **The strings are Polish and nothing else here is** (§3).
  */
@@ -320,7 +318,7 @@ function composeBreakdownList(
        * an unread message says nothing about which part of somebody's total it
        * would have moved. The combatant's own row carries it, and it carries it at
        * every level, so the reader is told once and in the place the claim is true
-       * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+       * (`docs/specs/the-ends-a-figure-names.md`).
        */
       warnings: [],
     })),
@@ -346,7 +344,7 @@ function composeBreakdownList(
  * occurrences, by opening any person it was used on. So the exemption is the
  * closing row's alone; widening it to every row carrying a count drew 31 sections
  * repeating what a click already showed
- * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
+ * (`docs/specs/the-panel-that-drills.md`).
  */
 function composeCrossSection(
   heading: string,
@@ -367,7 +365,7 @@ function composeCrossSection(
  * costs a gesture and answers nothing. Measured over the seventeen captures as
  * they stood 2026-08-19, **250 of the 250** skill rows under `Leczenie` were
  * exactly that, and 86 of 330 healing pairs
- * (`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`).
+ * (`docs/specs/the-panel-that-drills.md`).
  *
  * ⚠️ **Answered by composing what the level would hold, never by a second rule
  * about it.** A predicate written alongside `composeDeepLists` is two spellings of
@@ -404,7 +402,7 @@ function getPairCutSize(
 /**
  * The narrowing is the whole of it: under `otrzymane` the level lists the one
  * combatant already in focus, so there is never a name to add and the row is a
- * leaf. `docs/specs/2026-08-11-the-panel-that-drills.md` drew that section without
+ * leaf. `docs/specs/the-panel-that-drills.md` drew that section without
  * an arrow from the day it was specified; the code had said otherwise since.
  */
 function shouldOpenSkill(
@@ -514,14 +512,6 @@ function composeMissingEntry(metric: PanelMetric, amount: number): BreakdownEntr
 /**
  * The row that closes a section against the row above it — **on the damage
  * screens, which are now the only ones that reach it.**
- *
- * ⚠️ **It used to be keyed by all four metrics, and the two healing wordings said
- * something false.** `Nie wiadomo, czym` stood over health `heal`,
- * `legbon_holytouch_heal` and `legbon_lastheal` had named, which the panel was
- * printing in the very next section — 16 527 of one row's 32 057 points on
- * `tests/captured-fights/2026-08-17-tempest-grupa-vs-hildur.json`. Under healing
- * the section now names the key instead, so nothing is left over to close against
- * and there is no wording to decide (`composeHealingSourceEntries`).
  *
  * The type is the narrowing: a metric that is not one of these two cannot be
  * looked up here, so the day a healing residual comes back the compiler asks for
@@ -780,12 +770,11 @@ function composeSourceEntries(
           ),
         ];
 
-  // ⚠️ **Sorted once, for every screen.** The healing branch used to return before
-  // this line, so `OD CZEGO` under `Leczenie` came out in whatever order the
-  // aggregate happened to write its keys — 27 sections across the recordings held
-  // on 2026-08-21 listed a smaller figure above a larger one, which is the one
-  // thing a list of bars says without being read
-  // (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F3).
+  // ⚠️ **Sorted once, for every screen.** The healing branch used to return before this
+  // line, so `OD CZEGO` under `Leczenie` came out in whatever order the aggregate
+  // happened to write its keys — 27 sections across the recordings held on 2026-08-21
+  // listed a smaller figure above a larger one, which is the one thing a list of bars
+  // says without being read.
   return entries.sort((one, other) => other.amount - one.amount);
 }
 
@@ -797,15 +786,14 @@ const OPPONENT_HEADINGS: Record<PanelMetric, string> = {
 };
 
 /**
- * ⚠️ **One of these four cannot be drawn, and it stays anyway.** Healing given has
- * no source cut at all — the keys the game names belong to whoever received the
- * health — so `composeSourceEntries` returns an empty list for it and the heading
- * is never read (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`,
- * F7). The entry is here for the reason every table in `src/ui/panel-words.ts` is
+ * ⚠️ **One of these four cannot be drawn, and it stays anyway.** Healing given has no
+ * source cut at all — the keys the game names belong to whoever received the health —
+ * so `composeSourceEntries` returns an empty list for it and the heading is never read.
+ * The entry is here for the reason every table in `src/ui/panel-words.ts` is
  * exhaustive: the compiler asks about a fifth screen instead of letting it inherit
- * whichever wording came first. What the audit found missing was anybody saying
- * so — and `tests/ui/panel-drill.test.ts` now holds the emptiness rather than
- * leaving it to be rediscovered as a dead word.
+ * whichever wording came first. What the audit found missing was anybody saying so —
+ * and `tests/ui/panel-drill.test.ts` now holds the emptiness rather than leaving it to
+ * be rediscovered as a dead word.
  */
 const SOURCE_HEADINGS: Record<PanelMetric, string> = {
   dealt: "TYP OBRAŻEŃ",
@@ -998,7 +986,7 @@ function getSkillPairs(
  * against zero, produced no rows and no closing row either, and the level opened
  * **empty** under a row that had just promised a figure. Every self-sourced heal
  * is exactly that pair (`heal`, `legbon_holytouch_heal`, `legbon_lastheal` —
- * `docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`), and the drill could
+ * `docs/specs/the-ends-a-figure-names.md`), and the drill could
  * not open one at all.
  *
  * `healingGivenByCombatantId` is what the level above read the row's figure from,

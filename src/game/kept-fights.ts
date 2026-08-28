@@ -5,7 +5,7 @@
  * session under it (`src/game/battle-session.ts`). This is what a fight is turned
  * into so that resetting no longer means losing it, and what it turns back into
  * when somebody opens it again
- * (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`).
+ * (`docs/specs/a-fight-you-can-go-back-to.md`).
  *
  * **The inputs, never the numbers.** What is written down is what the session
  * accumulated — messages, the roster they resolve against, the side the game
@@ -99,7 +99,7 @@ export type KeptFight = {
    * payload's own messages (`src/core/combatant-health.ts`) — and the unwind is
    * only right against that payload's slice of events. Re-running it on restore
    * would unwind the whole fight at once, which
-   * `docs/specs/2026-08-26-the-game-says-the-fight-again.md` measured drifting:
+   * `docs/specs/a-fight-you-can-go-back-to.md` measured drifting:
    * the baseline moves by a point and every figure sized against it moves with
    * it. Live it is taken once and never touched again; here it is copied for the
    * same reason.
@@ -282,21 +282,19 @@ export type KeptFightsAfterKeeping = {
 /**
  * The kept fights after one more, newest first.
  *
- * The limit counts everything kept, pinned included, because it is the reader's
- * answer to *how much of my browser may this have* and a pin is not a licence to
- * spend more of it. What a pin buys is order: the oldest **unpinned** fight is
- * what goes, however new it is relative to a pinned one.
+ * The limit counts everything kept, pinned included, because it is the reader's answer
+ * to *how much of my browser may this have* and a pin is not a licence to spend more of
+ * it. What a pin buys is order: the oldest **unpinned** fight is what goes, however new
+ * it is relative to a pinned one.
  *
- * ⚠️ **Zero is not a case.** It had a branch of its own that emptied the list,
- * and that branch was the one limit in either rotation where a pinned fight was
- * given up — while trimming to the same zero kept it, and keeping at *one* kept
- * it: one stated rule, two functions, opposite answers
- * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F3). The loop
- * below reaches zero on its own and reaches it correctly, so the rule now holds
- * at every limit with nothing arguing an exception. What it costs is that a
- * refusal at zero hands back an unpinned list unchanged rather than emptied —
- * which is what a refusal means everywhere else in this file, and what the one
- * caller does with it either way is nothing (`src/userscript-entry.ts`).
+ * ⚠️ **Zero is not a case.** It had a branch of its own that emptied the list, and that
+ * branch was the one limit in either rotation where a pinned fight was given up — while
+ * trimming to the same zero kept it, and keeping at *one* kept it: one stated rule, two
+ * functions, opposite answers. The loop below reaches zero on its own and reaches it
+ * correctly, so the rule now holds at every limit with nothing arguing an exception.
+ * What it costs is that a refusal at zero hands back an unpinned list unchanged rather
+ * than emptied — which is what a refusal means everywhere else in this file, and what
+ * the one caller does with it either way is nothing (`src/userscript-entry.ts`).
  */
 export function composeKeptFightsAfterKeeping(
   kept: readonly KeptFight[],

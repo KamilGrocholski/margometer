@@ -1,46 +1,43 @@
 /**
  * Whether a test lights up when the thing it covers breaks.
  *
- * §3 asks this of every **new** test and the commits record the answer. Nothing
- * asks it of the ones already here, and a green gate cannot: a test that cannot
- * fail passes exactly like a test that holds something. §7.5 has the receipts —
- * twice a mutation lit nothing, and twice the answer was to delete code rather
- * than to add a test.
+ * §3 asks this of every **new** test and the commits record the answer. Nothing asks it
+ * of the ones already here, and a green gate cannot: a test that cannot fail passes
+ * exactly like a test that holds something. §7.5 has the receipts — twice a mutation
+ * lit nothing, and twice the answer was to delete code rather than to add a test.
  *
- * So: change one character of meaning, run the gate, and see whether anything
- * goes red. A change nothing notices is a finding, and it is one of two — either
- * the behaviour is untested, or the code is inert. Which of the two is a
- * person's reading, not this tool's.
+ * So: change one character of meaning, run the gate, and see whether anything goes red.
+ * A change nothing notices is a finding, and it is one of two — either the behaviour is
+ * untested, or the code is inert. Which of the two is a person's reading, not this
+ * tool's.
  *
- * **What it does to the working tree, and what protects it.** Mutants are
- * written into the real files, because `bun test` reads the real files. The
- * original is held in memory and written back after every single run — §7.5's
- * rule, and the reason it exists: `git checkout` would take whatever
- * uncommitted work was in the file. On top of that the sweep refuses to start
- * against a dirty tree, so the only thing it can ever be holding is a commit.
+ * **What it does to the working tree, and what protects it.** Mutants are written into
+ * the real files, because `bun test` reads the real files. The original is held in
+ * memory and written back after every single run — §7.5's rule, and the reason it
+ * exists: `git checkout` would take whatever uncommitted work was in the file. On top
+ * of that the sweep refuses to start against a dirty tree, so the only thing it can
+ * ever be holding is a commit.
  *
- * ⚠️ **A mutant the compiler refuses is not a survivor, and this used to report
- * it as one.** What runs per mutant is `bun test`, and a string inside a type
- * union or a `kind` in a typed literal changes no behaviour a test could see — so
- * every one of them came back alive. The old reason for leaving `tsc` out was
- * that "a typecheck per mutant would cost more than the run", which is measured
- * and false: 2.1 s against 5.4 s at `af3f1ec`
- * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F3).
+ * ⚠️ **A mutant the compiler refuses is not a survivor, and this used to report it as
+ * one.** What runs per mutant is `bun test`, and a string inside a type union or a
+ * `kind` in a typed literal changes no behaviour a test could see — so every one of
+ * them came back alive. The old reason for leaving `tsc` out was that "a typecheck per
+ * mutant would cost more than the run", which is measured and false: 2.1 s against 5.4
+ * s at `af3f1ec`.
  *
- * So the typecheck runs, and it runs **only on a mutant that survived the tests**
- * — a minority of any sweep — which is what makes it nearly free: the kills stay
- * exactly as fast as they were. What the compiler refuses is reported apart from
- * the survivors and counted with the kills, because the gate is what refused it.
- * Reading a survivor list is then reading a list of gaps, which is what it always
- * claimed to be: 14 of `src/core/battle-event.ts`'s 24 and every one of
- * `src/core/fight-decoder.ts`'s 15 were the compiler's, and both files are
- * otherwise held.
+ * So the typecheck runs, and it runs **only on a mutant that survived the tests** — a
+ * minority of any sweep — which is what makes it nearly free: the kills stay exactly as
+ * fast as they were. What the compiler refuses is reported apart from the survivors and
+ * counted with the kills, because the gate is what refused it. Reading a survivor list
+ * is then reading a list of gaps, which is what it always claimed to be: 14 of
+ * `src/core/battle-event.ts`'s 24 and every one of `src/core/fight-decoder.ts`'s 15
+ * were the compiler's, and both files are otherwise held.
  *
  * ⚠️ **A mutant killed only by a guard of shape is barely killed.**
- * `tests/tools/source-layout.test.ts` and its neighbours read source as text, so
- * they fail on changes no behaviour depends on. Reported apart from the rest,
- * because a guard agreeing with the bug it was written to prevent is the failure
- * §7.5 names, and counting those as kills would let this tool make the same one.
+ * `tests/tools/source-layout.test.ts` and its neighbours read source as text, so they
+ * fail on changes no behaviour depends on. Reported apart from the rest, because a
+ * guard agreeing with the bug it was written to prevent is the failure §7.5 names, and
+ * counting those as kills would let this tool make the same one.
  */
 
 import { spawnSync } from "node:child_process";
@@ -85,7 +82,7 @@ const RUN_TIMEOUT_MILLISECONDS = 120_000;
 export type Mutation = {
   file: string;
   offset: number;
-  /** One-based, because a finding names a file and a line (§7.7). */
+  /** One-based, because a finding names a file and a line. */
   line: number;
   before: string;
   after: string;
@@ -97,22 +94,19 @@ export type MutationOutcome = {
   /**
    * Whether the gate went red, or **null where the gate never finished**.
    *
-   * The verdict comes from the exit status alone, and a run with no exit status
-   * has no verdict to give: `spawnSync` answers `status: null` on a timeout, and
-   * `null !== 0` reads as red, which reads as killed. A mutant that hangs the
-   * suite was therefore reported as a kill — silently, in the direction that
-   * costs, because the value of the report is its survivors
-   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F14). Three states,
-   * so the three counts add up to the number of mutants and nobody has to guess
-   * where the difference went.
+   * The verdict comes from the exit status alone, and a run with no exit status has no
+   * verdict to give: `spawnSync` answers `status: null` on a timeout, and `null !== 0`
+   * reads as red, which reads as killed. A mutant that hangs the suite was therefore
+   * reported as a kill — silently, in the direction that costs, because the value of
+   * the report is its survivors. Three states, so the three counts add up to the number
+   * of mutants and nobody has to guess where the difference went.
    *
-   * ⚠️ **It used to be `killedBy.length > 0`, and that made the parser the
-   * judge.** The comment beside the runner has always said "the status decides
-   * and the names only describe" — for a mutant that stops the suite loading at
-   * all, there is no failure line to read. Deriving the verdict from the names
-   * said the opposite, so the day the runner changed its failure marker every
-   * kill in every report became a survivor: a tool for finding tests that cannot
-   * fail, reporting that none of them can.
+   * ⚠️ **It used to be `killedBy.length > 0`, and that made the parser the judge.** The
+   * comment beside the runner has always said "the status decides and the names only
+   * describe" — for a mutant that stops the suite loading at all, there is no failure
+   * line to read. Deriving the verdict from the names said the opposite, so the day the
+   * runner changed its failure marker every kill in every report became a survivor: a
+   * tool for finding tests that cannot fail, reporting that none of them can.
    */
   isKilled: boolean | null;
   /** Test files that failed, where the output could be read. Descriptive only. */
@@ -160,23 +154,21 @@ type Rule =
 type Found = { offset: number; before: string };
 
 /**
- * Every operator is matched between whitespace, and that is the whole of how
- * this stays out of trouble: the tree is formatted, so a binary operator has
- * whitespace either side and `+=`, `++` and `a[-1]` do not. Reading the bare
- * character would mutate all three into something that does not parse, and an
- * unparseable mutant is killed by everything while proving nothing.
+ * Every operator is matched between whitespace, and that is the whole of how this stays
+ * out of trouble: the tree is formatted, so a binary operator has whitespace either
+ * side and `+=`, `++` and `a[-1]` do not. Reading the bare character would mutate all
+ * three into something that does not parse, and an unparseable mutant is killed by
+ * everything while proving nothing.
  *
- * ⚠️ **Whitespace and not a literal space, and that was worth seventeen
- * mutants.** The rules used to be written as ` && ` — a space on each side —
- * which is not how a condition spanning several lines is spelled: the operator
- * ends the line, and the character after it is a newline. So every multi-line
- * boolean in this repository was invisible to the sweep, silently, and those are
- * the most logic-dense expressions there are. Found by the guard written to hold
- * the convention this comment claims
- * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F15).
+ * ⚠️ **Whitespace and not a literal space, and that was worth seventeen mutants.** The
+ * rules used to be written as ` && ` — a space on each side — which is not how a
+ * condition spanning several lines is spelled: the operator ends the line, and the
+ * character after it is a newline. So every multi-line boolean in this repository was
+ * invisible to the sweep, silently, and those are the most logic-dense expressions
+ * there are. Found by the guard written to hold the convention this comment claims.
  *
- * The fences are read and never replaced: the operator alone goes, and the
- * whitespace the tree already had stays where it was.
+ * The fences are read and never replaced: the operator alone goes, and the whitespace
+ * the tree already had stays where it was.
  */
 const RULES: Rule[] = [
   { operator: "comparison", kind: "spaced", before: ">", after: ">=" },
@@ -501,17 +493,15 @@ const TIMEOUT_CODE = "ETIMEDOUT";
 /**
  * Whether a spawn that failed is one mutant's doing or the machine's.
  *
- * ⚠️ **`spawnSync` puts both in one field, and the two are opposites.** A runner
- * that cannot be started is true of every run that follows; a runner that ran too
- * long is true of the one mutant that hung it, and the next would have run.
- * Reading the second as the first cost a whole sweep of
- * `src/game/kept-fights.ts`: its 180th mutant flips the filter in the one
- * unbounded loop in the file, the suite ran to the two-minute limit, and the
- * throw unwound past the point where the report is written — so 179 finished
- * mutants, roughly 28 minutes of `bun test`, reached nothing. `composeMutations`
- * is deterministic and that mutant is last, so every future run reached 179/180
- * and threw again
- * (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F4).
+ * ⚠️ **`spawnSync` puts both in one field, and the two are opposites.** A runner that
+ * cannot be started is true of every run that follows; a runner that ran too long is
+ * true of the one mutant that hung it, and the next would have run. Reading the second
+ * as the first cost a whole sweep of `src/game/kept-fights.ts`: its 180th mutant flips
+ * the filter in the one unbounded loop in the file, the suite ran to the two-minute
+ * limit, and the throw unwound past the point where the report is written — so 179
+ * finished mutants, roughly 28 minutes of `bun test`, reached nothing.
+ * `composeMutations` is deterministic and that mutant is last, so every future run
+ * reached 179/180 and threw again.
  */
 export function isTimeoutFailure(error: unknown): boolean {
   return getRecordFromValue(error)?.["code"] === TIMEOUT_CODE;
@@ -598,19 +588,16 @@ function isShapeOnlyKill(run: GateOutcome): boolean {
 }
 
 /**
- * ⚠️ **A sweep against a tree that is already red reports every mutant killed.**
- * A kill here is "the suite went red with the mutant in", and a suite that was
- * red without it goes red with it too — so a single unrelated failure turns the
- * whole run into a green report saying every test can fail. Paid for on a
- * detached worktree whose scratch commit tripped `todo-commits.test.ts`: every
- * mutant of three files came back killed, one of them a mutation that had just
- * been watched surviving by hand
- * (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, the closing round's
- * re-measurement).
+ * ⚠️ **A sweep against a tree that is already red reports every mutant killed.** A kill
+ * here is "the suite went red with the mutant in", and a suite that was red without it
+ * goes red with it too — so a single unrelated failure turns the whole run into a green
+ * report saying every test can fail. Paid for on a detached worktree whose scratch
+ * commit tripped `todo-commits.test.ts`: every mutant of three files came back killed,
+ * one of them a mutation that had just been watched surviving by hand.
  *
- * One run before the first mutant, which is nothing beside the hundreds that
- * follow. The clean-tree check above cannot see this: a tree with no changes in
- * it can still be one whose suite does not pass.
+ * One run before the first mutant, which is nothing beside the hundreds that follow.
+ * The clean-tree check above cannot see this: a tree with no changes in it can still be
+ * one whose suite does not pass.
  */
 function assertGateIsGreen(): void {
   const outcome = getGateOutcome(false);
@@ -697,11 +684,10 @@ function getMutationOutcomesOfFile(file: string): MutationOutcome[] {
 /**
  * Where a mutant sits on its line, one-based.
  *
- * A survivor used to name a line and an operator, and `src/ui/panel-view.ts`
- * carries `if (!isCharged(id)) continue;` twice — one held, one not — so the
- * report named a place a reader could not find
- * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F3). The
- * offset was there all along; only the printing stopped short of it.
+ * A survivor used to name a line and an operator, and `src/ui/panel-view.ts` carries
+ * `if (!isCharged(id)) continue;` twice — one held, one not — so the report named a
+ * place a reader could not find. The offset was there all along; only the printing
+ * stopped short of it.
  */
 function getColumnOfMutation(mutation: Mutation): number {
   const source = readFileSync(REPOSITORY_ROOT + mutation.file, "utf8");
@@ -731,12 +717,11 @@ function writeSweepReport(outcomes: MutationOutcome[]): void {
 
   console.log();
   for (const [file, forFile] of byFile) {
-    // ⚠️ **`isKilled`, not `killedBy.length`.** This line counted survivors from
-    // the parsed output while the totals below counted them from the exit
-    // status, so a mutant that stopped the suite loading — red, with no failure
-    // line to read — was a kill in one half of the report and a survivor in the
-    // other. The file's own docblock records paying for exactly this once
-    // already (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F13).
+    // ⚠️ **`isKilled`, not `killedBy.length`.** This line counted survivors from the
+    // parsed output while the totals below counted them from the exit status, so a
+    // mutant that stopped the suite loading — red, with no failure line to read — was a
+    // kill in one half of the report and a survivor in the other. The file's own
+    // docblock records paying for exactly this once already.
     const alive = forFile.filter(
       (outcome) => outcome.isKilled === false && !outcome.isRefusedByCompiler,
     ).length;

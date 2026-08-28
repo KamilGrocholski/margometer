@@ -1,26 +1,25 @@
 /**
  * ⚠️ **Every string below is ours, and that is the point of them.**
  *
- * The docblock here used to say so while the strings were the client's own
- * composed sentences, copied out verbatim — one of them a whole sentence with
- * its full stop (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`,
- * F1). §5 keeps the operator's writing out of this repository in any form and
- * `NOTICE.md` promises a reader that it is out, so a claim to that effect had to
- * become true rather than stay written down.
+ * The docblock here used to say so while the strings were the client's own composed
+ * sentences, copied out verbatim — one of them a whole sentence with its full stop. §5
+ * keeps the operator's writing out of this repository in any form and `NOTICE.md`
+ * promises a reader that it is out, so a claim to that effect had to become true rather
+ * than stay written down.
  *
  * **What is quoted is the shape, and the shape is all this file reads.**
- * `getLabelFromEntry` looks at four things and no others: a leading sign, a
- * `%…%` hole, a trailing full stop, and surrounding space. Every one of those is
- * the client's template syntax, quoted verbatim and dated — production build
- * `1785244275300`, where `_t` composes from `__translations` — and none of them
- * is prose. The words between them are passed through untouched, so an English
- * placeholder exercises the same branches a Polish sentence would.
+ * `getLabelFromEntry` looks at four things and no others: a leading sign, a `%…%` hole,
+ * a trailing full stop, and surrounding space. Every one of those is the client's
+ * template syntax, quoted verbatim and dated — production build `1785244275300`, where
+ * `_t` composes from `__translations` — and none of them is prose. The words between
+ * them are passed through untouched, so an English placeholder exercises the same
+ * branches a Polish sentence would.
  *
- * That is the line §7.5 draws from the other side, too. Its rule is that a test
- * parsing somebody else's output holds a transcript of it rather than a sample
- * somebody typed — and the output this parses is the punctuation, which is
- * transcribed. Inventing the *hole* would be the fault that rule names; keeping
- * the sentence around it is the fault §5 names.
+ * That is the line §7.5 draws from the other side, too. Its rule is that a test parsing
+ * somebody else's output holds a transcript of it rather than a sample somebody typed —
+ * and the output this parses is the punctuation, which is transcribed. Inventing the
+ * *hole* would be the fault that rule names; keeping the sentence around it is the
+ * fault §5 names.
  */
 
 import { describe, expect, test } from "bun:test";

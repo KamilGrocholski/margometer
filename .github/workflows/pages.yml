@@ -9,7 +9,7 @@
 #
 # ⚠️ **The trigger is still `main`, and `main` no longer means what it did.** It
 # is the latest release now, advanced only when a version is tagged, with the
-# work on `develop` (docs/specs/2026-08-18-main-is-what-you-can-install.md). So
+# work on `develop` (docs/specs/what-a-release-shows.md). So
 # what this publishes is the panel a visitor can actually install, which is what
 # README.md's "See it before you install it" offers them. It used to publish the
 # tip of development, and the offer was true only if you did not read the next

@@ -33,7 +33,7 @@ the tab, wherever it was dragged to and whether it was minimized — none of whi
 a reload keeps here, see the storage gotcha below. The page fetches
 `/payloads?fight=<name>` and feeds it; the fight left behind goes onto the shelf,
 exactly as it would in game
-(`docs/specs/2026-08-27-picking-a-capture-keeps-the-panel.md`). A published page
+(`docs/specs/a-fight-you-can-go-back-to.md`). A published page
 has no process to ask and still navigates.
 
 The address is the whole of the state:
@@ -131,9 +131,8 @@ nothing outside the shadow root can see those.
   string that a `file://` page used to produce, which was a real bug and is fixed.
 - **Nothing the add-on stores outlives the page.** The harness installs its own
   store over `localStorage` and `sessionStorage` before the bundle runs, so a
-  visitor to the published preview is not left holding somebody's demo fight
-  (`docs/audits/2026-08-26-the-whole-tree-read-a-fifth-time.md`, F7) — and every
-  reload therefore starts at the default corner, expanded, with the shelf empty.
+  visitor to the published preview is not left holding somebody's demo fight — and
+  every reload therefore starts at the default corner, expanded, with the shelf empty.
   *"The position survived a reload"* is **not** testable on this page; drive
   `getStoreFromPage` directly, or read the key back inside the one document. What
   does survive is a pick, which no longer reloads.

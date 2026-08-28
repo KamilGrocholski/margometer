@@ -120,7 +120,7 @@ function writeRow(label: string, row: CombatantStatistics): void {
 
 /**
  * What the panel would mark this row for, said where the row is
- * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+ * (`docs/specs/the-ends-a-figure-names.md`).
  *
  * ⚠️ **Printed only where there is something to print, which is the opposite of
  * the block below.** That one states both counts at zero, because a report silent

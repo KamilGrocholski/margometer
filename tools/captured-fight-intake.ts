@@ -304,21 +304,19 @@ export function composeIntakeText(dump: unknown): {
 }
 
 /**
- * What a recording already says it has had redacted, for the counts this run adds
- * to.
+ * What a recording already says it has had redacted, for the counts this run adds to.
  *
- * ⚠️ **Absent and unreadable are different, and only one of them is zero.** A
- * first intake carries no such count and zero is the right reading. A count
- * stored as text, as a fraction, as anything the reader refuses is a recording
- * this tool does not understand — and `(getIntegerFromValue(…) ?? 0)` read it as
- * zero and wrote that back into the file, stating that the earlier redaction had
- * substituted nothing. §9.2 makes this the one place in the repository where a
- * wrong number is written **onto the evidence** rather than merely computed from
- * it, and §9.5's table says a default that makes the number look right is never
- * the answer (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F19).
+ * ⚠️ **Absent and unreadable are different, and only one of them is zero.** A first
+ * intake carries no such count and zero is the right reading. A count stored as text,
+ * as a fraction, as anything the reader refuses is a recording this tool does not
+ * understand — and `(getIntegerFromValue(…) ?? 0)` read it as zero and wrote that back
+ * into the file, stating that the earlier redaction had substituted nothing. §9.2 makes
+ * this the one place in the repository where a wrong number is written **onto the
+ * evidence** rather than merely computed from it, and §9.5's table says a default that
+ * makes the number look right is never the answer.
  *
- * A tool refuses bad material loudly rather than reading half of it (§9.5), so
- * the unreadable case throws and the absent one does not.
+ * A tool refuses bad material loudly rather than reading half of it (§9.5), so the
+ * unreadable case throws and the absent one does not.
  */
 function getCarriedCount(header: Record<string, unknown>, field: string): number {
   const carried = header[field];

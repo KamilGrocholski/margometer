@@ -5,10 +5,9 @@
  * §9.7 is the whole of why both halves are here. A raw hex in a rule is a bug,
  * and text on a coloured bar has to clear WCAG contrast by measurement rather
  * than by eye — so the values have to live somewhere a test can reach, and the
- * rules that spend them have to reach nothing else. Keeping the two apart made
- * that a promise across a module boundary; keeping them together makes it a
- * promise a reader can check by scrolling, and `tests/tools/source-layout.test.ts`
- * still holds it by refusing a colour literal anywhere else in `src/ui/`.
+ * rules that spend them have to reach nothing else. Both here, so a reader checks
+ * it by scrolling; `tests/tools/source-layout.test.ts` holds it by refusing a
+ * colour literal anywhere else in `src/ui/`.
  *
  * Dark-first, because the panel sits over a dark game and is never asked to be
  * anything else.
@@ -179,11 +178,10 @@ export const PANEL_TOKENS = {
   /**
    * Pure black, and only ever as a mask.
    *
-   * A `mask-image` reads alpha and throws the hue away, so this is not a colour
-   * anybody sees — it is the opaque end of a gradient. Named anyway, because §9.7
-   * says a raw hex in a rule is a bug and an exception nobody can see the edge of
-   * is how the next one gets written
-   * (`docs/audits/2026-08-14-the-whole-tree-read-again.md`, F25).
+   * A `mask-image` reads alpha and throws the hue away, so this is not a colour anybody
+   * sees — it is the opaque end of a gradient. Named anyway, because §9.7 says a raw
+   * hex in a rule is a bug and an exception nobody can see the edge of is how the next
+   * one gets written.
    */
   maskInk: "#000000",
   /**
@@ -297,34 +295,31 @@ export function composeColourOver(top: string, bottom: string, alpha: number): s
 /**
  * Dark ink or light, whichever reads better on that colour.
  *
- * Computed rather than tabulated, because a table drifts silently the first time
- * a colour changes — and this is an accessibility floor, not a taste. One badge
- * comes out light among dark ones and that is the price of the floor: at the
- * hunter's green even pure black clears only 4.25, so no single ink works for
- * all six professions.
+ * Computed rather than tabulated, because a table drifts silently the first time a
+ * colour changes — and this is an accessibility floor, not a taste. One badge comes out
+ * light among dark ones and that is the price of the floor: at the hunter's green even
+ * pure black clears only 4.25, so no single ink works for all six professions.
  *
  * ⚠️ **Asserted rather than defaulted, and the two nulls are why.** This read
- * `getContrastRatio(…) ?? 0` on both sides. `getContrastRatio` answers null when
- * a colour is unreadable and the function above argues for that null against a
- * throw — but this caller reported nothing: both nulls became `0`, `0 >= 0` is
- * true, and a colour nobody could measure shipped dark ink as confidently as one
- * that was measured. §9.3's "unknown is loud, never zero" and §9.5's last table
- * row both name that substitution as the failure this project exists to prevent,
- * and it was sitting in the one function that decides whether a label can be read
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F5).
+ * `getContrastRatio(…) ?? 0` on both sides. `getContrastRatio` answers null when a
+ * colour is unreadable and the function above argues for that null against a throw —
+ * but this caller reported nothing: both nulls became `0`, `0 >= 0` is true, and a
+ * colour nobody could measure shipped dark ink as confidently as one that was measured.
+ * §9.3's "unknown is loud, never zero" and §9.5's last table row both name that
+ * substitution as the failure this project exists to prevent, and it was sitting in the
+ * one function that decides whether a label can be read.
  *
- * An assertion and not an error class, because of **who produced the value**
- * (§9.5). Every colour reaching here is one of ours: the caller passes
- * `getProfessionColour`'s answer, which is `PROFESSION_COLOURS` or
- * `UNKNOWN_COLOUR`, both declared in this file. A null means a token here is
- * malformed, which nobody can handle and which the tests below already measure —
- * so it is a broken invariant, not a domain failure, and it gets no `code`.
+ * An assertion and not an error class, because of **who produced the value** (§9.5).
+ * Every colour reaching here is one of ours: the caller passes `getProfessionColour`'s
+ * answer, which is `PROFESSION_COLOURS` or `UNKNOWN_COLOUR`, both declared in this
+ * file. A null means a token here is malformed, which nobody can handle and which the
+ * tests below already measure — so it is a broken invariant, not a domain failure, and
+ * it gets no `code`.
  *
- * Safe to throw from despite §9.6, because the panel's isolation is structural
- * rather than a habit: `renderRegionInto` catches per region, so this becomes the
- * marker that says one region could not be drawn while the rest of the panel
- * stands. A badge whose ink was never measured is exactly what that marker is
- * for.
+ * Safe to throw from despite §9.6, because the panel's isolation is structural rather
+ * than a habit: `renderRegionInto` catches per region, so this becomes the marker that
+ * says one region could not be drawn while the rest of the panel stands. A badge whose
+ * ink was never measured is exactly what that marker is for.
  */
 export function getProfessionInk(colour: string): string {
   const invariant = "the ink and the badge colour are both readable";

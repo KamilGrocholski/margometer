@@ -191,17 +191,6 @@ export type CombatantStatistics = {
    * that row is made of therefore has nothing to read, and no arithmetic recovers
    * the split.
    *
-   * ⚠️ **Empty on every recording, and kept anyway.** It held 109 113 points on
-   * `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json` until the
-   * three keys the help calls the healed combatant's own started saying so
-   * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). What can still
-   * land here is an unannounced `heal_target` — the protocol can send one and the
-   * corpus has never carried one — and, more to the point, any healing key nobody
-   * has read yet. A field that goes quiet because the readings improved is not a
-   * field that stopped being the honest answer, and emptying it into `healed`
-   * would make the panel unable to say *nobody gave this* the next time that is
-   * true.
-   *
    * Written in the same breath as `healedByHealerId` and exactly where that map is
    * **not** — one reading of one event, the reasoning `healingGiven` already
    * carries — so the two partition `healed` between them and cannot drift apart.
@@ -211,16 +200,6 @@ export type CombatantStatistics = {
    * Who healed this combatant — the announcer, or the combatant themselves where
    * the key is one the help calls their own effect (§9.6).
    *
-   * ⚠️ **It used to hold a minority of the healing and now holds all of it.**
-   * Measured on `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`:
-   * 248 814 of 346 284 points restored are announced by a skill, and the other
-   * 97 470 are regeneration and the two legendary bonuses — which nothing
-   * announces and which the help says belong to the combatant they heal
-   * (`docs/specs/2026-08-19-a-heal-nobody-gave-was-their-own.md`). Both reach a
-   * healer, by different routes, so this map now sums to `healed` on every
-   * recording. That equality is asserted rather than assumed
-   * (`tests/core/fight-statistics.test.ts`): a capture that broke it would be a
-   * healing key nobody has read.
    */
   healedByHealerId: ReadonlyMap<number, number>;
   /**
@@ -291,7 +270,7 @@ export type CombatantStatistics = {
    * §9.6 puts a warning next to the figure it concerns, and for a whole release
    * the panel could only say *something in this fight was unreadable* and leave
    * the reader to guess whose totals that cost. These are what let a row say it
-   * (`docs/specs/2026-08-24-a-warning-on-the-row-it-shortens.md`).
+   * (`docs/specs/the-ends-a-figure-names.md`).
    *
    * ⚠️ **Counts of events, never of health, and that is the point of them.** The
    * first is a message this combatant was named in and nothing here could read —
@@ -891,13 +870,6 @@ export function composeFightStatistics(
           /**
            * ⚠️ **The healer is credited whether or not the recipient resolved, and
            * for one release neither was.**
-           *
-           * The condition used to demand both ends, so an announced heal reaching
-           * a name this fight could not place was filed as healing *nobody gave*.
-           * The announcement had named the giver, so that was a claim about the
-           * game that is false (§3): the panel said "nic nie zapowiedziało tego
-           * leczenia" about points something had announced, and the giver's own
-           * total was short by them with nothing on their row saying so.
            *
            * **The announcement wins where there is one, and the key answers where
            * there is not.** An announcement names a giver the protocol actually

@@ -85,12 +85,11 @@ function getDamageAmount(parameter: { key: string; value: string | null }): Dama
 /**
  * Whether a key is one of the damage family, by the client's own offset rule.
  *
- * Exported because four test files had written the offsets out by hand — two of
- * them under a comment saying this is the decoder's own shape rule, so "damage
- * key" means there what it means here, which is a sentence a shared export makes
- * true and a copy merely asserts. §7.5 has paid twice for the general version of
- * this: a rule about the *shape* of somebody else's name, copied by hand, is a
- * fuse (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F13).
+ * Exported because four test files had written the offsets out by hand — two of them
+ * under a comment saying this is the decoder's own shape rule, so "damage key" means
+ * there what it means here, which is a sentence a shared export makes true and a copy
+ * merely asserts. §7.5 has paid twice for the general version of this: a rule about the
+ * *shape* of somebody else's name, copied by hand, is a fuse.
  */
 export function isDamageKey(key: string): boolean {
   return key.slice(1, 1 + DAMAGE_MARKER.length) === DAMAGE_MARKER;
@@ -126,15 +125,14 @@ const DAMAGE_KEYS_BY_NAME = ["+thirdatt", "-thirdatt"];
 /**
  * What a message says about the combatant on a side, where it says anything.
  *
- * `parsed.actor?.combatantId ?? null` and its three siblings were written out
- * nine times in this file, once per event kind that needs them
- * (`docs/audits/2026-08-21-the-rest-of-the-code-read-for-its-smells.md`, F6) —
- * the same shape the fifth audit collapsed one module away, where two branches
- * sharing one body meant no test could tell them apart. Here the four fields are
- * read once and each kind spreads what it needs.
+ * `parsed.actor?.combatantId ?? null` and its three siblings were written out nine
+ * times in this file, once per event kind that needs them — the same shape the fifth
+ * audit collapsed one module away, where two branches sharing one body meant no test
+ * could tell them apart. Here the four fields are read once and each kind spreads what
+ * it needs.
  *
- * `null` for a side the protocol wrote as `0`, which is the protocol saying
- * *nobody*, and `null` again where the side is named and states no health.
+ * `null` for a side the protocol wrote as `0`, which is the protocol saying *nobody*,
+ * and `null` again where the side is named and states no health.
  */
 function getActorOfMessage(parsed: ProtocolMessage): {
   combatantId: number | null;
@@ -208,15 +206,14 @@ const HEALTH_PERCENT_PLACES = 2;
 type StatedName = { name: string; healthPercent: number | null };
 
 /**
- * `name` or `name(percent%)`, as far as the grammar goes — the two keys that
- * state a combatant by name both write it this way.
+ * `name` or `name(percent%)`, as far as the grammar goes — the two keys that state a
+ * combatant by name both write it this way.
  *
- * One reader because both decoders below need every refusal in it, and it was
- * written out twice with all three of the notes below on the first copy and none
- * on the second (`docs/audits/2026-08-21-the-code-read-for-its-smells.md`, F7).
- * What the two do **not** share is the splitting above this: `+oth_dmg` writes
- * the figure last and `legbon_lastheal` writes it first, which is the difference
- * their own docblocks argue. This sits below that split and knows nothing of it.
+ * One reader because both decoders below need every refusal in it, and it was written
+ * out twice with all three of the notes below on the first copy and none on the second.
+ * What the two do **not** share is the splitting above this: `+oth_dmg` writes the
+ * figure last and `legbon_lastheal` writes it first, which is the difference their own
+ * docblocks argue. This sits below that split and knows nothing of it.
  */
 function getStatedNameFromText(raw: string): StatedName | null {
   let name = raw;
@@ -336,11 +333,12 @@ function decodeHealingToNamedCombatant(
  * Health moving outside an attack: which way it goes, and which slot holds the
  * combatant it happens to.
  *
- * Both are ours to supply. The protocol states a magnitude and leaves the
- * direction to the key; measured on the captured fights, healing added and the
- * rest subtracted is the only one of the four combinations under which the
- * stated percentages close. The slot is measured too — all but `heal_target`
- * put their subject in the actor slot of a message whose target is nobody.
+ * Both are ours to supply — the protocol states a magnitude and leaves the rest
+ * to the key. Healing added and the rest subtracted is the only one of the four
+ * combinations under which the stated percentages close, and all but
+ * `heal_target` put their subject in the actor slot of a message naming nobody
+ * at the other end. Per key, that is `docs/protocol-keys.md`'s to hold; what is
+ * here is what a reader of this table needs.
  *
  * `injure` and `+injure` are different keys and only this one moves health.
  */
@@ -350,82 +348,18 @@ const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> 
   heal_target: { sign: 1, isOnTarget: true },
   poison: { sign: -1, isOnTarget: false },
   injure: { sign: -1, isOnTarget: false },
-  // The third of the deep-wound family, and the one key here that `fire` and
-  // `light`'s route could not admit. Its only material
-  // (`tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaur.json`) arrives
-  // as one engine call with no opening snapshot, so the health witness seeds
-  // nothing and judges none of it — the reading rests on the same body of
-  // evidence chained from a stated percentage instead of a snapshot, and
-  // `tests/core/wound-rule.test.ts` is where that is measured.
-  //
-  // It is **not** joined to its announcement the way `injure` is: `+wound` states
-  // no figure, and the help has this type accumulate rather than be overwritten,
-  // so no earlier message owns a tick (§9.6, `docs/protocol-keys.md`).
+  // Not joined to its announcement the way `injure` is: `+wound` states no
+  // figure, and the help has this type accumulate rather than be overwritten, so
+  // no earlier message owns a tick (§9.6).
   wound: { sign: -1, isOnTarget: false },
-  // Elemental damage over time, and the client writes it as `poison`'s twin:
-  // production build 1786514810315 composes both from the actor slot, both split
-  // on the separator below, and the same bundle counts `fire` into its own damage
-  // sum (`updateStat("damage-fire", …)`).
   fire: { sign: -1, isOnTarget: false },
-  // The third of that branch, and it waited here as a comment until material
-  // arrived. Read on the same evidence `fire` was: the witness disagreed on the
-  // engine calls carrying it and on nothing else, and reading it closed every one
-  // of them with no disagreement introduced anywhere
-  // (`tests/core/health-witness.test.ts`, on
-  // `tests/captured-fights/2026-08-23-tempest-grupa-vs-hildur.json`, which brought
-  // 27 of them). `frost` is the fourth of the branch and no recording carries one,
-  // so it stays unread and loud rather than read on the symmetry (§3).
   light: { sign: -1, isOnTarget: false },
-  // The legendary bonus **Krwawa udręka**, which the help gives as bleeding
-  // damage laid on the target of a blow and spread over five turns, firing only
-  // where the blow met no evade, `arrowblock` or `parry` (article `view,372`,
-  // engine name `anguish`, read 2026-08-25). Written as `poison`'s twin —
-  // production build `1786514810315` composes it from the actor slot off
-  // `c.tmpHpp` and splits the value on the same separator.
-  //
-  // Measured rather than taken on the symmetry: on
-  // `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` all
-  // eleven ticks state 184 against a pool of 43 092, and each moves the stated
-  // percentage down by 0.42 to 0.43 points — which is what 184 of that pool
-  // comes to. `tests/core/anguish-rule.test.ts` re-earns it.
-  //
-  // It is **not** joined to its announcement the way `injure` is, and for
-  // `+wound`'s reason: `+legbon_anguish` states no figure, so nothing identifies
-  // which application a tick belongs to (§9.6, `docs/protocol-keys.md`).
+  // `+legbon_anguish` announces the application and states no figure, so nothing
+  // identifies which one a tick belongs to — `wound`'s case, not `injure`'s.
   anguish: { sign: -1, isOnTarget: false },
-  // A monster restoring its own health, and the one key in this table whose slot
-  // was settled by the client before the captures confirmed it. Production build
-  // `1786514810315` composes `msg_heal_target %target% %val%` from `c.name`,
-  // where `heal_target` one branch above composes the same sentence from
-  // `d.name` — and `heal` above uses `c.name` too, which is the actor slot this
-  // table already reads it in. The help is silent on the key and on the mechanic.
-  //
-  // The captures agree through the arithmetic: on
-  // `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` the two
-  // occurrences stating 1724 each raise the actor's stated percentage by exactly
-  // 4.00 points of a 43 092 pool, and the third states 0 and moves nothing
-  // (`tests/core/npc-heal-rule.test.ts`).
   npc_heal: { sign: 1, isOnTarget: false },
-  // A player restoring a share of their own pool, announced under the name of
-  // whichever ability carries the effect. The slot is the client's answer rather
-  // than a symmetry: production build `53XkBRxF` composes
-  // `msg_aura-bandage %val% %name%` from `_.name`, the variable `heal`'s branch
-  // in the same switch uses, and `heal` is read in the actor slot above. It
-  // splits its value on the same separator, with a
-  // `msg_aura-bandage-multi %val% %val2%` branch for two members.
-  //
-  // The help gives the effect behind it as the active `bandage_per`, restoring a
-  // part of the Character's own pool and reducible by `lowheal_per-enemies`
-  // (article `view,372`, engine name `bandage_per`, read 2026-08-26).
-  //
-  // Measured rather than taken on the family: the one occurrence
-  // (`tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json`) states 2488
-  // against a pool of 15 553 and raises its subject's stated percentage from
-  // 36.84 to 52.83 — 15.99 points, which is what 2488 of that pool comes to.
-  // `tests/core/bandage-rule.test.ts` re-earns it.
   bandage: { sign: 1, isOnTarget: false },
 };
-
 /**
  * This family may state a second figure after the health one, and the client
  * splits on it too — `injure`, `poison` and `heal` each compose a different
@@ -482,66 +416,25 @@ const PROC_KEYS = [
   "-legbon_cleanse",
   "-tenacity",
   "-evade",
-  // Both settled the same way as the twelve above, on production build
-  // 1786514810315: `msg_+fastarrow` and `msg_-contra` are composed with no
-  // `%val%` hole, against the `msg_-blok %val%` branch in the same switch. The
-  // captures agree — neither ever arrives carrying a value.
   "+fastarrow",
   "-contra",
-  // The sibling `+legbon_curse` was recorded as the one a later capture would
-  // arrive carrying, and it has. Settled the same way as the twelve above, on
-  // production build 1786514810315: `msg_-legbon_glare` is composed with no
-  // `%val%` hole, and the help documents it as an event rather than a figure —
-  // the holder, on taking a hit, costs the opponent their next action (article
-  // view,372, engine name `glare`, read 2026-08-12).
   "-legbon_glare",
-  // Settled the same way, on production build 1786514810315: `msg_-pierceb` is
-  // composed with no `%val%` hole. It is the one proc here that belongs to the
-  // **defence** — the help gives it as an event that can only occur after
-  // `+pierce` has, and that switches off the effects that event triggers
-  // (article view,372, engine name `pierceb`, read 2026-08-09). All three
-  // occurrences carry `+pierce` in the same message.
+  // The one proc here that belongs to the defence rather than the blow: the help
+  // has it occur only after `+pierce` has, and all three occurrences carry
+  // `+pierce` in the same message.
   "-pierceb",
-  // The announcement of the deep wound whose ticks `HEALTH_CHANGE_KEYS` now
-  // reads, and a proc rather than a declaration because it states nothing:
-  // production build 1786514810315 composes `msg_+wound` with no `%val%` hole, on
-  // the switch that composes `msg_+injure` with one. That is why the two announcements
-  // sit in different lists — `+injure` carries the figure that identifies which
-  // wound is ticking, and this one has none to carry.
+  // The deep wound's announcement, and a proc rather than a declaration because
+  // it states nothing. That is why it and `+injure` sit in different lists —
+  // `+injure` carries the figure that identifies which wound is ticking.
   "+wound",
-  // The monster's stun, in the arrow-shaped one of the five variants the client
-  // knows (`+stun2`, `-c`, `-d`, `-f`, `-l`). Composed as `msg_+stun2-d` with no
-  // `%val%`, on the same switch as `+stun` and `+acdmg_destroyed`, production
-  // build 1786514810315. The help documents the effect under the engine name
-  // `stun2` — a monster's statistic deciding the chance of the event, fired while
-  // the monster attacks, costing the Player two turns (article view,372, read
-  // 2026-08-24). The captures agree: all four ride a blow of the monster's, and a
-  // message saying the player lost a turn follows each.
   "+stun2-d",
-  // The bare member of that same family of five, and read on the entry above's
-  // evidence plus its own: production build `1786514810315` composes `msg_+stun2`
-  // with no `%val%`, on the identical switch. All four occurrences
-  // (`tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json`) ride a
-  // blow the monster deals into a player, and each is followed by a message
-  // saying that player lost a turn — the same agreement `+stun2-d` was read on.
   "+stun2",
-  // The frost-shaped member of the same family of five, read on the two above's
-  // evidence and one of its own. Production build `53XkBRxF` composes
-  // `msg_+stun2-c` with no `%val%`, on the switch that composes `msg_+stun2` and
-  // `msg_+stun2-d` the same way. Which of the five it is comes from the
-  // development build `1781609507010`, which keeps the rendered sentence in a
-  // comment beside each branch: production cannot confirm that half, because the
-  // wording is not in the bundle at all — the client fetches it (§7.6).
-  //
-  // The captures agree about whose event it is and cannot speak to the element:
-  // all four occurrences ride a blow of the monster's into a player and a message
-  // saying that player lost a turn follows within the same call, but every one of
-  // that monster's 23 blows carries `+dmgc`
-  // (`tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon.json`), so the
-  // material cannot tell a frost-shaped stun from any other.
+  // Which of the family's five this is comes from the development build, which
+  // keeps the rendered sentence beside each branch; production cannot confirm
+  // that half, because the wording is not in the bundle at all (§7.6). The
+  // captures agree about whose event it is and cannot speak to the element.
   "+stun2-c",
 ];
-
 /**
  * The two halves of a skill announcement, read together because neither is the
  * whole of it: the name is what the player sees, the id is what the game calls
@@ -612,35 +505,19 @@ const SKILL_DECLARATION_KEYS = [
   "aura-sa_per",
   "mana",
   "energy",
-  // Settled long before there was a slot for them, and by the same argument:
-  // both state what the announced skill will spend or destroy, and what that
-  // comes to arrives later as ordinary figures.
   "active_absorbdest_per",
   "combo-max",
-  // A share the aura will add to melee damage. Same argument as the rest: what
-  // it comes to arrives later as ordinary damage, already applied.
   "aura-adddmg2_per-meele",
-  // The force of a critical hit, raised for the whole party — physical by the
-  // first and magical by the second. Points added to a multiplier, not damage:
-  // what they come to arrives inside the damage figures of later blows, already
-  // multiplied, which is the same argument the auras above are read under.
   "critval-allies",
   "critmval-allies",
   /**
-   * The share by which the opposing side's active-skill healing is reduced. Read
-   * here for the same reason as the rest — it states an input, and what it comes
-   * to arrives inside the reduced healing figures the other side later reports.
-   *
-   * ⚠️ **Adding this key here is what `composeSizedTeamHeals` reads to refuse a
-   * fight, and moving it out of that list would switch the refusal off in
-   * silence.** The gate used to find the key among an `unknown-message`'s unread
-   * keys; that is exactly the state this line ends. It now reads the declaration,
-   * so the two are coupled: this entry is load-bearing for
-   * `src/core/combatant-health.ts` and not only for the panel's warning.
+   * ⚠️ **This entry is load-bearing for `src/core/combatant-health.ts`, not only
+   * for the panel's warning.** `composeSizedTeamHeals` reads this list to refuse
+   * a fight declaring the key, so moving it out would switch that refusal off in
+   * silence.
    */
   "lowheal_per-enemies",
 ];
-
 /**
  * The two an announcement states **without** a figure.
  *
@@ -657,27 +534,14 @@ const SKILL_DECLARATION_KEYS = [
 const VALUELESS_SKILL_DECLARATION_KEYS = [
   "+spell-taken_dmg-all",
   "en-regen-cast",
-  /**
-   * Three cleanses an announced ability performs on its own side, and the help
-   * states of each that it carries no figure: `removeslow-allies` takes the
-   * slow-over-time effects off every member of the party, `removestun-allies` the
-   * stuns, and both are published with *no variable* (article view,372 at the
-   * engine names, read 2026-08-25). `removedot-allies` the article does not
-   * mention at all — searched for the stem `removedot`, which counts zero — so
-   * what places it here is the client alone: production build `53XkBRxF`
-   * composes all three with no `%val%` hole, the first two through their own
-   * branches and the third through one it shares with `removedot` and
-   * `removestun`, passing no parameters at all.
-   *
-   * What they undo is an effect, never a figure. Nothing they remove was ever
-   * counted here — a slow and a stun are turns, which nothing here counts (§10),
-   * and the damage a cleansed tick would have done is damage that never arrives.
-   */
+  // Three cleanses an announced ability performs on its own side. What they undo
+  // is an effect, never a figure: nothing they remove was ever counted here — a
+  // slow and a stun are turns, which nothing here counts (§10), and the damage a
+  // cleansed tick would have done is damage that never arrives.
   "removeslow-allies",
   "removestun-allies",
   "removedot-allies",
 ];
-
 /**
  * What a blow declares about itself.
  *
@@ -698,80 +562,29 @@ const VALUELESS_SKILL_DECLARATION_KEYS = [
 const BLOW_DECLARATION_KEYS = [
   "-poison_lowdmg_per",
   "+injure",
-  // Outcomes rather than inputs, and read for the other half of the rule: energy
-  // and attack speed are units no total here keeps, so neither can shorten one.
-  // Both ride a critical hit in every occurrence the captures carry.
   "+engback",
   "+critslow_per",
-  // Energy again, and taken rather than given back: the help documents `endest`
-  // as destroying a fixed number of the opponent's energy points (article
-  // view,372, read 2026-08-12), and production build 1786514810315 composes it
-  // as `msg_-endest %val%`. Energy is a unit no total here keeps.
   "-endest",
-  // Neither states health: measured, every occurrence either sits on a message
-  // where both sides state a percentage the decoded damage reproduces exactly, or
-  // on a call the team heal makes uncomparable. What `-legbon_facade` counts is
-  // still unknown — what is settled is that it is not health.
+  // What `-legbon_facade` counts is still unknown; what is settled is that it is
+  // not health.
   "-legbon_facade",
   "+critpoison_per",
-  // Four more shares a blow states about itself, each composed by production
-  // build 1786514810315 as a figure (`msg_+critsa %val%`, `msg_-legbon_critred
-  // %val%`, `msg_+legbon_puncture %val%`, `eng_game_only_val_+crush %val%`) and
-  // each stating an input to damage the keys beside it already carry.
   "+critsa",
   "-legbon_critred",
   "+legbon_puncture",
   "+crush_physical",
-  // Rage, which the help documents as a buff raising physical damage by 10% for a
-  // number of turns after a critical hit (article view,372 at the engine name
-  // `rage`, read 2026-08-09). Production build 1786514810315 composes it as
-  // `msg_+rage %val%`, an attack figure — an input to the damage the `dmg` keys
-  // beside it already report, and in a unit no total here keeps.
   "+rage",
   /**
-   * ⚠️ **The one that shares a name with a figure this meter does total.**
-   * `-absorbm` beside it is damage a defence stopped and goes to `prevented`;
-   * this one is the absorption **pool being refilled**, which is not damage, not
-   * a prevention and not a statistic destroyed. Adding it to the key it looks
-   * like would count points of absorption as points of damage.
+   * ⚠️ **The two that share a name with a figure this meter does total.**
+   * `-absorbm` and `-absorb` are damage a defence stopped and go to `prevented`;
+   * these are the absorption **pool being refilled**. Adding either to the key it
+   * looks like would count points of absorption as points of damage.
    *
-   * The two builds say different amounts and both are cited, because only one of
-   * them names it. Production build `1786514810315` — the one that decides —
-   * gives the branch the same shape as its neighbours: appends to a log slot,
-   * assigns nothing, interpolates one figure. Development build `1781609507010`
-   * carries a comment beside that branch naming the effect as a renewal of
-   * magical absorption, which is where the reading above comes from and is why
-   * this line says which build it came off (§7.6).
-   *
-   * The help documents no such renewal. Article view,372, read 2026-08-22: every
-   * absorption name it prints — `absorb`, `absorbd`, `absorbm`, and the passives
-   * `absorb_per`, `absorbm_per`, `active_absorbdest_per`, `redabdest_per` — is a
-   * statistic or an effect on one, and the only movement of a pool it describes
-   * is downward, by what the pool just stopped. So whose pool refilled is not
-   * settled, and a declaration is exactly the verdict for a figure that is
-   * understood, in a unit no total here keeps, and attributable to nobody (§10).
+   * Whose pool refilled is not settled — the message names an attacker and an
+   * absorbing combatant and states which of them gained nowhere — so the verdict
+   * rests on the unit: points of absorption are a unit no total here keeps.
    */
   "+absorbm",
-  /**
-   * ⚠️ **The physical twin of the key above, and the same trap.** `-absorb` two
-   * segments away is damage absorption stopped and reaches `prevented`; this one
-   * is the pool being restored, so adding it to the key it looks like would count
-   * points of absorption as points of damage.
-   *
-   * Production build `53XkBRxF` composes it as `msg_+absorb %val%`, in the
-   * attacker's log slot, immediately beside `+absorbm` and with the identical
-   * shape, as `1786514810315` did before it. Development build `1781609507010` names the effect on that branch as a
-   * renewal of absorption, which is where the reading comes from (§7.6).
-   *
-   * The help documents the effect the two report, which the entry for `+absorbm`
-   * had recorded as undocumented: `absagain_per` restores a share of absorption,
-   * physical and magical, after a landed attack, capped at the pool the fight was
-   * entered with (article view,372 at the engine name `absagain_per`, read
-   * 2026-08-25). What that leaves undecided is the same thing as before — the
-   * message names an attacker and an absorbing combatant and states which of them
-   * gained nowhere — so the verdict rests where `+absorbm`'s does, on the unit:
-   * points of absorption are a unit no total here keeps.
-   */
   "+absorb",
   /**
    * ⚠️ **The one that looks like damage and is not.** `+taken_dmg` rides every
@@ -936,25 +749,15 @@ const STANDALONE_DECLARATION_KEYS = [
   "txt",
   "+exp",
   "poison_lowdmg_per-enemies",
-  // Energy regained, stated on its own and in a unit no total here keeps.
   "en-regen",
-  // What the winner of a duel is paid, in a currency held outside the fight: the
-  // help gives it a section of its own (view,372 at the heading "Punkty
-  // Honoru", read 2026-08-12) and the client composes it as `msg_+ph %val%`, production build
-  // 1786514810315. It states no side, which is why it belongs here.
   "+ph",
-  // Health restored by a talisman **after the fight has ended**, which is the
-  // third shape a declaration takes here and the only one that is in a unit
-  // this meter does keep — see `DeclaredEffect`. Three sources agree and the
-  // last of them is our own: the help gives it as `hp restored = min(afterheal,
-  // hp start - hp current)` under talismans acting after the battle (article
-  // view,372, engine name `afterheal`, read 2026-08-09); production build
-  // 1786514810315 composes `msg_afterheal %name% %val%`; and every occurrence
-  // arrives after `winner`/`loser` with the recipients' health unmoved in the
-  // payload's own snapshots, each of them well below their maximum.
+  // The third shape a declaration takes here and the only one in a unit this
+  // meter does keep — see `DeclaredEffect`. Health restored by a talisman
+  // **after the fight has ended**: every occurrence arrives after
+  // `winner`/`loser` with the recipients' health unmoved in the payload's own
+  // snapshots, each of them well below their maximum.
   "afterheal",
 ];
-
 /**
  * The one declaration whose value is a combatant's name rather than a figure:
  * `shout` states who the skill forces its targets to attack.

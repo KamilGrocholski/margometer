@@ -1,17 +1,15 @@
 /**
  * The layer that decides which side is ours, held directly.
  *
- * It had no test of its own until an audit went looking
- * (`docs/audits/2026-08-13-the-whole-tree-read-once.md`, F1) — six exports named
- * by nothing, reached only through `battle-session.test.ts`, which exercises
- * them as a dependency and therefore cannot say which of them broke.
+ * It had no test of its own until an audit went looking — six exports named by nothing,
+ * reached only through `battle-session.test.ts`, which exercises them as a dependency
+ * and therefore cannot say which of them broke.
  *
  * Two things here are contracts rather than behaviour. `composeMergedCombatants`
- * returns the **same array reference** when a fragment adds nothing, and the
- * session skips re-reading the fight on that identity — a comment said so and
- * nothing held it. And `getOurSideFromBattle` is the single thing `core` cannot
- * know (§10, *side*): null is a real answer, and a wrong one puts every row
- * under the wrong heading.
+ * returns the **same array reference** when a fragment adds nothing, and the session
+ * skips re-reading the fight on that identity — a comment said so and nothing held it.
+ * And `getOurSideFromBattle` is the single thing `core` cannot know (§10, *side*): null
+ * is a real answer, and a wrong one puts every row under the wrong heading.
  */
 
 import { describe, expect, test } from "bun:test";
@@ -110,7 +108,7 @@ describe("the warriors a battle states", () => {
   /**
    * ⚠️ **Three of the four identity fields were carried and never tested.**
    * `hasStatedCombatant` asks whether *any* of them is stated, and every test
-   * here reached it through `name` — so `bun tools/mutation-sweep.ts` could
+   * here reached it through `name` — so a mutation sweep could
    * replace `"team"`, `"prof"` or `"lvl"` in that list and nothing anywhere went
    * red. The list looked like four claims about the game and was one.
    *

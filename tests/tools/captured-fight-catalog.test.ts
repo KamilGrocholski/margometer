@@ -23,17 +23,16 @@ test("the capture directory holds material", () => {
 /**
  * The field names the parser owns, against the files themselves.
  *
- * They are the recordings' own Polish names (§9.2) and they are now spelled in
- * one place because a second speller had drifted into existence
- * (`docs/audits/2026-08-19-the-whole-tree-read-a-fourth-time.md`, F6). Spelling
- * them once is only safe while they are the names on disk, and nothing else asks
- * the disk — the parser refuses a file that lacks them, but a name changed on
- * *both* sides of a rename would make it refuse every recording rather than
- * quietly read none, and this says which of the two happened.
+ * They are the recordings' own Polish names (§9.2) and they are now spelled in one
+ * place because a second speller had drifted into existence. Spelling them once is only
+ * safe while they are the names on disk, and nothing else asks the disk — the parser
+ * refuses a file that lacks them, but a name changed on *both* sides of a rename would
+ * make it refuse every recording rather than quietly read none, and this says which of
+ * the two happened.
  *
- * ⚠️ **The names are written out here on purpose.** Reading them from the same
- * constant would agree with any rename, which is the shape §9.3 asks about before
- * a duplicate spelling in a test is collapsed.
+ * ⚠️ **The names are written out here on purpose.** Reading them from the same constant
+ * would agree with any rename, which is the shape §9.3 asks about before a duplicate
+ * spelling in a test is collapsed.
  */
 const CAPTURED_FIGHTS_DIRECTORY = new URL("../captured-fights/", import.meta.url).pathname;
 

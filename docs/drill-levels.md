@@ -2,7 +2,7 @@
 
 Every kind of row the panel draws below the ranking, and whether pressing it
 opens anything. The decision behind the verdicts is
-`docs/specs/2026-08-19-a-row-opens-only-what-it-does-not-say.md`; this is the
+`docs/specs/the-panel-that-drills.md`; this is the
 whole of what it comes to, case by case.
 
 **Read off the panel, not written from memory**, and held by
@@ -117,7 +117,7 @@ would name the reader back to themselves.
 reason it is bolded above. The level under it is narrowed to the combatant the row
 was entered from, so it can only ever hold one row bearing the reader's own name
 and the figure they pressed. Not sometimes: never, by construction — which is
-what `docs/specs/2026-08-11-the-panel-that-drills.md` drew from the day it was
+what `docs/specs/the-panel-that-drills.md` drew from the day it was
 specified, without an arrow.
 
 ## Where a closing row goes instead
@@ -147,6 +147,6 @@ allows are absent from all of them, so no verdict is claimed:
 | a missing actor — `Nieznany sprawca` | `Leczenie`, in the section the level is about |
 | a deep level short of the entry it was opened from | the `KOMU — …` sections, as a `missing end` row |
 
-Each is drawn by a hand-built fight in `tests/ui/panel-view.test.ts` and by
-`docs/half-named-figures.md`, which is the register for the half-named shapes
-themselves. None of them opens anything: a row naming nobody has nobody to open.
+Each is drawn by a hand-built fight in `tests/ui/panel-view.test.ts`, which is
+also where the half-named shapes themselves are held. None of them opens
+anything: a row naming nobody has nobody to open.

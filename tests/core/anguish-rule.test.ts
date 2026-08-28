@@ -26,8 +26,7 @@
  *
  * The other thing the witness cannot see is that the ticks arrive **half-named**
  * at all — one end stated, the other nobody — which is what puts them on the
- * panel's `Nieznany sprawca` row rather than in a combatant's ranking
- * (`docs/half-named-figures.md`).
+ * panel's `Nieznany sprawca` row rather than in a combatant's ranking.
  */
 
 import { describe, expect, test } from "bun:test";

@@ -27,7 +27,7 @@
  * nothing in this file assumes a quota. What a browser will take is not
  * knowable — it differs by engine, by profile and by how much the origin already
  * holds — so the write *is* the measurement, and the caller is told plainly
- * whether it landed (`docs/specs/2026-08-26-a-fight-you-can-go-back-to.md`).
+ * whether it landed (`docs/specs/a-fight-you-can-go-back-to.md`).
  */
 
 /**

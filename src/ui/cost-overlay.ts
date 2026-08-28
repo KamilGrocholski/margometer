@@ -1,15 +1,13 @@
 /**
  * What the add-on cost, drawn beside the panel in a development build.
  *
- * Its own host in the game's document rather than a screen inside the panel, and
- * that is structural rather than tidy: the panel speaks Polish to a player (§3),
- * every one of its screens is swept by `tests/ui/panel-view.test.ts`, and a
- * developer's table of phase names in English would have to be excused from both.
- * Outside the panel it is excused from neither — it simply is not the panel.
+ * Its own host in the game's document rather than a screen inside the panel: the
+ * panel speaks Polish to a player (§3) and every one of its screens is swept by
+ * `tests/ui/panel-view.test.ts`, both of which a developer's table of English
+ * phase names would have to be excused from. Outside the panel it is excused from
+ * neither — it simply is not the panel.
  *
- * Renders what it is handed and computes nothing (§9.1). The split between a
- * whole and its parts arrives already made, because it is the same split the
- * terminal report makes and neither gets to decide it twice.
+ * Renders what it is handed and computes nothing (§9.1).
  *
  * ⚠️ **Firefox rounds the clock to whole milliseconds, so read a small figure as
  * a bound and not a measurement.** Measured on 140.13.0esr over

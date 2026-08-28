@@ -2,11 +2,8 @@
  * What this repository's own history can be asked, and when it cannot be asked
  * at all.
  *
- * Three guards need the same two answers — is there history here, and is this
- * object in it — and until this file they spelled the first one twice, word for
- * word, in `tests/tools/audit-status.test.ts` and
- * `tests/tools/panel-screenshots.test.ts`. A third caller was what §7.1 asks a
- * shared module to wait for.
+ * Two guards need the same two answers — is there history here, and is this object in
+ * it — and they spelled the first one word for word until this file.
  *
  * ⚠️ **`--is-shallow-repository` is git's name and is spelled once, here.** Every
  * one of these questions is answered by an **exit status**, never by parsing what
@@ -16,8 +13,7 @@
  * `actions/checkout@v4` clones at depth 1, so on the gate there is no history to
  * ask. Every caller checks `isShallowRepository()` first and stands down rather
  * than failing — `fetch-depth: 0` was rejected, because it clones the whole of
- * `tests/captured-fights/` on every run of the gate to re-earn a handful of lines
- * (`tests/tools/audit-status.test.ts`).
+ * `tests/captured-fights/` on every run of the gate to re-earn a handful of lines.
  */
 
 import { execFileSync } from "node:child_process";

@@ -1,23 +1,21 @@
 /**
  * The arithmetic §9.7 turns on, held directly.
  *
- * `tests/ui/panel-element.test.ts` already measures every bar against WCAG AA in
- * the role it is actually drawn in, which is the check that matters to a reader.
- * What it cannot reach is what happens when a colour **cannot be measured at
- * all**, because it only ever hands this module colours that can be — and that
- * is where the defect was: `getProfessionInk` read
- * `getContrastRatio(…) ?? 0` on both sides, so two unmeasurable colours became
- * `0` and `0`, `0 >= 0` chose dark ink, and a badge nobody had measured shipped
- * as confidently as one that had been
- * (`docs/audits/2026-08-14-the-whole-tree-read-a-third-time.md`, F5).
+ * `tests/ui/panel-element.test.ts` already measures every bar against WCAG AA in the
+ * role it is actually drawn in, which is the check that matters to a reader. What it
+ * cannot reach is what happens when a colour **cannot be measured at all**, because it
+ * only ever hands this module colours that can be — and that is where the defect was:
+ * `getProfessionInk` read `getContrastRatio(…) ?? 0` on both sides, so two unmeasurable
+ * colours became `0` and `0`, `0 >= 0` chose dark ink, and a badge nobody had measured
+ * shipped as confidently as one that had been.
  *
- * §9.3 puts it in one line — unknown is loud, never zero — and §9.5's last table
- * row names the substitution as the failure this project exists to prevent. It
- * was in the one function that decides whether a label can be read.
+ * §9.3 puts it in one line — unknown is loud, never zero — and §9.5's last table row
+ * names the substitution as the failure this project exists to prevent. It was in the
+ * one function that decides whether a label can be read.
  *
- * This file is also the first test `src/ui/panel-look.ts` has had of its own,
- * which the same audit raises separately as F11. That finding names five modules
- * and this closes none of it: what is here is the surface F5 turns on.
+ * This file is also the first test `src/ui/panel-look.ts` has had of its own, which the
+ * same audit raises separately as F11. That finding names five modules and this closes
+ * none of it: what is here is the surface F5 turns on.
  */
 
 import { describe, expect, test } from "bun:test";

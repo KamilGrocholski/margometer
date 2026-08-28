@@ -130,7 +130,7 @@ is used as evidence.
   opponent.
 - `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json` — carries
   `walka`, the fight number, from the format that could hold more than one fight
-  per recording (`docs/specs/2026-08-11-capturing-a-fight-to-disk.md`).
+  per recording.
 - `tests/captured-fights/2026-08-12-experimental-tancerz-vs-wojownik.json` — the
   only fight between two players, and the only recording from `experimental`,
   whose build lags production (§7.6). The keys it brought were read the day it
@@ -150,7 +150,7 @@ is used as evidence.
   so five of the eleven land within one of their maximum. That is what caught a
   defect in the reader: one of the five landed a point *over*, and the allowance
   meant to absorb exactly that was smaller than a health point on their pool
-  (`docs/specs/2026-08-23-an-allowance-smaller-than-a-health-point.md`).
+  (`docs/specs/sizing-a-share-onto-a-side.md`).
 
 - `tests/captured-fights/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` — **the
   first recording naming no build**, which is what its build column says. The
@@ -256,7 +256,7 @@ is used as evidence.
   casters were the first rows any recording had marked. The help scopes the effect
   to the caster's opponents and all four occurrences here are declared by one of
   ours at the monster — nothing of ours was reduced, and the three casts are sized
-  (`docs/specs/2026-08-27-a-reduction-lands-on-the-other-side.md`). Two of them
+  (`docs/specs/sizing-a-share-onto-a-side.md`). Two of them
   stand alone in their engine call, which is where the twenty comparisons that
   check them against the snapshots come from.
 
