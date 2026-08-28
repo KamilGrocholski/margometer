@@ -49,7 +49,7 @@ export function getStyledClassNames(css: string): Set<string> {
  * arrive as though they were class names.
  *
  * The caller strips its own comments — what counts as one is the caller's
- * business, and `libs/source-regions.ts` already owns the answer.
+ * business, and `tests/source-regions.ts` already owns the answer.
  */
 export function getAssignedClassNames(sourceWithoutComments: string): Set<string> {
   const assigned = new Set<string>();

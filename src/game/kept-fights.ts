@@ -333,15 +333,6 @@ export function composeKeptFightsAfterPin(
   return kept.map((fight) => (fight.id === id ? { ...fight, isPinned } : fight));
 }
 
-/** The same list without one fight, and the same list where no id matches. */
-export function composeKeptFightsAfterRemoval(
-  kept: readonly KeptFight[],
-  id: string,
-): readonly KeptFight[] {
-  if (!kept.some((fight) => fight.id === id)) return kept;
-  return kept.filter((fight) => fight.id !== id);
-}
-
 /**
  * The fights as text, with every map written as pairs.
  *

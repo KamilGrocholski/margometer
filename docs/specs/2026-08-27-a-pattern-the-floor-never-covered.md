@@ -21,7 +21,7 @@ So the patterns stay. What changes is that somebody starts holding them.
 ## What is actually here
 
 Read at this commit with `getRegularExpressionRangesFromSource` from
-`libs/source-regions.ts` — the reader this repository already owns, over the
+`tests/source-regions.ts` — the reader this repository already owns, over the
 tracked TypeScript with its comments and its text literals blanked, so a path
 inside a string cannot look like a pattern. Counting them here would be a number
 a machine can compute (§5); what follows is the classification, which it cannot.
@@ -56,7 +56,7 @@ machine can see.
 
 ### A pattern that searches for structure
 
-`libs/source-regions.ts` over TypeScript, `tools/protocol-key-table.ts` over a
+`tests/source-regions.ts` over TypeScript, `tools/protocol-key-table.ts` over a
 minified bundle, `tools/help-article.ts` over fetched HTML, and the Markdown
 guards under `tests/tools/`.
 
@@ -71,7 +71,7 @@ minifier renames every local on every build, so a literal name is a dated fuse.
 What matters more than the choice is the failure mode, and both of the ones that
 run unattended are safe in the same direction. The key table throws
 `the switch has no case labels` rather than quietly shortening itself, and
-`libs/source-regions.ts` hides a span rather than inventing one. A search that
+`tests/source-regions.ts` hides a span rather than inventing one. A search that
 cannot find its subject stops; it does not answer with less.
 
 ### A pattern that is somebody else's API
@@ -83,7 +83,7 @@ would be a census nobody could re-run.
 
 ### A pattern that proves a rule about patterns
 
-`libs/source-regions.ts` reads where a `/` opens a pattern rather than divides,
+`tests/source-regions.ts` reads where a `/` opens a pattern rather than divides,
 and `tests/tools/source-layout.test.ts` runs most of the guards in this
 repository as text searches over source. Removing patterns from here would mean
 removing the guards, which is the opposite of what the question was asking for.
@@ -210,7 +210,7 @@ In the order they close.
 3. **Guard what the compiler misses**, in `tests/tools/browser-support.test.ts`
    beside the CSS and DOM halves, over `getRegularExpressionRangesFromSource`
    across `src/` and `libs/`. The reader exists and is proved by
-   `tests/libs/source-regions.test.ts`, so this is a list of refused constructs
+   `tests/source-regions.test.ts`, so this is a list of refused constructs
    and a walk, and nothing else. It is third rather than first because the
    compiler is the cheaper half and this only has to cover the remainder.
 4. **Replace the second kind**, site by site, in `src/game/game-dictionary.ts`,

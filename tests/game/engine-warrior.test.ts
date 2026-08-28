@@ -20,7 +20,7 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
-import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import { composeSourceWithoutComments } from "@/tests/source-regions.ts";
 import { getEndOfWhitespace, isWhitespaceAt } from "@/libs/text-runs.ts";
 import {
   HEALTH_CURRENT_FIELD,

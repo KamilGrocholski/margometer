@@ -7,7 +7,7 @@ import {
   getCommentRangesFromSource,
   getRegularExpressionRangesFromSource,
   getTextRangesFromSource,
-} from "@/libs/source-regions.ts";
+} from "@/tests/source-regions.ts";
 import {
   getEndOfWhitespace,
   getWordOccurrences,
@@ -41,7 +41,7 @@ const SOURCE_FILES = [...SOURCE_DIRECTORIES.flatMap(getTypeScriptFiles), "build.
  * `Number()` is banned tripped the ban. Rewording the comment would have made
  * the trap permanent — the rules would be unexplainable in the files they bind.
  *
- * The patterns themselves moved to `libs/source-regions.ts` when
+ * The patterns themselves moved to `tests/source-regions.ts` when
  * a mutation sweep became their second consumer (§7.1): it wanted the
  * spans rather than the stripped text, and two spellings of "where the comments
  * are" is exactly the drift §7.5 keeps paying for.
@@ -1747,7 +1747,7 @@ describe("the language of the strings", () => {
  * SyntaxError — the bundle never loads, so the reader sees no panel and no
  * console line of ours.
  *
- * ⚠️ **Neither reader in `libs/source-regions.ts` can answer this alone, and the
+ * ⚠️ **Neither reader in `tests/source-regions.ts` can answer this alone, and the
  * order of the two decides which way the mistake goes.** The pattern reader knows
  * nothing about text literals, so a path inside a string reads as a pattern; the
  * text reader knows nothing about patterns, so a backtick inside one opens a

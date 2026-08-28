@@ -39,7 +39,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
-import { getCommentRangesFromSource } from "@/libs/source-regions.ts";
+import { getCommentRangesFromSource } from "@/tests/source-regions.ts";
 import { composeUnwrappedProse } from "@/tests/document-lines.ts";
 import {
   getEndOfDigits,

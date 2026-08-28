@@ -18,7 +18,6 @@ import {
   composeKeptFight,
   composeKeptFightsAfterKeeping,
   composeKeptFightsAfterPin,
-  composeKeptFightsAfterRemoval,
   composeSessionFromKeptFight,
   composeStoredTextFromKeptFights,
   setKeptFightsThatFit,
@@ -168,12 +167,6 @@ describe("pinning and removing", () => {
     const held = [composeBareFight("1", true)];
     expect(composeKeptFightsAfterPin(held, "1", true)).toBe(held);
     expect(composeKeptFightsAfterPin(held, "nobody", true)).toBe(held);
-    expect(composeKeptFightsAfterRemoval(held, "nobody")).toBe(held);
-  });
-
-  test("removes one by id", () => {
-    const held = [composeBareFight("1"), composeBareFight("2")];
-    expect(composeKeptFightsAfterRemoval(held, "1").map((fight) => fight.id)).toEqual(["2"]);
   });
 });
 

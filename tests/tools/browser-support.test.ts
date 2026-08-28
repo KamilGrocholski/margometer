@@ -28,7 +28,7 @@
  *   missing row is.
  *
  * ⚠️ **The enumeration is patterns, not a parser**, the same trade
- * `libs/source-regions.ts` documents. It reads the composed stylesheet rather
+ * `tests/source-regions.ts` documents. It reads the composed stylesheet rather
  * than the source that composes it, so the tokens interpolated into it are
  * present and a property hidden behind a conditional would not be.
  */
@@ -43,7 +43,7 @@ import {
 } from "@/libs/text-runs.ts";
 import { getHeadingDepth, getTickedNames } from "@/tests/document-lines.ts";
 import { getDeclarations, getStyleRules } from "@/tests/style-rules.ts";
-import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import { composeSourceWithoutComments } from "@/tests/source-regions.ts";
 import { composePanelStyleText } from "@/src/ui/panel-look.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;

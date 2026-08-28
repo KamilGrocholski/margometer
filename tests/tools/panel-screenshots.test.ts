@@ -16,7 +16,7 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
-import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import { composeSourceWithoutComments } from "@/tests/source-regions.ts";
 import manifest from "@/package.json";
 import { getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";

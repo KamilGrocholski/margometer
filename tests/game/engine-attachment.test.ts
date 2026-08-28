@@ -12,7 +12,7 @@ import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
 import { getEndOfWordCharacters } from "@/libs/text-runs.ts";
 import { setRunningTotal } from "@/libs/running-total.ts";
-import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import { composeSourceWithoutComments } from "@/tests/source-regions.ts";
 import { type InertPage, composeInertNode, composeInertPage } from "@/tests/fake-document.ts";
 import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";

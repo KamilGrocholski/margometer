@@ -1,46 +1,37 @@
 /**
- * Every command this repository names — the scripts and the workflow steps —
- * held to not reaching the mutation sweep.
+ * Every command this repository names — the scripts and the workflow steps — and
+ * what the gate is made of.
  *
- * §6.1 says the sweep is run by hand, when the maintainer asks for it, and never
- * as the last step of a change. That rule arrived as prose and nothing held it:
- * the two places a command can be named without anybody choosing to type it —
- * `package.json`'s scripts and `.github/workflows/` — were read by no test. A
- * round that wired `tools/mutation-sweep.ts` into the gate would turn every later
- * round into a three-quarter-hour wait, with the whole tree green and nothing
- * saying why, which is the cost §6.1 was written from.
+ * §6.1 says the gate is one command so there is no version of "I ran the tests but
+ * not the build". That arrived as prose and nothing held it: the two places a
+ * command can be named without anybody choosing to type it — `package.json`'s
+ * scripts and `.github/workflows/` — were read by no test.
  *
- * The pair to `tests/tools/agent-permissions.test.ts`, and for its reason: what
- * no machine here can hold is whether somebody ran a tool, and what it can hold
- * is the place a tool has to be named to run without being asked.
+ * The pair to `tests/tools/agent-permissions.test.ts`, and for its reason: what no
+ * machine here can hold is whether somebody ran a tool, and what it can hold is the
+ * place a tool has to be named to run without being asked.
  *
  * ⚠️ **Commands, not the file's text.** A workflow here carries more comment than
- * YAML — `.github/workflows/pages.yml` spends four numbered runs on one setting —
- * so a search over the whole file would go red on a comment saying the sweep is
- * deliberately absent, which is a sentence somebody should be able to write. What
- * is read is the `run:` steps, and block scalars are read with them because
+ * YAML, so a search over the whole file would go red on a comment. What is read is
+ * the `run:` steps, and block scalars are read with them because
  * `.github/workflows/release.yml` puts most of its commands inside `run: |`. A
- * reader that stopped at the inline shape would pass that file while looking at
- * two of its steps.
+ * reader that stopped at the inline shape would pass that file while looking at two
+ * of its steps.
  *
  * ⚠️ **A workflow git does not track does not run**, so the list comes from
- * `git ls-files`: a new one written straight to disk is invisible here until it
- * is staged, which is §7.5's trap and not this guard's to solve.
+ * `git ls-files`: a new one written straight to disk is invisible here until it is
+ * staged, which is §7.5's trap and not this guard's to solve.
  */
-
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { getValueFromJsonText } from "@/libs/json.ts";
 import { getRecordFromValue } from "@/libs/record.ts";
-import { composeUnwrappedProse } from "@/tests/document-lines.ts";
 
 const REPOSITORY_ROOT = new URL("../../", import.meta.url).pathname;
 
 const WORKFLOWS_DIRECTORY = ".github/workflows";
 
-/** The tool §6.1 keeps out of both surfaces, named as a command would name it. */
-const SWEEP_NAME = "mutation-sweep";
 
 /**
  * Read the way §9.5 requires rather than with a cast: `package.json` is a file on
@@ -186,37 +177,5 @@ describe("§6.1's gate", () => {
   test("is typecheck, tests and build, and nothing else", () => {
     const gate = SCRIPTS["check"] ?? "";
     expect(gate.split("&&").map((link) => link.trim())).toEqual(GATE_LINKS);
-  });
-});
-
-describe("the sweep is reached by hand or not at all", () => {
-  test.each(Object.entries(SCRIPTS))("the `%s` script does not run it", (name, command) => {
-    expect(command.includes(SWEEP_NAME), name).toBe(false);
-  });
-
-  test.each(WORKFLOW_FILES)("%s does not run it", (file) => {
-    const commands = COMMANDS_BY_WORKFLOW.get(file) ?? [];
-    expect(
-      commands.filter((command) => command.includes(SWEEP_NAME)),
-      file,
-    ).toEqual([]);
-  });
-
-  /**
-   * The guard and the rule, held together — `agent-permissions.test.ts`'s last
-   * pair. A guard with no rule behind it is a check somebody will read as
-   * arbitrary and drop; a rule with no guard behind it is what §6.1 was for two
-   * commits, and what this file exists to end.
-   */
-  test("and the rules say so in words", () => {
-    const rules = readFileSync(REPOSITORY_ROOT + "AGENTS.md", "utf8");
-    expect(rules).toContain("**The mutation sweep is not part of validating a round.**");
-  });
-
-  test("and they say where it is run instead", () => {
-    const rules = composeUnwrappedProse(readFileSync(REPOSITORY_ROOT + "AGENTS.md", "utf8"));
-    expect(rules).toContain(
-      "is run by hand, when the maintainer asks for it, and never as the last step of a change.",
-    );
   });
 });

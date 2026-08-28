@@ -17,7 +17,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { assertDefined } from "@/libs/assert.ts";
-import { composeSourceWithoutComments } from "@/libs/source-regions.ts";
+import { composeSourceWithoutComments } from "@/tests/source-regions.ts";
 import { getPartsSeparatedByWhitespace } from "@/libs/text-runs.ts";
 import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
 import { getAttributeValues } from "@/tests/markup-parts.ts";

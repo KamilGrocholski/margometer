@@ -4,7 +4,7 @@
  *
  * ⚠️ **Twelve of its twenty-five mutants survived**, which is what a module
  * exercised only through its callers looks like: `tests/tools/source-layout.test.ts`
- * asks it for source with the comments gone and `tools/mutation-sweep.ts` asks it
+ * asks it for source with the comments gone and a mutation sweep asks it
  * for the spans, and both go on passing while the spans move by a character. A
  * comment range that starts one character early takes the code before it with it;
  * one that ends early leaves prose where a guard reads code, and the guard then
@@ -23,7 +23,7 @@ import {
   getCommentRangesFromSource,
   getRegularExpressionRangesFromSource,
   getTextRangesFromSource,
-} from "@/libs/source-regions.ts";
+} from "@/tests/source-regions.ts";
 
 describe("where the comments are", () => {
   test("a block comment is the whole of it, markers included", () => {

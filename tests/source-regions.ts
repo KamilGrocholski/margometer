@@ -6,7 +6,7 @@
  * module at its second consumer. `tests/tools/source-layout.test.ts` wants the
  * source with its comments gone, because every guard it runs is a text search
  * and a comment is the one place a banned construct legitimately appears.
- * `tools/mutation-sweep.ts` wants the spans themselves — a mutation inside a
+ * a mutation sweep wants the spans themselves — a mutation inside a
  * comment survives every test that will ever be written, so it is noise in a
  * report whose whole value is its survivors.
  *
@@ -231,7 +231,7 @@ export function getTextRangesFromSource(source: string): SourceRange[] {
  * or the start of a statement, it opens a pattern.
  *
  * Added at one caller rather than two, which §9.5 admits for a function inside a
- * module that already exists: `tests/tools/mutation-sweep.test.ts` asks whether
+ * module that already exists: its own test asks whether
  * the tree spells its operators the way the sweep reads them, and the sweep's
  * own rule table spells `===` and `&&` **inside patterns**, where they are data.
  * Without this the guard reported the file that defines the convention as the
