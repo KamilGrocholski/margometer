@@ -7,14 +7,20 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { BATTLE_EVENT_KINDS } from "@/src/core/battle-event.ts";
-import { decodeFightMessage } from "@/src/core/fight-decoder.ts";
-import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
+import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import {
+    getRecordedCombatants,
+    getRecordedPayloads,
+    getRecordingPaths,
+} from "@/tests/recorded-fight.ts";
 
 Deno.test("every variant the union holds is produced by the recordings", () => {
     const produced = new Set<string>();
     for (const path of getRecordingPaths()) {
-        for (const message of getRecordedMessages(path)) {
-            for (const event of decodeFightMessage(message)) produced.add(event.kind);
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        for (const payload of getRecordedPayloads(path)) {
+            for (const event of decodeFightMessages(payload, roster)) produced.add(event.kind);
         }
     }
     const listed: readonly string[] = BATTLE_EVENT_KINDS;

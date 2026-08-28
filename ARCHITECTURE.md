@@ -13,9 +13,10 @@ Three layers of claim live in this file and they are kept apart on purpose:
 
 **This is a rewrite in progress.** At this commit the repository holds documents, evidence,
 generated registers and the lower half of `core/`: the error base, the message grammar, the roster,
-the data contract, the decoder's first step, which reads the damage family, and the health
-arithmetic. Nothing reads the game yet, nothing is aggregated and nothing is drawn. The v1
-implementation remains readable in this repository's history on `develop`
+the data contract, four decoder steps — the damage family, the keys that move health outside a blow,
+the announcements the client glues to the message after them, and damage stated against a name — and
+the health arithmetic. Nothing reads the game yet, nothing is aggregated and nothing is drawn. The
+v1 implementation remains readable in this repository's history on `develop`
 (`git show develop:src/core/fight-decoder.ts`), and is not the thing being described here.
 
 ```
@@ -253,9 +254,9 @@ Where the tree does not yet meet what this file states. Each is migration work, 
 commit that opens or closes one.
 
 1. **`core/` is half written.** The error base, the message grammar, the roster, the data contract,
-   the decoder's damage step and the health arithmetic exist. The decoder reads one family of keys
-   and names every other key unread; the statistics, everything under `game/` and `ui/`, the entry
-   point and `tools/` are not written at all.
+   four decoder steps and the health arithmetic exist. The decoder resolves a stated name through
+   the roster it is handed and names every other key unread. The statistics, everything under
+   `game/` and `ui/`, the entry point and `tools/` are not written at all.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

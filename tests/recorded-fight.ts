@@ -93,6 +93,22 @@ export function getRecordedHealthReadings(path: string): RecordedHealth[] {
     return readings;
 }
 
+/** One list per call the engine made, which is the unit an announcement is glued inside. */
+export function getRecordedPayloads(path: string): string[][] {
+    const payloads: string[][] = [];
+    for (const entry of getRecordedEntries(path)) {
+        const carried = entry.komunikaty;
+        assert(Array.isArray(carried), `${path} states the messages an entry carried`);
+        const messages: string[] = [];
+        for (const message of carried) {
+            assert(typeof message === "string", `${path} carries a message as text`);
+            messages.push(message);
+        }
+        payloads.push(messages);
+    }
+    return payloads;
+}
+
 function getRecordedCombatant(snapshot: unknown, path: string): Combatant {
     assert(isRecord(snapshot), `${path} states a combatant as a record`);
     const health = snapshot.hp;

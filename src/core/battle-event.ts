@@ -3,7 +3,6 @@
  * means is `docs/protocol-keys.md`.
  */
 
-/** The element is the client's own token: the key with its sign taken off. */
 export interface DamageFigure {
     element: string;
     amount: number;
@@ -21,6 +20,25 @@ export interface DestroyedStatistic {
     amount: number;
 }
 
+/** The client renders the pair as one action; that both name one actor is our condition. */
+export interface AnnouncedSkill {
+    skillName: string;
+    skillId: number | null;
+    /** Carried, because the message it rides may be about somebody else. */
+    actorId: number | null;
+}
+
+export interface SkillUsedEvent {
+    kind: "skill-used";
+    actorId: number | null;
+    targetId: number | null;
+    actorHealthPercent: number | null;
+    targetHealthPercent: number | null;
+    skillName: string;
+    /** Null where the announcement carried none, which is why the name is what this is built on. */
+    skillId: number | null;
+}
+
 export interface AttackEvent {
     kind: "attack";
     actorId: number | null;
@@ -35,6 +53,46 @@ export interface AttackEvent {
     destroyed: DestroyedStatistic[];
     /** Fired alongside the blow, stating no figure at all. Nothing totals them. */
     procs: string[];
+    announced: AnnouncedSkill | null;
+}
+
+/**
+ * Stated beside a figure and counted by no total here: an input, another unit, or outside the
+ * fight. Read, never totalled.
+ */
+export interface DeclaredEffect {
+    effect: string;
+    amount: number | null;
+    text: string | null;
+}
+
+/** Health that moved outside a blow. Who caused it is not in the message, only the key is. */
+export interface HealthChangeEvent {
+    kind: "health-change";
+    combatantId: number | null;
+    /** Signed: health restored is positive, health lost is negative. */
+    amount: number;
+    healthPercent: number | null;
+    /** The protocol key as written, which is the whole of what the message says about a cause. */
+    source: string;
+    declared: DeclaredEffect[];
+    /** The only place a giver can come from: the key states who was healed, never who did it. */
+    announced: AnnouncedSkill | null;
+}
+
+/**
+ * Damage the protocol reports against a **name**, beside an attack aimed at somebody else. It
+ * has already been reduced: there is no second figure the way raw and applied pair up.
+ */
+export interface DamageToNamedCombatantEvent {
+    kind: "damage-to-named-combatant";
+    actorId: number | null;
+    targetName: string;
+    /** Whom that name belongs to, once a roster could say — null on every way it could not. */
+    targetId: number | null;
+    targetHealthPercent: number | null;
+    damage: DamageFigure;
+    announced: AnnouncedSkill | null;
 }
 
 /** A message this decoder did not read, so a panel can say which total may be short. */
@@ -48,10 +106,18 @@ export interface UnknownMessageEvent {
     combatantIds: readonly number[];
 }
 
-export type BattleEvent = AttackEvent | UnknownMessageEvent;
+export type BattleEvent =
+    | AttackEvent
+    | DamageToNamedCombatantEvent
+    | HealthChangeEvent
+    | SkillUsedEvent
+    | UnknownMessageEvent;
 
 /** Kept as a value because a guard iterates it; `satisfies` is what stops it drifting. */
 export const BATTLE_EVENT_KINDS = [
     "attack",
+    "damage-to-named-combatant",
+    "health-change",
+    "skill-used",
     "unknown-message",
 ] as const satisfies readonly BattleEvent["kind"][];
