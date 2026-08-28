@@ -56,6 +56,7 @@ src/
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
     panel-look.ts        The panel's tokens, and the ink a figure over a bar takes.
+    panel-reading.ts     One screen's worth of a fight: the rows, in the order drawn.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
@@ -87,6 +88,7 @@ tests/
     unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
   ui/
     panel-look.test.ts        Contrast by arithmetic, over every pairing the panel draws.
+    panel-reading.test.ts     A screen of a real fight, through every layer under it.
     panel-words.test.ts       What the words must never say, and how Polish counts.
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
@@ -287,8 +289,8 @@ commit that opens or closes one.
    One key in `captures/` is still unread and says so: `healall_per`, which cannot be sized onto a
    side without the health each member entered the fight with — gap 11. **Who gave healing, and
    which attacker a tick belongs to, are not read**; each is a rule that arrives with its own ADR.
-   The panel itself, the entry point and `tools/` are not written at all: `ui/` holds its tokens and
-   its words, and nothing that draws.
+   The panel itself, the entry point and `tools/` are not written at all: `ui/` holds its tokens,
+   its words and the reading a screen is drawn from, and nothing that draws.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

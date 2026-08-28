@@ -24,6 +24,11 @@ export interface CombatantFigures {
 
 export interface FightStatistics {
     byCombatantId: ReadonlyMap<number, CombatantFigures>;
+    /**
+     * The fight's own sums. Here rather than left to a panel, because adding one row's figure to
+     * another's is a statistic across combatants and the panel draws rather than aggregates.
+     */
+    totals: CombatantFigures;
     /** Applied damage the protocol tied to no actor, and to no target. */
     dealtByNobody: number;
     takenByNobody: number;
@@ -143,6 +148,21 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
     assert(figures.healthRestored >= event.amount, "a total only grows by what it was handed");
 }
 
+function composeTotals(build: StatisticsBuild): CombatantFigures {
+    const totals = composeCombatantFigures();
+    for (const figures of build.byCombatantId.values()) {
+        totals.damageDealtRaw += figures.damageDealtRaw;
+        totals.damageDealtApplied += figures.damageDealtApplied;
+        totals.damageTakenRaw += figures.damageTakenRaw;
+        totals.damageTakenApplied += figures.damageTakenApplied;
+        totals.damagePrevented += figures.damagePrevented;
+        totals.healthRestored += figures.healthRestored;
+    }
+    assert(totals.damageDealtApplied >= 0, "a total of applied damage never falls below nothing");
+    assert(totals.healthRestored >= 0, "and neither does a total of health restored");
+    return totals;
+}
+
 /**
  * Applied damage is stated once and lands twice — on whoever dealt it and on whoever took it —
  * so the two sides must come out equal, with what the log tied to nobody standing in on either.
@@ -179,6 +199,7 @@ export function composeFightStatistics(events: readonly BattleEvent[]): FightSta
     assert(getAppliedBalance(build) === 0, "every point applied is counted once at each end");
     return {
         byCombatantId: build.byCombatantId,
+        totals: composeTotals(build),
         dealtByNobody: build.dealtByNobody,
         takenByNobody: build.takenByNobody,
         unreadMessages: build.unreadMessages,
