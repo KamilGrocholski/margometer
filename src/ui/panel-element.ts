@@ -18,10 +18,17 @@ export interface PanelDocument {
     createElement(tag: string): PanelElement;
 }
 
+/** What a delegated listener is handed. The target is where the press landed, or nobody. */
+export interface PanelEvent {
+    target: { getAttribute(name: string): string | null } | null;
+}
+
 export interface PanelElement {
     className: string;
     textContent: string;
     append(child: PanelElement): void;
+    /** One listener at the root, never one per row. */
+    addEventListener(type: string, handle: (event: PanelEvent) => void): void;
     /** How a redrawn panel takes the place of the one before it, rather than stacking on it. */
     replaceWith(other: PanelElement): void;
     setAttribute(name: string, value: string): void;
@@ -48,6 +55,8 @@ const TAB_CLASS = "tab";
 const TAB_CURRENT_CLASS = "tab tab-current";
 const TAB_CURRENT_MARK = "• ";
 const SCREEN_ATTRIBUTE = "data-screen";
+/** What the panel listens for: a press, not a click, so a drag never counts as one. */
+const PRESS_EVENT = "pointerdown";
 const UNDRAWN_CLASS = "undrawn";
 const EMPTY_CLASS = "empty";
 const PINNED_CLASS = "pinned";
@@ -158,13 +167,24 @@ function composeRegion(
     }
 }
 
-/** The host, its shadow root, and the two regions inside it. Nothing is drawn twice. */
-export function composePanelElement(
+/** The panel on the page, and the way to put a new reading into the one that is already there. */
+export interface PanelHandle {
+    element: PanelElement;
+    show(reading: PanelReading, current: PanelMetric): void;
+}
+
+/**
+ * The host is built once and stays. Only the regions inside it are replaced, so the listener at
+ * the root outlives every redraw and a press during one is not swallowed.
+ *
+ * The press is read off the pressed element's own attribute, which is what makes one listener
+ * enough: no row and no tab ever carries a handler of its own.
+ */
+export function composePanelHost(
     document: PanelDocument,
-    reading: PanelReading,
-    current: PanelMetric,
+    handlePress: (screen: string) => void,
     handleFailure: (failure: unknown) => void,
-): PanelElement {
+): PanelHandle {
     const host = document.createElement("div");
     assert(HOST_NAME.startsWith("MargoMeter-"), "the host is named as ours before anything else");
     host.setAttribute("id", HOST_NAME);
@@ -174,19 +194,35 @@ export function composePanelElement(
         bar.textContent = PANEL_WORDS.title;
         return bar;
     }, handleFailure);
-    const tabs = composeRegion(
-        document,
-        () => composeTabsElement(document, current),
-        handleFailure,
-    );
-    const body = composeRegion(
-        document,
-        () => composeBodyElement(document, reading),
-        handleFailure,
-    );
+    let tabs = composeElement(document, "div", TABS_CLASS);
+    let body = composeElement(document, "div", BODY_CLASS);
     root.append(title);
     root.append(tabs);
     root.append(body);
+    host.addEventListener(PRESS_EVENT, (event) => {
+        const screen = event.target?.getAttribute(SCREEN_ATTRIBUTE) ?? null;
+        if (screen === null) return;
+        handlePress(screen);
+    });
     assert(host.className === "", "the host wears no class of the game's making");
-    return host;
+    return {
+        element: host,
+        show(reading: PanelReading, current: PanelMetric): void {
+            const nextTabs = composeRegion(
+                document,
+                () => composeTabsElement(document, current),
+                handleFailure,
+            );
+            const nextBody = composeRegion(
+                document,
+                () => composeBodyElement(document, reading),
+                handleFailure,
+            );
+            tabs.replaceWith(nextTabs);
+            body.replaceWith(nextBody);
+            tabs = nextTabs;
+            body = nextBody;
+            assert(tabs !== body, "the two regions are two elements");
+        },
+    };
 }

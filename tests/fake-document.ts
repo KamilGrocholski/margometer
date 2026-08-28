@@ -6,7 +6,7 @@
  */
 
 import { assert } from "@std/assert";
-import type { PanelDocument, PanelElement, PanelRoot } from "@/src/ui/panel-element.ts";
+import type { PanelDocument, PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
 
 export interface FakeElement extends PanelElement {
     tag: string;
@@ -15,6 +15,15 @@ export interface FakeElement extends PanelElement {
     shadow: FakeElement[] | null;
     /** What replaced this one, so a test can see a panel give way rather than pile up. */
     replacedBy: FakeElement | null;
+    /** The listeners the panel put on, by type, so a test can press what a reader presses. */
+    listeners: Map<string, ((event: PanelEvent) => void)[]>;
+}
+
+/** Presses the element, the way a pointer would, at whatever the panel is listening for. */
+export function pressElement(host: FakeElement, type: string, target: FakeElement): void {
+    for (const handle of host.listeners.get(type) ?? []) {
+        handle({ target: { getAttribute: (name) => target.attributes.get(name) ?? null } });
+    }
 }
 
 export function composeFakeDocument(): PanelDocument & { created: FakeElement[] } {
@@ -30,8 +39,18 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                 attributes: new Map(),
                 shadow: null,
                 replacedBy: null,
+                listeners: new Map(),
+                addEventListener(type: string, handle: (event: PanelEvent) => void): void {
+                    element.listeners.set(type, [...(element.listeners.get(type) ?? []), handle]);
+                },
                 replaceWith(other: PanelElement): void {
                     element.replacedBy = other as FakeElement;
+                    for (const parent of created) {
+                        const at = parent.children.indexOf(element);
+                        if (at !== -1) parent.children[at] = other as FakeElement;
+                        const inside = parent.shadow?.indexOf(element) ?? -1;
+                        if (inside !== -1) parent.shadow?.splice(inside, 1, other as FakeElement);
+                    }
                 },
                 append(child: PanelElement): void {
                     assert(child !== element, "an element never holds itself");

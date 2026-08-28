@@ -10,7 +10,12 @@ import { assert, assertEquals } from "@std/assert";
 import { startMargoMeter, type UserscriptEnvironment } from "@/src/userscript-entry.ts";
 import type { PanelElement } from "@/src/ui/panel-element.ts";
 import type { Scheduler } from "@/src/game/engine-attachment.ts";
-import { composeFakeDocument, type FakeElement, getElementsWithin } from "@/tests/fake-document.ts";
+import {
+    composeFakeDocument,
+    type FakeElement,
+    getElementsWithin,
+    pressElement,
+} from "@/tests/fake-document.ts";
 import { getRecordedEngineUpdates, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
@@ -46,9 +51,11 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
         assertEquals(update(payload), "the engine's own answer", "the engine's value is untouched");
     }
     assertEquals(reported, [], "and nothing of ours failed along the way");
-    assertEquals(shown.length, getRecordedEngineUpdates(HILDUR).length, "a panel for every call");
+    // One panel, put on the page once and redrawn in place: the host outlives every payload, so
+    // the listener on it does too.
+    assertEquals(shown.length, 1, "one panel on the page, however many calls arrived");
 
-    const panel = shown[shown.length - 1] as FakeElement;
+    const panel = shown[0] as FakeElement;
     const rows = getElementsWithin(panel).filter((one) => one.className === "row");
     assertEquals(rows.length, 11, "the fight's eleven combatants, each with a row");
     const figures = rows.map((row) =>
@@ -67,6 +74,41 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
     }
     attachment.detach();
     assertEquals(battle.updateData, engineOwn, "and detaching puts the game's own method back");
+});
+
+Deno.test("a reader presses a screen and the panel goes there, and nowhere else", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+
+    const current = () =>
+        getElementsWithin(host)
+            .find((one) => one.className.includes("tab-current"))
+            ?.attributes.get("data-screen");
+    assertEquals(current(), "damageDealtApplied", "the panel opens on what the reader did");
+
+    const taken = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-screen") === "damageTakenApplied"
+    );
+    assert(taken !== undefined, "there is a screen to press");
+    pressElement(host, "pointerdown", taken);
+    assertEquals(current(), "damageTakenApplied", "and pressing it takes the panel there");
+
+    const row = getElementsWithin(host).find((one) => one.className === "row");
+    assert(row !== undefined, "there is a row to press");
+    pressElement(host, "pointerdown", row);
+    assertEquals(current(), "damageTakenApplied", "while pressing a row moves nothing at all");
+
+    // A stale or foreign attribute naming a screen nobody has: the press reaches the entry and
+    // the entry refuses it, which is a second refusal behind the one the panel already makes.
+    const stray = environment.document.createElement("div") as FakeElement;
+    stray.setAttribute("data-screen", "whateverTheGameCalls");
+    pressElement(host, "pointerdown", stray);
+    assertEquals(current(), "damageTakenApplied", "and a screen nobody has moves nothing either");
 });
 
 Deno.test("a page with no game draws nothing and says why, once", () => {
@@ -89,8 +131,8 @@ Deno.test("a second copy of the add-on stands down and never draws", () => {
     const update = battle.updateData;
     assert(typeof update === "function", "the first copy still holds the game");
     update({ init: 1, m: [], mi: [] });
-    assertEquals(second.shown, [], "while the second never draws a thing");
-    assertEquals(first.shown.length, 1, "and the first draws what arrives");
+    assertEquals(second.shown, [], "while the second never puts a panel on the page");
+    assertEquals(first.shown.length, 1, "and the first has the one panel there is");
 });
 
 Deno.test("every recording plays through without a word of failure", () => {

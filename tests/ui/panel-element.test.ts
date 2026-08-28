@@ -9,7 +9,7 @@ import { assert, assertEquals } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import { composePanelElement } from "@/src/ui/panel-element.ts";
+import { composePanelHost } from "@/src/ui/panel-element.ts";
 import { composePanelReading, type PanelReading } from "@/src/ui/panel-reading.ts";
 import { getScreenFromName, SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
@@ -18,6 +18,7 @@ import {
     type FakeElement,
     getElementsWithin,
     getTextsByClass,
+    pressElement,
 } from "@/tests/fake-document.ts";
 import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fight.ts";
 
@@ -31,8 +32,9 @@ function readFight(): PanelReading {
 
 function draw(reading: PanelReading): FakeElement {
     const document = composeFakeDocument();
-    const host = composePanelElement(document, reading, "damageDealtApplied", () => {});
-    return host as FakeElement;
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show(reading, "damageDealtApplied");
+    return panel.element as FakeElement;
 }
 
 Deno.test("the panel goes into a shadow root, under a name of ours", () => {
@@ -104,6 +106,44 @@ Deno.test("what nobody can be charged with is a row apart, and a doubt is said",
     assertEquals(getTextsByClass(host, "warning"), [PANEL_WORDS.suspect], "so the panel says so");
 });
 
+Deno.test("a press on a tab reaches the panel, and a press on anything else does not", () => {
+    const document = composeFakeDocument();
+    const pressed: string[] = [];
+    const panel = composePanelHost(document, (screen) => pressed.push(screen), () => {});
+    panel.show(readFight(), "damageDealtApplied");
+    const host = panel.element as FakeElement;
+    const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
+    const other = tabs[1];
+    assert(other !== undefined, "there is a screen to reach for");
+    pressElement(host, "pointerdown", other);
+    assertEquals(pressed, ["damageTakenApplied"], "the screen the tab names, and only it");
+
+    const row = getElementsWithin(host).find((one) => one.className === "row");
+    assert(row !== undefined, "there is a row to press");
+    pressElement(host, "pointerdown", row);
+    assertEquals(pressed.length, 1, "a row names no screen, so pressing it moves nothing");
+});
+
+Deno.test("the listener outlives a redraw, because the host does", () => {
+    const document = composeFakeDocument();
+    const pressed: string[] = [];
+    const panel = composePanelHost(document, (screen) => pressed.push(screen), () => {});
+    panel.show(readFight(), "damageDealtApplied");
+    const host = panel.element as FakeElement;
+    const before = getElementsWithin(host).filter((one) => one.className.startsWith("tab")).length;
+
+    panel.show(readFight(), "healthRestored");
+    const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
+    assertEquals(tabs.length, before, "the strip is drawn again, not drawn twice");
+    const current = tabs.filter((one) => one.className.includes("tab-current"));
+    assertEquals(current[0]?.attributes.get("data-screen"), "healthRestored", "on the new screen");
+
+    const tab = tabs[0];
+    assert(tab !== undefined, "and the strip still has tabs");
+    pressElement(host, "pointerdown", tab);
+    assertEquals(pressed, ["damageDealtApplied"], "which a press still reaches, after the redraw");
+});
+
 Deno.test("a region that cannot be drawn is replaced by itself, and the rest stands", () => {
     const document = composeFakeDocument();
     const failures: unknown[] = [];
@@ -114,12 +154,9 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
             throw new RangeError("a region of ours failed");
         },
     };
-    const host = composePanelElement(
-        document,
-        broken,
-        "damageDealtApplied",
-        (failure) => failures.push(failure),
-    ) as FakeElement;
+    const panel = composePanelHost(document, () => {}, (failure) => failures.push(failure));
+    panel.show(broken, "damageDealtApplied");
+    const host = panel.element as FakeElement;
     assertEquals(failures.length, 1, "the failure is reported once");
     assertEquals(getTextsByClass(host, "undrawn"), [PANEL_WORDS.undrawn], "and marked in place");
     assertEquals(host.shadow?.length, 3, "while the panel keeps its shape");

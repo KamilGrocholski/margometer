@@ -18,12 +18,13 @@ import {
 } from "@/src/game/battle-session.ts";
 import { attachToGame, type GameAttachment, type Scheduler } from "@/src/game/engine-attachment.ts";
 import {
-    composePanelElement,
+    composePanelHost,
     type PanelDocument,
     type PanelElement,
+    type PanelHandle,
 } from "@/src/ui/panel-element.ts";
 import { composePanelReading } from "@/src/ui/panel-reading.ts";
-import { composeScreenState } from "@/src/ui/panel-screen.ts";
+import { composeScreenState, getScreenFromName, type ScreenState } from "@/src/ui/panel-screen.ts";
 
 /** Where a failure of ours is written, so the reader sees whose it is at a glance. */
 const FAILURE_LINE = "MargoMeter/Panel";
@@ -43,11 +44,10 @@ export interface UserscriptEnvironment {
 }
 
 /**
- * Draws what the session holds. A fight nobody has seen draws nothing at all, because a panel of
- * zeroes over a game that has not started is a claim rather than a reading.
+ * Puts what the session holds into the panel that is already on the page. A fight nobody has seen
+ * draws nothing, because a panel of zeroes over a game that has not started is a claim.
  */
-function showFight(environment: UserscriptEnvironment, session: BattleSession): void {
-    const screen = composeScreenState();
+function showFight(session: BattleSession, screen: ScreenState, panel: PanelHandle): void {
     const fight = getFightFromSession(session);
     if (fight === null) return;
     assert(fight.payloads > 0, "a fight that is drawn was built from something");
@@ -55,10 +55,7 @@ function showFight(environment: UserscriptEnvironment, session: BattleSession): 
     const roster = composeCombatantRoster([...fight.roster.byId.values()]);
     const reading = composePanelReading(statistics, roster, screen.current);
     assert(reading.rows.length >= 0, "a reading states its rows, however few");
-    const panel = composePanelElement(environment.document, reading, screen.current, (failure) => {
-        environment.report(FAILURE_LINE, failure);
-    });
-    environment.mount.show(panel);
+    panel.show(reading, screen.current);
 }
 
 /**
@@ -104,12 +101,31 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
  */
 export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
     const session = composeBattleSession();
+    const screen = composeScreenState();
     assert(getFightFromSession(session) === null, "a session starts holding no fight");
     assert(FAILURE_LINE.startsWith("MargoMeter/"), "a failure of ours says whose it is first");
+    // The panel goes up on the first payload and not before: a copy that stood down never gets
+    // one, and a page with no game on it is left as it was found.
+    let isMounted = false;
+    const showAndMount = (): void => {
+        showFight(session, screen, panel);
+        if (isMounted) return;
+        environment.mount.show(panel.element);
+        isMounted = true;
+    };
+    const panel = composePanelHost(environment.document, (pressed) => {
+        // A press on anything that is not a screen moves nothing, so a stray attribute in the
+        // game's own markup can never put the panel somewhere it cannot draw.
+        const reached = getScreenFromName(pressed);
+        if (reached === null) return;
+        screen.current = reached;
+        showFight(session, screen, panel);
+    }, (failure) => environment.report(FAILURE_LINE, failure));
+    assert(!isMounted, "nothing is on the page until a payload arrives");
     return attachToGame(environment.page, environment.schedule, {
         handlePayload: (payload) => {
             addPayloadToSession(session, payload);
-            showFight(environment, session);
+            showAndMount();
         },
         handleFailure: (failure) => environment.report(FAILURE_LINE, failure),
         handleAnotherReader: () =>
