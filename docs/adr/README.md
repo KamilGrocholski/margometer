@@ -58,7 +58,7 @@ edited to agree with the new rule.
 - [0003](0003-captures-at-the-repository-root.md) — Captured fights live at the repository root.
   **Accepted**
 - [0004](0004-a-subclass-per-catch-not-per-module.md) — An error subclass exists per `catch`, not
-  per module. **Accepted**
+  per module. **Superseded by 0009**
 - [0005](0005-a-ceiling-on-comment.md) — A ceiling on comment, and three rules that give it shape.
   **Accepted**
 - [0006](0006-no-regular-expressions.md) — No regular expressions. **Accepted**

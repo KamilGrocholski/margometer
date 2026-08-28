@@ -1,6 +1,6 @@
 # 0004. An error subclass exists per `catch`, not per module
 
-- **Status:** Accepted
+- **Status:** Superseded by 0009
 - **Date:** 2026-08-28
 
 ## Context
