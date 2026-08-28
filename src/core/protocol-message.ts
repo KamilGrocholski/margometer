@@ -40,6 +40,8 @@ export interface ProtocolMessage {
 const SEGMENT_SEPARATOR = ";";
 const VALUE_SEPARATOR = "=";
 const NO_COMBATANT = "0";
+/** The two ends a message states before it states a single key. */
+const SIDE_SEGMENTS = 2;
 /** The longest message in `captures/` carries 42 segments, 2026-08-28. */
 const MAXIMUM_SEGMENTS = 512;
 
@@ -80,15 +82,18 @@ function parseMessageParameter(segment: string): MessageParameter {
 
 export function parseProtocolMessage(message: string): ProtocolMessage {
     const segments = message.split(SEGMENT_SEPARATOR);
-    if (segments.length < 2) {
+    if (segments.length < SIDE_SEGMENTS) {
         throw new MargoMeterError("ProtocolMessageFormat", `one segment in "${message}"`);
     }
     assert(segments.length <= MAXIMUM_SEGMENTS, "a message stays inside its stated bound");
     const [actorSegment, targetSegment] = segments;
     assert(actorSegment !== undefined, "a message split in two has a first segment");
     assert(targetSegment !== undefined, "a message split in two has a second segment");
-    const parameters = segments.slice(2).map(parseMessageParameter);
-    assert(parameters.length === segments.length - 2, "every segment past the ends is a parameter");
+    const parameters = segments.slice(SIDE_SEGMENTS).map(parseMessageParameter);
+    assert(
+        parameters.length === segments.length - SIDE_SEGMENTS,
+        "every segment past the ends is a parameter",
+    );
     return {
         actor: parseMessageSide(actorSegment, message),
         target: parseMessageSide(targetSegment, message),
@@ -118,6 +123,9 @@ export function composeProtocolMessage(parsed: ProtocolMessage): string {
         const value = parameter.value;
         segments.push(value === null ? parameter.key : `${parameter.key}=${value}`);
     }
-    assert(segments.length === parsed.parameters.length + 2, "both ends are written once");
+    assert(
+        segments.length === parsed.parameters.length + SIDE_SEGMENTS,
+        "both ends are written once",
+    );
     return segments.join(SEGMENT_SEPARATOR);
 }

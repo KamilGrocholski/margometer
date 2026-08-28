@@ -88,6 +88,8 @@ const MEMBER_SEPARATOR = ",";
  */
 const NAMED_DAMAGE_KEY = "+oth_dmg";
 const NAMED_DAMAGE_MEMBERS = 3;
+/** Both ends of a message, where it names two different combatants. */
+const MESSAGE_ENDS = 2;
 const PERCENT_OPENER = "(";
 const PERCENT_CLOSER = "%)";
 /**
@@ -496,7 +498,7 @@ function getNamedCombatantIds(parsed: ProtocolMessage): number[] {
     if (parsed.target !== null) {
         if (!found.includes(parsed.target.combatantId)) found.push(parsed.target.combatantId);
     }
-    assert(found.length <= 2, "a message names at most two ends");
+    assert(found.length <= MESSAGE_ENDS, "a message names at most two ends");
     assert(new Set(found).size === found.length, "an end that is named twice is named once here");
     return found;
 }

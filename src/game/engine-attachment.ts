@@ -20,6 +20,8 @@ const BATTLE_FIELD = "battle";
 /** Both spellings are in the wild, and a client renaming either breaks both readers at once. */
 const ENGINE_FIELD = "Engine";
 const ENGINE_CALL_FIELD = "getEngine";
+/** The field and the call: a page holds a game in two spellings and no more. */
+const ENGINE_SPELLINGS = 2;
 const LOOK_EVERY_MS = 250;
 /** Four looks a second for a minute. A game that has not arrived by then is not arriving. */
 const MAXIMUM_LOOKS = 240;
@@ -55,13 +57,13 @@ export function getEnginesFromPage(page: unknown): unknown[] {
     const stated = page[ENGINE_CALL_FIELD];
     if (typeof stated === "function") found.push(stated.call(page));
     assert(found.length >= 1, "the page is asked for a game in every spelling there is");
-    assert(found.length <= 2, "and there are two of them");
+    assert(found.length <= ENGINE_SPELLINGS, "and there are two of them");
     return found;
 }
 
 function getBattleFromPage(page: unknown): EngineBattle | null {
     const engines = getEnginesFromPage(page);
-    assert(engines.length <= 2, "a page holds a game in two spellings and no more");
+    assert(engines.length <= ENGINE_SPELLINGS, "a page holds a game in two spellings and no more");
     for (const engine of engines) {
         if (!isRecord(engine)) continue;
         const battle = engine[BATTLE_FIELD];

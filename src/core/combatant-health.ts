@@ -9,13 +9,14 @@ import { assert } from "@std/assert";
 import { HEALTH_PERCENT_PLACES } from "@/src/core/protocol-number.ts";
 
 const PERCENT_WHOLE = 100;
+const DECIMAL_BASE = 10;
 /** Two places stand for a band half a place wide, and the health behind it is that share. */
 const HALF_PLACE = 0.5;
 
 export function getHealthToleranceFromMaximum(healthMaximum: number): number {
     assert(Number.isFinite(healthMaximum), "a maximum to measure against is a number");
     assert(healthMaximum >= 0, "a maximum is never below nothing");
-    const places = 10 ** HEALTH_PERCENT_PLACES;
+    const places = DECIMAL_BASE ** HEALTH_PERCENT_PLACES;
     const band = (healthMaximum * HALF_PLACE) / (PERCENT_WHOLE * places);
     return Math.ceil(band + HALF_PLACE);
 }
