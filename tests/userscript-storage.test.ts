@@ -16,6 +16,7 @@ import {
   composeMemoryStore,
   getStorageChoiceFromValue,
   getStoreFromPage,
+  isStorageForgottenWithPage,
   STORAGE_CHOICES,
   type PageStorage,
   type StoragePage,
@@ -54,6 +55,16 @@ describe("the three choices", () => {
     expect(getStorageChoiceFromValue("localStorage")).toBeNull();
     expect(getStorageChoiceFromValue(null)).toBeNull();
     expect(getStorageChoiceFromValue(0)).toBeNull();
+  });
+
+  /**
+   * Which of them forgets, stated over the whole list rather than over the one
+   * name the reader of it cares about — `src/userscript-entry.ts` clears the
+   * pointer at the fight on screen for exactly this answer, so a fourth choice
+   * arriving without an entry here would take that clearing with it in silence.
+   */
+  test("one of them keeps nothing past the page", () => {
+    expect(STORAGE_CHOICES.filter(isStorageForgottenWithPage)).toEqual(["memory"]);
   });
 });
 

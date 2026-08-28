@@ -54,6 +54,7 @@ import {
 import {
   getStorageChoiceFromValue,
   getStoreFromPage,
+  isStorageForgottenWithPage,
   type StorageChoice,
   type StoragePage,
   type ValueStore,
@@ -494,6 +495,12 @@ const FIGHTS_KEY = "margometer.kept-fights";
  * where fights live. It is an id and nothing else — the fight itself is in the
  * store the reader chose, and a pointer at one that is gone falls back to the
  * newest rather than to nothing.
+ *
+ * ⚠️ **Which is an argument about the two choices that keep something, and it was
+ * read as one about all three.** Where the reader asks for the store that keeps
+ * nothing, this named a fight held nowhere and went on naming it in
+ * `localStorage` — so `onStorageChosen` clears it there, and the settings beside
+ * it stay for the reason above.
  */
 const SHOWN_FIGHT_KEY = "margometer.shown-fight";
 
@@ -1018,6 +1025,23 @@ export function composeFightKeeper(
          * never said it would.
          */
         store.removeText(FIGHTS_KEY);
+        /*
+         * ⚠️ **The pointer at the fight on screen is about a fight, so it goes
+         * with them.** It lives with the settings and not with the fights, for
+         * the reason `SHOWN_FIGHT_KEY` gives — it has to be readable whatever the
+         * reader answered — and that argument covers the two choices that keep
+         * something. Under the one that keeps nothing it named a fight held
+         * nowhere, and it named it in `localStorage`, which is the one place the
+         * reader had just asked to be left with nothing of theirs in it. The
+         * position and the collapse beside it stay: those are the panel's, and
+         * the reader said nothing about the panel.
+         *
+         * Through `setShownFight` rather than by removing the key, so the id this
+         * keeper is holding and the id the browser is holding cannot come apart —
+         * cleared behind its back, the next choice of that same fight would find
+         * nothing to do and write nothing down.
+         */
+        if (isStorageForgottenWithPage(choice)) setShownFight(null);
         store = getStoreFromPage(page, choice);
         setFights(fights, []);
       },

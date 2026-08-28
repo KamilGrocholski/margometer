@@ -57,6 +57,7 @@ function composePage() {
 
 const FIGHTS_KEY = "margometer.kept-fights";
 const SETTINGS_KEY = "margometer.fight-settings";
+const SHOWN_FIGHT_KEY = "margometer.shown-fight";
 
 function composeSessionOfCapture(fight: CapturedFight): BattleSession {
   let session = composeEmptySession();
@@ -691,6 +692,45 @@ describe("moving the fights to another place", () => {
     expect(localStorage.held.has(FIGHTS_KEY)).toBe(false);
     expect(sessionStorage.held.has(FIGHTS_KEY)).toBe(false);
     expect(keeper.shelf.getFights()).toHaveLength(1);
+  });
+
+  /**
+   * The same sentence, one key further: *nothing left behind* has to reach the
+   * pointer at the fight on screen, which is about a fight and is written where
+   * the settings are.
+   *
+   * It named a fight held nowhere at all, in the one store the reader had just
+   * asked to be left with nothing of theirs in it — and the test above passed
+   * over it, because it asked only about the fights themselves.
+   */
+  test("takes the pointer at the fight on screen with it", () => {
+    const { keeper, localStorage } = composeKeeper();
+    setKept(keeper, DUEL, 1);
+    keeper.shelf.onFightChosen(keeper.shelf.getFights()[0]!.id);
+    expect(localStorage.held.has(SHOWN_FIGHT_KEY)).toBe(true);
+
+    keeper.shelf.onStorageChosen("memory");
+    expect(localStorage.held.has(SHOWN_FIGHT_KEY)).toBe(false);
+  });
+
+  /**
+   * The other side of the boundary, and the reason the clearing is asked of the
+   * choice rather than done on every move: a place that keeps something keeps the
+   * fight, so the pointer at it is still worth what it was worth.
+   */
+  test("keeps it where the fights are still kept somewhere", () => {
+    const { keeper, localStorage, composeKeeperAfterReload } = composeKeeper();
+    setKept(keeper, DUEL, 1);
+    setKept(keeper, GROUP_FIGHT, 2);
+    const older = keeper.shelf.getFights()[1]!.id;
+    keeper.shelf.onFightChosen(older);
+
+    keeper.shelf.onStorageChosen("session");
+    expect(localStorage.held.get(SHOWN_FIGHT_KEY)).toBe(older);
+    expect(composeKeeperAfterReload().shelf.getFights()[1]).toMatchObject({
+      id: older,
+      isSelected: true,
+    });
   });
 
   /**

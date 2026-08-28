@@ -66,6 +66,23 @@ export function getStorageChoiceFromValue(value: unknown): StorageChoice | null 
 }
 
 /**
+ * Whether a choice forgets everything the moment the page goes.
+ *
+ * Here rather than at its one caller because it is a fact about the stores, and
+ * `getStoreFromPage` below already branches on the same one: spelled a second
+ * time in `src/userscript-entry.ts`, a fourth choice that also forgot would leave
+ * that caller silently wrong while every test stayed green.
+ *
+ * ⚠️ **The choice, and not the store it produced.** `getStoreFromPage` falls back
+ * to memory wherever a browser refuses, and a reader whose answer was `local` has
+ * not asked for anything to be forgotten — they are having it forgotten for them,
+ * which is a different thing and not one this may report.
+ */
+export function isStorageForgottenWithPage(choice: StorageChoice): boolean {
+  return choice === "memory";
+}
+
+/**
  * One place to keep things, whichever it is.
  *
  * ⚠️ **`setText` answers whether it landed, and every caller has to look.** A
