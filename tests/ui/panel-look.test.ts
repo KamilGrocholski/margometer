@@ -195,3 +195,31 @@ describe("a word the stylesheet uses for a state", () => {
     expect([...modifiers].filter(([name]) => lone.has(name))).toEqual([]);
   });
 });
+
+/**
+ * ⚠️ **The bar is one line, and the version number is what proved it was not.**
+ *
+ * Everything on the title bar is text — the name is a bare text node so a drag
+ * keeps working wherever it is grabbed, and the four controls are glyphs — laid
+ * out in a flex row at a fixed 260px. Nothing in it declared `white-space`, so
+ * the row reflowed the moment its content stopped fitting, and at `0.10.0` it
+ * did: one character more than `0.9.0` broke the name after the grip and split
+ * `{ }` between its braces, two lines tall, in every one of the five pictures a
+ * README points at.
+ *
+ * No guard here lays anything out, so none of them could see it and none of them
+ * can. What a reader of the stylesheet *can* say is that the bar refuses to wrap
+ * at all — which is the whole of what went missing, and the line somebody
+ * tidying declarations would otherwise take out again.
+ */
+describe("the panel's title bar", () => {
+  test("refuses to wrap, whatever the version number costs it", () => {
+    const rule = getStyleRules(composePanelStyleText()).find(
+      (one) => one.selector === ".MargoMeter-titlebar",
+    );
+    expect(rule, "the title bar is styled").toBeDefined();
+    expect(
+      getDeclarations(rule?.body ?? "").map((one) => `${one.property}: ${one.value}`),
+    ).toContain("white-space: nowrap");
+  });
+});

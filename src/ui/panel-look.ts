@@ -404,6 +404,15 @@ export function composePanelStyleText(): string {
   font: 11px/1.2 system-ui, sans-serif;
   letter-spacing: 0.06em;
   color: ${t.textQuiet};
+  /*
+   * ⚠️ **One line, whatever the version number is.** Everything on this bar is
+   * text — the name is a bare text node and the controls are glyphs — so without
+   * this the row reflows the moment its content stops fitting. It did:
+   * \`0.10.0\` is one character wider than \`0.9.0\`, which was enough to break
+   * the name after the grip and split \`{ }\` between its braces, and every guard
+   * stayed green because none of them lays anything out.
+   */
+  white-space: nowrap;
   background: ${t.surfaceRaised};
   border: 1px solid ${t.border};
   border-bottom: none;
