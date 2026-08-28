@@ -42,13 +42,26 @@ export function getCombatantFromWarrior(value: unknown): Combatant | null {
     };
 }
 
+/**
+ * The client keys its warriors by id, in every payload of `captures/` that carries any. A list
+ * of them would be the same people in order, and asking which spelling it is would lose a whole
+ * cast to a shape that means what the other one means. Only the payload holding them is asked to
+ * be keyed, because that is looked up by name.
+ */
+function getWarriorsFromValue(value: unknown): unknown[] {
+    if (Array.isArray(value)) return value;
+    if (!isRecord(value)) return [];
+    const stated = Object.values(value);
+    assert(stated.length <= Object.keys(value).length, "a keyed cast is read once per key");
+    assert(stated.length <= MAXIMUM_WARRIORS, "and stays inside the fight's stated bound");
+    return stated;
+}
+
 /** Every combatant a payload states in full. One stating only what moved states none. */
 export function getCombatantsFromPayload(payload: unknown): Combatant[] {
     if (!isRecord(payload)) return [];
-    const warriors = payload[WARRIORS_KEY];
-    if (!isRecord(warriors)) return [];
     const found: Combatant[] = [];
-    for (const value of Object.values(warriors)) {
+    for (const value of getWarriorsFromValue(payload[WARRIORS_KEY])) {
         const combatant = getCombatantFromWarrior(value);
         if (combatant === null) continue;
         found.push(combatant);
