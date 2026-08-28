@@ -54,6 +54,8 @@ src/
     engine-place.ts      Where a fight happened, asked of the client's own state.
     kept-fights.ts       The fights a reader can go back to: inputs kept, figures never.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
+  ui/
+    panel-look.ts        The panel's tokens, and the ink a figure over a bar takes.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
   AGENTS.md        Why no hand edits one, and what provenance each carries.
@@ -82,6 +84,8 @@ tests/
     fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
     unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
+  ui/
+    panel-look.test.ts        Contrast by arithmetic, over every pairing the panel draws.
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
     decisions.test.ts      The decision records: numbering, index, lifecycle.
@@ -281,7 +285,8 @@ commit that opens or closes one.
    One key in `captures/` is still unread and says so: `healall_per`, which cannot be sized onto a
    side without the health each member entered the fight with — gap 11. **Who gave healing, and
    which attacker a tick belongs to, are not read**; each is a rule that arrives with its own ADR.
-   Everything under `ui/`, the entry point and `tools/` are not written at all.
+   The panel itself, the entry point and `tools/` are not written at all: `ui/` holds its tokens and
+   nothing that draws.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
