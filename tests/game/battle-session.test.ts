@@ -35,6 +35,9 @@ Deno.test("a fight nobody has seen is not a fight holding nothing", () => {
     const session = composeBattleSession();
     addPayloadToSession(session, null);
     assertEquals(getFightFromSession(session), null, "and what is not a payload starts none");
+    // A list is an object to `typeof`, and one reaching here used to open a fight nobody fought.
+    addPayloadToSession(session, ["0;0;txt=a"]);
+    assertEquals(getFightFromSession(session), null, "a list is not a payload either");
 });
 
 Deno.test("a recording replayed call by call reads as the whole of itself", () => {
@@ -64,6 +67,32 @@ Deno.test("a fight that opens replaces the one standing before it", () => {
     assertEquals(replaced.payloads, getRecordedEngineUpdates(second).length, "only the second");
     const alone = replay(second);
     assertEquals(replaced.events.length, alone?.events.length, "and it reads as it would alone");
+});
+
+Deno.test("a payload says how many messages it carried, and the count is held to it", () => {
+    const session = composeBattleSession();
+    addPayloadToSession(session, { init: 1, mi: [0, 0, 0], m: ["0;0;txt=a", "0;0;txt=b"] });
+    assertEquals(getFightFromSession(session)?.messagesLost, 1, "one was stated and not read");
+
+    const renamed = composeBattleSession();
+    addPayloadToSession(renamed, { init: 1, mi: [0, 0], messages: ["0;0;txt=a", "0;0;txt=b"] });
+    assertEquals(getFightFromSession(renamed)?.messagesLost, 2, "a rename of `m` is caught whole");
+
+    const witnessGone = composeBattleSession();
+    addPayloadToSession(witnessGone, { init: 1, m: ["0;0;txt=a"] });
+    assertEquals(getFightFromSession(witnessGone)?.messagesLost, 0, "and a lost witness is silent");
+
+    // Two calls, each losing one: what is lost accumulates across a fight rather than standing
+    // for whatever the last payload happened to lose.
+    addPayloadToSession(session, { mi: [0, 0], m: ["0;0;txt=c"] });
+    assertEquals(getFightFromSession(session)?.messagesLost, 2, "and every call adds to the count");
+});
+
+Deno.test("every recording is read whole, by the count the payloads themselves state", () => {
+    for (const path of getRecordingPaths()) {
+        const fight = replay(path);
+        assertEquals(fight?.messagesLost, 0, `${path}: a message the payload stated went unread`);
+    }
 });
 
 Deno.test("a fight whose calls carry no snapshot still has a cast", () => {

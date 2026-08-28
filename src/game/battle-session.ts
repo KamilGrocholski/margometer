@@ -21,12 +21,24 @@ import { getCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
 const FIGHT_OPENS_KEY = "init";
 const FIGHT_ENDS_KEY = "endBattle";
 const MESSAGES_KEY = "m";
+/**
+ * The companion list the client itself never reads, and the only witness that a payload stated
+ * messages at all. Measured over `captures/`, 2026-08-28: present in exactly the 1048 payloads
+ * `m` is, absent from the same 60, and the same length as `m` in every one of them.
+ *
+ * It is read as positive evidence and nothing else, so a rename that takes it costs a witness and
+ * can never invent an alarm — while a rename that takes `m` is caught here rather than reaching a
+ * reader as a fight of zeroes.
+ */
+const MESSAGE_COUNT_KEY = "mi";
 /** The longest fight in `captures/` decodes to 811 events, 2026-08-28. */
 const MAXIMUM_EVENTS = 65536;
 
 export interface FightReading {
     roster: CombatantRoster;
     events: readonly BattleEvent[];
+    /** Messages a payload said it carried and this reader did not read. Zero is the answer. */
+    messagesLost: number;
     /** The game has stated the fight is over. Payloads may still arrive after it. */
     isOver: boolean;
     payloads: number;
@@ -35,6 +47,7 @@ export interface FightReading {
 export interface BattleSession {
     combatants: Combatant[];
     events: BattleEvent[];
+    messagesLost: number;
     isOver: boolean;
     payloads: number;
     hasFight: boolean;
@@ -44,6 +57,7 @@ export function composeBattleSession(): BattleSession {
     const session: BattleSession = {
         combatants: [],
         events: [],
+        messagesLost: 0,
         isOver: false,
         payloads: 0,
         hasFight: false,
@@ -67,10 +81,19 @@ function getMessagesFromPayload(payload: Record<string, unknown>): string[] {
     return messages;
 }
 
+/** How many messages the payload says it carried, or none where it says nothing about it. */
+function getMessageCountFromPayload(payload: Record<string, unknown>): number {
+    const stated = payload[MESSAGE_COUNT_KEY];
+    if (!Array.isArray(stated)) return 0;
+    assert(stated.length >= 0, "a list states a length");
+    return stated.length;
+}
+
 /** A fight that opens replaces whatever stood before it, roster, events and all. */
 function resetSession(session: BattleSession): void {
     session.combatants = [];
     session.events = [];
+    session.messagesLost = 0;
     session.isOver = false;
     session.payloads = 0;
     assert(session.events.length === 0, "a fight opens holding nothing");
@@ -84,9 +107,11 @@ export function addPayloadToSession(session: BattleSession, payload: unknown): v
     session.payloads += 1;
     for (const combatant of getCombatantsFromPayload(payload)) session.combatants.push(combatant);
     const roster = composeCombatantRoster(session.combatants);
-    for (const event of decodeFightMessages(getMessagesFromPayload(payload), roster)) {
-        session.events.push(event);
-    }
+    const messages = getMessagesFromPayload(payload);
+    const stated = getMessageCountFromPayload(payload);
+    if (stated > messages.length) session.messagesLost += stated - messages.length;
+    assert(session.messagesLost >= 0, "what a payload stated and nobody read is never negative");
+    for (const event of decodeFightMessages(messages, roster)) session.events.push(event);
     if (FIGHT_ENDS_KEY in payload) session.isOver = true;
     assert(session.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
     assert(session.payloads > 0, "a payload that was read is counted");
@@ -101,6 +126,7 @@ export function getFightFromSession(session: BattleSession): FightReading | null
     return {
         roster: composeCombatantRoster(session.combatants),
         events: session.events,
+        messagesLost: session.messagesLost,
         isOver: session.isOver,
         payloads: session.payloads,
     };

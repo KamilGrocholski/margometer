@@ -75,6 +75,7 @@ tests/
     health-witness.test.ts    What was read, against what the protocol says of itself.
     fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
+    unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
     decisions.test.ts      The decision records: numbering, index, lifecycle.
