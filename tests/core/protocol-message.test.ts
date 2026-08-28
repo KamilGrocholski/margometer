@@ -6,8 +6,11 @@
  */
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
-import { MargoMeterError } from "@/src/core/margometer-error.ts";
-import { composeProtocolMessage, parseProtocolMessage } from "@/src/core/protocol-message.ts";
+import {
+    composeProtocolMessage,
+    parseProtocolMessage,
+    ProtocolMessageFormatError,
+} from "@/src/core/protocol-message.ts";
 import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
 /** `2026-08-04-tempest-lowca-vs-odyncze.json`, the fight this file's samples are taken from. */
@@ -49,16 +52,24 @@ Deno.test("a segment with no value is a key on its own", () => {
 });
 
 Deno.test("what the grammar does not cover is refused, and says which half", () => {
-    assertThrows(() => parseProtocolMessage("482845"), MargoMeterError, "one segment");
-    assertThrows(() => parseProtocolMessage("gracz;0;step"), MargoMeterError, "side");
-    assertThrows(() => parseProtocolMessage("1=70.7;0;step"), MargoMeterError, "health");
-    assertThrows(() => parseProtocolMessage("1=70.070;0;step"), MargoMeterError, "health");
+    assertThrows(() => parseProtocolMessage("482845"), ProtocolMessageFormatError, "one segment");
+    assertThrows(() => parseProtocolMessage("gracz;0;step"), ProtocolMessageFormatError, "side");
+    assertThrows(() => parseProtocolMessage("1=70.7;0;step"), ProtocolMessageFormatError, "health");
+    assertThrows(
+        () => parseProtocolMessage("1=70.070;0;step"),
+        ProtocolMessageFormatError,
+        "health",
+    );
 });
 
 Deno.test("an id past what a number holds exactly is refused, not rounded", () => {
     const highest = parseProtocolMessage("9007199254740991;0;step");
     assertEquals(highest.actor, { combatantId: 9007199254740991, healthPercent: null }, "the last");
-    assertThrows(() => parseProtocolMessage("9007199254740992;0;step"), MargoMeterError, "id");
+    assertThrows(
+        () => parseProtocolMessage("9007199254740992;0;step"),
+        ProtocolMessageFormatError,
+        "id",
+    );
 });
 
 Deno.test("every message in every recording parses and writes back unchanged", () => {

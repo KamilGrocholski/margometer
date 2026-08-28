@@ -22,9 +22,12 @@ import type {
     PreventedDamage,
     SkillUsedEvent,
 } from "@/src/core/battle-event.ts";
-import { MargoMeterError } from "@/src/core/margometer-error.ts";
 import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
-import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
+import {
+    parseProtocolMessage,
+    type ProtocolMessage,
+    ProtocolMessageFormatError,
+} from "@/src/core/protocol-message.ts";
 import { getHealthPercentFromText, getIntegerFromText } from "@/src/core/protocol-number.ts";
 
 /**
@@ -630,7 +633,7 @@ function decodeOneMessage(
     try {
         parsed = parseProtocolMessage(message);
     } catch (failure) {
-        if (!(failure instanceof MargoMeterError)) throw failure;
+        if (!(failure instanceof ProtocolMessageFormatError)) throw failure;
         const refused: BattleEvent = {
             kind: "unknown-message",
             message,

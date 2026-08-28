@@ -107,10 +107,12 @@ this language does not have would be**; each states what binds instead.
   | `MargoMeterToolError` | runs in a terminal   | `MargoMeterTool/…` |
 
   Deliberately disjoint, so a `catch` in the add-on cannot swallow a tool's error believing it
-  caught its own. Both are concrete and take a `code`. Never a bare `new Error`, never
+  caught its own. Both are **abstract** and take a `code`. Never a bare `new Error`, never
   `extends Error` outside these two files.
-- **E2. A named subclass exists only where a `catch` names it.** Everywhere else, throw the base
-  with a code: `throw new MargoMeterToolError("DrillReport", reason)`. **ADR 0004.**
+- **E2. Every kind of failure has a class of its own, and neither base is ever thrown.** A subclass
+  exists because a failure exists, not because a `catch` does — which is what leaves every catch
+  something narrower than a base to name. Held by the compiler: the bases are abstract. **ADR
+  0009**, superseding **ADR 0004**.
 - **E3.** The `code` union exists so a brand is unique, greppable, and cannot be silently reused by
   a new failure. The compiler checks it. **Nothing branches on it at run time**, and nothing should
   — a caller that needs to tell two failures apart is the caller that earns a subclass under **E2**.

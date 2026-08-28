@@ -45,7 +45,7 @@ src/
     combatant-roster.ts  Who is in the fight, and which names resolve to one of them.
     fight-decoder.ts     What a key means. One key of the corpus is still named unread.
     fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
-    margometer-error.ts  The brand every failure that ships to the browser wears.
+    margometer-error.ts  The abstract brand every failure that ships to the browser wears.
     protocol-message.ts  One message's grammar: both ends, then its parameters.
     protocol-number.ts   The numbers the protocol states, read out of its text.
     unknown-reading.ts   Reading a value nobody typed, answering null rather than throwing.
@@ -63,7 +63,7 @@ src/
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
 tools/             Never ships. Each arrives with the question it answers.
   build-userscript.ts  The file a reader installs, and the two checks over the built text.
-  margometer-tool-error.ts  The brand a failure that runs in a terminal wears.
+  margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
   AGENTS.md        Why no hand edits one, and what provenance each carries.

@@ -7,7 +7,7 @@
  */
 
 import { assert } from "@std/assert";
-import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
+import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
 
 const BUNDLE_ENTRY = "src/userscript-boot.ts";
 const USERSCRIPT_FILE = "dist/margometer.user.js";
@@ -58,7 +58,7 @@ function composeDirectives(version: string): [string, string][] {
 export function composeUserscriptBanner(version: string): string {
     assert(typeof version === "string", "a version is stated as text");
     if (version.length === 0) {
-        throw new MargoMeterToolError("UserscriptBuild", "a build states the version it is");
+        throw new UserscriptBuildError("a build states the version it is");
     }
     const directives = composeDirectives(version);
     assert(directives.length > 0, "a banner states something");
@@ -92,7 +92,7 @@ async function bundleUserscript(): Promise<string> {
     const finished = await bundling;
     if (!finished.success) {
         const said = new TextDecoder().decode(finished.stderr);
-        throw new MargoMeterToolError("UserscriptBuild", `the bundler refused: ${said}`);
+        throw new UserscriptBuildError(`the bundler refused: ${said}`);
     }
     return await Deno.readTextFile(USERSCRIPT_FILE);
 }
@@ -101,11 +101,11 @@ export async function buildUserscript(version: string): Promise<string> {
     const banner = composeUserscriptBanner(version);
     const bundle = await bundleUserscript();
     if (bundle.length === 0) {
-        throw new MargoMeterToolError("UserscriptBuild", "the bundler wrote nothing");
+        throw new UserscriptBuildError("the bundler wrote nothing");
     }
     const outbound = getOutboundCallsInText(bundle);
     if (outbound.length > 0) {
-        throw new MargoMeterToolError("UserscriptBuild", `the file could leave: ${outbound}`);
+        throw new UserscriptBuildError(`the file could leave: ${outbound}`);
     }
     await Deno.writeTextFile(USERSCRIPT_FILE, `${banner}${bundle}`);
     await Deno.writeTextFile(METADATA_FILE, banner);

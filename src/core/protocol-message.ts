@@ -19,6 +19,16 @@ import {
     isIntegerText,
 } from "@/src/core/protocol-number.ts";
 
+/**
+ * Named because the decoder catches exactly this and turns it into a message it could not read.
+ * A catch on the base would swallow every other failure `core/` could raise as an unread message.
+ */
+export class ProtocolMessageFormatError extends MargoMeterError {
+    constructor(reason: string) {
+        super("ProtocolMessageFormat", reason);
+    }
+}
+
 export interface MessageSide {
     combatantId: number;
     /** The health the protocol states for this combatant, or null where it states none. */
@@ -55,16 +65,16 @@ function parseMessageSide(segment: string, whole: string): MessageSide | null {
     const separator = segment.indexOf(VALUE_SEPARATOR);
     const idText = separator === -1 ? segment : segment.slice(0, separator);
     if (!isIntegerText(idText)) {
-        throw new MargoMeterError("ProtocolMessageFormat", `side "${segment}" in "${whole}"`);
+        throw new ProtocolMessageFormatError(`side "${segment}" in "${whole}"`);
     }
     const combatantId = getIntegerFromText(idText);
     if (combatantId === null) {
-        throw new MargoMeterError("ProtocolMessageFormat", `id "${idText}" in "${whole}"`);
+        throw new ProtocolMessageFormatError(`id "${idText}" in "${whole}"`);
     }
     if (separator === -1) return { combatantId, healthPercent: null };
     const healthPercent = getHealthPercentFromText(segment.slice(separator + 1));
     if (healthPercent === null) {
-        throw new MargoMeterError("ProtocolMessageFormat", `health "${segment}" in "${whole}"`);
+        throw new ProtocolMessageFormatError(`health "${segment}" in "${whole}"`);
     }
     assert(healthPercent >= 0, "a percentage the grammar accepted is never below nothing");
     return { combatantId, healthPercent };
@@ -83,7 +93,7 @@ function parseMessageParameter(segment: string): MessageParameter {
 export function parseProtocolMessage(message: string): ProtocolMessage {
     const segments = message.split(SEGMENT_SEPARATOR);
     if (segments.length < SIDE_SEGMENTS) {
-        throw new MargoMeterError("ProtocolMessageFormat", `one segment in "${message}"`);
+        throw new ProtocolMessageFormatError(`one segment in "${message}"`);
     }
     assert(segments.length <= MAXIMUM_SEGMENTS, "a message stays inside its stated bound");
     const [actorSegment, targetSegment] = segments;

@@ -66,3 +66,5 @@ edited to agree with the new rule.
   where the program is. **Accepted**
 - [0008](0008-the-decoder-produces-a-union-of-event-kinds.md) — The decoder produces a union of
   event kinds. **Accepted**
+- [0009](0009-a-class-per-failure-and-no-base-is-thrown.md) — A class per failure, and no base is
+  ever thrown. **Accepted**

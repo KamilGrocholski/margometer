@@ -12,7 +12,7 @@ import {
     composeUserscriptBanner,
     getOutboundCallsInText,
 } from "@/tools/build-userscript.ts";
-import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
+import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
 
 Deno.test("the banner says what a script manager reads, and refuses to say nothing", () => {
     const banner = composeUserscriptBanner("1.2.3");
@@ -20,7 +20,7 @@ Deno.test("the banner says what a script manager reads, and refuses to say nothi
     assert(banner.trimEnd().endsWith("// ==/UserScript=="), "and closes the same way");
     assert(banner.includes("// @version      1.2.3"), "carrying the version it was handed");
     assert(banner.includes("// @grant        none"), "and asking the page for nothing");
-    assertThrows(() => composeUserscriptBanner(""), MargoMeterToolError, "the version");
+    assertThrows(() => composeUserscriptBanner(""), UserscriptBuildError, "the version");
 });
 
 Deno.test("the add-on stays off the operator's own site, bare domain included", () => {

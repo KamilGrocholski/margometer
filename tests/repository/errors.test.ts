@@ -113,18 +113,33 @@ Deno.test("no catch is empty", () => {
     assertEquals(offenders, [], "E11: a failure nobody marks is a failure nobody sees");
 });
 
-Deno.test("every branded subclass is named by a catch", () => {
-    const sample = "export class ProtocolMessageFormatError extends MargoMeterError {}";
-    assertEquals(getBrandedSubclassNames(sample), ["ProtocolMessageFormatError"], "reader works");
-    const plain = "class Plain extends Error {}";
-    assertEquals(getBrandedSubclassNames(plain), [], "an unbranded class is not a subclass here");
-    const declared = new Map<string, string>();
-    let mentioned = "";
+/** `new MargoMeterError(` and its tool twin: the two constructions the rule forbids. */
+function getLinesConstructingBase(text: string): number[] {
+    const found: number[] = [];
+    for (const [offset, line] of text.split("\n").entries()) {
+        for (const base of BRANDED_BASES) {
+            if (hasOutsideStrings(line, `new ${base}(`)) found.push(offset + 1);
+        }
+    }
+    assert(found.every((one) => one > 0), "a line number is one-based");
+    assert(found.length <= text.length, "no more findings than characters");
+    return found;
+}
+
+Deno.test("no base is ever thrown, and every failure has a class of its own", () => {
+    const sample = 'throw new MargoMeterError("ProtocolMessageFormat", reason);';
+    assertEquals(getLinesConstructingBase(sample), [1], "the reader flags its own sample");
+    const named = "throw new ProtocolMessageFormatError(reason);";
+    assertEquals(getLinesConstructingBase(named), [], "a class of its own is not a base");
+
+    const offenders: string[] = [];
+    let subclasses = 0;
     for (const path of getSourcePaths()) {
         const text = Deno.readTextFileSync(path);
-        for (const name of getBrandedSubclassNames(text)) declared.set(name, path);
-        mentioned += text;
+        subclasses += getBrandedSubclassNames(text).length;
+        if (ERROR_BASE_FILES.includes(path)) continue;
+        for (const line of getLinesConstructingBase(text)) offenders.push(`${path}:${line}`);
     }
-    const dead = [...declared].filter(([name]) => !mentioned.includes(`instanceof ${name}`));
-    assertEquals(dead, [], "E2: a subclass no catch names is a naming convention, not a type");
+    assert(subclasses > 0, "there are failures, and each of them is a class");
+    assertEquals(offenders, [], "E2: a base thrown leaves every catch nothing narrower to name");
 });
