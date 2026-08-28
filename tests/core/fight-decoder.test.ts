@@ -18,9 +18,10 @@ import {
 /** `2026-08-06-tempest-grupa-vs-hildur.json`: a blow absorption stood in front of. */
 const ABSORBED =
     "467968=100.00;-10000249=99.69;+pierce;+dmgd=1557;+acdmg=16;-absorb=545;-dmgd=1012";
-/** `2026-08-12-tempest-grupa-vs-draugr-1.json`: a blow carrying a key with no meaning yet. */
-const UNREAD = "477718=100.00;-10000234=95.59;+dmgd=924;+dmgc=766;+acdmg=18;+taken_dmg=254;" +
-    "-dmgd=291;-dmgc=295;-dmga=254";
+/** `2026-08-12-experimental-tancerz-vs-wojownik.json`: a blow carrying a key with no meaning. */
+const UNREAD =
+    "195782=93.67;114881=63.00;+dmg=2298;+acdmg=7;legbon_lastheal=8810,Gracz 1(63.00%);" +
+    "-dmg=1633";
 /** `2026-08-12-experimental-tancerz-vs-wojownik.json`: the pair the family rule cannot reach. */
 const THIRD_BLOW = "114881=80.80;195782=98.67;+dmg=1210;+dmgo=896;+thirdatt=1168;+acdmg=90;" +
     "-blok=363;-dmg=0;-thirdatt=59";
@@ -71,10 +72,10 @@ Deno.test("a key with no meaning yet leaves the rest of the blow read", () => {
     assertEquals(events.length, 2, "the blow and what could not be read");
     const [attack, unread] = events;
     assert(attack?.kind === "attack", "the blow is still an event");
-    assertEquals(attack.applied.length, 3, "every applied figure is read");
+    assertEquals(attack.applied.length, 1, "the figures beside the unread key are read");
     assert(unread?.kind === "unknown-message", "and the unread key is its own event");
-    assertEquals(unread.unreadKeys, ["+taken_dmg"], "named, one entry per occurrence");
-    assertEquals(unread.combatantIds, [477718, -10000234], "with the ends the grammar stated");
+    assertEquals(unread.unreadKeys, ["legbon_lastheal"], "named, one entry per occurrence");
+    assertEquals(unread.combatantIds, [195782, 114881], "with the ends the grammar stated");
 });
 
 Deno.test("a message the grammar refuses is an event, not a silence", () => {
@@ -216,11 +217,71 @@ Deno.test("a blank element is the plain one, not an element of its own", () => {
     assertEquals(hits[0].damage.element, "dmg", "the same element the family's own keys carry");
 });
 
+/** `2026-08-12-tempest-grupa-vs-draugr-1.json`: a blow with a figure no total counts beside it. */
+const DECLARED_ON_BLOW = "477718=100.00;-10000234=95.59;+dmgd=924;+dmgc=766;+acdmg=18;" +
+    "+taken_dmg=254;-dmgd=291;-dmgc=295;-dmga=254";
+/** `2026-08-06-tempest-grupa-vs-hildur.json`: what an announcement states about its skill. */
+const DECLARED_ON_SKILL = "445202=81.04;445202=81.04;tspell=Osłona tarczą;skillId=206;" +
+    "active_block_per=15;heal_target=334;combo-max=1";
+/** `2026-08-04-tempest-lowca-vs-odyncze.json`: a line for the client's own log, and a step. */
+const LOG_LINE = "0;0;txt=Locha: zdobyto Skóra z dzika";
+const STEP_TAKEN = "-255967=100.00;0;step";
+
+Deno.test("what no total counts rides the blow it was stated on", () => {
+    const events = decodeFightMessages([DECLARED_ON_BLOW], null);
+    assertEquals(events.length, 1, "nothing was left unread");
+    assert(events[0]?.kind === "attack", "the blow is the event");
+    assertEquals(events[0].declared, [{ effect: "+taken_dmg", amount: 254, text: "254" }], "read");
+    assertEquals(events[0].applied.length, 3, "beside the figures a total does count");
+});
+
+Deno.test("what an announcement states about its skill rides the announcement", () => {
+    const events = decodeFightMessages([DECLARED_ON_SKILL], null);
+    const used = events.find((event) => event.kind === "skill-used");
+    assert(used?.kind === "skill-used", "the announcement is the event");
+    assertEquals(used.declared.map((one) => one.effect), ["active_block_per", "combo-max"], "both");
+    assertEquals(used.declared[0]?.amount, 15, "with the figure the protocol stated");
+    assertEquals(events.filter((one) => one.kind === "unknown-message").length, 0, "nothing left");
+});
+
+Deno.test("a message about nobody's health is a declaration of its own", () => {
+    const logged = decodeFightMessages([LOG_LINE], null);
+    assert(logged[0]?.kind === "declaration", "a log line happens to nobody");
+    assertEquals(logged[0].combatantId, null, "and names nobody");
+    assertEquals(logged[0].declared[0]?.text, "Locha: zdobyto Skóra z dzika", "text, not a figure");
+    assertEquals(
+        logged[0].declared[0]?.amount,
+        null,
+        "which is not a number and is not read as one",
+    );
+
+    const stepped = decodeFightMessages([STEP_TAKEN], null);
+    assert(stepped[0]?.kind === "declaration", "a step is a declaration too");
+    assertEquals(stepped[0].combatantId, -255967, "and this one names whose it is");
+    assertEquals(stepped[0].declared, [{ effect: "step", amount: null, text: null }], "no value");
+});
+
+Deno.test("a key read only while it states nothing goes unread once it states something", () => {
+    const silent = decodeFightMessages(["1=50.00;2=50.00;+dmg=10;-dmg=10;+legbon_holytouch"], null);
+    assert(silent[0]?.kind === "attack", "the blow is read");
+    assertEquals(silent[0].declared[0]?.effect, "+legbon_holytouch", "and the flag beside it");
+
+    // The client composes this key with a hole for a figure; no recording has ever filled it.
+    const stated = decodeFightMessages(
+        ["1=50.00;2=50.00;+dmg=10;-dmg=10;+legbon_holytouch=7"],
+        null,
+    );
+    const unread = stated.find((event) => event.kind === "unknown-message");
+    assert(unread?.kind === "unknown-message", "a figure arriving there is not read");
+    assertEquals(unread.unreadKeys, ["+legbon_holytouch"], "it is reported, loudly");
+});
+
 Deno.test("every message in every recording decodes, and the pairs hold", () => {
     let attacks = 0;
     let moved = 0;
     let announced = 0;
     let byName = 0;
+    let declared = 0;
     let resolved = 0;
     let glued = 0;
     let unread = 0;
@@ -244,6 +305,11 @@ Deno.test("every message in every recording decodes, and the pairs hold", () => 
                     byName += 1;
                     assert(event.targetName.length > 0, `${path}: a figure against no name`);
                     if (event.targetId !== null) resolved += 1;
+                    continue;
+                }
+                if (event.kind === "declaration") {
+                    declared += 1;
+                    assert(event.declared.length > 0, `${path}: a declaration stating nothing`);
                     continue;
                 }
                 if (event.kind === "skill-used") {
@@ -271,6 +337,7 @@ Deno.test("every message in every recording decodes, and the pairs hold", () => 
     assert(announced > 0, "and skills announced beside both");
     assert(glued > 0, "and blows the game itself glued to a skill");
     assert(byName > 0, "and damage stated against a name");
+    assert(declared > 0, "and messages that state something and report nothing");
     assert(resolved > byName / 2, "most of which a roster can put on somebody");
-    assert(unread > attacks, "and more still unread than read, which the panel would say");
+    assert(unread > 0, "and keys still unread, which is what the panel would say about them");
 });

@@ -37,6 +37,7 @@ export interface SkillUsedEvent {
     skillName: string;
     /** Null where the announcement carried none, which is why the name is what this is built on. */
     skillId: number | null;
+    declared: DeclaredEffect[];
 }
 
 export interface AttackEvent {
@@ -53,6 +54,7 @@ export interface AttackEvent {
     destroyed: DestroyedStatistic[];
     /** Fired alongside the blow, stating no figure at all. Nothing totals them. */
     procs: string[];
+    declared: DeclaredEffect[];
     announced: AnnouncedSkill | null;
 }
 
@@ -95,6 +97,17 @@ export interface DamageToNamedCombatantEvent {
     announced: AnnouncedSkill | null;
 }
 
+/**
+ * A message stating something and reporting nothing that happened to anybody: a step, a skill
+ * being prepared, a line for the client's own log. It carries no figure any statistic touches.
+ */
+export interface DeclarationEvent {
+    kind: "declaration";
+    combatantId: number | null;
+    healthPercent: number | null;
+    declared: DeclaredEffect[];
+}
+
 /** A message this decoder did not read, so a panel can say which total may be short. */
 export interface UnknownMessageEvent {
     kind: "unknown-message";
@@ -109,6 +122,7 @@ export interface UnknownMessageEvent {
 export type BattleEvent =
     | AttackEvent
     | DamageToNamedCombatantEvent
+    | DeclarationEvent
     | HealthChangeEvent
     | SkillUsedEvent
     | UnknownMessageEvent;
@@ -117,6 +131,7 @@ export type BattleEvent =
 export const BATTLE_EVENT_KINDS = [
     "attack",
     "damage-to-named-combatant",
+    "declaration",
     "health-change",
     "skill-used",
     "unknown-message",

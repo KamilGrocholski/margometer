@@ -13,6 +13,7 @@ import type {
     BattleEvent,
     DamageFigure,
     DamageToNamedCombatantEvent,
+    DeclarationEvent,
     DeclaredEffect,
     DestroyedStatistic,
     HealthChangeEvent,
@@ -94,6 +95,68 @@ const SKILL_NAME_KEY = "tspell";
  */
 const CUSTOM_SKILL_NAME_KEY = "tcustom";
 const SKILL_ID_KEY = "skillId";
+/**
+ * Keys stating something no total here counts: an input, an outcome in a unit this meter does
+ * not keep, or one outside the fight. Every member is an entry in `docs/protocol-keys.md`, and
+ * the test a key must pass to be here is not "we understand it" — it is whether whatever the
+ * figure did is reported elsewhere, in a unit no total keeps, or outside the fight.
+ */
+const DECLARATION_KEYS = [
+    "+absorb",
+    "+absorbm",
+    "+critpoison_per",
+    "+critsa",
+    "+critslow_per",
+    "+crush_physical",
+    "+engback",
+    "+exp",
+    "+injure",
+    "+legbon_puncture",
+    "+ph",
+    "+rage",
+    "+taken_dmg",
+    "-endest",
+    "-legbon_critred",
+    "-legbon_facade",
+    "-poison_lowdmg_per",
+    "active_absorbdest_per",
+    "active_block_per",
+    "active_decblock_per",
+    "active_decblock_per-enemies",
+    "afterheal",
+    "alllowdmg",
+    "allslow_per",
+    "aura-ac_per",
+    "aura-adddmg2_per-meele",
+    "aura-resall",
+    "aura-sa_per",
+    "combo-max",
+    "critmval-allies",
+    "critval-allies",
+    "en-regen",
+    "energy",
+    "lowheal_per-enemies",
+    "mana",
+    "poison_lowdmg_per-enemies",
+    "prepare",
+    "shout",
+    "txt",
+];
+/**
+ * The same, stating the key and nothing else — and read **only** while they carry none. The
+ * client composes `+legbon_holytouch` with a hole for a figure, so it is a declaration whose
+ * figure is absent rather than a proc, and one arriving with a value goes back to unread.
+ */
+const VALUELESS_DECLARATION_KEYS = [
+    "+legbon_anguish",
+    "+legbon_holytouch",
+    "+spell-taken_dmg-all",
+    "en-regen-cast",
+    "removedot-allies",
+    "removeslow-allies",
+    "removestun-allies",
+    "step",
+];
 /** The longest message list in one payload of `captures/` holds 627, 2026-08-28. */
 const MAXIMUM_MESSAGES = 4096;
 /** The longest message in `captures/` carries 40 parameters, 2026-08-28. */
@@ -127,6 +190,7 @@ interface AttackReading {
     procs: string[];
     healthChanges: HealthChangeReading[];
     namedDamage: NamedDamageReading[];
+    declared: DeclaredEffect[];
     skill: SkillReading | null;
     skillKeys: number;
     unreadKeys: string[];
@@ -221,6 +285,36 @@ function readNamedDamage(key: string, value: string): NamedDamageReading | null 
     };
 }
 
+function addValuelessKey(reading: AttackReading, key: string): void {
+    assert(key.length > 0, "a key is never empty");
+    if (PROC_KEYS.includes(key)) {
+        reading.procs.push(key);
+        return;
+    }
+    if (VALUELESS_DECLARATION_KEYS.includes(key)) {
+        reading.declared.push({ effect: key, amount: null, text: null });
+        return;
+    }
+    assert(!PROC_KEYS.includes(key), "a proc never reaches the unread branch");
+    reading.unreadKeys.push(key);
+}
+
+/** An id with no name is a skill nothing can put on screen, and the protocol has never sent one. */
+function closeSkillReading(
+    reading: AttackReading,
+    skillName: string | null,
+    skillId: number | null,
+): void {
+    assert(reading.skillKeys >= 0, "a key is counted once");
+    if (skillName !== null) {
+        reading.skill = { skillName, skillId };
+        return;
+    }
+    if (reading.skillKeys === 0) return;
+    reading.unreadKeys.push(SKILL_ID_KEY);
+    reading.skillKeys -= 1;
+}
+
 function addAttackFigure(reading: AttackReading, key: string, amount: number): void {
     const token = getTokenFromKey(key);
     assert(token.length > 0, "a figure carries the client's own token");
@@ -252,6 +346,7 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
         procs: [],
         healthChanges: [],
         namedDamage: [],
+        declared: [],
         skill: null,
         skillKeys: 0,
         unreadKeys: [],
@@ -260,8 +355,7 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
     let skillId: number | null = null;
     for (const parameter of parameters) {
         if (parameter.value === null) {
-            if (PROC_KEYS.includes(parameter.key)) reading.procs.push(parameter.key);
-            else reading.unreadKeys.push(parameter.key);
+            addValuelessKey(reading, parameter.key);
             continue;
         }
         const named = readSkillName(parameter.key, parameter.value, parsed);
@@ -276,6 +370,11 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
             continue;
         }
         assert(parameter.key !== SKILL_ID_KEY, "an id is read once, above");
+        if (DECLARATION_KEYS.includes(parameter.key)) {
+            const amount = getIntegerFromText(parameter.value);
+            reading.declared.push({ effect: parameter.key, amount, text: parameter.value });
+            continue;
+        }
         const namedHit = readNamedDamage(parameter.key, parameter.value);
         if (namedHit !== null) {
             reading.namedDamage.push(namedHit);
@@ -293,16 +392,11 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
         }
         addAttackFigure(reading, parameter.key, amount);
     }
-    // An id with no name is a skill nothing can put on screen, and the protocol has never sent
-    // one — so it goes back to unread rather than becoming an announcement of nothing.
-    if (skillName !== null) reading.skill = { skillName, skillId };
-    else if (reading.skillKeys > 0) {
-        reading.unreadKeys.push(SKILL_ID_KEY);
-        reading.skillKeys -= 1;
-    }
+    closeSkillReading(reading, skillName, skillId);
     const read = reading.raw.length + reading.applied.length + reading.prevented.length +
         reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
-        reading.namedDamage.length + reading.skillKeys + reading.unreadKeys.length;
+        reading.namedDamage.length + reading.declared.length + reading.skillKeys +
+        reading.unreadKeys.length;
     assert(read === parameters.length, "every parameter is read or named unread, and none twice");
     assert(reading.raw.length <= parameters.length, "a reading holds no more than it was handed");
     return reading;
@@ -346,7 +440,11 @@ function composeNamedDamageEvent(
     };
 }
 
-function composeSkillUsedEvent(parsed: ProtocolMessage, skill: SkillReading): SkillUsedEvent {
+function composeSkillUsedEvent(
+    parsed: ProtocolMessage,
+    skill: SkillReading,
+    declared: DeclaredEffect[],
+): SkillUsedEvent {
     assert(skill.skillName.length > 0, "an announcement names something");
     assert(skill.skillId === null || Number.isSafeInteger(skill.skillId), "an id is whole");
     return {
@@ -357,6 +455,7 @@ function composeSkillUsedEvent(parsed: ProtocolMessage, skill: SkillReading): Sk
         targetHealthPercent: parsed.target?.healthPercent ?? null,
         skillName: skill.skillName,
         skillId: skill.skillId,
+        declared,
     };
 }
 
@@ -378,6 +477,7 @@ function composeAttackEvent(
     parsed: ProtocolMessage,
     reading: AttackReading,
     announced: AnnouncedSkill | null,
+    declared: DeclaredEffect[],
 ): AttackEvent {
     assert(hasAttackFigure(reading), "an attack states a figure");
     assert(reading.unreadKeys.length <= MAXIMUM_PARAMETERS, "an event stays inside its bound");
@@ -392,6 +492,7 @@ function composeAttackEvent(
         prevented: reading.prevented,
         destroyed: reading.destroyed,
         procs: reading.procs,
+        declared,
         announced,
     };
 }
@@ -447,15 +548,22 @@ function decodeOneMessage(
     // A proc rides a blow in every message in `captures/` that carries one, 2026-08-28. Where no
     // figure stands beside it the key is not read as one: a proc alone would be a claim this
     // decoder cannot make.
-    if (!hasAttackFigure(reading)) reading.unreadKeys.push(...reading.procs);
-    else events.push(composeAttackEvent(parsed, reading, announced));
+    const isBlow = hasAttackFigure(reading);
+    const declaredElsewhere = isBlow || reading.skill !== null;
+    if (!isBlow) reading.unreadKeys.push(...reading.procs);
+    else events.push(composeAttackEvent(parsed, reading, announced, reading.declared));
     for (const moved of reading.healthChanges) {
         events.push(composeHealthChangeEvent(parsed, moved, announced));
     }
     for (const named of reading.namedDamage) {
         events.push(composeNamedDamageEvent(parsed, named, roster, announced));
     }
-    if (reading.skill !== null) events.push(composeSkillUsedEvent(parsed, reading.skill));
+    if (reading.skill !== null) {
+        events.push(composeSkillUsedEvent(parsed, reading.skill, isBlow ? [] : reading.declared));
+    }
+    if (!declaredElsewhere && reading.declared.length > 0) {
+        events.push(composeDeclarationEvent(parsed, reading.declared));
+    }
     const isUnread = reading.unreadKeys.length > 0;
     if (isUnread || events.length === 0) {
         events.push({
@@ -469,6 +577,22 @@ function decodeOneMessage(
     assert(events.length > 0, "a message decodes to something, even where nothing was read");
     assert(events.length <= parsed.parameters.length + 1, "a message stays inside its bound");
     return { events, announced: composeAnnouncedSkill(parsed, reading.skill) };
+}
+
+/** A message that states something and reports nothing that happened to anybody. */
+function composeDeclarationEvent(
+    parsed: ProtocolMessage,
+    declared: DeclaredEffect[],
+): DeclarationEvent {
+    assert(declared.length > 0, "a declaration event states something");
+    const side = parsed.actor ?? parsed.target;
+    assert(declared.every((one) => one.effect.length > 0), "each names the key it arrived on");
+    return {
+        kind: "declaration",
+        combatantId: side?.combatantId ?? null,
+        healthPercent: side?.healthPercent ?? null,
+        declared,
+    };
 }
 
 function composeAnnouncedSkill(
