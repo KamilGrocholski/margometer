@@ -112,7 +112,7 @@ Deno.test("assertion density averages two per function where the program is", ()
         assertions += reading.assertions;
         functions += reading.functions;
     }
-    assert(MINIMUM_ASSERTION_DENSITY === 2, "P10 rule 5 states two");
+    assert(MINIMUM_ASSERTION_DENSITY === 2, "S5 states two");
     if (functions === 0) return;
     const density = assertions / functions;
     assert(

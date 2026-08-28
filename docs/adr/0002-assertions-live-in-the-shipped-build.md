@@ -7,25 +7,24 @@
 
 Two rules point in opposite directions and both are load-bearing.
 
-The Power of Ten's rule 5 asks for an assertion density averaging two per function, and this project
-sharpens it: assert arguments, return values, pre- and postconditions and invariants; assert the
-positive space you expect and the negative space you do not; split compound assertions. The purpose
-is that an assertion downgrades a catastrophic correctness bug into a liveness bug.
+**S5** asks for an assertion density averaging two per function, and the assertion rules sharpen it:
+assert arguments, return values, pre- and postconditions and invariants; assert the positive space
+you expect and the negative space you do not; split compound assertions. The purpose is that an
+assertion downgrades a catastrophic correctness bug into a liveness bug.
 
 The one promise this add-on makes is that **an exception of ours never reaches the game's call
 stack**. A liveness bug inside somebody else's engine is not a downgrade — it is the worst outcome
 available, worse than a wrong number.
 
-Rule 5 explicitly permits assertions to be "selectively disabled after testing in
-performance-critical code", which offered an easy exit: strip them from the production bundle. That
-exit is wrong here for a specific reason. The failure this project most fears is a figure that is
-quietly short in a reader's browser, which is exactly the case a development-only assertion never
-sees.
+Disabling assertions after testing, where the code is performance-critical, was the easy exit: strip
+them from the production bundle. That exit is wrong here for a specific reason. The failure this
+project most fears is a figure that is quietly short in a reader's browser, which is exactly the
+case a development-only assertion never sees.
 
 ## Decision
 
 Assertions are **live in the shipped build** and are not stripped for production. Density averages
-at least two per function, per rule 5.
+at least two per function, as **S5** states.
 
 A failure — a failed assertion included — becomes state at the nearest boundary: the affected region
 is replaced in place by a marker, and exactly one branded console entry is written, once, not per
@@ -55,10 +54,10 @@ invariant, and it sits outside both branded hierarchies.
 
 ## Alternatives
 
-**Strip assertions in the production build.** Fastest code for the reader, and permitted by rule 5.
+**Strip assertions in the production build.** Fastest code for the reader, and the exit named above.
 Rejected: the worst case — a wrong figure in a reader's browser — is precisely the one nobody would
 then observe.
 
-**Assertions only at boundaries, no density rule.** Avoids the `assert(true)` padding that rule 5
+**Assertions only at boundaries, no density rule.** Avoids the `assert(true)` padding that **S5**
 itself forbids. Rejected because it makes the rule unmeasurable, and an unmeasurable rule was v1's
 most reliable source of drift.

@@ -13,7 +13,7 @@ That arrangement worked, but three of its properties turned into standing costs:
 
 - **The linter question stayed open.** `AGENTS.md` v1 said "no linter, by choice — the compiler
   replaces it", and compensated with a 1,796-line guard test enforcing style by reading source text.
-  The Power of Ten's rule 10 asks for a static analyser from day one.
+  **S10** asks for zero warnings from a static analyser on the first day.
 - **Formatting was unenforced**, so line length and indentation were argued rather than checked.
 - **The toolchain was several tools.** A standing argument for one toolbox over several says for one
   standardised toolbox over an array of specialised instruments.
@@ -34,7 +34,7 @@ dependencies" rule. See Consequences.
 
 ## Consequences
 
-**Easier.** Rule 10 is satisfied by a real analyser rather than by a guard test reading source text.
+**Easier.** S10 is satisfied by a real analyser rather than by a guard test reading source text.
 Formatting stops being a matter of taste. Contributors install one binary.
 
 **Harder, and these are obligations rather than regrets:**
@@ -51,7 +51,7 @@ Formatting stops being a matter of taste. Contributors install one binary.
 
 ## Alternatives
 
-**Stay on Bun and add a linter.** Would have satisfied rule 10 with the smallest change. Rejected
+**Stay on Bun and add a linter.** Would have satisfied S10 with the smallest change. Rejected
 because it adds a tool rather than removing several, and leaves formatting and bundling where they
 were.
 

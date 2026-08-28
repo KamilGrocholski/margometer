@@ -227,7 +227,7 @@ not the build":
 
 ```
 deno fmt --check   formatting, line length, indentation
-deno lint          zero warnings — P10 R10
+deno lint          zero warnings — S10
 deno check         types, at the strictness deno.json states
 deno test          the tests, including every guard in AGENTS.md's register
 deno task build    the bundle, plus the browser-floor check over it

@@ -6,8 +6,8 @@
 ## Context
 
 This is v1's decision, carried into v2 rather than re-derived. It is recorded here because it was
-made **against its own measurement** and nothing in the Power of Ten implies it, so without a record
-it reads as taste.
+made **against its own measurement** and no safety rule implies it, so without a record it reads as
+taste.
 
 v1 measured the two readings before choosing. Every side segment of every recording as it stood
 2026-08-27, read twice — once through a pattern, once through a hand-written scan of the same

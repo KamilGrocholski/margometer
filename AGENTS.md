@@ -52,26 +52,25 @@ measurement, the rejected alternatives and the cost are.
 
 ## Safety
 
-The ten rules of the Power of Ten, in the form they take in TypeScript. **S3, S8 and S9 have no
-equivalent in this language**; each states what binds instead.
+The shapes every function here keeps, whatever it is doing. **S3, S8 and S9 stand where a hazard
+this language does not have would be**; each states what binds instead.
 
-- **S1.** Only simple, explicit control flow. No recursion, direct or indirect. _(P10 R1)_
+- **S1.** Only simple, explicit control flow. No recursion, direct or indirect.
 - **S2.** Every loop has a fixed upper bound; exceeding it fails an assertion rather than
-  continuing. _(P10 R2)_
+  continuing.
 - **S3.** The cost of one payload is **measured** over the recordings, never assumed, and a change
-  to the decode path that raises it is a finding. _(P10 R3)_
-- **S4.** No function is longer than 70 lines. _(P10 R4 says one printed page)_
+  to the decode path that raises it is a finding.
+- **S4.** No function is longer than 70 lines, which is one printed page.
 - **S5.** Assertion density averages at least two per function across `src/`, `libs/` and `tools/` —
   the code that ships and the code that runs. **ADR 0007.** See **Assertions**.
-- **S6.** Declare at the smallest possible scope, `const` by default, at the point of use. _(P10
-  R6)_
+- **S6.** Declare at the smallest possible scope, `const` by default, at the point of use.
 - **S7.** Every return value is used or explicitly discarded; every parameter is checked. Held by
-  the compiler. _(P10 R7)_
+  the compiler.
 - **S8.** No code is generated at build time beyond the version constant and the instrumentation
-  module swap. _(P10 R8)_
+  module swap.
 - **S9.** Never alias a mutable structure. A caller that must not mutate receives a reading, not the
-  map. _(P10 R9)_
-- **S10.** Zero warnings, from the first day. A warning fails the gate. _(P10 R10)_
+  map.
+- **S10.** Zero warnings, from the first day. A warning fails the gate.
 - **S11.** Every collection that grows with input carries a **stated maximum** and an assertion at
   it — a retained list, a rendered row count, the messages one payload may carry. A new unbounded
   collection is `[ASK]`.
