@@ -12,10 +12,11 @@ Three layers of claim live in this file and they are kept apart on purpose:
 ## Current state
 
 **This is a rewrite in progress.** At this commit the repository holds documents, evidence,
-generated registers and the bottom of `core/`: the error base and the message grammar. Nothing reads
-the game yet, nothing is aggregated and nothing is drawn. The v1 implementation remains readable in
-this repository's history on `develop` (`git show develop:src/core/fight-decoder.ts`), and is not
-the thing being described here.
+generated registers and the lower half of `core/`: the error base, the message grammar, the roster,
+the data contract and the decoder's first step, which reads the damage family. Nothing reads the
+game yet, nothing is aggregated and nothing is drawn. The v1 implementation remains readable in this
+repository's history on `develop` (`git show develop:src/core/fight-decoder.ts`), and is not the
+thing being described here.
 
 ```
 AGENTS.md          Rules, authority order, guard register.
@@ -35,8 +36,12 @@ deno.lock          What the gate is actually run against. A package the lock doe
 
 src/
   core/
+    battle-event.ts      The data contract: what the decoder produces, and nothing else.
+    combatant-roster.ts  Who is in the fight, and which names resolve to one of them.
+    fight-decoder.ts     What a key means. Reads the damage family, names the rest unread.
     margometer-error.ts  The brand every failure that ships to the browser wears.
     protocol-message.ts  One message's grammar: both ends, then its parameters.
+    protocol-number.ts   The numbers the protocol states, read out of its text.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
   AGENTS.md        Why no hand edits one, and what provenance each carries.
@@ -50,6 +55,9 @@ docs/
 tests/
   AGENTS.md                What is true of a test here and nowhere else.
   core/                    A test sits where its subject sits.
+    battle-event.test.ts      Every variant the union holds, against what arrives.
+    combatant-roster.test.ts  Two of a name, one of nobody, and every recording.
+    fight-decoder.test.ts     The blows, and what is left unread beside them.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
@@ -57,6 +65,7 @@ tests/
     sources.test.ts        S1, S2, C5, S4 and S5 over every TypeScript file.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     names.test.ts          File names, exported functions and exported types.
+  recorded-fight.ts        The recordings, and where their Polish field names stop.
   source-line.ts           A line of TypeScript with its string literals taken out.
   source-paths.ts          Every TypeScript file under the directories that hold one.
 .agents/skills/verify/     How to drive the add-on in a browser and read what it drew.
@@ -184,17 +193,17 @@ answer with a value nobody wrote. `Number("")` is `0`, `parseInt("12abc")` is `1
 Reading returns `null` and throws nothing — the caller picks assert, error or unknown. Writing
 asserts, because the number is ours.
 
-- `Number()`, `toFixed`, `String()` on a number — `src/core/protocol-message.ts`. Every reading is
+- `Number()`, `toFixed`, `String()` on a number — `src/core/protocol-number.ts`. Every reading is
   refused before it is taken: digits are proved to be digits, then the result is proved to be a safe
   integer, so no figure downstream is a neighbour of the one the game stated.
 - `parseInt`, `parseFloat`, unary `+` — **planned**, named at its first consumer.
-- `JSON.parse` — `tests/core/protocol-message.test.ts`, the one reader of a recording. Its result is
-  `unknown` and is walked with `in` and `Array.isArray`; C13 forbids the cast that would skip that.
+- `JSON.parse` — `tests/recorded-fight.ts`, the one reader of a recording. Its result is `unknown`
+  and is walked with a predicate and `Array.isArray`; C13 forbids the cast that would skip that.
 - `JSON.stringify` — **planned**, named at its first consumer.
 - `Date.parse` — **planned**, named at its first consumer.
 - `performance.now()` — **planned**, named at its first consumer.
-- `typeof … === "object"`, which is `true` for `null` — `tests/core/protocol-message.test.ts`, where
-  the `null` case is a second assertion rather than a clause of the first.
+- `typeof … === "object"`, which is `true` for `null` — `tests/recorded-fight.ts`, where the `null`
+  case is a second line of `isRecord` rather than a clause of the first.
 - `localeCompare` — **nobody**, spelled nowhere. Bringing a collated order back means a caller
   first, then a reader, then a row here, in that order.
 
@@ -241,10 +250,10 @@ standard-library code whose ES level is not ours to set.
 Where the tree does not yet meet what this file states. Each is migration work, updated in the same
 commit that opens or closes one.
 
-1. **Only the bottom of `core/` exists.** The error base and the message grammar are written; the
-   decoder, the roster, the health, the statistics, everything under `game/` and `ui/`, the entry
-   point and `tools/` are not. Every "Target" section above is a constraint, not a description, and
-   the layers named in them are unwritten unless the structure block lists them.
+1. **`core/` is half written.** The error base, the message grammar, the roster, the data contract
+   and the decoder's damage step exist. The decoder reads one family of keys and names every other
+   key unread; the health, the statistics, everything under `game/` and `ui/`, the entry point and
+   `tools/` are not written at all.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

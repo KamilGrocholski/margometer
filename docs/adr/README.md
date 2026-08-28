@@ -64,3 +64,5 @@ edited to agree with the new rule.
 - [0006](0006-no-regular-expressions.md) — No regular expressions. **Accepted**
 - [0007](0007-assertion-density-is-measured-where-the-program-is.md) — Assertion density is measured
   where the program is. **Accepted**
+- [0008](0008-the-decoder-produces-a-union-of-event-kinds.md) — The decoder produces a union of
+  event kinds. **Accepted**

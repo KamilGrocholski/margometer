@@ -2,15 +2,14 @@
  * The grammar, against every message the recordings carry.
  *
  * Each sample below is a transcript, copied from the recording it is named against — a guess
- * about the protocol's own text would be a claim about the game. The Polish field names are
- * the recordings' own, and this reader is where they stop.
+ * about the protocol's own text would be a claim about the game.
  */
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 import { composeProtocolMessage, parseProtocolMessage } from "@/src/core/protocol-message.ts";
+import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
-const CAPTURE_DIRECTORY = "captures";
 /** `2026-08-04-tempest-lowca-vs-odyncze.json`, the fight this file's samples are taken from. */
 const HIT = "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223";
 const KILLING_HIT = "482845=100.00;-161518=0.00;+dmgd=485;+acdmg=5;-dmgd=248";
@@ -18,39 +17,6 @@ const STEP = "-255967=100.00;0;step";
 const OUTCOME = "0;0;winner=Gracz 1";
 /** `2026-08-06-tempest-grupa-vs-hildur.json`: a side stated without a percentage. */
 const ANNOUNCEMENT = "-10000249;0;tspell=Struna płomienna";
-
-function getRecordedMessages(path: string): string[] {
-    const document: unknown = JSON.parse(Deno.readTextFileSync(path));
-    assert(typeof document === "object", "a recording is an object");
-    assert(document !== null, "a recording is an object that is there");
-    assert("wpisy" in document, "a recording carries its entries");
-    const entries = document.wpisy;
-    assert(Array.isArray(entries), "the entries are a list");
-    const messages: string[] = [];
-    for (const entry of entries) {
-        assert(typeof entry === "object", "an entry is an object");
-        assert(entry !== null, "an entry is an object that is there");
-        assert("komunikaty" in entry, "an entry carries its messages");
-        const carried = entry.komunikaty;
-        assert(Array.isArray(carried), "the messages are a list");
-        for (const message of carried) {
-            assert(typeof message === "string", "a message is text");
-            messages.push(message);
-        }
-    }
-    return messages;
-}
-
-function getRecordingPaths(): string[] {
-    const paths: string[] = [];
-    for (const entry of Deno.readDirSync(CAPTURE_DIRECTORY)) {
-        if (!entry.name.endsWith(".json")) continue;
-        paths.push(`${CAPTURE_DIRECTORY}/${entry.name}`);
-    }
-    assert(paths.length > 0, "an empty evidence directory is a finding, not a pass");
-    assert(new Set(paths).size === paths.length, "a recording is read once");
-    return paths;
-}
 
 Deno.test("both ends are read, with the health each states", () => {
     const hit = parseProtocolMessage(HIT);
