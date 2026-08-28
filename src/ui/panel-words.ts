@@ -65,3 +65,20 @@ export function composeCountedNoun(count: number, noun: CountedNoun): string {
     if (last >= FEW_FLOOR && last <= FEW_CEILING) return `${count} ${noun.few}`;
     return `${count} ${noun.many}`;
 }
+
+/**
+ * Where a fight was fought, as much of it as was known: the map, the tile, or both. Null where
+ * none of it was — an empty pair of brackets states a place, and nothing was stated.
+ */
+export function composePlaceWords(
+    mapName: string | null,
+    x: number | null,
+    y: number | null,
+): string | null {
+    assert(mapName === null || mapName.length > 0, "a map that was named says something");
+    const tile = x === null || y === null ? null : `(${x}, ${y})`;
+    if (mapName === null) return tile;
+    if (tile === null) return mapName;
+    assert(tile.length > 0, "a tile that was read is written out");
+    return `${mapName} ${tile}`;
+}

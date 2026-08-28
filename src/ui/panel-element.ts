@@ -47,6 +47,8 @@ export interface PanelRoot {
 
 const HOST_NAME = "MargoMeter-Panel";
 const TITLE_CLASS = "MargoMeter-titlebar";
+const TITLE_NAME_CLASS = "title-name";
+const PLACE_CLASS = "place";
 const BODY_CLASS = "MargoMeter-body";
 /**
  * The strip is one of the panel's own regions, so it is named as ours like the bar and the body.
@@ -155,6 +157,21 @@ function composeTabsElement(document: PanelDocument, view: PanelView): PanelElem
     return strip;
 }
 
+/** The panel's own name, and where the fight being read is being fought, where that is known. */
+function composeTitleElement(document: PanelDocument, place: string | null): PanelElement {
+    const bar = composeElement(document, "div", TITLE_CLASS);
+    const name = composeElement(document, "span", TITLE_NAME_CLASS);
+    name.textContent = PANEL_WORDS.title;
+    bar.append(name);
+    assert(name.textContent.length > 0, "the panel says whose it is before anything else");
+    if (place === null) return bar;
+    assert(place.length > 0, "a place that is drawn says something");
+    const where = composeElement(document, "span", PLACE_CLASS);
+    where.textContent = place;
+    bar.append(where);
+    return bar;
+}
+
 /** The fights already fought, newest first, each saying how many were in it. */
 function composeShelfElement(document: PanelDocument, shelf: readonly ShelfRow[]): PanelElement {
     const body = composeElement(document, "div", BODY_CLASS);
@@ -171,6 +188,11 @@ function composeShelfElement(document: PanelDocument, shelf: readonly ShelfRow[]
         const name = composeElement(document, "span", ROW_NAME_CLASS);
         name.textContent = composeCountedNoun(fight.combatants, COUNTED_NOUNS.combatants);
         row.append(name);
+        if (fight.place !== null) {
+            const where = composeElement(document, "span", PLACE_CLASS);
+            where.textContent = fight.place;
+            row.append(where);
+        }
         body.append(row);
     }
     assert(shelf.length > 0, "a shelf with something on it draws a row for each");
@@ -265,6 +287,8 @@ export interface PanelView {
     isOnShelf: boolean;
     /** The row standing open over the screen, or nobody's. */
     drill: DrillReading | null;
+    /** Where the fight is being fought, already in words. Null where the client would not say. */
+    place: string | null;
 }
 
 /** What a press asked for, read off the pressed element's own attribute. */
@@ -304,11 +328,7 @@ export function composePanelHost(
     assert(HOST_NAME.startsWith("MargoMeter-"), "the host is named as ours before anything else");
     host.setAttribute("id", HOST_NAME);
     const root = host.attachShadow({ mode: "open" });
-    const title = composeRegion(document, () => {
-        const bar = composeElement(document, "div", TITLE_CLASS);
-        bar.textContent = PANEL_WORDS.title;
-        return bar;
-    }, handleFailure);
+    let title = composeElement(document, "div", TITLE_CLASS);
     let tabs = composeElement(document, "div", TABS_CLASS);
     let body = composeElement(document, "div", BODY_CLASS);
     root.append(title);
@@ -333,6 +353,11 @@ export function composePanelHost(
     return {
         element: host,
         show(view: PanelView): void {
+            const nextTitle = composeRegion(
+                document,
+                () => composeTitleElement(document, view.place),
+                handleFailure,
+            );
             const nextTabs = composeRegion(
                 document,
                 () => composeTabsElement(document, view),
@@ -343,11 +368,14 @@ export function composePanelHost(
                 () => composeViewBody(document, view),
                 handleFailure,
             );
+            title.replaceWith(nextTitle);
             tabs.replaceWith(nextTabs);
             body.replaceWith(nextBody);
+            title = nextTitle;
             tabs = nextTabs;
             body = nextBody;
-            assert(tabs !== body, "the two regions are two elements");
+            assert(tabs !== body, "the regions are that many elements");
+            assert(title !== tabs, "and none of them stands in for another");
         },
     };
 }

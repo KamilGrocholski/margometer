@@ -19,6 +19,7 @@ import {
     getFightFromSession,
 } from "@/src/game/battle-session.ts";
 import { attachToGame, type GameAttachment, type Scheduler } from "@/src/game/engine-attachment.ts";
+import { type FightPlace, getPlaceFromPage } from "@/src/game/engine-place.ts";
 import {
     type FightStore,
     type KeptFight,
@@ -39,6 +40,7 @@ import {
     type ScreenState,
     SHELF_SCREEN,
 } from "@/src/ui/panel-screen.ts";
+import { composePlaceWords } from "@/src/ui/panel-words.ts";
 
 /** Where a failure of ours is written, so the reader sees whose it is at a glance. */
 const FAILURE_LINE = "MargoMeter/Panel";
@@ -63,14 +65,23 @@ export interface UserscriptEnvironment {
     report(line: string, failure: unknown): void;
 }
 
-/**
- * Puts what the session holds into the panel that is already on the page. A fight nobody has seen
- * draws nothing, because a panel of zeroes over a game that has not started is a claim.
- */
+/** Null where nothing about the place was known, which a row leaves blank rather than filling. */
+function getPlaceWords(place: FightPlace | null): string | null {
+    if (place === null) return null;
+    const words = composePlaceWords(place.mapName, place.x, place.y);
+    assert(words === null || words.length > 0, "a place put into words says something");
+    return words;
+}
+
 function composeShelfRows(kept: readonly KeptFight[]): ShelfRow[] {
-    const rows = kept.map((one) => ({ openedAt: one.openedAt, combatants: one.combatants.length }));
+    const rows = kept.map((one) => ({
+        openedAt: one.openedAt,
+        place: getPlaceWords(one.place),
+        combatants: one.combatants.length,
+    }));
     assert(rows.length === kept.length, "a shelf draws a row for each fight it holds");
     assert(rows.every((one) => one.combatants >= 0), "and none of them has fewer than nobody");
+    assert(rows.every((one) => one.place !== ""), "and a row that says where was fought says it");
     return rows;
 }
 
@@ -107,11 +118,16 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
     return true;
 }
 
+/**
+ * Puts what the session holds into the panel that is already on the page. A fight nobody has seen
+ * draws nothing, because a panel of zeroes over a game that has not started is a claim.
+ */
 function showFight(
     session: BattleSession,
     screen: ScreenState,
     panel: PanelHandle,
     kept: readonly KeptFight[],
+    place: FightPlace | null,
 ): void {
     const fight = getFightFromSession(session);
     if (fight === null) return;
@@ -131,6 +147,7 @@ function showFight(
         shelf: composeShelfRows(kept),
         isOnShelf: screen.isOnShelf,
         drill,
+        place: getPlaceWords(place),
     });
 }
 
@@ -214,13 +231,19 @@ function keepFight(
     environment: UserscriptEnvironment,
     session: BattleSession,
     kept: KeptFight[],
+    place: FightPlace | null,
 ): void {
     const fight = getFightFromSession(session);
     if (fight === null) return;
     if (!fight.isOver) return;
     const combatants = [...fight.roster.byId.values()];
     assert(fight.isOver, "a fight is kept once it is over and not before");
-    kept.push({ openedAt: environment.now(), combatants, payloads: fight.messagesByPayload });
+    kept.push({
+        openedAt: environment.now(),
+        combatants,
+        payloads: fight.messagesByPayload,
+        place,
+    });
     if (environment.store === null) return;
     // A refusal to write is an answer: the fight stays in the session and the panel keeps drawing.
     writeKeptFights(environment.store, SHELF_KEY, kept);
@@ -241,25 +264,30 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     // The panel goes up on the first payload and not before: a copy that stood down never gets
     // one, and a page with no game on it is left as it was found.
     let isMounted = false;
+    // Read once, on the payload that opens a fight: the client's own state is where a place is,
+    // the hero does not move while a fight is on, and reading it every payload would ask another
+    // program's object graph a question whose answer cannot have changed.
+    let place: FightPlace | null = null;
     const showAndMount = (): void => {
-        showFight(session, screen, panel, kept);
+        showFight(session, screen, panel, kept, place);
         if (isMounted) return;
         environment.mount.show(panel.element);
         isMounted = true;
     };
     const panel = composePanelHost(environment.document, (press) => {
         if (!handlePress(screen, press)) return;
-        showFight(session, screen, panel, kept);
+        showFight(session, screen, panel, kept, place);
     }, (failure) => environment.report(FAILURE_LINE, failure));
     assert(!isMounted, "nothing is on the page until a payload arrives");
     return attachToGame(environment.page, environment.schedule, {
         handlePayload: (payload) => {
             addPayloadToSession(session, payload);
             const fight = getFightFromSession(session);
+            if (fight !== null && fight.payloads === 1) place = getPlaceFromPage(environment.page);
             // Once, on the call that ends it: a fight put on the shelf twice is two fights.
             if (fight !== null && fight.isOver && !wasOver) {
                 wasOver = true;
-                keepFight(environment, session, kept);
+                keepFight(environment, session, kept, place);
             }
             if (fight !== null && !fight.isOver) wasOver = false;
             showAndMount();

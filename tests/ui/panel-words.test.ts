@@ -8,7 +8,12 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { composeCountedNoun, COUNTED_NOUNS, PANEL_WORDS } from "@/src/ui/panel-words.ts";
+import {
+    composeCountedNoun,
+    composePlaceWords,
+    COUNTED_NOUNS,
+    PANEL_WORDS,
+} from "@/src/ui/panel-words.ts";
 
 /** Words this repository chose for itself. A reader is told what is missing, never our reason. */
 const OUR_VOCABULARY = [
@@ -89,4 +94,15 @@ Deno.test("every noun states its three forms, and they are not one form thrice",
         assert(noun.many.length > 0, `${name} states the third`);
         assert(new Set([noun.one, noun.few, noun.many]).size > 1, `${name} spells one word thrice`);
     }
+});
+
+Deno.test("a place is said with as much of it as was known, and nothing where none was", () => {
+    assertEquals(composePlaceWords("Mapa", 12, 34), "Mapa (12, 34)", "both, the map first");
+    assertEquals(composePlaceWords("Mapa", null, null), "Mapa", "the map alone stands alone");
+    assertEquals(composePlaceWords(null, 12, 34), "(12, 34)", "and so does the tile");
+    // Half a tile is not a tile: a pair with one number missing states a place that is not one.
+    assertEquals(composePlaceWords("Mapa", 12, null), "Mapa", "half a tile is left unsaid");
+    assertEquals(composePlaceWords(null, null, 34), null, "and half a tile alone says nothing");
+    assertEquals(composePlaceWords(null, null, null), null, "nothing known is said as nothing");
+    assertEquals(composePlaceWords("Mapa", 0, 0), "Mapa (0, 0)", "the corner of a map is a tile");
 });

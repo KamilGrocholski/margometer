@@ -137,8 +137,10 @@ inside it.
 
 ## Components
 
-**Title bar.** `surfaceRaised`, one line, always. It carries the name, the version and the controls,
-and it stays one line as the version number grows — a bar that wraps moves everything below it.
+**Title bar.** `surfaceRaised`, one line, always. It carries the name, the version, where the fight
+is being fought, and the controls, and it stays one line as the version number grows — a bar that
+wraps moves everything below it. Where the client says nothing about the place, the bar says nothing
+in its stead: an empty pair of brackets states a place, and nothing was stated.
 
 **Ranking row.** A name, a bar, a figure. The bar is the row's background at `barTint`, not a
 separate element, so the row height cannot disagree with the accent height.

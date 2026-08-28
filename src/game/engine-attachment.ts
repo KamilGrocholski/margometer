@@ -21,7 +21,7 @@ const BATTLE_FIELD = "battle";
 const ENGINE_FIELD = "Engine";
 const ENGINE_CALL_FIELD = "getEngine";
 /** The field and the call: a page holds a game in two spellings and no more. */
-const ENGINE_SPELLINGS = 2;
+export const ENGINE_SPELLINGS = 2;
 const LOOK_EVERY_MS = 250;
 /** Four looks a second for a minute. A game that has not arrived by then is not arriving. */
 const MAXIMUM_LOOKS = 240;

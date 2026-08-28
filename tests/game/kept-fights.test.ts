@@ -7,6 +7,7 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { composeJsonText } from "@/src/core/unknown-reading.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
     type FightStore,
@@ -46,6 +47,7 @@ function composeFight(openedAt: number): KeptFight {
             healthMaximum: 745,
         }],
         payloads: [["1=100.00;0;heal=99"]],
+        place: { mapName: "Mapa", x: 12, y: 34 },
     };
 }
 
@@ -110,7 +112,10 @@ Deno.test("a fight off the shelf decodes as the fight that went on it", () => {
     const store = composeStore();
     const combatants = getRecordedCombatants(path);
     const payloads = getRecordedPayloads(path);
-    assert(writeKeptFights(store, KEY, [{ openedAt: 1, combatants, payloads }]), "kept");
+    assert(
+        writeKeptFights(store, KEY, [{ openedAt: 1, combatants, payloads, place: null }]),
+        "kept",
+    );
     const kept = readKeptFights(store, KEY)[0];
     assert(kept !== undefined, "and read back");
     const roster = composeCombatantRoster(kept.combatants);
@@ -121,4 +126,43 @@ Deno.test("a fight off the shelf decodes as the fight that went on it", () => {
         live += decodeFightMessages(payload, composeCombatantRoster(combatants)).length;
     }
     assertEquals(events, live, "the same fight, read by the code that is running now");
+});
+
+Deno.test("a fight keeps where it was fought, and reads back without it", () => {
+    const store = composeStore();
+    assert(writeKeptFights(store, KEY, [composeFight(1)]), "a fight with a place is kept");
+    assertEquals(readKeptFights(store, KEY)[0]?.place, { mapName: "Mapa", x: 12, y: 34 }, "whole");
+
+    // A fight is worth keeping without a place: the three fields fail apart, as they do when
+    // they are read off the client, and a fight is not dropped for missing one.
+    assert(
+        writeKeptFights(store, KEY, [{
+            ...composeFight(2),
+            place: { mapName: "Mapa", x: 1, y: 2 },
+        }]),
+        "a place is written as it stands",
+    );
+    const partial = composeJsonText({
+        version: 1,
+        fights: [{ openedAt: 3, combatants: [], payloads: [], place: { mapName: "Mapa" } }],
+    });
+    assert(partial !== null, "a shelf missing two fields of a place is text");
+    store.write(KEY, partial);
+    assertEquals(
+        readKeptFights(store, KEY)[0]?.place,
+        { mapName: "Mapa", x: null, y: null },
+        "what was said is kept and what was not is nobody's",
+    );
+    const none = composeJsonText({
+        version: 1,
+        fights: [{ openedAt: 4, combatants: [], payloads: [] }],
+    });
+    assert(none !== null, "a shelf written before places were kept is text too");
+    store.write(KEY, none);
+    assertEquals(readKeptFights(store, KEY).length, 1, "a fight with no place at all still reads");
+    assertEquals(
+        readKeptFights(store, KEY)[0]?.place,
+        null,
+        "as a fight fought nobody knows where",
+    );
 });

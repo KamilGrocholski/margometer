@@ -17,6 +17,7 @@ import {
     composeFakeDocument,
     type FakeElement,
     getElementsWithin,
+    getTextsByClass,
     pressElement,
 } from "@/tests/fake-document.ts";
 import {
@@ -306,4 +307,65 @@ Deno.test("a row belonging to nobody in the fight opens nothing", () => {
     absent.setAttribute("data-row", "0");
     pressElement(host, "pointerdown", absent);
     assertEquals(getRegion("crumb"), undefined, "and neither does one nobody in the fight holds");
+});
+
+Deno.test("the place a fight is fought reaches the bar, and goes on the shelf with it", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    // The client's own state, in the spelling `engine-place.ts` states it was read in.
+    const page = {
+        Engine: { battle, map: { d: { name: "Mapa Testowa" } }, hero: { d: { x: 12, y: 34 } } },
+    };
+    const { environment, shown } = composeEnvironment(page);
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    assertEquals(getTextsByClass(host, "place"), ["Mapa Testowa (12, 34)"], "the bar says where");
+
+    // The fight this recording holds ends, so the shelf has a row to say it of.
+    const tab = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-screen") === "fights"
+    );
+    assert(tab !== undefined, "the shelf has a tab");
+    pressElement(host, "pointerdown", tab);
+    // Inside the row, not anywhere on the panel: the bar says the same words over the shelf, so
+    // a test that asks the whole panel passes with the row saying nothing.
+    const row = getElementsWithin(host).find((one) => one.className === "row");
+    assert(row !== undefined, "the shelf drew the fight that ended");
+    assertEquals(getTextsByClass(row, "place"), [
+        "Mapa Testowa (12, 34)",
+    ], "and the row kept on the shelf says where it was fought");
+});
+
+Deno.test("a client that says nothing about the place leaves the bar saying nothing", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    assertEquals(getTextsByClass(host, "place"), [], "nothing known is drawn as nothing at all");
+});
+
+Deno.test("a second fight is asked where it is, not told where the one before it was", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const hero: Record<string, unknown> = { x: 12, y: 34 };
+    const page = { Engine: { battle, map: { d: { name: "Mapa Testowa" } }, hero: { d: hero } } };
+    const { environment, shown } = composeEnvironment(page);
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    const updates = getRecordedEngineUpdates(HILDUR);
+    for (const payload of updates) update(payload);
+    const host = shown[0] as FakeElement;
+    assertEquals(getTextsByClass(host, "place"), ["Mapa Testowa (12, 34)"], "the first fight");
+
+    // Between the fights the hero walked, which is the only thing that moves a place. The
+    // recording opens with the payload that opens a fight, so playing it again is a second one.
+    hero.x = 7;
+    hero.y = 8;
+    for (const payload of updates) update(payload);
+    assertEquals(getTextsByClass(host, "place"), ["Mapa Testowa (7, 8)"], "and the second, asked");
 });

@@ -12,6 +12,7 @@
 
 import { assert } from "@std/assert";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
+import type { FightPlace } from "@/src/game/engine-place.ts";
 import {
     composeJsonText,
     getNumberFromUnknown,
@@ -30,6 +31,8 @@ export interface KeptFight {
     combatants: Combatant[];
     /** One list per call the engine made, so a replay is the fight as it was delivered. */
     payloads: readonly (readonly string[])[];
+    /** Where it was fought, as much of it as the client would say. */
+    place: FightPlace | null;
 }
 
 export interface FightStore {
@@ -100,6 +103,25 @@ function getCombatantsFromValue(value: unknown): Combatant[] | null {
     return combatants;
 }
 
+/**
+ * A place that does not read back is nobody's place, not a fight dropped: the place is what a
+ * fight was fought at, and a fight is worth keeping without it. The three fields fail apart, as
+ * they do when they are read off the client.
+ */
+function getKeptPlaceFromValue(value: unknown): FightPlace | null {
+    if (!isRecord(value)) return null;
+    const place: FightPlace = {
+        mapName: getTextFromUnknown(value.mapName),
+        x: getNumberFromUnknown(value.x),
+        y: getNumberFromUnknown(value.y),
+    };
+    assert(place.mapName === null || place.mapName.length > 0, "a name kept says something");
+    if (place.mapName !== null) return place;
+    if (place.x !== null) return place;
+    if (place.y === null) return null;
+    return place;
+}
+
 /** Null for anything a reader of this version does not recognise, whole fight and all. */
 function getKeptFightFromValue(value: unknown): KeptFight | null {
     if (!isRecord(value)) return null;
@@ -111,7 +133,7 @@ function getKeptFightFromValue(value: unknown): KeptFight | null {
     if (payloads === null) return null;
     assert(combatants.length >= 0, "a cast kept is a list, however short");
     assert(openedAt >= 0, "a moment kept is not before the epoch");
-    return { openedAt, combatants, payloads };
+    return { openedAt, combatants, payloads, place: getKeptPlaceFromValue(value.place) };
 }
 
 /** Whatever of the shelf reads back. A fight that does not is dropped, and the rest still stand. */

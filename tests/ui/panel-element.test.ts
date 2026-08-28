@@ -60,6 +60,7 @@ function draw(reading: PanelReading): FakeElement {
         shelf: [],
         isOnShelf: false,
         drill: null,
+        place: null,
     });
     return panel.element as FakeElement;
 }
@@ -158,6 +159,7 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
         shelf: [],
         isOnShelf: false,
         drill: null,
+        place: null,
     });
     const host = panel.element as FakeElement;
     const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
@@ -182,6 +184,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         shelf: [],
         isOnShelf: false,
         drill: null,
+        place: null,
     });
     const host = panel.element as FakeElement;
     const before = getElementsWithin(host).filter((one) => one.className.startsWith("tab")).length;
@@ -192,6 +195,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         shelf: [],
         isOnShelf: false,
         drill: null,
+        place: null,
     });
     const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
     assertEquals(tabs.length, before, "the strip is drawn again, not drawn twice");
@@ -225,12 +229,13 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         shelf: [],
         isOnShelf: false,
         drill: null,
+        place: null,
     });
     const host = panel.element as FakeElement;
     assertEquals(failures.length, 1, "the failure is reported once");
     assertEquals(getTextsByClass(host, "undrawn"), [PANEL_WORDS.undrawn], "and marked in place");
     assertEquals(host.shadow?.length, 3, "while the panel keeps its shape");
-    assertEquals(getTextsByClass(host, "MargoMeter-titlebar"), [PANEL_WORDS.title], "title stands");
+    assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "the title stands");
 });
 
 Deno.test("an opened row stands over the screen, and states whose it is", () => {
@@ -243,6 +248,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
         shelf: [],
         isOnShelf: false,
         drill,
+        place: null,
     });
     const host = panel.element as FakeElement;
     const within = getElementsWithin(host);
@@ -267,6 +273,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         shelf: [],
         isOnShelf: false,
         drill: null,
+        place: null,
     });
     const host = panel.element as FakeElement;
     // The press lands on the deepest element under the pointer, which is the name inside the row.
@@ -275,9 +282,36 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
     pressElement(host, "pointerdown", name);
     assertEquals(pressed, [{ kind: "row", stated: `${reading.rows[0]?.combatantId}` }], "that row");
 
-    panel.show({ reading, current: "damageDealtApplied", shelf: [], isOnShelf: false, drill });
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+        drill,
+        place: null,
+    });
     const crumb = getElementsWithin(host).find((one) => one.className === "crumb");
     assert(crumb !== undefined, "an opened row has a way back");
     pressElement(host, "pointerdown", crumb);
     assertEquals(pressed.at(-1), { kind: "back" }, "which asks for nothing but the way back");
+});
+
+Deno.test("the bar says where the fight is being fought, and stays a bar without it", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    const view = {
+        reading: readFight(),
+        current: "damageDealtApplied" as const,
+        shelf: [],
+        isOnShelf: false,
+        drill: null,
+    };
+    panel.show({ ...view, place: "Mapa (12, 34)" });
+    const host = panel.element as FakeElement;
+    assertEquals(getTextsByClass(host, "place"), ["Mapa (12, 34)"], "the place, in the bar");
+    assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "beside the name");
+
+    panel.show({ ...view, place: null });
+    assertEquals(getTextsByClass(host, "place"), [], "and nothing at all where nothing was said");
+    assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "the bar standing on");
 });

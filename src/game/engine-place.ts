@@ -7,6 +7,7 @@
 
 import { assert } from "@std/assert";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { ENGINE_SPELLINGS, getEnginesFromPage } from "@/src/game/engine-attachment.ts";
 import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/src/core/unknown-reading.ts";
 
 /**
@@ -73,4 +74,18 @@ export function getPlaceFromEngine(engine: unknown): FightPlace | null {
         // itself: nothing known about the place, which the panel shows as unknown (E5).
         return null;
     }
+}
+
+/**
+ * The place off whichever spelling of the game the page holds. The first that says anything wins:
+ * a page carrying both spellings carries one game behind them, so two answers cannot disagree.
+ */
+export function getPlaceFromPage(page: unknown): FightPlace | null {
+    const engines = getEnginesFromPage(page);
+    assert(engines.length <= ENGINE_SPELLINGS, "a page holds a game in two spellings and no more");
+    for (const engine of engines) {
+        const place = getPlaceFromEngine(engine);
+        if (place !== null) return place;
+    }
+    return null;
 }

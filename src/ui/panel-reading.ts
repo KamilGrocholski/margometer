@@ -34,6 +34,8 @@ export interface PanelRow {
 /** One fight already fought, as much of it as a shelf row shows. */
 export interface ShelfRow {
     openedAt: number;
+    /** Where it was fought, already in words, or null where the client would not say. */
+    place: string | null;
     combatants: number;
 }
 
