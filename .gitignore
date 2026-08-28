@@ -1,0 +1,11 @@
+# The built userscript. A release attaches it; git does not carry it.
+dist/
+
+# Game client sources, fetched on demand. Outside git by copyright requirement.
+.cache/
+
+# Left over from the Bun toolchain of v1. Nothing here uses it.
+node_modules/
+
+# Session machinery, not project content.
+.claude/scheduled_tasks.lock

@@ -1,0 +1,12 @@
+{
+    "permissions": {
+        "deny": [
+            "Edit(TODO.md)",
+            "Write(TODO.md)",
+            "NotebookEdit(TODO.md)",
+            "Edit(./TODO.md)",
+            "Write(./TODO.md)",
+            "NotebookEdit(./TODO.md)"
+        ]
+    }
+}

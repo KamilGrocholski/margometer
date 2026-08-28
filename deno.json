@@ -1,0 +1,51 @@
+{
+    "tasks": {
+        // The gate. One command, so there is no version of "I ran the tests but not the build".
+        // `test` and `build` join it when their subjects exist — see ARCHITECTURE.md, known gaps.
+        "check": "deno fmt --check && deno lint && deno check && deno test -A"
+    },
+    "fmt": {
+        // 4 spaces, hard limit of 100 columns, nothing hidden by a scrollbar.
+        "indentWidth": 4,
+        "lineWidth": 100,
+        "semiColons": true,
+        "singleQuote": false,
+        "useTabs": false,
+        "exclude": [
+            // Evidence. Formatting a recording is editing it.
+            "captures/",
+            // Written by tooling, including their headers. Regenerating is how they change.
+            "tests/frozen-protocol-keys.ts",
+            "tests/frozen-help-phrases.ts",
+            // The maintainer's list. `.claude/settings.json` denies the three tools that edit a
+            // file, and a formatter is not one of them — it rewrote this file once, which is
+            // exactly the trap AGENTS.md warns about: the wall is narrower than the rule.
+            "TODO.md"
+        ]
+    },
+    "lint": {
+        "rules": { "tags": ["recommended"] },
+        "exclude": ["captures/"]
+    },
+    "imports": {
+        "@/": "./",
+        "@std/assert": "jsr:@std/assert@^1"
+    },
+    "compilerOptions": {
+        "lib": ["deno.ns", "dom", "dom.iterable", "esnext"],
+        "strict": true,
+        // Standing in for a linter's dead-code rules: unused is a build failure, not something
+        // to read past. This is what stood between v1's tree and accumulated uncalled functions.
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        // The decoder lives on indexing. Every access proves itself rather than assuming a hit.
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "noImplicitReturns": true,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false
+    },
+    "exclude": ["captures/", "dist/", ".cache/", "node_modules/"]
+}
