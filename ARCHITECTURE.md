@@ -37,6 +37,7 @@ deno.lock          What the gate is actually run against. A package the lock doe
 .gitignore         What never enters git, including the cache.
 
 src/
+  userscript-entry.ts  Where the layers meet: the game found, the payloads read, the panel drawn.
   core/
     battle-event.ts      The data contract: what the decoder produces, and nothing else.
     combatant-health.ts  Health read from a stated share, and how far off it can be.
@@ -100,6 +101,7 @@ tests/
     names.test.ts          File names, exported functions and exported types.
   recorded-fight.ts        The recordings, and where their Polish field names stop.
   fake-document.ts         A document small enough to read, for a panel handed one.
+  userscript-entry.test.ts  Every layer at once, driven the way a browser drives them.
   source-line.ts           A line of TypeScript with its string literals taken out.
   source-paths.ts          Every TypeScript file under the directories that hold one.
 .agents/skills/verify/     How to drive the add-on in a browser and read what it drew.
@@ -284,16 +286,13 @@ standard-library code whose ES level is not ours to set.
 Where the tree does not yet meet what this file states. Each is migration work, updated in the same
 commit that opens or closes one.
 
-1. **`core/` is written as far as the protocol allows, and `game/` is nearly whole.** The error
-   base, the message grammar, the roster, the data contract, seven decoder steps, the health
-   arithmetic, the statistics, the reader for the client's own warrior fields, the session that
-   assembles a fight from payloads, the engine wrap that feeds it, the search that gets the wrap
-   onto a page, the place a fight was fought and the shelf of fights a reader can go back to exist.
-   One key in `captures/` is still unread and says so: `healall_per`, which cannot be sized onto a
-   side without the health each member entered the fight with — gap 11. **Who gave healing, and
-   which attacker a tick belongs to, are not read**; each is a rule that arrives with its own ADR.
-   The panel itself, the entry point and `tools/` are not written at all: `ui/` holds its tokens,
-   its words and the reading a screen is drawn from, and nothing that draws.
+1. **Everything but the build exists, and one key is still unread.** The layers meet at
+   `src/userscript-entry.ts`: the game is found, the payloads reach a session, and what the session
+   holds is decoded, totalled and drawn. `healall_per` is the one key in `captures/` the decoder
+   still names unread, and it cannot be sized onto a side without the health each member entered the
+   fight with — gap 11. **Who gave healing, and which attacker a tick belongs to, are not read**;
+   each is a rule that arrives with its own ADR. What the panel does when a reader presses it,
+   storage, `tools/` and the bundle itself are not written at all.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
