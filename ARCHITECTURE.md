@@ -16,8 +16,8 @@ generated registers and the lower half of `core/`: the error base, the message g
 the data contract, seven decoder steps — the damage family, the keys that move health outside a
 blow, the announcements the client glues to the message after them, damage and healing stated
 against a name, the declarations no total counts, and how the fight ended — and the health
-arithmetic. Nothing reads the game yet, nothing is aggregated and nothing is drawn. The v1
-implementation remains readable in this repository's history on `develop`
+arithmetic, and the statistics over what the decoder produces. Nothing reads the game yet and
+nothing is drawn. The v1 implementation remains readable in this repository's history on `develop`
 (`git show develop:src/core/fight-decoder.ts`), and is not the thing being described here.
 
 ```
@@ -41,7 +41,8 @@ src/
     battle-event.ts      The data contract: what the decoder produces, and nothing else.
     combatant-health.ts  Health read from a stated share, and how far off it can be.
     combatant-roster.ts  Who is in the fight, and which names resolve to one of them.
-    fight-decoder.ts     What a key means. Reads the damage family, names the rest unread.
+    fight-decoder.ts     What a key means. One key of the corpus is still named unread.
+    fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
     margometer-error.ts  The brand every failure that ships to the browser wears.
     protocol-message.ts  One message's grammar: both ends, then its parameters.
     protocol-number.ts   The numbers the protocol states, read out of its text.
@@ -62,6 +63,7 @@ tests/
     combatant-health.test.ts  The arithmetic, against the client's own three figures.
     combatant-roster.test.ts  Two of a name, one of nobody, and every recording.
     fight-decoder.test.ts     The blows, and what is left unread beside them.
+    fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
@@ -254,11 +256,13 @@ standard-library code whose ES level is not ours to set.
 Where the tree does not yet meet what this file states. Each is migration work, updated in the same
 commit that opens or closes one.
 
-1. **`core/` is half written.** The error base, the message grammar, the roster, the data contract,
-   seven decoder steps and the health arithmetic exist. One key in `captures/` is still unread and
-   says so: `healall_per`, a share stated about a whole side, which cannot be sized onto its members
-   without the health each entered the fight with — gap 11. The statistics, everything under `game/`
-   and `ui/`, the entry point and `tools/` are not written at all.
+1. **`core/` is written as far as the protocol allows.** The error base, the message grammar, the
+   roster, the data contract, seven decoder steps, the health arithmetic and the statistics exist.
+   One key in `captures/` is still unread and says so: `healall_per`, a share stated about a whole
+   side, which cannot be sized onto its members without the health each entered the fight with —
+   gap 11. The statistics total damage and health restored; **who gave healing, and which attacker a
+   tick belongs to, are not read** — each is a rule that arrives with its own ADR. Everything under
+   `game/` and `ui/`, the entry point and `tools/` are not written at all.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

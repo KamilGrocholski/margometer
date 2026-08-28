@@ -1,0 +1,186 @@
+/**
+ * The figures a panel draws, and nothing a panel could compute for itself.
+ *
+ * Raw and applied are kept apart: their difference is not what a defence stopped, and adding one
+ * to the other would total a blow twice. What the log ties to nobody is kept apart too, so a
+ * reader can see the size of what could not be placed instead of finding it folded into a row.
+ */
+
+import { assert } from "@std/assert";
+import type { BattleEvent, DamageFigure } from "@/src/core/battle-event.ts";
+
+/** The largest fight in `captures/` fields 11 combatants, 2026-08-28. */
+const MAXIMUM_COMBATANTS = 64;
+
+export interface CombatantFigures {
+    damageDealtRaw: number;
+    damageDealtApplied: number;
+    damageTakenRaw: number;
+    damageTakenApplied: number;
+    damagePrevented: number;
+    /** Health restored to this combatant. Who gave it is not read here. */
+    healthRestored: number;
+}
+
+export interface FightStatistics {
+    byCombatantId: ReadonlyMap<number, CombatantFigures>;
+    /** Applied damage the protocol tied to no actor, and to no target. */
+    dealtByNobody: number;
+    takenByNobody: number;
+    /** Messages the decoder could not read, which is what makes a total suspect. */
+    unreadMessages: number;
+}
+
+function composeCombatantFigures(): CombatantFigures {
+    // A row starts at nothing, and nothing is a reading rather than an absence.
+    return {
+        damageDealtRaw: 0,
+        damageDealtApplied: 0,
+        damageTakenRaw: 0,
+        damageTakenApplied: 0,
+        damagePrevented: 0,
+        healthRestored: 0,
+    };
+}
+
+function getTotalFromFigures(figures: readonly DamageFigure[]): number {
+    let total = 0;
+    for (const figure of figures) {
+        assert(Number.isSafeInteger(figure.amount), "a figure totalled is a whole number");
+        total += figure.amount;
+    }
+    assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
+    return total;
+}
+
+function getFiguresForCombatant(
+    byCombatantId: Map<number, CombatantFigures>,
+    combatantId: number,
+): CombatantFigures {
+    assert(Number.isSafeInteger(combatantId), "a row belongs to an id that was read");
+    const held = byCombatantId.get(combatantId);
+    if (held !== undefined) return held;
+    assert(byCombatantId.size < MAXIMUM_COMBATANTS, "a fight stays inside its stated bound");
+    const figures = composeCombatantFigures();
+    byCombatantId.set(combatantId, figures);
+    return figures;
+}
+
+interface StatisticsBuild {
+    byCombatantId: Map<number, CombatantFigures>;
+    dealtByNobody: number;
+    takenByNobody: number;
+    unreadMessages: number;
+}
+
+function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
+    if (event.kind !== "attack") return;
+    const raw = getTotalFromFigures(event.raw);
+    const applied = getTotalFromFigures(event.applied);
+    assert(raw >= 0, "a blow puts out no less than nothing");
+    assert(applied >= 0, "and lands no less than nothing");
+    if (event.actorId === null) build.dealtByNobody += applied;
+    else {
+        const dealer = getFiguresForCombatant(build.byCombatantId, event.actorId);
+        dealer.damageDealtRaw += raw;
+        dealer.damageDealtApplied += applied;
+    }
+    if (event.targetId === null) {
+        build.takenByNobody += applied;
+        return;
+    }
+    const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
+    target.damageTakenRaw += raw;
+    target.damageTakenApplied += applied;
+    for (const stopped of event.prevented) target.damagePrevented += stopped.amount;
+    assert(target.damageTakenApplied >= 0, "a total of applied damage never falls below nothing");
+}
+
+/** Already reduced where it is stated, so it has no raw half to keep apart from. */
+function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
+    if (event.kind !== "damage-to-named-combatant") return;
+    const amount = event.damage.amount;
+    assert(Number.isSafeInteger(amount), "a figure totalled is a whole number");
+    assert(amount >= 0, "damage stated against a name is never below nothing");
+    if (event.actorId === null) build.dealtByNobody += amount;
+    else getFiguresForCombatant(build.byCombatantId, event.actorId).damageDealtApplied += amount;
+    if (event.targetId === null) {
+        build.takenByNobody += amount;
+        return;
+    }
+    getFiguresForCombatant(build.byCombatantId, event.targetId).damageTakenApplied += amount;
+}
+
+/**
+ * Health moving outside a blow. What restored it is the key, and who did is not in the message,
+ * so nothing is credited with giving it here.
+ */
+function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void {
+    if (event.kind !== "health-change") return;
+    assert(Number.isSafeInteger(event.amount), "a movement totalled is a whole number");
+    if (event.combatantId === null) {
+        if (event.amount >= 0) return;
+        build.takenByNobody += -event.amount;
+        build.dealtByNobody += -event.amount;
+        return;
+    }
+    const figures = getFiguresForCombatant(build.byCombatantId, event.combatantId);
+    if (event.amount >= 0) {
+        figures.healthRestored += event.amount;
+        return;
+    }
+    figures.damageTakenApplied += -event.amount;
+    build.dealtByNobody += -event.amount;
+    assert(figures.healthRestored >= 0, "a total of health restored never falls below nothing");
+}
+
+function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void {
+    if (event.kind !== "healing-to-named-combatant") return;
+    assert(event.amount >= 0, "healing restored is never below nothing");
+    if (event.targetId === null) return;
+    const figures = getFiguresForCombatant(build.byCombatantId, event.targetId);
+    figures.healthRestored += event.amount;
+    assert(figures.healthRestored >= event.amount, "a total only grows by what it was handed");
+}
+
+/**
+ * Applied damage is stated once and lands twice — on whoever dealt it and on whoever took it —
+ * so the two sides must come out equal, with what the log tied to nobody standing in on either.
+ */
+function getAppliedBalance(build: StatisticsBuild): number {
+    let dealt = build.dealtByNobody;
+    let taken = build.takenByNobody;
+    for (const figures of build.byCombatantId.values()) {
+        dealt += figures.damageDealtApplied;
+        taken += figures.damageTakenApplied;
+    }
+    assert(Number.isSafeInteger(dealt), "a total stays inside what a number holds exactly");
+    assert(Number.isSafeInteger(taken), "a total stays inside what a number holds exactly");
+    return dealt - taken;
+}
+
+export function composeFightStatistics(events: readonly BattleEvent[]): FightStatistics {
+    const build: StatisticsBuild = {
+        byCombatantId: new Map(),
+        dealtByNobody: 0,
+        takenByNobody: 0,
+        unreadMessages: 0,
+    };
+    assert(events.length >= 0, "a fight decodes to a list");
+    for (const event of events) {
+        if (event.kind === "unknown-message") build.unreadMessages += 1;
+        addAttackEvent(build, event);
+        addNamedDamageEvent(build, event);
+        addHealthChangeEvent(build, event);
+        addNamedHealingEvent(build, event);
+    }
+    assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
+    assert(build.unreadMessages <= events.length, "a message is counted unread once");
+    assert(getAppliedBalance(build) === 0, "every point applied is counted once at each end");
+    return {
+        byCombatantId: build.byCombatantId,
+        dealtByNobody: build.dealtByNobody,
+        takenByNobody: build.takenByNobody,
+        unreadMessages: build.unreadMessages,
+    };
+}
