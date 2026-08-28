@@ -34,7 +34,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
-## [Niewydane]
+## [0.10.0] — 2026-08-28
 
 - **Nowość** — Po odświeżeniu strony panel wraca do walki, którą miałeś na
   ekranie, zamiast napisu, że walki jeszcze nie było; jeśli żadnej nie wybierałeś,
@@ -69,6 +69,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   całą twoją drużynę jest liczone tak samo jak zwykle. Panel przestaje je liczyć
   tylko wtedy, kiedy osłabienie poszło w twoją stronę — i mówi to przy wierszu
   osoby, która leczyła.
+
+- **Poprawka** — Wybór `Trzymaj: tylko teraz` naprawdę nie zostawia już niczego
+  po sobie. Panel przestał pamiętać, którą walkę miałeś otwartą — po odświeżeniu
+  strony wita cię tak, jakby żadnej nie było, bo żadnej nie ma.
 
 ## [0.9.0] — 2026-08-26
 
