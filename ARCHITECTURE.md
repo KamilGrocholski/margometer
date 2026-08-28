@@ -55,6 +55,7 @@ src/
     kept-fights.ts       The fights a reader can go back to: inputs kept, figures never.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
+    panel-element.ts     The panel drawn into a document it is handed, region by region.
     panel-look.ts        The panel's tokens, and the ink a figure over a bar takes.
     panel-reading.ts     One screen's worth of a fight: the rows, in the order drawn.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
@@ -87,6 +88,7 @@ tests/
     protocol-message.test.ts  The grammar, over every message the recordings carry.
     unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
   ui/
+    panel-element.test.ts     What the panel puts on a page, read back out of it.
     panel-look.test.ts        Contrast by arithmetic, over every pairing the panel draws.
     panel-reading.test.ts     A screen of a real fight, through every layer under it.
     panel-words.test.ts       What the words must never say, and how Polish counts.
@@ -97,6 +99,7 @@ tests/
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     names.test.ts          File names, exported functions and exported types.
   recorded-fight.ts        The recordings, and where their Polish field names stop.
+  fake-document.ts         A document small enough to read, for a panel handed one.
   source-line.ts           A line of TypeScript with its string literals taken out.
   source-paths.ts          Every TypeScript file under the directories that hold one.
 .agents/skills/verify/     How to drive the add-on in a browser and read what it drew.
