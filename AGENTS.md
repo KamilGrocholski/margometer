@@ -489,11 +489,14 @@ src/
                          and never the numbers, the rotation a pin outranks, and
                          a write that gives up the oldest until it fits.
   ui/                    Renders state handed to it — §9.1.
-    panel-words.ts       Everything the panel puts in front of a reader: what it
-                         calls each name of the game's own, what it says where the
-                         game names nobody, what it says where a figure may be
-                         short, and a number as it writes it — a count included,
-                         which Polish spells three ways.
+    panel-words.ts       Everything the panel puts in front of a reader except the
+                         title bar's own words: what it calls each name of the
+                         game's own, what it says where the game names nobody,
+                         what it says where a figure may be short, and a number as
+                         it writes it — a count included, which Polish spells three
+                         ways. The bar's handful of lines sit beside the drawing of
+                         it, in panel-element.ts, and which files may speak Polish
+                         at all is tests/tools/source-layout.test.ts's (§3).
     panel-screen.ts      Which screen the panel is on: what a screen can show and
                          the strips that switch, the key a drawn row carries, the
                          shape handed to the drawing, and what a click does to it.
