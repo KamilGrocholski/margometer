@@ -11,7 +11,8 @@
 
 import { assert } from "@std/assert";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
-import type { CombatantFigures, FightStatistics } from "@/src/core/fight-statistics.ts";
+import type { CombatantFigures, FightStatistics, FigureCut } from "@/src/core/fight-statistics.ts";
+import { getIntegerFromText } from "@/src/core/protocol-number.ts";
 
 /** Which figure a screen is showing. Each names a field the statistics already state. */
 export type PanelMetric =
@@ -100,4 +101,58 @@ export function composePanelReading(
         withoutTarget: metric === "damageTakenApplied" ? statistics.takenByNobody : 0,
         isSuspect: statistics.unreadMessages > 0 || statistics.castsUnplaced > 0,
     };
+}
+
+/** What pressing a row opens: one combatant's own figure, cut by the other end of each blow. */
+export interface DrillReading {
+    combatantId: number;
+    name: string | null;
+    rows: PanelRow[];
+    total: number;
+}
+
+/** Null where the screen has no cut to open. A screen without one is not a row a reader presses. */
+function getCutForMetric(figures: CombatantFigures, metric: PanelMetric): FigureCut | null {
+    assert(metric.length > 0, "a screen is asked for by name");
+    assert(figures.damageDealtApplied >= 0, "a figure that could be cut is not below nothing");
+    if (metric === "damageDealtApplied") return figures.damageDealtByOpponent;
+    if (metric === "damageTakenApplied") return figures.damageTakenByOpponent;
+    return null;
+}
+
+/**
+ * One row opened. Nothing is aggregated here either: the cut is the one the statistics hold, and
+ * the share is against that row's own figure rather than against the fight's.
+ */
+export function composeDrillReading(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    metric: PanelMetric,
+    combatantId: number,
+): DrillReading | null {
+    const figures = statistics.byCombatantId.get(combatantId);
+    if (figures === undefined) return null;
+    const cut = getCutForMetric(figures, metric);
+    if (cut === null) return null;
+    const total = getFigure(figures, metric);
+    const rows: PanelRow[] = [];
+    for (const [stated, figure] of cut) {
+        const other = getIntegerFromText(stated);
+        if (other === null) continue;
+        const held = roster.byId.get(other);
+        rows.push({
+            combatantId: other,
+            name: held?.name ?? null,
+            side: held?.side ?? null,
+            figure,
+            share: total === 0 ? 0 : figure / total,
+        });
+    }
+    rows.sort(compareRows);
+    assert(
+        rows.length <= statistics.byCombatantId.size,
+        "a row opens onto the people in the fight",
+    );
+    assert(rows.every((one) => one.share <= 1), "and no part of a row is more than the row");
+    return { combatantId, name: roster.byId.get(combatantId)?.name ?? null, rows, total };
 }

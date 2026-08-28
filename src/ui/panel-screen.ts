@@ -32,12 +32,18 @@ export interface ScreenState {
     current: PanelMetric;
     /** Whether the shelf is showing. Pressing its tab goes back to the figures, as v1's did. */
     isOnShelf: boolean;
+    /**
+     * Whose row is open, or nobody. A cut belongs to the screen it was opened on, so leaving that
+     * screen closes it: the same combatant on another screen is another figure entirely.
+     */
+    openRowId: number | null;
 }
 
 /** The screen a fight opens on: what the reader did, which is what they came to see. */
 export function composeScreenState(): ScreenState {
-    const state: ScreenState = { current: "damageDealtApplied", isOnShelf: false };
+    const state: ScreenState = { current: "damageDealtApplied", isOnShelf: false, openRowId: null };
     assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
+    assert(state.openRowId === null, "and with every row closed");
     return state;
 }
 

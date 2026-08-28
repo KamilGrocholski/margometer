@@ -13,6 +13,9 @@ import type { TeamHeal } from "@/src/core/combatant-health.ts";
 /** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
 const MAXIMUM_COMBATANTS = 20;
 
+/** A figure cut by something the protocol named: an element, or the other end of the blow. */
+export type FigureCut = ReadonlyMap<string, number>;
+
 export interface CombatantFigures {
     damageDealtRaw: number;
     damageDealtApplied: number;
@@ -21,6 +24,15 @@ export interface CombatantFigures {
     damagePrevented: number;
     /** Health restored to this combatant. Who gave it is not read here. */
     healthRestored: number;
+    /**
+     * The same applied damage, cut by what it was dealt with and by whom it was dealt to. A cut
+     * is the panel's to fold and never to compute: adding one row's figure to another's is a
+     * statistic across combatants, and these are one combatant's own.
+     */
+    damageDealtByElement: Map<string, number>;
+    damageTakenByElement: Map<string, number>;
+    damageDealtByOpponent: Map<string, number>;
+    damageTakenByOpponent: Map<string, number>;
 }
 
 export interface FightStatistics {
@@ -48,7 +60,20 @@ function composeCombatantFigures(): CombatantFigures {
         damageTakenApplied: 0,
         damagePrevented: 0,
         healthRestored: 0,
+        damageDealtByElement: new Map(),
+        damageTakenByElement: new Map(),
+        damageDealtByOpponent: new Map(),
+        damageTakenByOpponent: new Map(),
     };
+}
+
+/** The largest cut in `captures/` holds ten elements against twenty combatants, 2026-08-28. */
+const MAXIMUM_CUT = 64;
+
+function addToCut(cut: Map<string, number>, key: string, amount: number): void {
+    assert(key.length > 0, "a cut is kept under a name");
+    assert(cut.size <= MAXIMUM_CUT, "a cut stays inside its stated bound");
+    cut.set(key, (cut.get(key) ?? 0) + amount);
 }
 
 function getTotalFromFigures(figures: readonly DamageFigure[]): number {
@@ -93,6 +118,12 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
         const dealer = getFiguresForCombatant(build.byCombatantId, event.actorId);
         dealer.damageDealtRaw += raw;
         dealer.damageDealtApplied += applied;
+        for (const figure of event.applied) {
+            addToCut(dealer.damageDealtByElement, figure.element, figure.amount);
+        }
+        if (event.targetId !== null) {
+            addToCut(dealer.damageDealtByOpponent, `${event.targetId}`, applied);
+        }
     }
     if (event.targetId === null) {
         build.takenByNobody += applied;
@@ -101,6 +132,10 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
     const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
     target.damageTakenRaw += raw;
     target.damageTakenApplied += applied;
+    for (const figure of event.applied) {
+        addToCut(target.damageTakenByElement, figure.element, figure.amount);
+    }
+    if (event.actorId !== null) addToCut(target.damageTakenByOpponent, `${event.actorId}`, applied);
     for (const stopped of event.prevented) target.damagePrevented += stopped.amount;
     assert(target.damageTakenApplied >= 0, "a total of applied damage never falls below nothing");
 }
@@ -112,12 +147,22 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
     assert(Number.isSafeInteger(amount), "a figure totalled is a whole number");
     assert(amount >= 0, "damage stated against a name is never below nothing");
     if (event.actorId === null) build.dealtByNobody += amount;
-    else getFiguresForCombatant(build.byCombatantId, event.actorId).damageDealtApplied += amount;
+    else {
+        const dealer = getFiguresForCombatant(build.byCombatantId, event.actorId);
+        dealer.damageDealtApplied += amount;
+        addToCut(dealer.damageDealtByElement, event.damage.element, amount);
+        if (event.targetId !== null) {
+            addToCut(dealer.damageDealtByOpponent, `${event.targetId}`, amount);
+        }
+    }
     if (event.targetId === null) {
         build.takenByNobody += amount;
         return;
     }
-    getFiguresForCombatant(build.byCombatantId, event.targetId).damageTakenApplied += amount;
+    const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
+    target.damageTakenApplied += amount;
+    addToCut(target.damageTakenByElement, event.damage.element, amount);
+    if (event.actorId !== null) addToCut(target.damageTakenByOpponent, `${event.actorId}`, amount);
 }
 
 /**

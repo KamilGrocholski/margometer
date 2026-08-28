@@ -121,3 +121,35 @@ Deno.test("what the recordings restore is mostly what a cast put back", () => {
     assertEquals(unplaced, 0, "every cast the corpus holds is sized onto its side");
     assert(restored > 2_000_000, "and the health they put back is most of what was restored");
 });
+
+Deno.test("a blow is cut by what it was dealt with and by whom it reached", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([ABSORBED], null), new Map());
+    const dealer = statistics.byCombatantId.get(467968);
+    assertEquals(dealer?.damageDealtByElement.get("dmgd"), 1012, "the element the key names");
+    assertEquals(dealer?.damageDealtByOpponent.get("-10000249"), 1012, "and the end it reached");
+    const target = statistics.byCombatantId.get(-10000249);
+    assertEquals(target?.damageTakenByElement.get("dmgd"), 1012, "the same figure, the other way");
+    assertEquals(target?.damageTakenByOpponent.get("467968"), 1012, "and from whom");
+});
+
+Deno.test("every cut of a combatant comes to that combatant's own total", () => {
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [combatantId, figures] of statistics.byCombatantId) {
+            let byElement = 0;
+            for (const amount of figures.damageDealtByElement.values()) byElement += amount;
+            assertEquals(
+                byElement,
+                figures.damageDealtApplied,
+                `${path}: ${combatantId} by element`,
+            );
+            let byOpponent = 0;
+            for (const amount of figures.damageDealtByOpponent.values()) byOpponent += amount;
+            // Not every blow names its target, so what the cuts hold is at most the total: what
+            // is missing from this one is damage nobody could be charged with taking.
+            assert(byOpponent <= figures.damageDealtApplied, `${path}: ${combatantId} by opponent`);
+        }
+    }
+});

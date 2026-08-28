@@ -118,11 +118,6 @@ Deno.test("a reader presses a screen and the panel goes there, and nowhere else"
     pressElement(host, "pointerdown", taken);
     assertEquals(current(), "damageTakenApplied", "and pressing it takes the panel there");
 
-    const row = getElementsWithin(host).find((one) => one.className === "row");
-    assert(row !== undefined, "there is a row to press");
-    pressElement(host, "pointerdown", row);
-    assertEquals(current(), "damageTakenApplied", "while pressing a row moves nothing at all");
-
     // A stale or foreign attribute naming a screen nobody has: the press reaches the entry and
     // the entry refuses it, which is a second refusal behind the one the panel already makes.
     const stray = environment.document.createElement("div") as FakeElement;
@@ -238,4 +233,77 @@ Deno.test("every recording plays through without a word of failure", () => {
         assertEquals(reported, [], `${path}: something of ours failed`);
         assert(shown.length > 0, `${path}: nothing was ever drawn`);
     }
+});
+
+Deno.test("a reader opens a row, and every way out of it leads back to the screen", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    // A block body, not a one-line arrow: the recursion guard reads a one-line named arrow as
+    // running to the end of the block it sits in (`ARCHITECTURE.md`, known gap 13). The name is
+    // not `find` for the same reason — a reader over source cannot tell that call from this one.
+    const getRegion = (className: string) => {
+        return getElementsWithin(host).find((one) => one.className === className);
+    };
+    const rows = () => {
+        return getElementsWithin(host).filter((one) => one.className === "row").length;
+    };
+    const before = rows();
+    assert(before > 0, "the screen has rows to open");
+
+    const name = getRegion("row-name");
+    assert(name !== undefined, "and a reader presses the name inside one");
+    pressElement(host, "pointerdown", name);
+    assert(getRegion("crumb") !== undefined, "which opens that row over the screen");
+    assert(getRegion("drill-head") !== undefined, "saying whose row it is");
+    assert(rows() < before, "and drawing the parts of one figure rather than the whole screen");
+
+    const crumb = getRegion("crumb");
+    assert(crumb !== undefined, "the way back is there");
+    pressElement(host, "pointerdown", crumb);
+    assertEquals(getRegion("crumb"), undefined, "and pressing it closes the row");
+    assertEquals(rows(), before, "leaving the screen as it was");
+
+    const again = getRegion("row-name");
+    assert(again !== undefined, "a row opens a second time");
+    pressElement(host, "pointerdown", again);
+    assert(getRegion("crumb") !== undefined, "as it did the first");
+    const taken = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-screen") === "damageTakenApplied"
+    );
+    assert(taken !== undefined, "there is another screen to reach for");
+    pressElement(host, "pointerdown", taken);
+    assertEquals(
+        getRegion("crumb"),
+        undefined,
+        "and leaving the screen closes the row it was opened on",
+    );
+});
+
+Deno.test("a row belonging to nobody in the fight opens nothing", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    const getRegion = (className: string) => {
+        return getElementsWithin(host).find((one) => one.className === className);
+    };
+
+    // A stale or foreign attribute where a row's would be: the press reaches the entry, and what
+    // the entry cannot place it refuses rather than opening an empty row over the screen.
+    const stray = environment.document.createElement("div") as FakeElement;
+    stray.setAttribute("data-row", "whoeverTheGameCalls");
+    pressElement(host, "pointerdown", stray);
+    assertEquals(getRegion("crumb"), undefined, "a row that is not a number opens nothing");
+    const absent = environment.document.createElement("div") as FakeElement;
+    absent.setAttribute("data-row", "0");
+    pressElement(host, "pointerdown", absent);
+    assertEquals(getRegion("crumb"), undefined, "and neither does one nobody in the fight holds");
 });

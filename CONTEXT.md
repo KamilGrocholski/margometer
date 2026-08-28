@@ -123,6 +123,10 @@ entry, bar
 **Drill**: What pressing a row opens onto — the levels below the ranking. _Avoid_: Detail view,
 expansion, breakdown, sub-panel
 
+**Cut**: What one drill level states a figure by — the element it was dealt with, or the combatant
+at the other end of the blow. A cut of one combatant's figure, never of the fight's. _Avoid_:
+Breakdown, split, grouping, facet
+
 ## The sources
 
 **Recording**: One captured fight in `captures/`: every call the engine made, with the raw protocol

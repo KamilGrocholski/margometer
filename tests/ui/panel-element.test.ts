@@ -10,8 +10,12 @@ import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import { composePanelHost } from "@/src/ui/panel-element.ts";
-import { composePanelReading, type PanelReading } from "@/src/ui/panel-reading.ts";
+import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
+import {
+    composeDrillReading,
+    composePanelReading,
+    type PanelReading,
+} from "@/src/ui/panel-reading.ts";
 import { getScreenFromName, SCREEN_ORDER, SHELF_SCREEN } from "@/src/ui/panel-screen.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 import {
@@ -35,10 +39,28 @@ function readFight(): PanelReading {
     );
 }
 
+function openFirstRow() {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const reading = composePanelReading(statistics, roster, "damageDealtApplied");
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a row to open");
+    const drill = composeDrillReading(statistics, roster, "damageDealtApplied", first.combatantId);
+    assert(drill !== null, "and the screen it sits on cuts further");
+    return { reading, drill, opened: first };
+}
+
 function draw(reading: PanelReading): FakeElement {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({ reading: reading, current: "damageDealtApplied", shelf: [], isOnShelf: false });
+    panel.show({
+        reading: reading,
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+        drill: null,
+    });
     return panel.element as FakeElement;
 }
 
@@ -128,41 +150,49 @@ Deno.test("what nobody can be charged with is a row apart, and a doubt is said",
 
 Deno.test("a press on a tab reaches the panel, and a press on anything else does not", () => {
     const document = composeFakeDocument();
-    const pressed: string[] = [];
-    const panel = composePanelHost(document, (screen) => pressed.push(screen), () => {});
+    const pressed: PanelPress[] = [];
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
     panel.show({
         reading: readFight(),
         current: "damageDealtApplied",
         shelf: [],
         isOnShelf: false,
+        drill: null,
     });
     const host = panel.element as FakeElement;
     const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
     const other = tabs[1];
     assert(other !== undefined, "there is a screen to reach for");
     pressElement(host, "pointerdown", other);
-    assertEquals(pressed, ["damageTakenApplied"], "the screen the tab names, and only it");
+    assertEquals(pressed, [{ kind: "screen", screen: "damageTakenApplied" }], "the tab's screen");
 
-    const row = getElementsWithin(host).find((one) => one.className === "row");
-    assert(row !== undefined, "there is a row to press");
-    pressElement(host, "pointerdown", row);
-    assertEquals(pressed.length, 1, "a row names no screen, so pressing it moves nothing");
+    const title = getElementsWithin(host).find((one) => one.className.endsWith("titlebar"));
+    assert(title !== undefined, "there is something that is not a tab to press");
+    pressElement(host, "pointerdown", title);
+    assertEquals(pressed.length, 1, "the bar asks for nothing, so pressing it moves nothing");
 });
 
 Deno.test("the listener outlives a redraw, because the host does", () => {
     const document = composeFakeDocument();
-    const pressed: string[] = [];
-    const panel = composePanelHost(document, (screen) => pressed.push(screen), () => {});
+    const pressed: PanelPress[] = [];
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
     panel.show({
         reading: readFight(),
         current: "damageDealtApplied",
         shelf: [],
         isOnShelf: false,
+        drill: null,
     });
     const host = panel.element as FakeElement;
     const before = getElementsWithin(host).filter((one) => one.className.startsWith("tab")).length;
 
-    panel.show({ reading: readFight(), current: "healthRestored", shelf: [], isOnShelf: false });
+    panel.show({
+        reading: readFight(),
+        current: "healthRestored",
+        shelf: [],
+        isOnShelf: false,
+        drill: null,
+    });
     const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
     assertEquals(tabs.length, before, "the strip is drawn again, not drawn twice");
     const current = tabs.filter((one) => one.className.includes("tab-current"));
@@ -171,7 +201,11 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
     const tab = tabs[0];
     assert(tab !== undefined, "and the strip still has tabs");
     pressElement(host, "pointerdown", tab);
-    assertEquals(pressed, ["damageDealtApplied"], "which a press still reaches, after the redraw");
+    assertEquals(
+        pressed.at(-1),
+        { kind: "screen", screen: "damageDealtApplied" },
+        "after a redraw",
+    );
 });
 
 Deno.test("a region that cannot be drawn is replaced by itself, and the rest stands", () => {
@@ -185,10 +219,65 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         },
     };
     const panel = composePanelHost(document, () => {}, (failure) => failures.push(failure));
-    panel.show({ reading: broken, current: "damageDealtApplied", shelf: [], isOnShelf: false });
+    panel.show({
+        reading: broken,
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+        drill: null,
+    });
     const host = panel.element as FakeElement;
     assertEquals(failures.length, 1, "the failure is reported once");
     assertEquals(getTextsByClass(host, "undrawn"), [PANEL_WORDS.undrawn], "and marked in place");
     assertEquals(host.shadow?.length, 3, "while the panel keeps its shape");
     assertEquals(getTextsByClass(host, "MargoMeter-titlebar"), [PANEL_WORDS.title], "title stands");
+});
+
+Deno.test("an opened row stands over the screen, and states whose it is", () => {
+    const { reading, drill, opened } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+        drill,
+    });
+    const host = panel.element as FakeElement;
+    const within = getElementsWithin(host);
+    const head = within.filter((one) => one.className === "drill-head");
+    assertEquals(head.length, 1, "one heading, saying whose row is open");
+    assertEquals(getTextsByClass(host, "row-name")[0], opened.name, "and it names that combatant");
+    const rows = within.filter((one) => one.className === "row");
+    assertEquals(rows.length, drill.rows.length, "a row for each part of the figure");
+    assert(rows.every((one) => one.attributes.get("data-row") === undefined), "opening no further");
+    const crumb = within.filter((one) => one.className === "crumb");
+    assertEquals(crumb.length, 1, "and one way back");
+});
+
+Deno.test("pressing a row asks to open it, and the way back asks to close it", () => {
+    const { reading, drill } = openFirstRow();
+    const pressed: PanelPress[] = [];
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+        drill: null,
+    });
+    const host = panel.element as FakeElement;
+    // The press lands on the deepest element under the pointer, which is the name inside the row.
+    const name = getElementsWithin(host).find((one) => one.className === "row-name");
+    assert(name !== undefined, "there is a row to press");
+    pressElement(host, "pointerdown", name);
+    assertEquals(pressed, [{ kind: "row", stated: `${reading.rows[0]?.combatantId}` }], "that row");
+
+    panel.show({ reading, current: "damageDealtApplied", shelf: [], isOnShelf: false, drill });
+    const crumb = getElementsWithin(host).find((one) => one.className === "crumb");
+    assert(crumb !== undefined, "an opened row has a way back");
+    pressElement(host, "pointerdown", crumb);
+    assertEquals(pressed.at(-1), { kind: "back" }, "which asks for nothing but the way back");
 });

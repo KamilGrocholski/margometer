@@ -11,6 +11,7 @@ import { assert } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { getIntegerFromText } from "@/src/core/protocol-number.ts";
 import {
     addPayloadToSession,
     type BattleSession,
@@ -29,8 +30,9 @@ import {
     type PanelDocument,
     type PanelElement,
     type PanelHandle,
+    type PanelPress,
 } from "@/src/ui/panel-element.ts";
-import { composePanelReading, type ShelfRow } from "@/src/ui/panel-reading.ts";
+import { composeDrillReading, composePanelReading, type ShelfRow } from "@/src/ui/panel-reading.ts";
 import {
     composeScreenState,
     getScreenFromName,
@@ -72,6 +74,39 @@ function composeShelfRows(kept: readonly KeptFight[]): ShelfRow[] {
     return rows;
 }
 
+/**
+ * Where a press leaves the panel. False for a press that moves nothing, so a stray attribute in
+ * the game's own markup never costs a redraw, let alone puts the panel somewhere it cannot draw.
+ */
+function handlePress(screen: ScreenState, press: PanelPress): boolean {
+    assert(press.kind.length > 0, "a press says what it asks for");
+    assert(screen.current.length > 0, "and lands on a panel that is on a screen");
+    if (press.kind === "back") {
+        screen.openRowId = null;
+        return true;
+    }
+    if (press.kind === "row") {
+        const opened = getIntegerFromText(press.stated);
+        if (opened === null) return false;
+        // Not a toggle, unlike the shelf's tab: an opened row covers the screen it was opened on,
+        // so the row that would close it is not on the panel to be pressed a second time.
+        screen.openRowId = opened;
+        return true;
+    }
+    if (press.screen === SHELF_SCREEN) {
+        screen.isOnShelf = !screen.isOnShelf;
+        return true;
+    }
+    const reached = getScreenFromName(press.screen);
+    if (reached === null) return false;
+    screen.current = reached;
+    screen.isOnShelf = false;
+    // A cut belongs to the screen it was opened on: the same combatant on the next screen is
+    // another figure, and leaving it open would state one figure under another's heading.
+    screen.openRowId = null;
+    return true;
+}
+
 function showFight(
     session: BattleSession,
     screen: ScreenState,
@@ -85,11 +120,17 @@ function showFight(
     const statistics = composeFightStatistics(fight.events, composeTeamHeals(fight.events, roster));
     const reading = composePanelReading(statistics, roster, screen.current);
     assert(reading.rows.length >= 0, "a reading states its rows, however few");
+    // Null where the screen has no cut to open, so a row opened on one screen never stands over
+    // another that cannot state the same figure.
+    const drill = screen.openRowId === null
+        ? null
+        : composeDrillReading(statistics, roster, screen.current, screen.openRowId);
     panel.show({
         reading,
         current: screen.current,
         shelf: composeShelfRows(kept),
         isOnShelf: screen.isOnShelf,
+        drill,
     });
 }
 
@@ -206,18 +247,8 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         environment.mount.show(panel.element);
         isMounted = true;
     };
-    const panel = composePanelHost(environment.document, (pressed) => {
-        // The shelf's tab toggles: pressing it a second time goes back to the figures rather
-        // than leaving a reader somewhere they have to find their way out of.
-        if (pressed === SHELF_SCREEN) screen.isOnShelf = !screen.isOnShelf;
-        else {
-            // A press on anything that is not a screen moves nothing, so a stray attribute in
-            // the game's own markup can never put the panel somewhere it cannot draw.
-            const reached = getScreenFromName(pressed);
-            if (reached === null) return;
-            screen.current = reached;
-            screen.isOnShelf = false;
-        }
+    const panel = composePanelHost(environment.document, (press) => {
+        if (!handlePress(screen, press)) return;
         showFight(session, screen, panel, kept);
     }, (failure) => environment.report(FAILURE_LINE, failure));
     assert(!isMounted, "nothing is on the page until a payload arrives");

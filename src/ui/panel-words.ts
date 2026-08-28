@@ -31,6 +31,7 @@ export const PANEL_WORDS = {
     unknown: "Nie wiadomo",
     nothingYet: "Jeszcze nic się nie wydarzyło",
     fights: "Walki",
+    everyone: "Wszyscy",
     shelfEmpty: "Nie ma jeszcze zapisanych walk",
     fightOver: "Walka skończona",
     suspect: "Ta liczba może być zaniżona",

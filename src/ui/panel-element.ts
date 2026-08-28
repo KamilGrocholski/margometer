@@ -9,7 +9,13 @@
  */
 
 import { assert } from "@std/assert";
-import type { PanelMetric, PanelReading, PanelRow, ShelfRow } from "@/src/ui/panel-reading.ts";
+import type {
+    DrillReading,
+    PanelMetric,
+    PanelReading,
+    PanelRow,
+    ShelfRow,
+} from "@/src/ui/panel-reading.ts";
 import { getWordsForScreen, SCREEN_ORDER, SHELF_SCREEN } from "@/src/ui/panel-screen.ts";
 import { composeCountedNoun, COUNTED_NOUNS, PANEL_WORDS } from "@/src/ui/panel-words.ts";
 
@@ -55,6 +61,12 @@ const TAB_CLASS = "tab";
 const TAB_CURRENT_CLASS = "tab tab-current";
 const TAB_CURRENT_MARK = "• ";
 const SCREEN_ATTRIBUTE = "data-screen";
+/** A row says which combatant it is, and the crumb above an opened row says only that it is one. */
+const ROW_ATTRIBUTE = "data-row";
+const BACK_ATTRIBUTE = "data-back";
+const CRUMB_CLASS = "crumb";
+const DRILL_HEAD_CLASS = "drill-head";
+const BACK_MARK = "\u2039 ";
 /** What the panel listens for: a press, not a click, so a drag never counts as one. */
 const PRESS_EVENT = "pointerdown";
 const UNDRAWN_CLASS = "undrawn";
@@ -71,7 +83,15 @@ function composeElement(document: PanelDocument, tag: string, className: string)
     return element;
 }
 
-function composeRowElement(document: PanelDocument, row: PanelRow): PanelElement {
+/**
+ * A press lands on the deepest element under the pointer, so every part of an openable row wears
+ * the mark. Null leaves the row closed: the rows inside an opened one have nothing further to open.
+ */
+function composeRowElement(
+    document: PanelDocument,
+    row: PanelRow,
+    opens: string | null,
+): PanelElement {
     assert(row.figure >= 0, "a row drawn states a figure that is not below nothing");
     const element = composeElement(document, "div", ROW_CLASS);
     const name = composeElement(document, "span", ROW_NAME_CLASS);
@@ -80,6 +100,11 @@ function composeRowElement(document: PanelDocument, row: PanelRow): PanelElement
     figure.textContent = `${row.figure}`;
     element.append(name);
     element.append(figure);
+    if (opens !== null) {
+        element.setAttribute(ROW_ATTRIBUTE, opens);
+        name.setAttribute(ROW_ATTRIBUTE, opens);
+        figure.setAttribute(ROW_ATTRIBUTE, opens);
+    }
     assert(name.textContent.length > 0, "a row names somebody, or says it cannot");
     return element;
 }
@@ -163,7 +188,9 @@ function composeBodyElement(document: PanelDocument, reading: PanelReading): Pan
         return body;
     }
     assert(reading.total >= 0, "a fight's total is never below nothing");
-    for (const row of reading.rows) body.append(composeRowElement(document, row));
+    for (const row of reading.rows) {
+        body.append(composeRowElement(document, row, `${row.combatantId}`));
+    }
     if (reading.withoutActor > 0) {
         body.append(composePinnedElement(document, PANEL_WORDS.withoutActor, reading.withoutActor));
     }
@@ -177,6 +204,36 @@ function composeBodyElement(document: PanelDocument, reading: PanelReading): Pan
         mark.textContent = PANEL_WORDS.suspect;
         body.append(mark);
     }
+    return body;
+}
+
+/**
+ * One row opened: the way back, whose row it is, and the same figure cut by the other end of each
+ * blow. The rows inside are not openable, because a cut of a cut is a figure nothing states.
+ */
+function composeDrillElement(document: PanelDocument, drill: DrillReading): PanelElement {
+    const body = composeElement(document, "div", BODY_CLASS);
+    const crumb = composeElement(document, "div", CRUMB_CLASS);
+    crumb.textContent = `${BACK_MARK}${PANEL_WORDS.everyone}`;
+    crumb.setAttribute(BACK_ATTRIBUTE, PANEL_WORDS.everyone);
+    body.append(crumb);
+    const head = composeElement(document, "div", DRILL_HEAD_CLASS);
+    const name = composeElement(document, "span", ROW_NAME_CLASS);
+    name.textContent = drill.name ?? PANEL_WORDS.unknown;
+    const total = composeElement(document, "span", ROW_FIGURE_CLASS);
+    total.textContent = `${drill.total}`;
+    head.append(name);
+    head.append(total);
+    body.append(head);
+    assert(drill.rows.length <= MAXIMUM_ROWS, "an opened row stays inside the fight's bound");
+    if (drill.rows.length === 0) {
+        const empty = composeElement(document, "div", EMPTY_CLASS);
+        empty.textContent = PANEL_WORDS.nothingYet;
+        body.append(empty);
+        return body;
+    }
+    for (const row of drill.rows) body.append(composeRowElement(document, row, null));
+    assert(drill.total >= 0, "a figure opened is never below nothing");
     return body;
 }
 
@@ -206,6 +263,23 @@ export interface PanelView {
     current: PanelMetric;
     shelf: readonly ShelfRow[];
     isOnShelf: boolean;
+    /** The row standing open over the screen, or nobody's. */
+    drill: DrillReading | null;
+}
+
+/** What a press asked for, read off the pressed element's own attribute. */
+export type PanelPress =
+    | { kind: "screen"; screen: string }
+    | { kind: "row"; stated: string }
+    | { kind: "back" };
+
+/** The shelf stands over an opened row, and an opened row over the screen it was opened on. */
+function composeViewBody(document: PanelDocument, view: PanelView): PanelElement {
+    assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
+    assert(view.shelf.length >= 0, "and carries the fights behind it, however few");
+    if (view.isOnShelf) return composeShelfElement(document, view.shelf);
+    if (view.drill !== null) return composeDrillElement(document, view.drill);
+    return composeBodyElement(document, view.reading);
 }
 
 /** The panel on the page, and the way to put a new view into the one that is already there. */
@@ -223,7 +297,7 @@ export interface PanelHandle {
  */
 export function composePanelHost(
     document: PanelDocument,
-    handlePress: (screen: string) => void,
+    handlePress: (press: PanelPress) => void,
     handleFailure: (failure: unknown) => void,
 ): PanelHandle {
     const host = document.createElement("div");
@@ -241,9 +315,19 @@ export function composePanelHost(
     root.append(tabs);
     root.append(body);
     host.addEventListener(PRESS_EVENT, (event) => {
-        const screen = event.target?.getAttribute(SCREEN_ATTRIBUTE) ?? null;
-        if (screen === null) return;
-        handlePress(screen);
+        const target = event.target;
+        if (target === null) return;
+        const screen = target.getAttribute(SCREEN_ATTRIBUTE);
+        if (screen !== null) {
+            handlePress({ kind: "screen", screen });
+            return;
+        }
+        const stated = target.getAttribute(ROW_ATTRIBUTE);
+        if (stated !== null) {
+            handlePress({ kind: "row", stated });
+            return;
+        }
+        if (target.getAttribute(BACK_ATTRIBUTE) !== null) handlePress({ kind: "back" });
     });
     assert(host.className === "", "the host wears no class of the game's making");
     return {
@@ -256,10 +340,7 @@ export function composePanelHost(
             );
             const nextBody = composeRegion(
                 document,
-                () =>
-                    view.isOnShelf
-                        ? composeShelfElement(document, view.shelf)
-                        : composeBodyElement(document, view.reading),
+                () => composeViewBody(document, view),
                 handleFailure,
             );
             tabs.replaceWith(nextTabs);

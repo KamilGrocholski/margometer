@@ -59,7 +59,7 @@ src/
   ui/
     panel-element.ts     The panel drawn into a document it is handed, region by region.
     panel-look.ts        The panel's tokens, and the ink a figure over a bar takes.
-    panel-reading.ts     One screen's worth of a fight: the rows, in the order drawn.
+    panel-reading.ts     One screen's worth of a fight, and one row's worth of a screen.
     panel-screen.ts      Which screen the panel is on, and the strip that says so.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
 tools/             Never ships. Each arrives with the question it answers.
@@ -183,7 +183,7 @@ One owner per fact, once each module exists. A second module reads it; it does n
 | Which side is the reader's | `game/engine-roster.ts`    | The one thing `core` cannot know.     |
 | Where a fight happens      | `game/engine-place.ts`     | Off client state, never wrapped.      |
 | What the panel says        | `ui/panel-words.ts`        | The only Polish in `src/`.            |
-| Which screen it is on      | `ui/panel-screen.ts`       |                                       |
+| Which screen it is on      | `ui/panel-screen.ts`       | And whose row stands open over it.    |
 
 **The panel never computes a statistic across combatants** — no re-aggregating the fight, no
 deriving one row's figure from another's. Folding a row's own maps into the cut a screen shows _is_
@@ -295,10 +295,12 @@ Where the tree does not yet meet what this file states. Each is migration work, 
 commit that opens or closes one.
 
 1. **The add-on reads a fight, draws it, and keeps it.** Every key in `captures/` is read, the panel
-   switches screens, a finished fight goes on a shelf the reader can look back at, and
-   `deno task build` writes the file they install. What is not written: the tooltip, the drill below
-   a row, the place a fight was fought reaching the panel, every tool but the build, and the release
-   plumbing — `README.md`, `CHANGELOG.md` and the workflows.
+   switches screens, pressing a row opens the figure cut by whom each blow reached, a finished fight
+   goes on a shelf the reader can look back at, and `deno task build` writes the file they install.
+   What is not written: the tooltip, the cut by element — which needs the game's own word for each,
+   since a protocol key is not something a reader is shown — the place a fight was fought reaching
+   the panel, every tool but the build, and the release plumbing — `README.md`, `CHANGELOG.md` and
+   the workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

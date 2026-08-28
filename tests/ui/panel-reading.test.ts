@@ -10,7 +10,7 @@ import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import { composePanelReading } from "@/src/ui/panel-reading.ts";
+import { composeDrillReading, composePanelReading } from "@/src/ui/panel-reading.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
@@ -135,4 +135,41 @@ Deno.test("every recording composes every screen without inventing a row", () =>
             }
         }
     }
+});
+
+Deno.test("an opened row states the same figure, cut by whom each blow reached", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const reading = composePanelReading(statistics, roster, "damageDealtApplied");
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a row to open");
+    const drill = composeDrillReading(statistics, roster, "damageDealtApplied", first.combatantId);
+    assert(drill !== null, "a screen with a cut opens");
+    assertEquals(drill.total, first.figure, "an opened row states the figure its row stated");
+    assertEquals(drill.name, first.name, "and belongs to the same combatant");
+    let dealt = 0;
+    for (const row of drill.rows) dealt += row.figure;
+    assert(dealt > 0, "in this fight the blows reached somebody");
+    assert(dealt <= drill.total, "and the parts never come to more than the whole");
+    for (const [at, row] of drill.rows.entries()) {
+        if (at === 0) continue;
+        const above = drill.rows[at - 1];
+        assert(above !== undefined, "a row below the first has one above it");
+        assert(above.figure >= row.figure, "the larger part is drawn first");
+    }
+});
+
+Deno.test("a screen with no cut opens nothing, and neither does a row nobody holds", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const held = [...statistics.byCombatantId.keys()][0];
+    assert(held !== undefined, "the fight holds somebody");
+    assertEquals(
+        composeDrillReading(statistics, roster, "healthRestored", held),
+        null,
+        "a screen the statistics cut no further stays closed",
+    );
+    assertEquals(
+        composeDrillReading(statistics, roster, "damageDealtApplied", 0),
+        null,
+        "and so does a row belonging to nobody in the fight",
+    );
 });
