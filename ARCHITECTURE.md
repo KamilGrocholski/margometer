@@ -46,6 +46,9 @@ src/
     margometer-error.ts  The brand every failure that ships to the browser wears.
     protocol-message.ts  One message's grammar: both ends, then its parameters.
     protocol-number.ts   The numbers the protocol states, read out of its text.
+    unknown-reading.ts   Reading a value nobody typed, answering null rather than throwing.
+  game/
+    engine-warrior.ts    The client's own field names, and the only file that spells them.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
   AGENTS.md        Why no hand edits one, and what provenance each carries.
@@ -58,6 +61,8 @@ docs/
   adr/               Decisions costly or surprising to reverse.
 tests/
   AGENTS.md                What is true of a test here and nowhere else.
+  game/
+    engine-warrior.test.ts    A payload's warriors, against the snapshots beside them.
   core/                    A test sits where its subject sits.
     battle-event.test.ts      Every variant the union holds, against what arrives.
     combatant-health.test.ts  The arithmetic, against the client's own three figures.
@@ -209,8 +214,8 @@ asserts, because the number is ours.
 - `JSON.stringify` — **planned**, named at its first consumer.
 - `Date.parse` — **planned**, named at its first consumer.
 - `performance.now()` — **planned**, named at its first consumer.
-- `typeof … === "object"`, which is `true` for `null` — `tests/recorded-fight.ts`, where the `null`
-  case is a second line of `isRecord` rather than a clause of the first.
+- `typeof … === "object"`, which is `true` for `null` — `src/core/unknown-reading.ts`, where the
+  `null` case is a line of `isRecord` rather than a clause of the first.
 - `localeCompare` — **nobody**, spelled nowhere. Bringing a collated order back means a caller
   first, then a reader, then a row here, in that order.
 
@@ -257,13 +262,14 @@ standard-library code whose ES level is not ours to set.
 Where the tree does not yet meet what this file states. Each is migration work, updated in the same
 commit that opens or closes one.
 
-1. **`core/` is written as far as the protocol allows.** The error base, the message grammar, the
-   roster, the data contract, seven decoder steps, the health arithmetic and the statistics exist.
-   One key in `captures/` is still unread and says so: `healall_per`, a share stated about a whole
-   side, which cannot be sized onto its members without the health each entered the fight with —
-   gap 11. The statistics total damage and health restored; **who gave healing, and which attacker a
-   tick belongs to, are not read** — each is a rule that arrives with its own ADR. Everything under
-   `game/` and `ui/`, the entry point and `tools/` are not written at all.
+1. **`core/` is written as far as the protocol allows, and `game/` has begun.** The error base, the
+   message grammar, the roster, the data contract, seven decoder steps, the health arithmetic, the
+   statistics and the reader for the client's own warrior fields exist. One key in `captures/` is
+   still unread and says so: `healall_per`, which cannot be sized onto a side without the health
+   each member entered the fight with — gap 11. **Who gave healing, and which attacker a tick
+   belongs to, are not read**; each is a rule that arrives with its own ADR. The engine wrap, the
+   session, where a fight happens, everything under `ui/`, the entry point and `tools/` are not
+   written at all.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

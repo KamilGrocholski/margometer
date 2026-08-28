@@ -8,23 +8,14 @@
 
 import { assert, assertEquals } from "@std/assert";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
+import { isRecord } from "@/src/core/unknown-reading.ts";
+import { getCombatantFromWarrior } from "@/src/game/engine-warrior.ts";
 
 const CAPTURE_DIRECTORY = "captures";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    if (typeof value !== "object") return false;
-    return value !== null;
-}
 
 function getNumberFromField(value: unknown, subject: string): number {
     assert(typeof value === "number", `${subject} is stated as a number`);
     assert(Number.isFinite(value), `${subject} is a number a reading can use`);
-    return value;
-}
-
-function getTextFromField(value: unknown, subject: string): string {
-    assert(typeof value === "string", `${subject} is stated as text`);
-    assert(value.length > 0, `${subject} is text that says something`);
     return value;
 }
 
@@ -93,6 +84,17 @@ export function getRecordedHealthReadings(path: string): RecordedHealth[] {
     return readings;
 }
 
+/** The payload each call carried, exactly as the engine received it. */
+export function getRecordedEngineUpdates(path: string): unknown[] {
+    const updates: unknown[] = [];
+    for (const entry of getRecordedEntries(path)) {
+        assert("ladunek" in entry, `${path} states the payload an entry carried`);
+        updates.push(entry.ladunek);
+    }
+    assert(updates.length > 0, `${path} carries at least one call`);
+    return updates;
+}
+
 /** One list per call the engine made, which is the unit an announcement is glued inside. */
 export function getRecordedPayloads(path: string): string[][] {
     const payloads: string[][] = [];
@@ -109,18 +111,18 @@ export function getRecordedPayloads(path: string): string[][] {
     return payloads;
 }
 
+/**
+ * A recording's snapshots carry the client's own field names, so they are read by the file that
+ * spells them. What is asserted here is that a recording states every one of them, which the
+ * live client does not promise and the material has held on every entry.
+ */
 function getRecordedCombatant(snapshot: unknown, path: string): Combatant {
-    assert(isRecord(snapshot), `${path} states a combatant as a record`);
-    const health = snapshot.hp;
-    assert(isRecord(health), `${path} states a combatant's health`);
-    return {
-        id: getNumberFromField(snapshot.id, `${path}: an id`),
-        name: getTextFromField(snapshot.name, `${path}: a name`),
-        side: getNumberFromField(snapshot.team, `${path}: a side`),
-        profession: getTextFromField(snapshot.prof, `${path}: a profession`),
-        level: getNumberFromField(snapshot.lvl, `${path}: a level`),
-        healthMaximum: getNumberFromField(health.max, `${path}: a health maximum`),
-    };
+    const combatant = getCombatantFromWarrior(snapshot);
+    assert(combatant !== null, `${path} states a combatant the roster can hold`);
+    assert(combatant.profession !== null, `${path}: a profession`);
+    assert(combatant.level !== null, `${path}: a level`);
+    assert(combatant.healthMaximum !== null, `${path}: a health maximum`);
+    return combatant;
 }
 
 /**
