@@ -21,6 +21,7 @@
 - [ ] Rewrite v2 after v0.10.1, on a special branch
 
 ## Up Next
+- [ ] Preview page on github pages still refreshes its state after any capture change
 
 ## Done
 - [x] Make this repo smaller - it has too much code, comments, docs, and tools
