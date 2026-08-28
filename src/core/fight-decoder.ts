@@ -17,6 +17,7 @@ import type {
     DeclaredEffect,
     DestroyedStatistic,
     FightOutcomeEvent,
+    HealingToNamedCombatantEvent,
     HealthChangeEvent,
     PreventedDamage,
     SkillUsedEvent,
@@ -98,6 +99,13 @@ const OUTCOME_KEYS: Record<string, "won" | "lost"> = { winner: "won", loser: "lo
 /** A fight nobody won, which the protocol states on the winners' key and never on the losers'. */
 const NO_WINNER = "?";
 const NAME_SEPARATOR = ", ";
+/**
+ * Healing stated by name: `amount,name(percent%)` — the figure first and the name second, the
+ * opposite order from `+oth_dmg`, which is why the two cannot share a reader. Both ends of the
+ * message are the wrong combatant: it rides a blow struck at somebody else.
+ */
+const HEALING_TO_NAMED_KEY = "legbon_lastheal";
+const HEALING_TO_NAMED_MEMBERS = 2;
 const SKILL_NAME_KEY = "tspell";
 /**
  * The other way an announcement names what was used, and the name sits in the target slot. Read
@@ -181,6 +189,12 @@ interface HealthChangeReading {
     declared: DeclaredEffect[];
 }
 
+interface NamedHealingReading {
+    targetName: string;
+    targetHealthPercent: number | null;
+    amount: number;
+}
+
 interface NamedDamageReading {
     targetName: string;
     targetHealthPercent: number | null;
@@ -200,6 +214,7 @@ interface AttackReading {
     procs: string[];
     healthChanges: HealthChangeReading[];
     namedDamage: NamedDamageReading[];
+    namedHealing: NamedHealingReading[];
     outcomes: FightOutcomeEvent[];
     declared: DeclaredEffect[];
     skill: SkillReading | null;
@@ -276,6 +291,24 @@ function readNamedTarget(text: string): { name: string; healthPercent: number | 
     const percentText = text.slice(opener + 1, text.length - PERCENT_CLOSER.length);
     assert(percentText.length < text.length, "a percentage is shorter than what carried it");
     return { name, healthPercent: getHealthPercentFromText(percentText) };
+}
+
+/** Healing that took health away would be this reader misreading its key, not a loss reported. */
+function readNamedHealing(key: string, value: string): NamedHealingReading | null {
+    if (key !== HEALING_TO_NAMED_KEY) return null;
+    const members = value.split(MEMBER_SEPARATOR);
+    if (members.length !== HEALING_TO_NAMED_MEMBERS) return null;
+    const [amountText, statedTarget] = members;
+    if (amountText === undefined) return null;
+    if (statedTarget === undefined) return null;
+    const amount = getIntegerFromText(amountText);
+    if (amount === null) return null;
+    if (amount < 0) return null;
+    const named = readNamedTarget(statedTarget);
+    if (named === null) return null;
+    assert(amount >= 0, "healing stated against a name never takes health away");
+    assert(named.name.length > 0, "a figure stated against a name has a name");
+    return { targetName: named.name, targetHealthPercent: named.healthPercent, amount };
 }
 
 function readNamedDamage(key: string, value: string): NamedDamageReading | null {
@@ -392,6 +425,7 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
         procs: [],
         healthChanges: [],
         namedDamage: [],
+        namedHealing: [],
         outcomes: [],
         declared: [],
         skill: null,
@@ -416,6 +450,11 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
             reading.declared.push({ effect: parameter.key, amount, text: parameter.value });
             continue;
         }
+        const restored = readNamedHealing(parameter.key, parameter.value);
+        if (restored !== null) {
+            reading.namedHealing.push(restored);
+            continue;
+        }
         const namedHit = readNamedDamage(parameter.key, parameter.value);
         if (namedHit !== null) {
             reading.namedDamage.push(namedHit);
@@ -436,8 +475,8 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
     closeSkillReading(reading);
     const read = reading.raw.length + reading.applied.length + reading.prevented.length +
         reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
-        reading.namedDamage.length + reading.outcomes.length + reading.declared.length +
-        reading.skillKeys + reading.unreadKeys.length;
+        reading.namedDamage.length + reading.namedHealing.length + reading.outcomes.length +
+        reading.declared.length + reading.skillKeys + reading.unreadKeys.length;
     assert(read === parameters.length, "every parameter is read or named unread, and none twice");
     assert(reading.raw.length <= parameters.length, "a reading holds no more than it was handed");
     return reading;
@@ -478,6 +517,22 @@ function composeNamedDamageEvent(
         targetHealthPercent: named.targetHealthPercent,
         damage: named.damage,
         announced,
+    };
+}
+
+function composeNamedHealingEvent(
+    restored: NamedHealingReading,
+    roster: CombatantRoster | null,
+): HealingToNamedCombatantEvent {
+    assert(restored.amount >= 0, "healing restored is never below nothing");
+    assert(restored.targetName.length > 0, "the healed is named inside the value");
+    return {
+        kind: "healing-to-named-combatant",
+        targetName: restored.targetName,
+        targetId: roster === null ? null : getCombatantIdByName(roster, restored.targetName),
+        targetHealthPercent: restored.targetHealthPercent,
+        amount: restored.amount,
+        source: HEALING_TO_NAMED_KEY,
     };
 }
 
@@ -601,6 +656,9 @@ function decodeOneMessage(
     }
     if (reading.skill !== null) {
         events.push(composeSkillUsedEvent(parsed, reading.skill, isBlow ? [] : reading.declared));
+    }
+    for (const restored of reading.namedHealing) {
+        events.push(composeNamedHealingEvent(restored, roster));
     }
     for (const outcome of reading.outcomes) events.push(outcome);
     if (!declaredElsewhere && reading.declared.length > 0) {

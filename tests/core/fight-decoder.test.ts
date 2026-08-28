@@ -18,10 +18,8 @@ import {
 /** `2026-08-06-tempest-grupa-vs-hildur.json`: a blow absorption stood in front of. */
 const ABSORBED =
     "467968=100.00;-10000249=99.69;+pierce;+dmgd=1557;+acdmg=16;-absorb=545;-dmgd=1012";
-/** `2026-08-12-experimental-tancerz-vs-wojownik.json`: a blow carrying a key with no meaning. */
-const UNREAD =
-    "195782=93.67;114881=63.00;+dmg=2298;+acdmg=7;legbon_lastheal=8810,Gracz 1(63.00%);" +
-    "-dmg=1633";
+/** `2026-08-06-tempest-grupa-vs-hildur.json`: the last key in the corpus with no meaning yet. */
+const UNREAD = "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;healall_per=30";
 /** `2026-08-12-experimental-tancerz-vs-wojownik.json`: the pair the family rule cannot reach. */
 const THIRD_BLOW = "114881=80.80;195782=98.67;+dmg=1210;+dmgo=896;+thirdatt=1168;+acdmg=90;" +
     "-blok=363;-dmg=0;-thirdatt=59";
@@ -67,15 +65,15 @@ Deno.test("the third blow is read by name, and a zero is a reading", () => {
     assertEquals(event.prevented, [{ defence: "blok", amount: 363 }], "a block stopped 363");
 });
 
-Deno.test("a key with no meaning yet leaves the rest of the blow read", () => {
+Deno.test("a key with no meaning yet leaves the rest of the message read", () => {
     const events = decodeFightMessages([UNREAD], null);
-    assertEquals(events.length, 2, "the blow and what could not be read");
-    const [attack, unread] = events;
-    assert(attack?.kind === "attack", "the blow is still an event");
-    assertEquals(attack.applied.length, 1, "the figures beside the unread key are read");
+    assertEquals(events.length, 2, "what was read, and what could not be");
+    const [used, unread] = events;
+    assert(used?.kind === "skill-used", "the announcement is still an event");
+    assertEquals(used.skillName, "Zdrowa atmosfera", "with the name the protocol stated");
     assert(unread?.kind === "unknown-message", "and the unread key is its own event");
-    assertEquals(unread.unreadKeys, ["legbon_lastheal"], "named, one entry per occurrence");
-    assertEquals(unread.combatantIds, [195782, 114881], "with the ends the grammar stated");
+    assertEquals(unread.unreadKeys, ["healall_per"], "named, one entry per occurrence");
+    assertEquals(unread.combatantIds, [469657], "with the end the grammar stated, once");
 });
 
 Deno.test("a message the grammar refuses is an event, not a silence", () => {
@@ -310,6 +308,7 @@ interface CorpusTally {
     announced: number;
     byName: number;
     resolved: number;
+    restored: number;
     declared: number;
     outcomes: number;
     glued: number;
@@ -342,6 +341,12 @@ function countEvent(tally: CorpusTally, event: BattleEvent, path: string): void 
         }
         return;
     }
+    if (event.kind === "healing-to-named-combatant") {
+        tally.restored += 1;
+        assert(event.amount >= 0, `${path}: healing that took health away`);
+        assert(event.targetName.length > 0, `${path}: healing against no name`);
+        return;
+    }
     if (event.kind === "declaration") {
         tally.declared += 1;
         assert(event.declared.length > 0, `${path}: a declaration stating nothing`);
@@ -368,6 +373,7 @@ function getCorpusTally(): CorpusTally {
         announced: 0,
         byName: 0,
         resolved: 0,
+        restored: 0,
         declared: 0,
         outcomes: 0,
         glued: 0,
@@ -384,6 +390,33 @@ function getCorpusTally(): CorpusTally {
     return tally;
 }
 
+/**
+ * `2026-08-23-tempest-grupa-vs-hildur-auto.json`: one group blow dropping two holders below the
+ * threshold at once. A reader counting messages rather than segments loses the second.
+ */
+const TWO_HEALED = "-10005001=74.30;466747=0.00;legbon_lastheal=10564,Gracz 8(42.00%);" +
+    "+oth_dmg=9315,g,Gracz 8(42.00%);legbon_lastheal=10550,Gracz 5(44.00%);" +
+    "+oth_dmg=9613,g,Gracz 5(44.00%);+oth_dmg=9613,g,Gracz 9(0.00%)";
+const AUTO = "captures/2026-08-23-tempest-grupa-vs-hildur-auto.json";
+
+Deno.test("healing stated by name is read from the value, never from a slot", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(AUTO));
+    const events = decodeFightMessages([TWO_HEALED], roster);
+    const restored = events.filter((event) => event.kind === "healing-to-named-combatant");
+    assertEquals(restored.length, 2, "both holders are healed in the one message");
+    assert(restored[0]?.kind === "healing-to-named-combatant", "the first is read");
+    assertEquals(restored[0].amount, 10564, "with the figure the value states first");
+    assertEquals(restored[0].targetName, "Gracz 8", "and the name it states second");
+    assertEquals(restored[0].targetHealthPercent, 42, "where that combatant stands after it");
+    assert(restored[0].targetId !== null, "which the roster resolves");
+    assert(restored[1]?.kind === "healing-to-named-combatant", "and the second is not lost");
+    assertEquals(restored[1].targetName, "Gracz 5", "who is somebody else again");
+    assert(
+        restored[0].targetId !== 466747 && restored[1].targetId !== 466747,
+        "neither is the combatant either slot of the message names",
+    );
+});
+
 Deno.test("every message in every recording decodes, and the pairs hold", () => {
     const tally = getCorpusTally();
     assert(tally.attacks > 0, "the recordings carry blows");
@@ -391,6 +424,7 @@ Deno.test("every message in every recording decodes, and the pairs hold", () => 
     assert(tally.announced > 0, "and skills announced beside both");
     assert(tally.glued > 0, "and blows the game itself glued to a skill");
     assert(tally.byName > 0, "and damage stated against a name");
+    assert(tally.restored > 0, "and healing stated the same way");
     assert(tally.declared > 0, "and messages that state something and report nothing");
     assert(tally.resolved > tally.byName / 2, "most of which a roster can put on somebody");
     assert(tally.unread > 0, "and keys still unread, which the panel would say about them");

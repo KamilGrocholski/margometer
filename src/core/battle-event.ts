@@ -109,6 +109,19 @@ export interface DeclarationEvent {
 }
 
 /**
+ * Healing the protocol reports against a **name**, on a message whose two ends are somebody
+ * else's fight. Neither slot is the healed, so the value is read and no slot is.
+ */
+export interface HealingToNamedCombatantEvent {
+    kind: "healing-to-named-combatant";
+    targetName: string;
+    targetId: number | null;
+    targetHealthPercent: number | null;
+    amount: number;
+    source: string;
+}
+
+/**
  * How the fight ended, about the fight rather than about anybody in it. The protocol names the
  * sides as text, and which of them is the reader's own is not knowable from the message.
  */
@@ -136,6 +149,7 @@ export type BattleEvent =
     | DamageToNamedCombatantEvent
     | DeclarationEvent
     | FightOutcomeEvent
+    | HealingToNamedCombatantEvent
     | HealthChangeEvent
     | SkillUsedEvent
     | UnknownMessageEvent;
@@ -146,6 +160,7 @@ export const BATTLE_EVENT_KINDS = [
     "damage-to-named-combatant",
     "declaration",
     "fight-outcome",
+    "healing-to-named-combatant",
     "health-change",
     "skill-used",
     "unknown-message",
