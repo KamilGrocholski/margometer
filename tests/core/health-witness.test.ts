@@ -11,6 +11,7 @@ import type { BattleEvent } from "@/src/core/battle-event.ts";
 import {
     getHealthFromPercent,
     getHealthToleranceFromMaximum,
+    getStatedHealthFromEvent,
 } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
@@ -32,30 +33,6 @@ interface WitnessReading {
     appeared: number;
     vanished: string[];
     unexplained: string[];
-}
-
-/** Where a combatant stands, as each event states it. */
-function getStatedHealth(event: BattleEvent): [number, number][] {
-    const stated: [number, number][] = [];
-    if (event.kind === "attack" || event.kind === "skill-used") {
-        if (event.actorId !== null && event.actorHealthPercent !== null) {
-            stated.push([event.actorId, event.actorHealthPercent]);
-        }
-        if (event.targetId !== null && event.targetHealthPercent !== null) {
-            stated.push([event.targetId, event.targetHealthPercent]);
-        }
-    }
-    if (event.kind === "health-change" || event.kind === "declaration") {
-        if (event.combatantId !== null && event.healthPercent !== null) {
-            stated.push([event.combatantId, event.healthPercent]);
-        }
-    }
-    if (event.kind === "damage-to-named-combatant" || event.kind === "healing-to-named-combatant") {
-        if (event.targetId !== null && event.targetHealthPercent !== null) {
-            stated.push([event.targetId, event.targetHealthPercent]);
-        }
-    }
-    return stated;
 }
 
 /** Health the event moved, signed: restored is positive and lost is negative. */
@@ -128,7 +105,9 @@ function witnessRecording(path: string, reading: WitnessReading): void {
                 for (const [id, amount] of getMovedHealth(event)) {
                     pendingById.set(id, (pendingById.get(id) ?? 0) + amount);
                 }
-                for (const [id, percent] of getStatedHealth(event)) statedHere.set(id, percent);
+                for (const [id, percent] of getStatedHealthFromEvent(event)) {
+                    statedHere.set(id, percent);
+                }
             }
             for (const [combatantId, percentAfter] of statedHere) {
                 const percentBefore = percentById.get(combatantId);

@@ -339,16 +339,13 @@ commit that opens or closes one.
     in `tests/repository/sources.test.ts` reads a declaration from one line, so a named arrow
     wrapped across two is invisible to S4 and S5. The limit is pinned by a test rather than left to
     be discovered, and closes when a file in this tree is written that way.
-11. **Health entered a fight with is not read, and the obvious cross-check does not settle it.**
-    `core/combatant-health.ts` reads health from a stated share and states how far off that reading
-    can be; what somebody entered the fight holding is not derived from it. Measured over
-    `captures/`, 2026-08-28: the last percentage a message states about a combatant agrees with the
-    snapshot at that same entry, within tolerance, in 223 of 240 comparisons — of the 17 that
-    disagree, 7 sit at an entry carrying `endBattle` and 10 have a snapshot stating no health at all
-    for somebody the protocol had just stated above it. Comparing the **first** statement instead
-    disagrees in 98 of 254, because a recording's snapshot is taken after every message of its entry
-    rather than before it. Neither is a fault in the arithmetic, and neither is a floor to unwind
-    from: entry health waits for the opening payload's own state, which is `game/`'s to hand over.
+11. **A share stated about a whole side is still unread.** `core/combatant-health.ts` now unwinds
+    the health a fight was entered with from the first statement about each combatant, which is what
+    `healall_per` needs to be sized and capped. Measured over `captures/`, 2026-08-28: every one of
+    the 262 combatants the snapshots hold is stated at some point, and **169 of the 265 first
+    statements come from a step or a skill announcement** — events carrying a health percentage and
+    no figure of their own, against 56 from a blow. What is left is the sizing itself, which is one
+    of the contracts above and arrives with its own ADR.
 12. **A payload can move health with no message stating it.** Measured over `captures/`, 2026-08-28:
     of 17,958 comparisons between the health the protocol states about a combatant and the movement
     decoded from its own messages, 17,286 agree inside the reading's tolerance. Of the 672 that do
