@@ -34,6 +34,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana** przed
 > aktualizacją.
 
+## [0.10.1] — 2026-08-28
+
+- **Poprawka** — Górna belka panelu, ta z nazwą i przyciskami, znów mieści się
+  w jednej linii. W `0.10.0` rozjeżdżała się na dwie, a przycisk `{ }` pękał na
+  pół — panel zabierał przez to trochę więcej miejsca na ekranie, niż powinien.
+
 ## [0.10.0] — 2026-08-28
 
 - **Nowość** — Po odświeżeniu strony panel wraca do walki, którą miałeś na
