@@ -20,8 +20,10 @@
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
 
 ## Up Next
+- [ ] Rewrite after v0.10.0
 
 ## Done
+- [x] Make this repo smaller - it has too much code, comments, docs, and tools
 - [x] Remove REGEX (partly) from this repo - replace with my own parsing
 - [x] Click on the fights tab toggles the state - open fights view; go to the prev view
 - [x] Show the last read battle after a reload - walking into a fight still puts you on the live one
