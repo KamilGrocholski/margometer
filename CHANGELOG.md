@@ -42,6 +42,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   widać, którą oglądasz. Kiedy wejdziesz w następną walkę, panel sam przechodzi
   na nią.
 
+- **Nowość** — Panel mówi, gdzie toczyła się walka: nazwa mapy i pole, na którym
+  stałeś, stoją w nagłówku, a na liście `☰` każdy wiersz nosi nazwę mapy. Dwie
+  podobne walki o tej samej godzinie da się wreszcie od siebie odróżnić.
+
+- **Nowość** — Napis, który się nie mieści i jest ucięty, pokazuje się w całości
+  po najechaniu myszą — nazwa umiejętności, imię przeciwnika, mapa czy wiersz na
+  liście walk.
+
 - **Nowość** — Panel czyta trzy rzeczy, które dotąd pokazywał tak, jak zapisała
   je gra: bandażowanie ran, potężne ogłuszenie mrozem oraz obrażenia od trucizny
   zadane komuś obok głównego celu. Liczby były i wcześniej — teraz mają nazwy.
