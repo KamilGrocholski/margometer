@@ -29,7 +29,7 @@ export interface KeptFight {
     openedAt: number;
     combatants: Combatant[];
     /** One list per call the engine made, so a replay is the fight as it was delivered. */
-    payloads: string[][];
+    payloads: readonly (readonly string[])[];
 }
 
 export interface FightStore {

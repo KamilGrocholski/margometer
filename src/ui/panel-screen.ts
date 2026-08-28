@@ -25,13 +25,18 @@ const SCREEN_WORDS: Record<PanelMetric, string> = {
     healthRestored: PANEL_WORDS.healthRestored,
 };
 
+/** The strip's own tab for the fights already fought, which is not a figure and not a metric. */
+export const SHELF_SCREEN = "fights";
+
 export interface ScreenState {
     current: PanelMetric;
+    /** Whether the shelf is showing. Pressing its tab goes back to the figures, as v1's did. */
+    isOnShelf: boolean;
 }
 
 /** The screen a fight opens on: what the reader did, which is what they came to see. */
 export function composeScreenState(): ScreenState {
-    const state: ScreenState = { current: "damageDealtApplied" };
+    const state: ScreenState = { current: "damageDealtApplied", isOnShelf: false };
     assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
     return state;
 }

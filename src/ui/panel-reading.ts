@@ -30,6 +30,12 @@ export interface PanelRow {
     share: number;
 }
 
+/** One fight already fought, as much of it as a shelf row shows. */
+export interface ShelfRow {
+    openedAt: number;
+    combatants: number;
+}
+
 export interface PanelReading {
     rows: PanelRow[];
     total: number;

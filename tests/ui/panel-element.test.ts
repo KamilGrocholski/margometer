@@ -12,7 +12,7 @@ import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { composePanelHost } from "@/src/ui/panel-element.ts";
 import { composePanelReading, type PanelReading } from "@/src/ui/panel-reading.ts";
-import { getScreenFromName, SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
+import { getScreenFromName, SCREEN_ORDER, SHELF_SCREEN } from "@/src/ui/panel-screen.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
@@ -38,7 +38,7 @@ function readFight(): PanelReading {
 function draw(reading: PanelReading): FakeElement {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show(reading, "damageDealtApplied");
+    panel.show({ reading: reading, current: "damageDealtApplied", shelf: [], isOnShelf: false });
     return panel.element as FakeElement;
 }
 
@@ -68,14 +68,20 @@ Deno.test("every name a reader meets before the panel's contents is ours", () =>
 Deno.test("the strip says which screen the panel is on, and marks it as more than a colour", () => {
     const host = draw(readFight());
     const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
-    assertEquals(tabs.length, SCREEN_ORDER.length, "one tab for each screen there is");
+    // The screens the figures live on, and the shelf beside them, which is not a figure.
+    assertEquals(tabs.length, SCREEN_ORDER.length + 1, "one tab for each screen there is");
     const current = tabs.filter((one) => one.className.includes("tab-current"));
     assertEquals(current.length, 1, "exactly one of them is where the panel is");
     assert(current[0]?.textContent.startsWith("• "), "and it is marked, not only tinted");
     for (const tab of tabs) {
         const screen = tab.attributes.get("data-screen");
         assert(screen !== undefined, "each tab says which screen it would reach");
-        assert(getScreenFromName(screen) !== null, "by a name a screen answers to");
+        // The shelf is a screen the strip draws and not a figure, so it answers to its own name
+        // rather than to a metric's.
+        assert(
+            getScreenFromName(screen) !== null || screen === SHELF_SCREEN,
+            "by a name a screen answers to",
+        );
     }
 });
 
@@ -124,7 +130,12 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
     const document = composeFakeDocument();
     const pressed: string[] = [];
     const panel = composePanelHost(document, (screen) => pressed.push(screen), () => {});
-    panel.show(readFight(), "damageDealtApplied");
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+    });
     const host = panel.element as FakeElement;
     const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
     const other = tabs[1];
@@ -142,11 +153,16 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
     const document = composeFakeDocument();
     const pressed: string[] = [];
     const panel = composePanelHost(document, (screen) => pressed.push(screen), () => {});
-    panel.show(readFight(), "damageDealtApplied");
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+    });
     const host = panel.element as FakeElement;
     const before = getElementsWithin(host).filter((one) => one.className.startsWith("tab")).length;
 
-    panel.show(readFight(), "healthRestored");
+    panel.show({ reading: readFight(), current: "healthRestored", shelf: [], isOnShelf: false });
     const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
     assertEquals(tabs.length, before, "the strip is drawn again, not drawn twice");
     const current = tabs.filter((one) => one.className.includes("tab-current"));
@@ -169,7 +185,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         },
     };
     const panel = composePanelHost(document, () => {}, (failure) => failures.push(failure));
-    panel.show(broken, "damageDealtApplied");
+    panel.show({ reading: broken, current: "damageDealtApplied", shelf: [], isOnShelf: false });
     const host = panel.element as FakeElement;
     assertEquals(failures.length, 1, "the failure is reported once");
     assertEquals(getTextsByClass(host, "undrawn"), [PANEL_WORDS.undrawn], "and marked in place");

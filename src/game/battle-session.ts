@@ -37,6 +37,8 @@ const MAXIMUM_EVENTS = 65536;
 export interface FightReading {
     roster: CombatantRoster;
     events: readonly BattleEvent[];
+    /** What the game said, kept as it arrived, so a fight can be put on a shelf and read again. */
+    messagesByPayload: readonly (readonly string[])[];
     /** Messages a payload said it carried and this reader did not read. Zero is the answer. */
     messagesLost: number;
     /** The game has stated the fight is over. Payloads may still arrive after it. */
@@ -47,6 +49,7 @@ export interface FightReading {
 export interface BattleSession {
     combatants: Combatant[];
     events: BattleEvent[];
+    messagesByPayload: string[][];
     messagesLost: number;
     isOver: boolean;
     payloads: number;
@@ -57,6 +60,7 @@ export function composeBattleSession(): BattleSession {
     const session: BattleSession = {
         combatants: [],
         events: [],
+        messagesByPayload: [],
         messagesLost: 0,
         isOver: false,
         payloads: 0,
@@ -93,6 +97,7 @@ function getMessageCountFromPayload(payload: Record<string, unknown>): number {
 function resetSession(session: BattleSession): void {
     session.combatants = [];
     session.events = [];
+    session.messagesByPayload = [];
     session.messagesLost = 0;
     session.isOver = false;
     session.payloads = 0;
@@ -108,12 +113,14 @@ export function addPayloadToSession(session: BattleSession, payload: unknown): v
     for (const combatant of getCombatantsFromPayload(payload)) session.combatants.push(combatant);
     const roster = composeCombatantRoster(session.combatants);
     const messages = getMessagesFromPayload(payload);
+    session.messagesByPayload.push(messages);
     const stated = getMessageCountFromPayload(payload);
     if (stated > messages.length) session.messagesLost += stated - messages.length;
     assert(session.messagesLost >= 0, "what a payload stated and nobody read is never negative");
     for (const event of decodeFightMessages(messages, roster)) session.events.push(event);
     if (FIGHT_ENDS_KEY in payload) session.isOver = true;
     assert(session.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
+    assert(session.messagesByPayload.length <= MAXIMUM_EVENTS, "and so does what it kept");
     assert(session.payloads > 0, "a payload that was read is counted");
     assert(session.hasFight, "and leaves a fight behind it, however little it stated");
 }
@@ -126,6 +133,7 @@ export function getFightFromSession(session: BattleSession): FightReading | null
     return {
         roster: composeCombatantRoster(session.combatants),
         events: session.events,
+        messagesByPayload: session.messagesByPayload,
         messagesLost: session.messagesLost,
         isOver: session.isOver,
         payloads: session.payloads,

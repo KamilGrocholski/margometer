@@ -9,9 +9,9 @@
  */
 
 import { assert } from "@std/assert";
-import type { PanelMetric, PanelReading, PanelRow } from "@/src/ui/panel-reading.ts";
-import { getWordsForScreen, SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
-import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
+import type { PanelMetric, PanelReading, PanelRow, ShelfRow } from "@/src/ui/panel-reading.ts";
+import { getWordsForScreen, SCREEN_ORDER, SHELF_SCREEN } from "@/src/ui/panel-screen.ts";
+import { composeCountedNoun, COUNTED_NOUNS, PANEL_WORDS } from "@/src/ui/panel-words.ts";
 
 /** The whole of the document this asks for. A browser's own satisfies it. */
 export interface PanelDocument {
@@ -103,20 +103,53 @@ function composePinnedElement(
     return element;
 }
 
-/** One tab per screen there is, and the current one marked as well as tinted. */
-function composeTabsElement(document: PanelDocument, current: PanelMetric): PanelElement {
+function composeTabElement(
+    document: PanelDocument,
+    screen: string,
+    words: string,
+    isCurrent: boolean,
+): PanelElement {
+    const tab = composeElement(document, "div", isCurrent ? TAB_CURRENT_CLASS : TAB_CLASS);
+    tab.setAttribute(SCREEN_ATTRIBUTE, screen);
+    tab.textContent = `${isCurrent ? TAB_CURRENT_MARK : ""}${words}`;
+    assert(tab.textContent.length > 0, "a tab a reader could press says where it goes");
+    assert(screen.length > 0, "and names the screen it would reach");
+    return tab;
+}
+
+/** One tab per screen there is, the shelf last, and the current one marked as well as tinted. */
+function composeTabsElement(document: PanelDocument, view: PanelView): PanelElement {
     const strip = composeElement(document, "div", TABS_CLASS);
     assert(SCREEN_ORDER.length > 0, "there is a screen to reach for");
     for (const screen of SCREEN_ORDER) {
-        const isCurrent = screen === current;
-        const tab = composeElement(document, "div", isCurrent ? TAB_CURRENT_CLASS : TAB_CLASS);
-        tab.setAttribute(SCREEN_ATTRIBUTE, screen);
-        tab.textContent = `${isCurrent ? TAB_CURRENT_MARK : ""}${getWordsForScreen(screen)}`;
-        assert(tab.textContent.length > 0, "a tab a reader could press says where it goes");
-        strip.append(tab);
+        const isCurrent = !view.isOnShelf && screen === view.current;
+        strip.append(composeTabElement(document, screen, getWordsForScreen(screen), isCurrent));
     }
-    assert(SCREEN_ORDER.includes(current), "the panel is on a screen the strip draws");
+    strip.append(composeTabElement(document, SHELF_SCREEN, PANEL_WORDS.fights, view.isOnShelf));
+    assert(SCREEN_ORDER.includes(view.current), "the panel is on a screen the strip draws");
     return strip;
+}
+
+/** The fights already fought, newest first, each saying how many were in it. */
+function composeShelfElement(document: PanelDocument, shelf: readonly ShelfRow[]): PanelElement {
+    const body = composeElement(document, "div", BODY_CLASS);
+    assert(body.textContent === "", "a shelf begins saying nothing and is filled in");
+    if (shelf.length === 0) {
+        const empty = composeElement(document, "div", EMPTY_CLASS);
+        empty.textContent = PANEL_WORDS.shelfEmpty;
+        body.append(empty);
+        return body;
+    }
+    assert(shelf.length >= 0, "a shelf holds what it holds");
+    for (const fight of [...shelf].sort((one, other) => other.openedAt - one.openedAt)) {
+        const row = composeElement(document, "div", ROW_CLASS);
+        const name = composeElement(document, "span", ROW_NAME_CLASS);
+        name.textContent = composeCountedNoun(fight.combatants, COUNTED_NOUNS.combatants);
+        row.append(name);
+        body.append(row);
+    }
+    assert(shelf.length > 0, "a shelf with something on it draws a row for each");
+    return body;
 }
 
 function composeBodyElement(document: PanelDocument, reading: PanelReading): PanelElement {
@@ -167,10 +200,18 @@ function composeRegion(
     }
 }
 
-/** The panel on the page, and the way to put a new reading into the one that is already there. */
+/** Everything one drawing of the panel is: the figures, the screen, and the fights behind it. */
+export interface PanelView {
+    reading: PanelReading;
+    current: PanelMetric;
+    shelf: readonly ShelfRow[];
+    isOnShelf: boolean;
+}
+
+/** The panel on the page, and the way to put a new view into the one that is already there. */
 export interface PanelHandle {
     element: PanelElement;
-    show(reading: PanelReading, current: PanelMetric): void;
+    show(view: PanelView): void;
 }
 
 /**
@@ -207,15 +248,18 @@ export function composePanelHost(
     assert(host.className === "", "the host wears no class of the game's making");
     return {
         element: host,
-        show(reading: PanelReading, current: PanelMetric): void {
+        show(view: PanelView): void {
             const nextTabs = composeRegion(
                 document,
-                () => composeTabsElement(document, current),
+                () => composeTabsElement(document, view),
                 handleFailure,
             );
             const nextBody = composeRegion(
                 document,
-                () => composeBodyElement(document, reading),
+                () =>
+                    view.isOnShelf
+                        ? composeShelfElement(document, view.shelf)
+                        : composeBodyElement(document, view.reading),
                 handleFailure,
             );
             tabs.replaceWith(nextTabs);

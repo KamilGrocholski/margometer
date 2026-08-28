@@ -294,13 +294,11 @@ standard-library code whose ES level is not ours to set.
 Where the tree does not yet meet what this file states. Each is migration work, updated in the same
 commit that opens or closes one.
 
-1. **The add-on builds, and one key is still unread.** The layers meet at `src/userscript-entry.ts`,
-   `src/userscript-boot.ts` is what a browser loads, and `deno task build` writes the file a reader
-   installs with the metadata a script manager reads. `healall_per` is the one key in `captures/`
-   the decoder still names unread, and it cannot be sized onto a side without the health each member
-   entered the fight with — gap 11. **Who gave healing, and which attacker a tick belongs to, are
-   not read**; each is a rule that arrives with its own ADR. What the panel does when a reader
-   presses it, storage wired to the shelf, and every tool but the build are not written at all.
+1. **The add-on reads a fight, draws it, and keeps it.** Every key in `captures/` is read, the panel
+   switches screens, a finished fight goes on a shelf the reader can look back at, and
+   `deno task build` writes the file they install. What is not written: the tooltip, the drill below
+   a row, the place a fight was fought reaching the panel, every tool but the build, and the release
+   plumbing — `README.md`, `CHANGELOG.md` and the workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
@@ -351,5 +349,12 @@ commit that opens or closes one.
     pool while both messages of that payload are about other people. Nothing in the protocol
     accounts for it and only the snapshots show it, which is what the snapshots are for.
     `tests/core/health-witness.test.ts` pins the count at one, so a second cannot arrive unnoticed.
-13. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
+13. **The recursion guard misreads a one-line named arrow.** `getFunctionBodies` in
+    `tests/repository/sources.test.ts` collects lines until the brace depth returns to zero, and a
+    `const name = () => expression;` opens no brace — so every line after it is read as that
+    function's body, and a later call to it reads as a call to itself. Found by writing one in
+    `tests/userscript-entry.test.ts`, which now carries a block body and a comment saying why. A
+    false positive is worse than a blind spot, so this is the next thing that guard should learn;
+    gap 10 is the other half of the same reader.
+14. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
     screenshots are unwritten; the release contract above is inherited from v1 and unexercised here.

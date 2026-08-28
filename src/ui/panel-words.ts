@@ -30,6 +30,8 @@ export const PANEL_WORDS = {
     withoutTarget: "Bez celu",
     unknown: "Nie wiadomo",
     nothingYet: "Jeszcze nic się nie wydarzyło",
+    fights: "Walki",
+    shelfEmpty: "Nie ma jeszcze zapisanych walk",
     fightOver: "Walka skończona",
     suspect: "Ta liczba może być zaniżona",
     undrawn: "Tego nie udało się narysować",

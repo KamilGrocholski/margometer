@@ -8,6 +8,9 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { startMargoMeter, type UserscriptEnvironment } from "@/src/userscript-entry.ts";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { type FightStore, readKeptFights } from "@/src/game/kept-fights.ts";
 import type { PanelElement } from "@/src/ui/panel-element.ts";
 import type { Scheduler } from "@/src/game/engine-attachment.ts";
 import {
@@ -16,7 +19,11 @@ import {
     getElementsWithin,
     pressElement,
 } from "@/tests/fake-document.ts";
-import { getRecordedEngineUpdates, getRecordingPaths } from "@/tests/recorded-fight.ts";
+import {
+    getRecordedEngineUpdates,
+    getRecordedPayloads,
+    getRecordingPaths,
+} from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
 
@@ -28,14 +35,27 @@ function composeEnvironment(page: unknown) {
     const shown: PanelElement[] = [];
     const reported: string[] = [];
     const document = composeFakeDocument();
+    const held = new Map<string, string>();
+    let ticks = 0;
     const environment: UserscriptEnvironment = {
         page,
         document,
         schedule: composeStillClock(),
         mount: { show: (panel) => shown.push(panel) },
         report: (line) => reported.push(line),
+        store: {
+            read: (key) => held.get(key) ?? null,
+            write: (key, value) => {
+                held.set(key, value);
+                return true;
+            },
+        },
+        now: () => {
+            ticks += 1;
+            return ticks;
+        },
     };
-    return { environment, shown, reported };
+    return { environment, shown, reported, held };
 }
 
 Deno.test("a recording played through the add-on ends on the panel a reader would see", () => {
@@ -109,6 +129,78 @@ Deno.test("a reader presses a screen and the panel goes there, and nowhere else"
     stray.setAttribute("data-screen", "whateverTheGameCalls");
     pressElement(host, "pointerdown", stray);
     assertEquals(current(), "damageTakenApplied", "and a screen nobody has moves nothing either");
+});
+
+Deno.test("a fight that ends goes on the shelf, once, and comes back after a reload", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const first = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(first.environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+
+    const shelf = first.held.get("MargoMeter-fights");
+    assert(shelf !== undefined, "the fight was written where a reload will look for it");
+    const kept = readKeptFights(first.environment.store as FightStore, "MargoMeter-fights");
+    assertEquals(kept.length, 1, "one fight, however many calls said it was over");
+    assertEquals(kept[0]?.combatants.length, 11, "with the cast the payloads stated");
+    const messages = kept[0]?.payloads.flat() ?? [];
+    assertEquals(messages.length, getRecordedPayloads(HILDUR).flat().length, "and every message");
+
+    // What is kept is what the game said, so the fight reads the same off the shelf as it did
+    // live: the figures are derived again by the code that is running.
+    const roster = composeCombatantRoster(kept[0]?.combatants ?? []);
+    const events = (kept[0]?.payloads ?? []).flatMap((one) =>
+        decodeFightMessages([...one], roster)
+    );
+    const live = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    assertEquals(events.length, live.length, "the same fight, read again");
+});
+
+Deno.test("the shelf has a screen of its own, and its tab toggles", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+
+    const shelfTab = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-screen") === "fights"
+    );
+    assert(shelfTab !== undefined, "the strip carries the shelf beside the figures");
+    // A block body on purpose: the recursion guard reads a one-line named arrow as a function
+    // whose body never closes, and then sees every later call to it as a call to itself.
+    const rows = (): FakeElement[] => {
+        return getElementsWithin(host).filter((one) => one.className === "row");
+    };
+    const figures = rows().length;
+    assert(figures > 1, "the panel is on the figures, with a row for each of them");
+
+    pressElement(host, "pointerdown", shelfTab);
+    assertEquals(rows().length, 1, "and on the shelf, with the one fight it has kept");
+
+    pressElement(host, "pointerdown", shelfTab);
+    assertEquals(rows().length, figures, "pressed again, the shelf gives the figures back");
+});
+
+Deno.test("a browser that will not have the shelf is answered, not argued with", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
+    const refusing: UserscriptEnvironment = {
+        ...environment,
+        store: {
+            read: () => null,
+            write: () => false,
+        },
+    };
+    startMargoMeter(refusing);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    assertEquals(reported, [], "a refusal is not a failure of ours");
+    assertEquals(shown.length, 1, "and the panel goes on drawing the fight it is watching");
 });
 
 Deno.test("a page with no game draws nothing and says why, once", () => {
