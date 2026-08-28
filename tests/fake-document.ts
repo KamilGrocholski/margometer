@@ -13,6 +13,8 @@ export interface FakeElement extends PanelElement {
     children: FakeElement[];
     attributes: Map<string, string>;
     shadow: FakeElement[] | null;
+    /** What replaced this one, so a test can see a panel give way rather than pile up. */
+    replacedBy: FakeElement | null;
 }
 
 export function composeFakeDocument(): PanelDocument & { created: FakeElement[] } {
@@ -27,6 +29,10 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                 children: [],
                 attributes: new Map(),
                 shadow: null,
+                replacedBy: null,
+                replaceWith(other: PanelElement): void {
+                    element.replacedBy = other as FakeElement;
+                },
                 append(child: PanelElement): void {
                     assert(child !== element, "an element never holds itself");
                     element.children.push(child as FakeElement);

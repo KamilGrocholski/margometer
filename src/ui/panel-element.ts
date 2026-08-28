@@ -21,6 +21,8 @@ export interface PanelElement {
     className: string;
     textContent: string;
     append(child: PanelElement): void;
+    /** How a redrawn panel takes the place of the one before it, rather than stacking on it. */
+    replaceWith(other: PanelElement): void;
     setAttribute(name: string, value: string): void;
     attachShadow(options: { mode: "open" }): PanelRoot;
 }

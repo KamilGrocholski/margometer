@@ -37,6 +37,7 @@ deno.lock          What the gate is actually run against. A package the lock doe
 .gitignore         What never enters git, including the cache.
 
 src/
+  userscript-boot.ts   What runs when the browser loads the built file, and the one cast.
   userscript-entry.ts  Where the layers meet: the game found, the payloads read, the panel drawn.
   core/
     battle-event.ts      The data contract: what the decoder produces, and nothing else.
@@ -60,6 +61,9 @@ src/
     panel-look.ts        The panel's tokens, and the ink a figure over a bar takes.
     panel-reading.ts     One screen's worth of a fight: the rows, in the order drawn.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
+tools/             Never ships. Each arrives with the question it answers.
+  build-userscript.ts  The file a reader installs, and the two checks over the built text.
+  margometer-tool-error.ts  The brand a failure that runs in a terminal wears.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
   AGENTS.md        Why no hand edits one, and what provenance each carries.
@@ -88,6 +92,8 @@ tests/
     fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
     unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
+  tools/
+    build-userscript.test.ts  The built file, read back: the banner, and no way out.
   ui/
     panel-element.test.ts     What the panel puts on a page, read back out of it.
     panel-look.test.ts        Contrast by arithmetic, over every pairing the panel draws.
@@ -275,7 +281,7 @@ deno fmt --check   formatting, line length, indentation
 deno lint          zero warnings — S10
 deno check         types, at the strictness deno.json states
 deno test          the tests, including every guard in AGENTS.md's register
-deno task build    the bundle, plus the browser-floor check over it
+deno task build    the file a reader installs, and the checks over its built text
 ```
 
 The browser floor is checked over the **built bundle**, not the sources, because the bundle carries
@@ -286,13 +292,13 @@ standard-library code whose ES level is not ours to set.
 Where the tree does not yet meet what this file states. Each is migration work, updated in the same
 commit that opens or closes one.
 
-1. **Everything but the build exists, and one key is still unread.** The layers meet at
-   `src/userscript-entry.ts`: the game is found, the payloads reach a session, and what the session
-   holds is decoded, totalled and drawn. `healall_per` is the one key in `captures/` the decoder
-   still names unread, and it cannot be sized onto a side without the health each member entered the
-   fight with — gap 11. **Who gave healing, and which attacker a tick belongs to, are not read**;
-   each is a rule that arrives with its own ADR. What the panel does when a reader presses it,
-   storage, `tools/` and the bundle itself are not written at all.
+1. **The add-on builds, and one key is still unread.** The layers meet at `src/userscript-entry.ts`,
+   `src/userscript-boot.ts` is what a browser loads, and `deno task build` writes the file a reader
+   installs with the metadata a script manager reads. `healall_per` is the one key in `captures/`
+   the decoder still names unread, and it cannot be sized onto a side without the health each member
+   entered the fight with — gap 11. **Who gave healing, and which attacker a tick belongs to, are
+   not read**; each is a rule that arrives with its own ADR. What the panel does when a reader
+   presses it, storage wired to the shelf, and every tool but the build are not written at all.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

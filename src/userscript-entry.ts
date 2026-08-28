@@ -62,6 +62,43 @@ function showFight(environment: UserscriptEnvironment, session: BattleSession): 
 }
 
 /**
+ * The names a browser gives what this needs, and the whole of what it is asked for. A `Window`
+ * states far more than this, which is why `userscript-boot.ts` casts once at that boundary.
+ */
+export interface UserscriptWindow {
+    document: PanelDocument & { body: { append(child: PanelElement): void } };
+    setInterval(step: () => void, everyMs: number): number;
+    clearInterval(handle: number): void;
+    console: { error(line: string, failure: unknown): void };
+}
+
+/**
+ * Reads the globals a userscript is given and starts on them. The panel replaces the one before
+ * it, so a fight redrawn leaves one panel on the page rather than a stack of them.
+ */
+export function startFromWindow(page: UserscriptWindow): GameAttachment {
+    assert(typeof page.setInterval === "function", "a page states the clock this asks for");
+    let shown: PanelElement | null = null;
+    return startMargoMeter({
+        page,
+        document: page.document,
+        schedule: {
+            every: (step, everyMs) => page.setInterval(step, everyMs),
+            cancel: (handle) => page.clearInterval(handle),
+        },
+        mount: {
+            show: (panel) => {
+                assert(panel !== shown, "a panel never replaces itself");
+                shown?.replaceWith(panel);
+                if (shown === null) page.document.body.append(panel);
+                shown = panel;
+            },
+        },
+        report: (line, failure) => page.console.error(line, failure),
+    });
+}
+
+/**
  * Starts reading, and hands back the way to stop. A second copy of the add-on stands down inside
  * the attachment, so nothing here has to know it was second.
  */

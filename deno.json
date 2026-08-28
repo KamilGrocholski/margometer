@@ -1,8 +1,10 @@
 {
     "tasks": {
         // The gate. One command, so there is no version of "I ran the tests but not the build".
-        // `test` and `build` join it when their subjects exist — see ARCHITECTURE.md, known gaps.
-        "check": "deno fmt --check && deno lint && deno check && deno test -A"
+        // `build` writes `dist/`, which git does not carry: what ships is checked as a file.
+        "check": "deno fmt --check && deno lint && deno check && deno test -A && deno task build",
+        // The file a reader installs. A release passes its version; a build without one says so.
+        "build": "deno run -A tools/build-userscript.ts"
     },
     "fmt": {
         // 4 spaces, hard limit of 100 columns, nothing hidden by a scrollbar.
