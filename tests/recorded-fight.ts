@@ -8,7 +8,7 @@
 
 import { assert, assertEquals } from "@std/assert";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
-import { isRecord } from "@/src/core/unknown-reading.ts";
+import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
 import { getCombatantFromWarrior } from "@/src/game/engine-warrior.ts";
 
 const CAPTURE_DIRECTORY = "captures";
@@ -31,7 +31,7 @@ export function getRecordingPaths(): string[] {
 }
 
 function getRecordedEntries(path: string): Record<string, unknown>[] {
-    const document: unknown = JSON.parse(Deno.readTextFileSync(path));
+    const document = getValueFromJsonText(Deno.readTextFileSync(path));
     assert(isRecord(document), `${path} is a record`);
     const entries = document.wpisy;
     assert(Array.isArray(entries), `${path} lists the calls the engine made`);
