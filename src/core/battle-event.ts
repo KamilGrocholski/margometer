@@ -108,6 +108,18 @@ export interface DeclarationEvent {
     declared: DeclaredEffect[];
 }
 
+/**
+ * How the fight ended, about the fight rather than about anybody in it. The protocol names the
+ * sides as text, and which of them is the reader's own is not knowable from the message.
+ */
+export interface FightOutcomeEvent {
+    kind: "fight-outcome";
+    /** `drawn` is a fight nobody won, which the protocol states on the winners' own key. */
+    result: "won" | "lost" | "drawn";
+    /** Empty for `drawn`, where the protocol names nobody — never a side that went unread. */
+    combatantNames: string[];
+}
+
 /** A message this decoder did not read, so a panel can say which total may be short. */
 export interface UnknownMessageEvent {
     kind: "unknown-message";
@@ -123,6 +135,7 @@ export type BattleEvent =
     | AttackEvent
     | DamageToNamedCombatantEvent
     | DeclarationEvent
+    | FightOutcomeEvent
     | HealthChangeEvent
     | SkillUsedEvent
     | UnknownMessageEvent;
@@ -132,6 +145,7 @@ export const BATTLE_EVENT_KINDS = [
     "attack",
     "damage-to-named-combatant",
     "declaration",
+    "fight-outcome",
     "health-change",
     "skill-used",
     "unknown-message",

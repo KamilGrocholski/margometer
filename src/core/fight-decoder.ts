@@ -16,6 +16,7 @@ import type {
     DeclarationEvent,
     DeclaredEffect,
     DestroyedStatistic,
+    FightOutcomeEvent,
     HealthChangeEvent,
     PreventedDamage,
     SkillUsedEvent,
@@ -88,6 +89,15 @@ const NAMED_DAMAGE_KEY = "+oth_dmg";
 const NAMED_DAMAGE_MEMBERS = 3;
 const PERCENT_OPENER = "(";
 const PERCENT_CLOSER = "%)";
+/**
+ * The sides at the end of the fight, as text: names separated by a comma and a space, in a
+ * message naming no combatant at all. Every recording in `captures/` ends with exactly one of
+ * each, 2026-08-28.
+ */
+const OUTCOME_KEYS: Record<string, "won" | "lost"> = { winner: "won", loser: "lost" };
+/** A fight nobody won, which the protocol states on the winners' key and never on the losers'. */
+const NO_WINNER = "?";
+const NAME_SEPARATOR = ", ";
 const SKILL_NAME_KEY = "tspell";
 /**
  * The other way an announcement names what was used, and the name sits in the target slot. Read
@@ -190,8 +200,11 @@ interface AttackReading {
     procs: string[];
     healthChanges: HealthChangeReading[];
     namedDamage: NamedDamageReading[];
+    outcomes: FightOutcomeEvent[];
     declared: DeclaredEffect[];
     skill: SkillReading | null;
+    skillName: string | null;
+    skillId: number | null;
     skillKeys: number;
     unreadKeys: string[];
 }
@@ -285,6 +298,22 @@ function readNamedDamage(key: string, value: string): NamedDamageReading | null 
     };
 }
 
+/** `loser=?` is not a side of that name, so it is left unread rather than read as a draw. */
+function readFightOutcome(key: string, value: string): FightOutcomeEvent | null {
+    const result = OUTCOME_KEYS[key];
+    if (result === undefined) return null;
+    if (value.length === 0) return null;
+    if (value === NO_WINNER) {
+        if (result === "lost") return null;
+        return { kind: "fight-outcome", result: "drawn", combatantNames: [] };
+    }
+    const combatantNames = value.split(NAME_SEPARATOR);
+    assert(combatantNames.length > 0, "a side that is named has at least one member");
+    assert(combatantNames.every((one) => one.length > 0), "a member of a side is named");
+    assert(combatantNames.every((one) => !one.startsWith(" ")), "a name carries no separator");
+    return { kind: "fight-outcome", result, combatantNames };
+}
+
 function addValuelessKey(reading: AttackReading, key: string): void {
     assert(key.length > 0, "a key is never empty");
     if (PROC_KEYS.includes(key)) {
@@ -299,15 +328,32 @@ function addValuelessKey(reading: AttackReading, key: string): void {
     reading.unreadKeys.push(key);
 }
 
-/** An id with no name is a skill nothing can put on screen, and the protocol has never sent one. */
-function closeSkillReading(
+/** True where the key was one of the announcement's two halves, and the reading took it. */
+function addSkillKey(
     reading: AttackReading,
-    skillName: string | null,
-    skillId: number | null,
-): void {
+    key: string,
+    value: string,
+    parsed: ProtocolMessage,
+): boolean {
+    const named = readSkillName(key, value, parsed);
+    if (named !== null) {
+        reading.skillName = named;
+        reading.skillKeys += 1;
+        return true;
+    }
+    assert(key !== SKILL_NAME_KEY, "a name is read once, above");
+    if (key !== SKILL_ID_KEY) return false;
+    reading.skillId = getIntegerFromText(value);
+    reading.skillKeys += 1;
+    return true;
+}
+
+/** An id with no name is a skill nothing can put on screen, and the protocol has never sent one. */
+function closeSkillReading(reading: AttackReading): void {
+    assert(reading.skill === null, "a reading's announcement is closed once");
     assert(reading.skillKeys >= 0, "a key is counted once");
-    if (skillName !== null) {
-        reading.skill = { skillName, skillId };
+    if (reading.skillName !== null) {
+        reading.skill = { skillName: reading.skillName, skillId: reading.skillId };
         return;
     }
     if (reading.skillKeys === 0) return;
@@ -346,30 +392,25 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
         procs: [],
         healthChanges: [],
         namedDamage: [],
+        outcomes: [],
         declared: [],
         skill: null,
+        skillName: null,
+        skillId: null,
         skillKeys: 0,
         unreadKeys: [],
     };
-    let skillName: string | null = null;
-    let skillId: number | null = null;
     for (const parameter of parameters) {
         if (parameter.value === null) {
             addValuelessKey(reading, parameter.key);
             continue;
         }
-        const named = readSkillName(parameter.key, parameter.value, parsed);
-        if (named !== null) {
-            skillName = named;
-            reading.skillKeys += 1;
+        if (addSkillKey(reading, parameter.key, parameter.value, parsed)) continue;
+        const outcome = readFightOutcome(parameter.key, parameter.value);
+        if (outcome !== null) {
+            reading.outcomes.push(outcome);
             continue;
         }
-        if (parameter.key === SKILL_ID_KEY) {
-            skillId = getIntegerFromText(parameter.value);
-            reading.skillKeys += 1;
-            continue;
-        }
-        assert(parameter.key !== SKILL_ID_KEY, "an id is read once, above");
         if (DECLARATION_KEYS.includes(parameter.key)) {
             const amount = getIntegerFromText(parameter.value);
             reading.declared.push({ effect: parameter.key, amount, text: parameter.value });
@@ -392,11 +433,11 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
         }
         addAttackFigure(reading, parameter.key, amount);
     }
-    closeSkillReading(reading, skillName, skillId);
+    closeSkillReading(reading);
     const read = reading.raw.length + reading.applied.length + reading.prevented.length +
         reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
-        reading.namedDamage.length + reading.declared.length + reading.skillKeys +
-        reading.unreadKeys.length;
+        reading.namedDamage.length + reading.outcomes.length + reading.declared.length +
+        reading.skillKeys + reading.unreadKeys.length;
     assert(read === parameters.length, "every parameter is read or named unread, and none twice");
     assert(reading.raw.length <= parameters.length, "a reading holds no more than it was handed");
     return reading;
@@ -561,6 +602,7 @@ function decodeOneMessage(
     if (reading.skill !== null) {
         events.push(composeSkillUsedEvent(parsed, reading.skill, isBlow ? [] : reading.declared));
     }
+    for (const outcome of reading.outcomes) events.push(outcome);
     if (!declaredElsewhere && reading.declared.length > 0) {
         events.push(composeDeclarationEvent(parsed, reading.declared));
     }

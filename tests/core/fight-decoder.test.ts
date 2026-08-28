@@ -276,68 +276,127 @@ Deno.test("a key read only while it states nothing goes unread once it states so
     assertEquals(unread.unreadKeys, ["+legbon_holytouch"], "it is reported, loudly");
 });
 
-Deno.test("every message in every recording decodes, and the pairs hold", () => {
-    let attacks = 0;
-    let moved = 0;
-    let announced = 0;
-    let byName = 0;
-    let declared = 0;
-    let resolved = 0;
-    let glued = 0;
-    let unread = 0;
+/** `2026-08-04-tempest-lowca-vs-odyncze.json`: how that fight ended, on the two keys it takes. */
+const WON = "0;0;winner=Gracz 1";
+const LOST = "0;0;loser=Odyniec, Odyniec, Locha";
+
+Deno.test("a fight ends on two keys, each naming its own side", () => {
+    const won = decodeFightMessages([WON], null);
+    assert(won[0]?.kind === "fight-outcome", "the outcome is an event");
+    assertEquals(won[0].result, "won", "of the side the key names");
+    assertEquals(won[0].combatantNames, ["Gracz 1"], "by name, because the message states no id");
+
+    const lost = decodeFightMessages([LOST], null);
+    assert(lost[0]?.kind === "fight-outcome", "the other key is the other side");
+    assertEquals(lost[0].result, "lost", "which lost");
+    assertEquals(lost[0].combatantNames, ["Odyniec", "Odyniec", "Locha"], "each name on its own");
+});
+
+Deno.test("a fight nobody won is stated on the winners' key alone", () => {
+    // No recording carries either shape: the register reads them off the client's own branch.
+    const drawn = decodeFightMessages(["0;0;winner=?"], null);
+    assert(drawn[0]?.kind === "fight-outcome", "the mark is read");
+    assertEquals(drawn[0].result, "drawn", "as a fight nobody won");
+    assertEquals(drawn[0].combatantNames, [], "naming nobody, which is the whole of what it says");
+
+    const refused = decodeFightMessages(["0;0;loser=?"], null);
+    assert(refused[0]?.kind === "unknown-message", "the same mark on the other key is not read");
+    assertEquals(refused.filter((one) => one.kind === "fight-outcome").length, 0, "no side of `?`");
+});
+
+interface CorpusTally {
+    attacks: number;
+    moved: number;
+    announced: number;
+    byName: number;
+    resolved: number;
+    declared: number;
+    outcomes: number;
+    glued: number;
+    unread: number;
+}
+
+/** What must hold of one event, whatever it is, asserted where the event is counted. */
+function countEvent(tally: CorpusTally, event: BattleEvent, path: string): void {
+    if (event.kind === "unknown-message") {
+        tally.unread += 1;
+        return;
+    }
+    if (event.kind === "health-change") {
+        tally.moved += 1;
+        assert(event.source.length > 0, `${path}: a movement with no key`);
+        assert(event.combatantId !== null, `${path}: health moved for nobody`);
+        return;
+    }
+    if (event.kind === "damage-to-named-combatant") {
+        tally.byName += 1;
+        assert(event.targetName.length > 0, `${path}: a figure against no name`);
+        if (event.targetId !== null) tally.resolved += 1;
+        return;
+    }
+    if (event.kind === "fight-outcome") {
+        tally.outcomes += 1;
+        assert(event.combatantNames.every((one) => one.length > 0), `${path}: an unnamed member`);
+        if (event.result !== "drawn") {
+            assert(event.combatantNames.length > 0, `${path}: a side with no member`);
+        }
+        return;
+    }
+    if (event.kind === "declaration") {
+        tally.declared += 1;
+        assert(event.declared.length > 0, `${path}: a declaration stating nothing`);
+        return;
+    }
+    if (event.kind === "skill-used") {
+        tally.announced += 1;
+        assert(event.skillName.length > 0, `${path}: an announcement naming nothing`);
+        return;
+    }
+    tally.attacks += 1;
+    if (event.announced !== null) {
+        tally.glued += 1;
+        assertEquals(event.announced.actorId, event.actorId, `${path}: another's skill`);
+    }
+    assertEquals(event.raw.length > 0, event.applied.length > 0, `${path}: raw alone`);
+    if (event.procs.length > 0) assert(event.raw.length > 0, `${path}: a proc rode nothing`);
+}
+
+function getCorpusTally(): CorpusTally {
+    const tally: CorpusTally = {
+        attacks: 0,
+        moved: 0,
+        announced: 0,
+        byName: 0,
+        resolved: 0,
+        declared: 0,
+        outcomes: 0,
+        glued: 0,
+        unread: 0,
+    };
     for (const path of getRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         for (const payload of getRecordedPayloads(path)) {
             const events = decodeFightMessages(payload, roster);
             assert(events.length >= payload.length, `${path}: a message decoded to nothing`);
-            for (const event of events) {
-                if (event.kind === "unknown-message") {
-                    unread += 1;
-                    continue;
-                }
-                if (event.kind === "health-change") {
-                    moved += 1;
-                    assert(event.source.length > 0, `${path}: a movement with no key`);
-                    assert(event.combatantId !== null, `${path}: health moved for nobody`);
-                    continue;
-                }
-                if (event.kind === "damage-to-named-combatant") {
-                    byName += 1;
-                    assert(event.targetName.length > 0, `${path}: a figure against no name`);
-                    if (event.targetId !== null) resolved += 1;
-                    continue;
-                }
-                if (event.kind === "declaration") {
-                    declared += 1;
-                    assert(event.declared.length > 0, `${path}: a declaration stating nothing`);
-                    continue;
-                }
-                if (event.kind === "skill-used") {
-                    announced += 1;
-                    assert(event.skillName.length > 0, `${path}: an announcement naming nothing`);
-                    continue;
-                }
-                attacks += 1;
-                if (event.announced !== null) {
-                    glued += 1;
-                    assertEquals(
-                        event.announced.actorId,
-                        event.actorId,
-                        `${path}: another's skill`,
-                    );
-                }
-                assertEquals(event.raw.length > 0, event.applied.length > 0, `${path}: raw alone`);
-                if (event.procs.length === 0) continue;
-                assert(event.raw.length > 0, `${path}: a proc rode nothing`);
-            }
+            for (const event of events) countEvent(tally, event, path);
         }
     }
-    assert(attacks > 0, "the recordings carry blows");
-    assert(moved > 0, "and health moving outside them");
-    assert(announced > 0, "and skills announced beside both");
-    assert(glued > 0, "and blows the game itself glued to a skill");
-    assert(byName > 0, "and damage stated against a name");
-    assert(declared > 0, "and messages that state something and report nothing");
-    assert(resolved > byName / 2, "most of which a roster can put on somebody");
-    assert(unread > 0, "and keys still unread, which is what the panel would say about them");
+    return tally;
+}
+
+Deno.test("every message in every recording decodes, and the pairs hold", () => {
+    const tally = getCorpusTally();
+    assert(tally.attacks > 0, "the recordings carry blows");
+    assert(tally.moved > 0, "and health moving outside them");
+    assert(tally.announced > 0, "and skills announced beside both");
+    assert(tally.glued > 0, "and blows the game itself glued to a skill");
+    assert(tally.byName > 0, "and damage stated against a name");
+    assert(tally.declared > 0, "and messages that state something and report nothing");
+    assert(tally.resolved > tally.byName / 2, "most of which a roster can put on somebody");
+    assert(tally.unread > 0, "and keys still unread, which the panel would say about them");
+    assertEquals(
+        tally.outcomes,
+        getRecordingPaths().length * 2,
+        "each fight ends once, twice over",
+    );
 });

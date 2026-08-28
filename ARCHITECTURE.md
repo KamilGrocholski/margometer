@@ -14,11 +14,11 @@ Three layers of claim live in this file and they are kept apart on purpose:
 **This is a rewrite in progress.** At this commit the repository holds documents, evidence,
 generated registers and the lower half of `core/`: the error base, the message grammar, the roster,
 the data contract, five decoder steps — the damage family, the keys that move health outside a blow,
-the announcements the client glues to the message after them, damage stated against a name, and the
-declarations no total counts — and the health arithmetic. Nothing reads the game yet, nothing is
-aggregated and nothing is drawn. The v1 implementation remains readable in this repository's history
-on `develop` (`git show develop:src/core/fight-decoder.ts`), and is not the thing being described
-here.
+the announcements the client glues to the message after them, damage stated against a name, the
+declarations no total counts, and how the fight ended — and the health arithmetic. Nothing reads the
+game yet, nothing is aggregated and nothing is drawn. The v1 implementation remains readable in this
+repository's history on `develop` (`git show develop:src/core/fight-decoder.ts`), and is not the
+thing being described here.
 
 ```
 AGENTS.md          Rules, authority order, guard register.
@@ -255,10 +255,10 @@ Where the tree does not yet meet what this file states. Each is migration work, 
 commit that opens or closes one.
 
 1. **`core/` is half written.** The error base, the message grammar, the roster, the data contract,
-   five decoder steps and the health arithmetic exist. Four keys in `captures/` are still unread and
-   say so: `healall_per`, `legbon_lastheal`, `winner` and `loser` — a share stated about a whole
-   side, healing stated against a name, and the fight's own outcome. The statistics, everything
-   under `game/` and `ui/`, the entry point and `tools/` are not written at all.
+   six decoder steps and the health arithmetic exist. Two keys in `captures/` are still unread and
+   say so: `healall_per`, a share stated about a whole side, and `legbon_lastheal`, healing stated
+   against a name. The statistics, everything under `game/` and `ui/`, the entry point and `tools/`
+   are not written at all.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
