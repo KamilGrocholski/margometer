@@ -63,6 +63,7 @@ src/
     panel-screen.ts      Which screen the panel is on, and the strip that says so.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
 tools/             Never ships. Each arrives with the question it answers.
+  build-preview.ts     A page that runs the add-on against the recordings, so it can be seen.
   build-userscript.ts  The file a reader installs, and the two checks over the built text.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
@@ -94,6 +95,7 @@ tests/
     protocol-message.test.ts  The grammar, over every message the recordings carry.
     unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
   tools/
+    build-preview.test.ts     The page, read back: the order of its scripts, and its escaping.
     build-userscript.test.ts  The built file, read back: the banner, and no way out.
   ui/
     panel-element.test.ts     What the panel puts on a page, read back out of it.
@@ -299,9 +301,9 @@ commit that opens or closes one.
    the kind of damage it carried — a finished fight goes on a shelf the reader can look back at, the
    bar and every row on that shelf say where the fight was fought, the panel carries the stylesheet
    `DESIGN.md` specifies and the strip that always states the screen's own total, and
-   `deno task build` writes the file they install. What is not written: the tooltip, the bar on a
-   ranking row, every tool but the build, and the release plumbing — `README.md`, `CHANGELOG.md` and
-   the workflows.
+   `deno task build` writes the file they install, and `deno task preview` writes a page that runs
+   it against the recordings. What is not written: the tooltip, the bar on a ranking row, the rest
+   of the tools, and the release plumbing — `README.md`, `CHANGELOG.md` and the workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
