@@ -124,7 +124,6 @@ export const SPACE = {
     regionDown: "5px",
     regionAcross: "7px",
     wide: "8px",
-    large: "12px",
     rowHeight: "18px",
     heightShareMaximum: "66vh",
 } as const;
@@ -398,7 +397,6 @@ function composeVariables(): string {
         composeVariable("region-down", SPACE.regionDown),
         composeVariable("region-across", SPACE.regionAcross),
         composeVariable("wide", SPACE.wide),
-        composeVariable("large", SPACE.large),
         composeVariable("row-height", SPACE.rowHeight),
         composeVariable("radius", SHAPE.radius),
         composeVariable("radius-small", SHAPE.radiusSmall),
@@ -522,22 +520,31 @@ function composeRegionRules(): string {
         `white-space:nowrap;}`;
 }
 
+/** What insets a region under its rows, less the margin its last row carries. **ADR 0014.** */
+function composeInsetUnderRows(inset: string): string {
+    assert(inset.startsWith(VARIABLE_PREFIX), "a region's own inset is spent by name");
+    const written = `calc(var(${inset}) - var(${VARIABLE_PREFIX}half))`;
+    assert(written.includes("half"), "and the row's own margin is what comes off it");
+    return written;
+}
+
 /**
  * The list and the two regions standing under it.
  *
  * The list's height is arithmetic rather than a number typed in — the rows it promises times what
- * a row costs — so changing the type size cannot quietly break the promise. The count arrives as
- * a custom property the draw writes.
+ * a row costs and no term besides — so changing the type size cannot quietly break the promise.
+ * The count arrives as a custom property the draw writes. **ADR 0014.**
  */
 function composeListRules(): string {
-    assert(SPACE.large.endsWith("px"), "a list costs its rows and a step besides, in pixels");
+    assert(SPACE.regionDown.endsWith("px"), "a list is inset by a length, in pixels");
     assert(CLASS.list.length > 0, "and the one region that scrolls is named");
     const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
+    const belowRows = composeInsetUnderRows(VARIABLE_PREFIX + "region-down");
     const rowCost = `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half))`;
     return `.${CLASS.list}{padding:${region};` +
-        `padding-bottom:var(${VARIABLE_PREFIX}region-across);` +
-        `height:calc(var(${VARIABLE_PREFIX}rows,${ROWS_BY_DEFAULT}) * ${rowCost} + ` +
-        `var(${VARIABLE_PREFIX}large));overflow-y:auto;overflow-x:hidden;` +
+        `padding-bottom:${belowRows};` +
+        `height:calc(var(${VARIABLE_PREFIX}rows,${ROWS_BY_DEFAULT}) * ${rowCost});` +
+        `overflow-y:auto;overflow-x:hidden;` +
         // Reserved whether or not a scrollbar is showing: it appears and disappears between two
         // payloads, and rows that jump sideways while somebody reads them are worse than a gutter.
         `scrollbar-gutter:stable;overscroll-behavior:contain;scrollbar-width:thin;` +
@@ -549,6 +556,8 @@ function composeListRules(): string {
         `top:calc(0px - var(${VARIABLE_PREFIX}region-down));z-index:1;` +
         `background:var(${VARIABLE_PREFIX}surface);display:flex;justify-content:space-between;` +
         `color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;font-size:10px;` +
+        // Deliberately unequal, against ADR 0014's rule for every other region: the air under a
+        // heading belongs to the rows it names.
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}half) ` +
         `var(${VARIABLE_PREFIX}half);}` +
         // The one list with nothing above the sentence, so the sentence is what the box is for.
@@ -563,7 +572,6 @@ function composeListRules(): string {
         // the list's own, so the track below is a bar the same width as every row's.
         `.${CLASS.sides}{padding:var(${VARIABLE_PREFIX}region-down) ` +
         `var(${VARIABLE_PREFIX}region-across);` +
-        `padding-bottom:var(${VARIABLE_PREFIX}region-across);` +
         `border-top:1px solid var(${VARIABLE_PREFIX}border);overflow:hidden;` +
         `scrollbar-gutter:stable;scrollbar-width:thin;}` +
         `.${CLASS.sidesLine}{display:flex;justify-content:space-between;align-items:baseline;` +
@@ -651,7 +659,7 @@ function composeRowRules(): string {
         // bar outside the list is drawn the same length as a bar inside it.
         `.${CLASS.pinned}{margin:var(${VARIABLE_PREFIX}small) ` +
         `var(${VARIABLE_PREFIX}region-across) 0;padding:var(${VARIABLE_PREFIX}small) 0 ` +
-        `var(${VARIABLE_PREFIX}region-across);` +
+        `${composeInsetUnderRows(VARIABLE_PREFIX + "small")};` +
         `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;` +
         `scrollbar-gutter:stable;scrollbar-width:thin;}` +
         `.${CLASS.pinned} .${CLASS.bar}{opacity:0.4;mask-image:repeating-linear-gradient(` +

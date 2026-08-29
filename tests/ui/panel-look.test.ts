@@ -16,6 +16,7 @@ import {
     getInkForColour,
     PALETTE_COLOURS,
     SIGNAL,
+    SPACE,
     SURFACE,
     TEXT,
 } from "@/src/ui/panel-look.ts";
@@ -25,6 +26,10 @@ const AA_TEXT_RATIO = 4.5;
 const AA_MARK_RATIO = 3;
 /** Every profession the recordings state, measured over `captures/` on 2026-08-29. */
 const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];
+/** What the sheet holds at its widest, measured over `composeStyleSheet()` on 2026-08-29. */
+const RULES_IN_A_SHEET = 200;
+const LONGEST_RULE = 600;
+const LONGEST_DECLARATION = 200;
 
 Deno.test("a bar's own spelling is read back as readily as a token's", () => {
     assertEquals(getContrastRatio("rgb(0 0 0)", "#ffffff"), 21, "the widest, written either way");
@@ -147,4 +152,190 @@ Deno.test("a folded panel is drawn by the one region the fold hides", () => {
     );
     assert(!sheet.includes(`;}.${CLASS.folded}{`), "and never by the bare class, which would tie");
     assert(sheet.includes("display:none"), "what a folded region does is stop being drawn");
+});
+
+/**
+ * The sheet is read rather than matched, so a length typed straight into a rule is caught the same
+ * way a token spent wrongly is. Nothing here lays anything out; what it holds is the arithmetic
+ * that decides a layout, which is the part a browser would only confirm.
+ */
+function getRuleBody(sheet: string, selector: string): string {
+    assert(selector.startsWith("."), "a rule is looked up by the class it selects");
+    const opener = `${selector}{`;
+    // The selector has to stand on its own: `.list{` sits inside `.panel>.list{` too, and that
+    // rule states a `flex` and nothing this guard adds up.
+    let at = sheet.indexOf(opener);
+    let tried = 0;
+    while (at > 0) {
+        assert(tried < RULES_IN_A_SHEET, "a lookup stays inside the sheet's stated bound");
+        tried += 1;
+        if (sheet[at - 1] === "}") break;
+        at = sheet.indexOf(opener, at + 1);
+    }
+    assert(at !== -1, `${selector} is a rule of its own the sheet does not carry`);
+    const from = at + opener.length;
+    const to = sheet.indexOf("}", from);
+    assert(to !== -1, `${selector} opens a rule the sheet never closes`);
+    return sheet.slice(from, to);
+}
+
+/** The last one written wins, which is what a browser does with the same rule. */
+function getDeclaration(body: string, property: string): string | null {
+    assert(property.length > 0, "a declaration is looked up by name");
+    assert(body.length <= LONGEST_RULE, "a rule stays inside its stated bound");
+    let found: string | null = null;
+    for (const stated of body.split(";")) {
+        const at = stated.indexOf(":");
+        if (at === -1) continue;
+        if (stated.slice(0, at).trim() !== property) continue;
+        found = stated.slice(at + 1).trim();
+    }
+    return found;
+}
+
+/** A token or a length, which is the whole of what a term can be. */
+function getTermPixels(stated: string): number {
+    assert(stated.length > 0, "a term says something");
+    let written = stated;
+    if (stated.startsWith("var(")) {
+        const name = stated.slice("var(--MargoMeter-".length, stated.length - 1);
+        const held = Object.entries(SPACE).find(([token]) => getTokenSpelling(token) === name);
+        assert(held !== undefined, `${stated} spends a token SPACE does not hold`);
+        written = held[1];
+    }
+    assert(written.endsWith("px"), `${stated} is a length this panel does not measure in`);
+    const value = Number(written.slice(0, -"px".length));
+    assert(Number.isFinite(value), `${stated} is not a number`);
+    return value;
+}
+
+/** A term, or one subtraction of two — which is every arithmetic an inset here spends. */
+function getPixels(stated: string): number {
+    assert(stated.length > 0, "a length says something");
+    if (!stated.startsWith("calc(")) return getTermPixels(stated);
+    const inside = stated.slice("calc(".length, stated.length - 1);
+    const parts = inside.split(" - ");
+    assertEquals(parts.length, 2, `${stated} is not the one subtraction this reader knows`);
+    return getTermPixels(parts[0] ?? "") - getTermPixels(parts[1] ?? "");
+}
+
+/** `regionDown` is spelled `region-down` in a rule, and the guard must cross that spelling once. */
+function getTokenSpelling(token: string): string {
+    assert(token.length > 0, "a token is named before it is spelled");
+    assert(token.length <= LONGEST_DECLARATION, "a token stays inside its stated bound");
+    let spelled = "";
+    for (const character of token) {
+        const lower = character.toLowerCase();
+        spelled += lower === character ? character : `-${lower}`;
+    }
+    return spelled;
+}
+
+/** Split on the spaces a shorthand puts between its parts, not on the ones inside a `calc`. */
+function getShorthandParts(stated: string): string[] {
+    assert(stated.length > 0, "a shorthand states something");
+    assert(stated.length <= LONGEST_DECLARATION, "a shorthand stays inside its stated bound");
+    const parts: string[] = [];
+    let held = "";
+    let depth = 0;
+    for (const character of stated) {
+        if (character === "(") depth += 1;
+        if (character === ")") depth -= 1;
+        if (character === " ") {
+            if (depth === 0) {
+                if (held !== "") parts.push(held);
+                held = "";
+                continue;
+            }
+        }
+        held += character;
+    }
+    if (held !== "") parts.push(held);
+    assert(parts.length > 0, "and a shorthand that states something has a first part");
+    return parts;
+}
+
+/** Top, then bottom, out of whichever spellings the rule uses, the longhand winning. */
+function getInsetsDown(body: string, selector: string): number[] {
+    const shorthand = getDeclaration(body, "padding");
+    assert(shorthand !== null, `${selector} states no padding`);
+    const parts = getShorthandParts(shorthand);
+    const above = parts[0] ?? "";
+    // One part is every side, two are down and across, and three or four state the bottom third.
+    const below = parts.length >= 3 ? parts[2] ?? "" : above;
+    const longhand = getDeclaration(body, "padding-bottom");
+    return [getPixels(above), getPixels(longhand === null ? below : longhand)];
+}
+
+/** The operators a `calc` spends outside its own groups, which is where a stray term sits. */
+function getOperatorsAtDepth(stated: string): string[] {
+    assert(stated.startsWith("calc("), "a height is arithmetic before it is read as any");
+    assert(stated.length <= LONGEST_DECLARATION, "a height stays inside its stated bound");
+    const found: string[] = [];
+    let depth = 0;
+    for (const character of stated.slice("calc(".length, stated.length - 1)) {
+        if (character === "(") depth += 1;
+        if (character === ")") depth -= 1;
+        if (depth > 0) continue;
+        if (character === "*") found.push(character);
+        if (character === "+") found.push(character);
+        if (character === "-") found.push(character);
+    }
+    assert(depth === 0, "a height closes every group it opens");
+    return found;
+}
+
+Deno.test("what stands over a region's first bar is what stands under its last", () => {
+    // The bug this catches was photographed rather than reasoned, twice over. The list asked for
+    // its two paddings a second time inside a `height` that `content-box` had already put them
+    // outside of, and both regions holding rows asked for `regionAcross` underneath while asking
+    // for a shorter step above — so the ranking stood 5px under its top edge and 21px over its
+    // bottom one, measured in Chrome 152 on 2026-08-29. Every guard stayed green: none of them
+    // lays anything out, and none of them adds up what a rule spends either.
+    const sheet = composeStyleSheet();
+    const margin = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "margin-bottom");
+    assert(margin !== null, "a row carries its own margin, which the last row carries too");
+    const carried = getPixels(margin);
+    assert(carried > 0, "and that margin is a length a reader can see");
+    for (const region of [CLASS.list, CLASS.pinned]) {
+        const selector = `.${region}`;
+        const [above, below] = getInsetsDown(getRuleBody(sheet, selector), selector);
+        assertEquals(
+            above,
+            (below ?? 0) + carried,
+            `${selector}: ${above}px over the first bar against ${(below ?? 0) + carried}px ` +
+                `under the last`,
+        );
+    }
+});
+
+Deno.test("a list is as tall as the rows it promises, and carries no term besides", () => {
+    const sheet = composeStyleSheet();
+    const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.list}`), "height");
+    assert(stated !== null, "the list states a height rather than taking one");
+    // `:host` resets `box-sizing` to `content-box` and this rule does not set it, so a term added
+    // for the padding is reserved twice over and lands as dead space under the last bar. What the
+    // guard reads is the operators the height spends at its own depth — a row's cost is one
+    // parenthesised group and carries a `+` of its own, which is not the term this is about.
+    assertEquals(
+        getOperatorsAtDepth(stated),
+        ["*"],
+        `the list reserves something besides the rows it promises: ${stated}`,
+    );
+    assert(stated.includes("row-height"), "and what it reserves is what a row costs");
+});
+
+Deno.test("the reader adds up a rule rather than matching one", () => {
+    // A reader is proved by a sample it must flag and one it must not.
+    assertEquals(getPixels("7px"), 7, "a length reads as itself");
+    assertEquals(getPixels("var(--MargoMeter-region-down)"), 5, "a token reads as its value");
+    assertEquals(
+        getPixels("calc(var(--MargoMeter-region-down) - var(--MargoMeter-half))"),
+        3,
+        "and one subtraction reads as the difference",
+    );
+    const body = getRuleBody("}.a{padding:1px 2px;padding-bottom:3px;}", ".a");
+    assertEquals(getDeclaration(body, "padding-bottom"), "3px", "the longhand is found");
+    assertEquals(getDeclaration(body, "margin-bottom"), null, "and what is absent is not invented");
+    assertEquals(getTokenSpelling("regionDown"), "region-down", "a token crosses spellings once");
 });

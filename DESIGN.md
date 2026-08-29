@@ -123,7 +123,6 @@ legibility.
 | `spaceSmall`     | the base step                                                |
 | `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region |
 | `spaceWide`      | `8px`, which is also the inset the panel sits at             |
-| `spaceLarge`     | `12px`, what a list costs beyond the rows it promises        |
 | `rowHeight`      | `18px`                                                       |
 | `maxHeightShare` | `66vh`                                                       |
 | `tipWidth`       | fixed, so a tooltip never reflows against its own content    |

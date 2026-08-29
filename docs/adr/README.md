@@ -75,3 +75,5 @@ edited to agree with the new rule.
   not into the tree. **Accepted**
 - [0013](0013-charging-a-half-named-figure-to-a-side.md) — A figure the protocol half-named is
   charged to a side by the end it did name: damage crosses, healing does not. **Accepted**
+- [0014](0014-a-region-holding-rows-is-inset-equally.md) — A region holding rows is inset equally,
+  and its height carries only rows. **Accepted**
