@@ -57,6 +57,7 @@ import {
     getWordsForStorage,
     PANEL_WORDS,
     type PanelRegion,
+    WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
 import {
     composeTipLeft,
@@ -68,9 +69,13 @@ import {
 import {
     composeTipHandle,
     composeTipRegister,
+    type TipCompose,
     type TipHandle,
+    type TipLine,
+    type TipReading,
     type TipRegister,
 } from "@/src/ui/panel-tip.ts";
+import { composeCardReading } from "@/src/ui/panel-card.ts";
 
 /** A browser's own document satisfies this, and nothing wider is asked for. */
 export interface PanelDocument {
@@ -80,6 +85,11 @@ export interface PanelDocument {
 /** What a delegated listener is handed. The target is where the pointer landed, or nobody. */
 export interface PanelEvent {
     target: { getAttribute(name: string): string | null } | null;
+    /**
+     * Where the pointer went, on the event that says it left somewhere. Absent on every other,
+     * and null where it left the page.
+     */
+    relatedTarget?: { getAttribute(name: string): string | null } | null | undefined;
     /** Where the pointer is: the detail follows the one, and a drag follows both. */
     clientY: number;
     clientX?: number | undefined;
@@ -171,8 +181,6 @@ const UNFOLD_MARK = "+";
 const BACK_MARK = "‹ ";
 /** The grip, which is what says the bar can be taken hold of before anybody tries. */
 const GRIP_MARK = "⠿ ";
-/** More than colour, because colour never carries meaning by itself. */
-const WARNING_MARK = "⚠ ";
 /** What the panel listens for: a press, not a click, so a drag never counts as one. */
 const PRESS_EVENT = "pointerdown";
 /** One gesture in, one gesture out: the way back works from anywhere on the panel. */
@@ -181,9 +189,11 @@ const BACK_EVENT = "contextmenu";
 const MOVE_EVENT = "pointermove";
 /**
  * What closes it. `pointerleave` does not bubble and a shadow root is not on the composed path of
- * one dispatched to an element, so the one listener would never see it; `pointerout` bubbles.
- * Crossing from one part of a row to another therefore hides and shows inside a single task,
- * before a paint.
+ * one dispatched to an element, so the one listener would never see it; `pointerout` bubbles —
+ * and therefore fires on every crossing **inside** a row, whose bar, rank, name and figure are
+ * four elements. What the pointer went *to* is what tells the two apart: a crossing that lands on
+ * the same row's mark is not a leaving, and reading it is what keeps the card from being thrown
+ * away and rebuilt four times on the way across the row it describes.
  */
 const LEAVE_EVENT = "pointerout";
 /** The button a press has to be to open anything. A press that states none is that button. */
@@ -229,6 +239,12 @@ interface RowTip {
     figure: string;
     /** What the share is a share **of**, or null on a row that carries no share at all. */
     share: string | null;
+    /**
+     * What a row with more to say hands over in place of its name and its figure. Absent on every
+     * row that is not a person in the ranking: a skill, a kind and a fight have no card, and a row
+     * one rung down states a slice of a figure the card would answer for whole.
+     */
+    compose?: TipCompose | undefined;
 }
 
 /** What one row draws, whoever or whatever it is about. */
@@ -272,6 +288,25 @@ function composeBarElements(document: PanelDocument, reading: RowReading): Panel
 }
 
 /**
+ * What a row says on demand where it has no card: its whole name, which the row itself may have
+ * cut, and the two figures beside it said in words the row prints only as a bracket.
+ */
+function composeRowTipReading(reading: RowReading, tip: RowTip): TipReading {
+    assert(reading.name.length > 0, "a row that says nothing else at least names itself");
+    assert(tip.figure.length > 0, "and says what the figure beside the name is a figure of");
+    const lines: TipLine[] = [{
+        kind: "stat",
+        label: tip.figure,
+        stated: composeFigureText(reading.figure),
+        isStrong: false,
+    }];
+    if (tip.share !== null) {
+        lines.push({ kind: "stat", label: tip.share, stated: reading.shareText, isStrong: false });
+    }
+    return { name: reading.name, subtitle: null, groups: [{ lines }] };
+}
+
+/**
  * A press lands on the deepest element under the pointer, so every part of an openable row wears
  * the mark. Null leaves the row closed: the rows inside an opened one have nothing further to open.
  */
@@ -306,11 +341,7 @@ function composeRowElement(
     parts.push(share);
     const marked = [element, ...parts];
     if (opens !== null) setRowMarks(marked, ROW_ATTRIBUTE, opens);
-    tip.register.add(tip.key, {
-        name: reading.name,
-        figure: { caption: tip.figure, value: reading.figure },
-        share: tip.share === null ? null : { caption: tip.share, text: reading.shareText },
-    });
+    tip.register.add(tip.key, tip.compose ?? (() => composeRowTipReading(reading, tip)));
     setRowMarks(marked, TIP_ATTRIBUTE, tip.key);
     assert(name.textContent.length > 0, "a row names somebody, or says it cannot");
     return element;
@@ -646,8 +677,24 @@ function composeRankingElement(
     const figure = getWordsForScreen(metric);
     assert(figure.length > 0, "a row states what its figure is a figure of");
     for (const [at, row] of reading.rows.entries()) {
-        const tip = { register, key: `row:${row.combatantId}`, figure, share: PANEL_WORDS.share };
         const reader = composeCombatantReading(row, at + 1);
+        // The one list whose rows are people, and the one that hands over a card: everything a
+        // combatant has is stated here, so the figure this screen cut away costs a hover.
+        const tip = {
+            register,
+            key: `row:${row.combatantId}`,
+            figure,
+            share: PANEL_WORDS.share,
+            compose: () =>
+                composeCardReading({
+                    name: reader.name,
+                    profession: row.profession,
+                    detail: row.detail,
+                    metric,
+                    warnings: reading.warnings,
+                    opens: true,
+                }),
+        };
         list.append(composeRowElement(document, reader, `${row.combatantId}`, tip));
     }
     return list;
@@ -698,11 +745,11 @@ function composeShelfRow(
     const parts = [row, time, size, where, outcome];
     // The place is the elastic cell, so the tile it loses to an ellipsis is what the detail gives
     // back: a coordinate cut in half reads as a coordinate and is not one.
-    register.add(`shelf:${fight.openedAt}`, {
+    register.add(`shelf:${fight.openedAt}`, () => ({
         name: fight.place ?? PANEL_WORDS.unknown,
-        figure: null,
-        share: null,
-    });
+        subtitle: null,
+        groups: [],
+    }));
     setRowMarks(parts, TIP_ATTRIBUTE, `shelf:${fight.openedAt}`);
     // The one going on now is asked for by a word rather than by a moment: a moment would have
     // to be one no kept fight could carry, and there is no such moment.
@@ -1297,7 +1344,10 @@ function setPanelRootListeners(
         const target = event.target;
         handleHover(target === null ? null : target.getAttribute(TIP_ATTRIBUTE), event.clientY);
     });
-    root.addEventListener(LEAVE_EVENT, (event) => handleHover(null, event.clientY));
+    root.addEventListener(LEAVE_EVENT, (event) => {
+        const went = event.relatedTarget ?? null;
+        handleHover(went === null ? null : went.getAttribute(TIP_ATTRIBUTE), event.clientY);
+    });
 }
 
 /** The panel on the page, and the way to put a new view into the one that is already there. */

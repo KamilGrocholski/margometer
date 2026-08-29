@@ -36,10 +36,17 @@ export function pointAtElement(
     type: string,
     target: FakeElement | null,
     clientY: number,
+    /** Where the pointer went, on the one event that says it left somewhere. */
+    went: FakeElement | null = null,
 ): void {
     const read = (name: string) => target?.attributes.get(name) ?? null;
+    const readWent = (name: string) => went?.attributes.get(name) ?? null;
     for (const handle of host.rootListeners.get(type) ?? []) {
-        handle({ target: target === null ? null : { getAttribute: read }, clientY });
+        handle({
+            target: target === null ? null : { getAttribute: read },
+            relatedTarget: went === null ? null : { getAttribute: readWent },
+            clientY,
+        });
     }
 }
 

@@ -21,6 +21,9 @@ export interface CountedNoun {
     many: string;
 }
 
+/** More than colour, because colour never carries meaning alone. */
+export const WARNING_MARK = "⚠ ";
+
 export const PANEL_WORDS = {
     title: "MargoMeter",
     // Neither says "bez": the figure was placed, and it is the person that was never named.
@@ -151,6 +154,79 @@ export function getWordsForSide(choice: PanelSideChoice): string {
     const words = SIDE_WORDS[choice];
     assert(words.length > 0, "a choice a strip draws is a choice with a name");
     return words;
+}
+
+/** Spelled both ways round: `Leczenie` alone means either, and here the two stand together. */
+const CARD_METRIC_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: "Zadane",
+    damageTakenApplied: "Otrzymane",
+    healthGiven: "Leczenie dane",
+    healthRestored: "Leczenie otrzymane",
+};
+
+export function getWordsForCardMetric(metric: PanelMetric): string {
+    assert(metric.length > 0, "a figure the card states is asked for by name");
+    const words = CARD_METRIC_WORDS[metric];
+    assert(words.length > 0, "and every one of the four has a word of its own");
+    return words;
+}
+
+export const CARD_WORDS = {
+    raw: "surowe",
+    blows: "Ciosy",
+    blowsWithoutSkill: "bez umiejętności",
+    skillUses: "Użycia umiejętności",
+    prevented: "Zatrzymane",
+    /**
+     * Owed wherever `raw` stands: a reader meeting the two will try the subtraction, and armour
+     * and resistance reduce unreported (`src/core/battle-event.ts`).
+     */
+    damageNote: "Surowe to obrażenia przed redukcją. Różnicy nie zatrzymała obrona — " +
+        "pancerza ani odporności gra nie podaje.",
+    /**
+     * v1 said `PPM — powrót` here as well, where the gesture reaches the last rung and does
+     * nothing (`src/userscript-entry.ts`).
+     */
+    gesture: "LPM — rozbicie",
+} as const;
+
+/**
+ * Profession → the player's word for it. Ours rather than the client's own `eq_prof` headings,
+ * for the reason **ADR 0011** gives, and the six letters are the six the recordings state
+ * (`src/ui/panel-look.ts` colours the same six).
+ */
+export const PROFESSION_WORDS: Record<string, string> = {
+    w: "Wojownik",
+    p: "Paladyn",
+    t: "Tropiciel",
+    h: "Łowca",
+    m: "Mag",
+    b: "Tancerz ostrzy",
+};
+
+/** A letter the table does not hold reaches the reader as the game wrote it. **ADR 0011.** */
+export function getWordsForProfession(profession: string): string {
+    assert(profession.length > 0, "a profession that was stated says something");
+    const words = PROFESSION_WORDS[profession];
+    if (words === undefined) return profession;
+    assert(words.length > 0, "a letter the table holds is worded");
+    return words;
+}
+
+/**
+ * Who somebody is, under their name: what they are and how far along. Null where the game said
+ * neither, because a line drawn for nothing is a question about what is missing.
+ */
+export function composeCardSubtitleText(
+    profession: string | null,
+    level: number | null,
+): string | null {
+    assert(level === null || Number.isSafeInteger(level), "a level stated is a whole number");
+    assert(level === null || level > 0, "and somebody who has one is at least on the first");
+    const stated = profession === null ? null : getWordsForProfession(profession);
+    if (level === null) return stated;
+    const counted = `(${composeIntegerText(level)})`;
+    return stated === null ? counted : `${stated} ${counted}`;
 }
 
 /**

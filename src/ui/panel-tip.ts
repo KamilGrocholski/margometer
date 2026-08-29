@@ -1,31 +1,48 @@
 /**
  * The detail window, and the register the drawn rows fill for it.
  *
- * A row is 260 pixels wide and cuts its name with an ellipsis, so the one thing every row can lose
- * is who it is about. That is what this is for, and the share it prints beside it is the number no
- * row states — the bar draws it and nothing spells it.
+ * A ranking row is 260 pixels wide and states one figure, so what it cannot say is who somebody
+ * is and what else they did. That is what this is for.
  *
- * It outlives every redraw: it is appended to the root once and no region's redraw replaces it,
- * the way the one listener is put there. Nothing here measures anything.
+ * It outlives every redraw: appended to the root once, and no region's redraw replaces it, the way
+ * the one listener is put there. **Nothing here measures anything** — a card is counted in lines
+ * and the sheet multiplies.
  */
 
 import { assert } from "@std/assert";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { CLASS } from "@/src/ui/panel-look.ts";
-import { composeFigureText } from "@/src/ui/panel-words.ts";
 
-/** One row's detail. A line with nothing to say is absent rather than blank. */
+/**
+ * One line of a card. A shape rather than a sentence, because the panel draws the three of them
+ * differently — a figure lines up in a column, a note runs to the width of the window — and a
+ * renderer handed one string and a newline would hold that decision where nothing can check it.
+ */
+export type TipLine =
+    | { kind: "stat"; label: string; stated: string; isStrong: boolean }
+    | { kind: "sub"; label: string; stated: string }
+    | { kind: "note"; text: string; isWarning: boolean };
+
+/** A run of lines, cut off the run before it by the rule the sheet draws over it. */
+export interface TipGroup {
+    lines: TipLine[];
+}
+
+/** One row's detail. A row with nothing further to say hands over a card of one line. */
 export interface TipReading {
     /** The full name, which the row itself may have cut with an ellipsis. */
     name: string;
-    /** Null on a row whose subject is not a figure. The caption says what the figure is of. */
-    figure: { caption: string; value: number } | null;
-    /**
-     * Null where the row carries no share. The caption names what it is a share **of**, and the
-     * share arrives as text because a screen apportions every one of its shares together.
-     */
-    share: { caption: string; text: string } | null;
+    /** Who they are rather than what they did, under the name. Null where nobody could say. */
+    subtitle: string | null;
+    groups: TipGroup[];
 }
+
+/**
+ * What a row leaves behind for the pointer, and it is a **way to compose the card** rather than
+ * the card: a fight redraws every few seconds and twenty rows are drawn each time, so composing
+ * every card would be paying for nineteen nobody opens.
+ */
+export type TipCompose = () => TipReading;
 
 /**
  * Filled by every draw and read by the pointer. The key is stated by the row rather than counted
@@ -33,9 +50,15 @@ export interface TipReading {
  * an open tip go on describing the row that used to stand there.
  */
 export interface TipRegister {
-    add(key: string, reading: TipReading): void;
-    get(key: string): TipReading | null;
+    add(key: string, compose: TipCompose): void;
+    get(key: string): TipCompose | null;
     reset(): void;
+}
+
+/** How tall a card stands, in the two things the sheet's arithmetic multiplies. */
+export interface TipSize {
+    lines: number;
+    groups: number;
 }
 
 /**
@@ -44,21 +67,34 @@ export interface TipRegister {
  * one of the screens this panel has.
  */
 const MAXIMUM_TIPS = 128;
+/**
+ * How many characters of a note stand on one line of the card, and it is a **floor** rather than
+ * a measurement of any one sentence. At 242 pixels of type — the window less its padding — in
+ * Chrome on 2026-08-29, the longest note this panel composes ran 104 characters over three lines
+ * and the shortest 31 over one. Counting low leaves the window standing higher up the screen than
+ * it had to, which is the direction that keeps a card on it.
+ */
+const NOTE_CHARACTERS_PER_LINE = 32;
+/** Past every card this panel composes: four figures, their parts, the counters and the notes. */
+const MAXIMUM_TIP_LINES = 64;
 /** Ours, because `all: initial` resets every property a page can set except a custom one. */
 const TOP_VARIABLE = "--MargoMeter-tip-top";
 const LEFT_VARIABLE = "--MargoMeter-tip-left";
+/** What the sheet multiplies to stand the window at its own height without measuring it. */
+const LINES_VARIABLE = "--MargoMeter-tip-lines";
+const GROUPS_VARIABLE = "--MargoMeter-tip-groups";
 const STYLE_ATTRIBUTE = "style";
 
 export function composeTipRegister(): TipRegister {
-    const held = new Map<string, TipReading>();
+    const held = new Map<string, TipCompose>();
     return {
-        add(key: string, reading: TipReading): void {
+        add(key: string, compose: TipCompose): void {
             assert(key.length > 0, "a row that carries a tip is asked for by name");
             assert(!held.has(key), "and no two rows in one draw answer to the same name");
             assert(held.size < MAXIMUM_TIPS, "a draw stays inside the tips it is bounded to");
-            held.set(key, reading);
+            held.set(key, compose);
         },
-        get(key: string): TipReading | null {
+        get(key: string): TipCompose | null {
             assert(key.length >= 0, "a key looked up is text");
             assert(held.size <= MAXIMUM_TIPS, "a register read stays inside its stated bound");
             return held.get(key) ?? null;
@@ -70,24 +106,83 @@ export function composeTipRegister(): TipRegister {
     };
 }
 
-function composeTipLine(
+/** What one line costs the height. A note wraps, so it costs the lines its text runs to. */
+function getTipLineCost(line: TipLine): number {
+    assert(NOTE_CHARACTERS_PER_LINE > 0, "a line of a note holds some of it");
+    if (line.kind !== "note") return 1;
+    assert(line.text.length > 0, "a note the card carries says something");
+    const wrapped = Math.ceil(line.text.length / NOTE_CHARACTERS_PER_LINE);
+    assert(wrapped >= 1, "and stands on at least the one line it is written on");
+    return wrapped;
+}
+
+/** How tall the card is, counted rather than measured. Null is the window before anybody hovers. */
+export function getTipSize(reading: TipReading | null): TipSize {
+    if (reading === null) return { lines: 1, groups: 0 };
+    assert(reading.groups.length <= MAXIMUM_TIP_LINES, "a card stays inside its stated bound");
+    let lines = reading.subtitle === null ? 1 : 2;
+    for (const group of reading.groups) {
+        for (const line of group.lines) {
+            lines += getTipLineCost(line);
+            assert(lines <= MAXIMUM_TIP_LINES, "and a card counted stays inside it as it grows");
+        }
+    }
+    assert(lines >= 1, "a card is at least the name it names somebody by");
+    return { lines, groups: reading.groups.length };
+}
+
+/** Which of the three a line is drawn as, said in classes the sheet already carries rules for. */
+function composeTipLineClass(line: TipLine): string {
+    assert(line.kind.length > 0, "a line of the card is drawn as something");
+    if (line.kind === "sub") return `${CLASS.tipLine} ${CLASS.tipSub}`;
+    if (line.kind === "stat") {
+        if (line.isStrong) return `${CLASS.tipLine} ${CLASS.tipStrong}`;
+    }
+    assert(
+        CLASS.tipLine.length > 0,
+        "and every one of them is a line before it is one of the three",
+    );
+    return CLASS.tipLine;
+}
+
+function composeTipNoteElement(
     document: PanelDocument,
-    caption: string,
-    stated: string,
+    line: Extract<TipLine, { kind: "note" }>,
 ): PanelElement {
-    assert(caption.length > 0, "a line of the detail says what its figure is");
-    assert(stated.length > 0, "and states it");
-    const line = document.createElement("div");
-    line.className = CLASS.tipLine;
+    assert(line.text.length > 0, "a note the card draws says something");
+    const element = document.createElement("div");
+    element.className = line.isWarning ? `${CLASS.tipNote} ${CLASS.tipWarning}` : CLASS.tipNote;
+    element.textContent = line.text;
+    assert(element.className.startsWith(CLASS.tipNote), "and is a note before it is a warning");
+    return element;
+}
+
+function composeTipLineElement(document: PanelDocument, line: TipLine): PanelElement {
+    assert(line.kind.length > 0, "a line of the card is one of the kinds the card has");
+    if (line.kind === "note") return composeTipNoteElement(document, line);
+    assert(line.label.length > 0, "a line of the detail says what its figure is");
+    assert(line.stated.length > 0, "and states it");
+    const element = document.createElement("div");
+    element.className = composeTipLineClass(line);
     const label = document.createElement("span");
     label.className = CLASS.tipLabel;
-    label.textContent = caption;
+    label.textContent = line.label;
     const value = document.createElement("span");
     value.className = CLASS.tipValue;
-    value.textContent = stated;
-    line.append(label);
-    line.append(value);
-    return line;
+    value.textContent = line.stated;
+    element.append(label);
+    element.append(value);
+    return element;
+}
+
+function composeTipGroupElement(document: PanelDocument, group: TipGroup): PanelElement {
+    assert(group.lines.length > 0, "a run of lines the card draws has a line in it");
+    assert(group.lines.length <= MAXIMUM_TIP_LINES, "and stays inside the card's stated bound");
+    const element = document.createElement("div");
+    element.className = CLASS.tipGroup;
+    for (const line of group.lines) element.append(composeTipLineElement(document, line));
+    assert(element.className === CLASS.tipGroup, "and stands under a rule of its own");
+    return element;
 }
 
 /** Null draws an empty window and hides it, which is what the panel starts with and hides to. */
@@ -100,19 +195,20 @@ export function composeTipElement(
     assert(tip.className.startsWith(CLASS.tip), "the detail is ours by name before it says a word");
     if (reading === null) return tip;
     assert(reading.name.length > 0, "a detail names somebody, or says it cannot");
-    const name = document.createElement("span");
+    // A block rather than a span: `text-overflow` reads nothing on an inline box, so a name too
+    // long for the window would be cut off flat instead of ending in the ellipsis the row uses.
+    const name = document.createElement("div");
     name.className = CLASS.tipName;
     name.textContent = reading.name;
     tip.append(name);
-    if (reading.figure !== null) {
-        assert(reading.figure.value >= 0, "a figure in the detail is never below nothing");
-        const stated = composeFigureText(reading.figure.value);
-        tip.append(composeTipLine(document, reading.figure.caption, stated));
+    if (reading.subtitle !== null) {
+        assert(reading.subtitle.length > 0, "what a card says about somebody says something");
+        const subtitle = document.createElement("div");
+        subtitle.className = CLASS.tipSubtitle;
+        subtitle.textContent = reading.subtitle;
+        tip.append(subtitle);
     }
-    if (reading.share !== null) {
-        assert(reading.share.text.length > 0, "a share in the detail says what it is");
-        tip.append(composeTipLine(document, reading.share.caption, reading.share.text));
-    }
+    for (const group of reading.groups) tip.append(composeTipGroupElement(document, group));
     return tip;
 }
 
@@ -123,16 +219,27 @@ export function setTipHidden(tip: PanelElement, isHidden: boolean): void {
 }
 
 /**
- * Where the tip sits down the screen, as the one property the stylesheet clamps. Whole pixels,
- * because `clientY` is fractional on a scaled display and half a pixel is nothing anybody can see
- * — while a declaration reading `292.33333333333px` is something a reader of the page can.
+ * Where the tip sits, and how tall it stands, as the properties the stylesheet clamps and
+ * multiplies. Whole pixels down the screen, because `clientY` is fractional on a scaled display
+ * and half a pixel is nothing anybody can see — while a declaration reading `292.33333333333px`
+ * is something a reader of the page can.
  */
-export function setTipPlace(tip: PanelElement, clientY: number, left: number | null): void {
+export function setTipPlace(
+    tip: PanelElement,
+    clientY: number,
+    left: number | null,
+    size: TipSize,
+): void {
     assert(Number.isFinite(clientY), "a pointer states where it is");
+    assert(size.lines > 0, "and the card it places stands at least one line tall");
     const top = Math.max(0, Math.round(clientY));
     assert(top >= 0, "and never above the top of the screen");
     const across = left === null ? "" : `;${LEFT_VARIABLE}:${Math.max(0, Math.round(left))}px`;
-    tip.setAttribute(STYLE_ATTRIBUTE, `${TOP_VARIABLE}:${top}px${across}`);
+    tip.setAttribute(
+        STYLE_ATTRIBUTE,
+        `${TOP_VARIABLE}:${top}px;${LINES_VARIABLE}:${size.lines};` +
+            `${GROUPS_VARIABLE}:${size.groups}${across}`,
+    );
 }
 
 /** How the tip takes the place of the one standing, which is how every region of the panel does. */
@@ -150,8 +257,8 @@ export interface TipHandle {
 }
 
 /**
- * The tip on the page, and the whole of what it remembers: which row it is open for and where the
- * pointer left it.
+ * The tip on the page, and the whole of what it remembers: which row it is open for, how tall its
+ * card stands and where the pointer left it.
  *
  * A fight redraws every few seconds. A tip that vanished under the cursor on every payload would
  * be worse than one that says nothing, so a redraw looks its own key up again and follows the
@@ -167,11 +274,13 @@ export function composeTipHandle(
     let standing = composeTipElement(document, null);
     let openKey: string | null = null;
     let openTop = 0;
+    let openSize: TipSize = getTipSize(null);
     const setTo = (reading: TipReading): void => {
         assert(reading.name.length > 0, "what the detail is put to names somebody");
+        openSize = getTipSize(reading);
         standing = redraw(standing, () => composeTipElement(document, reading));
         assert(standing.className.length > 0, "and what now stands there is a region of its own");
-        setTipPlace(standing, openTop, getLeft());
+        setTipPlace(standing, openTop, getLeft(), openSize);
     };
     const hide = (): void => {
         assert(openTop >= 0, "the pointer was somewhere before it left");
@@ -188,28 +297,33 @@ export function composeTipHandle(
                 hide();
                 return;
             }
-            openTop = clientY;
+            const top = Math.max(0, Math.round(clientY));
             if (key === openKey) {
-                setTipPlace(standing, openTop, getLeft());
+                // A pointer reports far more moves than the window has places to stand in, and a
+                // move inside one pixel would rewrite the same declaration.
+                if (top === openTop) return;
+                openTop = top;
+                setTipPlace(standing, openTop, getLeft(), openSize);
                 return;
             }
-            const reading = register.get(key);
-            if (reading === null) {
+            const compose = register.get(key);
+            if (compose === null) {
                 hide();
                 return;
             }
+            openTop = top;
             openKey = key;
-            setTo(reading);
+            setTo(compose());
         },
         refresh(): void {
-            assert(openTop >= 0 || openKey === null, "an open tip was opened somewhere");
+            assert(openTop >= 0, "an open tip was opened somewhere");
             if (openKey === null) return;
-            const reading = register.get(openKey);
-            if (reading === null) {
+            const compose = register.get(openKey);
+            if (compose === null) {
                 hide();
                 return;
             }
-            setTo(reading);
+            setTo(compose());
         },
     };
 }

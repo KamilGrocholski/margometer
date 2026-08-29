@@ -30,6 +30,8 @@ import {
 
 /** A fight holds twenty, and a list draws a row for each. */
 const MAXIMUM_ROWS = 20;
+/** What one combatant's own skills are kept inside: 81 names over `captures/`, 2026-08-29. */
+const MAXIMUM_SKILLS = 256;
 /**
  * The ranking's height, in bars. Ten is the most one side fields and eleven the most a whole
  * fight does, measured over `captures/`, where a group fight is ten of ours against one. A bigger
@@ -62,6 +64,46 @@ export interface PanelRow {
     fill: number;
     /** The share of the whole the screen divides by, apportioned once across every figure on it. */
     shareText: string;
+}
+
+/**
+ * What a ranking row can say on demand: every figure a combatant has, beside the one the screen
+ * is about, and how they came by them.
+ *
+ * **Numbers, and not one word.** A card is composed when a pointer opens it, so a fight redrawing
+ * every few seconds pays for the twenty it draws rather than for twenty cards nobody looks at.
+ *
+ * Raw stands beside applied and is never taken from it: their difference is not what a defence
+ * stopped, and the protocol reports neither armour nor resistance
+ * (`src/core/fight-statistics.ts`).
+ */
+export interface RowDetail {
+    /** What the game said their level is, or null where it said nothing. */
+    level: number | null;
+    damageDealtApplied: number;
+    damageDealtRaw: number;
+    damageTakenApplied: number;
+    damageTakenRaw: number;
+    healthGiven: number;
+    healthRestored: number;
+    damagePrevented: number;
+    blowsStruck: number;
+    blowsWithoutSkill: number;
+    /** What their announcements came to, which is a count of announcements and not of blows. */
+    skillUses: number;
+    /** Their own share of what the protocol named only one end of, on each of the three. */
+    damageDealtToNobody: number;
+    damageTakenFromNobody: number;
+    healthRestoredByNobody: number;
+}
+
+/**
+ * A row of the ranking, which is the one list whose rows are people and the only one that opens a
+ * card. A row inside an opened figure is a `PanelRow` and carries none: what a card would say
+ * there is the fight's, and the row it stands on is a slice.
+ */
+export interface RankingRow extends PanelRow {
+    detail: RowDetail;
 }
 
 /** Which end of a blow the protocol left out, on the row standing for what it could not place. */
@@ -117,7 +159,7 @@ export interface ShelfRow {
 export type PanelOutcome = "won" | "lost" | "drawn";
 
 export interface PanelReading {
-    rows: PanelRow[];
+    rows: RankingRow[];
     /** Null where the game has not said, or said nothing this reader's seat can be read into. */
     outcome: PanelOutcome | null;
     /** The fight as a headcount, the reader's own side first, and who could be placed on none. */
@@ -193,6 +235,47 @@ interface UnsharedRow {
     side: number | null;
     profession: string | null;
     figure: number;
+}
+
+/** What one combatant announced, which is the count the card states and no figure holds. */
+function getSkillUses(figures: CombatantFigures): number {
+    assert(figures.skills.size <= MAXIMUM_SKILLS, "a combatant stays inside the skills bound");
+    let uses = 0;
+    for (const skill of figures.skills.values()) {
+        assert(
+            skill.uses >= 0,
+            "a skill was announced a number of times that is not below nothing",
+        );
+        uses += skill.uses;
+    }
+    assert(uses >= 0, "and what they announced in all is not below nothing either");
+    return uses;
+}
+
+/**
+ * Everything a row can say on demand, off the figures it already holds. A combatant the
+ * statistics never saw is handed an empty set rather than a set of nulls: they did nothing, and
+ * nothing is a reading.
+ */
+function composeRowDetail(figures: CombatantFigures, level: number | null): RowDetail {
+    assert(figures.damageDealtApplied >= 0, "a figure a card states is not below nothing");
+    assert(figures.blowsStruck >= 0, "and neither is a count of the blows behind one");
+    return {
+        level,
+        damageDealtApplied: figures.damageDealtApplied,
+        damageDealtRaw: figures.damageDealtRaw,
+        damageTakenApplied: figures.damageTakenApplied,
+        damageTakenRaw: figures.damageTakenRaw,
+        healthGiven: figures.healthGiven,
+        healthRestored: figures.healthRestored,
+        damagePrevented: figures.damagePrevented,
+        blowsStruck: figures.blowsStruck,
+        blowsWithoutSkill: figures.blowsWithoutSkill,
+        skillUses: getSkillUses(figures),
+        damageDealtToNobody: figures.damageDealtToNobody,
+        damageTakenFromNobody: figures.damageTakenFromNobody,
+        healthRestoredByNobody: figures.healthRestoredByNobody,
+    };
 }
 
 /** By figure, then by id, so a fight redrawn without changing states the same order. */
@@ -458,6 +541,13 @@ export function composePanelReading(
         ...row,
         fill: getFill(row.figure, largest),
         shareText: shares[at] ?? "",
+        // Composed here rather than in the row above, because the row inside an opened figure is
+        // built from the same shape and carries no card: what a card says is the fight's, and a
+        // row one rung down states a slice of it.
+        detail: composeRowDetail(
+            statistics.byCombatantId.get(row.combatantId) ?? composeCombatantFigures(),
+            roster.byId.get(row.combatantId)?.level ?? null,
+        ),
     }));
     assert(rows.length <= MAXIMUM_ROWS, "a list stays inside the fight's stated bound");
     assert(rows.every((one) => one.shareText.length > 0), "and every row states a share");

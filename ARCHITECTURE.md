@@ -62,12 +62,13 @@ src/
     fight-report.ts      The figures as text a reader can paste, with what qualifies them.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
+    panel-card.ts        What a ranking row says on demand, out of the figures it holds.
     panel-drag.ts        Where the panel sits, and how a reader moves it.
     panel-element.ts     The panel drawn into a document it is handed, region by region.
     panel-look.ts        The panel's tokens, the classes its rules select, and the stylesheet.
     panel-reading.ts     One screen's worth of a fight, and one row's worth of a screen.
     panel-screen.ts      Which screen the panel is on, and the strips that say so.
-    panel-tip.ts         The detail a row opens on hover, and the register it is looked up in.
+    panel-tip.ts         The window a row opens on hover, and the register it is looked up in.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
 tools/             Never ships. Each arrives with the question it answers.
   build-preview.ts     A page that runs the add-on against the recordings, so it can be seen.
@@ -111,12 +112,13 @@ tests/
     build-userscript.test.ts  The built file, read back: the banner, and no way out.
     capture-intake.test.ts    What intake refuses, and every admitted recording as a fixed point.
   ui/
+    panel-card.test.ts        Every figure a card states, and the parts it draws under them.
     panel-drag.test.ts        A panel kept on the screen, and put back where it was left.
     panel-element.test.ts     What the panel puts on a page, read back out of it.
     panel-look.test.ts        Contrast by arithmetic, and a sheet that spends tokens only.
     panel-reading.test.ts     A screen of a real fight, through every layer under it.
     panel-screen.test.ts      The screens there are, against what a reading composes for.
-    panel-tip.test.ts         What the detail says, and the row it lets go of.
+    panel-tip.test.ts         What the window draws, how tall it says it is, and what it drops.
     panel-words.test.ts       What the words must never say, and how Polish counts.
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
@@ -128,6 +130,7 @@ tests/
   fake-document.ts         A document small enough to read, for a panel handed one.
   userscript-entry.test.ts  Every layer at once, driven the way a browser drives them.
   source-line.ts           A line of TypeScript with its string literals taken out.
+  style-sheet.ts           The panel's stylesheet read back, for the guards that read it.
   source-paths.ts          Every TypeScript file under the directories that hold one.
 .agents/skills/verify/     How to drive the add-on in a browser and read what it drew.
 .claude/settings.json      Denies the tool calls that would write to the maintainer's list.
@@ -319,7 +322,9 @@ commit that opens or closes one.
    back off what was kept of it, a pin keeps one out of the rotation's reach, and a strip says where
    the shelf itself is kept — the header and every row on that shelf say where the fight was fought,
    a ranking row wears its place, its profession's badge and a bar measured against the biggest
-   figure on screen, hovering a row opens the detail window that says in full what the row had to
+   figure on screen, hovering a ranking row opens the card that states all four of a combatant's
+   figures with the screen's own in bold, the part of each the protocol named one end of, how they
+   fought and what qualifies the lot — and hovering any other row opens the name its own cell had to
    cut, the bar says which build drew it and the host carries the same number for a screenshot to be
    read by, the panel folds to that bar and comes back folded, a press on `{ }` hands the reader the
    fight as a recording in the shape intake reads, a press on the copy control hands them the
@@ -329,10 +334,13 @@ commit that opens or closes one.
    redacts a recording and admits it to `captures/`. the header says how the fight went, the strip
    under the list totals the two sides and what belongs to neither, a doubt is said as a sentence
    under it, and the panel is moved by its bar and comes back where it was left. What is not
-   written: **the third level of the drill**, which is v1's cut by skill, and the detail card that
-   says what a combatant's figures are made of — both wait on figures `core/` does not hold. The
-   rest of the tools and the release plumbing — `README.md`, `CHANGELOG.md` and the workflows — are
-   unwritten.
+   written: **the third level of the drill**, which is v1's cut by skill. The card that says what a
+   combatant's figures are made of is written; what it cannot say is v1's four extras — critical
+   hits, the largest blow, the effects a blow fired and the statistics an attacker destroyed —
+   because `core/` carries each of them on the events it produces — `+crit` among `PROC_KEYS`, the
+   destroyed statistics on their own field, and every blow's own figures — and `fight-statistics.ts`
+   aggregates none of the four. The rest of the tools and the release plumbing — `README.md`,
+   `CHANGELOG.md` and the workflows — are unwritten.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld

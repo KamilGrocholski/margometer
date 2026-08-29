@@ -17,17 +17,20 @@ import {
     composePanelReading,
     type PanelReading,
 } from "@/src/ui/panel-reading.ts";
-import { CLASS, getColourForProfession } from "@/src/ui/panel-look.ts";
+import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
 import {
     composeDirectionTabs,
     composeNounTabs,
     composeSideTabs,
     getScreenFromName,
     getWordsForScreen,
+    SCREEN_ORDER,
 } from "@/src/ui/panel-screen.ts";
 import {
+    composeCardSubtitleText,
     composeFigureText,
     composeUndrawnText,
+    getWordsForCardMetric,
     getWordsForDamageKind,
     getWordsForNothing,
     getWordsForOutcome,
@@ -44,6 +47,7 @@ import {
     pressElement,
 } from "@/tests/fake-document.ts";
 import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fight.ts";
+import { getDeclaration, getRuleBody } from "@/tests/style-sheet.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
 
@@ -918,18 +922,106 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
 });
 
 /** Whatever the detail is saying right now, read back out of the root it stands in. */
-function readTip(host: FakeElement): { className: string; lines: string[] } {
+/** One line of the card as a reader meets it: what it is of, what it says, and how it is drawn. */
+interface TipLineRead {
+    label: string;
+    value: string;
+    isStrong: boolean;
+    isSub: boolean;
+}
+
+function readTip(host: FakeElement): {
+    className: string;
+    name: string[];
+    subtitle: string[];
+    lines: string[];
+    stated: TipLineRead[];
+} {
     const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
     assert(tip !== undefined, "the detail is a region of the panel like any other");
+    const name = getTextsByClass(tip, CLASS.tipName);
     return {
         className: tip.className,
+        name,
+        subtitle: getTextsByClass(tip, CLASS.tipSubtitle),
         lines: [
-            ...getTextsByClass(tip, CLASS.tipName),
+            ...name,
             ...getTextsByClass(tip, CLASS.tipLabel),
             ...getTextsByClass(tip, CLASS.tipValue),
         ],
+        stated: getElementsWithin(tip)
+            .filter((one) => one.className.startsWith(CLASS.tipLine))
+            .map((one) => ({
+                label: getTextsByClass(one, CLASS.tipLabel)[0] ?? "",
+                value: getTextsByClass(one, CLASS.tipValue)[0] ?? "",
+                isStrong: one.className.includes(CLASS.tipStrong),
+                isSub: one.className.includes(CLASS.tipSub),
+            })),
     };
 }
+
+/** Whether a `font` shorthand states the whole-pixel line the rest of the panel is drawn on. */
+function getIsLineWhole(font: string): boolean {
+    const slash = font.indexOf("/");
+    if (slash === -1) return false;
+    const ends = font.indexOf(" ", slash);
+    if (ends === -1) return false;
+    return font.slice(slash + 1, ends).endsWith("px");
+}
+
+/**
+ * Which regions are undressed for the ground they paint.
+ *
+ * `:host{all:initial}` reaches every child of the root and nothing else does, so a region hanging
+ * there is drawn in the browser's own serif at `medium`, in `canvastext`, unless it says
+ * otherwise. A box painting no ground of its own puts no text on one either, so it is exempt.
+ */
+function getUndressedRegions(sheet: string, classNames: readonly string[]): string[] {
+    const found: string[] = [];
+    for (const className of classNames) {
+        const body = getRuleBody(sheet, `.${className}`);
+        if (getDeclaration(body, "background") === null) continue;
+        const font = getDeclaration(body, "font");
+        if (font === null) {
+            found.push(className);
+            continue;
+        }
+        if (!getIsLineWhole(font)) {
+            found.push(className);
+            continue;
+        }
+        if (getDeclaration(body, "color") === null) found.push(className);
+    }
+    return found;
+}
+
+Deno.test("a region hanging off the root states its own type and its own ink", () => {
+    // The detail window stated neither, and was drawn in the browser's serif at `medium` in black
+    // on `raised` — figures nobody could read. Seen in Chrome 152 on 2026-08-29.
+    const host = draw(readFight());
+    const regions = (host.shadow ?? [])
+        .filter((one) => one.className.length > 0)
+        .map((one) => one.className.split(" ")[0] ?? "");
+    assert(regions.includes(CLASS.tip), "the detail window hangs there with the rest of them");
+    assertEquals(
+        getUndressedRegions(composeStyleSheet(), regions),
+        [],
+        "`all: initial` reaches a root's children, so a ground of its own needs an ink of its own",
+    );
+    // A reader is proved by a sample it must flag and a sample it must not.
+    assertEquals(getUndressedRegions(".a{background:red;}", ["a"]), ["a"], "a ground with no ink");
+    assertEquals(
+        getUndressedRegions(".a{background:red;color:blue;font:11px/1.4 x y;}", ["a"]),
+        ["a"],
+        "and a line stated as a factor is not the rhythm the rest of the panel is drawn on",
+    );
+    assertEquals(
+        getUndressedRegions(".a{background:red;color:blue;font:11px/15px x y;}", ["a"]),
+        [],
+        "a region that says all three is dressed for what it paints",
+    );
+    assertEquals(getUndressedRegions(".a{display:flex;}", ["a"]), [], "and one painting no ground");
+});
 
 Deno.test("every row a reader can point at says which detail is its own", () => {
     const host = draw(readFight());
@@ -945,7 +1037,7 @@ Deno.test("every row a reader can point at says which detail is its own", () => 
     }
 });
 
-Deno.test("pointing at a row opens the name it cut and the share it never printed", () => {
+Deno.test("pointing at a ranking row opens everything that row had to leave out", () => {
     const reading = readFight();
     const host = draw(reading);
     assertEquals(readTip(host).lines, [], "a panel nobody has pointed at says nothing");
@@ -958,19 +1050,66 @@ Deno.test("pointing at a row opens the name it cut and the share it never printe
     const shown = readTip(host);
     assertEquals(shown.className, CLASS.tip, "which opens the detail");
     assertEquals(
-        shown.lines,
-        [
-            first.name ?? PANEL_WORDS.unknown,
-            getWordsForScreen("damageDealtApplied"),
-            PANEL_WORDS.share,
-            composeFigureText(first.figure),
-            first.shareText,
-        ],
-        "the name in full, what the figure is, and the share the bar draws and no row spells",
+        shown.name,
+        [first.name ?? PANEL_WORDS.unknown],
+        "the name in full, which the row itself may have cut",
+    );
+    assertEquals(
+        shown.subtitle,
+        [composeCardSubtitleText(first.profession, first.detail.level)],
+        "and what they are beside how far along, off the roster the fight was fought by",
+    );
+    const figures = shown.stated.filter((one) => !one.isSub);
+    assertEquals(
+        figures.slice(0, SCREEN_ORDER.length).map((one) => one.label),
+        SCREEN_ORDER.map((metric) => getWordsForCardMetric(metric)),
+        "and all four figures, in the order the strip over the list puts them",
+    );
+    assertEquals(
+        figures.slice(0, SCREEN_ORDER.length).map((one) => one.value),
+        SCREEN_ORDER.map((metric) => composeFigureText(first.detail[metric])),
+        "each stating what the statistics hold for this combatant, not what this screen shows",
+    );
+    assertEquals(
+        shown.stated.filter((one) => one.isStrong).map((one) => one.label),
+        [getWordsForCardMetric("damageDealtApplied")],
+        "with the one on screen in bold, and no other",
+    );
+    assert(
+        shown.stated.some((one) => one.isSub),
+        "and the part of a figure the protocol could say less than the whole of stands under it",
     );
 
-    pointAtElement(host, "pointerout", name, 412);
+    pointAtElement(host, "pointerout", name, 412, null);
     assertEquals(readTip(host).className, `${CLASS.tip} ${CLASS.tipHidden}`, "and leaving closes");
+});
+
+Deno.test("crossing from one part of a row to another is not leaving it", () => {
+    const host = draw(readFight());
+    const parts = getElementsWithin(host).filter((one) => one.attributes.has("data-tip"));
+    const [name, other] = [
+        parts.find((one) => one.className === "row-name"),
+        parts.find((one) => one.className === CLASS.rowValue),
+    ];
+    assert(name !== undefined, "a row draws a name");
+    assert(other !== undefined, "and a figure beside it, each its own element under the pointer");
+    assertEquals(
+        name.attributes.get("data-tip"),
+        other.attributes.get("data-tip"),
+        "both of them filed under the one row they are parts of",
+    );
+    pointAtElement(host, "pointermove", name, 412);
+    const opened = readTip(host);
+    assertEquals(opened.className, CLASS.tip, "pointing at one of them opens the card");
+
+    // `pointerout` bubbles, so it fires on every crossing inside the row as well as on leaving it.
+    pointAtElement(host, "pointerout", name, 412, other);
+    assertEquals(
+        readTip(host).className,
+        CLASS.tip,
+        "and a crossing that lands on the same row's mark leaves the card standing",
+    );
+    assertEquals(readTip(host).lines, opened.lines, "saying what it was already saying");
 });
 
 Deno.test("a share inside an opened row is of that row, never of the fight", () => {

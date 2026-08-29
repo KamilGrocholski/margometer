@@ -125,18 +125,19 @@ scale.
 A 2-pixel base, because the panel is dense and a 4-pixel base doubles its height for no gain in
 legibility.
 
-| Token            | Value                                                        |
-| ---------------- | ------------------------------------------------------------ |
-| `spaceHalf`      | `2px`                                                        |
-| `spaceSmall`     | the base step                                                |
-| `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region |
-| `spaceWide`      | `8px`, which is also the inset the panel sits at             |
-| `rowHeight`      | `18px`                                                       |
-| `maxHeightShare` | `66vh`                                                       |
-| `tipWidth`       | fixed, so a tooltip never reflows against its own content    |
-| `panelWidth`     | `260px` — narrow on purpose: the panel is a guest            |
-| `panelInset`     | `8px` from the corner it is anchored to                      |
-| `panelLayer`     | high enough to clear the game's own windows                  |
+| Token            | Value                                                           |
+| ---------------- | --------------------------------------------------------------- |
+| `spaceHalf`      | `2px`                                                           |
+| `spaceSmall`     | the base step                                                   |
+| `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region    |
+| `spaceWide`      | `8px`, which is also the inset the panel sits at                |
+| `rowHeight`      | `18px`                                                          |
+| `maxHeightShare` | `66vh`                                                          |
+| `tipWidth`       | fixed, so a tooltip never reflows against its own content       |
+| `lineHeight`     | `15px` — whole pixels, and what a counted card is multiplied by |
+| `panelWidth`     | `260px` — narrow on purpose: the panel is a guest               |
+| `panelInset`     | `8px` from the corner it is anchored to                         |
+| `panelLayer`     | high enough to clear the game's own windows                     |
 
 **Every row is the same height**, accent included. A row whose background is taller than its
 neighbour reads as a different kind of row, and it is not one.
@@ -254,12 +255,27 @@ reserved whether or not a scrollbar shows, and the two regions drawing a bar out
 too, so a bar means the same length in all three.
 
 **Tooltip.** `surfaceRaised`, fixed width, opens on hover and follows the cursor's vertical
-position. It opens on whichever side of the panel has room for it — to the left while the panel sits
-in its corner, and to the right once the panel has been dragged far enough left that a leftward
-tooltip would be drawn off the screen. Its vertical position is clamped between the inset and the
-viewport's foot, against the height of the tallest tooltip rather than its own, so it stays on
-screen without being measured. **Nothing here is measured off the document**: the page states its
-own size, the pointer states where it is, and the two lengths that matter are tokens.
+position. It states its own type and its own ink, because `all: initial` on the host reaches it and
+the panel's own rules do not — a region hanging off the root that paints a ground and leaves the
+rest to inheritance is drawn in the browser's serif, in black. It opens on whichever side of the
+panel has room for it — to the left while the panel sits in its corner, and to the right once the
+panel has been dragged far enough left that a leftward tooltip would be drawn off the screen. Its
+vertical position is clamped between the inset and the viewport's foot, and where the two cross the
+top edge wins: a window hanging off the bottom beats one whose first line is off the top.
+
+**Nothing here is measured off the document.** The page states its own size, the pointer states
+where it is, and the height is arithmetic — the lines the draw counted times what a line costs, plus
+the rule and the air each run of them spends over itself. A wrapping sentence is counted at a floor
+of characters per line, so the count is never short: a card reserving a line it did not need stands
+higher up the screen, which is the direction that keeps it on one.
+
+**On a ranking row the tooltip is a card.** The name in full, then what they are and how far along
+on one line under it — which is where the hue on the bar is finally said in words, and the only
+place it is. Then all four figures rather than the one the screen is showing, with that one in bold;
+under each, the part of it the protocol named only that row's end of; then how they fought, and what
+qualifies every figure above. A figure stated before reduction carries the sentence that says not to
+subtract it. Nowhere else is it a card: a skill, a kind, a fight on the shelf and a row inside an
+opened figure each get the name their own cell had to cut.
 
 **The panel is moved by its bar.** The grip says so before anybody tries it, and the whole bar is
 the handle — except its controls, where a press is that control's. A title bar's worth of the panel

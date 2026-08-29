@@ -19,15 +19,14 @@ import {
     SURFACE,
     TEXT,
 } from "@/src/ui/panel-look.ts";
+import { getWordsForProfession, PROFESSION_WORDS } from "@/src/ui/panel-words.ts";
+import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "@/tests/style-sheet.ts";
 
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
 const AA_TEXT_RATIO = 4.5;
 const AA_MARK_RATIO = 3;
 /** Every profession the recordings state, measured over `captures/` on 2026-08-29. */
 const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];
-/** What the sheet holds at its widest, measured over `composeStyleSheet()` on 2026-08-29. */
-const RULES_IN_A_SHEET = 200;
-const LONGEST_RULE = 600;
 const LONGEST_DECLARATION = 200;
 
 Deno.test("a bar's own spelling is read back as readily as a token's", () => {
@@ -92,6 +91,68 @@ Deno.test("a profession keeps its colour, and one the game did not state is colo
     assert(!eight.includes(SIGNAL.unknown), "which is not one of the eight, so it reads apart");
 });
 
+/** The letters, so a table can be asked about one it does not hold. */
+const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
+
+/** Every letter the panel gives a hue to, asked of the sheet rather than listed a second time. */
+function getColouredProfessions(): string[] {
+    const found: string[] = [];
+    for (const letter of ALPHABET) {
+        if (getColourForProfession(letter) !== SIGNAL.unknown) found.push(letter);
+    }
+    assert(found.length <= ALPHABET.length, "the walk stays inside the letters there are");
+    return found;
+}
+
+/** Which letters one side of the pairing holds and the other does not, in either direction. */
+function getUnpairedProfessions(worded: Record<string, string>, coloured: string[]): string[] {
+    const found: string[] = [];
+    for (const code of coloured) {
+        if (worded[code] === undefined) found.push(code);
+    }
+    for (const code of Object.keys(worded)) {
+        if (!coloured.includes(code)) found.push(code);
+    }
+    assert(found.length <= ALPHABET.length, "a letter is reported once from either side");
+    return found.sort();
+}
+
+Deno.test("a profession the panel colours is one it can name, and the other way round", () => {
+    // N13: the game's own letters are spelled in two files, so the failure is quiet — a card
+    // reading `b` where the bar beside it is drawn, or a hue nobody can say the name of.
+    assertEquals(
+        getColouredProfessions().sort(),
+        [...PROFESSIONS].sort(),
+        "the six the recordings state are the six the panel draws",
+    );
+    assertEquals(
+        getUnpairedProfessions(PROFESSION_WORDS, getColouredProfessions()),
+        [],
+        "and every one of them has a word as well as a hue",
+    );
+    // A reader is proved by a sample it must flag and a sample it must not.
+    assertEquals(
+        getUnpairedProfessions({ w: "Wojownik" }, ["w", "m"]),
+        ["m"],
+        "a hue with no word",
+    );
+    assertEquals(
+        getUnpairedProfessions({ w: "W", z: "Z" }, ["w"]),
+        ["z"],
+        "and a word with no hue",
+    );
+    assertEquals(
+        getUnpairedProfessions({ w: "W" }, ["w"]),
+        [],
+        "a letter both sides hold is paired",
+    );
+});
+
+Deno.test("a profession the table does not word travels as the game wrote it", () => {
+    assertEquals(getWordsForProfession("p"), "Paladyn", "a letter the table holds is worded");
+    assertEquals(getWordsForProfession("z"), "z", "and a seventh the game invents is passed on");
+});
+
 Deno.test("the ink is computed, and at this tint every bar takes the light one", () => {
     const inks = new Set(PALETTE_COLOURS.map((one) => getInkForBar(one)));
     // Measured, not designed: at a tint of 0.55 over this track no bar is light enough for the
@@ -149,45 +210,6 @@ Deno.test("a folded panel is drawn by the one region the fold hides", () => {
     assert(!sheet.includes(`;}.${CLASS.folded}{`), "and never by the bare class, which would tie");
     assert(sheet.includes("display:none"), "what a folded region does is stop being drawn");
 });
-
-/**
- * The sheet is read rather than matched, so a length typed straight into a rule is caught the same
- * way a token spent wrongly is. Nothing here lays anything out; what it holds is the arithmetic
- * that decides a layout, which is the part a browser would only confirm.
- */
-function getRuleBody(sheet: string, selector: string): string {
-    assert(selector.startsWith("."), "a rule is looked up by the class it selects");
-    const opener = `${selector}{`;
-    // The selector has to stand on its own: `.list{` sits inside `.panel>.list{` too, and that
-    // rule states a `flex` and nothing this guard adds up.
-    let at = sheet.indexOf(opener);
-    let tried = 0;
-    while (at > 0) {
-        assert(tried < RULES_IN_A_SHEET, "a lookup stays inside the sheet's stated bound");
-        tried += 1;
-        if (sheet[at - 1] === "}") break;
-        at = sheet.indexOf(opener, at + 1);
-    }
-    assert(at !== -1, `${selector} is a rule of its own the sheet does not carry`);
-    const from = at + opener.length;
-    const to = sheet.indexOf("}", from);
-    assert(to !== -1, `${selector} opens a rule the sheet never closes`);
-    return sheet.slice(from, to);
-}
-
-/** The last one written wins, which is what a browser does with the same rule. */
-function getDeclaration(body: string, property: string): string | null {
-    assert(property.length > 0, "a declaration is looked up by name");
-    assert(body.length <= LONGEST_RULE, "a rule stays inside its stated bound");
-    let found: string | null = null;
-    for (const stated of body.split(";")) {
-        const at = stated.indexOf(":");
-        if (at === -1) continue;
-        if (stated.slice(0, at).trim() !== property) continue;
-        found = stated.slice(at + 1).trim();
-    }
-    return found;
-}
 
 /** A token or a length, which is the whole of what a term can be. */
 function getTermPixels(stated: string): number {

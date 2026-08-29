@@ -112,9 +112,16 @@ export const CLASS = {
     tip: "MargoMeter-tip",
     tipHidden: "tip-hidden",
     tipName: "tip-name",
+    tipSubtitle: "tip-subtitle",
+    tipGroup: "tip-group",
     tipLine: "tip-line",
+    tipStrong: "tip-strong",
+    tipSub: "tip-sub",
     tipLabel: "tip-label",
     tipValue: "tip-value",
+    /** A sentence rather than a column, so the placement counts it as wrapping. */
+    tipNote: "tip-note",
+    tipWarning: "tip-warning",
 } as const;
 
 export const SPACE = {
@@ -141,14 +148,12 @@ export const PLACE = {
 } as const;
 
 /**
- * The detail window's own geometry, and the one number here that is a **maximum** rather than a
- * size. The tip is one, two or three lines; the placement clamps against the tallest it can be,
- * so a shorter one lands further from the bottom edge instead of being measured. That is the whole
- * of what replaces v1's `getBoundingClientRect` (`git show develop:src/ui/panel-element.ts`).
+ * The width is a length; there is no height, because the draw counts the card's lines and the
+ * sheet multiplies — the whole of what replaces v1's `getBoundingClientRect`
+ * (`git show develop:src/ui/panel-element.ts`).
  */
 export const TIP = {
     width: "250px",
-    heightMaximum: "64px",
 } as const;
 
 export const SHAPE = {
@@ -668,47 +673,75 @@ function composeRowRules(): string {
 }
 
 /**
- * The detail window, which is the one thing here placed against the screen rather than against
- * the panel.
+ * The detail window, the one thing here placed against the screen rather than against the panel.
  *
- * **Across, it is a constant.** The host is pinned to the top right corner by the frame rules, so
- * the tip always opens on its left and there is no side to choose. v1 had to choose one, because
- * its panel was dragged — `composeTipDeclarations` in
- * `git show develop:src/ui/panel-element.ts`. A draggable panel brings that flip back with it.
+ * **It states its own type and its own ink**, because `:host{all:initial}` reaches it and nothing
+ * else does: the tip hangs off the root beside the frame, so `.panel`'s never arrive. Without the
+ * two the card is drawn in the browser's serif at `medium` in black on `raised` — figures nobody
+ * can read, seen in Chrome 152 on 2026-08-29.
  *
- * **Down, it follows the pointer and stops at the edges**, and the `clamp` is what keeps the tip
- * from being measured: the low edge wins where the two cross, which is a window hanging off the
- * bottom rather than one whose first line is off the top.
+ * **Across it is a constant**, because the frame rules pin the host to the top right corner and
+ * there is no side to choose. v1 had to choose one, its panel being dragged
+ * (`git show develop:src/ui/panel-element.ts`). **Down it follows the pointer and stops at the
+ * edges**, and the clamp is what keeps the tip from being measured.
  *
- * `position:fixed` puts its containing block at the viewport rather than at the host, so the
- * host's own `overflow:hidden` does not clip it — the host creates no containing block, having no
- * transform, filter or containment. `pointer-events:none` keeps the tip from taking a pointer
- * away from the row it is describing.
+ * `position:fixed` puts its containing block at the viewport, so the host's `overflow:hidden`
+ * cannot clip it: the host creates none, having no transform, filter or containment.
  */
 function composeTipRules(): string {
     assert(TIP.width.endsWith("px"), "the tip is as wide as it was told, and does not reflow");
-    assert(TIP.heightMaximum.endsWith("px"), "and is clamped against the tallest it can be");
-    const top = `clamp(${PLACE.inset},var(${VARIABLE_PREFIX}tip-top,${PLACE.inset}),` +
-        `calc(100vh - ${TIP.heightMaximum} - ${PLACE.inset}))`;
-    // Across, the default is the corner the sheet anchors the panel to; a dragged panel writes a
-    // left of its own, because a detail that went on opening leftwards from the left edge of the
-    // screen would be drawn off it.
+    assert(LINE_HEIGHT.endsWith("px"), "and a line of it costs whole pixels, as every line does");
+    // A dragged panel writes a left of its own: a detail going on opening leftwards from the left
+    // edge of the screen would be drawn off it.
     const left = `var(${VARIABLE_PREFIX}tip-left,calc(100vw - ${PLACE.inset} - ${PLACE.width} - ` +
         `${TIP.width} - ${SPACE.small}))`;
     return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
-        `left:${left};top:${top};` +
-        `width:${TIP.width};max-height:${TIP.heightMaximum};overflow:hidden;` +
+        `left:${left};top:${composeTipTop()};` +
+        `width:${TIP.width};` +
+        // The one limit that cannot be placed around: a card taller than the screen has no
+        // position showing all of it, and the clamp keeps the top edge over the bottom.
+        `max-height:calc(100vh - ${PLACE.inset} - ${PLACE.inset});overflow:hidden;` +
         `padding:var(${VARIABLE_PREFIX}small);` +
-        `background:var(${VARIABLE_PREFIX}raised);` +
+        `font:${FONT_SIZE}/${LINE_HEIGHT} ${FONT_STACK};` +
+        `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};}` +
         `.${CLASS.tipHidden}{display:none;}` +
         `.${CLASS.tipName}{font-weight:600;overflow:hidden;text-overflow:ellipsis;` +
         `white-space:nowrap;}` +
+        `.${CLASS.tipSubtitle}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.tipGroup}{margin-top:var(${VARIABLE_PREFIX}small);` +
+        `padding-top:var(${VARIABLE_PREFIX}small);` +
+        `border-top:1px solid var(${VARIABLE_PREFIX}border);}` +
         `.${CLASS.tipLine}{display:flex;justify-content:space-between;` +
         `gap:var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.tipLine}.${CLASS.tipStrong}{font-weight:600;}` +
+        // Indented rather than marked: it is a part of the figure over it, not a doubt about one.
+        `.${CLASS.tipLine}.${CLASS.tipSub}{padding-left:var(${VARIABLE_PREFIX}wide);}` +
         `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);}` +
-        `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}`;
+        `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}` +
+        `.${CLASS.tipNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.tipNote}.${CLASS.tipWarning}{color:var(${VARIABLE_PREFIX}suspect);}`;
+}
+
+/**
+ * How tall the card is without anybody measuring it: the lines the draw counted times what a line
+ * costs, the air and the rule each run of them spends over itself, and the padding and border the
+ * box reserves inside its own height. The defaults are the empty window the panel starts at.
+ */
+function composeTipHeight(): string {
+    assert(LINE_HEIGHT.endsWith("px"), "a card is counted in lines of whole pixels");
+    assert(SPACE.small.endsWith("px"), "and the air around them is whole pixels too");
+    return `calc(var(${VARIABLE_PREFIX}tip-lines,1) * ${LINE_HEIGHT} + ` +
+        `var(${VARIABLE_PREFIX}tip-groups,0) * ` +
+        `(2 * var(${VARIABLE_PREFIX}small) + 1px) + ` +
+        `2 * var(${VARIABLE_PREFIX}small) + 2px)`;
+}
+
+function composeTipTop(): string {
+    assert(PLACE.inset.endsWith("px"), "a card stops a stated length from either edge");
+    return `clamp(${PLACE.inset},var(${VARIABLE_PREFIX}tip-top,${PLACE.inset}),` +
+        `calc(100vh - ${composeTipHeight()} - ${PLACE.inset}))`;
 }
 
 /**
