@@ -15,13 +15,20 @@ export interface FakeElement extends PanelElement {
     shadow: FakeElement[] | null;
     /** What replaced this one, so a test can see a panel give way rather than pile up. */
     replacedBy: FakeElement | null;
-    /** The listeners the panel put on, by type, so a test can press what a reader presses. */
-    listeners: Map<string, ((event: PanelEvent) => void)[]>;
+    /** The listeners the panel put on its root, by type, so a test can press what a reader does. */
+    rootListeners: Map<string, ((event: PanelEvent) => void)[]>;
 }
 
-/** Presses the element, the way a pointer would, at whatever the panel is listening for. */
+/**
+ * Presses the element, the way a pointer would, at whatever the panel is listening for.
+ *
+ * Only the root's listeners are reachable, because in a browser only they see what was pressed:
+ * a press inside a shadow root is **retargeted** to the host for anybody listening outside it.
+ * This fake once offered a listener on the host as well, handed it the pressed element, and so
+ * let a panel that could never work on a page pass every test — found by `deno task preview`.
+ */
 export function pressElement(host: FakeElement, type: string, target: FakeElement): void {
-    for (const handle of host.listeners.get(type) ?? []) {
+    for (const handle of host.rootListeners.get(type) ?? []) {
         handle({ target: { getAttribute: (name) => target.attributes.get(name) ?? null } });
     }
 }
@@ -39,10 +46,7 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                 attributes: new Map(),
                 shadow: null,
                 replacedBy: null,
-                listeners: new Map(),
-                addEventListener(type: string, handle: (event: PanelEvent) => void): void {
-                    element.listeners.set(type, [...(element.listeners.get(type) ?? []), handle]);
-                },
+                rootListeners: new Map(),
                 replaceWith(other: PanelElement): void {
                     element.replacedBy = other as FakeElement;
                     for (const parent of created) {
@@ -63,7 +67,13 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                     assert(element.shadow === null, "a root is attached once");
                     const inside: FakeElement[] = [];
                     element.shadow = inside;
-                    return { append: (child) => inside.push(child as FakeElement) };
+                    return {
+                        append: (child) => inside.push(child as FakeElement),
+                        addEventListener(type: string, handle: (event: PanelEvent) => void): void {
+                            const held = element.rootListeners.get(type) ?? [];
+                            element.rootListeners.set(type, [...held, handle]);
+                        },
+                    };
                 },
             };
             created.push(element);

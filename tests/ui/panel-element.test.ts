@@ -168,6 +168,20 @@ Deno.test("the fight's own strip always draws, and a doubt rides it rather than 
     assertEquals(under, [], "and the doubt is not one of the things standing in it");
 });
 
+Deno.test("the one listener sits on the root, where a press is not retargeted", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    const host = panel.element as FakeElement;
+    // Outside a shadow root a press is retargeted to the host, so a listener there reads null off
+    // every attribute the panel writes. `PanelElement` carries no `addEventListener` for that
+    // reason; this holds the other half, which is that the root got exactly one.
+    assertEquals([...host.rootListeners.keys()], ["pointerdown"], "one listener, on the root");
+    assertEquals(host.rootListeners.get("pointerdown")?.length, 1, "and only ever one of it");
+    for (const element of getElementsWithin(host)) {
+        assertEquals(element.rootListeners.size, element === host ? 1 : 0, "no row carries one");
+    }
+});
+
 Deno.test("a press on a tab reaches the panel, and a press on anything else does not", () => {
     const document = composeFakeDocument();
     const pressed: PanelPress[] = [];

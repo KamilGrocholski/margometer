@@ -50,16 +50,26 @@ export interface PanelElement {
     className: string;
     textContent: string;
     append(child: PanelElement): void;
-    /** One listener at the root, never one per row. */
-    addEventListener(type: string, handle: (event: PanelEvent) => void): void;
     /** How a redrawn panel takes the place of the one before it, rather than stacking on it. */
     replaceWith(other: PanelElement): void;
     setAttribute(name: string, value: string): void;
     attachShadow(options: { mode: "open" }): PanelRoot;
 }
 
+/**
+ * The root, which is where the one listener goes — and the reason it is stated here rather than
+ * left to the host.
+ *
+ * A press inside a shadow root is **retargeted** for any listener outside it, and the host is
+ * outside it: a listener there is handed the host as the target, whatever was actually pressed.
+ * Reading an attribute off that answers null for every row, tab and crumb, so a panel listening
+ * on its host draws correctly and does nothing at all. The element interface above carries no
+ * `addEventListener` for that reason — the wrong place to put it is not reachable from here.
+ */
 export interface PanelRoot {
     append(child: PanelElement): void;
+    /** One listener at the root, never one per row. */
+    addEventListener(type: string, handle: (event: PanelEvent) => void): void;
 }
 
 const HOST_NAME = "MargoMeter-Panel";
@@ -458,7 +468,7 @@ export function composePanelHost(
     root.append(tabs);
     root.append(body);
     root.append(summary);
-    host.addEventListener(PRESS_EVENT, (event) => {
+    root.addEventListener(PRESS_EVENT, (event) => {
         const target = event.target;
         if (target === null) return;
         const screen = target.getAttribute(SCREEN_ATTRIBUTE);
