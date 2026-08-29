@@ -7,10 +7,11 @@
  * and no key of the game's, and that a count is spelled the way Polish spells one.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, AssertionError, assertThrows } from "@std/assert";
 import {
     composeCountedNoun,
     composePlaceWords,
+    composeShareText,
     COUNTED_NOUNS,
     PANEL_WORDS,
 } from "@/src/ui/panel-words.ts";
@@ -105,4 +106,13 @@ Deno.test("a place is said with as much of it as was known, and nothing where no
     assertEquals(composePlaceWords(null, null, 34), null, "and half a tile alone says nothing");
     assertEquals(composePlaceWords(null, null, null), null, "nothing known is said as nothing");
     assertEquals(composePlaceWords("Mapa", 0, 0), "Mapa (0, 0)", "the corner of a map is a tile");
+});
+
+Deno.test("a share is spelled the way Polish spells one, and zero is a reading", () => {
+    assertEquals(composeShareText(0.516), "51,6%", "a comma, because that is the decimal here");
+    assertEquals(composeShareText(0), "0,0%", "zero happened and measured nothing");
+    assertEquals(composeShareText(1), "100,0%", "and the whole of a fight is the whole of it");
+    assertEquals(composeShareText(0.0004), "0,0%", "a share too small to print is not blank");
+    assertThrows(() => composeShareText(1.5), AssertionError, "more than the whole");
+    assertThrows(() => composeShareText(-1), AssertionError, "below nothing");
 });

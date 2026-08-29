@@ -61,6 +61,7 @@ src/
     panel-look.ts        The panel's tokens, the classes its rules select, and the stylesheet.
     panel-reading.ts     One screen's worth of a fight, and one row's worth of a screen.
     panel-screen.ts      Which screen the panel is on, and the strip that says so.
+    panel-tip.ts         The detail a row opens on hover, and the register it is looked up in.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
 tools/             Never ships. Each arrives with the question it answers.
   build-preview.ts     A page that runs the add-on against the recordings, so it can be seen.
@@ -102,6 +103,7 @@ tests/
     panel-look.test.ts        Contrast by arithmetic, and a sheet that spends tokens only.
     panel-reading.test.ts     A screen of a real fight, through every layer under it.
     panel-screen.test.ts      The screens there are, against what a reading composes for.
+    panel-tip.test.ts         What the detail says, and the row it lets go of.
     panel-words.test.ts       What the words must never say, and how Polish counts.
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
@@ -299,11 +301,13 @@ commit that opens or closes one.
 1. **The add-on reads a fight, draws it, and keeps it.** Every key in `captures/` is read, the panel
    switches screens, pressing a row opens the figure cut twice — by whom each blow reached and by
    the kind of damage it carried — a finished fight goes on a shelf the reader can look back at, the
-   bar and every row on that shelf say where the fight was fought, the panel carries the stylesheet
-   `DESIGN.md` specifies and the strip that always states the screen's own total, and
-   `deno task build` writes the file they install, and `deno task preview` writes a page that runs
-   it against the recordings. What is not written: the tooltip, the bar on a ranking row, the rest
-   of the tools, and the release plumbing — `README.md`, `CHANGELOG.md` and the workflows.
+   bar and every row on that shelf say where the fight was fought, a ranking row wears its
+   profession and carries its share as a bar, hovering a row opens the detail window that says in
+   full what the row had to cut, the panel carries the stylesheet `DESIGN.md` specifies and the
+   strip that always states the screen's own total, and `deno task build` writes the file they
+   install, and `deno task preview` writes a page that runs it against the recordings. What is not
+   written: the rest of the tools, and the release plumbing — `README.md`, `CHANGELOG.md` and the
+   workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

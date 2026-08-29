@@ -165,8 +165,10 @@ shows, rather than appearing when something goes wrong.
 than colour.
 
 **Tooltip.** `surfaceRaised`, fixed width, opens on hover and follows the cursor's vertical
-position. It stays inside the viewport: when the panel sits near an edge, the tooltip moves rather
-than clipping.
+position. It opens to the panel's left, and which side is a constant because the panel is pinned; a
+draggable panel brings back the flip, which is a measurement. Its vertical position is clamped
+between the inset and the viewport's foot, against the height of the tallest tooltip rather than its
+own, so it stays on screen without being measured.
 
 **Suspect mark.** Rides the row it was named for, at every drill level, in `suspect` plus a glyph.
 It says a figure may be short and never says by how much.

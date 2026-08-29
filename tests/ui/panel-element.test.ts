@@ -16,14 +16,15 @@ import {
     composePanelReading,
     type PanelReading,
 } from "@/src/ui/panel-reading.ts";
-import { composeBarColour, getColourForProfession } from "@/src/ui/panel-look.ts";
+import { CLASS, composeBarColour, getColourForProfession } from "@/src/ui/panel-look.ts";
 import { getScreenFromName, SCREEN_ORDER, SHELF_SCREEN } from "@/src/ui/panel-screen.ts";
-import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
+import { composeShareText, getWordsForElement, PANEL_WORDS } from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
     type FakeElement,
     getElementsWithin,
     getTextsByClass,
+    pointAtElement,
     pressElement,
 } from "@/tests/fake-document.ts";
 import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fight.ts";
@@ -71,7 +72,7 @@ Deno.test("the panel goes into a shadow root, under a name of ours", () => {
     assertEquals(host.attributes.get("id"), "MargoMeter-Panel", "the host is named as ours");
     assert(host.shadow !== null, "and everything else is behind a root of its own");
     assertEquals(host.children.length, 0, "nothing is put beside the root");
-    assertEquals(host.shadow.length, 5, "its look, the bar, the strip, the body, and the summary");
+    assertEquals(host.shadow.length, 6, "look, bar, strip, body, summary, and the detail last");
 });
 
 Deno.test("every name a reader meets before the panel's contents is ours", () => {
@@ -169,17 +170,23 @@ Deno.test("the fight's own strip always draws, and a doubt rides it rather than 
     assertEquals(under, [], "and the doubt is not one of the things standing in it");
 });
 
-Deno.test("the one listener sits on the root, where a press is not retargeted", () => {
+Deno.test("every listener sits on the root, where a press is not retargeted", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     const host = panel.element as FakeElement;
     // Outside a shadow root a press is retargeted to the host, so a listener there reads null off
     // every attribute the panel writes. `PanelElement` carries no `addEventListener` for that
-    // reason; this holds the other half, which is that the root got exactly one.
-    assertEquals([...host.rootListeners.keys()], ["pointerdown"], "one listener, on the root");
-    assertEquals(host.rootListeners.get("pointerdown")?.length, 1, "and only ever one of it");
+    // reason; this holds the other half, which is that the root got one of each and no more.
+    assertEquals(
+        [...host.rootListeners.keys()],
+        ["pointerdown", "pointermove", "pointerout"],
+        "a press, a move that opens the detail, and the leave that closes it",
+    );
+    for (const type of host.rootListeners.keys()) {
+        assertEquals(host.rootListeners.get(type)?.length, 1, `${type} is listened for once`);
+    }
     for (const element of getElementsWithin(host)) {
-        assertEquals(element.rootListeners.size, element === host ? 1 : 0, "no row carries one");
+        assertEquals(element.rootListeners.size, element === host ? 3 : 0, "no row carries one");
     }
 });
 
@@ -268,7 +275,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
     const host = panel.element as FakeElement;
     assertEquals(failures.length, 1, "the failure is reported once");
     assertEquals(getTextsByClass(host, "undrawn"), [PANEL_WORDS.undrawn], "and marked in place");
-    assertEquals(host.shadow?.length, 5, "while the panel keeps its shape");
+    assertEquals(host.shadow?.length, 6, "while the panel keeps its shape");
     assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "the title stands");
 });
 
@@ -445,4 +452,118 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
     panel.show({ ...view, place: null });
     assertEquals(getTextsByClass(host, "place"), [], "and nothing at all where nothing was said");
     assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "the bar standing on");
+});
+
+/** Whatever the detail is saying right now, read back out of the root it stands in. */
+function readTip(host: FakeElement): { className: string; lines: string[] } {
+    const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
+    assert(tip !== undefined, "the detail is a region of the panel like any other");
+    return {
+        className: tip.className,
+        lines: [
+            ...getTextsByClass(tip, CLASS.tipName),
+            ...getTextsByClass(tip, CLASS.tipLabel),
+            ...getTextsByClass(tip, CLASS.tipValue),
+        ],
+    };
+}
+
+Deno.test("every row a reader can point at says which detail is its own", () => {
+    const host = draw(readFight());
+    const rows = getElementsWithin(host).filter((one) => one.className === "row");
+    assert(rows.length > 0, "a fight draws rows");
+    for (const row of rows) {
+        const key = row.attributes.get("data-tip");
+        assert(key !== undefined, "a row carries the name its detail is filed under");
+        // A pointer lands on the deepest element under it, so every part wears the row's mark.
+        for (const part of row.children) {
+            assertEquals(part.attributes.get("data-tip"), key, "and so does every part of it");
+        }
+    }
+});
+
+Deno.test("pointing at a row opens the name it cut and the share it never printed", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    assertEquals(readTip(host).lines, [], "a panel nobody has pointed at says nothing");
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a row to point at");
+    const name = getElementsWithin(host).find((one) => one.className === "row-name");
+    assert(name !== undefined, "whose name is the deepest thing under the pointer");
+    pointAtElement(host, "pointermove", name, 412);
+
+    const shown = readTip(host);
+    assertEquals(shown.className, CLASS.tip, "which opens the detail");
+    assertEquals(
+        shown.lines,
+        [
+            first.name ?? PANEL_WORDS.unknown,
+            PANEL_WORDS.damageDealt,
+            PANEL_WORDS.shareOfFight,
+            `${first.figure}`,
+            composeShareText(first.share),
+        ],
+        "the name in full, what the figure is, and the share the bar draws and no row spells",
+    );
+
+    pointAtElement(host, "pointerout", name, 412);
+    assertEquals(readTip(host).className, `${CLASS.tip} ${CLASS.tipHidden}`, "and leaving closes");
+});
+
+Deno.test("a share inside an opened row is of that row, never of the fight", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+        drill,
+        place: null,
+    });
+    const host = panel.element as FakeElement;
+    const kind = drill.byElement[0];
+    assert(kind !== undefined, "the opened row is cut by kind");
+    const rows = getElementsWithin(host).filter(
+        (one) => one.attributes.get("data-tip") === `kind:${kind.element}`,
+    );
+    const first = rows[0];
+    assert(first !== undefined, "and that cut is a row somebody can point at");
+    pointAtElement(host, "pointermove", first, 300);
+    assertEquals(
+        readTip(host).lines,
+        [
+            getWordsForElement(kind.element),
+            PANEL_WORDS.damageDealt,
+            PANEL_WORDS.shareOfFigure,
+            `${kind.figure}`,
+            composeShareText(kind.share),
+        ],
+        "a kind is a share of the figure standing open above it",
+    );
+});
+
+Deno.test("a shelf row opens the place its own cell had to cut", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        shelf: [{ openedAt: 17, place: "Bagno Wisielców (128, 74)", combatants: 11 }],
+        isOnShelf: true,
+        drill: null,
+        place: null,
+    });
+    const host = panel.element as FakeElement;
+    const row = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-tip") === "shelf:17"
+    );
+    assert(row !== undefined, "a fight on the shelf is a row somebody can point at");
+    pointAtElement(host, "pointermove", row, 120);
+    assertEquals(
+        readTip(host).lines,
+        ["Bagno Wisielców (128, 74)", PANEL_WORDS.combatants, "11"],
+        "the place whole, and how many were in it",
+    );
 });

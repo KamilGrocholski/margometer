@@ -40,6 +40,9 @@ export const PANEL_WORDS = {
     takenFrom: "Od kogo",
     damageKind: "Typ obrażeń",
     withoutKind: "Bez podanego typu",
+    combatants: "Postacie",
+    shareOfFight: "Udział w walce",
+    shareOfFigure: "Udział w tej liczbie",
 } as const;
 
 /**
@@ -95,6 +98,24 @@ export function composeCountedNoun(count: number, noun: CountedNoun): string {
     if (lastTwo >= TEEN_FLOOR && lastTwo <= TEEN_CEILING) return `${count} ${noun.many}`;
     if (last >= FEW_FLOOR && last <= FEW_CEILING) return `${count} ${noun.few}`;
     return `${count} ${noun.many}`;
+}
+
+/** One decimal, which is what separates two people at the top of a ranking without noise. */
+const SHARE_DECIMALS = 1;
+const DECIMAL_POINT = ".";
+/** Polish writes a decimal with a comma, which is a fact about the language and not about us. */
+const DECIMAL_COMMA = ",";
+
+/**
+ * A share, in the reader's own spelling. Zero comes out as `0,0%` rather than blank: zero
+ * happened and measured nothing, and that is not what unknown looks like.
+ */
+export function composeShareText(share: number): string {
+    assert(share >= 0, "a share is never below nothing");
+    assert(share <= 1, "and never more than the whole");
+    const percent = (share * HUNDRED).toFixed(SHARE_DECIMALS);
+    assert(percent.includes(DECIMAL_POINT), "a share is written to a fixed number of places");
+    return `${percent.replace(DECIMAL_POINT, DECIMAL_COMMA)}%`;
 }
 
 /**

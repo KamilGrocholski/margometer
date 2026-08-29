@@ -75,6 +75,12 @@ export const CLASS = {
     summary: "MargoMeter-summary",
     summaryName: "summary-name",
     summaryFigure: "summary-figure",
+    tip: "MargoMeter-tip",
+    tipHidden: "tip-hidden",
+    tipName: "tip-name",
+    tipLine: "tip-line",
+    tipLabel: "tip-label",
+    tipValue: "tip-value",
 } as const;
 
 export const SPACE = {
@@ -94,6 +100,17 @@ export const PLACE = {
     inset: "8px",
     width: "260px",
     layer: "9999",
+} as const;
+
+/**
+ * The detail window's own geometry, and the one number here that is a **maximum** rather than a
+ * size. The tip is one, two or three lines; the placement clamps against the tallest it can be,
+ * so a shorter one lands further from the bottom edge instead of being measured. That is the whole
+ * of what replaces v1's `getBoundingClientRect` (`git show develop:src/ui/panel-element.ts`).
+ */
+export const TIP = {
+    width: "250px",
+    heightMaximum: "64px",
 } as const;
 
 export const SHAPE = {
@@ -417,11 +434,50 @@ function composeRowRules(): string {
 }
 
 /**
+ * The detail window, which is the one thing here placed against the screen rather than against
+ * the panel.
+ *
+ * **Across, it is a constant.** The host is pinned to the top right corner by the frame rules, so
+ * the tip always opens on its left and there is no side to choose. v1 had to choose one, because
+ * its panel was dragged — `composeTipDeclarations` in
+ * `git show develop:src/ui/panel-element.ts`. A draggable panel brings that flip back with it.
+ *
+ * **Down, it follows the pointer and stops at the edges**, and the `clamp` is what keeps the tip
+ * from being measured: the low edge wins where the two cross, which is a window hanging off the
+ * bottom rather than one whose first line is off the top.
+ *
+ * `position:fixed` puts its containing block at the viewport rather than at the host, so the
+ * host's own `overflow:hidden` does not clip it — the host creates no containing block, having no
+ * transform, filter or containment. `pointer-events:none` keeps the tip from taking a pointer
+ * away from the row it is describing.
+ */
+function composeTipRules(): string {
+    assert(TIP.width.endsWith("px"), "the tip is as wide as it was told, and does not reflow");
+    assert(TIP.heightMaximum.endsWith("px"), "and is clamped against the tallest it can be");
+    const top = `clamp(${PLACE.inset},var(${VARIABLE_PREFIX}tip-top,${PLACE.inset}),` +
+        `calc(100vh - ${TIP.heightMaximum} - ${PLACE.inset}))`;
+    return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
+        `right:calc(${PLACE.inset} + ${PLACE.width} + ${SPACE.small});top:${top};` +
+        `width:${TIP.width};max-height:${TIP.heightMaximum};overflow:hidden;` +
+        `padding:var(${VARIABLE_PREFIX}small);` +
+        `background:var(${VARIABLE_PREFIX}raised);` +
+        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};}` +
+        `.${CLASS.tipHidden}{display:none;}` +
+        `.${CLASS.tipName}{font-weight:600;overflow:hidden;text-overflow:ellipsis;` +
+        `white-space:nowrap;}` +
+        `.${CLASS.tipLine}{display:flex;justify-content:space-between;` +
+        `gap:var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}`;
+}
+
+/**
  * The whole sheet, composed once. A browser is handed text rather than a list of rules, because
  * a shadow root takes one `<style>` and this panel has one look.
  */
 export function composeStyleSheet(): string {
-    const sheet = `${composeFrameRules()}${composeRowRules()}`;
+    const sheet = `${composeFrameRules()}${composeRowRules()}${composeTipRules()}`;
     assert(sheet.startsWith(":host{all:initial;"), "the sheet shuts the game out before anything");
     assert(!sheet.includes("}}"), "and closes each rule once");
     return sheet;

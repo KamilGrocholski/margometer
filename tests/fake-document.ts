@@ -19,18 +19,32 @@ export interface FakeElement extends PanelElement {
     rootListeners: Map<string, ((event: PanelEvent) => void)[]>;
 }
 
+/** Somewhere down the screen, for a gesture whose test does not care which. */
+const SOMEWHERE_DOWN = 100;
+
 /**
- * Presses the element, the way a pointer would, at whatever the panel is listening for.
+ * Puts the pointer on an element, the way a browser would, at whatever the panel is listening for.
  *
- * Only the root's listeners are reachable, because in a browser only they see what was pressed:
- * a press inside a shadow root is **retargeted** to the host for anybody listening outside it.
- * This fake once offered a listener on the host as well, handed it the pressed element, and so
- * let a panel that could never work on a page pass every test — found by `deno task preview`.
+ * Only the root's listeners are reachable, because in a browser only they see what was under the
+ * pointer: an event inside a shadow root is **retargeted** to the host for anybody listening
+ * outside it. This fake once offered a listener on the host as well, handed it the pressed
+ * element, and so let a panel that could never work on a page pass every test — found by
+ * `deno task preview`.
  */
-export function pressElement(host: FakeElement, type: string, target: FakeElement): void {
+export function pointAtElement(
+    host: FakeElement,
+    type: string,
+    target: FakeElement | null,
+    clientY: number,
+): void {
+    const read = (name: string) => target?.attributes.get(name) ?? null;
     for (const handle of host.rootListeners.get(type) ?? []) {
-        handle({ target: { getAttribute: (name) => target.attributes.get(name) ?? null } });
+        handle({ target: target === null ? null : { getAttribute: read }, clientY });
     }
+}
+
+export function pressElement(host: FakeElement, type: string, target: FakeElement): void {
+    pointAtElement(host, type, target, SOMEWHERE_DOWN);
 }
 
 export function composeFakeDocument(): PanelDocument & { created: FakeElement[] } {

@@ -63,6 +63,12 @@ Deno.test("text over every surface clears AA", () => {
         assert(getContrastRatio(TEXT.plain, surface) >= AA_TEXT_RATIO, `${surface} under a figure`);
     }
     assert(getContrastRatio(TEXT.quiet, SURFACE.panel) >= AA_TEXT_RATIO, "and under a label");
+    // The quiet ink over the raised surface: the strip's own label, and every caption the detail
+    // window prints. Raised is the lighter of the two, so the panel's pairing does not cover it.
+    assert(
+        getContrastRatio(TEXT.quiet, SURFACE.raised) >= AA_TEXT_RATIO,
+        "on what stands above it",
+    );
 });
 
 Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for", () => {
