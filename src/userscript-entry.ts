@@ -8,8 +8,13 @@
  */
 
 import { assert } from "@std/assert";
-import { type CombatantRoster, composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import {
+    type Combatant,
+    type CombatantRoster,
+    composeCombatantRoster,
+} from "@/src/core/combatant-roster.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
+import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
 import { getNumberFromUnknown, getTextFromUnknown } from "@/src/core/unknown-reading.ts";
@@ -42,6 +47,8 @@ import {
     composePairReading,
     composePanelReading,
     composeSkillReading,
+    getOutcomeForSeat,
+    type PanelOutcome,
     type ShelfRow,
 } from "@/src/ui/panel-reading.ts";
 import {
@@ -70,6 +77,8 @@ const SHELF_KEY = "MargoMeter-fights";
 const FOLD_KEY = "MargoMeter-folded";
 /** Anything else reads as unfolded, which is the state a reader who stored nothing is in. */
 const FOLDED = "1";
+/** A side holds at most ten, so a fight holds twenty — the bound `core/` states for a cast. */
+const MAXIMUM_COMBATANTS = 20;
 /** Where the reader dragged the panel to, kept beside the fold and dropped as readily. */
 const PLACE_KEY = "MargoMeter-place";
 
@@ -95,6 +104,8 @@ export interface UserscriptEnvironment {
     readSurroundings(): CaptureSurroundings;
     /** The clock, handed in like everything else, so nothing here reaches for one. */
     now(): number;
+    /** A moment on the reader's own clock, or null where the browser would not read one. */
+    readClock(atMs: number): { hour: number; minute: number } | null;
     /** One branded line, and the failure itself, so a console shows whose it is first. */
     report(line: string, failure: unknown): void;
 }
@@ -107,22 +118,92 @@ function getPlaceWords(place: FightPlace | null): string | null {
     return words;
 }
 
-function composeShelfRows(kept: readonly KeptFight[]): ShelfRow[] {
-    const rows = kept.map((one) => ({
-        openedAt: one.openedAt,
-        place: getPlaceWords(one.place),
-        combatants: one.combatants.length,
-    }));
-    assert(rows.length === kept.length, "a shelf draws a row for each fight it holds");
-    assert(rows.every((one) => one.combatants >= 0), "and none of them has fewer than nobody");
+/**
+ * How big a fight was, from the cast it was fought by: the reader's own side first, the way every
+ * other pairing on the panel is ordered.
+ */
+function composeShelfSizes(combatants: readonly Combatant[], readerSide: number | null): number[] {
+    const countBySide = new Map<number, number>();
+    assert(combatants.length <= MAXIMUM_COMBATANTS, "a fight stays inside its stated bound");
+    for (const one of combatants) countBySide.set(one.side, (countBySide.get(one.side) ?? 0) + 1);
+    const sides = [...countBySide].sort(([one], [other]) => {
+        if (readerSide === one) return -1;
+        if (readerSide === other) return 1;
+        return one - other;
+    });
+    assert(sides.every(([, count]) => count > 0), "a side that is counted has somebody on it");
+    return sides.map(([, count]) => count);
+}
+
+/**
+ * The shelf as rows: the fight going on now first, then what was kept, newest first.
+ *
+ * The live one is always a row, because a shelf that hid it would answer *which fight am I
+ * reading* with a list the answer is not on.
+ */
+function composeShelfRows(
+    kept: readonly KeptFight[],
+    live: { fight: FightReading; place: FightPlace | null; openedAt: number } | null,
+    chosenId: number | null,
+    readClock: (atMs: number) => { hour: number; minute: number } | null,
+): ShelfRow[] {
+    assert(typeof readClock === "function", "a shelf row is timed by the reader's own clock");
+    assert(kept.length >= 0, "and a shelf holds the fights it holds");
+    const rows: ShelfRow[] = [];
+    if (live !== null) {
+        rows.push({
+            openedAt: live.openedAt,
+            at: readClock(live.openedAt),
+            sizes: composeShelfSizes([...live.fight.roster.byId.values()], live.fight.readerSide),
+            place: getPlaceWords(live.place),
+            outcome: null,
+            isLive: true,
+            isChosen: chosenId === null,
+        });
+    }
+    for (const one of [...kept].sort((first, other) => other.openedAt - first.openedAt)) {
+        rows.push({
+            openedAt: one.openedAt,
+            at: readClock(one.openedAt),
+            sizes: composeShelfSizes(one.combatants, one.readerSide),
+            place: getPlaceWords(one.place),
+            outcome: getOutcomeForKept(one),
+            isLive: false,
+            isChosen: chosenId === one.openedAt,
+        });
+    }
+    assert(rows.length >= kept.length, "a shelf draws a row for each fight it holds");
     assert(rows.every((one) => one.place !== ""), "and a row that says where was fought says it");
     return rows;
+}
+
+/** How a kept fight went, worked out from the two inputs it kept rather than from its payloads. */
+function getOutcomeForKept(kept: KeptFight): PanelOutcome | null {
+    assert(kept.openedAt >= 0, "a fight kept was kept at a moment");
+    assert(kept.combatants.length >= 0, "and by a cast, however small");
+    if (kept.outcome === null) return null;
+    const roster = composeCombatantRoster(kept.combatants);
+    return getOutcomeForSeat(kept.outcome, roster, kept.readerSide);
 }
 
 /**
  * Where a press leaves the panel. False for a press that moves nothing, so a stray attribute in
  * the game's own markup never costs a redraw, let alone puts the panel somewhere it cannot draw.
  */
+/**
+ * Which fight the panel draws, and the whole of what a change of fight costs: everything standing
+ * over the screen belonged to the fight that was being read, and this is another one.
+ */
+function setFightChosen(screen: ScreenState, openedAt: number | null): void {
+    assert(openedAt === null || Number.isSafeInteger(openedAt), "a fight is asked for by moment");
+    screen.openFightId = openedAt;
+    screen.isOnShelf = false;
+    screen.openRowId = null;
+    screen.openPairId = null;
+    screen.openSkillName = null;
+    assert(screen.openRowId === null, "and nothing of the last one stands over the new one");
+}
+
 function handlePress(screen: ScreenState, press: PanelPress): boolean {
     assert(press.kind.length > 0, "a press says what it asks for");
     assert(screen.current.length > 0, "and lands on a panel that is on a screen");
@@ -145,6 +226,10 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         if (screen.isOnShelf) screen.isOnShelf = false;
         else if (screen.openPairId !== null) screen.openPairId = null;
         else screen.openRowId = null;
+        return true;
+    }
+    if (press.kind === "fight") {
+        setFightChosen(screen, getIntegerFromText(press.stated));
         return true;
     }
     if (press.kind === "skill") {
@@ -194,6 +279,31 @@ interface FightFigures {
 }
 
 /**
+ * A fight off the shelf, read from what was kept of it: the cast and the messages, decoded by the
+ * code that is running rather than restored from an older version's arithmetic.
+ */
+function composeKeptFigures(kept: KeptFight): FightFigures {
+    assert(kept.combatants.length <= MAXIMUM_COMBATANTS, "a fight kept stays inside the bound");
+    const roster = composeCombatantRoster(kept.combatants);
+    const events = kept.payloads.flatMap((one) => decodeFightMessages([...one], roster));
+    assert(kept.payloads.length >= 0, "a fight kept was kept payload by payload");
+    assert(events.length >= 0, "and decodes to a list, however short");
+    return {
+        fight: {
+            roster,
+            events,
+            messagesByPayload: kept.payloads,
+            messagesLost: 0,
+            isOver: true,
+            payloads: kept.payloads.length,
+            readerSide: kept.readerSide,
+        },
+        roster,
+        statistics: composeFightStatistics(events, composeTeamHeals(events, roster)),
+    };
+}
+
+/**
  * The figures, derived rather than kept: what a session holds is what the game said, so the two
  * readers of it are never looking at arithmetic one of them did earlier.
  */
@@ -217,9 +327,15 @@ function showFight(
     panel: PanelHandle,
     kept: readonly KeptFight[],
     place: FightPlace | null,
+    readClock: (atMs: number) => { hour: number; minute: number } | null,
+    openedAt: number,
 ): void {
-    const figures = composeFightFigures(session);
-    if (figures === null) return;
+    const live = composeFightFigures(session);
+    if (live === null) return;
+    const chosen = screen.openFightId === null
+        ? null
+        : kept.find((one) => one.openedAt === screen.openFightId) ?? null;
+    const figures = chosen === null ? live : composeKeptFigures(chosen);
     const { fight, roster, statistics } = figures;
     const reading = composePanelReading(
         statistics,
@@ -255,12 +371,17 @@ function showFight(
         // A strip that cannot tell one side from the other is not drawn at all: the protocol
         // never states which side is the reader's own, and the client does not always either.
         hasReaderSide: fight.readerSide !== null,
-        shelf: composeShelfRows(kept),
+        shelf: composeShelfRows(
+            kept,
+            { fight: live.fight, place, openedAt },
+            screen.openFightId,
+            readClock,
+        ),
         isOnShelf: screen.isOnShelf,
         drill,
         pair,
         skill,
-        place: getPlaceWords(place),
+        place: getPlaceWords(chosen === null ? place : chosen.place),
         isCollapsed: screen.isCollapsed,
     });
 }
@@ -283,7 +404,15 @@ export interface UserscriptWindow {
         setItem(key: string, value: string): void;
     };
     /** The moment as a number and as a word. A recording states the second of them. */
-    Date: { now(): number; new (atMs: number): { toISOString(): string } };
+    Date: {
+        now(): number;
+        new (atMs: number): {
+            toISOString(): string;
+            /** Absent on a document that lends no clock of its own, which answers no time. */
+            getHours?(): number;
+            getMinutes?(): number;
+        };
+    };
     location: { hostname?: string | undefined };
     /** The clipboard is absent on a browser that lends none, which is an answer and not a fault. */
     navigator: {
@@ -405,6 +534,28 @@ function writeTextToClipboard(page: UserscriptWindow, text: string): void {
 }
 
 /**
+ * A moment on the reader's own clock, as the hour and the minute it fell on.
+ *
+ * Read through the page's own `Date`, which is the one clock a userscript has, and answered as
+ * null where it will not read one: a row with no time says nothing rather than saying `00:00`,
+ * which is a reading of nothing wearing the shape of one.
+ */
+function getClockFromPage(
+    page: UserscriptWindow,
+    atMs: number,
+): { hour: number; minute: number } | null {
+    assert(typeof page.Date === "function" || typeof page.Date === "object", "a page has a clock");
+    if (!Number.isFinite(atMs)) return null;
+    const held = new page.Date(atMs);
+    const hour = getNumberFromUnknown(held.getHours?.());
+    const minute = getNumberFromUnknown(held.getMinutes?.());
+    if (hour === null || minute === null) return null;
+    assert(hour >= 0, "an hour on a clock is not below nothing");
+    assert(minute >= 0, "and neither is a minute");
+    return { hour, minute };
+}
+
+/**
  * How big the window is, or nothing at all. A page that states one and not the other states no
  * viewport: half a size clamps a panel against a number nobody wrote.
  */
@@ -451,6 +602,7 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
             userAgent: page.navigator.userAgent ?? null,
         }),
         now: () => page.Date.now(),
+        readClock: (atMs) => getClockFromPage(page, atMs),
     });
 }
 
@@ -474,6 +626,10 @@ function keepFight(
         combatants,
         payloads: fight.messagesByPayload,
         place,
+        // What the client said and what the game said, kept as they were said: a row on the shelf
+        // states how the fight went, and deriving that would mean decoding it again to draw it.
+        readerSide: fight.readerSide,
+        outcome: composeFightFigures(session)?.statistics.outcome ?? null,
     });
     if (environment.store === null) return;
     // A refusal to write is an answer: the fight stays in the session and the panel keeps drawing.
@@ -567,13 +723,21 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     // the hero does not move while a fight is on, and reading it every payload would ask another
     // program's object graph a question whose answer cannot have changed.
     let place: FightPlace | null = null;
+    // When the fight going on now opened, which is the moment its row on the shelf states. Read
+    // on the payload that opens it, like the place beside it.
+    let liveOpenedAt = 0;
     const mount = (): void => {
         if (isMounted) return;
         environment.mount.show(panel.element);
         isMounted = true;
     };
+    const draw = (): void => {
+        assert(screen.current.length > 0, "a draw is of a panel that is on a screen");
+        assert(liveOpenedAt >= 0, "and of a fight that opened at a moment, or has not opened");
+        showFight(session, screen, panel, kept, place, environment.readClock, liveOpenedAt);
+    };
     const showAndMount = (): void => {
-        showFight(session, screen, panel, kept, place);
+        draw();
         mount();
     };
     // The recording, and the state each call is entered with. Held beside the session because it
@@ -591,7 +755,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
             // A panel with no fight in it still folds, and still says what it is waiting for.
             if (getFightFromSession(session) === null) panel.showWaiting(screen.isCollapsed);
-            else showFight(session, screen, panel, kept, place);
+            else draw();
         },
         (failure) => environment.report(FAILURE_LINE, failure),
         placement,
@@ -616,7 +780,10 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
                 combatantsAfter: composeSnapshotFromBattle(battle),
             });
             const fight = getFightFromSession(session);
-            if (fight !== null && fight.payloads === 1) place = getPlaceFromPage(environment.page);
+            if (fight !== null && fight.payloads === 1) {
+                place = getPlaceFromPage(environment.page);
+                liveOpenedAt = environment.now();
+            }
             // Once, on the call that ends it: a fight put on the shelf twice is two fights.
             if (fight !== null && fight.isOver && !wasOver) {
                 wasOver = true;

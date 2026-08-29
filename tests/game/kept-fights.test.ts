@@ -43,6 +43,8 @@ function composeFight(openedAt: number): KeptFight {
             healthMaximum: 745,
         }],
         payloads: [["1=100.00;0;heal=99"]],
+        readerSide: 1,
+        outcome: { wonNames: ["Gracz 1"], lostNames: ["Odyniec"], isDrawn: false },
         place: { mapName: "Mapa", x: 12, y: 34 },
     };
 }
@@ -83,7 +85,7 @@ Deno.test("a shelf nobody can read is dropped, never trusted into a figure", () 
 Deno.test("one fight nobody can read costs that fight and not the shelf", () => {
     const half: BrowserStore = {
         read: () =>
-            '{"version":1,"fights":[{"openedAt":1,"combatants":[],"payloads":[["0;0;txt=a"]]},' +
+            '{"version":2,"fights":[{"openedAt":1,"combatants":[],"payloads":[["0;0;txt=a"]]},' +
             '{"openedAt":2,"combatants":[],"payloads":"none"}]}',
         write: () => true,
     };
@@ -109,7 +111,14 @@ Deno.test("a fight off the shelf decodes as the fight that went on it", () => {
     const combatants = getRecordedCombatants(path);
     const payloads = getRecordedPayloads(path);
     assert(
-        writeKeptFights(store, KEY, [{ openedAt: 1, combatants, payloads, place: null }]),
+        writeKeptFights(store, KEY, [{
+            openedAt: 1,
+            combatants,
+            payloads,
+            place: null,
+            readerSide: null,
+            outcome: null,
+        }]),
         "kept",
     );
     const kept = readKeptFights(store, KEY)[0];
@@ -139,7 +148,7 @@ Deno.test("a fight keeps where it was fought, and reads back without it", () => 
         "a place is written as it stands",
     );
     const partial = composeJsonText({
-        version: 1,
+        version: 2,
         fights: [{ openedAt: 3, combatants: [], payloads: [], place: { mapName: "Mapa" } }],
     });
     assert(partial !== null, "a shelf missing two fields of a place is text");
@@ -150,10 +159,10 @@ Deno.test("a fight keeps where it was fought, and reads back without it", () => 
         "what was said is kept and what was not is nobody's",
     );
     const none = composeJsonText({
-        version: 1,
+        version: 2,
         fights: [{ openedAt: 4, combatants: [], payloads: [] }],
     });
-    assert(none !== null, "a shelf written before places were kept is text too");
+    assert(none !== null, "a shelf that states no place at all is text too");
     store.write(KEY, none);
     assertEquals(readKeptFights(store, KEY).length, 1, "a fight with no place at all still reads");
     assertEquals(
@@ -161,4 +170,27 @@ Deno.test("a fight keeps where it was fought, and reads back without it", () => 
         null,
         "as a fight fought nobody knows where",
     );
+});
+
+/**
+ * A shelf written by another version is dropped whole rather than read in halves.
+ *
+ * That is this store's whole migration, and it is what the protected contract asks for: a stored
+ * value whose meaning changes needs a new key or a migration, and a fight kept before the shelf
+ * learned the seat and the outcome would draw a row that says nothing about how it went.
+ */
+Deno.test("a shelf of another version is dropped, and the reader is left with none", () => {
+    const older = composeJsonText({
+        version: 1,
+        fights: [{ openedAt: 1, combatants: [], payloads: [["0;0;txt=a"]] }],
+    });
+    assert(older !== null, "a shelf of the version before this one is text");
+    const store = composeStore();
+    store.write(KEY, older);
+    assertEquals(readKeptFights(store, KEY), [], "and nothing of it is read as this one");
+
+    const kept = composeFight(7);
+    assert(writeKeptFights(store, KEY, [kept]), "while a shelf this version wrote reads back");
+    assertEquals(readKeptFights(store, KEY)[0]?.readerSide, kept.readerSide, "with the seat");
+    assertEquals(readKeptFights(store, KEY)[0]?.outcome, kept.outcome, "and how it ended");
 });

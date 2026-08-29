@@ -12,6 +12,7 @@
 
 import { assert } from "@std/assert";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
+import type { FightOutcome } from "@/src/core/fight-statistics.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import type { FightPlace } from "@/src/game/engine-place.ts";
 import {
@@ -24,7 +25,12 @@ import {
 
 /** A shelf holds this many fights and no more, oldest dropped first. */
 const MAXIMUM_KEPT = 20;
-const SHELF_VERSION = 1;
+/**
+ * Two, because a shelf written by the version before this one carries no seat and no outcome, and
+ * a row drawn from it would say nothing about how the fight went. A shelf of another version is
+ * dropped whole rather than read in halves.
+ */
+const SHELF_VERSION = 2;
 
 export interface KeptFight {
     /** Stated by the caller, which owns the clock. Zero is a moment like any other. */
@@ -34,6 +40,13 @@ export interface KeptFight {
     payloads: readonly (readonly string[])[];
     /** Where it was fought, as much of it as the client would say. */
     place: FightPlace | null;
+    /**
+     * Which side was the reader's, and how the game said the fight ended — **inputs, like the
+     * messages beside them.** A row on the shelf says how a fight went, and working that out of
+     * the payloads would mean decoding twenty fights to draw twenty rows.
+     */
+    readerSide: number | null;
+    outcome: FightOutcome | null;
 }
 
 function getMessagesFromValue(value: unknown): string[] | null {
@@ -117,6 +130,34 @@ function getKeptPlaceFromValue(value: unknown): FightPlace | null {
     return place;
 }
 
+/** The names a side was stated under, or null for anything that is not a list of them. */
+function getKeptNamesFromValue(value: unknown): string[] | null {
+    if (!Array.isArray(value)) return null;
+    assert(value.length >= 0, "a side kept is a list with a length");
+    const names: string[] = [];
+    for (const stated of value) {
+        const name = getTextFromUnknown(stated);
+        if (name === null) return null;
+        names.push(name);
+    }
+    assert(names.length === value.length, "a side kept is a side read back whole");
+    return names;
+}
+
+/**
+ * How the fight ended, or nothing. A fight kept before it ended has none, and so has one whose
+ * outcome does not read back — which is a row that says when and where and stops there.
+ */
+function getKeptOutcomeFromValue(value: unknown): FightOutcome | null {
+    if (!isRecord(value)) return null;
+    const wonNames = getKeptNamesFromValue(value.wonNames);
+    const lostNames = getKeptNamesFromValue(value.lostNames);
+    if (wonNames === null || lostNames === null) return null;
+    assert(wonNames.length >= 0, "a side that was kept is a list, however short");
+    assert(lostNames.length >= 0, "and so is the other");
+    return { wonNames, lostNames, isDrawn: value.isDrawn === true };
+}
+
 /** Null for anything a reader of this version does not recognise, whole fight and all. */
 function getKeptFightFromValue(value: unknown): KeptFight | null {
     if (!isRecord(value)) return null;
@@ -128,7 +169,14 @@ function getKeptFightFromValue(value: unknown): KeptFight | null {
     if (payloads === null) return null;
     assert(combatants.length >= 0, "a cast kept is a list, however short");
     assert(openedAt >= 0, "a moment kept is not before the epoch");
-    return { openedAt, combatants, payloads, place: getKeptPlaceFromValue(value.place) };
+    return {
+        openedAt,
+        combatants,
+        payloads,
+        place: getKeptPlaceFromValue(value.place),
+        readerSide: getNumberFromUnknown(value.readerSide),
+        outcome: getKeptOutcomeFromValue(value.outcome),
+    };
 }
 
 /** Whatever of the shelf reads back. A fight that does not is dropped, and the rest still stand. */

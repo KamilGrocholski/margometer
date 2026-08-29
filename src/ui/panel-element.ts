@@ -45,16 +45,17 @@ import {
     getInkForColour,
 } from "@/src/ui/panel-look.ts";
 import {
-    composeCountedNoun,
     composeFigureText,
+    composeShelfSizeText,
     composeSideCountsText,
     composeUndrawnText,
     composeUsesText,
-    COUNTED_NOUNS,
     getWordsForDamageKind,
     getWordsForHealthSource,
     getWordsForNothing,
     getWordsForOutcome,
+    getWordsForShelfOutcome,
+    getWordsForShelfTime,
     PANEL_WORDS,
     type PanelRegion,
 } from "@/src/ui/panel-words.ts";
@@ -139,6 +140,10 @@ const ROW_ATTRIBUTE = "data-row";
 const BACK_ATTRIBUTE = "data-back";
 /** Its own attribute, because a skill is named rather than numbered and one listener reads both. */
 const SKILL_ATTRIBUTE = "data-skill";
+/** And its own again for a fight on the shelf, which is a moment rather than a name. */
+const FIGHT_ATTRIBUTE = "data-fight";
+/** What the fight going on now is asked for by, which is no moment at all. */
+const LIVE_FIGHT = "live";
 /** Which row's detail the pointer is over, looked up in the register the draw filled. */
 const TIP_ATTRIBUTE = "data-tip";
 const TITLE_ATTRIBUTE = "title";
@@ -535,7 +540,10 @@ function composeHeaderElement(document: PanelDocument, view: PanelView): PanelEl
 function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElement {
     assert(typeof view.isOnShelf === "boolean", "a crumb is drawn for a panel that is somewhere");
     assert(SCREEN_ORDER.includes(view.current), "and on a screen the strips draw");
-    if (view.isOnShelf) return composeCrumbElement(document, PANEL_WORDS.fights);
+    // The way off the shelf goes back to the fight, which is not a place on the shelf.
+    if (view.isOnShelf) {
+        return composeCrumbElement(document, PANEL_WORDS.fights, PANEL_WORDS.backFromFights);
+    }
     if (view.drill === null) return composeSlotElement(document);
     // One rung at a time: the way back off a pair goes to the person it was opened from, and the
     // way back off that goes to the roster.
@@ -653,7 +661,13 @@ function composeRankingElement(
     return list;
 }
 
-/** The fights already fought, newest first, each saying how many were in it. */
+/**
+ * The fights on the shelf, newest first: when, how big, where, and how it went.
+ *
+ * The size stands before the place and not after it, so the one cell that can be cut is the last
+ * one. Written the other way round the size sits in the elastic cell, and a long map name pushes
+ * it off the end of the row.
+ */
 function composeShelfElement(
     document: PanelDocument,
     view: PanelView,
@@ -661,33 +675,47 @@ function composeShelfElement(
 ): PanelElement {
     const list = composeListElement(document, view.reading.visibleRows);
     assert(view.shelf.length >= 0, "a shelf holds what it holds");
+    assert(view.isOnShelf, "and is drawn where the reader asked for it");
     if (view.shelf.length === 0) {
         list.append(composeEmptyElement(document, PANEL_WORDS.shelfEmpty));
         return list;
     }
-    assert(view.shelf.every((one) => one.combatants >= 0), "and no fight had fewer than nobody");
-    for (const fight of [...view.shelf].sort((one, other) => other.openedAt - one.openedAt)) {
-        const row = composeElement(document, "div", `${CLASS.row} ${CLASS.rowLeaf}`);
-        const name = composeElement(document, "span", CLASS.rowName);
-        name.textContent = composeCountedNoun(fight.combatants, COUNTED_NOUNS.combatants);
-        row.append(name);
-        const parts = [row, name];
-        if (fight.place !== null) {
-            const place = composeElement(document, "span", CLASS.headerPlace);
-            place.textContent = fight.place;
-            row.append(place);
-            parts.push(place);
-        }
-        // The place is the elastic cell here, so it is the half a shelf row loses first.
-        register.add(`shelf:${fight.openedAt}`, {
-            name: fight.place ?? PANEL_WORDS.unknown,
-            figure: { caption: PANEL_WORDS.combatants, value: fight.combatants },
-            share: null,
-        });
-        setRowMarks(parts, TIP_ATTRIBUTE, `shelf:${fight.openedAt}`);
-        list.append(row);
-    }
+    for (const fight of view.shelf) list.append(composeShelfRow(document, fight, register));
     return list;
+}
+
+function composeShelfRow(
+    document: PanelDocument,
+    fight: ShelfRow,
+    register: TipRegister,
+): PanelElement {
+    assert(fight.openedAt >= 0, "a fight on the shelf was kept at a moment");
+    assert(fight.sizes.every((one) => one > 0), "and a side of it that is counted has somebody");
+    const chosen = fight.isChosen ? ` ${CLASS.rowChosen}` : "";
+    const row = composeElement(document, "div", `${CLASS.row} ${CLASS.rowDrillable}${chosen}`);
+    const time = composeElement(document, "span", CLASS.rowRank);
+    time.textContent = getWordsForShelfTime(fight.at, fight.isLive);
+    const size = composeElement(document, "span", CLASS.rowSize);
+    size.textContent = composeShelfSizeText(fight.sizes);
+    const where = composeElement(document, "span", CLASS.rowName);
+    where.textContent = fight.place ?? "";
+    const outcome = composeElement(document, "span", CLASS.rowValue);
+    outcome.textContent = getWordsForShelfOutcome(fight.outcome, fight.isLive);
+    for (const part of [time, size, where, outcome]) row.append(part);
+    const parts = [row, time, size, where, outcome];
+    // The place is the elastic cell, so the tile it loses to an ellipsis is what the detail gives
+    // back: a coordinate cut in half reads as a coordinate and is not one.
+    register.add(`shelf:${fight.openedAt}`, {
+        name: fight.place ?? PANEL_WORDS.unknown,
+        figure: null,
+        share: null,
+    });
+    setRowMarks(parts, TIP_ATTRIBUTE, `shelf:${fight.openedAt}`);
+    // The one going on now is asked for by a word rather than by a moment: a moment would have
+    // to be one no kept fight could carry, and there is no such moment.
+    setRowMarks(parts, FIGHT_ATTRIBUTE, fight.isLive ? LIVE_FIGHT : `${fight.openedAt}`);
+    assert(row.className.includes(CLASS.row), "a fight on the shelf is a row like any other");
+    return row;
 }
 
 /** One cut of an opened figure: its heading, its rows, and what the protocol named nobody for. */
@@ -1020,6 +1048,7 @@ export type PanelPress =
     | { kind: "side"; side: string }
     | { kind: "row"; stated: string }
     | { kind: "skill"; name: string }
+    | { kind: "fight"; stated: string }
     | { kind: "back" }
     | { kind: "fold" }
     | { kind: "save" }
@@ -1174,6 +1203,8 @@ function getPressFromTarget(
     if (stated !== null) return { kind: "row", stated };
     const name = target.getAttribute(SKILL_ATTRIBUTE);
     if (name !== null) return { kind: "skill", name };
+    const fight = target.getAttribute(FIGHT_ATTRIBUTE);
+    if (fight !== null) return { kind: "fight", stated: fight };
     if (target.getAttribute(SAVE_ATTRIBUTE) !== null) return { kind: "save" };
     if (target.getAttribute(COPY_ATTRIBUTE) !== null) return { kind: "copy" };
     if (target.getAttribute(SHELF_ATTRIBUTE) !== null) return { kind: "shelf" };
@@ -1431,12 +1462,24 @@ function setPanelBody(
     redraw: PanelRedraw,
 ): void {
     assert(SCREEN_ORDER.includes(view.current), "a body is drawn for a screen the strips draw");
-    regions.header = redraw(regions.header, "header", () => composeHeaderElement(document, view));
-    regions.nouns = redraw(regions.nouns, "tabs", () => composeNounStripElement(document, view));
+    // The shelf is a screen of its own and not one of the fight's: what stands over it is the
+    // way back, and a header saying how **this** fight went over a list of other fights would be
+    // answering a question nobody asked of that list.
+    const isFight = !view.isOnShelf;
+    regions.header = redraw(
+        regions.header,
+        "header",
+        () => isFight ? composeHeaderElement(document, view) : composeSlotElement(document),
+    );
+    regions.nouns = redraw(
+        regions.nouns,
+        "tabs",
+        () => isFight ? composeNounStripElement(document, view) : composeSlotElement(document),
+    );
     regions.directions = redraw(
         regions.directions,
         "tabs",
-        () => composeDirectionStripElement(document, view),
+        () => isFight ? composeDirectionStripElement(document, view) : composeSlotElement(document),
     );
     regions.crumb = redraw(regions.crumb, "crumb", () => composeCrumbRegion(document, view));
     regions.list = redraw(regions.list, "list", () => composeViewList(document, view, register));

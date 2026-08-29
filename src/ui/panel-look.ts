@@ -87,6 +87,8 @@ export const CLASS = {
     rowRank: "row-rank",
     rowBadge: "row-badge",
     rowName: "row-name",
+    rowSize: "row-size",
+    rowChosen: "chosen",
     rowValue: "row-value",
     rowShare: "row-share",
     bar: "bar",
@@ -619,6 +621,12 @@ function composeRowRules(): string {
         `border-radius:var(${VARIABLE_PREFIX}radius-small);font-size:9px;font-weight:700;` +
         `line-height:13px;text-align:center;}` +
         `.${CLASS.rowName}{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}` +
+        // As wide as the figure it holds and no wider: the cell after it is the only thing on a
+        // shelf row allowed to shorten, and without this the two give way together.
+        `.${CLASS.rowSize}{flex:none;padding-right:var(${VARIABLE_PREFIX}small);}` +
+        // Which fight is on screen. A left edge and not a colour alone: the outcome word beside
+        // it is what the colour would otherwise be carrying.
+        `.${CLASS.row}.${CLASS.rowChosen}{box-shadow:inset 3px 0 0 var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.rowValue}{font-variant-numeric:tabular-nums;` +
         `padding-left:var(${VARIABLE_PREFIX}wide);font-weight:600;}` +
         `.${CLASS.rowShare}{color:var(${VARIABLE_PREFIX}quiet);` +

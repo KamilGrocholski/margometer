@@ -30,6 +30,8 @@ import {
 } from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+/** Another fight, so a shelf and a session can hold different figures at the same moment. */
+const ANOTHER = "captures/2026-08-04-tempest-lowca-vs-odyncze.json";
 
 function composeStillClock(): Scheduler {
     return { every: () => 1, cancel: () => {} };
@@ -50,6 +52,8 @@ function composeEnvironment(page: unknown) {
         mount: { show: (panel) => shown.push(panel) },
         // A window of a size, so a drag has something to be clamped against.
         readViewport: () => ({ width: 1280, height: 900 }),
+        // A clock that answers the same moment every time, so a row's time is a fact of the test.
+        readClock: () => ({ hour: 21, minute: 5 }),
         report: (line) => reported.push(line),
         store: {
             read: (key) => held.get(key) ?? null,
@@ -327,7 +331,14 @@ Deno.test("the shelf has a screen of its own, and its control toggles", () => {
     assert(figures > 1, "the panel is on the figures, with a row for each of them");
 
     pressElement(host, "pointerdown", shelfTab);
-    assertEquals(rows().length, 1, "and on the shelf, with the one fight it has kept");
+    // Two rows: the fight going on now, and the one this recording ended. A shelf that hid the
+    // live one would answer *which fight am I reading* with a list the answer is not on.
+    assertEquals(rows().length, 2, "and on the shelf, with the live fight and the kept one");
+    assertEquals(
+        getTextsByClass(host, "row-rank"),
+        ["teraz", "21:05"],
+        "the one going on now saying so, and the kept one saying when it was",
+    );
     // The shelf is not one of the fight's screens, so it says its own name and totals nothing:
     // the live fight's two sides under a list of fights already fought are figures about neither.
     assertEquals(getTextsByClass(host, "crumb-here"), ["Walki"], "the shelf says what it is");
@@ -557,7 +568,7 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
     // a test that asks the whole panel passes with the row saying nothing.
     const row = getElementsWithin(host).find((one) => one.className.split(" ")[0] === "row");
     assert(row !== undefined, "the shelf drew the fight that ended");
-    assertEquals(getTextsByClass(row, "header-place"), [
+    assertEquals(getTextsByClass(row, "row-name"), [
         "Mapa Testowa (12, 34)",
     ], "and the row kept on the shelf says where it was fought");
 });
@@ -630,5 +641,62 @@ Deno.test("a panel goes up when the reading starts, saying there has been no fig
     assert(
         getElementsWithin(list).some((one) => one.className.split(" ")[0] === "row"),
         "with a row for somebody in it, rather than the sentence it opened on",
+    );
+});
+
+Deno.test("a fight off the shelf is read back, and the live one is a press away", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    const drawnFigures = (): string[] => {
+        return getTextsByClass(host, "row-value");
+    };
+    const live = drawnFigures();
+    assert(live.length > 0, "the panel is drawing the fight that just ended");
+
+    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(tab !== undefined, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", tab);
+    const rows = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row");
+    const kept = rows.find((one) => one.attributes.get("data-fight") !== "live");
+    assert(kept !== undefined, "the shelf holds the fight that ended");
+
+    // A second fight, so the live session and the shelf hold different figures: reading the kept
+    // one off the session would pass on one fight and be wrong on the next.
+    pressElement(host, "pointerdown", tab);
+    const second = getRecordedEngineUpdates(ANOTHER);
+    for (const payload of second) update(payload);
+    const now = drawnFigures();
+    assert(now.length > 0, "the panel is drawing the second fight");
+    assert(now[0] !== live[0], "which states figures of its own");
+
+    // What was kept is the cast and the messages, so what is drawn is decoded again rather than
+    // restored from figures somebody stored.
+    pressElement(host, "pointerdown", tab);
+    // The row itself rather than every part of it: a press lands on the deepest element, so each
+    // cell wears the row's mark too.
+    const kepts = getElementsWithin(host).filter((one) => {
+        if (one.className.split(" ")[0] !== "row") return false;
+        return one.attributes.get("data-fight") !== "live";
+    });
+    // Newest first, so the fight that ended first is the last row: the shelf now holds two.
+    assertEquals(kepts.length, 2, "the shelf holds both fights that have ended");
+    const held = kepts[kepts.length - 1];
+    assert(held !== undefined, "and the older of them is the one this test opened with");
+    pressElement(host, "pointerdown", held);
+    assertEquals(getTextsByClass(host, "crumb-here"), [], "the shelf gives way to the figures");
+    assertEquals(drawnFigures(), live, "which are the first fight's, read back off what was kept");
+
+    pressElement(host, "pointerdown", tab);
+    const marked = getElementsWithin(host).filter((one) => one.className.includes("chosen"));
+    assertEquals(marked.length, 1, "and the shelf marks which fight is on screen");
+    assertEquals(
+        marked[0]?.attributes.get("data-fight") === "live",
+        false,
+        "which is the kept one, not the fight going on",
     );
 });

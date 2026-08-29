@@ -63,13 +63,9 @@ const OPPONENT_WORDS: Record<PanelMetric, string> = {
 };
 
 /**
- * What the second cut is headed.
- *
- * **One of the four is never read, and it stays anyway.** Healing given has no cut by key — the
- * keys the protocol names belong to whoever received the health — so the reading hands the panel
- * an empty cut and no heading is drawn over it. The entry is here because the table is
- * exhaustive: the compiler then asks about a fifth screen instead of letting it inherit whichever
- * wording came first, and `tests/ui/panel-element.test.ts` holds the emptiness.
+ * What the second cut is headed. **One of the four is never read and stays anyway**: healing
+ * given has no cut by key, so the reading hands over an empty one and no heading is drawn — the
+ * entry is here because an exhaustive table makes a fifth screen a question the compiler asks.
  */
 const KIND_WORDS: Record<PanelMetric, string> = {
     damageDealtApplied: PANEL_WORDS.damageKind,
@@ -93,6 +89,11 @@ export interface ScreenState {
     openPairId: number | null;
     /** Or which skill does, which is the other last rung and is named rather than numbered. */
     openSkillName: string | null;
+    /**
+     * Which fight the panel is drawing: one off the shelf, or null for the one going on now.
+     * A fight chosen is read from what was kept of it, never from figures somebody stored.
+     */
+    openFightId: number | null;
     /** Folded to the title bar. The reader chose it, so the entry reads it back next visit. */
     isCollapsed: boolean;
 }
@@ -106,12 +107,14 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
         openRowId: null,
         openPairId: null,
         openSkillName: null,
+        openFightId: null,
         isCollapsed,
     };
     assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
     assert(state.openRowId === null, "and with every row closed");
     assert(state.openPairId === null, "and no pair standing over one");
     assert(state.openSkillName === null, "and no skill standing over that");
+    assert(state.openFightId === null, "and the fight being read is the one going on");
     assert(state.side === "everyone", "and listing everybody, before a reader has narrowed it");
     assert(state.isCollapsed === isCollapsed, "and folded exactly as the reader last left it");
     return state;

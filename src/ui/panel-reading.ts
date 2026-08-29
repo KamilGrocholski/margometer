@@ -15,6 +15,7 @@ import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant
 import {
     type CombatantFigures,
     composeCombatantFigures,
+    type FightOutcome,
     type FightStatistics,
     type FigureCut,
 } from "@/src/core/fight-statistics.ts";
@@ -86,12 +87,21 @@ export interface PinnedRow {
     shareText: string;
 }
 
-/** One fight already fought, as much of it as a shelf row shows. */
+/** One fight on the shelf, as much of it as a row shows without decoding it again. */
 export interface ShelfRow {
+    /** What a press asks for, which is the moment the fight was kept at. */
     openedAt: number;
-    /** Where it was fought, already in words, or null where the client would not say. */
+    /** On the reader's own clock, or null where the moment does not read back. */
+    at: { hour: number; minute: number } | null;
+    /** How big it was, the reader's side first, and where it was fought. */
+    sizes: number[];
     place: string | null;
-    combatants: number;
+    /** How it went from the reader's seat, or null where nobody could say. */
+    outcome: PanelOutcome | null;
+    /** The fight going on now, which is on the shelf and is kept nowhere. */
+    isLive: boolean;
+    /** Whose figures the panel is drawing: the one the reader is reading. */
+    isChosen: boolean;
 }
 
 /** How a fight went, from the reader's own seat. A draw needs no seat: nobody won it. */
@@ -375,8 +385,16 @@ function getOutcomeForReader(
     roster: CombatantRoster,
     readerSide: number | null,
 ): PanelOutcome | null {
-    const outcome = statistics.outcome;
-    if (outcome === null) return null;
+    if (statistics.outcome === null) return null;
+    return getOutcomeForSeat(statistics.outcome, roster, readerSide);
+}
+
+/** The same reading off what a shelf kept, which is the two inputs and not the fight. */
+export function getOutcomeForSeat(
+    outcome: FightOutcome,
+    roster: CombatantRoster,
+    readerSide: number | null,
+): PanelOutcome | null {
     assert(outcome.wonNames.length >= 0, "a side that is named is named in full, or not at all");
     if (outcome.isDrawn) return "drawn";
     if (readerSide === null) return null;

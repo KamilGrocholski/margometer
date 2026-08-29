@@ -33,6 +33,8 @@ export const PANEL_WORDS = {
     /** Where a fight states no side at all, in place of the headcount the header usually draws. */
     noSides: "brak składu",
     fights: "Walki",
+    /** The way off the shelf. It goes back to the fight, which is not a place on the shelf. */
+    backFromFights: "wróć",
     /** The two sides of the bar under the ranking, and what belongs to neither of them. */
     ourSide: "My",
     theirSide: "Oni",
@@ -256,6 +258,53 @@ export function composeCountedNoun(count: number, noun: CountedNoun): string {
     if (lastTwo >= TEEN_FLOOR && lastTwo <= TEEN_CEILING) return `${count} ${noun.many}`;
     if (last >= FEW_FLOOR && last <= FEW_CEILING) return `${count} ${noun.few}`;
     return `${count} ${noun.many}`;
+}
+
+/** The fight happening now, which is on the shelf and is kept nowhere. */
+const LIVE_FIGHT_TIME = "teraz";
+const LIVE_FIGHT_OUTCOME = "trwa";
+const TWO_DIGITS = 2;
+
+/**
+ * When a fight was kept, on the reader's own clock. Two digits either side, because a column of
+ * times that jumps between four and five characters reads as a column of different things, and
+ * nothing at all where the moment does not read back — `00:00` is a reading of nothing.
+ */
+export function getWordsForShelfTime(
+    at: { hour: number; minute: number } | null,
+    isLive: boolean,
+): string {
+    assert(typeof isLive === "boolean", "a row says whether it is the fight going on now");
+    if (isLive) return LIVE_FIGHT_TIME;
+    if (at === null) return "";
+    assert(at.hour >= 0, "a moment on a clock is not before its own start");
+    return `${composeTwoDigitText(at.hour)}:${composeTwoDigitText(at.minute)}`;
+}
+
+function composeTwoDigitText(value: number): string {
+    const digits = composeIntegerText(value);
+    assert(digits.length > 0, "a part of a moment is written as at least one digit");
+    assert(value >= 0, "and is never below nothing");
+    return digits.length >= TWO_DIGITS ? digits : `0${digits}`;
+}
+
+/**
+ * How big the fight was, side against side, the reader's own first. The multiplication sign
+ * rather than `v`: `4v4` is English shorthand, and this panel's one borrowed word would be it.
+ * The header says the same thing with `vs`, where there is room for a word.
+ */
+export function composeShelfSizeText(counts: readonly number[]): string {
+    assert(counts.every((one) => one > 0), "a side that is counted has somebody on it");
+    if (counts.length === 0) return "";
+    return counts.map((count) => composeFigureText(count)).join("×");
+}
+
+/** How a kept fight went, or that it is still going. Empty where nobody could say. */
+export function getWordsForShelfOutcome(outcome: PanelOutcome | null, isLive: boolean): string {
+    assert(typeof isLive === "boolean", "a row says whether it is the fight going on now");
+    if (isLive) return LIVE_FIGHT_OUTCOME;
+    if (outcome === null) return "";
+    return getWordsForOutcome(outcome);
 }
 
 /** How many times, beside a share: a count is what a skill row says and a figure cannot. */

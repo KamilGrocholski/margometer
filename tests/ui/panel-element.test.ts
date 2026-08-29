@@ -176,7 +176,7 @@ Deno.test("the side strip is drawn where the client said which side is the reade
  * The shelf covers the screen rather than being one of them, so nothing on the strips claims the
  * reader is on a screen they cannot see.
  */
-Deno.test("no tab is marked while the shelf is up, and the shelf is on the bar", () => {
+Deno.test("the shelf is a screen of its own, with the way back and no strips at all", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
@@ -189,17 +189,21 @@ Deno.test("no tab is marked while the shelf is up, and the shelf is on the bar",
         drill: null,
         pair: null,
         skill: null,
-        place: null,
+        place: "Mapa (1, 2)",
         isCollapsed: false,
     });
     const host = panel.element as FakeElement;
-    const tabs = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "tab");
-    assert(tabs.length > 0, "the strips are still drawn, so the way back is in sight");
+    // A header saying how this fight went, over a list of other fights, answers a question
+    // nobody asked of that list; a strip picking a figure of it is the same thing twice.
+    assertEquals(getElementsWithin(host).filter((one) => one.className === "tabs"), [], "no strip");
+    assertEquals(getTextsByClass(host, "header-place"), [], "and no header of the fight's");
+    assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.fights], "the shelf says so");
     assertEquals(
-        tabs.filter((one) => one.className.includes("selected")).length,
-        0,
-        "and none of them claims to be where the reader is",
+        getTextsByClass(host, "crumb-back"),
+        [`‹ ${PANEL_WORDS.backFromFights}`],
+        "and the way off it goes back to the fight rather than up the shelf",
     );
+
     const shelf = getElementsWithin(host).filter(
         (one) => one.attributes.get("data-shelf") !== undefined,
     );
@@ -974,7 +978,15 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
         current: "damageDealtApplied",
         side: "everyone",
         hasReaderSide: false,
-        shelf: [{ openedAt: 17, place: "Bagno Wisielców (128, 74)", combatants: 11 }],
+        shelf: [{
+            openedAt: 17,
+            at: { hour: 21, minute: 5 },
+            sizes: [10, 1],
+            place: "Bagno Wisielców (128, 74)",
+            outcome: "lost",
+            isLive: false,
+            isChosen: false,
+        }],
         isOnShelf: true,
         drill: null,
         pair: null,
@@ -986,12 +998,18 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
     const row = getElementsWithin(host).find((one) =>
         one.attributes.get("data-tip") === "shelf:17"
     );
-    assert(row !== undefined, "a fight on the shelf is a row somebody can point at");
+    assert(row !== undefined, "the fight is a row a reader can point at");
+    assertEquals(
+        [getTextsByClass(host, "row-rank")[0], getTextsByClass(host, "row-size")[0]],
+        ["21:05", "10×1"],
+        "when it was, and how big it was, before the place that can be cut",
+    );
+    assertEquals(getTextsByClass(host, "row-value")[0], "przegrana", "and how it went, last");
     pointAtElement(host, "pointermove", row, 120);
     assertEquals(
         readTip(host).lines,
-        ["Bagno Wisielców (128, 74)", PANEL_WORDS.combatants, "11"],
-        "the place whole, and how many were in it",
+        ["Bagno Wisielców (128, 74)"],
+        "and the place whole, which is the half the row loses to an ellipsis",
     );
 });
 
