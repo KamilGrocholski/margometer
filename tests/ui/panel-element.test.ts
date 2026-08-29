@@ -70,7 +70,7 @@ Deno.test("the panel goes into a shadow root, under a name of ours", () => {
     assertEquals(host.attributes.get("id"), "MargoMeter-Panel", "the host is named as ours");
     assert(host.shadow !== null, "and everything else is behind a root of its own");
     assertEquals(host.children.length, 0, "nothing is put beside the root");
-    assertEquals(host.shadow.length, 4, "its look, the title bar, the strip of screens, the body");
+    assertEquals(host.shadow.length, 5, "its look, the bar, the strip, the body, and the summary");
 });
 
 Deno.test("every name a reader meets before the panel's contents is ours", () => {
@@ -130,23 +130,42 @@ Deno.test("a fight nothing has happened in says so, rather than drawing nothing"
     assertEquals(getTextsByClass(host, "row-name"), [], "and draws no row at all");
 });
 
-Deno.test("what nobody can be charged with is a row apart, and a doubt is said", () => {
+Deno.test("what nobody can be charged with is a row apart from the ranking", () => {
     const reading = readFight();
     const host = draw(reading);
     assert(reading.withoutActor > 0, "this fight has damage tied to no attacker");
     const pinned = getElementsWithin(host).filter((one) => one.className === "pinned");
     assertEquals(pinned.length, 1, "which stands below the ranking as a row of its own");
+});
+
+Deno.test("the fight's own strip always draws, and a doubt rides it rather than the rows", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    const strip = getElementsWithin(host).filter((one) => one.className === "MargoMeter-summary");
+    assertEquals(strip.length, 1, "the strip is there whether or not anything went wrong");
+    assertEquals(
+        getTextsByClass(host, "summary-figure"),
+        [`${reading.total}`],
+        "carrying the fight's own total for the screen being read",
+    );
     assertEquals(
         getTextsByClass(host, "warning"),
         [],
-        "and nothing here is short, so nothing says so",
+        "and nothing here is short, so none is said",
     );
+
     const short = draw({ ...reading, isSuspect: true });
     assertEquals(
         getTextsByClass(short, "warning"),
-        [PANEL_WORDS.suspect],
-        "a doubt is said in words",
+        [`△ ${PANEL_WORDS.suspect}`],
+        "a doubt is said in words, behind a glyph, since colour never carries it alone",
     );
+    const marks = getElementsWithin(short).filter((one) => one.className === "warning");
+    assertEquals(marks.length, 1, "said once");
+    const body = getElementsWithin(short).find((one) => one.className === "MargoMeter-body");
+    assert(body !== undefined, "the body is a region of its own");
+    const under = getElementsWithin(body).filter((one) => one.className === "warning");
+    assertEquals(under, [], "and the doubt is not one of the things standing in it");
 });
 
 Deno.test("a press on a tab reaches the panel, and a press on anything else does not", () => {
@@ -234,7 +253,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
     const host = panel.element as FakeElement;
     assertEquals(failures.length, 1, "the failure is reported once");
     assertEquals(getTextsByClass(host, "undrawn"), [PANEL_WORDS.undrawn], "and marked in place");
-    assertEquals(host.shadow?.length, 4, "while the panel keeps its shape");
+    assertEquals(host.shadow?.length, 5, "while the panel keeps its shape");
     assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "the title stands");
 });
 

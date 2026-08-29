@@ -20,6 +20,13 @@ import {
 } from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+/** Every screen there is, so a claim about one of them is checked against the other three. */
+const SCREENS: PanelMetric[] = [
+    "damageDealtApplied",
+    "damageTakenApplied",
+    "damagePrevented",
+    "healthRestored",
+];
 /** The one recording where health goes down on a key of its own, and nowhere near a blow. */
 const POISONED = "captures/2026-08-04-tempest-lowca-vs-odyncze.json";
 const POISONED_ID = -255967;
@@ -119,6 +126,46 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
         "healthRestored",
     );
     assert(short.isSuspect, "a key nobody has read leaves every figure beside it suspect");
+    for (const metric of SCREENS) {
+        const any = composePanelReading(
+            composeFightStatistics(events, new Map()),
+            whole.roster,
+            metric,
+        );
+        assert(any.isSuspect, `${metric}: an unread key could have carried anything`);
+    }
+});
+
+Deno.test("a cast nobody could place shortens the healing, and says so only there", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    // The same fight with none of its casts sized, which is how a cast nobody could place reaches
+    // the figures: the event is there and the map has no answer for it.
+    const unplaced = composeFightStatistics(
+        getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster)),
+        new Map(),
+    );
+    assertEquals(
+        unplaced.unreadMessages,
+        0,
+        "nothing here is unread, so the casts are the whole of it",
+    );
+    assert(unplaced.castsUnplaced > 0, "and a cast went unplaced");
+    for (const metric of SCREENS) {
+        const reading = composePanelReading(unplaced, roster, metric);
+        if (metric === "healthRestored") {
+            assert(
+                reading.isSuspect,
+                "what a cast puts back is health, so the healing may be short",
+            );
+            continue;
+        }
+        assert(!reading.isSuspect, `${metric}: a cast cannot shorten a figure it never fed`);
+    }
+    assertEquals(
+        composePanelReading(statistics, roster, "healthRestored").isSuspect,
+        false,
+        "and a fight whose casts all placed says nothing",
+    );
 });
 
 Deno.test("every recording composes every screen without inventing a row", () => {

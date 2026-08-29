@@ -298,9 +298,10 @@ commit that opens or closes one.
    switches screens, pressing a row opens the figure cut twice — by whom each blow reached and by
    the kind of damage it carried — a finished fight goes on a shelf the reader can look back at, the
    bar and every row on that shelf say where the fight was fought, the panel carries the stylesheet
-   `DESIGN.md` specifies, and `deno task build` writes the file they install. What is not written:
-   the tooltip, the bar on a ranking row, every tool but the build, and the release plumbing —
-   `README.md`, `CHANGELOG.md` and the workflows.
+   `DESIGN.md` specifies and the strip that always states the screen's own total, and
+   `deno task build` writes the file they install. What is not written: the tooltip, the bar on a
+   ranking row, every tool but the build, and the release plumbing — `README.md`, `CHANGELOG.md` and
+   the workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
@@ -339,9 +340,11 @@ commit that opens or closes one.
     in `tests/repository/sources.test.ts` reads a declaration from one line, so a named arrow
     wrapped across two is invisible to S4 and S5. The limit is pinned by a test rather than left to
     be discovered, and closes when a file in this tree is written that way.
-11. **Every key in `captures/` is read.** `healall_per` was the last, and ADR 0010 carries how a
-    share stated about a whole side is sized onto its members. What remains open is what the panel
-    does with a partly sized cast: `isWhole` says one happened and nothing draws it yet.
+11. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
+    ADR 0010 carries how a share stated about a whole side is sized onto its members. Measured over
+    `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no
+    message anywhere unread — so the doubt mark never fires on the material this repository holds.
+    It is held by probes only, and the next protocol change is what it exists for.
 12. **A payload can move health with no message stating it.** Measured over `captures/`, 2026-08-28:
     of 17,958 comparisons between the health the protocol states about a combatant and the movement
     decoded from its own messages, 17,286 agree inside the reading's tolerance. Of the 672 that do

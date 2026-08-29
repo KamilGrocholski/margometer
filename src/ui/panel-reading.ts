@@ -45,7 +45,7 @@ export interface PanelReading {
     /** Applied damage the log tied to nobody. A row cannot carry it, so it stands on its own. */
     withoutActor: number;
     withoutTarget: number;
-    /** Something feeding these figures could not be read or placed, so any may be short. */
+    /** Something feeding **this screen's** figure went unread or unplaced, so it may be short. */
     isSuspect: boolean;
 }
 
@@ -54,6 +54,22 @@ function getFigure(figures: CombatantFigures, metric: PanelMetric): number {
     assert(Number.isFinite(figure), "a figure a screen shows is a number");
     assert(figure >= 0, "and never below nothing");
     return figure;
+}
+
+/**
+ * Whether this screen's own figure may be short.
+ *
+ * A message nobody could read may have carried anything, so it shortens whatever screen is being
+ * looked at. A cast nobody could place is narrower than that: what it puts back is health, and
+ * health restored is the only figure it feeds — marking a damage screen for it would put a doubt
+ * on a figure that cannot carry it.
+ */
+function getIsScreenSuspect(statistics: FightStatistics, metric: PanelMetric): boolean {
+    assert(statistics.unreadMessages >= 0, "a count of unread messages is never below nothing");
+    assert(statistics.castsUnplaced >= 0, "and neither is a count of casts nobody could place");
+    if (statistics.unreadMessages > 0) return true;
+    if (metric !== "healthRestored") return false;
+    return statistics.castsUnplaced > 0;
 }
 
 /** By figure, then by id, so a fight redrawn without changing states the same order. */
@@ -101,7 +117,7 @@ export function composePanelReading(
         total,
         withoutActor: metric === "damageDealtApplied" ? statistics.dealtByNobody : 0,
         withoutTarget: metric === "damageTakenApplied" ? statistics.takenByNobody : 0,
-        isSuspect: statistics.unreadMessages > 0 || statistics.castsUnplaced > 0,
+        isSuspect: getIsScreenSuspect(statistics, metric),
     };
 }
 

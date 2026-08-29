@@ -68,6 +68,9 @@ export const CLASS = {
     empty: "empty",
     undrawn: "undrawn",
     warning: "warning",
+    summary: "MargoMeter-summary",
+    summaryName: "summary-name",
+    summaryFigure: "summary-figure",
 } as const;
 
 export const SPACE = {
@@ -334,7 +337,14 @@ function composeFrameRules(): string {
         `.${CLASS.tabs}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
         `padding:var(${VARIABLE_PREFIX}half) var(${VARIABLE_PREFIX}small);` +
         `border-bottom:1px solid var(${VARIABLE_PREFIX}border);}` +
-        `.${CLASS.body}{overflow-y:auto;padding:var(${VARIABLE_PREFIX}half) 0;}`;
+        `.${CLASS.body}{overflow-y:auto;padding:var(${VARIABLE_PREFIX}half) 0;}` +
+        `.${CLASS.summary}{display:flex;justify-content:space-between;align-items:center;` +
+        `gap:var(${VARIABLE_PREFIX}small);padding:0 var(${VARIABLE_PREFIX}small);` +
+        `height:var(${VARIABLE_PREFIX}row-height);` +
+        `background:var(${VARIABLE_PREFIX}raised);` +
+        `border-top:1px solid var(${VARIABLE_PREFIX}border);}` +
+        `.${CLASS.summaryName}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.summaryFigure}{font-variant-numeric:tabular-nums;}`;
 }
 
 /**

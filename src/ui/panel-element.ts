@@ -86,6 +86,11 @@ const SECTION_CLASS = CLASS.section;
 const BACK_MARK = "\u2039 ";
 /** What the panel listens for: a press, not a click, so a drag never counts as one. */
 const PRESS_EVENT = "pointerdown";
+const SUMMARY_CLASS = CLASS.summary;
+const SUMMARY_NAME_CLASS = CLASS.summaryName;
+const SUMMARY_FIGURE_CLASS = CLASS.summaryFigure;
+/** More than colour, because colour never carries meaning by itself. */
+const SUSPECT_MARK = "\u25b3 ";
 const UNDRAWN_CLASS = CLASS.undrawn;
 const EMPTY_CLASS = CLASS.empty;
 const PINNED_CLASS = CLASS.pinned;
@@ -240,11 +245,6 @@ function composeBodyElement(document: PanelDocument, reading: PanelReading): Pan
             composePinnedElement(document, PANEL_WORDS.withoutTarget, reading.withoutTarget),
         );
     }
-    if (reading.isSuspect) {
-        const mark = composeElement(document, "div", SUSPECT_CLASS);
-        mark.textContent = PANEL_WORDS.suspect;
-        body.append(mark);
-    }
     return body;
 }
 
@@ -269,6 +269,35 @@ function composeSectionElement(document: PanelDocument, heading: string): PanelE
     const element = composeElement(document, "div", SECTION_CLASS);
     element.textContent = heading;
     return element;
+}
+
+/**
+ * The fight's own strip, and the one region that always draws.
+ *
+ * It is a summary rather than a banner, and the distinction is that it shows whether or not
+ * anything went wrong: a strip that appears only on a bad reading is a banner, however it is
+ * worded. A doubt that names nobody is said here, because no row can carry it — and it is said
+ * only on a screen whose figure the doubt could actually shorten.
+ */
+function composeSummaryElement(
+    document: PanelDocument,
+    reading: PanelReading,
+    metric: PanelMetric,
+): PanelElement {
+    const strip = composeElement(document, "div", SUMMARY_CLASS);
+    const name = composeElement(document, "span", SUMMARY_NAME_CLASS);
+    name.textContent = getWordsForScreen(metric);
+    const total = composeElement(document, "span", SUMMARY_FIGURE_CLASS);
+    total.textContent = `${reading.total}`;
+    strip.append(name);
+    strip.append(total);
+    assert(reading.total >= 0, "a fight's total is never below nothing");
+    assert(name.textContent.length > 0, "and the strip says which figure it is the total of");
+    if (!reading.isSuspect) return strip;
+    const mark = composeElement(document, "div", SUSPECT_CLASS);
+    mark.textContent = `${SUSPECT_MARK}${PANEL_WORDS.suspect}`;
+    strip.append(mark);
+    return strip;
 }
 
 /** The way back, and whose row stands open over the screen. */
@@ -386,6 +415,19 @@ export interface PanelHandle {
     show(view: PanelView): void;
 }
 
+/** One region redrawn in place, handing back what now stands where the old one did. */
+function composeRegionInPlace(
+    document: PanelDocument,
+    standing: PanelElement,
+    compose: () => PanelElement,
+    handleFailure: (failure: unknown) => void,
+): PanelElement {
+    const next = composeRegion(document, compose, handleFailure);
+    standing.replaceWith(next);
+    assert(next.className.length > 0, "a region that took another's place is a region of its own");
+    return next;
+}
+
 /**
  * The host is built once and stays. Only the regions inside it are replaced, so the listener at
  * the root outlives every redraw and a press during one is not swallowed.
@@ -411,9 +453,11 @@ export function composePanelHost(
     let title = composeElement(document, "div", TITLE_CLASS);
     let tabs = composeElement(document, "div", TABS_CLASS);
     let body = composeElement(document, "div", BODY_CLASS);
+    let summary = composeElement(document, "div", SUMMARY_CLASS);
     root.append(title);
     root.append(tabs);
     root.append(body);
+    root.append(summary);
     host.addEventListener(PRESS_EVENT, (event) => {
         const target = event.target;
         if (target === null) return;
@@ -433,29 +477,18 @@ export function composePanelHost(
     return {
         element: host,
         show(view: PanelView): void {
-            const nextTitle = composeRegion(
-                document,
-                () => composeTitleElement(document, view.place),
-                handleFailure,
-            );
-            const nextTabs = composeRegion(
-                document,
-                () => composeTabsElement(document, view),
-                handleFailure,
-            );
-            const nextBody = composeRegion(
-                document,
-                () => composeViewBody(document, view),
-                handleFailure,
-            );
-            title.replaceWith(nextTitle);
-            tabs.replaceWith(nextTabs);
-            body.replaceWith(nextBody);
-            title = nextTitle;
-            tabs = nextTabs;
-            body = nextBody;
+            const redraw = (standing: PanelElement, compose: () => PanelElement) => {
+                return composeRegionInPlace(document, standing, compose, handleFailure);
+            };
+            title = redraw(title, () => composeTitleElement(document, view.place));
+            tabs = redraw(tabs, () => composeTabsElement(document, view));
+            body = redraw(body, () => composeViewBody(document, view));
+            summary = redraw(summary, () => {
+                return composeSummaryElement(document, view.reading, view.current);
+            });
             assert(tabs !== body, "the regions are that many elements");
             assert(title !== tabs, "and none of them stands in for another");
+            assert(summary !== body, "the strip is its own region, drawn whatever the body says");
         },
     };
 }
