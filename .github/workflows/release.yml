@@ -1,0 +1,92 @@
+# What a tag turns into: a release carrying the file a reader installs.
+#
+# The banner's `@downloadURL` points at `releases/latest/download/margometer.user.js`, so an
+# installed copy updates itself from whatever this attaches. A release published without that asset
+# leaves every installed copy polling a 404 — and a failed update check is silent, which is why the
+# file is built here rather than uploaded by hand.
+#
+# ⚠️ **Both files, and the metadata one is not optional.** 0.5.0 polls `margometer.meta.js` for its
+# next version; a release without it leaves every copy installed from that version checking a 404
+# for good (ARCHITECTURE.md, protected contracts).
+name: release
+
+on:
+    push:
+        tags: ["v*"]
+
+permissions:
+    contents: write
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            # The step below asks an ancestry question, and a shallow clone answers one wrongly
+            # rather than loudly: with no history behind the tag, `merge-base --is-ancestor`
+            # reports "not contained" for a commit that is.
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            # `main` is the latest release and nothing else (AGENTS.md **G6**): it moves only when
+            # a version is tagged, and work happens on `develop`. A tag pushed from `develop` is
+            # the one mistake that model creates, and it would publish a release built from a tree
+            # `main` does not hold, with nothing about the result looking wrong. Nothing else can
+            # catch it: branch protection guards a push to a branch, and this is a push of a tag.
+            #
+            # An exit status decides; the text only names what failed. The ref is fetched by name
+            # rather than assumed, because what a checkout leaves in `refs/remotes/` is that
+            # action's business and not this file's.
+            - name: the tag sits on main
+              run: |
+                  git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+                  if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+                      echo "${GITHUB_REF_NAME} is not on main — push main first, then the tag" >&2
+                      exit 1
+                  fi
+
+            # Pinned, and to the same version pages.yml pins: "latest" means the published release
+            # is built by a toolchain that changes one day with no change in the code.
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: 2.9.6
+
+            # The version being tagged has to be the version this tree declares — ADR 0018. They
+            # come from two places, the tag and `deno.json`, and nothing else compares them.
+            - name: the tag and deno.json agree
+              run: |
+                  tagged="${GITHUB_REF_NAME#v}"
+                  declared="$(deno run -A tools/changelog.ts version)"
+                  if [ "$tagged" != "$declared" ]; then
+                      echo "tag ${GITHUB_REF_NAME} against deno.json ${declared}" >&2
+                      exit 1
+                  fi
+
+            - run: deno task check
+
+            # The gate builds at `0.0.0-dev`, which is what a tree nobody tagged honestly says
+            # (ADR 0012), so `dist/` is written again at the tag's version and both files are read
+            # back. A release whose banner names the previous version updates nobody.
+            - name: the built files carry the tagged version
+              run: |
+                  version="${GITHUB_REF_NAME#v}"
+                  deno run -A tools/build-userscript.ts "$version"
+                  grep -qx "// @version      ${version}" dist/margometer.user.js
+                  grep -qx "// @version      ${version}" dist/margometer.meta.js
+
+            # The notes are this version's section of CHANGELOG.md, which is the one document here
+            # written for players — not a generated list of commit subjects, for the reason ADR
+            # 0018 gives. A version with no section fails here, before anything is public.
+            - name: compose the release notes
+              run: deno run -A tools/changelog.ts notes "${GITHUB_REF_NAME#v}" > release-notes.md
+
+            # `gh` ships with the runner, so this adds no third-party action to a repository whose
+            # add-on has no runtime dependencies either.
+            - name: publish
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  gh release create "$GITHUB_REF_NAME" \
+                      dist/margometer.user.js dist/margometer.meta.js \
+                      --title "MargoMeter $GITHUB_REF_NAME" \
+                      --notes-file release-notes.md

@@ -39,6 +39,7 @@ deno.lock          What the gate is actually run against. A package the lock doe
 .github/
   workflows/
     pages.yml      The preview published, on a push to `main`, once the gate is green.
+    release.yml    What a tag turns into: the built file, and the notes its section carries.
 
 src/
   build-version.ts     Which build this is. The one constant a build writes over — ADR 0012.
@@ -362,9 +363,8 @@ commit that opens or closes one.
    fired and the statistics an attacker destroyed — because `core/` carries each of them on the
    events it produces — `+crit` among `PROC_KEYS`, the destroyed statistics on their own field, and
    every blow's own figures — and `fight-statistics.ts` aggregates none of the four. The rest of the
-   tools and the release plumbing — `README.md` and the `check` and `release` workflows — are
-   unwritten; `.github/workflows/pages.yml` is the one that exists, and nothing yet consumes the
-   photographs it does not publish.
+   tools and the release plumbing — `README.md` and the `check` workflow — are unwritten, and
+   nothing yet consumes the photographs `.github/workflows/pages.yml` does not publish.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
@@ -433,10 +433,11 @@ commit that opens or closes one.
     `tests/userscript-entry.test.ts`, which now carries a block body and a comment saying why. A
     false positive is worse than a blind spot, so this is the next thing that guard should learn;
     gap 10 is the other half of the same reader.
-14. **No release exists on this branch.** `CHANGELOG.md` is written, carried from v1 and opened with
-    what the rewrite changed for a player, and `tools/changelog.ts` composes the body of a release
-    out of it; `README.md`, the workflows and the screenshots are not written, and the release
-    contract above is inherited from v1 and unexercised here.
+14. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and
+    opened with what the rewrite changed for a player; `tools/changelog.ts` composes the body of a
+    release out of it, and `.github/workflows/release.yml` publishes one. **None of it has run
+    here.** `README.md`, the `check` workflow and the screenshots are unwritten, so **G7**'s wait
+    for a green `check` run has no run of its own, and the release path is held by its tests alone.
 15. **Nothing says which side is the reader's.** `PanelRow.side` carries the game's own team number
     and nothing turns it into `ours` or `theirs`: that needs `Engine.hero.d.id` read against
     `warriorsList`, which `game/` has not done. The two tokens `DESIGN.md` states for it are unspent
