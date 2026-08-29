@@ -1,11 +1,6 @@
 /**
  * The panel, drawn into a document it is handed. It never reaches for one, which is what keeps
  * the surface this asks of a browser declared rather than assumed.
- *
- * One shadow root, and every name a reader meets before the panel's contents carries the
- * `MargoMeter-` prefix; names inside sit behind the root where the game's stylesheet cannot see
- * them. Nothing here throws: a region that cannot be drawn is replaced by a marker at its own
- * size, and the rest of the panel stands.
  */
 
 import { assert } from "@std/assert";
@@ -77,12 +72,10 @@ import {
 } from "@/src/ui/panel-tip.ts";
 import { composeCardReading } from "@/src/ui/panel-card.ts";
 
-/** A browser's own document satisfies this, and nothing wider is asked for. */
 export interface PanelDocument {
     createElement(tag: string): PanelElement;
 }
 
-/** What a delegated listener is handed. The target is where the pointer landed, or nobody. */
 export interface PanelEvent {
     target: { getAttribute(name: string): string | null } | null;
     /**
@@ -90,10 +83,8 @@ export interface PanelEvent {
      * and null where it left the page.
      */
     relatedTarget?: { getAttribute(name: string): string | null } | null | undefined;
-    /** Where the pointer is: the detail follows the one, and a drag follows both. */
     clientY: number;
     clientX?: number | undefined;
-    /** Which pointer, so a drag can ask to keep it, and which button, where there is one. */
     pointerId?: number | undefined;
     button?: number | undefined;
     /** The game's own menu, on the gesture that goes back. Absent where nothing can be stopped. */
@@ -104,7 +95,6 @@ export interface PanelElement {
     className: string;
     textContent: string;
     append(child: PanelElement): void;
-    /** How a redrawn panel takes the place of the one before it, rather than stacking on it. */
     replaceWith(other: PanelElement): void;
     setAttribute(name: string, value: string): void;
     attachShadow(options: { mode: "open" }): PanelRoot;
@@ -125,15 +115,13 @@ export interface PanelElement {
  */
 export interface PanelRoot {
     append(child: PanelElement): void;
-    /** One listener at the root, never one per row. */
     addEventListener(type: string, handle: (event: PanelEvent) => void): void;
 }
 
 const HOST_NAME = "MargoMeter-Panel";
 /**
- * Which build drew this, on the host where anything outside the root can read it — a screenshot
- * of the panel is a report, and a report that does not say which build made it is a claim about
- * no particular version of the add-on.
+ * On the host where anything outside the root can read it: a screenshot of the panel is a report,
+ * and one that does not say which build made it is a claim about no particular version.
  */
 const VERSION_ATTRIBUTE = "data-margometer-version";
 /** What a control asks for. One attribute per control, so the listener never reads a class. */
@@ -142,50 +130,29 @@ const SAVE_ATTRIBUTE = "data-save";
 const COPY_ATTRIBUTE = "data-copy";
 const SHELF_ATTRIBUTE = "data-shelf";
 const SCREEN_ATTRIBUTE = "data-screen";
-/** Its own attribute, because a side is not a screen and one listener reads them apart. */
 const SIDE_ATTRIBUTE = "data-side";
-/** A row says which combatant it is, and the crumb above an opened row says only that it is one. */
 const ROW_ATTRIBUTE = "data-row";
 const BACK_ATTRIBUTE = "data-back";
-/** Its own attribute, because a skill is named rather than numbered and one listener reads both. */
 const SKILL_ATTRIBUTE = "data-skill";
-/** And its own again for a fight on the shelf, which is a moment rather than a name. */
 const FIGHT_ATTRIBUTE = "data-fight";
-/**
- * The pin, which is inside a row and is not one of the row's press targets.
- *
- * A press lands on the innermost node, so this is what makes the pin outrank the row it sits in —
- * structurally, rather than by the order the reader of a press happens to ask its questions in.
- */
 const PIN_ATTRIBUTE = "data-pin";
-/** Where the shelf is kept, asked for by the name of one of the three places. */
 const STORAGE_ATTRIBUTE = "data-storage";
-/** What the fight going on now is asked for by, which is no moment at all. */
 const LIVE_FIGHT = "live";
-/** Which row's detail the pointer is over, looked up in the register the draw filled. */
 const TIP_ATTRIBUTE = "data-tip";
 const TITLE_ATTRIBUTE = "title";
 /** What a row's bar and a badge are written on, since a length and a hue are data, not tokens. */
 const STYLE_ATTRIBUTE = "style";
-/** How many bars the list stands at, written by the draw and spent by the sheet. */
 const ROWS_VARIABLE = "--MargoMeter-rows";
 /** Braces, because what it saves is the protocol as the game stated it and not a reading of it. */
 const SAVE_MARK = "{ }";
-/** Two sheets, one behind the other: what it hands over is a second copy of what is on screen. */
 const COPY_MARK = "⧉";
-/** A stack of lines, which is what a shelf of fights already fought looks like. */
 const SHELF_MARK = "☰";
-/** Said the way a press would leave it: a folded panel offers to unfold, not to fold again. */
 const FOLD_MARK = "—";
 const UNFOLD_MARK = "+";
 const BACK_MARK = "‹ ";
-/** The grip, which is what says the bar can be taken hold of before anybody tries. */
 const GRIP_MARK = "⠿ ";
-/** What the panel listens for: a press, not a click, so a drag never counts as one. */
 const PRESS_EVENT = "pointerdown";
-/** One gesture in, one gesture out: the way back works from anywhere on the panel. */
 const BACK_EVENT = "contextmenu";
-/** What opens the detail, and what moves it. One event does both: it fires on either. */
 const MOVE_EVENT = "pointermove";
 /**
  * What closes it. `pointerleave` does not bubble and a shadow root is not on the composed path of
@@ -198,18 +165,14 @@ const MOVE_EVENT = "pointermove";
 const LEAVE_EVENT = "pointerout";
 /** The button a press has to be to open anything. A press that states none is that button. */
 const PRIMARY_BUTTON = 0;
-/** A fight holds twenty, and a screen draws a row for each. */
 const MAXIMUM_ROWS = 20;
-/** Set and not set, which is the state the glyph carries before any colour does. */
 const PIN_MARK = "★";
 const UNPINNED_MARK = "☆";
-/** What a panel with no fight in it stands at, which is the ranking's own floor. */
 const ROWS_WAITING = 11;
 /** What the statistics keep a cut inside. `captures/` states ten kinds in all, 2026-08-28. */
 const MAXIMUM_KINDS = 64;
 /** And what one combatant's own skills are kept inside: 81 names over `captures/`, 2026-08-29. */
 const MAXIMUM_SKILLS = 256;
-/** As wide as the sheet draws the detail window, which is what decides the side it opens on. */
 const TIP_WIDTH = 250;
 /** A bar is written to one place: a tenth of a 260-pixel row is a quarter of a pixel. */
 const FILL_PLACES = 1;
@@ -223,7 +186,6 @@ function composeElement(document: PanelDocument, tag: string, className: string)
     return element;
 }
 
-/** A slot standing where a region would, drawing nothing, so the regions keep their order. */
 function composeSlotElement(document: PanelDocument): PanelElement {
     const slot = composeElement(document, "div", CLASS.slot);
     assert(slot.textContent === "", "a slot that draws nothing says nothing");
@@ -231,36 +193,22 @@ function composeSlotElement(document: PanelDocument): PanelElement {
     return slot;
 }
 
-/** What a row hands the register beside the figures it is already drawing. */
 interface RowTip {
     register: TipRegister;
     key: string;
-    /** What the figure is, in the reader's words. */
     figure: string;
-    /** What the share is a share **of**, or null on a row that carries no share at all. */
     share: string | null;
-    /**
-     * What a row with more to say hands over in place of its name and its figure. Absent on every
-     * row that is not a person in the ranking: a skill, a kind and a fight have no card, and a row
-     * one rung down states a slice of a figure the card would answer for whole.
-     */
     compose?: TipCompose | undefined;
 }
 
-/** What one row draws, whoever or whatever it is about. */
 interface RowReading {
-    /** The whole name, which the row itself may cut with an ellipsis. */
     name: string;
     figure: number;
     fill: number;
     shareText: string;
-    /** The hue the bar, its cap and the badge are drawn in. */
     colour: string;
-    /** The game's own letter, or null where it named no profession and no badge is drawn. */
     profession: string | null;
-    /** Where it stands in the ranking, or null on a row that is a cut rather than a place. */
     rank: number | null;
-    /** How many times, where a row states a count. Null everywhere a figure is the whole of it. */
     uses?: number | null | undefined;
 }
 
@@ -280,17 +228,11 @@ function composeBarElements(document: PanelDocument, reading: RowReading): Panel
     const width = composeDecimalText(Math.min(reading.fill, 1) * AS_PERCENT, FILL_PLACES);
     const bar = composeElement(document, "div", CLASS.bar);
     bar.setAttribute(STYLE_ATTRIBUTE, `width:${width}%;background:${reading.colour}`);
-    // The colour at full strength on the edge the bar starts from: the bar itself is tinted so
-    // the figures printed over it stay readable, which costs the hue the palette was chosen at.
     const cap = composeElement(document, "div", CLASS.barCap);
     cap.setAttribute(STYLE_ATTRIBUTE, `background:${reading.colour}`);
     return [bar, cap];
 }
 
-/**
- * What a row says on demand where it has no card: its whole name, which the row itself may have
- * cut, and the two figures beside it said in words the row prints only as a bracket.
- */
 function composeRowTipReading(reading: RowReading, tip: RowTip): TipReading {
     assert(reading.name.length > 0, "a row that says nothing else at least names itself");
     assert(tip.figure.length > 0, "and says what the figure beside the name is a figure of");
@@ -306,10 +248,6 @@ function composeRowTipReading(reading: RowReading, tip: RowTip): TipReading {
     return { name: reading.name, subtitle: null, groups: [{ lines }] };
 }
 
-/**
- * A press lands on the deepest element under the pointer, so every part of an openable row wears
- * the mark. Null leaves the row closed: the rows inside an opened one have nothing further to open.
- */
 function composeRowElement(
     document: PanelDocument,
     reading: RowReading,
@@ -328,16 +266,12 @@ function composeRowElement(
     const value = composeElement(document, "span", CLASS.rowValue);
     value.textContent = composeFigureText(reading.figure);
     const share = composeElement(document, "span", CLASS.rowShare);
-    // The count rides the same brackets as the share: they answer one question between them —
-    // how much of the figure, and how many times it was announced.
     const uses = reading.uses ?? null;
     const counted = uses === null ? "" : ` · ${composeUsesText(uses)}`;
     share.textContent = `(${reading.shareText}${counted})`;
     value.append(share);
     parts.push(name, value);
     for (const part of parts) element.append(part);
-    // Appended to the figure rather than to the row, but it answers for the row like every other
-    // part of it, so it joins the marks once the row has been assembled.
     parts.push(share);
     const marked = [element, ...parts];
     if (opens !== null) setRowMarks(marked, ROW_ATTRIBUTE, opens);
@@ -347,7 +281,6 @@ function composeRowElement(
     return element;
 }
 
-/** What a combatant's row is, before it is drawn: the figures, and the colour their kind wears. */
 function composeCombatantReading(row: PanelRow, rank: number | null): RowReading {
     assert(row.figure >= 0, "a combatant's figure is never below nothing");
     assert(row.shareText.length > 0, "and their row states a share of the screen");
@@ -356,20 +289,12 @@ function composeCombatantReading(row: PanelRow, rank: number | null): RowReading
         figure: row.figure,
         fill: row.fill,
         shareText: row.shareText,
-        // The bar says what somebody is and the name beside it says who, so the colour is never
-        // the only thing carrying anything. A combatant the game named no profession for takes
-        // the colourless one, which is the absence of a category rather than a category of its own.
         colour: getColourForProfession(row.profession),
         profession: row.profession,
         rank,
     };
 }
 
-/**
- * What the second cut of a figure is drawn as. Damage is cut by the kind a blow carried and
- * healing by the key it moved under, so the words and the colour come from the noun rather than
- * from one table asked about both.
- */
 function composeElementReading(row: ElementRow, noun: PanelNoun, rank: number): RowReading {
     assert(row.element.length > 0, "a part of a figure is one the protocol named");
     assert(row.figure >= 0, "and states a figure that is not below nothing");
@@ -380,16 +305,12 @@ function composeElementReading(row: ElementRow, noun: PanelNoun, rank: number): 
         figure: row.figure,
         fill: row.fill,
         shareText: row.shareText,
-        // Colourless, like every row that names no combatant: a hue on this panel says **who**
-        // somebody is, and a kind of damage is not somebody. The row is worded outright, so
-        // nothing is lost by the bar saying nothing.
         colour: getColourForProfession(null),
         profession: null,
         rank,
     };
 }
 
-/** A figure the protocol left an end off is drawn in the colourless one: unknown is no category. */
 function composeUnnamedReading(row: UnnamedRow | PinnedRow, name: string): RowReading {
     assert(row.figure >= 0, "a figure nobody can be charged with is never below nothing");
     assert(name.length > 0, "and the row saying so is labelled");
@@ -418,11 +339,6 @@ function composeTabElement(
     return element;
 }
 
-/**
- * The upper strip: which quantity. Nothing on a strip is marked while the shelf is up — the shelf
- * covers the screen rather than being one of them, and a strip claiming the reader is on a screen
- * they cannot see is a claim.
- */
 function composeNounStripElement(document: PanelDocument, view: PanelView): PanelElement {
     const strip = composeElement(document, "div", CLASS.tabs);
     assert(SCREEN_ORDER.includes(view.current), "the panel is on a screen the strips draw");
@@ -433,23 +349,12 @@ function composeNounStripElement(document: PanelDocument, view: PanelView): Pane
     return strip;
 }
 
-/**
- * The lower strip, which is two controls in one row: which way round, and whose rows.
- *
- * They share a row because the vertical budget is the list's — every strip is a row of the
- * ranking that the reader does not get — and a direction on its own line spends one to say one
- * word. The gap between them is a node rather than a margin, because it is absent with the
- * direction it follows.
- */
 function composeDirectionStripElement(document: PanelDocument, view: PanelView): PanelElement {
     const strip = composeElement(document, "div", CLASS.tabs);
     assert(SCREEN_ORDER.includes(view.current), "the panel is on a screen the strips draw");
     for (const tab of composeDirectionTabs(view.current)) {
         strip.append(composeTabElement(document, SCREEN_ATTRIBUTE, getShownTab(tab, view)));
     }
-    // The third strip is drawn only where the client said which side is the reader's own: the
-    // protocol never does, and a strip offering to narrow to a side nothing can tell apart is
-    // three controls that would all list the same people.
     if (!view.hasReaderSide) return strip;
     assert(view.side.length > 0, "a side strip is drawn for a choice the reader has made");
     strip.append(composeElement(document, "span", CLASS.tabsGap));
@@ -466,10 +371,6 @@ function getShownTab(tab: ScreenTab, view: PanelView): ScreenTab {
     return { ...tab, isCurrent: false };
 }
 
-/**
- * The bar's one control that says what a press would **do** rather than what the panel is, which
- * is why the mark and the sentence both change with the state.
- */
 function composeFoldControl(document: PanelDocument, isCollapsed: boolean): PanelElement {
     const control = composeElement(document, "span", CLASS.control);
     control.textContent = isCollapsed ? UNFOLD_MARK : FOLD_MARK;
@@ -480,7 +381,6 @@ function composeFoldControl(document: PanelDocument, isCollapsed: boolean): Pane
     return control;
 }
 
-/** The three controls that say nothing about the state: they do the same on every screen. */
 function composeBarControl(
     document: PanelDocument,
     stated: { className: string; mark: string; attribute: string; words: string },
@@ -528,7 +428,6 @@ function composeTitleElement(document: PanelDocument, isCollapsed: boolean): Pan
     return bar;
 }
 
-/** The fight as a headcount, and where it is being fought on a line of its own. */
 function composeHeaderElement(document: PanelDocument, view: PanelView): PanelElement {
     const header = composeElement(document, "div", CLASS.header);
     const line = composeElement(document, "div", CLASS.headerLine);
@@ -547,8 +446,6 @@ function composeHeaderElement(document: PanelDocument, view: PanelView): PanelEl
     assert(who.textContent.length > 0, "a header says what the fight is, even where it is nothing");
     if (view.place === null) return header;
     assert(view.place.length > 0, "a place that is drawn says something");
-    // A line of its own, and only where there is something to put on it: beside the headcount a
-    // map's name plus a tile is the one thing on the header that would be cut.
     const place = composeElement(document, "div", CLASS.headerPlace);
     place.textContent = view.place;
     place.setAttribute(TITLE_ATTRIBUTE, view.place);
@@ -556,20 +453,13 @@ function composeHeaderElement(document: PanelDocument, view: PanelView): PanelEl
     return header;
 }
 
-/**
- * The way back, and what stands over the screen: whose row was opened, or the shelf. The shelf is
- * not one of the fight's screens, so what it says is the shelf's own name rather than a figure.
- */
 function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElement {
     assert(typeof view.isOnShelf === "boolean", "a crumb is drawn for a panel that is somewhere");
     assert(SCREEN_ORDER.includes(view.current), "and on a screen the strips draw");
-    // The way off the shelf goes back to the fight, which is not a place on the shelf.
     if (view.isOnShelf) {
         return composeCrumbElement(document, PANEL_WORDS.fights, PANEL_WORDS.backFromFights);
     }
     if (view.drill === null) return composeSlotElement(document);
-    // One rung at a time: the way back off a pair goes to the person it was opened from, and the
-    // way back off that goes to the roster.
     const opened = view.drill.name ?? PANEL_WORDS.unknown;
     if (view.skill !== null) return composeCrumbElement(document, view.skill.name, opened);
     if (view.pair === null) return composeCrumbElement(document, opened);
@@ -579,7 +469,6 @@ function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElem
 function composeCrumbElement(
     document: PanelDocument,
     said: string,
-    /** Where the way back leads, where that is a person rather than the roster. */
     from: string | null = null,
 ): PanelElement {
     assert(said.length > 0, "what stands over the screen is named before the way back is drawn");
@@ -589,8 +478,6 @@ function composeCrumbElement(
     back.setAttribute(BACK_ATTRIBUTE, PANEL_WORDS.back);
     const here = composeElement(document, "span", CLASS.crumbHere);
     here.textContent = said;
-    // It cuts the way a row does, and it names whatever was opened — so it is the one place a
-    // reader can no longer see what they pressed.
     here.setAttribute(TITLE_ATTRIBUTE, here.textContent);
     crumb.append(back);
     crumb.append(here);
@@ -599,13 +486,6 @@ function composeCrumbElement(
     return crumb;
 }
 
-/**
- * Whether a cut says anything the figure above it does not.
- *
- * One row carrying the whole of a figure is that figure again under another heading, and three
- * such sections in a row read as a panel that has run out of things to say. The list a level is
- * **about** is always drawn; only the cross-sections beside it answer to this.
- */
 function getIsRepetition(
     rows: readonly { figure: number }[],
     extra: { figure: number } | null,
@@ -617,7 +497,6 @@ function getIsRepetition(
     return rows.length === 1 && (rows[0]?.figure ?? 0) === total;
 }
 
-/** A heading over one cut, with the total it stands over, so two lists never read as one. */
 function composeSectionElement(
     document: PanelDocument,
     heading: string,
@@ -643,7 +522,6 @@ function composeEmptyElement(document: PanelDocument, words: string): PanelEleme
     return empty;
 }
 
-/** The one list with nothing above the sentence, so the sentence is what the box is for. */
 function composeWaitingElement(document: PanelDocument): PanelElement {
     const list = composeListElement(document, ROWS_WAITING);
     list.className = `${CLASS.list} ${CLASS.listWaiting}`;
@@ -653,7 +531,6 @@ function composeWaitingElement(document: PanelDocument): PanelElement {
     return list;
 }
 
-/** The list, which is the one region that scrolls and the one that gives way to the ceiling. */
 function composeListElement(document: PanelDocument, visibleRows: number): PanelElement {
     assert(visibleRows > 0, "a list stands at a height of at least one row");
     assert(Number.isSafeInteger(visibleRows), "and at a whole number of them");
@@ -678,8 +555,6 @@ function composeRankingElement(
     assert(figure.length > 0, "a row states what its figure is a figure of");
     for (const [at, row] of reading.rows.entries()) {
         const reader = composeCombatantReading(row, at + 1);
-        // The one list whose rows are people, and the one that hands over a card: everything a
-        // combatant has is stated here, so the figure this screen cut away costs a hover.
         const tip = {
             register,
             key: `row:${row.combatantId}`,
@@ -701,11 +576,8 @@ function composeRankingElement(
 }
 
 /**
- * The fights on the shelf, newest first: when, how big, where, and how it went.
- *
  * The size stands before the place and not after it, so the one cell that can be cut is the last
- * one. Written the other way round the size sits in the elastic cell, and a long map name pushes
- * it off the end of the row.
+ * one: written the other way round, a long map name pushes the size off the end of the row.
  */
 function composeShelfElement(
     document: PanelDocument,
@@ -743,25 +615,18 @@ function composeShelfRow(
     outcome.textContent = getWordsForShelfOutcome(fight.outcome, fight.isLive);
     for (const part of [time, size, where, outcome]) row.append(part);
     const parts = [row, time, size, where, outcome];
-    // The place is the elastic cell, so the tile it loses to an ellipsis is what the detail gives
-    // back: a coordinate cut in half reads as a coordinate and is not one.
     register.add(`shelf:${fight.openedAt}`, () => ({
         name: fight.place ?? PANEL_WORDS.unknown,
         subtitle: null,
         groups: [],
     }));
     setRowMarks(parts, TIP_ATTRIBUTE, `shelf:${fight.openedAt}`);
-    // The one going on now is asked for by a word rather than by a moment: a moment would have
-    // to be one no kept fight could carry, and there is no such moment.
+    // A moment would have to be one no kept fight could carry, and there is no such moment.
     setRowMarks(parts, FIGHT_ATTRIBUTE, fight.isLive ? LIVE_FIGHT : `${fight.openedAt}`);
     assert(row.className.includes(CLASS.row), "a fight on the shelf is a row like any other");
     return row;
 }
 
-/**
- * The one control on a row that is not the row: what a press does to it is said in words as well
- * as by the glyph, because a mark alone says the state and never the consequence.
- */
 function composePinElement(document: PanelDocument, fight: ShelfRow): PanelElement {
     assert(fight.isPinnable, "a pin is drawn where there is something to pin");
     const set = fight.isPinned ? ` ${CLASS.rowPinSet}` : "";
@@ -775,12 +640,6 @@ function composePinElement(document: PanelDocument, fight: ShelfRow): PanelEleme
     return pin;
 }
 
-/**
- * Where the shelf is kept, which is the reader's own answer and the shelf's only question.
- *
- * A strip like the ones over a fight, with a word in front of it: three choices side by side are
- * three words nobody can order without being told what they answer.
- */
 function composeStorageStripElement(document: PanelDocument, view: PanelView): PanelElement {
     const strip = composeElement(document, "div", CLASS.tabs);
     assert(view.isOnShelf, "the question about keeping fights is asked over the fights");
@@ -798,7 +657,6 @@ function composeStorageStripElement(document: PanelDocument, view: PanelView): P
     return strip;
 }
 
-/** One cut of an opened figure: its heading, its rows, and what the protocol named nobody for. */
 function composeOpponentSection(
     document: PanelDocument,
     list: PanelElement,
@@ -822,8 +680,6 @@ function composeOpponentSection(
                 share,
             },
         };
-        // A row opens where the level under it would say something this one does not — the rest
-        // are leaves, and a press on one of them is a press on nothing.
         const opens = row.opensPair ? `${row.combatantId}` : null;
         list.append(composeRowElement(document, composeCombatantReading(row, at + 1), opens, tip));
     }
@@ -840,8 +696,6 @@ function composeOpponentSection(
 }
 
 /**
- * What a figure was done with: the skills an announcement named, and the row that closes them.
- *
  * Drawn on the one screen the protocol states it for. What hit you is named and what the other
  * side chose never is, so a received screen has no such section — and the reading hands over an
  * empty cut rather than this being said twice.
@@ -855,8 +709,6 @@ function composeSkillSection(
     const cut = drill.bySkill;
     assert(cut.rows.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
     if (cut.rows.length === 0 && cut.plain === null) return;
-    // Unless the one row counts something. `Zwykły cios 2 644 (100% · ×8)` says eight blows where
-    // the figure above says none, and how many times is the whole question a plain attack raises.
     const counts = cut.plain !== null && cut.plain.blows > 0;
     if (!counts && getIsRepetition(cut.rows, cut.plain, drill.total)) return;
     list.append(composeSectionElement(document, PANEL_WORDS.skills, drill.total));
@@ -869,8 +721,6 @@ function composeSkillSection(
             share,
         };
         const element = composeRowElement(document, composeSkillRowReading(row, at + 1), null, tip);
-        // A skill opens onto who it reached, where that is anybody but the row it was opened
-        // from — every other skill row is a leaf.
         if (row.opensSkill) setRowMarks([element], SKILL_ATTRIBUTE, row.name);
         list.append(element);
     }
@@ -883,7 +733,6 @@ function composeSkillSection(
     list.append(composeRowElement(document, reading, null, tip));
 }
 
-/** A skill wears no hue either: what it is is said in the name the announcement carried. */
 function composeSkillRowReading(row: SkillRow, rank: number): RowReading {
     assert(row.name.length > 0, "a skill drawn is one an announcement named");
     assert(row.figure >= 0, "and states a figure that is not below nothing");
@@ -908,8 +757,6 @@ function composeElementSection(
     const cut = drill.byElement;
     assert(cut.rows.length <= MAXIMUM_KINDS, "a cut stays inside the bound it is kept to");
     assert(drill.total >= 0, "a cut stands under a figure that is not below nothing");
-    // The reading is what says whether there is a cut at all: a screen without one hands over an
-    // empty one rather than being named here a second time.
     if (cut.rows.length === 0 && cut.unnamed === null) return;
     if (getIsRepetition(cut.rows, cut.unnamed, drill.total)) return;
     list.append(composeSectionElement(document, getWordsForKindCut(stated.metric), drill.total));
@@ -933,12 +780,9 @@ function composeElementSection(
 }
 
 /**
- * How tall the list stands with a row open: what the cuts need, and never less than the ranking
- * it was opened from.
- *
  * A breakdown reached from a list of eleven must not shorten the window under the hand that
- * pressed it, and a breakdown longer than eleven must not be cut off in the middle of a section —
- * the ceiling on the host is what stops either from reaching past the bottom of the screen.
+ * pressed it, and one longer than eleven must not be cut off in the middle of a section — the
+ * ceiling on the host is what stops either from reaching past the bottom of the screen.
  */
 function getRowsForDrill(drill: DrillReading, floor: number): number {
     assert(floor > 0, "a list stands at a height of at least one row");
@@ -957,10 +801,8 @@ function getRowsForDrill(drill: DrillReading, floor: number): number {
 }
 
 /**
- * One row opened: the same figure cut twice — by the other end of each blow, and by the kind of
- * damage it carried. Neither cut is opened any further, and a cut with nothing in it draws no
- * heading: a blow the protocol tied to nobody still states what it was dealt with, so the kinds
- * can stand alone.
+ * Neither cut is opened any further, and a cut with nothing in it draws no heading: a blow the
+ * protocol tied to nobody still states what it was dealt with, so the kinds can stand alone.
  */
 function composeDrillElement(
     document: PanelDocument,
@@ -975,16 +817,12 @@ function composeDrillElement(
     composeSkillSection(document, list, drill, { register, figure });
     composeElementSection(document, list, drill, { metric: view.current, register, figure });
     assert(drill.total >= 0, "a figure opened is never below nothing");
-    // A person the reader is still reading, on a screen they did nothing on: the strips carry
-    // them from screen to screen, so this is one press away and is said in words rather than
-    // left as an empty box.
     if (drill.total === 0) {
         list.append(composeEmptyElement(document, getWordsForNothing(view.current)));
     }
     return list;
 }
 
-/** One part of the track, or nothing where that part of the fight is nothing. */
 function composeSidesPart(
     document: PanelDocument,
     share: number,
@@ -1000,15 +838,6 @@ function composeSidesPart(
     return part;
 }
 
-/**
- * The fight in two figures and a track, and the one region that always draws where the client
- * said which side is the reader's own.
- *
- * **Fight-scope even under a side tab and inside an opened row**: what it answers is how the
- * fight is going, and that does not change when the ranking narrows — only the label does. The
- * two colours are not good and bad: they are two sides, and each stands beside a figure and a
- * label, so no meaning rides on the hue alone.
- */
 function composeSidesElement(document: PanelDocument, view: PanelView): PanelElement {
     const sides = view.reading.sides;
     assert(sides !== null, "a strip of two sides is drawn where there are two to tell apart");
@@ -1031,7 +860,6 @@ function composeSidesElement(document: PanelDocument, view: PanelView): PanelEle
     return block;
 }
 
-/** Three parts and not two: what belongs to neither side is drawn rather than left out. */
 function composeSidesTrack(
     document: PanelDocument,
     block: PanelElement,
@@ -1054,7 +882,6 @@ function composeSidesTrack(
     block.append(track);
 }
 
-/** Below the track rather than beside the two figures: it is not a third contestant. */
 function composeSidesSpare(document: PanelDocument, figure: number): PanelElement {
     assert(figure > 0, "what belongs to no side is drawn because there is some of it");
     const spare = composeElement(
@@ -1072,7 +899,6 @@ function composeSidesSpare(document: PanelDocument, figure: number): PanelElemen
     return spare;
 }
 
-/** The strip totals the fight; the label says so wherever the list above it shows less. */
 function composeSidesLabel(view: PanelView): string {
     const sides = `${PANEL_WORDS.ourSide} / ${PANEL_WORDS.theirSide}`;
     assert(sides.length > 0, "the two sides are named before they are totalled");
@@ -1081,10 +907,6 @@ function composeSidesLabel(view: PanelView): string {
     return `${PANEL_WORDS.wholeFight} · ${sides}`;
 }
 
-/**
- * A region that cannot be drawn is replaced by a marker at its own size, and the panel keeps its
- * shape. This is one of the four boundaries, and the only broad catch in this file.
- */
 function composeRegion(
     document: PanelDocument,
     region: PanelRegion,
@@ -1103,32 +925,22 @@ function composeRegion(
     }
 }
 
-/** Everything one drawing of the panel is: the figures, the screen, and the fights behind it. */
 export interface PanelView {
     reading: PanelReading;
     current: PanelMetric;
-    /** Whose rows the ranking lists, and whether the client said enough for the strip to draw. */
     side: PanelSideChoice;
     hasReaderSide: boolean;
     shelf: readonly ShelfRow[];
-    /** Where the shelf is kept, which the strip over it draws as the answer it is. */
     storage: PanelStorageChoice;
-    /** What the shelf itself has to say, which is never about the fight that is drawn. */
     shelfWarnings: readonly string[];
     isOnShelf: boolean;
-    /** The row standing open over the screen, or nobody's. */
     drill: DrillReading | null;
-    /** The pair standing open over that, which is the last rung and opens nothing further. */
     pair: PairReading | null;
-    /** Or the skill standing open over it, which is the other last rung and opens nothing. */
     skill: SkillReading | null;
-    /** Where the fight is being fought, already in words. Null where the client would not say. */
     place: string | null;
-    /** Folded to the title bar. What is under it is composed empty, never drawn and hidden. */
     isCollapsed: boolean;
 }
 
-/** What a press asked for, read off the pressed element's own attribute. */
 export type PanelPress =
     | { kind: "screen"; screen: string }
     | { kind: "side"; side: string }
@@ -1143,7 +955,6 @@ export type PanelPress =
     | { kind: "copy" }
     | { kind: "shelf" };
 
-/** The shelf stands over an opened row, an opened row over the screen, and a pair over that. */
 function composeViewList(
     document: PanelDocument,
     view: PanelView,
@@ -1160,7 +971,6 @@ function composeViewList(
     return composeRankingElement(document, view.reading, view.current, register);
 }
 
-/** One skill opened: who it reached. The other last rung, and nothing on it opens either. */
 function composeSkillElement(
     document: PanelDocument,
     view: PanelView,
@@ -1183,10 +993,6 @@ function composeSkillElement(
     return list;
 }
 
-/**
- * One pair opened: what one of them did to the other, cut by the skills announced for it and by
- * what those blows carried. The last rung — nothing here opens any further.
- */
 function composePairElement(
     document: PanelDocument,
     view: PanelView,
@@ -1203,7 +1009,6 @@ function composePairElement(
     return list;
 }
 
-/** The skills one of them announced against the other, and what stood behind none. */
 function composePairSkills(
     document: PanelDocument,
     list: PanelElement,
@@ -1222,8 +1027,6 @@ function composePairSkills(
     for (const [at, row] of cut.rows.entries()) {
         const tip = { ...stated, key: `pair-skill:${row.name}` };
         const element = composeRowElement(document, composeSkillRowReading(row, at + 1), null, tip);
-        // A skill opens onto who it reached, where that is anybody but the row it was opened
-        // from — every other skill row is a leaf.
         if (row.opensSkill) setRowMarks([element], SKILL_ATTRIBUTE, row.name);
         list.append(element);
     }
@@ -1233,7 +1036,6 @@ function composePairSkills(
     list.append(composeRowElement(document, reading, null, tip));
 }
 
-/** What the blows between the two carried, under the heading every damage cut wears. */
 function composePairKinds(
     document: PanelDocument,
     list: PanelElement,
@@ -1253,7 +1055,6 @@ function composePairKinds(
     }
 }
 
-/** The same arithmetic the level above uses: what the cuts need, never below the ranking's own. */
 function getRowsForPair(pair: PairReading, floor: number): number {
     assert(floor > 0, "a list stands at a height of at least one row");
     assert(pair.total >= 0, "and holds a figure that is not below nothing");
@@ -1263,7 +1064,6 @@ function getRowsForPair(pair: PairReading, floor: number): number {
     return Math.max(needed, floor);
 }
 
-/** One pinned figure, in a block of its own, so a failure is the size of one row. */
 function composePinnedElement(
     document: PanelDocument,
     row: PinnedRow,
@@ -1279,7 +1079,6 @@ function composePinnedElement(
     return block;
 }
 
-/** What a press means, read off the pressed element rather than off a handler bound to it. */
 function getPressFromTarget(
     target: { getAttribute(name: string): string | null },
 ): PanelPress | null {
@@ -1309,10 +1108,6 @@ function getPressFromTarget(
 
 /**
  * The four listeners, all of them at the root and none of them on a row.
- *
- * A press inside a shadow root is retargeted for anybody listening outside it, so the host is the
- * wrong place for any of these — and what a listener is handed is the deepest element under the
- * pointer, which is why every part of a row wears the row's own marks.
  *
  * The press and never the click: a browser assembles a click out of two moments and dispatches it
  * only if both resolve to a node still in the tree, so a payload landing between the press and
@@ -1350,21 +1145,16 @@ function setPanelRootListeners(
     });
 }
 
-/** The panel on the page, and the way to put a new view into the one that is already there. */
 export interface PanelHandle {
     element: PanelElement;
     show(view: PanelView): void;
     /**
-     * What the panel says before a fight has reached it, drawn at the height a ranking stands at.
-     *
-     * A body appearing as a strip under its own bar is the shape a folded panel has, which is the
-     * whole reason this exists: with no draw at all before the first payload, an add-on waiting
-     * for a fight and one that died on the way to the page are the same picture.
+     * With no draw at all before the first payload, an add-on waiting for a fight and one that
+     * died on the way to the page are the same picture.
      */
     showWaiting(isCollapsed: boolean): void;
 }
 
-/** One region redrawn in place, handing back what now stands where the old one did. */
 function composeRegionInPlace(
     document: PanelDocument,
     standing: PanelElement,
@@ -1379,7 +1169,6 @@ function composeRegionInPlace(
     return next;
 }
 
-/** Every region the panel keeps a place for, in the order a reader meets them. */
 interface PanelRegions {
     title: PanelElement;
     header: PanelElement;
@@ -1416,15 +1205,11 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
 /**
  * The host is built once and stays. Only the regions inside it are replaced, so the listener at
  * the root outlives every redraw and a press during one is not swallowed.
- *
- * The press is read off the pressed element's own attribute, which is what makes one listener
- * enough: no row and no tab ever carries a handler of its own.
  */
 export function composePanelHost(
     document: PanelDocument,
     handlePress: (press: PanelPress) => void,
     handleFailure: (failure: unknown) => void,
-    /** Where the panel sits, and where a reader may move it to. Null leaves it in its corner. */
     placement: PanelPlacement | null = null,
 ): PanelHandle {
     const host = document.createElement("div");
@@ -1454,11 +1239,8 @@ export function composePanelHost(
     const redraw = (standing: PanelElement, region: PanelRegion, compose: () => PanelElement) => {
         return composeRegionInPlace(document, standing, region, compose, handleFailure);
     };
-    // The detail is a region like the others and the last of them, so it stands over what it
-    // describes. It is put in once and never replaced by a redraw of any other.
     const register = composeTipRegister();
-    // Where the panel is right now, which is what the detail is placed beside. Null until a drag
-    // writes one, and null for good on a panel that was never made movable.
+    // Null until a drag writes one, and null for good on a panel never made movable.
     let getPosition: () => PanelPosition | null = () => null;
     const tip: TipHandle = composeTipHandle(
         document,
@@ -1486,9 +1268,6 @@ export function composePanelHost(
                 "header",
                 () => composeTitleElement(document, view.isCollapsed),
             );
-            // Composed empty rather than composed and then hidden, because a fight redraws every
-            // few seconds and a folded panel that went on ranking twenty combatants would be
-            // paying for a screen nobody is looking at.
             frame.className = view.isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
             if (view.isCollapsed) setPanelFolded(document, regions, redraw);
             else setPanelBody(document, regions, view, register, redraw);
@@ -1505,8 +1284,6 @@ export function composePanelHost(
             );
             frame.className = isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
             setPanelFolded(document, regions, redraw);
-            // Nothing else is drawn: there is no screen to pick, no row to open and nothing to
-            // total, so a strip or a strip of tabs would be a control over a fight that is not on.
             if (!isCollapsed) {
                 regions.list = redraw(regions.list, "list", () => composeWaitingElement(document));
             }
@@ -1517,20 +1294,12 @@ export function composePanelHost(
     };
 }
 
-/** How a region takes the place of the one standing there, which is how every region is drawn. */
 type PanelRedraw = (
     standing: PanelElement,
     region: PanelRegion,
     compose: () => PanelElement,
 ) => PanelElement;
 
-/**
- * What stands under the bar while the panel is folded: nothing, and nothing composed either.
- *
- * The regions are emptied rather than left standing behind a hidden frame, because a fight
- * redraws every few seconds and a folded panel that went on ranking twenty combatants would be
- * paying for a screen nobody is looking at.
- */
 function setPanelFolded(
     document: PanelDocument,
     regions: PanelRegions,
@@ -1554,7 +1323,6 @@ function setPanelFolded(
     assert(regions.warnings.className === CLASS.slot, "and every one of them is a slot after it");
 }
 
-/** What stands under the bar: the header, the strips, the crumb, the list, what is pinned. */
 function setPanelBody(
     document: PanelDocument,
     regions: PanelRegions,
@@ -1563,9 +1331,6 @@ function setPanelBody(
     redraw: PanelRedraw,
 ): void {
     assert(SCREEN_ORDER.includes(view.current), "a body is drawn for a screen the strips draw");
-    // The shelf is a screen of its own and not one of the fight's: what stands over it is the
-    // way back, and a header saying how **this** fight went over a list of other fights would be
-    // answering a question nobody asked of that list.
     const isFight = !view.isOnShelf;
     regions.header = redraw(
         regions.header,
@@ -1583,8 +1348,6 @@ function setPanelBody(
         () => isFight ? composeDirectionStripElement(document, view) : composeSlotElement(document),
     );
     regions.crumb = redraw(regions.crumb, "crumb", () => composeCrumbRegion(document, view));
-    // Under the crumb and over the list, because it is a question about the list below it and
-    // not about the fight the way back leads to.
     regions.storage = redraw(
         regions.storage,
         "tabs",
@@ -1592,18 +1355,12 @@ function setPanelBody(
     );
     regions.list = redraw(regions.list, "list", () => composeViewList(document, view, register));
     setPinnedRegions(document, regions, view, register, redraw);
-    // Drawn only where the client said which side is the reader's own — two sides nothing can
-    // tell apart are not two figures — and never over the shelf, which is a list of fights
-    // rather than a screen of one.
     const hasSides = view.reading.sides !== null && !view.isOnShelf;
     regions.sides = redraw(
         regions.sides,
         "sides",
         () => hasSides ? composeSidesElement(document, view) : composeSlotElement(document),
     );
-    // Last and never a banner: a warning qualifies the whole reading rather than one figure, and
-    // there is nowhere else for a claim about the reading to sit. Nothing is drawn where the
-    // reading was clean, which is what keeps it from reading as furniture.
     regions.warnings = redraw(
         regions.warnings,
         "warnings",
@@ -1616,8 +1373,6 @@ function setPanelBody(
 }
 
 /**
- * The two rows that stand outside the list: what the protocol left an end of a figure out of.
- *
  * A pinned row keeps a place of its own whether or not there is one to draw, so a failure takes
  * one row rather than both — and nothing standing below them moves when one arrives.
  */
@@ -1644,7 +1399,6 @@ function setPinnedRegions(
     }
 }
 
-/** Every sentence the reading carries, each in a line of its own under the strip. */
 function composeWarningsElement(
     document: PanelDocument,
     warnings: readonly string[],

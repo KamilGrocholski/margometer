@@ -2,12 +2,10 @@
  * The fight as it happened, kept so a reader can write it to a file.
  *
  * **The shape is a contract, not an invention:** what this composes is what every recording in
- * `captures/` already is, Polish field names and all, because that is the only way new material
- * can be set beside what is admitted (`captures/AGENTS.md`).
+ * `captures/` already is, Polish field names and all (`captures/AGENTS.md`).
  *
  * ⚠️ **Nothing is redacted here, and that is the design.** The file carries real nicknames and
- * the game's own prose, and it never enters git — intake is where both are dealt with, once and
- * checkably (`SECURITY.md`).
+ * the game's own prose, and never enters git — intake deals with both, once (`SECURITY.md`).
  */
 
 import { assert } from "@std/assert";
@@ -56,7 +54,6 @@ export interface CapturedCall {
 
 export interface FightCapture {
     calls: readonly CapturedCall[];
-    /** Calls the thinning decided carried nothing new. Written to the file. */
     droppedCalls: number;
     /** Whether the ceiling was reached, so the file says its tail is missing. */
     isFull: boolean;

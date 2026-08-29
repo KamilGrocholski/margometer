@@ -96,7 +96,6 @@ export function composeFightEntryHealth(
     return entered;
 }
 
-/** What a share stated about a whole side came to, per member, once it could be sized. */
 export interface TeamHeal {
     casterId: number;
     source: string;

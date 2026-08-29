@@ -65,7 +65,6 @@ export function composeUserscriptBanner(version: string): string {
     return `// ==UserScript==\n${lines.join("\n")}\n// ==/UserScript==\n`;
 }
 
-/** What a built file must not carry, whatever the sources looked like. */
 export function getOutboundCallsInText(text: string): string[] {
     assert(OUTBOUND_CALLS.length > 0, "there is something to look for");
     const found: string[] = [];

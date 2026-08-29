@@ -123,7 +123,7 @@ tests/
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
     decisions.test.ts      The decision records: numbering, index, lifecycle.
-    sources.test.ts        S1, S2, C5, S4 and S5 over every TypeScript file.
+    sources.test.ts        S1, S2, C5, C15, C16, S4 and S5 over every TypeScript file.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     names.test.ts          File names, exported functions and exported types.
   recorded-fight.ts        The recordings, and where their Polish field names stop.
@@ -418,3 +418,12 @@ commit that opens or closes one.
     `warriorsList`, which `game/` has not done. The two tokens `DESIGN.md` states for it are unspent
     — a ranking row is coloured by profession instead, which needs no side. Whatever spends them
     will need a carrier that is not colour, so the two halves open together.
+17. **A restatement in different words is unheld, and it is the worse kind.**
+    `tests/repository/sources.test.ts` holds C15's second half by comparing block text, so a comment
+    repeated word for word is a finding and one reworded is not — which is backwards from the cost,
+    since two copies that read differently drift without ever looking like copies. Found by reading
+    both sides: `src/ui/panel-look.ts` and `DESIGN.md` had disagreed for one release about whether a
+    hue says **who** somebody is or **what** they are, and three comments named three tab strips
+    over a panel that draws two. **ADR 0016.** C14 is unheld for the same reason and has no guard
+    shape yet; the one that would hold it counts declarations carrying a docblock, which needs a
+    parser this tree does not have.

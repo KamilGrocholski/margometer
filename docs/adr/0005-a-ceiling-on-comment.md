@@ -1,6 +1,6 @@
 # 0005. A ceiling on comment, and three rules that give it shape
 
-- **Status:** Accepted
+- **Status:** Superseded by 0016
 - **Date:** 2026-08-28
 
 ## Context

@@ -13,7 +13,6 @@ const WRAPPED_METHOD = "updateData";
 const WRAP_MARKER = "__margometerBattleWrap";
 const WRAP_VERSION = 1;
 
-/** The battle object as this file uses it: one method, and nothing else assumed. */
 export type EngineBattle = Record<string, unknown>;
 
 type EngineUpdate = (this: unknown, ...args: unknown[]) => unknown;

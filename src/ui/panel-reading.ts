@@ -5,9 +5,6 @@
  * from the events. The one sum this file does is the listed side's total, which the statistics
  * cannot hold because nothing under `ui/` tells them who is on which side — and without it a
  * share on a one-side list would be measured against a whole the list does not show.
- *
- * Every combatant the roster holds gets a row, including the ones who did nothing: zero happened
- * and is drawn, which is not what unknown looks like.
  */
 
 import { assert } from "@std/assert";
@@ -41,7 +38,6 @@ const MAXIMUM_SKILLS = 256;
 const RANKING_ROWS = 11;
 const SIDE_ROWS = 10;
 
-/** Which figure a screen is showing. Each names a field the statistics already state. */
 export type PanelMetric =
     | "damageDealtApplied"
     | "damageTakenApplied"
@@ -50,26 +46,15 @@ export type PanelMetric =
 
 export interface PanelRow {
     combatantId: number;
-    /** Null where the roster could not say, which the panel draws as unknown rather than blank. */
     name: string | null;
     side: number | null;
-    /** The game's own one-letter code, or null where it stated none. The badge is drawn from it. */
     profession: string | null;
     figure: number;
-    /**
-     * How much of the row the bar covers: this figure against the biggest one on screen, never
-     * against the whole. A bar measured against the whole leaves the top row a stub on a screen
-     * ten people share, which is the length a reader compares rows by.
-     */
     fill: number;
-    /** The share of the whole the screen divides by, apportioned once across every figure on it. */
     shareText: string;
 }
 
 /**
- * What a ranking row can say on demand: every figure a combatant has, beside the one the screen
- * is about, and how they came by them.
- *
  * **Numbers, and not one word.** A card is composed when a pointer opens it, so a fight redrawing
  * every few seconds pays for the twenty it draws rather than for twenty cards nobody looks at.
  *
@@ -78,7 +63,6 @@ export interface PanelRow {
  * (`src/core/fight-statistics.ts`).
  */
 export interface RowDetail {
-    /** What the game said their level is, or null where it said nothing. */
     level: number | null;
     damageDealtApplied: number;
     damageDealtRaw: number;
@@ -91,22 +75,15 @@ export interface RowDetail {
     blowsWithoutSkill: number;
     /** What their announcements came to, which is a count of announcements and not of blows. */
     skillUses: number;
-    /** Their own share of what the protocol named only one end of, on each of the three. */
     damageDealtToNobody: number;
     damageTakenFromNobody: number;
     healthRestoredByNobody: number;
 }
 
-/**
- * A row of the ranking, which is the one list whose rows are people and the only one that opens a
- * card. A row inside an opened figure is a `PanelRow` and carries none: what a card would say
- * there is the fight's, and the row it stands on is a slice.
- */
 export interface RankingRow extends PanelRow {
     detail: RowDetail;
 }
 
-/** Which end of a blow the protocol left out, on the row standing for what it could not place. */
 export type PanelUnnamedEnd = "actor" | "target";
 
 /**
@@ -120,7 +97,6 @@ export type PanelUnnamedEnd = "actor" | "target";
  */
 export type PinnedStanding = "apart" | "cut";
 
-/** A figure the protocol named one end of, on a row of its own below the ranking. */
 export interface PinnedRow {
     end: PanelUnnamedEnd;
     standing: PinnedStanding;
@@ -129,22 +105,14 @@ export interface PinnedRow {
     shareText: string;
 }
 
-/** One fight on the shelf, as much of it as a row shows without decoding it again. */
 export interface ShelfRow {
-    /** What a press asks for, which is the moment the fight was kept at. */
     openedAt: number;
-    /** On the reader's own clock, or null where the moment does not read back. */
     at: { hour: number; minute: number } | null;
-    /** How big it was, the reader's side first, and where it was fought. */
     sizes: number[];
     place: string | null;
-    /** How it went from the reader's seat, or null where nobody could say. */
     outcome: PanelOutcome | null;
-    /** The fight going on now, which is on the shelf and is kept nowhere. */
     isLive: boolean;
-    /** Whose figures the panel is drawing: the one the reader is reading. */
     isChosen: boolean;
-    /** Whether the reader asked for this one to outlast the rotation. */
     isPinned: boolean;
     /**
      * Whether there is anything to pin. A fight nothing has written down yet is not in the store
@@ -160,20 +128,13 @@ export type PanelOutcome = "won" | "lost" | "drawn";
 
 export interface PanelReading {
     rows: RankingRow[];
-    /** Null where the game has not said, or said nothing this reader's seat can be read into. */
     outcome: PanelOutcome | null;
-    /** The fight as a headcount, the reader's own side first, and who could be placed on none. */
     sizes: number[];
     unplaced: number;
-    /** The figure the rows are shares of: the fight's own, or the listed side's where one is. */
     total: number;
-    /** What the log tied to no actor, and to no target: on no row, so each is a row of its own. */
     pinned: PinnedRow[];
-    /** What could not be read or placed on **this screen's** figure, each as one sentence. */
     warnings: string[];
-    /** The fight in two figures, or null where nothing said which side is the reader's own. */
     sides: PanelSides | null;
-    /** How many bars the list stands at, so opening a row cannot shorten the window. */
     visibleRows: number;
 }
 
@@ -185,8 +146,6 @@ function getFigure(figures: CombatantFigures, metric: PanelMetric): number {
 }
 
 /**
- * What may be short about this screen's own figure, said where its consequence is.
- *
  * A message nobody could read may have carried anything, so it qualifies whatever screen is being
  * looked at. A cast nobody could place is narrower: what it puts back is health, so it shortens
  * both halves of the healing and neither half of the damage — saying it on a damage screen would
@@ -206,8 +165,6 @@ function composeWarnings(statistics: FightStatistics, metric: PanelMetric): stri
 }
 
 /**
- * Whether a row belongs on the list.
- *
  * A combatant with no side belongs to neither, so a one-side list leaves them out rather than
  * putting them on the side that happens to be showing; they are drawn under everybody, where
  * saying nothing about their side costs nothing. Where the client never said which side is the
@@ -228,7 +185,6 @@ function getIsRowListed(
     return side !== readerSide;
 }
 
-/** A row before it knows what the rest of the screen holds: no bar, and no share yet. */
 interface UnsharedRow {
     combatantId: number;
     name: string | null;
@@ -237,7 +193,6 @@ interface UnsharedRow {
     figure: number;
 }
 
-/** What one combatant announced, which is the count the card states and no figure holds. */
 function getSkillUses(figures: CombatantFigures): number {
     assert(figures.skills.size <= MAXIMUM_SKILLS, "a combatant stays inside the skills bound");
     let uses = 0;
@@ -285,7 +240,6 @@ function compareRows(one: UnsharedRow, other: UnsharedRow): number {
     return one.combatantId - other.combatantId;
 }
 
-/** Every combatant the fight holds, with the figure this screen is about and no share yet. */
 function composeUnsharedRows(
     statistics: FightStatistics,
     roster: CombatantRoster,
@@ -342,8 +296,6 @@ function getListedTotal(
 }
 
 /**
- * What no row can carry, on the one screen of the pair it belongs to.
- *
  * Shown only where everybody is listed. It belongs to nobody, so it belongs to no side either,
  * and putting it inside one side's total would be claiming a side the log never stated.
  */
@@ -356,7 +308,6 @@ function composePinnedFigures(
     assert(statistics.dealtByNobody >= 0, "and one that is never below nothing");
     if (choice !== "everyone") return [];
     const found: Array<{ end: PanelUnnamedEnd; standing: PinnedStanding; figure: number }> = [];
-    // What is charged to nobody on the screen being read, and where it stands against the rows.
     if (metric === "damageDealtApplied") {
         found.push({ end: "actor", standing: "apart", figure: statistics.dealtByNobody });
     }
@@ -400,7 +351,6 @@ function getHalfNamedTotal(statistics: FightStatistics, metric: PanelMetric): nu
     return total;
 }
 
-/** The bar every row on a screen is drawn against, pinned rows included. */
 function getLargestFigure(figures: readonly number[]): number {
     assert(figures.length >= 0, "a screen states the figures it draws, however few");
     let largest = 0;
@@ -447,7 +397,6 @@ function composeHeadcount(
     return { sizes: sides.map(([, count]) => count), unplaced };
 }
 
-/** Whether any of those names belongs to somebody on the reader's own side. */
 function getIsOurSideNamed(
     roster: CombatantRoster,
     readerSide: number,
@@ -481,7 +430,6 @@ function getOutcomeForReader(
     return getOutcomeForSeat(statistics.outcome, roster, readerSide);
 }
 
-/** The same reading off what a shelf kept, which is the two inputs and not the fight. */
 export function getOutcomeForSeat(
     outcome: FightOutcome,
     roster: CombatantRoster,
@@ -541,9 +489,6 @@ export function composePanelReading(
         ...row,
         fill: getFill(row.figure, largest),
         shareText: shares[at] ?? "",
-        // Composed here rather than in the row above, because the row inside an opened figure is
-        // built from the same shape and carries no card: what a card says is the fight's, and a
-        // row one rung down states a slice of it.
         detail: composeRowDetail(
             statistics.byCombatantId.get(row.combatantId) ?? composeCombatantFigures(),
             roster.byId.get(row.combatantId)?.level ?? null,
@@ -566,16 +511,12 @@ export function composePanelReading(
 }
 
 /**
- * The fight in two figures and a remainder, whatever the list is narrowed to.
- *
- * What it answers is how the fight is going, and that question does not change when the ranking
- * narrows — only the label does. Null where the client never said which side is the reader's own:
- * two sides nothing can tell apart are not two figures.
+ * Null where the client never said which side is the reader's own: two sides nothing can tell
+ * apart are not two figures.
  */
 export interface PanelSides {
     ours: number;
     theirs: number;
-    /** What no side can be charged with: it named neither end, or the roster places nobody. */
     nobody: number;
 }
 
@@ -607,7 +548,6 @@ function getPartCharged(part: PanelSidePart, metric: PanelMetric): PanelSidePart
     return part === "ours" ? "theirs" : "ours";
 }
 
-/** What one row holds of the figure whose other end the protocol did not name, on this screen. */
 function getHalfNamed(figures: CombatantFigures, metric: PanelMetric): number {
     assert(figures.damageTakenFromNobody >= 0, "a half-named figure is never below nothing");
     if (metric === "damageDealtApplied") return figures.damageTakenFromNobody;
@@ -645,7 +585,6 @@ export function composePanelSides(
     return totals;
 }
 
-/** One kind of damage, and as much of a row's figure as the blows of that kind carried. */
 export interface ElementRow {
     /** The client's own token. What a reader is shown for it is the panel's, not the reading's. */
     element: string;
@@ -654,17 +593,14 @@ export interface ElementRow {
     shareText: string;
 }
 
-/** As much of an opened figure as the protocol stated no end or no kind for. */
 export interface UnnamedRow {
     figure: number;
     fill: number;
     shareText: string;
 }
 
-/** One skill an announcement named, and what it did on the figure standing open. */
 export interface SkillRow {
     name: string;
-    /** Whether the level under it would name anybody but the combatant it was opened from. */
     opensSkill: boolean;
     /**
      * How many times it was announced, and null where nothing states a count: an announcement is
@@ -678,8 +614,6 @@ export interface SkillRow {
 }
 
 /**
- * What no announcement stood in front of, as the row that closes a skills section.
- *
  * It carries a count where the rows above it carry one, because that is the question a plain
  * attack raises and the figure alone cannot answer it.
  */
@@ -690,18 +624,15 @@ export interface PlainRow {
     shareText: string;
 }
 
-/** The cut by what a figure was done **with**, on the one screen the protocol states it for. */
 export interface SkillCut {
     rows: SkillRow[];
     plain: PlainRow | null;
 }
 
-/** A row naming the other end of a movement, and whether pressing it says anything further. */
 export interface OpponentRow extends PanelRow {
     opensPair: boolean;
 }
 
-/** One cut of an opened figure: its rows and its unnamed part come to the figure it cut. */
 export interface OpponentCut {
     rows: OpponentRow[];
     unnamed: UnnamedRow | null;
@@ -713,13 +644,10 @@ export interface ElementCut {
 }
 
 /**
- * What pressing a row **inside** an opened figure opens: one pair, and what passed between them.
- *
  * The last rung. Nothing on it opens, in any screen: the protocol states no further cut of a pair
  * than the skills one of them announced and the kinds those blows carried.
  */
 export interface PairReading {
-    /** Whose figure was opened, and whom this level is about. */
     combatantId: number;
     otherId: number;
     otherName: string | null;
@@ -730,8 +658,6 @@ export interface PairReading {
 }
 
 /**
- * What pressing a skill opens: who that skill reached.
- *
  * The other last rung, and the only one a skill has. It exists on the giving side of healing
  * alone: what a skill did to somebody is stated on the row of whoever announced it, and a screen
  * about what reached **you** cuts by the skills that reached you rather than by their targets.
@@ -742,7 +668,6 @@ export interface SkillReading {
     byOpponent: OpponentCut;
 }
 
-/** What pressing a row opens: one combatant's own figure, cut twice — by whom, and by what. */
 export interface DrillReading {
     combatantId: number;
     name: string | null;
@@ -764,8 +689,6 @@ interface MetricCuts {
 }
 
 /**
- * What a row opens onto, on every screen there is.
- *
  * Healing given has no cut by key and the empty map says so outright: the keys the protocol
  * names belong to whoever received the health, so putting one under the giver's row would word
  * their figure with a cause that is not theirs.
@@ -805,8 +728,6 @@ function compareElementRows(one: { element: string; figure: number }, other: {
 }
 
 /**
- * Every kind the protocol stated on this combatant's blows, and the remainder it stated none for.
- *
  * The remainder is health that moved down outside a blow: the message carries the movement and no
  * kind, so there is nothing to charge it to. Over `captures/` on 2026-08-29 that is 45 of 530
  * combatant-and-screen pairs, in 28 of the recordings, and every one of them on damage taken —
@@ -848,7 +769,6 @@ function composeElementCut(cut: FigureCut, total: number): ElementCut {
     };
 }
 
-/** The other end of each blow, and as much of the figure as the protocol named nobody for. */
 function composeOpponentCut(
     cut: FigureCut,
     roster: CombatantRoster,
@@ -895,13 +815,6 @@ function composeOpponentCut(
     };
 }
 
-/**
- * The skills a screen's own figure was done with: the combatant's own on a given screen, and
- * whoever's reached them on a received one.
- *
- * Walking every combatant's skills is a **fold** rather than an aggregation: each row is one
- * announcer's one skill, and nothing here adds two people's figures together.
- */
 interface UnsharedSkill {
     name: string;
     uses: number | null;
@@ -950,8 +863,6 @@ function composeSkillRows(
 }
 
 /**
- * What a combatant announced before their blows, and what stood behind none.
- *
  * The closing row is the remainder rather than a second reading: every point dealt came from a
  * blow, and a blow either carried an announcement or did not — so what the skills do not hold is
  * what the plain ones did, and it is drawn with the count only an announcement's absence states.
@@ -998,8 +909,6 @@ function composeSkillCut(
 }
 
 /**
- * One skill opened: who it reached, and how much of it each of them got.
- *
  * Null where the screen states no such cut, and null where the skill reached nobody but the
  * combatant it was opened from — that level would name the reader back to themselves.
  */
@@ -1038,10 +947,6 @@ function composeReachedCut(cut: FigureCut, combatantId: number): FigureCut {
     return reached;
 }
 
-/**
- * Whether a skill says anything further: it opens where it reached somebody other than the
- * combatant it was opened from, and not where the only person it healed was them.
- */
 function getOpensSkill(
     figures: CombatantFigures,
     metric: PanelMetric,
@@ -1056,9 +961,6 @@ function getOpensSkill(
 }
 
 /**
- * One pair opened: what the two of them did to each other, cut by the skills one announced and by
- * what those blows carried.
- *
  * Null where the pair states nothing — a combatant the fight does not hold, or a screen whose
  * figure the protocol cuts by no pair at all. Healing is such a screen: the keys it names belong
  * to the row the health moved on, and a pair of a healer and the healed is cut by nothing else.
@@ -1089,8 +991,6 @@ export function composePairReading(
 }
 
 /**
- * Whether the level under a pair would say anything this row does not.
- *
  * It opens where an announcement named a skill for the pair, or where the blows between them
  * carried more than one kind. It does not where the level would be one row repeating the figure
  * just pressed — every blow between them unannounced and of one type.
@@ -1107,7 +1007,6 @@ function getOpensPair(figures: CombatantFigures, metric: PanelMetric, otherId: n
     return false;
 }
 
-/** What the blows between two combatants carried, on the screen being read, or null for none. */
 function getPairKinds(
     figures: CombatantFigures,
     metric: PanelMetric,
@@ -1132,8 +1031,6 @@ function getTotalFromCut(cut: FigureCut): number {
 }
 
 /**
- * The skills one combatant announced **against this one**, and what stood behind no announcement.
- *
  * The closing row carries no count here: a blow's announcement is counted where it was made, and
  * the protocol states no number of blows against one opponent.
  */
@@ -1179,10 +1076,6 @@ function composePairSkillCut(
     };
 }
 
-/**
- * One row opened. Nothing is aggregated here either: the cut is the one the statistics hold, and
- * the share is against that row's own figure rather than against the fight's.
- */
 export function composeDrillReading(
     statistics: FightStatistics,
     roster: CombatantRoster,

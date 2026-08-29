@@ -31,7 +31,6 @@ export class ProtocolMessageFormatError extends MargoMeterError {
 
 export interface MessageSide {
     combatantId: number;
-    /** The health the protocol states for this combatant, or null where it states none. */
     healthPercent: number | null;
 }
 
@@ -50,7 +49,6 @@ export interface ProtocolMessage {
 const SEGMENT_SEPARATOR = ";";
 const VALUE_SEPARATOR = "=";
 const NO_COMBATANT = "0";
-/** The two ends a message states before it states a single key. */
 const SIDE_SEGMENTS = 2;
 /** The longest message in `captures/` carries 42 segments, 2026-08-28. */
 const MAXIMUM_SEGMENTS = 512;

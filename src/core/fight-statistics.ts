@@ -18,8 +18,6 @@ const MAXIMUM_COMBATANTS = 20;
 export type FigureCut = ReadonlyMap<string, number>;
 
 /**
- * A skill an announcement named, and what it did.
- *
  * The count is the announcement's own: only a `skill-used` message states one, and a blow that
  * carries the announcement is that same use rather than a second. Nothing counts a blow nobody
  * announced as a use of anything.
@@ -28,7 +26,6 @@ export interface SkillFigures {
     /** As the announcement wrote it. The key is the name, because an id is not always stated. */
     name: string;
     uses: number;
-    /** What blows announced under it landed, and on whom. */
     dealt: number;
     dealtByOpponent: Map<string, number>;
     /** What it put back, and into whom: one announcement can do both, and each is counted once. */
@@ -42,7 +39,6 @@ export interface CombatantFigures {
     damageTakenRaw: number;
     damageTakenApplied: number;
     damagePrevented: number;
-    /** Health restored to this combatant, whoever put it back. */
     healthRestored: number;
     /**
      * Health this combatant put back, into anybody — themselves included, because a key the help
@@ -112,7 +108,6 @@ export interface FightStatistics {
      * another's is a statistic across combatants and the panel draws rather than aggregates.
      */
     totals: CombatantFigures;
-    /** Applied damage the protocol tied to no actor, and to no target. */
     dealtByNobody: number;
     takenByNobody: number;
     /** Restored health no giver could be read for: 9.4% of it over `captures/`, 2026-08-29. */
@@ -130,9 +125,7 @@ export interface FightStatistics {
     outcome: FightOutcome | null;
 }
 
-/** A row at nothing, which is what a combatant nothing has named yet is drawn from. */
 export function composeCombatantFigures(): CombatantFigures {
-    // A row starts at nothing, and nothing is a reading rather than an absence.
     return {
         damageDealtRaw: 0,
         damageDealtApplied: 0,
@@ -170,7 +163,6 @@ function addToCut(cut: Map<string, number>, key: string, amount: number): void {
     cut.set(key, (cut.get(key) ?? 0) + amount);
 }
 
-/** A cut of a cut: the other end, and then what the blows between them carried. */
 function addToPairCut(
     cut: Map<string, Map<string, number>>,
     other: string,
@@ -184,8 +176,6 @@ function addToPairCut(
 }
 
 /**
- * What one announcement did, on the row of whoever announced it.
- *
  * A skill is kept under its **name** rather than its id: 346 of the 3,349 announcements over
  * `captures/` on 2026-08-29 carry no id at all, and a row keyed by nothing is a row that would
  * merge two skills the game tells apart.
@@ -205,7 +195,6 @@ function getSkillFigures(skills: Map<string, SkillFigures>, name: string): Skill
     return held;
 }
 
-/** What one announcement's blow landed, on the row of whoever announced it. */
 function addSkillDealt(
     skills: Map<string, SkillFigures>,
     announced: AnnouncedSkill,
@@ -219,7 +208,6 @@ function addSkillDealt(
     if (other !== null) addToCut(held.dealtByOpponent, other, amount);
 }
 
-/** What one announcement put back, on the row of whoever announced it. */
 function addSkillRestored(
     build: StatisticsBuild,
     announced: AnnouncedSkill,

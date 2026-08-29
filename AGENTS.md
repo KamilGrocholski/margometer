@@ -231,6 +231,19 @@ TypeScript idiom, with the naming rules stated here.
 - **C12.** `!` is never used in `src/` or `tools/`. Ask first whether the type can be made precise —
   an assert over a type that could have been exact is covering for a loose type. Tests keep `!`.
 - **C13.** Never cast off `JSON.parse`. Parsed text wearing a type is external data nobody checked.
+- **C14. Self-documenting code first.** A name, a type and an assertion say what a sentence would
+  and cannot go stale, so they are the first answer to "this needs explaining". Plain description
+  belongs in the **file's docblock** — what the file is for and what is in it — and nowhere else.
+  Below that line a comment earns its place by **C2** or it is deleted, however well written. **ADR
+  0016.** _(`by-reading` whether a sentence says something a name could have said)_
+- **C15.** A comment never restates what a canonical document owns; it **cites** it. `DESIGN.md`
+  owns the panel's look, `docs/protocol-keys.md` a key's meaning, `docs/browser-support.md` an
+  engine version, and an ADR its own decision. **And never twice in this tree** — a block standing
+  in two places is one rule with two copies. **ADR 0016.** _(`by-reading` whether a sentence
+  restates a document, as opposed to repeating one word for word)_
+- **C16.** Comment share of a directory under `src/` or `tools/` stays under 22%. A file may sit
+  near C5's ceiling; a directory may not, because a per-file bound cannot see a directory walking to
+  it. **ADR 0016.**
 
 ## Language
 
@@ -363,18 +376,18 @@ that has stopped finding its subject; only the second catches one that finds too
 counted one mark more than the document carried, stayed green for a round, and was found by counting
 the same thing a second way.
 
-| Guard                                | Holds                                |
-| ------------------------------------ | ------------------------------------ |
-| `deno check`                         | S7, S10, C12 in part                 |
-| `deno lint`                          | S10, S12 in part                     |
-| `deno fmt --check`                   | C6 indentation and prose wrapping    |
-| `deno.json` fmt exclusion            | `TODO.md` against the formatter      |
-| `deno test`                          | every guard below                    |
-| `tests/repository/documents.test.ts` | the rule documents and this register |
-| `tests/repository/decisions.test.ts` | the decision records                 |
-| `tests/repository/sources.test.ts`   | S1, S2, C5, C8, S4, S5               |
-| `tests/repository/errors.test.ts`    | E1, E2, E11, each with a sample      |
-| `tests/repository/names.test.ts`     | N1, N11, each with a sample          |
+| Guard                                | Holds                                    |
+| ------------------------------------ | ---------------------------------------- |
+| `deno check`                         | S7, S10, C12 in part                     |
+| `deno lint`                          | S10, S12 in part                         |
+| `deno fmt --check`                   | C6 indentation and prose wrapping        |
+| `deno.json` fmt exclusion            | `TODO.md` against the formatter          |
+| `deno test`                          | every guard below                        |
+| `tests/repository/documents.test.ts` | the rule documents and this register     |
+| `tests/repository/decisions.test.ts` | the decision records                     |
+| `tests/repository/sources.test.ts`   | S1, S2, C5, C8, C15 in part, C16, S4, S5 |
+| `tests/repository/errors.test.ts`    | E1, E2, E11, each with a sample          |
+| `tests/repository/names.test.ts`     | N1, N11, each with a sample              |
 
 A guard joins this table in the commit that makes it pass, and the known-gaps list shrinks by the
 same rules in that commit.

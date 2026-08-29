@@ -1,14 +1,12 @@
 /**
- * How a recording from the add-on becomes material in this repository.
+ * How a recording from the add-on becomes material in this repository: two redactions, then a
+ * file in `captures/`.
  *
  *     deno run -A tools/capture-intake.ts <recording.json> --name <slug>
  *
- * The add-on writes what the game sent, unredacted, to a file that never leaves the machine it
- * was made on. This is the other end: two redactions, then a file in `captures/`.
- *
  * ⚠️ **Neither redaction is complete, and no test can make one so.** Each knows one place — names
- * tied to a combatant id, and `ladunek.skills`. A nickname belonging to nobody in the roster walks
- * through untouched, which is why this ends by naming the step that is a person's.
+ * tied to a combatant id, and `ladunek.skills` — so a nickname belonging to nobody in the roster
+ * walks through untouched, which is why this ends by naming the step that is a person's.
  */
 
 import { assert } from "@std/assert";
@@ -62,9 +60,7 @@ const DESCRIPTION_FIELD = 5;
 
 export interface Pseudonymisation {
     recording: unknown;
-    /** How many occurrences were replaced. Zero means there was nothing left to do. */
     changed: number;
-    /** Which name became which label. Goes to the screen and nowhere else. */
     substitutions: Map<string, string>;
 }
 
@@ -90,7 +86,6 @@ function getIdentityFromValue(value: unknown): number | null {
     return read;
 }
 
-/** Who is a person, and every name each combatant was seen under, over the whole recording. */
 interface Roll {
     isPlayerById: Map<number, boolean>;
     /**
@@ -429,7 +424,6 @@ function getDayFromMoment(text: string): string | null {
     return day;
 }
 
-/** The day it was recorded, the world it came from, and what a person called it. */
 export function composeIntakePath(recording: unknown, slug: string): string {
     const envelope = isRecord(recording) ? recording : {};
     const capturedAt = envelope[CAPTURE_FIELDS.capturedAt];

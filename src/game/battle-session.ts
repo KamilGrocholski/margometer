@@ -44,11 +44,9 @@ const MAXIMUM_EVENTS = 65536;
 export interface FightReading {
     roster: CombatantRoster;
     events: readonly BattleEvent[];
-    /** What the game said, kept as it arrived, so a fight can be put on a shelf and read again. */
     messagesByPayload: readonly (readonly string[])[];
     /** Messages a payload said it carried and this reader did not read. Zero is the answer. */
     messagesLost: number;
-    /** The game has stated the fight is over. Payloads may still arrive after it. */
     isOver: boolean;
     payloads: number;
     /** Null where the client never said, which leaves the panel unable to tell one side apart. */
@@ -96,7 +94,6 @@ function getMessagesFromPayload(payload: Record<string, unknown>): string[] {
     return messages;
 }
 
-/** How many messages the payload says it carried, or none where it says nothing about it. */
 function getMessageCountFromPayload(payload: Record<string, unknown>): number {
     const stated = payload[MESSAGE_COUNT_KEY];
     if (!Array.isArray(stated)) return 0;
@@ -104,7 +101,6 @@ function getMessageCountFromPayload(payload: Record<string, unknown>): number {
     return stated.length;
 }
 
-/** A fight that opens replaces whatever stood before it, roster, events and all. */
 function resetSession(session: BattleSession): void {
     session.combatants = [];
     session.events = [];
@@ -132,7 +128,6 @@ function getReaderSideFromPayload(payload: Record<string, unknown>): number | nu
     return side;
 }
 
-/** Whether a payload opens a fight, so a recording clears where the session does. */
 export function isFightStart(payload: unknown): boolean {
     if (!isRecord(payload)) return false;
     assert(FIGHT_OPENS_KEY.length > 0, "a fight is opened by a key with a name");

@@ -2,10 +2,6 @@
  * The combatants the game states, read two ways: into the roster's own shape, and into the
  * snapshot a recording carries.
  *
- * This file spells the client's field names, and it is the only one that does. Everything above
- * it reads a `Combatant` or a `CapturedCombatant`, so a name the game changes is one edit here
- * rather than a field reading `undefined` in five places.
- *
  * A combatant missing what the roster needs is refused rather than defaulted; a snapshot refuses
  * nothing, because it is evidence and an absent field is a fact about the fight.
  */
@@ -151,7 +147,6 @@ function composeCapturedCombatant(warrior: Record<string, unknown>): CapturedCom
     };
 }
 
-/** Every named combatant in a collection, or nothing where none of them is named. */
 function getNamedWarriors(collection: unknown): Record<string, unknown>[] {
     if (!isRecord(collection)) return [];
     const named: Record<string, unknown>[] = [];

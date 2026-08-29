@@ -96,7 +96,6 @@ const MEMBER_SEPARATOR = ",";
  */
 const NAMED_DAMAGE_KEY = "+oth_dmg";
 const NAMED_DAMAGE_MEMBERS = 3;
-/** Both ends of a message, where it names two different combatants. */
 const MESSAGE_ENDS = 2;
 const PERCENT_OPENER = "(";
 const PERCENT_CLOSER = "%)";

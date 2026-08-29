@@ -1,10 +1,6 @@
 /**
  * What a ranking row says on demand: every figure a combatant has, and not only the one the
  * screen is showing.
- *
- * The order answers the question a reader has in the order they have it — who is this, how much
- * of each, how they fought, and what to be careful of. The one on screen is in bold, so that
- * *he dealt a lot, but how much did he take* costs a hover rather than a press.
  */
 
 import { assert } from "@std/assert";
@@ -20,27 +16,20 @@ import {
     WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
 
-/** Whose card this is, and what the screen it stands on already knows. */
 export interface CardSubject {
     name: string;
-    /** The game's own letter, or null where it named none. What they are, under their name. */
     profession: string | null;
     detail: RowDetail;
-    /** Which of the four the screen is showing, which is the one drawn in bold. */
     metric: PanelMetric;
-    /** What the screen says may be short about every figure on it, said again where they are. */
     warnings: readonly string[];
-    /** Whether a press on the row opens anything, which decides the one instruction given. */
     opens: boolean;
 }
 
-/** One of the four, with the two things the protocol can say less than the whole of it about. */
 interface CardFigure {
     metric: PanelMetric;
     figure: number;
     /** Before reduction, on the two the protocol states a raw half for. Null on the others. */
     raw: number | null;
-    /** As much of it as the protocol named only this row's end of, and what that end is called. */
     halfNamed: { label: string; figure: number } | null;
 }
 
@@ -82,7 +71,6 @@ function composeCardFigures(detail: RowDetail): CardFigure[] {
     return figures;
 }
 
-/** A part of the figure over it, drawn only where there is a part to draw. */
 function composeCardSubLine(label: string, figure: number): TipLine[] {
     assert(label.length > 0, "a part of a figure says what part it is");
     assert(Number.isFinite(figure), "and states how much of it there is");
@@ -90,10 +78,6 @@ function composeCardSubLine(label: string, figure: number): TipLine[] {
     return [{ kind: "sub", label, stated: composeFigureText(figure) }];
 }
 
-/**
- * The four figures, each with what the protocol could say less than the whole of it about. Zero
- * stands: a combatant who healed nobody is a reading, and an absent line would be a question.
- */
 function composeCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine[] {
     assert(SCREEN_ORDER.includes(metric), "the figure drawn in bold is one of the four");
     const lines: TipLine[] = [];
@@ -113,10 +97,6 @@ function composeCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine
     return lines;
 }
 
-/**
- * How they fought, rather than how much. Each is absent where it is nothing: a count of zero
- * blows says the same thing as the four figures above it already do, at the cost of a line.
- */
 function composeCardCounterLines(detail: RowDetail): TipLine[] {
     assert(detail.blowsWithoutSkill <= detail.blowsStruck, "a blow behind no announcement is one");
     const lines: TipLine[] = [];
@@ -143,7 +123,6 @@ function composeCardCounterLines(detail: RowDetail): TipLine[] {
     return lines;
 }
 
-/** Whether the card printed a figure before reduction, which is what the note is owed for. */
 function getIsRawStated(detail: RowDetail): boolean {
     assert(detail.damageDealtRaw >= 0, "a figure before reduction is not below nothing");
     assert(detail.damageTakenRaw >= 0, "on either end of the blow it was stated for");
@@ -152,11 +131,6 @@ function getIsRawStated(detail: RowDetail): boolean {
     return false;
 }
 
-/**
- * What to be careful of. The screen's own warnings are repeated here rather than left under the
- * list, because what they qualify is every figure on this card and a reader reading one is
- * looking away from the strip.
- */
 function composeCardNoteLines(subject: CardSubject): TipLine[] {
     assert(subject.warnings.length <= MAXIMUM_CARD_WARNINGS, "a card stays inside its doubts");
     const lines: TipLine[] = [];
@@ -173,7 +147,6 @@ function composeCardNoteLines(subject: CardSubject): TipLine[] {
     return lines;
 }
 
-/** Everything a ranking row says on demand, as the window's own shape. */
 export function composeCardReading(subject: CardSubject): TipReading {
     assert(subject.name.length > 0, "a card names somebody, or says it cannot");
     assert(SCREEN_ORDER.includes(subject.metric), "and stands on a screen the panel draws");

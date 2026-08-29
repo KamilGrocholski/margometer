@@ -13,7 +13,6 @@ export interface BrowserStore {
     read(key: string): string | null;
     /** False where the browser refused, which is an answer and not a failure. */
     write(key: string, value: string): boolean;
-    /** Takes what was under a key out of the store. A key nobody wrote is already out. */
     remove(key: string): void;
 }
 

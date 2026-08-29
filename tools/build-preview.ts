@@ -5,9 +5,6 @@
  * first. Nothing in the tree could open one. This writes a file a browser opens from disk — no
  * server, no network, no game — carrying the built bundle, every recording's engine calls, and a
  * driver that feeds one recording's calls to the wrap the add-on puts on.
- *
- * The game it stands up is this file's, not a recording's. A recording carries the world and the
- * build and no map or tile, so the place the bar draws is stubbed under a name of the tool's.
  */
 
 import { assert } from "@std/assert";
@@ -40,7 +37,6 @@ function getRecordingNames(): string[] {
     return names.sort();
 }
 
-/** The engine calls a recording holds, in the order the game made them. */
 function getRecordingCalls(name: string): unknown[] {
     const document = getValueFromJsonText(Deno.readTextFileSync(`${CAPTURE_DIRECTORY}/${name}`));
     if (!isRecord(document)) {
@@ -100,7 +96,6 @@ window.Engine = {
     return stood;
 }
 
-/** The calls, fed to whatever the add-on put in the game's place. */
 function composePreviewDriver(): string {
     const driver = `const held = window.__margometerHeld;
 const picker = document.getElementById("recording");

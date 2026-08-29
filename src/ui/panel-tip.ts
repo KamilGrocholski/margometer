@@ -1,9 +1,6 @@
 /**
  * The detail window, and the register the drawn rows fill for it.
  *
- * A ranking row is 260 pixels wide and states one figure, so what it cannot say is who somebody
- * is and what else they did. That is what this is for.
- *
  * It outlives every redraw: appended to the root once, and no region's redraw replaces it, the way
  * the one listener is put there. **Nothing here measures anything** — a card is counted in lines
  * and the sheet multiplies.
@@ -23,16 +20,12 @@ export type TipLine =
     | { kind: "sub"; label: string; stated: string }
     | { kind: "note"; text: string; isWarning: boolean };
 
-/** A run of lines, cut off the run before it by the rule the sheet draws over it. */
 export interface TipGroup {
     lines: TipLine[];
 }
 
-/** One row's detail. A row with nothing further to say hands over a card of one line. */
 export interface TipReading {
-    /** The full name, which the row itself may have cut with an ellipsis. */
     name: string;
-    /** Who they are rather than what they did, under the name. Null where nobody could say. */
     subtitle: string | null;
     groups: TipGroup[];
 }
@@ -55,7 +48,6 @@ export interface TipRegister {
     reset(): void;
 }
 
-/** How tall a card stands, in the two things the sheet's arithmetic multiplies. */
 export interface TipSize {
     lines: number;
     groups: number;
@@ -80,7 +72,6 @@ const MAXIMUM_TIP_LINES = 64;
 /** Ours, because `all: initial` resets every property a page can set except a custom one. */
 const TOP_VARIABLE = "--MargoMeter-tip-top";
 const LEFT_VARIABLE = "--MargoMeter-tip-left";
-/** What the sheet multiplies to stand the window at its own height without measuring it. */
 const LINES_VARIABLE = "--MargoMeter-tip-lines";
 const GROUPS_VARIABLE = "--MargoMeter-tip-groups";
 const STYLE_ATTRIBUTE = "style";
@@ -116,7 +107,6 @@ function getTipLineCost(line: TipLine): number {
     return wrapped;
 }
 
-/** How tall the card is, counted rather than measured. Null is the window before anybody hovers. */
 export function getTipSize(reading: TipReading | null): TipSize {
     if (reading === null) return { lines: 1, groups: 0 };
     assert(reading.groups.length <= MAXIMUM_TIP_LINES, "a card stays inside its stated bound");
@@ -131,7 +121,6 @@ export function getTipSize(reading: TipReading | null): TipSize {
     return { lines, groups: reading.groups.length };
 }
 
-/** Which of the three a line is drawn as, said in classes the sheet already carries rules for. */
 function composeTipLineClass(line: TipLine): string {
     assert(line.kind.length > 0, "a line of the card is drawn as something");
     if (line.kind === "sub") return `${CLASS.tipLine} ${CLASS.tipSub}`;
@@ -185,7 +174,6 @@ function composeTipGroupElement(document: PanelDocument, group: TipGroup): Panel
     return element;
 }
 
-/** Null draws an empty window and hides it, which is what the panel starts with and hides to. */
 export function composeTipElement(
     document: PanelDocument,
     reading: TipReading | null,
@@ -242,17 +230,11 @@ export function setTipPlace(
     );
 }
 
-/** How the tip takes the place of the one standing, which is how every region of the panel does. */
 export type TipRedraw = (standing: PanelElement, compose: () => PanelElement) => PanelElement;
 
 export interface TipHandle {
-    /**
-     * Appended to the root once. What stands there afterwards is swapped in place, as a region is.
-     */
     element: PanelElement;
-    /** What the pointer is over, or nobody: null hides it. */
     show(key: string | null, clientY: number): void;
-    /** After a redraw: the same row's detail again, or hidden where that row is no longer drawn. */
     refresh(): void;
 }
 
@@ -268,7 +250,6 @@ export function composeTipHandle(
     document: PanelDocument,
     register: TipRegister,
     redraw: TipRedraw,
-    /** Which side of the panel the detail opens on, as a left edge, or null for the default. */
     getLeft: () => number | null = () => null,
 ): TipHandle {
     let standing = composeTipElement(document, null);

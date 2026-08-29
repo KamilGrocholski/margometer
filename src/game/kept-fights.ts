@@ -1,13 +1,11 @@
 /**
  * The fights a reader can go back to, and what of one is worth keeping.
  *
- * **Inputs, never figures.** What is stored is what the game said — the cast and the messages —
- * so a reading is always re-derived by the code that is running rather than restored from an
- * older version's arithmetic. The store is handed in and never reached for: the origin belongs to
- * the game, no quota is assumed, and a refusal to write is an answer rather than an error.
+ * **Inputs, never figures.** What is stored is what the game said, so a reading is re-derived by
+ * the code that is running rather than restored from an older version's arithmetic. The store is
+ * handed in and never reached for, and a refusal to write is an answer rather than an error.
  *
- * Everything read back is validated: a shelf that cannot be understood is dropped, never trusted
- * into a figure.
+ * Everything read back is validated: a shelf that cannot be understood is dropped.
  */
 
 import { assert } from "@std/assert";
@@ -38,7 +36,6 @@ export interface KeptFight {
     combatants: Combatant[];
     /** One list per call the engine made, so a replay is the fight as it was delivered. */
     payloads: readonly (readonly string[])[];
-    /** Where it was fought, as much of it as the client would say. */
     place: FightPlace | null;
     /**
      * Which side was the reader's, and how the game said the fight ended — **inputs, like the
@@ -135,7 +132,6 @@ function getKeptPlaceFromValue(value: unknown): FightPlace | null {
     return place;
 }
 
-/** The names a side was stated under, or null for anything that is not a list of them. */
 function getKeptNamesFromValue(value: unknown): string[] | null {
     if (!Array.isArray(value)) return null;
     assert(value.length >= 0, "a side kept is a list with a length");
@@ -185,7 +181,6 @@ function getKeptFightFromValue(value: unknown): KeptFight | null {
     };
 }
 
-/** Whatever of the shelf reads back. A fight that does not is dropped, and the rest still stand. */
 export function readKeptFights(store: BrowserStore, key: string): KeptFight[] {
     assert(key.length > 0, "a shelf is asked for by name");
     const stored = store.read(key);
@@ -232,7 +227,6 @@ export function composeKeptRotation(fights: readonly KeptFight[]): KeptFight[] {
     return held.length <= MAXIMUM_KEPT ? held : held.slice(0, MAXIMUM_KEPT);
 }
 
-/** Whether the shelf had to refuse the newest fight, which is what a reader is told about. */
 export function getIsEverySlotPinned(fights: readonly KeptFight[]): boolean {
     if (fights.length <= MAXIMUM_KEPT) return false;
     const unpinned = fights.filter((one) => !one.isPinned).length;
@@ -240,7 +234,6 @@ export function getIsEverySlotPinned(fights: readonly KeptFight[]): boolean {
     return fights.length - unpinned >= MAXIMUM_KEPT;
 }
 
-/** The newest kept, the oldest unpinned dropped, and false where the browser would not have it. */
 export function writeKeptFights(store: BrowserStore, key: string, fights: KeptFight[]): boolean {
     assert(key.length > 0, "a shelf is written by name");
     const held = composeKeptRotation(fights);

@@ -87,7 +87,6 @@ import {
     STORE_REFUSED_WARNING,
 } from "@/src/ui/panel-words.ts";
 
-/** Where a failure of ours is written, so the reader sees whose it is at a glance. */
 const FAILURE_LINE = "MargoMeter/Panel";
 /** The one key this add-on writes, named as ours like everything else a reader could meet. */
 const SHELF_KEY = "MargoMeter-fights";
@@ -100,7 +99,6 @@ const FOLD_KEY = "MargoMeter-folded";
 const FOLDED = "1";
 /** A side holds at most ten, so a fight holds twenty — the bound `core/` states for a cast. */
 const MAXIMUM_COMBATANTS = 20;
-/** Where the reader dragged the panel to, kept beside the fold and dropped as readily. */
 const PLACE_KEY = "MargoMeter-place";
 /**
  * Where the reader asked for the shelf to be kept, and it is kept beside the panel's own state
@@ -108,43 +106,33 @@ const PLACE_KEY = "MargoMeter-place";
  * the reader picks the store that keeps nothing.
  */
 const STORAGE_KEY = "MargoMeter-storage";
-/** What a reader who has answered nothing gets, which is the store that keeps longest. */
 const STORAGE_DEFAULT: PanelStorageChoice = "local";
 
 export interface PanelMount {
-    /** Puts this panel where the last one was. Replacing is the caller's, mounting is ours. */
     show(panel: PanelElement): void;
 }
 
 export interface UserscriptEnvironment {
     page: unknown;
-    /** How big the window is, or null where the page would not say. Nothing is measured. */
     readViewport(): PanelViewport | null;
     document: PanelDocument;
     schedule: Scheduler;
     mount: PanelMount;
-    /** Null where the browser will not have one read, which is an answer and not a failure. */
     store: BrowserStore | null;
     /**
      * Where the shelf goes, by the reader's own answer. Never null: a browser that lends no store
      * is answered with one that forgets, so the panel is never handed nothing.
      */
     composeShelfStore(choice: PanelStorageChoice): BrowserStore;
-    /** Where a recording goes when the reader asks for one. Null where the page offers no way. */
     save: ((name: string, text: string) => void) | null;
-    /** Where a report goes when the reader asks for one. Null where the browser lends none. */
     copy: ((text: string) => void) | null;
-    /** What a recording says about where it came from, read at the moment one is asked for. */
     readSurroundings(): CaptureSurroundings;
-    /** The clock, handed in like everything else, so nothing here reaches for one. */
     now(): number;
-    /** A moment on the reader's own clock, or null where the browser would not read one. */
     readClock(atMs: number): { hour: number; minute: number } | null;
     /** One branded line, and the failure itself, so a console shows whose it is first. */
     report(line: string, failure: unknown): void;
 }
 
-/** Null where nothing about the place was known, which a row leaves blank rather than filling. */
 function getPlaceWords(place: FightPlace | null): string | null {
     if (place === null) return null;
     const words = composePlaceWords(place.mapName, place.x, place.y);
@@ -152,10 +140,6 @@ function getPlaceWords(place: FightPlace | null): string | null {
     return words;
 }
 
-/**
- * How big a fight was, from the cast it was fought by: the reader's own side first, the way every
- * other pairing on the panel is ordered.
- */
 function composeShelfSizes(combatants: readonly Combatant[], readerSide: number | null): number[] {
     const countBySide = new Map<number, number>();
     assert(combatants.length <= MAXIMUM_COMBATANTS, "a fight stays inside its stated bound");
@@ -170,27 +154,20 @@ function composeShelfSizes(combatants: readonly Combatant[], readerSide: number 
 }
 
 /**
- * Everything about where the shelf is kept, so that the one thing holding it is not the state of
- * five variables standing beside each other.
- *
  * The three sentences it can say are the three ways keeping a fight goes wrong, and each is a
  * different remedy: make room, unpin something, or nothing at all.
  */
 interface ShelfKeeper {
     fights: KeptFight[];
     choice: PanelStorageChoice;
-    /** The browser would not take the newest fight, which is a fight the reader cannot open. */
     hasStoreRefused: boolean;
-    /** Nothing could be dropped to make room, because the reader pinned every slot. */
     isEverySlotPinned: boolean;
-    /** The browser would not keep the answer, so nothing was moved on the strength of it. */
     hasChoiceRefused: boolean;
     keep(fight: KeptFight): void;
     setPinned(openedAt: number): void;
     setChoice(choice: PanelStorageChoice): void;
 }
 
-/** What the shelf has to say about itself. Never about the fight on screen, which has its own. */
 function composeShelfWarnings(keeper: ShelfKeeper): string[] {
     const warnings: string[] = [];
     if (keeper.isEverySlotPinned) warnings.push(EVERY_SLOT_PINNED_WARNING);
@@ -255,8 +232,6 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
 }
 
 /**
- * The shelf as rows: the fight going on now first, then what was kept, newest first.
- *
  * The live one is always a row, because a shelf that hid it would answer *which fight am I
  * reading* with a list the answer is not on.
  */
@@ -274,10 +249,8 @@ function composeShelfRows(
     assert(typeof readClock === "function", "a shelf row is timed by the reader's own clock");
     assert(kept.length >= 0, "and a shelf holds the fights it holds");
     const rows: ShelfRow[] = [];
-    // One row for one fight. The fight that has just ended is both the live one and a kept one
-    // until the next begins, and drawing it twice — once as *teraz · trwa* and once under its
-    // own clock — is one fight in two places. It keeps the live row's wording and the kept row's
-    // pin, which is the only thing a reader can do to it.
+    // One row for one fight: the one that has just ended is both the live one and a kept one
+    // until the next begins. It keeps the live row's wording and the kept row's pin.
     const alsoKept = live === null ? undefined : kept.find((one) => one.openedAt === live.openedAt);
     if (live !== null) {
         rows.push({
@@ -313,7 +286,6 @@ function composeShelfRows(
     return rows;
 }
 
-/** How the fight going on now went, which is a word it has only once the game has called it. */
 function getOutcomeForFigures(figures: FightFigures): PanelOutcome | null {
     assert(figures.roster.byId.size >= 0, "a fight is called against the cast that fought it");
     const outcome = figures.statistics.outcome;
@@ -321,7 +293,6 @@ function getOutcomeForFigures(figures: FightFigures): PanelOutcome | null {
     return getOutcomeForSeat(outcome, figures.roster, figures.fight.readerSide);
 }
 
-/** How a kept fight went, worked out from the two inputs it kept rather than from its payloads. */
 function getOutcomeForKept(kept: KeptFight): PanelOutcome | null {
     assert(kept.openedAt >= 0, "a fight kept was kept at a moment");
     assert(kept.combatants.length >= 0, "and by a cast, however small");
@@ -334,10 +305,6 @@ function getOutcomeForKept(kept: KeptFight): PanelOutcome | null {
  * Where a press leaves the panel. False for a press that moves nothing, so a stray attribute in
  * the game's own markup never costs a redraw, let alone puts the panel somewhere it cannot draw.
  */
-/**
- * Which fight the panel draws, and the whole of what a change of fight costs: everything standing
- * over the screen belonged to the fight that was being read, and this is another one.
- */
 function setFightChosen(screen: ScreenState, openedAt: number | null): void {
     assert(openedAt === null || Number.isSafeInteger(openedAt), "a fight is asked for by moment");
     screen.openFightId = openedAt;
@@ -348,12 +315,6 @@ function setFightChosen(screen: ScreenState, openedAt: number | null): void {
     assert(screen.openRowId === null, "and nothing of the last one stands over the new one");
 }
 
-/**
- * The two presses the shelf answers, and whether one of them was made.
- *
- * Kept apart from the press that moves the screen because neither of these moves it: what a pin
- * changes is what the rotation may drop, and what the strip changes is where the shelf lives.
- */
 function setShelfFromPress(shelf: ShelfKeeper, press: PanelPress): boolean {
     assert(press.kind.length > 0, "a press says what it asks for");
     if (press.kind === "pin") {
@@ -372,12 +333,8 @@ function setShelfFromPress(shelf: ShelfKeeper, press: PanelPress): boolean {
 function handlePress(screen: ScreenState, press: PanelPress): boolean {
     assert(press.kind.length > 0, "a press says what it asks for");
     assert(screen.current.length > 0, "and lands on a panel that is on a screen");
-    // Nothing on screen moves for either of these: the fight is handed to the browser, as a file
-    // or as text, and the panel goes on drawing what it was drawing.
     if (press.kind === "save") return false;
     if (press.kind === "copy") return false;
-    // The shelf's own two, answered where the shelf is kept rather than here: which fight
-    // outlasts the rotation, and where the fights are kept at all.
     if (press.kind === "pin") return false;
     if (press.kind === "storage") return false;
     if (press.kind === "fold") {
@@ -385,13 +342,10 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         return true;
     }
     if (press.kind === "shelf") {
-        // A toggle, unlike a screen: the shelf covers what the reader was reading, and the same
-        // press takes it off again rather than sending them to the top of a tab.
         screen.isOnShelf = !screen.isOnShelf;
         return true;
     }
     if (press.kind === "back") {
-        // One rung at a time, topmost first: the shelf stands over a pair, a pair over a row.
         if (screen.isOnShelf) screen.isOnShelf = false;
         else if (screen.openPairId !== null) screen.openPairId = null;
         else screen.openRowId = null;
@@ -402,7 +356,6 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         return true;
     }
     if (press.kind === "skill") {
-        // The other last rung, reached from a skill rather than from a person.
         screen.openSkillName = press.name;
         return true;
     }
@@ -440,7 +393,6 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
     return true;
 }
 
-/** What the session holds, read into figures. The panel draws these and a report writes them. */
 interface FightFigures {
     fight: FightReading;
     roster: CombatantRoster;
@@ -544,19 +496,12 @@ function showFight(
     });
 }
 
-/** The three rungs above the ranking, each null where the one over it opened nothing. */
 interface OpenedReadings {
     drill: DrillReading | null;
     pair: PairReading | null;
     skill: SkillReading | null;
 }
 
-/**
- * What stands open over the screen: a person, then the pair of them or the skill they used.
- *
- * Null where the screen has no cut to open, so a row opened on one screen never stands over
- * another that cannot state the same figure.
- */
 function composeOpenedReadings(figures: FightFigures, screen: ScreenState): OpenedReadings {
     const { roster, statistics } = figures;
     assert(screen.current.length > 0, "a rung is opened on a screen the panel is on");
@@ -594,7 +539,6 @@ function composeOpenedReadings(figures: FightFigures, screen: ScreenState): Open
  */
 export interface UserscriptWindow {
     document: UserscriptDocument;
-    /** How big the window is. Absent on a page that states neither, which clamps nothing. */
     innerWidth?: number | undefined;
     innerHeight?: number | undefined;
     setInterval(step: () => void, everyMs: number): number;
@@ -607,7 +551,6 @@ export interface UserscriptWindow {
      */
     localStorage?: PageStorage | undefined;
     sessionStorage?: PageStorage | undefined;
-    /** The moment as a number and as a word. A recording states the second of them. */
     Date: {
         now(): number;
         new (atMs: number): {
@@ -618,7 +561,6 @@ export interface UserscriptWindow {
         };
     };
     location: { hostname?: string | undefined };
-    /** The clipboard is absent on a browser that lends none, which is an answer and not a fault. */
     navigator: {
         userAgent?: string | undefined;
         clipboard?: { writeText(text: string): Promise<void> } | undefined;
@@ -638,11 +580,9 @@ export interface UserscriptWindow {
 export interface UserscriptDocument {
     createElement(tag: string): DownloadAnchor;
     body: { append(child: PanelElement): void };
-    /** Where the client's own bundle name is, which is where the build id is. */
     querySelectorAll(selector: string): ArrayLike<{ src?: unknown }>;
 }
 
-/** What a browser is handed to save a file, and nothing wider. */
 export interface DownloadAnchor extends PanelElement {
     href: string;
     download: string;
@@ -652,7 +592,6 @@ export interface DownloadAnchor extends PanelElement {
 
 /** The one class a reader could meet outside the panel, so it is named as ours (`SECURITY.md`). */
 const DOWNLOAD_ANCHOR_CLASS = "MargoMeter-download";
-/** What the game's own bundle is served as, which is the only script whose name carries a build. */
 const SCRIPT_WITH_SOURCE = "script[src]";
 
 /**
@@ -796,10 +735,6 @@ function composeStoreForChoice(page: UserscriptWindow, choice: PanelStorageChoic
     }
 }
 
-/**
- * Reads the globals a userscript is given and starts on them. The panel replaces the one before
- * it, so a fight redrawn leaves one panel on the page rather than a stack of them.
- */
 export function startFromWindow(page: UserscriptWindow): GameAttachment {
     assert(typeof page.setInterval === "function", "a page states the clock this asks for");
     let shown: PanelElement | null = null;
@@ -918,10 +853,6 @@ function copyReport(
     copy(text);
 }
 
-/**
- * Starts reading, and hands back the way to stop. A second copy of the add-on stands down inside
- * the attachment, so nothing here has to know it was second.
- */
 export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
     const session = composeBattleSession();
     const store = environment.store;
@@ -943,16 +874,12 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     assert(getFightFromSession(session) === null, "a session starts holding no fight");
     assert(FAILURE_LINE.startsWith("MargoMeter/"), "a failure of ours says whose it is first");
     // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
-    // one, and a page with no game on it is left as it was found. Between that moment and the
-    // first payload it says there has been no fight — a panel that draws nothing until one
-    // arrives looks exactly like an add-on that died on the way to the page.
+    // one, and a page with no game on it is left as it was found.
     let isMounted = false;
     // Read once, on the payload that opens a fight: the client's own state is where a place is,
     // the hero does not move while a fight is on, and reading it every payload would ask another
     // program's object graph a question whose answer cannot have changed.
     let place: FightPlace | null = null;
-    // When the fight going on now opened, which is the moment its row on the shelf states. Read
-    // on the payload that opens it, like the place beside it.
     let liveOpenedAt = 0;
     const mount = (): void => {
         if (isMounted) return;
@@ -977,14 +904,11 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         (press) => {
             if (press.kind === "save") saveRecording(environment, capture);
             if (press.kind === "copy") copyReport(environment, session, place);
-            // The shelf answers its own two before the screen is asked, and a press either moves
-            // the shelf or moves the screen: no press does both.
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
             // A refusal to write is an answer: the panel folds either way, and only the next visit
             // is the poorer for it.
             if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
-            // A panel with no fight in it still folds, and still says what it is waiting for.
             if (getFightFromSession(session) === null) panel.showWaiting(screen.isCollapsed);
             else draw();
         },
@@ -997,8 +921,6 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             panel.showWaiting(screen.isCollapsed);
             mount();
         },
-        // The one place code of ours stands ahead of the game's own, and it reads and nothing
-        // else: the state a payload is about to change is only readable before it runs.
         handleBeforeCall: (battle) => {
             combatantsBefore = composeSnapshotFromBattle(battle);
         },

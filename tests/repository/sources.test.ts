@@ -1,5 +1,5 @@
 /**
- * Every TypeScript file, against the three rules a machine can count.
+ * Every TypeScript file, against the rules a machine can count.
  *
  * C5, S4 and S5 were measured by hand on the one source file this tree had, and the hand
  * measurement found S5 broken. This holds them from the first line of every file that
@@ -14,7 +14,14 @@ const COMMENT_OPENERS = ["//", "/*", "*/", "*"];
 const ASSERTION_CALLS = ["assert", "assertEquals", "assertThrows"];
 const MAXIMUM_FUNCTION_LINES = 70;
 const MAXIMUM_COMMENT_SHARE = 25;
+const MAXIMUM_DIRECTORY_SHARE = 22;
 const MINIMUM_ASSERTION_DENSITY = 2;
+/** The directories that hold the program and the tools that build it, which is what C16 binds. */
+const SHIPPED_ROOTS = ["src/", "tools/"];
+/** One line said twice is a citation; a block said twice is an essay with two copies. */
+const MINIMUM_REPEATED_LINES = 2;
+/** More blocks than any tree this repository will hold, so the count stays a stated bound. */
+const MAXIMUM_COMMENT_BLOCKS = 4096;
 
 interface SourceReading {
     lines: number;
@@ -91,6 +98,115 @@ Deno.test("no file is more than a quarter comment", () => {
     }
     assert(MAXIMUM_COMMENT_SHARE > 0, "the ceiling is a real bound");
     assertEquals(over, [], "C5: a file past a quarter comment is an ADR that was not written");
+});
+
+function isShippedPath(path: string): boolean {
+    assert(path.length > 0, "a path being placed is a path");
+    return SHIPPED_ROOTS.some((root) => path.startsWith(root));
+}
+
+/** The directory a file sits in, which is the unit C16 counts over. */
+function getDirectoryOfPath(path: string): string {
+    assert(path.includes("/"), "a source path names a directory before its file");
+    let at = 0;
+    for (let offset = 0; offset < path.length; offset += 1) {
+        if (path.charAt(offset) === "/") at = offset;
+    }
+    assert(at > 0, "and the directory is not the empty name");
+    return path.slice(0, at);
+}
+
+Deno.test("no directory of the program is past its own share of comment", () => {
+    assert(getDirectoryOfPath("src/ui/panel-look.ts") === "src/ui", "the reader places a file");
+    assert(getDirectoryOfPath("src/userscript-entry.ts") === "src", "including one at a root");
+    assert(isShippedPath("tools/build-preview.ts"), "a tool ships");
+    assert(!isShippedPath("tests/repository/sources.test.ts"), "a guard does not");
+
+    const lines = new Map<string, number>();
+    const comment = new Map<string, number>();
+    for (const [path, reading] of getReadings()) {
+        if (!isShippedPath(path)) continue;
+        const directory = getDirectoryOfPath(path);
+        lines.set(directory, (lines.get(directory) ?? 0) + reading.lines);
+        comment.set(directory, (comment.get(directory) ?? 0) + reading.commentLines);
+    }
+    assert(lines.size > 0, "there are directories to measure");
+    const over: string[] = [];
+    for (const [directory, held] of lines) {
+        const share = Math.floor(((comment.get(directory) ?? 0) * 100) / held);
+        if (share > MAXIMUM_DIRECTORY_SHARE) over.push(`${directory} at ${share}%`);
+    }
+    assert(MAXIMUM_DIRECTORY_SHARE < MAXIMUM_COMMENT_SHARE, "a directory is bound below a file");
+    assertEquals(over, [], "C16: a directory writing comment up to the ceiling C5 leaves it");
+});
+
+/** Every comment block in a file: a run of `//` lines, or one delimited block, indentation off. */
+function getCommentBlocks(text: string): string[] {
+    const blocks: string[] = [];
+    let held: string[] = [];
+    let isInsideBlock = false;
+    for (const line of text.split("\n")) {
+        const trimmed = line.trim();
+        if (isInsideBlock) {
+            held.push(trimmed);
+            if (!trimmed.includes("*/")) continue;
+            blocks.push(held.join("\n"));
+            held = [];
+            isInsideBlock = false;
+            continue;
+        }
+        if (trimmed.startsWith("//")) {
+            held.push(trimmed);
+            continue;
+        }
+        if (held.length > 0) blocks.push(held.join("\n"));
+        held = [];
+        if (!trimmed.startsWith("/*")) continue;
+        held.push(trimmed);
+        if (!trimmed.includes("*/")) isInsideBlock = true;
+        else {
+            blocks.push(held.join("\n"));
+            held = [];
+        }
+    }
+    if (held.length > 0) blocks.push(held.join("\n"));
+    assert(blocks.length <= MAXIMUM_COMMENT_BLOCKS, "a file holds no more blocks than that");
+    return blocks;
+}
+
+/** The blocks of more than one line that stand in more than one place. */
+function getRepeatedBlocks(blocks: readonly string[]): string[] {
+    assert(blocks.length <= MAXIMUM_COMMENT_BLOCKS, "no more blocks than the stated bound");
+    const seen = new Map<string, number>();
+    for (const block of blocks) {
+        if (block.split("\n").length < MINIMUM_REPEATED_LINES) continue;
+        seen.set(block, (seen.get(block) ?? 0) + 1);
+    }
+    const repeated: string[] = [];
+    for (const [block, count] of seen) {
+        if (count > 1) repeated.push(block.split("\n")[0] ?? "");
+    }
+    assert(repeated.length <= seen.size, "no more repeats than there are blocks");
+    return repeated;
+}
+
+Deno.test("a comment block written twice is a finding", () => {
+    const twice = "// one\n// two\ncall();\n// one\n// two\ncall();";
+    assertEquals(getRepeatedBlocks(getCommentBlocks(twice)).length, 1, "the reader finds a repeat");
+
+    const apart = "// one\n// two\ncall();\n// three\n// four\ncall();";
+    assertEquals(getRepeatedBlocks(getCommentBlocks(apart)), [], "and does not find what is not");
+
+    const single = "// one\ncall();\n// one\ncall();";
+    assertEquals(getRepeatedBlocks(getCommentBlocks(single)), [], "one line said twice is a cite");
+
+    const found: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (!isShippedPath(path)) continue;
+        for (const block of getCommentBlocks(Deno.readTextFileSync(path))) found.push(block);
+    }
+    assert(found.length > 0, "there is comment in the program to read");
+    assertEquals(getRepeatedBlocks(found), [], "C15: a comment block standing in two places");
 });
 
 Deno.test("no function runs past seventy lines", () => {

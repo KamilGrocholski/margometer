@@ -1,12 +1,6 @@
 /**
- * Everything the reader reads, and the only Polish in `src/`.
- *
- * A sentence here never carries our vocabulary or a key of the game's: the reader is told what
- * cannot be known, never why this reader could not read it. Identifiers around the sentences stay
- * English, which is what keeps the boundary visible in one file.
- *
- * A count is spelled the way Polish spells it — three ways — and that belongs here rather than to
- * a formatter, because which way is a fact about the language and not about the number.
+ * Everything the reader reads, and the only Polish in `src/`. Identifiers around the sentences
+ * stay English, which is what keeps the boundary visible in one file.
  */
 
 import { assert } from "@std/assert";
@@ -14,14 +8,12 @@ import { composeIntegerText } from "@/src/core/protocol-number.ts";
 import type { PanelMetric, PanelOutcome } from "@/src/ui/panel-reading.ts";
 import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/panel-screen.ts";
 
-/** The three shapes a Polish noun takes after a number. */
 export interface CountedNoun {
     one: string;
     few: string;
     many: string;
 }
 
-/** More than colour, because colour never carries meaning alone. */
 export const WARNING_MARK = "⚠ ";
 
 export const PANEL_WORDS = {
@@ -31,23 +23,16 @@ export const PANEL_WORDS = {
     withoutTarget: "Nieznany cel",
     unknown: "Nie wiadomo",
     nothingYet: "Nikogo tu jeszcze nie ma.",
-    /** Before a fight reaches the panel, which is not a fight with nothing in it yet. */
     noFightYet: "Nie było jeszcze walki.",
-    /** Where a fight states no side at all, in place of the headcount the header usually draws. */
     noSides: "brak składu",
     fights: "Walki",
-    /** The way off the shelf. It goes back to the fight, which is not a place on the shelf. */
     backFromFights: "wróć",
-    /** Where the fights are kept, and the three places they can be. */
     storage: "Trzymaj",
-    /** The two sides of the bar under the ranking, and what belongs to neither of them. */
     ourSide: "My",
     theirSide: "Oni",
     withoutSide: "Bez strony",
-    /** Said where the strip totals more than the list above it does, which is most screens. */
     wholeFight: "Cała walka",
     openFights: "Pokaż albo schowaj zapisane walki",
-    /** What a crumb goes back to: the list of everybody, which the game calls the roster. */
     back: "skład",
     shelfEmpty: "Nie ma jeszcze zapisanych walk",
     fightOver: "Walka skończona",
@@ -56,12 +41,10 @@ export const PANEL_WORDS = {
     damageKind: "TYP OBRAŻEŃ",
     healthSource: "OD CZEGO",
     skills: "CZYM (UMIEJĘTNOŚCI)",
-    /** The same section one level down, where it is about one pair rather than about everybody. */
     skillsAgainst: "CZYM",
     /** A blow nothing was announced before. The game does not tell it from a swing it granted. */
     plainBlow: "Zwykły cios",
     withoutKind: "Bez podanego typu",
-    /** What a region says in place of itself, so a failure is the size of the thing that failed. */
     undrawn: "nie dało się narysować",
     combatants: "Postacie",
     share: "Udział w walce",
@@ -73,10 +56,7 @@ export const PANEL_WORDS = {
     copyReport: "Do zgłoszeń: skopiuj policzone liczby z tej walki",
 } as const;
 
-/**
- * How a fight went, in one word each. Lower case where they are composed, because the shelf says
- * the same three words a row at a time; the header is what shouts them, and it does so in CSS.
- */
+/** Lower case: the shelf composes these a row at a time, and the header shouts them in CSS. */
 const OUTCOME_WORDS: Record<PanelOutcome, string> = {
     won: "wygrana",
     lost: "przegrana",
@@ -90,11 +70,6 @@ export function getWordsForOutcome(outcome: PanelOutcome): string {
     return words;
 }
 
-/**
- * What an opened row says on a screen its own figure is nothing on. Zero is a reading and it is
- * said in the language's own words rather than as a bare `0`: the reader pressed a person, and
- * what they get back is a sentence about that person.
- */
 const NOTHING_WORDS: Record<PanelMetric, string> = {
     damageDealtApplied: "Nie zadała nikomu obrażeń.",
     damageTakenApplied: "Nic jej nie ubyło.",
@@ -109,17 +84,14 @@ export function getWordsForNothing(screen: PanelMetric): string {
     return words;
 }
 
-/** Which quantity a screen shows, as the reader meets it on the upper strip. */
 const NOUN_WORDS: Record<PanelNoun, string> = {
     damage: "Obrażenia",
     healing: "Leczenie",
 };
 
 /**
- * Which way round, worded per screen rather than per direction — Polish uses one word for damage
- * given and another for healing given, and a label covering both would have to be ours rather
- * than the language's. Lower case against the nouns' upper: two strips of equal weight read as two
- * lists of the same kind of thing, and these are not.
+ * Worded per screen rather than per direction: Polish uses one word for damage given and another
+ * for healing given, and a label covering both would be ours rather than the language's.
  */
 const DIRECTION_WORDS: Record<PanelMetric, string> = {
     damageDealtApplied: "zadane",
@@ -128,7 +100,6 @@ const DIRECTION_WORDS: Record<PanelMetric, string> = {
     healthRestored: "otrzymane",
 };
 
-/** Whose rows are listed. Short, because this is a strip pressed while a fight is running. */
 const SIDE_WORDS: Record<PanelSideChoice, string> = {
     everyone: "Wszyscy",
     reader: "My",
@@ -183,10 +154,7 @@ export const CARD_WORDS = {
      */
     damageNote: "Surowe to obrażenia przed redukcją. Różnicy nie zatrzymała obrona — " +
         "pancerza ani odporności gra nie podaje.",
-    /**
-     * v1 said `PPM — powrót` here as well, where the gesture reaches the last rung and does
-     * nothing (`src/userscript-entry.ts`).
-     */
+    /** The right press is not named: on the last rung it reaches nothing. */
     gesture: "LPM — rozbicie",
 } as const;
 
@@ -213,10 +181,6 @@ export function getWordsForProfession(profession: string): string {
     return words;
 }
 
-/**
- * Who somebody is, under their name: what they are and how far along. Null where the game said
- * neither, because a line drawn for nothing is a question about what is missing.
- */
 export function composeCardSubtitleText(
     profession: string | null,
     level: number | null,
@@ -338,7 +302,6 @@ export function composeCountedNoun(count: number, noun: CountedNoun): string {
     return `${count} ${noun.many}`;
 }
 
-/** What a press would do, which the mark says the state of and never the consequence of. */
 export function getWordsForPin(isPinned: boolean): string {
     assert(typeof isPinned === "boolean", "a pin is drawn for a fight that is pinned or is not");
     if (isPinned) return "Odepnij — będzie mogła zniknąć";
@@ -358,31 +321,23 @@ export function getWordsForStorage(choice: PanelStorageChoice): string {
     return words;
 }
 
-/**
- * Said as the fight being gone rather than as a write having failed, which is the consequence
- * the reader has. One remedy, because only one of them is still theirs to take.
- */
 export const STORE_REFUSED_WARNING =
     "Przeglądarka nie przyjęła tej walki — nie została zapisana. " +
     "Odepnij którąś, żeby zrobić miejsce.";
 
-/** The other way a fight fails to arrive, and a sentence of its own: the remedy differs. */
 export const EVERY_SLOT_PINNED_WARNING =
     "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.";
 
-/** The answer itself refused. The shortest of the three: nothing was lost and nothing moved. */
 export const CHOICE_REFUSED_WARNING =
     "Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było.";
 
-/** The fight happening now, which is on the shelf and is kept nowhere. */
 const LIVE_FIGHT_TIME = "teraz";
 const LIVE_FIGHT_OUTCOME = "trwa";
 const TWO_DIGITS = 2;
 
 /**
- * When a fight was kept, on the reader's own clock. Two digits either side, because a column of
- * times that jumps between four and five characters reads as a column of different things, and
- * nothing at all where the moment does not read back — `00:00` is a reading of nothing.
+ * Two digits either side: a column of times jumping between four and five characters reads as a
+ * column of different things. Empty where the moment does not read back — `00:00` is a reading.
  */
 export function getWordsForShelfTime(
     at: { hour: number; minute: number } | null,
@@ -403,9 +358,8 @@ function composeTwoDigitText(value: number): string {
 }
 
 /**
- * How big the fight was, side against side, the reader's own first. The multiplication sign
- * rather than `v`: `4v4` is English shorthand, and this panel's one borrowed word would be it.
- * The header says the same thing with `vs`, where there is room for a word.
+ * The multiplication sign rather than `v`: `4v4` is English shorthand, and this panel's one
+ * borrowed word would be it. The header says the same with `vs`, where there is room for a word.
  */
 export function composeShelfSizeText(counts: readonly number[]): string {
     assert(counts.every((one) => one > 0), "a side that is counted has somebody on it");
@@ -413,7 +367,6 @@ export function composeShelfSizeText(counts: readonly number[]): string {
     return counts.map((count) => composeFigureText(count)).join("×");
 }
 
-/** How a kept fight went, or that it is still going. Empty where nobody could say. */
 export function getWordsForShelfOutcome(outcome: PanelOutcome | null, isLive: boolean): string {
     assert(typeof isLive === "boolean", "a row says whether it is the fight going on now");
     // How it went outranks the word for one going on: a fight that has ended is still the live
@@ -423,7 +376,6 @@ export function getWordsForShelfOutcome(outcome: PanelOutcome | null, isLive: bo
     return "";
 }
 
-/** How many times, beside a share: a count is what a skill row says and a figure cannot. */
 export function composeUsesText(uses: number): string {
     assert(Number.isSafeInteger(uses), "a count of announcements is a whole number");
     assert(uses >= 0, "and never below nothing");
@@ -459,7 +411,6 @@ export function composeUnplacedHealWarning(count: number): string {
         "więc leczenie może być zaniżone.";
 }
 
-/** What each region of the panel is called, for the one sentence that names a region. */
 export const REGION_WORDS = {
     header: "nagłówka",
     tabs: "zakładek",
@@ -472,7 +423,6 @@ export const REGION_WORDS = {
 
 export type PanelRegion = keyof typeof REGION_WORDS;
 
-/** A region that could not be drawn says so where it stands, at the size of what failed. */
 export function composeUndrawnText(region: PanelRegion): string {
     const words = REGION_WORDS[region];
     assert(words.length > 0, "a region that could not be drawn is a region with a name");
@@ -513,7 +463,6 @@ export function composeFigureText(value: number): string {
     return `${sign}${body.slice(0, start)}${spaced}`;
 }
 
-/** What a share too small to round to a point says instead of the figure zero measures. */
 const SHARE_FLOOR = "<1%";
 /** More shares than any screen draws rows: twenty combatants, sixty-four kinds, and the pinned. */
 const MAXIMUM_SHARES = 128;
@@ -532,7 +481,6 @@ function composeSharePointsText(points: number, isPresent: boolean): string {
     return `${composeIntegerText(points)}%`;
 }
 
-/** One share on its way to whole points: what it holds outright, and the fraction discarded. */
 interface ShareInPoints {
     index: number;
     amount: number;
@@ -550,7 +498,6 @@ function composeSharesInPoints(amounts: readonly number[], whole: number): Share
     });
 }
 
-/** Every member holds the same figure, so any of them says what the group is ordered by. */
 function getShareGroupHead(group: readonly ShareInPoints[]): ShareInPoints {
     const first = group[0];
     assert(first !== undefined, "a group that was formed has a member");
@@ -625,20 +572,12 @@ export function composeShareTexts(amounts: readonly number[], whole: number): st
     return shares.map((one) => composeSharePointsText(one.points, one.amount > 0));
 }
 
-/**
- * A share on its own, for the one figure that stands outside a set. Whole points like every other
- * share on the screen, so a row and the strip under it never spell one number two ways.
- */
 export function composeShareText(share: number): string {
     assert(share >= 0, "a share is never below nothing");
     assert(share <= 1, "and never more than the whole");
     return composeSharePointsText(Math.round(share * HUNDRED), share > 0);
 }
 
-/**
- * Where a fight was fought, as much of it as was known: the map, the tile, or both. Null where
- * none of it was — an empty pair of brackets states a place, and nothing was stated.
- */
 export function composePlaceWords(
     mapName: string | null,
     x: number | null,

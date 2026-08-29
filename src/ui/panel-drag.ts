@@ -1,9 +1,4 @@
-/**
- * Where the panel sits, and how a reader moves it.
- *
- * Nothing here measures anything: the page states its own size and the pointer states where it
- * is, so a position is two numbers clamped against a viewport and written as a style attribute.
- */
+/** Where the panel sits, and how a reader moves it. Nothing here measures the document. */
 
 import { assert } from "@std/assert";
 import { composeIntegerText, getIntegerFromText } from "@/src/core/protocol-number.ts";
@@ -15,19 +10,16 @@ import {
 import type { PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
 import { PLACE, SPACE } from "@/src/ui/panel-look.ts";
 
-/** The panel's own corner, in the viewport's frame. */
 export interface PanelPosition {
     left: number;
     top: number;
 }
 
-/** What a position is clamped against. */
 export interface PanelViewport {
     width: number;
     height: number;
 }
 
-/** Where the pointer and the panel each were when the drag began. */
 interface PanelGrab {
     pointerLeft: number;
     pointerTop: number;
@@ -36,14 +28,12 @@ interface PanelGrab {
 }
 
 /**
- * How much of the panel stays on screen, whatever the drag asks for: a panel dragged off the edge
- * cannot be dragged back, because the grab area goes with it. A title bar's worth each way.
+ * A panel dragged off the edge cannot be dragged back, because the grab area goes with it.
+ * A title bar's worth stays on screen each way.
  */
 const MINIMUM_VISIBLE = 64;
-/** What the drag writes, and the one custom property of ours on a node in the game's document. */
 const TOP_VARIABLE = "--MargoMeter-panel-top";
 const STYLE_ATTRIBUTE = "style";
-/** The bar and nothing on it: a press on a control is a press on that control. */
 const GRIP_ATTRIBUTE = "data-grip";
 
 /** Zero wins a viewport narrower than the margin: a limit below zero puts the panel off-screen. */
@@ -125,8 +115,6 @@ export function composeStoredTextFromPosition(position: PanelPosition): string {
 }
 
 /**
- * What puts the panel there.
- *
  * `right: auto` is what releases the default corner: the sheet anchors the host to the top right,
  * and a `left` alone would leave both edges pinned and stretch the host across the page. The top
  * is written twice on purpose — the ceiling that keeps the panel above the bottom of the screen
@@ -142,14 +130,6 @@ export function composePositionStyle(position: PanelPosition): string {
     return style;
 }
 
-/**
- * Which side of the panel the detail window opens on, as a left edge in the viewport's frame.
- *
- * The panel is anchored to the top right corner until somebody drags it, so the detail opens to
- * its left and there is no side to choose — until there is. Dragged to the left edge, a detail
- * that went on opening leftwards would be drawn off the screen, and nothing here measures it back
- * on. Null where the page states no size: an unplaced detail keeps the sheet's own default.
- */
 export function composeTipLeft(
     position: PanelPosition | null,
     viewport: PanelViewport | null,
@@ -167,23 +147,19 @@ export function composeTipLeft(
     return Math.min(other, Math.max(0, viewport.width - tipWidth));
 }
 
-/** What the panel is handed about where it sits, and where a reader left it. */
 export interface PanelPlacement {
-    /** Where the reader left it, or null where nothing was stored. */
     position: PanelPosition | null;
     getViewport(): PanelViewport | null;
     /** Where they let go, once per drag: a move reported per event is a write per frame. */
     handleMoved(position: PanelPosition): void;
 }
 
-/** The bar is what a drag is started from, so the bar is what wears the mark. */
 export function setGripMark(bar: PanelElement): void {
     assert(GRIP_ATTRIBUTE.startsWith("data-"), "what starts a drag is marked by an attribute");
     bar.setAttribute(GRIP_ATTRIBUTE, "");
     assert(bar.className.length > 0, "and the bar is a region before it is a handle");
 }
 
-/** Coordinates, or nothing at all: a pointer event without them moves nothing. */
 function getPointerFromEvent(event: PanelEvent): PanelPosition | null {
     assert(typeof event === "object", "a pointer states where it is on an event of its own");
     const left = getNumberFromUnknown(event.clientX);
@@ -241,9 +217,8 @@ export function setPanelDrag(
         if (event.target?.getAttribute(GRIP_ATTRIBUTE) === null) return;
         const pointer = getPointerFromEvent(event);
         if (pointer === null) return;
-        // Nothing has written a left on the first grab, so where the panel already is has to be
-        // derived. Null means the page did not say how wide it is, and a drag from a guessed
-        // origin would jump under the hand.
+        // Null means the page did not say how wide it is, and a drag from a guessed origin
+        // would jump under the hand.
         const from = position ?? composeDefaultPosition(placement.getViewport());
         if (from === null) return;
         // Without this the browser starts its own text or image drag from the bar.
@@ -278,8 +253,6 @@ export function setPanelDrag(
 }
 
 /**
- * Takes the pointer, or gives it back, without ever costing the drag.
- *
  * Capture is the forgiving part of a drag rather than the drag: a document offering neither method
  * still moves the panel, and what it loses is a hand that outruns it. It is caught apart from the
  * drag because it throws where the drag does not — a pointer a browser no longer considers active

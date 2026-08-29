@@ -40,7 +40,6 @@ export interface ReportSubject {
  * how it is written down. A report is what a reader pastes when a number looks wrong, so a figure
  * added there and missed here would be absent in exactly the situation the report exists for.
  */
-/** A skill as a report writes it: what it is called, how often, what it did, and to whom. */
 interface ReportSkill {
     name: string;
     uses: number;
@@ -58,7 +57,6 @@ type ReportRow = {
         : Record<string, ReportSkill>;
 };
 
-/** A cut of a cut, written the way one cut is: an object, because JSON holds no map. */
 function composeReportPairCut(
     cut: ReadonlyMap<string, ReadonlyMap<string, number>>,
 ): Record<string, Record<string, number>> {

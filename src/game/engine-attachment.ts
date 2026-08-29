@@ -32,7 +32,6 @@ export interface Scheduler {
 }
 
 export interface AttachmentReport {
-    /** Handed the battle before the engine's own call, for what only that moment can be read at. */
     /**
      * The wrap is on and the game is being read, before any payload has arrived. A reader has to
      * be able to tell an add-on waiting for a fight from one that died on the way to the page.
@@ -46,7 +45,6 @@ export interface AttachmentReport {
     handleAnotherReader(): void;
     /** The game is here and will not be wrapped: the method it was found by is gone. */
     handleRefusal(): void;
-    /** The looking stopped without a game. */
     handleSearchAbandoned(): void;
 }
 
@@ -132,7 +130,6 @@ function look(page: unknown, report: AttachmentReport, schedule: Scheduler, sear
     report.handleRefusal();
 }
 
-/** Looks now, and keeps looking on the caller's own clock until it finds a game or gives up. */
 export function attachToGame(
     page: unknown,
     schedule: Scheduler,
