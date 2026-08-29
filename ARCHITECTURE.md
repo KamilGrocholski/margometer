@@ -52,6 +52,7 @@ src/
     unknown-reading.ts   Reading a value nobody typed, answering null rather than throwing.
   game/
     battle-session.ts    One fight, accumulated payload by payload, in the order they arrive.
+    browser-store.ts     The store a browser lends, wrapped so a refusal is an answer.
     engine-attachment.ts   Getting the wrap onto the game, and off again.
     engine-battle-wrap.ts  The one function here that changes the running game.
     engine-place.ts      Where a fight happened, asked of the client's own state.
@@ -82,10 +83,11 @@ tests/
   AGENTS.md                What is true of a test here and nowhere else.
   game/
     battle-session.test.ts    Every recording replayed the way the game delivered it.
+    browser-store.test.ts     A store that answers, and a browser that will not lend one.
     engine-attachment.test.ts   A page with a game, without one, or with a reader on it.
     engine-battle-wrap.test.ts  The promise the add-on makes to the page.
     engine-place.test.ts      A page that says all of it, some of it, or nothing.
-    kept-fights.test.ts       A store that answers, refuses, or holds what nobody wrote.
+    kept-fights.test.ts       A shelf that answers, refuses, or holds what nobody wrote.
     engine-warrior.test.ts    A payload's warriors, against the snapshots beside them.
   core/                    A test sits where its subject sits.
     battle-event.test.ts      Every variant the union holds, against what arrives.
@@ -305,12 +307,14 @@ commit that opens or closes one.
    bar and every row on that shelf say where the fight was fought, a ranking row wears its
    profession and carries its share as a bar, hovering a row opens the detail window that says in
    full what the row had to cut, the bar says which build drew it and the host carries the same
-   number for a screenshot to be read by, the panel carries the stylesheet `DESIGN.md` specifies and
-   the strip that always states the screen's own total, and `deno task build` writes the file they
-   install, and `deno task preview` writes a page that runs it against the recordings. What is not
-   written: **the title bar's controls**, which `DESIGN.md` states beside the version and this bar
-   has none of — v1 had three, at `git show develop:src/ui/panel-element.ts` — and the rest of the
-   tools, and the release plumbing — `README.md`, `CHANGELOG.md` and the workflows.
+   number for a screenshot to be read by, the panel folds to that bar and comes back folded, the
+   panel carries the stylesheet `DESIGN.md` specifies and the strip that always states the screen's
+   own total, and `deno task build` writes the file they install, and `deno task preview` writes a
+   page that runs it against the recordings. What is not written: **two of the title bar's three
+   controls** — v1 had copy the report and save the recording beside the fold, at
+   `git show develop:src/ui/panel-element.ts`, and the second of them is what puts material in
+   `captures/` — and the rest of the tools, and the release plumbing — `README.md`, `CHANGELOG.md`
+   and the workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

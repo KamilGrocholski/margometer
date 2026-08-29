@@ -48,13 +48,21 @@ export interface ScreenState {
      * screen closes it: the same combatant on another screen is another figure entirely.
      */
     openRowId: number | null;
+    /** Folded to the title bar. The reader chose it, so the entry reads it back next visit. */
+    isCollapsed: boolean;
 }
 
 /** The screen a fight opens on: what the reader did, which is what they came to see. */
-export function composeScreenState(): ScreenState {
-    const state: ScreenState = { current: "damageDealtApplied", isOnShelf: false, openRowId: null };
+export function composeScreenState(isCollapsed: boolean): ScreenState {
+    const state: ScreenState = {
+        current: "damageDealtApplied",
+        isOnShelf: false,
+        openRowId: null,
+        isCollapsed,
+    };
     assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
     assert(state.openRowId === null, "and with every row closed");
+    assert(state.isCollapsed === isCollapsed, "and folded exactly as the reader last left it");
     return state;
 }
 

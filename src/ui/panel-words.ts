@@ -43,6 +43,8 @@ export const PANEL_WORDS = {
     combatants: "Postacie",
     shareOfFight: "Udział w walce",
     shareOfFigure: "Udział w tej liczbie",
+    collapse: "Zwiń okno",
+    expand: "Rozwiń okno",
 } as const;
 
 /**

@@ -9,12 +9,8 @@ import { assert, assertEquals } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeJsonText } from "@/src/core/unknown-reading.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import {
-    type FightStore,
-    type KeptFight,
-    readKeptFights,
-    writeKeptFights,
-} from "@/src/game/kept-fights.ts";
+import type { BrowserStore } from "@/src/game/browser-store.ts";
+import { type KeptFight, readKeptFights, writeKeptFights } from "@/src/game/kept-fights.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
@@ -23,7 +19,7 @@ import {
 
 const KEY = "MargoMeter-fights";
 
-function composeStore(refuses = false): FightStore {
+function composeStore(refuses = false): BrowserStore {
     const held = new Map<string, string>();
     return {
         read: (key) => held.get(key) ?? null,
@@ -68,16 +64,16 @@ Deno.test("a store that will not have it says so, rather than throwing", () => {
 });
 
 Deno.test("a shelf nobody can read is dropped, never trusted into a figure", () => {
-    const broken: FightStore = { read: () => "{ this is not json", write: () => true };
+    const broken: BrowserStore = { read: () => "{ this is not json", write: () => true };
     assertEquals(readKeptFights(broken, KEY), [], "text that will not parse holds nothing");
     // The fight inside it reads back perfectly: it is the version that refuses it, and a sample
     // holding an empty shelf could not tell the two apart.
-    const older: FightStore = {
+    const older: BrowserStore = {
         read: () => '{"version":0,"fights":[{"openedAt":1,"combatants":[],"payloads":[]}]}',
         write: () => true,
     };
     assertEquals(readKeptFights(older, KEY), [], "and neither does a shelf of another version");
-    const wrong: FightStore = {
+    const wrong: BrowserStore = {
         read: () => '{"version":1,"fights":[{"openedAt":"soon","combatants":[],"payloads":[]}]}',
         write: () => true,
     };
@@ -85,7 +81,7 @@ Deno.test("a shelf nobody can read is dropped, never trusted into a figure", () 
 });
 
 Deno.test("one fight nobody can read costs that fight and not the shelf", () => {
-    const half: FightStore = {
+    const half: BrowserStore = {
         read: () =>
             '{"version":1,"fights":[{"openedAt":1,"combatants":[],"payloads":[["0;0;txt=a"]]},' +
             '{"openedAt":2,"combatants":[],"payloads":"none"}]}',

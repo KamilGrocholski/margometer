@@ -148,6 +148,22 @@ Deno.test("the sheet shuts the game out, and every class it selects is one the p
     assert(opened > 1, "and the sheet holds more than the host's own rule");
 });
 
+Deno.test("a folded region loses to nothing, because its rule names the region", () => {
+    const sheet = composeStyleSheet();
+    // The bug this catches was photographed rather than reasoned: `.folded` on its own ties with
+    // each region's own rule at one class apiece, and the region wins on source order, so a
+    // folded panel stood 49 pixels tall against the bar's 23. Two classes in the selector is
+    // what makes the outcome independent of where the rule is written.
+    for (const region of [CLASS.tabs, CLASS.body, CLASS.summary]) {
+        assert(
+            sheet.includes(`.${region}.${CLASS.folded}`),
+            `${region} folds by a selector that outranks its own rule`,
+        );
+    }
+    assert(!sheet.includes(`;}.${CLASS.folded}{`), "and never by the bare class, which would tie");
+    assert(sheet.includes("display:none"), "what a folded region does is stop being drawn");
+});
+
 Deno.test("a value is written once, and every rule spends it by name", () => {
     const sheet = composeStyleSheet();
     // A value stated twice is the bug this catches, wherever the second one sits: the host's own

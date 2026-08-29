@@ -148,8 +148,15 @@ inside it.
 
 **Title bar.** `surfaceRaised`, one line, always. It carries the name, the version, where the fight
 is being fought, and the controls, and it stays one line as the version number grows — a bar that
-wraps moves everything below it. Where the client says nothing about the place, the bar says nothing
-in its stead: an empty pair of brackets states a place, and nothing was stated.
+wraps moves everything below it. The name and the version never shrink; the place is the only one of
+them whose length the panel does not choose, so it is the one that takes the ellipsis. Where the
+client says nothing about the place, the bar says nothing in its stead: an empty pair of brackets
+states a place, and nothing was stated.
+
+**A control says what a press would do**, never what the panel already is, so its mark and its
+sentence both change with the state. Folded, the panel is this bar and nothing else: what stands
+under it is composed empty rather than composed and hidden, because a fight redraws every few
+seconds.
 
 **Ranking row.** A name, a bar, a figure. The bar is the row's background at `barTint`, not a
 separate element, so the row height cannot disagree with the accent height.

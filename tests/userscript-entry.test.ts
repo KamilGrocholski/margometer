@@ -10,7 +10,8 @@ import { assert, assertEquals } from "@std/assert";
 import { startMargoMeter, type UserscriptEnvironment } from "@/src/userscript-entry.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import { type FightStore, readKeptFights } from "@/src/game/kept-fights.ts";
+import type { BrowserStore } from "@/src/game/browser-store.ts";
+import { readKeptFights } from "@/src/game/kept-fights.ts";
 import type { PanelElement } from "@/src/ui/panel-element.ts";
 import type { Scheduler } from "@/src/game/engine-attachment.ts";
 import {
@@ -137,7 +138,7 @@ Deno.test("a fight that ends goes on the shelf, once, and comes back after a rel
 
     const shelf = first.held.get("MargoMeter-fights");
     assert(shelf !== undefined, "the fight was written where a reload will look for it");
-    const kept = readKeptFights(first.environment.store as FightStore, "MargoMeter-fights");
+    const kept = readKeptFights(first.environment.store as BrowserStore, "MargoMeter-fights");
     assertEquals(kept.length, 1, "one fight, however many calls said it was over");
     assertEquals(kept[0]?.combatants.length, 11, "with the cast the payloads stated");
     const messages = kept[0]?.payloads.flat() ?? [];
@@ -151,6 +152,51 @@ Deno.test("a fight that ends goes on the shelf, once, and comes back after a rel
     );
     const live = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
     assertEquals(events.length, live.length, "the same fight, read again");
+});
+
+Deno.test("a reader folds the panel away, and it is still folded when they come back", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const first = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(first.environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = first.shown[0] as FakeElement;
+
+    const control = () => getElementsWithin(host).find((one) => one.className === "control");
+    const rows = () => getElementsWithin(host).filter((one) => one.className === "row").length;
+    assert(rows() > 0, "the panel opens drawing the fight");
+    assertEquals(first.held.get("MargoMeter-folded"), undefined, "and nothing is stored yet");
+
+    const folding = control();
+    assert(folding !== undefined, "there is a control to press");
+    pressElement(host, "pointerdown", folding);
+    assertEquals(rows(), 0, "pressing it folds the panel to its bar");
+    assertEquals(first.held.get("MargoMeter-folded"), "1", "and says so where a reload will look");
+
+    // The reader comes back: a second start over the store the first one left behind.
+    const second = composeEnvironment({ Engine: { battle: { updateData: () => 1 } } });
+    for (const [key, value] of first.held) second.held.set(key, value);
+    startMargoMeter(second.environment);
+    const again = second.environment.page as { Engine: { battle: { updateData: unknown } } };
+    const next = again.Engine.battle.updateData;
+    assert(typeof next === "function", "the second copy wrapped its own game");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) next(payload);
+    const reopened = second.shown[0] as FakeElement;
+    assertEquals(
+        getElementsWithin(reopened).filter((one) => one.className === "row").length,
+        0,
+        "and the panel comes back folded, because that is what the reader left it",
+    );
+
+    const unfolding = getElementsWithin(reopened).find((one) => one.className === "control");
+    assert(unfolding !== undefined, "the bar still carries its control");
+    pressElement(reopened, "pointerdown", unfolding);
+    assert(
+        getElementsWithin(reopened).filter((one) => one.className === "row").length > 0,
+        "which brings the fight back",
+    );
+    assertEquals(second.held.get("MargoMeter-folded"), "", "and stores the unfolding too");
 });
 
 Deno.test("the shelf has a screen of its own, and its tab toggles", () => {

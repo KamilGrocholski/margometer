@@ -39,8 +39,10 @@ Deno.test("a name no screen answers to moves nothing", () => {
     assertEquals(getScreenFromName(""), null, "and neither is nothing at all");
 });
 
-Deno.test("a panel opens on a screen it can draw", () => {
-    const state = composeScreenState();
+Deno.test("a panel opens on a screen it can draw, folded as the reader last left it", () => {
+    const state = composeScreenState(false);
     assert(SCREEN_ORDER.includes(state.current), "the opening screen is one of them");
     assertEquals(state.current, "damageDealtApplied", "and it is what the reader did");
+    assertEquals(state.isCollapsed, false, "and a reader who folded nothing away opens unfolded");
+    assertEquals(composeScreenState(true).isCollapsed, true, "while one who did opens folded");
 });

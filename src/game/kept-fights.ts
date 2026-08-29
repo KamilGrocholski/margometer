@@ -12,6 +12,7 @@
 
 import { assert } from "@std/assert";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
+import type { BrowserStore } from "@/src/game/browser-store.ts";
 import type { FightPlace } from "@/src/game/engine-place.ts";
 import {
     composeJsonText,
@@ -33,12 +34,6 @@ export interface KeptFight {
     payloads: readonly (readonly string[])[];
     /** Where it was fought, as much of it as the client would say. */
     place: FightPlace | null;
-}
-
-export interface FightStore {
-    read(key: string): string | null;
-    /** False where the browser refused, which is an answer and not a failure. */
-    write(key: string, value: string): boolean;
 }
 
 function getMessagesFromValue(value: unknown): string[] | null {
@@ -137,7 +132,7 @@ function getKeptFightFromValue(value: unknown): KeptFight | null {
 }
 
 /** Whatever of the shelf reads back. A fight that does not is dropped, and the rest still stand. */
-export function readKeptFights(store: FightStore, key: string): KeptFight[] {
+export function readKeptFights(store: BrowserStore, key: string): KeptFight[] {
     assert(key.length > 0, "a shelf is asked for by name");
     const stored = store.read(key);
     if (stored === null) return [];
@@ -158,7 +153,7 @@ export function readKeptFights(store: FightStore, key: string): KeptFight[] {
 }
 
 /** The newest kept, the oldest dropped, and false where the browser would not have it. */
-export function writeKeptFights(store: FightStore, key: string, fights: KeptFight[]): boolean {
+export function writeKeptFights(store: BrowserStore, key: string, fights: KeptFight[]): boolean {
     assert(key.length > 0, "a shelf is written by name");
     const held = fights.slice(-MAXIMUM_KEPT);
     assert(held.length <= MAXIMUM_KEPT, "a shelf written stays inside its stated bound");

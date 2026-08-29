@@ -117,6 +117,9 @@ Overlay, HUD, dashboard, widget, window
 **Screen**: One view the panel can be on, reached by the strips that switch. _Avoid_: Tab, page,
 view, mode
 
+**Collapsed**: The panel folded to its title bar, drawing no screen at all. It is a state the reader
+chose, so it outlives a reload. _Avoid_: Minimized, hidden, closed, docked
+
 **Row**: One combatant's line in a ranking, or a pinned line standing apart from it. _Avoid_: Item,
 entry, bar
 

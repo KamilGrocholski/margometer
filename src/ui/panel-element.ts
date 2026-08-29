@@ -94,6 +94,14 @@ const PLACE_CLASS = CLASS.place;
  * no particular version of the add-on.
  */
 const VERSION_ATTRIBUTE = "data-margometer-version";
+const CONTROL_CLASS = CLASS.control;
+const FOLDED_CLASS = CLASS.folded;
+/** What a control asks for. One attribute per control, so the listener never reads a class. */
+const FOLD_ATTRIBUTE = "data-fold";
+/** Said the way a press would leave it: a folded panel offers to unfold, not to fold again. */
+const FOLD_MARK = "\u2014";
+const UNFOLD_MARK = "+";
+const TITLE_ATTRIBUTE = "title";
 const BODY_CLASS = CLASS.body;
 const ROW_CLASS = CLASS.row;
 const ROW_NAME_CLASS = CLASS.rowName;
@@ -266,7 +274,27 @@ function composeTabsElement(document: PanelDocument, view: PanelView): PanelElem
 }
 
 /** The panel's own name, and where the fight being read is being fought, where that is known. */
-function composeTitleElement(document: PanelDocument, place: string | null): PanelElement {
+/**
+ * The bar's one control. It says what a press would **do** rather than what the panel is, which
+ * is why the mark and the sentence both change: v1 wrote one glyph and one sentence covering both
+ * directions, because its bar was built with the shadow root and outlived every render
+ * (`git show develop:src/ui/panel-element.ts`). This bar is redrawn like any other region.
+ */
+function composeTitleControl(document: PanelDocument, isCollapsed: boolean): PanelElement {
+    const control = composeElement(document, "span", CONTROL_CLASS);
+    control.textContent = isCollapsed ? UNFOLD_MARK : FOLD_MARK;
+    control.setAttribute(FOLD_ATTRIBUTE, "");
+    control.setAttribute(TITLE_ATTRIBUTE, isCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse);
+    assert(control.textContent.length > 0, "a control a reader could press wears a mark");
+    assert(control.className === CONTROL_CLASS, "and is a control by name before it is pressed");
+    return control;
+}
+
+function composeTitleElement(
+    document: PanelDocument,
+    place: string | null,
+    isCollapsed: boolean,
+): PanelElement {
     const bar = composeElement(document, "div", TITLE_CLASS);
     const name = composeElement(document, "span", TITLE_NAME_CLASS);
     name.textContent = PANEL_WORDS.title;
@@ -276,11 +304,14 @@ function composeTitleElement(document: PanelDocument, place: string | null): Pan
     version.textContent = BUILD_VERSION;
     bar.append(version);
     assert(version.textContent.length > 0, "and which build of it a reader is looking at");
-    if (place === null) return bar;
-    assert(place.length > 0, "a place that is drawn says something");
-    const where = composeElement(document, "span", PLACE_CLASS);
-    where.textContent = place;
-    bar.append(where);
+    if (place !== null) {
+        assert(place.length > 0, "a place that is drawn says something");
+        const where = composeElement(document, "span", PLACE_CLASS);
+        where.textContent = place;
+        bar.append(where);
+    }
+    // Last, so the bar reads the way `DESIGN.md` states it: name, version, place, controls.
+    bar.append(composeTitleControl(document, isCollapsed));
     return bar;
 }
 
@@ -555,13 +586,16 @@ export interface PanelView {
     drill: DrillReading | null;
     /** Where the fight is being fought, already in words. Null where the client would not say. */
     place: string | null;
+    /** Folded to the title bar. Everything under it is composed and hidden, never left undrawn. */
+    isCollapsed: boolean;
 }
 
 /** What a press asked for, read off the pressed element's own attribute. */
 export type PanelPress =
     | { kind: "screen"; screen: string }
     | { kind: "row"; stated: string }
-    | { kind: "back" };
+    | { kind: "back" }
+    | { kind: "fold" };
 
 /** The shelf stands over an opened row, and an opened row over the screen it was opened on. */
 function composeViewBody(
@@ -603,6 +637,10 @@ function setPanelHostListeners(
             handlePress({ kind: "row", stated });
             return;
         }
+        if (target.getAttribute(FOLD_ATTRIBUTE) !== null) {
+            handlePress({ kind: "fold" });
+            return;
+        }
         if (target.getAttribute(BACK_ATTRIBUTE) !== null) handlePress({ kind: "back" });
     });
     root.addEventListener(MOVE_EVENT, (event) => {
@@ -616,6 +654,19 @@ function setPanelHostListeners(
 export interface PanelHandle {
     element: PanelElement;
     show(view: PanelView): void;
+}
+
+/**
+ * What stands where a region does while the panel is folded: the region's own name, and nothing
+ * inside it. Composed empty rather than composed and then hidden, because a fight redraws every
+ * few seconds and a folded panel that went on ranking twenty combatants would be paying for a
+ * screen nobody is looking at.
+ */
+function composeFoldedRegion(document: PanelDocument, className: string): PanelElement {
+    assert(className.length > 0, "a region keeps its own name while it is folded away");
+    const folded = composeElement(document, "div", `${className} ${FOLDED_CLASS}`);
+    assert(folded.textContent === "", "and says nothing while it is");
+    return folded;
 }
 
 /** One region redrawn in place, handing back what now stands where the old one did. */
@@ -676,10 +727,29 @@ export function composePanelHost(
         element: host,
         show(view: PanelView): void {
             register.reset();
-            title = redraw(title, () => composeTitleElement(document, view.place));
-            tabs = redraw(tabs, () => composeTabsElement(document, view));
-            body = redraw(body, () => composeViewBody(document, view, register));
-            summary = redraw(summary, () => composeSummaryElement(document, view));
+            const folded = view.isCollapsed;
+            title = redraw(title, () => composeTitleElement(document, view.place, folded));
+            tabs = redraw(
+                tabs,
+                () =>
+                    folded
+                        ? composeFoldedRegion(document, TABS_CLASS)
+                        : composeTabsElement(document, view),
+            );
+            body = redraw(
+                body,
+                () =>
+                    folded
+                        ? composeFoldedRegion(document, BODY_CLASS)
+                        : composeViewBody(document, view, register),
+            );
+            summary = redraw(
+                summary,
+                () =>
+                    folded
+                        ? composeFoldedRegion(document, SUMMARY_CLASS)
+                        : composeSummaryElement(document, view),
+            );
             // The detail outlives the redraw and follows the figure it names as that figure moves.
             // A row that has stopped being drawn takes its detail with it.
             tip.refresh();

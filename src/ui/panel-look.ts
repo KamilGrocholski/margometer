@@ -60,6 +60,8 @@ export const CLASS = {
     body: "MargoMeter-body",
     titleName: "title-name",
     titleVersion: "title-version",
+    control: "control",
+    folded: "folded",
     place: "place",
     tab: "tab",
     tabCurrent: "tab-current",
@@ -394,6 +396,16 @@ function composeFrameRules(): string {
         `margin-right:auto;}` +
         `.${CLASS.place}{color:var(${VARIABLE_PREFIX}quiet);overflow:hidden;` +
         `text-overflow:ellipsis;white-space:nowrap;}` +
+        `.${CLASS.control}{color:var(${VARIABLE_PREFIX}quiet);flex:none;cursor:pointer;` +
+        `padding:0 var(${VARIABLE_PREFIX}half);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);}` +
+        `.${CLASS.control}:hover{color:var(${VARIABLE_PREFIX}text);` +
+        `background:var(${VARIABLE_PREFIX}track);}` +
+        // Each region named, rather than `.folded` alone: a bare class ties with the region's own
+        // rule at one specificity apiece, and the region wins on source order. Photographed
+        // 2026-08-29 before the fix — a folded panel stood 49 pixels tall against the bar's 23.
+        `.${CLASS.tabs}.${CLASS.folded},.${CLASS.body}.${CLASS.folded},` +
+        `.${CLASS.summary}.${CLASS.folded}{display:none;}` +
         `.${CLASS.tabs}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
         `padding:var(${VARIABLE_PREFIX}half) var(${VARIABLE_PREFIX}small);` +
         `border-bottom:1px solid var(${VARIABLE_PREFIX}border);}` +

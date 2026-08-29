@@ -20,12 +20,8 @@ import {
 } from "@/src/game/battle-session.ts";
 import { attachToGame, type GameAttachment, type Scheduler } from "@/src/game/engine-attachment.ts";
 import { type FightPlace, getPlaceFromPage } from "@/src/game/engine-place.ts";
-import {
-    type FightStore,
-    type KeptFight,
-    readKeptFights,
-    writeKeptFights,
-} from "@/src/game/kept-fights.ts";
+import { type BrowserStore, composeBrowserStore } from "@/src/game/browser-store.ts";
+import { type KeptFight, readKeptFights, writeKeptFights } from "@/src/game/kept-fights.ts";
 import {
     composePanelHost,
     type PanelDocument,
@@ -46,6 +42,13 @@ import { composePlaceWords } from "@/src/ui/panel-words.ts";
 const FAILURE_LINE = "MargoMeter/Panel";
 /** The one key this add-on writes, named as ours like everything else a reader could meet. */
 const SHELF_KEY = "MargoMeter-fights";
+/**
+ * The fold, stored beside the shelf and never inside it: a shelf that reads back broken is
+ * dropped whole, and a reader who folded the panel away should not have that undone by it.
+ */
+const FOLD_KEY = "MargoMeter-folded";
+/** Anything else reads as unfolded, which is the state a reader who stored nothing is in. */
+const FOLDED = "1";
 
 export interface PanelMount {
     /** Puts this panel where the last one was. Replacing is the caller's, mounting is ours. */
@@ -58,7 +61,7 @@ export interface UserscriptEnvironment {
     schedule: Scheduler;
     mount: PanelMount;
     /** Null where the browser will not have one read, which is an answer and not a failure. */
-    store: FightStore | null;
+    store: BrowserStore | null;
     /** The clock, handed in like everything else, so nothing here reaches for one. */
     now(): number;
     /** One branded line, and the failure itself, so a console shows whose it is first. */
@@ -92,6 +95,10 @@ function composeShelfRows(kept: readonly KeptFight[]): ShelfRow[] {
 function handlePress(screen: ScreenState, press: PanelPress): boolean {
     assert(press.kind.length > 0, "a press says what it asks for");
     assert(screen.current.length > 0, "and lands on a panel that is on a screen");
+    if (press.kind === "fold") {
+        screen.isCollapsed = !screen.isCollapsed;
+        return true;
+    }
     if (press.kind === "back") {
         screen.openRowId = null;
         return true;
@@ -148,6 +155,7 @@ function showFight(
         isOnShelf: screen.isOnShelf,
         drill,
         place: getPlaceWords(place),
+        isCollapsed: screen.isCollapsed,
     });
 }
 
@@ -165,34 +173,6 @@ export interface UserscriptWindow {
         setItem(key: string, value: string): void;
     };
     Date: { now(): number };
-}
-
-/**
- * The browser's own store, wrapped so a refusal is an answer. Reading one can throw for no
- * reason of ours — a browser set to forbid it does — and writing can throw for quota, so both
- * are wrapped here rather than at every caller.
- */
-function composeBrowserStore(page: UserscriptWindow): FightStore {
-    assert(typeof page.localStorage === "object", "a page states the store this asks for");
-    return {
-        read: (key) => {
-            try {
-                return page.localStorage.getItem(key);
-            } catch {
-                // A store that will not be read is a shelf with nothing on it.
-                return null;
-            }
-        },
-        write: (key, value) => {
-            try {
-                page.localStorage.setItem(key, value);
-                return true;
-            } catch {
-                // No quota is ever assumed: a refusal comes back as one.
-                return false;
-            }
-        },
-    };
 }
 
 /**
@@ -218,7 +198,7 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
             },
         },
         report: (line, failure) => page.console.error(line, failure),
-        store: composeBrowserStore(page),
+        store: composeBrowserStore(page.localStorage),
         now: () => page.Date.now(),
     });
 }
@@ -255,9 +235,11 @@ function keepFight(
  */
 export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
     const session = composeBattleSession();
-    const screen = composeScreenState();
-    const kept = environment.store === null ? [] : readKeptFights(environment.store, SHELF_KEY);
-    assert(SHELF_KEY.startsWith("MargoMeter-"), "the one key this add-on writes is named as ours");
+    const store = environment.store;
+    const screen = composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED);
+    const kept = store === null ? [] : readKeptFights(store, SHELF_KEY);
+    assert(SHELF_KEY.startsWith("MargoMeter-"), "every key this add-on writes is named as ours");
+    assert(FOLD_KEY.startsWith("MargoMeter-"), "the fold included");
     let wasOver = false;
     assert(getFightFromSession(session) === null, "a session starts holding no fight");
     assert(FAILURE_LINE.startsWith("MargoMeter/"), "a failure of ours says whose it is first");
@@ -276,6 +258,9 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     };
     const panel = composePanelHost(environment.document, (press) => {
         if (!handlePress(screen, press)) return;
+        // A refusal to write is an answer: the panel folds either way, and only the next visit
+        // is the poorer for it.
+        if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
         showFight(session, screen, panel, kept, place);
     }, (failure) => environment.report(FAILURE_LINE, failure));
     assert(!isMounted, "nothing is on the page until a payload arrives");

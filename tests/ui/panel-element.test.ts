@@ -64,6 +64,7 @@ function draw(reading: PanelReading): FakeElement {
         isOnShelf: false,
         drill: null,
         place: null,
+        isCollapsed: false,
     });
     return panel.element as FakeElement;
 }
@@ -202,6 +203,7 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
         isOnShelf: false,
         drill: null,
         place: null,
+        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
@@ -227,6 +229,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         isOnShelf: false,
         drill: null,
         place: null,
+        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const before = getElementsWithin(host).filter((one) => one.className.startsWith("tab")).length;
@@ -238,6 +241,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         isOnShelf: false,
         drill: null,
         place: null,
+        isCollapsed: false,
     });
     const tabs = getElementsWithin(host).filter((one) => one.className.startsWith("tab"));
     assertEquals(tabs.length, before, "the strip is drawn again, not drawn twice");
@@ -272,6 +276,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         isOnShelf: false,
         drill: null,
         place: null,
+        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     assertEquals(failures.length, 1, "the failure is reported once");
@@ -291,6 +296,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
         isOnShelf: false,
         drill,
         place: null,
+        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const within = getElementsWithin(host);
@@ -357,6 +363,7 @@ Deno.test("a kind's row carries its share as the row's own background", () => {
         isOnShelf: false,
         drill,
         place: null,
+        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const barred = getElementsWithin(host).filter((one) => {
@@ -391,6 +398,7 @@ Deno.test("a part of a figure no kind was stated for is a row apart, below the k
         // Health that went down outside a blow, which the protocol states carrying no kind.
         drill: { ...drill, withoutElement: 140 },
         place: null,
+        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const pinned = getElementsWithin(host).filter((one) => one.className === "pinned");
@@ -413,6 +421,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         isOnShelf: false,
         drill: null,
         place: null,
+        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     // The press lands on the deepest element under the pointer, which is the name inside the row.
@@ -428,6 +437,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         isOnShelf: false,
         drill,
         place: null,
+        isCollapsed: false,
     });
     const crumb = getElementsWithin(host).find((one) => one.className === "crumb");
     assert(crumb !== undefined, "an opened row has a way back");
@@ -444,6 +454,7 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
         shelf: [],
         isOnShelf: false,
         drill: null,
+        isCollapsed: false,
     };
     panel.show({ ...view, place: "Mapa (12, 34)" });
     const host = panel.element as FakeElement;
@@ -453,6 +464,46 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
     panel.show({ ...view, place: null });
     assertEquals(getTextsByClass(host, "place"), [], "and nothing at all where nothing was said");
     assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "the bar standing on");
+});
+
+Deno.test("a folded panel is its bar and nothing else, and offers the way back", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelPress[] = [];
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
+    const host = panel.element as FakeElement;
+    const view = {
+        reading: readFight(),
+        current: "damageDealtApplied" as const,
+        shelf: [],
+        isOnShelf: false,
+        drill: null,
+        place: null,
+        isCollapsed: false,
+    };
+
+    panel.show(view);
+    const control = getElementsWithin(host).find((one) => one.className === CLASS.control);
+    assert(control !== undefined, "an unfolded panel carries the control that folds it");
+    assertEquals(control.textContent, "\u2014", "which says what a press would do");
+    assertEquals(control.attributes.get("title"), PANEL_WORDS.collapse, "in the reader's words");
+    assert(getElementsWithin(host).some((one) => one.className === "row"), "and draws a ranking");
+    pressElement(host, "pointerdown", control);
+    assertEquals(pressed.at(-1), { kind: "fold" }, "and a press on it asks for the fold");
+
+    panel.show({ ...view, isCollapsed: true });
+    const folded = getElementsWithin(host).filter((one) => one.className.endsWith(CLASS.folded));
+    assertEquals(folded.length, 3, "the three regions under the bar are folded away");
+    assertEquals(folded.map((one) => one.textContent), ["", "", ""], "each saying nothing at all");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "row").length,
+        0,
+        "and no row is composed for a screen nobody is looking at",
+    );
+    const back = getElementsWithin(host).find((one) => one.className === CLASS.control);
+    assert(back !== undefined, "the bar is still a bar, and still carries its control");
+    assertEquals(back.textContent, "+", "which now offers the way back rather than the way in");
+    assertEquals(back.attributes.get("title"), PANEL_WORDS.expand, "and says so in the same words");
+    assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "the name standing on");
 });
 
 Deno.test("the panel says which build drew it, in the bar and on the host", () => {
@@ -470,6 +521,7 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         shelf: [],
         isOnShelf: false,
         drill: null,
+        isCollapsed: false,
         place: "Mapa (12, 34)",
     });
     assertEquals(
@@ -547,6 +599,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         isOnShelf: false,
         drill,
         place: null,
+        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const kind = drill.byElement[0];
@@ -580,6 +633,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
         isOnShelf: true,
         drill: null,
         place: null,
+        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const row = getElementsWithin(host).find((one) =>
