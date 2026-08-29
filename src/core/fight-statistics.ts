@@ -7,8 +7,9 @@
  */
 
 import { assert } from "@std/assert";
-import type { BattleEvent, DamageFigure } from "@/src/core/battle-event.ts";
+import type { AnnouncedSkill, BattleEvent, DamageFigure } from "@/src/core/battle-event.ts";
 import type { TeamHeal } from "@/src/core/combatant-health.ts";
+import { SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
 
 /** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
 const MAXIMUM_COMBATANTS = 20;
@@ -22,8 +23,13 @@ export interface CombatantFigures {
     damageTakenRaw: number;
     damageTakenApplied: number;
     damagePrevented: number;
-    /** Health restored to this combatant. Who gave it is not read here. */
+    /** Health restored to this combatant, whoever put it back. */
     healthRestored: number;
+    /**
+     * Health this combatant put back, into anybody — themselves included, because a key the help
+     * calls the subject's own is healing that combatant gave and there is nobody else to charge.
+     */
+    healthGiven: number;
     /**
      * The same applied damage, cut by what it was dealt with and by whom it was dealt to. A cut
      * is the panel's to fold and never to compute: adding one row's figure to another's is a
@@ -45,6 +51,8 @@ export interface FightStatistics {
     /** Applied damage the protocol tied to no actor, and to no target. */
     dealtByNobody: number;
     takenByNobody: number;
+    /** Restored health no giver could be read for: 9.4% of it over `captures/`, 2026-08-29. */
+    givenByNobody: number;
     /** Messages the decoder could not read, which is what makes a total suspect. */
     unreadMessages: number;
     /** Casts stated about a side that nobody could size onto its members, whole or in part. */
@@ -60,6 +68,7 @@ function composeCombatantFigures(): CombatantFigures {
         damageTakenApplied: 0,
         damagePrevented: 0,
         healthRestored: 0,
+        healthGiven: 0,
         damageDealtByElement: new Map(),
         damageTakenByElement: new Map(),
         damageDealtByOpponent: new Map(),
@@ -104,6 +113,7 @@ interface StatisticsBuild {
     castsUnplaced: number;
     dealtByNobody: number;
     takenByNobody: number;
+    givenByNobody: number;
     unreadMessages: number;
 }
 
@@ -166,9 +176,36 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
 }
 
 /**
- * Health moving outside a blow. What restored it is the key, and who did is not in the message,
- * so nothing is credited with giving it here.
+ * Who put the health back: whoever announced it, or the one healed where the key is theirs on the
+ * published help's word. Null everywhere else — 353,990 of the 3,755,729 points restored across
+ * `captures/` on 2026-08-29, all of it `heal_target` and `bandage` that nothing announced, and the
+ * reason the panel draws a row for what no giver can be read for.
  */
+function getGiverId(
+    source: string,
+    healedId: number | null,
+    announced: AnnouncedSkill | null,
+): number | null {
+    assert(source.length > 0, "restored health names the key it was stated on");
+    if (announced !== null) {
+        if (announced.actorId !== null) return announced.actorId;
+    }
+    if (!SELF_SOURCED_HEALING_KEYS.includes(source)) return null;
+    return healedId;
+}
+
+/** The giving half of one movement, kept beside the receiving half so the two cannot drift. */
+function addGivenHealth(build: StatisticsBuild, giverId: number | null, amount: number): void {
+    assert(amount >= 0, "restored health is never below nothing");
+    if (giverId === null) {
+        build.givenByNobody += amount;
+        assert(build.givenByNobody >= amount, "a total only grows by what it was handed");
+        return;
+    }
+    getFiguresForCombatant(build.byCombatantId, giverId).healthGiven += amount;
+}
+
+/** Health moving outside a blow. What restored it is the key, and the key says who gave it. */
 function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== "health-change") return;
     assert(Number.isSafeInteger(event.amount), "a movement totalled is a whole number");
@@ -181,6 +218,11 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
     const figures = getFiguresForCombatant(build.byCombatantId, event.combatantId);
     if (event.amount >= 0) {
         figures.healthRestored += event.amount;
+        addGivenHealth(
+            build,
+            getGiverId(event.source, event.combatantId, event.announced),
+            event.amount,
+        );
         return;
     }
     figures.damageTakenApplied += -event.amount;
@@ -194,6 +236,9 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
     if (event.targetId === null) return;
     const figures = getFiguresForCombatant(build.byCombatantId, event.targetId);
     figures.healthRestored += event.amount;
+    // No announcement to ask: this figure rides a blow struck at somebody else, so the message's
+    // own actor is the attacker rather than the healer.
+    addGivenHealth(build, getGiverId(event.source, event.targetId, null), event.amount);
     assert(figures.healthRestored >= event.amount, "a total only grows by what it was handed");
 }
 
@@ -210,6 +255,9 @@ function addTeamHeal(build: StatisticsBuild, heal: TeamHeal | undefined): void {
     for (const [combatantId, amount] of heal.restoredByCombatantId) {
         assert(amount >= 0, "a cast puts back no less than nothing");
         getFiguresForCombatant(build.byCombatantId, combatantId).healthRestored += amount;
+        // The one healing shape whose giver the protocol states outright: the caster stands in
+        // the message's actor slot, and the recipients are what the sizing worked out.
+        addGivenHealth(build, heal.casterId, amount);
     }
     assert(build.castsUnplaced >= 0, "a count of casts never falls below nothing");
 }
@@ -223,6 +271,7 @@ function composeTotals(build: StatisticsBuild): CombatantFigures {
         totals.damageTakenApplied += figures.damageTakenApplied;
         totals.damagePrevented += figures.damagePrevented;
         totals.healthRestored += figures.healthRestored;
+        totals.healthGiven += figures.healthGiven;
     }
     assert(totals.damageDealtApplied >= 0, "a total of applied damage never falls below nothing");
     assert(totals.healthRestored >= 0, "and neither does a total of health restored");
@@ -246,6 +295,22 @@ function getAppliedBalance(build: StatisticsBuild): number {
 }
 
 /**
+ * The same equation on the other quantity: health put back is stated once and lands twice, on
+ * whoever gave it and on whoever received it, with what no key names a giver for standing in.
+ */
+function getRestoredBalance(build: StatisticsBuild): number {
+    let restored = 0;
+    let given = build.givenByNobody;
+    for (const figures of build.byCombatantId.values()) {
+        restored += figures.healthRestored;
+        given += figures.healthGiven;
+    }
+    assert(Number.isSafeInteger(restored), "a total stays inside what a number holds exactly");
+    assert(Number.isSafeInteger(given), "a total stays inside what a number holds exactly");
+    return restored - given;
+}
+
+/**
  * The figures, and what a share stated about a side came to once it was sized. The sizing is
  * `combatant-health.ts`'s, because it needs three figures the protocol never states; totalling it
  * is this file's, because a total across combatants is never the panel's.
@@ -258,6 +323,7 @@ export function composeFightStatistics(
         byCombatantId: new Map(),
         dealtByNobody: 0,
         takenByNobody: 0,
+        givenByNobody: 0,
         unreadMessages: 0,
         castsUnplaced: 0,
     };
@@ -273,11 +339,13 @@ export function composeFightStatistics(
     assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
     assert(build.unreadMessages <= events.length, "a message is counted unread once");
     assert(getAppliedBalance(build) === 0, "every point applied is counted once at each end");
+    assert(getRestoredBalance(build) === 0, "and every point restored once at each of its own");
     return {
         byCombatantId: build.byCombatantId,
         totals: composeTotals(build),
         dealtByNobody: build.dealtByNobody,
         takenByNobody: build.takenByNobody,
+        givenByNobody: build.givenByNobody,
         unreadMessages: build.unreadMessages,
         castsUnplaced: build.castsUnplaced,
     };

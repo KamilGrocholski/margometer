@@ -44,12 +44,77 @@ Deno.test("health moving without an attacker is taken by somebody and dealt by n
     assertEquals(bitten?.healthRestored, 0, "which is not healing, and zero is a reading");
 });
 
-Deno.test("health restored is not damage, and nobody is credited with giving it", () => {
+Deno.test("health restored is not damage, and its own key says who gave it", () => {
     const statistics = composeFightStatistics(decodeFightMessages([HEAL], null), new Map());
     const healed = statistics.byCombatantId.get(482845);
     assertEquals(healed?.healthRestored, 99, "the health the protocol says came back");
     assertEquals(healed?.damageTakenApplied, 0, "no total of damage moved");
     assertEquals(statistics.dealtByNobody, 0, "and no attacker was invented to balance it");
+    // `heal` carries `_Cause:_ the subject's own` in `docs/protocol-keys.md`, so the giver is the
+    // one healed — on the published help's word, and not because the grammar names one end.
+    assertEquals(healed?.healthGiven, 99, "the same combatant is credited with giving it");
+    assertEquals(statistics.givenByNobody, 0, "so none of it is left charged to nobody");
+});
+
+/**
+ * A key the help does not call the subject's own is charged to nobody unless something announced
+ * it. `bandage` is the shape: both ends are one person and the help still says the cause is the
+ * message actor rather than the subject, so it never joins the self-sourced list on the grammar.
+ */
+Deno.test("a restoring key nothing announced and no help claims is charged to nobody", () => {
+    const bandaged = "482845=100.00;0;bandage=40";
+    const statistics = composeFightStatistics(decodeFightMessages([bandaged], null), new Map());
+    const healed = statistics.byCombatantId.get(482845);
+    assertEquals(healed?.healthRestored, 40, "the health still came back");
+    assertEquals(healed?.healthGiven, 0, "and this combatant is credited with none of it");
+    assertEquals(statistics.givenByNobody, 40, "the whole of it stands apart, charged to nobody");
+});
+
+/** The one healing shape whose giver the protocol names outright, in the actor slot of the cast. */
+Deno.test("a cast credits its caster with everything it put back, member by member", () => {
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 2000 },
+    ]);
+    const events = decodeFightMessages([
+        "1=100.00;0;step",
+        "2=100.00;0;step",
+        "1=50.00;0;poison=500",
+        "2=50.00;0;poison=1000",
+        "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
+    ], roster);
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    assertEquals(statistics.byCombatantId.get(1)?.healthGiven, 900, "the caster gave both shares");
+    assertEquals(statistics.byCombatantId.get(2)?.healthGiven, 0, "and the other member gave none");
+    assertEquals(statistics.givenByNobody, 0, "with nothing left charged to nobody");
+    assertEquals(
+        statistics.totals.healthGiven,
+        statistics.totals.healthRestored,
+        "and it balances",
+    );
+});
+
+/**
+ * The share of restored health a giver can be read for, over the whole corpus. A figure rather
+ * than an inequality, because what this pins is the reading rule and not a direction: a rule that
+ * quietly stopped crediting the self-sourced keys would still satisfy "most of it".
+ */
+Deno.test("the corpus says who gave nine points of health in ten", () => {
+    let restored = 0;
+    let given = 0;
+    let nobody = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        restored += statistics.totals.healthRestored;
+        given += statistics.totals.healthGiven;
+        nobody += statistics.givenByNobody;
+    }
+    assertEquals(restored, 3_755_729, "the health the recordings put back, 2026-08-29");
+    assertEquals(given, 3_401_739, "of which this much has a giver the reading can name");
+    assertEquals(nobody, 353_990, "and the rest is `heal_target` and `bandage` nothing announced");
+    assertEquals(given + nobody, restored, "every point put back is counted once on each side");
 });
 
 Deno.test("a fight nothing was read from states nothing rather than zeroes", () => {

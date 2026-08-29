@@ -10,6 +10,8 @@
  */
 
 import { assert } from "@std/assert";
+import type { PanelMetric } from "@/src/ui/panel-reading.ts";
+import type { PanelNoun, PanelSideChoice } from "@/src/ui/panel-screen.ts";
 
 /** The three shapes a Polish noun takes after a number. */
 export interface CountedNoun {
@@ -20,18 +22,14 @@ export interface CountedNoun {
 
 export const PANEL_WORDS = {
     title: "MargoMeter",
-    damageDealt: "Obrażenia zadane",
-    damageTaken: "Obrażenia otrzymane",
-    damageRaw: "Przed redukcją",
-    damageApplied: "Po redukcji",
-    prevented: "Zatrzymane przez obronę",
-    healthRestored: "Przywrócone życie",
-    withoutActor: "Bez sprawcy",
-    withoutTarget: "Bez celu",
+    // Neither says "bez": the figure was placed, and it is the person that was never named.
+    withoutActor: "Nieznany sprawca",
+    withoutTarget: "Nieznany cel",
     unknown: "Nie wiadomo",
     nothingYet: "Jeszcze nic się nie wydarzyło",
     fights: "Walki",
-    everyone: "Wszyscy",
+    openFights: "Pokaż albo schowaj zapisane walki",
+    back: "Wróć",
     shelfEmpty: "Nie ma jeszcze zapisanych walk",
     fightOver: "Walka skończona",
     suspect: "Ta liczba może być zaniżona",
@@ -46,7 +44,56 @@ export const PANEL_WORDS = {
     collapse: "Zwiń okno",
     expand: "Rozwiń okno",
     saveRecording: "Do zgłoszeń: zapisz surowe dane walki prosto z gry",
+    copyReport: "Do zgłoszeń: skopiuj policzone liczby z tej walki",
 } as const;
+
+/** Which quantity a screen shows, as the reader meets it on the upper strip. */
+const NOUN_WORDS: Record<PanelNoun, string> = {
+    damage: "Obrażenia",
+    healing: "Leczenie",
+};
+
+/**
+ * Which way round, worded per screen rather than per direction — Polish uses one word for damage
+ * given and another for healing given, and a label covering both would have to be ours rather
+ * than the language's. Lower case against the nouns' upper: two strips of equal weight read as two
+ * lists of the same kind of thing, and these are not.
+ */
+const DIRECTION_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: "zadane",
+    damageTakenApplied: "otrzymane",
+    damagePrevented: "zatrzymane",
+    healthGiven: "dane",
+    healthRestored: "otrzymane",
+};
+
+/** Whose rows are listed. Short, because this is a strip pressed while a fight is running. */
+const SIDE_WORDS: Record<PanelSideChoice, string> = {
+    everyone: "Wszyscy",
+    reader: "My",
+    opposing: "Oni",
+};
+
+export function getWordsForNoun(noun: PanelNoun): string {
+    assert(noun.length > 0, "a quantity is asked for by name");
+    const words = NOUN_WORDS[noun];
+    assert(words.length > 0, "a quantity a strip draws is a quantity with a name");
+    return words;
+}
+
+export function getWordsForDirection(screen: PanelMetric): string {
+    assert(screen.length > 0, "a screen is asked for by name");
+    const words = DIRECTION_WORDS[screen];
+    assert(words.length > 0, "a screen a strip draws says which way round it is");
+    return words;
+}
+
+export function getWordsForSide(choice: PanelSideChoice): string {
+    assert(choice.length > 0, "a choice of side is asked for by name");
+    const words = SIDE_WORDS[choice];
+    assert(words.length > 0, "a choice a strip draws is a choice with a name");
+    return words;
+}
 
 /**
  * The letter in a damage key, in the player's words. Ours, and not the client's own

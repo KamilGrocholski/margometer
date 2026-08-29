@@ -1,9 +1,10 @@
 /**
  * One screen's worth of a fight: the rows, in the order they are drawn.
  *
- * Nothing here aggregates. A row's figure is the one the statistics already hold and a share is
- * that figure against the fight's own total, which the statistics hold too — folding those into
- * the cut a screen shows is the panel's work, and adding one row to another is not.
+ * A row's figure is the one the statistics already hold, and no figure here is ever recomputed
+ * from the events. The one sum this file does is the listed side's total, which the statistics
+ * cannot hold because nothing under `ui/` tells them who is on which side — and without it a
+ * share on a one-side list would be measured against a whole the list does not show.
  *
  * Every combatant the roster holds gets a row, including the ones who did nothing: zero happened
  * and is drawn, which is not what unknown looks like.
@@ -13,12 +14,17 @@ import { assert } from "@std/assert";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { CombatantFigures, FightStatistics, FigureCut } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { type PanelSideChoice, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
+
+/** A fight holds twenty, and a list draws a row for each. */
+const MAXIMUM_ROWS = 20;
 
 /** Which figure a screen is showing. Each names a field the statistics already state. */
 export type PanelMetric =
     | "damageDealtApplied"
     | "damageTakenApplied"
     | "damagePrevented"
+    | "healthGiven"
     | "healthRestored";
 
 export interface PanelRow {
@@ -43,8 +49,9 @@ export interface ShelfRow {
 
 export interface PanelReading {
     rows: PanelRow[];
+    /** The figure the rows are shares of: the fight's own, or the listed side's where one is. */
     total: number;
-    /** Applied damage the log tied to nobody. A row cannot carry it, so it stands on its own. */
+    /** What the log tied to no actor — damage nobody dealt, health nobody is credited with. */
     withoutActor: number;
     withoutTarget: number;
     /** Something feeding **this screen's** figure went unread or unplaced, so it may be short. */
@@ -62,16 +69,40 @@ function getFigure(figures: CombatantFigures, metric: PanelMetric): number {
  * Whether this screen's own figure may be short.
  *
  * A message nobody could read may have carried anything, so it shortens whatever screen is being
- * looked at. A cast nobody could place is narrower than that: what it puts back is health, and
- * health restored is the only figure it feeds — marking a damage screen for it would put a doubt
- * on a figure that cannot carry it.
+ * looked at. A cast nobody could place is narrower than that: what it puts back is health, so it
+ * shortens both halves of the healing and neither half of the damage — marking a damage screen
+ * for it would put a doubt on a figure that cannot carry it.
  */
 function getIsScreenSuspect(statistics: FightStatistics, metric: PanelMetric): boolean {
     assert(statistics.unreadMessages >= 0, "a count of unread messages is never below nothing");
     assert(statistics.castsUnplaced >= 0, "and neither is a count of casts nobody could place");
     if (statistics.unreadMessages > 0) return true;
-    if (metric !== "healthRestored") return false;
-    return statistics.castsUnplaced > 0;
+    if (metric === "healthRestored") return statistics.castsUnplaced > 0;
+    if (metric === "healthGiven") return statistics.castsUnplaced > 0;
+    return false;
+}
+
+/**
+ * Whether a row belongs on the list.
+ *
+ * A combatant with no side belongs to neither, so a one-side list leaves them out rather than
+ * putting them on the side that happens to be showing; they are drawn under everybody, where
+ * saying nothing about their side costs nothing. Where the client never said which side is the
+ * reader's own, every list is everybody: a filter that cannot tell the two apart is a filter that
+ * would guess.
+ */
+function getIsRowListed(
+    side: number | null,
+    choice: PanelSideChoice,
+    readerSide: number | null,
+): boolean {
+    assert(side === null || Number.isFinite(side), "a side a row states is a number or nothing");
+    assert(readerSide === null || Number.isFinite(readerSide), "and so is the reader's own");
+    if (choice === "everyone") return true;
+    if (readerSide === null) return true;
+    if (side === null) return false;
+    if (choice === "reader") return side === readerSide;
+    return side !== readerSide;
 }
 
 /** By figure, then by id, so a fight redrawn without changing states the same order. */
@@ -81,25 +112,26 @@ function compareRows(one: PanelRow, other: PanelRow): number {
     return one.combatantId - other.combatantId;
 }
 
-export function composePanelReading(
+/** Every combatant the fight holds, with the figure this screen is about and no share yet. */
+function composeUnsharedRows(
     statistics: FightStatistics,
     roster: CombatantRoster,
     metric: PanelMetric,
-): PanelReading {
-    const total = getFigure(statistics.totals, metric);
+): PanelRow[] {
+    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
+    assert(roster.byId.size <= MAXIMUM_ROWS, "and so does the roster it is fought by");
     const rows: PanelRow[] = [];
     const seen = new Set<number>();
     for (const [combatantId, figures] of statistics.byCombatantId) {
         seen.add(combatantId);
         const held = roster.byId.get(combatantId);
-        const figure = getFigure(figures, metric);
         rows.push({
             combatantId,
             name: held?.name ?? null,
             side: held?.side ?? null,
             profession: held?.profession ?? null,
-            share: total === 0 ? 0 : figure / total,
-            figure,
+            share: 0,
+            figure: getFigure(figures, metric),
         });
     }
     for (const combatant of roster.byId.values()) {
@@ -113,14 +145,86 @@ export function composePanelReading(
             share: 0,
         });
     }
+    assert(rows.length >= roster.byId.size, "every combatant the roster holds gets a row");
+    assert(rows.length <= MAXIMUM_ROWS, "and the fight stays inside its stated bound");
+    return rows;
+}
+
+/**
+ * What the shares on this list are measured against: the fight's own total under everybody, and
+ * the listed side's under either of the other two. A one-side list whose shares came to a fifth
+ * of a percent would be answering a question nobody on that list asked.
+ */
+function getListedTotal(
+    statistics: FightStatistics,
+    rows: readonly PanelRow[],
+    metric: PanelMetric,
+    choice: PanelSideChoice,
+): number {
+    assert(SIDE_CHOICES.includes(choice), "a list is totalled for a choice a reader could make");
+    if (choice === "everyone") return getFigure(statistics.totals, metric);
+    let total = 0;
+    assert(rows.length <= MAXIMUM_ROWS, "a list stays inside the fight's stated bound");
+    for (const row of rows) total += row.figure;
+    assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
+    return total;
+}
+
+/**
+ * What no row can carry, on the one screen of the pair it belongs to.
+ *
+ * Shown only where everybody is listed. It belongs to nobody, so it belongs to no side either,
+ * and putting it inside one side's total would be claiming a side the log never stated.
+ */
+function getFigureWithoutEnd(
+    stated: number,
+    isThisScreen: boolean,
+    choice: PanelSideChoice,
+): number {
+    assert(stated >= 0, "a figure nobody can be charged with is never below nothing");
+    assert(SIDE_CHOICES.includes(choice), "and a choice a reader could have made");
+    if (!isThisScreen) return 0;
+    if (choice !== "everyone") return 0;
+    return stated;
+}
+
+export function composePanelReading(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    metric: PanelMetric,
+    choice: PanelSideChoice,
+    readerSide: number | null,
+): PanelReading {
+    assert(metric.length > 0, "a reading is composed for a screen asked for by name");
+    const listed = composeUnsharedRows(statistics, roster, metric).filter((row) =>
+        getIsRowListed(row.side, choice, readerSide)
+    );
+    const total = getListedTotal(statistics, listed, metric, choice);
+    const rows = listed.map((row) => ({
+        ...row,
+        share: total === 0 ? 0 : row.figure / total,
+    }));
     rows.sort(compareRows);
-    assert(rows.length >= roster.byId.size, "every combatant the roster holds is drawn");
-    assert(rows.every((one) => one.share <= 1), "a row is never more than the whole of a fight");
+    assert(rows.length <= MAXIMUM_ROWS, "a list stays inside the fight's stated bound");
+    assert(
+        rows.every((one) => one.share <= 1),
+        "a row is never more than the whole it is drawn in",
+    );
+    const isEveryone = choice === "everyone" || readerSide === null;
+    assert(!isEveryone || rows.length >= roster.byId.size, "everybody listed is everybody drawn");
     return {
         rows,
         total,
-        withoutActor: metric === "damageDealtApplied" ? statistics.dealtByNobody : 0,
-        withoutTarget: metric === "damageTakenApplied" ? statistics.takenByNobody : 0,
+        withoutActor: getFigureWithoutEnd(
+            metric === "healthGiven" ? statistics.givenByNobody : statistics.dealtByNobody,
+            metric === "damageDealtApplied" || metric === "healthGiven",
+            choice,
+        ),
+        withoutTarget: getFigureWithoutEnd(
+            statistics.takenByNobody,
+            metric === "damageTakenApplied",
+            choice,
+        ),
         isSuspect: getIsScreenSuspect(statistics, metric),
     };
 }

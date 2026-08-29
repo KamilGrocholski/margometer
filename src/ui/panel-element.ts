@@ -19,10 +19,14 @@ import type {
     ShelfRow,
 } from "@/src/ui/panel-reading.ts";
 import {
+    composeDirectionTabs,
+    composeNounTabs,
+    composeSideTabs,
     getWordsForOpponentCut,
     getWordsForScreen,
+    type PanelSideChoice,
     SCREEN_ORDER,
-    SHELF_SCREEN,
+    type ScreenTab,
 } from "@/src/ui/panel-screen.ts";
 import {
     CLASS,
@@ -99,8 +103,14 @@ const FOLDED_CLASS = CLASS.folded;
 /** What a control asks for. One attribute per control, so the listener never reads a class. */
 const FOLD_ATTRIBUTE = "data-fold";
 const SAVE_ATTRIBUTE = "data-save";
+const COPY_ATTRIBUTE = "data-copy";
+const SHELF_ATTRIBUTE = "data-shelf";
 /** Braces, because what it saves is the protocol as the game stated it and not a reading of it. */
 const SAVE_MARK = "{ }";
+/** Two sheets, one behind the other: what it hands over is a second copy of what is on screen. */
+const COPY_MARK = "\u29c9";
+/** A stack of lines, which is what a shelf of fights already fought looks like. */
+const SHELF_MARK = "\u2630";
 /** Said the way a press would leave it: a folded panel offers to unfold, not to fold again. */
 const FOLD_MARK = "\u2014";
 const UNFOLD_MARK = "+";
@@ -110,11 +120,14 @@ const ROW_CLASS = CLASS.row;
 const ROW_NAME_CLASS = CLASS.rowName;
 const ROW_FIGURE_CLASS = CLASS.rowFigure;
 const TABS_CLASS = CLASS.tabs;
+const STRIP_CLASS = CLASS.strip;
 const TAB_CLASS = CLASS.tab;
 /** More than colour, because colour never carries meaning by itself. */
 const TAB_CURRENT_CLASS = `${CLASS.tab} ${CLASS.tabCurrent}`;
 const TAB_CURRENT_MARK = "• ";
 const SCREEN_ATTRIBUTE = "data-screen";
+/** Its own attribute, because a side is not a screen and one listener reads them apart. */
+const SIDE_ATTRIBUTE = "data-side";
 /** A row says which combatant it is, and the crumb above an opened row says only that it is one. */
 const ROW_ATTRIBUTE = "data-row";
 const BACK_ATTRIBUTE = "data-back";
@@ -251,29 +264,55 @@ function composePinnedElement(
 
 function composeTabElement(
     document: PanelDocument,
-    screen: string,
-    words: string,
-    isCurrent: boolean,
+    attribute: string,
+    tab: ScreenTab,
 ): PanelElement {
-    const tab = composeElement(document, "div", isCurrent ? TAB_CURRENT_CLASS : TAB_CLASS);
-    tab.setAttribute(SCREEN_ATTRIBUTE, screen);
-    tab.textContent = `${isCurrent ? TAB_CURRENT_MARK : ""}${words}`;
-    assert(tab.textContent.length > 0, "a tab a reader could press says where it goes");
-    assert(screen.length > 0, "and names the screen it would reach");
-    return tab;
+    const element = composeElement(document, "div", tab.isCurrent ? TAB_CURRENT_CLASS : TAB_CLASS);
+    element.setAttribute(attribute, tab.name);
+    element.textContent = `${tab.isCurrent ? TAB_CURRENT_MARK : ""}${tab.words}`;
+    assert(element.textContent.length > 0, "a tab a reader could press says where it goes");
+    assert(tab.name.length > 0, "and names what it would reach");
+    return element;
 }
 
-/** One tab per screen there is, the shelf last, and the current one marked as well as tinted. */
-function composeTabsElement(document: PanelDocument, view: PanelView): PanelElement {
-    const strip = composeElement(document, "div", TABS_CLASS);
-    assert(SCREEN_ORDER.length > 0, "there is a screen to reach for");
-    for (const screen of SCREEN_ORDER) {
-        const isCurrent = !view.isOnShelf && screen === view.current;
-        strip.append(composeTabElement(document, screen, getWordsForScreen(screen), isCurrent));
-    }
-    strip.append(composeTabElement(document, SHELF_SCREEN, PANEL_WORDS.fights, view.isOnShelf));
-    assert(SCREEN_ORDER.includes(view.current), "the panel is on a screen the strip draws");
+/** One strip of tabs, all of them asking for the same kind of thing. */
+function composeStripElement(
+    document: PanelDocument,
+    attribute: string,
+    tabs: readonly ScreenTab[],
+): PanelElement {
+    const strip = composeElement(document, "div", STRIP_CLASS);
+    assert(attribute.startsWith("data-"), "a tab asks for what it reaches by one attribute");
+    assert(tabs.length > 0, "a strip that is drawn has something on it");
+    for (const tab of tabs) strip.append(composeTabElement(document, attribute, tab));
+    assert(tabs.filter((one) => one.isCurrent).length <= 1, "a strip marks one tab at most");
     return strip;
+}
+
+/**
+ * The three strips: which quantity, which way round, and whose rows.
+ *
+ * The third is drawn only where the client said which side is the reader's own — the protocol
+ * never does, and a strip offering to narrow to a side nothing can tell apart is three controls
+ * that would all list the same people.
+ *
+ * Nothing on any strip is marked while the shelf is up: the shelf covers the screen rather than
+ * being one of them, and a strip claiming the reader is on a screen they cannot see is a claim.
+ */
+function composeTabsElement(document: PanelDocument, view: PanelView): PanelElement {
+    const tabs = composeElement(document, "div", TABS_CLASS);
+    assert(SCREEN_ORDER.includes(view.current), "the panel is on a screen the strips draw");
+    assert(tabs.textContent === "", "and the region begins saying nothing of its own");
+    const composeStrip = (attribute: string, stated: readonly ScreenTab[]) => {
+        const shown = view.isOnShelf ? stated.map((one) => ({ ...one, isCurrent: false })) : stated;
+        return composeStripElement(document, attribute, shown);
+    };
+    tabs.append(composeStrip(SCREEN_ATTRIBUTE, composeNounTabs(view.current)));
+    tabs.append(composeStrip(SCREEN_ATTRIBUTE, composeDirectionTabs(view.current)));
+    if (view.hasReaderSide) {
+        tabs.append(composeStrip(SIDE_ATTRIBUTE, composeSideTabs(view.side)));
+    }
+    return tabs;
 }
 
 /** The panel's own name, and where the fight being read is being fought, where that is known. */
@@ -307,6 +346,35 @@ function composeSaveControl(document: PanelDocument): PanelElement {
     return control;
 }
 
+/**
+ * The control that offers the figures as text. Stateless like the one beside it, and next to it
+ * on purpose: the two hand over the same fight, one as the game stated it and one as it was read.
+ */
+function composeCopyControl(document: PanelDocument): PanelElement {
+    const control = composeElement(document, "span", CONTROL_CLASS);
+    control.textContent = COPY_MARK;
+    control.setAttribute(COPY_ATTRIBUTE, "");
+    control.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.copyReport);
+    assert(control.textContent.length > 0, "a control a reader could press wears a mark");
+    assert(control.className === CONTROL_CLASS, "and is a control by name before it is pressed");
+    return control;
+}
+
+/**
+ * The control that puts the shelf of fights already fought over the panel, and takes it off
+ * again. One press both ways, like the fold, and on the bar rather than on a strip: what it
+ * changes is which fight is being read, and the strips are about which figure.
+ */
+function composeShelfControl(document: PanelDocument): PanelElement {
+    const control = composeElement(document, "span", CONTROL_CLASS);
+    control.textContent = SHELF_MARK;
+    control.setAttribute(SHELF_ATTRIBUTE, "");
+    control.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.openFights);
+    assert(control.textContent.length > 0, "a control a reader could press wears a mark");
+    assert(control.className === CONTROL_CLASS, "and is a control by name before it is pressed");
+    return control;
+}
+
 function composeTitleElement(
     document: PanelDocument,
     place: string | null,
@@ -328,8 +396,10 @@ function composeTitleElement(
         bar.append(where);
     }
     // Last, so the bar reads the way `DESIGN.md` states it: name, version, place, controls.
-    // Saving stands left of the fold, which is the outermost thing on the bar in every window
-    // a reader has met.
+    // The fold is the outermost thing on the bar in every window a reader has met, so the three
+    // before it stand left of it: the shelf, then the two that hand the fight over.
+    bar.append(composeShelfControl(document));
+    bar.append(composeCopyControl(document));
     bar.append(composeSaveControl(document));
     bar.append(composeTitleControl(document, isCollapsed));
     return bar;
@@ -525,8 +595,8 @@ function composeDrillElement(
 ): PanelElement {
     const body = composeElement(document, "div", BODY_CLASS);
     const crumb = composeElement(document, "div", CRUMB_CLASS);
-    crumb.textContent = `${BACK_MARK}${PANEL_WORDS.everyone}`;
-    crumb.setAttribute(BACK_ATTRIBUTE, PANEL_WORDS.everyone);
+    crumb.textContent = `${BACK_MARK}${PANEL_WORDS.back}`;
+    crumb.setAttribute(BACK_ATTRIBUTE, PANEL_WORDS.back);
     body.append(crumb);
     // Every share under an opened row is a share of that row's own figure, never of the fight's.
     const figure = getWordsForScreen(metric);
@@ -600,6 +670,9 @@ function composeRegion(
 export interface PanelView {
     reading: PanelReading;
     current: PanelMetric;
+    /** Whose rows the ranking lists, and whether the client said enough for the strip to draw. */
+    side: PanelSideChoice;
+    hasReaderSide: boolean;
     shelf: readonly ShelfRow[];
     isOnShelf: boolean;
     /** The row standing open over the screen, or nobody's. */
@@ -613,10 +686,13 @@ export interface PanelView {
 /** What a press asked for, read off the pressed element's own attribute. */
 export type PanelPress =
     | { kind: "screen"; screen: string }
+    | { kind: "side"; side: string }
     | { kind: "row"; stated: string }
     | { kind: "back" }
     | { kind: "fold" }
-    | { kind: "save" };
+    | { kind: "save" }
+    | { kind: "copy" }
+    | { kind: "shelf" };
 
 /** The shelf stands over an opened row, and an opened row over the screen it was opened on. */
 function composeViewBody(
@@ -653,6 +729,11 @@ function setPanelHostListeners(
             handlePress({ kind: "screen", screen });
             return;
         }
+        const side = target.getAttribute(SIDE_ATTRIBUTE);
+        if (side !== null) {
+            handlePress({ kind: "side", side });
+            return;
+        }
         const stated = target.getAttribute(ROW_ATTRIBUTE);
         if (stated !== null) {
             handlePress({ kind: "row", stated });
@@ -660,6 +741,14 @@ function setPanelHostListeners(
         }
         if (target.getAttribute(SAVE_ATTRIBUTE) !== null) {
             handlePress({ kind: "save" });
+            return;
+        }
+        if (target.getAttribute(COPY_ATTRIBUTE) !== null) {
+            handlePress({ kind: "copy" });
+            return;
+        }
+        if (target.getAttribute(SHELF_ATTRIBUTE) !== null) {
+            handlePress({ kind: "shelf" });
             return;
         }
         if (target.getAttribute(FOLD_ATTRIBUTE) !== null) {

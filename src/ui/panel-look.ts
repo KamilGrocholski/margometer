@@ -57,6 +57,7 @@ export const PALETTE_COLOURS = [
 export const CLASS = {
     title: "MargoMeter-titlebar",
     tabs: "MargoMeter-tabs",
+    strip: "strip",
     body: "MargoMeter-body",
     titleName: "title-name",
     titleVersion: "title-version",
@@ -406,9 +407,12 @@ function composeFrameRules(): string {
         // 2026-08-29 before the fix — a folded panel stood 49 pixels tall against the bar's 23.
         `.${CLASS.tabs}.${CLASS.folded},.${CLASS.body}.${CLASS.folded},` +
         `.${CLASS.summary}.${CLASS.folded}{display:none;}` +
-        `.${CLASS.tabs}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
+        // A column of strips, each one a row: three questions stacked, never three answers in
+        // one wrapping line where a reader cannot tell which strip a tab belongs to.
+        `.${CLASS.tabs}{display:flex;flex-direction:column;gap:var(${VARIABLE_PREFIX}half);` +
         `padding:var(${VARIABLE_PREFIX}half) var(${VARIABLE_PREFIX}small);` +
         `border-bottom:1px solid var(${VARIABLE_PREFIX}border);}` +
+        `.${CLASS.strip}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);}` +
         `.${CLASS.body}{overflow-y:auto;padding:var(${VARIABLE_PREFIX}half) 0;}` +
         `.${CLASS.summary}{display:flex;justify-content:space-between;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);padding:0 var(${VARIABLE_PREFIX}small);` +

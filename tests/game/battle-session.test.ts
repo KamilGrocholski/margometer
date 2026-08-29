@@ -105,3 +105,46 @@ Deno.test("a fight whose calls carry no snapshot still has a cast", () => {
     );
     assertEquals(placed.length, 1, "so the figure stated against a name lands on somebody");
 });
+
+/**
+ * Which side is the reader's own is the client's answer and never the protocol's, so it is read
+ * off the payload rather than off any message. Both spellings, because the recordings state it as
+ * text and the client compares loosely.
+ */
+Deno.test("the reader's own side is read off the payload, in either spelling", () => {
+    const asText = composeBattleSession();
+    addPayloadToSession(asText, { init: 1, myteam: "2" });
+    assertEquals(getFightFromSession(asText)?.readerSide, 2, "stated as text, as the corpus does");
+
+    const asNumber = composeBattleSession();
+    addPayloadToSession(asNumber, { init: 1, myteam: 2 });
+    assertEquals(getFightFromSession(asNumber)?.readerSide, 2, "and stated as a number");
+
+    const silent = composeBattleSession();
+    addPayloadToSession(silent, { init: 1 });
+    assertEquals(getFightFromSession(silent)?.readerSide, null, "a payload that says nothing");
+});
+
+/** It arrives on the opening payload only, so a later one saying nothing must not take it away. */
+Deno.test("the reader's own side is kept once seen, and cleared when a fight opens", () => {
+    const session = composeBattleSession();
+    addPayloadToSession(session, { init: 1, myteam: "1" });
+    addPayloadToSession(session, { m: ["0;0;txt=a"] });
+    assertEquals(getFightFromSession(session)?.readerSide, 1, "a later payload takes nothing away");
+
+    addPayloadToSession(session, { init: 1 });
+    assertEquals(getFightFromSession(session)?.readerSide, null, "and a new fight starts over");
+});
+
+Deno.test("every recording states its reader's side, on the payload that opens the fight", () => {
+    for (const path of getRecordingPaths()) {
+        const session = composeBattleSession();
+        const [first] = getRecordedEngineUpdates(path);
+        addPayloadToSession(session, first);
+        assertEquals(
+            getFightFromSession(session)?.readerSide,
+            1,
+            `${path}: the opening payload states the reader's own side`,
+        );
+    }
+});

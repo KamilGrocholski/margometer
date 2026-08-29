@@ -36,6 +36,11 @@ Warrior, player, character, unit, actor
 reader's own is not in the protocol, so the core groups sides and never favours one. _Avoid_: Team,
 faction, ours, enemy
 
+**Reader's side**: The side the running client marks as the reader's own. It is the client's answer
+and never the protocol's, so it is absent from a fight nothing stated it on — and a panel that
+cannot tell one side from the other lists everybody rather than guessing. _Avoid_: My team, our
+side, player side
+
 **Roster**: The combatants on both sides, with side, level and profession. _Avoid_: Lineup,
 participants, party
 

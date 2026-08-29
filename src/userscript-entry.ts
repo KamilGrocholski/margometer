@@ -8,15 +8,16 @@
  */
 
 import { assert } from "@std/assert";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { type CombatantRoster, composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
 import { getTextFromUnknown } from "@/src/core/unknown-reading.ts";
 import {
     addPayloadToSession,
     type BattleSession,
     composeBattleSession,
+    type FightReading,
     getFightFromSession,
 } from "@/src/game/battle-session.ts";
 import { attachToGame, type GameAttachment, type Scheduler } from "@/src/game/engine-attachment.ts";
@@ -33,6 +34,7 @@ import {
 } from "@/src/game/fight-capture.ts";
 import { type CapturedCombatant, composeSnapshotFromBattle } from "@/src/game/engine-warrior.ts";
 import { type KeptFight, readKeptFights, writeKeptFights } from "@/src/game/kept-fights.ts";
+import { composeReportText } from "@/src/game/fight-report.ts";
 import {
     composePanelHost,
     type PanelDocument,
@@ -44,8 +46,8 @@ import { composeDrillReading, composePanelReading, type ShelfRow } from "@/src/u
 import {
     composeScreenState,
     getScreenFromName,
+    getSideFromName,
     type ScreenState,
-    SHELF_SCREEN,
 } from "@/src/ui/panel-screen.ts";
 import { composePlaceWords } from "@/src/ui/panel-words.ts";
 
@@ -75,6 +77,8 @@ export interface UserscriptEnvironment {
     store: BrowserStore | null;
     /** Where a recording goes when the reader asks for one. Null where the page offers no way. */
     save: ((name: string, text: string) => void) | null;
+    /** Where a report goes when the reader asks for one. Null where the browser lends none. */
+    copy: ((text: string) => void) | null;
     /** What a recording says about where it came from, read at the moment one is asked for. */
     readSurroundings(): CaptureSurroundings;
     /** The clock, handed in like everything else, so nothing here reaches for one. */
@@ -110,13 +114,18 @@ function composeShelfRows(kept: readonly KeptFight[]): ShelfRow[] {
 function handlePress(screen: ScreenState, press: PanelPress): boolean {
     assert(press.kind.length > 0, "a press says what it asks for");
     assert(screen.current.length > 0, "and lands on a panel that is on a screen");
-    if (press.kind === "save") {
-        // Nothing on screen moves: a file is handed to the browser and the panel goes on drawing
-        // what it was drawing.
-        return false;
-    }
+    // Nothing on screen moves for either of these: the fight is handed to the browser, as a file
+    // or as text, and the panel goes on drawing what it was drawing.
+    if (press.kind === "save") return false;
+    if (press.kind === "copy") return false;
     if (press.kind === "fold") {
         screen.isCollapsed = !screen.isCollapsed;
+        return true;
+    }
+    if (press.kind === "shelf") {
+        // A toggle, unlike a screen: the shelf covers what the reader was reading, and the same
+        // press takes it off again rather than sending them to the top of a tab.
+        screen.isOnShelf = !screen.isOnShelf;
         return true;
     }
     if (press.kind === "back") {
@@ -131,8 +140,14 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         screen.openRowId = opened;
         return true;
     }
-    if (press.screen === SHELF_SCREEN) {
-        screen.isOnShelf = !screen.isOnShelf;
+    if (press.kind === "side") {
+        const chosen = getSideFromName(press.side);
+        if (chosen === null) return false;
+        screen.side = chosen;
+        screen.isOnShelf = false;
+        // A side decides who is on the list, so a row opened before it was narrowed may not be
+        // on the list any more — and a cut standing over a list nobody is on says nothing.
+        screen.openRowId = null;
         return true;
     }
     const reached = getScreenFromName(press.screen);
@@ -143,6 +158,27 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
     // another figure, and leaving it open would state one figure under another's heading.
     screen.openRowId = null;
     return true;
+}
+
+/** What the session holds, read into figures. The panel draws these and a report writes them. */
+interface FightFigures {
+    fight: FightReading;
+    roster: CombatantRoster;
+    statistics: FightStatistics;
+}
+
+/**
+ * The figures, derived rather than kept: what a session holds is what the game said, so the two
+ * readers of it are never looking at arithmetic one of them did earlier.
+ */
+function composeFightFigures(session: BattleSession): FightFigures | null {
+    const fight = getFightFromSession(session);
+    if (fight === null) return null;
+    assert(fight.payloads > 0, "a fight that is read was built from something");
+    const roster = composeCombatantRoster([...fight.roster.byId.values()]);
+    const statistics = composeFightStatistics(fight.events, composeTeamHeals(fight.events, roster));
+    assert(statistics.unreadMessages >= 0, "a reading states what it could not read, even as none");
+    return { fight, roster, statistics };
 }
 
 /**
@@ -156,12 +192,16 @@ function showFight(
     kept: readonly KeptFight[],
     place: FightPlace | null,
 ): void {
-    const fight = getFightFromSession(session);
-    if (fight === null) return;
-    assert(fight.payloads > 0, "a fight that is drawn was built from something");
-    const roster = composeCombatantRoster([...fight.roster.byId.values()]);
-    const statistics = composeFightStatistics(fight.events, composeTeamHeals(fight.events, roster));
-    const reading = composePanelReading(statistics, roster, screen.current);
+    const figures = composeFightFigures(session);
+    if (figures === null) return;
+    const { fight, roster, statistics } = figures;
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        screen.current,
+        screen.side,
+        fight.readerSide,
+    );
     assert(reading.rows.length >= 0, "a reading states its rows, however few");
     // Null where the screen has no cut to open, so a row opened on one screen never stands over
     // another that cannot state the same figure.
@@ -171,6 +211,10 @@ function showFight(
     panel.show({
         reading,
         current: screen.current,
+        side: screen.side,
+        // A strip that cannot tell one side from the other is not drawn at all: the protocol
+        // never states which side is the reader's own, and the client does not always either.
+        hasReaderSide: fight.readerSide !== null,
         shelf: composeShelfRows(kept),
         isOnShelf: screen.isOnShelf,
         drill,
@@ -196,7 +240,11 @@ export interface UserscriptWindow {
     /** The moment as a number and as a word. A recording states the second of them. */
     Date: { now(): number; new (atMs: number): { toISOString(): string } };
     location: { hostname?: string | undefined };
-    navigator: { userAgent?: string | undefined };
+    /** The clipboard is absent on a browser that lends none, which is an answer and not a fault. */
+    navigator: {
+        userAgent?: string | undefined;
+        clipboard?: { writeText(text: string): Promise<void> } | undefined;
+    };
     URL: { createObjectURL(part: unknown): string; revokeObjectURL(url: string): void };
     Blob: new (parts: readonly string[], options: { type: string }) => unknown;
 }
@@ -287,6 +335,31 @@ function writeTextToFile(page: UserscriptWindow, name: string, text: string): vo
 }
 
 /**
+ * Hands the report to the clipboard. Nothing leaves the browser: the reading boundary forbids the
+ * network and says nothing about handing a person their own numbers back (`SECURITY.md`).
+ *
+ * The clipboard rather than a file, unlike a recording: a report is a few kilobytes and is pasted
+ * into a message, where a recording runs to hundreds and is attached to one.
+ *
+ * ⚠️ **A refusal arrives as a rejected promise, never as a throw**, so the boundary sits on the
+ * promise rather than around the call — a `try` here would catch nothing at all. What a reader
+ * would get instead is the browser's own unhandled-rejection line, unbranded, in a console this
+ * add-on shares with the game and with other add-ons (**E11**). **ADR 0013.**
+ */
+function writeTextToClipboard(page: UserscriptWindow, text: string): void {
+    assert(text.length > 0, "text handed to a clipboard says something");
+    const clipboard = page.navigator.clipboard;
+    if (clipboard === undefined) {
+        page.console.error(FAILURE_LINE, "this browser lends no clipboard");
+        return;
+    }
+    assert(typeof clipboard.writeText === "function", "a clipboard states the way to write to it");
+    clipboard.writeText(text).catch((failure: unknown) => {
+        page.console.error(FAILURE_LINE, failure);
+    });
+}
+
+/**
  * Reads the globals a userscript is given and starts on them. The panel replaces the one before
  * it, so a fight redrawn leaves one panel on the page rather than a stack of them.
  */
@@ -311,6 +384,7 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
         report: (line, failure) => page.console.error(line, failure),
         store: composeBrowserStore(page.localStorage),
         save: (name, text) => writeTextToFile(page, name, text),
+        copy: (text) => writeTextToClipboard(page, text),
         readSurroundings: () => ({
             world: getWorldFromPage(page),
             gameBuild: getGameBuildFromPage(page),
@@ -368,6 +442,40 @@ function saveRecording(environment: UserscriptEnvironment, capture: FightCapture
 }
 
 /**
+ * The report, handed to the clipboard.
+ *
+ * Handed over even where nothing has been read: a report saying there is no fight is a true
+ * statement and a useful one — it says the add-on is attached and reading nothing, which is
+ * otherwise the thing whoever receives it has to guess at.
+ */
+function copyReport(
+    environment: UserscriptEnvironment,
+    session: BattleSession,
+    place: FightPlace | null,
+): void {
+    const copy = environment.copy;
+    if (copy === null) return;
+    const figures = composeFightFigures(session);
+    const text = composeReportText(
+        figures === null ? null : {
+            statistics: figures.statistics,
+            roster: figures.roster,
+            place,
+            payloads: figures.fight.payloads,
+            messagesLost: figures.fight.messagesLost,
+            isOver: figures.fight.isOver,
+        },
+        environment.readSurroundings(),
+    );
+    if (text === null) {
+        environment.report(FAILURE_LINE, "a report that would not be written as text");
+        return;
+    }
+    assert(text.length > 0, "a report written as text says something");
+    copy(text);
+}
+
+/**
  * Starts reading, and hands back the way to stop. A second copy of the add-on stands down inside
  * the attachment, so nothing here has to know it was second.
  */
@@ -400,6 +508,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     let combatantsBefore: CapturedCombatant[] = [];
     const panel = composePanelHost(environment.document, (press) => {
         if (press.kind === "save") saveRecording(environment, capture);
+        if (press.kind === "copy") copyReport(environment, session, place);
         if (!handlePress(screen, press)) return;
         // A refusal to write is an answer: the panel folds either way, and only the next visit
         // is the poorer for it.

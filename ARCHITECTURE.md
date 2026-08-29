@@ -59,6 +59,7 @@ src/
     engine-place.ts      Where a fight happened, asked of the client's own state.
     fight-capture.ts     The fight as it happened, in the shape a recording is admitted in.
     kept-fights.ts       The fights a reader can go back to: inputs kept, figures never.
+    fight-report.ts      The figures as text a reader can paste, with what qualifies them.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
     panel-element.ts     The panel drawn into a document it is handed, region by region.
@@ -193,7 +194,7 @@ One owner per fact, once each module exists. A second module reads it; it does n
 | Who is in the fight        | `core/combatant-roster.ts` | An ambiguous name resolves to nobody. |
 | Health entered and held    | `core/combatant-health.ts` | Every input refused, never defaulted. |
 | Every figure a panel draws | `core/fight-statistics.ts` | Raw and applied kept apart.           |
-| Which side is the reader's | `game/engine-roster.ts`    | The one thing `core` cannot know.     |
+| Which side is the reader's | `game/battle-session.ts`   | The one thing `core` cannot know.     |
 | Where a fight happens      | `game/engine-place.ts`     | Off client state, never wrapped.      |
 | What the panel says        | `ui/panel-words.ts`        | The only Polish in `src/`.            |
 | Which screen it is on      | `ui/panel-screen.ts`       | And whose row stands open over it.    |

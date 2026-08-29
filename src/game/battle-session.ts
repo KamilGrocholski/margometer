@@ -1,10 +1,10 @@
 /**
  * One fight, accumulated payload by payload.
  *
- * This file spells three of the client's names and nothing else does: `init`, which opens a
- * fight, `endBattle`, which ends one, and `m`, the messages a payload carries. A payload
- * carrying `init` starts a fight over; a payload arriving before one has been seen is read all
- * the same, because the reader may have joined a fight already in progress.
+ * This file spells four of the client's names and nothing else does: `init`, which opens a
+ * fight, `endBattle`, which ends one, `m`, the messages a payload carries, and `myteam`, the side
+ * the reader is on. A payload carrying `init` starts a fight over; a payload arriving before one
+ * has been seen is read all the same, because the reader may have joined a fight in progress.
  */
 
 import { assert } from "@std/assert";
@@ -15,7 +15,8 @@ import {
     composeCombatantRoster,
 } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import { getTextFromUnknown, isRecord } from "@/src/core/unknown-reading.ts";
+import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/src/core/unknown-reading.ts";
 import { getCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
 
 const FIGHT_OPENS_KEY = "init";
@@ -31,6 +32,12 @@ const MESSAGES_KEY = "m";
  * reader as a fight of zeroes.
  */
 const MESSAGE_COUNT_KEY = "mi";
+/**
+ * Which side is the reader's own, which the protocol never says and the client does. Stated on
+ * the payload that opens a fight in all 28 recordings and on none of the others, 2026-08-29 — so
+ * it is kept once seen, and a later payload saying nothing about it never takes it away.
+ */
+const READER_SIDE_KEY = "myteam";
 /** The longest fight in `captures/` decodes to 811 events, 2026-08-28. */
 const MAXIMUM_EVENTS = 65536;
 
@@ -44,6 +51,8 @@ export interface FightReading {
     /** The game has stated the fight is over. Payloads may still arrive after it. */
     isOver: boolean;
     payloads: number;
+    /** Null where the client never said, which leaves the panel unable to tell one side apart. */
+    readerSide: number | null;
 }
 
 export interface BattleSession {
@@ -54,6 +63,7 @@ export interface BattleSession {
     isOver: boolean;
     payloads: number;
     hasFight: boolean;
+    readerSide: number | null;
 }
 
 export function composeBattleSession(): BattleSession {
@@ -65,6 +75,7 @@ export function composeBattleSession(): BattleSession {
         isOver: false,
         payloads: 0,
         hasFight: false,
+        readerSide: null,
     };
     assert(session.events.length === 0, "a session starts holding no fight of its own");
     assert(!session.hasFight, "and says so, rather than reading as a fight with no figures");
@@ -101,8 +112,24 @@ function resetSession(session: BattleSession): void {
     session.messagesLost = 0;
     session.isOver = false;
     session.payloads = 0;
+    session.readerSide = null;
     assert(session.events.length === 0, "a fight opens holding nothing");
     assert(session.combatants.length === 0, "and knowing nobody until its payload states them");
+}
+
+/**
+ * The side the reader is on, as this payload states it. Read from text and from number both: the
+ * recordings state `"1"` and the client compares loosely, so a stricter reading would quietly
+ * stop finding it the day the game sends the other one.
+ */
+function getReaderSideFromPayload(payload: Record<string, unknown>): number | null {
+    assert(READER_SIDE_KEY.length > 0, "the reader's own side is stated under a key with a name");
+    const stated = payload[READER_SIDE_KEY];
+    const side = typeof stated === "string"
+        ? getIntegerFromText(stated)
+        : getNumberFromUnknown(stated);
+    assert(side === null || Number.isFinite(side), "a side that was read is a number");
+    return side;
 }
 
 /** Whether a payload opens a fight, so a recording clears where the session does. */
@@ -118,6 +145,9 @@ export function addPayloadToSession(session: BattleSession, payload: unknown): v
     session.hasFight = true;
     session.payloads += 1;
     for (const combatant of getCombatantsFromPayload(payload)) session.combatants.push(combatant);
+    // Kept once seen, because only the opening payload carries it: a fragment saying nothing
+    // about the side would otherwise take the reader's own away mid-fight.
+    session.readerSide = getReaderSideFromPayload(payload) ?? session.readerSide;
     const roster = composeCombatantRoster(session.combatants);
     const messages = getMessagesFromPayload(payload);
     session.messagesByPayload.push(messages);
@@ -144,5 +174,6 @@ export function getFightFromSession(session: BattleSession): FightReading | null
         messagesLost: session.messagesLost,
         isOver: session.isOver,
         payloads: session.payloads,
+        readerSide: session.readerSide,
     };
 }

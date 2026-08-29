@@ -40,6 +40,7 @@ function composeEnvironment(page: unknown) {
     const document = composeFakeDocument();
     const held = new Map<string, string>();
     const saved: { name: string; text: string }[] = [];
+    const copied: string[] = [];
     let ticks = 0;
     const environment: UserscriptEnvironment = {
         page,
@@ -57,6 +58,9 @@ function composeEnvironment(page: unknown) {
         save: (name, text) => {
             saved.push({ name, text });
         },
+        copy: (text) => {
+            copied.push(text);
+        },
         readSurroundings: () => ({
             world: "tempest",
             gameBuild: "53XkBRxF",
@@ -68,7 +72,7 @@ function composeEnvironment(page: unknown) {
             return ticks;
         },
     };
-    return { environment, shown, reported, held, saved };
+    return { environment, shown, reported, held, saved, copied };
 }
 
 Deno.test("a recording played through the add-on ends on the panel a reader would see", () => {
@@ -288,7 +292,7 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
     );
 });
 
-Deno.test("the shelf has a screen of its own, and its tab toggles", () => {
+Deno.test("the shelf has a screen of its own, and its control toggles", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };
     const { environment, shown } = composeEnvironment({ Engine: { battle } });
     startMargoMeter(environment);
@@ -297,10 +301,10 @@ Deno.test("the shelf has a screen of its own, and its tab toggles", () => {
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
 
-    const shelfTab = getElementsWithin(host).find((one) =>
-        one.attributes.get("data-screen") === "fights"
-    );
-    assert(shelfTab !== undefined, "the strip carries the shelf beside the figures");
+    // On the bar, not on a strip: what it changes is which fight is being read, and the strips
+    // are about which figure of the one fight.
+    const shelfTab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(shelfTab !== undefined, "the bar carries the way onto the shelf");
     // A block body on purpose: the recursion guard reads a one-line named arrow as a function
     // whose body never closes, and then sees every later call to it as a call to itself.
     const rows = (): FakeElement[] => {
@@ -474,10 +478,8 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
     assertEquals(getTextsByClass(host, "place"), ["Mapa Testowa (12, 34)"], "the bar says where");
 
     // The fight this recording holds ends, so the shelf has a row to say it of.
-    const tab = getElementsWithin(host).find((one) =>
-        one.attributes.get("data-screen") === "fights"
-    );
-    assert(tab !== undefined, "the shelf has a tab");
+    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(tab !== undefined, "the bar carries the way onto the shelf");
     pressElement(host, "pointerdown", tab);
     // Inside the row, not anywhere on the panel: the bar says the same words over the shelf, so
     // a test that asks the whole panel passes with the row saying nothing.

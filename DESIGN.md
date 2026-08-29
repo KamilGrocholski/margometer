@@ -156,9 +156,9 @@ states a place, and nothing was stated.
 **A control says what a press would do**, never what the panel already is, so its mark and its
 sentence both change with the state — where it has one. Folded, the panel is this bar and nothing
 else: what stands under it is composed empty rather than composed and hidden, because a fight
-redraws every few seconds. Saving the fight has no state to say, so `{ }` reads the same always, and
-it stands left of the fold, which is the outermost thing on the bar in every window a reader has
-met.
+redraws every few seconds. The fold is the outermost thing on the bar in every window a reader has
+met, so the other three stand left of it: the shelf, then the two that hand the fight over. Those
+three have no state to say, so their marks read the same always.
 
 **Ranking row.** A name, a bar, a figure. The bar is the row's background at `barTint`, not a
 separate element, so the row height cannot disagree with the accent height.
@@ -170,8 +170,13 @@ is a row, not a footnote: same height, same shape.
 row can carry it. It is a reading's summary, **not** a banner — the distinction is that it always
 shows, rather than appearing when something goes wrong.
 
-**Tab strip.** Switches screens. Quiet until hover or current; the current one is marked by more
-than colour.
+**Tab strips.** Three of them, stacked, each asking one question: which quantity, which way round,
+and whose rows. Quiet until hover or current; the current one is marked by more than colour. The
+nouns are upper case and the directions lower, because two strips of equal weight read as two lists
+of the same kind of thing and these are not — one picks the figure, the other turns it round. The
+third is drawn only where the client said which side is the reader's own, so a strip is never
+offered that cannot tell the sides apart. While the shelf is up nothing on any strip is marked: the
+shelf covers the screens rather than being one of them.
 
 **Tooltip.** `surfaceRaised`, fixed width, opens on hover and follows the cursor's vertical
 position. It opens to the panel's left, and which side is a constant because the panel is pinned; a

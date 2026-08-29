@@ -122,6 +122,17 @@ const HEALING_TO_NAMED_MEMBERS = 2;
  * The value has never carried a second member, and one that did would not be read.
  */
 const UNACCOUNTED_HEALTH_KEY = "healall_per";
+/**
+ * The keys whose giver is the one healed, on the published help's word rather than on the
+ * grammar: each entry's `_Cause:_` in `docs/protocol-keys.md` reads *the subject's own*. Being
+ * stated at one end is not what puts a key here — `heal_target` states one end too and is charged
+ * to whoever announced it. `[ASK]` before a fourth joins the list.
+ */
+export const SELF_SOURCED_HEALING_KEYS: readonly string[] = [
+    "heal",
+    "legbon_holytouch_heal",
+    HEALING_TO_NAMED_KEY,
+];
 const SKILL_NAME_KEY = "tspell";
 /**
  * The other way an announcement names what was used, and the name sits in the target slot. Read
