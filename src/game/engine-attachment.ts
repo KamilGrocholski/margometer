@@ -33,6 +33,11 @@ export interface Scheduler {
 
 export interface AttachmentReport {
     /** Handed the battle before the engine's own call, for what only that moment can be read at. */
+    /**
+     * The wrap is on and the game is being read, before any payload has arrived. A reader has to
+     * be able to tell an add-on waiting for a fight from one that died on the way to the page.
+     */
+    handleAttached(): void;
     handleBeforeCall(battle: EngineBattle): void;
     handlePayload(payload: unknown, battle: EngineBattle): void;
     /** The first failure of ours, once. The wrap counts the rest. */
@@ -116,6 +121,7 @@ function look(page: unknown, report: AttachmentReport, schedule: Scheduler, sear
     });
     if (search.wrap !== null) {
         stopLooking(search, schedule);
+        report.handleAttached();
         return;
     }
     // The game is here and the method it is found by is gone. Said once: the looking goes on,

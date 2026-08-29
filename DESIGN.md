@@ -95,8 +95,11 @@ lists one above the other — each under its own heading, and a warrior's orange
 row's orange there. It costs nothing, because in neither list is the colour what a reader reads: the
 name says **who** and the bar says **what** somebody is, while a cut row is worded outright.
 
-A bar is drawn at `barTint` `0.55` against `track`, which is what keeps eight saturated hues from
-competing with the figures printed over them.
+A bar is drawn at `barTint` `0.55` over `track`, which is what keeps eight saturated hues from
+competing with the figures printed over them. The tint is measured rather than chosen: at full
+strength the green clears only 3.71:1 against dark ink, under the 4.5:1 the floor asks for, and no
+single ink clears every hue — tinting keeps the text on the panel's own surface instead, and the
+worst pairing across the palette becomes 5.25:1. Past about 0.6 the green fails again.
 
 ## Typography
 
@@ -115,16 +118,19 @@ scale.
 A 2-pixel base, because the panel is dense and a 4-pixel base doubles its height for no gain in
 legibility.
 
-| Token            | Value                                                     |
-| ---------------- | --------------------------------------------------------- |
-| `spaceHalf`      | `2px`                                                     |
-| `spaceSmall`     | the base step                                             |
-| `rowHeight`      | `18px`                                                    |
-| `maxHeightShare` | `66vh`                                                    |
-| `tipWidth`       | fixed, so a tooltip never reflows against its own content |
-| `panelWidth`     | `260px` — narrow on purpose: the panel is a guest         |
-| `panelInset`     | `8px` from the corner it is anchored to                   |
-| `panelLayer`     | high enough to clear the game's own windows               |
+| Token            | Value                                                        |
+| ---------------- | ------------------------------------------------------------ |
+| `spaceHalf`      | `2px`                                                        |
+| `spaceSmall`     | the base step                                                |
+| `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region |
+| `spaceWide`      | `8px`, which is also the inset the panel sits at             |
+| `spaceLarge`     | `12px`, what a list costs beyond the rows it promises        |
+| `rowHeight`      | `18px`                                                       |
+| `maxHeightShare` | `66vh`                                                       |
+| `tipWidth`       | fixed, so a tooltip never reflows against its own content    |
+| `panelWidth`     | `260px` — narrow on purpose: the panel is a guest            |
+| `panelInset`     | `8px` from the corner it is anchored to                      |
+| `panelLayer`     | high enough to clear the game's own windows                  |
 
 **Every row is the same height**, accent included. A row whose background is taller than its
 neighbour reads as a different kind of row, and it is not one.
@@ -138,20 +144,20 @@ whole of the licence — see _The Frame Is Not A Screen Rule_.
 | -------------- | ----------------------------- | ------------------------------------ |
 | `radius`       | `8px`                         | The panel, the tooltip.              |
 | `radiusSmall`  | `3px`                         | Bars, badges, anything inside a row. |
-| `windowShadow` | `0 6px 20px rgb(0 0 0 / 55%)` | The panel against the game.          |
+| `windowShadow` | `0 6px 20px rgb(0 0 0 / 55%)` | The tooltip, off the page.           |
 
-Flat first. Hierarchy comes from `surface` against `surfaceRaised` and from borders. The single
-shadow exists to separate the panel from a game screen we do not control, not to decorate anything
-inside it.
+Flat first. Hierarchy comes from `surface` against `surfaceRaised` and from borders — the panel
+itself is separated from the game by its border and by the bar standing over it, not by a shadow.
+The single shadow lifts the tooltip off the page, which is the one thing here that floats over
+something of ours.
 
 ## Components
 
-**Title bar.** `surfaceRaised`, one line, always. It carries the name, the version, where the fight
-is being fought, and the controls, and it stays one line as the version number grows — a bar that
-wraps moves everything below it. The name and the version never shrink; the place is the only one of
-them whose length the panel does not choose, so it is the one that takes the ellipsis. Where the
-client says nothing about the place, the bar says nothing in its stead: an empty pair of brackets
-states a place, and nothing was stated.
+**Title bar.** `surfaceRaised`, one line, always. It stands **over** the panel rather than inside
+it, carrying the top two corners while the panel carries the bottom two, and it holds the name, the
+version and the controls. It stays one line as the version number grows — a bar that wraps moves
+everything below it, and `0.10.1` exists because one character of a version number did exactly that.
+Where the fight is being fought is **not** on it: that is the header's, on a line of its own.
 
 **A control says what a press would do**, never what the panel already is, so its mark and its
 sentence both change with the state — where it has one. Folded, the panel is this bar and nothing
@@ -160,23 +166,51 @@ redraws every few seconds. The fold is the outermost thing on the bar in every w
 met, so the other three stand left of it: the shelf, then the two that hand the fight over. Those
 three have no state to say, so their marks read the same always.
 
-**Ranking row.** A name, a bar, a figure. The bar is the row's background at `barTint`, not a
-separate element, so the row height cannot disagree with the accent height.
+**Header.** What the fight is, as a headcount, and how it went. Where it is being fought goes on a
+second line and nowhere else: beside the headcount a map's name plus a tile had about thirty
+characters of a 260-pixel panel, so the one thing answering _where_ was the one thing being cut.
 
-**Pinned row.** Stands apart from the ranking, below it, for figures that belong to no combatant. It
-is a row, not a footnote: same height, same shape.
+**Ranking row.** A place in the ranking, a profession badge, a name, a figure and its share. The bar
+is an element behind the text at `barTint`, with a three-pixel cap at full strength on the edge it
+starts from: the tint is what keeps the figures printed over it readable, and the cap gives the hue
+back where no text sits. **Its length is the row against the biggest figure on screen**, never
+against the whole — the top row of a ten-person fight is a full bar, and the share in brackets is
+what states the fraction. The badge carries the game's own letter, which is the channel that
+survives colour blindness: six professions cannot be made mutually distinguishable on this
+background, so the letter and not the hue is what answers who is what.
+
+**Pinned row.** Stands apart from the ranking, below it and outside the list, for figures that
+belong to no combatant. It is a row, not a footnote: same height, same shape — with a dashed rule
+cutting it off the ranking and a hatched bar, because it is not a combatant and must not look like
+one at a glance.
+
+**Section heading.** Over each cut of an opened figure, carrying the figure it stands over, and
+stuck to the top of the list while its own section scrolls: a figure read under the wrong heading is
+the one thing a drill must never allow. Its quiet is a composited colour rather than an `opacity`,
+because an opacity would let a bar ghost through it.
 
 **Summary bar.** The fight's own strip. This is where a gap that names nobody is said, because no
 row can carry it. It is a reading's summary, **not** a banner — the distinction is that it always
 shows, rather than appearing when something goes wrong.
 
-**Tab strips.** Three of them, stacked, each asking one question: which quantity, which way round,
-and whose rows. Quiet until hover or current; the current one is marked by more than colour. The
-nouns are upper case and the directions lower, because two strips of equal weight read as two lists
-of the same kind of thing and these are not — one picks the figure, the other turns it round. The
-third is drawn only where the client said which side is the reader's own, so a strip is never
-offered that cannot tell the sides apart. While the shelf is up nothing on any strip is marked: the
-shelf covers the screens rather than being one of them.
+**Tab strips.** Two rows, three questions: which quantity on the upper, then which way round and
+whose rows sharing the lower — the direction against the left edge and the sides against the right,
+held apart by a gap that is a node rather than a margin, because it is absent with the direction it
+follows. They share a row because the vertical budget is the list's: every strip is a row of the
+ranking the reader does not get. Quiet until hover or current; the current one is marked by more
+than colour, standing on `surfaceRaised`. The nouns are upper case and the directions lower, because
+two strips of equal weight read as two lists of the same kind of thing and these are not. The sides
+are drawn only where the client said which side is the reader's own, so a strip is never offered
+that cannot tell the sides apart. While the shelf is up nothing on any strip is marked: the shelf
+covers the screens rather than being one of them.
+
+**The list.** The one region that scrolls and the one that gives way when the ceiling is lower than
+the panel wants to be. Every other region says the same thing at any height, so there is nothing to
+take off them. Its height is arithmetic — the rows it promises times what a row costs — so changing
+the type size cannot quietly break the promise: eleven bars under everybody, ten under a side, and
+never fewer once a row is opened, because pressing a row must not shorten the window under the hand.
+Its scrollbar gutter is reserved whether or not a scrollbar shows, and the two regions drawing a bar
+outside it reserve one too, so a bar means the same length in all three.
 
 **Tooltip.** `surfaceRaised`, fixed width, opens on hover and follows the cursor's vertical
 position. It opens to the panel's left, and which side is a constant because the panel is pinned; a

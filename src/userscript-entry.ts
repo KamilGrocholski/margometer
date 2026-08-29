@@ -489,18 +489,23 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     let wasOver = false;
     assert(getFightFromSession(session) === null, "a session starts holding no fight");
     assert(FAILURE_LINE.startsWith("MargoMeter/"), "a failure of ours says whose it is first");
-    // The panel goes up on the first payload and not before: a copy that stood down never gets
-    // one, and a page with no game on it is left as it was found.
+    // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
+    // one, and a page with no game on it is left as it was found. Between that moment and the
+    // first payload it says there has been no fight — a panel that draws nothing until one
+    // arrives looks exactly like an add-on that died on the way to the page.
     let isMounted = false;
     // Read once, on the payload that opens a fight: the client's own state is where a place is,
     // the hero does not move while a fight is on, and reading it every payload would ask another
     // program's object graph a question whose answer cannot have changed.
     let place: FightPlace | null = null;
-    const showAndMount = (): void => {
-        showFight(session, screen, panel, kept, place);
+    const mount = (): void => {
         if (isMounted) return;
         environment.mount.show(panel.element);
         isMounted = true;
+    };
+    const showAndMount = (): void => {
+        showFight(session, screen, panel, kept, place);
+        mount();
     };
     // The recording, and the state each call is entered with. Held beside the session because it
     // is the same fight: `composeNextCapture` clears on the key `addPayloadToSession` clears on.
@@ -513,10 +518,16 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         // A refusal to write is an answer: the panel folds either way, and only the next visit
         // is the poorer for it.
         if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
-        showFight(session, screen, panel, kept, place);
+        // A panel with no fight in it still folds, and still says what it is waiting for.
+        if (getFightFromSession(session) === null) panel.showWaiting(screen.isCollapsed);
+        else showFight(session, screen, panel, kept, place);
     }, (failure) => environment.report(FAILURE_LINE, failure));
     assert(!isMounted, "nothing is on the page until a payload arrives");
     return attachToGame(environment.page, environment.schedule, {
+        handleAttached: () => {
+            panel.showWaiting(screen.isCollapsed);
+            mount();
+        },
         // The one place code of ours stands ahead of the game's own, and it reads and nothing
         // else: the state a payload is about to change is only readable before it runs.
         handleBeforeCall: (battle) => {

@@ -56,23 +56,41 @@ export const PALETTE_COLOURS = [
  */
 export const CLASS = {
     title: "MargoMeter-titlebar",
-    tabs: "MargoMeter-tabs",
-    strip: "strip",
-    body: "MargoMeter-body",
-    titleName: "title-name",
-    titleVersion: "title-version",
-    control: "control",
+    titleVersion: "titlebar-version",
+    control: "titlebar-button",
+    controlFights: "titlebar-fights",
+    controlCopy: "titlebar-copy",
+    controlRaw: "titlebar-raw",
+    /** The wrapper the fold hides, so a folded panel is its title bar and nothing else. */
+    frame: "MargoMeter-body",
     folded: "folded",
-    place: "place",
+    panel: "panel",
+    /** What stands where a region would while it has nothing to draw. */
+    slot: "slot",
+    header: "header",
+    headerLine: "header-line",
+    headerPlace: "header-place",
+    tabs: "tabs",
+    tabsGap: "tabs-gap",
     tab: "tab",
-    tabCurrent: "tab-current",
-    row: "row",
-    rowName: "row-name",
-    rowFigure: "row-figure",
-    pinned: "pinned",
-    section: "section",
+    tabCurrent: "selected",
     crumb: "crumb",
-    drillHead: "drill-head",
+    crumbBack: "crumb-back",
+    crumbHere: "crumb-here",
+    list: "list",
+    listWaiting: "list-waiting",
+    section: "section-heading",
+    row: "row",
+    rowDrillable: "drillable",
+    rowLeaf: "leaf",
+    rowRank: "row-rank",
+    rowBadge: "row-badge",
+    rowName: "row-name",
+    rowValue: "row-value",
+    rowShare: "row-share",
+    bar: "bar",
+    barCap: "bar-cap",
+    pinned: "pinned-region",
     empty: "empty",
     undrawn: "undrawn",
     warning: "warning",
@@ -90,6 +108,11 @@ export const CLASS = {
 export const SPACE = {
     half: "2px",
     small: "4px",
+    /** The step every region is inset by: five pixels down the panel, seven across it. */
+    regionDown: "5px",
+    regionAcross: "7px",
+    wide: "8px",
+    large: "12px",
     rowHeight: "18px",
     heightShareMaximum: "66vh",
 } as const;
@@ -125,6 +148,14 @@ export const SHAPE = {
 
 /** What keeps eight saturated hues from competing with the figures printed over them. */
 const BAR_TINT = 0.55;
+/**
+ * Pure black, and only ever as a mask. A `mask-image` reads alpha and throws the hue away, so
+ * this is not a colour anybody sees — it is the opaque end of a gradient, named because a raw hex
+ * in a rule is a bug and an exception nobody can see the edge of is how the next one gets written.
+ */
+const MASK_INK = "#000000";
+/** How much of the quiet a section heading keeps, computed rather than laid on as an opacity. */
+const HEADING_TINT = 0.85;
 const HEX_DIGITS = "0123456789abcdef";
 const HEX_BASE = 16;
 const HEX_DIGITS_PER_CHANNEL = 2;
@@ -329,9 +360,39 @@ export function getColourForProfession(profession: string | null): string {
     return held;
 }
 
+/**
+ * One colour laid over another at an alpha, the way CSS composites `opacity`, in sRGB because
+ * that is what the browser does here and the point is to predict what will be on screen.
+ *
+ * The heading is quieted this way rather than by an `opacity`: it sticks over a scrolling row,
+ * and an opacity would fade its background with its text and let a bar ghost through it.
+ */
+function composeColourOver(top: string, bottom: string, alpha: number): string {
+    assert(alpha >= 0, "a colour is laid over another at a share of itself");
+    assert(alpha <= 1, "and never at more than the whole of itself");
+    const above = getChannelsFromColour(top);
+    const below = getChannelsFromColour(bottom);
+    assert(above !== null, "the colour laid over another is one this file wrote");
+    assert(below !== null, "and so is the one underneath it");
+    const mixed = above.map((one, at) => Math.round(alpha * one + (1 - alpha) * (below[at] ?? 0)));
+    return `rgb(${mixed[0]} ${mixed[1]} ${mixed[2]})`;
+}
+
+/** The quiet a heading keeps once it is composited onto the panel's own surface. */
+function composeHeadingColour(): string {
+    const colour = composeColourOver(TEXT.quiet, SURFACE.panel, HEADING_TINT);
+    assert(colour.startsWith("rgb("), "a composite is written the way a bar's colour is");
+    assert(colour.endsWith(")"), "and closed like one");
+    return colour;
+}
+
 /** Ours, because `all: initial` resets every property a page can set except a custom one. */
 const VARIABLE_PREFIX = "--MargoMeter-";
-const SHARE_AS_PERCENT = 100;
+/**
+ * What the list stands at when a draw states nothing, which is the ranking's own floor. The draw
+ * writes the count it wants; this is what a list drawn by a document with no panel around it gets.
+ */
+const ROWS_BY_DEFAULT = 11;
 /** The system stack, so the panel asks a browser for no font and waits for no download. */
 const FONT_STACK = "system-ui, sans-serif";
 const FONT_SIZE = "11px";
@@ -355,8 +416,15 @@ function composeVariables(): string {
         composeVariable("text", TEXT.plain),
         composeVariable("quiet", TEXT.quiet),
         composeVariable("suspect", SIGNAL.suspect),
+        composeVariable("heading", composeHeadingColour()),
+        composeVariable("mask", MASK_INK),
+        composeVariable("bar-tint", `${BAR_TINT}`),
         composeVariable("half", SPACE.half),
         composeVariable("small", SPACE.small),
+        composeVariable("region-down", SPACE.regionDown),
+        composeVariable("region-across", SPACE.regionAcross),
+        composeVariable("wide", SPACE.wide),
+        composeVariable("large", SPACE.large),
         composeVariable("row-height", SPACE.rowHeight),
         composeVariable("radius", SHAPE.radius),
         composeVariable("radius-small", SHAPE.radiusSmall),
@@ -367,95 +435,189 @@ function composeVariables(): string {
 }
 
 /**
- * The host and the three regions standing in it.
+ * The host, the bar over it and the panel under that.
  *
  * `all: initial` is the Guest Rule's own half: nothing the game's stylesheet says reaches in, and
- * because it resets `display` too, every region below states its own.
+ * because it resets `display` too, every region below states its own. The bar carries the top two
+ * corners and the panel the bottom two, so the two read as one window with a rule between them.
  *
- * The title bar is `space-between` over three things, so the version would land in the middle of
- * it. `margin-right:auto` on the version takes the free space instead, which is what keeps it
- * beside the name and the place against the far edge — and the place is the only one of the three
- * whose length this panel does not choose, so it is the only one that gives way.
+ * The top edge is a custom property rather than a length, because `all: initial` resets every
+ * property a page can set except a custom one — which is what lets a default declared here
+ * survive the line above it, and what the panel is moved by.
  */
 function composeFrameRules(): string {
     assert(PLACE.width.endsWith("px"), "the panel is as wide as it was told, in pixels");
     assert(CLASS.title.startsWith("MargoMeter-"), "a region is named as ours before it is styled");
+    const ceiling = `min(calc(100vh - var(${VARIABLE_PREFIX}panel-top) - ${PLACE.inset}),` +
+        `${SPACE.heightShareMaximum})`;
     return `:host{all:initial;${composeVariables()}` +
-        `position:fixed;top:${PLACE.inset};right:${PLACE.inset};width:${PLACE.width};` +
+        `${VARIABLE_PREFIX}panel-top:${PLACE.inset};` +
+        `position:fixed;top:var(${VARIABLE_PREFIX}panel-top);right:${PLACE.inset};` +
         `z-index:${PLACE.layer};display:flex;flex-direction:column;` +
-        `font-family:${FONT_STACK};font-size:${FONT_SIZE};` +
+        `max-height:${ceiling};}` +
+        `.${CLASS.title}{flex:none;display:flex;align-items:center;` +
+        `gap:var(${VARIABLE_PREFIX}small);` +
+        `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
+        `font:${FONT_SIZE}/1.2 ${FONT_STACK};letter-spacing:0.06em;` +
+        `color:var(${VARIABLE_PREFIX}quiet);` +
+        // One line, whatever the version number is. Everything on this bar is text, so without
+        // this the row reflows the moment its content stops fitting: 0.10.0 was one character
+        // wider than 0.9.0, which broke the name after the grip and split `{ }` between its
+        // braces, and every guard stayed green because none of them lays anything out.
+        `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
+        `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
+        `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
+        `box-sizing:border-box;width:${PLACE.width};}` +
+        `.${CLASS.titleVersion}{opacity:0.7;font-size:10px;}` +
+        `.${CLASS.control}{padding:0 var(${VARIABLE_PREFIX}small);` +
+        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius);` +
+        `color:var(${VARIABLE_PREFIX}quiet);background:var(${VARIABLE_PREFIX}surface);` +
+        `cursor:pointer;}` +
+        `.${CLASS.control}:hover{color:var(${VARIABLE_PREFIX}text);}` +
+        // The copy takes the free space, so the three that act on what is drawn stand together at
+        // the far edge and the shelf rides the gap the name leaves.
+        `.${CLASS.controlCopy}{margin-left:auto;}` +
+        `.${CLASS.controlFights}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
+        // Dimmed because it is not for the player: it hands over the raw material.
+        `.${CLASS.controlRaw}{opacity:0.55;}` +
+        `.${CLASS.controlRaw}:hover{opacity:1;}` +
+        // A flex item whose overflow is visible refuses to shrink below its own content, so
+        // without `min-height:0` the ceiling on the host stops here and never reaches the list.
+        `.${CLASS.frame}{display:flex;flex-direction:column;min-height:0;}` +
+        // Two classes in the selector, so the outcome does not depend on where the rule is
+        // written: a bare `.folded` ties with the region's own rule and loses on source order.
+        `.${CLASS.frame}.${CLASS.folded}{display:none;}` +
+        `.${CLASS.panel}{font:${FONT_SIZE}/1.35 ${FONT_STACK};width:${PLACE.width};` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
-        `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};` +
-        `max-height:${SPACE.heightShareMaximum};overflow:hidden;}` +
-        `.${CLASS.title}{display:flex;justify-content:space-between;align-items:center;` +
-        `gap:var(${VARIABLE_PREFIX}small);padding:var(${VARIABLE_PREFIX}small);` +
-        `background:var(${VARIABLE_PREFIX}raised);` +
-        `border-bottom:1px solid var(${VARIABLE_PREFIX}border);}` +
-        `.${CLASS.titleName}{font-weight:600;flex:none;}` +
-        `.${CLASS.titleVersion}{color:var(${VARIABLE_PREFIX}quiet);flex:none;` +
-        `margin-right:auto;}` +
-        `.${CLASS.place}{color:var(${VARIABLE_PREFIX}quiet);overflow:hidden;` +
-        `text-overflow:ellipsis;white-space:nowrap;}` +
-        `.${CLASS.control}{color:var(${VARIABLE_PREFIX}quiet);flex:none;cursor:pointer;` +
-        `padding:0 var(${VARIABLE_PREFIX}half);` +
-        `border-radius:var(${VARIABLE_PREFIX}radius-small);}` +
-        `.${CLASS.control}:hover{color:var(${VARIABLE_PREFIX}text);` +
-        `background:var(${VARIABLE_PREFIX}track);}` +
-        // Each region named, rather than `.folded` alone: a bare class ties with the region's own
-        // rule at one specificity apiece, and the region wins on source order. Photographed
-        // 2026-08-29 before the fix — a folded panel stood 49 pixels tall against the bar's 23.
-        `.${CLASS.tabs}.${CLASS.folded},.${CLASS.body}.${CLASS.folded},` +
-        `.${CLASS.summary}.${CLASS.folded}{display:none;}` +
-        // A column of strips, each one a row: three questions stacked, never three answers in
-        // one wrapping line where a reader cannot tell which strip a tab belongs to.
-        `.${CLASS.tabs}{display:flex;flex-direction:column;gap:var(${VARIABLE_PREFIX}half);` +
-        `padding:var(${VARIABLE_PREFIX}half) var(${VARIABLE_PREFIX}small);` +
-        `border-bottom:1px solid var(${VARIABLE_PREFIX}border);}` +
-        `.${CLASS.strip}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);}` +
-        `.${CLASS.body}{overflow-y:auto;padding:var(${VARIABLE_PREFIX}half) 0;}` +
-        `.${CLASS.summary}{display:flex;justify-content:space-between;align-items:center;` +
-        `gap:var(${VARIABLE_PREFIX}small);padding:0 var(${VARIABLE_PREFIX}small);` +
-        `height:var(${VARIABLE_PREFIX}row-height);` +
-        `background:var(${VARIABLE_PREFIX}raised);` +
-        `border-top:1px solid var(${VARIABLE_PREFIX}border);}` +
-        `.${CLASS.summaryName}{color:var(${VARIABLE_PREFIX}quiet);}` +
-        `.${CLASS.summaryFigure}{font-variant-numeric:tabular-nums;}`;
+        `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
+        `box-sizing:border-box;display:flex;flex-direction:column;min-height:0;}` +
+        // Only the list gives way. Every other region says the same thing at any height, so
+        // there is nothing to take off them; the list has a fold and a scrollbar and takes it all.
+        `.${CLASS.panel}>*{flex:none;}` +
+        `.${CLASS.panel}>.${CLASS.list}{flex:0 1 auto;}` +
+        `.${CLASS.slot}{display:none;}`;
 }
 
 /**
- * What sits inside the body. Every row is the same height, accent included: a row whose
- * background is taller than its neighbour reads as a different kind of row, and it is not one.
+ * The regions standing inside the panel: what the fight is, what a reader picks, and the list.
+ *
+ * The list's height is arithmetic rather than a number typed in — the rows it promises times what
+ * a row costs — so changing the type size cannot quietly break the promise. The count arrives as
+ * a custom property the draw writes.
+ */
+function composeRegionRules(): string {
+    assert(SPACE.regionDown.endsWith("px"), "a region is inset by a length, in pixels");
+    assert(CLASS.list.length > 0, "and the one region that scrolls is named");
+    const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
+    const rowCost = `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half))`;
+    return `.${CLASS.header}{display:block;padding:${region};padding-bottom:0;}` +
+        `.${CLASS.headerLine}{display:flex;justify-content:space-between;align-items:baseline;}` +
+        // A line of its own: beside the size and the outcome the place had about thirty
+        // characters of a 260px panel, and a map's name plus a tile runs half again that.
+        `.${CLASS.headerPlace}{color:var(${VARIABLE_PREFIX}quiet);font-size:10px;` +
+        `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
+        `.${CLASS.tabs}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
+        `padding:${region};padding-bottom:0;}` +
+        // Every strip after the first sits closer to it: they are one control, in rows.
+        `.${CLASS.tabs}+.${CLASS.tabs}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
+        `.${CLASS.tabsGap}{flex:1;}` +
+        `.${CLASS.tab}{white-space:nowrap;padding:1px var(${VARIABLE_PREFIX}small);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);color:var(${VARIABLE_PREFIX}quiet);` +
+        `background:transparent;cursor:pointer;}` +
+        `.${CLASS.tab}.${CLASS.tabCurrent}{color:var(${VARIABLE_PREFIX}text);` +
+        `background:var(${VARIABLE_PREFIX}raised);}` +
+        `.${CLASS.crumb}{display:flex;gap:var(${VARIABLE_PREFIX}wide);align-items:baseline;` +
+        `padding:${region};padding-bottom:0;}` +
+        `.${CLASS.crumbBack}{cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.crumbBack}:hover{color:var(${VARIABLE_PREFIX}text);}` +
+        `.${CLASS.crumbHere}{font-weight:600;overflow:hidden;text-overflow:ellipsis;` +
+        `white-space:nowrap;}` +
+        `.${CLASS.list}{padding:${region};` +
+        `padding-bottom:var(${VARIABLE_PREFIX}region-across);` +
+        `height:calc(var(${VARIABLE_PREFIX}rows,${ROWS_BY_DEFAULT}) * ${rowCost} + ` +
+        `var(${VARIABLE_PREFIX}large));overflow-y:auto;overflow-x:hidden;` +
+        // Reserved whether or not a scrollbar is showing: it appears and disappears between two
+        // payloads, and rows that jump sideways while somebody reads them are worse than a gutter.
+        `scrollbar-gutter:stable;overscroll-behavior:contain;scrollbar-width:thin;` +
+        `scrollbar-color:var(${VARIABLE_PREFIX}border) transparent;}` +
+        // It stays at the top edge while its own section scrolls, so a figure is never read under
+        // the wrong heading. The background and the layer are not decoration: a row's bar is
+        // positioned and comes later in the tree, so without both the bars paint over it.
+        `.${CLASS.section}{position:sticky;` +
+        `top:calc(0px - var(${VARIABLE_PREFIX}region-down));z-index:1;` +
+        `background:var(${VARIABLE_PREFIX}surface);display:flex;justify-content:space-between;` +
+        `color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;font-size:10px;` +
+        `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}half) ` +
+        `var(${VARIABLE_PREFIX}half);}` +
+        // The one list with nothing above the sentence, so the sentence is what the box is for.
+        `.${CLASS.listWaiting}{display:flex;align-items:center;justify-content:center;` +
+        `text-align:center;}` +
+        `.${CLASS.empty}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `padding:var(${VARIABLE_PREFIX}wide) var(${VARIABLE_PREFIX}half);}` +
+        `.${CLASS.undrawn}{color:var(${VARIABLE_PREFIX}quiet);font-style:italic;` +
+        `padding:var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.summary}{display:flex;justify-content:space-between;align-items:center;` +
+        `gap:var(${VARIABLE_PREFIX}small);padding:0 var(${VARIABLE_PREFIX}small);` +
+        `height:var(${VARIABLE_PREFIX}row-height);background:var(${VARIABLE_PREFIX}raised);` +
+        `border-top:1px solid var(${VARIABLE_PREFIX}border);}` +
+        `.${CLASS.summaryName}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.summaryFigure}{font-variant-numeric:tabular-nums;}` +
+        `.${CLASS.warning}{color:var(${VARIABLE_PREFIX}suspect);` +
+        `padding:0 var(${VARIABLE_PREFIX}small);}`;
+}
+
+/**
+ * What sits inside a list. Every row is the same height, bar included: a row whose background is
+ * taller than its neighbour reads as a different kind of row, and it is not one.
+ *
+ * The bar is an element behind the text rather than the row's own background, because the cap
+ * gives the hue back at full strength on the edge the bar starts from — the bar itself is tinted
+ * so the figures printed over it stay readable, which costs the colour the palette was chosen at.
  */
 function composeRowRules(): string {
     assert(SPACE.rowHeight.length > 0, "every row is drawn at one height");
     assert(SHAPE.radiusSmall.endsWith("px"), "what sits in a row is rounded in pixels");
-    return `.${CLASS.row},.${CLASS.pinned},.${CLASS.drillHead}{display:flex;` +
-        `justify-content:space-between;gap:var(${VARIABLE_PREFIX}small);align-items:center;` +
-        `height:var(${VARIABLE_PREFIX}row-height);` +
-        `padding:0 var(${VARIABLE_PREFIX}small);` +
+    const cap = `var(${VARIABLE_PREFIX}radius-small) 0 0 var(${VARIABLE_PREFIX}radius-small)`;
+    return `.${CLASS.row}{position:relative;display:flex;justify-content:space-between;` +
+        `align-items:center;height:var(${VARIABLE_PREFIX}row-height);` +
+        `padding:0 var(${VARIABLE_PREFIX}small);margin-bottom:var(${VARIABLE_PREFIX}half);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
-        `background-color:var(${VARIABLE_PREFIX}track);background-repeat:no-repeat;}` +
-        `.${CLASS.rowName}{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
-        `.${CLASS.rowFigure}{font-variant-numeric:tabular-nums;flex:none;}` +
-        `.${CLASS.pinned}{color:var(${VARIABLE_PREFIX}quiet);` +
-        `margin-top:var(${VARIABLE_PREFIX}half);}` +
-        `.${CLASS.drillHead}{background-color:var(${VARIABLE_PREFIX}raised);font-weight:600;}` +
-        `.${CLASS.section}{color:var(${VARIABLE_PREFIX}quiet);` +
-        `height:var(${VARIABLE_PREFIX}row-height);line-height:var(${VARIABLE_PREFIX}row-height);` +
-        `padding:0 var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.crumb}{color:var(${VARIABLE_PREFIX}quiet);cursor:pointer;` +
-        `height:var(${VARIABLE_PREFIX}row-height);line-height:var(${VARIABLE_PREFIX}row-height);` +
-        `padding:0 var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.tab}{cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);` +
-        `padding:0 var(${VARIABLE_PREFIX}small);` +
-        `border-radius:var(${VARIABLE_PREFIX}radius-small);}` +
-        `.${CLASS.tabCurrent}{color:var(${VARIABLE_PREFIX}text);` +
-        `background:var(${VARIABLE_PREFIX}raised);}` +
-        `.${CLASS.empty},.${CLASS.undrawn}{color:var(${VARIABLE_PREFIX}quiet);` +
-        `padding:var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.warning}{color:var(${VARIABLE_PREFIX}suspect);` +
-        `padding:0 var(${VARIABLE_PREFIX}small);}`;
+        `background:var(${VARIABLE_PREFIX}track);overflow:hidden;}` +
+        `.${CLASS.row}.${CLASS.rowDrillable}{cursor:pointer;}` +
+        `.${CLASS.row}.${CLASS.rowLeaf}{cursor:help;}` +
+        `.${CLASS.bar}{position:absolute;left:0;top:0;bottom:0;` +
+        `opacity:var(${VARIABLE_PREFIX}bar-tint);}` +
+        `.${CLASS.barCap}{position:absolute;left:0;top:0;bottom:0;width:3px;` +
+        `border-radius:${cap};}` +
+        `.${CLASS.rowRank},.${CLASS.rowName},.${CLASS.rowValue}{position:relative;}` +
+        `.${CLASS.rowRank}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `font-variant-numeric:tabular-nums;padding-right:var(${VARIABLE_PREFIX}small);}` +
+        // The profession as a letter, which is the channel that survives colour blindness: six
+        // professions cannot be made mutually distinguishable on this background, so it is the
+        // letter and not the hue that answers who is what.
+        `.${CLASS.rowBadge}{position:relative;flex:none;width:13px;height:13px;` +
+        `margin-right:var(${VARIABLE_PREFIX}small);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);font-size:9px;font-weight:700;` +
+        `line-height:13px;text-align:center;}` +
+        `.${CLASS.rowName}{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}` +
+        `.${CLASS.rowValue}{font-variant-numeric:tabular-nums;` +
+        `padding-left:var(${VARIABLE_PREFIX}wide);font-weight:600;}` +
+        `.${CLASS.rowShare}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `padding-left:var(${VARIABLE_PREFIX}small);font-weight:400;}` +
+        // The row that says something is missing is drawn as what it is: a dashed rule cuts it
+        // off the ranking above, and the bar is hatched rather than solid, because it is not a
+        // combatant and must not look like one at a glance. The gutter is the list's own, so a
+        // bar outside the list is drawn the same length as a bar inside it.
+        `.${CLASS.pinned}{margin:var(${VARIABLE_PREFIX}small) ` +
+        `var(${VARIABLE_PREFIX}region-across) 0;padding:var(${VARIABLE_PREFIX}small) 0 ` +
+        `var(${VARIABLE_PREFIX}region-across);` +
+        `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;` +
+        `scrollbar-gutter:stable;scrollbar-width:thin;}` +
+        `.${CLASS.pinned} .${CLASS.bar}{opacity:0.4;mask-image:repeating-linear-gradient(` +
+        `-45deg,var(${VARIABLE_PREFIX}mask) 0 4px,transparent 4px 8px);}` +
+        `.${CLASS.pinned} .${CLASS.barCap}{opacity:0.7;}`;
 }
 
 /**
@@ -502,22 +664,9 @@ function composeTipRules(): string {
  * a shadow root takes one `<style>` and this panel has one look.
  */
 export function composeStyleSheet(): string {
-    const sheet = `${composeFrameRules()}${composeRowRules()}${composeTipRules()}`;
+    const sheet = `${composeFrameRules()}${composeRegionRules()}${composeRowRules()}` +
+        `${composeTipRules()}`;
     assert(sheet.startsWith(":host{all:initial;"), "the sheet shuts the game out before anything");
     assert(!sheet.includes("}}"), "and closes each rule once");
     return sheet;
-}
-
-/**
- * A row's share, drawn as the row's own background rather than as an element inside it, so the
- * row's height cannot disagree with the accent's. The colour stops where the share does.
- */
-export function composeShareBackground(colour: string, share: number): string {
-    assert(colour.length > 0, "a bar is drawn in a colour");
-    assert(share >= 0, "a share is never below nothing");
-    assert(share <= 1, "and never more than the whole");
-    const percent = share * SHARE_AS_PERCENT;
-    const stop = `${percent}%`;
-    assert(stop.endsWith("%"), "a stop is written as a share of the row");
-    return `linear-gradient(to right, ${colour} ${stop}, transparent ${stop})`;
 }

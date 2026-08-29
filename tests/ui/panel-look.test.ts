@@ -9,7 +9,6 @@ import { assert, assertEquals } from "@std/assert";
 import {
     CLASS,
     composeBarColour,
-    composeShareBackground,
     composeStyleSheet,
     getColourForElement,
     getColourForProfession,
@@ -148,22 +147,6 @@ Deno.test("the sheet shuts the game out, and every class it selects is one the p
     assert(opened > 1, "and the sheet holds more than the host's own rule");
 });
 
-Deno.test("a folded region loses to nothing, because its rule names the region", () => {
-    const sheet = composeStyleSheet();
-    // The bug this catches was photographed rather than reasoned: `.folded` on its own ties with
-    // each region's own rule at one class apiece, and the region wins on source order, so a
-    // folded panel stood 49 pixels tall against the bar's 23. Two classes in the selector is
-    // what makes the outcome independent of where the rule is written.
-    for (const region of [CLASS.tabs, CLASS.body, CLASS.summary]) {
-        assert(
-            sheet.includes(`.${region}.${CLASS.folded}`),
-            `${region} folds by a selector that outranks its own rule`,
-        );
-    }
-    assert(!sheet.includes(`;}.${CLASS.folded}{`), "and never by the bare class, which would tie");
-    assert(sheet.includes("display:none"), "what a folded region does is stop being drawn");
-});
-
 Deno.test("a value is written once, and every rule spends it by name", () => {
     const sheet = composeStyleSheet();
     // A value stated twice is the bug this catches, wherever the second one sits: the host's own
@@ -179,13 +162,16 @@ Deno.test("a value is written once, and every rule spends it by name", () => {
     assert(sheet.split("var(--MargoMeter-").length > 10, "and reaches by name many times over");
 });
 
-Deno.test("a bar is the row's own background, and it stops where the share does", () => {
-    const whole = composeShareBackground(PALETTE_COLOURS[0] ?? "", 1);
-    assert(whole.includes("100%"), "a whole share runs the width of the row");
-    const none = composeShareBackground(PALETTE_COLOURS[0] ?? "", 0);
-    assert(none.includes("0%"), "and nothing measured draws nothing, which is not unknown");
-    const half = composeShareBackground(PALETTE_COLOURS[0] ?? "", 0.5);
-    assert(half.includes("50%"), "a half share stops halfway");
-    assert(half.startsWith("linear-gradient("), "the bar is the background, not an element in it");
-    assertEquals(half.split("transparent").length, 2, "and the row behind it shows past the stop");
+Deno.test("a folded panel is drawn by the one region the fold hides", () => {
+    const sheet = composeStyleSheet();
+    // The bug this catches was photographed rather than reasoned: a bare `.folded` ties with the
+    // region's own rule at one class apiece, and the region wins on source order, so a folded
+    // panel stood 49 pixels tall against the bar's 23. Two classes in the selector is what makes
+    // the outcome independent of where the rule is written.
+    assert(
+        sheet.includes(`.${CLASS.frame}.${CLASS.folded}`),
+        "the frame folds by a selector that outranks its own rule",
+    );
+    assert(!sheet.includes(`;}.${CLASS.folded}{`), "and never by the bare class, which would tie");
+    assert(sheet.includes("display:none"), "what a folded region does is stop being drawn");
 });

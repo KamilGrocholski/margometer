@@ -83,6 +83,19 @@ export function composeIntegerText(value: number): string {
     return text;
 }
 
+/**
+ * A number written to a fixed number of places, for a declaration a browser is handed as text.
+ *
+ * Through a writer rather than through interpolation: a share of a tenth comes out as
+ * `10.000000000000002` in template text, and a value that is not a number at all reaches the
+ * declaration as `NaN` with nothing marked.
+ */
+export function composeDecimalText(value: number, places: number): string {
+    assert(Number.isFinite(value), "a number written back is a number");
+    assert(Number.isSafeInteger(places), "and is written to a whole number of places");
+    return value.toFixed(places);
+}
+
 export function composeHealthPercentText(value: number): string {
     assert(Number.isFinite(value), "a percentage written back is a number");
     assert(value >= 0, "a percentage written back is never below nothing");

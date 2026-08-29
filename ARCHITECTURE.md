@@ -65,7 +65,7 @@ src/
     panel-element.ts     The panel drawn into a document it is handed, region by region.
     panel-look.ts        The panel's tokens, the classes its rules select, and the stylesheet.
     panel-reading.ts     One screen's worth of a fight, and one row's worth of a screen.
-    panel-screen.ts      Which screen the panel is on, and the strip that says so.
+    panel-screen.ts      Which screen the panel is on, and the strips that say so.
     panel-tip.ts         The detail a row opens on hover, and the register it is looked up in.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
 tools/             Never ships. Each arrives with the question it answers.
@@ -311,17 +311,20 @@ commit that opens or closes one.
 1. **The add-on reads a fight, draws it, and keeps it.** Every key in `captures/` is read, the panel
    switches screens, pressing a row opens the figure cut twice — by whom each blow reached and by
    the kind of damage it carried — a finished fight goes on a shelf the reader can look back at, the
-   bar and every row on that shelf say where the fight was fought, a ranking row wears its
-   profession and carries its share as a bar, hovering a row opens the detail window that says in
-   full what the row had to cut, the bar says which build drew it and the host carries the same
-   number for a screenshot to be read by, the panel folds to that bar and comes back folded, a press
-   on `{ }` hands the reader the fight as a recording in the shape intake reads, the panel carries
+   header and every row on that shelf say where the fight was fought, a ranking row wears its place,
+   its profession's badge and a bar measured against the biggest figure on screen, hovering a row
+   opens the detail window that says in full what the row had to cut, the bar says which build drew
+   it and the host carries the same number for a screenshot to be read by, the panel folds to that
+   bar and comes back folded, a press on `{ }` hands the reader the fight as a recording in the
+   shape intake reads, a press on the copy control hands them the figures as text, the panel carries
    the stylesheet `DESIGN.md` specifies and the strip that always states the screen's own total, and
    `deno task build` writes the file they install, `deno task preview` writes a page that runs it
    against the recordings, and `deno task intake` redacts a recording and admits it to `captures/`.
-   What is not written: **the last of the title bar's three controls**, which is v1's
-   copy-the-report at `git show develop:src/ui/panel-element.ts`; and the rest of the tools and the
-   release plumbing — `README.md`, `CHANGELOG.md` and the workflows.
+   What is not written: **the panel is not draggable**, and `DESIGN.md`'s header says nothing about
+   how a fight went, no summary of the two sides stands under the list, and no warning sentence is
+   drawn — those wait on figures `core/` does not yet hold. The rest of the tools and the release
+   plumbing — `README.md`, `CHANGELOG.md` and the workflows — are unwritten.
+
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

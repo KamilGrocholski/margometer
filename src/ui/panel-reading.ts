@@ -15,15 +15,23 @@ import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { CombatantFigures, FightStatistics, FigureCut } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
 import { type PanelSideChoice, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
+import { composeShareTexts } from "@/src/ui/panel-words.ts";
 
 /** A fight holds twenty, and a list draws a row for each. */
 const MAXIMUM_ROWS = 20;
+/**
+ * The ranking's height, in bars. Ten is the most one side fields and eleven the most a whole
+ * fight does, measured over `captures/`, where a group fight is ten of ours against one. A bigger
+ * fight scrolls rather than growing the window: a ranking is watched while a fight is on, and a
+ * height that changed as combatants joined would move it under the reader's hand.
+ */
+const RANKING_ROWS = 11;
+const SIDE_ROWS = 10;
 
 /** Which figure a screen is showing. Each names a field the statistics already state. */
 export type PanelMetric =
     | "damageDealtApplied"
     | "damageTakenApplied"
-    | "damagePrevented"
     | "healthGiven"
     | "healthRestored";
 
@@ -32,11 +40,28 @@ export interface PanelRow {
     /** Null where the roster could not say, which the panel draws as unknown rather than blank. */
     name: string | null;
     side: number | null;
-    /** The game's own one-letter code, or null where it stated none. The bar is drawn from it. */
+    /** The game's own one-letter code, or null where it stated none. The badge is drawn from it. */
     profession: string | null;
     figure: number;
-    /** The row against the fight's total. Zero where the fight has no figure of that kind. */
-    share: number;
+    /**
+     * How much of the row the bar covers: this figure against the biggest one on screen, never
+     * against the whole. A bar measured against the whole leaves the top row a stub on a screen
+     * ten people share, which is the length a reader compares rows by.
+     */
+    fill: number;
+    /** The share of the whole the screen divides by, apportioned once across every figure on it. */
+    shareText: string;
+}
+
+/** Which end of a blow the protocol left out, on the row standing for what it could not place. */
+export type PanelUnnamedEnd = "actor" | "target";
+
+/** A figure belonging to nobody: on no row above, so it joins the whole and stands apart. */
+export interface PinnedRow {
+    end: PanelUnnamedEnd;
+    figure: number;
+    fill: number;
+    shareText: string;
 }
 
 /** One fight already fought, as much of it as a shelf row shows. */
@@ -49,13 +74,17 @@ export interface ShelfRow {
 
 export interface PanelReading {
     rows: PanelRow[];
+    /** The fight as a headcount, the reader's own side first, and who could be placed on none. */
+    sizes: number[];
+    unplaced: number;
     /** The figure the rows are shares of: the fight's own, or the listed side's where one is. */
     total: number;
-    /** What the log tied to no actor — damage nobody dealt, health nobody is credited with. */
-    withoutActor: number;
-    withoutTarget: number;
+    /** What the log tied to no actor, and to no target: on no row, so each is a row of its own. */
+    pinned: PinnedRow[];
     /** Something feeding **this screen's** figure went unread or unplaced, so it may be short. */
     isSuspect: boolean;
+    /** How many bars the list stands at, so opening a row cannot shorten the window. */
+    visibleRows: number;
 }
 
 function getFigure(figures: CombatantFigures, metric: PanelMetric): number {
@@ -105,8 +134,17 @@ function getIsRowListed(
     return side !== readerSide;
 }
 
+/** A row before it knows what the rest of the screen holds: no bar, and no share yet. */
+interface UnsharedRow {
+    combatantId: number;
+    name: string | null;
+    side: number | null;
+    profession: string | null;
+    figure: number;
+}
+
 /** By figure, then by id, so a fight redrawn without changing states the same order. */
-function compareRows(one: PanelRow, other: PanelRow): number {
+function compareRows(one: UnsharedRow, other: UnsharedRow): number {
     assert(Number.isFinite(one.figure), "a row compared states a figure");
     if (one.figure !== other.figure) return other.figure - one.figure;
     return one.combatantId - other.combatantId;
@@ -117,10 +155,10 @@ function composeUnsharedRows(
     statistics: FightStatistics,
     roster: CombatantRoster,
     metric: PanelMetric,
-): PanelRow[] {
+): UnsharedRow[] {
     assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
     assert(roster.byId.size <= MAXIMUM_ROWS, "and so does the roster it is fought by");
-    const rows: PanelRow[] = [];
+    const rows: UnsharedRow[] = [];
     const seen = new Set<number>();
     for (const [combatantId, figures] of statistics.byCombatantId) {
         seen.add(combatantId);
@@ -130,7 +168,6 @@ function composeUnsharedRows(
             name: held?.name ?? null,
             side: held?.side ?? null,
             profession: held?.profession ?? null,
-            share: 0,
             figure: getFigure(figures, metric),
         });
     }
@@ -142,7 +179,6 @@ function composeUnsharedRows(
             side: combatant.side,
             profession: combatant.profession,
             figure: 0,
-            share: 0,
         });
     }
     assert(rows.length >= roster.byId.size, "every combatant the roster holds gets a row");
@@ -157,7 +193,7 @@ function composeUnsharedRows(
  */
 function getListedTotal(
     statistics: FightStatistics,
-    rows: readonly PanelRow[],
+    rows: readonly UnsharedRow[],
     metric: PanelMetric,
     choice: PanelSideChoice,
 ): number {
@@ -176,16 +212,72 @@ function getListedTotal(
  * Shown only where everybody is listed. It belongs to nobody, so it belongs to no side either,
  * and putting it inside one side's total would be claiming a side the log never stated.
  */
-function getFigureWithoutEnd(
-    stated: number,
-    isThisScreen: boolean,
+function composePinnedFigures(
+    statistics: FightStatistics,
+    metric: PanelMetric,
     choice: PanelSideChoice,
-): number {
-    assert(stated >= 0, "a figure nobody can be charged with is never below nothing");
-    assert(SIDE_CHOICES.includes(choice), "and a choice a reader could have made");
-    if (!isThisScreen) return 0;
-    if (choice !== "everyone") return 0;
-    return stated;
+): Array<{ end: PanelUnnamedEnd; figure: number }> {
+    assert(SIDE_CHOICES.includes(choice), "a figure is pinned for a choice a reader could make");
+    assert(statistics.dealtByNobody >= 0, "and one that is never below nothing");
+    if (choice !== "everyone") return [];
+    const found: Array<{ end: PanelUnnamedEnd; figure: number }> = [];
+    if (metric === "damageDealtApplied" && statistics.dealtByNobody > 0) {
+        found.push({ end: "actor", figure: statistics.dealtByNobody });
+    }
+    if (metric === "healthGiven" && statistics.givenByNobody > 0) {
+        found.push({ end: "actor", figure: statistics.givenByNobody });
+    }
+    if (metric === "damageTakenApplied" && statistics.takenByNobody > 0) {
+        found.push({ end: "target", figure: statistics.takenByNobody });
+    }
+    return found;
+}
+
+/** The bar every row on a screen is drawn against, pinned rows included. */
+function getLargestFigure(figures: readonly number[]): number {
+    assert(figures.length >= 0, "a screen states the figures it draws, however few");
+    let largest = 0;
+    for (const figure of figures) {
+        if (figure > largest) largest = figure;
+    }
+    assert(largest >= 0, "the biggest figure on a screen is never below nothing");
+    return largest;
+}
+
+function getFill(figure: number, largest: number): number {
+    assert(figure >= 0, "a bar is drawn for a figure that is not below nothing");
+    assert(largest >= 0, "and against a screen whose biggest figure is not either");
+    if (largest <= 0) return 0;
+    return figure / largest;
+}
+
+/**
+ * The fight as a headcount, and it counts the people the list draws rather than the ones the
+ * statistics measured: the two are the same list only once everybody has acted, so a header
+ * reading off the other set says `2 vs 1` over eleven rows for the opening payloads of a group
+ * fight. Sides in the order the panel puts them in everywhere: the reader's own first.
+ */
+function composeHeadcount(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    readerSide: number | null,
+): { sizes: number[]; unplaced: number } {
+    const countBySide = new Map<number, number>();
+    let unplaced = 0;
+    const everybody = new Set<number>([...statistics.byCombatantId.keys(), ...roster.byId.keys()]);
+    assert(everybody.size <= MAXIMUM_ROWS, "a fight stays inside the headcount it is bounded to");
+    for (const combatantId of everybody) {
+        const side = roster.byId.get(combatantId)?.side ?? null;
+        if (side === null) unplaced += 1;
+        else countBySide.set(side, (countBySide.get(side) ?? 0) + 1);
+    }
+    const sides = [...countBySide].sort(([one], [other]) => {
+        if (readerSide === one) return -1;
+        if (readerSide === other) return 1;
+        return one - other;
+    });
+    assert(unplaced >= 0, "a headcount of people on no side is never below nothing");
+    return { sizes: sides.map(([, count]) => count), unplaced };
 }
 
 export function composePanelReading(
@@ -199,33 +291,34 @@ export function composePanelReading(
     const listed = composeUnsharedRows(statistics, roster, metric).filter((row) =>
         getIsRowListed(row.side, choice, readerSide)
     );
+    listed.sort(compareRows);
     const total = getListedTotal(statistics, listed, metric, choice);
-    const rows = listed.map((row) => ({
+    const pinned = composePinnedFigures(statistics, metric, choice);
+    // A pinned figure is on no row above it, so it joins the whole the screen divides by.
+    const whole = pinned.reduce((sum, one) => sum + one.figure, total);
+    const figures = [...listed.map((row) => row.figure), ...pinned.map((one) => one.figure)];
+    const shares = composeShareTexts(figures, whole);
+    const largest = getLargestFigure(figures);
+    const rows = listed.map((row, at) => ({
         ...row,
-        share: total === 0 ? 0 : row.figure / total,
+        fill: getFill(row.figure, largest),
+        shareText: shares[at] ?? "",
     }));
-    rows.sort(compareRows);
     assert(rows.length <= MAXIMUM_ROWS, "a list stays inside the fight's stated bound");
-    assert(
-        rows.every((one) => one.share <= 1),
-        "a row is never more than the whole it is drawn in",
-    );
+    assert(rows.every((one) => one.shareText.length > 0), "and every row states a share");
     const isEveryone = choice === "everyone" || readerSide === null;
     assert(!isEveryone || rows.length >= roster.byId.size, "everybody listed is everybody drawn");
     return {
         rows,
+        ...composeHeadcount(statistics, roster, readerSide),
         total,
-        withoutActor: getFigureWithoutEnd(
-            metric === "healthGiven" ? statistics.givenByNobody : statistics.dealtByNobody,
-            metric === "damageDealtApplied" || metric === "healthGiven",
-            choice,
-        ),
-        withoutTarget: getFigureWithoutEnd(
-            statistics.takenByNobody,
-            metric === "damageTakenApplied",
-            choice,
-        ),
+        pinned: pinned.map((one, at) => ({
+            ...one,
+            fill: getFill(one.figure, largest),
+            shareText: shares[listed.length + at] ?? "",
+        })),
         isSuspect: getIsScreenSuspect(statistics, metric),
+        visibleRows: choice === "everyone" ? RANKING_ROWS : SIDE_ROWS,
     };
 }
 
@@ -234,24 +327,36 @@ export interface ElementRow {
     /** The client's own token. What a reader is shown for it is the panel's, not the reading's. */
     element: string;
     figure: number;
-    share: number;
+    fill: number;
+    shareText: string;
+}
+
+/** As much of an opened figure as the protocol stated no end or no kind for. */
+export interface UnnamedRow {
+    figure: number;
+    fill: number;
+    shareText: string;
+}
+
+/** One cut of an opened figure: its rows and its unnamed part come to the figure it cut. */
+export interface OpponentCut {
+    rows: PanelRow[];
+    unnamed: UnnamedRow | null;
+}
+
+export interface ElementCut {
+    rows: ElementRow[];
+    unnamed: UnnamedRow | null;
 }
 
 /** What pressing a row opens: one combatant's own figure, cut twice — by whom, and by what. */
 export interface DrillReading {
     combatantId: number;
     name: string | null;
-    byOpponent: PanelRow[];
-    byElement: ElementRow[];
-    /** As much of the figure as no kind was stated for. Never guessed at, and never spread. */
-    withoutElement: number;
+    profession: string | null;
+    byOpponent: OpponentCut;
+    byElement: ElementCut;
     total: number;
-}
-
-/** The cut by kind, and what fell outside every kind in it. */
-interface ElementCut {
-    rows: ElementRow[];
-    withoutElement: number;
 }
 
 interface MetricCuts {
@@ -279,7 +384,10 @@ function getCutsForMetric(figures: CombatantFigures, metric: PanelMetric): Metri
 }
 
 /** By figure, then by the token, so a cut redrawn without changing states the same order. */
-function compareElementRows(one: ElementRow, other: ElementRow): number {
+function compareElementRows(one: { element: string; figure: number }, other: {
+    element: string;
+    figure: number;
+}): number {
     assert(one.element.length > 0, "a kind compared is a kind the protocol named");
     if (one.figure !== other.figure) return other.figure - one.figure;
     return one.element < other.element ? -1 : 1;
@@ -295,17 +403,80 @@ function compareElementRows(one: ElementRow, other: ElementRow): number {
  */
 function composeElementCut(cut: FigureCut, total: number): ElementCut {
     assert(total >= 0, "a figure being cut is never below nothing");
-    const rows: ElementRow[] = [];
-    let stated = 0;
+    const stated: Array<{ element: string; figure: number }> = [];
+    let held = 0;
     for (const [element, figure] of cut) {
         assert(figure >= 0, "a part of a figure is never below nothing");
-        stated += figure;
-        rows.push({ element, figure, share: total === 0 ? 0 : figure / total });
+        held += figure;
+        stated.push({ element, figure });
     }
-    rows.sort(compareElementRows);
-    assert(stated <= total, "the kinds a figure was dealt in come to no more than that figure");
-    assert(rows.every((one) => one.share <= 1), "and no kind of it is more than the whole");
-    return { rows, withoutElement: total - stated };
+    stated.sort(compareElementRows);
+    assert(held <= total, "the kinds a figure was dealt in come to no more than that figure");
+    const unnamed = total - held;
+    const figures = unnamed > 0 ? [...stated.map((one) => one.figure), unnamed] : stated.map((
+        one,
+    ) => one.figure);
+    const shares = composeShareTexts(figures, total);
+    const largest = getLargestFigure(figures);
+    return {
+        rows: stated.map((one, at) => ({
+            ...one,
+            fill: getFill(one.figure, largest),
+            shareText: shares[at] ?? "",
+        })),
+        unnamed: unnamed > 0
+            ? {
+                figure: unnamed,
+                fill: getFill(unnamed, largest),
+                shareText: shares[stated.length] ?? "",
+            }
+            : null,
+    };
+}
+
+/** The other end of each blow, and as much of the figure as the protocol named nobody for. */
+function composeOpponentCut(
+    cut: FigureCut,
+    roster: CombatantRoster,
+    total: number,
+): OpponentCut {
+    assert(total >= 0, "a figure being cut is never below nothing");
+    const stated: UnsharedRow[] = [];
+    let held = 0;
+    for (const [named, figure] of cut) {
+        const other = getIntegerFromText(named);
+        if (other === null) continue;
+        held += figure;
+        const combatant = roster.byId.get(other);
+        stated.push({
+            combatantId: other,
+            name: combatant?.name ?? null,
+            side: combatant?.side ?? null,
+            profession: combatant?.profession ?? null,
+            figure,
+        });
+    }
+    stated.sort(compareRows);
+    assert(held <= total, "the ends a figure reached come to no more than that figure");
+    const unnamed = total - held;
+    const figures = stated.map((one) => one.figure);
+    if (unnamed > 0) figures.push(unnamed);
+    const shares = composeShareTexts(figures, total);
+    const largest = getLargestFigure(figures);
+    return {
+        rows: stated.map((row, at) => ({
+            ...row,
+            fill: getFill(row.figure, largest),
+            shareText: shares[at] ?? "",
+        })),
+        unnamed: unnamed > 0
+            ? {
+                figure: unnamed,
+                fill: getFill(unnamed, largest),
+                shareText: shares[stated.length] ?? "",
+            }
+            : null,
+    };
 }
 
 /**
@@ -323,34 +494,17 @@ export function composeDrillReading(
     const cuts = getCutsForMetric(figures, metric);
     if (cuts === null) return null;
     const total = getFigure(figures, metric);
-    const byOpponent: PanelRow[] = [];
-    for (const [stated, figure] of cuts.byOpponent) {
-        const other = getIntegerFromText(stated);
-        if (other === null) continue;
-        const held = roster.byId.get(other);
-        byOpponent.push({
-            combatantId: other,
-            name: held?.name ?? null,
-            side: held?.side ?? null,
-            profession: held?.profession ?? null,
-            figure,
-            share: total === 0 ? 0 : figure / total,
-        });
-    }
-    byOpponent.sort(compareRows);
-    assert(
-        byOpponent.length <= statistics.byCombatantId.size,
-        "a row opens onto the people in the fight",
-    );
-    assert(byOpponent.every((one) => one.share <= 1), "and no part of a row is more than the row");
+    const held = roster.byId.get(combatantId);
+    const byOpponent = composeOpponentCut(cuts.byOpponent, roster, total);
     const byElement = composeElementCut(cuts.byElement, total);
-    assert(byElement.withoutElement >= 0, "a part no kind was stated for is not below nothing");
+    assert(byOpponent.rows.length <= MAXIMUM_ROWS, "an opened row stays inside the fight's bound");
+    assert(byElement.rows.every((one) => one.figure >= 0), "and no kind of it is below nothing");
     return {
         combatantId,
-        name: roster.byId.get(combatantId)?.name ?? null,
+        name: held?.name ?? null,
+        profession: held?.profession ?? null,
         byOpponent,
-        byElement: byElement.rows,
-        withoutElement: byElement.withoutElement,
+        byElement,
         total,
     };
 }

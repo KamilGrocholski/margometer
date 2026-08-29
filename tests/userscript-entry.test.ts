@@ -14,6 +14,7 @@ import type { BrowserStore } from "@/src/game/browser-store.ts";
 import { readKeptFights } from "@/src/game/kept-fights.ts";
 import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
 import type { PanelElement } from "@/src/ui/panel-element.ts";
+import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 import type { Scheduler } from "@/src/game/engine-attachment.ts";
 import {
     composeFakeDocument,
@@ -93,10 +94,18 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
     assertEquals(shown.length, 1, "one panel on the page, however many calls arrived");
 
     const panel = shown[0] as FakeElement;
-    const rows = getElementsWithin(panel).filter((one) => one.className === "row");
+    // Inside the list: what stands below it is the row for a figure nobody can be charged with,
+    // which is a row of the same shape and not one of the fight's combatants.
+    const list = getElementsWithin(panel).find((one) => one.className === "list");
+    assert(list !== undefined, "the panel drew its list");
+    const rows = getElementsWithin(list).filter((one) => one.className.split(" ")[0] === "row");
     assertEquals(rows.length, 11, "the fight's eleven combatants, each with a row");
+    // The panel spaces its thousands, so what a reader adds up is read back without the spaces.
     const figures = rows.map((row) =>
-        Number(row.children.find((one) => one.className === "row-figure")?.textContent)
+        Number(
+            (row.children.find((one) => one.className === "row-value")?.textContent ?? "")
+                .split(" ").join(""),
+        )
     );
     assert(figures[0] !== undefined && figures[0] > 0, "the largest figure is drawn first");
     const names = rows.map((row) =>
@@ -124,7 +133,7 @@ Deno.test("a reader presses a screen and the panel goes there, and nowhere else"
 
     const current = () =>
         getElementsWithin(host)
-            .find((one) => one.className.includes("tab-current"))
+            .find((one) => one.className.includes("selected"))
             ?.attributes.get("data-screen");
     assertEquals(current(), "damageDealtApplied", "the panel opens on what the reader did");
 
@@ -179,7 +188,8 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
     const host = first.shown[0] as FakeElement;
 
     const control = () => getElementsWithin(host).find((one) => one.attributes.has("data-fold"));
-    const rows = () => getElementsWithin(host).filter((one) => one.className === "row").length;
+    const rows = () =>
+        getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row").length;
     assert(rows() > 0, "the panel opens drawing the fight");
     assertEquals(first.held.get("MargoMeter-folded"), undefined, "and nothing is stored yet");
 
@@ -199,7 +209,7 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
     for (const payload of getRecordedEngineUpdates(HILDUR)) next(payload);
     const reopened = second.shown[0] as FakeElement;
     assertEquals(
-        getElementsWithin(reopened).filter((one) => one.className === "row").length,
+        getElementsWithin(reopened).filter((one) => one.className.split(" ")[0] === "row").length,
         0,
         "and the panel comes back folded, because that is what the reader left it",
     );
@@ -208,7 +218,8 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
     assert(unfolding !== undefined, "the bar still carries its control");
     pressElement(reopened, "pointerdown", unfolding);
     assert(
-        getElementsWithin(reopened).filter((one) => one.className === "row").length > 0,
+        getElementsWithin(reopened).filter((one) => one.className.split(" ")[0] === "row").length >
+            0,
         "which brings the fight back",
     );
     assertEquals(second.held.get("MargoMeter-folded"), "", "and stores the unfolding too");
@@ -308,7 +319,7 @@ Deno.test("the shelf has a screen of its own, and its control toggles", () => {
     // A block body on purpose: the recursion guard reads a one-line named arrow as a function
     // whose body never closes, and then sees every later call to it as a call to itself.
     const rows = (): FakeElement[] => {
-        return getElementsWithin(host).filter((one) => one.className === "row");
+        return getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row");
     };
     const figures = rows().length;
     assert(figures > 1, "the panel is on the figures, with a row for each of them");
@@ -396,11 +407,15 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
         return getElementsWithin(host).find((one) => one.className === className);
     };
     const rows = () => {
-        return getElementsWithin(host).filter((one) => one.className === "row").length;
+        const list = getRegion("list");
+        if (list === undefined) return 0;
+        return getElementsWithin(list).filter((one) => one.className.split(" ")[0] === "row")
+            .length;
     };
     const rowsThatOpen = () => {
         return getElementsWithin(host).filter((one) => {
-            return one.className === "row" && one.attributes.get("data-row") !== undefined;
+            if (one.className.split(" ")[0] !== "row") return false;
+            return one.attributes.get("data-row") !== undefined;
         }).length;
     };
     const before = rows();
@@ -411,13 +426,13 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     assert(name !== undefined, "and a reader presses the name inside one");
     pressElement(host, "pointerdown", name);
     assert(getRegion("crumb") !== undefined, "which opens that row over the screen");
-    assert(getRegion("drill-head") !== undefined, "saying whose row it is");
+    assert(getRegion("crumb-here") !== undefined, "saying whose row it is");
     // Never a row count: an opened row is cut twice, and the two cuts together can come to more
     // rows than the screen it stands over. What tells them apart is that a cut opens no further.
     assert(rows() > 0, "and drawing the parts of one figure rather than the whole screen");
     assertEquals(rowsThatOpen(), 0, "none of which opens any further");
 
-    const crumb = getRegion("crumb");
+    const crumb = getRegion("crumb-back");
     assert(crumb !== undefined, "the way back is there");
     pressElement(host, "pointerdown", crumb);
     assertEquals(getRegion("crumb"), undefined, "and pressing it closes the row");
@@ -475,7 +490,11 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
     assert(typeof update === "function", "the wrap went on");
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
-    assertEquals(getTextsByClass(host, "place"), ["Mapa Testowa (12, 34)"], "the bar says where");
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        ["Mapa Testowa (12, 34)"],
+        "the bar says where",
+    );
 
     // The fight this recording holds ends, so the shelf has a row to say it of.
     const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
@@ -483,9 +502,9 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
     pressElement(host, "pointerdown", tab);
     // Inside the row, not anywhere on the panel: the bar says the same words over the shelf, so
     // a test that asks the whole panel passes with the row saying nothing.
-    const row = getElementsWithin(host).find((one) => one.className === "row");
+    const row = getElementsWithin(host).find((one) => one.className.split(" ")[0] === "row");
     assert(row !== undefined, "the shelf drew the fight that ended");
-    assertEquals(getTextsByClass(row, "place"), [
+    assertEquals(getTextsByClass(row, "header-place"), [
         "Mapa Testowa (12, 34)",
     ], "and the row kept on the shelf says where it was fought");
 });
@@ -498,7 +517,11 @@ Deno.test("a client that says nothing about the place leaves the bar saying noth
     assert(typeof update === "function", "the wrap went on");
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
-    assertEquals(getTextsByClass(host, "place"), [], "nothing known is drawn as nothing at all");
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        [],
+        "nothing known is drawn as nothing at all",
+    );
 });
 
 Deno.test("a second fight is asked where it is, not told where the one before it was", () => {
@@ -512,12 +535,47 @@ Deno.test("a second fight is asked where it is, not told where the one before it
     const updates = getRecordedEngineUpdates(HILDUR);
     for (const payload of updates) update(payload);
     const host = shown[0] as FakeElement;
-    assertEquals(getTextsByClass(host, "place"), ["Mapa Testowa (12, 34)"], "the first fight");
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        ["Mapa Testowa (12, 34)"],
+        "the first fight",
+    );
 
     // Between the fights the hero walked, which is the only thing that moves a place. The
     // recording opens with the payload that opens a fight, so playing it again is a second one.
     hero.x = 7;
     hero.y = 8;
     for (const payload of updates) update(payload);
-    assertEquals(getTextsByClass(host, "place"), ["Mapa Testowa (7, 8)"], "and the second, asked");
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        ["Mapa Testowa (7, 8)"],
+        "and the second, asked",
+    );
+});
+
+Deno.test("a panel goes up when the reading starts, saying there has been no fight yet", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    // Before any payload: the wrap is on, so the panel is on the page. A page that draws nothing
+    // until a fight arrives cannot be told from an add-on that died on the way to it.
+    assertEquals(shown.length, 1, "one panel, put up the moment the reading started");
+    const host = shown[0] as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "empty"),
+        [PANEL_WORDS.noFightYet],
+        "saying what it is waiting for, in the reader's words",
+    );
+    assertEquals(getElementsWithin(host).filter((one) => one.className === "tabs"), [], "no tabs");
+
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap left a function behind it");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    assertEquals(shown.length, 1, "the same panel is still the one on the page");
+    const list = getElementsWithin(host).find((one) => one.className === "list");
+    assert(list !== undefined, "which now draws the fight");
+    assert(
+        getElementsWithin(list).some((one) => one.className.split(" ")[0] === "row"),
+        "with a row for somebody in it, rather than the sentence it opened on",
+    );
 });

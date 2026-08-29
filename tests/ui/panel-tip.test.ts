@@ -20,7 +20,7 @@ import { composeFakeDocument, type FakeElement, getTextsByClass } from "@/tests/
 const HILDUR: TipReading = {
     name: "Hildur Muza Śmierci",
     figure: { caption: "Obrażenia zadane", value: 354258 },
-    share: { caption: "Udział w walce", value: 0.516 },
+    share: { caption: "Udział w walce", text: "52%" },
 };
 
 Deno.test("a row is looked up by the name it stated, and by no other", () => {
@@ -47,14 +47,14 @@ Deno.test("the detail says the name in full, and the share the row never printed
         ["Obrażenia zadane", "Udział w walce"],
         "each figure under what it is",
     );
-    assertEquals(getTextsByClass(tip, CLASS.tipValue), ["354258", "51,6%"], "in Polish spelling");
+    assertEquals(getTextsByClass(tip, CLASS.tipValue), ["354 258", "52%"], "in Polish spelling");
     assertEquals(tip.className, CLASS.tip, "and a detail with something to say is not hidden");
 });
 
 Deno.test("a row with no share draws two lines, and one with nothing to say draws none", () => {
     const document = composeFakeDocument();
     const pinned = composeTipElement(document, { ...HILDUR, share: null }) as FakeElement;
-    assertEquals(getTextsByClass(pinned, CLASS.tipValue), ["354258"], "the figure alone");
+    assertEquals(getTextsByClass(pinned, CLASS.tipValue), ["354 258"], "the figure alone");
     assertEquals(getTextsByClass(pinned, CLASS.tipLabel), ["Obrażenia zadane"], "under its own");
     const bare = composeTipElement(document, { ...HILDUR, figure: null, share: null });
     assertEquals(getTextsByClass(bare as FakeElement, CLASS.tipName), [HILDUR.name], "a name");
@@ -127,7 +127,7 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
     handle.refresh();
     const later = shown.replacedBy;
     assert(later !== null, "a redraw puts the same row's detail up again");
-    assertEquals(getTextsByClass(later, CLASS.tipValue), ["400000", "51,6%"], "with the new one");
+    assertEquals(getTextsByClass(later, CLASS.tipValue), ["400 000", "52%"], "with the new one");
 
     register.reset();
     handle.refresh();

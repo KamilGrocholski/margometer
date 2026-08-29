@@ -92,16 +92,13 @@ Deno.test("crossing between the nouns keeps the direction, or says there is none
     assertEquals(fromDealt?.name, "healthGiven", "damage given crosses to healing given");
     const fromTaken = composeNounTabs("damageTakenApplied").find((one) => !one.isCurrent);
     assertEquals(fromTaken?.name, "healthRestored", "and damage taken to healing received");
-    // Healing has no prevented half, so there is nothing to keep and the first is the answer.
-    const fromPrevented = composeNounTabs("damagePrevented").find((one) => !one.isCurrent);
-    assertEquals(fromPrevented?.name, "healthGiven", "what a defence stopped crosses to the first");
     const back = composeNounTabs("healthGiven").find((one) => !one.isCurrent);
     assertEquals(back?.name, "damageDealtApplied", "and the crossing goes back the way it came");
 });
 
 Deno.test("the direction strip draws the noun's own screens and nobody else's", () => {
     const damage = composeDirectionTabs("damageDealtApplied").map((one) => one.name);
-    assertEquals(damage.length, 3, "damage is read three ways round");
+    assertEquals(damage, ["damageDealtApplied", "damageTakenApplied"], "damage both ways round");
     const healing = composeDirectionTabs("healthRestored").map((one) => one.name);
     assertEquals(healing, ["healthGiven", "healthRestored"], "and healing two");
     for (const name of healing) assert(!damage.includes(name), "and no screen is on both strips");

@@ -12,7 +12,7 @@
 import { assert } from "@std/assert";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { CLASS } from "@/src/ui/panel-look.ts";
-import { composeShareText } from "@/src/ui/panel-words.ts";
+import { composeFigureText } from "@/src/ui/panel-words.ts";
 
 /** One row's detail. A line with nothing to say is absent rather than blank. */
 export interface TipReading {
@@ -20,8 +20,11 @@ export interface TipReading {
     name: string;
     /** Null on a row whose subject is not a figure. The caption says what the figure is of. */
     figure: { caption: string; value: number } | null;
-    /** Null where the row carries no share. The caption names what it is a share **of**. */
-    share: { caption: string; value: number } | null;
+    /**
+     * Null where the row carries no share. The caption names what it is a share **of**, and the
+     * share arrives as text because a screen apportions every one of its shares together.
+     */
+    share: { caption: string; text: string } | null;
 }
 
 /**
@@ -102,16 +105,12 @@ export function composeTipElement(
     tip.append(name);
     if (reading.figure !== null) {
         assert(reading.figure.value >= 0, "a figure in the detail is never below nothing");
-        const stated = `${reading.figure.value}`;
+        const stated = composeFigureText(reading.figure.value);
         tip.append(composeTipLine(document, reading.figure.caption, stated));
     }
     if (reading.share !== null) {
-        assert(reading.share.value <= 1, "a share in the detail is never more than the whole");
-        tip.append(composeTipLine(
-            document,
-            reading.share.caption,
-            composeShareText(reading.share.value),
-        ));
+        assert(reading.share.text.length > 0, "a share in the detail says what it is");
+        tip.append(composeTipLine(document, reading.share.caption, reading.share.text));
     }
     return tip;
 }

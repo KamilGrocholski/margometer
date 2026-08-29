@@ -10,6 +10,7 @@
  */
 
 import { assert } from "@std/assert";
+import { composeIntegerText } from "@/src/core/protocol-number.ts";
 import type { PanelMetric } from "@/src/ui/panel-reading.ts";
 import type { PanelNoun, PanelSideChoice } from "@/src/ui/panel-screen.ts";
 
@@ -26,20 +27,26 @@ export const PANEL_WORDS = {
     withoutActor: "Nieznany sprawca",
     withoutTarget: "Nieznany cel",
     unknown: "Nie wiadomo",
-    nothingYet: "Jeszcze nic się nie wydarzyło",
+    nothingYet: "Nikogo tu jeszcze nie ma.",
+    /** Before a fight reaches the panel, which is not a fight with nothing in it yet. */
+    noFightYet: "Nie było jeszcze walki.",
+    /** Where a fight states no side at all, in place of the headcount the header usually draws. */
+    noSides: "brak składu",
     fights: "Walki",
     openFights: "Pokaż albo schowaj zapisane walki",
-    back: "Wróć",
+    /** What a crumb goes back to: the list of everybody, which the game calls the roster. */
+    back: "skład",
     shelfEmpty: "Nie ma jeszcze zapisanych walk",
     fightOver: "Walka skończona",
     suspect: "Ta liczba może być zaniżona",
-    undrawn: "Tego nie udało się narysować",
-    dealtTo: "Komu",
-    takenFrom: "Od kogo",
-    damageKind: "Typ obrażeń",
+    dealtTo: "KOMU",
+    takenFrom: "OD KOGO",
+    damageKind: "TYP OBRAŻEŃ",
     withoutKind: "Bez podanego typu",
+    /** What a region says in place of itself, so a failure is the size of the thing that failed. */
+    undrawn: "nie dało się narysować",
     combatants: "Postacie",
-    shareOfFight: "Udział w walce",
+    share: "Udział w walce",
     shareOfFigure: "Udział w tej liczbie",
     collapse: "Zwiń okno",
     expand: "Rozwiń okno",
@@ -62,7 +69,6 @@ const NOUN_WORDS: Record<PanelNoun, string> = {
 const DIRECTION_WORDS: Record<PanelMetric, string> = {
     damageDealtApplied: "zadane",
     damageTakenApplied: "otrzymane",
-    damagePrevented: "zatrzymane",
     healthGiven: "dane",
     healthRestored: "otrzymane",
 };
@@ -150,22 +156,186 @@ export function composeCountedNoun(count: number, noun: CountedNoun): string {
     return `${count} ${noun.many}`;
 }
 
-/** One decimal, which is what separates two people at the top of a ranking without noise. */
-const SHARE_DECIMALS = 1;
-const DECIMAL_POINT = ".";
-/** Polish writes a decimal with a comma, which is a fact about the language and not about us. */
-const DECIMAL_COMMA = ",";
+/** The sign is taken off first and put back last, so a lone minus never joins its digits. */
+const MINUS_SIGN = "-";
+const THOUSAND_DIGITS = 3;
+const THOUSAND_SEPARATOR = " ";
+/** A safe integer is sixteen digits, so five groups is past every figure the protocol states. */
+const MAXIMUM_THOUSAND_GROUPS = 5;
+
+/** What each region of the panel is called, for the one sentence that names a region. */
+export const REGION_WORDS = {
+    header: "nagłówka",
+    tabs: "zakładek",
+    crumb: "ścieżki",
+    list: "listy",
+    pinned: "wiersza",
+    summary: "podsumowania",
+} as const;
+
+export type PanelRegion = keyof typeof REGION_WORDS;
+
+/** A region that could not be drawn says so where it stands, at the size of what failed. */
+export function composeUndrawnText(region: PanelRegion): string {
+    const words = REGION_WORDS[region];
+    assert(words.length > 0, "a region that could not be drawn is a region with a name");
+    assert(PANEL_WORDS.undrawn.length > 0, "and the sentence saying so says something");
+    return `Nie udało się narysować ${words}.`;
+}
 
 /**
- * A share, in the reader's own spelling. Zero comes out as `0,0%` rather than blank: zero
- * happened and measured nothing, and that is not what unknown looks like.
+ * The fight as a headcount. The people the roster could not place are counted apart rather than
+ * added to a side, because which side they are on is exactly what nobody knows.
+ */
+export function composeSideCountsText(sizes: readonly number[], unplaced: number): string {
+    assert(unplaced >= 0, "a headcount of people on no side is never below nothing");
+    assert(sizes.every((one) => one > 0), "and a side that is counted has somebody on it");
+    if (sizes.length === 0) return PANEL_WORDS.noSides;
+    const counted = sizes.map((count) => composeFigureText(count)).join(" vs ");
+    if (unplaced === 0) return counted;
+    return `${counted} +${composeFigureText(unplaced)}`;
+}
+
+/** Thousands spaced, which is how the game itself writes a figure this size. */
+export function composeFigureText(value: number): string {
+    assert(Number.isFinite(value), "a figure a reader is shown is a number");
+    const rounded = Math.round(value);
+    assert(Number.isSafeInteger(rounded), "and one the panel writes out exactly");
+    const digits = composeIntegerText(rounded);
+    const sign = digits.startsWith(MINUS_SIGN) ? MINUS_SIGN : "";
+    const body = digits.slice(sign.length);
+    let spaced = "";
+    let start = body.length;
+    for (let group = 0; group < MAXIMUM_THOUSAND_GROUPS; group += 1) {
+        if (start <= THOUSAND_DIGITS) break;
+        const from = start - THOUSAND_DIGITS;
+        spaced = `${THOUSAND_SEPARATOR}${body.slice(from, start)}${spaced}`;
+        start = from;
+    }
+    assert(start <= THOUSAND_DIGITS, "every group of three past the first stands apart");
+    return `${sign}${body.slice(0, start)}${spaced}`;
+}
+
+/** What a share too small to round to a point says instead of the figure zero measures. */
+const SHARE_FLOOR = "<1%";
+/** More shares than any screen draws rows: twenty combatants, sixty-four kinds, and the pinned. */
+const MAXIMUM_SHARES = 128;
+
+/**
+ * A share in whole points, with the floor spent where it is owed. A figure under half a point
+ * rounds to `0%`, and on a panel that keeps zero and unknown apart that is a third thing neither
+ * of them means: something happened, and it was too small to round to. Over `captures/` on
+ * 2026-08-29, across the four screens and the three side choices, 55 rows print this floor — and
+ * without it every one of them would read `0%` beside a figure that is not one.
+ */
+function composeSharePointsText(points: number, isPresent: boolean): string {
+    assert(Number.isSafeInteger(points), "a share in points is a whole number of them");
+    assert(points >= 0, "and never below nothing");
+    if (points === 0 && isPresent) return SHARE_FLOOR;
+    return `${composeIntegerText(points)}%`;
+}
+
+/** One share on its way to whole points: what it holds outright, and the fraction discarded. */
+interface ShareInPoints {
+    index: number;
+    amount: number;
+    points: number;
+    remainder: number;
+}
+
+function composeSharesInPoints(amounts: readonly number[], whole: number): ShareInPoints[] {
+    assert(whole > 0, "a share is taken of a whole that is something");
+    assert(amounts.length <= MAXIMUM_SHARES, "and no more of them than a screen draws");
+    return amounts.map((amount, index) => {
+        const exact = (amount / whole) * HUNDRED;
+        const points = Math.floor(exact);
+        return { index, amount, points, remainder: exact - points };
+    });
+}
+
+/** Every member holds the same figure, so any of them says what the group is ordered by. */
+function getShareGroupHead(group: readonly ShareInPoints[]): ShareInPoints {
+    const first = group[0];
+    assert(first !== undefined, "a group that was formed has a member");
+    assert(first.remainder > 0, "and a fraction somebody could be paid for");
+    return first;
+}
+
+/**
+ * Equal figures take a point together or not at all: the plain method hands the last point to one
+ * row of a tie, and two identical numbers with different shares beside them read as a panel that
+ * cannot add up. So a group of equal figures is one candidate costing as many points as it has
+ * members, and where the points left will not cover it a smaller remainder is paid instead. Over
+ * `captures/` on 2026-08-29 that is 12 groups of equal figures across the four screens and the
+ * three side choices, and no two of a figure print different shares.
+ */
+function composeShareGroups(shares: readonly ShareInPoints[]): ShareInPoints[][] {
+    const byAmount = new Map<number, ShareInPoints[]>();
+    for (const share of shares) {
+        // A share with nothing discarded is a whole number of points already.
+        if (share.remainder <= 0) continue;
+        const held = byAmount.get(share.amount);
+        if (held === undefined) byAmount.set(share.amount, [share]);
+        else held.push(share);
+    }
+    const groups = [...byAmount.values()];
+    assert(groups.length <= shares.length, "a group holds at least the share that formed it");
+    groups.sort((one, other) => {
+        const first = getShareGroupHead(one);
+        const second = getShareGroupHead(other);
+        if (first.remainder !== second.remainder) return second.remainder - first.remainder;
+        return first.index - second.index;
+    });
+    assert(groups.every((group) => group.length > 0), "and no group is drawn up empty");
+    return groups;
+}
+
+/**
+ * Every share of one whole, written so what the reader adds up comes to what the panel says it is
+ * a share of. Rounding each on its own loses up to half a point per row in the same direction: of
+ * the 312 screens drawing a figure over `captures/` on 2026-08-29, 106 would print a set that did
+ * not add to a hundred, and all 312 do under the apportionment here. The largest remainder decides
+ * who takes the points that are left; a second decimal place does not close it, because `33,3%`
+ * three times adds to `99,9%` and the column still does not sum.
+ */
+export function composeShareTexts(amounts: readonly number[], whole: number): string[] {
+    assert(whole >= 0, "a whole a share is taken of is never below nothing");
+    assert(amounts.length <= MAXIMUM_SHARES, "and a screen asks for no more shares than it draws");
+    if (whole <= 0) return amounts.map(() => composeSharePointsText(0, false));
+    const shares = composeSharesInPoints(amounts, whole);
+    const held = shares.reduce((sum, one) => sum + one.points, 0);
+    const exact = shares.reduce((sum, one) => sum + one.points + one.remainder, 0);
+    let left = Math.round(exact) - held;
+    const unpaid: ShareInPoints[][] = [];
+    for (const group of composeShareGroups(shares)) {
+        if (group.length > left) {
+            unpaid.push(group);
+            continue;
+        }
+        for (const share of group) share.points += 1;
+        left -= group.length;
+    }
+    // Where nothing but a group too big to pay for is left, the column adding up wins over the
+    // evenness and the group is split, earliest row first.
+    for (const group of unpaid) {
+        for (const share of group) {
+            if (left <= 0) break;
+            share.points += 1;
+            left -= 1;
+        }
+    }
+    assert(left >= 0, "no more points are handed out than were left to hand out");
+    return shares.map((one) => composeSharePointsText(one.points, one.amount > 0));
+}
+
+/**
+ * A share on its own, for the one figure that stands outside a set. Whole points like every other
+ * share on the screen, so a row and the strip under it never spell one number two ways.
  */
 export function composeShareText(share: number): string {
     assert(share >= 0, "a share is never below nothing");
     assert(share <= 1, "and never more than the whole");
-    const percent = (share * HUNDRED).toFixed(SHARE_DECIMALS);
-    assert(percent.includes(DECIMAL_POINT), "a share is written to a fixed number of places");
-    return `${percent.replace(DECIMAL_POINT, DECIMAL_COMMA)}%`;
+    return composeSharePointsText(Math.round(share * HUNDRED), share > 0);
 }
 
 /**

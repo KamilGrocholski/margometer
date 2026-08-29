@@ -19,13 +19,23 @@ interface Told {
     others: number;
     refusals: number;
     abandoned: number;
+    /** How many times the wrap going on was reported, which is what puts a panel on the page. */
+    attached: number;
 }
 
 function composeReport(): { report: AttachmentReport; told: Told } {
-    const told: Told = { payloads: [], failures: [], others: 0, refusals: 0, abandoned: 0 };
+    const told: Told = {
+        payloads: [],
+        failures: [],
+        others: 0,
+        refusals: 0,
+        abandoned: 0,
+        attached: 0,
+    };
     return {
         told,
         report: {
+            handleAttached: () => told.attached += 1,
             handleBeforeCall: () => {},
             handlePayload: (payload: unknown) => told.payloads.push(payload),
             handleFailure: (failure) => told.failures.push(failure),
@@ -66,6 +76,10 @@ Deno.test("a game already on the page is wrapped at the first look", () => {
     const original = battle.updateData;
     const attachment = attachToGame({ Engine: { battle } }, schedule, report);
     assert(attachment.isAttached(), "the wrap went on without waiting for a clock");
+    // Said once and before any payload: it is what puts a panel on the page, so a reader can
+    // tell an add-on waiting for a fight from one that died on the way here.
+    assertEquals(told.attached, 1, "and the caller was told the reading had started");
+    assertEquals(told.payloads, [], "before anything had been read");
     const wrapped = battle.updateData;
     assert(typeof wrapped === "function", "and left a function behind it");
     wrapped({ m: [] });

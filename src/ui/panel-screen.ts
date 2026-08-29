@@ -23,7 +23,6 @@ import {
 export const SCREEN_ORDER: readonly PanelMetric[] = [
     "damageDealtApplied",
     "damageTakenApplied",
-    "damagePrevented",
     "healthGiven",
     "healthRestored",
 ];
@@ -31,11 +30,7 @@ export const SCREEN_ORDER: readonly PanelMetric[] = [
 const PANEL_NOUNS = ["damage", "healing"] as const;
 export type PanelNoun = (typeof PANEL_NOUNS)[number];
 
-/**
- * What a defence stopped is a direction of damage and not a noun of its own: it is the same blows
- * the other two directions count, read at the end where they did not land.
- */
-const PANEL_DIRECTIONS = ["given", "received", "prevented"] as const;
+const PANEL_DIRECTIONS = ["given", "received"] as const;
 export type PanelDirection = (typeof PANEL_DIRECTIONS)[number];
 
 /**
@@ -45,7 +40,6 @@ export type PanelDirection = (typeof PANEL_DIRECTIONS)[number];
 const SCREEN_AXES: Record<PanelMetric, { noun: PanelNoun; direction: PanelDirection }> = {
     damageDealtApplied: { noun: "damage", direction: "given" },
     damageTakenApplied: { noun: "damage", direction: "received" },
-    damagePrevented: { noun: "damage", direction: "prevented" },
     healthGiven: { noun: "healing", direction: "given" },
     healthRestored: { noun: "healing", direction: "received" },
 };
@@ -64,7 +58,6 @@ export type PanelSideChoice = (typeof SIDE_CHOICES)[number];
 const OPPONENT_WORDS: Record<PanelMetric, string | null> = {
     damageDealtApplied: PANEL_WORDS.dealtTo,
     damageTakenApplied: PANEL_WORDS.takenFrom,
-    damagePrevented: null,
     healthGiven: null,
     healthRestored: null,
 };

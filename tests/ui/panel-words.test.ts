@@ -10,8 +10,10 @@
 import { assert, assertEquals, AssertionError, assertThrows } from "@std/assert";
 import {
     composeCountedNoun,
+    composeFigureText,
     composePlaceWords,
     composeShareText,
+    composeShareTexts,
     COUNTED_NOUNS,
     PANEL_WORDS,
 } from "@/src/ui/panel-words.ts";
@@ -108,11 +110,59 @@ Deno.test("a place is said with as much of it as was known, and nothing where no
     assertEquals(composePlaceWords("Mapa", 0, 0), "Mapa (0, 0)", "the corner of a map is a tile");
 });
 
-Deno.test("a share is spelled the way Polish spells one, and zero is a reading", () => {
-    assertEquals(composeShareText(0.516), "51,6%", "a comma, because that is the decimal here");
-    assertEquals(composeShareText(0), "0,0%", "zero happened and measured nothing");
-    assertEquals(composeShareText(1), "100,0%", "and the whole of a fight is the whole of it");
-    assertEquals(composeShareText(0.0004), "0,0%", "a share too small to print is not blank");
+Deno.test("a share is spelled in whole points, and a figure too small to round says so", () => {
+    assertEquals(composeShareText(0.516), "52%", "whole points, the way every row prints one");
+    assertEquals(composeShareText(0), "0%", "zero happened and measured nothing");
+    assertEquals(composeShareText(1), "100%", "and the whole of a fight is the whole of it");
+    // The floor and the measurement stand apart: one says too small to print, the other says none.
+    assertEquals(composeShareText(0.0004), "<1%", "a share too small to print is not zero");
     assertThrows(() => composeShareText(1.5), AssertionError, "more than the whole");
     assertThrows(() => composeShareText(-1), AssertionError, "below nothing");
+});
+
+Deno.test("a figure is spaced the way the game spaces one, from three digits up", () => {
+    assertEquals(composeFigureText(0), "0", "zero is one digit and stays one");
+    assertEquals(composeFigureText(999), "999", "three digits are a group already");
+    assertEquals(composeFigureText(1000), "1 000", "and the fourth is what opens a gap");
+    assertEquals(composeFigureText(141710), "141 710", "the figure the panel was photographed on");
+    assertEquals(composeFigureText(1234567), "1 234 567", "two gaps, at every third digit");
+    assertEquals(composeFigureText(-1000), "-1 000", "a sign never joins the digits behind it");
+    assertEquals(composeFigureText(1000.4), "1 000", "a figure is drawn as a whole number");
+});
+
+/** What the reader adds up, as the reader adds it up: the points, without the sign. */
+function getPointsFromShares(texts: readonly string[]): number {
+    let total = 0;
+    for (const text of texts) {
+        if (text === "<1%") continue;
+        total += Number(text.slice(0, text.length - 1));
+    }
+    assert(Number.isFinite(total), "a column of shares adds to a number");
+    return total;
+}
+
+Deno.test("a set of shares adds to the whole it is a share of", () => {
+    // Rounded a row at a time these print 33%, 33% and 33%, which is a column that does not sum.
+    const thirds = composeShareTexts([1, 1, 1], 3);
+    assertEquals(getPointsFromShares(thirds), 100, "the points left over are handed out");
+    assertEquals(composeShareTexts([1, 0], 1), ["100%", "0%"], "a figure of nothing takes none");
+    assertEquals(composeShareTexts([1, 1], 0), ["0%", "0%"], "a whole of nothing states no share");
+    // A whole holding a figure the screen does not draw: the shares are right to add to less.
+    assertEquals(getPointsFromShares(composeShareTexts([1, 1], 4)), 50, "half a whole is half");
+});
+
+Deno.test("two of a figure print one share, and the column still adds up", () => {
+    // The three equal figures hold the largest discarded fraction and there are only two points
+    // to hand out, so the group is passed over and two smaller remainders are paid instead. Row
+    // by row the first two of the three would take a point each and print 6% beside 5%.
+    const tie = composeShareTexts([1, 1, 1, 2, 13], 18);
+    assertEquals(tie, ["5%", "5%", "5%", "12%", "73%"], "equal figures print equal shares");
+    assertEquals(getPointsFromShares(tie), 100, "and the column still comes to the whole");
+    // A group that fits is paid whole: two points left, two members, both take one.
+    assertEquals(composeShareTexts([1, 1, 4], 6), ["17%", "17%", "66%"], "a group that fits");
+    // Three equal thirds: the group of three cannot be paid out of the one point left, so the
+    // column adding up wins over the evenness and the earliest row takes it.
+    const split = composeShareTexts([1, 1, 1], 3);
+    assertEquals(getPointsFromShares(split), 100, "a tie is split where nothing else can pay");
+    assertEquals(split, ["34%", "33%", "33%"], "earliest row first, so nothing flickers");
 });
