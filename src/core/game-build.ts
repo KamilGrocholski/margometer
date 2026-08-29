@@ -39,11 +39,18 @@ function getEndOfAlphanumerics(text: string, from: number): number {
     return at;
 }
 
+/** Where the name starts, and where the id inside it does, so both readers walk once. */
+interface ScriptNameSpan {
+    nameStart: number;
+    buildStart: number;
+    buildEnd: number;
+}
+
 /**
  * `main.min<build>.js` or `main.min.<build>.js`, null for anything else. A `main.min` whose tail
  * does not hold is not the end of the search: a page states this name more than once.
  */
-export function getGameBuildFromScriptName(text: string): string | null {
+function getScriptNameSpan(text: string): ScriptNameSpan | null {
     let from = 0;
     for (let look = 0; look < MAXIMUM_LOOKS; look += 1) {
         const head = text.indexOf(SCRIPT_NAME_HEAD, from);
@@ -55,8 +62,31 @@ export function getGameBuildFromScriptName(text: string): string | null {
         if (buildEnd - buildStart < LEAST_BUILD_CHARACTERS) continue;
         if (!text.startsWith(SCRIPT_NAME_TAIL, buildEnd)) continue;
         assert(buildEnd > buildStart, "an id that was found says something");
-        return text.slice(buildStart, buildEnd);
+        assert(head < buildStart, "a name starts before the id inside it");
+        return { nameStart: head, buildStart, buildEnd };
     }
     assert(MAXIMUM_LOOKS > 0, "the walk was given something to look at");
     return null;
+}
+
+export function getGameBuildFromScriptName(text: string): string | null {
+    const span = getScriptNameSpan(text);
+    if (span === null) return null;
+    assert(span.buildEnd > span.buildStart, "an id that was found says something");
+    assert(span.buildStart >= span.nameStart, "the id sits inside its own name");
+    return text.slice(span.buildStart, span.buildEnd);
+}
+
+/**
+ * The whole `main.min.53XkBRxF.js`, for a caller that has to **ask** for the file rather than
+ * date it. Composing the name from the id asks for one that is not there: read 2026-08-25, the
+ * separator before the id is the client's to choose and it has changed once.
+ */
+export function getGameBundleNameFromScriptName(text: string): string | null {
+    const span = getScriptNameSpan(text);
+    if (span === null) return null;
+    const end = span.buildEnd + SCRIPT_NAME_TAIL.length;
+    assert(end > span.nameStart, "a name that was found says something");
+    assert(end <= text.length, "and ends inside the text it was read from");
+    return text.slice(span.nameStart, end);
 }

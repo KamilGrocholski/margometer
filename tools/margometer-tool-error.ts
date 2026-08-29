@@ -7,7 +7,10 @@ export type MargoMeterToolErrorCode =
     | "UserscriptBuild"
     | "PreviewBuild"
     | "CaptureIntake"
-    | "PanelShot";
+    | "PanelShot"
+    | "GameSource"
+    | "ProtocolKeyTable"
+    | "HelpArticle";
 
 export abstract class MargoMeterToolError extends Error {
     readonly code: MargoMeterToolErrorCode;
@@ -50,5 +53,26 @@ export class CaptureIntakeError extends MargoMeterToolError {
 export class PanelShotError extends MargoMeterToolError {
     constructor(reason: string) {
         super("PanelShot", reason);
+    }
+}
+
+/** The client refused: a page naming no build, a bundle unserved, or a manifest with no date. */
+export class GameSourceError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super("GameSource", reason, options);
+    }
+}
+
+/** The key table refused: a bundle the walks no longer recognise as the client's own switch. */
+export class ProtocolKeyTableError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("ProtocolKeyTable", reason);
+    }
+}
+
+/** The help refused: an article id that is not one, an unfetched dump, or an undated manifest. */
+export class HelpArticleError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super("HelpArticle", reason, options);
     }
 }

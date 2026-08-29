@@ -15,7 +15,13 @@
         // `src/` is not in a commit, which is `DESIGN.md`'s rule and not this file's.
         "screenshots": "deno run -A tools/panel-screenshots.ts",
         // How a recording the add-on wrote becomes material: two redactions, then a file.
-        "intake": "deno run -A tools/capture-intake.ts"
+        "intake": "deno run -A tools/capture-intake.ts",
+        // The client fetched and dated, so a claim about it can name the build it was read on.
+        "client": "deno run -A tools/game-client-source.ts",
+        // Every key the client branches on, lifted out of that bundle and frozen beside it.
+        "keys": "deno run -A tools/protocol-key-table.ts",
+        // The published help, cached and searched, and the counts a register claim is held to.
+        "help": "deno run -A tools/help-article.ts"
     },
     "fmt": {
         // 4 spaces, hard limit of 100 columns, nothing hidden by a scrollbar.
@@ -28,8 +34,8 @@
             // Evidence. Formatting a recording is editing it.
             "captures/",
             // Written by tooling, including their headers. Regenerating is how they change.
-            "tests/frozen-protocol-keys.ts",
-            "tests/frozen-help-phrases.ts",
+            "frozen/protocol-keys.ts",
+            "frozen/help-phrases.ts",
             // The maintainer's list. `.claude/settings.json` denies the three tools that edit a
             // file, and a formatter is not one of them — it rewrote this file once, which is
             // exactly the trap AGENTS.md warns about: the wall is narrower than the rule.

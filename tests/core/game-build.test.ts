@@ -7,7 +7,10 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
+import {
+    getGameBuildFromScriptName,
+    getGameBundleNameFromScriptName,
+} from "@/src/core/game-build.ts";
 
 Deno.test("both names the client has served give up their build", () => {
     assertEquals(
@@ -32,6 +35,22 @@ Deno.test("a name that is not the bundle's yields nothing at all", () => {
         null,
         "nor the same id under a tail this reader does not answer to",
     );
+});
+
+Deno.test("the file name comes back whole, separator and all", () => {
+    // Composing `main.min` + the id + `.js` is what asks a world for a file it does not serve:
+    // the dot in front of `53XkBRxF` belongs to the name and to no id this reader answers with.
+    assertEquals(
+        getGameBundleNameFromScriptName("/js/main.min.53XkBRxF.js"),
+        "main.min.53XkBRxF.js",
+        "the newer name keeps the separator the id does not carry",
+    );
+    assertEquals(
+        getGameBundleNameFromScriptName("/js/main.min1786514810315.js"),
+        "main.min1786514810315.js",
+        "and the older one has none to keep",
+    );
+    assertEquals(getGameBundleNameFromScriptName("/js/main.min.js"), null, "no id, no name");
 });
 
 Deno.test("the search goes past a name whose tail does not hold", () => {

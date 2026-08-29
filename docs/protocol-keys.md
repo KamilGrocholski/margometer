@@ -5,8 +5,8 @@ key: some are already settled, and some were investigated and deliberately left 
 
 Each entry carries a **verdict** and its **evidence** — a measurement over the captured fights, a
 citation from the game client with the build it was read on, or the game's published help with the
-date it was read (`bun tools/help-article.ts`). A verdict without evidence is a guess someone will
-later mistake for a fact.
+date it was read (`deno task help`). A verdict without evidence is a guess someone will later
+mistake for a fact.
 
 The help is the only source that says what an effect _does_, so it is the only one that can settle a
 _meaning_. It settles nothing else: the `*Health:*` line below is a measurement or it is absent, and
@@ -60,9 +60,9 @@ telling us:
 **The line states an occurrence; the prose states what it means.** `names` claims only that the
 article carries the phrase — whether it _documents_ the key is a paragraph a person has to read, and
 three entries here occur in the article without being documented by it. Every phrase is re-counted
-against `tests/frozen-help-phrases.ts`, which `bun tools/help-article.ts freeze` writes from the
-cached dump. Counts only: the help's own sentences never enter this repository, and a count is our
-measurement of the article rather than a piece of it (NOTICE.md).
+against `frozen/help-phrases.ts`, which `deno task help freeze` writes from the cached dump, by
+`tests/repository/protocol-keys.test.ts`. Counts only: the help's own sentences never enter this
+repository, and a count is our measurement of the article rather than a piece of it (NOTICE.md).
 
 **An entry citing the help must carry the line.** Not every entry — a key nobody has asked the help
 about says nothing, and silence is the honest answer there.
@@ -331,11 +331,11 @@ _Evidence:_ as above. Before it was read, the first disagreement it caused was
 `-10000249=76.05;0;poison=563`. That nobody can be named for it rests on two sources rather than on
 the message: the client's key list carries no `+poison` beside `poison` the way it carries `+injure`
 beside `injure` (production builds `1786514810315` and `53XkBRxF`, whose lists are identical key for
-key; `tests/frozen-protocol-keys.ts` holds the later one), and the help's table of damage over time
-— article `view,372` (read 2026-08-19) — puts poison among the types a fresh application does
-**not** overwrite, deep wound being the other: a later hit extends what is already ticking and only
-the highest figure counts, so even an announcement would not say whose tick this is. Its source is
-given there as weapons and skills that apply poison, and a weapon doing it is stated nowhere in the
+key; `frozen/protocol-keys.ts` holds the later one), and the help's table of damage over time —
+article `view,372` (read 2026-08-19) — puts poison among the types a fresh application does **not**
+overwrite, deep wound being the other: a later hit extends what is already ticking and only the
+highest figure counts, so even an announcement would not say whose tick this is. Its source is given
+there as weapons and skills that apply poison, and a weapon doing it is stated nowhere in the
 protocol.
 
 ### `fire` — decoded
@@ -370,7 +370,7 @@ captures settle that: all 12 occurrences sit on one combatant in
 `2026-08-15-tempest-grupa-vs-draugr-1`, against a pool of 184 680, and before it was read the
 witness disagreed on every one of them and on nothing else. Reading it closed all 12 first try. That
 the type is overwritten rather than extended is the same article's table of damage over time (read
-2026-08-19), and the absence of `+fire` from the client's list is `tests/frozen-protocol-keys.ts`,
+2026-08-19), and the absence of `+fire` from the client's list is `frozen/protocol-keys.ts`,
 re-earned by `tests/core/protocol-key-register.test.ts`.
 
 ⚠️ **`frost` shares that branch in the client and is not read.** No capture carries one, so an entry
@@ -414,7 +414,7 @@ the witness disagreed 195 times, on that combatant and on nothing else in the co
 victim, the recording's single opponent — and the witness judges that fight and agrees. Reading it
 closed every one first try and introduced no disagreement anywhere
 (`tests/core/health-witness.test.ts`). The absence of `+light` from the client's list is
-`tests/frozen-protocol-keys.ts`, re-earned by `tests/core/protocol-key-register.test.ts`.
+`frozen/protocol-keys.ts`, re-earned by `tests/core/protocol-key-register.test.ts`.
 
 ### `anguish` — decoded
 
@@ -1896,7 +1896,7 @@ searched, since `allies` says whom the effect reaches rather than what it is
 `captures/2026-08-25-luvia-grupa-vs-draugr.json`, each alone with its announcement.
 
 ⚠️ **A turn is not found in any key of these, or of any other** — measured over every recording on
-2026-08-19, against every key the client branches on (`tests/frozen-protocol-keys.ts`). Nothing here
+2026-08-19, against every key the client branches on (`frozen/protocol-keys.ts`). Nothing here
 counts turns, and the panel no longer divides by them.
 
 ### `step` — decoded
