@@ -69,3 +69,5 @@ edited to agree with the new rule.
 - [0009](0009-a-class-per-failure-and-no-base-is-thrown.md) — A class per failure, and no base is
   ever thrown. **Accepted**
 - [0010](0010-sizing-a-share-onto-a-side.md) — Sizing a share onto a side. **Accepted**
+- [0011](0011-wording-a-kind-of-damage.md) — Wording a kind of damage, and what carries none.
+  **Accepted**

@@ -10,7 +10,9 @@ import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import type { PanelMetric } from "@/src/ui/panel-reading.ts";
 import { composeDrillReading, composePanelReading } from "@/src/ui/panel-reading.ts";
+import { ELEMENT_WORDS } from "@/src/ui/panel-words.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
@@ -18,6 +20,10 @@ import {
 } from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+/** The one recording where health goes down on a key of its own, and nowhere near a blow. */
+const POISONED = "captures/2026-08-04-tempest-lowca-vs-odyncze.json";
+const POISONED_ID = -255967;
+const POISON = "-255967=19.27;0;poison=140,14";
 
 function readFight(path: string) {
     const combatants = getRecordedCombatants(path);
@@ -147,15 +153,76 @@ Deno.test("an opened row states the same figure, cut by whom each blow reached",
     assertEquals(drill.total, first.figure, "an opened row states the figure its row stated");
     assertEquals(drill.name, first.name, "and belongs to the same combatant");
     let dealt = 0;
-    for (const row of drill.rows) dealt += row.figure;
+    for (const row of drill.byOpponent) dealt += row.figure;
     assert(dealt > 0, "in this fight the blows reached somebody");
     assert(dealt <= drill.total, "and the parts never come to more than the whole");
-    for (const [at, row] of drill.rows.entries()) {
+    for (const [at, row] of drill.byOpponent.entries()) {
         if (at === 0) continue;
-        const above = drill.rows[at - 1];
+        const above = drill.byOpponent[at - 1];
         assert(above !== undefined, "a row below the first has one above it");
         assert(above.figure >= row.figure, "the larger part is drawn first");
     }
+});
+
+Deno.test("the same figure is cut a second time, by the kind of damage each blow carried", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const reading = composePanelReading(statistics, roster, "damageDealtApplied");
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a row to open");
+    const drill = composeDrillReading(statistics, roster, "damageDealtApplied", first.combatantId);
+    assert(drill !== null, "a screen with a cut opens");
+    let dealt = 0;
+    for (const row of drill.byElement) dealt += row.figure;
+    // Unlike the cut by whom, this one accounts for the whole figure: a blow the protocol tied to
+    // nobody still states what it was dealt with, and what no blow carried is stated as its own.
+    assertEquals(
+        dealt + drill.withoutElement,
+        drill.total,
+        "every point of the figure is in one kind or in none of them",
+    );
+    assertEquals(drill.withoutElement, 0, "and in this fight this row lost nothing outside a blow");
+    assert(drill.byElement.length > 1, "and in this fight the blows carried more than one kind");
+    for (const [at, row] of drill.byElement.entries()) {
+        assert(row.element.length > 0, "a kind is the token the protocol stated");
+        assert(row.share > 0, "and states a share of the row it was cut out of");
+        if (at === 0) continue;
+        const above = drill.byElement[at - 1];
+        assert(above !== undefined, "a kind below the first has one above it");
+        assert(above.figure >= row.figure, "the larger kind is drawn first");
+    }
+});
+
+Deno.test("every kind every recording states is one the panel has a word for", () => {
+    const kinds = new Set<string>();
+    for (const path of getRecordingPaths()) {
+        const { roster, statistics } = readFight(path);
+        for (const metric of ["damageDealtApplied", "damageTakenApplied"] as const) {
+            for (const combatantId of statistics.byCombatantId.keys()) {
+                const drill = composeDrillReading(statistics, roster, metric, combatantId);
+                assert(drill !== null, `${path}: a damage screen cuts further`);
+                for (const row of drill.byElement) kinds.add(row.element);
+            }
+        }
+    }
+    assert(kinds.size > 0, "the recordings state kinds of damage");
+    for (const kind of kinds) {
+        assert(ELEMENT_WORDS[kind] !== undefined, `${kind} reaches a reader as a bare token`);
+    }
+});
+
+Deno.test("a screen that cuts by nobody still cuts by what the blows carried", () => {
+    const { roster } = readFight(HILDUR);
+    // A blow the protocol tied to no actor: the target's own cut by whom cannot hold it, and its
+    // cut by kind can, which is the pair failing apart rather than together.
+    const events = decodeFightMessages(["0;-10000249=99.69;+dmgf=100;-dmgf=40"], roster);
+    const alone = composeFightStatistics(events, new Map());
+    const drill = composeDrillReading(alone, roster, "damageTakenApplied", -10000249);
+    assert(drill !== null, "the row opens");
+    assertEquals(drill.byOpponent, [], "with nobody at the other end of the blow");
+    assertEquals(drill.byElement.length, 1, "and one kind of damage all the same");
+    assertEquals(drill.byElement[0]?.element, "dmgf", "the one the protocol stated");
+    assertEquals(drill.byElement[0]?.figure, 40, "at what landed, never at what was put out");
+    assertEquals(drill.byElement[0]?.share, 1, "which is the whole of this row's figure");
 });
 
 Deno.test("a screen with no cut opens nothing, and neither does a row nobody holds", () => {
@@ -172,4 +239,44 @@ Deno.test("a screen with no cut opens nothing, and neither does a row nobody hol
         null,
         "and so does a row belonging to nobody in the fight",
     );
+});
+
+Deno.test("health that went down outside a blow is a part of the figure carrying no kind", () => {
+    const { roster } = readFight(POISONED);
+    // A movement the protocol states on its own: it carries the figure and no kind of damage, so
+    // there is nothing to charge it to. Over `captures/` on 2026-08-29 this happens on 45 of 530
+    // combatant-and-screen pairs, in 28 recordings, and on damage taken every time.
+    const events = decodeFightMessages([POISON], roster);
+    const alone = composeFightStatistics(events, new Map());
+    const drill = composeDrillReading(alone, roster, "damageTakenApplied", POISONED_ID);
+    assert(drill !== null, "the row opens");
+    assertEquals(drill.byElement, [], "with no kind of damage under it");
+    assertEquals(drill.withoutElement, 140, "and the whole of the figure stated as carrying none");
+    assertEquals(drill.withoutElement, drill.total, "which is all this row's figure came to");
+});
+
+Deno.test("a part carrying no kind is only ever a part of what a fighter took", () => {
+    let withoutElement = 0;
+    for (const path of getRecordingPaths()) {
+        const { roster, statistics } = readFight(path);
+        for (const combatantId of statistics.byCombatantId.keys()) {
+            const open = (metric: PanelMetric) => {
+                return composeDrillReading(statistics, roster, metric, combatantId);
+            };
+            const dealt = open("damageDealtApplied");
+            assert(dealt !== null, `${path}: a damage screen cuts further`);
+            assertEquals(dealt.withoutElement, 0, `${path}: every blow dealt states its kind`);
+            const taken = open("damageTakenApplied");
+            assert(taken !== null, `${path}: the other damage screen cuts further too`);
+            let stated = 0;
+            for (const row of taken.byElement) stated += row.figure;
+            assertEquals(
+                stated + taken.withoutElement,
+                taken.total,
+                `${path}: the kinds and what carries none come to the figure`,
+            );
+            withoutElement += taken.withoutElement;
+        }
+    }
+    assert(withoutElement > 0, "and the recordings hold health that moved outside a blow");
 });

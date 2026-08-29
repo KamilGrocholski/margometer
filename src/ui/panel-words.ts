@@ -36,13 +36,44 @@ export const PANEL_WORDS = {
     fightOver: "Walka skończona",
     suspect: "Ta liczba może być zaniżona",
     undrawn: "Tego nie udało się narysować",
+    dealtTo: "Komu",
+    takenFrom: "Od kogo",
+    damageKind: "Typ obrażeń",
+    withoutKind: "Bez podanego typu",
 } as const;
+
+/**
+ * The letter in a damage key, in the player's words. Ours, and not the client's own
+ * `stat-damage-…` family, which words seven of the ten for a character sheet in a grammar this
+ * column cannot take. **ADR 0011.**
+ */
+export const ELEMENT_WORDS: Record<string, string> = {
+    dmg: "fizyczne",
+    dmgd: "dystansowe",
+    dmgo: "broń pomocnicza",
+    dmgf: "ogień",
+    dmgc: "zimno",
+    dmgl: "błyskawica",
+    dmga: "nieuchronne",
+    dmgp: "trucizna",
+    dmgg: "globalne",
+    thirdatt: "trzeci atak",
+};
 
 export const COUNTED_NOUNS = {
     messages: { one: "wiadomość", few: "wiadomości", many: "wiadomości" },
     fights: { one: "walka", few: "walki", many: "walk" },
     combatants: { one: "postać", few: "postacie", many: "postaci" },
 } as const;
+
+/** A kind the table does not hold is drawn under the game's own token. **ADR 0011.** */
+export function getWordsForElement(element: string): string {
+    assert(element.length > 0, "a kind of damage is named");
+    const words = ELEMENT_WORDS[element];
+    if (words === undefined) return element;
+    assert(words.length > 0, "a kind the table holds is worded");
+    return words;
+}
 
 const TEEN_FLOOR = 12;
 const TEEN_CEILING = 14;

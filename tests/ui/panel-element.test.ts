@@ -256,10 +256,42 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     assertEquals(head.length, 1, "one heading, saying whose row is open");
     assertEquals(getTextsByClass(host, "row-name")[0], opened.name, "and it names that combatant");
     const rows = within.filter((one) => one.className === "row");
-    assertEquals(rows.length, drill.rows.length, "a row for each part of the figure");
+    assertEquals(
+        rows.length,
+        drill.byOpponent.length + drill.byElement.length,
+        "a row for each part of the figure, in either cut",
+    );
+    const sections = getTextsByClass(host, "section");
+    assertEquals(sections, [PANEL_WORDS.dealtTo, PANEL_WORDS.damageKind], "one heading per cut");
+    const named = getTextsByClass(host, "row-name");
+    // The kinds this fight's top dealer carries, and none of them the physical one.
+    assert(named.includes("ogień"), "and a kind is drawn in the reader's words");
+    assert(!named.includes("dmgf"), "never under the token the protocol stated it on");
     assert(rows.every((one) => one.attributes.get("data-row") === undefined), "opening no further");
     const crumb = within.filter((one) => one.className === "crumb");
     assertEquals(crumb.length, 1, "and one way back");
+});
+
+Deno.test("a part of a figure no kind was stated for is a row apart, below the kinds", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+        // Health that went down outside a blow, which the protocol states carrying no kind.
+        drill: { ...drill, withoutElement: 140 },
+        place: null,
+    });
+    const host = panel.element as FakeElement;
+    const pinned = getElementsWithin(host).filter((one) => one.className === "pinned");
+    assertEquals(pinned.length, 1, "one row apart from the kinds that were stated");
+    const named = getTextsByClass(host, "row-name");
+    assertEquals(named[named.length - 1], PANEL_WORDS.withoutKind, "drawn last, under the kinds");
+    const figures = getTextsByClass(host, "row-figure");
+    assertEquals(figures[figures.length - 1], "140", "at what fell outside every kind");
 });
 
 Deno.test("pressing a row asks to open it, and the way back asks to close it", () => {

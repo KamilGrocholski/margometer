@@ -253,15 +253,24 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     const rows = () => {
         return getElementsWithin(host).filter((one) => one.className === "row").length;
     };
+    const rowsThatOpen = () => {
+        return getElementsWithin(host).filter((one) => {
+            return one.className === "row" && one.attributes.get("data-row") !== undefined;
+        }).length;
+    };
     const before = rows();
     assert(before > 0, "the screen has rows to open");
+    assertEquals(rowsThatOpen(), before, "every one of them openable");
 
     const name = getRegion("row-name");
     assert(name !== undefined, "and a reader presses the name inside one");
     pressElement(host, "pointerdown", name);
     assert(getRegion("crumb") !== undefined, "which opens that row over the screen");
     assert(getRegion("drill-head") !== undefined, "saying whose row it is");
-    assert(rows() < before, "and drawing the parts of one figure rather than the whole screen");
+    // Never a row count: an opened row is cut twice, and the two cuts together can come to more
+    // rows than the screen it stands over. What tells them apart is that a cut opens no further.
+    assert(rows() > 0, "and drawing the parts of one figure rather than the whole screen");
+    assertEquals(rowsThatOpen(), 0, "none of which opens any further");
 
     const crumb = getRegion("crumb");
     assert(crumb !== undefined, "the way back is there");

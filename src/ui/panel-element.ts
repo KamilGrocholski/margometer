@@ -11,13 +11,24 @@
 import { assert } from "@std/assert";
 import type {
     DrillReading,
+    ElementRow,
     PanelMetric,
     PanelReading,
     PanelRow,
     ShelfRow,
 } from "@/src/ui/panel-reading.ts";
-import { getWordsForScreen, SCREEN_ORDER, SHELF_SCREEN } from "@/src/ui/panel-screen.ts";
-import { composeCountedNoun, COUNTED_NOUNS, PANEL_WORDS } from "@/src/ui/panel-words.ts";
+import {
+    getWordsForOpponentCut,
+    getWordsForScreen,
+    SCREEN_ORDER,
+    SHELF_SCREEN,
+} from "@/src/ui/panel-screen.ts";
+import {
+    composeCountedNoun,
+    COUNTED_NOUNS,
+    getWordsForElement,
+    PANEL_WORDS,
+} from "@/src/ui/panel-words.ts";
 
 /** The whole of the document this asks for. A browser's own satisfies it. */
 export interface PanelDocument {
@@ -68,6 +79,8 @@ const ROW_ATTRIBUTE = "data-row";
 const BACK_ATTRIBUTE = "data-back";
 const CRUMB_CLASS = "crumb";
 const DRILL_HEAD_CLASS = "drill-head";
+/** A heading over one cut, so two lists under one opened row do not read as one list. */
+const SECTION_CLASS = "section";
 const BACK_MARK = "\u2039 ";
 /** What the panel listens for: a press, not a click, so a drag never counts as one. */
 const PRESS_EVENT = "pointerdown";
@@ -77,6 +90,8 @@ const PINNED_CLASS = "pinned";
 const SUSPECT_CLASS = "warning";
 /** A fight holds twenty, and a screen draws a row for each. */
 const MAXIMUM_ROWS = 20;
+/** What the statistics keep a cut inside. `captures/` states ten kinds in all, 2026-08-28. */
+const MAXIMUM_KINDS = 64;
 
 function composeElement(document: PanelDocument, tag: string, className: string): PanelElement {
     const element = document.createElement(tag);
@@ -229,16 +244,29 @@ function composeBodyElement(document: PanelDocument, reading: PanelReading): Pan
     return body;
 }
 
-/**
- * One row opened: the way back, whose row it is, and the same figure cut by the other end of each
- * blow. The rows inside are not openable, because a cut of a cut is a figure nothing states.
- */
-function composeDrillElement(document: PanelDocument, drill: DrillReading): PanelElement {
-    const body = composeElement(document, "div", BODY_CLASS);
-    const crumb = composeElement(document, "div", CRUMB_CLASS);
-    crumb.textContent = `${BACK_MARK}${PANEL_WORDS.everyone}`;
-    crumb.setAttribute(BACK_ATTRIBUTE, PANEL_WORDS.everyone);
-    body.append(crumb);
+/** One kind of damage. It opens nothing: a cut of a cut is a figure the protocol never states. */
+function composeElementRowElement(document: PanelDocument, row: ElementRow): PanelElement {
+    assert(row.figure >= 0, "a kind drawn states a figure that is not below nothing");
+    const element = composeElement(document, "div", ROW_CLASS);
+    const name = composeElement(document, "span", ROW_NAME_CLASS);
+    name.textContent = getWordsForElement(row.element);
+    const figure = composeElement(document, "span", ROW_FIGURE_CLASS);
+    figure.textContent = `${row.figure}`;
+    element.append(name);
+    element.append(figure);
+    assert(name.textContent.length > 0, "a kind is drawn in words, or under the game's own token");
+    return element;
+}
+
+function composeSectionElement(document: PanelDocument, heading: string): PanelElement {
+    assert(heading.length > 0, "a cut that is drawn says what it is cut by");
+    const element = composeElement(document, "div", SECTION_CLASS);
+    element.textContent = heading;
+    return element;
+}
+
+/** The way back, and whose row stands open over the screen. */
+function composeDrillHeadElement(document: PanelDocument, drill: DrillReading): PanelElement {
     const head = composeElement(document, "div", DRILL_HEAD_CLASS);
     const name = composeElement(document, "span", ROW_NAME_CLASS);
     name.textContent = drill.name ?? PANEL_WORDS.unknown;
@@ -246,16 +274,56 @@ function composeDrillElement(document: PanelDocument, drill: DrillReading): Pane
     total.textContent = `${drill.total}`;
     head.append(name);
     head.append(total);
-    body.append(head);
-    assert(drill.rows.length <= MAXIMUM_ROWS, "an opened row stays inside the fight's bound");
-    if (drill.rows.length === 0) {
-        const empty = composeElement(document, "div", EMPTY_CLASS);
-        empty.textContent = PANEL_WORDS.nothingYet;
-        body.append(empty);
-        return body;
-    }
-    for (const row of drill.rows) body.append(composeRowElement(document, row, null));
     assert(drill.total >= 0, "a figure opened is never below nothing");
+    return head;
+}
+
+/**
+ * One row opened: the way back, whose row it is, and the same figure cut twice — by the other end
+ * of each blow, and by the kind of damage it carried. Neither cut is opened any further.
+ *
+ * A cut with nothing in it draws no heading. The two fail apart rather than together: a blow the
+ * protocol tied to nobody still states what it was dealt with, so the kinds can stand alone.
+ *
+ * What no kind was stated for is pinned below the kinds, the way a figure belonging to nobody is
+ * pinned below a ranking. It is never spread over the kinds that were stated.
+ */
+function composeDrillElement(
+    document: PanelDocument,
+    drill: DrillReading,
+    metric: PanelMetric,
+): PanelElement {
+    const body = composeElement(document, "div", BODY_CLASS);
+    const crumb = composeElement(document, "div", CRUMB_CLASS);
+    crumb.textContent = `${BACK_MARK}${PANEL_WORDS.everyone}`;
+    crumb.setAttribute(BACK_ATTRIBUTE, PANEL_WORDS.everyone);
+    body.append(crumb);
+    body.append(composeDrillHeadElement(document, drill));
+    assert(drill.byOpponent.length <= MAXIMUM_ROWS, "an opened row stays inside the fight's bound");
+    assert(drill.byElement.length <= MAXIMUM_KINDS, "and inside the bound a cut is kept to");
+    const hasKinds = drill.byElement.length > 0 || drill.withoutElement > 0;
+    if (drill.byOpponent.length === 0) {
+        if (!hasKinds) {
+            const empty = composeElement(document, "div", EMPTY_CLASS);
+            empty.textContent = PANEL_WORDS.nothingYet;
+            body.append(empty);
+            return body;
+        }
+    }
+    const opponents = getWordsForOpponentCut(metric);
+    if (drill.byOpponent.length > 0) {
+        if (opponents !== null) body.append(composeSectionElement(document, opponents));
+        for (const row of drill.byOpponent) body.append(composeRowElement(document, row, null));
+    }
+    if (hasKinds) {
+        body.append(composeSectionElement(document, PANEL_WORDS.damageKind));
+        for (const row of drill.byElement) body.append(composeElementRowElement(document, row));
+        if (drill.withoutElement > 0) {
+            body.append(
+                composePinnedElement(document, PANEL_WORDS.withoutKind, drill.withoutElement),
+            );
+        }
+    }
     return body;
 }
 
@@ -302,7 +370,7 @@ function composeViewBody(document: PanelDocument, view: PanelView): PanelElement
     assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
     assert(view.shelf.length >= 0, "and carries the fights behind it, however few");
     if (view.isOnShelf) return composeShelfElement(document, view.shelf);
-    if (view.drill !== null) return composeDrillElement(document, view.drill);
+    if (view.drill !== null) return composeDrillElement(document, view.drill, view.current);
     return composeBodyElement(document, view.reading);
 }
 

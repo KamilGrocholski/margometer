@@ -295,12 +295,11 @@ Where the tree does not yet meet what this file states. Each is migration work, 
 commit that opens or closes one.
 
 1. **The add-on reads a fight, draws it, and keeps it.** Every key in `captures/` is read, the panel
-   switches screens, pressing a row opens the figure cut by whom each blow reached, a finished fight
-   goes on a shelf the reader can look back at, the bar and every row on that shelf say where the
-   fight was fought, and `deno task build` writes the file they install. What is not written: the
-   tooltip, the cut by element — which needs the game's own word for each, since a protocol key is
-   not something a reader is shown — every tool but the build, and the release plumbing —
-   `README.md`, `CHANGELOG.md` and the workflows.
+   switches screens, pressing a row opens the figure cut twice — by whom each blow reached and by
+   the kind of damage it carried — a finished fight goes on a shelf the reader can look back at, the
+   bar and every row on that shelf say where the fight was fought, and `deno task build` writes the
+   file they install. What is not written: the tooltip, every tool but the build, and the release
+   plumbing — `README.md`, `CHANGELOG.md` and the workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

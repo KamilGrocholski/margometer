@@ -25,6 +25,17 @@ const SCREEN_WORDS: Record<PanelMetric, string> = {
     healthRestored: PANEL_WORDS.healthRestored,
 };
 
+/**
+ * What the other end of a blow is called on each screen, and null where a screen states no other
+ * end at all — a defence stopping a blow and health coming back are cut by nothing here.
+ */
+const OPPONENT_WORDS: Record<PanelMetric, string | null> = {
+    damageDealtApplied: PANEL_WORDS.dealtTo,
+    damageTakenApplied: PANEL_WORDS.takenFrom,
+    damagePrevented: null,
+    healthRestored: null,
+};
+
 /** The strip's own tab for the fights already fought, which is not a figure and not a metric. */
 export const SHELF_SCREEN = "fights";
 
@@ -54,6 +65,14 @@ export function getScreenFromName(name: string): PanelMetric | null {
     }
     assert(name.length >= 0, "a name that was asked for is text");
     return null;
+}
+
+/** Null where the screen opens no row, so a heading is never drawn over a cut there is none of. */
+export function getWordsForOpponentCut(screen: PanelMetric): string | null {
+    assert(screen.length > 0, "a screen is asked for by name");
+    const words = OPPONENT_WORDS[screen];
+    assert(words === null || words.length > 0, "a cut that is headed says what it is cut by");
+    return words;
 }
 
 export function getWordsForScreen(screen: PanelMetric): string {
