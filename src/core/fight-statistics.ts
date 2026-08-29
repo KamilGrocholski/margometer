@@ -334,6 +334,10 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
     }
     figures.damageTakenApplied += -event.amount;
     figures.damageTakenFromNobody += -event.amount;
+    // The key is what this movement was made of, so it joins the cut a blow's element joins: a
+    // tick of poison is a kind of damage taken, and leaving it out states a figure the cut under
+    // it cannot account for.
+    addToCut(figures.damageTakenByElement, event.source, -event.amount);
     build.dealtByNobody += -event.amount;
     assert(figures.healthRestored >= 0, "a total of health restored never falls below nothing");
 }

@@ -17,7 +17,7 @@ import {
     composePanelReading,
     type PanelReading,
 } from "@/src/ui/panel-reading.ts";
-import { CLASS, getColourForElement, getColourForProfession } from "@/src/ui/panel-look.ts";
+import { CLASS, getColourForProfession } from "@/src/ui/panel-look.ts";
 import {
     composeDirectionTabs,
     composeNounTabs,
@@ -28,7 +28,8 @@ import {
 import {
     composeFigureText,
     composeUndrawnText,
-    getWordsForElement,
+    getWordsForDamageKind,
+    getWordsForNothing,
     getWordsForOutcome,
     PANEL_WORDS,
 } from "@/src/ui/panel-words.ts";
@@ -614,7 +615,8 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
     const drawn = bars[drill.byOpponent.rows.length + unnamedBefore(drill)];
     assert(drawn !== undefined, "there is a kind to draw a bar for");
     const style = drawn.attributes.get("style") ?? "";
-    assert(style.includes(getColourForElement(largest.element)), "in that kind's own colour");
+    // Colourless, like every row that names no combatant: the hue on this panel says who.
+    assert(style.includes(getColourForProfession(null)), "in the colour of no category at all");
     assert(style.includes("width:100.0%"), "and the length its share of the cut states");
 });
 
@@ -900,7 +902,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
     assertEquals(
         readTip(host).lines,
         [
-            getWordsForElement(kind.element),
+            getWordsForDamageKind(kind.element),
             getWordsForScreen("damageDealtApplied"),
             PANEL_WORDS.shareOfFigure,
             composeFigureText(kind.figure),
@@ -1086,4 +1088,85 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
     // One cut, not two: the keys the protocol names belong to whoever received the health, so a
     // giver's row cut by one would be worded with somebody else's cause.
     assertEquals(open("healthGiven"), [PANEL_WORDS.dealtTo], "and health given only by whom");
+});
+
+Deno.test("a row opened on a screen its own figure is nothing on says so, about them", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "healthGiven",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        // The same person, carried onto a screen they did nothing on: one press of a strip away,
+        // because the strips carry an opened row from screen to screen.
+        drill: { ...drill, total: 0, byOpponent: { rows: [], unnamed: null } },
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "empty"),
+        [getWordsForNothing("healthGiven")],
+        "a sentence about that person rather than an empty box",
+    );
+    assertEquals(getTextsByClass(host, "crumb-here"), [drill.name], "and they are still open");
+});
+
+Deno.test("an opened row grows the list to what its cuts need, and never shortens it", () => {
+    const { reading, drill } = openFirstRow();
+    const drawOpened = (open: typeof drill | null) => {
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({
+            reading,
+            current: "damageDealtApplied",
+            side: "everyone" as const,
+            hasReaderSide: false,
+            shelf: [],
+            isOnShelf: false,
+            drill: open,
+            place: null,
+            isCollapsed: false,
+        });
+        const host = panel.element as FakeElement;
+        const list = getElementsWithin(host).find((one) => one.className.startsWith("list"));
+        return list?.attributes.get("style");
+    };
+    const ranking = drawOpened(null);
+    assertEquals(
+        ranking,
+        `--MargoMeter-rows:${reading.visibleRows}`,
+        "the ranking is its own floor",
+    );
+
+    // Two cuts, each costing its rows, the part named for nobody and the heading over them.
+    const cost = (cut: { rows: unknown[]; unnamed: unknown }) =>
+        cut.rows.length + (cut.unnamed === null ? 0 : 1) + 1;
+    const needed = cost(drill.byOpponent) + cost(drill.byElement);
+    assert(needed > reading.visibleRows, "this fight opens onto more rows than the ranking has");
+    assertEquals(
+        drawOpened(drill),
+        `--MargoMeter-rows:${needed}`,
+        "so the list grows to hold them",
+    );
+
+    // And a cut that needs less keeps the floor: pressing a row must not shorten the window
+    // under the hand that pressed it.
+    const small = {
+        ...drill,
+        byOpponent: { rows: [], unnamed: null },
+        byElement: {
+            rows: drill.byElement.rows.slice(0, 2),
+            unnamed: null,
+        },
+    };
+    assertEquals(
+        drawOpened(small),
+        `--MargoMeter-rows:${reading.visibleRows}`,
+        "a shorter breakdown is drawn at the ranking's height rather than below it",
+    );
 });

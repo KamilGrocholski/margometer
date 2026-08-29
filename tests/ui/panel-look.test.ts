@@ -10,7 +10,6 @@ import {
     CLASS,
     composeBarColour,
     composeStyleSheet,
-    getColourForElement,
     getColourForProfession,
     getContrastRatio,
     getInkForBar,
@@ -26,19 +25,6 @@ const AA_TEXT_RATIO = 4.5;
 const AA_MARK_RATIO = 3;
 /** Every profession the recordings state, measured over `captures/` on 2026-08-29. */
 const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];
-/** Every element the recordings state, measured over `captures/` on 2026-08-28. */
-const ELEMENTS = [
-    "dmg",
-    "dmgd",
-    "dmgc",
-    "dmga",
-    "dmgl",
-    "dmgf",
-    "dmgo",
-    "dmgg",
-    "thirdatt",
-    "dmgp",
-];
 
 Deno.test("a bar's own spelling is read back as readily as a token's", () => {
     assertEquals(getContrastRatio("rgb(0 0 0)", "#ffffff"), 21, "the widest, written either way");
@@ -71,12 +57,12 @@ Deno.test("text over every surface clears AA", () => {
 });
 
 Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for", () => {
-    // Every hue the panel can put under a figure: a kind of damage in a cut, a profession on a
-    // ranking row, and the colourless one a combatant the game named no profession for takes.
+    // Every hue the panel can put under a figure: a profession on a ranking row, the colourless
+    // one every cut of a figure takes, and the two hues of the palette no profession spends.
     const hues = [
-        ...ELEMENTS.map((one) => getColourForElement(one)),
         ...PROFESSIONS.map((one) => getColourForProfession(one)),
         getColourForProfession(null),
+        ...PALETTE_COLOURS,
     ];
     let lightest = 21;
     for (const hue of hues) {
@@ -102,24 +88,11 @@ Deno.test("a profession keeps its colour, and one the game did not state is colo
     assert(!eight.includes(SIGNAL.unknown), "which is not one of the eight, so it reads apart");
 });
 
-Deno.test("an element keeps its colour, and the palette is smaller than the protocol", () => {
-    assertEquals(getColourForElement("dmgf"), getColourForElement("dmgf"), "the same every fight");
-    const common = ELEMENTS.slice(0, PALETTE_COLOURS.length);
-    const spread = new Set(common.map((one) => getColourForElement(one)));
-    assertEquals(spread.size, PALETTE_COLOURS.length, "the eight most stated take a hue each");
-    const taken = new Set(ELEMENTS.map((one) => getColourForElement(one)));
-    assertEquals(taken.size, PALETTE_COLOURS.length, "and the two rarest share with two of them");
-    assert(ELEMENTS.length > PALETTE_COLOURS.length, "ten keys into eight hues means two share");
-    const unseen = getColourForElement("dmgx");
-    assertEquals(unseen, getColourForElement("dmgx"), "a key nobody has seen still keeps a hue");
-    assert(PALETTE_COLOURS.some((one) => one === unseen), "and takes one from the palette");
-});
-
 Deno.test("the ink is computed, and at this tint every bar takes the light one", () => {
     assertEquals(getInkForColour("#ffffff"), TEXT.inkDark, "a light surface takes the dark ink");
     assertEquals(getInkForColour("#000000"), TEXT.inkLight, "and a dark one takes the light");
     assertEquals(getInkForColour("nothing"), TEXT.inkLight, "an unreadable colour takes the light");
-    const inks = new Set(ELEMENTS.map((one) => getInkForBar(getColourForElement(one))));
+    const inks = new Set(PALETTE_COLOURS.map((one) => getInkForBar(one)));
     // Measured, not designed: at a tint of 0.55 over this track no bar is light enough for the
     // dark ink, which is why that token is reachable only by a lighter bar than the panel draws.
     assertEquals([...inks], [TEXT.inkLight], "every bar the panel draws takes the light ink");

@@ -84,16 +84,15 @@ view on which one the reader should be pleased about.
 
 ### The palette
 
-Eight hues, spent twice over — once on the damage elements and once on the professions. Both are
-assigned by the game's own key rather than by rank, so the same element and the same profession are
-the same colour in every fight:
+Eight hues, spent on the professions and on nothing else, assigned by the game's own letter rather
+than by rank, so the same profession is the same colour in every fight:
 
 `#3987e5` `#008300` `#d55181` `#c98500` `#199e70` `#d95926` `#9085e9` `#e66767`
 
-A hue means one thing on a ranking row and another in a cut, and an opened row does put the two
-lists one above the other — each under its own heading, and a warrior's orange sits above a fire
-row's orange there. It costs nothing, because in neither list is the colour what a reader reads: the
-name says **who** and the bar says **what** somebody is, while a cut row is worded outright.
+**A hue says who somebody is.** A cut of a figure — a kind of damage, a key health went out under,
+the part the protocol named nobody for — is drawn in `UNKNOWN_COLOUR` and worded outright instead.
+An opened row puts the two lists one above the other, and a fire row wearing a warrior's orange
+there would be the panel answering a question nobody asked of it.
 
 A bar is drawn at `barTint` `0.55` over `track`, which is what keeps eight saturated hues from
 competing with the figures printed over them. The tint is measured rather than chosen: at full
@@ -205,12 +204,14 @@ that cannot tell the sides apart. While the shelf is up nothing on any strip is 
 covers the screens rather than being one of them.
 
 **The list.** The one region that scrolls and the one that gives way when the ceiling is lower than
-the panel wants to be. Every other region says the same thing at any height, so there is nothing to
-take off them. Its height is arithmetic — the rows it promises times what a row costs — so changing
-the type size cannot quietly break the promise: eleven bars under everybody, ten under a side, and
-never fewer once a row is opened, because pressing a row must not shorten the window under the hand.
-Its scrollbar gutter is reserved whether or not a scrollbar shows, and the two regions drawing a bar
-outside it reserve one too, so a bar means the same length in all three.
+the panel wants to be. An opened row grows it to what its cuts need and never shrinks it below the
+ranking it was opened from, so pressing a row cannot shorten the window under the hand. Every other
+region says the same thing at any height, so there is nothing to take off them. Its height is
+arithmetic — the rows it promises times what a row costs — so changing the type size cannot quietly
+break the promise: eleven bars under everybody, ten under a side, and never fewer once a row is
+opened, because pressing a row must not shorten the window under the hand. Its scrollbar gutter is
+reserved whether or not a scrollbar shows, and the two regions drawing a bar outside it reserve one
+too, so a bar means the same length in all three.
 
 **Tooltip.** `surfaceRaised`, fixed width, opens on hover and follows the cursor's vertical
 position. It opens on whichever side of the panel has room for it — to the left while the panel sits

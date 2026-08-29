@@ -12,7 +12,7 @@ import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import type { PanelMetric } from "@/src/ui/panel-reading.ts";
 import { composeDrillReading, composePanelReading } from "@/src/ui/panel-reading.ts";
-import { ELEMENT_WORDS } from "@/src/ui/panel-words.ts";
+import { getWordsForDamageKind, HEALTH_LOSS_WORDS } from "@/src/ui/panel-words.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
@@ -270,7 +270,7 @@ Deno.test("every kind every recording states is one the panel has a word for", (
     }
     assert(kinds.size > 0, "the recordings state kinds of damage");
     for (const kind of kinds) {
-        assert(ELEMENT_WORDS[kind] !== undefined, `${kind} reaches a reader as a bare token`);
+        assert(getWordsForDamageKind(kind) !== kind, `${kind} reaches a reader as a bare token`);
     }
 });
 
@@ -322,22 +322,23 @@ Deno.test("every screen opens, and a row belonging to nobody in the fight opens 
     );
 });
 
-Deno.test("health that went down outside a blow is a part of the figure carrying no kind", () => {
+Deno.test("health that went down outside a blow is a kind of its own, named by its key", () => {
     const { roster } = readFight(POISONED);
-    // A movement the protocol states on its own: it carries the figure and no kind of damage, so
-    // there is nothing to charge it to. Over `captures/` on 2026-08-29 this happens on 45 of 530
-    // combatant-and-screen pairs, in 28 recordings, and on damage taken every time.
+    // A movement the protocol states on its own: no blow carried it and nobody is named for it,
+    // but the key says what it was, so the cut by kind can hold what the cut by whom cannot.
     const events = decodeFightMessages([POISON], roster);
     const alone = composeFightStatistics(events, new Map());
     const drill = composeDrillReading(alone, roster, "damageTakenApplied", POISONED_ID);
     assert(drill !== null, "the row opens");
-    assertEquals(drill.byElement.rows, [], "with no kind of damage under it");
-    assertEquals(drill.byElement.unnamed?.figure, 140, "the whole of it carrying no kind");
-    assertEquals(drill.byElement.unnamed?.figure, drill.total, "which is all this row came to");
+    assertEquals(drill.byElement.rows.length, 1, "with one kind under it");
+    assertEquals(drill.byElement.rows[0]?.element, "poison", "the key the protocol stated");
+    assertEquals(drill.byElement.rows[0]?.figure, 140, "at what went out under it");
+    assertEquals(drill.byElement.unnamed, null, "and nothing left over for no kind at all");
+    assertEquals(drill.byOpponent.unnamed?.figure, 140, "while nobody is named for doing it");
 });
 
-Deno.test("a part carrying no kind is only ever a part of what a fighter took", () => {
-    let withoutElement = 0;
+Deno.test("every point of damage taken states what it was made of, on every recording", () => {
+    let byKey = 0;
     for (const path of getRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const combatantId of statistics.byCombatantId.keys()) {
@@ -350,16 +351,17 @@ Deno.test("a part carrying no kind is only ever a part of what a fighter took", 
             const taken = open("damageTakenApplied");
             assert(taken !== null, `${path}: the other damage screen cuts further too`);
             let stated = 0;
-            for (const row of taken.byElement.rows) stated += row.figure;
-            assertEquals(
-                stated + (taken.byElement.unnamed?.figure ?? 0),
-                taken.total,
-                `${path}: the kinds and what carries none come to the figure`,
-            );
-            withoutElement += taken.byElement.unnamed?.figure ?? 0;
+            for (const row of taken.byElement.rows) {
+                stated += row.figure;
+                if (HEALTH_LOSS_WORDS[row.element] !== undefined) byKey += row.figure;
+            }
+            assertEquals(stated, taken.total, `${path}: the kinds come to the whole figure`);
+            assertEquals(taken.byElement.unnamed, null, `${path}: with nothing carrying no kind`);
         }
     }
-    assert(withoutElement > 0, "and the recordings hold health that moved outside a blow");
+    // What a blow never carried, and what the cut would have had to call unknown before the key
+    // it moved under was read as a kind: 637,599 over `captures/`, measured 2026-08-29.
+    assertEquals(byKey, 637599, "and the health that moved outside a blow is named by its key");
 });
 
 /**

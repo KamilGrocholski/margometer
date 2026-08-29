@@ -38,7 +38,6 @@ import {
 import {
     CLASS,
     composeStyleSheet,
-    getColourForElement,
     getColourForProfession,
     getInkForColour,
 } from "@/src/ui/panel-look.ts";
@@ -48,8 +47,9 @@ import {
     composeSideCountsText,
     composeUndrawnText,
     COUNTED_NOUNS,
-    getWordsForElement,
+    getWordsForDamageKind,
     getWordsForHealthSource,
+    getWordsForNothing,
     getWordsForOutcome,
     PANEL_WORDS,
     type PanelRegion,
@@ -333,12 +333,15 @@ function composeElementReading(row: ElementRow, noun: PanelNoun): RowReading {
     assert(row.figure >= 0, "and states a figure that is not below nothing");
     return {
         name: noun === "damage"
-            ? getWordsForElement(row.element)
+            ? getWordsForDamageKind(row.element)
             : getWordsForHealthSource(row.element),
         figure: row.figure,
         fill: row.fill,
         shareText: row.shareText,
-        colour: getColourForElement(row.element),
+        // Colourless, like every row that names no combatant: a hue on this panel says **who**
+        // somebody is, and a kind of damage is not somebody. The row is worded outright, so
+        // nothing is lost by the bar saying nothing.
+        colour: getColourForProfession(null),
         profession: null,
         rank: null,
     };
@@ -714,6 +717,27 @@ function composeElementSection(
 }
 
 /**
+ * How tall the list stands with a row open: what the cuts need, and never less than the ranking
+ * it was opened from.
+ *
+ * A breakdown reached from a list of eleven must not shorten the window under the hand that
+ * pressed it, and a breakdown longer than eleven must not be cut off in the middle of a section —
+ * the ceiling on the host is what stops either from reaching past the bottom of the screen.
+ */
+function getRowsForDrill(drill: DrillReading, floor: number): number {
+    assert(floor > 0, "a list stands at a height of at least one row");
+    const sections = [drill.byOpponent, drill.byElement];
+    let needed = 0;
+    for (const cut of sections) {
+        if (cut.rows.length === 0 && cut.unnamed === null) continue;
+        // A section costs its rows, the part named for nobody, and the heading standing over them.
+        needed += cut.rows.length + (cut.unnamed === null ? 0 : 1) + 1;
+    }
+    assert(needed >= 0, "a cut costs no less than nothing");
+    return Math.max(needed, floor);
+}
+
+/**
  * One row opened: the same figure cut twice — by the other end of each blow, and by the kind of
  * damage it carried. Neither cut is opened any further, and a cut with nothing in it draws no
  * heading: a blow the protocol tied to nobody still states what it was dealt with, so the kinds
@@ -725,12 +749,18 @@ function composeDrillElement(
     drill: DrillReading,
     register: TipRegister,
 ): PanelElement {
-    const list = composeListElement(document, view.reading.visibleRows);
+    const list = composeListElement(document, getRowsForDrill(drill, view.reading.visibleRows));
     const figure = getWordsForScreen(view.current);
     assert(figure.length > 0, "an opened row states what its figure is a figure of");
     composeOpponentSection(document, list, drill, { metric: view.current, register, figure });
     composeElementSection(document, list, drill, { metric: view.current, register, figure });
     assert(drill.total >= 0, "a figure opened is never below nothing");
+    // A person the reader is still reading, on a screen they did nothing on: the strips carry
+    // them from screen to screen, so this is one press away and is said in words rather than
+    // left as an empty box.
+    if (drill.total === 0) {
+        list.append(composeEmptyElement(document, getWordsForNothing(view.current)));
+    }
     return list;
 }
 

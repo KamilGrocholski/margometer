@@ -162,9 +162,9 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
     if (reached === null) return false;
     screen.current = reached;
     screen.isOnShelf = false;
-    // A cut belongs to the screen it was opened on: the same combatant on the next screen is
-    // another figure, and leaving it open would state one figure under another's heading.
-    screen.openRowId = null;
+    // The opened row stays. A reader who went into somebody is reading **that somebody**, and the
+    // strips are how they ask the next question about them: the combatant exists on every screen,
+    // which is what makes this different from narrowing to a side they may not be on.
     return true;
 }
 

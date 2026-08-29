@@ -34,9 +34,9 @@ export const SIGNAL = {
 } as const;
 
 /**
- * The eight hues, spent twice over: once on the kinds of damage and once on the professions.
- * Neither list ever stands beside the other — a ranking row is a person and a cut row is a kind —
- * so a hue meaning two things in two places costs a reader nothing.
+ * The eight hues, spent on the professions and on nothing else: a hue here says **who** somebody
+ * is, and a cut of a figure — a kind of damage, a key health moved under — is not somebody, so it
+ * is drawn colourless and worded outright instead.
  */
 export const PALETTE_COLOURS = [
     "#3987e5",
@@ -276,43 +276,6 @@ export function getInkForColour(colour: string): string {
     return getInkForChannels(channels);
 }
 
-/**
- * By the key, so an element is the same colour in every fight. The eight elements `captures/`
- * states most often take a hue each; the two rarest share with the two rarest above them, which
- * is stated here rather than left to a hash — no multiplier tried separates ten keys this alike
- * into eight hues, so the collisions are chosen instead of discovered.
- */
-const ELEMENT_HUES: Record<string, number> = {
-    dmg: 0,
-    dmgd: 1,
-    dmgc: 2,
-    dmga: 3,
-    dmgl: 4,
-    dmgf: 5,
-    dmgo: 6,
-    dmgg: 7,
-    thirdatt: 6,
-    dmgp: 7,
-};
-
-export function getColourForElement(element: string): string {
-    assert(element.length > 0, "an element is named");
-    assert(PALETTE_COLOURS.length > 0, "the palette holds the hues the design states");
-    const stated = ELEMENT_HUES[element];
-    if (stated !== undefined) {
-        const held = PALETTE_COLOURS[stated];
-        assert(held !== undefined, "a stated hue is a place inside the palette");
-        return held;
-    }
-    // A key the register has never seen still needs a colour, and the same one every fight.
-    let sum = 0;
-    for (const character of element) sum += character.charCodeAt(0);
-    assert(sum > 0, "a named key sums to something");
-    const colour = PALETTE_COLOURS[sum % PALETTE_COLOURS.length];
-    assert(colour !== undefined, "a place inside the palette holds a colour");
-    return colour;
-}
-
 function composeBarChannels(hue: string): number[] {
     const chosen = getChannelsFromColour(hue);
     const track = getChannelsFromColour(SURFACE.track);
@@ -341,11 +304,9 @@ export function getInkForBar(hue: string): string {
  * Profession → hue, which is the pattern damage meters have used for twenty years: the bar says
  * **what** somebody is and the name beside it says **who**. Two mages take one colour on purpose.
  *
- * The codes are the game's own single letters, kept as the game spells them. Carried from v1
- * (`git show develop:src/ui/panel-look.ts`) rather than re-chosen: the same six letters get the
- * same six hues, so a reader coming from that panel is not asked to relearn a colour. Every one
- * of them is stated in `captures/` — 262 combatants over 28 recordings on 2026-08-29, none of
- * them without a profession, `w` 91 of them and `b` 17.
+ * The codes are the game's own letters and the hues are v1's, so a reader coming from that panel
+ * relearns nothing. Every one of the six is stated in `captures/`: 262 combatants over 28
+ * recordings on 2026-08-29, none without a profession, `w` 91 of them and `b` 17.
  */
 const PROFESSION_HUES: Record<string, number> = {
     m: 0,
@@ -368,11 +329,9 @@ export function getColourForProfession(profession: string | null): string {
 }
 
 /**
- * One colour laid over another at an alpha, the way CSS composites `opacity`, in sRGB because
- * that is what the browser does here and the point is to predict what will be on screen.
- *
- * The heading is quieted this way rather than by an `opacity`: it sticks over a scrolling row,
- * and an opacity would fade its background with its text and let a bar ghost through it.
+ * One colour over another at an alpha, in sRGB because that is what the browser does here. The
+ * heading is quieted this way rather than by an `opacity`, which would fade its background with
+ * its text and let a bar ghost through it as it sticks over a scrolling row.
  */
 function composeColourOver(top: string, bottom: string, alpha: number): string {
     assert(alpha >= 0, "a colour is laid over another at a share of itself");

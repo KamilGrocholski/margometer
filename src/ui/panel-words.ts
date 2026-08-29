@@ -78,6 +78,25 @@ export function getWordsForOutcome(outcome: PanelOutcome): string {
     return words;
 }
 
+/**
+ * What an opened row says on a screen its own figure is nothing on. Zero is a reading and it is
+ * said in the language's own words rather than as a bare `0`: the reader pressed a person, and
+ * what they get back is a sentence about that person.
+ */
+const NOTHING_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: "Nie zadała nikomu obrażeń.",
+    damageTakenApplied: "Nic jej nie ubyło.",
+    healthGiven: "Nikogo nie leczyła.",
+    healthRestored: "Nikt jej nie leczył.",
+};
+
+export function getWordsForNothing(screen: PanelMetric): string {
+    assert(screen.length > 0, "a screen is asked for by name");
+    const words = NOTHING_WORDS[screen];
+    assert(words.length > 0, "and a figure of nothing is said in words on every one of them");
+    return words;
+}
+
 /** Which quantity a screen shows, as the reader meets it on the upper strip. */
 const NOUN_WORDS: Record<PanelNoun, string> = {
     damage: "Obrażenia",
@@ -178,12 +197,37 @@ export const COUNTED_NOUNS = {
     combatants: { one: "postać", few: "postacie", many: "postaci" },
 } as const;
 
-/** A kind the table does not hold is drawn under the game's own token. **ADR 0011.** */
-export function getWordsForElement(element: string): string {
-    assert(element.length > 0, "a kind of damage is named");
-    const words = ELEMENT_WORDS[element];
-    if (words === undefined) return element;
-    assert(words.length > 0, "a kind the table holds is worded");
+/**
+ * What takes health down outside a blow, in the player's words.
+ *
+ * Kept apart from the elements above, and the pairs are the reason: `poison` is the poisoning
+ * ticking afterwards and `dmgp` is the damage a blow of that element lands, so one label over
+ * both would be two quantities under one word — a wrong number that looks right. The same split
+ * holds for `fire` against `dmgf` and `light` against `dmgl`.
+ *
+ * All seven are stated in `captures/`, measured 2026-08-29: `poison` takes 543,391 over 812
+ * movements, `injure` 28,521 over 184, `anguish` 24,208 over 70, `wound` 22,957 over 42, a
+ * negative `heal` 8,348 over 154, `fire` 7,497 over 43 and `light` 2,677 over 69.
+ */
+export const HEALTH_LOSS_WORDS: Record<string, string> = {
+    poison: "zatrucie",
+    fire: "podpalenie",
+    light: "porażenie",
+    injure: "zranienie",
+    wound: "głęboka rana",
+    anguish: "krwawienie",
+    heal: "ujemne przywracanie życia",
+};
+
+/**
+ * What a figure was made of, whether a blow carried it or health went out under it. A token
+ * neither table holds is drawn as the game wrote it. **ADR 0011.**
+ */
+export function getWordsForDamageKind(kind: string): string {
+    assert(kind.length > 0, "a kind of damage is named");
+    const words = ELEMENT_WORDS[kind] ?? HEALTH_LOSS_WORDS[kind];
+    if (words === undefined) return kind;
+    assert(words.length > 0, "a kind either table holds is worded");
     return words;
 }
 

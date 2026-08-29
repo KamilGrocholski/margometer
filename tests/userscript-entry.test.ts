@@ -452,16 +452,29 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     assert(again !== undefined, "a row opens a second time");
     pressElement(host, "pointerdown", again);
     assert(getRegion("crumb") !== undefined, "as it did the first");
+    const opened = getRegion("crumb-here")?.textContent;
+    assert(opened !== undefined, "the row that stands open names somebody");
     const taken = getElementsWithin(host).find((one) =>
         one.attributes.get("data-screen") === "damageTakenApplied"
     );
     assert(taken !== undefined, "there is another screen to reach for");
     pressElement(host, "pointerdown", taken);
-    assertEquals(
-        getRegion("crumb"),
-        undefined,
-        "and leaving the screen closes the row it was opened on",
+    // The reader went into somebody and is reading that somebody: the strips are how they ask
+    // the next question about them, so the person survives the question.
+    assert(getRegion("crumb") !== undefined, "the row stays open across a change of screen");
+    assertEquals(getRegion("crumb-here")?.textContent, opened, "and it is the same person");
+
+    const side = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-side") === "reader"
     );
+    if (side !== undefined) {
+        pressElement(host, "pointerdown", side);
+        assertEquals(
+            getRegion("crumb"),
+            undefined,
+            "narrowing to a side closes it, because that side may not hold them",
+        );
+    }
 });
 
 Deno.test("a row belonging to nobody in the fight opens nothing", () => {
