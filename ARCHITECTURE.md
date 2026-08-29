@@ -70,6 +70,7 @@ src/
 tools/             Never ships. Each arrives with the question it answers.
   build-preview.ts     A page that runs the add-on against the recordings, so it can be seen.
   build-userscript.ts  The file a reader installs, the version written in, and two checks.
+  capture-intake.ts    How a recording becomes material: two redactions, then a file.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
@@ -105,6 +106,7 @@ tests/
   tools/
     build-preview.test.ts     The page, read back: the order of its scripts, and its escaping.
     build-userscript.test.ts  The built file, read back: the banner, and no way out.
+    capture-intake.test.ts    What intake refuses, and every admitted recording as a fixed point.
   ui/
     panel-element.test.ts     What the panel puts on a page, read back out of it.
     panel-look.test.ts        Contrast by arithmetic, and a sheet that spends tokens only.
@@ -314,12 +316,11 @@ commit that opens or closes one.
    number for a screenshot to be read by, the panel folds to that bar and comes back folded, a press
    on `{ }` hands the reader the fight as a recording in the shape intake reads, the panel carries
    the stylesheet `DESIGN.md` specifies and the strip that always states the screen's own total, and
-   `deno task build` writes the file they install, and `deno task preview` writes a page that runs
-   it against the recordings. What is not written: **the last of the title bar's three controls**,
-   which is v1's copy-the-report at `git show develop:src/ui/panel-element.ts`; **the intake tool**,
-   without which a recording this writes cannot be admitted, since `SECURITY.md` puts redaction
-   there and nowhere else; and the rest of the tools and the release plumbing — `README.md`,
-   `CHANGELOG.md` and the workflows.
+   `deno task build` writes the file they install, `deno task preview` writes a page that runs it
+   against the recordings, and `deno task intake` redacts a recording and admits it to `captures/`.
+   What is not written: **the last of the title bar's three controls**, which is v1's
+   copy-the-report at `git show develop:src/ui/panel-element.ts`; and the rest of the tools and the
+   release plumbing — `README.md`, `CHANGELOG.md` and the workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

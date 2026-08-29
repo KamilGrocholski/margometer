@@ -19,6 +19,26 @@ import { isFightStart } from "@/src/game/battle-session.ts";
 /** Measured over `captures/` 2026-08-29: all 28 recordings state 1. */
 const CAPTURE_FORMAT_VERSION = 1;
 /**
+ * The envelope's own field names, spelled here and read by whatever reads a recording back —
+ * **N13**, which is why they are a constant rather than nine string literals in two files.
+ */
+export const CAPTURE_FIELDS = {
+    formatVersion: "wersja",
+    addOnVersion: "dodatek",
+    capturedAt: "przy",
+    world: "swiat",
+    gameBuild: "build",
+    userAgent: "przegladarka",
+    droppedCalls: "pominietych",
+    isFull: "urwany",
+    calls: "wpisy",
+    index: "nr",
+    payload: "ladunek",
+    messages: "komunikaty",
+    combatantsBefore: "wojownicyPrzed",
+    combatantsAfter: "wojownicyPo",
+} as const;
+/**
  * Where collecting stops. It **stops** rather than dropping the oldest: a recording without the
  * start of the fight is useless, one without the end still carries material.
  */
@@ -155,22 +175,22 @@ export function composeCaptureText(
     assert(surroundings.userAgent !== "", "and so is a browser that said nothing of itself");
     assert(capture.droppedCalls >= 0, "and what was dropped is never fewer than none");
     return composeJsonText({
-        wersja: CAPTURE_FORMAT_VERSION,
-        // Not `wersja`, which is the format's: this is the add-on's own, and the two are
-        // different numbers that move for different reasons.
-        dodatek: BUILD_VERSION,
-        przy: surroundings.capturedAt,
-        swiat: surroundings.world,
-        build: surroundings.gameBuild,
-        przegladarka: surroundings.userAgent,
-        pominietych: capture.droppedCalls,
-        urwany: capture.isFull,
-        wpisy: capture.calls.map((call) => ({
-            nr: call.index,
-            ladunek: call.payload,
-            komunikaty: call.messages,
-            wojownicyPrzed: call.combatantsBefore,
-            wojownicyPo: call.combatantsAfter,
+        [CAPTURE_FIELDS.formatVersion]: CAPTURE_FORMAT_VERSION,
+        // Not the format's number: this is the add-on's own, and the two move for different
+        // reasons.
+        [CAPTURE_FIELDS.addOnVersion]: BUILD_VERSION,
+        [CAPTURE_FIELDS.capturedAt]: surroundings.capturedAt,
+        [CAPTURE_FIELDS.world]: surroundings.world,
+        [CAPTURE_FIELDS.gameBuild]: surroundings.gameBuild,
+        [CAPTURE_FIELDS.userAgent]: surroundings.userAgent,
+        [CAPTURE_FIELDS.droppedCalls]: capture.droppedCalls,
+        [CAPTURE_FIELDS.isFull]: capture.isFull,
+        [CAPTURE_FIELDS.calls]: capture.calls.map((call) => ({
+            [CAPTURE_FIELDS.index]: call.index,
+            [CAPTURE_FIELDS.payload]: call.payload,
+            [CAPTURE_FIELDS.messages]: call.messages,
+            [CAPTURE_FIELDS.combatantsBefore]: call.combatantsBefore,
+            [CAPTURE_FIELDS.combatantsAfter]: call.combatantsAfter,
         })),
     }, INDENT_SPACES);
 }

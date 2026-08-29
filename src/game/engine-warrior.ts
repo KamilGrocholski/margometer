@@ -16,6 +16,17 @@ import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/src/core/u
 
 const WARRIORS_KEY = "w";
 const HEALTH_KEY = "hp";
+/**
+ * What a payload's own warrior is read by, wherever it is read — **N13**. `npc` is here and
+ * nowhere in a `Combatant`: this add-on never needs to know who is a person, and the one reader
+ * that does is the intake tool, which refuses a combatant it cannot read it for.
+ */
+export const WARRIOR_FIELDS = {
+    warriors: WARRIORS_KEY,
+    identity: "id",
+    name: "name",
+    nonPlayer: "npc",
+} as const;
 const HEALTH_MAXIMUM_KEY = "max";
 /** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
 const MAXIMUM_WARRIORS = 20;
