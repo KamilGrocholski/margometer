@@ -33,6 +33,15 @@ Deno.test("every recording reaches the page, and the picker is filled from them"
     assert(page.includes("location.reload()"), "and changing it starts the next fight clean");
 });
 
+Deno.test("the game the page stands up carries a place, since no recording does", () => {
+    const page = composePreviewPage("const a = 1;", RECORDINGS);
+    // The bar and every shelf row draw where a fight was fought, and a recording carries the
+    // world and the build and no map or tile — so without this the one thing they draw is blank.
+    assert(page.includes("map:"), "the client's own map field is there to be read");
+    assert(page.includes("hero:"), "and the hero's, which is where the tile is read from");
+    assert(page.includes("Podgl"), "under a name of the tool's, never one a recording states");
+});
+
 Deno.test("nothing in the page can close a tag it was written inside", () => {
     // A bundle that carried this text verbatim would end its own script tag and put the rest of
     // itself on the page as markup. The one place it can occur is inside a string literal.

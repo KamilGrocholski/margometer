@@ -5,6 +5,9 @@
  * first. Nothing in the tree could open one. This writes a file a browser opens from disk — no
  * server, no network, no game — carrying the built bundle, every recording's engine calls, and a
  * driver that feeds one recording's calls to the wrap the add-on puts on.
+ *
+ * The game it stands up is this file's, not a recording's. A recording carries the world and the
+ * build and no map or tile, so the place the bar draws is stubbed under a name of the tool's.
  */
 
 import { assert } from "@std/assert";
@@ -84,9 +87,16 @@ window.__margometerPicked = (function () {
   const held = window.__margometerHeld;
   return held.some((one) => one.name === asked) ? asked : held[0].name;
 })();
-window.Engine = { battle: { updateData: function () { return 1; } } };`;
+window.Engine = {
+  battle: { updateData: function () { return 1; } },
+  // A place of the tool's own, named so nobody reads it as a recording's: the recordings carry
+  // the world and the build and no map or tile, so there is no real place to put here.
+  map: { d: { name: "Podgl\u0105d" } },
+  hero: { d: { x: 1, y: 1 } }
+};`;
     assert(stood.includes("window.Engine"), "a game stands where the add-on looks for one");
     assert(stood.includes("updateData"), "carrying the call the add-on puts its wrap on");
+    assert(stood.includes("map"), "and a place, which no recording carries and the bar draws");
     return stood;
 }
 
