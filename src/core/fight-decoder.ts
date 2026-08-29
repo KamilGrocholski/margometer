@@ -46,28 +46,45 @@ const APPLIED_SIGN = "-";
 const DAMAGE_KEYS = ["+thirdatt", "-thirdatt"];
 const PREVENTED_KEYS = ["-absorb", "-absorbm", "-blok"];
 const DESTROYED_KEYS = ["+acdmg", "+resdmg", "+abdest_per", "+abmdest_per"];
-const PROC_KEYS = [
-    "+crit",
-    "+of_crit",
-    "+pierce",
-    "-pierceb",
-    "+stun",
-    "+stun2",
-    "+stun2-c",
-    "+stun2-d",
-    "+freeze",
-    "+wound",
-    "+fastarrow",
-    "+acdmg_destroyed",
-    "+legbon_curse",
-    "+legbon_verycrit",
-    "-legbon_cleanse",
-    "-legbon_glare",
-    "+superspell-dispel",
-    "-tenacity",
-    "-evade",
-    "-contra",
-];
+/**
+ * Which end of the blow a proc belongs to, and `unsettled` where nobody knows.
+ *
+ * **Never read off the sign.** `+legbon_curse` fires when its holder attacks and `-legbon_cleanse`
+ * when its holder is struck, and the two arrive on messages of one shape — so a rule reading the
+ * sign would charge half this table to the wrong row. Every entry is one sentence of that key's
+ * own entry in `docs/protocol-keys.md`, which is where the evidence is.
+ *
+ * `unsettled` is a refusal, not a default: article view,372 names neither `tenacity` nor `dispel`,
+ * so whose they are is unknown and a row charged with one would be a guess. They stay decoded and
+ * are counted on nobody until material settles them (`ARCHITECTURE.md`, known gaps).
+ */
+export type ProcEnd = "actor" | "target" | "unsettled";
+
+export const PROC_ENDS: Record<string, ProcEnd> = {
+    "+crit": "actor",
+    "+of_crit": "actor",
+    "+pierce": "actor",
+    "-pierceb": "target",
+    "+stun": "actor",
+    "+stun2": "actor",
+    "+stun2-c": "actor",
+    "+stun2-d": "actor",
+    "+freeze": "actor",
+    "+wound": "actor",
+    "+fastarrow": "actor",
+    "+acdmg_destroyed": "actor",
+    "+legbon_curse": "actor",
+    "+legbon_verycrit": "actor",
+    "-legbon_cleanse": "target",
+    "-legbon_glare": "target",
+    "+superspell-dispel": "unsettled",
+    "-tenacity": "unsettled",
+    "-evade": "target",
+    "-contra": "target",
+};
+
+/** The keys a blow carries when it landed critically, whichever weapon threw it. */
+export const CRITICAL_PROC_KEYS: readonly string[] = ["+crit", "+of_crit"];
 /**
  * Health moving outside a blow: which way it goes, and which slot holds the combatant it
  * happens to. Both are ours to supply — the protocol states a magnitude and leaves the rest to
@@ -256,6 +273,15 @@ interface AttackReading {
     unreadKeys: string[];
 }
 
+/** Null for a key that is not a proc at all, which is what makes this the membership test too. */
+export function getProcEnd(key: string): ProcEnd | null {
+    assert(key.length > 0, "a key asked about is a key the message wrote");
+    const end = PROC_ENDS[key];
+    if (end === undefined) return null;
+    assert(end.length > 0, "and a proc the table holds is placed at an end, or refused one");
+    return end;
+}
+
 function isDamageKey(key: string): boolean {
     assert(key.length > 0, "a key is never empty");
     if (DAMAGE_KEYS.includes(key)) return true;
@@ -381,7 +407,7 @@ function readFightOutcome(key: string, value: string): FightOutcomeEvent | null 
 
 function addValuelessKey(reading: AttackReading, key: string): void {
     assert(key.length > 0, "a key is never empty");
-    if (PROC_KEYS.includes(key)) {
+    if (getProcEnd(key) !== null) {
         reading.procs.push(key);
         return;
     }
@@ -389,7 +415,7 @@ function addValuelessKey(reading: AttackReading, key: string): void {
         reading.declared.push({ effect: key, amount: null, text: null });
         return;
     }
-    assert(!PROC_KEYS.includes(key), "a proc never reaches the unread branch");
+    assert(getProcEnd(key) === null, "a proc never reaches the unread branch");
     reading.unreadKeys.push(key);
 }
 

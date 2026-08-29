@@ -272,10 +272,25 @@ higher up the screen, which is the direction that keeps it on one.
 **On a ranking row the tooltip is a card.** The name in full, then what they are and how far along
 on one line under it — which is where the hue on the bar is finally said in words, and the only
 place it is. Then all four figures rather than the one the screen is showing, with that one in bold;
-under each, the part of it the protocol named only that row's end of; then how they fought, and what
-qualifies every figure above. A figure stated before reduction carries the sentence that says not to
-subtract it. Nowhere else is it a card: a skill, a kind, a fight on the shelf and a row inside an
-opened figure each get the name their own cell had to cut.
+under each, the part of it the protocol named only that row's end of; then how they fought, then
+what the screen itself asks about, and last what qualifies every figure above. A figure stated
+before reduction carries the sentence that says not to subtract it. Nowhere else is it a card: a
+skill, a kind, a fight on the shelf and a row inside an opened figure each get the name their own
+cell had to cut.
+
+**One run of the card is the screen's, and only that one.** The screen about striking states the
+criticals as a share of the blows struck, the hardest blow, what else fired, and what those blows
+destroyed on the other side — under a heading, because points of armour and percentage points of
+resistance are two quantities and never one sum. The screen about being struck states what a defence
+stopped with the defences it is made of under it, what fired on that combatant's side of somebody
+else's blow, and the hardest blow that reached them. Both healing screens state nothing there: the
+protocol says less on that side and a run invented to match would be matched out of nothing. **ADR
+0019.**
+
+**A line of a card never folds.** Its height is arithmetic and a stat line is counted as one, so a
+label too long for the column is cut with an ellipsis rather than wrapped — a card that folded a
+line would stand lower on the screen than it was measured for, which is the one direction that takes
+it off the bottom.
 
 **The panel is moved by its bar.** The grip says so before anybody tries it, and the whole bar is
 the handle — except its controls, where a press is that control's. A title bar's worth of the panel

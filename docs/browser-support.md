@@ -135,9 +135,9 @@ Properties: `align-items` · `align-self` · `all` · `background` · `border` �
 `display` · `flex` · `flex-direction` · `flex-wrap` · `font` · `font-size` · `font-style` ·
 `font-variant-numeric` · `font-weight` · `gap` · `height` · `justify-content` · `left` ·
 `letter-spacing` · `margin` · `margin-bottom` · `margin-left` · `margin-right` · `margin-top` ·
-`max-height` · `min-height` · `opacity` · `overflow` · `overflow-x` · `overflow-y` · `padding` ·
-`padding-bottom` · `padding-left` · `padding-right` · `padding-top` · `pointer-events` · `position`
-· `right` · `text-align` · `text-overflow` · `text-transform` · `top` · `touch-action` ·
+`max-height` · `min-height` · `min-width` · `opacity` · `overflow` · `overflow-x` · `overflow-y` ·
+`padding` · `padding-bottom` · `padding-left` · `padding-right` · `padding-top` · `pointer-events` ·
+`position` · `right` · `text-align` · `text-overflow` · `text-transform` · `top` · `touch-action` ·
 `white-space` · `width` · `z-index`
 
 Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: center` ·

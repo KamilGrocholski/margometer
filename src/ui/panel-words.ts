@@ -148,6 +148,17 @@ export const CARD_WORDS = {
     blowsWithoutSkill: "bez umiejętności",
     skillUses: "Użycia umiejętności",
     prevented: "Zatrzymane",
+    blowsCritical: "Krytyki",
+    /** A subset of the line above, which is what a sub-line under it means. */
+    blowsCriticalOffhand: "bronią pomocniczą",
+    blowLargestDealt: "Największy cios",
+    blowLargestTaken: "Największy przyjęty cios",
+    /**
+     * A heading over a run of parts and **never a sum of them**: points of armour and percentage
+     * points of resistance stand under it, and one number over both would be two quantities
+     * wearing one word (`src/core/battle-event.ts`).
+     */
+    destroyed: "Zniszczone",
     /**
      * Owed wherever `raw` stands: a reader meeting the two will try the subtraction, and armour
      * and resistance reduce unreported (`src/core/battle-event.ts`).
@@ -157,6 +168,103 @@ export const CARD_WORDS = {
     /** The right press is not named: on the last rung it reaches nothing. */
     gesture: "LPM — rozbicie",
 } as const;
+
+/**
+ * The defence that stopped part of a blow, in the player's words. Drawn as sub-lines under
+ * `Zatrzymane`, so each names the defence rather than describing what it did — the line above
+ * already said that.
+ *
+ * **Keyed by the client's own token, with no sign**, the way an element is: a figure carries the
+ * token and the sign says which half of the blow it was, not which defence. The procs below are
+ * keyed the other way for the opposite reason — there the sign is part of what the key names.
+ *
+ * All three are stated in `captures/`, measured 2026-08-30: `-absorb` on 624 blows, `-absorbm` on
+ * 301 and `-blok` on 175.
+ */
+export const DEFENCE_WORDS: Record<string, string> = {
+    blok: "blok",
+    absorb: "wchłonięcie",
+    absorbm: "wchłonięcie magiczne",
+};
+
+/**
+ * What fired beside a blow, in the player's words. Ours, and short: these sit in a column beside a
+ * count, so each is the mechanic's name and not a sentence about it.
+ *
+ * **Six of the twenty keys are deliberately absent**, and a reader meets them as the game's own
+ * token. `+legbon_curse`, `+legbon_verycrit`, `-legbon_cleanse` and `-legbon_glare` are legendary
+ * bonuses whose published name this repository has not read; `-tenacity` and `+superspell-dispel`
+ * are the two article view,372 does not carry at all. Wording a mechanic nothing named would be a
+ * claim about the game. **ADR 0011.**
+ *
+ * The five stun keys share one word because they are one event from five sources, which is what
+ * `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
+ *
+ * **Keyed with the sign**, unlike the two tables of tokens beside it: a proc is stated by the key
+ * and no figure, so the sign is part of the name — `+wound` is a wound a blow announced and
+ * `wound` is one ticking afterwards, and they are different rows on different screens.
+ */
+export const PROC_WORDS: Record<string, string> = {
+    "+crit": "krytyk",
+    /** Never drawn beside the others: the card states it under the count it is a part of. */
+    "+of_crit": "bronią pomocniczą",
+    "+pierce": "przebicie",
+    "-pierceb": "blok przebicia",
+    "+stun": "ogłuszenie",
+    "+stun2": "ogłuszenie",
+    "+stun2-c": "ogłuszenie",
+    "+stun2-d": "ogłuszenie",
+    "+freeze": "zamrożenie",
+    "+wound": "głęboka rana",
+    "+fastarrow": "szybka strzała",
+    "+acdmg_destroyed": "pancerz zniszczony",
+    "-evade": "unik",
+    "-contra": "kontra",
+};
+
+/** A key neither table holds reaches the reader as the game wrote it. **ADR 0011.** */
+export function getWordsForBlowKey(key: string): string {
+    assert(key.length > 0, "a key a blow carried is named");
+    const words = PROC_WORDS[key] ?? DEFENCE_WORDS[key];
+    if (words === undefined) return key;
+    assert(words.length > 0, "a key either table holds is worded");
+    return words;
+}
+
+/**
+ * What a blow destroyed on whoever took it: the statistic, and **the unit its figure is in**.
+ * `+acdmg` counts points of armour and `+resdmg` percentage points of resistance
+ * (`docs/protocol-keys.md`), so a column of bare numbers under one heading is a column a reader
+ * will add up and get a number that means nothing.
+ *
+ * The unit rides the figure rather than the name because the name shares its column with three
+ * others and the figure has the room. Keyed by the token, like the defences above.
+ */
+export const DESTROYED_WORDS: Record<string, { name: string; unit: string }> = {
+    acdmg: { name: "pancerz", unit: "pkt" },
+    resdmg: { name: "odporność", unit: "p.p." },
+    abdest_per: { name: "wchłanianie", unit: "pkt" },
+    abmdest_per: { name: "wchłanianie magiczne", unit: "pkt" },
+};
+
+/** A key the table does not hold reaches the reader as the game wrote it. **ADR 0011.** */
+export function getWordsForDestroyed(statistic: string): string {
+    assert(statistic.length > 0, "a statistic a blow destroyed is named");
+    const held = DESTROYED_WORDS[statistic];
+    if (held === undefined) return statistic;
+    assert(held.name.length > 0, "a statistic the table holds is worded");
+    return held.name;
+}
+
+/** The figure with the unit it is in, which is the whole reason the two are never totalled. */
+export function composeDestroyedText(statistic: string, figure: number): string {
+    assert(figure > 0, "a statistic that was destroyed was destroyed by something");
+    const stated = composeFigureText(figure);
+    const held = DESTROYED_WORDS[statistic];
+    if (held === undefined) return stated;
+    assert(held.unit.length > 0, "and a statistic the table holds is counted in something");
+    return `${stated} ${held.unit}`;
+}
 
 /**
  * Profession → the player's word for it. Ours rather than the client's own `eq_prof` headings,

@@ -801,8 +801,8 @@ The answer to the key above, and the one flag here that belongs to the **defence
 it as an event that can occur only after `+pierce` has, and that switches off the effects that event
 triggers. So the armour piercing is the striker's doing and the block of it is the struck
 combatant's, which is the split the sign alone would not have given — the same shape
-`-legbon_cleanse` and `-legbon_glare` have, and the reason `procsOnBlowsStruck` groups all three the
-way it does.
+`-legbon_cleanse` and `-legbon_glare` have, and the reason `PROC_ENDS` in
+`src/core/fight-decoder.ts` places all three at the target's end.
 
 _Shape:_ 6 occurrences; on a blow; no value
 

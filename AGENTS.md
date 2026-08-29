@@ -389,6 +389,7 @@ the same thing a second way.
 | `tests/repository/errors.test.ts`        | E1, E2, E11, each with a sample                    |
 | `tests/repository/names.test.ts`         | N1, N11, each with a sample                        |
 | `tests/repository/protocol-keys.test.ts` | the register help claims against the frozen counts |
+| `tests/ui/blow-vocabulary.test.ts`       | N13 for what a blow carried, against `captures/`   |
 
 A guard joins this table in the commit that makes it pass, and the known-gaps list shrinks by the
 same rules in that commit.

@@ -125,6 +125,13 @@ function composeReportRow(figures: CombatantFigures): ReportRow {
         skills: composeReportSkills(figures.skills),
         blowsStruck: figures.blowsStruck,
         blowsWithoutSkill: figures.blowsWithoutSkill,
+        blowsCritical: figures.blowsCritical,
+        damageDealtBlowLargest: figures.damageDealtBlowLargest,
+        damageTakenBlowLargest: figures.damageTakenBlowLargest,
+        procsWhenStriking: composeReportCut(figures.procsWhenStriking),
+        procsWhenStruck: composeReportCut(figures.procsWhenStruck),
+        damagePreventedByDefence: composeReportCut(figures.damagePreventedByDefence),
+        statisticsDestroyed: composeReportCut(figures.statisticsDestroyed),
     };
 }
 

@@ -133,6 +133,7 @@ tests/
     help-article.test.ts      A page turned into text, and a dump that says how old it is.
     changelog.test.ts         A section against its neighbours, and the release that has none.
   ui/
+    blow-vocabulary.test.ts   Every key a blow carried, against the words the panel has for it.
     panel-card.test.ts        Every figure a card states, and the parts it draws under them.
     panel-drag.test.ts        A panel kept on the screen, and put back where it was left.
     panel-element.test.ts     What the panel puts on a page, read back out of it.
@@ -358,13 +359,14 @@ commit that opens or closes one.
    to `captures/`. the header says how the fight went, the strip under the list totals the two sides
    and what belongs to neither, a doubt is said as a sentence under it, and the panel is moved by
    its bar and comes back where it was left. What is not written: **the third level of the drill**,
-   which is v1's cut by skill. The card that says what a combatant's figures are made of is written;
-   what it cannot say is v1's four extras — critical hits, the largest blow, the effects a blow
-   fired and the statistics an attacker destroyed — because `core/` carries each of them on the
-   events it produces — `+crit` among `PROC_KEYS`, the destroyed statistics on their own field, and
-   every blow's own figures — and `fight-statistics.ts` aggregates none of the four. The rest of the
-   tools and the release plumbing — `README.md` and the `check` workflow — are unwritten, and
-   nothing yet consumes the photographs `.github/workflows/pages.yml` does not publish.
+   which is v1's cut by skill. The card that says what a combatant's figures are made of is written,
+   and so is the run of it the screen decides: the criticals against the blows struck, the hardest
+   blow, what fired beside one and what it destroyed on the other side, and on the screen about
+   being struck what a defence stopped, cut by the defence (**ADR 0019**). Two proc keys reach no
+   row — `-tenacity` and `+superspell-dispel`, whose end article view,372 does not settle — and they
+   are decoded and charged to nobody until material does. The rest of the tools and the release
+   plumbing — `README.md` and the `check` workflow — are unwritten, and nothing yet consumes the
+   photographs `.github/workflows/pages.yml` does not publish.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld

@@ -7,9 +7,18 @@
  */
 
 import { assert } from "@std/assert";
-import type { AnnouncedSkill, BattleEvent, DamageFigure } from "@/src/core/battle-event.ts";
+import type {
+    AnnouncedSkill,
+    AttackEvent,
+    BattleEvent,
+    DamageFigure,
+} from "@/src/core/battle-event.ts";
 import type { TeamHeal } from "@/src/core/combatant-health.ts";
-import { SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
+import {
+    CRITICAL_PROC_KEYS,
+    getProcEnd,
+    SELF_SOURCED_HEALING_KEYS,
+} from "@/src/core/fight-decoder.ts";
 
 /** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
 const MAXIMUM_COMBATANTS = 20;
@@ -88,6 +97,38 @@ export interface CombatantFigures {
      */
     blowsStruck: number;
     blowsWithoutSkill: number;
+    /**
+     * Blows that landed critically, and it counts **blows** rather than the keys they carried: a
+     * blow may state `+crit` and `+of_crit` both, and 20 of the 955 critical blows over
+     * `captures/` on 2026-08-30 do — so a count of keys would read 975 and overstate the rate a
+     * panel divides by `blowsStruck`.
+     */
+    blowsCritical: number;
+    /**
+     * The largest single blow at each end, which no sum can be read back out of: two blows of
+     * 5,000 and one of 9,000 total the same. The largest in `captures/` is 19,209, 2026-08-30.
+     */
+    damageDealtBlowLargest: number;
+    damageTakenBlowLargest: number;
+    /**
+     * What fired beside a blow, kept apart by which end of it this combatant stood at — striking,
+     * or struck. Which end a key belongs to is `docs/protocol-keys.md`'s to say and the decoder's
+     * to state (`PROC_ENDS`); a key that document refuses an end reaches neither map.
+     */
+    procsWhenStriking: Map<string, number>;
+    procsWhenStruck: Map<string, number>;
+    /**
+     * The same `damagePrevented`, cut by the defence that stopped it. The scalar stays: the cut
+     * is what a card draws and the sum is what a counter states, and an assertion holds the two
+     * together rather than leaving a reader to add the rows up and hope.
+     */
+    damagePreventedByDefence: Map<string, number>;
+    /**
+     * What their blows destroyed on whoever took them. **Never totalled**, in this file or above
+     * it: `+acdmg` counts points of armour and `+resdmg` percentage points of resistance, and one
+     * number over both would be two quantities under one word (`src/core/battle-event.ts`).
+     */
+    statisticsDestroyed: Map<string, number>;
 }
 
 /**
@@ -149,11 +190,20 @@ export function composeCombatantFigures(): CombatantFigures {
         skills: new Map(),
         blowsStruck: 0,
         blowsWithoutSkill: 0,
+        blowsCritical: 0,
+        damageDealtBlowLargest: 0,
+        damageTakenBlowLargest: 0,
+        procsWhenStriking: new Map(),
+        procsWhenStruck: new Map(),
+        damagePreventedByDefence: new Map(),
+        statisticsDestroyed: new Map(),
     };
 }
 
 /** The largest cut in `captures/` holds ten elements against twenty combatants, 2026-08-28. */
 const MAXIMUM_CUT = 64;
+/** Past every key `PROC_ENDS` holds; the most one blow fires in `captures/` is 3, 2026-08-30. */
+const MAXIMUM_PROCS = 32;
 /** 81 skills are named across `captures/`, 2026-08-29, and one fight states a fraction of them. */
 const MAXIMUM_SKILLS = 256;
 
@@ -291,6 +341,77 @@ function getOtherEndKey(targetId: number | null): string | null {
     return `${targetId}`;
 }
 
+/**
+ * What fired beside the blow, on the row of whoever it belongs to. A key `PROC_ENDS` calls
+ * `unsettled` reaches neither row: whose it is has not been established, and a row charged with one
+ * would be this file guessing (`docs/protocol-keys.md`).
+ */
+function addBlowProcs(
+    striker: CombatantFigures | null,
+    struck: CombatantFigures | null,
+    procs: readonly string[],
+): void {
+    assert(procs.length <= MAXIMUM_PROCS, "a blow fires no more procs than it is bounded to");
+    for (const key of procs) {
+        const end = getProcEnd(key);
+        assert(end !== null, "a proc the decoder stated is a proc this table places");
+        if (end === "actor") {
+            if (striker !== null) addToCut(striker.procsWhenStriking, key, 1);
+        }
+        if (end === "target") {
+            if (struck !== null) addToCut(struck.procsWhenStruck, key, 1);
+        }
+    }
+}
+
+/** Blows, not keys: 20 of the 955 critical blows over `captures/` state both keys, 2026-08-30. */
+function getIsBlowCritical(procs: readonly string[]): boolean {
+    assert(procs.length <= MAXIMUM_PROCS, "a blow fires no more procs than it is bounded to");
+    for (const key of procs) {
+        if (CRITICAL_PROC_KEYS.includes(key)) return true;
+    }
+    return false;
+}
+
+/**
+ * What the blow put out at its hardest, which is the one reading a total cannot be read back to:
+ * two blows of five thousand and one of nine total the same and are not the same fight.
+ */
+function getLargerBlow(standing: number, applied: number): number {
+    assert(standing >= 0, "the hardest blow so far landed no less than nothing");
+    assert(applied >= 0, "and neither did the one being weighed against it");
+    if (applied > standing) return applied;
+    return standing;
+}
+
+/**
+ * Everything a blow says about the combatant who **struck** it, beyond the damage itself.
+ * `+acdmg` counts points and `+resdmg` percentage points, so the cut is kept and never totalled.
+ */
+function addBlowStruck(striker: CombatantFigures, event: AttackEvent, applied: number): void {
+    assert(applied >= 0, "a blow lands no less than nothing");
+    assert(event.destroyed.length <= MAXIMUM_CUT, "and destroys inside its stated bound");
+    striker.damageDealtBlowLargest = getLargerBlow(striker.damageDealtBlowLargest, applied);
+    if (getIsBlowCritical(event.procs)) striker.blowsCritical += 1;
+    for (const destroyed of event.destroyed) {
+        addToCut(striker.statisticsDestroyed, destroyed.statistic, destroyed.amount);
+    }
+}
+
+/**
+ * The same for the combatant who **took** it: what stopped part of the blow, kept both as the sum
+ * a counter states and as the cut a card draws, so neither can drift from the other.
+ */
+function addBlowTaken(struck: CombatantFigures, event: AttackEvent, applied: number): void {
+    assert(applied >= 0, "a blow lands no less than nothing");
+    assert(event.prevented.length <= MAXIMUM_CUT, "and is stopped inside its stated bound");
+    struck.damageTakenBlowLargest = getLargerBlow(struck.damageTakenBlowLargest, applied);
+    for (const stopped of event.prevented) {
+        struck.damagePrevented += stopped.amount;
+        addToCut(struck.damagePreventedByDefence, stopped.defence, stopped.amount);
+    }
+}
+
 function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== "attack") return;
     const raw = getTotalFromFigures(event.raw);
@@ -312,8 +433,10 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
             addToCut(dealer.damageDealtByOpponent, `${event.targetId}`, applied);
             addToPairCut(dealer.damageDealtByOpponentAndKind, `${event.targetId}`, event.applied);
         }
+        addBlowStruck(dealer, event, applied);
     }
     if (event.targetId === null) {
+        addBlowProcs(getStrikerFigures(build, event.actorId), null, event.procs);
         addBlowWithNoTarget(build, event.actorId, applied);
         return;
     }
@@ -328,11 +451,32 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
         addToCut(target.damageTakenByOpponent, `${event.actorId}`, applied);
         addToPairCut(target.damageTakenByOpponentAndKind, `${event.actorId}`, event.applied);
     }
-    for (const stopped of event.prevented) target.damagePrevented += stopped.amount;
+    addBlowTaken(target, event, applied);
+    addBlowProcs(getStrikerFigures(build, event.actorId), target, event.procs);
     assert(target.damageTakenApplied >= 0, "a total of applied damage never falls below nothing");
 }
 
-/** Already reduced where it is stated, so it has no raw half to keep apart from. */
+/** The row the blow was struck from, or nothing where the protocol named nobody at that end. */
+function getStrikerFigures(
+    build: StatisticsBuild,
+    actorId: number | null,
+): CombatantFigures | null {
+    if (actorId === null) return null;
+    assert(Number.isSafeInteger(actorId), "an end the protocol named is named by a number");
+    assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its stated bound");
+    return getFiguresForCombatant(build.byCombatantId, actorId);
+}
+
+/**
+ * Already reduced where it is stated, so it has no raw half to keep apart from.
+ *
+ * It weighs into the hardest blow at both ends and into no count of blows at either. A figure
+ * stated against a name is a landing, and for a party fighting a boss with an area attack it is
+ * the **only** landing anybody records: of the 249 rows that took damage over `captures/` on
+ * 2026-08-30, 149 are named by nothing else, and a card reading off blows alone would leave the
+ * whole party's hardest hit blank. What it is not is a swing — `blowsStruck` counts what the
+ * protocol calls a blow, and this is damage riding one aimed at somebody else.
+ */
 function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== "damage-to-named-combatant") return;
     const amount = event.damage.amount;
@@ -342,6 +486,7 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
     else {
         const dealer = getFiguresForCombatant(build.byCombatantId, event.actorId);
         dealer.damageDealtApplied += amount;
+        dealer.damageDealtBlowLargest = getLargerBlow(dealer.damageDealtBlowLargest, amount);
         addToCut(dealer.damageDealtByElement, event.damage.element, amount);
         if (event.targetId !== null) {
             addToCut(dealer.damageDealtByOpponent, `${event.targetId}`, amount);
@@ -355,6 +500,7 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
     const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
     if (event.actorId === null) target.damageTakenFromNobody += amount;
     target.damageTakenApplied += amount;
+    target.damageTakenBlowLargest = getLargerBlow(target.damageTakenBlowLargest, amount);
     addToCut(target.damageTakenByElement, event.damage.element, amount);
     if (event.actorId !== null) {
         addToCut(target.damageTakenByOpponent, `${event.actorId}`, amount);
@@ -561,6 +707,23 @@ function getRestoredBalance(build: StatisticsBuild): number {
 }
 
 /**
+ * What the defences stopped, against the one number a counter states for the lot. The cut and the
+ * sum are written on the same blow and read in two different places, so nothing but this holds them
+ * to each other — and a card whose rows added to something else would be a card nobody can check.
+ */
+function getPreventedBalance(build: StatisticsBuild): number {
+    let apart = 0;
+    for (const figures of build.byCombatantId.values()) {
+        let cut = 0;
+        for (const amount of figures.damagePreventedByDefence.values()) cut += amount;
+        assert(Number.isSafeInteger(cut), "a total stays inside what a number holds exactly");
+        apart += Math.abs(figures.damagePrevented - cut);
+    }
+    assert(apart >= 0, "a difference counted as a distance is never below nothing");
+    return apart;
+}
+
+/**
  * What the fight-wide counts hold, against what the rows they were read off hold.
  *
  * Each of the three is the sum of one field across the rows plus what named neither end, and
@@ -617,6 +780,10 @@ export function composeFightStatistics(
     assert(getAppliedBalance(build) === 0, "every point applied is counted once at each end");
     assert(getRestoredBalance(build) === 0, "and every point restored once at each of its own");
     assert(getHalfNamedBalance(build) === 0, "and every half-named point is on the row it named");
+    assert(
+        getPreventedBalance(build) === 0,
+        "and what the defences stopped is stopped by one of them",
+    );
     return {
         byCombatantId: build.byCombatantId,
         totals: composeTotals(build),

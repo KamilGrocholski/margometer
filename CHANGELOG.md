@@ -37,10 +37,19 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   naprawdę weszła. Pod liczbami stoi zdanie, że różnicy nie zatrzymała obrona — pancerza ani
   odporności gra nie podaje, więc nie da się z tych dwóch liczb wyliczyć, ile zatrzymała.
 
-- **Zmiana** — Okienko postaci nie liczy już ciosów krytycznych, nie podaje najmocniejszego ciosu,
-  nie wypisuje efektów, które padły przy ciosach — ogłuszenia, klątwy, oślepienia i reszty — ani
-  tego, co przeciwnik komuś zniszczył. Zatrzymane obrażenia stoją jako jedna liczba, bez rozbicia na
-  rodzaje. Zostają cztery liczby postaci, liczba ciosów i użycia umiejętności.
+- **Nowość** — Okienko postaci mówi znowu, jak ktoś walczył. Na obrażeniach zadanych: ile ciosów
+  weszło krytycznie i jaka to część wszystkich, najmocniejszy cios, co jeszcze przy nich padło —
+  przebicia, ogłuszenia, zamrożenia — i ile pancerza oraz odporności zdjęto przeciwnikowi. Na
+  obrażeniach otrzymanych: ile zatrzymała obrona i czym, ile było uników i kontr, oraz najmocniejszy
+  cios, który mimo wszystko wszedł.
+
+- **Nowość** — Ta część okienka zmienia się razem z zakładką i pokazuje tylko to, o co pyta wybrana
+  liczba. Na leczeniu nie ma jej wcale — gra po tej stronie nie podaje tyle, żeby było co napisać.
+  Cztery liczby postaci, jej nazwa i ostrzeżenia stoją jak stały, na każdej zakładce.
+
+- **Zmiana** — Zatrzymane obrażenia nie stoją już jako jedna liczba: pod nią widać, ile zebrał blok,
+  a ile wchłanianie. Efekt, którego gra nigdzie nie nazywa po polsku, pokazujemy jej własnym
+  oznaczeniem — wolimy, żeby było widać, że coś padło, niż wymyślać temu nazwę.
 
 - **Zmiana** — Przy nazwie postaci nie stoi już litera profesji. Profesję niesie sam kolor wiersza,
   a jej nazwę — „Wojownik", „Mag" — mówi okienko, które otwiera się po najechaniu na wiersz. Dwie

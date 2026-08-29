@@ -28,6 +28,24 @@ const HILDUR: RowDetail = {
     damageDealtToNobody: 2104,
     damageTakenFromNobody: 10672,
     healthRestoredByNobody: 1500,
+    blowsCritical: 9,
+    damageDealtBlowLargest: 19209,
+    damageTakenBlowLargest: 8062,
+    procsWhenStriking: [
+        { key: "+crit", figure: 9 },
+        { key: "+pierce", figure: 4 },
+        { key: "+of_crit", figure: 2 },
+    ],
+    procsWhenStruck: [{ key: "-evade", figure: 3 }, { key: "-legbon_cleanse", figure: 1 }],
+    /** Defences and destroyed statistics are kept under the client's token, procs under the key. */
+    damagePreventedByDefence: [
+        { key: "absorb", figure: 8000 },
+        { key: "blok", figure: 2413 },
+    ],
+    statisticsDestroyed: [
+        { key: "acdmg", figure: 940 },
+        { key: "resdmg", figure: 26 },
+    ],
 };
 
 /** Somebody the roster holds and the fight never touched, which is a reading and not a gap. */
@@ -46,12 +64,21 @@ const NOBODY: RowDetail = {
     damageDealtToNobody: 0,
     damageTakenFromNobody: 0,
     healthRestoredByNobody: 0,
+    blowsCritical: 0,
+    damageDealtBlowLargest: 0,
+    damageTakenBlowLargest: 0,
+    procsWhenStriking: [],
+    procsWhenStruck: [],
+    /** Defences and destroyed statistics are kept under the client's token, procs under the key. */
+    damagePreventedByDefence: [],
+    statisticsDestroyed: [],
 };
 
 /** One group as a reader meets it, so an expectation reads like the window does. */
 function readGroup(group: TipGroup): string[] {
     return group.lines.map((line) => {
         if (line.kind === "note") return line.text;
+        if (line.kind === "heading") return `[${line.text}]`;
         if (line.kind === "sub") return `  ${line.label} ${line.stated}`;
         return line.isStrong ? `**${line.label}** ${line.stated}` : `${line.label} ${line.stated}`;
     });
@@ -68,7 +95,7 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
     });
     assertEquals(card.name, "Hildur Muza Śmierci", "the name in full");
     assertEquals(card.subtitle, "Paladyn (83)", "what they are and how far along, under it");
-    const [figures, counters, notes] = card.groups;
+    const [figures, counters, screen, notes] = card.groups;
     assert(figures !== undefined, "a card states the four figures");
     assertEquals(
         readGroup(figures),
@@ -92,9 +119,21 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
             `${CARD_WORDS.blows} 40`,
             `  ${CARD_WORDS.blowsWithoutSkill} 7`,
             `${CARD_WORDS.skillUses} 30`,
-            `${CARD_WORDS.prevented} 10 413`,
         ],
-        "the blows, the ones nothing stood in front of, the announcements and what was stopped",
+        "the blows, the ones nothing stood in front of, and the announcements",
+    );
+    assert(screen !== undefined, "and what the screen itself asks about, under a rule of its own");
+    assertEquals(
+        readGroup(screen),
+        [
+            `${CARD_WORDS.prevented} 10 413`,
+            "  wchłonięcie 8 000",
+            "  blok 2 413",
+            "unik 3",
+            "-legbon_cleanse 1",
+            `${CARD_WORDS.blowLargestTaken} 8 062`,
+        ],
+        "what stopped part of a blow, what fired on their side of one, and the hardest through",
     );
     assert(notes !== undefined, "and what to be careful of");
     assertEquals(
@@ -184,5 +223,93 @@ Deno.test("what the screen doubts is said again where the figures it doubts are"
     assert(
         notes.lines.every((line) => line.kind === "note" && line.isWarning),
         "each drawn as a doubt, which is a mark as well as a colour",
+    );
+});
+
+Deno.test("the screen decides what the card says about how they fought, and only that", () => {
+    const readScreen = (metric: "damageDealtApplied" | "damageTakenApplied" | "healthGiven") =>
+        composeCardReading({
+            name: "Hildur Muza Śmierci",
+            profession: "p",
+            detail: HILDUR,
+            metric,
+            warnings: [],
+            opens: false,
+        }).groups.map(readGroup);
+    const [, , dealt] = readScreen("damageDealtApplied");
+    assert(dealt !== undefined, "the screen about striking says how they struck");
+    assertEquals(
+        dealt,
+        [
+            `${CARD_WORDS.blowsCritical} 9 (23%)`,
+            `  ${CARD_WORDS.blowsCriticalOffhand} 2`,
+            `${CARD_WORDS.blowLargestDealt} 19 209`,
+            "przebicie 4",
+            `[${CARD_WORDS.destroyed}]`,
+            "  pancerz 940 pkt",
+            "  odporność 26 p.p.",
+        ],
+        "the criticals against the blows, the hardest one, what else fired and what it took off",
+    );
+    // The crit keys are counted in the line above and never again beside it: `+crit` is the count
+    // itself and `+of_crit` the part of it that was the offhand's.
+    assert(!dealt.some((line) => line.includes("krytyk")), "and the crit keys are not said twice");
+    const [, , taken] = readScreen("damageTakenApplied");
+    assert(taken !== undefined, "and the screen about being struck says what held");
+    assertEquals(taken[0], `${CARD_WORDS.prevented} 10 413`, "the sum a counter states");
+    assertEquals(taken[1], "  wchłonięcie 8 000", "with the defences it is made of under it");
+    // The one screen whose figures the protocol states least about states nothing here rather than
+    // borrowing the other screen's answer.
+    assertEquals(readScreen("healthGiven").length, 3, "healing adds no run of its own");
+});
+
+Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", () => {
+    const critical = (blowsCritical: number, blowsStruck: number) =>
+        composeCardReading({
+            name: "Gracz 9",
+            profession: null,
+            detail: { ...NOBODY, blowsCritical, blowsStruck },
+            metric: "damageDealtApplied",
+            warnings: [],
+            opens: false,
+        }).groups.flatMap((group) => readGroup(group)).filter((line) =>
+            line.startsWith(CARD_WORDS.blowsCritical)
+        );
+    assertEquals(critical(0, 40), [], "nothing landed critically is nothing to say");
+    assertEquals(
+        critical(1, 40),
+        [`${CARD_WORDS.blowsCritical} 1 (3%)`],
+        "and one of them is said",
+    );
+    assertEquals(critical(40, 40), [`${CARD_WORDS.blowsCritical} 40 (100%)`], "as is all of them");
+});
+
+Deno.test("two keys the panel words the same way are one line, not two of one word", () => {
+    // Five stun keys carry one word because they are one event from five sources. Drawn a key at a
+    // time they made two lines reading `ogłuszenie` against different counts, and nothing on the
+    // card says which stun either line is.
+    const card = composeCardReading({
+        name: "Amaimon Soploręki",
+        profession: "p",
+        detail: {
+            ...NOBODY,
+            blowsStruck: 20,
+            procsWhenStriking: [
+                { key: "+stun", figure: 5 },
+                { key: "+stun2-c", figure: 1 },
+                { key: "+freeze", figure: 2 },
+            ],
+        },
+        metric: "damageDealtApplied",
+        warnings: [],
+        opens: false,
+    });
+    const [, counters, screen] = card.groups;
+    assert(counters !== undefined, "they struck, so the counters stand");
+    assert(screen !== undefined, "and the screen about striking says what fired");
+    assertEquals(
+        readGroup(screen),
+        ["ogłuszenie 6", "zamrożenie 2"],
+        "one line per word, biggest first, and the stuns summed rather than listed apart",
     );
 });

@@ -85,3 +85,5 @@ edited to agree with the new rule.
   published once it is released. **Accepted**
 - [0018](0018-a-release-says-what-its-changelog-section-says.md) — A release says what its changelog
   section says, and the version is declared once. **Accepted**
+- [0019](0019-the-card-answers-the-screen-it-stands-on.md) — The card answers the screen it stands
+  on, and a proc is placed by the register rather than by its sign. **Accepted**

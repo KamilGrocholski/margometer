@@ -18,6 +18,7 @@ import { CLASS } from "@/src/ui/panel-look.ts";
 export type TipLine =
     | { kind: "stat"; label: string; stated: string; isStrong: boolean }
     | { kind: "sub"; label: string; stated: string }
+    | { kind: "heading"; text: string }
     | { kind: "note"; text: string; isWarning: boolean };
 
 export interface TipGroup {
@@ -67,7 +68,12 @@ const MAXIMUM_TIPS = 128;
  * it had to, which is the direction that keeps a card on it.
  */
 const NOTE_CHARACTERS_PER_LINE = 32;
-/** Past every card this panel composes: four figures, their parts, the counters and the notes. */
+/**
+ * Past every card this panel composes: four figures and their parts, the counters, the run the
+ * screen adds — the criticals, the defences, the procs and what a blow destroyed — and the notes.
+ * The tallest card any recording composes is 25 lines, measured over `captures/` on
+ * 2026-08-30, so the bound is headroom rather than a limit anything has met.
+ */
 const MAXIMUM_TIP_LINES = 64;
 /** Ours, because `all: initial` resets every property a page can set except a custom one. */
 const TOP_VARIABLE = "--MargoMeter-tip-top";
@@ -97,7 +103,10 @@ export function composeTipRegister(): TipRegister {
     };
 }
 
-/** What one line costs the height. A note wraps, so it costs the lines its text runs to. */
+/**
+ * What one line costs the height. A note wraps, so it costs the lines its text runs to; every
+ * other kind is held to one by the stylesheet, which cuts a long label rather than folding it.
+ */
 function getTipLineCost(line: TipLine): number {
     assert(NOTE_CHARACTERS_PER_LINE > 0, "a line of a note holds some of it");
     if (line.kind !== "note") return 1;
@@ -119,6 +128,21 @@ export function getTipSize(reading: TipReading | null): TipSize {
     }
     assert(lines >= 1, "a card is at least the name it names somebody by");
     return { lines, groups: reading.groups.length };
+}
+
+function composeTipHeadingElement(
+    document: PanelDocument,
+    line: Extract<TipLine, { kind: "heading" }>,
+): PanelElement {
+    assert(line.text.length > 0, "a run of parts is headed by something");
+    const element = document.createElement("div");
+    element.className = CLASS.tipHeading;
+    element.textContent = line.text;
+    assert(
+        element.className === CLASS.tipHeading,
+        "and the heading stands under a rule of its own",
+    );
+    return element;
 }
 
 function composeTipLineClass(line: TipLine): string {
@@ -149,6 +173,7 @@ function composeTipNoteElement(
 function composeTipLineElement(document: PanelDocument, line: TipLine): PanelElement {
     assert(line.kind.length > 0, "a line of the card is one of the kinds the card has");
     if (line.kind === "note") return composeTipNoteElement(document, line);
+    if (line.kind === "heading") return composeTipHeadingElement(document, line);
     assert(line.label.length > 0, "a line of the detail says what its figure is");
     assert(line.stated.length > 0, "and states it");
     const element = document.createElement("div");

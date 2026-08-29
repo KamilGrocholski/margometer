@@ -27,6 +27,8 @@ import {
 
 /** A fight holds twenty, and a list draws a row for each. */
 const MAXIMUM_ROWS = 20;
+/** As many parts as the widest cut a card draws: the kinds, the defences, the procs. */
+const MAXIMUM_CUT_PARTS = 64;
 /** What one combatant's own skills are kept inside: 81 names over `captures/`, 2026-08-29. */
 const MAXIMUM_SKILLS = 256;
 /**
@@ -78,6 +80,28 @@ export interface RowDetail {
     damageDealtToNobody: number;
     damageTakenFromNobody: number;
     healthRestoredByNobody: number;
+    /** Blows that landed critically, against `blowsStruck`, which is what a rate is taken of. */
+    blowsCritical: number;
+    damageDealtBlowLargest: number;
+    damageTakenBlowLargest: number;
+    /**
+     * The four cuts a card draws, each already in the order it is drawn in. **Readings rather than
+     * the maps they were read off**: a card handed the statistics' own map could write into the
+     * figures it is drawing.
+     */
+    procsWhenStriking: readonly CutPart[];
+    procsWhenStruck: readonly CutPart[];
+    damagePreventedByDefence: readonly CutPart[];
+    statisticsDestroyed: readonly CutPart[];
+}
+
+/**
+ * One part of a cut, under the protocol's own key. What a reader is shown for that key is the
+ * panel's to say and never this file's, the way an element's token reaches `ElementRow`.
+ */
+export interface CutPart {
+    key: string;
+    figure: number;
 }
 
 export interface RankingRow extends PanelRow {
@@ -208,6 +232,22 @@ function getSkillUses(figures: CombatantFigures): number {
 }
 
 /**
+ * A cut as the card draws it: biggest first, then by the key, so a fight redrawn without changing
+ * states the same order. A part that came to nothing takes a row and adds none of it, so it is
+ * left out — the same rule `composeElementCut` keeps.
+ */
+function composeCutParts(cut: FigureCut): CutPart[] {
+    assert(cut.size <= MAXIMUM_CUT_PARTS, "a cut stays inside its stated bound");
+    const parts: CutPart[] = [];
+    for (const [key, figure] of cut) {
+        assert(figure >= 0, "a part of a figure is never below nothing");
+        if (figure > 0) parts.push({ key, figure });
+    }
+    parts.sort((one, other) => other.figure - one.figure || (one.key < other.key ? -1 : 1));
+    return parts;
+}
+
+/**
  * Everything a row can say on demand, off the figures it already holds. A combatant the
  * statistics never saw is handed an empty set rather than a set of nulls: they did nothing, and
  * nothing is a reading.
@@ -230,6 +270,13 @@ function composeRowDetail(figures: CombatantFigures, level: number | null): RowD
         damageDealtToNobody: figures.damageDealtToNobody,
         damageTakenFromNobody: figures.damageTakenFromNobody,
         healthRestoredByNobody: figures.healthRestoredByNobody,
+        blowsCritical: figures.blowsCritical,
+        damageDealtBlowLargest: figures.damageDealtBlowLargest,
+        damageTakenBlowLargest: figures.damageTakenBlowLargest,
+        procsWhenStriking: composeCutParts(figures.procsWhenStriking),
+        procsWhenStruck: composeCutParts(figures.procsWhenStruck),
+        damagePreventedByDefence: composeCutParts(figures.damagePreventedByDefence),
+        statisticsDestroyed: composeCutParts(figures.statisticsDestroyed),
     };
 }
 

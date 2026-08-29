@@ -260,3 +260,123 @@ Deno.test("a cut by both ends comes to the same figure as the cut by one", () =>
         }
     }
 });
+
+/** `2026-08-06-tempest-grupa-vs-hildur.json`: a critical blow that pierced and destroyed armour. */
+const CRITICAL = "467968=100.00;-10000249=99.69;+crit;+pierce;+dmgd=1557;+acdmg=16;-dmgd=1012";
+/** The same shape with the defending side's own flag on it, which is not the striker's. */
+const EVADED = "467968=100.00;-10000249=99.69;-evade;+dmgd=900;-dmgd=0";
+/** A key the register refuses an end: decoded, and charged to nobody until somebody knows. */
+const UNSETTLED = "467968=100.00;-10000249=99.69;-tenacity;+dmgd=100;-dmgd=100";
+
+Deno.test("what fired beside a blow lands on the row of whoever it belongs to", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([CRITICAL], null), new Map());
+    const striker = statistics.byCombatantId.get(467968);
+    const struck = statistics.byCombatantId.get(-10000249);
+    assertEquals(
+        [...striker?.procsWhenStriking ?? []],
+        [["+crit", 1], ["+pierce", 1]],
+        "the striker's",
+    );
+    assertEquals(
+        striker?.blowsCritical,
+        1,
+        "and the blow is counted as one that landed critically",
+    );
+    assertEquals(
+        [...striker?.procsWhenStruck ?? []],
+        [],
+        "and nothing of it is theirs defensively",
+    );
+    assertEquals(
+        [...struck?.procsWhenStriking ?? []],
+        [],
+        "the struck combatant swung nothing here",
+    );
+    assertEquals([...struck?.procsWhenStruck ?? []], [], "and fired nothing of their own either");
+    assertEquals([...striker?.statisticsDestroyed ?? []], [["acdmg", 16]], "what it took off them");
+    assertEquals(
+        [...struck?.statisticsDestroyed ?? []],
+        [],
+        "which is charged to the striker alone",
+    );
+});
+
+Deno.test("a flag the defence fired is the defence's, whichever sign the key wears", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([EVADED], null), new Map());
+    assertEquals(
+        [...statistics.byCombatantId.get(-10000249)?.procsWhenStruck ?? []],
+        [["-evade", 1]],
+        "an evade sits on the row of whoever evaded, not of whoever was evaded",
+    );
+    assertEquals(
+        [...statistics.byCombatantId.get(467968)?.procsWhenStriking ?? []],
+        [],
+        "and never on the striker's, which is what reading the sign would have got wrong",
+    );
+    assertEquals(statistics.byCombatantId.get(467968)?.blowsCritical, 0, "nothing critical here");
+});
+
+Deno.test("a proc nobody can place is charged to nobody rather than to whoever was handy", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([UNSETTLED], null), new Map());
+    assertEquals(
+        statistics.unreadMessages,
+        0,
+        "the key is read: it is whose it is that is unknown",
+    );
+    for (const figures of statistics.byCombatantId.values()) {
+        assertEquals([...figures.procsWhenStriking], [], "and no row is handed it as theirs");
+        assertEquals([...figures.procsWhenStruck], [], "at either end of the blow it rode");
+    }
+});
+
+Deno.test("what a defence stopped is kept as the sum and as the defences it is made of", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([ABSORBED], null), new Map());
+    const target = statistics.byCombatantId.get(-10000249);
+    assertEquals(target?.damagePrevented, 545, "the one number a counter states");
+    assertEquals(
+        [...target?.damagePreventedByDefence ?? []],
+        [["absorb", 545]],
+        "and which of them",
+    );
+});
+
+Deno.test("the hardest blow is the hardest blow, and no total can be read back to one", () => {
+    const messages = [
+        "467968=100.00;-10000249=99.69;+dmg=600;-dmg=500",
+        "467968=100.00;-10000249=99.69;+dmg=900;-dmg=800",
+        "467968=100.00;-10000249=99.69;+dmg=200;-dmg=100",
+    ];
+    const statistics = composeFightStatistics(decodeFightMessages(messages, null), new Map());
+    assertEquals(statistics.byCombatantId.get(467968)?.damageDealtApplied, 1400, "three blows");
+    assertEquals(
+        statistics.byCombatantId.get(467968)?.damageDealtBlowLargest,
+        800,
+        "and the hardest",
+    );
+    assertEquals(
+        statistics.byCombatantId.get(-10000249)?.damageTakenBlowLargest,
+        800,
+        "at both ends",
+    );
+});
+
+Deno.test("every recording places what a blow carried, and places none of it twice", () => {
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = decodeFightMessages(getRecordedPayloads(path).flat(), roster);
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [id, figures] of statistics.byCombatantId) {
+            let cut = 0;
+            for (const [, amount] of figures.damagePreventedByDefence) cut += amount;
+            assertEquals(cut, figures.damagePrevented, `${path} ${id} stops what its defences did`);
+            assert(
+                figures.damageDealtBlowLargest <= figures.damageDealtApplied,
+                `${path} ${id}: one blow is never more than every blow`,
+            );
+            assert(
+                figures.blowsCritical <= figures.blowsStruck,
+                `${path} ${id}: a critical blow is a blow they struck`,
+            );
+        }
+    }
+});

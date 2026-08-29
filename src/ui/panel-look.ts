@@ -104,6 +104,7 @@ export const CLASS = {
     tipName: "tip-name",
     tipSubtitle: "tip-subtitle",
     tipGroup: "tip-group",
+    tipHeading: "tip-heading",
     tipLine: "tip-line",
     tipStrong: "tip-strong",
     tipSub: "tip-sub",
@@ -606,8 +607,17 @@ function composeTipRules(): string {
         `gap:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.tipLine}.${CLASS.tipStrong}{font-weight:600;}` +
         `.${CLASS.tipLine}.${CLASS.tipSub}{padding-left:var(${VARIABLE_PREFIX}wide);}` +
-        `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        // Cut rather than wrapped, and it is the height arithmetic that asks: `getTipSize`
+        // counts a stat line as one line, so a label allowed to run onto a second would
+        // stand the card lower than it was measured for and hang it off the screen.
+        `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);min-width:0;` +
+        `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}` +
+        // The same letters a cut's heading wears down the panel, so a run of parts under one
+        // reads as the same kind of thing in both places. `DESIGN.md` owns the look.
+        `.${CLASS.tipHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
+        `font-size:10px;text-transform:uppercase;overflow:hidden;` +
+        `text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.tipNote}.${CLASS.tipWarning}{color:var(${VARIABLE_PREFIX}suspect);}`;
 }

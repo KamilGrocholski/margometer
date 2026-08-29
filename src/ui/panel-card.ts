@@ -4,17 +4,22 @@
  */
 
 import { assert } from "@std/assert";
-import type { PanelMetric, RowDetail } from "@/src/ui/panel-reading.ts";
+import type { CutPart, PanelMetric, RowDetail } from "@/src/ui/panel-reading.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import type { TipGroup, TipLine, TipReading } from "@/src/ui/panel-tip.ts";
 import {
     CARD_WORDS,
     composeCardSubtitleText,
+    composeDestroyedText,
     composeFigureText,
+    composeShareText,
+    getWordsForBlowKey,
     getWordsForCardMetric,
+    getWordsForDestroyed,
     PANEL_WORDS,
     WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
+import { CRITICAL_PROC_KEYS } from "@/src/core/fight-decoder.ts";
 
 export interface CardSubject {
     name: string;
@@ -35,6 +40,10 @@ interface CardFigure {
 
 /** No screen draws more than two, and a card that carried a page of them is not a card. */
 const MAXIMUM_CARD_WARNINGS = 4;
+/** Past the widest cut a card draws: fourteen worded procs, four destroyed, three defences. */
+const MAXIMUM_CARD_PARTS = 64;
+/** Counted in the line above it rather than beside it, so the card never says it twice. */
+const OFFHAND_CRIT_KEY = "+of_crit";
 
 /**
  * The four in the order the strip over the list puts them, which is the order asserted rather
@@ -111,16 +120,165 @@ function composeCardCounterLines(detail: RowDetail): TipLine[] {
             ...composeCardSubLine(CARD_WORDS.blowsWithoutSkill, detail.blowsWithoutSkill),
         );
     }
-    for (
-        const [label, figure] of [
-            [CARD_WORDS.skillUses, detail.skillUses],
-            [CARD_WORDS.prevented, detail.damagePrevented],
-        ] as const
-    ) {
-        if (figure <= 0) continue;
-        lines.push({ kind: "stat", label, stated: composeFigureText(figure), isStrong: false });
+    if (detail.skillUses > 0) {
+        lines.push({
+            kind: "stat",
+            label: CARD_WORDS.skillUses,
+            stated: composeFigureText(detail.skillUses),
+            isStrong: false,
+        });
     }
     return lines;
+}
+
+/**
+ * Parts sharing a word are one row, and the word is what decides it.
+ *
+ * Five keys are worded `ogłuszenie` because they are one event from five sources — which is what
+ * `+stun2-d`'s entry in `docs/protocol-keys.md` says. Drawn a key at a time they made two lines
+ * reading the same word against different counts, which a reader can only take as a panel that
+ * cannot add: nothing on screen says which stun either line is.
+ */
+function composeCardWordedParts(
+    parts: readonly CutPart[],
+): Array<{ label: string; figure: number }> {
+    assert(parts.length <= MAXIMUM_CARD_PARTS, "a card draws a cut inside its stated bound");
+    const byLabel = new Map<string, number>();
+    for (const part of parts) {
+        const label = getWordsForBlowKey(part.key);
+        assert(label.length > 0, "a part a card draws is drawn under something");
+        byLabel.set(label, (byLabel.get(label) ?? 0) + part.figure);
+    }
+    const folded = [...byLabel].map(([label, figure]) => ({ label, figure }));
+    folded.sort((one, other) => other.figure - one.figure || (one.label < other.label ? -1 : 1));
+    assert(folded.length <= parts.length, "folding a cut never makes it longer");
+    return folded;
+}
+
+/** Everything but the keys the line above it already counted, which would otherwise read twice. */
+function composeCardProcLines(parts: readonly CutPart[], without: readonly string[]): TipLine[] {
+    const kept = parts.filter((part) => !without.includes(part.key));
+    return composeCardWordedParts(kept).map((one) => ({
+        kind: "stat",
+        label: one.label,
+        stated: composeFigureText(one.figure),
+        isStrong: false,
+    }));
+}
+
+/** Null where nothing was struck, because a rate of nothing is not zero — it is no rate. */
+function composeCardCriticalText(detail: RowDetail): string | null {
+    assert(detail.blowsCritical <= detail.blowsStruck, "a critical blow is a blow they struck");
+    if (detail.blowsCritical <= 0) return null;
+    if (detail.blowsStruck <= 0) return null;
+    const share = composeShareText(detail.blowsCritical / detail.blowsStruck);
+    return `${composeFigureText(detail.blowsCritical)} (${share})`;
+}
+
+/**
+ * How they struck: how much of it landed critically, the hardest one, what else fired, and what
+ * their blows took off the other side. The share is of **blows** rather than of anything the game
+ * counts in time — nothing here counts a turn (`PRODUCT.md`).
+ */
+function composeCardStrikingLines(detail: RowDetail): TipLine[] {
+    const lines: TipLine[] = [];
+    const critical = composeCardCriticalText(detail);
+    if (critical !== null) {
+        lines.push({
+            kind: "stat",
+            label: CARD_WORDS.blowsCritical,
+            stated: critical,
+            isStrong: false,
+        });
+        const offhand = detail.procsWhenStriking.filter((part) => part.key === OFFHAND_CRIT_KEY);
+        lines.push(
+            ...composeCardWordedParts(offhand).map((one): TipLine => ({
+                kind: "sub",
+                label: one.label,
+                stated: composeFigureText(one.figure),
+            })),
+        );
+    }
+    if (detail.damageDealtBlowLargest > 0) {
+        lines.push({
+            kind: "stat",
+            label: CARD_WORDS.blowLargestDealt,
+            stated: composeFigureText(detail.damageDealtBlowLargest),
+            isStrong: false,
+        });
+    }
+    lines.push(...composeCardProcLines(detail.procsWhenStriking, CRITICAL_PROC_KEYS));
+    lines.push(...composeCardDestroyedLines(detail.statisticsDestroyed));
+    return lines;
+}
+
+/**
+ * What their blows took off the other side, under a heading and **never under a sum**: the parts
+ * are counted in different units and the figure carries which (`src/ui/panel-words.ts`).
+ */
+function composeCardDestroyedLines(parts: readonly CutPart[]): TipLine[] {
+    assert(parts.length <= MAXIMUM_CARD_PARTS, "a card draws a cut inside its stated bound");
+    if (parts.length === 0) return [];
+    const lines: TipLine[] = [{ kind: "heading", text: CARD_WORDS.destroyed }];
+    for (const part of parts) {
+        assert(part.figure > 0, "a statistic that was destroyed was destroyed by something");
+        lines.push({
+            kind: "sub",
+            label: getWordsForDestroyed(part.key),
+            stated: composeDestroyedText(part.key, part.figure),
+        });
+    }
+    return lines;
+}
+
+/**
+ * What held: the sum a counter states with the defences it is made of under it, then what fired
+ * on their side of somebody else's blow, then the hardest one that got through.
+ */
+function composeCardStruckLines(detail: RowDetail): TipLine[] {
+    assert(detail.damagePrevented >= 0, "what a defence stopped is never below nothing");
+    const lines: TipLine[] = [];
+    if (detail.damagePrevented > 0) {
+        lines.push({
+            kind: "stat",
+            label: CARD_WORDS.prevented,
+            stated: composeFigureText(detail.damagePrevented),
+            isStrong: false,
+        });
+        lines.push(
+            ...composeCardWordedParts(detail.damagePreventedByDefence).map((
+                one,
+            ): TipLine => ({
+                kind: "sub",
+                label: one.label,
+                stated: composeFigureText(one.figure),
+            })),
+        );
+    }
+    lines.push(...composeCardProcLines(detail.procsWhenStruck, []));
+    if (detail.damageTakenBlowLargest > 0) {
+        lines.push({
+            kind: "stat",
+            label: CARD_WORDS.blowLargestTaken,
+            stated: composeFigureText(detail.damageTakenBlowLargest),
+            isStrong: false,
+        });
+    }
+    return lines;
+}
+
+/**
+ * The one part of the card the screen decides, and it is decided **exhaustively**: a fifth screen
+ * becomes a question the compiler asks. The healing screens state nothing here on purpose — the
+ * protocol says less on that side, and a section invented to match the damage ones would be
+ * matching it out of nothing. `DESIGN.md` owns why the rest of the card does not move.
+ */
+function composeCardScreenLines(detail: RowDetail, metric: PanelMetric): TipLine[] {
+    assert(SCREEN_ORDER.includes(metric), "a card stands on a screen the strips draw");
+    if (metric === "damageDealtApplied") return composeCardStrikingLines(detail);
+    if (metric === "damageTakenApplied") return composeCardStruckLines(detail);
+    if (metric === "healthGiven") return [];
+    return [];
 }
 
 function getIsRawStated(detail: RowDetail): boolean {
@@ -153,11 +311,20 @@ export function composeCardReading(subject: CardSubject): TipReading {
     const groups: TipGroup[] = [
         { lines: composeCardFigureLines(subject.detail, subject.metric) },
     ];
-    for (const lines of [composeCardCounterLines(subject.detail), composeCardNoteLines(subject)]) {
+    for (
+        const lines of [
+            composeCardCounterLines(subject.detail),
+            composeCardScreenLines(subject.detail, subject.metric),
+            composeCardNoteLines(subject),
+        ]
+    ) {
         if (lines.length === 0) continue;
         groups.push({ lines });
     }
-    assert(groups.length <= 3, "and says it in the figures, the counters and the notes, at most");
+    assert(
+        groups.length <= 4,
+        "and says it in the figures, the counters, the screen's own and the notes",
+    );
     return {
         name: subject.name,
         subtitle: composeCardSubtitleText(subject.profession, subject.detail.level),
