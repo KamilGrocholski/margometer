@@ -285,11 +285,9 @@ function composeRowElement(
     const kind = opens === null ? CLASS.rowLeaf : CLASS.rowDrillable;
     const element = composeElement(document, "div", `${CLASS.row} ${kind}`);
     const parts = composeBarElements(document, reading);
-    if (reading.rank !== null) {
-        const rank = composeElement(document, "span", CLASS.rowRank);
-        rank.textContent = `${composeFigureText(reading.rank)}.`;
-        parts.push(rank);
-    }
+    const rank = composeElement(document, "span", CLASS.rowRank);
+    rank.textContent = reading.rank === null ? "" : `${composeFigureText(reading.rank)}.`;
+    parts.push(rank);
     const name = composeElement(document, "span", CLASS.rowName);
     name.textContent = reading.name;
     const value = composeElement(document, "span", CLASS.rowValue);
@@ -341,7 +339,7 @@ function composeCombatantReading(row: PanelRow, rank: number | null): RowReading
  * healing by the key it moved under, so the words and the colour come from the noun rather than
  * from one table asked about both.
  */
-function composeElementReading(row: ElementRow, noun: PanelNoun): RowReading {
+function composeElementReading(row: ElementRow, noun: PanelNoun, rank: number): RowReading {
     assert(row.element.length > 0, "a part of a figure is one the protocol named");
     assert(row.figure >= 0, "and states a figure that is not below nothing");
     return {
@@ -356,7 +354,7 @@ function composeElementReading(row: ElementRow, noun: PanelNoun): RowReading {
         // nothing is lost by the bar saying nothing.
         colour: getColourForProfession(null),
         profession: null,
-        rank: null,
+        rank,
     };
 }
 
@@ -688,7 +686,7 @@ function composeShelfRow(
     const chosen = fight.isChosen ? ` ${CLASS.rowChosen}` : "";
     const row = composeElement(document, "div", `${CLASS.row} ${CLASS.rowDrillable}${chosen}`);
     if (fight.isPinnable) row.append(composePinElement(document, fight));
-    const time = composeElement(document, "span", CLASS.rowRank);
+    const time = composeElement(document, "span", CLASS.rowTime);
     time.textContent = getWordsForShelfTime(fight.at, fight.isLive);
     const size = composeElement(document, "span", CLASS.rowSize);
     size.textContent = composeShelfSizeText(fight.sizes);
@@ -768,7 +766,7 @@ function composeOpponentSection(
     assert(drill.total >= 0, "and stands under a figure that is not below nothing");
     list.append(composeSectionElement(document, heading, drill.total));
     const share = PANEL_WORDS.shareOfFigure;
-    for (const row of cut.rows) {
+    for (const [at, row] of cut.rows.entries()) {
         const tip = {
             register: stated.register,
             key: `to:${row.combatantId}`,
@@ -780,7 +778,7 @@ function composeOpponentSection(
         // A row opens where the level under it would say something this one does not — the rest
         // are leaves, and a press on one of them is a press on nothing.
         const opens = row.opensPair ? `${row.combatantId}` : null;
-        list.append(composeRowElement(document, composeCombatantReading(row, null), opens, tip));
+        list.append(composeRowElement(document, composeCombatantReading(row, at + 1), opens, tip));
     }
     if (cut.unnamed === null) return;
     // Which end is missing is the direction's: a given screen names no receiver, a received one
@@ -816,14 +814,14 @@ function composeSkillSection(
     if (!counts && getIsRepetition(cut.rows, cut.plain, drill.total)) return;
     list.append(composeSectionElement(document, PANEL_WORDS.skills, drill.total));
     const share = PANEL_WORDS.shareOfFigure;
-    for (const row of cut.rows) {
+    for (const [at, row] of cut.rows.entries()) {
         const tip = {
             register: stated.register,
             key: `skill:${row.name}`,
             figure: stated.figure,
             share,
         };
-        const element = composeRowElement(document, composeSkillRowReading(row), null, tip);
+        const element = composeRowElement(document, composeSkillRowReading(row, at + 1), null, tip);
         // A skill opens onto who it reached, where that is anybody but the row it was opened
         // from — every other skill row is a leaf.
         if (row.opensSkill) setRowMarks([element], SKILL_ATTRIBUTE, row.name);
@@ -839,7 +837,7 @@ function composeSkillSection(
 }
 
 /** A skill wears no hue either: what it is is said in the name the announcement carried. */
-function composeSkillRowReading(row: SkillRow): RowReading {
+function composeSkillRowReading(row: SkillRow, rank: number): RowReading {
     assert(row.name.length > 0, "a skill drawn is one an announcement named");
     assert(row.figure >= 0, "and states a figure that is not below nothing");
     return {
@@ -849,7 +847,7 @@ function composeSkillRowReading(row: SkillRow): RowReading {
         shareText: row.shareText,
         colour: getColourForProfession(null),
         profession: null,
-        rank: null,
+        rank,
         uses: row.uses,
     };
 }
@@ -870,14 +868,16 @@ function composeElementSection(
     list.append(composeSectionElement(document, getWordsForKindCut(stated.metric), drill.total));
     const noun = getNounForScreen(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
-    for (const row of cut.rows) {
+    for (const [at, row] of cut.rows.entries()) {
         const tip = {
             register: stated.register,
             key: `kind:${row.element}`,
             figure: stated.figure,
             share,
         };
-        list.append(composeRowElement(document, composeElementReading(row, noun), null, tip));
+        list.append(
+            composeRowElement(document, composeElementReading(row, noun, at + 1), null, tip),
+        );
     }
     if (cut.unnamed === null) return;
     const tip = { register: stated.register, key: "kind:nobody", figure: stated.figure, share };
@@ -1129,9 +1129,9 @@ function composeSkillElement(
     const heading = `${PANEL_WORDS.dealtTo} — ${skill.name}`;
     list.append(composeSectionElement(document, heading, skill.total));
     const share = PANEL_WORDS.shareOfFigure;
-    for (const row of skill.byOpponent.rows) {
+    for (const [at, row] of skill.byOpponent.rows.entries()) {
         const tip = { register, key: `reached:${row.combatantId}`, figure, share };
-        list.append(composeRowElement(document, composeCombatantReading(row, null), null, tip));
+        list.append(composeRowElement(document, composeCombatantReading(row, at + 1), null, tip));
     }
     return list;
 }
@@ -1172,9 +1172,9 @@ function composePairSkills(
         `${PANEL_WORDS.skillsAgainst} — ${named}`,
         pair.total,
     ));
-    for (const row of cut.rows) {
+    for (const [at, row] of cut.rows.entries()) {
         const tip = { ...stated, key: `pair-skill:${row.name}` };
-        const element = composeRowElement(document, composeSkillRowReading(row), null, tip);
+        const element = composeRowElement(document, composeSkillRowReading(row, at + 1), null, tip);
         // A skill opens onto who it reached, where that is anybody but the row it was opened
         // from — every other skill row is a leaf.
         if (row.opensSkill) setRowMarks([element], SKILL_ATTRIBUTE, row.name);
@@ -1198,9 +1198,11 @@ function composePairKinds(
     if (cut.rows.length === 0) return;
     if (getIsRepetition(cut.rows, cut.unnamed, pair.total)) return;
     list.append(composeSectionElement(document, PANEL_WORDS.damageKind, pair.total));
-    for (const row of cut.rows) {
+    for (const [at, row] of cut.rows.entries()) {
         const tip = { ...stated, key: `pair-kind:${row.element}` };
-        list.append(composeRowElement(document, composeElementReading(row, "damage"), null, tip));
+        list.append(
+            composeRowElement(document, composeElementReading(row, "damage", at + 1), null, tip),
+        );
     }
 }
 

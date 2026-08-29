@@ -151,7 +151,7 @@ Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: c
 `mask-image: transparent` · `overflow: hidden` · `overflow-x: hidden` · `overflow-y: auto` ·
 `pointer-events: none` · `position: absolute` · `position: fixed` · `position: relative` ·
 `position: sticky` · `scrollbar-color: transparent` · `scrollbar-gutter: stable` ·
-`scrollbar-width: thin` · `text-align: center` · `text-overflow: ellipsis` ·
+`scrollbar-width: thin` · `text-align: center` · `text-align: right` · `text-overflow: ellipsis` ·
 `text-transform: uppercase` · `touch-action: none` · `user-select: none` · `white-space: nowrap`
 
 Functions: `calc` · `clamp` · `min` · `repeating-linear-gradient` · `rgb` · `var`

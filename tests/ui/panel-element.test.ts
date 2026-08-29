@@ -1048,7 +1048,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
     );
     assert(row !== undefined, "the fight is a row a reader can point at");
     assertEquals(
-        [getTextsByClass(host, "row-rank")[0], getTextsByClass(host, "row-size")[0]],
+        [getTextsByClass(host, "row-time")[0], getTextsByClass(host, "row-size")[0]],
         ["21:05", "10×1"],
         "when it was, and how big it was, before the place that can be cut",
     );
@@ -1428,5 +1428,56 @@ Deno.test("a skill that opens asks for itself by name, and the rest of them ask 
         pressed.at(-1),
         { kind: "skill", name: "Dotyk anioła" },
         "asking for itself by the name it was announced under, which is not a number",
+    );
+});
+
+/** Where a row's name starts, which is the sum of every cell drawn before it. */
+function getCellsBeforeName(row: FakeElement): string[] {
+    const before: string[] = [];
+    for (const part of row.children) {
+        const named = part.className.split(" ")[0] ?? "";
+        if (named === "row-name") return before;
+        before.push(named);
+    }
+    return before;
+}
+
+Deno.test("every row in a list draws the same cells before its name", () => {
+    // The bug this catches was photographed. A ranking row's place held the space before its
+    // name and a drilled row had a profession badge holding the same space; when the badge went,
+    // the drill's names slid 14.5px left of the ranking's and sat on the bar's own cap, while
+    // the ranking read as it always had. Nothing went red, because a row's parts are drawn from
+    // whatever the reading happens to carry rather than from a shape every row keeps.
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    const shown = {
+        reading,
+        current: "damageDealtApplied" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    };
+    const shapes = new Map<string, string[]>();
+    for (const [screen, opened] of [["ranking", null], ["drilled", drill]] as const) {
+        panel.show({ ...shown, drill: opened });
+        const host = panel.element as FakeElement;
+        for (const row of getElementsWithin(host)) {
+            if (row.className.split(" ")[0] !== "row") continue;
+            if (row.children.length === 0) continue;
+            shapes.set(`${screen}: ${getCellsBeforeName(row).join(",")}`, getCellsBeforeName(row));
+        }
+    }
+    assertEquals(
+        [...shapes.keys()].sort(),
+        ["drilled: bar,bar-cap,row-rank", "ranking: bar,bar-cap,row-rank"],
+        "a row on one screen is built of the cells a row on the other is",
     );
 });

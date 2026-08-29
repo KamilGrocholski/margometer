@@ -351,7 +351,7 @@ Deno.test("the shelf has a screen of its own, and its control toggles", () => {
     // would answer *which fight am I reading* with a list the answer is not on.
     assertEquals(rows().length, 1, "and on the shelf, where the two of them are one row");
     assertEquals(
-        getTextsByClass(host, "row-rank"),
+        getTextsByClass(host, "row-time"),
         ["teraz"],
         "the one going on now saying so, in the live row's own wording",
     );

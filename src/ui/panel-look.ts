@@ -86,6 +86,7 @@ export const CLASS = {
     rowDrillable: "drillable",
     rowLeaf: "leaf",
     rowRank: "row-rank",
+    rowTime: "row-time",
     rowName: "row-name",
     rowSize: "row-size",
     rowChosen: "chosen",
@@ -156,6 +157,8 @@ export const SHAPE = {
     windowShadow: "0 6px 20px rgb(0 0 0 / 55%)",
 } as const;
 
+/** Two digits and a stop: 17.49px in Chrome 152, 2026-08-29, and a fight holds twenty. */
+const RANK_WIDTH = "22px";
 /** What keeps eight saturated hues from competing with the figures printed over them. */
 const BAR_TINT = 0.55;
 /**
@@ -606,7 +609,7 @@ function composeRowRules(): string {
     const cap = `var(${VARIABLE_PREFIX}radius-small) 0 0 var(${VARIABLE_PREFIX}radius-small)`;
     return `.${CLASS.row}{position:relative;display:flex;justify-content:space-between;` +
         `align-items:center;height:var(${VARIABLE_PREFIX}row-height);` +
-        `padding:0 var(${VARIABLE_PREFIX}small);margin-bottom:var(${VARIABLE_PREFIX}half);` +
+        `padding:0 var(${VARIABLE_PREFIX}wide);margin-bottom:var(${VARIABLE_PREFIX}half);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
         `background:var(${VARIABLE_PREFIX}track);overflow:hidden;}` +
         `.${CLASS.row}.${CLASS.rowDrillable}{cursor:pointer;}` +
@@ -617,7 +620,12 @@ function composeRowRules(): string {
         `border-radius:${cap};}` +
         `.${CLASS.rowRank},.${CLASS.rowName},.${CLASS.rowValue}{position:relative;}` +
         `.${CLASS.rowRank}{color:var(${VARIABLE_PREFIX}quiet);` +
-        `font-variant-numeric:tabular-nums;padding-right:var(${VARIABLE_PREFIX}small);}` +
+        `font-variant-numeric:tabular-nums;flex:none;box-sizing:border-box;` +
+        `width:${RANK_WIDTH};text-align:right;` +
+        `padding-right:var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.rowTime}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `font-variant-numeric:tabular-nums;flex:none;` +
+        `padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.rowName}{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}` +
         // As wide as the figure it holds and no wider: the cell after it is the only thing on a
         // shelf row allowed to shorten, and without this the two give way together.
