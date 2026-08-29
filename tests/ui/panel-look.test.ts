@@ -361,6 +361,62 @@ Deno.test("a list is as tall as the rows it promises, and carries no term beside
     assert(stated.includes("row-height"), "and what it reserves is what a row costs");
 });
 
+/** Every line height the sheet states, which is the term after the slash in a `font` shorthand. */
+function getLineHeights(sheet: string): string[] {
+    const found: string[] = [];
+    let at = sheet.indexOf("font:");
+    let tried = 0;
+    while (at !== -1) {
+        assert(tried < RULES_IN_A_SHEET, "the walk stays inside the sheet's stated bound");
+        tried += 1;
+        const slash = sheet.indexOf("/", at);
+        assert(slash !== -1, "a font shorthand here states a line height");
+        const ends = sheet.indexOf(" ", slash);
+        assert(ends !== -1, "and a stack after it");
+        found.push(sheet.slice(slash + 1, ends));
+        at = sheet.indexOf("font:", at + 1);
+    }
+    assert(found.length > 0, "the panel states the type it prints");
+    return found;
+}
+
+Deno.test("the panel's rhythm is whole pixels, so a bar and its ink round together", () => {
+    // A line height stated as a factor is a fractional line box — 11px at 1.35 is 14.85 — and
+    // every box under it stands off the pixel grid by a different fraction on every screen. The
+    // browser then snaps a bar one way and the glyphs inside it another: the ranking read 5
+    // device rows over the figures and 5 under, while the same rows one level down read 4 and 6,
+    // in Chrome 152 on 2026-08-29 against `dist/preview.html`. **ADR 0015.**
+    const sheet = composeStyleSheet();
+    const stated = getLineHeights(sheet);
+    const factors = stated.filter((height) => !height.endsWith("px"));
+    assertEquals(factors, [], "a line height stated as a factor puts every box under it off grid");
+});
+
+Deno.test("a row drops its ink onto its middle and stays the height the list counts", () => {
+    // A face carries more ascent than descent, so the ink inside a centred line box sits high by
+    // half the difference — 4.503px over the caps against 5.497px under the baseline, Chrome 152
+    // on 2026-08-29. The drop answers that, and the parity below is what keeps the answer whole:
+    // a cell that lands on a half pixel is a cell the browser rounds. **ADR 0015.**
+    const sheet = composeStyleSheet();
+    const body = getRuleBody(sheet, `.${CLASS.row}`);
+    assertEquals(
+        getDeclaration(body, "box-sizing"),
+        "border-box",
+        "a row reserving its drop outside its height is a row taller than the list counts",
+    );
+    const [above, below] = getEdgesDown(body, `.${CLASS.row}`, "padding");
+    assertEquals(below, 0, "a row carries the drop over its contents and nothing under them");
+    assert(above !== undefined, "and states what it carries over them");
+    assert(above > 0, "which is a length a reader can see");
+    const height = getDeclaration(body, "height");
+    assert(height !== null, "a row states a height rather than taking one from its contents");
+    assertEquals(getPixels(height), getPixels(SPACE.rowHeight), "and it is the one a row costs");
+    const line = getLineHeights(getRuleBody(sheet, `.${CLASS.panel}`));
+    assert(line[0] !== undefined, "the panel states the line a row's cells are drawn on");
+    const spare = getPixels(SPACE.rowHeight) - (above ?? 0) - getPixels(line[0]);
+    assertEquals(spare % 2, 0, `a row centres its cells onto half a pixel: ${spare}px to share`);
+});
+
 Deno.test("the reader adds up a rule rather than matching one", () => {
     // A reader is proved by a sample it must flag and one it must not.
     assertEquals(getPixels("7px"), 7, "a length reads as itself");

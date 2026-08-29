@@ -159,6 +159,8 @@ export const SHAPE = {
 
 /** Two digits and a stop: 17.49px in Chrome 152, 2026-08-29, and a fight holds twenty. */
 const RANK_WIDTH = "22px";
+/** What a row carries over its contents and not under, so its ink lands even. **ADR 0015.** */
+const ROW_INK_DROP = "1px";
 /** What keeps eight saturated hues from competing with the figures printed over them. */
 const BAR_TINT = 0.55;
 /**
@@ -361,6 +363,9 @@ const ROWS_BY_DEFAULT = 11;
 /** The system stack, so the panel asks a browser for no font and waits for no download. */
 const FONT_STACK = "system-ui, sans-serif";
 const FONT_SIZE = "11px";
+/** Whole pixels: a fractional line box puts every box under it off the grid. **ADR 0015.** */
+const LINE_HEIGHT = "15px";
+const LINE_HEIGHT_TITLE = "13px";
 
 function composeVariable(name: string, value: string): string {
     assert(name.length > 0, "a token is named");
@@ -425,7 +430,7 @@ function composeFrameRules(): string {
         `.${CLASS.title}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
-        `font:${FONT_SIZE}/1.2 ${FONT_STACK};letter-spacing:0.06em;` +
+        `font:${FONT_SIZE}/${LINE_HEIGHT_TITLE} ${FONT_STACK};letter-spacing:0.06em;` +
         `color:var(${VARIABLE_PREFIX}quiet);` +
         // One line, whatever the version number is. Everything on this bar is text, so without
         // this the row reflows the moment its content stops fitting: 0.10.0 was one character
@@ -461,7 +466,7 @@ function composeFrameRules(): string {
         // Two classes in the selector, so the outcome does not depend on where the rule is
         // written: a bare `.folded` ties with the region's own rule and loses on source order.
         `.${CLASS.frame}.${CLASS.folded}{display:none;}` +
-        `.${CLASS.panel}{font:${FONT_SIZE}/1.35 ${FONT_STACK};width:${PLACE.width};` +
+        `.${CLASS.panel}{font:${FONT_SIZE}/${LINE_HEIGHT} ${FONT_STACK};width:${PLACE.width};` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
@@ -606,10 +611,12 @@ function composeListRules(): string {
 function composeRowRules(): string {
     assert(SPACE.rowHeight.length > 0, "every row is drawn at one height");
     assert(SHAPE.radiusSmall.endsWith("px"), "what sits in a row is rounded in pixels");
+    assert(ROW_INK_DROP.endsWith("px"), "and the ink is dropped onto its middle by a length");
     const cap = `var(${VARIABLE_PREFIX}radius-small) 0 0 var(${VARIABLE_PREFIX}radius-small)`;
     return `.${CLASS.row}{position:relative;display:flex;justify-content:space-between;` +
-        `align-items:center;height:var(${VARIABLE_PREFIX}row-height);` +
-        `padding:0 var(${VARIABLE_PREFIX}wide);margin-bottom:var(${VARIABLE_PREFIX}half);` +
+        `align-items:center;box-sizing:border-box;height:var(${VARIABLE_PREFIX}row-height);` +
+        `padding:${ROW_INK_DROP} var(${VARIABLE_PREFIX}wide) 0;` +
+        `margin-bottom:var(${VARIABLE_PREFIX}half);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
         `background:var(${VARIABLE_PREFIX}track);overflow:hidden;}` +
         `.${CLASS.row}.${CLASS.rowDrillable}{cursor:pointer;}` +

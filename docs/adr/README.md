@@ -77,3 +77,5 @@ edited to agree with the new rule.
   charged to a side by the end it did name: damage crosses, healing does not. **Accepted**
 - [0014](0014-a-region-holding-rows-is-inset-equally.md) — A region holding rows is inset equally,
   and its height carries only rows. **Accepted**
+- [0015](0015-a-row-centres-the-ink-a-reader-sees.md) — A row centres the ink a reader sees, and it
+  takes the whole panel onto the pixel grid. **Accepted**
