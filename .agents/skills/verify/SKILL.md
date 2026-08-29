@@ -5,159 +5,154 @@ description: Run the built userscript against a captured fight in a real browser
 
 # Verifying MargoMeter by running it
 
-> **Carried from v1, and its commands name a toolchain this tree does not have.** `bun run preview`,
-> `tools/preview-server.ts` and the modules under `src/` are v1's; none exists here yet. What this
-> document is kept for is the half no tool holds — how to drive a browser, what a synthetic pointer
-> does that a real one does not, and which flows are worth driving. Each command is corrected as the
-> module it names lands. `ARCHITECTURE.md` carries this under known gaps.
+The add-on's surface is a browser page. `deno task check` is not that surface: it typechecks, runs
+the suite and builds the bundle, and every one of those can be green while the panel is broken.
 
-The add-on's surface is a browser page. `bun test` is not that surface, and two comments in
-`src/userscript-entry.ts` say so out loud — the download path and `shouldStartHere` were both wrong
-in ways every test passed through.
-
-**The page is no longer something you build.** It was a recipe here for the life of two audits and
-nobody ever ran it; it is now `tools/preview-server.ts`, so what is left in this document is the
-half a tool cannot hold — how to drive it, what a synthetic pointer does that a real one does not,
-and which flows are worth driving at all.
+> **Two commands here still name v1.** `tools/fight-dump-parser.ts` and `tools/fight-report.ts` do
+> not exist in this tree; each is corrected when the module lands. `ARCHITECTURE.md` carries that
+> under known gaps. Everything else on this page runs today.
 
 ## The server
 
 ```bash
-bun run preview                     # http://localhost:4173
-bun run preview --port 8080
-bun run preview --fight 2026-08-14-tempest-grupa-vs-hildur
+deno task preview                     # http://localhost:4173
+deno task preview --port 8080
+deno task preview --fight 2026-08-23-tempest-grupa-vs-hildur
 ```
 
-It builds in memory, so nothing has to be built first and `dist/` is never touched. The page carries
-the whole fight, replays it synchronously, and offers a strip at the bottom left: capture picker,
-build status, and `◀ ▶ play to end` with an `entry N / total` counter.
+It builds into a temporary file, so nothing has to be built first and `dist/` is never touched. The
+page carries the whole fight, replays it synchronously, and offers a strip at the bottom left:
+recording picker, build status, and `◀ ▶ odtwórz do końca` with an `entry N / total` counter.
 
-**Picking a capture replays it into the page that is open**, so the panel keeps the tab, wherever it
-was dragged to and whether it was minimized — none of which a reload keeps here, see the storage
-gotcha below. The page fetches `/payloads?fight=<name>` and feeds it; the fight left behind goes
-onto the shelf, exactly as it would in game (`docs/specs/a-fight-you-can-go-back-to.md`). A
-published page has no process to ask and still navigates.
+**Picking a recording replays it into the page that is open**, so the panel keeps its screen,
+wherever it was dragged to and whether it was folded — none of which a reload keeps here, see the
+storage note below. The page fetches `/calls?fight=<name>` and feeds it; the fight left behind goes
+onto the shelf, exactly as it would in game.
 
 The address is the whole of the state:
 
 ```
-http://localhost:4173/?fight=<capture-name>&entry=<n>
+http://localhost:4173/?fight=<recording-name>&entry=<n>
 ```
 
-`entry` is where the replay stops, clamped to the fight's length. `entry=0` is the panel before
-anything has arrived; the last entry is the finished fight. Both matter — most of what a screenshot
-needs to show is at one end or the other.
+`entry` is where the replay stops, clamped to the fight's length. The last entry is the finished
+fight, and both ends matter — most of what is worth looking at is at one or the other.
 
-⚠️ **`#start` beats `entry`, and the `od początku` button reaches it by opening the page again.**
-Before the first payload is the one state a replay cannot reach — feeding nothing leaves the add-on
-holding the fight it already has — so the button reloads and the hash carries the ask across, which
-is also the only way the published page can say it. A screenshot of a page that clicks that button
-gets nothing: Firefox exits on a navigation during `load`. Photograph `…#start` directly, or watch
-the two requests in a server log.
+⚠️ **`#start` beats `entry`, and `od początku` reaches it by opening the page again.** Before the
+first call is the one state a replay cannot reach: feeding nothing leaves the add-on holding the
+fight it already accumulated, so the counter would read `0 / 52` beside rows still carrying their
+totals. Only a page that has fed nothing is the empty panel.
 
-**Hot reloading.** A change under `src/`, `libs/` or `package.json` rebuilds and reloads the page at
-the entry you were on. A rebuild that **fails** does not reload: the strip turns red and prints the
-build log, and the last good panel stays up. So a red strip means your edit did not compile, not
-that the panel broke.
+**Hot reloading.** A change under `src/` rebuilds and reloads the page at the entry you were on. A
+rebuild that **fails** does not reload: the strip turns red and prints the build log, and the last
+good panel stays up. So a red strip means your edit did not compile, not that the panel broke.
+`tools/` is not watched — this process already imported it, so editing the server means restarting
+it.
 
-## The screenshot
-
-**Four of them are a command now.** `bun run screenshots` retakes the set in `screenshots/` that
-`README.md` shows — the ranking on damage taken, the two levels below it and the detail card — and
-`tools/panel-screenshots.ts` holds the whole recipe below, plus the two traps it does not: the panel
-listens for `pointerdown` rather than `click`, and `spawnSync` deadlocks against a server in the
-same process. Reach for that when the four states it covers are the ones you want, and for the rest
-of this page when they are not.
-
-Firefox is at `/usr/bin/firefox` and takes one without Playwright:
+## The screenshots
 
 ```bash
-MOZ_HEADLESS=1 timeout 120 firefox --profile "$PROFILE" --no-remote \
-  --window-size 1280,900 --screenshot "$OUT.png" \
-  "http://localhost:4173/?fight=2026-08-14-tempest-grupa-vs-hildur&entry=91"
+deno task screenshots
+deno task screenshots --browser /usr/bin/google-chrome   # or MARGOMETER_BROWSER
 ```
 
-- `--profile "$(mktemp -d)"` always. A shared profile is shared state, and the download prefs below
-  have to go somewhere.
-- **It waits for `load` and nothing after it.** That is why the preview page carries its fight
-  inline and replays it synchronously — an earlier version fetched the capture and photographed
-  itself empty, with the strip still saying `loading`, which looks exactly like a panel that failed
-  to draw. Anything _you_ add to the page has the same deadline.
+Five pictures into `screenshots/`, with `taken-at.json` beside them naming the commit, the recording
+and the moment. It **refuses to shoot while `src/` carries anything no commit holds** — `DESIGN.md`
+owns that rule — and a failed run leaves the previous set alone, because nothing moves in until
+every picture exists.
+
+Each shot is measured before it is taken: the page writes the panel's own edges into a hidden
+`<pre>`, and the frame comes off that, so the picture is the panel and the air around it rather than
+a third of a screen of background.
+
+## Driving a browser by hand
+
+Chrome, because it is what Margonem is played in and where the panel's layout is measured.
+
+```bash
+PROFILE=$(mktemp -d)
+timeout 60 google-chrome --headless=new --disable-gpu --no-first-run --hide-scrollbars \
+  --user-data-dir="$PROFILE" --window-size=300,900 \
+  --screenshot=out.png "http://localhost:4173/?fight=<name>&entry=91"
+```
+
+- `--user-data-dir="$(mktemp -d)"` always. A shared profile is shared state between two runs.
+- **It waits for `load` and nothing after it.** That is why the page carries its fight inline and
+  replays it synchronously. Anything _you_ add to the page has the same deadline.
+- ⚠️ **`--dump-dom` floors the window at 500px wide; `--screenshot` honours what it is given.**
+  Measured on Chrome 152, 2026-08-29. A frame derived from the width you asked for rather than the
+  one the page reports is wrong by the difference, and the picture looks perfectly fine.
 - There is no console and no second interaction. **Write what you observed into a `<pre>` on the
-  page** — row texts read back out of the shadow root, the stored position, what the console saw.
-  The screenshot then carries its own evidence.
+  page** — row texts read back out of the shadow root, the stored position, what a handler saw. The
+  screenshot then carries its own evidence.
 
 ## Reading the panel back out
 
 `document.getElementById("MargoMeter-Panel")` — every element the add-on puts in the page is named
-that way, and its `data-margometer-version` says which build you are looking at. Nothing the
-_harness_ draws is: its own chrome is `preview-`, so `MargoMeter-` still means "the add-on's" on
-this page.
+that way, and `data-margometer-version` says which build you are looking at. Nothing the _harness_
+draws is: its own chrome is `preview-`, so `MargoMeter-` still means "the add-on's" on this page.
 
-The shadow root is `mode: "open"`, so `.shadowRoot.querySelector(…)` reaches inside. Its three
-children are prefixed too — `.MargoMeter-titlebar`, `.MargoMeter-body`, `.MargoMeter-tip` — and
-everything below them is not, because nothing outside the shadow root can see those.
+The shadow root is open, so `.shadowRoot.querySelector(…)` reaches inside. Its own children are
+prefixed too — `.MargoMeter-titlebar`, `.MargoMeter-body`, `.MargoMeter-sides`, `.MargoMeter-tip` —
+and everything below them is not, because nothing outside the shadow root can see those.
 
-| Selector                                                                   | What it is                                                  |
-| -------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `.row`, `.row-rank`, `.row-name`, `.row-value`, `.row-share`, `.row-badge` | a ranking row and its parts                                 |
-| `.bar`, `.bar-cap`                                                         | the bar behind a row                                        |
-| `.tab`, `.tabs`                                                            | the metric and direction strips                             |
-| `.crumb`, `.crumb-back`, `.crumb-here`                                     | the drill breadcrumb                                        |
-| `.list`, `.empty`, `.pinned`                                               | the scrolling list, its empty case, the row pinned under it |
-| `.section-heading`                                                         | a heading inside a drill level                              |
-| `.sides`, `.sides-label`, `.sides-track`, `.sides-region`                  | the summary under the list                                  |
-| `.warning`                                                                 | a total that may be too low, and why                        |
-| `.undrawn`                                                                 | a region that could not be rendered at all                  |
-| `.title-version`                                                           | the version, why reports can be screenshots                 |
-| `.titlebar-copy`                                                           | `⧉` copy the report                                         |
-| `.titlebar-raw`                                                            | `{ }` save the recording                                    |
-| `.titlebar-button` (bare)                                                  | `—` collapse                                                |
+| Selector                                                     | What it is                        |
+| ------------------------------------------------------------ | --------------------------------- |
+| `.row`, `.row-rank`, `.row-name`, `.row-value`, `.row-share` | a ranking row and its parts       |
+| `.row-time`, `.row-size`, `.row-pin`                         | a shelf row's own cells           |
+| `.bar`, `.bar-cap`                                           | the bar behind a row              |
+| `.tab`, `.tabs`, `.selected`                                 | a strip, and the tab you are on   |
+| `.crumb`, `.crumb-back`, `.crumb-here`                       | the breadcrumb over an opened row |
+| `.list`, `.empty`, `.pinned-region`, `.section-heading`      | the list and what stands in it    |
+| `.sides`, `.sides-label`, `.sides-track`                     | the totals under the list         |
+| `.warning`, `.undrawn`                                       | a low figure; a region that threw |
+| `.titlebar-version`, `.titlebar-copy`, `.titlebar-raw`       | the version, `⧉` copy, `{ }` save |
+| `.titlebar-fights`, `.titlebar-button`                       | the shelf, and folding the panel  |
+
+Presses and hovers are addressed by attribute rather than by class: `[data-screen]` for both tab
+strips in order, `[data-side]` for the audience strip, `[data-row]`, `[data-shelf]`, `[data-pin]`,
+`[data-tip]`, `[data-storage]`.
 
 ## Gotchas paid for
 
-- **A synthetic `PointerEvent` aborts the drag.** `setPointerCapture` throws `InvalidPointerId` for
-  a pointerId no real pointer owns, and `panel-element.ts` calls it _before_ the grab is recorded,
-  so the guarded handler swallows the whole drag. Stub `bar.setPointerCapture` /
-  `releasePointerCapture` on the title bar before dispatching, and say so in the report. A real
-  pointer does not hit this.
+- **`pointerdown`, not `click`.** The panel listens for the press, because a payload landing between
+  a press and a release detaches the pressed node. `node.click()` fires nothing at all — in v1 that
+  reported four successful shots of three identical pictures, and the only visible sign was that the
+  files were the same size.
+- **A synthetic `PointerEvent` aborts a drag.** `setPointerCapture` throws for a pointerId no real
+  pointer owns, and the guarded handler swallows the whole drag. Stub
+  `setPointerCapture`/`releasePointerCapture` on the title bar before dispatching, and say so in the
+  report. A real pointer does not hit this.
 - **The world reads as `localhost`.** `getWorldFromPage` takes the first label of the hostname, so a
-  preview says `localhost` where a real page says `tempest`. That is correct behaviour, not a fault
-  to chase — and it is _not_ the empty string that a `file://` page used to produce, which was a
-  real bug and is fixed.
+  preview says `localhost` where a real page says `tempest`. Correct behaviour, not a fault to
+  chase.
 - **Nothing the add-on stores outlives the page.** The harness installs its own store over
   `localStorage` and `sessionStorage` before the bundle runs, so a visitor to the published preview
-  is not left holding somebody's demo fight — and every reload therefore starts at the default
-  corner, expanded, with the shelf empty. _"The position survived a reload"_ is **not** testable on
-  this page; drive `getStoreFromPage` directly, or read the key back inside the one document. What
-  does survive is a pick, which no longer reloads.
-- **Downloads work under `--screenshot`** — the file lands before Firefox exits. Prefs in
-  `$PROFILE/user.js`: `browser.download.folderList=2`, `browser.download.dir`,
-  `browser.download.useDownloadDir=true`,
-  `browser.helperApps.neverAsk.saveToDisk="application/json"`.
+  is not left holding somebody's demo fight. _"The position survived a reload"_ is therefore not
+  testable here; drive the store directly, or read the key back inside the one document. What does
+  survive is a pick, which no longer reloads.
 - **The build script 404s on purpose.** `/main.min<build>.js` is a decoy: only its `src` attribute
-  is read, and without it the build is `null` in any recording saved.
+  is read, and without it a recording saved from the preview names no build.
 
 ## Flows worth driving
 
-Step to `entry=0` and check the panel says it has nothing rather than drawing zeroes · scrub forward
-and watch rows appear · jump to the end and check the numbers against `bun tools/fight-report.ts`
-(they agree exactly — two independent paths over one capture) · drag, reload, and reload again with
-a corrupt stored position · click each tab and drill into a row and back out · click save and parse
-the file back with `tools/fight-dump-parser.ts` · save before any fight · make the game's own
-`updateData` throw · load with no `Engine` at all.
+Step to `#start` and check the panel says it has nothing rather than drawing zeroes · scrub forward
+and watch rows appear · jump to the end and check the figures against what the suite computes over
+the same recording · drag, reload, and reload again with a corrupt stored position · press each tab
+and open a row and step back out · press `{ }` and parse the file back · press `{ }` before any
+fight · make the game's own `updateData` throw · load with no `Engine` at all.
 
-For the last two, edit the stub in `composePreviewPage` — it is one string in
-`tools/preview-page.ts`, and a change there needs the server restarted, because the watcher
+For the last two, edit the stub in `tools/preview-page.ts` and restart the server — the watcher
 deliberately does not watch itself.
 
-The same page is published by `tools/preview-site.ts`, in Polish and opening on the finished fight.
-What is worth driving there and nowhere else: that the panel appears at all under a path of its own
-(`python3 -m http.server` from `dist/`, opened at `/preview/` — an absolute `src` works everywhere
-except a deployment), and that the console is empty, which is where a reload stream reconnecting to
-nothing and a decoy answered with HTML would show.
+## The published page
 
-## Reading a saved recording back
+```bash
+deno task preview:site
+python3 -m http.server -d dist    # open /preview/
+```
 
-`tools/fight-dump-parser.ts` imports `@/…`, so a script outside the repo needs a `tsconfig.json`
-beside it mapping `"@/*"` to the repository root.
+The same page in Polish, opening on the finished fight, with no process behind it. What is worth
+driving there and nowhere else: that the panel appears at all under a path of its own — an absolute
+`src` works everywhere except a deployment — and that the console is empty, which is where a decoy
+answered with HTML and a reload stream reconnecting to nothing would both show.

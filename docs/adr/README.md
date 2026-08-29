@@ -81,3 +81,5 @@ edited to agree with the new rule.
   takes the whole panel onto the pixel grid. **Accepted**
 - [0016](0016-the-ceiling-became-the-target.md) — The ceiling became the target, so description
   moves to the docblock. **Accepted**
+- [0017](0017-the-panel-is-served-and-published.md) — The panel is served while it is edited, and
+  published once it is released. **Accepted**

@@ -1,0 +1,73 @@
+# The preview, published. `deno task preview` serves that page from a machine with this
+# repository checked out; this writes it down and puts it on the web, so the panel can be looked
+# at by somebody who has installed nothing — into a game that has not authorised the add-on.
+#
+# The gate runs first and the deploy is gated on it: a tree that cannot pass `deno task check`
+# must not become the page this repository points people at.
+#
+# The trigger is `main`, and `main` is the latest release (ARCHITECTURE.md), so what is published
+# is the panel a visitor can actually install rather than the tip of development.
+#
+# ⚠️ **Pages has to exist before anything can be deployed to it, and it is created once by hand:
+# Settings → Pages → Build and deployment → Source → GitHub Actions.** Not "Deploy from a
+# branch": every page is generated into `dist/`, which git does not carry. Measured in v1 over
+# four runs, 2026-08-17 to 2026-08-18 — `configure-pages` fails outright without `enablement`,
+# fails to create the site with it, and was refused by the run's own token on a public repository
+# (`Resource not accessible by integration`); the switch thrown by hand made the next run green
+# on every step. `enablement: true` stays because it costs nothing once a site exists, and for
+# the fork whose owner GitHub does let create one by API.
+#
+# ⚠️ **What gets published is the recordings' own engine calls**, inlined one fight per page.
+# `NOTICE.md` says what that carries and on what basis. Nothing generated here is committed.
+name: pages
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+# What a Pages deployment needs and nothing more. `id-token` is how `deploy-pages` proves to
+# Pages that this run is the one that uploaded the artifact.
+permissions:
+    contents: read
+    pages: write
+    id-token: write
+
+# One deployment at a time, and a running one is left to finish: cancelling mid-deploy leaves the
+# site serving whichever half of the upload arrived.
+concurrency:
+    group: pages
+    cancel-in-progress: false
+
+jobs:
+    # One job rather than the two-job template GitHub documents: the build and the deploy share a
+    # checkout, and splitting them buys an artifact hand-off between two steps that run back to back.
+    publish:
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+            url: ${{ steps.deploy.outputs.page_url }}
+        steps:
+            # The whole history, because the gate reads `git ls-files` and a shallow checkout of one
+            # commit still answers it — but the screenshot guard and any later git-reading guard do not
+            # all promise that, and a full checkout of this repository costs seconds.
+            - uses: actions/checkout@v4
+
+            # Pinned, and not to a moving tag: "latest" means the published page changes one day with
+            # no change in the code.
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: 2.9.6
+
+            - run: deno task check
+            - run: deno task preview:site
+
+            # GitHub's own actions, so the only third-party one here is setup-deno.
+            - uses: actions/configure-pages@v5
+              with:
+                  enablement: true
+            - uses: actions/upload-pages-artifact@v3
+              with:
+                  path: dist/preview
+            - id: deploy
+              uses: actions/deploy-pages@v4

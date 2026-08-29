@@ -33,6 +33,18 @@ those modules; the licences of both apply to their own parts.
 This is a change from MargoMeter v1, which shipped no third-party code. The reasoning is recorded in
 `docs/adr/0001-deno-instead-of-bun.md`.
 
+## The published preview
+
+`.github/workflows/pages.yml` publishes a page per recording, and each one carries that recording's
+own engine calls inlined — which is what makes the replay synchronous. Those calls hold the
+protocol's functional names and the game's own names for abilities and items, on the same basis as
+`captures/` itself: player nicknames are substituted by tooling before a recording is admitted, and
+ability descriptions are stripped from it. Nothing generated for that site is committed; it is
+written under `dist/`, which git does not carry.
+
+The page counts everything in the visitor's own browser, connects to nothing, and takes the
+browser's store away before the add-on loads — so a visit leaves nothing behind in it.
+
 ## Everything else
 
 The design, the rules, the documents, the tooling and the panel are this project's own work, under

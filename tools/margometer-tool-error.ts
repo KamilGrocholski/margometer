@@ -3,7 +3,11 @@
  * there cannot swallow it, and abstract so no base is ever thrown. **ADR 0009.**
  */
 
-export type MargoMeterToolErrorCode = "UserscriptBuild" | "PreviewBuild" | "CaptureIntake";
+export type MargoMeterToolErrorCode =
+    | "UserscriptBuild"
+    | "PreviewBuild"
+    | "CaptureIntake"
+    | "PanelShot";
 
 export abstract class MargoMeterToolError extends Error {
     readonly code: MargoMeterToolErrorCode;
@@ -36,5 +40,15 @@ export class PreviewBuildError extends MargoMeterToolError {
 export class CaptureIntakeError extends MargoMeterToolError {
     constructor(reason: string) {
         super("CaptureIntake", reason);
+    }
+}
+
+/**
+ * A photograph refused: no browser to take it with, a tree whose `src/` is not in a commit, or a
+ * run that produced fewer pictures than the set names. `DESIGN.md` owns the first two.
+ */
+export class PanelShotError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("PanelShot", reason);
     }
 }

@@ -35,6 +35,9 @@ deno.json          Tasks, formatter, linter, strictness, the `@/` alias.
 deno.lock          What the gate is actually run against. A package the lock does not name is
                    ambient type information CI will not have.
 .gitignore         What never enters git, including the cache.
+.github/
+  workflows/
+    pages.yml      The preview published, on a push to `main`, once the gate is green.
 
 src/
   build-version.ts     Which build this is. The one constant a build writes over — ADR 0012.
@@ -71,9 +74,13 @@ src/
     panel-tip.ts         The window a row opens on hover, and the register it is looked up in.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
 tools/             Never ships. Each arrives with the question it answers.
-  build-preview.ts     A page that runs the add-on against the recordings, so it can be seen.
   build-userscript.ts  The file a reader installs, the version written in, and two checks.
   capture-intake.ts    How a recording becomes material: two redactions, then a file.
+  recorded-fights.ts   The recordings as a tool reads them: a name, and the calls made.
+  preview-page.ts      The harness page, whole, as one string. It speaks neither language.
+  preview-server.ts    That page served, rebuilt on a change under `src/`, and reloaded.
+  preview-site.ts      That page written down, one per recording, for somebody with no clone.
+  panel-screenshots.ts The panel photographed, at a frame measured off the panel itself.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
@@ -108,9 +115,13 @@ tests/
     unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
   tools/
     browser-support.test.ts   Every construct the sheet spells, against the register, both ways.
-    build-preview.test.ts     The page, read back: the order of its scripts, and its escaping.
     build-userscript.test.ts  The built file, read back: the banner, and no way out.
     capture-intake.test.ts    What intake refuses, and every admitted recording as a fixed point.
+    recorded-fights.test.ts   The directory read, and the claim a rewind by replay stands on.
+    preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
+    preview-server.test.ts    Every route, against a bundle handed in rather than built.
+    preview-site.test.ts      A page per recording, addressed relatively and asking nothing.
+    panel-screenshots.test.ts The set against its sidecar, and the frame a report sizes.
   ui/
     panel-card.test.ts        Every figure a card states, and the parts it draws under them.
     panel-drag.test.ts        A panel kept on the screen, and put back where it was left.
@@ -330,17 +341,20 @@ commit that opens or closes one.
    fight as a recording in the shape intake reads, a press on the copy control hands them the
    figures as text, the panel carries the stylesheet `DESIGN.md` specifies and the strip that always
    states the screen's own total, and `deno task build` writes the file they install,
-   `deno task preview` writes a page that runs it against the recordings, and `deno task intake`
-   redacts a recording and admits it to `captures/`. the header says how the fight went, the strip
-   under the list totals the two sides and what belongs to neither, a doubt is said as a sentence
-   under it, and the panel is moved by its bar and comes back where it was left. What is not
-   written: **the third level of the drill**, which is v1's cut by skill. The card that says what a
-   combatant's figures are made of is written; what it cannot say is v1's four extras — critical
-   hits, the largest blow, the effects a blow fired and the statistics an attacker destroyed —
-   because `core/` carries each of them on the events it produces — `+crit` among `PROC_KEYS`, the
-   destroyed statistics on their own field, and every blow's own figures — and `fight-statistics.ts`
-   aggregates none of the four. The rest of the tools and the release plumbing — `README.md`,
-   `CHANGELOG.md` and the workflows — are unwritten.
+   `deno task preview` serves it over a recording and reloads it on a change under `src/`,
+   `deno task preview:site` writes the same page down for somebody with no clone,
+   `deno task screenshots` photographs it, and `deno task intake` redacts a recording and admits it
+   to `captures/`. the header says how the fight went, the strip under the list totals the two sides
+   and what belongs to neither, a doubt is said as a sentence under it, and the panel is moved by
+   its bar and comes back where it was left. What is not written: **the third level of the drill**,
+   which is v1's cut by skill. The card that says what a combatant's figures are made of is written;
+   what it cannot say is v1's four extras — critical hits, the largest blow, the effects a blow
+   fired and the statistics an attacker destroyed — because `core/` carries each of them on the
+   events it produces — `+crit` among `PROC_KEYS`, the destroyed statistics on their own field, and
+   every blow's own figures — and `fight-statistics.ts` aggregates none of the four. The rest of the
+   tools and the release plumbing — `README.md`, `CHANGELOG.md`, and the `check` and `release`
+   workflows — are unwritten; `.github/workflows/pages.yml` is the one that exists, and nothing yet
+   consumes the photographs it does not publish.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
@@ -381,11 +395,11 @@ commit that opens or closes one.
    `docs/drill-levels.md` did from a tool that measured it both ways. That document is readable at
    `git show develop:docs/drill-levels.md`; the register here returns **generated**, not carried,
    when there is a tool to generate it from.
-10. **The `verify` skill names the Bun toolchain.** `.agents/skills/verify/SKILL.md` carries the
-    procedural knowledge for driving the add-on in a browser and reading what the panel drew — worth
-    keeping verbatim, since no tool regenerates it — but its commands (`bun run preview`,
-    `tools/fight-dump-parser.ts`) name a toolchain and modules this tree does not have. Corrected
-    module by module as each lands.
+10. **Two commands in the `verify` skill still name v1.** `.agents/skills/verify/SKILL.md` carries
+    the procedural knowledge for driving the add-on in a browser and reading what the panel drew,
+    and its preview, screenshot and selector halves were corrected against this tree on 2026-08-29.
+    What is left naming modules that do not exist here is `tools/fight-dump-parser.ts` and
+    `tools/fight-report.ts`. Corrected module by module as each lands.
 11. **A function declaration whose arrow sits on the next line is not counted.** `isFunctionOpener`
     in `tests/repository/sources.test.ts` reads a declaration from one line, so a named arrow
     wrapped across two is invisible to S4 and S5. The limit is pinned by a test rather than left to

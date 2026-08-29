@@ -11,7 +11,9 @@ import { BUILD_VERSION } from "@/src/build-version.ts";
 import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
 
 const BUNDLE_ENTRY = "src/userscript-boot.ts";
-const USERSCRIPT_FILE = "dist/margometer.user.js";
+/** What the built file is called wherever it is served from, and not only under `dist/`. */
+export const USERSCRIPT_NAME = "margometer.user.js";
+const USERSCRIPT_FILE = `dist/${USERSCRIPT_NAME}`;
 const METADATA_FILE = "dist/margometer.meta.js";
 const HOMEPAGE = "https://github.com/KamilGrocholski/margometer";
 
@@ -91,7 +93,8 @@ export function setVersionInBundle(bundle: string, version: string): string {
     return parts.join(version);
 }
 
-async function bundleUserscript(): Promise<string> {
+async function bundleUserscript(outputPath: string): Promise<string> {
+    assert(outputPath.length > 0, "a bundler is told where to write");
     const bundling = new Deno.Command(Deno.execPath(), {
         args: [
             "bundle",
@@ -99,7 +102,7 @@ async function bundleUserscript(): Promise<string> {
             "--config",
             "deno.json",
             "-o",
-            USERSCRIPT_FILE,
+            outputPath,
             BUNDLE_ENTRY,
         ],
     }).output();
@@ -108,12 +111,33 @@ async function bundleUserscript(): Promise<string> {
         const said = new TextDecoder().decode(finished.stderr);
         throw new UserscriptBuildError(`the bundler refused: ${said}`);
     }
-    return await Deno.readTextFile(USERSCRIPT_FILE);
+    return await Deno.readTextFile(outputPath);
 }
 
-export async function buildUserscript(version: string): Promise<string> {
-    const banner = composeUserscriptBanner(version);
-    const bundle = await bundleUserscript();
+/** The two texts a build produces. Both from one call: two banners can disagree. */
+export interface UserscriptFiles {
+    /** The banner and the bundle under it, which is the file a reader installs. */
+    script: string;
+    /** The banner alone, which an installed copy polls for its next version. */
+    metadata: string;
+}
+
+/**
+ * The built text. The bundler has to be given somewhere to put its output, and a caller that
+ * does not care is given a temporary file: the preview rebuilds on every save, and doing that
+ * into `dist/` would churn what a release attaches and race the gate over it. Everything that
+ * decides what the file **is** stays here, since a preview built on other settings is a preview
+ * of something nobody installs.
+ */
+export async function composeUserscriptFiles(
+    version: string,
+    outputPath?: string,
+): Promise<UserscriptFiles> {
+    const metadata = composeUserscriptBanner(version);
+    const written = outputPath ??
+        await Deno.makeTempFile({ prefix: "margometer-", suffix: ".js" });
+    const bundle = await bundleUserscript(written);
+    if (outputPath === undefined) await Deno.remove(written);
     if (bundle.length === 0) {
         throw new UserscriptBuildError("the bundler wrote nothing");
     }
@@ -122,8 +146,16 @@ export async function buildUserscript(version: string): Promise<string> {
     if (outbound.length > 0) {
         throw new UserscriptBuildError(`the file could leave: ${outbound}`);
     }
-    await Deno.writeTextFile(USERSCRIPT_FILE, `${banner}${stamped}`);
-    await Deno.writeTextFile(METADATA_FILE, banner);
+    assert(metadata.length > 0, "a built file says whose it is");
+    assert(stamped.length > 0, "and carries the program under it");
+    return { script: `${metadata}${stamped}`, metadata };
+}
+
+export async function buildUserscript(version: string): Promise<string> {
+    const files = await composeUserscriptFiles(version, USERSCRIPT_FILE);
+    assert(files.script.startsWith(files.metadata), "the banner stands over the bundle");
+    await Deno.writeTextFile(USERSCRIPT_FILE, files.script);
+    await Deno.writeTextFile(METADATA_FILE, files.metadata);
     return USERSCRIPT_FILE;
 }
 
