@@ -250,7 +250,8 @@ TypeScript idiom, with the naming rules stated here.
   the date it was read. _(`by-reading` whether a build id is the one the claim was read on)_
 - **V3.** A claim about a browser names the engine, the version and the date it was read. The
   version is the **first** release with support, never the one that completes a partial
-  implementation.
+  implementation. Which engine a measurement is taken on is
+  [`docs/browser-support.md`](docs/browser-support.md)'s to say.
 - **V4.** A measurement over the recordings names the material it was taken on — the file, or the
   set and its date. Where the claim is about every recording, say that and drop the figure.
   _(`by-reading` whether the named material is the material measured)_

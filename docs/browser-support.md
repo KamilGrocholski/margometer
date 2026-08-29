@@ -32,6 +32,28 @@ scrollbar instead of the thin tinted one.
 ⚠️ **One property is spelled twice, once with a `-webkit-` prefix**, because Safari answers it under
 no other name — see `### Prefixed` below.
 
+## The one it is developed against
+
+**Chrome is the browser this add-on is developed and measured against, from 2026-08-29.** It is what
+most people playing Margonem use, and the floor above is what everybody else gets.
+
+The two are different claims and the distinction is the point of this section. The floor says which
+engines the panel works on, and it still covers three. This says which engine a **measurement** is
+taken on when one is needed, and there has to be one: a browser picks the face `system-ui` resolves
+to, so the same rule lays out differently on Chrome and on Firefox, and on the same engine across
+two systems. A layout figure taken on an engine nobody plays on answers a question nobody asked.
+
+What follows from it:
+
+- A measurement of how the panel lays out is taken in Chrome, and carries its version and the date
+  it was taken on, as **V3** asks of any claim about a browser. `deno task preview` writes
+  `dist/preview.html`, which stands the add-on up against a recording with no game and no network;
+  headless Chrome reads it from disk.
+- A measurement already in the tree that names another engine stays as it was taken. It was true of
+  that engine on that date, and rewriting it would be inventing a reading nobody took.
+- Being the target buys Chrome nothing in the tables below. A construct still needs an entry with
+  every engine's first supporting version, and a Chrome-only construct still raises the floor.
+
 ## CSS
 
 The stylesheet is one string, `composePanelStyleText()` in `src/ui/panel-look.ts`, so what it spells
