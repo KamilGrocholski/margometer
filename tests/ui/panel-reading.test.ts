@@ -320,6 +320,22 @@ Deno.test("every screen opens, and a row belonging to nobody in the fight opens 
     // the health, so a giver's row is cut by whom and by nothing else.
     const given = composeDrillReading(statistics, roster, "healthGiven", held);
     assertEquals(given?.byElement, { rows: [], unnamed: null }, "healing given is cut once");
+
+    // Every row of a ranking opens, including a combatant nothing has named yet: they stand on
+    // the list at zero, and a press that drew nothing would read as a press that did not land —
+    // which is the state every fight is in for its first payloads. Over `captures/` on
+    // 2026-08-29 every recording names everybody before it ends, so the fight is stood up here.
+    const opening = composeFightStatistics([], new Map());
+    assertEquals(opening.byCombatantId.size, 0, "a fight nothing has happened in names nobody");
+    const opened = composeDrillReading(opening, roster, "damageDealtApplied", held);
+    assert(opened !== null, "and a row of it still opens");
+    assertEquals(opened.total, 0, "onto a figure of nothing");
+    assertEquals(opened.byOpponent.rows, [], "with no cut of it at all");
+    assertEquals(
+        composeDrillReading(opening, roster, "damageDealtApplied", 0),
+        null,
+        "while a row belonging to nobody in the fight still opens nothing",
+    );
     assertEquals(
         composeDrillReading(statistics, roster, "damageDealtApplied", 0),
         null,

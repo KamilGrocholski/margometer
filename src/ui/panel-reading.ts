@@ -12,7 +12,12 @@
 
 import { assert } from "@std/assert";
 import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
-import type { CombatantFigures, FightStatistics, FigureCut } from "@/src/core/fight-statistics.ts";
+import {
+    type CombatantFigures,
+    composeCombatantFigures,
+    type FightStatistics,
+    type FigureCut,
+} from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
 import { type PanelSideChoice, SCREEN_ORDER, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
 import {
@@ -1067,11 +1072,15 @@ export function composeDrillReading(
     metric: PanelMetric,
     combatantId: number,
 ): DrillReading | null {
-    const figures = statistics.byCombatantId.get(combatantId);
+    const held = roster.byId.get(combatantId);
+    // Every row of a ranking opens, including a combatant nothing has named yet: they are on the
+    // list at zero, and a row that drew nothing when it was pressed would leave the panel saying
+    // the press did not land. What they open onto is the sentence saying they did nothing.
+    const figures = statistics.byCombatantId.get(combatantId) ??
+        (held === undefined ? undefined : composeCombatantFigures());
     if (figures === undefined) return null;
     const cuts = getCutsForMetric(figures, metric);
     const total = getFigure(figures, metric);
-    const held = roster.byId.get(combatantId);
     const byOpponent = composeOpponentCut(
         cuts.byOpponent,
         roster,

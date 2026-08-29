@@ -130,7 +130,8 @@ export interface FightStatistics {
     outcome: FightOutcome | null;
 }
 
-function composeCombatantFigures(): CombatantFigures {
+/** A row at nothing, which is what a combatant nothing has named yet is drawn from. */
+export function composeCombatantFigures(): CombatantFigures {
     // A row starts at nothing, and nothing is a reading rather than an absence.
     return {
         damageDealtRaw: 0,
