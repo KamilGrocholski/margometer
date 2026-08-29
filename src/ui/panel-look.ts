@@ -642,9 +642,9 @@ function composeRowRules(): string {
         // off the ranking above, and the bar is hatched rather than solid, because it is not a
         // combatant and must not look like one at a glance. The gutter is the list's own, so a
         // bar outside the list is drawn the same length as a bar inside it.
-        `.${CLASS.pinned}{margin:var(${VARIABLE_PREFIX}small) ` +
-        `var(${VARIABLE_PREFIX}region-across) 0;padding:var(${VARIABLE_PREFIX}small) 0 ` +
-        `${composeInsetUnderRows(VARIABLE_PREFIX + "small")};` +
+        `.${CLASS.pinned}{margin:0 var(${VARIABLE_PREFIX}region-across);` +
+        `padding:var(${VARIABLE_PREFIX}region-down) 0 ` +
+        `${composeInsetUnderRows(VARIABLE_PREFIX + "region-down")};` +
         `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;` +
         `scrollbar-gutter:stable;scrollbar-width:thin;}` +
         `.${CLASS.pinned} .${CLASS.bar}{opacity:0.4;mask-image:repeating-linear-gradient(` +

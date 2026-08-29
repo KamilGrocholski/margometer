@@ -199,6 +199,7 @@ function getTermPixels(stated: string): number {
         assert(held !== undefined, `${stated} spends a token SPACE does not hold`);
         written = held[1];
     }
+    if (written === "0") return 0;
     assert(written.endsWith("px"), `${stated} is a length this panel does not measure in`);
     const value = Number(written.slice(0, -"px".length));
     assert(Number.isFinite(value), `${stated} is not a number`);
@@ -252,15 +253,28 @@ function getShorthandParts(stated: string): string[] {
 }
 
 /** Top, then bottom, out of whichever spellings the rule uses, the longhand winning. */
-function getInsetsDown(body: string, selector: string): number[] {
-    const shorthand = getDeclaration(body, "padding");
-    assert(shorthand !== null, `${selector} states no padding`);
+function getEdgesDown(body: string, selector: string, property: string): number[] {
+    const shorthand = getDeclaration(body, property);
+    if (shorthand === null) return [0, 0];
     const parts = getShorthandParts(shorthand);
     const above = parts[0] ?? "";
     // One part is every side, two are down and across, and three or four state the bottom third.
     const below = parts.length >= 3 ? parts[2] ?? "" : above;
-    const longhand = getDeclaration(body, "padding-bottom");
+    const longhand = getDeclaration(body, `${property}-bottom`);
+    assert(selector.startsWith("."), "an edge is read off a rule of a class");
     return [getPixels(above), getPixels(longhand === null ? below : longhand)];
+}
+
+/** What a reader sees above a region's first bar and below its last, the row's own margin in. */
+function getAirAround(sheet: string, selector: string, margin: number): number[] {
+    const body = getRuleBody(sheet, selector);
+    const [insetAbove, insetBelow] = getEdgesDown(body, selector, "padding");
+    const [marginAbove, marginBelow] = getEdgesDown(body, selector, "margin");
+    assert(insetAbove !== undefined, `${selector} states what insets it`);
+    return [
+        (marginAbove ?? 0) + (insetAbove ?? 0),
+        (insetBelow ?? 0) + margin + (marginBelow ?? 0),
+    ];
 }
 
 /** The operators a `calc` spends outside its own groups, which is where a stray term sits. */
@@ -295,7 +309,8 @@ Deno.test("what stands over a region's first bar is what stands under its last",
     assert(carried > 0, "and that margin is a length a reader can see");
     for (const region of [CLASS.list, CLASS.pinned]) {
         const selector = `.${region}`;
-        const [above, below] = getInsetsDown(getRuleBody(sheet, selector), selector);
+        const body = getRuleBody(sheet, selector);
+        const [above, below] = getEdgesDown(body, selector, "padding");
         assertEquals(
             above,
             (below ?? 0) + carried,
@@ -303,6 +318,31 @@ Deno.test("what stands over a region's first bar is what stands under its last",
                 `under the last`,
         );
     }
+});
+
+Deno.test("a rule between two regions has the same air on either side of it", () => {
+    // The one this catches was the last one standing, and every region was already even inside
+    // itself: the pinned block carried a `margin-top` of its own on top of the list's bottom
+    // inset, so the dashed rule sat 9px under the ranking and 4px over the block it opened —
+    // measured in Chrome 152 on 2026-08-29. A region being even says nothing about the seam
+    // between two of them, and the seam is what a reader sees as a line drawn off centre.
+    const sheet = composeStyleSheet();
+    const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "margin-bottom");
+    assert(stated !== null, "a row carries its own margin into the space under the last bar");
+    const margin = getPixels(stated);
+    const list = getAirAround(sheet, `.${CLASS.list}`, margin);
+    const pinned = getAirAround(sheet, `.${CLASS.pinned}`, margin);
+    const sides = getEdgesDown(getRuleBody(sheet, `.${CLASS.sides}`), `.${CLASS.sides}`, "padding");
+    assertEquals(
+        list[1],
+        pinned[0],
+        `the dashed rule stands under ${list[1]}px of the ranking and over ${pinned[0]}px`,
+    );
+    assertEquals(
+        pinned[1],
+        sides[0],
+        `the summary's rule stands under ${pinned[1]}px of the block and over ${sides[0]}px`,
+    );
 });
 
 Deno.test("a list is as tall as the rows it promises, and carries no term besides", () => {
@@ -333,5 +373,12 @@ Deno.test("the reader adds up a rule rather than matching one", () => {
     const body = getRuleBody("}.a{padding:1px 2px;padding-bottom:3px;}", ".a");
     assertEquals(getDeclaration(body, "padding-bottom"), "3px", "the longhand is found");
     assertEquals(getDeclaration(body, "margin-bottom"), null, "and what is absent is not invented");
+    assertEquals(
+        getEdgesDown(body, ".a", "padding"),
+        [1, 3],
+        "the longhand outranks the shorthand",
+    );
+    assertEquals(getEdgesDown(body, ".a", "margin"), [0, 0], "an edge nothing states is nothing");
+    assertEquals(getPixels("0"), 0, "and a bare nought is a length like any other");
     assertEquals(getTokenSpelling("regionDown"), "region-down", "a token crosses spellings once");
 });
