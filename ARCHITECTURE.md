@@ -85,6 +85,7 @@ tools/             Never ships. Each arrives with the question it answers.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
   help-article.ts      The published help cached, searched raw, and counted into a reading.
+  changelog.ts         The version this tree declares, and what a release says about it.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
@@ -129,6 +130,7 @@ tests/
     game-client-source.test.ts  Both names a world serves, and git asked about the cache.
     protocol-key-table.test.ts  The switch in either spelling, and the material against it.
     help-article.test.ts      A page turned into text, and a dump that says how old it is.
+    changelog.test.ts         A section against its neighbours, and the release that has none.
   ui/
     panel-card.test.ts        Every figure a card states, and the parts it draws under them.
     panel-drag.test.ts        A panel kept on the screen, and put back where it was left.
@@ -432,9 +434,9 @@ commit that opens or closes one.
     false positive is worse than a blind spot, so this is the next thing that guard should learn;
     gap 10 is the other half of the same reader.
 14. **No release exists on this branch.** `CHANGELOG.md` is written, carried from v1 and opened with
-    what the rewrite changed for a player; the tool that lifts a section out of it, the workflows
-    and the screenshots are not, and the release contract above is inherited from v1 and unexercised
-    here.
+    what the rewrite changed for a player, and `tools/changelog.ts` composes the body of a release
+    out of it; `README.md`, the workflows and the screenshots are not written, and the release
+    contract above is inherited from v1 and unexercised here.
 15. **Nothing says which side is the reader's.** `PanelRow.side` carries the game's own team number
     and nothing turns it into `ours` or `theirs`: that needs `Engine.hero.d.id` read against
     `warriorsList`, which `game/` has not done. The two tokens `DESIGN.md` states for it are unspent

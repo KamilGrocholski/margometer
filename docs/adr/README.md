@@ -83,3 +83,5 @@ edited to agree with the new rule.
   moves to the docblock. **Accepted**
 - [0017](0017-the-panel-is-served-and-published.md) — The panel is served while it is edited, and
   published once it is released. **Accepted**
+- [0018](0018-a-release-says-what-its-changelog-section-says.md) — A release says what its changelog
+  section says, and the version is declared once. **Accepted**

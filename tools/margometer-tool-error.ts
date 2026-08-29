@@ -10,7 +10,8 @@ export type MargoMeterToolErrorCode =
     | "PanelShot"
     | "GameSource"
     | "ProtocolKeyTable"
-    | "HelpArticle";
+    | "HelpArticle"
+    | "Changelog";
 
 export abstract class MargoMeterToolError extends Error {
     readonly code: MargoMeterToolErrorCode;
@@ -74,5 +75,12 @@ export class ProtocolKeyTableError extends MargoMeterToolError {
 export class HelpArticleError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super("HelpArticle", reason, options);
+    }
+}
+
+/** The release notes refused: a version the changelog says nothing about. */
+export class ChangelogError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("Changelog", reason);
     }
 }

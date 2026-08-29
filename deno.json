@@ -1,4 +1,5 @@
 {
+    "version": "0.10.1",
     "tasks": {
         // The gate. One command, so there is no version of "I ran the tests but not the build".
         // `build` writes `dist/`, which git does not carry: what ships is checked as a file.
@@ -21,7 +22,10 @@
         // Every key the client branches on, lifted out of that bundle and frozen beside it.
         "keys": "deno run -A tools/protocol-key-table.ts",
         // The published help, cached and searched, and the counts a register claim is held to.
-        "help": "deno run -A tools/help-article.ts"
+        "help": "deno run -A tools/help-article.ts",
+        // What a release says about itself: the version this tree declares, and the section
+        // `CHANGELOG.md` carries for it. `release.yml` runs both, and so can a hand before a tag.
+        "notes": "deno run -A tools/changelog.ts"
     },
     "fmt": {
         // 4 spaces, hard limit of 100 columns, nothing hidden by a scrollbar.

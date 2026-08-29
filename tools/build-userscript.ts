@@ -14,7 +14,9 @@ const BUNDLE_ENTRY = "src/userscript-boot.ts";
 /** What the built file is called wherever it is served from, and not only under `dist/`. */
 export const USERSCRIPT_NAME = "margometer.user.js";
 const USERSCRIPT_FILE = `dist/${USERSCRIPT_NAME}`;
-const METADATA_FILE = "dist/margometer.meta.js";
+/** What the metadata file is called wherever it is served from, and not only under `dist/`. */
+export const METADATA_NAME = "margometer.meta.js";
+const METADATA_FILE = `dist/${METADATA_NAME}`;
 const HOMEPAGE = "https://github.com/KamilGrocholski/margometer";
 
 /** Worlds live on per-world subdomains; these are the operator's own site, not a world. */
