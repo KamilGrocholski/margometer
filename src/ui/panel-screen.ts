@@ -45,6 +45,22 @@ const SCREEN_AXES: Record<PanelMetric, { noun: PanelNoun; direction: PanelDirect
 };
 
 /**
+ * Where the shelf is kept: as long as the browser will hold it, until the tab closes, or only
+ * while this page is up. The reader's own answer, and the panel's only question about storage.
+ */
+export const STORAGE_CHOICES = ["local", "session", "memory"] as const;
+export type PanelStorageChoice = (typeof STORAGE_CHOICES)[number];
+
+/** Null for a name no choice answers to, so a stray attribute never moves the shelf. */
+export function getStorageFromName(name: string): PanelStorageChoice | null {
+    for (const choice of STORAGE_CHOICES) {
+        if (choice === name) return choice;
+    }
+    assert(name.length >= 0, "a name that was asked for is text");
+    return null;
+}
+
+/**
  * Whose rows are listed. Never one of the game's own sides, which are bare numbers: what a reader
  * picks is a relation to their own side, and which number that is belongs to one fight.
  */

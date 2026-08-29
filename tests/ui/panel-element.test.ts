@@ -31,6 +31,7 @@ import {
     getWordsForDamageKind,
     getWordsForNothing,
     getWordsForOutcome,
+    getWordsForStorage,
     PANEL_WORDS,
 } from "@/src/ui/panel-words.ts";
 import {
@@ -80,6 +81,8 @@ function draw(reading: PanelReading): FakeElement {
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -148,6 +151,8 @@ Deno.test("the side strip is drawn where the client said which side is the reade
         hasReaderSide: true,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -186,6 +191,8 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
         hasReaderSide: true,
         shelf: [],
         isOnShelf: true,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -194,8 +201,24 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
     });
     const host = panel.element as FakeElement;
     // A header saying how this fight went, over a list of other fights, answers a question
-    // nobody asked of that list; a strip picking a figure of it is the same thing twice.
-    assertEquals(getElementsWithin(host).filter((one) => one.className === "tabs"), [], "no strip");
+    // nobody asked of that list; a strip picking a figure of it is the same thing twice. The one
+    // strip here is the shelf's own, and it asks about the list rather than about a fight.
+    const strips = getElementsWithin(host).filter((one) => one.className === "tabs");
+    assertEquals(strips.length, 1, "one strip, and it is not one of the fight's");
+    assertEquals(getTextsByClass(host, "tabs-label"), [PANEL_WORDS.storage], "what it asks");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.attributes.get("data-storage") !== undefined)
+            .map((one) => one.attributes.get("data-storage")),
+        ["local", "session", "memory"],
+        "the three places a shelf can be kept, in the order they keep longest",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "tab selected").map((one) =>
+            one.textContent
+        ),
+        [getWordsForStorage("local")],
+        "with the reader's own answer marked as more than a colour",
+    );
     assertEquals(getTextsByClass(host, "header-place"), [], "and no header of the fight's");
     assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.fights], "the shelf says so");
     assertEquals(
@@ -359,6 +382,8 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -390,6 +415,8 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
         hasReaderSide: true,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -421,6 +448,8 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -437,6 +466,8 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -493,6 +524,8 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -537,6 +570,8 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill,
         pair: null,
         skill: null,
@@ -638,6 +673,8 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill,
         pair: null,
         skill: null,
@@ -680,6 +717,8 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         // Health that went down outside a blow, which the protocol states carrying no kind.
         drill: {
             ...drill,
@@ -712,6 +751,8 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -732,6 +773,8 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill,
         pair: null,
         skill: null,
@@ -761,6 +804,8 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -799,6 +844,8 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -857,6 +904,8 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -942,6 +991,8 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill,
         pair: null,
         skill: null,
@@ -986,8 +1037,12 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
             outcome: "lost",
             isLive: false,
             isChosen: false,
+            isPinned: false,
+            isPinnable: true,
         }],
         isOnShelf: true,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -1075,6 +1130,8 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: null,
         pair: null,
         skill: null,
@@ -1147,6 +1204,8 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
             hasReaderSide: false,
             shelf: [],
             isOnShelf: false,
+            storage: "local" as const,
+            shelfWarnings: [],
             drill,
             pair: null,
             skill: null,
@@ -1179,6 +1238,8 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         // The same person, carried onto a screen they did nothing on: one press of a strip away,
         // because the strips carry an opened row from screen to screen.
         drill: { ...drill, total: 0, byOpponent: { rows: [], unnamed: null } },
@@ -1208,6 +1269,8 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
             hasReaderSide: false,
             shelf: [],
             isOnShelf: false,
+            storage: "local" as const,
+            shelfWarnings: [],
             drill: open,
             pair: null,
             skill: null,
@@ -1267,6 +1330,8 @@ Deno.test("a cut that only repeats the figure above it is not drawn at all", () 
             hasReaderSide: false,
             shelf: [],
             isOnShelf: false,
+            storage: "local" as const,
+            shelfWarnings: [],
             drill: open,
             pair: null,
             skill: null,
@@ -1315,6 +1380,8 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         // Three blows that were all blocked are three blows: the row is drawn at nothing, and a
         // section that skipped it would say the combatant never swung.
         drill: {
@@ -1349,6 +1416,8 @@ Deno.test("a skill that opens asks for itself by name, and the rest of them ask 
         hasReaderSide: false,
         shelf: [],
         isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
         drill: { ...drill, total: 1000, bySkill: { rows, plain: null } },
         pair: null,
         skill: null,

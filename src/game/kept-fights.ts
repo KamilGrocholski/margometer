@@ -47,6 +47,11 @@ export interface KeptFight {
      */
     readerSide: number | null;
     outcome: FightOutcome | null;
+    /**
+     * Kept by the reader against the rotation. A shelf written before pins existed carries none,
+     * and reads back as a shelf with nothing pinned — which is what it was.
+     */
+    isPinned: boolean;
 }
 
 function getMessagesFromValue(value: unknown): string[] | null {
@@ -176,6 +181,7 @@ function getKeptFightFromValue(value: unknown): KeptFight | null {
         place: getKeptPlaceFromValue(value.place),
         readerSide: getNumberFromUnknown(value.readerSide),
         outcome: getKeptOutcomeFromValue(value.outcome),
+        isPinned: value.isPinned === true,
     };
 }
 
@@ -200,10 +206,44 @@ export function readKeptFights(store: BrowserStore, key: string): KeptFight[] {
     return kept;
 }
 
-/** The newest kept, the oldest dropped, and false where the browser would not have it. */
+/**
+ * What a shelf keeps when it is full: the newest, and everything the reader pinned.
+ *
+ * A pin is the one thing on the shelf that outranks the rotation, so the oldest **unpinned**
+ * fight is what goes. Where every slot is pinned there is nothing to drop, and the newest fight
+ * is the one that does not arrive — which the shelf says outright rather than dropping a fight
+ * the reader asked it to hold.
+ */
+export function composeKeptRotation(fights: readonly KeptFight[]): KeptFight[] {
+    assert(fights.length >= 0, "a shelf holds the fights it holds");
+    if (fights.length <= MAXIMUM_KEPT) return [...fights];
+    const held = [...fights];
+    let over = held.length - MAXIMUM_KEPT;
+    for (let at = 0; at < held.length && over > 0; at += 1) {
+        const fight = held[at];
+        if (fight === undefined) continue;
+        if (fight.isPinned) continue;
+        held.splice(at, 1);
+        at -= 1;
+        over -= 1;
+    }
+    // Every slot pinned: the newest is what does not arrive, because nothing else may go.
+    assert(held.length >= MAXIMUM_KEPT, "a rotation drops no more than it had to");
+    return held.length <= MAXIMUM_KEPT ? held : held.slice(0, MAXIMUM_KEPT);
+}
+
+/** Whether the shelf had to refuse the newest fight, which is what a reader is told about. */
+export function getIsEverySlotPinned(fights: readonly KeptFight[]): boolean {
+    if (fights.length <= MAXIMUM_KEPT) return false;
+    const unpinned = fights.filter((one) => !one.isPinned).length;
+    assert(unpinned >= 0, "a shelf holds the fights nobody pinned, however few");
+    return fights.length - unpinned >= MAXIMUM_KEPT;
+}
+
+/** The newest kept, the oldest unpinned dropped, and false where the browser would not have it. */
 export function writeKeptFights(store: BrowserStore, key: string, fights: KeptFight[]): boolean {
     assert(key.length > 0, "a shelf is written by name");
-    const held = fights.slice(-MAXIMUM_KEPT);
+    const held = composeKeptRotation(fights);
     assert(held.length <= MAXIMUM_KEPT, "a shelf written stays inside its stated bound");
     assert(held.length <= fights.length, "keeping the newest never invents one");
     const text = composeJsonText({ version: SHELF_VERSION, fights: held });

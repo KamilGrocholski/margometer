@@ -12,7 +12,7 @@
 import { assert } from "@std/assert";
 import { composeIntegerText } from "@/src/core/protocol-number.ts";
 import type { PanelMetric, PanelOutcome } from "@/src/ui/panel-reading.ts";
-import type { PanelNoun, PanelSideChoice } from "@/src/ui/panel-screen.ts";
+import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/panel-screen.ts";
 
 /** The three shapes a Polish noun takes after a number. */
 export interface CountedNoun {
@@ -35,6 +35,8 @@ export const PANEL_WORDS = {
     fights: "Walki",
     /** The way off the shelf. It goes back to the fight, which is not a place on the shelf. */
     backFromFights: "wróć",
+    /** Where the fights are kept, and the three places they can be. */
+    storage: "Trzymaj",
     /** The two sides of the bar under the ranking, and what belongs to neither of them. */
     ourSide: "My",
     theirSide: "Oni",
@@ -260,6 +262,42 @@ export function composeCountedNoun(count: number, noun: CountedNoun): string {
     return `${count} ${noun.many}`;
 }
 
+/** What a press would do, which the mark says the state of and never the consequence of. */
+export function getWordsForPin(isPinned: boolean): string {
+    assert(typeof isPinned === "boolean", "a pin is drawn for a fight that is pinned or is not");
+    if (isPinned) return "Odepnij — będzie mogła zniknąć";
+    return "Przypnij, żeby nie zniknęła";
+}
+
+const STORAGE_WORDS: Record<PanelStorageChoice, string> = {
+    local: "na stałe",
+    session: "do zamknięcia karty",
+    memory: "tylko teraz",
+};
+
+export function getWordsForStorage(choice: PanelStorageChoice): string {
+    assert(choice.length > 0, "a place a shelf is kept in is asked for by name");
+    const words = STORAGE_WORDS[choice];
+    assert(words.length > 0, "and each of the three is worded");
+    return words;
+}
+
+/**
+ * Said as the fight being gone rather than as a write having failed, which is the consequence
+ * the reader has. One remedy, because only one of them is still theirs to take.
+ */
+export const STORE_REFUSED_WARNING =
+    "Przeglądarka nie przyjęła tej walki — nie została zapisana. " +
+    "Odepnij którąś, żeby zrobić miejsce.";
+
+/** The other way a fight fails to arrive, and a sentence of its own: the remedy differs. */
+export const EVERY_SLOT_PINNED_WARNING =
+    "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.";
+
+/** The answer itself refused. The shortest of the three: nothing was lost and nothing moved. */
+export const CHOICE_REFUSED_WARNING =
+    "Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było.";
+
 /** The fight happening now, which is on the shelf and is kept nowhere. */
 const LIVE_FIGHT_TIME = "teraz";
 const LIVE_FIGHT_OUTCOME = "trwa";
@@ -302,9 +340,11 @@ export function composeShelfSizeText(counts: readonly number[]): string {
 /** How a kept fight went, or that it is still going. Empty where nobody could say. */
 export function getWordsForShelfOutcome(outcome: PanelOutcome | null, isLive: boolean): string {
     assert(typeof isLive === "boolean", "a row says whether it is the fight going on now");
+    // How it went outranks the word for one going on: a fight that has ended is still the live
+    // one until the next begins, and *trwa* over a fight the game has already called is wrong.
+    if (outcome !== null) return getWordsForOutcome(outcome);
     if (isLive) return LIVE_FIGHT_OUTCOME;
-    if (outcome === null) return "";
-    return getWordsForOutcome(outcome);
+    return "";
 }
 
 /** How many times, beside a share: a count is what a skill row says and a figure cannot. */

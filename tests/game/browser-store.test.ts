@@ -17,7 +17,7 @@ function composeRefusingStorage(): PageStorage {
     const refuse = (): never => {
         throw new DOMException("this browser forbids storage", "SecurityError");
     };
-    return { getItem: refuse, setItem: refuse };
+    return { getItem: refuse, setItem: refuse, removeItem: refuse };
 }
 
 Deno.test("a store that answers reads back what was written to it", () => {
@@ -27,6 +27,7 @@ Deno.test("a store that answers reads back what was written to it", () => {
         setItem: (key, value) => {
             held.set(key, value);
         },
+        removeItem: (key) => void held.delete(key),
     });
     assertEquals(store.read("MargoMeter-folded"), null, "nothing was written, so nothing reads");
     assertEquals(store.write("MargoMeter-folded", "1"), true, "a write a browser took says so");

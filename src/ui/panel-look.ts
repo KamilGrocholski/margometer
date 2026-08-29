@@ -73,6 +73,7 @@ export const CLASS = {
     headerOutcome: "header-outcome",
     tabs: "tabs",
     tabsGap: "tabs-gap",
+    tabsLabel: "tabs-label",
     tab: "tab",
     tabCurrent: "selected",
     crumb: "crumb",
@@ -89,6 +90,8 @@ export const CLASS = {
     rowName: "row-name",
     rowSize: "row-size",
     rowChosen: "chosen",
+    rowPin: "row-pin",
+    rowPinSet: "pinned",
     rowValue: "row-value",
     rowShare: "row-share",
     bar: "bar",
@@ -503,6 +506,8 @@ function composeRegionRules(): string {
         // Every strip after the first sits closer to it: they are one control, in rows.
         `.${CLASS.tabs}+.${CLASS.tabs}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
         `.${CLASS.tabsGap}{flex:1;}` +
+        `.${CLASS.tabsLabel}{color:var(${VARIABLE_PREFIX}quiet);align-self:center;` +
+        `padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.tab}{white-space:nowrap;padding:1px var(${VARIABLE_PREFIX}small);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);color:var(${VARIABLE_PREFIX}quiet);` +
         `background:transparent;cursor:pointer;` +
@@ -627,6 +632,15 @@ function composeRowRules(): string {
         // Which fight is on screen. A left edge and not a colour alone: the outcome word beside
         // it is what the colour would otherwise be carrying.
         `.${CLASS.row}.${CLASS.rowChosen}{box-shadow:inset 3px 0 0 var(${VARIABLE_PREFIX}text);}` +
+        // A box of its own size, because the glyph is not one: ★ and ☆ measured 13.87px each in
+        // Firefox on 2026-08-26 and the row still walked sideways under the hand that pressed it.
+        `.${CLASS.rowPin}{position:relative;cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);` +
+        `width:var(${VARIABLE_PREFIX}row-height);flex:none;align-self:stretch;display:flex;` +
+        `align-items:center;justify-content:center;` +
+        `margin-right:var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.rowPin}:hover{color:var(${VARIABLE_PREFIX}text);}` +
+        // Colour, and nothing that takes up room: an edge here would put the box back to two sizes.
+        `.${CLASS.rowPin}.${CLASS.rowPinSet}{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.rowValue}{font-variant-numeric:tabular-nums;` +
         `padding-left:var(${VARIABLE_PREFIX}wide);font-weight:600;}` +
         `.${CLASS.rowShare}{color:var(${VARIABLE_PREFIX}quiet);` +

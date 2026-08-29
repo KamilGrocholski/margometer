@@ -102,6 +102,15 @@ export interface ShelfRow {
     isLive: boolean;
     /** Whose figures the panel is drawing: the one the reader is reading. */
     isChosen: boolean;
+    /** Whether the reader asked for this one to outlast the rotation. */
+    isPinned: boolean;
+    /**
+     * Whether there is anything to pin. A fight nothing has written down yet is not in the store
+     * and the rotation has never seen it, so a pin on it would be a control that does nothing —
+     * which is worse than one that is not there. It is not the same as *not live*: a fight is
+     * both for as long as the gap between it ending and the next one starting.
+     */
+    isPinnable: boolean;
 }
 
 /** How a fight went, from the reader's own seat. A draw needs no seat: nobody won it. */

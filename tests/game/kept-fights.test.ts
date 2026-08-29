@@ -10,7 +10,13 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeJsonText } from "@/src/core/unknown-reading.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
-import { type KeptFight, readKeptFights, writeKeptFights } from "@/src/game/kept-fights.ts";
+import {
+    composeKeptRotation,
+    getIsEverySlotPinned,
+    type KeptFight,
+    readKeptFights,
+    writeKeptFights,
+} from "@/src/game/kept-fights.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
@@ -28,6 +34,7 @@ function composeStore(refuses = false): BrowserStore {
             held.set(key, value);
             return true;
         },
+        remove: (key) => void held.delete(key),
     };
 }
 
@@ -46,6 +53,7 @@ function composeFight(openedAt: number): KeptFight {
         readerSide: 1,
         outcome: { wonNames: ["Gracz 1"], lostNames: ["Odyniec"], isDrawn: false },
         place: { mapName: "Mapa", x: 12, y: 34 },
+        isPinned: false,
     };
 }
 
@@ -66,18 +74,24 @@ Deno.test("a store that will not have it says so, rather than throwing", () => {
 });
 
 Deno.test("a shelf nobody can read is dropped, never trusted into a figure", () => {
-    const broken: BrowserStore = { read: () => "{ this is not json", write: () => true };
+    const broken: BrowserStore = {
+        read: () => "{ this is not json",
+        write: () => true,
+        remove: () => {},
+    };
     assertEquals(readKeptFights(broken, KEY), [], "text that will not parse holds nothing");
     // The fight inside it reads back perfectly: it is the version that refuses it, and a sample
     // holding an empty shelf could not tell the two apart.
     const older: BrowserStore = {
         read: () => '{"version":0,"fights":[{"openedAt":1,"combatants":[],"payloads":[]}]}',
         write: () => true,
+        remove: () => {},
     };
     assertEquals(readKeptFights(older, KEY), [], "and neither does a shelf of another version");
     const wrong: BrowserStore = {
         read: () => '{"version":1,"fights":[{"openedAt":"soon","combatants":[],"payloads":[]}]}',
         write: () => true,
+        remove: () => {},
     };
     assertEquals(readKeptFights(wrong, KEY), [], "a fight stating a moment nobody wrote is gone");
 });
@@ -88,6 +102,7 @@ Deno.test("one fight nobody can read costs that fight and not the shelf", () => 
             '{"version":2,"fights":[{"openedAt":1,"combatants":[],"payloads":[["0;0;txt=a"]]},' +
             '{"openedAt":2,"combatants":[],"payloads":"none"}]}',
         write: () => true,
+        remove: () => {},
     };
     const kept = readKeptFights(half, KEY);
     assertEquals(kept.length, 1, "the one that reads back is kept");
@@ -104,6 +119,60 @@ Deno.test("the shelf holds its stated maximum, oldest dropped first", () => {
     assertEquals(kept[0]?.openedAt, 5, "and the oldest five went, not the newest");
 });
 
+Deno.test("a pin outranks the rotation, and the oldest unpinned goes instead", () => {
+    const store = composeStore();
+    const many: KeptFight[] = [];
+    for (let one = 0; one < 22; one += 1) {
+        // The two oldest, which is what the rotation would take first if a pin meant nothing.
+        many.push({ ...composeFight(one), isPinned: one < 2 });
+    }
+    assert(writeKeptFights(store, KEY, many), "the store took what it was handed");
+    const kept = readKeptFights(store, KEY);
+    assertEquals(kept.length, 20, "twenty of them, which is the bound a pin does not raise");
+    assertEquals(kept.map((one) => one.openedAt).slice(0, 3), [0, 1, 4], "the pinned two stayed");
+    assertEquals(
+        kept.filter((one) => one.isPinned).length,
+        2,
+        "and a pin survives being written down and read back",
+    );
+});
+
+Deno.test("a shelf with every slot pinned refuses the newest rather than dropping one", () => {
+    const full: KeptFight[] = [];
+    for (let one = 0; one < 20; one += 1) full.push({ ...composeFight(one), isPinned: true });
+    assertEquals(getIsEverySlotPinned(full), false, "twenty pinned fights are twenty fights");
+    const over = [...full, composeFight(20)];
+    assertEquals(getIsEverySlotPinned(over), true, "the twenty-first has nowhere to go");
+    assertEquals(
+        composeKeptRotation(over).map((one) => one.openedAt),
+        full.map((one) => one.openedAt),
+        "and what the reader pinned is what is still there",
+    );
+    // One unpinned among them and the rotation has something to take, which is the boundary the
+    // sentence about every slot being pinned sits on.
+    const [oldest, ...rest] = full;
+    assert(oldest !== undefined, "there is an oldest");
+    const nearly = [{ ...oldest, isPinned: false }, ...rest, composeFight(20)];
+    assertEquals(getIsEverySlotPinned(nearly), false, "one unpinned slot is a slot");
+    assertEquals(
+        composeKeptRotation(nearly).map((one) => one.openedAt).includes(20),
+        true,
+        "and the newest arrives, in the place the one nobody pinned gave up",
+    );
+});
+
+Deno.test("a shelf written before pins existed reads back as one with nothing pinned", () => {
+    const older: BrowserStore = {
+        read: () =>
+            '{"version":2,"fights":[{"openedAt":1,"combatants":[],"payloads":[["0;0;txt=a"]]}]}',
+        write: () => true,
+        remove: () => {},
+    };
+    const kept = readKeptFights(older, KEY);
+    assertEquals(kept.length, 1, "the fight reads back whole");
+    assertEquals(kept[0]?.isPinned, false, "and nothing pinned is what nobody pinned");
+});
+
 Deno.test("a fight off the shelf decodes as the fight that went on it", () => {
     const [path] = getRecordingPaths();
     assert(path !== undefined, "a recording to keep");
@@ -118,6 +187,7 @@ Deno.test("a fight off the shelf decodes as the fight that went on it", () => {
             place: null,
             readerSide: null,
             outcome: null,
+            isPinned: false,
         }]),
         "kept",
     );

@@ -183,6 +183,24 @@ belong to no combatant. It is a row, not a footnote: same height, same shape —
 cutting it off the ranking and a hatched bar, because it is not a combatant and must not look like
 one at a glance.
 
+**Shelf row.** A fight already fought, as a row of the same height as a ranking's: when it was, how
+big it was, where, and how it went, in that order — the place is the only cell allowed to shorten,
+so it stands second to last. The fight going on now is a row like the rest and is drawn once: while
+it is both the live one and a kept one, it keeps the live row's wording and the kept row's pin.
+
+**The pin is inside the row and is not part of it.** It is the one control that outranks the row it
+sits in, and it does so structurally: a press lands on the innermost element, and the pin is left
+out of what carries the row's own mark. It is a box of the row's own height rather than a glyph,
+because ★ and ☆ are not one width on every platform, and a row that resized under the hand that had
+just pressed it is what a box fixes. A pin is drawn only where there is something to pin — a fight
+nothing has written down yet is not in the rotation, and a control that does nothing is worse than
+one that is not there.
+
+**Where the shelf is kept is a strip, under the way back and over the list.** The three answers
+stand in the order they keep longest, behind a word that says what they answer, because three
+choices side by side are three words nobody can order without being told what they are about. It is
+the only strip drawn while the shelf is up, and it is about the list rather than about a fight.
+
 **Three levels, and the last one is last.** The ranking lists people; pressing one opens their own
 figure cut by the other end of each movement, by what it was announced with, and by what it was made
 of; pressing a person inside that opens the pair, and what passed between the two. Nothing on that

@@ -35,8 +35,10 @@ import {
     getWordsForScreen,
     type PanelNoun,
     type PanelSideChoice,
+    type PanelStorageChoice,
     SCREEN_ORDER,
     type ScreenTab,
+    STORAGE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
 import {
     CLASS,
@@ -54,8 +56,10 @@ import {
     getWordsForHealthSource,
     getWordsForNothing,
     getWordsForOutcome,
+    getWordsForPin,
     getWordsForShelfOutcome,
     getWordsForShelfTime,
+    getWordsForStorage,
     PANEL_WORDS,
     type PanelRegion,
 } from "@/src/ui/panel-words.ts";
@@ -142,6 +146,15 @@ const BACK_ATTRIBUTE = "data-back";
 const SKILL_ATTRIBUTE = "data-skill";
 /** And its own again for a fight on the shelf, which is a moment rather than a name. */
 const FIGHT_ATTRIBUTE = "data-fight";
+/**
+ * The pin, which is inside a row and is not one of the row's press targets.
+ *
+ * A press lands on the innermost node, so this is what makes the pin outrank the row it sits in —
+ * structurally, rather than by the order the reader of a press happens to ask its questions in.
+ */
+const PIN_ATTRIBUTE = "data-pin";
+/** Where the shelf is kept, asked for by the name of one of the three places. */
+const STORAGE_ATTRIBUTE = "data-storage";
 /** What the fight going on now is asked for by, which is no moment at all. */
 const LIVE_FIGHT = "live";
 /** Which row's detail the pointer is over, looked up in the register the draw filled. */
@@ -182,6 +195,9 @@ const LEAVE_EVENT = "pointerout";
 const PRIMARY_BUTTON = 0;
 /** A fight holds twenty, and a screen draws a row for each. */
 const MAXIMUM_ROWS = 20;
+/** Set and not set, which is the state the glyph carries before any colour does. */
+const PIN_MARK = "★";
+const UNPINNED_MARK = "☆";
 /** What a panel with no fight in it stands at, which is the ranking's own floor. */
 const ROWS_WAITING = 11;
 /** What the statistics keep a cut inside. `captures/` states ten kinds in all, 2026-08-28. */
@@ -693,6 +709,7 @@ function composeShelfRow(
     assert(fight.sizes.every((one) => one > 0), "and a side of it that is counted has somebody");
     const chosen = fight.isChosen ? ` ${CLASS.rowChosen}` : "";
     const row = composeElement(document, "div", `${CLASS.row} ${CLASS.rowDrillable}${chosen}`);
+    if (fight.isPinnable) row.append(composePinElement(document, fight));
     const time = composeElement(document, "span", CLASS.rowRank);
     time.textContent = getWordsForShelfTime(fight.at, fight.isLive);
     const size = composeElement(document, "span", CLASS.rowSize);
@@ -716,6 +733,46 @@ function composeShelfRow(
     setRowMarks(parts, FIGHT_ATTRIBUTE, fight.isLive ? LIVE_FIGHT : `${fight.openedAt}`);
     assert(row.className.includes(CLASS.row), "a fight on the shelf is a row like any other");
     return row;
+}
+
+/**
+ * The one control on a row that is not the row: what a press does to it is said in words as well
+ * as by the glyph, because a mark alone says the state and never the consequence.
+ */
+function composePinElement(document: PanelDocument, fight: ShelfRow): PanelElement {
+    assert(fight.isPinnable, "a pin is drawn where there is something to pin");
+    const set = fight.isPinned ? ` ${CLASS.rowPinSet}` : "";
+    const pin = composeElement(document, "span", `${CLASS.rowPin}${set}`);
+    pin.textContent = fight.isPinned ? PIN_MARK : UNPINNED_MARK;
+    pin.setAttribute(TITLE_ATTRIBUTE, getWordsForPin(fight.isPinned));
+    // The moment and never the word a live row is pressed by: what a pin acts on is a fight the
+    // shelf holds, and the one going on now is on the shelf only while it is also kept.
+    pin.setAttribute(PIN_ATTRIBUTE, `${fight.openedAt}`);
+    assert(pin.textContent.length > 0, "and says which of the two states it is in");
+    return pin;
+}
+
+/**
+ * Where the shelf is kept, which is the reader's own answer and the shelf's only question.
+ *
+ * A strip like the ones over a fight, with a word in front of it: three choices side by side are
+ * three words nobody can order without being told what they answer.
+ */
+function composeStorageStripElement(document: PanelDocument, view: PanelView): PanelElement {
+    const strip = composeElement(document, "div", CLASS.tabs);
+    assert(view.isOnShelf, "the question about keeping fights is asked over the fights");
+    const label = composeElement(document, "span", CLASS.tabsLabel);
+    label.textContent = PANEL_WORDS.storage;
+    strip.append(label);
+    for (const choice of STORAGE_CHOICES) {
+        const marked = choice === view.storage ? ` ${CLASS.tabCurrent}` : "";
+        const tab = composeElement(document, "div", `${CLASS.tab}${marked}`);
+        tab.textContent = getWordsForStorage(choice);
+        tab.setAttribute(STORAGE_ATTRIBUTE, choice);
+        strip.append(tab);
+    }
+    assert(label.textContent.length > 0, "and the strip says what its three words answer");
+    return strip;
 }
 
 /** One cut of an opened figure: its heading, its rows, and what the protocol named nobody for. */
@@ -1029,6 +1086,10 @@ export interface PanelView {
     side: PanelSideChoice;
     hasReaderSide: boolean;
     shelf: readonly ShelfRow[];
+    /** Where the shelf is kept, which the strip over it draws as the answer it is. */
+    storage: PanelStorageChoice;
+    /** What the shelf itself has to say, which is never about the fight that is drawn. */
+    shelfWarnings: readonly string[];
     isOnShelf: boolean;
     /** The row standing open over the screen, or nobody's. */
     drill: DrillReading | null;
@@ -1049,6 +1110,8 @@ export type PanelPress =
     | { kind: "row"; stated: string }
     | { kind: "skill"; name: string }
     | { kind: "fight"; stated: string }
+    | { kind: "pin"; stated: string }
+    | { kind: "storage"; name: string }
     | { kind: "back" }
     | { kind: "fold" }
     | { kind: "save" }
@@ -1205,6 +1268,10 @@ function getPressFromTarget(
     if (name !== null) return { kind: "skill", name };
     const fight = target.getAttribute(FIGHT_ATTRIBUTE);
     if (fight !== null) return { kind: "fight", stated: fight };
+    const pinned = target.getAttribute(PIN_ATTRIBUTE);
+    if (pinned !== null) return { kind: "pin", stated: pinned };
+    const storage = target.getAttribute(STORAGE_ATTRIBUTE);
+    if (storage !== null) return { kind: "storage", name: storage };
     if (target.getAttribute(SAVE_ATTRIBUTE) !== null) return { kind: "save" };
     if (target.getAttribute(COPY_ATTRIBUTE) !== null) return { kind: "copy" };
     if (target.getAttribute(SHELF_ATTRIBUTE) !== null) return { kind: "shelf" };
@@ -1289,6 +1356,7 @@ interface PanelRegions {
     nouns: PanelElement;
     directions: PanelElement;
     crumb: PanelElement;
+    storage: PanelElement;
     list: PanelElement;
     pinnedActor: PanelElement;
     pinnedTarget: PanelElement;
@@ -1303,6 +1371,7 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
         nouns: composeSlotElement(document),
         directions: composeSlotElement(document),
         crumb: composeSlotElement(document),
+        storage: composeSlotElement(document),
         list: composeSlotElement(document),
         pinnedActor: composeSlotElement(document),
         pinnedTarget: composeSlotElement(document),
@@ -1345,6 +1414,7 @@ export function composePanelHost(
     for (const region of [regions.header, regions.nouns, regions.directions, regions.crumb]) {
         panel.append(region);
     }
+    panel.append(regions.storage);
     for (const region of [regions.list, regions.pinnedActor, regions.pinnedTarget]) {
         panel.append(region);
     }
@@ -1441,6 +1511,7 @@ function setPanelFolded(
     regions.nouns = redraw(regions.nouns, "tabs", () => composeSlotElement(document));
     regions.directions = redraw(regions.directions, "tabs", () => composeSlotElement(document));
     regions.crumb = redraw(regions.crumb, "crumb", () => composeSlotElement(document));
+    regions.storage = redraw(regions.storage, "tabs", () => composeSlotElement(document));
     regions.list = redraw(regions.list, "list", () => composeSlotElement(document));
     regions.pinnedActor = redraw(regions.pinnedActor, "pinned", () => composeSlotElement(document));
     regions.pinnedTarget = redraw(
@@ -1482,23 +1553,15 @@ function setPanelBody(
         () => isFight ? composeDirectionStripElement(document, view) : composeSlotElement(document),
     );
     regions.crumb = redraw(regions.crumb, "crumb", () => composeCrumbRegion(document, view));
+    // Under the crumb and over the list, because it is a question about the list below it and
+    // not about the fight the way back leads to.
+    regions.storage = redraw(
+        regions.storage,
+        "tabs",
+        () => isFight ? composeSlotElement(document) : composeStorageStripElement(document, view),
+    );
     regions.list = redraw(regions.list, "list", () => composeViewList(document, view, register));
-    const figure = getWordsForScreen(view.current);
-    // A pinned row keeps a place of its own whether or not there is one to draw, so a failure
-    // takes one row rather than both — and nothing standing below them moves when one arrives.
-    const pinned = view.drill === null && !view.isOnShelf ? view.reading.pinned : [];
-    assert(pinned.length <= 2, "a screen pins the two ends the protocol can leave out, at most");
-    for (const [end, standing] of [["actor", "pinnedActor"], ["target", "pinnedTarget"]] as const) {
-        const row = pinned.find((one) => one.end === end) ?? null;
-        regions[standing] = redraw(
-            regions[standing],
-            "pinned",
-            () =>
-                row === null
-                    ? composeSlotElement(document)
-                    : composePinnedElement(document, row, register, figure),
-        );
-    }
+    setPinnedRegions(document, regions, view, register, redraw);
     // Drawn only where the client said which side is the reader's own — two sides nothing can
     // tell apart are not two figures — and never over the shelf, which is a list of fights
     // rather than a screen of one.
@@ -1515,10 +1578,40 @@ function setPanelBody(
         regions.warnings,
         "warnings",
         () =>
-            view.isOnShelf
-                ? composeSlotElement(document)
-                : composeWarningsElement(document, view.reading.warnings),
+            composeWarningsElement(
+                document,
+                view.isOnShelf ? view.shelfWarnings : view.reading.warnings,
+            ),
     );
+}
+
+/**
+ * The two rows that stand outside the list: what the protocol left an end of a figure out of.
+ *
+ * A pinned row keeps a place of its own whether or not there is one to draw, so a failure takes
+ * one row rather than both — and nothing standing below them moves when one arrives.
+ */
+function setPinnedRegions(
+    document: PanelDocument,
+    regions: PanelRegions,
+    view: PanelView,
+    register: TipRegister,
+    redraw: PanelRedraw,
+): void {
+    const figure = getWordsForScreen(view.current);
+    const pinned = view.drill === null && !view.isOnShelf ? view.reading.pinned : [];
+    assert(pinned.length <= 2, "a screen pins the two ends the protocol can leave out, at most");
+    for (const [end, standing] of [["actor", "pinnedActor"], ["target", "pinnedTarget"]] as const) {
+        const row = pinned.find((one) => one.end === end) ?? null;
+        regions[standing] = redraw(
+            regions[standing],
+            "pinned",
+            () =>
+                row === null
+                    ? composeSlotElement(document)
+                    : composePinnedElement(document, row, register, figure),
+        );
+    }
 }
 
 /** Every sentence the reading carries, each in a line of its own under the strip. */
