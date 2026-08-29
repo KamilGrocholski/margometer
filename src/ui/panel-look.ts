@@ -86,7 +86,6 @@ export const CLASS = {
     rowDrillable: "drillable",
     rowLeaf: "leaf",
     rowRank: "row-rank",
-    rowBadge: "row-badge",
     rowName: "row-name",
     rowSize: "row-size",
     rowChosen: "chosen",
@@ -271,13 +270,6 @@ function getInkForChannels(channels: readonly number[]): string {
     assert(onDark >= 1, "an ink is compared against what it sits on");
     if (onDark >= onLight) return TEXT.inkDark;
     return TEXT.inkLight;
-}
-
-/** Computed from the colour it sits on, never chosen by hand. */
-export function getInkForColour(colour: string): string {
-    const channels = getChannelsFromColour(colour);
-    if (channels === null) return TEXT.inkLight;
-    return getInkForChannels(channels);
 }
 
 function composeBarChannels(hue: string): number[] {
@@ -626,13 +618,6 @@ function composeRowRules(): string {
         `.${CLASS.rowRank},.${CLASS.rowName},.${CLASS.rowValue}{position:relative;}` +
         `.${CLASS.rowRank}{color:var(${VARIABLE_PREFIX}quiet);` +
         `font-variant-numeric:tabular-nums;padding-right:var(${VARIABLE_PREFIX}small);}` +
-        // The profession as a letter, which is the channel that survives colour blindness: six
-        // professions cannot be made mutually distinguishable on this background, so it is the
-        // letter and not the hue that answers who is what.
-        `.${CLASS.rowBadge}{position:relative;flex:none;width:13px;height:13px;` +
-        `margin-right:var(${VARIABLE_PREFIX}small);` +
-        `border-radius:var(${VARIABLE_PREFIX}radius-small);font-size:9px;font-weight:700;` +
-        `line-height:13px;text-align:center;}` +
         `.${CLASS.rowName}{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}` +
         // As wide as the figure it holds and no wider: the cell after it is the only thing on a
         // shelf row allowed to shorten, and without this the two give way together.

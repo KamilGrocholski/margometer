@@ -358,27 +358,32 @@ commit that opens or closes one.
 7. **`docs/browser-support.md` describes a floor held over sources**, which is no longer how it is
    held once the bundle carries standard-library code. Accurate about v1, stale about v2 until the
    bundle-level guard lands.
-8. **There is no drill register.** Every level v1 drew is drawn — a ranking, a row opened onto its
+8. **A ranking row states a profession in its hue alone.** The eight hues are assigned by the game's
+   own letter and are stable across fights, but six professions cannot be made mutually
+   distinguishable by hue on the panel's background — `DESIGN.md` measures that. The row carried the
+   letter as a second channel until 2026-08-29 and no longer does, so a reader who cannot separate
+   two hues cannot tell those two professions apart at all. Nothing replaces it yet.
+9. **There is no drill register.** Every level v1 drew is drawn — a ranking, a row opened onto its
    three cuts, a pair opened onto what passed between the two, and a skill opened onto whom it
    reached — but nothing enumerates which rows open and which do not, the way v1's
    `docs/drill-levels.md` did from a tool that measured it both ways. That document is readable at
    `git show develop:docs/drill-levels.md`; the register here returns **generated**, not carried,
    when there is a tool to generate it from.
-9. **The `verify` skill names the Bun toolchain.** `.agents/skills/verify/SKILL.md` carries the
-   procedural knowledge for driving the add-on in a browser and reading what the panel drew — worth
-   keeping verbatim, since no tool regenerates it — but its commands (`bun run preview`,
-   `tools/fight-dump-parser.ts`) name a toolchain and modules this tree does not have. Corrected
-   module by module as each lands.
-10. **A function declaration whose arrow sits on the next line is not counted.** `isFunctionOpener`
+10. **The `verify` skill names the Bun toolchain.** `.agents/skills/verify/SKILL.md` carries the
+    procedural knowledge for driving the add-on in a browser and reading what the panel drew — worth
+    keeping verbatim, since no tool regenerates it — but its commands (`bun run preview`,
+    `tools/fight-dump-parser.ts`) name a toolchain and modules this tree does not have. Corrected
+    module by module as each lands.
+11. **A function declaration whose arrow sits on the next line is not counted.** `isFunctionOpener`
     in `tests/repository/sources.test.ts` reads a declaration from one line, so a named arrow
     wrapped across two is invisible to S4 and S5. The limit is pinned by a test rather than left to
     be discovered, and closes when a file in this tree is written that way.
-11. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
+12. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
     ADR 0010 carries how a share stated about a whole side is sized onto its members. Measured over
     `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no
     message anywhere unread — so the doubt mark never fires on the material this repository holds.
     It is held by probes only, and the next protocol change is what it exists for.
-12. **A payload can move health with no message stating it.** Measured over `captures/`, 2026-08-28:
+13. **A payload can move health with no message stating it.** Measured over `captures/`, 2026-08-28:
     of 17,958 comparisons between the health the protocol states about a combatant and the movement
     decoded from its own messages, 17,286 agree inside the reading's tolerance. Of the 672 that do
     not, 95 are a killing blow landing more than the health that was left, 576 are health restored
@@ -387,16 +392,16 @@ commit that opens or closes one.
     pool while both messages of that payload are about other people. Nothing in the protocol
     accounts for it and only the snapshots show it, which is what the snapshots are for.
     `tests/core/health-witness.test.ts` pins the count at one, so a second cannot arrive unnoticed.
-13. **The recursion guard misreads a one-line named arrow.** `getFunctionBodies` in
+14. **The recursion guard misreads a one-line named arrow.** `getFunctionBodies` in
     `tests/repository/sources.test.ts` collects lines until the brace depth returns to zero, and a
     `const name = () => expression;` opens no brace — so every line after it is read as that
     function's body, and a later call to it reads as a call to itself. Found by writing one in
     `tests/userscript-entry.test.ts`, which now carries a block body and a comment saying why. A
     false positive is worse than a blind spot, so this is the next thing that guard should learn;
     gap 10 is the other half of the same reader.
-14. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
+15. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
     screenshots are unwritten; the release contract above is inherited from v1 and unexercised here.
-15. **Nothing says which side is the reader's.** `PanelRow.side` carries the game's own team number
+16. **Nothing says which side is the reader's.** `PanelRow.side` carries the game's own team number
     and nothing turns it into `ours` or `theirs`: that needs `Engine.hero.d.id` read against
     `warriorsList`, which `game/` has not done. The two tokens `DESIGN.md` states for it are unspent
     — a ranking row is coloured by profession instead, which needs no side. Whatever spends them

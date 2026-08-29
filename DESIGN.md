@@ -60,15 +60,16 @@ dark, and a light panel over it would be the brightest thing on the display.
 
 ### Text
 
-| Token           | Value     | Use                                                     |
-| --------------- | --------- | ------------------------------------------------------- |
-| `text`          | `#e7e7ea` | Figures and names.                                      |
-| `textQuiet`     | `#9a9aa6` | Labels, units, denominators — everything the eye skips. |
-| `badgeInkDark`  | `#14141a` | Text on a light-enough bar.                             |
-| `badgeInkLight` | `#ffffff` | Text on a dark-enough bar.                              |
+| Token       | Value     | Use                                                     |
+| ----------- | --------- | ------------------------------------------------------- |
+| `text`      | `#e7e7ea` | Figures and names.                                      |
+| `textQuiet` | `#9a9aa6` | Labels, units, denominators — everything the eye skips. |
+| `inkDark`   | `#14141a` | Ink on a light-enough bar.                              |
+| `inkLight`  | `#ffffff` | Ink on a dark-enough bar.                               |
 
 **Text on a coloured bar clears WCAG AA contrast, checked by a test rather than by eye.** Which of
-the two inks a bar gets is computed from the bar's colour, not chosen by hand.
+the two inks a bar would take is computed from the bar's colour, not chosen by hand; nothing is
+printed on a bar at present, and the pair is what proves the tint keeps every hue readable.
 
 ### Signals
 
@@ -138,11 +139,11 @@ whole of the licence — see _The Frame Is Not A Screen Rule_.
 
 ## Shape and depth
 
-| Token          | Value                         | Use                                  |
-| -------------- | ----------------------------- | ------------------------------------ |
-| `radius`       | `8px`                         | The panel, the tooltip.              |
-| `radiusSmall`  | `3px`                         | Bars, badges, anything inside a row. |
-| `windowShadow` | `0 6px 20px rgb(0 0 0 / 55%)` | The tooltip, off the page.           |
+| Token          | Value                         | Use                              |
+| -------------- | ----------------------------- | -------------------------------- |
+| `radius`       | `8px`                         | The panel, the tooltip.          |
+| `radiusSmall`  | `3px`                         | Bars, and anything inside a row. |
+| `windowShadow` | `0 6px 20px rgb(0 0 0 / 55%)` | The tooltip, off the page.       |
 
 Flat first. Hierarchy comes from `surface` against `surfaceRaised` and from borders — the panel
 itself is separated from the game by its border and by the bar standing over it, not by a shadow.
@@ -168,14 +169,17 @@ three have no state to say, so their marks read the same always.
 second line and nowhere else: beside the headcount a map's name plus a tile had about thirty
 characters of a 260-pixel panel, so the one thing answering _where_ was the one thing being cut.
 
-**Ranking row.** A place in the ranking, a profession badge, a name, a figure and its share. The bar
-is an element behind the text at `barTint`, with a three-pixel cap at full strength on the edge it
-starts from: the tint is what keeps the figures printed over it readable, and the cap gives the hue
-back where no text sits. **Its length is the row against the biggest figure on screen**, never
-against the whole — the top row of a ten-person fight is a full bar, and the share in brackets is
-what states the fraction. The badge carries the game's own letter, which is the channel that
-survives colour blindness: six professions cannot be made mutually distinguishable on this
-background, so the letter and not the hue is what answers who is what.
+**Ranking row.** A place in the ranking, a name, a figure and its share. The bar is an element
+behind the text at `barTint`, with a three-pixel cap at full strength on the edge it starts from:
+the tint is what keeps the figures printed over it readable, and the cap gives the hue back where no
+text sits. **Its length is the row against the biggest figure on screen**, never against the whole —
+the top row of a ten-person fight is a full bar, and the share in brackets is what states the
+fraction.
+
+⚠️ **The row says a profession in its hue and in nothing else.** Six professions cannot be made
+mutually distinguishable by hue on this background, so a reader who cannot separate two of them has
+nothing else in the row to read: the answer is stated once, in the one channel colour vision
+carries. `ARCHITECTURE.md` carries this under its known gaps.
 
 **Pinned row.** Stands apart from the ranking, below it and outside the list, for figures that
 belong to no combatant. It is a row, not a footnote: same height, same shape — with a dashed rule

@@ -40,12 +40,7 @@ import {
     type ScreenTab,
     STORAGE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
-import {
-    CLASS,
-    composeStyleSheet,
-    getColourForProfession,
-    getInkForColour,
-} from "@/src/ui/panel-look.ts";
+import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
 import {
     composeFigureText,
     composeShelfSizeText,
@@ -276,20 +271,6 @@ function composeBarElements(document: PanelDocument, reading: RowReading): Panel
     return [bar, cap];
 }
 
-/** The profession as a letter, which is the channel that survives colour blindness. */
-function composeBadgeElement(
-    document: PanelDocument,
-    profession: string,
-    colour: string,
-): PanelElement {
-    const badge = composeElement(document, "span", CLASS.rowBadge);
-    badge.textContent = profession.toUpperCase();
-    badge.setAttribute(STYLE_ATTRIBUTE, `background:${colour};color:${getInkForColour(colour)}`);
-    assert(badge.textContent.length > 0, "a badge that is drawn wears the game's own letter");
-    assert(colour.length > 0, "and the colour that profession is drawn in");
-    return badge;
-}
-
 /**
  * A press lands on the deepest element under the pointer, so every part of an openable row wears
  * the mark. Null leaves the row closed: the rows inside an opened one have nothing further to open.
@@ -308,9 +289,6 @@ function composeRowElement(
         const rank = composeElement(document, "span", CLASS.rowRank);
         rank.textContent = `${composeFigureText(reading.rank)}.`;
         parts.push(rank);
-    }
-    if (reading.profession !== null) {
-        parts.push(composeBadgeElement(document, reading.profession, reading.colour));
     }
     const name = composeElement(document, "span", CLASS.rowName);
     name.textContent = reading.name;

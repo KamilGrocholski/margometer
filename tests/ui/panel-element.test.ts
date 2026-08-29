@@ -635,8 +635,6 @@ Deno.test("a ranking row's bar is its profession's, and colourless without one",
         assert(drawnBar.includes(`${(row.fill * 100).toFixed(1)}%`), "and is that long");
         const cap = drawn.children.find((one) => one.className === "bar-cap");
         assert((cap?.attributes.get("style") ?? "").includes(hue), "and the cap is the full hue");
-        const badge = drawn.children.find((one) => one.className === "row-badge");
-        assertEquals(badge?.textContent, row.profession?.toUpperCase(), "the letter says which");
     }
     const nobody = getColourForProfession(null);
     const colourless = rows.filter((one) =>
@@ -655,11 +653,6 @@ Deno.test("a ranking row's bar is its profession's, and colourless without one",
     for (const one of bars) {
         assert((one.attributes.get("style") ?? "").includes(nobody), "each takes the colourless");
     }
-    assertEquals(
-        getElementsWithin(unstated).filter((one) => one.className === "row-badge"),
-        [],
-        "and a combatant the game named no profession for wears no letter at all",
-    );
 });
 
 Deno.test("a kind's row carries a bar of its own, measured against its own cut", () => {

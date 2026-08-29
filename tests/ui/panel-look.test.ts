@@ -13,7 +13,6 @@ import {
     getColourForProfession,
     getContrastRatio,
     getInkForBar,
-    getInkForColour,
     PALETTE_COLOURS,
     SIGNAL,
     SPACE,
@@ -94,9 +93,6 @@ Deno.test("a profession keeps its colour, and one the game did not state is colo
 });
 
 Deno.test("the ink is computed, and at this tint every bar takes the light one", () => {
-    assertEquals(getInkForColour("#ffffff"), TEXT.inkDark, "a light surface takes the dark ink");
-    assertEquals(getInkForColour("#000000"), TEXT.inkLight, "and a dark one takes the light");
-    assertEquals(getInkForColour("nothing"), TEXT.inkLight, "an unreadable colour takes the light");
     const inks = new Set(PALETTE_COLOURS.map((one) => getInkForBar(one)));
     // Measured, not designed: at a tint of 0.55 over this track no bar is light enough for the
     // dark ink, which is why that token is reachable only by a lighter bar than the panel draws.
