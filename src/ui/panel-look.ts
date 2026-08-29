@@ -436,7 +436,13 @@ function composeFrameRules(): string {
         `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
-        `box-sizing:border-box;width:${PLACE.width};}` +
+        `box-sizing:border-box;width:${PLACE.width};` +
+        // The affordance is the cursor and the grip; nothing animates to advertise it.
+        `cursor:move;` +
+        // The one `-webkit-` in this repository, and it is not a fallback that ages out: Safari
+        // has never shipped `user-select` unprefixed (browser-compat-data, read 2026-08-18), so
+        // without this a drag by the bar selects the text under the cursor instead.
+        `-webkit-user-select:none;user-select:none;touch-action:none;}` +
         `.${CLASS.titleVersion}{opacity:0.7;font-size:10px;}` +
         `.${CLASS.control}{padding:0 var(${VARIABLE_PREFIX}small);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
@@ -497,7 +503,8 @@ function composeRegionRules(): string {
         `.${CLASS.tabsGap}{flex:1;}` +
         `.${CLASS.tab}{white-space:nowrap;padding:1px var(${VARIABLE_PREFIX}small);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);color:var(${VARIABLE_PREFIX}quiet);` +
-        `background:transparent;cursor:pointer;}` +
+        `background:transparent;cursor:pointer;` +
+        `-webkit-user-select:none;user-select:none;}` +
         `.${CLASS.tab}.${CLASS.tabCurrent}{color:var(${VARIABLE_PREFIX}text);` +
         `background:var(${VARIABLE_PREFIX}raised);}` +
         `.${CLASS.crumb}{display:flex;gap:var(${VARIABLE_PREFIX}wide);align-items:baseline;` +
