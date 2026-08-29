@@ -289,20 +289,20 @@ function composeSectionElement(document: PanelDocument, heading: string): PanelE
  * worded. A doubt that names nobody is said here, because no row can carry it — and it is said
  * only on a screen whose figure the doubt could actually shorten.
  */
-function composeSummaryElement(
-    document: PanelDocument,
-    reading: PanelReading,
-    metric: PanelMetric,
-): PanelElement {
+function composeSummaryElement(document: PanelDocument, view: PanelView): PanelElement {
+    const reading = view.reading;
     const strip = composeElement(document, "div", SUMMARY_CLASS);
     const name = composeElement(document, "span", SUMMARY_NAME_CLASS);
-    name.textContent = getWordsForScreen(metric);
     const total = composeElement(document, "span", SUMMARY_FIGURE_CLASS);
-    total.textContent = `${reading.total}`;
+    // The strip summarises whatever stands above it, and on the shelf that is the shelf. Saying
+    // the live fight's total there states a figure under a heading the reader is not looking at.
+    name.textContent = view.isOnShelf ? PANEL_WORDS.fights : getWordsForScreen(view.current);
+    total.textContent = view.isOnShelf ? `${view.shelf.length}` : `${reading.total}`;
     strip.append(name);
     strip.append(total);
     assert(reading.total >= 0, "a fight's total is never below nothing");
     assert(name.textContent.length > 0, "and the strip says which figure it is the total of");
+    if (view.isOnShelf) return strip;
     if (!reading.isSuspect) return strip;
     const mark = composeElement(document, "div", SUSPECT_CLASS);
     mark.textContent = `${SUSPECT_MARK}${PANEL_WORDS.suspect}`;
@@ -493,9 +493,7 @@ export function composePanelHost(
             title = redraw(title, () => composeTitleElement(document, view.place));
             tabs = redraw(tabs, () => composeTabsElement(document, view));
             body = redraw(body, () => composeViewBody(document, view));
-            summary = redraw(summary, () => {
-                return composeSummaryElement(document, view.reading, view.current);
-            });
+            summary = redraw(summary, () => composeSummaryElement(document, view));
             assert(tabs !== body, "the regions are that many elements");
             assert(title !== tabs, "and none of them stands in for another");
             assert(summary !== body, "the strip is its own region, drawn whatever the body says");

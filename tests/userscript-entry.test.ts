@@ -176,6 +176,12 @@ Deno.test("the shelf has a screen of its own, and its tab toggles", () => {
 
     pressElement(host, "pointerdown", shelfTab);
     assertEquals(rows().length, 1, "and on the shelf, with the one fight it has kept");
+    // The strip summarises whatever stands above it, and here that is the shelf: the live fight's
+    // own total under a list of fights already fought is a figure with no heading beside it.
+    const said = getElementsWithin(host).filter((one) => one.className === "summary-name");
+    const counted = getElementsWithin(host).filter((one) => one.className === "summary-figure");
+    assertEquals(said.map((one) => one.textContent), ["Walki"], "the strip says what it is over");
+    assertEquals(counted.map((one) => one.textContent), ["1"], "and how many are on it");
 
     pressElement(host, "pointerdown", shelfTab);
     assertEquals(rows().length, figures, "pressed again, the shelf gives the figures back");
