@@ -26,8 +26,11 @@ import {
     composeDirectionTabs,
     composeNounTabs,
     composeSideTabs,
+    getNounForScreen,
+    getWordsForKindCut,
     getWordsForOpponentCut,
     getWordsForScreen,
+    type PanelNoun,
     type PanelSideChoice,
     SCREEN_ORDER,
     type ScreenTab,
@@ -46,6 +49,7 @@ import {
     composeUndrawnText,
     COUNTED_NOUNS,
     getWordsForElement,
+    getWordsForHealthSource,
     getWordsForOutcome,
     PANEL_WORDS,
     type PanelRegion,
@@ -319,11 +323,18 @@ function composeCombatantReading(row: PanelRow, rank: number | null): RowReading
     };
 }
 
-function composeElementReading(row: ElementRow): RowReading {
-    assert(row.element.length > 0, "a kind of damage drawn is one the protocol named");
+/**
+ * What the second cut of a figure is drawn as. Damage is cut by the kind a blow carried and
+ * healing by the key it moved under, so the words and the colour come from the noun rather than
+ * from one table asked about both.
+ */
+function composeElementReading(row: ElementRow, noun: PanelNoun): RowReading {
+    assert(row.element.length > 0, "a part of a figure is one the protocol named");
     assert(row.figure >= 0, "and states a figure that is not below nothing");
     return {
-        name: getWordsForElement(row.element),
+        name: noun === "damage"
+            ? getWordsForElement(row.element)
+            : getWordsForHealthSource(row.element),
         figure: row.figure,
         fill: row.fill,
         shareText: row.shareText,
@@ -645,8 +656,8 @@ function composeOpponentSection(
     assert(cut.rows.length <= MAXIMUM_ROWS, "an opened row stays inside the fight's bound");
     if (cut.rows.length === 0 && cut.unnamed === null) return;
     const heading = getWordsForOpponentCut(stated.metric);
-    if (heading === null) return;
-    assert(drill.total >= 0, "a cut stands under a figure that is not below nothing");
+    assert(heading.length > 0, "a cut says what it is cut by");
+    assert(drill.total >= 0, "and stands under a figure that is not below nothing");
     list.append(composeSectionElement(document, heading, drill.total));
     const share = PANEL_WORDS.shareOfFigure;
     for (const row of cut.rows) {
@@ -661,7 +672,9 @@ function composeOpponentSection(
         list.append(composeRowElement(document, composeCombatantReading(row, null), null, tip));
     }
     if (cut.unnamed === null) return;
-    const words = stated.metric === "damageDealtApplied"
+    // Which end is missing is the direction's: a given screen names no receiver, a received one
+    // names nobody who did it.
+    const words = stated.metric === "damageDealtApplied" || stated.metric === "healthGiven"
         ? PANEL_WORDS.withoutTarget
         : PANEL_WORDS.withoutActor;
     const tip = { register: stated.register, key: "to:nobody", figure: stated.figure, share };
@@ -674,24 +687,25 @@ function composeElementSection(
     document: PanelDocument,
     list: PanelElement,
     drill: DrillReading,
-    stated: { register: TipRegister; figure: string },
+    stated: { metric: PanelMetric; register: TipRegister; figure: string },
 ): void {
     const cut = drill.byElement;
     assert(cut.rows.length <= MAXIMUM_KINDS, "a cut stays inside the bound it is kept to");
-    if (cut.rows.length === 0 && cut.unnamed === null) return;
     assert(drill.total >= 0, "a cut stands under a figure that is not below nothing");
-    list.append(composeSectionElement(document, PANEL_WORDS.damageKind, drill.total));
+    // The reading is what says whether there is a cut at all: a screen without one hands over an
+    // empty one rather than being named here a second time.
+    if (cut.rows.length === 0 && cut.unnamed === null) return;
+    list.append(composeSectionElement(document, getWordsForKindCut(stated.metric), drill.total));
+    const noun = getNounForScreen(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
     for (const row of cut.rows) {
         const tip = {
             register: stated.register,
             key: `kind:${row.element}`,
-            ...{
-                figure: stated.figure,
-                share,
-            },
+            figure: stated.figure,
+            share,
         };
-        list.append(composeRowElement(document, composeElementReading(row), null, tip));
+        list.append(composeRowElement(document, composeElementReading(row, noun), null, tip));
     }
     if (cut.unnamed === null) return;
     const tip = { register: stated.register, key: "kind:nobody", figure: stated.figure, share };
@@ -715,7 +729,7 @@ function composeDrillElement(
     const figure = getWordsForScreen(view.current);
     assert(figure.length > 0, "an opened row states what its figure is a figure of");
     composeOpponentSection(document, list, drill, { metric: view.current, register, figure });
-    composeElementSection(document, list, drill, { register, figure });
+    composeElementSection(document, list, drill, { metric: view.current, register, figure });
     assert(drill.total >= 0, "a figure opened is never below nothing");
     return list;
 }

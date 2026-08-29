@@ -43,6 +43,14 @@ export interface CombatantFigures {
     damageTakenFromNobody: number;
     damageDealtToNobody: number;
     healthRestoredByNobody: number;
+    /**
+     * Health moving, cut by the other end and by the key it moved under. There is no cut of what
+     * a combatant **gave** by key: the keys the protocol names belong to whoever received the
+     * health, so charging one to the giver would be wording their row with somebody else's cause.
+     */
+    healthRestoredByGiver: Map<string, number>;
+    healthGivenByReceiver: Map<string, number>;
+    healthRestoredBySource: Map<string, number>;
     damageDealtByElement: Map<string, number>;
     damageTakenByElement: Map<string, number>;
     damageDealtByOpponent: Map<string, number>;
@@ -98,6 +106,9 @@ function composeCombatantFigures(): CombatantFigures {
         damageTakenFromNobody: 0,
         damageDealtToNobody: 0,
         healthRestoredByNobody: 0,
+        healthRestoredByGiver: new Map(),
+        healthGivenByReceiver: new Map(),
+        healthRestoredBySource: new Map(),
         damageDealtByElement: new Map(),
         damageTakenByElement: new Map(),
         damageDealtByOpponent: new Map(),
@@ -254,6 +265,10 @@ function addGivenHealth(
     healedId: number | null,
 ): void {
     assert(amount >= 0, "restored health is never below nothing");
+    if (healedId !== null && giverId !== null) {
+        const healed = getFiguresForCombatant(build.byCombatantId, healedId);
+        addToCut(healed.healthRestoredByGiver, `${giverId}`, amount);
+    }
     if (giverId === null) {
         build.givenByNobody += amount;
         assert(build.givenByNobody >= amount, "a total only grows by what it was handed");
@@ -261,7 +276,23 @@ function addGivenHealth(
         getFiguresForCombatant(build.byCombatantId, healedId).healthRestoredByNobody += amount;
         return;
     }
-    getFiguresForCombatant(build.byCombatantId, giverId).healthGiven += amount;
+    const giver = getFiguresForCombatant(build.byCombatantId, giverId);
+    giver.healthGiven += amount;
+    if (healedId !== null) addToCut(giver.healthGivenByReceiver, `${healedId}`, amount);
+}
+
+/** What put the health back, on the row it was put back on: the key, as the protocol wrote it. */
+function addRestoredSource(
+    build: StatisticsBuild,
+    healedId: number | null,
+    source: string,
+    amount: number,
+): void {
+    assert(amount >= 0, "restored health is never below nothing");
+    assert(source.length > 0, "and comes under a key the protocol named");
+    if (healedId === null) return;
+    const healed = getFiguresForCombatant(build.byCombatantId, healedId);
+    addToCut(healed.healthRestoredBySource, source, amount);
 }
 
 /**
@@ -292,6 +323,7 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
     const figures = getFiguresForCombatant(build.byCombatantId, event.combatantId);
     if (event.amount >= 0) {
         figures.healthRestored += event.amount;
+        addRestoredSource(build, event.combatantId, event.source, event.amount);
         addGivenHealth(
             build,
             getGiverId(event.source, event.combatantId, event.announced),
@@ -312,6 +344,7 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
     if (event.targetId === null) return;
     const figures = getFiguresForCombatant(build.byCombatantId, event.targetId);
     figures.healthRestored += event.amount;
+    addRestoredSource(build, event.targetId, event.source, event.amount);
     // No announcement to ask: this figure rides a blow struck at somebody else, so the message's
     // own actor is the attacker rather than the healer.
     addGivenHealth(
@@ -336,6 +369,7 @@ function addTeamHeal(build: StatisticsBuild, heal: TeamHeal | undefined): void {
     for (const [combatantId, amount] of heal.restoredByCombatantId) {
         assert(amount >= 0, "a cast puts back no less than nothing");
         getFiguresForCombatant(build.byCombatantId, combatantId).healthRestored += amount;
+        addRestoredSource(build, combatantId, heal.source, amount);
         // The one healing shape whose giver the protocol states outright: the caster stands in
         // the message's actor slot, and the recipients are what the sizing worked out.
         addGivenHealth(build, heal.casterId, amount, combatantId);

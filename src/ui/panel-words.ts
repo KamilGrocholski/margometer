@@ -47,6 +47,7 @@ export const PANEL_WORDS = {
     dealtTo: "KOMU",
     takenFrom: "OD KOGO",
     damageKind: "TYP OBRAŻEŃ",
+    healthSource: "OD CZEGO",
     withoutKind: "Bez podanego typu",
     /** What a region says in place of itself, so a failure is the size of the thing that failed. */
     undrawn: "nie dało się narysować",
@@ -141,6 +142,34 @@ export const ELEMENT_WORDS: Record<string, string> = {
     dmgg: "globalne",
     thirdatt: "trzeci atak",
 };
+
+/**
+ * The key health moved under, in the player's words. Ours, like the damage kinds beside it and
+ * for the reason **ADR 0011** gives: the client words most of these as sentences with holes in
+ * them, which is not a phrase a column can take.
+ *
+ * Every one of the six is stated in `captures/`, measured 2026-08-29: `heal` on 2,057 movements,
+ * `heal_target` on 114, `legbon_holytouch_heal` on 53, `legbon_lastheal` on 13 stated against a
+ * name, `npc_heal` on 2 and `bandage` on 1.
+ */
+export const HEALTH_SOURCE_WORDS: Record<string, string> = {
+    heal: "przywracanie życia",
+    heal_target: "uleczenie wskazanego",
+    legbon_holytouch_heal: "dotyk anioła",
+    legbon_lastheal: "ostatni ratunek",
+    healall_per: "uleczenie sojuszników",
+    npc_heal: "regeneracja potwora",
+    bandage: "bandażowanie",
+};
+
+/** A key the table does not hold reaches the reader as the game wrote it. **ADR 0011.** */
+export function getWordsForHealthSource(source: string): string {
+    assert(source.length > 0, "a key health moved under is named");
+    const words = HEALTH_SOURCE_WORDS[source];
+    if (words === undefined) return source;
+    assert(words.length > 0, "a key the table holds is worded");
+    return words;
+}
 
 export const COUNTED_NOUNS = {
     messages: { one: "wiadomość", few: "wiadomości", many: "wiadomości" },

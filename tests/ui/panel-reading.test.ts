@@ -290,19 +290,35 @@ Deno.test("a screen that cuts by nobody still cuts by what the blows carried", (
     assertEquals(drill.byElement.rows[0]?.shareText, "100%", "the whole of this row's figure");
 });
 
-Deno.test("a screen with no cut opens nothing, and neither does a row nobody holds", () => {
+Deno.test("every screen opens, and a row belonging to nobody in the fight opens nothing", () => {
     const { roster, statistics } = readFight(HILDUR);
     const held = [...statistics.byCombatantId.keys()][0];
     assert(held !== undefined, "the fight holds somebody");
-    assertEquals(
-        composeDrillReading(statistics, roster, "healthRestored", held),
-        null,
-        "a screen the statistics cut no further stays closed",
-    );
+    for (const screen of SCREENS) {
+        const drill = composeDrillReading(statistics, roster, screen, held);
+        assert(drill !== null, `${screen}: a row on every screen opens onto its own figure`);
+        assertEquals(
+            drill.total,
+            drill.byOpponent.rows.reduce(
+                (sum, one) => sum + one.figure,
+                drill.byOpponent.unnamed?.figure ?? 0,
+            ),
+            `${screen}: and the cut by the other end comes to the figure it was cut from`,
+        );
+        // Not only that it adds up: a cut whose every figure was zero adds up too, with the whole
+        // of it falling into the part the protocol named nobody for.
+        assert(drill.byOpponent.rows.length > 0, `${screen}: and it names somebody`);
+        const named = drill.byOpponent.rows.reduce((sum, one) => sum + one.figure, 0);
+        assert(named > 0, `${screen}: for more than nothing`);
+    }
+    // The one screen with no second cut: the keys the protocol names belong to whoever received
+    // the health, so a giver's row is cut by whom and by nothing else.
+    const given = composeDrillReading(statistics, roster, "healthGiven", held);
+    assertEquals(given?.byElement, { rows: [], unnamed: null }, "healing given is cut once");
     assertEquals(
         composeDrillReading(statistics, roster, "damageDealtApplied", 0),
         null,
-        "and so does a row belonging to nobody in the fight",
+        "and a row belonging to nobody in the fight opens nothing at all",
     );
 });
 

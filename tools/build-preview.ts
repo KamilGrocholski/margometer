@@ -143,7 +143,9 @@ export function composePreviewPage(bundle: string, recordings: readonly Recordin
 <meta charset="utf-8">
 <title>MargoMeter — podgląd</title>
 <style>
-body { margin: 0; background: #0f0f13; color: #9a9aa6; font: 12px system-ui, sans-serif; }
+/* The game's own page colour, read off screenshots/panel-taken.png at v0.10.1: a panel judged
+   against a darker page is a panel whose border reads as a colour it is not. */
+body { margin: 0; background: #14171c; color: #9a9aa6; font: 12px system-ui, sans-serif; }
 label { display: block; padding: 8px; }
 select { font: inherit; }
 </style>

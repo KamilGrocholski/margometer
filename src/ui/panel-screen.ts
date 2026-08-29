@@ -55,11 +55,27 @@ export type PanelSideChoice = (typeof SIDE_CHOICES)[number];
  * What the other end of a blow is called on each screen, and null where a screen states no other
  * end at all — a defence stopping a blow and health moving are cut by nothing here.
  */
-const OPPONENT_WORDS: Record<PanelMetric, string | null> = {
+const OPPONENT_WORDS: Record<PanelMetric, string> = {
     damageDealtApplied: PANEL_WORDS.dealtTo,
     damageTakenApplied: PANEL_WORDS.takenFrom,
-    healthGiven: null,
-    healthRestored: null,
+    healthGiven: PANEL_WORDS.dealtTo,
+    healthRestored: PANEL_WORDS.takenFrom,
+};
+
+/**
+ * What the second cut is headed.
+ *
+ * **One of the four is never read, and it stays anyway.** Healing given has no cut by key — the
+ * keys the protocol names belong to whoever received the health — so the reading hands the panel
+ * an empty cut and no heading is drawn over it. The entry is here because the table is
+ * exhaustive: the compiler then asks about a fifth screen instead of letting it inherit whichever
+ * wording came first, and `tests/ui/panel-element.test.ts` holds the emptiness.
+ */
+const KIND_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: PANEL_WORDS.damageKind,
+    damageTakenApplied: PANEL_WORDS.damageKind,
+    healthGiven: PANEL_WORDS.healthSource,
+    healthRestored: PANEL_WORDS.healthSource,
 };
 
 export interface ScreenState {
@@ -111,11 +127,18 @@ export function getSideFromName(name: string): PanelSideChoice | null {
     return null;
 }
 
-/** Null where the screen opens no row, so a heading is never drawn over a cut there is none of. */
-export function getWordsForOpponentCut(screen: PanelMetric): string | null {
+/** What the cut by the other end of each movement is headed. Every screen has one. */
+export function getWordsForOpponentCut(screen: PanelMetric): string {
     assert(screen.length > 0, "a screen is asked for by name");
     const words = OPPONENT_WORDS[screen];
-    assert(words === null || words.length > 0, "a cut that is headed says what it is cut by");
+    assert(words.length > 0, "a cut that is drawn says what it is cut by");
+    return words;
+}
+
+export function getWordsForKindCut(screen: PanelMetric): string {
+    assert(screen.length > 0, "a screen is asked for by name");
+    const words = KIND_WORDS[screen];
+    assert(words.length > 0, "a cut that is drawn says what it is cut by");
     return words;
 }
 

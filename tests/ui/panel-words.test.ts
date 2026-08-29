@@ -15,6 +15,8 @@ import {
     composeShareText,
     composeShareTexts,
     COUNTED_NOUNS,
+    getWordsForHealthSource,
+    HEALTH_SOURCE_WORDS,
     PANEL_WORDS,
 } from "@/src/ui/panel-words.ts";
 
@@ -165,4 +167,20 @@ Deno.test("two of a figure print one share, and the column still adds up", () =>
     const split = composeShareTexts([1, 1, 1], 3);
     assertEquals(getPointsFromShares(split), 100, "a tie is split where nothing else can pay");
     assertEquals(split, ["34%", "33%", "33%"], "earliest row first, so nothing flickers");
+});
+
+Deno.test("a key health moved under is worded, and one nobody named travels as written", () => {
+    assertEquals(getWordsForHealthSource("heal"), "przywracanie życia", "the key most of it comes");
+    assertEquals(
+        getWordsForHealthSource("bandage"),
+        "bandażowanie",
+        "under, and the rarest of them",
+    );
+    // What the game sends and nobody here has named is shown as the game wrote it: a row that
+    // vanished or read "nieznane" would hide a real figure behind our own ignorance.
+    assertEquals(getWordsForHealthSource("heal_of_2027"), "heal_of_2027", "a key nobody has named");
+    for (const [key, words] of Object.entries(HEALTH_SOURCE_WORDS)) {
+        assert(words.length > 0, `${key}: a key the table holds is worded`);
+        assert(!words.includes("%"), `${key}: a hole in a sentence is not a word for a column`);
+    }
 });

@@ -562,11 +562,18 @@ export interface DrillReading {
 
 interface MetricCuts {
     byOpponent: FigureCut;
-    byElement: FigureCut;
+    /** Null on the one screen whose second cut would word a figure with somebody else's cause. */
+    byElement: FigureCut | null;
 }
 
-/** Null where the screen has no cut to open. A screen without one is not a row a reader presses. */
-function getCutsForMetric(figures: CombatantFigures, metric: PanelMetric): MetricCuts | null {
+/**
+ * What a row opens onto, on every screen there is.
+ *
+ * Healing given has no cut by key and the empty map says so outright: the keys the protocol
+ * names belong to whoever received the health, so putting one under the giver's row would word
+ * their figure with a cause that is not theirs.
+ */
+function getCutsForMetric(figures: CombatantFigures, metric: PanelMetric): MetricCuts {
     assert(metric.length > 0, "a screen is asked for by name");
     assert(figures.damageDealtApplied >= 0, "a figure that could be cut is not below nothing");
     if (metric === "damageDealtApplied") {
@@ -581,7 +588,13 @@ function getCutsForMetric(figures: CombatantFigures, metric: PanelMetric): Metri
             byElement: figures.damageTakenByElement,
         };
     }
-    return null;
+    if (metric === "healthGiven") {
+        return { byOpponent: figures.healthGivenByReceiver, byElement: null };
+    }
+    return {
+        byOpponent: figures.healthRestoredByGiver,
+        byElement: figures.healthRestoredBySource,
+    };
 }
 
 /** By figure, then by the token, so a cut redrawn without changing states the same order. */
@@ -693,11 +706,12 @@ export function composeDrillReading(
     const figures = statistics.byCombatantId.get(combatantId);
     if (figures === undefined) return null;
     const cuts = getCutsForMetric(figures, metric);
-    if (cuts === null) return null;
     const total = getFigure(figures, metric);
     const held = roster.byId.get(combatantId);
     const byOpponent = composeOpponentCut(cuts.byOpponent, roster, total);
-    const byElement = composeElementCut(cuts.byElement, total);
+    const byElement = cuts.byElement === null
+        ? { rows: [], unnamed: null }
+        : composeElementCut(cuts.byElement, total);
     assert(byOpponent.rows.length <= MAXIMUM_ROWS, "an opened row stays inside the fight's bound");
     assert(byElement.rows.every((one) => one.figure >= 0), "and no kind of it is below nothing");
     return {

@@ -1048,3 +1048,42 @@ Deno.test("a press on a control is not a drag, whatever the pointer does next", 
         "the panel stays where the reader left it: a press on a control is that control's",
     );
 });
+
+/** Healing opens like damage does, and the two cuts it opens onto are its own. */
+Deno.test("a healing row opens, and says whose the health was and what put it back", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const open = (screen: "healthGiven" | "healthRestored") => {
+        const reading = composePanelReading(statistics, roster, screen, "everyone", null);
+        const first = reading.rows[0];
+        assert(first !== undefined, `${screen}: there is a row to open`);
+        const drill = composeDrillReading(statistics, roster, screen, first.combatantId);
+        assert(drill !== null, `${screen}: and it opens`);
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({
+            reading,
+            current: screen,
+            side: "everyone" as const,
+            hasReaderSide: false,
+            shelf: [],
+            isOnShelf: false,
+            drill,
+            place: null,
+            isCollapsed: false,
+        });
+        const host = panel.element as FakeElement;
+        return getElementsWithin(host)
+            .filter((one) => one.className === "section-heading")
+            .map((one) => one.children[0]?.textContent);
+    };
+    assertEquals(
+        open("healthRestored"),
+        [PANEL_WORDS.takenFrom, PANEL_WORDS.healthSource],
+        "health received is cut by who put it back and by the key it came under",
+    );
+    // One cut, not two: the keys the protocol names belong to whoever received the health, so a
+    // giver's row cut by one would be worded with somebody else's cause.
+    assertEquals(open("healthGiven"), [PANEL_WORDS.dealtTo], "and health given only by whom");
+});
