@@ -10,7 +10,11 @@
 import { assert } from "@std/assert";
 import { composeJsonText } from "@/src/core/unknown-reading.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import type { CombatantFigures, FightStatistics } from "@/src/core/fight-statistics.ts";
+import type {
+    CombatantFigures,
+    FightStatistics,
+    SkillFigures,
+} from "@/src/core/fight-statistics.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { FightPlace } from "@/src/game/engine-place.ts";
 import type { CaptureSurroundings } from "@/src/game/fight-capture.ts";
@@ -36,10 +40,51 @@ export interface ReportSubject {
  * how it is written down. A report is what a reader pastes when a number looks wrong, so a figure
  * added there and missed here would be absent in exactly the situation the report exists for.
  */
+/** A skill as a report writes it: what it is called, how often, what it did, and to whom. */
+interface ReportSkill {
+    name: string;
+    uses: number;
+    figure: number;
+    byOpponent: Record<string, number>;
+}
+
 type ReportRow = {
     [Key in keyof CombatantFigures]: CombatantFigures[Key] extends number ? number
-        : Record<string, number>;
+        : CombatantFigures[Key] extends Map<string, number> ? Record<string, number>
+        : CombatantFigures[Key] extends Map<string, Map<string, number>>
+            ? Record<string, Record<string, number>>
+        : Record<string, ReportSkill>;
 };
+
+/** A cut of a cut, written the way one cut is: an object, because JSON holds no map. */
+function composeReportPairCut(
+    cut: ReadonlyMap<string, ReadonlyMap<string, number>>,
+): Record<string, Record<string, number>> {
+    const written: Record<string, Record<string, number>> = {};
+    for (const [key, held] of cut) {
+        assert(key.length > 0, "a cut of a cut is kept under a name");
+        written[key] = composeReportCut(held);
+    }
+    assert(Object.keys(written).length === cut.size, "and every one of them is written down");
+    return written;
+}
+
+function composeReportSkills(
+    skills: ReadonlyMap<string, SkillFigures>,
+): Record<string, ReportSkill> {
+    const written: Record<string, ReportSkill> = {};
+    for (const [key, skill] of skills) {
+        assert(key.length > 0, "a skill is kept under the name it was announced by");
+        written[key] = {
+            name: skill.name,
+            uses: skill.uses,
+            figure: skill.figure,
+            byOpponent: composeReportCut(skill.byOpponent),
+        };
+    }
+    assert(Object.keys(written).length === skills.size, "and every one of them is written down");
+    return written;
+}
 
 /** A cut as an object, because JSON holds no map and a report is read as text. */
 function composeReportCut(cut: ReadonlyMap<string, number>): Record<string, number> {
@@ -73,6 +118,11 @@ function composeReportRow(figures: CombatantFigures): ReportRow {
         damageTakenByElement: composeReportCut(figures.damageTakenByElement),
         damageDealtByOpponent: composeReportCut(figures.damageDealtByOpponent),
         damageTakenByOpponent: composeReportCut(figures.damageTakenByOpponent),
+        damageDealtByOpponentAndKind: composeReportPairCut(figures.damageDealtByOpponentAndKind),
+        damageTakenByOpponentAndKind: composeReportPairCut(figures.damageTakenByOpponentAndKind),
+        damageDealtBySkill: composeReportSkills(figures.damageDealtBySkill),
+        blowsStruck: figures.blowsStruck,
+        blowsWithoutSkill: figures.blowsWithoutSkill,
     };
 }
 

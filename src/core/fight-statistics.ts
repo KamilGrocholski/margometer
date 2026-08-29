@@ -17,6 +17,22 @@ const MAXIMUM_COMBATANTS = 20;
 /** A figure cut by something the protocol named: an element, or the other end of the blow. */
 export type FigureCut = ReadonlyMap<string, number>;
 
+/**
+ * A skill an announcement named, and what it did.
+ *
+ * The count is the announcement's own: only a `skill-used` message states one, and a blow that
+ * carries the announcement is that same use rather than a second. Nothing counts a blow nobody
+ * announced as a use of anything.
+ */
+export interface SkillFigures {
+    /** As the announcement wrote it. The key is the name, because an id is not always stated. */
+    name: string;
+    uses: number;
+    figure: number;
+    /** Whom it reached, so an opened skill can say who was on the other end of it. */
+    byOpponent: Map<string, number>;
+}
+
 export interface CombatantFigures {
     damageDealtRaw: number;
     damageDealtApplied: number;
@@ -55,6 +71,21 @@ export interface CombatantFigures {
     damageTakenByElement: Map<string, number>;
     damageDealtByOpponent: Map<string, number>;
     damageTakenByOpponent: Map<string, number>;
+    /**
+     * The same figures again, cut twice over: by the other end **and** by what the blows carried.
+     * A cut of a cut is what an opened pair is, and neither of the two flat cuts above can be
+     * folded into it — a panel that multiplied them would be inventing a figure.
+     */
+    damageDealtByOpponentAndKind: Map<string, Map<string, number>>;
+    damageTakenByOpponentAndKind: Map<string, Map<string, number>>;
+    /** What this combatant announced before a blow, and what those blows came to. */
+    damageDealtBySkill: Map<string, SkillFigures>;
+    /**
+     * How many blows they struck, and how many stood behind no announcement. The second is the
+     * count the closing row of a skills section states — a figure alone cannot say it.
+     */
+    blowsStruck: number;
+    blowsWithoutSkill: number;
 }
 
 /**
@@ -113,16 +144,72 @@ function composeCombatantFigures(): CombatantFigures {
         damageTakenByElement: new Map(),
         damageDealtByOpponent: new Map(),
         damageTakenByOpponent: new Map(),
+        damageDealtByOpponentAndKind: new Map(),
+        damageTakenByOpponentAndKind: new Map(),
+        damageDealtBySkill: new Map(),
+        blowsStruck: 0,
+        blowsWithoutSkill: 0,
     };
 }
 
 /** The largest cut in `captures/` holds ten elements against twenty combatants, 2026-08-28. */
 const MAXIMUM_CUT = 64;
+/** 81 skills are named across `captures/`, 2026-08-29, and one fight states a fraction of them. */
+const MAXIMUM_SKILLS = 256;
 
 function addToCut(cut: Map<string, number>, key: string, amount: number): void {
     assert(key.length > 0, "a cut is kept under a name");
     assert(cut.size <= MAXIMUM_CUT, "a cut stays inside its stated bound");
     cut.set(key, (cut.get(key) ?? 0) + amount);
+}
+
+/** A cut of a cut: the other end, and then what the blows between them carried. */
+function addToPairCut(
+    cut: Map<string, Map<string, number>>,
+    other: string,
+    figures: readonly DamageFigure[],
+): void {
+    assert(other.length > 0, "the other end of a blow is named before it is cut by");
+    assert(cut.size <= MAXIMUM_COMBATANTS, "a fight cuts by the people who are in it");
+    const held = cut.get(other) ?? new Map<string, number>();
+    for (const figure of figures) addToCut(held, figure.element, figure.amount);
+    cut.set(other, held);
+}
+
+/**
+ * What one announcement did, on the row of whoever announced it.
+ *
+ * A skill is kept under its **name** rather than its id: 346 of the 3,349 announcements over
+ * `captures/` on 2026-08-29 carry no id at all, and a row keyed by nothing is a row that would
+ * merge two skills the game tells apart.
+ */
+function addSkillFigure(
+    skills: Map<string, SkillFigures>,
+    announced: AnnouncedSkill,
+    amount: number,
+    other: string | null,
+): void {
+    assert(announced.skillName.length > 0, "an announcement names the skill it announces");
+    assert(amount >= 0, "and what it did is never below nothing");
+    const held = skills.get(announced.skillName) ??
+        { name: announced.skillName, uses: 0, figure: 0, byOpponent: new Map() };
+    held.figure += amount;
+    if (other !== null) addToCut(held.byOpponent, other, amount);
+    skills.set(announced.skillName, held);
+    assert(skills.size <= MAXIMUM_SKILLS, "a fight states no more skills than it is bounded to");
+}
+
+/** The count an announcement states, which a blow carrying that announcement does not repeat. */
+function addSkillUse(build: StatisticsBuild, event: BattleEvent): void {
+    if (event.kind !== "skill-used") return;
+    if (event.actorId === null) return;
+    assert(event.skillName.length > 0, "an announcement names the skill it announces");
+    const skills = getFiguresForCombatant(build.byCombatantId, event.actorId).damageDealtBySkill;
+    const held = skills.get(event.skillName) ??
+        { name: event.skillName, uses: 0, figure: 0, byOpponent: new Map() };
+    held.uses += 1;
+    skills.set(event.skillName, held);
+    assert(held.uses > 0, "an announcement that was counted was counted at least once");
 }
 
 function getTotalFromFigures(figures: readonly DamageFigure[]): number {
@@ -174,6 +261,14 @@ function addFightOutcome(build: StatisticsBuild, event: BattleEvent): void {
     assert(build.outcome !== null, "a fight that stated its end holds one");
 }
 
+/** The other end of a blow as a cut is keyed, or null where the protocol named nobody. */
+function getOtherEndKey(targetId: number | null): string | null {
+    if (targetId === null) return null;
+    assert(Number.isSafeInteger(targetId), "an end the protocol named is named by a number");
+    assert(`${targetId}`.length > 0, "and a cut is kept under it as text");
+    return `${targetId}`;
+}
+
 function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== "attack") return;
     const raw = getTotalFromFigures(event.raw);
@@ -185,11 +280,18 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
         const dealer = getFiguresForCombatant(build.byCombatantId, event.actorId);
         dealer.damageDealtRaw += raw;
         dealer.damageDealtApplied += applied;
+        dealer.blowsStruck += 1;
+        if (event.announced === null) dealer.blowsWithoutSkill += 1;
+        else {
+            const other = getOtherEndKey(event.targetId);
+            addSkillFigure(dealer.damageDealtBySkill, event.announced, applied, other);
+        }
         for (const figure of event.applied) {
             addToCut(dealer.damageDealtByElement, figure.element, figure.amount);
         }
         if (event.targetId !== null) {
             addToCut(dealer.damageDealtByOpponent, `${event.targetId}`, applied);
+            addToPairCut(dealer.damageDealtByOpponentAndKind, `${event.targetId}`, event.applied);
         }
     }
     if (event.targetId === null) {
@@ -203,7 +305,10 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
     for (const figure of event.applied) {
         addToCut(target.damageTakenByElement, figure.element, figure.amount);
     }
-    if (event.actorId !== null) addToCut(target.damageTakenByOpponent, `${event.actorId}`, applied);
+    if (event.actorId !== null) {
+        addToCut(target.damageTakenByOpponent, `${event.actorId}`, applied);
+        addToPairCut(target.damageTakenByOpponentAndKind, `${event.actorId}`, event.applied);
+    }
     for (const stopped of event.prevented) target.damagePrevented += stopped.amount;
     assert(target.damageTakenApplied >= 0, "a total of applied damage never falls below nothing");
 }
@@ -479,6 +584,7 @@ export function composeFightStatistics(
         addHealthChangeEvent(build, event);
         addNamedHealingEvent(build, event);
         addFightOutcome(build, event);
+        addSkillUse(build, event);
     }
     assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
     assert(build.unreadMessages <= events.length, "a message is counted unread once");

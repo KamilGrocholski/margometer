@@ -48,6 +48,9 @@ export const PANEL_WORDS = {
     takenFrom: "OD KOGO",
     damageKind: "TYP OBRAŻEŃ",
     healthSource: "OD CZEGO",
+    skills: "CZYM (UMIEJĘTNOŚCI)",
+    /** A blow nothing was announced before. The game does not tell it from a swing it granted. */
+    plainBlow: "Zwykły cios",
     withoutKind: "Bez podanego typu",
     /** What a region says in place of itself, so a failure is the size of the thing that failed. */
     undrawn: "nie dało się narysować",
@@ -251,6 +254,13 @@ export function composeCountedNoun(count: number, noun: CountedNoun): string {
     if (lastTwo >= TEEN_FLOOR && lastTwo <= TEEN_CEILING) return `${count} ${noun.many}`;
     if (last >= FEW_FLOOR && last <= FEW_CEILING) return `${count} ${noun.few}`;
     return `${count} ${noun.many}`;
+}
+
+/** How many times, beside a share: a count is what a skill row says and a figure cannot. */
+export function composeUsesText(uses: number): string {
+    assert(Number.isSafeInteger(uses), "a count of announcements is a whole number");
+    assert(uses >= 0, "and never below nothing");
+    return `×${composeFigureText(uses)}`;
 }
 
 /** The sign is taken off first and put back last, so a lone minus never joins its digits. */

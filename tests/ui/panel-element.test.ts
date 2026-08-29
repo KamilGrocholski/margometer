@@ -494,6 +494,18 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
     );
 });
 
+/** How many rows an opened figure draws, over all three of its cuts. */
+function countDrillRows(drill: {
+    byOpponent: { rows: unknown[]; unnamed: unknown };
+    bySkill: { rows: unknown[]; plain: unknown };
+    byElement: { rows: unknown[]; unnamed: unknown };
+}): number {
+    const held = (rows: unknown[], extra: unknown) => rows.length + (extra === null ? 0 : 1);
+    return held(drill.byOpponent.rows, drill.byOpponent.unnamed) +
+        held(drill.bySkill.rows, drill.bySkill.plain) +
+        held(drill.byElement.rows, drill.byElement.unnamed);
+}
+
 Deno.test("an opened row stands over the screen, and states whose it is", () => {
     const { reading, drill, opened } = openFirstRow();
     const document = composeFakeDocument();
@@ -514,15 +526,12 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     const crumbs = getTextsByClass(host, "crumb-here");
     assertEquals(crumbs, [opened.name], "the way back names whose row stands open");
     const rows = within.filter((one) => one.className === "row leaf");
-    const cuts = drill.byOpponent.rows.length + drill.byElement.rows.length;
-    const unnamed = (drill.byOpponent.unnamed === null ? 0 : 1) +
-        (drill.byElement.unnamed === null ? 0 : 1);
-    assertEquals(rows.length, cuts + unnamed, "a row for each part of the figure, in either cut");
+    assertEquals(rows.length, countDrillRows(drill), "a row for each part of it, in each cut");
     const sections = getElementsWithin(host).filter((one) => one.className === "section-heading");
     assertEquals(
         sections.map((one) => one.children[0]?.textContent),
-        [PANEL_WORDS.dealtTo, PANEL_WORDS.damageKind],
-        "one heading per cut",
+        [PANEL_WORDS.dealtTo, PANEL_WORDS.skills, PANEL_WORDS.damageKind],
+        "one heading per cut: whom it reached, what it was done with, what it was made of",
     );
     for (const section of sections) {
         assertEquals(
@@ -601,18 +610,17 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
     });
     const host = panel.element as FakeElement;
     const bars = getElementsWithin(host).filter((one) => one.className === "bar");
-    const cuts = drill.byOpponent.rows.length + drill.byElement.rows.length;
-    const unnamed = (drill.byOpponent.unnamed === null ? 0 : 1) +
-        (drill.byElement.unnamed === null ? 0 : 1);
     assertEquals(
         bars.length,
-        cuts + unnamed,
-        "a bar on every row of both cuts, and on nothing else",
+        countDrillRows(drill),
+        "a bar on every row of every cut, and no more",
     );
     const largest = drill.byElement.rows[0];
     assert(largest !== undefined, "the largest kind is the first drawn");
     assertEquals(largest.fill, 1, "and fills its row, being the biggest of its own cut");
-    const drawn = bars[drill.byOpponent.rows.length + unnamedBefore(drill)];
+    const before = drill.byOpponent.rows.length + unnamedBefore(drill) +
+        drill.bySkill.rows.length + (drill.bySkill.plain === null ? 0 : 1);
+    const drawn = bars[before];
     assert(drawn !== undefined, "there is a kind to draw a bar for");
     const style = drawn.attributes.get("style") ?? "";
     // Colourless, like every row that names no combatant: the hue on this panel says who.
@@ -1144,9 +1152,13 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
     );
 
     // Two cuts, each costing its rows, the part named for nobody and the heading over them.
-    const cost = (cut: { rows: unknown[]; unnamed: unknown }) =>
-        cut.rows.length + (cut.unnamed === null ? 0 : 1) + 1;
-    const needed = cost(drill.byOpponent) + cost(drill.byElement);
+    const heads = (
+        rows: unknown[],
+        extra: unknown,
+    ) => (rows.length === 0 && extra === null ? 0 : 1);
+    const needed = countDrillRows(drill) + heads(drill.byOpponent.rows, drill.byOpponent.unnamed) +
+        heads(drill.bySkill.rows, drill.bySkill.plain) +
+        heads(drill.byElement.rows, drill.byElement.unnamed);
     assert(needed > reading.visibleRows, "this fight opens onto more rows than the ranking has");
     assertEquals(
         drawOpened(drill),
@@ -1159,14 +1171,86 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
     const small = {
         ...drill,
         byOpponent: { rows: [], unnamed: null },
-        byElement: {
-            rows: drill.byElement.rows.slice(0, 2),
-            unnamed: null,
-        },
+        bySkill: { rows: [], plain: null },
+        byElement: { rows: drill.byElement.rows.slice(0, 2), unnamed: null },
     };
     assertEquals(
         drawOpened(small),
         `--MargoMeter-rows:${reading.visibleRows}`,
         "a shorter breakdown is drawn at the ranking's height rather than below it",
     );
+});
+
+Deno.test("a cut that only repeats the figure above it is not drawn at all", () => {
+    const { reading, drill } = openFirstRow();
+    const headings = (open: typeof drill) => {
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({
+            reading,
+            current: "damageTakenApplied",
+            side: "everyone" as const,
+            hasReaderSide: false,
+            shelf: [],
+            isOnShelf: false,
+            drill: open,
+            place: null,
+            isCollapsed: false,
+        });
+        const host = panel.element as FakeElement;
+        return getElementsWithin(host)
+            .filter((one) => one.className === "section-heading")
+            .map((one) => one.children[0]?.textContent);
+    };
+    const one = drill.byElement.rows[0];
+    assert(one !== undefined, "the fight cuts this figure by kind");
+    // One kind carrying the whole figure is that figure again under another heading.
+    const repeated = {
+        ...drill,
+        total: one.figure,
+        bySkill: { rows: [], plain: null },
+        byElement: { rows: [one], unnamed: null },
+    };
+    assertEquals(headings(repeated), [PANEL_WORDS.takenFrom], "so the cut of one is left undrawn");
+
+    const two = drill.byElement.rows.slice(0, 2);
+    assert(two.length === 2, "and the fight cuts it by more than one");
+    const split = {
+        ...drill,
+        total: two.reduce((sum, row) => sum + row.figure, 0),
+        bySkill: { rows: [], plain: null },
+        byElement: { rows: two, unnamed: null },
+    };
+    assertEquals(
+        headings(split),
+        [PANEL_WORDS.takenFrom, PANEL_WORDS.damageKind],
+        "while a cut that says more than the figure above it is drawn",
+    );
+});
+
+Deno.test("a blow nothing announced closes the skills, and says how many there were", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        // Three blows that were all blocked are three blows: the row is drawn at nothing, and a
+        // section that skipped it would say the combatant never swung.
+        drill: {
+            ...drill,
+            bySkill: { rows: [], plain: { blows: 3, figure: 0, fill: 0, shareText: "0%" } },
+        },
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const named = getTextsByClass(host, "row-name");
+    assert(named.includes(PANEL_WORDS.plainBlow), "the closing row stands in its own section");
+    const shares = getTextsByClass(host, "row-share");
+    assert(shares.includes("(0% · ×3)"), "carrying the count only its absence of a skill states");
 });

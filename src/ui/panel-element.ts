@@ -20,6 +20,7 @@ import type {
     PanelSides,
     PinnedRow,
     ShelfRow,
+    SkillRow,
     UnnamedRow,
 } from "@/src/ui/panel-reading.ts";
 import {
@@ -46,6 +47,7 @@ import {
     composeFigureText,
     composeSideCountsText,
     composeUndrawnText,
+    composeUsesText,
     COUNTED_NOUNS,
     getWordsForDamageKind,
     getWordsForHealthSource,
@@ -175,6 +177,8 @@ const MAXIMUM_ROWS = 20;
 const ROWS_WAITING = 11;
 /** What the statistics keep a cut inside. `captures/` states ten kinds in all, 2026-08-28. */
 const MAXIMUM_KINDS = 64;
+/** And what one combatant's own skills are kept inside: 81 names over `captures/`, 2026-08-29. */
+const MAXIMUM_SKILLS = 256;
 /** As wide as the sheet draws the detail window, which is what decides the side it opens on. */
 const TIP_WIDTH = 250;
 /** A bar is written to one place: a tenth of a 260-pixel row is a quarter of a pixel. */
@@ -220,6 +224,8 @@ interface RowReading {
     profession: string | null;
     /** Where it stands in the ranking, or null on a row that is a cut rather than a place. */
     rank: number | null;
+    /** How many times, where a row states a count. Null everywhere a figure is the whole of it. */
+    uses?: number | undefined;
 }
 
 /**
@@ -286,7 +292,10 @@ function composeRowElement(
     const value = composeElement(document, "span", CLASS.rowValue);
     value.textContent = composeFigureText(reading.figure);
     const share = composeElement(document, "span", CLASS.rowShare);
-    share.textContent = `(${reading.shareText})`;
+    // The count rides the same brackets as the share: they answer one question between them —
+    // how much of the figure, and how many times it was announced.
+    const counted = reading.uses === undefined ? "" : ` · ${composeUsesText(reading.uses)}`;
+    share.textContent = `(${reading.shareText}${counted})`;
     value.append(share);
     parts.push(name, value);
     for (const part of parts) element.append(part);
@@ -544,6 +553,24 @@ function composeCrumbElement(document: PanelDocument, said: string): PanelElemen
     return crumb;
 }
 
+/**
+ * Whether a cut says anything the figure above it does not.
+ *
+ * One row carrying the whole of a figure is that figure again under another heading, and three
+ * such sections in a row read as a panel that has run out of things to say. The list a level is
+ * **about** is always drawn; only the cross-sections beside it answer to this.
+ */
+function getIsRepetition(
+    rows: readonly { figure: number }[],
+    extra: { figure: number } | null,
+    total: number,
+): boolean {
+    assert(total >= 0, "a figure a cut stands under is never below nothing");
+    assert(rows.length >= 0, "and a cut holds the rows it holds, however few");
+    if (extra !== null) return rows.length === 0 && extra.figure === total;
+    return rows.length === 1 && (rows[0]?.figure ?? 0) === total;
+}
+
 /** A heading over one cut, with the total it stands over, so two lists never read as one. */
 function composeSectionElement(
     document: PanelDocument,
@@ -686,6 +713,62 @@ function composeOpponentSection(
     );
 }
 
+/**
+ * What a figure was done with: the skills an announcement named, and the row that closes them.
+ *
+ * Drawn on the one screen the protocol states it for. What hit you is named and what the other
+ * side chose never is, so a received screen has no such section — and the reading hands over an
+ * empty cut rather than this being said twice.
+ */
+function composeSkillSection(
+    document: PanelDocument,
+    list: PanelElement,
+    drill: DrillReading,
+    stated: { register: TipRegister; figure: string },
+): void {
+    const cut = drill.bySkill;
+    assert(cut.rows.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
+    if (cut.rows.length === 0 && cut.plain === null) return;
+    // Unless the one row counts something. `Zwykły cios 2 644 (100% · ×8)` says eight blows where
+    // the figure above says none, and how many times is the whole question a plain attack raises.
+    const counts = cut.plain !== null && cut.plain.blows > 0;
+    if (!counts && getIsRepetition(cut.rows, cut.plain, drill.total)) return;
+    list.append(composeSectionElement(document, PANEL_WORDS.skills, drill.total));
+    const share = PANEL_WORDS.shareOfFigure;
+    for (const row of cut.rows) {
+        const tip = {
+            register: stated.register,
+            key: `skill:${row.name}`,
+            figure: stated.figure,
+            share,
+        };
+        list.append(composeRowElement(document, composeSkillRowReading(row), null, tip));
+    }
+    if (cut.plain === null) return;
+    const tip = { register: stated.register, key: "skill:plain", figure: stated.figure, share };
+    const reading = {
+        ...composeUnnamedReading(cut.plain, PANEL_WORDS.plainBlow),
+        uses: cut.plain.blows,
+    };
+    list.append(composeRowElement(document, reading, null, tip));
+}
+
+/** A skill wears no hue either: what it is is said in the name the announcement carried. */
+function composeSkillRowReading(row: SkillRow): RowReading {
+    assert(row.name.length > 0, "a skill drawn is one an announcement named");
+    assert(row.figure >= 0, "and states a figure that is not below nothing");
+    return {
+        name: row.name,
+        figure: row.figure,
+        fill: row.fill,
+        shareText: row.shareText,
+        colour: getColourForProfession(null),
+        profession: null,
+        rank: null,
+        uses: row.uses,
+    };
+}
+
 function composeElementSection(
     document: PanelDocument,
     list: PanelElement,
@@ -698,6 +781,7 @@ function composeElementSection(
     // The reading is what says whether there is a cut at all: a screen without one hands over an
     // empty one rather than being named here a second time.
     if (cut.rows.length === 0 && cut.unnamed === null) return;
+    if (getIsRepetition(cut.rows, cut.unnamed, drill.total)) return;
     list.append(composeSectionElement(document, getWordsForKindCut(stated.metric), drill.total));
     const noun = getNounForScreen(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
@@ -733,6 +817,9 @@ function getRowsForDrill(drill: DrillReading, floor: number): number {
         // A section costs its rows, the part named for nobody, and the heading standing over them.
         needed += cut.rows.length + (cut.unnamed === null ? 0 : 1) + 1;
     }
+    if (drill.bySkill.rows.length > 0 || drill.bySkill.plain !== null) {
+        needed += drill.bySkill.rows.length + (drill.bySkill.plain === null ? 0 : 1) + 1;
+    }
     assert(needed >= 0, "a cut costs no less than nothing");
     return Math.max(needed, floor);
 }
@@ -753,6 +840,7 @@ function composeDrillElement(
     const figure = getWordsForScreen(view.current);
     assert(figure.length > 0, "an opened row states what its figure is a figure of");
     composeOpponentSection(document, list, drill, { metric: view.current, register, figure });
+    composeSkillSection(document, list, drill, { register, figure });
     composeElementSection(document, list, drill, { metric: view.current, register, figure });
     assert(drill.total >= 0, "a figure opened is never below nothing");
     // A person the reader is still reading, on a screen they did nothing on: the strips carry

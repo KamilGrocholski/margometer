@@ -539,6 +539,35 @@ export interface UnnamedRow {
     shareText: string;
 }
 
+/** One skill an announcement named, and what it did on the figure standing open. */
+export interface SkillRow {
+    name: string;
+    /** How many times it was announced. Only an announcement states a count. */
+    uses: number;
+    figure: number;
+    fill: number;
+    shareText: string;
+}
+
+/**
+ * What no announcement stood in front of, as the row that closes a skills section.
+ *
+ * It carries a count where the rows above it carry one, because that is the question a plain
+ * attack raises and the figure alone cannot answer it.
+ */
+export interface PlainRow {
+    blows: number;
+    figure: number;
+    fill: number;
+    shareText: string;
+}
+
+/** The cut by what a figure was done **with**, on the one screen the protocol states it for. */
+export interface SkillCut {
+    rows: SkillRow[];
+    plain: PlainRow | null;
+}
+
 /** One cut of an opened figure: its rows and its unnamed part come to the figure it cut. */
 export interface OpponentCut {
     rows: PanelRow[];
@@ -556,6 +585,11 @@ export interface DrillReading {
     name: string | null;
     profession: string | null;
     byOpponent: OpponentCut;
+    /**
+     * What the figure was done with, on the screen the protocol states it for. Empty on the
+     * others: what hit you is named and what the other side chose never is.
+     */
+    bySkill: SkillCut;
     byElement: ElementCut;
     total: number;
 }
@@ -694,6 +728,51 @@ function composeOpponentCut(
 }
 
 /**
+ * What a combatant announced before their blows, and what stood behind none.
+ *
+ * The closing row is the remainder rather than a second reading: every point dealt came from a
+ * blow, and a blow either carried an announcement or did not — so what the skills do not hold is
+ * what the plain ones did, and it is drawn with the count only an announcement's absence states.
+ */
+function composeSkillCut(
+    figures: CombatantFigures,
+    metric: PanelMetric,
+    total: number,
+): SkillCut {
+    assert(total >= 0, "a figure being cut is never below nothing");
+    if (metric !== "damageDealtApplied") return { rows: [], plain: null };
+    const stated = [...figures.damageDealtBySkill.values()]
+        .map((one) => ({ name: one.name, uses: one.uses, figure: one.figure }))
+        .filter((one) => one.figure > 0 || one.uses > 0);
+    stated.sort((one, other) => other.figure - one.figure || (one.name < other.name ? -1 : 1));
+    const held = stated.reduce((sum, one) => sum + one.figure, 0);
+    assert(held <= total, "what the skills came to is no more than the figure they are a cut of");
+    // Drawn even where it landed nothing: three blows that were all blocked are three blows, and
+    // a section that skipped them would say the combatant never swung.
+    const plain = total - held;
+    const hasPlain = plain > 0 || figures.blowsWithoutSkill > 0;
+    const figuresOnScreen = stated.map((one) => one.figure);
+    if (hasPlain) figuresOnScreen.push(plain);
+    const shares = composeShareTexts(figuresOnScreen, total);
+    const largest = getLargestFigure(figuresOnScreen);
+    return {
+        rows: stated.map((one, at) => ({
+            ...one,
+            fill: getFill(one.figure, largest),
+            shareText: shares[at] ?? "",
+        })),
+        plain: hasPlain
+            ? {
+                blows: figures.blowsWithoutSkill,
+                figure: Math.max(plain, 0),
+                fill: getFill(Math.max(plain, 0), largest),
+                shareText: shares[stated.length] ?? "",
+            }
+            : null,
+    };
+}
+
+/**
  * One row opened. Nothing is aggregated here either: the cut is the one the statistics hold, and
  * the share is against that row's own figure rather than against the fight's.
  */
@@ -719,6 +798,7 @@ export function composeDrillReading(
         name: held?.name ?? null,
         profession: held?.profession ?? null,
         byOpponent,
+        bySkill: composeSkillCut(figures, metric, total),
         byElement,
         total,
     };
