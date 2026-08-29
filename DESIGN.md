@@ -110,6 +110,9 @@ scale.
 - **Figures** — the reader's eye target. Full `text`, tabular where columns must align.
 - **Names** — same size, same weight, `text`.
 - **Labels and units** — `textQuiet`. A unit never competes with the number it qualifies.
+- **Text is centred by its box, not by its ink.** A row centres the line box exactly, and the ink
+  inside it sits 0.5px high, because a face's ascent is taller than its descent. `text-box` would
+  answer it and is rejected — it clips the descenders off a Polish nickname. **ADR 0014.**
 - **A count is spelled the way Polish spells it**, which is three ways, and that belongs to the
   words module rather than to a formatter.
 

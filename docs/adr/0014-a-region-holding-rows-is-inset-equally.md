@@ -71,3 +71,23 @@ every region to fix a gap under it, and the top insets were the ones already agr
 
 **Even out the section heading too.** Rejected: 4px over and 2px under is what binds a heading to
 the rows beneath it, and a heading equidistant from both sides reads as belonging to neither.
+
+**`text-box: trim-both cap alphabetic`, to centre the ink rather than the box.** The row's text box
+is already centred exactly — `.row-name` measures 14.844px tall at 1.578px from either edge of the
+18px row, Chrome 152 on 2026-08-29 — but the ink inside it is not: caps start 4.5px down and the
+baseline lands at 12.5px, so the cap band's centre is 8.5px against the row's 9.0px. The trim fixes
+that and nothing else does, being the only instrument independent of the face `system-ui` resolves
+to: with it the box measures 8.0px at 5.0px down, and the cap band's centre is 9.0px exactly.
+
+Rejected, and the reason is not the 0.5px. `.row-name` carries `overflow: hidden` for its ellipsis,
+and a trimmed box ends at the baseline: `clientHeight` 8 against `scrollHeight` 15, so 7px is
+clipped. Rendered on the same page, `Wyjagpy Jgpq` came out as `v lapa` — every descender cut flat.
+`overflow-y: visible` is no escape, because beside `overflow-x: hidden` it computes to `auto`.
+
+Applying it to `.row-rank` and `.row-value` alone, which carry no `overflow`, was rejected with it:
+it centres two cells and leaves the name 0.5px high, trading one offset the whole row shares for a
+misalignment inside a single row.
+
+It would also move the cosmetic floor — Chrome 133, Firefox 154, Safari 18.2 (browser-compat-data,
+read 2026-08-29) against a floor standing at Chrome 121 and Firefox 97 — which `AGENTS.md` puts
+under Ask first. That cost was never reached: the clipping settles it.
